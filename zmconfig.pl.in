@@ -602,21 +602,18 @@ my %options_hash = map { ( $_->{name}, $_ ) } @options;
 
 #$config_file = "zmconfig.txt" if ( !$config_file );
 
-if ( !-s $config_file )
+foreach my $option ( @options )
 {
-	foreach my $option ( @options )
+	if ( $option->{default} )
 	{
-		if ( $option->{default} )
-		{
-			$option->{value} = $option->{default}
-		}
-		else
-		{
-			$option->{value} = '';
-		}
+		$option->{value} = $option->{default}
+	}
+	else
+	{
+		$option->{value} = '';
 	}
 }
-else
+if ( -s $config_file )
 {
 	loadOptions();
 }
@@ -746,6 +743,7 @@ sub loadOptions
 	print( "Loading '$config_file'\n" );
 	open( CONFIG, "<$config_file" ) or die( "Can't open options file: $!" );
 	local $/ = "\n\n";
+	my $rewrite_options = undef;
 	foreach my $section ( <CONFIG> )
 	{
 		my ( $name, $value, $description ) = $section =~ /Name: (.*)\nValue: (.*)\nDescription: (.*)\n/ms;
@@ -753,11 +751,24 @@ sub loadOptions
 		my $option = $options_hash{$name};
 		if ( !$option )
 		{
-			warn( "No option '$name' found, ignoring" );
+			warn( "No option '$name' found, removing" );
+			$rewrite_options = !undef;
+			next;
 		}
-		$option->{value} = $value;
+		if ( defined($value) )
+		{
+			$option->{value} = $value;
+		}
+		else
+		{
+			$option->{value} = $option->{default};
+		}
 	}
 	close( CONFIG );
+	if ( $rewrite_options )
+	{
+		saveOptions();
+	}
 }
 
 sub breaktext

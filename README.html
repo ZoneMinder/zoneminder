@@ -1856,6 +1856,23 @@ added to support this.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – Interaction between the web pages and the streaming
+daemons and other utilities has previously been not as secure as it could have
+been and open to possible abuse. This has now been addressed and zms and zmu
+both now use (optional) authentication strings to validate access. You need to
+have openssl installed so that the MD5 libraries can be linked. See the
+ZM_AUTH_METHOD and ZM_AUTH_SECRET configuration items for further details.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – The maximum daemon restart delay in zmdc.pl was
+previously fixed at 15 minutes. This may have been too long for some users, for
+example if power has failed to a camera then a 15 minute delay on restoration
+is not desirable. This maximum is now configurable via the ZM_MAX_RESTART_DELAY
+configuration item.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE – The web files have been changed to use the newer style autoglobals,
 e.g. $_SERVER rather than $HTTP_SERVER_VARS. This should enable use on PHP5
 without any modification.</p>
@@ -1864,15 +1881,16 @@ without any modification.</p>
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FIX – The use of two database users has been somewhat redundant
 for a number of versions now. In 1.20.0 there is only one database user. The
-zmupdate.pl script unfortunately cannot handle the migration so you should make
-a note of the username and password of the privileged user and then re-enter
-that using zmconfig.pl when rebuilding ZM.</p>
+zmupdate.pl script unfortunately cannot handle the migration as it needs to
+access the database so you should make a note of the username and password of
+the privileged user and then re-enter that using zmconfig.pl when rebuilding
+ZM.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FIX – The zmupdate.pl script previously held a database connection
-open for days at a time but only used to use it periodically. This has now been
-changed to be only open while in use.</p>
+</span></span>FIX – The zmupdate.pl script previously held a database
+connection open for days at a time but only used to use it periodically. This
+has now been changed to be only open while in use.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1916,8 +1934,20 @@ corrected.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – Some network cameras send data in a format which was previously
+not recognised by the regular expression engine. This has been modified to
+allow these cameras (NC1000 etc) to function with ZoneMinder.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FIX – A bug in event streaming when events are of very short
 duration has been fixed. Thanks to forum user ‘reza’ for spotting this one.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – A possible exploit in the login page was identified and has
+now been fixed. Thanks again to forum user ‘reza’  highlighting this problem
+also.</p>
 
 <h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>8.2.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
@@ -2044,7 +2074,8 @@ progress single isolated alarmed frames will still prolong it and the count
 only applies to the initial frames that would cause the event.</p>
 
 <h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>8.3.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release 1.19.4</h2>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
+1.19.4</h2>
 
 <p class=MsoPlainText>Language fixes and updates.</p>
 
@@ -2079,8 +2110,8 @@ chance of errors caused by multiple simultaneous image generation.</p>
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE – The generated MIME types when creating streamed video
-were previously assigned by zms depending on which of a limited number of
-output formats was specified. This has now been changed so that the ffmpeg libavformat
+were previously assigned by zms depending on which of a limited number of output
+formats was specified. This has now been changed so that the ffmpeg libavformat
 library itself now generates these identifiers. The consequence of this is that
 many more video formats supported by your version of ffmpeg should now be
 available via zms.</p>
@@ -2203,10 +2234,10 @@ and limit filter results now means it is possible to create a filter that will
 automatically clear out old events once disk usage exceeds a certain value.
 Included in the database schemas for both new installations and upgrades is a
 sample filter called PurgeWhenFull which can be used to do this. It is
-initially not set to do anything automatically so if you want to use it, you
-should load it into the filter selection window, modify it to your taste and
-then save it, selecting ‘auto delete’. Please note that filters created using
-disk related terms to delete events should always contain a limit term also
+initially not set to do anything automatically so if you want to use it, you should
+load it into the filter selection window, modify it to your taste and then save
+it, selecting ‘auto delete’. Please note that filters created using disk
+related terms to delete events should always contain a limit term also
 otherwise it is possible for all events to match and thus be deleted. Using a
 limit ensures that only a small number are affected at any one time.</p>
 
@@ -2218,16 +2249,17 @@ filter is saved. Note that for security reasons this cannot be just any
 arbitrary command but must be readable and executable by your web server
 effective user. The script or program you specify here will be executed in the
 events root directory once for each event and will be passed one parameter
-containing the relative path to the event directory. This will normally be of the
-form <i>&lt;MonitorName&gt;/&lt;EventId&gt;</i> so it it possible to determine
-both the monitor and event in question from the path. Note also that a flag is
-set per event as with other auto actions indicating that an executable script
-has been run on that event and so to exclude it from subsequent matches.
-However if you have several filters all with executable scripts you will find
-that only the first gets executed as the flag will be set following successful
-completion and so no further scripts will be run on that event. Successful
-completion is indicated by the script returning a zero exit status, any other
-status indicates an error and the <i>executed </i>flag will not be set.</p>
+containing the relative path to the event directory. This will normally be of
+the form <i>&lt;MonitorName&gt;/&lt;EventId&gt;</i> so it it possible to
+determine both the monitor and event in question from the path. Note also that
+a flag is set per event as with other auto actions indicating that an
+executable script has been run on that event and so to exclude it from
+subsequent matches. However if you have several filters all with executable
+scripts you will find that only the first gets executed as the flag will be set
+following successful completion and so no further scripts will be run on that
+event. Successful completion is indicated by the script returning a zero exit status,
+any other status indicates an error and the <i>executed </i>flag will not be
+set.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2272,7 +2304,8 @@ maximum size of the destination. Mark has also askedme to include the following
 notice relating to this, which I am very happy to do.</p>
 
 <p class=Command style='margin-left:49.65pt'>&quot;This issue was discovered by
-Mark J Cox &lt;<a href="mailto:mark@awe.com">mark@awe.com</a>&gt;.&nbsp; The Common<br>
+Mark J Cox &lt;<a href="mailto:mark@awe.com">mark@awe.com</a>&gt;.&nbsp; The
+Common<br>
 Vulnerabilities and Exposures project (cve.mitre.org) has assigned the<br>
 name CAN-2004-0227 to this issue.&quot;</p>
 
@@ -2351,7 +2384,8 @@ pass in a username and password to zmu when just querying a device as this was
 slightly broken and was unnecessary anyway.</p>
 
 <h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>8.7.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release 1.19.0</h2>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
+1.19.0</h2>
 
 <p class=MsoPlainText>Some major enhancements and bugfixes.</p>
 
@@ -2410,10 +2444,10 @@ detection activity is taking place and normal frame records are kept otherwise.<
 </span></span>Event List Ordering and Scrolling. It was previously the case
 that the ‘Next’ and ‘Prev’ buttons on the event view did not always go to the
 event that was expected and sometimes disappeared altogether. This behaviour
-has now been modified and these buttons will now take you to the next and
-previous events in the list which the event was selected from. Thus if the list
-was sorted on ascending scores then the ‘next’ event is the one below which has
-a higher score etc. A possibly counterintuitive side effect of this is that as
+has now been modified and these buttons will now take you to the next and previous
+events in the list which the event was selected from. Thus if the list was
+sorted on ascending scores then the ‘next’ event is the one below which has a
+higher score etc. A possibly counterintuitive side effect of this is that as
 the default list is sorted by descending time the ‘next’ event is the one below
 in the list which will actually be earlier and the ‘previous’ event is later.
 So long as you remember that next and prev refer to the order of the list you
@@ -2542,27 +2576,27 @@ several major performance improvements in various areas. The first of these is
 that image processing for YUV style input formats are now pretty much handled
 at almost the same speed as native RGB formats. As this is what the capture
 daemons spend most of their time doing, the improvement helps reduce the amount
-of CPU time by a significant degree. Application of these changes also
-highlighted a bug that had existed previously in YUV conversion which caused
-incorrect conversions for certain values. The other two main areas of
-optimisation are in the Blend and Delta image functions. Normally when doing
-motion detection the analysis daemons spend about 99% of their time comparing a
-captured image with the reference image and then blending the two ready for the
-next capture. Both of these functions have been significantly improved. In
-previous versions there were two options for calculating image deltas (or
-differences), a simple RGB average and a Y channel calculation. Historically
-the RGB one was faster however with the optimisations the Y channel calculation
-(which is more accurate) is now 15-20% faster and so has become the default
-though you can select either method by the ZM_Y_IMAGE_DELTAS configuration
-option. A new method of image blending has also been added which is up to 6
-times faster than the old one which is retained for compatibility and because
-in some unusual circumstances it may still be more accurate (see the
-ZM_FAST_IMAGE_BLENDS option for details). Altogether these optimisations (along
-with other common sense ones such as not maintaining a reference image in
-‘Record’ mode where it is not used) significantly reduce the CPU load for most
-systems, especially when alarms are not in progress. If an alarm is detected
-then a lot of file system and database activity takes place which is limited by
-the speed of these resources so the gain will not be as much.</p>
+of CPU time by a significant degree. Application of these changes also highlighted
+a bug that had existed previously in YUV conversion which caused incorrect
+conversions for certain values. The other two main areas of optimisation are in
+the Blend and Delta image functions. Normally when doing motion detection the
+analysis daemons spend about 99% of their time comparing a captured image with
+the reference image and then blending the two ready for the next capture. Both
+of these functions have been significantly improved. In previous versions there
+were two options for calculating image deltas (or differences), a simple RGB
+average and a Y channel calculation. Historically the RGB one was faster
+however with the optimisations the Y channel calculation (which is more
+accurate) is now 15-20% faster and so has become the default though you can
+select either method by the ZM_Y_IMAGE_DELTAS configuration option. A new
+method of image blending has also been added which is up to 6 times faster than
+the old one which is retained for compatibility and because in some unusual
+circumstances it may still be more accurate (see the ZM_FAST_IMAGE_BLENDS
+option for details). Altogether these optimisations (along with other common
+sense ones such as not maintaining a reference image in ‘Record’ mode where it
+is not used) significantly reduce the CPU load for most systems, especially
+when alarms are not in progress. If an alarm is detected then a lot of file
+system and database activity takes place which is limited by the speed of these
+resources so the gain will not be as much.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2698,9 +2732,9 @@ not used if not present.</p>
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Add Max Alarm Threshold. Previously the alarm threshold (which is
 the amount a pixel has to differ from it’s counterpart in the reference image)
-existed only in a ‘minimum’ form meaning pixels that were more different
-matched. A maximum has now been added to assist in screening out large changes
-in brightness. In addition to this a number of new consistency checks have been
+existed only in a ‘minimum’ form meaning pixels that were more different matched.
+A maximum has now been added to assist in screening out large changes in
+brightness. In addition to this a number of new consistency checks have been
 added to the zone definition form to try and prevent bogus or invalid settings.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
@@ -2721,10 +2755,10 @@ should assist in tuning the zones to provide optimal motion detection.</p>
 during an event have been renamed from capture-???.jpg to ???-capture, and from
 analyse-???.jpg to ???-analyse.jpg. This is to allow all images (including
 diagnostic ones) to be associated with the frame sequence number more easily.
-This means that old events will no longer be able to be viewed as the wrong
-image will be being searched for. To avoid this you can use the new
-‘zmupdate.pl’ utility to rename all your old images by doing ‘perl zmupdate.pl
-–r’ as an appropriately privileged or root user.</p>
+This means that old events will no longer be able to be viewed as the wrong image
+will be being searched for. To avoid this you can use the new ‘zmupdate.pl’
+utility to rename all your old images by doing ‘perl zmupdate.pl –r’ as an
+appropriately privileged or root user.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2857,11 +2891,11 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Run States. Instead of the old ‘start/stop’ links the current
-system state is now a link which takes you to a dialog which allows you to start,
-restart or stop the system. You can also save the current run state which
-basically takes a snapshot of the current monitor functions and saves that. You
-can then reselect that state later which basically involves resetting the
-monitors to have these saved functions and then doing a system restart.</p>
+system state is now a link which takes you to a dialog which allows you to
+start, restart or stop the system. You can also save the current run state
+which basically takes a snapshot of the current monitor functions and saves
+that. You can then reselect that state later which basically involves resetting
+the monitors to have these saved functions and then doing a system restart.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3023,8 +3057,8 @@ easier navigation.</p>
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Archive images optional. Normally when an alarm is detected a set
-of raw images is saved along with a mirror set of images containing motion highlighting.
-This second set can now optionally be disabled.</p>
+of raw images is saved along with a mirror set of images containing motion
+highlighting. This second set can now optionally be disabled.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3111,8 +3145,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Web configuration. Following many requests and to make ZoneMinder
 easier to administer the configuration system has been changed slightly. You
-should now still run zmconfig.pl to specify an initial configuration but you
-now only need to answer the first few questions to give a core set of options
+should now still run zmconfig.pl to specify an initial configuration but you now
+only need to answer the first few questions to give a core set of options
 including the database options. The remainder of configuration options can then
 be ignored to start with and all but the core options will be written to the
 database. You can then view and modify these options from the web interface and
@@ -3286,9 +3320,9 @@ modify the events directory to reflect this. This has now been fixed.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>OPT_MPEG bug. A bug was reported (by Fernando Diaz) where the
-results of the ZM_OPT_MPEG configuration variable was not correctly imported
-into the scripts. This now happens as intended.</p>
+</span></span>OPT_MPEG bug. A bug was reported (by Fernando Diaz) where the results
+of the ZM_OPT_MPEG configuration variable was not correctly imported into the
+scripts. This now happens as intended.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3394,9 +3428,9 @@ notification emails. Use %EV% especially with care!</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Fixed possible motion detection bug – I found a few double declared
-local variables left over from the rewrite. This may have affected the motion
-detection algorithm. Fixed now anyway.</p>
+</span></span>Fixed possible motion detection bug – I found a few double
+declared local variables left over from the rewrite. This may have affected the
+motion detection algorithm. Fixed now anyway.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3483,9 +3517,9 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 </span></span>Source file restructuring - The source files have been broken up
 and renamed extensively to support the first stage of the code being
 straightened out. Likewise the class structure has been rationalised somewhat.
-The php file names have also changed in some cases so it might be best to
-delete all your php and css files from the zone minder install directory first
-as the old ones won't be overwritten and will be left behind.</p>
+The php file names have also changed in some cases so it might be best to delete
+all your php and css files from the zone minder install directory first as the
+old ones won't be overwritten and will be left behind.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3577,8 +3611,9 @@ run when a monitor is active and so actually potentially generating alarms.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>zmdc short statuses – Removed the logging of the short status values
-that zmdc.pl returns to it’s clients which had been clogging up the log file.</p>
+</span></span>zmdc short statuses – Removed the logging of the short status
+values that zmdc.pl returns to it’s clients which had been clogging up the log
+file.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3714,9 +3749,9 @@ up correctly in zmcfg.h.</p>
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Zmwatch now works on image delay and not fps - Previously the
-zmwatch daemon detected capture daemon failure by trying to use the FPS setting.
-This was imprecise and prone to false readings. It now uses the time delay
-since the last captured image.</p>
+zmwatch daemon detected capture daemon failure by trying to use the FPS
+setting. This was imprecise and prone to false readings. It now uses the time
+delay since the last captured image.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3733,8 +3768,7 @@ stopped working properly due to images not being generated. This is now fixed.</
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Revamped the console window slightly - The console window has now
-been reformatted slightly to give more and better information including server
-load.</p>
+been reformatted slightly to give more and better information including server load.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3967,17 +4001,17 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 image data is held in shared memory in a very simple format. In theory you
 could use the capture daemon to gab the images and other things could read them
 from memory or the analysis daemon could read images from elsewhere. Either way
-this should be done through an API, and would need a library I think. Also the
-zmu utility could probably do a whole lot more to enable other things to manage
+this should be done through an API, and would need a library I think. Also the zmu
+utility could probably do a whole lot more to enable other things to manage
 when the daemons become active etc.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Allow ZoneMinder to 'train' itself by allowing the user to select
-events that are considered important and to discard those that should be
-ignored. ZoneMinder will interpolate, add a bit of magic, and recommend
-settings that will support this selection automatically thereafter. The hooks
-for this are already in to some extent.</p>
+events that are considered important and to discard those that should be ignored.
+ZoneMinder will interpolate, add a bit of magic, and recommend settings that
+will support this selection automatically thereafter. The hooks for this are
+already in to some extent.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;

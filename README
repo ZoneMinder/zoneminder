@@ -1,4 +1,4 @@
-  16/01/05        ZoneMinder 1.20.0 README                 1
+   19/01/05        ZoneMinder 1.20.0 README                1
                                
                       ZoneMinder v1.20.0
 
@@ -1837,6 +1837,21 @@ subsets of monitors to be viewed independently.
 o    FEATURE - A generic external triggering interface has
 been included via the zmtrigger.pl script. A new monitor
 function `Nodect' has been added to support this.
+  o     FEATURE  - Interaction between the web pages  and  the
+    streaming daemons and other utilities has previously been not
+    as secure as it could have been and open to possible abuse.
+    This  has now been addressed and zms and zmu both now  use
+    (optional) authentication strings to validate access. You need
+    to have openssl installed so that the MD5 libraries can be
+    linked.   See   the   ZM_AUTH_METHOD  and   ZM_AUTH_SECRET
+    configuration items for further details.
+    
+o    FEATURE - The maximum daemon restart delay in zmdc.pl was
+previously fixed at 15 minutes. This may have been too long
+for some users, for example if power has failed to a camera
+then a 15 minute delay on restoration is not desirable. This
+maximum is now configurable via the ZM_MAX_RESTART_DELAY
+configuration item.
   o     FEATURE - The web files have been changed to  use  the
     newer   style  autoglobals,  e.g.  $_SERVER  rather   than
     $HTTP_SERVER_VARS. This should enable use on PHP5 without any
@@ -1845,9 +1860,10 @@ function `Nodect' has been added to support this.
   o     FIX  - The use of two database users has been somewhat
     redundant for a number of versions now. In 1.20.0 there is
     only one database user. The zmupdate.pl script unfortunately
-    cannot handle the migration so you should make a note of the
-    username and password of the privileged user and then re-enter
-    that using zmconfig.pl when rebuilding ZM.
+    cannot handle the migration as it needs to access the database
+    so you should make a note of the username and password of the
+    privileged user and then re-enter that using zmconfig.pl when
+    rebuilding ZM.
     
   o    FIX - The zmupdate.pl script previously held a database
     connection open for days at a time but only used to use it
@@ -1879,9 +1895,17 @@ o    FIX - There was a problem with the interaction between
 monitor statuses and the status web window. This meant that
 sometimes the window did not pop to the front, or play the
 alarm sound, properly. This has been corrected.
-  o     FIX - A bug in event streaming when events are of very
-    short duration has been fixed. Thanks to forum user `reza' for
-    spotting this one.
+  o     FIX - Some network cameras send data in a format which
+    was  previously  not recognised by the regular  expression
+    engine. This has been modified to allow these cameras (NC1000
+    etc) to function with ZoneMinder.
+    
+o    FIX - A bug in event streaming when events are of very
+short duration has been fixed. Thanks to forum user `reza' for
+spotting this one.
+  o    FIX - A possible exploit in the login page was identified
+    and  has now been fixed. Thanks again to forum user `reza'
+    highlighting this problem also.
     
 
 8.2. Release 1.19.5

@@ -40,10 +40,10 @@ protected:
 	unsigned int	height;
 	unsigned int	palette;
 	unsigned int	colours;
-	unsigned int	brightness;
-	unsigned int	hue;
-	unsigned int	colour;
-	unsigned int	contrast;
+	int				brightness;
+	int				hue;
+	int				colour;
+	int				contrast;
 	bool			capture;
 
 public:

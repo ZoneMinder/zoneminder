@@ -81,10 +81,10 @@ protected:
 	unsigned int    height;		// Normally the same as the camera, but not if partly rotated
 	RunMode	run_mode;			// Whether the monitor is running continuously or is triggered	
 	Orientation	orientation;	// Whether the image has to be rotated at all
-	unsigned int	brightness;	// The statically saved brightness of the camera
-	unsigned int	contrast;	// The statically saved contrast of the camera
-	unsigned int	hue;		// The statically saved hue of the camera
-	unsigned int	colour;		// The statically saved colour of the camera
+	int		brightness;			// The statically saved brightness of the camera
+	int		contrast;			// The statically saved contrast of the camera
+	int		hue;				// The statically saved hue of the camera
+	int		colour;				// The statically saved colour of the camera
 	char	event_prefix[64];	// The prefix applied to event names as they are created
 	char	label_format[64];	// The format of the timestamp on the images
 	Coord	label_coord;		// The coordinates of the timestamp on the images

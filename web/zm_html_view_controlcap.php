@@ -196,7 +196,7 @@ if ( $tab != 'zoom' )
 {
 ?>
 <input type="hidden" name="new_control[CanZoom]" value="<?= $new_control['CanZoom'] ?>">
-<input type="hidden" name="new_control[CanAutoZoom]" value="<?= $new_control['CanAutoZoom'] ?>">
+<!--<input type="hidden" name="new_control[CanAutoZoom]" value="<?= $new_control['CanAutoZoom'] ?>">-->
 <input type="hidden" name="new_control[CanZoomAbs]" value="<?= $new_control['CanZoomAbs'] ?>">
 <input type="hidden" name="new_control[CanZoomRel]" value="<?= $new_control['CanZoomRel'] ?>">
 <input type="hidden" name="new_control[CanZoomCon]" value="<?= $new_control['CanZoomCon'] ?>">
@@ -356,7 +356,7 @@ switch ( $tab )
 	{
 ?>
 <tr><td align="left" class="text"><?= $zmSlangCanZoom ?></td><td align="left" class="text"><input type="checkbox" name="new_control[CanZoom]" value="1" class="form-noborder"<?php if ( !empty($new_control['CanZoom']) ) { ?> checked<?php } ?>></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangCanAutoZoom ?></td><td align="left" class="text"><input type="checkbox" name="new_control[CanAutoZoom]" value="1" class="form-noborder"<?php if ( !empty($new_control['CanAutoZoom']) ) { ?> checked<?php } ?>></td></tr>
+<!--<tr><td align="left" class="text"><?= $zmSlangCanAutoZoom ?></td><td align="left" class="text"><input type="checkbox" name="new_control[CanAutoZoom]" value="1" class="form-noborder"<?php if ( !empty($new_control['CanAutoZoom']) ) { ?> checked<?php } ?>></td></tr>-->
 <tr><td align="left" class="text"><?= $zmSlangCanZoomAbs ?></td><td align="left" class="text"><input type="checkbox" name="new_control[CanZoomAbs]" value="1" class="form-noborder"<?php if ( !empty($new_control['CanZoomAbs']) ) { ?> checked<?php } ?>></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangCanZoomRel ?></td><td align="left" class="text"><input type="checkbox" name="new_control[CanZoomRel]" value="1" class="form-noborder"<?php if ( !empty($new_control['CanZoomRel']) ) { ?> checked<?php } ?>></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangCanZoomCon ?></td><td align="left" class="text"><input type="checkbox" name="new_control[CanZoomCon]" value="1" class="form-noborder"<?php if ( !empty($new_control['CanZoomCon']) ) { ?> checked<?php } ?>></td></tr>

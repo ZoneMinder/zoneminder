@@ -714,6 +714,7 @@ sub sendEmail
 			From =>ZM_FROM_EMAIL,
 			To=>ZM_EMAIL_ADDRESS,
 			Subject=>$subject,
+			Type=>(($body=~/<html>/)?'text/html':'text/plain'),
 			Data=>$body
 		);
 
@@ -770,6 +771,7 @@ sub sendMessage
 			From =>ZM_FROM_EMAIL,
 			To=>ZM_MESSAGE_ADDRESS,
 			Subject=>$subject,
+			Type=>(($body=~/<html>/)?'text/html':'text/plain'),
 			Data=>$body
 		);
 

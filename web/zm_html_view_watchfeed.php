@@ -23,7 +23,8 @@ if ( !canView( 'Stream' ) )
 	$view = "error";
 	return;
 }
-if ( !isset($mode) )
+
+if ( empty($mode) )
 {
 	if ( canStream() )
 		$mode = "stream";
@@ -40,7 +41,10 @@ if ( $mode != "stream" )
 {
 	// Prompt an image to be generated
 	chdir( ZM_DIR_IMAGES );
-	$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -i" ) );
+	$command = ZMU_COMMAND." -m $mid -i";
+	if ( !empty($scale) && $scale < 100 )
+		$command .= " -S $scale";
+	$status = exec( escapeshellcmd( $command ) );
 	chdir( '..' );
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
 		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
@@ -80,28 +84,24 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 </head>
 <body>
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
+<form name="view_form" method="get" action="<?= $PHP_SELF ?>" target="_parent">
+<input type="hidden" name="view" value="watch">
+<input type="hidden" name="mode" value="<?= $mode ?>">
+<input type="hidden" name="mid" value="<?= $mid ?>">
 <tr>
 <td width="25%" align="left" class="text"><b><?= $monitor['Name'] ?></b></td>
-<?php if ( $mode == "stream" ) { ?>
-<form name="view_form" method="get" action="<?= $PHP_SELF ?>" target="_parent">
 <td align="center" valign="middle" class="text">
-<input type="hidden" name="view" value="watch">
-<input type="hidden" name="mid" value="<?= $mid ?>">
 <?= $zmSlangScale ?>: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </td>
-</form>
-<?php } else { ?>
-<td align="center" class="text">&nbsp;</td>
-<?php } ?>
 <?php if ( canView( 'Monitors' ) && $monitor['Type'] == "Local" ) { ?>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor['Id'] ?>', 'zmSettings<?= $monitor['Id'] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );"><?= $zmSlangSettings ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=still&mid=<?= $mid ?>"><?= $zmSlangStills ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=still&mid=<?= $mid ?>&scale=<?= $scale ?>"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=stream&mid=<?= $mid ?>"><?= $zmSlangStream ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=stream&mid=<?= $mid ?>&scale=<?= $scale ?>"><?= $zmSlangStream ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
@@ -127,10 +127,11 @@ if ( $mode == "stream" )
 else
 {
 ?>
-<tr><td colspan="5" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></td></tr>
+<tr><td colspan="5" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></td></tr>
 <?php
 }
 ?>
+</form>
 </table>
 </body>
 </html>

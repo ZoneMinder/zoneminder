@@ -45,7 +45,7 @@ window.focus();
 </script>
 </head>
 <frameset rows="<?= reScale($monitor['Height'],$height_scale)+32 ?>,16,*" border="1" frameborder="no" framespacing="0">
-<frame src="<?= $PHP_SELF ?>?view=watchfeed&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
+<frame src="<?= $PHP_SELF ?>?view=watchfeed&&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
 <frame src="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
 <frame src="<?= $PHP_SELF ?>?view=watchevents&max_events=<?= MAX_EVENTS ?>&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
 </frameset>

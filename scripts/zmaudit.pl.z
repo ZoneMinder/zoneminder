@@ -88,7 +88,7 @@ my $delay = 0;
 sub usage
 {
 	print( "
-Usage: zme.pl [-r,-report|-y,-yes] [-d <seconds>,-delay=<seconds>]
+Usage: zmaudit.pl [-r,-report|-y,-yes] [-d <seconds>,-delay=<seconds>]
 Parameters are :-
 -r, --report                    - Just report don't actually do anything
 -y, --yes                       - Just do all actions without confirmation

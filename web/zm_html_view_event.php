@@ -49,7 +49,7 @@ $event = mysql_fetch_assoc( $result );
 parseSort();
 parseFilter();
 
-$sql = "select * from Events as E where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[$sort_field]."'$filter_sql$mid_sql order by $sort_column ".($sort_order=='asc'?'desc':'asc');
+$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[$sort_field]."'$filter_sql$mid_sql order by $sort_column ".($sort_order=='asc'?'desc':'asc');
 $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
@@ -62,7 +62,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 	}
 }
 
-$sql = "select * from Events as E where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[$sort_field]."'$filter_sql$mid_sql order by $sort_column $sort_order";
+$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[$sort_field]."'$filter_sql$mid_sql order by $sort_column $sort_order";
 $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );

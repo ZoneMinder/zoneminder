@@ -32,6 +32,7 @@ void Usage()
 	fprintf( stderr, "                                   ring buffer index if given\n" );
 	fprintf( stderr, "  -r, --read_index               : Output ring buffer read index\n" );
 	fprintf( stderr, "  -w, --write_index              : Output ring buffer write index\n" );
+	fprintf( stderr, "  -e, --event                    : Output last event index\n" );
 	fprintf( stderr, "  -f, --fps                      : Output last Frames Per Second captured reading\n" );
 	fprintf( stderr, "  -z, --zones                    : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n" );
 	fprintf( stderr, "  -h, --help - This screen\n" );
@@ -48,6 +49,7 @@ int main( int argc, char *argv[] )
 		{"state", 0, 0, 's'},
 		{"read_index", 0, 0, 'r'},
 		{"write_index", 0, 0, 'w'},
+		{"event", 0, 0, 'e'},
 		{"fps", 0, 0, 'f'},
 		{"zones", 0, 0, 'z'},
 		{"help", 0, 0, 'h'},
@@ -55,7 +57,7 @@ int main( int argc, char *argv[] )
 	};
 
 	int id = 1;
-	enum { BOGUS, STATE, IMAGE, TIME, READ_IDX, WRITE_IDX, FPS, ZONES } function = BOGUS;
+	enum { BOGUS, STATE, IMAGE, TIME, READ_IDX, WRITE_IDX, EVENT, FPS, ZONES } function = BOGUS;
 	int image_idx = -1;
 	while (1)
 	{
@@ -96,6 +98,9 @@ int main( int argc, char *argv[] )
 				break;
 			case 'w':
 				function = WRITE_IDX;
+				break;
+			case 'e':
+				function = EVENT;
 				break;
 			case 'f':
 				function = FPS;
@@ -170,6 +175,10 @@ int main( int argc, char *argv[] )
 		else if ( function == WRITE_IDX )
 		{
 			printf( "%d\n", monitor->GetLastWriteIndex() );
+		}
+		else if ( function == EVENT )
+		{
+			printf( "%d\n", monitor->GetLastEvent() );
 		}
 		else if ( function == FPS )
 		{

@@ -604,6 +604,7 @@ protected:
 		State state;
 		int last_write_index;
 		int last_read_index;
+		int last_event;
 		time_t *timestamps;
 		unsigned char *images;
 	} SharedImages;
@@ -623,6 +624,7 @@ public:
 	time_t GetTimestamp( int index=-1 ) const;
 	unsigned int GetLastReadIndex() const;
 	unsigned int GetLastWriteIndex() const;
+	unsigned int GetLastEvent() const;
 	double GetFPS() const;
 
 	void CheckFunction();

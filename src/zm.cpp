@@ -1460,6 +1460,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 		shared_images->state = IDLE;
 		shared_images->last_write_index = image_buffer_count;
 		shared_images->last_read_index = image_buffer_count;
+		shared_images->last_event = 0;
 	}
 	shared_images->timestamps = (time_t *)(shm_ptr+sizeof(SharedImages));
 	shared_images->images = (unsigned char *)(shm_ptr+sizeof(SharedImages)+(image_buffer_count*sizeof(time_t)));
@@ -1591,6 +1592,11 @@ unsigned int Monitor::GetLastReadIndex() const
 unsigned int Monitor::GetLastWriteIndex() const
 {
 	return( shared_images->last_write_index );
+}
+
+unsigned int Monitor::GetLastEvent() const
+{
+	return( shared_images->last_event );
 }
 
 double Monitor::GetFPS() const
@@ -1775,6 +1781,7 @@ bool Monitor::Analyse()
 				if ( image_count-last_alarm_count > post_event_count )
 				{
 					Info(( "%s: %03d - Left alarm state (%d) - %d(%d) images\n", name, image_count, event->id, event->frames, event->alarm_frames ));
+					shared_images->last_event = event->id;
 					delete event;
 					shared_images->state = state = IDLE;
 				}

@@ -199,7 +199,7 @@ function applyZoneUnits( Form )
 	var max_width = <?= $monitor['Width']-1 ?>;
 	var max_height = <?= $monitor['Height']-1 ?>;
 
-	if ( Form.elements['new_zone[units]'].value == 'Pixels' )
+	if ( Form.elements['new_zone[Units]'].value == 'Pixels' )
 	{
 		toPixels( Form.elements['new_zone[LoX]'], max_width );
 		toPixels( Form.elements['new_zone[LoY]'], max_height );
@@ -259,7 +259,7 @@ function limitFilter( Field )
 
 function checkBounds( Field, fieldText, minValue, maxValue )
 {
-	if ( document.zone_form.new_units.value == "Percent" )
+	if ( document.zone_form.elements['new_zone[Units]'].value == "Percent" )
 	{
 		minValue = 0;
 		maxValue = 100;

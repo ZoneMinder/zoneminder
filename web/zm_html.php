@@ -1202,7 +1202,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <tr<?php if ( $bgcolor ) echo ' bgcolor="'.$bgcolor.'"'; ?> >
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Id]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Name]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
-<td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($row[Time]) ) ?></td>
+<td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($row[StartTime]) ) ?></td>
 <td align="center" class="text"><?= $row[Length] ?></td>
 <td align="center" class="text"><?= $row[Frames] ?></td>
 <td align="center" class="text"><?= $row[AlarmFrames] ?></td>

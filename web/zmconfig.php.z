@@ -25,7 +25,9 @@ define( "ZM_DB_SERVER", "<from zmconfig>" );			// Database Server machine
 define( "ZM_DB_NAME", "<from zmconfig>" );				// Database containing the tables
 define( "ZM_DB_USERA", "<from zmconfig>" );				// Database login
 define( "ZM_DB_PASSA", "<from zmconfig>" );				// Database password
-define( "ZM_PATH_EVENTS", "<from zmconfig>" );			// Local relative path to where events directory lives
+define( "ZM_DIR_EVENTS", "<from zmconfig>" );			// Drectory where events live
+define( "ZM_DIR_IMAGES", "<from zmconfig>" );			// Drectory where images live
+define( "ZM_DIR_SOUNDS", "<from zmconfig>" );			// Drectory where sounds live
 define( "ZM_PATH_CAMBOZOLA", "<from zmconfig>" );		// Path to (optional) cambozola java streaming client (recommended)
 define( "ZM_PATH_MPEG_ENCODE", "<from zmconfig>" );		// Path to (optional) mpeg video encoder
 define( "ZM_PATH_NETPBM", "<from zmconfig>" );			// Path to (optional) Netpbm utilities
@@ -74,7 +76,7 @@ define( "ZM_DB_PASS", ZM_DB_PASSA );					// Database password
 define( "ZM_PATH", "@prefix@/bin" );					// Local path to the general ZoneMonitor executables
 define( "ZMU_PATH", ZM_PATH."/zmu" );					// Local path to the ZoneMinder Utility
 define( "ZMS_PATH", "/cgi-bin/zms" );					// Web path to the ZoneMinder Stream server
-define( "ZMS_EVENT_PATH", "@WEB_PREFIX@/".ZM_PATH_EVENTS );	// Full path (not web) to where events directory lives
+define( "ZMS_EVENT_PATH", "@WEB_PREFIX@/".ZM_DIR_EVENTS );	// Full path (not web) to where events directory lives
 
 // These are miscelleaneous options you won't normally need to change
 //

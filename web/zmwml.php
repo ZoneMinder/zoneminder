@@ -148,7 +148,7 @@ elseif( $view == "feed" )
 	$browser[Height] = 80;
 
 	// Generate an image
-	chdir( 'images' );
+	chdir( ZM_DIR_IMAGES );
 	$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
 	$monitor_image = "$monitor[Name].jpg";
 	$image_time = filemtime( $monitor_image );
@@ -161,7 +161,7 @@ elseif( $view == "feed" )
 <card id="zmFeed" title="ZM - <?php echo $monitor[Name] ?>" ontimer="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&amp;mid=<?php echo $mid ?>">
 <timer value="<?php echo REFRESH_IMAGE*10 ?>"/>
 <p mode="nowrap" align="center"><strong>ZM - <?php echo $monitor[Name] ?></strong></p>
-<p mode="nowrap" align="center"><img src="images/<?php echo $browser_image ?>" alt="<?php echo $monitor[Name] ?>" hspace="0" vspace="0" align="middle"/></p>
+<p mode="nowrap" align="center"><img src="<?php echo ZM_DIR_IMAGES.'/'.$browser_image ?>" alt="<?php echo $monitor[Name] ?>" hspace="0" vspace="0" align="middle"/></p>
 </card>
 </wml>
 <?php

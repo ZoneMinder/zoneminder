@@ -319,7 +319,7 @@ function newWindow(Url,Name,Width,Height)
 </head>
 <body>
 <p class="head" align="center"><?php echo $monitor[Name] ?></p>
-<a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+$jws['watch']['w'] ?>, <?php echo $monitor[Height]+$jws['watch']['h'] ?> );"><img src="images/<?php echo $monitor[Name] ?>.jpg" border="0"></a>
+<a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+$jws['watch']['w'] ?>, <?php echo $monitor[Height]+$jws['watch']['h'] ?> );"><img src="<?php echo ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0"></a>
 </body>
 </html>
 <?php
@@ -367,7 +367,7 @@ window.focus();
 		if ( $mode != "stream" )
 		{
 			// Prompt an image to be generated
-			chdir( 'images' );
+			chdir( ZM_DIR_IMAGES );
 			$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
 			chdir( '..' );
 			header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=watchfeed&mid=$mid&mode=still'" );
@@ -421,7 +421,7 @@ function closeWindow()
 		else
 		{
 ?>
-<tr><td colspan="3" align="center"><img src="images/<?php echo $monitor[Name] ?>.jpg" border="0" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"></td></tr>
+<tr><td colspan="3" align="center"><img src="<?php echo ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"></td></tr>
 <?php
 		}
 ?>
@@ -479,7 +479,7 @@ top.window.focus();
 		if ( ZM_WEB_SOUND_ON_ALARM && $status == 1 )
 		{
 ?>
-<embed src="sounds/<?php echo ZM_WEB_ALARM_SOUND ?>" autostart="yes" hidden="true"></embed>
+<embed src="<?php echo ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND ?>" autostart="yes" hidden="true"></embed>
 <?php
 		}
 ?>
@@ -1494,7 +1494,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 	}
 	case "zones" :
 	{
-		chdir( 'images' );
+		chdir( ZM_DIR_IMAGES );
 		$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -z" ) );
 		chdir( '..' );
 
@@ -1564,7 +1564,7 @@ function configureButton(form,name)
 <td width="34%" align="center" class="head"><strong><?php echo $monitor[Name] ?> Zones</strong></td>
 <td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
-<tr><td colspan="3" align="center"><img src="images/<?php echo $image ?>" usemap="#zonemap" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>" border="0"></td></tr>
+<tr><td colspan="3" align="center"><img src="<?php echo ZM_DIR_IMAGES.'/'.$image ?>" usemap="#zonemap" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>" border="0"></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="0" width="96%">
 <form name="zone_form" method="get" action="<?php echo $PHP_SELF ?>">

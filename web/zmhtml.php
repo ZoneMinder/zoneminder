@@ -1396,7 +1396,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
-<?php if ( ZM_PATH_MPEG_ENCODE && file_exists( ZM_PATH_MPEG_ENCODE ) ) { ?>
+<?php if ( ZM_OPT_MPEG && file_exists( ZM_PATH_MPEG_ENCODE ) ) { ?>
 <td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=video&eid=<?php echo $eid ?>', 'zmVideo', <?php echo $jws['video']['w'] ?>, <?php echo $jws['video']['h'] ?> );">Video</a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
@@ -1964,7 +1964,7 @@ function closeWindow()
 			die( mysql_error() );
 		$event = mysql_fetch_assoc( $result );
 
-		$event_dir = ZM_PATH_EVENTS."/$event[MonitorName]/".sprintf( "%04d", $eid );
+		$event_dir = ZM_DIR_EVENTS."/$event[MonitorName]/".sprintf( "%04d", $eid );
 		$param_file = $event_dir."/mpeg.param";
 		$video_name = preg_replace( "/\\s/", "_", $event[Name] ).".mpeg";
 		$video_file = $event_dir."/".$video_name;

@@ -583,6 +583,14 @@ my @options =
 		category => 'web',
 	},
 	{
+		name => "ZM_WEB_COMPACT_MONTAGE",
+		default => "no",
+		description => "Whether to compact the montage view by removing extra detail",
+		help => "The montage view shows the output of all of your active monitors in one window. This include a small menu and status information for each one. This can increase the web traffic and make the window larger than may be desired. Setting this option on removes all this extraneous information and just displays the images.",
+		type => $types{boolean},
+		category => 'web',
+	},
+	{
 		name => "ZM_WEB_MONTAGE_MAX_COLS",
 		default => "2",
 		description => "The maximum number of monitor columns in the montage view",
@@ -972,14 +980,6 @@ my @options =
 		category => 'web',
 	},
 	{
-		name => "ZM_WEB_COMPACT_MONTAGE",
-		default => "no",
-		description => "Whether to compact the montage view by removing extra detail",
-		help => "The montage view shows the output of all of your active monitors in one window. This include a small menu and status information for each one. This can increase the web traffic and make the window larger than may be desired. Setting this option on removes all this extraneous information and just displays the images.",
-		type => $types{boolean},
-		category => 'web',
-	},
-	{
 		name => "ZM_WEB_EVENTS_PER_PAGE",
 		default => "25",
 		description => "How many events to list per page in paged mode",
@@ -1089,7 +1089,7 @@ my @options =
 	{
 		name => "ZM_WEB_H_VIDEO_BITRATE",
 		default => "150000",
-		description => "What the bitrate of the video encoded stream shoulw be set to",
+		description => "What the bitrate of the video encoded stream should be set to",
 		help => "When encoding real video via the ffmpeg library a bit rate can be specified which roughly corresponds to the available bandwidth used for the stream. This setting effectively corresponds to a 'quality' setting for the video. A low value will result in a blocky image whereas a high value will produce a clearer view. Note that this setting does not control the frame rate of the video however the quality of the video produced is affected both by this setting and the frame rate that the video is produced at. A higher frame rate at a particular bit rate result in individual frames being at a lower quality.",
 		type => $types{integer},
 		category => 'highband',
@@ -1171,7 +1171,7 @@ my @options =
 	{
 		name => "ZM_WEB_M_VIDEO_BITRATE",
 		default => "75000",
-		description => "What the bitrate of the video encoded stream shoulw be set to",
+		description => "What the bitrate of the video encoded stream should be set to",
 		help => "When encoding real video via the ffmpeg library a bit rate can be specified which roughly corresponds to the available bandwidth used for the stream. This setting effectively corresponds to a 'quality' setting for the video. A low value will result in a blocky image whereas a high value will produce a clearer view. Note that this setting does not control the frame rate of the video however the quality of the video produced is affected both by this setting and the frame rate that the video is produced at. A higher frame rate at a particular bit rate result in individual frames being at a lower quality.",
 		type => $types{integer},
 		category => 'medband',
@@ -1253,7 +1253,7 @@ my @options =
 	{
 		name => "ZM_WEB_L_VIDEO_BITRATE",
 		default => "25000",
-		description => "What the bitrate of the video encoded stream shoulw be set to",
+		description => "What the bitrate of the video encoded stream should be set to",
 		help => "When encoding real video via the ffmpeg library a bit rate can be specified which roughly corresponds to the available bandwidth used for the stream. This setting effectively corresponds to a 'quality' setting for the video. A low value will result in a blocky image whereas a high value will produce a clearer view. Note that this setting does not control the frame rate of the video however the quality of the video produced is affected both by this setting and the frame rate that the video is produced at. A higher frame rate at a particular bit rate result in individual frames being at a lower quality.",
 		type => $types{integer},
 		category => 'lowband',

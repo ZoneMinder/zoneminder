@@ -22,6 +22,9 @@ noinst_HEADERS = zm.h zmcfg.h zmdbg.h jinclude.h font_6x11.h
 
 EXTRA_DIST = zmcfg.h.z
 
+dist-hook:
+	@( rm $(distdir)/zmcfg.h )
+
 # Yes, you are correct. This is a HACK!
 install-exec-local:
 	( cd @bindir@; mv zms $(cgidir) )

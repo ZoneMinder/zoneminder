@@ -206,13 +206,21 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 
 bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 {
-	if ( !timestamp_on_capture )
+	if ( timestamp_on_capture )
 	{
-		monitor->TimestampImage( image, timestamp.tv_sec );
+		if ( !(bool)config.Item( ZM_OPT_FRAME_SERVER ) || !SendFrameImage( image, alarm_frame) )
+		{
+			image->WriteJpeg( event_file );
+		}
 	}
-	if ( !(bool)config.Item( ZM_OPT_FRAME_SERVER ) || !SendFrameImage( image, alarm_frame) )
+	else
 	{
-		image->WriteJpeg( event_file );
+		Image ts_image( *image );
+		monitor->TimestampImage( &ts_image, timestamp.tv_sec );
+		if ( !(bool)config.Item( ZM_OPT_FRAME_SERVER ) || !SendFrameImage( image, alarm_frame) )
+		{
+			ts_image.WriteJpeg( event_file );
+		}
 	}
 	return( true );
 }

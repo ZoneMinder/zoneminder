@@ -94,6 +94,8 @@ int main( int argc, char *argv[] )
 
 	zmDbgInit();
 
+	zmLoadConfig();
+
 	if ( argc > 1 && !strcmp( argv[1], "-a" ) )
 	{
 		// Do all devices we can find

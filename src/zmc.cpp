@@ -144,6 +144,8 @@ int main( int argc, char *argv[] )
 
 	zmDbgInit();
 
+	zmLoadConfig();
+
 	zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
 
 	Monitor **monitors = 0;

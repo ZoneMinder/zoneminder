@@ -21,13 +21,30 @@
 // This section contains options substituted by the zmconfig.pl utility, do not edit these directly
 //
 define( "ZM_VERSION", "<from zmconfig>" );				// Version Number
+define( "ZM_CONFIG", "<from zmconfig>" );				// Path to config file
 define( "ZM_PATH_BIN", "<from zmconfig>" );				// Path to binaries
 define( "ZM_PATH_WEB", "<from zmconfig>" );				// Path to web files
 define( "ZM_PATH_CGI", "<from zmconfig>" );				// Path to cgi files
-define( "ZM_DB_SERVER", "<from zmconfig>" );			// Database server
-define( "ZM_DB_NAME", "<from zmconfig>" );				// Database containing the tables
-define( "ZM_DB_USERA", "<from zmconfig>" );				// Database login
-define( "ZM_DB_PASSA", "<from zmconfig>" );				// Database password
+
+$cfg = fopen( ZM_CONFIG, "r") or die("Could not open config file.");
+while ( !feof($cfg) ) {
+        $str = fgets( $cfg );
+        if ( preg_match( '/^\s*$/', $str )) { continue; }
+        elseif ( preg_match( '/^\s*#/', $str )) { continue; }
+        elseif ( preg_match( '/^\s*([^=\s+)\s*=\s*([^=\s+)\s*$/', $str, $matches ))
+        {
+		if (( $matches[1] == "ZM_DB_SERVER") ||
+			( $matches[1] == "ZM_DB_NAME") ||
+			( $matches[1] == "ZM_DB_USERA") ||
+			( $matches[1] == "ZM_DB_PASSA") ||
+			( $matches[1] == "ZM_DB_USERB") ||
+			( $matches[1] == "ZM_DB_PASSB"))
+		{
+	                define( $matches[1], $matches[2] );
+		}
+        }
+}
+fclose( $cfg );
 
 // This section is options normally derived from other options or configuration
 //

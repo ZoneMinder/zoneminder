@@ -41,7 +41,7 @@ zma_SOURCES = zma.cpp $(zm_SOURCES)
 zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
 zmf_SOURCES = zmf.cpp $(zm_SOURCES)
-zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_debug.c zm_db.cpp zm.cpp
+zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_regexp.cpp zm_debug.c zm_db.cpp zm.cpp
 
 noinst_HEADERS = \
 	zm.h \
@@ -75,6 +75,6 @@ dist-hook:
 
 # Yes, you are correct. This is a HACK!
 install-exec-hook:
-	( cd @bindir@; mv zms $(cgidir) )
-	( cd $(cgidir); chown $(webuser):$(webgroup) zms; ln -f zms nph-zms )
-	( cd @bindir@; chmod u+s zmfix )
+	( cd $(DESTDIR)@bindir@; mkdir -p $(DESTDIR)$(cgidir); mv zms $(DESTDIR)$(cgidir) )
+	( cd $(DESTDIR)$(cgidir); chown $(webuser):$(webgroup) zms; ln -f zms nph-zms )
+	( cd $(DESTDIR)@bindir@; chmod u+s zmfix )

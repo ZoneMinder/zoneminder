@@ -21,12 +21,8 @@
 #include "zm_config_defines.h"
 
 #define ZM_VERSION				"<from zmconfig>"	// ZoneMinder verson number
-#define ZM_DB_SERVER			"<from zmconfig>"	// Machine on which the database server is running
-#define ZM_DB_NAME				"<from zmconfig>"	// Database containing the tables
-#define	ZM_DB_USERA				"<from zmconfig>"	// Privileged DB user name, needs at least select, insert, update and delete privileges
-#define	ZM_DB_PASSA				"<from zmconfig>"	// Privileged DB user password
-#define	ZM_DB_USERB				"<from zmconfig>"	// Unprivileged DB user name, need just select privilege.
-#define	ZM_DB_PASSB				"<from zmconfig>"	// Unprivileged DB user password
+#define ZM_CONFIG				"<from zmconfig>"	// Path to config file
+
 #define ZM_PATH_BIN				"<from zmconfig>";	// Path to binaries
 #define ZM_PATH_WEB				"<from zmconfig>";	// Path to web files
 #define ZM_PATH_CGI				"<from zmconfig>";	// Path to cgi files
@@ -42,6 +38,9 @@
 
 #define ZM_MAX_FPS              30                  // The maximum frame rate we expect to handle
 #define ZM_SAMPLE_RATE          int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
+
+extern char *ZM_DB_SERVER, *ZM_DB_NAME, *ZM_DB_USERA, *ZM_DB_PASSA, *ZM_DB_USERB, *ZM_DB_PASSB;
+extern void zmLoadConfig();
 
 class ConfigItem
 {

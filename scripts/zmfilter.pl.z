@@ -32,20 +32,36 @@ use strict;
 # These are the elements you need to edit to suit your installation
 #
 # ==========================================================================
+use constant ZM_CONFIG => "<from zmconfig>";
 use constant ZM_PATH_BIN => "<from zmconfig>";
 use constant ZM_PATH_WEB => "<from zmconfig>";
 use constant ZM_PATH_CGI => "<from zmconfig>";
-use constant ZM_DB_SERVER => "<from zmconfig>";
-use constant ZM_DB_NAME => "<from zmconfig>";
-use constant ZM_DB_USERA => "<from zmconfig>";
-use constant ZM_DB_PASSA => "<from zmconfig>";
 
 # Load the config from the database into the symbol table
 BEGIN
 {
+	open( CONFIG, "<".ZM_CONFIG ) or die( "Can't open config file: $!" );
+	foreach my $str ( <CONFIG> )
+	{
+	        next if ( $str =~ /^\s*$/ );
+	        next if ( $str =~ /^\s*#/ );
+	        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/;
+		$name =~ tr/a-z/A-Z/;
+		if (( $name eq 'ZM_DB_SERVER' ) ||
+			( $name eq 'ZM_DB_NAME' ) ||
+			( $name eq 'ZM_DB_USERA' ) ||
+			( $name eq 'ZM_DB_PASSA' ) ||
+			( $name eq 'ZM_DB_USERB' ) ||
+			( $name eq 'ZM_DB_PASSB' ))
+		{
+			*{$name} = sub { $value };
+		}
+	}
+	close( CONFIG );
+
 	use DBI;
 	no strict 'refs';
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+	my $dbh = DBI->connect( "DBI:mysql:database=".&ZM_DB_NAME.";host=".&ZM_DB_SERVER, &ZM_DB_USERA, &ZM_DB_PASSA );
 
 	my $sql = "select * from Config";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );

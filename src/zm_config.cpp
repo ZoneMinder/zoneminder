@@ -19,9 +19,50 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "zm.h"
 #include "zm_db.h"
+#include "zm_regexp.h"
+
+char *ZM_DB_SERVER="", *ZM_DB_NAME="", *ZM_DB_USERA="", *ZM_DB_PASSA="", *ZM_DB_USERB="", *ZM_DB_PASSB="";
+
+void zmLoadConfig()
+{
+	FILE *cfg;
+	RegExpr *ignore=0, *keyval=0;
+	char str[512];
+	char *val;
+	int r;
+	if (( cfg = fopen( ZM_CONFIG, "r" )) == NULL )
+	{
+		Fatal(("Can't open %s: %s", ZM_CONFIG, strerror(errno) ));
+	}
+	ignore = new RegExpr( "^\\s*$|\\s*\\#", PCRE_EXTENDED );
+	keyval = new RegExpr( "\\s*([^=\\s]+)\\s*\\=\\s*([^=\\s]+)\\s*", 0 );
+	while ( fgets( str, 511, cfg ) != NULL )
+	{
+		if ( ignore->Match( str, strlen(str) ) > 0 ) continue;
+		if (( r=keyval->Match( str, strlen(str) )) != 3 )
+		{
+			Warning(( "Invalid data in %s: `%s'", ZM_CONFIG, str ));
+			continue;
+		}
+		val = (char*)malloc(keyval->MatchLength( 2 ) + 1);
+		strncpy( val, keyval->MatchString( 2 ), keyval->MatchLength( 2 ));
+		if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_SERVER" ) == 0 )     ZM_DB_SERVER = val;
+		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_NAME" ) == 0 )  ZM_DB_NAME   = val;
+		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_USERA" ) == 0 ) ZM_DB_USERA  = val;
+		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_PASSA" ) == 0 ) ZM_DB_PASSA  = val;
+		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_USERB" ) == 0 ) ZM_DB_USERB  = val;
+		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_PASSB" ) == 0 ) ZM_DB_PASSB  = val;
+		else
+		{
+			Warning(( "Invalid parameter \"%s\" in %s", keyval->MatchString( 1 ), ZM_CONFIG ));
+		}
+	}
+	fclose( cfg);
+}
 
 ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *const p_type )
 {

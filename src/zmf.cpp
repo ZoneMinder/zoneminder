@@ -193,6 +193,8 @@ int main( int argc, char *argv[] )
 
 	zmDbgInit();
 
+	zmLoadConfig();
+
 	zmDbConnect( ZM_DB_USERB, ZM_DB_PASSB );
 
 	Monitor *monitor = Monitor::Load( id, false );

@@ -46,6 +46,8 @@ int main( int argc, const char *argv[] )
 	
 	zmDbgInit();
 
+	zmLoadConfig();
+
 	const char *query = getenv( "QUERY_STRING" );
 	if ( query )
 	{

@@ -233,7 +233,7 @@ if ( $mode == "still" && $paged && !empty($page) )
 <?php
 if ( $mode == "stream" )
 {
-	$stream_src = ZM_PATH_ZMS."?path=".ZM_PATH_WEB."&event=$eid&rate=$rate&scale=$scale";
+	$stream_src = ZM_PATH_ZMS."?event=$eid&rate=$rate&scale=$scale";
 	if ( canStreamNative() )
 	{
 ?>

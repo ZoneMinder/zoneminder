@@ -29,7 +29,6 @@ int main(void )
 	unsigned int rate = 1;
 	unsigned int scale = 1;
 	int event = 0;
-	const char *path = ".";
 	unsigned int ttl = 0;
 
     //setbuf( fd, 0 );
@@ -66,8 +65,6 @@ int main(void )
 				id = atoi( value );
 			else if ( !strcmp( name, "event" ) )
 				event = strtoull( value, (char **)NULL, 10 );
-			else if ( !strcmp( name, "path" ) )
-				path = value;
 			else if ( !strcmp( name, "ttl" ) )
 				ttl = atoi(value);
 		}
@@ -90,7 +87,7 @@ int main(void )
 	}
 	else
 	{
-		Event::StreamEvent( path, event, rate, scale, stdout );
+		Event::StreamEvent( event, rate, scale, stdout );
 	}
 	return( 0 );
 }

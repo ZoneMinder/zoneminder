@@ -319,11 +319,12 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, unsigned int
 	}
 }
 
-void Event::StreamEvent( const char *path, int event_id, int rate, int scale, FILE *fd )
+void Event::StreamEvent( int event_id, int rate, int scale, FILE *fd )
 {
 	static char sql[BUFSIZ];
+	static char eventpath[PATH_MAX];
 	
-	sprintf( sql, "select Id, EventId, Delta from Frames where EventId = %d order by Id", event_id );
+	sprintf( sql, "select M.Id, M.Name from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -331,6 +332,31 @@ void Event::StreamEvent( const char *path, int event_id, int rate, int scale, FI
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
+	if ( !result )
+	{
+		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+	MYSQL_ROW dbrow = mysql_fetch_row( result );
+
+	if ( mysql_errno( &dbconn ) )
+	{
+		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+
+	sprintf( eventpath, "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
+
+	mysql_free_result( result );
+
+	sprintf( sql, "select FrameId, EventId, Delta from Frames where EventId = %d order by FrameId", event_id );
+	if ( mysql_query( &dbconn, sql ) )
+	{
+		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+
+	result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
 		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
@@ -364,7 +390,7 @@ void Event::StreamEvent( const char *path, int event_id, int rate, int scale, FI
 	struct DeltaTimeval delta_time;
 
 	gettimeofday( &now, &dummy_tz );
-	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
+	for( int i = 0; dbrow = mysql_fetch_row( result ); i++ )
 	{
 		if ( rate )
 		{
@@ -390,7 +416,7 @@ void Event::StreamEvent( const char *path, int event_id, int rate, int scale, FI
 			gettimeofday( &last_now, &dummy_tz );
 		}
 		static char filepath[PATH_MAX];
-		sprintf( filepath, "%s/%03d-capture.jpg", path, dbrow[0] );
+		sprintf( filepath, "%s/%03d-capture.jpg", eventpath, atoi(dbrow[0]) );
 
 		fprintf( fd, "Content-type: image/jpg\n\n" );
 		if ( scale == 1 )

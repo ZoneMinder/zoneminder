@@ -27,7 +27,6 @@
 
 use strict;
 use Data::Dumper;
-use Term::ReadKey;
 use Getopt::Long;
 
 $| = 1;
@@ -901,7 +900,7 @@ further information about each option if you are not sure what to put.
 You can also type 'q' at any time to exit without saving.
 
 Press enter to continue: " );
-	ReadLine( 0 );
+	my $input = <>;
 	print( "\n" );
 
 	foreach my $option ( @options )
@@ -940,7 +939,7 @@ Press enter to continue: " );
 			print( "$option->{description} ($type->{hint}) " );
 			print( "[$option->{value}] " ) if ( defined($option->{value}) );
 			print( ": " );
-			my $new_value = ReadLine( 0 );
+			my $new_value = <>;
 			chomp( $new_value );
 			if ( defined($new_value) )
 			{

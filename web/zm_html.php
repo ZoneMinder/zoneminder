@@ -30,10 +30,10 @@ require_once( 'zm_config.php' );
 if ( ZM_OPT_USE_AUTH )
 {
 	session_start();
-	if ( isset( $HTTP_SESSION_VARS['user'] ) )
+	if ( isset( $_SESSION['user'] ) )
 	{
-		$user = $HTTP_SESSION_VARS['user'];
-		define( "ZMU_COMMAND", ZMU_PATH." -U ".$HTTP_SESSION_VARS['username']." -P ".$HTTP_SESSION_VARS['password'] );
+		$user = $_SESSION['user'];
+		define( "ZMU_COMMAND", ZMU_PATH." -U ".$_SESSION['username']." -P ".$_SESSION['password'] );
 	}
 	else
 	{

@@ -29,6 +29,13 @@ if ( $debug )
 	//error_reporting( E_ALL );
 }
 
+// Use new style autoglobals where possible
+if ( version_compare( phpversion(), "4.1.0", "<") )
+{
+  	$_SERVER = &$HTTP_SERVER_VARS;
+  	$_SESSION = &$HTTP_SESSION_VARS;
+}
+
 // Useful debugging lines for mobile devices
 //ob_start();
 //phpinfo( INFO_VARIABLES );
@@ -39,7 +46,7 @@ if ( $debug )
 
 if ( !isset($PHP_SELF) )
 {
-	$PHP_SELF = $HTTP_SERVER_VARS['PHP_SELF'];
+	$PHP_SELF = $_SERVER['PHP_SELF'];
 }
 
 if ( empty($format) )
@@ -50,7 +57,7 @@ if ( empty($format) )
 		require_once( $wurfl_file );
 		$wurfl = new wurfl_class( $wurfl, $wurfl_agents );
 		// Set the user agent
-		$wurfl->GetDeviceCapabilitiesFromAgent($HTTP_SERVER_VARS['HTTP_USER_AGENT']);
+		$wurfl->GetDeviceCapabilitiesFromAgent($_SERVER['HTTP_USER_AGENT']);
 	
 		//print_r( $wurfl->wurfl_agent );
 		if ( $wurfl->wurfl_agent )
@@ -86,7 +93,7 @@ if ( empty($format) )
 
 		foreach ( $devices as $device )
 		{
-			if ( preg_match( '/'.$device['ua_match'].'/', $HTTP_SERVER_VARS['HTTP_USER_AGENT'] ) )
+			if ( preg_match( '/'.$device['ua_match'].'/', $_SERVER['HTTP_USER_AGENT'] ) )
 			{
 				$format = $device['format'];
 				$cookies = $device['cookies'];
@@ -96,8 +103,8 @@ if ( empty($format) )
 
 		if ( empty($format) )
 		{
-			$accepts_wml = preg_match( '/text\/vnd.wap.wml/i', $HTTP_SERVER_VARS['HTTP_ACCEPT'] );
-			$accepts_html = preg_match( '/text\/html/i', $HTTP_SERVER_VARS['HTTP_ACCEPT'] );
+			$accepts_wml = preg_match( '/text\/vnd.wap.wml/i', $_SERVER['HTTP_ACCEPT'] );
+			$accepts_html = preg_match( '/text\/html/i', $_SERVER['HTTP_ACCEPT'] );
 
 			if ( $accepts_wml && !$accepts_html )
 			{
@@ -140,11 +147,11 @@ else
 
 session_start();
 
-if ( !$HTTP_SESSION_VARS['format'] )
+if ( !$_SESSION['format'] )
 {
-	$HTTP_SESSION_VARS['format'] = $format;
-	$HTTP_SESSION_VARS['cookies'] = $cookies;
-	$HTTP_SESSION_VARS['device'] = $device;
+	$_SESSION['format'] = $format;
+	$_SESSION['cookies'] = $cookies;
+	$_SESSION['device'] = $device;
 }
 
 require_once( "zm_$format.php" );

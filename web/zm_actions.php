@@ -618,8 +618,8 @@ if ( isset($action) )
 	}
 	elseif ( $action == "reset" )
 	{
-		$HTTP_SESSION_VARS['event_reset_time'] = strftime( "%Y-%m-%d %H:%M:%S" );
-		setcookie( "event_reset_time", $HTTP_SESSION_VARS['event_reset_time'], time()+3600*24*30*12*10 );
+		$_SESSION['event_reset_time'] = strftime( "%Y-%m-%d %H:%M:%S" );
+		setcookie( "event_reset_time", $_SESSION['event_reset_time'], time()+3600*24*30*12*10 );
 		if ( $cookies ) session_write_close();
 	}
 }

@@ -20,19 +20,19 @@
 
 function userLogin( $username, $password )
 {
-	global $user, $cookies, $HTTP_SESSION_VARS, $HTTP_SERVER_VARS;
+	global $user, $cookies, $_SESSION, $_SERVER;
 
 	$sql = "select * from Users where Username = '$username' and Password = password('$password') and Enabled = 1";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();
-	$HTTP_SESSION_VARS['username'] = $username;
-	$HTTP_SESSION_VARS['password'] = $password;
-	$HTTP_SESSION_VARS['remote_addr'] = $HTTP_SERVER_VARS['REMOTE_ADDR']; // To help prevent session hijacking
+	$_SESSION['username'] = $username;
+	$_SESSION['password'] = $password;
+	$_SESSION['remote_addr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
 	if ( $db_user = mysql_fetch_assoc( $result ) )
 	{
-		$HTTP_SESSION_VARS['user'] = $user = $db_user;
-		$HTTP_SESSION_VARS['password_hash'] = $user['Password'];
+		$_SESSION['user'] = $user = $db_user;
+		$_SESSION['password_hash'] = $user['Password'];
 	}
 	else
 	{
@@ -43,9 +43,9 @@ function userLogin( $username, $password )
 
 function userLogout()
 {
-	global $user, $HTTP_SESSION_VARS;
+	global $user, $_SESSION;
 
-	unset( $HTTP_SESSION_VARS['user'] );
+	unset( $_SESSION['user'] );
 	unset( $user );
 
 	session_destroy();
@@ -53,12 +53,12 @@ function userLogout()
 
 function authHash()
 {
-	global $HTTP_SESSION_VARS;
+	global $_SESSION;
 
 	if ( ZM_OPT_USE_AUTH )
 	{
 		$time = localtime();
-		$auth_key = ZM_AUTH_SECRET.$HTTP_SESSION_VARS['username'].$HTTP_SESSION_VARS['password_hash'].$HTTP_SESSION_VARS['remote_addr'].$time[2].$time[3].$time[4].$time[5];
+		$auth_key = ZM_AUTH_SECRET.$_SESSION['username'].$_SESSION['password_hash'].$_SESSION['remote_addr'].$time[2].$time[3].$time[4].$time[5];
 		$auth = md5( $auth_key );
 	}
 	else
@@ -70,14 +70,14 @@ function authHash()
 
 function getStreamSrc( $args )
 {
-	global $HTTP_SESSION_VARS;
+	global $_SESSION;
 
 	$stream_src = ZM_PATH_ZMS;
 
 	if ( ZM_OPT_USE_AUTH )
 	{
 		$args[] = "auth=".authHash();
-		$args[] = "user=".$HTTP_SESSION_VARS['username'];
+		$args[] = "user=".$_SESSION['username'];
 	}
 
 	if ( count($args) )
@@ -224,24 +224,24 @@ function getFormChanges( $values, $new_values, $types=false )
 
 function getBrowser( &$browser, &$version )
 {
-	global $HTTP_SERVER_VARS;
+	global $_SERVER;
 
-	if (ereg( 'MSIE ([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS['HTTP_USER_AGENT'],$log_version))
+	if (ereg( 'MSIE ([0-9].[0-9]{1,2})',$_SERVER['HTTP_USER_AGENT'],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'ie';
 	}
-	elseif (ereg( 'Safari/([0-9.]+)',$HTTP_SERVER_VARS['HTTP_USER_AGENT'],$log_version))
+	elseif (ereg( 'Safari/([0-9.]+)',$_SERVER['HTTP_USER_AGENT'],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'safari';
 	}
-	elseif (ereg( 'Opera ([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS['HTTP_USER_AGENT'],$log_version))
+	elseif (ereg( 'Opera ([0-9].[0-9]{1,2})',$_SERVER['HTTP_USER_AGENT'],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'opera';
 	}
-	elseif (ereg( 'Mozilla/([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS['HTTP_USER_AGENT'],$log_version))
+	elseif (ereg( 'Mozilla/([0-9].[0-9]{1,2})',$_SERVER['HTTP_USER_AGENT'],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'mozilla';
@@ -269,9 +269,9 @@ function isInternetExplorer()
 
 function isWindows()
 {
-	global $HTTP_SERVER_VARS;
+	global $_SERVER;
 
-	return ( preg_match( '/Win/', $HTTP_SERVER_VARS['HTTP_USER_AGENT'] ) );
+	return ( preg_match( '/Win/', $_SERVER['HTTP_USER_AGENT'] ) );
 }
 
 function canStreamNative()
@@ -532,7 +532,7 @@ function reScale( $dimension, $scale=SCALE_SCALE )
 
 function parseSort( $save_to_session=false )
 {
-	global $HTTP_SESSION_VARS;
+	global $_SESSION;
 	global $sort_field, $sort_asc; // Inputs
 	global $sort_query, $sort_column, $sort_order; // Outputs
 
@@ -586,14 +586,14 @@ function parseSort( $save_to_session=false )
 	$sort_query = "&sort_field=$sort_field&sort_asc=$sort_asc";
 	if ( $save_to_session )
 	{
-		$HTTP_SESSION_VARS['sort_field'] = $sort_field;
-		$HTTP_SESSION_VARS['sort_asc'] = $sort_asc;
+		$_SESSION['sort_field'] = $sort_field;
+		$_SESSION['sort_asc'] = $sort_asc;
 	}
 }
 
 function parseFilter( $save_to_session=false )
 {
-	global $HTTP_SESSION_VARS;
+	global $_SESSION;
 	global $trms; // Inputs
 	global $filter_query, $filter_sql, $filter_fields; // Outputs
 
@@ -605,7 +605,7 @@ function parseFilter( $save_to_session=false )
 	{
 		if ( $save_to_session )
 		{
-			$HTTP_SESSION_VARS['trms'] = $trms;
+			$_SESSION['trms'] = $trms;
 		}
 		$filter_query .= "&trms=$trms";
 		$filter_fields .= '<input type="hidden" name="trms" value="'.$trms.'"/>'."\n";
@@ -628,7 +628,7 @@ function parseFilter( $save_to_session=false )
 				$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'"/>'."\n";
 				if ( $save_to_session )
 				{
-					$HTTP_SESSION_VARS[$conjunction_name] = $$conjunction_name;
+					$_SESSION[$conjunction_name] = $$conjunction_name;
 				}
 			}
 			if ( isset($$obracket_name) )
@@ -638,7 +638,7 @@ function parseFilter( $save_to_session=false )
 				$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'"/>'."\n";
 				if ( $save_to_session )
 				{
-					$HTTP_SESSION_VARS[$obracket_name] = $$obracket_name;
+					$_SESSION[$obracket_name] = $$obracket_name;
 				}
 			}
 			if ( isset($$attr_name) )
@@ -745,9 +745,9 @@ function parseFilter( $save_to_session=false )
 				$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'"/>'."\n";
 				if ( $save_to_session )
 				{
-					$HTTP_SESSION_VARS[$attr_name] = $$attr_name;
-					$HTTP_SESSION_VARS[$op_name] = $$op_name;
-					$HTTP_SESSION_VARS[$value_name] = $$value_name;
+					$_SESSION[$attr_name] = $$attr_name;
+					$_SESSION[$op_name] = $$op_name;
+					$_SESSION[$value_name] = $$value_name;
 				}
 			}
 			if ( isset($$cbracket_name) )
@@ -757,7 +757,7 @@ function parseFilter( $save_to_session=false )
 				$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'"/>'."\n";
 				if ( $save_to_session )
 				{
-					$HTTP_SESSION_VARS[$cbracket_name] = $$cbracket_name;
+					$_SESSION[$cbracket_name] = $$cbracket_name;
 				}
 			}
 		}

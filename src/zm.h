@@ -224,111 +224,8 @@ public:
 	}
 };
 
-class Monitor;
-class Event;
-
-class Zone
-{
-friend class Image;
-
-public:
-	typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, INACTIVE } ZoneType;
-
-protected:
-	// Inputs
-	Monitor *monitor;
-
-	int id;
-	char *label;
-	ZoneType type;
-	Box limits;
-	Rgb alarm_rgb;
-
-	int alarm_threshold;
-	int min_alarm_pixels;
-	int max_alarm_pixels;
-
-	Coord filter_box;
-	int min_filter_pixels;
-	int max_filter_pixels;
-
-	int min_blob_pixels;
-	int max_blob_pixels;
-	int min_blobs;
-	int max_blobs;
-
-	// Outputs/Statistics
-	bool alarmed;
-	int alarm_pixels;
-	int alarm_filter_pixels;
-	int alarm_blob_pixels;
-	int alarm_blobs;
-	int min_blob_size;
-	int max_blob_size;
-	Box alarm_box;
-	unsigned int score;
-	Image *image;
-
-protected:
-	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs );
-
-public:
-	Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold=15, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
-	{
-		Setup( p_monitor, p_id, p_label, p_type, p_limits, p_alarm_rgb, p_alarm_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
-	}
-	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold=15, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
-	{
-		Setup( p_monitor, p_id, p_label, Zone::ACTIVE, p_limits, p_alarm_rgb, p_alarm_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
-	}
-	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Box &p_limits )
-	{
-		Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_limits, RGB_BLACK, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0 );
-	}
-
-public:
-	~Zone();
-	inline const char *Label() const
-	{
-		return( label );
-	}
-	inline ZoneType Type() const
-	{
-		return( type );
-	}
-	inline Image &AlarmImage() const
-	{
-		return( *image );
-	}
-	inline const Box &Limits() const { return( limits ); }
-	inline bool Alarmed() const
-	{
-		return( alarmed );
-	}
-	inline void ResetStats()
-	{
-		alarmed = false;
-		alarm_pixels = 0;
-		alarm_filter_pixels = 0;
-		alarm_blob_pixels = 0;
-		alarm_blobs = 0;
-		min_blob_size = 0;
-		max_blob_size = 0;
-		score = 0;
-	}
-	void RecordStats( const Event *event );
-	static int Load( Monitor *monitor, Zone **&zones );
-	bool DumpSettings( char *output, bool verbose );
-};
-
-class Camera;
-class Monitor;
-
 class Image
 {
-friend class Camera;
-friend class Monitor;
-
 protected:
 	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6, CHAR_START=4 };
 
@@ -400,14 +297,20 @@ public:
 		}
 		else
 		{
-                	for ( int i = 0; i < size; i += 3 )
-                	{
+           	for ( int i = 0; i < size; i += 3 )
+           	{
 				buffer[i] = new_buffer[i+2];
 				buffer[i+1] = new_buffer[i+1];
 				buffer[i+2] = new_buffer[i];
 			}
-                }
+		}
 
+	}
+
+	inline void CopyBuffer( const Image &image )
+	{
+		assert( width == image.width && height == image.height && colours == image.colours );
+		memcpy( buffer, image.buffer, size );
 	}
 	inline Image &operator=( const unsigned char *new_buffer )
 	{
@@ -417,6 +320,9 @@ public:
 
 	inline int Width() { return( width ); }
 	inline int Height() { return( height ); }
+	JSAMPLE *Buffer( unsigned int x=0, unsigned int y= 0 ) { return( &buffer[colours*((y*width)+x)] ); }
+	
+	void Clear() { memset( buffer, 0, size ); }
 
 	void ReadJpeg( const char *filename );
 	void WriteJpeg( const char *filename ) const;
@@ -428,28 +334,25 @@ public:
 	static Image *Merge( int n_images, Image *images[], double weight );
 	static Image *Highlight( int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
 	Image *Delta( const Image &image, bool absolute=true ) const;
-	bool CheckAlarms( Zone *zone, const Image *delta_image ) const;
-	unsigned int Compare( const Image &image, int n_zones, Zone *zones[] ) const;
 	void Annotate( const char *text, const Coord &coord, const Rgb colour );
 	void Annotate( const char *text, const Coord &coord );
 	void Timestamp( const char *label, const time_t when, const Coord &coord );
 	void Colourise();
 	void DeColourise();
+	void Fill( Rgb colour, const Box *limits=0 );
+	void Hatch( Rgb colour, const Box *limits=0 );
+	Image *HighlightEdges( Rgb colour, const Box *limits=0 );
 };
 
 class Camera
 {
-friend class Image;
-
 protected:
-	int		id;
-	char	*name;
-	int		device;
-	int		channel;
-	int		format;
-	unsigned int		width;
-	unsigned int		height;
-	int		colours;
+	int			device;
+	int			channel;
+	int			format;
+	unsigned int	width;
+	unsigned int	height;
+	unsigned int	colours;
 	bool		capture;
 
 protected:
@@ -462,18 +365,15 @@ protected:
 	static int camera_count;
 
 public:
-	Camera( int p_id, char *p_name, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture=true );
+	Camera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture=true );
 	~Camera();
-	inline int Id() const
-	{
-		return( id );
-	}
-	inline char *Name() const
-	{
-		return( name );
-	}
+	unsigned int Device() const { return( device ); }
+	unsigned int Channel() const { return( channel ); }
+	unsigned int Format() const { return( format ); }
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
+	unsigned int Colours() const { return( colours ); }
+	unsigned int ImageSize() const { return( colours*width*height ); }
 
 	static bool Camera::GetCurrentSettings( int device, char *output, bool verbose );
 	static void Initialise( int device, int channel, int format, int width, int height, int colours );
@@ -545,10 +445,10 @@ public:
 	}
 };
 
+class Monitor;
+
 class Event
 {
-friend class Monitor;
-
 protected:
 	int		id;
 	Monitor	*monitor;
@@ -575,7 +475,98 @@ public:
 	static void StreamEvent( const char *path, int event_id, unsigned long refresh=100, FILE *fd=stdout );
 };
 
-class Monitor : public Camera
+class Zone
+{
+public:
+	typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, INACTIVE } ZoneType;
+
+protected:
+	// Inputs
+	Monitor *monitor;
+
+	int id;
+	char *label;
+	ZoneType type;
+	Box limits;
+	Rgb alarm_rgb;
+
+	int alarm_threshold;
+	int min_alarm_pixels;
+	int max_alarm_pixels;
+
+	Coord filter_box;
+	int min_filter_pixels;
+	int max_filter_pixels;
+
+	int min_blob_pixels;
+	int max_blob_pixels;
+	int min_blobs;
+	int max_blobs;
+
+	// Outputs/Statistics
+	bool alarmed;
+	int alarm_pixels;
+	int alarm_filter_pixels;
+	int alarm_blob_pixels;
+	int alarm_blobs;
+	int min_blob_size;
+	int max_blob_size;
+	Box alarm_box;
+	unsigned int score;
+	Image *image;
+
+protected:
+	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs );
+
+public:
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold=15, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
+	{
+		Setup( p_monitor, p_id, p_label, p_type, p_limits, p_alarm_rgb, p_alarm_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
+	}
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold=15, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
+	{
+		Setup( p_monitor, p_id, p_label, Zone::ACTIVE, p_limits, p_alarm_rgb, p_alarm_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
+	}
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Box &p_limits )
+	{
+		Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_limits, RGB_BLACK, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0 );
+	}
+
+public:
+	~Zone();
+
+	inline const char *Label() const { return( label ); }
+	inline ZoneType Type() const { return( type ); }
+	inline bool IsActive() const { return( type == ACTIVE ); }
+	inline bool IsInclusive() const { return( type == INCLUSIVE ); }
+	inline bool IsExclusive() const { return( type == EXCLUSIVE ); }
+	inline bool IsInactive() const { return( type == INACTIVE ); }
+	inline Image &AlarmImage() const { return( *image ); }
+	inline const Box &Limits() const { return( limits ); }
+	inline bool Alarmed() const { return( alarmed ); }
+	inline void SetAlarm() { alarmed = true; }
+	inline void ClearAlarm() { alarmed = false; }
+	inline unsigned int Score() const { return( score ); }
+
+	inline void ResetStats()
+	{
+		alarmed = false;
+		alarm_pixels = 0;
+		alarm_filter_pixels = 0;
+		alarm_blob_pixels = 0;
+		alarm_blobs = 0;
+		min_blob_size = 0;
+		max_blob_size = 0;
+		score = 0;
+	}
+	void RecordStats( const Event *event );
+	bool CheckAlarms( const Image *delta_image );
+	bool DumpSettings( char *output, bool verbose );
+
+	static int Load( Monitor *monitor, Zone **&zones );
+};
+
+class Monitor
 {
 public:
 	typedef enum
@@ -590,6 +581,8 @@ public:
 
 protected:
 	// These are read from the DB and thereafter remain unchanged
+	int		id;
+	char	*name;
 	char	label_format[64];	// The format of the timestamp on the images
 	Coord	label_coord;		// The coordinates of the timestamp on the images
 	int		warmup_count;		// How many images to process before looking for events
@@ -639,6 +632,8 @@ protected:
 	SharedImages *shared_images;
 
 	bool record_event_stats;
+
+	Camera *camera;
 	
 public:
 	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_image_buffer_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones=0, Zone *p_zones[]=0 );
@@ -646,6 +641,14 @@ public:
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
 
+	inline int Id() const
+	{
+		return( id );
+	}
+	inline char *Name() const
+	{
+		return( name );
+	}
 	State GetState() const;
 	int GetImage( int index=-1 ) const;
 	struct timeval GetTimestamp( int index=-1 ) const;
@@ -659,17 +662,23 @@ public:
 	bool DumpSettings( char *output, bool verbose );
 	void DumpZoneImage();
 
+	unsigned int CameraWidth() const { return( camera->Width() ); }
+	unsigned int CameraHeight() const { return( camera->Width() ); }
 	inline void Capture()
 	{
-		PreCapture();
-		PostCapture();
+		camera->PreCapture();
+		camera->PostCapture();
+	}
+	inline void PreCapture()
+	{
+		camera->PreCapture();
 	}
 	inline void PostCapture()
 	{
 		char label_time_text[64];
 		char label_text[64];
 
-		Camera::PostCapture( image );
+		camera->PostCapture( image );
 
 		time_t now = time( 0 );
 
@@ -688,7 +697,8 @@ public:
 			Error(( "Buffer overrun at index %d\n", index ));
 		}
 		gettimeofday( image_buffer[index].timestamp, &dummy_tz );
-		memcpy( image_buffer[index].image->buffer, image.buffer, image.size );
+		image_buffer[index].image->CopyBuffer( image );
+		//memcpy( image_buffer[index].image->buffer, image.buffer, image.size );
 		//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
 
 		shared_images->last_write_index = index;
@@ -716,6 +726,7 @@ public:
 		ref_image.Blend( image, 0.1 );
 	}
 
+	unsigned int Compare( const Image &image );
 	void ReloadZones();
 	static int Load( int device, Monitor **&monitors, bool capture=true );
 	static Monitor *Load( int id, bool load_zones=false );

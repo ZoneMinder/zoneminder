@@ -204,7 +204,7 @@ int main( int argc, char *argv[] )
 	if ( dev_id >= 0 )
 	{
 		char vid_string[1024] = "";
-		bool ok = Monitor::GetCurrentSettings( dev_id, vid_string, verbose );
+		bool ok = Camera::GetCurrentSettings( dev_id, vid_string, verbose );
 		printf( "%s", vid_string );
 		exit( ok?0:-1 );
 	}

@@ -70,6 +70,364 @@ void Zone::RecordStats( const Event *event )
 	}
 }
 
+bool Zone::CheckAlarms( const Image *delta_image )
+{
+	bool alarm = false;
+	unsigned int score = 0;
+
+	ResetStats();
+
+	delete image;
+	Image *diff_image = image = new Image( *delta_image );
+
+	int alarm_pixels = 0;
+
+	int lo_x = limits.Lo().X();
+	int lo_y = limits.Lo().Y();
+	int hi_x = limits.Hi().X();
+	int hi_y = limits.Hi().Y();
+	for ( int y = lo_y; y <= hi_y; y++ )
+	{
+		unsigned char *pdiff = diff_image->Buffer( lo_x, y );
+		for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
+		{
+			if ( *pdiff > alarm_threshold )
+			{
+				*pdiff = WHITE;
+				alarm_pixels++;
+				continue;
+			}
+			*pdiff = BLACK;
+		}
+	}
+
+	//diff_image->WriteJpeg( "diff1.jpg" );
+
+	if ( !alarm_pixels ) return( false );
+	if ( min_alarm_pixels && alarm_pixels < min_alarm_pixels ) return( false );
+	if ( max_alarm_pixels && alarm_pixels > max_alarm_pixels ) return( false );
+
+	int filter_pixels = 0;
+
+	int bx = filter_box.X();
+	int by = filter_box.Y();
+	int bx1 = bx-1;
+	int by1 = by-1;
+
+	// Now eliminate all pixels that don't participate in a blob
+	for ( int y = lo_y; y <= hi_y; y++ )
+	{
+		unsigned char *pdiff = diff_image->Buffer( lo_x, y );
+
+		for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
+		{
+			if ( *pdiff == WHITE )
+			{
+				// Check participation in an X blob
+				int ldx = (x>=(lo_x+bx1))?-bx1:lo_x-x;
+				int hdx = (x<=(hi_x-bx1))?0:((hi_x-x)-bx1);
+				int ldy = (y>=(lo_y+by1))?-by1:lo_y-y;
+				int hdy = (y<=(hi_y-by1))?0:((hi_y-y)-by1);
+				bool blob = false;
+				for ( int dy = ldy; !blob && dy <= hdy; dy++ )
+				{
+					for ( int dx = ldx; !blob && dx <= hdx; dx++ )
+					{
+						blob = true;
+						for ( int dy2 = 0; blob && dy2 < by; dy2++ )
+						{
+							for ( int dx2 = 0; blob && dx2 < bx; dx2++ )
+							{
+								unsigned char *cpdiff = diff_image->Buffer( x+dx+dx2, y+dy+dy2 );
+
+								if ( !*cpdiff )
+								{
+									blob = false;
+								}
+								
+							}
+						}
+					}
+				}
+				if ( !blob )
+				{
+					*pdiff = BLACK;
+					continue;
+				}
+				filter_pixels++;
+			}
+		}
+	}
+
+	//diff_image->WriteJpeg( "diff2.jpg" );
+
+	if ( !filter_pixels ) return( false );
+	if ( min_filter_pixels && filter_pixels < min_filter_pixels ) return( false );
+	if ( max_filter_pixels && filter_pixels > max_filter_pixels ) return( false );
+
+	int blobs = 0;
+
+	typedef struct { unsigned char tag; int count; int lo_x; int hi_x; int lo_y; int hi_y; } BlobStats;
+	BlobStats blob_stats[256];
+	memset( blob_stats, 0, sizeof(BlobStats)*256 );
+	for ( int y = lo_y; y <= hi_y; y++ )
+	{
+		unsigned char *pdiff = diff_image->Buffer( lo_x, y );
+		for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
+		{
+			if ( *pdiff == WHITE )
+			{
+				//printf( "Got white pixel at %d,%d (%x)\n", x, y, pdiff );
+				int lx = x>lo_x?*(pdiff-1):0;
+				int ly = y>lo_y?*(pdiff-diff_image->Width()):0;
+
+				if ( lx )
+				{
+					//printf( "Left neighbour is %d\n", lx );
+					BlobStats *bsx = &blob_stats[lx];
+
+					if ( ly )
+					{
+						//printf( "Top neighbour is %d\n", ly );
+						BlobStats *bsy = &blob_stats[ly];
+
+						if ( lx == ly )
+						{
+							//printf( "Matching neighbours, setting to %d\n", lx );
+							// Add to the blob from the x side (either side really)
+							*pdiff = lx;
+							bsx->count++;
+							//if ( x < bsx->lo_x ) bsx->lo_x = x;
+							//if ( y < bsx->lo_y ) bsx->lo_y = y;
+							if ( x > bsx->hi_x ) bsx->hi_x = x;
+							if ( y > bsx->hi_y ) bsx->hi_y = y;
+						}
+						else
+						{
+							// Amortise blobs
+							BlobStats *bsm = bsx->count>=bsy->count?bsx:bsy;
+							BlobStats *bss = bsm==bsx?bsy:bsx;
+
+							//printf( "Different neighbours, setting pixels of %d to %d\n", bss->tag, bsm->tag );
+							// Now change all those pixels to the other setting
+							for ( int sy = bss->lo_y; sy <= bss->hi_y; sy++ )
+							{
+								unsigned char *spdiff = diff_image->Buffer( bss->lo_x, sy );
+								for ( int sx = bss->lo_x; sx <= bss->hi_x; sx++, spdiff++ )
+								{
+									//printf( "Pixel at %d,%d (%x) is %d", sx, sy, spdiff, *spdiff );
+									if ( *spdiff == bss->tag )
+									{
+										//printf( ", setting" );
+										*spdiff = bsm->tag;
+									}
+									//printf( "\n" );
+								}
+							}
+							*pdiff = bsm->tag;
+
+							// Merge the slave blob into the master
+							bsm->count += bss->count+1;
+							if ( x > bsm->hi_x ) bsm->hi_x = x;
+							if ( y > bsm->hi_y ) bsm->hi_y = y;
+							if ( bss->lo_x < bsm->lo_x ) bsm->lo_x = bss->lo_x;
+							if ( bss->lo_y < bsm->lo_y ) bsm->lo_y = bss->lo_y;
+							if ( bss->hi_x > bsm->hi_x ) bsm->hi_x = bss->hi_x;
+							if ( bss->hi_y > bsm->hi_y ) bsm->hi_y = bss->hi_y;
+
+							// Clear out the old blob
+							bss->tag = 0;
+							bss->count = 0;
+							bss->lo_x = 0;
+							bss->lo_y = 0;
+							bss->hi_x = 0;
+							bss->hi_y = 0;
+
+							blobs--;
+						}
+					}
+					else
+					{
+						//printf( "Setting to left neighbour %d\n", lx );
+						// Add to the blob from the x side 
+						*pdiff = lx;
+						bsx->count++;
+						//if ( x < bsx->lo_x ) bsx->lo_x = x;
+						//if ( y < bsx->lo_y ) bsx->lo_y = y;
+						if ( x > bsx->hi_x ) bsx->hi_x = x;
+						if ( y > bsx->hi_y ) bsx->hi_y = y;
+					}
+				}
+				else
+				{
+					if ( ly )
+					{
+						//printf( "Setting to top neighbour %d\n", ly );
+
+						// Add to the blob from the y side
+						BlobStats *bsy = &blob_stats[ly];
+
+						*pdiff = ly;
+						bsy->count++;
+						//if ( x < bsy->lo_x ) bsy->lo_x = x;
+						//if ( y < bsy->lo_y ) bsy->lo_y = y;
+						if ( x > bsy->hi_x ) bsy->hi_x = x;
+						if ( y > bsy->hi_y ) bsy->hi_y = y;
+					}
+					else
+					{
+						// Create a new blob
+						for ( int i = 1; i < WHITE; i++ )
+						{
+							BlobStats *bs = &blob_stats[i];
+							if ( !bs->count )
+							{
+								//printf( "Creating new blob %d\n", i );
+								*pdiff = i;
+								bs->tag = i;
+								bs->count++;
+								bs->lo_x = bs->hi_x = x;
+								bs->lo_y = bs->hi_y = y;
+								blobs++;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//diff_image->WriteJpeg( "diff3.jpg" );
+
+	if ( !blobs ) return( false );
+	int blob_pixels = filter_pixels;
+
+	int min_blob_size = 0;
+	int max_blob_size = 0;
+	// Now eliminate blobs under the alarm_threshold
+	for ( int i = 1; i < WHITE; i++ )
+	{
+		BlobStats *bs = &blob_stats[i];
+		if ( bs->count && ((min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels)) )
+		{
+			//Info(( "Eliminating blob %d, %d pixels (%d,%d - %d,%d)\n", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y ));
+			for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
+			{
+				unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
+				for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ )
+				{
+					if ( *spdiff == bs->tag )
+					{
+						*spdiff = BLACK;
+					}
+				}
+			}
+			blobs--;
+			blob_pixels -= bs->count;
+			
+			bs->tag = 0;
+			bs->count = 0;
+			bs->lo_x = 0;
+			bs->lo_y = 0;
+			bs->hi_x = 0;
+			bs->hi_y = 0;
+		}
+		else
+		{
+			if ( bs->count )
+			{
+				if ( !min_blob_size || bs->count < min_blob_size ) min_blob_size = bs->count;
+				if ( !max_blob_size || bs->count > max_blob_size ) max_blob_size = bs->count;
+			}
+		}
+	}
+
+	if ( !blobs ) return( false );
+	if ( min_blobs && blobs < min_blobs ) return( false );
+	if ( max_blobs && blobs > max_blobs ) return( false );
+
+	int alarm_lo_x = hi_x+1;
+	int alarm_hi_x = lo_x-1;
+	int alarm_lo_y = hi_y+1;
+	int alarm_hi_y = lo_y-1;
+	for ( int i = 1; i < WHITE; i++ )
+	{
+		BlobStats *bs = &blob_stats[i];
+		if ( bs->count )
+		{
+			if ( alarm_lo_x > bs->lo_x ) alarm_lo_x = bs->lo_x;
+			if ( alarm_lo_y > bs->lo_y ) alarm_lo_y = bs->lo_y;
+			if ( alarm_hi_x < bs->hi_x ) alarm_hi_x = bs->hi_x;
+			if ( alarm_hi_y < bs->hi_y ) alarm_hi_y = bs->hi_y;
+		}
+	}
+
+	alarm_pixels = alarm_pixels;
+	alarm_filter_pixels = filter_pixels;
+	alarm_blob_pixels = blob_pixels;
+	alarm_blobs = blobs;
+	min_blob_size = min_blob_size;
+	max_blob_size = max_blob_size;
+	alarm_box = Box( Coord( alarm_lo_x, alarm_lo_y ), Coord( alarm_hi_x, alarm_hi_y ) );
+	score = ((100*blob_pixels)/blobs)/(limits.Size().X()*limits.Size().Y());
+	if ( type == INCLUSIVE )
+	{
+		score /= 2;
+	}
+	else if ( type == EXCLUSIVE )
+	{
+		score *= 2;
+	}
+	score = score;
+
+	// Now outline the changed region
+	if ( alarm_blobs )
+	{
+		alarm = true;
+		Image *high_image = image = diff_image->HighlightEdges( alarm_rgb, &limits );
+
+		delete diff_image;
+		//high_image->WriteJpeg( "diff4.jpg" );
+
+		Info(( "%s: Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d\n", Label(), alarm_pixels, filter_pixels, blob_pixels, blobs, score ));
+	}
+	return( true );
+}
+
+Image *Image::HighlightEdges( Rgb colour, const Box *limits )
+{
+	assert( colours = 1 );
+	Image *high_image = new Image( width, height, 3 );
+	int lo_x = limits?limits->Lo().X():0;
+	int lo_y = limits?limits->Lo().Y():0;
+	int hi_x = limits?limits->Hi().X():width-1;
+	int hi_y = limits?limits->Hi().Y():height-1;
+	for ( int y = lo_y; y <= hi_y; y++ )
+	{
+		unsigned char *p = &buffer[(y*width)+lo_x];
+		unsigned char *phigh = high_image->Buffer( lo_x, y );
+		for ( int x = lo_x; x <= hi_x; x++, p++, phigh += 3 )
+		{
+			bool edge = false;
+			if ( *p )
+			{
+				if ( !edge && x > 0 && !*(p-1) ) edge = true;
+				if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
+				if ( !edge && y > 0 && !*(p-width) ) edge = true;
+				if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
+			}
+			if ( edge )
+			{
+				RED(phigh) = RGB_RED_VAL(colour);
+				GREEN(phigh) = RGB_GREEN_VAL(colour);
+				BLUE(phigh) = RGB_BLUE_VAL(colour);
+			}
+		}
+	}
+	return( high_image );
+}
+
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
 	static char sql[256];
@@ -115,16 +473,16 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 
 		if ( !strcmp( Units, "Percent" ) )
 		{
-			LoX = (LoX*(monitor->Width()-1))/100;
-			LoY = (LoY*(monitor->Height()-1))/100;
-			HiX = (HiX*(monitor->Width()-1))/100;
-			HiY = (HiY*(monitor->Height()-1))/100;
-			MinAlarmPixels = (MinAlarmPixels*monitor->Width()*monitor->Height())/100;
-			MaxAlarmPixels = (MaxAlarmPixels*monitor->Width()*monitor->Height())/100;
-			MinFilterPixels = (MinFilterPixels*monitor->Width()*monitor->Height())/100;
-			MaxFilterPixels = (MaxFilterPixels*monitor->Width()*monitor->Height())/100;
-			MinBlobPixels = (MinBlobPixels*monitor->Width()*monitor->Height())/100;
-			MaxBlobPixels = (MaxBlobPixels*monitor->Width()*monitor->Height())/100;
+			LoX = (LoX*(monitor->CameraWidth()-1))/100;
+			LoY = (LoY*(monitor->CameraHeight()-1))/100;
+			HiX = (HiX*(monitor->CameraWidth()-1))/100;
+			HiY = (HiY*(monitor->CameraHeight()-1))/100;
+			MinAlarmPixels = (MinAlarmPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
+			MaxAlarmPixels = (MaxAlarmPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
+			MinFilterPixels = (MinFilterPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
+			MaxFilterPixels = (MaxFilterPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
+			MinBlobPixels = (MinBlobPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
+			MaxBlobPixels = (MaxBlobPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
 		}
 
 		if ( atoi(dbrow[2]) == Zone::INACTIVE )
@@ -528,6 +886,7 @@ Image *Image::Delta( const Image &image, bool absolute ) const
 	return( result );
 }
 
+#if 0
 bool Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 {
 	bool alarm = false;
@@ -877,104 +1236,7 @@ bool Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 	}
 	return( true );
 }
-
-unsigned int Image::Compare( const Image &image, int n_zones, Zone *zones[] ) const
-{
-	bool alarm = false;
-	unsigned int score = 0;
-
-	if ( n_zones <= 0 ) return( alarm );
-
-	const Image *delta_image = Delta( image );
-
-	// Blank out all exclusion zones
-	unsigned char *psrc = buffer;
-	for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
-	{
-		Zone *zone = zones[n_zone];
-		zone->alarmed = false;
-		if ( zone->Type() != Zone::INACTIVE )
-		{
-			continue;
-		}
-
-		int lo_x = zone->limits.Lo().X();
-		int lo_y = zone->limits.Lo().Y();
-		int hi_x = zone->limits.Hi().X();
-		int hi_y = zone->limits.Hi().Y();
-		Debug( 3, ( "Zeroing zone %s, from %d,%d -> %d,%d", zone->Label(), lo_x, lo_y, hi_x, hi_y ));
-		for ( int y = lo_y; y <= hi_y; y++ )
-		{
-			unsigned char *pdelta = &delta_image->buffer[(y*delta_image->width)+lo_x];
-			for ( int x = lo_x; x <= hi_x; x++ )
-			{
-				*pdelta++ = BLACK;
-			}
-		}
-	}
-
-	// Find all alarm pixels in active zones
-	for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
-	{
-		Zone *zone = zones[n_zone];
-		if ( zone->Type() != Zone::ACTIVE )
-		{
-			continue;
-		}
-		Debug( 3, ( "Checking active zone %s", zone->Label() ));
-		if ( CheckAlarms( zone, delta_image ) )
-		{
-			alarm = true;
-			score += zone->score;
-			zone->alarmed = true;
-			Debug( 3, ( "Zone is alarmed, zone score = %d", zone->score ));
-		}
-	}
-
-	if ( alarm )
-	{
-		for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
-		{
-			Zone *zone = zones[n_zone];
-			if ( zone->Type() != Zone::INCLUSIVE )
-			{
-				continue;
-			}
-			Debug( 3, ( "Checking inclusive zone %s", zone->Label() ));
-			if ( CheckAlarms( zone, delta_image ) )
-			{
-				alarm = true;
-				score += zone->score;
-				zone->alarmed = true;
-				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->score ));
-			}
-		}
-	}
-	else
-	{
-		// Find all alarm pixels in exclusion zones
-		for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
-		{
-			Zone *zone = zones[n_zone];
-			if ( zone->Type() != Zone::EXCLUSIVE )
-			{
-				continue;
-			}
-			Debug( 3, ( "Checking exclusive zone %s", zone->Label() ));
-			if ( CheckAlarms( zone, delta_image ) )
-			{
-				alarm = true;
-				score += zone->score;
-				zone->alarmed = true;
-				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->score ));
-			}
-		}
-	}
-
-	delete delta_image;
-	// This is a small and innocent hack to prevent scores of 0 being returned in alarm state
-	return( score?score:alarm );
-} 
+#endif
 
 void Image::Annotate( const char *text, const Coord &coord, const Rgb colour )
 {
@@ -1119,10 +1381,8 @@ void Image::DeColourise()
 	}
 }
 
-Camera::Camera( int p_id, char *p_name, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture ) : id( p_id ), device( p_device ), channel( p_channel ), format( p_format ), width( p_width), height( p_height ), colours( p_colours ), capture( p_capture )
+Camera::Camera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture ) : device( p_device ), channel( p_channel ), format( p_format ), width( p_width), height( p_height ), colours( p_colours ), capture( p_capture )
 {
-	name = new char[strlen(p_name)+1];
-	strcpy( name, p_name );
 	if ( !camera_count++ && capture )
 	{
 		Initialise( device, channel, format, width, height, colours );
@@ -1647,9 +1907,14 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 	mysql_free_result( result );
 }
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : Camera( p_id, p_name, p_device, p_channel, p_format, p_width, p_height, p_colours, p_capture ), function( (Function)p_function ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), alarm_frame_count( p_alarm_frame_count ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), alarm_frame_count( p_alarm_frame_count ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), n_zones( p_n_zones ), zones( p_zones )
 {
+	name = new char[strlen(p_name)+1];
+	strcpy( name, p_name );
+
     strcpy( label_format, p_label_format );
+
+	camera = new Camera( p_device, p_channel, p_format, p_width, p_height, p_colours, p_capture );
 
 	fps = 0.0;
 	event_count = 0;
@@ -1658,7 +1923,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	last_alarm_count = 0;
 	state = IDLE;
 
-	int shared_images_size = sizeof(SharedImages)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*colours*width*height);
+	int shared_images_size = sizeof(SharedImages)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
 	shmid = shmget( ZM_SHM_KEY|id, shared_images_size, IPC_CREAT|0777 );
 	if ( shmid < 0 )
 	{
@@ -1673,7 +1938,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 		exit( -1 );
 	}
 
-	if ( capture )
+	if ( p_capture )
 	{
 		memset( shared_images, 0, shared_images_size );
 		shared_images->state = IDLE;
@@ -1689,7 +1954,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	for ( int i = 0; i < image_buffer_count; i++ )
 	{
 		image_buffer[i].timestamp = &(shared_images->timestamps[i]);
-		image_buffer[i].image = new Image( width, height, colours, &(shared_images->images[i*colours*width*height]) );
+		image_buffer[i].image = new Image( camera->Width(), camera->Height(), camera->Colours(), &(shared_images->images[i*camera->ImageSize()]) );
 		//Info(( "%d: %x - %x", i, image_buffer[i].image, image_buffer[i].image->buffer ));
 		//*(image_buffer[i].timestamp) = time( 0 );
 		//image_buffer[i].image = new Image( width, height, colours );
@@ -1700,7 +1965,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	{
 		n_zones = 1;
 		zones = new Zone *[1];
-		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED );
+		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( camera->Width(), camera->Height() ), RGB_RED );
 	}
 	start_time = last_fps_time = time( 0 );
 
@@ -1710,9 +1975,9 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	Info(( "Monitor %s LBF = '%s', LBX = %d, LBY = %d\n", name, label_format, label_coord.X(), label_coord.Y() ));
 	Info(( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d\n", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
 
-	if ( !capture )
+	if ( !p_capture )
 	{
-		ref_image.Assign( width, height, colours, image_buffer[shared_images->last_write_index].image->buffer );
+		ref_image.Assign( camera->Width(), camera->Height(), camera->Colours(), image_buffer[shared_images->last_write_index].image->Buffer() );
 	}
 	else
 	{
@@ -1856,50 +2121,61 @@ void Monitor::DumpZoneImage()
 	zone_image.Colourise();
 	for( int i = 0; i < n_zones; i++ )
 	{
-		unsigned char *psrc = zone_image.buffer;
-		int lo_x = zones[i]->Limits().Lo().X();
-		int lo_y = zones[i]->Limits().Lo().Y();
-		int hi_x = zones[i]->Limits().Hi().X();
-		int hi_y = zones[i]->Limits().Hi().Y();
-		for ( int y = 0; y < zone_image.height; y++ )
+		Rgb colour;
+		if ( zones[i]->IsActive() )
 		{
-			for ( int x = 0; x < zone_image.width; x++, psrc += 3 )
-			{
-				if ( ( (x == lo_x || x == hi_x) && (y >= lo_y && y <= hi_y) )
-				|| ( (y == lo_y || y == hi_y) && (x >= lo_x && x <= hi_x) )
-				|| ( (x > lo_x && x < hi_x && y > lo_y && y < hi_y) && !(x%2) && !(y%2) ) )
-				{
-					if ( zones[i]->Type() == Zone::ACTIVE )
-					{
-						RED(psrc) = RGB_RED_VAL(RGB_RED);
-						GREEN(psrc) = RGB_GREEN_VAL(RGB_RED);
-						BLUE(psrc) = RGB_BLUE_VAL(RGB_RED);
-					}
-					else if ( zones[i]->Type() == Zone::INCLUSIVE )
-					{
-						RED(psrc) = RGB_RED_VAL(RGB_GREEN);
-						GREEN(psrc) = RGB_GREEN_VAL(RGB_GREEN);
-						BLUE(psrc) = RGB_BLUE_VAL(RGB_GREEN);
-					}
-					else if ( zones[i]->Type() == Zone::EXCLUSIVE )
-					{
-						RED(psrc) = RGB_RED_VAL(RGB_BLUE);
-						GREEN(psrc) = RGB_GREEN_VAL(RGB_BLUE);
-						BLUE(psrc) = RGB_BLUE_VAL(RGB_BLUE);
-					}
-					else
-					{
-						RED(psrc) = RGB_RED_VAL(RGB_WHITE);
-						GREEN(psrc) = RGB_GREEN_VAL(RGB_WHITE);
-						BLUE(psrc) = RGB_BLUE_VAL(RGB_WHITE);
-					}
-				}
-			}
+			colour = RGB_RED;
 		}
+		else if ( zones[i]->IsInclusive() )
+		{
+			colour = RGB_GREEN;
+		}
+		else if ( zones[i]->IsExclusive() )
+		{
+			colour = RGB_BLUE;
+		}
+		else
+		{
+			colour = RGB_WHITE;
+		}
+		zone_image.Hatch( colour, &(zones[i]->Limits()) );
 	}
 	char filename[64];
 	sprintf( filename, "%s-Zones.jpg", name );
 	zone_image.WriteJpeg( filename );
+}
+  
+void Image::Hatch( Rgb colour, const Box *limits=0 )
+{
+	assert( colours == 1 || colours == 3 );
+
+	int lo_x = limits?limits->Lo().X():0;
+	int lo_y = limits?limits->Lo().Y():0;
+	int hi_x = limits?limits->Hi().X():width-1;
+	int hi_y = limits?limits->Hi().Y():height-1;
+	unsigned char *p = buffer;
+	for ( int y = lo_x; y <= hi_x; y++ )
+	{
+		for ( int x = lo_y; x <= hi_y; x++, p += colours )
+		{
+			//if ( ( (x == lo_x || x == hi_x) && (y >= lo_y && y <= hi_y) )
+			//|| ( (y == lo_y || y == hi_y) && (x >= lo_x && x <= hi_x) )
+			//|| ( (x > lo_x && x < hi_x && y > lo_y && y < hi_y) && !(x%2) && !(y%2) ) )
+			if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%2) && !(y%2) ) )
+			{
+				if ( colours == 1 || colours == 3 )
+				{
+					*p = colour;
+				}
+				else
+				{
+					RED(p) = RGB_RED_VAL(colour);
+					GREEN(p) = RGB_GREEN_VAL(colour);
+					BLUE(p) = RGB_BLUE_VAL(colour);
+				}
+			}
+		}
+	}
 }
 
 void Monitor::DumpImage( Image *image ) const
@@ -1941,7 +2217,7 @@ bool Monitor::Analyse()
 	unsigned int score = 0;
 	if ( Ready() )
 	{
-		score = ref_image.Compare( *image, n_zones, zones );
+		score = Compare( *image );
 
 		if ( shared_images->forced_alarm )
 			score = ZM_FORCED_ALARM_SCORE;
@@ -1974,8 +2250,8 @@ bool Monitor::Analyse()
 			{
 				if ( image_count-last_alarm_count > post_event_count )
 				{
-					Info(( "%s: %03d - Left alarm state (%d) - %d(%d) images\n", name, image_count, event->id, event->frames, event->alarm_frames ));
-					shared_images->last_event = event->id;
+					Info(( "%s: %03d - Left alarm state (%d) - %d(%d) images\n", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() ));
+					shared_images->last_event = event->Id();
 					delete event;
 					shared_images->state = state = IDLE;
 				}
@@ -2121,7 +2397,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd 
 	fprintf( fd, "\r\n" );
 	fprintf( fd, "--ZoneMinderFrame\n" );
 	int last_read_index = image_buffer_count;
-	JOCTET img_buffer[width*height*colours];
+	JOCTET img_buffer[camera->ImageSize()];
 	int img_buffer_size = 0;
 	int loop_count = (idle/refresh)-1;
 	while ( true )
@@ -2155,12 +2431,12 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 
 	sprintf( output+strlen(output), "Id : %d\n", id );
 	sprintf( output+strlen(output), "Name : %s\n", name );
-	sprintf( output+strlen(output), "Device : %d\n", device );
-	sprintf( output+strlen(output), "Channel : %d\n", channel );
-	sprintf( output+strlen(output), "Format : %d\n", format );
-	sprintf( output+strlen(output), "Width : %d\n", width );
-	sprintf( output+strlen(output), "Height : %d\n", height );
-	sprintf( output+strlen(output), "Colour Depth : %d\n", 8*colours );
+	sprintf( output+strlen(output), "Device : %d\n", camera->Device() );
+	sprintf( output+strlen(output), "Channel : %d\n", camera->Channel() );
+	sprintf( output+strlen(output), "Format : %d\n", camera->Format() );
+	sprintf( output+strlen(output), "Width : %d\n", camera->Width() );
+	sprintf( output+strlen(output), "Height : %d\n", camera->Height() );
+	sprintf( output+strlen(output), "Colour Depth : %d\n", 8*camera->Colours() );
 	sprintf( output+strlen(output), "Label Format : %s\n", label_format );
 	sprintf( output+strlen(output), "Label Coord : %d,%d\n", label_coord.X(), label_coord.Y() );
 	sprintf( output+strlen(output), "Warmup Count : %d\n", warmup_count );
@@ -2182,6 +2458,126 @@ bool Monitor::DumpSettings( char *output, bool verbose )
     }
 	return( true );
 }
+
+void Image::Fill( Rgb colour, const Box *limits )
+{
+	assert( colours == 1 || colours == 3 );
+	int lo_x = limits?limits->Lo().X():0;
+	int lo_y = limits?limits->Lo().Y():0;
+	int hi_x = limits?limits->Hi().X():width-1;
+	int hi_y = limits?limits->Hi().Y():height-1;
+	if ( colours == 1 )
+	{
+		for ( int y = lo_y; y <= hi_y; y++ )
+		{
+			unsigned char *p = &buffer[(y*width)+lo_x];
+			for ( int x = lo_x; x <= hi_x; x++ )
+			{
+				*p++ = colour;
+			}
+		}
+	}
+	else if ( colours == 3 )
+	{
+		for ( int y = lo_y; y <= hi_y; y++ )
+		{
+			unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+			for ( int x = lo_x; x <= hi_x; x++ )
+			{
+				RED(p) = RGB_RED_VAL(colour);
+				GREEN(p) = RGB_GREEN_VAL(colour);
+				BLUE(p) = RGB_BLUE_VAL(colour);
+				p += colours;
+			}
+		}
+	}
+}
+
+unsigned int Monitor::Compare( const Image &image )
+{
+	bool alarm = false;
+	unsigned int score = 0;
+
+	if ( n_zones <= 0 ) return( alarm );
+
+	Image *delta_image = ref_image.Delta( image );
+
+	// Blank out all exclusion zones
+	for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+	{
+		Zone *zone = zones[n_zone];
+		zone->ClearAlarm();
+		Debug( 3, ( "Blanking inactive zone %s", zone->Label() ));
+		if ( !zone->IsInactive() )
+		{
+			continue;
+		}
+
+		delta_image->Fill( RGB_BLACK, &(zone->Limits()) );
+	}
+
+	// Find all alarm pixels in active zones
+	for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+	{
+		Zone *zone = zones[n_zone];
+		if ( !zone->IsActive() )
+		{
+			continue;
+		}
+		Debug( 3, ( "Checking active zone %s", zone->Label() ));
+		if ( zone->CheckAlarms( delta_image ) )
+		{
+			alarm = true;
+			score += zone->Score();
+			zone->SetAlarm();
+			Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+		}
+	}
+
+	if ( alarm )
+	{
+		for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+		{
+			Zone *zone = zones[n_zone];
+			if ( !zone->IsInclusive() )
+			{
+				continue;
+			}
+			Debug( 3, ( "Checking inclusive zone %s", zone->Label() ));
+			if ( zone->CheckAlarms( delta_image ) )
+			{
+				alarm = true;
+				score += zone->Score();
+				zone->SetAlarm();
+				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+			}
+		}
+	}
+	else
+	{
+		// Find all alarm pixels in exclusion zones
+		for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+		{
+			Zone *zone = zones[n_zone];
+			if ( !zone->IsExclusive() )
+			{
+				continue;
+			}
+			Debug( 3, ( "Checking exclusive zone %s", zone->Label() ));
+			if ( zone->CheckAlarms( delta_image ) )
+			{
+				alarm = true;
+				score += zone->Score();
+				zone->SetAlarm();
+				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+			}
+		}
+	}
+
+	delete delta_image;
+	// This is a small and innocent hack to prevent scores of 0 being returned in alarm state
+	return( score?score:alarm );
+} 
 
 bool Zone::DumpSettings( char *output, bool verbose )
 {

@@ -632,7 +632,7 @@ sub uploadArchFile
 	my $event = shift;
 
 	my $arch_file = ZM_UPLOAD_FTP_LOC_DIR.'/'.$event->{MonitorName}.'-'.$event->{Id};
-	my $arch_image_path = "$event->{MonitorId}/$event->{Id}/".((ZM_UPLOAD_ARCH_ANALYSE)?'{analyse,capture}':'*capture').".jpg";
+	my $arch_image_path = "$event->{MonitorId}/$event->{Id}/".((ZM_UPLOAD_ARCH_ANALYSE)?'{*analyse,*capture}':'*capture').".jpg";
 	my $arch_error;
 
 	if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )

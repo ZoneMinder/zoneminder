@@ -1,6 +1,7 @@
 .text {  font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: #333333; font-weight: normal}
 .redtext {  font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: red; font-weight: bold}
-.ambtext {  font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: orange; font-weight: bold}
+.oratext {  font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: orange; font-weight: bold}
+.gretext {  font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: green; font-weight: bold}
 .smallhead {  font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: #016A9D; font-weight: bold; line-height: 20px}
 .head {  font-family: Verdana, Arial, Helvetica, sans-serif; font-size:11px; color: #000066; font-weight: bold}
 a:link {  color: #7F7FB2; text-decoration: none}

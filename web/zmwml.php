@@ -103,11 +103,11 @@ if ( $view == "console" )
 	}
 ?>
 <wml>
-<card id="zmConsole" title="ZM - Console" ontimer="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>">
-<timer value="<?php echo REFRESH_MAIN*10 ?>"/>
+<card id="zmConsole" title="ZM - Console" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>">
+<timer value="<?= REFRESH_MAIN*10 ?>"/>
 <p mode="nowrap" align="center"><strong>ZM - Console</strong></p>
-<p mode="nowrap" align="center"><?php echo count($monitors) ?> Monitors - <?php echo strftime( "%T" ) ?></p>
-<p mode="nowrap" align="center"><?php echo $HTTP_SESSION_VARS[event_reset_time] ?></p>
+<p mode="nowrap" align="center"><?= count($monitors) ?> Monitors - <?= strftime( "%T" ) ?></p>
+<p mode="nowrap" align="center"><?= $HTTP_SESSION_VARS[event_reset_time] ?></p>
 <p align="center">
 <table columns="3">
 <tr>
@@ -123,16 +123,16 @@ if ( $view == "console" )
 		$reset_event_count += $monitor[ResetEventCount];
 ?>
 <tr>
-<td><a href="<?php echo $PHP_SELF ?>?view=feed&amp;mid=<?php echo $monitor[Id] ?>"><?php echo $monitor[Name] ?></a></td>
-<td><a href="<?php echo $PHP_SELF ?>?view=function&amp;mid=<?php echo $monitor[Id] ?>"><?php echo substr( $monitor['Function'], 0, 1 ) ?></a></td>
-<td><a href="<?php echo $PHP_SELF ?>?view=events&amp;mid=<?php echo $monitor[Id] ?>"><?php echo $monitor[ResetEventCount] ?></a></td>
+<td><a href="<?= $PHP_SELF ?>?view=feed&amp;mid=<?= $monitor[Id] ?>"><?= $monitor[Name] ?></a></td>
+<td><a href="<?= $PHP_SELF ?>?view=function&amp;mid=<?= $monitor[Id] ?>"><?= substr( $monitor['Function'], 0, 1 ) ?></a></td>
+<td><a href="<?= $PHP_SELF ?>?view=events&amp;mid=<?= $monitor[Id] ?>"><?= $monitor[ResetEventCount] ?></a></td>
 </tr>
 <?php
 	}
 ?>
 </table>
 </p>
-<p mode="nowrap" align="center"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&amp;action=reset">Reset Event Counts</a></p>
+<p mode="nowrap" align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;action=reset">Reset Event Counts</a></p>
 </card>
 </wml>
 <?php
@@ -158,10 +158,10 @@ elseif( $view == "feed" )
 	chdir( '..' );
 ?>
 <wml>
-<card id="zmFeed" title="ZM - <?php echo $monitor[Name] ?>" ontimer="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&amp;mid=<?php echo $mid ?>">
-<timer value="<?php echo REFRESH_IMAGE*10 ?>"/>
-<p mode="nowrap" align="center"><strong>ZM - <?php echo $monitor[Name] ?></strong></p>
-<p mode="nowrap" align="center"><img src="<?php echo ZM_DIR_IMAGES.'/'.$browser_image ?>" alt="<?php echo $monitor[Name] ?>" hspace="0" vspace="0" align="middle"/></p>
+<card id="zmFeed" title="ZM - <?= $monitor[Name] ?>" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;mid=<?= $mid ?>">
+<timer value="<?= REFRESH_IMAGE*10 ?>"/>
+<p mode="nowrap" align="center"><strong>ZM - <?= $monitor[Name] ?></strong></p>
+<p mode="nowrap" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$browser_image ?>" alt="<?= $monitor[Name] ?>" hspace="0" vspace="0" align="middle"/></p>
 </card>
 </wml>
 <?php

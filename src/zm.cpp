@@ -1291,14 +1291,14 @@ Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), 
 	alarm_frames = 0;
 	tot_score = 0;
 	max_score = 0;
-	sprintf( path, "%s/%04d", monitor->GetTimestampPath( 0 ), id );
+	sprintf( path, "%s/%04d", monitor->Name(), id );
 	
 	struct stat statbuf;
 	errno = 0;
 	stat( path, &statbuf );
 	if ( errno == ENOENT || errno == ENOTDIR )
 	{
-		if ( mkdir( path, 0777 ) )
+		if ( mkdir( path, 0755 ) )
 		{
 			Error(( "Can't make %s: %s\n", path, strerror(errno)));
 		}
@@ -1470,6 +1470,33 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	if ( !capture )
 	{
 		ref_image.Assign( width, height, colours, image_buffer[shared_images->last_write_index].image->buffer );
+
+		static char	path[256];
+
+		sprintf( path, EVENT_DIR );
+
+		struct stat statbuf;
+		errno = 0;
+		stat( path, &statbuf );
+		if ( errno == ENOENT || errno == ENOTDIR )
+		{
+			if ( mkdir( path, 0755 ) )
+			{
+				Error(( "Can't make %s: %s\n", path, strerror(errno)));
+			}
+		}
+
+		sprintf( path, EVENT_DIR "/%s", name );
+
+		errno = 0;
+		stat( path, &statbuf );
+		if ( errno == ENOENT || errno == ENOTDIR )
+		{
+			if ( mkdir( path, 0755 ) )
+			{
+				Error(( "Can't make %s: %s\n", path, strerror(errno)));
+			}
+		}
 	}
 
 	//if ( capture )
@@ -1624,42 +1651,6 @@ void Monitor::DumpZoneImage()
 	char filename[64];
 	sprintf( filename, "%s-Zones.jpg", name );
 	zone_image.WriteJpeg( filename );
-}
-
-char *Monitor::GetTimestampPath( time_t now )
-{
-	static char	path[256];
-	sprintf( path, "events/%s", name );
-	return( path );
-
-	static char timestamp[64];
-	static char	event_path[256];
-
-	strftime( timestamp, sizeof(timestamp), "%Y%m%d", localtime( &now ) );
-	sprintf( event_path, "events/%s/%s", name, timestamp );
-	struct stat statbuf;
-	errno = 0;
-	stat( event_path, &statbuf );
-	if ( errno == ENOENT || errno == ENOTDIR )
-	{
-		if ( mkdir( event_path, 0777 ) )
-		{
-			Error(( "Can't make %s: %s\n", event_path, strerror(errno)));
-		}
-	}
-	strftime( timestamp, sizeof(timestamp), "%H%M%S", localtime( &now ) );
-	strcat( event_path, "/" );
-	strcat( event_path, timestamp );
-	errno = 0;
-	stat( event_path, &statbuf );
-	if ( errno == ENOENT || errno == ENOTDIR )
-	{
-		if ( mkdir( event_path, 0777 ) )
-		{
-			Error(( "Can't make %s: %s\n", event_path, strerror(errno)));
-		}
-	}
-	return( event_path );
 }
 
 void Monitor::DumpImage( Image *image ) const

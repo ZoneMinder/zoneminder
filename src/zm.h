@@ -609,7 +609,6 @@ public:
 		return( function == ACTIVE && image_count > WARMUP_COUNT );
 	}
  
-	char *GetTimestampPath( time_t now );
 	void DumpImage( Image *image ) const;
 	void Analyse();
 

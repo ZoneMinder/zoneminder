@@ -5,3 +5,5 @@
 #define	ZM_DB_PASSA	"zmadminzm"
 #define	ZM_DB_USERB	"zmuser"
 #define	ZM_DB_PASSB	"zmuserzm"
+
+#define EVENT_DIR	"events"

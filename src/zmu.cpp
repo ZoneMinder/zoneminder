@@ -26,15 +26,14 @@
 
 void Usage( int status=-1 )
 {
-	fprintf( stderr, "zmu <-d device_no> [-v] [function]\n" );
-	fprintf( stderr, "zmu <-m monitor_id> [-v] [function]\n" );
+	fprintf( stderr, "zmu <-d device_no> [-v] [function] [-U<username> -P<password>]\n" );
+	fprintf( stderr, "zmu <-m monitor_id> [-v] [function] [-U<username> -P<password>]\n" );
 	fprintf( stderr, "General options:\n" );
 	fprintf( stderr, "  -h, --help                     : This screen\n" );
 	fprintf( stderr, "  -v, --verbose                  : Produce more verbose output\n" );
 	fprintf( stderr, "Options for use with devices:\n" );
 	fprintf( stderr, "  -d, --device <device_no>       : Get the current video device settings for /dev/video<device_no>\n" );
 	fprintf( stderr, "  -q, --query                    : Query the current settings for the device\n" );
-	fprintf( stderr, "  -p, --probe                    : Query possible settings for the device\n" );
 	fprintf( stderr, "Options for use with monitors:\n" );
 	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 1 if absent\n" );
 	fprintf( stderr, "  -q, --query                    : Query the current settings for the monitor\n" );
@@ -55,8 +54,119 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -a, --alarm                    : Force alarm in monitor, this will trigger recording until cancelled with -c\n" );
 	fprintf( stderr, "  -n, --noalarm                  : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n" );
 	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n" );
+	fprintf( stderr, "  -U, --username <username>      : When running in authenticated mode the username and\n" );
+	fprintf( stderr, "  -P, --password <password>      : and password combination of the given user\n" );
 
 	exit( status );
+}
+
+typedef enum {
+	BOGUS=0x0000,
+	STATE=0x0001,
+	IMAGE=0x0002,
+	TIME=0x0004,
+	READ_IDX=0x0008,
+	WRITE_IDX=0x0010,
+	EVENT=0x0020,
+	FPS=0x0040,
+	ZONES=0x0080,
+	ALARM=0x0100,
+	NOALARM=0x0200,
+	CANCEL=0x0400,
+	QUERY=0x0800,
+	BRIGHTNESS=0x1000,
+	CONTRAST=0x2000,
+	HUE=0x4000,
+	COLOUR=0x8000
+} Function;
+
+bool ValidateAccess( const char *username, const char *password, int mon_id, Function function )
+{
+	if ( mon_id >= 0 && (bool)config.Item( ZM_OPT_USE_AUTH ) )
+	{
+		if ( !username || !password )
+		{
+			fprintf( stderr, "Error, username and password must be supplied\n" );
+			exit( -1 );
+		}
+
+		char sql[BUFSIZ] = "";
+		sprintf( sql, "select Username, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
+
+		if ( mysql_query( &dbconn, sql ) )
+		{
+			Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+			exit( mysql_errno( &dbconn ) );
+		}
+
+		MYSQL_RES *result = mysql_store_result( &dbconn );
+		if ( !result )
+		{
+			Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+			exit( mysql_errno( &dbconn ) );
+		}
+		int n_users = mysql_num_rows( result );
+
+		if ( n_users < 1 )
+		{
+			fprintf( stderr, "Error, invalid username and/or password\n" );
+			exit( -1 );
+		}
+
+		MYSQL_ROW dbrow = mysql_fetch_row( result );
+
+		bool allowed = true;
+		int stream = atoi(dbrow[1]);
+		int events = atoi(dbrow[2]);
+		int monitors = atoi(dbrow[3]);
+		int system = atoi(dbrow[4]);
+		const char *monitor_ids = dbrow[5];
+		if ( function & (STATE|IMAGE|TIME|READ_IDX|WRITE_IDX|FPS) )
+		{
+			if ( stream < 1 )
+				allowed = false;
+		}
+		if ( function & EVENT )
+		{
+			if ( events < 1 )
+				allowed = false;
+		}
+		if ( function & (ZONES|QUERY) )
+		{
+			if ( monitors < 1 )
+				allowed = false;
+		}
+		if ( function & (ALARM|NOALARM|CANCEL|BRIGHTNESS|CONTRAST|HUE|COLOUR) )
+		{
+			if ( monitors < 2 )
+				allowed = false;
+		}
+		if ( monitor_ids && monitor_ids[0] )
+		{
+			char mon_id_str[256] = "";
+			strcpy( mon_id_str, monitor_ids );
+			char *mon_id_str_ptr = mon_id_str;
+			char *mon_id_ptr = 0;
+			bool found_mon_id = false;
+			while( mon_id_ptr = strtok( mon_id_str_ptr, "," ) )
+			{
+				mon_id_str_ptr = 0;
+				if ( mon_id == atoi( mon_id_ptr ) )
+				{
+					found_mon_id = true;
+					break;
+				}
+			}
+			if ( !found_mon_id )
+				allowed = false;
+		}
+		if ( !allowed )
+		{
+			fprintf( stderr, "Error, insufficient privileges for requested action\n" );
+			exit( -1 );
+		}
+	}
+	return( true );
 }
 
 int main( int argc, char *argv[] )
@@ -82,6 +192,8 @@ int main( int argc, char *argv[] )
 		{"cancel", 0, 0, 'c'},
 		{"query", 0, 0, 'q'},
 		{"brightness", 0, 0, 'b'},
+		{"username", 1, 0, 'U'},
+		{"password", 1, 0, 'P'},
 		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -89,25 +201,6 @@ int main( int argc, char *argv[] )
 	int dev_id = -1;
 	int mon_id = 1;
 	bool verbose = false;
-	typedef enum {
-		BOGUS=0x0000,
-		STATE=0x0001,
-		IMAGE=0x0002,
-		TIME=0x0004,
-		READ_IDX=0x0008,
-		WRITE_IDX=0x0010,
-		EVENT=0x0020,
-		FPS=0x0040,
-		ZONES=0x0080,
-		ALARM=0x0100,
-		NOALARM=0x0200,
-		CANCEL=0x0400,
-		QUERY=0x0800,
-		BRIGHTNESS=0x1000,
-		CONTRAST=0x2000,
-		HUE=0x4000,
-		COLOUR=0x8000
-	} Function;
 	Function function = BOGUS;
 
 	int image_idx = -1;
@@ -115,11 +208,13 @@ int main( int argc, char *argv[] )
 	int contrast = -1;
 	int hue = -1;
 	int colour = -1;
+	char *username = 0;
+	char *password = 0;
 	while (1)
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsrwie::t::fzancqphB::C::H::O::", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsrwie::t::fzancqphB::C::H::O::U:P:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -208,6 +303,12 @@ int main( int argc, char *argv[] )
 					colour = atoi( optarg );
 				}
 				break;
+			case 'U':
+				username = optarg;
+				break;
+			case 'P':
+				password = optarg;
+				break;
 			case 'h':
 				Usage( 0 );
 				break;
@@ -242,6 +343,8 @@ int main( int argc, char *argv[] )
 	zmDbgInit();
 
 	zmDbConnect( ZM_DB_USERB, ZM_DB_PASSB );
+
+	ValidateAccess( username, password, mon_id, function );
 
 	if ( dev_id >= 0 )
 	{
@@ -469,7 +572,7 @@ int main( int argc, char *argv[] )
 		}
 		else
 		{
-			fprintf( stderr, "Error, invalid monitor id %d", mon_id );
+			fprintf( stderr, "Error, invalid monitor id %d\n", mon_id );
 			exit( -1 );
 		}
 	}

@@ -267,7 +267,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, FILE *fd )
 {
 	static char sql[256];
-	sprintf( sql, "select Id, EventId, ImagePath, Delta*10000 from Frames where EventId = %d order by Id", event_id );
+	sprintf( sql, "select Id, EventId, ImagePath, Delta from Frames where EventId = %d order by Id", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -294,19 +294,16 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 	FILE *fdj = NULL;
 	int n_bytes = 0;
 	static unsigned char buffer[400000];
-	int last_delta = 0;
+	double last_delta = 0;
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		if ( !refresh )
+		if ( refresh < 0 )
 		{
-			if ( !i )
+			if ( i )
 			{
-				last_delta = atoi(dbrow[3]);
+				usleep( (int)((1000000*(atof(dbrow[3])-last_delta))/abs(refresh)) );
 			}
-			else
-			{
-				usleep( atoi(dbrow[3])-last_delta );
-			}
+			last_delta = atof(dbrow[3]);
 		}
 		char filepath[PATH_MAX];
 		sprintf( filepath, "%s/%s", path, dbrow[2] );

@@ -81,7 +81,7 @@ top.window.focus();
 if ( $old_alarm )
 {
 ?>
-window.parent.frames[2].location.reload(true);
+window.parent.MonitorEvents<?= $mid ?>.location.reload(true);
 <?php
 }
 if ( ZM_WEB_REFRESH_METHOD == "javascript" )

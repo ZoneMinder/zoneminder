@@ -41,24 +41,4 @@ else
 
 require_once( $lang_file );
 
-// Function to correlate the plurality string arrays with variable counts
-// Note this still has to be used with printf etc to get the right formating
-function zmVlang( $lang_var_array, $count )
-{
-	krsort( $lang_var_array );
-	foreach ( $lang_var_array as $key=>$value )
-	{
-		if ( abs($count) >= $key )
-		{
-			return( $value );
-		}
-	}
-	die( 'Error, unable to correlate variable language string' );
-}
-
-// Example
-//$monitors = array();
-//$monitors[] = 1;
-//echo sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) );
-
 ?>

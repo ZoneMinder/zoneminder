@@ -135,9 +135,10 @@ while( 1 )
 				next;
 			}
 
+			my $max_image_delay = $monitor->{MaxFPS}>0?(10/$monitor->{MaxFPS}):ZM_WATCH_MAX_DELAY;
 			my $image_delay = $now-$image_time;
-			print( "Monitor $monitor->{Id} last captured $image_delay seconds ago\n" ) if ( VERBOSE );
-			if ( $image_delay <= ZM_WATCH_MAX_DELAY )
+			print( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" ) if ( VERBOSE );
+			if ( $image_delay <= $max_image_delay )
 			{
 				# Yes, so continue
 				next;

@@ -681,7 +681,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 	fprintf( fd, "Cache-Control: no-cache\r\n" );
 	fprintf( fd, "Expires: Thu, 01 Dec 1994 16:00:00 GMT\r\n" );
 	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-	fprintf( fd, "--ZoneMinderFrame\r\n" );
+	fprintf( fd, "--ZoneMinderFrame\n" );
 	int last_read_index = image_buffer_count;
 	JOCTET img_buffer[camera->ImageSize()];
 	int img_buffer_size = 0;
@@ -703,9 +703,9 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 			Image *image = snap->image;
 			image->EncodeJpeg( img_buffer, &img_buffer_size );
 
-			fprintf( fd, "Content-type: image/jpg\r\n\r\n" );
+			fprintf( fd, "Content-type: image/jpg\n\n" );
 			fwrite( img_buffer, 1, img_buffer_size, fd );
-			fprintf( fd, "\r\n--ZoneMinderFrame\r\n" );
+			fprintf( fd, "\n--ZoneMinderFrame\n" );
 		}
 		usleep( refresh*1000 );
 		for ( int i = 0; shared_images->state == IDLE && i < loop_count; i++ )

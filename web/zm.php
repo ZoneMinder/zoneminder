@@ -1695,11 +1695,37 @@ window.close();
 <?php
 }
 
+function getBrowser( &$browser, &$version )
+{
+	global $_SERVER;
+
+	if (ereg( 'MSIE ([0-9].[0-9]{1,2})',$_SERVER[HTTP_USER_AGENT],$log_version))
+	{
+		$version = $log_version[1];
+		$browser = 'ie';
+	}
+	elseif (ereg( 'Opera ([0-9].[0-9]{1,2})',$_SERVER[HTTP_USER_AGENT],$log_version))
+	{
+		$version = $log_version[1];
+		$browser = 'opera';
+	}
+	elseif (ereg( 'Mozilla/([0-9].[0-9]{1,2})',$_SERVER[HTTP_USER_AGENT],$log_version))
+	{
+		$version = $log_version[1];
+		$browser = 'mozilla';
+	}
+	else
+	{
+		$version = 0;
+		$browser = 'unknown';
+	}
+}
+
 function isNetscape()
 {
-	global $HTTP_USER_AGENT;
+	getBrowser( $browser, $version );
 
-	return( preg_match( '/Mozilla\/([0-9].[0-9]{1,2})/', $HTTP_USER_AGENT ) );
+	return( $browser == "mozilla" );
 }
 
 function canStream()

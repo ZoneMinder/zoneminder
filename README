@@ -1308,7 +1308,7 @@ Mostly bug-fixes with a couple of minor features.
      installs.
      
   o    Delete monitor confirm. Due to some unfortunate accidents by
-     users, attempts to delete monitors will not require confirmation.
+     users, attempts to delete monitors will now require confirmation.
      
   o    Detect linmysqlclient.a. Added better detection script into
      'configure' top spot when libmysqlclient.a is missing.

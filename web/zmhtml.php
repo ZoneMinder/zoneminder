@@ -1,7 +1,7 @@
 <?php
 
 //
-// Zone Monitor HTML interface file, $Date$, $Revision$
+// ZoneMinder HTML interface file, $Date$, $Revision$
 // Copyright (C) 2002  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
@@ -126,7 +126,7 @@ function configureButton(form,name)
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td class="smallhead" align="left"><?php echo date( "D jS M, g:ia" ) ?></td>
-<td class="bighead" align="center"><strong>Zone Monitor Console</strong></td>
+<td class="bighead" align="center"><strong>ZoneMinder Console</strong></td>
 <td class="smallhead" align="right"><a href="mailto:bugs@zoneminder.com?subject=ZoneMinder Bug">Report Bug</a></td>
 </tr>
 <tr>

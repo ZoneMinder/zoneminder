@@ -1,7 +1,7 @@
 <?php
 
 //
-// Zone Monitor function library file, $Date$, $Revision$
+// ZoneMinder function library file, $Date$, $Revision$
 // Copyright (C) 2002  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

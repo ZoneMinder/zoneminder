@@ -1,7 +1,7 @@
 <?php
 
 //
-// Zone Monitor web action file, $Date$, $Revision$
+// ZoneMinder web action file, $Date$, $Revision$
 // Copyright (C) 2002  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or

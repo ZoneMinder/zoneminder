@@ -1,7 +1,7 @@
 <?php
 
 //
-// Zone Monitor WML interface file, $Date$, $Revision$
+// ZoneMinder WML interface file, $Date$, $Revision$
 // Copyright (C) 2002  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

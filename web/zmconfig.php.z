@@ -1,7 +1,7 @@
 <?php
 
 //
-// Zone Monitor web configuration file, $Date$, $Revision$
+// ZoneMinder web configuration file, $Date$, $Revision$
 // Copyright (C) 2002  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -25,8 +25,8 @@ define( "DB_USER", "zmadmin" );					// Database login
 define( "DB_PASS", "zmadminzm" );				// Database password
 
 define( "ZM_PATH", "@prefix@/bin" );			// Path to the general ZoneMonitor executables
-define( "ZMU_PATH", ZM_PATH."/zmu" );			// Path to the Zone Monitor Utility
-define( "ZMS_PATH", "/cgi-bin/zms" );			// Path to the Zone Monitor Stream server
+define( "ZMU_PATH", ZM_PATH."/zmu" );			// Path to the ZoneMinder Utility
+define( "ZMS_PATH", "/cgi-bin/zms" );			// Path to the ZoneMinder Stream server
 define( "EVENT_PATH", "events" );				// Local path to where events directory lives
 define( "ZMS_EVENT_PATH", "/data/zm" );			// Full path (not web) to where events directory lives
 define( "CAMBOZOLA_PATH", "cambozola.jar" );	// Path to (optional) cambozola java streaming client (recommended)

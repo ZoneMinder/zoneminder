@@ -28,6 +28,7 @@ $running = daemonCheck();
 $result = mysql_query( "select * from States" );
 if ( !$result )
 	die( mysql_error() );
+$states = array();
 while( $state = mysql_fetch_assoc( $result ) )
 {
 	$states[] = $state;

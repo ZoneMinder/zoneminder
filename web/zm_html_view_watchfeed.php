@@ -138,7 +138,7 @@ AutoStart=true>
 		{
 ?>
 <EMBED type="video/mpeg"
-src="<?= $stream_src."&format=mpeg" ?>"
+src="<?= $stream_src."&format=asf" ?>"
 width=<?= reScale( $monitor['Width'], $scale ) ?>
 height=<?= reScale( $monitor['Height'], $scale ) ?>
 AutoStart=true>

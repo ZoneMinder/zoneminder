@@ -36,7 +36,7 @@ if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
 
-if ( !isset($mid) )
+if ( empty($mid) )
 {
 	$mid = 0;
 	$mid_sql = '';

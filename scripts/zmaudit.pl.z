@@ -257,11 +257,11 @@ do
 		else
 		{
 			#print( "Database monitor '$db_monitor' does not exist in filesystem" );
-			if ( confirm() )
-			{
+			#if ( confirm() )
+			#{
 				# We don't actually do this in case it's new
 				#my $res = $sth3->execute( $db_monitor ) or die( "Can't execute: ".$sth3->errstr() );
-			}
+			#}
 		}
 	}
 

@@ -144,7 +144,7 @@ if ( $action )
 
 				$monitor['Function'] = $new_function;
 				zmcControl( $monitor, true );
-				zmaControl( $monitor );
+				zmaControl( $monitor, true );
 				$refresh_parent = true;
 			}
 		}
@@ -302,7 +302,7 @@ if ( $action )
 				fixDevices();
 				zmcControl( $monitor, true );
 				zmaControl( $monitor, true );
-				daemonControl( 'restart', 'zmwatch.pl' );
+				//daemonControl( 'restart', 'zmwatch.pl' );
 				$refresh_parent = true;
 			}
 		}

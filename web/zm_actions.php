@@ -403,6 +403,7 @@ if ( $action )
 						break;
 				}
 			}
+			loadConfig();
 		}
 		elseif ( $action == "user" && isset( $uid ) )
 		{

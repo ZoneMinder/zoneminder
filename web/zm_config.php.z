@@ -99,6 +99,9 @@ function loadConfig()
 	global $config;
 	global $config_cats;
 
+	$config = array();
+	$config_cat = array();
+
 	$sql = "select * from Config";
 	$result = mysql_query( $sql );
 	if ( !$result )

@@ -21,6 +21,12 @@
 $running = daemonCheck();
 $status = $running?$zmSlangRunning:$zmSlangStopped;
 
+$sql = "select * from Groups where Name = 'Mobile'";
+$result = mysql_query( $sql );
+if ( !$result )
+	echo mysql_error();
+$group = mysql_fetch_assoc( $result );
+
 $db_now = strftime( "%Y-%m-%d %H:%M:%S" );
 $sql = "select M.*, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if((to_days(E.StartTime)=to_days('$db_now')) && E.Archived = 0,1,NULL)) as TodayEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
 $result = mysql_query( $sql );
@@ -33,6 +39,10 @@ $cycle_count = 0;
 while( $row = mysql_fetch_assoc( $result ) )
 {
 	if ( !visibleMonitor( $row['Id'] ) )
+	{
+		continue;
+	}
+	if ( $group && $group['MonitorIds'] && !in_array( $row['Id'], split( ',', $group['MonitorIds'] ) ) )
 	{
 		continue;
 	}

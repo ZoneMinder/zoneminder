@@ -271,7 +271,7 @@ int RemoteCamera::GetResponse()
 					return( -1 );
 				}
 				if ( !header_expr )
-					header_expr = new RegExpr( "^(.+?\r?\n)(?=\r?\n)", PCRE_DOTALL );
+					header_expr = new RegExpr( "^(.+?\r?\n\r?\n)", PCRE_DOTALL );
 				if ( header_expr->Match( (char*)buffer, buffer.Size() ) == 2 )
 				{
 					header = header_expr->MatchString( 1 );
@@ -369,7 +369,7 @@ int RemoteCamera::GetResponse()
 				if ( !subheader_expr )
 				{
 					char subheader_pattern[256] = "";
-					sprintf( subheader_pattern, "^((?:\r?\n)?\r?\n(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
+					sprintf( subheader_pattern, "^((?:\r?\n\r?\n)?(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
 					subheader_expr = new RegExpr( subheader_pattern, PCRE_MULTILINE|PCRE_DOTALL );
 				}
 				if ( subheader_expr->Match( (char *)buffer, (int)buffer ) == 2 )
@@ -416,15 +416,52 @@ int RemoteCamera::GetResponse()
 					return( -1 );
 				}
 
-				while ( buffer.Size() < content_length )
+				if ( content_length )
 				{
-					int buffer_len = ReadData( buffer );
-					if ( buffer_len < 0 )
+					while ( buffer.Size() < content_length )
 					{
-						return( -1 );
+						int buffer_len = ReadData( buffer );
+						if ( buffer_len < 0 )
+						{
+							return( -1 );
+						}
 					}
 				}
-
+				else
+				{
+					while ( !content_length )
+					{
+						int buffer_len = ReadData( buffer );
+						if ( buffer_len < 0 )
+						{
+							return( -1 );
+						}
+						static RegExpr *content_expr = 0;
+						if ( mode == SINGLE_JPEG )
+						{
+							static RegExpr *single_jpeg_expr = 0;
+							if ( !content_expr )
+							{
+								content_expr = new RegExpr( "^(.+?)\r?\n\r?\n$", PCRE_MULTILINE|PCRE_DOTALL );
+							}
+						}
+						else
+						{
+							static RegExpr *multi_jpeg_expr = 0;
+							if ( !content_expr )
+							{
+								char content_pattern[256] = "";
+								sprintf( content_pattern, "^(.+?)\r?\n\r?\n(?:--)?%s\r?\n", content_boundary );
+								content_expr = new RegExpr( content_pattern, PCRE_MULTILINE|PCRE_DOTALL );
+							}
+						}
+						if ( content_expr->Match( buffer, buffer.Size() ) == 2 )
+						{
+							content_length = content_expr->MatchLength( 1 );
+							Debug( 3, ( "Got end of image, content-length = %d", content_length ));
+						}
+					}
+				}
 				if ( mode == SINGLE_JPEG )
 				{
 					state = HEADER;

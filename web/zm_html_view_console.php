@@ -5,12 +5,10 @@
 
 	if ( $stop )
 	{
-		session_write_close();
 		packageControl( 'stop' );
 	}
 	if ( $start )
 	{
-		session_write_close();
 		packageControl( 'start' );
 	}
 
@@ -229,12 +227,12 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 <?php } else { ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=$monitor[Id]', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">$monitor[Host]</span>", canEdit( 'Monitors' ) ) ?></td>
 <?php } ?>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=1&attr1=Archived&val1=0', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[EventCount], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[HourEventCount], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+day', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[DayEventCount], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+week', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[WeekEventCount], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+month', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[MonthEventCount], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[ArchEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&page=1&filter=1&trms=1&attr1=Archived&val1=0', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[EventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&page=1&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[HourEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&page=1&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+day', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[DayEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&page=1&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+week', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[WeekEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&page=1&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+month', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[MonthEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&page=1&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[ArchEventCount], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=zones&mid=$monitor[Id]', 'zmZones', ".($monitor[Width]+$jws['zones']['w']).", ".($monitor[Height]+$jws['zones']['h'])." );", $monitor[ZoneCount], canView( 'Monitors' ) ) ?></td>
 <td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor[Id] ?>" onClick="configureButton( document.monitor_form, 'mark_mids' );"<?php if ( !canEdit( 'Monitors' ) || $user[MonitorIds] ) {?> disabled<?php } ?>></td>
 </tr>

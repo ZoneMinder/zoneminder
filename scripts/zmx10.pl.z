@@ -301,7 +301,7 @@ sub runServer
 			{
 				my $monitor = $monitor_hash{$monitor_id};
 				my $state;
-				if ( !shmread( $monitor->{ShmId}, $state, 0, 4 ) )
+				if ( !shmread( $monitor->{ShmId}, $state, 4, 4 ) )
 				{
 					print( "Can't read from shared memory: $!\n" );
 					$reload = !undef;

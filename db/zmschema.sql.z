@@ -2,7 +2,7 @@
 --
 -- Host: localhost    Database: ZM_DB_NAME
 ---------------------------------------------------------
--- Server version	3.23.49
+-- Server version   3.23.49
 
 --
 -- Current Database: ZM_DB_NAME
@@ -92,7 +92,7 @@ CREATE TABLE Monitors (
   Path varchar(255) default NULL,
   Width smallint(5) unsigned NOT NULL default '0',
   Height smallint(5) unsigned NOT NULL default '0',
-  Colours tinyint(3) unsigned NOT NULL default '0',
+  Palette tinyint(3) unsigned NOT NULL default '1',
   LabelFormat varchar(32) NOT NULL default '%%s - %y/%m/%d %H:%M:%S',
   LabelX smallint(5) unsigned default NULL,
   LabelY smallint(5) unsigned default NULL,
@@ -142,7 +142,7 @@ CREATE TABLE Zones (
   Id int(10) unsigned NOT NULL auto_increment,
   MonitorId int(10) unsigned NOT NULL default '0',
   Name tinytext NOT NULL,
-  Type enum('Active','Inclusive','Exclusive','Inactive') default 'Active',
+  Type enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
   Units enum('Pixels','Percent') NOT NULL default 'Pixels',
   LoX smallint(5) unsigned NOT NULL default '0',
   LoY smallint(5) unsigned NOT NULL default '0',

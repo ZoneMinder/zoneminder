@@ -71,7 +71,7 @@ else
 	$monitor['LabelFormat'] = '%%s - %y/%m/%d %H:%M:%S';
 	$monitor['LabelX'] = 0;
 	$monitor['LabelY'] = 0;
-	$monitor['ImageBufferCount'] = 100;
+	$monitor['ImageBufferCount'] = 40;
 	$monitor['WarmupCount'] = 25;
 	$monitor['PreEventCount'] = 10;
 	$monitor['PostEventCount'] = 10;

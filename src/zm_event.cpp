@@ -285,7 +285,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
 	if ( db_frame )
 	{
-		const char *frame_type = score>0?"Normal":(score<0?"Bulk":"Alarm");
+		const char *frame_type = score>0?"Alarm":(score<0?"Bulk":"Normal");
 
 		Debug( 1, ( "Adding frame %d to DB", frames ));
 		static char sql[BUFSIZ];

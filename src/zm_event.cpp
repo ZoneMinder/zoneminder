@@ -416,11 +416,11 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 
 	snprintf( eventpath, sizeof(eventpath), "%s/%s/%d/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), atoi( dbrow[0] ), event_id );
 	int frames = atoi(dbrow[2]);
-	int duration = atoi(dbrow[3]);
+	double duration = atof(dbrow[3]);
 
 	int min_fps = 1;
 	int max_fps = maxfps;
-	int base_fps = frames/duration;
+	int base_fps = (int)((double)frames/duration);
 	int effective_fps = (base_fps*rate)/ZM_RATE_SCALE;
 
 	int frame_mod = 1;
@@ -431,7 +431,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 		frame_mod *= 2; 
 	}
 
-	Debug( 1, ( "Frames:%d, Duration: %d, BFPS:%d, EFPS:%d, FM:%d", frames, duration, base_fps, effective_fps, frame_mod ));
+	Debug( 1, ( "Frames:%d, Duration: %.2f, BFPS:%d, EFPS:%d, FM:%d", frames, duration, base_fps, effective_fps, frame_mod ));
 
 	mysql_free_result( result );
 
@@ -563,11 +563,11 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 
 	snprintf( eventpath, sizeof(eventpath), "%s/%s/%d/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), atoi( dbrow[0] ), event_id );
 	int frames = atoi(dbrow[2]);
-	int duration = atoi(dbrow[3]);
+	double duration = atof(dbrow[3]);
 
 	int min_fps = 1;
 	int max_fps = maxfps;
-	int base_fps = frames/duration;
+	int base_fps = (int)((double)frames/duration);
 	int effective_fps = (base_fps*rate)/ZM_RATE_SCALE;
 
 	int frame_mod = 1;
@@ -578,7 +578,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 		frame_mod *= 2; 
 	}
 
-	Debug( 1, ( "Frames:%d, Duration: %d, BFPS:%d, EFPS:%d, FM:%d", frames, duration, base_fps, effective_fps, frame_mod ));
+	Debug( 1, ( "Frames:%d, Duration: %.2f, BFPS:%d, EFPS:%d, FM:%d", frames, duration, base_fps, effective_fps, frame_mod ));
 
 	mysql_free_result( result );
 

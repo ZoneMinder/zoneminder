@@ -51,11 +51,11 @@ define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );				// Local path to the ZoneMinder Uti
 
 // Alarm states
 //
-define( STATE_IDLE, 0 );
-define( STATE_PREALARM, 1 );
-define( STATE_ALARM, 2 );
-define( STATE_ALERT, 3 );
-define( STATE_TAPE, 4 );
+define( "STATE_IDLE", 0 );
+define( "STATE_PREALARM", 1 );
+define( "STATE_ALARM", 2 );
+define( "STATE_ALERT", 3 );
+define( "STATE_TAPE", 4 );
 
 // These are miscellaneous options you won't normally need to change
 //

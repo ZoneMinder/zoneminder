@@ -360,7 +360,7 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 	}
 	if ( verbose )
 	{
-		sprintf( output+strlen(output), "Picture Atributes\n" );
+		sprintf( output+strlen(output), "Picture Attributes\n" );
 		sprintf( output+strlen(output), "  Palette: %d - %s\n", vid_pic.palette, 
 			vid_pic.palette==VIDEO_PALETTE_GREY?"Linear greyscale":(
 			vid_pic.palette==VIDEO_PALETTE_HI240?"High 240 cube (BT848)":(

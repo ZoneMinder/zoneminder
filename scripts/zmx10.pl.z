@@ -32,6 +32,7 @@
 # ==========================================================================
 
 use constant ZM_PATH_BIN => "<from zmconfig>";
+use constant ZM_PATH_SOCKS => "<from zmconfig>";
 use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
@@ -43,7 +44,7 @@ use constant ZM_X10_DEVICE => '/dev/ttyS1';
 use constant ZM_X10_HOUSE_CODE => 'K';
 use constant ZM_SHM_KEY => 0x7a6d2000;
 
-use constant X10_SOCK_FILE => '/tmp/zmx10.sock';
+use constant X10_SOCK_FILE => ZM_PATH_SOCKS.'/zmx10.sock';
 use constant X10_LOG_FILE => ZM_PATH_LOGS.'/zmx10.log';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 

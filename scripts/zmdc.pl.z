@@ -35,9 +35,10 @@
 # ==========================================================================
 
 use constant ZM_PATH_BIN => "<from zmconfig>";
+use constant ZM_PATH_SOCKS => "<from zmconfig>";
 use constant ZM_PATH_LOGS => "<from zmconfig>";
 
-use constant DC_SOCK_FILE => '/tmp/zmdc.sock';
+use constant DC_SOCK_FILE => ZM_PATH_SOCKS.'/zmdc.sock';
 use constant DC_LOG_FILE => ZM_PATH_LOGS.'/zmdc.log';
 use constant MAX_CONNECT_DELAY => 10;
 use constant VERBOSE => 0; # Whether to output more verbose debug

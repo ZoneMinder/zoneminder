@@ -1632,6 +1632,8 @@ function closeWindow()
 <?php
 		foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 		{
+			if ( !HAS_X10 && $opt_function == 'X10' )
+				continue;
 ?>
 <option value="<?php echo $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?php echo $opt_function ?></option>
 <?php
@@ -1653,9 +1655,9 @@ function closeWindow()
 <tr><td align="left" class="text">Post Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_post_event_count" value="<?php echo $monitor[PostEventCount] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">FPS Report Interval</td><td align="left" class="text"><input type="text" name="new_fps_report_interval" value="<?php echo $monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_ref_blend_perc" value="<?php echo $monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">X10 Activation String</td><td align="left" class="text"><input type="text" name="new_x10_activation" value="<?php echo $monitor[X10Activation] ?>" size="20" class="form"></td></tr>
-<tr><td align="left" class="text">X10 Input Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_input" value="<?php echo $monitor[X10AlarmInput] ?>" size="20" class="form"></td></tr>
-<tr><td align="left" class="text">X10 Output Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_output" value="<?php echo $monitor[X10AlarmOutput] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text">X10 Activation String</td><td align="left" class="text"><input type="text" name="new_x10_activation" value="<?php echo $monitor[X10Activation] ?>" size="20" class="form"<?php if ( !HAS_X10 ) echo " disabled" ?>></td></tr>
+<tr><td align="left" class="text">X10 Input Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_input" value="<?php echo $monitor[X10AlarmInput] ?>" size="20" class="form"<?php if ( !HAS_X10 ) echo " disabled" ?>></td></tr>
+<tr><td align="left" class="text">X10 Output Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_output" value="<?php echo $monitor[X10AlarmOutput] ?>" size="20" class="form"<?php if ( !HAS_X10 ) echo " disabled" ?>></td></tr>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
 <td align="left"><input type="submit" value="Save" class="form"></td>
@@ -2098,6 +2100,8 @@ function closeWindow()
 <?php
 		foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 		{
+			if ( !HAS_X10 && $opt_function == 'X10' )
+				continue;
 ?>
 <option value="<?php echo $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?php echo $opt_function ?></option>
 <?php

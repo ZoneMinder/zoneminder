@@ -103,7 +103,7 @@ switch ( $bandwidth )
 $jws = array( 
 	'console' => array( 'w'=>720, 'h'=>400 ),
 	'cycle' => array( 'w'=>36, 'h'=>72 ),
-	'monitor' => array( 'w'=>360, 'h'=>400 ),
+	'monitor' => array( 'w'=>360, 'h'=>450 ),
 	'watch' => array( 'w'=>72, 'h'=>360 ),
 	'device' => array( 'w'=>196, 'h'=>164 ),
 	'function' => array( 'w'=>248, 'h'=>72 ),

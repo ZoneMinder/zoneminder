@@ -83,6 +83,7 @@ void main( int argc, char *argv[] )
 	//printf( "Monitor %d, Function %d, ImageIdx %d\n", id, function, image_idx );
 
 	dbg_name = "zmu";
+	dbg_level = -1;
 
 	DbgInit();
 

@@ -1,4 +1,4 @@
-ZONE MINDER v1.0.0
+ZONE MINDER v0.9.5
 ==================
 
 Introduction
@@ -573,7 +573,7 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 Whats New
 =========
 
-Release 1.0.0 - Yes, a big jump in release number but a lot of changes too. Now 
+Release 0.9.5 - Yes, a big jump in release number but a lot of changes too. Now 
 somewhat more mature, not really an alpha any more, and a lot of bugs fixed too. 
 - Revamped to work better with configure scripts
 - Monitors now have more configuration options, including some that
@@ -645,7 +645,7 @@ I'm sure you can tell so might need help here. I should have done it in perl!
 be handy. A bit more help full stop actually.
 9. WAP interface - A bit of a crusade of mine I'm afraid. I'd like to put a WML 
 interface on to allow you to view event listing and perhaps the most significant 
-image from each event on your phone. Also simple management. In version 1.0.0 
+image from each event on your phone. Also simple management. In version 0.9.5 
 there is a very basic crude initial version that probably won't work with your 
 phone but its there as a testbed. Note, temporary WAP files are not tidied up
 properly so don't use it for extanded periods of time at present.

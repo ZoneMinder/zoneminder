@@ -1896,9 +1896,18 @@ function configureButton(form,name)
 <?php
 		foreach( $zones as $zone )
 		{
+			if ( $zone[Units] == 'Percent' )
+			{
+?>
+<area shape="rect" coords="<?= sprintf( "%d,%d,%d,%d", $zone[LoX]*$monitor[Width], $zone[LoY]*$monitor[Height], $zone[HiX]*$monitor[Width], $zone[HiY]*$monitor[Height] ) ?>" href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone[Id] ?>', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );">
+<?php
+			}
+			else
+			{
 ?>
 <area shape="rect" coords="<?= "$zone[LoX],$zone[LoY],$zone[HiX],$zone[HiY]" ?>" href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone[Id] ?>', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );">
 <?php
+			}
 		}
 ?>
 <area shape="default" nohref>

@@ -81,7 +81,7 @@ int main( int argc, char *argv[] )
 		int device = atoi(dbrow[0]);
 		char device_path[64];
 
-    	sprintf( device_path, "/dev/video%d", device );
+		sprintf( device_path, "/dev/video%d", device );
 
 		struct stat stat_buf;
 

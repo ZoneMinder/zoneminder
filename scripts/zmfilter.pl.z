@@ -148,7 +148,7 @@ select( LOG ); $| = 1;
 
 chdir( EVENT_PATH );
 
-my $dbh = DBI->connect( "DBI:mysql@".ZM_DB_SERVER.":".ZM_DB_NAME, ZM_DB_USERA, ZM_DB_PASSA );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 
 my $last_event_id;
 

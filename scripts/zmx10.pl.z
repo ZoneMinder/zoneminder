@@ -172,7 +172,7 @@ sub runServer
 	bind( SERVER, $saddr ) or die( "Can't bind: $!" );
 	listen( SERVER, SOMAXCONN ) or die( "Can't listen: $!" );
 
-	$dbh = DBI->connect( "DBI:mysql@".ZM_DB_SERVER.":".ZM_DB_NAME, ZM_DB_USERA, ZM_DB_PASSA );
+	$dbh = DBI->connect( "DBI:mysql:database=".main::ZM_DB_NAME.";host=".main::ZM_DB_SERVER, main::ZM_DB_USERA, main::ZM_DB_PASSA );
 
 	$x10 = new X10::ActiveHome( port=>main::ZM_X10_DEVICE, house_code=>main::ZM_X10_HOUSE_CODE, debug=>1 );
 

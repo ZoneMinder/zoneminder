@@ -132,7 +132,7 @@ if ( $report && $yes )
 	usage();
 }
 
-my $dbh = DBI->connect( "DBI:mysql@".ZM_DB_SERVER.":".ZM_DB_NAME, ZM_DB_USERA, ZM_DB_PASSA );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 
 chdir( EVENT_PATH );
 if ( !$yes && !$report )

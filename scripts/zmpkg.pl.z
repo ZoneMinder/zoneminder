@@ -116,7 +116,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 			if ( $monitor->{Function} ne 'None' )
 			{
 				execute( COMMAND_PATH."/zmdc.pl start zmc -d $monitor->{Device}" );
-				if ( $monitor->{Function} ne 'Passive' )
+				if ( $monitor->{Function} eq 'Active' )
 				{
 					execute( COMMAND_PATH."/zmdc.pl start zma -m $monitor->{Id}" );
 				}

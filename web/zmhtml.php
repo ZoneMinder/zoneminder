@@ -88,8 +88,6 @@ switch( $view )
 		while( $row = mysql_fetch_assoc( $result ) )
 		{
 			$row['zma'] = zmaCheck( $row );
-			if ( $max_width < $row[Width] ) $max_width = $row[Width];
-			if ( $max_height < $row[Height] ) $max_height = $row[Height];
 			$sql = "select count(Id) as ZoneCount, count(if(Type='Active',1,NULL)) as ActZoneCount, count(if(Type='Inclusive',1,NULL)) as IncZoneCount, count(if(Type='Exclusive',1,NULL)) as ExcZoneCount, count(if(Type='Inactive',1,NULL)) as InactZoneCount from Zones where MonitorId = '$row[Id]'";
 			$result2 = mysql_query( $sql );
 			if ( !$result2 )
@@ -99,10 +97,12 @@ switch( $view )
 			if ( $row['Function'] != 'None' )
 			{
 				$cycle_count++;
+				if ( $max_width < $row[Width] ) $max_width = $row[Width];
+				if ( $max_height < $row[Height] ) $max_height = $row[Height];
 			}
 		}
-		$montage_rows = intval(ceil(count($monitors)/ZM_WEB_MONTAGE_MAX_COLS));
-		$montage_cols = count($monitors)>=ZM_WEB_MONTAGE_MAX_COLS?ZM_WEB_MONTAGE_MAX_COLS:count($monitors);
+		$montage_rows = intval(ceil($cycle_count)/ZM_WEB_MONTAGE_MAX_COLS));
+		$montage_cols = $cycle_count>=ZM_WEB_MONTAGE_MAX_COLS?ZM_WEB_MONTAGE_MAX_COLS:$cycle_count;
 ?>
 <html>
 <head>

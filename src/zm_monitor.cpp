@@ -476,10 +476,10 @@ bool Monitor::Analyse()
 				const Image *images[pre_event_count];
 				for ( int i = 0; i < pre_event_count; i++ )
 				{
-					pre_index = (pre_index+1)%image_buffer_count;
-
 					timestamps[i] = image_buffer[pre_index].timestamp;
 					images[i] = image_buffer[pre_index].image;
+
+					pre_index = (pre_index+1)%image_buffer_count;
 				}
 				event->AddFrames( pre_event_count, timestamps, images );
 				//event->AddFrame( now, &image );

@@ -31,6 +31,10 @@
 #
 # ==========================================================================
 
+use constant DB_NAME => "zm";
+use constant DB_USER => "zmadmin";
+use constant DB_PASS => "zmadminzm";
+use constant DB_RELOAD_INTERVAL => 60;
 use constant X10_DEVICE => '/dev/ttyS1';
 use constant X10_HOUSE_CODE => 'K';
 use constant X10_SOCK_FILE => '/tmp/zmx10.sock';
@@ -44,6 +48,7 @@ use constant X10_LOG_FILE => '/tmp/zmx10.log';
 
 use strict;
 use POSIX;
+use DBI;
 use Socket;
 use Getopt::Long;
 use Data::Dumper;
@@ -106,7 +111,186 @@ if ( !connect( CLIENT, $saddr ) )
 
 		( $ENV{PATH} ) = ( $ENV{PATH} =~ /^(.*)$/ );
 
+		my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
+
 		my %device_hash;
+		my %pending_tasks;
+
+		sub addToActivationList
+		{
+			my $unit_code = shift;
+			my $event = shift;
+			my $monitor = shift;
+			my $function = shift;
+			my $limit = shift;
+
+			#print( "Adding to activation list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" );
+			my $device = $device_hash{$unit_code};
+			if ( !$device )
+			{
+				$device = $device_hash{$unit_code} = { status=>'unknown' };
+			}
+
+			my $task = { monitor=>$monitor->{Id}, function=>$function };
+			if ( $limit )
+			{
+				$task->{limit} = $limit
+			}
+
+			my $task_list = $device->{$event."_list"};
+			if ( !$task_list )
+			{
+				$task_list = $device->{$event."_list"} = [];
+			}
+			push( @$task_list, $task );
+		}
+
+		sub loadTasks
+		{
+			my %monitor_hash;
+
+			#print( "Loading tasks\n" );
+			# Clear out all old device task lists
+			foreach my $unit_code ( sort( keys(%device_hash) ) )
+			{
+				my $device = $device_hash{$unit_code};
+				$device->{ON_list} = [];
+				$device->{OFF_list} = [];
+			}
+
+			my $sql = "select * from Monitors";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			while( my $monitor = $sth->fetchrow_hashref() )
+			{
+				$monitor_hash{$monitor->{Id}} = $monitor;
+				if ( $monitor->{Function} eq 'X10' && $monitor->{X10Active} )
+				{
+					#print( "$monitor->{Name} has active string '$monitor->{X10Active}'\n" );
+					foreach my $code_string ( split( ',', $monitor->{X10Active} ) )
+					{
+						#print( "Code string: $code_string\n" );
+						my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
+						$limit = 0 if ( !$limit );
+						if ( $unit_code )
+						{
+							if ( !$modifier || $modifier eq '+' )
+							{
+								addToActivationList( $unit_code, "ON", $monitor, !$invert?"start_active":"stop_active", $limit );
+							}
+							if ( !$modifier || $modifier eq '-' )
+							{
+								addToActivationList( $unit_code, "OFF", $monitor, !$invert?"stop_active":"start_active", $limit );
+							}
+						}
+					}
+				}
+				if ( $monitor->{X10Alarm} )
+				{
+					#print( "$monitor->{Name} has alarm string '$monitor->{X10Alarm}'\n" );
+					foreach my $code_string ( split( ',', $monitor->{X10Alarm} ) )
+					{
+						#print( "Code string: $code_string\n" );
+						my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
+						$limit = 0 if ( !$limit );
+						if ( $unit_code )
+						{
+							if ( !$modifier || $modifier eq '+' )
+							{
+								addToActivationList( $unit_code, "ON", $monitor, !$invert?"start_alarm":"stop_alarm", $limit );
+							}
+							if ( !$modifier || $modifier eq '-' )
+							{
+								addToActivationList( $unit_code, "OFF", $monitor, !$invert?"stop_alarm":"start_alarm", $limit );
+							}
+						}
+					}
+				}
+			}
+		}
+
+		sub addPendingTask
+		{
+			my $task = shift;
+
+			# Check whether we are just extending a previous pending task
+			# and remove it if it's there
+			foreach my $activation_time ( sort(keys(%pending_tasks) ) )
+			{
+				my $pending_list = $pending_tasks{$activation_time};
+				my $new_pending_list = [];
+				foreach my $pending_task ( @$pending_list )
+				{
+					if (( $task->{monitor}->{Id} != $pending_task->{monitor}->{Id} )
+					|| ( $task->{function} != $pending_task->{function} ))
+					{
+						push( @$new_pending_list, $pending_task )
+					}
+				}
+				if ( @$new_pending_list )
+				{
+					$pending_tasks{$activation_time} = $new_pending_list;
+				}
+				else
+				{
+					delete( $pending_tasks{$activation_time} );
+				}
+			}
+
+			my $end_time = time() + $task->{limit};
+			my $pending_list = $pending_tasks{$end_time};
+			if ( !$pending_list )
+			{
+				$pending_list = $pending_tasks{$end_time} = [];
+			}
+			$task->{function} =~ s/start/stop/;
+			delete( $task->{limit} );
+			push( @$pending_list, $task );
+		}
+
+		sub processTask
+		{
+			my $task = shift;
+
+			my ( $instruction, $class ) = ( $task->{function} =~ /^(.+)_(.+)$/ );
+
+			my $command;
+			if ( $class eq "active" )
+			{
+				if ( $instruction eq "start" )
+				{
+					$command = "zmdc.pl start zma ".$task->{monitor};
+					if ( $task->{limit} )
+					{
+						addPendingTask( $task );
+					}
+				}
+				elsif( $instruction eq "stop" )
+				{
+					$command = "zmdc.pl stop zma ".$task->{monitor};
+				}
+			}
+			elsif( $class eq "alarm" )
+			{
+				if ( $instruction eq "start" )
+				{
+					$command = "zmu --monitor ".$task->{monitor}." --alarm";
+					if ( $task->{limit} )
+					{
+						addPendingTask( $task );
+					}
+				}
+				elsif( $instruction eq "stop" )
+				{
+					$command = "zmu --monitor ".$task->{monitor}." --cancel";
+				}
+			}
+			print( "Executing command '$command'\n" );
+			if ( $command )
+			{
+				qx( $command );
+			}
+		}
 
 		sub dprint
 		{
@@ -122,6 +306,8 @@ if ( !connect( CLIENT, $saddr ) )
 
 		my $x10 = new X10::ActiveHome( port=>X10_DEVICE, house_code=>X10_HOUSE_CODE, debug=>1 );
 
+		loadTasks();
+
 		sub x10listen
 		{
 			foreach my $event ( @_ )
@@ -133,9 +319,18 @@ if ( !connect( CLIENT, $saddr ) )
 					my $device = $device_hash{$unit_code};
 					if ( !$device )
 					{
-						$device = $device_hash{$unit_code} = $x10->Appliance( unit_code=>$unit_code );
+						$device = $device_hash{$unit_code} = { appliance=>$x10->Appliance( unit_code=>$unit_code ) };
 					}
+					next if ( $event->func() !~ /(?:ON|OFF)/ );
 					$device->{status} = $event->func();
+					my $task_list = $device->{$event->func()."_list"};
+					if ( $task_list )
+					{
+						foreach my $task ( @$task_list )
+						{
+							processTask( $task );
+						}
+					}
 				}
 				print( LOG strftime( "%y/%m/%d %H:%M:%S", localtime() )." - ".$event->as_string()."\n" );
 			}
@@ -146,7 +341,7 @@ if ( !connect( CLIENT, $saddr ) )
 		my $rin = '';
 		vec( $rin, fileno(SERVER),1) = 1;
 		vec( $rin, $x10->select_fds(),1) = 1;
-		my $timeout = 60;
+		my $timeout = 1;
 		#print( "F:".fileno(SERVER)."\n" );
 		while( 1 )
 		{
@@ -175,40 +370,39 @@ if ( !connect( CLIENT, $saddr ) )
 						$device = $device_hash{$unit_code};
 						if ( !$device )
 						{
-							$device = $device_hash{$unit_code} = $x10->Appliance( unit_code=>$unit_code );
-							$device->{status} = 'unknown';
+							$device = $device_hash{$unit_code} = { appliance=>$x10->Appliance( unit_code=>$unit_code ), status=>'unknown' };
 						}
 					}
 
 					my $result;
 					if ( $command eq 'on' )
 					{
-						$result = $device->on();
+						$result = $device->{appliance}->on();
 					}
 					elsif ( $command eq 'off' )
 					{
-						$result = $device->off();
+						$result = $device->{appliance}->off();
 					}
-					elsif ( $command eq 'dim' )
-					{
-						$result = $device->dim();
-					}
-					elsif ( $command eq 'bright' )
-					{
-						$result = $device->bright();
-					}
+					#elsif ( $command eq 'dim' )
+					#{
+						#$result = $device->{appliance}->dim();
+					#}
+					#elsif ( $command eq 'bright' )
+					#{
+						#$result = $device->{appliance}->bright();
+					#}
 					elsif ( $command eq 'status' )
 					{
 						if ( $device )
 						{
-							dprint( $device->address()." ".$device->{status}."\n" );
+							dprint( $unit_code." ".$device->{status}."\n" );
 						}
 						else
 						{
 							foreach my $unit_code ( sort( keys(%device_hash) ) )
 							{
 								my $device = $device_hash{$unit_code};
-								dprint( $device->address()." ".$device->{status}."\n" );
+								dprint( $unit_code." ".$device->{status}."\n" );
 							}
 						}
 					}
@@ -225,11 +419,11 @@ if ( !connect( CLIENT, $saddr ) )
 						if ( 1 || $result )
 						{
 							$device->{status} = $command;
-							dprint( $device->address()." $command, ok\n" );
+							dprint( $device->{appliance}->address()." $command, ok\n" );
 						}
 						else
 						{
-							dprint( $device->address()." $command, failed\n" );
+							dprint( $device->{appliance}->address()." $command, failed\n" );
 						}
 					}
 					close( CLIENT );
@@ -250,7 +444,22 @@ if ( !connect( CLIENT, $saddr ) )
 			else
 			{
 				#print( "Select timed out\n" );
-				# Maybe do something administrative, not sure what though!
+				# Check for pending tasks
+				my $now = time();
+				foreach my $activation_time ( sort(keys(%pending_tasks) ) )
+				{
+					last if ( $activation_time > $now );
+					my $pending_list = $pending_tasks{$activation_time};
+					foreach my $task ( @$pending_list )
+					{
+							processTask( $task );
+					}
+					delete( $pending_tasks{$activation_time} );
+				}
+				if ( !($now%DB_RELOAD_INTERVAL) )
+				{
+					loadTasks();
+				}
 			}
 		}
 		print( LOG "X10 server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );

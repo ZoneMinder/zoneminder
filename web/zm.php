@@ -88,18 +88,30 @@ if ( $action )
 		if ( !$result )
 			die( mysql_error() );
 	}
-	elseif ( $action == "delete" && $delete_eids )
+	elseif ( $action == "delete" )
 	{
-		foreach( $delete_eids as $delete_eid )
+		if ( $delete_eids )
 		{
-			$result = mysql_query( "delete from Frames where EventId = '$delete_eid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$result = mysql_query( "delete from Events where Id = '$delete_eid'" );
-			if ( !$result )
-				die( mysql_error() );
-			if ( $delete_eid )
-				system( escapeshellcmd( "rm -rf events/*/".sprintf( "%04d", $delete_eid ) ) );
+			foreach( $delete_eids as $delete_eid )
+			{
+				$result = mysql_query( "delete from Frames where EventId = '$delete_eid'" );
+				if ( !$result )
+					die( mysql_error() );
+				$result = mysql_query( "delete from Events where Id = '$delete_eid'" );
+				if ( !$result )
+					die( mysql_error() );
+				if ( $delete_eid )
+					system( escapeshellcmd( "rm -rf events/*/".sprintf( "%04d", $delete_eid ) ) );
+			}
+		}
+		elseif ( $delete_zids )
+		{
+			foreach( $delete_zids as $delete_zid )
+			{
+				$result = mysql_query( "delete from Zones where Id = '$delete_zid'" );
+				if ( !$result )
+					die( mysql_error() );
+			}
 		}
 	}
 	elseif ( $action == "function" && $mid )
@@ -170,10 +182,17 @@ if ( $action )
 			die( mysql_error() );
 		$monitor = mysql_fetch_assoc( $result );
 
-		$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
-		if ( !$result )
-			die( mysql_error() );
-		$zone = mysql_fetch_assoc( $result );
+		if ( $zid > 0 )
+		{
+			$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$zone = mysql_fetch_assoc( $result );
+		}
+		else
+		{
+			$zone = array();
+		}
 
 		$changes = array();
 		if ( $new_name != $zone[Name] ) $changes[] = "Name = '$new_name'";
@@ -198,7 +217,15 @@ if ( $action )
 
 		if ( count( $changes ) )
 		{
-			$sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '$mid' and Id = '$zid'";
+			if ( $zid > 0 )
+			{
+				$sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '$mid' and Id = '$zid'";
+			}
+			else
+			{
+				$sql = "insert into Zones set MonitorId = '$mid', ".implode( ", ", $changes );
+				$view = 'none';
+			}
 			#echo "<html>$sql</html>";
 			$result = mysql_query( $sql );
 			if ( !$result )
@@ -344,7 +371,7 @@ function newWindow(Url,Name,Width,Height) {
 ?>
 <tr><td align="left" class="text">&nbsp;</td>
 <td align="left" class="text">&nbsp;</td>
-<td colspan="3" align="center"><input type="submit" value="Add New Monitor" class="form"></td>
+<td colspan="3" align="center"><input type="button" value="Add New Monitor" class="form"></td>
 <td align="right" class="text"><?php echo $event_count ?></td>
 <td align="right" class="text"><?php echo $hour_event_count ?></td>
 <td align="right" class="text"><?php echo $day_event_count ?></td>
@@ -942,7 +969,7 @@ function closeWindow() {
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="0" width="96%">
 <form name="event_form" method="post" action="<?php echo $PHP_SELF ?>">
-<input type="hidden" name="view" value="<?php echo $zones ?>">
+<input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="delete">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
 <tr><td align="center" class="smallhead">Id</td>
@@ -969,7 +996,7 @@ function closeWindow() {
 ?>
 <tr>
 <td align="center" class="text">&nbsp;</td>
-<td colspan="4" align="center"><input type="submit" value="Add New Zone" class="form"></td>
+<td colspan="4" align="center"><input type="button" value="Add New Zone" class="form" onClick="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=-1', 'zmZone', 360, 480 );"></td>
 <td align="center"><input type="submit" value="Delete" class="form"></td>
 </tr>
 </form>
@@ -985,14 +1012,26 @@ elseif( $view == "zone" )
 		die( mysql_error() );
 	$monitor = mysql_fetch_assoc( $result );
 
-	$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$zone = mysql_fetch_assoc( $result );
+	if ( $zid > 0 )
+	{
+		$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$zone = mysql_fetch_assoc( $result );
+	}
+	else
+	{
+		$zone = array();
+		$zone[Name] = "New";
+		$zone[LoX] = 0;
+		$zone[LoY] = 0;
+		$zone[HiX] = $monitor[Width]-1;
+		$zone[HiY] = $monitor[Height]-1;
+	}
 ?>
 <html>
 <head>
-<title>ZM - <?php echo $monitor[Name] ?> - Zone <?php echo $zone[Id] ?></title>
+<title>ZM - <?php echo $monitor[Name] ?> - Zone <?php echo $zone[Name] ?></title>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 <?php
@@ -1259,6 +1298,14 @@ elseif ( $view == "none" )
 <html>
 <head>
 <script language="JavaScript">
+<?php
+if ( $refresh_parent )
+{
+?>
+opener.location.reload();
+<?php
+}
+?>
 window.close();
 </script>
 </head>

@@ -117,7 +117,7 @@ $zmSlangDimensions           = '寸法';
 $zmSlangDuration             = '継続時間';
 $zmSlangEdit                 = '編集';
 $zmSlangEmail                = 'ﾒｰﾙ';
-$zmSlangEnabled              = '使用可能';
+$zmSlangEnabled              = '使用可能\';
 $zmSlangEnterNewFilterName   = '新しいﾌｨﾙﾀｰ名の入力';
 $zmSlangErrorBrackets        = 'エラー、開き括弧と閉じ括弧の数が合っているのかを確認してください';
 $zmSlangError                = 'エラー';
@@ -139,8 +139,8 @@ $zmSlangFrameRate            = 'ﾌﾚｰﾑﾚｰﾄ';
 $zmSlangFrames               = 'ﾌﾚｰﾑ';
 $zmSlangFrameSkip            = 'ﾌﾚｰﾑｽｷｯﾌﾟ';
 $zmSlangFTP                  = 'FTP';
-$zmSlangFunc                 = '機能';
-$zmSlangFunction             = '機能';
+$zmSlangFunc                 = '機能\';
+$zmSlangFunction             = '機能\';
 $zmSlangGenerateVideo        = 'ﾋﾞﾃﾞｵの生成';
 $zmSlangGeneratingVideo      = 'ﾋﾞﾃﾞｵ生成中';
 $zmSlangGrey                 = 'ｸﾞﾚｰ';
@@ -322,11 +322,11 @@ $zmSlangZones                = 'ｿﾞｰﾝ';
 $zmSlangZone                 = 'ｿﾞｰﾝ';
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
-$zmClangCurrentLogin         = 'ただ今\\'%1$s\がﾛｸﾞｲﾝしています';
+$zmClangCurrentLogin         = 'ただ今\'%1$s\がﾛｸﾞｲﾝしています';
 $zmClangEventCount           = '%1$s %2$s';
 $zmClangLastEvents           = '最終 %1$s %2$s';
 $zmClangMonitorCount         = '%1$s %2$s';
-$zmClangMonitorFunction      = 'ﾓﾆﾀｰ%1$s 機能';
+$zmClangMonitorFunction      = 'ﾓﾆﾀｰ%1$s 機能\';
 
 // Variable arrays expressing plurality
 $zmVlangEvent                = array( 0=>'ｲﾍﾞﾝﾄ', 1=>'ｲﾍﾞﾝﾄ', 2=>'ｲﾍﾞﾝﾄ' );

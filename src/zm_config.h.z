@@ -41,6 +41,7 @@
 
 #define ZM_STRICT_VIDEO_CONFIG	<from zmconfig>		// Whether to allow errors in setting video config to be fatal
 #define ZM_LOCAL_BGR_INVERT		<from zmconfig>		// Invert BGR colours to RGB
+#define ZM_COLOUR_JPEG_FILES	<from zmconfig>		// Colourise greyscale JPEG files
 
 #define ZM_JPEG_FILE_QUALITY	<from zmconfig>		// Set the JPEG quality setting for the saved event files
 #define ZM_JPEG_IMAGE_QUALITY	<from zmconfig>		// Set the JPEG quality setting for the streamed 'live' images

@@ -98,6 +98,14 @@ void Image::ReadJpeg( const char *filename )
 
 void Image::WriteJpeg( const char *filename ) const
 {
+	if ( ZM_COLOUR_JPEG_FILES && colours == 1 )
+	{
+		Image *temp_image = new Image( *this );
+		temp_image->Colourise();
+		temp_image->WriteJpeg( filename );
+		return;
+	}
+
 	struct jpeg_compress_struct cinfo;
 	struct jpeg_error_mgr jerr;
 	cinfo.err = jpeg_std_error(&jerr);
@@ -113,6 +121,7 @@ void Image::WriteJpeg( const char *filename ) const
 
 	cinfo.image_width = width; 	/* image width and height, in pixels */
 	cinfo.image_height = height;
+
 	cinfo.input_components = colours;	/* # of color components per pixel */
 	if ( colours == 1 )
 	{

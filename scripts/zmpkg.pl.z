@@ -36,6 +36,7 @@ use constant ZM_PATH_WEB => "<from zmconfig>";
 use constant ZM_PATH_CGI => "<from zmconfig>";
 use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_WEB_USER => "<from zmconfig>";
+use constant ZM_WEB_GROUP => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERA => "<from zmconfig>";
@@ -86,6 +87,13 @@ open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
 open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
+
+my $web_uid = (getpwnam( ZM_WEB_USER ))[2];
+my $web_gid = (getgrnam( ZM_WEB_GROUP ))[2];
+if ( $> != $web_uid )
+{
+	chown( $web_uid, $web_gid, $log_file ) or die( "Can't change permissions on log file: $!" )
+}
 
 my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
 my $retval = 0;

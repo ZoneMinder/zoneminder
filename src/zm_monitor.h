@@ -200,7 +200,6 @@ public:
 				Info(( "%s: %d - Capturing at %.2f fps", name, image_count, fps ));
 				last_fps_time = now;
 			}
-			sleep( 2 );
 			return( 0 );
 		}
 		return( -1 );

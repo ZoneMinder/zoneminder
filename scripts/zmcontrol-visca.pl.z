@@ -136,7 +136,8 @@ $serial_port->baudrate(9600);
 $serial_port->databits(8);
 $serial_port->parity('none');
 $serial_port->stopbits(1);
-$serial_port->handshake('none');
+$serial_port->handshake('rts');
+$serial_port->stty_echo(0);
  
 #$serial_port->read_const_time(250);
 $serial_port->read_char_time(2);

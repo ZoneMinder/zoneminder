@@ -62,10 +62,11 @@ Before you start building you have a couple of things to do. Firstly you'll have
 database and users. You'll need to identify these in zmcfg.h and in index.php. You'll notice that in zmcfg.h
 there are two sets of users and passwords. This is because the Streaming server and Utility binaries require
 only read access to the database so you may wish to create both a full access user and a limited access
-user. You can of course set both to the full access user. The included schema can be used to actually create
-the tablles required. The database is usually called 'zm'. ZM also needs to know where it stores its events
-relative to the web root directory in zmcfg.h and where in full path terms in index.php. There are also
-several other paths in index.php but these can wait until later.
+user. You can of course set both to the full access user. The included schema (zmschema.sql) can be used to
+actually create the tables required. The database is usually called 'zm'. If you are upgrading from a previous
+version you can use zmalter.sql to upgrade your database and make the necessary changes. ZM also needs to
+know where it stores its events relative to the web root directory in zmcfg.h and where in full path terms in
+index.php. There are also several other paths in index.php but these can wait until later.
 
 So to start, just type './configure --with-mysql=/usr' (or your MySQL install path).
 Then just type 'make' and off you go.
@@ -352,6 +353,13 @@ Also, if you are using IE under Windows and get lots of annoying clicks when var
 need to edit your registry and remove the value for
 HKEY_CURRENT_USER\AppEvents\Schemes\Apps\Explorer\Navigating\.current or download the registry script to do it
 for you from http://www.zoneminder.com/downloads/noIEClick.reg
+
+Whats New
+=========
+
+Release 0.01 - Initial release, therefore nothing new.
+Release 0.90 - Yes, a big jump in release number but a lot of changes too. Now somewhat more mature, not really an
+alpha any more, and a lot of bugs fixed too. The main changes are described below.
 
 To Do
 =====

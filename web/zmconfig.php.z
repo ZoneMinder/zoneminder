@@ -76,9 +76,9 @@ define( "ZM_DB_PASS", ZM_DB_PASSA );					// Database password
 define( "ZM_PATH", "@prefix@/bin" );					// Local path to the general ZoneMonitor executables
 define( "ZMU_PATH", ZM_PATH."/zmu" );					// Local path to the ZoneMinder Utility
 define( "ZMS_PATH", "/cgi-bin/zms" );					// Web path to the ZoneMinder Stream server
-define( "ZMS_EVENT_PATH", "@WEB_PREFIX@/".ZM_DIR_EVENTS );	// Full path (not web) to where events directory lives
+define( "ZM_WEB_PATH", "@WEB_PREFIX@" );				// Full path (not web) to web directory
 
-// These are miscelleaneous options you won't normally need to change
+// These are miscellaneous options you won't normally need to change
 //
 define( "MAX_EVENTS", 12 );								// The maximum number of events to show in the monitor event listing
 define( "EVENT_HEADER_LINES", 25 );						// How many events are listed in the event window before a new header is inserted

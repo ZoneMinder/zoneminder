@@ -144,7 +144,7 @@ my @options =
 	},
 	{
 		name => "ZM_PATH_CAMBOZOLA",
-		default => "",
+		default => "cambozola.jar",
 		description => "Web path to (optional) cambozola java streaming client (recommended)",
 		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. It is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed. Leave this blank if cambozola is installed in the same directory as the ZoneMinder web client files.",
 		requires => [ { name=>"ZM_OPT_CAMBOZOLA", value=>"yes" } ],
@@ -159,7 +159,7 @@ my @options =
 	},
 	{
 		name => "ZM_PATH_MPEG_ENCODE",
-		default => "/usr/local/bin",
+		default => "/usr/local/bin/mpeg_encode",
 		description => "Path to (optional) mpeg video encoder",
 		help => "ZoneMinder can optionally encode a series of video images into an MPEG encoded file and this path should point to where the Berkeley mpeg_encode program has ben installed. This encoder is fairly slow and you don't lose much by not having it as events can still be reviewed as video stream without it.",
 		requires => [ { name=>"ZM_OPT_MPEG", value=>"yes" } ],
@@ -773,6 +773,7 @@ if ( $reprocess )
 
 	foreach my $config_file ( @config_files )
 	{
+		print( "Processing '$config_file'\n" );
 		local $/ = undef;
 		open( CFG_IN_FILE, $config_file ) or die( "Can't open '$config_file' for reading" );
 		my $data = <CFG_IN_FILE>;

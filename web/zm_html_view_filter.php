@@ -146,6 +146,7 @@ window.focus();
 <form name="filter_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="filter">
 <input type="hidden" name="mid" value="<?= $mid ?>">
+<input type="hidden" name="page" value="<?= $page ?>">
 <input type="hidden" name="action" value="">
 <input type="hidden" name="fid" value="">
 <center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">

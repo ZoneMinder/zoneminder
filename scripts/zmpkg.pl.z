@@ -39,8 +39,8 @@ use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_OPT_FAST_DELETE => "<from zmconfig>";
 use constant ZM_OPT_X10 => "<from zmconfig>";
 
-#use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
-use constant COMMAND_PATH => '@prefix@/bin/';
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
+use constant COMMAND_PATH => '@prefix@/bin';
 use constant WEB_USER => '@WEB_USER@/';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
@@ -60,25 +60,29 @@ my $command = $ARGV[0];
 
 if ( !$command || $command !~ /^(?:start|stop|restart|status)$/ )
 {
-	print( "Usage: zmpkg.pl <start|stop|restart>\n" );
+	print( "Usage: zmpkg.pl <start|stop|restart|status>\n" );
 	exit( -1 );
 }
 
 sub execute
 {
 	my $command = shift;
-	my $su_command = "su @WEB_USER@ --shell=/bin/sh --command='$command'";
-	#print( "Executing: $su_command\n" );
-	return( qx( $su_command ) );
+	my ( $name ) = getpwuid( $> );
+	if ( $name ne '@WEB_USER@' )
+	{
+		$command = "su @WEB_USER@ --shell=/bin/sh --command='$command'";
+	}
+	print( STDERR "Executing: $command\n" );
+	return( qx( $command ) );
 }
 
-#my $log_file = LOG_FILE;
-#open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
+my $log_file = LOG_FILE;
+open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
 #open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
 #select( STDOUT ); $| = 1;
-#open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-#select( STDERR ); $| = 1;
-#select( LOG ); $| = 1;
+open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
+select( STDERR ); $| = 1;
+select( LOG ); $| = 1;
 
 my $status = execute( COMMAND_PATH."/zmdc.pl check" );
 my $retval = 0;
@@ -139,7 +143,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 
 if ( $command eq "status" )
 {
-	print( $status."\n" );
+	print( STDOUT $status."\n" );
 }
 
 exit( $retval );

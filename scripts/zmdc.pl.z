@@ -13,7 +13,7 @@
 #
 # ==========================================================================
 
-use constant DAEMON_PATH => '/usr/local/zm/bin/';
+use constant DAEMON_PATH => '@prefix@/bin/';
 use constant DC_SOCK_FILE => '/tmp/zmdc.sock';
 
 # ==========================================================================

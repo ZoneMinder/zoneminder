@@ -1302,7 +1302,10 @@ int Camera::camera_count = 0;
 Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
 {
 	static char sql[256];
-	sprintf( sql, "insert into Events set MonitorId=%d, Name='Event', StartTime=from_unixtime(%d)", monitor->Id(), start_time );
+	static char start_time_str[32];
+
+	strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", localtime( &start_time ) );
+	sprintf( sql, "insert into Events set MonitorId=%d, Name='Event', StartTime='%s'", monitor->Id(), start_time_str );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert event: %s\n", mysql_error( &dbconn ) ));
@@ -1333,7 +1336,10 @@ Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), 
 Event::~Event()
 {
 	static char sql[256];
-	sprintf( sql, "update Events set Name='Event-%d', EndTime = now(), Length = %d, Frames = %d, AlarmFrames = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, (end_time-start_time), frames, alarm_frames, (int)(tot_score/alarm_frames), max_score, id );
+	static char end_time_str[32];
+
+	strftime( end_time_str, sizeof(end_time_str), "%Y-%m-%d %H:%M:%S", localtime( &end_time ) );
+	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %d, Frames = %d, AlarmFrames = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, (end_time-start_time), frames, alarm_frames, (int)(tot_score/alarm_frames), max_score, id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't update event: %s\n", mysql_error( &dbconn ) ));

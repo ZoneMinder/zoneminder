@@ -81,7 +81,13 @@ function daemonControl( $command, $daemon=false, $args=false )
 {
 	$string = ZM_PATH."/zmdc.pl $command";
 	if ( $daemon )
-		$string .= " $daemon $args";
+	{
+		$string .= " $daemon";
+		if ( $args )
+		{
+			$string .= " $args";
+		}
+	}
 	$string .= " 2>/dev/null >&- <&- >/dev/null";
 	exec( $string );
 }

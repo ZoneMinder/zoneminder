@@ -148,7 +148,7 @@ AutoStart=true>
 	}
 	else
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=jpeg&monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&scale=$scale";
+		$stream_src = ZM_PATH_ZMS."?mode=jpeg&monitor=".$monitor['Id']."&scale=$scale&maxfps=".VIDEO_MAXFPS;
 		if ( canStreamNative() )
 		{
 ?>

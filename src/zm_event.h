@@ -91,9 +91,9 @@ public:
 	void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
 	void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
 
-	static void StreamEvent( int event_id, int maxfps=10, int rate=100, int scale=100 );
+	static void StreamEvent( int event_id, int scale=100, int rate=100, int maxfps=10 );
 #if HAVE_LIBAVCODEC
-	static void StreamMpeg( int event_id, const char *format, int bitrate=100000, int maxfps=10, int rate=100, int scale=100 );
+	static void StreamMpeg( int event_id, const char *format, int scale=100, int rate=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC
 };
 

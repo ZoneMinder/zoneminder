@@ -358,7 +358,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 	}
 }
 
-void Event::StreamEvent( int event_id, int maxfps, int rate, int scale )
+void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 {
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
@@ -504,7 +504,7 @@ void Event::StreamEvent( int event_id, int maxfps, int rate, int scale )
 
 #if HAVE_LIBAVCODEC     
 
-void Event::StreamMpeg( int event_id, const char *format, int bitrate, int maxfps, int rate, int scale )
+void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, int maxfps, int bitrate )
 {
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
@@ -639,7 +639,7 @@ void Event::StreamMpeg( int event_id, const char *format, int bitrate, int maxfp
 		{
 			last_id = db_id;
 			last_delta = db_delta;
-
+		}
 	}
 	if ( mysql_errno( &dbconn ) )
 	{

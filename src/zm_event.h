@@ -64,6 +64,9 @@ protected:
 	char			path[PATH_MAX];
 
 protected:
+	int				last_db_frame;
+
+protected:
 	static void Initialise()
 	{
 		initialised = true;

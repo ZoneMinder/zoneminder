@@ -72,10 +72,27 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 			Error(( "Can't make %s: %s", path, strerror(errno)));
 		}
 	}
+
+	last_db_frame = 0;
 }
 
 Event::~Event()
 {
+	if ( frames > last_db_frame )
+	{
+		struct DeltaTimeval delta_time;
+		DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
+
+		Debug( 1, ( "Adding closing frame %d to DB", frames ));
+		static char sql[BUFSIZ];
+		snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Delta ) values ( %d, %d, %s%ld.%02ld )", id, frames, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+		if ( mysql_query( &dbconn, sql ) )
+		{
+			Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
+			exit( mysql_errno( &dbconn ) );
+		}
+	}
+
 	static char sql[BUFSIZ];
 	static char end_time_str[32];
 
@@ -270,6 +287,8 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
 		Error(( "Can't insert frames: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
+
+	last_db_frame = frames;
 }
 
 void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *alarm_image )
@@ -299,6 +318,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 			Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
 			exit( mysql_errno( &dbconn ) );
 		}
+		last_db_frame = frames;
 	}
 
 	if ( score > 0 )

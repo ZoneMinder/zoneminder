@@ -418,6 +418,7 @@ bool Monitor::Analyse()
 		last_fps_time = now.tv_sec;
 	}
 
+	int index;
 	if ( ZM_OPT_ADAPTIVE_SKIP )
 	{
 		int read_margin = shared_images->last_read_index - shared_images->last_write_index;
@@ -433,7 +434,6 @@ bool Monitor::Analyse()
 		if ( pending_frames < 0 ) pending_frames += image_buffer_count;
 
 		Debug( 1, ( "RI:%d, WI: %d, PF = %d, RM = %d, Step = %d", shared_images->last_read_index, shared_images->last_write_index, pending_frames, read_margin, step ));
-		int index;
 		if ( step <= pending_frames )
 		{
 			index = (shared_images->last_read_index+step)%image_buffer_count;

@@ -36,6 +36,7 @@
 
 use constant DAEMON_PATH => '@prefix@/bin/';
 use constant DC_SOCK_FILE => '/tmp/zmdc.sock';
+use constant DC_LOG_FILE => '/tmp/zmdc.log';
 
 # ==========================================================================
 #
@@ -55,7 +56,7 @@ my @daemons = ( 'zmc', 'zma', 'zmfilter.pl', 'zmaudit.pl', 'zmx10.pl' );
 
 my $command = shift @ARGV;
 die( "No command given" ) unless( $command );
-my $needs_daemon = $command !~ /(?:shutdown|check)/;
+my $needs_daemon = $command !~ /(?:shutdown|status)/;
 my $daemon = shift( @ARGV );
 die( "No daemon given" ) unless( !$needs_daemon || $daemon );
 my @args;
@@ -76,7 +77,7 @@ if ( $needs_daemon )
 foreach my $arg ( @ARGV )
 {
 	# Detaint arguments, if they look ok
-	if ( $arg =~ /^(-?[\w\d]+)/ )
+	if ( $arg =~ /^(-{0,2}[\w\d]+)/ )
 	{
 		push( @args, $1 );
 	}
@@ -108,6 +109,13 @@ if ( !connect( CLIENT, $saddr ) )
 	{
 		setpgrp();
 
+		open( LOG, ">>".DC_LOG_FILE ) or die( "Can't open log file: $!" );
+		open(STDOUT, ">&LOG") || die( "Can't dup stdout: $!" );
+		select( STDOUT ); $| = 1;
+		open(STDERR, ">&LOG") || die( "Can't dup stderr: $!" );
+		select( STDERR ); $| = 1;
+		select( LOG ); $| = 1;
+
 		dprint( "Server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
 		socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
@@ -119,7 +127,7 @@ if ( !connect( CLIENT, $saddr ) )
 		$SIG{INT} = \&shutdown_all;
 		$SIG{TERM} = \&shutdown_all;
 		$SIG{ABRT} = \&shutdown_all;
-		$SIG{HUP} = \&check;
+		$SIG{HUP} = \&status;
 		( $ENV{PATH} ) = ( $ENV{PATH} =~ /^(.*)$/ );
 
 		my %cmd_hash;
@@ -131,10 +139,7 @@ if ( !connect( CLIENT, $saddr ) )
 			{
 				print CLIENT @_
 			}
-			else
-			{
-				print @_;
-			}
+			print @_;
 		}
 		sub start
 		{
@@ -146,7 +151,13 @@ if ( !connect( CLIENT, $saddr ) )
 
 			if ( !$process )
 			{
+				# It's not running, or at least it's not been started by us
 				$process = { daemon=>$daemon, args=>\@args, command=>$command, keepalive=>!undef };
+				# So check whether someone else has started it
+				#$ps_command = "ps -wh --user $> | grep '$command' | grep -v grep";
+				#$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
+				#$pid = $ps_array[3];
+				#if ( $pid )
 			}
 			elsif ( $process->{pid} && $pid_hash{$process->{pid}} )
 			{
@@ -292,13 +303,20 @@ if ( !connect( CLIENT, $saddr ) )
 			close( SERVER );
 			exit();
 		}
-		sub check
+		sub status
 		{
 			foreach my $process ( values(%pid_hash) )
 			{
 				dprint( "'$process->{command}' running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
 				dprint( ", valid" ) if ( kill( 0, $process->{pid} ) );
 				dprint( "\n" );
+			}
+			foreach my $process ( values( %cmd_hash ) )
+			{
+				if ( $process->{pending} )
+				{
+					dprint( "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
+				}
 			}
 		}
 
@@ -341,9 +359,9 @@ if ( !connect( CLIENT, $saddr ) )
 					{
 						shutdown_all();
 					}
-					elsif ( $command eq 'check' )
+					elsif ( $command eq 'status' )
 					{
-						check();
+						status();
 					}
 					else
 					{
@@ -382,6 +400,7 @@ if ( !connect( CLIENT, $saddr ) )
 			}
 		}
 		dprint( "Server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+		close( LOG );
 		exit();
 	}
 	else

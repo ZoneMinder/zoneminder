@@ -25,8 +25,8 @@ EXTRA_DIST = \
 	zmpkg.pl.z \
 	zmupdate.pl.z \
 	zmvideo.pl.z \
-	zmcontrol-pelco-d.pl \
-	zmcontrol-visca.pl \
-	zmcontrol-kx-hcm10.pl \
-	zmtrack.pl \
+	zmcontrol-pelco-d.pl.z \
+	zmcontrol-visca.pl.z \
+	zmcontrol-kx-hcm10.pl.z \
+	zmtrack.pl.z \
 	zm.z

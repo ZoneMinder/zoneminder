@@ -452,12 +452,12 @@ function checkAll(form,name){
 <?php if ( $archived ) { ?>
 <input type="hidden" name="archived" value="<?php echo $archived ?>">
 <?php } ?>
-<table width="96%" align="center" border="0" cellspacing="1" cellpadding="1">
+<center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <?php
 	//$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." order by E.Id desc";
-	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,sum(F.Score)/count(if(F.AlarmFrame,1,NULL)) as Score from Monitors as M, Events as E left join Frames as F on E.Id = F.EventId where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." group by E.Id order by E.Id desc";
+	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,sum(F.Score)/count(if(F.AlarmFrame,1,NULL)) as Score, max(F.Score) as MaxScore from Monitors as M, Events as E left join Frames as F on E.Id = F.EventId where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." group by E.Id order by E.Id desc";
 	if ( $max_events )
 		$sql .= " limit 0,$max_events";
 	$result = mysql_query( $sql );
@@ -486,7 +486,7 @@ function checkAll(form,name){
 <td width="4%" class="text">Id</td>
 <td width="24%" class="text">Name</td>
 <td class="text">Time</td>
-<td class="text">Length</td>
+<td class="text">Secs</td>
 <td class="text">Frames</td>
 <td class="text">Score</td>
 <td class="text">Delete</td>
@@ -501,7 +501,7 @@ function checkAll(form,name){
 <td align="center" class="text"><?php echo strftime( "%m/%d %H:%M:%S", $row[Time] ) ?></td>
 <td align="center" class="text"><?php echo $row[Length] ?></td>
 <td align="center" class="text"><?php echo $row[Frames] ?> (<?php echo $row[AlarmFrames] ?>)</td>
-<td align="center" class="text"><?php echo $row[Score] ?></td>
+<td align="center" class="text"><?php echo (int)$row[Score] ?> (<?php echo sprintf( "%d", $row[MaxScore] ) ?>)</td>
 <td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>"></td>
 </tr>
 <?php
@@ -511,7 +511,7 @@ function checkAll(form,name){
 </table></td>
 </tr>
 <tr><td align="right"><input type="submit" value="Delete" class="form"></td></tr>
-</table>
+</table></center>
 </form>
 </body>
 </html>

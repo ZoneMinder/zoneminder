@@ -81,7 +81,7 @@ $sort_order = $sort_asc?"asc":"desc";
 if ( !$sort_asc ) $sort_asc = 0;
 
 $count_sql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
-$events_sql = "select E.Id,M.Id as MonitorId,M.Name As MonitorName,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
+$events_sql = "select E.Id,E.MonitorId,M.Name As MonitorName,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
 if ( $user['MonitorIds'] )
 {
 	$count_sql .= " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
@@ -127,9 +127,8 @@ for ( $i = 1; $i <= $trms; $i++ )
 		$value = $$value_name;
 		switch ( $$attr_name )
 		{
-			case 'MonitorId':
 			case 'MonitorName':
-				$filter_sql .= $$attr_name;
+				$filter_sql .= 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
 				break;
 			case 'DateTime':
 				$value = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) );
@@ -147,6 +146,7 @@ for ( $i = 1; $i <= $trms; $i++ )
 				$value = "weekday( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) )."' )";
 				$filter_sql .= "weekday( E.StartTime )";
 				break;
+			case 'MonitorId':
 			case 'Length':
 			case 'Frames':
 			case 'AlarmFrames':

@@ -89,7 +89,6 @@ CREATE TABLE Frames (
   EventId int(10) unsigned NOT NULL default '0',
   FrameId int(10) unsigned NOT NULL default '0',
   AlarmFrame tinyint(4) NOT NULL default '0',
-  ImagePath tinytext NOT NULL,
   TimeStamp timestamp(14) NOT NULL,
   Delta decimal(8,2) NOT NULL default '0.00',
   Score smallint(5) unsigned NOT NULL default '0',

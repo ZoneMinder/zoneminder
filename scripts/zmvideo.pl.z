@@ -219,7 +219,7 @@ if ( $overwrite || !-s $video_file )
 		print( PARAMS "INPUT\n" );
 		for ( my $i = 1; $i <= $event->{Frames}; $i++ )
 		{
-			printf( PARAMS "capture-%03d.jpg\n", $i );
+			printf( PARAMS "%03d-capture.jpg\n", $i );
 		}
 		print( PARAMS "END_INPUT\n" );
 		close( PARAMS );
@@ -265,7 +265,7 @@ if ( $overwrite || !-s $video_file )
 				$height = int($height/$scale);
 			}
 		}
-		my $command = ZM_PATH_FFMPEG." -y ".ZM_FFMPEG_OPTIONS." -r $frame_rate -s ${width}x${height} -i capture-%03d.jpg $video_file > mpeg.log";
+		my $command = ZM_PATH_FFMPEG." -y ".ZM_FFMPEG_OPTIONS." -r $frame_rate -s ${width}x${height} -i %03d-capture.jpg $video_file > mpeg.log";
 		print( LOG $command."\n" );
 		my $output = qx($command);
 		print( LOG $output."\n" );

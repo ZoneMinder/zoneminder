@@ -264,10 +264,11 @@ else
 	$fraction = sprintf( "%.2f", 1/$scale );
 	$thumb_width = $event['Width']/4;
 	$thumb_height = $event['Height']/4;
+	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorName'].'/'.$event['Id'];
 	while( $row = mysql_fetch_assoc( $result ) )
 	{
 		$frame_id = $row['FrameId'];
-		$image_path = $row['ImagePath'];
+		$image_path = sprintf( "%s/%03d-capture.jpg", $event_path, $frame_id );
 
 		$capt_image = $image_path;
 		if ( $scale == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )

@@ -86,6 +86,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	alarm_pixels = 0;
 
+	// Get the difference image
 	int lo_x = limits.Lo().X();
 	int lo_y = limits.Lo().Y();
 	int hi_x = limits.Hi().X();
@@ -104,6 +105,16 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			*pdiff = BLACK;
 		}
 	}
+	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	{
+		static char diag_path[PATH_MAX] = "";
+		if ( !diag_path[0] )
+		{
+			sprintf( diag_path, "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 1 );
+		}
+		diff_image->WriteJpeg( diag_path );
+	}
+
 
 	if ( !alarm_pixels ) return( false );
 	if ( min_alarm_pixels && alarm_pixels < min_alarm_pixels ) return( false );
@@ -116,49 +127,61 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	int bx1 = bx-1;
 	int by1 = by-1;
 
-	// Now remove any pixels smaller than our filter size
-	for ( int y = lo_y; y <= hi_y; y++ )
+	if ( bx > 1 || by > 1 )
 	{
-		unsigned char *pdiff = diff_image->Buffer( lo_x, y );
-
-		for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
+		// Now remove any pixels smaller than our filter size
+		for ( int y = lo_y; y <= hi_y; y++ )
 		{
-			if ( *pdiff == WHITE )
-			{
-				// Check participation in an X blob
-				int ldx = (x>=(lo_x+bx1))?-bx1:lo_x-x;
-				int hdx = (x<=(hi_x-bx1))?0:((hi_x-x)-bx1);
-				int ldy = (y>=(lo_y+by1))?-by1:lo_y-y;
-				int hdy = (y<=(hi_y-by1))?0:((hi_y-y)-by1);
-				bool blob = false;
-				for ( int dy = ldy; !blob && dy <= hdy; dy++ )
-				{
-					for ( int dx = ldx; !blob && dx <= hdx; dx++ )
-					{
-						blob = true;
-						for ( int dy2 = 0; blob && dy2 < by; dy2++ )
-						{
-							for ( int dx2 = 0; blob && dx2 < bx; dx2++ )
-							{
-								unsigned char *cpdiff = diff_image->Buffer( x+dx+dx2, y+dy+dy2 );
+			unsigned char *pdiff = diff_image->Buffer( lo_x, y );
 
-								if ( !*cpdiff )
+			for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
+			{
+				if ( *pdiff == WHITE )
+				{
+					// Check participation in an X blob
+					int ldx = (x>=(lo_x+bx1))?-bx1:lo_x-x;
+					int hdx = (x<=(hi_x-bx1))?0:((hi_x-x)-bx1);
+					int ldy = (y>=(lo_y+by1))?-by1:lo_y-y;
+					int hdy = (y<=(hi_y-by1))?0:((hi_y-y)-by1);
+					bool blob = false;
+					for ( int dy = ldy; !blob && dy <= hdy; dy++ )
+					{
+						for ( int dx = ldx; !blob && dx <= hdx; dx++ )
+						{
+							blob = true;
+							for ( int dy2 = 0; blob && dy2 < by; dy2++ )
+							{
+								for ( int dx2 = 0; blob && dx2 < bx; dx2++ )
 								{
-									blob = false;
+									unsigned char *cpdiff = diff_image->Buffer( x+dx+dx2, y+dy+dy2 );
+
+									if ( !*cpdiff )
+									{
+										blob = false;
+									}
+									
 								}
-								
 							}
 						}
 					}
+					if ( !blob )
+					{
+						*pdiff = BLACK;
+						continue;
+					}
+					alarm_filter_pixels++;
 				}
-				if ( !blob )
-				{
-					*pdiff = BLACK;
-					continue;
-				}
-				alarm_filter_pixels++;
 			}
 		}
+	}
+	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	{
+		static char diag_path[PATH_MAX] = "";
+		if ( !diag_path[0] )
+		{
+			sprintf( diag_path, "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 2 );
+		}
+		diff_image->WriteJpeg( diag_path );
 	}
 
 	if ( !alarm_filter_pixels ) return( false );
@@ -277,7 +300,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					else
 					{
 						// Create a new blob
-						for ( int i = 1; i < WHITE; i++ )
+						//for ( int i = 1; i < WHITE; i++ )
+						for ( int i = WHITE; i > 0; i-- )
 						{
 							BlobStats *bs = &blob_stats[i];
 							if ( !bs->count )
@@ -297,7 +321,15 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 		}
 	}
-
+	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	{
+		static char diag_path[PATH_MAX] = "";
+		if ( !diag_path[0] )
+		{
+			sprintf( diag_path, "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 3 );
+		}
+		diff_image->WriteJpeg( diag_path );
+	}
 
 	if ( !alarm_blobs ) return( false );
 	alarm_blob_pixels = alarm_filter_pixels;
@@ -340,6 +372,15 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				if ( !max_blob_size || bs->count > max_blob_size ) max_blob_size = bs->count;
 			}
 		}
+	}
+	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	{
+		static char diag_path[PATH_MAX] = "";
+		if ( !diag_path[0] )
+		{
+			sprintf( diag_path, "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 4 );
+		}
+		diff_image->WriteJpeg( diag_path );
 	}
 
 	if ( !alarm_blobs ) return( false );

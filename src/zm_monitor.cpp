@@ -1140,7 +1140,27 @@ unsigned int Monitor::Compare( const Image &comp_image )
 
 	if ( n_zones <= 0 ) return( alarm );
 
+	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	{
+		static char diag_path[PATH_MAX] = "";
+		if ( !diag_path[0] )
+		{
+			sprintf( diag_path, "%s/%s/diag-r.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), name );
+		}
+		ref_image.WriteJpeg( diag_path );
+	}
+
 	Image *delta_image = ref_image.Delta( comp_image );
+
+	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	{
+		static char diag_path[PATH_MAX] = "";
+		if ( !diag_path[0] )
+		{
+			sprintf( diag_path, "%s/%s/diag-d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), name );
+		}
+		delta_image->WriteJpeg( diag_path );
+	}
 
 	// Blank out all exclusion zones
 	for ( int n_zone = 0; n_zone < n_zones; n_zone++ )

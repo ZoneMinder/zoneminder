@@ -55,7 +55,8 @@ $prev_fid = $fid-1;
 $next_fid = $fid+1;
 $last_fid = $max_fid;
 
-$image_path = $frame['ImagePath'];
+$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorName'].'/'.$event['Id'];
+$image_path = sprintf( "%s/%03d-capture.jpg", $event_path, $frame['FrameId'] );
 $anal_image = preg_replace( "/capture/", "analyse", $image_path );
 if ( file_exists( $anal_image ) )
 {

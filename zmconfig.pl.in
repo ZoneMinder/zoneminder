@@ -796,6 +796,14 @@ my @options =
 		category => 'system',
 	},
 	{
+		name => "ZM_CHECK_FOR_UPDATES",
+		default => "yes",
+		description => "Whether to check with zoneminder.com for updated versions",
+		help => "From ZoneMinder version 1.17.0 onwards new versions are expected to be more frequent. To save checking manually for each new version ZoneMinder can check with the zoneminder.com website to determine the most recent release. These checks are infrequent, about once per week, and no personal or system information is transmitted other than your current version number. If you do not wish these checks to take place or your ZoneMinder system has no internet access you can switch these check off with this configuration variable",
+		type => $types{boolean},
+		category => 'system',
+	},
+	{
 		name => "ZM_WEB_REFRESH_METHOD",
 		default => "javascript",
 		description => "What method windows should use to refresh themselves, choose either javascript or http",
@@ -1017,6 +1025,42 @@ my @options =
 		help => "The live images from a monitor are viewed as a sequence of still images. This option determines how the image is refreshed. Though the images are small setting this at too frequent a value may rapidly consume a lot of bandwidth resource.",
 		type => $types{integer},
 		category => 'phoneband',
+	},
+	{
+		name => "ZM_DYN_LAST_VERSION",
+		default => "",
+		description => "What the last version of ZoneMinder recorded from zoneminder.com is",
+		help => "",
+		type => $types{string},
+		readonly => 1,
+		category => 'dynamic',
+	},
+	{
+		name => "ZM_DYN_CURR_VERSION",
+		default => "@VERSION@",
+		description => "What the effective current version of ZoneMinder is, might be different from actual",
+		help => "",
+		type => $types{string},
+		readonly => 1,
+		category => 'dynamic',
+	},
+	{
+		name => "ZM_DYN_LAST_CHECK",
+		default => "",
+		description => "When the last check for version from zoneminder.com was",
+		help => "",
+		type => $types{integer},
+		readonly => 1,
+		category => 'dynamic',
+	},
+	{
+		name => "ZM_DYN_NEXT_REMINDER",
+		default => "",
+		description => "When the earliest time to remind about versions will be",
+		help => "",
+		type => $types{string},
+		readonly => 1,
+		category => 'dynamic',
 	},
 );
 
@@ -1370,7 +1414,7 @@ if ( $reprocess )
 	printf( CFG_HDR_FILE "#define ZM_MAX_CFG_ID $last_id\n" );
 	close( CFG_HDR_FILE );
 
-	my @config_files = qw( src/zm_config.h web/zm_config.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zmvideo.pl scripts/zm db/zmschema.sql );
+	my @config_files = qw( src/zm_config.h web/zm_config.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zm db/zmschema.sql );
 
 	foreach my $config_file ( @config_files )
 	{

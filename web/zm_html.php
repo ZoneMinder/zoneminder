@@ -104,6 +104,7 @@ switch( $view )
 	case "console" :
 	case "state" :
 	case "bandwidth" : 
+	case "version" :
 	case "options" :
 	case "optionhelp" :
 	case "restarting" :

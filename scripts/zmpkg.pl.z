@@ -261,6 +261,10 @@ if ( $command =~ /^(?:start|restart)$/ )
 			execute( ZM_PATH_BIN."/zmdc.pl start zmx10.pl -c start" );
 		}
 		execute( ZM_PATH_BIN."/zmdc.pl start zmwatch.pl" );
+		if ( ZM_CHECK_FOR_UPDATES )
+		{
+			execute( ZM_PATH_BIN."/zmdc.pl start zmupdate.pl" );
+		}
 	}
 	else
 	{

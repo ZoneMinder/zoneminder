@@ -107,13 +107,21 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 <?php
 }
 ?>
+<?php
+if ( ZM_CHECK_FOR_UPDATES && canEdit( 'System' ) && ( ZM_DYN_LAST_VERSION != ZM_DYN_CURR_VERSION ) && ( ZM_DYN_NEXT_REMINDER < time() ) )
+{
+?>
+newWindow( '<?= $PHP_SELF ?>?view=version', 'zmVersion', <?= $jws['version']['w'] ?>, <?= $jws['version']['h'] ?> );
+<?php
+}
+?>
 </script>
 </head>
 <body scroll="auto">
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
-<td class="bighead" align="center"><strong>ZoneMinder <?= $zmSlangConsole ?> - <?php if ( canEdit( 'System' ) ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=state', 'zmState', <?= $jws['state']['w'] ?>, <?= $jws['state']['h'] ?> );"><?= $status ?></a> - <?php } ?>v<?= ZM_VERSION ?></strong></td>
+<td class="bighead" align="center"><strong><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?= $zmSlangConsole ?> - <?php if ( canEdit( 'System' ) ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=state', 'zmState', <?= $jws['state']['w'] ?>, <?= $jws['state']['h'] ?> );"><?= $status ?></a> - <?php } ?><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=version', 'zmVersion', ".$jws['version']['w'].", ".$jws['version']['h']." );", "v".ZM_VERSION, canEdit( 'System' ) ) ?></strong></td>
 <?php
 $uptime = shell_exec( 'uptime' );
 $load = '';

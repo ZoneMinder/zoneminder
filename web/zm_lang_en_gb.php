@@ -72,6 +72,7 @@
 // Simple String Replacements
 $zmSlang24BitColour          = '24 bit colour';
 $zmSlang8BitGrey             = '8 bit greyscale';
+$zmSlangAction               = 'Action';
 $zmSlangActual               = 'Actual';
 $zmSlangAddNewMonitor        = 'Add New Monitor';
 $zmSlangAddNewUser           = 'Add New User';
@@ -168,6 +169,7 @@ $zmSlangFunc                 = 'Func';
 $zmSlangFunction             = 'Function';
 $zmSlangGenerateVideo        = 'Generate Video';
 $zmSlangGeneratingVideo      = 'Generating Video';
+$zmSlangGoToZoneMinder       = 'Go to ZoneMinder.com';
 $zmSlangGrey                 = 'Grey';
 $zmSlangHighBW               = 'High&nbsp;B/W';
 $zmSlangHigh                 = 'High';
@@ -303,6 +305,8 @@ $zmSlangType                 = 'Type';
 $zmSlangUnarchive            = 'Unarchive';
 $zmSlangUnits                = 'Units';
 $zmSlangUnknown              = 'Unknown';
+$zmSlangUpdateNotNecessary   = 'No update is necessary.';
+$zmSlangUpdateAvailable      = 'An update to ZoneMinder is available.';
 $zmSlangUseFilterExprsPost   = '&nbsp;filter&nbsp;expressions'; // This is used at the end of the phrase 'use N filter expressions'
 $zmSlangUseFilterExprsPre    = 'Use&nbsp;'; // This is used at the beginning of the phrase 'use N filter expressions'
 $zmSlangUseFilter            = 'Use Filter';
@@ -310,6 +314,12 @@ $zmSlangUsername             = 'Username';
 $zmSlangUsers                = 'Users';
 $zmSlangUser                 = 'User';
 $zmSlangValue                = 'Value';
+$zmSlangVersion              = 'Version';
+$zmSlangVersionIgnore        = 'Ignore this version';
+$zmSlangVersionRemindHour    = 'Remind again in 1 hour';
+$zmSlangVersionRemindDay     = 'Remind again in 1 day';
+$zmSlangVersionRemindWeek    = 'Remind again in 1 week';
+$zmSlangVersionRemindNever   = 'Don\'t remind about new versions';
 $zmSlangVideoGenFailed       = 'Video Generation Failed!';
 $zmSlangVideoGenParms        = 'Video Generation Parameters';
 $zmSlangVideoSize            = 'Video Size';
@@ -350,8 +360,10 @@ $zmSlangZone                 = 'Zone';
 $zmClangCurrentLogin         = 'Current login is \'%1$s\'';
 $zmClangEventCount           = '%1$s %2$s'; // For example '37 Events' (from Vlang below)
 $zmClangLastEvents           = 'Last %1$s %2$s'; // For example 'Last 37 Events' (from Vlang below)
+$zmClangLatestRelease        = 'The latest release is v%1$s, you have v%2$s.';
 $zmClangMonitorCount         = '%1$s %2$s'; // For example '4 Monitors' (from Vlang below)
 $zmClangMonitorFunction      = 'Monitor %1$s Function';
+$zmClangRunningRecentVer     = 'You are running the most recent version of ZoneMinder, v%s.';
 
 // The next section allows you to describe a series of word ending and counts used to 
 // generate the correctly conjugated forms of words depending on a count that is associated

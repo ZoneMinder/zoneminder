@@ -1,0 +1,159 @@
+#!/usr/bin/perl -wT
+#
+# ==========================================================================
+#
+# ZoneMinder WatchDog Script, $Date$, $Revision$
+# Copyright (C) 2003  Philip Coombes
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+# ==========================================================================
+#
+# This script just checks what the most recent release of ZoneMinder is
+# at the the moment. It will eventually be responsible for applying and
+# configuring upgrades etc, including on the fly upgrades.
+#
+
+# ==========================================================================
+#
+# These are the elements you need to edit to suit your installation
+#
+# ==========================================================================
+
+use constant ZM_VERSION => "<from zmconfig>";
+use constant ZM_PATH_BIN => "<from zmconfig>";
+use constant ZM_DB_SERVER => "<from zmconfig>";
+use constant ZM_DB_NAME => "<from zmconfig>";
+use constant ZM_DB_USERA => "<from zmconfig>";
+use constant ZM_DB_PASSA => "<from zmconfig>";
+
+# Load the config from the database into the symbol table
+BEGIN
+{
+	use DBI;
+	no strict 'refs';
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
+	my $sql = "select * from Config";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	while( my $config = $sth->fetchrow_hashref() )
+	{
+		*{$config->{Name}} = sub { $config->{Value} };
+	}
+	$sth->finish();
+	$dbh->disconnect();
+}
+
+use constant UPDATE_LOG_FILE => ZM_PATH_LOGS.'/zmupdate.log';
+use constant CHECK_INTERVAL => (7*24*60*60); # Interval between version checks
+use constant VERBOSE => 0; # Whether to output more verbose debug
+
+# ==========================================================================
+#
+# Don't change anything below here
+#
+# ==========================================================================
+
+use strict;
+use POSIX;
+use DBI;
+use Data::Dumper;
+
+$| = 1;
+
+$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
+if ( !ZM_CHECK_FOR_UPDATES )
+{
+	exit( 0 );
+}
+
+sub Usage
+{
+    print( "
+Usage: zmupdate.pl
+");
+	exit( -1 );
+}
+
+open( LOG, '>>'.UPDATE_LOG_FILE ) or die( "Can't open log file: $!" );
+open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
+select( STDOUT ); $| = 1;
+open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
+select( STDERR ); $| = 1;
+select( LOG ); $| = 1;
+print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
+my $last_version = ZM_DYN_LAST_VERSION;
+my $curr_version = ZM_DYN_CURR_VERSION;
+my $last_check = ZM_DYN_LAST_CHECK;
+
+if ( !$curr_version )
+{
+	$curr_version = ZM_VERSION;
+
+	my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute( $curr_version ) or die( "Can't execute: ".$sth->errstr() );
+}
+
+while( 1 )
+{
+	my $now = time();
+	if ( !$last_version || !$last_check || (($now-$last_check) > CHECK_INTERVAL) )
+	{
+		print( "Checking for updates at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+
+		use LWP::UserAgent;
+		my $ua = LWP::UserAgent->new;
+		$ua->agent( "ZoneMinder Update Agent/".ZM_VERSION );
+
+		my $req = HTTP::Request->new( GET=>'http://www.zoneminder.com/version' );
+		my $res = $ua->request($req);
+
+		if ( $res->is_success )
+		{
+			$last_version = $res->content;
+			chomp($last_version);
+			$last_check = $now;
+
+			print( "Got version: '".$last_version."'\n" );
+
+			{
+			my $sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $last_version ) or die( "Can't execute: ".$sth->errstr() );
+			}
+			{
+			my $sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $last_check ) or die( "Can't execute: ".$sth->errstr() );
+			}
+		}
+		else
+		{
+			print( "Error check failed: '".$res->status_line()."'\n" );
+		}
+
+	}
+	sleep( 3600 );
+}
+print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+exit();

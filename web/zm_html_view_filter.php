@@ -176,7 +176,7 @@ function saveFilter( form )
 	form.view.value = 'filtersave';
 	form.submit();
 }
-function deleteFilter( form, name, id )
+function deleteFilter( form, name )
 {
 	if ( confirm( "<?= $zmSlangDeleteSavedFilter ?> '"+name+"'" ) )
 	{
@@ -207,7 +207,7 @@ window.focus();
 <td align="center" class="text">&nbsp;</a></td>
 <?php } ?>
 <?php if ( canEdit( 'Events' ) && isset($filter_data) ) { ?>
-<td align="center" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data['Name'] ?>', <?= $filter_data['Id'] ?> );"><?= $zmSlangDelete ?></a></td>
+<td align="center" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data['Name'] ?>' );"><?= $zmSlangDelete ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</a></td>
 <?php } ?>

@@ -1126,7 +1126,7 @@ void Image::DeColourise()
 	}
 }
 
-Camera::Camera( int p_id, char *p_name, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture=true ) : id( p_id ), device( p_device ), channel( p_channel ), format( p_format ), width( p_width), height( p_height ), colours( p_colours ), capture( p_capture )
+Camera::Camera( int p_id, char *p_name, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture ) : id( p_id ), device( p_device ), channel( p_channel ), format( p_format ), width( p_width), height( p_height ), colours( p_colours ), capture( p_capture )
 {
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
@@ -1372,7 +1372,7 @@ void Event::AddFrame( time_t timestamp, const Image *image, const Image *alarm_i
 	}
 }
 
-void Event::StreamEvent( const char *path, int event_id, unsigned long refresh=100, FILE *fd=stdout )
+void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, FILE *fd )
 {
 	static char sql[256];
 	sprintf( sql, "select Id, EventId, ImagePath, TimeStamp from Frames where EventId = %d order by Id", event_id );

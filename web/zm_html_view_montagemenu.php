@@ -41,7 +41,7 @@ if ( $mid )
 ?>
 <html>
 <head>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 </head>
 <body>
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">

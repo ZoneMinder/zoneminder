@@ -20,7 +20,7 @@
 
 function userLogin( $username, $password )
 {
-	global $user, $HTTP_SESSION_VARS, $HTTP_SERVER_VARS;
+	global $user, $cookies, $HTTP_SESSION_VARS, $HTTP_SERVER_VARS;
 
 	$sql = "select * from Users where Username = '$username' and Password = password('$password') and Enabled = 1";
 	$result = mysql_query( $sql );
@@ -37,7 +37,7 @@ function userLogin( $username, $password )
 	{
 		unset( $user );
 	}
-	session_write_close();
+	if ( $cookies ) session_write_close();
 }
 
 function userLogout()
@@ -93,12 +93,12 @@ function deleteEvent( $eid )
 	}
 }
 
-function makeLink( $url, $label, $condition=1 )
+function makeLink( $url, $label, $condition=1, $options="" )
 {
 	$string = "";
 	if ( $condition )
 	{
-		$string .= '<a href="'.$url.'">';
+		$string .= '<a href="'.$url.'"'.($options?(' '.$options):'').'>';
 	}
 	$string .= $label;
 	if ( $condition )
@@ -492,8 +492,9 @@ function reScale( $dimension, $scale=SCALE_SCALE )
 	return( (int)(($dimension*$scale)/SCALE_SCALE) );
 }
 
-function parseSort()
+function parseSort( $save_to_session=false )
 {
+	global $HTTP_SESSION_VARS;
 	global $sort_field, $sort_asc; // Inputs
 	global $sort_query, $sort_column, $sort_order; // Outputs
 
@@ -545,21 +546,31 @@ function parseSort()
 	$sort_order = $sort_asc?"asc":"desc";
 	if ( !$sort_asc ) $sort_asc = 0;
 	$sort_query = "&sort_field=$sort_field&sort_asc=$sort_asc";
+	if ( $save_to_session )
+	{
+		$HTTP_SESSION_VARS['sort_field'] = $sort_field;
+		$HTTP_SESSION_VARS['sort_asc'] = $sort_asc;
+	}
 }
 
-function parseFilter()
+function parseFilter( $save_to_session=false )
 {
-	global $filter_query, $filter_sql, $filter_fields;
+	global $HTTP_SESSION_VARS;
+	global $trms; // Inputs
+	global $filter_query, $filter_sql, $filter_fields; // Outputs
 
 	$filter_query = ''; 
 	$filter_sql = '';
 	$filter_fields = '';
 
-	global $trms;
 	if ( $trms )
 	{
+		if ( $save_to_session )
+		{
+			$HTTP_SESSION_VARS['trms'] = $trms;
+		}
 		$filter_query .= "&trms=$trms";
-		$filter_fields .= '<input type="hidden" name="trms" value="'.$trms.'">'."\n";
+		$filter_fields .= '<input type="hidden" name="trms" value="'.$trms.'"/>'."\n";
 
 		for ( $i = 1; $i <= $trms; $i++ )
 		{
@@ -576,18 +587,26 @@ function parseFilter()
 			{
 				$filter_query .= "&$conjunction_name=".$$conjunction_name;
 				$filter_sql .= " ".$$conjunction_name." ";
-				$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'">'."\n";
+				$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'"/>'."\n";
+				if ( $save_to_session )
+				{
+					$HTTP_SESSION_VARS[$conjunction_name] = $$conjunction_name;
+				}
 			}
 			if ( isset($$obracket_name) )
 			{
 				$filter_query .= "&$obracket_name=".$$obracket_name;
 				$filter_sql .= str_repeat( "(", $$obracket_name );
-				$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'">'."\n";
+				$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'"/>'."\n";
+				if ( $save_to_session )
+				{
+					$HTTP_SESSION_VARS[$obracket_name] = $$obracket_name;
+				}
 			}
 			if ( isset($$attr_name) )
 			{
 				$filter_query .= "&$attr_name=".$$attr_name;
-				$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'">'."\n";
+				$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'"/>'."\n";
 				switch ( $$attr_name )
 				{
 					case 'MonitorName':
@@ -683,15 +702,25 @@ function parseFilter()
 				}
 
 				$filter_query .= "&$op_name=".urlencode($$op_name);
-				$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
+				$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'"/>'."\n";
 				$filter_query .= "&$value_name=".urlencode($$value_name);
-				$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'">'."\n";
+				$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'"/>'."\n";
+				if ( $save_to_session )
+				{
+					$HTTP_SESSION_VARS[$attr_name] = $$attr_name;
+					$HTTP_SESSION_VARS[$op_name] = $$op_name;
+					$HTTP_SESSION_VARS[$value_name] = $$value_name;
+				}
 			}
 			if ( isset($$cbracket_name) )
 			{
 				$filter_query .= "&$cbracket_name=".$$cbracket_name;
 				$filter_sql .= str_repeat( ")", $$cbracket_name );
-				$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'">'."\n";
+				$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'"/>'."\n";
+				if ( $save_to_session )
+				{
+					$HTTP_SESSION_VARS[$cbracket_name] = $$cbracket_name;
+				}
 			}
 		}
 		$filter_sql = " and ( $filter_sql )";
@@ -723,5 +752,19 @@ function getDiskBlocks()
 	if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
 		$space = $matches[1];
 	return( $space );
+}
+
+// Function to fix a problem whereby the built in PHP session handling 
+// features want to put the sid as a hidden field after the form or 
+// fieldset tag, neither of which will work with strict XHTML Basic.
+function sidField()
+{
+	if ( SID )
+	{
+		list( $sessname, $sessid ) = split( "=", SID );
+?>
+<input type="hidden" name="<?= $sessname ?>" value="<?= $sessid ?>"/>
+<?php
+	}
 }
 ?>

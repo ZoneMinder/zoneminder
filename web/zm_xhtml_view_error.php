@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web logging in view file, $Date$, $Revision$
+// ZoneMinder web error view file, $Date$, $Revision$
 // Copyright (C) 2003  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -21,19 +21,13 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $zmSlangLoggingIn ?></title>
-<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
-//window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h'] ?> );
-window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", 250 );
-</script>
-</head>
+<title>ZM - <?= $zmSlangError ?></title>
+<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
 <body>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
-<tr><td colspan="2" class="smallhead" align="center">ZoneMinder - <?= $zmSlangLogin ?></td></tr>
+<tr><td colspan="2" class="smallhead" align="center">ZoneMinder <?= $zmSlangError ?></td></tr>
 <tr><td colspan="2" class="text" align="center">&nbsp;</td></tr>
-<tr><td colspan="2" class="text" align="center"><strong><?= $zmSlangLoggingIn ?></strong></td></tr>
-<tr><td colspan="2" class="text" align="center">&nbsp;</td></tr>
+<tr><td colspan="2" class="text" align="center"><strong><?= $zmSlangYouNoPerms ?><br/><?= $zmSlangContactAdmin ?></strong></td></tr>
 </table>
 </body>
 </html>

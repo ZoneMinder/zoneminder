@@ -87,7 +87,7 @@ $montage_height = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$max_height;
 <html>
 <head>
 <title>ZM - Console</title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <link rel="shortcut icon" href="favicon.ico">
 <link rel="icon" type="image/ico" href="favicon.ico">
 <script language="JavaScript">
@@ -124,7 +124,8 @@ function confirmDelete()
 if ( ZM_WEB_REFRESH_METHOD == "javascript" )
 {
 ?>
-window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>?view=<?= $view ?>')", <?= (ZM_WEB_REFRESH_MAIN*1000) ?> );
+//window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>?view=<?= $view ?>')", <?= (ZM_WEB_REFRESH_MAIN*1000) ?> );
+window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (ZM_WEB_REFRESH_MAIN*1000) ?> );
 <?php
 }
 ?>

@@ -143,7 +143,7 @@ if ( isset($action) )
 					echo mysql_error();
 
 				$monitor['Function'] = $new_function;
-				session_write_close();
+				if ( $cookies ) session_write_close();
 				zmcControl( $monitor, true );
 				zmaControl( $monitor, true );
 				$refresh_parent = true;
@@ -186,7 +186,7 @@ if ( isset($action) )
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );
-				session_write_close();
+				if ( $cookies ) session_write_close();
 				zmaControl( $mid, true );
 				$refresh_parent = true;
 			}
@@ -298,7 +298,7 @@ if ( isset($action) )
 					die( mysql_error() );
 				$monitor = mysql_fetch_assoc( $result );
 				fixDevices();
-				session_write_close();
+				if ( $cookies ) session_write_close();
 				zmcControl( $monitor, true );
 				zmaControl( $monitor, true );
 				//daemonControl( 'restart', 'zmwatch.pl' );
@@ -329,7 +329,7 @@ if ( isset($action) )
 				}
 				if ( $deleted_zid )
 				{
-					session_write_close();
+					if ( $cookies ) session_write_close();
 					zmaControl( $mid, true );
 					$refresh_parent = true;
 				}
@@ -547,7 +547,7 @@ if ( isset($action) )
 		{
 			if ( $run_state )
 			{
-				session_write_close();
+				if ( $cookies ) session_write_close();
 				packageControl( $run_state );
 				$refresh_parent = true;
 			}
@@ -656,7 +656,7 @@ if ( isset($action) )
 	{
 		$HTTP_SESSION_VARS['event_reset_time'] = strftime( "%Y-%m-%d %H:%M:%S" );
 		setcookie( "event_reset_time", $HTTP_SESSION_VARS['event_reset_time'], time()+3600*24*30*12*10 );
-		session_write_close();
+		if ( $cookies ) session_write_close();
 	}
 }
 

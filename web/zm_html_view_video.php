@@ -39,7 +39,7 @@ ob_start();
 <html>
 <head>
 <title>ZM - <?= $zmSlangVideo ?> - <?= $event['Name'] ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 </head>
 <body>
 <form name="video_form" method="post" action="<?= $PHP_SELF ?>">
@@ -101,7 +101,7 @@ location.replace('<?= $video_path ?>');
 ?>
 <html>
 <head>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 </head>
 <body>
 <p class="head" align="center"><font color="red"><br><br><?= $zmSlangVideoGenFailed ?><br><br></font></p>

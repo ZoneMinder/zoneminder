@@ -8,11 +8,13 @@ webgroup = @WEB_GROUP@
 
 web_DATA = \
 	favicon.ico \
+	zm.php \
 	zm_actions.php \
 	zm_config.php \
 	zm_db.php \
 	zm_funcs.php \
 	zm_html.php \
+	zm_html_styles.css \
 	zm_html_view_bandwidth.php \
 	zm_html_view_console.php \
 	zm_html_view_cycle.php \
@@ -50,6 +52,25 @@ web_DATA = \
 	zm_html_view_watchstatus.php \
 	zm_html_view_zone.php \
 	zm_html_view_zones.php \
+	zm_xhtml.php \
+	zm_xhtml_styles.css \
+	zm_xhtml_view_login.php \
+	zm_xhtml_view_console.php \
+	zm_xhtml_view_state.php \
+	zm_xhtml_view_function.php \
+	zm_xhtml_view_watch.php \
+	zm_xhtml_view_montage.php \
+	zm_xhtml_view_events.php \
+	zm_xhtml_view_event.php \
+	zm_xhtml_view_frame.php \
+	zm_xhtml_view_filter.php \
+	zm_xhtml_view_error.php \
+	zm_wml.php \
+	zm_wml_view_login.php \
+	zm_wml_view_postlogin.php \
+	zm_wml_view_console.php \
+	zm_wml_view_feed.php \
+	zm_wml_view_error.php \
 	zm_lang.php \
 	zm_lang_de_de.php \
 	zm_lang_en_gb.php \
@@ -62,22 +83,19 @@ web_DATA = \
 	zm_lang_it_it.php \
 	zm_lang_it_it2.php \
 	zm_lang_es_ar.php \
-	zm_lang_pt_br.php \
-	zm.php \
-	zm_styles.css \
-	zm_wml.php \
-	zm_wml_view_console.php \
-	zm_wml_view_feed.php
+	zm_lang_pt_br.php
 
 EXTRA_DIST = \
 	favicon.ico \
 	retag.sh \
 	swap.pl \
+	zm.php \
 	zm_actions.php \
 	zm_config.php.z \
 	zm_db.php \
 	zm_funcs.php \
 	zm_html.php \
+	zm_html_styles.css \
 	zm_html_view_bandwidth.php \
 	zm_html_view_console.php \
 	zm_html_view_cycle.php \
@@ -115,6 +133,25 @@ EXTRA_DIST = \
 	zm_html_view_watchstatus.php \
 	zm_html_view_zone.php \
 	zm_html_view_zones.php \
+	zm_xhtml.php \
+	zm_xhtml_styles.css \
+	zm_xhtml_view_login.php \
+	zm_xhtml_view_console.php \
+	zm_xhtml_view_state.php \
+	zm_xhtml_view_function.php \
+	zm_xhtml_view_watch.php \
+	zm_xhtml_view_montage.php \
+	zm_xhtml_view_events.php \
+	zm_xhtml_view_event.php \
+	zm_xhtml_view_frame.php \
+	zm_xhtml_view_filter.php \
+	zm_xhtml_view_error.php \
+	zm_wml.php \
+	zm_wml_view_login.php \
+	zm_wml_view_postlogin.php \
+	zm_wml_view_console.php \
+	zm_wml_view_feed.php \
+	zm_wml_view_error.php \
 	zm_lang.php \
 	zm_lang_de_de.php \
 	zm_lang_en_gb.php \
@@ -127,12 +164,7 @@ EXTRA_DIST = \
 	zm_lang_it_it.php \
 	zm_lang_it_it2.php \
 	zm_lang_es_ar.php \
-	zm_lang_pt_br.php \
-	zm.php \
-	zm_styles.css \
-	zm_wml.php \
-	zm_wml_view_console.php \
-	zm_wml_view_feed.php
+	zm_lang_pt_br.php
 
 # Yes, you are correct. This is a HACK!
 install-data-hook:

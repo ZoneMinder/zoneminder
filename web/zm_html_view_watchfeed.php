@@ -58,7 +58,7 @@ $image_src = ZM_PATH_ZMS."?mode=single&monitor=".$monitor['Id']."&scale=".$scale
 <html>
 <head>
 <title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangFeed ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
 if ( $mode != "stream" && ZM_WEB_REFRESH_METHOD == "javascript" )

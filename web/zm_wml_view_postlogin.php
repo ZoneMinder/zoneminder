@@ -19,21 +19,14 @@
 //
 
 ?>
-<html>
-<head>
-<title>ZM - <?= $zmSlangLoggingIn ?></title>
-<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
-//window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h'] ?> );
-window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", 250 );
-</script>
-</head>
-<body>
-<table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
-<tr><td colspan="2" class="smallhead" align="center">ZoneMinder - <?= $zmSlangLogin ?></td></tr>
-<tr><td colspan="2" class="text" align="center">&nbsp;</td></tr>
-<tr><td colspan="2" class="text" align="center"><strong><?= $zmSlangLoggingIn ?></strong></td></tr>
-<tr><td colspan="2" class="text" align="center">&nbsp;</td></tr>
-</table>
-</body>
-</html>
+<wml>
+  <card id="zmLoggingIn" title="ZM - <?= $zmSlangLoggingIn ?>" ontimer="<?= $PHP_SELF ?>?view=console">
+    <timer value="25"/>
+    <p align="center"><br/>ZoneMinder - <?= $zmSlangLogin ?></p>
+    <p align="center"><br/><strong><?= $zmSlangLoggingIn ?></strong><br/><br/>
+    <do type="accept" name="Continue" label="<?= $zmSlangContinue ?>">
+      <go href="<?= $PHP_SELF ?>?view=console" />
+    </do>
+	</p>
+  </card>
+</wml>

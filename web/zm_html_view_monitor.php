@@ -98,7 +98,7 @@ $orientations = array( $zmSlangNormal=>0, $zmSlangRotateRight=>90, $zmSlangInver
 <html>
 <head>
 <title>ZM - <?= $zmSlangMonitor ?> <?= $monitor['Name'] ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
 if ( !empty($refresh_parent) )

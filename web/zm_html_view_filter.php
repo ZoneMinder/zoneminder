@@ -20,8 +20,8 @@
 
 if ( !canView( 'Events' ) )
 {
-$view = "error";
-return;
+	$view = "error";
+	return;
 }
 $select_name = "filter_name";
 $filter_names = array( ''=>'<?= $zmSlangChooseFilter ?>' );
@@ -121,7 +121,7 @@ $sort_dirns = array(
 <html>
 <head>
 <title>ZM - <?= $zmSlangEventFilter ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
 {
@@ -298,7 +298,7 @@ else
 <tr>
 <td colspan="5" class="text"><hr width="100%"></td>
 </tr>
-<tr><td colspan="5" align="right"><input type="button" value="Reset" class="form" onClick="submitToFilter( document.filter_form, 1 );">&nbsp;&nbsp;<input type="button" value="Submit" class="form" onClick="if ( validateForm( document.filter_form ) ) submitToEvents( document.filter_form, 1 );"></td></tr>
+<tr><td colspan="5" align="right"><input type="button" value="<?= $zmSlangReset ?>" class="form" onClick="submitToFilter( document.filter_form, 1 );">&nbsp;&nbsp;<input type="button" value="<?= $zmSlangSubmit ?>" class="form" onClick="if ( validateForm( document.filter_form ) ) submitToEvents( document.filter_form, 1 );"></td></tr>
 </table></center>
 </form>
 </body>

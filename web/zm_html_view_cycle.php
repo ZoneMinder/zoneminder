@@ -86,7 +86,7 @@ header("Pragma: no-cache");			  // HTTP/1.0
 <html>
 <head>
 <title>ZM - <?= $zmSlangCycleWatch ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
 {

@@ -69,7 +69,7 @@ header("Pragma: no-cache");			  // HTTP/1.0
 ?>
 <html>
 <head>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
 if ( ZM_WEB_POPUP_ON_ALARM && $new_alarm )

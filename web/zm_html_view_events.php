@@ -69,7 +69,7 @@ elseif ( !empty( $limit ) )
 <html>
 <head>
 <title>ZM - <?= $zmSlangEvents ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
 {

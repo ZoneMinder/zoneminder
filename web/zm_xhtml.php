@@ -61,11 +61,10 @@ header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modifie
 header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");         // HTTP/1.0
-header("Content-type: text/vnd.wap.wml");
+header("Content-type: application/xhtml+xml" );
 
 echo( '<?xml version="1.0" encoding="iso-8859-1"?>'."\n" ); 
-//echo( '<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN" "http://www.wapforum.org/DTD/wml_1.1.xml">'."\n" );
-echo( '<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.3//EN" "http://www.wapforum.org/DTD/wml13.dtd">'."\n" );
+echo( '<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">'."\n" );
 
 ob_start();
 
@@ -111,13 +110,10 @@ switch( $view )
 	case "state" :
 	case "cycle" :
 	case "watch" :
-	case "watchfeed" :
-	case "watchstatus" :
-	case "imagefetch" :
+	case "montage" :
 	case "settings" :
 	case "events" :
 	case "filter" :
-	case "filtersave" :
 	case "event" :
 	case "frame" :
 	case "frames" :

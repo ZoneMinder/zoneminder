@@ -29,20 +29,122 @@ if ( $debug )
 	//error_reporting( E_ALL );
 }
 
+// Useful debugging lines for mobile devices
+//ob_start();
+//phpinfo( INFO_VARIABLES );
+//$fp = fopen( "/tmp/env.html", "w" );
+//fwrite( $fp, ob_get_contents() );
+//fclose( $fp );
+//ob_end_clean();
+
 if ( !isset($PHP_SELF) )
 {
 	$PHP_SELF = $HTTP_SERVER_VARS['PHP_SELF'];
 }
 
-$accepts_wml = preg_match( '/text\/vnd.wap.wml/i', $HTTP_SERVER_VARS['HTTP_ACCEPT'] );
-$accepts_html = preg_match( '/text\/html/i', $HTTP_SERVER_VARS['HTTP_ACCEPT'] );
-
-if ( isset($wml) || ($accepts_wml && !$accepts_html) )
+if ( empty($format) )
 {
-	require_once( 'zm_wml.php' );
+	$wurfl_file = "wurfl/wurfl_class.php";
+	if ( file_exists( $wurfl_file ) )
+	{
+		require_once( $wurfl_file );
+		$wurfl = new wurfl_class( $wurfl, $wurfl_agents );
+		// Set the user agent
+		$wurfl->GetDeviceCapabilitiesFromAgent($HTTP_SERVER_VARS['HTTP_USER_AGENT']);
+	
+		//print_r( $wurfl->wurfl_agent );
+		if ( $wurfl->wurfl_agent )
+		{
+			if ( $wurfl->getDeviceCapability( 'html_wi_oma_xhtmlmp_1_0' ) )
+			{
+				$format = "xhtml";
+				$cookies = false;
+				$device['width'] = $wurfl->getDeviceCapability( 'resolution_width' );
+				$device['height'] = $wurfl->getDeviceCapability( 'resolution_height' );
+			}
+			elseif ( $wurfl->getDeviceCapability( 'wml_1_3' ) )
+			{
+				$format = "wml";
+				$cookies = false;
+				$device['width'] = $wurfl->getDeviceCapability( 'resolution_width' );
+				$device['height'] = $wurfl->getDeviceCapability( 'resolution_height' );
+			}
+		}
+		else
+		{
+			$format = "html";
+			$cookies = true;
+		}
+	}
+	else
+	{
+		// This is an example of using fixed device strings to just match your phone etc
+		$devices = array(
+			array( 'name'=>"Motorola V600", 'ua_match'=>"MOT-V600", 'format'=>"xhtml", 'cookies'=>false, 'width'=>176, 'height'=>220 ),
+			array( 'name'=>"Motorola V600", 'ua_match'=>"MOT-A820", 'format'=>"xhtml", 'cookies'=>false, 'width'=>176, 'height'=>220 )
+		);
+
+		foreach ( $devices as $device )
+		{
+			if ( preg_match( '/'.$device['ua_match'].'/', $HTTP_SERVER_VARS['HTTP_USER_AGENT'] ) )
+			{
+				$format = $device['format'];
+				$cookies = $device['cookies'];
+				break;
+			}
+		}
+
+		if ( empty($format) )
+		{
+			$accepts_wml = preg_match( '/text\/vnd.wap.wml/i', $HTTP_SERVER_VARS['HTTP_ACCEPT'] );
+			$accepts_html = preg_match( '/text\/html/i', $HTTP_SERVER_VARS['HTTP_ACCEPT'] );
+
+			if ( $accepts_wml && !$accepts_html )
+			{
+				$format = "wml";
+				$cookies = false;
+			}
+			else
+			{
+				$format = "html";
+				$cookies = true;
+			}
+		}
+	}
+}
+
+ini_set( "session.name", "ZMSESSID" );
+if ( $cookies )
+{
+	ini_set( "session.use_cookies", "1" );
+	ini_set( "session.use_trans_sid", "0" );
+	ini_set( "url_rewriter.tags", "" );
 }
 else
 {
-	require_once( 'zm_html.php' );
+	//ini_set( "session.auto_start", "1" );
+	ini_set( "session.use_cookies", "0" );
+	ini_set( "session.use_trans_sid", "1" );
+
+	if ( $format == "xhtml" )
+	{
+		ini_set( "arg_separator.output", "&amp;" );
+		ini_set( "url_rewriter.tags", "a=href,area=href,frame=src,input=src,fieldset=" );
+	}
+	elseif ( $format == "wml" )
+	{
+		ini_set( "arg_separator.output", "&amp;" );
+		ini_set( "url_rewriter.tags", "a=href,area=href,frame=src,input=src,go=href,card=ontimer" );
+	}
 }
+
+if ( !$HTTP_SESSION_VARS['format'] )
+{
+	$HTTP_SESSION_VARS['format'] = $format;
+	$HTTP_SESSION_VARS['cookies'] = $cookies;
+	$HTTP_SESSION_VARS['device'] = $device;
+}
+
+require_once( "zm_$format.php" );
+
 ?>

@@ -33,37 +33,22 @@ $monitor = mysql_fetch_assoc( $result );
 <head>
 <title>ZM - <?= $zmSlangFunction ?> - <?= $monitor['Name'] ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
-<?php
-if ( !empty($refresh_parent) )
-{
-?>
-opener.location.reload(true);
-<?php
-}
-?>
-window.focus();
-function refreshWindow()
-{
-	window.location.reload(true);
-}
-function closeWindow()
-{
-	window.close();
-}
-</script>
 </head>
 <body>
-<table border="0" cellspacing="0" cellpadding="4" width="100%">
+<form method="post" action="<?= $PHP_SELF ?>">
+<div style="visibility: hidden">
+<fieldset>
+<input type="hidden" name="view" value="console"/>
+<input type="hidden" name="action" value="function"/>
+<input type="hidden" name="mid" value="<?= $mid ?>"/>
+</fieldset>
+</div>
+<table>
 <tr>
-<td colspan="2" align="center" class="head"><?= sprintf( $zmClangMonitorFunction, $monitor['Name'] ) ?></td>
+<td align="center" class="smallhead"><?= sprintf( $zmClangMonitorFunction, $monitor['Name'] ) ?></td>
 </tr>
 <tr>
-<form method="get" action="<?= $PHP_SELF ?>">
-<input type="hidden" name="view" value="none">
-<input type="hidden" name="action" value="function">
-<input type="hidden" name="mid" value="<?= $mid ?>">
-<td colspan="2" align="center"><select name="new_function" class="form">
+<td align="center"><select name="new_function" class="form">
 <?php
 foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 {
@@ -76,8 +61,8 @@ foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 </tr>
 <tr>
 <td align="center"><input type="submit" value="<?= $zmSlangSave ?>" class="form"></td>
-<td align="center"><input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
+</form>
 </body>
 </html>

@@ -23,8 +23,6 @@ if ( !$bandwidth )
 	$bandwidth = "low";
 }
 
-ini_set( "session.use_trans_sid", "0" );
-ini_set( "session.name", "ZMSESSID" );
 //ini_set( "magic_quotes_gpc", "Off" );
 
 require_once( 'zm_config.php' );
@@ -140,7 +138,7 @@ switch( $view )
 	case "function" :
 	case "none" :
 	{
-		require_once( "zm_html_view_$view.php" );
+		require_once( "zm_".$format."_view_".$view.".php" );
 		break;
 	}
 	default :
@@ -151,6 +149,6 @@ switch( $view )
 
 if ( $view == "error" )
 {
-	require_once( "zm_html_view_$view.php" );
+	require_once( "zm_".$format."_view_".$view.".php" );
 }
 ?>

@@ -194,9 +194,16 @@ my @options =
 		name => "ZM_PATH_CAMBOZOLA",
 		default => "cambozola.jar",
 		description => "Web path to (optional) cambozola java streaming client (recommended)",
-		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. It is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed. Leave this blank if cambozola is installed in the same directory as the ZoneMinder web client files.",
+		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. It is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed. Leave this as 'cambozola.jar' if cambozola is installed in the same directory as the ZoneMinder web client files.",
 		requires => [ { name=>"ZM_OPT_CAMBOZOLA", value=>"yes" } ],
 		type => $types{rel_path},
+	},
+	{
+		name => "ZM_CAN_STREAM",
+		default => "no",
+		description => "Override the detection of streaming capability by browser",
+		help => "If you know that your browser can handle image streams of the type 'multipart/x-mixed-replace' but ZoneMinder does not detect this correctly you can set this option to ensure that the stream is delivered without the use of the Cambozola plugin.",
+		type => $types{boolean},
 	},
 	{
 		name => "ZM_OPT_MPEG",

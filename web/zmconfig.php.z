@@ -31,7 +31,9 @@ define( "ZM_DB_PASSA", "<from zmconfig>" );				// Database password
 define( "ZM_DIR_EVENTS", "<from zmconfig>" );			// Drectory where events live
 define( "ZM_DIR_IMAGES", "<from zmconfig>" );			// Drectory where images live
 define( "ZM_DIR_SOUNDS", "<from zmconfig>" );			// Drectory where sounds live
+define( "ZM_OPT_CAMBOZOLA", "<from zmconfig>" );		// Is the (optional) cambozola java streaming client installed (recommended)
 define( "ZM_PATH_CAMBOZOLA", "<from zmconfig>" );		// Path to (optional) cambozola java streaming client (recommended)
+define( "ZM_CAN_STREAM", "<from zmconfig>" );			// Override the detection of streaming capability by browser
 define( "ZM_PATH_MPEG_ENCODE", "<from zmconfig>" );		// Path to (optional) mpeg video encoder
 define( "ZM_PATH_NETPBM", "<from zmconfig>" );			// Path to (optional) Netpbm utilities
 define( "ZM_WEB_POPUP_ON_ALARM", <from zmconfig> );		// Whether the watch window jumps to front if an alarm occurs

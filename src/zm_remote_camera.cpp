@@ -137,7 +137,7 @@ int RemoteCamera::Connect()
 {
 	if ( sd < 0 )
 	{
-		sd = socket(hp->h_addrtype, SOCK_STREAM, 0);
+		sd = socket( hp->h_addrtype, SOCK_STREAM, 0 );
 		if ( sd < 0 )
 		{
 			Error(( "Can't create socket: %s", strerror(errno) ));
@@ -147,6 +147,7 @@ int RemoteCamera::Connect()
 		if ( connect( sd, (struct sockaddr *)&sa, sizeof(sa) ) < 0 )
 		{
 			Error(( "Can't connect to remote camera: %s", strerror(errno) ));
+			Disconnect();
 			return( -1 );
 		}
 	}

@@ -258,6 +258,16 @@ if ( $action )
 			$refresh_parent = true;
 		}
 	}
+	elseif ( $action == "reset" )
+	{
+		// Get MySQL's version of now
+		$result = mysql_query( "select now()" );
+		if ( !$result )
+			die( mysql_error() );
+		$row = mysql_fetch_row( $result );
+		$HTTP_SESSION_VARS[event_reset_time] = $row[0];
+		setcookie( "event_reset_time", $HTTP_SESSION_VARS[event_reset_time], time()+3600*24*30*12*10 );
+	}
 }
 
 ?>

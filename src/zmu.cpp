@@ -20,7 +20,7 @@
 #include <getopt.h>
 #include "zm.h"
 
-void main( int argc, char *argv[] )
+int main( int argc, char *argv[] )
 {
 	static struct option long_options[] = {
 		{"monitor", 1, 0, 'm'},
@@ -155,4 +155,5 @@ void main( int argc, char *argv[] )
 			monitor->ReloadZones();
 		}
 	}
+	return( 0 );
 }

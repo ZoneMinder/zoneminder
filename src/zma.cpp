@@ -33,7 +33,7 @@ void term_handler( int signal )
 	exit( 0 );
 }
 
-void main( int argc, const char *argv[] )
+int main( int argc, const char *argv[] )
 {
 	int device = argv[1]?atoi( argv[1] ):0;
 
@@ -103,4 +103,5 @@ void main( int argc, const char *argv[] )
 			reload = false;
 		}
 	}
+	return( 0 );
 }

@@ -19,7 +19,7 @@
 
 #include "zm.h"
 
-void main( int argc, const char *argv[] )
+int main( int argc, const char *argv[] )
 {
 	int id = 1;
 	unsigned long idle = 5000;
@@ -89,4 +89,5 @@ void main( int argc, const char *argv[] )
 	{
 		Event::StreamEvent( path, event, refresh, stdout );
 	}
+	return( 0 );
 }

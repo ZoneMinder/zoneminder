@@ -772,7 +772,7 @@ location.href = '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php
 <tr><td colspan="3" class="text">&nbsp;</td></tr>
 <tr>
 <td align="right" class="text"><a href="javascript: location.reload();">Refresh</td>
-<td align="right" class="text"><a href="javascript: filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php echo $filter_query ?>', 'zmFilter<?php echo $monitor[Name] ?>' );">Filter</a></td>
+<td align="right" class="text"><a href="javascript: filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php echo $filter_query ?>', 'zmFilter<?php echo $monitor[Name] ?>' );">Show Filter Window</a></td>
 <td align="right" class="text"><a href="javascript: checkAll( event_form, 'mark_eids' );">Check All</a></td>
 </tr>
 <tr><td colspan="3" class="text">&nbsp;</td></tr>
@@ -901,7 +901,7 @@ function submitToFilter( form )
 }
 function submitToEvents( form )
 {
-   	var Url = '<?php echo $PHP_SELF ?>';
+	var Url = '<?php echo $PHP_SELF ?>';
 	var Name = 'zmEvents<?php echo $monitor[Name] ?>';
 	var Width = <?php echo $jws['events']['w'] ?>;
 	var Height = <?php echo $jws['events']['h'] ?>;
@@ -912,6 +912,28 @@ function submitToEvents( form )
 	form.view.value = 'events';
 	form.submit();
 }
+function saveFilter( form )
+{
+	var Url = '<?php echo $PHP_SELF ?>';
+	var Name = 'zmEventsFilterSave';
+	var Width = <?php echo $jws['filtersave']['w'] ?>;
+	var Height = <?php echo $jws['filtersave']['h'] ?>;
+	var Options = 'resizable,scrollbars,width='+Width+',height='+Height;
+
+	window.open( Url, Name, Options );
+	form.target = Name;
+	form.view.value = 'filtersave';
+	form.submit();
+}
+function deleteFilter( form, name, id )
+{
+	if ( confirm( "Delete saved filter '"+name+"'" ) )
+	{
+		form.action.value = 'delete';
+		form.fid.value = name;
+		submitToFilter( form );
+	}
+}
 window.focus();
 </script>
 </head>
@@ -919,20 +941,55 @@ window.focus();
 <form name="filter_form" method="get" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="filter">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
+<input type="hidden" name="action" value="">
+<input type="hidden" name="fid" value="">
 <center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td align="left" class="text">Filter using <select name="trms" class="form" onChange="submitToFilter( filter_form );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?php echo $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?php echo $i ?></option><?php } ?></select> filter expressions</td>
+<td align="left" class="text">Use&nbsp;<select name="trms" class="form" onChange="submitToFilter( filter_form );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?php echo $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?php echo $i ?></option><?php } ?></select>&nbsp;filter&nbsp;expressions</td>
+<?php
+		$select_name = "filter_name";
+		$filter_names = array( ''=>'Choose Filter' );
+		$result = mysql_query( "select * from Filters where MonitorId = '$mid' order by Name" );
+		if ( !$result )
+			die( mysql_error() );
+		while ( $row = mysql_fetch_assoc( $result ) )
+		{
+			$filter_names[$row[Name]] = $row[Name];
+			if ( $filter_name == $row[Name] )
+			{
+				$filter_data = $row;
+			}
+		}
+?>
+<td align="center" class="text">Use filter:&nbsp;<?php if ( count($filter_names) > 1 ) { buildSelect( $select_name, $filter_names, "submitToFilter( filter_form );" ); } else { ?><select class="form" disabled><option>No Saved Filters</option></select><?php } ?></td>
+<td align="center" class="text"><a href="javascript: saveFilter( filter_form );">Save</a></td>
+<?php if ( $filter_data ) { ?>
+<td align="center" class="text"><a href="javascript: deleteFilter( filter_form, '<?php echo $filter_data[Name] ?>', <?php echo $filter_data[Id] ?> );">Delete</a></td>
+<?php } else { ?>
+<td align="center" class="text">&nbsp;</a></td>
+<?php } ?>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
 <tr>
-<td colspan="2" class="text">&nbsp;</td>
+<td colspan="5" class="text">&nbsp;</td>
 </tr>
 <tr>
-<td>
+<td colspan="5">
 <table width="100%" border="0" cellspacing="0" cellpadding="0">
 <?php
+		if ( $filter_data )
+		{
+			$filter_query = unserialize( $filter_data[Query] );
+			if ( is_array($filter_query) )
+			{
+				while( list( $key, $value ) = each( $filter_query ) )
+				{
+					$$key = $value;
+				}
+			}
+		}
 		for ( $i = 1; $i <= $trms; $i++ )
 		{
 			$conjunction_name = "cnj$i";
@@ -977,10 +1034,100 @@ window.focus();
 </table>
 </td>
 </tr>
+<tr><td colspan="5" class="text">&nbsp;</td></tr>
+<tr><td colspan="5" align="right"><input type="reset" value="Reset" class="form">&nbsp;&nbsp;<input type="button" value="Submit" class="form" onClick="if ( validateForm( filter_form ) ) submitToEvents( filter_form );"></td></tr>
+</table></center>
+</form>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "filtersave" :
+	{
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
+?>
+<html>
+<head>
+<title>ZM - <?php echo $monitor[Name] ?> - Save Filter</title>
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<script language="JavaScript">
+function closeWindow()
+{
+	top.window.close();
+}
+function validateForm( form )
+{
+	return( true );
+}
+window.focus();
+</script>
+</head>
+<body>
+<form name="filter_form" method="get" action="<?php echo $PHP_SELF ?>" onSubmit="validateForm( this );">
+<input type="hidden" name="view" value="none">
+<input type="hidden" name="action" value="filter">
+<input type="hidden" name="mid" value="<?php echo $mid ?>">
+<input type="hidden" name="trms" value="<?php echo $trms ?>">
+<?php
+		for ( $i = 1; $i <= $trms; $i++ )
+		{
+			$conjunction_name = "cnj$i";
+			$obracket_name = "obr$i";
+			$cbracket_name = "cbr$i";
+			$attr_name = "attr$i";
+			$op_name = "op$i";
+			$value_name = "val$i";
+			if ( $i > 1 )
+			{
+?>
+<input type="hidden" name="<?php echo $conjunction_name ?>" value="<?php echo $$conjunction_name ?>">
+<?php
+			}
+?>
+<input type="hidden" name="<?php echo $obracket_name ?>" value="<?php echo $$obracket_name ?>">
+<input type="hidden" name="<?php echo $cbracket_name ?>" value="<?php echo $$cbracket_name ?>">
+<input type="hidden" name="<?php echo $attr_name ?>" value="<?php echo $$attr_name ?>">
+<input type="hidden" name="<?php echo $op_name ?>" value="<?php echo $$op_name ?>">
+<input type="hidden" name="<?php echo $value_name ?>" value="<?php echo $$value_name ?>">
+<?php
+		}
+?>
+<center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
 <tr>
-<td colspan="2" class="text">&nbsp;</td>
+<?php
+		$select_name = "filter_name";
+		$result = mysql_query( "select * from Filters where MonitorId = '$mid' order by Name" );
+		if ( !$result )
+			die( mysql_error() );
+		while ( $row = mysql_fetch_assoc( $result ) )
+		{
+			$filter_names[$row[Name]] = $row[Name];
+			if ( $filter_name == $row[Name] )
+			{
+				$filter_data = $row;
+			}
+		}
+?>
+<?php if ( count($filter_names) ) { ?>
+<td align="left" colspan="2" class="text">Save as:&nbsp;<?php buildSelect( $select_name, $filter_names, "submitToFilter( filter_form );" ); ?>&nbsp;or enter new name:&nbsp;<input type="text" size="32" name="new_<?php echo $select_name ?>" value="<?php echo $filter ?>" class="form"></td>
+<?php } else { ?>
+<td align="left" colspan="2" class="text">Enter new filter name:&nbsp;<input type="text" size="32" name="new_<?php echo $select_name ?>" value="" class="form"></td>
+<?php } ?>
 </tr>
-<tr><td colspan="2" align="right"><input type="reset" value="Reset" class="form">&nbsp;&nbsp;<input type="button" value="Submit" class="form" onClick="if ( validateForm( filter_form ) ) submitToEvents( filter_form );"></td></tr>
+<tr>
+<td align="left" class="text">Automatically delete all matching events:&nbsp;</td>
+<td align="left" class="text"><input type="checkbox" name="auto_delete" value="1"<?php if ( $filter_data[AutoDelete] ) { echo " checked"; } ?>></td>
+</tr>
+<tr>
+<td align="right" colspan="2" class="text">&nbsp;</td>
+</tr>
+<tr>
+<td align="right" colspan="2" class="text"><input type="submit" value="Save" class="form">&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow();"></td>
+</tr>
 </table></center>
 </form>
 </body>
@@ -1923,7 +2070,6 @@ function buildSelect( $name, $contents, $onchange="" )
 ?>
 <select name="<?php echo $name ?>" class="form"<?php if ( $onchange ) { echo " onChange=\"$onchange\""; } ?>>
 <?php
-	echo "$name=".$$name;
 	foreach ( $contents as $content_value => $content_text )
 	{
 ?>

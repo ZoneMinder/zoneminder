@@ -21,6 +21,7 @@
 
 if ( $action )
 {
+	//phpinfo( INFO_VARIABLES );
 	if ( $action == "rename" && $event_name && $eid )
 	{
 		$result = mysql_query( "update Events set Name = '$event_name' where Id = '$eid'" );
@@ -105,6 +106,14 @@ if ( $action )
 				if ( !$result )
 					die( mysql_error() );
 			}
+		}
+		elseif ( $fid )
+		{
+			$sql = "delete from Filters where MonitorId = '$mid' and Name = '$fid'";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				die( mysql_error() );
+			//$refresh_parent = true;
 		}
 	}
 	elseif ( $action == "learn" )
@@ -286,6 +295,41 @@ if ( $action )
 				die( mysql_error() );
 			$monitor = mysql_fetch_assoc( $result );
 			controlDaemons( $monitor[Device] );
+			$refresh_parent = true;
+		}
+	}
+	elseif ( $action == "filter" )
+	{
+		if ( $filter_name || $new_filter_name )
+		{
+			if ( $new_filter_name )
+				$filter_name = $new_filter_name;
+			$filter_query = array();
+			$filter_query[trms] = $trms;
+			for ( $i = 1; $i <= $trms; $i++ )
+			{
+				$conjunction_name = "cnj$i";
+				$obracket_name = "obr$i";
+				$cbracket_name = "cbr$i";
+				$attr_name = "attr$i";
+				$op_name = "op$i";
+				$value_name = "val$i";
+				if ( $i > 1 )
+				{
+					$filter_query[$conjunction_name] = $$conjunction_name;
+				}
+				$filter_query[$obracket_name] = $$obracket_name;
+				$filter_query[$cbracket_name] = $$cbracket_name;
+				$filter_query[$attr_name] = $$attr_name;
+				$filter_query[$op_name] = $$op_name;
+				$filter_query[$value_name] = $$value_name;
+			}
+			$filter_query_string = serialize( $filter_query );
+			$sql = "replace into Filters set MonitorId = '$mid', Name = '$filter_name', Query = '$filter_query_string',  AutoDelete = '$auto_delete'";
+			#echo "<html>$sql</html>";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				die( mysql_error() );
 			$refresh_parent = true;
 		}
 	}

@@ -83,7 +83,7 @@ typedef enum {
 
 bool ValidateAccess( const char *username, const char *password, int mon_id, Function function )
 {
-	if ( mon_id >= 0 && (bool)config.Item( ZM_OPT_USE_AUTH ) )
+	if ( mon_id > 0 && (bool)config.Item( ZM_OPT_USE_AUTH ) )
 	{
 		if ( !username || !password )
 		{
@@ -200,7 +200,7 @@ int main( int argc, char *argv[] )
 	};
 
 	int dev_id = -1;
-	int mon_id = 1;
+	int mon_id = 0;
 	bool verbose = false;
 	Function function = BOGUS;
 

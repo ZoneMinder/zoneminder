@@ -75,10 +75,18 @@ function canStream()
 	return( isNetscape() || (CAMBOZOLA_PATH && file_exists( CAMBOZOLA_PATH )) );
 }
 
+function daemonControl( $command, $daemon='', $args='' )
+{
+	$string = ZM_PATH."/zmdc.pl $command";
+	if ( $daemon )
+		$string .= " $daemon $args";
+	$string .= " 2>/dev/null >&- <&- >/dev/null";
+	exec( $string );
+}
+
 function startDaemon( $daemon, $did )
 {
-	$command = ZM_PATH."/zmdc.pl start $daemon $did";
-	exec( $command );
+	daemonControl( 'start', $daemon, $did );
 	return;
 
 	$ps_command = "ps -edalf | grep '$daemon $did' | grep -v grep";
@@ -102,8 +110,7 @@ function startDaemon( $daemon, $did )
 
 function stopDaemon( $daemon, $did )
 {
-	$command = ZM_PATH."/zmdc.pl stop $daemon $did";
-	exec( $command );
+	daemonControl( 'stop', $daemon, $did );
 	return;
 
 	$ps_command = "ps -edalf | grep '$daemon $did' | grep -v grep";

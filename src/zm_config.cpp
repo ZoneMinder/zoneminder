@@ -60,6 +60,7 @@ void zmLoadConfig()
 		}
 	}
 	fclose( cfg);
+	zmDbConnect();
 	config.Load();
 }
 

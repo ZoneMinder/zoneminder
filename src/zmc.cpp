@@ -125,28 +125,23 @@ int main( int argc, char *argv[] )
 		exit( 0 );
 	}
 
-	zm_dbg_name = "zmc";
-
-	char dbg_name_string[16];
+	char dbg_id_string[16];
 	if ( device >= 0 )
 	{
-		snprintf( dbg_name_string, sizeof(dbg_name_string), "zmc-d%d", device );
+		snprintf( dbg_id_string, sizeof(dbg_id_string), "d%d", device );
 	}
 	else if ( host[0] )
 	{
-		snprintf( dbg_name_string, sizeof(dbg_name_string), "zmc-h%s", host );
+		snprintf( dbg_id_string, sizeof(dbg_id_string), "h%s", host );
 	}
 	else
 	{
-		snprintf( dbg_name_string, sizeof(dbg_name_string), "zmc-m%d", monitor_id );
+		snprintf( dbg_id_string, sizeof(dbg_id_string), "m%d", monitor_id );
 	}
-	zm_dbg_name = dbg_name_string;
 
-	zmDbgInit();
+	zmDbgInit( "zmc", dbg_id_string, 0 );
 
 	zmLoadConfig();
-
-	zmDbConnect();
 
 	Monitor **monitors = 0;
 	int n_monitors = 0;

@@ -36,12 +36,13 @@ static const char *zm_dbg_file;
 static int zm_dbg_line;
 static int zm_dbg_code;
 static char zm_dbg_class[4];
-const char *zm_dbg_name = "";
-int zm_dbg_pid = -1;
-static int zm_dbg_switched_on = FALSE;
 
+char zm_dbg_name[64];
+char zm_dbg_id[64];
 int zm_dbg_level = 0;
-char zm_dbg_log[128] = "";
+int zm_dbg_pid = -1;
+
+char zm_dbg_log[PATH_MAX] = "";
 FILE *zm_dbg_log_fd = (FILE *)NULL;
 int zm_dbg_print = FALSE;
 int zm_dbg_flush = FALSE;
@@ -55,7 +56,6 @@ void zmUsrHandler( int sig )
 {
 	if( sig == SIGUSR1)
 	{
-		zm_dbg_switched_on = TRUE;
 		if ( zm_dbg_level < 9 )
 		{
 			zm_dbg_level++;
@@ -71,7 +71,7 @@ void zmUsrHandler( int sig )
 	Info(( "Debug Level Changed to %d", zm_dbg_level ));
 }
 
-int zmGetDebugEnv( const char * const command )
+int zmGetDebugEnv()
 {
 	char buffer[128];
 	char *env_ptr;
@@ -109,14 +109,37 @@ int zmGetDebugEnv( const char * const command )
 		zm_dbg_runtime = atoi( env_ptr );
 	}
 
-	sprintf(buffer,"ZM_DBG_LEVEL_%s",command);
+	env_ptr = NULL;
+	sprintf(buffer,"ZM_DBG_LEVEL_%s_%s",zm_dbg_name,zm_dbg_id);
 	env_ptr = getenv(buffer);
-	if( env_ptr != (char *)NULL )
+	if ( env_ptr == (char *)NULL )
+	{
+		sprintf(buffer,"ZM_DBG_LEVEL_%s",zm_dbg_name);
+		env_ptr = getenv(buffer);
+		if ( env_ptr == (char *)NULL )
+		{
+			sprintf(buffer,"ZM_DBG_LEVEL");
+			env_ptr = getenv(buffer);
+		}
+	}
+	if ( env_ptr != (char *)NULL )
 	{
 		zm_dbg_level = atoi(env_ptr);
 	}
-	snprintf( buffer, sizeof(buffer), "ZM_DBG_LOG_%s", command );
-	env_ptr = getenv( buffer );
+
+	env_ptr = NULL;
+	sprintf(buffer,"ZM_DBG_LOG_%s_%s",zm_dbg_name,zm_dbg_id);
+	env_ptr = getenv(buffer);
+	if ( env_ptr == (char *)NULL )
+	{
+		sprintf(buffer,"ZM_DBG_LOG_%s",zm_dbg_name);
+		env_ptr = getenv(buffer);
+		if ( env_ptr == (char *)NULL )
+		{
+			sprintf(buffer,"ZM_DBG_LOG");
+			env_ptr = getenv(buffer);
+		}
+	}
 	if ( env_ptr != (char *)NULL )
 	{
 		/* If we do not want to add a pid to the debug logs
@@ -138,10 +161,10 @@ int zmGetDebugEnv( const char * const command )
 		}
 	}
 
-	return(0);
+	return( 0 );
 }
 
-int zmDebugInitialise()
+int zmDebugInitialise( const char *name, const char *id, int level )
 {
 	FILE *tmp_fp;
 
@@ -153,6 +176,10 @@ int zmDebugInitialise()
 
 	Debug(1,("Initialising Debug"));
 
+	strncpy( zm_dbg_name, name, sizeof(zm_dbg_name) );
+	strncpy( zm_dbg_id, id, sizeof(zm_dbg_id) );
+	zm_dbg_level = level;
+	
 	/* Now set up the syslog stuff */
 	(void) openlog( zm_dbg_name, LOG_PID|LOG_NDELAY, LOG_LOCAL1 );
 
@@ -161,7 +188,7 @@ int zmDebugInitialise()
 
 	zm_dbg_pid = getpid();
 	zm_dbg_log_fd = (FILE *)NULL;
-	if( (status = zmGetDebugEnv(zm_dbg_name) ) < 0)
+	if( (status = zmGetDebugEnv() ) < 0)
 	{
 		Error(("Debug Environment Error, status = %d",status));
 		return(ZM_DBG_ERROR);
@@ -208,9 +235,9 @@ int zmDebugInitialise()
 	return(ZM_DBG_OK);
 }
 
-int zmDbgInit()
+int zmDbgInit( const char *name, const char *id, int level )
 {
-	return((zmDebugInitialise() == ZM_DBG_OK ? 0 : 1));
+	return((zmDebugInitialise( name, id, level ) == ZM_DBG_OK ? 0 : 1));
 }
 
 int zmDebugTerminate()

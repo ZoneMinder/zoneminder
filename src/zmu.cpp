@@ -347,13 +347,9 @@ int main( int argc, char *argv[] )
 	}
 	//printf( "Monitor %d, Function %d\n", mon_id, function );
 
-	zm_dbg_name = "zmu";
-	zm_dbg_level = -1;
-
-	zmDbgInit();
+	zmDbgInit( "zmu", "", -1 );
 
 	zmLoadConfig();
-	zmDbConnect();
 
 	ValidateAccess( username, password, mon_id, function );
 

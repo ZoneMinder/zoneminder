@@ -89,10 +89,7 @@ bool fixVideoDevice( int device )
 
 int main( int argc, char *argv[] )
 {
-	char dbg_name_string[16] = "zmfix";
-	zm_dbg_name = dbg_name_string;
-
-	zmDbgInit();
+	zmDbgInit( "zmfix", "", -1 );
 
 	zmLoadConfig();
 
@@ -110,8 +107,6 @@ int main( int argc, char *argv[] )
 	else
 	{
 		// Only do registered devices
-		zmDbConnect();
-
 		static char sql[BUFSIZ];
 		//snprintf( sql, sizeof(sql), "select distinct Device from Monitors where Function != 'None' and Type = 'Local'" );
 		snprintf( sql, sizeof(sql), "select distinct Device from Monitors where Type = 'Local'" );

@@ -18,6 +18,7 @@
 */  
 
 #include <sys/types.h>	
+#include <limits.h>	
 
 #ifndef TRUE
 #define TRUE 1
@@ -96,14 +97,14 @@ extern "C" {
 
 /* function declarations */
 void zmUsrHandler( int sig );
-int zmGetDebugEnv( const char * const command );
-int zmDebugInitialise( void );
+int zmGetDebugEnv( void );
+int zmDebugInitialise( const char *name, const char *id, int level );
 int zmDebugTerminate( void );
 void zmDbgSubtractTime( struct timeval * const tp1, struct timeval * const tp2 );
 
 
 #if defined(__STDC__) || defined(__cplusplus)
-int zmDbgInit(void);
+int zmDbgInit( const char *name, const char *id, int level );
 int zmDbgTerm(void);
 int zmDbgPrepare(const char * const file,const int line, const int code);
 int zmDbgOutput(const char *fstring, ... ) __attribute__ ((format(printf, 1, 2)));
@@ -121,7 +122,8 @@ extern char zm_dbg_log[];
 #include <stdio.h>
 #endif
 extern FILE *zm_dbg_log_fd;
-extern const char *zm_dbg_name;
+extern char zm_dbg_name[];
+extern char zm_dbg_id[];
 extern int zm_dbg_print;
 extern int zm_dbg_flush;
 extern int zm_dbg_add_log_id;
@@ -145,7 +147,7 @@ extern int zm_dbg_add_log_id;
 #define Enter()
 #define Exit()
 
-#define zmDbgInit()
+#define zmDbgInit(name,id,level)
 #define zmDbgTerm()
 
 #endif /* !ZM_DBG_OFF */

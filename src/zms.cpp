@@ -135,31 +135,17 @@ int main( int argc, const char *argv[] )
 	char auth[64] = "";
 	char user[64] = "";
 
-	zm_dbg_name = "zms";
-
 	bool nph = false;
 	const char *basename = strrchr( argv[0], '/' );
 	const char *nph_prefix = "nph-";
 	if ( basename && !strncmp( basename+1, nph_prefix, strlen(nph_prefix) ) )
 	{
-		zm_dbg_name = "nph-zms";
 		nph = true;
 	}
 	
-	//extern char **environ;
-	//char **env_ptr = environ;
-	//while ( *env_ptr )
-	//{
-		//printf( "X-Env: %s\n", *env_ptr );
-		//env_ptr++;
-	//}
-	//exit( 0 );
-
-	zmDbgInit();
+	zmDbgInit( "zms", "", 0 );
 
 	zmLoadConfig();
-
-	zmDbConnect();
 
 	const char *query = getenv( "QUERY_STRING" );
 	if ( query )

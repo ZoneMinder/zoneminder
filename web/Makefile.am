@@ -50,14 +50,15 @@ web_DATA = \
 	zm_html_view_watchstatus.php \
 	zm_html_view_zone.php \
 	zm_html_view_zones.php \
+	zm_lang.php \
 	zm_lang_de_de.php \
 	zm_lang_en_gb.php \
 	zm_lang_en_us.php \
 	zm_lang_fr_fr.php \
 	zm_lang_ja_jp.php \
-	zm_lang.php \
 	zm_lang_pl_pl.php \
 	zm_lang_ru_ru.php \
+	zm_lang_nl_nl.php \
 	zm.php \
 	zm_styles.css \
 	zm_wml.php \
@@ -110,14 +111,15 @@ EXTRA_DIST = \
 	zm_html_view_watchstatus.php \
 	zm_html_view_zone.php \
 	zm_html_view_zones.php \
+	zm_lang.php \
 	zm_lang_de_de.php \
 	zm_lang_en_gb.php \
 	zm_lang_en_us.php \
 	zm_lang_fr_fr.php \
 	zm_lang_ja_jp.php \
-	zm_lang.php \
 	zm_lang_pl_pl.php \
 	zm_lang_ru_ru.php \
+	zm_lang_nl_nl.php \
 	zm.php \
 	zm_styles.css \
 	zm_wml.php \

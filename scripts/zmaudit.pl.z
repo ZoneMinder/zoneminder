@@ -38,6 +38,7 @@
 use constant DB_NAME => "zm";
 use constant DB_USER => "zmadmin";
 use constant DB_PASS => "zmadminzm";
+use constant IMAGE_PATH => "@WEB_PREFIX@";
 use constant EVENT_PATH => "@WEB_PREFIX@/events";
 use constant LOG_FILE => '/tmp/zmaudit.log';
 
@@ -138,6 +139,8 @@ if ( $delay ) # Background mode
 	select( STDERR ); $| = 1;
 	select( LOG ); $| = 1;
 }
+my $max_image_age = 15/(24*60); # 15 Minutes
+my $image_path = IMAGE_PATH;
 do
 {
 	my $fs_monitors;
@@ -269,6 +272,16 @@ do
 			$res = $sth6->execute( $stat->{EventId} ) or die( "Can't execute: ".$sth8->errstr() );
 		}
 	}
+
+	# Now delete any old wap image files
+	if ( my @old_files = grep { -M > $max_image_age } <$image_path/*-wap-*.{jpg,gif,wbmp}> )
+	{
+		print( "Deleting ".int(@old_files)." old wap images\n" );
+		my $untainted_old_files = join( ";", @old_files );
+		( $untainted_old_files ) = ( $untainted_old_files =~ /^(.*)$/ );
+		unlink( split( ";", $untainted_old_files ) );
+	}
+
 	sleep( $delay ) if ( $delay );
 } while( $delay );
 if ( !$yes && !$report )

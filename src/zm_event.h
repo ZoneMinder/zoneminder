@@ -79,7 +79,7 @@ public:
 	void AddFrames( int n_frames, struct timeval **timestamps, const Image **images );
 	void AddFrame( struct timeval timestamp, const Image *image, const Image *alarm_frame=NULL, unsigned int score=0 );
 
-	static void StreamEvent( const char *path, int event_id, unsigned long refresh=-1, FILE *fd=stdout );
+	static void StreamEvent( const char *path, int event_id, long refresh=0, FILE *fd=stdout );
 };
 
 #endif // ZM_EVENT_H

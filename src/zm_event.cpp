@@ -264,7 +264,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 	}
 }
 
-void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, FILE *fd )
+void Event::StreamEvent( const char *path, int event_id, long refresh, FILE *fd )
 {
 	static char sql[256];
 	sprintf( sql, "select Id, EventId, ImagePath, Delta from Frames where EventId = %d order by Id", event_id );

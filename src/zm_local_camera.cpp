@@ -492,7 +492,7 @@ int LocalCamera::PostCapture( Image &image )
 			char *v2_ptr = v_plane+width;
 
 			int Y_size = width*height;
-			int C_size = Y_size/4;
+			int C_size = Y_size>>2; // Every little bit helps...
 			unsigned char *Y_ptr = buffer;
 			unsigned char *Cb_ptr = buffer + Y_size;
 			unsigned char *Cr_ptr = Cb_ptr + C_size;
@@ -505,13 +505,13 @@ int LocalCamera::PostCapture( Image &image )
 				else if ( *Y_ptr >= 235 )
 					*y_ptr = 255;
 				else
-					*y_ptr = (255*((*Y_ptr)-16))/219;
+					*y_ptr = (76309*((*Y_ptr)-16))>>16;
 				y_ptr++;
 				Y_ptr++;
 				//y = (255*((*Y_ptr++)-16))/219;
 				//*y_ptr++ = y<0?0:(y>255?255:y);
 			}
-			int half_width = width/2;
+			int half_width = width>>1; // We are the king of optimisations!
 			for ( int i = 0, j = 0; i < C_size; i++, j++ )
 			{
 				if ( j == half_width )
@@ -527,7 +527,7 @@ int LocalCamera::PostCapture( Image &image )
 				else if ( *Cb_ptr >= 240 )
 					u = 255;
 				else
-					u = (127*((*Cb_ptr)-128))/112;
+					u = (74313*((*Cb_ptr)-128))>>16;
 				Cb_ptr++;
 				//u = (127*((*Cb_ptr++)-128))/112;
 				//u = u<0?0:(u>255?255:u);
@@ -542,7 +542,7 @@ int LocalCamera::PostCapture( Image &image )
 				else if ( *Cr_ptr >= 240 )
 					v = 255;
 				else
-					v = (127*((*Cr_ptr)-128))/112;
+					v = (74313*((*Cr_ptr)-128))>>16;
 				Cr_ptr++;
 				//v = (127*((*Cr_ptr++)-128))/112;
 				//v = v<0?0:(v>255?255:v);
@@ -564,9 +564,9 @@ int LocalCamera::PostCapture( Image &image )
 				u = *u1_ptr++;
 				v = *v1_ptr++;
 
-				r = y + ((1402*v)/1000);
-				g = y - (((344*u)/1000)+((714*v)/1000));
-				b = y + ((1772*u)/1000);
+				r = y + ((91881*v)>>16);
+				g = y - (((22544*u)>>16)+((46793*v)>>16));
+				b = y + ((116130*u)>>16);
 
 				*rgb_ptr++ = r<0?0:(r>255?255:r);
 				*rgb_ptr++ = g<0?0:(g>255?255:g);

@@ -144,7 +144,7 @@ public:
 	static Image *Merge( int n_images, Image *images[] );
 	static Image *Merge( int n_images, Image *images[], double weight );
 	static Image *Highlight( int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
-	Image *Delta( const Image &image, bool absolute=true ) const;
+	Image *Delta( const Image &image ) const;
 
 	void Annotate( const char *text, const Coord &coord, const Rgb colour );
 	void Annotate( const char *text, const Coord &coord );

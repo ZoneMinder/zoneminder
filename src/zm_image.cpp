@@ -20,6 +20,8 @@
 #include "zm_font.h"
 #include "zm_image.h"
 
+#define ABSDIFF(a,b) 	(((a)<(b))?((b)-(a)):((a)-(b)))
+
 Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 {
 	assert( colours = 1 );
@@ -422,7 +424,7 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 	return( result );
 }
 
-Image *Image::Delta( const Image &image, bool absolute ) const
+Image *Image::Delta( const Image &image ) const
 {
 	assert( width == image.width && height == image.height && colours == image.colours );
 
@@ -436,42 +438,49 @@ Image *Image::Delta( const Image &image, bool absolute ) const
 
 	if ( colours == 1 )
 	{
-		if ( absolute )
+		while( psrc < (buffer+size) )
 		{
-			while( psrc < (buffer+size) )
-			{
-				*pdiff++ = abs( *psrc++ - *pref++ );
-			}
-		}
-		else
-		{
-			while( psrc < (buffer+size) )
-			{
-				*pdiff++ = *psrc++ - *pref++;
-			}
+			//*pdiff++ = abs( *psrc++ - *pref++ );
+			*pdiff++ = ABSDIFF( *psrc, *pref );
+			psrc++;
+			pref++;
 		}
 	}
 	else
 	{
-		if ( absolute )
+		static int red, green, blue;
+		static int y_src, y_ref;
+		while( psrc < (buffer+size) )
 		{
-			while( psrc < (buffer+size) )
+			if ( ZM_FAST_RGB_DIFFS )
 			{
-				int red = abs(*psrc++ - *pref++);
-				int green = abs(*psrc++ - *pref++);
-				int blue = abs(*psrc++ - *pref++);
+				red = ABSDIFF(*psrc, *pref);
+				psrc++; pref++;
+				green = ABSDIFF(*psrc, *pref);
+				psrc++; pref++;
+				blue = ABSDIFF(*psrc, *pref);
+				psrc++; pref++;
+				// This is uses an RMS function, all floating point and 
+				// rather too slow
 				//*pdiff++ = (JSAMPLE)sqrt((red*red + green*green + blue*blue)/3);
+
+				// This just uses the average difference, much faster
 				*pdiff++ = (JSAMPLE)((red + green + blue)/3);
 			}
-		}
-		else
-		{
-			while( psrc < (buffer+size) )
+			else
 			{
-				int red = *psrc++ - *pref++;
-				int green = *psrc++ - *pref++;
-				int blue = *psrc++ - *pref++;
-				*pdiff++ = 127+((int(red+green+blue))/(3*2));
+				//static int ysrc = ((299*psrc[0])/1000) + ((567*psrc[1])/1000) + ((114*psrc[2])/1000);
+				//static int yref = ((299*pref[0])/1000) + ((567*pref[1])/1000) + ((114*pref[2])/1000);
+				y_src = ((19595*psrc[0])>>16) + ((37159*psrc[1])>>16) + ((7471*psrc[2])>>16);
+				y_ref = ((19595*pref[0])>>16) + ((37159*pref[1])>>16) + ((7471*pref[2])>>16);
+
+				// This is an experimental one which uses the Y part of an RGB
+				// to YUV conversion. Should still be integer but a bit slower
+				//*pdiff++ = (JSAMPLE)( abs(ysrc-yref) );
+				*pdiff++ = (JSAMPLE)ABSDIFF( y_src, y_ref );
+
+				psrc += 3;
+				pref += 3;
 			}
 		}
 	}

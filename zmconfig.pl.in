@@ -227,6 +227,13 @@ my @options =
 		type => $types{boolean},
 	},
 	{
+		name => "ZM_FAST_RGB_DIFFS",
+		default => "yes",
+		description => "Whether we use a rough RGB difference algorithm",
+		help => "When ZoneMinder tries to establish the differences between two colour images it generates a greyscale 'delta' image between the two sets of images. In order to do this it merges the differences found between the different RGB colour components. If this option is set then the resulting difference is determined as the average of the differences of each colour which is a simple fast calculation. If this option is not set then a calculation will be made to convert each pixel of the image into a brightness value (Y from YUV) and then find the difference between the two. This is a more accurate but potentially slower calculation.",
+		type => $types{boolean}
+	},
+	{
 		name => "ZM_COLOUR_JPEG_FILES",
 		default => "yes",
 		description => "Colourise greyscale JPEG files",

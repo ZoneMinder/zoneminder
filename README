@@ -1018,6 +1018,15 @@ greyscale images saved as full 24 bit colourspace images (they still look the
 same) at the price of a small penalty in CPU and disk but allowing you to easily 
 and quickly create MPEG files. This option is one by default but can be switched 
 off if you do not require any MPEG encoding.
+- Fast RGB diffs - Previously ZoneMinder used quite a loose method for 
+calculating the differences between two colour images. This was basically 
+averaging the differences between each of the RGB components to get an overall 
+difference. This is still the default but by setting ZM_FAST_RGB_DIFFS to 'no' 
+you can now make it calculate the Y (or brightness value) of the pixels and use 
+the difference between those instead. This will be more accurate and responsive 
+to changes but is may be slower especially on old machines.
+- Web colour change - I though the old red, green and amber text colours were 
+just a bit too gaudy so I've toned them down a bit. Hope you like them!
 
 Release 0.9.10 - Many bug-fixes and major feature enhancements.
 - Configure 'round' bug - Fixed a problem with the configure script that didn't  

@@ -115,7 +115,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	int bx1 = bx-1;
 	int by1 = by-1;
 
-	// Now eliminate all pixels that don't participate in a blob
+	// Now remove any pixels smaller than our filter size
 	for ( int y = lo_y; y <= hi_y; y++ )
 	{
 		unsigned char *pdiff = diff_image->Buffer( lo_x, y );

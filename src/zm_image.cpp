@@ -624,8 +624,10 @@ void Image::Hatch( Rgb colour, const Box *limits )
 	unsigned char *p = buffer;
 	for ( int y = lo_y; y <= hi_y; y++ )
 	{
+		unsigned char *p = &buffer[colours*((y*width)+lo_x)];
 		for ( int x = lo_x; x <= hi_x; x++, p += colours )
 		{
+
 			//if ( ( (x == lo_x || x == hi_x) && (y >= lo_y && y <= hi_y) )
 			//|| ( (y == lo_y || y == hi_y) && (x >= lo_x && x <= hi_x) )
 			//|| ( (x > lo_x && x < hi_x && y > lo_y && y < hi_y) && !(x%2) && !(y%2) ) )

@@ -749,8 +749,8 @@ int LocalCamera::PostCapture( Image &image )
 					*d_ptr++ = *s_ptr;
 					s_ptr += 3;
 				}
+				buffer = temp_buffer;
 			}
-			buffer = temp_buffer;
 			break;
 		}
 		case VIDEO_PALETTE_GREY :

@@ -52,8 +52,6 @@ protected:
 	Monitor			*monitor;
 	struct timeval	start_time;
 	struct timeval	end_time;
-	int				start_frame_id;
-	int				end_frame_id;
 	int				frames;
 	int				alarm_frames;
 	unsigned int	tot_score;
@@ -68,6 +66,7 @@ public:
 	int Frames() const { return( frames ); }
 	int AlarmFrames() const { return( alarm_frames ); }
 
+	void AddFrames( int n_frames, struct timeval **timestamps, const Image **images );
 	void AddFrame( struct timeval timestamp, const Image *image, const Image *alarm_frame=NULL, unsigned int score=0 );
 
 	static void StreamEvent( const char *path, int event_id, unsigned long refresh=100, FILE *fd=stdout );

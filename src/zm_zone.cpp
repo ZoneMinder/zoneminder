@@ -75,7 +75,7 @@ Zone::~Zone()
 void Zone::RecordStats( const Event *event )
 {
 	static char sql[BUFSIZ];
-	sprintf( sql, "insert into Stats set MonitorId=%d, ZoneId=%d, EventId=%d, FrameId=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d", monitor->Id(), id, event->Id(), event->Frames()+1, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score );
+	snprintf( sql, sizeof(sql), "insert into Stats set MonitorId=%d, ZoneId=%d, EventId=%d, FrameId=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d", monitor->Id(), id, event->Id(), event->Frames()+1, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert event stats: %s", mysql_error( &dbconn ) ));
@@ -125,7 +125,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			sprintf( diag_path, "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 1 );
+			snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 1 );
 		}
 		diff_image->WriteJpeg( diag_path );
 	}
@@ -197,7 +197,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			static char diag_path[PATH_MAX] = "";
 			if ( !diag_path[0] )
 			{
-				sprintf( diag_path, "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 2 );
+				snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 2 );
 			}
 			diff_image->WriteJpeg( diag_path );
 		}
@@ -341,7 +341,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				static char diag_path[PATH_MAX] = "";
 				if ( !diag_path[0] )
 				{
-					sprintf( diag_path, "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 3 );
+					snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 3 );
 				}
 				diff_image->WriteJpeg( diag_path );
 			}
@@ -391,7 +391,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				static char diag_path[PATH_MAX] = "";
 				if ( !diag_path[0] )
 				{
-					sprintf( diag_path, "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 4 );
+					snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 4 );
 				}
 				diff_image->WriteJpeg( diag_path );
 			}
@@ -455,7 +455,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
 	static char sql[BUFSIZ];
-	sprintf( sql, "select Id,Name,Type+0,Units,LoX,LoY,HiX,HiY,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
+	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,LoX,LoY,HiX,HiY,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));

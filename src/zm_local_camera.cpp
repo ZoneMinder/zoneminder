@@ -62,7 +62,7 @@ void LocalCamera::Initialise()
 {
 	char device_path[64];
 
-	sprintf( device_path, "/dev/video%d", device );
+	snprintf( device_path, sizeof(device_path), "/dev/video%d", device );
 	if ( (m_videohandle=open(device_path, O_RDWR)) < 0 )
 	{
 		Error(( "Failed to open video device %s: %s", device_path, strerror(errno) ));
@@ -256,7 +256,7 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 	char device_path[64];
 
 	output[0] = 0;
-	sprintf( device_path, "/dev/video%d", device );
+	snprintf( device_path, sizeof(device_path), "/dev/video%d", device );
 	if ( verbose )
 		sprintf( output, output+strlen(output), "Checking Video Device: %s\n", device_path );
 	if ( (m_videohandle=open(device_path, O_RDWR)) <=0 )

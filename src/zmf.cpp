@@ -80,7 +80,7 @@ int OpenSocket( int monitor_id )
 	}
 
 	char sock_path[PATH_MAX] = "";
-	sprintf( sock_path, "%s/zmf-%d.sock", (const char *)config.Item( ZM_PATH_SOCKS ), monitor_id );
+	snprintf( sock_path, sizeof(sock_path), "%s/zmf-%d.sock", (const char *)config.Item( ZM_PATH_SOCKS ), monitor_id );
 	if ( unlink( sock_path ) < 0 )
 	{
 		Warning(( "Can't unlink '%s': %s", sock_path, strerror(errno) ));
@@ -88,7 +88,7 @@ int OpenSocket( int monitor_id )
 
 	struct sockaddr_un addr;
 
-	strcpy( addr.sun_path, sock_path );
+	strncpy( addr.sun_path, sock_path, sizeof(addr.sun_path) );
 	addr.sun_family = AF_UNIX;
 
 	if ( bind( sd, (struct sockaddr *)&addr, strlen(addr.sun_path)+sizeof(addr.sun_family)) < 0 )
@@ -186,9 +186,9 @@ int main( int argc, char *argv[] )
 	}
 
 	char dbg_name_string[16];
-	sprintf( dbg_name_string, "zmf-m%d", id );
+	snprintf( dbg_name_string, sizeof(dbg_name_string), "zmf-m%d", id );
 	zm_dbg_name = dbg_name_string;
-	//sprintf( zm_dbg_log, "/tmp/zmf-%d.log", id );
+	//snprintf( zm_dbg_log, sizeof(zm_dbg_log), "/tmp/zmf-%d.log", id );
 	//zm_dbg_level = 1;
 
 	zmDbgInit();
@@ -288,7 +288,7 @@ int main( int argc, char *argv[] )
 			continue;
 		}
 		static char path[PATH_MAX] = "";
-		sprintf( path, "%s/%s/%ld/%03ld-%s.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), frame_header.event_id, frame_header.frame_id, frame_header.alarm_frame?"analyse":"capture" );
+		snprintf( path, sizeof(path), "%s/%s/%ld/%03ld-%s.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), frame_header.event_id, frame_header.frame_id, frame_header.alarm_frame?"analyse":"capture" );
 		Debug( 1, ( "Got image, writing to %s", path ));
 
 		FILE *fd = 0;

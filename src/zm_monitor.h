@@ -198,7 +198,7 @@ public:
 			static char label_text[256];
 
 			strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time ) );
-			sprintf( label_text, label_time_text, name );
+			snprintf( label_text, sizeof(label_text), label_time_text, name );
 
 			ts_image->Annotate( label_text, label_coord );
 		}

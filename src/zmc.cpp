@@ -130,15 +130,15 @@ int main( int argc, char *argv[] )
 	char dbg_name_string[16];
 	if ( device >= 0 )
 	{
-		sprintf( dbg_name_string, "zmc-d%d", device );
+		snprintf( dbg_name_string, sizeof(dbg_name_string), "zmc-d%d", device );
 	}
 	else if ( host[0] )
 	{
-		sprintf( dbg_name_string, "zmc-h%s", host );
+		snprintf( dbg_name_string, sizeof(dbg_name_string), "zmc-h%s", host );
 	}
 	else
 	{
-		sprintf( dbg_name_string, "zmc-m%d", monitor_id );
+		snprintf( dbg_name_string, sizeof(dbg_name_string), "zmc-m%d", monitor_id );
 	}
 	zm_dbg_name = dbg_name_string;
 

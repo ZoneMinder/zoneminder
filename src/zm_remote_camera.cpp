@@ -108,15 +108,15 @@ void RemoteCamera::Initialise()
 
 	if ( !request[0] )
 	{
-		sprintf( request, "GET %s HTTP/%s\n", path, (const char *)config.Item( ZM_HTTP_VERSION ) );
-		sprintf( &(request[strlen(request)]), "User-Agent: %s/%s\n", (const char *)config.Item( ZM_HTTP_UA ), ZM_VERSION );
-		sprintf( &(request[strlen(request)]), "Host: %s\n", host );
-		sprintf( &(request[strlen(request)]), "Connection: Keep-Alive\n" );
+		snprintf( request, sizeof(request), "GET %s HTTP/%s\n", path, (const char *)config.Item( ZM_HTTP_VERSION ) );
+		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "User-Agent: %s/%s\n", (const char *)config.Item( ZM_HTTP_UA ), ZM_VERSION );
+		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Host: %s\n", host );
+		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Connection: Keep-Alive\n" );
 		if ( auth )
 		{
-			sprintf( &(request[strlen(request)]), "Authorization: Basic %s\n", auth64 );
+			snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Authorization: Basic %s\n", auth64 );
 		}
-		sprintf( &(request[strlen(request)]), "\n" );
+		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "\n" );
 		Debug( 2, ( "Request: %s", request ));
 	}
 	if ( !timeout.tv_sec )
@@ -369,7 +369,7 @@ int RemoteCamera::GetResponse()
 				if ( !subheader_expr )
 				{
 					char subheader_pattern[256] = "";
-					sprintf( subheader_pattern, "^((?:\r?\n){0,2}?(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
+					snprintf( subheader_pattern, sizeof(subheader_pattern), "^((?:\r?\n){0,2}?(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
 					subheader_expr = new RegExpr( subheader_pattern, PCRE_DOTALL );
 				}
 				if ( subheader_expr->Match( (char *)buffer, (int)buffer ) == 2 )
@@ -452,7 +452,7 @@ int RemoteCamera::GetResponse()
 							if ( !content_expr )
 							{
 								char content_pattern[256] = "";
-								sprintf( content_pattern, "^(.+?)(?:\r?\n){1,2}?(?:--)?%s\r?\n", content_boundary );
+								snprintf( content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n){1,2}?(?:--)?%s\r?\n", content_boundary );
 								content_expr = new RegExpr( content_pattern, PCRE_DOTALL );
 							}
 						}

@@ -711,7 +711,7 @@ void Image::Timestamp( const char *label, const time_t when, const Coord &coord 
 	char text[64];
 	if ( label )
 	{
-		sprintf( text, "%s - %s", label, time_text );
+		snprintf( text, sizeof(text), "%s - %s", label, time_text );
 		Annotate( text, coord );
 	}
 	else

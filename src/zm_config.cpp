@@ -138,7 +138,7 @@ void Config::Load()
 {
 	static char sql[BUFSIZ];
 
-	strcpy( sql, "select Name, Value, Type from Config order by Id" );
+	strncpy( sql, "select Name, Value, Type from Config order by Id", sizeof(sql) );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));

@@ -115,7 +115,7 @@ int zmGetDebugEnv( const char * const command )
 	{
 		zm_dbg_level = atoi(env_ptr);
 	}
-	sprintf( buffer, "ZM_DBG_LOG_%s", command );
+	snprintf( buffer, sizeof(buffer), "ZM_DBG_LOG_%s", command );
 	env_ptr = getenv( buffer );
 	if ( env_ptr != (char *)NULL )
 	{
@@ -130,11 +130,11 @@ int zmGetDebugEnv( const char * const command )
 		}
 		if ( zm_dbg_add_log_id == FALSE )
 		{
-			strcpy( zm_dbg_log, env_ptr );
+			strncpy( zm_dbg_log, env_ptr, sizeof(zm_dbg_log) );
 		}
 		else
 		{
-			sprintf( zm_dbg_log, "%s.%05d", env_ptr, getpid() );
+			snprintf( zm_dbg_log, sizeof(zm_dbg_log), "%s.%05d", env_ptr, getpid() );
 		}
 	}
 
@@ -299,7 +299,7 @@ int zmDbgOutput( const char *fstring, ... )
 	{
 		zmDbgSubtractTime( &tp, &zm_dbg_start );
 
-		sprintf( time_string, "%ld.%03ld", tp.tv_sec, tp.tv_usec/1000 );
+		snprintf( time_string, sizeof(time_string), "%ld.%03ld", tp.tv_sec, tp.tv_usec/1000 );
 	}
 	else
 	{

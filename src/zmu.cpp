@@ -92,7 +92,7 @@ bool ValidateAccess( const char *username, const char *password, int mon_id, Fun
 		}
 
 		char sql[BUFSIZ] = "";
-		sprintf( sql, "select Username, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
+		snprintf( sql, sizeof(sql), "select Username, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
 
 		if ( mysql_query( &dbconn, sql ) )
 		{
@@ -145,7 +145,7 @@ bool ValidateAccess( const char *username, const char *password, int mon_id, Fun
 		if ( monitor_ids && monitor_ids[0] )
 		{
 			char mon_id_str[256] = "";
-			strcpy( mon_id_str, monitor_ids );
+			strncpy( mon_id_str, monitor_ids, sizeof(mon_id_str) );
 			char *mon_id_str_ptr = mon_id_str;
 			char *mon_id_ptr = 0;
 			bool found_mon_id = false;

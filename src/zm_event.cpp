@@ -48,7 +48,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 	static char start_time_str[32];
 
 	strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", localtime( &start_time.tv_sec ) );
-	sprintf( sql, "insert into Events ( MonitorId, Name, StartTime ) values ( %d, 'New Event', '%s' )", monitor->Id(), start_time_str );
+	snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime ) values ( %d, 'New Event', '%s' )", monitor->Id(), start_time_str );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert event: %s", mysql_error( &dbconn ) ));
@@ -60,7 +60,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 	alarm_frames = 0;
 	tot_score = 0;
 	max_score = 0;
-	sprintf( path, "%s/%s/%d", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id );
+	snprintf( path, sizeof(path), "%s/%s/%d", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id );
 	
 	struct stat statbuf;
 	errno = 0;
@@ -84,7 +84,7 @@ Event::~Event()
 
 	strftime( end_time_str, sizeof(end_time_str), "%Y-%m-%d %H:%M:%S", localtime( &end_time.tv_sec ) );
 
-	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
+	snprintf( sql, sizeof(sql), "update Events set Name='Event-%d', EndTime = '%s', Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't update event: %s", mysql_error( &dbconn ) ));
@@ -138,11 +138,11 @@ bool Event::OpenFrameSocket( int monitor_id )
 	}
 
 	char sock_path[PATH_MAX] = "";
-	sprintf( sock_path, "%s/zmf-%d.sock", (const char *)config.Item( ZM_PATH_SOCKS ), monitor_id );
+	snprintf( sock_path, sizeof(sock_path), "%s/zmf-%d.sock", (const char *)config.Item( ZM_PATH_SOCKS ), monitor_id );
 
 	struct sockaddr_un addr;
 
-	strcpy( addr.sun_path, sock_path );
+	strncpy( addr.sun_path, sock_path, sizeof(addr.sun_path) );
 	addr.sun_family = AF_UNIX;
 
 	if ( connect( sd, (struct sockaddr *)&addr, strlen(addr.sun_path)+sizeof(addr.sun_family)) < 0 )
@@ -245,13 +245,13 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
 void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps )
 {
 	static char sql[BUFSIZ];
-	strcpy( sql, "insert into Frames ( EventId, FrameId, Delta ) values " );
+	strncpy( sql, "insert into Frames ( EventId, FrameId, Delta ) values ", BUFSIZ );
 	for ( int i = 0; i < n_frames; i++ )
 	{
 		frames++;
 
 		static char event_file[PATH_MAX];
-		sprintf( event_file, capture_file_format, path, frames );
+		snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
 		
 		Debug( 1, ( "Writing pre-capture frame %d", frames ));
 		WriteFrameImage( images[i], *(timestamps[i]), event_file );
@@ -259,7 +259,8 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
 		struct DeltaTimeval delta_time;
 		DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time, DT_PREC_2 );
 
-		sprintf( sql+strlen(sql), "( %d, %d, %s%ld.%02ld ), ", id, frames, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+		int sql_len = strlen(sql);
+		snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %d, %d, %s%ld.%02ld ), ", id, frames, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
 	}
 
 	Debug( 1, ( "Adding %d frames to DB", n_frames ));
@@ -276,7 +277,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 	frames++;
 
 	static char event_file[PATH_MAX];
-	sprintf( event_file, capture_file_format, path, frames );
+	snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
 		
 	Debug( 1, ( "Writing capture frame %d", frames ));
 	WriteFrameImage( image, timestamp, event_file );
@@ -292,7 +293,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
 		Debug( 1, ( "Adding frame %d to DB", frames ));
 		static char sql[BUFSIZ];
-		sprintf( sql, "insert into Frames ( EventId, FrameId, Type, Delta, Score ) values ( %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, frame_type, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
+		snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, Delta, Score ) values ( %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, frame_type, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
 		if ( mysql_query( &dbconn, sql ) )
 		{
 			Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
@@ -312,7 +313,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
 		if ( alarm_image )
 		{
-			sprintf( event_file, analyse_file_format, path, frames );
+			snprintf( event_file, sizeof(event_file), analyse_file_format, path, frames );
 
 			Debug( 1, ( "Writing analysis frame %d", frames ));
 			WriteFrameImage( alarm_image, timestamp, event_file, true );
@@ -323,7 +324,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 	{
 		char diag_glob[PATH_MAX] = "";
 
-		sprintf( diag_glob, "%s/%s/diag-*.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name() );
+		snprintf( diag_glob, sizeof(diag_glob), "%s/%s/diag-*.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name() );
 		glob_t pglob;
 		int glob_status = glob( diag_glob, 0, 0, &pglob );
 		if ( glob_status != 0 )
@@ -348,7 +349,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
 				if ( diag_file )
 				{
-					sprintf( new_diag_path, general_file_format, path, frames, diag_file );
+					snprintf( new_diag_path, sizeof(new_diag_path), general_file_format, path, frames, diag_file );
 
 					if ( rename( diag_path, new_diag_path ) < 0 )
 					{
@@ -369,7 +370,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 	if ( !initialised )
 		Initialise();
 
-	sprintf( sql, "select M.Id, M.Name, E.Frames, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
+	snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.Frames, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -390,7 +391,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	sprintf( eventpath, "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
+	snprintf( eventpath, sizeof(eventpath), "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
 	int frames = atoi(dbrow[2]);
 	int duration = atoi(dbrow[3]);
 
@@ -411,7 +412,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 
 	mysql_free_result( result );
 
-	sprintf( sql, "select FrameId, EventId, Delta from Frames where EventId = %d order by FrameId", event_id );
+	snprintf( sql, sizeof(sql), "select FrameId, EventId, Delta from Frames where EventId = %d order by FrameId", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -456,7 +457,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 				Debug( 2, ( "I:%d, DI:%d, LDBI:%d, DD:%lf, LD:%lf, LDBD:%lf, TD:%lf, DU:%d", id, db_id, last_db_id, db_delta, last_delta, last_db_delta, this_delta, delta_us ));
 
 				static char filepath[PATH_MAX];
-				sprintf( filepath, capture_file_format, eventpath, id );
+				snprintf( filepath, sizeof(filepath), capture_file_format, eventpath, id );
 
 				if ( scale == 100 )
 				{
@@ -516,7 +517,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 
 	bool timed_frames = (bool)config.Item( ZM_VIDEO_TIMED_FRAMES );
 
-	sprintf( sql, "select M.Id, M.Name, E.Frames, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
+	snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.Frames, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -537,7 +538,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	sprintf( eventpath, "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
+	snprintf( eventpath, sizeof(eventpath), "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
 	int frames = atoi(dbrow[2]);
 	int duration = atoi(dbrow[3]);
 
@@ -558,7 +559,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 
 	mysql_free_result( result );
 
-	sprintf( sql, "select FrameId, EventId, Delta from Frames where EventId = %d order by FrameId", event_id );
+	snprintf( sql, sizeof(sql), "select FrameId, EventId, Delta from Frames where EventId = %d order by FrameId", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -614,7 +615,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 			if ( (frame_mod == 1) || (((id-1)%frame_mod) == 0) )
 			{
 				static char filepath[PATH_MAX];
-				sprintf( filepath, capture_file_format, eventpath, id );
+				snprintf( filepath, sizeof(filepath), capture_file_format, eventpath, id );
 
 				Image image( filepath );
 

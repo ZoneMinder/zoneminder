@@ -85,7 +85,7 @@ Monitor::Monitor(
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
 
-	strcpy( label_format, p_label_format );
+	strncpy( label_format, p_label_format, sizeof(label_format) );
 
 	camera = new LocalCamera( p_device, p_channel, p_format, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, purpose==CAPTURE );
 
@@ -141,7 +141,7 @@ Monitor::Monitor(
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
 
-	strcpy( label_format, p_label_format );
+	strncpy( label_format, p_label_format, sizeof(label_format) );
 
 	camera = new RemoteCamera( p_host, p_port, p_path, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, purpose==CAPTURE );
 
@@ -261,7 +261,7 @@ void Monitor::Setup()
 	{
 		static char	path[PATH_MAX];
 
-		strcpy( path, (const char *)config.Item( ZM_DIR_EVENTS ) );
+		strncpy( path, (const char *)config.Item( ZM_DIR_EVENTS ), sizeof(path) );
 
 		struct stat statbuf;
 		errno = 0;
@@ -274,7 +274,7 @@ void Monitor::Setup()
 			}
 		}
 
-		sprintf( path, "%s/%s", (const char *)config.Item( ZM_DIR_EVENTS ), name );
+		snprintf( path, sizeof(path), "%s/%s", (const char *)config.Item( ZM_DIR_EVENTS ), name );
 
 		errno = 0;
 		stat( path, &statbuf );
@@ -321,7 +321,7 @@ int Monitor::GetImage( int index, int scale ) const
 	}
 
 	static char filename[PATH_MAX];
-	sprintf( filename, "%s.jpg", name );
+	snprintf( filename, sizeof(filename), "%s.jpg", name );
 	if ( !timestamp_on_capture )
 	{
 		TimestampImage( &snap_image, snap->timestamp->tv_sec );
@@ -571,7 +571,7 @@ void Monitor::DumpZoneImage()
 		zone_image.Hatch( colour, &(zones[i]->Limits()) );
 	}
 	static char filename[PATH_MAX];
-	sprintf( filename, "%s-Zones.jpg", name );
+	snprintf( filename, sizeof(filename), "%s-Zones.jpg", name );
 	zone_image.WriteJpeg( filename );
 }
 
@@ -579,10 +579,10 @@ void Monitor::DumpImage( Image *dump_image ) const
 {
 	if ( image_count && !(image_count%10) )
 	{
-		static char new_filename[PATH_MAX];
 		static char filename[PATH_MAX];
-		sprintf( filename, "%s.jpg", name );
-		sprintf( new_filename, "%s-new.jpg", name );
+		static char new_filename[PATH_MAX];
+		snprintf( filename, sizeof(filename), "%s.jpg", name );
+		snprintf( new_filename, sizeof(new_filename), "%s-new.jpg", name );
 		dump_image->WriteJpeg( new_filename );
 		rename( new_filename, filename );
 	}
@@ -856,11 +856,11 @@ int Monitor::Load( int device, Monitor **&monitors, Purpose purpose )
 	static char sql[BUFSIZ];
 	if ( device == -1 )
 	{
-		strcpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Type = 'Local'" );
+		strncpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Type = 'Local'", sizeof(sql) );
 	}
 	else
 	{
-		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Type = 'Local' and Device = %d", device );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Type = 'Local' and Device = %d", device );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -925,11 +925,11 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	static char sql[BUFSIZ];
 	if ( !host )
 	{
-		strcpy( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Type = 'Remote'" );
+		strncpy( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
 	}
 	else
 	{
-		sprintf( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Type = 'Remote' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Type = 'Remote' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -992,7 +992,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
 	static char sql[BUFSIZ];
-	sprintf( sql, "select Id, Name, Type, Function+0, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
+	snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -1362,7 +1362,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			sprintf( diag_path, "%s/%s/diag-r.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), name );
+			snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-r.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), name );
 		}
 		ref_image.WriteJpeg( diag_path );
 	}
@@ -1374,7 +1374,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			sprintf( diag_path, "%s/%s/diag-d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), name );
+			snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), name );
 		}
 		delta_image->WriteJpeg( diag_path );
 	}

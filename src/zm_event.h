@@ -70,9 +70,9 @@ protected:
 
 		timestamp_on_capture = (bool)config.Item( ZM_TIMESTAMP_ON_CAPTURE );
 		bulk_frame_interval = (int)config.Item( ZM_BULK_FRAME_INTERVAL );
-		sprintf( capture_file_format, "%%s/%%0%dd-capture.jpg", (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
-		sprintf( analyse_file_format, "%%s/%%0%dd-analyse.jpg", (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
-		sprintf( general_file_format, "%%s/%%0%dd-%%s.jpg", (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
+		snprintf( capture_file_format, sizeof(capture_file_format), "%%s/%%0%dd-capture.jpg", (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
+		snprintf( analyse_file_format, sizeof(analyse_file_format), "%%s/%%0%dd-analyse.jpg", (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
+		snprintf( general_file_format, sizeof(general_file_format), "%%s/%%0%dd-%%s.jpg", (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
 	}
 
 public:

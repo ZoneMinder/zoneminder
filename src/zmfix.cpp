@@ -35,7 +35,7 @@ bool fixDevice( int device )
 {
 	char device_path[64];
 
-	sprintf( device_path, "/dev/video%d", device );
+	snprintf( device_path, sizeof(device_path), "/dev/video%d", device );
 
 	struct stat stat_buf;
 
@@ -106,8 +106,8 @@ int main( int argc, char *argv[] )
 		zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
 
 		static char sql[BUFSIZ];
-		//sprintf( sql, "select distinct Device from Monitors where Function != 'None' and Type = 'Local'" );
-		sprintf( sql, "select distinct Device from Monitors where Type = 'Local'" );
+		//snprintf( sql, sizeof(sql), "select distinct Device from Monitors where Function != 'None' and Type = 'Local'" );
+		snprintf( sql, sizeof(sql), "select distinct Device from Monitors where Type = 'Local'" );
 		if ( mysql_query( &dbconn, sql ) )
 		{
 			Error(( "Can't run query: %s", mysql_error( &dbconn ) ));

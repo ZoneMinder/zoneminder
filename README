@@ -392,7 +392,9 @@ more to enable other things to manage when the daemons become active etc.
 16. Finish implementing customisable image timestamps. There is proto support for this and it would be
 easy to do to allow the timestamp to be defined as a strftime string and allow it's position to be moved.
 Possibly also revamp the fonts a bit.
-17. Acces control should probably be built in rather than relying on htaccess etc.
+17. Access control should probably be built in rather than relying on htaccess etc.
+18. I've got lots of ideas for enhancing the motion detection part with optional algorithms etc. Just got
+to find the time somewhere!
 
 
 Bugs

@@ -23,35 +23,36 @@ if ( !canView( 'Stream' ) )
 	$view = "error";
 	return;
 }
+
 $zmu_command = ZMU_COMMAND." -m $mid -s -f";
 $zmu_output = exec( escapeshellcmd( $zmu_command ) );
 list( $status, $fps ) = split( ' ', $zmu_output );
 $status_string = $zmSlangUnknown;
 $fps_string = "--.--";
 $class = "text";
-if ( $status <= 1 )
+if ( $status <= STATE_PREALARM )
 {
 	$status_string = $zmSlangIdle;
 }
-elseif ( $status == 2 )
+elseif ( $status == STATE_ALARM )
 {
 	$status_string = $zmSlangAlarm;
 	$class = "redtext";
 }
-elseif ( $status == 3 )
+elseif ( $status == STATE_ALERT )
 {
 	$status_string = $zmSlangAlert;
 	$class = "ambtext";
 }
-elseif ( $status == 4 )
+elseif ( $status == STATE_TAPE )
 {
 	$status_string = $zmSlangRecord;
 }
 $fps_string = sprintf( "%.2f", $fps );
-$new_alarm = ( $status > 0 && empty($last_status) );
-$old_alarm = ( $status == 0 && isset($last_status) && $last_status > 0 );
+$new_alarm = ( $status > STATE_PREALARM && $last_status <= STATE_PREALARM );
+$old_alarm = ( $status <= STATE_PREALARM && $last_status > STATE_PREALARM );
 
-$refresh = $status?1:ZM_WEB_REFRESH_STATUS;
+$refresh = (($status>=STATE_PREALARM)&&($status<=STATE_ALERT))?1:ZM_WEB_REFRESH_STATUS;
 $url = "$PHP_SELF?view=montagestatus&mid=$mid&last_status=$status";
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: $refresh; URL=$url" );
@@ -92,7 +93,7 @@ window.setTimeout( "window.location.reload(true)", <?= $refresh*1000 ?> );
 </tr>
 </table>
 <?php
-if ( ZM_WEB_SOUND_ON_ALARM && $status == 1 )
+if ( ZM_WEB_SOUND_ON_ALARM && ($status == STATE_ALARM || $status == STATE_ALERT) )
 {
 ?>
 <embed src="<?= ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND ?>" autostart="yes" hidden="true"></embed>

@@ -40,27 +40,27 @@ list( $status, $fps ) = split( ' ', $zmu_output );
 $status_string = $zmSlangUnknown;
 $fps_string = "--.--";
 $class = "text";
-if ( $status == 0 )
+if ( $status <= STATE_PREALARM )
 {
 	$status_string = $zmSlangIdle;
 }
-elseif ( $status == 1 )
+elseif ( $status == STATE_ALARM )
 {
 	$status_string = $zmSlangAlarm;
 	$class = "redtext";
 }
-elseif ( $status == 2 )
+elseif ( $status == STATE_ALERT )
 {
 	$status_string = $zmSlangAlert;
 	$class = "ambtext";
 }
-elseif ( $status == 3 )
+elseif ( $status == STATE_TAPE )
 {
 	$status_string = $zmSlangRecord;
 }
 $fps_string = sprintf( "%.2f", $fps );
-$new_alarm = ( $status > 0 && $last_status == 0 );
-$old_alarm = ( $status == 0 && $last_status > 0 );
+$new_alarm = ( $status > STATE_PREALARM && $last_status <= STATE_PREALARM );
+$old_alarm = ( $status <= STATE_PREALARM && $last_status > STATE_PREALARM );
 
 $result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
 $monitors = array();

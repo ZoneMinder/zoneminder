@@ -44,14 +44,14 @@ switch( $view )
 {
 	case "console" :
 	{
-		daemonControl( 'check' );
+		daemonControl( 'status' );
 		if ( FAST_DELETE )
 		{
-			daemonControl( 'start', 'zmaudit.pl', '--delay=900 --yes' );
+			daemonControl( 'start', 'zmaudit.pl', '-d 900 -y' );
 		}
 		if ( HAS_X10 )
 		{
-			daemonControl( 'start', 'zmx10.pl', '-c status' );
+			daemonControl( 'start', 'zmx10.pl', '-c start' );
 		}
 
 		header("Refresh: ".REFRESH_MAIN."; URL='$PHP_SELF'" );

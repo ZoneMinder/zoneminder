@@ -33,6 +33,7 @@
 # ==========================================================================
 
 use constant ZM_VERSION => "<from zmconfig>";
+use constant ZM_PATH_BUILD => "<from zmconfig>";
 use constant ZM_PATH_BIN => "<from zmconfig>";
 use constant ZM_PATH_WEB => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
@@ -84,49 +85,59 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $check = 0;
 my $rename = 0;
 my $zone_fix = 0;
+my $version = '';
+my $db_user = ZM_DB_USERA;
+my $db_pass = ZM_DB_PASSA;
 sub Usage
 {
     print( "
-Usage: zmupdate.pl -e <event_id>,--event=<event_id> [-r <rate>,--rate=<rate>] [-s <scale>,--scale=<scale>] [-o,--overwrite]
+Usage: zmupdate.pl <-c,--check|-r,--rename|-z,--zone-fix|-v<version>,--version=<version> [-u<dbuser> -p<dbpass>]>
 Parameters are :-
--c, --check         - Check for updated versions of ZoneMinder
--r, --rename        - Rename images from old 'capture-nnn.jpg' format to new 'nnn-capture.jpg' style from v1.17.2
--z, --zone-fix      - Update zone percentage sizes from %ge of image to %ge of zone from 1.18.2 onwards
+-c, --check                      - Check for updated versions of ZoneMinder
+-r, --rename                     - Rename images from old 'capture-nnn.jpg' format to new 'nnn-capture.jpg' style from v1.17.2
+-z, --zone-fix                   - Update zone percentage sizes from %ge of image to %ge of zone from 1.18.2 onwards
+-v<version>, --version=<version> - Upgrade to the current version from <version>
+-u<dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
+-p<dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
 ");
     exit( -1 );
 }
 
-if ( !GetOptions( 'check'=>\$check, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix ) )
+if ( !GetOptions( 'check'=>\$check, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix, 'version=s'=>\$version, 'user:s'=>\$db_user, 'pass:s'=>\$db_pass ) )
 {
 	Usage();
 }
 
-if ( ! ($check || $rename || $zone_fix) )
+if ( ! ($check || $rename || $zone_fix || $version) )
 {
 	print( STDERR "Please give a valid option\n" );
 	Usage();
 }
 
-if ( ($check + $rename + $zone_fix) > 1 )
+if ( ($check + $rename + $zone_fix + ($version?1:0)) > 1 )
 {
 	print( STDERR "Please give only one option\n" );
 	Usage();
 }
 
-open( LOG, '>>'.UPDATE_LOG_FILE ) or die( "Can't open log file: $!" );
-open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-select( STDOUT ); $| = 1;
-open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-select( STDERR ); $| = 1;
-select( LOG ); $| = 1;
+if ( $check )
+{
+	open( LOG, '>>'.UPDATE_LOG_FILE ) or die( "Can't open log file: $!" );
+	open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
+	select( STDOUT ); $| = 1;
+	open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
+	select( STDERR ); $| = 1;
+	select( LOG ); $| = 1;
+}
+
 print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 
 if ( $check && ZM_CHECK_FOR_UPDATES )
 {
-	my $last_version = ZM_DYN_LAST_VERSION;
 	my $curr_version = ZM_DYN_CURR_VERSION;
+	my $last_version = ZM_DYN_LAST_VERSION;
 	my $last_check = ZM_DYN_LAST_CHECK;
 
 	if ( !$curr_version )
@@ -175,7 +186,6 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 			{
 				print( "Error check failed: '".$res->status_line()."'\n" );
 			}
-
 		}
 		sleep( 3600 );
 	}
@@ -241,6 +251,104 @@ if ( $zone_fix )
 			($zone->{MaxBlobPixels}*$monitor_area)/$zone_area,
 			$zone->{Id}
 		) or die( "Can't execute: ".$sth->errstr() );
+	}
+}
+if ( $version )
+{
+	sub patchDB
+	{
+		my $version = shift;
+
+		my $command = "mysql -h".ZM_DB_SERVER;
+		if ( $db_user )
+		{
+			$command .= " -u".ZM_DB_USERA;
+			if ( $db_pass )
+			{
+				$command .= " -p".ZM_DB_PASSA;
+			}
+		}
+		$command .= " ".ZM_DB_NAME." < ".ZM_PATH_BUILD."/db/zmalter-".$version.".sql";
+
+		print( "Executing '$command'\n" ) if ( VERBOSE );
+		my $output = qx($command);
+		my $status = $? >> 8;
+		if ( $status || VERBOSE )
+		{
+				chomp( $output );
+				print( "Output: $output\n" );
+		}
+		if ( $status )
+		{
+			die( "Command '$command' exited with status: $status\n" );
+		}
+		else
+		{
+			print( "Database successfully upgraded to version '$version'\n" );
+			my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
+		}
+	}
+
+	if ( ZM_DYN_DB_VERSION && ZM_DYN_DB_VERSION ne $version )
+	{
+	}
+
+	my $cascade = undef;
+	if ( $cascade || $version eq "1.19.0" )
+	{
+		# Patch the database
+		patchDB( "1.19.0" );
+		$cascade = !undef;
+	}
+	if ( $cascade || $version eq "1.19.1" )
+	{
+		# Patch the database
+		patchDB( "1.19.1");
+		$cascade = !undef;
+	}
+	if ( $cascade || $version eq "1.19.2" )
+	{
+		# Patch the database
+		patchDB( "1.19.2" );
+		$cascade = !undef;
+	}
+	if ( $cascade || $version eq "1.19.3" )
+	{
+		# Patch the database
+		patchDB( "1.19.3" );
+		$cascade = !undef;
+	}
+	if ( $cascade || $version eq "1.19.4" )
+	{
+		require DBI;
+
+		# Patch the database
+		patchDB( "1.19.4" );
+		# Rename the event directories and create a new symlink for the names
+		chdir( EVENT_PATH );
+
+		my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
+		my $sql = "select * from Monitors order by Id";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+		while( my $monitor = $sth->fetchrow_hashref() )
+		{
+			if ( -d $monitor->{Name} )
+			{
+				rename( $monitor->{Name}, $monitor->{Id} ) or warn( "Can't rename existing monitor directory '$monitor->{Name}' to '$monitor->{Id}': $!" );
+				symlink( $monitor->{Id}, $monitor->{Name} ) or warn( "Can't symlink monitor directory '$monitor->{Id}' to '$monitor->{Name}': $!" );
+			}
+		}
+		$sth->finish();
+		
+		$cascade = !undef;
+	}
+	if ( !$cascade )
+	{
+		die( "Can't find upgrade from version '$version'" );
 	}
 }
 print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );

@@ -1,7 +1,7 @@
 <?php
 //
 // ZoneMinder web montage frame view file, $Date$, $Revision$
-// Copyright (C) 2003  Philip Coombes
+// Copyright (C) 2003, 2004, 2005  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License

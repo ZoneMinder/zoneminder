@@ -1,0 +1,130 @@
+ZONE MINDER
+===========
+
+Introduction
+============
+
+Welcome to ZoneMinder, the new all-in-one Linux GPL'd security camera solution. A few months back my garage
+was burgled and they stole my wine and power tools! I realised shortly after that if I'd just had a camera
+overlooking the door then at least I'd have know exactly when and who did the dirty deed. And so ZoneMinder
+was born. It's still a baby but hopefully it can grow up to be something that can be genuinely useful and
+maybe one day either prevent similar incidents or perhaps bring some perpetrators to justice.
+
+ZoneMinder (hereafter referred to as ZM to save my fingers) is designed around a series of independant
+components which only function when necessary limiting any wasted resource and maximising the function of
+your machine. A fairly ancient Pentium PC should be able to track one camera iper device at up to 25 framess
+per second with this dropping by half approximately for each additional camera on the same device, additional
+cameras on other devices do not interact so can maintain this frame rate. Even monitoring several cameras
+still will not overload the CPU as frame processing is designed to synchronise with capture and not stall
+it.
+
+As well as being fast ZM is designed to be friendly and even more than that, actually useful. As well as the
+fast video interface core it also comes with a user friendly and comprehensive PHP based web interface
+allowing you to control and monitor your cameras from home or even elsewhere. It supports variable web
+capabilities based on available bandwidth. The web interface also allows you to view events that your
+cameras have captured and archive them or review them time and again, or delete the ones you now longer wish
+to keep. The web pages directly interact with the core daemons ensuring full co-operation at all times.
+
+The core of ZM is the capture and analysis of images and there is a highly configurable set of parameters
+which allow you to ensure that you can eliminate false positives whilst ensuring that anything you don't
+weant to miss will be captured and saved. ZM allows you to define a set of 'zones' for each camera of
+varying sensitivity and functionality. This allows you to eliminate regions which you don't wish to track or
+define areas which will alarm if various thresholds are exceeded in conjunction with other zones.
+
+ZoneMinder is fresh off the keyboard and so comes with no warranty whatsoever, please try it, send your
+feedback and if you get anything useful out of it please let me know.
+
+Requirements
+============
+
+ZM needs a couple of things to work. Firstly, it uses MySQL so you'll need that. Next is does things with
+JPEGs so you'll need at least libjpeg.a which I think come as standard nowadays. It also uses the netpbm
+utilities in a very limited way to generate thumbnails under certains circumstance though this can be
+modified. ZM can generate MPEG videos if necessary, for this you'll need the Berkeley MPEG encoder, if you
+don't have it don't worry the options will be hidden and you'll not miss much really. The web interface uses
+PHP and so you need that in your apache or whatever as well. Finally there is quite a bit of image streaming
+in the package so if you don't have Netscape I recommend you get the excellent Cambozola java applet from 
+http://www.charliemouse.com/code/cambozola/ which will let you view the image streams in IE and others.
+Otherwise you're limited to just refreshing still images.
+
+Hardware wise, ZM has been used with BTTV cards and USB cameras with the V4L interface. I don't have a lot
+of cameras so I've not had change to test it much. Please let me know if your camera works or not.
+
+Building
+========
+
+Before you start building you have a couple of things to do. Firstly you'll have to create your ZoneMinder
+database and users. You'll need to identify these in zmcfg.h and in index.php. You'll notice that in zmcfg.h
+there are two sets of users and passwords. This is because the Streaming server and Utility binaries require
+only read access to the database so you may wish to create both a full access user and a limited access
+user. You can of course set both to the full access user. The included schema can be used to actually create
+the tablles required. The database is usually called 'zm'. ZM also needs to know where it stores its events
+relative to the web root directory in zmcfg.h and where in full path terms in index.php. There are also
+several other paths in index.php but these can wait until later.
+
+So to start, just type './configure --with-mysql=/usr' (or your MySQL install path).
+Then just type 'make' and off you go.
+
+I know what you are going to say next, it doesn't build. I hope it does but this is my first type with autoconf
+and quite honestly I haven't a clue what I'm doing so if you do get any build problems then just let me know
+and I'll try and tell you how to fix them. Alternatively if you are and automake/autoconf expert then please
+let me know what to do!
+
+There are a couple of files int he package that come from other packages, this is just to simplify the build
+and reduce dependencies on other packages. Anything ZM specific is named as such.
+
+Installation
+============
+
+Once the build has completed you should have several shiny new binaries. I will now briefly describe what
+each of them do.
+
+zmc - This is the Zone Monitor Capture daemon. This binarys job is to sit on a video device and such frames
+off it as fast as possible, this should run at more or less constant speed.
+zma - This is the Zone Monitor Analysis daemon. This is the component that goes through the captured frames
+and checks them for alarming events. It generally keeps up with the zmc but if very busy may skip some
+frames to prevent it falling behind.
+zms - This is the Zone Monitor Streaming server. The web interface connects with this to get real-time or
+historical streamed images.
+zmu - This is the Zone Monitor Utility. Basically a handy command line interface to several useful
+functions. Not really meant to be used by anyone except the web page (there's no 'help' in it yet) but can
+be if necessary.
+
+At this stage typing 'make install' will install these binaries to the desired location. However, it's not quitethis simple as in order to get the ZM web interface up you'll have to create a web directory and configure your
+web server to point to it. Once you do you then copy 'index.php' to that directory, you can rename it if
+necessary. The 'zms' daemon is designed to run as a CGI program so you may also need to copy that to a
+/cgi-bin type place also. There are several paths that must be defined (or cleared) in index.php to point to
+various other binaries and directories before it will work fully but that's pretty much it for now.
+
+Start your web browser and point it at index.php and off you go.
+
+Usage
+=====
+
+To start using ZM you need to define at least one Monitor. Essentially a monitor is attached to a camera and
+will continually check it for motion detection and such like. So click 'Add New Monitor' to bring up the
+dialog. First choose a name for it, anything you like. The next field is 'Function' which essentially
+defines what the monitor is doing. This can be 'None' meaning the monitor is currently disabled, 'Passive'
+meaning you can watch the streams coming from the camera but no alarms or events will be generated, or
+'Active' meaning all the images will be analysed as well as the stream being available to watch. Generally
+you'll want 'Active' but for now leave this at 'None'. Next enter the device number that your camera is
+attached to. If it's /dev/video0 enter '0' etc. Some video devices, e.g. BTTV cards support multiple cameras
+so in the Channel box choose the appropriate channel, or leave it at zero <if you're using a USB camera or
+one without channels. Next enter the video format, and dimensions of the video stream your camera will
+supply. If your camera supports several just enter the one you'll want to use for this application, you can
+always change it later. Finally enter the colour depth. ZM supports both greyscale and 24 bit colour, so
+enter 1 or 3 here. Currently it doesn't support any of the more esoteric formats, like 15 bit etc. Click
+'update' to add your monitor.
+
+
+
+To Do
+=====
+Optimised zones
+Zone Bitmaps
+Security
+FTP uploads
+WAP interface
+
+License
+=======

@@ -29,21 +29,21 @@ list( $status, $fps ) = split( ' ', $zmu_output );
 $status_string = $zmSlangUnknown;
 $fps_string = "--.--";
 $class = "text";
-if ( $status == 0 )
+if ( $status <= 1 )
 {
 	$status_string = $zmSlangIdle;
 }
-elseif ( $status == 1 )
+elseif ( $status == 2 )
 {
 	$status_string = $zmSlangAlarm;
 	$class = "redtext";
 }
-elseif ( $status == 2 )
+elseif ( $status == 3 )
 {
 	$status_string = $zmSlangAlert;
 	$class = "ambtext";
 }
-elseif ( $status == 3 )
+elseif ( $status == 4 )
 {
 	$status_string = $zmSlangRecord;
 }

@@ -51,6 +51,8 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	alarm_filter_pixels = 0;
 	alarm_blob_pixels = 0;
 	alarm_blobs = 0;
+	min_blob_size = 0;
+	max_blob_size = 0;
 	image = 0;
 	score = 0;
 }
@@ -81,7 +83,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	delete image;
 	Image *diff_image = image = new Image( *delta_image );
 
-	int alarm_pixels = 0;
+	alarm_pixels = 0;
 
 	int lo_x = limits.Lo().X();
 	int lo_y = limits.Lo().Y();
@@ -108,7 +110,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	if ( min_alarm_pixels && alarm_pixels < min_alarm_pixels ) return( false );
 	if ( max_alarm_pixels && alarm_pixels > max_alarm_pixels ) return( false );
 
-	int filter_pixels = 0;
+	alarm_filter_pixels = 0;
 
 	int bx = filter_box.X();
 	int by = filter_box.Y();
@@ -155,18 +157,18 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					*pdiff = BLACK;
 					continue;
 				}
-				filter_pixels++;
+				alarm_filter_pixels++;
 			}
 		}
 	}
 
 	//diff_image->WriteJpeg( "diff2.jpg" );
 
-	if ( !filter_pixels ) return( false );
-	if ( min_filter_pixels && filter_pixels < min_filter_pixels ) return( false );
-	if ( max_filter_pixels && filter_pixels > max_filter_pixels ) return( false );
+	if ( !alarm_filter_pixels ) return( false );
+	if ( min_filter_pixels && alarm_filter_pixels < min_filter_pixels ) return( false );
+	if ( max_filter_pixels && alarm_filter_pixels > max_filter_pixels ) return( false );
 
-	int blobs = 0;
+	alarm_blobs = 0;
 
 	typedef struct { unsigned char tag; int count; int lo_x; int hi_x; int lo_y; int hi_y; } BlobStats;
 	BlobStats blob_stats[256];
@@ -244,7 +246,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 							bss->hi_x = 0;
 							bss->hi_y = 0;
 
-							blobs--;
+							alarm_blobs--;
 						}
 					}
 					else
@@ -289,7 +291,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 								bs->count++;
 								bs->lo_x = bs->hi_x = x;
 								bs->lo_y = bs->hi_y = y;
-								blobs++;
+								alarm_blobs++;
 								break;
 							}
 						}
@@ -301,11 +303,11 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	//diff_image->WriteJpeg( "diff3.jpg" );
 
-	if ( !blobs ) return( false );
-	int blob_pixels = filter_pixels;
+	if ( !alarm_blobs ) return( false );
+	alarm_blob_pixels = alarm_filter_pixels;
 
-	int min_blob_size = 0;
-	int max_blob_size = 0;
+	min_blob_size = 0;
+	max_blob_size = 0;
 	// Now eliminate blobs under the alarm_threshold
 	for ( int i = 1; i < WHITE; i++ )
 	{
@@ -324,8 +326,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					}
 				}
 			}
-			blobs--;
-			blob_pixels -= bs->count;
+			alarm_blobs--;
+			alarm_blob_pixels -= bs->count;
 			
 			bs->tag = 0;
 			bs->count = 0;
@@ -344,9 +346,9 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		}
 	}
 
-	if ( !blobs ) return( false );
-	if ( min_blobs && blobs < min_blobs ) return( false );
-	if ( max_blobs && blobs > max_blobs ) return( false );
+	if ( !alarm_blobs ) return( false );
+	if ( min_blobs && alarm_blobs < min_blobs ) return( false );
+	if ( max_blobs && alarm_blobs > max_blobs ) return( false );
 
 	int alarm_lo_x = hi_x+1;
 	int alarm_hi_x = lo_x-1;
@@ -364,14 +366,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		}
 	}
 
-	alarm_pixels = alarm_pixels;
-	alarm_filter_pixels = filter_pixels;
-	alarm_blob_pixels = blob_pixels;
-	alarm_blobs = blobs;
-	min_blob_size = min_blob_size;
-	max_blob_size = max_blob_size;
 	alarm_box = Box( Coord( alarm_lo_x, alarm_lo_y ), Coord( alarm_hi_x, alarm_hi_y ) );
-	score = ((100*blob_pixels)/blobs)/(limits.Size().X()*limits.Size().Y());
+	score = ((100*alarm_blob_pixels)/int(sqrt((double)alarm_blobs)))/(limits.Size().X()*limits.Size().Y());
 	if ( type == INCLUSIVE )
 	{
 		score /= 2;
@@ -391,7 +387,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		delete diff_image;
 		//high_image->WriteJpeg( "diff4.jpg" );
 
-		Info(( "%s: Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), alarm_pixels, filter_pixels, blob_pixels, blobs, score ));
+		Info(( "%s: Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score ));
 	}
 	return( true );
 }

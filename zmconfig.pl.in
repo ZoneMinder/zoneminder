@@ -303,6 +303,13 @@ my @options =
 		type => $types{boolean},
 	},
 	{
+		name => "ZM_STRICT_VIDEO_CONFIG",
+		default => "yes",
+		description => "Whether to allow errors in setting video config to be fatal",
+		help => "With some video devices errors can be reported in setting the various video attributes when in fact the operation was successful. Switching this option off will still allow these errors to be reported but will not cause them to kill the video capture daemon. Note however that doing this will cause all errors to be ignored including those which are genuine and which may cause the video capture to not function correctly. Use this option with caution.",
+		type => $types{boolean},
+	},
+	{
 		name => "ZM_SHM_KEY",
 		default => "0x7a6d2000",
 		description => "Shared memory key to use, only change if it clashes with another application",

@@ -33,3 +33,5 @@
 #define ZM_FORCED_ALARM_SCORE	<from zmconfig>	// Score to give X10 forced alarms (from zmconfig)
 
 #define ZM_RECORD_EVENT_STATS	<from zmconfig>	// Whether to record event statistical information, change to no if too slow (from zmconfig)
+
+#define ZM_STRICT_VIDEO_CONFIG	<from zmconfig> // Whether to allow errors in setting video config to be fatal

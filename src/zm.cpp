@@ -1369,7 +1369,7 @@ void Camera::Initialise( int device, int channel, int format, int width, int hei
 	if( ioctl( m_videohandle, VIDIOCSWIN, &vid_win ) )
 	{
 		Error(( "Failed to set window attributes: %s\n", strerror(errno) ));
-		exit(-1);
+		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
 	}
 
 	struct video_picture vid_pic;
@@ -1402,7 +1402,7 @@ void Camera::Initialise( int device, int channel, int format, int width, int hei
 	if( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) )
 	{
 		Error(( "Failed to set picture attributes: %s\n", strerror(errno) ));
-		exit(-1);
+		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
 	}
 	if(!ioctl(m_videohandle, VIDIOCGMBUF, &m_vmb))
 	{
@@ -1454,7 +1454,7 @@ void Camera::Initialise( int device, int channel, int format, int width, int hei
 	if(ioctl(m_videohandle, VIDIOCSCHAN, &vid_src))
 	{
 		Error(( "Failed to set camera source %d: %s\n", channel, strerror(errno) ));
-		exit(-1);
+		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
 	}
 
 	if( !ioctl( m_videohandle, VIDIOCGWIN, &vid_win))

@@ -744,8 +744,20 @@ Some things to check.
 make sure that you have the correct settings. Use xawtv or something like that 
 to check for settings that work and then run zmu -d <device_no> -v to get the
 settings. If you can't get them to work with that then the likelihood is they
-won't work with ZM.
-2. Web server. Ensure that your web server can serve PHP files. It's also 
+w on't work with ZM. Also check the system logs (usually /var/log/messages)
+for any video configuration errors. If you get some and you're sure they're
+not a problem then switch off ZM_STRICT_VIDEO_CONFIG in zmconfig.pl and
+recompile and reinstall.
+2. Start simple. Begin with a single monitor and single zone. You can run the
+zmc capture daemon from the command line as 'zmc --device 0' (or whatever your
+video device is). If it returns immediately there's a problem so check the
+logs, if it stays up then your video configuration is probably ok. To get
+more information out of it use debug as specified below. Also check that the
+shared memory segment has been created by doing 'ipcs -m'. Finally beware of
+doing tests as root and then trying to run as another user as some files may
+not be accessible. If you're checking things as root make sure that you clean
+up afterwards!
+3. Web server. Ensure that your web server can serve PHP files. It's also 
 possible that your php.ini file may have some settings which break ZM, I'm not a 
 PHP guru but setting safe mode may prevent your PHP files from running certain 
 programs. You may have to set configuration to allow this. Also since the 
@@ -753,7 +765,7 @@ daemons are started by your web server, if it dies or is shut down then the
 daemons may disappear. In this version the daemons are run under the control of 
 a script which should trap expected signals but it is possible this doesn't 
 cover all circumstances.
-3. Use debug. ZM has various debug in it that by default will go into your 
+4. Use debug. ZM has various debug in it that by default will go into your 
 system log (via syslog). These will be of the form of
 "Sep 14 14:50:11 localhost zma-0[1975]: INF [Front: 221000 - Processing at 4.26 
 fps ]"
@@ -767,9 +779,7 @@ DLVL_zmc (or DLVL_zma etc) to a number between 0 and 9 will emit progressively
 more debug though there's not a lot in there at present.
 5. Paths. I admit it, the various paths in ZM are a bit of a nightmare. Make 
 sure that they are all correct and that permissions are such that the various 
-parts of ZM can actually run. Most of the places you need to specify this kind 
-of information are at the top of the associated configuration files but I've not 
-been able to get the automatic configure script to do all this by itself yet.
+parts of ZM can actually run.
 
 Also, if you are using IE under Windows and get lots of annoying clicks when 
 various windows refresh then you'll need to edit your registry and remove the 
@@ -833,6 +843,11 @@ options, I can't remember what it was but it's fixed!
 - Retaint arguments in zmdc.pl - In some installations zmdc 
 was complaining about tainted arguments from the socket. These
 are now detainted prior to sending and after receiving.
+- Forced alarms - You can now force alarms when looking at the
+monitor window should anything catch your attention. You have 
+to remember to switch them off as well though.
+- Looser video configuration - Some video configuration errors
+can now be ignore via the STRICT_VIDEO_CONFIG option.
 
 Release 0.9.7 - Yes, a big jump in release number but a lot of changes too. Now 
 somewhat more mature, not really an alpha any more, and a lot of bugs fixed too. 

@@ -90,6 +90,7 @@ use POSIX;
 use Socket;
 use IO::Handle;
 use Data::Dumper;
+use Posix qw(sys_wait_h);
 
 $| = 1;
 
@@ -353,64 +354,61 @@ if ( !connect( CLIENT, $saddr ) )
 		}
 		sub reaper
 		{
-			my $cpid = wait;
-
-			$SIG{CHLD} = \&reaper;
-
-			if ( $cpid < 0 )
+			while ( (my $cpid = waitpid( -1, WNOHANG )) > 0 )
 			{
-				return;
-			}
+				my $status = $?;
 
-			my $process = $pid_hash{$cpid};
-			delete( $pid_hash{$cpid} );
+				my $process = $pid_hash{$cpid};
+				delete( $pid_hash{$cpid} );
 
-			if ( !$process )
-			{
-				dprint( "Can't find child with pid of '$cpid'\n" );
-				return;
-			}
-
-			$process->{stopped} = time();
-			$process->{runtime} = ($process->{stopped}-$process->{started});
-			delete( $process->{pid} );
-
-			my $exit_status = $?>>8;
-			my $exit_signal = $?&0xfe;
-			my $core_dumped = $?&0x01;
-
-			if ( $exit_status == 0 )
-			{
-				print( "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' died at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{stopped} ) ) );
-			}
-			else
-			{
-				print( "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' crashed at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{stopped} ) ) );
-			}
-			print( ", exit status $exit_status" ) if ( $exit_status );
-			print( ", signal $exit_signal" ) if ( $exit_signal );
-			#print( ", core dumped" ) if ( $core_dumped );
-			print( "\n" );
-
-			if ( $process->{keepalive} )
-			{
-				if ( !$process->{delay} || ($process->{runtime} > (10*$process->{delay})) )
+				if ( !$process )
 				{
-					start( $process->{daemon}, @{$process->{args}} );
-					$process->{delay} = 5;
+					dprint( "Can't find child with pid of '$cpid'\n" );
+					next;
+				}
+
+				$process->{stopped} = time();
+				$process->{runtime} = ($process->{stopped}-$process->{started});
+				delete( $process->{pid} );
+
+				my $exit_status = $status>>8;
+				my $exit_signal = $status&0xfe;
+				my $core_dumped = $status&0x01;
+
+				if ( $exit_status == 0 )
+				{
+					print( "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' died at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{stopped} ) ) );
 				}
 				else
 				{
-					$cmd_hash{$process->{command}} = $process;
-					$process->{pending} = $process->{stopped}+$process->{delay};
-					$process->{delay} *= 2;
-					# Limit the start delay to 15 minutes max
-					if ( $process->{delay} > ZM_MAX_RESTART_DELAY )
+					print( "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' crashed at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{stopped} ) ) );
+				}
+				print( ", exit status $exit_status" ) if ( $exit_status );
+				print( ", signal $exit_signal" ) if ( $exit_signal );
+				#print( ", core dumped" ) if ( $core_dumped );
+				print( "\n" );
+
+				if ( $process->{keepalive} )
+				{
+					if ( !$process->{delay} || ($process->{runtime} > (10*$process->{delay})) )
 					{
-						$process->{delay} = ZM_MAX_RESTART_DELAY;
+						start( $process->{daemon}, @{$process->{args}} );
+						$process->{delay} = 5;
+					}
+					else
+					{
+						$cmd_hash{$process->{command}} = $process;
+						$process->{pending} = $process->{stopped}+$process->{delay};
+						$process->{delay} *= 2;
+						# Limit the start delay to 15 minutes max
+						if ( $process->{delay} > ZM_MAX_RESTART_DELAY )
+						{
+							$process->{delay} = ZM_MAX_RESTART_DELAY;
+						}
 					}
 				}
 			}
+			$SIG{CHLD} = \&reaper;
 		}
 		sub kill_all
 		{

@@ -125,15 +125,29 @@ if ( $action )
 			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
 			if ( $ps_array[3] )
 			{
-				$zmc = $ps_array[3];
-				exec( "kill -TERM $zmc" );
+				$zmc_pid = $ps_array[3];
+				exec( "kill -TERM $zmc_pid" );
+			}
+			while( $zmc_pid )
+			{
+				sleep( 1 );
+				$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
+				$zmc_pid = $ps_array[3];
 			}
 		}
 		elseif ( !$zmc_status && $zmc_action )
 		{
 			# Start Capture daemon
-			$command = "/usr/local/bin/zmc $did &";
+			$command = '/usr/local/bin/zmc '.$did.' 2>/dev/null >&- <&- >/dev/null &';
 			exec( $command );
+			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
+			$zmc_pid = $ps_array[3];
+			while ( !$zmc_pid )
+			{
+				sleep( 1 );
+				$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
+				$zmc_pid = $ps_array[3];
+			}
 		}
 		if ( $zma_status && !$zma_action )
 		{
@@ -141,17 +155,30 @@ if ( $action )
 			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
 			if ( $ps_array[3] )
 			{
-				$zma = $ps_array[3];
-				exec( "kill -TERM $zma" );
+				$zma_pid = $ps_array[3];
+				exec( "kill -TERM $zma_pid" );
+			}
+			while( $zma_pid )
+			{
+				sleep( 1 );
+				$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
+				$zma_pid = $ps_array[3];
 			}
 		}
 		elseif ( !$zma_status && $zma_action )
 		{
 			# Start Analysis daemon
-			$command = "/usr/local/bin/zma $did &";
+			$command = '/usr/local/bin/zma '.$did.' 2>/dev/null >&- <&- >/dev/null &';
 			exec( $command );
+			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
+			$zma_pid = $ps_array[3];
+			while ( !$zma_pid )
+			{
+				sleep( 1 );
+				$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
+				$zma_pid = $ps_array[3];
+			}
 		}
-		sleep( 3 );
 	}
 }
 
@@ -162,7 +189,7 @@ if ( !$view )
 
 if ( $view == "console" )
 {
-	header("Refresh: ".REFRESH_MAIN."; URL='index.php" );
+	header("Refresh: ".REFRESH_MAIN."; URL='$PHP_SELF'" );
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -227,14 +254,14 @@ function newWindow(Url,Name,Width,Height) {
 <tr>
 <td class="smallhead" align="left"><?php echo count($monitors) ?> Monitors</td>
 <td class="smallhead" align="center">Currently configured for <strong><?php echo $bandwidth ?></strong> bandwidth (change to
-<?php if ( $bandwidth != "high" ) { ?> <a href="index.php?new_bandwidth=high">high</a><?php } ?>
-<?php if ( $bandwidth != "medium" ) { ?> <a href="index.php?new_bandwidth=medium">medium</a><?php } ?>
-<?php if ( $bandwidth != "low" ) { ?> <a href="index.php?new_bandwidth=low">low</a><?php } ?> )</td>
-<td class="smallhead" align="right"><a href="javascript: newWindow( 'index.php?view=cycle', 'zmCycle', <?php echo $max_width+36 ?>, <?php echo $max_height+72 ?> );">Monitor All</a></td>
+<?php if ( $bandwidth != "high" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=high">high</a><?php } ?>
+<?php if ( $bandwidth != "medium" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=medium">medium</a><?php } ?>
+<?php if ( $bandwidth != "low" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=low">low</a><?php } ?> )</td>
+<td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+36 ?>, <?php echo $max_height+72 ?> );">Monitor All</a></td>
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
-<form name="event_form" method="post" action="index.php">
+<form name="event_form" method="post" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="delete">
 <tr><td align="left" class="smallhead">Id</td>
@@ -271,10 +298,10 @@ function newWindow(Url,Name,Width,Height) {
 		$zone_count += $monitor[ZoneCount];
 ?>
 <tr>
-<td align="left" class="text"><a href="javascript: newWindow( 'index.php?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Id] ?>.</a></td>
-<td align="left" class="text"><a href="javascript: newWindow( 'index.php?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Name] ?></a></td>
-<td align="left" class="text"><a href="javascript: newWindow( 'index.php?view=device&did=<?php echo $monitor[Device] ?>', 'zmDevice', 196, 148 );"><span class="<?php if ( $device[zmc] ) { if ( $device[zma] ) { echo "gretext"; } else { echo "oratext"; } } else { echo "redtext"; } ?>">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</span></a></td>
-<td align="left" class="text"><a href="javascript: newWindow( 'index.php?view=function&mid=<?php echo $monitor[Id] ?>', 'zmFunction', 248, 72 );"><?php echo $monitor['Function'] ?></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Id] ?>.</a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Name] ?></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=device&did=<?php echo $monitor[Device] ?>', 'zmDevice', 196, 164 );"><span class="<?php if ( $device[zmc] ) { if ( $device[zma] ) { echo "gretext"; } else { echo "oratext"; } } else { echo "redtext"; } ?>">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</span></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=function&mid=<?php echo $monitor[Id] ?>', 'zmFunction', 248, 72 );"><?php echo $monitor['Function'] ?></a></td>
 <td align="left" class="text"><?php echo $monitor[Width] ?>x<?php echo $monitor[Height] ?>x<?php echo $monitor[Colours]*8 ?></td>
 <td align="right" class="text"><?php echo $monitor[EventCount] ?></td>
 <td align="right" class="text"><?php echo $monitor[HourEventCount] ?></td>
@@ -282,7 +309,7 @@ function newWindow(Url,Name,Width,Height) {
 <td align="right" class="text"><?php echo $monitor[WeekEventCount] ?></td>
 <td align="right" class="text"><?php echo $monitor[MonthEventCount] ?></td>
 <td align="right" class="text"><?php echo $monitor[ArchEventCount] ?></td>
-<td align="right" class="text"><a href="javascript: newWindow( 'index.php?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+36 ?>, <?php echo $monitor[Height]+72 ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+36 ?>, <?php echo $monitor[Height]+72 ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
 <td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $zone[Id] ?>"></td>
 </tr>
 <?php
@@ -321,7 +348,7 @@ elseif ( $view == "cycle" )
 	$monitor = $monitors[$mon_idx];
 	$next_mid = $mon_idx==(count($monitors)-1)?$monitors[0][Id]:$monitors[$mon_idx+1][Id];
 
-	header("Refresh: ".REFRESH_CYCLE."; URL='index.php?view=cycle&mid=$next_mid'" );
+	header("Refresh: ".REFRESH_CYCLE."; URL='$PHP_SELF?view=cycle&mid=$next_mid'" );
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -340,7 +367,7 @@ function newWindow(Url,Name,Width,Height) {
 </head>
 <body>
 <p class="head" align="center"><?php echo $monitor[Name] ?></p>
-<a href="javascript: newWindow( 'index.php?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><img src='<?php echo $monitor[Name] ?>.jpg' border="0"></a>
+<a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><img src='<?php echo $monitor[Name] ?>.jpg' border="0"></a>
 </body>
 </html>
 <?php
@@ -362,9 +389,9 @@ window.focus();
 </script>
 </head>
 <frameset rows="<?php echo $monitor[Height]+32 ?>,16,*" border="1" frameborder="no" framespacing="0">
-<frame src="index.php?view=watch&mode=stream&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
-<frame src="index.php?view=status&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
-<frame src="index.php?view=events&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
+<frame src="<?php echo $PHP_SELF ?>?view=watch&mode=stream&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
+<frame src="<?php echo $PHP_SELF ?>?view=status&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
+<frame src="<?php echo $PHP_SELF ?>?view=events&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
 </frameset>
 <?php
 }
@@ -379,7 +406,7 @@ elseif( $view == "watch" )
 
 	if ( $mode != "stream" )
 	{
-		header("Refresh: ".REFRESH_IMAGE."; URL='index.php?view=watch&mid=$mid&mode=still'" );
+		header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=watch&mid=$mid&mode=still'" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -401,9 +428,9 @@ function closeWindow() {
 <tr>
 <td width="33%" align="left" class="text"><b><?php echo $monitor[Name] ?> Stream</b></td>
 <?php if ( $mode == "stream" ) { ?>
-<td width="34%" align="center" class="text"><a href="index.php?view=watch&mode=stills&mid=<?php echo $mid ?>">Stills</a></td>
+<td width="34%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watch&mode=stills&mid=<?php echo $mid ?>">Stills</a></td>
 <?php } else { ?>
-<td width="34%" align="center" class="text"><a href="index.php?view=watch&mode=stream&mid=<?php echo $mid ?>">Stream</a></td>
+<td width="34%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watch&mode=stream&mid=<?php echo $mid ?>">Stream</a></td>
 <?php } ?>
 <td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
@@ -454,7 +481,7 @@ elseif ( $view == "status" )
 		$status_string = "Alert";
 		$class = "oratext";
 	}
-	header("Refresh: ".REFRESH_STATUS."; URL='index.php?view=status&mid=$mid&last_status=$status'" );
+	header("Refresh: ".REFRESH_STATUS."; URL='$PHP_SELF?view=status&mid=$mid&last_status=$status'" );
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -488,11 +515,11 @@ elseif ( $view == "events" )
 	{
 		if ( $max_events )
 		{
-			header("Refresh: ".REFRESH_EVENTS."; URL='index.php?view=events&mid=$mid&max_events=$max_events'" );
+			header("Refresh: ".REFRESH_EVENTS."; URL='$PHP_SELF?view=events&mid=$mid&max_events=$max_events'" );
 		}
 		else
 		{
-			header("Refresh: ".REFRESH_EVENTS_ALL."; URL='index.php?view=events&mid=$mid'" );
+			header("Refresh: ".REFRESH_EVENTS_ALL."; URL='$PHP_SELF?view=events&mid=$mid'" );
 		}
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -520,7 +547,7 @@ function checkAll(form,name){
 </script>
 </head>
 <body>
-<form name="event_form" method="post" action="index.php">
+<form name="event_form" method="post" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="delete">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
@@ -549,13 +576,13 @@ function checkAll(form,name){
 <tr>
 <td class="text"><b><?php if ( $max_events ) {?>Last <?php } ?><?php echo $n_rows ?> events</b></td>
 <?php if ( !$max_events ) { ?>
-<td align="center" class="text"><a href="index.php?view=events&mid=<?php echo $mid ?>&max_events=<?php echo MAX_EVENTS ?>">Recent</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo MAX_EVENTS ?>">Recent</a></td>
 <?php } ?>
 <?php if ( $archived || $max_events ) { ?>
-<td align="center" class="text"><a href="index.php?view=events&mid=<?php echo $mid ?>">All</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>">All</a></td>
 <?php } ?>
 <?php if ( !$archived ) { ?>
-<td align="center" class="text"><a href="index.php?view=events&mid=<?php echo $mid ?>&archived=1">Archive</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&archived=1">Archive</a></td>
 <?php } ?>
 <td align="right" class="text"><a href="javascript: checkAll( event_form, 'delete_eids' );">Check All</a></td>
 </tr>
@@ -575,8 +602,8 @@ function checkAll(form,name){
 	{
 ?>
 <tr>
-<td align="center" class="text"><a href="javascript: newWindow( 'index.php?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Id] ?></a></td>
-<td align="center" class="text"><a href="javascript: newWindow( 'index.php?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Name] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Id] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Name] ?></a></td>
 <td align="center" class="text"><?php echo strftime( "%m/%d %H:%M:%S", $row[Time] ) ?></td>
 <td align="center" class="text"><?php echo $row[Length] ?></td>
 <td align="center" class="text"><?php echo $row[Frames] ?> (<?php echo $row[AlarmFrames] ?>)</td>
@@ -667,7 +694,7 @@ function closeWindow() {
 			}
 		}
 ?>
-<td align="center" width="88"><a href="javascript: newWindow( 'index.php?view=image&eid=<?php echo $eid ?>&fid=<?php echo $frame_id ?>', 'zmImage', <?php echo $event[Width]+48 ?>, <?php echo $event[Height]+72 ?> );"><img src="<?php echo $thumb_image ?>" width="<?php echo $thumb_width ?>" height="<? echo $thumb_height ?>" border="0" alt="<?php echo $frame_id ?>/<?php echo $row[Score] ?>"></a></td>
+<td align="center" width="88"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $frame_id ?>', 'zmImage', <?php echo $event[Width]+48 ?>, <?php echo $event[Height]+72 ?> );"><img src="<?php echo $thumb_image ?>" width="<?php echo $thumb_width ?>" height="<? echo $thumb_height ?>" border="0" alt="<?php echo $frame_id ?>/<?php echo $row[Score] ?>"></a></td>
 <?php
 		flush();
 		if ( !(++$count % 4) )
@@ -725,7 +752,7 @@ function closeWindow() {
         window.close();
 }
 function deleteImage() {
-	opener.location.href = "index.php?view=delete&eid=<?php echo $eid ?>";
+	opener.location.href = "<?php echo $PHP_SELF ?>?view=delete&eid=<?php echo $eid ?>";
         window.close();
 }
 </script>
@@ -739,19 +766,19 @@ function deleteImage() {
 <tr><td colspan="4"><img src="<?php echo $image_path ?>" width="352" height="288" border="0"></td></tr>
 <tr>
 <?php if ( $fid > 1 ) { ?>
-<td width="25%" class="text"><a href="index.php?view=image&eid=<?php echo $eid ?>&fid=<?php echo $first_fid ?>">First</a></td>
+<td width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $first_fid ?>">First</a></td>
 <?php } else { ?>
 <td width="25%" class="text">&nbsp;</td>
 <?php } if ( $fid > 1 ) { ?>
-<td width="25%" class="text"><a href="index.php?view=image&eid=<?php echo $eid ?>&fid=<?php echo $prev_fid ?>">Prev</a></td>
+<td width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $prev_fid ?>">Prev</a></td>
 <?php } else { ?>
 <td width="25%" class="text">&nbsp;</td>
 <?php } if ( $fid < $max_fid ) { ?>
-<td width="25%" class="text"><a href="index.php?view=image&eid=<?php echo $eid ?>&fid=<?php echo $next_fid ?>">Next</a></td>
+<td width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $next_fid ?>">Next</a></td>
 <?php } else { ?>
 <td width="25%" class="text">&nbsp;</td>
 <?php } if ( $fid < $max_fid ) { ?>
-<td width="25%" class="text"><a href="index.php?view=image&eid=<?php echo $eid ?>&fid=<?php echo $last_fid ?>">Last</a></td>
+<td width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $last_fid ?>">Last</a></td>
 <?php } else { ?>
 <td width="25%" class="text">&nbsp;</td>
 <?php } ?>
@@ -790,7 +817,7 @@ function newWindow(Url,Name,Width,Height) {
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
 <td colspan="6" align="left" class="text">
-<form action="index.php">
+<form method="post" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="rename">
 <input type="hidden" name="eid" value="$eid">
@@ -799,10 +826,10 @@ function newWindow(Url,Name,Width,Height) {
 </tr>
 <tr>
 <td width="20%" align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
-<td width="20%" align="center" class="text"><a href="index.php?view=delete&eid=<?php echo $eid ?>">Delete</a></td>
-<td width="20%" align="center" class="text"><a href="index.php?view=<?php echo $view ?>&action=archive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Archive</a></td>
-<td width="20%" align="center" class="text"><a href="javascript: newWindow( 'index.php?view=images&eid=<?php echo $eid ?>', 'zmImages', <?php echo $event[Width]+72 ?>, <?php echo $event[Height]+360 ?> );">Images</a></td>
-<td width="20%" align="center" class="text"><a href="javascript: newWindow( 'index.php?view=video&eid=<?php echo $eid ?>', 'zmVideo', 100, 80 );">Video</a></td>
+<td width="20%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=delete&eid=<?php echo $eid ?>">Delete</a></td>
+<td width="20%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=archive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Archive</a></td>
+<td width="20%" align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=images&eid=<?php echo $eid ?>', 'zmImages', <?php echo $event[Width]+72 ?>, <?php echo $event[Height]+360 ?> );">Images</a></td>
+<td width="20%" align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=video&eid=<?php echo $eid ?>', 'zmVideo', 100, 80 );">Video</a></td>
 <td width="20%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
 <?php
@@ -854,7 +881,7 @@ elseif( $view == "zones" )
 	foreach( $zones as $zone )
 	{
 ?>
-<area shape="rect" coords="<?php echo "$zone[LoX],$zone[LoY],$zone[HiX],$zone[HiY]" ?>" href="index.php?view=zone&zid=<?php echo $zone[Id] ?>">
+<area shape="rect" coords="<?php echo "$zone[LoX],$zone[LoY],$zone[HiX],$zone[HiY]" ?>" href="<?php echo $PHP_SELF ?>?view=zone&zid=<?php echo $zone[Id] ?>">
 <?php
 	}
 ?>
@@ -865,7 +892,7 @@ elseif( $view == "zones" )
 <tr><td align="center"><img src="<?php echo $image ?>" usemap="#zonemap" width="352" height="288" border="0"></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="0" width="96%">
-<form name="event_form" method="post" action="index.php">
+<form name="event_form" method="post" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $zones ?>">
 <input type="hidden" name="action" value="delete">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
@@ -881,8 +908,8 @@ elseif( $view == "zones" )
 	{
 ?>
 <tr>
-<td align="center" class="text"><a href="javascript: newWindow( 'index.php?view=zone&mid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $zone[Width]+72 ?>, <?php echo $zone[Height]+360 ?> );"><?php echo $zone[Id] ?>.</a></td>
-<td align="center" class="text"><a href="javascript: newWindow( 'index.php?view=zone&mid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $zone[Width]+72 ?>, <?php echo $zone[Height]+360 ?> );"><?php echo $zone[Name] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $zone[Width]+72 ?>, <?php echo $zone[Height]+360 ?> );"><?php echo $zone[Id] ?>.</a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $zone[Width]+72 ?>, <?php echo $zone[Height]+360 ?> );"><?php echo $zone[Name] ?></a></td>
 <td align="center" class="text"><?php echo $zone['Type'] ?></td>
 <td align="center" class="text"><?php echo $zone[Units] ?></td>
 <td align="center" class="text"><?php echo $zone[LoX] ?>,<?php echo $zone[LoY] ?>-<?php echo $zone[HiX] ?>,<?php echo $zone[HiY]?></td>
@@ -978,6 +1005,14 @@ elseif ( $view == "device" )
 <title>ZM - Device - /dev/video<?php echo $did ?></title>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
+<?php
+if ( $zmc_status != $zmc_action || $zma_status != $zma_action )
+{
+?>
+opener.location.reload();
+<?php
+}
+?>
 window.focus();
 function refreshWindow() {
         window.location.reload();
@@ -988,15 +1023,11 @@ function closeWindow() {
 </script>
 </head>
 <body>
-<?php
-echo "X:".$SERVER[PHP_SELF];
-echo "Y:".$PHP_SELF;
-?>
 <table border="0" cellspacing="0" cellpadding="2" width="100%">
 <tr>
 <td colspan="2" align="left" class="head">Device Daemon Status</td>
 </tr>
-<form action="index.php" method="post">
+<form method="post" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="device">
 <input type="hidden" name="zmc_status" value="<?php echo $zmc ?>">
@@ -1051,7 +1082,7 @@ function closeWindow() {
 <td colspan="2" align="center" class="head">Monitor '<?php echo $monitor[Name] ?>' Function</td>
 </tr>
 <tr>
-<form action="index.php" method="post">
+<form method="post" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="function">
 <td colspan="2" align="center"><select name="new_function" class="form">

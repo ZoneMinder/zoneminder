@@ -1540,7 +1540,14 @@ Monitor::~Monitor()
 {
 	delete[] image_buffer;
 
-	if ( capture )
+	struct shmid_ds shm_data;
+	if ( shmctl( shmid, IPC_STAT, &shm_data ) )
+	{
+		Error(( "Can't shmctl: %s\n", strerror(errno)));
+		exit( -1 );
+	}
+
+	if ( shm_data.shm_nattch <= 1 )
 	{
 		if ( shmctl( shmid, IPC_RMID, 0 ) )
 		{

@@ -1,6 +1,7 @@
-     08/07/03        ZoneMinder 0.9.14 README                1
+
+     10/07/03        ZoneMinder 0.9.15 README                1
                                  
-                        ZoneMinder v0.9.14
+                        ZoneMinder v0.9.15
 
 1.   Introduction
    
@@ -170,14 +171,24 @@ user.  You  can  of course set both to the full access  user.  The
 included schema (zmschema.sql) can be used to actually create  the
 tables required. The database is usually called just 'zm'.
 
+If  you  are  a first time user the first run of zmconfig.pl  will
+warn  you about the missing database, you can ignore those  errors
+this  time. Once you've run it for the first time the schema  file
+should  have your desired database name in it so use it to  create
+the  database  (see below). Once the database and permissions  are
+set  up  rerun zmconfig.pl with the -noi option to get it to  load
+the configuration into your new database.
+
 If  you are upgrading from a previous version you can use zmalter-
 x.y.z.sql to upgrade your database and make the necessary  changes
 where x.y.z identifies the version of ZoneMinder you had installed
 previously.  So  if you are going from version  0.9.7  to  version
 0.9.11  you would run the scripts for all intervening versions  to
 get to the current one, i.e. zmalter-0.9.7.sql, zmalter-0.9.8.sql,
-zmalter-0.9.9.sql  and zmalter0.9.10.sql. For a  new  installation
-the simplest way to create your database and users is as follows,
+zmalter-0.9.9.sql and zmalter0.9.10.sql.
+
+For  a  new installation the simplest way to create your  database
+and users is as follows,
 
 mysql mysql < zmschema.sql
 
@@ -1328,7 +1339,43 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 7.   Change Log
    
 
-7.1. Release 0.9.14
+7.1. Release 0.9.15
+Various bug fixes from the last release and before.
+
+  o     Bandwidth.  A  bug was introduced in .14  which  caused  a
+     corrupted  console  display  and  manic  refreshes   on   new
+     installations. This was due to a missing bandwidth setting when no
+     existing cookie was detected. This is now fixed.
+     
+o    Again in .14 a problem occurred for a new release whereby
+zmconfig wanted to know the database details and but also
+previously wanted to access the database before it had asked the
+questions. This has now been addressed though it does require that
+zmconfig is run twice initially, once to created the scripts and
+once to import the configuration into the database.
+o    In association with the previous error, the
+zm_config_defines.h file was not created in the absence of the
+database as this was what was used to assign configuration ids.
+This now takes place regardless of the database.
+o    The SQL to create the Users table was mistakenly omitted from
+the .12 database upgrade script this has now been corrected.
+o    A bug in zmfilter was pointed out whereby the dynamic loading
+of the Zip or Tar archive modules depending on a preference
+actually wasn't. It was looking for both and loading both at
+compile time. This has now been modified to be fully runtime.
+o    The database user definitions in the zmvideo script indicated
+one database user while the database connection used a different
+one. This prevented any videos being generated.
+o    A problem was found if using the zmf frame server and
+greyscale images. The option to colourise JPEG images is intended
+to be used to ensure that all JPEG files are written with a 24 bit
+colourspace as certain tools such as ffmpeg require this. However
+in the circumstances described above images written by zma
+directly were colourised whereas those written by  zmf weren't. A
+change has been made whereby if set all greyscale JPEG images are
+colourised in all circumstances.
+
+7.2. Release 0.9.14
 Major new feature and important bug-fixes.
 
   o     Web  configuration. Following many requests  and  to  make
@@ -1342,8 +1389,9 @@ Major new feature and important bug-fixes.
      the web interface and apply then without recompilation, which is
      now only necessary if you change the core configuration.
      
-o    Following a number of requests the .sock file directory is
-now configurable in zmconfig.
+  o     Following a number of requests the .sock file directory is
+     now configurable in zmconfig.
+     
 o    Y channel bug. When using colour cameras a motion detection
 problem was present if fast RGB images deltas (ZM_FAST_RGB_DIFFS)
 was off. This was an overflow error in the calculation of the Y
@@ -1369,7 +1417,7 @@ should still be secure as it will require authentication.
 o    All SQL buffers in the C++ code have been enlarged. There was
 previously an issue with a buffer overflow on certain occasions.
 
-7.2. Release 0.9.13
+7.3. Release 0.9.13
 Beta  version  of  several  features and  fixes,  never  generally
 released.
 
@@ -1419,7 +1467,7 @@ restart the refresh process. By using JS refresh timers which are
 not interrupted these extraneous refreshes have been mostly
 eliminated.
 
-7.3. Release 0.9.12
+7.4. Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
   o    Double first images. Fixed a problem where the first image of
@@ -1491,7 +1539,7 @@ users, attempts to delete monitors will now require confirmation.
 o    Detect linmysqlclient.a. Added better detection script into
 'configure' top spot when libmysqlclient.a is missing.
 
-7.4. Release 0.9.11
+7.5. Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats  view  -  If you have the  RECORD_EVENT_STATS
@@ -1574,7 +1622,7 @@ o    Web colour change - I thought the old red, green and amber
 text colours were just a bit too gaudy so I've toned them down a
 bit. Hope you like them!
 
-7.5. Release 0.9.10
+7.6. Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
   o     Configure 'round' bug - Fixed a problem with the configure
@@ -1652,7 +1700,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came across
 that that I don't think had been reported or noticed so I don't
 think we need to talk about them here do we.
 
-7.6. Release 0.9.9
+7.7. Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o    Added zmu -q/--query option - There is now a new query option
@@ -1699,7 +1747,7 @@ removed in the last version which meant that sometimes the console
 never go refreshed as it's timing loop was broken. This
 functionality has now been reinstated.
 
-7.7. Release 0.9.8
+7.8. Release 0.9.8
 Several new features and bug-fixes
 
   o    Upgrade note - If you have installed 0.9.7 and wish to save
@@ -1764,7 +1812,7 @@ o    Monitor window refresh on alarm - When the monitor window is
 active and an alarm has occurred the most recent alarms list is
 immediately refreshed to show it.
 
-7.8. Release 0.9.7
+7.9. Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes too.  Now
 somewhat more mature, not really an alpha any more, and a  lot  of
 bugs fixed too.
@@ -1809,7 +1857,7 @@ o    Some of the web views have changed slightly to accommodate
 the separate events view.
 o    And much much more, probably...
 
-7.9. Release 0.0.1
+7.10.     Release 0.0.1
 Initial release, therefore nothing new.
 
 

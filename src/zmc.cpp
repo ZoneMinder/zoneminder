@@ -20,6 +20,7 @@
 #include "zm.h"
 
 bool reload = false;
+bool terminate = false;
 
 void hup_handler( int signal )
 {
@@ -30,7 +31,7 @@ void hup_handler( int signal )
 void term_handler( int signal )
 {
 	Info(( "Got TERM signal, exiting" ));
-	exit( 0 );
+	terminate = true;
 }
 
 int main( int argc, const char *argv[] )
@@ -99,6 +100,14 @@ int main( int argc, const char *argv[] )
 			monitors = 0;
 			n_monitors = Monitor::Load( device, monitors );
 			reload = false;
+		}
+		if ( terminate )
+		{
+			for ( int i = 0; i < n_monitors; i++ )
+			{
+				delete monitors[i];
+			}
+			break;
 		}
 	}
 	return( 0 );

@@ -557,6 +557,7 @@ protected:
 	Event	*event;
 	time_t	start_time;
 	time_t	last_fps_time;
+	int		shmid;
 
 	typedef struct Snapshot
 	{

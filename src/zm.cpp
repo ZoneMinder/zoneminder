@@ -1319,7 +1319,7 @@ Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), 
 	alarm_frames = 0;
 	tot_score = 0;
 	max_score = 0;
-	sprintf( path, EVENT_DIR "/%s/%04d", monitor->Name(), id );
+	sprintf( path, ZM_EVENT_DIR "/%s/%04d", monitor->Name(), id );
 	
 	struct stat statbuf;
 	errno = 0;
@@ -1435,7 +1435,7 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 	mysql_free_result( result );
 }
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_image_buffer_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : Camera( p_id, p_name, p_device, p_channel, p_format, p_width, p_height, p_colours, p_capture ), function( (Function)p_function ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), label_coord( p_label_coord ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), alarm_frame_count( p_alarm_frame_count ), image_buffer_count( p_image_buffer_count ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : Camera( p_id, p_name, p_device, p_channel, p_format, p_width, p_height, p_colours, p_capture ), function( (Function)p_function ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), alarm_frame_count( p_alarm_frame_count ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), n_zones( p_n_zones ), zones( p_zones )
 {
     strcpy( label_format, p_label_format );
 
@@ -1447,7 +1447,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	state = IDLE;
 
 	int shared_images_size = sizeof(SharedImages)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*colours*width*height);
-	int shmid = shmget( 0xcf00cf00|id, shared_images_size, IPC_CREAT|0777 );
+	shmid = shmget( ZM_SHM_KEY|id, shared_images_size, IPC_CREAT|0777 );
 	if ( shmid < 0 )
 	{
 		Error(( "Can't shmget: %s\n", strerror(errno)));
@@ -1460,12 +1460,6 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 		Error(( "Can't shmat: %s\n", strerror(errno)));
 		exit( -1 );
 	}
-
-	//if ( shmctl( shmid, IPC_RMID, 0 ) )
-	//{
-		//Error(( "Can't shmctl: %s\n", strerror(errno)));
-		//exit( -1 );
-	//}
 
 	if ( capture )
 	{
@@ -1499,6 +1493,8 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	event = 0;
 
 	Info(( "Monitor %s has function %d\n", name, function ));
+	Info(( "Monitor %s LBF = '%s', LBX = %d, LBY = %d\n", name, label_format, label_coord.X(), label_coord.Y() ));
+	Info(( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d\n", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
 
 	if ( !capture )
 	{
@@ -1508,7 +1504,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	{
 		static char	path[PATH_MAX];
 
-		sprintf( path, EVENT_DIR );
+		sprintf( path, ZM_EVENT_DIR );
 
 		struct stat statbuf;
 		errno = 0;
@@ -1521,7 +1517,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 			}
 		}
 
-		sprintf( path, EVENT_DIR "/%s", name );
+		sprintf( path, ZM_EVENT_DIR "/%s", name );
 
 		errno = 0;
 		stat( path, &statbuf );
@@ -1543,6 +1539,15 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 Monitor::~Monitor()
 {
 	delete[] image_buffer;
+
+	if ( capture )
+	{
+		if ( shmctl( shmid, IPC_RMID, 0 ) )
+		{
+			Error(( "Can't shmctl: %s\n", strerror(errno)));
+			exit( -1 );
+		}
+	}
 }
 
 Monitor::State Monitor::GetState() const

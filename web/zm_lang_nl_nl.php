@@ -125,6 +125,7 @@ $zmSlangCheckMethod          = 'Alarm Check Methode';
 $zmSlangChooseFilter         = 'Kies filter';
 $zmSlangClose                = 'Sluit';
 $zmSlangColour               = 'Kleur';
+$zmSlangConfig               = 'Config';
 $zmSlangConfiguredFor        = 'Geconfigureerd voor';
 $zmSlangConfirmPassword      = 'Bevestig wachtwoord';
 $zmSlangConjAnd              = 'en';

@@ -74,7 +74,7 @@ CREATE TABLE Frames (
 CREATE TABLE Monitors (
   Id int(10) unsigned NOT NULL auto_increment,
   Name tinytext NOT NULL,
-  Function enum('None','Passive','Active') NOT NULL default 'Passive',
+  Function enum('None','Passive','Active','X10') NOT NULL default 'Passive',
   Device tinyint(3) unsigned NOT NULL default '0',
   Channel tinyint(3) unsigned NOT NULL default '0',
   Format tinyint(3) unsigned NOT NULL default '0',
@@ -91,6 +91,8 @@ CREATE TABLE Monitors (
   AlarmFrameCount smallint(5) unsigned NOT NULL default '1',
   FPSReportInterval smallint(5) unsigned NOT NULL default '250',
   RefBlendPerc tinyint(3) unsigned NOT NULL default '10',
+  X10Active varchar(32) default NULL,
+  X10Alarm varchar(32) default NULL,
   PRIMARY KEY  (Id)
 ) TYPE=MyISAM;
 

@@ -524,16 +524,17 @@ public:
 class Monitor : public Camera
 {
 protected:
-#if 0
-	typedef enum
-	{
-		WARMUP_COUNT=25,
-		PRE_EVENT_COUNT=10,
-		POST_EVENT_COUNT=10,
-		IMAGE_BUFFER_COUNT=100,
-		FPS_REPORT_INTERVAL=200,
-	};
-#endif
+	// These are read from the DB and thereafter remain unchanged
+	char	label_format[64];	// The format of the timestamp on the images
+	Coord	label_coord;		// The coordinates of the timestamp on the images
+	int		warmup_count;		// How many images to process before looking for events
+	int		pre_event_count;	// How many images to hold and prepend to an alarm event
+	int		post_event_count;	// How many unalarmed images must occur before the alarm state is reset
+	int		alarm_frame_count;	// How many alarm frames we must get before we actually do anything about it.
+	int		image_buffer_count; // Size of circular image buffer, at least twice the size of the pre_event_count
+	int		fps_report_interval;// How many images should be captured/processed between reporting the current FPS
+	int		ref_blend_perc;		// Percentage of new image going into reference image.
+
 	typedef enum
 	{
 		NONE=1,
@@ -577,7 +578,7 @@ protected:
 	SharedImages *shared_images;
 	
 public:
-	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture=true, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_image_buffer_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	State GetState() const;
@@ -597,13 +598,22 @@ public:
 	}
 	inline void PostCapture()
 	{
+		char label_time_text[64];
+		char label_text[64];
+
 		Camera::PostCapture( image );
 
 		time_t now = time( 0 );
 
-		image.Timestamp( name, now, Coord( 0, 280 ) );
+		if ( label_format[0] )
+		{
+			strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &now ) );
+			sprintf( label_text, label_time_text, name );
 
-		int index = image_count%IMAGE_BUFFER_COUNT;
+			image.Annotate( label_text, label_coord );
+		}
+
+		int index = image_count%image_buffer_count;
 
 		if ( index == shared_images->last_read_index )
 		{
@@ -617,9 +627,9 @@ public:
 
 		image_count++;
 
-		if ( image_count && !(image_count%FPS_REPORT_INTERVAL) )
+		if ( image_count && !(image_count%fps_report_interval) )
 		{
-			fps = double(FPS_REPORT_INTERVAL)/(now-last_fps_time);
+			fps = double(fps_report_interval)/(now-last_fps_time);
 			Info(( "%s: %d - Capturing at %.2f fps\n", name, image_count, fps ));
 			last_fps_time = now;
 		}
@@ -627,7 +637,7 @@ public:
 
 	inline bool Ready()
 	{
-		return( function == ACTIVE && image_count > WARMUP_COUNT );
+		return( function == ACTIVE && image_count > warmup_count );
 	}
  
 	void DumpImage( Image *image ) const;

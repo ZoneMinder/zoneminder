@@ -26,9 +26,3 @@
 #define	ZM_DB_PASSB			"zmuserzm"	// Unprivileged DB user password
 
 #define EVENT_DIR			"events"	// Event directory relative to web directory
-#define BLEND_PERC			10			// Percentage of new image going into reference image.
-#define WARMUP_COUNT		25			// How many images to process before looking for events
-#define PRE_EVENT_COUNT		10			// How many images to hold and prepend to an alarm event
-#define POST_EVENT_COUNT	10			// How many unalarmed images must occur before the alarm state is reset
-#define IMAGE_BUFFER_COUNT	100			// Size of circular image buffer, should be at least twice the size of the pre_event_count
-#define FPS_REPORT_INTERVAL	200			// How many images should be captured/processed before reporting the current FPS

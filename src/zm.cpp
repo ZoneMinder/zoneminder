@@ -1435,8 +1435,10 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 	mysql_free_result( result );
 }
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, int p_n_zones, Zone *p_zones[] ) : Camera( p_id, p_name, p_device, p_channel, p_format, p_width, p_height, p_colours, p_capture ), function( (Function)p_function ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_image_buffer_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : Camera( p_id, p_name, p_device, p_channel, p_format, p_width, p_height, p_colours, p_capture ), function( (Function)p_function ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), label_coord( p_label_coord ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), alarm_frame_count( p_alarm_frame_count ), image_buffer_count( p_image_buffer_count ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), n_zones( p_n_zones ), zones( p_zones )
 {
+    strcpy( label_format, p_label_format );
+
 	fps = 0.0;
 	event_count = 0;
 	image_count = 0;
@@ -1444,7 +1446,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	last_alarm_count = 0;
 	state = IDLE;
 
-	int shared_images_size = sizeof(SharedImages)+(IMAGE_BUFFER_COUNT*sizeof(time_t))+(IMAGE_BUFFER_COUNT*colours*width*height);
+	int shared_images_size = sizeof(SharedImages)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*colours*width*height);
 	int shmid = shmget( 0xcf00cf00|id, shared_images_size, IPC_CREAT|0777 );
 	if ( shmid < 0 )
 	{
@@ -1469,14 +1471,14 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	{
 		memset( shared_images, 0, shared_images_size );
 		shared_images->state = IDLE;
-		shared_images->last_write_index = IMAGE_BUFFER_COUNT;
-		shared_images->last_read_index = IMAGE_BUFFER_COUNT;
+		shared_images->last_write_index = image_buffer_count;
+		shared_images->last_read_index = image_buffer_count;
 	}
 	shared_images->timestamps = (time_t *)(shm_ptr+sizeof(SharedImages));
-	shared_images->images = (unsigned char *)(shm_ptr+sizeof(SharedImages)+(IMAGE_BUFFER_COUNT*sizeof(time_t)));
+	shared_images->images = (unsigned char *)(shm_ptr+sizeof(SharedImages)+(image_buffer_count*sizeof(time_t)));
 
-	image_buffer = new Snapshot[IMAGE_BUFFER_COUNT];
-	for ( int i = 0; i < IMAGE_BUFFER_COUNT; i++ )
+	image_buffer = new Snapshot[image_buffer_count];
+	for ( int i = 0; i < image_buffer_count; i++ )
 	{
 		image_buffer[i].timestamp = &(shared_images->timestamps[i]);
 		image_buffer[i].image = new Image( width, height, colours, &(shared_images->images[i*colours*width*height]) );
@@ -1550,7 +1552,7 @@ Monitor::State Monitor::GetState() const
 
 int Monitor::GetImage( int index ) const
 {
-	if ( index < 0 || index > IMAGE_BUFFER_COUNT )
+	if ( index < 0 || index > image_buffer_count )
 	{
 		index = shared_images->last_write_index;
 	}
@@ -1562,7 +1564,7 @@ int Monitor::GetImage( int index ) const
 
 time_t Monitor::GetTimestamp( int index ) const
 {
-	if ( index < 0 || index > IMAGE_BUFFER_COUNT )
+	if ( index < 0 || index > image_buffer_count )
 	{
 		index = shared_images->last_write_index;
 	}
@@ -1583,7 +1585,7 @@ unsigned int Monitor::GetLastWriteIndex() const
 double Monitor::GetFPS() const
 {
 	int index1 = shared_images->last_write_index;
-	int index2 = (index1+1)%IMAGE_BUFFER_COUNT;;
+	int index2 = (index1+1)%image_buffer_count;;
 
 	Snapshot *snap1 = &image_buffer[index1];
 	time_t time1 = *(snap1->timestamp);
@@ -1591,7 +1593,7 @@ double Monitor::GetFPS() const
 	Snapshot *snap2 = &image_buffer[index2];
 	time_t time2 = *(snap2->timestamp);
 
-	double fps = double(IMAGE_BUFFER_COUNT)/(time1-time2);
+	double fps = double(image_buffer_count)/(time1-time2);
 
 	return( fps );
 }
@@ -1709,14 +1711,14 @@ bool Monitor::Analyse()
 
 	time_t now = time( 0 );
 
-	if ( image_count && !(image_count%FPS_REPORT_INTERVAL) )
+	if ( image_count && !(image_count%fps_report_interval) )
 	{
-		fps = double(FPS_REPORT_INTERVAL)/(now-last_fps_time);
+		fps = double(fps_report_interval)/(now-last_fps_time);
 		Info(( "%s: %d - Processing at %.2f fps\n", name, image_count, fps ));
 		last_fps_time = now;
 	}
 
-	int index = shared_images->last_write_index%IMAGE_BUFFER_COUNT;
+	int index = shared_images->last_write_index%image_buffer_count;
 	Snapshot *snap = &image_buffer[index];
 	time_t timestamp = *(snap->timestamp);
 	Image *image = snap->image;
@@ -1731,11 +1733,11 @@ bool Monitor::Analyse()
 				event = new Event( this, timestamp );
 
 				Info(( "%s: %03d - Gone into alarm state\n", name, image_count ));
-				int pre_index = ((index+IMAGE_BUFFER_COUNT)-PRE_EVENT_COUNT)%IMAGE_BUFFER_COUNT;
-				for ( int i = 0; i < PRE_EVENT_COUNT; i++ )
+				int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
+				for ( int i = 0; i < pre_event_count; i++ )
 				{
 					event->AddFrame( *(image_buffer[pre_index].timestamp), image_buffer[pre_index].image );
-					pre_index = (pre_index+1)%IMAGE_BUFFER_COUNT;
+					pre_index = (pre_index+1)%image_buffer_count;
 				}
 				//event->AddFrame( now, &image );
 			}
@@ -1750,7 +1752,7 @@ bool Monitor::Analyse()
 			}
 			else if ( state == ALERT )
 			{
-				if ( image_count-last_alarm_count > POST_EVENT_COUNT )
+				if ( image_count-last_alarm_count > post_event_count )
 				{
 					Info(( "%s: %03d - Left alarm state (%d) - %d(%d) images\n", name, image_count, event->id, event->frames, event->alarm_frames ));
 					delete event;
@@ -1778,10 +1780,10 @@ bool Monitor::Analyse()
 			}
 		}
 	}
-	ref_image.Blend( *image, BLEND_PERC );
+	ref_image.Blend( *image, ref_blend_perc );
 	DumpImage( image );
 
-	shared_images->last_read_index = index%IMAGE_BUFFER_COUNT;
+	shared_images->last_read_index = index%image_buffer_count;
 	image_count++;
 
 	return( true );
@@ -1804,11 +1806,11 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	static char sql[256];
 	if ( device == -1 )
 	{
-		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, WarmUpCount, PreEventCount, PostEventCount from Monitors where Function != 'None'" );
+		strcpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
 	}
 	else
 	{
-		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, WarmUpCount, PreEventCount, PostEventCount from Monitors where Function != 'None' and Device = %d", device );
+		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Device = %d", device );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1830,7 +1832,7 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	{
 		Zone **zones = 0;
 		int n_zones = Zone::Load( atoi(dbrow[0]), atoi(dbrow[6]), atoi(dbrow[7]), zones );
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), capture, n_zones, zones );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), n_zones, zones );
 		Info(( "Loaded monitor %d(%s), %d zones\n", atoi(dbrow[0]), dbrow[1], n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )
@@ -1847,7 +1849,7 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 Monitor *Monitor::Load( int id, bool load_zones )
 {
 	static char sql[256];
-	sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, WarmUpCount, PreEventCount, PostEventCount from Monitors where Id = %d", id );
+	sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s\n", mysql_error( &dbconn ) ));
@@ -1871,7 +1873,7 @@ Monitor *Monitor::Load( int id, bool load_zones )
 		{
 			int n_zones = Zone::Load( atoi(dbrow[0]), atoi(dbrow[6]), atoi(dbrow[7]), zones );
 		}
-		monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), false, n_zones, zones );
+		monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), false, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), n_zones, zones );
 		Info(( "Loaded monitor %d(%s), %d zones\n", atoi(dbrow[0]), dbrow[1], n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )
@@ -1891,7 +1893,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd 
 	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n" );
 	fprintf( fd, "\r\n" );
 	fprintf( fd, "--ZoneMinderFrame\n" );
-	int last_read_index = IMAGE_BUFFER_COUNT;
+	int last_read_index = image_buffer_count;
 	JOCTET img_buffer[width*height*colours];
 	int img_buffer_size = 0;
 	int loop_count = (idle/refresh)-1;
@@ -1901,7 +1903,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd 
 		{
 			// Send the next frame
 			last_read_index = shared_images->last_write_index;
-			int index = shared_images->last_write_index%IMAGE_BUFFER_COUNT;
+			int index = shared_images->last_write_index%image_buffer_count;
 			//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
 			Snapshot *snap = &image_buffer[index];
 			Image *image = snap->image;

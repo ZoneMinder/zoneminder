@@ -28,9 +28,9 @@ dnl Checks for libraries.
 dnl Replace `main' with a function in -ldl:
 AC_CHECK_LIB(dl, dlsym)
 dnl Replace `main' with a function in -ljpeg:
-AC_CHECK_LIB(jpeg, jpeg_stdio_dest)
+AC_CHECK_LIB(jpeg, jpeg_stdio_dest, AC_MSG_WARN(All ok), AC_MSG_ERROR(No libjpeg.a found))
 dnl Replace `main' with a function in -lmysqlclient:
-AC_CHECK_LIB(mysqlclient, mysql_init)
+AC_CHECK_LIB(mysqlclient, mysql_init, , AC_MSG_ERROR([No libmysqlclient.a found]))
 dnl Replace `main' with a function in -lz:
 AC_CHECK_LIB(z, compress)
 

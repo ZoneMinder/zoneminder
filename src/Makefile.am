@@ -26,7 +26,7 @@ dist-hook:
 	@( rm $(distdir)/zm_config.h )
 
 # Yes, you are correct. This is a HACK!
-install-exec-local:
+install-exec-hook:
 	( cd @bindir@; mv zms $(cgidir) )
 	( cd $(cgidir); chown $(webuser):$(webgroup) zms )
 	( cd @bindir@; chmod u+s zmfix )

@@ -466,7 +466,9 @@ info-am:
 
 install-data-am:
 
-install-exec-am: install-binPROGRAMS install-exec-local
+install-exec-am: install-binPROGRAMS
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) install-exec-hook
 
 install-info: install-info-am
 
@@ -497,19 +499,18 @@ uninstall-am: uninstall-binPROGRAMS uninstall-info-am
 	distclean-depend distclean-generic distclean-tags distdir dvi \
 	dvi-am info info-am install install-am install-binPROGRAMS \
 	install-data install-data-am install-exec install-exec-am \
-	install-exec-local install-info install-info-am install-man \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-info-am
+	install-info install-info-am install-man install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-info-am
 
 
 dist-hook:
 	@( rm $(distdir)/zm_config.h )
 
 # Yes, you are correct. This is a HACK!
-install-exec-local:
+install-exec-hook:
 	( cd @bindir@; mv zms $(cgidir) )
 	( cd $(cgidir); chown $(webuser):$(webgroup) zms )
 	( cd @bindir@; chmod u+s zmfix )

@@ -1,6 +1,6 @@
-    20/02/04        ZoneMinder 1.18.0 README                1
+    21/02/04        ZoneMinder 1.18.1 README                
                                  
-                        ZoneMinder v1.18.0
+                        ZoneMinder v1.18.1
 
 1.   Introduction
    
@@ -1515,7 +1515,25 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 7.   Change Log
    
 
-7.1. Release 1.18.0
+7.1. Release 1.18.1
+Minor bugfixes.
+
+  o     Filter Monitor Name Bug. A bug was present in the previous
+    release  where  monitor names where not correctly  handled  in
+    filters. This is now fixed.
+    
+o    Database Upgrade Change. Users upgrading from releases prior
+to 1.18.0 please note that now as part of the upgrade process all
+your filters will have any automatic actions unset. This is
+because the previous affinity to a particular monitor has now been
+removed and you may be left with several filters all doing the
+same thing to all of the events or have filters which for instance
+delete events on only one monitor but which now would delete them
+for all of them. It is recommended that you review your list of
+saved filters and delete duplicates before adding any monitor
+specific terms and resetting the actions for any that remain.
+
+7.2. Release 1.18.0
 Major optimisations, important new features and some bugfixes.
 
   o     Optimisations and Performance Improvements.  This  release
@@ -1567,7 +1585,16 @@ monitor. This has now changed and filters can now specify an
 associated monitor in the same was as other parameters. Links have
 now been added to the main console view to allow you to view lists
 of events from all monitors in one and saved filters can now
-affected as many or as few monitors as you wish..
+affected as many or as few monitors as you wish. IMPORTANT: Please
+note that as part of the upgrade process all your filters will
+have any automatic actions unset. This is because the previous
+affinity to a particular monitor has now been removed and you may
+be left with several filters all doing the same thing to all of
+the events or have filters which for instance delete events on
+only one monitor but which now would delete them for all of them.
+It is recommended that you review your list of saved filters and
+delete duplicates before adding any monitor specific terms and
+resetting the actions for any that remain.
 o    New Filter Operators. Two new filter operators and their
 inverse have been added. You can now indicate whether a value is
 in a set of other values, for example 'cat' is in the set of 'cat,
@@ -1635,7 +1662,7 @@ configuration option.
     that had low frame rates. This is now fixed.
     
 
-7.2. Release 1.17.2
+7.3. Release 1.17.2
 Minor features, bug fixes and additional languages.
 
   o    Pending Process Bug. A bug was found whereby a process that
@@ -1701,7 +1728,7 @@ automating the upgrade process.
 o    New Languages. Translations for Japanese (ja_jp), French
 (fr_fr) and Russian (ru_ru) are now included.
 
-7.3. Release 1.17.1
+7.4. Release 1.17.1
 Bugfixes and additional languages.
 
   o    Login Bug. A bug was identified whereby an unauthorised user
@@ -1722,7 +1749,7 @@ accessed area and contains a great deal of text. The new format
 allows individual options to be translated piecemeal as the
 opportunity arises.
 
-7.4. Release 1.17.0
+7.5. Release 1.17.0
 Language changes and other enhancements.
 
   o     Version  Numbering. ZoneMinder version  numbers  have  now
@@ -1767,7 +1794,7 @@ has been corrected.
 o    Minor Bugs. A number of minor bugs and inconsistencies were
 corrected.
 
-7.5. Release 0.9.16
+7.6. Release 0.9.16
 Major usability enhancement and fixes.
 
   o    Run States. Instead of the old 'start/stop' links the current
@@ -1887,7 +1914,7 @@ correctly parsed from command line options passed to zmu.
 o    Event window width variable. Event windows now scale to fit
 the event image size.
 
-7.6. Release 0.9.15
+7.7. Release 0.9.15
 Various bug fixes from the last release and before.
 
   o     Bandwidth.  A  bug was introduced in .14  which  caused  a
@@ -1923,7 +1950,7 @@ directly were colourised whereas those written by  zmf weren't. A
 change has been made whereby if set all greyscale JPEG images are
 colourised in all circumstances.
 
-7.7. Release 0.9.14
+7.8. Release 0.9.14
 Major new feature and important bug-fixes.
 
   o     Web  configuration. Following many requests  and  to  make
@@ -1965,7 +1992,7 @@ should still be secure as it will require authentication.
 o    All SQL buffers in the C++ code have been enlarged. There was
 previously an issue with a buffer overflow on certain occasions.
 
-7.8. Release 0.9.13
+7.9. Release 0.9.13
 Beta  version  of  several  features and  fixes,  never  generally
 released.
 
@@ -2015,7 +2042,7 @@ restart the refresh process. By using JS refresh timers which are
 not interrupted these extraneous refreshes have been mostly
 eliminated.
 
-7.9. Release 0.9.12
+7.10.     Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
   o    Double first images. Fixed a problem where the first image of
@@ -2087,7 +2114,7 @@ users, attempts to delete monitors will now require confirmation.
 o    Detect linmysqlclient.a. Added better detection script into
 'configure' top spot when libmysqlclient.a is missing.
 
-7.10.     Release 0.9.11
+7.11.     Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats  view  -  If you have the  RECORD_EVENT_STATS
@@ -2170,7 +2197,7 @@ o    Web colour change - I thought the old red, green and amber
 text colours were just a bit too gaudy so I've toned them down a
 bit. Hope you like them!
 
-7.11.     Release 0.9.10
+7.12.     Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
   o     Configure 'round' bug - Fixed a problem with the configure
@@ -2248,7 +2275,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came across
 that that I don't think had been reported or noticed so I don't
 think we need to talk about them here do we.
 
-7.12.     Release 0.9.9
+7.13.     Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o    Added zmu -q/--query option - There is now a new query option
@@ -2295,7 +2322,7 @@ removed in the last version which meant that sometimes the console
 never go refreshed as it's timing loop was broken. This
 functionality has now been reinstated.
 
-7.13.     Release 0.9.8
+7.14.     Release 0.9.8
 Several new features and bug-fixes
 
   o    Upgrade note - If you have installed 0.9.7 and wish to save
@@ -2360,7 +2387,7 @@ o    Monitor window refresh on alarm - When the monitor window is
 active and an alarm has occurred the most recent alarms list is
 immediately refreshed to show it.
 
-7.14.     Release 0.9.7
+7.15.     Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes too.  Now
 somewhat more mature, not really an alpha any more, and a  lot  of
 bugs fixed too.
@@ -2405,7 +2432,7 @@ o    Some of the web views have changed slightly to accommodate
 the separate events view.
 o    And much much more, probably...
 
-7.15.     Release 0.0.1
+7.16.     Release 0.0.1
 Initial release, therefore nothing new.
 
 

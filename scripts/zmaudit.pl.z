@@ -55,6 +55,10 @@ use Term::ReadKey;
 
 $| = 1;
 
+$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
 my $report = 0;
 my $yes = 0;
 my $delay = 0;
@@ -124,8 +128,6 @@ if ( $report && $yes )
 
 my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
 chdir( EVENT_PATH );
-( $ENV{PATH} ) = ( $ENV{PATH} =~ /^(.*)$/ );
-( $ENV{BASH_ENV} ) = ( $ENV{BASH_ENV} =~ /^(.*)$/ );
 if ( !$yes && !$report )
 {
 	ReadMode( 'cbreak' );

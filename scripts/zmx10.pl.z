@@ -56,6 +56,10 @@ use Data::Dumper;
 
 $| = 1;
 
+$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
 sub Usage
 {
     print( "
@@ -162,9 +166,6 @@ sub runServer
 	my $saddr = sockaddr_un( main::X10_SOCK_FILE );
 	bind( SERVER, $saddr ) or die( "Can't bind: $!" );
 	listen( SERVER, SOMAXCONN ) or die( "Can't listen: $!" );
-
-	( $ENV{PATH} ) = ( $ENV{PATH} =~ /^(.*)$/ );
-	( $ENV{BASH_ENV} ) = ( $ENV{BASH_ENV} =~ /^(.*)$/ );
 
 	$dbh = DBI->connect( "DBI:mysql:".main::DB_NAME, main::DB_USER, main::DB_PASS );
 

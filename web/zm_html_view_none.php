@@ -30,8 +30,13 @@ if ( !empty($refresh_parent) )
 opener.location.reload(true);
 <?php
 }
+if ( !$debug )
+{
 ?>
 window.close();
+<?php
+}
+?>
 </script>
 </head>
 </html>

@@ -18,12 +18,16 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-import_request_variables( "GPC" );
-
-// Use these for debugging, though not both at once!
-//phpinfo( INFO_VARIABLES );
-//error_reporting( E_ALL );
+import_request_variables( "EGPCS" );
 error_reporting (E_ALL ^ E_NOTICE);
+
+$debug = false;
+if ( $debug )
+{
+	// Use these for debugging, though not both at once!
+	phpinfo( INFO_VARIABLES );
+	//error_reporting( E_ALL );
+}
 
 if ( !isset($PHP_SELF) )
 {

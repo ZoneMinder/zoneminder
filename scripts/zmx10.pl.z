@@ -450,7 +450,7 @@ sub loadTasks
 		{
 			$monitor_hash{$monitor->{Id}} = $monitor;
 
-			my $size = 4; # We only need the first 4 bytes really for the alarm state
+			my $size = 12; # We only need the first 12 bytes really for the alarm state and forced alarm
 			$monitor->{ShmKey} = hex(main::ZM_SHM_KEY)|$monitor->{Id};
 			if ( !($monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 )) )
 			{
@@ -596,12 +596,17 @@ sub processTask
 	{
 		my ( $instruction, $class ) = ( $task->{function} =~ /^(.+)_(.+)$/ );
 
-		my $command;
+		my @commands;
 		if ( $class eq "active" )
 		{
 			if ( $instruction eq "start" )
 			{
-				$command = main::ZM_PATH_BIN."/zmdc.pl start zma -m ".$task->{monitor}->{Id};
+				push( @commands, main::ZM_PATH_BIN."/zmdc.pl start zma -m ".$task->{monitor}->{Id} );
+				push( @commands, main::ZM_PATH_BIN."/zmdc.pl start zmf -m ".$task->{monitor}->{Id} );
+				push( @commands, main::ZM_PATH_BIN."/zmdc.pl start zmfilter.pl -m ".$task->{monitor}->{Id}." -e -1" );
+				if ( main::ZM_OPT_FRAME_SERVER )
+				{
+				}
 				if ( $task->{limit} )
 				{
 					addPendingTask( $task );
@@ -610,6 +615,9 @@ sub processTask
 			elsif( $instruction eq "stop" )
 			{
 				$command = main::ZM_PATH_BIN."/zmdc.pl stop zma -m ".$task->{monitor}->{Id};
+				push( @commands, main::ZM_PATH_BIN."/zmdc.pl stop zma -m ".$task->{monitor}->{Id} );
+				push( @commands, main::ZM_PATH_BIN."/zmdc.pl stop zmf -m ".$task->{monitor}->{Id} );
+				#push( @commands, main::ZM_PATH_BIN."/zmdc.pl stop zmfilter.pl -m ".$task->{monitor}->{Id}." -e -1" );
 			}
 		}
 		elsif( $class eq "alarm" )
@@ -637,7 +645,7 @@ sub processTask
 				}
 			}
 		}
-		if ( $command )
+		foreach my $command ( @commands )
 		{
 			print( "Executing command '$command'\n" );
 			qx( $command );

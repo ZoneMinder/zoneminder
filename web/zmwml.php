@@ -32,6 +32,7 @@ $bandwidth = "mobile";
 
 require_once( 'zmconfig.php' );
 require_once( 'zmdb.php' );
+require_once( 'zmfuncs.php' );
 require_once( 'zmactions.php' );
 
 define( "WAP_COOKIES", false );

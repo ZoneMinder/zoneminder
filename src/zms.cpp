@@ -35,6 +35,10 @@ int main(void )
 	unsigned long idle = 5000;
 	unsigned long refresh = 50;
 
+	zm_dbg_name = "zms";
+
+	zmDbgInit();
+
 	const char *query = getenv( "QUERY_STRING" );
 	if ( query )
 	{
@@ -79,10 +83,6 @@ int main(void )
 				idle = atol( value );
 		}
 	}
-
-	zm_dbg_name = "zms";
-
-	zmDbgInit();
 
 	zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
 

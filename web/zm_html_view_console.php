@@ -154,7 +154,7 @@ newWindow( '<?= $PHP_SELF ?>?view=version', 'zmVersion', <?= $jws['version']['w'
 if ( canView( 'System' ) )
 {
 ?>
-<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=groups', 'zmGroups', <?= $jws['groups']['w'] ?>, <?= $jws['groups']['h'] ?> );"><?= sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) ) ?></a>
+<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=groups', 'zmGroups', <?= $jws['groups']['w'] ?>, <?= $jws['groups']['h'] ?> );"><?= sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) ).($group?' ('.$group['Name'].')':'') ?></a>
 <?php
 }
 else

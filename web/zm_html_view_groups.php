@@ -129,6 +129,7 @@ else
 <tr>
 <td align="right" colspan="3" class="text">
 <input type="button" name="select_btn" value="<?= $zmSlangSelect ?>" class="form" onClick="group_form.action.value='group'; group_form.submit();" disabled>&nbsp;&nbsp;
+<input type="button" name="none_btn" value="<?= $zmSlangNone ?>" class="form" onClick="group_form.action.value='group'; group_form.submit();">&nbsp;&nbsp;
 <input type="button" name="new_btn" value="<?= $zmSlangNew ?>" class="form" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&monitor_ids='+monitorIds()+'&new=1'">&nbsp;&nbsp;
 <input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="group_form.action.value='<?= $view ?>'; group_form.action.value='delete'; group_form.submit();" disabled>&nbsp;&nbsp;
 <input type="button" value="<?= $zmSlangSave ?>" class="form" onClick="group_form.submit()">&nbsp;&nbsp;

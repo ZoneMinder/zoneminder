@@ -388,8 +388,12 @@ if ( isset($action) )
 			if ( count($mark_gids) )
 			{
 				setcookie( "cgroup", $mark_gids[0], time()+3600*24*30*12*10 );
-				$refresh_parent = true;
 			}
+			else
+			{
+				setcookie( "cgroup", "", time()-3600*24*2 );
+			}
+			$refresh_parent = true;
 		}
 	}
 	if ( canEdit( 'System' ) )

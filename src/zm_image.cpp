@@ -464,7 +464,7 @@ Image *Image::Delta( const Image &image ) const
 	}
 	else
 	{
-		static unsigned char red, green, blue;
+		static long red, green, blue;
 		while( psrc < (buffer+size) )
 		{
 			if ( ZM_FAST_RGB_DIFFS )
@@ -490,6 +490,7 @@ Image *Image::Delta( const Image &image ) const
 				// to YUV conversion. Should still be integer but a bit slower
 
 				*pdiff++ = abs(((19595*red)>>16) + ((37159*green)>>16) + ((7471*blue)>>16));
+				//Info(( "R1:%d, R2:%d, G1:%d, G2:%d, B1:%d, B2:%d, DR: %d, DG: %d, DB: %d, Diff = %d", *(psrc-3), *(pref-3), *(psrc-2), *(pref-2), *(psrc-1), *(pref-1), ((19595*red)>>16), ((37159*green)>>16), ((7471*blue)>>16), *(pdiff-1) ));
 			}
 		}
 	}

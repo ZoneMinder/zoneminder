@@ -936,7 +936,7 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_H_VIDEO_BITRATE",
-		default => "500000",
+		default => "150000",
 		description => "How long (in milliseconds) between streamed frames in the watch window",
 		help => "The top frame of the monitor window when monitoring a live feed in streaming mode contains a continuous stream of images. This option controls how often a new frame is sent to the browser when the monitor is idle, ie. not in alarm state. It makes little sense to set this too small as if it results in frames being sent much faster than they are being captured you will just get the same ones over and over. It should be set to be less or equal to the capture rate of the cameras you are using which will normally be between 2 and 25 Frames Per Second which maps to values between 500 and 40 being used here though your bandwidth may well limit how much can actually be sent. Note also that this is the update rate when no alarms are being generated, if an alarm situation occurs then the rate speeds up as per the next option so this can be set to a longer delay without you missing anything.",
 		type => $types{integer},
@@ -1010,11 +1010,11 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_M_VIDEO_BITRATE",
-		default => "200000",
+		default => "75000",
 		description => "How long (in milliseconds) between streamed frames in the watch window",
 		help => "The top frame of the monitor window when monitoring a live feed in streaming mode contains a continuous stream of images. This option controls how often a new frame is sent to the browser when the monitor is idle, ie. not in alarm state. It makes little sense to set this too small as if it results in frames being sent much faster than they are being captured you will just get the same ones over and over. It should be set to be less or equal to the capture rate of the cameras you are using which will normally be between 2 and 25 Frames Per Second which maps to values between 500 and 40 being used here though your bandwidth may well limit how much can actually be sent. Note also that this is the update rate when no alarms are being generated, if an alarm situation occurs then the rate speeds up as per the next option so this can be set to a longer delay without you missing anything.",
 		type => $types{integer},
-		category => 'highband',
+		category => 'medband',
 	},
 	{
 		name => "ZM_WEB_M_STREAM_IDLE_DELAY",
@@ -1084,11 +1084,11 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_L_VIDEO_BITRATE",
-		default => "50000",
+		default => "25000",
 		description => "How long (in milliseconds) between streamed frames in the watch window",
 		help => "The top frame of the monitor window when monitoring a live feed in streaming mode contains a continuous stream of images. This option controls how often a new frame is sent to the browser when the monitor is idle, ie. not in alarm state. It makes little sense to set this too small as if it results in frames being sent much faster than they are being captured you will just get the same ones over and over. It should be set to be less or equal to the capture rate of the cameras you are using which will normally be between 2 and 25 Frames Per Second which maps to values between 500 and 40 being used here though your bandwidth may well limit how much can actually be sent. Note also that this is the update rate when no alarms are being generated, if an alarm situation occurs then the rate speeds up as per the next option so this can be set to a longer delay without you missing anything.",
 		type => $types{integer},
-		category => 'highband',
+		category => 'lowband',
 	},
 	{
 		name => "ZM_WEB_L_STREAM_IDLE_DELAY",

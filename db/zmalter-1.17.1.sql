@@ -5,6 +5,7 @@
 --
 alter table Zones change column AlarmThreshold MinPixelThreshold smallint unsigned;
 alter table Zones add column MaxPixelThreshold smallint unsigned after MinPixelThreshold;
+alter table Events drop column ImagePath;
 --
 -- These are optional, but we might as well
 --

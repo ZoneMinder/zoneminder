@@ -48,7 +48,7 @@ double round(double);
 class Image
 {
 protected:
-	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6, CHAR_START=4 };
+	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 };
 	typedef unsigned char BlendTable[256][256];
 	typedef BlendTable *BlendTablePtr;
 

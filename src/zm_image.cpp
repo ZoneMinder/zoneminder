@@ -572,33 +572,52 @@ Image *Image::Delta( const Image &image ) const
 
 void Image::Annotate( const char *text, const Coord &coord, const Rgb colour )
 {
-	int len = strlen( text );
-	int text_x = coord.X();
-	int text_y = coord.Y();
+	int text_len = strlen( text );
+	int text_width = text_len * CHAR_WIDTH;
+	int text_height = CHAR_HEIGHT;
 
-	if ( text_x > width-(len*CHAR_WIDTH) )
+	int lo_text_x = coord.X();
+	int lo_text_y = coord.Y();
+
+	int min_text_x = 0;
+	int max_text_x = width - text_width;
+	int min_text_y = 0;
+	int max_text_y = height - text_height;
+
+	if ( lo_text_x > max_text_x )
+		lo_text_x = max_text_x;
+	if ( lo_text_x < min_text_x )
+		lo_text_x = min_text_x;
+	if ( lo_text_y > max_text_y )
+		lo_text_y = max_text_y;
+	if ( lo_text_y < min_text_y )
+		lo_text_y = min_text_y;
+
+	int hi_text_x = lo_text_x + text_width;
+	int hi_text_y = lo_text_y + text_height;
+
+	if ( hi_text_x > width )
+		hi_text_x = width;
+	if ( hi_text_y > height )
+		hi_text_y = height;
+
+	int wc = width * colours;
+
+	unsigned char *ptr = &buffer[((lo_text_y*width)+lo_text_x)*colours];
+	for ( int y = lo_text_y, r = 0; y < hi_text_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
 	{
-		text_x = width-(len*CHAR_WIDTH);
-	}
-	if ( text_y > height-CHAR_HEIGHT )
-	{
-		text_y = height-CHAR_HEIGHT;
-	}
-	for ( int y = text_y; y < (text_y+CHAR_HEIGHT); y++)
-	{
-		JSAMPLE *ptr = &buffer[((y*width)+text_x)*3];
-		for ( int x = 0; x < len; x++)
+		unsigned char *temp_ptr = ptr;
+		for ( int x = lo_text_x, c = 0; x < hi_text_x && c < text_len; c++ )
 		{
-			int f = fontdata[text[x] * CHAR_HEIGHT + (y-text_y)];
-			for ( int i = CHAR_WIDTH-1; i >= 0; i--)
+			int f = fontdata[(text[c] * CHAR_HEIGHT) + r];
+			for ( int i = 0; i < CHAR_WIDTH && x < hi_text_x; i++, x++, temp_ptr += colours )
 			{
-				if (f & (CHAR_START << i))
+				if ( f & (0x80 >> i) )
 				{
-					RED(ptr) = RGB_VAL(colour,0);
-					GREEN(ptr) = RGB_VAL(colour,1);
-					BLUE(ptr) = RGB_VAL(colour,2);
+					RED(temp_ptr) = RGB_VAL(colour,0);
+					GREEN(temp_ptr) = RGB_VAL(colour,1);
+					BLUE(temp_ptr) = RGB_VAL(colour,2);
 				}
-				ptr += colours;
 			}
 		}
 	}
@@ -606,55 +625,83 @@ void Image::Annotate( const char *text, const Coord &coord, const Rgb colour )
 
 void Image::Annotate( const char *text, const Coord &coord )
 {
-	int len = strlen( text );
-	int text_x = coord.X();
-	int text_y = coord.Y();
+	int text_len = strlen( text );
+	int text_width = text_len * CHAR_WIDTH;
+	int text_height = CHAR_HEIGHT;
 
-	if ( text_x > width-(len*CHAR_WIDTH) )
+	int lo_text_x = coord.X();
+	int lo_text_y = coord.Y();
+
+	int min_text_x = 0;
+	int max_text_x = width - text_width;
+	int min_text_y = 0;
+	int max_text_y = height - text_height;
+
+	if ( lo_text_x > max_text_x )
+		lo_text_x = max_text_x;
+	if ( lo_text_x < min_text_x )
+		lo_text_x = min_text_x;
+	if ( lo_text_y > max_text_y )
+		lo_text_y = max_text_y;
+	if ( lo_text_y < min_text_y )
+		lo_text_y = min_text_y;
+
+	int hi_text_x = lo_text_x + text_width;
+	int hi_text_y = lo_text_y + text_height;
+
+	if ( hi_text_x > width )
+		hi_text_x = width;
+	if ( hi_text_y > height )
+		hi_text_y = height;
+
+	Warning(( "TL:%d, TW:%d, TH:%d", text_len, text_width, text_height ));
+	Warning(( "LTX:%d, HTX:%d, MnTX:%d, MxTX:%d", lo_text_x, hi_text_x, min_text_x, max_text_x ));
+	Warning(( "LTY:%d, HTY:%d, MnTY:%d, MxTY:%d", lo_text_y, hi_text_y, min_text_y, max_text_y ));
+	if ( colours == 1 )
 	{
-		text_x = width-(len*CHAR_WIDTH);
-	}
-	if ( text_y > height-CHAR_HEIGHT )
-	{
-		text_y = height-CHAR_HEIGHT;
-	}
-	for ( int y = text_y; y < (text_y+CHAR_HEIGHT); y++)
-	{
-		JSAMPLE *ptr = &buffer[((y*width)+text_x)*colours];
-		for ( int x = 0; x < len; x++)
+		unsigned char *ptr = &buffer[(lo_text_y*width)+lo_text_x];
+		for ( int y = lo_text_y, r = 0; y < hi_text_y && r < CHAR_HEIGHT; y++, r++, ptr += width )
 		{
-			int f = fontdata[text[x] * CHAR_HEIGHT + (y-text_y)];
-			for ( int i = CHAR_WIDTH-1; i >= 0; i--)
+			unsigned char *temp_ptr = ptr;
+			for ( int x = lo_text_x, c = 0; x < hi_text_x && c < text_len; c++ )
 			{
-				if (f & (CHAR_START << i))
+				int f = fontdata[(text[c] * CHAR_HEIGHT) + r];
+				for ( int i = 0; i < CHAR_WIDTH && x < hi_text_x; i++, x++, temp_ptr++ )
 				{
-					if ( colours == 1 )
+					if ( f & (0x80 >> i) )
 					{
-						*ptr++ = WHITE;
-						continue;
+						*temp_ptr = WHITE;
 					}
 					else
 					{
-						RED(ptr) = GREEN(ptr) = BLUE(ptr) = WHITE;
-						ptr += 3;
-						continue;
+						*temp_ptr = BLACK;
 					}
 				}
-				else
+			}
+		}
+	}
+	else
+	{
+		int wc = width * colours;
+
+		unsigned char *ptr = &buffer[((lo_text_y*width)+lo_text_x)*colours];
+		for ( int y = lo_text_y, r = 0; y < hi_text_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
+		{
+			unsigned char *temp_ptr = ptr;
+			for ( int x = lo_text_x, c = 0; x < hi_text_x && c < text_len; c++ )
+			{
+				int f = fontdata[(text[c] * CHAR_HEIGHT) + r];
+				for ( int i = 0; i < CHAR_WIDTH && x < hi_text_x; i++, x++, temp_ptr += colours )
 				{
-					if ( colours == 1 )
+					if ( f & (0x80 >> i) )
 					{
-						*ptr++ = BLACK;
-						continue;
+						RED(temp_ptr) = GREEN(temp_ptr) = BLUE(temp_ptr) = WHITE;
 					}
 					else
 					{
-						RED(ptr) = GREEN(ptr) = BLUE(ptr) = BLACK;
-						ptr += 3;
-						continue;
+						RED(temp_ptr) = GREEN(temp_ptr) = BLUE(temp_ptr) = BLACK;
 					}
 				}
-				//ptr += colours;
 			}
 		}
 	}

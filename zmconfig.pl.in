@@ -956,7 +956,7 @@ sub breaktext
 
 if ( $reprocess )
 {
-	my @config_files = qw( src/zm_config.h web/zmconfig.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zm db/zmschema.sql );
+	my @config_files = qw( src/zm_config.h web/zm_config.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zm db/zmschema.sql );
 
 	foreach my $config_file ( @config_files )
 	{

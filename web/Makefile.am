@@ -6,9 +6,9 @@ webdir = @WEB_PREFIX@
 webuser = @WEB_USER@
 webgroup = @WEB_GROUP@
 
-web_DATA = zmactions.php zmconfig.php zmdb.php zmfuncs.php zmhtml.php zm.php zmstyles.css zmwml.php
+web_DATA = zm_actions.php zm_config.php zm_db.php zm_funcs.php zm_html.php zm.php zm_styles.css zm_wml.php
 
-EXTRA_DIST = zmconfig.php.z zmactions.php zmdb.php zmfuncs.php zmhtml.php zm.php zmstyles.css zmwml.php swap.pl retag.sh
+EXTRA_DIST = zm_config.php.z zm_actions.php zm_db.php zm_funcs.php zm_html.php zm.php zm_styles.css zm_wml.php swap.pl retag.sh
 
 # Yes, you are correct. This is a HACK!
 install-data-local:

@@ -27,7 +27,7 @@ function closeWindow()
 <body>
 <table width="96%" border="0">
 <tr>
-<td align="left" class="smallhead"><b>Image <?= $eid."-".$fid ?></b></td>
+<td align="left" class="smallhead"><b>Frame <?= $eid."-".$fid ?></b></td>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
 <tr><td colspan="2"><table width="100%" border="0" bgcolor="#7F7FB2" cellpadding="3" cellspacing="1"><tr bgcolor="#FFFFFF">

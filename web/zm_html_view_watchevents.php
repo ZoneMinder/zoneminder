@@ -136,7 +136,7 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $row[Name] ?></a></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($row[StartTime]) ) ?></td>
 <td align="center" class="text"><?= $row[Length] ?></td>
-<td align="center" class="text"><?= $row[Frames] ?>/<?= $row[AlarmFrames] ?></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $row[Frames] ?>/<?= $row[AlarmFrames] ?></a></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $row[Id] ?>&fid=0', 'zmImage', <?= $monitor[Width]+$jws['image']['w'] ?>, <?= $monitor[Height]+$jws['image']['h'] ?> );"><?= $row[AvgScore] ?>/<?= $row[MaxScore] ?></a></td>
 <td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>

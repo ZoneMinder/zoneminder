@@ -144,7 +144,7 @@ $jws = array(
 	'options' => array( 'w'=>760, 'h'=>440 ),
 	'optionhelp' => array( 'w'=>320, 'h'=>240 ),
 	'restarting' => array( 'w'=>250, 'h'=>150 ),
-	'user' => array( 'w'=>230, 'h'=>320 ),
+	'user' => array( 'w'=>230, 'h'=>340 ),
 	'settings' => array( 'w'=>200, 'h'=>225 ),
 	'logout' => array( 'w'=>200, 'h'=>100 ),
 	'bandwidth' => array( 'w'=>200, 'h'=>90 ),

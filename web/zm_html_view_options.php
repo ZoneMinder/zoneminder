@@ -143,7 +143,7 @@ function validateForm( form )
 <tr>
 <td align="left" class="smallhead"><?= $zmSlangId ?></td>
 <td align="left" class="smallhead"><?= $zmSlangUsername ?></td>
-<td align="left" class="smallhead"><?= $zmSlangPassword ?></td>
+<td align="left" class="smallhead"><?= $zmSlangLanguage ?></td>
 <td align="left" class="smallhead"><?= $zmSlangEnabled ?></td>
 <td align="left" class="smallhead"><?= $zmSlangStream ?></td>
 <td align="left" class="smallhead"><?= $zmSlangEvents ?></td>
@@ -162,7 +162,7 @@ function validateForm( form )
 <tr onMouseOver="this.className='over'" onMouseOut="this.className='out'">
 <td align="left" class="ruled"><?= $row[Id] ?></td>
 <td align="left" class="ruled"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=user&uid=$row[Id]', 'zmUser', ".$jws['user']['w'].", ".$jws['user']['h']." );", $row[Username].($user[Username]==$row[Username]?"*":""), canEdit( 'System' ) ) ?></td>
-<td align="left" class="ruled">********</td>
+<td align="left" class="ruled"><?= $row[Language]?$row[Language]:'default' ?></td>
 <td align="left" class="ruled"><?= $row[Enabled]?$zmSlangYes:$zmSlangNo ?></td>
 <td align="left" class="ruled"><?= $row[Stream] ?></td>
 <td align="left" class="ruled"><?= $row[Events] ?></td>

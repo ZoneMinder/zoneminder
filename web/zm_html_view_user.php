@@ -76,6 +76,7 @@ function closeWindow()
 <tr><td align="right" class="text"><?= $zmSlangUsername ?></td><td align="left" class="text"><input type="text" name="new_username" value="<?= $row[Username] ?>" size="16" class="form"></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangNewPassword ?></td><td align="left" class="text"><input type="password" name="new_password" value="<?= $row[Password] ?>" size="16" class="form"></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangConfirmPassword ?></td><td align="left" class="text"><input type="password" name="new_password2" value="<?= $row[Password] ?>" size="16" class="form"></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangLanguage ?></td><td align="left" class="text"><input type="text" name="new_language" value="<?= $row[Language] ?>" size="16" class="form"></td></tr>
 <?php
 	$new_enabled = $row[Enabled];
 	$yesno = array( 0=>$zmSlangNo, 1=>$zmSlangYes );

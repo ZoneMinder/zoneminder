@@ -1,12 +1,24 @@
 <?php
 
-// Change this to be whatever you want your default language to be
-$default_lang = "en_gb";
-$lang_file = 'zm_lang_'.ZM_LANG_DEFAULT.'.php';
+$fallback_lang_file = 'zm_lang_en_gb.php';
+$system_lang_file = 'zm_lang_'.ZM_LANG_DEFAULT.'.php';
 
-if ( !file_exists( $lang_file ) )
+if ( $user[Language] )
 {
-	$lang_file = 'zm_lang_'.$default_lang.'.php';
+	$user_lang_file = 'zm_lang_'.$user[Language].'.php';
+}
+
+if ( $user_lang_file && file_exists( $user_lang_file ) )
+{
+	$lang_file = $user_lang_file;
+}
+elseif ( file_exists( $system_lang_file ) )
+{
+	$lang_file = $system_lang_file;
+}
+else
+{
+	$lang_file = $fallback_lang_file;
 }
 
 require_once( $lang_file );

@@ -457,6 +457,7 @@ if ( $action )
 			$changes = array();
 			if ( $new_username != $row[Username] ) $changes[] = "Username = '$new_username'";
 			if ( $new_password != $row[Password] ) $changes[] = "Password = password('$new_password')";
+			if ( $new_username != $row[Language] ) $changes[] = "Language = '$new_language'";
 			if ( $new_enabled != $row[Enabled] ) $changes[] = "Enabled = '$new_enabled'";
 			if ( $new_stream != $row[Stream] ) $changes[] = "Stream = '$new_stream'";
 			if ( $new_events != $row[Events] ) $changes[] = "Events = '$new_events'";

@@ -175,7 +175,15 @@ while( 1 )
 				print( "Checking filter '$filter->{Name}'".($filter->{AutoDelete}?", delete":"").($filter->{AutoUpload}?", upload":"")."\n" );
 				my $sql = $filter->{Sql};
 				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				my $res = $sth->execute( $event_id ) or die( "Can't execute: ".$sth->errstr() );
+				my $res;
+				if ( $filter->{has_dates} )
+				{
+					$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+				}
+				else
+				{
+					$res = $sth->execute( $event_id ) or die( "Can't execute: ".$sth->errstr() );
+				}
 
 				while( my $event = $sth->fetchrow_hashref() )
 				{
@@ -230,10 +238,10 @@ while( 1 )
 						{
 							print( "Uploading to ".FTP_HOST."\n" );
 							my $ftp = Net::FTP->new( FTP_HOST, Timeout=>FTP_TIMEOUT, Passive=>FTP_PASSIVE, Debug=>FTP_DEBUG );
-							$ftp->login( FTP_USER, FTP_PASS ) or die( "FTP - Can't login" );
-							$ftp->binary() or die( "FTP - Can't go binary" );
-							$ftp->cwd( FTP_REM_DIR ) or die( "FTP - Can't cwd" );
-							$ftp->put( $arch_file ) or die( "FTP - Can't upload '$arch_file'" );
+							$ftp->login( FTP_USER, FTP_PASS ) or warn( "FTP - Can't login" );
+							$ftp->binary() or warn( "FTP - Can't go binary" );
+							$ftp->cwd( FTP_REM_DIR ) or warn( "FTP - Can't cwd" );
+							$ftp->put( $arch_file ) or warn( "FTP - Can't upload '$arch_file'" );
 							$ftp->quit() or warn( "FTP - Can't quit" );
 							unlink( $arch_file );
 						}
@@ -283,7 +291,8 @@ sub GetFilters
 			}
 		}
 		#print( Dumper( %filter_terms ) );
-		my $sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Events as E inner join Monitors as M on M.Id = E.MonitorId where M.Id = '$monitor' and E.Id > ?";
+		#my $sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Events as E inner join Monitors as M on M.Id = E.MonitorId where M.Id = '$monitor' and E.Id > ?";
+		my $sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Events as E inner join Monitors as M on M.Id = E.MonitorId where M.Id = '$monitor'";
 		my $filter_sql = '';
 		for ( my $i = 1; $i <= $filter_terms{trms}; $i++ )
 		{
@@ -312,11 +321,15 @@ sub GetFilters
 						next FILTER;
 					}
 					$filter_sql .= "E.StartTime ".$filter_terms{$op_name}." from_unixtime( $dt_val )";
+					# Indicate that this filter uses dates and so should not be dependant on the event id
+					$filter_data->{has_dates} = !undef;
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Date' )
 				{
 					my $dt_val = strtotime( $filter_terms{$value_name} );
 					$filter_sql .= "to_days( E.StartTime ) ".$filter_terms{$op_name}." to_days( from_unixtime( $dt_val ) )";
+					# Indicate that this filter uses dates and so should not be dependant on the event id
+					$filter_data->{has_dates} = !undef;
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Time' )
 				{
@@ -345,6 +358,10 @@ sub GetFilters
 		if ( $filter_sql )
 		{
 			$sql .= " and ( $filter_sql )";
+		}
+		if ( !$filter_data->{has_dates} )
+		{
+			$sql .= " and E.Id > ?";
 		}
 		$sql .= " order by E.Id";
 		#print $sql."\n";

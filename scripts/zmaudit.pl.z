@@ -54,7 +54,7 @@ BEGIN
 		if (( $name eq 'ZM_DB_SERVER' ) ||
 			( $name eq 'ZM_DB_NAME' ) ||
 			( $name eq 'ZM_DB_USER' ) ||
-			( $name eq 'ZM_DB_PASS' )
+			( $name eq 'ZM_DB_PASS' ))
 		{
 			*{$name} = sub { $value };
 		}

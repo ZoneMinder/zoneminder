@@ -50,17 +50,7 @@ if ( $action )
 		{
 			foreach( $mark_eids as $mark_eid )
 			{
-				$result = mysql_query( "delete from Stats where EventId = '$mark_eid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$result = mysql_query( "delete from Frames where EventId = '$mark_eid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$result = mysql_query( "delete from Events where Id = '$mark_eid'" );
-				if ( !$result )
-					die( mysql_error() );
-				if ( $mark_eid )
-					system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $mark_eid ) ) );
+				deleteEvent( $mark_eid );
 			}
 		}
 		elseif ( $mark_zids )
@@ -104,17 +94,7 @@ if ( $action )
 				}
 				foreach( $mark_eids as $mark_eid )
 				{
-					$result = mysql_query( "delete from Stats where EventId = '$mark_eid'" );
-					if ( !$result )
-						die( mysql_error() );
-					$result = mysql_query( "delete from Frames where EventId = '$mark_eid'" );
-					if ( !$result )
-						die( mysql_error() );
-					$result = mysql_query( "delete from Events where Id = '$mark_eid'" );
-					if ( !$result )
-						die( mysql_error() );
-					if ( $mark_eid )
-						system( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $mark_eid ) );
+					deleteEvent( $mark_eid );
 				}
 				system( "rm -rf ".EVENT_PATH."/".$monitor[Name] );
 

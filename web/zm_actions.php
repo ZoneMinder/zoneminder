@@ -165,28 +165,8 @@ if ( isset($action) )
 				$zone = array();
 			}
 
-			$changes = array();
-			if ( $new_name != $zone['Name'] ) $changes[] = "Name = '$new_name'";
-			if ( $new_type != $zone['Type'] ) $changes[] = "Type = '$new_type'";
-			if ( $new_units != $zone['Units'] ) $changes[] = "Units = '$new_units'";
-			if ( $new_lo_x != $zone['LoX'] ) $changes[] = "LoX = '$new_lo_x'";
-			if ( $new_lo_y != $zone['LoY'] ) $changes[] = "LoY = '$new_lo_y'";
-			if ( $new_hi_x != $zone['HiX'] ) $changes[] = "HiX = '$new_hi_x'";
-			if ( $new_hi_y != $zone['HiY'] ) $changes[] = "HiY = '$new_hi_y'";
-			if ( $new_alarm_rgb != $zone['AlarmRGB'] ) $changes[] = "AlarmRGB = '$new_alarm_rgb'";
-			if ( $new_check_method != $zone['CheckMethod'] ) $changes[] = "CheckMethod = '$new_check_method'";
-			if ( $new_min_pixel_threshold != $zone['MinPixelThreshold'] ) $changes[] = "MinPixelThreshold = '$new_min_pixel_threshold'";
-			if ( $new_max_pixel_threshold != $zone['MaxPixelThreshold'] ) $changes[] = "MaxPixelThreshold = '$new_max_pixel_threshold'";
-			if ( $new_min_alarm_pixels != $zone['MinAlarmPixels'] ) $changes[] = "MinAlarmPixels = '$new_min_alarm_pixels'";
-			if ( $new_max_alarm_pixels != $zone['MaxAlarmPixels'] ) $changes[] = "MaxAlarmPixels = '$new_max_alarm_pixels'";
-			if ( $new_filter_x != $zone['FilterX'] ) $changes[] = "FilterX = '$new_filter_x'";
-			if ( $new_filter_y != $zone['FilterY'] ) $changes[] = "FilterY = '$new_filter_y'";
-			if ( $new_min_filter_pixels != $zone['MinFilterPixels'] ) $changes[] = "MinFilterPixels = '$new_min_filter_pixels'";
-			if ( $new_max_filter_pixels != $zone['MaxFilterPixels'] ) $changes[] = "MaxFilterPixels = '$new_max_filter_pixels'";
-			if ( $new_min_blob_pixels != $zone['MinBlobPixels'] ) $changes[] = "MinBlobPixels = '$new_min_blob_pixels'";
-			if ( $new_max_blob_pixels != $zone['MaxBlobPixels'] ) $changes[] = "MaxBlobPixels = '$new_max_blob_pixels'";
-			if ( $new_min_blobs != $zone['MinBlobs'] ) $changes[] = "MinBlobs = '$new_min_blobs'";
-			if ( $new_max_blobs != $zone['MaxBlobs'] ) $changes[] = "MaxBlobs = '$new_max_blobs'";
+			$types = array();
+			$changes = getFormChanges( $zone, $new_zone, $types );
 
 			if ( count( $changes ) )
 			{
@@ -199,7 +179,7 @@ if ( isset($action) )
 					$sql = "insert into Zones set MonitorId = '$mid', ".implode( ", ", $changes );
 					$view = 'none';
 				}
-				#echo "<html>$sql</html>";
+				//echo "<html>$sql</html>";
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );

@@ -76,9 +76,9 @@ while ( $row = mysql_fetch_assoc( $result ) )
 }
 
 if ( !isset( $rate ) )
-	$rate = RATE_SCALE;
+	$rate = ZM_WEB_DEFAULT_RATE;
 if ( !isset( $scale ) )
-	$scale = SCALE_SCALE;
+	$scale = ZM_WEB_DEFAULT_SCALE;
 
 $frames_per_page = EVENT_FRAMES_PER_LINE * EVENT_FRAME_LINES;
 

@@ -33,7 +33,7 @@ if ( empty($mode) )
 }
 
 if ( !isset( $scale ) )
-	$scale = SCALE_SCALE;
+	$scale = ZM_WEB_DEFAULT_SCALE;
 
 $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )

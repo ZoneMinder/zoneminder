@@ -131,7 +131,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 <?php
 	}
 ?>
-<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=bandwidth', 'zmBandwidth', <?= $jws['bandwidth']['w'] ?>, <?= $jws['bandwidth']['h'] ?>);"><?= $bandwidth ?></a> <?= strtolower( $zmSlangBandwidth ) ?></td>
+<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=bandwidth', 'zmBandwidth', <?= $jws['bandwidth']['w'] ?>, <?= $jws['bandwidth']['h'] ?>);"><?= strtolower( $bw_array[$bandwidth] ) ?></a> <?= strtolower( $zmSlangBandwidth ) ?></td>
 <td class="smallhead" align="right"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=options', 'zmOptions', ".$jws[options][w].", ".$jws[options][h]." );", $zmSlangOptions, canView( 'System' ) ) ?></td>
 </tr>
 </table>

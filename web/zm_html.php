@@ -54,6 +54,12 @@ require_once( 'zm_lang.php' );
 require_once( 'zm_funcs.php' );
 require_once( 'zm_actions.php' );
 
+$bw_array = array(
+	"high"=>$zmSlangHigh,
+	"medium"=>$zmSlangMedium,
+	"low"=>$zmSlangLow
+);
+
 $rates = array(
 	"0" => $zmSlangMax,
 	"10" => "10x",

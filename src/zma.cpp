@@ -26,13 +26,17 @@
 
 void zm_die_handler( int signal )
 {
-        char * error = strsignal(signal);
-        size_t errorStringSize = strlen(error) + strlen("Got signal (), crashing.");
-        char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
-        (void) snprintf(errorString, errorStringSize, "Got signal (%s), crashing.", error);
+#if HAVE_DECL_STRSIGNAL
+	char * error = strsignal(signal);
+	size_t errorStringSize = strlen(error) + strlen("Got signal (), crashing.");
+	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
+	(void) snprintf(errorString, errorStringSize, "Got signal (%s), crashing.", error);
 
-        Info(( (const char *)errorString ));
-        free(errorString);
+	Info(( (const char *)errorString ));
+	free(errorString);
+#else /* HAVE_DECL_STRSIGNAL */
+	Info(( "Got signal %d, crashing", signal ));
+#endif /* HAVE_DECL_STRSIGNAL */
 	exit( signal );
 }
 
@@ -40,13 +44,17 @@ bool zma_terminate = false;
 
 void zm_term_handler( int signal )
 {
-        char * error = strsignal(signal);
-        size_t errorStringSize = strlen(error) + strlen("Got signal (), exiting.");
-        char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
-        (void) snprintf(errorString, errorStringSize, "Got signal (%s), exiting.", error);
+#if HAVE_DECL_STRSIGNAL
+	char * error = strsignal(signal);
+	size_t errorStringSize = strlen(error) + strlen("Got signal (), exiting.");
+	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
+	(void) snprintf(errorString, errorStringSize, "Got signal (%s), exiting.", error);
 
-        Info(( (const char *)errorString ));
-        free(errorString);
+	Info(( (const char *)errorString ));
+	free(errorString);
+#else /* HAVE_DECL_STRSIGNAL */
+	Info(( "Got TERM signal, exiting" ));
+#endif /* HAVE_DECL_STRSIGNAL */
 	zma_terminate = true;
 }
 

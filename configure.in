@@ -69,6 +69,7 @@ AC_HEADER_STDC
 AC_LANG_CPLUSPLUS
 
 AC_CHECK_DECLS(round,,,[#include <math.h>])
+AC_CHECK_DECLS(strsignal,,,[#include <string.h>])
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(z,compress,,AC_MSG_ERROR(zm requires libz.a))
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))

@@ -123,9 +123,9 @@ if ( isset($action) )
 			}
 		}
 	}
-	if ( isset($mid) && canEdit( 'Monitors', $mid ) )
+	if ( canEdit( 'Monitors', $mid ) )
 	{
-		if ( $action == "function" && $mid )
+		if ( $action == "function" && isset( $mid ) )
 		{
 			$sql = "select * from Monitors where Id = '$mid'";
 			$result = mysql_query( $sql );
@@ -318,7 +318,7 @@ if ( isset($action) )
 				$refresh_parent = true;
 			}
 		}
-		elseif ( $action == "settings" )
+		elseif ( $action == "settings" && isset( $mid ) )
 		{
 			$zmu_command = ZMU_COMMAND." -m $mid -B$new_brightness -C$new_contrast -H$new_hue -O$new_colour";
 			$zmu_output = exec( escapeshellcmd( $zmu_command ) );

@@ -213,14 +213,14 @@ my @options =
 		type => $types{boolean},
 	},
 	{
-		name => "ZM_OPT_LOCAL_BGR_INVERT",
+		name => "ZM_LOCAL_BGR_INVERT",
 		default => "yes",
 		description => "Invert BGR colours to RGB",
 		help => "Some cameras or video cards capture images in BGR (Blue-Green-Red) order even when the paletter says RGB. If you see strange colours casts on your images then it may be worth trying this option to see if that corrects the issue. Note this option will apply only to local cameras and not those over a network.",
 		type => $types{boolean},
 	},
 	{
-		name => "ZM_OPT_BLEND_ALARMED_IMAGES",
+		name => "ZM_BLEND_ALARMED_IMAGES",
 		default => "yes",
 		description => "Whether alarmed images are blended to update the reference image ",
 		help => "To detect alarms ZoneMinder compares an image with a reference image which is formed from a composite of the previous images. This option determines whether images that cause events are included in this process. Doing so may increase the precision of the alarmed region but can cause problems if wholescale lighting changes cause alarms as this would not get fed back into the image.",

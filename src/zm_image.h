@@ -120,7 +120,7 @@ public:
 			buffer = new JSAMPLE[size];
 			memset( buffer, 0, size );
 		}
-		if ( colours == 1 || !ZM_OPT_LOCAL_BGR_INVERT )
+		if ( colours == 1 || !ZM_LOCAL_BGR_INVERT )
 		{
 			memcpy( buffer, new_buffer, size );
 		}

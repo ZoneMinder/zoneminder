@@ -47,7 +47,11 @@ switch( $view )
 		daemonControl( 'check' );
 		if ( FAST_DELETE )
 		{
-			daemonControl( 'start', 'zmaudit.pl' );
+			daemonControl( 'start', 'zmaudit.pl', '--delay=900 --yes' );
+		}
+		if ( HAS_X10 )
+		{
+			daemonControl( 'start', 'zmx10.pl', '-c status' );
 		}
 
 		header("Refresh: ".REFRESH_MAIN."; URL='$PHP_SELF'" );

@@ -1043,8 +1043,10 @@ foreach my $option ( @options )
 	}
 }
 
+my $first_run = !(-s $config_file);
+
 my $file_option_count = 0;
-if ( -s $config_file )
+if ( !$first_run )
 {
 	$file_option_count = loadOptionsFromFile();
 }
@@ -1192,8 +1194,20 @@ sub saveOptionsToFile
 sub saveOptionsToDB
 {
 	print( "Saving config to DB\n" );
-	my $dbh = DBI->connect( "DBI:mysql:database=".$options_hash{ZM_DB_NAME}->{value}.";host=".$options_hash{ZM_DB_SERVER}->{value}, $options_hash{ZM_DB_USERA}->{value}, $options_hash{ZM_DB_PASSA}->{value} ) or die( "Can't connect: ".$DBI::errstr );
+	my $dbh = DBI->connect( "DBI:mysql:database=".$options_hash{ZM_DB_NAME}->{value}.";host=".$options_hash{ZM_DB_SERVER}->{value}, $options_hash{ZM_DB_USERA}->{value}, $options_hash{ZM_DB_PASSA}->{value} );
 
+	if ( !$dbh )
+	{
+		if ( $first_run )
+		{
+			print( "Warning: unable to save options to database. Ignore if database not created yet\n" );
+		}
+		else
+		{
+			print( "Error: unable to save options to database: $DBI::errstr\n" );
+		}
+		return( 0 );
+	}
 	my $sql = "delete from Config";
 	my $res = $dbh->do( $sql ) or die( "Can't do '$sql': ".$dbh->errstr() );
 
@@ -1278,7 +1292,20 @@ sub loadOptionsFromFile
 sub loadOptionsFromDB
 {
 	print( "Loading config from DB\n" );
-	my $dbh = DBI->connect( "DBI:mysql:database=".$options_hash{ZM_DB_NAME}->{value}.";host=".$options_hash{ZM_DB_SERVER}->{value}, $options_hash{ZM_DB_USERA}->{value}, $options_hash{ZM_DB_PASSA}->{value} ) or die( "Can't connect: ".$DBI::errstr );
+	my $dbh = DBI->connect( "DBI:mysql:database=".$options_hash{ZM_DB_NAME}->{value}.";host=".$options_hash{ZM_DB_SERVER}->{value}, $options_hash{ZM_DB_USERA}->{value}, $options_hash{ZM_DB_PASSA}->{value} );
+	
+	if ( !$dbh )
+	{
+		if ( $first_run )
+		{
+			print( "Warning: unable to load options from database. Ignore if database not created yet\n" );
+		}
+		else
+		{
+			print( "Error: unable to load options from database: $DBI::errstr\n" );
+		}
+		return( 0 );
+	}
 	my $sql = "select * from Config";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
@@ -1473,4 +1500,10 @@ if ( $reprocess )
 		print( CFG_FILE $data );
 		close( CFG_FILE );
 	}
+}
+
+if ( $first_run )
+{
+	print( "Now please create your database and database users and then run\n
+'perl zmconfig.pl -noi' to import your configuration into the database\n" );
 }

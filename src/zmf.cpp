@@ -234,7 +234,7 @@ int main( int argc, char *argv[] )
 			ReopenSocket( sd, monitor->Id() );
 		}
 		Debug( 1, ( "Read frame header, expecting %d bytes of image", frame_header.image_length ));
-		image_data = new unsigned char[frame_header.image_length];
+		static unsigned char image_data[ZM_MAX_IMAGE_SIZE];
 		if ( read( sd, image_data, frame_header.image_length ) != frame_header.image_length )
 		{
 			Error(( "Can't read frame image data: %s", strerror(errno) ));
@@ -256,8 +256,6 @@ int main( int argc, char *argv[] )
 			exit( -1 );
 		}
 		fclose( fd );
-		delete[] image_data;
-		image_data = 0;
 
 		sigprocmask( SIG_UNBLOCK, &block_set, 0 );
 	}

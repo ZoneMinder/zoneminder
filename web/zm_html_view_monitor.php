@@ -61,7 +61,7 @@
 		$new_monitor[Triggers] = split( ',', $monitor[Triggers] );
 		$new_x10_monitor = $x10_monitor;
 	}
-	$local_palettes = array( "Grey"=>1, "RGB24"=>4, "RGB565"=>3, "YUV420P"=>15 );
+	$local_palettes = array( "Grey"=>1, "RGB24"=>4, "RGB565"=>3, "RGB555"=>6, "YUV422P"=>13, "YUV420P"=>15 );
 	$remote_palettes = array( "8 bit greyscale"=>1, "24 bit colour"=>4 );
 	$orientations = array( "Normal"=>0, "Rotate Right"=>90, "Inverted"=>180, "Rotate Left"=>270 );
 ?>
@@ -320,7 +320,7 @@ function closeWindow()
 ?>
 <tr><td align="left" class="text">Maximum FPS</td><td align="left" class="text"><input type="text" name="new_monitor[MaxFPS]" value="<?= $new_monitor[MaxFPS] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">FPS Report Interval</td><td align="left" class="text"><input type="text" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_monitor[RefBlendPerc" value="<?= $new_monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
 <?php
 			break;
 		}

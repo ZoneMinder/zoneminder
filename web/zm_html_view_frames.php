@@ -47,7 +47,7 @@ function closeWindow()
 		foreach ( $frames as $frame )
 		{
 ?>
-<tr bgcolor="<?= $frame[AlarmFrame]?'#FF6347':'#FFFFFF' ?>">
+<tr bgcolor="<?= $frame[AlarmFrame]?'#FA8072':'#FFFFFF' ?>">
 <td class="text" align="center"><?= $frame[FrameId] ?></td>
 <td class="text" align="center"><?= $frame[AlarmFrame]?"yes":"no" ?></td>
 <td class="text" align="center"><?= date( "H:i:s", $frame[UnixTimeStamp] ) ?></td>

@@ -368,8 +368,8 @@ location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$event[Name]" ?><?php if ( $event[Archived] ) echo "*" ?></span></a></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event[StartTime]) ) ?></td>
 <td align="center" class="text"><?= $event[Length] ?></td>
-<td align="center" class="text"><?= $event[Frames] ?></td>
-<td align="center" class="text"><?= $event[AlarmFrames] ?></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&mid=<?= $mid ?>&eid=<?= $event[Id] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event[Frames] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&mid=<?= $mid ?>&eid=<?= $event[Id] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event[AlarmFrames] ?></a></td>
 <td align="center" class="text"><?= $event[TotScore] ?></td>
 <td align="center" class="text"><?= $event[AvgScore] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $event[Id] ?>&fid=0', 'zmImage', <?= $monitor[Width]+$jws['image']['w'] ?>, <?= $monitor[Height]+$jws['image']['h'] ?> );"><?= $event[MaxScore] ?></a></td>

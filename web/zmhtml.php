@@ -598,9 +598,16 @@ elseif ( $view == "events" )
 					$filter_query .= "&$op_name=".urlencode($$op_name);
 					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 					break;
-				case 'TimeOfDay':
+				case 'Date':
+					$date_val = strtotime( $$value_name );
+					$date_val += date( "Z", $date_val ); // Small hack for clock differences
+					$filter_sql .= "to_days( E.StartTime ) ".$$op_name." to_days( from_unixtime( $date_val ) )";
+					$filter_query .= "&$op_name=".urlencode($$op_name);
+					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
+					break;
+				case 'Time':
 					$time_val = strtotime( $$value_name );
-					$filter_sql .= "extract( hour_second from E.StartTime ) ".$$op_name." extract( hour_second from from_unixtime( $time_val ))";
+					$filter_sql .= "extract( hour_second from E.StartTime ) ".$$op_name." extract( hour_second from from_unixtime( $time_val ) )";
 					$filter_query .= "&$op_name=".urlencode($$op_name);
 					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 					break;
@@ -765,7 +772,7 @@ elseif ( $view == "filter" )
 		$obracket_types[$i] = str_repeat( "(", $i );
 		$cbracket_types[$i] = str_repeat( ")", $i );
 	}
-	$attr_types = array( 'DateTime'=>'Date/Time', 'TimeOfDay'=>'Time Of Day', 'Length'=>'Length', 'Frames'=>'Frames', 'AlarmFrames'=>'Alarm Frames', 'AvgScore'=>'Avg. Score', 'MaxScore'=>'Max. Score', 'Archived'=>'Archive Status' );
+	$attr_types = array( 'DateTime'=>'Date/Time', 'Date'=>'Date', 'Time'=>'Time', 'Length'=>'Length', 'Frames'=>'Frames', 'AlarmFrames'=>'Alarm Frames', 'AvgScore'=>'Avg. Score', 'MaxScore'=>'Max. Score', 'Archived'=>'Archive Status' );
 	$op_types = array( '='=>'equal to', '!='=>'not equal to', '>='=>'greater than or equal to', '>'=>'greater than', '<'=>'less than', '<='=>'less than or equal to' );
 	$archive_types = array( '0'=>'Unarchived Only', '1'=>'Archived Only' );
 ?>
@@ -879,10 +886,10 @@ for ( $i = 1; $i <= $trms; $i++ )
 <td class="text"><?php buildSelect( $value_name, $archive_types ); ?></td>
 <?php } elseif ( $$attr_name ) { ?>
 <td class="text"><?php buildSelect( $op_name, $op_types ); ?></td>
-<td class="text"><input name="<?php echo $value_name ?>" value="<?php echo $$value_name ?>" class="form" size="12"></td>
+<td class="text"><input name="<?php echo $value_name ?>" value="<?php echo $$value_name ?>" class="form" size="16"></td>
 <?php } else { ?>
 <td class="text"><?php buildSelect( $op_name, $op_types ); ?></td>
-<td class="text"><input name="<?php echo $value_name ?>" value="<?php echo $$value_name ?>" class="form" size="12"></td>
+<td class="text"><input name="<?php echo $value_name ?>" value="<?php echo $$value_name ?>" class="form" size="16"></td>
 <?php } ?>
 <td class="text"><?php if ( $trms > 2 ) { buildSelect( $cbracket_name, $cbracket_types ); } else { ?>&nbsp;<?php } ?></td>
 </tr>

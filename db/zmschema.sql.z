@@ -54,7 +54,8 @@ CREATE TABLE Events (
   UNIQUE KEY UC_Id (Id),
   KEY Id (Id,MonitorId),
   KEY MonitorId (MonitorId),
-  KEY StartTime (StartTime)
+  KEY StartTime (StartTime),
+  KEY Frames (Frames)
 ) TYPE=MyISAM;
 
 --

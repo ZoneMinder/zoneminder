@@ -1766,7 +1766,7 @@ bool Monitor::Analyse()
 			}
 		}
 	}
-	ref_image.Blend( *image, 10 );
+	ref_image.Blend( *image, BLEND_PERC );
 	DumpImage( image );
 
 	shared_images->last_read_index = index%IMAGE_BUFFER_COUNT;

@@ -524,6 +524,7 @@ public:
 class Monitor : public Camera
 {
 protected:
+#if 0
 	typedef enum
 	{
 		WARMUP_COUNT=25,
@@ -532,6 +533,7 @@ protected:
 		IMAGE_BUFFER_COUNT=100,
 		FPS_REPORT_INTERVAL=200,
 	};
+#endif
 	typedef enum
 	{
 		NONE=1,

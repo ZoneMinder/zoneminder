@@ -17,8 +17,6 @@ void main( int argc, const char *argv[] )
 
 	DbgInit();
 
-	//umask( 0 );
-
 	if ( !mysql_init( &dbconn ) )
 	{
 		fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );

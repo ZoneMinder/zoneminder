@@ -35,6 +35,7 @@ require_once( 'zm_config.php' );
 if ( ZM_OPT_USE_AUTH )
 {
 	$user = $HTTP_SESSION_VARS[user];
+	define( "ZMU_COMMAND", ZMU_PATH." -U $user[Username] -P $user[Password]" );
 }
 else
 {
@@ -47,6 +48,7 @@ else
 		"Monitors"=>'Edit',
 		"System"=>'Edit',
 	);
+	define( "ZMU_COMMAND", ZMU_PATH );
 }
 
 require_once( 'zm_funcs.php' );
@@ -908,7 +910,7 @@ function closeWindow()
 
 		// Prompt an image to be generated
 		chdir( ZM_DIR_IMAGES );
-		$status = exec( escapeshellcmd( ZMU_PATH." -m $monitor[Id] -i" ) );
+		$status = exec( escapeshellcmd( ZMU_COMMAND." -m $monitor[Id] -i" ) );
 											 
 		if ( ZM_WEB_REFRESH_METHOD == "http" )
 			header("Refresh: ".REFRESH_CYCLE."; URL=$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" );
@@ -1076,7 +1078,7 @@ window.focus();
 		{
 			// Prompt an image to be generated
 			chdir( ZM_DIR_IMAGES );
-			$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
+			$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -i" ) );
 			chdir( '..' );
 			if ( ZM_WEB_REFRESH_METHOD == "http" )
 				header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=montagefeed&mid=$mid&mode=still" );
@@ -1151,7 +1153,7 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 			$view = "error";
 			break;
 		}
-		$zmu_command = ZMU_PATH." -m $mid -s -f";
+		$zmu_command = ZMU_COMMAND." -m $mid -s -f";
 		$zmu_output = exec( escapeshellcmd( $zmu_command ) );
 		list( $status, $fps ) = split( ' ', $zmu_output );
 		$status_string = "Unknown";
@@ -1279,7 +1281,7 @@ window.focus();
 		{
 			// Prompt an image to be generated
 			chdir( ZM_DIR_IMAGES );
-			$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
+			$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -i" ) );
 			chdir( '..' );
 			if ( ZM_WEB_REFRESH_METHOD == "http" )
 				header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
@@ -1373,7 +1375,7 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 			die( mysql_error() );
 		$monitor = mysql_fetch_assoc( $result );
 
-		$zmu_command = ZMU_PATH." -m $mid -B -C -H -O";
+		$zmu_command = ZMU_COMMAND." -m $mid -B -C -H -O";
 		$zmu_output = exec( escapeshellcmd( $zmu_command ) );
 		list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
 ?>
@@ -1434,7 +1436,7 @@ function closeWindow()
 			$view = "error";
 			break;
 		}
-		$zmu_command = ZMU_PATH." -m $mid -s -f";
+		$zmu_command = ZMU_COMMAND." -m $mid -s -f";
 		if ( canEdit( 'Monitors' ) && isset($force) )
 		{
 			$zmu_command .= ($force?" -a":" -c"); 
@@ -2871,7 +2873,7 @@ $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 			break;
 		}
 		chdir( ZM_DIR_IMAGES );
-		$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -z" ) );
+		$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -z" ) );
 		chdir( '..' );
 
 		$result = mysql_query( "select * from Monitors where Id = '$mid'" );

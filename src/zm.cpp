@@ -908,9 +908,10 @@ unsigned int Image::Compare( const Image &image, int n_zones, Zone *zones[] ) co
 		int lo_y = zone->limits.Lo().Y();
 		int hi_x = zone->limits.Hi().X();
 		int hi_y = zone->limits.Hi().Y();
+		Debug( 3, ( "Zeroing zone %s, from %d,%d -> %d,%d", zone->Label(), lo_x, lo_y, hi_x, hi_y ));
 		for ( int y = lo_y; y <= hi_y; y++ )
 		{
-			unsigned char *pdelta = &delta_image->buffer[(y*delta_image->width)];
+			unsigned char *pdelta = &delta_image->buffer[(y*delta_image->width)+lo_x];
 			for ( int x = lo_x; x <= hi_x; x++ )
 			{
 				*pdelta++ = BLACK;
@@ -928,17 +929,18 @@ unsigned int Image::Compare( const Image &image, int n_zones, Zone *zones[] ) co
 		{
 			continue;
 		}
+		Debug( 3, ( "Checking active zone %s", zone->Label() ));
 		if ( zone_score = CheckAlarms( zone, delta_image ) )
 		{
 			alarm = true;
 			score += zone_score;
 			zone->alarmed = true;
+			Debug( 3, ( "Zone is alarmed, zone score = %d", zone_score ));
 		}
 	}
 
 	if ( alarm )
 	{
-		// Find all alarm pixels in inclusion zones
 		for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
 		{
 			Zone *zone = zones[n_zone];
@@ -946,11 +948,13 @@ unsigned int Image::Compare( const Image &image, int n_zones, Zone *zones[] ) co
 			{
 				continue;
 			}
+			Debug( 3, ( "Checking inclusive zone %s", zone->Label() ));
 			if ( zone_score = CheckAlarms( zone, delta_image ) )
 			{
 				alarm = true;
 				score += zone_score;
 				zone->alarmed = true;
+				Debug( 3, ( "Zone is alarmed, zone score = %d", zone_score ));
 			}
 		}
 	}
@@ -964,11 +968,13 @@ unsigned int Image::Compare( const Image &image, int n_zones, Zone *zones[] ) co
 			{
 				continue;
 			}
+			Debug( 3, ( "Checking exclusive zone %s", zone->Label() ));
 			if ( zone_score = CheckAlarms( zone, delta_image ) )
 			{
 				alarm = true;
 				score += zone_score;
 				zone->alarmed = true;
+				Debug( 3, ( "Zone is alarmed, zone score = %d", zone_score ));
 			}
 		}
 	}

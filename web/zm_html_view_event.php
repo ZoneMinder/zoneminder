@@ -31,6 +31,10 @@
 		$rate = 1;
 	if ( !isset( $scale ) )
 		$scale = 1;
+
+	$frames_per_page = EVENT_FRAMES_PER_LINE * EVENT_FRAME_LINES;
+
+	$paged = $event[Frames] > $frames_per_page;
 ?>
 <html>
 <head>
@@ -104,7 +108,15 @@ Scale: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </td>
 </tr>
 <tr>
-<td align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
+<?php if ( $mode == "stream" ) { ?>
+<td align="center" class="text"><a href="javascript: refreshWindow();">Replay</a></td>
+<?php } elseif ( $paged && $page ) { ?>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=0">All</a></td>
+<?php } elseif ( $paged && !$page ) { ?>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=1">Paged</a></td>
+<?php } else { ?>
+<td align="center" class="text">&nbsp;</td>
+<?php } ?>
 <td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=none&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>">Delete</a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php if ( $event[Archived] ) { ?>
 <td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&mid=<?= $mid ?>&eid=<?= $eid ?>">Unarchive</a><?php } else { ?>&nbsp;<?php } ?></td>
@@ -112,7 +124,7 @@ Scale: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 <td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=archive&mid=<?= $mid ?>&eid=<?= $eid ?>">Archive</a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>">Stills</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=1">Stills</a></td>
 <?php } elseif ( canStream() ) { ?>
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=stream&mid=<?= $mid ?>&eid=<?= $eid ?>">Stream</a></td>
 <?php } else { ?>
@@ -125,6 +137,79 @@ Scale: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 <?php } ?>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
+<?php
+	if ( $mode == "still" && $paged && $page )
+	{
+?>
+<?php
+		$pages = (int)ceil($event[Frames]/$frames_per_page);
+		$max_shortcuts = 5;
+?>
+<tr><td colspan="6" align="center" class="text">
+<?php
+		if ( $page < 0 )
+			$page = 1;
+		if ( $page > $pages )
+			$page = $pages;
+
+		if ( $page > 1 )
+		{
+			$new_pages = array();
+			$pages_used = array();
+			$lo_exp = max(2,log($page-1)/log($max_shortcuts));
+			for ( $i = 0; $i < $max_shortcuts; $i++ )
+			{
+				$new_page = round($page-pow($lo_exp,$i));
+				if ( $pages_used[$new_page] )
+					continue;
+				if ( $new_page <= 1 )
+					break;
+				$pages_used[$new_page] = true;
+				array_unshift( $new_pages, $new_page );
+			}
+			if ( !$pages_used[1] )
+				array_unshift( $new_pages, 1 );
+
+			foreach ( $new_pages as $new_page )
+			{
+?>
+<a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=<?= $new_page ?>"><?= $new_page ?></a>&nbsp;
+<?php
+			}
+		}
+?>
+-&nbsp;<?= $page ?>&nbsp;-
+<?php
+		if ( $page < $pages )
+		{
+			$new_pages = array();
+			$pages_used = array();
+			$hi_exp = max(2,log($pages-$page)/log($max_shortcuts));
+			for ( $i = 0; $i < $max_shortcuts; $i++ )
+			{
+				$new_page = round($page+pow($hi_exp,$i));
+				if ( $pages_used[$new_page] )
+					continue;
+				if ( $new_page > $pages )
+					break;
+				$pages_used[$new_page] = true;
+				array_push( $new_pages, $new_page );
+			}
+			if ( !$pages_used[$pages] )
+				array_push( $new_pages, $pages );
+
+			foreach ( $new_pages as $new_page )
+			{
+?>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=<?= $new_page ?>"><?= $new_page ?></a>
+<?php
+			}
+		}
+?>
+</td></tr>
+<?php
+	}
+?>
 <?php
 	if ( $mode == "stream" )
 	{
@@ -144,7 +229,10 @@ Scale: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 	}
 	else
 	{
-		$result = mysql_query( "select * from Frames where EventID = '$eid' order by Id" );
+		$sql = "select * from Frames where EventID = '$eid' order by Id";
+		if ( $paged && $page )
+			$sql .= " limit ".(($page-1)*$frames_per_page).", ".$frames_per_page;
+		$result = mysql_query( $sql );
 		if ( !$result )
 			die( mysql_error() );
 ?>

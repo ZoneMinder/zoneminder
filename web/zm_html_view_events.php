@@ -364,8 +364,8 @@ location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?
 				unset( $bgcolor );
 ?>
 <tr<?= ' bgcolor="'.($bgcolor?$bgcolor:"#FFFFFF").'"' ?> >
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$event[Id]" ?><?php if ( $event[Archived] ) echo "*" ?></span></a></td>
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$event[Name]" ?><?php if ( $event[Archived] ) echo "*" ?></span></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>&page=1', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$event[Id]" ?><?php if ( $event[Archived] ) echo "*" ?></span></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>&page=1', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$event[Name]" ?><?php if ( $event[Archived] ) echo "*" ?></span></a></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event[StartTime]) ) ?></td>
 <td align="center" class="text"><?= $event[Length] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&mid=<?= $mid ?>&eid=<?= $event[Id] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event[Frames] ?></a></td>

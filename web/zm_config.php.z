@@ -40,6 +40,8 @@ define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );				// Local path to the ZoneMinder Uti
 //
 define( "MAX_EVENTS", 10 );								// The maximum number of events to show in the monitor event listing
 define( "EVENT_HEADER_LINES", 25 );						// How many events are listed in the event window before a new header is inserted
+define( "EVENT_FRAMES_PER_LINE", 4 );					// How many images per line in the event image view
+define( "EVENT_FRAME_LINES", 4 );						// How many lines of images to show in paged mode
 define( "LEARN_MODE", false );							// Currently unimplemented, do not change
 
 $rates = array(

@@ -192,6 +192,10 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				}
 			}
 		}
+		else
+		{
+			alarm_filter_pixels = alarm_pixels;
+		}
 		if ( record_diag_images )
 		{
 			static char diag_path[PATH_MAX] = "";

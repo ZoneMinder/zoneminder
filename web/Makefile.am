@@ -61,6 +61,7 @@ web_DATA = \
 	zm_lang_it_it.php \
 	zm_lang_it_it2.php \
 	zm_lang_es_ar.php \
+	zm_lang_pt_br.php \
 	zm.php \
 	zm_styles.css \
 	zm_wml.php \
@@ -124,6 +125,7 @@ EXTRA_DIST = \
 	zm_lang_it_it.php \
 	zm_lang_it_it2.php \
 	zm_lang_es_ar.php \
+	zm_lang_pt_br.php \
 	zm.php \
 	zm_styles.css \
 	zm_wml.php \

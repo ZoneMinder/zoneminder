@@ -420,19 +420,19 @@ bool Monitor::Analyse()
 
 	int read_margin = shared_images->last_read_index - shared_images->last_write_index;
 	if ( read_margin < 0 ) read_margin += image_buffer_count;
-	read_margin -= post_event_count;
 
 	int step = 1;
-	//int max_margin = image_buffer_count - (pre_event_count+post_event_count);
-	int max_margin = image_buffer_count - post_event_count;
 	if ( read_margin > 0 )
 	{
-		step = max_margin/(read_margin-pre_event_count);
+		step = (9*image_buffer_count)/(5*read_margin);
 	}
 
-	Debug( 1, ( "RI:%d, WI: %d, RM = %d, Step = %d", shared_images->last_read_index, shared_images->last_write_index, read_margin, step ));
+	int pending_frames = shared_images->last_write_index - shared_images->last_read_index;
+	if ( pending_frames < 0 ) pending_frames += image_buffer_count;
+
+	Debug( 1, ( "RI:%d, WI: %d, PF = %d, RM = %d, Step = %d", shared_images->last_read_index, shared_images->last_write_index, pending_frames, read_margin, step ));
 	int index;
-	if ( step < (read_margin/2) )
+	if ( step <= pending_frames )
 	{
 		index = (shared_images->last_read_index+step)%image_buffer_count;
 	}

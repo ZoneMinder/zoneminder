@@ -74,7 +74,7 @@ bindir = @bindir@
 AUTOMAKE_OPTIONS = gnu
 SUBDIRS = src web scripts db
 
-EXTRA_DIST = zmconfig.pl
+EXTRA_DIST = zmconfig.pl.in zmconfig_eml.txt zmconfig_msg.txt
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h

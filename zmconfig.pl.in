@@ -203,10 +203,10 @@ my @options =
 	},
 	{
 		name => "ZM_X10_DEVICE",
-		default => "/dev/ttyS1",
+		default => "/dev/ttyS0",
 		description => "What device is your X10 controller connected on",
 		requires => [ { name => "ZM_OPT_X10", value => "yes" } ],
-		help => "If you have an X10 controller device (e.g. XM10U) connected to your computer this option details which port it is conected on, the default of /dev/ttyS1 maps to serial or com port 1.",
+		help => "If you have an X10 controller device (e.g. XM10U) connected to your computer this option details which port it is conected on, the default of /dev/ttyS0 maps to serial or com port 1.",
 		type => $types{abs_path},
 	},
 	{

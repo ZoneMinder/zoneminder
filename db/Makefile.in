@@ -117,7 +117,7 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AUTOMAKE_OPTIONS = gnu
 
-EXTRA_DIST = zmschema.sql.z zmalter-0.0.1.sql zmalter-0.9.7.sql zmalter-0.9.8.sql zmalter-0.9.9.sql zmalter-0.9.10.sql zmalter-0.9.11.sql zmalter-0.9.12.sql zmalter-0.9.13.sql
+EXTRA_DIST = zmschema.sql.z zmalter-0.0.1.sql zmalter-0.9.7.sql zmalter-0.9.8.sql zmalter-0.9.9.sql zmalter-0.9.10.sql zmalter-0.9.11.sql zmalter-0.9.12.sql zmalter-0.9.13.sql zmalter-0.9.15.sql
 subdir = db
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h

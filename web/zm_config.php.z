@@ -148,7 +148,7 @@ $jws = array(
 	'video' => array( 'w'=>100, 'h'=>80 ),
 	'image' => array( 'w'=>48, 'h'=>80 ),
 	'frames' => array( 'w'=>500, 'h'=>300 ),
-	'stats' => array( 'w'=>600, 'h'=>200 ),
+	'stats' => array( 'w'=>680, 'h'=>200 ),
 	'options' => array( 'w'=>760, 'h'=>480 ),
 	'optionhelp' => array( 'w'=>320, 'h'=>240 ),
 	'restarting' => array( 'w'=>250, 'h'=>150 ),

@@ -23,11 +23,19 @@ if ( !canView( 'Events' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select S.*,E.*,Z.Name as ZoneName,M.Name as MonitorName,M.Width,M.Height from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '$eid' and S.FrameId = '$fid' order by S.ZoneId" );
+$result = mysql_query( "select S.*,E.*,Z.Name as ZoneName,Z.Units,Z.LoX,Z.LoY,Z.HiX,Z.HiY,M.Name as MonitorName,M.Width,M.Height from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '$eid' and S.FrameId = '$fid' order by S.ZoneId" );
 if ( !$result )
 	die( mysql_error() );
 while ( $row = mysql_fetch_assoc( $result ) )
 {
+	if ( $row['Units'] == 'Percent' )
+	{
+		$row['LoX'] = round(($row['LoX']*($row['Width']-1))/100);
+		$row['LoY'] = round(($row['LoY']*($row['Height']-1))/100);
+		$row['HiX'] = round(($row['HiX']*($row['Width']-1))/100);
+		$row['HiY'] = round(($row['HiY']*($row['Height']-1))/100);
+	}
+	$row['Area'] = (($row['HiX']-$row['LoX'])+1)*(($row['HiY']-$row['LoY'])+1);
 	$stats[] = $row;
 }
 
@@ -44,21 +52,21 @@ function closeWindow()
 }
 </script>
 </head>
-<body>
-<table width="96%" border="0">
+<body scroll="auto">
+<table align="center" width="96%" border="0">
 <tr>
 <td align="left" class="smallhead"><b><?= $zmSlangFrame ?> <?= $eid."-".$fid ?></b></td>
 <td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <tr><td colspan="2"><table width="100%" border="0" bgcolor="#7F7FB2" cellpadding="3" cellspacing="1"><tr bgcolor="#FFFFFF">
 <td class="smallhead"><?= $zmSlangZone ?></td>
-<td class="smallhead" align="right"><?= $zmSlangAlarmPx ?></td>
-<td class="smallhead" align="right"><?= $zmSlangFilterPx ?></td>
-<td class="smallhead" align="right"><?= $zmSlangBlobPx ?></td>
-<td class="smallhead" align="right"><?= $zmSlangBlobs ?></td>
-<td class="smallhead" align="right"><?= $zmSlangBlobSizes ?></td>
-<td class="smallhead" align="right"><?= $zmSlangAlarmLimits ?></td>
-<td class="smallhead" align="right"><?= $zmSlangScore ?></td>
+<td class="smallhead" align="center"><?= $zmSlangAlarmPx ?></td>
+<td class="smallhead" align="center"><?= $zmSlangFilterPx ?></td>
+<td class="smallhead" align="center"><?= $zmSlangBlobPx ?></td>
+<td class="smallhead" align="center"><?= $zmSlangBlobs ?></td>
+<td class="smallhead" align="center"><?= $zmSlangBlobSizes ?></td>
+<td class="smallhead" align="center"><?= $zmSlangAlarmLimits ?></td>
+<td class="smallhead" align="center"><?= $zmSlangScore ?></td>
 </tr>
 <?php
 if ( count($stats) )
@@ -68,13 +76,13 @@ if ( count($stats) )
 ?>
 <tr bgcolor="#FFFFFF">
 <td class="text"><?= $stat['ZoneName'] ?></td>
-<td class="text" align="right"><?= $stat['AlarmPixels'] ?></td>
-<td class="text" align="right"><?= $stat['FilterPixels'] ?></td>
-<td class="text" align="right"><?= $stat['BlobPixels'] ?></td>
-<td class="text" align="right"><?= $stat['Blobs'] ?></td>
-<td class="text" align="right"><?= $stat['MinBlobSize']."-".$stat['MaxBlobSize'] ?></td>
-<td class="text" align="right"><?= $stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY'] ?></td>
-<td class="text" align="right"><?= $stat['Score'] ?></td>
+<td class="text" align="center"><?= sprintf( "%d (%d%%)", $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']) ) ?></td>
+<td class="text" align="center"><?= sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']) ) ?></td>
+<td class="text" align="center"><?= sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']) ) ?></td>
+<td class="text" align="center"><?= $stat['Blobs'] ?></td>
+<td class="text" align="center"><?= sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']) ) ?></td>
+<td class="text" align="center"><?= $stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY'] ?></td>
+<td class="text" align="center"><?= $stat['Score'] ?></td>
 </tr>
 <?php
 	}

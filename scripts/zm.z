@@ -2,48 +2,59 @@
 # description: Control ZoneMinder as a Service
 # chkconfig: 2345 99 99
 
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+prog=ZoneMinder
 command="@prefix@/bin/zmpkg.pl"
 
-case "$1" in
-'start')
+start() {
+	echo -n "Starting $prog: "
 	$command start
-	status=$?
-	if [ "$status" = "0" ]; then
-		touch /var/lock/subsys/zm
-	fi
-	;;
-'stop')
+	RETVAL=$?
+	[ $RETVAL = 0 ] && echo_success
+	[ $RETVAL != 0 ] && echo_failure
+	echo
+	[ $RETVAL = 0 ] && touch /var/lock/subsys/zm
+	return $RETVAL
+}
+stop() {
+	echo -n $"Stopping $prog: "
 	$command stop
-	status=$?
-	if [ "$status" = "0" ]; then
-		rm -f /var/lock/subsys/zm
-	fi
-	;;
-'restart')
-	$command stop
-	status=$?
-	if [ "$status" = "0" ]; then
-		rm -f /var/lock/subsys/zm
-	fi
-	$command start
-	status=$?
-	if [ "$status" = "0" ]; then
-		touch /var/lock/subsys/zm
-	fi
-	;;
-'status')
+	RETVAL=$?
+	[ $RETVAL = 0 ] && echo_success
+	[ $RETVAL != 0 ] && echo_failure
+	echo
+	[ $RETVAL = 0 ] && rm -f /var/lock/subsys/zm
+}
+status() {
 	result=`$command status`
 	if [ "$result" = "running" ]; then
 		echo "ZoneMinder is running"
-		status=0
+		RETVAL=0
 	else
 		echo "ZoneMinder is stopped"
-		status=1
+		RETVAL=1
 	fi
+}
+
+case "$1" in
+'start')
+	start
+	;;
+'stop')
+	stop
+	;;
+'restart')
+	stop
+	start
+	;;
+'status')
+	status
 	;;
 *)
 	echo "Usage: $0 { start | stop | restart | status }"
-	status=1
+	RETVAL=1
 	;;
 esac
-exit $status
+exit $RETVAL

@@ -39,7 +39,7 @@ use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_OPT_FAST_DELETE => "<from zmconfig>";
 use constant ZM_OPT_X10 => "<from zmconfig>";
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
+#use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
 use constant COMMAND_PATH => '@prefix@/bin/';
 use constant WEB_USER => '@WEB_USER@/';
 use constant VERBOSE => 0; # Whether to output more verbose debug
@@ -64,62 +64,82 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status)$/ )
 	exit( -1 );
 }
 
-my $log_file = LOG_FILE;
-open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
-open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-select( STDOUT ); $| = 1;
-open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-select( STDERR ); $| = 1;
-select( LOG ); $| = 1;
-
-if ( $command =~ /^(?:stop|restart)$/ )
-{
-	execute( COMMAND_PATH."/zmdc.pl shutdown" );
-}
-
-if ( $command =~ /^(?:start|restart)$/ )
-{
-	execute( COMMAND_PATH."/zmfix" );
-
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
-
-	my $sql = "select * from Monitors";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-	while( my $monitor = $sth->fetchrow_hashref() )
-	{
-		if ( $monitor->{Function} ne 'None' )
-		{
-			execute( COMMAND_PATH."/zmdc.pl start zmc -d $monitor->{Device}" );
-			if ( $monitor->{Function} ne 'Passive' )
-			{
-				execute( COMMAND_PATH."/zmdc.pl start zma -m $monitor->{Id}" );
-			}
-		}
-		execute( COMMAND_PATH."/zmdc.pl start zmfilter.pl -m $monitor->{Id} -e -1" );
-	}
-	$sth->finish();
-
-	if ( ZM_OPT_FAST_DELETE )
-	{
-		execute( COMMAND_PATH."/zmdc.pl start zmaudit.pl -d 900 -y" );
-	}
-	if ( ZM_OPT_X10 )
-	{
-		execute( COMMAND_PATH."/zmdc.pl start zmx10.pl -c start" );
-	}
-	execute( COMMAND_PATH."/zmdc.pl start zmwatch.pl" );
-}
-
-if ( $command eq "status" )
-{
-	print( execute( COMMAND_PATH."/zmdc.pl check" ) );
-}
-
 sub execute
 {
 	my $command = shift;
 	my $su_command = "su @WEB_USER@ --shell=/bin/sh --command='$command'";
-	print( "Executing: $su_command\n" );
+	#print( "Executing: $su_command\n" );
 	return( qx( $su_command ) );
 }
+
+#my $log_file = LOG_FILE;
+#open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
+#open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
+#select( STDOUT ); $| = 1;
+#open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
+#select( STDERR ); $| = 1;
+#select( LOG ); $| = 1;
+
+my $status = execute( COMMAND_PATH."/zmdc.pl check" );
+my $retval = 0;
+
+chomp( $status );
+if ( $command =~ /^(?:stop|restart)$/ )
+{
+	if ( $status eq "running" )
+	{
+		execute( COMMAND_PATH."/zmdc.pl shutdown" );
+	}
+	else
+	{
+		$retval = 1;
+	}
+}
+
+if ( $command =~ /^(?:start|restart)$/ )
+{
+	if ( $status eq "stopped" )
+	{
+		execute( COMMAND_PATH."/zmfix" );
+
+		my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
+		my $sql = "select * from Monitors";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+		while( my $monitor = $sth->fetchrow_hashref() )
+		{
+			if ( $monitor->{Function} ne 'None' )
+			{
+				execute( COMMAND_PATH."/zmdc.pl start zmc -d $monitor->{Device}" );
+				if ( $monitor->{Function} ne 'Passive' )
+				{
+					execute( COMMAND_PATH."/zmdc.pl start zma -m $monitor->{Id}" );
+				}
+			}
+			execute( COMMAND_PATH."/zmdc.pl start zmfilter.pl -m $monitor->{Id} -e -1" );
+		}
+		$sth->finish();
+
+		if ( ZM_OPT_FAST_DELETE )
+		{
+			execute( COMMAND_PATH."/zmdc.pl start zmaudit.pl -d 900 -y" );
+		}
+		if ( ZM_OPT_X10 )
+		{
+			execute( COMMAND_PATH."/zmdc.pl start zmx10.pl -c start" );
+		}
+		execute( COMMAND_PATH."/zmdc.pl start zmwatch.pl" );
+	}
+	else
+	{
+		$retval = 1;
+	}
+}
+
+if ( $command eq "status" )
+{
+	print( $status."\n" );
+}
+
+exit( $retval );

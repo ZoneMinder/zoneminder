@@ -323,9 +323,9 @@ $zmSlangZone                 = 'Zone';
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $zmClangCurrentLogin         = 'Current login is \'%1$s\'';
-$zmClangEventCount           = '%1$s %2$s';
-$zmClangLastEvents           = 'Last %1$s %2$s';
-$zmClangMonitorCount         = '%1$s %2$s';
+$zmClangEventCount           = '%1$s %2$s'; // For example '37 Events' (from Vlang below)
+$zmClangLastEvents           = 'Last %1$s %2$s'; // For example 'Last 37 Events' (from Vlang below)
+$zmClangMonitorCount         = '%1$s %2$s'; // For example '4 Monitors' (from Vlang below)
 $zmClangMonitorFunction      = 'Monitor %1$s Function';
 
 // Variable arrays expressing plurality

@@ -313,7 +313,7 @@ function newWindow(Url,Name,Width,Height)
 </head>
 <body>
 <p class="head" align="center"><?php echo $monitor[Name] ?></p>
-<a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+$jws['watch']['w'] ?>, <?php echo $monitor[Height]+$jws['watch']['h'] ?> );"><img src='<?php echo $monitor[Name] ?>.jpg' border="0"></a>
+<a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+$jws['watch']['w'] ?>, <?php echo $monitor[Height]+$jws['watch']['h'] ?> );"><img src="images/<?php echo $monitor[Name] ?>.jpg" border="0"></a>
 </body>
 </html>
 <?php
@@ -361,7 +361,9 @@ window.focus();
 		if ( $mode != "stream" )
 		{
 			// Prompt an image to be generated
+			chdir( 'images' );
 			$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
+			chdir( '..' );
 			header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=watchfeed&mid=$mid&mode=still'" );
 			header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 			header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -413,7 +415,7 @@ function closeWindow()
 		else
 		{
 ?>
-<tr><td colspan="3" align="center"><img src="<?php echo $monitor[Name] ?>.jpg" border="0" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"></td></tr>
+<tr><td colspan="3" align="center"><img src="images/<?php echo $monitor[Name] ?>.jpg" border="0" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"></td></tr>
 <?php
 		}
 ?>
@@ -471,7 +473,7 @@ top.window.focus();
 		if ( ALARM_SOUND && $status == 1 )
 		{
 ?>
-<embed src="<?php echo ALARM_SOUND ?>" autostart="yes" hidden="true"></embed>
+<embed src="sounds/<?php echo ALARM_SOUND ?>" autostart="yes" hidden="true"></embed>
 <?php
 		}
 ?>
@@ -1468,7 +1470,9 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 	}
 	case "zones" :
 	{
+		chdir( 'images' );
 		$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -z" ) );
+		chdir( '..' );
 
 		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 		if ( !$result )
@@ -1536,7 +1540,7 @@ function configureButton(form,name)
 <td width="34%" align="center" class="head"><strong><?php echo $monitor[Name] ?> Zones</strong></td>
 <td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
-<tr><td colspan="3" align="center"><img src="<?php echo $image ?>" usemap="#zonemap" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>" border="0"></td></tr>
+<tr><td colspan="3" align="center"><img src="images/<?php echo $image ?>" usemap="#zonemap" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>" border="0"></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="0" width="96%">
 <form name="zone_form" method="get" action="<?php echo $PHP_SELF ?>">

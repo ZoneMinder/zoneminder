@@ -118,7 +118,7 @@ target_alias = @target_alias@
 AUTOMAKE_OPTIONS = gnu
 SUBDIRS = src web scripts db
 
-EXTRA_DIST = zmconfig.pl.in zmconfig_eml.txt zmconfig_msg.txt
+EXTRA_DIST = zmconfig.pl.in zmconfig_eml.txt zmconfig_msg.txt README.html
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs

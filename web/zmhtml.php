@@ -639,27 +639,26 @@ function configureButton(form,name)
 				switch ( $$attr_name )
 				{
 					case 'DateTime':
-						$date_val = strtotime( $$value_name );
-						$filter_sql .= "E.StartTime ".$$op_name." from_unixtime( $date_val )";
+						$dt_val = strtotime( $$value_name );
+						$filter_sql .= "E.StartTime ".$$op_name." from_unixtime( $dt_val )";
 						$filter_query .= "&$op_name=".urlencode($$op_name);
 						$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 						break;
 					case 'Date':
-						$date_val = strtotime( $$value_name );
-						$date_val += date( "Z", $date_val ); // Small hack for clock differences
-						$filter_sql .= "to_days( E.StartTime ) ".$$op_name." to_days( from_unixtime( $date_val ) )";
+						$dt_val = strtotime( $$value_name );
+						$filter_sql .= "to_days( E.StartTime ) ".$$op_name." to_days( from_unixtime( $dt_val ) )";
 						$filter_query .= "&$op_name=".urlencode($$op_name);
 						$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 						break;
 					case 'Time':
-						$time_val = strtotime( $$value_name );
-						$filter_sql .= "extract( hour_second from E.StartTime ) ".$$op_name." extract( hour_second from from_unixtime( $time_val ) )";
+						$dt_val = strtotime( $$value_name );
+						$filter_sql .= "extract( hour_second from E.StartTime ) ".$$op_name." extract( hour_second from from_unixtime( $dt_val ) )";
 						$filter_query .= "&$op_name=".urlencode($$op_name);
 						$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 						break;
 					case 'Weekday':
-						$time_val = strtotime( $$value_name );
-						$filter_sql .= "weekday( E.StartTime ) ".$$op_name." weekday( from_unixtime( $time_val ) )";
+						$dt_val = strtotime( $$value_name );
+						$filter_sql .= "weekday( E.StartTime ) ".$$op_name." weekday( from_unixtime( $dt_val ) )";
 						$filter_query .= "&$op_name=".urlencode($$op_name);
 						$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 						break;

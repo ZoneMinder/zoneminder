@@ -22,7 +22,6 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <linux/videodev.h>
 
 #include "zm_camera.h"
 
@@ -48,7 +47,7 @@ protected:
 	static int camera_count;
 
 public:
-	LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture=true );
+	LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, bool p_capture=true );
 	~LocalCamera();
 
 	void Initialise();
@@ -58,67 +57,9 @@ public:
 	unsigned int Channel() const { return( channel ); }
 	unsigned int Format() const { return( format ); }
 
-	int PreCapture()
-	{
-		//Info(( "%s: Capturing image\n", id ));
-
-		if ( camera_count > 1 )
-		{
-			//Info(( "Switching\n" ));
-			struct video_channel vs;
-
-			vs.channel = channel;
-			//vs.norm = VIDEO_MODE_AUTO;
-			vs.norm = format;
-			vs.flags = 0;
-			vs.type = VIDEO_TYPE_CAMERA;
-			if(ioctl(m_videohandle, VIDIOCSCHAN, &vs))
-			{
-				Error(( "Failed to set camera source %d: %s\n", channel, strerror(errno) ));
-				return( -1 );
-			}
-		}
-		//Info(( "MC:%d\n", m_videohandle ));
-		if ( ioctl(m_videohandle, VIDIOCMCAPTURE, &m_vmm[m_cap_frame]) )
-		{
-			Error(( "Capture failure for frame %d: %s\n", m_cap_frame, strerror(errno)));
-			return( -1 );
-		}
-		m_cap_frame = (m_cap_frame+1)%m_vmb.frames;
-		return( 0 );
-	}
-	unsigned char *PostCapture()
-	{
-		//Info(( "%s: Capturing image\n", id ));
-
-		if ( ioctl(m_videohandle, VIDIOCSYNC, &m_sync_frame) )
-		{
-			Error(( "Sync failure for frame %d: %s\n", m_sync_frame, strerror(errno)));
-			return( 0 );
-		}
-
-		unsigned char *buffer = m_buffer+(m_sync_frame*m_vmb.size/m_vmb.frames);
-		m_sync_frame = (m_sync_frame+1)%m_vmb.frames;
-
-		return( buffer );
-	}
-	int PostCapture( Image &image )
-	{
-		//Info(( "%s: Capturing image\n", id ));
-
-		if ( ioctl(m_videohandle, VIDIOCSYNC, &m_sync_frame) )
-		{
-			Error(( "Sync failure for frame %d: %s\n", m_sync_frame, strerror(errno)));
-			return( -1 );
-		}
-
-		unsigned char *buffer = m_buffer+(m_sync_frame*m_vmb.size/m_vmb.frames);
-		m_sync_frame = (m_sync_frame+1)%m_vmb.frames;
-
-		image.Assign( width, height, colours, buffer );
-
-		return( 0 );
-	}
+	int PreCapture();
+	unsigned char *PostCapture();
+	int PostCapture( Image &image );
 
 	static bool GetCurrentSettings( int device, char *output, bool verbose );
 };

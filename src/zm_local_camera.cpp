@@ -34,7 +34,7 @@ video_mmap *LocalCamera::m_vmm;
 int LocalCamera::m_videohandle;
 unsigned char *LocalCamera::m_buffer=0;
 
-LocalCamera::LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture ) : Camera( LOCAL, p_width, p_height, p_colours, p_capture ), device( p_device ), channel( p_channel ), format( p_format )
+LocalCamera::LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, bool p_capture ) : Camera( LOCAL, p_width, p_height, p_palette, p_capture ), device( p_device ), channel( p_channel ), format( p_format )
 {
 	if ( !camera_count++ && capture )
 	{
@@ -101,14 +101,12 @@ void LocalCamera::Initialise()
 		exit(-1);
 	}
 
-	if ( colours == 1 )
+	if ( (vid_pic.palette = palette) == VIDEO_PALETTE_GREY )
 	{
-		vid_pic.palette = VIDEO_PALETTE_GREY;
 		vid_pic.depth = 8;
 	}
 	else
 	{
-		vid_pic.palette = VIDEO_PALETTE_RGB24;
 		vid_pic.depth = 24;
 	}
 
@@ -134,7 +132,7 @@ void LocalCamera::Initialise()
 		m_vmm[loop].frame = loop;
 		m_vmm[loop].width = width;
 		m_vmm[loop].height = height;
-		m_vmm[loop].format = (colours==1?VIDEO_PALETTE_GREY:VIDEO_PALETTE_RGB24);
+		m_vmm[loop].format = palette;
 	}
 
 	m_buffer = (unsigned char *)mmap(0, m_vmb.size, PROT_READ, MAP_SHARED, m_videohandle,0);
@@ -405,4 +403,188 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 		}
 	}
 	return( true );
+}
+
+int LocalCamera::PreCapture()
+{
+	//Info(( "%s: Capturing image\n", id ));
+
+	if ( camera_count > 1 )
+	{
+		//Info(( "Switching\n" ));
+		struct video_channel vs;
+
+		vs.channel = channel;
+		//vs.norm = VIDEO_MODE_AUTO;
+		vs.norm = format;
+		vs.flags = 0;
+		vs.type = VIDEO_TYPE_CAMERA;
+		if(ioctl(m_videohandle, VIDIOCSCHAN, &vs))
+		{
+			Error(( "Failed to set camera source %d: %s\n", channel, strerror(errno) ));
+			return( -1 );
+		}
+	}
+	//Info(( "MC:%d\n", m_videohandle ));
+	if ( ioctl(m_videohandle, VIDIOCMCAPTURE, &m_vmm[m_cap_frame]) )
+	{
+		Error(( "Capture failure for frame %d: %s\n", m_cap_frame, strerror(errno)));
+		return( -1 );
+	}
+	m_cap_frame = (m_cap_frame+1)%m_vmb.frames;
+	return( 0 );
+}
+
+unsigned char *LocalCamera::PostCapture()
+{
+	//Info(( "%s: Capturing image\n", id ));
+
+	if ( ioctl(m_videohandle, VIDIOCSYNC, &m_sync_frame) )
+	{
+		Error(( "Sync failure for frame %d: %s\n", m_sync_frame, strerror(errno)));
+		return( 0 );
+	}
+
+	unsigned char *buffer = m_buffer+(m_sync_frame*m_vmb.size/m_vmb.frames);
+	m_sync_frame = (m_sync_frame+1)%m_vmb.frames;
+
+	return( buffer );
+}
+
+int LocalCamera::PostCapture( Image &image )
+{
+	//Info(( "%s: Capturing image\n", id ));
+
+	if ( ioctl(m_videohandle, VIDIOCSYNC, &m_sync_frame) )
+	{
+		Error(( "Sync failure for frame %d: %s\n", m_sync_frame, strerror(errno)));
+		return( -1 );
+	}
+
+	unsigned char *buffer = m_buffer+(m_sync_frame*m_vmb.size/m_vmb.frames);
+	m_sync_frame = (m_sync_frame+1)%m_vmb.frames;
+
+	static unsigned char temp_buffer[2048*1536];
+	switch( palette )
+	{
+		case VIDEO_PALETTE_YUV420P :
+		{
+			static unsigned char y_plane[2048*1536];
+			static char u_plane[2048*1536];
+			static char v_plane[2048*1536];
+
+			unsigned char *rgb_ptr = temp_buffer;
+			unsigned char *y_ptr = y_plane;
+			char *u1_ptr = u_plane;
+			char *u2_ptr = u_plane+width;
+			char *v1_ptr = v_plane;
+			char *v2_ptr = v_plane+width;
+
+			int Y_size = width*height;
+			int C_size = Y_size/4;
+			unsigned char *Y_ptr = buffer;
+			unsigned char *Cb_ptr = buffer + Y_size;
+			unsigned char *Cr_ptr = Cb_ptr + C_size;
+			
+			int y,u,v;
+			for ( int i = 0; i < Y_size; i++ )
+			{
+				if ( *Y_ptr <= 16 )
+					*y_ptr = 0;
+				else if ( *Y_ptr >= 235 )
+					*y_ptr = 255;
+				else
+					*y_ptr = (255*((*Y_ptr)-16))/219;
+				y_ptr++;
+				Y_ptr++;
+				//y = (255*((*Y_ptr++)-16))/219;
+				//*y_ptr++ = y<0?0:(y>255?255:y);
+			}
+			int half_width = width/2;
+			for ( int i = 0, j = 0; i < C_size; i++, j++ )
+			{
+				if ( j == half_width )
+				{
+					j = 0;
+					u1_ptr += width;
+					u2_ptr += width;
+					v1_ptr += width;
+					v2_ptr += width;
+				}
+				if ( *Cb_ptr <= 16 )
+					u = 0;
+				else if ( *Cb_ptr >= 240 )
+					u = 255;
+				else
+					u = (127*((*Cb_ptr)-128))/112;
+				Cb_ptr++;
+				//u = (127*((*Cb_ptr++)-128))/112;
+				//u = u<0?0:(u>255?255:u);
+
+				*u1_ptr++ = u;
+				*u1_ptr++ = u;
+				*u2_ptr++ = u;
+				*u2_ptr++ = u;
+
+				if ( *Cr_ptr <= 16 )
+					v = 0;
+				else if ( *Cr_ptr >= 240 )
+					v = 255;
+				else
+					v = (127*((*Cr_ptr)-128))/112;
+				Cr_ptr++;
+				//v = (127*((*Cr_ptr++)-128))/112;
+				//v = v<0?0:(v>255?255:v);
+
+				*v1_ptr++ = v;
+				*v1_ptr++ = v;
+				*v2_ptr++ = v;
+				*v2_ptr++ = v;
+			}
+
+			y_ptr = y_plane;
+			u1_ptr = u_plane;
+			v1_ptr = v_plane;
+			int size = Y_size*3;
+			int r,g,b;
+			for ( int i = 0; i < size; i++ )
+			{
+				y = *y_ptr++;
+				u = *u1_ptr++;
+				v = *v1_ptr++;
+
+				r = y + ((1402*v)/1000);
+				g = y - (((344*u)/1000)+((714*v)/1000));
+				b = y + ((1772*u)/1000);
+
+				*rgb_ptr++ = r<0?0:(r>255?255:r);
+				*rgb_ptr++ = g<0?0:(g>255?255:g);
+				*rgb_ptr++ = b<0?0:(b>255?255:b);
+			}
+			buffer = temp_buffer;
+			break;
+		}
+		case VIDEO_PALETTE_RGB24 :
+		{
+			if ( ZM_LOCAL_BGR_INVERT )
+			{
+				int size = width*height*3;
+				for ( int i = 0; i < size; i += 3 )
+				{
+					temp_buffer[i] = buffer[i+2];
+					temp_buffer[i+1] = buffer[i+1];
+					temp_buffer[i+2] = buffer[i];
+				}
+			}
+			buffer = temp_buffer;
+			break;
+		}
+		default : // Everything else is straightforward, for now.
+		{
+			break;
+		}
+	}
+	image.Assign( width, height, colours, buffer );
+
+	return( 0 );
 }

@@ -58,7 +58,7 @@ protected:
 	int sd;
 
 public:
-	RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_colours, bool p_capture=true );
+	RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, bool p_capture=true );
 	~RemoteCamera();
 
 	const char *Host() const { return( host ); }

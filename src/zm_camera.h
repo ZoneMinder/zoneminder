@@ -20,6 +20,10 @@
 #ifndef ZM_CAMERA_H
 #define ZM_CAMERA_H
 
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <linux/videodev.h>
+
 #include "zm_image.h"
 
 //
@@ -34,11 +38,12 @@ protected:
 	SourceType		type;
 	unsigned int	width;
 	unsigned int	height;
+	unsigned int	palette;
 	unsigned int	colours;
 	bool			capture;
 
 public:
-	Camera( SourceType p_type, int p_width, int p_height, int p_colours, bool p_capture=true );
+	Camera( SourceType p_type, int p_width, int p_height, int p_palette, bool p_capture=true );
 	virtual ~Camera();
 
 	SourceType Type() const { return( type ); }
@@ -46,6 +51,7 @@ public:
 	bool IsRemote() const { return( type == REMOTE ); }
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
+	unsigned int Palette() const { return( palette ); }
 	unsigned int Colours() const { return( colours ); }
 	unsigned int ImageSize() const { return( colours*width*height ); }
 

@@ -119,19 +119,7 @@ public:
 			buffer = new JSAMPLE[size];
 			memset( buffer, 0, size );
 		}
-		if ( colours == 1 || !ZM_LOCAL_BGR_INVERT )
-		{
-			memcpy( buffer, new_buffer, size );
-		}
-		else
-		{
-           	for ( int i = 0; i < size; i += 3 )
-           	{
-				buffer[i] = new_buffer[i+2];
-				buffer[i+1] = new_buffer[i+1];
-				buffer[i+2] = new_buffer[i];
-			}
-		}
+		memcpy( buffer, new_buffer, size );
 	}
 
 	inline void CopyBuffer( const Image &image )

@@ -530,11 +530,11 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	static char sql[256];
 	if ( device == -1 )
 	{
-		strcpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
+		strcpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
 	}
 	else
 	{
-		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Device = %d", device );
+		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Device = %d", device );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -554,7 +554,7 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8])/8, capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atof(dbrow[16])>0.0?int(1000.0/atof(dbrow[16])):0, atoi(dbrow[17]), atoi(dbrow[18]) );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atof(dbrow[16])>0.0?int(1000.0/atof(dbrow[16])):0, atoi(dbrow[17]), atoi(dbrow[18]) );
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
@@ -576,11 +576,11 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	static char sql[256];
 	if ( !host )
 	{
-		strcpy( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
+		strcpy( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
 	}
 	else
 	{
-		sprintf( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
+		sprintf( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -600,7 +600,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), dbrow[3], dbrow[4], dbrow[5], atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8])/8, capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atof(dbrow[16])>0.0?int(1000.0/atof(dbrow[16])):0, atoi(dbrow[17]), atoi(dbrow[18]) );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), dbrow[3], dbrow[4], dbrow[5], atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atof(dbrow[16])>0.0?int(1000.0/atof(dbrow[16])):0, atoi(dbrow[17]), atoi(dbrow[18]) );
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
@@ -620,7 +620,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 Monitor *Monitor::Load( int id, bool load_zones )
 {
 	static char sql[256];
-	sprintf( sql, "select Id, Name, Type, Function+0, Device, Channel, Format, Host, Port, Path, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
+	sprintf( sql, "select Id, Name, Type, Function+0, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -640,11 +640,11 @@ Monitor *Monitor::Load( int id, bool load_zones )
 	{
 		if ( !strcmp( dbrow[2], "Local" ) )
 		{
-			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12])/8, false, dbrow[13], Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atof(dbrow[20])>0.0?int(1000.0/atof(dbrow[20])):0, atoi(dbrow[21]), atoi(dbrow[22]) );
+			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), false, dbrow[13], Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atof(dbrow[20])>0.0?int(1000.0/atof(dbrow[20])):0, atoi(dbrow[21]), atoi(dbrow[22]) );
 		}
 		else
 		{
-			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), dbrow[7], dbrow[8], dbrow[9], atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12])/8, false, dbrow[13], Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atof(dbrow[20])>0.0?int(1000.0/atof(dbrow[20])):0, atoi(dbrow[21]), atoi(dbrow[22]) );
+			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), dbrow[7], dbrow[8], dbrow[9], atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), false, dbrow[13], Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atof(dbrow[20])>0.0?int(1000.0/atof(dbrow[20])):0, atoi(dbrow[21]), atoi(dbrow[22]) );
 		}
 		int n_zones = 0;
 		if ( load_zones )
@@ -739,7 +739,8 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	}
 	sprintf( output+strlen(output), "Width : %d\n", ((LocalCamera *)camera)->Width() );
 	sprintf( output+strlen(output), "Height : %d\n", camera->Height() );
-	sprintf( output+strlen(output), "Colour Depth : %d\n", 8*camera->Colours() );
+	sprintf( output+strlen(output), "Palette : %d\n", camera->Palette() );
+	sprintf( output+strlen(output), "Colours : %d\n", camera->Colours() );
 	sprintf( output+strlen(output), "Label Format : %s\n", label_format );
 	sprintf( output+strlen(output), "Label Coord : %d,%d\n", label_coord.X(), label_coord.Y() );
 	sprintf( output+strlen(output), "Image Buffer Count : %d\n", image_buffer_count );

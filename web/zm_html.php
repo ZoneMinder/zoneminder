@@ -243,7 +243,6 @@ function confirmStatus( new_status )
 <?php } else { ?>
 <td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&mid=<?= $monitor[Id] ?>', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?> );"><span class="<?= $dclass ?>"><?= $monitor[Host] ?></span></a></td>
 <?php } ?>
-<!--<td align="left" class="text"><?= $monitor[Width] ?>x<?= $monitor[Height] ?>x<?= $monitor[Colours]*8 ?></td>-->
 <td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[EventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[HourEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+day', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[DayEventCount] ?></a></td>
@@ -2064,6 +2063,8 @@ function configureButton(form,name)
 			$monitor[FPSReportInterval] = 1000;
 			$monitor[RefBlendPerc] = 10;
 		}
+		$local_palettes = array( "Greyscale"=>1, "RGB24"=>4, "YUV420P"=>15 );
+		$remote_palettes = array( "8 bit greyscale"=>1, "24 bit colour"=>4 );
 ?>
 <html>
 <head>
@@ -2128,6 +2129,7 @@ $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 <tr><td align="left" class="text">Device Number (/dev/video?)</td><td align="left" class="text"><input type="text" name="new_device" value="<?= $monitor[Device] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Device Channel</td><td align="left" class="text"><input type="text" name="new_channel" value="<?= $monitor[Channel] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Device Format (0=PAL,1=NTSC etc)</td><td align="left" class="text"><input type="text" name="new_format" value="<?= $monitor[Format] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Capture Palette</td><td align="left" class="text"><select name="new_palette" class="form"><?php foreach ( $local_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $monitor[Palette] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
 		}
 		else
@@ -2136,13 +2138,12 @@ $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 <tr><td align="left" class="text">Remote Host Name</td><td align="left" class="text"><input type="text" name="new_host" value="<?= $monitor[Host] ?>" size="16" class="form"></td></tr>
 <tr><td align="left" class="text">Remote Host Port</td><td align="left" class="text"><input type="text" name="new_port" value="<?= $monitor[Port] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text">Remote Host Path</td><td align="left" class="text"><input type="text" name="new_path" value="<?= $monitor[Path] ?>" size="36" class="form"></td></tr>
+<tr><td align="left" class="text">Remote Image Colours</td><td align="left" class="text"><select name="new_palette" class="form"><?php foreach ( $remote_palettes as $name => $value ) { ?><option value= <?= $value ?>"<?php if ( $value == $monitor[Palette] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
 		}
 ?>
 <tr><td align="left" class="text">Capture Width (pixels)</td><td align="left" class="text"><input type="text" name="new_width" value="<?= $monitor[Width] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Capture Height (pixels)</td><td align="left" class="text"><input type="text" name="new_height" value="<?= $monitor[Height] ?>" size="4" class="form"></td></tr>
-<?php $depths = array( 8, 24 ); ?>
-<tr><td align="left" class="text">Capture Colour Depth (bits)</td><td align="left" class="text"><select name="new_colours" class="form"><?php foreach ( $depths as $depth ) { ?><option<?php if ( $depth == $monitor[Colours] ) { ?> selected<?php } ?>><?= $depth ?></option><?php } ?></select></td></tr>
 <tr><td align="left" class="text">Timestamp Label Format</td><td align="left" class="text"><input type="text" name="new_label_format" value="<?= $monitor[LabelFormat] ?>" size="20" class="form"></td></tr>
 <tr><td align="left" class="text">Timestamp Label X</td><td align="left" class="text"><input type="text" name="new_label_x" value="<?= $monitor[LabelX] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Timestamp Label Y</td><td align="left" class="text"><input type="text" name="new_label_y" value="<?= $monitor[LabelY] ?>" size="4" class="form"></td></tr>
@@ -2427,7 +2428,7 @@ function closeWindow()
 	}
 	case "video" :
 	{
-		$result = mysql_query( "select E.*,M.Name as MonitorName, M.Colours from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+		$result = mysql_query( "select E.*,M.Name as MonitorName, M.Palette from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
 		if ( !$result )
 			die( mysql_error() );
 		$event = mysql_fetch_assoc( $result );
@@ -2459,7 +2460,7 @@ function closeWindow()
 			fputs( $fp, "REFERENCE_FRAME	ORIGINAL\n" );
 			fputs( $fp, "FRAME_RATE 24\n" );
 
-			if ( $event[Colours] == 1 )
+			if ( $event[Palette] == 1 )
 				fputs( $fp, "INPUT_CONVERT	".ZM_PATH_NETPBM."/jpegtopnm * | ".ZM_PATH_NETPBM."/pgmtoppm white | ".ZM_PATH_NETPBM."/ppmtojpeg\n" );
 			else
 				fputs( $fp, "INPUT_CONVERT	*\n" );

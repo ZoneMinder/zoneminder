@@ -111,9 +111,13 @@ function newWindow(Url,Name,Width,Height)
 <tr>
 <td class="smallhead" align="left"><?php echo count($monitors) ?> Monitors</td>
 <td class="smallhead" align="center">Currently configured for <strong><?php echo $bandwidth ?></strong> bandwidth (change to
-<?php if ( $bandwidth != "high" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=high">high</a><?php } ?>
-<?php if ( $bandwidth != "medium" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=medium">medium</a><?php } ?>
-<?php if ( $bandwidth != "low" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=low">low</a><?php } ?> )</td>
+<?php
+		$bw_array = array( "high"=>1, "medium"=>1, "low"=>1 );
+		unset( $bw_array[$bandwidth] );
+		$bw_keys = array_keys( $bw_array );
+?>
+<a href="<?php echo $PHP_SELF ?>?new_bandwidth=<?php echo $bw_keys[0] ?>"><?php echo $bw_keys[0] ?></a>, 
+<a href="<?php echo $PHP_SELF ?>?new_bandwidth=<?php echo $bw_keys[1] ?>"><?php echo $bw_keys[1] ?></a>)
 <?php if ( $cycle_count > 1 ) { ?>
 <td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+$jws['cycle']['w'] ?>, <?php echo $max_height+$jws['cycle']['h'] ?> );">Watch All</a></td>
 <?php } else { ?>

@@ -580,6 +580,7 @@ function checkAll(form,name){
 	for (var i = 0; i < form.elements.length; i++)
 		if (form.elements[i].name.indexOf(name) == 0)
 			form.elements[i].checked = 1;
+	form.delete_btn.disabled = !checked;
 }
 function configureButton(form,name)
 {

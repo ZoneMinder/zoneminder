@@ -105,108 +105,61 @@ function applyZoneType( Form )
 	if ( Form.new_type.value == 'Inactive' )
 	{
 		Form.new_alarm_rgb_r.disabled = true;
-		Form.new_alarm_rgb_r.value = "";
 		Form.new_alarm_rgb_g.disabled = true;
-		Form.new_alarm_rgb_g.value = "";
 		Form.new_alarm_rgb_b.disabled = true;
-		Form.new_alarm_rgb_b.value = "";
 		Form.new_check_method.disabled = true;
 		Form.new_min_pixel_threshold.disabled = true;
-		Form.new_min_pixel_threshold.value = "";
 		Form.new_max_pixel_threshold.disabled = true;
-		Form.new_max_pixel_threshold.value = "";
 		Form.new_min_alarm_pixels.disabled = true;
-		Form.new_min_alarm_pixels.value = "";
 		Form.new_max_alarm_pixels.disabled = true;
-		Form.new_max_alarm_pixels.value = "";
 		Form.new_filter_x.disabled = true;
-		Form.new_filter_x.value = "";
 		Form.new_filter_y.disabled = true;
-		Form.new_filter_y.value = "";
 		Form.new_min_filter_pixels.disabled = true;
-		Form.new_min_filter_pixels.value = "";
 		Form.new_max_filter_pixels.disabled = true;
-		Form.new_max_filter_pixels.value = "";
 		Form.new_min_blob_pixels.disabled = true;
-		Form.new_min_blob_pixels.value = "";
 		Form.new_max_blob_pixels.disabled = true;
-		Form.new_max_blob_pixels.value = "";
 		Form.new_min_blobs.disabled = true;
-		Form.new_min_blobs.value = "";
 		Form.new_max_blobs.disabled = true;
-		Form.new_max_blobs.value = "";
 	}
 	else if ( Form.new_type.value == 'Preclusive' )
 	{
 		Form.new_alarm_rgb_r.disabled = true;
-		Form.new_alarm_rgb_r.value = "";
 		Form.new_alarm_rgb_g.disabled = true;
-		Form.new_alarm_rgb_g.value = "";
 		Form.new_alarm_rgb_b.disabled = true;
-		Form.new_alarm_rgb_b.value = "";
 		Form.new_check_method.disabled = false;
 		Form.new_max_pixel_threshold.disabled = false;
-		Form.new_max_pixel_threshold.value = "<?= $zone['MaxPixelThreshold'] ?>";
 		Form.new_min_pixel_threshold.disabled = false;
-		Form.new_min_pixel_threshold.value = "<?= $zone['MinPixelThreshold'] ?>";
 		Form.new_min_alarm_pixels.disabled = false;
-		Form.new_min_alarm_pixels.value = "<?= $zone['MinAlarmPixels'] ?>";
 		Form.new_max_alarm_pixels.disabled = false;
-		Form.new_max_alarm_pixels.value = "<?= $zone['MaxAlarmPixels'] ?>";
 		Form.new_filter_x.disabled = false;
-		Form.new_filter_x.value = "<?= $zone['FilterX'] ?>";
 		Form.new_filter_y.disabled = false;
-		Form.new_filter_y.value = "<?= $zone['FilterY'] ?>";
 		Form.new_min_filter_pixels.disabled = false;
-		Form.new_min_filter_pixels.value = "<?= $zone['MinFilterPixels'] ?>";
 		Form.new_max_filter_pixels.disabled = false;
-		Form.new_max_filter_pixels.value = "<?= $zone['MaxFilterPixels'] ?>";
 		Form.new_min_blob_pixels.disabled = false;
-		Form.new_min_blob_pixels.value = "<?= $zone['MinBlobPixels'] ?>";
 		Form.new_max_blob_pixels.disabled = false;
-		Form.new_max_blob_pixels.value = "<?= $zone['MaxBlobPixels'] ?>";
 		Form.new_min_blobs.disabled = false;
-		Form.new_min_blobs.value = "<?= $zone['MinBlobs'] ?>";
 		Form.new_max_blobs.disabled = false;
-		Form.new_max_blobs.value = "<?= $zone['MaxBlobs'] ?>";
 	}
 	else
 	{
 		Form.new_alarm_rgb_r.disabled = false;
-		Form.new_alarm_rgb_r.value = "<?= ($zone['AlarmRGB']>>16)&0xff; ?>";
 		Form.new_alarm_rgb_g.disabled = false;
-		Form.new_alarm_rgb_g.value = "<?= ($zone['AlarmRGB']>>8)&0xff; ?>";
 		Form.new_alarm_rgb_b.disabled = false;
-		Form.new_alarm_rgb_b.value = "<?= $zone['AlarmRGB']&0xff; ?>";
 		Form.new_check_method.disabled = false;
 		Form.new_max_pixel_threshold.disabled = false;
-		Form.new_max_pixel_threshold.value = "<?= $zone['MaxPixelThreshold'] ?>";
 		Form.new_min_pixel_threshold.disabled = false;
-		Form.new_min_pixel_threshold.value = "<?= $zone['MinPixelThreshold'] ?>";
 		Form.new_max_pixel_threshold.disabled = true;
-		Form.new_max_pixel_threshold.value = "<?= $zone['MaxPixelThreshold'] ?>";
 		Form.new_min_pixel_threshold.disabled = true;
-		Form.new_min_pixel_threshold.value = "<?= $zone['MinPixelThreshold'] ?>";
 		Form.new_min_alarm_pixels.disabled = false;
-		Form.new_min_alarm_pixels.value = "<?= $zone['MinAlarmPixels'] ?>";
 		Form.new_max_alarm_pixels.disabled = false;
-		Form.new_max_alarm_pixels.value = "<?= $zone['MaxAlarmPixels'] ?>";
 		Form.new_filter_x.disabled = false;
-		Form.new_filter_x.value = "<?= $zone['FilterX'] ?>";
 		Form.new_filter_y.disabled = false;
-		Form.new_filter_y.value = "<?= $zone['FilterY'] ?>";
 		Form.new_min_filter_pixels.disabled = false;
-		Form.new_min_filter_pixels.value = "<?= $zone['MinFilterPixels'] ?>";
 		Form.new_max_filter_pixels.disabled = false;
-		Form.new_max_filter_pixels.value = "<?= $zone['MaxFilterPixels'] ?>";
 		Form.new_min_blob_pixels.disabled = false;
-		Form.new_min_blob_pixels.value = "<?= $zone['MinBlobPixels'] ?>";
 		Form.new_max_blob_pixels.disabled = false;
-		Form.new_max_blob_pixels.value = "<?= $zone['MaxBlobPixels'] ?>";
 		Form.new_min_blobs.disabled = false;
-		Form.new_min_blobs.value = "<?= $zone['MinBlobs'] ?>";
 		Form.new_max_blobs.disabled = false;
-		Form.new_max_blobs.value = "<?= $zone['MaxBlobs'] ?>";
 	}
 }
 

@@ -101,7 +101,7 @@ void Image::ReadJpeg( const char *filename )
 
 void Image::WriteJpeg( const char *filename ) const
 {
-	if ( ZM_COLOUR_JPEG_FILES && colours == 1 )
+	if ( (bool)config.Item( ZM_COLOUR_JPEG_FILES ) && colours == 1 )
 	{
 		Image temp_image( *this );
 		temp_image.Colourise();
@@ -136,7 +136,7 @@ void Image::WriteJpeg( const char *filename ) const
 	}
 	jpeg_set_defaults(&cinfo);
 	cinfo.dct_method = JDCT_FASTEST;
-	jpeg_set_quality(&cinfo, ZM_JPEG_FILE_QUALITY, false);
+	jpeg_set_quality(&cinfo, (int)config.Item( ZM_JPEG_FILE_QUALITY ), false);
 	jpeg_start_compress(&cinfo, TRUE);
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
@@ -211,7 +211,7 @@ void Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
 	}
 	jpeg_set_defaults(&cinfo);
 	cinfo.dct_method = JDCT_FASTEST;
-	jpeg_set_quality(&cinfo, ZM_JPEG_IMAGE_QUALITY, false);
+	jpeg_set_quality(&cinfo, (int)config.Item( ZM_JPEG_IMAGE_QUALITY ), false);
 	jpeg_start_compress(&cinfo, TRUE);
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
@@ -467,7 +467,7 @@ Image *Image::Delta( const Image &image ) const
 		static long red, green, blue;
 		while( psrc < (buffer+size) )
 		{
-			if ( ZM_FAST_RGB_DIFFS )
+			if ( (bool)config.Item( ZM_FAST_RGB_DIFFS ) )
 			{
 				red = abs(*psrc++ - *pref++);
 				green = abs(*psrc++ - *pref++);

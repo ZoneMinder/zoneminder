@@ -47,7 +47,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 	alarm_frames = 0;
 	tot_score = 0;
 	max_score = 0;
-	sprintf( path, ZM_DIR_EVENTS "/%s/%d", monitor->Name(), id );
+	sprintf( path, "%s/%s/%d", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id );
 	
 	struct stat statbuf;
 	errno = 0;
@@ -113,7 +113,7 @@ bool Event::OpenFrameSocket( int monitor_id )
 	}
 
 	char sock_path[PATH_MAX] = "";
-	sprintf( sock_path, FILE_SOCK_FILE, monitor_id );
+	sprintf( sock_path, "%s/zmf-%d.sock", (const char *)config.Item( ZM_PATH_SOCKS ), monitor_id );
 
 	struct sockaddr_un addr;
 
@@ -188,7 +188,7 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 
 bool Event::WriteFrameImage( const Image *image, const char *event_file, bool alarm_frame )
 {
-	if ( !ZM_OPT_FRAME_SERVER || !SendFrameImage( image, alarm_frame) )
+	if ( !(bool)config.Item( ZM_OPT_FRAME_SERVER ) || !SendFrameImage( image, alarm_frame) )
 	{
 		image->WriteJpeg( event_file );
 	}

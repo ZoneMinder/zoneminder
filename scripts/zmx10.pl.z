@@ -32,17 +32,28 @@
 # ==========================================================================
 
 use constant ZM_PATH_BIN => "<from zmconfig>";
-use constant ZM_PATH_SOCKS => "<from zmconfig>";
-use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERA => "<from zmconfig>";
 use constant ZM_DB_PASSA => "<from zmconfig>";
-use constant ZM_DIR_EVENTS => "<from zmconfig>";
-use constant ZM_X10_DB_RELOAD_INTERVAL => 60;
-use constant ZM_X10_DEVICE => '/dev/ttyS1';
-use constant ZM_X10_HOUSE_CODE => 'K';
-use constant ZM_SHM_KEY => 0x7a6d2000;
+
+# Load the config from the database into the symbol table
+BEGIN
+{
+	use DBI;
+	no strict 'refs';
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
+	my $sql = "select * from Config";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	while( my $config = $sth->fetchrow_hashref() )
+	{
+		*{$config->{Name}} = sub { $config->{Value} };
+	}
+	$sth->finish();
+	$dbh->disconnect();
+}
 
 use constant X10_SOCK_FILE => ZM_PATH_SOCKS.'/zmx10.sock';
 use constant X10_LOG_FILE => ZM_PATH_LOGS.'/zmx10.log';
@@ -193,7 +204,7 @@ sub runServer
 	#print( "F:".fileno(SERVER)."\n" );
 	my $reload = undef;
 	my $reload_count = 0;
-	my $reload_limit = main::ZM_X10_DB_RELOAD_INTERVAL/$timeout;
+	my $reload_limit = (main::ZM_X10_DB_RELOAD_INTERVAL)/$timeout;
 	while( 1 )
 	{
 		my $nfound = select( my $rout = $rin, undef, undef, $timeout );
@@ -439,7 +450,7 @@ sub loadTasks
 			$monitor_hash{$monitor->{Id}} = $monitor;
 
 			my $size = 4; # We only need the first 4 bytes really for the alarm state
-			$monitor->{ShmKey} = main::ZM_SHM_KEY|$monitor->{Id};
+			$monitor->{ShmKey} = hex(main::ZM_SHM_KEY)|$monitor->{Id};
 			if ( !($monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 )) )
 			{
 				print( "Can't get shared memory id: $!\n" );

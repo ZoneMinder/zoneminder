@@ -34,18 +34,28 @@ use strict;
 use constant ZM_PATH_BIN => "<from zmconfig>";
 use constant ZM_PATH_WEB => "<from zmconfig>";
 use constant ZM_PATH_CGI => "<from zmconfig>";
-use constant ZM_PATH_LOGS => "<from zmconfig>";
-use constant ZM_PATH_NETPBM => "<from zmconfig>";
-use constant ZM_OPT_MPEG => "<from zmconfig>";
-use constant ZM_PATH_MPEG_ENCODE => "<from zmconfig>";
-use constant ZM_PATH_FFMPEG => "<from zmconfig>";
-use constant ZM_FFMPEG_OPTIONS => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERB => "<from zmconfig>";
 use constant ZM_DB_PASSB => "<from zmconfig>";
-use constant ZM_DIR_EVENTS => "<from zmconfig>";
-use constant ZM_COLOUR_JPEG_FILES => "<from zmconfig>";
+
+# Load the config from the database into the symbol table
+BEGIN
+{
+	use DBI;
+	no strict 'refs';
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
+	my $sql = "select * from Config";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	while( my $config = $sth->fetchrow_hashref() )
+	{
+		*{$config->{Name}} = sub { $config->{Value} };
+	}
+	$sth->finish();
+	$dbh->disconnect();
+}
 
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmvideo.log';
 use constant VERBOSE => 0; # Whether to output more verbose debug

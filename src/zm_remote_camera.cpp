@@ -95,16 +95,16 @@ void RemoteCamera::Initialise()
 			exit( -1 );
 		}
 
-		sprintf( request, "GET %s %s\n", path, "HTTP/" ZM_HTTP_VERSION );
+		sprintf( request, "GET %s HTTP/%s\n", path, (const char *)config.Item( ZM_HTTP_VERSION ) );
 		sprintf( &(request[strlen(request)]), "Host: %s\n", host );
-		sprintf( &(request[strlen(request)]), "User-Agent: %s/%s\n", ZM_HTTP_UA, ZM_VERSION );
+		sprintf( &(request[strlen(request)]), "User-Agent: %s/%s\n", (const char *)config.Item( ZM_HTTP_UA ), ZM_VERSION );
 		sprintf( &(request[strlen(request)]), "Connection: Keep-Alive\n\n" );
 		Debug( 2, ( "Request: %s", request ));
 	}
 	if ( !timeout.tv_sec )
 	{
-		timeout.tv_sec = ZM_HTTP_TIMEOUT/1000; 
-		timeout.tv_usec = ZM_HTTP_TIMEOUT%1000;
+		timeout.tv_sec = (int)config.Item( ZM_HTTP_TIMEOUT )/1000; 
+		timeout.tv_usec = (int)config.Item( ZM_HTTP_TIMEOUT )%1000;
 	}
 }
 

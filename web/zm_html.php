@@ -31,9 +31,6 @@ ini_set( "session.name", "ZMSESSID" );
 session_start();
 
 require_once( 'zm_config.php' );
-require_once( 'zm_db.php' );
-
-loadConfig();
 
 if ( ZM_OPT_USE_AUTH )
 {

@@ -187,7 +187,7 @@ int main( int argc, char *argv[] )
 		for ( int i = 0; i < n_monitors; i++ )
 		{
 			long min_delay = MAXINT;
-			if ( ZM_NO_MAX_FPS_ON_ALARM && monitors[i]->GetState() == Monitor::ALARM )
+			if ( (bool)config.Item( ZM_NO_MAX_FPS_ON_ALARM ) && monitors[i]->GetState() == Monitor::ALARM )
 			{
 				next_delays[i] = 0;
 			}

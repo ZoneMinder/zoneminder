@@ -37,13 +37,28 @@
 # ==========================================================================
 use constant ZM_PATH_BIN => "<from zmconfig>";
 use constant ZM_PATH_WEB => "<from zmconfig>";
-use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERA => "<from zmconfig>";
 use constant ZM_DB_PASSA => "<from zmconfig>";
-use constant ZM_DIR_IMAGES => "<from zmconfig>";
-use constant ZM_DIR_EVENTS => "<from zmconfig>";
+
+# Load the config from the database into the symbol table
+BEGIN
+{
+	use DBI;
+	no strict 'refs';
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
+	my $sql = "select * from Config";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	while( my $config = $sth->fetchrow_hashref() )
+	{
+		*{$config->{Name}} = sub { $config->{Value} };
+	}
+	$sth->finish();
+	$dbh->disconnect();
+}
 
 use constant IMAGE_PATH => ZM_PATH_WEB.'/'.ZM_DIR_IMAGES;
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;

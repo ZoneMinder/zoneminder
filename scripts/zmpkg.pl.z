@@ -34,17 +34,30 @@ use strict;
 use constant ZM_PATH_BIN => "<from zmconfig>";
 use constant ZM_PATH_WEB => "<from zmconfig>";
 use constant ZM_PATH_CGI => "<from zmconfig>";
-use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_WEB_USER => "<from zmconfig>";
 use constant ZM_WEB_GROUP => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERA => "<from zmconfig>";
 use constant ZM_DB_PASSA => "<from zmconfig>";
-use constant ZM_SHM_KEY => "<from zmconfig>";
-use constant ZM_OPT_FAST_DELETE => "<from zmconfig>";
-use constant ZM_OPT_X10 => "<from zmconfig>";
-use constant ZM_OPT_FRAME_SERVER => "<from zmconfig>";
+
+# Load the config from the database into the symbol table
+BEGIN
+{
+	use DBI;
+	no strict 'refs';
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
+	my $sql = "select * from Config";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	while( my $config = $sth->fetchrow_hashref() )
+	{
+		*{$config->{Name}} = sub { $config->{Value} };
+	}
+	$sth->finish();
+	$dbh->disconnect();
+}
 
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
 use constant VERBOSE => 0; # Whether to output more verbose debug
@@ -73,7 +86,7 @@ sub remove_shm
 {
 	print( STDERR "Removing shared memory\n" );
 	# Find ZoneMinder shared memory
-	my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", ZM_SHM_KEY ), 0, -2 )."'";
+	my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", hex(ZM_SHM_KEY) ), 0, -2 )."'";
 	print( "Checking for shared memory with '$command'\n" ) if ( VERBOSE );
 	open( CMD, "$command |" ) or die( "Can't execute '$command': $!" );
 	while( <CMD> )

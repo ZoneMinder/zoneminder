@@ -84,7 +84,7 @@ void Monitor::Initialise()
 
 	int shared_data_size = sizeof(SharedData)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
 	Info(( "shm.size=%d", shared_data_size ));
-	shmid = shmget( ZM_SHM_KEY|id, shared_data_size, IPC_CREAT|0777 );
+	shmid = shmget( (int)config.Item( ZM_SHM_KEY )|id, shared_data_size, IPC_CREAT|0777 );
 	if ( shmid < 0 )
 	{
 		Error(( "Can't shmget: %s", strerror(errno)));
@@ -141,13 +141,13 @@ void Monitor::Initialise()
 	Info(( "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() ));
 	Info(( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
 
-	record_event_stats = ZM_RECORD_EVENT_STATS;
+	record_event_stats = (bool)config.Item( ZM_RECORD_EVENT_STATS );
 
 	if ( mode == ANALYSIS )
 	{
 		static char	path[PATH_MAX];
 
-		sprintf( path, ZM_DIR_EVENTS );
+		strcpy( path, (const char *)config.Item( ZM_DIR_EVENTS ) );
 
 		struct stat statbuf;
 		errno = 0;
@@ -160,7 +160,7 @@ void Monitor::Initialise()
 			}
 		}
 
-		sprintf( path, ZM_DIR_EVENTS "/%s", name );
+		sprintf( path, "%s/%s", (const char *)config.Item( ZM_DIR_EVENTS ), name );
 
 		errno = 0;
 		stat( path, &statbuf );
@@ -469,7 +469,7 @@ bool Monitor::Analyse()
 	}
 
 	int index;
-	if ( ZM_OPT_ADAPTIVE_SKIP )
+	if ( (bool)config.Item( ZM_OPT_ADAPTIVE_SKIP ) )
 	{
 		int read_margin = shared_data->last_read_index - shared_data->last_write_index;
 		if ( read_margin < 0 ) read_margin += image_buffer_count;
@@ -512,7 +512,7 @@ bool Monitor::Analyse()
 		if ( shared_data->force_state != FORCE_OFF )
 			score = Compare( *image );
 		if ( shared_data->force_state == FORCE_ON )
-			score = ZM_FORCED_ALARM_SCORE;
+			score = (int)config.Item( ZM_FORCED_ALARM_SCORE );
 
 		if ( score )
 		{
@@ -579,7 +579,7 @@ bool Monitor::Analyse()
 		}
 	}
 
-	if ( ZM_BLEND_ALARMED_IMAGES || state != ALARM )
+	if ( (bool)config.Item( ZM_BLEND_ALARMED_IMAGES ) || state != ALARM )
 	{
 		ref_image.Blend( *image, ref_blend_perc );
 		//DumpImage( image );

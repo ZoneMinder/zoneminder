@@ -20,8 +20,6 @@
 #ifndef ZMFILE_H
 #define ZMFILE_H
 
-#define FILE_SOCK_FILE ZM_PATH_SOCKS "/zmf-%d.sock"
-
 struct FrameHeader
 {
 	int event_id;

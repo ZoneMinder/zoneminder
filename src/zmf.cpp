@@ -60,7 +60,7 @@ int OpenSocket( int monitor_id )
 	}
 
 	char sock_path[PATH_MAX] = "";
-	sprintf( sock_path, FILE_SOCK_FILE, monitor_id );
+	sprintf( sock_path, "%s/zmf-%d.sock", (const char *)config.Item( ZM_PATH_SOCKS ), monitor_id );
 	if ( unlink( sock_path ) < 0 )
 	{
 		Warning(( "Can't unlink '%s': %s", sock_path, strerror(errno) ));
@@ -241,7 +241,7 @@ int main( int argc, char *argv[] )
 			ReopenSocket( sd, monitor->Id() );
 		}
 		static char path[PATH_MAX] = "";
-		sprintf( path, ZM_DIR_EVENTS "/%s/%d/%s-%03d.jpg", monitor->Name(), frame_header.event_id, frame_header.alarm_frame?"analyse":"capture", frame_header.frame_id );
+		sprintf( path, "%s//%s/%d/%s-%03d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), frame_header.event_id, frame_header.alarm_frame?"analyse":"capture", frame_header.frame_id );
 		Debug( 1, ( "Got image, writing to %s", path ));
 
 		FILE *fd = 0;

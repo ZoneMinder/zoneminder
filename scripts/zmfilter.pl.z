@@ -35,33 +35,28 @@ use strict;
 use constant ZM_PATH_BIN => "<from zmconfig>";
 use constant ZM_PATH_WEB => "<from zmconfig>";
 use constant ZM_PATH_CGI => "<from zmconfig>";
-use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERA => "<from zmconfig>";
 use constant ZM_DB_PASSA => "<from zmconfig>";
-use constant ZM_DIR_EVENTS => "<from zmconfig>";
-use constant ZM_SHM_KEY => <from zmconfig>;
-use constant ZM_FILTER_RELOAD_DELAY => <from zmconfig>;
-use constant ZM_OPT_UPLOAD => <from zmconfig>;
-use constant ZM_UPLOAD_ARCH_FORMAT => <from zmconfig>;
-use constant ZM_UPLOAD_ARCH_COMPRESS => <from zmconfig>;
-use constant ZM_UPLOAD_ARCH_ANALYSE => <from zmconfig>;
-use constant ZM_UPLOAD_FTP_HOST => "<from zmconfig>";
-use constant ZM_UPLOAD_FTP_USER => "<from zmconfig>";
-use constant ZM_UPLOAD_FTP_PASS => "<from zmconfig>";
-use constant ZM_UPLOAD_FTP_LOC_DIR => "<from zmconfig>";
-use constant ZM_UPLOAD_FTP_REM_DIR => "<from zmconfig>";
-use constant ZM_UPLOAD_FTP_TIMEOUT => <from zmconfig>;
-use constant ZM_UPLOAD_FTP_PASSIVE => <from zmconfig>;
-use constant ZM_UPLOAD_FTP_DEBUG => <from zmconfig>;
-use constant ZM_OPT_EMAIL => <from zmconfig>;
-use constant ZM_EMAIL_ADDRESS => <from zmconfig>;
-use constant ZM_OPT_MESSAGE => <from zmconfig>;
-use constant ZM_MESSAGE_ADDRESS => <from zmconfig>;
-use constant ZM_URL => <from zmconfig>;
-use constant ZM_FROM_EMAIL => <from zmconfig>;
-use constant ZM_OPT_MPEG => <from zmconfig>;
+
+# Load the config from the database into the symbol table
+BEGIN
+{
+	use DBI;
+	no strict 'refs';
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
+	my $sql = "select * from Config";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	while( my $config = $sth->fetchrow_hashref() )
+	{
+		*{$config->{Name}} = sub { $config->{Value} };
+	}
+	$sth->finish();
+	$dbh->disconnect();
+}
 
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter-%d.log';
@@ -89,9 +84,7 @@ if ( ZM_OPT_EMAIL )
 {
 	use MIME::Entity;
 
-	use constant ZM_EMAIL_FORMAT => "<from zmconfig>"; # File containing the contents of the email
-
-	( $email_subject, $email_body ) = ZM_EMAIL_FORMAT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"/ms;
+	( $email_subject, $email_body ) = ZM_EMAIL_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"/ms;
 }
 
 my $message_subject;
@@ -100,9 +93,7 @@ if ( ZM_OPT_MESSAGE )
 {
 	use MIME::Entity;
 
-	use constant ZM_MESSAGE_FORMAT => "<from zmconfig>"; # File containing the contents of the message
-
-	( $message_subject, $message_body ) = ZM_MESSAGE_FORMAT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"/ms;
+	( $message_subject, $message_body ) = ZM_MESSAGE_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"/ms;
 }
 
 # ==========================================================================
@@ -202,7 +193,7 @@ my $filters = GetFilters( $monitor );
 my $last_action = 0;
 
 my $size = 24; # We only need the first 16 bytes really for the last event count
-my $key = ZM_SHM_KEY|$monitor;
+my $key = hex(ZM_SHM_KEY)|$monitor;
 my $shmid = shmget( $key, $size, 0 ) || die( "Can't get shared memory id: $!" );
 
 while( 1 )
@@ -402,7 +393,7 @@ sub uploadArchFile
 	my $event = shift;
 
 	my $arch_file = ZM_UPLOAD_FTP_LOC_DIR.'/'.$filter->{MonitorName}.'-'.$event->{Id};
-	my $arch_image_path = "$filter->{MonitorName}/$event->{Id}/".(ZM_UPLOAD_ARCH_ANALYSE?'*':'capture*').".jpg";
+	my $arch_image_path = "$filter->{MonitorName}/$event->{Id}/".((ZM_UPLOAD_ARCH_ANALYSE)?'*':'capture*').".jpg";
 	my $arch_error;
 
 	if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
@@ -417,7 +408,7 @@ sub uploadArchFile
 			print( "Adding $image_file\n" );
 			my $member = $zip->addFile( $image_file );
 			last unless ( $member );
-			$member->desiredCompressionMethod( ZM_UPLOAD_ARCH_COMPRESS?COMPRESSION_DEFLATED:COMPRESSION_STORED );
+			$member->desiredCompressionMethod( (ZM_UPLOAD_ARCH_COMPRESS)?COMPRESSION_DEFLATED:COMPRESSION_STORED );
 		}
 		$status = $zip->writeToFileNamed( $arch_file );
 

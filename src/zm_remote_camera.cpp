@@ -240,6 +240,7 @@ int RemoteCamera::GetResponse()
 {
 	const char *header = 0;
 	int header_len = 0;
+	const char *http_version = 0;
 	int status_code = 0;
 	const char *status_mesg = 0;
 	const char *connection_type = "";
@@ -277,21 +278,22 @@ int RemoteCamera::GetResponse()
 					Debug( 4, ( "Captured header (%d bytes):\n'%s'", header_len, header ));
 
 					if ( !status_expr )
-						status_expr = new RegExpr( "^HTTP/1\\.[01] +([0-9]+) +(.+?)\r?\n", PCRE_MULTILINE|PCRE_CASELESS );
-					if ( status_expr->Match( header, header_len ) < 3 )
+						status_expr = new RegExpr( "^HTTP/(1\\.[01]) +([0-9]+) +(.+?)\r?\n", PCRE_MULTILINE|PCRE_CASELESS );
+					if ( status_expr->Match( header, header_len ) < 4 )
 					{
 						Error(( "Unable to extract HTTP status from header" ));
 						return( -1 );
 					}
-					status_code = atoi( status_expr->MatchString( 1 ) );
-					status_mesg = status_expr->MatchString( 2 );
+					http_version = status_expr->MatchString( 1 );
+					status_code = atoi( status_expr->MatchString( 2 ) );
+					status_mesg = status_expr->MatchString( 3 );
 
 					if ( status_code < 200 || status_code > 299 )
 					{
 						Error(( "Invalid response status %d: %s", status_code, status_mesg ));
 						return( -1 );
 					}
-					Debug( 3, ( "Got status '%d' (%s)", status_code, status_mesg ));
+					Debug( 3, ( "Got status '%d' (%s), http version %s", status_code, status_mesg, http_version ));
 
 					if ( !connection_expr )
 						connection_expr = new RegExpr( "Connection: ?(.+?)\r?\n", PCRE_CASELESS );

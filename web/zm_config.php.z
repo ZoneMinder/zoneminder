@@ -142,6 +142,30 @@ switch ( $bandwidth )
 	}
 }
 
+function loadConfig()
+{
+	global $config;
+	global $config_cats;
+
+	$sql = "select * from Config";
+	$result = mysql_query( $sql );
+	if ( !$result )
+		echo mysql_error();
+	$monitors = array();
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		$config[$row[Name]] = $row;
+		if ( !($config_cat = &$config_cats[$row[Category]]) )
+		{
+			$config_cats[$row[Category]] = array();
+			$config_cat = &$config_cats[$row[Category]];
+		}
+		$config_cat[$row[Name]] = $row;
+	}
+	//print_r( $config );
+	//print_r( $config_cats );
+}
+
 // Javascript window sizes
 $jws = array( 
 	'console' => array( 'w'=>720, 'h'=>400 ),
@@ -160,7 +184,9 @@ $jws = array(
 	'video' => array( 'w'=>100, 'h'=>80 ),
 	'image' => array( 'w'=>48, 'h'=>80 ),
 	'stats' => array( 'w'=>600, 'h'=>150 ),
-	'options' => array( 'w'=>600, 'h'=>400 ),
+	'options' => array( 'w'=>760, 'h'=>440 ),
+	'optionhelp' => array( 'w'=>320, 'h'=>240 ),
+	'restarting' => array( 'w'=>250, 'h'=>150 ),
 	'user' => array( 'w'=>230, 'h'=>320 ),
 	'settings' => array( 'w'=>200, 'h'=>225 ),
 	'logout' => array( 'w'=>200, 'h'=>100 ),

@@ -357,7 +357,54 @@ if ( $action )
 	}
 	if ( canEdit( 'System' ) )
 	{
-		if ( $action == "user" && isset( $uid ) )
+		if ( $action == "options" && isset( $tab ) )
+		{
+			$config_cat = $config_cats[$tab];
+			$changed = false;
+			foreach ( $config_cat as $name=>$value )
+			{
+				if ( $value[Type] == "boolean" && !$new_config[$name] )
+				{
+					 $new_config[$name] = 0;
+				}
+				else
+				{
+					 $new_config[$name] = preg_replace( "/\r\n/", "\n", stripslashes( $new_config[$name] ) );
+				}
+				if ( $value[Value] != $new_config[$name] )
+				{
+					$sql = "update Config set Value = '".$new_config[$name]."' where Name = '".$name."'";
+					echo $sql;
+					//$result = mysql_query( $sql );
+					//if ( !$result )
+						//die( mysql_error() );
+					$changed = true;
+				}
+			}
+			if ( $changed )
+			{
+				switch( $tab )
+				{
+					case "system" :
+					case "paths" :
+					case "video" :
+					case "network" :
+					case "x10" :
+					case "mail" :
+					case "ftp" :
+						$restart = true;
+						break;
+					case "web" :
+					case "tools" :
+					case "highband" :
+					case "medband" :
+					case "lowband" :
+					case "phoneband" :
+						break;
+				}
+			}
+		}
+		elseif ( $action == "user" && isset( $uid ) )
 		{
 			if ( $uid > 0 )
 			{

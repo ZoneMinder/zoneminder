@@ -26,10 +26,14 @@ if ( !$bandwidth )
 
 ini_set( "session.use_trans_sid", "0" );
 ini_set( "session.name", "ZMSESSID" );
+//ini_set( "magic_quotes_gpc", "Off" );
 
 session_start();
 
 require_once( 'zm_config.php' );
+require_once( 'zm_db.php' );
+
+loadConfig();
 
 if ( ZM_OPT_USE_AUTH )
 {
@@ -48,7 +52,6 @@ else
 	);
 }
 
-require_once( 'zm_db.php' );
 require_once( 'zm_funcs.php' );
 require_once( 'zm_actions.php' );
 
@@ -212,7 +215,7 @@ function newWindow(Url,Name,Width,Height)
 {
 	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
-function eventsWindow(Url,Name,Width,Height)
+function scrollWindow(Url,Name,Width,Height)
 {
 	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
@@ -375,12 +378,12 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 <?php } else { ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=$monitor[Id]', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">$monitor[Host]</span>", canEdit( 'Monitors' ) ) ?></td>
 <?php } ?>
-<td align="right" class="text"><?= makeLink( "javascript: eventsWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[EventCount], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: eventsWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[HourEventCount], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: eventsWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+day', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[DayEventCount], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: eventsWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+week', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[WeekEventCount], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: eventsWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+month', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[MonthEventCount], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: eventsWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[ArchEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[EventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[HourEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+day', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[DayEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+week', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[WeekEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+month', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[MonthEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[ArchEventCount], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=zones&mid=$monitor[Id]', 'zmZones', ".($monitor[Width]+$jws['zones']['w']).", ".($monitor[Height]+$jws['zones']['h'])." );", $monitor[ZoneCount], canView( 'Monitors' ) ) ?></td>
 <td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor[Id] ?>" onClick="configureButton( document.monitor_form, 'mark_mids' );"<?php if ( !canEdit( 'Monitors' ) || $user[MonitorIds] ) {?> disabled<?php } ?>></td>
 </tr>
@@ -446,20 +449,31 @@ function closeWindow()
 	}
 	case "options" :
 	{
-		if ( !canView( 'Monitors' ) )
+		if ( !canView( 'System' ) )
 		{
 			$view = "error";
 			break;
 		}
+
+		$tabs = array();
+		$tabs["system"] = "System";
+		$tabs["paths"] = "Paths";
+		$tabs["video"] = "Video";
+		$tabs["network"] = "Network";
+		$tabs["web"] = "Web";
+		$tabs["mail"] = "Email";
+		$tabs["ftp"] = "FTP";
+		$tabs["x10"] = "X10";
+		$tabs["tools"] = "Tools";
+		$tabs["highband"] = "High&nbsp;B/W";
+		$tabs["medband"] = "Medium&nbsp;B/W";
+		$tabs["lowband"] = "Low&nbsp;B/W";
+		$tabs["phoneband"] = "Phone&nbsp;B/W";
+		if ( ZM_OPT_USE_AUTH )
+			$tabs["users"] = "Users";
 
 		if ( !$tab )
-			$tab = "users";
-
-		if ( $tab == "users" && !canView( 'System' ) )
-		{
-			$view = "error";
-			break;
-		}
+			$tab = "system";
 ?>
 <html>
 <head>
@@ -495,31 +509,84 @@ function configureButton(form,name)
 
 function newWindow(Url,Name,Width,Height)
 {
-	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+	window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 
 function closeWindow()
 {
 	window.close();
 }
+
+<?php
+		if ( $tab == 'user' )
+		{
+?>
+function validateForm( form )
+{
+	return( true );
+}
+<?php
+		}
+		else
+		{
+?>
+
+function validateForm( form )
+{
+	var errors = Array();
+<?php
+			$config_cat = $config_cats[$tab];
+
+			foreach ( $config_cat as $name=>$value )
+			{
+				if ( 0 && $value[Type] == "boolean" )
+				{
+?>
+	if ( !form.<?= $name ?>.value )
+	{
+		form.<?= $name ?>.value = 0;
+	}
+<?php
+				}
+			}
+?>
+	return( true );
+}
+<?php
+		}
+?>
+
 </script>
 </head>
 <body>
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
-<td width="10%" class="activetab">Users</td>
-<td class="nontab">&nbsp;</td>
-<td class="nontab">&nbsp;</td>
-<td class="nontab">&nbsp;</td>
+<?php
+		foreach ( $tabs as $name=>$value )
+		{
+			if ( $tab == $name )
+			{
+?>
+<td width="10" class="activetab"><?= $value ?></td>
+<?php
+			}
+			else
+			{
+?>
+<td width="10" class="passivetab"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&tab=<?= $name ?>"?><?= $value ?></a></td>
+<?php
+			}
+		}
+?>
 <td class="nontab">&nbsp;</td>
 </tr>
 </table>
-<table border="0" cellspacing="0" cellpadding="4" width="100%">
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
 <?php 
 		if ( $tab == "users" )
 		{
 ?>
-<form name="user_form" method="get" action="<?= $PHP_SELF ?>">
+<form name="user_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="validateForm( this )">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="tab" value="<?= $tab ?>">
 <input type="hidden" name="action" value="delete">
@@ -554,13 +621,146 @@ function closeWindow()
 <td align="left" class="ruled"><?= $row[MonitorIds]?$row[MonitorIds]:"&nbsp;" ?></td>
 <td align="center" class="ruled"><input type="checkbox" name="mark_uids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.user_form, 'mark_uids' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>></td>
 </tr>
-<?php
-			}
-		}
-?>
 <tr><td colspan="10" class="ruled">&nbsp;</td></tr>
 <tr><td colspan="10" align="right"><input type="button" value="Add New User" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=user&uid=-1', 'zmUser', <?= $jws['user']['w'] ?>, <?= $jws['user']['h'] ?> );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="submit" name="delete_btn" value="Delete" class="form" disabled>&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow();"></td></tr>
 </form>
+<?php
+			}
+		}
+		else
+		{
+?>
+<form name="options_form" method="post" action="<?= $PHP_SELF ?>" onSubmit="return( validateForm( document.options_form ) );">
+<input type="hidden" name="view" value="<?= $view ?>">
+<input type="hidden" name="tab" value="<?= $tab ?>">
+<input type="hidden" name="action" value="options">
+<tr>
+<td align="left" class="smallhead">Name</td>
+<td align="left" class="smallhead">Description</td>
+<td align="left" class="smallhead">Value</td>
+</tr>
+<?php
+			$config_cat = $config_cats[$tab];
+
+			foreach ( $config_cat as $name=>$value )
+			{
+?>
+<tr>
+<td align="left" class="text"><?= $value[Name] ?></td>
+<td align="left" class="text"><?= $value[Prompt] ?> (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=optionhelp&option=<?= $value[Name] ?>', 'zmOptionHelp', <?= $jws['optionhelp']['w'] ?>, <?= $jws['optionhelp']['h'] ?>);">?</a>)</td>
+<?php	
+				if ( $value[Type] == "boolean" )
+				{
+?>
+<td align="left" class="text"><input type="checkbox" class="text" id="<?= $value[Name] ?>" name="new_config[<?= $value[Name] ?>]" value="1"<?php if ( $value[Value] ) { ?> checked<?php } ?>></td>
+<?php
+				}
+				elseif ( preg_match( "/\|/", $value[Hint] ) )
+				{
+?>
+<td align="left" class="text">
+<?php
+					foreach ( split( "\|", $value[Hint] ) as $option )
+					{
+?>
+<input type="radio" class="text" id="<?= $value[Name] ?>" name="new_config[<?= $value[Name] ?>]" value="<?= $option ?>"<?php if ( $value[Value] == $option ) { ?> checked<?php } ?>>&nbsp;<?= $option ?>&nbsp;&nbsp;
+<?php
+					}
+?>
+</td>
+<?php
+				}
+				elseif ( $value[Type] == "text" )
+				{
+?>
+<td align="left" class="text"><textarea class="form" id="<?= $value[Name] ?>" name="new_config[<?= $value[Name] ?>]" rows="5" cols="40"><?= htmlspecialchars($value[Value]) ?></textarea></td>
+<?php
+				}
+				elseif ( $value[Type] == "integer" )
+				{
+?>
+<td align="left" class="text"><input type="text" class="form" id="<?= $value[Name] ?>" name="new_config[<?= $value[Name] ?>]" value="<?= $value[Value] ?>" size="8"></td>
+<?php
+				}
+				else
+				{
+?>
+<td align="left" class="text"><input type="text" class="form" id="<?= $value[Name] ?>" name="new_config[<?= $value[Name] ?>]" value="<?= $value[Value] ?>" size="40"></td>
+<?php
+				}
+?>
+</tr>
+<?php
+			}
+?>
+<tr><td colspan="3" align="right"><input type="submit" value="Save" class="form">&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow();"></td></tr>
+</form>
+<?php
+		}
+?>
+</table>
+<?php
+		if ( $restart )
+		{
+			flush();
+?>
+<script language="JavaScript">
+alert( "These changes may not come into effect fully\nwhile the system is running. When you have\nfinished making your changes please ensure that\nyou restart ZoneMinder." );
+//var restartWindow = window.open( '<?= $PHP_SELF ?>?view=restarting', 'zmRestarting', 'resizable,width=<?= $jws['restarting']['w'] ?>,height=<?= $jws['restarting']['h'] ?>' );
+</script>
+<?php
+		}
+?>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "optionhelp" :
+	{
+?>
+<html>
+<head>
+<title>ZM - Option Help</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+function closeWindow()
+{
+	window.close();
+}
+</script>
+</head>
+<body>
+<table border="0" cellspacing="0" cellpadding="4" width="96%">
+<tr><td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td></tr>
+<tr><td align="left" class="smallhead"><?= $option ?></td></tr>
+<tr><td class="text"><p class="text" align="justify"><?= $config[$option][Help] ?></p></td></tr>
+</table>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "restarting" :
+	{
+?>
+<html>
+<head>
+<title>ZM - Restarting</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+function closeWindow()
+{
+	window.close();
+}
+window.setTimeout( "window.close();", <?= 10000 ?> );
+</script>
+</head>
+<body>
+<table border="0" cellspacing="0" cellpadding="4" width="96%">
+<tr><td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td></tr>
+<tr><td align="center" class="smallhead">ZoneMinder - Restarting</td></tr>
+<tr><td align="center" class="text">Changes you have made to the configuration mean that ZoneMinder needs to restart. Please wait for a few seconds before applying any other changes.</td></tr>
 </table>
 </body>
 </html>

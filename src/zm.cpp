@@ -1320,7 +1320,7 @@ bool Camera::GetCurrentSettings( int device, char *output, bool verbose )
 				sprintf( output+strlen(output), "n%d:%d,", chan, vid_src.name );
 				sprintf( output+strlen(output), "C%d:%d,", chan, vid_src.channel );
 				sprintf( output+strlen(output), "Fl%d:%x,", chan, vid_src.flags );
-				sprintf( output+strlen(output), "T%d:%d", chan, vid_src.type )
+				sprintf( output+strlen(output), "T%d:%d", chan, vid_src.type );
 				sprintf( output+strlen(output), "F%d:%d%s,", chan, vid_src.norm, chan==(vid_cap.channels-1)?"":"," );
 			}
 		}

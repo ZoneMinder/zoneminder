@@ -289,10 +289,10 @@ do
 		}
 	}
 
-	# Now delete any old wap image files
-	if ( my @old_files = grep { -M > $max_image_age } <$image_path/*-wap-*.{jpg,gif,wbmp}> )
+	# Now delete any old image files
+	if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> )
 	{
-		print( "Deleting ".int(@old_files)." old wap images\n" );
+		print( "Deleting ".int(@old_files)." old images\n" );
 		my $untainted_old_files = join( ";", @old_files );
 		( $untainted_old_files ) = ( $untainted_old_files =~ /^(.*)$/ );
 		unlink( split( ";", $untainted_old_files ) );

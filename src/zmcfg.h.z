@@ -19,17 +19,17 @@
 
 #include "config.h"
 
-#define ZM_DB_SERVER			"localhost"	// Machine on which the database server is running (from zmconfig)
-#define ZM_DB_NAME				"zm"	// Database containing the tables (from zmconfig)
-#define	ZM_DB_USERA				""	// Privileged DB user name, needs at least select, insert, update and delete privileges (from zmconfig)
-#define	ZM_DB_PASSA				""	// Privileged DB user password (from zmconfig)
-#define	ZM_DB_USERB				""	// Unprivileged DB user name, need just select privilege. (from zmconfig)
-#define	ZM_DB_PASSB				""	// Unprivileged DB user password (from zmconfig)
+#define ZM_DB_SERVER			"<from zmconfig>"	// Machine on which the database server is running (from zmconfig)
+#define ZM_DB_NAME				"<from zmconfig>"	// Database containing the tables (from zmconfig)
+#define	ZM_DB_USERA				"<from zmconfig>"	// Privileged DB user name, needs at least select, insert, update and delete privileges (from zmconfig)
+#define	ZM_DB_PASSA				"<from zmconfig>"	// Privileged DB user password (from zmconfig)
+#define	ZM_DB_USERB				"<from zmconfig>"	// Unprivileged DB user name, need just select privilege. (from zmconfig)
+#define	ZM_DB_PASSB				"<from zmconfig>"	// Unprivileged DB user password (from zmconfig)
 
-#define ZM_SHM_KEY				0x7a6d2000	// Shared memory key to use, only change if it clashes with another application (from zmconfig)
+#define ZM_SHM_KEY				<from zmconfig>	// Shared memory key to use, only change if it clashes with another application (from zmconfig)
 
-#define ZM_EVENT_DIR			"events"	// Local path to where events directory lives (from zmconfig)
+#define ZM_EVENT_DIR			<from zmconfig>	// Local path to where events directory lives (from zmconfig)
 
-#define ZM_FORCED_ALARM_SCORE	255	// Score to give X10 forced alarms (from zmconfig)
+#define ZM_FORCED_ALARM_SCORE	<from zmconfig>	// Score to give X10 forced alarms (from zmconfig)
 
-#define ZM_RECORD_EVENT_STATS	true	// Whether to record event statistical information, change to no if too slow (from zmconfig)
+#define ZM_RECORD_EVENT_STATS	<from zmconfig>	// Whether to record event statistical information, change to no if too slow (from zmconfig)

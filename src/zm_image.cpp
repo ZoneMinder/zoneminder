@@ -613,7 +613,7 @@ void Image::DeColourise()
 	}
 }
 
-void Image::Hatch( Rgb colour, const Box *limits=0 )
+void Image::Hatch( Rgb colour, const Box *limits )
 {
 	assert( colours == 1 || colours == 3 );
 

@@ -179,6 +179,7 @@ CREATE TABLE Users (
   Id int(10) unsigned NOT NULL auto_increment,
   Username varchar(32) NOT NULL default '',
   Password varchar(32) NOT NULL default '',
+  Language varchar(8) NOT NULL default '',
   Enabled tinyint(3) unsigned NOT NULL default '1',
   Stream enum('None','View') NOT NULL default 'None',
   Events enum('None','View','Edit') NOT NULL default 'None',
@@ -221,7 +222,7 @@ CREATE TABLE Zones (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table `States`
+-- Table structure for table 'States'
 --
 
 CREATE TABLE States (
@@ -233,4 +234,4 @@ CREATE TABLE States (
 --
 -- Create a default admin user.
 --
-insert into Users values ('','admin',password('admin'),1,'View','Edit','Edit','Edit',NULL);
+insert into Users values ('','admin',password('admin'),'',1,'View','Edit','Edit','Edit',NULL);

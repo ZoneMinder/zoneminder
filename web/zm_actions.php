@@ -90,9 +90,7 @@ if ( isset($action) )
 					$filter_parms[] = "$key=$value";
 				}
 				$filter_query_string = join( '&', $filter_parms );
-				//$filter_query_string = serialize( $filter_query );
-				$sql = "replace into Filters set MonitorId = '$mid', Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoDelete = '$auto_delete', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message'";
-				#echo "<html>$sql</html>";
+				$sql = "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoDelete = '$auto_delete', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message'";
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );
@@ -115,7 +113,7 @@ if ( isset($action) )
 			}
 			if ( $fid )
 			{
-				$sql = "delete from Filters where MonitorId = '$mid' and Name = '$fid'";
+				$sql = "delete from Filters where Name = '$fid'";
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );

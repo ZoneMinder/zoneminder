@@ -601,7 +601,6 @@ sub processTask
 			{
 				push( @commands, main::ZM_PATH_BIN."/zmdc.pl start zma -m ".$task->{monitor}->{Id} );
 				push( @commands, main::ZM_PATH_BIN."/zmdc.pl start zmf -m ".$task->{monitor}->{Id} );
-				push( @commands, main::ZM_PATH_BIN."/zmdc.pl start zmfilter.pl -m ".$task->{monitor}->{Id}." -e -1" );
 				if ( main::ZM_OPT_FRAME_SERVER )
 				{
 				}
@@ -615,7 +614,6 @@ sub processTask
 				$command = main::ZM_PATH_BIN."/zmdc.pl stop zma -m ".$task->{monitor}->{Id};
 				push( @commands, main::ZM_PATH_BIN."/zmdc.pl stop zma -m ".$task->{monitor}->{Id} );
 				push( @commands, main::ZM_PATH_BIN."/zmdc.pl stop zmf -m ".$task->{monitor}->{Id} );
-				#push( @commands, main::ZM_PATH_BIN."/zmdc.pl stop zmfilter.pl -m ".$task->{monitor}->{Id}." -e -1" );
 			}
 		}
 		elsif( $class eq "alarm" )

@@ -36,12 +36,21 @@ if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
 
-$result = mysql_query( "select * from Events where Id < '$eid' and MonitorId = '$mid' order by Id desc limit 0,1" );
+if ( !isset($mid) )
+{
+	$mid = 0;
+	$mid_sql = '';
+}
+else
+{
+	$mid_sql = " and MonitorId = '$mid'";
+}
+$result = mysql_query( "select * from Events where Id < '$eid'$mid_sql order by Id desc limit 0,1" );
 if ( !$result )
 	die( mysql_error() );
 $prev_event = mysql_fetch_assoc( $result );
 
-$result = mysql_query( "select * from Events where Id > '$eid' and MonitorId = '$mid' order by Id asc limit 0,1" );
+$result = mysql_query( "select * from Events where Id > '$eid'$mid_sql order by Id asc limit 0,1" );
 if ( !$result )
 	die( mysql_error() );
 $next_event = mysql_fetch_assoc( $result );

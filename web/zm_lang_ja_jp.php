@@ -96,7 +96,6 @@ $zmSlangAttrDate             = '“ú•t';
 $zmSlangAttrDuration         = 'Œp‘±ŠÔ';
 $zmSlangAttrFrames           = 'ÌÚ°Ñ';
 $zmSlangAttrMaxScore         = 'Å‚½º±°';
-$zmSlangAttrMontage          = 'ÓİÀ°¼Ş­';
 $zmSlangAttrTime             = 'ŠÔ';
 $zmSlangAttrTotalScore       = '‡Œv½º±°';
 $zmSlangAttrWeekday          = '—j“ú';

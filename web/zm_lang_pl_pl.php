@@ -96,7 +96,6 @@ $zmSlangAttrDateTime         = 'Data/Czas';
 $zmSlangAttrDuration         = 'Czas trwania';
 $zmSlangAttrFrames           = 'Ramek';
 $zmSlangAttrMaxScore         = 'Maks. wynik';
-$zmSlangAttrMontage          = 'Monta¿';
 $zmSlangAttrTime             = 'Czas';
 $zmSlangAttrTotalScore       = 'Ca³kowity wynik';
 $zmSlangAttrWeekday          = 'Dzieñ roboczy';

@@ -68,7 +68,6 @@ CREATE TABLE Events (
 
 CREATE TABLE Filters (
   Id int(10) unsigned NOT NULL auto_increment,
-  MonitorId int(10) unsigned NOT NULL default '0',
   Name varchar(64) NOT NULL default '',
   Query text NOT NULL,
   AutoArchive tinyint(3) unsigned NOT NULL default '0',
@@ -77,7 +76,7 @@ CREATE TABLE Filters (
   AutoEmail tinyint(3) unsigned NOT NULL default '0',
   AutoMessage tinyint(3) unsigned NOT NULL default '0',
   PRIMARY KEY  (Id),
-  UNIQUE KEY FilterIDX (MonitorId,Name)
+  UNIQUE KEY FilterIDX (Name)
 ) TYPE=MyISAM;
 
 --

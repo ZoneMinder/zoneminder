@@ -23,15 +23,10 @@ if ( !canEdit( 'Events' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-if ( !$result )
-	die( mysql_error() );
-$monitor = mysql_fetch_assoc( $result );
-
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangSaveFilter ?></title>
+<title>ZM - <?= $zmSlangSaveFilter ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function closeWindow()
@@ -49,7 +44,6 @@ window.focus();
 <form name="filter_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="validateForm( document.filter_form );">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="filter">
-<input type="hidden" name="mid" value="<?= $mid ?>">
 <input type="hidden" name="trms" value="<?= $trms ?>">
 <?php
 for ( $i = 1; $i <= $trms; $i++ )
@@ -79,7 +73,7 @@ for ( $i = 1; $i <= $trms; $i++ )
 <tr>
 <?php
 $select_name = "filter_name";
-$result = mysql_query( "select * from Filters where MonitorId = '$mid' order by Name" );
+$result = mysql_query( "select * from Filters order by Name" );
 if ( !$result )
 	die( mysql_error() );
 while ( $row = mysql_fetch_assoc( $result ) )

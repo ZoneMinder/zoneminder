@@ -134,7 +134,7 @@ $jws = array(
 	'events' => array( 'w'=>720, 'h'=>480 ),
 	'event' => array( 'w'=>72, 'h'=>168 ),
 	'filter' => array( 'w'=>560, 'h'=>250 ),
-	'filtersave' => array( 'w'=>520, 'h'=>200 ),
+	'filtersave' => array( 'w'=>560, 'h'=>220 ),
 	'zones' => array( 'w'=>72, 'h'=>232 ),
 	'zone' => array( 'w'=>360, 'h'=>480 ),
 	'video' => array( 'w'=>100, 'h'=>80 ),

@@ -96,7 +96,6 @@ $zmSlangAttrDateTime         = 'Datum/Zeit';
 $zmSlangAttrDuration         = 'Dauer';
 $zmSlangAttrFrames           = 'Bilder';
 $zmSlangAttrMaxScore         = 'Max. Zähler';
-$zmSlangAttrMontage          = 'Montage';
 $zmSlangAttrTime             = 'Zeit';
 $zmSlangAttrTotalScore       = 'Total Zähler';
 $zmSlangAttrWeekday          = 'Wochentag';

@@ -96,7 +96,6 @@ $zmSlangAttrDateTime         = 'Date/temps';
 $zmSlangAttrDuration         = 'Durée';
 $zmSlangAttrFrames           = 'Images';
 $zmSlangAttrMaxScore         = 'Score max.';
-$zmSlangAttrMontage          = 'Montage';
 $zmSlangAttrTime             = 'Temps';
 $zmSlangAttrTotalScore       = 'Score total';
 $zmSlangAttrWeekday          = 'Semaine';

@@ -163,6 +163,50 @@ if ( $action )
 			startDaemon( "zma", $did );
 		}
 	}
+	elseif ( $action == "zone" && isset( $mid ) && isset( $zid ) )
+	{
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
+
+		$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$zone = mysql_fetch_assoc( $result );
+
+		$changes = array();
+		if ( $new_name != $zone[Name] ) $changes[] = "Name = '$new_name'";
+		if ( $new_type != $zone['Type'] ) $changes[] = "Type = '$new_type'";
+		if ( $new_units != $zone[Units] ) $changes[] = "Units = '$new_units'";
+		if ( $new_lo_x != $zone[LoX] ) $changes[] = "LoX = '$new_lo_x'";
+		if ( $new_lo_y != $zone[LoY] ) $changes[] = "LoY = '$new_lo_y'";
+		if ( $new_hi_x != $zone[HiX] ) $changes[] = "HiX = '$new_hi_x'";
+		if ( $new_hi_y != $zone[HiY] ) $changes[] = "HiY = '$new_hi_y'";
+		if ( $new_alarm_rgb != $zone[AlarmRGB] ) $changes[] = "AlarmRGB = '$new_alarm_rgb'";
+		if ( $new_alarm_threshold != $zone[AlarmThreshold] ) $changes[] = "AlarmThreshold = '$new_alarm_threshold'";
+		if ( $new_min_alarm_pixels != $zone[MinAlarmPixels] ) $changes[] = "MinAlarmPixels = '$new_min_alarm_pixels'";
+		if ( $new_max_alarm_pixels != $zone[MaxAlarmPixels] ) $changes[] = "MaxAlarmPixels = '$new_max_alarm_pixels'";
+		if ( $new_filter_x != $zone[FilterX] ) $changes[] = "FilterX = '$new_filter_x'";
+		if ( $new_filter_y != $zone[FilterY] ) $changes[] = "FilterY = '$new_filter_y'";
+		if ( $new_min_filter_pixels != $zone[MinFilterPixels] ) $changes[] = "MinFilterPixels = '$new_min_filter_pixels'";
+		if ( $new_max_filter_pixels != $zone[MaxFilterPixels] ) $changes[] = "MaxFilterPixels = '$new_max_filter_pixels'";
+		if ( $new_min_blob_pixels != $zone[MinBlobPixels] ) $changes[] = "MinBlobPixels = '$new_min_blob_pixels'";
+		if ( $new_max_blob_pixels != $zone[MaxBlobPixels] ) $changes[] = "MaxBlobPixels = '$new_max_blob_pixels'";
+		if ( $new_min_blobs != $zone[MinBlobs] ) $changes[] = "MinBlobs = '$new_min_blobs'";
+		if ( $new_max_blobs != $zone[MaxBlobs] ) $changes[] = "MaxBlobs = '$new_max_blobs'";
+
+		if ( count( $changes ) )
+		{
+			$sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '$mid' and Id = '$zid'";
+			#echo "<html>$sql</html>";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				die( mysql_error() );
+			startDaemon( "zma", $monitor[Device] );
+			$refresh_parent = true;
+		}
+	}
 }
 
 if ( !$view )
@@ -868,6 +912,9 @@ elseif( $view == "zones" )
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 window.focus();
+function newWindow(Url,Name,Width,Height) {
+        var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+}
 function closeWindow() {
         window.close();
 }
@@ -879,7 +926,7 @@ function closeWindow() {
 	foreach( $zones as $zone )
 	{
 ?>
-<area shape="rect" coords="<?php echo "$zone[LoX],$zone[LoY],$zone[HiX],$zone[HiY]" ?>" href="<?php echo $PHP_SELF ?>?view=zone&zid=<?php echo $zone[Id] ?>">
+<area shape="rect" coords="<?php echo "$zone[LoX],$zone[LoY],$zone[HiX],$zone[HiY]" ?>" href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', 360, 480 );">
 <?php
 	}
 ?>
@@ -910,8 +957,8 @@ function closeWindow() {
 	{
 ?>
 <tr>
-<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $zone[Width]+72 ?>, <?php echo $zone[Height]+360 ?> );"><?php echo $zone[Id] ?>.</a></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $zone[Width]+72 ?>, <?php echo $zone[Height]+360 ?> );"><?php echo $zone[Name] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', 360, 480 );"><?php echo $zone[Id] ?>.</a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', 360, 480 );"><?php echo $zone[Name] ?></a></td>
 <td align="center" class="text"><?php echo $zone['Type'] ?></td>
 <td align="center" class="text"><?php echo $zone[Units] ?></td>
 <td align="center" class="text"><?php echo $zone[LoX] ?>,<?php echo $zone[LoY] ?>-<?php echo $zone[HiX] ?>,<?php echo $zone[HiY]?></td>
@@ -926,6 +973,97 @@ function closeWindow() {
 <td align="center"><input type="submit" value="Delete" class="form"></td>
 </tr>
 </form>
+</table>
+</body>
+</html>
+<?php
+}
+elseif( $view == "zone" )
+{
+	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$monitor = mysql_fetch_assoc( $result );
+
+	$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$zone = mysql_fetch_assoc( $result );
+?>
+<html>
+<head>
+<title>ZM - <?php echo $monitor[Name] ?> - Zone <?php echo $zone[Id] ?></title>
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<script language="JavaScript">
+<?php
+if ( $refresh_parent )
+{
+?>
+opener.location.reload();
+<?php
+}
+?>
+window.focus();
+function closeWindow() {
+        window.close();
+}
+</script>
+</head>
+<body>
+<table border="0" cellspacing="0" cellpadding="0" width="100%">
+<tr>
+<td colspan="2" align="left" class="head">Monitor <?php echo $monitor[Name] ?> - Zone <?php echo $zone[Id] ?></td>
+</tr>
+<form method="post" action="<?php echo $PHP_SELF ?>">
+<input type="hidden" name="view" value="<?php echo $view ?>">
+<input type="hidden" name="action" value="zone">
+<input type="hidden" name="mid" value="<?php echo $mid ?>">
+<input type="hidden" name="zid" value="<?php echo $zid ?>">
+<tr>
+<td align="left" class="smallhead">Parameter</td><td align="left" class="smallhead">Value</td>
+</tr>
+<tr><td align="left" class="text">Name</td><td align="left" class="text"><input type="text" name="new_name" value="<?php echo $zone[Name] ?>" size="12" class="form"></td></tr>
+<tr><td align="left" class="text">Type</td><td align="left" class="text"><select name="new_type" class="form">
+<?php
+	foreach ( getEnumValues( 'Zones', 'Type' ) as $opt_type )
+	{
+?>
+<option value="<?php echo $opt_type ?>"<?php if ( $opt_type == $zone['Type'] ) { ?> selected<?php } ?>><?php echo $opt_type ?></option>
+<?php
+	}
+?>
+</select></td></tr>
+<tr><td align="left" class="text">Units</td><td align="left" class="text"><select name="new_units" class="form">
+<?php
+	foreach ( getEnumValues( 'Zones', 'Units' ) as $opt_units )
+	{
+?>
+<option value="<?php echo $opt_units ?>"<?php if ( $opt_units == $zone['Units'] ) { ?> selected<?php } ?>><?php echo $opt_units ?></option>
+<?php
+	}
+?>
+</select></td></tr>
+<tr><td align="left" class="text">Low X (left)</td><td align="left" class="text"><input type="text" name="new_lo_x" value="<?php echo $zone[LoX] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Low Y (top)</td><td align="left" class="text"><input type="text" name="new_lo_y" value="<?php echo $zone[LoY] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">High X (right)</td><td align="left" class="text"><input type="text" name="new_hi_x" value="<?php echo $zone[HiX] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">High Y (bottom)</td><td align="left" class="text"><input type="text" name="new_hi_y" value="<?php echo $zone[HiY] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Alarm Colour (RGB)</td><td align="left" class="text"><input type="text" name="new_alarm_rgb" value="<?php echo $zone[AlarmRGB] ?>" size="12" class="form"></td></tr>
+<tr><td align="left" class="text">Alarm Threshold (0>=?<=255)</td><td align="left" class="text"><input type="text" name="new_alarm_threshold" value="<?php echo $zone[AlarmThreshold] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Minimum Alarmed Area</td><td align="left" class="text"><input type="text" name="new_min_alarm_pixels" value="<?php echo $zone[MinAlarmPixels] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text">Maximum Alarmed Area</td><td align="left" class="text"><input type="text" name="new_max_alarm_pixels" value="<?php echo $zone[MaxAlarmPixels] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text">Filter Width (pixels)</td><td align="left" class="text"><input type="text" name="new_filter_x" value="<?php echo $zone[FilterX] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Filter Height (pixels)</td><td align="left" class="text"><input type="text" name="new_filter_y" value="<?php echo $zone[FilterY] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Minimum Filtered Area</td><td align="left" class="text"><input type="text" name="new_min_filter_pixels" value="<?php echo $zone[MinFilterPixels] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text">Maximum Filtered Area</td><td align="left" class="text"><input type="text" name="new_max_filter_pixels" value="<?php echo $zone[MaxFilterPixels] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text">Minimum Blob Area</td><td align="left" class="text"><input type="text" name="new_min_blob_pixels" value="<?php echo $zone[MinBlobPixels] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text">Maximum Blob Area</td><td align="left" class="text"><input type="text" name="new_max_blob_pixels" value="<?php echo $zone[MaxBlobPixels] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text">Minimum Blobs</td><td align="left" class="text"><input type="text" name="new_min_blobs" value="<?php echo $zone[MinBlobs] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Maximum Blobs</td><td align="left" class="text"><input type="text" name="new_max_blobs" value="<?php echo $zone[MaxBlobs] ?>" size="4" class="form"></td></tr>
+<tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
+<tr>
+<td align="left"><input type="submit" value="Update" class="form"></td>
+<td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
+</tr>
 </table>
 </body>
 </html>
@@ -1034,7 +1172,6 @@ function closeWindow() {
 <input type="hidden" name="action" value="device">
 <input type="hidden" name="zmc_status" value="<?php echo $zmc ?>">
 <input type="hidden" name="zma_status" value="<?php echo $zma ?>">
-<input type="hidden" name="action" value="device">
 <input type="hidden" name="did" value="<?php echo $did ?>">
 <tr>
 <td align="left" class="smallhead">Daemon</td><td align="left" class="smallhead">Active</td>
@@ -1101,7 +1238,7 @@ function closeWindow() {
 	foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 	{
 ?>
-<option value="<?php echo $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> SELECTED<?php } ?>><?php echo $opt_function ?></option>
+<option value="<?php echo $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?php echo $opt_function ?></option>
 <?php
 	}
 ?>

@@ -257,7 +257,7 @@ function buildSelect( $name, $contents, $onchange="" )
 	return( $html );
 }
 
-function getFormChanges( $values, $new_values, $types=false )
+function getFormChanges( $values, $new_values, $types=false, $columns=false )
 {
 	$changes = array();
 	if ( !$types )
@@ -265,6 +265,9 @@ function getFormChanges( $values, $new_values, $types=false )
 
 	foreach( $new_values as $key=>$value )
 	{
+		if ( $columns && !$columns[$key] )
+			continue;
+
 		switch( $types[$key] )
 		{
 			case 'set' :
@@ -282,6 +285,62 @@ function getFormChanges( $values, $new_values, $types=false )
 				}
 				break;
 			}
+			case 'image' :
+			{
+				if ( is_array( $new_values[$key] ) )
+				{
+					$image_data = getimagesize( $new_values[$key]['tmp_name'] );
+					$changes[$key.'Width'] = $key."Width = ".$image_data[0];
+					$changes[$key.'Height'] = $key."Height = ".$image_data[1];
+					$changes[$key.'Type'] = $key."Type = '".$new_values[$key]['type']."'";
+					$changes[$key.'Size'] = $key."Size = ".$new_values[$key]['size'];
+					ob_start();
+					readfile( $new_values[$key]['tmp_name'] );
+					$changes[$key] = $key." = '".addslashes( ob_get_contents() )."'";
+					ob_end_clean();
+				}
+				else
+				{
+					$changes[] = "$key = '$value'";
+				}
+				break;
+			}
+			case 'document' :
+			{
+				if ( is_array( $new_values[$key] ) )
+				{
+					$image_data = getimagesize( $new_values[$key]['tmp_name'] );
+					$changes[$key.'Type'] = $key."Type = '".$new_values[$key]['type']."'";
+					$changes[$key.'Size'] = $key."Size = ".$new_values[$key]['size'];
+					ob_start();
+					readfile( $new_values[$key]['tmp_name'] );
+					$changes[$key] = $key." = '".addslashes( ob_get_contents() )."'";
+					ob_end_clean();
+				}
+				else
+				{
+					$changes[] = "$key = '$value'";
+				}
+				break;
+			}
+			case 'file' :
+			{
+				$changes[$key.'Type'] = $key."Type = '".$new_values[$key]['type']."'";
+				$changes[$key.'Size'] = $key."Size = ".$new_values[$key]['size'];
+				ob_start();
+				readfile( $new_values[$key]['tmp_name'] );
+				$changes[$key] = $key." = '".addslashes( ob_get_contents() )."'";
+				ob_end_clean();
+				break;
+			}
+			case 'raw' :
+			{
+				if ( $values[$key] != $value )
+				{
+					$changes[] = "$key = $value";
+				}
+				break;
+			}
 			default :
 			{
 				if ( $values[$key] != $value )
@@ -289,6 +348,16 @@ function getFormChanges( $values, $new_values, $types=false )
 					$changes[] = "$key = '$value'";
 				}
 				break;
+			}
+		}
+	}
+	foreach( $values as $key=>$value )
+	{
+		if ( $columns[$key] && $types[$key] == 'toggle' )
+		{
+			if ( !isset($new_values[$key]) && !empty($value) )
+			{
+				$changes[] = "$key = 0";
 			}
 		}
 	}

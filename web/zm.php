@@ -52,6 +52,7 @@ define( "EVENT_PATH", "events" );				// Local path to where events directory liv
 define( "ZMS_EVENT_PATH", "/data/zm" );			// Full path (not web) to where events directory lives
 define( "CAMBOZOLA_PATH", "cambozola.jar" );	// Path to (optional) cambozola java streaming client (recommended)
 define( "MPEG_ENCODE_PATH", "./mpeg_encode" );	// Path to (optional) mpeg video encoder
+define( "NETPBM_DIR", "/usr/bin/" );			// Path to (optional) Netpbm utilities
 
 if ( $bandwidth == "high" )
 {
@@ -1031,7 +1032,7 @@ else
 		$image_path = $row[ImagePath];
 
 		$capt_image = $image_path;
-		if ( $scale == 1 )
+		if ( $scale == 1 || !file_exists( NETPBM_DIR."/jpegtopnm" ) )
 		{
 			$anal_image = preg_replace( "/capture/", "analyse", $image_path );
 
@@ -1052,9 +1053,9 @@ else
 			{
 				$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
 				if ( file_exists( $anal_image ) )
-					$command = "jpegtopnm -dct fast $anal_image | pnmscalefixed $fraction | ppmtojpeg --dct=fast > $thumb_image";
+					$command = NETPBM_DIR."jpegtopnm -dct fast $anal_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
 				else
-					$command = "jpegtopnm -dct fast $capt_image | pnmscalefixed $fraction | ppmtojpeg --dct=fast > $thumb_image";
+					$command = NETPBM_DIR."jpegtopnm -dct fast $capt_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
 				#exec( escapeshellcmd( $command ) );
 				exec( $command );
 			}
@@ -1541,7 +1542,7 @@ elseif( $view == "video" )
 		fputs( $fp, "FRAME_RATE 24\n" );
 
 		if ( $event[Colours] == 1 )
-			fputs( $fp, "INPUT_CONVERT	jpegtopnm * | pgmtoppm white | ppmtojpeg\n" );
+			fputs( $fp, "INPUT_CONVERT	".NETPBM_DIR."/jpegtopnm * | ".NETPBM_DIR."/pgmtoppm white | ".NETPBM_DIR."/ppmtojpeg\n" );
 		else
 			fputs( $fp, "INPUT_CONVERT	*\n" );
 

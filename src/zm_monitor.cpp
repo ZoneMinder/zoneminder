@@ -1105,7 +1105,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 				scaled_image.EncodeJpeg( img_buffer, &img_buffer_size );
 			}
 
-			fprintf( fd, "Content-type: image/jpg\n\n" );
+			fprintf( fd, "Content-type: image/jpeg\n\n" );
 			fwrite( img_buffer, img_buffer_size, 1, fd );
 			//fwrite( img_buffer, 1, img_buffer_size, fd );
 			//write( fileno(fd), img_buffer, img_buffer_size );

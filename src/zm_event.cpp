@@ -434,7 +434,7 @@ void Event::StreamEvent( int event_id, int rate, int scale, FILE *fd )
 		static char filepath[PATH_MAX];
 		sprintf( filepath, "%s/%03d-capture.jpg", eventpath, atoi(dbrow[0]) );
 
-		fprintf( fd, "Content-type: image/jpg\n\n" );
+		fprintf( fd, "Content-type: image/jpeg\n\n" );
 		if ( scale == 1 )
 		{
 			if ( (fdj = fopen( filepath, "r" )) )

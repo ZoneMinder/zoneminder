@@ -287,7 +287,7 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 	fprintf( fd, "Cache-Control: no-cache\r\n" );
 	fprintf( fd, "Expires: Thu, 01 Dec 1994 16:00:00 GMT\r\n" );
 	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-	fprintf( fd, "--ZoneMinderFrame\r\n" );
+	fprintf( fd, "--ZoneMinderFrame\n" );
 
 	int n_frames = mysql_num_rows( result );
 	Info(( "Got %d frames", n_frames ));
@@ -309,12 +309,12 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 		sprintf( filepath, "%s/%s", path, dbrow[2] );
 		if ( (fdj = fopen( filepath, "r" )) )
 		{
-			fprintf( fd, "Content-type: image/jpg\r\n\r\n" );
+			fprintf( fd, "Content-type: image/jpg\n\n" );
 			while ( (n_bytes = fread( buffer, 1, sizeof(buffer), fdj )) )
 			{
 				fwrite( buffer, 1, n_bytes, fd );
 			}
-			fprintf( fd, "\r\n--ZoneMinderFrame\r\n" );
+			fprintf( fd, "\n--ZoneMinderFrame\n" );
 			fclose( fdj );
 		}
 		else

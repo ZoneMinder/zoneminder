@@ -1125,9 +1125,9 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 				scaled_image.EncodeJpeg( img_buffer, &img_buffer_size );
 			}
 
-			fprintf( stdout, "\r\n--ZoneMinderFrame\r\n" );
-			fprintf( stdout, "Content-type: image/jpeg\r\n" );
-			fprintf( stdout, "Content-length: %d\r\n\r\n", img_buffer_size );
+			fprintf( stdout, "--ZoneMinderFrame\r\n" );
+			fprintf( stdout, "Content-length: %d\r\n", img_buffer_size );
+			fprintf( stdout, "Content-type: image/jpeg\r\n\r\n" );
 			fwrite( img_buffer, img_buffer_size, 1, stdout );
 		}
 		usleep( refresh*1000 );

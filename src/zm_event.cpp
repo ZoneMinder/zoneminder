@@ -466,7 +466,7 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 
 			write( fileno(stdout), buffer, n_bytes );
 		}
-		fprintf( stdout, "\r\n--ZoneMinderFrame\r\n" );
+		fprintf( stdout, "--ZoneMinderFrame\r\n" );
 		fprintf( stdout, "Content-length: %d\r\n", n_bytes );
 		fprintf( stdout, "Content-type: image/jpeg\r\n\r\n" );
 		fflush( stdout );

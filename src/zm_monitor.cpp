@@ -1066,12 +1066,12 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 
 			if ( scale == 1 )
 			{
-				snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
-
 				if ( !timestamp_on_capture )
 				{
 					TimestampImage( snap_image, snap->timestamp->tv_sec );
 				}
+
+				snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
 			}
 			else
 			{
@@ -1079,12 +1079,12 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 
 				scaled_image.Scale( scale );
 
-				scaled_image.EncodeJpeg( img_buffer, &img_buffer_size );
-
 				if ( !timestamp_on_capture )
 				{
 					TimestampImage( &scaled_image, snap->timestamp->tv_sec );
 				}
+
+				scaled_image.EncodeJpeg( img_buffer, &img_buffer_size );
 			}
 
 			fprintf( fd, "Content-type: image/jpg\n\n" );

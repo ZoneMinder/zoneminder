@@ -28,7 +28,6 @@ $result = mysql_query( "select * from Groups order by Id" );
 if ( !$result )
 	die( mysql_error() );
 $groups = array();
-$groups[0] = array( 'Id'=>0, 'Name'=>$zmSlangAll, 'MonitorIds'=>'' );
 while ( $row = mysql_fetch_assoc( $result ) )
 {
 	$groups[] = $row;
@@ -90,10 +89,12 @@ window.focus();
 <form name="group_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="groups">
-<tr><td class="text"><?= $zmSlangName ?></td><td class="text"><?= $zmSlangMonitorIds ?></td><td class="text"><?= $zmSlangMark ?></tr>
+<tr><td class="smallhead"><?= $zmSlangName ?></td><td class="smallhead"><?= $zmSlangMonitorIds ?></td><td class="smallhead"><?= $zmSlangMark ?></tr>
 <?php
-foreach ( $groups as $group )
+if ( count($groups) || $new )
 {
+	foreach ( $groups as $group )
+	{
 ?>
 <tr>
 <td align="left" class="text"><input class="form" name="names[<?= $group['Id'] ?>]" value="<?= $group['Name'] ?>" size="16"></td>
@@ -101,15 +102,24 @@ foreach ( $groups as $group )
 <td align="center"><input class="form-noborder" type="checkbox" name="mark_gids[]" value="<?= $group['Id'] ?>" onClick="configureButtons( document.group_form, 'mark_gids' );"></td>
 </tr>
 <?php
-}
-if ( $new )
-{
+	}
+	if ( $new )
+	{
 ?>
 <tr>
 <td align="left" class="text"><input class="form" name="new_name" value="<?= $zmSlangNewGroup ?>" size="16"></td>
 <td align="left" class="text"><input class="form" name="new_monitor_ids" value="<?= $monitor_ids ?>" size="24"></td>
 <td align="center" class="text"><input type="checkbox" disabled></td>
 </tr>
+<?php
+	}
+}
+else
+{
+?>
+<tr><td colspan="3" class="text" align="center">&nbsp;</td></tr>
+<tr><td colspan="3" class="text" align="center"><?= $zmSlangNoGroups ?></td></tr>
+<tr><td colspan="3" class="text" align="center">&nbsp;</td></tr>
 <?php
 }
 ?>

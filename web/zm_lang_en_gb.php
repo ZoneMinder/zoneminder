@@ -245,6 +245,7 @@ $zmSlangNoFramesRecorded     = 'There are no frames recorded for this event';
 $zmSlangNoneAvailable        = 'None available';
 $zmSlangNone                 = 'None';
 $zmSlangNo                   = 'No';
+$zmSlangNoGroups             = 'No groups have been defined';
 $zmSlangNormal               = 'Normal';
 $zmSlangNoSavedFilters       = 'NoSavedFilters';
 $zmSlangNoStatisticsRecorded = 'There are no statistics recorded for this event/frame';

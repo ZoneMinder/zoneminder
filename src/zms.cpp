@@ -105,10 +105,11 @@ int main( int argc, const char *argv[] )
 	fprintf( stdout, "Cache-Control: no-store, no-cache, must-revalidate\r\n" );
 	fprintf( stdout, "Cache-Control: post-check=0, pre-check=0\r\n" );
 	fprintf( stdout, "Pragma: no-cache\r\n");
-	if ( !nph )
-	{
-		fprintf( stdout, "Content-Length: 0\r\n");
-	}
+	// Removed as causing more problems than it fixed.
+	//if ( !nph )
+	//{
+		//fprintf( stdout, "Content-Length: 0\r\n");
+	//}
 
 	if ( !event )
 	{

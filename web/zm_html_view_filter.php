@@ -199,7 +199,7 @@ window.focus();
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td align="left" class="text"><? $zmSlangUseFilterExprsPre ?><select name="trms" class="form" onChange="submitToFilter( document.filter_form, 0 );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?= $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?= $i ?></option><?php } ?></select><?= $zmSlangUseFilterExprsPost ?></td>
+<td align="left" class="text"><?= $zmSlangUseFilterExprsPre ?><select name="trms" class="form" onChange="submitToFilter( document.filter_form, 0 );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?= $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?= $i ?></option><?php } ?></select><?= $zmSlangUseFilterExprsPost ?></td>
 <td align="center" class="text"><?= $zmSlangUseFilter ?>:&nbsp;<?php if ( count($filter_names) > 1 ) { echo buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form, 1 );" ); } else { ?><select class="form" disabled><option><?= $zmSlangNoSavedFilters ?></option></select><?php } ?></td>
 <?php if ( canEdit( 'Events' ) ) { ?>
 <td align="center" class="text"><a href="javascript: saveFilter( document.filter_form );"><?= $zmSlangSave ?></a></td>

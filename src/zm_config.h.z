@@ -33,6 +33,8 @@
 
 #define ZM_SHM_KEY				<from zmconfig>		// Shared memory key to use, only change if it clashes with another application
 
+#define ZM_PATH_SOCKS			"<from zmconfig>"	// Path to the various Unix domain socket files that ZoneMinder uses
+
 #define ZM_DIR_EVENTS			"<from zmconfig>"	// Local path to where events directory lives
 
 #define ZM_FORCED_ALARM_SCORE	<from zmconfig>		// Score to give X10 forced alarms

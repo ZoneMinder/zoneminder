@@ -1,108 +1,134 @@
-ZONE MINDER
-===========
+ZONE MINDER v1.0.0
+==================
 
 Introduction
 ============
 
-Welcome to ZoneMinder, the new all-in-one Linux GPL'd security camera solution. A few months back my garage
-was burgled and they stole my wine and power tools! I realised shortly after that if I'd just had a camera
-overlooking the door then at least I'd have know exactly when and who did the dirty deed. And so ZoneMinder
-was born. It's still a baby but hopefully it can grow up to be something that can be genuinely useful and
-maybe one day either prevent similar incidents or perhaps bring some perpetrators to justice.
+Welcome to ZoneMinder, the new all-in-one Linux GPL'd security camera solution. 
+A few months back my garage was burgled and they stole my wine and power tools! 
+I realised shortly after that if I'd just had a camera overlooking the door then 
+at least I'd have know exactly when and who did the dirty deed. And so 
+ZoneMinder was born. It's still a baby but hopefully it can grow up to be 
+something that can be genuinely useful and maybe one day either prevent similar 
+incidents or perhaps bring some perpetrators to justice.
 
-ZoneMinder (hereafter referred to as ZM to save my fingers) is designed around a series of independant
-components which only function when necessary limiting any wasted resource and maximising the function of
-your machine. A fairly ancient Pentium PC should be able to track one camera iper device at up to 25 framess
-per second with this dropping by half approximately for each additional camera on the same device, additional
-cameras on other devices do not interact so can maintain this frame rate. Even monitoring several cameras
-still will not overload the CPU as frame processing is designed to synchronise with capture and not stall
-it.
+ZoneMinder (hereafter referred to as ZM to save my fingers) is designed around a 
+series of independent components that only function when necessary limiting any 
+wasted resource and maximising the function of your machine. A fairly ancient 
+Pentium PC should be able to track one camera per device at up to 25 frames per 
+second with this dropping by half approximately for each additional camera on 
+the same device, additional cameras on other devices do not interact so can 
+maintain this frame rate. Even monitoring several cameras still will not 
+overload the CPU as frame processing is designed to synchronise with capture and 
+not stall it.
 
-As well as being fast ZM is designed to be friendly and even more than that, actually useful. As well as the
-fast video interface core it also comes with a user friendly and comprehensive PHP based web interface
-allowing you to control and monitor your cameras from home or even elsewhere. It supports variable web
-capabilities based on available bandwidth. The web interface also allows you to view events that your
-cameras have captured and archive them or review them time and again, or delete the ones you now longer wish
-to keep. The web pages directly interact with the core daemons ensuring full co-operation at all times.
+As well as being fast ZM is designed to be friendly and even more than that, 
+actually useful. As well as the fast video interface core it also comes with a 
+user friendly and comprehensive PHP based web interface allowing you to control 
+and monitor your cameras from home or even elsewhere. It supports variable web 
+capabilities based on available bandwidth. The web interface also allows you to 
+view events that your cameras have captured and archive them or review them time 
+and again, or delete the ones you now longer wish to keep. The web pages 
+directly interact with the core daemons ensuring full co-operation at all times.
 
-The core of ZM is the capture and analysis of images and there is a highly configurable set of parameters
-which allow you to ensure that you can eliminate false positives whilst ensuring that anything you don't
-weant to miss will be captured and saved. ZM allows you to define a set of 'zones' for each camera of
-varying sensitivity and functionality. This allows you to eliminate regions which you don't wish to track or
-define areas which will alarm if various thresholds are exceeded in conjunction with other zones.
+The core of ZM is the capture and analysis of images and there is a highly 
+configurable set of parameters that allow you to ensure that you can eliminate 
+false positives whilst ensuring that anything you don't want to miss will be 
+captured and saved. ZM allows you to define a set of 'zones' for each camera of 
+varying sensitivity and functionality. This allows you to eliminate regions that 
+you don't wish to track or define areas that will alarm if various thresholds 
+are exceeded in conjunction with other zones.
 
-ZoneMinder is fresh off the keyboard and so comes with no warranty whatsoever, please try it, send your
-feedback and if you get anything useful out of it please let me know.
+ZoneMinder is fresh off the keyboard and so comes with no warranty whatsoever, 
+please try it, send your feedback and if you get anything useful out of it 
+please let me know.
 
 
 Requirements
 ============
 
-ZM needs a couple of things to work. Firstly, it uses MySQL so you'll need that, in order to compile you
-need to make sure you have a development installation and not just a runtime. Next it does things with
-JPEGs so you'll need at least libjpeg.a which I think come as standard nowadays. It also uses the netpbm
-utilities in a very limited way to generate thumbnails under certains circumstances though this can be
-modified. ZM can generate MPEG videos if necessary, for this you'll need the Berkeley MPEG encoder, if you
-don't have it don't worry the options will be hidden and you'll not miss much really. The web interface uses
-PHP and so you need that in your apache or whatever as well. Finally there is quite a bit of image streaming
-in the package so if you don't have Netscape I recommend you get the excellent Cambozola java applet from 
-http://www.charliemouse.com/code/cambozola/ which will let you view the image streams in IE and others.
-Otherwise you're limited to just refreshing still images.
+ZM needs a couple of things to work. Firstly, it uses MySQL so you'll need that, 
+in order to compile you need to make sure you have a development installation 
+and not just a runtime. Next it does things with JPEGs so you'll need at least 
+libjpeg.a which I think come as standard nowadays. It also uses the netpbm 
+utilities in a very limited way to generate thumbnails under certain 
+circumstances though this can be modified. ZM can generate MPEG videos if 
+necessary, for this you'll need the Berkeley MPEG encoder, if you don't have it 
+don't worry the options will be hidden and you'll not miss much really. The web 
+interface uses PHP and so you need that in your apache or whatever as well. 
+Finally, there is quite a bit of image streaming in the package so if you don't 
+have Netscape I recommend you get the excellent Cambozola java applet from 
+http://www.charliemouse.com/code/cambozola/ which will let you view the image 
+stream in IE and others. Otherwise you're limited to just refreshing still 
+images.
 
-Hardware wise, ZM has been used with BTTV cards and USB cameras with the V4L interface. I don't have a lot
-of cameras so I've not had change to test it much. Please let me know if your camera works or not. You do
-need to have Video 4 Linux installed. I've not got many machines so I've only really used it on Redhat 7.2
-which does have everythign there by default I think. Please give me feedback on other distributions.
+Hardware wise, ZM has been used with BTTV cards and USB cameras with the V4L 
+interface. I don't have a lot of cameras so I've not had change to test it much. 
+Please let me know if your camera works or not. You do need to have Video 4 
+Linux installed. I've not got many machines so I've only really used it on 
+Redhat 7.2, which does have everything there by default I think. Please give me 
+feedback on other distributions.
 
 
 Building
 ========
 
-Before you start building you have a couple of things to do. Firstly you'll have to create your ZoneMinder
-database and users. You'll need to identify these in zmcfg.h and in index.php. You'll notice that in zmcfg.h
-there are two sets of users and passwords. This is because the Streaming server and Utility binaries require
-only read access to the database so you may wish to create both a full access user and a limited access
-user. You can of course set both to the full access user. The included schema (zmschema.sql) can be used to
-actually create the tables required. The database is usually called 'zm'. If you are upgrading from a previous
-version you can use zmalter.sql to upgrade your database and make the necessary changes. ZM also needs to
-know where it stores its events relative to the web root directory in zmcfg.h and where in full path terms in
-index.php. There are also several other paths in index.php but these can wait until later.
+Before you start building you have a couple of things to do. Firstly you'll have 
+to create your ZoneMinder database and users. You'll need to identify these in 
+zmcfg.h and in index.php. You'll notice that in zmcfg.h there are two sets of 
+users and passwords. This is because the Streaming server and Utility binaries 
+require only read access to the database so you may wish to create both a full 
+access user and a limited access user. You can of course set both to the full 
+access user. The included schema (zmschema.sql) can be used to actually create 
+the tables required. The database is usually called 'zm'. If you are upgrading 
+from a previous version you can use zmalter.sql to upgrade your database and 
+make the necessary changes. ZM also needs to know where it stores its events 
+relative to the web root directory in zmcfg.h and where in full path terms in
+index.php. There are also several other paths in index.php but these can wait 
+until later.
 
-So to start, just type './configure --with-mysql=/usr' (or your MySQL install path).
-Then just type 'make' and off you go.
+So to start, just type './configure --with-mysql=/usr' (or your MySQL install 
+path). Then just type 'make' and off you go.
 
-I know what you are going to say next, it doesn't build. I hope it does but this is my first type with autoconf
-and quite honestly I haven't a clue what I'm doing so if you do get any build problems then just let me know
-and I'll try and tell you how to fix them. Alternatively if you are and automake/autoconf expert then please
-let me know what to do!
+I know what you are going to say next, it doesn't build. I hope it does but this 
+is my first type with autoconf and quite honestly I haven't a clue what I'm 
+doing so if you do get any build problems then just let me know and I'll try and 
+tell you how to fix them. Alternatively if you are an automake/autoconf expert 
+then please let me know what to do!
 
-There are a couple of files in the package that come from other packages, this is just to simplify the build
-and reduce dependencies on other packages. Anything ZM specific is named as such.
+There are a couple of files in the package that come from other packages, this 
+is just to simplify the build and reduce dependencies on other packages. 
+Anything ZM specific is named as such.
 
 
 Installation
 ============
 
-Once the build has completed you should have several shiny new binaries. I will now briefly describe what
-each of them do.
+Once the build has completed you should have several shiny new binaries. I will 
+now briefly describe what each of them do.
 
-zmc - This is the Zone Monitor Capture daemon. This binarys job is to sit on a video device and such frames
-off it as fast as possible, this should run at more or less constant speed.
-zma - This is the Zone Monitor Analysis daemon. This is the component that goes through the captured frames
-and checks them for alarming events. It generally keeps up with the zmc but if very busy may skip some
-frames to prevent it falling behind.
-zms - This is the Zone Monitor Streaming server. The web interface connects with this to get real-time or
-historical streamed images.
-zmu - This is the Zone Monitor Utility. Basically a handy command line interface to several useful
-functions. Not really meant to be used by anyone except the web page (there's no 'help' in it yet) but can
-be if necessary.
+zmc - This is the Zone Monitor Capture daemon. This binary's job is to sit on a 
+video device and such frames off it as fast as possible, this should run at more 
+or less constant speed.
+zma - This is the Zone Monitor Analysis daemon. This is the component that goes 
+through the captured frames and checks them for alarming events. It generally 
+keeps up with the zmc but if very busy may skip some frames to prevent it 
+falling behind.
+zms - This is the Zone Monitor Streaming server. The web interface connects with 
+this to get real-time or historical streamed images.
+zmu - This is the Zone Monitor Utility. It's basically a handy command line 
+interface to several useful functions. Not really meant to be used by anyone 
+except the web page (there's no 'help' in it yet) but can be if necessary.
 
-At this stage typing 'make install' will install these binaries to the desired location. However, it's not quite
-this simple as in order to get the ZM web interface up you'll have to create a web directory and configure your
-web server to point to it. Once you do you then copy 'index.php' to that directory, you can rename it if
-necessary. The 'zms' daemon is designed to run as a CGI program so you may also need to copy that to a
-/cgi-bin type place also. There are several paths that must be defined (or cleared) in index.php to point to
-various other binaries and directories before it will work fully but that's pretty much it for now.
+At this stage typing 'make install' will install these binaries to the desired 
+location. However, it's not quite this simple as in order to get the ZM web 
+interface up you'll have to create a web directory and configure your web server 
+to point to it. Once you do you then copy 'index.php' to that directory, you can 
+rename it if necessary. The 'zms' daemon is designed to run as a CGI program so 
+you may also need to copy that to a /cgi-bin type place also. There are several 
+paths that must be defined (or cleared) in index.php to point to various other 
+binaries and directories before it will work fully but that's pretty much it for 
+now.
 
 Start your web browser and point it at index.php and off you go.
 
@@ -110,325 +136,488 @@ Start your web browser and point it at index.php and off you go.
 Tutorial
 ========
 
-To start with you should see the ZM Console window, this will resize itself to avoid being too intrusive on
-your desktop. Along the top there are a set of links to configure your bandwidth, this allows you to optimise
-your settings depending on where you are and the actual options relating to this are defined at the top of
-the index.php file. If you are using a browser on the same machine or network then choose high, over a cable
-or DSL link maybe choose medium and over a dialup choose low. You can experiment to see which is best. This
-setting is retained on a per machine basis witha persistent cookie.
+To start with you should see the ZM Console window, this will resize itself to 
+avoid being too intrusive on your desktop. Along the top there is a set of links 
+to configure your bandwidth, this allows you to optimise your settings depending 
+on where you are and the actual options relating to this are defined at the top 
+of the index.php file. If you are using a browser on the same machine or network 
+then choose high, over a cable or DSL link maybe choose medium and over a dialup 
+choose low. You can experiment to see which is best. This setting is retained on 
+a per machine basis with a persistent cookie.
 
-To use ZM properly you need to define at least one Monitor. Essentially a monitor is attached to a camera and
-will continually check it for motion detection and such like. So click 'Add New Monitor' to bring up the
-dialog. First choose a name for it, anything you like. The next field is 'Function' which essentially
-defines what the monitor is doing. This can be 'None' meaning the monitor is currently disabled, 'Passive'
-meaning you can watch the streams coming from the camera but no alarms or events will be generated, or
-'Active' meaning all the images will be analysed as well as the stream being available to watch. Generally
-you'll want 'Active' but for now leave this at 'None'. Next enter the device number that your camera is
-attached to. If it's /dev/video0 enter '0' etc. Some video devices, e.g. BTTV cards support multiple cameras
-so in the Channel box choose the appropriate channel, or leave it at zero <if you're using a USB camera or
-one without channels. Next enter the video format, and dimensions of the video stream your camera will
-supply. If your camera supports several just enter the one you'll want to use for this application, you can
-always change it later. However I would recommend starting with no larger than 352x288 and then perhaps
-increasing and seeing how performance is affected. This size should be adequate in most cases. Finally enter
-the colour depth. ZM supports both greyscale and 24 bit colour, so enter 1 or 3 here. Currently it doesn't
-support any of the more esoteric formats, like 15 bit etc. Click 'update' to add your monitor.
+Defining Monitors
+-----------------
+To use ZM properly you need to define at least one Monitor. Essentially a 
+monitor is attached to a camera and will continually check it for motion 
+detection and such like. So, next click 'Add New Monitor' to bring up the 
+dialog. First choose a name for it, anything you like. The next field is 
+'Function' which essentially defines what the monitor is doing. This can be 
+'None' meaning the monitor is currently disabled, 'Passive' meaning you can 
+watch the streams coming from the camera but no alarms or events will be 
+generated, or 'Active' meaning all the images will be analysed as well as the 
+stream being available to watch. Generally you'll want 'Active' but for now 
+leave this at 'None'. Next enter the device number that your camera is attached 
+to. If it's /dev/video0 enter '0' etc. Some video devices, e.g. BTTV cards 
+support multiple cameras so in the Channel box choose the appropriate channel, 
+or leave it at zero if you're using a USB camera or one without channels. Next 
+enter the video format, and dimensions of the video stream your camera will 
+supply. If your camera supports several just enter the one you'll want to use 
+for this application, you can always change it later. However I would recommend 
+starting with no larger than 352x288 and then perhaps increasing and seeing how 
+performance is affected. This size should be adequate in most cases. Finally 
+enter the colour depth. ZM supports both greyscale and 24 bit colour, so enter 1 
+or 3 here. Currently it doesn't support any of the more esoteric formats, like 
+15 bit etc. Click 'update' to add your monitor.
 
-On the main console listing you will now see your monitor and some of it's vital statistics. Each column is
-also a link and you get to other functions of ZM by choosing the appropriate one. For the most part I'll 
-describe them left to right but lets start with the Device column which you'll see showing red. This means 
-that that device has no zmc (capture) daemon running on it, if it were orange it would mean that a zmc 
-daemon was running but no zma (analysis) daemon and green means both are running. In our case it is red 
-because we defined the Monitor to have a Function of None so no daemons are required. To get the daemons up 
-and running you can either click on the device listed in the Device column, and start the daemons manually 
-yourself, or click on the Function listed and change it to 'Active' which will ensure that the appropriate
-daemons are started automatically. Having a device status of red or orange does not necessarily constitute
-an error if you have deliberately disabled a monitor or have just put it into Passive mode. If you have 
-several cameras (and thus monitors) on a device the device status colour reflects all of them, so if just
-one monitor is active then both daemons will be running even if all the other monitors are switched off.
-Once you have changed the function of your monitor, the main console window will be updated to reflect this
-change. If your device status does not go green then check your system and web server logs to see if it's
+On the main console listing you will now see your monitor and some of its vital 
+statistics. Each column is also a link and you get to other functions of ZM by 
+choosing the appropriate one. For the most part I'll describe them left to right 
+but lets start with the Device column which you'll see showing red. This means 
+that that device has no zmc (capture) daemon running on it, if it were orange it 
+would mean that a zmc daemon was running but no zma (analysis) daemon and green 
+means both are running. In our case it is red because we defined the Monitor to 
+have a Function of None so no daemons are required. To get the daemons up and 
+running you can either click on the device listed in the Device column, and 
+start the daemons manually, or click on the Function listed and change it to 
+'Active', which will ensure that the appropriate daemons are started 
+automatically. Having a device status of red or orange does not necessarily 
+constitute an error if you have deliberately disabled a monitor or have just put 
+it into Passive mode. If you have several cameras (and thus monitors) on a 
+device the device status colour reflects all of them, so if just one monitor is 
+active then both daemons will be running even if all the other monitors are 
+switched off. Once you have changed the function of your monitor, the main 
+console window will be updated to reflect this change. If your device status 
+does not go green then check your system and web server logs to see if it's 
 something obvious like a bad path etc.
 
-You can now add further monitors if you have cameras set up to support them. Once you have one or more 
-monitors you may notice a 'Watch All' link appears which allows you to cycle through a shot from each
-of your monitors (unless they are switched off) and get a still image from each in turn. Clicking on the
-image will take you to the monitor watch window which will be discussed shortly.
+You can now add further monitors if you have cameras set up to support them. 
+Once you have one or more monitors you may notice a 'Scan' link appears which 
+allows you to cycle through a shot from each of your monitors (unless they are 
+switched off) and get a still image from each in turn. Clicking on the image 
+will take you to the monitor watch window, which will be discussed shortly.
 
-Returning to the main console window, if you click the Id of your monitor in the listing then you will have
-the opportunity to edit any of the settings your originally defined your monitor to have.
+Returning to the main console window, if you click the Id of your monitor in the 
+listing then you will have the opportunity to edit any of the settings your 
+originally defined your monitor to have.
 
-The next important thing to do is set up Zones for your monitors to use. By default you'll already have one
-created for you when you created your monitor but you might want to modify it or add others. Click on the
-Zones column for your monitor and you should see a small popup window appear which contains an image from
-your camera overlain with a stippled pattern representing your zone. In the default case this will cover
-the whole image and will be red. Beneath that will be a table containing a listing of your zones. Clicking
-on either the relevant bit of the image or on the Id or Name in the table will bring up another window where
-you can edit the particulars for your Zones. As you can see there are quite a few, so now is a good time
-to go through them. Firstly the zone Name appears, you can change this to be more representative if you like
-though it isn't used much except for logging and debugging. After that is the zone Type, this is one of
-the more important concepts in ZM and there are four to choose from. The one you'll use most and which will
-be set for your deault zone if 'Active'. This means that this zone will trigger an alarm on any events that
-occur within that meet the selection criteria. The next two options I'll cover shortly but the one at the 
-bottom is the opposite to Active and is Inactive. In this zone type no alarms will ever be reported. Create
-an Inactive zone to cover any areas in which nothing notable will ever happen or where you get constant
-false alarms that don't relate to what you are trying to monitor. An Inactive zone can overlay other zone 
-types and will be processed first. The next option is Inclusive and you'd use this zone type for any zones
-that you want to trigger an alarm only if at least one other Active zone has already triggered one. This
-might be for example to cover an area of the image like a plant or tree which moves a lot and which would
-trigger lots of alarms. Perhaps this is behind an area you'd like to monitor though, in this case you'd
-create an active zone covering the non-moving parts and an inclusive zone covering the tree perhaps with
-less sensitive detection settings also. If something triggered an alarm in the Active zone and also in the
-Inclusive zone they would both be registered and the resulting alarm would be that much bigger than if you
-had blanked it out altogether. The final zome Type is Exclusive, this means that alarms will only be triggered
-in this zone if no alarms have already been triggered in Active zones. This is the most specialised of the
-zone types and you may never use it but in it's place it is very useful. For instance in the camera covering
-my garden I keep watch for a hedgehog that visits most nights and scoffs the food out of my cats bowls. By
-creating a sensitive Exclusive zone in that area I can ensure that a hedgehog alarm will only trigger if
-there is activity in that small area. If something much bigger occurs, like someone walking by it will 
-trigger a regular alarm and not one from the Exclusive zone. Thus I can ensure I get alarms for big events
-and also special small events but not the noise in between. I mentioned above that Inactive zones may be
-overlain on other zones to blank out areas however as a general principle you should try and make zones
-abut each other as much as possible and not overlaps to avoid repeated duplicate processing of the same area.
-For instance an Inclusive zone overlaying an Active zone when all other settings are the same will always
-trigger when the Active zone does which somewhat defeats the object of the exercise.
+Defining Zones
+--------------
+The next important thing to do is set up Zones for your monitors to use. By 
+default you'll already have one created for you when you created your monitor 
+but you might want to modify it or add others. Click on the Zones column for 
+your monitor and you should see a small popup window appear which contains an 
+image from your camera overlain with a stippled pattern representing your zone. 
+In the default case this will cover the whole image and will be red. Beneath 
+that will be a table containing a listing of your zones. Clicking on either the 
+relevant bit of the image or on the Id or Name in the table will bring up 
+another window where you can edit the particulars for your Zones. As you can see 
+there are quite a few, so now is a good time to go through them.
 
-The rest of the zone settings are slightly simpler to explain. The first is Units which details whether certain
-of the following settings are in Pixels or Percent ofthe frame. In general pixels is more precise whereas 
-percentages are easier to use to start with. If you change this setting all appropriate values below are
-redisplayed in the correct context. A good tip would be to initially enter the settings in Percent and then
-change to Pixels and refine any gaps. Repeated flipping between the settings will cause rounding errors as
-ZM in general is not at home to Mr Floating Point for reasons of performance. Following the units the next
-four settings define the bounds of the Zone in the monitor frame and are self explanatory with the exception
-of the fact that the minima are at the top left of the frame and the maxima are at the bottom right rather
-than Cartesian. The option after that allows you to specify what colour you'd like any alarms this zone 
-generates to be highlighted on images, pick anything you like that will show up against your normal image
-background. This and all following options are irrelevant for Inactive zones and you will be prevented from
-setting them. The options that follow are all related to motion detection and now would be a good time to 
-describe how that works. Once a stream of images starts coming through the zma daemon will begin analysing
-them initially there will be a warm-up period where it does nothing except start to build up a reference 
-image. This image is a composite of the previous images and by default is formed of by applying the current
-image as 10% of the previous reference image. Thus each images part in the reference image will diminish 
-by a factore of 0.9 each time round. So a typical reference image will be 10% the previous image, 9% the
-one before that and then 8.1, 7.2, 6.5 and so on of the rest of the way. An image will effectively vanish
-around 25 images later than when it was added. This blend value of 10% can be varied and if higher will
-make slower progressing events less detectable as the reference image would change more quickly, similarly
-events will be deemed to be over much sooner as the reference image adapts to the new images more quickly. 
-In musical terms the higher this value the steeper the event attack and decay of the signal (or note). It
-depends on your particular requirements what the appropriate value would be for you. Currently this value
-is unfortunately a compile time global option and not monitor specific but this will change in the next
-release.
+Firstly the zone Name appears, you can change this to be more representative if 
+you like, though it isn't used much except for logging and debugging. After that 
+is the zone Type, this is one of the more important concepts in ZM and there are 
+four to choose from. The one you'll use most and which will be set for your 
+default zone if 'Active'. This means that this zone will trigger an alarm on any 
+events that occur within that meet the selection criteria. The next two options 
+I'll cover shortly but the one at the bottom is Inactive, which is the opposite 
+of Active. In this zone type no alarms will ever be reported. Create an Inactive 
+zone to cover any areas in which nothing notable will ever happen or where you 
+get constant false alarms that don't relate to what you are trying to monitor. 
+An Inactive zone can overlay other zone types and will be processed first.
 
-So back to the settings, the next is an alarm threshold, this represents the difference in value between a pixel
-and it's predecessor. For greyscale images this is simple but for colour images the colours are averaged
-first, originally this used an RMS (root mean squared) algorithm but using sqrt mugs performance and does not
-seem to improve detection. Using an average does means that subtle colour changes without any brightness
-change may go undetected but this is not the normal circumstance. The following two settings define the
-minimum and maximum number of pixels that exceed this threshold that would cause an alarm. If the units are
-Percent this (and following options) refer to the percentage of the frame and not the zone, this is so 
-these values can be related between zones. The minimum value must is matched or exceed for an alarm to be 
-generated whereas the maximum must not be exceeded or the alarm will be cancelled. This is to allow for 
-sudden changes such as lights coming on etc which you may wish to disregard. In general a value of zero 
-for any of these settings causes that value to be ignored, so you can safely set a maximum to zero and it
-will not be used. The use of just a number of pixels is however a very brute force method of detection
-as many small events dispered widely are not distinguished from a compact one. To combat this ZM applies
-several other functions to the data to improve its ability to distinguish interesting signals from uninsteresting
-noise. The first of these is a filter which removes any pixels that do not participate in a continguous
-block of pixels above a certain size. The options that control this are the Filter Width and Height settings
-which are always pixels and which should be fairly small. Application of this filter removes any tiny
-or discontinuous pixels that don't form part of a discrete block. Following that are two further bounds which
-specify the limits of pixels which would cause an alarm after this filtering process. As the filtering
-process only removes pixels it makes no sense for the Minimum and Maximum Filtered Area to be larger than the
-equivalent Alarmed Area and in general they should be smaller or the same. The next step in the analysis
-phase is the collation of any remaining alarmed areas into contiguous blobs. This process parses the 
-image and forms any pixels that adjoin other alarmed pixels into one or more larger blobs. These blobs may
-be any shape and can be as large as the zone itself or as small as the filtered size. The Minimum and Maximum
-Blob Size settings allow you to define limits within which an alarm will be generated. Of these only the
-Minimum is likely to be very useful. Finally the Minimum and Maximum Blobs specify the limits of the actual
-number of blobs detected. If an image change satifies all these requirements it becomes an alarm event.
+The next option is Inclusive and you'd use this zone type for any zones that you 
+want to trigger an alarm only if at least one other Active zone has already 
+triggered one. This might be for example to cover an area of the image like a 
+plant or tree which moves a lot and which would trigger lots of alarms. Perhaps 
+this is behind an area you'd like to monitor though, in this case you'd create 
+an active zone covering the non-moving parts and an inclusive zone covering the 
+tree perhaps with less sensitive detection settings also. If something triggered 
+an alarm in the Active zone and also in the Inclusive zone they would both be 
+registered and the resulting alarm would be that much bigger than if you had 
+blanked it out altogether.
 
-As this point you should have one or more Monitors running with one or more Zones each. Returning to the
-main Console window you will see your monitors listed once more. The columns not explored so far are the
-Monitor name, and various event totals for certain periods of time. Clicking on any of these will bring
-up a variation on the same window so click on the Monitor name for now. On doing so up will pop another window
-which should be scaled to contain a heading, an image from your monitor, a status and a list of events if
-any have been generated. Depending on whether you are able to view a streamed image or not the image frame
-will either be this stream or a series of stills. You have the option to change from one to the other (if
-available) at the centre of the top heading. The image should be self explanatory but if it looks like
-garbage it is possible that the video configuration is wrong so look in your system error log and please
-report anything unusual. The centre of the window will have a tiny frame that just contains a status, this
-will be Idle, Alarm or Alert depending on the fnction of the Monitor and whats going on in the field of
-view. Idle means nothing is happening, Alarm means there is an alarm in progress and Alert means that an 
-alarm has happened and the monitor is cooling down, if another alarm is generated in this time it will
-just become part of the same event. By default if you have minimised this window or opened other windows in
-front it will pop up to the front if it goes to Alarm state. This behaviour can be turned off in configuration
-at the top of the index.php file. Below the status is a list of events that have occurred, by default this 
-is a listing of just the last 12 but clicking on 'All' will give you a full list and 'Archive' will take
-you to the event archive for this monitor, more on this later. If you arrive at this window by clicking one
-of the event totals from the console window then the listing will reflect that period. Clicking on any
-of the column headings will sort the events appropriately. From here you can also delete events if you wish.
-The events themselves are listed with the event id, and event name (which you can change), the time that 
-the event occurred, the length of the event including any preamble and postamble frames, the number of
-frames comprising the event with the number that actually contain an alarm in brackets and finally a score.
-This score lists the average score per alarm frame as well as the maximum score that any alarm frame had.
-The score is an arbitrary value that essentially represents the percentage of pixels in the zone that are
-in blobs divided by the number of blobs and then divided by the size of the zone. This gives a nominal
-maximum of 100 for a zone and the totals for each zone are added together, Active zones scores are added
-unchanged, Inclusive zones are halved first and Exclusive zones are doubled. In reality values are likely
-to be much less than 100 but it does give an simple indication of how major the event was.
+The final zone Type is Exclusive, this means that alarms will only be triggered 
+in this zone if no alarms have already been triggered in Active zones. This is 
+the most specialised of the zone types and you may never use it but in its place 
+it is very useful. For instance in the camera covering my garden I keep watch 
+for a hedgehog that visits most nights and scoffs the food out of my cats bowls. 
+By creating a sensitive Exclusive zone in that area I can ensure that a hedgehog 
+alarm will only trigger if there is activity in that small area. If something 
+much bigger occurs, like someone walking by it will trigger a regular alarm and 
+not one from the Exclusive zone. Thus I can ensure I get alarms for big events 
+and also special small events but not the noise in between. I mentioned above 
+that Inactive zones may be overlain on other zones to blank out areas however as 
+a general principle you should try and make zones abut each other as much as 
+possible and not overlaps to avoid repeated duplicate processing of the same 
+area. For instance an Inclusive zone overlaying an Active zone when all other 
+settings are the same will always trigger when the Active zone does which 
+somewhat defeats the object of the exercise.
 
-Once you have one or events displayed in this listing you can now click on one to view it in more detail.
-If you have streaming capability you will see a series of images that make up the event. You will also see
-a link to allow you to view the still images themselves. If you don't have streaming then you will be taken
-directly to this page. The images themselves are thumbnail size and depending on the configuration and
-bandwidth you have chosen will either be the full images scaled in your browser of actual scaled images. if
-it is the latter, if you have low bandwidth for example, it may take a few seconds to generate the images.
-If thumbnail images are required to be generated, they will be kept and not re-generated in future.
-Once the images appear you can mouse over them to get the image sequence number and the image score. You will
-notice for the first time that alarm images now contain an overlay outlining the blobs that represent the
-alarmed area. This outline is in the colour defined for that zone and lets you see what it was that 
-caused the alarm. Clicking on one of the thumbnails will take you to a full size window where you can see
-the image in all it's detail and scroll through the various images that make up the event. Should you determine
-that you don't wish to keep the event, clicking on Delete will erase it from the database and file system.
-Returning to the event window, other options here are renaming the event to something more meaningful, 
-refreshing the window to replay the event stream, deleting the event, switching between streamed and still
-versions of the event (if supported) and generating an MPEG video of the event (if supported). These last 
-two options require further explanation. Archiving an event means that it is kept to one side and and not
-displayed in the normal event listings unless you specifically ask to view th earchived events. This is 
-useful for keeping events that you think may be important or just wish to protect. Once an event is archived
-it can be deleted or unarchived but you cannot accidentally delete it when viewing normal unarchived events. 
-The final option of generating an MPEG video is experimental and not likely to be highly useful. It uses
-the Berkeley MPEG encoder and will generate a short video which will be downloaded to your browsing machine
-to view. Due to the relatively slow frame rate that ZM will capture at and the high minmimum frame rate
-that the encoder uses, each image is included twice. This has the useful effect of making the video watchable
-and not too quick while having the unfortunate side effect of increasing file size and generation time.
-Building an MPEG video, especially for a large event, can take some time and should not be undertaken lightly
-as the effect on your host box of many CPU intensive encoders will not be good. However once a video has 
-been created for an event it will be kept so subsequent viewing will not incur the generation overhead.
-I will be the first to admit that this area of the package is not particularly well implmented and needs 
-work, and probably a better encoder.
+The rest of the zone settings are slightly simpler to explain. The first is 
+Units which details whether certain of the following settings are in Pixels or 
+Percent of the frame. In general pixels is more precise whereas percentages are 
+easier to use to start with. If you change this setting all appropriate values 
+below are redisplayed in the correct context. A good tip would be to initially 
+enter the settings in Percent and then change to Pixels and refine any gaps. 
+Repeated flipping between the settings will cause rounding errors, as ZM in 
+general is not at home to Mr Floating Point for reasons of performance. 
+Following the units the next four settings define the bounds of the Zone in the 
+monitor frame and are self-explanatory with the exception of the fact that the 
+minima are at the top left of the frame and the maxima are at the bottom right 
+rather than Cartesian. The option after that allows you to specify what colour 
+you'd like any alarms this zone generates to be highlighted on images, pick 
+anything you like that will show up against your normal image background. This 
+and all following options are irrelevant for Inactive zones and you will be 
+prevented from setting them.
 
-That pretty much is it for the tour. You should experiment with the various setting to get the results
-you think are right for your. Naturally letting thousands of events build up is not good for the database
-or your filesystem so you should endeavour to either prevent spurious events from being generated in the
-first place or ensure that you housekeep them strictly.
+Motion Detection
+-----------------
+The options that follow are all related to motion detection and now would be a 
+good time to describe how that works. Once a stream of images starts coming 
+through the zma daemon will begin analysing them initially there will be a warm-
+up period where it does nothing except start to build up a reference image. This 
+image is a composite of the previous images and by default is formed of by 
+applying the current image as 10% of the previous reference image. Thus each 
+images part in the reference image will diminish by a factor of 0.9 each time 
+round. So a typical reference image will be 10% the previous image, 9% the one 
+before that and then 8.1, 7.2, 6.5 and so on of the rest of the way. An image 
+will effectively vanish around 25 images later than when it was added. This 
+blend value of 10% can be varied and if higher will make slower progressing 
+events less detectable as the reference image would change more quickly, 
+similarly events will be deemed to be over much sooner as the reference image 
+adapts to the new images more quickly. In signal processing terms the higher 
+this value the steeper the event attack and decay of the signal. It depends on 
+your particular requirements what the appropriate value would be for you.
 
-Have fun, please report any bugs or features you'd like to see and hopefully ZM can be your camera monitoring
-friend!
+So to go back to the settings, the next one is an alarm threshold, this 
+represents the difference in value between a pixel and it's predecessor. For 
+greyscale images this is simple but for colour images the colours are averaged 
+first, originally this used an RMS (root mean squared) algorithm but calculating 
+square roots mugs performance and does not seem to improve detection. Using an 
+average does means that subtle colour changes without any brightness change may 
+go undetected but this is not the normal circumstance. The following two 
+settings define the minimum and maximum number of pixels that exceed this 
+threshold that would cause an alarm. If the units are Percent this (and 
+following options) refers to the percentage of the frame and not the zone, this 
+is so these values can be related between zones. The minimum value must is 
+matched or exceed for an alarm to be generated whereas the maximum must not be 
+exceeded or the alarm will be cancelled. This is to allow for sudden changes 
+such as lights coming on etc, which you may wish to disregard. In general a 
+value of zero for any of these settings causes that value to be ignored, so you 
+can safely set a maximum to zero and it will not be used. The use of just a 
+number of pixels is however a very brute force method of detection as many small 
+events dispersed widely are not distinguished from a compact one.
 
-Philip Coombes (philip.coombes@zoneminder.com) - September 2002
+To combat this ZM applies several other functions to the data to improve its 
+ability to distinguish interesting signals from uninteresting noise. The first 
+of these is a filter that removes any pixels that do not participate in a 
+contiguous block of pixels above a certain size. The options that control this 
+are the Filter Width and Height settings, which are always pixels and which 
+should be fairly small, and an odd number. Application of this filter removes 
+any tiny or discontinuous pixels that don't form part of a discrete block. 
+Following that are two further bounds that specify the limits of pixels that 
+would cause an alarm after this filtering process. As the filtering process only 
+removes pixels it makes no sense for the Minimum and Maximum Filtered Area to be 
+larger than the equivalent Alarmed Area and in general they should be smaller or 
+the same. The next step in the analysis phase is the collation of any remaining 
+alarmed areas into contiguous blobs. This process parses the image and forms any 
+pixels that adjoin other alarmed pixels into one or more larger blobs. These 
+blobs may be any shape and can be as large as the zone itself or as small as the 
+filtered size. The Minimum and Maximum Blob Size settings allow you to define 
+limits within which an alarm will be generated. Of these only the Minimum is 
+likely to be very useful. Finally the Minimum and Maximum Blobs specify the 
+limits of the actual number of blobs detected. If an image change satisfies all 
+these requirements it becomes an alarm event.
+
+Viewing Monitors
+----------------
+As this point you should have one or more Monitors running with one or more 
+Zones each. Returning to the main Console window you will see your monitors 
+listed once more. The columns not explored so far are the Monitor name, and 
+various event totals for certain periods of time. Clicking on any of the event 
+totals will bring up a variation on the same window but click on the Monitor 
+name for now. On doing so up will pop another window which should be scaled to 
+contain a heading, an image from your monitor, a status and a list of events if 
+any have been generated. Depending on whether you are able to view a streamed 
+image or not the image frame will either be this stream or a series of stills. 
+You have the option to change from one to the other (if available) at the centre 
+of the top heading. The image should be self-explanatory but if it looks like 
+garbage it is possible that the video configuration is wrong so look in your 
+system error log and check for or report anything unusual. The centre of the 
+window will have a tiny frame that just contains a status; this will be 'Idle', 
+'Alarm' or 'Alert' depending on the function of the Monitor and what's going on 
+in the field of view. Idle means nothing is happening, Alarm means there is an 
+alarm in progress and Alert means that an alarm has happened and the monitor is 
+cooling down, if another alarm is generated in this time it will just become 
+part of the same event. These indicators are colour coded in green, red and 
+amber. By default if you have minimised this window or opened other windows in 
+front it will pop up to the front if it goes to Alarm state. This behaviour can 
+be turned off in configuration at the top of the index.php file. You can also 
+specify a sound file in the configuration, which will be played when an alarm 
+occurs to alert you to the fact if you are not in front of your computer. This 
+should be a short sound of only a couple of seconds ideally. Note that as the 
+status is refreshed every few seconds it is possible for this not to alert you 
+to every event that takes place, so you shouldn't rely on it for this purpose if 
+you expect very brief events. Alternatively you can decrease the refresh 
+interval for this window in the configuration though having too frequently 
+refreshing may impact on performance. Below the status is a list of recent 
+events that have occurred, by default this is a listing of just the last 12 but 
+clicking on 'All' will give you a full list and 'Archive' will take you to the 
+event archive for this monitor, more on this later. Clicking on any of the 
+column headings will sort the events appropriately. From here you can also 
+delete events if you wish. The events themselves are listed with the event id, 
+and event name (which you can change), the time that the event occurred, the 
+length of the event including any preamble and post amble frames, the number of 
+frames comprising the event with the number that actually contain an alarm in 
+brackets and finally a score. This column lists the average score per alarm 
+frame as well as the maximum score that any alarm frame had. The score is an 
+arbitrary value that essentially represents the percentage of pixels in the zone 
+that are in blobs divided by the number of blobs and then divided by the size of 
+the zone. This gives a nominal maximum of 100 for a zone and the totals for each 
+zone are added together, Active zones scores are added unchanged, Inclusive 
+zones are halved first and Exclusive zones are doubled. In reality values are 
+likely to be much less than 100 but it does give a simple indication of how 
+major the event was.
+
+Filtering Events
+----------------
+The other columns on the main console window contain various event totals for 
+your monitor over the last hour, day, week and month as well as a grand total 
+and a total for events that you may have archived for safekeeping. Clicking on 
+one of these totals or on the 'All' or 'Archive' links from the monitor window 
+described above will present you with a new display. This is the full event 
+window and contains a list of events selected according to a filter which will 
+also pop up in it's own window. Thus if you clicked on a 'day' total the filter 
+will indicate that this is the period for which events are being filtered. The 
+event listing window contains a similar listing to the recent events in the 
+monitor window. The primary differences are that the frames and alarm frames and 
+the score and maximum score are now broken out into their own columns, all of 
+which can be sorted by clicking on the heading. Also this window will not 
+refresh automatically, rather only on request. Other than that, you can choose 
+to view events here or delete them as before. The other window that appeared is 
+a filter window. You can use this window to create your own filters or to modify 
+existing ones. You can even save your favourite filters to re-use at a future 
+date. Filtering itself is fairly simple, you first choose how many expressions 
+you'd like your filter to contain. Changing this value will cause the window to 
+redraw with a corresponding row for each expression. You then select what you 
+want to filter on and how the expressions relate by choosing whether they are 
+'and' or 'or' relationships. For filter comprised of many expressions you will 
+also get the option to bracket parts of the filter to ensure you can express it 
+as desired. There are several different elements to an event that you can filter 
+on, some of which require further explanation. These are as follows, 'Date/Time' 
+which must evaluate to a date and a time together, 'Date' and 'Time' which are 
+variants which may only contain the relevant subsets of this, 'Weekday' which as 
+expected is a day of the week. All of the preceding elements take a very 
+flexible free format of dates and time based on the PHP strtotime function 
+(http://www.zend.com/manual/function.strtotime.php). This allows values such as 
+'last Wednesday' etc to be entered. I recommend acquainting yourself with this 
+function to see what the allowed formats are. The other elements you can filter 
+on are all fairly self explanatory except perhaps for 'Archived' which you can 
+use to include or exclude Archived events. In general you'll probably do most 
+filtering on un-archived events. Once your filter is specified, clicking 
+'submit' will filter the events according to your specification. If you have 
+created a filter you want to keep, you can name it and save it by clicking 
+'Save'. If you do this then the subsequent dialog will also allow you specify 
+whether you want this filter automatically applied in order to delete events or 
+upload events via ftp to another server. This functionality is explained in more 
+detail elsewhere. Filtering is a powerful mechanism you can use to eliminate 
+events that fit a certain pattern however in many cases modifying the zone 
+settings will better address this. Where it really comes into it's own is 
+generally in applying time filters, so for instance events that happen during 
+weekdays or at certain times of the day are highlighted, uploaded or deleted.
+
+Viewing Events
+--------------
+From the monitor or filtered events listing you can now click on an event to 
+view it in more detail. If you have streaming capability you will see a series 
+of images that make up the event. You will also see a link to allow you to view 
+the still images themselves. If you don't have streaming then you will be taken 
+directly to this page. The images themselves are thumbnail size and depending on 
+the configuration and bandwidth you have chosen will either be the full images 
+scaled in your browser of actual scaled images. If it is the latter, if you have 
+low bandwidth for example, it may take a few seconds to generate the images. If 
+thumbnail images are required to be generated, they will be kept and not re-
+generated in future. Once the images appear you can mouse over them to get the 
+image sequence number and the image score. You will notice for the first time 
+that alarm images now contain an overlay outlining the blobs that represent the 
+alarmed area. This outline is in the colour defined for that zone and lets you 
+see what it was that caused the alarm. Clicking on one of the thumbnails will 
+take you to a full size window where you can see the image in all it's detail 
+and scroll through the various images that make up the event. Should you 
+determine that you don't wish to keep the event, clicking on Delete will erase 
+it from the database and file system. Returning to the event window, other 
+options here are renaming the event to something more meaningful, refreshing the 
+window to replay the event stream, deleting the event, switching between 
+streamed and still versions of the event (if supported) and generating an MPEG 
+video of the event (if supported). These last two options require further 
+explanation. Archiving an event means that it is kept to one side and not 
+displayed in the normal event listings unless you specifically ask to view the 
+archived events. This is useful for keeping events that you think may be 
+important or just wish to protect. Once an event is archived it can be deleted 
+or unarchived but you cannot accidentally delete it when viewing normal 
+unarchived events. The final option of generating an MPEG video is experimental 
+and not likely to be highly useful. It uses the Berkeley MPEG encoder and will 
+generate a short video which will be downloaded to your browsing machine to 
+view. Due to the relatively slow frame rate that ZM will capture at and the high 
+minimum frame rate that the encoder uses, each image is included twice. This has 
+the useful effect of making the video watchable and not too quick while having 
+the unfortunate side effect of increasing file size and generation time. 
+Building an MPEG video, especially for a large event, can take some time and 
+should not be undertaken lightly as the effect on your host box of many CPU 
+intensive encoders will not be good. However once a video has been created for 
+an event it will be kept so subsequent viewing will not incur the generation 
+overhead. I will be the first to admit that this area of the package is not 
+particularly well implemented and needs work, and probably a better encoder.
+
+That pretty much is it for the tour. You should experiment with the various 
+setting to get the results you think are right for your. Naturally letting 
+thousands of events build up is not good for the database or your file system so 
+you should endeavour to either prevent spurious events from being generated in 
+the first place or ensure that you housekeep them strictly.
+
+Have fun, please report any bugs or features you'd like to see and hopefully ZM 
+can be your camera monitoring friend!
+
+Philip Coombes (philip.coombes@zoneminder.com) - December 2002
 
 
 Troubleshooting
 ===============
 
-Life eh? Nothing ever works first time does it? In case you are having problems here are some things to try.
-If these don't work then feel free to get in touch and I'll see if I can suggest something else. The best
-places to look for errors are in your system eror log (/var/log/messages on RedHat) and your web server
-log (/var/log/httpd/error_log). There should be something in one of those that gives you some kind of tip
-off.
+Life eh? Nothing ever works first time does it? In case you are having problems 
+here are some things to try. If these don't work then feel free to get in touch 
+and I'll see if I can suggest something else. The best places to look for errors 
+are in your system error log (probably /var/log/messages on RedHat) and your web 
+server log (/var/log/httpd/error_log). There should be something in one of those 
+that gives you some kind of tip off.
 
 Some things to check.
-1. Device configuration. If you can't get your cameras to work in ZM, firstly make sure that you have the
-correct settings. Use xawtv or something like that to check for settings which work. If you can't get them
-to work with that then the likelihood is they won't work with ZM.
-2. Device permissions. As the ZM daemons are started by your web server, you need to ensure that your video
-devices can be opened by the associated user.
-3. Web server. Ensure that your web server can serve PHP files. It's also possible that your php.ini file
-may have some settings which break ZM, I'm not a PHP expert but setting safe mode may prevent your index.php
-file from runningcertain programs. You may have to set configuration to allow this. Also as the daemons are
-started by your web server, if it dies or is shut down then the daemons will disappear. I suspect this is
-a bug in ZM.
-4. Use debug. ZM has various debug which by default will go into your system log (via syslog). These will
-be of the form of "Sep 14 14:50:11 localhost zma-0[1975]: INF [Front: 221000 - Processing at 4.26 fps ]"
-where the zma-0 part identifies the daemon and the device it is running on. Entries with INF in are 
-informational and not an error, if you see ERR then it is one, though not all are fatal. You can prevent 
-this information from being emitted by setting the DLVL_zmc environment variable to -1 or less once things
-are working. If you want to run any of the daemons from the command line to test, setting DBG_PRINT to 1
-will output the debug on the console and setting DLVL_zmc (or DLVL_zma etc) to a number between 0 and 9 
-will emit progressively more debug though theres not a lot in there at present.
-5. Paths. I admit it, the various paths in ZM are a bit of a nightmare. Make sure that they are all correct 
-and that permissions are such that the various parts of ZM can actually run.
+1. Device configuration. If you can't get your cameras to work in ZM, firstly 
+make sure that you have the correct settings. Use xawtv or something like that 
+to check for settings that work. If you can't get them to work with that then 
+the likelihood is they won't work with ZM.
+2. Device permissions. Since the ZM daemons are started by your web server, you 
+need to ensure that your video devices can be opened by the associated user, 
+usually apache or web. It is often the case that these files are created with 
+read access by root only (and sometimes reset on a reboot) so you might need to 
+chmod a+r /dev/video0 etc. to make them readable.
+3. Web server. Ensure that your web server can serve PHP files. It's also 
+possible that your php.ini file may have some settings which break ZM, I'm not a 
+PHP guru but setting safe mode may prevent your PHP files from running certain 
+programs. You may have to set configuration to allow this. Also since the 
+daemons are started by your web server, if it dies or is shut down then the 
+daemons may disappear. In this version the daemons are run under the control of 
+a script which should trap expected signals but it is possible this doesn't 
+cover all circumstances.
+4. Use debug. ZM has various debug in it that by default will go into your 
+system log (via syslog). These will be of the form of
+"Sep 14 14:50:11 localhost zma-0[1975]: INF [Front: 221000 - Processing at 4.26 
+fps ]"
+where the zma-0 part identifies the daemon and the device it is running on. 
+Entries with INF in are informational and not an error, if you see ERR then it 
+is one, though not all are fatal. You can prevent this information from being 
+emitted by setting the DLVL_zmc environment variable to -1 or less once things 
+are working. If you want to run any of the daemons from the command line to 
+test, setting DBG_PRINT to 1 will output the debug on the console and setting 
+DLVL_zmc (or DLVL_zma etc) to a number between 0 and 9 will emit progressively 
+more debug though there's not a lot in there at present.
+5. Paths. I admit it, the various paths in ZM are a bit of a nightmare. Make 
+sure that they are all correct and that permissions are such that the various 
+parts of ZM can actually run. Most of the places you need to specify this kind 
+of information are at the top of the associated configuration files but I've not 
+been able to get the automatic configure script to do all this by itself yet.
 
-Also, if you are using IE under Windows and get lots of annoying clicks when various windows refresh then you'll
-need to edit your registry and remove the value for
-HKEY_CURRENT_USER\AppEvents\Schemes\Apps\Explorer\Navigating\.current or download the registry script to do it
-for you from http://www.zoneminder.com/downloads/noIEClick.reg
+Also, if you are using IE under Windows and get lots of annoying clicks when 
+various windows refresh then you'll need to edit your registry and remove the 
+value for HKEY_CURRENT_USER\AppEvents\Schemes\Apps\Explorer\Navigating\.current 
+or download the registry script to do it for you from 
+http://www.zoneminder.com/downloads/noIEClick.reg
 
 Whats New
 =========
 
-Release 0.01 - Initial release, therefore nothing new.
-Release 0.90 - Yes, a big jump in release number but a lot of changes too. Now somewhat more mature, not really an
-alpha any more, and a lot of bugs fixed too. The main changes are described below.
+Release 0.0.1 - Initial release, therefore nothing new.
+Release 1.0.0 - Yes, a big jump in release number but a lot of changes too. Now 
+somewhat more mature, not really an alpha any more, and a lot of bugs fixed too. 
+The main changes are described below.
 
 To Do
 =====
 
-Seeing as ZM is so young and has kind of evolved rather than being planned there are a bunch of improvements
-and enhancements still to do, here is just a sample.
+Seeing as ZM is so young and has kind of evolved rather than being planned there 
+are a bunch of improvements and enhancements still to do, here is just a sample.
 
-1. Sort out the class structure - Frankly it's a bit of a mess at the moment with too many 'friends', it needs
-rationalising.
-2. Perhaps split out devices - I think devices should probably be a separate table and class from monitors. Not
-critical but would represent a better model.
-3. Comments - Needs many more, but that's just me I'm hopeless at commenting things out. I'll get round to it
-soon though honest! You're lucky to even get this document.
-4. Optimised zones - The zones could do with being sorted out a bit to optimise the processing of overlapping
-ones, at the moment you can waste resource unless your zones are kept very tidy.
-5. Create zones using server side image maps - This would make it easier to precisely define and see where your
-zone is going to go. Not critical but handy but a bugger to do.
-6. Zone Bitmaps - Allow zones to be defined according to a colour coded bitmap. Currently all zones are 
-rectangular this would add a bit of flexibility. Would need a bit of a rewrite though.
-7. Security - I think I need to give the php file a bit of a good going over as I'm sure it's not done in the
-most secure way regarding passing things onto command line, exposing file paths and other stuff. I'm a bit of
-a php novice, as I'm sure you can tell so might need help here. I should have done it in perl!
-8. Mouseover help - A bit more help popping up when you mouseover things would be handy. A bit more help full
-stop actually.
-9. FTP uploads - It's no good if your nice cameras and linux box records a perpetrator busting into your place
-if they then proceed to nick your computer. So need an additional, probably perl, daemon to keep an eye on
-things and tar, zip and upload qualifying events to an external server.
-10. WAP interface - A bit of a crusade of mine I'm afraid. I'd like to put a WMl interface on to allow you
-to view event listing and perhaps the most significant image from each event on your phone. Also simple
-management.
-11. Email and SMS notifications - As with the FTP uploads, probably event the same daemon to let you know when
-something happens, perhaps configurable to report only certain types of events.
-12. Templatise the php file. Personally I hate mixing up HTML and logic, perhaps use Smarty or something and 
-separate the screens out from the rest.
-13. Automatic device configuration - Video 4 Linux supprots various device queries, it should be possible to
-get most of the device capability information from the device itself.
-14. X-10 integration - A handy feature would be to allow a generated event to trigger some other action
-perhaps to an attached X-10 interface, for instance turn lights on or make a dog barky noise!
-15. Extend the API. Well ok it's not really got an API yet but the image data is held in shared memory in a
-very simple format. In theory you could use the capture daemon to gab the images and other things could
-read them from memory or the analysis daemon could read images from elsewhere. Either way this should be 
-done through an API, and would need a library I think. Also the zmu utility could probably do a whole lot
-more to enable other things to manage when the daemons become active etc.
-16. Finish implementing customisable image timestamps. There is proto support for this and it would be
-easy to do to allow the timestamp to be defined as a strftime string and allow it's position to be moved.
-Possibly also revamp the fonts a bit.
-17. Access control should probably be built in rather than relying on htaccess etc.
-18. I've got lots of ideas for enhancing the motion detection part with optional algorithms etc. Just got
-to find the time somewhere!
-19. Create .rpm packages (as there can be several dependencies) and maybe other typs of packages also.
-20. Allow zones to be polygonal, to a (realistically) unlimited degree. This will incur a slight penalty on
-startup and a very slight one on processing for all reasonably shaped zones.
-21. Allow ZM to 'train' itself by allowing the user to select events which are considered important and to
-discard those that should be ignored. ZM will interpolate, add a bit of magic, and recommend settings that
-will support this selection automatically thereafter.
-22. Add quotes to all PHP array references. I should have done it in the first place but I'm a perl person
-really and it kind of bugs me that you have to.
+1. Sort out the class structure - Frankly it's a bit of a mess at the moment 
+with too many 'friends', it needs rationalising.
+2. Perhaps split out devices - I think devices should probably be a separate 
+table and class from monitors. Not critical but would represent a better model.
+3. Comments - Needs many more, but that's just me I'm hopeless at commenting 
+things out. I'll get round to it soon though honest! You're lucky to even get 
+this document.
+4. Optimised zones - The zones could do with being sorted out a bit to optimise 
+the processing of overlapping ones, at the moment you can waste resource unless 
+your zones are kept very tidy.
+5. Create zones using server side image maps - This would make it easier to 
+precisely define and see where your zone is going to go. Not critical but handy 
+but a bugger to do.
+6. Zone Definitions - Allow zones to be defined according to a colour coded 
+bitmap or as polygons. Currently all zones are rectangular this would add a bit 
+of flexibility. Would need a bit of a rewrite though. 20. This will incur a 
+slight penalty on startup and a very slight one on processing for all reasonably 
+shaped zones.
+7. Security - I think I need to give the php file a bit of a good going over as 
+I'm sure it's not done in the most secure way regarding passing things onto 
+command line, exposing file paths and other stuff. I'm a bit of a PHP novice, as 
+I'm sure you can tell so might need help here. I should have done it in perl!
+8. Mouseover help - A bit more help popping up when you mouseover things would 
+be handy. A bit more help full stop actually.
+9. WAP interface - A bit of a crusade of mine I'm afraid. I'd like to put a WML 
+interface on to allow you to view event listing and perhaps the most significant 
+image from each event on your phone. Also simple management. In version 1.0.0 
+there is a very basic crude initial version that probably won't work with your 
+phone but its there as a testbed. Note, temporary WAP files are not tidied up
+properly so don't use it for extanded periods of time at present.
+10. Email and SMS notifications - As with the FTP uploads, probably event the 
+same daemon to let you know when something happens, perhaps configurable to 
+report only certain types of events.
+11. Templatise the php file. Personally I hate mixing up HTML and logic, perhaps 
+use Smarty or something and separate the screens out from the rest.
+12. Automatic device configuration - Video 4 Linux supports various device 
+queries, it should be possible to get most of the device capability information 
+from the device itself.
+13. Extend the X-10 integration - A handy feature would be to allow a generated 
+event to trigger some other action perhaps to an attached X-10 interface, for 
+instance turn lights on or make a dog barky noise!
+14. Extend the API. Well ok it's not really got an API yet but the image data is 
+held in shared memory in a very simple format. In theory you could use the 
+capture daemon to gab the images and other things could read them from memory or 
+the analysis daemon could read images from elsewhere. Either way this should be 
+done through an API, and would need a library I think. Also the zmu utility 
+could probably do a whole lot more to enable other things to manage when the 
+daemons become active etc.
+15. Access control should probably be built in rather than relying on .htaccess 
+etc.
+16. I've got lots of ideas for enhancing the motion detection part with optional 
+algorithms etc. Just got to find the time somewhere!
+17. Create .rpm packages (as there can be several dependencies) and maybe other 
+types of packages also, e.g. for Debian distributions.
+18. Allow ZM to 'train' itself by allowing the user to select events that are 
+considered important and to discard those that should be ignored. ZM will 
+interpolate, add a bit of magic, and recommend settings that will support this 
+selection automatically thereafter.
+19. Add quotes to all PHP array references. I should have done it in the first 
+place but I'm a perl person really and it kind of bugs me that you have to.
 
 
 Bugs
 ====
 
-1. The shared memory segment(s) are not cleaned up properly. It's difficult to decide how perisistent to make
-them really as they could still be of use even when nothing is using them, or at least writing to them.
-2. Sometimes there is a sync error and very rarely a capture daemon just stops. Probably need a watchdog to 
-restart it when this happens.
-3. I'm not sure if this is a bug or by design but the timestamp is added to the image by the capture daemon.
-I _think_ this isn't necessary as it may contribute to alarms, plus the time is associated with the image 
-anyway. So I think this should be moved to the analysis daemon.
+1. Sometimes there is a sync error and very rarely a capture daemon just stops. 
+Probably need a watchdog to restart it when this happens.
+2. I'm not sure if this is a bug or by design but the timestamp is added to the 
+image by the capture daemon. I _think_ this isn't necessary as it may contribute 
+to alarms, plus the time is associated with the image anyway. So I think this 
+should be moved to the analysis daemon.
 
 Probably a bucket load more, just fire them at me.
 
@@ -436,10 +625,12 @@ Probably a bucket load more, just fire them at me.
 Non-Bugs
 ========
 
-1. Yes, those are tabs in the indents, I like tabs so don't go changing them to spaces or else. Also yes I
-also like my opening braces on their own line most of the time, what's the point of brackets that don't line up?
+1. Yes, those are tabs in the indents; I like tabs so don't go changing them to 
+spaces or else. Also yes I also like my opening braces on their own line most of 
+the time, what's the point of brackets that don't line up?
 
-Everything else that isn't definately broken is probably deliberate, or was once anyway.
+Everything else that isn't definitely broken is probably deliberate, or was once 
+anyway.
 
 
 License
@@ -450,17 +641,16 @@ Zone Monitor is released under the GPL, see below.
 Zone Monitor README, $Date$, $Revision$
 Copyright (C) 2002  Philip Coombes
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+This program is free software; you can redistribute it and/or modify it under 
+the terms of the GNU General Public License as published by the Free Software 
+Foundation; either version 2 of the License, or (at your option) any later 
+version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+You should have received a copy of the GNU General Public License along with 
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple 
+Place - Suite 330, Boston, MA  02111-1307, USA.
 

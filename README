@@ -742,7 +742,7 @@ that gives you some kind of tip off.
 Some things to check.
 1. Device configuration. If you can't get your cameras to work in ZM, firstly 
 make sure that you have the correct settings. Use xawtv or something like that 
-to check for settings that work and then run zmu -d <device_no> -v to get the
+to check for settings that work and then run zmu -d <device_no> -q -v to get the
 settings. If you can't get them to work with that then the likelihood is they
 w on't work with ZM. Also check the system logs (usually /var/log/messages)
 for any video configuration errors. If you get some and you're sure they're
@@ -765,7 +765,25 @@ daemons are started by your web server, if it dies or is shut down then the
 daemons may disappear. In this version the daemons are run under the control of 
 a script which should trap expected signals but it is possible this doesn't 
 cover all circumstances.
-4. Use debug. ZM has various debug in it that by default will go into your 
+4. If you get odd javascript errors and your web console or other screens come
+up with bits missing then it's possible that there is a problem with the PHP
+configuration. Since version 0.9.8 ZoneMinder has used short PHP open tags to
+output information, so instead of something like this '<?php echo $value ?>',
+it will be something like this '<?= $value ?>' which is easier and quicker to
+write as well as being neater. However although by default most PHP
+installations support this form, some will need to have it switched on
+explicitly. To do this you will first need to find your php.ini file (do a
+'locate php.ini' or 'find / -name php.ini'. Be aware however that sometimes you
+might find more than one, so ensure you identify the one that is actually being
+used. You will then need to find the line that starts 'short_open_tag = ' and
+change the Off value to On. This wil correct the problem. However in some cases
+you may have explicitly switched it off, so that XML compliant documents can be
+more easily served, or you may even not have permission to edit the file. In
+this case you can go into the web directory of 'ZoneMinder' and run 'sh retag.sh'
+which will replace all the short open tags in the files themselves with the
+longer variant. You will obviously have to remember to do this for each 
+subsequent version of ZoneMinder that you install as well.
+5. Use debug. ZM has various debug in it that by default will go into your 
 system log (via syslog). These will be of the form of
 "Sep 14 14:50:11 localhost zma-0[1975]: INF [Front: 221000 - Processing at 4.26 
 fps ]"
@@ -777,7 +795,7 @@ are working. If you want to run any of the daemons from the command line to
 test, setting DBG_PRINT to 1 will output the debug on the console and setting 
 DLVL_zmc (or DLVL_zma etc) to a number between 0 and 9 will emit progressively 
 more debug though there's not a lot in there at present.
-5. Paths. I admit it, the various paths in ZM are a bit of a nightmare. Make 
+6. Paths. I admit it, the various paths in ZM are a bit of a nightmare. Make 
 sure that they are all correct and that permissions are such that the various 
 parts of ZM can actually run.
 

@@ -44,22 +44,42 @@ switch( $view )
 {
 	case "console" :
 	{
-		daemonControl( 'status' );
-		if ( FAST_DELETE )
+		$running = daemonCheck();
+		$status = $running?"Running":"Stopped";
+		$new_status = $running?"stop":"start";
+
+		if ( $stop )
+		{
+			daemonControl( 'shutdown' );
+		}
+
+		if ( $start && FAST_DELETE )
 		{
 			daemonControl( 'start', 'zmaudit.pl', '-d 900 -y' );
 		}
-		if ( HAS_X10 )
+		if ( $start && HAS_X10 )
 		{
 			daemonControl( 'start', 'zmx10.pl', '-c start' );
 		}
 
-		header("Refresh: ".REFRESH_MAIN."; URL='$PHP_SELF'" );
+		header("Refresh: ".(($start||$stop)?1:REFRESH_MAIN)."; URL='$PHP_SELF'" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
 		header("Cache-Control: post-check=0, pre-check=0", false);
 		header("Pragma: no-cache");			// HTTP/1.0
+
+		$sql = "select distinct Device from Monitors order by Device";
+		$result = mysql_query( $sql );
+		if ( !$result )
+			echo mysql_error();
+		$devices = array();
+
+		while( $row = mysql_fetch_assoc( $result ) )
+		{
+			$row['zmc'] = zmcCheck( $row );
+			$devices[$row[Device]] = $row;
+		}
 
 		$db_now = strftime( "%Y-%m-%d %H:%M:%S" );
 		$sql = "select M.*, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by E.MonitorId order by Id";
@@ -72,6 +92,12 @@ switch( $view )
 		$cycle_count = 0;
 		while( $row = mysql_fetch_assoc( $result ) )
 		{
+			if ( $start )
+			{
+				zmcControl( $row );
+				zmaControl( $row );
+			}
+			$row['zma'] = zmaCheck( $row );
 			if ( $max_width < $row[Width] ) $max_width = $row[Width];
 			if ( $max_height < $row[Height] ) $max_height = $row[Height];
 			$sql = "select count(Id) as ZoneCount, count(if(Type='Active',1,NULL)) as ActZoneCount, count(if(Type='Inclusive',1,NULL)) as IncZoneCount, count(if(Type='Exclusive',1,NULL)) as ExcZoneCount, count(if(Type='Inactive',1,NULL)) as InactZoneCount from Zones where MonitorId = '$row[Id]'";
@@ -80,28 +106,10 @@ switch( $view )
 				echo mysql_error();
 			$row2 = mysql_fetch_assoc( $result2 );
 			$monitors[] = array_merge( $row, $row2 );
-			if ( $row['Function'] != 'None' ) $cycle_count++;
-		}
-
-		$sql = "select distinct Device from Monitors order by Device";
-		$result = mysql_query( $sql );
-		if ( !$result )
-			echo mysql_error();
-		$devices = array();
-
-		while( $row = mysql_fetch_assoc( $result ) )
-		{
-			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $row[Device]' | grep -v grep" ) );
-			if ( $ps_array[3] )
+			if ( $row['Function'] != 'None' )
 			{
-				$row['zmc'] = 1;
+				$cycle_count++;
 			}
-			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $row[Device]' | grep -v grep" ) );
-			if ( $ps_array[3] )
-			{
-				$row['zma'] = 1;
-			}
-			$devices[] = $row;
 		}
 ?>
 <html>
@@ -130,18 +138,22 @@ function configureButton(form,name)
 	}
 	form.delete_btn.disabled = !checked;
 }
+function confirmStatus( new_status )
+{
+	return( confirm( 'Are you sure you wish to '+new_status+' all processes?' ) );
+}
 </script>
 </head>
 <body>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td class="smallhead" align="left"><?php echo date( "D jS M, g:ia" ) ?></td>
-<td class="bighead" align="center"><strong>ZoneMinder Console</strong></td>
+<td class="bighead" align="center"><strong>ZoneMinder Console - <?php echo $status ?> (<a href="javascript: if ( confirmStatus( '<?php echo $new_status ?>' ) ) location='<?php echo $PHP_SELF ?>?<?php echo $new_status ?>=1';"><?php echo $new_status ?></a>)</strong></td>
 <td class="smallhead" align="right"><a href="mailto:bugs@zoneminder.com?subject=ZoneMinder Bug">Report Bug</a></td>
 </tr>
 <tr>
 <td class="smallhead" align="left"><?php echo count($monitors) ?> Monitors</td>
-<td class="smallhead" align="center">Currently configured for <strong><?php echo $bandwidth ?></strong> bandwidth (change to
+<td class="smallhead" align="center">Configured for <strong><?php echo $bandwidth ?></strong> bandwidth (change to
 <?php
 		$bw_array = array( "high"=>1, "medium"=>1, "low"=>1 );
 		unset( $bw_array[$bandwidth] );
@@ -162,8 +174,8 @@ function configureButton(form,name)
 <input type="hidden" name="action" value="delete">
 <tr><td align="left" class="smallhead">Id</td>
 <td align="left" class="smallhead">Name</td>
-<td align="left" class="smallhead">Device/Channel</td>
 <td align="left" class="smallhead">Function</td>
+<td align="left" class="smallhead">Device/Channel</td>
 <!--<td align="left" class="smallhead">Dimensions</td>-->
 <td align="right" class="smallhead">Events</td>
 <td align="right" class="smallhead">Hour</td>
@@ -195,9 +207,42 @@ function configureButton(form,name)
 ?>
 <tr>
 <td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zmMonitor', <?php echo $jws['monitor']['w'] ?>, <?php echo $jws['monitor']['h'] ?> );"><?php echo $monitor[Id] ?>.</a></td>
+<?php
+		if ( !$device[zmc] )
+		{
+			$dclass = "redtext";
+		}
+		else
+		{
+			if ( !$monitor[zma] )
+			{
+				$dclass = "oratext";
+			}
+			else
+			{
+				$dclass = "gretext";
+			}
+		}
+		if ( $monitor['Function'] == 'Active' )
+		{
+			$fclass = "gretext";
+		}
+		elseif ( $monitor['Function'] == 'Passive' )
+		{
+			$fclass = "oratext";
+		}
+		elseif ( $monitor['Function'] == 'X10' )
+		{
+			$fclass = "blutext";
+		}
+		else
+		{
+			$fclass = "redtext";
+		}
+?>
 <td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+$jws['watch']['w'] ?>, <?php echo $monitor[Height]+$jws['watch']['h'] ?> );"><?php echo $monitor[Name] ?></a></td>
-<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=device&did=<?php echo $monitor[Device] ?>', 'zmDevice', <?php echo $jws['device']['w'] ?>, <?php echo $jws['device']['h'] ?> );"><span class="<?php if ( $device[zmc] ) { if ( $device[zma] ) { echo "gretext"; } else { echo "oratext"; } } else { echo "redtext"; } ?>">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</span></a></td>
-<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=function&mid=<?php echo $monitor[Id] ?>', 'zmFunction', <?php echo $jws['function']['w'] ?>, <?php echo $jws['function']['h'] ?> );"><?php echo $monitor['Function'] ?></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=function&mid=<?php echo $monitor[Id] ?>', 'zmFunction', <?php echo $jws['function']['w'] ?>, <?php echo $jws['function']['h'] ?> );"><span class="<?php echo $fclass ?>"><?php echo $monitor['Function'] ?></span></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zmMonitor', <?php echo $jws['monitor']['w'] ?>, <?php echo $jws['monitor']['h'] ?> );"><span class="<?php echo $dclass ?>">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</span></a></td>
 <!--<td align="left" class="text"><?php echo $monitor[Width] ?>x<?php echo $monitor[Height] ?>x<?php echo $monitor[Colours]*8 ?></td>-->
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $monitor[Id] ?>&filter=1', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[EventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $monitor[Id] ?>&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[HourEventCount] ?></a></td>
@@ -1605,6 +1650,9 @@ function closeWindow()
 <tr><td align="left" class="text">Post Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_post_event_count" value="<?php echo $monitor[PostEventCount] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">FPS Report Interval</td><td align="left" class="text"><input type="text" name="new_fps_report_interval" value="<?php echo $monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_ref_blend_perc" value="<?php echo $monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">X10 Activation String</td><td align="left" class="text"><input type="text" name="new_x10_activation" value="<?php echo $monitor[X10Activation] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text">X10 Input Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_input" value="<?php echo $monitor[X10AlarmInput] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text">X10 Output Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_output" value="<?php echo $monitor[X10AlarmOutput] ?>" size="20" class="form"></td></tr>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
 <td align="left"><input type="submit" value="Save" class="form"></td>
@@ -2040,7 +2088,7 @@ function closeWindow()
 </tr>
 <tr>
 <form method="get" action="<?php echo $PHP_SELF ?>">
-<input type="hidden" name="view" value="<?php echo $view ?>">
+<input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="function">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
 <td colspan="2" align="center"><select name="new_function" class="form">

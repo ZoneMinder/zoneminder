@@ -64,6 +64,7 @@ use constant ZM_FROM_EMAIL => <from zmconfig>;
 
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter-%d.log';
+use constant START_DELAY => 5; # How long to wait before starting
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 if ( ZM_OPT_UPLOAD )
@@ -298,6 +299,8 @@ if ( !$event_id )
 	$sth->finish();
 }
 print( "Scanning for events since id $event_id\n" );
+
+sleep( START_DELAY );
 
 my $filters = GetFilters( $monitor );
 my $last_action = 0;

@@ -83,12 +83,13 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <tr>
 <td width="25%" align="left" class="text"><b><?= $monitor['Name'] ?></b></td>
 <?php if ( $mode == "stream" ) { ?>
+<form name="view_form" method="get" action="<?= $PHP_SELF ?>" target="_parent">
 <td align="center" valign="middle" class="text">
-<form name="view_form" method="get" action="<?= $PHP_SELF ?>">
-<input type="hidden" name="view" value="<?= $view ?>">
+<input type="hidden" name="view" value="watch">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <?= $zmSlangScale ?>: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </td>
+</form>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>

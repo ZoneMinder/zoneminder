@@ -69,6 +69,9 @@ for ( $i = 1; $i <= $trms; $i++ )
 <?php
 }
 ?>
+<input type="hidden" name="sort_field" value="<?= $sort_field ?>">
+<input type="hidden" name="sort_asc" value="<?= $sort_asc ?>">
+<input type="hidden" name="limit" value="<?= $limit ?>">
 <center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
 <tr>
 <?php

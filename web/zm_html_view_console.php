@@ -124,7 +124,7 @@ newWindow( '<?= $PHP_SELF ?>?view=version', 'zmVersion', <?= $jws['version']['w'
 <tr>
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
 <td class="bighead" align="center"><strong><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?= $zmSlangConsole ?> - <?php if ( canEdit( 'System' ) ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=state', 'zmState', <?= $jws['state']['w'] ?>, <?= $jws['state']['h'] ?> );"><?= $status ?></a> - <?php } ?><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=version', 'zmVersion', ".$jws['version']['w'].", ".$jws['version']['h']." );", "v".ZM_VERSION, canEdit( 'System' ) ) ?></strong></td>
-<td class="smallhead" align="right"><?= $zmSlangLoad ?>: <?= getLoad() ?> / <?= $zmSlangDisk ?>: <?= getSpace() ?></td>
+<td class="smallhead" align="right"><?= $zmSlangLoad ?>: <?= getLoad() ?> / <?= $zmSlangDisk ?>: <?= getDiskPercent() ?>%</td>
 </tr>
 <tr>
 <td class="smallhead" align="left">

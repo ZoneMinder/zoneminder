@@ -130,6 +130,13 @@ function newWindow(Url,Name,Width,Height)
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="rename">
 <input type="hidden" name="eid" value="<?= $eid ?>">
+<?= $filter_fields ?>
+<input type="hidden" name="sort_field" value="<?= $sort_field ?>">
+<input type="hidden" name="sort_asc" value="<?= $sort_asc ?>">
+<input type="hidden" name="limit" value="<?= $limit ?>">
+<input type="hidden" name="rate" value="<?= $rate ?>">
+<input type="hidden" name="scale" value="<?= $scale ?>">
+<input type="hidden" name="page" value="<?= $page ?>">
 <input type="text" size="16" name="event_name" value="<?= $event['Name'] ?>" class="form">
 <input type="submit" value="<?= $zmSlangRename ?>" class="form"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></form></td>
 <?php if ( 0 ) { ?>
@@ -149,6 +156,9 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
 <?= $filter_fields ?>
+<input type="hidden" name="sort_field" value="<?= $sort_field ?>">
+<input type="hidden" name="sort_asc" value="<?= $sort_asc ?>">
+<input type="hidden" name="limit" value="<?= $limit ?>">
 <?= $zmSlangRate ?>: <?= buildSelect( "rate", $rates, "document.view_form.submit();" ); ?>&nbsp;&nbsp;
 <?= $zmSlangScale ?>: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </form>
@@ -422,10 +432,10 @@ else
 ?>
 <tr>
 <td colspan="6"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr></table></td>
 </tr>
 </table>

@@ -56,7 +56,21 @@ if ( $filter_sql )
 $events_sql .= " order by $sort_column $sort_order";
 if ( $page )
 {
-	$events_sql .= " limit ".(($page-1)*EVENT_HEADER_LINES).", ".EVENT_HEADER_LINES;
+	$limit_start = (($page-1)*EVENT_HEADER_LINES);
+	if ( empty( $limit ) )
+	{
+		$limit_amount = EVENT_HEADER_LINES;
+	}
+	else
+	{
+		$limit_left = $limit - $limit_start;
+		$limit_amount = ($limit_left>EVENT_HEADER_LINES)?EVENT_HEADER_LINES:$limit_left;
+	}
+	$events_sql .= " limit $limit_start, $limit_amount";
+}
+elseif ( !empty( $limit ) )
+{
+	$events_sql .= " limit 0, $limit";
 }
 
 ?>
@@ -134,6 +148,10 @@ else
 		die( mysql_error() );
 	$row = mysql_fetch_assoc( $result );
 	$n_events = $row['EventCount'];
+	if ( !empty($limit) && $n_events > $limit )
+	{
+		$n_events = $limit;
+	}
 ?>
 </script>
 </head>
@@ -142,7 +160,10 @@ else
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="">
 <input type="hidden" name="page" value="<?= $page ?>">
-<?php if ( $filter_fields ) echo $filter_fields ?>
+<?= $filter_fields ?>
+<input type="hidden" name="sort_field" value="<?= $sort_field ?>">
+<input type="hidden" name="sort_asc" value="<?= $sort_asc ?>">
+<input type="hidden" name="limit" value="<?= $limit ?>">
 <center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
@@ -191,7 +212,7 @@ else
 				foreach ( $new_pages as $new_page )
 				{
 ?>
-<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter_query ?><?= $sort_query ?>"><?= $new_page ?></a>&nbsp;
+<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $new_page ?></a>&nbsp;
 <?php
 				}
 			}
@@ -219,20 +240,20 @@ else
 				foreach ( $new_pages as $new_page )
 				{
 ?>
-&nbsp;<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter_query ?><?= $sort_query ?>"><?= $new_page ?></a>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $new_page ?></a>
 <?php
 				}
 			}
 ?>
 </td>
-<td align="right" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=0<?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangViewAll ?></a></td>
+<td align="right" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=0<?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $zmSlangViewAll ?></a></td>
 <?php
 		}
 		else
 		{
 ?>
 <td align="center" class="text" width="60%">&nbsp;</td>
-<td align="center" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangViewPaged ?></a></td>
+<td align="center" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $zmSlangViewPaged ?></a></td>
 <?php
 		}
 	}
@@ -258,16 +279,16 @@ else
 		{
 ?>
 <tr align="center" bgcolor="#FFFFFF">
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>"><?= $zmSlangId ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Name&sort_asc=<?= $sort_field == 'Name'?!$sort_asc:0 ?>"><?= $zmSlangName ?><?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=MonitorName&sort_asc=<?= $sort_field == 'MonitorName'?!$sort_asc:0 ?>"><?= $zmSlangMonitor ?><?php if ( $sort_field == "MonitorName" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=StartTime&sort_asc=<?= $sort_field == 'StartTime'?!$sort_asc:0 ?>"><?= $zmSlangTime ?><?php if ( $sort_field == "StartTime" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Secs&sort_asc=<?= $sort_field == 'Secs'?!$sort_asc:0 ?>"><?= $zmSlangDuration ?><?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Frames&sort_asc=<?= $sort_field == 'Frames'?!$sort_asc:0 ?>"><?= $zmSlangFrames ?><?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=AlarmFrames&sort_asc=<?= $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>"><?= $zmSlangAlarmBrFrames ?><?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=TotScore&sort_asc=<?= $sort_field == 'TotScore'?!$sort_asc:0 ?>"><?= $zmSlangTotalBrScore ?><?php if ( $sort_field == "TotScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=AvgScore&sort_asc=<?= $sort_field == 'AvgScore'?!$sort_asc:0 ?>"><?= $zmSlangAvgBrScore ?><?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=MaxScore&sort_asc=<?= $sort_field == 'MaxScore'?!$sort_asc:0 ?>"><?= $zmSlangMaxBrScore ?><?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangId ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Name&sort_asc=<?= $sort_field == 'Name'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangName ?><?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=MonitorName&sort_asc=<?= $sort_field == 'MonitorName'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangMonitor ?><?php if ( $sort_field == "MonitorName" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=StartTime&sort_asc=<?= $sort_field == 'StartTime'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangTime ?><?php if ( $sort_field == "StartTime" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Secs&sort_asc=<?= $sort_field == 'Secs'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangDuration ?><?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Frames&sort_asc=<?= $sort_field == 'Frames'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangFrames ?><?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=AlarmFrames&sort_asc=<?= $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangAlarmBrFrames ?><?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=TotScore&sort_asc=<?= $sort_field == 'TotScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangTotalBrScore ?><?php if ( $sort_field == "TotScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=AvgScore&sort_asc=<?= $sort_field == 'AvgScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangAvgBrScore ?><?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=MaxScore&sort_asc=<?= $sort_field == 'MaxScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangMaxBrScore ?><?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text">Mark</td>
 </tr>
 <?php

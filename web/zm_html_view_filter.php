@@ -27,7 +27,7 @@ $select_name = "filter_name";
 $filter_names = array( ''=>'<?= $zmSlangChooseFilter ?>' );
 $result = mysql_query( "select * from Filters order by Name" );
 if ( !$result )
-die( mysql_error() );
+	die( mysql_error() );
 while ( $row = mysql_fetch_assoc( $result ) )
 {
 	$filter_names[$row['Name']] = $row['Name'];
@@ -74,6 +74,8 @@ $attr_types = array(
 	'AvgScore'    => $zmSlangAttrAvgScore,
 	'MaxScore'    => $zmSlangAttrMaxScore,
 	'Archived'    => $zmSlangAttrArchiveStatus,
+	'DiskPercent' => $zmSlangAttrDiskPercent,
+	'DiskBlocks'  => $zmSlangAttrDiskBlocks,
 );
 $op_types = array(
 	'='   => $zmSlangOpEq,
@@ -90,6 +92,26 @@ $op_types = array(
 $archive_types = array(
 	'0' => $zmSlangArchUnarchived,
 	'1' => $zmSlangArchArchived
+);
+$sort_fields = array(
+	'Id'          => $zmSlangAttrId,
+	'Name'        => $zmSlangAttrName,
+	'MonitorName' => $zmSlangAttrMonitorName,
+	'DateTime'    => $zmSlangAttrDateTime,
+	'Length'      => $zmSlangAttrDuration,
+	'Frames'      => $zmSlangAttrFrames,
+	'AlarmFrames' => $zmSlangAttrAlarmFrames,
+	'TotScore'    => $zmSlangAttrTotalScore,
+	'AvgScore'    => $zmSlangAttrAvgScore,
+	'MaxScore'    => $zmSlangAttrMaxScore,
+);
+if ( !$sort_field )
+{
+	$sort_field = "DateTime";
+}
+$sort_dirns = array(
+	'1' => $zmSlangSortAsc,
+	'0'  => $zmSlangSortDesc
 );
 
 ?>
@@ -214,7 +236,7 @@ window.focus();
 <td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <tr>
-<td colspan="5" class="text">&nbsp;</td>
+<td colspan="5" class="text"><hr width="100%"></td>
 </tr>
 <tr>
 <td colspan="5">
@@ -264,7 +286,15 @@ else
 </table>
 </td>
 </tr>
-<tr><td colspan="5" class="text">&nbsp;</td></tr>
+<tr>
+<td colspan="5" class="text"><hr width="100%"></td>
+</tr>
+<tr>
+<td colspan="5" class="text"><table width="100%" cellpadding="0" cellspacing="0"><tr><td class="text" align="left"><?= $zmSlangSortBy ?>&nbsp;<?= buildSelect( "sort_field", $sort_fields ); ?>&nbsp;<?= buildSelect( "sort_asc", $sort_dirns ); ?></td><td class="text" align="right"><?= $zmSlangLimitResultsPre ?> <input type="input" size="6" name="limit" value="<?= $limit ?>" class="form"> <?= $zmSlangLimitResultsPost ?></td></tr></table></td>
+</tr>
+<tr>
+<td colspan="5" class="text"><hr width="100%"></td>
+</tr>
 <tr><td colspan="5" align="right"><input type="button" value="Reset" class="form" onClick="submitToFilter( document.filter_form, 1 );">&nbsp;&nbsp;<input type="button" value="Submit" class="form" onClick="if ( validateForm( document.filter_form ) ) submitToEvents( document.filter_form, 1 );"></td></tr>
 </table></center>
 </form>

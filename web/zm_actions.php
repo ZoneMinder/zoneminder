@@ -89,6 +89,9 @@ if ( isset($action) )
 				{
 					$filter_parms[] = "$key=$value";
 				}
+				$filter_parms[] = "sort_field=$sort_field";
+				$filter_parms[] = "sort_asc=$sort_asc";
+				$filter_parms[] = "limit=$limit";
 				$filter_query_string = join( '&', $filter_parms );
 				$sql = "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoDelete = '$auto_delete', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute'";
 				$result = mysql_query( $sql );

@@ -486,125 +486,132 @@ function parseFilter()
 	{
 		$filter_query .= "&trms=$trms";
 		$filter_fields .= '<input type="hidden" name="trms" value="'.$trms.'">'."\n";
-	}
-	for ( $i = 1; $i <= $trms; $i++ )
-	{
-		$conjunction_name = "cnj$i";
-		$obracket_name = "obr$i";
-		$cbracket_name = "cbr$i";
-		$attr_name = "attr$i";
-		$op_name = "op$i";
-		$value_name = "val$i";
 
-		global $$conjunction_name, $$obracket_name, $$cbracket_name, $$attr_name, $$op_name, $$value_name;
+		for ( $i = 1; $i <= $trms; $i++ )
+		{
+			$conjunction_name = "cnj$i";
+			$obracket_name = "obr$i";
+			$cbracket_name = "cbr$i";
+			$attr_name = "attr$i";
+			$op_name = "op$i";
+			$value_name = "val$i";
 
-		if ( isset($$conjunction_name) )
-		{
-			$filter_query .= "&$conjunction_name=".$$conjunction_name;
-			$filter_sql .= " ".$$conjunction_name." ";
-			$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'">'."\n";
-		}
-		if ( isset($$obracket_name) )
-		{
-			$filter_query .= "&$obracket_name=".$$obracket_name;
-			$filter_sql .= str_repeat( "(", $$obracket_name );
-			$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'">'."\n";
-		}
-		if ( isset($$attr_name) )
-		{
-			$filter_query .= "&$attr_name=".$$attr_name;
-			$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'">'."\n";
-			switch ( $$attr_name )
+			global $$conjunction_name, $$obracket_name, $$cbracket_name, $$attr_name, $$op_name, $$value_name;
+
+			if ( isset($$conjunction_name) )
 			{
-				case 'MonitorName':
-					$filter_sql .= 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
-					break;
-				case 'DateTime':
-					$filter_sql .= "E.StartTime";
-					break;
-				case 'Date':
-					$filter_sql .= "to_days( E.StartTime )";
-					break;
-				case 'Time':
-					$filter_sql .= "extract( hour_second from E.StartTime )";
-					break;
-				case 'Weekday':
-					$filter_sql .= "weekday( E.StartTime )";
-					break;
-				case 'MonitorId':
-				case 'Length':
-				case 'Frames':
-				case 'AlarmFrames':
-				case 'TotScore':
-				case 'AvgScore':
-				case 'MaxScore':
-					$filter_sql .= "E.".$$attr_name;
-					break;
-				case 'Archived':
-					$filter_sql .= "E.Archived = ".$$value_name;
-					break;
+				$filter_query .= "&$conjunction_name=".$$conjunction_name;
+				$filter_sql .= " ".$$conjunction_name." ";
+				$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'">'."\n";
 			}
-			$value_list = array();
-			foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $$value_name ) ) as $value )
+			if ( isset($$obracket_name) )
 			{
+				$filter_query .= "&$obracket_name=".$$obracket_name;
+				$filter_sql .= str_repeat( "(", $$obracket_name );
+				$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'">'."\n";
+			}
+			if ( isset($$attr_name) )
+			{
+				$filter_query .= "&$attr_name=".$$attr_name;
+				$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'">'."\n";
 				switch ( $$attr_name )
 				{
 					case 'MonitorName':
-						$value = "'$value'";
+						$filter_sql .= 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
 						break;
 					case 'DateTime':
-						$value = "'".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."'";
+						$filter_sql .= "E.StartTime";
 						break;
 					case 'Date':
-						$value = "to_days( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+						$filter_sql .= "to_days( E.StartTime )";
 						break;
 					case 'Time':
-						$value = "extract( hour_second from '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+						$filter_sql .= "extract( hour_second from E.StartTime )";
 						break;
 					case 'Weekday':
-						$value = "weekday( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+						$filter_sql .= "weekday( E.StartTime )";
+						break;
+					case 'MonitorId':
+					case 'Length':
+					case 'Frames':
+					case 'AlarmFrames':
+					case 'TotScore':
+					case 'AvgScore':
+					case 'MaxScore':
+						$filter_sql .= "E.".$$attr_name;
+						break;
+					case 'Archived':
+						$filter_sql .= "E.Archived = ".$$value_name;
+						break;
+					case 'DiskPercent':
+						$filter_sql .= getDiskPercent();
+						break;
+					case 'DiskBlocks':
+						$filter_sql .= getDiskBlocks();
 						break;
 				}
-				$value_list[] = $value;
-			}
+				$value_list = array();
+				foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $$value_name ) ) as $value )
+				{
+					switch ( $$attr_name )
+					{
+						case 'MonitorName':
+							$value = "'$value'";
+							break;
+						case 'DateTime':
+							$value = "'".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."'";
+							break;
+						case 'Date':
+							$value = "to_days( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							break;
+						case 'Time':
+							$value = "extract( hour_second from '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							break;
+						case 'Weekday':
+							$value = "weekday( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							break;
+					}
+					$value_list[] = $value;
+				}
 
-			switch ( $$op_name )
+				switch ( $$op_name )
+				{
+					case '=' :
+					case '!=' :
+					case '>=' :
+					case '>' :
+					case '<' :
+					case '<=' :
+						$filter_sql .= " ".$$op_name." $value";
+						break;
+					case '=~' :
+						$filter_sql .= " regexp $value";
+						break;
+					case '!~' :
+						$filter_sql .= " not regexp $value";
+						break;
+					case '=[]' :
+						$filter_sql .= " in (".join( ",", $value_list ).")";
+						break;
+					case '![]' :
+						$filter_sql .= " not in (".join( ",", $value_list ).")";
+						break;
+				}
+
+				$filter_query .= "&$op_name=".urlencode($$op_name);
+				$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
+				$filter_query .= "&$value_name=".urlencode($$value_name);
+				$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'">'."\n";
+			}
+			if ( isset($$cbracket_name) )
 			{
-				case '=' :
-				case '!=' :
-				case '>=' :
-				case '>' :
-				case '<' :
-				case '<=' :
-					$filter_sql .= " ".$$op_name." $value";
-					break;
-				case '=~' :
-					$filter_sql .= " regexp $value";
-					break;
-				case '!~' :
-					$filter_sql .= " not regexp $value";
-					break;
-				case '=[]' :
-					$filter_sql .= " in (".join( ",", $value_list ).")";
-					break;
-				case '![]' :
-					$filter_sql .= " not in (".join( ",", $value_list ).")";
-					break;
+				$filter_query .= "&$cbracket_name=".$$cbracket_name;
+				$filter_sql .= str_repeat( ")", $$cbracket_name );
+				$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'">'."\n";
 			}
-
-			$filter_query .= "&$op_name=".urlencode($$op_name);
-			$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
-			$filter_query .= "&$value_name=".urlencode($$value_name);
-			$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'">'."\n";
 		}
-		if ( isset($$cbracket_name) )
-		{
-			$filter_query .= "&$cbracket_name=".$$cbracket_name;
-			$filter_sql .= str_repeat( ")", $$cbracket_name );
-			$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'">'."\n";
-		}
+		$filter_sql = " and ( $filter_sql )";
 	}
-	$filter_sql = " and ( $filter_sql )";
 }
 
 function getLoad()
@@ -616,11 +623,20 @@ function getLoad()
 	return( $load );
 }
 
-function getSpace()
+function getDiskPercent()
 {
 	$df = shell_exec( 'df '.ZM_DIR_EVENTS );
-	$load = '';
-	if ( preg_match( '/\s(\d+%)/ms', $df, $matches ) )
+	$space = -1;
+	if ( preg_match( '/\s(\d+)%/ms', $df, $matches ) )
+		$space = $matches[1];
+	return( $space );
+}
+
+function getDiskBlocks()
+{
+	$df = shell_exec( 'df '.ZM_DIR_EVENTS );
+	$space = -1;
+	if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
 		$space = $matches[1];
 	return( $space );
 }

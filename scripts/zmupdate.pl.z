@@ -149,6 +149,12 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 		my $res = $sth->execute( $curr_version ) or die( "Can't execute: ".$sth->errstr() );
 	}
 
+	my $lv_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
+	my $lv_sth = $dbh->prepare_cached( $lv_sql ) or die( "Can't prepare '$lv_sql': ".$dbh->errstr() );
+
+	my $lc_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
+	my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
+				}
 	while( 1 )
 	{
 		my $now = time();
@@ -171,16 +177,8 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 
 				print( "Got version: '".$last_version."'\n" );
 
-				{
-				my $sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
-				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				my $res = $sth->execute( $last_version ) or die( "Can't execute: ".$sth->errstr() );
-				}
-				{
-				my $sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
-				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				my $res = $sth->execute( $last_check ) or die( "Can't execute: ".$sth->errstr() );
-				}
+				my $lv_res = $lv_sth->execute( $last_version ) or die( "Can't execute: ".$lv_sth->errstr() );
+				my $lc_res = $lc_sth->execute( $last_check ) or die( "Can't execute: ".$lc_sth->errstr() );
 			}
 			else
 			{

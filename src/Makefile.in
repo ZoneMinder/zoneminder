@@ -11,10 +11,6 @@
 # PARTICULAR PURPOSE.
 
 
-# IMPORTANT: Set these to your web server user and group
-WEBUSR = apache
-WEBGRP = apache
-
 SHELL = @SHELL@
 
 srcdir = @srcdir@
@@ -52,7 +48,7 @@ AUTOHEADER = @AUTOHEADER@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@ $(AM_INSTALL_PROGRAM_FLAGS)
 INSTALL_DATA = @INSTALL_DATA@
-INSTALL_SCRIPT = @INSTALL_SCRIPT@ -o $(WEBUSR) -g $(WEBGRP)
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
 transform = @program_transform_name@
 
 NORMAL_INSTALL = :
@@ -76,9 +72,14 @@ AUTOMAKE_OPTIONS = gnu
 LDADD = @MYSQL_LIBS@
 CPPFLAGS = @MYSQL_CFLAGS@
 
+# You need to set this to your CGI directory
 cgidir = /var/www/cgi-bin
-bin_PROGRAMS = zmc zma zmu
+# And these to the user and group of your webserver
+webuser = apache
+webgroup = apache
+
 cgi_PROGRAMS = zms
+bin_PROGRAMS = zmc zma zmu
 
 zm_SOURCES = zm.cpp zmdbg.c jmemdst.c
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
@@ -186,8 +187,8 @@ install-cgiPROGRAMS: $(cgi_PROGRAMS)
 	$(mkinstalldirs) $(DESTDIR)$(cgidir)
 	@list='$(cgi_PROGRAMS)'; for p in $$list; do \
 	  if test -f $$p; then \
-	    echo "  $(INSTALL_SCRIPT) $$p $(DESTDIR)$(cgidir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
-	     $(INSTALL_SCRIPT) $$p $(DESTDIR)$(cgidir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
+	    echo "  $(INSTALL_PROGRAM) $$p $(DESTDIR)$(cgidir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
+	     $(INSTALL_PROGRAM) $$p $(DESTDIR)$(cgidir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 	  else :; fi; \
 	done
 
@@ -339,7 +340,7 @@ check-am: all-am
 check: check-am
 installcheck-am:
 installcheck: installcheck-am
-install-exec-am: install-binPROGRAMS
+install-exec-am: install-binPROGRAMS install-exec-local
 install-exec: install-exec-am
 
 install-data-am: install-cgiPROGRAMS
@@ -401,12 +402,18 @@ mostlyclean-compile distclean-compile clean-compile \
 maintainer-clean-compile tags mostlyclean-tags distclean-tags \
 clean-tags maintainer-clean-tags distdir mostlyclean-depend \
 distclean-depend clean-depend maintainer-clean-depend info-am info \
-dvi-am dvi check check-am installcheck-am installcheck install-exec-am \
-install-exec install-data-am install-data install-am install \
-uninstall-am uninstall all-redirect all-am all installdirs \
-mostlyclean-generic distclean-generic clean-generic \
-maintainer-clean-generic clean mostlyclean distclean maintainer-clean
+dvi-am dvi check check-am installcheck-am installcheck \
+install-exec-local install-exec-am install-exec install-data-am \
+install-data install-am install uninstall-am uninstall all-redirect \
+all-am all installdirs mostlyclean-generic distclean-generic \
+clean-generic maintainer-clean-generic clean mostlyclean distclean \
+maintainer-clean
 
+
+# Yes, you are correct. This is a HACK!
+install-exec-local:
+	( cd @bindir@; mv $(cgi_PROGRAMS) $(cgidir) )
+	( cd $(cgidir); chown $(webuser):$(webgroup) $(cgi_PROGRAMS) )
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -85,6 +85,7 @@ $frames_per_page = ZM_WEB_FRAMES_PER_LINE * ZM_WEB_FRAME_LINES;
 $paged = $event['Frames'] > $frames_per_page;
 
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <title>ZM - <?= $zmSlangEvent ?> - <?= $event['Name'] ?></title>

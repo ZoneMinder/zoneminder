@@ -29,6 +29,7 @@ if ( !$result )
 $monitor = mysql_fetch_assoc( $result );
 
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <title>ZM - <?= $zmSlangFunction ?> - <?= $monitor['Name'] ?></title>

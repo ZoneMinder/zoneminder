@@ -38,6 +38,7 @@ if ( ZM_DYN_CURR_VERSION != ZM_DYN_LAST_VERSION )
 	) );
 }
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <title>ZM - <?= $zmSlangVersion ?></title>

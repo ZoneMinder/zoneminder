@@ -38,6 +38,7 @@ $monitor['Hue'] = $hue;
 $monitor['Colour'] = $colour;
 
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangSettings ?></title>

@@ -95,6 +95,7 @@ $remote_palettes = array( $zmSlang8BitGrey=>1, $zmSlang24BitColour=>4 );
 $orientations = array( $zmSlangNormal=>0, $zmSlangRotateRight=>90, $zmSlangInverted=>180, $zmSlangRotateLeft=>270 );
 
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <title>ZM - <?= $zmSlangMonitor ?> <?= $monitor['Name'] ?></title>

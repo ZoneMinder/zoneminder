@@ -67,6 +67,7 @@ $row_spec = join( ',', $heights );
 $col_spec = join( ',', $widths );
 
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
 <html>
 <head>
 <title>ZM - <?= $zmSlangMontage ?></title>

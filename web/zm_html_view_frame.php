@@ -62,6 +62,7 @@ $alarm_frame = $frame['Type']=='Alarm';
 $img_class = $alarm_frame?"alarm":"normal";
 
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <title>ZM - <?= $zmSlangFrame ?> <?= $eid."-".$fid ?></title>

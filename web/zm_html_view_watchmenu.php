@@ -41,6 +41,7 @@ if ( !isset( $scale ) )
 	$scale = ZM_WEB_DEFAULT_SCALE;
 
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">

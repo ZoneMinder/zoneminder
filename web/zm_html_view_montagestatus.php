@@ -62,6 +62,7 @@ header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");			  // HTTP/1.0
 
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">

@@ -58,6 +58,7 @@ header("Pragma: no-cache");			  // HTTP/1.0
 $image_src = ZM_PATH_ZMS."?mode=single&monitor=".$monitor['Id']."&scale=".$scale;
 
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangFeed ?></title>

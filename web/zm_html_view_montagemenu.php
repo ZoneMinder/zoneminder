@@ -39,6 +39,7 @@ if ( $mid )
 	$monitor = mysql_fetch_assoc( $result );
 }
 ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">

@@ -25,6 +25,7 @@
 
 bool Zone::initialised = false;
 bool Zone::record_diag_images;
+bool Zone::create_analysis_images;
 
 void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs )
 {
@@ -335,7 +336,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					}
 				}
 			}
-			if ( (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
+			if ( record_diag_images )
 			{
 				static char diag_path[PATH_MAX] = "";
 				if ( !diag_path[0] )
@@ -434,11 +435,16 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 		alarm_box = Box( Coord( alarm_lo_x, alarm_lo_y ), Coord( alarm_hi_x, alarm_hi_y ) );
 
-		if ( (type < PRECLUSIVE) && check_method >= BLOBS && (bool)config.Item( ZM_CREATE_ANALYSIS_IMAGES ) )
+		if ( (type < PRECLUSIVE) && check_method >= BLOBS && create_analysis_images )
 		{
 			image = diff_image->HighlightEdges( alarm_rgb, &limits );
 			// Only need to delete this when 'image' becomes detached and points somewhere else
 			delete diff_image;
+		}
+		else
+		{
+			delete image;
+			image = 0;
 		}
 
 		Debug( 1, ( "%s: Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score ));

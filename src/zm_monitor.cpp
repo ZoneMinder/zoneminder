@@ -703,7 +703,7 @@ bool Monitor::Analyse()
 		}
 		if ( score )
 		{
-			if ( state == IDLE )
+			if ( state == IDLE || state == TAPE )
 			{
 				Info(( "%s: %03d - Gone into alarm state", name, image_count ));
 				if ( function != MOCORD )
@@ -757,19 +757,31 @@ bool Monitor::Analyse()
 			{
 				if ( create_analysis_images )
 				{
+					bool got_anal_image = false;
 					Image alarm_image( *snap_image );
 					for( int i = 0; i < n_zones; i++ )
 					{
 						if ( zones[i]->Alarmed() )
 						{
-							alarm_image.Overlay( zones[i]->AlarmImage() );
+							if ( zones[i]->AlarmImage() )
+							{
+								alarm_image.Overlay( *(zones[i]->AlarmImage()) );
+								got_anal_image = true;
+							}
 							if ( record_event_stats )
 							{
 								zones[i]->RecordStats( event );
 							}
 						}
 					}
-					event->AddFrame( snap_image, *timestamp, score, &alarm_image );
+					if ( got_anal_image )
+					{
+						event->AddFrame( snap_image, *timestamp, score, &alarm_image );
+					}
+					else
+					{
+						event->AddFrame( snap_image, *timestamp, score );
+					}
 				}
 				else
 				{

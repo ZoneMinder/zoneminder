@@ -578,7 +578,9 @@ function closeWindow()
 			die( mysql_error() );
 		if ( !($row = mysql_fetch_assoc( $result )) )
 		{
+			$row = array();
 			$row[Username] = "NewUser";
+			$row[Enabled] = 1;
 		}
 ?>
 <html>

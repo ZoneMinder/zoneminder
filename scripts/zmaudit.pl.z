@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl -wT
 #
 # ==========================================================================
 #
@@ -39,6 +39,7 @@ use constant DB_NAME => "zm";
 use constant DB_USER => "zmadmin";
 use constant DB_PASS => "zmadminzm";
 use constant EVENT_PATH => "/data/zm/events";
+use constant AUDIT_LOG_FILE => '/tmp/zmaudit.log';
 
 # ==========================================================================
 #
@@ -88,6 +89,7 @@ sub confirm
 		if ( $char eq 'q' )
 		{
 			print( "\n" );
+			ReadMode( 'restore' );
 			exit( 0 );
 		}
 		if ( ord($char) == 10 )
@@ -121,8 +123,19 @@ if ( $report && $yes )
 
 my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
 chdir( EVENT_PATH );
-ReadMode( 'cbreak' );
-
+if ( !$yes && !$report )
+{
+	ReadMode( 'cbreak' );
+}
+if ( !$delay ) # Background mode
+{
+	open( LOG, ">>".AUDIT_LOG_FILE ) or die( "Can't open log file: $!" );
+	open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
+	select( STDOUT ); $| = 1;
+	open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
+	select( STDERR ); $| = 1;
+	select( LOG ); $| = 1;
+}
 do
 {
 	my $fs_monitors;
@@ -130,14 +143,13 @@ do
 	{
 		print( "Found filesystem monitor '$monitor'" );
 		my $fs_events = $fs_monitors->{$monitor} = {};
-		if ( 1 ) {
-		chdir( $monitor );
+		( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
+		chdir( $monitor_dir );
 		foreach my $event ( <*> )
 		{
 			$fs_events->{$event} = !undef;
 		}
 		chdir( '..' );
-		}
 		print( ", got ".int(keys(%$fs_events))." events\n" );
 	}
 
@@ -176,7 +188,6 @@ do
 						{
 							my $command = "rm -rf ".EVENT_PATH."/$fs_monitor/$fs_event";
 							qx( $command );
-							sleep( $delay ) if ( $delay );
 						}
 					}
 				}
@@ -189,7 +200,6 @@ do
 			{
 				my $command = "rm -rf ".EVENT_PATH."/$fs_monitor";
 				qx( $command );
-				sleep( $delay ) if ( $delay );
 			}
 		}
 	}
@@ -218,7 +228,6 @@ do
 							my $res = $sth4->execute( $db_event ) or die( "Can't execute: ".$sth4->errstr() );
 							$res = $sth5->execute( $db_event ) or die( "Can't execute: ".$sth5->errstr() );
 							$res = $sth6->execute( $db_event ) or die( "Can't execute: ".$sth5->errstr() );
-							sleep( $delay ) if ( $delay );
 						}
 					}
 				}
@@ -231,7 +240,6 @@ do
 			{
 				# We don't actually do this in case it's new
 				#my $res = $sth3->execute( $db_monitor ) or die( "Can't execute: ".$sth3->errstr() );
-				#sleep( $delay ) if ( $delay );
 			}
 		}
 	}
@@ -259,5 +267,9 @@ do
 			$res = $sth6->execute( $stat->{EventId} ) or die( "Can't execute: ".$sth8->errstr() );
 		}
 	}
+	sleep( $delay ) if ( $delay );
 } while( $delay );
-ReadMode( 'restore' );
+if ( !$yes && !$report )
+{
+	ReadMode( 'restore' );
+}

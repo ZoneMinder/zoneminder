@@ -524,7 +524,7 @@ elsif ( $command eq "zoom_con_wide" )
 }
 elsif ( $command eq "zoom_stop" )
 {
-	stop();
+	setZoomSpeed( 0 );
 }
 elsif ( $command eq "focus_con_near" )
 {
@@ -536,7 +536,7 @@ elsif ( $command eq "focus_con_far" )
 }
 elsif ( $command eq "focus_stop" )
 {
-	stop();
+	setFocusSpeed( 0 );
 }
 elsif ( $command eq "focus_auto" )
 {

@@ -234,21 +234,21 @@ int main( int argc, char *argv[] )
 			}
 			if ( function & TIME )
 			{
-				time_t timestamp = monitor->GetTimestamp( image_idx );
+				struct timeval timestamp = monitor->GetTimestamp( image_idx );
 				if ( verbose )
 				{
 					char timestamp_str[64] = "None";
-					if ( timestamp )
-						strftime( timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime( &timestamp ) );
+					if ( timestamp.tv_sec )
+						strftime( timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime( &timestamp.tv_sec ) );
 					if ( image_idx == -1 )
-						printf( "Time of last image capture: %s\n", timestamp_str );
+						printf( "Time of last image capture: %s.%02d\n", timestamp_str, timestamp.tv_usec/10000 );
 					else
-						printf( "Time of image %d capture: %s\n", image_idx, timestamp_str );
+						printf( "Time of image %d capture: %s.%02d\n", image_idx, timestamp_str, timestamp.tv_usec/10000 );
 				}
 				else
 				{
 					if ( have_output ) printf( "%c", separator );
-					printf( "%d", timestamp );
+					printf( "%d.%02d", timestamp.tv_sec, timestamp.tv_usec/10000 );
 					have_output = true;
 				}
 			}

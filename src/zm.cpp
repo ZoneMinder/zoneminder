@@ -1066,7 +1066,7 @@ void Image::Annotate( const char *text, const Coord &coord )
 	}
 }
 
-void Image::Timestamp( const char *label, time_t when, const Coord &coord )
+void Image::Timestamp( const char *label, const time_t when, const Coord &coord )
 {
 	char time_text[64];
 	strftime( time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime( &when ) );
@@ -1503,12 +1503,12 @@ int Camera::m_videohandle;
 unsigned char *Camera::m_buffer=0;
 int Camera::camera_count = 0;
 
-Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
+Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
 {
 	static char sql[256];
 	static char start_time_str[32];
 
-	strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", localtime( &start_time ) );
+	strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", localtime( &start_time.tv_sec ) );
 	sprintf( sql, "insert into Events set MonitorId=%d, Name='Event', StartTime='%s'", monitor->Id(), start_time_str );
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1518,7 +1518,7 @@ Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), 
 	id = mysql_insert_id( &dbconn );
 	start_frame_id = 0;
 	end_frame_id = 0;
-	end_time = 0;
+	//end_time = 0;
 	frames = 0;
 	alarm_frames = 0;
 	tot_score = 0;
@@ -1542,8 +1542,12 @@ Event::~Event()
 	static char sql[256];
 	static char end_time_str[32];
 
-	strftime( end_time_str, sizeof(end_time_str), "%Y-%m-%d %H:%M:%S", localtime( &end_time ) );
-	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %d, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, (end_time-start_time), frames, alarm_frames, tot_score, (int)(tot_score/alarm_frames), max_score, id );
+	struct DeltaTimeval delta_time;
+	DELTA_TIMEVAL( delta_time, end_time, start_time );
+
+	strftime( end_time_str, sizeof(end_time_str), "%Y-%m-%d %H:%M:%S", localtime( &end_time.tv_sec ) );
+
+	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %s%d.%02d, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000, frames, alarm_frames, tot_score, (int)(tot_score/alarm_frames), max_score, id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't update event: %s\n", mysql_error( &dbconn ) ));
@@ -1551,7 +1555,7 @@ Event::~Event()
 	}
 }
 
-void Event::AddFrame( time_t timestamp, const Image *image, const Image *alarm_image, unsigned int score )
+void Event::AddFrame( struct timeval timestamp, const Image *image, const Image *alarm_image, unsigned int score )
 {
 	frames++;
 
@@ -1559,8 +1563,11 @@ void Event::AddFrame( time_t timestamp, const Image *image, const Image *alarm_i
 	sprintf( event_file, "%s/capture-%03d.jpg", path, frames );
 	image->WriteJpeg( event_file );
 
+	struct DeltaTimeval delta_time;
+	DELTA_TIMEVAL( delta_time, timestamp, start_time );
+
 	static char sql[256];
-	sprintf( sql, "insert into Frames set EventId=%d, FrameId=%d, AlarmFrame=%d, ImagePath='%s', TimeStamp=from_unixtime(%d), Score=%d", id, frames, alarm_image!=0, event_file, timestamp, score );
+	sprintf( sql, "insert into Frames set EventId=%d, FrameId=%d, AlarmFrame=%d, ImagePath='%s', Delta=%s%d.%02d, Score=%d", id, frames, alarm_image!=0, event_file, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000, score );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert frame: %s\n", mysql_error( &dbconn ) ));
@@ -1568,11 +1575,11 @@ void Event::AddFrame( time_t timestamp, const Image *image, const Image *alarm_i
 	}
 	end_frame_id = mysql_insert_id( &dbconn );
 	if ( !start_frame_id ) start_frame_id = end_frame_id;
-	end_time = timestamp;
-	if ( !start_time ) start_time = end_time;
 
 	if ( alarm_image )
 	{
+		end_time = timestamp;
+
 		alarm_frames++;
 		sprintf( event_file, "%s/analyse-%03d.jpg", path, frames );
 		alarm_image->WriteJpeg( event_file );
@@ -1580,6 +1587,7 @@ void Event::AddFrame( time_t timestamp, const Image *image, const Image *alarm_i
 		if ( score > max_score )
 			max_score = score;
 	}
+	//if ( !start_time ) start_time = end_time;
 }
 
 void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, FILE *fd )
@@ -1674,8 +1682,8 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 		shared_images->last_event = 0;
 		shared_images->forced_alarm = false;
 	}
-	shared_images->timestamps = (time_t *)(shm_ptr+sizeof(SharedImages));
-	shared_images->images = (unsigned char *)(shm_ptr+sizeof(SharedImages)+(image_buffer_count*sizeof(time_t)));
+	shared_images->timestamps = (struct timeval *)(shm_ptr+sizeof(SharedImages));
+	shared_images->images = (unsigned char *)(shm_ptr+sizeof(SharedImages)+(image_buffer_count*sizeof(struct timeval)));
 
 	image_buffer = new Snapshot[image_buffer_count];
 	for ( int i = 0; i < image_buffer_count; i++ )
@@ -1786,7 +1794,7 @@ int Monitor::GetImage( int index ) const
 	return( 0 );
 }
 
-time_t Monitor::GetTimestamp( int index ) const
+struct timeval Monitor::GetTimestamp( int index ) const
 {
 	if ( index < 0 || index > image_buffer_count )
 	{
@@ -1817,11 +1825,11 @@ double Monitor::GetFPS() const
 	int index2 = (index1+1)%image_buffer_count;
 
 	//Snapshot *snap1 = &image_buffer[index1];
-	//time_t time1 = *(snap1->timestamp);
+	//time_t time1 = snap1->timestamp->tv_sec;
 	time_t time1 = time( 0 );
 
 	Snapshot *snap2 = &image_buffer[index2];
-	time_t time2 = *(snap2->timestamp);
+	time_t time2 = snap2->timestamp->tv_sec;
 
 	double fps = double(image_buffer_count)/(time1-time2);
 
@@ -1915,18 +1923,19 @@ bool Monitor::Analyse()
 		return( false );
 	}
 
-	time_t now = time( 0 );
+	struct timeval now;
+	gettimeofday( &now, &dummy_tz );
 
 	if ( image_count && !(image_count%fps_report_interval) )
 	{
-		fps = double(fps_report_interval)/(now-last_fps_time);
+		fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
 		Info(( "%s: %d - Processing at %.2f fps\n", name, image_count, fps ));
-		last_fps_time = now;
+		last_fps_time = now.tv_sec;
 	}
 
 	int index = shared_images->last_write_index%image_buffer_count;
 	Snapshot *snap = &image_buffer[index];
-	time_t timestamp = *(snap->timestamp);
+	struct timeval *timestamp = snap->timestamp;
 	Image *image = snap->image;
 
 	unsigned int score = 0;
@@ -1941,7 +1950,7 @@ bool Monitor::Analyse()
 		{
 			if ( state == IDLE )
 			{
-				event = new Event( this, timestamp );
+				event = new Event( this, *timestamp );
 
 				Info(( "%s: %03d - Gone into alarm state\n", name, image_count ));
 				int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;

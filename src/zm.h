@@ -39,6 +39,8 @@
 
 #include "font_6x11.h"
 
+static struct timezone dummy_tz; // To avoid declaring pointless one each time we use gettimeofday
+
 extern "C"
 {
 #include <jpeglib.h>
@@ -80,6 +82,24 @@ typedef unsigned int Rgb;
 #define RGB_RED_VAL(v)		(((v)>>16)&0xff)
 #define RGB_GREEN_VAL(v)	(((v)>>8)&0xff)
 #define RGB_BLUE_VAL(v)		((v)&0xff)
+
+struct DeltaTimeval
+{
+	bool positive;
+	long tv_sec;
+	long tv_usec;
+};
+
+// This obviously wouldn't work for massive deltas but as it's mostly
+// for frames it will only usually be a fraction of a second or so
+#define DELTA_TIMEVAL( result, time1, time2 ) \
+{ \
+	int delta_usec = ((time1.tv_sec-time2.tv_sec)*1000000)+(time1.tv_usec-time2.tv_usec); \
+	result.positive = (delta_usec>=0); \
+	delta_usec = abs(delta_usec); \
+	result.tv_sec = delta_usec/1000000; \
+	result.tv_usec = delta_usec%1000000; \
+}
 
 extern MYSQL dbconn;
 
@@ -412,7 +432,7 @@ public:
 	unsigned int Compare( const Image &image, int n_zones, Zone *zones[] ) const;
 	void Annotate( const char *text, const Coord &coord, const Rgb colour );
 	void Annotate( const char *text, const Coord &coord );
-	void Timestamp( const char *label, time_t when, const Coord &coord );
+	void Timestamp( const char *label, const time_t when, const Coord &coord );
 	void Colourise();
 	void DeColourise();
 };
@@ -532,8 +552,8 @@ friend class Monitor;
 protected:
 	int		id;
 	Monitor	*monitor;
-	time_t	start_time;
-	time_t	end_time;
+	struct timeval	start_time;
+	struct timeval	end_time;
 	int		start_frame_id;
 	int		end_frame_id;
 	int		frames;
@@ -543,14 +563,14 @@ protected:
 	char	path[PATH_MAX];
 
 public:
-	Event( Monitor *p_monitor, time_t p_start_time );
+	Event( Monitor *p_monitor, struct timeval p_start_time );
 	~Event();
 
 	int Id() const { return( id ); }
 	int Frames() const { return( frames ); }
 	int AlarmFrames() const { return( alarm_frames ); }
 
-	void AddFrame( time_t timestamp, const Image *image, const Image *alarm_frame=NULL, unsigned int score=0 );
+	void AddFrame( struct timeval timestamp, const Image *image, const Image *alarm_frame=NULL, unsigned int score=0 );
 
 	static void StreamEvent( const char *path, int event_id, unsigned long refresh=100, FILE *fd=stdout );
 };
@@ -599,7 +619,7 @@ protected:
 
 	typedef struct Snapshot
 	{
-		time_t	*timestamp;
+		struct timeval	*timestamp;
 		Image	*image;
 	};
 
@@ -612,7 +632,7 @@ protected:
 		int last_read_index;
 		int last_event;
 		bool forced_alarm;
-		time_t *timestamps;
+		struct timeval *timestamps;
 		unsigned char *images;
 	} SharedImages;
 
@@ -628,7 +648,7 @@ public:
 
 	State GetState() const;
 	int GetImage( int index=-1 ) const;
-	time_t GetTimestamp( int index=-1 ) const;
+	struct timeval GetTimestamp( int index=-1 ) const;
 	unsigned int GetLastReadIndex() const;
 	unsigned int GetLastWriteIndex() const;
 	unsigned int GetLastEvent() const;
@@ -667,7 +687,7 @@ public:
 		{
 			Error(( "Buffer overrun at index %d\n", index ));
 		}
-		*(image_buffer[index].timestamp) = now;
+		gettimeofday( image_buffer[index].timestamp, &dummy_tz );
 		memcpy( image_buffer[index].image->buffer, image.buffer, image.size );
 		//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
 

@@ -106,7 +106,7 @@ $jws = array(
 	'function' => array( 'w'=>248, 'h'=>72 ),
 	'events' => array( 'w'=>720, 'h'=>480 ),
 	'event' => array( 'w'=>420, 'h'=>500 ),
-	'filter' => array( 'w'=>520, 'h'=>250 ),
+	'filter' => array( 'w'=>560, 'h'=>250 ),
 	'filtersave' => array( 'w'=>520, 'h'=>180 ),
 	'zones' => array( 'w'=>72, 'h'=>232 ),
 	'zone' => array( 'w'=>360, 'h'=>480 ),

@@ -76,9 +76,6 @@ int zmGetDebugEnv()
 	char buffer[128];
 	char *env_ptr;
 
-	/* zm_dbg_level = 0; */
-	/* zm_dbg_log[0] = '\0'; */
-
 	env_ptr = getenv( "ZM_DBG_PRINT" );
 	if ( env_ptr == (char *)NULL )
 	{
@@ -213,7 +210,7 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 	    Error(("fopen() for %s, error = %s",zm_dbg_log,strerror(errno)));
 		return(ZM_DBG_ERROR);
 	}
-	Info(("Debug Level = %d, Debug Log = %s",zm_dbg_level,zm_dbg_log));
+	Info(( "Debug Level = %d, Debug Log = %s", zm_dbg_level,zm_dbg_log[0]?zm_dbg_log:"<none>" ));
 
 	{
 	struct sigaction action, old_action;

@@ -20,11 +20,14 @@
 #include <getopt.h>
 #include "zm.h"
 
-void Usage()
+void Usage( int status=-1 )
 {
-	fprintf( stderr, "zmu [-m monitor_id] [function]\n" );
+	fprintf( stderr, "zmu <-d device_no> [-v]\n" );
+	fprintf( stderr, "zmu [-m monitor_id] [-v] [function]\n" );
 	fprintf( stderr, "Options:\n" );
+	fprintf( stderr, "  -d, --device <device_no>       : Get the current video device settings for /dev/video<device_no>\n" );
 	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 1 if absent\n" );
+	fprintf( stderr, "  -v, --verbose                  : Produce more verbose output\n" );
 	fprintf( stderr, "  -s, --state                    : Output the current monitor state, 0 = idle, 1 = alarm, 2 = alert\n" );
 	fprintf( stderr, "  -i, --image [image_index]      : Write captured image to disk as <monitor_name>.jpg, last image captured\n" );
 	fprintf( stderr, "                                   or specified ring buffer index if given.\n" );
@@ -39,13 +42,15 @@ void Usage()
 	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm in monitor, required after being enabled with -a\n" );
 	fprintf( stderr, "  -h, --help - This screen\n" );
 
-	exit( 0 );
+	exit( status );
 }
 
 int main( int argc, char *argv[] )
 {
 	static struct option long_options[] = {
+		{"device", 1, 0, 'd'},
 		{"monitor", 1, 0, 'm'},
+		{"verbose", 0, 0, 'v'},
 		{"image", 2, 0, 'i'},
 		{"timestamp", 2, 0, 't'},
 		{"state", 0, 0, 's'},
@@ -60,7 +65,9 @@ int main( int argc, char *argv[] )
 		{0, 0, 0, 0}
 	};
 
-	int id = 1;
+	int dev_id = -1;
+	int mon_id = 1;
+	bool verbose = false;
 	typedef enum {
 		BOGUS=0x0000,
 		STATE=0x0001,
@@ -83,7 +90,7 @@ int main( int argc, char *argv[] )
 		int option_index = 0;
 		int opterr = 1;
 
-		int c = getopt_long (argc, argv, "m:srwie::t::fzach", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsrwie::t::fzach", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -91,8 +98,14 @@ int main( int argc, char *argv[] )
 
 		switch (c)
 		{
+			case 'd':
+				dev_id = atoi(optarg);
+				break;
 			case 'm':
-				id = atoi(optarg);
+				mon_id = atoi(optarg);
+				break;
+			case 'v':
+				verbose = true;
 				break;
 			case 's':
 				function = Function(function | STATE);
@@ -133,7 +146,7 @@ int main( int argc, char *argv[] )
 				function = Function(function | CANCEL);
 				break;
 			case 'h':
-				Usage();
+				Usage( 0 );
 				break;
 			case '?':
 				Usage();
@@ -148,12 +161,17 @@ int main( int argc, char *argv[] )
 	{
 		fprintf( stderr, "Extraneous options, " );
 		while (optind < argc)
-			printf ("%s ", argv[optind++]);
-		printf ("\n");
+			fprintf( stderr, "%s ", argv[optind++]);
+		fprintf( stderr, "\n");
 		Usage();
 	}
 
-	//printf( "Monitor %d, Function %d\n", id, function );
+	if ( dev_id >= 0 && function != BOGUS )
+	{
+		fprintf( stderr, "Error, -d option cannot be used with -m or related options\n" );
+		Usage();
+	}
+	//printf( "Monitor %d, Function %d\n", mon_id, function );
 
 	dbg_name = "zmu";
 	dbg_level = -1;
@@ -176,71 +194,143 @@ int main( int argc, char *argv[] )
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	Monitor *monitor = Monitor::Load( id );
-
-	if ( monitor )
+	if ( dev_id >= 0 )
 	{
-		char separator = ' ';
-		bool have_output = false;
-		if ( function & STATE )
+		char vid_string[1024] = "";
+		bool ok = Monitor::GetCurrentSettings( dev_id, vid_string, verbose );
+		printf( "%s", vid_string );
+		exit( ok?0:-1 );
+	}
+	else
+	{
+		Monitor *monitor = Monitor::Load( mon_id );
+
+		if ( monitor )
 		{
-			if ( have_output ) printf( "%c", separator );
-			printf( "%d", monitor->GetState() );
-			have_output = true;
+			if ( verbose )
+			{
+				printf( "Monitor %d(%s)\n", monitor->Id(), monitor->Name() );
+			}
+			char separator = ' ';
+			bool have_output = false;
+			if ( function & STATE )
+			{
+				Monitor::State state = monitor->GetState();
+				if ( verbose )
+					printf( "Current state: %s\n", state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle") );
+				else
+				{
+					if ( have_output ) printf( "%c", separator );
+					printf( "%d", state );
+					have_output = true;
+				}
+			}
+			if ( function & TIME )
+			{
+				time_t timestamp = monitor->GetTimestamp( image_idx );
+				if ( verbose )
+				{
+					char timestamp_str[64] = "None";
+					if ( timestamp )
+						strftime( timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime( &timestamp ) );
+					if ( image_idx == -1 )
+						printf( "Time of last image capture: %s\n", timestamp_str );
+					else
+						printf( "Time of image %d capture: %s\n", image_idx, timestamp_str );
+				}
+				else
+				{
+					if ( have_output ) printf( "%c", separator );
+					printf( "%d", timestamp );
+					have_output = true;
+				}
+			}
+			if ( function & READ_IDX )
+			{
+				if ( verbose )
+					printf( "Last read index: %d\n", monitor->GetLastReadIndex() );
+				else
+				{
+					if ( have_output ) printf( "%c", separator );
+					printf( "%d", monitor->GetLastReadIndex() );
+					have_output = true;
+				}
+			}
+			if ( function & WRITE_IDX )
+			{
+				if ( verbose )
+					printf( "Last write index: %d\n", monitor->GetLastWriteIndex() );
+				else
+				{
+					if ( have_output ) printf( "%c", separator );
+					printf( "%d", monitor->GetLastWriteIndex() );
+					have_output = true;
+				}
+			}
+			if ( function & EVENT )
+			{
+				if ( verbose )
+					printf( "Last event id: %d\n", monitor->GetLastEvent() );
+				else
+				{
+					if ( have_output ) printf( "%c", separator );
+					printf( "%d", monitor->GetLastEvent() );
+					have_output = true;
+				}
+			}
+			if ( function & FPS )
+			{
+				if ( verbose )
+					printf( "Current capture rate: %.2f frames per second\n", monitor->GetLastEvent() );
+				else
+				{
+					if ( have_output ) printf( "%c", separator );
+					printf( "%.2f", monitor->GetFPS() );
+					have_output = true;
+				}
+			}
+			if ( function & IMAGE )
+			{
+				if ( verbose )
+				{
+					if ( image_idx == -1 )
+						printf( "Dumping last image captured to %s.jpg\n", monitor->Name() );
+					else
+						printf( "Dumping buffer image %d to %s.jpg\n", image_idx, monitor->Name() );
+				}
+				monitor->GetImage( image_idx );
+			}
+			if ( function & ZONES )
+			{
+				if ( verbose )
+					printf( "Dumping zone image to %s-Zones.jpg\n", monitor->Name() );
+				monitor->ReloadZones();
+			}
+			if ( function & ALARM )
+			{
+				if ( verbose )
+					printf( "Forcing alarm\n" );
+				monitor->ForceAlarm();
+			}
+			if ( function & CANCEL )
+			{
+				if ( verbose )
+					printf( "Cancelling alarm\n" );
+				monitor->CancelAlarm();
+			}
+			if ( have_output )
+			{
+				printf( "\n" );
+			}
+			if ( !function )
+			{
+				Usage();
+			}
 		}
-		if ( function & TIME )
+		else
 		{
-			if ( have_output ) printf( "%c", separator );
-			printf( "%d", monitor->GetTimestamp( image_idx ) );
-			have_output = true;
-		}
-		if ( function & READ_IDX )
-		{
-			if ( have_output ) printf( "%c", separator );
-			printf( "%d", monitor->GetLastReadIndex() );
-			have_output = true;
-		}
-		if ( function & WRITE_IDX )
-		{
-			if ( have_output ) printf( "%c", separator );
-			printf( "%d", monitor->GetLastWriteIndex() );
-			have_output = true;
-		}
-		if ( function & EVENT )
-		{
-			if ( have_output ) printf( "%c", separator );
-			printf( "%d", monitor->GetLastEvent() );
-			have_output = true;
-		}
-		if ( function & FPS )
-		{
-			if ( have_output ) printf( "%c", separator );
-			printf( "%.2f", monitor->GetFPS() );
-			have_output = true;
-		}
-		if ( function & IMAGE )
-		{
-			monitor->GetImage( image_idx );
-		}
-		if ( function & ZONES )
-		{
-			monitor->ReloadZones();
-		}
-		if ( function & ALARM )
-		{
-			monitor->ForceAlarm();
-		}
-		if ( function & CANCEL )
-		{
-			monitor->CancelAlarm();
-		}
-		if ( have_output )
-		{
-			printf( "\n" );
-		}
-		if ( !function )
-		{
-			Usage();
+			fprintf( stderr, "Error, invalid monitor id %d", mon_id );
+			exit( -1 );
 		}
 	}
 	return( 0 );

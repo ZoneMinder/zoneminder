@@ -454,6 +454,7 @@ public:
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
 
+	static bool Camera::GetCurrentSettings( int device, char *output, bool verbose );
 	static void Initialise( int device, int channel, int format, int width, int height, int colours );
 	void Terminate();
 
@@ -555,6 +556,17 @@ public:
 
 class Monitor : public Camera
 {
+public:
+	typedef enum
+	{
+		NONE=1,
+		PASSIVE,
+		ACTIVE,
+		X10
+	} Function;
+
+	typedef enum { IDLE, ALARM, ALERT } State;
+
 protected:
 	// These are read from the DB and thereafter remain unchanged
 	char	label_format[64];	// The format of the timestamp on the images
@@ -567,13 +579,6 @@ protected:
 	int		fps_report_interval;// How many images should be captured/processed between reporting the current FPS
 	int		ref_blend_perc;		// Percentage of new image going into reference image.
 
-	typedef enum
-	{
-		NONE=1,
-		PASSIVE,
-		ACTIVE,
-		X10
-	} Function;
 	Function	function;
 	double	fps;
 	Image	image;
@@ -583,7 +588,6 @@ protected:
 	int		first_alarm_count;
 	int		last_alarm_count;
 	int		buffer_count;
-	typedef enum { IDLE, ALARM, ALERT } State;
 	State state;
 	int		n_zones;
 	Zone	**zones;

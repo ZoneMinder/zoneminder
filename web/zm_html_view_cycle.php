@@ -101,7 +101,7 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$nex
 if ( $mode == "stream" )
 {
 	$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&ttl=".REFRESH_CYCLE;
-	if ( isNetscape() )
+	if ( canStreamNative() )
 	{
 ?>
 <tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= $stream_src ?>" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></a></td></tr>

@@ -111,7 +111,7 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 if ( $mode == "stream" )
 {
 	$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&scale=$scale";
-	if ( isNetscape() )
+	if ( canStreamNative() )
 	{
 ?>
 <tr><td colspan="5" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></td></tr>

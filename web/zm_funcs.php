@@ -216,9 +216,19 @@ function isNetscape()
 	return( $browser == "mozilla" );
 }
 
+function canStreamNative()
+{
+	return( ZM_CAN_STREAM == "yes" || ( ZM_CAN_STREAM == "auto" && isNetscape() ) );
+}
+
+function canStreamApplet()
+{
+	return( (ZM_OPT_CAMBOZOLA && file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) );
+}
+
 function canStream()
 {
-	return( ZM_CAN_STREAM || isNetscape() || (ZM_OPT_CAMBOZOLA && file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) );
+	return( canStreamNative() | canStreamApplet() );
 }
 
 function fixDevices()

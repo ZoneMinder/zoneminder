@@ -234,7 +234,7 @@ if ( $mode == "still" && $paged && !empty($page) )
 if ( $mode == "stream" )
 {
 	$stream_src = ZM_PATH_ZMS."?path=".ZM_PATH_WEB."&event=$eid&rate=$rate&scale=$scale";
-	if ( isNetscape() )
+	if ( canStreamNative() )
 	{
 ?>
 <tr><td colspan="6" align="center" valign="middle"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>"></td></tr>

@@ -202,9 +202,9 @@ my @options =
 		type => $types{boolean},
 	},
 	{
-		name => "ZM_X10_PORT",
+		name => "ZM_X10_DEVICE",
 		default => "/dev/ttyS1",
-		description => "What port is your X10 controller connected on",
+		description => "What device is your X10 controller connected on",
 		requires => [ { name => "ZM_OPT_X10", value => "yes" } ],
 		help => "If you have an X10 controller device (e.g. XM10U) connected to your computer this option details which port it is conected on, the default of /dev/ttyS1 maps to serial or com port 1.",
 		type => $types{abs_path},
@@ -769,8 +769,7 @@ sub breaktext
 
 if ( $reprocess )
 {
-	#my @config_files = qw( src/zmcfg.h scripts/zmdc.pl scripts/zmwatch.pl web/zmconfig.php scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl );
-	my @config_files = qw( src/zmcfg.h web/zmconfig.php );
+	my @config_files = qw( src/zmcfg.h web/zmconfig.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl );
 
 	foreach my $config_file ( @config_files )
 	{

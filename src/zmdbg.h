@@ -58,7 +58,7 @@
 #define Fatal(params)		DbgPrintf(DBG_FAT,params)
 #define Entrypoint(params)	DbgPrintf(9,params);
 #define Exitpoint(params)	DbgPrintf(9,params);
-#define Mark()				Info(("Mark"))
+#define Mark()				Info(("Mark/%s/%d", __FILE__, __LINE__ ))
 #define Log()				Info(("Log"))
 #ifdef __GNUC__
 #define Enter(level)		DbgPrintf(level,("Entering %s",__PRETTY_FUNCTION__))

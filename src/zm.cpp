@@ -21,8 +21,10 @@
 
 MYSQL dbconn;
 
-void Zone::Setup( int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs )
+void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs )
 {
+	monitor = p_monitor;
+
 	id = p_id;
 	label = new char[strlen(p_label)+1];
 	strcpy( label, p_label );
@@ -45,6 +47,7 @@ void Zone::Setup( int p_id, const char *p_label, ZoneType p_type, const Box &p_l
 	alarmed = false;
 	alarm_pixels = 0;
 	alarm_filter_pixels = 0;
+	alarm_blob_pixels = 0;
 	alarm_blobs = 0;
 	image = 0;
 	score = 0;
@@ -56,10 +59,21 @@ Zone::~Zone()
 	delete image;
 }
 
-int Zone::Load( int monitor_id, int width, int height, Zone **&zones )
+void Zone::RecordStats( const Event *event )
 {
 	static char sql[256];
-	sprintf( sql, "select Id,Name,Type+0,Units,LoX,LoY,HiX,HiY,AlarmRGB,AlarmThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor_id );
+	sprintf( sql, "insert into Stats set MonitorId=%d, ZoneId=%d, EventId=%d, FrameId=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d", monitor->Id(), id, event->Id(), event->Frames()+1, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score );
+	if ( mysql_query( &dbconn, sql ) )
+	{
+		Error(( "Can't insert event: %s\n", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+}
+
+int Zone::Load( Monitor *monitor, Zone **&zones )
+{
+	static char sql[256];
+	sprintf( sql, "select Id,Name,Type+0,Units,LoX,LoY,HiX,HiY,AlarmRGB,AlarmThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s\n", mysql_error( &dbconn ) ));
@@ -73,7 +87,7 @@ int Zone::Load( int monitor_id, int width, int height, Zone **&zones )
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_zones = mysql_num_rows( result );
-	Info(( "Got %d zones for monitor %d\n", n_zones, monitor_id ));
+	Info(( "Got %d zones for monitor %s\n", n_zones, monitor->Name() ));
 	delete[] zones;
 	zones = new Zone *[n_zones];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
@@ -101,25 +115,25 @@ int Zone::Load( int monitor_id, int width, int height, Zone **&zones )
 
 		if ( !strcmp( Units, "Percent" ) )
 		{
-			LoX = (LoX*(width-1))/100;
-			LoY = (LoY*(height-1))/100;
-			HiX = (HiX*(width-1))/100;
-			HiY = (HiY*(height-1))/100;
-			MinAlarmPixels = (MinAlarmPixels*width*height)/100;
-			MaxAlarmPixels = (MaxAlarmPixels*width*height)/100;
-			MinFilterPixels = (MinFilterPixels*width*height)/100;
-			MaxFilterPixels = (MaxFilterPixels*width*height)/100;
-			MinBlobPixels = (MinBlobPixels*width*height)/100;
-			MaxBlobPixels = (MaxBlobPixels*width*height)/100;
+			LoX = (LoX*(monitor->Width()-1))/100;
+			LoY = (LoY*(monitor->Height()-1))/100;
+			HiX = (HiX*(monitor->Width()-1))/100;
+			HiY = (HiY*(monitor->Height()-1))/100;
+			MinAlarmPixels = (MinAlarmPixels*monitor->Width()*monitor->Height())/100;
+			MaxAlarmPixels = (MaxAlarmPixels*monitor->Width()*monitor->Height())/100;
+			MinFilterPixels = (MinFilterPixels*monitor->Width()*monitor->Height())/100;
+			MaxFilterPixels = (MaxFilterPixels*monitor->Width()*monitor->Height())/100;
+			MinBlobPixels = (MinBlobPixels*monitor->Width()*monitor->Height())/100;
+			MaxBlobPixels = (MaxBlobPixels*monitor->Width()*monitor->Height())/100;
 		}
 
 		if ( atoi(dbrow[2]) == Zone::INACTIVE )
 		{
-			zones[i] = new Zone( Id, Name, Box( LoX, LoY, HiX, HiY ) );
+			zones[i] = new Zone( monitor, Id, Name, Box( LoX, LoY, HiX, HiY ) );
 		}
 		else
 		{
-			zones[i] = new Zone( Id, Name, (Zone::ZoneType)Type, Box( LoX, LoY, HiX, HiY ), AlarmRGB, AlarmThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs );
+			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, Box( LoX, LoY, HiX, HiY ), AlarmRGB, AlarmThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs );
 		}
 	}
 	if ( mysql_errno( &dbconn ) )
@@ -514,10 +528,12 @@ Image *Image::Delta( const Image &image, bool absolute ) const
 	return( result );
 }
 
-unsigned int Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
+bool Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 {
 	bool alarm = false;
 	unsigned int score = 0;
+
+	zone->ResetStats();
 
 	delete zone->image;
 	Image *diff_image = zone->image = new Image( *delta_image );
@@ -565,39 +581,6 @@ unsigned int Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 		{
 			if ( *pdiff == WHITE )
 			{
-				if ( 0 )
-				{
-				int count;
-				int dx;
-				// Check participation in an X blob
-				int ldx = (x>=(lo_x+bx1))?-bx1:lo_x-x;
-				int hdx = (x<=(hi_x-bx1))?bx1:hi_x-x;
-				for ( count = 0, dx = ldx; count < bx && dx <= hdx; dx++ )
-				{
-					count = (*(pdiff+dx) == WHITE)?count+1:0;
-				}
-				if ( count < bx )
-				{
-					*pdiff = BLACK;
-					continue;
-				}
-				int dy;
-				// Check participation in a Y blob
-				int ldy = (y>=(lo_y+by1))?-by1:lo_y-y;
-				int hdy = (y<=(hi_y-by1))?by1:hi_y-y;
-				for ( count = 0, dy = ldy; count < by && dy <= hdy; dy++ )
-				{
-					count = (*(pdiff+(diff_image->width*dy)) == WHITE)?count+1:0;
-				}
-				if ( count < by )
-				{
-					*pdiff = BLACK;
-					continue;
-				}
-				filter_pixels++;
-				}
-				else
-				{
 				// Check participation in an X blob
 				int ldx = (x>=(lo_x+bx1))?-bx1:lo_x-x;
 				int hdx = (x<=(hi_x-bx1))?0:((hi_x-x)-bx1);
@@ -630,7 +613,6 @@ unsigned int Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 					continue;
 				}
 				filter_pixels++;
-				}
 			}
 		}
 	}
@@ -771,7 +753,6 @@ unsigned int Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 						}
 					}
 				}
-
 			}
 		}
 	}
@@ -781,6 +762,8 @@ unsigned int Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 	if ( !blobs ) return( false );
 	int blob_pixels = filter_pixels;
 
+	int min_blob_size = 0;
+	int max_blob_size = 0;
 	// Now eliminate blobs under the alarm_threshold
 	for ( int i = 1; i < WHITE; i++ )
 	{
@@ -809,6 +792,14 @@ unsigned int Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 			bs->hi_x = 0;
 			bs->hi_y = 0;
 		}
+		else
+		{
+			if ( bs->count )
+			{
+				if ( !min_blob_size || bs->count < min_blob_size ) min_blob_size = bs->count;
+				if ( !max_blob_size || bs->count > max_blob_size ) max_blob_size = bs->count;
+			}
+		}
 	}
 
 	if ( !blobs ) return( false );
@@ -831,11 +822,14 @@ unsigned int Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 		}
 	}
 
-	zone->alarm_blobs = blobs;
 	zone->alarm_pixels = alarm_pixels;
 	zone->alarm_filter_pixels = filter_pixels;
+	zone->alarm_blob_pixels = blob_pixels;
+	zone->alarm_blobs = blobs;
+	zone->min_blob_size = min_blob_size;
+	zone->max_blob_size = max_blob_size;
 	zone->alarm_box = Box( Coord( alarm_lo_x, alarm_lo_y ), Coord( alarm_hi_x, alarm_hi_y ) );
-	score = zone->score = ((100*blob_pixels)/blobs)/(zone->limits.Size().X()*zone->limits.Size().Y());
+	zone->score = ((100*blob_pixels)/blobs)/(zone->limits.Size().X()*zone->limits.Size().Y());
 	if ( zone->Type() == Zone::INCLUSIVE )
 	{
 		zone->score /= 2;
@@ -844,7 +838,7 @@ unsigned int Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 	{
 		zone->score *= 2;
 	}
-	//Info(( "%d - %d - %d - %.2f\n", zone->alarm_blobs, zone->alarm_pixels, zone->alarm_filter_pixels, zone->result ));
+	score = zone->score;
 
 	// Now outline the changed region
 	if ( zone->alarm_blobs )
@@ -879,9 +873,9 @@ unsigned int Image::CheckAlarms( Zone *zone, const Image *delta_image ) const
 		delete diff_image;
 		//high_image->WriteJpeg( "diff4.jpg" );
 
-		Info(( "%s: Alarm Pixels: %d, Filter Pixels: %d, Blobs: %d, Score: %d\n", zone->Label(), alarm_pixels, filter_pixels, blobs, score ));
+		Info(( "%s: Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d\n", zone->Label(), alarm_pixels, filter_pixels, blob_pixels, blobs, score ));
 	}
-	return( score );
+	return( true );
 }
 
 unsigned int Image::Compare( const Image &image, int n_zones, Zone *zones[] ) const
@@ -919,8 +913,6 @@ unsigned int Image::Compare( const Image &image, int n_zones, Zone *zones[] ) co
 		}
 	}
 
-	unsigned int zone_score = 0;
-
 	// Find all alarm pixels in active zones
 	for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
 	{
@@ -930,12 +922,12 @@ unsigned int Image::Compare( const Image &image, int n_zones, Zone *zones[] ) co
 			continue;
 		}
 		Debug( 3, ( "Checking active zone %s", zone->Label() ));
-		if ( zone_score = CheckAlarms( zone, delta_image ) )
+		if ( CheckAlarms( zone, delta_image ) )
 		{
 			alarm = true;
-			score += zone_score;
+			score += zone->score;
 			zone->alarmed = true;
-			Debug( 3, ( "Zone is alarmed, zone score = %d", zone_score ));
+			Debug( 3, ( "Zone is alarmed, zone score = %d", zone->score ));
 		}
 	}
 
@@ -949,12 +941,12 @@ unsigned int Image::Compare( const Image &image, int n_zones, Zone *zones[] ) co
 				continue;
 			}
 			Debug( 3, ( "Checking inclusive zone %s", zone->Label() ));
-			if ( zone_score = CheckAlarms( zone, delta_image ) )
+			if ( CheckAlarms( zone, delta_image ) )
 			{
 				alarm = true;
-				score += zone_score;
+				score += zone->score;
 				zone->alarmed = true;
-				Debug( 3, ( "Zone is alarmed, zone score = %d", zone_score ));
+				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->score ));
 			}
 		}
 	}
@@ -969,18 +961,19 @@ unsigned int Image::Compare( const Image &image, int n_zones, Zone *zones[] ) co
 				continue;
 			}
 			Debug( 3, ( "Checking exclusive zone %s", zone->Label() ));
-			if ( zone_score = CheckAlarms( zone, delta_image ) )
+			if ( CheckAlarms( zone, delta_image ) )
 			{
 				alarm = true;
-				score += zone_score;
+				score += zone->score;
 				zone->alarmed = true;
-				Debug( 3, ( "Zone is alarmed, zone score = %d", zone_score ));
+				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->score ));
 			}
 		}
 	}
 
 	delete delta_image;
-	return( score );
+	// This is a small and innocent hack to prevent scores of 0 being returned in alarm state
+	return( score?score:alarm );
 } 
 
 void Image::Annotate( const char *text, const Coord &coord, const Rgb colour )
@@ -1486,7 +1479,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	{
 		n_zones = 1;
 		zones = new Zone *[1];
-		zones[0] = new Zone( 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED );
+		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED );
 	}
 	start_time = last_fps_time = time( 0 );
 
@@ -1530,10 +1523,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 		}
 	}
 
-	//if ( capture )
-	//{
-		//Camera::Capture( ref_image );
-	//}
+	record_zone_stats = true;
 }
 
 Monitor::~Monitor()
@@ -1555,6 +1545,12 @@ Monitor::~Monitor()
 			exit( -1 );
 		}
 	}
+}
+
+void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
+{
+	n_zones = p_n_zones;
+	zones = p_zones;
 }
 
 Monitor::State Monitor::GetState() const
@@ -1649,14 +1645,20 @@ void Monitor::CheckFunction()
 
 void Monitor::DumpZoneImage()
 {
+	Mark();
 	int index = shared_images->last_write_index;
+	Mark();
 	Snapshot *snap = &image_buffer[index];
+	Mark();
 	Image *image = snap->image;
+	Mark();
 
 	Image zone_image( *image );
+	Mark();
 	zone_image.Colourise();
 	for( int i = 0; i < n_zones; i++ )
 	{
+	Mark();
 		unsigned char *psrc = zone_image.buffer;
 		int lo_x = zones[i]->Limits().Lo().X();
 		int lo_y = zones[i]->Limits().Lo().Y();
@@ -1699,8 +1701,11 @@ void Monitor::DumpZoneImage()
 		}
 	}
 	char filename[64];
+	Mark();
 	sprintf( filename, "%s-Zones.jpg", name );
+	Mark();
 	zone_image.WriteJpeg( filename );
+	Mark();
 }
 
 void Monitor::DumpImage( Image *image ) const
@@ -1785,6 +1790,10 @@ bool Monitor::Analyse()
 					if ( zones[i]->Alarmed() )
 					{
 						alarm_image.Overlay( zones[i]->AlarmImage() );
+						if ( record_zone_stats )
+						{
+							zones[i]->RecordStats( event );
+						}
 					}
 				}
 				event->AddFrame( now, image, &alarm_image, score );
@@ -1812,7 +1821,7 @@ void Monitor::ReloadZones()
 		delete zones[i];
 	}
 	//delete[] zones;
-	n_zones = Zone::Load( id, width, height, zones );
+	n_zones = Zone::Load( this, zones );
 	DumpZoneImage();
 }
 
@@ -1845,9 +1854,10 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]) );
 		Zone **zones = 0;
-		int n_zones = Zone::Load( atoi(dbrow[0]), atoi(dbrow[6]), atoi(dbrow[7]), zones );
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), n_zones, zones );
+		int n_zones = Zone::Load( monitors[i], zones );
+		monitors[i]->AddZones( n_zones, zones );
 		Info(( "Loaded monitor %d(%s), %d zones\n", atoi(dbrow[0]), dbrow[1], n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )
@@ -1882,13 +1892,14 @@ Monitor *Monitor::Load( int id, bool load_zones )
 	Monitor *monitor = 0;
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		Zone **zones = 0;
+		monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), false, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]) );
 		int n_zones = 0;
 		if ( load_zones )
 		{
-			int n_zones = Zone::Load( atoi(dbrow[0]), atoi(dbrow[6]), atoi(dbrow[7]), zones );
+			Zone **zones = 0;
+			n_zones = Zone::Load( monitor, zones );
+			monitor->AddZones( n_zones, zones );
 		}
-		monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), false, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), n_zones, zones );
 		Info(( "Loaded monitor %d(%s), %d zones\n", atoi(dbrow[0]), dbrow[1], n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )

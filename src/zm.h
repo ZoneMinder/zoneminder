@@ -183,7 +183,11 @@ public:
 	{
 	}
 	inline const Coord &Lo() const { return( lo ); }
+	inline int LoX() const { return( lo.X() ); }
+	inline int LoY() const { return( lo.Y() ); }
 	inline const Coord &Hi() const { return( hi ); }
+	inline int HiX() const { return( hi.X() ); }
+	inline int HiY() const { return( hi.Y() ); }
 	inline const Coord &Size() const { return( size ); }
 	inline int Width() const
 	{
@@ -200,6 +204,9 @@ public:
 	}
 };
 
+class Monitor;
+class Event;
+
 class Zone
 {
 friend class Image;
@@ -209,6 +216,8 @@ public:
 
 protected:
 	// Inputs
+	Monitor *monitor;
+
 	int id;
 	char *label;
 	ZoneType type;
@@ -228,30 +237,33 @@ protected:
 	int min_blobs;
 	int max_blobs;
 
-	// Outputs
+	// Outputs/Statistics
 	bool alarmed;
 	int alarm_pixels;
 	int alarm_filter_pixels;
+	int alarm_blob_pixels;
 	int alarm_blobs;
+	int min_blob_size;
+	int max_blob_size;
 	Box alarm_box;
 	unsigned int score;
 	Image *image;
 
 protected:
-	void Setup( int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs );
+	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs );
 
 public:
-	Zone( int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold=15, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold=15, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
 	{
-		Setup( p_id, p_label, p_type, p_limits, p_alarm_rgb, p_alarm_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
+		Setup( p_monitor, p_id, p_label, p_type, p_limits, p_alarm_rgb, p_alarm_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
 	}
-	Zone( int p_id, const char *p_label, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold=15, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold=15, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
 	{
-		Setup( p_id, p_label, Zone::ACTIVE, p_limits, p_alarm_rgb, p_alarm_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
+		Setup( p_monitor, p_id, p_label, Zone::ACTIVE, p_limits, p_alarm_rgb, p_alarm_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
 	}
-	Zone( int p_id, const char *p_label, const Box &p_limits )
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Box &p_limits )
 	{
-		Setup( p_id, p_label, Zone::INACTIVE, p_limits, RGB_BLACK, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0 );
+		Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_limits, RGB_BLACK, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0 );
 	}
 
 public:
@@ -273,7 +285,19 @@ public:
 	{
 		return( alarmed );
 	}
-	static int Load( int monitor_id, int width, int height, Zone **&zones );
+	inline void ResetStats()
+	{
+		alarmed = false;
+		alarm_pixels = 0;
+		alarm_filter_pixels = 0;
+		alarm_blob_pixels = 0;
+		alarm_blobs = 0;
+		min_blob_size = 0;
+		max_blob_size = 0;
+		score = 0;
+	}
+	void RecordStats( const Event *event );
+	static int Load( Monitor *monitor, Zone **&zones );
 };
 
 class Camera;
@@ -383,7 +407,7 @@ public:
 	static Image *Merge( int n_images, Image *images[], double weight );
 	static Image *Highlight( int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
 	Image *Delta( const Image &image, bool absolute=true ) const;
-	unsigned int CheckAlarms( Zone *zone, const Image *delta_image ) const;
+	bool CheckAlarms( Zone *zone, const Image *delta_image ) const;
 	unsigned int Compare( const Image &image, int n_zones, Zone *zones[] ) const;
 	void Annotate( const char *text, const Coord &coord, const Rgb colour );
 	void Annotate( const char *text, const Coord &coord );
@@ -402,8 +426,8 @@ protected:
 	int		device;
 	int		channel;
 	int		format;
-	int		width;
-	int		height;
+	unsigned int		width;
+	unsigned int		height;
 	int		colours;
 	bool		capture;
 
@@ -427,6 +451,9 @@ public:
 	{
 		return( name );
 	}
+	unsigned int Width() const { return( width ); }
+	unsigned int Height() const { return( height ); }
+
 	static void Initialise( int device, int channel, int format, int width, int height, int colours );
 	void Terminate();
 
@@ -516,6 +543,11 @@ protected:
 public:
 	Event( Monitor *p_monitor, time_t p_start_time );
 	~Event();
+
+	int Id() const { return( id ); }
+	int Frames() const { return( frames ); }
+	int AlarmFrames() const { return( alarm_frames ); }
+
 	void AddFrame( time_t timestamp, const Image *image, const Image *alarm_frame=NULL, unsigned int score=0 );
 
 	static void StreamEvent( const char *path, int event_id, unsigned long refresh=100, FILE *fd=stdout );
@@ -577,10 +609,14 @@ protected:
 	} SharedImages;
 
 	SharedImages *shared_images;
+
+	bool record_zone_stats;
 	
 public:
 	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_image_buffer_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
+
+	void AddZones( int p_n_zones, Zone *p_zones[] );
 
 	State GetState() const;
 	int GetImage( int index=-1 ) const;

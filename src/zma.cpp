@@ -21,6 +21,12 @@
 
 bool reload = false;
 
+void die_handler( int signal )
+{
+	Info(( "Got signal %d, crashing", signal ));
+	exit( signal );
+}
+
 void hup_handler( int signal )
 {
 	Info(( "Got HUP signal, reloading" ));
@@ -63,17 +69,27 @@ int main( int argc, const char *argv[] )
 	int n_monitors = Monitor::Load( device, monitors, false );
 
 	Info(( "Warming up" ));
+
 	sigset_t block_set;
 	sigemptyset( &block_set );
 	struct sigaction action, old_action;
+
 	action.sa_handler = hup_handler;
 	action.sa_mask = block_set;
 	action.sa_flags = 0;
 	sigaction( SIGHUP, &action, &old_action );
+
 	action.sa_handler = term_handler;
 	action.sa_mask = block_set;
 	action.sa_flags = 0;
 	sigaction( SIGTERM, &action, &old_action );
+
+	action.sa_handler = die_handler;
+	action.sa_mask = block_set;
+	action.sa_flags = 0;
+	sigaction( SIGBUS, &action, &old_action );
+	sigaction( SIGSEGV, &action, &old_action );
+
 	sigaddset( &block_set, SIGHUP );
 	//sigaddset( &block_set, SIGTERM );
 	while( 1 )
@@ -97,7 +113,9 @@ int main( int argc, const char *argv[] )
 		{
 			for ( int i = 0; i < n_monitors; i++ )
 			{
+				Mark();
 				monitors[i]->ReloadZones();
+				Mark();
 				monitors[i]->CheckFunction();
 			}
 			reload = false;

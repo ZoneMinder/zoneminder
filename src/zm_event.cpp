@@ -181,7 +181,7 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 		}
 		return( false );
 	}
-	Debug( 1, ( "Wrote frame image", jpg_buffer_size ));
+	Debug( 1, ( "Wrote frame image, %d bytes", jpg_buffer_size ));
 
 	return( true );
 }
@@ -281,6 +281,7 @@ void Event::StreamEvent( const char *path, int event_id, int rate, int scale, FI
 		exit( mysql_errno( &dbconn ) );
 	}
 
+
 	setbuf( fd, 0 );
 
 	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
@@ -290,8 +291,8 @@ void Event::StreamEvent( const char *path, int event_id, int rate, int scale, FI
 	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
 	fprintf( fd, "--ZoneMinderFrame\n" );
 
-	int n_frames = mysql_num_rows( result );
-	Info(( "Got %d frames, at rate %d, scale %d", n_frames, rate, scale ));
+	//int n_frames = mysql_num_rows( result );
+	//Info(( "Got %d frames, at rate %d, scale %d", n_frames, rate, scale ));
 	FILE *fdj = NULL;
 	int n_bytes = 0;
 	static unsigned char buffer[ZM_MAX_IMAGE_SIZE];

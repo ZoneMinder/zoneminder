@@ -1,4 +1,4 @@
-  16/01/05        ZoneMinder 1.20.0 README                1
+  16/01/05        ZoneMinder 1.20.0 README                 1
                                
                       ZoneMinder v1.20.0
 
@@ -1820,7 +1820,7 @@ http://www.zoneminder.com/downloads/noIEClick.reg
    
 
 8.1. Release 1.20.0
-Improved and added features, minor bugfixes.
+Improved and added features, several minor bugfixes.
 
   o      FEATURE  -  Certain  configuration  (Mostly  database
     settings) is now stored in a new file zm.conf. This means that
@@ -1879,6 +1879,10 @@ o    FIX - There was a problem with the interaction between
 monitor statuses and the status web window. This meant that
 sometimes the window did not pop to the front, or play the
 alarm sound, properly. This has been corrected.
+  o     FIX - A bug in event streaming when events are of very
+    short duration has been fixed. Thanks to forum user `reza' for
+    spotting this one.
+    
 
 8.2. Release 1.19.5
 Various miscellaneous fixes and features.

@@ -571,7 +571,8 @@ protected:
 	{
 		NONE=1,
 		PASSIVE,
-		ACTIVE
+		ACTIVE,
+		X10
 	} Function;
 	Function	function;
 	double	fps;
@@ -630,7 +631,6 @@ public:
 	void ForceAlarm();
 	void CancelAlarm();
 
-	void CheckFunction();
 	void DumpZoneImage();
 
 	inline void Capture()

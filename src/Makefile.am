@@ -11,19 +11,19 @@ webgroup = @WEB_GROUP@
 
 bin_PROGRAMS = zmc zma zmu zms zmfix
 
-zm_SOURCES = zm.cpp zmdbg.c jmemdst.c
+zm_SOURCES = zm.cpp zm_db.cpp zm_coord.cpp zm_box.cpp zm_image.cpp zm_event.cpp zm_zone.cpp zm_camera.cpp zm_local_camera.cpp zm_remote_camera.cpp zm_monitor.cpp zm_debug.c zm_jpeg.c
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
 zma_SOURCES = zma.cpp $(zm_SOURCES)
 zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
-zmfix_SOURCES = zmfix.cpp zmdbg.c
+zmfix_SOURCES = zmfix.cpp zm_debug.c zm_db.cpp zm.cpp
 
-noinst_HEADERS = zm.h zmcfg.h zmdbg.h jinclude.h font_6x11.h
+noinst_HEADERS = zm.h zmcfg.h zmdbg.h zm_coord.h zm_box.h zm_image.h zm_event.h zm_zone.h zm_camera.h zm_local_camera.h zm_remote_camera.h zm_monitor.h zm_font.h jinclude.h
 
-EXTRA_DIST = zmcfg.h.z
+EXTRA_DIST = zm_config.h.z
 
 dist-hook:
-	@( rm $(distdir)/zmcfg.h )
+	@( rm $(distdir)/zm_config.h )
 
 # Yes, you are correct. This is a HACK!
 install-exec-local:

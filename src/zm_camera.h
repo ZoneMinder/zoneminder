@@ -39,7 +39,7 @@ protected:
 
 public:
 	Camera( SourceType p_type, int p_width, int p_height, int p_colours, bool p_capture=true );
-	~Camera();
+	virtual ~Camera();
 
 	SourceType Type() const { return( type ); }
 	bool IsLocal() const { return( type == LOCAL ); }

@@ -72,7 +72,6 @@
 // Simple String Replacements
 $zmSlang24BitColour          = '24 bit colour';
 $zmSlang8BitGrey             = '8 bit greyscale';
-$zmSlangAction               = 'Action';
 $zmSlangActual               = 'Actual';
 $zmSlangAddNewMonitor        = 'Add New Monitor';
 $zmSlangAddNewUser           = 'Add New User';

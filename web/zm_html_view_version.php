@@ -78,7 +78,7 @@ zmWindow();
 </script>
 </head>
 <body>
-<table border="0" cellspacing="0" cellpadding="0" width="100%">
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
 <tr>
 <td align="center" class="head">ZoneMinder - <?= $zmSlangVersion ?></td>
 </tr>
@@ -87,15 +87,18 @@ zmWindow();
 if ( ZM_DYN_LAST_VERSION == ZM_VERSION )
 {
 ?>
-<table border="0" cellspacing="0" cellpadding="2" width="100%">
+<table border="0" cellspacing="0" cellpadding="6" width="100%">
 <tr>
-<td align="center" class="text"><br/><?= sprintf( $zmClangRunningRecentVer, ZM_VERSION ) ?><br/><br/><?= $zmSlangUpdateNotNecessary ?></td>
+<td align="center" class="text"><?= sprintf( $zmClangRunningRecentVer, ZM_VERSION ) ?></td>
+</tr>
+<tr>
+<td align="center" class="text"><?= $zmSlangUpdateNotNecessary ?></td>
 </tr>
 <tr>
 <td align="center" class="text">&nbsp;</td>
 </tr>
 </table>
-<table border="0" cellspacing="0" cellpadding="1" width="100%">
+<table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
 <td width="75%" align="center"><input type="button" value="<?= $zmSlangGoToZoneMinder ?>" class="form" onClick="zmWindow()"></td>
 <td width="25%" align="center"><input type="button" value="<?= $zmSlangClose ?>" class="form" onClick="closeWindow()"></td>
@@ -110,15 +113,18 @@ else
 <form name="version_form" method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="version">
-<table border="0" cellspacing="0" cellpadding="2" width="100%">
+<table border="0" cellspacing="0" cellpadding="6" width="100%">
 <tr>
-<td align="center" class="text"><br/><?= $zmSlangUpdateAvailable ?><br/><br/><?= sprintf( $zmClangLatestRelease, ZM_DYN_LAST_VERSION, ZM_VERSION  ) ?><br/><br/></td>
+<td align="center" class="text"><?= $zmSlangUpdateAvailable ?></td>
 </tr>
 <tr>
-<td align="center" class="text">Action: <?= buildSelect( "option", $options ); ?></td>
+<td align="center" class="text"><?= sprintf( $zmClangLatestRelease, ZM_DYN_LAST_VERSION, ZM_VERSION  ) ?></td>
+</tr>
+<tr>
+<td align="center" class="text"><?= buildSelect( "option", $options ); ?></td>
 </tr>
 </table>
-<table border="0" cellspacing="0" cellpadding="1" width="100%">
+<table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
 <td width="50%" align="center">&nbsp;</td>
 <td width="25%" align="center"><input type="submit" value="<?= $zmSlangApply ?>" class="form" onClick="submitForm()"></td>

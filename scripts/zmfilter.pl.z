@@ -299,8 +299,7 @@ sub GetFilters
 			}
 		}
 		#print( Dumper( %filter_terms ) );
-		#my $sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Events as E inner join Monitors as M on M.Id = E.MonitorId where M.Id = '$monitor' and E.Id > ?";
-		my $sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Events as E inner join Monitors as M on M.Id = E.MonitorId where M.Id = '$monitor'";
+		my $sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived,E.Uploaded,E.LearnState from Events as E inner join Monitors as M on M.Id = E.MonitorId where M.Id = '$monitor'";
 		my $filter_sql = '';
 		for ( my $i = 1; $i <= $filter_terms{trms}; $i++ )
 		{

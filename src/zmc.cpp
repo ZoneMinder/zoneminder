@@ -17,16 +17,10 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+#include <getopt.h>
 #include "zm.h"
 
-bool reload = false;
 bool terminate = false;
-
-void hup_handler( int signal )
-{
-	Info(( "Got HUP signal, reloading" ));
-	reload = true;
-}
 
 void term_handler( int signal )
 {
@@ -34,12 +28,70 @@ void term_handler( int signal )
 	terminate = true;
 }
 
-int main( int argc, const char *argv[] )
+void Usage()
 {
-	int device = argv[1]?atoi( argv[1] ):0;
+	fprintf( stderr, "zmc -d <device_id>\n" );
+	fprintf( stderr, "Options:\n" );
+	fprintf( stderr, "  -d, --device <device_id>     : Specify which device to access, 0=>/dev/video0 etc\n" );
+	fprintf( stderr, "  -h, --help                   : This screen\n" );
+	exit( 0 );
+}
+
+int main( int argc, char *argv[] )
+{
+	int device = -1;
+
+	static struct option long_options[] = {
+		{"device", 1, 0, 'd'},
+		{"help", 0, 0, 'h'},
+		{0, 0, 0, 0}
+	};
+
+	while (1)
+	{
+		int this_option_optind = optind ? optind : 1;
+		int option_index = 0;
+		int opterr = 1;
+
+		int c = getopt_long (argc, argv, "d:h", long_options, &option_index);
+		if (c == -1)
+		{
+			break;
+		}
+
+		switch (c)
+		{
+			case 'd':
+				device = atoi(optarg);
+				break;
+			case 'h':
+			case '?':
+				Usage();
+				break;
+			default:
+				//fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
+				break;
+		}
+	}
+
+	if (optind < argc)
+	{
+		fprintf( stderr, "Extraneous options, " );
+		while (optind < argc)
+			printf ("%s ", argv[optind++]);
+		printf ("\n");
+		Usage();
+	}
+
+	if ( device < 0 )
+	{
+		fprintf( stderr, "Bogus device %d\n", device );
+		Usage();
+		exit( 0 );
+	}
 
 	char dbg_name_string[16];
-	sprintf( dbg_name_string, "zmc-%d", device );
+	sprintf( dbg_name_string, "zmc-d%d", device );
 	dbg_name = dbg_name_string;
 
 	DbgInit();
@@ -67,15 +119,12 @@ int main( int argc, const char *argv[] )
 	sigset_t block_set;
 	sigemptyset( &block_set );
 	struct sigaction action, old_action;
-	action.sa_handler = hup_handler;
-	action.sa_mask = block_set;
-	action.sa_flags = 0;
-	sigaction( SIGHUP, &action, &old_action );
+
 	action.sa_handler = term_handler;
 	action.sa_mask = block_set;
 	action.sa_flags = 0;
 	sigaction( SIGTERM, &action, &old_action );
-	sigaddset( &block_set, SIGHUP );
+
 	//sigaddset( &block_set, SIGTERM );
 	if ( n_monitors == 1 )
 	{
@@ -91,16 +140,6 @@ int main( int argc, const char *argv[] )
 			monitors[i]->PostCapture();
 		}
 		sigprocmask( SIG_UNBLOCK, &block_set, 0 );
-		if ( reload )
-		{
-			for ( int i = 0; i < n_monitors; i++ )
-			{
-				delete monitors[i];
-			}
-			monitors = 0;
-			n_monitors = Monitor::Load( device, monitors );
-			reload = false;
-		}
 		if ( terminate )
 		{
 			for ( int i = 0; i < n_monitors; i++ )

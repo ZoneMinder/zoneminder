@@ -163,6 +163,7 @@ $zmSlangEvent                = 'Event';
 $zmSlangEventFilter          = 'Event Filter';
 $zmSlangEventId              = 'Event Id';
 $zmSlangEventName            = 'Event Name';
+$zmSlangEventPrefix          = 'Event Prefix';
 $zmSlangEvents               = 'Events';
 $zmSlangExclude              = 'Exclude';
 $zmSlangFeed                 = 'Feed';

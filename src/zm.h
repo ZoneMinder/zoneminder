@@ -492,7 +492,7 @@ protected:
 	int		alarm_frames;
 	unsigned int	tot_score;
 	unsigned int	max_score;
-	char	path[256];
+	char	path[PATH_MAX];
 
 public:
 	Event( Monitor *p_monitor, time_t p_start_time );

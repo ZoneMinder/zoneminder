@@ -151,7 +151,7 @@ if ( !$monitor->{TrackMotion} )
 if ( !$monitor->{CanMoveMap} )
 {
 	print( "Monitor '$mid' cannot move in map mode" );
-	if ( $monitor->{CanMoveAbs} )
+	if ( $monitor->{CanMoveRel} )
 	{
 		print( ", falling back to pseudo map mode\n" );
 	}

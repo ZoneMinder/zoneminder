@@ -34,6 +34,7 @@ define( "MPEG_ENCODE_PATH", "./mpeg_encode" );	// Path to (optional) mpeg video 
 define( "NETPBM_DIR", "/usr/bin" );				// Path to (optional) Netpbm utilities
 
 define( "MAX_EVENTS", 12 );						// The maximum number of events to show in the monitor event listing
+define( "EVENT_HEADER_LINES", 25 );				// How many events are listed in the event window before a new header is inserted
 define( "ALARM_POPUP", true );					// Whether the watch window jumps to front if an alarm occurs
 define( "ALARM_SOUND", "Yeow.wav" );			// A sound to play on alarm, put this in the sounds directory
 define( "FAST_DELETE", true );					// Whether we only delete event DB records and leave zmaudit to do the rest

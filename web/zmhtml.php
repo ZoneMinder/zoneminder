@@ -853,6 +853,13 @@ location.href = '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php
 </tr>
 <tr><td colspan="3" class="text">&nbsp;</td></tr>
 <tr><td colspan="3"><table border="0" cellspacing="0" cellpadding="0" width="100%">
+<?php
+		$count = 0;
+		while( $row = mysql_fetch_assoc( $result ) )
+		{
+			if ( ($count++%EVENT_HEADER_LINES) == 0 )
+			{
+?>
 <tr align="center">
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=Id&sort_asc=<?php echo $sort_field == 'Id'?!$sort_asc:0 ?>">Id<?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=Name&sort_asc=<?php echo $sort_field == 'Name'?!$sort_asc:0 ?>">Name<?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
@@ -866,8 +873,7 @@ location.href = '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php
 <td class="text">Mark</td>
 </tr>
 <?php
-		while( $row = mysql_fetch_assoc( $result ) )
-		{
+			}
 			if ( $row[LearnState] == '+' )
 				$bgcolor = "#98FB98";
 			elseif ( $row[LearnState] == '-' )

@@ -299,7 +299,7 @@ function closeWindow()
 </script>
 </head>
 <body>
-<table border="0" cellspacing="0" cellpadding="0" width="100%">
+<table border="0" cellspacing="0" cellpadding="1" width="100%">
 <tr>
 <td colspan="2" align="left" class="head"><?= $zmSlangMonitor ?> <?= $monitor['Name'] ?> - <?= $zmSlangZone ?> <?= $zone['Name'] ?></td>
 </tr>

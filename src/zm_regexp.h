@@ -19,10 +19,10 @@
 
 #include "zm.h"
 
-#if HAVE_LIBPCRE
-
 #ifndef ZM_REGEXP_H
 #define ZM_REGEXP_H
+
+#if HAVE_LIBPCRE
 
 #if HAVE_PCRE_H
 #include <pcre.h>
@@ -60,6 +60,6 @@ public:
 	int MatchLength( int match_index ) const;
 };
 
-#endif // ZM_REGEXP_H
-                               
 #endif // HAVE_LIBPCRE
+
+#endif // ZM_REGEXP_H

@@ -1,8 +1,8 @@
--- MySQL dump 8.21
+-- MySQL dump 8.23
 --
 -- Host: localhost    Database: ZM_DB_NAME
 ---------------------------------------------------------
--- Server version	3.23.49
+-- Server version	3.23.58
 
 --
 -- Current Database: ZM_DB_NAME
@@ -13,7 +13,7 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/ ZM_DB_NAME;
 USE ZM_DB_NAME;
 
 --
--- Table structure for table 'Config'
+-- Table structure for table `Config`
 --
 
 CREATE TABLE Config (
@@ -35,7 +35,7 @@ CREATE TABLE Config (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table 'Events'
+-- Table structure for table `Events`
 --
 
 CREATE TABLE Events (
@@ -63,7 +63,7 @@ CREATE TABLE Events (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table 'Filters'
+-- Table structure for table `Filters`
 --
 
 CREATE TABLE Filters (
@@ -75,12 +75,11 @@ CREATE TABLE Filters (
   AutoUpload tinyint(3) unsigned NOT NULL default '0',
   AutoEmail tinyint(3) unsigned NOT NULL default '0',
   AutoMessage tinyint(3) unsigned NOT NULL default '0',
-  PRIMARY KEY  (Id),
-  UNIQUE KEY FilterIDX (Name)
+  PRIMARY KEY  (Id)
 ) TYPE=MyISAM;
 
 --
--- Table structure for table 'Frames'
+-- Table structure for table `Frames`
 --
 
 CREATE TABLE Frames (
@@ -97,7 +96,7 @@ CREATE TABLE Frames (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table 'Monitors'
+-- Table structure for table `Monitors`
 --
 
 CREATE TABLE Monitors (
@@ -133,7 +132,17 @@ CREATE TABLE Monitors (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table 'Stats'
+-- Table structure for table `States`
+--
+
+CREATE TABLE States (
+  Name varchar(32) NOT NULL default '',
+  Definition tinytext NOT NULL,
+  PRIMARY KEY  (Name)
+) TYPE=MyISAM;
+
+--
+-- Table structure for table `Stats`
 --
 
 CREATE TABLE Stats (
@@ -158,7 +167,7 @@ CREATE TABLE Stats (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table 'TriggersX10'
+-- Table structure for table `TriggersX10`
 --
 
 CREATE TABLE TriggersX10 (
@@ -170,7 +179,7 @@ CREATE TABLE TriggersX10 (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table 'Users'
+-- Table structure for table `Users`
 --
 
 CREATE TABLE Users (
@@ -190,7 +199,7 @@ CREATE TABLE Users (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table 'Zones'
+-- Table structure for table `Zones`
 --
 
 CREATE TABLE Zones (
@@ -219,16 +228,6 @@ CREATE TABLE Zones (
   MaxBlobs smallint(5) unsigned default NULL,
   PRIMARY KEY  (Id),
   UNIQUE KEY UC_Id (Id)
-) TYPE=MyISAM;
-
---
--- Table structure for table 'States'
---
-
-CREATE TABLE States (
-  Name varchar(32) NOT NULL default '',
-  Definition tinytext NOT NULL,
-  PRIMARY KEY  (Name)
 ) TYPE=MyISAM;
 
 --

@@ -84,7 +84,7 @@ void Monitor::Initialise()
 
 	int shared_data_size = sizeof(SharedData)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
 	Info(( "shm.size=%d", shared_data_size ));
-	shmid = shmget( (int)config.Item( ZM_SHM_KEY )|id, shared_data_size, IPC_CREAT|0777 );
+	shmid = shmget( (int)config.Item( ZM_SHM_KEY )|id, shared_data_size, IPC_CREAT|0700 );
 	if ( shmid < 0 )
 	{
 		Error(( "Can't shmget: %s", strerror(errno)));
@@ -106,6 +106,7 @@ void Monitor::Initialise()
 		shared_data->force_state = FORCE_NEUTRAL;
 		shared_data->last_write_index = image_buffer_count;
 		shared_data->last_read_index = image_buffer_count;
+		shared_data->last_image_time = 0;
 		shared_data->last_event = 0;
 		shared_data->action = (Action)0;
 		shared_data->brightness = -1;

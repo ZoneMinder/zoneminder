@@ -32,6 +32,7 @@ if ( $new_bandwidth )
 
 require_once( 'zmconfig.php' );
 require_once( 'zmdb.php' );
+require_once( 'zmfuncs.php' );
 require_once( 'zmactions.php' );
 
 if ( !$view )
@@ -96,7 +97,7 @@ if ( $view == "console" )
 <title>ZM - Console</title>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
-window.resizeTo(720,400)
+window.resizeTo( <?php echo $jws['console']['w'] ?>, <?php echo $jws['console']['h'] ?> );
 function newWindow(Url,Name,Width,Height) {
         var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
@@ -112,7 +113,7 @@ function newWindow(Url,Name,Width,Height) {
 <?php if ( $bandwidth != "medium" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=medium">medium</a><?php } ?>
 <?php if ( $bandwidth != "low" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=low">low</a><?php } ?> )</td>
 <?php if ( $cycle_count > 1 ) { ?>
-<td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+36 ?>, <?php echo $max_height+72 ?> );">Watch All</a></td>
+<td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+$jws['cycle']['w'] ?>, <?php echo $max_height+$jws['cycle']['h'] ?> );">Watch All</a></td>
 <?php } else { ?>
 <td class="smallhead" align="right">&nbsp;</td>
 <?php } ?>
@@ -156,18 +157,18 @@ function newWindow(Url,Name,Width,Height) {
 		$zone_count += $monitor[ZoneCount];
 ?>
 <tr>
-<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zmMonitor', 360, 320 );"><?php echo $monitor[Id] ?>.</a></td>
-<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Name] ?></a></td>
-<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=device&did=<?php echo $monitor[Device] ?>', 'zmDevice', 196, 164 );"><span class="<?php if ( $device[zmc] ) { if ( $device[zma] ) { echo "gretext"; } else { echo "oratext"; } } else { echo "redtext"; } ?>">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</span></a></td>
-<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=function&mid=<?php echo $monitor[Id] ?>', 'zmFunction', 248, 72 );"><?php echo $monitor['Function'] ?></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zmMonitor', <?php echo $jws['monitor']['w'] ?>, <?php echo $jws['monitor']['h'] ?> );"><?php echo $monitor[Id] ?>.</a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+$jws['watch']['w'] ?>, <?php echo $monitor[Height]+$jws['watch']['h'] ?> );"><?php echo $monitor[Name] ?></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=device&did=<?php echo $monitor[Device] ?>', 'zmDevice', <?php echo $jws['device']['w'] ?>, <?php echo $jws['device']['h'] ?> );"><span class="<?php if ( $device[zmc] ) { if ( $device[zma] ) { echo "gretext"; } else { echo "oratext"; } } else { echo "redtext"; } ?>">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</span></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=function&mid=<?php echo $monitor[Id] ?>', 'zmFunction', <?php $jws['function']['w'] ?>, <?php $jws['function']['h'] ?> );"><?php echo $monitor['Function'] ?></a></td>
 <!--<td align="left" class="text"><?php echo $monitor[Width] ?>x<?php echo $monitor[Height] ?>x<?php echo $monitor[Colours]*8 ?></td>-->
-<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[EventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&period=hour&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[HourEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&period=day&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[DayEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&period=week&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[WeekEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&period=month&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[MonthEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&archived=1&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[ArchEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+232 ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $monitor[Id] ?>', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[EventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&period_count=1&period_type=hour&mid=<?php echo $monitor[Id] ?>', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[HourEventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&period_count=1&period_type=day&mid=<?php echo $monitor[Id] ?>', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[DayEventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&period_count=1&period_type=week&mid=<?php echo $monitor[Id] ?>', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[WeekEventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&period_count=1&period_type=month&mid=<?php echo $monitor[Id] ?>', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[MonthEventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&archived=1&mid=<?php echo $monitor[Id] ?>', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[ArchEventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+$jws['zones']['w'] ?>, <?php echo $monitor[Height]+$jws['zones']['h'] ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
 <td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $monitor[Id] ?>"></td>
 </tr>
 <?php
@@ -175,7 +176,7 @@ function newWindow(Url,Name,Width,Height) {
 ?>
 <tr><td align="left" class="text">&nbsp;</td>
 <td align="left" class="text">&nbsp;</td>
-<td colspan="2" align="center"><input type="button" value="Add New Monitor" class="form" onClick="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&zid=-1', 'zmMonitor', 320, 360 );"></td>
+<td colspan="2" align="center"><input type="button" value="Add New Monitor" class="form" onClick="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&zid=-1', 'zmMonitor', <?php echo $jws['monitor']['w'] ?>, <?php echo $jws['monitor']['h'] ?>);"></td>
 <td align="right" class="text"><?php echo $event_count ?></td>
 <td align="right" class="text"><?php echo $hour_event_count ?></td>
 <td align="right" class="text"><?php echo $day_event_count ?></td>
@@ -225,7 +226,7 @@ function newWindow(Url,Name,Width,Height) {
 </head>
 <body>
 <p class="head" align="center"><?php echo $monitor[Name] ?></p>
-<a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><img src='<?php echo $monitor[Name] ?>.jpg' border="0"></a>
+<a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+$jws['watch']['w'] ?>, <?php echo $monitor[Height]+$jws['watch']['h'] ?> );"><img src='<?php echo $monitor[Name] ?>.jpg' border="0"></a>
 </body>
 </html>
 <?php
@@ -252,13 +253,13 @@ window.focus();
 </script>
 </head>
 <frameset rows="<?php echo $monitor[Height]+32 ?>,16,*" border="1" frameborder="no" framespacing="0">
-<frame src="<?php echo $PHP_SELF ?>?view=feed&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
-<frame src="<?php echo $PHP_SELF ?>?view=status&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
-<frame src="<?php echo $PHP_SELF ?>?view=events&max_events=<?php echo $max_events ?>&period=<?php echo $period ?>&archived=<?php echo $archived ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
+<frame src="<?php echo $PHP_SELF ?>?view=watchfeed&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
+<frame src="<?php echo $PHP_SELF ?>?view=watchstatus&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
+<frame src="<?php echo $PHP_SELF ?>?view=watchevents&max_events=<?php echo $max_events ?>&period=<?php echo $period ?>&archived=<?php echo $archived ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
 </frameset>
 <?php
 }
-elseif( $view == "feed" )
+elseif( $view == "watchfeed" )
 {
 	if ( !$mode )
 	{
@@ -275,7 +276,7 @@ elseif( $view == "feed" )
 
 	if ( $mode != "stream" )
 	{
-		header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=feed&mid=$mid&mode=still'" );
+		header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=watchfeed&mid=$mid&mode=still'" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -297,9 +298,9 @@ function closeWindow() {
 <tr>
 <td width="33%" align="left" class="text"><b><?php echo $monitor[Name] ?></b></td>
 <?php if ( $mode == "stream" ) { ?>
-<td width="34%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=feed&mode=still&mid=<?php echo $mid ?>">Stills</a></td>
+<td width="34%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watchfeed&mode=still&mid=<?php echo $mid ?>">Stills</a></td>
 <?php } elseif ( canStream() ) { ?>
-<td width="34%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=feed&mode=stream&mid=<?php echo $mid ?>">Stream</a></td>
+<td width="34%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watchfeed&mode=stream&mid=<?php echo $mid ?>">Stream</a></td>
 <?php } else { ?>
 <td width="34%" align="center" class="text">&nbsp;</td>
 <?php } ?>
@@ -333,7 +334,7 @@ else
 </html>
 <?php
 }
-elseif ( $view == "status" )
+elseif ( $view == "watchstatus" )
 {
 	$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -s" ) );
 	$status_string = "Unknown";
@@ -354,7 +355,7 @@ elseif ( $view == "status" )
 	}
 	$new_alarm = ( $status > 0 && $last_status == 0 );
 
-	header("Refresh: ".REFRESH_STATUS."; URL='$PHP_SELF?view=status&mid=$mid&last_status=$status'" );
+	header("Refresh: ".REFRESH_STATUS."; URL='$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status'" );
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -389,7 +390,7 @@ top.window.focus();
 </html>
 <?php
 }
-elseif ( $view == "events" )
+elseif ( $view == "watchevents" )
 {
 	switch( $sort_field )
 	{
@@ -422,11 +423,11 @@ elseif ( $view == "events" )
 	{
 		if ( $max_events )
 		{
-			header("Refresh: ".REFRESH_EVENTS."; URL='$PHP_SELF?view=events&mid=$mid&max_events=$max_events'" );
+			header("Refresh: ".REFRESH_EVENTS."; URL='$PHP_SELF?view=watchevents&mid=$mid&max_events=$max_events'" );
 		}
 		else
 		{
-			header("Refresh: ".REFRESH_EVENTS_ALL."; URL='$PHP_SELF?view=events&period=$period&archived=$archived&mid=$mid'" );
+			header("Refresh: ".REFRESH_EVENTS_ALL."; URL='$PHP_SELF?view=watchevents&period=$period&archived=$archived&mid=$mid'" );
 		}
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -441,7 +442,7 @@ elseif ( $view == "events" )
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name) {
-        var Name = window.open(Url,Name,"resizable,scrollbars,width=420,height=500");
+        var Name = window.open(Url,Name,"resizable,scrollbars,width=<?php echo $jws['event']['w'] ?>,height=<?php echo $jws['event']['h'] ?>");
 }
 function closeWindow() {
         top.window.close();
@@ -487,25 +488,25 @@ function checkAll(form,name){
 <tr>
 <td class="text"><b><?php if ( $max_events ) {?>Last <?php } ?><?php echo $n_rows ?> events</b></td>
 <?php if ( !$max_events ) { ?>
-<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo MAX_EVENTS ?>">Recent</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&max_events=<?php echo MAX_EVENTS ?>">Recent</a></td>
 <?php } ?>
 <?php if ( $archived || $max_events ) { ?>
-<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>">All</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>">All</a></td>
 <?php } ?>
 <?php if ( !$archived ) { ?>
-<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&archived=1">Archive</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&archived=1">Archive</a></td>
 <?php } ?>
 <td align="right" class="text"><a href="javascript: checkAll( event_form, 'delete_eids' );">Check All</a></td>
 </tr>
 <tr><td colspan="5" class="text">&nbsp;</td></tr>
 <tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr align="center">
-<td width="4%" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Id&sort_asc=<?php echo $sort_field == 'Id'?!$sort_asc:0 ?>">Id<?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td width="24%" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Name&sort_asc=<?php echo $sort_field == 'Name'?!$sort_asc:0 ?>">Name<?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Time&sort_asc=<?php echo $sort_field == 'Time'?!$sort_asc:0 ?>">Time<?php if ( $sort_field == "Time" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Secs&sort_asc=<?php echo $sort_field == 'Secs'?!$sort_asc:0 ?>">Secs<?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Frames&sort_asc=<?php echo $sort_field == 'Frames'?!$sort_asc:0 ?>">Frames<?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Score&sort_asc=<?php echo $sort_field == 'Score'?!$sort_asc:0 ?>">Score<?php if ( $sort_field == "Score" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td width="4%" class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Id&sort_asc=<?php echo $sort_field == 'Id'?!$sort_asc:0 ?>">Id<?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td width="24%" class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Name&sort_asc=<?php echo $sort_field == 'Name'?!$sort_asc:0 ?>">Name<?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Time&sort_asc=<?php echo $sort_field == 'Time'?!$sort_asc:0 ?>">Time<?php if ( $sort_field == "Time" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Secs&sort_asc=<?php echo $sort_field == 'Secs'?!$sort_asc:0 ?>">Secs<?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Frames&sort_asc=<?php echo $sort_field == 'Frames'?!$sort_asc:0 ?>">Frames<?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Score&sort_asc=<?php echo $sort_field == 'Score'?!$sort_asc:0 ?>">Score<?php if ( $sort_field == "Score" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text">Delete</td>
 </tr>
 <?php
@@ -528,6 +529,205 @@ function checkAll(form,name){
 </table></td>
 </tr>
 <tr><td align="right"><input type="submit" value="Delete" class="form"></td></tr>
+</table></center>
+</form>
+</body>
+</html>
+<?php
+}
+elseif ( $view == "events" )
+{
+	switch( $sort_field )
+	{
+		case 'Id' :
+			$sort_column = "E.Id";
+			break;
+		case 'Name' :
+			$sort_column = "E.Name";
+			break;
+		case 'Time' :
+			$sort_column = "E.StartTime";
+			break;
+		case 'Secs' :
+			$sort_column = "E.Length";
+			break;
+		case 'Frames' :
+			$sort_column = "E.Frames";
+			break;
+		case 'AlarmFrames' :
+			$sort_column = "E.AlarmFrames";
+			break;
+		case 'AvgScore' :
+			$sort_column = "E.AvgScore";
+			break;
+		case 'MaxScore' :
+			$sort_column = "E.MaxScore";
+			break;
+		default:
+			$sort_field = "Time";
+			$sort_column = "E.StartTime";
+			break;
+	}
+	$sort_order = $sort_asc?"asc":"desc";
+	if ( !$sort_asc ) $sort_asc = 0;
+
+	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$monitor = mysql_fetch_assoc( $result );
+
+	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId";
+	$sort_parms = '';
+	if ( $archived )
+	{
+		$sql .= " and E.Archived = 1";
+		$sort_parms .= '&archived='.urlencode($archived);
+	}
+	else
+	{
+		$sql .= " and E.Archived = 0";
+	}
+	if ( $start_date || $end_date )
+	{
+		if ( $start_date )
+		{
+			$sql .= " and E.StartTime >= '".date( "Y-m-d", strtotime($start_date) )." 00:00:00'";
+			$sort_parms .= '&start_date='.urlencode($start_date);
+		}
+		if ( $end_date )
+		{
+			$sql .= " and E.EndTime <= '".date( "Y-m-d", strtotime($end_date) )." 23:59:59'";
+			$sort_parms .= '&end_date='.urlencode($end_date);
+		}
+	}
+	elseif ( $period_count && $period_type )
+	{
+		if ( $period_type == "week" )
+			$sql .= " and E.StartTime >= now() - interval ".(7*$period_count)." day";
+		else
+			$sql .= " and E.StartTime >= now() - interval $period_count $period_type";
+		$sort_parms .= '&period_count='.urlencode($period_count).'&period_type='.urlencode($period_type);
+	}
+	if ( $filter_attr && $filter_op && $filter_val )
+	{
+		$sql .= " and $filter_attr $filter_op $filter_val";
+		$sort_parms .= '&filter_attr='.urlencode($filter_attr).'&filter_op='.urlencode($filter_op).'&filter_val='.urlencode($filter_val);
+	}
+	$sql .= " order by $sort_column $sort_order";
+	//echo $sql;
+	$result = mysql_query( $sql );
+	if ( !$result )
+	{
+		die( mysql_error() );
+	}
+	$n_rows = mysql_num_rows( $result );
+
+	$period_types = array( ''=>'', 'hour'=>'Hour(s)', 'day'=>'Day(s)', 'week'=>'Week(s)', 'month'=>'Month(s)', 'year'=>'Year(s)' );
+	$filter_attrs = array( ''=>'', 'Length'=>'Length', 'Frames'=>'Frames', 'AlarmFrames'=>'Alarm Frames', 'AvgScore'=>'Avg. Score', 'MaxScore'=>'Max. Score' );
+	$filter_ops = array( ''=>'', '<'=>'less than', '<='=>'less than or equal to', '='=>'equal to', '>='=>'greater than or equal to', '>'=>'greater than', '!='=>'not equal to' );
+
+	//echo $sort_parms;
+?>
+<html>
+<head>
+<title>ZM - <?php echo $monitor[Name] ?> - Events <?php if ( $archived ) { ?>Archive<?php } ?></title>
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<script language="JavaScript">
+function newWindow(Url,Name) {
+        var Name = window.open(Url,Name,"resizable,scrollbars,width=<?php echo $jws['event']['w'] ?>,height=<?php echo $jws['event']['h'] ?>");
+}
+function closeWindow() {
+        top.window.close();
+}
+function checkAll(form,name){
+	for (var i = 0; i < form.elements.length; i++)
+		if (form.elements[i].name.indexOf(name) == 0)
+			form.elements[i].checked = 1;
+}
+function clearPeriod(form)
+{
+	form.period_count.value = '';
+	form.period_type.options[0].selected = true;
+}
+function clearDates(form)
+{
+	form.start_date.value = '';
+	form.end_date.value = '';
+}
+function resetFilter(form)
+{
+	return;
+	if ( form.filter_attr.options[0].selected || form.filter_op.options[0].selected || form.filter_val.value == '' )
+	{
+		form.filter_attr.options[0].selected = true;
+		form.filter_op.options[0].selected = true;
+		form.filter_val.value = '';
+	}
+}
+
+</script>
+</head>
+<body>
+<form name="event_form" method="post" action="<?php echo $PHP_SELF ?>">
+<input type="hidden" name="view" value="<?php echo $view ?>">
+<input type="hidden" name="action" value="">
+<input type="hidden" name="mid" value="<?php echo $mid ?>">
+<center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
+<tr>
+<td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
+<tr>
+<td class="text">Show events from last <input type="text" size="3" name="period_count" value="<?php echo $period_count ?>" class="form" onChange="clearDates( event_form );"> <select name="period_type" class="form" onChange="clearDates( event_form );"><?php foreach ( $period_types as $period_type_value => $period_type_text ) { ?><option value="<?php echo $period_type_value ?>"<?php if ( $period_type == $period_type_value ) { echo " selected"; } ?>><?php echo $period_type_text ?></option><?php } ?></select> or choose dates from <input type="text" size="16" name="start_date" value="<?php echo $start_date ?>" class="form" onChange="clearPeriod( event_form );"> to <input type="text" size="16" name="end_date" value="<?php echo $end_date ?>" class="form" onChange="clearPeriod( event_form );">
+</tr>
+<tr>
+<td class="text">Only show events where
+<select name="filter_attr" class="form" onChange="resetFilter( event_form );"><?php foreach ( $filter_attrs as $filter_attr_value => $filter_attr_text ) { ?><option value="<?php echo $filter_attr_value ?>"<?php if ( $filter_attr == $filter_attr_value ) { echo " selected"; } ?>><?php echo $filter_attr_text ?></option><?php } ?></select>
+is
+<select name="filter_op" class="form" onChange="resetFilter( event_form );"><?php foreach ( $filter_ops as $filter_op_value => $filter_op_text ) { ?><option value="<?php echo strtolower( $filter_op_value ) ?>"<?php if ( $filter_op == $filter_op_value ) { echo " selected"; } ?>><?php echo $filter_op_text ?></option><?php } ?></select> <input type="text" size="6" name="filter_val" value="<?php echo $filter_val ?>" class="form" onChange="resetFilter( event_form );">
+<tr>
+<td class="text">
+Only show archived events <input type="checkbox" name="archived" value="1"<?php if ( $archived ) echo " checked" ?></td>
+</tr>
+<tr><td align="right"><input type="reset" value="Reset" class="form"></td></tr>
+<tr><td align="right"><input type="button" value="Refresh" class="form" onClick="event_form.action.value = ''; event_form.submit();"></td></tr>
+<tr>
+<td align="left" class="text"><b><?php echo $monitor[Name] ?> - <?php echo $n_rows ?> events</b></td>
+<td align="right" class="text"><a href="javascript: checkAll( event_form, 'delete_eids' );">Check All</a></td>
+</tr>
+<tr><td colspan="5" class="text">&nbsp;</td></tr>
+<tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%">
+<tr align="center">
+<td width="4%" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $sort_parms ?>&sort_field=Id&sort_asc=<?php echo $sort_field == 'Id'?!$sort_asc:0 ?>">Id<?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td width="24%" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $sort_parms ?>&sort_field=Name&sort_asc=<?php echo $sort_field == 'Name'?!$sort_asc:0 ?>">Name<?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $sort_parms ?>&sort_field=Time&sort_asc=<?php echo $sort_field == 'Time'?!$sort_asc:0 ?>">Time<?php if ( $sort_field == "Time" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $sort_parms ?>&sort_field=Secs&sort_asc=<?php echo $sort_field == 'Secs'?!$sort_asc:0 ?>">Length<?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $sort_parms ?>&sort_field=Frames&sort_asc=<?php echo $sort_field == 'Frames'?!$sort_asc:0 ?>">Frames<?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $sort_parms ?>&sort_field=AlarmFrames&sort_asc=<?php echo $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>">Alarm Frames<?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $sort_parms ?>&sort_field=AvgScore&sort_asc=<?php echo $sort_field == 'AvgScore'?!$sort_asc:0 ?>">Avg. Score<?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $sort_parms ?>&sort_field=MaxScore&sort_asc=<?php echo $sort_field == 'MaxScore'?!$sort_asc:0 ?>">Max. Score<?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text">Delete</td>
+</tr>
+<?php
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+?>
+<tr>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Id] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Name] ?></a></td>
+<td align="center" class="text"><?php echo strftime( "%m/%d %H:%M:%S", $row[Time] ) ?></td>
+<td align="center" class="text"><?php echo $row[Length] ?></td>
+<td align="center" class="text"><?php echo $row[Frames] ?></td>
+<td align="center" class="text"><?php echo $row[AlarmFrames] ?></td>
+<td align="center" class="text"><?php echo $row[AvgScore] ?></td>
+<td align="center" class="text"><?php echo $row[MaxScore] ?></td>
+<td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>"></td>
+</tr>
+<?php
+	}
+?>
+</table></td></tr>
+</table></td>
+</tr>
+<tr><td align="right"><input type="button" value="Delete" class="form" onClick="event_form.action.value = 'delete'; event_form.submit();"></td></tr>
 </table></center>
 </form>
 </body>
@@ -674,7 +874,7 @@ function newWindow(Url,Name,Width,Height) {
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( MPEG_ENCODE_PATH && file_exists( MPEG_ENCODE_PATH ) ) { ?>
-<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=video&eid=<?php echo $eid ?>', 'zmVideo', 100, 80 );">Video</a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=video&eid=<?php echo $eid ?>', 'zmVideo', <?php echo $jws['video']['w'] ?>, <?php echo $jws['video']['h'] ?> );">Video</a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
@@ -745,7 +945,7 @@ else
 			}
 		}
 ?>
-<td align="center" width="88"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $frame_id ?>', 'zmImage', <?php echo $event[Width]+48 ?>, <?php echo $event[Height]+72 ?> );"><img src="<?php echo $thumb_image ?>" width="<?php echo $thumb_width ?>" height="<? echo $thumb_height ?>" border="0" alt="<?php echo $frame_id ?>/<?php echo $row[Score] ?>"></a></td>
+<td align="center" width="88"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $frame_id ?>', 'zmImage', <?php echo $event[Width]+$jws['image']['w'] ?>, <?php echo $event[Height]+$jws['image']['h'] ?> );"><img src="<?php echo $thumb_image ?>" width="<?php echo $thumb_width ?>" height="<? echo $thumb_height ?>" border="0" alt="<?php echo $frame_id ?>/<?php echo $row[Score] ?>"></a></td>
 <?php
 		flush();
 		if ( !(++$count % 4) )
@@ -807,7 +1007,7 @@ function closeWindow() {
 	foreach( $zones as $zone )
 	{
 ?>
-<area shape="rect" coords="<?php echo "$zone[LoX],$zone[LoY],$zone[HiX],$zone[HiY]" ?>" href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', 360, 480 );">
+<area shape="rect" coords="<?php echo "$zone[LoX],$zone[LoY],$zone[HiX],$zone[HiY]" ?>" href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $jws['zone']['w'] ?>, <?php echo $jws['zone']['h'] ?> );">
 <?php
 	}
 ?>
@@ -838,8 +1038,8 @@ function closeWindow() {
 	{
 ?>
 <tr>
-<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', 360, 480 );"><?php echo $zone[Id] ?>.</a></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', 360, 480 );"><?php echo $zone[Name] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $jws['zone']['w'] ?>, <?php echo $jws['zone']['h'] ?> );"><?php echo $zone[Id] ?>.</a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $jws['zone']['w'] ?>, <?php echo $jws['zone']['h'] ?> );"><?php echo $zone[Name] ?></a></td>
 <td align="center" class="text"><?php echo $zone['Type'] ?></td>
 <td align="center" class="text"><?php echo $zone[Units] ?></td>
 <td align="center" class="text"><?php echo $zone[LoX] ?>,<?php echo $zone[LoY] ?>-<?php echo $zone[HiX] ?>,<?php echo $zone[HiY]?></td>
@@ -850,7 +1050,7 @@ function closeWindow() {
 ?>
 <tr>
 <td align="center" class="text">&nbsp;</td>
-<td colspan="4" align="center"><input type="button" value="Add New Zone" class="form" onClick="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=-1', 'zmZone', 360, 480 );"></td>
+<td colspan="4" align="center"><input type="button" value="Add New Zone" class="form" onClick="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=-1', 'zmZone', <?php echo $jws['zone']['w'] ?>, <?php echo $jws['zone']['h'] ?> );"></td>
 <td align="center"><input type="submit" value="Delete" class="form"></td>
 </tr>
 </form>

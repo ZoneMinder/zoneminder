@@ -64,31 +64,31 @@ function validateForm( Form )
 {
 	var errors = new Array();
 	Form.new_alarm_rgb.value = (Form.new_alarm_rgb_r.value<<16)|(Form.new_alarm_rgb_g.value<<8)|Form.new_alarm_rgb_b.value;
-	if ( (Form.new_min_pixel_threshold.value >= Form.new_max_pixel_threshold.value) && (Form.new_max_pixel_threshold.value > 0) )
+	if ( (parseInt(Form.new_min_pixel_threshold.value) >= parseInt(Form.new_max_pixel_threshold.value)) && (parseInt(Form.new_max_pixel_threshold.value) > 0) )
 	{
 		errors[errors.length] = "<?= $zmSlangMinPixelThresLtMax ?>";
 	}
-	if ( Form.new_min_alarm_pixels.value < Form.new_min_filter_pixels.value )
+	if ( parseInt(Form.new_min_alarm_pixels.value) < parseInt(Form.new_min_filter_pixels.value) )
 	{
 		errors[errors.length] = "<?= $zmSlangMinAlarmGeMinFilter ?>";
 	}
-	if ( (Form.new_min_alarm_pixels.value >= Form.new_max_alarm_pixels.value) && (Form.new_max_alarm_pixels.value > 0) )
+	if ( (parseInt(Form.new_min_alarm_pixels.value) >= parseInt(Form.new_max_alarm_pixels.value)) && (parseInt(Form.new_max_alarm_pixels.value) > 0) )
 	{
 		errors[errors.length] = "<?= $zmSlangMinAlarmPixelsLtMax ?>";
 	}
-	if ( Form.new_min_filter_pixels.value < Form.new_min_blob_pixels.value )
+	if ( parseInt(Form.new_min_filter_pixels.value) < parseInt(Form.new_min_blob_pixels.value) )
 	{
 		errors[errors.length] = "<?= $zmSlangMinAlarmGeMinBlob ?>";
 	}
-	if ( (Form.new_min_filter_pixels.value >= Form.new_max_filter_pixels.value) && (Form.new_max_filter_pixels.value > 0) )
+	if ( (parseInt(Form.new_min_filter_pixels.value) >= parseInt(Form.new_max_filter_pixels.value)) && (parseInt(Form.new_max_filter_pixels.value) > 0) )
 	{
 		errors[errors.length] = "<?= $zmSlangMinFilterPixelsLtMax ?>";
 	}
-	if ( (Form.new_min_blob_pixels.value >= Form.new_max_blob_pixels.value) && (Form.new_max_blob_pixels.value > 0) )
+	if ( (parseInt(Form.new_min_blob_pixels.value) >= parseInt(Form.new_max_blob_pixels.value)) && (parseInt(Form.new_max_blob_pixels.value) > 0) )
 	{
 		errors[errors.length] = "<?= $zmSlangMinBlobAreaLtMax ?>";
 	}
-	if ( (Form.new_min_blobs.value >= Form.new_max_blobs.value) && (Form.new_max_blobs.value > 0) )
+	if ( (parseInt(Form.new_min_blobs.value) >= parseInt(Form.new_max_blobs.value)) && (parseInt(Form.new_max_blobs.value) > 0) )
 	{
 		errors[errors.length] = "<?= $zmSlangMinBlobsLtMax ?>";
 	}
@@ -261,7 +261,6 @@ function applyZoneUnits( Form )
 {
 	var max_width = <?= $monitor['Width']-1 ?>;
 	var max_height = <?= $monitor['Height']-1 ?>;
-	var area = (max_width+1) * (max_height+1);
 
 	if ( Form.new_units.value == 'Pixels' )
 	{
@@ -269,6 +268,7 @@ function applyZoneUnits( Form )
 		toPixels( Form.new_lo_y, max_height );
 		toPixels( Form.new_hi_x, max_width );
 		toPixels( Form.new_hi_y, max_height );
+		var area = ((parseInt(Form.new_hi_x.value)-parseInt(Form.new_lo_x.value))+1) * ((parseInt(Form.new_hi_y.value)-parseInt(Form.new_lo_y.value))+1);
 		toPixels( Form.new_min_alarm_pixels, area );
 		toPixels( Form.new_max_alarm_pixels, area );
 		toPixels( Form.new_min_filter_pixels, area );
@@ -278,6 +278,7 @@ function applyZoneUnits( Form )
 	}
 	else
 	{
+		var area = ((parseInt(Form.new_hi_x.value)-parseInt(Form.new_lo_x.value))+1) * ((parseInt(Form.new_hi_y.value)-parseInt(Form.new_lo_y.value))+1);
 		toPercent( Form.new_lo_x, max_width );
 		toPercent( Form.new_lo_y, max_height );
 		toPercent( Form.new_hi_x, max_width );
@@ -293,11 +294,11 @@ function applyZoneUnits( Form )
 
 function limitRange( Field, minValue, maxValue)
 {
-	if ( Field.value < minValue )
+	if ( parseInt(Field.value) < parseInt(minValue) )
 	{
 		Field.value = minValue;
 	}
-	if ( Field.value > maxValue )
+	if ( parseInt(Field.value) > parseInt(maxValue) )
 	{
 		Field.value = maxValue;
 	}
@@ -309,11 +310,11 @@ function limitFilter( Field )
 	var maxValue = 15;
 
 	Field.value = (Math.floor((Field.value-1)/2)*2) + 1;
-	if ( Field.value < minValue )
+	if ( parseInt(Field.value) < minValue )
 	{
 		Field.value = minValue;
 	}
-	if ( Field.value > maxValue )
+	if ( parseInt(Field.value) > maxValue )
 	{
 		Field.value = maxValue;
 	}
@@ -326,12 +327,12 @@ function checkBounds( Field, fieldText, minValue, maxValue )
 		minValue = 0;
 		maxValue = 100;
 	}
-	if ( Field.value < minValue )
+	if ( parseInt(Field.value) < parseInt(minValue) )
 	{
 		alert( fieldText + " <?= $zmSlangMustBeGe ?> " + minValue );
 		Field.value = minValue;
 	}
-	if ( Field.value > maxValue )
+	if ( parseInt(Field.value) > parseInt(maxValue) )
 	{
 		alert( fieldText + " <?= $zmSlangMustBeLe ?> " + maxValue );
 		Field.value = maxValue;

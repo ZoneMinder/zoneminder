@@ -252,6 +252,7 @@ int RemoteCamera::GetResponse()
 	//int subcontent_length = 0;
 	//const char *subcontent_type = "";
 
+#if HAVE_LIBPCRE
 	while ( true )
 	{
 		switch( state )
@@ -439,6 +440,9 @@ int RemoteCamera::GetResponse()
 		}
 	}
 	return( 0 );
+#else
+	Fatal(( "You must have libpcre.a installed to use remote cameras" ));
+#endif // HAVE_LIBPCRE
 }
 
 int RemoteCamera::PreCapture()

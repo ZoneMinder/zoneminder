@@ -331,7 +331,7 @@ if ( $action )
 			}
 			$filter_query_string = join( '&', $filter_parms );
 			//$filter_query_string = serialize( $filter_query );
-			$sql = "replace into Filters set MonitorId = '$mid', Name = '$filter_name', Query = '$filter_query_string',  AutoDelete = '$auto_delete'";
+			$sql = "replace into Filters set MonitorId = '$mid', Name = '$filter_name', Query = '$filter_query_string', AutoDelete = '$auto_delete', AutoUpload = '$auto_upload'";
 			#echo "<html>$sql</html>";
 			$result = mysql_query( $sql );
 			if ( !$result )

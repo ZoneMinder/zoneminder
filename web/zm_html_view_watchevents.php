@@ -23,38 +23,9 @@ if ( !canView( 'Events' ) )
 	$view = "error";
 	return;
 }
-if ( empty($sort_field) )
-{
-	$sort_field = "Time";
-	$sort_asc = false;
-}
-switch( $sort_field )
-{
-	case 'Id' :
-		$sort_column = "E.Id";
-		break;
-	case 'Name' :
-		$sort_column = "E.Name";
-		break;
-	case 'Time' :
-		$sort_column = "E.StartTime";
-		break;
-	case 'Secs' :
-		$sort_column = "E.Length";
-		break;
-	case 'Frames' :
-		$sort_column = "E.Frames";
-		break;
-	case 'Score' :
-		$sort_column = "E.AvgScore";
-		break;
-	default:
-		$sort_column = "E.StartTime";
-		break;
-}
-$sort_order = $sort_asc?"asc":"desc";
-if ( !$sort_asc )
-	$sort_asc = 0;
+
+parseSort();
+
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: ".REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
@@ -160,8 +131,8 @@ while( $event = mysql_fetch_assoc( $result ) )
 {
 ?>
 <tr bgcolor="#FFFFFF">
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event['Id'] ?>&page=1', 'zmEvent' );"><?= $event['Id'] ?></a></td>
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event['Id'] ?>&page=1', 'zmEvent' );"><?= $event['Name'] ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&trms=1&attr1=MonitorId&op1=%3d&val1=&page=1', 'zmEvent' );"><?= $event['Id'] ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&trms=1&attr1=MonitorId&op1=%3d&val1=&page=1', 'zmEvent' );"><?= $event['Name'] ?></a></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event['StartTime']) ) ?></td>
 <td align="center" class="text"><?= $event['Length'] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['Frames'] ?>/<?= $event['AlarmFrames'] ?></a></td>

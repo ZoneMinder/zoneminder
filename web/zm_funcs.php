@@ -421,4 +421,170 @@ function reScale( $dimension, $scale=SCALE_SCALE )
 	return( (int)(($dimension*$scale)/SCALE_SCALE) );
 }
 
+function parseSort()
+{
+	global $sort_field, $sort_asc; // Inputs
+	global $sort_query, $sort_column, $sort_order; // Outputs
+
+	if ( !isset($sort_field) )
+	{
+		$sort_field = "StartTime";
+		$sort_asc = false;
+	}
+	switch( $sort_field )
+	{
+		case 'Id' :
+			$sort_column = "E.Id";
+			break;
+		case 'MonitorName' :
+			$sort_column = "M.Name";
+			break;
+		case 'Name' :
+			$sort_column = "E.Name";
+			break;
+		case 'StartTime' :
+			$sort_column = "E.StartTime";
+			break;
+		case 'Secs' :
+			$sort_column = "E.Length";
+			break;
+		case 'Frames' :
+			$sort_column = "E.Frames";
+			break;
+		case 'AlarmFrames' :
+			$sort_column = "E.AlarmFrames";
+			break;
+		case 'TotScore' :
+			$sort_column = "E.TotScore";
+			break;
+		case 'AvgScore' :
+			$sort_column = "E.AvgScore";
+			break;
+		case 'MaxScore' :
+			$sort_column = "E.MaxScore";
+			break;
+		default:
+			$sort_column = "E.StartTime";
+			break;
+	}
+	$sort_order = $sort_asc?"asc":"desc";
+	if ( !$sort_asc ) $sort_asc = 0;
+	$sort_query = "&sort_field=$sort_field&sort_asc=$sort_asc";
+}
+
+function parseFilter()
+{
+	global $filter_query, $filter_sql, $filter_fields;
+
+	$filter_query = ''; 
+	$filter_sql = '';
+	$filter_fields = '';
+
+	global $trms;
+	if ( $trms )
+	{
+		$filter_query .= "&trms=$trms";
+		$filter_fields .= '<input type="hidden" name="trms" value="'.$trms.'">'."\n";
+	}
+	for ( $i = 1; $i <= $trms; $i++ )
+	{
+		$conjunction_name = "cnj$i";
+		$obracket_name = "obr$i";
+		$cbracket_name = "cbr$i";
+		$attr_name = "attr$i";
+		$op_name = "op$i";
+		$value_name = "val$i";
+
+		global $$conjunction_name, $$obracket_name, $$cbracket_name, $$attr_name, $$op_name, $$value_name;
+
+		if ( isset($$conjunction_name) )
+		{
+			$filter_query .= "&$conjunction_name=".$$conjunction_name;
+			$filter_sql .= " ".$$conjunction_name." ";
+			$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'">'."\n";
+		}
+		if ( isset($$obracket_name) )
+		{
+			$filter_query .= "&$obracket_name=".$$obracket_name;
+			$filter_sql .= str_repeat( "(", $$obracket_name );
+			$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'">'."\n";
+		}
+		if ( isset($$attr_name) )
+		{
+			$filter_query .= "&$attr_name=".$$attr_name;
+			$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'">'."\n";
+			$value = $$value_name;
+			switch ( $$attr_name )
+			{
+				case 'MonitorName':
+					$filter_sql .= 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
+					break;
+				case 'DateTime':
+					$value = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) );
+					$filter_sql .= "E.StartTime";
+					break;
+				case 'Date':
+					$value = "to_days( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) )."' )";
+					$filter_sql .= "to_days( E.StartTime )";
+					break;
+				case 'Time':
+					$value = "extract( hour_second from '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) )."' )";
+					$filter_sql .= "extract( hour_second from E.StartTime )";
+					break;
+				case 'Weekday':
+					$value = "weekday( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) )."' )";
+					$filter_sql .= "weekday( E.StartTime )";
+					break;
+				case 'MonitorId':
+				case 'Length':
+				case 'Frames':
+				case 'AlarmFrames':
+				case 'TotScore':
+				case 'AvgScore':
+				case 'MaxScore':
+					$filter_sql .= "E.".$$attr_name;
+					break;
+				case 'Archived':
+					$filter_sql .= "E.Archived = ".$$value_name;
+					break;
+			}
+
+			switch ( $$op_name )
+			{
+				case '=' :
+				case '!=' :
+				case '>=' :
+				case '>' :
+				case '<' :
+				case '<=' :
+					$filter_sql .= " ".$$op_name." '$value'";
+					break;
+				case '=~' :
+					$filter_sql .= " regexp '$value'";
+					break;
+				case '!~' :
+					$filter_sql .= " not regexp '$value'";
+					break;
+				case '=[]' :
+					$filter_sql .= " in ('".join( "','", preg_split( '/["\'\s]*,["\'\s]*/', $value ) )."')";
+					break;
+				case '![]' :
+					$filter_sql .= " not in ('".join( "','", preg_split( '/["\'\s]*,["\'\s]*/', $value ) )."')";
+					break;
+			}
+
+			$filter_query .= "&$op_name=".urlencode($$op_name);
+			$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
+			$filter_query .= "&$value_name=".urlencode($$value_name);
+			$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'">'."\n";
+		}
+		if ( isset($$cbracket_name) )
+		{
+			$filter_query .= "&$cbracket_name=".$$cbracket_name;
+			$filter_sql .= str_repeat( ")", $$cbracket_name );
+			$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'">'."\n";
+		}
+	}
+	$filter_sql = " and ( $filter_sql )";
+}
 ?>

@@ -32,54 +32,6 @@ while( $row = mysql_fetch_assoc( $result ) )
 	$monitors[$row[Id]] = $row;
 }
 
-if ( !isset($sort_parms) )
-{
-	$sort_parms = "";
-}
-if ( !isset($sort_field) )
-{
-	$sort_field = "Time";
-	$sort_asc = false;
-}
-switch( $sort_field )
-{
-	case 'Id' :
-		$sort_column = "E.Id";
-		break;
-	case 'MonitorName' :
-		$sort_column = "M.Name";
-		break;
-	case 'Name' :
-		$sort_column = "E.Name";
-		break;
-	case 'Time' :
-		$sort_column = "E.StartTime";
-		break;
-	case 'Secs' :
-		$sort_column = "E.Length";
-		break;
-	case 'Frames' :
-		$sort_column = "E.Frames";
-		break;
-	case 'AlarmFrames' :
-		$sort_column = "E.AlarmFrames";
-		break;
-	case 'TotScore' :
-		$sort_column = "E.TotScore";
-		break;
-	case 'AvgScore' :
-		$sort_column = "E.AvgScore";
-		break;
-	case 'MaxScore' :
-		$sort_column = "E.MaxScore";
-		break;
-	default:
-		$sort_column = "E.StartTime";
-		break;
-}
-$sort_order = $sort_asc?"asc":"desc";
-if ( !$sort_asc ) $sort_asc = 0;
-
 $count_sql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
 $events_sql = "select E.Id,E.MonitorId,M.Name As MonitorName,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
 if ( $user['MonitorIds'] )
@@ -92,114 +44,14 @@ else
 	$count_sql .= " 1";
 	$events_sql .= " 1";
 }
-$filter_query = ''; 
-$filter_sql = '';
-$filter_fields = '';
-if ( $trms )
-{
-	$filter_query .= "&trms=$trms";
-	$filter_fields .= '<input type="hidden" name="trms" value="'.$trms.'">'."\n";
-}
-for ( $i = 1; $i <= $trms; $i++ )
-{
-	$conjunction_name = "cnj$i";
-	$obracket_name = "obr$i";
-	$cbracket_name = "cbr$i";
-	$attr_name = "attr$i";
-	$op_name = "op$i";
-	$value_name = "val$i";
-	if ( isset($$conjunction_name) )
-	{
-		$filter_query .= "&$conjunction_name=".$$conjunction_name;
-		$filter_sql .= " ".$$conjunction_name." ";
-		$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'">'."\n";
-	}
-	if ( isset($$obracket_name) )
-	{
-		$filter_query .= "&$obracket_name=".$$obracket_name;
-		$filter_sql .= str_repeat( "(", $$obracket_name );
-		$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'">'."\n";
-	}
-	if ( isset($$attr_name) )
-	{
-		$filter_query .= "&$attr_name=".$$attr_name;
-		$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'">'."\n";
-		$value = $$value_name;
-		switch ( $$attr_name )
-		{
-			case 'MonitorName':
-				$filter_sql .= 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
-				break;
-			case 'DateTime':
-				$value = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) );
-				$filter_sql .= "E.StartTime";
-				break;
-			case 'Date':
-				$value = "to_days( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) )."' )";
-				$filter_sql .= "to_days( E.StartTime )";
-				break;
-			case 'Time':
-				$value = "extract( hour_second from '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) )."' )";
-				$filter_sql .= "extract( hour_second from E.StartTime )";
-				break;
-			case 'Weekday':
-				$value = "weekday( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) )."' )";
-				$filter_sql .= "weekday( E.StartTime )";
-				break;
-			case 'MonitorId':
-			case 'Length':
-			case 'Frames':
-			case 'AlarmFrames':
-			case 'TotScore':
-			case 'AvgScore':
-			case 'MaxScore':
-				$filter_sql .= "E.".$$attr_name;
-				break;
-			case 'Archived':
-				$filter_sql .= "E.Archived = ".$$value_name;
-				break;
-		}
 
-		switch ( $$op_name )
-		{
-			case '=' :
-			case '!=' :
-			case '>=' :
-			case '>' :
-			case '<' :
-			case '<=' :
-				$filter_sql .= " ".$$op_name." '$value'";
-				break;
-			case '=~' :
-				$filter_sql .= " regexp '$value'";
-				break;
-			case '!~' :
-				$filter_sql .= " not regexp '$value'";
-				break;
-			case '=[]' :
-				$filter_sql .= " in ('".join( "','", preg_split( '/["\'\s]*,["\'\s]*/', $value ) )."')";
-				break;
-			case '![]' :
-				$filter_sql .= " not in ('".join( "','", preg_split( '/["\'\s]*,["\'\s]*/', $value ) )."')";
-				break;
-		}
+parseSort();
+parseFilter();
 
-		$filter_query .= "&$op_name=".urlencode($$op_name);
-		$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
-		$filter_query .= "&$value_name=".urlencode($$value_name);
-		$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'">'."\n";
-	}
-	if ( isset($$cbracket_name) )
-	{
-		$filter_query .= "&$cbracket_name=".$$cbracket_name;
-		$filter_sql .= str_repeat( ")", $$cbracket_name );
-		$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'">'."\n";
-	}
-}
 if ( $filter_sql )
 {
-	$count_sql .= " and ( $filter_sql )";
-	$events_sql .= " and ( $filter_sql )";
+	$count_sql .= $filter_sql;
+	$events_sql .= $filter_sql;
 }
 $events_sql .= " order by $sort_column $sort_order";
 if ( $page )
@@ -270,7 +122,7 @@ if ( isset($filter) )
 ?>
 //opener.location.reload(true);
 filterWindow( '<?= $PHP_SELF ?>?view=filter&page=<?= $page ?><?= $filter_query ?>', 'zmFilter' );
-location.replace( '<?= $PHP_SELF ?>?view=events&page=<?= $page ?><?= $filter_query ?>' );
+location.replace( '<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page ?><?= $filter_query ?>' );
 </script>
 </head>
 </html>
@@ -339,7 +191,7 @@ else
 				foreach ( $new_pages as $new_page )
 				{
 ?>
-<a href="<?= $PHP_SELF ?>?view=events&page=<?= $new_page ?>&<?= $filter_query ?><?= $sort_parms ?>&sort_field=<?= $sort_field ?>&sort_asc=<?= $sort_asc ?>"><?= $new_page ?></a>&nbsp;
+<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter_query ?><?= $sort_query ?>"><?= $new_page ?></a>&nbsp;
 <?php
 				}
 			}
@@ -367,20 +219,20 @@ else
 				foreach ( $new_pages as $new_page )
 				{
 ?>
-&nbsp;<a href="<?= $PHP_SELF ?>?view=events&page=<?= $new_page ?>&<?= $filter_query ?><?= $sort_parms ?>&sort_field=<?= $sort_field ?>&sort_asc=<?= $sort_asc ?>"><?= $new_page ?></a>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter_query ?><?= $sort_query ?>"><?= $new_page ?></a>
 <?php
 				}
 			}
 ?>
 </td>
-<td align="right" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=events&page=0&<?= $filter_query ?><?= $sort_parms ?>&sort_field=<?= $sort_field ?>&sort_asc=<?= $sort_asc ?>"><?= $zmSlangViewAll ?></a></td>
+<td align="right" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=0<?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangViewAll ?></a></td>
 <?php
 		}
 		else
 		{
 ?>
 <td align="center" class="text" width="60%">&nbsp;</td>
-<td align="center" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=<?= $sort_field ?>&sort_asc=<?= $sort_asc ?>"><?= $zmSlangViewPaged ?></a></td>
+<td align="center" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangViewPaged ?></a></td>
 <?php
 		}
 	}
@@ -406,16 +258,16 @@ else
 		{
 ?>
 <tr align="center" bgcolor="#FFFFFF">
-<td class="text"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>"><?= $zmSlangId ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=Name&sort_asc=<?= $sort_field == 'Name'?!$sort_asc:0 ?>"><?= $zmSlangName ?><?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=MonitorName&sort_asc=<?= $sort_field == 'MonitorName'?!$sort_asc:0 ?>"><?= $zmSlangMonitor ?><?php if ( $sort_field == "MonitorName" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=Time&sort_asc=<?= $sort_field == 'Time'?!$sort_asc:0 ?>"><?= $zmSlangTime ?><?php if ( $sort_field == "Time" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=Secs&sort_asc=<?= $sort_field == 'Secs'?!$sort_asc:0 ?>"><?= $zmSlangDuration ?><?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=Frames&sort_asc=<?= $sort_field == 'Frames'?!$sort_asc:0 ?>"><?= $zmSlangFrames ?><?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=AlarmFrames&sort_asc=<?= $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>"><?= $zmSlangAlarmBrFrames ?><?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=TotScore&sort_asc=<?= $sort_field == 'TotScore'?!$sort_asc:0 ?>"><?= $zmSlangTotalBrScore ?><?php if ( $sort_field == "TotScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=AvgScore&sort_asc=<?= $sort_field == 'AvgScore'?!$sort_asc:0 ?>"><?= $zmSlangAvgBrScore ?><?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=events&page=1&<?= $filter_query ?><?= $sort_parms ?>&sort_field=MaxScore&sort_asc=<?= $sort_field == 'MaxScore'?!$sort_asc:0 ?>"><?= $zmSlangMaxBrScore ?><?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>"><?= $zmSlangId ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Name&sort_asc=<?= $sort_field == 'Name'?!$sort_asc:0 ?>"><?= $zmSlangName ?><?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=MonitorName&sort_asc=<?= $sort_field == 'MonitorName'?!$sort_asc:0 ?>"><?= $zmSlangMonitor ?><?php if ( $sort_field == "MonitorName" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=StartTime&sort_asc=<?= $sort_field == 'StartTime'?!$sort_asc:0 ?>"><?= $zmSlangTime ?><?php if ( $sort_field == "StartTime" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Secs&sort_asc=<?= $sort_field == 'Secs'?!$sort_asc:0 ?>"><?= $zmSlangDuration ?><?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Frames&sort_asc=<?= $sort_field == 'Frames'?!$sort_asc:0 ?>"><?= $zmSlangFrames ?><?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=AlarmFrames&sort_asc=<?= $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>"><?= $zmSlangAlarmBrFrames ?><?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=TotScore&sort_asc=<?= $sort_field == 'TotScore'?!$sort_asc:0 ?>"><?= $zmSlangTotalBrScore ?><?php if ( $sort_field == "TotScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=AvgScore&sort_asc=<?= $sort_field == 'AvgScore'?!$sort_asc:0 ?>"><?= $zmSlangAvgBrScore ?><?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=MaxScore&sort_asc=<?= $sort_field == 'MaxScore'?!$sort_asc:0 ?>"><?= $zmSlangMaxBrScore ?><?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text">Mark</td>
 </tr>
 <?php
@@ -428,8 +280,8 @@ else
 			unset( $bgcolor );
 ?>
 <tr<?= ' bgcolor="'.(isset($bgcolor)?$bgcolor:"#FFFFFF").'"' ?> >
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&page=1', 'zmEvent', <?= $monitors[$event['MonitorId']]['Width']+$jws['event']['w']  ?>, <?= $monitors[$event['MonitorId']]['Height']+$jws['event']['h']  ?> );"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&page=1', 'zmEvent', <?= $monitors[$event['MonitorId']]['Width']+$jws['event']['w']  ?>, <?= $monitors[$event['MonitorId']]['Height']+$jws['event']['h']  ?> );"><?= $event['Name'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $monitors[$event['MonitorId']]['Width']+$jws['event']['w']  ?>, <?= $monitors[$event['MonitorId']]['Height']+$jws['event']['h']  ?> );"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $monitors[$event['MonitorId']]['Width']+$jws['event']['w']  ?>, <?= $monitors[$event['MonitorId']]['Height']+$jws['event']['h']  ?> );"><?= $event['Name'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
 <td align="center" class="text"><?= $event['MonitorName'] ?></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event['StartTime']) ) ?></td>
 <td align="center" class="text"><?= $event['Length'] ?></td>

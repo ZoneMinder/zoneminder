@@ -358,12 +358,12 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 	}
 }
 
-void Event::StreamEvent( int event_id, int rate, int scale )
+void Event::StreamEvent( int event_id, int maxfps, int rate, int scale )
 {
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
 	
-	sprintf( sql, "select M.Id, M.Name, E.Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
+	sprintf( sql, "select M.Id, M.Name, E.Length, E.Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -385,7 +385,23 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 	}
 
 	sprintf( eventpath, "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
-	int frames = atoi(dbrow[2] );
+	int duration = atoi(dbrow[2]);
+	int frames = atoi(dbrow[3]);
+
+	int min_fps = 1;
+	int max_fps = maxfps;
+	int base_fps = frames/duration;
+	int effective_fps = (base_fps*rate)/ZM_RATE_SCALE;
+
+	int frame_mod = 1;
+	// Min frame repeat?
+	while( effective_fps > max_fps )
+	{
+		effective_fps /= 2;
+		frame_mod *= 2; 
+	}
+
+	Debug( 1, ( "Duration:%d, Frames:%d, BFPS:%d, EFPS:%d, FM:%d", atoi(dbrow[2]), atoi(dbrow[3]), base_fps, effective_fps, frame_mod ));
 
 	mysql_free_result( result );
 
@@ -406,71 +422,76 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
 	fprintf( stdout, "--ZoneMinderFrame\r\n" );
 
-	//int n_frames = mysql_num_rows( result );
-	//Info(( "Got %d frames, at rate %d, scale %d", n_frames, rate, scale ));
 	FILE *fdj = NULL;
 	int n_bytes = 0;
+	int id = 1, db_id, last_db_id = 0;
+	double base_delta, last_delta = 0.0L;
+	double db_delta, last_db_delta = 0.0L;
+	unsigned int delta_us =0;
 	static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
-	double last_delta = 0;
-	struct timeval now, last_now;
-	struct DeltaTimeval delta_time;
-
-	gettimeofday( &now, &dummy_tz );
-	for( int i = 0; dbrow = mysql_fetch_row( result ); i++ )
+	while( (id <= frames) && (dbrow = mysql_fetch_row( result )) )
 	{
-		if ( rate )
+		if ( id == 1 )
 		{
-			double this_delta = atof(dbrow[2]);
-			if ( i )
-			{
-				gettimeofday( &now, &dummy_tz );
-
-				double frame_delta = this_delta-last_delta;
-				DELTA_TIMEVAL( delta_time, now, last_now, DT_PREC_6 );
-				
-				int delay = (int)((DT_GRAN_1000000*frame_delta))-delta_time.delta;
-
-				delay = (delay * ZM_RATE_SCALE) / rate;
-
-				//Info(( "FD:%lf, DDT:%d, D:%d, N:%d.%d, LN:%d.%d", frame_delta, delta_time.delta, delay, now.tv_sec, now.tv_usec, last_now.tv_sec, last_now.tv_usec ));
-				if ( delay > 0 )
-					usleep( delay );
-			}
-			last_delta = this_delta;
-			gettimeofday( &last_now, &dummy_tz );
+			base_delta = atof(dbrow[2]);
 		}
-		static char filepath[PATH_MAX];
-		sprintf( filepath, "%s/%03d-capture.jpg", eventpath, atoi(dbrow[0]) );
 
-		fprintf( stdout, "Content-Length: %d\r\n", n_bytes );
-		fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
-		if ( scale == 100 )
+		db_id = atoi( dbrow[0] );
+		db_delta = atof( dbrow[2] )-base_delta;
+		bool db_written = false;
+		while( db_id >= id )
 		{
-			if ( (fdj = fopen( filepath, "r" )) )
+			if ( (frame_mod == 1) || (((id-1)%frame_mod) == 0) )
 			{
-				while ( (n_bytes = fread( buffer, 1, sizeof(buffer), fdj )) )
+				double this_delta = last_db_delta+(((id-last_db_id)*(db_delta-last_db_delta))/(db_id-last_db_id));
+				delta_us = (unsigned int)((this_delta-last_delta) * 1000000);
+				if ( rate != ZM_RATE_SCALE )
+					delta_us = (delta_us*ZM_RATE_SCALE)/rate;
+				Debug( 2, ( "I:%d, DI:%d, LDBI:%d, DD:%lf, LD:%lf, LDBD:%lf, TD:%lf, DU:%d", id, db_id, last_db_id, db_delta, last_delta, last_db_delta, this_delta, delta_us ));
+
+				static char filepath[PATH_MAX];
+				sprintf( filepath, "%s/%03d-capture.jpg", eventpath, id );
+
+				fprintf( stdout, "Content-Length: %d\r\n", n_bytes );
+				fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
+				if ( scale == 100 )
 				{
+					if ( (fdj = fopen( filepath, "r" )) )
+					{
+						while ( (n_bytes = fread( buffer, 1, sizeof(buffer), fdj )) )
+						{
+							write( fileno(stdout), buffer, n_bytes );
+						}
+						fclose( fdj );
+					}
+					else
+					{
+						Error(( "Can't open %s: %s", filepath, strerror(errno) ));
+					}
+				}
+				else
+				{
+					Image image( filepath );
+
+					image.Scale( scale );
+
+					image.EncodeJpeg( buffer, &n_bytes );
+
 					write( fileno(stdout), buffer, n_bytes );
 				}
-				fclose( fdj );
+				fprintf( stdout, "\r\n\r\n--ZoneMinderFrame\r\n" );
+				fflush( stdout );
+				last_delta = this_delta;
+				db_written = true;
+				usleep( delta_us );
 			}
-			else
-			{
-				Error(( "Can't open %s: %s", filepath, strerror(errno) ));
-			}
+			id++;
 		}
-		else
+		if ( db_written )
 		{
-			Image image( filepath );
-
-			image.Scale( scale );
-
-			image.EncodeJpeg( buffer, &n_bytes );
-
-			write( fileno(stdout), buffer, n_bytes );
+			last_db_id = db_id;
+			last_db_delta = db_delta;
 		}
-		fprintf( stdout, "\r\n\r\n--ZoneMinderFrame\r\n" );
-		fflush( stdout );
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -528,7 +549,7 @@ void Event::StreamMpeg( int event_id, const char *format, int bitrate, int maxfp
 		frame_mod *= 2; 
 	}
 
-	//Info(( "Duration:%d, Frames:%d, BFPS:%d, EFPS:%d, FM:%d", atoi(dbrow[2]), atoi(dbrow[3]), base_fps, effective_fps, frame_mod ));
+	Debug( 1, ( "Duration:%d, Frames:%d, BFPS:%d, EFPS:%d, FM:%d", atoi(dbrow[2]), atoi(dbrow[3]), base_fps, effective_fps, frame_mod ));
 
 	mysql_free_result( result );
 
@@ -582,6 +603,7 @@ void Event::StreamMpeg( int event_id, const char *format, int bitrate, int maxfp
 
 		int db_id = atoi( dbrow[0] );
 		double db_delta = atof( dbrow[2] )-base_delta;
+		bool db_written = false;
 		while( db_id >= id )
 		{
 			if ( (frame_mod == 1) || (((id-1)%frame_mod) == 0) )
@@ -607,12 +629,17 @@ void Event::StreamMpeg( int event_id, const char *format, int bitrate, int maxfp
 					delta_ms = (delta_ms*ZM_RATE_SCALE)/rate;
 				double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size(), timed_frames, delta_ms );
 
-				//Info(( "I:%d, DI:%d, LI:%d, DD:%lf, LD:%lf, TD:%lf, DM:%d, PTS:%lf", id, db_id, last_id, db_delta, last_delta, temp_delta, delta_ms, pts ));
+				Debug( 2, ( "I:%d, DI:%d, LI:%d, DD:%lf, LD:%lf, TD:%lf, DM:%d, PTS:%lf", id, db_id, last_id, db_delta, last_delta, temp_delta, delta_ms, pts ));
+
+				db_written = true;
 			}
 			id++;
 		}
-		last_id = db_id;
-		last_delta = db_delta;
+		if ( db_written )
+		{
+			last_id = db_id;
+			last_delta = db_delta;
+
 	}
 	if ( mysql_errno( &dbconn ) )
 	{

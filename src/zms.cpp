@@ -28,7 +28,7 @@ int main( int argc, const char *argv[] )
 	int id = 1;
 	int event = 0;
 	unsigned int bitrate = 100000;
-	unsigned int maxfps = 100000;
+	unsigned int maxfps = 10;
 	unsigned int rate = 100;
 	unsigned int scale = 100;
 	unsigned int buffer = 0;
@@ -145,7 +145,7 @@ int main( int argc, const char *argv[] )
 	{
 		if ( mode == ZMS_JPEG )
 		{
-			Event::StreamEvent( event, rate, scale );
+			Event::StreamEvent( event, maxfps, rate, scale );
 		}
 		else
 		{

@@ -312,7 +312,7 @@ AutoStart=true>
 	}
 	else
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=jpeg&event=$eid&rate=$rate&scale=$scale";
+		$stream_src = ZM_PATH_ZMS."?mode=jpeg&event=$eid&rate=$rate&scale=$scale&maxfps=".VIDEO_MAXFPS;
 		if ( canStreamNative() )
 		{
 ?>

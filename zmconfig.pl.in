@@ -987,7 +987,7 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_H_VIDEO_MAXFPS",
-		default => "10",
+		default => "15",
 		description => "What the maximum frame rate for streamed video should be",
 		help => "When using streamed video the main control is the bitrate which determines how much data can be transmitted. However a lower bitrate at high frame rates results in a lower quality image. This option allows you to limit the maximum frame rate to ensure that video quality is maintained. An additional advantage is that encoding video at high frame rates is a processor intensive task when for the most part a very high frame rate offers little perceptible improvement over one that has a more manageable resource requirement. Note, this option is implemented as a cap beyond which binary reduction takes place. So if you have a device capturing at 15fps and set this option to 10fps then the video is not produced at 10fps, but rather at 7.5fps (15 divided by 2) as the final frame rate must be the original divided by a power of 2.",
 		type => $types{integer},

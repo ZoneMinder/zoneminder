@@ -794,8 +794,10 @@ function checkAll(form,name){
 		if (form.elements[i].name.indexOf(name) == 0)
 			form.elements[i].checked = 1;
 	form.delete_btn.disabled = false;
+<?php if ( LEARN_MODE ) { ?>
 	form.learn_btn.disabled = false;
 	form.learn_state.disabled = false;
+<?php } ?>
 }
 function configureButton(form,name)
 {
@@ -812,8 +814,10 @@ function configureButton(form,name)
 		}
 	}
 	form.delete_btn.disabled = !checked;
+<?php if ( LEARN_MODE ) { ?>
 	form.learn_btn.disabled = !checked;
 	form.learn_state.disabled = !checked;
+<?php } ?>
 }
 window.focus();
 <?php if ( $filter ) { ?>

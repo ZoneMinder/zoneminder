@@ -101,7 +101,7 @@ switch( $view )
 				if ( $max_height < $row[Height] ) $max_height = $row[Height];
 			}
 		}
-		$montage_rows = intval(ceil($cycle_count)/ZM_WEB_MONTAGE_MAX_COLS));
+		$montage_rows = intval(ceil($cycle_count/ZM_WEB_MONTAGE_MAX_COLS));
 		$montage_cols = $cycle_count>=ZM_WEB_MONTAGE_MAX_COLS?ZM_WEB_MONTAGE_MAX_COLS:$cycle_count;
 ?>
 <html>

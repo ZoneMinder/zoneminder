@@ -27,6 +27,7 @@ int main( int argc, const char *argv[] )
 	unsigned long idle = 5000;
 	unsigned long refresh = 50;
 	unsigned int rate = 1;
+	unsigned int scale = 1;
 	int event = 0;
 	char *path = ".";
 	unsigned int ttl = 0;
@@ -55,6 +56,8 @@ int main( int argc, const char *argv[] )
 			char *value = strtok( NULL, "=" );
 			if ( !strcmp( name, "rate" ) )
 				rate = atoi( value );
+			else if ( !strcmp( name, "scale" ) )
+				scale = atoi( value );
 			else if ( !strcmp( name, "refresh" ) )
 				refresh = atol( value );
 			else if ( !strcmp( name, "idle" ) )
@@ -87,7 +90,7 @@ int main( int argc, const char *argv[] )
 	}
 	else
 	{
-		Event::StreamEvent( path, event, rate, stdout );
+		Event::StreamEvent( path, event, rate, scale, stdout );
 	}
 	return( 0 );
 }

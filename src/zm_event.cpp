@@ -150,7 +150,6 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 	}
 
 	static int jpg_buffer_size = 0;
-	//static unsigned char jpg_buffer[monitor->CameraWidth()*monitor->CameraHeight()];
 	static unsigned char jpg_buffer[ZM_MAX_IMAGE_SIZE];
 
 	image->EncodeJpeg( jpg_buffer, &jpg_buffer_size );
@@ -265,7 +264,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 	}
 }
 
-void Event::StreamEvent( const char *path, int event_id, int rate, FILE *fd )
+void Event::StreamEvent( const char *path, int event_id, int rate, int scale, FILE *fd )
 {
 	static char sql[BUFSIZ];
 	sprintf( sql, "select Id, EventId, ImagePath, Delta from Frames where EventId = %d order by Id", event_id );
@@ -282,7 +281,8 @@ void Event::StreamEvent( const char *path, int event_id, int rate, FILE *fd )
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	//setbuf( fd, 0 );
+	setbuf( fd, 0 );
+
 	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
 	fprintf( fd, "Pragma: no-cache\r\n" );
 	fprintf( fd, "Cache-Control: no-cache\r\n" );
@@ -291,42 +291,72 @@ void Event::StreamEvent( const char *path, int event_id, int rate, FILE *fd )
 	fprintf( fd, "--ZoneMinderFrame\n" );
 
 	int n_frames = mysql_num_rows( result );
-	Info(( "Got %d frames, at rate %d", n_frames, rate ));
+	Info(( "Got %d frames, at rate %d, scale %d", n_frames, rate, scale ));
 	FILE *fdj = NULL;
 	int n_bytes = 0;
-	static unsigned char buffer[400000];
+	static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
 	double last_delta = 0;
+	struct timeval now, last_now;
+	struct DeltaTimeval delta_time;
+
+	gettimeofday( &now, &dummy_tz );
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
 		if ( rate )
 		{
 			if ( i )
 			{
-				int delay = 0;
+				gettimeofday( &now, &dummy_tz );
+
+				double frame_delta = atof(dbrow[3])-last_delta;
+				DELTA_TIMEVAL( delta_time, now, last_now, DT_PREC_6 );
+				
+				int delay = (int)((DT_GRAN_1000000*frame_delta))-delta_time.delta;
+
 				if ( rate < 0 )
-					delay = (int)((1000000*(atof(dbrow[3])-last_delta))*abs(rate));
+					delay *= abs(rate);
 				else
-					delay = (int)((1000000*(atof(dbrow[3])-last_delta))/rate);
-				usleep( delay );
+					delay /= rate;
+
+				//Info(( "FD:%lf, DDT:%d, D:%d, N:%d.%d, LN:%d.%d", frame_delta, delta_time.delta, delay, now.tv_sec, now.tv_usec, last_now.tv_sec, last_now.tv_usec ));
+				if ( delay > 0 )
+					usleep( delay );
 			}
 			last_delta = atof(dbrow[3]);
+			gettimeofday( &last_now, &dummy_tz );
 		}
-		char filepath[PATH_MAX];
+		static char filepath[PATH_MAX];
 		sprintf( filepath, "%s/%s", path, dbrow[2] );
-		if ( (fdj = fopen( filepath, "r" )) )
+
+		fprintf( fd, "Content-type: image/jpg\n\n" );
+		if ( scale == 1 )
 		{
-			fprintf( fd, "Content-type: image/jpg\n\n" );
-			while ( (n_bytes = fread( buffer, 1, sizeof(buffer), fdj )) )
+			if ( (fdj = fopen( filepath, "r" )) )
 			{
-				fwrite( buffer, 1, n_bytes, fd );
+				while ( (n_bytes = fread( buffer, 1, sizeof(buffer), fdj )) )
+				{
+					//fwrite( buffer, 1, n_bytes, fd );
+					write( fileno(fd), buffer, n_bytes );
+				}
+				fclose( fdj );
 			}
-			fprintf( fd, "\n--ZoneMinderFrame\n" );
-			fclose( fdj );
+			else
+			{
+				Error(( "Can't open %s: %s", filepath, strerror(errno) ));
+			}
 		}
 		else
 		{
-			Error(( "Can't open %s: %s", filepath, strerror(errno) ));
+			Image image( filepath );
+
+			image.Scale( scale );
+
+			image.EncodeJpeg( buffer, &n_bytes );
+
+			write( fileno(fd), buffer, n_bytes );
 		}
+		fprintf( fd, "\n--ZoneMinderFrame\n" );
+		fflush( fd );
 	}
 	if ( mysql_errno( &dbconn ) )
 	{

@@ -324,7 +324,13 @@ if ( $action )
 				$filter_query[$op_name] = $$op_name;
 				$filter_query[$value_name] = $$value_name;
 			}
-			$filter_query_string = serialize( $filter_query );
+			$filter_parms = array();
+			while( list( $key, $value ) = each( $filter_query ) )
+			{
+				$filter_parms[] = "$key=$value";
+			}
+			$filter_query_string = join( '&', $filter_parms );
+			//$filter_query_string = serialize( $filter_query );
 			$sql = "replace into Filters set MonitorId = '$mid', Name = '$filter_name', Query = '$filter_query_string',  AutoDelete = '$auto_delete'";
 			#echo "<html>$sql</html>";
 			$result = mysql_query( $sql );

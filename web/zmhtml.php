@@ -830,6 +830,40 @@ location.href = '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php
 			die( mysql_error() );
 		$monitor = mysql_fetch_assoc( $result );
 
+		$select_name = "filter_name";
+		$filter_names = array( ''=>'Choose Filter' );
+		$result = mysql_query( "select * from Filters where MonitorId = '$mid' order by Name" );
+		if ( !$result )
+			die( mysql_error() );
+		while ( $row = mysql_fetch_assoc( $result ) )
+		{
+			$filter_names[$row[Name]] = $row[Name];
+			if ( $filter_name == $row[Name] )
+			{
+				$filter_data = $row;
+			}
+		}
+
+		if ( $filter_data )
+		{
+			//$filter_query = unserialize( $filter_data[Query] );
+			//if ( is_array($filter_query) )
+			//{
+				//while( list( $key, $value ) = each( $filter_query ) )
+				//{
+					//$$key = $value;
+				//}
+			//}
+			foreach( split( '&', $filter_data[Query] ) as $filter_parm )
+			{
+				list( $key, $value ) = split( '=', $filter_parm, 2 );
+				if ( $key )
+				{
+					$$key = $value;
+				}
+			}
+		}
+
 		$conjunction_types = array( 'and'=>'and', 'or'=>'or' );
 		$obracket_types = array( ''=>'' );
 		$cbracket_types = array( ''=>'' );
@@ -948,21 +982,6 @@ window.focus();
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
 <td align="left" class="text">Use&nbsp;<select name="trms" class="form" onChange="submitToFilter( filter_form );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?php echo $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?php echo $i ?></option><?php } ?></select>&nbsp;filter&nbsp;expressions</td>
-<?php
-		$select_name = "filter_name";
-		$filter_names = array( ''=>'Choose Filter' );
-		$result = mysql_query( "select * from Filters where MonitorId = '$mid' order by Name" );
-		if ( !$result )
-			die( mysql_error() );
-		while ( $row = mysql_fetch_assoc( $result ) )
-		{
-			$filter_names[$row[Name]] = $row[Name];
-			if ( $filter_name == $row[Name] )
-			{
-				$filter_data = $row;
-			}
-		}
-?>
 <td align="center" class="text">Use filter:&nbsp;<?php if ( count($filter_names) > 1 ) { buildSelect( $select_name, $filter_names, "submitToFilter( filter_form );" ); } else { ?><select class="form" disabled><option>No Saved Filters</option></select><?php } ?></td>
 <td align="center" class="text"><a href="javascript: saveFilter( filter_form );">Save</a></td>
 <?php if ( $filter_data ) { ?>
@@ -979,17 +998,6 @@ window.focus();
 <td colspan="5">
 <table width="100%" border="0" cellspacing="0" cellpadding="0">
 <?php
-		if ( $filter_data )
-		{
-			$filter_query = unserialize( $filter_data[Query] );
-			if ( is_array($filter_query) )
-			{
-				while( list( $key, $value ) = each( $filter_query ) )
-				{
-					$$key = $value;
-				}
-			}
-		}
 		for ( $i = 1; $i <= $trms; $i++ )
 		{
 			$conjunction_name = "cnj$i";

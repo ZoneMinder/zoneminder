@@ -115,7 +115,6 @@ public:
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
-	unsigned long GetNextCaptureDelay() const;
 
 	inline int Id() const
 	{

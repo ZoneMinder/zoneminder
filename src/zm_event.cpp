@@ -67,11 +67,11 @@ Event::~Event()
 	static char end_time_str[32];
 
 	struct DeltaTimeval delta_time;
-	DELTA_TIMEVAL( delta_time, end_time, start_time );
+	DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
 
 	strftime( end_time_str, sizeof(end_time_str), "%Y-%m-%d %H:%M:%S", localtime( &end_time.tv_sec ) );
 
-	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000, frames, alarm_frames, tot_score, (int)(tot_score/alarm_frames), max_score, id );
+	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(tot_score/alarm_frames), max_score, id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't update event: %s", mysql_error( &dbconn ) ));
@@ -210,9 +210,9 @@ void Event::AddFrames( int n_frames, struct timeval **timestamps, const Image **
 		WriteFrameImage( images[i], event_file );
 
 		struct DeltaTimeval delta_time;
-		DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time );
+		DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time, DT_PREC_2 );
 
-		sprintf( sql+strlen(sql), "( %d, %d, '%s', %s%ld.%02ld ), ", id, frames, event_file, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000 );
+		sprintf( sql+strlen(sql), "( %d, %d, '%s', %s%ld.%02ld ), ", id, frames, event_file, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
 	}
 
 	Debug( 1, ( "Adding %d frames to DB", n_frames ));
@@ -236,11 +236,11 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 	WriteFrameImage( image, event_file );
 
 	struct DeltaTimeval delta_time;
-	DELTA_TIMEVAL( delta_time, timestamp, start_time );
+	DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
 
 	Debug( 1, ( "Adding frame %d to DB", frames ));
 	static char sql[256];
-	sprintf( sql, "insert into Frames ( EventId, FrameId, AlarmFrame, ImagePath, Delta, Score ) values ( %d, %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, alarm_image!=0, event_file, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000, score );
+	sprintf( sql, "insert into Frames ( EventId, FrameId, AlarmFrame, ImagePath, Delta, Score ) values ( %d, %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, alarm_image!=0, event_file, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));

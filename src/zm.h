@@ -32,19 +32,30 @@ extern "C"
 struct DeltaTimeval
 {
 	bool positive;
-	long tv_sec;
-	long tv_usec;
+	unsigned long delta;
+	unsigned long sec;
+	unsigned long fsec;
+	unsigned long prec;
 };
+
+#define DT_MAXGRAN		1000000
+#define DT_GRAN_1000	1000
+#define DT_PREC_3		DT_GRAN_1000
+#define DT_GRAN_100		100
+#define DT_PREC_2		DT_GRAN_100
+#define DT_GRAN_10		10
+#define DT_PREC_1		DT_GRAN_10
 
 // This obviously wouldn't work for massive deltas but as it's mostly
 // for frames it will only usually be a fraction of a second or so
-#define DELTA_TIMEVAL( result, time1, time2 ) \
+#define DELTA_TIMEVAL( result, time1, time2, precision ) \
 { \
-	int delta_usec = (((time1).tv_sec-(time2).tv_sec)*1000000)+((time1).tv_usec-(time2).tv_usec); \
-	result.positive = (delta_usec>=0); \
-	delta_usec = abs(delta_usec); \
-	result.tv_sec = delta_usec/1000000; \
-	result.tv_usec = delta_usec%1000000; \
+	int delta = (((time1).tv_sec-(time2).tv_sec)*(precision))+(((time1).tv_usec-(time2).tv_usec)/(DT_MAXGRAN/(precision))); \
+	result.positive = (delta>=0); \
+	result.delta = abs(delta); \
+	result.sec = result.delta/(precision); \
+	result.fsec = result.delta%(precision); \
+	result.prec = (precision); \
 }
 
 #endif // ZM_H

@@ -175,7 +175,7 @@ int main( int argc, char *argv[] )
 	for ( int i = 0; i < n_monitors; i++ )
 	{
 		last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
-		capture_delays[i] = monitors[i]->GetCaptureDelay() * 1000;
+		capture_delays[i] = monitors[i]->GetCaptureDelay();
 	}
 
 	struct timeval now;
@@ -198,8 +198,8 @@ int main( int argc, char *argv[] )
 				{
 					if ( last_capture_times[j].tv_sec )
 					{
-						DELTA_TIMEVAL( delta_time, now, last_capture_times[j] );
-						next_delays[j] = capture_delays[j]-((delta_time.tv_sec*1000000)+delta_time.tv_usec);
+						DELTA_TIMEVAL( delta_time, now, last_capture_times[j], DT_PREC_3 );
+						next_delays[j] = capture_delays[j]-delta_time.delta;
 						if ( next_delays[j] < 0 )
 						{
 							next_delays[j] = 0;
@@ -223,11 +223,11 @@ int main( int argc, char *argv[] )
 				if ( next_delays[i] > 0 )
 				{
 					gettimeofday( &now, &dummy_tz );
-					DELTA_TIMEVAL( delta_time, now, last_capture_times[i] );
-					long sleep_time = next_delays[i]-((delta_time.tv_sec*1000000)+delta_time.tv_usec);
+					DELTA_TIMEVAL( delta_time, now, last_capture_times[i], DT_PREC_3 );
+					long sleep_time = next_delays[i]-delta_time.delta;
 					if ( sleep_time > 0 )
 					{
-						usleep( sleep_time );
+						usleep( sleep_time*(DT_MAXGRAN/DT_PREC_3) );
 					}
 				}
 				gettimeofday( &(last_capture_times[i]), &dummy_tz );

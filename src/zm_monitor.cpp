@@ -254,29 +254,6 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
 	zones = p_zones;
 }
 
-unsigned long Monitor::GetNextCaptureDelay() const
-{
-	if ( capture_delay == 0 || shared_images->last_write_index < 0 )
-	{
-		return( 0 );
-	}
-
-	Snapshot *snap = &image_buffer[shared_images->last_write_index];
-
-	if ( !snap || !snap->timestamp || !snap->timestamp->tv_sec )
-	{
-		return( 0 );
-	}
-
-	static struct timeval now;
-	gettimeofday( &now, &dummy_tz );
-
-	struct DeltaTimeval delta_time;
-	DELTA_TIMEVAL( delta_time, now, (*(snap->timestamp)) );
-
-	return( capture_delay-((delta_time.tv_sec*1000)+(delta_time.tv_usec/1000)) );
-}
-
 Monitor::State Monitor::GetState() const
 {
 	return( shared_images->state );
@@ -582,7 +559,7 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), atoi(dbrow[9]), dbrow[10], Coord( atoi(dbrow[11]), atoi(dbrow[12]) ), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atof(dbrow[17])>0.0?int(1000.0/atof(dbrow[17])):0, atoi(dbrow[18]), atoi(dbrow[19]), capture );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), atoi(dbrow[9]), dbrow[10], Coord( atoi(dbrow[11]), atoi(dbrow[12]) ), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atof(dbrow[17])>0.0?int(DT_PREC_3/atof(dbrow[17])):0, atoi(dbrow[18]), atoi(dbrow[19]), capture );
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
@@ -628,7 +605,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), dbrow[3], dbrow[4], dbrow[5], atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), atoi(dbrow[9]), dbrow[10], Coord( atoi(dbrow[11]), atoi(dbrow[12]) ), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atof(dbrow[17])>0.0?int(1000.0/atof(dbrow[17])):0, atoi(dbrow[18]), atoi(dbrow[19]), capture );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), dbrow[3], dbrow[4], dbrow[5], atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), atoi(dbrow[9]), dbrow[10], Coord( atoi(dbrow[11]), atoi(dbrow[12]) ), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atof(dbrow[17])>0.0?int(DT_PREC_3/atof(dbrow[17])):0, atoi(dbrow[18]), atoi(dbrow[19]), capture );
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
@@ -668,11 +645,11 @@ Monitor *Monitor::Load( int id, bool load_zones )
 	{
 		if ( !strcmp( dbrow[2], "Local" ) )
 		{
-			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), atoi(dbrow[13]), dbrow[14], Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atof(dbrow[21])>0.0?int(1000.0/atof(dbrow[21])):0, atoi(dbrow[22]), atoi(dbrow[23]), false );
+			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), atoi(dbrow[13]), dbrow[14], Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atof(dbrow[21])>0.0?int(DT_PREC_3/atof(dbrow[21])):0, atoi(dbrow[22]), atoi(dbrow[23]), false );
 		}
 		else
 		{
-			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), dbrow[7], dbrow[8], dbrow[9], atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), atoi(dbrow[13]), dbrow[14], Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atof(dbrow[21])>0.0?int(1000.0/atof(dbrow[21])):0, atoi(dbrow[22]), atoi(dbrow[23]), false );
+			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), dbrow[7], dbrow[8], dbrow[9], atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), atoi(dbrow[13]), dbrow[14], Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atof(dbrow[21])>0.0?int(DT_PREC_3/atof(dbrow[21])):0, atoi(dbrow[22]), atoi(dbrow[23]), false );
 		}
 		int n_zones = 0;
 		if ( load_zones )
@@ -775,7 +752,7 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	sprintf( output+strlen(output), "Warmup Count : %d\n", warmup_count );
 	sprintf( output+strlen(output), "Pre Event Count : %d\n", pre_event_count );
 	sprintf( output+strlen(output), "Post Event Count : %d\n", post_event_count );
-	sprintf( output+strlen(output), "Maximum FPS : %.2f\n", capture_delay?1000/capture_delay:0.0 );
+	sprintf( output+strlen(output), "Maximum FPS : %.2f\n", capture_delay?DT_PREC_3/capture_delay:0.0 );
 	sprintf( output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc );
 	sprintf( output+strlen(output), "Function: %d - %s\n", function,
 		function==NONE?"None":(

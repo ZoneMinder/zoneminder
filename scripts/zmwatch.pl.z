@@ -111,7 +111,8 @@ while( 1 )
 		{
 			# Check we have got an image recently
 			$monitor->{ShmKey} = hex(ZM_SHM_KEY)|$monitor->{Id};
-			if ( !($monitor->{ShmId} = shmget( $monitor->{ShmKey}, $shm_size, 0 )) )
+			$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $shm_size, 0 );
+			if ( !defined($monitor->{ShmId}) )
 			{
 				print( "Can't get shared memory id: $!\n" );
 				next;

@@ -448,7 +448,8 @@ sub loadTasks
 	{
 		my $size = 12; # We only need the first 12 bytes really for the alarm state and forced alarm
 		$monitor->{ShmKey} = hex(main::ZM_SHM_KEY)|$monitor->{Id};
-		if ( !($monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 )) )
+		$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 );
+		if ( !defined($monitor->{ShmId}) )
 		{
 			print( "Can't get shared memory id: $!\n" );
 			next;

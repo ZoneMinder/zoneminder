@@ -56,17 +56,6 @@ public:
 	{
 		delete[] storage;
 	}
-	void Dump( const char *s="" )
-	{
-		Info(( "%s - Size:%d, Allocation:%d, Storage:%p, Head:%p, Tail:%p", s, size, allocation, storage, head, tail ));
-	}
-	void FullDump( const char *s="" )
-	{
-		for ( int i = 0; i < size && i < 100; i++ )
-		{
-			Info(( "%d: %p - %02x\n", i, head+i, *(head+i) ));
-		}
-	}
 	unsigned char *Head() const { return( head ); }
 	unsigned char *Tail() const { return( tail ); }
 	unsigned int Size() const { return( size ); }

@@ -83,7 +83,7 @@ define( "ZMS_PATH", "/cgi-bin/zms" );					// Web path to the ZoneMinder Stream s
 
 // These are miscellaneous options you won't normally need to change
 //
-define( "MAX_EVENTS", 12 );								// The maximum number of events to show in the monitor event listing
+define( "MAX_EVENTS", 10 );								// The maximum number of events to show in the monitor event listing
 define( "EVENT_HEADER_LINES", 25 );						// How many events are listed in the event window before a new header is inserted
 define( "LEARN_MODE", false );							// Currently unimplemented, do not change
 
@@ -141,7 +141,7 @@ $jws = array(
 	'console' => array( 'w'=>720, 'h'=>400 ),
 	'cycle' => array( 'w'=>36, 'h'=>72 ),
 	'monitor' => array( 'w'=>360, 'h'=>450 ),
-	'watch' => array( 'w'=>72, 'h'=>360 ),
+	'watch' => array( 'w'=>72, 'h'=>315 ),
 	'device' => array( 'w'=>196, 'h'=>164 ),
 	'function' => array( 'w'=>248, 'h'=>72 ),
 	'events' => array( 'w'=>720, 'h'=>480 ),

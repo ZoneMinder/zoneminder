@@ -704,9 +704,9 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_H_STREAM_EVENT_DELAY",
-		default => "200",
+		default => "0",
 		description => "How long (in milliseconds) to wait between each frame when streaming events",
-		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate otherwise the event may appear too fast or too slow, the default of 200 is usually a good starting point.",
+		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate otherwise the event may appear too fast or too slow, the default of 0 will try to send the frames at the intervals at which they were captured, bandwidth permitting.",
 		type => $types{integer},
 	},
 	{
@@ -769,9 +769,9 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_M_STREAM_EVENT_DELAY",
-		default => "50",
+		default => "0",
 		description => "How long (in milliseconds) to wait between each frame when streaming events",
-		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate if possible otherwise the event may appear too fast or too slow, though your bandwidth may also slow the the stream down. The default of 200 is usually a good starting point.",
+		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate otherwise the event may appear too fast or too slow, the default of 0 will try to send the frames at the intervals at which they were captured, bandwidth permitting.",
 		type => $types{integer},
 	},
 	{
@@ -834,9 +834,9 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_L_STREAM_EVENT_DELAY",
-		default => "10",
+		default => "0",
 		description => "How long (in milliseconds) to wait between each frame when streaming events",
-		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate if possible otherwise the event may appear too fast or too slow, though your bandwidth may also slow the the stream down. The default of 200 is usually a good starting point.",
+		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate otherwise the event may appear too fast or too slow, the default of 0 will try to send the frames at the intervals at which they were captured, bandwidth permitting.",
 		type => $types{integer},
 	},
 	{

@@ -20,7 +20,11 @@
 
 function userLogin( $username, $password )
 {
-	global $user, $cookies, $_SESSION, $_SERVER;
+	global $user, $cookies;
+	if ( version_compare( phpversion(), "4.1.0", "<") )
+	{
+		global $_SESSION, $_SERVER;
+	}
 
 	$sql = "select * from Users where Username = '".mysql_escape_string($username)."' and Password = password('".mysql_escape_string($password)."') and Enabled = 1";
 	$result = mysql_query( $sql );
@@ -47,7 +51,11 @@ function userLogin( $username, $password )
 
 function userLogout()
 {
-	global $user, $_SESSION;
+	global $user;
+	if ( version_compare( phpversion(), "4.1.0", "<") )
+	{
+		global $_SESSION;
+	}
 
 	unset( $_SESSION['user'] );
 	unset( $user );
@@ -57,7 +65,10 @@ function userLogout()
 
 function authHash( $use_remote_addr=true )
 {
-	global $_SESSION;
+	if ( version_compare( phpversion(), "4.1.0", "<") )
+	{
+		global $_SESSION;
+	}
 
 	if ( ZM_OPT_USE_AUTH && ZM_AUTH_METHOD == "hashed" )
 	{
@@ -81,7 +92,10 @@ function authHash( $use_remote_addr=true )
 
 function getStreamSrc( $args )
 {
-	global $_SESSION;
+	if ( version_compare( phpversion(), "4.1.0", "<") )
+	{
+		global $_SESSION;
+	}
 
 	$stream_src = ZM_PATH_ZMS;
 
@@ -112,7 +126,10 @@ function getStreamSrc( $args )
 
 function getZmuCommand( $args )
 {
-	global $_SESSION;
+	if ( version_compare( phpversion(), "4.1.0", "<") )
+	{
+		global $_SESSION;
+	}
 
 	$zmu_command = ZMU_PATH;
 
@@ -269,7 +286,10 @@ function getFormChanges( $values, $new_values, $types=false )
 
 function getBrowser( &$browser, &$version )
 {
-	global $_SERVER;
+	if ( version_compare( phpversion(), "4.1.0", "<") )
+	{
+		global $_SERVER;
+	}
 
 	if (ereg( 'MSIE ([0-9].[0-9]{1,2})',$_SERVER['HTTP_USER_AGENT'],$log_version))
 	{
@@ -314,7 +334,10 @@ function isInternetExplorer()
 
 function isWindows()
 {
-	global $_SERVER;
+	if ( version_compare( phpversion(), "4.1.0", "<") )
+	{
+		global $_SERVER;
+	}
 
 	return ( preg_match( '/Win/', $_SERVER['HTTP_USER_AGENT'] ) );
 }
@@ -577,9 +600,12 @@ function reScale( $dimension, $scale=SCALE_SCALE )
 
 function parseSort( $save_to_session=false )
 {
-	global $_SESSION;
 	global $sort_field, $sort_asc; // Inputs
 	global $sort_query, $sort_column, $sort_order; // Outputs
+	if ( version_compare( phpversion(), "4.1.0", "<") )
+	{
+		global $_SESSION;
+	}
 
 	if ( !isset($sort_field) )
 	{
@@ -638,9 +664,12 @@ function parseSort( $save_to_session=false )
 
 function parseFilter( $save_to_session=false )
 {
-	global $_SESSION;
 	global $trms; // Inputs
 	global $filter_query, $filter_sql, $filter_fields; // Outputs
+	if ( version_compare( phpversion(), "4.1.0", "<") )
+	{
+		global $_SESSION;
+	}
 
 	$filter_query = ''; 
 	$filter_sql = '';

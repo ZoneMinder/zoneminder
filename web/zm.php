@@ -32,8 +32,8 @@ if ( $debug )
 // Use new style autoglobals where possible
 if ( version_compare( phpversion(), "4.1.0", "<") )
 {
-  	$_SERVER = &$HTTP_SERVER_VARS;
   	$_SESSION = &$HTTP_SESSION_VARS;
+  	$_SERVER = &$HTTP_SERVER_VARS;
 }
 
 // Useful debugging lines for mobile devices

@@ -66,8 +66,7 @@ if ( $action )
 			}
 			if ( $deleted_zid )
 			{
-				stopDaemon( "zma", $mid );
-				zmaControl( $mid );
+				zmaControl( $mid, true );
 				$refresh_parent = true;
 			}
 		}

@@ -67,15 +67,32 @@ $bw_array = array(
 	"low"=>$zmSlangLow
 );
 
-$rates = array(
-	"0" => $zmSlangMax,
-	"1000" => "10x",
-	"400" => "4x",
-	"200" => "2x",
-	"100" => $zmSlangReal,
-	"50" => "1/2x",
-	"25" => "1/4x",
-);
+if ( ZM_WEB_VIDEO_STREAM_METHOD == 'mpeg' )
+{
+	$rates = array(
+		"10000" => "100x",
+		"5000" => "50x",
+		"2500" => "25x",
+		"1000" => "10x",
+		"400" => "4x",
+		"200" => "2x",
+		"100" => $zmSlangReal,
+		"50" => "1/2x",
+		"25" => "1/4x",
+	);
+}
+else
+{
+	$rates = array(
+		"0" => $zmSlangMax,
+		"1000" => "10x",
+		"400" => "4x",
+		"200" => "2x",
+		"100" => $zmSlangReal,
+		"50" => "1/2x",
+		"25" => "1/4x",
+	);
+}
 
 $scales = array(
 	"400" => "4x",

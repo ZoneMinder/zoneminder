@@ -511,7 +511,7 @@ dist-hook:
 # Yes, you are correct. This is a HACK!
 install-exec-hook:
 	( cd @bindir@; mv zms $(cgidir) )
-	( cd $(cgidir); chown $(webuser):$(webgroup) zms )
+	( cd $(cgidir); chown $(webuser):$(webgroup) zms; ln -f zms nph-zms )
 	( cd @bindir@; chmod u+s zmfix )
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

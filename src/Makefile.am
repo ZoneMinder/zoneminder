@@ -76,5 +76,5 @@ dist-hook:
 # Yes, you are correct. This is a HACK!
 install-exec-hook:
 	( cd @bindir@; mv zms $(cgidir) )
-	( cd $(cgidir); chown $(webuser):$(webgroup) zms )
+	( cd $(cgidir); chown $(webuser):$(webgroup) zms; ln -f zms nph-zms )
 	( cd @bindir@; chmod u+s zmfix )

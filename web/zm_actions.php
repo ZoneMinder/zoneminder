@@ -42,21 +42,15 @@ if ( isset($action) )
 	{
 		if ( $action == "rename" && $event_name && $eid )
 		{
-			$result = mysql_query( "update Events set Name = '$event_name' where Id = '$eid'" );
-			if ( !$result )
-				die( mysql_error() );
+			simpleQuery( "update Events set Name = '$event_name' where Id = '$eid'" );
 		}
 		elseif ( $action == "archive" && $eid )
 		{
-			$result = mysql_query( "update Events set Archived = 1 where Id = '$eid'" );
-			if ( !$result )
-				die( mysql_error() );
+			simpleQuery( "update Events set Archived = 1 where Id = '$eid'" );
 		}
 		elseif ( $action == "unarchive" && $eid )
 		{
-			$result = mysql_query( "update Events set Archived = 0 where Id = '$eid'" );
-			if ( !$result )
-				die( mysql_error() );
+			simpleQuery( "update Events set Archived = 0 where Id = '$eid'" );
 		}
 		elseif ( $action == "filter" )
 		{
@@ -93,10 +87,7 @@ if ( isset($action) )
 				$filter_parms[] = "sort_asc=$sort_asc";
 				$filter_parms[] = "limit=$limit";
 				$filter_query_string = join( '&', $filter_parms );
-				$sql = "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoDelete = '$auto_delete', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute'";
-				$result = mysql_query( $sql );
-				if ( !$result )
-					die( mysql_error() );
+				simpleQuery( "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoDelete = '$auto_delete', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute'" );
 				$refresh_parent = true;
 			}
 		}
@@ -116,10 +107,7 @@ if ( isset($action) )
 			}
 			if ( $fid )
 			{
-				$sql = "delete from Filters where Name = '$fid'";
-				$result = mysql_query( $sql );
-				if ( !$result )
-					die( mysql_error() );
+				simpleQuery( "delete from Filters where Name = '$fid'" );
 				//$refresh_parent = true;
 			}
 		}
@@ -137,10 +125,7 @@ if ( isset($action) )
 			$old_function = $monitor['Function'];
 			if ( $new_function != $old_function )
 			{
-				$sql = "update Monitors set Function = '$new_function' where Id = '$mid'";
-				$result = mysql_query( $sql );
-				if ( !$result )
-					echo mysql_error();
+				simpleQuery( "update Monitors set Function = '$new_function' where Id = '$mid'" );
 
 				$monitor['Function'] = $new_function;
 				if ( $cookies ) session_write_close();
@@ -183,9 +168,7 @@ if ( isset($action) )
 					$view = 'none';
 				}
 				//echo "<html>$sql</html>";
-				$result = mysql_query( $sql );
-				if ( !$result )
-					die( mysql_error() );
+				simpleQuery( $sql );
 				if ( $cookies ) session_write_close();
 				zmaControl( $mid, true );
 				$refresh_parent = true;
@@ -228,10 +211,7 @@ if ( isset($action) )
 			{
 				if ( $mid > 0 )
 				{
-					$sql = "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
+					simpleQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
 					if ( $changes['Name'] )
 					{
 						exec( escapeshellcmd( "mv ".EVENTS_PATH."/".$monitor['Name']." ".EVENTS_PATH."/".$new_monitor['Name'] ) );
@@ -569,10 +549,7 @@ if ( isset($action) )
 				$definition = join( ',', $definitions );
 				if ( $new_state )
 					$run_state = $new_state;
-				$sql = "replace into States set Name = '$run_state', Definition = '$definition'";
-				$result = mysql_query( $sql );
-				if ( !$result )
-					die( mysql_error() );
+				simpleQuery( "replace into States set Name = '$run_state', Definition = '$definition'" );
 			}
 		}
 		elseif ( $action == "groups" )
@@ -581,18 +558,12 @@ if ( isset($action) )
 			{
 				foreach ( array_keys( $names ) as $id )
 				{
-					$sql = "update Groups set Name = '".$names[$id]."', MonitorIds = '".$monitor_ids[$id]."'";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
+					simpleQuery( "update Groups set Name = '".$names[$id]."', MonitorIds = '".$monitor_ids[$id]."' where Id = '$id'" );
 				}
 			}
 			if ( $new_monitor_ids )
 			{
-				$sql = "insert into Groups set Name = '".$new_name."', MonitorIds = '".$new_monitor_ids."'";
-				$result = mysql_query( $sql );
-				if ( !$result )
-					die( mysql_error() );
+				simpleQuery( "insert into Groups set Name = '".$new_name."', MonitorIds = '".$new_monitor_ids."'" );
 			}
 			$refresh_parent = true;
 		}
@@ -600,18 +571,13 @@ if ( isset($action) )
 		{
 			if ( $run_state )
 			{
-				$sql = "delete from States where Name = '$run_state'";
-				$result = mysql_query( $sql );
-				if ( !$result )
-					die( mysql_error() );
+				simpleQuery( "delete from States where Name = '$run_state'" );
 			}
 			if ( $mark_uids )
 			{
 				foreach( $mark_uids as $mark_uid )
 				{
-					$result = mysql_query( "delete from Users where Id = '$mark_uid'" );
-					if ( !$result )
-						die( mysql_error() );
+					simpleQuery( "delete from Users where Id = '$mark_uid'" );
 				}
 				if ( $row['Username'] == $user['Username'] )
 				{
@@ -622,9 +588,7 @@ if ( isset($action) )
 			{
 				foreach( $mark_gids as $mark_gid )
 				{
-					$result = mysql_query( "delete from Groups where Id = '$mark_gid'" );
-					if ( !$result )
-						die( mysql_error() );
+					simpleQuery( "delete from Groups where Id = '$mark_gid'" );
 					if ( $mark_gid == $cgroup )
 					{
 						unset( $cgroup );

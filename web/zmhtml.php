@@ -433,8 +433,10 @@ function closeWindow()
 	}
 	case "watchstatus" :
 	{
-		$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -s" ) );
+		$zmu_output = exec( escapeshellcmd( ZMU_PATH." -m $mid -s -f" ) );
+		list( $status, $fps ) = split( ' ', $zmu_output );
 		$status_string = "Unknown";
+		$fps_string = "--.--";
 		$class = "text";
 		if ( $status == 0 )
 		{
@@ -450,6 +452,7 @@ function closeWindow()
 			$status_string = "Alert";
 			$class = "oratext";
 		}
+		$fps_string = sprintf( "%.2f", $fps );
 		$new_alarm = ( $status > 0 && $last_status == 0 );
 
 		header("Refresh: ".REFRESH_STATUS."; URL='$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status'" );
@@ -474,7 +477,7 @@ top.window.focus();
 </script>
 </head>
 <body>
-<table width="100%" align="center" border="0" cellpadding="0" cellspacing="0"><tr><td class="<?php echo $class ?>" align="center" valign="middle">Status: <?php echo $status_string ?></td></tr></table>
+<table width="100%" align="center" border="0" cellpadding="0" cellspacing="0"><tr><td class="<?php echo $class ?>" align="center" valign="middle">Status:&nbsp;<?php echo $status_string ?>&nbsp;-&nbsp;FPS:&nbsp;<?= $fps_string ?></td></tr></table>
 <?php
 		if ( ZM_WEB_SOUND_ON_ALARM && $status == 1 )
 		{

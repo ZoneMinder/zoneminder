@@ -1,3 +1,5 @@
+#include "config.h"
+
 #define ZM_DATABASE	"polycam"
 #define	ZM_DB_USERA	"zmadmin"
 #define	ZM_DB_PASSA	"zmadminzm"

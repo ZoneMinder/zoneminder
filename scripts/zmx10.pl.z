@@ -254,7 +254,7 @@ sub runServer
 				{
 					if ( 1 || $result )
 					{
-						$device->{status} = $command;
+						$device->{status} = uc($command);
 						dprint( $device->{appliance}->address()." $command, ok\n" );
 					}
 					else
@@ -382,7 +382,7 @@ sub addToMonitorList
 	my $device = $device_hash{$unit_code};
 	if ( !$device )
 	{
-		$device = $device_hash{$unit_code} = { appliance=>$x10->Appliance( unit_code=>$unit_code ) };
+		$device = $device_hash{$unit_code} = { appliance=>$x10->Appliance( unit_code=>$unit_code ), status=>'unknown' };
 	}
 
 	my $task = { type=>"monitor", device=>$device, function=>$function };
@@ -640,7 +640,7 @@ sub x10listen
 			my $device = $device_hash{$unit_code};
 			if ( !$device )
 			{
-				$device = $device_hash{$unit_code} = { appliance=>$x10->Appliance( unit_code=>$unit_code ) };
+				$device = $device_hash{$unit_code} = { appliance=>$x10->Appliance( unit_code=>$unit_code ), status=>'unknown' };
 			}
 			next if ( $event->func() !~ /(?:ON|OFF)/ );
 			$device->{status} = $event->func();

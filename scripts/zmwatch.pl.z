@@ -35,10 +35,11 @@
 use constant DB_NAME => "zm";
 use constant DB_USER => "zmadmin";
 use constant DB_PASS => "zmadminzm";
-use constant CHECK_INTERVAL => 30;
 use constant COMMAND_PATH => '@prefix@/bin/';
-use constant ZM_SHM_KEY => 0x7a6d2000;
 use constant WATCH_LOG_FILE => '/tmp/zmwatch.log';
+use constant CHECK_INTERVAL => 10; # How often to check the FPS
+use constant NUM_BAD_CHECKS => 3; # How many bad checks before we restart
+use constant MIN_FPS => 0.5; # FPS at or below this are bad
 
 # ==========================================================================
 #
@@ -69,13 +70,15 @@ select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 print( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-( $ENV{PATH} ) = ( $ENV{PATH} =~ /^(.*)$/ );
-( $ENV{BASH_ENV} ) = ( $ENV{BASH_ENV} =~ /^(.*)$/ );
+$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
 my $sql = "select * from Monitors";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 
+my %fps_hash;
 while( 1 )
 {
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
@@ -83,36 +86,37 @@ while( 1 )
 	{
 		if ( $monitor->{Function} ne 'None' )
 		{
-			my $device = $monitor->{Device};
-			my $device_file = "/dev/video$device";
-			# Check that the video device is readable
-			print( "Checking '$device_file'\n" );
-			if ( !-R $device_file )
+			my $fps_list = $fps_hash{$monitor->{Id}};
+			if ( !$fps_list )
 			{
-				my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size, $atime,$mtime,$ctime,$blksize,$blocks) = stat(_);
-				$mode &= 07777;
-				if ( !$mode & 044 )
-				{
-					print( "Device file '$device_file' unreadable, changing permissions\n" );
-					chmod( $mode | 044, $device_file ) or die( "Can't chmod '$device_file': $!" );
-				}
+				$fps_list = $fps_hash{$monitor->{Id}} = [];
 			}
-
-			# Check the write index is incrementing, if is isn't for 3 consecutive
-			# times we kill it and start again
+			# Check we are getting a decent FPS, if not then kill it
 			my $command = COMMAND_PATH."zmu -m ".$monitor->{Id}." -f";
 			print( "Getting FPS for monitor $monitor->{Id} ('$command')\n" );
-			if ( $command )
+			my $fps = qx( $command );
+			chomp($fps);
+			print( "Monitor $monitor->{Id} capturing at $fps FPS\n" );
+			push( @$fps_list, $fps );
+			if ( @$fps_list > NUM_BAD_CHECKS )
 			{
-				my $fps = qx( $command );
-				print( "Monitor $monitor->{Id} capturing at $fps FPS\n" );
-				if ( !$fps )
-				{
-					my $command = COMMAND_PATH."zmdc.pl restart zmc -d ".$monitor->{Device};
-					print( "Restarting capture daemon ('$command')\n" );
-					print( qx( $command ) );
-				}
+				pop( @$fps_list );
 			}
+			# See if we can find any good FPS readings
+			my @good_fps = grep { $_ > MIN_FPS } @$fps_list;
+			if ( @good_fps < NUM_BAD_CHECKS )
+			{
+				print( "Monitor $monitor->{Id} has ".(NUM_BAD_CHECKS-int(@good_fps))." samples below ".MIN_FPS." FPS\n" );
+			}
+			if ( @good_fps )
+			{
+				# Yes, so continue
+				next;
+			}
+			# If we are here then something bad has happened
+			$command = COMMAND_PATH."zmdc.pl restart zmc -d ".$monitor->{Device};
+			print( "Restarting capture daemon ('$command')\n" );
+			print( qx( $command ) );
 		}
 	}
 	sleep( CHECK_INTERVAL );

@@ -82,17 +82,16 @@ cgidir = @CGI_PREFIX@
 webuser = @WEB_USER@
 webgroup = @WEB_GROUP@
 
-bin_PROGRAMS = zmc zma zmu zms
+bin_PROGRAMS = zmc zma zmu zms zmfix
 
 zm_SOURCES = zm.cpp zmdbg.c jmemdst.c
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
 zma_SOURCES = zma.cpp $(zm_SOURCES)
 zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
+zmfix_SOURCES = zmfix.cpp zmdbg.c
 
 noinst_HEADERS = zm.h zmcfg.h zmdbg.h jinclude.h font_6x11.h
-
-EXTRA_DIST = 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
 CONFIG_CLEAN_FILES = 
@@ -118,6 +117,10 @@ zms_OBJECTS =  zms.o zm.o zmdbg.o jmemdst.o
 zms_LDADD = $(LDADD)
 zms_DEPENDENCIES = 
 zms_LDFLAGS = 
+zmfix_OBJECTS =  zmfix.o zmdbg.o
+zmfix_LDADD = $(LDADD)
+zmfix_DEPENDENCIES = 
+zmfix_LDFLAGS = 
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
@@ -136,9 +139,9 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 TAR = gtar
 GZIP_ENV = --best
 DEP_FILES =  .deps/jmemdst.P .deps/zm.P .deps/zma.P .deps/zmc.P \
-.deps/zmdbg.P .deps/zms.P .deps/zmu.P
-SOURCES = $(zmc_SOURCES) $(zma_SOURCES) $(zmu_SOURCES) $(zms_SOURCES)
-OBJECTS = $(zmc_OBJECTS) $(zma_OBJECTS) $(zmu_OBJECTS) $(zms_OBJECTS)
+.deps/zmdbg.P .deps/zmfix.P .deps/zms.P .deps/zmu.P
+SOURCES = $(zmc_SOURCES) $(zma_SOURCES) $(zmu_SOURCES) $(zms_SOURCES) $(zmfix_SOURCES)
+OBJECTS = $(zmc_OBJECTS) $(zma_OBJECTS) $(zmu_OBJECTS) $(zms_OBJECTS) $(zmfix_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -207,6 +210,10 @@ zmu: $(zmu_OBJECTS) $(zmu_DEPENDENCIES)
 zms: $(zms_OBJECTS) $(zms_DEPENDENCIES)
 	@rm -f zms
 	$(CXXLINK) $(zms_LDFLAGS) $(zms_OBJECTS) $(zms_LDADD) $(LIBS)
+
+zmfix: $(zmfix_OBJECTS) $(zmfix_DEPENDENCIES)
+	@rm -f zmfix
+	$(CXXLINK) $(zmfix_LDFLAGS) $(zmfix_OBJECTS) $(zmfix_LDADD) $(LIBS)
 .cpp.o:
 	$(CXXCOMPILE) -c $<
 
@@ -388,6 +395,7 @@ maintainer-clean
 install-exec-local:
 	( cd @bindir@; mv zms $(cgidir) )
 	( cd $(cgidir); chown $(webuser):$(webgroup) zms )
+	( cd @bindir@; chmod u+s zmfix )
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

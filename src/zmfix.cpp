@@ -118,6 +118,7 @@ int main( int argc, char *argv[] )
 		}
 		mode |= mask;
 
+		Info(( "Resetting permission on %s to %o\n", device_path, mode ));
 		if ( chmod( device_path, mode ) < 0 )
 		{
 			Error(( "Can't chmod %s to %o: %s\n", device_path, mode, strerror(errno)));

@@ -1603,10 +1603,11 @@ unsigned int Monitor::GetLastEvent() const
 double Monitor::GetFPS() const
 {
 	int index1 = shared_images->last_write_index;
-	int index2 = (index1+1)%image_buffer_count;;
+	int index2 = (index1+1)%image_buffer_count;
 
-	Snapshot *snap1 = &image_buffer[index1];
-	time_t time1 = *(snap1->timestamp);
+	//Snapshot *snap1 = &image_buffer[index1];
+	//time_t time1 = *(snap1->timestamp);
+	time_t time1 = time( 0 );
 
 	Snapshot *snap2 = &image_buffer[index2];
 	time_t time2 = *(snap2->timestamp);

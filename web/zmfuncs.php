@@ -77,6 +77,13 @@ function canStream()
 	return( isNetscape() || (CAMBOZOLA_PATH && file_exists( CAMBOZOLA_PATH )) );
 }
 
+function fixDevices()
+{
+	$string = ZM_PATH."/zmfix";
+	$string .= " 2>/dev/null >&- <&- >/dev/null";
+	exec( $string );
+}
+
 function daemonControl( $command, $daemon=false, $args=false )
 {
 	$string = ZM_PATH."/zmdc.pl $command";

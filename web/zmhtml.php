@@ -53,6 +53,11 @@ switch( $view )
 			daemonControl( 'shutdown' );
 		}
 
+		if ( $start )
+		{
+			fixDevices();
+		}
+
 		header("Refresh: ".(($start||$stop)?1:REFRESH_MAIN)."; URL='$PHP_SELF'" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -113,6 +118,7 @@ switch( $view )
 			{
 				daemonControl( 'start', 'zmx10.pl', '-c start' );
 			}
+			daemonControl( 'start', 'zmwatch.pl' );
 		}
 ?>
 <html>

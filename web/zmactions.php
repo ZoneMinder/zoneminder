@@ -281,8 +281,10 @@ if ( $action )
 			if ( !$result )
 				die( mysql_error() );
 			$monitor = mysql_fetch_assoc( $result );
+			fixDevices();
 			zmcControl( $monitor, true );
 			zmaControl( $monitor, true );
+			daemonControl( 'restart', 'zmwatch.pl' );
 			$refresh_parent = true;
 		}
 	}

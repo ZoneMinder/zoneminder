@@ -58,7 +58,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $command = $ARGV[0];
 
-if ( !$command || $command !~ /^(?:start|stop|restart)$/ )
+if ( !$command || $command !~ /^(?:start|stop|restart|status)$/ )
 {
 	print( "Usage: zmpkg.pl <start|stop|restart>\n" );
 	exit( -1 );

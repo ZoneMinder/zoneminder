@@ -279,7 +279,7 @@ int RemoteCamera::GetResponse()
 					Debug( 4, ( "Captured header (%d bytes):\n'%s'", header_len, header ));
 
 					if ( !status_expr )
-						status_expr = new RegExpr( "^HTTP/(1\\.[01]) +([0-9]+) +(.+?)\r?\n", PCRE_MULTILINE|PCRE_CASELESS );
+						status_expr = new RegExpr( "^HTTP/(1\\.[01]) +([0-9]+) +(.+?)\r?\n", PCRE_CASELESS );
 					if ( status_expr->Match( header, header_len ) < 4 )
 					{
 						Error(( "Unable to extract HTTP status from header" ));
@@ -369,8 +369,8 @@ int RemoteCamera::GetResponse()
 				if ( !subheader_expr )
 				{
 					char subheader_pattern[256] = "";
-					sprintf( subheader_pattern, "^((?:\r?\n\r?\n)?(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
-					subheader_expr = new RegExpr( subheader_pattern, PCRE_MULTILINE|PCRE_DOTALL );
+					sprintf( subheader_pattern, "^((?:\r?\n){0,2}?(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
+					subheader_expr = new RegExpr( subheader_pattern, PCRE_DOTALL );
 				}
 				if ( subheader_expr->Match( (char *)buffer, (int)buffer ) == 2 )
 				{
@@ -442,7 +442,7 @@ int RemoteCamera::GetResponse()
 							static RegExpr *single_jpeg_expr = 0;
 							if ( !content_expr )
 							{
-								content_expr = new RegExpr( "^(.+?)\r?\n\r?\n$", PCRE_MULTILINE|PCRE_DOTALL );
+								content_expr = new RegExpr( "^(.+?)(?:\r?\n){1,2}?$", PCRE_DOTALL );
 							}
 						}
 						else
@@ -451,8 +451,8 @@ int RemoteCamera::GetResponse()
 							if ( !content_expr )
 							{
 								char content_pattern[256] = "";
-								sprintf( content_pattern, "^(.+?)\r?\n\r?\n(?:--)?%s\r?\n", content_boundary );
-								content_expr = new RegExpr( content_pattern, PCRE_MULTILINE|PCRE_DOTALL );
+								sprintf( content_pattern, "^(.+?)(?:\r?\n){1,2}?(?:--)?%s\r?\n", content_boundary );
+								content_expr = new RegExpr( content_pattern, PCRE_DOTALL );
 							}
 						}
 						if ( content_expr->Match( buffer, buffer.Size() ) == 2 )
@@ -471,7 +471,7 @@ int RemoteCamera::GetResponse()
 				{
 					state = SUBHEADER;
 				}
-				Debug( 3, ( "Returning %d bytes of captured content", content_length ));
+				Debug( 3, ( "Returning %d (%d) bytes of captured content", content_length, buffer.Size() ));
 				return( content_length );
 			}
 		}

@@ -132,21 +132,24 @@ int main( int argc, const char *argv[] )
 		}
 	}
 
-	User *user = 0;
-	if ( *username && *password )
+	if ( (bool)config.Item( ZM_OPT_USE_AUTH ) )
 	{
-		user = zmLoadUser( username, password );
+		User *user = 0;
+		if ( *username && *password )
+		{
+			user = zmLoadUser( username, password );
+		}
+		else if ( *auth )
+		{
+			user = zmLoadAuthUser( auth );
+		}
+		if ( !user )
+		{
+			Error(( "Unable to authenticate user" ));
+			return( -1 );
+		}
+		ValidateAccess( user, id );
 	}
-	else if ( *auth )
-	{
-		user = zmLoadAuthUser( auth );
-	}
-	if ( !user )
-	{
-		Error(( "Unable to authenticate user" ));
-		return( -1 );
-	}
-	ValidateAccess( user, id );
 
 	setbuf( stdout, 0 );
 	if ( nph )

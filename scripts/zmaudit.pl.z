@@ -256,7 +256,7 @@ do
 		}
 		else
 		{
-			print( "Database monitor '$db_monitor' does not exist in filesystem" );
+			#print( "Database monitor '$db_monitor' does not exist in filesystem" );
 			if ( confirm() )
 			{
 				# We don't actually do this in case it's new

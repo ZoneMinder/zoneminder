@@ -10,7 +10,7 @@
 	if ( !($row = mysql_fetch_assoc( $result )) )
 	{
 		$row = array();
-		$row[Username] = "NewUser";
+		$row[Username] = $zmSlangNewUser;
 		$row[Enabled] = 1;
 	}
 ?>

@@ -359,17 +359,10 @@ my @options =
 		type => $types{integer},
 	},
 	{
-		name => "ZM_WATCH_NUM_BAD_CHECKS",
-		default => "3",
-		description => "How many bad daemon checks before we restart",
-		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines how many consecutive checks a daemon should fail before being restarted. The default value of 3 allows periodic restarts of the daemons to be ignored by zmwatch.",
-		type => $types{integer},
-	},
-	{
-		name => "ZM_WATCH_MIN_FPS",
-		default => "0.5",
-		description => "The minimum FPS we will allow before restarting the capture daemons",
-		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines what the minimum number of captured frames per second is considered valid. Generally if a lockup occurs the FPS will go to zero but setting this slightly higher will permit slightly earlier detection.",
+		name => "ZM_WATCH_MAX_DELAY",
+		default => "5",
+		description => "The maximum delay since the last captured image we will allow before restarting the capture daemons",
+		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines the maximum delay we will allow since the last captured frame. The daemon will be restarted if it has not captured any images after this period though the actual restart may take slightly longer in conjunction with the check interval value above.",
 		type => $types{decimal},
 	},
 	{

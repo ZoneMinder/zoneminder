@@ -446,7 +446,7 @@ int RemoteCamera::GetResponse()
 								if ( !content_expr )
 								{
 									char content_pattern[256] = "";
-									snprintf( content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n){1,2}?(?:--)?%s\r?\n", content_boundary );
+									snprintf( content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", content_boundary );
 									content_expr = new RegExpr( content_pattern, PCRE_DOTALL );
 								}
 								if ( content_expr->Match( buffer, buffer.Size() ) == 2 )

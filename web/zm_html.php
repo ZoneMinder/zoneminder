@@ -41,6 +41,7 @@ else
 	$user = array(
 		"Username"=>"admin",
 		"Password"=>"",
+		"Language"=>"",
 		"Enabled"=>1,
 		"Stream"=>'View',
 		"Events"=>'Edit',

@@ -242,12 +242,21 @@ if ( $action )
 		if ( $new_width != $monitor['Width'] ) $changes[] = "Width = '$new_width'";
 		if ( $new_height != $monitor['Height'] ) $changes[] = "Height = '$new_height'";
 		if ( $new_colours != $monitor['Colours'] ) $changes[] = "Colours = '$new_colours'";
+		if ( $new_label_format != $monitor['LabelFormat'] ) $changes[] = "LabelFormat = '$new_label_format'";
+		if ( $new_label_x != $monitor['LabelX'] ) $changes[] = "LabelX = '$new_label_x'";
+		if ( $new_label_y != $monitor['LabelY'] ) $changes[] = "LabelY = '$new_label_y'";
+		if ( $new_image_buffer_count != $monitor['ImageBufferCount'] ) $changes[] = "ImageBufferCount = '$new_image_buffer_count'";
+		if ( $new_warmup_count != $monitor['WarmupCount'] ) $changes[] = "WarmupCount = '$new_warmup_count'";
+		if ( $new_pre_event_count != $monitor['PreEventCount'] ) $changes[] = "PreEventCount = '$new_pre_event_count'";
+		if ( $new_post_event_count != $monitor['PostEventCount'] ) $changes[] = "PostEventCount = '$new_post_event_count'";
+		if ( $new_fps_report_interval != $monitor['FPSReportInterval'] ) $changes[] = "FPSReportInterval = '$new_fps_report_interval'";
+		if ( $new_ref_blend_perc != $monitor['RefBlendPerc'] ) $changes[] = "RefBlendPerc = '$new_ref_blend_perc'";
 
 		if ( count( $changes ) )
 		{
 			if ( $mid > 0 )
 			{
-				$sql = "update Monitors set ".implode( ", ", $changes )." where MonitorId = '$mid'";
+				$sql = "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'";
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );

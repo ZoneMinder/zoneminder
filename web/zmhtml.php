@@ -1386,6 +1386,15 @@ function closeWindow()
 <tr><td align="left" class="text">Device Width (pixels)</td><td align="left" class="text"><input type="text" name="new_width" value="<?php echo $monitor[Width] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Device Height (pixels)</td><td align="left" class="text"><input type="text" name="new_height" value="<?php echo $monitor[Height] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Device Colour Depth</td><td align="left" class="text"><input type="text" name="new_colours" value="<?php echo $monitor[Colours] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Timestamp Label Format</td><td align="left" class="text"><input type="text" name="new_label_format" value="<?php echo $monitor[LabelFormat] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text">Timestamp Label X</td><td align="left" class="text"><input type="text" name="new_label_x" value="<?php echo $monitor[LabelX] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Timestamp Label Y</td><td align="left" class="text"><input type="text" name="new_label_y" value="<?php echo $monitor[LabelY] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Image Buffer Size (frames)</td><td align="left" class="text"><input type="text" name="new_image_buffer_count" value="<?php echo $monitor[ImageBufferCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Warmup Frames</td><td align="left" class="text"><input type="text" name="new_warmup_count" value="<?php echo $monitor[WarmupCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Pre Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_pre_event_count" value="<?php echo $monitor[PreEventCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Post Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_post_event_count" value="<?php echo $monitor[PostEventCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">FPS Report Interval</td><td align="left" class="text"><input type="text" name="new_fps_report_interval" value="<?php echo $monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_ref_blend_perc" value="<?php echo $monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
 <td align="left"><input type="submit" value="Save" class="form"></td>

@@ -229,6 +229,7 @@ if ( $action )
 					if ( $new_name != $monitor[Name] ) $changes[] = "Name = '$new_name'";
 					if ( $new_function != $monitor['Function'] ) $changes[] = "Function = '$new_function'";
 					if ( $new_section_length != $monitor['SectionLength'] ) $changes[] = "SectionLength = '$new_section_length'";
+					if ( $new_frame_skip != $monitor['FrameSkip'] ) $changes[] = "FrameSkip = '$new_frame_skip'";
 					if ( $new_runmode != $monitor['RunMode'] ) $changes[] = "RunMode = '$new_runmode'";
 					if ( join(',',$new_triggers) != $monitor['Triggers'] ) $changes[] = "Triggers = '".join(',',$new_triggers)."'";
 					if ( $new_type != $monitor['Type'] ) $changes[] = "Type = '$new_type'";

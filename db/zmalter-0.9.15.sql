@@ -8,6 +8,7 @@ alter table Monitors add column Function enum('None','Monitor','Modect','Record'
 alter table Monitors add column RunMode enum('Continuous','Triggered') NOT NULL default 'Continuous' after Function;
 alter table Monitors add column Triggers set('X10') NOT NULL after RunMode;
 alter table Monitors add column SectionLength int(10) unsigned not null default 600 after PostEventCount;
+alter table Monitors add column FrameSkip smallint unsigned not null default 0 after SectionLength;
 --
 -- Update to reflect existing setup
 --

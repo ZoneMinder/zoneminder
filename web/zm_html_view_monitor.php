@@ -56,6 +56,7 @@
 		$monitor[PreEventCount] = 10;
 		$monitor[PostEventCount] = 10;
 		$monitor[SectionLength] = 600;
+		$monitor[FrameSkip] = 0;
 		$monitor[MaxFPS] = 0;
 		$monitor[FPSReportInterval] = 1000;
 		$monitor[RefBlendPerc] = 10;
@@ -147,6 +148,7 @@ function closeWindow()
 ?>
 </select></td></tr>
 <tr><td align="left" class="text">Section Length</td><td align="left" class="text"><input type="text" name="new_section_length" value="<?= $monitor[SectionLength] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text">Frame Skip</td><td align="left" class="text"><input type="text" name="new_frame_skip" value="<?= $monitor[FrameSkip] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text">Run Mode</td><td align="left" class="text"><select name="new_runmode" class="form">
 <?php
 	foreach ( getEnumValues( 'Monitors', 'RunMode' ) as $opt_runmode )

@@ -448,18 +448,15 @@ Image *Image::Delta( const Image &image ) const
 	}
 	else
 	{
-		static int red, green, blue;
-		static int y_src, y_ref;
+		static unsigned char red, green, blue;
 		while( psrc < (buffer+size) )
 		{
 			if ( ZM_FAST_RGB_DIFFS )
 			{
-				red = ABSDIFF(*psrc, *pref);
-				psrc++; pref++;
-				green = ABSDIFF(*psrc, *pref);
-				psrc++; pref++;
-				blue = ABSDIFF(*psrc, *pref);
-				psrc++; pref++;
+				red = abs(*psrc++ - *pref++);
+				green = abs(*psrc++ - *pref++);
+				blue = abs(*psrc++ - *pref++);
+
 				// This is uses an RMS function, all floating point and 
 				// rather too slow
 				//*pdiff++ = (JSAMPLE)sqrt((red*red + green*green + blue*blue)/3);
@@ -469,18 +466,14 @@ Image *Image::Delta( const Image &image ) const
 			}
 			else
 			{
-				//static int ysrc = ((299*psrc[0])/1000) + ((567*psrc[1])/1000) + ((114*psrc[2])/1000);
-				//static int yref = ((299*pref[0])/1000) + ((567*pref[1])/1000) + ((114*pref[2])/1000);
-				y_src = ((19595*psrc[0])>>16) + ((37159*psrc[1])>>16) + ((7471*psrc[2])>>16);
-				y_ref = ((19595*pref[0])>>16) + ((37159*pref[1])>>16) + ((7471*pref[2])>>16);
+				red = *psrc++ - *pref++;
+				green = *psrc++ - *pref++;
+				blue = *psrc++ - *pref++;
 
 				// This is an experimental one which uses the Y part of an RGB
 				// to YUV conversion. Should still be integer but a bit slower
-				//*pdiff++ = (JSAMPLE)( abs(ysrc-yref) );
-				*pdiff++ = (JSAMPLE)ABSDIFF( y_src, y_ref );
 
-				psrc += 3;
-				pref += 3;
+				*pdiff++ = abs(((19595*red)>>16) + ((37159*green)>>16) + ((7471*blue)>>16));
 			}
 		}
 	}

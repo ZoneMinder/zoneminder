@@ -67,6 +67,8 @@ $montage_cols = $cycle_count>=ZM_WEB_MONTAGE_MAX_COLS?ZM_WEB_MONTAGE_MAX_COLS:$c
 <head>
 <title>ZM - Console</title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="icon" type="image/ico" href="favicon.ico">
 <script language="JavaScript">
 window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h'] ?> );
 function newWindow(Url,Name,Width,Height)

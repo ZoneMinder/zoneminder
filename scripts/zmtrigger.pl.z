@@ -74,7 +74,7 @@ BEGIN
 
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmtrigger.log';
 use constant MAX_CONNECT_DELAY => 10;
-use constant VERBOSE => 1; # Whether to output more verbose debug
+use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # Now define the trigger sources, can be inet socket, unix socket or file based
 # Ignore parser field for now.
@@ -109,23 +109,6 @@ $| = 1;
 $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
-
-#my $command = shift @ARGV;
-#die( "No command given" ) unless( $command );
-#my @args;
-
-#foreach my $arg ( @ARGV )
-#{
-	## Detaint arguments, if they look ok
-	#if ( $arg =~ /^(-{0,2}[\w\/?&=.-]+)$/ )
-	#{
-		#push( @args, $1 );
-	#}
-	#else
-	#{
-		#die( "Bogus argument '$arg' found" );
-	#}
-#}
 
 open( LOG, ">>".LOG_FILE ) or die( "Can't open log file: $!" );
 open(STDOUT, ">&LOG") || die( "Can't dup stdout: $!" );

@@ -239,7 +239,7 @@ foreach( $monitors as $monitor )
 <?php if ( $monitor['Type'] == "Local" ) { ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=".$monitor['Id']."', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">/dev/video".$monitor['Device']." (".$monitor['Channel'].")</span>", canEdit( 'Monitors' ) ) ?></td>
 <?php } else { ?>
-<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=".$monitor['Id']."', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">".$monitor['Host']."</span>", canEdit( 'Monitors' ) ) ?></td>
+<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=".$monitor['Id']."', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">".preg_replace( '/^.*@/', '', $monitor['Host'] )."</span>", canEdit( 'Monitors' ) ) ?></td>
 <?php } ?>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=".$monitor['Id']."&page=1&filter=1&trms=1&attr1=Archived&val1=0', 'zmEvents".$monitor['Id']."', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor['EventCount'], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=".$monitor['Id']."&page=1&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents".$monitor['Id']."', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor['HourEventCount'], canView( 'Events' ) ) ?></td>

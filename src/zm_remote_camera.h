@@ -46,9 +46,11 @@
 class RemoteCamera : public Camera
 {
 protected:
-	const char	*host;
-	const char	*port;
-	const char	*path;
+	const char *host;
+	const char *port;
+	const char *path;
+	const char *auth;
+	char auth64[256];
 
 protected:
 	char request[1024];
@@ -57,6 +59,9 @@ protected:
 	struct sockaddr_in sa;
 	int sd;
 
+protected:
+	static void Base64Encode( const char *in_string, char *out_string );
+
 public:
 	RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, bool p_capture=true );
 	~RemoteCamera();
@@ -64,6 +69,7 @@ public:
 	const char *Host() const { return( host ); }
 	const char *Port() const { return( port ); }
 	const char *Path() const { return( path ); }
+	const char *Auth() const { return( auth ); }
 
 	void Initialise();
 	void Terminate() { Disconnect(); }

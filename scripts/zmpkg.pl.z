@@ -236,7 +236,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 				}
 				else
 				{
-					execute( ZM_PATH_BIN."/zmdc.pl start zmc -H $monitor->{Host} -P $monitor->{Port} -p '$monitor->{Path}'" );
+					execute( ZM_PATH_BIN."/zmdc.pl start zmc -m $monitor->{Id}" );
 				}
 				if ( ( $monitor->{Function} eq 'Modect' )
 				|| ( $monitor->{Function} eq 'Record' )

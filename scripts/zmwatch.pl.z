@@ -153,7 +153,7 @@ while( 1 )
 			}
 			else
 			{
-				$command = ZM_PATH_BIN."/zmdc.pl restart zmc -H $monitor->{Host} -P $monitor->{Port} -p '$monitor->{Path}'";
+				$command = ZM_PATH_BIN."/zmdc.pl restart zmc -m $monitor->{Id}";
 			}
 			print( "Restarting capture daemon ('$command'), time since last capture $image_delay seconds ($now-$image_time)\n" );
 			print( qx( $command ) );

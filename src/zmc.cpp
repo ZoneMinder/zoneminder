@@ -35,10 +35,12 @@ void zmc_term_handler( int /* signal */ )
 
 void Usage()
 {
-	fprintf( stderr, "zmc -d <device_id>\n" );
+	fprintf( stderr, "zmc -d <device_id> or -m <monitor_id>\n" );
+
 	fprintf( stderr, "Options:\n" );
 	fprintf( stderr, "  -d, --device <device_id>      : For local cameras, device to access 0=>/dev/video0 etc\n" );
 	fprintf( stderr, "  -H <host> -P <port> -p <path> : For remote cameras\n" );
+	fprintf( stderr, "  -m, --monitor <monitor_id>    : For sources associated with a single monitor\n" );
 	fprintf( stderr, "  -h, --help                    : This screen\n" );
 	exit( 0 );
 }
@@ -49,12 +51,14 @@ int main( int argc, char *argv[] )
 	const char *host = "";
 	const char *port = "";
 	const char *path = "";
+	int monitor_id = -1;
 
 	static struct option long_options[] = {
 		{"device", 1, 0, 'd'},
 		{"host", 1, 0, 'H'},
 		{"port", 1, 0, 'P'},
-		{"path", 1, 0, 'p'},
+	 	{"path", 1, 0, 'p'},
+		{"monitor", 1, 0, 'm'},
 		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -63,7 +67,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:H:P:p:h", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:H:P:p:m:h", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -82,6 +86,9 @@ int main( int argc, char *argv[] )
 				break;
 			case 'p':
 				path = optarg;
+				break;
+			case 'm':
+				monitor_id = atoi(optarg);
 				break;
 			case 'h':
 			case '?':
@@ -102,16 +109,18 @@ int main( int argc, char *argv[] )
 		Usage();
 	}
 
-	if ( device >= 0 && host[0] )
+	if (( device >= 0 && host[0] )
+	|| ( device >= 0 && monitor_id > 0 )
+	|| ( monitor_id > 0 && host[0] ))
 	{
-		fprintf( stderr, "Only one of device or host/port/path allowed\n" );
+		fprintf( stderr, "Only one of device or host/port/path or monitor id allowed\n" );
 		Usage();
 		exit( 0 );
 	}
 
-	if ( device < 0 && !host[0] )
+	if ( device < 0 && !host[0] && monitor_id <= 0 )
 	{
-		fprintf( stderr, "One of device or host/port/path must be specified\n" );
+		fprintf( stderr, "One of device or host/port/path or monitor id must be specified\n" );
 		Usage();
 		exit( 0 );
 	}
@@ -123,9 +132,13 @@ int main( int argc, char *argv[] )
 	{
 		sprintf( dbg_name_string, "zmc-d%d", device );
 	}
-	else
+	else if ( host[0] )
 	{
 		sprintf( dbg_name_string, "zmc-h%s", host );
+	}
+	else
+	{
+		sprintf( dbg_name_string, "zmc-m%d", monitor_id );
 	}
 	zm_dbg_name = dbg_name_string;
 
@@ -139,11 +152,21 @@ int main( int argc, char *argv[] )
 	{
 		n_monitors = Monitor::Load( device, monitors, Monitor::CAPTURE );
 	}
-	else
+	else if ( host[0] )
 	{
 		if ( !port )
 			port = "80";
 		n_monitors = Monitor::Load( host, port, path, monitors, Monitor::CAPTURE );
+	}
+	else
+	{
+		Monitor *monitor = Monitor::Load( monitor_id, true, Monitor::CAPTURE );
+		if ( monitor )
+		{
+			monitors = new Monitor *[1];
+			monitors[0] = monitor;
+			n_monitors = 1;
+		}
 	}
 
 	if ( !n_monitors )

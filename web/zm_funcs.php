@@ -269,8 +269,8 @@ function zmcControl( $monitor, $restart=false )
 	}
 	else
 	{
-		$sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Host = '".$monitor['Host']."' and Port = '".$monitor['Port']."' and Path = '".$monitor['Path']."'";
-		$zmc_args = "-H ".$monitor['Host']." -P ".$monitor['Port']." -p '".$monitor['Path']."'";
+		$sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Id = '".$monitor['Id']."'";
+		$zmc_args = "-m ".$monitor['Id'];
 	}
 	$result = mysql_query( $sql );
 	if ( !$result )
@@ -364,7 +364,7 @@ function zmcCheck( $monitor )
 	}
 	else
 	{
-		$zmc_args = "-H ".$monitor['Host']." -P ".$monitor['Port']." -p '".$monitor['Path']."'";
+		$zmc_args = "-m ".$monitor['Id'];
 	}
 	return( daemonCheck( "zmc", $zmc_args ) );
 }

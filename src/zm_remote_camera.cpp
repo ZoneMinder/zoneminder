@@ -40,6 +40,9 @@
 
 RemoteCamera::RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, bool p_capture ) : Camera( REMOTE, p_width, p_height, p_palette, p_capture ), host( p_host ), port( p_port ), path( p_path )
 {
+	auth = 0;
+	auth64[0] = '\0';
+
 	sd = -1;
 	hp = 0;
 	request[0] = '\0';
@@ -62,7 +65,35 @@ RemoteCamera::~RemoteCamera()
 
 void RemoteCamera::Initialise()
 {
+	if( !host )
+	{
+		Error(( "No host specified for remote get" ));
+		exit( -1 );
+	}
+
+	if( !port )
+	{
+		Error(( "No port specified for remote get" ));
+		exit( -1 );
+	}
+
+	if( !path )
+	{
+		Error(( "No path specified for remote get" ));
+		exit( -1 );
+	}
+
 	// Cache as much as we can to speed things up
+	char *auth_ptr = strchr( host, '@' );
+
+	if ( auth_ptr )
+	{
+		auth = host;
+		host = auth_ptr+1;
+		*auth_ptr = '\0';
+		Base64Encode( auth, auth64 );
+	}
+
 	if ( !hp )
 	{
 		if ( !(hp = gethostbyname(host)) )
@@ -77,28 +108,16 @@ void RemoteCamera::Initialise()
 
 	if ( !request[0] )
 	{
-		if( !host )
-		{
-			Error(( "No host specified for remote get" ));
-			exit( -1 );
-		}
-
-		if( !port )
-		{
-			Error(( "No port specified for remote get" ));
-			exit( -1 );
-		}
-
-		if( !path )
-		{
-			Error(( "No path specified for remote get" ));
-			exit( -1 );
-		}
-
 		sprintf( request, "GET %s HTTP/%s\n", path, (const char *)config.Item( ZM_HTTP_VERSION ) );
-		sprintf( &(request[strlen(request)]), "Host: %s\n", host );
 		sprintf( &(request[strlen(request)]), "User-Agent: %s/%s\n", (const char *)config.Item( ZM_HTTP_UA ), ZM_VERSION );
-		sprintf( &(request[strlen(request)]), "Connection: Keep-Alive\n\n" );
+		sprintf( &(request[strlen(request)]), "Host: %s\n", host );
+		sprintf( &(request[strlen(request)]), "Connection: Keep-Alive\n" );
+		if ( auth )
+		{
+			sprintf( &(request[strlen(request)]), "Authorization: Basic %s\n", auth64 );
+		}
+		sprintf( &(request[strlen(request)]), "\n" );
+		Info(( "Request: %s", request ));
 		Debug( 2, ( "Request: %s", request ));
 	}
 	if ( !timeout.tv_sec )
@@ -354,4 +373,59 @@ int RemoteCamera::PostCapture( Image &image )
 
 	free( buffer );
 	return( 0 );
+}
+
+void RemoteCamera::Base64Encode( const char *in_string, char *out_string )
+{
+	static char base64_table[64] = { '\0' };
+
+	if ( !base64_table[0] )
+	{
+		int i = 0;
+		for ( char c = 'A'; c <= 'Z'; c++ )
+			base64_table[i++] = c;
+		for ( char c = 'a'; c <= 'z'; c++ )
+			base64_table[i++] = c;
+		for ( char c = '0'; c <= '9'; c++ )
+			base64_table[i++] = c;
+		base64_table[i++] = '+';
+		base64_table[i++] = '/';
+	}
+
+	int in_len = strlen( in_string );
+	const char *in_ptr = in_string;
+	char *out_ptr = out_string;
+	while( *in_ptr )
+	{
+		unsigned char selection = *in_ptr >> 2;
+		unsigned char remainder = (*in_ptr++ & 0x03) << 4;
+		*out_ptr++ = base64_table[selection];
+
+		if ( *in_ptr )
+		{
+			selection = remainder | (*in_ptr >> 4);
+			remainder = (*in_ptr++ & 0x0f) << 2;
+			*out_ptr++ = base64_table[selection];
+		
+			if ( *in_ptr )
+			{
+				selection = remainder | (*in_ptr >> 6);
+				*out_ptr++ = base64_table[selection];
+				selection = (*in_ptr++ & 0x3f);
+				*out_ptr++ = base64_table[selection];
+			}
+			else
+			{
+				*out_ptr++ = base64_table[remainder];
+				*out_ptr++ = '=';
+			}
+		}
+		else
+		{
+			*out_ptr++ = base64_table[remainder];
+			*out_ptr++ = '=';
+			*out_ptr++ = '=';
+		}
+	}
+	*out_ptr = '\0';
 }

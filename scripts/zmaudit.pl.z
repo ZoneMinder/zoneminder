@@ -79,7 +79,8 @@ BEGIN
 use constant IMAGE_PATH => ZM_PATH_WEB.'/'.ZM_DIR_IMAGES;
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmaudit.log';
-use constant VERBOSE => 0; # Whether to output more verbose debug
+use constant MIN_AGE => 300; # Minimum age when we will delete anything
+use constant VERBOSE => 1; # Whether to output more verbose debug
 
 # ==========================================================================
 #
@@ -176,6 +177,27 @@ my $max_image_age = 15/(24*60); # 15 Minutes
 my $image_path = IMAGE_PATH;
 do
 {
+	my $db_monitors;
+	my $sql1 = "select Id from Monitors order by Id";
+	my $sth1 = $dbh->prepare_cached( $sql1 ) or die( "Can't prepare '$sql1': ".$dbh->errstr() );
+	my $sql2 = "select Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age from Events where MonitorId = ? order by Id";
+	my $sth2 = $dbh->prepare_cached( $sql2 ) or die( "Can't prepare '$sql2': ".$dbh->errstr() );
+	my $res = $sth1->execute() or die( "Can't execute: ".$sth1->errstr() );
+	while( my $monitor = $sth1->fetchrow_hashref() )
+	{
+		print( "Found database monitor '$monitor->{Id}'" ) if ( VERBOSE );
+		my $db_events = $db_monitors->{$monitor->{Id}} = {};
+		my $res = $sth2->execute( $monitor->{Id} ) or die( "Can't execute: ".$sth2->errstr() );
+		while ( my $event = $sth2->fetchrow_hashref() )
+		{
+			$db_events->{$event->{Id}} = $event->{Age};
+		}
+		print( ", got ".int(keys(%$db_events))." events\n" ) if ( VERBOSE );
+		$sth2->finish();
+	}
+	$sth1->finish();
+
+	my $fs_now = time();
 	my $fs_monitors;
 	foreach my $monitor ( <[0-9]*> )
 	{
@@ -185,31 +207,11 @@ do
 		chdir( $monitor_dir );
 		foreach my $event ( <[0-9]*> )
 		{
-			$fs_events->{$event} = !undef;
+			$fs_events->{$event} = ($fs_now - ($^T - ((-M $event) * 24*60*60)));
 		}
 		chdir( EVENT_PATH );
 		print( ", got ".int(keys(%$fs_events))." events\n" ) if ( VERBOSE );
 	}
-
-	my $db_monitors;
-	my $sql = "select * from Monitors order by Id";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $sql2 = "select * from Events where MonitorId = ? order by Id";
-	my $sth2 = $dbh->prepare_cached( $sql2 ) or die( "Can't prepare '$sql2': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-	while( my $monitor = $sth->fetchrow_hashref() )
-	{
-		print( "Found database monitor '$monitor->{Id}'" ) if ( VERBOSE );
-		my $db_events = $db_monitors->{$monitor->{Id}} = {};
-		my $res = $sth2->execute( $monitor->{Id} ) or die( "Can't execute: ".$sth2->errstr() );
-		while ( my $event = $sth2->fetchrow_hashref() )
-		{
-			$db_events->{$event->{Id}} = !undef;
-		}
-		print( ", got ".int(keys(%$db_events))." events\n" ) if ( VERBOSE );
-		$sth2->finish();
-	}
-	$sth->finish();
 
 	while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
 	{
@@ -217,9 +219,9 @@ do
 		{
 			if ( $fs_events )
 			{
-				while ( my ( $fs_event, $val ) = each(%$fs_events ) )
+				while ( my ( $fs_event, $age ) = each(%$fs_events ) )
 				{
-					if ( !$db_events->{$fs_event} )
+					if ( !$db_events->{$fs_event} && ($age > MIN_AGE) )
 					{
 						print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
 						if ( confirm() )
@@ -256,9 +258,9 @@ do
 		{
 			if ( $db_events )
 			{
-				while ( my ( $db_event, $val ) = each(%$db_events ) )
+				while ( my ( $db_event, $age ) = each(%$db_events ) )
 				{
-					if ( !$fs_events->{$db_event} )
+					if ( !$fs_events->{$db_event} && ($age > MIN_AGE) )
 					{
 						print( "Database event '$db_monitor/$db_event' does not exist in filesystem" );
 						if ( confirm() )
@@ -306,8 +308,8 @@ do
 		}
 	}
 
-	# New audit to close any events that were left open for longer than 5 minutes
-	my $sql9 = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, count(F.Id) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) group by E.Id having EndTime < (now() - interval 5 minute)"; 
+	# New audit to close any events that were left open for longer than MIN_AGE seconds
+	my $sql9 = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, count(F.Id) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
 	my $sth9 = $dbh->prepare_cached( $sql9 ) or die( "Can't prepare '$sql9': ".$dbh->errstr() );
 	my $sql10 = "update Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ? where Id = ?";
 	my $sth10 = $dbh->prepare_cached( $sql10 ) or die( "Can't prepare '$sql10': ".$dbh->errstr() );

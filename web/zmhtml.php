@@ -1407,7 +1407,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php
 		if ( $mode == "stream" )
 		{
-			$stream_src = ZMS_PATH."?path=".ZM_WEB_PATH."&event=$eid&refresh=".STREAM_EVENT_DELAY;
+			$stream_src = ZMS_PATH."?path=".ZM_PATH_WEB."&event=$eid&refresh=".STREAM_EVENT_DELAY;
 			if ( isNetscape() )
 			{
 ?>

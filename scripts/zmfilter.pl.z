@@ -32,12 +32,15 @@ use strict;
 # These are the elements you need to edit to suit your installation
 #
 # ==========================================================================
+use constant ZM_PATH_BIN => "<from zmconfig>";
+use constant ZM_PATH_WEB => "<from zmconfig>";
+use constant ZM_PATH_CGI => "<from zmconfig>";
+use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERA => "<from zmconfig>";
 use constant ZM_DB_PASSA => "<from zmconfig>";
 use constant ZM_DIR_EVENTS => "<from zmconfig>";
-use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_SHM_KEY => <from zmconfig>;
 use constant ZM_FILTER_RELOAD_DELAY => <from zmconfig>;
 use constant ZM_OPT_UPLOAD => <from zmconfig>;
@@ -59,7 +62,7 @@ use constant ZM_MESSAGE_ADDRESS => <from zmconfig>;
 use constant ZM_URL => <from zmconfig>;
 use constant ZM_FROM_EMAIL => <from zmconfig>;
 
-use constant EVENT_PATH => "@WEB_PREFIX@/".ZM_DIR_EVENTS;
+use constant EVENT_PATH => ZM_PATH_WEB.'/.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter-%d.log';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 

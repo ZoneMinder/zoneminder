@@ -21,7 +21,9 @@
 
 // This section contains options substituted by the zmconfig.pl utility, do not edit these directly
 //
-define( "ZM_DB_SERVER", "<from zmconfig>" );			// Database Server machine
+define( "ZM_PATH_BIN", "<from zmconfig>" );				// Path to binaries
+define( "ZM_PATH_WEB", "<from zmconfig>" );				// Path to web files
+define( "ZM_PATH_CGI", "<from zmconfig>" );				// Path to cgi files
 define( "ZM_DB_NAME", "<from zmconfig>" );				// Database containing the tables
 define( "ZM_DB_USERA", "<from zmconfig>" );				// Database login
 define( "ZM_DB_PASSA", "<from zmconfig>" );				// Database password
@@ -73,10 +75,8 @@ define( "ZM_WEB_P_REFRESH_IMAGE", <from zmconfig> );	// How often the watched im
 //
 define( "ZM_DB_USER", ZM_DB_USERA );					// Database login
 define( "ZM_DB_PASS", ZM_DB_PASSA );					// Database password
-define( "ZM_PATH", "@prefix@/bin" );					// Local path to the general ZoneMonitor executables
-define( "ZMU_PATH", ZM_PATH."/zmu" );					// Local path to the ZoneMinder Utility
+define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );				// Local path to the ZoneMinder Utility
 define( "ZMS_PATH", "/cgi-bin/zms" );					// Web path to the ZoneMinder Stream server
-define( "ZM_WEB_PATH", "@WEB_PREFIX@" );				// Full path (not web) to web directory
 
 // These are miscellaneous options you won't normally need to change
 //

@@ -31,16 +31,19 @@ use strict;
 # These are the elements you need to edit to suit your installation
 #
 # ==========================================================================
+use constant ZM_PATH_BIN => "<from zmconfig>";
+use constant ZM_PATH_WEB => "<from zmconfig>";
+use constant ZM_PATH_CGI => "<from zmconfig>";
+use constant ZM_PATH_LOGS => "<from zmconfig>";
+use constant ZM_WEB_USER => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERA => "<from zmconfig>";
 use constant ZM_DB_PASSA => "<from zmconfig>";
-use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_OPT_FAST_DELETE => "<from zmconfig>";
 use constant ZM_OPT_X10 => "<from zmconfig>";
 
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
-use constant COMMAND_PATH => '@prefix@/bin';
 use constant WEB_USER => '@WEB_USER@/';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
@@ -68,9 +71,9 @@ sub execute
 {
 	my $command = shift;
 	my ( $name ) = getpwuid( $> );
-	if ( $name ne '@WEB_USER@' )
+	if ( $name ne ZM_WEB_USER )
 	{
-		$command = "su @WEB_USER@ --shell=/bin/sh --command='$command'";
+		$command = "su ".ZM_WEB_USER." --shell=/bin/sh --command='$command'";
 	}
 	print( STDERR "Executing: $command\n" );
 	return( qx( $command ) );
@@ -84,7 +87,7 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-my $status = execute( COMMAND_PATH."/zmdc.pl check" );
+my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
 my $retval = 0;
 
 chomp( $status );
@@ -92,7 +95,7 @@ if ( $command =~ /^(?:stop|restart)$/ )
 {
 	if ( $status eq "running" )
 	{
-		execute( COMMAND_PATH."/zmdc.pl shutdown" );
+		execute( ZM_PATH_BIN."/zmdc.pl shutdown" );
 	}
 	else
 	{
@@ -104,7 +107,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 {
 	if ( $status eq "stopped" )
 	{
-		execute( COMMAND_PATH."/zmfix" );
+		execute( ZM_PATH_BIN."/zmfix" );
 
 		my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 
@@ -115,25 +118,25 @@ if ( $command =~ /^(?:start|restart)$/ )
 		{
 			if ( $monitor->{Function} ne 'None' )
 			{
-				execute( COMMAND_PATH."/zmdc.pl start zmc -d $monitor->{Device}" );
+				execute( ZM_PATH_BIN."/zmdc.pl start zmc -d $monitor->{Device}" );
 				if ( $monitor->{Function} eq 'Active' )
 				{
-					execute( COMMAND_PATH."/zmdc.pl start zma -m $monitor->{Id}" );
+					execute( ZM_PATH_BIN."/zmdc.pl start zma -m $monitor->{Id}" );
 				}
 			}
-			execute( COMMAND_PATH."/zmdc.pl start zmfilter.pl -m $monitor->{Id} -e -1" );
+			execute( ZM_PATH_BIN."/zmdc.pl start zmfilter.pl -m $monitor->{Id} -e -1" );
 		}
 		$sth->finish();
 
 		if ( ZM_OPT_FAST_DELETE )
 		{
-			execute( COMMAND_PATH."/zmdc.pl start zmaudit.pl -d 900 -y" );
+			execute( ZM_PATH_BIN."/zmdc.pl start zmaudit.pl -d 900 -y" );
 		}
 		if ( ZM_OPT_X10 )
 		{
-			execute( COMMAND_PATH."/zmdc.pl start zmx10.pl -c start" );
+			execute( ZM_PATH_BIN."/zmdc.pl start zmx10.pl -c start" );
 		}
-		execute( COMMAND_PATH."/zmdc.pl start zmwatch.pl" );
+		execute( ZM_PATH_BIN."/zmdc.pl start zmwatch.pl" );
 	}
 	else
 	{

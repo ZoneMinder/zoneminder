@@ -34,9 +34,9 @@
 #
 # ==========================================================================
 
+use constant ZM_PATH_BIN => "<from zmconfig>";
 use constant ZM_PATH_LOGS => "<from zmconfig>";
 
-use constant DAEMON_PATH => '@prefix@/bin/';
 use constant DC_SOCK_FILE => '/tmp/zmdc.sock';
 use constant DC_LOG_FILE => ZM_PATH_LOGS.'/zmdc.log';
 use constant VERBOSE => 0; # Whether to output more verbose debug
@@ -205,7 +205,7 @@ if ( !connect( CLIENT, $saddr ) )
 	
 				if ( $daemon =~ /^${daemon_patt}$/ )
 				{
-					$daemon = DAEMON_PATH.$1;
+					$daemon = ZM_PATH_BIN.'/'.$1;
 				}
 				else
 				{

@@ -32,17 +32,17 @@
 #
 # ==========================================================================
 
+use constant ZM_PATH_BIN => "<from zmconfig>";
+use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERA => "<from zmconfig>";
 use constant ZM_DB_PASSA => "<from zmconfig>";
-use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_WATCH_CHECK_INTERVAL => <from zmconfig>;
 use constant ZM_WATCH_MAX_DELAY => <from zmconfig>;
 
-use constant COMMAND_PATH => '@prefix@/bin/';
 use constant WATCH_LOG_FILE => ZM_PATH_LOGS.'/zmwatch.log';
-use constant START_DELAY => 30; # To give everything time to start
+use constant START_DELAY => 30; # To give everything else time to start
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
@@ -94,7 +94,7 @@ while( 1 )
 		if ( $monitor->{Function} ne 'None' )
 		{
 			# Check we have got an image recently
-			my $command = COMMAND_PATH."zmu -m ".$monitor->{Id}." -t";
+			my $command = ZM_PATH_BIN."/zmu -m ".$monitor->{Id}." -t";
 			print( "Getting last image time for monitor $monitor->{Id} ('$command')\n" ) if ( VERBOSE );
 			my $image_time = qx( $command );
 			chomp($image_time);
@@ -106,7 +106,7 @@ while( 1 )
 				next;
 			}
 			# If we are here then something bad has happened
-			$command = COMMAND_PATH."zmdc.pl restart zmc -d ".$monitor->{Device};
+			$command = ZM_PATH_BIN."/zmdc.pl restart zmc -d ".$monitor->{Device};
 			print( "Restarting capture daemon ('$command')\n" );
 			print( qx( $command ) );
 		}

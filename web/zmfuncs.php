@@ -79,21 +79,21 @@ function canStream()
 
 function fixDevices()
 {
-	$string = ZM_PATH."/zmfix";
+	$string = ZM_PATH_BIN."/zmfix";
 	$string .= " 2>/dev/null >&- <&- >/dev/null";
 	exec( $string );
 }
 
 function packageControl( $command )
 {
-	$string = ZM_PATH."/zmpkg.pl $command";
+	$string = ZM_PATH_BIN."/zmpkg.pl $command";
 	$string .= " 2>/dev/null >&- <&- >/dev/null";
 	exec( $string );
 }
 
 function daemonControl( $command, $daemon=false, $args=false )
 {
-	$string = ZM_PATH."/zmdc.pl $command";
+	$string = ZM_PATH_BIN."/zmdc.pl $command";
 	if ( $daemon )
 	{
 		$string .= " $daemon";
@@ -161,7 +161,7 @@ function zmaControl( $monitor, $restart=false )
 
 function daemonCheck( $daemon=false, $args=false )
 {
-	$string = ZM_PATH."/zmdc.pl check";
+	$string = ZM_PATH_BIN."/zmdc.pl check";
 	if ( $daemon )
 	{
 		$string .= " $daemon";

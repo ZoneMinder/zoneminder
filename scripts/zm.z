@@ -6,7 +6,8 @@
 . /etc/rc.d/init.d/functions
 
 prog=ZoneMinder
-command="@prefix@/bin/zmpkg.pl"
+ZM_PATH_BIN="<from zmconfig>"
+command="$ZM_PATH_BIN/zmpkg.pl"
 
 start() {
 	echo -n "Starting $prog: "

@@ -848,6 +848,9 @@ monitor window should anything catch your attention. You have
 to remember to switch them off as well though.
 - Looser video configuration - Some video configuration errors
 can now be ignore via the STRICT_VIDEO_CONFIG option.
+- Monitor window refresh on alarm - When the monitor window is active and an
+alarm has occurred the most recent alarms list is immediately refreshed to
+show it.
 
 Release 0.9.7 - Yes, a big jump in release number but a lot of changes too. Now 
 somewhat more mature, not really an alpha any more, and a lot of bugs fixed too. 

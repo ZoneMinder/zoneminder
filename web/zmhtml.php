@@ -451,6 +451,7 @@ function closeWindow()
 		}
 		$fps_string = sprintf( "%.2f", $fps );
 		$new_alarm = ( $status > 0 && $last_status == 0 );
+		$old_alarm = ( $status == 0 && $last_status > 0 );
 
 		$refresh = (isset($force)||$forced||$status)?1:REFRESH_STATUS;
 		$url = "$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status".(($force||$forced)?"&forced=1":"");
@@ -470,6 +471,12 @@ function closeWindow()
 		{
 ?>
 top.window.focus();
+<?php
+		}
+		if ( $old_alarm )
+		{
+?>
+parent.frames[2].location.reload();
 <?php
 		}
 ?>

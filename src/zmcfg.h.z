@@ -19,16 +19,16 @@
 
 #include "config.h"
 
-#define ZM_DATABASE				"zm"		// Database name
-#define	ZM_DB_USERA				"zmadmin"	// Privileged DB user name, needs at least select, insert, delete privileges
-#define	ZM_DB_PASSA				"zmadminzm"	// Privileged DB user password
-#define	ZM_DB_USERB				"zmuser"	// Unprivileged DB user name, need just select privilege.
-#define	ZM_DB_PASSB				"zmuserzm"	// Unprivileged DB user password
+#define ZM_DB_NAME				"<from zmconfig>"	// Database name
+#define	ZM_DB_USERA				"<from zmconfig>"	// Privileged DB user name, needs at least select, insert, delete privileges
+#define	ZM_DB_PASSA				"<from zmconfig>"	// Privileged DB user password
+#define	ZM_DB_USERB				"<from zmconfig>"	// Unprivileged DB user name, need just select privilege.
+#define	ZM_DB_PASSB				"<from zmconfig>"	// Unprivileged DB user password
 
-#define ZM_SHM_KEY				0x7a6d2000	// Base shared memory key
+#define ZM_SHM_KEY				<from zmconfig>		// Base shared memory key
 
-#define ZM_EVENT_DIR			"events"	// Event directory relative to web directory
+#define ZM_EVENT_DIR			<from zmconfig>		// Event directory relative to web directory
 
-#define ZM_FORCED_ALARM_SCORE	255			// Score to give X10 forced alarms
+#define ZM_FORCED_ALARM_SCORE	<from zmconfig>		// Score to give X10 forced alarms
 
-#define ZM_RECORD_EVENT_STATS	true		// Whether to record event statistical information, change to false if too slow
+#define ZM_RECORD_EVENT_STATS	<from zmconfig>		// Whether to record event statistical information, change to false if too slow

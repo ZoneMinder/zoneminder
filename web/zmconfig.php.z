@@ -88,4 +88,20 @@ elseif ( $bandwidth == "mobile" )
 	define( "STREAM_EVENT_DELAY", 10 );         // How long (in milliseconds) to wait between each frame when streaming events
 	define( "IMAGE_SCALING", 4 );               // Image scaling for thumbnails, bandwidth versus cpu in rescaling
 }
+
+// Javascript window sizes
+$jws = array( 
+	'console' => array( 'w'=>720, 'h'=>400 ),
+	'cycle' => array( 'w'=>36, 'h'=>72 ),
+	'monitor' => array( 'w'=>360, 'h'=>320 ),
+	'watch' => array( 'w'=>72, 'h'=>360 ),
+	'device' => array( 'w'=>196, 'h'=>164 ),
+	'function' => array( 'w'=>248, 'h'=>72 ),
+	'events' => array( 'w'=>720, 'h'=>480 ),
+	'event' => array( 'w'=>420, 'h'=>500 ),
+	'zones' => array( 'w'=>72, 'h'=>232 ),
+	'zone' => array( 'w'=>360, 'h'=>480 ),
+	'video' => array( 'w'=>100, 'h'=>80 ),
+	'image' => array( 'w'=>48, 'h'=>72 ),
+);
 ?>

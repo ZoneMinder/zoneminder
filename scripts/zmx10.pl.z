@@ -422,15 +422,15 @@ sub addPendingTask
 		}
 	}
 
+	my $pending_task = { monitor=>$task->{monitor}, function=>$task->{function} };
 	my $end_time = time() + $task->{limit};
 	my $pending_list = $pending_tasks{$end_time};
 	if ( !$pending_list )
 	{
 		$pending_list = $pending_tasks{$end_time} = [];
 	}
-	$task->{function} =~ s/start/stop/;
-	delete( $task->{limit} );
-	push( @$pending_list, $task );
+	$pending_task->{function} =~ s/start/stop/;
+	push( @$pending_list, $pending_task );
 }
 
 sub processTask

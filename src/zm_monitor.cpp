@@ -675,7 +675,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 {
 	time_t start_time, now;
 
-	setbuf( fd, 0 );
+	//setbuf( fd, 0 );
 	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
 	fprintf( fd, "Pragma: no-cache\r\n" );
 	fprintf( fd, "Cache-Control: no-cache\r\n" );

@@ -281,7 +281,7 @@ void Event::StreamEvent( const char *path, int event_id, long refresh, FILE *fd 
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	setbuf( fd, 0 );
+	//setbuf( fd, 0 );
 	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
 	fprintf( fd, "Pragma: no-cache\r\n" );
 	fprintf( fd, "Cache-Control: no-cache\r\n" );

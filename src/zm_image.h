@@ -61,11 +61,15 @@ protected:
 	JSAMPLE *buffer;
 	bool our_buffer;
 
+protected:
+	mutable unsigned int *blend_buffer;
+
 public:
 	Image( const char *filename )
 	{
 		ReadJpeg( filename );
 		our_buffer = true;
+		blend_buffer = 0;
 	}
 	Image( int p_width, int p_height, int p_colours, JSAMPLE *p_buffer=0 )
 	{
@@ -84,6 +88,7 @@ public:
 			our_buffer = false;
 			buffer = p_buffer;
 		}
+		blend_buffer = 0;
 	}
 	Image( const Image &p_image )
 	{
@@ -94,6 +99,7 @@ public:
 		buffer = new JSAMPLE[size];
 		memcpy( buffer, p_image.buffer, size );
 		our_buffer = true;
+		blend_buffer = 0;
 	}
 	~Image()
 	{
@@ -101,6 +107,7 @@ public:
 		{
 			delete[] buffer;
 		}
+		delete[] blend_buffer;
 	}
 
 	inline int Width() { return( width ); }

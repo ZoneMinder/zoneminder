@@ -312,12 +312,27 @@ void Image::Blend( const Image &image, int transparency ) const
 {
 	assert( width == image.width && height == image.height && colours == image.colours );
 
+	if ( !blend_buffer )
+	{
+		blend_buffer = new unsigned int[size];
+
+		unsigned int *pb = blend_buffer;
+		JSAMPLE *p = buffer;
+		
+		while( p < (buffer+size) )
+		{
+			*pb++ = (unsigned int)((*p++)<<8);
+		}
+	}
+
 	JSAMPLE *psrc = image.buffer;
 	JSAMPLE *pdest = buffer;
+	unsigned int *pblend = blend_buffer;
 
 	while( pdest < (buffer+size) )
 	{
-		*pdest++ = (JSAMPLE)(((*pdest * (100-transparency))+(*psrc++ * transparency))/100);
+		*pblend = (unsigned int)(((*pblend * (100-transparency))+(((*psrc++)<<8) * transparency))/100);
+		*pdest++ = (JSAMPLE)((*pblend++)>>8);
 	}
 }
 

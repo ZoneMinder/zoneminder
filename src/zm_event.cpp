@@ -217,7 +217,7 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
 	{
 		Image ts_image( *image );
 		monitor->TimestampImage( &ts_image, timestamp.tv_sec );
-		if ( !(bool)config.Item( ZM_OPT_FRAME_SERVER ) || !SendFrameImage( image, alarm_frame) )
+		if ( !(bool)config.Item( ZM_OPT_FRAME_SERVER ) || !SendFrameImage( &ts_image, alarm_frame) )
 		{
 			ts_image.WriteJpeg( event_file );
 		}

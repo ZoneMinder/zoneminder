@@ -30,6 +30,7 @@
 # These are the elements you need to edit to suit your installation
 #
 # ==========================================================================
+
 use constant X10_DEVICE => '/dev/ttyS1';
 use constant X10_HOUSE_CODE => 'K';
 use constant X10_SOCK_FILE => '/tmp/zmx10.sock';
@@ -42,9 +43,7 @@ use constant X10_LOG_FILE => '/tmp/zmx10.log';
 # ==========================================================================
 
 use strict;
-
 use POSIX;
-#use DBI;
 use Socket;
 use Getopt::Long;
 use Data::Dumper;

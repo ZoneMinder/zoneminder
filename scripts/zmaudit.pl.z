@@ -30,6 +30,22 @@
 # yet.
 #
 
+# ==========================================================================
+#
+# These are the elements you need to edit to suit your installation
+#
+# ==========================================================================
+use constant DB_NAME => "zm";
+use constant DB_USER => "zmadmin";
+use constant DB_PASS => "zmadminzm";
+use constant EVENT_PATH => "/data/zm/events";
+
+# ==========================================================================
+#
+# You shouldn't need to change anything from here downwards
+#
+# ==========================================================================
+
 use strict;
 use DBI;
 use Getopt::Long;
@@ -110,9 +126,7 @@ if ( $report && $delay )
 
 ReadMode( 'cbreak' );
 
-my $event_path = "/data/zm/events";
-
-chdir( $event_path );
+chdir( EVENT_PATH );
 
 my $fs_monitors;
 foreach my $monitor ( <*> )
@@ -130,11 +144,7 @@ foreach my $monitor ( <*> )
 	print( ", got ".int(keys(%$fs_events))." events\n" );
 }
 
-my $database = "zm";
-my $username = "zmadmin";
-my $password = "zmadminzm";
-
-my $dbh = DBI->connect( "DBI:mysql:$database", $username, $password );
+my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
 
 my $db_monitors;
 my $sql = "select * from Monitors order by Name";
@@ -169,7 +179,7 @@ while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
 					print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
 					if ( confirm() )
 					{
-						qx( rm -rf $event_path/$fs_monitor/$fs_event );
+						qx( rm -rf EVENT_PATH/$fs_monitor/$fs_event );
 						sleep( $delay ) if ( $delay );
 					}
 				}
@@ -181,7 +191,7 @@ while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
 		print( "Filesystem monitor '$fs_monitor' does not exist in database" );
 		if ( confirm() )
 		{
-			qx( rm -rf $event_path/$fs_monitor );
+			qx( rm -rf EVENT_PATH/$fs_monitor );
 			sleep( $delay ) if ( $delay );
 		}
 	}

@@ -215,10 +215,12 @@ else
 
 	foreach ( $config_cat as $name=>$value )
 	{
+		$option_prompt_var = "zmOlangPrompt".preg_replace( '/^ZM_/', '', $value['Name'] );
+		$option_prompt_text = $$option_prompt_var?$$option_prompt_var:$value['Prompt'];
 ?>
 <tr>
 <td align="left" class="text"><?= $value['Name'] ?></td>
-<td align="left" class="text"><?= $value['Prompt'] ?> (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=optionhelp&option=<?= $value['Name'] ?>', 'zmOptionHelp', <?= $jws['optionhelp']['w'] ?>, <?= $jws['optionhelp']['h'] ?>);">?</a>)</td>
+<td align="left" class="text"><?= $option_prompt_text ?> (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=optionhelp&option=<?= $value['Name'] ?>', 'zmOptionHelp', <?= $jws['optionhelp']['w'] ?>, <?= $jws['optionhelp']['h'] ?>);">?</a>)</td>
 <?php	
 		if ( $value['Type'] == "boolean" )
 		{

@@ -18,10 +18,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-// Help Text can be either the default from the DB or overridden in the language files
-include_once( 'zm_help.php' );
-
-$option_help_var = "zmHlangOption$option";
+$option_help_var = "zmOlangHelp".preg_replace( '/^ZM_/', '', $option );
 $option_help_text = $$option_help_var?$$option_help_var:$config[$option]['Help'];
 
 ?>

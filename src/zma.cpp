@@ -99,6 +99,8 @@ int main( int argc, char *argv[] )
 	char dbg_name_string[16];
 	sprintf( dbg_name_string, "zma-m%d", id );
 	zm_dbg_name = dbg_name_string;
+	//sprintf( zm_dbg_log, "/tmp/zma-%d.log", id );
+	//zm_dbg_level = 1;
 
 	zmDbgInit();
 
@@ -109,6 +111,11 @@ int main( int argc, char *argv[] )
 	if ( monitor )
 	{
 		Info(( "Warming up" ));
+
+		if ( ZM_OPT_FRAME_SERVER )
+		{
+			Event::OpenFrameSocket( monitor->Id() );
+		}
 
 		sigset_t block_set;
 		sigemptyset( &block_set );

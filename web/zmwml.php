@@ -53,7 +53,8 @@ if ( $view == "console" )
 	if ( !$HTTP_SESSION_VARS[event_reset_time] )
 		$HTTP_SESSION_VARS[event_reset_time] = "2000-01-01 00:00:00";
 
-	$sql = "select M.*, count(E.Id) as EventCount, count(if(E.StartTime>'$HTTP_SESSION_VARS[event_reset_time]' && E.Archived = 0,1,NULL)) as ResetEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by E.MonitorId order by Id";
+	$db_now = strftime( "%Y-%m-%d %H:%M:%S" );
+	$sql = "select M.*, count(E.Id) as EventCount, count(if(E.StartTime>'$HTTP_SESSION_VARS[event_reset_time]' && E.Archived = 0,1,NULL)) as ResetEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by E.MonitorId order by Id";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();

@@ -279,12 +279,7 @@ if ( $action )
 	}
 	elseif ( $action == "reset" )
 	{
-		// Get MySQL's version of now
-		$result = mysql_query( "select now()" );
-		if ( !$result )
-			die( mysql_error() );
-		$row = mysql_fetch_row( $result );
-		$HTTP_SESSION_VARS[event_reset_time] = $row[0];
+		$HTTP_SESSION_VARS[event_reset_time] = strftime( "%Y-%m-%d %H:%M:%S" );
 		setcookie( "event_reset_time", $HTTP_SESSION_VARS[event_reset_time], time()+3600*24*30*12*10 );
 	}
 }

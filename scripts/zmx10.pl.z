@@ -441,7 +441,7 @@ sub loadTasks
 		$device->{OFF_list} = [];
 	}
 
-	my $sql = "select M.*,T.* from Monitors as M inner join TriggersX10 as T on (M.Id = T.MonitorId) where M.Function > 'Monitor' and M.RunMode = 'Triggered' and find_in_set( 'X10', M.Triggers )";
+	my $sql = "select M.*,T.* from Monitors as M inner join TriggersX10 as T on (M.Id = T.MonitorId) where find_in_set( M.Function, 'Modect,Record,Mocord' ) and M.RunMode = 'Triggered' and find_in_set( 'X10', M.Triggers )";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
@@ -457,10 +457,10 @@ sub loadTasks
 
 		$monitor_hash{$monitor->{Id}} = $monitor;
 
-		if ( $monitor->{X10Activation} )
+		if ( $monitor->{Activation} )
 		{
-			print( "$monitor->{Name} has active string '$monitor->{X10Activation}'\n" ) if ( main::VERBOSE );
-			foreach my $code_string ( split( ',', $monitor->{X10Activation} ) )
+			print( "$monitor->{Name} has active string '$monitor->{Activation}'\n" ) if ( main::VERBOSE );
+			foreach my $code_string ( split( ',', $monitor->{Activation} ) )
 			{
 				#print( "Code string: $code_string\n" );
 				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -478,10 +478,10 @@ sub loadTasks
 				}
 			}
 		}
-		if ( $monitor->{X10AlarmInput} )
+		if ( $monitor->{AlarmInput} )
 		{
-			print( "$monitor->{Name} has alarm input string '$monitor->{X10AlarmInput}'\n" ) if ( main::VERBOSE );
-			foreach my $code_string ( split( ',', $monitor->{X10AlarmInput} ) )
+			print( "$monitor->{Name} has alarm input string '$monitor->{AlarmInput}'\n" ) if ( main::VERBOSE );
+			foreach my $code_string ( split( ',', $monitor->{AlarmInput} ) )
 			{
 				#print( "Code string: $code_string\n" );
 				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -499,10 +499,10 @@ sub loadTasks
 				}
 			}
 		}
-		if ( $monitor->{X10AlarmOutput} )
+		if ( $monitor->{AlarmOutput} )
 		{
-			print( "$monitor->{Name} has alarm output string '$monitor->{X10AlarmOutput}'\n" ) if ( main::VERBOSE );
-			foreach my $code_string ( split( ',', $monitor->{X10AlarmOutput} ) )
+			print( "$monitor->{Name} has alarm output string '$monitor->{AlarmOutput}'\n" ) if ( main::VERBOSE );
+			foreach my $code_string ( split( ',', $monitor->{AlarmOutput} ) )
 			{
 				#print( "Code string: $code_string\n" );
 				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );

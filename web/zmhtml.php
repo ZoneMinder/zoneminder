@@ -45,6 +45,10 @@ switch( $view )
 	case "console" :
 	{
 		daemonControl( 'check' );
+		if ( FAST_DELETE )
+		{
+			daemonControl( 'start', 'zmaudit.pl' );
+		}
 
 		header("Refresh: ".REFRESH_MAIN."; URL='$PHP_SELF'" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past

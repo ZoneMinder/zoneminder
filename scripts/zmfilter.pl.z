@@ -61,6 +61,7 @@ use constant ZM_OPT_MESSAGE => <from zmconfig>;
 use constant ZM_MESSAGE_ADDRESS => <from zmconfig>;
 use constant ZM_URL => <from zmconfig>;
 use constant ZM_FROM_EMAIL => <from zmconfig>;
+use constant ZM_OPT_MPEG => <from zmconfig>;
 
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter-%d.log';
@@ -655,7 +656,7 @@ sub substituteTags
 	{
 		push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%d/capture-%03d.jpg", $filter->{MonitorName}, $event->{Id}, $max_alarm_frame->{FrameId} ) } );
 	}
-	if ( $attachments_ref && $text =~ s/%EV%/Event video attached/g )
+	if ( $attachments_ref && ZM_OPT_MPEG ne "no" && $text =~ s/%EV%/Event video attached/g )
 	{
 		my $command = ZM_PATH_BIN."/zmvideo.pl -e $event->{Id}";
 		my $output = qx($command);

@@ -1,7 +1,7 @@
 --
 -- This updates a 0.9.12 database to 0.9.13
 --
--- Nothing to change
+insert into Users values ('','admin',password('admin'),1,'View','Edit','Edit','Edit',NULL);
 --
 -- These are optional, it just seemed a good time...
 optimize table Frames;

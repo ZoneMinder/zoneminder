@@ -2,7 +2,7 @@
 --
 -- Host: localhost    Database: ZM_DB_NAME
 ---------------------------------------------------------
--- Server version   3.23.49
+-- Server version	3.23.49
 
 --
 -- Current Database: ZM_DB_NAME
@@ -134,6 +134,25 @@ CREATE TABLE Stats (
   KEY EventId (EventId),
   KEY MonitorId (MonitorId),
   KEY ZoneId (ZoneId)
+) TYPE=MyISAM;
+
+--
+-- Table structure for table 'Users'
+--
+
+CREATE TABLE Users (
+  Id int(10) unsigned NOT NULL auto_increment,
+  Username varchar(32) NOT NULL default '',
+  Password varchar(32) NOT NULL default '',
+  Enabled tinyint(3) unsigned NOT NULL default '1',
+  Stream enum('None','View') NOT NULL default 'None',
+  Events enum('None','View','Edit') NOT NULL default 'None',
+  Monitors enum('None','View','Edit') NOT NULL default 'None',
+  System enum('None','View','Edit') NOT NULL default 'None',
+  MonitorIds tinytext,
+  PRIMARY KEY  (Id),
+  UNIQUE KEY UC_Id (Id),
+  UNIQUE KEY UC_Username (Username)
 ) TYPE=MyISAM;
 
 --

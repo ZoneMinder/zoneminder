@@ -198,13 +198,14 @@ if ( !connect( CLIENT, $saddr ) )
 
 			my $command = "$daemon ".join( ' ', @args );
 			my $process = $cmd_hash{$command};
+			my $cpid = $process->{pid};
 
 			if ( !$process )
 			{
 				dprint( "Can't find process with command of '$command'\n" );
 				return();
 			}
-			if ( !$pid_hash{$process->{pid}} )
+			if ( !$pid_hash{$cpid} )
 			{
 				dprint( "No process with command of '$command' is running\n" );
 				return();
@@ -212,16 +213,16 @@ if ( !connect( CLIENT, $saddr ) )
 
 			print( "'$daemon ".join( ' ', @args )."' stopping at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 			$process->{keepalive} = !$final;
-			kill( 'TERM', $process->{pid} );
+			kill( 'TERM', $cpid );
 			delete( $cmd_hash{$command} );
 
 			# Now check it has actually gone away, if not kill -9 it
 			my $count = 0;
-			while( kill( 0, $process->{pid} ) )
+			while( kill( 0, $cpid ) )
 			{
 				if ( $count++ > 5 )
 				{
-					kill( 'KILL', $process->{pid} );
+					kill( 'KILL', $cpid );
 				}
 			}
 		}

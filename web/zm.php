@@ -311,7 +311,7 @@ function newWindow(Url,Name,Width,Height) {
 <?php if ( $bandwidth != "high" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=high">high</a><?php } ?>
 <?php if ( $bandwidth != "medium" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=medium">medium</a><?php } ?>
 <?php if ( $bandwidth != "low" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=low">low</a><?php } ?> )</td>
-<td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+36 ?>, <?php echo $max_height+72 ?> );">Watch Monitors</a></td>
+<td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+36 ?>, <?php echo $max_height+72 ?> );">Watch All</a></td>
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
@@ -352,8 +352,8 @@ function newWindow(Url,Name,Width,Height) {
 		$zone_count += $monitor[ZoneCount];
 ?>
 <tr>
-<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Id] ?>.</a></td>
-<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Name] ?></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Id] ?>.</a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Name] ?></a></td>
 <td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=device&did=<?php echo $monitor[Device] ?>', 'zmDevice', 196, 164 );"><span class="<?php if ( $device[zmc] ) { if ( $device[zma] ) { echo "gretext"; } else { echo "oratext"; } } else { echo "redtext"; } ?>">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</span></a></td>
 <td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=function&mid=<?php echo $monitor[Id] ?>', 'zmFunction', 248, 72 );"><?php echo $monitor['Function'] ?></a></td>
 <td align="left" class="text"><?php echo $monitor[Width] ?>x<?php echo $monitor[Height] ?>x<?php echo $monitor[Colours]*8 ?></td>
@@ -432,6 +432,11 @@ elseif ( $view == "monitor" )
 	if ( !$result )
 		die( mysql_error() );
 	$monitor = mysql_fetch_assoc( $result );
+
+	if ( !$max_events && !$period && !$archived )
+	{
+		$max_events = MAX_EVENTS;
+	}
 ?>
 <html>
 <head>
@@ -445,7 +450,6 @@ window.focus();
 <frameset rows="<?php echo $monitor[Height]+32 ?>,16,*" border="1" frameborder="no" framespacing="0">
 <frame src="<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
 <frame src="<?php echo $PHP_SELF ?>?view=status&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
-<!--<frame src="<?php echo $PHP_SELF ?>?view=events&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">-->
 <frame src="<?php echo $PHP_SELF ?>?view=events&max_events=<?php echo $max_events ?>&period=<?php echo $period ?>&archived=<?php echo $archived ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
 </frameset>
 <?php

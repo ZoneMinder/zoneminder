@@ -451,7 +451,7 @@ sub loadTasks
 		$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 );
 		if ( !defined($monitor->{ShmId}) )
 		{
-			print( "Can't get shared memory id: $!\n" );
+			print( "Can't get shared memory id '$monitor->{ShmKey}': $!\n" );
 			next;
 		}
 

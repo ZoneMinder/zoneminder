@@ -199,7 +199,7 @@ my $last_action = 0;
 my $size = 28; # We only need the first 28 bytes really for the last event count
 my $key = hex(ZM_SHM_KEY)|$monitor;
 my $shmid = shmget( $key, $size, 0 );
-die( "Can't get shared memory id: $!" ) if ( !defined($shmid) );
+die( "Can't get shared memory id '$key': $!\n" ) if ( !defined($shmid) );
 
 while( 1 )
 {

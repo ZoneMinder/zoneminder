@@ -24,6 +24,9 @@
 # This script is used to trigger and cancel alarms from external sources
 # using an arbitrary text based format
 #
+use strict;
+use bytes;
+
 # ==========================================================================
 #
 # User config
@@ -95,7 +98,6 @@ sub parseTrigger1
 #
 # ==========================================================================
 
-use strict;
 use DBI;
 use POSIX;
 use Fcntl;

@@ -27,13 +27,14 @@
 # records what's running and what's not. Other invocations just 
 # connect to the server and pass instructions to it.
 #
+use strict;
+use bytes;
 
 # ==========================================================================
 #
 # User config
 #
 # ==========================================================================
-
 
 use constant ZM_CONFIG => "<from zmconfig>";
 use constant ZM_PATH_BIN => "<from zmconfig>";
@@ -85,7 +86,6 @@ use constant VERBOSE => 0; # Whether to output more verbose debug
 #
 # ==========================================================================
 
-use strict;
 use POSIX;
 use Socket;
 use IO::Handle;

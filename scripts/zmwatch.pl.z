@@ -25,6 +25,8 @@
 # checks the fps output of the active daemons to check they haven't 
 # locked up. If they have then they are killed and restarted
 #
+use strict;
+use bytes;
 
 # ==========================================================================
 #
@@ -80,7 +82,6 @@ use constant VERBOSE => 0; # Whether to output more verbose debug
 #
 # ==========================================================================
 
-use strict;
 use POSIX;
 use DBI;
 use Data::Dumper;

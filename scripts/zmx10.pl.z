@@ -24,6 +24,8 @@
 # This script controls the monitoring of the X10 interface and the consequent
 # management of the ZM daemons based on the receipt of X10 signals.
 #
+use strict;
+use bytes;
 
 # ==========================================================================
 #
@@ -79,7 +81,6 @@ use constant VERBOSE => 0; # Whether to output more verbose debug
 #
 # ==========================================================================
 
-use strict;
 use POSIX;
 use Socket;
 use Getopt::Long;
@@ -173,6 +174,8 @@ exit;
 package X10Server;
 
 use strict;
+use bytes;
+
 use POSIX;
 use DBI;
 use Socket;

@@ -25,6 +25,7 @@
 # allow command line control for automatic restart on reboot (see zm script)
 #
 use strict;
+use bytes;
 
 # ==========================================================================
 #

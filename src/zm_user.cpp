@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h>
-#include <openssl/md5.h>
 
 #include "zm.h"
 #include "zm_db.h"
@@ -139,7 +138,7 @@ User *zmLoadUser( const char *username, const char *password )
 // Function to validate an authentication string
 User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 {
-#ifdef HAVE_LIBCRYPTO
+#if HAVE_LIBCRYPTO
 	const char *remote_addr = "";
 	if ( use_remote_addr )
 	{

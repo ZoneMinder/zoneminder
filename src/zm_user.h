@@ -23,6 +23,10 @@
 #ifndef ZM_USER_H
 #define ZM_USER_H
 
+#if HAVE_LIBCRYPTO
+#include <openssl/md5.h>
+#endif // HAVE_LIBCRYPTO
+
 class User
 {
 public:

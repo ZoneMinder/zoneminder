@@ -39,7 +39,7 @@
 #define ZM_MAX_FPS              30                  // The maximum frame rate we expect to handle
 #define ZM_SAMPLE_RATE          int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
 
-extern char *ZM_DB_SERVER, *ZM_DB_NAME, *ZM_DB_USERA, *ZM_DB_PASSA, *ZM_DB_USERB, *ZM_DB_PASSB;
+extern char *ZM_DB_SERVER, *ZM_DB_NAME, *ZM_DB_USER, *ZM_DB_PASS;
 extern void zmLoadConfig();
 
 class ConfigItem

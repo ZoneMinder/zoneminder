@@ -128,7 +128,7 @@ int main( int argc, char *argv[] )
 
 	zmLoadConfig();
 
-	zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
+	zmDbConnect();
 
 	Monitor *monitor = Monitor::Load( id, true, Monitor::ANALYSIS );
 

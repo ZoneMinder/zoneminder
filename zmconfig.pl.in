@@ -181,34 +181,18 @@ my @options =
 		category => 'core',
 	},
 	{
-		name => "ZM_DB_USERA",
+		name => "ZM_DB_USER",
 		default => "",
-		description => "Privileged DB user name, needs at least select, insert, update and delete privileges",
-		help => "This is the username of a MySQL user that has full privileges to select, insert, update and delete data from your ZoneMinder database. If you have no user available yet you can create one by typing 'mysql mysql' with additional parameters as required to give you access. Then at the prompt type 'grant select,insert,update,delete on <your database name>.* to '<your username>' identified by '<your password>';'. Then type 'quit' to exit. You may also need to type 'mysqladmin reload' to ensure your changes take effect. Note that the username and passwords used here are not related to your Linux login or accounts and should not be the same.",
+		description => "DB user name, needs at least select, insert, update and delete privileges",
+		help => "This is the username of the MySQL user that has privileges to select, insert, update and delete data from your ZoneMinder database. If you have no user available yet you can create one by typing 'mysql mysql' with additional parameters as required to give you access. Then at the prompt type 'grant select,insert,update,delete on <your database name>.* to '<your username>' identified by '<your password>';'. Then type 'quit' to exit. You may also need to type 'mysqladmin reload' to ensure your changes take effect. Note that the username and passwords used here are not related to your Linux login or accounts and should not be the same.",
 		type => $types{alphanum},
 		category => 'core',
 	},
 	{
-		name => "ZM_DB_PASSA",
+		name => "ZM_DB_PASS",
 		default => "",
-		description => "Privileged DB user password",
-		help => "This is the password of a MySQL user that has full privileges to select, insert, update and delete data from your ZoneMinder database. If you have no user available yet you can create one by typing 'mysql mysql' with additional parameters as required to give you access. Then at the prompt type 'grant select,insert,update,delete on <your database name>.* to '<your username>' identified by '<your password>';'. Then type 'quit' to exit. You may also need to type 'mysqladmin reload' to ensure your changes take effect. Note that the username and passwords used here are not related to your Linux login or accounts and should not be the same.",
-		type => $types{alphanum},
-		category => 'core',
-	},
-	{
-		name => "ZM_DB_USERB",
-		default => "",
-		description => "Unprivileged DB user name, need just select privilege.",
-		help => "This is the username of a MySQL user that has only privileges to select data from your ZoneMinder database and is used in cgi programs where full access is neither necessary or desiarable. If you have no user available yet you can create one by typing 'mysql mysql' with additional parameters as required to give you access. Then at the prompt type 'grant select on <your database name>.* to '<your username>' identified by '<your password>';'. Then type 'quit' to exit. You may also need to type 'mysqladmin reload' to ensure your changes take effect. Note that the username and passwords used here are not related to your Linux login or accounts and should not be the same.",
-		type => $types{alphanum},
-		category => 'core',
-	},
-	{
-		name => "ZM_DB_PASSB",
-		default => "",
-		description => "Unprivileged DB user password",
-		help => "This is the password of a MySQL user that has only privileges to select data from your ZoneMinder database and is used in cgi programs where full access is neither necessary or desiarable. If you have no user available yet you can create one by typing 'mysql mysql' with additional parameters as required to give you access. Then at the prompt type 'grant select on <your database name>.* to '<your username>' identified by '<your password>';'. Then type 'quit' to exit. You may also need to type 'mysqladmin reload' to ensure your changes take effect. Note that the username and passwords used here are not related to your Linux login or accounts and should not be the same.",
+		description => "DB user password",
+		help => "This is the password of the MySQL user that has privileges to select, insert, update and delete data from your ZoneMinder database. If you have no user available yet you can create one by typing 'mysql mysql' with additional parameters as required to give you access. Then at the prompt type 'grant select,insert,update,delete on <your database name>.* to '<your username>' identified by '<your password>';'. Then type 'quit' to exit. You may also need to type 'mysqladmin reload' to ensure your changes take effect. Note that the username and passwords used here are not related to your Linux login or accounts and should not be the same.",
 		type => $types{alphanum},
 		category => 'core',
 	},
@@ -1485,7 +1469,7 @@ sub saveOptionsToFile
 sub saveOptionsToDB
 {
 	print( "Saving config to DB\n" );
-	my $dbh = DBI->connect( "DBI:mysql:database=".$options_hash{ZM_DB_NAME}->{value}.";host=".$options_hash{ZM_DB_SERVER}->{value}, $options_hash{ZM_DB_USERA}->{value}, $options_hash{ZM_DB_PASSA}->{value} );
+	my $dbh = DBI->connect( "DBI:mysql:database=".$options_hash{ZM_DB_NAME}->{value}.";host=".$options_hash{ZM_DB_SERVER}->{value}, $options_hash{ZM_DB_USER}->{value}, $options_hash{ZM_DB_PASS}->{value} );
 
 	if ( !$dbh )
 	{
@@ -1581,7 +1565,7 @@ sub loadOptionsFromFile
 sub loadOptionsFromDB
 {
 	print( "Loading config from DB\n" );
-	my $dbh = DBI->connect( "DBI:mysql:database=".$options_hash{ZM_DB_NAME}->{value}.";host=".$options_hash{ZM_DB_SERVER}->{value}, $options_hash{ZM_DB_USERA}->{value}, $options_hash{ZM_DB_PASSA}->{value} );
+	my $dbh = DBI->connect( "DBI:mysql:database=".$options_hash{ZM_DB_NAME}->{value}.";host=".$options_hash{ZM_DB_SERVER}->{value}, $options_hash{ZM_DB_USER}->{value}, $options_hash{ZM_DB_PASS}->{value} );
 	
 	if ( !$dbh )
 	{

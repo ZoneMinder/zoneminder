@@ -353,7 +353,7 @@ int main( int argc, char *argv[] )
 	zmDbgInit();
 
 	zmLoadConfig();
-	zmDbConnect( ZM_DB_USERB, ZM_DB_PASSB );
+	zmDbConnect();
 
 	ValidateAccess( username, password, mon_id, function );
 

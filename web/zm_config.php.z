@@ -27,29 +27,26 @@ define( "ZM_PATH_WEB", "<from zmconfig>" );				// Path to web files
 define( "ZM_PATH_CGI", "<from zmconfig>" );				// Path to cgi files
 
 $cfg = fopen( ZM_CONFIG, "r") or die("Could not open config file.");
-while ( !feof($cfg) ) {
-        $str = fgets( $cfg );
-        if ( preg_match( '/^\s*$/', $str )) { continue; }
-        elseif ( preg_match( '/^\s*#/', $str )) { continue; }
-        elseif ( preg_match( '/^\s*([^=\s+)\s*=\s*([^=\s+)\s*$/', $str, $matches ))
-        {
+while ( !feof($cfg) )
+{
+	$str = fgets( $cfg );
+	if ( preg_match( '/^\s*$/', $str )) { continue; }
+	elseif ( preg_match( '/^\s*#/', $str )) { continue; }
+	elseif ( preg_match( '/^\s*([^=\s+)\s*=\s*([^=\s+)\s*$/', $str, $matches ))
+	{
 		if (( $matches[1] == "ZM_DB_SERVER") ||
 			( $matches[1] == "ZM_DB_NAME") ||
-			( $matches[1] == "ZM_DB_USERA") ||
-			( $matches[1] == "ZM_DB_PASSA") ||
-			( $matches[1] == "ZM_DB_USERB") ||
-			( $matches[1] == "ZM_DB_PASSB"))
+			( $matches[1] == "ZM_DB_USER") ||
+			( $matches[1] == "ZM_DB_PASS"))
 		{
-	                define( $matches[1], $matches[2] );
+			define( $matches[1], $matches[2] );
 		}
-        }
+	}
 }
 fclose( $cfg );
 
 // This section is options normally derived from other options or configuration
 //
-define( "ZM_DB_USER", ZM_DB_USERA );					// Database login
-define( "ZM_DB_PASS", ZM_DB_PASSA );					// Database password
 define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );				// Local path to the ZoneMinder Utility
 
 // These are miscellaneous options you won't normally need to change

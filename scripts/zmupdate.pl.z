@@ -44,16 +44,14 @@ BEGIN
 	open( CONFIG, "<".ZM_CONFIG ) or die( "Can't open config file: $!" );
 	foreach my $str ( <CONFIG> )
 	{
-	        next if ( $str =~ /^\s*$/ );
-	        next if ( $str =~ /^\s*#/ );
-	        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/;
+		next if ( $str =~ /^\s*$/ );
+		next if ( $str =~ /^\s*#/ );
+		my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/;
 		$name =~ tr/a-z/A-Z/;
 		if (( $name eq 'ZM_DB_SERVER' ) ||
 			( $name eq 'ZM_DB_NAME' ) ||
-			( $name eq 'ZM_DB_USERA' ) ||
-			( $name eq 'ZM_DB_PASSA' ) ||
-			( $name eq 'ZM_DB_USERB' ) ||
-			( $name eq 'ZM_DB_PASSB' ))
+			( $name eq 'ZM_DB_USER' ) ||
+			( $name eq 'ZM_DB_PASS' ))
 		{
 			*{$name} = sub { $value };
 		}
@@ -62,7 +60,7 @@ BEGIN
 
 	use DBI;
 	no strict 'refs';
-	my $dbh = DBI->connect( "DBI:mysql:database=".&ZM_DB_NAME.";host=".&ZM_DB_SERVER, &ZM_DB_USERA, &ZM_DB_PASSA );
+	my $dbh = DBI->connect( "DBI:mysql:database=".&ZM_DB_NAME.";host=".&ZM_DB_SERVER, &ZM_DB_USER, &ZM_DB_PASS );
 
 	my $sql = "select * from Config";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -102,8 +100,8 @@ my $check = 0;
 my $rename = 0;
 my $zone_fix = 0;
 my $version = '';
-my $db_user = ZM_DB_USERA;
-my $db_pass = ZM_DB_PASSA;
+my $db_user = ZM_DB_USER;
+my $db_pass = ZM_DB_PASS;
 sub Usage
 {
     print( "
@@ -148,7 +146,7 @@ if ( $check )
 
 print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
 
 if ( $check && ZM_CHECK_FOR_UPDATES )
 {
@@ -236,7 +234,7 @@ if ( $zone_fix )
 {
 	require DBI;
 
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
 
 	my $sql = "select Z.*, M.Width as MonitorWidth, M.Height as MonitorHeight from Zones as Z inner join Monitors as M on Z.MonitorId = M.Id where Z.Units = 'Percent'";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -341,7 +339,7 @@ if ( $version )
 		# Rename the event directories and create a new symlink for the names
 		chdir( EVENT_PATH );
 
-		my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+		my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
 
 		my $sql = "select * from Monitors order by Id";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );

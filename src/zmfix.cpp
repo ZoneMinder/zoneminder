@@ -110,7 +110,7 @@ int main( int argc, char *argv[] )
 	else
 	{
 		// Only do registered devices
-		zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
+		zmDbConnect();
 
 		static char sql[BUFSIZ];
 		//snprintf( sql, sizeof(sql), "select distinct Device from Monitors where Function != 'None' and Type = 'Local'" );

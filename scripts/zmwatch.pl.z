@@ -41,16 +41,14 @@ BEGIN
 	open( CONFIG, "<".ZM_CONFIG ) or die( "Can't open config file: $!" );
 	foreach my $str ( <CONFIG> )
 	{
-	        next if ( $str =~ /^\s*$/ );
-	        next if ( $str =~ /^\s*#/ );
-	        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/;
+		next if ( $str =~ /^\s*$/ );
+		next if ( $str =~ /^\s*#/ );
+		my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/;
 		$name =~ tr/a-z/A-Z/;
 		if (( $name eq 'ZM_DB_SERVER' ) ||
 			( $name eq 'ZM_DB_NAME' ) ||
-			( $name eq 'ZM_DB_USERA' ) ||
-			( $name eq 'ZM_DB_PASSA' ) ||
-			( $name eq 'ZM_DB_USERB' ) ||
-			( $name eq 'ZM_DB_PASSB' ))
+			( $name eq 'ZM_DB_USER' ) ||
+			( $name eq 'ZM_DB_PASS' ))
 		{
 			*{$name} = sub { $value };
 		}
@@ -59,7 +57,7 @@ BEGIN
 
 	use DBI;
 	no strict 'refs';
-	my $dbh = DBI->connect( "DBI:mysql:database=".&ZM_DB_NAME.";host=".&ZM_DB_SERVER, &ZM_DB_USERA, &ZM_DB_PASSA );
+	my $dbh = DBI->connect( "DBI:mysql:database=".&ZM_DB_NAME.";host=".&ZM_DB_SERVER, &ZM_DB_USER, &ZM_DB_PASS );
 
 	my $sql = "select * from Config";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -111,7 +109,7 @@ print( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n"
 print( "Watchdog pausing for ".START_DELAY." seconds\n" );
 sleep( START_DELAY );
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
 
 my $sql = "select * from Monitors";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );

@@ -92,7 +92,7 @@ int main( int argc, const char *argv[] )
 		}
 	}
 
-	zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
+	zmDbConnect();
 
 	setbuf( stdout, 0 );
 	if ( nph )

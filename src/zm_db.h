@@ -26,6 +26,6 @@
 
 extern MYSQL dbconn;
 
-void zmDbConnect( const char *user, const char*pass );
+void zmDbConnect();
 
 #endif // ZM_DB_H

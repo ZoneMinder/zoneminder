@@ -25,7 +25,7 @@
 #include "zm_db.h"
 #include "zm_regexp.h"
 
-char *ZM_DB_SERVER="", *ZM_DB_NAME="", *ZM_DB_USERA="", *ZM_DB_PASSA="", *ZM_DB_USERB="", *ZM_DB_PASSB="";
+char *ZM_DB_SERVER="", *ZM_DB_NAME="", *ZM_DB_USER="", *ZM_DB_PASS="";
 
 void zmLoadConfig()
 {
@@ -52,10 +52,8 @@ void zmLoadConfig()
 		strncpy( val, keyval->MatchString( 2 ), keyval->MatchLength( 2 ));
 		if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_SERVER" ) == 0 )     ZM_DB_SERVER = val;
 		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_NAME" ) == 0 )  ZM_DB_NAME   = val;
-		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_USERA" ) == 0 ) ZM_DB_USERA  = val;
-		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_PASSA" ) == 0 ) ZM_DB_PASSA  = val;
-		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_USERB" ) == 0 ) ZM_DB_USERB  = val;
-		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_PASSB" ) == 0 ) ZM_DB_PASSB  = val;
+		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_USER" ) == 0 ) ZM_DB_USER  = val;
+		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_PASS" ) == 0 ) ZM_DB_PASS  = val;
 		else
 		{
 			Warning(( "Invalid parameter \"%s\" in %s", keyval->MatchString( 1 ), ZM_CONFIG ));

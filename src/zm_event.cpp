@@ -488,7 +488,7 @@ void Event::StreamMpeg( int event_id, const char *format, int bitrate, int maxfp
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
 	
-	bool timed_frames = (bool)config.Item( ZM_WEB_VIDEO_TIMED_FRAMES );
+	bool timed_frames = (bool)config.Item( ZM_VIDEO_TIMED_FRAMES );
 
 	sprintf( sql, "select M.Id, M.Name, E.Length, E.Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
 	if ( mysql_query( &dbconn, sql ) )

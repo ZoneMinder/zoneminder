@@ -263,9 +263,9 @@ if ( $mode == "stream" )
 ?>
 <tr><td colspan="6" align="center" valign="middle">
 <?php
-	if ( ZM_WEB_VIDEO_STREAM_METHOD == 'mpeg' )
+	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_REPLAY_FORMAT )
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=mpeg&event=$eid&rate=$rate&scale=$scale&bitrate=".VIDEO_BITRATE."&maxfps=".VIDEO_MAXFPS;
+		$stream_src = ZM_PATH_ZMS."?mode=mpeg&event=$eid&rate=$rate&scale=$scale&bitrate=".VIDEO_BITRATE."&maxfps=".VIDEO_MAXFPS."&format=".ZM_VIDEO_REPLAY_FORMAT;
 		if ( isWindows() )
 		{
 			if ( isInternetExplorer() )
@@ -276,7 +276,7 @@ classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
 codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
 standby="Loading Microsoft Windows Media Player components..."
 type="application/x-oleobject">
-<PARAM NAME="FileName" VALUE="<?= $stream_src."&format=asf" ?>"
+<PARAM NAME="FileName" VALUE="<?= $stream_src ?>"
 <PARAM NAME="animationatStart" VALUE="true">
 <PARAM NAME="transparentatStart" VALUE="true">
 <PARAM NAME="autoStart" VALUE="true">
@@ -289,7 +289,7 @@ type="application/x-oleobject">
 ?>
 <EMBED type="application/x-mplayer2"
 pluginspage = "http://www.microsoft.com/Windows/MediaPlayer/"
-SRC="<?= $stream_src."&format=asf" ?>"
+SRC="<?= $stream_src ?>"
 name="MediaPlayer1"
 width=<?= reScale( $event['Width'], $scale ) ?>
 height=<?= reScale( $event['Height'], $scale ) ?>
@@ -302,7 +302,7 @@ AutoStart=true>
 		{
 ?>
 <EMBED type="video/mpeg"
-src="<?= $stream_src."&format=mpeg" ?>"
+src="<?= $stream_src ?>"
 width=<?= reScale( $event['Width'], $scale ) ?>
 height=<?= reScale( $event['Height'], $scale ) ?>
 AutoStart=true>

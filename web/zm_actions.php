@@ -471,7 +471,7 @@ if ( isset($action) )
 				{
 					case "system" :
 					case "paths" :
-					case "video" :
+					case "config" :
 					case "network" :
 					case "x10" :
 					case "mail" :
@@ -479,6 +479,7 @@ if ( isset($action) )
 						$restart = true;
 						break;
 					case "web" :
+					case "video" :
 					case "tools" :
 					case "highband" :
 					case "medband" :

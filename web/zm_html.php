@@ -67,7 +67,7 @@ $bw_array = array(
 	"low"=>$zmSlangLow
 );
 
-if ( ZM_WEB_VIDEO_STREAM_METHOD == 'mpeg' )
+if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' )
 {
 	$rates = array(
 		"10000" => "100x",

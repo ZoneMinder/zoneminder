@@ -124,6 +124,7 @@ $zmSlangCheckMethod          = 'ｱﾗｰﾑ ﾁｪｯｸ方法';
 $zmSlangChooseFilter         = 'ﾌｨﾙﾀｰの選択';
 $zmSlangClose                = '閉じる';
 $zmSlangColour               = '色';
+$zmSlangConfig               = 'Config';
 $zmSlangConfiguredFor        = '設定:';
 $zmSlangConfirmPassword      = 'ﾊﾟｽﾜｰﾄﾞの確認';
 $zmSlangConjAnd              = '及び';

@@ -125,6 +125,7 @@ $zmSlangCheckMethod          = 'Метод проверки тревоги';
 $zmSlangChooseFilter         = 'Выбрать фильтр';
 $zmSlangClose                = 'Закрыть';
 $zmSlangColour               = 'Цвет';
+$zmSlangConfig               = 'Config';
 $zmSlangConfiguredFor        = 'Настроен на';
 $zmSlangConfirmPassword      = 'Подтвердите пароль';
 $zmSlangConjAnd              = 'и';

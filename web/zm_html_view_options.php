@@ -27,9 +27,10 @@ if ( !canView( 'System' ) )
 $tabs = array();
 $tabs['system'] = $zmSlangSystem;
 $tabs['paths'] = $zmSlangPaths;
-$tabs['video'] = $zmSlangVideo;
+$tabs['config'] = $zmSlangConfig;
 $tabs['network'] = $zmSlangNetwork;
 $tabs['web'] = $zmSlangWeb;
+$tabs['video'] = $zmSlangVideo;
 $tabs['mail'] = $zmSlangEmail;
 $tabs['ftp'] = $zmSlangFTP;
 $tabs['x10'] = $zmSlangX10;

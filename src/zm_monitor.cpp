@@ -1177,7 +1177,7 @@ void Monitor::StreamMpeg( const char *format, int bitrate, int maxfps, int scale
 	}
 	fprintf( stdout, "Content-type: %s\r\n\r\n", mime_type );
 
-	bool timed_frames = (bool)config.Item( ZM_WEB_VIDEO_TIMED_FRAMES );
+	bool timed_frames = (bool)config.Item( ZM_VIDEO_TIMED_FRAMES );
 
 	int fps = int(GetFPS());
 	if ( !fps )

@@ -124,6 +124,7 @@ $zmSlangCheckMethod          = 'Alarm Check Method';
 $zmSlangChooseFilter         = 'Choose Filter';
 $zmSlangClose                = 'Close';
 $zmSlangColour               = 'Colour';
+$zmSlangConfig               = 'Config';
 $zmSlangConfiguredFor        = 'Configured for';
 $zmSlangConfirmPassword      = 'Confirm Password';
 $zmSlangConjAnd              = 'and';

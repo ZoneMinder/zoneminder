@@ -18,10 +18,10 @@ ZMHDRS = zm.h zmcfg.h zmdbg.h
 
 all: zmc zma zms zmu
 
-test:
+test: all
 	@echo "No tests available"
 
-install:
+install: all
 	$(INSTALL) $(ZMC) $(BINDIR)
 	$(INSTALL) $(ZMA) $(BINDIR)
 	$(INSTALL) $(ZMS) $(BINDIR)

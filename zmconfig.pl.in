@@ -779,6 +779,14 @@ my @options =
 		category => 'system',
 	},
 	{
+		name => "ZM_CREATE_ANALYSIS_IMAGES",
+		default => "yes",
+		description => "Whether to create analysed alarm images with motion outlined",
+		help => "By default during an alarm ZoneMinder records both the raw captured image and one that has been analysed and had areas where motion was detected outlined. This can be very useful during zone configuration or in analysing why events occured. However it also incurs some overhead and in a stable system may no longer be necessary. This parameter allows you to switch the generation of these images off.",
+		type => $types{boolean},
+		category => 'system',
+	},
+	{
 		name => "ZM_WEB_REFRESH_METHOD",
 		default => "javascript",
 		description => "What method windows should use to refresh themselves, choose either javascript or http",

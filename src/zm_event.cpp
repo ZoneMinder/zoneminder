@@ -225,7 +225,7 @@ void Event::AddFrames( int n_frames, struct timeval **timestamps, const Image **
 	}
 }
 
-void Event::AddFrame( struct timeval timestamp, const Image *image, const Image *alarm_image, unsigned int score )
+void Event::AddFrame( struct timeval timestamp, const Image *image, unsigned int score, const Image *alarm_image )
 {
 	frames++;
 
@@ -240,27 +240,30 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 
 	Debug( 1, ( "Adding frame %d to DB", frames ));
 	static char sql[BUFSIZ];
-	sprintf( sql, "insert into Frames ( EventId, FrameId, AlarmFrame, ImagePath, Delta, Score ) values ( %d, %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, alarm_image!=0, event_file, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
+	sprintf( sql, "insert into Frames ( EventId, FrameId, AlarmFrame, ImagePath, Delta, Score ) values ( %d, %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, score>0, event_file, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	if ( alarm_image )
+	if ( score )
 	{
 		end_time = timestamp;
 
 		alarm_frames++;
 
-		sprintf( event_file, "%s/analyse-%03d.jpg", path, frames );
-
-		Debug( 1, ( "Writing analysis frame %d", frames ));
-		WriteFrameImage( alarm_image, event_file, true );
-
 		tot_score += score;
 		if ( score > max_score )
 			max_score = score;
+
+		if ( alarm_image )
+		{
+			sprintf( event_file, "%s/analyse-%03d.jpg", path, frames );
+
+			Debug( 1, ( "Writing analysis frame %d", frames ));
+			WriteFrameImage( alarm_image, event_file, true );
+		}
 	}
 }
 

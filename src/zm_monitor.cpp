@@ -638,11 +638,9 @@ bool Monitor::Analyse()
 						pre_index = (pre_index+1)%image_buffer_count;
 					}
 					event->AddFrames( pre_event_count, timestamps, images );
-					//event->AddFrame( now, &image );
 				}
 				shared_data->state = state = TAPE;
 			}
-			//last_alarm_count = image_count;
 		}
 		if ( score )
 		{
@@ -664,7 +662,6 @@ bool Monitor::Analyse()
 						pre_index = (pre_index+1)%image_buffer_count;
 					}
 					event->AddFrames( pre_event_count, timestamps, images );
-					//event->AddFrame( now, &image );
 				}
 			}
 			shared_data->state = state = ALARM;
@@ -699,19 +696,26 @@ bool Monitor::Analyse()
 		{
 			if ( state == ALARM )
 			{
-				Image alarm_image( *image );
-				for( int i = 0; i < n_zones; i++ )
+				if ( (bool)config.Item( ZM_CREATE_ANALYSIS_IMAGES ) )
 				{
-					if ( zones[i]->Alarmed() )
+					Image alarm_image( *image );
+					for( int i = 0; i < n_zones; i++ )
 					{
-						alarm_image.Overlay( zones[i]->AlarmImage() );
-						if ( record_event_stats )
+						if ( zones[i]->Alarmed() )
 						{
-							zones[i]->RecordStats( event );
+							alarm_image.Overlay( zones[i]->AlarmImage() );
+							if ( record_event_stats )
+							{
+								zones[i]->RecordStats( event );
+							}
 						}
 					}
+					event->AddFrame( *timestamp, image, score, &alarm_image );
 				}
-				event->AddFrame( *timestamp, image, &alarm_image, score );
+				else
+				{
+					event->AddFrame( *timestamp, image, score );
+				}
 			}
 			else if ( state == ALERT )
 			{
@@ -1208,7 +1212,7 @@ unsigned int Monitor::Compare( const Image &image )
 		}
 		else
 		{
-			// Find all alarm pixels in exclusion zones
+			// Find all alarm pixels in exclusive zones
 			for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
 			{
 				Zone *zone = zones[n_zone];

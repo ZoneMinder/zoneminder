@@ -104,8 +104,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		}
 	}
 
-	//diff_image->WriteJpeg( "diff1.jpg" );
-
 	if ( !alarm_pixels ) return( false );
 	if ( min_alarm_pixels && alarm_pixels < min_alarm_pixels ) return( false );
 	if ( max_alarm_pixels && alarm_pixels > max_alarm_pixels ) return( false );
@@ -161,8 +159,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 		}
 	}
-
-	//diff_image->WriteJpeg( "diff2.jpg" );
 
 	if ( !alarm_filter_pixels ) return( false );
 	if ( min_filter_pixels && alarm_filter_pixels < min_filter_pixels ) return( false );
@@ -301,7 +297,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		}
 	}
 
-	//diff_image->WriteJpeg( "diff3.jpg" );
 
 	if ( !alarm_blobs ) return( false );
 	alarm_blob_pixels = alarm_filter_pixels;
@@ -381,11 +376,14 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	if ( alarm_blobs )
 	{
 		alarm = true;
-		//Image *high_image = image = diff_image->HighlightEdges( alarm_rgb, &limits );
-		image = diff_image->HighlightEdges( alarm_rgb, &limits );
 
-		delete diff_image;
-		//high_image->WriteJpeg( "diff4.jpg" );
+		if ( (type < PRECLUSIVE) && (bool)config.Item( ZM_CREATE_ANALYSIS_IMAGES ) )
+		{
+			image = diff_image->HighlightEdges( alarm_rgb, &limits );
+
+			// Only need to delete this when 'image' becomes detached and points somewhere else
+			delete diff_image;
+		}
 
 		Info(( "%s: Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score ));
 	}

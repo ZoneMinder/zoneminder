@@ -84,6 +84,13 @@ function fixDevices()
 	exec( $string );
 }
 
+function packageControl( $command )
+{
+	$string = ZM_PATH."/zmpkg.pl $command";
+	$string .= " 2>/dev/null >&- <&- >/dev/null";
+	exec( $string );
+}
+
 function daemonControl( $command, $daemon=false, $args=false )
 {
 	$string = ZM_PATH."/zmdc.pl $command";

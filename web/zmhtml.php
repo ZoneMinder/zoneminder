@@ -50,12 +50,11 @@ switch( $view )
 
 		if ( $stop )
 		{
-			daemonControl( 'shutdown' );
+			packageControl( 'stop' );
 		}
-
 		if ( $start )
 		{
-			fixDevices();
+			packageControl( 'start' );
 		}
 
 		header("Refresh: ".(($start||$stop)?1:REFRESH_MAIN)."; URL='$PHP_SELF'" );
@@ -88,12 +87,6 @@ switch( $view )
 		$cycle_count = 0;
 		while( $row = mysql_fetch_assoc( $result ) )
 		{
-			if ( $start )
-			{
-				zmcControl( $row );
-				zmaControl( $row );
-				daemonControl( 'start', 'zmfilter.pl', "-m $row[Id] -e -1" );
-			}
 			$row['zma'] = zmaCheck( $row );
 			if ( $max_width < $row[Width] ) $max_width = $row[Width];
 			if ( $max_height < $row[Height] ) $max_height = $row[Height];
@@ -107,18 +100,6 @@ switch( $view )
 			{
 				$cycle_count++;
 			}
-		}
-		if ( $start )
-		{
-			if ( ZM_OPT_FAST_DELETE )
-			{
-				daemonControl( 'start', 'zmaudit.pl', '-d 900 -y' );
-			}
-			if ( ZM_OPT_X10 )
-			{
-				daemonControl( 'start', 'zmx10.pl', '-c start' );
-			}
-			daemonControl( 'start', 'zmwatch.pl' );
 		}
 ?>
 <html>

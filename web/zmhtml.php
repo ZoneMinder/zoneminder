@@ -652,6 +652,9 @@ function configureButton(form,name)
 			case 'AlarmFrames' :
 				$sort_column = "E.AlarmFrames";
 				break;
+			case 'TotScore' :
+				$sort_column = "E.TotScore";
+				break;
 			case 'AvgScore' :
 				$sort_column = "E.AvgScore";
 				break;
@@ -672,7 +675,7 @@ function configureButton(form,name)
 		$monitor = mysql_fetch_assoc( $result );
 
 		// XXX
-		$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId";
+		$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId";
 		$filter_query = ''; 
 		$filter_sql = '';
 		$filter_fields = '';
@@ -734,6 +737,7 @@ function configureButton(form,name)
 					case 'Length':
 					case 'Frames':
 					case 'AlarmFrames':
+					case 'TotScore':
 					case 'AvgScore':
 					case 'MaxScore':
 						$filter_sql .= "E.".$$attr_name." ".$$op_name." ".$$value_name;
@@ -855,9 +859,10 @@ location.href = '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=Time&sort_asc=<?php echo $sort_field == 'Time'?!$sort_asc:0 ?>">Time<?php if ( $sort_field == "Time" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=Secs&sort_asc=<?php echo $sort_field == 'Secs'?!$sort_asc:0 ?>">Length<?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=Frames&sort_asc=<?php echo $sort_field == 'Frames'?!$sort_asc:0 ?>">Frames<?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=AlarmFrames&sort_asc=<?php echo $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>">Alarm Frames<?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=AvgScore&sort_asc=<?php echo $sort_field == 'AvgScore'?!$sort_asc:0 ?>">Avg. Score<?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=MaxScore&sort_asc=<?php echo $sort_field == 'MaxScore'?!$sort_asc:0 ?>">Max. Score<?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=AlarmFrames&sort_asc=<?php echo $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>">Alarm<br>Frames<?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=TotScore&sort_asc=<?php echo $sort_field == 'TotScore'?!$sort_asc:0 ?>">Total<br>Score<?php if ( $sort_field == "TotScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=AvgScore&sort_asc=<?php echo $sort_field == 'AvgScore'?!$sort_asc:0 ?>">Avg.<br>Score<?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=MaxScore&sort_asc=<?php echo $sort_field == 'MaxScore'?!$sort_asc:0 ?>">Max.<br>Score<?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text">Mark</td>
 </tr>
 <?php
@@ -877,6 +882,7 @@ location.href = '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php
 <td align="center" class="text"><?php echo $row[Length] ?></td>
 <td align="center" class="text"><?php echo $row[Frames] ?></td>
 <td align="center" class="text"><?php echo $row[AlarmFrames] ?></td>
+<td align="center" class="text"><?php echo $row[TotScore] ?></td>
 <td align="center" class="text"><?php echo $row[AvgScore] ?></td>
 <td align="center" class="text"><?php echo $row[MaxScore] ?></td>
 <td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?php echo $row[Id] ?>" onClick="configureButton( event_form, 'mark_eids' );"></td>
@@ -944,7 +950,7 @@ location.href = '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php
 			$obracket_types[$i] = str_repeat( "(", $i );
 			$cbracket_types[$i] = str_repeat( ")", $i );
 		}
-		$attr_types = array( 'DateTime'=>'Date/Time', 'Date'=>'Date', 'Time'=>'Time', 'Weekday'=>'Weekday', 'Length'=>'Length', 'Frames'=>'Frames', 'AlarmFrames'=>'Alarm Frames', 'AvgScore'=>'Avg. Score', 'MaxScore'=>'Max. Score', 'Archived'=>'Archive Status' );
+		$attr_types = array( 'DateTime'=>'Date/Time', 'Date'=>'Date', 'Time'=>'Time', 'Weekday'=>'Weekday', 'Length'=>'Length', 'Frames'=>'Frames', 'AlarmFrames'=>'Alarm Frames', 'TotScore'=>'Total Score', 'AvgScore'=>'Avg. Score', 'MaxScore'=>'Max. Score', 'Archived'=>'Archive Status' );
 		$op_types = array( '='=>'equal to', '!='=>'not equal to', '>='=>'greater than or equal to', '>'=>'greater than', '<'=>'less than', '<='=>'less than or equal to' );
 		$archive_types = array( '0'=>'Unarchived Only', '1'=>'Archived Only' );
 ?>

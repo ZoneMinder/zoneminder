@@ -1332,7 +1332,7 @@ Event::~Event()
 	static char end_time_str[32];
 
 	strftime( end_time_str, sizeof(end_time_str), "%Y-%m-%d %H:%M:%S", localtime( &end_time ) );
-	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %d, Frames = %d, AlarmFrames = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, (end_time-start_time), frames, alarm_frames, (int)(tot_score/alarm_frames), max_score, id );
+	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %d, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, (end_time-start_time), frames, alarm_frames, tot_score, (int)(tot_score/alarm_frames), max_score, id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't update event: %s\n", mysql_error( &dbconn ) ));

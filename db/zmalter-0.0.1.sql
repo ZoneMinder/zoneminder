@@ -20,6 +20,8 @@ alter table Monitors modify column Function enum('None','Passive','Active','X10'
 update Monitors set LabelFormat = '%%s - %y/%m/%d %H:%M:%S';
 update Monitors set LabelX = 0;
 update Monitors set LabelY = Height-8;
+alter table Events add column TotScore int unsigned not null default 0 after AlarmFrames;
+update Events set TotScore = AlarmFrames * AvgScore where TotScore = 0;
 alter table Events modify column Archived tinyint unsigned not null default 0;
 alter table Events add column Uploaded tinyint unsigned not null default 0 after Archived;
 alter table Events add column LearnState char(1) default '' after Uploaded;

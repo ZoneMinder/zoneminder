@@ -25,6 +25,7 @@ CREATE TABLE Events (
   Length int(10) unsigned default NULL,
   Frames int(10) unsigned default NULL,
   AlarmFrames int(10) unsigned default NULL,
+  TotScore int(10) unsigned NOT NULL default '0',
   AvgScore tinyint(3) unsigned default '0',
   MaxScore tinyint(3) unsigned default '0',
   Archived tinyint(3) unsigned NOT NULL default '0',

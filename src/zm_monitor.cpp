@@ -603,7 +603,7 @@ bool Monitor::Analyse()
 		int pending_frames = shared_data->last_write_index - shared_data->last_read_index;
 		if ( pending_frames < 0 ) pending_frames += image_buffer_count;
 
-		Debug( 1, ( "RI:%d, WI: %d, PF = %d, RM = %d, Step = %d", shared_data->last_read_index, shared_data->last_write_index, pending_frames, read_margin, step ));
+		Debug( 2, ( "RI:%d, WI: %d, PF = %d, RM = %d, Step = %d", shared_data->last_read_index, shared_data->last_write_index, pending_frames, read_margin, step ));
 		if ( step <= pending_frames )
 		{
 			index = (shared_data->last_read_index+step)%image_buffer_count;

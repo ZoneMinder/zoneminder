@@ -1626,40 +1626,6 @@ void Monitor::CancelAlarm()
 	shared_images->forced_alarm = false;
 }
 
-void Monitor::CheckFunction()
-{
-	static char sql[256];
-	sprintf( sql, "select Function+0 from Monitors where Id = %d", id );
-	if ( mysql_query( &dbconn, sql ) )
-	{
-		Error(( "Can't run query: %s\n", mysql_error( &dbconn ) ));
-		exit( mysql_errno( &dbconn ) );
-	}
-
-	MYSQL_RES *result = mysql_store_result( &dbconn );
-	if ( !result )
-	{
-		Error(( "Can't use query result: %s\n", mysql_error( &dbconn ) ));
-		exit( mysql_errno( &dbconn ) );
-	}
-	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
-	{
-		function = (Function)atoi(dbrow[0]);
-	}
-	if ( mysql_errno( &dbconn ) )
-	{
-		Error(( "Can't fetch row: %s\n", mysql_error( &dbconn ) ));
-		exit( mysql_errno( &dbconn ) );
-	}
-	// Yadda yadda
-	mysql_free_result( result );
-
-	if ( function != ACTIVE )
-	{
-		shared_images->state = state = IDLE;
-	}
-}
-
 void Monitor::DumpZoneImage()
 {
 	int index = shared_images->last_write_index;

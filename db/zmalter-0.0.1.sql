@@ -13,8 +13,9 @@ alter table Monitors add column PostEventCount smallint unsigned NOT NULL defaul
 alter table Monitors add column AlarmFrameCount smallint unsigned NOT NULL default '1';
 alter table Monitors add column FPSReportInterval smallint unsigned NOT NULL default '250';
 alter table Monitors add column RefBlendPerc tinyint unsigned NOT NULL default '10';
-alter table Monitors add column X10Active char(32);
-alter table Monitors add column X10Alarm char(32);
+alter table Monitors add column X10Activation char(32);
+alter table Monitors add column X10AlarmInput char(32);
+alter table Monitors add column X10AlarmOutput char(32);
 alter table Monitors modify column Function enum('None','Passive','Active','X10') default 'Passive' not null;
 update Monitors set LabelFormat = '%%s - %y/%m/%d %H:%M:%S';
 update Monitors set LabelX = 0;

@@ -2556,43 +2556,6 @@ function refreshWindow()
 {
 	window.location.reload();
 }
-</table>
-</body>
-</html>
-<?php
-		if ( $video_file = createVideo( $event ) )
-		{
-			$event_dir = ZM_DIR_EVENTS."/$event[MonitorName]/".sprintf( "%d", $eid );
-			$video_path = $event_dir.'/'.$video_file;
-			header("Location: $video_path" );
-		}
-		break;
-	}
-	case "function" :
-	{
-		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-		if ( !$result )
-			die( mysql_error() );
-		$monitor = mysql_fetch_assoc( $result );
-?>
-<html>
-<head>
-<title>ZM - Function - <?= $monitor[Name] ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
-<script language="JavaScript">
-<?php
-	if ( $refresh_parent )
-	{
-?>
-opener.location.reload();
-<?php
-	}
-?>
-window.focus();
-function refreshWindow()
-{
-	window.location.reload();
-}
 function closeWindow()
 {
 	window.close();

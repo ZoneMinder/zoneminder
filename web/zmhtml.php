@@ -110,11 +110,11 @@ switch( $view )
 		}
 		if ( $start )
 		{
-			if ( FAST_DELETE )
+			if ( ZM_OPT_FAST_DELETE )
 			{
 				daemonControl( 'start', 'zmaudit.pl', '-d 900 -y' );
 			}
-			if ( HAS_X10 )
+			if ( ZM_OPT_X10 )
 			{
 				daemonControl( 'start', 'zmx10.pl', '-c start' );
 			}
@@ -414,7 +414,7 @@ function closeWindow()
 			else
 			{
 ?>
-<tr><td colspan="3" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?php echo CAMBOZOLA_PATH ?>" align="middle" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
+<tr><td colspan="3" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?php echo ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
 <?php
 			}
 		}
@@ -464,7 +464,7 @@ function closeWindow()
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 <?php
-		if ( ALARM_POPUP && $new_alarm )
+		if ( ZM_WEB_POPUP_ON_ALARM && $new_alarm )
 		{
 ?>
 top.window.focus();
@@ -476,10 +476,10 @@ top.window.focus();
 <body>
 <table width="100%" align="center" border="0" cellpadding="0" cellspacing="0"><tr><td class="<?php echo $class ?>" align="center" valign="middle">Status: <?php echo $status_string ?></td></tr></table>
 <?php
-		if ( ALARM_SOUND && $status == 1 )
+		if ( ZM_WEB_SOUND_ON_ALARM && $status == 1 )
 		{
 ?>
-<embed src="sounds/<?php echo ALARM_SOUND ?>" autostart="yes" hidden="true"></embed>
+<embed src="sounds/<?php echo ZM_WEB_ALARM_SOUND ?>" autostart="yes" hidden="true"></embed>
 <?php
 		}
 ?>
@@ -1396,7 +1396,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
-<?php if ( MPEG_ENCODE_PATH && file_exists( MPEG_ENCODE_PATH ) ) { ?>
+<?php if ( ZM_PATH_MPEG_ENCODE && file_exists( ZM_PATH_MPEG_ENCODE ) ) { ?>
 <td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=video&eid=<?php echo $eid ?>', 'zmVideo', <?php echo $jws['video']['w'] ?>, <?php echo $jws['video']['h'] ?> );">Video</a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
@@ -1416,7 +1416,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 			else
 			{
 ?>
-<tr><td colspan="6" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?php echo CAMBOZOLA_PATH ?>" align="middle" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
+<tr><td colspan="6" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?php echo ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
 <?php
 			}
 		}
@@ -1440,7 +1440,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 				$image_path = $row[ImagePath];
 
 				$capt_image = $image_path;
-				if ( $scale == 1 || !file_exists( NETPBM_DIR."/jpegtopnm" ) )
+				if ( $scale == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
 				{
 					$anal_image = preg_replace( "/capture/", "analyse", $image_path );
 
@@ -1461,9 +1461,9 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 					{
 						$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
 						if ( file_exists( $anal_image ) )
-							$command = NETPBM_DIR."/jpegtopnm -dct fast $anal_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
+							$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $anal_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
 						else
-							$command = NETPBM_DIR."/jpegtopnm -dct fast $capt_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
+							$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $capt_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
 						#exec( escapeshellcmd( $command ) );
 						exec( $command );
 					}
@@ -1662,7 +1662,7 @@ function closeWindow()
 <?php
 		foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 		{
-			if ( !HAS_X10 && $opt_function == 'X10' )
+			if ( !ZM_OPT_X10 && $opt_function == 'X10' )
 				continue;
 ?>
 <option value="<?php echo $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?php echo $opt_function ?></option>
@@ -1685,7 +1685,7 @@ function closeWindow()
 <tr><td align="left" class="text">Post Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_post_event_count" value="<?php echo $monitor[PostEventCount] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">FPS Report Interval</td><td align="left" class="text"><input type="text" name="new_fps_report_interval" value="<?php echo $monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_ref_blend_perc" value="<?php echo $monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
-<?php if ( HAS_X10 ) { ?>
+<?php if ( ZM_OPT_X10 ) { ?>
 <tr><td align="left" class="text">X10 Activation String</td><td align="left" class="text"><input type="text" name="new_x10_activation" value="<?php echo $monitor[X10Activation] ?>" size="20" class="form"></td></tr>
 <tr><td align="left" class="text">X10 Input Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_input" value="<?php echo $monitor[X10AlarmInput] ?>" size="20" class="form"></td></tr>
 <tr><td align="left" class="text">X10 Output Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_output" value="<?php echo $monitor[X10AlarmOutput] ?>" size="20" class="form"></td></tr>
@@ -1964,7 +1964,7 @@ function closeWindow()
 			die( mysql_error() );
 		$event = mysql_fetch_assoc( $result );
 
-		$event_dir = EVENT_PATH."/$event[MonitorName]/".sprintf( "%04d", $eid );
+		$event_dir = ZM_PATH_EVENTS."/$event[MonitorName]/".sprintf( "%04d", $eid );
 		$param_file = $event_dir."/mpeg.param";
 		$video_name = preg_replace( "/\\s/", "_", $event[Name] ).".mpeg";
 		$video_file = $event_dir."/".$video_name;
@@ -1992,7 +1992,7 @@ function closeWindow()
 			fputs( $fp, "FRAME_RATE 24\n" );
 
 			if ( $event[Colours] == 1 )
-				fputs( $fp, "INPUT_CONVERT	".NETPBM_DIR."/jpegtopnm * | ".NETPBM_DIR."/pgmtoppm white | ".NETPBM_DIR."/ppmtojpeg\n" );
+				fputs( $fp, "INPUT_CONVERT	".ZM_PATH_NETPBM."/jpegtopnm * | ".ZM_PATH_NETPBM."/pgmtoppm white | ".ZM_PATH_NETPBM."/ppmtojpeg\n" );
 			else
 				fputs( $fp, "INPUT_CONVERT	*\n" );
 
@@ -2007,7 +2007,7 @@ function closeWindow()
 			fputs( $fp, "END_INPUT\n" );
 			fclose( $fp );
 
-			exec( MPEG_ENCODE_PATH." $param_file >$event_dir/mpeg.log" );
+			exec( ZM_PATH_MPEG_ENCODE." $param_file >$event_dir/mpeg.log" );
 		}
 
 		//chdir( $event_dir );
@@ -2132,7 +2132,7 @@ function closeWindow()
 <?php
 		foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 		{
-			if ( !HAS_X10 && $opt_function == 'X10' )
+			if ( !ZM_OPT_X10 && $opt_function == 'X10' )
 				continue;
 ?>
 <option value="<?php echo $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?php echo $opt_function ?></option>

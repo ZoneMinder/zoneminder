@@ -153,7 +153,7 @@ elseif( $view == "feed" )
 	$monitor_image = "$monitor[Name].jpg";
 	$image_time = filemtime( $monitor_image );
 	$browser_image = "$monitor[Name]-wap-$image_time.jpg";
-	$command = NETPBM_DIR."/jpegtopnm -dct fast $monitor_image | ".NETPBM_DIR."/pnmscale -xysize $browser[Width] $browser[Height] | ".NETPBM_DIR."/ppmtojpeg > $browser_image";
+	$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $monitor_image | ".ZM_PATH_NETPBM."/pnmscale -xysize $browser[Width] $browser[Height] | ".ZM_PATH_NETPBM."/ppmtojpeg > $browser_image";
 	exec( $command );
 	chdir( '..' );
 ?>

@@ -26,7 +26,7 @@ function deleteEvent( $eid )
 		$result = mysql_query( "delete from Events where Id = '$eid'" );
 		if ( !$result )
 			die( mysql_error() );
-		if ( !FAST_DELETE )
+		if ( !ZM_OPT_FAST_DELETE )
 		{
 			$result = mysql_query( "delete from Stats where EventId = '$eid'" );
 			if ( !$result )
@@ -34,7 +34,7 @@ function deleteEvent( $eid )
 			$result = mysql_query( "delete from Frames where EventId = '$eid'" );
 			if ( !$result )
 				die( mysql_error() );
-			system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $eid ) ) );
+			system( escapeshellcmd( "rm -rf ".ZM_PATH_EVENTS."/*/".sprintf( "%04d", $eid ) ) );
 		}
 	}
 }
@@ -74,7 +74,7 @@ function isNetscape()
 
 function canStream()
 {
-	return( isNetscape() || (CAMBOZOLA_PATH && file_exists( CAMBOZOLA_PATH )) );
+	return( isNetscape() || (ZM_PATH_CAMBOZOLA && file_exists( ZM_PATH_CAMBOZOLA )) );
 }
 
 function fixDevices()

@@ -69,10 +69,12 @@ define( "ZM_WEB_P_REFRESH_IMAGE", <from zmconfig> );	// How often the watched im
 
 // This section is options normally derived from other options or configuration
 //
+define( "ZM_DB_USER", ZM_DB_USERA );					// Database login
+define( "ZM_DB_PASS", ZM_DB_PASSA );					// Database password
 define( "ZM_PATH", "@prefix@/bin" );					// Local path to the general ZoneMonitor executables
 define( "ZMU_PATH", ZM_PATH."/zmu" );					// Local path to the ZoneMinder Utility
 define( "ZMS_PATH", "/cgi-bin/zms" );					// Web path to the ZoneMinder Stream server
-define( "ZMS_EVENT_PATH", "@WEB_PREFIX@/".EVENT_PATH );	// Full path (not web) to where events directory lives
+define( "ZMS_EVENT_PATH", "@WEB_PREFIX@/".ZM_PATH_EVENTS );	// Full path (not web) to where events directory lives
 
 // These are miscelleaneous options you won't normally need to change
 //

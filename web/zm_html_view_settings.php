@@ -65,14 +65,14 @@ function closeWindow()
 </script>
 </head>
 <body>
-<table border="0" cellspacing="0" cellpadding="4" width="100%">
-<tr>
-<td colspan="2" align="left" class="head">Monitor <?= $monitor['Name'] ?> - <?= $zmSlangSettings ?></td>
-</tr>
 <form name="settings_form" method="post" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.settings_form )">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="settings">
 <input type="hidden" name="mid" value="<?= $mid ?>">
+<table border="0" cellspacing="0" cellpadding="4" width="100%">
+<tr>
+<td colspan="2" align="left" class="head">Monitor <?= $monitor['Name'] ?> - <?= $zmSlangSettings ?></td>
+</tr>
 <tr>
 <td align="right" class="smallhead"><?= $zmSlangParameter ?></td><td align="left" class="smallhead"><?= $zmSlangValue ?></td>
 </tr>
@@ -84,5 +84,6 @@ function closeWindow()
 <td colspan="2" align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="<?= $zmSlangClose ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
+</form>
 </body>
 </html>

@@ -316,4 +316,19 @@ function createVideo( $event, $rate, $scale, $overwrite=0 )
 	return( $status?"":rtrim($result) );
 }
 
+function reScale( $dimension, $scale=1 )
+{
+	if ( $scale == 1 )
+		return( $dimension );
+
+	if ( $scale > 0 )
+	{
+		return( (int)($dimension*$scale) );
+	}
+	else
+	{
+		return( (int)(1+(($dimension-1)/-$scale)) );
+	}
+}
+
 ?>

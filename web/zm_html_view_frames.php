@@ -29,7 +29,7 @@ if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
 
-$sql = "select * from Frames where EventID = '$eid' order by FrameId";
+$sql = "select *, unix_timestamp( TimeStamp ) as UnixTimeStamp from Frames where EventID = '$eid' order by FrameId";
 $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );

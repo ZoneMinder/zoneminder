@@ -426,6 +426,7 @@ int RemoteCamera::GetResponse()
 							return( -1 );
 						}
 					}
+					Debug( 3, ( "Got end of image by length, content-length = %d", content_length ));
 				}
 				else
 				{
@@ -455,10 +456,18 @@ int RemoteCamera::GetResponse()
 								content_expr = new RegExpr( content_pattern, PCRE_DOTALL );
 							}
 						}
-						if ( content_expr->Match( buffer, buffer.Size() ) == 2 )
+						if ( buffer_len )
 						{
-							content_length = content_expr->MatchLength( 1 );
-							Debug( 3, ( "Got end of image, content-length = %d", content_length ));
+							if ( content_expr->Match( buffer, buffer.Size() ) == 2 )
+							{
+								content_length = content_expr->MatchLength( 1 );
+								Debug( 3, ( "Got end of image by pattern, content-length = %d", content_length ));
+							}
+						}
+						else
+						{
+							content_length = buffer.Size();
+							Debug( 3, ( "Got end of image by closure, content-length = %d", content_length ));
 						}
 					}
 				}

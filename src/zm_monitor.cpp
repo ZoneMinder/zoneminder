@@ -1202,30 +1202,6 @@ void Monitor::SingleImage( int scale)
 
 void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate )
 {
-	// Warning, most of these won't work for real-time streaming
-	const char *mime_type = "video/mpeg";
-	if ( !strcmp( format, "asf" ) )
-	{
-		mime_type = "video/x-ms-asf";
-	}
-	else if ( !strcmp( format, "mpeg" ) || !strcmp( format, "mpg" ) )
-	{
-		mime_type = "video/x-mpeg";
-	}
-	else if ( !strcmp( format, "mpv2" ) || !strcmp( format, "mpev2" ) )
-	{
-		mime_type = "video/x-mpeg2";
-	}
-	else if ( !strcmp( format, "avi" ) )
-	{
-		mime_type = "video/x-msvideo";
-	}
-	else if ( !strcmp( format, "mov" ) )
-	{
-		mime_type = "video/x-quicktime";
-	}
-	fprintf( stdout, "Content-type: %s\r\n\r\n", mime_type );
-
 	bool timed_frames = (bool)config.Item( ZM_VIDEO_TIMED_FRAMES );
 
 	int fps = int(GetFPS());

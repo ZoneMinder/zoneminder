@@ -33,9 +33,10 @@ void VideoStream::Initialise()
 	initialised = true;
 }
 
-void VideoStream::SetupFormat( const char *p_filename, const char *format )
+void VideoStream::SetupFormat( const char *p_filename, const char *p_format )
 {
 	filename = p_filename;
+	format = p_format;
 
 	/* auto detect the output format from the name. default is mpeg. */
 	of = guess_format( format, NULL, NULL);
@@ -185,6 +186,14 @@ void VideoStream::OpenStream()
 		video_outbuf_size = 200000;
 		video_outbuf = (uint8_t *)malloc(video_outbuf_size);
 	}
+
+	const char *mime_type = of->mime_type;
+	if ( !mime_type )
+	{
+		mime_type = "video/mpeg";
+		Warning(( "Unable to determine mime type for '%s' format, using '%s' as default", format, mime_type ));
+	}
+	fprintf( stdout, "Content-type: %s\r\n\r\n", mime_type );
 
 	/* write the stream header, if any */
 	av_write_header(ofc);

@@ -33,6 +33,7 @@ protected:
 
 protected:
 	const char *filename;
+	const char *format;
 	enum PixelFormat pf;
 	AVOutputFormat *of;
 	AVFormatContext *ofc;

@@ -25,6 +25,6 @@
 #define	ZM_DB_USERB			"zmuser"	// Unprivileged DB user name, need just select privilege.
 #define	ZM_DB_PASSB			"zmuserzm"	// Unprivileged DB user password
 
-#define ZM_SHM_KEY			0xcf00cf00	// Base shared memory key
+#define ZM_SHM_KEY			0x7a6d2000	// Base shared memory key
 
 #define ZM_EVENT_DIR		"events"	// Event directory relative to web directory

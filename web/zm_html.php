@@ -29,6 +29,8 @@ ini_set( "session.name", "ZMSESSID" );
 
 session_start();
 
+require_once( 'zm_config.php' );
+
 if ( ZM_OPT_USE_AUTH )
 {
 	$user = $HTTP_SESSION_VARS[user];
@@ -46,7 +48,6 @@ else
 	);
 }
 
-require_once( 'zm_config.php' );
 require_once( 'zm_db.php' );
 require_once( 'zm_funcs.php' );
 require_once( 'zm_actions.php' );

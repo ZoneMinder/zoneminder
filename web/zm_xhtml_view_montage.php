@@ -18,6 +18,12 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+$sql = "select * from Groups where Name = 'Mobile'";
+$result = mysql_query( $sql );
+if ( !$result )
+    echo mysql_error();
+$group = mysql_fetch_assoc( $result );
+
 $result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
 $monitors = array();
 $max_width = 0;
@@ -28,6 +34,11 @@ while( $row = mysql_fetch_assoc( $result ) )
 	{
 		continue;
 	}
+    if ( $group && $group['MonitorIds'] && !in_array( $row['Id'], split( ',', $group['MonitorIds'] ) ) )
+	{
+		continue;
+	}
+
 	if ( $max_width < $row['Width'] ) $max_width = $row['Width'];
 	if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
 	$monitors[] = $row;

@@ -648,15 +648,19 @@ sub substituteTags
 	$text =~ s/%ESM%/$event->{MaxScore}/g;
 	$text =~ s/%EPI1%/$url?view=image&mid=$filter->{MonitorId}&eid=$event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
 	$text =~ s/%EPIM%/$url?view=image&mid=$filter->{MonitorId}&eid=$event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
-	if ( $attachments_ref && $text =~ s/%EI1%/First alarm frame attached/g )
+	if ( $attachments_ref && $text =~ s/%EI1%//g )
 	{
 		push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%d/capture-%03d.jpg", $filter->{MonitorName}, $event->{Id}, $first_alarm_frame->{FrameId} ) } );
 	}
-	if ( $attachments_ref && $text =~ s/%EIM%/Max alarm frame attached/g )
+	if ( $attachments_ref && $text =~ s/%EIM%//g )
 	{
-		push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%d/capture-%03d.jpg", $filter->{MonitorName}, $event->{Id}, $max_alarm_frame->{FrameId} ) } );
+		# Don't attach the same image twice
+		if ( !@$attachments_ref || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} ) )
+		{
+			push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%d/capture-%03d.jpg", $filter->{MonitorName}, $event->{Id}, $max_alarm_frame->{FrameId} ) } );
+		}
 	}
-	if ( $attachments_ref && ZM_OPT_MPEG ne "no" && $text =~ s/%EV%/Event video attached/g )
+	if ( $attachments_ref && ZM_OPT_MPEG ne "no" && $text =~ s/%EV%//g )
 	{
 		my $command = ZM_PATH_BIN."/zmvideo.pl -e $event->{Id}";
 		my $output = qx($command);

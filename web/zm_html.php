@@ -57,7 +57,7 @@ switch( $view )
 			packageControl( 'start' );
 		}
 
-		header("Refresh: ".(($start||$stop)?1:REFRESH_MAIN)."; URL='$PHP_SELF'" );
+		header("Refresh: ".(($start||$stop)?1:REFRESH_MAIN)."; URL=$PHP_SELF" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -124,6 +124,10 @@ function confirmStatus( new_status )
 {
 	return( confirm( 'Are you sure you wish to '+new_status+' all processes?' ) );
 }
+function confirmDelete()
+{
+	return( confirm( 'Warning, deleting a monitor also deletes all events and database entries associated with it.\nAre you sure you wish to delete?' ) );
+}
 </script>
 </head>
 <body>
@@ -167,7 +171,7 @@ function confirmStatus( new_status )
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
-<form name="monitor_form" method="get" action="<?= $PHP_SELF ?>">
+<form name="monitor_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="return(confirmDelete());">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="delete">
 <tr><td align="left" class="smallhead">Id</td>
@@ -306,7 +310,7 @@ function confirmStatus( new_status )
 		chdir( ZM_DIR_IMAGES );
 		$status = exec( escapeshellcmd( ZMU_PATH." -m $monitor[Id] -i" ) );
 											 
-		header("Refresh: ".REFRESH_CYCLE."; URL='$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode'" );
+		header("Refresh: ".REFRESH_CYCLE."; URL=$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -473,7 +477,7 @@ function closeWindow()
 			chdir( ZM_DIR_IMAGES );
 			$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
 			chdir( '..' );
-			header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=montagefeed&mid=$mid&mode=still'" );
+			header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=montagefeed&mid=$mid&mode=still" );
 		}
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -556,7 +560,7 @@ function closeWindow()
 
 		$refresh = (isset($force)||$forced||$status)?1:REFRESH_STATUS;
 		$url = "$PHP_SELF?view=montagestatus&mid=$mid&last_status=$status";
-		header("Refresh: $refresh; URL='$url'" );
+		header("Refresh: $refresh; URL=$url" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -643,7 +647,7 @@ window.focus();
 			chdir( ZM_DIR_IMAGES );
 			$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
 			chdir( '..' );
-			header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=watchfeed&mid=$mid&mode=still'" );
+			header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
 		}
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -738,7 +742,7 @@ function closeWindow()
 
 		$refresh = (isset($force)||$forced||$status)?1:REFRESH_STATUS;
 		$url = "$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status".(($force||$forced)?"&forced=1":"");
-		header("Refresh: $refresh; URL='$url'" );
+		header("Refresh: $refresh; URL=$url" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -835,7 +839,7 @@ parent.frames[2].location.reload();
 		$sort_order = $sort_asc?"asc":"desc";
 		if ( !$sort_asc )
 			$sort_asc = 0;
-		header("Refresh: ".REFRESH_EVENTS."; URL='$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS."'" );
+		header("Refresh: ".REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1

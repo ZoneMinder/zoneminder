@@ -17,6 +17,7 @@ EXTRA_DIST = \
 	zmconfig.pl.in \
 	zmconfig_eml.txt \
 	zmconfig_msg.txt \
+	$(sysconf_DATA) \
 	README.html \
 	README.pdf \
 	README.rtf

@@ -671,6 +671,9 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 
 	setbuf( fd, 0 );
 	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
+	fprintf( fd, "Pragma: no-cache\r\n" );
+	fprintf( fd, "Cache-Control: no-cache\r\n" );
+	fprintf( fd, "Expires: Thu, 01 Dec 1994 16:00:00 GMT\r\n" );
 	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
 	fprintf( fd, "--ZoneMinderFrame\r\n" );
 	int last_read_index = image_buffer_count;

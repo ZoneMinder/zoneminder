@@ -1,5 +1,5 @@
 AUTOMAKE_OPTIONS = gnu
 
-bin_SCRIPTS = zmdc.pl zmaudit.pl zmfilter.pl zmx10.pl zmwatch.pl zmpkg.pl
+bin_SCRIPTS = zmdc.pl zmaudit.pl zmfilter.pl zmx10.pl zmwatch.pl zmpkg.pl zmvideo.pl
 
-EXTRA_DIST = zmdc.pl.z zmaudit.pl.z zmfilter.pl.z zmx10.pl.z zmwatch.pl.z zmpkg.pl.z zm.z
+EXTRA_DIST = zmdc.pl.z zmaudit.pl.z zmfilter.pl.z zmx10.pl.z zmwatch.pl.z zmpkg.pl.z zmvideo.pl.z zm.z

@@ -2465,57 +2465,12 @@ function closeWindow()
 			die( mysql_error() );
 		$event = mysql_fetch_assoc( $result );
 
-		$event_dir = ZM_DIR_EVENTS."/$event[MonitorName]/".sprintf( "%d", $eid );
-		$param_file = $event_dir."/mpeg.param";
-		$video_name = preg_replace( "/\\s/", "_", $event[Name] ).".mpeg";
-		$video_file = $event_dir."/".$video_name;
-
-		if ( !file_exists( $video_file ) )
+		if ( $video_file = createVideo( $event ) )
 		{
-			$fp = fopen( $param_file, "w" );
-
-			fputs( $fp, "PATTERN		IBBPBBPBBPBBPBB\n" );
-			fputs( $fp, "OUTPUT		$video_file\n" );
-
-			fputs( $fp, "BASE_FILE_FORMAT	JPEG\n" );
-			fputs( $fp, "GOP_SIZE	30\n" );
-			fputs( $fp, "SLICES_PER_FRAME	1\n" );
-
-			fputs( $fp, "PIXEL		HALF\n" );
-			fputs( $fp, "RANGE		10\n" );
-			fputs( $fp, "PSEARCH_ALG	LOGARITHMIC\n" );
-			fputs( $fp, "BSEARCH_ALG	CROSS2\n" );
-			fputs( $fp, "IQSCALE		8\n" );
-			fputs( $fp, "PQSCALE		10\n" );
-			fputs( $fp, "BQSCALE		25\n" );
-
-			fputs( $fp, "REFERENCE_FRAME	ORIGINAL\n" );
-			fputs( $fp, "FRAME_RATE 24\n" );
-
-			if ( $event[Palette] == 1 )
-				fputs( $fp, "INPUT_CONVERT	".ZM_PATH_NETPBM."/jpegtopnm * | ".ZM_PATH_NETPBM."/pgmtoppm white | ".ZM_PATH_NETPBM."/ppmtojpeg\n" );
-			else
-				fputs( $fp, "INPUT_CONVERT	*\n" );
-
-			fputs( $fp, "INPUT_DIR	$event_dir\n" );
-
-			fputs( $fp, "INPUT\n" );
-			for ( $i = 1; $i < $event[Frames]; $i++ )
-			{
-				fputs( $fp, "capture-".sprintf( "%03d", $i ).".jpg\n" );
-				fputs( $fp, "capture-".sprintf( "%03d", $i ).".jpg\n" );
-			}
-			fputs( $fp, "END_INPUT\n" );
-			fclose( $fp );
-
-			exec( ZM_PATH_MPEG_ENCODE." $param_file >$event_dir/mpeg.log" );
+			$event_dir = ZM_DIR_EVENTS."/$event[MonitorName]/".sprintf( "%d", $eid );
+			$video_path = $event_dir.'/'.$video_file;
+			header("Location: $video_path" );
 		}
-
-		//chdir( $event_dir );
-		//header("Content-type: video/mpeg");
-		//header("Content-Disposition: inline; filename=$video_name");
-		header("Location: $video_file" );
-
 		break;
 	}
 	case "function" :

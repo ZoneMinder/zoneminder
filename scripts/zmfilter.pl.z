@@ -86,7 +86,7 @@ my $email_subject;
 my $email_body;
 if ( ZM_OPT_EMAIL )
 {
-	use Mail::Mailer;
+	use MIME::Entity;
 
 	use constant ZM_EMAIL_FORMAT => "<from zmconfig>"; # File containing the contents of the email
 
@@ -97,7 +97,7 @@ my $message_subject;
 my $message_body;
 if ( ZM_OPT_MESSAGE )
 {
-	use Mail::Mailer;
+	use MIME::Entity;
 
 	use constant ZM_MESSAGE_FORMAT => "<from zmconfig>"; # File containing the contents of the message
 
@@ -475,25 +475,35 @@ sub sendEmail
 
 	print( "Creating notification email\n" );
 
-	my $subject = substituteTags( $email_subject, $filter, $event );
-	my $body = substituteTags( $email_body, $filter, $event );
+	my $subject = substituteTags( $email_subject, $filter, \$event );
+	my $body = substituteTags( $email_body, $filter, \$event );
 
 	print( "Sending notification email '$subject'\n" );
 	print( "$body\n" ) if ( VERBOSE );
 
 	eval
 	{
-		my $mailer = new Mail::Mailer;
-
-		$mailer->open( {
+		my $mail = MIME::Entity->build(
+			From =>ZM_FROM_EMAIL,
+			To=>ZM_EMAIL_ADDRESS,
 			Subject=>$subject,
-			From=>ZM_FROM_EMAIL,
-			To=>ZM_EMAIL_ADDRESS
-		} );
+			Data=>$body
+		);
 
-		print( $mailer $body );
+		if ( $event->{attachments} )
+		{
+			foreach my $attachment ( @{$event->{attachments}} )
+			{
+				print( "Attaching '$attachment->{path}\n" );
+				$mail->attach(
+					Path=>$attachment->{path},
+					Type=>$attachment->{type},
+					Encoding=>"base64"
+				);
+			}
+		}
 
-		$mailer->close();
+		$mail->smtpsend();
 	};
 	if ( $@ )
 	{
@@ -521,27 +531,37 @@ sub sendMessage
 		return;
 	}
 
-	print( "Creating notification email\n" );
+	print( "Creating notification message\n" );
 
-	my $subject = substituteTags( $message_subject, $filter, $event );
-	my $body = substituteTags( $message_body, $filter, $event );
+	my $subject = substituteTags( $message_subject, $filter, \$event );
+	my $body = substituteTags( $message_body, $filter, \$event );
 
 	print( "Sending notification message '$subject'\n" );
 	print( "$body\n" ) if ( VERBOSE );
 
 	eval
 	{
-		my $mailer = new Mail::Mailer;
-
-		$mailer->open( {
+		my $mail = MIME::Entity->build(
+			From =>ZM_FROM_EMAIL,
+			To=>ZM_MESSAGE_ADDRESS,
 			Subject=>$subject,
-			From=>ZM_FROM_EMAIL,
-			To=>ZM_MESSAGE_ADDRESS
-		} );
+			Data=>$body
+		);
 
-		print( $mailer $body );
+		if ( $event->{attachments} )
+		{
+			foreach my $attachment ( @{$event->{attachments}} )
+			{
+				print( "Attaching '$attachment->{path}\n" );
+				$mail->attach(
+					Path=>$attachment->{path},
+					Type=>$attachment->{type},
+					Encoding=>"base64"
+				);
+			}
+		}
 
-		$mailer->close();
+		$mail->smtpsend();
 	};
 	if ( $@ )
 	{
@@ -557,7 +577,8 @@ sub substituteTags
 {
 	my $text = shift;
 	my $filter = shift;
-	my $event = shift;
+	my $event_ref = shift;
+	my $event = $$event_ref;
 
 	# First we'd better check what we need to get
 	# We have a filter and an event, do we need any more
@@ -576,7 +597,7 @@ sub substituteTags
 	}
 
 	# Do we need the image information too?
-	my $need_images = $text =~ /%(?:EPI1|EPIM)%/;
+	my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM)%/;
 	my @frames = ();
 	my $first_alarm_frame;
 	my $max_alarm_frame;
@@ -630,6 +651,30 @@ sub substituteTags
 	$text =~ s/%ESM%/$event->{MaxScore}/g;
 	$text =~ s/%EPI1%/$url?view=image&mid=$filter->{MonitorId}&eid=$event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
 	$text =~ s/%EPIM%/$url?view=image&mid=$filter->{MonitorId}&eid=$event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+	if ( $text =~ s/%EI1%/First alarm frame attached/g )
+	{
+		my $attachments = $event->{attachments};
+		$attachments = $event->{attachments} = [] if ( !$attachments );
+		push( @$attachments, { type=>"image/jpeg", path=>sprintf( "%s/%d/capture-%03d.jpg", $filter->{MonitorName}, $event->{Id}, $first_alarm_frame->{FrameId} ) } );
+	}
+	if ( $text =~ s/%EIM%/Max alarm frame attached/g )
+	{
+		my $attachments = $event->{attachments};
+		$attachments = $event->{attachments} = [] if ( !$attachments );
+		push( @$attachments, { type=>"image/jpeg", path=>sprintf( "%s/%d/capture-%03d.jpg", $filter->{MonitorName}, $event->{Id}, $max_alarm_frame->{FrameId} ) } );
+	}
+	if ( $text =~ s/%EV%/Event video attached/g )
+	{
+		my $attachments = $event->{attachments};
+		$attachments = $event->{attachments} = [] if ( !$attachments );
+		my $command = ZM_PATH_BIN."/zmvideo.pl -e $event->{Id}";
+		my $output = qx($command);
+		my $status = $? >> 8;
+		if ( $status == 0 )
+		{
+			push( @$attachments, { type=>"video/mpeg", path=>sprintf( "%s/%d/%s", $filter->{MonitorName}, $event->{Id}, $output ) } );
+		}
+	}
 	$text =~ s/%FN%/$filter->{Name}/g;
 	( my $filter_name = $filter->{Name} ) =~ s/ /+/g;
 	$text =~ s/%FP%/$url?view=filter&mid=$filter->{MonitorId}&filter_name=$filter_name/g;

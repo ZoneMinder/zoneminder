@@ -202,4 +202,12 @@ function zmaCheck( $monitor )
 	}
 	return( daemonCheck( "zma", "-m $monitor" ) );
 }
+
+function createVideo( $event )
+{
+	$command = ZM_PATH_BIN."/zmvideo.pl -e $event[Id]";
+	$result = exec( $command, $output, $status );
+	return( $status?"":$result );
+}
+
 ?>

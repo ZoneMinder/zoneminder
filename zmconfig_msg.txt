@@ -21,6 +21,9 @@
 # %EPI% - The path to the event images
 # %EPI1% - The path to the first alarmed event image
 # %EPIM% - The path to the (first) event image with the highest score
+# %EI1% - Attach first alarmed event image
+# %EIM% - Attach (first) event image with the highest score
+# %EV% - Attach event mpeg video
 # %EI% - The id of the event
 # %EN% - The name of the event
 # %ET% - The time of the event

@@ -1461,6 +1461,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 		shared_images->last_write_index = image_buffer_count;
 		shared_images->last_read_index = image_buffer_count;
 		shared_images->last_event = 0;
+		shared_images->forced_alarm = false;
 	}
 	shared_images->timestamps = (time_t *)(shm_ptr+sizeof(SharedImages));
 	shared_images->images = (unsigned char *)(shm_ptr+sizeof(SharedImages)+(image_buffer_count*sizeof(time_t)));
@@ -1615,6 +1616,16 @@ double Monitor::GetFPS() const
 	return( fps );
 }
 
+void Monitor::ForceAlarm()
+{
+	shared_images->forced_alarm = true;
+}
+
+void Monitor::CancelAlarm()
+{
+	shared_images->forced_alarm = false;
+}
+
 void Monitor::CheckFunction()
 {
 	static char sql[256];
@@ -1743,7 +1754,12 @@ bool Monitor::Analyse()
 	unsigned int score = 0;
 	if ( Ready() )
 	{
-		if ( score = ref_image.Compare( *image, n_zones, zones ) )
+		score = ref_image.Compare( *image, n_zones, zones );
+
+		if ( shared_images->forced_alarm )
+			score = ZM_FORCED_ALARM_SCORE;
+
+		if ( score )
 		{
 			if ( state == IDLE )
 			{

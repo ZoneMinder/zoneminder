@@ -24,7 +24,7 @@ void Usage()
 {
 	fprintf( stderr, "zmu [-m monitor_id] [function]\n" );
 	fprintf( stderr, "Options:\n" );
-	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 0 if absent\n" );
+	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 1 if absent\n" );
 	fprintf( stderr, "  -s, --state                    : Output the current monitor state, 0 = idle, 1 = alarm, 2 = alert\n" );
 	fprintf( stderr, "  -i, --image [image_index]      : Write captured image to disk as <monitor_name>.jpg, last image captured\n" );
 	fprintf( stderr, "                                   or specified ring buffer index if given.\n" );
@@ -35,6 +35,8 @@ void Usage()
 	fprintf( stderr, "  -e, --event                    : Output last event index\n" );
 	fprintf( stderr, "  -f, --fps                      : Output last Frames Per Second captured reading\n" );
 	fprintf( stderr, "  -z, --zones                    : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n" );
+	fprintf( stderr, "  -a, --alarm                    : Force alarm in monitor, this will trigger recording until cancelled with -c\n" );
+	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm in monitor, required after being enabled with -a\n" );
 	fprintf( stderr, "  -h, --help - This screen\n" );
 
 	exit( 0 );
@@ -52,12 +54,14 @@ int main( int argc, char *argv[] )
 		{"event", 0, 0, 'e'},
 		{"fps", 0, 0, 'f'},
 		{"zones", 0, 0, 'z'},
+		{"alarm", 0, 0, 'a'},
+		{"cancel", 0, 0, 'c'},
 		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
 	};
 
 	int id = 1;
-	enum { BOGUS, STATE, IMAGE, TIME, READ_IDX, WRITE_IDX, EVENT, FPS, ZONES } function = BOGUS;
+	enum { BOGUS, STATE, IMAGE, TIME, READ_IDX, WRITE_IDX, EVENT, FPS, ZONES, ALARM, CANCEL } function = BOGUS;
 	int image_idx = -1;
 	while (1)
 	{
@@ -65,7 +69,7 @@ int main( int argc, char *argv[] )
 		int option_index = 0;
 		int opterr = 1;
 
-		int c = getopt_long (argc, argv, "m:srwie::t::fzh", long_options, &option_index);
+		int c = getopt_long (argc, argv, "m:srwie::t::fzach", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -107,6 +111,12 @@ int main( int argc, char *argv[] )
 				break;
 			case 'z':
 				function = ZONES;
+				break;
+			case 'a':
+				function = ALARM;
+				break;
+			case 'c':
+				function = CANCEL;
 				break;
 			case 'h':
 				Usage();
@@ -187,6 +197,14 @@ int main( int argc, char *argv[] )
 		else if ( function == ZONES )
 		{
 			monitor->ReloadZones();
+		}
+		else if ( function == ALARM )
+		{
+			monitor->ForceAlarm();
+		}
+		else if ( function == CANCEL )
+		{
+			monitor->CancelAlarm();
 		}
 		else
 		{

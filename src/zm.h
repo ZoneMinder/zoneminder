@@ -605,6 +605,7 @@ protected:
 		int last_write_index;
 		int last_read_index;
 		int last_event;
+		bool forced_alarm;
 		time_t *timestamps;
 		unsigned char *images;
 	} SharedImages;
@@ -626,6 +627,8 @@ public:
 	unsigned int GetLastWriteIndex() const;
 	unsigned int GetLastEvent() const;
 	double GetFPS() const;
+	void ForceAlarm();
+	void CancelAlarm();
 
 	void CheckFunction();
 	void DumpZoneImage();

@@ -507,10 +507,10 @@ function parseSort()
 		case 'Name' :
 			$sort_column = "E.Name";
 			break;
-		case 'StartTime' :
+		case 'DateTime' :
 			$sort_column = "E.StartTime";
 			break;
-		case 'Secs' :
+		case 'Length' :
 			$sort_column = "E.Length";
 			break;
 		case 'Frames' :
@@ -595,6 +595,8 @@ function parseFilter()
 					case 'Weekday':
 						$filter_sql .= "weekday( E.StartTime )";
 						break;
+					case 'Id':
+					case 'Name':
 					case 'MonitorId':
 					case 'Length':
 					case 'Frames':

@@ -90,37 +90,6 @@ function closeWindow()
 	var filterWindow = window.open( "<?= $PHP_SELF ?>?view=none", 'zmFilter', 'width=1,height=1' );
 	filterWindow.close();
 }
-function checkAll(form,name)
-{
-	for (var i = 0; i < form.elements.length; i++)
-		if (form.elements[i].name.indexOf(name) == 0)
-			form.elements[i].checked = 1;
-	form.delete_btn.disabled = false;
-<?php if ( LEARN_MODE ) { ?>
-	form.learn_btn.disabled = false;
-	form.learn_state.disabled = false;
-<?php } ?>
-}
-function configureButton(form,name)
-{
-	var checked = false;
-	for (var i = 0; i < form.elements.length; i++)
-	{
-		if ( form.elements[i].name.indexOf(name) == 0)
-		{
-			if ( form.elements[i].checked )
-			{
-				checked = true;
-				break;
-			}
-		}
-	}
-	form.delete_btn.disabled = !checked;
-<?php if ( LEARN_MODE ) { ?>
-	form.learn_btn.disabled = !checked;
-	form.learn_state.disabled = !checked;
-<?php } ?>
-}
 window.focus();
 <?php
 if ( isset($filter) )
@@ -144,7 +113,69 @@ else
 	{
 		$n_events = $limit;
 	}
+	if ( !($result = mysql_query( $events_sql )) )
+		die( mysql_error() );
+	$max_width = 0;
+	$max_height = 0;
+	$events = array();
+	while( $event = mysql_fetch_assoc( $result ) )
+	{
+		$events[] = $event;
+		if ( $max_width < $event['Width'] ) $max_width = $event['Width'];
+		if ( $max_height < $event['Height'] ) $max_height = $event['Height'];
+	}
 ?>
+function checkAll(form,name)
+{
+	for (var i = 0; i < form.elements.length; i++)
+		if (form.elements[i].name.indexOf(name) == 0)
+			form.elements[i].checked = 1;
+	form.view_btn.disabled = false;
+	form.delete_btn.disabled = false;
+<?php if ( LEARN_MODE ) { ?>
+	form.learn_btn.disabled = false;
+	form.learn_state.disabled = false;
+<?php } ?>
+}
+function configureButton(form,name)
+{
+	var checked = false;
+	for (var i = 0; i < form.elements.length; i++)
+	{
+		if ( form.elements[i].name.indexOf(name) == 0)
+		{
+			if ( form.elements[i].checked )
+			{
+				checked = true;
+				break;
+			}
+		}
+	}
+	form.view_btn.disabled = !checked;
+	form.delete_btn.disabled = !checked;
+<?php if ( LEARN_MODE ) { ?>
+	form.learn_btn.disabled = !checked;
+	form.learn_state.disabled = !checked;
+<?php } ?>
+}
+function viewEvents( form, name )
+{
+	var events = new Array();
+	for (var i = 0; i < form.elements.length; i++)
+	{
+		if ( form.elements[i].name.indexOf(name) == 0)
+		{
+			if ( form.elements[i].checked )
+			{
+				events[events.length] = form.elements[i].value;
+			}
+		}
+	}
+	if ( events.length > 0 )
+	{
+		eventWindow( '<?= $PHP_SELF ?>?view=event&eid='+events[0]+'&trms=1&attr1=Id&op1=%3D%5B%5D&val1='+events.join('%2C')+'<?= $sort_query ?>&page=1&play=1', 'zmEvent', <?= $max_width+$jws['event']['w']  ?>, <?= $max_height+$jws['event']['h'] ?> );
+	}
+}
 </script>
 </head>
 <body>
@@ -270,9 +301,7 @@ else
 <?php
 	flush();
 	$count = 0;
-	if ( !($result = mysql_query( $events_sql )) )
-		die( mysql_error() );
-	while( $event = mysql_fetch_assoc( $result ) )
+	foreach ( $events as $event )
 	{
 		if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 )
 		{
@@ -335,7 +364,7 @@ else
 </table></td></tr>
 </table></td>
 </tr>
-<tr><td align="right"><?php if ( LEARN_MODE ) { ?><select name="learn_state" class="form" disabled><option value=""><?= $zmSlangIgnore ?></option><option value="-"><?= $zmSlangExclude ?></option><option value="+"><?= $zmSlangInclude ?></option></select>&nbsp;&nbsp;<input type="button" name="learn_btn" value="<?= $zmSlangSetLearnPrefs ?>" class="form" onClick="document.event_form.action.value = 'learn'; document.event_form.submit();" disabled>&nbsp;&nbsp;<?php } ?><input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="document.event_form.action.value = 'delete'; document.event_form.submit();" disabled></td></tr>
+<tr><td align="right"><?php if ( LEARN_MODE ) { ?><select name="learn_state" class="form" disabled><option value=""><?= $zmSlangIgnore ?></option><option value="-"><?= $zmSlangExclude ?></option><option value="+"><?= $zmSlangInclude ?></option></select>&nbsp;&nbsp;<input type="button" name="learn_btn" value="<?= $zmSlangSetLearnPrefs ?>" class="form" onClick="document.event_form.action.value = 'learn'; document.event_form.submit();" disabled>&nbsp;&nbsp;<?php } ?><input type="button" name="view_btn" value="<?= $zmSlangView ?>" class="form" onClick="viewEvents( document.event_form, 'mark_eids' );" disabled>&nbsp;&nbsp;<input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="document.event_form.action.value = 'delete'; document.event_form.submit();" disabled></td></tr>
 </table></center>
 </form>
 </body>

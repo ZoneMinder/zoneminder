@@ -477,7 +477,7 @@ sub sendEmail
 
 	my $subject = substituteTags( $email_subject, $filter, $event );
 	my @attachments;
-	my $body = substituteTags( $email_body, $filter, $event, @attachments );
+	my $body = substituteTags( $email_body, $filter, $event, \@attachments );
 
 	print( "Sending notification email '$subject'\n" );
 	print( "$body\n" ) if ( VERBOSE );
@@ -533,7 +533,7 @@ sub sendMessage
 
 	my $subject = substituteTags( $message_subject, $filter, $event );
 	my @attachments;
-	my $body = substituteTags( $message_body, $filter, $event, @$attachments );
+	my $body = substituteTags( $message_body, $filter, $event, \@attachments );
 
 	print( "Sending notification message '$subject'\n" );
 	print( "$body\n" ) if ( VERBOSE );

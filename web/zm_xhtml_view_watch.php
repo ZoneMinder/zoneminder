@@ -102,7 +102,7 @@ $image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "sca
 </head>
 <body>
 <p class="<?= $class ?>" align="center"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=1&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;&sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</p>
-<p align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $image_src ?>" style="border: 0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>" alt="<?= $monitor['Name'] ?>"></a></p>
+<p align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $image_src ?>" alt="<?= $monitor['Name'] ?>" style="border: 0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></a></p>
 <?php
 if ( $next_mod != $mid || $prev_mid != $mid )
 {

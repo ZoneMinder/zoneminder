@@ -148,7 +148,7 @@ autostart="true">
 		if ( canStreamNative() )
 		{
 ?>
-<img src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
+<img src="<?= $stream_src ?>" alt="<?= $monitor['Name'] ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
 <?php
 		}
 		else
@@ -162,7 +162,7 @@ autostart="true">
 else
 {
 ?>
-<img name="zmImage" src="<?= $image_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
+<img name="zmImage" src="<?= $image_src ?>" alt="<?= $monitor['Name'] ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
 <?php
 }
 ?>

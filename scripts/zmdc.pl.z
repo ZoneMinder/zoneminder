@@ -146,6 +146,13 @@ if ( !connect( CLIENT, $saddr ) )
 		my %cmd_hash;
 		my %pid_hash;
 
+		sub cprint
+		{
+			if ( fileno(CLIENT) )
+			{
+				print CLIENT @_
+			}
+		}
 		sub dprint
 		{
 			if ( fileno(CLIENT) )
@@ -384,22 +391,22 @@ if ( !connect( CLIENT, $saddr ) )
 			my $process = $cmd_hash{$command};
 			if ( !$process )
 			{
-				dprint( "unknown\n" );
+				cprint( "unknown\n" );
 			}
 			elsif ( $process->{pending} )
 			{
-				dprint( "pending\n" );
+				cprint( "pending\n" );
 			}
 			else
 			{
 				my $cpid = $process->{pid};
 				if ( !$pid_hash{$cpid} )
 				{
-					dprint( "stopped\n" );
+					cprint( "stopped\n" );
 				}
 				else
 				{
-					dprint( "running\n" );
+					cprint( "running\n" );
 				}
 			}
 		}

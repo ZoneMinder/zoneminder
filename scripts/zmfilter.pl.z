@@ -35,7 +35,7 @@ use strict;
 use constant DB_NAME => "zm";
 use constant DB_USER => "zmadmin";
 use constant DB_PASS => "zmadminzm";
-use constant SHM_KEY => 0x7a6d2000;
+use constant ZM_SHM_KEY => 0x7a6d2000;
 use constant EVENT_PATH => "/data/zm/events";
 use constant FILTER_RELOAD_DELAY => 300; # How often filters are reloaded
 
@@ -139,7 +139,7 @@ my $filters = GetFilters( $monitor );
 my $last_action = 0;
 
 my $size = 16; # We only need the first 16 bytes really for the last event count
-my $key = SHM_KEY|$monitor;
+my $key = ZM_SHM_KEY|$monitor;
 my $shmid = shmget( $key, $size, 0 ) || die( "Can't get shared memory id: $!" );
 
 while( 1 )

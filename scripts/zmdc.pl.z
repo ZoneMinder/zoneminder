@@ -375,7 +375,7 @@ if ( !connect( CLIENT, $saddr ) )
 
 			if ( $process->{keepalive} )
 			{
-				if ( !$process->{delay} || $process->{runtime} > $process->{delay} )
+				if ( !$process->{delay} || $process->{runtime} > (10*$process->{delay}) )
 				{
 					start( $process->{daemon}, @{$process->{args}} );
 					$process->{delay} = 5;

@@ -1,21 +1,10 @@
 <?php
 
-include_once( 'browser.php' );
-
 import_request_variables( "GPC" );
 
 //phpinfo( INFO_VARIABLES );
 
 $PHP_SELF = $_SERVER['PHP_SELF'];
-
-$DB_SERVER = "localhost";	// Database Server machine
-$DB_NAME   = "zm";		// Database containing the tables
-$DB_USER   = "zmadmin";		// Database login
-$DB_PASS   = "zmadminzm";		// Database password
-
-define( "MAX_EVENTS", 12 );
-
-define( "THISFILE", "THIS_FILE" );
 
 if ( !$bandwidth )
 {
@@ -27,6 +16,17 @@ if ( $new_bandwidth )
 	$bandwidth = $new_bandwidth;
 	setcookie( "bandwidth", $new_bandwidth, time()+3600*24*30*12*10 );
 }
+
+define( "DB_SERVER", "localhost" );	// Database Server machine
+define( "DB_NAME", "zm" );			// Database containing the tables
+define( "DB_USER", "zmadmin" );		// Database login
+define( "DB_PASS", "zmadminzm" );	// Database password
+
+define( "MAX_EVENTS", 12 );
+define( "ZMU_PATH", "/usr/local/bin/zmu" );
+define( "ZMS_PATH", "/cgi-bin/zms" );
+define( "ZMS_EVENT_PATH", "/data/zm" );
+define( "CAMBOZOLA_PATH", "cambozola.jar" );
 
 if ( $bandwidth == "high" )
 {
@@ -68,8 +68,8 @@ else
 	define( "IMAGE_SCALING", 4 );
 }
 
-$conn = mysql_connect("$DB_SERVER", "$DB_USER", "$DB_PASS") or die("Could not connect to database: ".mysql_error());
-mysql_select_db("$DB_NAME", $conn) or die("Could not select database: ".mysql_error());
+$conn = mysql_connect( DB_SERVER, DB_USER, DB_PASS ) or die("Could not connect to database: ".mysql_error());
+mysql_select_db( DB_NAME, $conn) or die("Could not select database: ".mysql_error());
 
 if ( $action )
 {
@@ -389,7 +389,7 @@ window.focus();
 </script>
 </head>
 <frameset rows="<?php echo $monitor[Height]+32 ?>,16,*" border="1" frameborder="no" framespacing="0">
-<frame src="<?php echo $PHP_SELF ?>?view=watch&mode=stream&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
+<frame src="<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
 <frame src="<?php echo $PHP_SELF ?>?view=status&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
 <frame src="<?php echo $PHP_SELF ?>?view=events&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
 </frameset>
@@ -398,7 +398,13 @@ window.focus();
 elseif( $view == "watch" )
 {
 	if ( !$mode )
-		$mode = "stream";
+	{
+		if ( canStream() )
+			$mode = "stream";
+		else
+			$mode = "still";
+	}
+
 	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 	if ( !$result )
 		die( mysql_error() );
@@ -428,16 +434,18 @@ function closeWindow() {
 <tr>
 <td width="33%" align="left" class="text"><b><?php echo $monitor[Name] ?> Stream</b></td>
 <?php if ( $mode == "stream" ) { ?>
-<td width="34%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watch&mode=stills&mid=<?php echo $mid ?>">Stills</a></td>
-<?php } else { ?>
+<td width="34%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watch&mode=still&mid=<?php echo $mid ?>">Stills</a></td>
+<?php } elseif ( canStream() ) { ?>
 <td width="34%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watch&mode=stream&mid=<?php echo $mid ?>">Stream</a></td>
+<?php } else { ?>
+<td width="34%" align="center" class="text">&nbsp;</td>
 <?php } ?>
 <td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
 <?php if ( $mode == "stream" )
 {
-	$stream_src = "/cgi-bin/zms?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
-	if ( browser_is_netscape() )
+	$stream_src = ZMS_PATH."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
+	if ( isNetscape() )
 	{
 ?>
 <tr><td colspan="3" align="center"><img src="<?php echo $stream_src ?>" border="0" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"></td></tr>
@@ -446,7 +454,7 @@ function closeWindow() {
 	else
 	{
 ?>
-<tr><td colspan="3" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="cambozola.jar" align="middle" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
+<tr><td colspan="3" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?php echo CAMBOZOLA_PATH ?>" align="middle" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
 <?php
 	}
 }
@@ -464,7 +472,7 @@ else
 }
 elseif ( $view == "status" )
 {
-	$status = exec( escapeshellcmd( "./zmu -m $mid -s" ) );
+	$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -s" ) );
 	$status_string = "Unknown";
 	$class = "text";
 	if ( $status == 0 )
@@ -833,8 +841,8 @@ function newWindow(Url,Name,Width,Height) {
 <td width="20%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
 <?php
-	$stream_src = "/cgi-bin/zms?path=/data&event=$eid&refresh=".STREAM_EVENT_DELAY;
-	if ( browser_is_netscape() )
+	$stream_src = ZMS_PATH."?path=".ZMS_EVENT_PATH."&event=$eid&refresh=".STREAM_EVENT_DELAY;
+	if ( isNetscape() )
 	{
 ?>
 <tr><td colspan="6" align="center"><img src="<?php echo $stream_src ?>" border="0" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"></td></tr>
@@ -843,7 +851,7 @@ function newWindow(Url,Name,Width,Height) {
 	else
 	{
 ?>
-<tr><td colspan="6" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="cambozola.jar" align="middle" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
+<tr><td colspan="6" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?php echo CAMBOZOLA_PATH ?>" align="middle" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
 <?php
 	}
 ?>
@@ -854,6 +862,8 @@ function newWindow(Url,Name,Width,Height) {
 }
 elseif( $view == "zones" )
 {
+	$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -z" ) );
+
 	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 	if ( !$result )
 		die( mysql_error() );
@@ -1104,6 +1114,18 @@ function closeWindow() {
 </body>
 </html>
 <?php
+}
+
+function isNetscape()
+{
+	global $HTTP_USER_AGENT;
+
+	return( preg_match( '/Mozilla\/([0-9].[0-9]{1,2})/', $HTTP_USER_AGENT ) );
+}
+
+function canStream()
+{
+	return( isNetscape() || file_exists( CAMBOZOLA_PATH ) );
 }
 
 function getEnumValues( $table, $column )

@@ -249,7 +249,7 @@ function closeWindow()
 				if ( $opt_count && ($opt_count%$break_count == 0) )
 					echo "</br>";
 ?>
-<input type="checkbox" name="new_monitor[Triggers][]" value="<?= $opt_trigger ?>" class="form-noborder"<?php if ( in_array( $opt_trigger, split( ",", $new_monitor['Triggers'] ) ) ) { ?> checked<?php } ?>><?= $opt_trigger ?>
+<input type="checkbox" name="new_monitor[Triggers][]" value="<?= $opt_trigger ?>" class="form-noborder"<?php if ( $new_monitor['Triggers'] && in_array( $opt_trigger, $new_monitor['Triggers'] ) ) { ?> checked<?php } ?>><?= $opt_trigger ?>
 <?php
 				$opt_count ++;
 			}

@@ -279,14 +279,14 @@ if ( $action )
 				{
 					if ( $mid > 0 )
 					{
-						$sql = "update TriggersX10 set ".implode( ", ", $changes )." where MonitorId = '$mid'";
+						$sql = "update TriggersX10 set ".implode( ", ", $x10_changes )." where MonitorId = '$mid'";
 						$result = mysql_query( $sql );
 						if ( !$result )
 							die( mysql_error() );
 					}
 					elseif ( !$user[MonitorIds] )
 					{
-						$sql = "insert into TriggersX10 set MonitorId = '$mid', ".implode( ", ", $changes );
+						$sql = "insert into TriggersX10 set MonitorId = '$mid', ".implode( ", ", $x10_changes );
 						$result = mysql_query( $sql );
 						if ( !$result )
 							die( mysql_error() );

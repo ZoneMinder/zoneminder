@@ -84,13 +84,23 @@ the tables required. The database is usually called 'zm'. If you are upgrading
 from a previous version you can use zmalter.sql to upgrade your database and 
 make the necessary changes. ZM also needs to know where it stores its events 
 relative to the web root directory in zmcfg.h and where in full path terms in
-index.php. There are also several other paths in index.php but these can wait 
+zmconfig.php. There are also several other paths in index.php but these can wait 
 until later.
 
-So to start, just type './configure --with-mysql=/usr' (or your MySQL install 
+The next step is tocheck and/or edit the src/Makefile.in and web/Makefile.in
+files and make sure that the WEBUSR and WEBGRP definitions near the top are
+appropriate for the user associated with your web server, ie. apache or web
+or whatever you've defined. In the web/makefile.in file there is also another
+definition which is webdir which should be the directory you want to install
+the PHP files to, and in src/Makefile.in there is a similar definition of
+cgidir which is where your CGI files should go. This is a bit of a pain I
+will admit so if anyone can tell me how to get this stuff put into the configure
+script I would be most grateful.
+
+So to continue, just type './configure --with-mysql=/usr' (or your MySQL install 
 path). Then just type 'make' and off you go.
 
-I know what you are going to say next, it doesn't build. I hope it does but this 
+I know what you are going to say next, it doesn't work. I hope it does but this 
 is my first type with autoconf and quite honestly I haven't a clue what I'm 
 doing so if you do get any build problems then just let me know and I'll try and 
 tell you how to fix them. Alternatively if you are an automake/autoconf expert 
@@ -100,6 +110,11 @@ There are a couple of files in the package that come from other packages, this
 is just to simplify the build and reduce dependencies on other packages. 
 Anything ZM specific is named as such.
 
+It is possible to rebuild the whole thing from the enclosed automake files but
+if you do you will have to ensure that the installation part for the php and
+cgi files in the src/Makefile.in and web/Makefile.in is reconstructed, as it
+is not present by default.
+
 
 Installation
 ============
@@ -107,30 +122,53 @@ Installation
 Once the build has completed you should have several shiny new binaries. I will 
 now briefly describe what each of them do.
 
-zmc - This is the Zone Monitor Capture daemon. This binary's job is to sit on a 
+zmc - This is the ZoneMinder Capture daemon. This binary's job is to sit on a 
 video device and such frames off it as fast as possible, this should run at more 
 or less constant speed.
-zma - This is the Zone Monitor Analysis daemon. This is the component that goes 
+zma - This is the ZoneMinder Analysis daemon. This is the component that goes 
 through the captured frames and checks them for alarming events. It generally 
 keeps up with the zmc but if very busy may skip some frames to prevent it 
 falling behind.
-zms - This is the Zone Monitor Streaming server. The web interface connects with 
+zms - This is the ZoneMinder Streaming server. The web interface connects with 
 this to get real-time or historical streamed images.
-zmu - This is the Zone Monitor Utility. It's basically a handy command line 
+zmu - This is the ZoneMinder Utility. It's basically a handy command line 
 interface to several useful functions. Not really meant to be used by anyone 
 except the web page (there's no 'help' in it yet) but can be if necessary.
 
-At this stage typing 'make install' will install these binaries to the desired 
-location. However, it's not quite this simple as in order to get the ZM web 
-interface up you'll have to create a web directory and configure your web server 
-to point to it. Once you do you then copy 'index.php' to that directory, you can 
-rename it if necessary. The 'zms' daemon is designed to run as a CGI program so 
-you may also need to copy that to a /cgi-bin type place also. There are several 
-paths that must be defined (or cleared) in index.php to point to various other 
-binaries and directories before it will work fully but that's pretty much it for 
-now.
+As well as this there are the web PHP files in the web directory and some perl
+scripts in the scripts directory, only one of which is actually required for
+a minimal installation. These scripts all have some configuration at the top
+of the files which should be viewed and amended if necesary and are as follows.
 
-Start your web browser and point it at index.php and off you go.
+zmdc.pl - This is the ZoneMinder Daemon Control. This is used by the web 
+interface to control the execution of the capture and analysis daemons amongst
+others. You should not need to run this script yourself.
+zmfilter.pl - This script control the execution of saved filters and will be
+started and stopped by the web interface based on whether there are filters
+that have been defined to be autonomous. This script is also responsible for
+the automatic uploading of events to a 3rd party server so you will need to
+modify it to suit your confguration.
+zmaudit.pl - This script is used to check the consistency of the event file
+system and database. It can delete orphaned events, ie. ones that appear in 
+one location and not the other as well as checking that all the various event
+related tables are in line. It can be run interactively or in batch mode either
+from the command line or a cron job or similar. In the zmconfig.php there is
+an option to specify fast event deletes where the web interface only deletes
+the event entry from the database itself. If this is set then it is this
+script that tidies up the rest.
+zmx10.pl - This is an option script that can be used to initiate and monitor
+X10 Home Automation style events and interface with an alarm system either by
+the generation of X10 signals on ZM events or by initiating ZM monitoring and
+capture on receipt of X10 signals from elsewhere, for instance the setting of
+a domestic alarm system.
+
+Finally, check zmconfig.php in the web directory and amend any configuration 
+necessary in there.
+
+At this stage typing 'make install' will install these everything to the desired 
+locations.
+
+Start your web browser and point it at zm.php and off you go.
 
 
 Tutorial
@@ -671,9 +709,9 @@ anyway.
 License
 =======
 
-Zone Monitor is released under the GPL, see below.
+ZoneMinder is released under the GPL, see below.
 
-Zone Monitor README, $Date$, $Revision$
+ZoneMinder README, $Date$, $Revision$
 Copyright (C) 2002  Philip Coombes
 
 This program is free software; you can redistribute it and/or modify it under 

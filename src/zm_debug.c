@@ -37,6 +37,7 @@ static int zm_dbg_line;
 static int zm_dbg_code;
 static char zm_dbg_class[4];
 
+char zm_dbg_syslog[64];
 char zm_dbg_name[64];
 char zm_dbg_id[64];
 int zm_dbg_level = 0;
@@ -164,21 +165,24 @@ int zmGetDebugEnv()
 int zmDebugInitialise( const char *name, const char *id, int level )
 {
 	FILE *tmp_fp;
-
 	int status;
-
 	struct timezone tzp;
 
 	gettimeofday( &zm_dbg_start, &tzp );
 
-	Debug(1,("Initialising Debug"));
+	Debug( 1,( "Initialising Debug" ));
 
 	strncpy( zm_dbg_name, name, sizeof(zm_dbg_name) );
 	strncpy( zm_dbg_id, id, sizeof(zm_dbg_id) );
 	zm_dbg_level = level;
 	
 	/* Now set up the syslog stuff */
-	(void) openlog( zm_dbg_name, LOG_PID|LOG_NDELAY, LOG_LOCAL1 );
+	if ( zm_dbg_id[0] )
+		snprintf( zm_dbg_syslog, sizeof(zm_dbg_syslog), "%s_%s", zm_dbg_name, zm_dbg_id );
+	else
+		strncpy( zm_dbg_syslog, zm_dbg_name, sizeof(zm_dbg_syslog) );
+
+	(void) openlog( zm_dbg_syslog, LOG_PID|LOG_NDELAY, LOG_LOCAL1 );
 
 	zm_temp_dbg_string[0] = '\0';
 	zm_dbg_class[0] = '\0';
@@ -187,9 +191,11 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 	zm_dbg_log_fd = (FILE *)NULL;
 	if( (status = zmGetDebugEnv() ) < 0)
 	{
-		Error(("Debug Environment Error, status = %d",status));
+		Error(( "Debug Environment Error, status = %d", status ));
 		return(ZM_DBG_ERROR);
 	}
+
+	strncpy( zm_dbg_name, zm_dbg_syslog, sizeof(zm_dbg_name) );
 
 	if ( ( zm_dbg_add_log_id == FALSE && zm_dbg_log[0] ) && ( zm_dbg_log[strlen(zm_dbg_log)-1] == '~' ) )
 	{
@@ -336,8 +342,14 @@ int zmDbgOutput( const char *fstring, ... )
 
 	}
 	sprintf(zm_dbg_string,"%s %s[%d].%s-%s/%d [%s]\n", 
-              	time_string,zm_dbg_name,zm_dbg_pid,
-               	zm_dbg_class,zm_dbg_file,zm_dbg_line,zm_temp_dbg_string);
+              	time_string,
+				zm_dbg_name,
+				zm_dbg_pid,
+               	zm_dbg_class,
+				zm_dbg_file,
+				zm_dbg_line,
+				zm_temp_dbg_string
+			);
 	if ( zm_dbg_print )
 	{
 		printf("%s", zm_dbg_string);

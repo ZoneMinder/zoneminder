@@ -607,6 +607,32 @@ top.window.focus();
 }
 elseif ( $view == "events" )
 {
+	switch( $sort_field )
+	{
+		case 'Id' :
+			$sort_column = "E.Id";
+			break;
+		case 'Name' :
+			$sort_column = "E.Name";
+			break;
+		case 'Time' :
+			$sort_column = "E.StartTime";
+			break;
+		case 'Secs' :
+			$sort_column = "E.Length";
+			break;
+		case 'Frames' :
+			$sort_column = "E.Frames";
+			break;
+		case 'Score' :
+			$sort_column = "E.AvgScore";
+			break;
+		default:
+			$sort_column = "E.StartTime";
+			break;
+	}
+	$sort_order = $sort_asc?"asc":"desc";
+	if ( !$sort_asc ) $sort_asc = 0;
 	if ( !$archived )
 	{
 		if ( $max_events )
@@ -663,7 +689,7 @@ function checkAll(form,name){
 	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0");
 	if ( $period )
 		$sql .= " and E.StartTime >= now() - interval 1 $period";
-	$sql .= " order by E.Id desc";
+	$sql .= " order by $sort_column $sort_order";
 	if ( $max_events )
 		$sql .= " limit 0,$max_events";
 	$result = mysql_query( $sql );
@@ -689,12 +715,12 @@ function checkAll(form,name){
 <tr><td colspan="5" class="text">&nbsp;</td></tr>
 <tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr align="center">
-<td width="4%" class="text">Id</td>
-<td width="24%" class="text">Name</td>
-<td class="text">Time</td>
-<td class="text">Secs</td>
-<td class="text">Frames</td>
-<td class="text">Score</td>
+<td width="4%" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Id&sort_asc=<?php echo $sort_field == 'Id'?!$sort_asc:0 ?>">Id<?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td width="24%" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Name&sort_asc=<?php echo $sort_field == 'Name'?!$sort_asc:0 ?>">Name<?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Time&sort_asc=<?php echo $sort_field == 'Time'?!$sort_asc:0 ?>">Time<?php if ( $sort_field == "Time" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Secs&sort_asc=<?php echo $sort_field == 'Secs'?!$sort_asc:0 ?>">Secs<?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Frames&sort_asc=<?php echo $sort_field == 'Frames'?!$sort_asc:0 ?>">Frames<?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&archived=<?php echo $archived ?>&period=<?php echo $period ?>&sort_field=Score&sort_asc=<?php echo $sort_field == 'Score'?!$sort_asc:0 ?>">Score<?php if ( $sort_field == "Score" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text">Delete</td>
 </tr>
 <?php

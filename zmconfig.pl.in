@@ -213,6 +213,37 @@ my @options =
 		type => $types{boolean},
 	},
 	{
+		name => "ZM_OPT_REMOTE_CAMERAS",
+		default => "no",
+		description => "Are you going to use remote/networked cameras",
+		help => "ZoneMinder can work with boh local cameras, ie. those attached physically to your computer and accessed via /dev/videoX, and remote or network cameras. If you will be using networked cameras select this option.",
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_HTTP_VERSION",
+		default => "1.1",
+		description => "The version of HTTP that ZoneMinder will use to connect",
+		requires => [ { name => "ZM_OPT_REMOTE_CAMERAS", value => "yes" } ],
+		help => "ZoneMinder can communicate using either of the HTTP/1.1 or HTTP/1.0 standard. A server will normally fall back to the version it supports iwht no problem so this should usually by left at the default. However it can be changed to HTTP/1.0 if necessary to resolve particular issues.",
+		type => { hint => '1.1|1.0', parse => sub { return( int($_[0] =~ /^(1\.[01])$/ ), $1?$1:"" ) } },
+	},
+	{
+		name => "ZM_HTTP_UA",
+		default => "ZoneMinder",
+		description => "The user agent that ZoneMinder uses to identify itself",
+		requires => [ { name => "ZM_OPT_REMOTE_CAMERAS", value => "yes" } ],
+		help => "When ZoneMinder communicates with remote cameras it will identify itself using this string and it's version number. This is normally sufficient, however if a particular cameras expects only to communicate with certain browsers then this can be changed to a different string identifying ZoneMinder as Internet Explorer or Netscape etc.",
+		type => $types{string},
+	},
+	{
+		name => "ZM_HTTP_TIMEOUT",
+		default => "2500",
+		description => "How long ZoneMinder waits before giving up on images (millseconds)",
+		requires => [ { name => "ZM_OPT_REMOTE_CAMERAS", value => "yes" } ],
+		help => "When retrieving remote images ZoneMinder will wait for this length of time before deciding that an image is not going to arrive and taking steps to retry. This timeout is in millseconds (1000 per second) and will apply to each part of an image if it is not sent in one whole chunk.",
+		type => $types{integer},
+	},
+	{
 		name => "ZM_OPT_MPEG",
 		default => "no",
 		description => "Is the (optional) mpeg video encoder installed",
@@ -925,7 +956,7 @@ sub breaktext
 
 if ( $reprocess )
 {
-	my @config_files = qw( src/zmcfg.h web/zmconfig.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zm db/zmschema.sql );
+	my @config_files = qw( src/zm_config.h web/zmconfig.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zm db/zmschema.sql );
 
 	foreach my $config_file ( @config_files )
 	{

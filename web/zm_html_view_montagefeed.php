@@ -80,13 +80,13 @@ function fetchImage()
 }
 
 window.parent.MontageFetch<?= $monitor['Id'] ?>.location = '<?= $PHP_SELF ?>?view=imagefetch&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>';
-window.setInterval( "fetchImage()", <?= REFRESH_IMAGE*1000 ?> );
+window.setInterval( "fetchImage()", <?= ZM_WEB_REFRESH_IMAGE*1000 ?> );
 <?php
 	}
 	else
 	{
 ?>
-window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
+window.setTimeout( "window.location.reload(true)", <?= ZM_WEB_REFRESH_IMAGE*1000 ?> );
 <?php
 	}
 }

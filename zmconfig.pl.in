@@ -1025,8 +1025,6 @@ my @options =
 	},
 );
 
-#my %option_id;
-#map { $option_id{$_->{category}} = (256 * int(keys(%option_id))) if ( !$option_id{$_->{category}} ); $_->{id} = ++$option_id{$_->{category}} } @options;
 my %options_hash = map { ( $_->{name}, $_ ) } @options;
 
 #$config_file = "zmconfig.txt" if ( !$config_file );
@@ -1172,6 +1170,16 @@ Press enter to continue: " );
 	}
 }
 FINISHED:
+
+# Create option ids
+my $option_id = 0;
+foreach my $option ( @options )
+{
+	next if ( $option->{category} eq 'core' );
+	next if ( $option->{type} == $types{include} );
+	$option->{id} = $option_id++;
+}
+
 saveOptionsToFile();
 saveOptionsToDB();
 
@@ -1213,7 +1221,6 @@ sub saveOptionsToDB
 
 	$sql = "replace into Config set Id = ?, Name = ?, Value = ?, Type = ?, DefaultValue = ?, Hint = ?, Pattern = ?, Format = ?, Prompt = ?, Help = ?, Category = ?, Readonly = ?, Requires = ?";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $option_id = 0;
 	foreach my $option ( @options )
 	{
 		next if ( $option->{category} eq 'core' );
@@ -1238,7 +1245,6 @@ sub saveOptionsToDB
 		else
 		{
 		}
-		$option->{id} = $option_id++;
 		my $res = $sth->execute( $option->{id}, $option->{name}, $option->{db_value}, $option->{db_type}, $option->{default}, $option->{db_hint}, $option->{db_pattern}, $option->{db_format}, $option->{description}, $option->{help}, $option->{category}, $option->{readonly}?1:0, $option->{db_requires} ) or die( "Can't execute: ".$sth->errstr() );
 	}
 	$sth->finish();
@@ -1359,9 +1365,7 @@ if ( $reprocess )
 	my $last_id = 0;
 	foreach my $option ( @options )
 	{
-		#next if ( $option->{category} eq 'core' );
 		next if ( !defined($option->{id}) );
-		#printf( CFG_HDR_FILE "#define $option->{name} 0x%04X\n", $option->{id} );
 		printf( CFG_HDR_FILE "#define $option->{name} $option->{id}\n" );
 		$last_id = $option->{id};
 	}

@@ -69,7 +69,7 @@ my %types =
 	integer => { hint => 'integer', parse => sub { return( int($_[0] =~ /^(\d+)$/ ), $1 ) } },
 	decimal => { hint => 'decimal', parse => sub { return( int($_[0] =~ /^(\d+(?:\.\d+)?)$/ ), $1 ) } },
 	hexadecimal => { hint => 'hexadecimal', parse => sub { return( int($_[0] =~ /^(?:0x)?([0-9a-f]{1,8})$/ ), "0x".$1 ) } },
-	include => { hint => 'local/path/to/file', parse => sub { return( (int($_[0] =~ /^(.*)?$/ ) && -s $1), $1 ) } },
+	include => { hint => 'local/path/to/file', parse => sub { return( (int($_[0] =~ /^(.*)?$/ ) && -e $1), $1 ) } },
 );
 
 # Minor hack to get the right values out of configure.
@@ -422,6 +422,14 @@ my @options =
 		type => $types{email},
 	},
 	{
+		name => "ZM_EMAIL_FORMAT",
+		default => "zmconfig_eml.txt",
+		description => "The format of the email used to send matching event details",
+		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" } ],
+		help => "This option is used to define the file that contains the format of the email that is sent for any events that match the appropriate filters.",
+		type => $types{include},
+	},
+	{
 		name => "ZM_OPT_MESSAGE",
 		default => "no",
 		description => "Should ZoneMinder message you with details of events that match corresponding filters",
@@ -437,9 +445,17 @@ my @options =
 		type => $types{email},
 	},
 	{
+		name => "ZM_MESSAGE_FORMAT",
+		default => "zmconfig_msg.txt",
+		description => "The format of the message used to send matching event details",
+		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
+		help => "This option is used to define the file that contains the format of the message that is sent for any events that match the appropriate filters.",
+		type => $types{include},
+	},
+	{
 		name => "ZM_EMAIL_METHOD",
 		default => "sendmail",
-		description => "The method your machine uses to send email",
+		description => "The method your machine uses to send email and messages",
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "ZoneMinder needs to know how to send you the notification emails or messages. This option tell it which method to use, generally sendmail will work if configured correctly on your machine, otherwise choose smtp and then give your mail host address in the next option.",
 		type => { hint => 'sendmail|smtp', parse => sub { return( int($_[0] =~ /^(se|sm)/i ), $1 =~ /^se/ ? 'sendmail' : 'smtp' ) } },
@@ -449,13 +465,13 @@ my @options =
 		default => "localhost",
 		description => "The host address of your SMTP mail server",
 		requires => [ { name => "ZM_EMAIL_METHOD", value => "smtp" } ],
-		help => "If you have chosen SMTP as the mthod by which to send notification emails or messages then this option allows you to choose which SMTP server to use to send them. The default of localhost may work if you have the sendmail, exim or a similar daemon running however you may wish to enter your ISP's SMTP mail server here.",
+		help => "If you have chosen SMTP as the method by which to send notification emails or messages then this option allows you to choose which SMTP server to use to send them. The default of localhost may work if you have the sendmail, exim or a similar daemon running however you may wish to enter your ISP's SMTP mail server here.",
 		type => $types{hostname},
 	},
 	{
 		name => "ZM_FROM_EMAIL",
 		default => "",
-		description => "The email address you wish your event notification emails to originate from",
+		description => "The email address you wish your event notifications to originate from",
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "The emails or messages that will be sent to you informing you of events can appear to come from a designated email address to help you with mail filtering etc. An address of something like ZoneMinder\@your.domain is recommended.",
 		type => $types{email},
@@ -942,16 +958,24 @@ if ( $reprocess )
 				|| $opt_type == $types{decimal}
 				|| $opt_type == $types{hexadecimal} )
 				{
-					$data =~ s/^(use\s+constant\s+$opt_name\s*=>\s*).*$/$1$opt_value;\t# $opt_desc \(from zmconfig\)/mg;
+					$data =~ s/^(\s*use\s+constant\s+$opt_name\s*=>\s*).*$/$1$opt_value;\t# $opt_desc \(from zmconfig\)/mg;
 				}
 				elsif ( $opt_type == $types{email} )
 				{
 					$opt_value =~ s/\@/\\\@/;
-					$data =~ s/^(use\s+constant\s+$opt_name\s*=>\s*).*$/$1"$opt_value";\t# $opt_desc \(from zmconfig\)/mg;
+					$data =~ s/^(\s*use\s+constant\s+$opt_name\s*=>\s*).*$/$1"$opt_value";\t# $opt_desc \(from zmconfig\)/mg;
+				}
+				elsif ( $opt_type == $types{include} )
+				{
+					open( FILE, "<$opt_value" ) or die( "Can't open option file '$opt_value': $!" );
+					local $/;
+					my $content = <FILE>;
+					$content =~ s/"/\\"/g;
+					$data =~ s/^(\s*use\s+constant\s+$opt_name\s*=>\s*).*$/$1\t# $opt_desc \(from zmconfig\)\n"$content";/mg;
 				}
 				else
 				{
-					$data =~ s/^(use\s+constant\s+$opt_name\s*=>\s*).*$/$1"$opt_value";\t# $opt_desc \(from zmconfig\)/mg;
+					$data =~ s/^(\s*use\s+constant\s+$opt_name\s*=>\s*).*$/$1"$opt_value";\t# $opt_desc \(from zmconfig\)/mg;
 				}
 			}
 		}

@@ -47,8 +47,12 @@ while( $row = mysql_fetch_assoc( $result ) )
 	}
 	$monitors[] = $row;
 }
-$rows = intval(ceil(count($monitors)/ZM_WEB_MONTAGE_MAX_COLS));
-$cols = count($monitors)>=ZM_WEB_MONTAGE_MAX_COLS?ZM_WEB_MONTAGE_MAX_COLS:count($monitors);
+
+$max_cols = 8;
+$cols = (int)((count($monitors)+1)/((int)((count($monitors)-1)/ZM_WEB_MONTAGE_MAX_COLS)+1));
+$rows = intval(ceil(count($monitors)/$cols));
+$last_cols = count($monitors)%$rows;
+
 $widths = array();
 $heights = array();
 for ( $i = 0; $i < count($monitors); $i++ )
@@ -56,15 +60,13 @@ for ( $i = 0; $i < count($monitors); $i++ )
 	$monitor = $monitors[$i];
 	$frame_height = (ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$monitor['Height'])+(ZM_WEB_COMPACT_MONTAGE?0:16);
 	$frame_width = (ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$monitor['Width']);
-	$row = $i/ZM_WEB_MONTAGE_MAX_COLS;
-	$col = $i%ZM_WEB_MONTAGE_MAX_COLS;
+	$row = $i/$cols;
+	$col = $i%$cols;
 	if ( empty( $heights[$row] ) || $frame_height > $heights[$row] )
 		$heights[$row] = $frame_height;
-	if ( empty( $widths[$col] ) || $frame_width > $widths[$col] )
-		$widths[$col] = $frame_width;
+	$widths[$row][] = $frame_width;
 }
 $row_spec = join( ',', $heights );
-$col_spec = join( ',', $widths );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
@@ -85,21 +87,28 @@ if ( ZM_WEB_COMPACT_MONTAGE )
 <?php
 }
 ?>
-<frameset rows="<?= $row_spec ?>" cols="<?= $col_spec ?>" border="1" frameborder="no" framespacing="0">
+<frameset rows="<?= $row_spec ?>" border="1" frameborder="no" framespacing="0">
 <?php
+$index = 0;
 for ( $row = 0; $row < $rows; $row++ )
 {
+	$col_spec = join( ',', $widths[$row] );
+?>
+<frameset cols="<?= $col_spec ?>" border="1" frameborder="no" framespacing="0">
+<?php
 	for ( $col = 0; $col < $cols; $col++ )
 	{
-		$i = ($row*$cols)+$col;
-		if ( $i < count($monitors) )
+		if ( $index < count($monitors) )
 		{
-			$monitor = $monitors[$i];
+			$monitor = $monitors[$index++];
 ?>
 <frame src="<?= $PHP_SELF ?>?view=montageframe&mid=<?= $monitor['Id'] ?>&mode=<?= $mode ?>" marginwidth="0" marginheight="0" name="MontageFrame<?= $monitor['Id'] ?>" scrolling="no">
 <?php
 		}
 	}
+?>
+</frameset>
+<?php
 }
 ?>
 <?php

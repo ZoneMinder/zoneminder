@@ -473,7 +473,7 @@ my @options =
 	{
 		name => "ZM_X10_DB_RELOAD_INTERVAL",
 		default => "60",
-		description => "How often (in seconds) the X10 damon reloads the monitors from the database",
+		description => "How often (in seconds) the X10 daemon reloads the monitors from the database",
 		requires => [ { name => "ZM_OPT_X10", value => "yes" } ],
 		help => "The zmx10 daemon periodically checks the database to find out what X10 events trigger, or result from, alarms. This option determines how frequently this check occurs, unless you change this area frequently this can be a fairly large value.",
 		type => $types{integer},

@@ -114,13 +114,13 @@ while( 1 )
 			$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $shm_size, 0 );
 			if ( !defined($monitor->{ShmId}) )
 			{
-				print( "Can't get shared memory id: $!\n" );
+				print( "Can't get shared memory id '$monitor->{ShmKey}/$monitor->{ShmId}': $!\n" );
 				next;
 			}
 			my $image_time;
 			if ( !shmread( $monitor->{ShmId}, $image_time, 20, 4 ) )
 			{
-				print( "Can't read from shared memory: $!\n" );
+				print( "Can't read from shared memory '$monitor->{ShmKey}/$monitor->{ShmId}': $!\n" );
 				next;
 			}
 			$image_time = unpack( "l", $image_time );

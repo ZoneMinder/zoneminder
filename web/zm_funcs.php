@@ -307,9 +307,11 @@ function zmaCheck( $monitor )
 	return( daemonCheck( "zma", "-m $monitor" ) );
 }
 
-function createVideo( $event )
+function createVideo( $event, $rate, $scale, $overwrite=0 )
 {
-	$command = ZM_PATH_BIN."/zmvideo.pl -e $event[Id]";
+	$command = ZM_PATH_BIN."/zmvideo.pl -e $event[Id] -r $rate -s $scale";
+	if ( $overwite )
+		$command .= " -o";
 	$result = exec( $command, $output, $status );
 	return( $status?"":rtrim($result) );
 }

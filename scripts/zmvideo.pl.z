@@ -77,18 +77,24 @@ $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $event_id;
+my $rate = 1;
+my $scale = 1;
+my $overwrite = 0;
 
 sub Usage
 {
 	print( "
-Usage: zmvideo.pl -e <event_id>,--event=<event_id>
+Usage: zmvideo.pl -e <event_id>,--event=<event_id> [-r <rate>,--rate=<rate>] [-s <scale>,--scale=<scale>] [-o,--overwrite]
 Parameters are :-
--e<event_id>, --event=<event_id>        - What event to start create the video for
+-e<event_id>, --event=<event_id>  - What event to create the video for
+-r<rate>, --rate=<rate>           - Relative rate to use, 1 = realtime, 2 = double speed , -2 = half speed etc
+-s<scale>, --scale=<scale>        - Scale to use, 1 = normal, 2 = double size, -2 = half size etc
+-o, --overwrite                   - Whether to overwrite an existing file, off by default.
 ");
 	exit( -1 );
 }
 
-if ( !GetOptions( 'event=i'=>\$event_id ) )
+if ( !GetOptions( 'event=i'=>\$event_id, 'rate=i'=>\$rate, 'scale=i'=>\$scale, 'overwrite'=>\$overwrite ) )
 {
 	Usage();
 }
@@ -105,6 +111,30 @@ if ( ZM_OPT_MPEG eq "no" )
 	exit(-1);
 }
 
+if ( ZM_OPT_MPEG eq "mpeg_encode" && $rate != 1 )
+{
+	print( STDERR "Variable rate not supported with mpeg_encode\n" );
+	exit(-1);
+}
+
+if ( $rate < -4 || $rate > 10 )
+{
+	print( STDERR "Rate is out of range, -4 >= rate <= 10\n" );
+	Usage();
+}
+
+if ( !$scale || $scale < -4 || $scale > 4 )
+{
+	print( STDERR "Scale is out of range, -4 >= scale <= 4\n" );
+	Usage();
+}
+
+my ( $detaint_rate ) = $rate =~ /^(-?\d+(?:\.\d+)?)$/;
+my ( $detaint_scale ) = $scale =~ /^(-?\d+(?:\.\d+)?)$/;
+
+$rate = $detaint_rate;
+$scale = $detaint_scale;
+
 my $log_file = LOG_FILE;
 open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
 #open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
@@ -116,7 +146,7 @@ select( LOG ); $| = 1;
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERB, ZM_DB_PASSB );
 
 my @filters;
-my $sql = "select max(F.Delta)-min(F.Delta) as FullLength,E.*,M.Name as MonitorName, M.Palette from Frames as F inner join Events as E on F.EventId = E.Id inner join Monitors as M on E.MonitorId = M.Id where EventId = '$event_id' group by F.EventId";
+my $sql = "select max(F.Delta)-min(F.Delta) as FullLength, E.*, M.Name as MonitorName, M.Width as MonitorWidth, M.Height as MonitorHeight, M.Palette from Frames as F inner join Events as E on F.EventId = E.Id inner join Monitors as M on E.MonitorId = M.Id where EventId = '$event_id' group by F.EventId";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 my $event = $sth->fetchrow_hashref();
@@ -125,7 +155,7 @@ chdir( ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorName}.'/'.$event->{Id} 
 ( my $video_name = $event->{Name} ) =~ s/\s/_/g; 
 my $video_file = "$video_name.mpg";
 
-if ( !-s $video_file )
+if ( $overwrite || !-s $video_file )
 {
 	print( LOG "Creating video file $video_file for event $event->{Id}\n" );
 
@@ -153,13 +183,36 @@ if ( !-s $video_file )
 		print( PARAMS "REFERENCE_FRAME	ORIGINAL\n" );
 		print( PARAMS "FRAME_RATE 24\n" );
 
-		if ( $event->{Palette} == 1 && !ZM_COLOUR_JPEG_FILES )
+		my $scale_conversion = "";
+		if ( $scale != 1 )
 		{
-			print( PARAMS "INPUT_CONVERT	".ZM_PATH_NETPBM."/jpegtopnm * | ".ZM_PATH_NETPBM."/pgmtoppm white | ".ZM_PATH_NETPBM."/ppmtojpeg\n" );
+			if ( $scale > 1 )
+			{
+				$scale_conversion = ZM_PATH_NETPBM."/pnmscale $scale";
+			}
+			else
+			{
+				$scale_conversion = ZM_PATH_NETPBM."/pnmscale ".(1/$scale);
+			}
+			if ( $event->{Palette} == 1 && !ZM_COLOUR_JPEG_FILES )
+			{
+				print( PARAMS "INPUT_CONVERT	".ZM_PATH_NETPBM."/jpegtopnm * | ".$scale_conversion." | ".ZM_PATH_NETPBM."/pgmtoppm white | ".ZM_PATH_NETPBM."/ppmtojpeg\n" );
+			}
+			else
+			{
+				print( PARAMS "INPUT_CONVERT	".ZM_PATH_NETPBM."/jpegtopnm * | ".$scale_conversion." | ".ZM_PATH_NETPBM."/ppmtojpeg\n" );
+			}
 		}
 		else
 		{
-			print( PARAMS "INPUT_CONVERT	*\n" );
+			if ( $event->{Palette} == 1 && !ZM_COLOUR_JPEG_FILES )
+			{
+				print( PARAMS "INPUT_CONVERT	".ZM_PATH_NETPBM."/jpegtopnm * | ".ZM_PATH_NETPBM."/pgmtoppm white | ".ZM_PATH_NETPBM."/ppmtojpeg\n" );
+			}
+			else
+			{
+				print( PARAMS "INPUT_CONVERT	*\n" );
+			}
 		}
 		print( PARAMS "INPUT_DIR	.\n" );
 
@@ -172,13 +225,50 @@ if ( !-s $video_file )
 		close( PARAMS );
 
 		my $command = ZM_PATH_MPEG_ENCODE." $param_file >mpeg.log";
+		print( LOG $command."\n" );
 		my $output = qx($command);
+		print( LOG $output."\n" );
 	}
 	elsif ( ZM_OPT_MPEG eq "ffmpeg" )
 	{
 		my $frame_rate = sprintf( "%.2f", $event->{Frames}/$event->{FullLength} );
-		my $command = ZM_PATH_FFMPEG." -y ".ZM_FFMPEG_OPTIONS." -r $frame_rate -i capture-%03d.jpg $video_file > mpeg.log";
+		if ( $rate )
+		{
+			if ( $rate != 1 )
+			{
+				if ( $rate > 1 )
+				{
+					$frame_rate *= $rate;
+				}
+				else
+				{
+					$frame_rate /= $rate;
+				}
+			}
+		}
+		else
+		{
+			$frame_rate = 25.0;
+		}
+		my $width = $event->{MonitorWidth};
+		my $height = $event->{MonitorHeight};
+		if ( $scale != 1 )
+		{
+			if ( $scale > 1 )
+			{
+				$width = int($width*$scale);
+				$height = int($height*$scale);
+			}
+			else
+			{
+				$width = int($width/$scale);
+				$height = int($height/$scale);
+			}
+		}
+		my $command = ZM_PATH_FFMPEG." -y ".ZM_FFMPEG_OPTIONS." -r $frame_rate -s ${width}x${height} -i capture-%03d.jpg $video_file > mpeg.log";
+		print( LOG $command."\n" );
 		my $output = qx($command);
+		print( LOG $output."\n" );
 	}
 	else
 	{

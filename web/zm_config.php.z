@@ -52,6 +52,14 @@ $rates = array(
 	"-4" => "1/4x",
 );
 
+$scales = array(
+	"4" => "4x",
+	"2" => "2x",
+	"1" => "Real",
+	"-2" => "1/2x",
+	"-4" => "1/4x",
+);
+
 require_once( 'zm_db.php' );
 loadConfig();
 

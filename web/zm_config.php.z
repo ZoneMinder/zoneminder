@@ -158,5 +158,6 @@ $jws = array(
 	'video' => array( 'w'=>100, 'h'=>80 ),
 	'image' => array( 'w'=>48, 'h'=>80 ),
 	'stats' => array( 'w'=>600, 'h'=>150 ),
+	'settings' => array( 'w'=>200, 'h'=>225 ),
 );
 ?>

@@ -660,6 +660,10 @@ window.focus();
 <title>ZM - <?= $monitor[Name] ?> - WatchFeed</title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
+function newWindow(Url,Name,Width,Height)
+{
+   	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+}
 function closeWindow()
 {
 	top.window.close();
@@ -669,15 +673,20 @@ function closeWindow()
 <body>
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
 <tr>
-<td width="33%" align="left" class="text"><b><?= $monitor[Name] ?></b></td>
-<?php if ( $mode == "stream" ) { ?>
-<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=still&mid=<?= $mid ?>">Stills</a></td>
-<?php } elseif ( canStream() ) { ?>
-<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=stream&mid=<?= $mid ?>">Stream</a></td>
+<td width="25%" align="left" class="text"><b><?= $monitor[Name] ?></b></td>
+<?php if ( $monitor[Type] == "Local" ) { ?>
+<td width="25%" align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor[Id] ?>', 'zmSettings<?= $monitor[Name] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );">Settings</a></td>
 <?php } else { ?>
-<td width="34%" align="center" class="text">&nbsp;</td>
+<td width="25%" align="center" class="text">&nbsp;</td>
 <?php } ?>
-<td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+<?php if ( $mode == "stream" ) { ?>
+<td width="25%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=still&mid=<?= $mid ?>">Stills</a></td>
+<?php } elseif ( canStream() ) { ?>
+<td width="25%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=stream&mid=<?= $mid ?>">Stream</a></td>
+<?php } else { ?>
+<td width="25%" align="center" class="text">&nbsp;</td>
+<?php } ?>
+<td width="25%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
 <?php
 		if ( $mode == "stream" )
@@ -686,23 +695,84 @@ function closeWindow()
 			if ( isNetscape() )
 			{
 ?>
-<tr><td colspan="3" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
+<tr><td colspan="4" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
 <?php
 			}
 			else
 			{
 ?>
-<tr><td colspan="3" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<tr><td colspan="4" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
 <?php
 			}
 		}
 		else
 		{
 ?>
-<tr><td colspan="3" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
+<tr><td colspan="4" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
 <?php
 		}
 ?>
+</table>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "settings" :
+	{
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
+
+		$zmu_command = ZMU_PATH." -m $mid -B -C -H -O";
+		$zmu_output = exec( escapeshellcmd( $zmu_command ) );
+		list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
+?>
+<html>
+<head>
+<title>ZM - <?= $monitor[Name] ?> - Settings</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+<?php
+		if ( $refresh_parent )
+		{
+?>
+opener.location.reload();
+<?php
+		}
+?>
+window.focus();
+function validateForm(theForm)
+{
+	return( true );
+}
+
+function closeWindow()
+{
+	window.close();
+}
+</script>
+</head>
+<body>
+<table border="0" cellspacing="0" cellpadding="4" width="100%">
+<tr>
+<td colspan="2" align="left" class="head">Monitor <?= $monitor[Name] ?> - Settings</td>
+</tr>
+<form name="settings_form" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.settings_form )">
+<input type="hidden" name="view" value="<?= $view ?>">
+<input type="hidden" name="action" value="settings">
+<input type="hidden" name="mid" value="<?= $mid ?>">
+<tr>
+<td align="right" class="smallhead">Parameter</td><td align="left" class="smallhead">Value</td>
+</tr>
+<tr><td align="right" class="text">Brightness</td><td align="left" class="text"><input type="text" name="new_brightness" value="<?= $brightness ?>" size="8" class="form"></td></tr>
+<tr><td align="right" class="text">Contrast</td><td align="left" class="text"><input type="text" name="new_contrast" value="<?= $contrast ?>" size="8" class="form"></td></tr>
+<tr><td align="right" class="text">Hue</td><td align="left" class="text"><input type="text" name="new_hue" value="<?= $hue ?>" size="8" class="form"></td></tr>
+<tr><td align="right" class="text">Colour</td><td align="left" class="text"><input type="text" name="new_colour" value="<?= $colour ?>" size="8" class="form"></td></tr>
+<tr>
+<td colspan="2" align="right"><input type="submit" value="Save" class="form">&nbsp;&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
+</tr>
 </table>
 </body>
 </html>

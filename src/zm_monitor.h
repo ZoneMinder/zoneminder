@@ -73,6 +73,8 @@ protected:
 	int		fps_report_interval;// How many images should be captured/processed between reporting the current FPS
 	int		ref_blend_perc;		// Percentage of new image going into reference image.
 
+	Mode	mode;				// What this monitor has been created to do
+
 	double	fps;
 	Image	image;
 	Image	ref_image;
@@ -98,15 +100,21 @@ protected:
 	Snapshot *image_buffer;
 
 	typedef enum { FORCE_NEUTRAL, FORCE_ON, FORCE_OFF } ForceState;
+	typedef enum { GET_SETTINGS=0x0001, SET_SETTINGS=0x0002 } Action;
 
 	typedef struct
 	{
 		bool valid;
 		State state;
+		ForceState force_state;
 		int last_write_index;
 		int last_read_index;
 		int last_event;
-		ForceState force_state;
+		int action;
+		int brightness;
+		int hue;
+		int colour;
+		int contrast;
 		struct timeval *timestamps;
 		unsigned char *images;
 	} SharedData;
@@ -122,7 +130,7 @@ public:
 	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
-	void Initialise( Mode mode );
+	void Initialise();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
 
@@ -150,6 +158,11 @@ public:
 	void ForceAlarmOn();
 	void ForceAlarmOff();
 	void CancelForced();
+
+	int Brightness( int p_brightness=-1 );
+	int Hue( int p_hue=-1 );
+	int Colour( int p_colour=-1 );
+	int Contrast( int p_contrast=-1 );
 
 	bool DumpSettings( char *output, bool verbose );
 	void DumpZoneImage();
@@ -199,6 +212,23 @@ public:
 				fps = double(fps_report_interval)/(now-last_fps_time);
 				Info(( "%s: %d - Capturing at %.2f fps", name, image_count, fps ));
 				last_fps_time = now;
+			}
+
+			if ( shared_data->action & GET_SETTINGS )
+			{
+				shared_data->brightness = camera->Brightness();
+				shared_data->hue = camera->Hue();
+				shared_data->colour = camera->Colour();
+				shared_data->contrast = camera->Contrast();
+				shared_data->action &= ~GET_SETTINGS;
+			}
+			if ( shared_data->action & SET_SETTINGS )
+			{
+				camera->Brightness( shared_data->brightness );
+				camera->Hue( shared_data->hue );
+				camera->Colour( shared_data->colour );
+				camera->Contrast( shared_data->contrast );
+				shared_data->action &= ~SET_SETTINGS;
 			}
 			return( 0 );
 		}

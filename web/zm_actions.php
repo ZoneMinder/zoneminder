@@ -340,6 +340,12 @@ if ( $action )
 			$refresh_parent = true;
 		}
 	}
+	elseif ( $action == "settings" )
+	{
+		$zmu_command = ZMU_PATH." -m $mid -B$new_brightness -C$new_contrast -H$new_hue -O$new_colour";
+		$zmu_output = exec( escapeshellcmd( $zmu_command ) );
+		list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
+	}
 	elseif ( $action == "reset" )
 	{
 		$HTTP_SESSION_VARS[event_reset_time] = strftime( "%Y-%m-%d %H:%M:%S" );

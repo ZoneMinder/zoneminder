@@ -57,6 +57,11 @@ public:
 	unsigned int Channel() const { return( channel ); }
 	unsigned int Format() const { return( format ); }
 
+	int Brightness( int p_brightness=-1 );
+	int Hue( int p_hue=-1 );
+	int Colour( int p_colour=-1 );
+	int Contrast( int p_contrast=-1 );
+
 	int PreCapture();
 	int PostCapture( Image &image );
 

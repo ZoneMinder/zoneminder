@@ -26,28 +26,28 @@
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), width( p_width ), height( p_height ), orientation( (Orientation)p_orientation ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), width( p_width ), height( p_height ), orientation( (Orientation)p_orientation ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), mode( p_mode ), n_zones( p_n_zones ), zones( p_zones )
 {
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
 
     strcpy( label_format, p_label_format );
 
-	camera = new LocalCamera( p_device, p_channel, p_format, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, p_mode==CAPTURE );
+	camera = new LocalCamera( p_device, p_channel, p_format, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, mode==CAPTURE );
 
-	Initialise( p_mode );
+	Initialise();
 }
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), width( p_width ), height( p_height ), orientation( (Orientation)p_orientation ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), width( p_width ), height( p_height ), orientation( (Orientation)p_orientation ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), mode( p_mode ), n_zones( p_n_zones ), zones( p_zones )
 {
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
 
     strcpy( label_format, p_label_format );
 
-	camera = new RemoteCamera( p_host, p_port, p_path, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, p_mode==CAPTURE );
+	camera = new RemoteCamera( p_host, p_port, p_path, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, mode==CAPTURE );
 
-	Initialise( p_mode);
+	Initialise();
 }
 
 Monitor::~Monitor()
@@ -71,7 +71,7 @@ Monitor::~Monitor()
 	}
 }
 
-void Monitor::Initialise( Mode mode )
+void Monitor::Initialise()
 {
 	fps = 0.0;
 	event_count = 0;
@@ -103,10 +103,15 @@ void Monitor::Initialise( Mode mode )
 		memset( shared_data, 0, shared_data_size );
 		shared_data->valid = true;
 		shared_data->state = IDLE;
+		shared_data->force_state = FORCE_NEUTRAL;
 		shared_data->last_write_index = image_buffer_count;
 		shared_data->last_read_index = image_buffer_count;
 		shared_data->last_event = 0;
-		shared_data->force_state = FORCE_NEUTRAL;
+		shared_data->action = (Action)0;
+		shared_data->brightness = -1;
+		shared_data->hue = -1;
+		shared_data->colour = -1;
+		shared_data->contrast = -1;
 	}
 	if ( !shared_data->valid )
 	{
@@ -261,6 +266,142 @@ void Monitor::ForceAlarmOff()
 void Monitor::CancelForced()
 {
 	shared_data->force_state = FORCE_NEUTRAL;
+}
+
+int Monitor::Brightness( int p_brightness )
+{
+	if ( mode != CAPTURE )
+	{
+		if ( p_brightness >= 0 )
+		{
+			shared_data->brightness = p_brightness;
+			shared_data->action |= SET_SETTINGS;
+			int wait_loops = 10;
+			while ( shared_data->action & SET_SETTINGS )
+			{
+				if ( wait_loops-- )
+					usleep( 100000 );
+				else
+					return( -1 );
+			}
+		}
+		else
+		{
+			shared_data->action |= GET_SETTINGS;
+			int wait_loops = 10;
+			while ( shared_data->action & GET_SETTINGS )
+			{
+				if ( wait_loops-- )
+					usleep( 100000 );
+				else
+					return( -1 );
+			}
+		}
+		return( shared_data->brightness );
+	}
+	return( camera->Brightness( p_brightness ) );
+}
+
+int Monitor::Contrast( int p_contrast )
+{
+	if ( mode != CAPTURE )
+	{
+		if ( p_contrast >= 0 )
+		{
+			shared_data->contrast = p_contrast;
+			shared_data->action |= SET_SETTINGS;
+			int wait_loops = 10;
+			while ( shared_data->action & SET_SETTINGS )
+			{
+				if ( wait_loops-- )
+					usleep( 100000 );
+				else
+					return( -1 );
+			}
+		}
+		else
+		{
+			shared_data->action |= GET_SETTINGS;
+			int wait_loops = 10;
+			while ( shared_data->action & GET_SETTINGS )
+			{
+				if ( wait_loops-- )
+					usleep( 100000 );
+				else
+					return( -1 );
+			}
+		}
+		return( shared_data->contrast );
+	}
+	return( camera->Contrast( p_contrast ) );
+}
+
+int Monitor::Hue( int p_hue )
+{
+	if ( mode != CAPTURE )
+	{
+		if ( p_hue >= 0 )
+		{
+			shared_data->hue = p_hue;
+			shared_data->action |= SET_SETTINGS;
+			int wait_loops = 10;
+			while ( shared_data->action & SET_SETTINGS )
+			{
+				if ( wait_loops-- )
+					usleep( 100000 );
+				else
+					return( -1 );
+			}
+		}
+		else
+		{
+			shared_data->action |= GET_SETTINGS;
+			int wait_loops = 10;
+			while ( shared_data->action & GET_SETTINGS )
+			{
+				if ( wait_loops-- )
+					usleep( 100000 );
+				else
+					return( -1 );
+			}
+		}
+		return( shared_data->hue );
+	}
+	return( camera->Hue( p_hue ) );
+}
+
+int Monitor::Colour( int p_colour )
+{
+	if ( mode != CAPTURE )
+	{
+		if ( p_colour >= 0 )
+		{
+			shared_data->colour = p_colour;
+			shared_data->action |= SET_SETTINGS;
+			int wait_loops = 10;
+			while ( shared_data->action & SET_SETTINGS )
+			{
+				if ( wait_loops-- )
+					usleep( 100000 );
+				else
+					return( -1 );
+			}
+		}
+		else
+		{
+			shared_data->action |= GET_SETTINGS;
+			int wait_loops = 10;
+			while ( shared_data->action & GET_SETTINGS )
+			{
+				if ( wait_loops-- )
+					usleep( 100000 );
+				else
+					return( -1 );
+			}
+		}
+		return( shared_data->colour );
+	}
+	return( camera->Colour( p_colour ) );
 }
 
 void Monitor::DumpZoneImage()

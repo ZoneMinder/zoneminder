@@ -417,6 +417,90 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 	return( true );
 }
 
+int LocalCamera::Brightness( int p_brightness )
+{
+	struct video_picture vid_pic;
+	if( ioctl( m_videohandle, VIDIOCGPICT, &vid_pic) )
+	{
+		Error(( "Failed to get picture attributes: %s", strerror(errno) ));
+		return( -1 );
+	}
+
+	if ( p_brightness >= 0 )
+	{
+		vid_pic.brightness = p_brightness;
+		if( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) )
+		{
+			Error(( "Failed to set picture attributes: %s", strerror(errno) ));
+			return( -1 );
+		}
+	}
+	return( vid_pic.brightness );
+}
+
+int LocalCamera::Hue( int p_hue )
+{
+	struct video_picture vid_pic;
+	if( ioctl( m_videohandle, VIDIOCGPICT, &vid_pic) )
+	{
+		Error(( "Failed to get picture attributes: %s", strerror(errno) ));
+		return( -1 );
+	}
+
+	if ( p_hue >= 0 )
+	{
+		vid_pic.hue = p_hue;
+		if( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) )
+		{
+			Error(( "Failed to set picture attributes: %s", strerror(errno) ));
+			return( -1 );
+		}
+	}
+	return( vid_pic.hue );
+}
+
+int LocalCamera::Colour( int p_colour )
+{
+	struct video_picture vid_pic;
+	if( ioctl( m_videohandle, VIDIOCGPICT, &vid_pic) )
+	{
+		Error(( "Failed to get picture attributes: %s", strerror(errno) ));
+		return( -1 );
+	}
+
+	if ( p_colour >= 0 )
+	{
+		vid_pic.colour = p_colour;
+		if( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) )
+		{
+			Error(( "Failed to set picture attributes: %s", strerror(errno) ));
+			return( -1 );
+		}
+	}
+	return( vid_pic.colour );
+}
+
+int LocalCamera::Contrast( int p_contrast )
+{
+	struct video_picture vid_pic;
+	if( ioctl( m_videohandle, VIDIOCGPICT, &vid_pic) )
+	{
+		Error(( "Failed to get picture attributes: %s", strerror(errno) ));
+		return( -1 );
+	}
+
+	if ( p_contrast >= 0 )
+	{
+		vid_pic.contrast = p_contrast;
+		if( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) )
+		{
+			Error(( "Failed to set picture attributes: %s", strerror(errno) ));
+			return( -1 );
+		}
+	}
+	return( vid_pic.contrast );
+}
+
 int LocalCamera::PreCapture()
 {
 	//Info(( "%s: Capturing image", id ));

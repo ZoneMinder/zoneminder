@@ -27,13 +27,22 @@
 void Usage( int status=-1 )
 {
 	fprintf( stderr, "zmu <-d device_no> [-v] [function]\n" );
-	fprintf( stderr, "zmu [-m monitor_id] [-v] [function]\n" );
-	fprintf( stderr, "Options:\n" );
-	fprintf( stderr, "  -d, --device <device_no>       : Get the current video device settings for /dev/video<device_no>\n" );
-	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 1 if absent\n" );
+	fprintf( stderr, "zmu <-m monitor_id> [-v] [function]\n" );
+	fprintf( stderr, "General options:\n" );
+	fprintf( stderr, "  -h, --help                     : This screen\n" );
 	fprintf( stderr, "  -v, --verbose                  : Produce more verbose output\n" );
-	fprintf( stderr, "  -q, --query                    : Query the current settings for the device or monitor\n" );
+	fprintf( stderr, "Options for use with devices:\n" );
+	fprintf( stderr, "  -d, --device <device_no>       : Get the current video device settings for /dev/video<device_no>\n" );
+	fprintf( stderr, "  -q, --query                    : Query the current settings for the device\n" );
+	fprintf( stderr, "  -p, --probe                    : Query possible settings for the device\n" );
+	fprintf( stderr, "Options for use with monitors:\n" );
+	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 1 if absent\n" );
+	fprintf( stderr, "  -q, --query                    : Query the current settings for the monitor\n" );
 	fprintf( stderr, "  -s, --state                    : Output the current monitor state, 0 = idle, 1 = alarm, 2 = alert\n" );
+	fprintf( stderr, "  -B, --brightness [value]       : Output the current brightness, set to value if given \n" );
+	fprintf( stderr, "  -C, --contrast [value]         : Output the current contrast, set to value if given \n" );
+	fprintf( stderr, "  -H, --hue [value]              : Output the current hue, set to value if given \n" );
+	fprintf( stderr, "  -O, --colour [value]           : Output the current colour, set to value if given \n" );
 	fprintf( stderr, "  -i, --image [image_index]      : Write captured image to disk as <monitor_name>.jpg, last image captured\n" );
 	fprintf( stderr, "                                   or specified ring buffer index if given.\n" );
 	fprintf( stderr, "  -t, --timestamp [image_index]  : Output captured image timestamp, last image captured or specified\n" );
@@ -46,8 +55,6 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -a, --alarm                    : Force alarm in monitor, this will trigger recording until cancelled with -c\n" );
 	fprintf( stderr, "  -n, --noalarm                  : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n" );
 	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n" );
-	fprintf( stderr, "  -h, --help - This screen\n" );
-	fprintf( stderr, "Note, only the -q/--query option is valid with -d/--device\n" );
 
 	exit( status );
 }
@@ -61,6 +68,10 @@ int main( int argc, char *argv[] )
 		{"image", 2, 0, 'i'},
 		{"timestamp", 2, 0, 't'},
 		{"state", 0, 0, 's'},
+		{"brightness", 2, 0, 'B'},
+		{"contrast", 2, 0, 'C'},
+		{"hue", 2, 0, 'H'},
+		{"contrast", 2, 0, 'O'},
 		{"read_index", 0, 0, 'r'},
 		{"write_index", 0, 0, 'w'},
 		{"event", 0, 0, 'e'},
@@ -70,6 +81,7 @@ int main( int argc, char *argv[] )
 		{"noalarm", 0, 0, 'n'},
 		{"cancel", 0, 0, 'c'},
 		{"query", 0, 0, 'q'},
+		{"brightness", 0, 0, 'b'},
 		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -90,16 +102,24 @@ int main( int argc, char *argv[] )
 		ALARM=0x0100,
 		NOALARM=0x0200,
 		CANCEL=0x0400,
-		QUERY=0x0800
+		QUERY=0x0800,
+		BRIGHTNESS=0x1000,
+		CONTRAST=0x2000,
+		HUE=0x4000,
+		COLOUR=0x8000
 	} Function;
 	Function function = BOGUS;
 
 	int image_idx = -1;
+	int brightness = -1;
+	int contrast = -1;
+	int hue = -1;
+	int colour = -1;
 	while (1)
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsrwie::t::fzancqh", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsrwie::t::fzancqphB::C::H::O::", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -160,6 +180,34 @@ int main( int argc, char *argv[] )
 			case 'q':
 				function = Function(function | QUERY);
 				break;
+			case 'B':
+				function = Function(function | BRIGHTNESS);
+				if ( optarg )
+				{
+					brightness = atoi( optarg );
+				}
+				break;
+			case 'C':
+				function = Function(function | CONTRAST);
+				if ( optarg )
+				{
+					contrast = atoi( optarg );
+				}
+				break;
+			case 'H':
+				function = Function(function | HUE);
+				if ( optarg )
+				{
+					hue = atoi( optarg );
+				}
+				break;
+			case 'O':
+				function = Function(function | COLOUR);
+				if ( optarg )
+				{
+					colour = atoi( optarg );
+				}
+				break;
 			case 'h':
 				Usage( 0 );
 				break;
@@ -181,9 +229,9 @@ int main( int argc, char *argv[] )
 		Usage();
 	}
 
-	if ( dev_id >= 0 && function != QUERY )
+	if ( dev_id >= 0 && !(function&(QUERY|QUERY)) )
 	{
-		fprintf( stderr, "Error, -d option cannot be used with this options\n" );
+		fprintf( stderr, "Error, -d option cannot be used with this option\n" );
 		Usage();
 	}
 	//printf( "Monitor %d, Function %d\n", mon_id, function );
@@ -197,10 +245,13 @@ int main( int argc, char *argv[] )
 
 	if ( dev_id >= 0 )
 	{
-		char vid_string[1024] = "";
-		bool ok = LocalCamera::GetCurrentSettings( dev_id, vid_string, verbose );
-		printf( "%s", vid_string );
-		exit( ok?0:-1 );
+		if ( function & QUERY )
+		{
+			char vid_string[4096] = "";
+			bool ok = LocalCamera::GetCurrentSettings( dev_id, vid_string, verbose );
+			printf( "%s", vid_string );
+			exit( ok?0:-1 );
+		}
 	}
 	else
 	{
@@ -330,6 +381,82 @@ int main( int argc, char *argv[] )
 				char mon_string[1024] = "";
 				monitor->DumpSettings( mon_string, verbose );
 				printf( "%s\n", mon_string );
+			}
+			if ( function & BRIGHTNESS )
+			{
+				if ( verbose )
+				{
+					if ( brightness >= 0 )
+						printf( "New brightness: %d\n", monitor->Brightness( brightness ) );
+					else
+						printf( "Current brightness: %d\n", monitor->Brightness() );
+				}
+				else
+				{
+					if ( have_output ) printf( "%c", separator );
+					if ( brightness >= 0 )
+						printf( "%d", monitor->Brightness( brightness ) );
+					else
+						printf( "%d", monitor->Brightness() );
+					have_output = true;
+				}
+			}
+			if ( function & CONTRAST )
+			{
+				if ( verbose )
+				{
+					if ( contrast >= 0 )
+						printf( "New brightness: %d\n", monitor->Contrast( contrast ) );
+					else
+						printf( "Current contrast: %d\n", monitor->Contrast() );
+				}
+				else
+				{
+					if ( have_output ) printf( "%c", separator );
+					if ( contrast >= 0 )
+						printf( "%d", monitor->Contrast( contrast ) );
+					else
+						printf( "%d", monitor->Contrast() );
+					have_output = true;
+				}
+			}
+			if ( function & HUE )
+			{
+				if ( verbose )
+				{
+					if ( hue >= 0 )
+						printf( "New hue: %d\n", monitor->Hue( hue ) );
+					else
+						printf( "Current hue: %d\n", monitor->Hue() );
+				}
+				else
+				{
+					if ( have_output ) printf( "%c", separator );
+					if ( hue >= 0 )
+						printf( "%d", monitor->Hue( hue ) );
+					else
+						printf( "%d", monitor->Hue() );
+					have_output = true;
+				}
+			}
+			if ( function & COLOUR )
+			{
+				if ( verbose )
+				{
+					if ( colour >= 0 )
+						printf( "New colour: %d\n", monitor->Colour( colour ) );
+					else
+						printf( "Current colour: %d\n", monitor->Colour() );
+				}
+				else
+				{
+					if ( have_output ) printf( "%c", separator );
+					if ( colour >= 0 )
+						printf( "%d", monitor->Colour( colour ) );
+					else
+						printf( "%d", monitor->Colour() );
+					have_output = true;
+				}
 			}
 			if ( have_output )
 			{

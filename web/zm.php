@@ -44,7 +44,7 @@ if ( !isset($PHP_SELF) )
 
 if ( empty($format) )
 {
-	$wurfl_file = "wurfl/wurfl_class.php";
+	$wurfl_file = "./wurfl_class.php";
 	if ( file_exists( $wurfl_file ) )
 	{
 		require_once( $wurfl_file );

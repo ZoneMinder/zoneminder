@@ -1653,10 +1653,12 @@ echo "$as_me: error: You must call configure with the --with-mysql option.
 
 fi;
 
-MYSQL_LIBS="-L${MYSQL_PREFIX}/lib/mysql -lmysqlclient"
+MYSQL_LIBS="-L${MYSQL_PREFIX}/lib/mysql"
 MYSQL_CFLAGS="-I${MYSQL_PREFIX}/include"
 
 
+
+LDFLAGS="${MYSQL_LIBS} $LDFLAGS"
 
 # Ask user for path to web stuff:.
 
@@ -3948,7 +3950,74 @@ echo "$as_me: error: zm requires libdl.a" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
-#AC_CHECK_LIB(mysqlclient,mysql_init,,AC_MSG_ERROR(zm requires libmysqlclient.a))
+
+echo "$as_me:$LINENO: checking for mysql_init in -lmysqlclient" >&5
+echo $ECHO_N "checking for mysql_init in -lmysqlclient... $ECHO_C" >&6
+if test "${ac_cv_lib_mysqlclient_mysql_init+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lmysqlclient  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char mysql_init ();
+int
+main ()
+{
+mysql_init ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_mysqlclient_mysql_init=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_mysqlclient_mysql_init=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_mysqlclient_mysql_init" >&5
+echo "${ECHO_T}$ac_cv_lib_mysqlclient_mysql_init" >&6
+if test $ac_cv_lib_mysqlclient_mysql_init = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBMYSQLCLIENT 1
+_ACEOF
+
+  LIBS="-lmysqlclient $LIBS"
+
+else
+  { { echo "$as_me:$LINENO: error: zm requires libmysqlclient.a" >&5
+echo "$as_me: error: zm requires libmysqlclient.a" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
 
 
 

@@ -10,6 +10,9 @@
 /* Define to 1 if you have the `jpeg' library (-ljpeg). */
 #undef HAVE_LIBJPEG
 
+/* Define to 1 if you have the `mysqlclient' library (-lmysqlclient). */
+#undef HAVE_LIBMYSQLCLIENT
+
 /* Define to 1 if you have the `z' library (-lz). */
 #undef HAVE_LIBZ
 

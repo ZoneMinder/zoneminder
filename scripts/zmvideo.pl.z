@@ -106,7 +106,7 @@ select( LOG ); $| = 1;
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERB, ZM_DB_PASSB );
 
 my @filters;
-my $sql = "select E.*,M.Name as MonitorName, M.Palette from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$event_id'";
+my $sql = "select max(F.Delta)-min(F.Delta) as FullLength,E.*,M.Name as MonitorName, M.Palette from Frames as F inner join Events as E on F.EventId = E.Id inner join Monitors as M on E.MonitorId = M.Id where EventId = '$event_id' group by F.EventId";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 my $event = $sth->fetchrow_hashref();
@@ -166,7 +166,7 @@ if ( !-s $video_file )
 	}
 	elsif ( ZM_OPT_MPEG eq "ffmpeg" )
 	{
-		my $frame_rate = sprintf( "%.2f", $event->{Frames}/$event->{Length} );
+		my $frame_rate = sprintf( "%.2f", $event->{Frames}/$event->{FullLength} );
 		my $command = ZM_PATH_FFMPEG." -y ".ZM_FFMPEG_OPTIONS." -r $frame_rate -i capture-%03d.jpg $video_file > mpeg.log";
 		my $output = qx($command);
 	}

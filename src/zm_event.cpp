@@ -31,8 +31,14 @@
 
 #include "zmf.h"
 
+bool Event::initialised = false;
+bool Event::timestamp_on_capture;
+
 Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
 {
+	if ( !initialised )
+		Initialise();
+
 	static char sql[BUFSIZ];
 	static char start_time_str[32];
 
@@ -198,8 +204,12 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 	return( true );
 }
 
-bool Event::WriteFrameImage( const Image *image, const char *event_file, bool alarm_frame )
+bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 {
+	if ( !timestamp_on_capture )
+	{
+		monitor->TimestampImage( image, timestamp.tv_sec );
+	}
 	if ( !(bool)config.Item( ZM_OPT_FRAME_SERVER ) || !SendFrameImage( image, alarm_frame) )
 	{
 		image->WriteJpeg( event_file );
@@ -207,7 +217,7 @@ bool Event::WriteFrameImage( const Image *image, const char *event_file, bool al
 	return( true );
 }
 
-void Event::AddFrames( int n_frames, struct timeval **timestamps, const Image **images )
+void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps )
 {
 	static char sql[BUFSIZ];
 	strcpy( sql, "insert into Frames ( EventId, FrameId, Delta ) values " );
@@ -219,7 +229,7 @@ void Event::AddFrames( int n_frames, struct timeval **timestamps, const Image **
 		sprintf( event_file, "%s/%03d-capture.jpg", path, frames );
 		
 		Debug( 1, ( "Writing pre-capture frame %d", frames ));
-		WriteFrameImage( images[i], event_file );
+		WriteFrameImage( images[i], *(timestamps[i]), event_file );
 
 		struct DeltaTimeval delta_time;
 		DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time, DT_PREC_2 );
@@ -236,7 +246,7 @@ void Event::AddFrames( int n_frames, struct timeval **timestamps, const Image **
 	}
 }
 
-void Event::AddFrame( struct timeval timestamp, const Image *image, unsigned int score, const Image *alarm_image )
+void Event::AddFrame( Image *image, struct timeval timestamp, unsigned int score, Image *alarm_image )
 {
 	frames++;
 
@@ -244,7 +254,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, unsigned int
 	sprintf( event_file, "%s/%03d-capture.jpg", path, frames );
 		
 	Debug( 1, ( "Writing capture frame %d", frames ));
-	WriteFrameImage( image, event_file );
+	WriteFrameImage( image, timestamp, event_file );
 
 	struct DeltaTimeval delta_time;
 	DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
@@ -273,7 +283,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, unsigned int
 			sprintf( event_file, "%s/%03d-analyse.jpg", path, frames );
 
 			Debug( 1, ( "Writing analysis frame %d", frames ));
-			WriteFrameImage( alarm_image, event_file, true );
+			WriteFrameImage( alarm_image, timestamp, event_file, true );
 		}
 	}
 

@@ -62,13 +62,14 @@ public:
 
 	typedef enum { IDLE, ALARM, ALERT, TAPE } State;
 
-protected:
+protected:  
 	static bool initialised;
 	static bool record_event_stats;
 	static bool record_diag_images;
 	static bool opt_adaptive_skip;
 	static bool create_analysis_images;
 	static bool blend_alarmed_images;
+	static bool timestamp_on_capture;
 
 protected:
 	// These are read from the DB and thereafter remain unchanged
@@ -150,6 +151,7 @@ protected:
 		opt_adaptive_skip = (bool)config.Item( ZM_OPT_ADAPTIVE_SKIP );
 		create_analysis_images = (bool)config.Item( ZM_CREATE_ANALYSIS_IMAGES );
 		blend_alarmed_images = (bool)config.Item( ZM_BLEND_ALARMED_IMAGES );
+		timestamp_on_capture = (bool)config.Item( ZM_TIMESTAMP_ON_CAPTURE );
 	}
 
 public:
@@ -186,6 +188,19 @@ public:
 	void ForceAlarmOff();
 	void CancelForced();
 
+	inline void TimestampImage( Image *ts_image, time_t ts_time ) const
+	{
+		if ( label_format[0] )
+		{
+			static char label_time_text[256];
+			static char label_text[256];
+
+			strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time ) );
+			sprintf( label_text, label_time_text, name );
+
+			ts_image->Annotate( label_text, label_coord );
+		}
+	}
 	int Brightness( int p_brightness=-1 );
 	int Hue( int p_hue=-1 );
 	int Colour( int p_colour=-1 );
@@ -209,25 +224,18 @@ public:
 				image.Rotate( (orientation-1)*90 );
 			}
 
-			char label_time_text[64];
-			char label_text[64];
-			time_t now = time( 0 );
-
-			if ( label_format[0] )
-			{
-				strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &now ) );
-				sprintf( label_text, label_time_text, name );
-
-				image.Annotate( label_text, label_coord );
-			}
-
 			int index = image_count%image_buffer_count;
 
 			if ( index == shared_data->last_read_index && function > MONITOR )
 			{
 				Warning(( "Buffer overrun at index %d\n", index ));
 			}
+
 			gettimeofday( image_buffer[index].timestamp, &dummy_tz );
+			if ( timestamp_on_capture )
+			{
+				TimestampImage( &image, image_buffer[index].timestamp->tv_sec );
+			}
 			image_buffer[index].image->CopyBuffer( image );
 
 			shared_data->last_write_index = index;
@@ -237,6 +245,7 @@ public:
 
 			if ( image_count && !(image_count%fps_report_interval) )
 			{
+				time_t now = image_buffer[index].timestamp->tv_sec;
 				fps = double(fps_report_interval)/(now-last_fps_time);
 				Info(( "%s: %d - Capturing at %.2f fps", name, image_count, fps ));
 				last_fps_time = now;

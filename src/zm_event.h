@@ -20,21 +20,14 @@
 #ifndef ZM_EVENT_H
 #define ZM_EVENT_H
 
-//#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <limits.h>
-//#include <math.h>
 #include <time.h>
-//#include <signal.h>
-//#include <assert.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-//#include <sys/time.h>
-//#include <sys/mman.h>
-//#include <sys/ioctl.h>
 #include <mysql/mysql.h>
 
 #include "zm.h"
@@ -48,6 +41,10 @@ class Monitor;
 class Event
 {
 protected:
+	static bool		initialised;
+	static bool		timestamp_on_capture;
+
+protected:
 	static int		sd;
 
 protected:
@@ -60,6 +57,14 @@ protected:
 	unsigned int	tot_score;
 	unsigned int	max_score;
 	char			path[PATH_MAX];
+
+protected:
+	static void Initialise()
+	{
+		initialised = true;
+
+		timestamp_on_capture = (bool)config.Item( ZM_TIMESTAMP_ON_CAPTURE );
+	}
 
 public:
 	static bool OpenFrameSocket( int );
@@ -78,10 +83,10 @@ public:
 	struct timeval &EndTime() { return( end_time ); }
 
 	bool SendFrameImage( const Image *image, bool alarm_frame=false );
-	bool WriteFrameImage( const Image *image, const char *event_file, bool alarm_frame=false );
+	bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false );
 
-	void AddFrames( int n_frames, struct timeval **timestamps, const Image **images );
-	void AddFrame( struct timeval timestamp, const Image *image, unsigned int score=0, const Image *alarm_frame=NULL );
+	void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
+	void AddFrame( Image *image, struct timeval timestamp, unsigned int score=0, Image *alarm_frame=NULL );
 
 	static void StreamEvent( int event_id, int rate=1, int scale=1, FILE *fd=stdout );
 };

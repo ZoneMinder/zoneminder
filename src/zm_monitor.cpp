@@ -32,6 +32,7 @@ bool Monitor::record_diag_images;
 bool Monitor::opt_adaptive_skip;
 bool Monitor::create_analysis_images;
 bool Monitor::blend_alarmed_images;
+bool Monitor::timestamp_on_capture;
 
 Monitor::Monitor(
 	int p_id,
@@ -312,8 +313,12 @@ int Monitor::GetImage( int index ) const
 	Snapshot *snap = &image_buffer[index];
 	Image *snap_image = snap->image;
 
-	char filename[64];
+	static char filename[PATH_MAX];
 	sprintf( filename, "%s.jpg", name );
+	if ( !timestamp_on_capture )
+	{
+		TimestampImage( snap_image, snap->timestamp->tv_sec );
+	}
 	snap_image->WriteJpeg( filename );
 	return( 0 );
 }
@@ -548,7 +553,7 @@ void Monitor::DumpZoneImage()
 		}
 		zone_image.Hatch( colour, &(zones[i]->Limits()) );
 	}
-	char filename[64];
+	static char filename[PATH_MAX];
 	sprintf( filename, "%s-Zones.jpg", name );
 	zone_image.WriteJpeg( filename );
 }
@@ -557,8 +562,8 @@ void Monitor::DumpImage( Image *dump_image ) const
 {
 	if ( image_count && !(image_count%10) )
 	{
-		static char new_filename[64];
-		static char filename[64];
+		static char new_filename[PATH_MAX];
+		static char filename[PATH_MAX];
 		sprintf( filename, "%s.jpg", name );
 		sprintf( new_filename, "%s-new.jpg", name );
 		dump_image->WriteJpeg( new_filename );
@@ -622,7 +627,7 @@ bool Monitor::Analyse()
 	Image *snap_image = snap->image;
 
 	static struct timeval **timestamps;
-	static const Image **images;
+	static Image **images;
 
 	unsigned int score = 0;
 	if ( Ready() )
@@ -646,7 +651,7 @@ bool Monitor::Analyse()
 				{
 					int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
 					if ( !timestamps ) timestamps = new struct timeval *[pre_event_count];
-					if ( !images ) images = new const Image *[pre_event_count];
+					if ( !images ) images = new Image *[pre_event_count];
 					for ( int i = 0; i < pre_event_count; i++ )
 					{
 						timestamps[i] = image_buffer[pre_index].timestamp;
@@ -654,7 +659,7 @@ bool Monitor::Analyse()
 
 						pre_index = (pre_index+1)%image_buffer_count;
 					}
-					event->AddFrames( pre_event_count, timestamps, images );
+					event->AddFrames( pre_event_count, images, timestamps );
 				}
 				shared_data->state = state = TAPE;
 			}
@@ -670,7 +675,7 @@ bool Monitor::Analyse()
 
 					int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
 					if ( !timestamps ) timestamps = new struct timeval *[pre_event_count];
-					if ( !images ) images = new const Image *[pre_event_count];
+					if ( !images ) images = new Image *[pre_event_count];
 					for ( int i = 0; i < pre_event_count; i++ )
 					{
 						timestamps[i] = image_buffer[pre_index].timestamp;
@@ -678,7 +683,7 @@ bool Monitor::Analyse()
 
 						pre_index = (pre_index+1)%image_buffer_count;
 					}
-					event->AddFrames( pre_event_count, timestamps, images );
+					event->AddFrames( pre_event_count, images, timestamps );
 				}
 			}
 			shared_data->state = state = ALARM;
@@ -727,22 +732,22 @@ bool Monitor::Analyse()
 							}
 						}
 					}
-					event->AddFrame( *timestamp, snap_image, score, &alarm_image );
+					event->AddFrame( snap_image, *timestamp, score, &alarm_image );
 				}
 				else
 				{
-					event->AddFrame( *timestamp, snap_image, score );
+					event->AddFrame( snap_image, *timestamp, score );
 				}
 			}
 			else if ( state == ALERT )
 			{
-				event->AddFrame( *timestamp, snap_image );
+					event->AddFrame( snap_image, *timestamp );
 			}
 			else if ( state == TAPE )
 			{
 				if ( !(image_count%(frame_skip+1)) )
 				{
-					event->AddFrame( *timestamp, snap_image );
+					event->AddFrame( snap_image, *timestamp );
 				}
 			}
 		}
@@ -1062,6 +1067,11 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 			if ( scale == 1 )
 			{
 				snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
+
+				if ( !timestamp_on_capture )
+				{
+					TimestampImage( snap_image, snap->timestamp->tv_sec );
+				}
 			}
 			else
 			{
@@ -1070,6 +1080,11 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 				scaled_image.Scale( scale );
 
 				scaled_image.EncodeJpeg( img_buffer, &img_buffer_size );
+
+				if ( !timestamp_on_capture )
+				{
+					TimestampImage( &scaled_image, snap->timestamp->tv_sec );
+				}
 			}
 
 			fprintf( fd, "Content-type: image/jpg\n\n" );

@@ -270,6 +270,14 @@ my @options =
 		category => 'tools',
 	},
 	{
+		name => "ZM_TIMESTAMP_ON_CAPTURE",
+		default => "yes",
+		description => "Timestamp images as soon as they are captured",
+		help => "ZoneMinder can add a timestamp to images in two ways. The default method, when this option is set, is that each image is timestamped immediately when captured and so the image held in memory is marked right away. The second method does not timestamp the images until they are either saved as part of an event or accessed over the web. The timestamp used in both methods will contain the same time as this is preserved along with the image. The first method ensures that an image is timestamped regardless of any other circumstances but will result in all images being timestamped even those never saved or viewed. This may incur a very slight performance penalty.",
+		type => $types{boolean},
+		category => 'video',
+	},
+	{
 		name => "ZM_LOCAL_BGR_INVERT",
 		default => "yes",
 		description => "Invert BGR colours to RGB",

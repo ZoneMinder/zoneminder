@@ -488,22 +488,6 @@ my @options =
 		category => 'video',
 	},
 	{
-		name => "ZM_WEB_DEFAULT_SCALE",
-		default => "100",
-		description => "What the default scaling factor applied to 'live' or 'event' views is (%).",
-		help => "Normally ZoneMinder will display 'live' or 'event' streams in their native size. However if you have monitors with large dimensions or a slow link you may prefer to reduce this size, alternatively for small monitors you can enlarge it. This options lets you specify what the default scaling factor will be. It is expressed as a percentage so 100 is normal size, 200 is double size etc.",
-		type => $types{integer},
-		category => 'web',
-	},
-	{
-		name => "ZM_WEB_DEFAULT_RATE",
-		default => "100",
-		description => "What the default replay rate factor applied to 'event' views is (%).",
-		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
-		type => $types{integer},
-		category => 'web',
-	},
-	{
 		name => "ZM_WEB_POPUP_ON_ALARM",
 		default => "yes",
 		description => "Should the monitor window jump to the top if an alarm occurs",
@@ -988,7 +972,7 @@ my @options =
 	{
 		name => "ZM_H_WEB_DEFAULT_SCALE",
 		default => "100",
-		description => "What the default scaling factor applied to 'live' or 'event' views is (%).",
+		description => "What the default scaling factor applied to 'live' or 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'live' or 'event' streams in their native size. However if you have monitors with large dimensions or a slow link you may prefer to reduce this size, alternatively for small monitors you can enlarge it. This options lets you specify what the default scaling factor will be. It is expressed as a percentage so 100 is normal size, 200 is double size etc.",
 		type => $types{integer},
 		category => 'highband',
@@ -996,7 +980,7 @@ my @options =
 	{
 		name => "ZM_H_WEB_DEFAULT_RATE",
 		default => "100",
-		description => "What the default replay rate factor applied to 'event' views is (%).",
+		description => "What the default replay rate factor applied to 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
 		type => $types{integer},
 		category => 'highband',
@@ -1070,7 +1054,7 @@ my @options =
 	{
 		name => "ZM_M_WEB_DEFAULT_SCALE",
 		default => "100",
-		description => "What the default scaling factor applied to 'live' or 'event' views is (%).",
+		description => "What the default scaling factor applied to 'live' or 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'live' or 'event' streams in their native size. However if you have monitors with large dimensions or a slow link you may prefer to reduce this size, alternatively for small monitors you can enlarge it. This options lets you specify what the default scaling factor will be. It is expressed as a percentage so 100 is normal size, 200 is double size etc.",
 		type => $types{integer},
 		category => 'medband',
@@ -1078,7 +1062,7 @@ my @options =
 	{
 		name => "ZM_M_WEB_DEFAULT_RATE",
 		default => "100",
-		description => "What the default replay rate factor applied to 'event' views is (%).",
+		description => "What the default replay rate factor applied to 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
 		type => $types{integer},
 		category => 'medband',
@@ -1152,7 +1136,7 @@ my @options =
 	{
 		name => "ZM_L_WEB_DEFAULT_SCALE",
 		default => "100",
-		description => "What the default scaling factor applied to 'live' or 'event' views is (%).",
+		description => "What the default scaling factor applied to 'live' or 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'live' or 'event' streams in their native size. However if you have monitors with large dimensions or a slow link you may prefer to reduce this size, alternatively for small monitors you can enlarge it. This options lets you specify what the default scaling factor will be. It is expressed as a percentage so 100 is normal size, 200 is double size etc.",
 		type => $types{integer},
 		category => 'lowband',
@@ -1160,7 +1144,7 @@ my @options =
 	{
 		name => "ZM_L_WEB_DEFAULT_RATE",
 		default => "100",
-		description => "What the default replay rate factor applied to 'event' views is (%).",
+		description => "What the default replay rate factor applied to 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
 		type => $types{integer},
 		category => 'lowband',

@@ -841,6 +841,14 @@ my @options =
 		category => 'mail',
 	},
 	{
+		name => "ZM_MAX_RESTART_DELAY",
+		default => "600",
+		description => "The maximum delay (in seconds) for daemon restart attempts.",
+		help => "The zmdc (zm daemopn control) process controls when processeses are started or stopped and will attempt to restart any that fail. If a daemon fails frequently then a delay is introduced between each restart attempt. If the daemon stills fails then this delay is increased to prevent extra load being placed on the system by continual restarts. This option controls what this maximum delay is.",
+		type => $types{integer},
+		category => 'system',
+	},
+	{
 		name => "ZM_WATCH_CHECK_INTERVAL",
 		default => "10",
 		description => "How often to check the capture daemons have not locked up",

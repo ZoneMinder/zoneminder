@@ -669,9 +669,10 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 {
 	time_t start_time, now;
 
-	fprintf( fd, "Server: ZoneMinder Stream Server\n" );
-	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\n\n" );
-	fprintf( fd, "--ZoneMinderFrame\n" );
+	setbuf( fd, 0 );
+	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
+	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
+	fprintf( fd, "--ZoneMinderFrame\r\n" );
 	int last_read_index = image_buffer_count;
 	JOCTET img_buffer[camera->ImageSize()];
 	int img_buffer_size = 0;
@@ -679,6 +680,10 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 	time( &start_time );
 	while ( true )
 	{
+		if ( feof( fd ) || ferror( fd ) )
+		{
+			break;
+		}
 		if ( last_read_index != shared_images->last_write_index )
 		{
 			// Send the next frame
@@ -689,10 +694,9 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 			Image *image = snap->image;
 			image->EncodeJpeg( img_buffer, &img_buffer_size );
 
-			fprintf( fd, "Content-type: image/jpg\n\n" );
+			fprintf( fd, "Content-type: image/jpg\r\n\r\n" );
 			fwrite( img_buffer, 1, img_buffer_size, fd );
-			fprintf( fd, "\n--ZoneMinderFrame\n" );
-			fflush( fd );
+			fprintf( fd, "\r\n--ZoneMinderFrame\r\n" );
 		}
 		usleep( refresh*1000 );
 		for ( int i = 0; shared_images->state == IDLE && i < loop_count; i++ )

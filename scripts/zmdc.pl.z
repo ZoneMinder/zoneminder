@@ -56,7 +56,7 @@ my @daemons = ( 'zmc', 'zma', 'zmfilter.pl', 'zmaudit.pl', 'zmx10.pl' );
 
 my $command = shift @ARGV;
 die( "No command given" ) unless( $command );
-my $needs_daemon = $command !~ /(?:shutdown|status)/;
+my $needs_daemon = $command !~ /(?:shutdown|status|check)/;
 my $daemon = shift( @ARGV );
 die( "No daemon given" ) unless( !$needs_daemon || $daemon );
 my @args;
@@ -94,6 +94,11 @@ my $saddr = sockaddr_un( DC_SOCK_FILE );
 
 if ( !connect( CLIENT, $saddr ) )
 {
+	if ( $command eq "check" )
+	{
+		print( "stopped\n" );
+		exit();
+	}
 	# The server isn't there 
 	print( "Unable to connect, starting server\n" );
 	close( CLIENT );
@@ -167,6 +172,9 @@ if ( !connect( CLIENT, $saddr ) )
 
 			if ( my $cpid = fork() )
 			{
+				my $sigset = POSIX::SigSet->new;
+				my $blockset = POSIX::SigSet->new( SIGCHLD );
+				sigprocmask( SIG_BLOCK, $blockset, $sigset ) or die( "Can't block SIGCHLD: $!" );
 				$process->{pid} = $cpid;
 				$process->{started} = time();
 				delete( $process->{pending} );
@@ -174,6 +182,7 @@ if ( !connect( CLIENT, $saddr ) )
 				dprint( "'$command' starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
 
 				$cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
+				sigprocmask( SIG_SETMASK, $sigset ) or die( "Can't restore SIGCHLD: $!" );
 			}
 			elsif ( defined($cpid ) )
 			{
@@ -209,13 +218,19 @@ if ( !connect( CLIENT, $saddr ) )
 
 			my $command = "$daemon ".join( ' ', @args );
 			my $process = $cmd_hash{$command};
-			my $cpid = $process->{pid};
-
 			if ( !$process )
 			{
 				dprint( "Can't find process with command of '$command'\n" );
 				return();
 			}
+			elsif ( $process->{pending} )
+			{
+				delete( $cmd_hash{$command} );
+				dprint( "Command '$command' removed from pending list at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+				return();
+			}
+
+			my $cpid = $process->{pid};
 			if ( !$pid_hash{$cpid} )
 			{
 				dprint( "No process with command of '$command' is running\n" );
@@ -229,12 +244,13 @@ if ( !connect( CLIENT, $saddr ) )
 
 			# Now check it has actually gone away, if not kill -9 it
 			my $count = 0;
-			while( kill( 0, $cpid ) )
+			while( $cpid && kill( 0, $cpid ) )
 			{
 				if ( $count++ > 5 )
 				{
 					kill( 'KILL', $cpid );
 				}
+				sleep( 1 );
 			}
 		}
 		sub stop
@@ -243,7 +259,21 @@ if ( !connect( CLIENT, $saddr ) )
 		}
 		sub restart
 		{
-			_stop( 0, @_ );
+			my $daemon = shift;
+			my @args = @_;
+
+			my $command = "$daemon ".join( ' ', @args );
+			my $process = $cmd_hash{$command};
+			if ( $process )
+			{
+				my $cpid = $process->{pid};
+				if ( $pid_hash{$cpid} )
+				{
+					_stop( 0, $daemon, @args );
+					return;
+				}
+			}
+			start( $daemon, @args );
 		}
 		sub reaper
 		{
@@ -274,7 +304,7 @@ if ( !connect( CLIENT, $saddr ) )
 			}
 			print( ", exit status $exit_status" ) if ( $exit_status );
 			print( ", signal $exit_signal" ) if ( $exit_signal );
-			print( ", core dumped" ) if ( $core_dumped );
+			#print( ", core dumped" ) if ( $core_dumped );
 			print( "\n" );
 
 			if ( $process->{keepalive} )
@@ -303,19 +333,78 @@ if ( !connect( CLIENT, $saddr ) )
 			close( SERVER );
 			exit();
 		}
+		sub check
+		{
+			my $daemon = shift;
+			my @args = @_;
+
+			my $command = "$daemon ".join( ' ', @args );
+			my $process = $cmd_hash{$command};
+			if ( !$process )
+			{
+				dprint( "unknown\n" );
+			}
+			elsif ( $process->{pending} )
+			{
+				dprint( "pending\n" );
+			}
+			else
+			{
+				my $cpid = $process->{pid};
+				if ( !$pid_hash{$cpid} )
+				{
+					dprint( "stopped\n" );
+				}
+				else
+				{
+					dprint( "running\n" );
+				}
+			}
+		}
 		sub status
 		{
-			foreach my $process ( values(%pid_hash) )
+			my $daemon = shift;
+			my @args = @_;
+
+			if ( defined($daemon) )
 			{
-				dprint( "'$process->{command}' running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
-				dprint( ", valid" ) if ( kill( 0, $process->{pid} ) );
-				dprint( "\n" );
-			}
-			foreach my $process ( values( %cmd_hash ) )
-			{
+				my $command = "$daemon ".join( ' ', @args );
+				my $process = $cmd_hash{$command};
+				if ( !$process )
+				{
+					dprint( "'$command' not running\n" );
+					return();
+				}
+
 				if ( $process->{pending} )
 				{
 					dprint( "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
+				}
+				else
+				{
+					my $cpid = $process->{pid};
+					if ( !$pid_hash{$cpid} )
+					{
+						dprint( "'$command' not running\n" );
+						return();
+					}
+				}
+				dprint( "'$process->{command}' running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
+			}
+			else
+			{
+				foreach my $process ( values(%pid_hash) )
+				{
+					dprint( "'$process->{command}' running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
+					dprint( ", valid" ) if ( kill( 0, $process->{pid} ) );
+					dprint( "\n" );
+				}
+				foreach my $process ( values( %cmd_hash ) )
+				{
+					if ( $process->{pending} )
+					{
+						dprint( "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
+					}
 				}
 			}
 		}
@@ -341,6 +430,8 @@ if ( !connect( CLIENT, $saddr ) )
 					my $paddr = accept( CLIENT, SERVER );
 					my $message = <CLIENT>;
 
+					next if ( !$message );
+
 					my ( $command, $daemon, @args ) = split( ';', $message );
 
 					if ( $command eq 'start' )
@@ -359,9 +450,20 @@ if ( !connect( CLIENT, $saddr ) )
 					{
 						shutdown_all();
 					}
+					elsif ( $command eq 'check' )
+					{
+						check( $daemon, @args );
+					}
 					elsif ( $command eq 'status' )
 					{
-						status();
+						if ( $daemon )
+						{
+							status( $daemon, @args );
+						}
+						else
+						{
+							status();
+						}
 					}
 					else
 					{
@@ -407,6 +509,11 @@ if ( !connect( CLIENT, $saddr ) )
 	{
 		die( "Can't fork: $!" );
 	}
+}
+if ( $command eq "check" && !$daemon )
+{
+	print( "running\n" );
+	exit();
 }
 # The server is there, connect to it
 #print( "Writing commands\n" );

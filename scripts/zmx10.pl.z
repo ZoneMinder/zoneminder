@@ -163,6 +163,7 @@ use POSIX;
 use DBI;
 use Socket;
 use X10::ActiveHome;
+use Data::Dumper;
 
 our $dbh;
 our $x10;
@@ -324,12 +325,12 @@ sub runServer
 					my $task_list;
 					if ( $state == 1 && $monitor->{LastState} == 0 ) # Gone into alarm state
 					{
-						print( "Applying ON_list\n" ) if ( main::VERBOSE );
+						print( "Applying ON_list for $monitor_id\n" ) if ( main::VERBOSE );
 						$task_list = $monitor->{"ON_list"};
 					}
 					elsif ( $state == 0 && $monitor->{LastState} > 0 ) # Come out of alarm state
 					{
-						print( "Applying OFF_list\n" ) if ( main::VERBOSE );
+						print( "Applying OFF_list for $monitor_id\n" ) if ( main::VERBOSE );
 						$task_list = $monitor->{"OFF_list"};
 					}
 					if ( $task_list )
@@ -384,7 +385,7 @@ sub addToDeviceList
 		$device = $device_hash{$unit_code} = { appliance=>$x10->Appliance( unit_code=>$unit_code ), status=>'unknown' };
 	}
 
-	my $task = { type=>"device", monitor=>$monitor->{Id}, function=>$function };
+	my $task = { type=>"device", monitor=>$monitor, function=>$function };
 	if ( $limit )
 	{
 		$task->{limit} = $limit
@@ -536,10 +537,14 @@ sub addPendingTask
 		my $new_pending_list = [];
 		foreach my $pending_task ( @$pending_list )
 		{
-			if ( $task->{type} eq "device" )
+			if ( $task->{type} ne $pending_task->{type} )
+			{
+				push( @$new_pending_list, $pending_task )
+			}
+			elsif ( $task->{type} eq "device" )
 			{
 				if (( $task->{monitor}->{Id} != $pending_task->{monitor}->{Id} )
-				|| ( $task->{function} != $pending_task->{function} ))
+				|| ( $task->{function} ne $pending_task->{function} ))
 				{
 					push( @$new_pending_list, $pending_task )
 				}
@@ -547,7 +552,7 @@ sub addPendingTask
 			elsif ( $task->{type} eq "monitor" )
 			{
 				if (( $task->{device}->{appliance}->unit_code() != $pending_task->{device}->{appliance}->unit_code() )
-				|| ( $task->{function} != $pending_task->{function} ))
+				|| ( $task->{function} ne $pending_task->{function} ))
 				{
 					push( @$new_pending_list, $pending_task )
 				}
@@ -596,7 +601,7 @@ sub processTask
 		{
 			if ( $instruction eq "start" )
 			{
-				$command = main::ZM_PATH_BIN."/zmdc.pl start zma -m ".$task->{monitor};
+				$command = main::ZM_PATH_BIN."/zmdc.pl start zma -m ".$task->{monitor}->{Id};
 				if ( $task->{limit} )
 				{
 					addPendingTask( $task );
@@ -604,14 +609,19 @@ sub processTask
 			}
 			elsif( $instruction eq "stop" )
 			{
-				$command = main::ZM_PATH_BIN."/zmdc.pl stop zma -m ".$task->{monitor};
+				$command = main::ZM_PATH_BIN."/zmdc.pl stop zma -m ".$task->{monitor}->{Id};
 			}
 		}
 		elsif( $class eq "alarm" )
 		{
 			if ( $instruction eq "start" )
 			{
-				$command = main::ZM_PATH_BIN."/zmu --monitor ".$task->{monitor}." --alarm";
+				#$command = main::ZM_PATH_BIN."/zmu --monitor ".$task->{monitor}->{Id}." --alarm";
+				my $force_alarm = pack( "l", 1 );
+				if ( !shmwrite( $task->{monitor}->{ShmId}, $force_alarm, 8, 4 ) )
+				{
+					print( "Can't write to shared memory: $!\n" );
+				}
 				if ( $task->{limit} )
 				{
 					addPendingTask( $task );
@@ -619,12 +629,17 @@ sub processTask
 			}
 			elsif( $instruction eq "stop" )
 			{
-				$command = main::ZM_PATH_BIN."/zmu --monitor ".$task->{monitor}." --cancel";
+				#$command = main::ZM_PATH_BIN."/zmu --monitor ".$task->{monitor}->{Id}." --cancel";
+				my $force_alarm = pack( "l", 0 );
+				if ( !shmwrite( $task->{monitor}->{ShmId}, $force_alarm, 8, 4 ) )
+				{
+					print( "Can't write to shared memory: $!\n" );
+				}
 			}
 		}
-		print( "Executing command '$command'\n" );
 		if ( $command )
 		{
+			print( "Executing command '$command'\n" );
 			qx( $command );
 		}
 	}

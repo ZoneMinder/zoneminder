@@ -1,5 +1,6 @@
+     09/06/03        ZoneMinder 0.9.12 README                1
                                  
-                        ZoneMinder v0.9.11
+                        ZoneMinder v0.9.12
 
 1.   Introduction
    
@@ -16,10 +17,10 @@ perpetrators to justice.
 ZoneMinder  is designed around a series of independent  components
 that only function when necessary limiting any wasted resource and
 maximising  the  efficiency  of your  machine.  A  fairly  ancient
-Pentium PC should be able to track one camera per device at up  to
-25  frames per second with this dropping by half approximately for
-each  additional camera on he same device, additional  cameras  on
-other  devices  do not interact so can maintain this  frame  rate.
+Pentium II PC should be able to track one camera per device at  up
+to  25  frames per second with this dropping by half approximately
+for  each additional camera on the same device, additional cameras
+on  other devices do not interact so can maintain this frame rate.
 Even monitoring several cameras still will not overload the CPU as
 frame  processing is designed to synchronise with capture and  not
 stall it.
@@ -144,11 +145,6 @@ later)  you can copy your old zmconfig*.txt files into the current
 build  directory before you run zmconfig.pl and it will  use  your
 preferences as a basis for generating the new ones.
 
-If  you  get  errors such as 'Can't locate Term::ReadKey.pm'  when
-trying  to  run zmconfig.pl then this module is missing from  your
-system.  See  the troubleshooting section for details  of  how  to
-install it.
-
 Among the first questions zmconfig.pl asks you are to do with  the
 database  and the next thing you should do is create  it  and  the
 associated database users. You may notice that there are two  sets
@@ -205,6 +201,13 @@ binaries. I will now briefly describe what each of them does.
   component that goes through the captured frames and checks  them
   for  alarming events. It generally keeps up with the zmc but  if
   very busy may skip some frames to prevent it falling behind.
+  
+  zmf  -  This is the ZoneMinder Frame daemon. This is an optional
+  daemon  that  can  run in concert with the Analysis  daemon  and
+  whose  function it is to actually write captured frames to disk.
+  This  frees up the analysis to do more analysis (!) and so  keep
+  up  with the capture daemon better. If it isn't running or  dies
+  then the Analysis daemon just writes them itself.
   
   zms - This is the ZoneMinder Streaming server. The web interface
   connects  with  this  to  get real-time or  historical  streamed
@@ -373,7 +376,20 @@ The options explained in a little more detail are as follows,
    at    http://camserver.home.net:8192/cameras/camera1.jpg   then
    these    fields   will   be   camserver.home.net,   8192    and
    /cameras/camera1.jopg respectively. Leave the  port  at  80  if
-   there is no special port required.
+   there   is   no   special  port  required.   If   you   require
+   authentication  to access your camera then add  this  onto  the
+   host name in the form <user>:<pass>@<hostname>.com.
+   
+   Orientation  -  If  your camera is mounted upside  down  or  at
+   right angles you can use this field to specify a rotation  that
+   it  applied  to  the image as it is captured.  This  incurs  an
+   additional processing overhead so if possible it is  better  to
+   mount  your camera the right way round if you can. If  not  set
+   the  orientation  here.  If  you choose  one  of  the  rotation
+   options  remember  to reverse the height and  width  fields  so
+   that  they  apply, e.g. if your camera captures at 352x288  and
+   you  choose 'Rotate Right' here then set the height to  be  352
+   and width to be 288.
    
    Capture Width/Height - The dimensions of the video stream  your
    camera will supply. If your camera supports several just  enter
@@ -1036,72 +1052,77 @@ Some things to check.
      a problem then switch off ZM_STRICT_VIDEO_CONFIG in zmconfig.pl
      and recompile and reinstall.
      
-o    Start simple. Begin with a single monitor and single zone.
-You can run the zmc capture daemon from the command line as 'zmc -
--device 0' (or whatever your video device is). If it returns
-immediately there's a problem so check the logs, if it stays up
-then your video configuration is probably ok. To get more
-information out of it use debug as specified below. Also check
-that the shared memory segment has been created by doing 'ipcs -
-m'. Finally, beware of doing tests as root and then trying to run
-as another user as some files may not be accessible. If you're
-checking things as root make sure that you clean up afterwards!
-o    Web server. Ensure that your web server can serve PHP files.
-It's also possible that your php.ini file may have some settings
-which break ZoneMinder, I'm not a PHP guru but setting safe mode
-may prevent your PHP files from running certain programs. You may
-have to set configuration to allow this. Also since the daemons
-are started by your web server, if it dies or is shut down then
-the daemons may disappear. In this version the daemons are run
-under the control of a script which should trap expected signals
-but it is possible this doesn't cover all circumstances.
-o    One of the more common errors you can see in the log files is
-of the form 'Can't shmget: Invalid argument'. Generally speaking
-this is caused by an attempt to allocate an amount of shared
-memory greater than your system can handle. The size it requests
-is base on the following formula, ring buffer size x image width x
-image height x 3 (for 24 bits images) + a bit of overhead. So if
-for instance you were using 24bit 640x480 then this would come to
-about 92Mb if you are using the default buffer size of 100. If
-this is too large then you can either reduce the image or buffer
-sizes or increase the maximum amount of shared memory available.
-If you are using RedHat then you can get details on how to change
-these settings at
-o    http://www.redhat.com/docs/manuals/database/RHDB-2.1-
-Manual/admin_user/kernel-resources.html
-o    You should be able to use a similar process with other
-distributions to modify the shared memory pool without kernel
-recompilations though in some cases this may be necessary. Note,
-this error also sometime occurs if you have an old shared memory
-segment lying around from a previous run that is too small. Use
-the ipcs and ipcrm commands to check and remove it if necessary.
-o    If you get odd javascript errors and your web console or
-other screens come up with bits missing then it's possible that
-there is a problem with the PHP configuration. Since version 0.9.8
-ZoneMinder has used short PHP open tags to output information, so
-instead of something like this '<?php echo $value ?>', it will be
-something like this '<?= $value ?>' which is easier and quicker to
-write as well as being neater. More information about this
-directive can be seen at the following location,
-http://www.php.net/manual/en/configuration.directives.php#ini.shor
-t-open-tag. However although by default most PHP installations
-support this form, some will need to have it switched on
-explicitly. To do this you will first need to find your php.ini
-file (do a 'locate php.ini' or 'find / -name php.ini'. Be aware
-however that sometimes you might find more than one, so ensure you
-identify the one that is actually being used. You will then need
-to find the line that starts 'short_open_tag = ' and change the
-Off value to On. This wil correct the problem. However in some
-cases you may have explicitly switched it off, so that XML
-compliant documents can be more easily served, or you may even not
-have permission to edit the file. In this case you can go into the
-web directory of ZoneMinder and run 'sh retag.sh' which will
-replace all the short open tags in the files themselves with the
-longer variant. You will obviously have to remember to do this for
-each subsequent version of ZoneMinder that you install as well.
-o    Use debug. ZoneMinder has various debug in it that by default
-will go into your system log (via syslog). These will be of the
-form of
+  o     Start simple. Begin with a single monitor and single zone.
+     You can run the zmc capture daemon from the command line as 'zmc -
+     -device  0' (or whatever your video device is). If it returns
+     immediately there's a problem so check the logs, if it stays up
+     then  your  video configuration is probably ok. To  get  more
+     information out of it use debug as specified below. Also check
+     that the shared memory segment has been created by doing 'ipcs -
+     m'. Finally, beware of doing tests as root and then trying to run
+     as another user as some files may not be accessible. If you're
+     checking things as root make sure that you clean up afterwards!
+     
+  o    Web server. Ensure that your web server can serve PHP files.
+     It's also possible that your php.ini file may have some settings
+     which break ZoneMinder, I'm not a PHP guru but setting safe mode
+     may prevent your PHP files from running certain programs. You may
+     have to set configuration to allow this. Also since the daemons
+     are started by your web server, if it dies or is shut down then
+     the daemons may disappear. In this version the daemons are run
+     under the control of a script which should trap expected signals
+     but it is possible this doesn't cover all circumstances.
+     
+  o    One of the more common errors you can see in the log files is
+     of the form 'Can't shmget: Invalid argument'. Generally speaking
+     this  is caused by an attempt to allocate an amount of shared
+     memory greater than your system can handle. The size it requests
+     is base on the following formula, ring buffer size x image width x
+     image height x 3 (for 24 bits images) + a bit of overhead. So if
+     for instance you were using 24bit 640x480 then this would come to
+     about 92Mb if you are using the default buffer size of 100. If
+     this is too large then you can either reduce the image or buffer
+     sizes or increase the maximum amount of shared memory available.
+     If you are using RedHat then you can get details on how to change
+     these settings at http://www.redhat.com/docs/manuals/database/RHDB-
+     2.1-Manual/admin_user/kernel-resources.html
+     
+  o     You  should  be able to use a similar process  with  other
+     distributions to modify the shared memory pool without kernel
+     recompilations though in some cases this may be necessary. Note,
+     this error also sometime occurs if you have an old shared memory
+     segment lying around from a previous run that is too small. Use
+     the ipcs and ipcrm commands to check and remove it if necessary.
+     
+  o     If  you get odd javascript errors and your web console  or
+     other screens come up with bits missing then it's possible that
+     there is a problem with the PHP configuration. Since version 0.9.8
+     ZoneMinder has used short PHP open tags to output information, so
+     instead of something like this '<?php echo $value ?>', it will be
+     something like this '<?= $value ?>' which is easier and quicker to
+     write  as  well as being neater. More information about  this
+     directive   can   be   seen   at  the   following   location,
+     http://www.php.net/manual/en/configuration.directives.php#ini.shor
+     t-open-tag. However although by default most PHP installations
+     support  this  form, some will need to have  it  switched  on
+     explicitly. To do this you will first need to find your php.ini
+     file (do a 'locate php.ini' or 'find / -name php.ini'. Be aware
+     however that sometimes you might find more than one, so ensure you
+     identify the one that is actually being used. You will then need
+     to find the line that starts 'short_open_tag = ' and change the
+     Off value to On. This wil correct the problem. However in some
+     cases  you may have explicitly switched it off, so  that  XML
+     compliant documents can be more easily served, or you may even not
+     have permission to edit the file. In this case you can go into the
+     web  directory of ZoneMinder and run 'sh retag.sh' which will
+     replace all the short open tags in the files themselves with the
+     longer variant. You will obviously have to remember to do this for
+     each subsequent version of ZoneMinder that you install as well.
+     
+  o    Use debug. ZoneMinder has various debug in it that by default
+     will go into your system log (via syslog). These will be of the
+     form of
+     
      "Sep 14 14:50:11 localhost zma-0[1975]: INF [Front: 221000  -
      Processing at 4.26 fps ]"
      
@@ -1112,25 +1133,25 @@ form of
      setting the DLVL_zmc environment variable to -1 or less  once
      things  are  working. If you want to run any of  the  daemons
      from  the command line to test, setting DBG_PRINT to  1  will
-     output  the  debug  on the console and setting  DLVL_zmc  (or
-     DLVL_zma  etc)  to  a  number  between  0  and  9  will  emit
-     progressively more debug though there's not a lot in there at
-     present.
+     output  the debug on the console. You can also use  the  USR1
+     and  USR2 signals to increase or decrease the amount of debug
+     being emitted.
      
-  o    6. Paths. I admit it, the various paths in ZoneMinder are a
-     bit of a nightmare. Make sure that they are all correct and that
+  o    Paths. I admit it, the various paths in ZoneMinder are a bit
+     of  a nightmare. Make sure that they are all correct and that
      permissions are such that the various parts of ZoneMinder can
      actually run.
      
-o    Missing perl modules. There are various perl modules used by
-the various scripts. If you get errors about missing ones, the
-easiest way to install them is to type the following (you will
-probably need to be root),
+  o    Missing perl modules. There are various perl modules used by
+     the various scripts. If you get errors about missing ones, the
+     easiest way to install them is to type the following (you will
+     probably need to be root),
+     
      perl -MCPAN -eshell
      
      this  will then (eventually, after some configuration if it's
      your  first time) present you with a prompt. From  there  you
-     can  type  install module, e.g. Term::ReadKey  and  the  rest
+     can  type  install  module, e.g. Archive::Zip  and  the  rest
      should  be  more  or  less automatic as  it  will  chase  any
      dependencies for you. There may be some initial configuration
      questions it might ask you on startup if you've never run  it
@@ -1149,17 +1170,54 @@ probably need to be root),
      and if you can't get anything to work let me know and I'll try and
      add it.
      
-o    USB bus problems. If you have multiple USB cameras on one bus
-then it can appear as if ZoneMinder is causing your cameras to
-fail. This is because the bandwidth available to cameras is
-limited by the fairly low USB speed. In order to use more than one
-USB camera with ZoneMinder (or any application) you will need to
-inform the driver that there are other cameras requiring
-bandwidth. This is usually done with a simple module option.
-Examples are usb_alt=<n> for the OV511 driver and cams=<n> for
-CPIA etc. Check your driver documentation for more details. Be
-aware however that sharing cameras in this way on one bus will
-also limit the capture rate due to the reduced bandwidth.
+  o    USB bus problems. If you have multiple USB cameras on one bus
+     then it can appear as if ZoneMinder is causing your cameras to
+     fail.  This is because the bandwidth available to cameras  is
+     limited by the fairly low USB speed. In order to use more than one
+     USB camera with ZoneMinder (or any application) you will need to
+     inform  the  driver  that there are other  cameras  requiring
+     bandwidth. This is usually done with a simple module  option.
+     Examples are usb_alt=<n> for the OV511 driver and cams=<n> for
+     CPIA etc. Check your driver documentation for more details. Be
+     aware however that sharing cameras in this way on one bus will
+     also limit the capture rate due to the reduced bandwidth.
+     
+  o    Incorrect libjpeg.a detection. It seems to be the case that
+     in some cases the library file libjpeg.a is reported as missing
+     even when apparently present. This appears to actually be down to
+     the g++ compiler not being installed on the host system. Since
+     ZoneMinder contains both C++ and C files you need to be able to
+     compile both of these file types and so usually need to ensure you
+     have  gcc  and g++ installed (though they are often the  same
+     binary).
+     
+  o     Httpd  and zms memory leaks. It has been reported by  some
+     users  with RedHat 9 that the zms process fails to  terminate
+     correctly when the controlled window is killed and also that it,
+     and it's associated httpd process, continue to grow in memory size
+     until they kill the system. This appears to be a bug in either the
+     compiler or apache on RH9. On other systems it may appear that zms
+     is leaking and growing. However what grows is the total and shared
+     memory size while the non-shared memory size stays constant. It's
+     a little odd but I think what it happening is that as zms picks
+     images out of the shared memory ring buffer to display, as each
+     slot is read the size of that bit of memory is added to the shared
+     memory total for the process. As streamed images are not read
+     consecutively it's a semi-random process so initially most of the
+     buffer slots are new and the shared memory size grows then as time
+     goes on the remaining unaccessed slots reduce until once all have
+     been read the shared memory use caps out at the same size as the
+     actual segment. This is what I would have expected it to be in the
+     first place, but it seems to do it incrementally. Then once this
+     total is hit it grows no further. As it's shared memory anyway and
+     already in use this apparent leak is not consuming any more memory
+     than when it started.
+     
+  o    Cambozola. There appears to be an issue with recent versions
+     of Cambozola that causes image corruption in the stream. If you
+     are getting this then I suggest you stick with version 0.22 which
+     is available from the Downloads section of www.zoneminder.com.
+     
 Also,  if  you are using IE under Windows and get lots of annoying
 clicks when various windows refresh then you'll need to edit  your
 registry        and       remove       the        value        for
@@ -1171,7 +1229,91 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 7.   Change Log
    
 
-7.1. Release 0.9.11
+7.1. Release 0.9.12
+Mostly bug-fixes with a couple of minor features.
+
+  o    Double first images. Fixed a problem where the first image of
+     an event was being recorded twice. I don't think this was at the
+     cost of any of the other images but one copy was an extra.
+     
+  o     Made zmdc connect more intelligent. On the suggestion of a
+     couple of people I have made the zmdc.pl server spawning  and
+     waiting  a bit more intelligent. Rather than waiting a  fixed
+     (short) amount of time, it now polls every second for a while,
+     stopping if the connection is made. Thanks to Todd McAnally for
+     the initial suggestion.
+     
+  o      Added  image  view  to  events  lists.  Again  a  partial
+     implementation of a suggested feature. If you click on the score
+     column you will now get a snapshot of the event frame with the
+     highest score. This is to enable you to quickly see what the event
+     was  about without having to watch the stream or view all the
+     static images.
+     
+  o    Make delta times variable precision. A couple of problems had
+     been reported where long events got negative durations. This was
+     due to an overflow in a time difference routine. This had been
+     operating on fixed precision allowing high precision for short
+     deltas. This routine has been changed to allow variable precision
+     and events will now have to be several days long to wrap in this
+     way.
+     
+  o     Fixed  round detection problem. Although the existence  or
+     otherwise of the 'round' function is correctly detected,  the
+     appropriate header file with the results of this test was not
+     included which was not helpful. This has been corrected.
+     
+  o     Fixed  monitor  rename bug. Renaming  a  monitor  did  not
+     correctly modify the events directory to reflect this. This has
+     now been fixed.
+     
+  o    OPT_MPEG bug. A bug was reported (by Fernando Diaz) where the
+     results  of  the ZM_OPT_MPEG configuration variable  was  not
+     correctly imported into the scripts. This now happens as intended.
+     
+  o     Fixed  zmvideo.pl event length bug. The zmvideo.pl  script
+     which is used to generate video MPEG files tries to calculate the
+     correct frame rate based on the length of the event and the number
+     of frames it contains. Previously it did not take account of the
+     pre and post event frames and so passed a much shorter value to
+     the mpeg encoder than it should. This will only have affected
+     short events encoded with ffmpeg but will have resulted in much
+     faster frame rates than necessary. This has now been corrected to
+     take the whole event length into account.
+     
+  o    Fixed remote camera memory leak. A memory leak was reported
+     when capturing with remote cameras, this is now fixed.
+     
+  o    Orientation. Added option to rotate or invert captured images
+     for cameras mounted at unusual angles.
+     
+  o     Fixed  filter  bug.  A bug in the zmfilter.pl  script  was
+     detected and reported by Ernst Lehmann. This bug basically meant
+     that events were not checked as often as they should have been and
+     many  may  have been left out for filters that  had  no  time
+     component. The script has now been updated to reflect Ernst's
+     suggested changes.
+     
+  o     Stylesheet change. Previously the stylesheet didn't really
+     work very well on Mozilla, Netscape and browsers other than IE.
+     This turned out to be because I was using HTML style comments in
+     there instead of C style ones. This has now been corrected so you
+     should see the correct styles. Zmconfig.pl ReadKey. Thanks to a
+     ridiculously sensible suggestion from Carlton Thomas this module
+     has been removed from zmconfig.pl. Originally Term::ReadKey was in
+     there for funky single character unbuffered input but that has
+     long since disappeared so just regular perl input methods are used
+     now.  This removes one of the most irrirating features  about
+     ZoneMinder installs.
+     
+  o    Delete monitor confirm. Due to some unfortunate accidents by
+     users, attempts to delete monitors will not require confirmation.
+     
+  o    Detect linmysqlclient.a. Added better detection script into
+     'configure' top spot when libmysqlclient.a is missing.
+     
+
+7.2. Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats  view  -  If you have the  RECORD_EVENT_STATS
@@ -1181,158 +1323,190 @@ Various new features and fixes.
      useful in tuning the various motion detection parameters  and
      seeing why events occurred.
      
-o    Tabulated events - The main events view is now tabulated to
-look a bit nicer.
-o    New video palette support - As well as the existing greyscale
-and 24 bit RGB palettes, you can now choose YUV420P and RGB565.
-Rewrote the palette/colours area a bit to enable support for other
-palettes in the future if requested. Bear in mind though that YUV
-palettes are converted into RGB internally so if you have the
-choice RGB24 may be faster as it's the 'native' format used
-within.
-o    Added preclusive zones - Added a new zone type, the
-preclusive zone. For full details see the relevant section above
-but in brief this is a zone type that if alarmed will actually
-prevent an alarm. This completes the pantheon of zone types I
-think.
-o    Fixed Mozilla JavaScript - Various JavaScript functionality
-did not function on Mozilla, Netscape and other browsers. This is
-now (hopefully) fixed.
-o    Allow image and mpegs to be attached to emails - Added new
-tokens (%EI1%, %EIM% and %EV%) to the filter emails. This allows
-the first alarm image, most highly scored alarm image and an alarm
-MPEG to be attached to alarm notification emails. Use %EV%
-especially with care!
-o    Fixed possible motion detection bug - I found a few double
-declared local variables left over from the rewrite. This may have
-affected the motion detection algorithm. Fixed now anyway.
-o    Modified scoring - Alarm scoring has been modified to give
-more granularity for smaller events. This will have the effect of
-raising the scores for small events while large ones will still be
-about the same.
-o    Fixed /cgi-bin path problem - Previously you could specify
-the real path to you cgi-bin directory if you have one but not the
-web path. You can now do both.
-o    Improved video handling in browser - The MPEG/video area of
-the web GUI had been a bit neglected and looked somewhat ugly.
-This has now been improved to a degree and looks a bit nicer.
-o    Added ffmpeg support - Historically ZoneMinder has only
-supported the Berkeley mpeg encoder which was slow and rather
-limited. ZoneMinder now supports the ffmpeg encoder as well which
-is much much faster and makes generation of MPEG videos at
-realistic frame rates more of a reality. As ffmpeg has so many
-options and everyone will probably want a different emphasis you
-can now also specify additional ffmpeg options via zmconfig.pl.
-o    Colourise greyscale image files - In past versions, captured
-greyscale images were stored as JPEG files with a corresponding
-greyscale colourspace. This saved a small amount of space but
-meant that mpeg_encode had to do a conversion to encode them, and
-ffmpeg just fell in a heap. Now you can optionally opt to have
-greyscale images saved as full 24 bit colourspace images (they
-still look the same) at the price of a small penalty in CPU and
-disk but allowing you to easily and quickly create MPEG files.
-This option is one by default but can be switched off if you do
-not require any MPEG encoding.
-o    Fast RGB diffs - Previously ZoneMinder used quite a loose
-method for calculating the differences between two colour images.
-This was basically averaging the differences between each of the
-RGB components to get an overall difference. This is still the
-default but by setting ZM_FAST_RGB_DIFFS to 'no' you can now make
-it calculate the Y (or brightness value) of the pixels and use the
-difference between those instead. This will be more accurate and
-responsive to changes but is may be slower especially on old
-machines. There is a slight double whammy here if you have a YUV
-palette for capture and set this option off as the image will be
-converted to RGB and then partially converted back to get the Y
-value. This is currently very inefficient and needs to be
-optimised.
-o    Fixed STRICT_VIDEO_CONFIG - Previously this actually behaved
-the opposite of what it was supposed to, ie. if you wanted it
-strict it wasn't and vice versa. Thanks to Dan Merillat for
-pointing this one out.
-o    Web colour change - I thought the old red, green and amber
-text colours were just a bit too gaudy so I've toned them down a
-bit. Hope you like them!
+  o    Tabulated events - The main events view is now tabulated to
+     look a bit nicer.
+     
+  o    New video palette support - As well as the existing greyscale
+     and 24 bit RGB palettes, you can now choose YUV420P and RGB565.
+     Rewrote the palette/colours area a bit to enable support for other
+     palettes in the future if requested. Bear in mind though that YUV
+     palettes are converted into RGB internally so if you have the
+     choice  RGB24 may be faster as it's the 'native' format  used
+     within.
+     
+  o     Added  preclusive  zones - Added  a  new  zone  type,  the
+     preclusive zone. For full details see the relevant section above
+     but in brief this is a zone type that if alarmed will actually
+     prevent an alarm. This completes the pantheon of zone types I
+     think.
+     
+  o    Fixed Mozilla JavaScript - Various JavaScript functionality
+     did not function on Mozilla, Netscape and other browsers. This is
+     now (hopefully) fixed.
+     
+  o     Allow image and mpegs to be attached to emails - Added new
+     tokens (%EI1%, %EIM% and %EV%) to the filter emails. This allows
+     the first alarm image, most highly scored alarm image and an alarm
+     MPEG  to  be attached to alarm notification emails. Use  %EV%
+     especially with care!
+     
+  o     Fixed possible motion detection bug - I found a few double
+     declared local variables left over from the rewrite. This may have
+     affected the motion detection algorithm. Fixed now anyway.
+     
+  o     Modified scoring - Alarm scoring has been modified to give
+     more granularity for smaller events. This will have the effect of
+     raising the scores for small events while large ones will still be
+     about the same.
+     
+  o     Fixed /cgi-bin path problem - Previously you could specify
+     the real path to you cgi-bin directory if you have one but not the
+     web path. You can now do both.
+     
+  o    Improved video handling in browser - The MPEG/video area of
+     the web GUI had been a bit neglected and looked somewhat ugly.
+     This has now been improved to a degree and looks a bit nicer.
+     
+  o     Added  ffmpeg support - Historically ZoneMinder  has  only
+     supported the Berkeley mpeg encoder which was slow and rather
+     limited. ZoneMinder now supports the ffmpeg encoder as well which
+     is  much  much faster and makes generation of MPEG videos  at
+     realistic frame rates more of a reality. As ffmpeg has so many
+     options and everyone will probably want a different emphasis you
+     can now also specify additional ffmpeg options via zmconfig.pl.
+     
+  o    Colourise greyscale image files - In past versions, captured
+     greyscale images were stored as JPEG files with a corresponding
+     greyscale colourspace. This saved a small amount of space but
+     meant that mpeg_encode had to do a conversion to encode them, and
+     ffmpeg just fell in a heap. Now you can optionally opt to have
+     greyscale images saved as full 24 bit colourspace images (they
+     still look the same) at the price of a small penalty in CPU and
+     disk but allowing you to easily and quickly create MPEG files.
+     This option is one by default but can be switched off if you do
+     not require any MPEG encoding.
+     
+  o     Fast  RGB diffs - Previously ZoneMinder used quite a loose
+     method for calculating the differences between two colour images.
+     This was basically averaging the differences between each of the
+     RGB components to get an overall difference. This is still the
+     default but by setting ZM_FAST_RGB_DIFFS to 'no' you can now make
+     it calculate the Y (or brightness value) of the pixels and use the
+     difference between those instead. This will be more accurate and
+     responsive to changes but is may be slower especially on  old
+     machines. There is a slight double whammy here if you have a YUV
+     palette for capture and set this option off as the image will be
+     converted to RGB and then partially converted back to get the Y
+     value.  This  is currently very inefficient and needs  to  be
+     optimised.
+     
+  o    Fixed STRICT_VIDEO_CONFIG - Previously this actually behaved
+     the opposite of what it was supposed to, ie. if you wanted it
+     strict  it wasn't and vice versa. Thanks to Dan Merillat  for
+     pointing this one out.
+     
+  o     Web colour change - I thought the old red, green and amber
+     text colours were just a bit too gaudy so I've toned them down a
+     bit. Hope you like them!
+     
 
-7.2. Release 0.9.10
+7.3. Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
   o     Configure 'round' bug - Fixed a problem with the configure
      script that didn't  detect if the 'round' function was already
      declared before try to do it itself.
      
-o    Low event id bug - Fixed bug where events with an id of <
-1000 were being cleaned up by zmaudit.pl by mistake.
-o    Source file restructuring - The source files have been broken
-up and renamed extensively to support the first stage of the code
-being straightened out. Likewise the class structure has been
-rationalised somewhat. The php file names have also changed in
-some cases so it might be best to delete all your php and css
-files from the zone minder install directory first as the old ones
-won't be overwritten and will be left behind.
-o    Streamed cycle view -  The monitor cycle view (the one where
-each monitor is displayed sequentially) now supports streams as
-well as stills.
-o    New 'montage' view - Added a montage view showing all your
-cameras simultaneously either streaming or stills. The width of
-this window (in terms of number of monitors) is a configuration
-option.
-o    Network camera support - A major change in this version is
-support for remote or network cameras. This is currently
-implemented as series of http grabs of stills rather than being
-able to break up motion jpeg streams. However frame rates of from
-2-10 should be achievable depending on your network proximity to
-the cameras.
-o    Option BGR->RGB swap - Added the option to switch on or off
-the inversion of RGB to BGR for local cameras. It is on by default
-to maintain compatibility with previous releases.
-o    zmu suspend alarm option - Added new -n option to zmu to
-effectively suspend alarm detection for a monitor. This is
-intended for short term use and to support PTZ cameras where alarm
-detection is desired to be suspended while the camera changes
-orientation or zoom level.
-o    FPS limiting - Added a new option to monitors to add a
-maximum capture rate. This allows you to limit the amount of hits
-a network camera gets or to reduce the system load with many
-cameras. It also works with multi-port cards and limiting the
-capture rate on one camera allows the spare FPS to be allocated to
-other devices. For instance with two cameras and no throttle, I
-get about 4FPS each. Throttling one to 2FPS allows the other to
-operate at 6FPS so you can allocate your capture resources
-accordingly. This limiting can be disabled while alarms are
-occurring as a global option in zmconfig.pl.
-o    Alarm reference update - Added option to not blend alarmed
-images into the reference image. See the help in zmconfig.pl for
-caveats.
-o    Disappearing monitors - Fixed the disappearing monitor
-problem in the console view where monitors with no events were
-randomly not being shown.
-o    Clean and tidy - Cleaned up a load of compiler warnings and
-miscellanea to ensure a cleaner happier build.
-o    Streamed image headers - Made all headers in streamed images
-have full CRLF termination which will hopefully now prevent the
-problems with broken streams that had existed mostly with Mozilla
-(and hopefully won't break anything else).
-o    Expire streams - Added expiry headers to streamed images so
-they will always display fully.
-o    Event navigation - Added next, prev, delete & next, delete &
-prev navigation to events to allow you to quickly review events in
-sequence as had been requested by a number of people.
-o    USR blocking - The debug USR signals were not being blocked
-properly leading to nasty effects in zmc mostly.
-o    zmfilter execution - Previously zmfilter execution was not
-synchronised with the monitor state or the analysis daemon leading
-to it sometimes being run unnecessarily. From now on the zmfilter
-process will only run when a monitor is active and so actually
-potentially generating alarms.
-o    zmdc short statuses - Removed the logging of the short status
-values that zmdc.pl returns to it's clients which had been
-clogging up the log file.
-o    Bugs and pieces - Fixed various bug(ettes) that I came across
-that that I don't think had been reported or noticed so I don't
-think we need to talk about them here do we.
+  o     Low event id bug - Fixed bug where events with an id of  <
+     1000 were being cleaned up by zmaudit.pl by mistake.
+     
+  o    Source file restructuring - The source files have been broken
+     up and renamed extensively to support the first stage of the code
+     being straightened out. Likewise the class structure has been
+     rationalised somewhat. The php file names have also changed in
+     some cases so it might be best to delete all your php and css
+     files from the zone minder install directory first as the old ones
+     won't be overwritten and will be left behind.
+     
+  o    Streamed cycle view -  The monitor cycle view (the one where
+     each monitor is displayed sequentially) now supports streams as
+     well as stills.
+     
+  o     New 'montage' view - Added a montage view showing all your
+     cameras simultaneously either streaming or stills. The width of
+     this window (in terms of number of monitors) is a configuration
+     option.
+     
+  o     Network camera support - A major change in this version is
+     support  for  remote or network cameras.  This  is  currently
+     implemented as series of http grabs of stills rather than being
+     able to break up motion jpeg streams. However frame rates of from
+     2-10 should be achievable depending on your network proximity to
+     the cameras.
+     
+  o    Option BGR->RGB swap - Added the option to switch on or off
+     the inversion of RGB to BGR for local cameras. It is on by default
+     to maintain compatibility with previous releases.
+     
+  o     zmu  suspend alarm option - Added new -n option to zmu  to
+     effectively  suspend alarm detection for a monitor.  This  is
+     intended for short term use and to support PTZ cameras where alarm
+     detection is desired to be suspended while the camera changes
+     orientation or zoom level.
+     
+  o     FPS  limiting - Added a new option to monitors  to  add  a
+     maximum capture rate. This allows you to limit the amount of hits
+     a  network camera gets or to reduce the system load with many
+     cameras. It also works with multi-port cards and limiting the
+     capture rate on one camera allows the spare FPS to be allocated to
+     other devices. For instance with two cameras and no throttle, I
+     get about 4FPS each. Throttling one to 2FPS allows the other to
+     operate  at  6FPS so you can allocate your capture  resources
+     accordingly. This limiting can be disabled while  alarms  are
+     occurring as a global option in zmconfig.pl.
+     
+  o     Alarm reference update - Added option to not blend alarmed
+     images into the reference image. See the help in zmconfig.pl for
+     caveats.
+     
+  o     Disappearing  monitors  - Fixed the  disappearing  monitor
+     problem in the console view where monitors with no events were
+     randomly not being shown.
+     
+  o    Clean and tidy - Cleaned up a load of compiler warnings and
+     miscellanea to ensure a cleaner happier build.
+     
+  o    Streamed image headers - Made all headers in streamed images
+     have full CRLF termination which will hopefully now prevent the
+     problems with broken streams that had existed mostly with Mozilla
+     (and hopefully won't break anything else).
+     
+  o    Expire streams - Added expiry headers to streamed images so
+     they will always display fully.
+     
+  o    Event navigation - Added next, prev, delete & next, delete &
+     prev navigation to events to allow you to quickly review events in
+     sequence as had been requested by a number of people.
+     
+  o    USR blocking - The debug USR signals were not being blocked
+     properly leading to nasty effects in zmc mostly.
+     
+  o     zmfilter execution - Previously zmfilter execution was not
+     synchronised with the monitor state or the analysis daemon leading
+     to it sometimes being run unnecessarily. From now on the zmfilter
+     process will only run when a monitor is active and so actually
+     potentially generating alarms.
+     
+  o    zmdc short statuses - Removed the logging of the short status
+     values  that zmdc.pl returns to it's clients which  had  been
+     clogging up the log file.
+     
+  o    Bugs and pieces - Fixed various bug(ettes) that I came across
+     that that I don't think had been reported or noticed so I don't
+     think we need to talk about them here do we.
+     
 
-7.3. Release 0.9.9
+7.4. Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o    Added zmu -q/--query option - There is now a new query option
@@ -1343,153 +1517,206 @@ Mainly bug-fixes and minor feature enhancements.
      device by default. This now requires the -q option also to bring
      into line with it's -m equivalent.
      
-o    Added creation of events directory - Previously the 'events'
-directory was not created on install, this has been fixed.
-o    Can now retag PHP files if necessary - Version 0.9.8 was the
-first version to use short_open_tags in the PHP files. This caused
-grief to some people so this script will put them back to the long
-verion.
-o    Frame and event lengths fractional - A new field has been
-added to the Frames table. This is 'Delta' and is a fractional
-number of seconds relative to the event start time. This is
-intended to support the real-time playback of events rather than
-just 'as fast as possible' or with a configured delay as at
-present. The event length is now also fractional.
-o    Corrected extraneous Width to be Height - The last version of
-zmu included a Width comment which should have been height.
-o    Changed colour depth to bits - Having colour depths expressed
-in bytes has caused no end of problems. This is now changed to be
-bits and can be changed via a dropdown to limit what can be
-entered. Don't forget to run the zmalter script to update your DB.
-o    Renamed terminate to zm_terminate - The use of 'terminate' in
-zmc.cpp caused a conflict on some systems so renamed it to
-something more specific.
-o    Zone deletion problem - A problem was found such that when
-deleting zones the appropriate daemons were not being asked to
-restart daemons correctly.
-o    Console changes - The current version number is now displayed
-in the console. A refresh button has also been added along with a
-minor reorg.
-o    Added delete button enable to checkAll - Using the 'Check
-All' button in the main monitor window previously did not enable
-the delete button. This is now fixed.
-o    Reload on click - In previous versions the console window
-would reload if a monitor window for example was clicked. Thsi was
-removed in the last version which meant that sometimes the console
-never go refreshed as it's timing loop was broken. This
-functionality has now been reinstated.
+  o    Added creation of events directory - Previously the 'events'
+     directory was not created on install, this has been fixed.
+     
+  o    Can now retag PHP files if necessary - Version 0.9.8 was the
+     first version to use short_open_tags in the PHP files. This caused
+     grief to some people so this script will put them back to the long
+     verion.
+     
+  o     Frame and event lengths fractional - A new field has  been
+     added to the Frames table. This is 'Delta' and is a fractional
+     number  of seconds relative to the event start time. This  is
+     intended to support the real-time playback of events rather than
+     just  'as fast as possible' or with a configured delay as  at
+     present. The event length is now also fractional.
+     
+  o    Corrected extraneous Width to be Height - The last version of
+     zmu included a Width comment which should have been height.
+     
+  o    Changed colour depth to bits - Having colour depths expressed
+     in bytes has caused no end of problems. This is now changed to be
+     bits  and can be changed via a dropdown to limit what can  be
+     entered. Don't forget to run the zmalter script to update your DB.
+     
+  o    Renamed terminate to zm_terminate - The use of 'terminate' in
+     zmc.cpp  caused a conflict on some systems so renamed  it  to
+     something more specific.
+     
+  o     Zone deletion problem - A problem was found such that when
+     deleting zones the appropriate daemons were not being asked to
+     restart daemons correctly.
+     
+  o    Console changes - The current version number is now displayed
+     in the console. A refresh button has also been added along with a
+     minor reorg.
+     
+  o     Added  delete button enable to checkAll - Using the 'Check
+     All' button in the main monitor window previously did not enable
+     the delete button. This is now fixed.
+     
+  o     Reload on click - In previous versions the console  window
+     would reload if a monitor window for example was clicked. Thsi was
+     removed in the last version which meant that sometimes the console
+     never  go  refreshed  as it's timing loop  was  broken.  This
+     functionality has now been reinstated.
+     
 
-7.4. Release 0.9.8
+7.5. Release 0.9.8
 Several new features and bug-fixes
 
   o    Upgrade note - If you have installed 0.9.7 and wish to save
      your configuration then copy your existing zmconfig.txt file over
      to your 0.9.8 directory and before running zmconfig.pl.
      
-o    Added multiple options to zmu - You can now give multiple
-options to zmu and get all the responses at once. However this is
-currently in a deterministic order and not related to the order
-you give them.
-o    Added -v/--verbose option to zmu - Zmu has been made more
-human friendly though it still remains primarily for daemon use.
-Giving the -v or --verbose option prints out a bit more as a
-response to each command.
-o    Add -d/--device to zmu - This option is designed to allow you
-to get your video device working with another application such as
-xawtv and then use zmu -d to print out the settings it's using
-o    (especially with the -v option). These options can then be
-used as a starting point for your ZoneMinder configuration.
-o    Added FPS in status field - The status field in the web
-monitor views now contains an FPS setting as well as the status.
-o    Zmconfig changes - zmconfig handles missing options better
-and rewrites config file even in non-interactive mode.
-o    Fixed config problems in zmcfg.h - Some config was not being
-set up correctly in zmcfg.h.
-o    Zmwatch now works on image delay and not fps - Previously the
-zmwatch daemon detected capture daemon failure by trying to use
-the FPS setting. This was imprecise and prone to false readings.
-It now uses the time delay since the last captured image.
-o    Added zmpkg.pl and zm scripts - There are now two new
-scripts. zmpkg.pl is in charge of starting and stopping ZoneMinder
-as a whole package and zm is designed to be (optionally) installed
-into your init.d directory to use ZoneMinder as a service.
-o    Fixed bug in Scan mode - The monitor cycle or scan mode had
-stopped working properly due to images not being generated. This
-is now fixed.
-o    Revamped the console window slightly - The console window has
-now been reformatted slightly to give more and better information
-including server load.
-o    Added email and messaging to filters - Filters now allow you
-to send emails or messages (basically just short emails intended
-for mobile devices) on alarms. The format and possible content for
-these emails is in zmconfig_eml.txt and zmconfig_msg.txt.
-o    Made zmdc more aggresive in killing old processes - The
-zmdc.pl daeamon will now kill any ZoneMinder processes it finds on
-startup or shutdown to prevent orphans from being left around.
-o    Configuration changes - Previously there were a lot of files
-generated by configure. Now only zmconfig.pl is generated this way
-and all the other configuration files are created by zmconfig.pl
-(from .z files) to centralise configuration more.
-o    Fixed cambolzola opt bug - There was a bug in the Cambozola
-options, I can't remember what it was but it's fixed!
-o    Retaint arguments in zmdc.pl - In some installations zmdc was
-complaining about tainted arguments from the socket. These are now
-detainted prior to sending and after receiving.
-o    Forced alarms - You can now force alarms when looking at the
-monitor window should anything catch your attention. You have to
-remember to switch them off as well though.
-o    Looser video configuration - Some video configuration errors
-can now be ignored via the STRICT_VIDEO_CONFIG option.
-o    Monitor window refresh on alarm - When the monitor window is
-active and an alarm has occurred the most recent alarms list is
-immediately refreshed to show it.
+  o     Added  multiple options to zmu - You can now give multiple
+     options to zmu and get all the responses at once. However this is
+     currently in a deterministic order and not related to the order
+     you give them.
+     
+  o     Added -v/--verbose option to zmu - Zmu has been made  more
+     human friendly though it still remains primarily for daemon use.
+     Giving the -v or --verbose option prints out a bit more as  a
+     response to each command.
+     
+  o    Add -d/--device to zmu - This option is designed to allow you
+     to get your video device working with another application such as
+     xawtv and then use zmu -d to print out the settings it's using
+     
+  o     (especially with the -v option). These options can then be
+     used as a starting point for your ZoneMinder configuration.
+     
+  o     Added  FPS in status field - The status field in  the  web
+     monitor views now contains an FPS setting as well as the status.
+     
+  o     Zmconfig changes - zmconfig handles missing options better
+     and rewrites config file even in non-interactive mode.
+     
+  o    Fixed config problems in zmcfg.h - Some config was not being
+     set up correctly in zmcfg.h.
+     
+  o    Zmwatch now works on image delay and not fps - Previously the
+     zmwatch daemon detected capture daemon failure by trying to use
+     the FPS setting. This was imprecise and prone to false readings.
+     It now uses the time delay since the last captured image.
+     
+  o     Added  zmpkg.pl  and zm scripts - There are  now  two  new
+     scripts. zmpkg.pl is in charge of starting and stopping ZoneMinder
+     as a whole package and zm is designed to be (optionally) installed
+     into your init.d directory to use ZoneMinder as a service.
+     
+  o    Fixed bug in Scan mode - The monitor cycle or scan mode had
+     stopped working properly due to images not being generated. This
+     is now fixed.
+     
+  o    Revamped the console window slightly - The console window has
+     now been reformatted slightly to give more and better information
+     including server load.
+     
+  o    Added email and messaging to filters - Filters now allow you
+     to send emails or messages (basically just short emails intended
+     for mobile devices) on alarms. The format and possible content for
+     these emails is in zmconfig_eml.txt and zmconfig_msg.txt.
+     
+  o     Made  zmdc more aggresive in killing old processes  -  The
+     zmdc.pl daeamon will now kill any ZoneMinder processes it finds on
+     startup or shutdown to prevent orphans from being left around.
+     
+  o    Configuration changes - Previously there were a lot of files
+     generated by configure. Now only zmconfig.pl is generated this way
+     and all the other configuration files are created by zmconfig.pl
+     (from .z files) to centralise configuration more.
+     
+  o    Fixed cambolzola opt bug - There was a bug in the Cambozola
+     options, I can't remember what it was but it's fixed!
+     
+  o    Retaint arguments in zmdc.pl - In some installations zmdc was
+     complaining about tainted arguments from the socket. These are now
+     detainted prior to sending and after receiving.
+     
+  o    Forced alarms - You can now force alarms when looking at the
+     monitor window should anything catch your attention. You have to
+     remember to switch them off as well though.
+     
+  o    Looser video configuration - Some video configuration errors
+     can now be ignored via the STRICT_VIDEO_CONFIG option.
+     
+  o    Monitor window refresh on alarm - When the monitor window is
+     active and an alarm has occurred the most recent alarms list is
+     immediately refreshed to show it.
+     
 
-7.5. Release 0.9.7
+7.6. Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes too.  Now
 somewhat more mature, not really an alpha any more, and a  lot  of
 bugs fixed too.
 
   o    Added zmconfig.pl script to help with configuration.
      
-o    Revamped to work better with configure scripts
-o    Monitors now have more configuration options, including some
-that were statically defined before such as location and format of
-the image timestamps.
-o    Removed Alarms table from schema as not required, never was
-actually...
-o    Added a number of new scripts, see the scripts directory
-o    Added Fast delete to PHP files. This allows the web interface
-to only delete the event entries themselves for speed and then
-have the zmaudit script periodically tidy up the rest.
-o    Added event filter to enable bulk viewing, upload or deletion
-of events according to various attributes. Filter can be saved and
-edited.
-o    Added last event id to shared memory for auto-filtering etc.
-o    Changed zmu -i option to write to monitor named image file.
-o    Made shared memory management somewhat more sensible.
-o    Now stores DB times as localtime rather than UTC avoiding
-daylight saving related bugs.
-o    Fixed bug with inactive zones and added more debug.
-o    Changed main functions to return int.
-o    Added help and usage to zmu.
-o    Fixed browser acceptance problem, more easily defaults to
-HTML.
-o    Split out the PHP files into a bunch with specific functions
-rather than one monolithic one.
-o    Fixed NetPBM paths and changed _SERVER to HTTP_SERVER_VARS.
-o    Added HUP signal on zone deletion.
-o    Added NETPBM_DIR and conditional netpbm stuff.
-o    Removed hard coded window sizes, all popup window dimensions
-can be specified in zmconfig.php
-o    Changed form methods to 'get' from 'post' to avoid resubmit
-warnings all the time.
-o    Added conditional sound to alarm on web interface.
-o    Fixed syntax error when adding default monitor.
-o    Some of the web views have changed slightly to accommodate
-the separate events view.
-o    And much much more, probably...
+  o    Revamped to work better with configure scripts
+     
+  o    Monitors now have more configuration options, including some
+     that were statically defined before such as location and format of
+     the image timestamps.
+     
+  o    Removed Alarms table from schema as not required, never was
+     actually...
+     
+  o    Added a number of new scripts, see the scripts directory
+     
+  o    Added Fast delete to PHP files. This allows the web interface
+     to only delete the event entries themselves for speed and then
+     have the zmaudit script periodically tidy up the rest.
+     
+  o    Added event filter to enable bulk viewing, upload or deletion
+     of events according to various attributes. Filter can be saved and
+     edited.
+     
+  o    Added last event id to shared memory for auto-filtering etc.
+     
+  o    Changed zmu -i option to write to monitor named image file.
+     
+  o    Made shared memory management somewhat more sensible.
+     
+  o     Now  stores DB times as localtime rather than UTC avoiding
+     daylight saving related bugs.
+     
+  o    Fixed bug with inactive zones and added more debug.
+     
+  o    Changed main functions to return int.
+     
+  o    Added help and usage to zmu.
+     
+  o     Fixed browser acceptance problem, more easily defaults  to
+     HTML.
+     
+  o    Split out the PHP files into a bunch with specific functions
+     rather than one monolithic one.
+     
+  o    Fixed NetPBM paths and changed _SERVER to HTTP_SERVER_VARS.
+     
+  o    Added HUP signal on zone deletion.
+     
+  o    Added NETPBM_DIR and conditional netpbm stuff.
+     
+  o    Removed hard coded window sizes, all popup window dimensions
+     can be specified in zmconfig.php
+     
+  o    Changed form methods to 'get' from 'post' to avoid resubmit
+     warnings all the time.
+     
+  o    Added conditional sound to alarm on web interface.
+     
+  o    Fixed syntax error when adding default monitor.
+     
+  o     Some of the web views have changed slightly to accommodate
+     the separate events view.
+     
+  o    And much much more, probably...
+     
 
-7.6. Release 0.0.1
+7.7. Release 0.0.1
 Initial release, therefore nothing new.
 
 
@@ -1503,65 +1730,79 @@ enhancements still to do, here is just a sample.
      be a separate table and class from monitors. Not critical but
      would represent a better model.
      
-o    Comments - Needs many more, but that's just me I'm hopeless
-at commenting things out. I'll get round to it soon though honest!
-You're lucky to even get this document.
-o    Optimised zones - The zones could do with being sorted out a
-bit to optimise the processing of overlapping ones, at the moment
-you can waste resource unless your zones are kept very tidy.
-o    Create zones using server side image maps - This would make
-it easier to precisely define and see where your zone is going to
-go. Not critical but handy but a bugger to do.
-o    Zone Definitions - Allow zones to be defined according to a
-colour coded bitmap or as polygons. Currently all zones are
-rectangular this would add a bit of flexibility. Would need a bit
-of a rewrite though. This will incur a slight penalty on startup
-and a very slight one on processing for all reasonably shaped
-zones.
-o    Security - I think I need to give the php file a bit of a
-good going over as I'm sure it's not done in the most secure way
-regarding passing things onto command line, exposing file paths
-and other stuff. I'm a bit of a PHP novice, as I'm sure you can
-tell so might need help here. I should have done it in perl!
-o    Mouseover help - A bit more help popping up when you
-mouseover things would be handy. A bit more help full stop
-actually.
-o    WAP interface - A bit of a crusade of mine I'm afraid. I'd
-like to put a WML interface on to allow you to view event listing
-and perhaps the most significant image from each event on your
-phone. Also simple management. From version 0.9.7 there is a very
-basic crude initial version that probably won't work with your
-phone but its there as a testbed.
-o    Automatic device configuration - Video 4 Linux supports
-various device queries, it should be possible to get most of the
-device capability information from the device itself. The zmu
-utility does this now but it's not yet integrated into the web
-pages.
-o    Extend the API. Well ok it's not really got an API yet but
-the image data is held in shared memory in a very simple format.
-In theory you could use the capture daemon to gab the images and
-other things could read them from memory or the analysis daemon
-could read images from elsewhere. Either way this should be done
-through an API, and would need a library I think. Also the zmu
-utility could probably do a whole lot more to enable other things
-to manage when the daemons become active etc.
-o    Access control should probably be built in rather than
-relying on .htaccess etc. This is a frequently requested feature
-(FRF) and must be done soon.
-o    Create .rpm packages (as there can be several dependencies)
-and maybe other types of packages also, e.g. for Debian
-distributions.
-o    Allow ZoneMinder to 'train' itself by allowing the user to
-select events that are considered important and to discard those
-that should be ignored. ZoneMinder will interpolate, add a bit of
-magic, and recommend settings that will support this selection
-automatically thereafter. The hooks for this are already in to
-some extent.
-o    Add quotes to all PHP array references. I should have done it
-in the first place but I'm a perl person really and it kind of
-bugs me that you have to.
-o    Add sound support to allow a captured audio channel to be
-associated with a video device.
+  o    Comments - Needs many more, but that's just me I'm hopeless
+     at commenting things out. I'll get round to it soon though honest!
+     You're lucky to even get this document.
+     
+  o    Optimised zones - The zones could do with being sorted out a
+     bit to optimise the processing of overlapping ones, at the moment
+     you can waste resource unless your zones are kept very tidy.
+     
+  o    Create zones using server side image maps - This would make
+     it easier to precisely define and see where your zone is going to
+     go. Not critical but handy but a bugger to do.
+     
+  o    Zone Definitions - Allow zones to be defined according to a
+     colour  coded bitmap or as polygons. Currently all zones  are
+     rectangular this would add a bit of flexibility. Would need a bit
+     of a rewrite though. This will incur a slight penalty on startup
+     and a very slight one on processing for all reasonably shaped
+     zones.
+     
+  o     Security - I think I need to give the php file a bit of  a
+     good going over as I'm sure it's not done in the most secure way
+     regarding passing things onto command line, exposing file paths
+     and other stuff. I'm a bit of a PHP novice, as I'm sure you can
+     tell so might need help here. I should have done it in perl!
+     
+  o     Mouseover  help  -  A bit more help popping  up  when  you
+     mouseover  things would be handy. A bit more help  full  stop
+     actually.
+     
+  o     WAP interface - A bit of a crusade of mine I'm afraid. I'd
+     like to put a WML interface on to allow you to view event listing
+     and perhaps the most significant image from each event on your
+     phone. Also simple management. From version 0.9.7 there is a very
+     basic crude initial version that probably won't work with your
+     phone but its there as a testbed.
+     
+  o     Automatic  device configuration - Video 4  Linux  supports
+     various device queries, it should be possible to get most of the
+     device capability information from the device itself. The zmu
+     utility does this now but it's not yet integrated into the web
+     pages.
+     
+  o     Extend the API. Well ok it's not really got an API yet but
+     the image data is held in shared memory in a very simple format.
+     In theory you could use the capture daemon to gab the images and
+     other things could read them from memory or the analysis daemon
+     could read images from elsewhere. Either way this should be done
+     through an API, and would need a library I think. Also the zmu
+     utility could probably do a whole lot more to enable other things
+     to manage when the daemons become active etc.
+     
+  o     Access  control should probably be built  in  rather  than
+     relying on .htaccess etc. This is a frequently requested feature
+     (FRF) and must be done soon.
+     
+  o    Create .rpm packages (as there can be several dependencies)
+     and  maybe  other  types of packages also,  e.g.  for  Debian
+     distributions.
+     
+  o     Allow ZoneMinder to 'train' itself by allowing the user to
+     select events that are considered important and to discard those
+     that should be ignored. ZoneMinder will interpolate, add a bit of
+     magic, and recommend settings that will support this selection
+     automatically thereafter. The hooks for this are already in to
+     some extent.
+     
+  o    Add quotes to all PHP array references. I should have done it
+     in the first place but I'm a perl person really and it kind of
+     bugs me that you have to.
+     
+  o     Add sound support to allow a captured audio channel to  be
+     associated with a video device.
+     
 
 9.   Bugs
    
@@ -1571,18 +1812,21 @@ associated with a video device.
      associated with the image anyway. So I think this should be moved
      to the analysis daemon.
      
-o    I suspect there may be a bug in zmaudit.pl if your monitor
-names have spaces in them. I've not been able to reproduce it but
-to be on the safe side don't put spaces in your Monitor names.
-o    When opening a link to an event etc from a notification email
-the window that is opened is just a regular browser window and not
-in the context of a proper ZoneMinder web interface. Thus it comes
-up too big usually (not a major issue) and also things like
-'Delete' don't work as it wants to do things to its parent (which
-is more of a major issue).
-o    The .sock files used by the *nix sockets I suspect may have
-the odd permission issue now and again. I think everything
-recovers from it but it needs checking out.
+  o     I suspect there may be a bug in zmaudit.pl if your monitor
+     names have spaces in them. I've not been able to reproduce it but
+     to be on the safe side don't put spaces in your Monitor names.
+     
+  o    When opening a link to an event etc from a notification email
+     the window that is opened is just a regular browser window and not
+     in the context of a proper ZoneMinder web interface. Thus it comes
+     up  too big usually (not a major issue) and also things  like
+     'Delete' don't work as it wants to do things to its parent (which
+     is more of a major issue).
+     
+  o    The .sock files used by the *nix sockets I suspect may have
+     the  odd  permission issue now and again. I think  everything
+     recovers from it but it needs checking out.
+     
 Probably bucket loads more, just fire them at me.
 
 

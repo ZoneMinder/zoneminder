@@ -110,19 +110,73 @@ function makeLink( $url, $label, $condition=1 )
 
 function buildSelect( $name, $contents, $onchange="" )
 {
-	global $$name;
+	if ( preg_match( "/^(\w+)\s*\[\s*['\"]?(\w+)[\"']?\s*]$/", $name, $matches ) )
+	{
+		$arr = $matches[1];
+		$idx = $matches[2];
+		global $$arr;
+		$value = ${$arr}[$idx];
+	}
+	else
+	{
+		global $$name;
+		$value = $$name;
+	}
+	ob_start();
 ?>
 <select name="<?= $name ?>" class="form"<?php if ( $onchange ) { echo " onChange=\"$onchange\""; } ?>>
 <?php
 	foreach ( $contents as $content_value => $content_text )
 	{
 ?>
-<option value="<?= $content_value ?>"<?php if ( $$name == $content_value ) { echo " selected"; } ?>><?= $content_text ?></option>
+<option value="<?= $content_value ?>"<?php if ( $value == $content_value ) { echo " selected"; } ?>><?= $content_text ?></option>
 <?php
 	}
 ?>
 </select>
 <?php
+	$html = ob_get_contents();
+	ob_end_clean();
+	
+	return( $html );
+}
+
+function getFormChanges( $values, $new_values, $types=false )
+{
+	$changes = array();
+	if ( !$types )
+		$types = array();
+
+	foreach( $new_values as $key=>$value )
+	{
+		switch( $types[$key] )
+		{
+			case 'set' :
+			{
+				if ( is_array( $new_values[$key] ) )
+				{
+					if ( join(',',$new_values[$key]) != $values[$key] )
+					{
+						$changes[] = "$key = '".join(',',$new_values[$key])."'";
+					}
+				}
+				elseif ( $values[$key] )
+				{
+					$changes[] = "$key = ''";
+				}
+				break;
+			}
+			default :
+			{
+				if ( $values[$key] != $value )
+				{
+					$changes[] = "$key = '$value'";
+				}
+				break;
+			}
+		}
+	}
+	return( $changes );
 }
 
 function getBrowser( &$browser, &$version )

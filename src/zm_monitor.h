@@ -46,7 +46,7 @@ public:
 	typedef enum
 	{
 		CONTINUOUS=0,
-		TRIGGERED,
+		TRIGGERED
 	} RunMode;
 
 	typedef enum

@@ -191,7 +191,6 @@ int main( int argc, char *argv[] )
 		{"noalarm", 0, 0, 'n'},
 		{"cancel", 0, 0, 'c'},
 		{"query", 0, 0, 'q'},
-		{"brightness", 0, 0, 'b'},
 		{"username", 1, 0, 'U'},
 		{"password", 1, 0, 'P'},
 		{"help", 0, 0, 'h'},

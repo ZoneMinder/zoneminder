@@ -167,7 +167,7 @@ zma_SOURCES = zma.cpp $(zm_SOURCES)
 zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
 zmf_SOURCES = zmf.cpp $(zm_SOURCES)
-zmfix_SOURCES = zmfix.cpp zm_debug.c zm_db.cpp zm.cpp
+zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_debug.c zm_db.cpp zm.cpp
 
 noinst_HEADERS = \
 	zm.h \
@@ -225,8 +225,8 @@ zmf_OBJECTS = $(am_zmf_OBJECTS)
 zmf_LDADD = $(LDADD)
 zmf_DEPENDENCIES =
 zmf_LDFLAGS =
-am_zmfix_OBJECTS = zmfix.$(OBJEXT) zm_debug.$(OBJEXT) zm_db.$(OBJEXT) \
-	zm.$(OBJEXT)
+am_zmfix_OBJECTS = zmfix.$(OBJEXT) zm_config.$(OBJEXT) \
+	zm_debug.$(OBJEXT) zm_db.$(OBJEXT) zm.$(OBJEXT)
 zmfix_OBJECTS = $(am_zmfix_OBJECTS)
 zmfix_LDADD = $(LDADD)
 zmfix_DEPENDENCIES =

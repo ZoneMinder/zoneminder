@@ -31,12 +31,8 @@
 #include "zm.h"
 #include "zm_db.h"
 
-bool fixDevice( int device )
+bool fixDevice( const char *device_path )
 {
-	char device_path[64];
-
-	snprintf( device_path, sizeof(device_path), "/dev/video%d", device );
-
 	struct stat stat_buf;
 
 	if ( stat( device_path, &stat_buf ) < 0 )
@@ -82,6 +78,15 @@ bool fixDevice( int device )
 	return( true );
 }
 
+bool fixVideoDevice( int device )
+{
+	char device_path[64];
+
+	snprintf( device_path, sizeof(device_path), "/dev/video%d", device );
+
+	return( fixDevice( device_path ) );
+}
+
 int main( int argc, char *argv[] )
 {
 	char dbg_name_string[16] = "zmfix";
@@ -94,7 +99,7 @@ int main( int argc, char *argv[] )
 		// Do all devices we can find
 		for ( int device = 0; device < 256; device++ )
 		{
-			if ( !fixDevice( device ) )
+			if ( !fixVideoDevice( device ) )
 			{
 				break;
 			}
@@ -124,7 +129,7 @@ int main( int argc, char *argv[] )
 		for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 		{
 			int device = atoi(dbrow[0]);
-			fixDevice( device );
+			fixVideoDevice( device );
 		}
 
 		if ( mysql_errno( &dbconn ) )
@@ -134,6 +139,16 @@ int main( int argc, char *argv[] )
 		}
 		// Yadda yadda
 		mysql_free_result( result );
+
+		if ( (bool)config.Item( ZM_OPT_X10 ) )
+		{
+			const char *x10_port = (const char *)config.Item( ZM_X10_DEVICE );
+
+			if ( x10_port )
+			{
+				fixDevice( x10_port );
+			}
+		}
 	}
 	return( 0 );
 }

@@ -64,7 +64,7 @@ web_DATA = \
 	zm_wml_view_console.php \
 	zm_wml_view_feed.php
 
-EXTRA_DIST =
+EXTRA_DIST = \
 	favicon.ico \
 	retag.sh \
 	swap.pl \
@@ -104,7 +104,6 @@ EXTRA_DIST =
 	zm_html_view_video.php \
 	zm_html_view_watchevents.php \
 	zm_html_view_watchfeed.php \
-	zm_html_view_watchfetch.php \
 	zm_html_view_watchmenu.php \
 	zm_html_view_watch.php \
 	zm_html_view_watchstatus.php \

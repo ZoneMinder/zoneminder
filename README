@@ -1,4 +1,3 @@
-     09/06/03        ZoneMinder 0.9.12 README                1
                                  
                         ZoneMinder v0.9.12
 
@@ -1298,13 +1297,15 @@ Mostly bug-fixes with a couple of minor features.
      work very well on Mozilla, Netscape and browsers other than IE.
      This turned out to be because I was using HTML style comments in
      there instead of C style ones. This has now been corrected so you
-     should see the correct styles. Zmconfig.pl ReadKey. Thanks to a
-     ridiculously sensible suggestion from Carlton Thomas this module
-     has been removed from zmconfig.pl. Originally Term::ReadKey was in
-     there for funky single character unbuffered input but that has
-     long since disappeared so just regular perl input methods are used
-     now.  This removes one of the most irrirating features  about
-     ZoneMinder installs.
+     should see the correct styles.
+     
+  o     Zmconfig.pl  ReadKey.  Thanks to a  ridiculously  sensible
+     suggestion from Carlton Thomas this module has been removed from
+     zmconfig.pl. Originally Term::ReadKey was in there for  funky
+     single  character unbuffered input but that  has  long  since
+     disappeared so just regular perl input methods are used now. This
+     removes  one of the most irritating features about ZoneMinder
+     installs.
      
   o    Delete monitor confirm. Due to some unfortunate accidents by
      users, attempts to delete monitors will not require confirmation.

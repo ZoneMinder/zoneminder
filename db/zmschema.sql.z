@@ -100,7 +100,7 @@ CREATE TABLE Monitors (
   WarmupCount smallint(5) unsigned NOT NULL default '25',
   PreEventCount smallint(5) unsigned NOT NULL default '10',
   PostEventCount smallint(5) unsigned NOT NULL default '10',
-  AlarmFrameCount smallint(5) unsigned NOT NULL default '1',
+  MaxFPS decimal(5,2) NOT NULL default '0.00',
   FPSReportInterval smallint(5) unsigned NOT NULL default '250',
   RefBlendPerc tinyint(3) unsigned NOT NULL default '10',
   X10Activation varchar(32) default NULL,

@@ -82,8 +82,7 @@ cgidir = @CGI_PREFIX@
 webuser = @WEB_USER@
 webgroup = @WEB_GROUP@
 
-cgi_PROGRAMS = zms
-bin_PROGRAMS = zmc zma zmu
+bin_PROGRAMS = zmc zma zmu zms
 
 zm_SOURCES = zm.cpp zmdbg.c jmemdst.c
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
@@ -97,7 +96,7 @@ EXTRA_DIST =
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
 CONFIG_CLEAN_FILES = 
-PROGRAMS =  $(bin_PROGRAMS) $(cgi_PROGRAMS)
+PROGRAMS =  $(bin_PROGRAMS)
 
 
 DEFS = @DEFS@ -I. -I$(srcdir) -I..
@@ -175,31 +174,6 @@ uninstall-binPROGRAMS:
 	@$(NORMAL_UNINSTALL)
 	list='$(bin_PROGRAMS)'; for p in $$list; do \
 	  rm -f $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
-	done
-
-mostlyclean-cgiPROGRAMS:
-
-clean-cgiPROGRAMS:
-	-test -z "$(cgi_PROGRAMS)" || rm -f $(cgi_PROGRAMS)
-
-distclean-cgiPROGRAMS:
-
-maintainer-clean-cgiPROGRAMS:
-
-install-cgiPROGRAMS: $(cgi_PROGRAMS)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(cgidir)
-	@list='$(cgi_PROGRAMS)'; for p in $$list; do \
-	  if test -f $$p; then \
-	    echo "  $(INSTALL_PROGRAM) $$p $(DESTDIR)$(cgidir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
-	     $(INSTALL_PROGRAM) $$p $(DESTDIR)$(cgidir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
-	  else :; fi; \
-	done
-
-uninstall-cgiPROGRAMS:
-	@$(NORMAL_UNINSTALL)
-	list='$(cgi_PROGRAMS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(cgidir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 	done
 
 .s.o:
@@ -347,20 +321,20 @@ installcheck: installcheck-am
 install-exec-am: install-binPROGRAMS install-exec-local
 install-exec: install-exec-am
 
-install-data-am: install-cgiPROGRAMS
+install-data-am:
 install-data: install-data-am
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 install: install-am
-uninstall-am: uninstall-binPROGRAMS uninstall-cgiPROGRAMS
+uninstall-am: uninstall-binPROGRAMS
 uninstall: uninstall-am
 all-am: Makefile $(PROGRAMS) $(HEADERS)
 all-redirect: all-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
 installdirs:
-	$(mkinstalldirs)  $(DESTDIR)$(bindir) $(DESTDIR)$(cgidir)
+	$(mkinstalldirs)  $(DESTDIR)$(bindir)
 
 
 mostlyclean-generic:
@@ -372,27 +346,25 @@ distclean-generic:
 	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
 
 maintainer-clean-generic:
-mostlyclean-am:  mostlyclean-binPROGRAMS mostlyclean-cgiPROGRAMS \
-		mostlyclean-compile mostlyclean-tags mostlyclean-depend \
-		mostlyclean-generic
+mostlyclean-am:  mostlyclean-binPROGRAMS mostlyclean-compile \
+		mostlyclean-tags mostlyclean-depend mostlyclean-generic
 
 mostlyclean: mostlyclean-am
 
-clean-am:  clean-binPROGRAMS clean-cgiPROGRAMS clean-compile clean-tags \
-		clean-depend clean-generic mostlyclean-am
+clean-am:  clean-binPROGRAMS clean-compile clean-tags clean-depend \
+		clean-generic mostlyclean-am
 
 clean: clean-am
 
-distclean-am:  distclean-binPROGRAMS distclean-cgiPROGRAMS \
-		distclean-compile distclean-tags distclean-depend \
-		distclean-generic clean-am
+distclean-am:  distclean-binPROGRAMS distclean-compile distclean-tags \
+		distclean-depend distclean-generic clean-am
 
 distclean: distclean-am
 
 maintainer-clean-am:  maintainer-clean-binPROGRAMS \
-		maintainer-clean-cgiPROGRAMS maintainer-clean-compile \
-		maintainer-clean-tags maintainer-clean-depend \
-		maintainer-clean-generic distclean-am
+		maintainer-clean-compile maintainer-clean-tags \
+		maintainer-clean-depend maintainer-clean-generic \
+		distclean-am
 	@echo "This command is intended for maintainers to use;"
 	@echo "it deletes files that may require special tools to rebuild."
 
@@ -400,8 +372,6 @@ maintainer-clean: maintainer-clean-am
 
 .PHONY: mostlyclean-binPROGRAMS distclean-binPROGRAMS clean-binPROGRAMS \
 maintainer-clean-binPROGRAMS uninstall-binPROGRAMS install-binPROGRAMS \
-mostlyclean-cgiPROGRAMS distclean-cgiPROGRAMS clean-cgiPROGRAMS \
-maintainer-clean-cgiPROGRAMS uninstall-cgiPROGRAMS install-cgiPROGRAMS \
 mostlyclean-compile distclean-compile clean-compile \
 maintainer-clean-compile tags mostlyclean-tags distclean-tags \
 clean-tags maintainer-clean-tags distdir mostlyclean-depend \
@@ -416,8 +386,8 @@ maintainer-clean
 
 # Yes, you are correct. This is a HACK!
 install-exec-local:
-	( cd @bindir@; mv $(cgi_PROGRAMS) $(cgidir) )
-	( cd $(cgidir); chown $(webuser):$(webgroup) $(cgi_PROGRAMS) )
+	( cd @bindir@; mv zms $(cgidir) )
+	( cd $(cgidir); chown $(webuser):$(webgroup) zms )
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

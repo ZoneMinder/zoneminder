@@ -9,8 +9,7 @@ cgidir = @CGI_PREFIX@
 webuser = @WEB_USER@
 webgroup = @WEB_GROUP@
 
-cgi_PROGRAMS = zms
-bin_PROGRAMS = zmc zma zmu
+bin_PROGRAMS = zmc zma zmu zms
 
 zm_SOURCES = zm.cpp zmdbg.c jmemdst.c
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
@@ -24,5 +23,5 @@ EXTRA_DIST =
 
 # Yes, you are correct. This is a HACK!
 install-exec-local:
-	( cd @bindir@; mv $(cgi_PROGRAMS) $(cgidir) )
-	( cd $(cgidir); chown $(webuser):$(webgroup) $(cgi_PROGRAMS) )
+	( cd @bindir@; mv zms $(cgidir) )
+	( cd $(cgidir); chown $(webuser):$(webgroup) zms )

@@ -44,7 +44,8 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -f, --fps                      : Output last Frames Per Second captured reading\n" );
 	fprintf( stderr, "  -z, --zones                    : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n" );
 	fprintf( stderr, "  -a, --alarm                    : Force alarm in monitor, this will trigger recording until cancelled with -c\n" );
-	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm in monitor, required after being enabled with -a\n" );
+	fprintf( stderr, "  -n, --noalarm                  : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n" );
+	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n" );
 	fprintf( stderr, "  -h, --help - This screen\n" );
 	fprintf( stderr, "Note, only the -q/--query option is valid with -d/--device\n" );
 
@@ -66,6 +67,7 @@ int main( int argc, char *argv[] )
 		{"fps", 0, 0, 'f'},
 		{"zones", 0, 0, 'z'},
 		{"alarm", 0, 0, 'a'},
+		{"noalarm", 0, 0, 'n'},
 		{"cancel", 0, 0, 'c'},
 		{"query", 0, 0, 'q'},
 		{"help", 0, 0, 'h'},
@@ -86,8 +88,9 @@ int main( int argc, char *argv[] )
 		FPS=0x0040,
 		ZONES=0x0080,
 		ALARM=0x0100,
-		CANCEL=0x0200,
-		QUERY=0x0400
+		NOALARM=0x0200,
+		CANCEL=0x0400,
+		QUERY=0x0800
 	} Function;
 	Function function = BOGUS;
 
@@ -149,6 +152,9 @@ int main( int argc, char *argv[] )
 				break;
 			case 'a':
 				function = Function(function | ALARM);
+				break;
+			case 'n':
+				function = Function(function | NOALARM);
 				break;
 			case 'c':
 				function = Function(function | CANCEL);
@@ -306,14 +312,20 @@ int main( int argc, char *argv[] )
 			if ( function & ALARM )
 			{
 				if ( verbose )
-					printf( "Forcing alarm\n" );
-				monitor->ForceAlarm();
+					printf( "Forcing alarm on\n" );
+				monitor->ForceAlarmOn();
+			}
+			if ( function & NOALARM )
+			{
+				if ( verbose )
+					printf( "Forcing alarm off\n" );
+				monitor->ForceAlarmOff();
 			}
 			if ( function & CANCEL )
 			{
 				if ( verbose )
-					printf( "Cancelling alarm\n" );
-				monitor->CancelAlarm();
+					printf( "Cancelling forced alarm on/off\n" );
+				monitor->CancelForced();
 			}
 			if ( function & QUERY )
 			{

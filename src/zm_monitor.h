@@ -85,13 +85,15 @@ protected:
 
 	Snapshot *image_buffer;
 
+	typedef enum { FORCE_NEUTRAL, FORCE_ON, FORCE_OFF } ForceState;
+
 	typedef struct
 	{
 		State state;
 		int last_write_index;
 		int last_read_index;
 		int last_event;
-		bool forced_alarm;
+		ForceState force_state;
 		struct timeval *timestamps;
 		unsigned char *images;
 	} SharedImages;
@@ -124,8 +126,9 @@ public:
 	unsigned int GetLastWriteIndex() const;
 	unsigned int GetLastEvent() const;
 	double GetFPS() const;
-	void ForceAlarm();
-	void CancelAlarm();
+	void ForceAlarmOn();
+	void ForceAlarmOff();
+	void CancelForced();
 
 	bool DumpSettings( char *output, bool verbose );
 	void DumpZoneImage();

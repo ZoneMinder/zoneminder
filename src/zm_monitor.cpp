@@ -64,7 +64,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 		shared_images->last_write_index = image_buffer_count;
 		shared_images->last_read_index = image_buffer_count;
 		shared_images->last_event = 0;
-		shared_images->forced_alarm = false;
+		shared_images->force_state = FORCE_NEUTRAL;
 	}
 	shared_images->timestamps = (struct timeval *)(shm_ptr+sizeof(SharedImages));
 	shared_images->images = (unsigned char *)(shm_ptr+sizeof(SharedImages)+(image_buffer_count*sizeof(struct timeval)));
@@ -169,7 +169,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, co
 		shared_images->last_write_index = image_buffer_count;
 		shared_images->last_read_index = image_buffer_count;
 		shared_images->last_event = 0;
-		shared_images->forced_alarm = false;
+		shared_images->force_state = FORCE_NEUTRAL;
 	}
 	shared_images->timestamps = (struct timeval *)(shm_ptr+sizeof(SharedImages));
 	shared_images->images = (unsigned char *)(shm_ptr+sizeof(SharedImages)+(image_buffer_count*sizeof(struct timeval)));
@@ -325,14 +325,19 @@ double Monitor::GetFPS() const
 	return( fps );
 }
 
-void Monitor::ForceAlarm()
+void Monitor::ForceAlarmOn()
 {
-	shared_images->forced_alarm = true;
+	shared_images->force_state = FORCE_ON;
 }
 
-void Monitor::CancelAlarm()
+void Monitor::ForceAlarmOff()
 {
-	shared_images->forced_alarm = false;
+	shared_images->force_state = FORCE_OFF;
+}
+
+void Monitor::CancelForced()
+{
+	shared_images->force_state = FORCE_NEUTRAL;
 }
 
 void Monitor::DumpZoneImage()
@@ -407,9 +412,9 @@ bool Monitor::Analyse()
 	unsigned int score = 0;
 	if ( Ready() )
 	{
-		score = Compare( *image );
-
-		if ( shared_images->forced_alarm )
+		if ( shared_images->force_state != FORCE_OFF )
+			score = Compare( *image );
+		if ( shared_images->force_state == FORCE_ON )
 			score = ZM_FORCED_ALARM_SCORE;
 
 		if ( score )

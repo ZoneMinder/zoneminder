@@ -47,6 +47,7 @@ define( "ALARM_POPUP", 1 );						// Whether the watch window jumps to front if a
 define( "ZM_PATH", "/usr/local/bin" );			// Path to the general ZoneMonitor executables
 define( "ZMU_PATH", ZM_PATH."/zmu" );			// Path to the Zone Monitor Utility
 define( "ZMS_PATH", "/cgi-bin/zms" );			// Path to the Zone Monitor Stream server
+define( "EVENT_PATH", "events" );				// Local path to where events directory lives
 define( "ZMS_EVENT_PATH", "/data/zm" );			// Full path (not web) to where events directory lives
 define( "CAMBOZOLA_PATH", "cambozola.jar" );	// Path to (optional) cambozola java streaming client (recommended)
 define( "MPEG_ENCODE_PATH", "./mpeg_encode" );	// Path to (optional) mpeg video encoder
@@ -121,7 +122,7 @@ if ( $action )
 				if ( !$result )
 					die( mysql_error() );
 				if ( $delete_eid )
-					system( escapeshellcmd( "rm -rf events/*/".sprintf( "%04d", $delete_eid ) ) );
+					system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $delete_eid ) ) );
 			}
 		}
 		elseif ( $delete_zids )
@@ -137,6 +138,38 @@ if ( $action )
 		{
 			foreach( $delete_mids as $delete_mid )
 			{
+				$sql = "select * from Monitors where Id = '$mid'";
+				$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
+				$monitor = mysql_fetch_assoc( $result );
+
+				$sql = "select Id from Events where MonitorId = '$delete_mid'";
+				$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
+
+				$delete_eids = array();
+				while( $row = mysql_fetch_assoc( $result ) )
+				{
+					$delete_eids[] = $row[Id];
+				}
+				foreach( $delete_eids as $delete_eid )
+				{
+					$result = mysql_query( "delete from Frames where EventId = '$delete_eid'" );
+					if ( !$result )
+						die( mysql_error() );
+					$result = mysql_query( "delete from Events where Id = '$delete_eid'" );
+					if ( !$result )
+						die( mysql_error() );
+					if ( $delete_eid )
+						system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $delete_eid ) ) );
+				}
+				system( "rm -rf ".EVENT_PATH."/".$monitor[Name] );
+
+				$result = mysql_query( "delete from Zones where MonitorId = '$delete_mid'" );
+				if ( !$result )
+					die( mysql_error() );
 				$result = mysql_query( "delete from Monitors where Id = '$delete_mid'" );
 				if ( !$result )
 					die( mysql_error() );
@@ -279,6 +312,10 @@ if ( $action )
 			$result = mysql_query( $sql );
 			if ( !$result )
 				die( mysql_error() );
+			if ( $new_name != $monitor[Name] )
+			{
+				exec( escape_shell_command( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_name" ) );
+			}
 			controlDaemons( $monitor[Device] );
 			$refresh_parent = true;
 		}
@@ -1433,7 +1470,7 @@ elseif( $view == "video" )
 		die( mysql_error() );
 	$event = mysql_fetch_assoc( $result );
 
-	$event_dir = "events/$event[MonitorName]/".sprintf( "%04d", $eid );
+	$event_dir = EVENT_PATH."/$event[MonitorName]/".sprintf( "%04d", $eid );
 	$param_file = $event_dir."/mpeg.param";
 	$video_name = preg_replace( "/\\s/", "_", $event[Name] ).".mpeg";
 	$video_file = $event_dir."/".$video_name;

@@ -203,6 +203,11 @@ int main( int argc, char *argv[] )
 		exit( -1 );
 	}
 
+	char capt_path[PATH_MAX];
+	char anal_path[PATH_MAX];
+	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%d/%%0%dd-capture.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Id(), (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
+	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%d/%%0%dd-analyse.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Id(), (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
+
 	sigset_t block_set;
 	sigemptyset( &block_set );
 	struct sigaction action, old_action;
@@ -288,7 +293,7 @@ int main( int argc, char *argv[] )
 			continue;
 		}
 		static char path[PATH_MAX] = "";
-		snprintf( path, sizeof(path), "%s/%d/%ld/%03ld-%s.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Id(), frame_header.event_id, frame_header.frame_id, frame_header.alarm_frame?"analyse":"capture" );
+		snprintf( path, sizeof(path), frame_header.alarm_frame?anal_path:capt_path, "%s/%d/%ld/%03ld-%s.jpg", frame_header.event_id, frame_header.frame_id );
 		Debug( 1, ( "Got image, writing to %s", path ));
 
 		FILE *fd = 0;

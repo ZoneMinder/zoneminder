@@ -188,6 +188,11 @@ function getBrowser( &$browser, &$version )
 		$version = $log_version[1];
 		$browser = 'ie';
 	}
+	elseif (ereg( 'Safari/([0-9.]+)',$HTTP_SERVER_VARS[HTTP_USER_AGENT],$log_version))
+	{
+		$version = $log_version[1];
+		$browser = 'safari';
+	}
 	elseif (ereg( 'Opera ([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS[HTTP_USER_AGENT],$log_version))
 	{
 		$version = $log_version[1];

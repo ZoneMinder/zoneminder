@@ -18,10 +18,10 @@
 --> 
 
 .text { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: #333333; font-weight: normal }
-.redtext { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: red; font-weight: bold }
-.oratext { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: orange; font-weight: bold }
-.blutext { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: mediumturquoise; font-weight: bold }
-.gretext { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: green; font-weight: bold }
+.redtext { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: #DC143C; font-weight: bold }
+.ambtext { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: #FF8C00; font-weight: bold }
+.blutext { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: #48D1CC; font-weight: bold }
+.gretext { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: #688E23; font-weight: bold }
 .smallhead { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: #016A9D; font-weight: bold; line-height: 20px }
 .head { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:11px; color: #000066; font-weight: bold }
 .bighead { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:12px; color: #000066; font-weight: bold }

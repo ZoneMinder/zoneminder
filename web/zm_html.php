@@ -213,7 +213,7 @@ function confirmStatus( new_status )
 			{
 				if ( !$monitor[zma] )
 				{
-					$dclass = "oratext";
+					$dclass = "ambtext";
 				}
 				else
 				{
@@ -226,7 +226,7 @@ function confirmStatus( new_status )
 			}
 			elseif ( $monitor['Function'] == 'Passive' )
 			{
-				$fclass = "oratext";
+				$fclass = "ambtext";
 			}
 			elseif ( $monitor['Function'] == 'X10' )
 			{
@@ -548,7 +548,7 @@ function closeWindow()
 		elseif ( $status == 2 )
 		{
 			$status_string = "Alert";
-			$class = "oratext";
+			$class = "ambtext";
 		}
 		$fps_string = sprintf( "%.2f", $fps );
 		$new_alarm = ( $status > 0 && $last_status == 0 );
@@ -730,7 +730,7 @@ function closeWindow()
 		elseif ( $status == 2 )
 		{
 			$status_string = "Alert";
-			$class = "oratext";
+			$class = "ambtext";
 		}
 		$fps_string = sprintf( "%.2f", $fps );
 		$new_alarm = ( $status > 0 && $last_status == 0 );
@@ -2490,7 +2490,7 @@ function closeWindow()
 </body>
 <?php
 		$buffer_string = "<!-- This is some long buffer text to ensure that IE flushes correctly -->";
-		for ( $i = 0; $i < 2048/strlen($buffer_string); $i++ )
+		for ( $i = 0; $i < 4096/strlen($buffer_string); $i++ )
 		{
 			echo $buffer_string."\n";
 		}

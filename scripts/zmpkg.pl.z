@@ -41,12 +41,12 @@ use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERA => "<from zmconfig>";
 use constant ZM_DB_PASSA => "<from zmconfig>";
+use constant ZM_SHM_KEY => "<from zmconfig>";
 use constant ZM_OPT_FAST_DELETE => "<from zmconfig>";
 use constant ZM_OPT_X10 => "<from zmconfig>";
 use constant ZM_OPT_FRAME_SERVER => "<from zmconfig>";
 
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
-use constant WEB_USER => '@WEB_USER@/';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
@@ -67,6 +67,28 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status)$/ )
 {
 	print( "Usage: zmpkg.pl <start|stop|restart|status>\n" );
 	exit( -1 );
+}
+
+sub remove_shm
+{
+	print( STDERR "Removing shared memory\n" );
+	# Find ZoneMinder shared memory
+	my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", ZM_SHM_KEY ), 0, -2 )."'";
+	print( "Checking for shared memory with '$command'\n" ) if ( VERBOSE );
+	open( CMD, "$command |" ) or die( "Can't execute '$command': $!" );
+	while( <CMD> )
+	{
+		chomp;
+		my ( $key, $id ) = split( /\s+/ );
+		if ( $id =~ /^(\d+)/ )
+		{
+			$id = $1;
+			my $command = "ipcrm shm $id";
+			print( "Removing shared memory with '$command'\n" ) if ( VERBOSE );
+			qx( $command );
+		}
+	}
+	close( CMD );
 }
 
 sub execute
@@ -108,6 +130,7 @@ if ( $command =~ /^(?:stop|restart)$/ )
 	if ( $status eq "running" )
 	{
 		execute( ZM_PATH_BIN."/zmdc.pl shutdown" );
+		remove_shm();
 	}
 	else
 	{
@@ -121,6 +144,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 	chomp( $status );
 	if ( $status eq "stopped" )
 	{
+		remove_shm();
 		execute( ZM_PATH_BIN."/zmfix" );
 		execute( ZM_PATH_BIN."/zmdc.pl status" );
 

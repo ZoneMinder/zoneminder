@@ -136,7 +136,14 @@ Monitor::Monitor(
 
 Monitor::~Monitor()
 {
-	delete event;
+	if ( event )
+	{
+		if ( function == RECORD || function == MOCORD )
+		{
+			gettimeofday( &(event->EndTime()), &dummy_tz );
+		}
+		delete event;
+	}
 	delete[] image_buffer;
 
 	struct shmid_ds shm_data;
@@ -714,6 +721,7 @@ bool Monitor::Analyse()
 				if ( ((timestamp->tv_sec%section_length) == 0) && ((timestamp->tv_sec - event->StartTime().tv_sec) > (section_length/2)) )
 				{
 					Info(( "Ended event" ));
+					gettimeofday( &(event->EndTime()), &dummy_tz );
 					delete event;
 					event = 0;
 				}

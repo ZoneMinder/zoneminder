@@ -75,6 +75,7 @@ public:
 
 	const struct timeval &StartTime() const { return( start_time ); }
 	const struct timeval &EndTime() const { return( end_time ); }
+	struct timeval &EndTime() { return( end_time ); }
 
 	bool SendFrameImage( const Image *image, bool alarm_frame=false );
 	bool WriteFrameImage( const Image *image, const char *event_file, bool alarm_frame=false );

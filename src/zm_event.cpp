@@ -36,7 +36,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 	static char start_time_str[32];
 
 	strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", localtime( &start_time.tv_sec ) );
-	sprintf( sql, "insert into Events ( MonitorId, Name, StartTime ) values ( %d, 'Event', '%s' )", monitor->Id(), start_time_str );
+	sprintf( sql, "insert into Events ( MonitorId, Name, StartTime ) values ( %d, 'New Event', '%s' )", monitor->Id(), start_time_str );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert event: %s", mysql_error( &dbconn ) ));
@@ -67,10 +67,6 @@ Event::~Event()
 	static char sql[BUFSIZ];
 	static char end_time_str[32];
 
-	if ( !end_time.tv_sec )
-	{
-		gettimeofday( &end_time, &dummy_tz );
-	}
 	struct DeltaTimeval delta_time;
 	DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
 

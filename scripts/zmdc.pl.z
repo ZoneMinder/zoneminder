@@ -84,7 +84,7 @@ if ( $needs_daemon )
 foreach my $arg ( @ARGV )
 {
 	# Detaint arguments, if they look ok
-	if ( $arg =~ /^(-{0,2}[\w\d]+)/ )
+	if ( $arg =~ /^(-{0,2}[\w]+)/ )
 	{
 		push( @args, $1 );
 	}
@@ -93,7 +93,6 @@ foreach my $arg ( @ARGV )
 		die( "Bogus argument '$arg' found" );
 	}
 }
-
 
 socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
 
@@ -212,7 +211,21 @@ if ( !connect( CLIENT, $saddr ) )
 					die( "Invalid daemon '$daemon' specified" );
 				}
 
-				exec( $daemon, @args ) or die( "Can't exec: $!" );
+				my @good_args;
+				foreach my $arg ( @args )
+				{
+					# Detaint arguments, if they look ok
+					if ( $arg =~ /^(-{0,2}[\w]+)/ )
+					{
+						push( @good_args, $1 );
+					}
+					else
+					{
+						die( "Bogus argument '$arg' found" );
+					}
+				}
+
+				exec( $daemon, @good_args ) or die( "Can't exec: $!" );
 			}
 			else
 			{

@@ -96,23 +96,27 @@ while ( $row = mysql_fetch_assoc( $result ) )
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoArchiveEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_archive" value="1"<?php if ( $filter_data['AutoArchive'] ) { echo " checked"; } ?>></td>
+<td align="left" class="text"><input type="checkbox" name="auto_archive" value="1"<?php if ( $filter_data['AutoArchive'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoDeleteEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_delete" value="1"<?php if ( $filter_data['AutoDelete'] ) { echo " checked"; } ?>></td>
+<td align="left" class="text"><input type="checkbox" name="auto_delete" value="1"<?php if ( $filter_data['AutoDelete'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoUploadEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_upload" value="1"<?php if ( $filter_data['AutoUpload'] ) { echo " checked"; } ?>></td>
+<td align="left" class="text"><input type="checkbox" name="auto_upload" value="1"<?php if ( $filter_data['AutoUpload'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoEmailEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_email" value="1"<?php if ( $filter_data['AutoEmail'] ) { echo " checked"; } ?>></td>
+<td align="left" class="text"><input type="checkbox" name="auto_email" value="1"<?php if ( $filter_data['AutoEmail'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoMessageEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_message" value="1"<?php if ( $filter_data['AutoMessage'] ) { echo " checked"; } ?>></td>
+<td align="left" class="text"><input type="checkbox" name="auto_message" value="1"<?php if ( $filter_data['AutoMessage'] ) { echo " checked"; } ?> class="form-noborder"></td>
+</tr>
+<tr>
+<td align="left" class="text"><?= $zmSlangAutoExecuteEvents ?>:&nbsp;</td>
+<td align="left" class="text"><input type="text" name="auto_execute" value="<?= $filter_data['AutoExecute'] ?>" size="32" maxlength="255" class="form"></td>
 </tr>
 <tr>
 <td align="right" colspan="2" class="text">&nbsp;</td>

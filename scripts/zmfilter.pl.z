@@ -156,7 +156,7 @@ sub DateTimeToSQL
 	my $dt_val = strtotime( $dt_str );
 	if ( !$dt_val )
 	{
-		print( STDERR "Error, unable to parse date string '$dt_str'" );
+		print( STDERR "Error, unable to parse date string '$dt_str'\n" );
 		return( undef );
 	}
 	return( strftime( "%Y-%m-%d %H:%M:%S", localtime( $dt_val ) ) );
@@ -242,7 +242,7 @@ while( 1 )
 sub GetFilters
 {
 	my @filters;
-	my $sql = "select * from Filters where (AutoArchive = 1 or AutoDelete = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1) order by Name";
+	my $sql = "select * from Filters where (AutoArchive = 1 or AutoDelete = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1 or AutoExecute != '') order by Name";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
 	FILTER: while( my $filter_data = $sth->fetchrow_hashref() )
@@ -326,7 +326,7 @@ sub GetFilters
 						$value = DateTimeToSQL( $temp_value );
 						if ( !$value )
 						{
-							print( STDERR "Error parsing date/time '$value', skipping filter '$filter_data->{Name}'\n" );
+							print( STDERR "Error parsing date/time '$temp_value', skipping filter '$filter_data->{Name}'\n" );
 							next FILTER;
 						}
 						$value = "'$value'";
@@ -336,7 +336,7 @@ sub GetFilters
 						$value = DateTimeToSQL( $temp_value );
 						if ( !$value )
 						{
-							print( STDERR "Error parsing date/time '$value', skipping filter '$filter_data->{Name}'\n" );
+							print( STDERR "Error parsing date/time '$temp_value', skipping filter '$filter_data->{Name}'\n" );
 							next FILTER;
 						}
 						$value = "to_days( '$value' )";
@@ -346,7 +346,7 @@ sub GetFilters
 						$value = DateTimeToSQL( $temp_value );
 						if ( !$value )
 						{
-							print( STDERR "Error parsing date/time '$value', skipping filter '$filter_data->{Name}'\n" );
+							print( STDERR "Error parsing date/time '$temp_value', skipping filter '$filter_data->{Name}'\n" );
 							next FILTER;
 						}
 						$value = "extract( hour_second from '$value' )";
@@ -356,7 +356,7 @@ sub GetFilters
 						$value = DateTimeToSQL( $temp_value );
 						if ( !$value )
 						{
-							print( STDERR "Error parsing date/time '$value', skipping filter '$filter_data->{Name}'\n" );
+							print( STDERR "Error parsing date/time '$temp_value', skipping filter '$filter_data->{Name}'\n" );
 							next FILTER;
 						}
 						$value = "weekday( '$value' )";
@@ -407,6 +407,21 @@ sub GetFilters
 		$sql .= " order by E.Id";
 		#print $sql."\n";
 		$filter_data->{Sql} = $sql;
+		if ( $filter_data->{AutoExecute} )
+		{
+			my $script = $filter_data->{AutoExecute};
+			if ( !-e $script )
+			{
+				print( STDERR "Error, auto execute script '$script' not found, skipping filter '$filter_data->{Name}'\n" );
+				next FILTER;
+
+			}
+			elsif ( !-x $script )
+			{
+				print( STDERR "Error, auto execute script '$script' not executable, skipping filter '$filter_data->{Name}'\n" );
+				next FILTER;
+			}
+		}
 		push( @filters, $filter_data );
 	}
 	$sth->finish();
@@ -424,6 +439,7 @@ sub CheckFilter
 		($filter->{AutoUpload}?", upload":"").
 		($filter->{AutoEmail}?", email":"").
 		($filter->{AutoMessage}?", message":"").
+		($filter->{AutoExecute}?", execute":"").
 		"\n"
 	) if ( VERBOSE );
 	my $sql = $filter->{Sql};
@@ -441,23 +457,33 @@ sub CheckFilter
 	while( my $event = $sth->fetchrow_hashref() )
 	{
 		print( "Checking event $event->{Id}\n" ) if ( VERBOSE );
+		if ( $filter->{AutoExecute} )
+		{
+			if ( !$event->{Execute} )
+			{
+				executeCommand( $filter, $event );
+			}
+		}
 		if ( ZM_OPT_EMAIL && $filter->{AutoEmail} )
 		{
-			next if ( $event->{Emailed} );
-
-			sendEmail( $filter, $event );
+			if ( !$event->{Emailed} )
+			{
+				sendEmail( $filter, $event );
+			}
 		}
 		if ( ZM_OPT_MESSAGE && $filter->{AutoMessage} )
 		{
-			next if ( $event->{Messaged} );
-
-			sendMessage( $filter, $event );
+			if ( !$event->{Messaged} )
+			{
+				sendMessage( $filter, $event );
+			}
 		}
 		if ( ZM_OPT_UPLOAD && $filter->{AutoUpload} )
 		{
-			next if ( $event->{Uploaded} );
-
-			uploadArchFile( $filter, $event );
+			if ( !$event->{Uploaded} )
+			{
+				uploadArchFile( $filter, $event );
+			}
 		}
 		if ( $filter->{AutoArchive} )
 		{
@@ -480,6 +506,30 @@ sub CheckFilter
 		}
 	}
 	$sth->finish();
+}
+
+sub executeCommand
+{
+	my $filter = shift;
+	my $event = shift;
+
+	my $event_path = "$event->{MonitorName}/$event->{Id}";
+
+	my $command = $filter->{AutoExecute};
+	$command .= " $event_path";
+
+	print( "Executing '$command'\n" );
+	my $output = qx($command);
+	my $status = $? >> 8;
+	if ( $status || VERBOSE )
+	{
+		chomp( $output );
+		print( "Output: $output\n" );
+	}
+	if ( $status )
+	{
+		print( "Command '$command' exited with status: $status\n" );
+	}
 }
 
 sub uploadArchFile

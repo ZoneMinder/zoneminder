@@ -34,7 +34,7 @@
 
 bool Event::initialised = false;
 bool Event::timestamp_on_capture;
-bool Event::bulk_frame_interval;
+int Event::bulk_frame_interval;
 
 Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
 {
@@ -281,7 +281,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 	struct DeltaTimeval delta_time;
 	DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
 
-	bool db_frame = score>=0 || !((frames-1)%bulk_frame_interval);
+	bool db_frame = (score>=0) || ((frames%bulk_frame_interval)==0) || !frames;
 
 	if ( db_frame )
 	{
@@ -289,7 +289,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
 		Debug( 1, ( "Adding frame %d to DB", frames ));
 		static char sql[BUFSIZ];
-		sprintf( sql, "insert into Frames ( EventId, FrameId, AlarmFrame, Delta, Score ) values ( %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, frame_type, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
+		sprintf( sql, "insert into Frames ( EventId, FrameId, Type, Delta, Score ) values ( %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, frame_type, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
 		if ( mysql_query( &dbconn, sql ) )
 		{
 			Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
@@ -363,7 +363,7 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
 	
-	sprintf( sql, "select M.Id, M.Name from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
+	sprintf( sql, "select M.Id, M.Name, E.Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -385,6 +385,7 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 	}
 
 	sprintf( eventpath, "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
+	int frames = atoi(dbrow[2] );
 
 	mysql_free_result( result );
 

@@ -44,7 +44,7 @@ class Event
 protected:
 	static bool		initialised;
 	static bool		timestamp_on_capture;
-	static bool		bulk_frame_interval;
+	static int		bulk_frame_interval;
 
 protected:
 	static int		sd;

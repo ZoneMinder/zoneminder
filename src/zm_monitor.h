@@ -70,7 +70,7 @@ protected:
 	static bool create_analysis_images;
 	static bool blend_alarmed_images;
 	static bool timestamp_on_capture;
-	static bool bulk_frame_interval;
+	static int bulk_frame_interval;
 
 protected:
 	// These are read from the DB and thereafter remain unchanged

@@ -51,7 +51,7 @@ use Data::Dumper;
 
 $| = 1;
 
-my @daemons = ( 'zmc', 'zma', 'zmf.pl' );
+my @daemons = ( 'zmc', 'zma', 'zmfilter.pl', 'zmaudit.pl', 'zmx10.pl' );
 
 my $command = shift @ARGV;
 die( "No command given" ) unless( $command );

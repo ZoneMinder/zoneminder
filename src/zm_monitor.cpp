@@ -499,8 +499,12 @@ bool Monitor::Analyse()
 			}
 		}
 	}
-	ref_image.Blend( *image, ref_blend_perc );
-	//DumpImage( image );
+
+	if ( ZM_BLEND_ALARMED_IMAGES || state != ALARM )
+	{
+		ref_image.Blend( *image, ref_blend_perc );
+		//DumpImage( image );
+	}
 
 	shared_images->last_read_index = index%image_buffer_count;
 	image_count++;

@@ -41,3 +41,4 @@
 
 #define ZM_STRICT_VIDEO_CONFIG	<from zmconfig> // Whether to allow errors in setting video config to be fatal
 #define ZM_OPT_LOCAL_BGR_INVERT	<from zmconfig> // Invert BGR colours to RGB
+#define ZM_BLEND_ALARM_IMAGES	<from zmconfig> // Whether alarmed images are blended to update the reference image

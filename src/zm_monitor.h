@@ -109,14 +109,13 @@ protected:
 		ForceState force_state;
 		int last_write_index;
 		int last_read_index;
+		time_t last_image_time;
 		int last_event;
 		int action;
 		int brightness;
 		int hue;
 		int colour;
 		int contrast;
-		struct timeval *timestamps;
-		unsigned char *images;
 	} SharedData;
 
 	SharedData *shared_data;
@@ -204,6 +203,7 @@ public:
 			image_buffer[index].image->CopyBuffer( image );
 
 			shared_data->last_write_index = index;
+			shared_data->last_image_time = image_buffer[index].timestamp->tv_sec;
 
 			image_count++;
 

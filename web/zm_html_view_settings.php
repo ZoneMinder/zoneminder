@@ -28,10 +28,6 @@ if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
 
-$zmu_command = ZMU_COMMAND." -m $mid -B -C -H -O";
-$zmu_output = exec( escapeshellcmd( $zmu_command ) );
-list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
-
 ?>
 <html>
 <head>
@@ -70,10 +66,10 @@ function closeWindow()
 <tr>
 <td align="right" class="smallhead"><?= $zmSlangParameter ?></td><td align="left" class="smallhead"><?= $zmSlangValue ?></td>
 </tr>
-<tr><td align="right" class="text"><?= $zmSlangBrightness ?></td><td align="left" class="text"><input type="text" name="new_brightness" value="<?= $brightness ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangContrast ?></td><td align="left" class="text"><input type="text" name="new_contrast" value="<?= $contrast ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangHue ?></td><td align="left" class="text"><input type="text" name="new_hue" value="<?= $hue ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangColour ?></td><td align="left" class="text"><input type="text" name="new_colour" value="<?= $colour ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangBrightness ?></td><td align="left" class="text"><input type="text" name="new_brightness" value="<?= $monitor['Brightness'] ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangContrast ?></td><td align="left" class="text"><input type="text" name="new_contrast" value="<?= $monitor['Contrast'] ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangHue ?></td><td align="left" class="text"><input type="text" name="new_hue" value="<?= $monitor['Hue'] ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangColour ?></td><td align="left" class="text"><input type="text" name="new_colour" value="<?= $monitor['Colour'] ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
 <tr>
 <td colspan="2" align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="<?= $zmSlangClose ?>" class="form" onClick="closeWindow()"></td>
 </tr>

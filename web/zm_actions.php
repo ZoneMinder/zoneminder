@@ -310,6 +310,10 @@ if ( isset($action) )
 			$zmu_command = ZMU_COMMAND." -m $mid -B$new_brightness -C$new_contrast -H$new_hue -O$new_colour";
 			$zmu_output = exec( escapeshellcmd( $zmu_command ) );
 			list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
+			$sql = "update Monitors set Brightness = $brightness, Contrast = $contrast, Hue = $hue, Colour = $colour where Id = '$mid'";
+			$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
 		}
 		elseif ( $action == "delete" )
 		{

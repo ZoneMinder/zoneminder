@@ -5,6 +5,10 @@
 --
 alter table Monitors add column EventPrefix varchar(32) not null default 'Event-' after Orientation;
 alter table Monitors add column AlarmFrameCount smallint(5) unsigned not null default '1' after PostEventCount;
+alter table Monitors add column Brightness mediumint(7) NOT NULL default '-1' after Orientation; 
+alter table Monitors add column Contrast mediumint(7) NOT NULL default '-1' after Brightness; 
+alter table Monitors add column Hue mediumint(7) NOT NULL default '-1' after Contrast; 
+alter table Monitors add column Colour mediumint(7) NOT NULL default '-1' after Hue; 
 --
 -- These are optional, but we might as well do it now
 --

@@ -40,10 +40,14 @@ protected:
 	unsigned int	height;
 	unsigned int	palette;
 	unsigned int	colours;
+	unsigned int	brightness;
+	unsigned int	hue;
+	unsigned int	colour;
+	unsigned int	contrast;
 	bool			capture;
 
 public:
-	Camera( SourceType p_type, int p_width, int p_height, int p_palette, bool p_capture=true );
+	Camera( SourceType p_type, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
 	virtual ~Camera();
 
 	SourceType Type() const { return( type ); }

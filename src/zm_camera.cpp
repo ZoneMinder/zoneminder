@@ -20,7 +20,7 @@
 #include "zm.h"
 #include "zm_camera.h"
 
-Camera::Camera( SourceType p_type, int p_width, int p_height, int p_palette, bool p_capture ) : type( p_type ), width( p_width), height( p_height ), palette( p_palette ), capture( p_capture )
+Camera::Camera( SourceType p_type, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : type( p_type ), width( p_width), height( p_height ), palette( p_palette ), brightness( p_brightness ), contrast( p_contrast ), hue( p_hue ), colour( p_colour ), capture( p_capture )
 {
 	colours = (palette==VIDEO_PALETTE_GREY?1:3);
 }

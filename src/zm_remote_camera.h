@@ -68,7 +68,7 @@ protected:
 	static void Base64Encode( const char *in_string, char *out_string );
 
 public:
-	RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, bool p_capture=true );
+	RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
 	~RemoteCamera();
 
 	const char *Host() const { return( host ); }

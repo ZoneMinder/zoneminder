@@ -111,6 +111,19 @@ Also if you are upgrading from version 0.9.7 (or later) you can copy your old
 zmconfig*.txt files into the current build directory before you run zmconfig
 and it will use your preferences as a basis for generating the new ones.
 
+If you get errors such as 'Can't locate Term::ReadKey.pm' when trying to run
+zmconfig.pl then this module is missing from your system. The easiest way to
+install it is to type the following (you will probably need to be root),
+
+perl -MCPAN -eshell
+
+this will then (eventually) present you with a prompt. From there you
+can type install Term::ReadKey and the rest should be more or less
+automatic. There may be some initial configuration questions it might
+ask you on startup if you've never run it before and to speed things
+up I would not install a new Bundle at this point if it asks you but
+everything else should be quite straightforward.
+
 Among the first questions zmconfig.pl asks you are to do with the database and 
 the next thing you should do is create it and the associated database users. You 
 may notice that there are two sets of users and passwords. This is because the 
@@ -256,7 +269,7 @@ dialog. You will see a bunch of things you have to fill in.
 
 To help you get started on the video configuration the best thing is to us
 a tool like 'xawtv' to get a picture you're happy with, and to check your
-camera works and then run 'zmu -d <device_no> -v' to get a dump of the
+camera works and then run 'zmu -d <device_no> -q -v' to get a dump of the
 settings. You can then enter these values into the video related options of
 the monitor configuration panel. Note that 'device_no' here is a number
 corresponding to the digit at the end of your device file, so /dev/video0

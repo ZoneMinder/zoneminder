@@ -57,21 +57,21 @@ void LocalCamera::Initialise()
 	sprintf( device_path, "/dev/video%d", device );
 	if( (m_videohandle=open(device_path, O_RDONLY)) <=0 )
 	{
-		Error(( "Failed to open video device %s: %s\n", device_path, strerror(errno) ));
+		Error(( "Failed to open video device %s: %s", device_path, strerror(errno) ));
 		exit(-1);
 	}
 
 	struct video_window vid_win;
 	if( !ioctl( m_videohandle, VIDIOCGWIN, &vid_win))
 	{
-		Info(( "X:%d\n", vid_win.x ));
-		Info(( "Y:%d\n", vid_win.y ));
-		Info(( "W:%d\n", vid_win.width ));
-		Info(( "H:%d\n", vid_win.height ));
+		Info(( "X:%d", vid_win.x ));
+		Info(( "Y:%d", vid_win.y ));
+		Info(( "W:%d", vid_win.width ));
+		Info(( "H:%d", vid_win.height ));
 	}
 	else
 	{
-		Error(( "Failed to get window attributes: %s\n", strerror(errno) ));
+		Error(( "Failed to get window attributes: %s", strerror(errno) ));
 		exit(-1);
 	}
 	vid_win.x = 0;
@@ -81,23 +81,23 @@ void LocalCamera::Initialise()
 
 	if( ioctl( m_videohandle, VIDIOCSWIN, &vid_win ) )
 	{
-		Error(( "Failed to set window attributes: %s\n", strerror(errno) ));
+		Error(( "Failed to set window attributes: %s", strerror(errno) ));
 		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
 	}
 
 	struct video_picture vid_pic;
 	if( !ioctl( m_videohandle, VIDIOCGPICT, &vid_pic))
 	{
-		Info(( "P:%d\n", vid_pic.palette ));
-		Info(( "D:%d\n", vid_pic.depth ));
-		Info(( "B:%d\n", vid_pic.brightness ));
-		Info(( "h:%d\n", vid_pic.hue ));
-		Info(( "Cl:%d\n", vid_pic.colour ));
-		Info(( "Cn:%d\n", vid_pic.contrast ));
+		Info(( "P:%d", vid_pic.palette ));
+		Info(( "D:%d", vid_pic.depth ));
+		Info(( "B:%d", vid_pic.brightness ));
+		Info(( "h:%d", vid_pic.hue ));
+		Info(( "Cl:%d", vid_pic.colour ));
+		Info(( "Cn:%d", vid_pic.contrast ));
 	}
 	else
 	{
-		Error(( "Failed to get picture attributes: %s\n", strerror(errno) ));
+		Error(( "Failed to get picture attributes: %s", strerror(errno) ));
 		exit(-1);
 	}
 
@@ -123,18 +123,18 @@ void LocalCamera::Initialise()
 
 	if( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) )
 	{
-		Error(( "Failed to set picture attributes: %s\n", strerror(errno) ));
+		Error(( "Failed to set picture attributes: %s", strerror(errno) ));
 		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
 	}
 	if(!ioctl(m_videohandle, VIDIOCGMBUF, &m_vmb))
 	{
 		m_vmm = new video_mmap[m_vmb.frames];
-		Info(( "vmb.frames = %d\n", m_vmb.frames ));
-		Info(( "vmb.size = %d\n", m_vmb.size ));
+		Info(( "vmb.frames = %d", m_vmb.frames ));
+		Info(( "vmb.size = %d", m_vmb.size ));
 	}
 	else
 	{
-		Error(( "Failed to setup memory: %s\n", strerror(errno) ));
+		Error(( "Failed to setup memory: %s", strerror(errno) ));
 		exit(-1);
 	}
 
@@ -158,14 +158,14 @@ void LocalCamera::Initialise()
 
 	if( !ioctl( m_videohandle, VIDIOCGCHAN, &vid_src))
 	{
-		Info(( "C:%d\n", vid_src.channel ));
-		Info(( "F:%d\n", vid_src.norm ));
-		Info(( "Fl:%x\n", vid_src.flags ));
-		Info(( "T:%d\n", vid_src.type ));
+		Info(( "C:%d", vid_src.channel ));
+		Info(( "F:%d", vid_src.norm ));
+		Info(( "Fl:%x", vid_src.flags ));
+		Info(( "T:%d", vid_src.type ));
 	}
 	else
 	{
-		Error(( "Failed to get camera source: %s\n", strerror(errno) ));
+		Error(( "Failed to get camera source: %s", strerror(errno) ));
 		exit(-1);
 	}
 
@@ -175,35 +175,35 @@ void LocalCamera::Initialise()
 	vid_src.type = VIDEO_TYPE_CAMERA;
 	if(ioctl(m_videohandle, VIDIOCSCHAN, &vid_src))
 	{
-		Error(( "Failed to set camera source %d: %s\n", channel, strerror(errno) ));
+		Error(( "Failed to set camera source %d: %s", channel, strerror(errno) ));
 		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
 	}
 
 	if( !ioctl( m_videohandle, VIDIOCGWIN, &vid_win))
 	{
-		Info(( "X:%d\n", vid_win.x ));
-		Info(( "Y:%d\n", vid_win.y ));
-		Info(( "W:%d\n", vid_win.width ));
-		Info(( "H:%d\n", vid_win.height ));
+		Info(( "X:%d", vid_win.x ));
+		Info(( "Y:%d", vid_win.y ));
+		Info(( "W:%d", vid_win.width ));
+		Info(( "H:%d", vid_win.height ));
 	}
 	else
 	{
-		Error(( "Failed to get window data: %s\n", strerror(errno) ));
+		Error(( "Failed to get window data: %s", strerror(errno) ));
 		exit(-1);
 	}
 
 	if( !ioctl( m_videohandle, VIDIOCGPICT, &vid_pic))
 	{
-		Info(( "P:%d\n", vid_pic.palette ));
-		Info(( "D:%d\n", vid_pic.depth ));
-		Info(( "B:%d\n", vid_pic.brightness ));
-		Info(( "h:%d\n", vid_pic.hue ));
-		Info(( "Cl:%d\n", vid_pic.colour ));
-		Info(( "Cn:%d\n", vid_pic.contrast ));
+		Info(( "P:%d", vid_pic.palette ));
+		Info(( "D:%d", vid_pic.depth ));
+		Info(( "B:%d", vid_pic.brightness ));
+		Info(( "h:%d", vid_pic.hue ));
+		Info(( "Cl:%d", vid_pic.colour ));
+		Info(( "Cn:%d", vid_pic.contrast ));
 	}
 	else
 	{
-		Error(( "Failed to get window data: %s\n", strerror(errno) ));
+		Error(( "Failed to get window data: %s", strerror(errno) ));
 		exit(-1);
 	}
 }
@@ -227,7 +227,7 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 		sprintf( output, output+strlen(output), "Checking Video Device: %s\n", device_path );
 	if( (m_videohandle=open(device_path, O_RDONLY)) <=0 )
 	{
-		Error(( "Failed to open video device %s: %s\n", device_path, strerror(errno) ));
+		Error(( "Failed to open video device %s: %s", device_path, strerror(errno) ));
 		if ( verbose )
 			sprintf( output+strlen(output), "Error, failed to open video device: %s\n", strerror(errno) );
 		else
@@ -405,7 +405,7 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 		}
 		else
 		{
-			Error(( "Failed to get channel %d attributes: %s\n", chan, strerror(errno) ));
+			Error(( "Failed to get channel %d attributes: %s", chan, strerror(errno) ));
 			if ( verbose )
 				sprintf( output, "Error, failed to get channel %d attributes: %s\n", chan, strerror(errno) );
 			else
@@ -418,11 +418,11 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 
 int LocalCamera::PreCapture()
 {
-	//Info(( "%s: Capturing image\n", id ));
+	//Info(( "%s: Capturing image", id ));
 
 	if ( camera_count > 1 )
 	{
-		//Info(( "Switching\n" ));
+		//Info(( "Switching" ));
 		struct video_channel vs;
 
 		vs.channel = channel;
@@ -432,14 +432,14 @@ int LocalCamera::PreCapture()
 		vs.type = VIDEO_TYPE_CAMERA;
 		if(ioctl(m_videohandle, VIDIOCSCHAN, &vs))
 		{
-			Error(( "Failed to set camera source %d: %s\n", channel, strerror(errno) ));
+			Error(( "Failed to set camera source %d: %s", channel, strerror(errno) ));
 			return( -1 );
 		}
 	}
-	//Info(( "MC:%d\n", m_videohandle ));
+	//Info(( "MC:%d", m_videohandle ));
 	if ( ioctl(m_videohandle, VIDIOCMCAPTURE, &m_vmm[m_cap_frame]) )
 	{
-		Error(( "Capture failure for frame %d: %s\n", m_cap_frame, strerror(errno)));
+		Error(( "Capture failure for frame %d: %s", m_cap_frame, strerror(errno)));
 		return( -1 );
 	}
 	m_cap_frame = (m_cap_frame+1)%m_vmb.frames;
@@ -448,11 +448,11 @@ int LocalCamera::PreCapture()
 
 unsigned char *LocalCamera::PostCapture()
 {
-	//Info(( "%s: Capturing image\n", id ));
+	//Info(( "%s: Capturing image", id ));
 
 	if ( ioctl(m_videohandle, VIDIOCSYNC, &m_sync_frame) )
 	{
-		Error(( "Sync failure for frame %d: %s\n", m_sync_frame, strerror(errno)));
+		Error(( "Sync failure for frame %d: %s", m_sync_frame, strerror(errno)));
 		return( 0 );
 	}
 
@@ -464,11 +464,11 @@ unsigned char *LocalCamera::PostCapture()
 
 int LocalCamera::PostCapture( Image &image )
 {
-	//Info(( "%s: Capturing image\n", id ));
+	//Info(( "%s: Capturing image", id ));
 
 	if ( ioctl(m_videohandle, VIDIOCSYNC, &m_sync_frame) )
 	{
-		Error(( "Sync failure for frame %d: %s\n", m_sync_frame, strerror(errno)));
+		Error(( "Sync failure for frame %d: %s", m_sync_frame, strerror(errno)));
 		return( -1 );
 	}
 

@@ -314,7 +314,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		BlobStats *bs = &blob_stats[i];
 		if ( bs->count && ((min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels)) )
 		{
-			//Info(( "Eliminating blob %d, %d pixels (%d,%d - %d,%d)\n", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y ));
+			//Info(( "Eliminating blob %d, %d pixels (%d,%d - %d,%d)", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y ));
 			for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
 			{
 				unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );

@@ -31,7 +31,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 	sprintf( sql, "insert into Events set MonitorId=%d, Name='Event', StartTime='%s'", monitor->Id(), start_time_str );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't insert event: %s\n", mysql_error( &dbconn ) ));
+		Error(( "Can't insert event: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
 	id = mysql_insert_id( &dbconn );
@@ -52,7 +52,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 	{
 		if ( mkdir( path, 0755 ) )
 		{
-			Error(( "Can't make %s: %s\n", path, strerror(errno)));
+			Error(( "Can't make %s: %s", path, strerror(errno)));
 		}
 	}
 }
@@ -70,7 +70,7 @@ Event::~Event()
 	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000, frames, alarm_frames, tot_score, (int)(tot_score/alarm_frames), max_score, id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't update event: %s\n", mysql_error( &dbconn ) ));
+		Error(( "Can't update event: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
 }
@@ -90,7 +90,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 	sprintf( sql, "insert into Frames set EventId=%d, FrameId=%d, AlarmFrame=%d, ImagePath='%s', Delta=%s%ld.%02ld, Score=%d", id, frames, alarm_image!=0, event_file, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000, score );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't insert frame: %s\n", mysql_error( &dbconn ) ));
+		Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
 	end_frame_id = mysql_insert_id( &dbconn );
@@ -116,14 +116,14 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 	sprintf( sql, "select Id, EventId, ImagePath, TimeStamp from Frames where EventId = %d order by Id", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s\n", mysql_error( &dbconn ) ));
+		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s\n", mysql_error( &dbconn ) ));
+		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
 
@@ -136,7 +136,7 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 	fprintf( fd, "--ZoneMinderFrame\r\n" );
 
 	int n_frames = mysql_num_rows( result );
-	Info(( "Got %d frames\n", n_frames ));
+	Info(( "Got %d frames", n_frames ));
 	FILE *fdj = NULL;
 	int n_bytes = 0;
 	static unsigned char buffer[0x10000];
@@ -162,7 +162,7 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
-		Error(( "Can't fetch row: %s\n", mysql_error( &dbconn ) ));
+		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
 	// Yadda yadda

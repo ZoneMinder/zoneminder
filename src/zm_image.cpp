@@ -63,7 +63,7 @@ void Image::ReadJpeg( const char *filename )
 	FILE * infile;
 	if ((infile = fopen(filename, "rb" )) == NULL)
 	{
-		Error(( "Can't open %s: %s\n", filename, strerror(errno)));
+		Error(( "Can't open %s: %s", filename, strerror(errno)));
 		exit(1);
 	}
 	jpeg_stdio_src(&cinfo, infile);
@@ -114,7 +114,7 @@ void Image::WriteJpeg( const char *filename ) const
 	FILE *outfile;
 	if ((outfile = fopen(filename, "wb" )) == NULL)
 	{
-		Error(( "Can't open %s: %s\n", filename, strerror(errno)));
+		Error(( "Can't open %s: %s", filename, strerror(errno)));
 		exit(1);
 	}
 	jpeg_stdio_dest(&cinfo, outfile);

@@ -47,14 +47,14 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	shmid = shmget( ZM_SHM_KEY|id, shared_images_size, IPC_CREAT|0777 );
 	if ( shmid < 0 )
 	{
-		Error(( "Can't shmget: %s\n", strerror(errno)));
+		Error(( "Can't shmget: %s", strerror(errno)));
 		exit( -1 );
 	}
 	unsigned char *shm_ptr = (unsigned char *)shmat( shmid, 0, 0 );
 	shared_images = (SharedImages *)shm_ptr;
 	if ( shared_images < 0 )
 	{
-		Error(( "Can't shmat: %s\n", strerror(errno)));
+		Error(( "Can't shmat: %s", strerror(errno)));
 		exit( -1 );
 	}
 

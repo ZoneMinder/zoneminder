@@ -30,7 +30,7 @@ void zmDbConnect( const char *user, const char*pass )
 		fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
-	if ( !mysql_connect( &dbconn, ZM_DB_SERVER, user, pass ) )
+	if ( !mysql_real_connect( &dbconn, ZM_DB_SERVER, user, pass ) )
 	{
 		fprintf( stderr, "Can't connect to server: %s\n", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );

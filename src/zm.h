@@ -22,9 +22,10 @@
 
 extern "C"
 {
-#include "zm_config.h"
 #include "zm_debug.h"
 }
+
+#include "zm_config.h"
 
 // Structure used for storing the results of the subtraction
 // of one struct timeval from another

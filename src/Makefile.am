@@ -11,7 +11,7 @@ webgroup = @WEB_GROUP@
 
 bin_PROGRAMS = zmc zma zmu zms zmf zmfix
 
-zm_SOURCES = zm.cpp zm_db.cpp zm_coord.cpp zm_box.cpp zm_image.cpp zm_event.cpp zm_zone.cpp zm_camera.cpp zm_local_camera.cpp zm_remote_camera.cpp zm_monitor.cpp zm_debug.c zm_jpeg.c
+zm_SOURCES = zm.cpp zm_db.cpp zm_config.cpp zm_coord.cpp zm_box.cpp zm_image.cpp zm_event.cpp zm_zone.cpp zm_camera.cpp zm_local_camera.cpp zm_remote_camera.cpp zm_monitor.cpp zm_debug.c zm_jpeg.c
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
 zma_SOURCES = zma.cpp $(zm_SOURCES)
 zms_SOURCES = zms.cpp $(zm_SOURCES)

@@ -128,7 +128,7 @@ webgroup = @WEB_GROUP@
 
 bin_PROGRAMS = zmc zma zmu zms zmf zmfix
 
-zm_SOURCES = zm.cpp zm_db.cpp zm_coord.cpp zm_box.cpp zm_image.cpp zm_event.cpp zm_zone.cpp zm_camera.cpp zm_local_camera.cpp zm_remote_camera.cpp zm_monitor.cpp zm_debug.c zm_jpeg.c
+zm_SOURCES = zm.cpp zm_db.cpp zm_config.cpp zm_coord.cpp zm_box.cpp zm_image.cpp zm_event.cpp zm_zone.cpp zm_camera.cpp zm_local_camera.cpp zm_remote_camera.cpp zm_monitor.cpp zm_debug.c zm_jpeg.c
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
 zma_SOURCES = zma.cpp $(zm_SOURCES)
 zms_SOURCES = zms.cpp $(zm_SOURCES)
@@ -147,11 +147,11 @@ bin_PROGRAMS = zmc$(EXEEXT) zma$(EXEEXT) zmu$(EXEEXT) zms$(EXEEXT) \
 	zmf$(EXEEXT) zmfix$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 
-am__objects_1 = zm.$(OBJEXT) zm_db.$(OBJEXT) zm_coord.$(OBJEXT) \
-	zm_box.$(OBJEXT) zm_image.$(OBJEXT) zm_event.$(OBJEXT) \
-	zm_zone.$(OBJEXT) zm_camera.$(OBJEXT) zm_local_camera.$(OBJEXT) \
-	zm_remote_camera.$(OBJEXT) zm_monitor.$(OBJEXT) \
-	zm_debug.$(OBJEXT) zm_jpeg.$(OBJEXT)
+am__objects_1 = zm.$(OBJEXT) zm_db.$(OBJEXT) zm_config.$(OBJEXT) \
+	zm_coord.$(OBJEXT) zm_box.$(OBJEXT) zm_image.$(OBJEXT) \
+	zm_event.$(OBJEXT) zm_zone.$(OBJEXT) zm_camera.$(OBJEXT) \
+	zm_local_camera.$(OBJEXT) zm_remote_camera.$(OBJEXT) \
+	zm_monitor.$(OBJEXT) zm_debug.$(OBJEXT) zm_jpeg.$(OBJEXT)
 am_zma_OBJECTS = zma.$(OBJEXT) $(am__objects_1)
 zma_OBJECTS = $(am_zma_OBJECTS)
 zma_LDADD = $(LDADD)
@@ -188,10 +188,10 @@ DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/zm.Po ./$(DEPDIR)/zm_box.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/zm_camera.Po ./$(DEPDIR)/zm_coord.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/zm_db.Po ./$(DEPDIR)/zm_debug.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/zm_event.Po ./$(DEPDIR)/zm_image.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/zm_jpeg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/zm_camera.Po ./$(DEPDIR)/zm_config.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/zm_coord.Po ./$(DEPDIR)/zm_db.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/zm_debug.Po ./$(DEPDIR)/zm_event.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/zm_image.Po ./$(DEPDIR)/zm_jpeg.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/zm_local_camera.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/zm_monitor.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/zm_remote_camera.Po \
@@ -276,6 +276,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_box.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_camera.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_coord.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_db.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_debug.Po@am__quote@

@@ -18,6 +18,7 @@
 // 
 
 #include "config.h"
+#include "zm_config_defines.h"
 
 #define ZM_VERSION				"<from zmconfig>"	// ZoneMinder verson number
 #define ZM_DB_SERVER			"<from zmconfig>"	// Machine on which the database server is running
@@ -27,7 +28,6 @@
 #define	ZM_DB_USERB				"<from zmconfig>"	// Unprivileged DB user name, need just select privilege.
 #define	ZM_DB_PASSB				"<from zmconfig>"	// Unprivileged DB user password
 
-#define ZM_OPT_USE_AUTH         "<from zmconfig>"	// Authenticate user logins to ZoneMinder
 #define ZM_HTTP_VERSION         "<from zmconfig>"	// The version of HTTP that ZoneMinder will use to connect
 #define ZM_HTTP_UA              "<from zmconfig>"	// The user agent that ZoneMinder uses to identify itself
 #define ZM_HTTP_TIMEOUT         <from zmconfig>		// How long ZoneMinder waits before giving up on images (millseconds)
@@ -61,3 +61,63 @@
 #define ZM_MAX_IMAGE_COLOURS	3					// The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_DIM		(ZM_MAX_IMAGE_WIDTH*ZM_MAX_IMAGE_HEIGHT)
 #define ZM_MAX_IMAGE_SIZE		(ZM_MAX_IMAGE_DIM*ZM_MAX_IMAGE_COLOURS)
+
+class ConfigItem
+{
+private:
+	char *name;
+	char *value;
+	char *type;
+
+	mutable enum { CFG_BOOLEAN, CFG_INTEGER, CFG_DECIMAL, CFG_STRING } cfg_type;
+	mutable union
+	{
+		bool boolean_value;
+		int integer_value;
+		double decimal_value;
+		char *string_value;
+	} cfg_value;
+	mutable bool accessed;
+
+public:
+	ConfigItem( const char *p_name, const char *p_value, const char *const p_type );
+	~ConfigItem();
+	void ConvertValue() const;
+	bool BooleanValue() const;
+	int IntegerValue() const;
+	double DecimalValue() const;
+	const char *StringValue() const;
+
+	inline operator bool() const
+	{
+		return( BooleanValue() );
+	}
+	inline operator int() const
+	{
+		return( IntegerValue() );
+	}
+	inline operator double() const
+	{
+		return( DecimalValue() );
+	}
+	inline operator const char *() const
+	{
+		return( StringValue() );
+	}
+};
+
+class Config
+{
+private:
+	int n_items;
+	ConfigItem **items;
+
+public:
+	Config();
+	~Config();
+
+	void Load();
+	const ConfigItem &GetItem( int id );
+};
+
+extern Config config;

@@ -104,15 +104,30 @@ while( 1 )
 {
 	my $now = time();
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	my $shm_size = 24; # We only need the first 24 bytes really for the last event time
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
 		if ( $monitor->{Function} ne 'None' )
 		{
 			# Check we have got an image recently
-			my $command = ZM_PATH_BIN."/zmu -m ".$monitor->{Id}." -t";
-			print( "Getting last image time for monitor $monitor->{Id} ('$command')\n" ) if ( VERBOSE );
-			my $image_time = qx( $command );
-			chomp($image_time);
+			$monitor->{ShmKey} = hex(ZM_SHM_KEY)|$monitor->{Id};
+			if ( !($monitor->{ShmId} = shmget( $monitor->{ShmKey}, $shm_size, 0 )) )
+			{
+				print( "Can't get shared memory id: $!\n" );
+				next;
+			}
+			my $image_time;
+			if ( !shmread( $monitor->{ShmId}, $image_time, 20, 4 ) )
+			{
+				print( "Can't read from shared memory: $!\n" );
+				next;
+			}
+			$image_time = unpack( "l", $image_time );
+
+			#my $command = ZM_PATH_BIN."/zmu -m ".$monitor->{Id}." -t";
+			#print( "Getting last image time for monitor $monitor->{Id} ('$command')\n" ) if ( VERBOSE );
+			#my $image_time = qx( $command );
+			#chomp($image_time);
 
 			if ( !$image_time )
 			{
@@ -128,6 +143,7 @@ while( 1 )
 				next;
 			}
 
+			my $command;
 			# If we are here then something bad has happened
 			if ( $monitor->{Type} eq 'Local' )
 			{
@@ -137,7 +153,7 @@ while( 1 )
 			{
 				$command = ZM_PATH_BIN."/zmdc.pl restart zmc -H $monitor->{Host} -P $monitor->{Port} -p '$monitor->{Path}'";
 			}
-			print( "Restarting capture daemon ('$command')\n" );
+			print( "Restarting capture daemon ('$command'), time since last capture $image_delay seconds ($now-$image_time)\n" );
 			print( qx( $command ) );
 		}
 	}

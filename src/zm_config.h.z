@@ -50,4 +50,6 @@
 #define ZM_BLEND_ALARMED_IMAGES	<from zmconfig>		// Whether alarmed images are blended to update the reference image
 
 #define ZM_NO_MAX_FPS_ON_ALARM	<from zmconfig>		// Should any Maximum FPS be ignored if an alarm occurs
+#define ZM_OPT_ADAPTIVE_SKIP	<from zmconfig>		// Whether we use the adaptive skip algorithm
+#define ZM_OPT_FRAME_SERVER		<from zmconfig>		// Whether we use the frame server to speed things up
 

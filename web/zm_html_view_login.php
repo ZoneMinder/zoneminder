@@ -25,7 +25,7 @@
 <title>ZM - <?= $zmSlangLogin ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
-window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h'] ?> );
+window.resizeTo( <?= $jws['login']['w'] ?>, <?= $jws['login']['h'] ?> );
 </script>
 </head>
 <body>

@@ -103,6 +103,18 @@ bool Event::OpenFrameSocket( int monitor_id )
 		return( false );
 	}
 
+	int socket_buffer_size = (int)config.Item( ZM_FRAME_SOCKET_SIZE ); 
+	if ( socket_buffer_size > 0 )
+	{
+		if ( setsockopt( sd, SOL_SOCKET, SO_SNDBUF, &socket_buffer_size, sizeof(socket_buffer_size) ) < 0 )
+		{
+			Error(( "Can't get socket buffer size to %d, error = %s", socket_buffer_size, strerror(errno) ));
+			close( sd );
+			sd = -1;
+			return( false );
+		}
+	}
+
 	int flags;
 	if ( (flags = fcntl( sd, F_GETFL )) < 0 )
 	{

@@ -1183,6 +1183,7 @@ opener.location.reload();
 window.focus();
 function validateForm(theForm)
 {
+	theForm.new_alarm_rgb.value = (theForm.new_alarm_rgb_r.value<<16)|(theForm.new_alarm_rgb_g.value<<8)|theForm.new_alarm_rgb_b.value;
 	return( true );
 }
 
@@ -1190,8 +1191,12 @@ function applyZoneType(theForm)
 {
 	if ( theForm.new_type.value == 'Inactive' )
 	{
-		theForm.new_alarm_rgb.disabled = true;
-		theForm.new_alarm_rgb.value = "";
+		theForm.new_alarm_rgb_r.disabled = true;
+		theForm.new_alarm_rgb_r.value = "";
+		theForm.new_alarm_rgb_g.disabled = true;
+		theForm.new_alarm_rgb_g.value = "";
+		theForm.new_alarm_rgb_b.disabled = true;
+		theForm.new_alarm_rgb_b.value = "";
 		theForm.new_alarm_threshold.disabled = true;
 		theForm.new_alarm_threshold.value = "";
 		theForm.new_min_alarm_pixels.disabled = true;
@@ -1217,30 +1222,34 @@ function applyZoneType(theForm)
 	}
 	else
 	{
-		theForm.new_alarm_rgb.disabled = false;
-		theForm.new_alarm_rgb.value = <?php echo $zone[AlarmRGB] ?>;
+		theForm.new_alarm_rgb_r.disabled = false;
+		theForm.new_alarm_rgb_r.value = "<?php echo ($zone[AlarmRGB]>>16)&0xff; ?>";
+		theForm.new_alarm_rgb_g.disabled = false;
+		theForm.new_alarm_rgb_g.value = "<?php echo ($zone[AlarmRGB]>>8)&0xff; ?>";
+		theForm.new_alarm_rgb_b.disabled = false;
+		theForm.new_alarm_rgb_b.value = "<?php echo $zone[AlarmRGB]&0xff; ?>";
 		theForm.new_alarm_threshold.disabled = false;
-		theForm.new_alarm_threshold.value = <?php echo $zone[AlarmThreshold] ?>;
+		theForm.new_alarm_threshold.value = "<?php echo $zone[AlarmThreshold] ?>";
 		theForm.new_min_alarm_pixels.disabled = false;
-		theForm.new_min_alarm_pixels.value = <?php echo $zone[MinAlarmPixels] ?>;
+		theForm.new_min_alarm_pixels.value = "<?php echo $zone[MinAlarmPixels] ?>";
 		theForm.new_max_alarm_pixels.disabled = false;
-		theForm.new_max_alarm_pixels.value = <?php echo $zone[MaxAlarmPixels] ?>;
+		theForm.new_max_alarm_pixels.value = "<?php echo $zone[MaxAlarmPixels] ?>";
 		theForm.new_filter_x.disabled = false;
-		theForm.new_filter_x.value = <?php echo $zone[FilterX] ?>;
+		theForm.new_filter_x.value = "<?php echo $zone[FilterX] ?>";
 		theForm.new_filter_y.disabled = false;
-		theForm.new_filter_y.value = <?php echo $zone[FilterY] ?>;
+		theForm.new_filter_y.value = "<?php echo $zone[FilterY] ?>";
 		theForm.new_min_filter_pixels.disabled = false;
-		theForm.new_min_filter_pixels.value = <?php echo $zone[MinFilterPixels] ?>;
+		theForm.new_min_filter_pixels.value = "<?php echo $zone[MinFilterPixels] ?>";
 		theForm.new_max_filter_pixels.disabled = false;
-		theForm.new_max_filter_pixels.value = <?php echo $zone[MaxFilterPixels] ?>;
+		theForm.new_max_filter_pixels.value = "<?php echo $zone[MaxFilterPixels] ?>";
 		theForm.new_min_blob_pixels.disabled = false;
-		theForm.new_min_blob_pixels.value = <?php echo $zone[MinBlobPixels] ?>;
+		theForm.new_min_blob_pixels.value = "<?php echo $zone[MinBlobPixels] ?>";
 		theForm.new_max_blob_pixels.disabled = false;
-		theForm.new_max_blob_pixels.value = <?php echo $zone[MaxBlobPixels] ?>;
+		theForm.new_max_blob_pixels.value = "<?php echo $zone[MaxBlobPixels] ?>";
 		theForm.new_min_blobs.disabled = false;
-		theForm.new_min_blobs.value = <?php echo $zone[MinBlobs] ?>;
+		theForm.new_min_blobs.value = "<?php echo $zone[MinBlobs] ?>";
 		theForm.new_max_blobs.disabled = false;
-		theForm.new_max_blobs.value = <?php echo $zone[MaxBlobs] ?>;
+		theForm.new_max_blobs.value = "<?php echo $zone[MaxBlobs] ?>";
 	}
 }
 
@@ -1337,6 +1346,7 @@ function closeWindow() {
 <input type="hidden" name="action" value="zone">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
 <input type="hidden" name="zid" value="<?php echo $zid ?>">
+<input type="hidden" name="new_alarm_rgb" value="">
 <tr>
 <td align="left" class="smallhead">Parameter</td><td align="left" class="smallhead">Value</td>
 </tr>
@@ -1365,7 +1375,7 @@ function closeWindow() {
 <tr><td align="left" class="text">Minimum Y (top)</td><td align="left" class="text"><input type="text" name="new_lo_y" value="<?php echo $zone[LoY] ?>" size="4" class="form" onchange="checkHeight(this,'Minimum Y')"></td></tr>
 <tr><td align="left" class="text">Maximum X (right)</td><td align="left" class="text"><input type="text" name="new_hi_x" value="<?php echo $zone[HiX] ?>" size="4" class="form" onchange="checkWidth(this,'Maximum X')"></td></tr>
 <tr><td align="left" class="text">Maximum Y (bottom)</td><td align="left" class="text"><input type="text" name="new_hi_y" value="<?php echo $zone[HiY] ?>" size="4" class="form" onchange="checkHeight(this,'Maximum Y')"></td></tr>
-<tr><td align="left" class="text">Alarm Colour (RGB)</td><td align="left" class="text"><input type="text" name="new_alarm_rgb" value="<?php echo $zone[AlarmRGB] ?>" size="12" class="form"></td></tr>
+<tr><td align="left" class="text">Alarm Colour (RGB)</td><td align="left" class="text">R:<input type="text" name="new_alarm_rgb_r" value="<?php echo ($zone[AlarmRGB]>>16)&0xff ?>" size="3" class="form">&nbsp;G:<input type="text" name="new_alarm_rgb_g" value="<?php echo ($zone[AlarmRGB]>>8)&0xff ?>" size="3" class="form">&nbsp;B:<input type="text" name="new_alarm_rgb_b" value="<?php echo $zone[AlarmRGB]&0xff ?>" size="3" class="form"></td></tr>
 <tr><td align="left" class="text">Alarm Threshold (0>=?<=255)</td><td align="left" class="text"><input type="text" name="new_alarm_threshold" value="<?php echo $zone[AlarmThreshold] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Minimum Alarmed Area</td><td align="left" class="text"><input type="text" name="new_min_alarm_pixels" value="<?php echo $zone[MinAlarmPixels] ?>" size="6" class="form" onchange="checkArea(this,'Minimum Alarmed Area')"></td></tr>
 <tr><td align="left" class="text">Maximum Alarmed Area</td><td align="left" class="text"><input type="text" name="new_max_alarm_pixels" value="<?php echo $zone[MaxAlarmPixels] ?>" size="6" class="form" onchange="checkArea(this,'Maximum Alarmed Area')"></td></tr>

@@ -47,7 +47,7 @@ BEGIN
 	{
 		next if ( $str =~ /^\s*$/ );
 		next if ( $str =~ /^\s*#/ );
-		my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/;
+		my ( $name, $value ) = $str =~ /^\s*([^=\\s]+)\s*=\s*(\S+)\s*$/;
 		$name =~ tr/a-z/A-Z/;
 		if (( $name eq 'ZM_DB_SERVER' ) ||
 			( $name eq 'ZM_DB_NAME' ) ||

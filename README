@@ -34,6 +34,7 @@ define areas which will alarm if various thresholds are exceeded in conjunction 
 ZoneMinder is fresh off the keyboard and so comes with no warranty whatsoever, please try it, send your
 feedback and if you get anything useful out of it please let me know.
 
+
 Requirements
 ============
 
@@ -48,7 +49,10 @@ http://www.charliemouse.com/code/cambozola/ which will let you view the image st
 Otherwise you're limited to just refreshing still images.
 
 Hardware wise, ZM has been used with BTTV cards and USB cameras with the V4L interface. I don't have a lot
-of cameras so I've not had change to test it much. Please let me know if your camera works or not.
+of cameras so I've not had change to test it much. Please let me know if your camera works or not. You do
+need to have Video 4 Linux installed. I've not got many machines so I've only really used it on Redhat 7.2
+which does have everythign there by default I think. Please give me feedback on other distributions.
+
 
 Building
 ========
@@ -72,6 +76,7 @@ let me know what to do!
 
 There are a couple of files in the package that come from other packages, this is just to simplify the build
 and reduce dependencies on other packages. Anything ZM specific is named as such.
+
 
 Installation
 ============
@@ -99,6 +104,7 @@ various other binaries and directories before it will work fully but that's pret
 
 Start your web browser and point it at index.php and off you go.
 
+
 Tutorial
 ========
 
@@ -106,7 +112,7 @@ To start with you should see the ZM Console window, this will resize itself to a
 your desktop. Along the top there are a set of links to configure your bandwidth, this allows you to optimise
 your settings depending on where you are and the actual options relating to this are defined at the top of
 the index.php file. If you are using a browser on the same machine or network then choose high, over a cable
-or DSL link maybe choose medium and over a dialup choose low. You can expiriment to see which is best. This
+or DSL link maybe choose medium and over a dialup choose low. You can experiment to see which is best. This
 setting is retained on a per machine basis witha persistent cookie.
 
 To use ZM properly you need to define at least one Monitor. Essentially a monitor is attached to a camera and
@@ -307,7 +313,39 @@ first place or ensure that you housekeep them strictly.
 Have fun, please report any bugs or features you'd like to see and hopefully ZM can be your camera monitoring
 friend!
 
-Philip Coombes (September 2002)
+Philip Coombes (philip.coombes@zoneminder.com) - September 2002
+
+
+Troubleshooting
+===============
+
+Life eh? Nothing ever works first time does it? In case you are having problems here are some things to try.
+If these don't work then feel free to get in touch and I'll see if I can suggest something else. The best
+places to look for errors are in your system eror log (/var/log/messages on RedHat) and your web server
+log (/var/log/httpd/error_log). There should be something in one of those that gives you some kind of tip
+off.
+
+Some things to check.
+1. Device configuration. If you can't get your cameras to work in ZM, firstly make sure that you have the
+correct settings. Use xawtv or something like that to check for settings which work. If you can't get them
+to work with that then the likelihood is they won't work with ZM.
+2. Device permissions. As the ZM daemons are started by your web server, you need to ensure that your video
+devices can be opened by the associated user.
+3. Web server. Ensure that your web server can serve PHP files. It's also possible that your php.ini file
+may have some settings which break ZM, I'm not a PHP expert but setting safe mode may prevent your index.php
+file from runningcertain programs. You may have to set configuration to allow this. Also as the daemons are
+started by your web server, if it dies or is shut down then the daemons will disappear. I suspect this is
+a bug in ZM.
+4. Use debug. ZM has various debug which by default will go into your system log (via syslog). These will
+be of the form of "Sep 14 14:50:11 localhost zma-0[1975]: INF [Front: 221000 - Processing at 4.26 fps ]"
+where the zma-0 part identifies the daemon and the device it is running on. Entries with INF in are 
+informational and not an error, if you see ERR then it is one, though not all are fatal. You can prevent 
+this information from being emitted by setting the DLVL_zmc environment variable to -1 or less once things
+are working. If you want to run any of the daemons from the command line to test, setting DBG_PRINT to 1
+will output the debug on the console and setting DLVL_zmc (or DLVL_zma etc) to a number between 0 and 9 
+will emit progressively more debug though theres not a lot in there at present.
+5. Paths. I admit it, the various paths in ZM are a bit of a nightmare. Make sure that they are all correct 
+and that permissions are such that the various parts of ZM can actually run.
 
 To Do
 =====
@@ -342,6 +380,10 @@ management.
 something happens, perhaps configurable to report only certain types of events.
 12. Templatise the php file. Personally I hate mixing up HTML and logic, perhaps use Smarty or something and 
 separate the screens out from the rest.
+13. Automatic device configuration - Video 4 Linux supprots various device queries, it should be possible to
+get most of the device capability information from the device itself.
+14. X-10 integration - A handy feature would be to allow a generated event to trigger some other action
+perhaps to an attached X-10 interface, for instance turn lights on or make a dog barky noise!
 
 Bugs
 ====

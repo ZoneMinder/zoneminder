@@ -83,12 +83,13 @@ protected:
 	int		fps_report_interval;// How many images should be captured/processed between reporting the current FPS
 	int		ref_blend_perc;		// Percentage of new image going into reference image.
 
-	Image	ref_image;
 
-	Purpose	purpose;			// What this monitor has been created to do
 
 	double	fps;
 	Image	image;
+	Image	ref_image;
+
+	Purpose	purpose;			// What this monitor has been created to do
 	int		event_count;
 	int		image_count;
 	int		first_alarm_count;
@@ -251,7 +252,7 @@ public:
 		return( function > MONITOR && image_count > warmup_count );
 	}
  
-	void DumpImage( Image *image ) const;
+	void DumpImage( Image *dump_image ) const;
 	bool Analyse();
 
 	void Adjust( double ratio )
@@ -259,7 +260,7 @@ public:
 		ref_image.Blend( image, 0.1 );
 	}
 
-	unsigned int Compare( const Image &image );
+	unsigned int Compare( const Image &comp_image );
 	void ReloadZones();
 	static int Load( int device, Monitor **&monitors, Purpose purpose=QUERY );
 	static int Load( const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose=QUERY );

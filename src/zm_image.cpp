@@ -16,7 +16,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
-
 #include "zm.h"
 #include "zm_font.h"
 #include "zm_image.h"
@@ -453,8 +452,6 @@ Image *Image::Delta( const Image &image ) const
 	assert( width == image.width && height == image.height && colours == image.colours );
 
 	Image *result = new Image( width, height, 1 );
-
-	typedef JSAMPLE IMAGE[width][height][colours];
 
 	unsigned char *psrc = buffer;
 	unsigned char *pref = image.buffer;

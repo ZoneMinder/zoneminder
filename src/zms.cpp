@@ -21,7 +21,7 @@
 #include "zm_db.h"
 #include "zm_monitor.h"
 
-int main( int argc, const char *argv[] )
+int main(void )
 {
 	int id = 1;
 	unsigned long idle = 5000;
@@ -29,7 +29,7 @@ int main( int argc, const char *argv[] )
 	unsigned int rate = 1;
 	unsigned int scale = 1;
 	int event = 0;
-	char *path = ".";
+	const char *path = ".";
 	unsigned int ttl = 0;
 
     //setbuf( fd, 0 );
@@ -65,7 +65,7 @@ int main( int argc, const char *argv[] )
 			else if ( !strcmp( name, "monitor" ) )
 				id = atoi( value );
 			else if ( !strcmp( name, "event" ) )
-				event = atoi( value );
+				event = strtoull( value, (char **)NULL, 10 );
 			else if ( !strcmp( name, "path" ) )
 				path = value;
 			else if ( !strcmp( name, "ttl" ) )

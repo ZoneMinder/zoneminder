@@ -27,7 +27,7 @@
 
 bool zmc_terminate = false;
 
-void zmc_term_handler( int signal )
+void zmc_term_handler( int /* signal */ )
 {
 	Info(( "Got TERM signal, exiting" ));
 	zmc_terminate = true;
@@ -46,9 +46,9 @@ void Usage()
 int main( int argc, char *argv[] )
 {
 	int device = -1;
-	char *host = "";
-	char *port = "";
-	char *path = "";
+	const char *host = "";
+	const char *port = "";
+	const char *path = "";
 
 	static struct option long_options[] = {
 		{"device", 1, 0, 'd'},
@@ -169,9 +169,9 @@ int main( int argc, char *argv[] )
 		monitors[0]->PreCapture();
 	}
 
-	long capture_delays[n_monitors];
-	long next_delays[n_monitors];
-	struct timeval last_capture_times[n_monitors];
+	long *capture_delays = new long[n_monitors];
+	long *next_delays = new long[n_monitors];
+	struct timeval * last_capture_times = new struct timeval[n_monitors];
 	for ( int i = 0; i < n_monitors; i++ )
 	{
 		last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
@@ -239,5 +239,9 @@ int main( int argc, char *argv[] )
 	{
 		delete monitors[i];
 	}
+	delete [] capture_delays;
+	delete [] next_delays;
+	delete [] last_capture_times;
+
 	return( 0 );
 }

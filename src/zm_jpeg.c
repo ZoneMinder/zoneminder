@@ -17,9 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */ 
 
-#include "jinclude.h"
-#include "jpeglib.h"
-#include "jerror.h"
+#include "zm_jpeg.h"
 
 /* Expanded data destination object for memory */
 
@@ -218,7 +216,7 @@ static boolean fill_input_buffer (j_decompress_ptr cinfo)
   mem_src_ptr src = (mem_src_ptr) cinfo->src;
   size_t nbytes;
 
-  memcpy( src->buffer, src->inbuffer, src->inbuffer_size );
+  memcpy( src->buffer, src->inbuffer, (size_t) src->inbuffer_size );
   nbytes = src->inbuffer_size;
 
   if (nbytes <= 0) {

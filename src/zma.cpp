@@ -26,7 +26,13 @@
 
 void zm_die_handler( int signal )
 {
-	Info(( "Got signal %d, crashing", signal ));
+        char * error = strsignal(signal);
+        size_t errorStringSize = strlen(error) + strlen("Got signal (), crashing.");
+        char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
+        (void) snprintf(errorString, errorStringSize, "Got signal (%s), crashing.", error);
+
+        Info(( (const char *)errorString ));
+        free(errorString);
 	exit( signal );
 }
 
@@ -34,7 +40,13 @@ bool zma_terminate = false;
 
 void zm_term_handler( int signal )
 {
-	Info(( "Got TERM signal, exiting" ));
+        char * error = strsignal(signal);
+        size_t errorStringSize = strlen(error) + strlen("Got signal (), exiting.");
+        char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
+        (void) snprintf(errorString, errorStringSize, "Got signal (%s), exiting.", error);
+
+        Info(( (const char *)errorString ));
+        free(errorString);
 	zma_terminate = true;
 }
 

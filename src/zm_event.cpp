@@ -167,15 +167,26 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 	iovecs[1].iov_base = jpg_buffer;
 	iovecs[1].iov_len = jpg_buffer_size;
 
-	if ( writev( sd, iovecs, sizeof(iovecs)/sizeof(*iovecs) ) != sizeof(frame_header)+jpg_buffer_size )
+	ssize_t writev_size = sizeof(frame_header)+jpg_buffer_size;
+	ssize_t writev_result = writev( sd, iovecs, sizeof(iovecs)/sizeof(*iovecs));
+	if ( writev_result != writev_size )
 	{
-		if ( errno == EAGAIN )
+		if ( writev_result < 0 )
 		{
-			Warning(( "Blocking write detected" ));
+			if ( errno == EAGAIN )
+			{
+				Warning(( "Blocking write detected" ));
+			}
+			else
+			{
+				Error(( "Can't write frame: %s", strerror(errno) ));
+				close( sd );
+				sd = -1;
+			}
 		}
 		else
 		{
-			Error(( "Can't write frame: %s", strerror(errno) ));
+			Error(( "Incomplete frame write: %d of %d bytes written", writev_result, writev_size ));
 			close( sd );
 			sd = -1;
 		}

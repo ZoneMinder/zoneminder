@@ -55,10 +55,10 @@ public:
 	unsigned int Colours() const { return( colours ); }
 	unsigned int ImageSize() const { return( colours*width*height ); }
 
-	virtual int Brightness( int p_brightness=-1 ) { return( -1 ); }
-	virtual int Hue( int p_hue=-1 ) { return( -1 ); }
-	virtual int Colour( int p_colour=-1 ) { return( -1 ); }
-	virtual int Contrast( int p_contrast=-1 ) { return( -1 ); }
+	virtual int Brightness( int/*p_brightness*/=-1 ) { return( -1 ); }
+	virtual int Hue( int/*p_hue*/=-1 ) { return( -1 ); }
+	virtual int Colour( int/*p_colour*/=-1 ) { return( -1 ); }
+	virtual int Contrast( int/*p_contrast*/=-1 ) { return( -1 ); }
 
 	bool CanCapture() const { return( capture ); }
 

@@ -466,7 +466,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 	return( n_zones );
 }
 
-bool Zone::DumpSettings( char *output, bool verbose )
+bool Zone::DumpSettings( char *output, bool /*verbose*/ )
 {
 	output[0] = 0;
 

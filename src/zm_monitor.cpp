@@ -301,11 +301,11 @@ int Monitor::GetImage( int index ) const
 		index = shared_data->last_write_index;
 	}
 	Snapshot *snap = &image_buffer[index];
-	Image *image = snap->image;
+	Image *snap_image = snap->image;
 
 	char filename[64];
 	sprintf( filename, "%s.jpg", name );
-	image->WriteJpeg( filename );
+	snap_image->WriteJpeg( filename );
 	return( 0 );
 }
 
@@ -316,8 +316,8 @@ struct timeval Monitor::GetTimestamp( int index ) const
 		index = shared_data->last_write_index;
 	}
 
-	Info(( "Index %d = %x", index, image_buffer[index].timestamp ));
-	Info(( "Timestamp %d.%d", image_buffer[index].timestamp->tv_sec, image_buffer[index].timestamp->tv_usec ));
+	Info(( "Index %d = %p", index, (void *) image_buffer[index].timestamp ));
+	Info(( "Timestamp %ld.%ld", image_buffer[index].timestamp->tv_sec, image_buffer[index].timestamp->tv_usec ));
 
 	Snapshot *snap = &image_buffer[index];
 	return( *(snap->timestamp) );
@@ -350,9 +350,9 @@ double Monitor::GetFPS() const
 	Snapshot *snap2 = &image_buffer[index2];
 	time_t time2 = snap2->timestamp->tv_sec;
 
-	double fps = double(image_buffer_count)/(time1-time2);
+	double curr_fps = double(image_buffer_count)/(time1-time2);
 
-	return( fps );
+	return( curr_fps );
 }
 
 void Monitor::ForceAlarmOn()
@@ -510,9 +510,9 @@ void Monitor::DumpZoneImage()
 {
 	int index = shared_data->last_write_index;
 	Snapshot *snap = &image_buffer[index];
-	Image *image = snap->image;
+	Image *snap_image = snap->image;
 
-	Image zone_image( *image );
+	Image zone_image( *snap_image );
 	zone_image.Colourise();
 	for( int i = 0; i < n_zones; i++ )
 	{
@@ -544,7 +544,7 @@ void Monitor::DumpZoneImage()
 	zone_image.WriteJpeg( filename );
 }
 
-void Monitor::DumpImage( Image *image ) const
+void Monitor::DumpImage( Image *dump_image ) const
 {
 	if ( image_count && !(image_count%10) )
 	{
@@ -552,7 +552,7 @@ void Monitor::DumpImage( Image *image ) const
 		static char filename[64];
 		sprintf( filename, "%s.jpg", name );
 		sprintf( new_filename, "%s-new.jpg", name );
-		image->WriteJpeg( new_filename );
+		dump_image->WriteJpeg( new_filename );
 		rename( new_filename, filename );
 	}
 }
@@ -610,13 +610,16 @@ bool Monitor::Analyse()
 
 	Snapshot *snap = &image_buffer[index];
 	struct timeval *timestamp = snap->timestamp;
-	Image *image = snap->image;
+	Image *snap_image = snap->image;
+
+	static struct timeval **timestamps;
+	static const Image **images;
 
 	unsigned int score = 0;
 	if ( Ready() )
 	{
 		if ( function != RECORD && shared_data->force_state != FORCE_OFF )
-			score = Compare( *image );
+			score = Compare( *snap_image );
 		if ( shared_data->force_state == FORCE_ON )
 			score = (int)config.Item( ZM_FORCED_ALARM_SCORE );
 
@@ -633,8 +636,8 @@ bool Monitor::Analyse()
 				if ( 1 )
 				{
 					int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
-					struct timeval *timestamps[pre_event_count];
-					const Image *images[pre_event_count];
+					if ( !timestamps ) timestamps = new struct timeval *[pre_event_count];
+					if ( !images ) images = new const Image *[pre_event_count];
 					for ( int i = 0; i < pre_event_count; i++ )
 					{
 						timestamps[i] = image_buffer[pre_index].timestamp;
@@ -657,8 +660,8 @@ bool Monitor::Analyse()
 					event = new Event( this, *timestamp );
 
 					int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
-					struct timeval *timestamps[pre_event_count];
-					const Image *images[pre_event_count];
+					if ( !timestamps ) timestamps = new struct timeval *[pre_event_count];
+					if ( !images ) images = new const Image *[pre_event_count];
 					for ( int i = 0; i < pre_event_count; i++ )
 					{
 						timestamps[i] = image_buffer[pre_index].timestamp;
@@ -703,7 +706,7 @@ bool Monitor::Analyse()
 			{
 				if ( (bool)config.Item( ZM_CREATE_ANALYSIS_IMAGES ) )
 				{
-					Image alarm_image( *image );
+					Image alarm_image( *snap_image );
 					for( int i = 0; i < n_zones; i++ )
 					{
 						if ( zones[i]->Alarmed() )
@@ -715,22 +718,22 @@ bool Monitor::Analyse()
 							}
 						}
 					}
-					event->AddFrame( *timestamp, image, score, &alarm_image );
+					event->AddFrame( *timestamp, snap_image, score, &alarm_image );
 				}
 				else
 				{
-					event->AddFrame( *timestamp, image, score );
+					event->AddFrame( *timestamp, snap_image, score );
 				}
 			}
 			else if ( state == ALERT )
 			{
-				event->AddFrame( *timestamp, image );
+				event->AddFrame( *timestamp, snap_image );
 			}
 			else if ( state == TAPE )
 			{
 				if ( !(image_count%(frame_skip+1)) )
 				{
-					event->AddFrame( *timestamp, image );
+					event->AddFrame( *timestamp, snap_image );
 				}
 			}
 		}
@@ -751,8 +754,8 @@ bool Monitor::Analyse()
 
 	if ( (bool)config.Item( ZM_BLEND_ALARMED_IMAGES ) || state != ALARM )
 	{
-		ref_image.Blend( *image, ref_blend_perc );
-		//DumpImage( image );
+		ref_image.Blend( *snap_image, ref_blend_perc );
+		//DumpImage( snap_image );
 	}
 
 	shared_data->last_read_index = index%image_buffer_count;
@@ -1030,8 +1033,8 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 	int img_buffer_size = 0;
 	int loop_count = (idle/refresh)-1;
 
-	time_t start_time;
-	time( &start_time );
+	time_t stream_start_time;
+	time( &stream_start_time );
 
 	while ( true )
 	{
@@ -1046,15 +1049,15 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 			int index = shared_data->last_write_index%image_buffer_count;
 			//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
 			Snapshot *snap = &image_buffer[index];
-			Image *image = snap->image;
+			Image *snap_image = snap->image;
 
 			if ( scale == 1 )
 			{
-				image->EncodeJpeg( img_buffer, &img_buffer_size );
+				snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
 			}
 			else
 			{
-				Image scaled_image( *image );
+				Image scaled_image( *snap_image );
 
 				scaled_image.Scale( scale );
 
@@ -1075,7 +1078,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 		if ( ttl )
 		{
 			time( &now );
-			if ( (now - start_time) > ttl )
+			if ( (now - stream_start_time) > ttl )
 			{
 				break;
 			}
@@ -1130,14 +1133,14 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	return( true );
 }
 
-unsigned int Monitor::Compare( const Image &image )
+unsigned int Monitor::Compare( const Image &comp_image )
 {
 	bool alarm = false;
 	unsigned int score = 0;
 
 	if ( n_zones <= 0 ) return( alarm );
 
-	Image *delta_image = ref_image.Delta( image );
+	Image *delta_image = ref_image.Delta( comp_image );
 
 	// Blank out all exclusion zones
 	for ( int n_zone = 0; n_zone < n_zones; n_zone++ )

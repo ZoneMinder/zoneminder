@@ -49,7 +49,7 @@ void ConfigItem::ConvertValue() const
 	if ( !strcmp( type, "boolean" ) )
 	{
 		cfg_type = CFG_BOOLEAN;
-		cfg_value.boolean_value = strtol( value, 0, 2 );
+		cfg_value.boolean_value = (bool)strtol( value, 0, 2 );
 	}
 	else if ( !strcmp( type, "integer" ) )
 	{
@@ -64,7 +64,7 @@ void ConfigItem::ConvertValue() const
 	else if ( !strcmp( type, "decimal" ) )
 	{
 		cfg_type = CFG_DECIMAL;
-		cfg_value.decimal_value = atof( value );
+		cfg_value.decimal_value = strtod( value, 0 );
 	}
 	else
 	{

@@ -156,14 +156,13 @@ int RemoteCamera::GetHeader( const char *content, const char *header, char *valu
 	strcat( header_string, ":" );
 
 	char *header_ptr = strstr( content, header_string );
-	if ( !header_ptr )
+	int result = -1;
+	if ( header_ptr )
 	{
-		return( -1 );
+		strcat( header_string, " %s" );
+		result = sscanf( header_ptr, header_string, value );
+		//Debug( 3, ( "R:%d, %s\n", result, value );
 	}
-
-	strcat( header_string, " %s" );
-	int result = sscanf( header_ptr, header_string, value );
-	//Debug( 3, ( "R:%d, %s\n", result, value );
 	return( result );
 }
 

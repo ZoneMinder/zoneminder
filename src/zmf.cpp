@@ -33,20 +33,32 @@
 
 #include "zm.h"
 #include "zm_db.h"
-#include "zm_debug.h"
+//#include "zm_debug.h"
 #include "zm_monitor.h"
 
 #include "zmf.h"
 
 void zm_die_handler( int signal )
 {
-	Info(( "Got signal %d, crashing", signal ));
+        char * error = strsignal(signal);
+        size_t errorStringSize = strlen(error) + strlen("Got signal (), crashing.");
+        char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
+        (void) snprintf(errorString, errorStringSize, "Got signal (%s), crashing.", error);
+
+        Info(( (const char *)errorString ));
+        free(errorString);
 	exit( signal );
 }
 
 void zm_term_handler( int signal )
 {
-	Info(( "Got TERM signal, exiting" ));
+        char * error = strsignal(signal);
+        size_t errorStringSize = strlen(error) + strlen("Got signal (), exiting.");
+        char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
+        (void) snprintf(errorString, errorStringSize, "Got signal (%s), exiting.", error);
+
+        Info(( (const char *)errorString ));
+        free(errorString);
 	exit( 0 );
 }
 
@@ -200,8 +212,8 @@ int main( int argc, char *argv[] )
 
 	int sd = OpenSocket( monitor->Id() );
 
-	FrameHeader frame_header = { -1, -1, false, -1 };
-	unsigned char *image_data = 0;
+	FrameHeader frame_header = { 0, 0, false, 0 };
+	//unsigned char *image_data = 0;
 
 	fd_set rfds;
 
@@ -233,15 +245,15 @@ int main( int argc, char *argv[] )
 			Error(( "Can't read frame header: %s", strerror(errno) ));
 			ReopenSocket( sd, monitor->Id() );
 		}
-		Debug( 1, ( "Read frame header, expecting %d bytes of image", frame_header.image_length ));
+		Debug( 1, ( "Read frame header, expecting %ld bytes of image", frame_header.image_length ));
 		static unsigned char image_data[ZM_MAX_IMAGE_SIZE];
-		if ( read( sd, image_data, frame_header.image_length ) != frame_header.image_length )
+		if ( read( sd, image_data, frame_header.image_length ) != (ssize_t)frame_header.image_length )
 		{
 			Error(( "Can't read frame image data: %s", strerror(errno) ));
 			ReopenSocket( sd, monitor->Id() );
 		}
 		static char path[PATH_MAX] = "";
-		sprintf( path, "%s//%s/%d/%s-%03d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), frame_header.event_id, frame_header.alarm_frame?"analyse":"capture", frame_header.frame_id );
+		sprintf( path, "%s/%s/%ld/%s-%03ld.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), frame_header.event_id, frame_header.alarm_frame?"analyse":"capture", frame_header.frame_id );
 		Debug( 1, ( "Got image, writing to %s", path ));
 
 		FILE *fd = 0;
@@ -250,7 +262,7 @@ int main( int argc, char *argv[] )
 			Error(( "Can't fopen '%s': %s", path, strerror(errno) ));
 			exit( -1 );
 		}
-		if ( fwrite( image_data, frame_header.image_length, 1, fd ) < 0 )
+		if ( 0 == fwrite( image_data, frame_header.image_length, 1, fd ) )
 		{
 			Error(( "Can't fwrite image data: %s", strerror(errno) ));
 			exit( -1 );

@@ -119,7 +119,7 @@ bool ValidateAccess( const char *username, const char *password, int mon_id, Fun
 		int stream = atoi(dbrow[1]);
 		int events = atoi(dbrow[2]);
 		int monitors = atoi(dbrow[3]);
-		int system = atoi(dbrow[4]);
+		//int system = atoi(dbrow[4]);
 		const char *monitor_ids = dbrow[5];
 		if ( function & (STATE|IMAGE|TIME|READ_IDX|WRITE_IDX|FPS) )
 		{
@@ -148,7 +148,7 @@ bool ValidateAccess( const char *username, const char *password, int mon_id, Fun
 			char *mon_id_str_ptr = mon_id_str;
 			char *mon_id_ptr = 0;
 			bool found_mon_id = false;
-			while( mon_id_ptr = strtok( mon_id_str_ptr, "," ) )
+			while( (mon_id_ptr = strtok( mon_id_str_ptr, "," )) )
 			{
 				mon_id_str_ptr = 0;
 				if ( mon_id == atoi( mon_id_ptr ) )

@@ -30,14 +30,11 @@
 
 extern "C"
 {
-#include <jpeglib.h>
-
 #if !HAVE_DECL_ROUND
 double round(double);
 #endif
 
-void jpeg_mem_src(j_decompress_ptr cinfo, JOCTET *inbuffer, int inbuffer_size );
-void jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_size );
+#include "zm_jpeg.h"
 }
 
 #include "zm_rgb.h"
@@ -78,16 +75,16 @@ public:
 		height = p_height;
 		colours = p_colours;
 		size = width*height*colours;
-		if ( !p_buffer )
+		if ( p_buffer )
+		{
+			our_buffer = false;
+			buffer = p_buffer;
+		}
+		else
 		{
 			our_buffer = true;
 			buffer = new JSAMPLE[size];
 			memset( buffer, 0, size );
-		}
-		else
-		{
-			our_buffer = false;
-			buffer = p_buffer;
 		}
 		blend_buffer = 0;
 	}

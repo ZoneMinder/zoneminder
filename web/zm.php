@@ -434,7 +434,7 @@ function newWindow(Url,Name,Width,Height) {
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
-<form name="event_form" method="post" action="<?php echo $PHP_SELF ?>">
+<form name="event_form" method="get" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="delete">
 <tr><td align="left" class="smallhead">Id</td>
@@ -769,7 +769,7 @@ function checkAll(form,name){
 </script>
 </head>
 <body>
-<form name="event_form" method="post" action="<?php echo $PHP_SELF ?>">
+<form name="event_form" method="get" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="delete">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
@@ -961,7 +961,7 @@ function newWindow(Url,Name,Width,Height) {
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
 <td colspan="6" align="left" class="text">
-<form method="post" action="<?php echo $PHP_SELF ?>">
+<form method="get" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="rename">
 <input type="hidden" name="eid" value="<?php echo $eid ?>">
@@ -1135,7 +1135,7 @@ function closeWindow() {
 <tr><td colspan="3" align="center"><img src="<?php echo $image ?>" usemap="#zonemap" width="352" height="288" border="0"></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="0" width="96%">
-<form name="event_form" method="post" action="<?php echo $PHP_SELF ?>">
+<form name="event_form" method="get" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="delete">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
@@ -1216,7 +1216,7 @@ function closeWindow() {
 <tr>
 <td colspan="2" align="left" class="head">Monitor <?php echo $monitor[Name] ?></td>
 </tr>
-<form name="monitorForm" method="post" action="<?php echo $PHP_SELF ?>" onsubmit="return validateForm(this)">
+<form name="monitorForm" method="get" action="<?php echo $PHP_SELF ?>" onsubmit="return validateForm(this)">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="monitor">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
@@ -1448,7 +1448,7 @@ function closeWindow() {
 <tr>
 <td colspan="2" align="left" class="head">Monitor <?php echo $monitor[Name] ?> - Zone <?php echo $zone[Name] ?></td>
 </tr>
-<form name="zoneForm" method="post" action="<?php echo $PHP_SELF ?>" onsubmit="return validateForm(this)">
+<form name="zoneForm" method="get" action="<?php echo $PHP_SELF ?>" onsubmit="return validateForm(this)">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="zone">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
@@ -1602,7 +1602,7 @@ function closeWindow() {
 <tr>
 <td colspan="2" align="left" class="head">Device Daemon Status</td>
 </tr>
-<form method="post" action="<?php echo $PHP_SELF ?>">
+<form method="get" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="device">
 <input type="hidden" name="zmc_status" value="<?php echo $zmc ?>">
@@ -1664,7 +1664,7 @@ function closeWindow() {
 <td colspan="2" align="center" class="head">Monitor '<?php echo $monitor[Name] ?>' Function</td>
 </tr>
 <tr>
-<form method="post" action="<?php echo $PHP_SELF ?>">
+<form method="get" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="function">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">

@@ -80,7 +80,7 @@ if ( !isset( $rate ) )
 if ( !isset( $scale ) )
 	$scale = ZM_WEB_DEFAULT_SCALE;
 
-$frames_per_page = EVENT_FRAMES_PER_LINE * EVENT_FRAME_LINES;
+$frames_per_page = ZM_WEB_FRAMES_PER_LINE * ZM_WEB_FRAME_LINES;
 
 $paged = $event['Frames'] > $frames_per_page;
 
@@ -374,8 +374,8 @@ else
 	$count = 0;
 	$scale = ZM_WEB_IMAGE_SCALING;
 	$fraction = sprintf( "%.2f", 1/$scale );
-	$thumb_width = $event['Width']/4;
-	$thumb_height = $event['Height']/4;
+	$thumb_width = $event['Width']/ZM_WEB_FRAMES_PER_LINE;
+	$thumb_height = $event['Height']/ZM_WEB_FRAMES_PER_LINE;
 	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
 	for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++ )
 	{
@@ -416,7 +416,7 @@ else
 <td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<?= $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $alarm_frame?$alarm_frame['Score']:0 ?>"></a></td>
 <?php
 		flush();
-		if ( !(++$count % 4) )
+		if ( !(++$count % ZM_WEB_FRAMES_PER_LINE) )
 		{
 ?>
 </tr>

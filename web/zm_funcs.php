@@ -390,7 +390,70 @@ function zmaCheck( $monitor )
 	return( daemonCheck( "zma", "-m $monitor" ) );
 }
 
-function createVideo( $event, $rate, $scale, $overwrite=0 )
+function createListThumbnail( $event, $overwrite=false )
+{
+	$sql = "select * from Frames where EventId = '".$event['Id']."' and Score = '".$event['MaxScore']."' order by FrameId limit 0,1";
+	if ( !($result = mysql_query( $sql )) )
+		die( mysql_error() );
+	$frame = mysql_fetch_assoc( $result );
+	$frame_id = $frame['FrameId'];
+
+	if ( ZM_WEB_LIST_THUMB_WIDTH )
+	{
+		$thumb_width = ZM_WEB_LIST_THUMB_WIDTH;
+		$fraction = ZM_WEB_LIST_THUMB_WIDTH/$event['Width'];
+		$thumb_height = $event['Height']*$fraction;
+	}
+	elseif ( ZM_WEB_LIST_THUMB_HEIGHT )
+	{
+		$thumb_height = ZM_WEB_LIST_THUMB_HEIGHT;
+		$fraction = ZM_WEB_LIST_THUMB_HEIGHT/$event['Height'];
+		$thumb_width = $event['Width']*$fraction;
+	}
+	else
+	{
+		die( "No thumbnail width or height specified, please check in Options->Web" );
+	}
+	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
+	$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $frame_id );
+	$capt_image = $image_path;
+	if ( $scale == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
+	{
+		$anal_image = preg_replace( "/capture/", "analyse", $image_path );
+
+		if ( file_exists($anal_image) && filesize( $anal_image ) )
+		{
+			$thumb_image = $anal_image;
+		}
+		else
+		{
+			$thumb_image = $capt_image;
+		}
+	}
+	else
+	{
+		$thumb_image = preg_replace( "/capture/", "mini", $capt_image );
+
+		if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
+		{
+			$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
+			if ( file_exists( $anal_image ) )
+				$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $anal_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
+			else
+				$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $capt_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
+			#exec( escapeshellcmd( $command ) );
+			exec( $command );
+		}
+	}
+	$thumb_data = $frame;
+	$thumb_data['Path'] = $thumb_image;
+	$thumb_data['Width'] = $thumb_width;
+	$thumb_data['Height'] = $thumb_height;
+
+	return( $thumb_data );
+}
+
+function createVideo( $event, $rate, $scale, $overwrite=false )
 {
 	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -r ".sprintf( "%.2f", ($rate/RATE_SCALE) )." -s ".sprintf( "%.2f", ($scale/SCALE_SCALE) );
 	if ( $overwrite )

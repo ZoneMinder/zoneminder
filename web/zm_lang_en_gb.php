@@ -315,6 +315,7 @@ $zmSlangStopped              = 'Stopped';
 $zmSlangStop                 = 'Stop';
 $zmSlangStream               = 'Stream';
 $zmSlangSystem               = 'System';
+$zmSlangThumbnail            = 'Thumbnail';
 $zmSlangTimeDelta            = 'Time Delta';
 $zmSlangTimestampLabelFormat = 'Timestamp Label Format';
 $zmSlangTimestampLabelX      = 'Timestamp Label X';

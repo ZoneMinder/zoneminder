@@ -24,16 +24,8 @@ if ( !canView( 'Events' ) )
 	return;
 }
 
-$sql = "select * from Monitors";
-if ( !($result = mysql_query( $sql )) )
-	die( mysql_error() );
-while( $row = mysql_fetch_assoc( $result ) )
-{
-	$monitors[$row[Id]] = $row;
-}
-
 $count_sql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
-$events_sql = "select E.Id,E.MonitorId,M.Name As MonitorName,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
+$events_sql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
 if ( $user['MonitorIds'] )
 {
 	$count_sql .= " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
@@ -56,15 +48,15 @@ if ( $filter_sql )
 $events_sql .= " order by $sort_column $sort_order";
 if ( $page )
 {
-	$limit_start = (($page-1)*EVENT_HEADER_LINES);
+	$limit_start = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
 	if ( empty( $limit ) )
 	{
-		$limit_amount = EVENT_HEADER_LINES;
+		$limit_amount = ZM_WEB_EVENTS_PER_PAGE;
 	}
 	else
 	{
 		$limit_left = $limit - $limit_start;
-		$limit_amount = ($limit_left>EVENT_HEADER_LINES)?EVENT_HEADER_LINES:$limit_left;
+		$limit_amount = ($limit_left>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limit_left;
 	}
 	$events_sql .= " limit $limit_start, $limit_amount";
 }
@@ -170,7 +162,7 @@ else
 <tr>
 <td align="left" class="text" width="20%"><b><?= sprintf( $zmClangEventCount, $n_events, zmVlang( $zmVlangEvent, $n_events ) ) ?></b></td>
 <?php
-	$pages = (int)ceil($n_events/EVENT_HEADER_LINES);
+	$pages = (int)ceil($n_events/ZM_WEB_EVENTS_PER_PAGE);
 	if ( $pages <= 1 )
 	{
 ?>
@@ -193,6 +185,9 @@ else
 
 			if ( $page > 1 )
 			{
+?>
+				<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page - 1 ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>">&lt;&lt;</a>
+<?php
 				$new_pages = array();
 				$pages_used = array();
 				$lo_exp = max(2,log($page-1)/log($max_shortcuts));
@@ -215,6 +210,7 @@ else
 <a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $new_page ?></a>&nbsp;
 <?php
 				}
+
 			}
 ?>
 -&nbsp;<?= $page ?>&nbsp;-
@@ -243,6 +239,9 @@ else
 &nbsp;<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $new_page ?></a>
 <?php
 				}
+?>
+				<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page + 1 ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>">&gt;&gt;</a>
+<?php
 			}
 ?>
 </td>
@@ -275,7 +274,7 @@ else
 		die( mysql_error() );
 	while( $event = mysql_fetch_assoc( $result ) )
 	{
-		if ( ($count++%EVENT_HEADER_LINES) == 0 )
+		if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 )
 		{
 ?>
 <tr align="center" bgcolor="#FFFFFF">
@@ -289,7 +288,15 @@ else
 <td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=TotScore&sort_asc=<?= $sort_field == 'TotScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangTotalBrScore ?><?php if ( $sort_field == "TotScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=AvgScore&sort_asc=<?= $sort_field == 'AvgScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangAvgBrScore ?><?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=MaxScore&sort_asc=<?= $sort_field == 'MaxScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangMaxBrScore ?><?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text">Mark</td>
+<?php
+		if ( ZM_WEB_LIST_THUMBS )
+		{
+?>
+<td class="text"><?= $zmSlangThumbnail ?></td>
+<?php
+		}
+?>
+<td class="text"><?= $zmSlangMark ?></td>
 </tr>
 <?php
 		}
@@ -301,8 +308,8 @@ else
 			unset( $bgcolor );
 ?>
 <tr<?= ' bgcolor="'.(isset($bgcolor)?$bgcolor:"#FFFFFF").'"' ?> >
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $monitors[$event['MonitorId']]['Width']+$jws['event']['w']  ?>, <?= $monitors[$event['MonitorId']]['Height']+$jws['event']['h']  ?> );"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $monitors[$event['MonitorId']]['Width']+$jws['event']['w']  ?>, <?= $monitors[$event['MonitorId']]['Height']+$jws['event']['h']  ?> );"><?= $event['Name'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $event['Width']+$jws['event']['w']  ?>, <?= $event['Height']+$jws['event']['h']  ?> );"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $event['Width']+$jws['event']['w']  ?>, <?= $event['Height']+$jws['event']['h']  ?> );"><?= $event['Name'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
 <td align="center" class="text"><?= $event['MonitorName'] ?></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event['StartTime']) ) ?></td>
 <td align="center" class="text"><?= $event['Length'] ?></td>
@@ -310,8 +317,16 @@ else
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['AlarmFrames'] ?></a></td>
 <td align="center" class="text"><?= $event['TotScore'] ?></td>
 <td align="center" class="text"><?= $event['AvgScore'] ?></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= $monitors[$event['MonitorId']]['Width']+$jws['image']['w']  ?>, <?= $monitors[$event['MonitorId']
-]['Height']+$jws['image']['h']  ?> );"><?= $event['MaxScore'] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= $event['Width']+$jws['image']['w']  ?>, <?= $event['Height']+$jws['image']['h']  ?> );"><?= $event['MaxScore'] ?></a></td>
+<?php
+	if ( ZM_WEB_LIST_THUMBS )
+	{
+		$thumb_data = createListThumbnail( $event );
+?>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $thumb_data['FrameId'] ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><img src="<?= $thumb_data['Path'] ?>" width="<?= $thumb_data['Width'] ?>" height="<?= $thumb_data['Height'] ?>" border="0" alt="<?= $thumb_data['FrameId'] ?>/<?= $event['MaxScore'] ?>"></a></td>
+<?php
+	}
+?>
 <td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $event['Id'] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php

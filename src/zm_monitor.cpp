@@ -605,7 +605,7 @@ void Monitor::ReloadZones()
 
 int Monitor::Load( int device, Monitor **&monitors, Mode mode )
 {
-	static char sql[256];
+	static char sql[BUFSIZ];
 	if ( device == -1 )
 	{
 		strcpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Type = 'Local'" );
@@ -651,7 +651,7 @@ int Monitor::Load( int device, Monitor **&monitors, Mode mode )
 
 int Monitor::Load( const char *host, const char*port, const char *path, Monitor **&monitors, Mode mode )
 {
-	static char sql[256];
+	static char sql[BUFSIZ];
 	if ( !host )
 	{
 		strcpy( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Type = 'Remote'" );
@@ -697,7 +697,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 
 Monitor *Monitor::Load( int id, bool load_zones, Mode mode )
 {
-	static char sql[256];
+	static char sql[BUFSIZ];
 	sprintf( sql, "select Id, Name, Type, Function+0, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{

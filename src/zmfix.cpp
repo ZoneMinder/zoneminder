@@ -105,7 +105,7 @@ int main( int argc, char *argv[] )
 		// Only do registered devices
 		zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
 
-		static char sql[256];
+		static char sql[BUFSIZ];
 		//sprintf( sql, "select distinct Device from Monitors where Function != 'None' and Type = 'Local'" );
 		sprintf( sql, "select distinct Device from Monitors where Type = 'Local'" );
 		if ( mysql_query( &dbconn, sql ) )

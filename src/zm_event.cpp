@@ -32,7 +32,7 @@
 
 Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
 {
-	static char sql[256];
+	static char sql[BUFSIZ];
 	static char start_time_str[32];
 
 	strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", localtime( &start_time.tv_sec ) );
@@ -63,7 +63,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 
 Event::~Event()
 {
-	static char sql[256];
+	static char sql[BUFSIZ];
 	static char end_time_str[32];
 
 	struct DeltaTimeval delta_time;
@@ -239,7 +239,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 	DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
 
 	Debug( 1, ( "Adding frame %d to DB", frames ));
-	static char sql[256];
+	static char sql[BUFSIZ];
 	sprintf( sql, "insert into Frames ( EventId, FrameId, AlarmFrame, ImagePath, Delta, Score ) values ( %d, %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, alarm_image!=0, event_file, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -266,7 +266,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 
 void Event::StreamEvent( const char *path, int event_id, long refresh, FILE *fd )
 {
-	static char sql[256];
+	static char sql[BUFSIZ];
 	sprintf( sql, "select Id, EventId, ImagePath, Delta from Frames where EventId = %d order by Id", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{

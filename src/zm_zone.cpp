@@ -65,7 +65,7 @@ Zone::~Zone()
 
 void Zone::RecordStats( const Event *event )
 {
-	static char sql[256];
+	static char sql[BUFSIZ];
 	sprintf( sql, "insert into Stats set MonitorId=%d, ZoneId=%d, EventId=%d, FrameId=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d", monitor->Id(), id, event->Id(), event->Frames()+1, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score );
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -394,7 +394,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
-	static char sql[256];
+	static char sql[BUFSIZ];
 	sprintf( sql, "select Id,Name,Type+0,Units,LoX,LoY,HiX,HiY,AlarmRGB,AlarmThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
 	{

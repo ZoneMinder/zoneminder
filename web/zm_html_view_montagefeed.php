@@ -101,7 +101,7 @@ window.setTimeout( "window.location.reload(true)", <?= ZM_WEB_REFRESH_IMAGE*1000
 </script>
 </head>
 <body>
-<table width="96%" align="center" border="0" cellspacing="0" cellpadding="2">
+<table width="100%" align="center" border="0" cellspacing="0" cellpadding="0">
 <tr><td align="center">
 <?php
 if ( $mode == "stream" )
@@ -136,7 +136,8 @@ src="<?= $stream_src ?>"
 name="MediaPlayer1"
 width="<?= reScale( $monitor['Width'], $scale ) ?>"
 height="<?= reScale( $monitor['Height'], $scale ) ?>"
-autostart="true">
+autostart="1"
+showcontrols="0">
 </embed>
 <?php
 			}
@@ -148,7 +149,8 @@ autostart="true">
 src="<?= $stream_src ?>"
 width="<?= reScale( $monitor['Width'], $scale ) ?>"
 height="<?= reScale( $monitor['Height'], $scale ) ?>"
-autostart="true">
+autostart="1"
+showcontrols="0">
 </embed>
 <?php
 		}

@@ -1,0 +1,873 @@
+<?php
+
+include_once( 'browser.php' );
+
+import_request_variables( "GPC" );
+
+$DB_SERVER   = "localhost";		// Database Server machine
+$DB_LOGIN    = "root";			// Database login
+$DB_PASSWORD = "";				// Database password
+$DB          = "polycam";		// Database containing the tables
+
+define( "MAX_EVENTS", 12 );
+
+define( "THISFILE", "THIS_FILE" );
+
+if ( !$bandwidth )
+{
+	$new_bandwidth = "low";
+}
+
+if ( $new_bandwidth )
+{
+	$bandwidth = $new_bandwidth;
+	setcookie( "bandwidth", $new_bandwidth, time()+3600*24*30*12*10 );
+}
+
+if ( $bandwidth == "high" )
+{
+	define( "REFRESH_MAIN", 300 );
+	define( "REFRESH_CYCLE", 5 );
+	define( "REFRESH_IMAGE", 5 );
+	define( "REFRESH_STATUS", 3 );
+	define( "REFRESH_EVENTS", 30 );
+	define( "REFRESH_EVENTS_ALL", 120 );
+	define( "STREAM_IDLE_DELAY", 1000 );
+	define( "STREAM_FRAME_DELAY", 50 );
+	define( "STREAM_EVENT_DELAY", 200 );
+	define( "IMAGE_SCALING", 1 );
+}
+elseif ( $bandwidth == "medium" )
+{
+	define( "REFRESH_MAIN", 300 );
+	define( "REFRESH_CYCLE", 10 );
+	define( "REFRESH_IMAGE", 15 );
+	define( "REFRESH_STATUS", 5 );
+	define( "REFRESH_EVENTS", 60 );
+	define( "REFRESH_EVENTS_ALL", 300 );
+	define( "STREAM_IDLE_DELAY", 5000 );
+	define( "STREAM_FRAME_DELAY", 100 );
+	define( "STREAM_EVENT_DELAY", 50 );
+	define( "IMAGE_SCALING", 2 );
+}
+else
+{
+	define( "REFRESH_MAIN", 300 );
+	define( "REFRESH_CYCLE", 30 );
+	define( "REFRESH_IMAGE", 30 );
+	define( "REFRESH_STATUS", 10 );
+	define( "REFRESH_EVENTS", 180 );
+	define( "REFRESH_EVENTS_ALL", 600 );
+	define( "STREAM_IDLE_DELAY", 10000 );
+	define( "STREAM_FRAME_DELAY", 250 );
+	define( "STREAM_EVENT_DELAY", 10 );
+	define( "IMAGE_SCALING", 4 );
+}
+
+$conn = mysql_connect("$DB_SERVER", "$DB_LOGIN", "$DB_PASSWORD") or die("Could not connect to DB: ".mysql_error());
+mysql_select_db("$DB", $conn) or die("Could not select DB: ".mysql_error());
+
+if ( $action )
+{
+	if ( $action == "rename" && $event_name && $eid )
+	{
+		$result = mysql_query( "update Events set Name = '$event_name' where Id = '$eid'" );
+		if ( !$result )
+			die( mysql_error() );
+	}
+	elseif ( $action == "archive" && $eid )
+	{
+		$result = mysql_query( "update Events set Archived = 1 where Id = '$eid'" );
+		if ( !$result )
+			die( mysql_error() );
+	}
+	elseif ( $action == "delete" && $delete_eids )
+	{
+		foreach( $delete_eids as $delete_eid )
+		{
+			$result = mysql_query( "delete from Frames where EventId = '$delete_eid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$result = mysql_query( "delete from Events where Id = '$delete_eid'" );
+			if ( !$result )
+				die( mysql_error() );
+			if ( $delete_eid )
+				system( escapeshellcmd( "rm -rf events/*/".sprintf( "%04d", $delete_eid ) ) );
+		}
+	}
+}
+
+if ( !$view )
+{
+	$view = "console";
+}
+
+if ( $view == "console" )
+{
+	header("Refresh: ".REFRESH_MAIN."; URL='index.php" );
+	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+	header("Cache-Control: post-check=0, pre-check=0", false);
+	header("Pragma: no-cache");                          // HTTP/1.0
+
+	//$result = mysql_query( "select M.*, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>NOW() - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount, count(Z.MonitorId) as ZoneCount from Monitors as M inner join Zones as Z on Z.MonitorId = M.Id left join Events as E on E.MonitorId = M.Id group by E.MonitorId,Z.MonitorId order by Id" );
+	$sql = "select M.*, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>NOW() - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by E.MonitorId order by Id";
+	$result = mysql_query( $sql );
+	if ( !$result )
+		echo mysql_error();
+	$monitors = array();
+	$max_width = 0;
+	$max_height = 0;
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		if ( $max_width < $row[Width] ) $max_width = $row[Width];
+		if ( $max_height < $row[Height] ) $max_height = $row[Height];
+		$sql = "select count(Id) as ZoneCount, count(if(Type='Active',1,NULL)) as ActZoneCount, count(if(Type='Inclusive',1,NULL)) as IncZoneCount, count(if(Type='Exclusive',1,NULL)) as ExcZoneCount, count(if(Type='Inactive',1,NULL)) as InactZoneCount from Zones where MonitorId = '$row[Id]'";
+		$result2 = mysql_query( $sql );
+		if ( !$result2 )
+			echo mysql_error();
+		$row2 = mysql_fetch_assoc( $result2 );
+		$monitors[] = array_merge( $row, $row2 );
+	}
+
+	//echo phpinfo();
+?>
+<html>
+<head>
+<title>ZM - Console</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+window.resizeTo(800,400)
+function newWindow(Url,Name,Width,Height) {
+        var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+}
+</script>
+</head>
+<body>
+<p class="head" align="center"><strong>Zone Monitor Console</strong></p>
+<table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
+<tr>
+<td class="smallhead" align="left"><?php echo count($monitors) ?> Monitors</td>
+<td class="smallhead" align="center">Currently configured for <strong><?php echo $bandwidth ?></strong> bandwidth (change to
+<?php if ( $bandwidth != "high" ) { ?> <a href="index.php?new_bandwidth=high">high</a><?php } ?>
+<?php if ( $bandwidth != "medium" ) { ?> <a href="index.php?new_bandwidth=medium">medium</a><?php } ?>
+<?php if ( $bandwidth != "low" ) { ?> <a href="index.php?new_bandwidth=low">low</a><?php } ?> )</td>
+<td class="smallhead" align="right"><a href="javascript: newWindow( 'index.php?view=cycle', 'zmCycle', <?php echo $max_width+36 ?>, <?php echo $max_height+72 ?> );">Monitor All</a></td>
+</tr>
+</table>
+<table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
+<form name="event_form" method="post" action="index.php">
+<input type="hidden" name="view" value="<?php echo $view ?>">
+<input type="hidden" name="action" value="delete">
+<tr><td align="left" class="smallhead">Id</td>
+<td align="left" class="smallhead">Name</td>
+<td align="left" class="smallhead">Device/Channel</td>
+<td align="left" class="smallhead">Function</td>
+<td align="left" class="smallhead">Dimensions</td>
+<td align="right" class="smallhead">Events</td>
+<td align="right" class="smallhead">Hour</td>
+<td align="right" class="smallhead">Day</td>
+<td align="right" class="smallhead">Week</td>
+<td align="right" class="smallhead">Month</td>
+<td align="right" class="smallhead">Archive</td>
+<td align="right" class="smallhead">Zones</td>
+<td align="center" class="smallhead">Delete</td>
+</tr>
+<?php
+	$event_count = 0;
+	$hour_event_count = 0;
+	$day_event_count = 0;
+	$week_event_count = 0;
+	$month_event_count = 0;
+	$arch_event_count = 0;
+	$zone_count = 0;
+	foreach( $monitors as $monitor )
+	{
+		$event_count += $monitor[EventCount];
+		$hour_event_count += $monitor[HourEventCount];
+		$day_event_count += $monitor[DayEventCount];
+		$week_event_count += $monitor[WeekEventCount];
+		$month_event_count += $monitor[MonthEventCount];
+		$arch_event_count += $monitor[ArchEventCount];
+		$zone_count += $monitor[ZoneCount];
+?>
+<tr>
+<td align="left" class="text"><a href="javascript: newWindow( 'index.php?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Id] ?>.</a></td>
+<td align="left" class="text"><a href="javascript: newWindow( 'index.php?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Name] ?></a></td>
+<td align="left" class="text">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</td>
+<td align="left" class="text"><?php echo $monitor['Function'] ?></td>
+<td align="left" class="text"><?php echo $monitor[Width] ?>x<?php echo $monitor[Height] ?>x<?php echo $monitor[Colours]*8 ?></td>
+<td align="right" class="text"><?php echo $monitor[EventCount] ?></td>
+<td align="right" class="text"><?php echo $monitor[HourEventCount] ?></td>
+<td align="right" class="text"><?php echo $monitor[DayEventCount] ?></td>
+<td align="right" class="text"><?php echo $monitor[WeekEventCount] ?></td>
+<td align="right" class="text"><?php echo $monitor[MonthEventCount] ?></td>
+<td align="right" class="text"><?php echo $monitor[ArchEventCount] ?></td>
+<td align="right" class="text"><a href="javascript: newWindow( 'index.php?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+36 ?>, <?php echo $monitor[Height]+72 ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
+<td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $zone[Id] ?>"></td>
+</tr>
+<?php
+	}
+?>
+<tr><td align="left" class="text">&nbsp;</td>
+<td align="left" class="text">&nbsp;</td>
+<td colspan="3" align="center"><input type="submit" value="Add New Monitor" class="form"></td>
+<td align="right" class="text"><?php echo $event_count ?></td>
+<td align="right" class="text"><?php echo $hour_event_count ?></td>
+<td align="right" class="text"><?php echo $day_event_count ?></td>
+<td align="right" class="text"><?php echo $week_event_count ?></td>
+<td align="right" class="text"><?php echo $month_event_count ?></td>
+<td align="right" class="text"><?php echo $arch_event_count ?></td>
+<td align="right" class="text"><?php echo $zone_count ?></td>
+<td align="center"><input type="submit" value="Delete" class="form"></td>
+</tr>
+</form>
+</table>
+</body>
+</html>
+<?php
+}
+elseif ( $view == "cycle" )
+{
+	$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
+	$monitors = array();
+	$mon_idx = 0;
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		if ( $mid && $row[Id] == $mid )
+			$mon_idx = count($monitors);
+		$monitors[] = $row;
+	}
+
+	$monitor = $monitors[$mon_idx];
+	$next_mid = $mon_idx==(count($monitors)-1)?$monitors[0][Id]:$monitors[$mon_idx+1][Id];
+
+	header("Refresh: ".REFRESH_CYCLE."; URL='index.php?view=cycle&mid=$next_mid'" );
+	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+	header("Cache-Control: post-check=0, pre-check=0", false);
+	header("Pragma: no-cache");                          // HTTP/1.0
+?>
+<html>
+<head>
+<title>ZM - Cycle Watch</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+function newWindow(Url,Name,Width,Height) {
+        var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+}
+</script>
+</head>
+<body>
+<p class="head" align="center"><?php echo $monitor[Name] ?></p>
+<a href="javascript: newWindow( 'index.php?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><img src='<?php echo $monitor[Name] ?>.jpg' border="0"></a>
+</body>
+</html>
+<?php
+}
+elseif ( $view == "monitor" )
+{
+	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$monitor = mysql_fetch_assoc( $result );
+?>
+<html>
+<head>
+<title>ZM - <?php echo $monitor[Name] ?> - Monitor</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+opener.location.reload();
+window.focus();
+</script>
+</head>
+<frameset rows="<?php echo $monitor[Height]+32 ?>,16,*" border="1" frameborder="no" framespacing="0">
+<frame src="index.php?view=watch&mode=stream&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
+<frame src="index.php?view=status&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
+<frame src="index.php?view=events&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
+</frameset>
+<?php
+}
+elseif( $view == "watch" )
+{
+	if ( !$mode )
+		$mode = "stream";
+	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$monitor = mysql_fetch_assoc( $result );
+
+	if ( $mode != "stream" )
+	{
+		header("Refresh: ".REFRESH_IMAGE."; URL='index.php?view=watch&mid=$mid&mode=still'" );
+		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+		header("Cache-Control: post-check=0, pre-check=0", false);
+		header("Pragma: no-cache");                          // HTTP/1.0
+	}
+?>
+<html>
+<head>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+function closeWindow() {
+	top.window.close();
+}
+</script>
+</head>
+<body>
+<table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
+<tr>
+<td width="33%" align="left" class="text"><b><?php echo $monitor[Name] ?> Stream</b></td>
+<?php if ( $mode == "stream" ) { ?>
+<td width="34%" align="center" class="text"><a href="index.php?view=watch&mode=stills&mid=<?php echo $mid ?>">Stills</a></td>
+<?php } else { ?>
+<td width="34%" align="center" class="text"><a href="index.php?view=watch&mode=stream&mid=<?php echo $mid ?>">Stream</a></td>
+<?php } ?>
+<td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+</tr>
+<?php if ( $mode == "stream" )
+{
+	$stream_src = "/cgi-bin/zms?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
+	if ( browser_is_netscape() )
+	{
+?>
+<tr><td colspan="3" align="center"><img src="<?php echo $stream_src ?>" border="0" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"></td></tr>
+<?php
+	}
+	else
+	{
+?>
+<tr><td colspan="3" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="cambozola.jar" align="middle" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
+<?php
+	}
+}
+else
+{
+?>
+<tr><td colspan="3" align="center"><img src="<?php echo $monitor[Name] ?>.jpg" border="0" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"></td></tr>
+<?php
+}
+?>
+</table>
+</body>
+</html>
+<?php
+}
+elseif ( $view == "status" )
+{
+	$status = exec( escapeshellcmd( "./zmu -m $mid -s" ) );
+	$status_string = "Unknown";
+	$class = "text";
+	if ( $status == 0 )
+	{
+		$status_string = "Idle";
+	}
+	elseif ( $status == 1 )
+	{
+		$status_string = "Alarm";
+		$class = "redtext";
+	}
+	elseif ( $status == 2 )
+	{
+		$status_string = "Alert";
+		$class = "ambtext";
+	}
+	header("Refresh: ".REFRESH_STATUS."; URL='index.php?view=status&mid=$mid&last_status=$status'" );
+	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+	header("Cache-Control: post-check=0, pre-check=0", false);
+	header("Pragma: no-cache");                          // HTTP/1.0
+?>
+<html>
+<head>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+<?php
+	if ( $status > 0 && $last_status == 0 )
+	{
+?>
+top.window.focus();
+<?php
+//document.write( "\a" );
+	}
+?>
+</script>
+</head>
+<body>
+<table width="100%" align="center" border="0" cellpadding="0" cellspacing="0"><tr><td class="<?php echo $class ?>" align="center" valign="middle">Status: <?php echo $status_string ?></td></tr></table>
+</body>
+</html>
+<?php
+}
+elseif ( $view == "events" )
+{
+	if ( !$archived )
+	{
+		if ( $max_events )
+		{
+			header("Refresh: ".REFRESH_EVENTS."; URL='index.php?view=events&mid=$mid&max_events=$max_events'" );
+		}
+		else
+		{
+			header("Refresh: ".REFRESH_EVENTS_ALL."; URL='index.php?view=events&mid=$mid'" );
+		}
+		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+		header("Cache-Control: post-check=0, pre-check=0", false);
+		header("Pragma: no-cache");                          // HTTP/1.0
+	}
+?>
+<html>
+<head>
+<title>ZM - <?php echo $monitor ?> - Events <?php if ( $archived ) { ?>Archive<?php } ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+function newWindow(Url,Name) {
+        var Name = window.open(Url,Name,"resizable,scrollbars,width=400,height=500");
+}
+function closeWindow() {
+        top.window.close();
+}
+function checkAll(form,name){
+	for (var i = 0; i < form.elements.length; i++)
+		if (form.elements[i].name.indexOf(name) == 0)
+			form.elements[i].checked = 1;
+}
+</script>
+</head>
+<body>
+<form name="event_form" method="post" action="index.php">
+<input type="hidden" name="view" value="<?php echo $view ?>">
+<input type="hidden" name="action" value="delete">
+<input type="hidden" name="mid" value="<?php echo $mid ?>">
+<?php if ( $max_events ) { ?>
+<input type="hidden" name="max_events" value="<?php echo $max_events ?>">
+<?php } ?>
+<?php if ( $archived ) { ?>
+<input type="hidden" name="archived" value="<?php echo $archived ?>">
+<?php } ?>
+<table width="96%" align="center" border="0" cellspacing="1" cellpadding="1">
+<tr>
+<td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
+<?php
+	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." order by E.Id desc";
+	if ( $max_events )
+		$sql .= " limit 0,$max_events";
+	$result = mysql_query( $sql );
+	if ( !$result )
+	{
+		die( mysql_error() );
+	}
+	$n_rows = mysql_num_rows( $result );
+?>
+<tr>
+<td class="text"><b><?php if ( $max_events ) {?>Last <?php } ?><?php echo $n_rows ?> events</b></td>
+<?php if ( !$max_events ) { ?>
+<td align="center" class="text"><a href="index.php?view=events&mid=<?php echo $mid ?>&max_events=<?php echo MAX_EVENTS ?>">Recent</a></td>
+<?php } ?>
+<?php if ( $archived || $max_events ) { ?>
+<td align="center" class="text"><a href="index.php?view=events&mid=<?php echo $mid ?>">All</a></td>
+<?php } ?>
+<?php if ( !$archived ) { ?>
+<td align="center" class="text"><a href="index.php?view=events&mid=<?php echo $mid ?>&archived=1">Archive</a></td>
+<?php } ?>
+<td align="right" class="text"><a href="javascript: checkAll( event_form, 'delete_eids' );">Check All</a></td>
+</tr>
+<tr><td colspan="4" class="text">&nbsp;</td></tr>
+<tr><td colspan="4"><table border="0" cellspacing="0" cellpadding="0" width="100%">
+<tr align="center"><td width="4%" class="text">Id</td><td width="24%" class="text">Name</td><td class="text">Time</td><td class="text">Length</td><td class="text">Frames</td><td class="text">Delete</td></tr>
+<?php
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+?>
+<tr>
+<td align="center" class="text"><a href="javascript: newWindow( 'index.php?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Id] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( 'index.php?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Name] ?></a></td>
+<td align="center" class="text"><?php echo strftime( "%m/%d %H:%M:%S", $row[Time] ) ?></td>
+<td align="center" class="text"><?php echo $row[Length] ?></td>
+<td align="center" class="text"><?php echo $row[Frames] ?> (<?php echo $row[AlarmFrames] ?>)</td>
+<td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>"></td>
+</tr>
+<?php
+	}
+?>
+</table></td></tr>
+</table></td>
+</tr>
+<tr><td align="right"><input type="submit" value="Delete" class="form"></td></tr>
+</table>
+</form>
+</body>
+</html>
+<?php
+}
+elseif ( $view == "images" )
+{
+	$result = mysql_query( "select E.*,M.Name as MonitorName, M.Width, M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+	if ( !$result )
+		die( mysql_error() );
+	$event = mysql_fetch_assoc( $result );
+?>
+<html>
+<head>
+<title>ZM - Images - <?php echo $event[Name] ?> - Images</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+window.focus();
+function newWindow(Url,Name,Width,Height) {
+        var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+}
+function closeWindow() {
+        window.close();
+}
+</script>
+</head>
+<body>
+<table border="0" cellspacing="0" cellpadding="0" align="center" width="100%">
+<?php
+	$result = mysql_query( "select * from Frames where EventID = '$eid' order by Id" );
+	if ( !$result )
+		die( mysql_error() );
+?>
+<tr><td colspan="4"><table border="0" cellpadding="0" cellspacing="2" align="center">
+<tr>
+<?php
+	$count = 0;
+	$scale = IMAGE_SCALING;
+	$fraction = sprintf( "%.2f", 1/$scale );
+	$thumb_width = $event[Width]/4;
+	$thumb_height = $event[Height]/4;
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		$frame_id = $row[FrameId];
+		$image_path = $row[ImagePath];
+
+		if ( $scale == 1 )
+		{
+			$capt_image = $image_path;
+			$anal_image = preg_replace( "/capture/", "analyse", $image_path );
+
+			if ( file_exists($anal_image) && filesize( $anal_image ) )
+			{
+				$thumb_image = $anal_image;
+			}
+			else
+			{
+				$thumb_image = $capt_image;
+			}
+		}
+		else
+		{
+			$thumb_image = preg_replace( "/capture/", "thumb", $image_path );
+
+			if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
+			{
+				$anal_image = preg_replace( "/capture/", "analyse", $image );
+				if ( file_exists( $anal_image ) )
+					$command = "jpegtopnm -dct fast $anal_image | pnmscalefixed $fraction | ppmtojpeg --dct=fast > $thumb_image";
+				else
+					$command = "jpegtopnm -dct fast $image | pnmscalefixed $fraction | ppmtojpeg --dct=fast > $thumb_image";
+				#exec( escapeshellcmd( $command ) );
+				exec( $command );
+			}
+		}
+?>
+<td align="center" width="88"><a href="javascript: newWindow( 'index.php?view=image&eid=<?php echo $eid ?>&fid=<?php echo $frame_id ?>', 'zmImage', <?php echo $event[Width]+48 ?>, <?php echo $event[Height]+72 ?> );"><img src="<?php echo $thumb_image ?>" width="<?php echo $thumb_width ?>" height="<? echo $thumb_height ?>" border="0" alt="<?php echo $frame_id ?>/<?php echo $row[Score] ?>"></a></td>
+<?php
+		flush();
+		if ( !(++$count % 4) )
+		{
+?>
+</tr>
+<tr>
+<?php
+		}
+	}
+?>
+</tr>
+</table></td></tr>
+</table>
+</body>
+</html>
+<?php
+}
+elseif( $view == "image" )
+{
+	$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$frame = mysql_fetch_assoc( $result );
+
+	$result = mysql_query( "select count(*) as FrameCount from Frames where EventID = '$eid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$row = mysql_fetch_assoc( $result );
+	$max_fid = $row[FrameCount];
+
+	$first_fid = 1;
+	$prev_fid = $fid-1;
+	$next_fid = $fid+1;
+	$last_fid = $max_fid;
+
+	$image_path = $frame[ImagePath];
+	$anal_image = preg_replace( "/capture/", "analyse", $image_path );
+	if ( file_exists( $anal_image ) )
+	{
+		$image_path = $anal_image;
+	}
+
+?>
+<html>
+<head>
+<title>ZM - Image <?php echo $eid."-".$fid ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+window.focus();
+function newWindow(Url,Name,Width,Height) {
+        var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+}
+function closeWindow() {
+        window.close();
+}
+function deleteImage() {
+	opener.location.href = "index.php?view=delete&eid=<?php echo $eid ?>";
+        window.close();
+}
+</script>
+</head>
+<body>
+<table border="0">
+<tr><td colspan="2" class="text"><b>Image <?php echo $eid."-".$fid ?></b></td>
+<td align="center" class="text"><a href="javascript: deleteImage();">Delete</a></td>
+<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+</tr>
+<tr><td colspan="4"><img src="<?php echo $image_path ?>" width="352" height="288" border="0"></td></tr>
+<tr>
+<?php if ( $fid > 1 ) { ?>
+<td width="25%" class="text"><a href="index.php?view=image&eid=<?php echo $eid ?>&fid=<?php echo $first_fid ?>">First</a></td>
+<?php } else { ?>
+<td width="25%" class="text">&nbsp;</td>
+<?php } if ( $fid > 1 ) { ?>
+<td width="25%" class="text"><a href="index.php?view=image&eid=<?php echo $eid ?>&fid=<?php echo $prev_fid ?>">Prev</a></td>
+<?php } else { ?>
+<td width="25%" class="text">&nbsp;</td>
+<?php } if ( $fid < $max_fid ) { ?>
+<td width="25%" class="text"><a href="index.php?view=image&eid=<?php echo $eid ?>&fid=<?php echo $next_fid ?>">Next</a></td>
+<?php } else { ?>
+<td width="25%" class="text">&nbsp;</td>
+<?php } if ( $fid < $max_fid ) { ?>
+<td width="25%" class="text"><a href="index.php?view=image&eid=<?php echo $eid ?>&fid=<?php echo $last_fid ?>">Last</a></td>
+<?php } else { ?>
+<td width="25%" class="text">&nbsp;</td>
+<?php } ?>
+</tr>
+</table>
+</body>
+</html>
+<?php
+}
+elseif( $view == "event" )
+{
+	$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+	if ( !$result )
+		die( mysql_error() );
+	$event = mysql_fetch_assoc( $result );
+?>
+<html>
+<head>
+<title>ZM - Event - <?php echo $event[Name] ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+opener.location.reload();
+window.focus();
+function refreshWindow() {
+        window.location.reload();
+}
+function closeWindow() {
+        window.close();
+}
+function newWindow(Url,Name,Width,Height) {
+        var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+}
+</script>
+</head>
+<body>
+<table border="0" cellspacing="0" cellpadding="4" width="100%">
+<tr>
+<td colspan="6" align="left" class="text">
+<form action="index.php">
+<input type="hidden" name="view" value="<?php echo $view ?>">
+<input type="hidden" name="action" value="rename">
+<input type="hidden" name="eid" value="$eid">
+<input type="text" size="16" name="event_name" value="<?php echo $event[Name] ?>" class="form">
+<input type="submit" value="Rename" class="form"></td>
+</tr>
+<tr>
+<td width="20%" align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
+<td width="20%" align="center" class="text"><a href="index.php?view=delete&eid=<?php echo $eid ?>">Delete</a></td>
+<td width="20%" align="center" class="text"><a href="index.php?view=<?php echo $view ?>&action=archive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Archive</a></td>
+<td width="20%" align="center" class="text"><a href="javascript: newWindow( 'index.php?view=images&eid=<?php echo $eid ?>', 'zmImages', <?php echo $event[Width]+72 ?>, <?php echo $event[Height]+360 ?> );">Images</a></td>
+<td width="20%" align="center" class="text"><a href="javascript: newWindow( 'index.php?view=video&eid=<?php echo $eid ?>', 'zmVideo', 100, 80 );">Video</a></td>
+<td width="20%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+</tr>
+<?php
+	$stream_src = "/cgi-bin/zms?path=/data&event=$eid&refresh=".STREAM_EVENT_DELAY;
+	if ( browser_is_netscape() )
+	{
+?>
+<tr><td colspan="6" align="center"><img src="<?php echo $stream_src ?>" border="0" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"></td></tr>
+<?php
+	}
+	else
+	{
+?>
+<tr><td colspan="6" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="cambozola.jar" align="middle" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
+<?php
+	}
+?>
+</table>
+</body>
+</html>
+<?php
+}
+elseif( $view == "zones" )
+{
+	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$monitor = mysql_fetch_assoc( $result );
+
+	$result = mysql_query( "select * from Zones where MonitorId = '$mid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$zones = array();
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		$zones[] = $row;
+	}
+
+	$image = $monitor[Name]."-Zones.jpg";
+?>
+<html>
+<head>
+<title>ZM - <?php echo $monitor[Name] ?> - Zones</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+</head>
+<body>
+<map name="zonemap">
+<?php
+	foreach( $zones as $zone )
+	{
+?>
+<area shape="rect" coords="<?php echo "$zone[LoX],$zone[LoY],$zone[HiX],$zone[HiY]" ?>" href="index.php?view=zone&zid=<?php echo $zone[Id] ?>">
+<?php
+	}
+?>
+<area shape="default" nohref>
+</map>
+<p class="head" align="center"><strong><?php echo $monitor[Name] ?> Zones</strong></p>
+<table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
+<tr><td align="center"><img src="<?php echo $image ?>" usemap="#zonemap" width="352" height="288" border="0"></td></tr>
+</table>
+<table align="center" border="0" cellspacing="0" cellpadding="0" width="96%">
+<form name="event_form" method="post" action="index.php">
+<input type="hidden" name="view" value="<?php echo $zones ?>">
+<input type="hidden" name="action" value="delete">
+<input type="hidden" name="mid" value="<?php echo $mid ?>">
+<tr><td align="center" class="smallhead">Id</td>
+<td align="center" class="smallhead">Name</td>
+<td align="center" class="smallhead">Type</td>
+<td align="center" class="smallhead">Units</td>
+<td align="center" class="smallhead">Dimensions</td>
+<td align="center" class="smallhead">Delete</td>
+</tr>
+<?php
+	foreach( $zones as $zone )
+	{
+?>
+<tr>
+<td align="center" class="text"><a href="javascript: newWindow( 'index.php?view=zone&mid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $zone[Width]+72 ?>, <?php echo $zone[Height]+360 ?> );"><?php echo $zone[Id] ?>.</a></td>
+<td align="center" class="text"><a href="javascript: newWindow( 'index.php?view=zone&mid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $zone[Width]+72 ?>, <?php echo $zone[Height]+360 ?> );"><?php echo $zone[Name] ?></a></td>
+<td align="center" class="text"><?php echo $zone['Type'] ?></td>
+<td align="center" class="text"><?php echo $zone[Units] ?></td>
+<td align="center" class="text"><?php echo $zone[LoX] ?>,<?php echo $zone[LoY] ?>-<?php echo $zone[HiX] ?>,<?php echo $zone[HiY]?></td>
+<td align="center" class="text"><input type="checkbox" name="delete_zids[]" value="<?php echo $zone[Id] ?>"></td>
+</tr>
+<?php
+	}
+?>
+<tr>
+<td align="center" class="text">&nbsp;</td>
+<td colspan="4" align="center"><input type="submit" value="Add New Zone" class="form"></td>
+<td align="center"><input type="submit" value="Delete" class="form"></td>
+</tr>
+</form>
+</table>
+</body>
+</html>
+<?php
+}
+elseif( $view == "video" )
+{
+	$result = mysql_query( "select E.*,M.Name as MonitorName, M.Colours from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+	if ( !$result )
+		die( mysql_error() );
+	$event = mysql_fetch_assoc( $result );
+
+	$event_dir = "events/$event[MonitorName]/".sprintf( "%04d", $eid );
+	$param_file = $event_dir."/mpeg.param";
+	$video_name = preg_replace( "/\\s/", "_", $event[Name] ).".mpeg";
+	$video_file = $event_dir."/".$video_name;
+
+	if ( !file_exists( $video_file ) )
+	{
+		$fp = fopen( $param_file, "w" );
+
+		fputs( $fp, "PATTERN		IBBPBBPBBPBBPBB\n" );
+		fputs( $fp, "OUTPUT		$video_file\n" );
+
+		fputs( $fp, "BASE_FILE_FORMAT	JPEG\n" );
+		fputs( $fp, "GOP_SIZE	30\n" );
+		fputs( $fp, "SLICES_PER_FRAME	1\n" );
+
+		fputs( $fp, "PIXEL		HALF\n" );
+		fputs( $fp, "RANGE		10\n" );
+		fputs( $fp, "PSEARCH_ALG	LOGARITHMIC\n" );
+		fputs( $fp, "BSEARCH_ALG	CROSS2\n" );
+		fputs( $fp, "IQSCALE		8\n" );
+		fputs( $fp, "PQSCALE		10\n" );
+		fputs( $fp, "BQSCALE		25\n" );
+
+		fputs( $fp, "REFERENCE_FRAME	ORIGINAL\n" );
+		fputs( $fp, "FRAME_RATE 24\n" );
+
+		if ( $event[Colours] == 1 )
+			fputs( $fp, "INPUT_CONVERT	jpegtopnm * | pgmtoppm white | ppmtojpeg\n" );
+		else
+			fputs( $fp, "INPUT_CONVERT	*\n" );
+
+		fputs( $fp, "INPUT_DIR	$event_dir\n" );
+
+		fputs( $fp, "INPUT\n" );
+		for ( $i = 1; $i < $event[Frames]; $i++ )
+		{
+			fputs( $fp, "capture-".sprintf( "%03d", $i ).".jpg\n" );
+			fputs( $fp, "capture-".sprintf( "%03d", $i ).".jpg\n" );
+		}
+		fputs( $fp, "END_INPUT\n" );
+		fclose( $fp );
+
+		exec( escapeshellcmd( "./mpeg_encode $param_file >$event_dir/mpeg.log" ) );
+	}
+
+	//chdir( $event_dir );
+	//header("Content-type: video/mpeg");
+	//header("Content-Disposition: inline; filename=$video_name");
+	header("Location: $video_file" );
+}

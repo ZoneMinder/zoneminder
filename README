@@ -159,8 +159,8 @@ script that tidies up the rest.
 zmx10.pl - This is an option script that can be used to initiate and monitor
 X10 Home Automation style events and interface with an alarm system either by
 the generation of X10 signals on ZM events or by initiating ZM monitoring and
-capture on receipt of X10 signals from elsewhere, for instance the setting of
-a domestic alarm system.
+capture on receipt of X10 signals from elsewhere, for instance the triggering
+of an X10 PIR.
 
 Finally, check zmconfig.php in the web directory and amend any configuration 
 necessary in there.

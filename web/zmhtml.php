@@ -139,10 +139,19 @@ function confirmStatus( new_status )
 <tr>
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
 <td class="bighead" align="center"><strong>ZoneMinder Console - <?= $status ?> (<a href="javascript: if ( confirmStatus( '<?= $new_status ?>' ) ) location='<?= $PHP_SELF ?>?<?= $new_status ?>=1';"><?= $new_status ?></a>)</strong></td>
-<td class="smallhead" align="right"><a href="mailto:bugs@zoneminder.com?subject=ZoneMinder Bug">Report Bug</a></td>
+<?php
+	$uptime = shell_exec( 'uptime' );
+	$load = '';
+	preg_match( '/load average: ([\d.]+)/', $uptime, $matches );
+?>
+<td class="smallhead" align="right">Server Load: <?= $matches[1] ?></td>
 </tr>
 <tr>
-<td class="smallhead" align="left"><?= count($monitors) ?> Monitors</td>
+<td class="smallhead" align="left">
+<?php if ( $cycle_count > 1 ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $max_width+$jws['cycle']['w'] ?>, <?= $max_height+$jws['cycle']['h'] ?> );"><?php } ?>
+<?= count($monitors) ?> Monitor<?= count($monitors)==1?'':'s' ?>
+<?php if ( $cycle_count > 1 ) { ?></a><?php } ?>
+</td>
 <td class="smallhead" align="center">Configured for <strong><?= $bandwidth ?></strong> bandwidth (change to
 <?php
 		$bw_array = array( "high"=>1, "medium"=>1, "low"=>1 );
@@ -151,11 +160,7 @@ function confirmStatus( new_status )
 ?>
 <a href="<?= $PHP_SELF ?>?new_bandwidth=<?= $bw_keys[0] ?>"><?= $bw_keys[0] ?></a>, 
 <a href="<?= $PHP_SELF ?>?new_bandwidth=<?= $bw_keys[1] ?>"><?= $bw_keys[1] ?></a>)
-<?php if ( $cycle_count > 1 ) { ?>
-<td class="smallhead" align="right"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $max_width+$jws['cycle']['w'] ?>, <?= $max_height+$jws['cycle']['h'] ?> );">Scan</a></td>
-<?php } else { ?>
-<td class="smallhead" align="right">&nbsp;</td>
-<?php } ?>
+<td class="smallhead" align="right"><a href="mailto:bugs@zoneminder.com?subject=ZoneMinder Bug">Report Bug</a></td>
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">

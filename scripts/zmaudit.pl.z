@@ -179,7 +179,8 @@ while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
 					print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
 					if ( confirm() )
 					{
-						qx( rm -rf EVENT_PATH/$fs_monitor/$fs_event );
+						my $command = "rm -rf ".EVENT_PATH."/$fs_monitor/$fs_event";
+						qx( $command );
 						sleep( $delay ) if ( $delay );
 					}
 				}
@@ -191,7 +192,8 @@ while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
 		print( "Filesystem monitor '$fs_monitor' does not exist in database" );
 		if ( confirm() )
 		{
-			qx( rm -rf EVENT_PATH/$fs_monitor );
+			my $command = "rm -rf ".EVENT_PATH."/$fs_monitor";
+			qx( $command );
 			sleep( $delay ) if ( $delay );
 		}
 	}

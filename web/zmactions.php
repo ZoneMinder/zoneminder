@@ -66,7 +66,8 @@ if ( $action )
 			}
 			if ( $deleted_zid )
 			{
-				startDaemon( "zma", $mid );
+				stopDaemon( "zma", $mid );
+				zmaControl( $mid );
 				$refresh_parent = true;
 			}
 		}
@@ -149,27 +150,10 @@ if ( $action )
 			if ( !$result )
 				echo mysql_error();
 
-			controlDaemons( $monitor[Device] );
+			$monitor['Function'] = $new_function;
+			zmcControl( $monitor, true );
+			zmaControl( $monitor );
 			$refresh_parent = true;
-		}
-	}
-	elseif ( $action == "device" && isset( $did ) )
-	{
-		if ( $zmc_status && !$zmc_action )
-		{
-			stopDaemon( "zmc", $did );
-		}
-		elseif ( !$zmc_status && $zmc_action )
-		{
-			startDaemon( "zmc", $did );
-		}
-		if ( $zma_status && !$zma_action )
-		{
-			stopDaemon( "zma", $did );
-		}
-		elseif ( !$zma_status && $zma_action )
-		{
-			startDaemon( "zma", $did );
 		}
 	}
 	elseif ( $action == "zone" && isset( $mid ) && isset( $zid ) )
@@ -227,8 +211,7 @@ if ( $action )
 			$result = mysql_query( $sql );
 			if ( !$result )
 				die( mysql_error() );
-			stopDaemon( "zma", $monitor[Device] );
-			startDaemon( "zma", $monitor[Device] );
+			zmaControl( $mid, true );
 			$refresh_parent = true;
 		}
 	}
@@ -264,6 +247,9 @@ if ( $action )
 		if ( $new_post_event_count != $monitor['PostEventCount'] ) $changes[] = "PostEventCount = '$new_post_event_count'";
 		if ( $new_fps_report_interval != $monitor['FPSReportInterval'] ) $changes[] = "FPSReportInterval = '$new_fps_report_interval'";
 		if ( $new_ref_blend_perc != $monitor['RefBlendPerc'] ) $changes[] = "RefBlendPerc = '$new_ref_blend_perc'";
+		if ( $new_x10_activation != $monitor['X10Activation'] ) $changes[] = "X10Activation = '$new_x10_activation'";
+		if ( $new_x10_alarm_input != $monitor['X10AlarmInput'] ) $changes[] = "X10AlarmInput = '$new_x10_alarm_input'";
+		if ( $new_x10_alarm_output != $monitor['X10AlarmOutput'] ) $changes[] = "X10AlarmOutput = '$new_x10_alarm_output'";
 
 		if ( count( $changes ) )
 		{
@@ -295,7 +281,8 @@ if ( $action )
 			if ( !$result )
 				die( mysql_error() );
 			$monitor = mysql_fetch_assoc( $result );
-			controlDaemons( $monitor[Device] );
+			zmcControl( $monitor, true );
+			zmaControl( $monitor, true );
 			$refresh_parent = true;
 		}
 	}

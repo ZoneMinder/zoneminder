@@ -61,6 +61,7 @@ BEGIN
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter-%d.log';
 use constant START_DELAY => 5; # How long to wait before starting
+use constant CHECK_DELAY => 60; # How long between each event check
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 if ( ZM_OPT_UPLOAD )
@@ -116,7 +117,7 @@ $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $monitor = 0;
-my $delay = 30;
+my $delay = CHECK_DELAY;
 my $event_id = 0;
 
 sub Usage
@@ -126,7 +127,7 @@ Usage: zmfilter.pl (-m <monitor_id>,-monitor=<monitor_id>) [-e <event_id>,--even
 Parameters are :-
 -m <monitor_id>, --monitor=<monitor_id> - Indicate which monitor id to run for
 -e<event_id>, --event=<event_id>        - What event to start scanning from
--d<seconds>, --delay=<seconds>          - How long to delay between each check, default 30
+-d<seconds>, --delay=<seconds>          - How long to delay between each check, default 60
 ");
 	exit( -1 );
 }
@@ -191,6 +192,8 @@ print( "Scanning for events since id $event_id\n" );
 sleep( START_DELAY );
 
 my $filters = GetFilters( $monitor );
+my @id_filters;
+my @date_filters;
 my $last_action = 0;
 
 my $size = 28; # We only need the first 28 bytes really for the last event count
@@ -205,79 +208,27 @@ while( 1 )
 	$last_event_id = unpack( "l", $last_event_id );
 
 	print( "Last event generated is $last_event_id\n" ) if ( VERBOSE );
+
+	if ( (time() - $last_action) > ZM_FILTER_RELOAD_DELAY )
+	{
+		print( "Reloading filters\n" ) if ( VERBOSE );
+		$last_action = time();
+		$filters = GetFilters( $monitor );
+		@id_filters = grep { !$_->{has_dates} } @$filters;
+		@date_filters = grep { $_->{has_dates} } @$filters;
+	}
+
+	foreach my $filter ( @date_filters )
+	{
+		CheckFilter( $filter );
+	}
+
 	if ( $last_event_id > $event_id )
 	{
 		# Got new event to check
-		if ( (time() - $last_action) > ZM_FILTER_RELOAD_DELAY )
+		foreach my $filter ( @id_filters )
 		{
-			print( "Reloading filters\n" ) if ( VERBOSE );
-			$last_action = time();
-			$filters = GetFilters( $monitor );
-		}
-
-		foreach my $filter ( @$filters )
-		{
-			print( "Checking filter '$filter->{Name}'".
-			($filter->{AutoArchive}?", archive":"").
-			($filter->{AutoDelete}?", delete":"").
-			($filter->{AutoUpload}?", upload":"").
-			($filter->{AutoEmail}?", email":"").
-			($filter->{AutoMessage}?", message":"").
-			"\n" ) if ( VERBOSE );
-			my $sql = $filter->{Sql};
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res;
-			if ( $filter->{has_dates} )
-			{
-				$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			}
-			else
-			{
-				$res = $sth->execute( $event_id ) or die( "Can't execute: ".$sth->errstr() );
-			}
-
-			while( my $event = $sth->fetchrow_hashref() )
-			{
-				print( "Checking event $event->{Id}\n" ) if ( VERBOSE );
-				if ( ZM_OPT_EMAIL && $filter->{AutoEmail} )
-				{
-					next if ( $event->{Emailed} );
-
-					sendEmail( $filter, $event );
-				}
-				if ( ZM_OPT_MESSAGE && $filter->{AutoMessage} )
-				{
-					next if ( $event->{Messaged} );
-
-					sendMessage( $filter, $event );
-				}
-				if ( ZM_OPT_UPLOAD && $filter->{AutoUpload} )
-				{
-					next if ( $event->{Uploaded} );
-
-					uploadArchFile( $filter, $event );
-				}
-				if ( $filter->{AutoArchive} )
-				{
-					print( "Archiving event $event->{Id}\n" );
-					# Do it individually to avoid locking up the table for new events
-					my $sql = "update Events set Archived = 1 where Id = ?";
-					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-					my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
-				}
-				if ( $filter->{AutoDelete} )
-				{
-					print( "Deleting event $event->{Id}\n" );
-					# Do it individually to avoid locking up the table for new events
-					my $sql = "delete from Events where Id = ?";
-					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-					my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
-
-					# We could now delete from the Frames and Stats table and the files themselves,
-					# but we can let the database checker sort that out for us instead.
-				}
-			}
-			$sth->finish();
+			CheckFilter( $filter );
 		}
 		$event_id = $last_event_id;
 	}
@@ -388,6 +339,74 @@ sub GetFilters
 	$sth->finish();
 
 	return( \@filters );
+}
+
+sub CheckFilter
+{
+	my $filter = shift;
+
+	print( "Checking filter '$filter->{Name}'".
+		($filter->{AutoArchive}?", archive":"").
+		($filter->{AutoDelete}?", delete":"").
+		($filter->{AutoUpload}?", upload":"").
+		($filter->{AutoEmail}?", email":"").
+		($filter->{AutoMessage}?", message":"").
+		"\n"
+	) if ( VERBOSE );
+	my $sql = $filter->{Sql};
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res;
+	if ( $filter->{has_dates} )
+	{
+		$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	}
+	else
+	{
+		$res = $sth->execute( $event_id ) or die( "Can't execute: ".$sth->errstr() );
+	}
+
+	while( my $event = $sth->fetchrow_hashref() )
+	{
+		print( "Checking event $event->{Id}\n" ) if ( VERBOSE );
+		if ( ZM_OPT_EMAIL && $filter->{AutoEmail} )
+		{
+			next if ( $event->{Emailed} );
+
+			sendEmail( $filter, $event );
+		}
+		if ( ZM_OPT_MESSAGE && $filter->{AutoMessage} )
+		{
+			next if ( $event->{Messaged} );
+
+			sendMessage( $filter, $event );
+		}
+		if ( ZM_OPT_UPLOAD && $filter->{AutoUpload} )
+		{
+			next if ( $event->{Uploaded} );
+
+			uploadArchFile( $filter, $event );
+		}
+		if ( $filter->{AutoArchive} )
+		{
+			print( "Archiving event $event->{Id}\n" );
+			# Do it individually to avoid locking up the table for new events
+			my $sql = "update Events set Archived = 1 where Id = ?";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+		}
+		if ( $filter->{AutoDelete} )
+		{
+			print( "Deleting event $event->{Id}\n" );
+			# Do it individually to avoid locking up the table for new events
+			my $sql = "delete from Events where Id = ?";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+
+			# We could now delete from the Frames and Stats table and the files themselves,
+			# but we can let the database checker sort that out for us instead
+		}
+	}
+	$sth->finish();
 }
 
 sub uploadArchFile

@@ -112,7 +112,7 @@ $n_events = mysql_num_rows( $result );
 <tr>
 <td class="text"><b><?= sprintf( $zmClangLastEvents, $n_events, strtolower( zmVlang( $zmVlangEvent, $n_events ) ) ) ?></b></td>
 <td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=1&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangAll, canView( 'Events' ) ) ?></td>
-<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=2&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val1=2', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangArchive, canView( 'Events' ) ) ?></td>
+<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=2&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val2=1', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangArchive, canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: checkAll( document.event_form, 'mark_eids' );"><?= $zmSlangCheckAll ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr>
 <tr><td colspan="5" class="text">&nbsp;</td></tr>

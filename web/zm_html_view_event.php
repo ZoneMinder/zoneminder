@@ -94,13 +94,12 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 </form></td>
 <?php } ?>
 <td colspan="3" align="right" class="text">
-<form name="rate_form" method="get" action="<?= $PHP_SELF ?>">
+<form name="view_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
-<input type="hidden" name="action" value="rename">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
-Rate: <?php buildSelect( "rate", $rates, "document.rate_form.submit();" ); ?>&nbsp;&nbsp;
-Scale: <?php buildSelect( "scale", $scales, "document.rate_form.submit();" ); ?>
+Rate: <?php buildSelect( "rate", $rates, "document.view_form.submit();" ); ?>&nbsp;&nbsp;
+Scale: <?php buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </form>
 </td>
 </tr>
@@ -133,13 +132,13 @@ Scale: <?php buildSelect( "scale", $scales, "document.rate_form.submit();" ); ?>
 		if ( isNetscape() )
 		{
 ?>
-<tr><td colspan="6" align="center" valign="middle"><img src="<?= $stream_src ?>" border="0" width="<?= ($scale>=1)?($event[Width]*$scale):($event[Width]/abs($scale)) ?>" height="<?= ($scale>=1)?($event[Height]*$scale):($event[Height]/abs($scale)) ?>"></td></tr>
+<tr><td colspan="6" align="center" valign="middle"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $event[Width], $scale ) ?>" height="<?= reScale( $event[Height], $scale ) ?>"></td></tr>
 <?php
 		}
 		else
 		{
 ?>
-<tr><td colspan="6" align="center" valign="middle"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= ($scale>=1)?($event[Width]*$scale):($event[Width]/abs($scale)) ?>" height="<?= ($scale>=1)?($event[Height]*$scale):($event[Height]/abs($scale)) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<tr><td colspan="6" align="center" valign="middle"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $event[Width], $scale ) ?>" height="<?= reScale( $event[Height], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
 <?php
 		}
 	}

@@ -31,6 +31,9 @@
 	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
 	header("Cache-Control: post-check=0, pre-check=0", false);
 	header("Pragma: no-cache");			  // HTTP/1.0
+
+	if ( !isset( $scale ) )
+		$scale = 1;
 ?>
 <html>
 <head>
@@ -59,41 +62,51 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
 <tr>
 <td width="25%" align="left" class="text"><b><?= $monitor[Name] ?></b></td>
-<?php if ( canView( 'Monitors' ) && $monitor[Type] == "Local" ) { ?>
-<td width="25%" align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor[Id] ?>', 'zmSettings<?= $monitor[Name] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );">Settings</a></td>
+<?php if ( $mode == "stream" ) { ?>
+<td align="center" valign="middle" class="text">
+<form name="view_form" method="get" action="<?= $PHP_SELF ?>">
+<input type="hidden" name="view" value="<?= $view ?>">
+<input type="hidden" name="mid" value="<?= $mid ?>">
+Scale: <?php buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
+</td>
 <?php } else { ?>
-<td width="25%" align="center" class="text">&nbsp;</td>
+<td align="center" class="text">&nbsp;</td>
+<?php } ?>
+<?php if ( canView( 'Monitors' ) && $monitor[Type] == "Local" ) { ?>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor[Id] ?>', 'zmSettings<?= $monitor[Name] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );">Settings</a></td>
+<?php } else { ?>
+<td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
-<td width="25%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=still&mid=<?= $mid ?>">Stills</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=still&mid=<?= $mid ?>">Stills</a></td>
 <?php } elseif ( canStream() ) { ?>
-<td width="25%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=stream&mid=<?= $mid ?>">Stream</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=stream&mid=<?= $mid ?>">Stream</a></td>
 <?php } else { ?>
-<td width="25%" align="center" class="text">&nbsp;</td>
+<td align="center" class="text">&nbsp;</td>
 <?php } ?>
-<td width="25%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
 <?php
 	if ( $mode == "stream" )
 	{
-		$stream_src = ZM_PATH_ZMS."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
+		$stream_src = ZM_PATH_ZMS."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&scale=$scale";
 		if ( isNetscape() )
 		{
 ?>
-<tr><td colspan="4" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
+<tr><td colspan="5" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor[Width], $scale ) ?>" height="<?= reScale( $monitor[Height], $scale ) ?>"></td></tr>
 <?php
 		}
 		else
 		{
 ?>
-<tr><td colspan="4" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<tr><td colspan="5" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $monitor[Width], $scale ) ?>" height="<?= reScale( $monitor[Height], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
 <?php
 		}
 	}
 	else
 	{
 ?>
-<tr><td colspan="4" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
+<tr><td colspan="5" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
 <?php
 	}
 ?>

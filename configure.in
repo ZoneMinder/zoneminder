@@ -1,5 +1,5 @@
 AC_INIT(src/zm.h)
-AM_INIT_AUTOMAKE(zm,0.9.11)
+AM_INIT_AUTOMAKE(zm,0.9.12)
 AM_CONFIG_HEADER(config.h)
 
 AC_ARG_WITH(mysql,

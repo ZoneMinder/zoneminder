@@ -18,7 +18,7 @@
 ?>
 <html>
 <head>
-<title>ZM - Video - <?= $event[Name] ?></title>
+<title>ZM - <?= $zmSlangVideo ?> - <?= $event[Name] ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 </head>
 <body>
@@ -28,15 +28,15 @@
 <input type="hidden" name="eid" value="<?= $eid ?>">
 <input type="hidden" name="generate" value="1">
 <table align="center" border="0" cellspacing="0" cellpadding="2" width="96%">
-<tr><td width="50">&nbsp;</td><td class="head" align="center">Video Generation Parameters</td><td width="50" class="text" align="right"><a href="javascript: window.close();">Close</a></tr>
+<tr><td width="50">&nbsp;</td><td class="head" align="center"><?= $zmSlangVideoGenParms ?></td><td width="50" class="text" align="right"><a href="javascript: window.close();"><?= $zmSlangClose ?></a></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="2" width="96%">
 <tr><td width="50%">&nbsp;</td><td width="50%">&nbsp;</td></tr>
-<tr><td class="text" align="right">Frame Rate</td><td><?= buildSelect( "rate", $rates ) ?></td></tr>
-<tr><td class="text" align="right">Video Size</td><td><?= buildSelect( "scale", $scales ) ?></td></tr>
-<tr><td class="text" align="right">Overwrite Existing</td><td><input type="checkbox" class="form-noborder" name="overwrite" value="1"<?php if ( $overwrite ) { ?> checked<?php } ?>></td></tr>
+<tr><td class="text" align="right"><?= $zmSlangFrameRate ?></td><td><?= buildSelect( "rate", $rates ) ?></td></tr>
+<tr><td class="text" align="right"><?= $zmSlangVideoSize ?></td><td><?= buildSelect( "scale", $scales ) ?></td></tr>
+<tr><td class="text" align="right"><?= $zmSlangOverwriteExisting ?></td><td><input type="checkbox" class="form-noborder" name="overwrite" value="1"<?php if ( $overwrite ) { ?> checked<?php } ?>></td></tr>
 <tr><td colspan="2">&nbsp;</td></tr>
-<tr><td colspan="2" align="center"><input type="submit" class="form" value="Generate Video"></td></tr>
+<tr><td colspan="2" align="center"><input type="submit" class="form" value="<?= $zmSlangGenerateVideo ?>"></td></tr>
 </table>
 </form>
 <?php
@@ -46,7 +46,7 @@
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr><td>&nbsp;</td></tr>
 <tr>
-<td align="center" class="head">Generating Video</td>
+<td align="center" class="head"><?= $zmSlangGeneratingVideo ?></td>
 </tr>
 <tr><td>&nbsp;</td></tr>
 </table>
@@ -65,7 +65,6 @@
 		{
 			$event_dir = ZM_DIR_EVENTS."/$event[MonitorName]/".sprintf( "%d", $eid );
 			$video_path = $event_dir.'/'.$video_file;
-			//header("Location: $video_path" );
 ?>
 <html>
 <head>
@@ -85,7 +84,7 @@ location.replace('<?= $video_path ?>');
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 </head>
 <body>
-<p class="head" align="center"><font color="red"><br><br>Video Generation Failed!<br><br></font></p>
+<p class="head" align="center"><font color="red"><br><br><?= $zmSlangVideoGenFailed ?><br><br></font></p>
 <?php
 		}
 	}

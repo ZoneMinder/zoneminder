@@ -34,7 +34,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - MontageFeed</title>
+<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangFeed ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
@@ -52,9 +52,9 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <tr>
 <td width="50%" align="center" class="text"><b><?= $monitor[Name] ?></b></td>
 <?php if ( $mode == "stream" ) { ?>
-<td width="50%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montagefeed&mode=still&mid=<?= $mid ?>">Stills</a></td>
+<td width="50%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montagefeed&mode=still&mid=<?= $mid ?>"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
-<td width="50%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montagefeed&mode=stream&mid=<?= $mid ?>">Stream</a></td>
+<td width="50%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montagefeed&mode=stream&mid=<?= $mid ?>"><?= $zmSlangStream ?></a></td>
 <?php } else { ?>
 <td width="50%" align="center" class="text">&nbsp;</td>
 <?php } ?>

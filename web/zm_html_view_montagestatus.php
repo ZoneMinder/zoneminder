@@ -7,26 +7,26 @@
 	$zmu_command = ZMU_COMMAND." -m $mid -s -f";
 	$zmu_output = exec( escapeshellcmd( $zmu_command ) );
 	list( $status, $fps ) = split( ' ', $zmu_output );
-	$status_string = "Unknown";
+	$status_string = $zmSlangUnknown;
 	$fps_string = "--.--";
 	$class = "text";
 	if ( $status == 0 )
 	{
-		$status_string = "Idle";
+		$status_string = $zmSlangIdle;
 	}
 	elseif ( $status == 1 )
 	{
-		$status_string = "Alarm";
+		$status_string = $zmSlangAlarm;
 		$class = "redtext";
 	}
 	elseif ( $status == 2 )
 	{
-		$status_string = "Alert";
+		$status_string = $zmSlangAlert;
 		$class = "ambtext";
 	}
 	elseif ( $status == 3 )
 	{
-		$status_string = "Record";
+		$status_string = $zmSlangRecord;
 	}
 	$fps_string = sprintf( "%.2f", $fps );
 	$new_alarm = ( $status > 0 && $last_status == 0 );
@@ -66,7 +66,7 @@ window.setTimeout( "window.location.reload(true)", <?= $refresh*1000 ?> );
 <table width="90%" align="center" border="0" cellpadding="0" cellspacing="0">
 <tr>
 <td width="15%" class="text" align="left">&nbsp;</td>
-<td width="70%" class="<?= $class ?>" align="center" valign="middle">Status:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
+<td width="70%" class="<?= $class ?>" align="center" valign="middle"><?= $zmSlangStatus ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;<?= $zmSlangFPS ?></td>
 <td width="15%" align="right" class="text">&nbsp;</td>
 </tr>
 </table>

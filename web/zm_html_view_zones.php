@@ -26,7 +26,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - Zones</title>
+<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangZones ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 window.focus();
@@ -80,8 +80,8 @@ function configureButton(form,name)
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td width="33%" align="left" class="text">&nbsp;</td>
-<td width="34%" align="center" class="head"><strong><?= $monitor[Name] ?> Zones</strong></td>
-<td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+<td width="34%" align="center" class="head"><strong><?= $monitor[Name] ?> <?= $zmSlangZones ?></strong></td>
+<td width="33%" align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <tr><td colspan="3" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$image ?>" usemap="#zonemap" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>" border="0"></td></tr>
 </table>
@@ -90,12 +90,12 @@ function configureButton(form,name)
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="delete">
 <input type="hidden" name="mid" value="<?= $mid ?>">
-<tr><td align="center" class="smallhead">Id</td>
-<td align="center" class="smallhead">Name</td>
-<td align="center" class="smallhead">Type</td>
-<td align="center" class="smallhead">Units</td>
-<td align="center" class="smallhead">Dimensions</td>
-<td align="center" class="smallhead">Mark</td>
+<tr><td align="center" class="smallhead"><?= $zmSlangId ?></td>
+<td align="center" class="smallhead"><?= $zmSlangName ?></td>
+<td align="center" class="smallhead"><?= $zmSlangType ?></td>
+<td align="center" class="smallhead"><?= $zmSlangUnits ?></td>
+<td align="center" class="smallhead"><?= $zmSlangDimensions ?></td>
+<td align="center" class="smallhead"><?= $zmSlangMark ?></td>
 </tr>
 <?php
 	foreach( $zones as $zone )
@@ -114,8 +114,8 @@ function configureButton(form,name)
 ?>
 <tr>
 <td align="center" class="text">&nbsp;</td>
-<td colspan="4" align="center"><input type="button" value="Add New Zone" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=-1', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td>
-<td align="center"><input type="submit" name="delete_btn" value="Delete" class="form" disabled></td>
+<td colspan="4" align="center"><input type="button" value="<?= $zmSlangAddNewZone ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=-1', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td>
+<td align="center"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>
 </tr>
 </form>
 </table>

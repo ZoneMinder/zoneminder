@@ -1,6 +1,6 @@
 <?php
 	$running = daemonCheck();
-	$status = $running?"Running":"Stopped";
+	$status = $running?$zmSlangRunning:$zmSlangStopped;
 
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
 		header("Refresh: ".REFRESH_MAIN."; URL=$PHP_SELF" );
@@ -92,13 +92,13 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
-<td class="bighead" align="center"><strong>ZoneMinder Console - <?php if ( canEdit( 'System' ) ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=state', 'zmState', <?= $jws['state']['w'] ?>, <?= $jws['state']['h'] ?> );"><?= $status ?></a> - <?php } ?>v<?= ZM_VERSION ?></strong></td>
+<td class="bighead" align="center"><strong>ZoneMinder <?= $zmSlangConsole ?> - <?php if ( canEdit( 'System' ) ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=state', 'zmState', <?= $jws['state']['w'] ?>, <?= $jws['state']['h'] ?> );"><?= $status ?></a> - <?php } ?>v<?= ZM_VERSION ?></strong></td>
 <?php
 	$uptime = shell_exec( 'uptime' );
 	$load = '';
 	preg_match( '/load average: ([\d.]+)/', $uptime, $matches );
 ?>
-<td class="smallhead" align="right">Server Load: <?= $matches[1] ?></td>
+<td class="smallhead" align="right"><?= $zmSlangServerLoad ?>: <?= $matches[1] ?></td>
 </tr>
 <tr>
 <td class="smallhead" align="left">
@@ -106,13 +106,13 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 	if ( canView( 'Stream' ) && $cycle_count > 1 )
 	{
 ?>
-<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $max_width+$jws['cycle']['w'] ?>, <?= $max_height+$jws['cycle']['h'] ?> );"><?= count($monitors) ?> Monitor<?= count($monitors)==1?'':'s' ?></a>&nbsp;(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage', 'zmMontage', <?= ($montage_cols*$max_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*(40+$max_height))+$jws['montage']['h'] ?> );">Montage</a>)
+<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $max_width+$jws['cycle']['w'] ?>, <?= $max_height+$jws['cycle']['h'] ?> );"><?= sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) ) ?></a>&nbsp;(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage', 'zmMontage', <?= ($montage_cols*$max_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*(40+$max_height))+$jws['montage']['h'] ?> );"><?= $zmSlangMontage ?></a>)
 <?php
 	}
 	else
 	{
 ?>
-<?= count($monitors) ?> Monitor<?= count($monitors)==1?'':'s' ?>
+<?= sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) ) ?>
 <?php
 	}
 ?>
@@ -121,37 +121,36 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 	if ( ZM_OPT_USE_AUTH )
 	{
 ?>
-<td class="smallhead" align="center">Logged in as <a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=logout', 'zmLogout', <?= $jws['logout']['w'] ?>, <?= $jws['logout']['h'] ?>);"><?= $user[Username] ?></a>, configured for 
+<td class="smallhead" align="center"><?= $zmSlangLoggedInAs ?> <a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=logout', 'zmLogout', <?= $jws['logout']['w'] ?>, <?= $jws['logout']['h'] ?>);"><?= $user[Username] ?></a>, <?= strtolower( $zmSlanConfiguredFor ) ?>
 <?php
 	}
 	else
 	{
 ?>
-<td class="smallhead" align="center">Configured for 
+<td class="smallhead" align="center"><?= $zmSlangConfiguredFor ?>
 <?php
 	}
 ?>
-<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=bandwidth', 'zmBandwidth', <?= $jws['bandwidth']['w'] ?>, <?= $jws['bandwidth']['h'] ?>);"><?= $bandwidth ?></a> bandwidth</td>
-<td class="smallhead" align="right"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=options', 'zmOptions', ".$jws[options][w].", ".$jws[options][h]." );", "Options", canView( 'System' ) ) ?></td>
+<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=bandwidth', 'zmBandwidth', <?= $jws['bandwidth']['w'] ?>, <?= $jws['bandwidth']['h'] ?>);"><?= $bandwidth ?></a> <?= strtolower( $zmSlangBandwidth ) ?></td>
+<td class="smallhead" align="right"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=options', 'zmOptions', ".$jws[options][w].", ".$jws[options][h]." );", $zmSlangOptions, canView( 'System' ) ) ?></td>
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <form name="monitor_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="return(confirmDelete());">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="delete">
-<tr><td align="left" class="smallhead">Id</td>
-<td align="left" class="smallhead">Name</td>
-<td align="left" class="smallhead">Function</td>
-<td align="left" class="smallhead">Source</td>
-<!--<td align="left" class="smallhead">Dimensions</td>-->
-<td align="right" class="smallhead">Events</td>
-<td align="right" class="smallhead">Hour</td>
-<td align="right" class="smallhead">Day</td>
-<td align="right" class="smallhead">Week</td>
-<td align="right" class="smallhead">Month</td>
-<td align="right" class="smallhead">Archive</td>
-<td align="right" class="smallhead">Zones</td>
-<td align="center" class="smallhead">Mark</td>
+<tr><td align="left" class="smallhead"><?= $zmSlangId ?></td>
+<td align="left" class="smallhead"><?= $zmSlangName ?></td>
+<td align="left" class="smallhead"><?= $zmSlangFunction ?></td>
+<td align="left" class="smallhead"><?= $zmSlangSource ?></td>
+<td align="right" class="smallhead"><?= $zmSlangEvents ?></td>
+<td align="right" class="smallhead"><?= $zmSlangHour ?></td>
+<td align="right" class="smallhead"><?= $zmSlangDay ?></td>
+<td align="right" class="smallhead"><?= $zmSlangWeek ?></td>
+<td align="right" class="smallhead"><?= $zmSlangMonth ?></td>
+<td align="right" class="smallhead"><?= $zmSlangArchive ?></td>
+<td align="right" class="smallhead"><?= $zmSlangZones ?></td>
+<td align="center" class="smallhead"><?= $zmSlangMark ?></td>
 </tr>
 <?php
 	$event_count = 0;
@@ -227,10 +226,10 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 ?>
 <tr>
 <td colspan="2" align="center">
-<input type="button" value="Refresh" class="form" onClick="javascript: location.reload(true);">
+<input type="button" value="<?= $zmSlangRefresh ?>" class="form" onClick="javascript: location.reload(true);">
 </td>
 <td colspan="2" align="center">
-<input type="button" value="Add New Monitor" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"<?php if ( !canEdit( 'Monitors' ) || $user[MonitorIds] ) {?> disabled<?php } ?>>
+<input type="button" value="<?= $zmSlangAddNewMonitor ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"<?php if ( !canEdit( 'Monitors' ) || $user[MonitorIds] ) {?> disabled<?php } ?>>
 </td>
 <td align="right" class="text"><?= $event_count ?></td>
 <td align="right" class="text"><?= $hour_event_count ?></td>
@@ -239,7 +238,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 <td align="right" class="text"><?= $month_event_count ?></td>
 <td align="right" class="text"><?= $arch_event_count ?></td>
 <td align="right" class="text"><?= $zone_count ?></td>
-<td align="center"><input type="submit" name="delete_btn" value="Delete" class="form" disabled></td>
+<td align="center"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>
 </tr>
 </form>
 </table>

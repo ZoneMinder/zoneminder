@@ -11,7 +11,7 @@
 ?>
 <html>
 <head>
-<title>ZM - Function - <?= $monitor[Name] ?></title>
+<title>ZM - <?= $zmSlangFunction ?> - <?= $monitor[Name] ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
@@ -36,7 +36,7 @@ function closeWindow()
 <body>
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
-<td colspan="2" align="center" class="head">Monitor '<?= $monitor[Name] ?>' Function</td>
+<td colspan="2" align="center" class="head"><?= sprintf( $zmClangMonitorFunction, $monitor[Name] ) ?></td>
 </tr>
 <tr>
 <form method="get" action="<?= $PHP_SELF ?>">
@@ -47,8 +47,6 @@ function closeWindow()
 <?php
 	foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 	{
-		if ( !ZM_OPT_X10 && $opt_function == 'X10' )
-			continue;
 ?>
 <option value="<?= $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?= $opt_function ?></option>
 <?php
@@ -57,8 +55,8 @@ function closeWindow()
 </select></td>
 </tr>
 <tr>
-<td align="center"><input type="submit" value="Save" class="form"></td>
-<td align="center"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
+<td align="center"><input type="submit" value="<?= $zmSlangSave ?>" class="form"></td>
+<td align="center"><input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
 </body>

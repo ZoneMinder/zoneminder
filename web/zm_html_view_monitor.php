@@ -6,14 +6,14 @@
 	}
 
 	$tabs = array();
-	$tabs["monitor"] = "Monitor";
-	$tabs["source"] = "Source";
-	$tabs["timestamp"] = "Timestamp";
-	$tabs["buffers"] = "Buffers";
-	$tabs["misc"] = "Misc";
+	$tabs["monitor"] = $zmSlangMonitor;
+	$tabs["source"] = $zmSlangSource;
+	$tabs["timestamp"] = $zmSlangTimestamp;
+	$tabs["buffers"] = $zmSlangBuffers;
+	$tabs["misc"] = $zmSlangMisc;
 	if ( ZM_OPT_X10 )
 	{
-		$tabs["x10"] = "X10";
+		$tabs["x10"] = $zmSlangX10;
 	}
 
 	if ( !$tab )
@@ -36,7 +36,7 @@
 	else
 	{
 		$monitor = array();
-		$monitor[Name] = "New";
+		$monitor[Name] = $zmSlangNew;
 		$monitor['Function'] = "None";
 		$monitor['RunMode'] = "Continuous";
 		$monitor[Type] = "Local";
@@ -61,13 +61,13 @@
 		$new_monitor[Triggers] = split( ',', $monitor[Triggers] );
 		$new_x10_monitor = $x10_monitor;
 	}
-	$local_palettes = array( "Grey"=>1, "RGB24"=>4, "RGB565"=>3, "RGB555"=>6, "YUV422P"=>13, "YUV420P"=>15 );
-	$remote_palettes = array( "8 bit greyscale"=>1, "24 bit colour"=>4 );
-	$orientations = array( "Normal"=>0, "Rotate Right"=>90, "Inverted"=>180, "Rotate Left"=>270 );
+	$local_palettes = array( $zmSlangGrey=>1, "RGB24"=>4, "RGB565"=>3, "RGB555"=>6, "YUV422P"=>13, "YUV420P"=>15 );
+	$remote_palettes = array( $zmSlang8BitGrey=>1, $zmSlang24BitColour=>4 );
+	$orientations = array( $zmSlangNormal=>0, $zmSlangRotateRight=>90, $zmSlangInverted=>180, $zmSlangRotateLeft=>270 );
 ?>
 <html>
 <head>
-<title>ZM - Monitor <?= $monitor[Name] ?></title>
+<title>ZM - <?= $zmSlangMonitor ?> <?= $monitor[Name] ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
@@ -100,7 +100,7 @@ function closeWindow()
 <body>
 <table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td align="left" class="head">Monitor <?= $monitor[Name] ?></td>
+<td align="left" class="head"><?= $zmSlangMonitor ?> <?= $monitor[Name] ?></td>
 </tr>
 <tr>
 <td>&nbsp;</td>
@@ -205,7 +205,7 @@ function closeWindow()
 	}
 ?>
 <tr>
-<td align="left" class="smallhead" width="70%">Parameter</td><td align="left" class="smallhead" width="30%">Value</td>
+<td align="left" class="smallhead" width="70%"><?= $zmSlangParameter ?></td><td align="left" class="smallhead" width="30%"><?= $zmSlangValue ?></td>
 </tr>
 <?php
 	switch ( $tab )
@@ -213,8 +213,8 @@ function closeWindow()
 		case 'monitor' :
 		{
 ?>
-<tr><td align="left" class="text">Name</td><td align="left" class="text"><input type="text" name="new_monitor[Name]" value="<?= $new_monitor[Name] ?>" size="12" class="form"></td></tr>
-<tr><td align="left" class="text">Function</td><td align="left" class="text"><select name="new_monitor[Function]" class="form">
+<tr><td align="left" class="text"><?= $zmSlangName ?></td><td align="left" class="text"><input type="text" name="new_monitor[Name]" value="<?= $new_monitor[Name] ?>" size="12" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangFunction ?></td><td align="left" class="text"><select name="new_monitor[Function]" class="form">
 <?php
 			foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 			{
@@ -224,9 +224,9 @@ function closeWindow()
 			}
 ?>
 </select></td></tr>
-<tr><td align="left" class="text">Section Length</td><td align="left" class="text"><input type="text" name="new_monitor[SectionLength]" value="<?= $new_monitor[SectionLength] ?>" size="6" class="form"></td></tr>
-<tr><td align="left" class="text">Frame Skip</td><td align="left" class="text"><input type="text" name="new_monitor[FrameSkip]" value="<?= $new_monitor[FrameSkip] ?>" size="6" class="form"></td></tr>
-<tr><td align="left" class="text">Run Mode</td><td align="left" class="text"><select name="new_monitor[RunMode]" class="form">
+<tr><td align="left" class="text"><?= $zmSlangSectionlength ?></td><td align="left" class="text"><input type="text" name="new_monitor[SectionLength]" value="<?= $new_monitor[SectionLength] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangFrameSkip ?></td><td align="left" class="text"><input type="text" name="new_monitor[FrameSkip]" value="<?= $new_monitor[FrameSkip] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangRunMode ?></td><td align="left" class="text"><select name="new_monitor[RunMode]" class="form">
 <?php
 			foreach ( getEnumValues( 'Monitors', 'RunMode' ) as $opt_runmode )
 			{
@@ -236,7 +236,7 @@ function closeWindow()
 			}
 ?>
 </select></td></tr>
-<tr><td align="left" class="text">Triggers</td><td align="left" class="text">
+<tr><td align="left" class="text"><?= $zmSlangTriggers ?></td><td align="left" class="text">
 <?php
 			$opt_triggers = getSetValues( 'Monitors', 'Triggers' );
 			$break_count = (int)(ceil(count($opt_triggers)));
@@ -256,16 +256,16 @@ function closeWindow()
 			if ( !$opt_count )
 			{
 ?>
-<em>None available</em>
+<em><?= $zmSlangNoneAvailable ?></em>
 <?php
 			}
 ?>
 </td></tr>
 <?php
 			$select_name = "new_monitor[Type]";
-			$source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
+			$source_types = array( $zmSlangLocal=>"Local", $zmSlangRemote=>"Remote" );
 ?>
-<tr><td align="left" class="text">Source Type</td><td><?= buildSelect( $select_name, $source_types ); ?></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangSourceType ?></td><td><?= buildSelect( $select_name, $source_types ); ?></td></tr>
 <?php
 			break;
 		}
@@ -274,62 +274,62 @@ function closeWindow()
 			if ( $new_monitor[Type] == "Local" )
 			{
 ?>
-<tr><td align="left" class="text">Device Number (/dev/video?)</td><td align="left" class="text"><input type="text" name="new_monitor[Device]" value="<?= $new_monitor[Device] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Device Channel</td><td align="left" class="text"><input type="text" name="new_monitor[Channel]" value="<?= $new_monitor[Channel] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Device Format (0=PAL,1=NTSC etc)</td><td align="left" class="text"><input type="text" name="new_monitor[Format]" value="<?= $new_monitor[Format] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Capture Palette</td><td align="left" class="text"><select name="new_monitor[Palette]" class="form"><?php foreach ( $local_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor[Palette] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangDeviceNumber ?> (/dev/video?)</td><td align="left" class="text"><input type="text" name="new_monitor[Device]" value="<?= $new_monitor[Device] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangDeviceNumber ?> Channel</td><td align="left" class="text"><input type="text" name="new_monitor[Channel]" value="<?= $new_monitor[Channel] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangDeviceFormat ?></td><td align="left" class="text"><input type="text" name="new_monitor[Format]" value="<?= $new_monitor[Format] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangCapturePalette ?></td><td align="left" class="text"><select name="new_monitor[Palette]" class="form"><?php foreach ( $local_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor[Palette] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
 			}
 			else
 			{
 ?>
-<tr><td align="left" class="text">Remote Host Name</td><td align="left" class="text"><input type="text" name="new_monitor[Host]" value="<?= $new_monitor[Host] ?>" size="16" class="form"></td></tr>
-<tr><td align="left" class="text">Remote Host Port</td><td align="left" class="text"><input type="text" name="new_monitor[Port]" value="<?= $new_monitor[Port] ?>" size="6" class="form"></td></tr>
-<tr><td align="left" class="text">Remote Host Path</td><td align="left" class="text"><input type="text" name="new_monitor[Path]" value="<?= $new_monitor[Path] ?>" size="36" class="form"></td></tr>
-<tr><td align="left" class="text">Remote Image Colours</td><td align="left" class="text"><select name="new_monitor[Palette]" class="form"><?php foreach ( $remote_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor[Palette] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangRemoteHostName ?></td><td align="left" class="text"><input type="text" name="new_monitor[Host]" value="<?= $new_monitor[Host] ?>" size="16" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangRemoteHostPort ?></td><td align="left" class="text"><input type="text" name="new_monitor[Port]" value="<?= $new_monitor[Port] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangRemoteHostPath ?></td><td align="left" class="text"><input type="text" name="new_monitor[Path]" value="<?= $new_monitor[Path] ?>" size="36" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangRemoteImageColours ?></td><td align="left" class="text"><select name="new_monitor[Palette]" class="form"><?php foreach ( $remote_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor[Palette] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
 			}
 ?>
-<tr><td align="left" class="text">Capture Width (pixels)</td><td align="left" class="text"><input type="text" name="new_monitor[Width]" value="<?= $new_monitor[Width] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Capture Height (pixels)</td><td align="left" class="text"><input type="text" name="new_monitor[Height]" value="<?= $new_monitor[Height] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Orientation</td><td align="left" class="text"><select name="new_monitor[Orientation]" class="form"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor[Orientation] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangCaptureWidth ?> (<?= $zmSlangPixels ?>)</td><td align="left" class="text"><input type="text" name="new_monitor[Width]" value="<?= $new_monitor[Width] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangCaptureHeight ?> (<?= $zmSlangPixels ?>)</td><td align="left" class="text"><input type="text" name="new_monitor[Height]" value="<?= $new_monitor[Height] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangOrientation ?></td><td align="left" class="text"><select name="new_monitor[Orientation]" class="form"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor[Orientation] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
 			break;
 		}
 		case 'timestamp' :
 		{
 ?>
-<tr><td align="left" class="text">Timestamp Label Format</td><td align="left" class="text"><input type="text" name="new_monitor[LabelFormat]" value="<?= $new_monitor[LabelFormat] ?>" size="20" class="form"></td></tr>
-<tr><td align="left" class="text">Timestamp Label X</td><td align="left" class="text"><input type="text" name="new_monitor[LabelX]" value="<?= $new_monitor[LabelX] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Timestamp Label Y</td><td align="left" class="text"><input type="text" name="new_monitor[LabelY]" value="<?= $new_monitor[LabelY] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangTimestampLabelFormat ?></td><td align="left" class="text"><input type="text" name="new_monitor[LabelFormat]" value="<?= $new_monitor[LabelFormat] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangTimestampLabelX ?></td><td align="left" class="text"><input type="text" name="new_monitor[LabelX]" value="<?= $new_monitor[LabelX] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangTimestampLabelY ?></td><td align="left" class="text"><input type="text" name="new_monitor[LabelY]" value="<?= $new_monitor[LabelY] ?>" size="4" class="form"></td></tr>
 <?php
 			break;
 		}
 		case 'buffers' :
 		{
 ?>
-<tr><td align="left" class="text">Image Buffer Size (frames)</td><td align="left" class="text"><input type="text" name="new_monitor[ImageBufferCount]" value="<?= $new_monitor[ImageBufferCount] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Warmup Frames</td><td align="left" class="text"><input type="text" name="new_monitor[WarmupCount]" value="<?= $new_monitor[WarmupCount] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Pre Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_monitor[PreEventCount]" value="<?= $new_monitor[PreEventCount] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Post Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_monitor[PostEventCount]" value="<?= $new_monitor[PostEventCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangImageBufferSize ?> (<?= strtolower($zmSlangFrames) ?>)</td><td align="left" class="text"><input type="text" name="new_monitor[ImageBufferCount]" value="<?= $new_monitor[ImageBufferCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangWarmupFrames ?></td><td align="left" class="text"><input type="text" name="new_monitor[WarmupCount]" value="<?= $new_monitor[WarmupCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangPreEventImageBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[PreEventCount]" value="<?= $new_monitor[PreEventCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangPostEventImageBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[PostEventCount]" value="<?= $new_monitor[PostEventCount] ?>" size="4" class="form"></td></tr>
 <?php
 			break;
 		}
 		case 'misc' :
 		{
 ?>
-<tr><td align="left" class="text">Maximum FPS</td><td align="left" class="text"><input type="text" name="new_monitor[MaxFPS]" value="<?= $new_monitor[MaxFPS] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">FPS Report Interval</td><td align="left" class="text"><input type="text" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangMaximumFPS ?></td><td align="left" class="text"><input type="text" name="new_monitor[MaxFPS]" value="<?= $new_monitor[MaxFPS] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangFPSReportInterval ?></td><td align="left" class="text"><input type="text" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangRefImageBlendPct ?></td><td align="left" class="text"><input type="text" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
 <?php
 			break;
 		}
 		case 'x10' :
 		{
 ?>
-<tr><td align="left" class="text">X10 Activation String</td><td align="left" class="text"><input type="text" name="new_x10_monitor[Activation]" value="<?= $new_x10_monitor[Activation] ?>" size="20" class="form"></td></tr>
-<tr><td align="left" class="text">X10 Input Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_monitor[AlarmInput]" value="<?= $new_x10_monitor[AlarmInput] ?>" size="20" class="form"></td></tr>
-<tr><td align="left" class="text">X10 Output Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_monitor[AlarmOutput]" value="<?= $new_x10_monitor[AlarmOutput] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangX10ActivationString ?></td><td align="left" class="text"><input type="text" name="new_x10_monitor[Activation]" value="<?= $new_x10_monitor[Activation] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangX10InputAlarmString ?></td><td align="left" class="text"><input type="text" name="new_x10_monitor[AlarmInput]" value="<?= $new_x10_monitor[AlarmInput] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangX10OutputAlarmString ?></td><td align="left" class="text"><input type="text" name="new_x10_monitor[AlarmOutput]" value="<?= $new_x10_monitor[AlarmOutput] ?>" size="20" class="form"></td></tr>
 <?php
 			break;
 		}
@@ -337,7 +337,7 @@ function closeWindow()
 ?>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
-<td colspan="2" align="right"><input type="submit" value="Save" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
+<td colspan="2" align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </form>
 </table>

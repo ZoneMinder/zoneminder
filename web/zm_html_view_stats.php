@@ -14,7 +14,7 @@
 ?>
 <html>
 <head>
-<title>ZM - Stats <?= $eid."-".$fid ?></title>
+<title>ZM - <?= $zmSlangStats ?> <?= $eid."-".$fid ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 window.focus();
@@ -27,18 +27,18 @@ function closeWindow()
 <body>
 <table width="96%" border="0">
 <tr>
-<td align="left" class="smallhead"><b>Frame <?= $eid."-".$fid ?></b></td>
-<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+<td align="left" class="smallhead"><b><?= $zmSlangFrame ?> <?= $eid."-".$fid ?></b></td>
+<td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <tr><td colspan="2"><table width="100%" border="0" bgcolor="#7F7FB2" cellpadding="3" cellspacing="1"><tr bgcolor="#FFFFFF">
-<td class="smallhead">Zone</td>
-<td class="smallhead" align="right">Alarm Px</td>
-<td class="smallhead" align="right">Filter Px</td>
-<td class="smallhead" align="right">Blob Px</td>
-<td class="smallhead" align="right">Blobs</td>
-<td class="smallhead" align="right">Blob Sizes</td>
-<td class="smallhead" align="right">Alarm Limits</td>
-<td class="smallhead" align="right">Score</td>
+<td class="smallhead"><?= $zmSlangZone ?></td>
+<td class="smallhead" align="right"><?= $zmSlangAlarmPx ?></td>
+<td class="smallhead" align="right"><?= $zmSlangFilterPx ?></td>
+<td class="smallhead" align="right"><?= $zmSlangBlobPx ?></td>
+<td class="smallhead" align="right"><?= $zmSlangBlobs ?></td>
+<td class="smallhead" align="right"><?= $zmSlangBlobSizes ?></td>
+<td class="smallhead" align="right"><?= $zmSlangAlarmLimits ?></td>
+<td class="smallhead" align="right"><?= $zmSlangScore ?></td>
 </tr>
 <?php
 	if ( count($stats) )
@@ -63,7 +63,7 @@ function closeWindow()
 	{
 ?>
 <tr bgcolor="#FFFFFF">
-<td class="text" colspan="8" align="center"><br>There are no statistics recorded for this event/frame<br><br></td>
+<td class="text" colspan="8" align="center"><br><?= $zmSlangNoStatisticsRecorded ?><br><br></td>
 </tr>
 <?php
 	}

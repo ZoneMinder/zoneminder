@@ -37,7 +37,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - WatchFeed</title>
+<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangFeed ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
@@ -67,24 +67,24 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <form name="view_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="mid" value="<?= $mid ?>">
-Scale: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
+<?= $zmSlangScale ?>: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( canView( 'Monitors' ) && $monitor[Type] == "Local" ) { ?>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor[Id] ?>', 'zmSettings<?= $monitor[Name] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );">Settings</a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor[Id] ?>', 'zmSettings<?= $monitor[Name] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );"><?= $zmSlangSettings ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=still&mid=<?= $mid ?>">Stills</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=still&mid=<?= $mid ?>"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=stream&mid=<?= $mid ?>">Stream</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=stream&mid=<?= $mid ?>"><?= $zmSlangStream ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
-<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+<td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <?php
 	if ( $mode == "stream" )

@@ -11,7 +11,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - Watch</title>
+<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangWatch ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 //opener.location.reload();

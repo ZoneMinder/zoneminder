@@ -10,7 +10,7 @@
 	$monitor = mysql_fetch_assoc( $result );
 
 	$select_name = "filter_name";
-	$filter_names = array( ''=>'Choose Filter' );
+	$filter_names = array( ''=>'<?= $zmSlangChooseFilter ?>' );
 	$result = mysql_query( "select * from Filters where MonitorId = '$mid' order by Name" );
 	if ( !$result )
 		die( mysql_error() );
@@ -35,21 +35,46 @@
 		}
 	}
 
-	$conjunction_types = array( 'and'=>'and', 'or'=>'or' );
-	$obracket_types = array( ''=>'' );
-	$cbracket_types = array( ''=>'' );
+	$conjunction_types = array(
+		'and' => $zmSlangConjAnd,
+		'or'  => $zmSlangConjOr
+	);
+	$obracket_types = array( '' => '' );
+	$cbracket_types = array( '' => '' );
 	for ( $i = 1; $i <= ceil(($trms-1)/2); $i++ )
 	{
 		$obracket_types[$i] = str_repeat( "(", $i );
 		$cbracket_types[$i] = str_repeat( ")", $i );
 	}
-	$attr_types = array( 'DateTime'=>'Date/Time', 'Date'=>'Date', 'Time'=>'Time', 'Weekday'=>'Weekday', 'Length'=>'Duration', 'Frames'=>'Frames', 'AlarmFrames'=>'Alarm Frames', 'TotScore'=>'Total Score', 'AvgScore'=>'Avg. Score', 'MaxScore'=>'Max. Score', 'Archived'=>'Archive Status' );
-	$op_types = array( '='=>'equal to', '!='=>'not equal to', '>='=>'greater than or equal to', '>'=>'greater than', '<'=>'less than', '<='=>'less than or equal to' );
-	$archive_types = array( '0'=>'Unarchived Only', '1'=>'Archived Only' );
+	$attr_types = array(
+		'DateTime'    => $zmSlangAttrDateTime,
+		'Date'        => $zmSlangAttrDate,
+		'Time'        => $zmSlangAttrTime,
+		'Weekday'     => $zmSlangAttrWeekday,
+		'Length'      => $zmSlangAttrDuration,
+		'Frames'      => $zmSlangAttrFrames,
+		'AlarmFrames' => $zmSlangAttrAlarmFrames,
+		'TotScore'    => $zmSlangAttrTotalScore,
+		'AvgScore'    => $zmSlangAttrAvgScore,
+		'MaxScore'    => $zmSlangAttrMaxScore,
+		'Archived'    => $zmSlangAttrArchiveStatus,
+		);
+	$op_types = array(
+		'='  => $zmSlangOpEq,
+		'!=' => $zmSlangOpNe,
+		'>=' => $zmSlangOpGtEq,
+		'>'  => $zmSlangOpGt,
+		'<'  => $zmSlangOpLt,
+		'<=' => $zmSlangOpLtEq,
+	);
+	$archive_types = array(
+		'0' => $zmSlangArchUnarchived,
+		'1' => $zmSlangArchArchived
+	);
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - Event Filter</title>
+<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangEventFilter ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
@@ -78,7 +103,7 @@ function validateForm( form )
 ?>
 	if ( bracket_count )
 	{
-		alert( "Error, please check you have an equal number of opening and closing brackets" );
+		alert( "<?= $zmSlangErrorBrackets ?>" );
 		return( false );
 	}
 <?php
@@ -90,7 +115,7 @@ function validateForm( form )
 ?>
 		if ( form.val<?= $i?>.value == '' )
 		{
-			alert( "Error, please check that all terms have a valid value" );
+			alert( "<?= $zmSlangErrorValidValue ?>" );
 			return( false );
 		}
 <?php
@@ -112,7 +137,6 @@ function submitToEvents( form )
 	var Height = <?= $jws['events']['h'] ?>;
 	var Options = 'resizable,scrollbars,width='+Width+',height='+Height;
 
-	//window.open( Url, Name, Options );
 	form.target = Name;
 	form.view.value = 'events';
 	form.submit();
@@ -132,7 +156,7 @@ function saveFilter( form )
 }
 function deleteFilter( form, name, id )
 {
-	if ( confirm( "Delete saved filter '"+name+"'" ) )
+	if ( confirm( "<?= $zmSlangDeleteSavedFilter ?> '"+name+"'" ) )
 	{
 		form.action.value = 'delete';
 		form.fid.value = name;
@@ -153,19 +177,19 @@ window.focus();
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td align="left" class="text">Use&nbsp;<select name="trms" class="form" onChange="submitToFilter( document.filter_form );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?= $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?= $i ?></option><?php } ?></select>&nbsp;filter&nbsp;expressions</td>
-<td align="center" class="text">Use filter:&nbsp;<?php if ( count($filter_names) > 1 ) { echo buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); } else { ?><select class="form" disabled><option>No Saved Filters</option></select><?php } ?></td>
+<td align="left" class="text"><? $zmSlangUseFilterExprsPre ?><select name="trms" class="form" onChange="submitToFilter( document.filter_form );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?= $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?= $i ?></option><?php } ?></select><?= $zmSlangUseFilterExprsPost ?></td>
+<td align="center" class="text"><?= $zmSlangUseFilter ?>:&nbsp;<?php if ( count($filter_names) > 1 ) { echo buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); } else { ?><select class="form" disabled><option><?= $zmSlangNoSavedFilters ?></option></select><?php } ?></td>
 <?php if ( canEdit( 'Events' ) ) { ?>
-<td align="center" class="text"><a href="javascript: saveFilter( document.filter_form );">Save</a></td>
+<td align="center" class="text"><a href="javascript: saveFilter( document.filter_form );"><?= $zmSlangSave ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</a></td>
 <?php } ?>
 <?php if ( canEdit( 'Events' ) && $filter_data ) { ?>
-<td align="center" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data[Name] ?>', <?= $filter_data[Id] ?> );">Delete</a></td>
+<td align="center" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data[Name] ?>', <?= $filter_data[Id] ?> );"><?= $zmSlangDelete ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</a></td>
 <?php } ?>
-<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+<td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <tr>
 <td colspan="5" class="text">&nbsp;</td>

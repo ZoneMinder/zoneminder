@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>ZM - Logout</title>
+<title>ZM - <?= $zmSlangLogout ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function closeWindow()
@@ -14,10 +14,10 @@ function closeWindow()
 <form name="logout_form" method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="action" value="logout">
 <input type="hidden" name="view" value="login">
-<tr><td colspan="2" class="smallhead" align="center">ZoneMinder Logout</td></tr>
-<tr><td colspan="2" class="text" align="center">Current login is '<?= $user[Username] ?>'</td></tr>
-<tr><td align="center"><input type="submit" value="Logout" class="form"></td>
-<td align="center"><input type="button" value="Cancel" class="form" onClick="closeWindow();"></td></tr>
+<tr><td colspan="2" class="smallhead" align="center">ZoneMinder <?= $zmSlangLogout ?></td></tr>
+<tr><td colspan="2" class="text" align="center"><?= sprintf( $zmClangCurrentLogin, $user[Username] ) ?></td></tr>
+<tr><td align="center"><input type="submit" value="<?= $zmSlangLogout ?>" class="form"></td>
+<td align="center"><input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td></tr>
 </form>
 </table>
 </body>

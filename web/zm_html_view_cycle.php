@@ -43,7 +43,7 @@
 ?>
 <html>
 <head>
-<title>ZM - Cycle Watch</title>
+<title>ZM - <?= $zmSlangCycleWatch ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
@@ -69,13 +69,13 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$nex
 <tr>
 <td width="33%" align="left" class="text"><b><?= $monitor[Name] ?></b></td>
 <?php if ( $mode == "stream" ) { ?>
-<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=still&mid=<?= $mid ?>">Stills</a></td>
+<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=still&mid=<?= $mid ?>"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
-<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=stream&mid=<?= $mid ?>">Stream</a></td>
+<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=stream&mid=<?= $mid ?>"><?= $zmSlangStream ?></a></td>
 <?php } else { ?>
 <td width="34%" align="center" class="text">&nbsp;</td>
 <?php } ?>
-<td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+<td width="33%" align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <?php
 	if ( $mode == "stream" )

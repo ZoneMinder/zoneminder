@@ -16,7 +16,7 @@
 ?>
 <html>
 <head>
-<title>ZM - State</title>
+<title>ZM - <?= $zmSlangState ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
@@ -96,7 +96,7 @@ function deleteState()
 <body>
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
-<td colspan="4" align="center" class="head">ZoneMinder Run State</td>
+<td colspan="4" align="center" class="head">ZoneMinder - <?= $zmSlangRunState ?></td>
 </tr>
 <?php
 if ( !$apply )
@@ -112,14 +112,14 @@ if ( !$apply )
 	if ( $running )
 	{
 ?>
-<option value="stop" selected>Stop</option>
-<option value="restart">Restart</option>
+<option value="stop" selected><?= $zmSlangStop ?></option>
+<option value="restart"><?= $zmSlangRestart ?></option>
 <?php
 	}
 	else
 	{
 ?>
-<option value="start" selected>Start</option>
+<option value="start" selected><?= $zmSlangStart ?></option>
 <?php
 	}
 ?>
@@ -134,16 +134,16 @@ if ( !$apply )
 </select></td>
 </tr>
 <tr>
-<td align="right" class="text">New State:</td>
+<td align="right" class="text"><?= $zmSlangNewState ?>:</td>
 <td align="left"><input type="text" name="new_state" value="" size="16" class="form" onChange="checkState();"></td>
 </tr>
 </table>
 <table border="0" cellspacing="0" cellpadding="1" width="100%">
 <tr>
-<td width="25%" align="center"><input type="submit" value="Apply" class="form"></td>
-<td width="25%" align="center"><input type="button" name="save_btn" value="Save" class="form" disabled onClick="saveState();"></td>
-<td width="25%" align="center"><input type="button" name="delete_btn" value="Delete" class="form" disabled onClick="deleteState();"></td>
-<td width="25%" align="center"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
+<td width="25%" align="center"><input type="submit" value="<?= $zmSlangApply ?>" class="form"></td>
+<td width="25%" align="center"><input type="button" name="save_btn" value="<?= $zmSlangSave ?>" class="form" disabled onClick="saveState();"></td>
+<td width="25%" align="center"><input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled onClick="deleteState();"></td>
+<td width="25%" align="center"><input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </form>
 <?php
@@ -155,7 +155,7 @@ else
 <td colspan="2" align="center" class="text">&nbsp;</td>
 </tr>
 <tr>
-<td colspan="2" align="center" class="text">Applying ZoneMinder state change<br/>Please wait</td>
+<td colspan="2" align="center" class="text"><?= $zmSlangApplyingStateChange ?><br/><?= $zmSlangPleaseWait ?></td>
 </tr>
 <form name="state_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="none">

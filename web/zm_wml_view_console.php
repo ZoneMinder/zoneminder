@@ -46,17 +46,17 @@
 	}
 ?>
 <wml>
-<card id="zmConsole" title="ZM - Console" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>">
+<card id="zmConsole" title="ZM - <?= $zmSlangConsole ?>" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>">
 <timer value="<?= REFRESH_MAIN*10 ?>"/>
-<p mode="nowrap" align="center"><strong>ZM - Console</strong></p>
-<p mode="nowrap" align="center"><?= count($monitors) ?> Monitors - <?= strftime( "%T" ) ?></p>
+<p mode="nowrap" align="center"><strong>ZM - <?= $zmSlangConsole ?></strong></p>
+<p mode="nowrap" align="center"><?= count($monitors) ?> <?= $zmSlangMonitors ?> - <?= strftime( "%T" ) ?></p>
 <p mode="nowrap" align="center"><?= $HTTP_SESSION_VARS[event_reset_time] ?></p>
 <p align="center">
 <table columns="3">
 <tr>
-<td>Name</td>
-<td>Func</td>
-<td>Events</td>
+<td><?= $zmSlangName ?></td>
+<td><?= $zmSlangFunc ?></td>
+<td><?= $zmSlangEvents ?></td>
 </tr>
 <?php
 	$reset_event_count = 0;
@@ -75,6 +75,6 @@
 ?>
 </table>
 </p>
-<p mode="nowrap" align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;action=reset">Reset Event Counts</a></p>
+<p mode="nowrap" align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;action=reset"><?= $zmSlangResetEventCounts ?></a></p>
 </card>
 </wml>

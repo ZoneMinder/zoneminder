@@ -195,9 +195,17 @@ my @options =
 		category => 'core',
 	},
 	{
+		name => "ZM_LANG_DEFAULT",
+		default => "en_gb",
+		introduction => "You have completed the options that are fixed in compilation. You can now continue and specify the remaining options or press 'x' to exit and save your changes and then edit the remainder from the web interface.",
+		description => "Default language used by web interface",
+		help => "ZoneMinder allows the web interface to use languages other than English if the appropriate language file has been created and is present. This option allows you to change the default language that is used from the shipped language, British English, to another language",
+		type => $types{directory},
+		category => 'system',
+	},
+	{
 		name => "ZM_OPT_USE_AUTH",
 		default => "no",
-		introduction => "You have completed the options that are fixed in compilation. You can now continue and specify the remaining options or press 'x' to exit and save your changes and then edit the remainder from the web interface.",
 		description => "Authenticate user logins to ZoneMinder",
 		help => "ZoneMinder can run in two modes. The simplest is an entirely unauthenticated mode where anyone can access ZoneMinder and perform all tasks. This is most suitable for installation where the web server access is limited in other ways. The other mode enables user accounts with varying sets of permissions. Users must login to access ZoneMinder and are limited by their defined permissions.",
 		type => $types{boolean},

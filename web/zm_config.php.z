@@ -44,26 +44,6 @@ define( "EVENT_FRAMES_PER_LINE", 4 );					// How many images per line in the eve
 define( "EVENT_FRAME_LINES", 4 );						// How many lines of images to show in paged mode
 define( "LEARN_MODE", false );							// Currently unimplemented, do not change
 
-$rates = array(
-	"0" => "Max",
-	"10" => "10x",
-	"4" => "4x",
-	"2" => "2x",
-	"1" => "Real",
-	"-2" => "1/2x",
-	"-4" => "1/4x",
-);
-
-$scales = array(
-	"4" => "4x",
-	"3" => "3x",
-	"2" => "2x",
-	"1" => "Actual",
-	"-2" => "1/2x",
-	"-3" => "1/3x",
-	"-4" => "1/4x",
-);
-
 require_once( 'zm_db.php' );
 loadConfig();
 

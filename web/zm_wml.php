@@ -37,6 +37,7 @@ session_start();
 $bandwidth = "mobile";
 
 require_once( 'zm_config.php' );
+require_once( 'zm_lang.php' );
 require_once( 'zm_funcs.php' );
 require_once( 'zm_actions.php' );
 

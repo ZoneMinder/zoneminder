@@ -14,7 +14,7 @@
 ?>
 <html>
 <head>
-<title>ZM - Frames <?= $eid ?></title>
+<title>ZM - <?= $zmSlangFrames ?> <?= $eid ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 window.focus();
@@ -31,15 +31,15 @@ function closeWindow()
 <body>
 <table width="96%" border="0">
 <tr>
-<td align="left" class="smallhead"><b>Event <?= $eid ?></b></td>
-<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+<td align="left" class="smallhead"><b><?= $zmSlangEvent ?> <?= $eid ?></b></td>
+<td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <tr><td colspan="2"><table width="100%" border="0" bgcolor="#7F7FB2" cellpadding="3" cellspacing="1"><tr bgcolor="#FFFFFF">
-<td class="smallhead" align="center">Frame Id</td>
-<td class="smallhead" align="center">Alarm Frame</td>
-<td class="smallhead" align="center">Time Stamp</td>
-<td class="smallhead" align="center">Time Delta</td>
-<td class="smallhead" align="center">Score</td>
+<td class="smallhead" align="center"><?= $zmSlangFrameId ?></td>
+<td class="smallhead" align="center"><?= $zmSlangAlarmFrame ?></td>
+<td class="smallhead" align="center"><?= $zmSlangTimeStamp ?></td>
+<td class="smallhead" align="center"><?= $zmSlangTimeDelta ?></td>
+<td class="smallhead" align="center"><?= $zmSlangScore ?></td>
 </tr>
 <?php
 	if ( count($frames) )
@@ -74,7 +74,7 @@ function closeWindow()
 	{
 ?>
 <tr bgcolor="#FFFFFF">
-<td class="text" colspan="8" align="center"><br>There are no frames recorded for this event<br><br></td>
+<td class="text" colspan="8" align="center"><br><?= $zmSlangNoFramesRecorded ?><br><br></td>
 </tr>
 <?php
 	}

@@ -6,28 +6,28 @@
 	}
 
 	$tabs = array();
-	$tabs["system"] = "System";
-	$tabs["paths"] = "Paths";
-	$tabs["video"] = "Video";
-	$tabs["network"] = "Network";
-	$tabs["web"] = "Web";
-	$tabs["mail"] = "Email";
-	$tabs["ftp"] = "FTP";
-	$tabs["x10"] = "X10";
-	$tabs["tools"] = "Tools";
-	$tabs["highband"] = "High&nbsp;B/W";
-	$tabs["medband"] = "Medium&nbsp;B/W";
-	$tabs["lowband"] = "Low&nbsp;B/W";
-	$tabs["phoneband"] = "Phone&nbsp;B/W";
+	$tabs["system"] = $zmSlangSystem;
+	$tabs["paths"] = $zmSlangPaths;
+	$tabs["video"] = $zmSlangVideo;
+	$tabs["network"] = $zmSlangNetwork;
+	$tabs["web"] = $zmSlangWeb;
+	$tabs["mail"] = $zmSlangEmail;
+	$tabs["ftp"] = $zmSlangFTP;
+	$tabs["x10"] = $zmSlangX10;
+	$tabs["tools"] = $zmSlangTools;
+	$tabs["highband"] = $zmSlangHighBW;
+	$tabs["medband"] = $zmSlangMediumBW;
+	$tabs["lowband"] = $zmSlangLowBW;
+	$tabs["phoneband"] = $zmSlangPhoneBW;
 	if ( ZM_OPT_USE_AUTH )
-		$tabs["users"] = "Users";
+		$tabs["users"] = $zmSlangUsers;
 
 	if ( !$tab )
 		$tab = "system";
 ?>
 <html>
 <head>
-<title>ZM - Options</title>
+<title>ZM - <?= $zmSlangOptions ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
@@ -141,16 +141,16 @@ function validateForm( form )
 <input type="hidden" name="tab" value="<?= $tab ?>">
 <input type="hidden" name="action" value="delete">
 <tr>
-<td align="left" class="smallhead">Id</td>
-<td align="left" class="smallhead">Username</td>
-<td align="left" class="smallhead">Password</td>
-<td align="left" class="smallhead">Enabled</td>
-<td align="left" class="smallhead">Stream</td>
-<td align="left" class="smallhead">Events</td>
-<td align="left" class="smallhead">Monitors</td>
-<td align="left" class="smallhead">System</td>
-<td align="left" class="smallhead">Monitor&nbsp;Ids</td>
-<td align="left" class="smallhead">Mark</td>
+<td align="left" class="smallhead"><?= $zmSlangId ?></td>
+<td align="left" class="smallhead"><?= $zmSlangUsername ?></td>
+<td align="left" class="smallhead"><?= $zmSlangPassword ?></td>
+<td align="left" class="smallhead"><?= $zmSlangEnabled ?></td>
+<td align="left" class="smallhead"><?= $zmSlangStream ?></td>
+<td align="left" class="smallhead"><?= $zmSlangEvents ?></td>
+<td align="left" class="smallhead"><?= $zmSlangMonitors ?></td>
+<td align="left" class="smallhead"><?= $zmSlangSystem ?></td>
+<td align="left" class="smallhead"><?= $zmSlangMonitor ?></td>
+<td align="left" class="smallhead"><?= $zmSlangMark ?></td>
 </tr>
 <?php
 		$result = mysql_query( "select * from Users" );
@@ -163,7 +163,7 @@ function validateForm( form )
 <td align="left" class="ruled"><?= $row[Id] ?></td>
 <td align="left" class="ruled"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=user&uid=$row[Id]', 'zmUser', ".$jws['user']['w'].", ".$jws['user']['h']." );", $row[Username].($user[Username]==$row[Username]?"*":""), canEdit( 'System' ) ) ?></td>
 <td align="left" class="ruled">********</td>
-<td align="left" class="ruled"><?= $row[Enabled]?'Yes':'No' ?></td>
+<td align="left" class="ruled"><?= $row[Enabled]?$zmSlangYes:$zmSlangNo ?></td>
 <td align="left" class="ruled"><?= $row[Stream] ?></td>
 <td align="left" class="ruled"><?= $row[Events] ?></td>
 <td align="left" class="ruled"><?= $row[Monitors] ?></td>
@@ -175,7 +175,7 @@ function validateForm( form )
 		}
 ?>
 <tr><td colspan="10" class="ruled">&nbsp;</td></tr>
-<tr><td colspan="10" align="right"><input type="button" value="Add New User" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=user&uid=-1', 'zmUser', <?= $jws['user']['w'] ?>, <?= $jws['user']['h'] ?> );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="submit" name="delete_btn" value="Delete" class="form" disabled>&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow();"></td></tr>
+<tr><td colspan="10" align="right"><input type="button" value="<?= $zmSlangAddNewUser ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=user&uid=-1', 'zmUser', <?= $jws['user']['w'] ?>, <?= $jws['user']['h'] ?> );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled>&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td></tr>
 </form>
 <?php
 	}
@@ -187,9 +187,9 @@ function validateForm( form )
 <input type="hidden" name="tab" value="<?= $tab ?>">
 <input type="hidden" name="action" value="options">
 <tr>
-<td align="left" class="smallhead">Name</td>
-<td align="left" class="smallhead">Description</td>
-<td align="left" class="smallhead">Value</td>
+<td align="left" class="smallhead"><?= $zmSlangName ?></td>
+<td align="left" class="smallhead"><?= $zmSlangDescription ?></td>
+<td align="left" class="smallhead"><?= $zmSlangValue ?></td>
 </tr>
 <?php
 		$config_cat = $config_cats[$tab];
@@ -245,7 +245,7 @@ function validateForm( form )
 <?php
 		}
 ?>
-<tr><td colspan="3" align="right"><input type="submit" value="Save" class="form">&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow();"></td></tr>
+<tr><td colspan="3" align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form">&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td></tr>
 </form>
 <?php
 	}
@@ -257,8 +257,7 @@ function validateForm( form )
 		flush();
 ?>
 <script language="JavaScript">
-alert( "These changes may not come into effect fully\nwhile the system is running. When you have\nfinished making your changes please ensure that\nyou restart ZoneMinder." );
-//var restartWindow = window.open( '<?= $PHP_SELF ?>?view=restarting', 'zmRestarting', 'resizable,width=<?= $jws['restarting']['w'] ?>,height=<?= $jws['restarting']['h'] ?>' );
+alert( "<?= $zmSlangOptionRestartWarning ?>" );
 </script>
 <?php
 	}

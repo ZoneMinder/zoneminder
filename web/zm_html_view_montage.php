@@ -34,7 +34,7 @@
 ?>
 <html>
 <head>
-<title>ZM - Montage</title>
+<title>ZM - <?= $zmSlangMontage ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 //window.resizeTo( <?= $jws['montage']['w']*$cols ?>, <?= $jws['montage']['h']*$rows ?> );

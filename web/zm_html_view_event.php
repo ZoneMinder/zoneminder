@@ -38,7 +38,7 @@
 ?>
 <html>
 <head>
-<title>ZM - Event - <?= $event[Name] ?></title>
+<title>ZM - <?= $zmSlangEvent ?> - <?= $event[Name] ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
@@ -83,7 +83,7 @@ function newWindow(Url,Name,Width,Height)
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
 <input type="text" size="16" name="event_name" value="<?= $event[Name] ?>" class="form">
-<input type="submit" value="Rename" class="form"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></form></td>
+<input type="submit" value="<?= $zmSlangRename ?>" class="form"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></form></td>
 <?php if ( 0 ) { ?>
 <td colspan="2" align="right" class="text">
 <form name="learn_form" method="get" action="<?= $PHP_SELF ?>">
@@ -93,7 +93,7 @@ function newWindow(Url,Name,Width,Height)
 <input type="hidden" name="eid" value="<?= $eid ?>">
 <input type="hidden" name="mark_eid" value="<?= $eid ?>">
 <?php if ( LEARN_MODE ) { ?>
-Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.submit();"><option value=""<?php if ( !$event[LearnState] ) echo " selected" ?>>Ignore</option><option value="-"<?php if ( $event[LearnState]=='-' ) echo " selected" ?>>Exclude</option><option value="+"<?php if ( $event[LearnState]=='+' ) echo " selected" ?>>Include</option></select>
+Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.submit();"><option value=""<?php if ( !$event[LearnState] ) echo " selected" ?>><?= $zmSlangIgnore ?></option><option value="-"<?php if ( $event[LearnState]=='-' ) echo " selected" ?>><?= $zmSlangExclude ?></option><option value="+"<?php if ( $event[LearnState]=='+' ) echo " selected" ?>><?= $zmSlangInclude ?></option></select>
 <?php } ?>
 </form></td>
 <?php } ?>
@@ -102,40 +102,40 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
-Rate: <?= buildSelect( "rate", $rates, "document.view_form.submit();" ); ?>&nbsp;&nbsp;
-Scale: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
+<?= $zmSlangRate ?>: <?= buildSelect( "rate", $rates, "document.view_form.submit();" ); ?>&nbsp;&nbsp;
+<?= $zmSlangScale ?>: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </form>
 </td>
 </tr>
 <tr>
 <?php if ( $mode == "stream" ) { ?>
-<td align="center" class="text"><a href="javascript: refreshWindow();">Replay</a></td>
+<td align="center" class="text"><a href="javascript: refreshWindow();"><?= $zmSlangReplay ?></a></td>
 <?php } elseif ( $paged && $page ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=0">All</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=0"><?= $zmSlangAll ?></a></td>
 <?php } elseif ( $paged && !$page ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=1">Paged</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=1"><?= $zmSlangPaged ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
-<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=none&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>">Delete</a><?php } else { ?>&nbsp;<?php } ?></td>
+<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=none&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php if ( $event[Archived] ) { ?>
-<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&mid=<?= $mid ?>&eid=<?= $eid ?>">Unarchive</a><?php } else { ?>&nbsp;<?php } ?></td>
+<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&mid=<?= $mid ?>&eid=<?= $eid ?>"><?= $zmSlangUnarchive ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php } else { ?>
-<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=archive&mid=<?= $mid ?>&eid=<?= $eid ?>">Archive</a><?php } else { ?>&nbsp;<?php } ?></td>
+<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=archive&mid=<?= $mid ?>&eid=<?= $eid ?>"><?= $zmSlangArchive ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=1">Stills</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=1"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=stream&mid=<?= $mid ?>&eid=<?= $eid ?>">Stream</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=stream&mid=<?= $mid ?>&eid=<?= $eid ?>"><?= $zmSlangStream ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( ZM_OPT_MPEG != "no" ) { ?>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=video&eid=<?= $eid ?>', 'zmVideo', <?= $jws['video']['w']+$event[Width] ?>, <?= $jws['video']['h']+$event[Height] ?> );">Video</a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=video&eid=<?= $eid ?>', 'zmVideo', <?= $jws['video']['w']+$event[Width] ?>, <?= $jws['video']['h']+$event[Height] ?> );"><?= $zmSlangVideo ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
-<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+<td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <?php
 	if ( $mode == "still" && $paged && $page )
@@ -299,10 +299,10 @@ Scale: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 ?>
 <tr>
 <td colspan="6"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>">Prev</a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>">Delete & Prev</a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>">Delete & Next</a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>">Next</a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>"><?= $zmSlangDeleteAndNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>"><?= $zmSlangNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr></table></td>
 </tr>
 </table>

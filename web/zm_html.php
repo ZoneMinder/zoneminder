@@ -50,8 +50,29 @@ else
 	define( "ZMU_COMMAND", ZMU_PATH );
 }
 
+require_once( 'zm_lang.php' );
 require_once( 'zm_funcs.php' );
 require_once( 'zm_actions.php' );
+
+$rates = array(
+	"0" => $zmSlangMax,
+	"10" => "10x",
+	"4" => "4x",
+	"2" => "2x",
+	"1" => $zmSlangReal,
+	"-2" => "1/2x",
+	"-4" => "1/4x",
+);
+
+$scales = array(
+	"4" => "4x",
+	"3" => "3x",
+	"2" => "2x",
+	"1" => $zmSlangActual,
+	"-2" => "1/2x",
+	"-3" => "1/3x",
+	"-4" => "1/4x",
+);
 
 if ( !$user )
 {

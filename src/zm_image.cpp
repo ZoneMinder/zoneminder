@@ -22,6 +22,70 @@
 
 #define ABSDIFF(a,b) 	(((a)<(b))?((b)-(a)):((a)-(b)))
 
+bool Image::initialised = false;
+bool Image::y_image_deltas;
+bool Image::fast_image_blends;
+bool Image::colour_jpeg_files;
+unsigned char *Image::abs_table;
+unsigned char *Image::y_r_table;
+unsigned char *Image::y_g_table;
+unsigned char *Image::y_b_table;
+Image::BlendTablePtr Image::blend_tables[101];
+
+void Image::Initialise()
+{
+	initialised = true;
+
+	y_image_deltas = (bool)config.Item( ZM_Y_IMAGE_DELTAS );
+	fast_image_blends = (bool)config.Item( ZM_FAST_IMAGE_BLENDS );
+	colour_jpeg_files = (bool)config.Item( ZM_COLOUR_JPEG_FILES );
+	abs_table = new unsigned char[(6*255)+1];
+	abs_table += (3*255);
+	y_r_table = new unsigned char[511];
+	y_r_table += 255;
+	y_g_table = new unsigned char[511];
+	y_g_table += 255;
+	y_b_table = new unsigned char[511];
+	y_b_table += 255;
+	for ( int i = -(3*255); i <= (3*255); i++ )
+	{
+		abs_table[i] = abs(i);
+	}
+	for ( int i = -255; i <= 255; i++ )
+	{
+		y_r_table[i] = (2990*abs(i))/10000;
+		y_g_table[i] = (5670*abs(i))/10000;
+		y_b_table[i] = (1140*abs(i))/10000;
+		//Info(( "I:%d, R:%d, G:%d, B:%d", i, y_r_table[i], y_g_table[i], y_b_table[i] ));
+	}
+	for ( int i = 0; i <= 100; i++ )
+	{
+		blend_tables[i] = 0;
+	}
+}
+
+Image::BlendTablePtr Image::GetBlendTable( int transparency )
+{
+	BlendTablePtr blend_ptr = blend_tables[transparency];
+	if ( !blend_ptr )
+	{
+		blend_ptr = blend_tables[transparency] = new BlendTable[1];
+		Info(( "Generating blend table for transparency %d", transparency ));
+		int opacity = 100-transparency;
+		//int round_up = 50/transparency;
+		for ( int i = 0; i < 256; i++ )
+		{
+			for ( int j = 0; j < 256; j++ )
+			{
+				//(*blend_ptr)[i][j] = (JSAMPLE)((((i + round_up) * opacity)+((j + round_up) * transparency))/100);
+				(*blend_ptr)[i][j] = (JSAMPLE)(((i * opacity)+(j * transparency))/100);
+				//printf( "I:%d, J:%d, B:%d\n", i, j, (*blend_ptr)[i][j] );
+			}
+		}
+	}
+	return( blend_ptr );
+}
+
 Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 {
 	assert( colours = 1 );
@@ -100,7 +164,7 @@ void Image::ReadJpeg( const char *filename )
 
 void Image::WriteJpeg( const char *filename ) const
 {
-	if ( (bool)config.Item( ZM_COLOUR_JPEG_FILES ) && colours == 1 )
+	if ( colour_jpeg_files && colours == 1 )
 	{
 		Image temp_image( *this );
 		temp_image.Colourise();
@@ -190,7 +254,7 @@ void Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 
 void Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
 {
-	if ( (bool)config.Item( ZM_COLOUR_JPEG_FILES ) && colours == 1 )
+	if ( colour_jpeg_files && colours == 1 )
 	{
 		Image temp_image( *this );
 		temp_image.Colourise();
@@ -303,44 +367,47 @@ void Image::Overlay( const Image &image )
 	}
 }
 
-void Image::Blend( const Image &image, double transparency ) const
-{
-	assert( width == image.width && height == image.height && colours == image.colours );
-
-	JSAMPLE *psrc = image.buffer;
-	JSAMPLE *pdest = buffer;
-
-	while( pdest < (buffer+size) )
-	{
-		*pdest++ = (JSAMPLE)round((*pdest * (1.0-transparency))+(*psrc++ * transparency));
-	}
-}
-
 void Image::Blend( const Image &image, int transparency ) const
 {
 	assert( width == image.width && height == image.height && colours == image.colours );
 
-	if ( !blend_buffer )
+	if ( fast_image_blends )
 	{
-		blend_buffer = new unsigned int[size];
+		BlendTablePtr blend_ptr = GetBlendTable( transparency );
 
-		unsigned int *pb = blend_buffer;
-		JSAMPLE *p = buffer;
-		
-		while( p < (buffer+size) )
+		JSAMPLE *psrc = image.buffer;
+		JSAMPLE *pdest = buffer;
+
+		while( pdest < (buffer+size) )
 		{
-			*pb++ = (unsigned int)((*p++)<<8);
+			*pdest++ = (*blend_ptr)[*pdest][*psrc++];
 		}
 	}
-
-	JSAMPLE *psrc = image.buffer;
-	JSAMPLE *pdest = buffer;
-	unsigned int *pblend = blend_buffer;
-
-	while( pdest < (buffer+size) )
+	else
 	{
-		*pblend = (unsigned int)(((*pblend * (100-transparency))+(((*psrc++)<<8) * transparency))/100);
-		*pdest++ = (JSAMPLE)((*pblend++)>>8);
+		if ( !blend_buffer )
+		{
+			blend_buffer = new unsigned int[size];
+
+			unsigned int *pb = blend_buffer;
+			JSAMPLE *p = buffer;
+			
+			while( p < (buffer+size) )
+			{
+				*pb++ = (unsigned int)((*p++)<<8);
+			}
+		}
+
+		JSAMPLE *psrc = image.buffer;
+		JSAMPLE *pdest = buffer;
+		unsigned int *pblend = blend_buffer;
+		int opacity = 100-transparency;
+
+		while( pdest < (buffer+size) )
+		{
+			*pblend = (unsigned int)(((*pblend * opacity)+(((*psrc++)<<8) * transparency))/100);
+			*pdest++ = (JSAMPLE)((*pblend++)>>8);
+		}
 	}
 }
 
@@ -462,21 +529,34 @@ Image *Image::Delta( const Image &image ) const
 		while( psrc < (buffer+size) )
 		{
 			//*pdiff++ = abs( *psrc++ - *pref++ );
-			*pdiff++ = ABSDIFF( *psrc, *pref );
-			psrc++;
-			pref++;
+			//*pdiff++ = ABSDIFF( *psrc, *pref );
+			*pdiff++ = abs_table[*psrc++ - *pref++];
+			//psrc++;
+			//pref++;
 		}
 	}
 	else
 	{
-		static long red, green, blue;
+		register int red, green, blue;
 		while( psrc < (buffer+size) )
 		{
-			if ( (bool)config.Item( ZM_FAST_RGB_DIFFS ) )
+			if ( y_image_deltas )
 			{
-				red = abs(*psrc++ - *pref++);
-				green = abs(*psrc++ - *pref++);
-				blue = abs(*psrc++ - *pref++);
+				//Info(( "RS:%d, RR: %d", *psrc, *pref ));
+				red = y_r_table[*psrc++ - *pref++];
+				//Info(( "GS:%d, GR: %d", *psrc, *pref ));
+				green = y_g_table[*psrc++ - *pref++];
+				//Info(( "BS:%d, BR: %d", *psrc, *pref ));
+				blue = y_b_table[*psrc++ - *pref++];
+
+				//Info(( "R:%d, G:%d, B:%d, D:%d", red, green, blue, abs_table[red + green + blue] ));
+				*pdiff++ = abs_table[red + green + blue];
+			}
+			else
+			{
+				red = abs_table[*psrc++ - *pref++];
+				green = abs_table[*psrc++ - *pref++];
+				blue = abs_table[*psrc++ - *pref++];
 
 				// This is uses an RMS function, all floating point and 
 				// rather too slow
@@ -484,18 +564,6 @@ Image *Image::Delta( const Image &image ) const
 
 				// This just uses the average difference, much faster
 				*pdiff++ = (JSAMPLE)((red + green + blue)/3);
-			}
-			else
-			{
-				red = *psrc++ - *pref++;
-				green = *psrc++ - *pref++;
-				blue = *psrc++ - *pref++;
-
-				// This is an experimental one which uses the Y part of an RGB
-				// to YUV conversion. Should still be integer but a bit slower
-
-				*pdiff++ = abs(((19595*red)>>16) + ((37159*green)>>16) + ((7471*blue)>>16));
-				//Info(( "R1:%d, R2:%d, G1:%d, G2:%d, B1:%d, B2:%d, DR: %d, DG: %d, DB: %d, Diff = %d", *(psrc-3), *(pref-3), *(psrc-2), *(pref-2), *(psrc-1), *(pref-1), ((19595*red)>>16), ((37159*green)>>16), ((7471*blue)>>16), *(pdiff-1) ));
 			}
 		}
 	}

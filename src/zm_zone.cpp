@@ -23,8 +23,14 @@
 #include "zm_image.h"
 #include "zm_monitor.h"
 
+bool Zone::initialised = false;
+bool Zone::record_diag_images;
+
 void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs )
 {
+	if ( !initialised )
+		Initialise();
+
 	monitor = p_monitor;
 
 	id = p_id;
@@ -105,7 +111,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			*pdiff = BLACK;
 		}
 	}
-	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
+	if ( record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
@@ -173,20 +179,20 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				}
 			}
 		}
-	}
-	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
-	{
-		static char diag_path[PATH_MAX] = "";
-		if ( !diag_path[0] )
+		if ( record_diag_images )
 		{
-			sprintf( diag_path, "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 2 );
+			static char diag_path[PATH_MAX] = "";
+			if ( !diag_path[0] )
+			{
+				sprintf( diag_path, "%s/%s/diag-%d-%d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id, 2 );
+			}
+			diff_image->WriteJpeg( diag_path );
 		}
-		diff_image->WriteJpeg( diag_path );
-	}
 
-	if ( !alarm_filter_pixels ) return( false );
-	if ( min_filter_pixels && alarm_filter_pixels < min_filter_pixels ) return( false );
-	if ( max_filter_pixels && alarm_filter_pixels > max_filter_pixels ) return( false );
+		if ( !alarm_filter_pixels ) return( false );
+		if ( min_filter_pixels && alarm_filter_pixels < min_filter_pixels ) return( false );
+		if ( max_filter_pixels && alarm_filter_pixels > max_filter_pixels ) return( false );
+	}
 
 	alarm_blobs = 0;
 
@@ -321,7 +327,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 		}
 	}
-	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
+	if ( record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
@@ -336,7 +342,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	min_blob_size = 0;
 	max_blob_size = 0;
-	// Now eliminate blobs under the threshold
+	// Now eliminate blobs outside the thresholds
 	for ( int i = 1; i < WHITE; i++ )
 	{
 		BlobStats *bs = &blob_stats[i];
@@ -373,7 +379,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 		}
 	}
-	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
+	if ( record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
@@ -427,7 +433,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			delete diff_image;
 		}
 
-		Info(( "%s: Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score ));
+		Debug( 1, ( "%s: Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score ));
 	}
 	return( true );
 }

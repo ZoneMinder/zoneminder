@@ -38,6 +38,10 @@ public:
 	typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE } ZoneType;
 
 protected:
+	static bool		initialised;
+	static bool		record_diag_images;
+
+protected:
 	// Inputs
 	Monitor			*monitor;
 
@@ -75,6 +79,12 @@ protected:
 	Image			*image;
 
 protected:
+	static void Initialise()
+	{
+		initialised = true;
+		record_diag_images = (bool)config.Item( ZM_RECORD_DIAG_IMAGES );
+	}
+
 	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs );
 
 public:

@@ -26,6 +26,13 @@
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
 
+bool Monitor::initialised = false;
+bool Monitor::record_event_stats;
+bool Monitor::record_diag_images;
+bool Monitor::opt_adaptive_skip;
+bool Monitor::create_analysis_images;
+bool Monitor::blend_alarmed_images;
+
 Monitor::Monitor(
 	int p_id,
 	char *p_name,
@@ -79,7 +86,7 @@ Monitor::Monitor(
 
 	camera = new LocalCamera( p_device, p_channel, p_format, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, purpose==CAPTURE );
 
-	Initialise();
+	Setup();
 }
 
 Monitor::Monitor(
@@ -135,7 +142,7 @@ Monitor::Monitor(
 
 	camera = new RemoteCamera( p_host, p_port, p_path, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, purpose==CAPTURE );
 
-	Initialise();
+	Setup();
 }
 
 Monitor::~Monitor()
@@ -173,8 +180,11 @@ Monitor::~Monitor()
 	}
 }
 
-void Monitor::Initialise()
+void Monitor::Setup()
 {
+	if ( !initialised )
+		Initialise();
+
 	fps = 0.0;
 	event_count = 0;
 	image_count = 0;
@@ -243,8 +253,6 @@ void Monitor::Initialise()
 	Info(( "Monitor %s has function %d", name, function ));
 	Info(( "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() ));
 	Info(( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
-
-	record_event_stats = (bool)config.Item( ZM_RECORD_EVENT_STATS );
 
 	if ( purpose == ANALYSIS )
 	{
@@ -576,7 +584,7 @@ bool Monitor::Analyse()
 	}
 
 	int index;
-	if ( (bool)config.Item( ZM_OPT_ADAPTIVE_SKIP ) )
+	if ( opt_adaptive_skip )
 	{
 		int read_margin = shared_data->last_read_index - shared_data->last_write_index;
 		if ( read_margin < 0 ) read_margin += image_buffer_count;
@@ -634,7 +642,7 @@ bool Monitor::Analyse()
 				Info(( "%s: %03d - Starting new event", name, image_count ));
 
 				//if ( (bool)config.Item( ZM_OVERLAP_TIMED_EVENTS ) )
-				if ( 1 )
+				if ( true )
 				{
 					int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
 					if ( !timestamps ) timestamps = new struct timeval *[pre_event_count];
@@ -705,7 +713,7 @@ bool Monitor::Analyse()
 		{
 			if ( state == ALARM )
 			{
-				if ( (bool)config.Item( ZM_CREATE_ANALYSIS_IMAGES ) )
+				if ( create_analysis_images )
 				{
 					Image alarm_image( *snap_image );
 					for( int i = 0; i < n_zones; i++ )
@@ -753,10 +761,9 @@ bool Monitor::Analyse()
 		}
 	}
 
-	if ( (bool)config.Item( ZM_BLEND_ALARMED_IMAGES ) || state != ALARM )
+	if ( (function == MODECT || function == MOCORD) && (blend_alarmed_images || state != ALARM) )
 	{
 		ref_image.Blend( *snap_image, ref_blend_perc );
-		//DumpImage( snap_image );
 	}
 
 	shared_data->last_read_index = index%image_buffer_count;
@@ -1141,7 +1148,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 
 	if ( n_zones <= 0 ) return( alarm );
 
-	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
+	if ( record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
@@ -1153,7 +1160,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 
 	Image *delta_image = ref_image.Delta( comp_image );
 
-	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
+	if ( record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )

@@ -160,7 +160,7 @@ int main( int argc, char *argv[] )
 			sigprocmask( SIG_BLOCK, &block_set, 0 );
 			if ( !monitor->Analyse() )
 			{
-				usleep( 10000 );
+				usleep( 16666 ); // Nyquist sampling rate at 30fps, wouldn't expect any more than this
 			}
 			sigprocmask( SIG_UNBLOCK, &block_set, 0 );
 		}

@@ -63,6 +63,14 @@ public:
 	typedef enum { IDLE, ALARM, ALERT, TAPE } State;
 
 protected:
+	static bool initialised;
+	static bool record_event_stats;
+	static bool record_diag_images;
+	static bool opt_adaptive_skip;
+	static bool create_analysis_images;
+	static bool blend_alarmed_images;
+
+protected:
 	// These are read from the DB and thereafter remain unchanged
 	int		id;
 	char	*name;
@@ -82,8 +90,6 @@ protected:
 	int 	capture_delay;		// How long we wait between capture frames
 	int		fps_report_interval;// How many images should be captured/processed between reporting the current FPS
 	int		ref_blend_perc;		// Percentage of new image going into reference image.
-
-
 
 	double	fps;
 	Image	image;
@@ -132,16 +138,26 @@ protected:
 
 	SharedData *shared_data;
 
-	bool record_event_stats;
-
 	Camera *camera;
-	
+
+protected:
+	static void Initialise()
+	{
+		initialised = true;
+
+		record_event_stats = (bool)config.Item( ZM_RECORD_EVENT_STATS );
+		record_diag_images = (bool)config.Item( ZM_RECORD_DIAG_IMAGES );
+		opt_adaptive_skip = (bool)config.Item( ZM_OPT_ADAPTIVE_SKIP );
+		create_analysis_images = (bool)config.Item( ZM_CREATE_ANALYSIS_IMAGES );
+		blend_alarmed_images = (bool)config.Item( ZM_BLEND_ALARMED_IMAGES );
+	}
+
 public:
 	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
 	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
-	void Initialise();
+	void Setup();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
 
@@ -254,11 +270,6 @@ public:
  
 	void DumpImage( Image *dump_image ) const;
 	bool Analyse();
-
-	void Adjust( double ratio )
-	{
-		ref_image.Blend( image, 0.1 );
-	}
 
 	unsigned int Compare( const Image &comp_image );
 	void ReloadZones();

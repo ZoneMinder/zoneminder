@@ -49,6 +49,19 @@ class Image
 {
 protected:
 	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6, CHAR_START=4 };
+	typedef unsigned char BlendTable[256][256];
+	typedef BlendTable *BlendTablePtr;
+
+protected:
+	static bool initialised;
+	static bool y_image_deltas;
+	static bool fast_image_blends;
+	static bool colour_jpeg_files;
+	static unsigned char *abs_table;
+	static unsigned char *y_r_table;
+	static unsigned char *y_g_table;
+	static unsigned char *y_b_table;
+	static BlendTablePtr blend_tables[101];
 
 protected:
 	int	width;
@@ -61,9 +74,15 @@ protected:
 protected:
 	mutable unsigned int *blend_buffer;
 
+protected:
+	static void Initialise();
+	static BlendTablePtr GetBlendTable( int );
+
 public:
 	Image( const char *filename )
 	{
+		if ( !initialised )
+			Initialise();
 		buffer = 0;
 		ReadJpeg( filename );
 		our_buffer = true;
@@ -71,6 +90,8 @@ public:
 	}
 	Image( int p_width, int p_height, int p_colours, JSAMPLE *p_buffer=0 )
 	{
+		if ( !initialised )
+			Initialise();
 		width = p_width;
 		height = p_height;
 		colours = p_colours;
@@ -90,6 +111,8 @@ public:
 	}
 	Image( const Image &p_image )
 	{
+		if ( !initialised )
+			Initialise();
 		width = p_image.width;
 		height = p_image.height;
 		colours = p_image.colours;
@@ -148,7 +171,6 @@ public:
 	void EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const;
 
 	void Overlay( const Image &image );
-	void Blend( const Image &image, double transparency=0.1 ) const;
 	void Blend( const Image &image, int transparency=10 ) const;
 	static Image *Merge( int n_images, Image *images[] );
 	static Image *Merge( int n_images, Image *images[], double weight );

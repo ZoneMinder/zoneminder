@@ -45,6 +45,12 @@ protected:
 	static int m_videohandle;
 	static unsigned char *m_buffer;
 	static int camera_count;
+	static unsigned char *y_table;
+	static signed char *uv_table;
+	static short *r_v_table;
+	static short *g_v_table;
+	static short *g_u_table;
+	static short *b_u_table;
 
 public:
 	LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, bool p_capture=true );

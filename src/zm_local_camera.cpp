@@ -35,6 +35,13 @@ video_mmap *LocalCamera::m_vmm;
 int LocalCamera::m_videohandle;
 unsigned char *LocalCamera::m_buffer=0;
 
+unsigned char *LocalCamera::y_table;
+signed char *LocalCamera::uv_table;
+short *LocalCamera::r_v_table;
+short *LocalCamera::g_v_table;
+short *LocalCamera::g_u_table;
+short *LocalCamera::b_u_table;
+
 LocalCamera::LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, bool p_capture ) : Camera( LOCAL, p_width, p_height, p_palette, p_capture ), device( p_device ), channel( p_channel ), format( p_format )
 {
 	if ( !camera_count++ && capture )
@@ -207,6 +214,47 @@ void LocalCamera::Initialise()
 	{
 		Error(( "Failed to get window data: %s", strerror(errno) ));
 		exit(-1);
+	}
+
+	y_table = new unsigned char[256];
+	for ( int i = 0; i <= 255; i++ )
+	{
+		unsigned char c = i;
+		if ( c <= 16 )
+			y_table[c] = 0;
+		else if ( c >= 235 )
+			y_table[c] = 255;
+		else
+			y_table[c] = (255*(c-16))/219;
+	}
+
+	uv_table = new signed char[256];
+	for ( int i = 0; i <= 255; i++ )
+	{
+		unsigned char c = i;
+		if ( c <= 16 )
+			uv_table[c] = -127;
+		else if ( c >= 240 )
+			uv_table[c] = 127;
+		else
+			uv_table[c] = (127*(c-128))/112;
+	}
+
+	r_v_table = new short[255];
+	g_v_table = new short[255];
+	g_u_table = new short[255];
+	b_u_table = new short[255];
+	r_v_table += 128;
+	g_v_table += 128;
+	g_u_table += 128;
+	b_u_table += 128;
+	for ( int i = -127; i <= 127; i++ )
+	{
+		signed char c = i;
+		r_v_table[c] = (1402*c)/1000;
+		g_u_table[c] = (344*c)/1000;
+		g_v_table[c] = (714*c)/1000;
+		b_u_table[c] = (1772*c)/1000;
 	}
 }
 
@@ -570,16 +618,7 @@ int LocalCamera::PostCapture( Image &image )
 			int y,u,v;
 			for ( int i = 0; i < Y_size; i++ )
 			{
-				if ( *Y_ptr <= 16 )
-					*y_ptr = 0;
-				else if ( *Y_ptr >= 235 )
-					*y_ptr = 255;
-				else
-					*y_ptr = (76309*((*Y_ptr)-16))>>16;
-				y_ptr++;
-				Y_ptr++;
-				//y = (255*((*Y_ptr++)-16))/219;
-				//*y_ptr++ = y<0?0:(y>255?255:y);
+				*y_ptr++ = y_table[*Y_ptr++];
 			}
 			int half_width = width>>1; // We are the king of optimisations!
 			for ( int i = 0, j = 0; i < C_size; i++, j++ )
@@ -592,30 +631,14 @@ int LocalCamera::PostCapture( Image &image )
 					v1_ptr += width;
 					v2_ptr += width;
 				}
-				if ( *Cb_ptr <= 16 )
-					u = 0;
-				else if ( *Cb_ptr >= 240 )
-					u = 255;
-				else
-					u = (74313*((*Cb_ptr)-128))>>16;
-				Cb_ptr++;
-				//u = (127*((*Cb_ptr++)-128))/112;
-				//u = u<0?0:(u>255?255:u);
+				u = uv_table[*Cb_ptr++];
 
 				*u1_ptr++ = u;
 				*u1_ptr++ = u;
 				*u2_ptr++ = u;
 				*u2_ptr++ = u;
 
-				if ( *Cr_ptr <= 16 )
-					v = 0;
-				else if ( *Cr_ptr >= 240 )
-					v = 255;
-				else
-					v = (74313*((*Cr_ptr)-128))>>16;
-				Cr_ptr++;
-				//v = (127*((*Cr_ptr++)-128))/112;
-				//v = v<0?0:(v>255?255:v);
+				v = uv_table[*Cr_ptr++];
 
 				*v1_ptr++ = v;
 				*v1_ptr++ = v;
@@ -634,9 +657,9 @@ int LocalCamera::PostCapture( Image &image )
 				u = *u1_ptr++;
 				v = *v1_ptr++;
 
-				r = y + ((91881*v)>>16);
-				g = y - (((22544*u)>>16)+((46793*v)>>16));
-				b = y + ((116130*u)>>16);
+				r = y + r_v_table[v];
+				g = y - (g_u_table[u]+g_v_table[v]);
+				b = y + b_u_table[u];
 
 				*rgb_ptr++ = r<0?0:(r>255?255:r);
 				*rgb_ptr++ = g<0?0:(g>255?255:g);
@@ -665,35 +688,16 @@ int LocalCamera::PostCapture( Image &image )
 			int y,u,v;
 			for ( int i = 0; i < Y_size; i++ )
 			{
-				if ( *Y_ptr <= 16 )
-					*y_ptr = 0;
-				else if ( *Y_ptr >= 235 )
-					*y_ptr = 255;
-				else
-					*y_ptr = (76309*((*Y_ptr)-16))>>16;
-				y_ptr++;
-				Y_ptr++;
+				*y_ptr++ = y_table[*Y_ptr++];
 			}
 			for ( int i = 0, j = 0; i < C_size; i++, j++ )
 			{
-				if ( *Cb_ptr <= 16 )
-					u = 0;
-				else if ( *Cb_ptr >= 240 )
-					u = 255;
-				else
-					u = (74313*((*Cb_ptr)-128))>>16;
-				Cb_ptr++;
+				u = uv_table[*Cb_ptr++];
 
 				*u1_ptr++ = u;
 				*u1_ptr++ = u;
 
-				if ( *Cr_ptr <= 16 )
-					v = 0;
-				else if ( *Cr_ptr >= 240 )
-					v = 255;
-				else
-					v = (74313*((*Cr_ptr)-128))>>16;
-				Cr_ptr++;
+				v = uv_table[*Cr_ptr++];
 
 				*v1_ptr++ = v;
 				*v1_ptr++ = v;
@@ -710,9 +714,9 @@ int LocalCamera::PostCapture( Image &image )
 				u = *u1_ptr++;
 				v = *v1_ptr++;
 
-				r = y + ((91881*v)>>16);
-				g = y - (((22544*u)>>16)+((46793*v)>>16));
-				b = y + ((116130*u)>>16);
+				r = y + r_v_table[v];
+				g = y - (g_u_table[u]+g_v_table[v]);
+				b = y + b_u_table[u];
 
 				*rgb_ptr++ = r<0?0:(r>255?255:r);
 				*rgb_ptr++ = g<0?0:(g>255?255:g);

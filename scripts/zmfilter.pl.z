@@ -330,32 +330,32 @@ sub GetFilters
 			{
 				if ( $filter_terms{$attr_name} eq 'DateTime' )
 				{
-					my $dt_val = strtotime( $filter_terms{$value_name} );
+					my $dt_val = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $filter_terms{$value_name} ) );
 					if ( !$dt_val )
 					{
 						printf( STDERR "Error, unable to parse date '$filter_terms{$value_name}', skipping\n" );
 						next FILTER;
 					}
-					$filter_sql .= "E.StartTime ".$filter_terms{$op_name}." from_unixtime( $dt_val )";
+					$filter_sql .= "E.StartTime ".$filter_terms{$op_name}." '$dt_val'";
 					# Indicate that this filter uses dates and so should not be dependant on the event id
 					$filter_data->{has_dates} = !undef;
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Date' )
 				{
-					my $dt_val = strtotime( $filter_terms{$value_name} );
-					$filter_sql .= "to_days( E.StartTime ) ".$filter_terms{$op_name}." to_days( from_unixtime( $dt_val ) )";
+					my $dt_val = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $filter_terms{$value_name} ) );
+					$filter_sql .= "to_days( E.StartTime ) ".$filter_terms{$op_name}." to_days( '$dt_val' )";
 					# Indicate that this filter uses dates and so should not be dependant on the event id
 					$filter_data->{has_dates} = !undef;
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Time' )
 				{
-					my $dt_val = strtotime( $filter_terms{$value_name} );
-					$filter_sql .= "extract( hour_second from E.StartTime ) ".$filter_terms{$op_name}." extract( hour_second from from_unixtime( $dt_val ) )";
+					my $dt_val = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $filter_terms{$value_name} ) );
+					$filter_sql .= "extract( hour_second from E.StartTime ) ".$filter_terms{$op_name}." extract( hour_second from '$dt_val' )";
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Weekday' )
 				{
-					my $dt_val = strtotime( $filter_terms{$value_name} );
-					$filter_sql .= "weekday( E.StartTime ) ".$filter_terms{$op_name}." weekday( from_unixtime( $dt_val ) )";
+					my $dt_val = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $filter_terms{$value_name} ) );
+					$filter_sql .= "weekday( E.StartTime ) ".$filter_terms{$op_name}." weekday( '$dt_val' )";
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Archived' )
 				{

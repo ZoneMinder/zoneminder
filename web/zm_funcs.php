@@ -514,26 +514,21 @@ function parseFilter()
 		{
 			$filter_query .= "&$attr_name=".$$attr_name;
 			$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'">'."\n";
-			$value = $$value_name;
 			switch ( $$attr_name )
 			{
 				case 'MonitorName':
 					$filter_sql .= 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
 					break;
 				case 'DateTime':
-					$value = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) );
 					$filter_sql .= "E.StartTime";
 					break;
 				case 'Date':
-					$value = "to_days( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) )."' )";
 					$filter_sql .= "to_days( E.StartTime )";
 					break;
 				case 'Time':
-					$value = "extract( hour_second from '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) )."' )";
 					$filter_sql .= "extract( hour_second from E.StartTime )";
 					break;
 				case 'Weekday':
-					$value = "weekday( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) )."' )";
 					$filter_sql .= "weekday( E.StartTime )";
 					break;
 				case 'MonitorId':
@@ -549,6 +544,29 @@ function parseFilter()
 					$filter_sql .= "E.Archived = ".$$value_name;
 					break;
 			}
+			$value_list = array();
+			foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $$value_name ) ) as $value )
+			{
+				switch ( $$attr_name )
+				{
+					case 'MonitorName':
+						$value = "'$value'";
+						break;
+					case 'DateTime':
+						$value = "'".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."'";
+						break;
+					case 'Date':
+						$value = "to_days( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+						break;
+					case 'Time':
+						$value = "extract( hour_second from '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+						break;
+					case 'Weekday':
+						$value = "weekday( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+						break;
+				}
+				$value_list[] = $value;
+			}
 
 			switch ( $$op_name )
 			{
@@ -558,19 +576,19 @@ function parseFilter()
 				case '>' :
 				case '<' :
 				case '<=' :
-					$filter_sql .= " ".$$op_name." '$value'";
+					$filter_sql .= " ".$$op_name." $value";
 					break;
 				case '=~' :
-					$filter_sql .= " regexp '$value'";
+					$filter_sql .= " regexp $value";
 					break;
 				case '!~' :
-					$filter_sql .= " not regexp '$value'";
+					$filter_sql .= " not regexp $value";
 					break;
 				case '=[]' :
-					$filter_sql .= " in ('".join( "','", preg_split( '/["\'\s]*,["\'\s]*/', $value ) )."')";
+					$filter_sql .= " in (".join( ",", $value_list ).")";
 					break;
 				case '![]' :
-					$filter_sql .= " not in ('".join( "','", preg_split( '/["\'\s]*,["\'\s]*/', $value ) )."')";
+					$filter_sql .= " not in (".join( ",", $value_list ).")";
 					break;
 			}
 

@@ -391,7 +391,7 @@ function zmaCheck( $monitor )
 
 function createVideo( $event, $rate, $scale, $overwrite=0 )
 {
-	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -r ".sprintf( "%.2f", ($rate/SCALE_SCALE) )." -s ".sprintf( "%.2f", ($scale/SCALE_SCALE) );
+	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -r ".sprintf( "%.2f", ($rate/RATE_SCALE) )." -s ".sprintf( "%.2f", ($scale/SCALE_SCALE) );
 	if ( $overwrite )
 		$command .= " -o";
 	$result = exec( $command, $output, $status );

@@ -1291,7 +1291,7 @@ Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), 
 	alarm_frames = 0;
 	tot_score = 0;
 	max_score = 0;
-	sprintf( path, "%s/%04d", monitor->Name(), id );
+	sprintf( path, EVENT_DIR "/%s/%04d", monitor->Name(), id );
 	
 	struct stat statbuf;
 	errno = 0;
@@ -1308,7 +1308,7 @@ Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), 
 Event::~Event()
 {
 	static char sql[256];
-	sprintf( sql, "update Events set Name='Event-%d', EndTime = now(), Length = %d, Frames = %d, AlarmFrames = %d, AvgScore = %d, MaxScore = %d where Id=%d", id, (end_time-start_time), frames, alarm_frames, (int)(tot_score/alarm_frames), max_score, id );
+	sprintf( sql, "update Events set Name='Event-%d', EndTime = now(), Length = %d, Frames = %d, AlarmFrames = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, (end_time-start_time), frames, alarm_frames, (int)(tot_score/alarm_frames), max_score, id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't update event: %s\n", mysql_error( &dbconn ) ));
@@ -1320,7 +1320,7 @@ void Event::AddFrame( time_t timestamp, const Image *image, const Image *alarm_i
 {
 	frames++;
 
-	static char event_file[256];
+	static char event_file[PATH_MAX];
 	sprintf( event_file, "%s/capture-%03d.jpg", path, frames );
 	image->WriteJpeg( event_file );
 
@@ -1376,7 +1376,7 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh=1
 	static unsigned char buffer[0x10000];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		char filepath[256];
+		char filepath[PATH_MAX];
 		sprintf( filepath, "%s/%s", path, dbrow[2] );
 		if ( fdj = fopen( filepath, "r" ) )
 		{
@@ -1470,8 +1470,10 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	if ( !capture )
 	{
 		ref_image.Assign( width, height, colours, image_buffer[shared_images->last_write_index].image->buffer );
-
-		static char	path[256];
+	}
+	else
+	{
+		static char	path[PATH_MAX];
 
 		sprintf( path, EVENT_DIR );
 
@@ -1566,7 +1568,7 @@ double Monitor::GetFPS() const
 void Monitor::CheckFunction()
 {
 	static char sql[256];
-	sprintf( sql, "select Function+0 where Id = %d", id );
+	sprintf( sql, "select Function+0 from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s\n", mysql_error( &dbconn ) ));

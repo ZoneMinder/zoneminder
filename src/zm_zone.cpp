@@ -499,12 +499,13 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 			LoY = (LoY*(monitor->Height()-1))/100;
 			HiX = (HiX*(monitor->Width()-1))/100;
 			HiY = (HiY*(monitor->Height()-1))/100;
-			MinAlarmPixels = (MinAlarmPixels*monitor->Width()*monitor->Height())/100;
-			MaxAlarmPixels = (MaxAlarmPixels*monitor->Width()*monitor->Height())/100;
-			MinFilterPixels = (MinFilterPixels*monitor->Width()*monitor->Height())/100;
-			MaxFilterPixels = (MaxFilterPixels*monitor->Width()*monitor->Height())/100;
-			MinBlobPixels = (MinBlobPixels*monitor->Width()*monitor->Height())/100;
-			MaxBlobPixels = (MaxBlobPixels*monitor->Width()*monitor->Height())/100;
+			Box box( LoX, LoY, HiX, HiY );
+			MinAlarmPixels = (MinAlarmPixels*box.Width()*box.Height())/100;
+			MaxAlarmPixels = (MaxAlarmPixels*box.Width()*box.Height())/100;
+			MinFilterPixels = (MinFilterPixels*box.Width()*box.Height())/100;
+			MaxFilterPixels = (MaxFilterPixels*box.Width()*box.Height())/100;
+			MinBlobPixels = (MinBlobPixels*box.Width()*box.Height())/100;
+			MaxBlobPixels = (MaxBlobPixels*box.Width()*box.Height())/100;
 		}
 
 		if ( atoi(dbrow[2]) == Zone::INACTIVE )

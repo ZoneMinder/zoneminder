@@ -83,6 +83,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $check = undef;
 my $rename = undef;
+my $zone_fix = undef;
 sub Usage
 {
     print( "
@@ -90,22 +91,23 @@ Usage: zmupdate.pl -e <event_id>,--event=<event_id> [-r <rate>,--rate=<rate>] [-
 Parameters are :-
 -c, --check         - Check for updated versions of ZoneMinder
 -r, --rename        - Rename images from old 'capture-nnn.jpg' format to new 'nnn-capture.jpg' style from v1.17.2
+-z, --zone-fix      - Update zone percentage sizes from %ge of image to %ge of zone from 1.18.2 onwards
 ");
     exit( -1 );
 }
 
-if ( !GetOptions( 'check'=>\$check, 'rename'=>\$rename ) )
+if ( !GetOptions( 'check'=>\$check, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix ) )
 {
 	Usage();
 }
 
-if ( ! ($check || $rename ) )
+if ( ! ($check || $rename || $zone_fix) )
 {
 	print( STDERR "Please give a valid option\n" );
 	Usage();
 }
 
-if ( ($check && $rename ) )
+if ( ($check + $rename + $zone_fix) > 1 )
 {
 	print( STDERR "Please give only one option\n" );
 	Usage();
@@ -205,6 +207,42 @@ if ( $rename )
 	}
 
 	File::Find::find( \&renameImage, '.' );
+}
+if ( $zone_fix )
+{
+	require DBI;
+
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
+	my $sql = "select Z.*, M.Width as MonitorWidth, M.Height as MonitorHeight from Zones as Z inner join Monitors as M on Z.MonitorId = M.Id where Z.Units = 'Percent'";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	my @zones;
+	while( my $zone = $sth->fetchrow_hashref() )
+	{
+		push( @zones, $zone );
+	}
+	$sth->finish();
+
+	foreach my $zone ( @zones )
+	{
+		my $zone_width = ($zone->{HiX}-$zone->{LoX}); # This is in percent
+		my $zone_height = ($zone->{HiY}-$zone->{LoY}); # This is in percent
+		my $zone_area = $zone_width * $zone_height; # So this is a %ge area
+		my $monitor_area = $zone->{MonitorWidth} * $zone->{MonitorHeight}; # This is in pixels
+		my $factor = ($zone_area * $monitor_area)/10000; # So this should value that is the %ge of the image that the zone occupies
+		my $sql = "update Zones set MinAlarmPixels = ?, MaxAlarmPixels = ?, MinFilterPixels = ?, MaxFilterPixels = ?, MinBlobPixels = ?, MaxBlobPixels = ? where MonitorId = ? and Units = 'Percent'";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute(
+			($zone->{MinAlarmPixels}*$factor)/100,
+			($zone->{MaxAlarmPixels}*$factor)/100,
+			($zone->{MinFilterPixels}*$factor)/100,
+			($zone->{MaxFilterPixels}*$factor)/100,
+			($zone->{MinBlobPixels}*$factor)/100,
+			($zone->{MaxBlobPixels}*$factor)/100,
+			$zone->{MonitorId}
+		) or die( "Can't execute: ".$sth->errstr() );
+	}
 }
 print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 exit();

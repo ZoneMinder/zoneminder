@@ -191,6 +191,14 @@ void Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 
 void Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
 {
+	if ( (bool)config.Item( ZM_COLOUR_JPEG_FILES ) && colours == 1 )
+	{
+		Image temp_image( *this );
+		temp_image.Colourise();
+		temp_image.EncodeJpeg( outbuffer, outbuffer_size );
+		return;
+	}
+
 	struct jpeg_compress_struct cinfo;
 	struct jpeg_error_mgr jerr;
 	cinfo.err = jpeg_std_error(&jerr);

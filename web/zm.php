@@ -628,6 +628,7 @@ elseif ( $view == "events" )
 			$sort_column = "E.AvgScore";
 			break;
 		default:
+			$sort_field = "Time";
 			$sort_column = "E.StartTime";
 			break;
 	}

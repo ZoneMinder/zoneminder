@@ -21,17 +21,20 @@
 
 function deleteEvent( $eid )
 {
-	$result = mysql_query( "delete from Stats where EventId = '$mark_eid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$result = mysql_query( "delete from Frames where EventId = '$mark_eid'" );
-	if ( !$result )
-		die( mysql_error() );
 	$result = mysql_query( "delete from Events where Id = '$mark_eid'" );
 	if ( !$result )
 		die( mysql_error() );
-	if ( $mark_eid )
-		system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $mark_eid ) ) );
+	if ( !FAST_DELETE )
+	{
+		$result = mysql_query( "delete from Stats where EventId = '$mark_eid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$result = mysql_query( "delete from Frames where EventId = '$mark_eid'" );
+		if ( !$result )
+			die( mysql_error() );
+		if ( $mark_eid )
+			system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $mark_eid ) ) );
+	}
 }
 
 function getBrowser( &$browser, &$version )

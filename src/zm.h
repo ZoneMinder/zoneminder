@@ -607,7 +607,7 @@ public:
 
 		if ( index == shared_images->last_read_index )
 		{
-			Error(( "Error, buffer overrun at index %d\n", index ));
+			Error(( "Buffer overrun at index %d\n", index ));
 		}
 		*(image_buffer[index].timestamp) = now;
 		memcpy( image_buffer[index].image->buffer, image.buffer, image.size );

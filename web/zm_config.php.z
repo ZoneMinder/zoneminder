@@ -57,7 +57,8 @@ switch ( $bandwidth )
 		define( "REFRESH_IMAGE", ZM_WEB_H_REFRESH_IMAGE );				// How often the watched image is refreshed (if not streaming)
 		define( "REFRESH_STATUS", ZM_WEB_H_REFRESH_STATUS );			// How often the little status frame refreshes itself in the watch window
 		define( "REFRESH_EVENTS", ZM_WEB_H_REFRESH_EVENTS );			// How often the event listing is refreshed in the watch window, only for recent events
-		define( "VIDEO_BITRATE", ZM_WEB_H_VIDEO_BITRATE );				// What the bitrate of any generated video should be
+		define( "VIDEO_BITRATE", ZM_WEB_H_VIDEO_BITRATE );				// What the bitrate of any streamed video should be
+		define( "VIDEO_MAXFPS", ZM_WEB_H_VIDEO_MAXFPS );				// What the maximum frame rate of any streamed video should be
 		define( "STREAM_IDLE_DELAY", ZM_WEB_H_STREAM_IDLE_DELAY );		// How long (in milliseconds) between streamed frames in the watch window
 		define( "STREAM_FRAME_DELAY", ZM_WEB_H_STREAM_FRAME_DELAY );	// How long (in milliseconds) to wait before looking for the next streamed frame
 		define( "IMAGE_SCALING", ZM_WEB_H_IMAGE_SCALING );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
@@ -70,7 +71,8 @@ switch ( $bandwidth )
 		define( "REFRESH_IMAGE", ZM_WEB_M_REFRESH_IMAGE );				// How often the watched image is refreshed (if not streaming)
 		define( "REFRESH_STATUS", ZM_WEB_M_REFRESH_STATUS );			// How often the little status frame refreshes itself in the watch window
 		define( "REFRESH_EVENTS", ZM_WEB_M_REFRESH_EVENTS );			// How often the event listing is refreshed in the watch window, only for recent events
-		define( "VIDEO_BITRATE", ZM_WEB_M_VIDEO_BITRATE );				// What the bitrate of any generated video should be
+		define( "VIDEO_BITRATE", ZM_WEB_M_VIDEO_BITRATE );				// What the bitrate of any streamed video should be
+		define( "VIDEO_MAXFPS", ZM_WEB_M_VIDEO_MAXFPS );				// What the maximum frame rate of any streamed video should be
 		define( "STREAM_IDLE_DELAY", ZM_WEB_M_STREAM_IDLE_DELAY );		// How long (in milliseconds) between streamed frames in the watch window
 		define( "STREAM_FRAME_DELAY", ZM_WEB_M_STREAM_FRAME_DELAY );	// How long (in milliseconds) to wait before looking for the next streamed frame
 		define( "IMAGE_SCALING", ZM_WEB_M_IMAGE_SCALING );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
@@ -83,7 +85,8 @@ switch ( $bandwidth )
 		define( "REFRESH_IMAGE", ZM_WEB_L_REFRESH_IMAGE );				// How often the watched image is refreshed (if not streaming)
 		define( "REFRESH_STATUS", ZM_WEB_L_REFRESH_STATUS );			// How often the little status frame refreshes itself in the watch window
 		define( "REFRESH_EVENTS", ZM_WEB_L_REFRESH_EVENTS );			// How often the event listing is refreshed in the watch window, only for recent events
-		define( "VIDEO_BITRATE", ZM_WEB_L_VIDEO_BITRATE );				// What the bitrate of any generated video should be
+		define( "VIDEO_BITRATE", ZM_WEB_L_VIDEO_BITRATE );				// What the bitrate of any streamed video should be
+		define( "VIDEO_MAXFPS", ZM_WEB_L_VIDEO_MAXFPS );				// What the maximum frame rate of any streamed video should be
 		define( "STREAM_IDLE_DELAY", ZM_WEB_L_STREAM_IDLE_DELAY );		// How long (in milliseconds) between streamed frames in the watch window
 		define( "STREAM_FRAME_DELAY", ZM_WEB_L_STREAM_FRAME_DELAY );	// How long (in milliseconds) to wait before looking for the next streamed frame
 		define( "IMAGE_SCALING", ZM_WEB_L_IMAGE_SCALING );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling

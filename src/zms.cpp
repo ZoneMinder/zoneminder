@@ -28,6 +28,7 @@ int main(void )
 	int id = 1;
 	int event = 0;
 	unsigned int bitrate = 100000;
+	unsigned int maxfps = 100000;
 	unsigned int rate = 100;
 	unsigned int scale = 100;
 	unsigned int buffer = 0;
@@ -69,6 +70,8 @@ int main(void )
 				strncpy( format, value, sizeof(format) );
 			else if ( !strcmp( name, "bitrate" ) )
 				bitrate = atoi( value );
+			else if ( !strcmp( name, "maxfps" ) )
+				maxfps = atoi( value );
 			else if ( !strcmp( name, "rate" ) )
 				rate = atoi( value );
 			else if ( !strcmp( name, "scale" ) )
@@ -112,7 +115,7 @@ int main(void )
 			else
 			{
 #if HAVE_LIBAVCODEC
-				 monitor->StreamMpeg( format, bitrate, scale, buffer );
+				 monitor->StreamMpeg( format, bitrate, maxfps, scale, buffer );
 #else // HAVE_LIBAVCODEC
 				Error(( "MPEG streaming of '%s' attempted while disabled", query ));
 				fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
@@ -130,7 +133,7 @@ int main(void )
 		else
 		{
 #if HAVE_LIBAVCODEC
-			Event::StreamMpeg( event, format, bitrate, rate, scale );
+			Event::StreamMpeg( event, format, bitrate, maxfps, rate, scale );
 #else // HAVE_LIBAVCODEC
 			Error(( "MPEG streaming of '%s' attempted while disabled", query ));
 			fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );

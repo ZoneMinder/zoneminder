@@ -1078,7 +1078,6 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t ttl, int scale )
 {
 	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-	fprintf( stdout, "--ZoneMinderFrame\n" );
 
 	int last_read_index = image_buffer_count;
 	static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
@@ -1126,9 +1125,10 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 				scaled_image.EncodeJpeg( img_buffer, &img_buffer_size );
 			}
 
-			fprintf( stdout, "Content-type: image/jpeg\n\n" );
+			fprintf( stdout, "\r\n--ZoneMinderFrame\r\n" );
+			fprintf( stdout, "Content-type: image/jpeg\r\n" );
+			fprintf( stdout, "Content-length: %d\r\n\r\n", img_buffer_size );
 			fwrite( img_buffer, img_buffer_size, 1, stdout );
-			fprintf( stdout, "\n--ZoneMinderFrame\n" );
 		}
 		usleep( refresh*1000 );
 		for ( int i = 0; shared_data->state == IDLE && i < loop_count; i++ )
@@ -1150,13 +1150,30 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 
 #if HAVE_LIBAVCODEC
 
-void Monitor::StreamMpeg( const char *format, int bitrate, int scale, int buffer )
+void Monitor::StreamMpeg( const char *format, int bitrate, int maxfps, int scale, int buffer )
 {
 	fprintf( stdout, "Content-type: video/x-ms-asf\r\n\r\n");
+
+	bool timed_frames = (bool)config.Item( ZM_WEB_VIDEO_TIMED_FRAMES );
 
 	int fps = int(GetFPS());
 	if ( !fps )
 		fps = 5;
+
+	int min_fps = 1;
+	int max_fps = maxfps;
+	int base_fps = int(GetFPS());
+	int effective_fps = base_fps;
+
+	int frame_mod = 1;
+	// Min frame repeat?
+	while( effective_fps > max_fps )
+	{
+		effective_fps /= 2;
+		frame_mod *= 2;
+	}
+
+	Info(( "BFPS:%d, EFPS:%d, FM:%d", base_fps, effective_fps, frame_mod ));
 
 	VideoStream vid_stream( "pipe:", format, bitrate, fps, camera->Colours(), (width*scale)/ZM_SCALE_SCALE, (height*scale)/ZM_SCALE_SCALE );
 
@@ -1165,60 +1182,10 @@ void Monitor::StreamMpeg( const char *format, int bitrate, int scale, int buffer
 	time_t stream_start_time;
 	time( &stream_start_time );
 
-	Image scaled_image;
-
-	// Do any catching up
-	if ( buffer )
-	{
-		int index = shared_data->last_write_index;
-		int offset = buffer*fps;
-		if ( offset > image_buffer_count )
-		{
-			last_read_index = (index+1)%image_buffer_count;
-		}
-		else
-		{
-			last_read_index = (index-offset+image_buffer_count)%image_buffer_count;
-		}
-		Info(( "LWI:%d", shared_data->last_write_index ));
-		Info(( "LRI:%d", last_read_index ));
-
-		while ( last_read_index != shared_data->last_write_index )
-		{
-			Info(( "LRI+:%d", last_read_index ));
-
-			Snapshot *snap = &image_buffer[last_read_index];
-			Image *snap_image = snap->image;
-
-			if ( scale == 100 )
-			{
-				if ( !timestamp_on_capture )
-				{
-					TimestampImage( snap_image, snap->timestamp->tv_sec );
-				}
-			}
-			else
-			{
-				scaled_image.Assign( *snap_image );
-
-				scaled_image.Scale( scale );
-
-				if ( !timestamp_on_capture )
-				{
-					TimestampImage( &scaled_image, snap->timestamp->tv_sec );
-				}
-				snap_image = &scaled_image;
-			}
-
-    		double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size() );
-
-			last_read_index = (last_read_index+1)%image_buffer_count;
-		}
-	}
-
 	int frame_count = 0;
 	struct timeval base_time;
 	struct DeltaTimeval delta_time;
+	Image scaled_image;
 	while ( true )
 	{
 		if ( feof( stdout ) || ferror( stdout ) )
@@ -1227,43 +1194,46 @@ void Monitor::StreamMpeg( const char *format, int bitrate, int scale, int buffer
 		}
 		if ( last_read_index != shared_data->last_write_index )
 		{
-			// Send the next frame
-			last_read_index = shared_data->last_write_index;
-			int index = shared_data->last_write_index%image_buffer_count;
-			//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
-			Snapshot *snap = &image_buffer[index];
-			Image *snap_image = snap->image;
-
-			if ( scale == 100 )
+			if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) )
 			{
-				if ( !timestamp_on_capture )
+				// Send the next frame
+				last_read_index = shared_data->last_write_index;
+				int index = shared_data->last_write_index%image_buffer_count;
+				//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
+				Snapshot *snap = &image_buffer[index];
+				Image *snap_image = snap->image;
+
+				if ( scale == 100 )
 				{
-					TimestampImage( snap_image, snap->timestamp->tv_sec );
+					if ( !timestamp_on_capture )
+					{
+						TimestampImage( snap_image, snap->timestamp->tv_sec );
+					}
 				}
-			}
-			else
-			{
-				scaled_image.Assign( *snap_image );
-
-				scaled_image.Scale( scale );
-
-				if ( !timestamp_on_capture )
+				else
 				{
-					TimestampImage( &scaled_image, snap->timestamp->tv_sec );
-				}
-				snap_image = &scaled_image;
-			}
+					scaled_image.Assign( *snap_image );
 
-			if ( !frame_count )
-			{
-				base_time = *(snap->timestamp);
+					scaled_image.Scale( scale );
+
+					if ( !timestamp_on_capture )
+					{
+						TimestampImage( &scaled_image, snap->timestamp->tv_sec );
+					}
+					snap_image = &scaled_image;
+				}
+
+				if ( !frame_count )
+				{
+					base_time = *(snap->timestamp);
+				}
+				DELTA_TIMEVAL( delta_time, *(snap->timestamp), base_time, DT_PREC_3 );
+				double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size(), timed_frames, delta_time.delta );
+				//Info(( "DTD:%d, PTS:%lf", delta_time.delta, pts ));
 			}
-			DELTA_TIMEVAL( delta_time, *(snap->timestamp), base_time, DT_PREC_3 );
-    		double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size(), true, delta_time.delta );
-			//Info(( "DTD:%d, PTS:%lf", delta_time.delta, pts ));
+			frame_count++;
 		}
-		frame_count++;
-		usleep( 10000 );
+		usleep( ZM_SAMPLE_RATE );
 	}
 }
 #endif // HAVE_LIBAVCODEC

@@ -404,7 +404,6 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 	}
 
 	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-	fprintf( stdout, "--ZoneMinderFrame\n" );
 
 	//int n_frames = mysql_num_rows( result );
 	//Info(( "Got %d frames, at rate %d, scale %d", n_frames, rate, scale ));
@@ -442,7 +441,6 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 		static char filepath[PATH_MAX];
 		sprintf( filepath, "%s/%03d-capture.jpg", eventpath, atoi(dbrow[0]) );
 
-		fprintf( stdout, "Content-type: image/jpeg\n\n" );
 		if ( scale == 100 )
 		{
 			if ( (fdj = fopen( filepath, "r" )) )
@@ -468,7 +466,9 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 
 			write( fileno(stdout), buffer, n_bytes );
 		}
-		fprintf( stdout, "\n--ZoneMinderFrame\n" );
+		fprintf( stdout, "\r\n--ZoneMinderFrame\r\n" );
+		fprintf( stdout, "Content-length: %d\r\n", n_bytes );
+		fprintf( stdout, "Content-type: image/jpeg\r\n\r\n" );
 		fflush( stdout );
 	}
 	if ( mysql_errno( &dbconn ) )
@@ -482,12 +482,13 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 
 #if HAVE_LIBAVCODEC     
 
-void Event::StreamMpeg( int event_id, const char *format, int bitrate, int rate, int scale )
+void Event::StreamMpeg( int event_id, const char *format, int bitrate, int maxfps, int rate, int scale )
 {
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
 	
-	//sprintf( sql, "select M.Id, M.Name,max(F.Delta)-min(F.Delta) as Duration, count(F.Id) as Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on F.EventId = E.Id where E.Id = %d group by F.EventId", event_id );
+	bool timed_frames = (bool)config.Item( ZM_WEB_VIDEO_TIMED_FRAMES );
+
 	sprintf( sql, "select M.Id, M.Name, E.Length, E.Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -514,7 +515,7 @@ void Event::StreamMpeg( int event_id, const char *format, int bitrate, int rate,
 	int frames = atoi(dbrow[3]);
 
 	int min_fps = 1;
-	int max_fps = 30;
+	int max_fps = maxfps;
 	int base_fps = frames/duration;
 	int effective_fps = (base_fps*rate)/ZM_RATE_SCALE;
 
@@ -582,7 +583,7 @@ void Event::StreamMpeg( int event_id, const char *format, int bitrate, int rate,
 				delta_ms = (unsigned int)((last_delta+temp_delta)*1000);
 				if ( rate != ZM_RATE_SCALE )
 					delta_ms = (delta_ms*ZM_RATE_SCALE)/rate;
-				double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size(), true, delta_ms );
+				double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size(), timed_frames, delta_ms );
 
 				//Info(( "I:%d, DI:%d, LI:%d, DD:%lf, LD:%lf, TD:%lf, DM:%d, PTS:%lf", id, db_id, last_id, db_delta, last_delta, temp_delta, delta_ms, pts ));
 			}

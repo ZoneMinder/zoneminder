@@ -23,7 +23,7 @@ function userLogin( $username, $password )
 {
 	global $user, $HTTP_SESSION_VARS;
 
-	$sql = "select * from Users where Username = '$username' and Password = password('$password') and Enabled = 1";
+	$sql = "select * from Users where Username = '$username' and Password = '$password' and Enabled = 1";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();

@@ -91,7 +91,7 @@ bool ValidateAccess( const char *username, const char *password, int mon_id, Fun
 		}
 
 		char sql[BUFSIZ] = "";
-		sprintf( sql, "select Username, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
+		sprintf( sql, "select Username, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = '%s' and Enabled = 1", username, password );
 
 		if ( mysql_query( &dbconn, sql ) )
 		{

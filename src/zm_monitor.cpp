@@ -26,7 +26,7 @@
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), alarm_frame_count( p_alarm_frame_count ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), n_zones( p_n_zones ), zones( p_zones )
 {
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
@@ -90,9 +90,9 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 
 	event = 0;
 
-	Info(( "Monitor %s has function %d\n", name, function ));
-	Info(( "Monitor %s LBF = '%s', LBX = %d, LBY = %d\n", name, label_format, label_coord.X(), label_coord.Y() ));
-	Info(( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d\n", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
+	Info(( "Monitor %s has function %d", name, function ));
+	Info(( "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() ));
+	Info(( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
 
 	if ( !p_capture )
 	{
@@ -111,7 +111,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 		{
 			if ( mkdir( path, 0755 ) )
 			{
-				Error(( "Can't make %s: %s\n", path, strerror(errno)));
+				Error(( "Can't make %s: %s", path, strerror(errno)));
 			}
 		}
 
@@ -123,7 +123,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 		{
 			if ( mkdir( path, 0755 ) )
 			{
-				Error(( "Can't make %s: %s\n", path, strerror(errno)));
+				Error(( "Can't make %s: %s", path, strerror(errno)));
 			}
 		}
 	}
@@ -131,7 +131,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	record_event_stats = ZM_RECORD_EVENT_STATS;
 }
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), alarm_frame_count( p_alarm_frame_count ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), n_zones( p_n_zones ), zones( p_zones )
 {
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
@@ -151,14 +151,14 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, co
 	shmid = shmget( ZM_SHM_KEY|id, shared_images_size, IPC_CREAT|0777 );
 	if ( shmid < 0 )
 	{
-		Error(( "Can't shmget: %s\n", strerror(errno)));
+		Error(( "Can't shmget: %s", strerror(errno)));
 		exit( -1 );
 	}
 	unsigned char *shm_ptr = (unsigned char *)shmat( shmid, 0, 0 );
 	shared_images = (SharedImages *)shm_ptr;
 	if ( shared_images < 0 )
 	{
-		Error(( "Can't shmat: %s\n", strerror(errno)));
+		Error(( "Can't shmat: %s", strerror(errno)));
 		exit( -1 );
 	}
 
@@ -261,6 +261,29 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
 {
 	n_zones = p_n_zones;
 	zones = p_zones;
+}
+
+unsigned long Monitor::GetNextCaptureDelay() const
+{
+	if ( capture_delay == 0 || shared_images->last_write_index < 0 )
+	{
+		return( 0 );
+	}
+
+	Snapshot *snap = &image_buffer[shared_images->last_write_index];
+
+	if ( !snap || !snap->timestamp || !snap->timestamp->tv_sec )
+	{
+		return( 0 );
+	}
+
+	static struct timeval now;
+	gettimeofday( &now, &dummy_tz );
+
+	struct DeltaTimeval delta_time;
+	DELTA_TIMEVAL( delta_time, now, (*(snap->timestamp)) );
+
+	return( capture_delay-((delta_time.tv_sec*1000)+(delta_time.tv_usec/1000)) );
 }
 
 Monitor::State Monitor::GetState() const
@@ -502,11 +525,11 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	static char sql[256];
 	if ( device == -1 )
 	{
-		strcpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
+		strcpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
 	}
 	else
 	{
-		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Device = %d", device );
+		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Device = %d", device );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -526,7 +549,7 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8])/8, capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]) );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8])/8, capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atof(dbrow[16])>0.0?int(1000.0/atof(dbrow[16])):0, atoi(dbrow[17]), atoi(dbrow[18]) );
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
@@ -548,11 +571,11 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	static char sql[256];
 	if ( !host )
 	{
-		strcpy( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
+		strcpy( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
 	}
 	else
 	{
-		sprintf( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
+		sprintf( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -572,7 +595,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), dbrow[3], dbrow[4], dbrow[5], atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8])/8, capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]) );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), dbrow[3], dbrow[4], dbrow[5], atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8])/8, capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atof(dbrow[16])>0.0?int(1000.0/atof(dbrow[16])):0, atoi(dbrow[17]), atoi(dbrow[18]) );
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
@@ -592,7 +615,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 Monitor *Monitor::Load( int id, bool load_zones )
 {
 	static char sql[256];
-	sprintf( sql, "select Id, Name, Type, Function+0, Device, Channel, Format, Host, Port, Path, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
+	sprintf( sql, "select Id, Name, Type, Function+0, Device, Channel, Format, Host, Port, Path, Width, Height, Colours, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -612,11 +635,11 @@ Monitor *Monitor::Load( int id, bool load_zones )
 	{
 		if ( !strcmp( dbrow[2], "Local" ) )
 		{
-			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12])/8, false, dbrow[13], Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atoi(dbrow[21]), atoi(dbrow[22]) );
+			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12])/8, false, dbrow[13], Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atof(dbrow[20])>0.0?int(1000.0/atof(dbrow[20])):0, atoi(dbrow[21]), atoi(dbrow[22]) );
 		}
 		else
 		{
-			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), dbrow[7], dbrow[8], dbrow[9], atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12])/8, false, dbrow[13], Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atoi(dbrow[21]), atoi(dbrow[22]) );
+			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), dbrow[7], dbrow[8], dbrow[9], atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12])/8, false, dbrow[13], Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atof(dbrow[20])>0.0?int(1000.0/atof(dbrow[20])):0, atoi(dbrow[21]), atoi(dbrow[22]) );
 		}
 		int n_zones = 0;
 		if ( load_zones )
@@ -708,11 +731,11 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	sprintf( output+strlen(output), "Colour Depth : %d\n", 8*camera->Colours() );
 	sprintf( output+strlen(output), "Label Format : %s\n", label_format );
 	sprintf( output+strlen(output), "Label Coord : %d,%d\n", label_coord.X(), label_coord.Y() );
+	sprintf( output+strlen(output), "Image Buffer Count : %d\n", image_buffer_count );
 	sprintf( output+strlen(output), "Warmup Count : %d\n", warmup_count );
 	sprintf( output+strlen(output), "Pre Event Count : %d\n", pre_event_count );
 	sprintf( output+strlen(output), "Post Event Count : %d\n", post_event_count );
-	sprintf( output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
-	sprintf( output+strlen(output), "Image Buffer Count : %d\n", image_buffer_count );
+	sprintf( output+strlen(output), "Maximum FPS : %.2f\n", capture_delay?1000/capture_delay:0.0 );
 	sprintf( output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc );
 	sprintf( output+strlen(output), "Function: %d - %s\n", function,
 		function==NONE?"None":(

@@ -55,8 +55,8 @@ protected:
 	int		warmup_count;		// How many images to process before looking for events
 	int		pre_event_count;	// How many images to hold and prepend to an alarm event
 	int		post_event_count;	// How many unalarmed images must occur before the alarm state is reset
-	int		alarm_frame_count;	// How many alarm frames we must get before we actually do anything about it.
 	int		image_buffer_count; // Size of circular image buffer, at least twice the size of the pre_event_count
+	int 	capture_delay;		// How long we wait between capture frames
 	int		fps_report_interval;// How many images should be captured/processed between reporting the current FPS
 	int		ref_blend_perc;		// Percentage of new image going into reference image.
 
@@ -105,11 +105,12 @@ protected:
 	Camera *camera;
 	
 public:
-	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_image_buffer_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones=0, Zone *p_zones[]=0 );
-	Monitor( int p_id, char *p_name, int p_function, const char *host, const char *port, const char *path, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_image_buffer_count, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
+	unsigned long GetNextCaptureDelay() const;
 
 	inline int Id() const
 	{
@@ -122,6 +123,7 @@ public:
 	State GetState() const;
 	int GetImage( int index=-1 ) const;
 	struct timeval GetTimestamp( int index=-1 ) const;
+	int GetCaptureDelay() const { return( capture_delay ); }
 	unsigned int GetLastReadIndex() const;
 	unsigned int GetLastWriteIndex() const;
 	unsigned int GetLastEvent() const;

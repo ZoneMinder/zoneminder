@@ -19,6 +19,7 @@
 
 #include <getopt.h>
 #include <signal.h>
+#include <values.h>
 
 #include "zm.h"
 #include "zm_db.h"
@@ -167,14 +168,59 @@ int main( int argc, char *argv[] )
 	{
 		monitors[0]->PreCapture();
 	}
+
+	long capture_delays[n_monitors];
+	long next_delays[n_monitors];
+	struct timeval last_capture_times[n_monitors];
+	for ( int i = 0; i < n_monitors; i++ )
+	{
+		last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
+		capture_delays[i] = monitors[i]->GetCaptureDelay() * 1000;
+	}
+
+	struct timeval now;
 	while( !zmc_terminate )
 	{
 		/* grab a new one */
 		sigprocmask( SIG_BLOCK, &block_set, 0 );
 		for ( int i = 0; i < n_monitors; i++ )
 		{
-			monitors[i]->PreCapture();
-			monitors[i]->PostCapture();
+			long min_delay = MAXINT;
+			gettimeofday( &now, &dummy_tz );
+			for ( int j = 0; j < n_monitors; j++ )
+			{
+				if ( last_capture_times[j].tv_sec )
+				{
+					static struct DeltaTimeval delta_time;
+					//Info(( "Now %d.%d", now.tv_sec, now.tv_usec ));
+					//Info(( "Capture %d.%d", last_capture_times[j].tv_sec, last_capture_times[j].tv_usec ));
+					DELTA_TIMEVAL( delta_time, now, last_capture_times[j] );
+					//Info(( "Delta %d-%d.%d", delta_time.positive, delta_time.tv_sec, delta_time.tv_usec ));
+					next_delays[j] = capture_delays[j]-((delta_time.tv_sec*1000000)+delta_time.tv_usec);
+					if ( next_delays[j] < 0 )
+					{
+						next_delays[j] = 0;
+					}
+				}
+				else
+				{
+					next_delays[j] = 0;
+				}
+				//Info(( "%d: %d", j, next_delays[j] ));
+				if ( next_delays[j] <= min_delay )
+				{
+					min_delay = next_delays[j];
+				}
+			}
+			if ( next_delays[i] <= min_delay || next_delays[i] <= 0 )
+			{
+				gettimeofday( &(last_capture_times[i]), &dummy_tz );
+
+				monitors[i]->PreCapture();
+				if ( next_delays[i] > 0 )
+					usleep( next_delays[i] );
+				monitors[i]->PostCapture();
+			}
 		}
 		sigprocmask( SIG_UNBLOCK, &block_set, 0 );
 	}

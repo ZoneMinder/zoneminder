@@ -1954,6 +1954,7 @@ function configureButton(form,name)
 			$monitor[WarmupCount] = 25;
 			$monitor[PreEventCount] = 10;
 			$monitor[PostEventCount] = 10;
+			$monitor[MaxFPS] = 0;
 			$monitor[FPSReportInterval] = 1000;
 			$monitor[RefBlendPerc] = 10;
 		}
@@ -2043,6 +2044,7 @@ $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 <tr><td align="left" class="text">Warmup Frames</td><td align="left" class="text"><input type="text" name="new_warmup_count" value="<?= $monitor[WarmupCount] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Pre Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_pre_event_count" value="<?= $monitor[PreEventCount] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Post Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_post_event_count" value="<?= $monitor[PostEventCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Maximum FPS</td><td align="left" class="text"><input type="text" name="new_max_fps" value="<?= $monitor[MaxFPS] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">FPS Report Interval</td><td align="left" class="text"><input type="text" name="new_fps_report_interval" value="<?= $monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_ref_blend_perc" value="<?= $monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
 <?php if ( ZM_OPT_X10 ) { ?>

@@ -254,6 +254,7 @@ if ( $action )
 		if ( $new_warmup_count != $monitor['WarmupCount'] ) $changes[] = "WarmupCount = '$new_warmup_count'";
 		if ( $new_pre_event_count != $monitor['PreEventCount'] ) $changes[] = "PreEventCount = '$new_pre_event_count'";
 		if ( $new_post_event_count != $monitor['PostEventCount'] ) $changes[] = "PostEventCount = '$new_post_event_count'";
+		if ( $new_max_fps != $monitor['MaxFPS'] ) $changes[] = "MaxFPS = '$new_max_fps'";
 		if ( $new_fps_report_interval != $monitor['FPSReportInterval'] ) $changes[] = "FPSReportInterval = '$new_fps_report_interval'";
 		if ( $new_ref_blend_perc != $monitor['RefBlendPerc'] ) $changes[] = "RefBlendPerc = '$new_ref_blend_perc'";
 		if ( $new_x10_activation != $monitor['X10Activation'] ) $changes[] = "X10Activation = '$new_x10_activation'";

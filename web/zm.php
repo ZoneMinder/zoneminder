@@ -4,10 +4,10 @@ include_once( 'browser.php' );
 
 import_request_variables( "GPC" );
 
-$DB_SERVER   = "localhost";		// Database Server machine
-$DB_LOGIN    = "root";			// Database login
-$DB_PASSWORD = "";				// Database password
-$DB          = "polycam";		// Database containing the tables
+$DB_SERVER = "localhost";	// Database Server machine
+$DB_NAME   = "polycam";		// Database containing the tables
+$DB_USER   = "root";		// Database login
+$DB_PASS   = "";		// Database password
 
 define( "MAX_EVENTS", 12 );
 
@@ -64,8 +64,8 @@ else
 	define( "IMAGE_SCALING", 4 );
 }
 
-$conn = mysql_connect("$DB_SERVER", "$DB_LOGIN", "$DB_PASSWORD") or die("Could not connect to DB: ".mysql_error());
-mysql_select_db("$DB", $conn) or die("Could not select DB: ".mysql_error());
+$conn = mysql_connect("$DB_SERVER", "$DB_USER", "$DB_PASS") or die("Could not connect to database: ".mysql_error());
+mysql_select_db("$DB_NAME", $conn) or die("Could not select database: ".mysql_error());
 
 if ( $action )
 {
@@ -136,7 +136,7 @@ if ( $view == "console" )
 <html>
 <head>
 <title>ZM - Console</title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 window.resizeTo(800,400)
 function newWindow(Url,Name,Width,Height) {
@@ -253,7 +253,7 @@ elseif ( $view == "cycle" )
 <html>
 <head>
 <title>ZM - Cycle Watch</title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height) {
         var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
@@ -277,7 +277,7 @@ elseif ( $view == "monitor" )
 <html>
 <head>
 <title>ZM - <?php echo $monitor[Name] ?> - Monitor</title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 opener.location.reload();
 window.focus();
@@ -311,7 +311,7 @@ elseif( $view == "watch" )
 ?>
 <html>
 <head>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 function closeWindow() {
 	top.window.close();
@@ -385,7 +385,7 @@ elseif ( $view == "status" )
 ?>
 <html>
 <head>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 <?php
 	if ( $status > 0 && $last_status == 0 )
@@ -426,7 +426,7 @@ elseif ( $view == "events" )
 <html>
 <head>
 <title>ZM - <?php echo $monitor ?> - Events <?php if ( $archived ) { ?>Archive<?php } ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name) {
         var Name = window.open(Url,Name,"resizable,scrollbars,width=400,height=500");
@@ -456,7 +456,8 @@ function checkAll(form,name){
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <?php
-	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." order by E.Id desc";
+	//$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." order by E.Id desc";
+	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,sum(F.Score)/count(if(F.AlarmFrame,1,NULL)) as Score from Monitors as M, Events as E left join Frames as F on E.Id = F.EventId where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." group by E.Id order by E.Id desc";
 	if ( $max_events )
 		$sql .= " limit 0,$max_events";
 	$result = mysql_query( $sql );
@@ -479,9 +480,17 @@ function checkAll(form,name){
 <?php } ?>
 <td align="right" class="text"><a href="javascript: checkAll( event_form, 'delete_eids' );">Check All</a></td>
 </tr>
-<tr><td colspan="4" class="text">&nbsp;</td></tr>
-<tr><td colspan="4"><table border="0" cellspacing="0" cellpadding="0" width="100%">
-<tr align="center"><td width="4%" class="text">Id</td><td width="24%" class="text">Name</td><td class="text">Time</td><td class="text">Length</td><td class="text">Frames</td><td class="text">Delete</td></tr>
+<tr><td colspan="5" class="text">&nbsp;</td></tr>
+<tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%">
+<tr align="center">
+<td width="4%" class="text">Id</td>
+<td width="24%" class="text">Name</td>
+<td class="text">Time</td>
+<td class="text">Length</td>
+<td class="text">Frames</td>
+<td class="text">Score</td>
+<td class="text">Delete</td>
+</tr>
 <?php
 	while( $row = mysql_fetch_assoc( $result ) )
 	{
@@ -492,6 +501,7 @@ function checkAll(form,name){
 <td align="center" class="text"><?php echo strftime( "%m/%d %H:%M:%S", $row[Time] ) ?></td>
 <td align="center" class="text"><?php echo $row[Length] ?></td>
 <td align="center" class="text"><?php echo $row[Frames] ?> (<?php echo $row[AlarmFrames] ?>)</td>
+<td align="center" class="text"><?php echo $row[Score] ?></td>
 <td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>"></td>
 </tr>
 <?php
@@ -517,7 +527,7 @@ elseif ( $view == "images" )
 <html>
 <head>
 <title>ZM - Images - <?php echo $event[Name] ?> - Images</title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 window.focus();
 function newWindow(Url,Name,Width,Height) {
@@ -626,7 +636,7 @@ elseif( $view == "image" )
 <html>
 <head>
 <title>ZM - Image <?php echo $eid."-".$fid ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 window.focus();
 function newWindow(Url,Name,Width,Height) {
@@ -682,7 +692,7 @@ elseif( $view == "event" )
 <html>
 <head>
 <title>ZM - Event - <?php echo $event[Name] ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 opener.location.reload();
 window.focus();
@@ -757,7 +767,7 @@ elseif( $view == "zones" )
 <html>
 <head>
 <title>ZM - <?php echo $monitor[Name] ?> - Zones</title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
 </head>
 <body>
 <map name="zonemap">

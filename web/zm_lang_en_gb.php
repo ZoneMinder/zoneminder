@@ -199,6 +199,11 @@ $zmSlangMediumBW             = 'Medium&nbsp;B/W';
 $zmSlangMedium               = 'Medium';
 $zmSlangMinAlarmGeMinBlob    = 'Minimum alarm pixels should be greater than or equal to minimum blob pixels';
 $zmSlangMinAlarmGeMinFilter  = 'Minimum alarm pixels should be greater than or equal to minimum filter pixels';
+$zmSlangMinAlarmPixelsLtMax  = 'Minimum alarm pixels should be less than maximum alarm pixels';
+$zmSlangMinBlobAreaLtMax     = 'Minimum blob area should be less than maximum blob area';
+$zmSlangMinBlobsLtMax        = 'Minimum blobs should be less than maximum blobs';
+$zmSlangMinFilterPixelsLtMax = 'Minimum filter pixels should be less than maximum filter pixels';
+$zmSlangMinPixelThresLtMax   = 'Minimum pixel threshold should be less than maximum pixel threshold';
 $zmSlangMisc                 = 'Misc';
 $zmSlangMonitorIds           = 'Monitor&nbsp;Ids';
 $zmSlangMonitor              = 'Monitor';
@@ -338,19 +343,20 @@ $zmSlangX10                  = 'X10';
 $zmSlangYes                  = 'Yes';
 $zmSlangYouNoPerms           = 'You do not have permissions to access this resource.';
 $zmSlangZoneAlarmColour      = 'Alarm Colour (RGB)';
-$zmSlangZoneAlarmThreshold   = 'Alarm Threshold (0>=?<=255)';
 $zmSlangZoneFilterHeight     = 'Filter Height (pixels)';
 $zmSlangZoneFilterWidth      = 'Filter Width (pixels)';
 $zmSlangZoneMaxAlarmedArea   = 'Maximum Alarmed Area';
 $zmSlangZoneMaxBlobArea      = 'Maximum Blob Area';
 $zmSlangZoneMaxBlobs         = 'Maximum Blobs';
 $zmSlangZoneMaxFilteredArea  = 'Maximum Filtered Area';
+$zmSlangZoneMaxPixelThres    = 'Maximum Pixel Threshold (0>=?<=255)';
 $zmSlangZoneMaxX             = 'Maximum X (right)';
 $zmSlangZoneMaxY             = 'Maximum Y (bottom)';
 $zmSlangZoneMinAlarmedArea   = 'Minimum Alarmed Area';
 $zmSlangZoneMinBlobArea      = 'Minimum Blob Area';
 $zmSlangZoneMinBlobs         = 'Minimum Blobs';
 $zmSlangZoneMinFilteredArea  = 'Minimum Filtered Area';
+$zmSlangZoneMinPixelThres    = 'Minimum Pixel Threshold (0>=?<=255)';
 $zmSlangZoneMinX             = 'Minimum X (left)';
 $zmSlangZoneMinY             = 'Minimum Y (top)';
 $zmSlangZones                = 'Zones';
@@ -477,8 +483,8 @@ function zmVlang( $lang_var_array, $count )
 // These overrides are in the form of $zmOlangPrompt<option> and $zmOlangHelp<option>
 // where <option> represents the option name minus the initial ZM_
 // So for example, to override the help text for ZM_LANG_DEFAULT do
-$zmOlangPromptLANG_DEFAULT = "This is a new prompt for this option";
-$zmOlangHelpLANG_DEFAULT = "This is some new help for this option which will be displayed in the popup window when the ? is clicked";
+//$zmOlangPromptLANG_DEFAULT = "This is a new prompt for this option";
+//$zmOlangHelpLANG_DEFAULT = "This is some new help for this option which will be displayed in the popup window when the ? is clicked";
 //
 
 ?>

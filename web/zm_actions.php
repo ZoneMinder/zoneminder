@@ -176,7 +176,8 @@ if ( isset($action) )
 			if ( $new_hi_x != $zone['HiX'] ) $changes[] = "HiX = '$new_hi_x'";
 			if ( $new_hi_y != $zone['HiY'] ) $changes[] = "HiY = '$new_hi_y'";
 			if ( $new_alarm_rgb != $zone['AlarmRGB'] ) $changes[] = "AlarmRGB = '$new_alarm_rgb'";
-			if ( $new_alarm_threshold != $zone['AlarmThreshold'] ) $changes[] = "AlarmThreshold = '$new_alarm_threshold'";
+			if ( $new_min_pixel_threshold != $zone['MinPixelThreshold'] ) $changes[] = "MinPixelThreshold = '$new_min_pixel_threshold'";
+			if ( $new_max_pixel_threshold != $zone['MaxPixelThreshold'] ) $changes[] = "MaxPixelThreshold = '$new_max_pixel_threshold'";
 			if ( $new_min_alarm_pixels != $zone['MinAlarmPixels'] ) $changes[] = "MinAlarmPixels = '$new_min_alarm_pixels'";
 			if ( $new_max_alarm_pixels != $zone['MaxAlarmPixels'] ) $changes[] = "MaxAlarmPixels = '$new_max_alarm_pixels'";
 			if ( $new_filter_x != $zone['FilterX'] ) $changes[] = "FilterX = '$new_filter_x'";
@@ -261,7 +262,7 @@ if ( isset($action) )
 					if ( !$result )
 						die( mysql_error() );
 					$mid = mysql_insert_id();
-					$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', LoX = 0, LoY = 0, HiX = 100, HiY = 100, AlarmRGB = 0xff0000, AlarmThreshold = 25, MinAlarmPixels = 3, MaxAlarmPixels = 75, FilterX = 3, FilterY = 3, MinFilterPixels = 3, MaxFilterPixels = 75, MinBlobPixels = 2, MaxBlobPixels = 0, MinBlobs = 1, MaxBlobs = 0";
+					$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', LoX = 0, LoY = 0, HiX = 100, HiY = 100, AlarmRGB = 0xff0000, MinPixelThreshold = 25, MaxPixelThreshold = 0, MinAlarmPixels = 3, MaxAlarmPixels = 75, FilterX = 3, FilterY = 3, MinFilterPixels = 3, MaxFilterPixels = 75, MinBlobPixels = 2, MaxBlobPixels = 0, MinBlobs = 1, MaxBlobs = 0";
 					$result = mysql_query( $sql );
 					if ( !$result )
 						die( mysql_error() );

@@ -23,7 +23,7 @@
 #include "zm_image.h"
 #include "zm_monitor.h"
 
-void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs )
+void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs )
 {
 	monitor = p_monitor;
 
@@ -33,7 +33,8 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	type = p_type;
 	limits = p_limits;
 	alarm_rgb = p_alarm_rgb;
-	alarm_threshold = p_alarm_threshold;
+	min_pixel_threshold = p_min_pixel_threshold;
+	max_pixel_threshold = p_max_pixel_threshold;
 	min_alarm_pixels = p_min_alarm_pixels;
 	max_alarm_pixels = p_max_alarm_pixels;
 	filter_box = p_filter_box;
@@ -44,7 +45,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	min_blobs = p_min_blobs;
 	max_blobs = p_max_blobs;
 
-	Info(( "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, AT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d", id, label, type, limits.Width(), limits.Height(), alarm_rgb, alarm_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
+	Info(( "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, AT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d", id, label, type, limits.Width(), limits.Height(), alarm_rgb, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
 
 	alarmed = false;
 	alarm_pixels = 0;
@@ -94,7 +95,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		unsigned char *pdiff = diff_image->Buffer( lo_x, y );
 		for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
 		{
-			if ( *pdiff > alarm_threshold )
+			if ( (*pdiff > min_pixel_threshold) || (max_pixel_threshold && (*pdiff < max_pixel_threshold)) )
 			{
 				*pdiff = WHITE;
 				alarm_pixels++;
@@ -303,7 +304,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	min_blob_size = 0;
 	max_blob_size = 0;
-	// Now eliminate blobs under the alarm_threshold
+	// Now eliminate blobs under the threshold
 	for ( int i = 1; i < WHITE; i++ )
 	{
 		BlobStats *bs = &blob_stats[i];
@@ -393,7 +394,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
 	static char sql[BUFSIZ];
-	sprintf( sql, "select Id,Name,Type+0,Units,LoX,LoY,HiX,HiY,AlarmRGB,AlarmThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
+	sprintf( sql, "select Id,Name,Type+0,Units,LoX,LoY,HiX,HiY,AlarmRGB,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -412,26 +413,29 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 	zones = new Zone *[n_zones];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		int Id = atoi(dbrow[0]);
-		const char *Name = dbrow[1];
-		int Type = atoi(dbrow[2]);
-		const char *Units = dbrow[3];
-		int LoX = atoi(dbrow[4]);
-		int LoY = atoi(dbrow[5]);
-		int HiX = atoi(dbrow[6]);
-		int HiY = atoi(dbrow[7]);
-		int AlarmRGB = dbrow[8]?atoi(dbrow[8]):0;
-		int AlarmThreshold = dbrow[9]?atoi(dbrow[9]):0;
-		int MinAlarmPixels = dbrow[10]?atoi(dbrow[10]):0;
-		int MaxAlarmPixels = dbrow[11]?atoi(dbrow[11]):0;
-		int FilterX = dbrow[12]?atoi(dbrow[12]):0;
-		int FilterY = dbrow[13]?atoi(dbrow[13]):0;
-		int MinFilterPixels = dbrow[14]?atoi(dbrow[14]):0;
-		int MaxFilterPixels = dbrow[15]?atoi(dbrow[15]):0;
-		int MinBlobPixels = dbrow[16]?atoi(dbrow[16]):0;
-		int MaxBlobPixels = dbrow[17]?atoi(dbrow[17]):0;
-		int MinBlobs = dbrow[18]?atoi(dbrow[18]):0;
-		int MaxBlobs = dbrow[19]?atoi(dbrow[19]):0;
+		int col = 0;
+
+		int Id = atoi(dbrow[col++]);
+		const char *Name = dbrow[col++];
+		int Type = atoi(dbrow[col++]);
+		const char *Units = dbrow[col++];
+		int LoX = atoi(dbrow[col++]);
+		int LoY = atoi(dbrow[col++]);
+		int HiX = atoi(dbrow[col++]);
+		int HiY = atoi(dbrow[col++]);
+		int AlarmRGB = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int MinPixelThreshold = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int MaxPixelThreshold = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int MinAlarmPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int MaxAlarmPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int FilterX = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int FilterY = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int MinFilterPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int MaxFilterPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int MinBlobPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int MaxBlobPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int MinBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int MaxBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
 
 		if ( !strcmp( Units, "Percent" ) )
 		{
@@ -453,7 +457,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		}
 		else
 		{
-			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, Box( LoX, LoY, HiX, HiY ), AlarmRGB, AlarmThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs );
+			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, Box( LoX, LoY, HiX, HiY ), AlarmRGB, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs );
 		}
 	}
 	if ( mysql_errno( &dbconn ) )
@@ -481,7 +485,8 @@ bool Zone::DumpSettings( char *output, bool /*verbose*/ )
 	)))));
 	sprintf( output+strlen(output), "  Limits : %d,%d - %d,%d\n", limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY() );
 	sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );
-	sprintf( output+strlen(output), "  Alarm Threshold : %d\n", alarm_threshold );
+	sprintf( output+strlen(output), "  Min Pixel Threshold : %d\n", min_pixel_threshold );
+	sprintf( output+strlen(output), "  Max Pixel Threshold : %d\n", max_pixel_threshold );
 	sprintf( output+strlen(output), "  Min Alarm Pixels : %d\n", min_alarm_pixels );
 	sprintf( output+strlen(output), "  Max Alarm Pixels : %d\n", max_alarm_pixels );
 	sprintf( output+strlen(output), "  Filter Box : %d,%d\n", filter_box.X(), filter_box.Y() );

@@ -154,7 +154,7 @@ window.focus();
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
 <td align="left" class="text">Use&nbsp;<select name="trms" class="form" onChange="submitToFilter( document.filter_form );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?= $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?= $i ?></option><?php } ?></select>&nbsp;filter&nbsp;expressions</td>
-<td align="center" class="text">Use filter:&nbsp;<?php if ( count($filter_names) > 1 ) { buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); } else { ?><select class="form" disabled><option>No Saved Filters</option></select><?php } ?></td>
+<td align="center" class="text">Use filter:&nbsp;<?php if ( count($filter_names) > 1 ) { echo buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); } else { ?><select class="form" disabled><option>No Saved Filters</option></select><?php } ?></td>
 <?php if ( canEdit( 'Events' ) ) { ?>
 <td align="center" class="text"><a href="javascript: saveFilter( document.filter_form );">Save</a></td>
 <?php } else { ?>
@@ -194,23 +194,23 @@ window.focus();
 		else
 		{
 ?>
-<td class="text"><?php buildSelect( $conjunction_name, $conjunction_types ); ?></td>
+<td class="text"><?= buildSelect( $conjunction_name, $conjunction_types ); ?></td>
 <?php
 		}
 ?>
-<td class="text"><?php if ( $trms > 2 ) { buildSelect( $obracket_name, $obracket_types ); } else { ?>&nbsp;<?php } ?></td>
-<td class="text"><?php buildSelect( $attr_name, $attr_types, "$value_name.value = ''; submitToFilter( document.filter_form );" ); ?></td>
+<td class="text"><?php if ( $trms > 2 ) { echo buildSelect( $obracket_name, $obracket_types ); } else { ?>&nbsp;<?php } ?></td>
+<td class="text"><?= buildSelect( $attr_name, $attr_types, "$value_name.value = ''; submitToFilter( document.filter_form );" ); ?></td>
 <?php if ( $$attr_name == "Archived" ) { ?>
 <td class="text"><center>is equal to</center></td>
-<td class="text"><?php buildSelect( $value_name, $archive_types ); ?></td>
+<td class="text"><?= buildSelect( $value_name, $archive_types ); ?></td>
 <?php } elseif ( $$attr_name ) { ?>
-<td class="text"><?php buildSelect( $op_name, $op_types ); ?></td>
+<td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>
 <td class="text"><input name="<?= $value_name ?>" value="<?= $$value_name ?>" class="form" size="16"></td>
 <?php } else { ?>
-<td class="text"><?php buildSelect( $op_name, $op_types ); ?></td>
+<td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>
 <td class="text"><input name="<?= $value_name ?>" value="<?= $$value_name ?>" class="form" size="16"></td>
 <?php } ?>
-<td class="text"><?php if ( $trms > 2 ) { buildSelect( $cbracket_name, $cbracket_types ); } else { ?>&nbsp;<?php } ?></td>
+<td class="text"><?php if ( $trms > 2 ) { echo buildSelect( $cbracket_name, $cbracket_types ); } else { ?>&nbsp;<?php } ?></td>
 </tr>
 <?php
 	}

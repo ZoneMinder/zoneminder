@@ -67,7 +67,7 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <form name="view_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="mid" value="<?= $mid ?>">
-Scale: <?php buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
+Scale: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>

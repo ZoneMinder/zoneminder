@@ -30,8 +30,8 @@
 <table align="center" border="0" cellspacing="0" cellpadding="2" width="250">
 <tr><td colspan="2" class="head" align="center">Video Generation Parameters</td></tr>
 <tr><td colspan="2">&nbsp;</td></tr>
-<tr><td class="text" align="right">Frame Rate</td><td><?php buildSelect( "rate", $rates ) ?></td></tr>
-<tr><td class="text" align="right">Video Size</td><td><?php buildSelect( "scale", $scales ) ?></td></tr>
+<tr><td class="text" align="right">Frame Rate</td><td><?= buildSelect( "rate", $rates ) ?></td></tr>
+<tr><td class="text" align="right">Video Size</td><td><?= buildSelect( "scale", $scales ) ?></td></tr>
 <tr><td class="text" align="right">Overwite Existing</td><td><input type="checkbox" class="form-noborder" name="overwrite" value="1"<?php if ( $overwrite ) { ?> checked<?php } ?>></td></tr>
 <tr><td colspan="2">&nbsp;</td></tr>
 <tr><td colspan="2" align="center"><input type="submit" class="form" value="Generate Video"></td></tr>

@@ -98,8 +98,8 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
-Rate: <?php buildSelect( "rate", $rates, "document.view_form.submit();" ); ?>&nbsp;&nbsp;
-Scale: <?php buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
+Rate: <?= buildSelect( "rate", $rates, "document.view_form.submit();" ); ?>&nbsp;&nbsp;
+Scale: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </form>
 </td>
 </tr>

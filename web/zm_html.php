@@ -96,7 +96,7 @@ switch( $view )
 <html>
 <head>
 <title>ZM - Console</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h'] ?> );
 function newWindow(Url,Name,Width,Height)
@@ -316,7 +316,7 @@ function confirmStatus( new_status )
 <html>
 <head>
 <title>ZM - Cycle Watch</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
 {
@@ -400,7 +400,7 @@ function closeWindow()
 <html>
 <head>
 <title>ZM - Montage</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 //window.resizeTo( <?= $jws['montage']['w']*$cols ?>, <?= $jws['montage']['h']*$rows ?> );
 window.focus();
@@ -436,7 +436,7 @@ window.focus();
 <html>
 <head>
 <title>ZM - Montage Header</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function closeWindow()
 {
@@ -484,7 +484,7 @@ function closeWindow()
 <html>
 <head>
 <title>ZM - <?= $monitor[Name] ?> - MontageFeed</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 </head>
 <body>
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
@@ -565,7 +565,7 @@ function closeWindow()
 ?>
 <html>
 <head>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
 		if ( ZM_WEB_POPUP_ON_ALARM && $new_alarm )
@@ -608,7 +608,7 @@ top.window.focus();
 <html>
 <head>
 <title>ZM - <?= $monitor[Name] ?> - Watch</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 opener.location.reload();
 window.focus();
@@ -654,7 +654,7 @@ window.focus();
 <html>
 <head>
 <title>ZM - <?= $monitor[Name] ?> - WatchFeed</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function closeWindow()
 {
@@ -747,7 +747,7 @@ function closeWindow()
 ?>
 <html>
 <head>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
 		if ( ZM_WEB_POPUP_ON_ALARM && $new_alarm )
@@ -845,7 +845,7 @@ parent.frames[2].location.reload();
 <html>
 <head>
 <title>ZM - <?= $monitor ?> - Events</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
 {
@@ -1094,7 +1094,7 @@ function configureButton(form,name)
 <html>
 <head>
 <title>ZM - <?= $monitor[Name] ?> - Events</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function eventWindow(Url,Name)
 {
@@ -1281,7 +1281,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <html>
 <head>
 <title>ZM - <?= $monitor[Name] ?> - Event Filter</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
 {
@@ -1463,7 +1463,7 @@ window.focus();
 <html>
 <head>
 <title>ZM - <?= $monitor[Name] ?> - Save Filter</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function closeWindow()
 {
@@ -1593,7 +1593,7 @@ window.focus();
 <html>
 <head>
 <title>ZM - Image <?= $eid."-".$fid ?></title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 window.focus();
 function newWindow(Url,Name,Width,Height)
@@ -1672,7 +1672,7 @@ function deleteEvent()
 <html>
 <head>
 <title>ZM - Event - <?= $event[Name] ?></title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
 		if ( $refresh_parent )
@@ -1862,7 +1862,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <html>
 <head>
 <title>ZM - <?= $monitor[Name] ?> - Zones</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 window.focus();
 function newWindow(Url,Name,Width,Height)
@@ -1990,7 +1990,7 @@ function configureButton(form,name)
 <html>
 <head>
 <title>ZM - Monitor <?= $monitor[Name] ?></title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
 		if ( $refresh_parent )
@@ -2118,7 +2118,7 @@ $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 <html>
 <head>
 <title>ZM - <?= $monitor[Name] ?> - Zone <?= $zone[Name] ?></title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
 		if ( $refresh_parent )
@@ -2417,7 +2417,7 @@ function closeWindow()
 <html>
 <head>
 <title>ZM - Function - <?= $monitor[Name] ?></title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
 	if ( $refresh_parent )

@@ -18,8 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-import_request_variables( "GPC" );
 error_reporting (E_ALL ^ E_NOTICE);
+import_request_variables( "GPC" );
 
 $debug = false;
 if ( $debug )
@@ -103,6 +103,7 @@ if ( empty($format) )
 
 		if ( empty($format) )
 		{
+			unset( $device );
 			$accepts_wml = preg_match( '/text\/vnd.wap.wml/i', $_SERVER['HTTP_ACCEPT'] );
 			$accepts_html = preg_match( '/text\/html/i', $_SERVER['HTTP_ACCEPT'] );
 
@@ -152,6 +153,10 @@ if ( !$_SESSION['format'] )
 	$_SESSION['format'] = $format;
 	$_SESSION['cookies'] = $cookies;
 	$_SESSION['device'] = $device;
+	if ( $cookies )
+	{
+		setcookie( "format", $format );
+	}
 }
 
 require_once( "zm_$format.php" );

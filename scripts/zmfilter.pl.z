@@ -201,15 +201,6 @@ my $last_action = 0;
 
 while( 1 )
 {
-	my $sql = "select max(Id) as LastEventId from Events";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-	my $row = $sth->fetchrow_hashref();
-	$last_event_id = $row->{LastEventId};
-	$sth->finish();
-
-	print( "Last event generated is $last_event_id\n" ) if ( VERBOSE );
-
 	if ( (time() - $last_action) > ZM_FILTER_RELOAD_DELAY )
 	{
 		print( "Reloading filters\n" ) if ( VERBOSE );
@@ -224,8 +215,16 @@ while( 1 )
 		CheckFilter( $filter );
 	}
 
-	if ( $last_event_id > $event_id )
+	my $sql = "select max(Id) as LastEventId from Events";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	my $row = $sth->fetchrow_hashref();
+	$last_event_id = $row->{LastEventId};
+	$sth->finish();
+
+	if ( $last_event_id && $last_event_id > $event_id )
 	{
+		print( "Last event generated is $last_event_id\n" ) if ( VERBOSE );
 		# Got new event to check
 		foreach my $filter ( @id_filters )
 		{

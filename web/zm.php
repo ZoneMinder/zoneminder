@@ -238,7 +238,7 @@ function newWindow(Url,Name,Width,Height) {
 <?php if ( $bandwidth != "high" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=high">high</a><?php } ?>
 <?php if ( $bandwidth != "medium" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=medium">medium</a><?php } ?>
 <?php if ( $bandwidth != "low" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=low">low</a><?php } ?> )</td>
-<td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+36 ?>, <?php echo $max_height+72 ?> );">Monitor All</a></td>
+<td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+36 ?>, <?php echo $max_height+72 ?> );">Watch Monitors</a></td>
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
@@ -279,17 +279,17 @@ function newWindow(Url,Name,Width,Height) {
 		$zone_count += $monitor[ZoneCount];
 ?>
 <tr>
-<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Id] ?>.</a></td>
-<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Name] ?></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Id] ?>.</a></td>
+<td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Name] ?></a></td>
 <td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=device&did=<?php echo $monitor[Device] ?>', 'zmDevice', 196, 164 );"><span class="<?php if ( $device[zmc] ) { if ( $device[zma] ) { echo "gretext"; } else { echo "oratext"; } } else { echo "redtext"; } ?>">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</span></a></td>
 <td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=function&mid=<?php echo $monitor[Id] ?>', 'zmFunction', 248, 72 );"><?php echo $monitor['Function'] ?></a></td>
 <td align="left" class="text"><?php echo $monitor[Width] ?>x<?php echo $monitor[Height] ?>x<?php echo $monitor[Colours]*8 ?></td>
-<td align="right" class="text"><?php echo $monitor[EventCount] ?></td>
-<td align="right" class="text"><?php echo $monitor[HourEventCount] ?></td>
-<td align="right" class="text"><?php echo $monitor[DayEventCount] ?></td>
-<td align="right" class="text"><?php echo $monitor[WeekEventCount] ?></td>
-<td align="right" class="text"><?php echo $monitor[MonthEventCount] ?></td>
-<td align="right" class="text"><?php echo $monitor[ArchEventCount] ?></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[EventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&period=hour&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[HourEventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&period=day&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[DayEventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&period=week&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[WeekEventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&period=month&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[MonthEventCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&archived=1&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[ArchEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+36 ?>, <?php echo $monitor[Height]+72 ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
 <td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $zone[Id] ?>"></td>
 </tr>
@@ -372,7 +372,8 @@ window.focus();
 <frameset rows="<?php echo $monitor[Height]+32 ?>,16,*" border="1" frameborder="no" framespacing="0">
 <frame src="<?php echo $PHP_SELF ?>?view=watch&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
 <frame src="<?php echo $PHP_SELF ?>?view=status&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
-<frame src="<?php echo $PHP_SELF ?>?view=events&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
+<!--<frame src="<?php echo $PHP_SELF ?>?view=events&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">-->
+<frame src="<?php echo $PHP_SELF ?>?view=events&max_events=<?php echo $max_events ?>&period=<?php echo $period ?>&archived=<?php echo $archived ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
 </frameset>
 <?php
 }
@@ -413,7 +414,7 @@ function closeWindow() {
 <body>
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
 <tr>
-<td width="33%" align="left" class="text"><b><?php echo $monitor[Name] ?> Stream</b></td>
+<td width="33%" align="left" class="text"><b><?php echo $monitor[Name] ?></b></td>
 <?php if ( $mode == "stream" ) { ?>
 <td width="34%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=watch&mode=still&mid=<?php echo $mid ?>">Stills</a></td>
 <?php } elseif ( canStream() ) { ?>
@@ -508,7 +509,7 @@ elseif ( $view == "events" )
 		}
 		else
 		{
-			header("Refresh: ".REFRESH_EVENTS_ALL."; URL='$PHP_SELF?view=events&mid=$mid'" );
+			header("Refresh: ".REFRESH_EVENTS_ALL."; URL='$PHP_SELF?view=events&period=$period&archived=$archived&mid=$mid'" );
 		}
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -543,6 +544,9 @@ function checkAll(form,name){
 <?php if ( $max_events ) { ?>
 <input type="hidden" name="max_events" value="<?php echo $max_events ?>">
 <?php } ?>
+<?php if ( $period ) { ?>
+<input type="hidden" name="period" value="<?php echo $period ?>">
+<?php } ?>
 <?php if ( $archived ) { ?>
 <input type="hidden" name="archived" value="<?php echo $archived ?>">
 <?php } ?>
@@ -550,9 +554,10 @@ function checkAll(form,name){
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <?php
-	//$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." order by E.Id desc";
-	//$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,sum(F.Score)/count(if(F.AlarmFrame,1,NULL)) as Score, max(F.Score) as MaxScore from Monitors as M, Events as E left join Frames as F on E.Id = F.EventId where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." group by E.Id order by E.Id desc";
-	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." order by E.Id desc";
+	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0");
+	if ( $period )
+		$sql .= " and E.StartTime >= now() - interval 1 $period";
+	$sql .= " order by E.Id desc";
 	if ( $max_events )
 		$sql .= " limit 0,$max_events";
 	$result = mysql_query( $sql );

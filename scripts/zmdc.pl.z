@@ -324,7 +324,11 @@ if ( !connect( CLIENT, $saddr ) )
 			my $process = $pid_hash{$cpid};
 			delete( $pid_hash{$cpid} );
 
-			die( "Can't find child with pid of '$cpid'\n" ) unless( $process );
+			if ( !$process )
+			{
+				dprint( "Can't find child with pid of '$cpid'\n" );
+				return;
+			}
 
 			$process->{stopped} = time();
 			$process->{runtime} = ($process->{stopped}-$process->{started});

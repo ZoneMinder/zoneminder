@@ -21,6 +21,6 @@
 #include "jpeglib.h"
 #include "jerror.h"
 
-// Prototypes for memory compress/descompression object */
+// Prototypes for memory compress/decompression object */
 void jpeg_mem_src(j_decompress_ptr cinfo, JOCTET *inbuffer, int inbuffer_size );
 void jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_size );

@@ -56,4 +56,46 @@ function getSetValues( $table, $column )
 {
 	return( getEnumValues( $table, $column ) );
 }
+
+function getUniqueValues( $table, $column, $as_string=1 )
+{
+	$values = array();
+	$result = mysql_query( "SELECT DISTINCT $column FROM $table WHERE (NOT ISNULL($column) AND $column != '') ORDER BY $column" );
+	if ( $result )
+	{
+		while ( $row = mysql_fetch_array($result) )
+		{
+			if ( $as_string )
+				$values[$row[0]] = $row[0];
+			else
+				$values = $row[0];
+		}
+	}     
+	else          
+	{             
+		echo mysql_error();
+	}                     
+	return( $values );  
+}               
+
+function getTableColumns( $table, $as_string=1 )
+{
+	$columns = array();
+	$result = mysql_query( "DESCRIBE $table" );
+	if ( $result )
+	{
+		while( $row = mysql_fetch_assoc($result) )
+		{
+			if ( $as_string )
+				$columns[$row[Field]] = $row[Type];
+			else
+				$columns[] = $row[Type];
+		}
+	}     
+	else          
+	{             
+		echo mysql_error();
+	}                     
+	return( $columns );  
+}               
 ?>

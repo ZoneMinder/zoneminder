@@ -38,9 +38,10 @@ feedback and if you get anything useful out of it please let me know.
 Requirements
 ============
 
-ZM needs a couple of things to work. Firstly, it uses MySQL so you'll need that. Next is does things with
+ZM needs a couple of things to work. Firstly, it uses MySQL so you'll need that, in order to compile you
+need to make sure you have a development installation and not just a runtime. Next it does things with
 JPEGs so you'll need at least libjpeg.a which I think come as standard nowadays. It also uses the netpbm
-utilities in a very limited way to generate thumbnails under certains circumstance though this can be
+utilities in a very limited way to generate thumbnails under certains circumstances though this can be
 modified. ZM can generate MPEG videos if necessary, for this you'll need the Berkeley MPEG encoder, if you
 don't have it don't worry the options will be hidden and you'll not miss much really. The web interface uses
 PHP and so you need that in your apache or whatever as well. Finally there is quite a bit of image streaming

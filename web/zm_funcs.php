@@ -364,7 +364,7 @@ function zmaCheck( $monitor )
 function createVideo( $event, $rate, $scale, $overwrite=0 )
 {
 	$command = ZM_PATH_BIN."/zmvideo.pl -e $event[Id] -r $rate -s $scale";
-	if ( $overwite )
+	if ( $overwrite )
 		$command .= " -o";
 	$result = exec( $command, $output, $status );
 	return( $status?"":rtrim($result) );

@@ -1532,6 +1532,10 @@ window.focus();
 <td align="right" colspan="2" class="text">&nbsp;</td>
 </tr>
 <tr>
+<td align="left" class="text">Automatically archive all matching events:&nbsp;</td>
+<td align="left" class="text"><input type="checkbox" name="auto_archive" value="1"<?php if ( $filter_data[AutoArchive] ) { echo " checked"; } ?>></td>
+</tr>
+<tr>
 <td align="left" class="text">Automatically delete all matching events:&nbsp;</td>
 <td align="left" class="text"><input type="checkbox" name="auto_delete" value="1"<?php if ( $filter_data[AutoDelete] ) { echo " checked"; } ?>></td>
 </tr>

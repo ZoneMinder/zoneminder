@@ -223,6 +223,7 @@ while( 1 )
 			foreach my $filter ( @$filters )
 			{
 				print( "Checking filter '$filter->{Name}'".
+				($filter->{AutoArchive}?", archive":"").
 				($filter->{AutoDelete}?", delete":"").
 				($filter->{AutoUpload}?", upload":"").
 				($filter->{AutoEmail}?", email":"").
@@ -261,6 +262,14 @@ while( 1 )
 
 						uploadArchFile( $filter, $event );
 					}
+					if ( $filter->{AutoArchive} )
+					{
+						print( "Archiving event $event->{Id}\n" );
+						# Do it individually to avoid locking up the table for new events
+						my $sql = "update Events set Archived = 1 where Id = ?";
+						my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+						my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+					}
 					if ( $filter->{AutoDelete} )
 					{
 						print( "Deleting event $event->{Id}\n" );
@@ -290,7 +299,7 @@ sub GetFilters
 	my $monitor = shift;
 
 	my @filters;
-	my $sql = "select Filters.*,Monitors.Name as MonitorName from Filters inner join Monitors on Filters.MonitorId = Monitors.Id where Monitors.Id = '$monitor' and (AutoDelete = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1) order by Name";
+	my $sql = "select Filters.*,Monitors.Name as MonitorName from Filters inner join Monitors on Filters.MonitorId = Monitors.Id where Monitors.Id = '$monitor' and (AutoArchive = 1 or AutoDelete = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1) order by Name";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	FILTER: while( my $filter_data = $sth->fetchrow_hashref() )

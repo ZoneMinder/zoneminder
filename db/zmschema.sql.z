@@ -49,6 +49,7 @@ CREATE TABLE Filters (
   MonitorId int(10) unsigned NOT NULL default '0',
   Name varchar(64) NOT NULL default '',
   Query text NOT NULL,
+  AutoArchive tinyint(3) unsigned NOT NULL default '0',
   AutoDelete tinyint(3) unsigned NOT NULL default '0',
   AutoUpload tinyint(3) unsigned NOT NULL default '0',
   AutoEmail tinyint(3) unsigned NOT NULL default '0',

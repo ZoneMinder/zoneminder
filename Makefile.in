@@ -103,7 +103,6 @@ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
 am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
 am__fastdepCXX_TRUE = @am__fastdepCXX_TRUE@
 am__include = @am__include@
-am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 bindir = @bindir@
 build_alias = @build_alias@

@@ -39,7 +39,7 @@ $height_scale = $scale;
 <head>
 <title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangWatch ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 window.resizeTo( <?= reScale($monitor['Width'],$width_scale)+$jws['watch']['w'] ?>, <?= reScale($monitor['Height'],$height_scale)+$jws['watch']['h'] ?> );
 //opener.location.reload();
 window.focus();

@@ -24,7 +24,7 @@
 <head>
 <title>ZM - <?= $zmSlangLoggingIn ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 //window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h'] ?> );
 window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", 250 );
 </script>

@@ -91,7 +91,7 @@ $montage_height = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$max_height;
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <link rel="shortcut icon" href="favicon.ico">
 <link rel="icon" type="image/ico" href="favicon.ico">
-<script language="JavaScript">
+<script type="text/javascript">
 window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h'] ?> );
 function newWindow(Url,Name,Width,Height)
 {

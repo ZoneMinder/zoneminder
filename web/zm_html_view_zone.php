@@ -51,7 +51,7 @@ $new_zone = $zone;
 <head>
 <title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangZone ?> <?= $zone['Name'] ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 <?php
 if ( !empty($refresh_parent) )
 {
@@ -366,7 +366,7 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $opt_check_method )
 <td align="left"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
-<script language="JavaScript">
+<script type="text/javascript">
 applyZoneType(document.zone_form);
 applyCheckMethod(document.zone_form);
 </script>

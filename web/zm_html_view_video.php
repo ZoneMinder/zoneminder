@@ -89,7 +89,7 @@ if ( isset($generate) )
 ?>
 <html>
 <head>
-<script language="JavaScript">
+<script type="text/javascript">
 location.replace('<?= $video_path ?>');
 </script>
 </head>

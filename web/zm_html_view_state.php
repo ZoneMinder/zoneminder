@@ -39,7 +39,7 @@ while( $state = mysql_fetch_assoc( $result ) )
 <head>
 <title>ZM - <?= $zmSlangState ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 <?php
 if ( !empty($refresh_parent) )
 {
@@ -183,7 +183,7 @@ else
 <input type="hidden" name="action" value="state">
 <input type="hidden" name="run_state" value="<?= $run_state ?>">
 </form>
-<script language="JavaScript">
+<script type="text/javascript">
 window.setTimeout( "document.state_form.submit()", 500 );
 </script>
 <?php

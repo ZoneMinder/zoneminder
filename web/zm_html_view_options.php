@@ -51,7 +51,7 @@ if ( !isset($tab) )
 <head>
 <title>ZM - <?= $zmSlangOptions ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 <?php
 if ( !empty($refresh_parent) )
 {
@@ -279,7 +279,7 @@ if ( !empty($restart) )
 {
 	flush();
 ?>
-<script language="JavaScript">
+<script type="text/javascript">
 alert( "<?= $zmSlangOptionRestartWarning ?>" );
 </script>
 <?php

@@ -43,7 +43,7 @@ if ( ZM_DYN_CURR_VERSION != ZM_DYN_LAST_VERSION )
 <head>
 <title>ZM - <?= $zmSlangVersion ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 window.focus();
 function zmWindow()
 {

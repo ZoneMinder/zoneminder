@@ -37,8 +37,8 @@ while ( $row = mysql_fetch_assoc( $result ) )
 <html>
 <head>
 <title>ZM - <?= $zmSlangGroups ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
-<script language="JavaScript">
+<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
+<script type="text/javascript">
 function closeWindow()
 {
 	top.window.close();

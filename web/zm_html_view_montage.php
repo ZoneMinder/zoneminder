@@ -72,7 +72,7 @@ $col_spec = join( ',', $widths );
 <head>
 <title>ZM - <?= $zmSlangMontage ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 window.focus();
 </script>
 </head>

@@ -39,7 +39,7 @@ if ( !($row = mysql_fetch_assoc( $result )) )
 <head>
 <title>ZM - <?= $zmSlangUser ?> - <?= $row['Username'] ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 <?php
 if ( !empty($refresh_parent) )
 {

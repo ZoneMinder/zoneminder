@@ -90,7 +90,7 @@ $paged = $event['Frames'] > $frames_per_page;
 <head>
 <title>ZM - <?= $zmSlangEvent ?> - <?= $event['Name'] ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 <?php
 if ( !$event )
 {

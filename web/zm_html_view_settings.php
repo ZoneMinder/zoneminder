@@ -43,7 +43,7 @@ $monitor['Colour'] = $colour;
 <head>
 <title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangSettings ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 <?php
 if ( !empty($refresh_parent) )
 {

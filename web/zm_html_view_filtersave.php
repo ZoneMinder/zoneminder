@@ -29,7 +29,7 @@ if ( !canEdit( 'Events' ) )
 <head>
 <title>ZM - <?= $zmSlangSaveFilter ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
-<script language="JavaScript">
+<script type="text/javascript">
 function closeWindow()
 {
 	top.window.close();

@@ -106,6 +106,7 @@ switch( $view )
 	case "postlogin" :
 	case "logout" :
 	case "console" :
+	case "groups" :
 	case "state" :
 	case "bandwidth" : 
 	case "version" :

@@ -143,6 +143,7 @@ $jws = array(
 	'zones' => array( 'w'=>72, 'h'=>232 ),
 	'zone' => array( 'w'=>360, 'h'=>500 ),
 	'video' => array( 'w'=>100, 'h'=>80 ),
+	'groups' => array( 'w'=>360, 'h'=>220 ),
 	'image' => array( 'w'=>48, 'h'=>80 ),
 	'frames' => array( 'w'=>500, 'h'=>300 ),
 	'stats' => array( 'w'=>680, 'h'=>200 ),

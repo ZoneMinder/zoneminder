@@ -21,6 +21,16 @@
 $running = daemonCheck();
 $status = $running?$zmSlangRunning:$zmSlangStopped;
 
+if ( !isset($cgroup) )
+{
+	$cgroup = 0;
+}
+$sql = "select * from Groups where Id = '$cgroup'";
+$result = mysql_query( $sql );
+if ( !$result )
+	echo mysql_error();
+$group = mysql_fetch_assoc( $result );
+
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: ".ZM_WEB_REFRESH_MAIN."; URL=$PHP_SELF" );
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
@@ -114,7 +124,7 @@ function confirmDelete()
 if ( ZM_WEB_REFRESH_METHOD == "javascript" )
 {
 ?>
-window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (ZM_WEB_REFRESH_MAIN*1000) ?> );
+window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>?view=<?= $view ?>')", <?= (ZM_WEB_REFRESH_MAIN*1000) ?> );
 <?php
 }
 ?>
@@ -130,6 +140,9 @@ newWindow( '<?= $PHP_SELF ?>?view=version', 'zmVersion', <?= $jws['version']['w'
 </head>
 <body scroll="auto">
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
+<form name="monitor_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="return(confirmDelete());">
+<input type="hidden" name="view" value="<?= $view ?>">
+<input type="hidden" name="action" value="delete">
 <tr>
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
 <td class="bighead" align="center"><strong><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?= $zmSlangConsole ?> - <?php if ( canEdit( 'System' ) ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=state', 'zmState', <?= $jws['state']['w'] ?>, <?= $jws['state']['h'] ?> );"><?= $status ?></a> - <?php } ?><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=version', 'zmVersion', ".$jws['version']['w'].", ".$jws['version']['h']." );", "v".ZM_VERSION, canEdit( 'System' ) ) ?></strong></td>
@@ -138,10 +151,10 @@ newWindow( '<?= $PHP_SELF ?>?view=version', 'zmVersion', <?= $jws['version']['w'
 <tr>
 <td class="smallhead" align="left">
 <?php
-if ( canView( 'Stream' ) && $cycle_count > 1 )
+if ( canView( 'System' ) )
 {
 ?>
-<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $montage_width+$jws['cycle']['w'] ?>, <?= $montage_height+$jws['cycle']['h'] ?> );"><?= sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) ) ?></a>&nbsp;(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage', 'zmMontage', <?= ($montage_cols*$montage_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*((ZM_WEB_COMPACT_MONTAGE?4:40)+$montage_height))+$jws['montage']['h'] ?> );"><?= $zmSlangMontage ?></a>)
+<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=groups', 'zmGroups', <?= $jws['groups']['w'] ?>, <?= $jws['groups']['h'] ?> );"><?= sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) ) ?></a>
 <?php
 }
 else
@@ -167,13 +180,25 @@ else
 }
 ?>
 &nbsp;<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=bandwidth', 'zmBandwidth', <?= $jws['bandwidth']['w'] ?>, <?= $jws['bandwidth']['h'] ?>);"><?= strtolower( $bw_array[$bandwidth] ) ?></a> <?= strtolower( $zmSlangBandwidth ) ?></td>
-<td class="smallhead" align="right"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=options', 'zmOptions', ".$jws['options']['w'].", ".$jws['options']['h']." );", $zmSlangOptions, canView( 'System' ) ) ?></td>
+<td class="smallhead" align="right"><table width="100%" border="0" cellpadding="0" cellspacing="0"><tr><td class="smallhead" align="left">
+<?php
+if ( canView( 'Stream' ) && $cycle_count > 1 )
+{
+?>
+<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle&group=<?= $cgroup ?>', 'zmCycle<?= $cgroup ?>', <?= $montage_width+$jws['cycle']['w'] ?>, <?= $montage_height+$jws['cycle']['h'] ?> );"><?= $zmSlangCycle ?></a>&nbsp;/&nbsp;<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage&group=<?= $cgroup ?>', 'zmMontage<?= $cgroup ?>', <?= ($montage_cols*$montage_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*((ZM_WEB_COMPACT_MONTAGE?4:40)+$montage_height))+$jws['montage']['h'] ?> );"><?= $zmSlangMontage ?></a>
+<?php
+}
+else
+{
+?>
+&nbsp;
+<?php
+}
+?>
+</td><td align="right" class="smallhead"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=options', 'zmOptions', ".$jws['options']['w'].", ".$jws['options']['h']." );", $zmSlangOptions, canView( 'System' ) ) ?></td></tr></table></td>
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
-<form name="monitor_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="return(confirmDelete());">
-<input type="hidden" name="view" value="<?= $view ?>">
-<input type="hidden" name="action" value="delete">
 <tr><td align="left" class="smallhead"><?= $zmSlangId ?></td>
 <td align="left" class="smallhead"><?= $zmSlangName ?></td>
 <td align="left" class="smallhead"><?= $zmSlangFunction ?></td>

@@ -381,6 +381,17 @@ if ( isset($action) )
 			}
 		}
 	}
+	if ( canView( 'System' ) )
+	{
+		if ( $action == "group" )
+		{
+			if ( count($mark_gids) )
+			{
+				setcookie( "cgroup", $mark_gids[0], time()+3600*24*30*12*10 );
+				$refresh_parent = true;
+			}
+		}
+	}
 	if ( canEdit( 'System' ) )
 	{
 		if ( $action == "version" && isset($option) )
@@ -560,6 +571,27 @@ if ( isset($action) )
 					die( mysql_error() );
 			}
 		}
+		elseif ( $action == "groups" )
+		{
+			if ( $names )
+			{
+				foreach ( array_keys( $names ) as $id )
+				{
+					$sql = "update Groups set Name = '".$names[$id]."', MonitorIds = '".$monitor_ids[$id]."'";
+					$result = mysql_query( $sql );
+					if ( !$result )
+						die( mysql_error() );
+				}
+			}
+			if ( $new_monitor_ids )
+			{
+				$sql = "insert into Groups set Name = '".$new_name."', MonitorIds = '".$new_monitor_ids."'";
+				$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
+			}
+			$refresh_parent = true;
+		}
 		elseif ( $action == "delete" )
 		{
 			if ( $run_state )
@@ -580,6 +612,21 @@ if ( isset($action) )
 				if ( $row['Username'] == $user['Username'] )
 				{
 					userLogout();
+				}
+			}
+			if ( $mark_gids )
+			{
+				foreach( $mark_gids as $mark_gid )
+				{
+					$result = mysql_query( "delete from Groups where Id = '$mark_gid'" );
+					if ( !$result )
+						die( mysql_error() );
+					if ( $mark_gid == $cgroup )
+					{
+						unset( $cgroup );
+						setcookie( "cgroup", "", time()-3600*24*2 );
+						$refresh_parent = true;
+					}
 				}
 			}
 		}

@@ -23,7 +23,21 @@ if ( !canView( 'Stream' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
+
+if ( $group )
+{
+	$sql = "select * from Groups where Id = '$group'";
+	$result = mysql_query( $sql );
+	if ( !$result )
+		die( mysql_error() );
+	$row = mysql_fetch_assoc( $result );
+	$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
+}
+
+$sql = "select * from Monitors where Function != 'None' $group_sql order by Id";
+$result = mysql_query( $sql );
+if ( !$result )
+	die( mysql_error() );
 $monitors = array();
 while( $row = mysql_fetch_assoc( $result ) )
 {

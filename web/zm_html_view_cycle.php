@@ -31,7 +31,20 @@ if ( empty($mode) )
 		$mode = "still";
 }
 
-$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
+if ( $group )
+{
+	$sql = "select * from Groups where Id = '$group'";
+	$result = mysql_query( $sql );
+	if ( !$result )
+		die( mysql_error() );
+	$row = mysql_fetch_assoc( $result );
+	$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
+}
+
+$sql = "select * from Monitors where Function != 'None' $group_sql order by Id";
+$result = mysql_query( $sql );
+if ( !$result )
+	die( mysql_error() );
 $monitors = array();
 $mon_idx = 0;
 $max_width = 0;
@@ -60,7 +73,7 @@ $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 if ( $mode != "stream" )
 {
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
-		header("Refresh: ".ZM_WEB_REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
+		header("Refresh: ".ZM_WEB_REFRESH_IMAGE."; URL=$PHP_SELF?view=cycle&group=$group&mid=$mid&mode=still" );
 }
 
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
@@ -87,7 +100,7 @@ function closeWindow()
 if ( ZM_WEB_REFRESH_METHOD == "javascript" )
 {
 ?>
-window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" ?>' )", <?= ZM_WEB_REFRESH_CYCLE*1000 ?> );
+window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&group=$group&mid=$next_mid&mode=$mode" ?>' )", <?= ZM_WEB_REFRESH_CYCLE*1000 ?> );
 <?php
 }
 ?>

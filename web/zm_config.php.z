@@ -145,7 +145,7 @@ $jws = array(
 	'console' => array( 'w'=>720, 'h'=>400 ),
 	'cycle' => array( 'w'=>46, 'h'=>80 ),
 	'montage' => array( 'w'=>20, 'h'=>20 ),
-	'monitor' => array( 'w'=>420, 'h'=>492 ),
+	'monitor' => array( 'w'=>420, 'h'=>512 ),
 	'watch' => array( 'w'=>72, 'h'=>315 ),
 	'device' => array( 'w'=>196, 'h'=>164 ),
 	'function' => array( 'w'=>248, 'h'=>92 ),

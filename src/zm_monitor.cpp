@@ -26,14 +26,14 @@
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_capture, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), width( p_width ), height( p_height ), orientation( (Orientation)p_orientation ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), n_zones( p_n_zones ), zones( p_zones )
 {
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
 
     strcpy( label_format, p_label_format );
 
-	camera = new LocalCamera( p_device, p_channel, p_format, p_width, p_height, p_colours, p_capture );
+	camera = new LocalCamera( p_device, p_channel, p_format, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, p_capture );
 
 	fps = 0.0;
 	event_count = 0;
@@ -74,13 +74,13 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	for ( int i = 0; i < image_buffer_count; i++ )
 	{
 		image_buffer[i].timestamp = &(shared_images->timestamps[i]);
-		image_buffer[i].image = new Image( camera->Width(), camera->Height(), camera->Colours(), &(shared_images->images[i*camera->ImageSize()]) );
+		image_buffer[i].image = new Image( width, height, camera->Colours(), &(shared_images->images[i*camera->ImageSize()]) );
 	}
 	if ( !n_zones )
 	{
 		n_zones = 1;
 		zones = new Zone *[1];
-		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( camera->Width(), camera->Height() ), RGB_RED );
+		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED );
 	}
 	start_time = last_fps_time = time( 0 );
 
@@ -92,7 +92,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 
 	if ( !p_capture )
 	{
-		ref_image.Assign( camera->Width(), camera->Height(), camera->Colours(), image_buffer[shared_images->last_write_index].image->Buffer() );
+		ref_image.Assign( width, height, camera->Colours(), image_buffer[shared_images->last_write_index].image->Buffer() );
 	}
 	else
 	{
@@ -127,14 +127,14 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	record_event_stats = ZM_RECORD_EVENT_STATS;
 }
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( p_width, p_height, p_colours ), ref_image( p_width, p_height, p_colours ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_capture, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), width( p_width ), height( p_height ), orientation( (Orientation)p_orientation ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), n_zones( p_n_zones ), zones( p_zones )
 {
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
 
     strcpy( label_format, p_label_format );
 
-	camera = new RemoteCamera( p_host, p_port, p_path, p_width, p_height, p_colours, p_capture );
+	camera = new RemoteCamera( p_host, p_port, p_path, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, p_capture );
 
 	fps = 0.0;
 	event_count = 0;
@@ -174,13 +174,13 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, co
 	for ( int i = 0; i < image_buffer_count; i++ )
 	{
 		image_buffer[i].timestamp = &(shared_images->timestamps[i]);
-		image_buffer[i].image = new Image( camera->Width(), camera->Height(), camera->Colours(), &(shared_images->images[i*camera->ImageSize()]) );
+		image_buffer[i].image = new Image( width, height, camera->Colours(), &(shared_images->images[i*camera->ImageSize()]) );
 	}
 	if ( !n_zones )
 	{
 		n_zones = 1;
 		zones = new Zone *[1];
-		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( camera->Width(), camera->Height() ), RGB_RED );
+		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED );
 	}
 	start_time = last_fps_time = time( 0 );
 
@@ -192,7 +192,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, co
 
 	if ( !p_capture )
 	{
-		ref_image.Assign( camera->Width(), camera->Height(), camera->Colours(), image_buffer[shared_images->last_write_index].image->Buffer() );
+		ref_image.Assign( width, height, camera->Colours(), image_buffer[shared_images->last_write_index].image->Buffer() );
 	}
 	else
 	{
@@ -558,11 +558,11 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	static char sql[256];
 	if ( device == -1 )
 	{
-		strcpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
+		strcpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
 	}
 	else
 	{
-		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Device = %d", device );
+		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Device = %d", device );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -582,7 +582,7 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atof(dbrow[16])>0.0?int(1000.0/atof(dbrow[16])):0, atoi(dbrow[17]), atoi(dbrow[18]) );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), atoi(dbrow[9]), dbrow[10], Coord( atoi(dbrow[11]), atoi(dbrow[12]) ), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atof(dbrow[17])>0.0?int(1000.0/atof(dbrow[17])):0, atoi(dbrow[18]), atoi(dbrow[19]), capture );
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
@@ -604,11 +604,11 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	static char sql[256];
 	if ( !host )
 	{
-		strcpy( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
+		strcpy( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None'" );
 	}
 	else
 	{
-		sprintf( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
+		sprintf( sql, "select Id, Name, Function+0, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Function != 'None' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -628,7 +628,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), dbrow[3], dbrow[4], dbrow[5], atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), capture, dbrow[9], Coord( atoi(dbrow[10]), atoi(dbrow[11]) ), atoi(dbrow[12]), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atof(dbrow[16])>0.0?int(1000.0/atof(dbrow[16])):0, atoi(dbrow[17]), atoi(dbrow[18]) );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), dbrow[3], dbrow[4], dbrow[5], atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), atoi(dbrow[9]), dbrow[10], Coord( atoi(dbrow[11]), atoi(dbrow[12]) ), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atof(dbrow[17])>0.0?int(1000.0/atof(dbrow[17])):0, atoi(dbrow[18]), atoi(dbrow[19]), capture );
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
@@ -648,7 +648,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 Monitor *Monitor::Load( int id, bool load_zones )
 {
 	static char sql[256];
-	sprintf( sql, "select Id, Name, Type, Function+0, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
+	sprintf( sql, "select Id, Name, Type, Function+0, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -668,11 +668,11 @@ Monitor *Monitor::Load( int id, bool load_zones )
 	{
 		if ( !strcmp( dbrow[2], "Local" ) )
 		{
-			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), false, dbrow[13], Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atof(dbrow[20])>0.0?int(1000.0/atof(dbrow[20])):0, atoi(dbrow[21]), atoi(dbrow[22]) );
+			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), atoi(dbrow[13]), dbrow[14], Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atof(dbrow[21])>0.0?int(1000.0/atof(dbrow[21])):0, atoi(dbrow[22]), atoi(dbrow[23]), false );
 		}
 		else
 		{
-			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), dbrow[7], dbrow[8], dbrow[9], atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), false, dbrow[13], Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), atoi(dbrow[16]), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atof(dbrow[20])>0.0?int(1000.0/atof(dbrow[20])):0, atoi(dbrow[21]), atoi(dbrow[22]) );
+			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), dbrow[7], dbrow[8], dbrow[9], atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), atoi(dbrow[13]), dbrow[14], Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atof(dbrow[21])>0.0?int(1000.0/atof(dbrow[21])):0, atoi(dbrow[22]), atoi(dbrow[23]), false );
 		}
 		int n_zones = 0;
 		if ( load_zones )
@@ -765,7 +765,7 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 		sprintf( output+strlen(output), "Port : %s\n", ((RemoteCamera *)camera)->Port() );
 		sprintf( output+strlen(output), "Path : %s\n", ((RemoteCamera *)camera)->Path() );
 	}
-	sprintf( output+strlen(output), "Width : %d\n", ((LocalCamera *)camera)->Width() );
+	sprintf( output+strlen(output), "Width : %d\n", camera->Width() );
 	sprintf( output+strlen(output), "Height : %d\n", camera->Height() );
 	sprintf( output+strlen(output), "Palette : %d\n", camera->Palette() );
 	sprintf( output+strlen(output), "Colours : %d\n", camera->Colours() );

@@ -437,16 +437,16 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 
 		if ( !strcmp( Units, "Percent" ) )
 		{
-			LoX = (LoX*(monitor->CameraWidth()-1))/100;
-			LoY = (LoY*(monitor->CameraHeight()-1))/100;
-			HiX = (HiX*(monitor->CameraWidth()-1))/100;
-			HiY = (HiY*(monitor->CameraHeight()-1))/100;
-			MinAlarmPixels = (MinAlarmPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
-			MaxAlarmPixels = (MaxAlarmPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
-			MinFilterPixels = (MinFilterPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
-			MaxFilterPixels = (MaxFilterPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
-			MinBlobPixels = (MinBlobPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
-			MaxBlobPixels = (MaxBlobPixels*monitor->CameraWidth()*monitor->CameraHeight())/100;
+			LoX = (LoX*(monitor->Width()-1))/100;
+			LoY = (LoY*(monitor->Height()-1))/100;
+			HiX = (HiX*(monitor->Width()-1))/100;
+			HiY = (HiY*(monitor->Height()-1))/100;
+			MinAlarmPixels = (MinAlarmPixels*monitor->Width()*monitor->Height())/100;
+			MaxAlarmPixels = (MaxAlarmPixels*monitor->Width()*monitor->Height())/100;
+			MinFilterPixels = (MinFilterPixels*monitor->Width()*monitor->Height())/100;
+			MaxFilterPixels = (MaxFilterPixels*monitor->Width()*monitor->Height())/100;
+			MinBlobPixels = (MinBlobPixels*monitor->Width()*monitor->Height())/100;
+			MaxBlobPixels = (MaxBlobPixels*monitor->Width()*monitor->Height())/100;
 		}
 
 		if ( atoi(dbrow[2]) == Zone::INACTIVE )

@@ -56,19 +56,7 @@ public:
 	unsigned int ImageSize() const { return( colours*width*height ); }
 
 	virtual int PreCapture()=0;
-	virtual unsigned char *PostCapture()=0;
 	virtual int PostCapture( Image &image )=0;
-
-	inline unsigned char *Capture()
-	{
-		PreCapture();
-		return( PostCapture() );
-	}
-	inline int Capture( Image &image )
-	{
-		PreCapture();
-		return( PostCapture( image ) );
-	}
 };
 
 #endif // ZM_CAMERA_H

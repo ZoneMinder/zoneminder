@@ -319,20 +319,6 @@ int RemoteCamera::PreCapture()
 	return( 0 );
 }
 
-unsigned char *RemoteCamera::PostCapture()
-{
-	int max_size = width*height*colours;
-	unsigned char *buffer = (unsigned char *)malloc( max_size );
-	int content_length = GetResponse( buffer, max_size );
-	if ( content_length < 0 )
-	{
-		Disconnect();
-		return( 0 );
-	}
-
-	return( buffer );
-}
-
 int RemoteCamera::PostCapture( Image &image )
 {
 	int max_size = width*height*colours;

@@ -446,22 +446,6 @@ int LocalCamera::PreCapture()
 	return( 0 );
 }
 
-unsigned char *LocalCamera::PostCapture()
-{
-	//Info(( "%s: Capturing image", id ));
-
-	if ( ioctl(m_videohandle, VIDIOCSYNC, &m_sync_frame) )
-	{
-		Error(( "Sync failure for frame %d: %s", m_sync_frame, strerror(errno)));
-		return( 0 );
-	}
-
-	unsigned char *buffer = m_buffer+(m_sync_frame*m_vmb.size/m_vmb.frames);
-	m_sync_frame = (m_sync_frame+1)%m_vmb.frames;
-
-	return( buffer );
-}
-
 int LocalCamera::PostCapture( Image &image )
 {
 	//Info(( "%s: Capturing image", id ));
@@ -475,14 +459,14 @@ int LocalCamera::PostCapture( Image &image )
 	unsigned char *buffer = m_buffer+(m_sync_frame*m_vmb.size/m_vmb.frames);
 	m_sync_frame = (m_sync_frame+1)%m_vmb.frames;
 
-	static unsigned char temp_buffer[2048*1536];
+	static unsigned char temp_buffer[ZM_MAX_IMAGE_SIZE];
 	switch( palette )
 	{
 		case VIDEO_PALETTE_YUV420P :
 		{
-			static unsigned char y_plane[2048*1536];
-			static char u_plane[2048*1536];
-			static char v_plane[2048*1536];
+			static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
+			static char u_plane[ZM_MAX_IMAGE_DIM];
+			static char v_plane[ZM_MAX_IMAGE_DIM];
 
 			unsigned char *rgb_ptr = temp_buffer;
 			unsigned char *y_ptr = y_plane;
@@ -632,6 +616,7 @@ int LocalCamera::PostCapture( Image &image )
 			break;
 		}
 	}
+
 	image.Assign( width, height, colours, buffer );
 
 	return( 0 );

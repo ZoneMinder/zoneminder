@@ -1,3 +1,3 @@
 AUTOMAKE_OPTIONS = gnu
 
-EXTRA_DIST = zmschema.sql.z zmalter-0.0.1.sql zmalter-0.9.7.sql zmalter-0.9.8.sql zmalter-0.9.9.sql zmalter-0.9.10.sql
+EXTRA_DIST = zmschema.sql.z zmalter-0.0.1.sql zmalter-0.9.7.sql zmalter-0.9.8.sql zmalter-0.9.9.sql zmalter-0.9.10.sql zmalter-0.9.11.sql

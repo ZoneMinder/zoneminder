@@ -1217,7 +1217,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 </table></td></tr>
 </table></td>
 </tr>
-<tr><td align="right"><?php if ( LEARN_MODE ) { ?><select name="learn_state" class="form" disabled><option value="">Ignore</option><option value="-">Exclude</option><option value="+">Include</option></select>&nbsp;&nbsp;<input type="button" name="learn_btn" value="Set Learn Prefs" class="form" onClick="event_form.action.value = 'learn'; event_form.submit();" disabled>&nbsp;&nbsp;<?php } ?><input type="button" name="delete_btn" value="Delete" class="form" onClick="event_form.action.value = 'delete'; event_form.submit();" disabled></td></tr>
+<tr><td align="right"><?php if ( LEARN_MODE ) { ?><select name="learn_state" class="form" disabled><option value="">Ignore</option><option value="-">Exclude</option><option value="+">Include</option></select>&nbsp;&nbsp;<input type="button" name="learn_btn" value="Set Learn Prefs" class="form" onClick="document.event_form.action.value = 'learn'; document.event_form.submit();" disabled>&nbsp;&nbsp;<?php } ?><input type="button" name="delete_btn" value="Delete" class="form" onClick="document.event_form.action.value = 'delete'; document.event_form.submit();" disabled></td></tr>
 </table></center>
 </form>
 </body>
@@ -2059,6 +2059,7 @@ function configureButton(form,name)
 			$monitor['Function'] = "None";
 			$monitor[Type] = "Local";
 			$monitor[Port] = "80";
+			$monitor[Orientation] = "0";
 			$monitor[LabelFormat] = '%%s - %y/%m/%d %H:%M:%S';
 			$monitor[LabelX] = 0;
 			$monitor[LabelY] = 0;
@@ -2072,6 +2073,7 @@ function configureButton(form,name)
 		}
 		$local_palettes = array( "Grey"=>1, "RGB24"=>4, "RGB565"=>3, "YUV420P"=>15 );
 		$remote_palettes = array( "8 bit greyscale"=>1, "24 bit colour"=>4 );
+		$orientations = array( "Normal"=>0, "Rotate Right"=>90, "Inverted"=>180, "Rotate Left"=>270 );
 ?>
 <html>
 <head>
@@ -2128,7 +2130,7 @@ $select_name = "new_type";
 $$select_name = $$select_name?$$select_name:$monitor[Type];
 $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 ?>
-<tr><td align="left" class="text">Source Type</td><td><?php buildSelect( $select_name, $source_types, "monitor_form.submit();" ); ?></td></tr>
+<tr><td align="left" class="text">Source Type</td><td><?php buildSelect( $select_name, $source_types, "document.monitor_form.submit();" ); ?></td></tr>
 <?php
 		if ( $$select_name == "Local" )
 		{
@@ -2151,6 +2153,7 @@ $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 ?>
 <tr><td align="left" class="text">Capture Width (pixels)</td><td align="left" class="text"><input type="text" name="new_width" value="<?= $monitor[Width] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Capture Height (pixels)</td><td align="left" class="text"><input type="text" name="new_height" value="<?= $monitor[Height] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Orientation</td><td align="left" class="text"><select name="new_orientation" class="form"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $monitor[Orientation] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <tr><td align="left" class="text">Timestamp Label Format</td><td align="left" class="text"><input type="text" name="new_label_format" value="<?= $monitor[LabelFormat] ?>" size="20" class="form"></td></tr>
 <tr><td align="left" class="text">Timestamp Label X</td><td align="left" class="text"><input type="text" name="new_label_x" value="<?= $monitor[LabelX] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Timestamp Label Y</td><td align="left" class="text"><input type="text" name="new_label_y" value="<?= $monitor[LabelY] ?>" size="4" class="form"></td></tr>
@@ -2168,7 +2171,7 @@ $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 <?php } ?>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
-<td align="left"><input type="submit" value="Save" class="form" onClick="monitor_form.view.value='none'; monitor_form.action.value='monitor';"></td>
+<td align="left"><input type="submit" value="Save" class="form" onClick="document.monitor_form.view.value='none'; document.monitor_form.action.value='monitor';"></td>
 <td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>

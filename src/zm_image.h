@@ -121,10 +121,14 @@ public:
 			width = p_width;
 			height = p_height;
 			colours = p_colours;
-			size = width*height*colours;
-			delete[] buffer;
-			buffer = new JSAMPLE[size];
-			memset( buffer, 0, size );
+			int new_size = width*height*colours;
+			if ( size != new_size )
+			{
+				size = new_size;
+				delete[] buffer;
+				buffer = new JSAMPLE[size];
+				memset( buffer, 0, size );
+			}
 		}
 		memcpy( buffer, new_buffer, size );
 	}
@@ -164,6 +168,7 @@ public:
 	void Fill( Rgb colour, const Box *limits=0 );
 	void Hatch( Rgb colour, const Box *limits=0 );
 
+	void Rotate( int angle );
 };
 
 #endif // ZM_IMAGE_H

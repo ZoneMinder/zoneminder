@@ -58,7 +58,6 @@ public:
 	unsigned int Format() const { return( format ); }
 
 	int PreCapture();
-	unsigned char *PostCapture();
 	int PostCapture( Image &image );
 
 	static bool GetCurrentSettings( int device, char *output, bool verbose );

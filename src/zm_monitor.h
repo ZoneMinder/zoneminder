@@ -44,13 +44,18 @@ public:
 		X10
 	} Function;
 
+	typedef enum { ROTATE_0=1, ROTATE_90, ROTATE_180, ROTATE_270 } Orientation;
+
 	typedef enum { IDLE, ALARM, ALERT } State;
 
 protected:
 	// These are read from the DB and thereafter remain unchanged
 	int		id;
 	char	*name;
-	Function	function;
+	unsigned int    width;		// Normally the same as the camera, but not if partly rotated
+	unsigned int    height;		// Normally the same as the camera, but not if partly rotated
+	Function	function;		// What the monitor is doing
+	Orientation	orientation;	// Whether the image has to be rotated at all
 	char	label_format[64];	// The format of the timestamp on the images
 	Coord	label_coord;		// The coordinates of the timestamp on the images
 	int		image_buffer_count; // Size of circular image buffer, at least twice the size of the pre_event_count
@@ -105,8 +110,8 @@ protected:
 	Camera *camera;
 	
 public:
-	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones=0, Zone *p_zones[]=0 );
-	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_colours, bool p_capture, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_capture, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_capture, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
@@ -135,19 +140,8 @@ public:
 	bool DumpSettings( char *output, bool verbose );
 	void DumpZoneImage();
 
-	unsigned int CameraWidth() const { return( camera->Width() ); }
-	unsigned int CameraHeight() const { return( camera->Height() ); }
-	inline int Capture()
-	{
-		if ( camera->PreCapture() == 0 )
-		{
-			if ( camera->PostCapture() == 0 )
-			{
-				return( 0 );
-			}
-		}
-		return( -1 );
-	}
+	unsigned int Width() const { return( width ); }
+	unsigned int Height() const { return( height ); }
 	inline int PreCapture()
 	{
 		return( camera->PreCapture() );
@@ -156,6 +150,11 @@ public:
 	{
 		if ( camera->PostCapture( image ) == 0 )
 		{
+			if ( orientation != ROTATE_0 )
+			{
+				image.Rotate( (orientation-1)*90 );
+			}
+
 			char label_time_text[64];
 			char label_text[64];
 			time_t now = time( 0 );
@@ -176,8 +175,6 @@ public:
 			}
 			gettimeofday( image_buffer[index].timestamp, &dummy_tz );
 			image_buffer[index].image->CopyBuffer( image );
-			//memcpy( image_buffer[index].image->buffer, image.buffer, image.size );
-			//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
 
 			shared_images->last_write_index = index;
 

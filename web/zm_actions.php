@@ -247,6 +247,7 @@ if ( $action )
 		if ( $new_width != $monitor['Width'] ) $changes[] = "Width = '$new_width'";
 		if ( $new_height != $monitor['Height'] ) $changes[] = "Height = '$new_height'";
 		if ( $new_colours != $monitor['Palette'] ) $changes[] = "Palette = '$new_palette'";
+		if ( $new_orientation != $monitor['Orientation'] ) $changes[] = "Orientation = '$new_orientation'";
 		if ( $new_label_format != $monitor['LabelFormat'] ) $changes[] = "LabelFormat = '$new_label_format'";
 		if ( $new_label_x != $monitor['LabelX'] ) $changes[] = "LabelX = '$new_label_x'";
 		if ( $new_label_y != $monitor['LabelY'] ) $changes[] = "LabelY = '$new_label_y'";

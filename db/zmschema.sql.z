@@ -94,6 +94,7 @@ CREATE TABLE Monitors (
   Width smallint(5) unsigned NOT NULL default '0',
   Height smallint(5) unsigned NOT NULL default '0',
   Palette tinyint(3) unsigned NOT NULL default '1',
+  Orientation enum('0','90','180','270') NOT NULL default '0',
   LabelFormat varchar(32) NOT NULL default '%%s - %y/%m/%d %H:%M:%S',
   LabelX smallint(5) unsigned default NULL,
   LabelY smallint(5) unsigned default NULL,

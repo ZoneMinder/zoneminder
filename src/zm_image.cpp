@@ -706,3 +706,123 @@ void Image::Fill( Rgb colour, const Box *limits )
 	}
 }
 
+void Image::Rotate( int angle )
+{
+	angle %= 360;
+
+	if ( !angle )
+	{
+		return;
+	}
+	if ( angle%90 )
+	{
+		return;
+	}
+	static unsigned char rotate_buffer[ZM_MAX_IMAGE_SIZE];
+	switch( angle )
+	{
+		case 90 :
+		{
+			int temp = width;
+			width = height;
+			height = temp;
+
+			unsigned char *s_ptr = buffer;
+
+			if ( colours == 1 )
+			{
+				unsigned char *d_ptr;
+				for ( int i = width-1; i >= 0; i-- )
+				{
+					d_ptr = rotate_buffer+i;
+					for ( int j = height-1; j >= 0; j-- )
+					{
+						*d_ptr = *s_ptr++;
+						d_ptr += width;
+					}
+				}
+			}
+			else
+			{
+				unsigned char *d_ptr;
+				for ( int i = width-1; i >= 0; i-- )
+				{
+					d_ptr = rotate_buffer+(3*i);
+					for ( int j = height-1; j >= 0; j-- )
+					{
+						*d_ptr = *s_ptr++;
+						*(d_ptr+1) = *s_ptr++;
+						*(d_ptr+2) = *s_ptr++;
+						d_ptr += (3*width);
+					}
+				}
+			}
+			break;
+		}
+		case 180 :
+		{
+			unsigned char *s_ptr = buffer+size;
+			unsigned char *d_ptr = rotate_buffer;
+
+			if ( colours == 1 )
+			{
+				while( s_ptr > buffer )
+				{
+					s_ptr--;
+					*d_ptr++ = *s_ptr;
+				}
+			}
+			else
+			{
+				while( s_ptr > buffer )
+				{
+					s_ptr -= 3;
+					*d_ptr++ = *s_ptr;
+					*d_ptr++ = *(s_ptr+1);
+					*d_ptr++ = *(s_ptr+2);
+				}
+			}
+			break;
+		}
+		case 270 :
+		{
+			int temp = width;
+			width = height;
+			height = temp;
+
+			unsigned char *s_ptr = buffer+size;
+
+			if ( colours == 1 )
+			{
+				unsigned char *d_ptr;
+				for ( int i = width-1; i >= 0; i-- )
+				{
+					d_ptr = rotate_buffer+i;
+					for ( int j = height-1; j >= 0; j-- )
+					{
+						s_ptr--;
+						*d_ptr = *s_ptr;
+						d_ptr += width;
+					}
+				}
+			}
+			else
+			{
+				unsigned char *d_ptr;
+				for ( int i = width-1; i >= 0; i-- )
+				{
+					d_ptr = rotate_buffer+(3*i);
+					for ( int j = height-1; j >= 0; j-- )
+					{
+						*(d_ptr+2) = *(--s_ptr);
+						*(d_ptr+1) = *(--s_ptr);
+						*d_ptr = *(--s_ptr);
+						d_ptr += (3*width);
+					}
+				}
+			}
+			break;
+		}
+	}
+	memcpy( buffer, rotate_buffer, size );
+}

@@ -73,7 +73,6 @@ public:
 	int GetHeader( const char *content, const char *header, char *value );
 	int GetResponse( unsigned char *&buffer, int &max_size );
 	int PreCapture();
-	unsigned char *PostCapture();
 	int PostCapture( Image &image );
 };
 

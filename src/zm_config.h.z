@@ -53,3 +53,8 @@
 #define ZM_OPT_ADAPTIVE_SKIP	<from zmconfig>		// Whether we use the adaptive skip algorithm
 #define ZM_OPT_FRAME_SERVER		<from zmconfig>		// Whether we use the frame server to speed things up
 
+#define ZM_MAX_IMAGE_WIDTH		2048				// The largest image we imagine ever handling
+#define ZM_MAX_IMAGE_HEIGHT		1536				// The largest image we imagine ever handling
+#define ZM_MAX_IMAGE_COLOURS	3					// The largest image we imagine ever handling
+#define ZM_MAX_IMAGE_DIM		(ZM_MAX_IMAGE_WIDTH*ZM_MAX_IMAGE_HEIGHT)
+#define ZM_MAX_IMAGE_SIZE		(ZM_MAX_IMAGE_DIM*ZM_MAX_IMAGE_COLOURS)

@@ -23,7 +23,7 @@ if ( !canView( 'Stream' ) )
 	$view = "error";
 	return;
 }
-if ( !isset($mode) )
+if ( empty($mode) )
 {
 	if ( canStream() )
 		$mode = "stream";
@@ -34,6 +34,8 @@ if ( !isset($mode) )
 $result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
 $monitors = array();
 $mon_idx = 0;
+$max_width = 0;
+$max_height = 0;
 while( $row = mysql_fetch_assoc( $result ) )
 {
 	if ( !visibleMonitor( $row['Id'] ) )
@@ -42,6 +44,8 @@ while( $row = mysql_fetch_assoc( $result ) )
 	}
 	if ( isset($mid) && $row['Id'] == $mid )
 		$mon_idx = count($monitors);
+	if ( $max_width < $row['Width'] ) $max_width = $row['Width'];
+	if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
 	$monitors[] = $row;
 }
 
@@ -49,13 +53,18 @@ $monitor = $monitors[$mon_idx];
 $next_mid = $mon_idx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$mon_idx+1]['Id'];
 $montage_width = ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$monitor['Width'];
 $montage_height = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$monitor['Height'];
+$width_scale = ($montage_width*SCALE_SCALE)/$monitor['Width'];
+$height_scale = ($montage_height*SCALE_SCALE)/$monitor['Height'];
+$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
+    
+if ( $mode != "stream" )
+{
+	// Prompt an image to be generated
+	createImage( $monitor, $scale );
+	if ( ZM_WEB_REFRESH_METHOD == "http" )
+		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
+}
 
-// Prompt an image to be generated
-chdir( ZM_DIR_IMAGES );
-$status = exec( escapeshellcmd( ZMU_COMMAND." -m ".$monitor['Id']." -i" ) );
-									 
-if ( ZM_WEB_REFRESH_METHOD == "http" )
-	header("Refresh: ".REFRESH_CYCLE."; URL=$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" );
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -86,7 +95,7 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$nex
 ?>
 </script>
 </head>
-<body>
+<body style="margin: 0px">
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
 <tr>
 <td width="33%" align="left" class="text"><b><?= $monitor['Name'] ?></b></td>
@@ -102,24 +111,24 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$nex
 <?php
 if ( $mode == "stream" )
 {
-	$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&ttl=".REFRESH_CYCLE;
+	$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&ttl=".REFRESH_CYCLE."&scale=".$scale;
 	if ( canStreamNative() )
 	{
 ?>
-<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= $stream_src ?>" border="0" width="<?= $montage_width ?>" height="<?= $montage_height ?>"></a></td></tr>
+<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></a></td></tr>
 <?php
 	}
 	else
 	{
 ?>
-<tr><td colspan="3" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= $montage_width ?>" height="<?= $montage_height ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<tr><td colspan="3" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
 <?php
 	}
 }
 else
 {
 ?>
-<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= $montage_width ?>" height="<?= $montage_height ?>"></a></td></tr>
+<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></a></td></tr>
 <?php
 }
 ?>

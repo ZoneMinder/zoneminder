@@ -13,6 +13,7 @@ EXTRA_DIST = zmconfig.php.z zmactions.php zmdb.php zmfuncs.php zmhtml.php zm.php
 # Yes, you are correct. This is a HACK!
 install-data-local:
 	( cd $(webdir); chown $(webuser):$(webgroup) $(web_DATA) )
+	@-( cd $(webdir); if ! test -e events; then mkdir events; fi; chown $(webuser):$(webgroup) events; chmod u+w events )
 	@-( cd $(webdir); if ! test -e images; then mkdir images; fi; chown $(webuser):$(webgroup) images; chmod u+w images )
 	@-( cd $(webdir); if ! test -e sounds; then mkdir sounds; fi; chown $(webuser):$(webgroup) sounds; chmod u+w sounds )
 	@-( cd $(webdir); if ! test -e temp; then mkdir temp; fi; chown $(webuser):$(webgroup) temp; chmod u+w temp )

@@ -329,12 +329,8 @@ int zmDbgOutput( const char *fstring, ... )
 		}
 	}
 	/* For Info, Warning, Errors etc we want to log them */
-	if ( zm_dbg_code <= ZM_DBG_INF )
+	if ( 1 || zm_dbg_code <= ZM_DBG_INF )
 	{
-		if ( !zm_dbg_flush )
-		{
-			fflush(zm_dbg_log_fd);
-		}
 		switch(zm_dbg_code)
 		{
 			case ZM_DBG_INF:
@@ -350,7 +346,8 @@ int zmDbgOutput( const char *fstring, ... )
 				log_code = LOG_CRIT;
 				break;
 			default:
-				log_code = LOG_CRIT;
+				//log_code = LOG_DEBUG;
+				log_code = LOG_INFO;
 				break;
 		}
 		log_code |= LOG_LOCAL1;

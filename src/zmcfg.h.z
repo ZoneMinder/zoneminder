@@ -30,3 +30,5 @@
 #define ZM_EVENT_DIR			"events"	// Event directory relative to web directory
 
 #define ZM_FORCED_ALARM_SCORE	255			// Score to give X10 forced alarms
+
+#define ZM_RECORD_EVENT_STATS	true		// Whether to record event statistical information, change to false if too slow

@@ -1525,7 +1525,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 		}
 	}
 
-	record_zone_stats = true;
+	record_event_stats = ZM_RECORD_EVENT_STATS;
 }
 
 Monitor::~Monitor()
@@ -1804,7 +1804,7 @@ bool Monitor::Analyse()
 					if ( zones[i]->Alarmed() )
 					{
 						alarm_image.Overlay( zones[i]->AlarmImage() );
-						if ( record_zone_stats )
+						if ( record_event_stats )
 						{
 							zones[i]->RecordStats( event );
 						}

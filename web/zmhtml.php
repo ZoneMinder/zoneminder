@@ -743,6 +743,7 @@ function configureButton(form,name)
 	}
 	form.delete_btn.disabled = !checked;
 }
+window.focus();
 <?php if ( $filter ) { ?>
 filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php echo $filter_query ?>', 'zmFilter<?php echo $monitor[Name] ?>' );
 <?php } ?>
@@ -888,6 +889,7 @@ function submitToEvents( form )
 	form.view.value = 'events';
 	form.submit();
 }
+window.focus();
 </script>
 </head>
 <body>
@@ -1066,7 +1068,7 @@ function deleteEvent()
 <title>ZM - Event - <?php echo $event[Name] ?></title>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
-opener.location.reload();
+//opener.location.reload();
 window.focus();
 function refreshWindow()
 {

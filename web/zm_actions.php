@@ -277,7 +277,7 @@ if ( $action )
 
 				if ( count( $x10_changes ) )
 				{
-					if ( $mid > 0 )
+					if ( $x10_monitor && $new_x10_monitor )
 					{
 						$sql = "update TriggersX10 set ".implode( ", ", $x10_changes )." where MonitorId = '$mid'";
 						$result = mysql_query( $sql );
@@ -286,10 +286,20 @@ if ( $action )
 					}
 					elseif ( !$user[MonitorIds] )
 					{
-						$sql = "insert into TriggersX10 set MonitorId = '$mid', ".implode( ", ", $x10_changes );
-						$result = mysql_query( $sql );
-						if ( !$result )
-							die( mysql_error() );
+						if ( !$x10_monitor )
+						{
+							$sql = "insert into TriggersX10 set MonitorId = '$mid', ".implode( ", ", $x10_changes );
+							$result = mysql_query( $sql );
+							if ( !$result )
+								die( mysql_error() );
+						}
+						else
+						{
+							$sql = "delete from TriggersX10 where MonitorId = '$mid'";
+							$result = mysql_query( $sql );
+							if ( !$result )
+								die( mysql_error() );
+						}
 					}
 					$restart = true;
 				}

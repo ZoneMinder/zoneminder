@@ -197,7 +197,7 @@ ul
 
 <div class=Section1>
 
-<p class=MsoTitle><u>ZoneMinder v1.19.2</u></p>
+<p class=MsoTitle><u>ZoneMinder v1.19.3</u></p>
 
 <h1 style='text-indent:-22.7pt;page-break-before:auto'><span style='text-decoration:
 none'>1.<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -231,9 +231,9 @@ even at work or on the road. It supports variable web capabilities based on
 available bandwidth. The web interface also allows you to view events that your
 cameras have captured and archive them or review them time and again, or delete
 the ones you no longer wish to keep. The web pages directly interact with the
-core daemons ensuring full co-operation at all times. ZoneMinder can even be installed
-as a system service ensuring it is right there if your computer has to reboot
-for any reason.</p>
+core daemons ensuring full co-operation at all times. ZoneMinder can even be
+installed as a system service ensuring it is right there if your computer has
+to reboot for any reason.</p>
 
 <p class=MsoPlainText>The core of ZoneMinder is the capture and analysis of
 images and there is a highly configurable set of parameters that allow you to
@@ -621,8 +621,8 @@ analysis is done and so no alarms or events will be generated, </p>
 
 <p class=MonitorBullet style='text-indent:-63.0pt'><span style='font-family:
 Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>'Modect' – or MOtion DEteCTtion. All captured images will be
-analysed and events generated where motion is detected,</p>
+</span></span>'Modect' – or MOtion DEteCTtion. All captured images will be analysed
+and events generated where motion is detected,</p>
 
 <p class=MonitorBullet style='text-indent:-63.0pt'><span style='font-family:
 Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1049,9 +1049,9 @@ to work out necessary sizes rather easier.</p>
 
 <p class=MsoPlainText style='margin-left:27.0pt'><b>Min/Maximum X/Y</b> -
 Following the units the next four settings define the bounds of the Zone in the
-monitor frame and are self-explanatory with the exception of the fact that the
-minima are at the top left of the frame and the maxima are at the bottom right
-rather than in a Cartesian style.</p>
+monitor frame and are self-explanatory with the exception of the fact that the minima
+are at the top left of the frame and the maxima are at the bottom right rather
+than in a Cartesian style.</p>
 
 <p class=MsoPlainText style='margin-left:27.0pt'><b>Alarm Colour </b>- The
 option after that allows you to specify what colour you'd like any alarms this
@@ -1095,9 +1095,9 @@ that exceed this threshold that would cause an alarm. If the units are Percent
 this (and following options) refers to the percentage of the frame and not the
 zone, this is so these values can be related between zones. The minimum value
 must be matched or exceeded for an alarm to be generated whereas the maximum
-must not be exceeded or the alarm will be cancelled. This is to allow for sudden
-changes such as lights coming on etc, which you may wish to disregard. In
-general a value of zero for any of these settings causes that value to be
+must not be exceeded or the alarm will be cancelled. This is to allow for
+sudden changes such as lights coming on etc, which you may wish to disregard.
+In general a value of zero for any of these settings causes that value to be
 ignored, so you can safely set a maximum to zero and it will not be used. The
 use of just a number of pixels is however a very brute force method of
 detection as many small events dispersed widely are not distinguished from a
@@ -1175,28 +1175,28 @@ expect very brief events. Alternatively you can decrease the refresh interval
 for this window in the configuration though having too frequently refreshing
 may impact on performance.</p>
 
-<p class=MsoPlainText>Below the status is a list of recent events that have occurred,
-by default this  is a listing of just the last 10 but clicking on 'All' will
-give you a full list  and 'Archive' will take you to the event archive for this
-monitor, more on this  later. Clicking on any of the column headings will sort
-the events appropriately.</p>
+<p class=MsoPlainText>Below the status is a list of recent events that have
+occurred, by default this  is a listing of just the last 10 but clicking on
+'All' will give you a full list  and 'Archive' will take you to the event
+archive for this monitor, more on this  later. Clicking on any of the column
+headings will sort the events appropriately.</p>
 
 <p class=MsoPlainText>From here you can also delete events if you wish. The
 events themselves are listed with the event id, and event name (which you can
 change), the time that the event occurred, the length of the event including
 any preamble and postamble frames, the number of frames comprising the event
 with the number that actually contain an alarm in brackets and finally a score.
-This column lists the average score per alarm frame as well as the maximum
-score that any alarm frame had.</p>
+This column lists the average score per alarm frame as well as the maximum score
+that any alarm frame had.</p>
 
 <p class=MsoPlainText>The score is an arbitrary value that essentially
 represents the percentage of pixels in the zone that are in blobs divided by
 the square root of the number of blobs and then divided by the size of the
-zone. This gives a nominal maximum of 100 for a zone and the totals for each zone
-are added together, Active zones scores are added unchanged, Inclusive zones
-are halved first and Exclusive zones are doubled. In reality values are likely
-to be much less than 100 but it does give a simple indication of how major the
-event was.</p>
+zone. This gives a nominal maximum of 100 for a zone and the totals for each
+zone are added together, Active zones scores are added unchanged, Inclusive
+zones are halved first and Exclusive zones are doubled. In reality values are
+likely to be much less than 100 but it does give a simple indication of how
+major the event was.</p>
 
 <h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>5.4.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Filtering
@@ -1232,17 +1232,18 @@ to limit the amount of events displayed.</p>
 <p class=MsoPlainText>There are several different elements to an event that you
 can filter on, some of which require further explanation. These are as follows,
 'Date/Time' which must evaluate to a date and a time together, 'Date' and
-'Time' which are variants which may only contain the relevant subsets of this, 'Weekday'
-which as expected is a day of the week. All of the preceding elements take a
-very flexible free format of dates and time based on the PHP strtotime function
-(http://www.zend.com/manual/function.strtotime.php). This allows values such as
-'last Wednesday' etc to be entered. I recommend acquainting yourself with this
-function to see what the allowed formats are. However automated filters are run
-in perl and so are parsed by the Date::Manip package. Not all date formats are
-available in both so if you are saved your filter to do automatic deletions or
-other tasks you should make sure that the date and time format you use is
-compatible with both methods. The safest type of format to use is ‘-3 day’ or
-similar with easily parseable numbers and units are in English.</p>
+'Time' which are variants which may only contain the relevant subsets of this,
+'Weekday' which as expected is a day of the week. All of the preceding elements
+take a very flexible free format of dates and time based on the PHP strtotime
+function (http://www.zend.com/manual/function.strtotime.php). This allows
+values such as 'last Wednesday' etc to be entered. I recommend acquainting
+yourself with this function to see what the allowed formats are. However
+automated filters are run in perl and so are parsed by the Date::Manip package.
+Not all date formats are available in both so if you are saved your filter to
+do automatic deletions or other tasks you should make sure that the date and
+time format you use is compatible with both methods. The safest type of format
+to use is ‘-3 day’ or similar with easily parseable numbers and units are in
+English.</p>
 
 <p class=MsoPlainText>The other elements you can filter on are all fairly self
 explanatory except perhaps for 'Archived' which you can use to include or
@@ -1273,27 +1274,27 @@ them. This includes links to the event view or the filter as well as the option
 of attaching images or videos to the email itself. See the included templates
 zmconfig_eml.txt and zmconfig_msg.txt for a fuller explanation of the
 availability and meaning of these tokens. Finally you can also specify a script
-which is run on each matched event. This script should be readable and executable
-by your web server user. It will get run once per event and the relative path
-to the directory containing the event in question. Normally this will be of the
-form &lt;MonitorName&gt;/&lt;EventId&gt; so from this path you can derive both
-the monitor name and event id and perform any action you wish. Note that
-arbitrary commands are not allowed to be specified in the filter, for security the
-only thing it may contain is the full path to an executable. What that contains
-is entirely up to you however.</p>
+which is run on each matched event. This script should be readable and
+executable by your web server user. It will get run once per event and the
+relative path to the directory containing the event in question. Normally this
+will be of the form &lt;MonitorName&gt;/&lt;EventId&gt; so from this path you
+can derive both the monitor name and event id and perform any action you wish. Note
+that arbitrary commands are not allowed to be specified in the filter, for security
+the only thing it may contain is the full path to an executable. What that
+contains is entirely up to you however.</p>
 
 <p class=MsoPlainText>Filtering is a powerful mechanism you can use to
 eliminate events that fit a certain pattern however in many cases modifying the
 zone settings will better address this. Where it really comes into its own is
 generally in applying time filters, so for instance events that happen during
-weekdays or at certain times of the day are highlighted, uploaded or deleted. Additionally
-using disk related terms in your filters means you can automatically create
-filters that delete the oldest events when your disk gets full. Be warned
-however that if you use this strategy then you should limit the returned
-results to the amount of events you want deleted in each pass until the disk
-usage is at an acceptable level. If you do not do this then the first pass when
-the disk usage is high will match, and then delete, all events unless you have
-used other criteria inside of limits.</p>
+weekdays or at certain times of the day are highlighted, uploaded or deleted.
+Additionally using disk related terms in your filters means you can
+automatically create filters that delete the oldest events when your disk gets
+full. Be warned however that if you use this strategy then you should limit the
+returned results to the amount of events you want deleted in each pass until
+the disk usage is at an acceptable level. If you do not do this then the first
+pass when the disk usage is high will match, and then delete, all events unless
+you have used other criteria inside of limits.</p>
 
 <h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>5.5.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Viewing
@@ -1660,6 +1661,110 @@ Log </u></h1>
 
 <h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.1.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
+1.19.3</h2>
+
+<p class=MsoPlainText>Minor tweaks, fixes and language updates.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – All stills views now use the single image mode of zms
+rather than spawning off a zmu process to write an image which is then read. This
+reduces complexity of double buffering significantly and also reduces the
+chance of errors caused by multiple simultaneous image generation.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – The generated MIME types when creating streamed video
+were previously assigned by zms depending on which of a limited number of
+output formats was specified. This has now been changed so that the ffmpeg libavformat
+library itself now generates these identifiers. The consequence of this is that
+many more video formats supported by your version of ffmpeg should now be
+available via zms.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – When viewing a single frame of an event you can select
+a ‘stats’ link to view the statistics that apply to that frame, if you have the
+RECORD_EVENT_STATS option switched on. This can be used to help configure your
+zones for optimal motion detection. Previously only pixel count values were
+displayed here which made it difficult to configure zones configured in
+percentage terms. These values are now displayed in both pixel and percentage
+terms to assist in zone configuration. Note that the percentage values are
+based on the current size of the zone so if this is changed then the value displayed
+will not be applicable at the time of event generation.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – When doing motion detection an extra blob, that could never
+be removed, was sometimes included. This could have caused false triggering and
+has not been corrected.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – A problem was reported whereby when using bulk frame records
+to reduce database load the last frame record was not written. Replaying the
+event via the web interface resulting in the event being truncated. A
+correction has been made so prevent this and ensure that the last frame of an
+event is always recorded.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – If an analysis daemon terminates abnormally or the host
+computer crashes then events can be left in a state whereby they effectively
+have zero length and are useless. A change to zmaudit.pl was made such that any
+‘open’ events such as this which have not been updated for at least five
+minutes are closed and updated to reflect their actual content so that they may
+be viewed or saved. Events recovered in this way are named with a ‘(r)’ mark to
+help identify them.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – In more recent versions of MySQL the password hash
+generated is 50 characters long, which overflows the previous password field in
+the database which was only 32 characters long. This field has been extended to
+64 characters to accommodate this.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – The montage view had an error whereby the refresh timeout
+for stills was mislabelled causing continuous refresh attempts which rendered
+the view mostly unusable. The constants in question are now correctly
+referenced.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – The default, bandwidth specific, rate and scales were not
+always used as the records in the database were misnamed. This is now corrected
+though you may need to reset the values that were used previously as these will
+be lost if they had been changed.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – It was previously the case that old images could be left in
+the ‘images’ directory for a long period, sometimes resulting in incorrectly
+assuming correct operation. A fix was made to zmaudit.pl which modified the
+previous clean up of old WAP images so that any old images left in this
+directory are removed after a short period. Please ensure that if you have
+customised the web interface and have images you wish to keep that they are not
+left in the temporary images folder as they will now be deleted.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – A JavaScript error in the Zone configuration screen was
+identified and fixed.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>LANGUAGE – A Brazilian Portuguese translation has been supplied
+by Victor Diago and is available by selecting ‘pt_br’ as the language type.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>LANGUAGE – Updated versions of the Dutch and Argentinian Spanish translations
+have been included.</p>
+
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.2.<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.19.2</h2>
 
 <p class=MsoPlainText>Minor features, fixes and language updates.</p>
@@ -1667,15 +1772,15 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE – The default replay rate and live and event scale
-settings are now configurable on a per bandwidth basis rather than globally. This
-allows you to view at full scale when you have high bandwidth and at smaller
-scales when you do not have so much resource. You will need to re-configure
-your previous defaults as they will be lost.</p>
+settings are now configurable on a per bandwidth basis rather than globally.
+This allows you to view at full scale when you have high bandwidth and at
+smaller scales when you do not have so much resource. You will need to
+re-configure your previous defaults as they will be lost.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FEATURE – Filters can now include a specification of the preferred
-sort order of the results.</p>
+</span></span>FEATURE – Filters can now include a specification of the
+preferred sort order of the results.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1691,34 +1796,34 @@ as returned by <i>df(1)</i>. Thus filters using these criteria will either
 match all events or none at all depending on the disk usage at the time of
 filter execution. The addition of these terms along with the ability to sort
 and limit filter results now means it is possible to create a filter that will
-automatically clear out old events once disk usage exceeds a certain value. Included
-in the database schemas for both new installations and upgrades is a sample filter
-called PurgeWhenFull which can be used to do this. It is initially not set to
-do anything automatically so if you want to use it, you should load it into the
-filter selection window, modify it to your taste and then save it, selecting ‘auto
-delete’. Please note that filters created using disk related terms to delete
-events should always contain a limit term also otherwise it is possible for all
-events to match and thus be deleted. Using a limit ensures that only a small
-number are affected at any one time.</p>
+automatically clear out old events once disk usage exceeds a certain value.
+Included in the database schemas for both new installations and upgrades is a
+sample filter called PurgeWhenFull which can be used to do this. It is
+initially not set to do anything automatically so if you want to use it, you
+should load it into the filter selection window, modify it to your taste and
+then save it, selecting ‘auto delete’. Please note that filters created using
+disk related terms to delete events should always contain a limit term also
+otherwise it is possible for all events to match and thus be deleted. Using a
+limit ensures that only a small number are affected at any one time.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE – Filters can now be defined to automatically execute an
 external script or program of your choosing. This can be specified when the filter
 is saved. Note that for security reasons this cannot be just any arbitrary
-command but must be readable and executable by your web server effective user. The
-script or program you specify here will be executed in the events root
-directory once for each event and will be passed one parameter containing the relative
-path to the event directory. This will normally be of the form <i>&lt;MonitorName&gt;/&lt;EventId&gt;</i>
+command but must be readable and executable by your web server effective user.
+The script or program you specify here will be executed in the events root
+directory once for each event and will be passed one parameter containing the
+relative path to the event directory. This will normally be of the form <i>&lt;MonitorName&gt;/&lt;EventId&gt;</i>
 so it it possible to determine both the monitor and event in question from the
 path. Note also that a flag is set per event as with other auto actions
-indicating that an executable script has been run on that event and so to exclude
-it from subsequent matches. However if you have several filters all with
-executable scripts you will find that only the first gets executed as the flag
-will be set following successful completion and so no further scripts will be
-run on that event. Successful completion is indicated by the script returning a
-zero exit status, any other status indicates an error and the <i>executed </i>flag
-will not be set.</p>
+indicating that an executable script has been run on that event and so to
+exclude it from subsequent matches. However if you have several filters all
+with executable scripts you will find that only the first gets executed as the
+flag will be set following successful completion and so no further scripts will
+be run on that event. Successful completion is indicated by the script
+returning a zero exit status, any other status indicates an error and the <i>executed
+</i>flag will not be set.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1740,9 +1845,8 @@ been fixed. Previously this generated a bogus window.</p>
 </span></span>FIX – The zone definition have been updated so that selecting the
 various types of zones etc only disables those options you no longer have
 access to rather than wiping them out entirely. This is also true of the zone
-when saved. Thus you can now more easily change a zone to be temporarily
-inactive for example and have your previous active settings restored in the
-future.</p>
+when saved. Thus you can now more easily change a zone to be temporarily inactive
+for example and have your previous active settings restored in the future.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1775,26 +1879,27 @@ added. One, by Davide Morelli, was included in 1.19.1 but not announced.
 However like buses another one has come along, from Tolmino Muccitelli, and so
 they are both now present. The original translation is accessible by selecting <i>it_it</i>
 as the language whereas the new one is <i>it_it2</i>. I would prefer if they
-were merged as two versions of one language is not easy to maintain when I don’t
-know what the differences mean!</p>
+were merged as two versions of one language is not easy to maintain when I
+don’t know what the differences mean!</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>LANGUAGE – A version of Argentinian Spanish by Fernando Diaz has
-also been included and is accessible by setting your language to <i>es_ar</i>. As
-with all the language translations I cannot vouch for the completeness or
+also been included and is accessible by setting your language to <i>es_ar</i>.
+As with all the language translations I cannot vouch for the completeness or
 accuracy of the language files so feel free to feedback any updates you think
 should be made.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>NOTE – None of the non-English language files in this release do
-not contain any translations of the new, or modified, tokens which have been introduced
-in this release. All new or modified tokens are included in the language files
-in English. There will shortly be a point release which includes these language
-updates assuming I can get translations of them in a reasonable timescale.</p>
+not contain any translations of the new, or modified, tokens which have been
+introduced in this release. All new or modified tokens are included in the
+language files in English. There will shortly be a point release which includes
+these language updates assuming I can get translations of them in a reasonable
+timescale.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.2.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.3.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.19.1</h2>
 
@@ -1841,7 +1946,7 @@ in event filters did not generate valid database queries.</p>
 pass in a username and password to zmu when just querying a device as this was
 slightly broken and was unnecessary anyway.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.3.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.4.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.19.0</h2>
 
@@ -1962,11 +2067,11 @@ for the ZM_FRAME_SOCKET_SIZE option.</p>
 table, several people reported that when saving filters they actually got a
 duplicate. This resulted in several copies of filters all with the same name as
 the constraint on unique filter names was not present. Well it is now so when
-upgrading your database all the filters will be renamed from ‘myfilter’ to ‘myfilter_&lt;id&gt;’
-where ‘&lt;id&gt;’ is the id number in the database (which is then removed). In
-general the higher the id number the more recent the filter. So you should go
-through your filter list deleting old copies and then rename the last one back
-to it’s original name.</p>
+upgrading your database all the filters will be renamed from ‘myfilter’ to
+‘myfilter_&lt;id&gt;’ where ‘&lt;id&gt;’ is the id number in the database
+(which is then removed). In general the higher the id number the more recent
+the filter. So you should go through your filter list deleting old copies and
+then rename the last one back to it’s original name.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1997,7 +2102,7 @@ deleted when monitor was.</p>
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>A translation for the Dutch (nl_nl) language has been included.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.4.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.5.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.18.1</h2>
 
@@ -2021,7 +2126,7 @@ all of them. It is recommended that you review your list of saved filters and
 delete duplicates before adding any monitor specific terms and resetting the
 actions for any that remain.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.5.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.6.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.18.0</h2>
 
@@ -2167,7 +2272,7 @@ sometimes result in events a multiple of that length. So events that were meant
 to be 15 minutes long could sometimes be 30 or even 45 minutes. This was
 especially the case with monitors that had low frame rates. This is now fixed.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.6.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.7.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.17.2</h2>
 
@@ -2249,7 +2354,7 @@ bit annoying so any alarm flag is now cleared when this daemon exits.</p>
 </span></span>New Languages. Translations for Japanese (ja_jp), French (fr_fr)
 and Russian (ru_ru) are now included.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.7.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.8.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.17.1</h2>
 
@@ -2282,7 +2387,7 @@ settings as this is a rarely accessed area and contains a great deal of text.
 The new format allows individual options to be translated piecemeal as the
 opportunity arises.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.8.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.9.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.17.0</h2>
 
@@ -2341,7 +2446,7 @@ corrected.</p>
 </span></span>Minor Bugs. A number of minor bugs and inconsistencies were
 corrected.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.9.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.10.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.16</h2>
 
@@ -2429,14 +2534,13 @@ them being missing unless they have been explicitly configured to be used.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Adaptive Watchdog. zmwatch now more adaptive to actual frame
-rates.</p>
+</span></span>Adaptive Watchdog. zmwatch now more adaptive to actual frame rates.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Fixed zmfilter CPU sucking bug. zmfilter.pl will now restart on
-failure to read shared memory. Previously this could go into a nasty CPU sucking
-loop!</p>
+failure to read shared memory. Previously this could go into a nasty CPU
+sucking loop!</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2539,7 +2643,7 @@ parsed from command line options passed to zmu.</p>
 </span></span>Event window width variable. Event windows now scale to fit the
 event image size.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.10.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.11.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.15</h2>
 
@@ -2594,7 +2698,7 @@ written by zma directly were colourised whereas those written by  zmf weren’t.
 A change has been made whereby if set all greyscale JPEG images are colourised
 in all circumstances.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.11.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.12.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.14</h2>
 
@@ -2656,7 +2760,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 </span></span>All SQL buffers in the C++ code have been enlarged. There was
 previously an issue with a buffer overflow on certain occasions.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.12.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.13.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.13</h2>
 
@@ -2728,7 +2832,7 @@ from child windows to restart the refresh process. By using JS refresh timers
 which are not interrupted these extraneous refreshes have been mostly
 eliminated.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.13.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.14.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.12</h2>
 
@@ -2837,7 +2941,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 </span></span>Detect linmysqlclient.a. Added better detection script into
 ‘configure’ top spot when libmysqlclient.a is missing.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.14.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.15.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.11</h2>
 
@@ -2954,7 +3058,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 colours were just a bit too gaudy so I've toned them down a bit. Hope you like
 them!</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.15.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.16.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.10</h2>
 
@@ -3080,7 +3184,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 that that I don't think had been reported or noticed so I don’t think we need
 to talk about them here do we.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.16.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.17.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.9</h2>
 
@@ -3156,7 +3260,7 @@ reload if a monitor window for example was clicked. Thsi was removed in the
 last version which meant that sometimes the console never go refreshed as it's
 timing loop was broken. This functionality has now been reinstated.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.17.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.18.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.8</h2>
 
@@ -3279,7 +3383,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 active and an alarm has occurred the most recent alarms list is immediately
 refreshed to show it.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.18.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.19.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.7</h2>
 
@@ -3398,7 +3502,7 @@ separate events view.</p>
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>And much much more, probably...</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.19.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.20.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.0.1</h2>
 
@@ -3476,8 +3580,8 @@ when the daemons become active etc.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Create .rpm packages (as there can be several dependencies) and maybe
-other types of packages also, e.g. for Debian distributions.</p>
+</span></span>Create .rpm packages (as there can be several dependencies) and
+maybe other types of packages also, e.g. for Debian distributions.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3517,7 +3621,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><u>Non-Bug
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Yes, those are tabs in the indents; I like tabs so don't go
-changing them to spaces please. Also, yes I  like my opening braces on their
+changing them to spaces please. Also, yes I  like my opening braces on their
 own line most of the time, what's the point of brackets that don't line up?</p>
 
 <p class=MsoPlainText>Everything else that isn't definitely broken is probably

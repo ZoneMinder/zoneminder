@@ -31,6 +31,8 @@ zm_SOURCES = \
 	zm_remote_camera.cpp \
 	zm_monitor.cpp \
 	zm_mpeg.cpp \
+	zm_regexp.cpp \
+	zm_buffer.cpp \
 	zm_debug.c \
 	zm_jpeg.c
 
@@ -62,7 +64,9 @@ noinst_HEADERS = \
 	jinclude.h \
 	zmf.h \
 	zm_jpeg.h \
-	zm_mpeg.h
+	zm_mpeg.h \
+	zm_regexp.h \
+	zm_buffer.h
 
 EXTRA_DIST = zm_config.h.z
 

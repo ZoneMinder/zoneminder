@@ -211,7 +211,7 @@ my @options =
 		name => "ZM_WEB_ALARM_SOUND",
 		default => "",
 		description => "The sound to play on alarm, put this in the sounds directory",
-		help => "You can specify a sound file to play if an alarm occurs whilst you are watching a live monitor stream. So long as your browser understands the format it does not need to be any particular type. This file should be placed in the /var/www/html/zm/sounds directory.",
+		help => "You can specify a sound file to play if an alarm occurs whilst you are watching a live monitor stream. So long as your browser understands the format it does not need to be any particular type. This file should be placed in the sounds directory defined earlier.",
 		type => $types{file},
 		requires => [ { name => "ZM_WEB_SOUND_ON_ALARM", value => "yes" } ],
 	},

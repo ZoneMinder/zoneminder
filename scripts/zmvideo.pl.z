@@ -77,7 +77,7 @@ $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $event_id;
-my $rate = 0.0;
+my $rate = 1.0;
 my $scale = 1.0;
 my $overwrite = 0;
 
@@ -117,9 +117,9 @@ if ( ZM_OPT_MPEG eq "mpeg_encode" && $rate != 1.0 )
 	exit(-1);
 }
 
-if ( $rate < 0.25 || $rate > 10 )
+if ( $rate < 0.25 || $rate > 100 )
 {
-	print( STDERR "Rate is out of range, 0.25 >= rate <= 10\n" );
+	print( STDERR "Rate is out of range, 0.25 >= rate <= 100\n" );
 	Usage();
 }
 
@@ -232,13 +232,9 @@ if ( $overwrite || !-s $video_file )
 	elsif ( ZM_OPT_MPEG eq "ffmpeg" )
 	{
 		my $frame_rate = sprintf( "%.2f", $event->{Frames}/$event->{FullLength} );
-		if ( $rate != 0.0 )
+		if ( $rate != 1.0 )
 		{
 			$frame_rate *= $rate;
-		}
-		else
-		{
-			$frame_rate = 25.0;
 		}
 		my $width = $event->{MonitorWidth};
 		my $height = $event->{MonitorHeight};

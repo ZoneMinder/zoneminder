@@ -68,7 +68,7 @@ int main( int argc, const char *argv[] )
 				event = atoi( value );
 			else if ( !strcmp( name, "path" ) )
 				path = value;
-			else if ( !strcmp( name, "path" ) )
+			else if ( !strcmp( name, "ttl" ) )
 				ttl = atoi(value);
 		}
 	}

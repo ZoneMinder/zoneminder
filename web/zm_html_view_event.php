@@ -31,7 +31,16 @@ if ( !isset($mode) )
 		$mode = "still";
 }
 
-$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+if ( $user['MonitorIds'] )
+{
+	$mid_sql = " and MonitorId in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
+}
+else
+{
+	$mid_sql = '';
+}
+
+$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$eid'$mid_sql" );
 if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
@@ -39,12 +48,12 @@ $event = mysql_fetch_assoc( $result );
 if ( empty($mid) )
 {
 	$mid = 0;
-	$mid_sql = '';
 }
 else
 {
-	$mid_sql = " and MonitorId = '$mid'";
+	$mid_sql .= " and MonitorId = '$mid'";
 }
+
 $result = mysql_query( "select * from Events where Id < '$eid'$mid_sql order by Id desc limit 0,1" );
 if ( !$result )
 	die( mysql_error() );

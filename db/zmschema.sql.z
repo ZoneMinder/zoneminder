@@ -2,7 +2,7 @@
 --
 -- Host: localhost    Database: ZM_DB_NAME
 ---------------------------------------------------------
--- Server version	3.23.49
+-- Server version   3.23.49
 
 --
 -- Current Database: ZM_DB_NAME
@@ -22,7 +22,7 @@ CREATE TABLE Events (
   Name tinytext NOT NULL,
   StartTime datetime default NULL,
   EndTime datetime default NULL,
-  Length int(10) unsigned default NULL,
+  Length decimal(10,2) NOT NULL default '0.00',
   Frames int(10) unsigned default NULL,
   AlarmFrames int(10) unsigned default NULL,
   TotScore int(10) unsigned NOT NULL default '0',
@@ -68,6 +68,7 @@ CREATE TABLE Frames (
   AlarmFrame tinyint(4) NOT NULL default '0',
   ImagePath tinytext NOT NULL,
   TimeStamp timestamp(14) NOT NULL,
+  Delta decimal(8,2) NOT NULL default '0.00',
   Score smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY  (Id),
   UNIQUE KEY UC_Id (Id),

@@ -5,6 +5,14 @@
 -- Server version	3.23.49
 
 --
+-- Current Database: zm
+--
+
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ zm;
+
+USE zm;
+
+--
 -- Table structure for table 'Events'
 --
 
@@ -20,10 +28,26 @@ CREATE TABLE Events (
   AvgScore tinyint(3) unsigned default '0',
   MaxScore tinyint(3) unsigned default '0',
   Archived tinyint(4) default '0',
+  LearnState char(1) default '',
   PRIMARY KEY  (Id),
   UNIQUE KEY UC_Id (Id),
   KEY Id (Id,MonitorId),
   KEY MonitorId (MonitorId)
+) TYPE=MyISAM;
+
+--
+-- Table structure for table 'Filters'
+--
+
+CREATE TABLE Filters (
+  Id int(10) unsigned NOT NULL auto_increment,
+  MonitorId int(10) unsigned NOT NULL default '0',
+  Name varchar(64) NOT NULL default '',
+  Query text NOT NULL,
+  AutoDelete tinyint(4) NOT NULL default '0',
+  AutoUpload tinyint(4) NOT NULL default '0',
+  PRIMARY KEY  (Id),
+  UNIQUE KEY FilterIDX (MonitorId,Name)
 ) TYPE=MyISAM;
 
 --
@@ -68,6 +92,28 @@ CREATE TABLE Monitors (
   FPSReportInterval smallint(5) unsigned NOT NULL default '250',
   RefBlendPerc tinyint(3) unsigned NOT NULL default '10',
   PRIMARY KEY  (Id)
+) TYPE=MyISAM;
+
+--
+-- Table structure for table 'Stats'
+--
+
+CREATE TABLE Stats (
+  MonitorId int(10) unsigned NOT NULL default '0',
+  ZoneId int(10) unsigned NOT NULL default '0',
+  EventId int(10) unsigned NOT NULL default '0',
+  FrameId int(10) unsigned NOT NULL default '0',
+  AlarmPixels int(10) unsigned NOT NULL default '0',
+  FilterPixels int(10) unsigned NOT NULL default '0',
+  BlobPixels int(10) unsigned NOT NULL default '0',
+  Blobs smallint(5) unsigned NOT NULL default '0',
+  MinBlobSize smallint(5) unsigned NOT NULL default '0',
+  MaxBlobSize smallint(5) unsigned NOT NULL default '0',
+  MinX smallint(5) unsigned NOT NULL default '0',
+  MaxX smallint(5) unsigned NOT NULL default '0',
+  MinY smallint(5) unsigned NOT NULL default '0',
+  MaxY smallint(5) unsigned NOT NULL default '0',
+  Score smallint(5) unsigned NOT NULL default '0'
 ) TYPE=MyISAM;
 
 --

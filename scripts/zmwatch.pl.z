@@ -40,6 +40,7 @@ use constant WATCH_LOG_FILE => '/tmp/zmwatch.log';
 use constant CHECK_INTERVAL => 10; # How often to check the FPS
 use constant NUM_BAD_CHECKS => 3; # How many bad checks before we restart
 use constant MIN_FPS => 0.5; # FPS at or below this are bad
+use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
 #
@@ -93,10 +94,10 @@ while( 1 )
 			}
 			# Check we are getting a decent FPS, if not then kill it
 			my $command = COMMAND_PATH."zmu -m ".$monitor->{Id}." -f";
-			#print( "Getting FPS for monitor $monitor->{Id} ('$command')\n" );
+			print( "Getting FPS for monitor $monitor->{Id} ('$command')\n" ) if ( VERBOSE );
 			my $fps = qx( $command );
 			chomp($fps);
-			#print( "Monitor $monitor->{Id} capturing at $fps FPS\n" );
+			print( "Monitor $monitor->{Id} capturing at $fps FPS\n" ) if ( VERBOSE );
 			push( @$fps_list, $fps );
 			if ( @$fps_list > NUM_BAD_CHECKS )
 			{

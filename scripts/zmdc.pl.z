@@ -37,6 +37,7 @@
 use constant DAEMON_PATH => '@prefix@/bin/';
 use constant DC_SOCK_FILE => '/tmp/zmdc.sock';
 use constant DC_LOG_FILE => '/tmp/zmdc.log';
+use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
 #

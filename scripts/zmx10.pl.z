@@ -41,6 +41,7 @@ use constant X10_SOCK_FILE => '/tmp/zmx10.sock';
 use constant X10_LOG_FILE => '/tmp/zmx10.log';
 use constant COMMAND_PATH => '@prefix@/bin/';
 use constant ZM_SHM_KEY => 0x7a6d2000;
+use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
 #
@@ -302,12 +303,12 @@ sub runServer
 					my $task_list;
 					if ( $state == 1 && $monitor->{LastState} == 0 ) # Gone into alarm state
 					{
-						print( "Applying ON_list\n" );
+						print( "Applying ON_list\n" ) if ( VERBOSE );
 						$task_list = $monitor->{"ON_list"};
 					}
 					elsif ( $state == 0 && $monitor->{LastState} > 0 ) # Come out of alarm state
 					{
-						print( "Applying OFF_list\n" );
+						print( "Applying OFF_list\n" ) if ( VERBOSE );
 						$task_list = $monitor->{"OFF_list"};
 					}
 					if ( $task_list )
@@ -355,7 +356,7 @@ sub addToDeviceList
 	my $function = shift;
 	my $limit = shift;
 
-	#print( "Adding to device list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" );
+	print( "Adding to device list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" ) if ( VERBOSE );
 	my $device = $device_hash{$unit_code};
 	if ( !$device )
 	{
@@ -384,7 +385,7 @@ sub addToMonitorList
 	my $function = shift;
 	my $limit = shift;
 
-	#print( "Adding to monitor list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" );
+	print( "Adding to monitor list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" ) if ( VERBOSE );
 	my $device = $device_hash{$unit_code};
 	if ( !$device )
 	{
@@ -409,7 +410,7 @@ sub loadTasks
 {
 	%monitor_hash = ();
 
-	#print( "Loading tasks\n" );
+	print( "Loading tasks\n" ) if ( VERBOSE );
 	# Clear out all old device task lists
 	foreach my $unit_code ( sort( keys(%device_hash) ) )
 	{
@@ -437,7 +438,7 @@ sub loadTasks
 
 			if ( $monitor->{Function} eq 'X10' && $monitor->{X10Activation} )
 			{
-				#print( "$monitor->{Name} has active string '$monitor->{X10Activation}'\n" );
+				print( "$monitor->{Name} has active string '$monitor->{X10Activation}'\n" ) if ( VERBOSE );
 				foreach my $code_string ( split( ',', $monitor->{X10Activation} ) )
 				{
 					#print( "Code string: $code_string\n" );
@@ -458,7 +459,7 @@ sub loadTasks
 			}
 			if ( $monitor->{X10AlarmInput} )
 			{
-				#print( "$monitor->{Name} has alarm input string '$monitor->{X10AlarmInput}'\n" );
+				print( "$monitor->{Name} has alarm input string '$monitor->{X10AlarmInput}'\n" ) if ( VERBOSE );
 				foreach my $code_string ( split( ',', $monitor->{X10AlarmInput} ) )
 				{
 					#print( "Code string: $code_string\n" );
@@ -479,7 +480,7 @@ sub loadTasks
 			}
 			if ( $monitor->{X10AlarmOutput} )
 			{
-				#print( "$monitor->{Name} has alarm output string '$monitor->{X10AlarmOutput}'\n" );
+				print( "$monitor->{Name} has alarm output string '$monitor->{X10AlarmOutput}'\n" ) if ( VERBOSE );
 				foreach my $code_string ( split( ',', $monitor->{X10AlarmOutput} ) )
 				{
 					#print( "Code string: $code_string\n" );

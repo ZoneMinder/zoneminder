@@ -39,6 +39,7 @@ use constant ZM_SHM_KEY => 0x7a6d2000;
 use constant EVENT_PATH => "@WEB_PREFIX@/events";
 use constant FILTER_RELOAD_DELAY => 300; # How often filters are reloaded
 use constant LOG_FILE => '/tmp/zmfilter-%d.log';
+use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # Comment these out if you don't have them and don't want to upload
 # or don't want to use that format
@@ -162,19 +163,19 @@ while( 1 )
 	shmread( $shmid, $last_event_id, 12, 4 ) || die( "Can't read from shared memory: $!" );
 	$last_event_id = unpack( "l", $last_event_id );
 
-	print( "Last event generated is $last_event_id\n" );
+	print( "Last event generated is $last_event_id\n" ) if ( VERBOSE );
 	if ( $last_event_id > $event_id )
 	{
 		# Got new event to check
 		if ( (time() - $last_action) > FILTER_RELOAD_DELAY )
 		{
-			print( "Reloading filters\n" );
+			print( "Reloading filters\n" ) if ( VERBOSE );
 			$last_action = time();
 			$filters = GetFilters( $monitor );
 
 			foreach my $filter ( @$filters )
 			{
-				print( "Checking filter '$filter->{Name}'".($filter->{AutoDelete}?", delete":"").($filter->{AutoUpload}?", upload":"")."\n" );
+				print( "Checking filter '$filter->{Name}'".($filter->{AutoDelete}?", delete":"").($filter->{AutoUpload}?", upload":"")."\n" ) if ( VERBOSE );
 				my $sql = $filter->{Sql};
 				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 				my $res;
@@ -189,7 +190,7 @@ while( 1 )
 
 				while( my $event = $sth->fetchrow_hashref() )
 				{
-					print( "Checking event $event->{Id}\n" );
+					print( "Checking event $event->{Id}\n" ) if ( VERBOSE );
 					if ( $filter->{AutoUpload} )
 					{
 						my $arch_file = FTP_LOC_DIR.$filter->{MonitorName}.'-'.$event->{Id};
@@ -250,7 +251,7 @@ while( 1 )
 					}
 					if ( $filter->{AutoDelete} )
 					{
-						print( "Deleting event\n" );
+						print( "Deleting event $event->{Id}\n" );
 						# Do it individually to avoid locking up the table for new events
 						my $sql = "delete from Events where Id = ?";
 						my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -267,7 +268,7 @@ while( 1 )
 	}
 	else
 	{
-		print( "Sleeping for $delay seconds\n" );
+		print( "Sleeping for $delay seconds\n" ) if ( VERBOSE );
 		sleep( $delay );
 	}
 }
@@ -282,7 +283,7 @@ sub GetFilters
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	FILTER: while( my $filter_data = $sth->fetchrow_hashref() )
 	{
-		print( "Found filter '$filter_data->{Name}'\n" );
+		print( "Found filter '$filter_data->{Name}'\n" ) if ( VERBOSE );
 		my %filter_terms;
 		foreach my $filter_parm ( split( '&', $filter_data->{Query} ) )
 		{

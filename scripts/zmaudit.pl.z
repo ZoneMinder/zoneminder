@@ -41,6 +41,7 @@ use constant DB_PASS => "zmadminzm";
 use constant IMAGE_PATH => "@WEB_PREFIX@/images";
 use constant EVENT_PATH => "@WEB_PREFIX@/events";
 use constant LOG_FILE => '/tmp/zmaudit.log';
+use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
 #
@@ -148,7 +149,7 @@ do
 	my $fs_monitors;
 	foreach my $monitor ( <*> )
 	{
-		print( "Found filesystem monitor '$monitor'" );
+		print( "Found filesystem monitor '$monitor'" ) if ( VERBOSE );
 		my $fs_events = $fs_monitors->{$monitor} = {};
 		( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
 		chdir( $monitor_dir );
@@ -157,7 +158,7 @@ do
 			$fs_events->{$event} = !undef;
 		}
 		chdir( '..' );
-		print( ", got ".int(keys(%$fs_events))." events\n" );
+		print( ", got ".int(keys(%$fs_events))." events\n" ) if ( VERBOSE );
 	}
 
 	my $db_monitors;
@@ -168,14 +169,14 @@ do
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
-		print( "Found database monitor '$monitor->{Name}'" );
+		print( "Found database monitor '$monitor->{Name}'" ) if ( VERBOSE );
 		my $db_events = $db_monitors->{$monitor->{Name}} = {};
 		my $res = $sth2->execute( $monitor->{Id} ) or die( "Can't execute: ".$sth2->errstr() );
 		while ( my $event = $sth2->fetchrow_hashref() )
 		{
 			$db_events->{$event->{Id}} = !undef;
 		}
-		print( ", got ".int(keys(%$db_events))." events\n" );
+		print( ", got ".int(keys(%$db_events))." events\n" ) if ( VERBOSE );
 		$sth2->finish();
 	}
 	$sth->finish();

@@ -151,7 +151,7 @@ int RemoteCamera::SendRequest()
 int RemoteCamera::GetHeader( const char *content, const char *header, char *value )
 {
 	//char *header_string = (char *)malloc( strlen(header)+8 );
-	static char header_string[4096];
+	static char header_string[BUFSIZ];
 	strcpy( header_string, header );
 	strcat( header_string, ":" );
 

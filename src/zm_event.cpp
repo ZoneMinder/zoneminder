@@ -197,7 +197,7 @@ bool Event::WriteFrameImage( const Image *image, const char *event_file, bool al
 
 void Event::AddFrames( int n_frames, struct timeval **timestamps, const Image **images )
 {
-	static char sql[4096];
+	static char sql[BUFSIZ];
 	strcpy( sql, "insert into Frames ( EventId, FrameId, ImagePath, Delta ) values " );
 	for ( int i = 0; i < n_frames; i++ )
 	{

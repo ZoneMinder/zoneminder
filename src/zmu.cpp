@@ -350,7 +350,7 @@ int main( int argc, char *argv[] )
 	{
 		if ( function & QUERY )
 		{
-			char vid_string[4096] = "";
+			char vid_string[BUFSIZ] = "";
 			bool ok = LocalCamera::GetCurrentSettings( dev_id, vid_string, verbose );
 			printf( "%s", vid_string );
 			exit( ok?0:-1 );

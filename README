@@ -536,10 +536,45 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 Whats New
 =========
 
-Release 0.0.1 - Initial release, therefore nothing new.
 Release 1.0.0 - Yes, a big jump in release number but a lot of changes too. Now 
 somewhat more mature, not really an alpha any more, and a lot of bugs fixed too. 
-The main changes are described below.
+- Revamped to work better with configure scripts
+- Monitors now have more configuration options, including some that
+were statically defined before such as location and format of the
+image timestamps.
+- Removed Alarms table from schema as not required, never was actually..
+- Added a number of new scripts, see the scripts directory
+- Added Fast delete to PHP files. This allows the web interface to only
+delete the event entries themselves for speed and them have the zmaudit 
+script periodically tidy up the rest.
+- Added event filter to enable bulk viewing, upload or deletion of events
+according to various attributes. Filter can be saved and edited.
+- Added last event id to shared memory for auto-filtering etc.
+- Changed zmu -i option to write to monitor named image file.
+- Made shared memory management somewhat more sensible.
+- Now stores DB times as localtime rather than UTC avoiding daylight
+saving related bugs.
+- Fixed bug with inactive zones and added more debug.
+- Changed main functions to return int.
+- Added help and usage to zmu.
+- Fixed browser acceptance problem, more easily defaults to HTML.
+- Split out the PHP files into a bunch with specific functions rather
+than one monolithic one.
+- Fixed NetPBM paths and changed _SERVER to HTTP_SERVER_VARS.
+- Added HUP signal on zone deletion.
+- Added NETPBM_DIR and conditional netpbm stuff.
+- Removed hardcoded window sizes, all popup window dimensions can be 
+specified in zmconfig.php
+- Changed form methods to 'get' from 'post' to avoid resubmit warnings
+all the time.
+- Added conditional sound to alarm on web interface.
+- Fixed syntax error when adding default monitor.
+- Some of the web views have changed slightly to accomdate the separate
+events view.
+- And much much more, probably.
+
+Release 0.0.1 - Initial release, therefore nothing new.
+
 
 To Do
 =====

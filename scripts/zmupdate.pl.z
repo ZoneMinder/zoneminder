@@ -379,10 +379,16 @@ if ( $version )
 	}
 	if ( $cascade || $version eq "1.19.5" )
 	{
-		# Patch the database
 		print( "This version now only uses one database user.\nPlease ensure you have run zmconfig.pl and re-entered your database username and password prior to upgrading, or the upgrade will fail.\nPress enter to continue or ctrl-C to stop :" );
+		# Patch the database
 		my $dummy = <STDIN>;
 		patchDB( $dbh, "1.19.5" );
+		$cascade = !undef;
+	}
+	if ( $cascade || $version eq "1.20.0" )
+	{
+		# Patch the database
+		patchDB( $dbh, "1.20.0" );
 		$cascade = !undef;
 	}
 	if ( !$cascade )

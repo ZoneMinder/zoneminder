@@ -926,8 +926,8 @@ function configureButton(form,name)
 		{
 ?>
 <tr>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $row[Id] ?>', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $row[Id] ?></a></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $row[Id] ?>', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $row[Name] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $row[Id] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $row[Name] ?></a></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($row[StartTime]) ) ?></td>
 <td align="center" class="text"><?= $row[Length] ?></td>
 <td align="center" class="text"><?= $row[Frames] ?>/<?= $row[AlarmFrames] ?></td>
@@ -1200,8 +1200,8 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 				unset( $bgcolor );
 ?>
 <tr<?php if ( $bgcolor ) echo ' bgcolor="'.$bgcolor.'"'; ?> >
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Id]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Name]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Id]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Name]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($row[Time]) ) ?></td>
 <td align="center" class="text"><?= $row[Length] ?></td>
 <td align="center" class="text"><?= $row[Frames] ?></td>
@@ -1657,6 +1657,17 @@ function deleteEvent()
 		if ( !$result )
 			die( mysql_error() );
 		$event = mysql_fetch_assoc( $result );
+
+		$result = mysql_query( "select * from Events where Id < '$eid' and MonitorId = '$mid' order by Id desc limit 0,1" );
+		if ( !$result )
+			die( mysql_error() );
+		$prev_event = mysql_fetch_assoc( $result );
+
+		$result = mysql_query( "select * from Events where Id > '$eid' and MonitorId = '$mid' order by Id asc limit 0,1" );
+		if ( !$result )
+			die( mysql_error() );
+		$next_event = mysql_fetch_assoc( $result );
+
 ?>
 <html>
 <head>
@@ -1812,6 +1823,14 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php
 		}
 ?>
+<tr>
+<td colspan="6"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>">Prev</a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>&action=delete&mark_eid=<?= $eid ?>">Delete & Prev</a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>&action=delete&mark_eid=<?= $eid ?>">Delete & Next</a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>">Next</a><?php } else { ?>&nbsp;<?php } ?></td>
+</tr></table></td>
+</tr>
 </table>
 </body>
 </html>

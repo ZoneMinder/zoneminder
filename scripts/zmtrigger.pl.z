@@ -30,12 +30,11 @@
 #
 # ==========================================================================
 
+use constant ZM_CONFIG => "<from zmconfig>";
+use constant ZM_VERSION => "<from zmconfig>";
+use constant ZM_PATH_BUILD => "<from zmconfig>";
 use constant ZM_PATH_BIN => "<from zmconfig>";
 use constant ZM_PATH_WEB => "<from zmconfig>";
-use constant ZM_DB_SERVER => "<from zmconfig>";
-use constant ZM_DB_NAME => "<from zmconfig>";
-use constant ZM_DB_USERA => "<from zmconfig>";
-use constant ZM_DB_PASSA => "<from zmconfig>";
 
 # Load the config from the database into the symbol table
 BEGIN

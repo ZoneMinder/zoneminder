@@ -1651,20 +1651,14 @@ void Monitor::CheckFunction()
 
 void Monitor::DumpZoneImage()
 {
-	Mark();
 	int index = shared_images->last_write_index;
-	Mark();
 	Snapshot *snap = &image_buffer[index];
-	Mark();
 	Image *image = snap->image;
-	Mark();
 
 	Image zone_image( *image );
-	Mark();
 	zone_image.Colourise();
 	for( int i = 0; i < n_zones; i++ )
 	{
-	Mark();
 		unsigned char *psrc = zone_image.buffer;
 		int lo_x = zones[i]->Limits().Lo().X();
 		int lo_y = zones[i]->Limits().Lo().Y();
@@ -1707,11 +1701,8 @@ void Monitor::DumpZoneImage()
 		}
 	}
 	char filename[64];
-	Mark();
 	sprintf( filename, "%s-Zones.jpg", name );
-	Mark();
 	zone_image.WriteJpeg( filename );
-	Mark();
 }
 
 void Monitor::DumpImage( Image *image ) const

@@ -113,9 +113,7 @@ int main( int argc, const char *argv[] )
 		{
 			for ( int i = 0; i < n_monitors; i++ )
 			{
-				Mark();
 				monitors[i]->ReloadZones();
-				Mark();
 				monitors[i]->CheckFunction();
 			}
 			reload = false;

@@ -26,6 +26,11 @@ if ( !canView( 'Events' ) )
 
 parseSort();
 
+if ( !$max_events )
+{
+	$max_events = MAX_EVENTS;
+}
+
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: ".ZM_WEB_REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past

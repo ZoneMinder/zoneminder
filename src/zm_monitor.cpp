@@ -644,6 +644,19 @@ bool Monitor::Analyse()
 
 		if ( function == RECORD || function == MOCORD )
 		{
+			if ( event )
+			{
+				if ( state == IDLE || state == TAPE )
+				{
+					if ( (timestamp->tv_sec - event->StartTime().tv_sec) >= section_length )
+					{
+						Info(( "Ended event" ));
+						gettimeofday( &(event->EndTime()), &dummy_tz );
+						delete event;
+						event = 0;
+					}
+				}
+			}
 			if ( !event )
 			{
 				// Create event
@@ -760,7 +773,7 @@ bool Monitor::Analyse()
 		{
 			if ( state == IDLE || state == TAPE )
 			{
-				if ( ((timestamp->tv_sec%section_length) == 0) && ((timestamp->tv_sec - event->StartTime().tv_sec) > (section_length/2)) )
+				if ( (timestamp->tv_sec - event->StartTime().tv_sec) >= section_length )
 				{
 					Info(( "Ended event" ));
 					gettimeofday( &(event->EndTime()), &dummy_tz );

@@ -281,42 +281,42 @@ if ( $mode == "stream" )
 			if ( isInternetExplorer() )
 			{
 ?>
-<OBJECT ID="MediaPlayer1" width=<?= reScale( $event['Width'], $scale ) ?> height=<?= reScale( $event['Height'], $scale ) ?> 
+<object id="MediaPlayer1" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?> "
 classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
 codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
 standby="Loading Microsoft Windows Media Player components..."
 type="application/x-oleobject">
-<PARAM NAME="FileName" VALUE="<?= $stream_src ?>"
-<PARAM NAME="animationatStart" VALUE="true">
-<PARAM NAME="transparentatStart" VALUE="true">
-<PARAM NAME="autoStart" VALUE="true">
-<PARAM NAME="showControls" VALUE="false">
-</OBJECT>
+<param name="FileName" value="<?= $stream_src ?>">
+<param name="animationatStart" value="true">
+<param name="transparentatStart" value="true">
+<param name="autoStart" value="true">
+<param name="showControls" value="false">
+</object>
 <?php
 			}
 			else
 			{
 ?>
-<EMBED type="application/x-mplayer2"
+<embed type="application/x-mplayer2"
 pluginspage = "http://www.microsoft.com/Windows/MediaPlayer/"
-SRC="<?= $stream_src ?>"
+src="<?= $stream_src ?>"
 name="MediaPlayer1"
-width=<?= reScale( $event['Width'], $scale ) ?>
-height=<?= reScale( $event['Height'], $scale ) ?>
-AutoStart=true>
-</EMBED>
+width="<?= reScale( $event['Width'], $scale ) ?>"
+height="<?= reScale( $event['Height'], $scale ) ?>"
+autostart="true">
+</embed>
 <?php
 			}
 		}
 		else
 		{
 ?>
-<EMBED type="video/mpeg"
+<embed type="video/mpeg"
 src="<?= $stream_src ?>"
-width=<?= reScale( $event['Width'], $scale ) ?>
-height=<?= reScale( $event['Height'], $scale ) ?>
-AutoStart=true>
-</EMBED>
+width="<?= reScale( $event['Width'], $scale ) ?>"
+height="<?= reScale( $event['Height'], $scale ) ?>"
+autostart="true">
+</embed>
 <?php
 		}
 	}
@@ -352,7 +352,7 @@ else
 		$lo_frame_id = 1;
 		$hi_frame_id = $event['Frames'];
 	}
-	$sql = "select * from Frames where EventID = '$eid'";
+	$sql = "select * from Frames where EventId = '$eid'";
 	if ( $paged && !empty($page) )
 		$sql .= " and FrameId between $lo_frame_id and $hi_frame_id";
 	$sql .= " order by FrameId";

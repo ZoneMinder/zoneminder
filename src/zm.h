@@ -58,7 +58,7 @@ extern "C"
 #include "zmdbg.h"
 }
 
-typedef unsigned int Rgb;
+typedef unsigned int Rgb;	// RGB colour type
 
 #define RED(byte)	(*(byte))
 #define GREEN(byte)	(*(byte+1))
@@ -85,6 +85,9 @@ typedef unsigned int Rgb;
 #define RGB_GREEN_VAL(v)	(((v)>>8)&0xff)
 #define RGB_BLUE_VAL(v)		((v)&0xff)
 
+// Structure used for storing the results of the subtraction
+// of one struct timeval from another
+
 struct DeltaTimeval
 {
 	bool positive;
@@ -105,6 +108,9 @@ struct DeltaTimeval
 
 extern MYSQL dbconn;
 
+//
+// Class used for storing an x,y pair, i.e. a coordinate
+//
 class Coord
 {
 private:
@@ -131,57 +137,23 @@ public:
 		return( result );
 	}
 
-	inline bool operator==( const Coord &coord )
-	{
-		return( x == coord.x && y == coord.y );
-	}
-	inline bool operator!=( const Coord &coord )
-	{
-		return( x != coord.x || y != coord.y );
-	}
-	inline bool operator>( const Coord &coord )
-	{
-		return( x > coord.x && y > coord.y );
-	}
-	inline bool operator>=( const Coord &coord )
-	{
-		return( !(operator<(coord)) );
-	}
-	inline bool operator<( const Coord &coord )
-	{
-		return( x < coord.x && y < coord.y );
-	}
-	inline bool operator<=( const Coord &coord )
-	{
-		return( !(operator>(coord)) );
-	}
-	inline Coord &operator+=( const Coord &coord )
-	{
-		x += coord.x;
-		y += coord.y;
-		return( *this );
-	}
-	inline Coord &operator-=( const Coord &coord )
-	{
-		x -= coord.x;
-		y -= coord.y;
-		return( *this );
-	}
+	inline bool operator==( const Coord &coord ) { return( x == coord.x && y == coord.y ); }
+	inline bool operator!=( const Coord &coord ) { return( x != coord.x || y != coord.y ); }
+	inline bool operator>( const Coord &coord ) { return( x > coord.x && y > coord.y ); }
+	inline bool operator>=( const Coord &coord ) { return( !(operator<(coord)) ); }
+	inline bool operator<( const Coord &coord ) { return( x < coord.x && y < coord.y ); }
+	inline bool operator<=( const Coord &coord ) { return( !(operator>(coord)) ); }
+	inline Coord &operator+=( const Coord &coord ) { x += coord.x; y += coord.y; return( *this ); }
+	inline Coord &operator-=( const Coord &coord ) { x -= coord.x; y -= coord.y; return( *this ); }
 
-	inline friend Coord operator+( const Coord &coord1, const Coord &coord2 )
-	{
-		Coord result( coord1 );
-		result += coord2;
-		return( result );
-	}
-	inline friend Coord operator-( const Coord &coord1, const Coord &coord2 )
-	{
-		Coord result( coord1 );
-		result -= coord2;
-		return( result );
-	}
+	inline friend Coord operator+( const Coord &coord1, const Coord &coord2 ) { Coord result( coord1 ); result += coord2; return( result ); }
+	inline friend Coord operator-( const Coord &coord1, const Coord &coord2 ) { Coord result( coord1 ); result -= coord2; return( result ); }
 };
 
+//
+// Class used for storing a box, which is defined as a region
+// defined by two coordinates
+//
 class Box
 {
 private:
@@ -192,18 +164,11 @@ public:
 	inline Box()
 	{
 	}
-	inline Box( int p_size ) : lo( 0, 0 ), hi ( p_size-1, p_size-1 ), size( Coord::Range( hi, lo ) )
-	{
-	}
-	inline Box( int p_x_size, int p_y_size ) : lo( 0, 0 ), hi ( p_x_size-1, p_y_size-1 ), size( Coord::Range( hi, lo ) )
-	{
-	}
-	inline Box( int lo_x, int lo_y, int hi_x, int hi_y ) : lo( lo_x, lo_y ), hi( hi_x, hi_y ), size( Coord::Range( hi, lo ) )
-	{
-	}
-	inline Box( const Coord &p_lo, const Coord &p_hi ) : lo( p_lo ), hi( p_hi ), size( Coord::Range( hi, lo ) )
-	{
-	}
+	inline Box( int p_size ) : lo( 0, 0 ), hi ( p_size-1, p_size-1 ), size( Coord::Range( hi, lo ) ) { }
+	inline Box( int p_x_size, int p_y_size ) : lo( 0, 0 ), hi ( p_x_size-1, p_y_size-1 ), size( Coord::Range( hi, lo ) ) { }
+	inline Box( int lo_x, int lo_y, int hi_x, int hi_y ) : lo( lo_x, lo_y ), hi( hi_x, hi_y ), size( Coord::Range( hi, lo ) ) { }
+	inline Box( const Coord &p_lo, const Coord &p_hi ) : lo( p_lo ), hi( p_hi ), size( Coord::Range( hi, lo ) ) { }
+
 	inline const Coord &Lo() const { return( lo ); }
 	inline int LoX() const { return( lo.X() ); }
 	inline int LoY() const { return( lo.Y() ); }
@@ -211,14 +176,8 @@ public:
 	inline int HiX() const { return( hi.X() ); }
 	inline int HiY() const { return( hi.Y() ); }
 	inline const Coord &Size() const { return( size ); }
-	inline int Width() const
-	{
-		return( size.X() );
-	}
-	inline int Height() const
-	{
-		return( size.Y() );
-	}
+	inline int Width() const { return( size.X() ); }
+	inline int Height() const { return( size.Y() ); }
 
 	inline bool Inside( const Coord &coord ) const
 	{
@@ -226,6 +185,10 @@ public:
 	}
 };
 
+//
+// This is image class, and represents a frame captured from a 
+// camera in raw form.
+//
 class Image
 {
 protected:
@@ -281,6 +244,10 @@ public:
 		}
 	}
 
+	inline int Width() { return( width ); }
+	inline int Height() { return( height ); }
+	JSAMPLE *Buffer( unsigned int x=0, unsigned int y= 0 ) { return( &buffer[colours*((y*width)+x)] ); }
+	
 	inline void Assign( int p_width, int p_height, int p_colours, unsigned char *new_buffer )
 	{
 		if ( p_width != width || p_height != height || p_colours != colours )
@@ -320,15 +287,10 @@ public:
 		return( *this );
 	}
 
-	inline int Width() { return( width ); }
-	inline int Height() { return( height ); }
-	JSAMPLE *Buffer( unsigned int x=0, unsigned int y= 0 ) { return( &buffer[colours*((y*width)+x)] ); }
-	
-	void Clear() { memset( buffer, 0, size ); }
-
 	void ReadJpeg( const char *filename );
 	void WriteJpeg( const char *filename ) const;
 	void EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const;
+
 	void Overlay( const Image &image );
 	void Blend( const Image &image, double transparency=0.1 ) const;
 	void Blend( const Image &image, int transparency=10 ) const;
@@ -336,16 +298,24 @@ public:
 	static Image *Merge( int n_images, Image *images[], double weight );
 	static Image *Highlight( int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
 	Image *Delta( const Image &image, bool absolute=true ) const;
+
 	void Annotate( const char *text, const Coord &coord, const Rgb colour );
 	void Annotate( const char *text, const Coord &coord );
+	Image *HighlightEdges( Rgb colour, const Box *limits=0 );
 	void Timestamp( const char *label, const time_t when, const Coord &coord );
 	void Colourise();
 	void DeColourise();
+
+	void Clear() { memset( buffer, 0, size ); }
 	void Fill( Rgb colour, const Box *limits=0 );
 	void Hatch( Rgb colour, const Box *limits=0 );
-	Image *HighlightEdges( Rgb colour, const Box *limits=0 );
+
 };
 
+//
+// Abstract base class for cameras. This is intended just to express
+// common attributes
+//
 class Camera
 {
 protected:
@@ -357,6 +327,7 @@ protected:
 public:
 	Camera( int p_width, int p_height, int p_colours, bool p_capture=true );
 	~Camera();
+
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
 	unsigned int Colours() const { return( colours ); }
@@ -381,6 +352,11 @@ public:
 	}
 };
 
+//
+// Class representing 'local' cameras, i.e. those which are
+// directly connect to the host machine and which are accessed
+// via a video interface.
+//
 class LocalCamera : public Camera
 {
 protected:
@@ -400,11 +376,10 @@ protected:
 public:
 	LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture=true );
 	~LocalCamera();
+
 	unsigned int Device() const { return( device ); }
 	unsigned int Channel() const { return( channel ); }
 	unsigned int Format() const { return( format ); }
-
-	static bool GetCurrentSettings( int device, char *output, bool verbose );
 
 	virtual void Initialise();
 	virtual void Terminate();
@@ -463,24 +438,29 @@ public:
 
 		image.Assign( width, height, colours, buffer );
 	}
+
+	static bool GetCurrentSettings( int device, char *output, bool verbose );
 };
 
 class Monitor;
 
+//
+// Class describing events, i.e. captured periods of activity.
+//
 class Event
 {
 protected:
-	int		id;
-	Monitor	*monitor;
+	int				id;
+	Monitor			*monitor;
 	struct timeval	start_time;
 	struct timeval	end_time;
-	int		start_frame_id;
-	int		end_frame_id;
-	int		frames;
-	int		alarm_frames;
+	int				start_frame_id;
+	int				end_frame_id;
+	int				frames;
+	int				alarm_frames;
 	unsigned int	tot_score;
 	unsigned int	max_score;
-	char	path[PATH_MAX];
+	char			path[PATH_MAX];
 
 public:
 	Event( Monitor *p_monitor, struct timeval p_start_time );
@@ -495,6 +475,10 @@ public:
 	static void StreamEvent( const char *path, int event_id, unsigned long refresh=100, FILE *fd=stdout );
 };
 
+//
+// This describes a 'zone', or an area of an image that has certain
+// detection characteristics.
+//
 class Zone
 {
 public:
@@ -502,38 +486,38 @@ public:
 
 protected:
 	// Inputs
-	Monitor *monitor;
+	Monitor			*monitor;
 
-	int id;
-	char *label;
-	ZoneType type;
-	Box limits;
-	Rgb alarm_rgb;
+	int				id;
+	char			*label;
+	ZoneType		type;
+	Box				limits;
+	Rgb				alarm_rgb;
 
-	int alarm_threshold;
-	int min_alarm_pixels;
-	int max_alarm_pixels;
+	int				alarm_threshold;
+	int				min_alarm_pixels;
+	int				max_alarm_pixels;
 
-	Coord filter_box;
-	int min_filter_pixels;
-	int max_filter_pixels;
+	Coord			filter_box;
+	int				min_filter_pixels;
+	int				max_filter_pixels;
 
-	int min_blob_pixels;
-	int max_blob_pixels;
-	int min_blobs;
-	int max_blobs;
+	int				min_blob_pixels;
+	int				max_blob_pixels;
+	int				min_blobs;
+	int				max_blobs;
 
 	// Outputs/Statistics
-	bool alarmed;
-	int alarm_pixels;
-	int alarm_filter_pixels;
-	int alarm_blob_pixels;
-	int alarm_blobs;
-	int min_blob_size;
-	int max_blob_size;
-	Box alarm_box;
-	unsigned int score;
-	Image *image;
+	bool			alarmed;
+	int				alarm_pixels;
+	int				alarm_filter_pixels;
+	int				alarm_blob_pixels;
+	int				alarm_blobs;
+	int				min_blob_size;
+	int				max_blob_size;
+	Box				alarm_box;
+	unsigned int	score;
+	Image			*image;
 
 protected:
 	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_alarm_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs );
@@ -586,6 +570,10 @@ public:
 	static int Load( Monitor *monitor, Zone **&zones );
 };
 
+//
+// This is the main class for monitors. Each monitor is associated
+// with a camera and is effectivaly a collector for events.
+//
 class Monitor
 {
 public:

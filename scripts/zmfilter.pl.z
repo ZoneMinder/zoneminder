@@ -277,6 +277,7 @@ sub GetFilters
 				$filter_sql .= str_repeat( "(", $filter_terms{$obracket_name} );
 			}
 			my $value = $filter_terms{$value_name};
+			my @value_list;
 			if ( $filter_terms{$attr_name} )
 			{
 				if ( $filter_terms{$attr_name} =~ '/^Monitor/' )
@@ -286,50 +287,23 @@ sub GetFilters
 				}
 				elsif ( $filter_terms{$attr_name} eq 'DateTime' )
 				{
-					$value = DateTimeToSQL( $filter_terms{$value_name} );
-					if ( !$value )
-					{
-						print( STDERR "Error parsing date/time '$filter_terms{$value_name}', skipping filter '$filter_data->{Name}'\n" );
-						next FILTER;
-					}
 					$filter_sql .= "E.StartTime";
 					# Indicate that this filter uses dates and so should not be dependant on the event id
 					$filter_data->{has_dates} = !undef;
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Date' )
 				{
-					$value = DateTimeToSQL( $filter_terms{$value_name} );
-					if ( !$value )
-					{
-						print( STDERR "Error parsing date/time '$filter_terms{$value_name}', skipping filter '$filter_data->{Name}'\n" );
-						next FILTER;
-					}
 					$filter_sql .= "to_days( E.StartTime )";
-					$value = "to_days( '$value' )";
 					# Indicate that this filter uses dates and so should not be dependant on the event id
 					$filter_data->{has_dates} = !undef;
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Time' )
 				{
-					$value = DateTimeToSQL( $filter_terms{$value_name} );
-					if ( !$value )
-					{
-						print( STDERR "Error parsing date/time '$filter_terms{$value_name}', skipping filter '$filter_data->{Name}'\n" );
-						next FILTER;
-					}
 					$filter_sql .= "extract( hour_second from E.StartTime )";
-					$value = "extract( hour_second from '$value' )";
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Weekday' )
 				{
-					$value = DateTimeToSQL( $filter_terms{$value_name} );
-					if ( !$value )
-					{
-						print( STDERR "Error parsing date/time '$filter_terms{$value_name}', skipping filter '$filter_data->{Name}'\n" );
-						next FILTER;
-					}
 					$filter_sql .= "weekday( E.StartTime )";
-					$value = "weekday( '$value' )";
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Archived' )
 				{
@@ -339,28 +313,82 @@ sub GetFilters
 				{
 					$filter_sql .= "E.".$filter_terms{$attr_name};
 				}
+
+				( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
+				foreach my $temp_value ( split( '/["\'\s]*?,["\'\s]*?/', $stripped_value ) )
+				{
+					if ( $filter_terms{$attr_name} =~ '/^Monitor/' )
+					{
+						$value = "'$temp_value'";
+					}
+					elsif ( $filter_terms{$attr_name} eq 'DateTime' )
+					{
+						$value = DateTimeToSQL( $temp_value );
+						if ( !$value )
+						{
+							print( STDERR "Error parsing date/time '$value', skipping filter '$filter_data->{Name}'\n" );
+							next FILTER;
+						}
+						$value = "'$value'";
+					}
+					elsif ( $filter_terms{$attr_name} eq 'Date' )
+					{
+						$value = DateTimeToSQL( $temp_value );
+						if ( !$value )
+						{
+							print( STDERR "Error parsing date/time '$value', skipping filter '$filter_data->{Name}'\n" );
+							next FILTER;
+						}
+						$value = "to_days( '$value' )";
+					}
+					elsif ( $filter_terms{$attr_name} eq 'Time' )
+					{
+						$value = DateTimeToSQL( $temp_value );
+						if ( !$value )
+						{
+							print( STDERR "Error parsing date/time '$value', skipping filter '$filter_data->{Name}'\n" );
+							next FILTER;
+						}
+						$value = "extract( hour_second from '$value' )";
+					}
+					elsif ( $filter_terms{$attr_name} eq 'Weekday' )
+					{
+						$value = DateTimeToSQL( $temp_value );
+						if ( !$value )
+						{
+							print( STDERR "Error parsing date/time '$value', skipping filter '$filter_data->{Name}'\n" );
+							next FILTER;
+						}
+						$value = "weekday( '$value' )";
+					}
+					else
+					{
+						$value = $temp_value;
+					}
+					push( @value_list, $value );
+				}
 			}
 			if ( $filter_terms{$op_name} )
 			{
 				if ( $filter_terms{$op_name} eq '=~' )
 				{
-					$filter_sql .= " regexp '$value'";
+					$filter_sql .= " regexp $value";
 				}
 				elsif ( $filter_terms{$op_name} eq '!~' )
 				{
-					$filter_sql .= " not regexp '$value'";
+					$filter_sql .= " not regexp $value";
 				}
 				elsif ( $filter_terms{$op_name} eq '=[]' )
 				{
-					$filter_sql .= " in ('".join( "','", split( '/["\'\s]*,["\'\s]*/', $value ) )."')";
+					$filter_sql .= " in (".join( ",", @value_list ).")";
 				}
 				elsif ( $filter_terms{$op_name} eq '!~' )
 				{
-					$filter_sql .= " not in ('".join( "','", split( '/["\'\s]*,["\'\s]*/', $value ) )."')";
+					$filter_sql .= " not in (".join( ",", @value_list ).")";
 				}
 				else
 				{
-					$filter_sql .= " ".$filter_terms{$op_name}." '".$value."'";
+					$filter_sql .= " ".$filter_terms{$op_name}." $value";
 				}
 			}
 			if ( $filter_terms{$cbracket_name} )

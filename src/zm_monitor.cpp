@@ -1002,18 +1002,26 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 	setbuf( fd, 0 );
 
 	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
-	fprintf( fd, "Pragma: no-cache\r\n" );
-	fprintf( fd, "Cache-Control: no-cache\r\n" );
-	fprintf( fd, "Expires: Thu, 01 Dec 1994 16:00:00 GMT\r\n" );
+
+	time_t now = time( 0 );
+	char date_string[64];
+	strftime( date_string, sizeof(date_string)-1, "%a, %d %b %Y %H:%M:%S GMT", gmtime( &now ) );
+
+	fprintf( fd, "Expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n" );
+	fprintf( fd, "Last-Modified: %s\r\n", date_string );
+	fprintf( fd, "Cache-Control: no-store, no-cache, must-revalidate\r\n" );
+	fprintf( fd, "Cache-Control: post-check=0, pre-check=0\r\n" );
+	fprintf( fd, "Pragma: no-cache\r\n");
+
 	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
 	fprintf( fd, "--ZoneMinderFrame\n" );
+
 	int last_read_index = image_buffer_count;
-	//JOCTET img_buffer[camera->ImageSize()];
-	JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
+	static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
 	int img_buffer_size = 0;
 	int loop_count = (idle/refresh)-1;
 
-	time_t start_time, now;
+	time_t start_time;
 	time( &start_time );
 
 	while ( true )

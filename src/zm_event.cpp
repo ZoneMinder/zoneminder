@@ -284,10 +284,18 @@ void Event::StreamEvent( const char *path, int event_id, int rate, int scale, FI
 
 	setbuf( fd, 0 );
 
+	time_t cache_now = time( 0 );
+	char date_string[64];
+	strftime( date_string, sizeof(date_string)-1, "%a, %d %b %Y %H:%M:%S GMT", gmtime( &cache_now ) );
+
 	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
-	fprintf( fd, "Pragma: no-cache\r\n" );
-	fprintf( fd, "Cache-Control: no-cache\r\n" );
-	fprintf( fd, "Expires: Thu, 01 Dec 1994 16:00:00 GMT\r\n" );
+
+	fprintf( fd, "Expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n" );
+	fprintf( fd, "Last-Modified: %s\r\n", date_string );
+	fprintf( fd, "Cache-Control: no-store, no-cache, must-revalidate\r\n" );
+	fprintf( fd, "Cache-Control: post-check=0, pre-check=0\r\n" );
+	fprintf( fd, "Pragma: no-cache\r\n");
+
 	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
 	fprintf( fd, "--ZoneMinderFrame\n" );
 

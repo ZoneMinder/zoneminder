@@ -216,6 +216,20 @@ function isNetscape()
 	return( $browser == "mozilla" );
 }
 
+function isInternetExplorer()
+{
+	getBrowser( $browser, $version );
+
+	return( $browser == "ie" );
+}
+
+function isWindows()
+{
+	global $HTTP_SERVER_VARS;
+
+	return ( preg_match( '/Win/', $HTTP_SERVER_VARS['HTTP_USER_AGENT'] ) );
+}
+
 function canStreamNative()
 {
 	return( ZM_CAN_STREAM == "yes" || ( ZM_CAN_STREAM == "auto" && isNetscape() ) );

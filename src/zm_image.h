@@ -79,6 +79,18 @@ protected:
 	static BlendTablePtr GetBlendTable( int );
 
 public:
+	Image()
+	{
+		if ( !initialised )
+			Initialise();
+		width = 0;
+		height = 0;
+		colours = 0;
+		size = 0;
+		our_buffer = true;
+		buffer = 0;
+		blend_buffer = 0;
+	}
 	Image( const char *filename )
 	{
 		if ( !initialised )
@@ -131,9 +143,12 @@ public:
 		delete[] blend_buffer;
 	}
 
-	inline int Width() { return( width ); }
-	inline int Height() { return( height ); }
-	inline JSAMPLE *Buffer( unsigned int x=0, unsigned int y= 0 ) { return( &buffer[colours*((y*width)+x)] ); }
+	inline int Width() const { return( width ); }
+	inline int Height() const { return( height ); }
+	inline int Size() const { return( size ); }
+	inline int Colours() const { return( colours ); }
+	inline JSAMPLE *Buffer() const { return( buffer ); }
+	inline JSAMPLE *Buffer( unsigned int x, unsigned int y= 0 ) const { return( &buffer[colours*((y*width)+x)] ); }
 	
 	inline void Assign( int p_width, int p_height, int p_colours, unsigned char *new_buffer )
 	{
@@ -152,6 +167,24 @@ public:
 			}
 		}
 		memcpy( buffer, new_buffer, size );
+	}
+	inline void Assign( const Image &image )
+	{
+		if ( image.width != width || image.height != height || image.colours != colours )
+		{
+			width = image.width;
+			height = image.height;
+			colours = image.colours;
+			int new_size = width*height*colours;
+			if ( size != new_size )
+			{
+				size = new_size;
+				delete[] buffer;
+				buffer = new JSAMPLE[size];
+				memset( buffer, 0, size );
+			}
+		}
+		memcpy( buffer, image.buffer, size );
 	}
 
 	inline void CopyBuffer( const Image &image )

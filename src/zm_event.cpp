@@ -26,6 +26,7 @@
 
 #include "zm.h"
 #include "zm_db.h"
+#include "zm_mpeg.h"
 #include "zm_event.h"
 #include "zm_monitor.h"
 
@@ -349,7 +350,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, unsigned int score
 	}
 }
 
-void Event::StreamEvent( int event_id, int rate, int scale, FILE *fd )
+void Event::StreamEvent( int event_id, int rate, int scale )
 {
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
@@ -393,22 +394,8 @@ void Event::StreamEvent( int event_id, int rate, int scale, FILE *fd )
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	setbuf( fd, 0 );
-
-	time_t cache_now = time( 0 );
-	char date_string[64];
-	strftime( date_string, sizeof(date_string)-1, "%a, %d %b %Y %H:%M:%S GMT", gmtime( &cache_now ) );
-
-	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
-
-	fprintf( fd, "Expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n" );
-	fprintf( fd, "Last-Modified: %s\r\n", date_string );
-	fprintf( fd, "Cache-Control: no-store, no-cache, must-revalidate\r\n" );
-	fprintf( fd, "Cache-Control: post-check=0, pre-check=0\r\n" );
-	fprintf( fd, "Pragma: no-cache\r\n");
-
-	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-	fprintf( fd, "--ZoneMinderFrame\n" );
+	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
+	fprintf( stdout, "--ZoneMinderFrame\n" );
 
 	//int n_frames = mysql_num_rows( result );
 	//Info(( "Got %d frames, at rate %d, scale %d", n_frames, rate, scale ));
@@ -446,15 +433,14 @@ void Event::StreamEvent( int event_id, int rate, int scale, FILE *fd )
 		static char filepath[PATH_MAX];
 		sprintf( filepath, "%s/%03d-capture.jpg", eventpath, atoi(dbrow[0]) );
 
-		fprintf( fd, "Content-type: image/jpeg\n\n" );
-		if ( scale == 1 )
+		fprintf( stdout, "Content-type: image/jpeg\n\n" );
+		if ( scale == 100 )
 		{
 			if ( (fdj = fopen( filepath, "r" )) )
 			{
 				while ( (n_bytes = fread( buffer, 1, sizeof(buffer), fdj )) )
 				{
-					//fwrite( buffer, 1, n_bytes, fd );
-					write( fileno(fd), buffer, n_bytes );
+					write( fileno(stdout), buffer, n_bytes );
 				}
 				fclose( fdj );
 			}
@@ -471,10 +457,10 @@ void Event::StreamEvent( int event_id, int rate, int scale, FILE *fd )
 
 			image.EncodeJpeg( buffer, &n_bytes );
 
-			write( fileno(fd), buffer, n_bytes );
+			write( fileno(stdout), buffer, n_bytes );
 		}
-		fprintf( fd, "\n--ZoneMinderFrame\n" );
-		fflush( fd );
+		fprintf( stdout, "\n--ZoneMinderFrame\n" );
+		fflush( stdout );
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -484,3 +470,97 @@ void Event::StreamEvent( int event_id, int rate, int scale, FILE *fd )
 	// Yadda yadda
 	mysql_free_result( result );
 }
+
+#if HAVE_LIBAVCODEC     
+
+void Event::StreamMpeg( int event_id, const char *format, int bit_rate, int rate, int scale )
+{
+	static char sql[BUFSIZ];
+	static char eventpath[PATH_MAX];
+	
+	sprintf( sql, "select M.Id, M.Name,max(F.Delta)-min(F.Delta) as Duration, count(F.Id) as Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on F.EventId = E.Id where E.Id = %d group by F.EventId", event_id );
+	if ( mysql_query( &dbconn, sql ) )
+	{
+		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+
+	MYSQL_RES *result = mysql_store_result( &dbconn );
+	if ( !result )
+	{
+		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+	MYSQL_ROW dbrow = mysql_fetch_row( result );
+
+	if ( mysql_errno( &dbconn ) )
+	{
+		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+
+	sprintf( eventpath, "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
+	int fps = ((atoi(dbrow[3])/atoi(dbrow[2]))*rate)/ZM_RATE_SCALE;
+	if ( rate )
+	{
+		if ( fps <= 0 )
+			fps = 1;
+		else if ( fps > 30 )
+			fps = 30;
+	}
+	else
+	{
+		fps = 30;
+	}
+	Info(( "Duration:%d, Frames:%d, FPS:%d", atoi(dbrow[2]), atoi(dbrow[3]), fps ));
+
+	mysql_free_result( result );
+
+	sprintf( sql, "select FrameId, EventId, Delta from Frames where EventId = %d order by FrameId", event_id );
+	if ( mysql_query( &dbconn, sql ) )
+	{
+		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+
+	result = mysql_store_result( &dbconn );
+	if ( !result )
+	{
+		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+
+	fprintf( stdout, "Content-type: video/x-ms-asf\r\n\r\n");
+
+	VideoStream *vid_stream = 0;
+	for( int i = 0; dbrow = mysql_fetch_row( result ); i++ )
+	{
+		static char filepath[PATH_MAX];
+		sprintf( filepath, "%s/%03d-capture.jpg", eventpath, atoi(dbrow[0]) );
+
+		Image image( filepath );
+
+		if ( !vid_stream )
+		{
+			vid_stream = new VideoStream( "pipe:", format, bit_rate, fps, image.Colours(), (image.Width()*scale)/ZM_SCALE_SCALE, (image.Height()*scale)/ZM_SCALE_SCALE );
+		}
+
+		if ( scale != 100 )
+		{
+			image.Scale( scale );
+		}
+		double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size() );
+	}
+	if ( mysql_errno( &dbconn ) )
+	{
+		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+	// Yadda yadda
+	mysql_free_result( result );
+
+	delete vid_stream;
+}
+
+#endif // HAVE_LIBAVCODEC     
+

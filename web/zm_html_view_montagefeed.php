@@ -98,30 +98,82 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 </head>
 <body>
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="2">
+<tr><td align="center">
 <?php
 if ( $mode == "stream" )
 {
-	$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&scale=$scale";
-	if ( canStreamNative() )
+	if ( ZM_WEB_VIDEO_STREAM_METHOD == 'mpeg' )
 	{
+		$stream_src = ZM_PATH_ZMS."?mode=mpeg&monitor=".$monitor['Id']."&scale=$scale&bit_rate=".VIDEO_BITRATE."&buffer=0";
+		if ( isWindows() )
+		{
+			if ( isInternetExplorer() )
+			{
 ?>
-<tr><td colspan="5" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></td></tr>
+<OBJECT ID="MediaPlayer1" width=<?= reScale( $monitor['Width'], $scale ) ?> height=<?= reScale( $monitor['Height'], $scale ) ?> 
+classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
+codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
+standby="Loading Microsoft Windows Media Player components..."
+type="application/x-oleobject">
+<PARAM NAME="FileName" VALUE="<?= $stream_src."&format=asf" ?>"
+<PARAM NAME="animationatStart" VALUE="true">
+<PARAM NAME="transparentatStart" VALUE="true">
+<PARAM NAME="autoStart" VALUE="true">
+<PARAM NAME="showControls" VALUE="false">
+</OBJECT>
 <?php
+			}
+			else
+			{
+?>
+<EMBED type="application/x-mplayer2"
+pluginspage = "http://www.microsoft.com/Windows/MediaPlayer/"
+SRC="<?= $stream_src."&format=asf" ?>"
+name="MediaPlayer1"
+width=<?= reScale( $monitor['Width'], $scale ) ?>
+height=<?= reScale( $monitor['Height'], $scale ) ?>
+AutoStart=true>
+</EMBED>
+<?php
+			}
+		}
+		else
+		{
+?>
+<EMBED type="video/mpeg"
+src="<?= $stream_src."&format=mpeg" ?>"
+width=<?= reScale( $monitor['Width'], $scale ) ?>
+height=<?= reScale( $monitor['Height'], $scale ) ?>
+AutoStart=true>
+</EMBED>
+<?php
+		}
 	}
 	else
 	{
+		$stream_src = ZM_PATH_ZMS."?mode=jpeg&monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&scale=$scale";
+		if ( canStreamNative() )
+		{
 ?>
-<tr><td colspan="5" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<img src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
 <?php
+		}
+		else
+		{
+?>
+<applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet>
+<?php
+		}
 	}
 }
 else
 {
 ?>
-<tr><td colspan="5" align="center"><img name="zmImage" src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></td></tr>
+<img name="zmImage" src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
 <?php
 }
 ?>
+</td></tr>
 </table>
 </body>
 </html>

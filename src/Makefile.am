@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS = gnu
 
-LDADD =    @MYSQL_LIBS@
-AM_CPPFLAGS = @MYSQL_CFLAGS@
+LDADD = @MYSQL_LIBS@
+AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@
 
 # This should be set to your CGI directory
 cgidir = @CGI_PREFIX@
@@ -30,6 +30,7 @@ zm_SOURCES = \
 	zm_local_camera.cpp \
 	zm_remote_camera.cpp \
 	zm_monitor.cpp \
+	zm_mpeg.cpp \
 	zm_debug.c \
 	zm_jpeg.c
 
@@ -60,7 +61,8 @@ noinst_HEADERS = \
 	zm_font.h \
 	jinclude.h \
 	zmf.h \
-	zm_jpeg.h
+	zm_jpeg.h \
+	zm_mpeg.h
 
 EXTRA_DIST = zm_config.h.z
 

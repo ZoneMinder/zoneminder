@@ -271,7 +271,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
 ac_unique_file="src/zm.h"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE MYSQL_PREFIX MYSQL_LIBS MYSQL_CFLAGS WEB_PREFIX CGI_PREFIX WEB_USER WEB_GROUP CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE MYSQL_PREFIX MYSQL_LIBS MYSQL_CFLAGS WEB_PREFIX CGI_PREFIX WEB_USER WEB_GROUP FFMPEG_PREFIX FFMPEG_LIBS FFMPEG_CFLAGS LAME_PREFIX LAME_LIBS CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE CPP EGREP XLIBS LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -826,6 +826,8 @@ Optional Packages:
  --with-cgidir=<path> prefix of cgi directory. e.g. /var/www/cgi-bin or /www/vhtdocs/<site>/cgi-bin
  --with-webuser=<user> username of web user. e.g. apache or web
  --with-webgroup=<group> groupname of web group. e.g. apache or web
+ --with-ffmpeg=<directory> location of ffmpeg build directory for libavcodec etc
+ --with-lame=<directory> location of lame library directory for libmp3lame
 
 Some influential environment variables:
   CC          C compiler command
@@ -1244,7 +1246,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-am__api_version="1.7"
+am__api_version="1.6"
 ac_aux_dir=
 for ac_dir in $srcdir $srcdir/.. $srcdir/../..; do
   if test -f $ac_dir/install-sh; then
@@ -1496,19 +1498,9 @@ echo "$as_me: error: source directory already configured; run \"make distclean\"
    { (exit 1); exit 1; }; }
 fi
 
-# test whether we have cygpath
-if test -z "$CYGPATH_W"; then
-  if (cygpath --version) >/dev/null 2>/dev/null; then
-    CYGPATH_W='cygpath -w'
-  else
-    CYGPATH_W=echo
-  fi
-fi
-
-
 # Define the identity of the package.
  PACKAGE=zm
- VERSION=1.18.1
+ VERSION=1.18.1-ms
 
 
 cat >>confdefs.h <<_ACEOF
@@ -1634,7 +1626,11 @@ INSTALL_STRIP_PROGRAM="\${SHELL} \$(install_sh) -c -s"
 
 
 
+# Add the stamp file to the list of files AC keeps track of,
+# along with our hook.
           ac_config_headers="$ac_config_headers config.h"
+
+
 
 
 
@@ -1731,6 +1727,60 @@ echo "$as_me: WARNING: You can call configure with the --with-webgroup option.
 
 fi;
 
+
+FFMPEG_PREFIX=
+# Ask group for web group name:.
+
+# Check whether --with-ffmpeg or --without-ffmpeg was given.
+if test "${with_ffmpeg+set}" = set; then
+  withval="$with_ffmpeg"
+  FFMPEG_PREFIX=$with_ffmpeg
+else
+  { echo "$as_me:$LINENO: WARNING: You can call configure with the --with-ffmpeg option.
+    This tells configure where to find the ffmpeg build directory within which are the libavcodec
+	files that can be used to build true MPEG streaming into ZoneMinder.
+    e.g. --with-ffmpeg=/home/ffmpeg-0.4.18" >&5
+echo "$as_me: WARNING: You can call configure with the --with-ffmpeg option.
+    This tells configure where to find the ffmpeg build directory within which are the libavcodec
+	files that can be used to build true MPEG streaming into ZoneMinder.
+    e.g. --with-ffmpeg=/home/ffmpeg-0.4.18" >&2;}
+
+fi;
+
+FFMPEG_LIBS="-L${FFMPEG_PREFIX}/libavcodec -L${FFMPEG_PREFIX}/libavformat"
+FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/libavcodec -I${FFMPEG_PREFIX}/libavformat"
+
+
+
+LDFLAGS="${FFMPEG_LIBS} $LDFLAGS"
+
+LAME_PREFIX=
+# Ask group for web group name:.
+
+# Check whether --with-lame or --without-lame was given.
+if test "${with_lame+set}" = set; then
+  withval="$with_lame"
+  LAME_PREFIX=$with_lame
+else
+  { echo "$as_me:$LINENO: WARNING: You can call configure with the --with-lame option.
+    This tells configure where to find the Lame library which is used by the ffmpeg libraries
+	to generate IE compatible MPEG streams. This option is only necessary if you have built the
+	ffmpeg package with the --enable-mp3lame option and if the normal link cannot find the library.
+    e.g. --with-lame=/use/local/lib" >&5
+echo "$as_me: WARNING: You can call configure with the --with-lame option.
+    This tells configure where to find the Lame library which is used by the ffmpeg libraries
+	to generate IE compatible MPEG streams. This option is only necessary if you have built the
+	ffmpeg package with the --enable-mp3lame option and if the normal link cannot find the library.
+    e.g. --with-lame=/use/local/lib" >&2;}
+
+fi;
+
+LAME_LIBS="-L${LAME_PREFIX}"
+#LAME_CFLAGS="-I${LAME_PREFIX}/libavcodec -I${LAME_PREFIX}/libavformat"
+
+#AC_SUBST(LAME_CFLAGS)
+
+LDFLAGS="${LAME_LIBS} $LDFLAGS"
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -2631,7 +2681,7 @@ echo "include confinc" > confmf
 # In particular we don't look at `^make:' because GNU make might
 # be invoked under some other name (usually "gmake"), in which
 # case it prints its new name instead of `make'.
-if test "`$am_make -s -f confmf 2> /dev/null | grep -v 'ing directory'`" = "done"; then
+if test "`$am_make -s -f confmf 2> /dev/null | fgrep -v 'ing directory'`" = "done"; then
    am__include=include
    am__quote=
    _am_result=GNU
@@ -2740,18 +2790,6 @@ fi
 echo "$as_me:$LINENO: result: $am_cv_CC_dependencies_compiler_type" >&5
 echo "${ECHO_T}$am_cv_CC_dependencies_compiler_type" >&6
 CCDEPMODE=depmode=$am_cv_CC_dependencies_compiler_type
-
-
-
-if
-  test "x$enable_dependency_tracking" != xno \
-  && test "$am_cv_CC_dependencies_compiler_type" = gcc3; then
-  am__fastdepCC_TRUE=
-  am__fastdepCC_FALSE='#'
-else
-  am__fastdepCC_TRUE='#'
-  am__fastdepCC_FALSE=
-fi
 
 
 ac_ext=cc
@@ -3141,18 +3179,6 @@ fi
 echo "$as_me:$LINENO: result: $am_cv_CXX_dependencies_compiler_type" >&5
 echo "${ECHO_T}$am_cv_CXX_dependencies_compiler_type" >&6
 CXXDEPMODE=depmode=$am_cv_CXX_dependencies_compiler_type
-
-
-
-if
-  test "x$enable_dependency_tracking" != xno \
-  && test "$am_cv_CXX_dependencies_compiler_type" = gcc3; then
-  am__fastdepCXX_TRUE=
-  am__fastdepCXX_FALSE='#'
-else
-  am__fastdepCXX_TRUE='#'
-  am__fastdepCXX_FALSE=
-fi
 
 
 # Find a good install program.  We prefer a C program (faster),
@@ -3681,6 +3707,8 @@ ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ex
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
+XLIBS=""
+
 
 echo "$as_me:$LINENO: checking whether round is declared" >&5
 echo $ECHO_N "checking whether round is declared... $ECHO_C" >&6
@@ -4082,6 +4110,211 @@ echo "$as_me: error: zm requires libmysqlclient.a" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
+#AC_CHECK_LIB(avcodec,avcodec_init,XLIBS="$XLIBS -lavcodec",AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
+#AC_CHECK_LIB(avformat,av_new_stream,XLIBS="$XLIBS -lavformat",AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)
+
+echo "$as_me:$LINENO: checking for avcodec_init in -lavcodec" >&5
+echo $ECHO_N "checking for avcodec_init in -lavcodec... $ECHO_C" >&6
+if test "${ac_cv_lib_avcodec_avcodec_init+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavcodec  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char avcodec_init ();
+int
+main ()
+{
+avcodec_init ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_avcodec_avcodec_init=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_avcodec_avcodec_init=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_avcodec_avcodec_init" >&5
+echo "${ECHO_T}$ac_cv_lib_avcodec_avcodec_init" >&6
+if test $ac_cv_lib_avcodec_avcodec_init = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVCODEC 1
+_ACEOF
+
+  LIBS="-lavcodec $LIBS"
+
+else
+  { echo "$as_me:$LINENO: WARNING: libavcodec.a is required for MPEG streaming" >&5
+echo "$as_me: WARNING: libavcodec.a is required for MPEG streaming" >&2;}
+fi
+
+
+echo "$as_me:$LINENO: checking for av_new_stream in -lavformat" >&5
+echo $ECHO_N "checking for av_new_stream in -lavformat... $ECHO_C" >&6
+if test "${ac_cv_lib_avformat_av_new_stream+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavformat -lavcodec $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char av_new_stream ();
+int
+main ()
+{
+av_new_stream ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_avformat_av_new_stream=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_avformat_av_new_stream=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_avformat_av_new_stream" >&5
+echo "${ECHO_T}$ac_cv_lib_avformat_av_new_stream" >&6
+if test $ac_cv_lib_avformat_av_new_stream = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVFORMAT 1
+_ACEOF
+
+  LIBS="-lavformat $LIBS"
+
+else
+  { echo "$as_me:$LINENO: WARNING: libavformat.a is required for MPEG streaming" >&5
+echo "$as_me: WARNING: libavformat.a is required for MPEG streaming" >&2;}
+fi
+
+
+echo "$as_me:$LINENO: checking for lame_init in -lmp3lame" >&5
+echo $ECHO_N "checking for lame_init in -lmp3lame... $ECHO_C" >&6
+if test "${ac_cv_lib_mp3lame_lame_init+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lmp3lame  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char lame_init ();
+int
+main ()
+{
+lame_init ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_mp3lame_lame_init=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_mp3lame_lame_init=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_mp3lame_lame_init" >&5
+echo "${ECHO_T}$ac_cv_lib_mp3lame_lame_init" >&6
+if test $ac_cv_lib_mp3lame_lame_init = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBMP3LAME 1
+_ACEOF
+
+  LIBS="-lmp3lame $LIBS"
+
+else
+  { echo "$as_me:$LINENO: WARNING: libmp3lame.a may be required for IE compatible MPEG streaming" >&5
+echo "$as_me: WARNING: libmp3lame.a may be required for IE compatible MPEG streaming" >&2;}
+fi
+
+
+
 
 
 
@@ -4181,20 +4414,6 @@ if test -z "${AMDEP_TRUE}" && test -z "${AMDEP_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"AMDEP\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"AMDEP\" was never defined.
-Usually this means the macro was only invoked conditionally." >&2;}
-   { (exit 1); exit 1; }; }
-fi
-if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
-  { { echo "$as_me:$LINENO: error: conditional \"am__fastdepCC\" was never defined.
-Usually this means the macro was only invoked conditionally." >&5
-echo "$as_me: error: conditional \"am__fastdepCC\" was never defined.
-Usually this means the macro was only invoked conditionally." >&2;}
-   { (exit 1); exit 1; }; }
-fi
-if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
-  { { echo "$as_me:$LINENO: error: conditional \"am__fastdepCXX\" was never defined.
-Usually this means the macro was only invoked conditionally." >&5
-echo "$as_me: error: conditional \"am__fastdepCXX\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -4737,7 +4956,6 @@ s,@LIBS@,$LIBS,;t t
 s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
 s,@INSTALL_SCRIPT@,$INSTALL_SCRIPT,;t t
 s,@INSTALL_DATA@,$INSTALL_DATA,;t t
-s,@CYGPATH_W@,$CYGPATH_W,;t t
 s,@PACKAGE@,$PACKAGE,;t t
 s,@VERSION@,$VERSION,;t t
 s,@ACLOCAL@,$ACLOCAL,;t t
@@ -4759,6 +4977,11 @@ s,@WEB_PREFIX@,$WEB_PREFIX,;t t
 s,@CGI_PREFIX@,$CGI_PREFIX,;t t
 s,@WEB_USER@,$WEB_USER,;t t
 s,@WEB_GROUP@,$WEB_GROUP,;t t
+s,@FFMPEG_PREFIX@,$FFMPEG_PREFIX,;t t
+s,@FFMPEG_LIBS@,$FFMPEG_LIBS,;t t
+s,@FFMPEG_CFLAGS@,$FFMPEG_CFLAGS,;t t
+s,@LAME_PREFIX@,$LAME_PREFIX,;t t
+s,@LAME_LIBS@,$LAME_LIBS,;t t
 s,@CC@,$CC,;t t
 s,@CFLAGS@,$CFLAGS,;t t
 s,@LDFLAGS@,$LDFLAGS,;t t
@@ -4773,16 +4996,13 @@ s,@AMDEP_TRUE@,$AMDEP_TRUE,;t t
 s,@AMDEP_FALSE@,$AMDEP_FALSE,;t t
 s,@AMDEPBACKSLASH@,$AMDEPBACKSLASH,;t t
 s,@CCDEPMODE@,$CCDEPMODE,;t t
-s,@am__fastdepCC_TRUE@,$am__fastdepCC_TRUE,;t t
-s,@am__fastdepCC_FALSE@,$am__fastdepCC_FALSE,;t t
 s,@CXX@,$CXX,;t t
 s,@CXXFLAGS@,$CXXFLAGS,;t t
 s,@ac_ct_CXX@,$ac_ct_CXX,;t t
 s,@CXXDEPMODE@,$CXXDEPMODE,;t t
-s,@am__fastdepCXX_TRUE@,$am__fastdepCXX_TRUE,;t t
-s,@am__fastdepCXX_FALSE@,$am__fastdepCXX_FALSE,;t t
 s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
+s,@XLIBS@,$XLIBS,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF
@@ -5210,19 +5430,12 @@ echo "$as_me: error: cannot create directory \"$ac_dir\"" >&2;}
     cat $tmp/config.h
     rm -f $tmp/config.h
   fi
-_am_stamp_count=`expr ${_am_stamp_count-0} + 1`
-echo "timestamp for $ac_file" >`(dirname $ac_file) 2>/dev/null ||
-$as_expr X$ac_file : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
-         X$ac_file : 'X\(//\)[^/]' \| \
-         X$ac_file : 'X\(//\)$' \| \
-         X$ac_file : 'X\(/\)' \| \
-         .     : '\(.\)' 2>/dev/null ||
-echo X$ac_file |
-    sed '/^X\(.*[^/]\)\/\/*[^/][^/]*\/*$/{ s//\1/; q; }
-  	  /^X\(\/\/\)[^/].*/{ s//\1/; q; }
-  	  /^X\(\/\/\)$/{ s//\1/; q; }
-  	  /^X\(\/\).*/{ s//\1/; q; }
-  	  s/.*/./; q'`/stamp-h$_am_stamp_count
+  # Run the commands associated with the file.
+  case $ac_file in
+    config.h ) # update the timestamp
+echo 'timestamp for config.h' >"./stamp-h1"
+ ;;
+  esac
 done
 _ACEOF
 cat >>$CONFIG_STATUS <<\_ACEOF

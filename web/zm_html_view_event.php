@@ -242,19 +242,75 @@ if ( $mode == "still" && $paged && !empty($page) )
 <?php
 if ( $mode == "stream" )
 {
-	$stream_src = ZM_PATH_ZMS."?event=$eid&rate=$rate&scale=$scale";
-	if ( canStreamNative() )
-	{
 ?>
-<tr><td colspan="6" align="center" valign="middle"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>"></td></tr>
+<tr><td colspan="6" align="center" valign="middle">
 <?php
+	if ( ZM_WEB_VIDEO_STREAM_METHOD == 'mpeg' )
+	{
+		$stream_src = ZM_PATH_ZMS."?mode=mpeg&event=$eid&rate=$rate&scale=$scale&bit_rate=".VIDEO_BITRATE;
+		if ( isWindows() )
+		{
+			if ( isInternetExplorer() )
+			{
+?>
+<OBJECT ID="MediaPlayer1" width=<?= reScale( $event['Width'], $scale ) ?> height=<?= reScale( $event['Height'], $scale ) ?> 
+classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
+codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
+standby="Loading Microsoft Windows Media Player components..."
+type="application/x-oleobject">
+<PARAM NAME="FileName" VALUE="<?= $stream_src."&format=asf" ?>"
+<PARAM NAME="animationatStart" VALUE="true">
+<PARAM NAME="transparentatStart" VALUE="true">
+<PARAM NAME="autoStart" VALUE="true">
+<PARAM NAME="showControls" VALUE="false">
+</OBJECT>
+<?php
+			}
+			else
+			{
+?>
+<EMBED type="application/x-mplayer2"
+pluginspage = "http://www.microsoft.com/Windows/MediaPlayer/"
+SRC="<?= $stream_src."&format=asf" ?>"
+name="MediaPlayer1"
+width=<?= reScale( $event['Width'], $scale ) ?>
+height=<?= reScale( $event['Height'], $scale ) ?>
+AutoStart=true>
+</EMBED>
+<?php
+			}
+		}
+		else
+		{
+?>
+<EMBED type="video/mpeg"
+src="<?= $stream_src."&format=mpeg" ?>"
+width=<?= reScale( $event['Width'], $scale ) ?>
+height=<?= reScale( $event['Height'], $scale ) ?>
+AutoStart=true>
+</EMBED>
+<?php
+		}
 	}
 	else
 	{
+		$stream_src = ZM_PATH_ZMS."?mode=jpeg&event=$eid&rate=$rate&scale=$scale";
+		if ( canStreamNative() )
+		{
 ?>
-<tr><td colspan="6" align="center" valign="middle"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<img src="<?= $stream_src ?>" border="0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>">
 <?php
+		}
+		else
+		{
+?>
+<applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet>
+<?php
+		}
 	}
+?>
+</td></tr>
+<?php
 }
 else
 {

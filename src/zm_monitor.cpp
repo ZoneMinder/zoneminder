@@ -22,6 +22,7 @@
 
 #include "zm.h"
 #include "zm_db.h"
+#include "zm_mpeg.h"
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
@@ -360,16 +361,29 @@ unsigned int Monitor::GetLastEvent() const
 double Monitor::GetFPS() const
 {
 	int index1 = shared_data->last_write_index;
+	Snapshot *snap1 = &image_buffer[index1];
+	if ( !snap1->timestamp || !snap1->timestamp->tv_sec )
+	{
+		return( 0.0 );
+	}
+	time_t time1 = snap1->timestamp->tv_sec;
+
+	int image_count = image_buffer_count;
 	int index2 = (index1+1)%image_buffer_count;
-
-	//Snapshot *snap1 = &image_buffer[index1];
-	//time_t time1 = snap1->timestamp->tv_sec;
-	time_t time1 = time( 0 );
-
 	Snapshot *snap2 = &image_buffer[index2];
+	while ( !snap2->timestamp || !snap2->timestamp->tv_sec || time1 == snap2->timestamp->tv_sec )
+	{
+		if ( index1 == index2 )
+		{
+			return( 0.0 );
+		}
+		index2 = (index2+1)%image_buffer_count;
+		snap2 = &image_buffer[index2];
+		image_count--;
+	}
 	time_t time2 = snap2->timestamp->tv_sec;
 
-	double curr_fps = double(image_buffer_count)/(time1-time2);
+	double curr_fps = double(image_count)/(time1-time2);
 
 	return( curr_fps );
 }
@@ -1040,24 +1054,10 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 	return( monitor );
 }
 
-void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t ttl, int scale, FILE *fd )
+void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t ttl, int scale )
 {
-	setbuf( fd, 0 );
-
-	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
-
-	time_t now = time( 0 );
-	char date_string[64];
-	strftime( date_string, sizeof(date_string)-1, "%a, %d %b %Y %H:%M:%S GMT", gmtime( &now ) );
-
-	fprintf( fd, "Expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n" );
-	fprintf( fd, "Last-Modified: %s\r\n", date_string );
-	fprintf( fd, "Cache-Control: no-store, no-cache, must-revalidate\r\n" );
-	fprintf( fd, "Cache-Control: post-check=0, pre-check=0\r\n" );
-	fprintf( fd, "Pragma: no-cache\r\n");
-
-	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-	fprintf( fd, "--ZoneMinderFrame\n" );
+	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
+	fprintf( stdout, "--ZoneMinderFrame\n" );
 
 	int last_read_index = image_buffer_count;
 	static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
@@ -1069,7 +1069,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 
 	while ( true )
 	{
-		if ( feof( fd ) || ferror( fd ) )
+		if ( feof( stdout ) || ferror( stdout ) )
 		{
 			break;
 		}
@@ -1082,7 +1082,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 			Snapshot *snap = &image_buffer[index];
 			Image *snap_image = snap->image;
 
-			if ( scale == 1 )
+			if ( scale == 100 )
 			{
 				if ( !timestamp_on_capture )
 				{
@@ -1105,11 +1105,9 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 				scaled_image.EncodeJpeg( img_buffer, &img_buffer_size );
 			}
 
-			fprintf( fd, "Content-type: image/jpeg\n\n" );
-			fwrite( img_buffer, img_buffer_size, 1, fd );
-			//fwrite( img_buffer, 1, img_buffer_size, fd );
-			//write( fileno(fd), img_buffer, img_buffer_size );
-			fprintf( fd, "\n--ZoneMinderFrame\n" );
+			fprintf( stdout, "Content-type: image/jpeg\n\n" );
+			fwrite( img_buffer, img_buffer_size, 1, stdout );
+			fprintf( stdout, "\n--ZoneMinderFrame\n" );
 		}
 		usleep( refresh*1000 );
 		for ( int i = 0; shared_data->state == IDLE && i < loop_count; i++ )
@@ -1118,6 +1116,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 		}
 		if ( ttl )
 		{
+			time_t now;
 			time( &now );
 			if ( (now - stream_start_time) > ttl )
 			{
@@ -1126,6 +1125,118 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 		}
 	}
 }
+
+
+#if HAVE_LIBAVCODEC
+
+void Monitor::StreamMpeg( const char *format, int bit_rate, int scale, int buffer )
+{
+	fprintf( stdout, "Content-type: video/x-ms-asf\r\n\r\n");
+
+	int fps = int(GetFPS());
+	if ( !fps )
+		fps = 5;
+
+	VideoStream vid_stream( "pipe:", format, bit_rate, fps, camera->Colours(), (width*scale)/ZM_SCALE_SCALE, (height*scale)/ZM_SCALE_SCALE );
+
+	int last_read_index = image_buffer_count;
+
+	time_t stream_start_time;
+	time( &stream_start_time );
+
+	Image scaled_image;
+
+	// Do any catching up
+	if ( buffer )
+	{
+		int index = shared_data->last_write_index;
+		int offset = buffer*fps;
+		if ( offset > image_buffer_count )
+		{
+			last_read_index = (index+1)%image_buffer_count;
+		}
+		else
+		{
+			last_read_index = (index-offset+image_buffer_count)%image_buffer_count;
+		}
+		Info(( "LWI:%d", shared_data->last_write_index ));
+		Info(( "LRI:%d", last_read_index ));
+
+		while ( last_read_index != shared_data->last_write_index )
+		{
+			Info(( "LRI+:%d", last_read_index ));
+
+			Snapshot *snap = &image_buffer[last_read_index];
+			Image *snap_image = snap->image;
+
+			if ( scale == 100 )
+			{
+				if ( !timestamp_on_capture )
+				{
+					TimestampImage( snap_image, snap->timestamp->tv_sec );
+				}
+			}
+			else
+			{
+				scaled_image.Assign( *snap_image );
+
+				scaled_image.Scale( scale );
+
+				if ( !timestamp_on_capture )
+				{
+					TimestampImage( &scaled_image, snap->timestamp->tv_sec );
+				}
+				snap_image = &scaled_image;
+			}
+
+    		double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size() );
+
+			last_read_index = (last_read_index+1)%image_buffer_count;
+		}
+	}
+
+	int frame_count;
+	while ( true )
+	{
+		if ( feof( stdout ) || ferror( stdout ) )
+		{
+			break;
+		}
+		if ( last_read_index != shared_data->last_write_index )
+		{
+			// Send the next frame
+			last_read_index = shared_data->last_write_index;
+			int index = shared_data->last_write_index%image_buffer_count;
+			//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
+			Snapshot *snap = &image_buffer[index];
+			Image *snap_image = snap->image;
+
+			if ( scale == 100 )
+			{
+				if ( !timestamp_on_capture )
+				{
+					TimestampImage( snap_image, snap->timestamp->tv_sec );
+				}
+			}
+			else
+			{
+				scaled_image.Assign( *snap_image );
+
+				scaled_image.Scale( scale );
+
+				if ( !timestamp_on_capture )
+				{
+					TimestampImage( &scaled_image, snap->timestamp->tv_sec );
+				}
+				snap_image = &scaled_image;
+			}
+
+    		double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size() );
+		}
+		usleep( 10000 );
+	}
+}
+#endif // HAVE_LIBAVCODEC
 
 bool Monitor::DumpSettings( char *output, bool verbose )
 {

@@ -1,5 +1,5 @@
 AC_INIT(src/zm.h)
-AM_INIT_AUTOMAKE(zm,1.18.1)
+AM_INIT_AUTOMAKE(zm,1.18.1-ms)
 AM_CONFIG_HEADER(config.h)
 
 AC_ARG_WITH(mysql,
@@ -59,6 +59,43 @@ AC_ARG_WITH(webgroup,
 )
 AC_SUBST(WEB_GROUP)
 
+FFMPEG_PREFIX=
+# Ask group for web group name:.
+AC_ARG_WITH(ffmpeg,
+    [ --with-ffmpeg=<directory> location of ffmpeg build directory for libavcodec etc],
+    [FFMPEG_PREFIX=$with_ffmpeg],
+    AC_MSG_WARN([You can call configure with the --with-ffmpeg option.
+    This tells configure where to find the ffmpeg build directory within which are the libavcodec 
+	files that can be used to build true MPEG streaming into ZoneMinder.
+    e.g. --with-ffmpeg=/home/ffmpeg-0.4.18])
+)
+AC_SUBST(FFMPEG_PREFIX)
+FFMPEG_LIBS="-L${FFMPEG_PREFIX}/libavcodec -L${FFMPEG_PREFIX}/libavformat"
+FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/libavcodec -I${FFMPEG_PREFIX}/libavformat"
+AC_SUBST(FFMPEG_LIBS)
+AC_SUBST(FFMPEG_CFLAGS)
+
+LDFLAGS="${FFMPEG_LIBS} $LDFLAGS"
+
+LAME_PREFIX=
+# Ask group for web group name:.
+AC_ARG_WITH(lame,
+    [ --with-lame=<directory> location of lame library directory for libmp3lame],
+    [LAME_PREFIX=$with_lame],
+    AC_MSG_WARN([You can call configure with the --with-lame option.
+    This tells configure where to find the Lame library which is used by the ffmpeg libraries
+	to generate IE compatible MPEG streams. This option is only necessary if you have built the
+	ffmpeg package with the --enable-mp3lame option and if the normal link cannot find the library.
+    e.g. --with-lame=/use/local/lib])
+)
+AC_SUBST(LAME_PREFIX)
+LAME_LIBS="-L${LAME_PREFIX}"
+#LAME_CFLAGS="-I${LAME_PREFIX}/libavcodec -I${LAME_PREFIX}/libavformat"
+AC_SUBST(LAME_LIBS)
+#AC_SUBST(LAME_CFLAGS)
+
+LDFLAGS="${LAME_LIBS} $LDFLAGS"
+
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
@@ -68,12 +105,21 @@ AC_HEADER_STDC
 
 AC_LANG_CPLUSPLUS
 
+XLIBS=""
+
 AC_CHECK_DECLS(round,,,[#include <math.h>])
 AC_CHECK_DECLS(strsignal,,,[#include <string.h>])
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(z,compress,,AC_MSG_ERROR(zm requires libz.a))
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 AC_CHECK_LIB(mysqlclient,mysql_init,,AC_MSG_ERROR(zm requires libmysqlclient.a))
+#AC_CHECK_LIB(avcodec,avcodec_init,XLIBS="$XLIBS -lavcodec",AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
+#AC_CHECK_LIB(avformat,av_new_stream,XLIBS="$XLIBS -lavformat",AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)
+AC_CHECK_LIB(avcodec,avcodec_init,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
+AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)
+AC_CHECK_LIB(mp3lame,lame_init,,AC_MSG_WARN(libmp3lame.a may be required for IE compatible MPEG streaming))
+
+AC_SUBST(XLIBS)
 
 AC_SUBST(bindir)
 

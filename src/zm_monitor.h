@@ -285,7 +285,10 @@ public:
 	static int Load( int device, Monitor **&monitors, Purpose purpose=QUERY );
 	static int Load( const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose=QUERY );
 	static Monitor *Load( int id, bool load_zones=false, Purpose purpose=QUERY );
-	void StreamImages( unsigned long idle=5000, unsigned long refresh=50, time_t ttl=0, int scale=1, FILE *fd=stdout );
+	void StreamImages( unsigned long idle=5000, unsigned long refresh=50, time_t ttl=0, int scale=100 );
+#if HAVE_LIBAVCODEC
+	void StreamMpeg( const char *format, int bit_rate=100000, int scale=100, int buffer=0 );
+#endif // HAVE_LIBAVCODEC
 };
 
 #endif // ZM_MONITOR_H

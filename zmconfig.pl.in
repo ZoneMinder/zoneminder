@@ -862,6 +862,14 @@ my @options =
 		category => 'config',
 	},
 	{
+		name => "ZM_EVENT_IMAGE_DIGITS",
+		default => "3",
+		description => "How many significant digits are used in event image numbering",
+		help => "As event images are captured they are stored to the filesystem with a numerical index. By default this index has three digits so the numbers start 001, 002 etc. This works works for most scenarios as events with more than 999 frames are rarely captured. However if you have extremely long events and use external applications then you may wish to increase this to ensure correct sorting of images in listings etc. Warning, increasing this value on a live system may render existing events unviewable as the event will have been saved with the previous scheme. Decreasing this value should have no ill effects.",
+		type => $types{integer},
+		category => 'config',
+	},
+	{
 		name => "ZM_RECORD_EVENT_STATS",
 		default => "yes",
 		description => "Whether to record event statistical information, switch off if too slow",

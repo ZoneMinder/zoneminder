@@ -35,6 +35,9 @@
 bool Event::initialised = false;
 bool Event::timestamp_on_capture;
 int Event::bulk_frame_interval;
+char Event::capture_file_format[PATH_MAX];
+char Event::analyse_file_format[PATH_MAX];
+char Event::general_file_format[PATH_MAX];
 
 Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
 {
@@ -248,7 +251,7 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
 		frames++;
 
 		static char event_file[PATH_MAX];
-		sprintf( event_file, "%s/%03d-capture.jpg", path, frames );
+		sprintf( event_file, capture_file_format, path, frames );
 		
 		Debug( 1, ( "Writing pre-capture frame %d", frames ));
 		WriteFrameImage( images[i], *(timestamps[i]), event_file );
@@ -273,7 +276,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 	frames++;
 
 	static char event_file[PATH_MAX];
-	sprintf( event_file, "%s/%03d-capture.jpg", path, frames );
+	sprintf( event_file, capture_file_format, path, frames );
 		
 	Debug( 1, ( "Writing capture frame %d", frames ));
 	WriteFrameImage( image, timestamp, event_file );
@@ -309,7 +312,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
 		if ( alarm_image )
 		{
-			sprintf( event_file, "%s/%03d-analyse.jpg", path, frames );
+			sprintf( event_file, analyse_file_format, path, frames );
 
 			Debug( 1, ( "Writing analysis frame %d", frames ));
 			WriteFrameImage( alarm_image, timestamp, event_file, true );
@@ -345,7 +348,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
 				if ( diag_file )
 				{
-					sprintf( new_diag_path, "%s/%03d-%s", path, frames, diag_file );
+					sprintf( new_diag_path, general_file_format, path, frames, diag_file );
 
 					if ( rename( diag_path, new_diag_path ) < 0 )
 					{
@@ -450,7 +453,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 				Debug( 2, ( "I:%d, DI:%d, LDBI:%d, DD:%lf, LD:%lf, LDBD:%lf, TD:%lf, DU:%d", id, db_id, last_db_id, db_delta, last_delta, last_db_delta, this_delta, delta_us ));
 
 				static char filepath[PATH_MAX];
-				sprintf( filepath, "%s/%03d-capture.jpg", eventpath, id );
+				sprintf( filepath, capture_file_format, eventpath, id );
 
 				fprintf( stdout, "Content-Length: %d\r\n", n_bytes );
 				fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
@@ -609,7 +612,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 			if ( (frame_mod == 1) || (((id-1)%frame_mod) == 0) )
 			{
 				static char filepath[PATH_MAX];
-				sprintf( filepath, "%s/%03d-capture.jpg", eventpath, id );
+				sprintf( filepath, capture_file_format, eventpath, id );
 
 				Image image( filepath );
 

@@ -716,14 +716,14 @@ sub substituteTags
 		$text =~ s/%EPIM%/$url?view=image&mid=$event->{MonitorId}&eid=$event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
 		if ( $attachments_ref && $text =~ s/%EI1%//g )
 		{
-			push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%d/%03d-capture.jpg", $event->{MonitorName}, $event->{Id}, $first_alarm_frame->{FrameId} ) } );
+			push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%d/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event->{MonitorName}, $event->{Id}, $first_alarm_frame->{FrameId} ) } );
 		}
 		if ( $attachments_ref && $text =~ s/%EIM%//g )
 		{
 			# Don't attach the same image twice
 			if ( !@$attachments_ref || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} ) )
 			{
-				push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%d/%03d-capture.jpg", $event->{MonitorName}, $event->{Id}, $max_alarm_frame->{FrameId} ) } );
+				push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%d/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event->{MonitorName}, $event->{Id}, $max_alarm_frame->{FrameId} ) } );
 			}
 		}
 	}

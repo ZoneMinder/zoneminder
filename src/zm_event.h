@@ -45,6 +45,9 @@ protected:
 	static bool		initialised;
 	static bool		timestamp_on_capture;
 	static int		bulk_frame_interval;
+	static char		capture_file_format[PATH_MAX];
+	static char		analyse_file_format[PATH_MAX];
+	static char		general_file_format[PATH_MAX];
 
 protected:
 	static int		sd;
@@ -67,6 +70,9 @@ protected:
 
 		timestamp_on_capture = (bool)config.Item( ZM_TIMESTAMP_ON_CAPTURE );
 		bulk_frame_interval = (int)config.Item( ZM_BULK_FRAME_INTERVAL );
+		sprintf( capture_file_format, "%%s/%%0%dd-capture.jpg", (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
+		sprintf( analyse_file_format, "%%s/%%0%dd-analyse.jpg", (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
+		sprintf( general_file_format, "%%s/%%0%dd-%%s.jpg", (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
 	}
 
 public:

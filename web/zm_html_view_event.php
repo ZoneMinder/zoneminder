@@ -369,7 +369,7 @@ else
 	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorName'].'/'.$event['Id'];
 	for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++ )
 	{
-		$image_path = sprintf( "%s/%03d-capture.jpg", $event_path, $frame_id );
+		$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $frame_id );
 
 		$capt_image = $image_path;
 		if ( $scale == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )

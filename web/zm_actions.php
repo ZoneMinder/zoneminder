@@ -374,10 +374,10 @@ if ( $action )
 				if ( $value[Value] != $new_config[$name] )
 				{
 					$sql = "update Config set Value = '".$new_config[$name]."' where Name = '".$name."'";
-					echo $sql;
-					//$result = mysql_query( $sql );
-					//if ( !$result )
-						//die( mysql_error() );
+					//echo $sql;
+					$result = mysql_query( $sql );
+					if ( !$result )
+						die( mysql_error() );
 					$changed = true;
 				}
 			}

@@ -215,109 +215,42 @@ if ( $action )
 				if ( !$result )
 					die( mysql_error() );
 				$monitor = mysql_fetch_assoc( $result );
+
+				if ( ZM_OPT_X10 )
+				{
+					$result = mysql_query( "select * from TriggersX10 where MonitorId = '$mid'" );
+					if ( !$result )
+						die( mysql_error() );
+					$x10_monitor = mysql_fetch_assoc( $result );
+				}
 			}
 			else
 			{
 				$monitor = array();
+				if ( ZM_OPT_X10 )
+				{
+					$x10_monitor = array();
+				}
 			}
 
-			$changes = array();
-			switch( $tab )
-			{
-				case 'monitor' :
-				{
-					if ( $new_name != $monitor[Name] ) $changes[] = "Name = '$new_name'";
-					if ( $new_function != $monitor['Function'] ) $changes[] = "Function = '$new_function'";
-					if ( $new_section_length != $monitor['SectionLength'] ) $changes[] = "SectionLength = '$new_section_length'";
-					if ( $new_frame_skip != $monitor['FrameSkip'] ) $changes[] = "FrameSkip = '$new_frame_skip'";
-					if ( $new_runmode != $monitor['RunMode'] ) $changes[] = "RunMode = '$new_runmode'";
-					if ( $new_triggers )
-					{
-						if ( join(',',$new_triggers) != $monitor['Triggers'] ) $changes[] = "Triggers = '".join(',',$new_triggers)."'";
-					}
-					elseif ( $monitor['Triggers'] )
-					{
-						$changes[] = "Triggers = ''";
-					}
-					if ( $new_type != $monitor['Type'] ) $changes[] = "Type = '$new_type'";
-					break;
-				}
-				case 'source' :
-				{
-					if ( $monitor['Type'] == "Local" )
-					{
-						if ( $new_device != $monitor['Device'] ) $changes[] = "Device = '$new_device'";
-						if ( $new_channel != $monitor['Channel'] ) $changes[] = "Channel = '$new_channel'";
-						if ( $new_format != $monitor['Format'] ) $changes[] = "Format = '$new_format'";
-					}
-					else
-					{
-						if ( $new_host != $monitor['Device'] ) $changes[] = "Host = '$new_host'";
-						if ( $new_port != $monitor['Channel'] ) $changes[] = "port = '$new_port'";
-						if ( $new_path != $monitor['Format'] ) $changes[] = "Path = '$new_path'";
-					}
-					if ( $new_width != $monitor['Width'] ) $changes[] = "Width = '$new_width'";
-					if ( $new_height != $monitor['Height'] ) $changes[] = "Height = '$new_height'";
-					if ( $new_palette != $monitor['Palette'] ) $changes[] = "Palette = '$new_palette'";
-					if ( $new_orientation != $monitor['Orientation'] ) $changes[] = "Orientation = '$new_orientation'";
-					break;
-				}
-				case 'timestamp' :
-				{
-					if ( $new_label_format != $monitor['LabelFormat'] ) $changes[] = "LabelFormat = '$new_label_format'";
-					if ( $new_label_x != $monitor['LabelX'] ) $changes[] = "LabelX = '$new_label_x'";
-					if ( $new_label_y != $monitor['LabelY'] ) $changes[] = "LabelY = '$new_label_y'";
-					break;
-				}
-				case 'buffers' :
-				{
-					if ( $new_image_buffer_count != $monitor['ImageBufferCount'] ) $changes[] = "ImageBufferCount = '$new_image_buffer_count'";
-					if ( $new_warmup_count != $monitor['WarmupCount'] ) $changes[] = "WarmupCount = '$new_warmup_count'";
-					if ( $new_pre_event_count != $monitor['PreEventCount'] ) $changes[] = "PreEventCount = '$new_pre_event_count'";
-					if ( $new_post_event_count != $monitor['PostEventCount'] ) $changes[] = "PostEventCount = '$new_post_event_count'";
-					break;
-				}
-				case 'misc' :
-				{
-					if ( $new_max_fps != $monitor['MaxFPS'] ) $changes[] = "MaxFPS = '$new_max_fps'";
-					if ( $new_fps_report_interval != $monitor['FPSReportInterval'] ) $changes[] = "FPSReportInterval = '$new_fps_report_interval'";
-					if ( $new_ref_blend_perc != $monitor['RefBlendPerc'] ) $changes[] = "RefBlendPerc = '$new_ref_blend_perc'";
-					break;
-				}
-				case 'x10' :
-				{
-					if ( $new_activation != $monitor['Activation'] ) $changes[] = "Activation = '$new_activation'";
-					if ( $new_alarm_input != $monitor['AlarmInput'] ) $changes[] = "AlarmInput = '$new_alarm_input'";
-					if ( $new_alarm_output != $monitor['AlarmOutput'] ) $changes[] = "AlarmOutput = '$new_alarm_output'";
-					break;
-				}
-			}
+			// Define a field type for anything that's not simple text equivalent
+			$types = array(
+				'Triggers' => 'set' 
+			);
+
+			$changes = getFormChanges( $monitor, $new_monitor, $types );
+
 			if ( count( $changes ) )
 			{
 				if ( $mid > 0 )
 				{
-					switch( $tab )
+					$sql = "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'";
+					$result = mysql_query( $sql );
+					if ( !$result )
+						die( mysql_error() );
+					if ( $changes[Name] )
 					{
-						case 'x10' :
-						{
-							$sql = "update TriggersX10 set ".implode( ", ", $changes )." where MonitorId = '$mid'";
-							$result = mysql_query( $sql );
-							if ( !$result )
-								die( mysql_error() );
-							break;
-						}
-						default :
-						{
-							$sql = "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'";
-							$result = mysql_query( $sql );
-							if ( !$result )
-								die( mysql_error() );
-							if ( $new_name != $monitor[Name] )
-							{
-								exec( escapeshellcmd( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_name" ) );
-							}
-							break;
-						}
+						exec( escapeshellcmd( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_monitor[Name]" ) );
 					}
 				}
 				elseif ( !$user[MonitorIds] )
@@ -333,6 +266,35 @@ if ( $action )
 						die( mysql_error() );
 					//$view = 'none';
 				}
+				$restart = true;
+			}
+
+			if ( ZM_OPT_X10 )
+			{
+				$x10_changes = getFormChanges( $x10_monitor, $new_x10_monitor );
+
+				if ( count( $x10_changes ) )
+				{
+					if ( $mid > 0 )
+					{
+						$sql = "update TriggersX10 set ".implode( ", ", $changes )." where MonitorId = '$mid'";
+						$result = mysql_query( $sql );
+						if ( !$result )
+							die( mysql_error() );
+					}
+					elseif ( !$user[MonitorIds] )
+					{
+						$sql = "insert into TriggersX10 set MonitorId = '$mid', ".implode( ", ", $changes );
+						$result = mysql_query( $sql );
+						if ( !$result )
+							die( mysql_error() );
+					}
+					$restart = true;
+				}
+			}
+
+			if ( $restart )
+			{
 				$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 				if ( !$result )
 					die( mysql_error() );
@@ -400,9 +362,16 @@ if ( $action )
 					$result = mysql_query( "delete from Zones where MonitorId = '$mark_mid'" );
 					if ( !$result )
 						die( mysql_error() );
+					if ( ZM_OPT_X10 )
+					{
+						$result = mysql_query( "delete from TriggersX10 where MonitorId = '$mark_mid'" );
+						if ( !$result )
+							die( mysql_error() );
+					}
 					$result = mysql_query( "delete from Monitors where Id = '$mark_mid'" );
 					if ( !$result )
 						die( mysql_error() );
+
 				}
 			}
 		}

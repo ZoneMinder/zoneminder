@@ -152,6 +152,7 @@ Monitor::~Monitor()
 
 	if ( purpose == ANALYSIS )
 	{
+		shared_data->state = state = IDLE;
 		shared_data->last_read_index = image_buffer_count;
 	}
 

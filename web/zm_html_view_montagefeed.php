@@ -45,11 +45,8 @@ $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 
 if ( $mode != "stream" )
 {
-	if ( !ZM_WEB_DOUBLE_BUFFER )
-	{
-		// Prompt an image to be generated
-		createImage( $monitor, $scale );
-	}
+	// Prompt an image to be generated
+	createImage( $monitor, $scale );
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
 		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=montagefeed&mid=$mid&mode=still&scale=$scale" );
 }

@@ -42,11 +42,8 @@ $monitor = mysql_fetch_assoc( $result );
 
 if ( $mode != "stream" )
 {
-	if ( !ZM_WEB_DOUBLE_BUFFER )
-	{
-		// Prompt an image to be generated
-		createImage( $monitor, $scale );
-	}
+	// Prompt an image to be generated
+	createImage( $monitor, $scale );
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
 		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still&scale=$scale" );
 }

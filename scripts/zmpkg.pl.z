@@ -116,6 +116,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 	if ( $status eq "stopped" )
 	{
 		execute( ZM_PATH_BIN."/zmfix" );
+		execute( ZM_PATH_BIN."/zmdc.pl status" );
 
 		my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 

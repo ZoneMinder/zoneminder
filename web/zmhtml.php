@@ -40,57 +40,58 @@ if ( !$view )
 	$view = "console";
 }
 
-if ( $view == "console" )
+switch( $view )
 {
-	header("Refresh: ".REFRESH_MAIN."; URL='$PHP_SELF'" );
-	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
-	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
-	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
-	header("Cache-Control: post-check=0, pre-check=0", false);
-	header("Pragma: no-cache");			// HTTP/1.0
-
-	//$result = mysql_query( "select M.*, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>NOW() - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount, count(Z.MonitorId) as ZoneCount from Monitors as M inner join Zones as Z on Z.MonitorId = M.Id left join Events as E on E.MonitorId = M.Id group by E.MonitorId,Z.MonitorId order by Id" );
-	$sql = "select M.*, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>NOW() - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by E.MonitorId order by Id";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		echo mysql_error();
-	$monitors = array();
-	$max_width = 0;
-	$max_height = 0;
-	$cycle_count = 0;
-	while( $row = mysql_fetch_assoc( $result ) )
+	case "console" :
 	{
-		if ( $max_width < $row[Width] ) $max_width = $row[Width];
-		if ( $max_height < $row[Height] ) $max_height = $row[Height];
-		$sql = "select count(Id) as ZoneCount, count(if(Type='Active',1,NULL)) as ActZoneCount, count(if(Type='Inclusive',1,NULL)) as IncZoneCount, count(if(Type='Exclusive',1,NULL)) as ExcZoneCount, count(if(Type='Inactive',1,NULL)) as InactZoneCount from Zones where MonitorId = '$row[Id]'";
-		$result2 = mysql_query( $sql );
-		if ( !$result2 )
+		header("Refresh: ".REFRESH_MAIN."; URL='$PHP_SELF'" );
+		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+		header("Cache-Control: post-check=0, pre-check=0", false);
+		header("Pragma: no-cache");			// HTTP/1.0
+
+		$sql = "select M.*, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>NOW() - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>NOW() - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by E.MonitorId order by Id";
+		$result = mysql_query( $sql );
+		if ( !$result )
 			echo mysql_error();
-		$row2 = mysql_fetch_assoc( $result2 );
-		$monitors[] = array_merge( $row, $row2 );
-		if ( $row['Function'] != 'None' ) $cycle_count++;
-	}
-
-	$sql = "select distinct Device from Monitors order by Device";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		echo mysql_error();
-	$devices = array();
-
-	while( $row = mysql_fetch_assoc( $result ) )
-	{
-		$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $row[Device]' | grep -v grep" ) );
-		if ( $ps_array[3] )
+		$monitors = array();
+		$max_width = 0;
+		$max_height = 0;
+		$cycle_count = 0;
+		while( $row = mysql_fetch_assoc( $result ) )
 		{
-			$row['zmc'] = 1;
+			if ( $max_width < $row[Width] ) $max_width = $row[Width];
+			if ( $max_height < $row[Height] ) $max_height = $row[Height];
+			$sql = "select count(Id) as ZoneCount, count(if(Type='Active',1,NULL)) as ActZoneCount, count(if(Type='Inclusive',1,NULL)) as IncZoneCount, count(if(Type='Exclusive',1,NULL)) as ExcZoneCount, count(if(Type='Inactive',1,NULL)) as InactZoneCount from Zones where MonitorId = '$row[Id]'";
+			$result2 = mysql_query( $sql );
+			if ( !$result2 )
+				echo mysql_error();
+			$row2 = mysql_fetch_assoc( $result2 );
+			$monitors[] = array_merge( $row, $row2 );
+			if ( $row['Function'] != 'None' ) $cycle_count++;
 		}
-		$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $row[Device]' | grep -v grep" ) );
-		if ( $ps_array[3] )
+
+		$sql = "select distinct Device from Monitors order by Device";
+		$result = mysql_query( $sql );
+		if ( !$result )
+			echo mysql_error();
+		$devices = array();
+
+		while( $row = mysql_fetch_assoc( $result ) )
 		{
-			$row['zma'] = 1;
+			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $row[Device]' | grep -v grep" ) );
+			if ( $ps_array[3] )
+			{
+				$row['zmc'] = 1;
+			}
+			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $row[Device]' | grep -v grep" ) );
+			if ( $ps_array[3] )
+			{
+				$row['zma'] = 1;
+			}
+			$devices[] = $row;
 		}
-		$devices[] = $row;
-	}
 ?>
 <html>
 <head>
@@ -139,23 +140,23 @@ function newWindow(Url,Name,Width,Height)
 <td align="center" class="smallhead">Delete</td>
 </tr>
 <?php
-	$event_count = 0;
-	$hour_event_count = 0;
-	$day_event_count = 0;
-	$week_event_count = 0;
-	$month_event_count = 0;
-	$arch_event_count = 0;
-	$zone_count = 0;
-	foreach( $monitors as $monitor )
-	{
-		$device = $devices[$monitor[Device]];
-		$event_count += $monitor[EventCount];
-		$hour_event_count += $monitor[HourEventCount];
-		$day_event_count += $monitor[DayEventCount];
-		$week_event_count += $monitor[WeekEventCount];
-		$month_event_count += $monitor[MonthEventCount];
-		$arch_event_count += $monitor[ArchEventCount];
-		$zone_count += $monitor[ZoneCount];
+		$event_count = 0;
+		$hour_event_count = 0;
+		$day_event_count = 0;
+		$week_event_count = 0;
+		$month_event_count = 0;
+		$arch_event_count = 0;
+		$zone_count = 0;
+		foreach( $monitors as $monitor )
+		{
+			$device = $devices[$monitor[Device]];
+			$event_count += $monitor[EventCount];
+			$hour_event_count += $monitor[HourEventCount];
+			$day_event_count += $monitor[DayEventCount];
+			$week_event_count += $monitor[WeekEventCount];
+			$month_event_count += $monitor[MonthEventCount];
+			$arch_event_count += $monitor[ArchEventCount];
+			$zone_count += $monitor[ZoneCount];
 ?>
 <tr>
 <td align="left" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zmMonitor', <?php echo $jws['monitor']['w'] ?>, <?php echo $jws['monitor']['h'] ?> );"><?php echo $monitor[Id] ?>.</a></td>
@@ -173,7 +174,7 @@ function newWindow(Url,Name,Width,Height)
 <td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $monitor[Id] ?>"></td>
 </tr>
 <?php
-	}
+		}
 ?>
 <tr><td align="left" class="text">&nbsp;</td>
 <td align="left" class="text">&nbsp;</td>
@@ -192,28 +193,29 @@ function newWindow(Url,Name,Width,Height)
 </body>
 </html>
 <?php
-}
-elseif ( $view == "cycle" )
-{
-	$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
-	$monitors = array();
-	$mon_idx = 0;
-	while( $row = mysql_fetch_assoc( $result ) )
-	{
-		if ( $mid && $row[Id] == $mid )
-			$mon_idx = count($monitors);
-		$monitors[] = $row;
+		break;
 	}
+	case "cycle" :
+	{
+		$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
+		$monitors = array();
+		$mon_idx = 0;
+		while( $row = mysql_fetch_assoc( $result ) )
+		{
+			if ( $mid && $row[Id] == $mid )
+				$mon_idx = count($monitors);
+			$monitors[] = $row;
+		}
 
-	$monitor = $monitors[$mon_idx];
-	$next_mid = $mon_idx==(count($monitors)-1)?$monitors[0][Id]:$monitors[$mon_idx+1][Id];
+		$monitor = $monitors[$mon_idx];
+		$next_mid = $mon_idx==(count($monitors)-1)?$monitors[0][Id]:$monitors[$mon_idx+1][Id];
 
-	header("Refresh: ".REFRESH_CYCLE."; URL='$PHP_SELF?view=cycle&mid=$next_mid'" );
-	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
-	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
-	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
-	header("Cache-Control: post-check=0, pre-check=0", false);
-	header("Pragma: no-cache");			  // HTTP/1.0
+		header("Refresh: ".REFRESH_CYCLE."; URL='$PHP_SELF?view=cycle&mid=$next_mid'" );
+		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+		header("Cache-Control: post-check=0, pre-check=0", false);
+		header("Pragma: no-cache");			  // HTTP/1.0
 ?>
 <html>
 <head>
@@ -232,13 +234,14 @@ function newWindow(Url,Name,Width,Height)
 </body>
 </html>
 <?php
-}
-elseif ( $view == "watch" )
-{
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
+		break;
+	}
+	case "watch" :
+	{
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
 ?>
 <html>
 <head>
@@ -255,31 +258,32 @@ window.focus();
 <frame src="<?php echo $PHP_SELF ?>?view=watchevents&max_events=<?php echo MAX_EVENTS ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
 </frameset>
 <?php
-}
-elseif( $view == "watchfeed" )
-{
-	if ( !$mode )
-	{
-		if ( canStream() )
-			$mode = "stream";
-		else
-			$mode = "still";
+		break;
 	}
-
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
-
-	if ( $mode != "stream" )
+	case "watchfeed" :
 	{
-		header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=watchfeed&mid=$mid&mode=still'" );
-		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
-		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
-		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
-		header("Cache-Control: post-check=0, pre-check=0", false);
-		header("Pragma: no-cache");			  // HTTP/1.0
-	}
+		if ( !$mode )
+		{
+			if ( canStream() )
+				$mode = "stream";
+			else
+				$mode = "still";
+		}
+
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
+
+		if ( $mode != "stream" )
+		{
+			header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=watchfeed&mid=$mid&mode=still'" );
+			header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+			header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+			header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+			header("Cache-Control: post-check=0, pre-check=0", false);
+			header("Pragma: no-cache");			  // HTTP/1.0
+		}
 ?>
 <html>
 <head>
@@ -304,125 +308,129 @@ function closeWindow()
 <?php } ?>
 <td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
-<?php if ( $mode == "stream" )
-{
-	$stream_src = ZMS_PATH."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
-	if ( isNetscape() )
-	{
+<?php
+		if ( $mode == "stream" )
+		{
+			$stream_src = ZMS_PATH."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
+			if ( isNetscape() )
+			{
 ?>
 <tr><td colspan="3" align="center"><img src="<?php echo $stream_src ?>" border="0" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"></td></tr>
 <?php
-	}
-	else
-	{
+			}
+			else
+			{
 ?>
 <tr><td colspan="3" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?php echo CAMBOZOLA_PATH ?>" align="middle" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
 <?php
-	}
-}
-else
-{
+			}
+		}
+		else
+		{
 ?>
 <tr><td colspan="3" align="center"><img src="<?php echo $monitor[Name] ?>.jpg" border="0" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>"></td></tr>
 <?php
-}
+		}
 ?>
 </table>
 </body>
 </html>
 <?php
-}
-elseif ( $view == "watchstatus" )
-{
-	$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -s" ) );
-	$status_string = "Unknown";
-	$class = "text";
-	if ( $status == 0 )
-	{
-		$status_string = "Idle";
+		break;
 	}
-	elseif ( $status == 1 )
+	case "watchstatus" :
 	{
-		$status_string = "Alarm";
-		$class = "redtext";
-	}
-	elseif ( $status == 2 )
-	{
-		$status_string = "Alert";
-		$class = "oratext";
-	}
-	$new_alarm = ( $status > 0 && $last_status == 0 );
+		$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -s" ) );
+		$status_string = "Unknown";
+		$class = "text";
+		if ( $status == 0 )
+		{
+			$status_string = "Idle";
+		}
+		elseif ( $status == 1 )
+		{
+			$status_string = "Alarm";
+			$class = "redtext";
+		}
+		elseif ( $status == 2 )
+		{
+			$status_string = "Alert";
+			$class = "oratext";
+		}
+		$new_alarm = ( $status > 0 && $last_status == 0 );
 
-	header("Refresh: ".REFRESH_STATUS."; URL='$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status'" );
-	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
-	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
-	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
-	header("Cache-Control: post-check=0, pre-check=0", false);
-	header("Pragma: no-cache");			  // HTTP/1.0
+		header("Refresh: ".REFRESH_STATUS."; URL='$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status'" );
+		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+		header("Cache-Control: post-check=0, pre-check=0", false);
+		header("Pragma: no-cache");			  // HTTP/1.0
 ?>
 <html>
 <head>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( ALARM_POPUP && $new_alarm )
-	{
+		if ( ALARM_POPUP && $new_alarm )
+		{
 ?>
 top.window.focus();
 <?php
-	}
+		}
 ?>
 </script>
 </head>
 <body>
 <table width="100%" align="center" border="0" cellpadding="0" cellspacing="0"><tr><td class="<?php echo $class ?>" align="center" valign="middle">Status: <?php echo $status_string ?></td></tr></table>
 <?php
-	if ( ALARM_SOUND && $status == 1 )
-	{
+		if ( ALARM_SOUND && $status == 1 )
+		{
 ?>
 <embed src="<?php echo ALARM_SOUND ?>" autostart="yes" hidden="true"></embed>
 <?php
-	}
+		}
 ?>
 </body>
 </html>
 <?php
-}
-elseif ( $view == "watchevents" )
-{
-	switch( $sort_field )
-	{
-		case 'Id' :
-			$sort_column = "E.Id";
-			break;
-		case 'Name' :
-			$sort_column = "E.Name";
-			break;
-		case 'Time' :
-			$sort_column = "E.StartTime";
-			break;
-		case 'Secs' :
-			$sort_column = "E.Length";
-			break;
-		case 'Frames' :
-			$sort_column = "E.Frames";
-			break;
-		case 'Score' :
-			$sort_column = "E.AvgScore";
-			break;
-		default:
-			$sort_field = "Time";
-			$sort_column = "E.StartTime";
-			break;
+		break;
 	}
-	$sort_order = $sort_asc?"asc":"desc";
-	if ( !$sort_asc ) $sort_asc = 0;
-	header("Refresh: ".REFRESH_EVENTS."; URL='$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS."'" );
-	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
-	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
-	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
-	header("Cache-Control: post-check=0, pre-check=0", false);
-	header("Pragma: no-cache");			  // HTTP/1.0
+	case "watchevents" :
+	{
+		switch( $sort_field )
+		{
+			case 'Id' :
+				$sort_column = "E.Id";
+				break;
+			case 'Name' :
+				$sort_column = "E.Name";
+				break;
+			case 'Time' :
+				$sort_column = "E.StartTime";
+				break;
+			case 'Secs' :
+				$sort_column = "E.Length";
+				break;
+			case 'Frames' :
+				$sort_column = "E.Frames";
+				break;
+			case 'Score' :
+				$sort_column = "E.AvgScore";
+				break;
+			default:
+				$sort_field = "Time";
+				$sort_column = "E.StartTime";
+				break;
+		}
+		$sort_order = $sort_asc?"asc":"desc";
+		if ( !$sort_asc )
+			$sort_asc = 0;
+		header("Refresh: ".REFRESH_EVENTS."; URL='$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS."'" );
+		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+		header("Cache-Control: post-check=0, pre-check=0", false);
+		header("Pragma: no-cache");			  // HTTP/1.0
 ?>
 <html>
 <head>
@@ -454,20 +462,20 @@ function checkAll(form,name){
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <?php
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
 
-	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = 0";
-	$sql .= " order by $sort_column $sort_order";
-	$sql .= " limit 0,$max_events";
-	$result = mysql_query( $sql );
-	if ( !$result )
-	{
-		die( mysql_error() );
-	}
-	$n_rows = mysql_num_rows( $result );
+		$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = 0";
+		$sql .= " order by $sort_column $sort_order";
+		$sql .= " limit 0,$max_events";
+		$result = mysql_query( $sql );
+		if ( !$result )
+		{
+			die( mysql_error() );
+		}
+		$n_rows = mysql_num_rows( $result );
 ?>
 <tr>
 <td class="text"><b>Last <?php echo $n_rows ?> events</b></td>
@@ -487,8 +495,8 @@ function checkAll(form,name){
 <td class="text">Delete</td>
 </tr>
 <?php
-	while( $row = mysql_fetch_assoc( $result ) )
-	{
+		while( $row = mysql_fetch_assoc( $result ) )
+		{
 ?>
 <tr>
 <td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent', <?php echo $jws['event']['w'] ?>, <?php echo $jws['event']['h'] ?> );"><?php echo $row[Id] ?></a></td>
@@ -500,7 +508,7 @@ function checkAll(form,name){
 <td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>"></td>
 </tr>
 <?php
-	}
+		}
 ?>
 </table></td></tr>
 </table></td>
@@ -511,140 +519,141 @@ function checkAll(form,name){
 </body>
 </html>
 <?php
-}
-elseif ( $view == "events" )
-{
-	switch( $sort_field )
-	{
-		case 'Id' :
-			$sort_column = "E.Id";
-			break;
-		case 'Name' :
-			$sort_column = "E.Name";
-			break;
-		case 'Time' :
-			$sort_column = "E.StartTime";
-			break;
-		case 'Secs' :
-			$sort_column = "E.Length";
-			break;
-		case 'Frames' :
-			$sort_column = "E.Frames";
-			break;
-		case 'AlarmFrames' :
-			$sort_column = "E.AlarmFrames";
-			break;
-		case 'AvgScore' :
-			$sort_column = "E.AvgScore";
-			break;
-		case 'MaxScore' :
-			$sort_column = "E.MaxScore";
-			break;
-		default:
-			$sort_field = "Time";
-			$sort_column = "E.StartTime";
-			break;
+		break;
 	}
-	$sort_order = $sort_asc?"asc":"desc";
-	if ( !$sort_asc ) $sort_asc = 0;
-
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
-
-	// XXX
-	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId";
-	$filter_query = ''; 
-	$filter_sql = '';
-	$filter_fields = '';
-	if ( $trms )
+	case "events" :
 	{
-		$filter_query .= "&trms=$trms";
-		$filter_fields .= '<input type="hidden" name="trms" value="'.$trms.'">'."\n";
-	}
-	for ( $i = 1; $i <= $trms; $i++ )
-	{
-		$conjunction_name = "cnj$i";
-		$obracket_name = "obr$i";
-		$cbracket_name = "cbr$i";
-		$attr_name = "attr$i";
-		$op_name = "op$i";
-		$value_name = "val$i";
-		if ( $$conjunction_name )
+		switch( $sort_field )
 		{
-			$filter_query .= "&$conjunction_name=".$$conjunction_name;
-			$filter_sql .= " ".$$conjunction_name." ";
-			$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'">'."\n";
+			case 'Id' :
+				$sort_column = "E.Id";
+				break;
+			case 'Name' :
+				$sort_column = "E.Name";
+				break;
+			case 'Time' :
+				$sort_column = "E.StartTime";
+				break;
+			case 'Secs' :
+				$sort_column = "E.Length";
+				break;
+			case 'Frames' :
+				$sort_column = "E.Frames";
+				break;
+			case 'AlarmFrames' :
+				$sort_column = "E.AlarmFrames";
+				break;
+			case 'AvgScore' :
+				$sort_column = "E.AvgScore";
+				break;
+			case 'MaxScore' :
+				$sort_column = "E.MaxScore";
+				break;
+			default:
+				$sort_field = "Time";
+				$sort_column = "E.StartTime";
+				break;
 		}
-		if ( $$obracket_name )
+		$sort_order = $sort_asc?"asc":"desc";
+		if ( !$sort_asc ) $sort_asc = 0;
+
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
+
+		// XXX
+		$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId";
+		$filter_query = ''; 
+		$filter_sql = '';
+		$filter_fields = '';
+		if ( $trms )
 		{
-			$filter_query .= "&$obracket_name=".$$obracket_name;
-			$filter_sql .= str_repeat( "(", $$obracket_name );
-			$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'">'."\n";
+			$filter_query .= "&trms=$trms";
+			$filter_fields .= '<input type="hidden" name="trms" value="'.$trms.'">'."\n";
 		}
-		if ( $$attr_name )
+		for ( $i = 1; $i <= $trms; $i++ )
 		{
-			$filter_query .= "&$attr_name=".$$attr_name;
-			$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'">'."\n";
-			switch ( $$attr_name )
+			$conjunction_name = "cnj$i";
+			$obracket_name = "obr$i";
+			$cbracket_name = "cbr$i";
+			$attr_name = "attr$i";
+			$op_name = "op$i";
+			$value_name = "val$i";
+			if ( $$conjunction_name )
 			{
-				case 'DateTime':
-					$date_val = strtotime( $$value_name );
-					$filter_sql .= "E.StartTime ".$$op_name." from_unixtime( $date_val )";
-					$filter_query .= "&$op_name=".urlencode($$op_name);
-					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
-					break;
-				case 'Date':
-					$date_val = strtotime( $$value_name );
-					$date_val += date( "Z", $date_val ); // Small hack for clock differences
-					$filter_sql .= "to_days( E.StartTime ) ".$$op_name." to_days( from_unixtime( $date_val ) )";
-					$filter_query .= "&$op_name=".urlencode($$op_name);
-					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
-					break;
-				case 'Time':
-					$time_val = strtotime( $$value_name );
-					$filter_sql .= "extract( hour_second from E.StartTime ) ".$$op_name." extract( hour_second from from_unixtime( $time_val ) )";
-					$filter_query .= "&$op_name=".urlencode($$op_name);
-					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
-					break;
-				case 'Length':
-				case 'Frames':
-				case 'AlarmFrames':
-				case 'AvgScore':
-				case 'MaxScore':
-					$filter_sql .= "E.".$$attr_name." ".$$op_name." ".$$value_name;
-					$filter_query .= "&$op_name=".urlencode($$op_name);
-					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
-					break;
-				case 'Archived':
-					$filter_sql .= "E.Archived = ".$$value_name;
-					break;
+				$filter_query .= "&$conjunction_name=".$$conjunction_name;
+				$filter_sql .= " ".$$conjunction_name." ";
+				$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'">'."\n";
 			}
-			$filter_query .= "&$value_name=".urlencode($$value_name);
-			$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'">'."\n";
+			if ( $$obracket_name )
+			{
+				$filter_query .= "&$obracket_name=".$$obracket_name;
+				$filter_sql .= str_repeat( "(", $$obracket_name );
+				$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'">'."\n";
+			}
+			if ( $$attr_name )
+			{
+				$filter_query .= "&$attr_name=".$$attr_name;
+				$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'">'."\n";
+				switch ( $$attr_name )
+				{
+					case 'DateTime':
+						$date_val = strtotime( $$value_name );
+						$filter_sql .= "E.StartTime ".$$op_name." from_unixtime( $date_val )";
+						$filter_query .= "&$op_name=".urlencode($$op_name);
+						$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
+						break;
+					case 'Date':
+						$date_val = strtotime( $$value_name );
+						$date_val += date( "Z", $date_val ); // Small hack for clock differences
+						$filter_sql .= "to_days( E.StartTime ) ".$$op_name." to_days( from_unixtime( $date_val ) )";
+						$filter_query .= "&$op_name=".urlencode($$op_name);
+						$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
+						break;
+					case 'Time':
+						$time_val = strtotime( $$value_name );
+						$filter_sql .= "extract( hour_second from E.StartTime ) ".$$op_name." extract( hour_second from from_unixtime( $time_val ) )";
+						$filter_query .= "&$op_name=".urlencode($$op_name);
+						$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
+						break;
+					case 'Length':
+					case 'Frames':
+					case 'AlarmFrames':
+					case 'AvgScore':
+					case 'MaxScore':
+						$filter_sql .= "E.".$$attr_name." ".$$op_name." ".$$value_name;
+						$filter_query .= "&$op_name=".urlencode($$op_name);
+						$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
+						break;
+					case 'Archived':
+						$filter_sql .= "E.Archived = ".$$value_name;
+						break;
+				}
+				$filter_query .= "&$value_name=".urlencode($$value_name);
+				$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'">'."\n";
+			}
+			if ( $$cbracket_name )
+			{
+				$filter_query .= "&$cbracket_name=".$$cbracket_name;
+				$filter_sql .= str_repeat( ")", $$cbracket_name );
+				$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'">'."\n";
+			}
 		}
-		if ( $$cbracket_name )
+		if ( $filter_sql )
 		{
-			$filter_query .= "&$cbracket_name=".$$cbracket_name;
-			$filter_sql .= str_repeat( ")", $$cbracket_name );
-			$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'">'."\n";
+			$sql .= " and ( $filter_sql )";
 		}
-	}
-	if ( $filter_sql )
-	{
-		$sql .= " and ( $filter_sql )";
-	}
-	$sql .= " order by $sort_column $sort_order";
-	//echo $sql;
-	$result = mysql_query( $sql );
-	if ( !$result )
-	{
-		die( mysql_error() );
-	}
-	$n_rows = mysql_num_rows( $result );
+		$sql .= " order by $sort_column $sort_order";
+		//echo $sql;
+		$result = mysql_query( $sql );
+		if ( !$result )
+		{
+			die( mysql_error() );
+		}
+		$n_rows = mysql_num_rows( $result );
 
-	//echo $filter_query;
+		//echo $filter_query;
 ?>
 <html>
 <head>
@@ -727,8 +736,8 @@ filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php e
 <td class="text">Delete</td>
 </tr>
 <?php
-	while( $row = mysql_fetch_assoc( $result ) )
-	{
+		while( $row = mysql_fetch_assoc( $result ) )
+		{
 ?>
 <tr>
 <td align="center" class="text"><a href="javascript: eventWindow( '<?php echo $PHP_SELF ?>?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Id] ?><?php if ( $row[Archived] ) echo "*" ?></a></td>
@@ -742,7 +751,7 @@ filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php e
 <td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>" onClick="configureButton( event_form, 'delete_eids' );"></td>
 </tr>
 <?php
-	}
+		}
 ?>
 </table></td></tr>
 </table></td>
@@ -753,25 +762,26 @@ filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php e
 </body>
 </html>
 <?php
-}
-elseif ( $view == "filter" )
-{
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
-
-	$conjunction_types = array( 'and'=>'and', 'or'=>'or' );
-	$obracket_types = array( ''=>'' );
-	$cbracket_types = array( ''=>'' );
-	for ( $i = 1; $i <= ceil(($trms-1)/2); $i++ )
-	{
-		$obracket_types[$i] = str_repeat( "(", $i );
-		$cbracket_types[$i] = str_repeat( ")", $i );
+		break;
 	}
-	$attr_types = array( 'DateTime'=>'Date/Time', 'Date'=>'Date', 'Time'=>'Time', 'Length'=>'Length', 'Frames'=>'Frames', 'AlarmFrames'=>'Alarm Frames', 'AvgScore'=>'Avg. Score', 'MaxScore'=>'Max. Score', 'Archived'=>'Archive Status' );
-	$op_types = array( '='=>'equal to', '!='=>'not equal to', '>='=>'greater than or equal to', '>'=>'greater than', '<'=>'less than', '<='=>'less than or equal to' );
-	$archive_types = array( '0'=>'Unarchived Only', '1'=>'Archived Only' );
+	case "filter" :
+	{
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
+
+		$conjunction_types = array( 'and'=>'and', 'or'=>'or' );
+		$obracket_types = array( ''=>'' );
+		$cbracket_types = array( ''=>'' );
+		for ( $i = 1; $i <= ceil(($trms-1)/2); $i++ )
+		{
+			$obracket_types[$i] = str_repeat( "(", $i );
+			$cbracket_types[$i] = str_repeat( ")", $i );
+		}
+		$attr_types = array( 'DateTime'=>'Date/Time', 'Date'=>'Date', 'Time'=>'Time', 'Length'=>'Length', 'Frames'=>'Frames', 'AlarmFrames'=>'Alarm Frames', 'AvgScore'=>'Avg. Score', 'MaxScore'=>'Max. Score', 'Archived'=>'Archive Status' );
+		$op_types = array( '='=>'equal to', '!='=>'not equal to', '>='=>'greater than or equal to', '>'=>'greater than', '<'=>'less than', '<='=>'less than or equal to' );
+		$archive_types = array( '0'=>'Unarchived Only', '1'=>'Archived Only' );
 ?>
 <html>
 <head>
@@ -785,18 +795,18 @@ function closeWindow()
 function validateForm( form )
 {
 <?php
-if ( $trms > 2 )
-{
+		if ( $trms > 2 )
+		{
 ?>
 	var bracket_count = 0;
 <?php
-	for ( $i = 1; $i <= $trms; $i++ )
-	{
+			for ( $i = 1; $i <= $trms; $i++ )
+			{
 ?>
 	bracket_count += form.obr<?php echo $i ?>.value;
 	bracket_count -= form.cbr<?php echo $i ?>.value;
 <?php
-	}
+			}
 ?>
 	if ( bracket_count )
 	{
@@ -804,11 +814,11 @@ if ( $trms > 2 )
 		return( false );
 	}
 <?php
-}
+		}
 ?>
 <?php
-	for ( $i = 1; $i <= $trms; $i++ )
-	{
+		for ( $i = 1; $i <= $trms; $i++ )
+		{
 ?>
 		if ( form.val<?php echo $i?>.value == '' )
 		{
@@ -816,7 +826,7 @@ if ( $trms > 2 )
 			return( false );
 		}
 <?php
-	}
+		}
 ?>
 	return( true );
 }
@@ -852,29 +862,29 @@ function submitToEvents( form )
 <td>
 <table width="100%" border="0" cellspacing="0" cellpadding="0">
 <?php
-for ( $i = 1; $i <= $trms; $i++ )
-{
-	$conjunction_name = "cnj$i";
-	$obracket_name = "obr$i";
-	$cbracket_name = "cbr$i";
-	$attr_name = "attr$i";
-	$op_name = "op$i";
-	$value_name = "val$i";
+		for ( $i = 1; $i <= $trms; $i++ )
+		{
+			$conjunction_name = "cnj$i";
+			$obracket_name = "obr$i";
+			$cbracket_name = "cbr$i";
+			$attr_name = "attr$i";
+			$op_name = "op$i";
+			$value_name = "val$i";
 ?>
 <tr>
 <?php
-	if ( $i == 1 )
-	{
+			if ( $i == 1 )
+			{
 ?>
 <td class="text">&nbsp;</td>
 <?php
-	}
-	else
-	{
+			}
+			else
+			{
 ?>
 <td class="text"><?php buildSelect( $conjunction_name, $conjunction_types ); ?></td>
 <?php
-	}
+			}
 ?>
 <td class="text"><?php if ( $trms > 2 ) { buildSelect( $obracket_name, $obracket_types ); } else { ?>&nbsp;<?php } ?></td>
 <td class="text"><?php buildSelect( $attr_name, $attr_types, "$value_name.value = ''; submitToFilter( filter_form );" ); ?></td>
@@ -891,7 +901,7 @@ for ( $i = 1; $i <= $trms; $i++ )
 <td class="text"><?php if ( $trms > 2 ) { buildSelect( $cbracket_name, $cbracket_types ); } else { ?>&nbsp;<?php } ?></td>
 </tr>
 <?php
-}
+		}
 ?>
 </table>
 </td>
@@ -905,37 +915,37 @@ for ( $i = 1; $i <= $trms; $i++ )
 </body>
 </html>
 <?php
-}
-elseif( $view == "image" )
-{
-	$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
-	if ( !$result )
-		die( mysql_error() );
-	$event = mysql_fetch_assoc( $result );
-
-	$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$frame = mysql_fetch_assoc( $result );
-
-	$result = mysql_query( "select count(*) as FrameCount from Frames where EventID = '$eid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$row = mysql_fetch_assoc( $result );
-	$max_fid = $row[FrameCount];
-
-	$first_fid = 1;
-	$prev_fid = $fid-1;
-	$next_fid = $fid+1;
-	$last_fid = $max_fid;
-
-	$image_path = $frame[ImagePath];
-	$anal_image = preg_replace( "/capture/", "analyse", $image_path );
-	if ( file_exists( $anal_image ) )
-	{
-		$image_path = $anal_image;
+		break;
 	}
+	case "image" :
+	{
+		$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+		if ( !$result )
+			die( mysql_error() );
+		$event = mysql_fetch_assoc( $result );
 
+		$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$frame = mysql_fetch_assoc( $result );
+
+		$result = mysql_query( "select count(*) as FrameCount from Frames where EventID = '$eid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$row = mysql_fetch_assoc( $result );
+		$max_fid = $row[FrameCount];
+
+		$first_fid = 1;
+		$prev_fid = $fid-1;
+		$next_fid = $fid+1;
+		$last_fid = $max_fid;
+
+		$image_path = $frame[ImagePath];
+		$anal_image = preg_replace( "/capture/", "analyse", $image_path );
+		if ( file_exists( $anal_image ) )
+		{
+			$image_path = $anal_image;
+		}
 ?>
 <html>
 <head>
@@ -988,21 +998,22 @@ function deleteEvent()
 </body>
 </html>
 <?php
-}
-elseif( $view == "event" )
-{
-	if ( !$mode )
-	{
-		if ( canStream() )
-			$mode = "stream";
-		else
-			$mode = "still";
+		break;
 	}
+	case "event" :
+	{
+		if ( !$mode )
+		{
+			if ( canStream() )
+				$mode = "stream";
+			else
+				$mode = "still";
+		}
 
-	$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
-	if ( !$result )
-		die( mysql_error() );
-	$event = mysql_fetch_assoc( $result );
+		$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+		if ( !$result )
+			die( mysql_error() );
+		$event = mysql_fetch_assoc( $result );
 ?>
 <html>
 <head>
@@ -1058,112 +1069,114 @@ function newWindow(Url,Name,Width,Height)
 <?php } ?>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
-<?php if ( $mode == "stream" )
-{
-	$stream_src = ZMS_PATH."?path=".ZMS_EVENT_PATH."&event=$eid&refresh=".STREAM_EVENT_DELAY;
-	if ( isNetscape() )
-	{
+<?php
+		if ( $mode == "stream" )
+		{
+			$stream_src = ZMS_PATH."?path=".ZMS_EVENT_PATH."&event=$eid&refresh=".STREAM_EVENT_DELAY;
+			if ( isNetscape() )
+			{
 ?>
 <tr><td colspan="6" align="center"><img src="<?php echo $stream_src ?>" border="0" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"></td></tr>
 <?php
-	}
-	else
-	{
-?>
-<tr><td colspan="6" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?php echo CAMBOZOLA_PATH ?>" align="middle" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
-<?php
-	}
-}
-else
-{
-	$result = mysql_query( "select * from Frames where EventID = '$eid' order by Id" );
-	if ( !$result )
-		die( mysql_error() );
-?>
-<tr><td colspan="6"><table border="0" cellpadding="0" cellspacing="2" align="center">
-<tr>
-<?php
-	$count = 0;
-	$scale = IMAGE_SCALING;
-	$fraction = sprintf( "%.2f", 1/$scale );
-	$thumb_width = $event[Width]/4;
-	$thumb_height = $event[Height]/4;
-	while( $row = mysql_fetch_assoc( $result ) )
-	{
-		$frame_id = $row[FrameId];
-		$image_path = $row[ImagePath];
-
-		$capt_image = $image_path;
-		if ( $scale == 1 || !file_exists( NETPBM_DIR."/jpegtopnm" ) )
-		{
-			$anal_image = preg_replace( "/capture/", "analyse", $image_path );
-
-			if ( file_exists($anal_image) && filesize( $anal_image ) )
-			{
-				$thumb_image = $anal_image;
 			}
 			else
 			{
-				$thumb_image = $capt_image;
+?>
+<tr><td colspan="6" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?php echo CAMBOZOLA_PATH ?>" align="middle" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
+<?php
 			}
 		}
 		else
 		{
-			$thumb_image = preg_replace( "/capture/", "thumb", $capt_image );
-
-			if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
+			$result = mysql_query( "select * from Frames where EventID = '$eid' order by Id" );
+			if ( !$result )
+				die( mysql_error() );
+?>
+<tr><td colspan="6"><table border="0" cellpadding="0" cellspacing="2" align="center">
+<tr>
+<?php
+			$count = 0;
+			$scale = IMAGE_SCALING;
+			$fraction = sprintf( "%.2f", 1/$scale );
+			$thumb_width = $event[Width]/4;
+			$thumb_height = $event[Height]/4;
+			while( $row = mysql_fetch_assoc( $result ) )
 			{
-				$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
-				if ( file_exists( $anal_image ) )
-					$command = NETPBM_DIR."/jpegtopnm -dct fast $anal_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
+				$frame_id = $row[FrameId];
+				$image_path = $row[ImagePath];
+
+				$capt_image = $image_path;
+				if ( $scale == 1 || !file_exists( NETPBM_DIR."/jpegtopnm" ) )
+				{
+					$anal_image = preg_replace( "/capture/", "analyse", $image_path );
+
+					if ( file_exists($anal_image) && filesize( $anal_image ) )
+					{
+						$thumb_image = $anal_image;
+					}
+					else
+					{
+						$thumb_image = $capt_image;
+					}
+				}
 				else
-					$command = NETPBM_DIR."/jpegtopnm -dct fast $capt_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
-				#exec( escapeshellcmd( $command ) );
-				exec( $command );
-			}
-		}
+				{
+					$thumb_image = preg_replace( "/capture/", "thumb", $capt_image );
+
+					if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
+					{
+						$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
+						if ( file_exists( $anal_image ) )
+							$command = NETPBM_DIR."/jpegtopnm -dct fast $anal_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
+						else
+							$command = NETPBM_DIR."/jpegtopnm -dct fast $capt_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
+						#exec( escapeshellcmd( $command ) );
+						exec( $command );
+					}
+				}
 ?>
 <td align="center" width="88"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $frame_id ?>', 'zmImage', <?php echo $event[Width]+$jws['image']['w'] ?>, <?php echo $event[Height]+$jws['image']['h'] ?> );"><img src="<?php echo $thumb_image ?>" width="<?php echo $thumb_width ?>" height="<? echo $thumb_height ?>" border="0" alt="<?php echo $frame_id ?>/<?php echo $row[Score] ?>"></a></td>
 <?php
-		flush();
-		if ( !(++$count % 4) )
-		{
+				flush();
+				if ( !(++$count % 4) )
+				{
 ?>
 </tr>
 <tr>
 <?php
-		}
-	}
+				}
+			}
 ?>
 </tr>
 </table></td></tr>
 <?php
-}
+		}
 ?>
 </table>
 </body>
 </html>
 <?php
-}
-elseif( $view == "zones" )
-{
-	$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -z" ) );
-
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
-
-	$result = mysql_query( "select * from Zones where MonitorId = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$zones = array();
-	while( $row = mysql_fetch_assoc( $result ) )
-	{
-		$zones[] = $row;
+		break;
 	}
+	case "zones" :
+	{
+		$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -z" ) );
 
-	$image = $monitor[Name]."-Zones.jpg";
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
+
+		$result = mysql_query( "select * from Zones where MonitorId = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$zones = array();
+		while( $row = mysql_fetch_assoc( $result ) )
+		{
+			$zones[] = $row;
+		}
+
+		$image = $monitor[Name]."-Zones.jpg";
 ?>
 <html>
 <head>
@@ -1184,12 +1197,12 @@ function closeWindow()
 <body>
 <map name="zonemap">
 <?php
-	foreach( $zones as $zone )
-	{
+		foreach( $zones as $zone )
+		{
 ?>
 <area shape="rect" coords="<?php echo "$zone[LoX],$zone[LoY],$zone[HiX],$zone[HiY]" ?>" href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $jws['zone']['w'] ?>, <?php echo $jws['zone']['h'] ?> );">
 <?php
-	}
+		}
 ?>
 <area shape="default" nohref>
 </map>
@@ -1214,8 +1227,8 @@ function closeWindow()
 <td align="center" class="smallhead">Delete</td>
 </tr>
 <?php
-	foreach( $zones as $zone )
-	{
+		foreach( $zones as $zone )
+		{
 ?>
 <tr>
 <td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=<?php echo $zone[Id] ?>', 'zmZone', <?php echo $jws['zone']['w'] ?>, <?php echo $jws['zone']['h'] ?> );"><?php echo $zone[Id] ?>.</a></td>
@@ -1226,7 +1239,7 @@ function closeWindow()
 <td align="center" class="text"><input type="checkbox" name="delete_zids[]" value="<?php echo $zone[Id] ?>"></td>
 </tr>
 <?php
-	}
+		}
 ?>
 <tr>
 <td align="center" class="text">&nbsp;</td>
@@ -1238,21 +1251,22 @@ function closeWindow()
 </body>
 </html>
 <?php
-}
-elseif( $view == "monitor" )
-{
-	if ( $mid > 0 )
-	{
-		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-		if ( !$result )
-			die( mysql_error() );
-		$monitor = mysql_fetch_assoc( $result );
+		break;
 	}
-	else
+	case "monitor" :
 	{
-		$monitor = array();
-		$monitor[Name] = "New";
-	}
+		if ( $mid > 0 )
+		{
+			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$monitor = mysql_fetch_assoc( $result );
+		}
+		else
+		{
+			$monitor = array();
+			$monitor[Name] = "New";
+		}
 ?>
 <html>
 <head>
@@ -1260,12 +1274,12 @@ elseif( $view == "monitor" )
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 <?php
-if ( $refresh_parent )
-{
+		if ( $refresh_parent )
+		{
 ?>
 opener.location.reload();
 <?php
-}
+		}
 ?>
 window.focus();
 function validateForm(theForm)
@@ -1294,12 +1308,12 @@ function closeWindow()
 <tr><td align="left" class="text">Name</td><td align="left" class="text"><input type="text" name="new_name" value="<?php echo $monitor[Name] ?>" size="12" class="form"></td></tr>
 <tr><td align="left" class="text">Function</td><td align="left" class="text"><select name="new_function" class="form">
 <?php
-	foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
-	{
+		foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
+		{
 ?>
 <option value="<?php echo $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?php echo $opt_function ?></option>
 <?php
-	}
+		}
 ?>
 </select></td></tr>
 <tr><td align="left" class="text">Device Number (/dev/video?)</td><td align="left" class="text"><input type="text" name="new_device" value="<?php echo $monitor[Device] ?>" size="4" class="form"></td></tr>
@@ -1317,30 +1331,31 @@ function closeWindow()
 </body>
 </html>
 <?php
-}
-elseif( $view == "zone" )
-{
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
-
-	if ( $zid > 0 )
+		break;
+	}
+	case "zone" :
 	{
-		$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 		if ( !$result )
 			die( mysql_error() );
-		$zone = mysql_fetch_assoc( $result );
-	}
-	else
-	{
-		$zone = array();
-		$zone[Name] = "New";
-		$zone[LoX] = 0;
-		$zone[LoY] = 0;
-		$zone[HiX] = $monitor[Width]-1;
-		$zone[HiY] = $monitor[Height]-1;
-	}
+		$monitor = mysql_fetch_assoc( $result );
+
+		if ( $zid > 0 )
+		{
+			$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$zone = mysql_fetch_assoc( $result );
+		}
+		else
+		{
+			$zone = array();
+			$zone[Name] = "New";
+			$zone[LoX] = 0;
+			$zone[LoY] = 0;
+			$zone[HiX] = $monitor[Width]-1;
+			$zone[HiY] = $monitor[Height]-1;
+		}
 ?>
 <html>
 <head>
@@ -1348,12 +1363,12 @@ elseif( $view == "zone" )
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 <?php
-if ( $refresh_parent )
-{
+		if ( $refresh_parent )
+		{
 ?>
 opener.location.reload();
 <?php
-}
+		}
 ?>
 window.focus();
 function validateForm(theForm)
@@ -1529,22 +1544,22 @@ function closeWindow()
 <tr><td align="left" class="text">Name</td><td align="left" class="text"><input type="text" name="new_name" value="<?php echo $zone[Name] ?>" size="12" class="form"></td></tr>
 <tr><td align="left" class="text">Type</td><td align="left" class="text"><select name="new_type" class="form" onchange="applyZoneType(zoneForm)">
 <?php
-	foreach ( getEnumValues( 'Zones', 'Type' ) as $opt_type )
-	{
+		foreach ( getEnumValues( 'Zones', 'Type' ) as $opt_type )
+		{
 ?>
 <option value="<?php echo $opt_type ?>"<?php if ( $opt_type == $zone['Type'] ) { ?> selected<?php } ?>><?php echo $opt_type ?></option>
 <?php
-	}
+		}
 ?>
 </select></td></tr>
 <tr><td align="left" class="text">Units</td><td align="left" class="text"><select name="new_units" class="form" onchange="applyZoneUnits(zoneForm)">
 <?php
-	foreach ( getEnumValues( 'Zones', 'Units' ) as $opt_units )
-	{
+		foreach ( getEnumValues( 'Zones', 'Units' ) as $opt_units )
+		{
 ?>
 <option value="<?php echo $opt_units ?>"<?php if ( $opt_units == $zone['Units'] ) { ?> selected<?php } ?>><?php echo $opt_units ?></option>
 <?php
-	}
+		}
 ?>
 </select></td></tr>
 <tr><td align="left" class="text">Minimum X (left)</td><td align="left" class="text"><input type="text" name="new_lo_x" value="<?php echo $zone[LoX] ?>" size="4" class="form" onchange="checkWidth(this,'Minimum X')"></td></tr>
@@ -1572,77 +1587,80 @@ function closeWindow()
 </body>
 </html>
 <?php
-}
-elseif( $view == "video" )
-{
-	$result = mysql_query( "select E.*,M.Name as MonitorName, M.Colours from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
-	if ( !$result )
-		die( mysql_error() );
-	$event = mysql_fetch_assoc( $result );
-
-	$event_dir = EVENT_PATH."/$event[MonitorName]/".sprintf( "%04d", $eid );
-	$param_file = $event_dir."/mpeg.param";
-	$video_name = preg_replace( "/\\s/", "_", $event[Name] ).".mpeg";
-	$video_file = $event_dir."/".$video_name;
-
-	if ( !file_exists( $video_file ) )
+		break;
+	}
+	case "video" :
 	{
-		$fp = fopen( $param_file, "w" );
+		$result = mysql_query( "select E.*,M.Name as MonitorName, M.Colours from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+		if ( !$result )
+			die( mysql_error() );
+		$event = mysql_fetch_assoc( $result );
 
-		fputs( $fp, "PATTERN		IBBPBBPBBPBBPBB\n" );
-		fputs( $fp, "OUTPUT		$video_file\n" );
+		$event_dir = EVENT_PATH."/$event[MonitorName]/".sprintf( "%04d", $eid );
+		$param_file = $event_dir."/mpeg.param";
+		$video_name = preg_replace( "/\\s/", "_", $event[Name] ).".mpeg";
+		$video_file = $event_dir."/".$video_name;
 
-		fputs( $fp, "BASE_FILE_FORMAT	JPEG\n" );
-		fputs( $fp, "GOP_SIZE	30\n" );
-		fputs( $fp, "SLICES_PER_FRAME	1\n" );
-
-		fputs( $fp, "PIXEL		HALF\n" );
-		fputs( $fp, "RANGE		10\n" );
-		fputs( $fp, "PSEARCH_ALG	LOGARITHMIC\n" );
-		fputs( $fp, "BSEARCH_ALG	CROSS2\n" );
-		fputs( $fp, "IQSCALE		8\n" );
-		fputs( $fp, "PQSCALE		10\n" );
-		fputs( $fp, "BQSCALE		25\n" );
-
-		fputs( $fp, "REFERENCE_FRAME	ORIGINAL\n" );
-		fputs( $fp, "FRAME_RATE 24\n" );
-
-		if ( $event[Colours] == 1 )
-			fputs( $fp, "INPUT_CONVERT	".NETPBM_DIR."/jpegtopnm * | ".NETPBM_DIR."/pgmtoppm white | ".NETPBM_DIR."/ppmtojpeg\n" );
-		else
-			fputs( $fp, "INPUT_CONVERT	*\n" );
-
-		fputs( $fp, "INPUT_DIR	$event_dir\n" );
-
-		fputs( $fp, "INPUT\n" );
-		for ( $i = 1; $i < $event[Frames]; $i++ )
+		if ( !file_exists( $video_file ) )
 		{
-			fputs( $fp, "capture-".sprintf( "%03d", $i ).".jpg\n" );
-			fputs( $fp, "capture-".sprintf( "%03d", $i ).".jpg\n" );
+			$fp = fopen( $param_file, "w" );
+
+			fputs( $fp, "PATTERN		IBBPBBPBBPBBPBB\n" );
+			fputs( $fp, "OUTPUT		$video_file\n" );
+
+			fputs( $fp, "BASE_FILE_FORMAT	JPEG\n" );
+			fputs( $fp, "GOP_SIZE	30\n" );
+			fputs( $fp, "SLICES_PER_FRAME	1\n" );
+
+			fputs( $fp, "PIXEL		HALF\n" );
+			fputs( $fp, "RANGE		10\n" );
+			fputs( $fp, "PSEARCH_ALG	LOGARITHMIC\n" );
+			fputs( $fp, "BSEARCH_ALG	CROSS2\n" );
+			fputs( $fp, "IQSCALE		8\n" );
+			fputs( $fp, "PQSCALE		10\n" );
+			fputs( $fp, "BQSCALE		25\n" );
+
+			fputs( $fp, "REFERENCE_FRAME	ORIGINAL\n" );
+			fputs( $fp, "FRAME_RATE 24\n" );
+
+			if ( $event[Colours] == 1 )
+				fputs( $fp, "INPUT_CONVERT	".NETPBM_DIR."/jpegtopnm * | ".NETPBM_DIR."/pgmtoppm white | ".NETPBM_DIR."/ppmtojpeg\n" );
+			else
+				fputs( $fp, "INPUT_CONVERT	*\n" );
+
+			fputs( $fp, "INPUT_DIR	$event_dir\n" );
+
+			fputs( $fp, "INPUT\n" );
+			for ( $i = 1; $i < $event[Frames]; $i++ )
+			{
+				fputs( $fp, "capture-".sprintf( "%03d", $i ).".jpg\n" );
+				fputs( $fp, "capture-".sprintf( "%03d", $i ).".jpg\n" );
+			}
+			fputs( $fp, "END_INPUT\n" );
+			fclose( $fp );
+
+			exec( MPEG_ENCODE_PATH." $param_file >$event_dir/mpeg.log" );
 		}
-		fputs( $fp, "END_INPUT\n" );
-		fclose( $fp );
 
-		exec( MPEG_ENCODE_PATH." $param_file >$event_dir/mpeg.log" );
-	}
+		//chdir( $event_dir );
+		//header("Content-type: video/mpeg");
+		//header("Content-Disposition: inline; filename=$video_name");
+		header("Location: $video_file" );
 
-	//chdir( $event_dir );
-	//header("Content-type: video/mpeg");
-	//header("Content-Disposition: inline; filename=$video_name");
-	header("Location: $video_file" );
-}
-elseif ( $view == "device" )
-{
-	$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
-	if ( $ps_array[3] )
-	{
-		$zmc = 1;
+		break;
 	}
-	$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
-	if ( $ps_array[3] )
+	case "device" :
 	{
-		$zma = 1;
-	}
+		$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
+		if ( $ps_array[3] )
+		{
+			$zmc = 1;
+		}
+		$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
+		if ( $ps_array[3] )
+		{
+			$zma = 1;
+		}
 ?>
 <html>
 <head>
@@ -1650,12 +1668,12 @@ elseif ( $view == "device" )
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 <?php
-if ( $zmc_status != $zmc_action || $zma_status != $zma_action )
-{
+		if ( $zmc_status != $zmc_action || $zma_status != $zma_action )
+		{
 ?>
 opener.location.reload();
 <?php
-}
+		}
 ?>
 window.focus();
 function refreshWindow()
@@ -1699,13 +1717,14 @@ function closeWindow()
 </body>
 </html>
 <?php
-}
-elseif ( $view == "function" )
-{
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
+		break;
+	}
+	case "function" :
+	{
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
 ?>
 <html>
 <head>
@@ -1713,12 +1732,12 @@ elseif ( $view == "function" )
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 <?php
-if ( $refresh_parent )
-{
+	if ( $refresh_parent )
+	{
 ?>
 opener.location.reload();
 <?php
-}
+	}
 ?>
 window.focus();
 function refreshWindow()
@@ -1743,12 +1762,12 @@ function closeWindow()
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
 <td colspan="2" align="center"><select name="new_function" class="form">
 <?php
-	foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
-	{
+		foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
+		{
 ?>
 <option value="<?php echo $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?php echo $opt_function ?></option>
 <?php
-	}
+		}
 ?>
 </select></td>
 </tr>
@@ -1760,26 +1779,29 @@ function closeWindow()
 </body>
 </html>
 <?php
-}
-elseif ( $view == "none" )
-{
+		break;
+	}
+	case "none" :
+	{
 ?>
 <html>
 <head>
 <script language="JavaScript">
 <?php
-if ( $refresh_parent )
-{
+		if ( $refresh_parent )
+		{
 ?>
 opener.location.reload();
 <?php
-}
+		}
 ?>
 window.close();
 </script>
 </head>
 </html>
 <?php
+		break;
+	}
 }
 ?>
 <?php

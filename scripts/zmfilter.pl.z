@@ -192,13 +192,14 @@ sleep( START_DELAY );
 my $filters = GetFilters( $monitor );
 my $last_action = 0;
 
-my $size = 24; # We only need the first 16 bytes really for the last event count
+my $size = 28; # We only need the first 28 bytes really for the last event count
 my $key = hex(ZM_SHM_KEY)|$monitor;
 my $shmid = shmget( $key, $size, 0 ) || die( "Can't get shared memory id: $!" );
 
 while( 1 )
 {
-	shmread( $shmid, $last_event_id, 20, 4 ) || die( "Can't read from shared memory: $!" );
+	next if ( !shmread( $shmid, $last_event_id, 24, 4 ) );
+
 	$last_event_id = unpack( "l", $last_event_id );
 
 	print( "Last event generated is $last_event_id\n" ) if ( VERBOSE );

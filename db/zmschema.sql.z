@@ -35,7 +35,7 @@ CREATE TABLE Config (
 CREATE TABLE Events (
   Id int(10) unsigned NOT NULL auto_increment,
   MonitorId int(10) unsigned NOT NULL default '0',
-  Name tinytext NOT NULL,
+  Name varchar(64) NOT NULL,
   StartTime datetime default NULL,
   EndTime datetime default NULL,
   Length decimal(10,2) NOT NULL default '0.00',
@@ -55,7 +55,8 @@ CREATE TABLE Events (
   KEY Id (Id,MonitorId),
   KEY MonitorId (MonitorId),
   KEY StartTime (StartTime),
-  KEY Frames (Frames)
+  KEY Frames (Frames),
+  KEY Archived (Archived)
 ) TYPE=MyISAM;
 
 --
@@ -63,7 +64,7 @@ CREATE TABLE Events (
 --
 
 CREATE TABLE Filters (
-  Name varchar(64) NOT NULL default '',
+  Name varchar(64) NOT NULL,
   Query text NOT NULL,
   AutoArchive tinyint(3) unsigned NOT NULL default '0',
   AutoDelete tinyint(3) unsigned NOT NULL default '0',
@@ -92,12 +93,23 @@ CREATE TABLE Frames (
 ) TYPE=MyISAM;
 
 --
+-- Table structure for table `Groups`
+--
+
+CREATE TABLE Groups (
+  Id int(10) unsigned NOT NULL auto_increment,
+  Name varchar(64) NOT NULL,
+  MonitorIds tinytext NOT NULL,
+  PRIMARY KEY  (Id)
+) TYPE=MyISAM;
+
+--
 -- Table structure for table `Monitors`
 --
 
 CREATE TABLE Monitors (
   Id int(10) unsigned NOT NULL auto_increment,
-  Name tinytext NOT NULL,
+  Name varchar(64) NOT NULL,
   Type enum('Local','Remote') NOT NULL default 'Local',
   Function enum('None','Monitor','Modect','Record','Mocord') NOT NULL default 'Monitor',
   RunMode enum('Continuous','Triggered') NOT NULL default 'Continuous',
@@ -138,7 +150,7 @@ CREATE TABLE Monitors (
 --
 
 CREATE TABLE States (
-  Name varchar(32) NOT NULL default '',
+  Name varchar(64) NOT NULL,
   Definition tinytext NOT NULL,
   PRIMARY KEY  (Name)
 ) TYPE=MyISAM;
@@ -207,7 +219,7 @@ CREATE TABLE Users (
 CREATE TABLE Zones (
   Id int(10) unsigned NOT NULL auto_increment,
   MonitorId int(10) unsigned NOT NULL default '0',
-  Name tinytext NOT NULL,
+  Name varchar(64) NOT NULL default '',
   Type enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
   Units enum('Pixels','Percent') NOT NULL default 'Pixels',
   LoX smallint(5) unsigned NOT NULL default '0',

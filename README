@@ -1,4 +1,4 @@
-     25/09/04        ZoneMinder 1.19.5 README                1
+     26/09/04        ZoneMinder 1.19.5 README                1
                                  
                         ZoneMinder v1.19.5
 
@@ -1600,14 +1600,6 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 7.1. Release 1.19.5
 Various miscellaneous fixes and features.
 
-  o    FIX - The US English language file was recursively including
-    itself rather than the UK English file as the base language.
-    
-o    LANGUAGE - The Brazilian Portuguese language file detailed in
-the previous release has actually been included in this one.
-o    LANGUAGE - The Argentinian Spanish, Polish and Italian
-translations have all been updated with tokens introduced in
-version 1.19.3.
   o    FIX - Sorting event lists by duration was broken and has now
     been corrected.
     

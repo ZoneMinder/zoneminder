@@ -19,7 +19,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( $action )
+if ( isset($action) )
 {
 	//phpinfo( INFO_VARIABLES );
 	if ( $action == "login" && $username && $password )
@@ -66,7 +66,7 @@ if ( $action )
 				if ( $new_filter_name )
 					$filter_name = $new_filter_name;
 				$filter_query = array();
-				$filter_query[trms] = $trms;
+				$filter_query['trms'] = $trms;
 				for ( $i = 1; $i <= $trms; $i++ )
 				{
 					$conjunction_name = "cnj$i";
@@ -124,7 +124,7 @@ if ( $action )
 			}
 		}
 	}
-	if ( canEdit( 'Monitors', $mid ) )
+	if ( isset($mid) && canEdit( 'Monitors', $mid ) )
 	{
 		if ( $action == "function" && $mid )
 		{
@@ -169,25 +169,25 @@ if ( $action )
 			}
 
 			$changes = array();
-			if ( $new_name != $zone[Name] ) $changes[] = "Name = '$new_name'";
+			if ( $new_name != $zone['Name'] ) $changes[] = "Name = '$new_name'";
 			if ( $new_type != $zone['Type'] ) $changes[] = "Type = '$new_type'";
-			if ( $new_units != $zone[Units] ) $changes[] = "Units = '$new_units'";
-			if ( $new_lo_x != $zone[LoX] ) $changes[] = "LoX = '$new_lo_x'";
-			if ( $new_lo_y != $zone[LoY] ) $changes[] = "LoY = '$new_lo_y'";
-			if ( $new_hi_x != $zone[HiX] ) $changes[] = "HiX = '$new_hi_x'";
-			if ( $new_hi_y != $zone[HiY] ) $changes[] = "HiY = '$new_hi_y'";
-			if ( $new_alarm_rgb != $zone[AlarmRGB] ) $changes[] = "AlarmRGB = '$new_alarm_rgb'";
-			if ( $new_alarm_threshold != $zone[AlarmThreshold] ) $changes[] = "AlarmThreshold = '$new_alarm_threshold'";
-			if ( $new_min_alarm_pixels != $zone[MinAlarmPixels] ) $changes[] = "MinAlarmPixels = '$new_min_alarm_pixels'";
-			if ( $new_max_alarm_pixels != $zone[MaxAlarmPixels] ) $changes[] = "MaxAlarmPixels = '$new_max_alarm_pixels'";
-			if ( $new_filter_x != $zone[FilterX] ) $changes[] = "FilterX = '$new_filter_x'";
-			if ( $new_filter_y != $zone[FilterY] ) $changes[] = "FilterY = '$new_filter_y'";
-			if ( $new_min_filter_pixels != $zone[MinFilterPixels] ) $changes[] = "MinFilterPixels = '$new_min_filter_pixels'";
-			if ( $new_max_filter_pixels != $zone[MaxFilterPixels] ) $changes[] = "MaxFilterPixels = '$new_max_filter_pixels'";
-			if ( $new_min_blob_pixels != $zone[MinBlobPixels] ) $changes[] = "MinBlobPixels = '$new_min_blob_pixels'";
-			if ( $new_max_blob_pixels != $zone[MaxBlobPixels] ) $changes[] = "MaxBlobPixels = '$new_max_blob_pixels'";
-			if ( $new_min_blobs != $zone[MinBlobs] ) $changes[] = "MinBlobs = '$new_min_blobs'";
-			if ( $new_max_blobs != $zone[MaxBlobs] ) $changes[] = "MaxBlobs = '$new_max_blobs'";
+			if ( $new_units != $zone['Units'] ) $changes[] = "Units = '$new_units'";
+			if ( $new_lo_x != $zone['LoX'] ) $changes[] = "LoX = '$new_lo_x'";
+			if ( $new_lo_y != $zone['LoY'] ) $changes[] = "LoY = '$new_lo_y'";
+			if ( $new_hi_x != $zone['HiX'] ) $changes[] = "HiX = '$new_hi_x'";
+			if ( $new_hi_y != $zone['HiY'] ) $changes[] = "HiY = '$new_hi_y'";
+			if ( $new_alarm_rgb != $zone['AlarmRGB'] ) $changes[] = "AlarmRGB = '$new_alarm_rgb'";
+			if ( $new_alarm_threshold != $zone['AlarmThreshold'] ) $changes[] = "AlarmThreshold = '$new_alarm_threshold'";
+			if ( $new_min_alarm_pixels != $zone['MinAlarmPixels'] ) $changes[] = "MinAlarmPixels = '$new_min_alarm_pixels'";
+			if ( $new_max_alarm_pixels != $zone['MaxAlarmPixels'] ) $changes[] = "MaxAlarmPixels = '$new_max_alarm_pixels'";
+			if ( $new_filter_x != $zone['FilterX'] ) $changes[] = "FilterX = '$new_filter_x'";
+			if ( $new_filter_y != $zone['FilterY'] ) $changes[] = "FilterY = '$new_filter_y'";
+			if ( $new_min_filter_pixels != $zone['MinFilterPixels'] ) $changes[] = "MinFilterPixels = '$new_min_filter_pixels'";
+			if ( $new_max_filter_pixels != $zone['MaxFilterPixels'] ) $changes[] = "MaxFilterPixels = '$new_max_filter_pixels'";
+			if ( $new_min_blob_pixels != $zone['MinBlobPixels'] ) $changes[] = "MinBlobPixels = '$new_min_blob_pixels'";
+			if ( $new_max_blob_pixels != $zone['MaxBlobPixels'] ) $changes[] = "MaxBlobPixels = '$new_max_blob_pixels'";
+			if ( $new_min_blobs != $zone['MinBlobs'] ) $changes[] = "MinBlobs = '$new_min_blobs'";
+			if ( $new_max_blobs != $zone['MaxBlobs'] ) $changes[] = "MaxBlobs = '$new_max_blobs'";
 
 			if ( count( $changes ) )
 			{
@@ -250,12 +250,12 @@ if ( $action )
 					$result = mysql_query( $sql );
 					if ( !$result )
 						die( mysql_error() );
-					if ( $changes[Name] )
+					if ( $changes['Name'] )
 					{
-						exec( escapeshellcmd( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_monitor[Name]" ) );
+						exec( escapeshellcmd( "mv ".EVENTS_PATH."/".$monitor['Name']." ".EVENTS_PATH."/".$new_monitor['Name'] ) );
 					}
 				}
-				elseif ( !$user[MonitorIds] )
+				elseif ( !$user['MonitorIds'] )
 				{
 					$sql = "insert into Monitors set ".implode( ", ", $changes );
 					$result = mysql_query( $sql );
@@ -284,7 +284,7 @@ if ( $action )
 						if ( !$result )
 							die( mysql_error() );
 					}
-					elseif ( !$user[MonitorIds] )
+					elseif ( !$user['MonitorIds'] )
 					{
 						if ( !$x10_monitor )
 						{
@@ -344,7 +344,7 @@ if ( $action )
 					$refresh_parent = true;
 				}
 			}
-			if ( $mark_mids && !$user[MonitorIds] )
+			if ( $mark_mids && !$user['MonitorIds'] )
 			{
 				foreach( $mark_mids as $mark_mid )
 				{
@@ -365,13 +365,13 @@ if ( $action )
 					$mark_eids = array();
 					while( $row = mysql_fetch_assoc( $result ) )
 					{
-						$mark_eids[] = $row[Id];
+						$mark_eids[] = $row['Id'];
 					}
 					foreach( $mark_eids as $mark_eid )
 					{
 						deleteEvent( $mark_eid );
 					}
-					system( "rm -rf ".EVENT_PATH."/".$monitor[Name] );
+					system( "rm -rf ".EVENT_PATH."/".$monitor['Name'] );
 
 					$result = mysql_query( "delete from Zones where MonitorId = '$mark_mid'" );
 					if ( !$result )
@@ -398,7 +398,7 @@ if ( $action )
 			$changed = false;
 			foreach ( $config_cat as $name=>$value )
 			{
-				if ( $value[Type] == "boolean" && !$new_config[$name] )
+				if ( $value['Type'] == "boolean" && !$new_config[$name] )
 				{
 					 $new_config[$name] = 0;
 				}
@@ -406,7 +406,7 @@ if ( $action )
 				{
 					 $new_config[$name] = preg_replace( "/\r\n/", "\n", stripslashes( $new_config[$name] ) );
 				}
-				if ( $value[Value] != $new_config[$name] )
+				if ( $value['Value'] != $new_config[$name] )
 				{
 					$sql = "update Config set Value = '".$new_config[$name]."' where Name = '".$name."'";
 					//echo $sql;
@@ -455,15 +455,15 @@ if ( $action )
 			}
 
 			$changes = array();
-			if ( $new_username != $row[Username] ) $changes[] = "Username = '$new_username'";
-			if ( $new_password != $row[Password] ) $changes[] = "Password = password('$new_password')";
-			if ( $new_username != $row[Language] ) $changes[] = "Language = '$new_language'";
-			if ( $new_enabled != $row[Enabled] ) $changes[] = "Enabled = '$new_enabled'";
-			if ( $new_stream != $row[Stream] ) $changes[] = "Stream = '$new_stream'";
-			if ( $new_events != $row[Events] ) $changes[] = "Events = '$new_events'";
-			if ( $new_monitors != $row[Monitors] ) $changes[] = "Monitors = '$new_monitors'";
-			if ( $new_system != $row[System] ) $changes[] = "System = '$new_system'";
-			if ( $new_monitor_ids != $row[MonitorIds] ) $changes[] = "MonitorIds = '$new_monitor_ids'";
+			if ( $new_username != $row['Username'] ) $changes[] = "Username = '$new_username'";
+			if ( $new_password != $row['Password'] ) $changes[] = "Password = password('$new_password')";
+			if ( $new_username != $row['Language'] ) $changes[] = "Language = '$new_language'";
+			if ( $new_enabled != $row['Enabled'] ) $changes[] = "Enabled = '$new_enabled'";
+			if ( $new_stream != $row['Stream'] ) $changes[] = "Stream = '$new_stream'";
+			if ( $new_events != $row['Events'] ) $changes[] = "Events = '$new_events'";
+			if ( $new_monitors != $row['Monitors'] ) $changes[] = "Monitors = '$new_monitors'";
+			if ( $new_system != $row['System'] ) $changes[] = "System = '$new_system'";
+			if ( $new_monitor_ids != $row['MonitorIds'] ) $changes[] = "MonitorIds = '$new_monitor_ids'";
 
 			if ( count( $changes ) )
 			{
@@ -480,9 +480,9 @@ if ( $action )
 					die( mysql_error() );
 				$view = 'none';
 				$refresh_parent = true;
-				if ( $row[Username] == $user[Username] )
+				if ( $row['Username'] == $user['Username'] )
 				{
-					userLogin( $row[Username], $row[Password] );
+					userLogin( $row['Username'], $row['Password'] );
 				}
 			}
 		}
@@ -507,7 +507,7 @@ if ( $action )
 				$definitions = array();
 				while( $monitor = mysql_fetch_assoc( $result ) )
 				{
-					$definitions[] = $monitor[Id].":".$monitor['Function'];
+					$definitions[] = $monitor['Id'].":".$monitor['Function'];
 				}
 				$definition = join( ',', $definitions );
 				if ( $new_state )
@@ -535,7 +535,7 @@ if ( $action )
 					if ( !$result )
 						die( mysql_error() );
 				}
-				if ( $row[Username] == $user[Username] )
+				if ( $row['Username'] == $user['Username'] )
 				{
 					userLogout();
 				}
@@ -561,8 +561,8 @@ if ( $action )
 	}
 	elseif ( $action == "reset" )
 	{
-		$HTTP_SESSION_VARS[event_reset_time] = strftime( "%Y-%m-%d %H:%M:%S" );
-		setcookie( "event_reset_time", $HTTP_SESSION_VARS[event_reset_time], time()+3600*24*30*12*10 );
+		$HTTP_SESSION_VARS['event_reset_time'] = strftime( "%Y-%m-%d %H:%M:%S" );
+		setcookie( "event_reset_time", $HTTP_SESSION_VARS['event_reset_time'], time()+3600*24*30*12*10 );
 		session_write_close();
 	}
 }

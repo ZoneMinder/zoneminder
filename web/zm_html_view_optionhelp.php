@@ -4,7 +4,7 @@
 include_once( 'zm_help.php' );
 
 $option_help_var = "zmHlangOption$option";
-$option_help_text = $$option_help_var?$$option_help_var:$config[$option][Help];
+$option_help_text = $$option_help_var?$$option_help_var:$config[$option]['Help'];
 
 ?>
 <html>

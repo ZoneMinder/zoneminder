@@ -47,14 +47,14 @@ function closeWindow()
 		{
 ?>
 <tr bgcolor="#FFFFFF">
-<td class="text"><?= $stat[ZoneName] ?></td>
-<td class="text" align="right"><?= $stat[AlarmPixels] ?></td>
-<td class="text" align="right"><?= $stat[FilterPixels] ?></td>
-<td class="text" align="right"><?= $stat[BlobPixels] ?></td>
-<td class="text" align="right"><?= $stat[Blobs] ?></td>
-<td class="text" align="right"><?= $stat[MinBlobSize]."-".$stat[MaxBlobSize] ?></td>
-<td class="text" align="right"><?= $stat[MinX].",".$stat[MinY]."-".$stat[MaxX].",".$stat[MaxY] ?></td>
-<td class="text" align="right"><?= $stat[Score] ?></td>
+<td class="text"><?= $stat['ZoneName'] ?></td>
+<td class="text" align="right"><?= $stat['AlarmPixels'] ?></td>
+<td class="text" align="right"><?= $stat['FilterPixels'] ?></td>
+<td class="text" align="right"><?= $stat['BlobPixels'] ?></td>
+<td class="text" align="right"><?= $stat['Blobs'] ?></td>
+<td class="text" align="right"><?= $stat['MinBlobSize']."-".$stat['MaxBlobSize'] ?></td>
+<td class="text" align="right"><?= $stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY'] ?></td>
+<td class="text" align="right"><?= $stat['Score'] ?></td>
 </tr>
 <?php
 		}

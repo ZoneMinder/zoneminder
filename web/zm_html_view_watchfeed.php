@@ -4,7 +4,7 @@
 		$view = "error";
 		return;
 	}
-	if ( !$mode )
+	if ( !isset($mode) )
 	{
 		if ( canStream() )
 			$mode = "stream";
@@ -37,7 +37,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangFeed ?></title>
+<title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangFeed ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
@@ -61,7 +61,7 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <body>
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
 <tr>
-<td width="25%" align="left" class="text"><b><?= $monitor[Name] ?></b></td>
+<td width="25%" align="left" class="text"><b><?= $monitor['Name'] ?></b></td>
 <?php if ( $mode == "stream" ) { ?>
 <td align="center" valign="middle" class="text">
 <form name="view_form" method="get" action="<?= $PHP_SELF ?>">
@@ -72,8 +72,8 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
-<?php if ( canView( 'Monitors' ) && $monitor[Type] == "Local" ) { ?>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor[Id] ?>', 'zmSettings<?= $monitor[Name] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );"><?= $zmSlangSettings ?></a></td>
+<?php if ( canView( 'Monitors' ) && $monitor['Type'] == "Local" ) { ?>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor['Id'] ?>', 'zmSettings<?= $monitor['Name'] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );"><?= $zmSlangSettings ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
@@ -89,24 +89,24 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <?php
 	if ( $mode == "stream" )
 	{
-		$stream_src = ZM_PATH_ZMS."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&scale=$scale";
+		$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&scale=$scale";
 		if ( isNetscape() )
 		{
 ?>
-<tr><td colspan="5" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor[Width], $scale ) ?>" height="<?= reScale( $monitor[Height], $scale ) ?>"></td></tr>
+<tr><td colspan="5" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></td></tr>
 <?php
 		}
 		else
 		{
 ?>
-<tr><td colspan="5" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $monitor[Width], $scale ) ?>" height="<?= reScale( $monitor[Height], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<tr><td colspan="5" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
 <?php
 		}
 	}
 	else
 	{
 ?>
-<tr><td colspan="5" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
+<tr><td colspan="5" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></td></tr>
 <?php
 	}
 ?>

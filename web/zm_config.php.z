@@ -108,14 +108,14 @@ function loadConfig()
 	$monitors = array();
 	while( $row = mysql_fetch_assoc( $result ) )
 	{
-		define( $row[Name], $row[Value] );
-		$config[$row[Name]] = $row;
-		if ( !($config_cat = &$config_cats[$row[Category]]) )
+		define( $row['Name'], $row['Value'] );
+		$config[$row['Name']] = $row;
+		if ( !($config_cat = &$config_cats[$row['Category']]) )
 		{
-			$config_cats[$row[Category]] = array();
-			$config_cat = &$config_cats[$row[Category]];
+			$config_cats[$row['Category']] = array();
+			$config_cat = &$config_cats[$row['Category']];
 		}
-		$config_cat[$row[Name]] = $row;
+		$config_cat[$row['Name']] = $row;
 	}
 	//print_r( $config );
 	//print_r( $config_cats );

@@ -29,8 +29,8 @@
 		$status_string = $zmSlangRecord;
 	}
 	$fps_string = sprintf( "%.2f", $fps );
-	$new_alarm = ( $status > 0 && $last_status == 0 );
-	$old_alarm = ( $status == 0 && $last_status > 0 );
+	$new_alarm = ( $status > 0 && empty($last_status) );
+	$old_alarm = ( $status == 0 && isset($last_status) && $last_status > 0 );
 
 	$refresh = $status?1:REFRESH_STATUS;
 	$url = "$PHP_SELF?view=montagestatus&mid=$mid&last_status=$status";

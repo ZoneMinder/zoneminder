@@ -16,16 +16,16 @@
 		die( mysql_error() );
 	while ( $row = mysql_fetch_assoc( $result ) )
 	{
-		$filter_names[$row[Name]] = $row[Name];
-		if ( $filter_name == $row[Name] )
+		$filter_names[$row['Name']] = $row['Name'];
+		if ( isset($filter_name) && $filter_name == $row['Name'] )
 		{
 			$filter_data = $row;
 		}
 	}
 
-	if ( $filter_data )
+	if ( isset($filter_data) )
 	{
-		foreach( split( '&', $filter_data[Query] ) as $filter_parm )
+		foreach( split( '&', $filter_data['Query'] ) as $filter_parm )
 		{
 			list( $key, $value ) = split( '=', $filter_parm, 2 );
 			if ( $key )
@@ -74,7 +74,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangEventFilter ?></title>
+<title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangEventFilter ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
@@ -132,7 +132,7 @@ function submitToFilter( form )
 function submitToEvents( form )
 {
 	var Url = '<?= $PHP_SELF ?>';
-	var Name = 'zmEvents<?= $monitor[Name] ?>';
+	var Name = 'zmEvents<?= $monitor['Name'] ?>';
 	var Width = <?= $jws['events']['w'] ?>;
 	var Height = <?= $jws['events']['h'] ?>;
 	var Options = 'resizable,scrollbars,width='+Width+',height='+Height;
@@ -184,8 +184,8 @@ window.focus();
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</a></td>
 <?php } ?>
-<?php if ( canEdit( 'Events' ) && $filter_data ) { ?>
-<td align="center" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data[Name] ?>', <?= $filter_data[Id] ?> );"><?= $zmSlangDelete ?></a></td>
+<?php if ( canEdit( 'Events' ) && isset($filter_data) ) { ?>
+<td align="center" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data['Name'] ?>', <?= $filter_data['Id'] ?> );"><?= $zmSlangDelete ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</a></td>
 <?php } ?>
@@ -232,7 +232,7 @@ window.focus();
 <td class="text"><input name="<?= $value_name ?>" value="<?= $$value_name ?>" class="form" size="16"></td>
 <?php } else { ?>
 <td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>
-<td class="text"><input name="<?= $value_name ?>" value="<?= $$value_name ?>" class="form" size="16"></td>
+<td class="text"><input name="<?= $value_name ?>" value="<?= isset($$value_name)?$$value_name:'' ?>" class="form" size="16"></td>
 <?php } ?>
 <td class="text"><?php if ( $trms > 2 ) { echo buildSelect( $cbracket_name, $cbracket_types ); } else { ?>&nbsp;<?php } ?></td>
 </tr>

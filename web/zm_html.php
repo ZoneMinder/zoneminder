@@ -33,8 +33,11 @@ require_once( 'zm_config.php' );
 if ( ZM_OPT_USE_AUTH )
 {
 	session_start();
-	$user = $HTTP_SESSION_VARS[user];
-	define( "ZMU_COMMAND", ZMU_PATH." -U $HTTP_SESSION_VARS[username] -P $HTTP_SESSION_VARS[password]" );
+	if ( isset( $HTTP_SESSION_VARS['user'] ) )
+	{
+		$user = $HTTP_SESSION_VARS['user'];
+		define( "ZMU_COMMAND", ZMU_PATH." -U ".$HTTP_SESSION_VARS['username']." -P ".$HTTP_SESSION_VARS['password'] );
+	}
 }
 else
 {
@@ -81,11 +84,11 @@ $scales = array(
 	"-4" => "1/4x",
 );
 
-if ( !$user )
+if ( !isset($user) )
 {
 	$view = "login";
 }
-elseif ( !$view )
+elseif ( !isset($view) )
 {
 	$view = "console";
 }

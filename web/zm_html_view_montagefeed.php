@@ -4,7 +4,7 @@
 		$view = "error";
 		return;
 	}
-	if ( !$mode )
+	if ( !isset($mode) )
 	{
 		if ( canStream() )
 			$mode = "stream";
@@ -34,7 +34,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangFeed ?></title>
+<title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangFeed ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
@@ -50,7 +50,7 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <body>
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
 <tr>
-<td width="50%" align="center" class="text"><b><?= $monitor[Name] ?></b></td>
+<td width="50%" align="center" class="text"><b><?= $monitor['Name'] ?></b></td>
 <?php if ( $mode == "stream" ) { ?>
 <td width="50%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montagefeed&mode=still&mid=<?= $mid ?>"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
@@ -62,24 +62,24 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <?php
 	if ( $mode == "stream" )
 	{
-		$stream_src = ZM_PATH_ZMS."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
+		$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
 		if ( isNetscape() )
 		{
 ?>
-<tr><td colspan="2" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
+<tr><td colspan="2" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></td></tr>
 <?php
 		}
 		else
 		{
 ?>
-<tr><td colspan="2" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<tr><td colspan="2" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
 <?php
 		}
 	}
 	else
 	{
 ?>
-<tr><td colspan="2" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
+<tr><td colspan="2" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></td></tr>
 <?php
 	}
 ?>

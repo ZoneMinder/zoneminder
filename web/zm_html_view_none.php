@@ -2,7 +2,7 @@
 <head>
 <script language="JavaScript">
 <?php
-	if ( $refresh_parent )
+	if ( !empty($refresh_parent) )
 	{
 ?>
 //self.onerror = function() { return( true ); }

@@ -15,7 +15,7 @@ function closeWindow()
 <input type="hidden" name="action" value="logout">
 <input type="hidden" name="view" value="login">
 <tr><td colspan="2" class="smallhead" align="center">ZoneMinder <?= $zmSlangLogout ?></td></tr>
-<tr><td colspan="2" class="text" align="center"><?= sprintf( $zmClangCurrentLogin, $user[Username] ) ?></td></tr>
+<tr><td colspan="2" class="text" align="center"><?= sprintf( $zmClangCurrentLogin, $user['Username'] ) ?></td></tr>
 <tr><td align="center"><input type="submit" value="<?= $zmSlangLogout ?>" class="form"></td>
 <td align="center"><input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td></tr>
 </form>

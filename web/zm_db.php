@@ -29,7 +29,7 @@ function getEnumValues( $table, $column )
 	if ( $result )
 	{
 		$row = mysql_fetch_assoc($result);
-		preg_match_all( "/'([^']+)'/", $row[Type], $enum_matches );
+		preg_match_all( "/'([^']+)'/", $row['Type'], $enum_matches );
 		$enum_values = $enum_matches[1];
 	}
 	else

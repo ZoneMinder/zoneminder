@@ -19,20 +19,20 @@
 	else
 	{
 		$zone = array();
-		$zone[Name] = $zmSlangNew;
-		$zone[LoX] = 0;
-		$zone[LoY] = 0;
-		$zone[HiX] = $monitor[Width]-1;
-		$zone[HiY] = $monitor[Height]-1;
+		$zone['Name'] = $zmSlangNew;
+		$zone['LoX'] = 0;
+		$zone['LoY'] = 0;
+		$zone['HiX'] = $monitor['Width']-1;
+		$zone['HiY'] = $monitor['Height']-1;
 	}
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - <$= $zmSlangZone ?> <?= $zone[Name] ?></title>
+<title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangZone ?> <?= $zone['Name'] ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( $refresh_parent )
+	if ( !empty($refresh_parent) )
 	{
 ?>
 opener.location.reload(true);
@@ -102,58 +102,58 @@ function applyZoneType( Form )
 		Form.new_alarm_rgb_b.disabled = true;
 		Form.new_alarm_rgb_b.value = "";
 		Form.new_alarm_threshold.disabled = false;
-		Form.new_alarm_threshold.value = "<?= $zone[AlarmThreshold] ?>";
+		Form.new_alarm_threshold.value = "<?= $zone['AlarmThreshold'] ?>";
 		Form.new_min_alarm_pixels.disabled = false;
-		Form.new_min_alarm_pixels.value = "<?= $zone[MinAlarmPixels] ?>";
+		Form.new_min_alarm_pixels.value = "<?= $zone['MinAlarmPixels'] ?>";
 		Form.new_max_alarm_pixels.disabled = false;
-		Form.new_max_alarm_pixels.value = "<?= $zone[MaxAlarmPixels] ?>";
+		Form.new_max_alarm_pixels.value = "<?= $zone['MaxAlarmPixels'] ?>";
 		Form.new_filter_x.disabled = false;
-		Form.new_filter_x.value = "<?= $zone[FilterX] ?>";
+		Form.new_filter_x.value = "<?= $zone['FilterX'] ?>";
 		Form.new_filter_y.disabled = false;
-		Form.new_filter_y.value = "<?= $zone[FilterY] ?>";
+		Form.new_filter_y.value = "<?= $zone['FilterY'] ?>";
 		Form.new_min_filter_pixels.disabled = false;
-		Form.new_min_filter_pixels.value = "<?= $zone[MinFilterPixels] ?>";
+		Form.new_min_filter_pixels.value = "<?= $zone['MinFilterPixels'] ?>";
 		Form.new_max_filter_pixels.disabled = false;
-		Form.new_max_filter_pixels.value = "<?= $zone[MaxFilterPixels] ?>";
+		Form.new_max_filter_pixels.value = "<?= $zone['MaxFilterPixels'] ?>";
 		Form.new_min_blob_pixels.disabled = false;
-		Form.new_min_blob_pixels.value = "<?= $zone[MinBlobPixels] ?>";
+		Form.new_min_blob_pixels.value = "<?= $zone['MinBlobPixels'] ?>";
 		Form.new_max_blob_pixels.disabled = false;
-		Form.new_max_blob_pixels.value = "<?= $zone[MaxBlobPixels] ?>";
+		Form.new_max_blob_pixels.value = "<?= $zone['MaxBlobPixels'] ?>";
 		Form.new_min_blobs.disabled = false;
-		Form.new_min_blobs.value = "<?= $zone[MinBlobs] ?>";
+		Form.new_min_blobs.value = "<?= $zone['MinBlobs'] ?>";
 		Form.new_max_blobs.disabled = false;
-		Form.new_max_blobs.value = "<?= $zone[MaxBlobs] ?>";
+		Form.new_max_blobs.value = "<?= $zone['MaxBlobs'] ?>";
 	}
 	else
 	{
 		Form.new_alarm_rgb_r.disabled = false;
-		Form.new_alarm_rgb_r.value = "<?= ($zone[AlarmRGB]>>16)&0xff; ?>";
+		Form.new_alarm_rgb_r.value = "<?= ($zone['AlarmRGB']>>16)&0xff; ?>";
 		Form.new_alarm_rgb_g.disabled = false;
-		Form.new_alarm_rgb_g.value = "<?= ($zone[AlarmRGB]>>8)&0xff; ?>";
+		Form.new_alarm_rgb_g.value = "<?= ($zone['AlarmRGB']>>8)&0xff; ?>";
 		Form.new_alarm_rgb_b.disabled = false;
-		Form.new_alarm_rgb_b.value = "<?= $zone[AlarmRGB]&0xff; ?>";
+		Form.new_alarm_rgb_b.value = "<?= $zone['AlarmRGB']&0xff; ?>";
 		Form.new_alarm_threshold.disabled = false;
-		Form.new_alarm_threshold.value = "<?= $zone[AlarmThreshold] ?>";
+		Form.new_alarm_threshold.value = "<?= $zone['AlarmThreshold'] ?>";
 		Form.new_min_alarm_pixels.disabled = false;
-		Form.new_min_alarm_pixels.value = "<?= $zone[MinAlarmPixels] ?>";
+		Form.new_min_alarm_pixels.value = "<?= $zone['MinAlarmPixels'] ?>";
 		Form.new_max_alarm_pixels.disabled = false;
-		Form.new_max_alarm_pixels.value = "<?= $zone[MaxAlarmPixels] ?>";
+		Form.new_max_alarm_pixels.value = "<?= $zone['MaxAlarmPixels'] ?>";
 		Form.new_filter_x.disabled = false;
-		Form.new_filter_x.value = "<?= $zone[FilterX] ?>";
+		Form.new_filter_x.value = "<?= $zone['FilterX'] ?>";
 		Form.new_filter_y.disabled = false;
-		Form.new_filter_y.value = "<?= $zone[FilterY] ?>";
+		Form.new_filter_y.value = "<?= $zone['FilterY'] ?>";
 		Form.new_min_filter_pixels.disabled = false;
-		Form.new_min_filter_pixels.value = "<?= $zone[MinFilterPixels] ?>";
+		Form.new_min_filter_pixels.value = "<?= $zone['MinFilterPixels'] ?>";
 		Form.new_max_filter_pixels.disabled = false;
-		Form.new_max_filter_pixels.value = "<?= $zone[MaxFilterPixels] ?>";
+		Form.new_max_filter_pixels.value = "<?= $zone['MaxFilterPixels'] ?>";
 		Form.new_min_blob_pixels.disabled = false;
-		Form.new_min_blob_pixels.value = "<?= $zone[MinBlobPixels] ?>";
+		Form.new_min_blob_pixels.value = "<?= $zone['MinBlobPixels'] ?>";
 		Form.new_max_blob_pixels.disabled = false;
-		Form.new_max_blob_pixels.value = "<?= $zone[MaxBlobPixels] ?>";
+		Form.new_max_blob_pixels.value = "<?= $zone['MaxBlobPixels'] ?>";
 		Form.new_min_blobs.disabled = false;
-		Form.new_min_blobs.value = "<?= $zone[MinBlobs] ?>";
+		Form.new_min_blobs.value = "<?= $zone['MinBlobs'] ?>";
 		Form.new_max_blobs.disabled = false;
-		Form.new_max_blobs.value = "<?= $zone[MaxBlobs] ?>";
+		Form.new_max_blobs.value = "<?= $zone['MaxBlobs'] ?>";
 	}
 }
 
@@ -169,8 +169,8 @@ function toPercent( Field, maxValue )
 
 function applyZoneUnits( Form )
 {
-	var max_width = <?= $monitor[Width]-1 ?>;
-	var max_height = <?= $monitor[Height]-1 ?>;
+	var max_width = <?= $monitor['Width']-1 ?>;
+	var max_height = <?= $monitor['Height']-1 ?>;
 	var area = (max_width+1) * (max_height+1);
 
 	if ( Form.new_units.value == 'Pixels' )
@@ -222,17 +222,17 @@ function checkBounds( Field, fieldText, minValue, maxValue)
 
 function checkWidth( Field, fieldText )
 {
-	return( checkBounds( Field, fieldText, 0, <?= $monitor[Width]-1 ?> ) );
+	return( checkBounds( Field, fieldText, 0, <?= $monitor['Width']-1 ?> ) );
 }
 
 function checkHeight( Field, fieldText )
 {
-	return( checkBounds( Field, fieldText, 0, <?= $monitor[Height]-1 ?> ) );
+	return( checkBounds( Field, fieldText, 0, <?= $monitor['Height']-1 ?> ) );
 }
 
 function checkArea( Field, fieldText )
 {
-	return( checkBounds( Field, fieldText, 0, <?= $monitor[Width]*$monitor[Height] ?> ) );
+	return( checkBounds( Field, fieldText, 0, <?= $monitor['Width']*$monitor['Height'] ?> ) );
 }
 
 function closeWindow()
@@ -244,7 +244,7 @@ function closeWindow()
 <body>
 <table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td colspan="2" align="left" class="head"><?= $zmSlangMonitor ?> <?= $monitor[Name] ?> - <?= $zmSlangZone ?> <?= $zone[Name] ?></td>
+<td colspan="2" align="left" class="head"><?= $zmSlangMonitor ?> <?= $monitor['Name'] ?> - <?= $zmSlangZone ?> <?= $zone['Name'] ?></td>
 </tr>
 <form name="zone_form" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.zone_form )">
 <input type="hidden" name="view" value="<?= $view ?>">
@@ -255,7 +255,7 @@ function closeWindow()
 <tr>
 <td align="left" class="smallhead"><?= $zmSlangParameter ?></td><td align="left" class="smallhead"><?= $zmSlangValue ?></td>
 </tr>
-<tr><td align="left" class="text"><?= $zmSlangName ?></td><td align="left" class="text"><input type="text" name="new_name" value="<?= $zone[Name] ?>" size="12" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangName ?></td><td align="left" class="text"><input type="text" name="new_name" value="<?= $zone['Name'] ?>" size="12" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangType ?></td><td align="left" class="text"><select name="new_type" class="form" onchange="applyZoneType(document.zone_form)">
 <?php
 	foreach ( getEnumValues( 'Zones', 'Type' ) as $opt_type )
@@ -276,22 +276,22 @@ function closeWindow()
 	}
 ?>
 </select></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMinX ?></td><td align="left" class="text"><input type="text" name="new_lo_x" value="<?= $zone[LoX] ?>" size="4" class="form" onchange="checkWidth(this,'Minimum X')"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMinY ?></td><td align="left" class="text"><input type="text" name="new_lo_y" value="<?= $zone[LoY] ?>" size="4" class="form" onchange="checkHeight(this,'Minimum Y')"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMaxX ?></td><td align="left" class="text"><input type="text" name="new_hi_x" value="<?= $zone[HiX] ?>" size="4" class="form" onchange="checkWidth(this,'Maximum X')"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMaxY ?></td><td align="left" class="text"><input type="text" name="new_hi_y" value="<?= $zone[HiY] ?>" size="4" class="form" onchange="checkHeight(this,'Maximum Y')"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneAlarmColour ?></td><td align="left" class="text">R:<input type="text" name="new_alarm_rgb_r" value="<?= ($zone[AlarmRGB]>>16)&0xff ?>" size="3" class="form">&nbsp;G:<input type="text" name="new_alarm_rgb_g" value="<?= ($zone[AlarmRGB]>>8)&0xff ?>" size="3" class="form">&nbsp;B:<input type="text" name="new_alarm_rgb_b" value="<?= $zone[AlarmRGB]&0xff ?>" size="3" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneAlarmThreshold ?></td><td align="left" class="text"><input type="text" name="new_alarm_threshold" value="<?= $zone[AlarmThreshold] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMinAlarmedArea ?></td><td align="left" class="text"><input type="text" name="new_min_alarm_pixels" value="<?= $zone[MinAlarmPixels] ?>" size="6" class="form" onchange="checkArea(this,'Minimum Alarmed Area')"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMaxAlarmedArea ?></td><td align="left" class="text"><input type="text" name="new_max_alarm_pixels" value="<?= $zone[MaxAlarmPixels] ?>" size="6" class="form" onchange="checkArea(this,'Maximum Alarmed Area')"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneFilterWidth ?></td><td align="left" class="text"><input type="text" name="new_filter_x" value="<?= $zone[FilterX] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneFilterHeight ?></td><td align="left" class="text"><input type="text" name="new_filter_y" value="<?= $zone[FilterY] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMinFilteredArea ?></td><td align="left" class="text"><input type="text" name="new_min_filter_pixels" value="<?= $zone[MinFilterPixels] ?>" size="6" class="form" onchange="checkArea(this,'Minimum Filtered Area')"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMaxFilteredArea ?></td><td align="left" class="text"><input type="text" name="new_max_filter_pixels" value="<?= $zone[MaxFilterPixels] ?>" size="6" class="form" onchange="checkArea(this,'Minimum Filtered Area')"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMinBlobArea ?></td><td align="left" class="text"><input type="text" name="new_min_blob_pixels" value="<?= $zone[MinBlobPixels] ?>" size="6" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMaxBlobArea ?></td><td align="left" class="text"><input type="text" name="new_max_blob_pixels" value="<?= $zone[MaxBlobPixels] ?>" size="6" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMinBlobs ?></td><td align="left" class="text"><input type="text" name="new_min_blobs" value="<?= $zone[MinBlobs] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneMaxBlobs ?></td><td align="left" class="text"><input type="text" name="new_max_blobs" value="<?= $zone[MaxBlobs] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMinX ?></td><td align="left" class="text"><input type="text" name="new_lo_x" value="<?= $zone['LoX'] ?>" size="4" class="form" onchange="checkWidth(this,'Minimum X')"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMinY ?></td><td align="left" class="text"><input type="text" name="new_lo_y" value="<?= $zone['LoY'] ?>" size="4" class="form" onchange="checkHeight(this,'Minimum Y')"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMaxX ?></td><td align="left" class="text"><input type="text" name="new_hi_x" value="<?= $zone['HiX'] ?>" size="4" class="form" onchange="checkWidth(this,'Maximum X')"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMaxY ?></td><td align="left" class="text"><input type="text" name="new_hi_y" value="<?= $zone['HiY'] ?>" size="4" class="form" onchange="checkHeight(this,'Maximum Y')"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneAlarmColour ?></td><td align="left" class="text">R:<input type="text" name="new_alarm_rgb_r" value="<?= ($zone['AlarmRGB']>>16)&0xff ?>" size="3" class="form">&nbsp;G:<input type="text" name="new_alarm_rgb_g" value="<?= ($zone['AlarmRGB']>>8)&0xff ?>" size="3" class="form">&nbsp;B:<input type="text" name="new_alarm_rgb_b" value="<?= $zone['AlarmRGB']&0xff ?>" size="3" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneAlarmThreshold ?></td><td align="left" class="text"><input type="text" name="new_alarm_threshold" value="<?= $zone['AlarmThreshold'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMinAlarmedArea ?></td><td align="left" class="text"><input type="text" name="new_min_alarm_pixels" value="<?= $zone['MinAlarmPixels'] ?>" size="6" class="form" onchange="checkArea(this,'Minimum Alarmed Area')"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMaxAlarmedArea ?></td><td align="left" class="text"><input type="text" name="new_max_alarm_pixels" value="<?= $zone['MaxAlarmPixels'] ?>" size="6" class="form" onchange="checkArea(this,'Maximum Alarmed Area')"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneFilterWidth ?></td><td align="left" class="text"><input type="text" name="new_filter_x" value="<?= $zone['FilterX'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneFilterHeight ?></td><td align="left" class="text"><input type="text" name="new_filter_y" value="<?= $zone['FilterY'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMinFilteredArea ?></td><td align="left" class="text"><input type="text" name="new_min_filter_pixels" value="<?= $zone['MinFilterPixels'] ?>" size="6" class="form" onchange="checkArea(this,'Minimum Filtered Area')"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMaxFilteredArea ?></td><td align="left" class="text"><input type="text" name="new_max_filter_pixels" value="<?= $zone['MaxFilterPixels'] ?>" size="6" class="form" onchange="checkArea(this,'Minimum Filtered Area')"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMinBlobArea ?></td><td align="left" class="text"><input type="text" name="new_min_blob_pixels" value="<?= $zone['MinBlobPixels'] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMaxBlobArea ?></td><td align="left" class="text"><input type="text" name="new_max_blob_pixels" value="<?= $zone['MaxBlobPixels'] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMinBlobs ?></td><td align="left" class="text"><input type="text" name="new_min_blobs" value="<?= $zone['MinBlobs'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneMaxBlobs ?></td><td align="left" class="text"><input type="text" name="new_max_blobs" value="<?= $zone['MaxBlobs'] ?>" size="4" class="form"></td></tr>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
 <td align="left">&nbsp;</td>

@@ -27,15 +27,15 @@ function userLogin( $username, $password )
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();
-	$HTTP_SESSION_VARS[username] = $username;
-	$HTTP_SESSION_VARS[password] = $password;
+	$HTTP_SESSION_VARS['username'] = $username;
+	$HTTP_SESSION_VARS['password'] = $password;
 	if ( $user = mysql_fetch_assoc( $result ) )
 	{
-		$HTTP_SESSION_VARS[user] = $user;
+		$HTTP_SESSION_VARS['user'] = $user;
 	}
 	else
 	{
-		$HTTP_SESSION_VARS[user] = array();
+		$HTTP_SESSION_VARS['user'] = array();
 	}
 	session_write_close();
 }
@@ -44,7 +44,7 @@ function userLogout()
 {
 	global $user, $HTTP_SESSION_VARS;
 
-	unset( $HTTP_SESSION_VARS[user] );
+	unset( $HTTP_SESSION_VARS['user'] );
 	unset( $user );
 
 	session_destroy();
@@ -54,7 +54,7 @@ function visibleMonitor( $mid )
 {
 	global $user;
 
-	return( !$user[MonitorIds] || in_array( $mid, split( ',', $user[MonitorIds] ) ) );
+	return( empty($user['MonitorIds']) || in_array( $mid, split( ',', $user['MonitorIds'] ) ) );
 }
 
 function canView( $area, $mid=false )
@@ -75,7 +75,7 @@ function deleteEvent( $eid )
 {
 	global $user;
 
-	if ( $user[Events] == 'Edit' && $eid )
+	if ( $user['Events'] == 'Edit' && $eid )
 	{
 		$result = mysql_query( "delete from Events where Id = '$eid'" );
 		if ( !$result )
@@ -183,22 +183,22 @@ function getBrowser( &$browser, &$version )
 {
 	global $HTTP_SERVER_VARS;
 
-	if (ereg( 'MSIE ([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS[HTTP_USER_AGENT],$log_version))
+	if (ereg( 'MSIE ([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS['HTTP_USER_AGENT'],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'ie';
 	}
-	elseif (ereg( 'Safari/([0-9.]+)',$HTTP_SERVER_VARS[HTTP_USER_AGENT],$log_version))
+	elseif (ereg( 'Safari/([0-9.]+)',$HTTP_SERVER_VARS['HTTP_USER_AGENT'],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'safari';
 	}
-	elseif (ereg( 'Opera ([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS[HTTP_USER_AGENT],$log_version))
+	elseif (ereg( 'Opera ([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS['HTTP_USER_AGENT'],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'opera';
 	}
-	elseif (ereg( 'Mozilla/([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS[HTTP_USER_AGENT],$log_version))
+	elseif (ereg( 'Mozilla/([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS['HTTP_USER_AGENT'],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'mozilla';
@@ -253,21 +253,21 @@ function daemonControl( $command, $daemon=false, $args=false )
 
 function zmcControl( $monitor, $restart=false )
 {
-	if ( $monitor[Type] == "Local" )
+	if ( $monitor['Type'] == "Local" )
 	{
-		$sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Device = '$monitor[Device]'";
-		$zmc_args = "-d $monitor[Device]";
+		$sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Device = '".$monitor['Device']."'";
+		$zmc_args = "-d ".$monitor['Device'];
 	}
 	else
 	{
-		$sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Host = '$monitor[Host]' and Port = '$monitor[Port]' and Path = '$monitor[Path]'";
-		$zmc_args = "-H $monitor[Host] -P $monitor[Port] -p '$monitor[Path]'";
+		$sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Host = '".$monitor['Host']."' and Port = '".$monitor['Port']."' and Path = '".$monitor['Path']."'";
+		$zmc_args = "-H ".$monitor['Host']." -P ".$monitor['Port']." -p '".$monitor['Path']."'";
 	}
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();
 	$row = mysql_fetch_assoc( $result );
-	$active_count = $row[ActiveCount];
+	$active_count = $row['ActiveCount'];
 
 	if ( !$active_count )
 	{
@@ -293,7 +293,7 @@ function zmaControl( $monitor, $restart=false )
 			echo mysql_error();
 		$monitor = mysql_fetch_assoc( $result );
 	}
-	if ( $monitor[RunMode] == 'Triggered' )
+	if ( $monitor['RunMode'] == 'Triggered' )
 	{
 		// Don't touch anything that's triggered
 		return;
@@ -306,28 +306,28 @@ function zmaControl( $monitor, $restart=false )
 		{
 			if ( $restart )
 			{
-				daemonControl( "stop", "zmfilter.pl", "-m $monitor[Id] -e -1" );
-				daemonControl( "stop", "zma", "-m $monitor[Id]" );
+				daemonControl( "stop", "zmfilter.pl", "-m ".$monitor['Id']." -e -1" );
+				daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
 				if ( ZM_OPT_FRAME_SERVER )
 				{
-					daemonControl( "stop", "zmf", "-m $monitor[Id]" );
+					daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
 				}
 			}
 			if ( ZM_OPT_FRAME_SERVER )
 			{
-				daemonControl( "start", "zmf", "-m $monitor[Id]" );
+				daemonControl( "start", "zmf", "-m ".$monitor['Id'] );
 			}
-			daemonControl( "start", "zma", "-m $monitor[Id]" );
-			daemonControl( "start", "zmfilter.pl", "-m $monitor[Id] -e -1" );
+			daemonControl( "start", "zma", "-m ".$monitor['Id'] );
+			daemonControl( "start", "zmfilter.pl", "-m ".$monitor['Id']." -e -1" );
 			break;
 		}
 		default :
 		{
-			daemonControl( "stop", "zmfilter.pl", "-m $monitor[Id] -e -1" );
-			daemonControl( "stop", "zma", "-m $monitor[Id]" );
+			daemonControl( "stop", "zmfilter.pl", "-m ".$monitor['Id']." -e -1" );
+			daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
 			if ( ZM_OPT_FRAME_SERVER )
 			{
-				daemonControl( "stop", "zmf", "-m $monitor[Id]" );
+				daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
 			}
 			break;
 		}
@@ -349,13 +349,13 @@ function daemonCheck( $daemon=false, $args=false )
 
 function zmcCheck( $monitor )
 {
-	if ( $monitor[Type] == 'Local' )
+	if ( $monitor['Type'] == 'Local' )
 	{
-		$zmc_args = "-d $monitor[Device]";
+		$zmc_args = "-d ".$monitor['Device'];
 	}
 	else
 	{
-		$zmc_args = "-H $monitor[Host] -P $monitor[Port] -p '$monitor[Path]'";
+		$zmc_args = "-H ".$monitor['Host']." -P ".$monitor['Port']." -p '".$monitor['Path']."'";
 	}
 	return( daemonCheck( "zmc", $zmc_args ) );
 }
@@ -364,14 +364,14 @@ function zmaCheck( $monitor )
 {
 	if ( is_array( $monitor ) )
 	{
-		$monitor = $monitor[Id];
+		$monitor = $monitor['Id'];
 	}
 	return( daemonCheck( "zma", "-m $monitor" ) );
 }
 
 function createVideo( $event, $rate, $scale, $overwrite=0 )
 {
-	$command = ZM_PATH_BIN."/zmvideo.pl -e $event[Id] -r $rate -s $scale";
+	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -r $rate -s $scale";
 	if ( $overwrite )
 		$command .= " -o";
 	$result = exec( $command, $output, $status );

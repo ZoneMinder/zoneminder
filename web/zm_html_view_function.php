@@ -11,11 +11,11 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $zmSlangFunction ?> - <?= $monitor[Name] ?></title>
+<title>ZM - <?= $zmSlangFunction ?> - <?= $monitor['Name'] ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( $refresh_parent )
+	if ( !empty($refresh_parent) )
 	{
 ?>
 opener.location.reload(true);
@@ -36,7 +36,7 @@ function closeWindow()
 <body>
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
-<td colspan="2" align="center" class="head"><?= sprintf( $zmClangMonitorFunction, $monitor[Name] ) ?></td>
+<td colspan="2" align="center" class="head"><?= sprintf( $zmClangMonitorFunction, $monitor['Name'] ) ?></td>
 </tr>
 <tr>
 <form method="get" action="<?= $PHP_SELF ?>">

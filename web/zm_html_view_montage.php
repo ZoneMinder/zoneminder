@@ -8,7 +8,7 @@
 	$monitors = array();
 	while( $row = mysql_fetch_assoc( $result ) )
 	{
-		if ( !visibleMonitor( $row[Id] ) )
+		if ( !visibleMonitor( $row['Id'] ) )
 		{
 			continue;
 		}
@@ -21,13 +21,13 @@
 	for ( $i = 0; $i < count($monitors); $i++ )
 	{
 		$monitor = $monitors[$i];
-		$frame_height = $monitor[Height]+16;
+		$frame_height = $monitor['Height']+16;
 		$row = $i/ZM_WEB_MONTAGE_MAX_COLS;
 		$col = $i%ZM_WEB_MONTAGE_MAX_COLS;
-		if ( $frame_height > $heights[$row] )
+		if ( empty( $heights[$row] ) || $frame_height > $heights[$row] )
 			$heights[$row] = $frame_height;
-		if ( $monitor[Width] > $widths[$col] )
-			$widths[$col] = $monitor[Width];
+		if ( empty( $widths[$col] ) || $monitor['Width'] > $widths[$col] )
+			$widths[$col] = $monitor['Width'];
 	}
 	$row_spec = join( ',', $heights );
 	$col_spec = join( ',', $widths );
@@ -53,8 +53,8 @@ window.focus();
 				$monitor = $monitors[$i];
 ?>
 <frameset rows="*,16" cols="100%" border="1" frameborder="no" framespacing="0">
-<frame src="<?= $PHP_SELF ?>?view=montagefeed&mid=<?= $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
-<frame src="<?= $PHP_SELF ?>?view=montagestatus&mid=<?= $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
+<frame src="<?= $PHP_SELF ?>?view=montagefeed&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
+<frame src="<?= $PHP_SELF ?>?view=montagestatus&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
 </frameset>
 <?php
 			}

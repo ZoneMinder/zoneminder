@@ -11,7 +11,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangSaveFilter ?></title>
+<title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangSaveFilter ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function closeWindow()
@@ -47,11 +47,11 @@ window.focus();
 <?php
 		}
 ?>
-<input type="hidden" name="<?= $obracket_name ?>" value="<?= $$obracket_name ?>">
-<input type="hidden" name="<?= $cbracket_name ?>" value="<?= $$cbracket_name ?>">
-<input type="hidden" name="<?= $attr_name ?>" value="<?= $$attr_name ?>">
-<input type="hidden" name="<?= $op_name ?>" value="<?= $$op_name ?>">
-<input type="hidden" name="<?= $value_name ?>" value="<?= $$value_name ?>">
+<input type="hidden" name="<?= $obracket_name ?>" value="<?= isset($$obracket_name)?$$obracket_name:'' ?>">
+<input type="hidden" name="<?= $cbracket_name ?>" value="<?= isset($$cbracket_name)?$$cbracket_name:'' ?>">
+<input type="hidden" name="<?= $attr_name ?>" value="<?= isset($$attr_name)?$$attr_name:'' ?>">
+<input type="hidden" name="<?= $op_name ?>" value="<?= isset($$op_name)?$$op_name:'' ?>">
+<input type="hidden" name="<?= $value_name ?>" value="<?= isset($$value_name)?$$value_name:'' ?>">
 <?php
 	}
 ?>
@@ -64,15 +64,15 @@ window.focus();
 		die( mysql_error() );
 	while ( $row = mysql_fetch_assoc( $result ) )
 	{
-		$filter_names[$row[Name]] = $row[Name];
-		if ( $filter_name == $row[Name] )
+		$filter_names[$row['Name']] = $row['Name'];
+		if ( $filter_name == $row['Name'] )
 		{
 			$filter_data = $row;
 		}
 	}
 ?>
 <?php if ( count($filter_names) ) { ?>
-<td align="left" colspan="2" class="text"><?= $zmSlangSaveAs ?>:&nbsp;<?= buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); ?>&nbsp;<?= $zmSlangOrEnterNewName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="<?= $filter ?>" class="form"></td>
+<td align="left" colspan="2" class="text"><?= $zmSlangSaveAs ?>:&nbsp;<?= buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); ?>&nbsp;<?= $zmSlangOrEnterNewName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="<?= $filter_name ?>" class="form"></td>
 <?php } else { ?>
 <td align="left" colspan="2" class="text"><?= $zmSlangEnterNewFilterName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="" class="form"></td>
 <?php } ?>
@@ -82,23 +82,23 @@ window.focus();
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoArchiveEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_archive" value="1"<?php if ( $filter_data[AutoArchive] ) { echo " checked"; } ?>></td>
+<td align="left" class="text"><input type="checkbox" name="auto_archive" value="1"<?php if ( $filter_data['AutoArchive'] ) { echo " checked"; } ?>></td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoDeleteEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_delete" value="1"<?php if ( $filter_data[AutoDelete] ) { echo " checked"; } ?>></td>
+<td align="left" class="text"><input type="checkbox" name="auto_delete" value="1"<?php if ( $filter_data['AutoDelete'] ) { echo " checked"; } ?>></td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoUploadEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_upload" value="1"<?php if ( $filter_data[AutoUpload] ) { echo " checked"; } ?>></td>
+<td align="left" class="text"><input type="checkbox" name="auto_upload" value="1"<?php if ( $filter_data['AutoUpload'] ) { echo " checked"; } ?>></td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoEmailEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_email" value="1"<?php if ( $filter_data[AutoEmail] ) { echo " checked"; } ?>></td>
+<td align="left" class="text"><input type="checkbox" name="auto_email" value="1"<?php if ( $filter_data['AutoEmail'] ) { echo " checked"; } ?>></td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoMessageEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_message" value="1"<?php if ( $filter_data[AutoMessage] ) { echo " checked"; } ?>></td>
+<td align="left" class="text"><input type="checkbox" name="auto_message" value="1"<?php if ( $filter_data['AutoMessage'] ) { echo " checked"; } ?>></td>
 </tr>
 <tr>
 <td align="right" colspan="2" class="text">&nbsp;</td>

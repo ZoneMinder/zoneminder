@@ -24,13 +24,15 @@ import_request_variables( "GPC" );
 
 //phpinfo( INFO_VARIABLES );
 
+error_reporting( E_ALL );
+
 if ( !isset($PHP_SELF) )
 {
 	$PHP_SELF = $HTTP_SERVER_VARS['PHP_SELF'];
 }
 
-$accepts_wml = preg_match( '/text\/vnd.wap.wml/i', $HTTP_SERVER_VARS[HTTP_ACCEPT] );
-$accepts_html = preg_match( '/text\/html/i', $HTTP_SERVER_VARS[HTTP_ACCEPT] );
+$accepts_wml = preg_match( '/text\/vnd.wap.wml/i', $HTTP_SERVER_VARS['HTTP_ACCEPT'] );
+$accepts_html = preg_match( '/text\/html/i', $HTTP_SERVER_VARS['HTTP_ACCEPT'] );
 
 if ( isset($wml) || ($accepts_wml && !$accepts_html) )
 {

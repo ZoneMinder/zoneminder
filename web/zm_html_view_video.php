@@ -18,7 +18,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $zmSlangVideo ?> - <?= $event[Name] ?></title>
+<title>ZM - <?= $zmSlangVideo ?> - <?= $event['Name'] ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 </head>
 <body>
@@ -63,7 +63,7 @@
 		ob_end_flush();
 		if ( $video_file = createVideo( $event, $rate, $scale, $overwrite ) )
 		{
-			$event_dir = ZM_DIR_EVENTS."/$event[MonitorName]/".sprintf( "%d", $eid );
+			$event_dir = ZM_DIR_EVENTS."/$event['MonitorName']/".sprintf( "%d", $eid );
 			$video_path = $event_dir.'/'.$video_file;
 ?>
 <html>

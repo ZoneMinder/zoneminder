@@ -6,23 +6,23 @@
 	}
 
 	$tabs = array();
-	$tabs["system"] = $zmSlangSystem;
-	$tabs["paths"] = $zmSlangPaths;
-	$tabs["video"] = $zmSlangVideo;
-	$tabs["network"] = $zmSlangNetwork;
-	$tabs["web"] = $zmSlangWeb;
-	$tabs["mail"] = $zmSlangEmail;
-	$tabs["ftp"] = $zmSlangFTP;
-	$tabs["x10"] = $zmSlangX10;
-	$tabs["tools"] = $zmSlangTools;
-	$tabs["highband"] = $zmSlangHighBW;
-	$tabs["medband"] = $zmSlangMediumBW;
-	$tabs["lowband"] = $zmSlangLowBW;
-	$tabs["phoneband"] = $zmSlangPhoneBW;
+	$tabs['system'] = $zmSlangSystem;
+	$tabs['paths'] = $zmSlangPaths;
+	$tabs['video'] = $zmSlangVideo;
+	$tabs['network'] = $zmSlangNetwork;
+	$tabs['web'] = $zmSlangWeb;
+	$tabs['mail'] = $zmSlangEmail;
+	$tabs['ftp'] = $zmSlangFTP;
+	$tabs['x10'] = $zmSlangX10;
+	$tabs['tools'] = $zmSlangTools;
+	$tabs['highband'] = $zmSlangHighBW;
+	$tabs['medband'] = $zmSlangMediumBW;
+	$tabs['lowband'] = $zmSlangLowBW;
+	$tabs['phoneband'] = $zmSlangPhoneBW;
 	if ( ZM_OPT_USE_AUTH )
-		$tabs["users"] = $zmSlangUsers;
+		$tabs['users'] = $zmSlangUsers;
 
-	if ( !$tab )
+	if ( !isset($tab) )
 		$tab = "system";
 ?>
 <html>
@@ -31,7 +31,7 @@
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( $refresh_parent )
+	if ( !empty($refresh_parent) )
 	{
 ?>
 opener.location.reload(true);
@@ -89,7 +89,7 @@ function validateForm( form )
 
 		foreach ( $config_cat as $name=>$value )
 		{
-			if ( 0 && $value[Type] == "boolean" )
+			if ( 0 && $value['Type'] == "boolean" )
 			{
 ?>
 	if ( !form.<?= $name ?>.value )
@@ -160,16 +160,16 @@ function validateForm( form )
 		{
 ?>
 <tr onMouseOver="this.className='over'" onMouseOut="this.className='out'">
-<td align="left" class="ruled"><?= $row[Id] ?></td>
-<td align="left" class="ruled"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=user&uid=$row[Id]', 'zmUser', ".$jws['user']['w'].", ".$jws['user']['h']." );", $row[Username].($user[Username]==$row[Username]?"*":""), canEdit( 'System' ) ) ?></td>
-<td align="left" class="ruled"><?= $row[Language]?$row[Language]:'default' ?></td>
-<td align="left" class="ruled"><?= $row[Enabled]?$zmSlangYes:$zmSlangNo ?></td>
-<td align="left" class="ruled"><?= $row[Stream] ?></td>
-<td align="left" class="ruled"><?= $row[Events] ?></td>
-<td align="left" class="ruled"><?= $row[Monitors] ?></td>
-<td align="left" class="ruled"><?= $row[System] ?></td>
-<td align="left" class="ruled"><?= $row[MonitorIds]?$row[MonitorIds]:"&nbsp;" ?></td>
-<td align="center" class="ruled"><input type="checkbox" name="mark_uids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.user_form, 'mark_uids' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>></td>
+<td align="left" class="ruled"><?= $row['Id'] ?></td>
+<td align="left" class="ruled"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=user&uid=".$row['Id']."', 'zmUser', ".$jws['user']['w'].", ".$jws['user']['h']." );", $row['Username'].($user['Username']==$row['Username']?"*":""), canEdit( 'System' ) ) ?></td>
+<td align="left" class="ruled"><?= $row['Language']?$row['Language']:'default' ?></td>
+<td align="left" class="ruled"><?= $row['Enabled']?$zmSlangYes:$zmSlangNo ?></td>
+<td align="left" class="ruled"><?= $row['Stream'] ?></td>
+<td align="left" class="ruled"><?= $row['Events'] ?></td>
+<td align="left" class="ruled"><?= $row['Monitors'] ?></td>
+<td align="left" class="ruled"><?= $row['System'] ?></td>
+<td align="left" class="ruled"><?= $row['MonitorIds']?$row['MonitorIds']:"&nbsp;" ?></td>
+<td align="center" class="ruled"><input type="checkbox" name="mark_uids[]" value="<?= $row['Id'] ?>" onClick="configureButton( document.user_form, 'mark_uids' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
 		}
@@ -198,46 +198,46 @@ function validateForm( form )
 		{
 ?>
 <tr>
-<td align="left" class="text"><?= $value[Name] ?></td>
-<td align="left" class="text"><?= $value[Prompt] ?> (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=optionhelp&option=<?= $value[Name] ?>', 'zmOptionHelp', <?= $jws['optionhelp']['w'] ?>, <?= $jws['optionhelp']['h'] ?>);">?</a>)</td>
+<td align="left" class="text"><?= $value['Name'] ?></td>
+<td align="left" class="text"><?= $value['Prompt'] ?> (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=optionhelp&option=<?= $value['Name'] ?>', 'zmOptionHelp', <?= $jws['optionhelp']['w'] ?>, <?= $jws['optionhelp']['h'] ?>);">?</a>)</td>
 <?php	
-			if ( $value[Type] == "boolean" )
+			if ( $value['Type'] == "boolean" )
 			{
 ?>
-<td align="left" class="text"><input type="checkbox" class="text" id="<?= $value[Name] ?>" name="new_config[<?= $value[Name] ?>]" value="1"<?php if ( $value[Value] ) { ?> checked<?php } ?>></td>
+<td align="left" class="text"><input type="checkbox" class="text" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked<?php } ?>></td>
 <?php
 			}
-			elseif ( preg_match( "/\|/", $value[Hint] ) )
+			elseif ( preg_match( "/\|/", $value['Hint'] ) )
 			{
 ?>
 <td align="left" class="text">
 <?php
-				foreach ( split( "\|", $value[Hint] ) as $option )
+				foreach ( split( "\|", $value['Hint'] ) as $option )
 				{
 ?>
-<input type="radio" class="text" id="<?= $value[Name] ?>" name="new_config[<?= $value[Name] ?>]" value="<?= $option ?>"<?php if ( $value[Value] == $option ) { ?> checked<?php } ?>>&nbsp;<?= $option ?>&nbsp;&nbsp;
+<input type="radio" class="text" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { ?> checked<?php } ?>>&nbsp;<?= $option ?>&nbsp;&nbsp;
 <?php
 				}
 ?>
 </td>
 <?php
 			}
-			elseif ( $value[Type] == "text" )
+			elseif ( $value['Type'] == "text" )
 			{
 ?>
-<td align="left" class="text"><textarea class="form" id="<?= $value[Name] ?>" name="new_config[<?= $value[Name] ?>]" rows="5" cols="40"><?= htmlspecialchars($value[Value]) ?></textarea></td>
+<td align="left" class="text"><textarea class="form" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" rows="5" cols="40"><?= htmlspecialchars($value['Value']) ?></textarea></td>
 <?php
 			}
-			elseif ( $value[Type] == "integer" )
+			elseif ( $value['Type'] == "integer" )
 			{
 ?>
-<td align="left" class="text"><input type="text" class="form" id="<?= $value[Name] ?>" name="new_config[<?= $value[Name] ?>]" value="<?= $value[Value] ?>" size="8"></td>
+<td align="left" class="text"><input type="text" class="form" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" size="8"></td>
 <?php
 			}
 			else
 			{
 ?>
-<td align="left" class="text"><input type="text" class="form" id="<?= $value[Name] ?>" name="new_config[<?= $value[Name] ?>]" value="<?= $value[Value] ?>" size="40"></td>
+<td align="left" class="text"><input type="text" class="form" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" size="40"></td>
 <?php
 			}
 ?>
@@ -252,7 +252,7 @@ function validateForm( form )
 ?>
 </table>
 <?php
-	if ( $restart )
+	if ( !empty($restart) )
 	{
 		flush();
 ?>

@@ -47,22 +47,22 @@ function closeWindow()
 		foreach ( $frames as $frame )
 		{
 ?>
-<tr bgcolor="<?= $frame[AlarmFrame]?'#FA8072':'#FFFFFF' ?>">
-<td class="text" align="center"><?= $frame[FrameId] ?></td>
-<td class="text" align="center"><?= $frame[AlarmFrame]?"yes":"no" ?></td>
-<td class="text" align="center"><?= date( "H:i:s", $frame[UnixTimeStamp] ) ?></td>
-<td class="text" align="center"><?= number_format( $frame[Delta], 2 ) ?></td>
+<tr bgcolor="<?= $frame['AlarmFrame']?'#FA8072':'#FFFFFF' ?>">
+<td class="text" align="center"><?= $frame['FrameId'] ?></td>
+<td class="text" align="center"><?= $frame['AlarmFrame']?"yes":"no" ?></td>
+<td class="text" align="center"><?= date( "H:i:s", $frame['UnixTimeStamp'] ) ?></td>
+<td class="text" align="center"><?= number_format( $frame['Delta'], 2 ) ?></td>
 <?php
-			if ( ZM_RECORD_EVENT_STATS && $frame[AlarmFrame] )
+			if ( ZM_RECORD_EVENT_STATS && $frame['AlarmFrame'] )
 			{
 ?>
-<td class="text" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $frame[FrameId] ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );"><?= $frame[Score] ?></a></td>
+<td class="text" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $frame['FrameId'] ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );"><?= $frame['Score'] ?></a></td>
 <?php
 			}
 			else
 			{
 ?> 
-<td class="text" align="center"><?= $frame[Score] ?></td>
+<td class="text" align="center"><?= $frame['Score'] ?></td>
 <?php
 			}
 ?> 

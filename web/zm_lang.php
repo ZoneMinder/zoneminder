@@ -3,12 +3,12 @@
 $fallback_lang_file = 'zm_lang_en_gb.php';
 $system_lang_file = 'zm_lang_'.ZM_LANG_DEFAULT.'.php';
 
-if ( $user[Language] )
+if ( isset($user['Language']) )
 {
-	$user_lang_file = 'zm_lang_'.$user[Language].'.php';
+	$user_lang_file = 'zm_lang_'.$user['Language'].'.php';
 }
 
-if ( $user_lang_file && file_exists( $user_lang_file ) )
+if ( isset($user_lang_file) && file_exists( $user_lang_file ) )
 {
 	$lang_file = $user_lang_file;
 }

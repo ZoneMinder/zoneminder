@@ -4,7 +4,7 @@
 		$view = "error";
 		return;
 	}
-	if ( !$mode )
+	if ( !isset($mode) )
 	{
 		if ( canStream() )
 			$mode = "stream";
@@ -34,11 +34,11 @@
 
 	$frames_per_page = EVENT_FRAMES_PER_LINE * EVENT_FRAME_LINES;
 
-	$paged = $event[Frames] > $frames_per_page;
+	$paged = $event['Frames'] > $frames_per_page;
 ?>
 <html>
 <head>
-<title>ZM - <?= $zmSlangEvent ?> - <?= $event[Name] ?></title>
+<title>ZM - <?= $zmSlangEvent ?> - <?= $event['Name'] ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
@@ -52,7 +52,7 @@ window.close();
 ?>
 window.focus();
 <?php
-	if ( $refresh_parent )
+	if ( !empty($refresh_parent) )
 	{
 ?>
 opener.location.reload(true);
@@ -82,7 +82,7 @@ function newWindow(Url,Name,Width,Height)
 <input type="hidden" name="action" value="rename">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
-<input type="text" size="16" name="event_name" value="<?= $event[Name] ?>" class="form">
+<input type="text" size="16" name="event_name" value="<?= $event['Name'] ?>" class="form">
 <input type="submit" value="<?= $zmSlangRename ?>" class="form"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></form></td>
 <?php if ( 0 ) { ?>
 <td colspan="2" align="right" class="text">
@@ -93,7 +93,7 @@ function newWindow(Url,Name,Width,Height)
 <input type="hidden" name="eid" value="<?= $eid ?>">
 <input type="hidden" name="mark_eid" value="<?= $eid ?>">
 <?php if ( LEARN_MODE ) { ?>
-Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.submit();"><option value=""<?php if ( !$event[LearnState] ) echo " selected" ?>><?= $zmSlangIgnore ?></option><option value="-"<?php if ( $event[LearnState]=='-' ) echo " selected" ?>><?= $zmSlangExclude ?></option><option value="+"<?php if ( $event[LearnState]=='+' ) echo " selected" ?>><?= $zmSlangInclude ?></option></select>
+Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.submit();"><option value=""<?php if ( !$event['LearnState'] ) echo " selected" ?>><?= $zmSlangIgnore ?></option><option value="-"<?php if ( $event['LearnState']=='-' ) echo " selected" ?>><?= $zmSlangExclude ?></option><option value="+"<?php if ( $event['LearnState']=='+' ) echo " selected" ?>><?= $zmSlangInclude ?></option></select>
 <?php } ?>
 </form></td>
 <?php } ?>
@@ -110,15 +110,15 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <tr>
 <?php if ( $mode == "stream" ) { ?>
 <td align="center" class="text"><a href="javascript: refreshWindow();"><?= $zmSlangReplay ?></a></td>
-<?php } elseif ( $paged && $page ) { ?>
+<?php } elseif ( $paged && !empty($page) ) { ?>
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=0"><?= $zmSlangAll ?></a></td>
-<?php } elseif ( $paged && !$page ) { ?>
+<?php } elseif ( $paged && empty($page) ) { ?>
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=1"><?= $zmSlangPaged ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=none&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<?php if ( $event[Archived] ) { ?>
+<?php if ( $event['Archived'] ) { ?>
 <td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&mid=<?= $mid ?>&eid=<?= $eid ?>"><?= $zmSlangUnarchive ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php } else { ?>
 <td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=archive&mid=<?= $mid ?>&eid=<?= $eid ?>"><?= $zmSlangArchive ?></a><?php } else { ?>&nbsp;<?php } ?></td>
@@ -131,18 +131,18 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( ZM_OPT_MPEG != "no" ) { ?>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=video&eid=<?= $eid ?>', 'zmVideo', <?= $jws['video']['w']+$event[Width] ?>, <?= $jws['video']['h']+$event[Height] ?> );"><?= $zmSlangVideo ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=video&eid=<?= $eid ?>', 'zmVideo', <?= $jws['video']['w']+$event['Width'] ?>, <?= $jws['video']['h']+$event['Height'] ?> );"><?= $zmSlangVideo ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <?php
-	if ( $mode == "still" && $paged && $page )
+	if ( $mode == "still" && $paged && !empty($page) )
 	{
 ?>
 <?php
-		$pages = (int)ceil($event[Frames]/$frames_per_page);
+		$pages = (int)ceil($event['Frames']/$frames_per_page);
 		$max_shortcuts = 5;
 ?>
 <tr><td colspan="6" align="center" class="text">
@@ -160,14 +160,14 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 			for ( $i = 0; $i < $max_shortcuts; $i++ )
 			{
 				$new_page = round($page-pow($lo_exp,$i));
-				if ( $pages_used[$new_page] )
+				if ( isset($pages_used[$new_page]) )
 					continue;
 				if ( $new_page <= 1 )
 					break;
 				$pages_used[$new_page] = true;
 				array_unshift( $new_pages, $new_page );
 			}
-			if ( !$pages_used[1] )
+			if ( !isset($pages_used[1]) )
 				array_unshift( $new_pages, 1 );
 
 			foreach ( $new_pages as $new_page )
@@ -188,14 +188,14 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 			for ( $i = 0; $i < $max_shortcuts; $i++ )
 			{
 				$new_page = round($page+pow($hi_exp,$i));
-				if ( $pages_used[$new_page] )
+				if ( isset($pages_used[$new_page]) )
 					continue;
 				if ( $new_page > $pages )
 					break;
 				$pages_used[$new_page] = true;
 				array_push( $new_pages, $new_page );
 			}
-			if ( !$pages_used[$pages] )
+			if ( !isset($pages_used[$pages]) )
 				array_push( $new_pages, $pages );
 
 			foreach ( $new_pages as $new_page )
@@ -217,20 +217,20 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 		if ( isNetscape() )
 		{
 ?>
-<tr><td colspan="6" align="center" valign="middle"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $event[Width], $scale ) ?>" height="<?= reScale( $event[Height], $scale ) ?>"></td></tr>
+<tr><td colspan="6" align="center" valign="middle"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>"></td></tr>
 <?php
 		}
 		else
 		{
 ?>
-<tr><td colspan="6" align="center" valign="middle"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $event[Width], $scale ) ?>" height="<?= reScale( $event[Height], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<tr><td colspan="6" align="center" valign="middle"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
 <?php
 		}
 	}
 	else
 	{
 		$sql = "select * from Frames where EventID = '$eid' order by Id";
-		if ( $paged && $page )
+		if ( $paged && !empty($page) )
 			$sql .= " limit ".(($page-1)*$frames_per_page).", ".$frames_per_page;
 		$result = mysql_query( $sql );
 		if ( !$result )
@@ -242,12 +242,12 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 		$count = 0;
 		$scale = IMAGE_SCALING;
 		$fraction = sprintf( "%.2f", 1/$scale );
-		$thumb_width = $event[Width]/4;
-		$thumb_height = $event[Height]/4;
+		$thumb_width = $event['Width']/4;
+		$thumb_height = $event['Height']/4;
 		while( $row = mysql_fetch_assoc( $result ) )
 		{
-			$frame_id = $row[FrameId];
-			$image_path = $row[ImagePath];
+			$frame_id = $row['FrameId'];
+			$image_path = $row['ImagePath'];
 
 			$capt_image = $image_path;
 			if ( $scale == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
@@ -278,9 +278,9 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 					exec( $command );
 				}
 			}
-			$img_class = $row[AlarmFrame]?"alarm":"normal";
+			$img_class = $row['AlarmFrame']?"alarm":"normal";
 ?>
-<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event[Width]+$jws['image']['w'] ?>, <?= $event[Height]+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<? echo $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $row[Score] ?>"></a></td>
+<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<? echo $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $row['Score'] ?>"></a></td>
 <?php
 			flush();
 			if ( !(++$count % 4) )
@@ -299,10 +299,10 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 ?>
 <tr>
 <td colspan="6"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>"><?= $zmSlangDeleteAndNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>"><?= $zmSlangNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event['Id'] ?>&page=<?= $page ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event['Id'] ?>&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>&page=<?= $page ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event['Id'] ?>&action=delete&mid=<?= $mid ?>&mark_eid=<?= $eid ?>&page=<?= $page ?>"><?= $zmSlangDeleteAndNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event['Id'] ?>&page=<?= $page ?>"><?= $zmSlangNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr></table></td>
 </tr>
 </table>

@@ -15,11 +15,11 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangSettings ?></title>
+<title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangSettings ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( $refresh_parent )
+	if ( !empty($refresh_parent) )
 	{
 ?>
 opener.location.reload(true);
@@ -41,7 +41,7 @@ function closeWindow()
 <body>
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
-<td colspan="2" align="left" class="head">Monitor <?= $monitor[Name] ?> - <?= $zmSlangSettings ?></td>
+<td colspan="2" align="left" class="head">Monitor <?= $monitor['Name'] ?> - <?= $zmSlangSettings ?></td>
 </tr>
 <form name="settings_form" method="post" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.settings_form )">
 <input type="hidden" name="view" value="<?= $view ?>">

@@ -20,7 +20,7 @@
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( $refresh_parent )
+	if ( !empty($refresh_parent) )
 	{
 ?>
 opener.location.reload(true);
@@ -99,7 +99,7 @@ function deleteState()
 <td colspan="4" align="center" class="head">ZoneMinder - <?= $zmSlangRunState ?></td>
 </tr>
 <?php
-if ( !$apply )
+if ( empty($apply) )
 {
 ?>
 <form name="state_form" method="post" action="<?= $PHP_SELF ?>">
@@ -127,7 +127,7 @@ if ( !$apply )
 	foreach ( $states as $state )
 	{
 ?>
-<option value="<?= $state[Name] ?>"><?= $state[Name] ?></option>
+<option value="<?= $state['Name'] ?>"><?= $state['Name'] ?></option>
 <?php
 	}
 ?>

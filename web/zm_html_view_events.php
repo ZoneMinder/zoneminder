@@ -4,6 +4,15 @@
 		$view = "error";
 		return;
 	}
+	if ( !isset($sort_parms) )
+	{
+		$sort_parms = "";
+	}
+	if ( !isset($sort_field) )
+	{
+		$sort_field = "Time";
+		$sort_asc = false;
+	}
 	switch( $sort_field )
 	{
 		case 'Id' :
@@ -34,7 +43,6 @@
 			$sort_column = "E.MaxScore";
 			break;
 		default:
-			$sort_field = "Time";
 			$sort_column = "E.StartTime";
 			break;
 	}
@@ -64,19 +72,19 @@
 		$attr_name = "attr$i";
 		$op_name = "op$i";
 		$value_name = "val$i";
-		if ( $$conjunction_name )
+		if ( isset($$conjunction_name) )
 		{
 			$filter_query .= "&$conjunction_name=".$$conjunction_name;
 			$filter_sql .= " ".$$conjunction_name." ";
 			$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'">'."\n";
 		}
-		if ( $$obracket_name )
+		if ( isset($$obracket_name) )
 		{
 			$filter_query .= "&$obracket_name=".$$obracket_name;
 			$filter_sql .= str_repeat( "(", $$obracket_name );
 			$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'">'."\n";
 		}
-		if ( $$attr_name )
+		if ( isset($$attr_name) )
 		{
 			$filter_query .= "&$attr_name=".$$attr_name;
 			$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'">'."\n";
@@ -123,7 +131,7 @@
 			$filter_query .= "&$value_name=".urlencode($$value_name);
 			$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'">'."\n";
 		}
-		if ( $$cbracket_name )
+		if ( isset($$cbracket_name) )
 		{
 			$filter_query .= "&$cbracket_name=".$$cbracket_name;
 			$filter_sql .= str_repeat( ")", $$cbracket_name );
@@ -143,7 +151,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor[Name] ?> - <?= $zmSlangEvents ?></title>
+<title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangEvents ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
@@ -152,7 +160,7 @@ function newWindow(Url,Name,Width,Height)
 }
 function eventWindow(Url,Name)
 {
-	var Name = window.open(Url,Name,"resizable,width=<?= $monitor[Width]+$jws['event']['w'] ?>,height=<?= $monitor[Height]+$jws['event']['h'] ?>");
+	var Name = window.open(Url,Name,"resizable,width=<?= $monitor['Width']+$jws['event']['w'] ?>,height=<?= $monitor['Height']+$jws['event']['h'] ?>");
 }
 function filterWindow(Url,Name)
 {
@@ -162,7 +170,7 @@ function closeWindow()
 {
 	window.close();
 	// This is a hack. The only way to close an existing window is to try and open it!
-	var filterWindow = window.open( "<?= $PHP_SELF ?>?view=none", 'zmFilter<?= $monitor[Name] ?>', 'width=1,height=1' );
+	var filterWindow = window.open( "<?= $PHP_SELF ?>?view=none", 'zmFilter<?= $monitor['Name'] ?>', 'width=1,height=1' );
 	filterWindow.close();
 }
 function checkAll(form,name)
@@ -198,11 +206,11 @@ function configureButton(form,name)
 }
 window.focus();
 <?php
-	if ( $filter )
+	if ( isset($filter) )
 	{
 ?>
 //opener.location.reload(true);
-filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?>&page=<?= $page ?><?= $filter_query ?>', 'zmFilter<?= $monitor[Name] ?>' );
+filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?>&page=<?= $page ?><?= $filter_query ?>', 'zmFilter<?= $monitor['Name'] ?>' );
 location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?><?= $filter_query ?>' );
 </script>
 </head>
@@ -214,7 +222,7 @@ location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?
 		if ( !($result = mysql_query( $count_sql )) )
 			die( mysql_error() );
 		$row = mysql_fetch_assoc( $result );
-		$n_events = $row[EventCount];
+		$n_events = $row['EventCount'];
 ?>
 </script>
 </head>
@@ -229,7 +237,7 @@ location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td align="left" class="text" width="20%"><b><?= $monitor[Name] ?> - <?= sprintf( $zmClangEventCount, $n_events, zmVlang( $zmVlangEvent, $n_events ) ) ?></b></td>
+<td align="left" class="text" width="20%"><b><?= $monitor['Name'] ?> - <?= sprintf( $zmClangEventCount, $n_events, zmVlang( $zmVlangEvent, $n_events ) ) ?></b></td>
 <?php
 		$pages = (int)ceil($n_events/EVENT_HEADER_LINES);
 		if ( $pages <= 1 )
@@ -260,14 +268,14 @@ location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?
 					for ( $i = 0; $i < $max_shortcuts; $i++ )
 					{
 						$new_page = round($page-pow($lo_exp,$i));
-						if ( $pages_used[$new_page] )
+						if ( isset($pages_used[$new_page]) )
 							continue;
 						if ( $new_page <= 1 )
 							break;
 						$pages_used[$new_page] = true;
 						array_unshift( $new_pages, $new_page );
 					}
-					if ( !$pages_used[1] )
+					if ( !isset($pages_used[1]) )
 						array_unshift( $new_pages, 1 );
 
 					foreach ( $new_pages as $new_page )
@@ -288,14 +296,14 @@ location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?
 					for ( $i = 0; $i < $max_shortcuts; $i++ )
 					{
 						$new_page = round($page+pow($hi_exp,$i));
-						if ( $pages_used[$new_page] )
+						if ( isset($pages_used[$new_page]) )
 							continue;
 						if ( $new_page > $pages )
 							break;
 						$pages_used[$new_page] = true;
 						array_push( $new_pages, $new_page );
 					}
-					if ( !$pages_used[$pages] )
+					if ( !isset($pages_used[$pages]) )
 						array_push( $new_pages, $pages );
 
 					foreach ( $new_pages as $new_page )
@@ -324,8 +332,8 @@ location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?
 <tr><td colspan="4" class="text">&nbsp;</td></tr>
 <tr>
 <td align="left" class="text"><a href="javascript: location.reload(true);"><?= $zmSlangRefresh ?></td>
-<td colspan="2" align="right" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?>&page=<?= $page ?><?= $filter_query ?>', 'zmFilter<?= $monitor[Name] ?>' );"><?= $zmSlangShowFilterWindow ?></a></td>
-<td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: checkAll( document.event_form, 'mark_eids' );"><?= $zmSlagCheckAll ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td colspan="2" align="right" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?>&page=<?= $page ?><?= $filter_query ?>', 'zmFilter<?= $monitor['Name'] ?>' );"><?= $zmSlangShowFilterWindow ?></a></td>
+<td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: checkAll( document.event_form, 'mark_eids' );"><?= $zmSlangCheckAll ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr>
 <tr><td colspan="4" class="text">&nbsp;</td></tr>
 <tr><td colspan="4"><table border="0" cellspacing="1" cellpadding="0" width="100%" bgcolor="#7F7FB2">
@@ -353,24 +361,24 @@ location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?
 </tr>
 <?php
 			}
-			if ( $event[LearnState] == '+' )
+			if ( $event['LearnState'] == '+' )
 				$bgcolor = "#98FB98";
-			elseif ( $event[LearnState] == '-' )
+			elseif ( $event['LearnState'] == '-' )
 				$bgcolor = "#FFC0CB";
 			else
 				unset( $bgcolor );
 ?>
-<tr<?= ' bgcolor="'.($bgcolor?$bgcolor:"#FFFFFF").'"' ?> >
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>&page=1', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$event[Id]" ?><?php if ( $event[Archived] ) echo "*" ?></span></a></td>
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>&page=1', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$event[Name]" ?><?php if ( $event[Archived] ) echo "*" ?></span></a></td>
-<td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event[StartTime]) ) ?></td>
-<td align="center" class="text"><?= $event[Length] ?></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&mid=<?= $mid ?>&eid=<?= $event[Id] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event[Frames] ?></a></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&mid=<?= $mid ?>&eid=<?= $event[Id] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event[AlarmFrames] ?></a></td>
-<td align="center" class="text"><?= $event[TotScore] ?></td>
-<td align="center" class="text"><?= $event[AvgScore] ?></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $event[Id] ?>&fid=0', 'zmImage', <?= $monitor[Width]+$jws['image']['w'] ?>, <?= $monitor[Height]+$jws['image']['h'] ?> );"><?= $event[MaxScore] ?></a></td>
-<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $event[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
+<tr<?= ' bgcolor="'.(isset($bgcolor)?$bgcolor:"#FFFFFF").'"' ?> >
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event['Id'] ?>&page=1', 'zmEvent' );"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event['Id'] ?>&page=1', 'zmEvent' );"><?= $event['Name'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
+<td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event['StartTime']) ) ?></td>
+<td align="center" class="text"><?= $event['Length'] ?></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&mid=<?= $mid ?>&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['Frames'] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&mid=<?= $mid ?>&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['AlarmFrames'] ?></a></td>
+<td align="center" class="text"><?= $event['TotScore'] ?></td>
+<td align="center" class="text"><?= $event['AvgScore'] ?></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= $monitor['Width']+$jws['image']['w'] ?>, <?= $monitor['Height']+$jws['image']['h'] ?> );"><?= $event['MaxScore'] ?></a></td>
+<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $event['Id'] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
 		}

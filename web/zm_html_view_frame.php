@@ -18,31 +18,31 @@
 	}
 	else
 	{
-		$result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '$event[MaxScore]'" );
+		$result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '$event['MaxScore']'" );
 		if ( !$result )
 			die( mysql_error() );
 		$frame = mysql_fetch_assoc( $result );
-		$fid = $frame[FrameId];
+		$fid = $frame['FrameId'];
 	}
 
 	$result = mysql_query( "select count(*) as FrameCount from Frames where EventID = '$eid'" );
 	if ( !$result )
 		die( mysql_error() );
 	$row = mysql_fetch_assoc( $result );
-	$max_fid = $row[FrameCount];
+	$max_fid = $row['FrameCount'];
 
 	$first_fid = 1;
 	$prev_fid = $fid-1;
 	$next_fid = $fid+1;
 	$last_fid = $max_fid;
 
-	$image_path = $frame[ImagePath];
+	$image_path = $frame['ImagePath'];
 	$anal_image = preg_replace( "/capture/", "analyse", $image_path );
 	if ( file_exists( $anal_image ) )
 	{
 		$image_path = $anal_image;
 	}
-	$img_class = $frame[AlarmFrame]?"alarm":"normal";
+	$img_class = $frame['AlarmFrame']?"alarm":"normal";
 ?>
 <html>
 <head>
@@ -67,15 +67,15 @@ function deleteEvent()
 </head>
 <body>
 <table border="0">
-<tr><td colspan="2" class="smallhead"><?= $zmSlangFrame ?> <?= $eid."-".$fid." ($frame[Score])" ?>
-<?php if ( ZM_RECORD_EVENT_STATS && $frame[AlarmFrame] ) { ?>
+<tr><td colspan="2" class="smallhead"><?= $zmSlangFrame ?> <?= $eid."-".$fid." ($frame['Score'])" ?>
+<?php if ( ZM_RECORD_EVENT_STATS && $frame['AlarmFrame'] ) { ?>
 (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $fid ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );"><?= $zmSlangStats ?></a>)
 <?php } ?>
 </td>
 <td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: deleteEvent();"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp<?php } ?></td>
 <td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
-<tr><td colspan="4"><img src="<?= $image_path ?>" width="<?= $event[Width] ?>" height="<?= $event[Height] ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="4"><img src="<?= $image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
 <tr>
 <?php if ( $fid > 1 ) { ?>
 <td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $first_fid ?>"><?= $zmSlangFirst ><</a></td>

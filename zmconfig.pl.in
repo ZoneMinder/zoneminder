@@ -1033,14 +1033,19 @@ foreach my $option ( @options )
 	}
 }
 
-my $first_run = !$database || !(-s $config_file);
+my $first_run = !(-s $config_file);
 
 my $file_option_count = 0;
-if ( !$first_run )
+if ( !$first_run || !$database )
 {
 	$file_option_count = loadOptionsFromFile();
 }
-my $db_option_count = loadOptionsFromDB();
+my $db_option_count = 0;
+if ( $database )
+{
+	$db_option_count = loadOptionsFromDB();
+}
+
 if ( !$interactive && !$file_option_count && !$db_option_count )
 {
 	print( "Warning: Non-interative mode being used with no existing configuration information.\n" );

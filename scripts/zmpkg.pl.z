@@ -253,7 +253,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 		$sth->finish();
 
 		# This is now started unconditionally
-		execute( ZM_PATH_BIN."/zmdc.pl start zmfilter.pl -e -1" );
+		execute( ZM_PATH_BIN."/zmdc.pl start zmfilter.pl" );
 		execute( ZM_PATH_BIN."/zmdc.pl start zmaudit.pl -d 900 -y" );
 
 		if ( ZM_OPT_X10 )

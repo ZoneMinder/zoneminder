@@ -122,9 +122,8 @@ my $event_id = 0;
 sub Usage
 {
 	print( "
-Usage: zmfilter.pl [-e <event_id>,--event=<event_id>] [-d <seconds>,--delay=<seconds>]
+Usage: zmfilter.pl [-d <seconds>,--delay=<seconds>]
 Parameters are :-
--e<event_id>, --event=<event_id>        - What event to start scanning from
 -d<seconds>, --delay=<seconds>          - How long to delay between each check, default 60
 ");
 	exit( -1 );
@@ -162,7 +161,7 @@ sub DateTimeToSQL
 	return( strftime( "%Y-%m-%d %H:%M:%S", localtime( $dt_val ) ) );
 }
 
-if ( !GetOptions( 'event=i'=>\$event_id, 'delay=i'=>\$delay ) )
+if ( !GetOptions( 'delay=i'=>\$delay ) )
 {
 	Usage();
 }
@@ -179,24 +178,11 @@ chdir( EVENT_PATH );
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 
-my $last_event_id;
-
-if ( !$event_id )
-{
-	my $sql = "select max(Id) as MaxEventId from Events";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
-	my $row = $sth->fetchrow_hashref();
-	$event_id = $row->{MaxEventId};
-	$sth->finish();
-}
-print( "Scanning for events since id $event_id\n" );
+print( "Scanning for events\n" );
 
 sleep( START_DELAY );
 
-my $filters = GetFilters();
-my @id_filters;
-my @date_filters;
+my $filters = getFilters();
 my $last_action = 0;
 
 while( 1 )
@@ -205,41 +191,43 @@ while( 1 )
 	{
 		print( "Reloading filters\n" ) if ( VERBOSE );
 		$last_action = time();
-		$filters = GetFilters();
-		@id_filters = grep { !$_->{has_dates} } @$filters;
-		@date_filters = grep { $_->{has_dates} } @$filters;
+		$filters = getFilters();
 	}
 
-	foreach my $filter ( @date_filters )
+	foreach my $filter ( @$filters )
 	{
-		CheckFilter( $filter );
+		checkFilter( $filter );
 	}
 
-	my $sql = "select max(Id) as LastEventId from Events";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
-	my $row = $sth->fetchrow_hashref();
-	$last_event_id = $row->{LastEventId};
-	$sth->finish();
-
-	if ( $last_event_id && $last_event_id > $event_id )
-	{
-		print( "Last event generated is $last_event_id\n" ) if ( VERBOSE );
-		# Got new event to check
-		foreach my $filter ( @id_filters )
-		{
-			CheckFilter( $filter );
-		}
-		$event_id = $last_event_id;
-	}
-	else
-	{
-		print( "Sleeping for $delay seconds\n" ) if ( VERBOSE );
-		sleep( $delay );
-	}
+	print( "Sleeping for $delay seconds\n" ) if ( VERBOSE );
+	sleep( $delay );
 }
 
-sub GetFilters
+sub getDiskPercent
+{
+	my $command = "df .";
+	my $df = qx( $command );
+	my $space = -1;
+	if ( $df =~ /\s(\d+)%/ms )
+	{
+		$space = $1;
+	}
+	return( $space );
+}
+
+sub getDiskBlocks
+{
+	my $command = "df .";
+	my $df = qx( $command );
+	my $space = -1;
+	if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms )
+	{
+		$space = $1;
+	}
+	return( $space );
+}
+
+sub getFilters
 {
 	my @filters;
 	my $sql = "select * from Filters where (AutoArchive = 1 or AutoDelete = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1 or AutoExecute != '') order by Name";
@@ -288,14 +276,10 @@ sub GetFilters
 				elsif ( $filter_terms{$attr_name} eq 'DateTime' )
 				{
 					$filter_sql .= "E.StartTime";
-					# Indicate that this filter uses dates and so should not be dependant on the event id
-					$filter_data->{has_dates} = !undef;
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Date' )
 				{
 					$filter_sql .= "to_days( E.StartTime )";
-					# Indicate that this filter uses dates and so should not be dependant on the event id
-					$filter_data->{has_dates} = !undef;
 				}
 				elsif ( $filter_terms{$attr_name} eq 'Time' )
 				{
@@ -308,6 +292,16 @@ sub GetFilters
 				elsif ( $filter_terms{$attr_name} eq 'Archived' )
 				{
 					$filter_sql .= "E.Archived = ".$filter_terms{$value_name};
+				}
+				elsif ( $filter_terms{$attr_name} eq 'DiskPercent' )
+				{
+					$filter_sql .= "zmDiskPercent";
+					$filter_data->{HasDiskPercent} = !undef;
+				}
+				elsif ( $filter_terms{$attr_name} eq 'DiskBlocks' )
+				{
+					$filter_sql .= "zmDiskBlocks";
+					$filter_data->{HasDiskBlocks} = !undef;
 				}
 				else
 				{
@@ -400,12 +394,88 @@ sub GetFilters
 		{
 			$sql .= " and ( $filter_sql )";
 		}
-		if ( !$filter_data->{has_dates} )
+		my @auto_terms;
+		if ( $filter_data->{AutoArchive} )
 		{
-			$sql .= " and E.Id > ?";
+			push( @auto_terms, "E.Archived = 0" )
 		}
-		$sql .= " order by E.Id";
-		#print $sql."\n";
+		if ( $filter_data->{AutoUpload} )
+		{
+			push( @auto_terms, "E.Uploaded = 0" )
+		}
+		if ( $filter_data->{AutoEmail} )
+		{
+			push( @auto_terms, "E.Emailed = 0" )
+		}
+		if ( $filter_data->{AutoMessage} )
+		{
+			push( @auto_terms, "E.Messaged = 0" )
+		}
+		if ( $filter_data->{AutoExecute} )
+		{
+			push( @auto_terms, "E.Executed = 0" )
+		}
+		if ( @auto_terms )
+		{
+			$sql .= " and ( ".join( " or ", @auto_terms )." )";
+		}
+		if ( !$filter_terms{sort_field} )
+		{
+			$filter_terms{sort_field} = 'StartTime';
+			$filter_terms{sort_asc} = 0;
+		}
+		my $sort_column = '';
+		if ( $filter_terms{sort_field} eq 'Id' )
+		{
+            $sort_column = "E.Id"; 
+		}
+		elsif ( $filter_terms{sort_field} eq 'MonitorName' )
+		{
+            $sort_column = "M.Name";
+		}
+		elsif ( $filter_terms{sort_field} eq 'Name' )
+		{
+            $sort_column = "E.Name";
+		}
+		elsif ( $filter_terms{sort_field} eq 'StartTime' )
+		{
+            $sort_column = "E.StartTime";
+		}
+		elsif ( $filter_terms{sort_field} eq 'Secs' )
+		{
+            $sort_column = "E.Length";
+		}
+		elsif ( $filter_terms{sort_field} eq 'Frames' )
+		{
+            $sort_column = "E.Frames";
+		}
+		elsif ( $filter_terms{sort_field} eq 'AlarmFrames' )
+		{
+            $sort_column = "E.AlarmFrames";
+		}
+		elsif ( $filter_terms{sort_field} eq 'TotScore' )
+		{
+            $sort_column = "E.TotScore";
+		}
+		elsif ( $filter_terms{sort_field} eq 'AvgScore' )
+		{
+            $sort_column = "E.AvgScore";
+		}
+		elsif ( $filter_terms{sort_field} eq 'MaxScore' )
+		{
+            $sort_column = "E.MaxScore";
+		}
+		else
+		{
+            $sort_column = "E.StartTime";
+    	}
+		my $sort_order = $filter_terms{sort_asc}?"asc":"desc";
+		$sql .= " order by ".$sort_column." ".$sort_order;
+		if ( $filter_terms{limit} )
+		{
+			$sql .= " limit 0, ".$filter_terms{limit};
+		}
+		print "SQL:$sql\n" if ( VERBOSE );
 		$filter_data->{Sql} = $sql;
 		if ( $filter_data->{AutoExecute} )
 		{
@@ -429,7 +499,7 @@ sub GetFilters
 	return( \@filters );
 }
 
-sub CheckFilter
+sub checkFilter
 {
 	my $filter = shift;
 
@@ -443,16 +513,20 @@ sub CheckFilter
 		"\n"
 	) if ( VERBOSE );
 	my $sql = $filter->{Sql};
+	
+	if ( $filter->{HasDiskPercent} )
+	{
+		my $disk_percent = getDiskPercent();
+		$sql =~ s/zmDiskPercent/$disk_percent/g;
+	}
+	if ( $filter->{HasDiskBlocks} )
+	{
+		my $disk_blocks = getDiskBlocks();
+		$sql =~ s/zmDiskBlocks/$disk_blocks/g;
+	}
+
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res;
-	if ( $filter->{has_dates} )
-	{
-		$res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
-	}
-	else
-	{
-		$res = $sth->execute( $event_id ) or die( "Can't execute '$sql': ".$sth->errstr() );
-	}
+	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
 
 	while( my $event = $sth->fetchrow_hashref() )
 	{
@@ -529,6 +603,12 @@ sub executeCommand
 	if ( $status )
 	{
 		print( "Command '$command' exited with status: $status\n" );
+	}
+	else
+	{
+		my $sql = "update Events set Executed = 1 where Id = ?";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
 	}
 }
 

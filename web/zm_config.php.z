@@ -66,7 +66,6 @@ switch ( $bandwidth )
 		define( "REFRESH_EVENTS", ZM_WEB_H_REFRESH_EVENTS );			// How often the event listing is refreshed in the watch window, only for recent events
 		define( "STREAM_IDLE_DELAY", ZM_WEB_H_STREAM_IDLE_DELAY );		// How long (in milliseconds) between streamed frames in the watch window
 		define( "STREAM_FRAME_DELAY", ZM_WEB_H_STREAM_FRAME_DELAY );	// How long (in milliseconds) to wait before looking for the next streamed frame
-		define( "STREAM_EVENT_DELAY", ZM_WEB_H_STREAM_EVENT_DELAY );	// How long (in milliseconds) to wait between each frame when streaming events
 		define( "IMAGE_SCALING", ZM_WEB_H_IMAGE_SCALING );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		break;
 	}
@@ -79,7 +78,6 @@ switch ( $bandwidth )
 		define( "REFRESH_EVENTS", ZM_WEB_M_REFRESH_EVENTS );			// How often the event listing is refreshed in the watch window, only for recent events
 		define( "STREAM_IDLE_DELAY", ZM_WEB_M_STREAM_IDLE_DELAY );		// How long (in milliseconds) between streamed frames in the watch window
 		define( "STREAM_FRAME_DELAY", ZM_WEB_M_STREAM_FRAME_DELAY );	// How long (in milliseconds) to wait before looking for the next streamed frame
-		define( "STREAM_EVENT_DELAY", ZM_WEB_M_STREAM_EVENT_DELAY );	// How long (in milliseconds) to wait between each frame when streaming events
 		define( "IMAGE_SCALING", ZM_WEB_M_IMAGE_SCALING );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		break;
 	}
@@ -92,7 +90,6 @@ switch ( $bandwidth )
 		define( "REFRESH_EVENTS", ZM_WEB_L_REFRESH_EVENTS );			// How often the event listing is refreshed in the watch window, only for recent events
 		define( "STREAM_IDLE_DELAY", ZM_WEB_L_STREAM_IDLE_DELAY );		// How long (in milliseconds) between streamed frames in the watch window
 		define( "STREAM_FRAME_DELAY", ZM_WEB_L_STREAM_FRAME_DELAY );	// How long (in milliseconds) to wait before looking for the next streamed frame
-		define( "STREAM_EVENT_DELAY", ZM_WEB_L_STREAM_EVENT_DELAY );	// How long (in milliseconds) to wait between each frame when streaming events
 		define( "IMAGE_SCALING", ZM_WEB_L_IMAGE_SCALING );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		break;
 	}

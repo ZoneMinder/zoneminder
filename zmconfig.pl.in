@@ -37,7 +37,7 @@ sub Usage
 	print( "
 Usage: zmconfig.pl [-f <config file>,--file=<config file>] [-(no)database] [--(no)interactive] [--(no)reprocess]
 Parameters are :-
--f <config_file>, --file=<config_file> - Use a configuration file other and the default zmconfig.txt
+-f <config_file>, --file=<config_file> - Use a configuration file other than the default zmconfig.txt
 -(no)d, --(no)database                 - Whether the database has already been created, on by default 
 -(no)i, --(no)interactive              - Whether to include interactive configuration, on by default 
 -(no)r, --(no)reprocess                - Whether to reprocess files, on by default
@@ -844,14 +844,6 @@ my @options =
 		category => 'highband',
 	},
 	{
-		name => "ZM_WEB_H_STREAM_EVENT_DELAY",
-		default => "-1",
-		description => "How long to wait between each frame when streaming events",
-		help => "When viewing a captured event this option controls how fast frames are sent to the browser. If this is a positive value then this represents the interval in milliseconds between each frame and should roughly match your capture rate otherwise the event may appear too fast or too slow. If zero then frames are sent as fast as possible. If this value is negative then the frames are sent at a rate proportional to the real interval at which they were captured, bandwidth permitting. Thus the default of -1 will try to send the frames at a real-time rate, -2 will be double real-time etc.",
-		type => $types{integer},
-		category => 'highband',
-	},
-	{
 		name => "ZM_WEB_H_IMAGE_SCALING",
 		default => "1",
 		description => "How to scale thumbnails in events, bandwidth versus cpu in rescaling",
@@ -918,14 +910,6 @@ my @options =
 		category => 'medband',
 	},
 	{
-		name => "ZM_WEB_M_STREAM_EVENT_DELAY",
-		default => "-1",
-		description => "How long to wait between each frame when streaming events",
-		help => "When viewing a captured event this option controls how fast frames are sent to the browser. If this is a positive value then this represents the interval in milliseconds between each frame and should roughly match your capture rate otherwise the event may appear too fast or too slow. If zero then frames are sent as fast as possible. If this value is negative then the frames are sent at a rate proportional to the real interval at which they were captured, bandwidth permitting. Thus the default of -1 will try to send the frames at a real-time rate, -2 will be double real-time etc.",
-		type => $types{integer},
-		category => 'medband',
-	},
-	{
 		name => "ZM_WEB_M_IMAGE_SCALING",
 		default => "4",
 		description => "How to scale thumbnails in events, bandwidth versus cpu in rescaling",
@@ -988,14 +972,6 @@ my @options =
 		default => "250",
 		description => "How long (in milliseconds) to wait before looking for the next streamed frame",
 		help => "The top frame of the monitor window when monitoring a live feed in streaming mode contains a continuous stream of images. This option controls how often a new frame is sent to the browser when an alarm is being generated. It makes little sense to set this too small as if it exceeds the available bandwidth and results in frames being sent much faster than they are able to be displayed though as should be only for a short period it may be possible to catch up. In low bandwidth mode it should be set to maybe a quarter the capture rate of the cameras you are using.",
-		type => $types{integer},
-		category => 'lowband',
-	},
-	{
-		name => "ZM_WEB_L_STREAM_EVENT_DELAY",
-		default => "-1",
-		description => "How long to wait between each frame when streaming events",
-		help => "When viewing a captured event this option controls how fast frames are sent to the browser. If this is a positive value then this represents the interval in milliseconds between each frame and should roughly match your capture rate otherwise the event may appear too fast or too slow. If zero then frames are sent as fast as possible. If this value is negative then the frames are sent at a rate proportional to the real interval at which they were captured, bandwidth permitting. Thus the default of -1 will try to send the frames at a real-time rate, -2 will be double real-time etc.",
 		type => $types{integer},
 		category => 'lowband',
 	},

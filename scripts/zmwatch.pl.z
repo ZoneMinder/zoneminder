@@ -54,6 +54,10 @@ use Data::Dumper;
 
 $| = 1;
 
+$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
 sub Usage
 {
     print( "
@@ -69,10 +73,6 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 print( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-
-$ENV{PATH}  = '/bin:/usr/bin';
-$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
-delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
 my $sql = "select * from Monitors";
@@ -93,30 +93,30 @@ while( 1 )
 			}
 			# Check we are getting a decent FPS, if not then kill it
 			my $command = COMMAND_PATH."zmu -m ".$monitor->{Id}." -f";
-			print( "Getting FPS for monitor $monitor->{Id} ('$command')\n" );
+			#print( "Getting FPS for monitor $monitor->{Id} ('$command')\n" );
 			my $fps = qx( $command );
 			chomp($fps);
-			print( "Monitor $monitor->{Id} capturing at $fps FPS\n" );
+			#print( "Monitor $monitor->{Id} capturing at $fps FPS\n" );
 			push( @$fps_list, $fps );
 			if ( @$fps_list > NUM_BAD_CHECKS )
 			{
 				pop( @$fps_list );
+				# See if we can find any good FPS readings
+				my @good_fps = grep { $_ > MIN_FPS } @$fps_list;
+				if ( @good_fps < NUM_BAD_CHECKS )
+				{
+					print( "Monitor $monitor->{Id} has ".(NUM_BAD_CHECKS-int(@good_fps))." samples below ".MIN_FPS." FPS\n" );
+				}
+				if ( @good_fps )
+				{
+					# Yes, so continue
+					next;
+				}
+				# If we are here then something bad has happened
+				$command = COMMAND_PATH."zmdc.pl restart zmc -d ".$monitor->{Device};
+				print( "Restarting capture daemon ('$command')\n" );
+				print( qx( $command ) );
 			}
-			# See if we can find any good FPS readings
-			my @good_fps = grep { $_ > MIN_FPS } @$fps_list;
-			if ( @good_fps < NUM_BAD_CHECKS )
-			{
-				print( "Monitor $monitor->{Id} has ".(NUM_BAD_CHECKS-int(@good_fps))." samples below ".MIN_FPS." FPS\n" );
-			}
-			if ( @good_fps )
-			{
-				# Yes, so continue
-				next;
-			}
-			# If we are here then something bad has happened
-			$command = COMMAND_PATH."zmdc.pl restart zmc -d ".$monitor->{Device};
-			print( "Restarting capture daemon ('$command')\n" );
-			print( qx( $command ) );
 		}
 	}
 	sleep( CHECK_INTERVAL );

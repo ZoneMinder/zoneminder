@@ -28,17 +28,17 @@ void zmDbConnect( const char *user, const char*pass )
 {
 	if ( !mysql_init( &dbconn ) )
 	{
-		fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );
+		Error(( "Can't initialise structure: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
 	if ( !mysql_real_connect( &dbconn, ZM_DB_SERVER, user, pass, 0, 0, 0, 0 ) )
 	{
-		fprintf( stderr, "Can't connect to server: %s\n", mysql_error( &dbconn ) );
+		Error(( "Can't connect to server: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
 	if ( mysql_select_db( &dbconn, ZM_DB_NAME ) )
 	{
-		fprintf( stderr, "Can't select database: %s\n", mysql_error( &dbconn ) );
+		Error(( "Can't select database: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
 }

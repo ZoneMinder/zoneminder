@@ -149,7 +149,7 @@ void LocalCamera::Initialise()
 	}
 
 	m_buffer = (unsigned char *)mmap(0, m_vmb.size, PROT_READ|PROT_WRITE, MAP_SHARED, m_videohandle,0);
-	if( !((long)m_buffer > 0) )
+	if( m_buffer == MAP_FAILED )
 	{
 		Error(( "Could not mmap video: %s", strerror(errno) ));
 		exit(-1);

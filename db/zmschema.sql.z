@@ -2,7 +2,7 @@
 --
 -- Host: localhost    Database: ZM_DB_NAME
 ---------------------------------------------------------
--- Server version   3.23.49
+-- Server version	3.23.49
 
 --
 -- Current Database: ZM_DB_NAME
@@ -82,10 +82,14 @@ CREATE TABLE Frames (
 CREATE TABLE Monitors (
   Id int(10) unsigned NOT NULL auto_increment,
   Name tinytext NOT NULL,
+  Type enum('Local','Remote') NOT NULL default 'Local',
   Function enum('None','Passive','Active','X10') NOT NULL default 'Passive',
   Device tinyint(3) unsigned NOT NULL default '0',
   Channel tinyint(3) unsigned NOT NULL default '0',
   Format tinyint(3) unsigned NOT NULL default '0',
+  Host varchar(64) default NULL,
+  Port varchar(8) default '80',
+  Path varchar(255) default NULL,
   Width smallint(5) unsigned NOT NULL default '0',
   Height smallint(5) unsigned NOT NULL default '0',
   Colours tinyint(3) unsigned NOT NULL default '0',

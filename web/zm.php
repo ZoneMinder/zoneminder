@@ -44,6 +44,7 @@ define( "DB_PASS", "zmadminzm" );				// Database password
 
 define( "MAX_EVENTS", 12 );						// The maximum number of events to show in the default event listing
 define( "ALARM_POPUP", 1 );						// Whether the watch window jumps to front if an alarm occurs
+define( "ALARM_SOUND", "Yeow.wav" );			// A sound to play on alarm
 define( "ZM_PATH", "/usr/local/bin" );			// Path to the general ZoneMonitor executables
 define( "ZMU_PATH", ZM_PATH."/zmu" );			// Path to the Zone Monitor Utility
 define( "ZMS_PATH", "/cgi-bin/zms" );			// Path to the Zone Monitor Stream server
@@ -666,6 +667,8 @@ elseif ( $view == "status" )
 		$status_string = "Alert";
 		$class = "oratext";
 	}
+	$new_alarm = ( $status > 0 && $last_status == 0 );
+
 	header("Refresh: ".REFRESH_STATUS."; URL='$PHP_SELF?view=status&mid=$mid&last_status=$status'" );
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -678,7 +681,7 @@ elseif ( $view == "status" )
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( ALARM_POPUP && $status > 0 && $last_status == 0 )
+	if ( ALARM_POPUP && $new_alarm )
 	{
 ?>
 top.window.focus();
@@ -689,6 +692,14 @@ top.window.focus();
 </head>
 <body>
 <table width="100%" align="center" border="0" cellpadding="0" cellspacing="0"><tr><td class="<?php echo $class ?>" align="center" valign="middle">Status: <?php echo $status_string ?></td></tr></table>
+<?php
+	if ( ALARM_SOUND && $status == 1 )
+	{
+?>
+<embed src="<?php echo ALARM_SOUND ?>" autostart="yes" hidden="true"></embed>
+<?php
+	}
+?>
 </body>
 </html>
 <?php

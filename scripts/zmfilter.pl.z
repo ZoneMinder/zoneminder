@@ -52,6 +52,12 @@ use constant ZM_UPLOAD_FTP_REM_DIR => "<from zmconfig>";
 use constant ZM_UPLOAD_FTP_TIMEOUT => <from zmconfig>;
 use constant ZM_UPLOAD_FTP_PASSIVE => <from zmconfig>;
 use constant ZM_UPLOAD_FTP_DEBUG => <from zmconfig>;
+use constant ZM_OPT_EMAIL => <from zmconfig>;
+use constant ZM_EMAIL_ADDRESS => <from zmconfig>;
+use constant ZM_OPT_MESSAGE => <from zmconfig>;
+use constant ZM_MESSAGE_ADDRESS => <from zmconfig>;
+use constant ZM_URL => <from zmconfig>;
+use constant ZM_FROM_EMAIL => <from zmconfig>;
 
 use constant EVENT_PATH => "@WEB_PREFIX@/".ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter-%d.log';
@@ -72,6 +78,124 @@ if ( ZM_OPT_UPLOAD )
 	use Net::FTP;
 }
 
+my $email_subject;
+my $email_body;
+if ( ZM_OPT_EMAIL )
+{
+	use Mail::Mailer;
+
+	# The tags you can use in here are as follows
+	# %ZP% - The path to your ZoneMinder console
+	# %MN% - The name of the monitor
+	# %MET% - The total number of events for the monitor
+	# %MEH% - The number of events for the monitor in the last hour
+	# %MED% - The number of events for the monitor in the last day
+	# %MEW% - The number of events for the monitor in the last week
+	# %MEM% - The number of events for the monitor in the last month
+	# %MEA% - The number of archived events for the monitor
+	# %MPS% - The path to the monitor stream
+	# %MPI% - The path to the monitor recent image
+	# %EPS% - The path to the event stream
+	# %EPI% - The path to the event images
+	# %EPI1% - The path to the first alarmed event image
+	# %EPIM% - The path to the (first) event image with the highest score
+	# %EI% - The id of the event
+	# %EN% - The name of the event
+	# %ET% - The time of the event
+	# %ED% - The duration of the event
+	# %EF% - The number of frames in the event
+	# %EFA% - The number of alarm frames in the event
+	# %EST% - The total score of the event
+	# %ESA% - The average score of the event
+	# %ESM% - The maximum score of the event
+	# %FN% - The name of the current filter that matched
+	# %FP% - The path to the current filter that matched
+
+	# Change these to suit your own preferences
+	$email_subject = "ZoneMinder: Alarm - %MN%-%EI% (%ESM% - %ESA% %EFA%)";
+	$email_body = "
+Hello,
+
+An alarm has been detected on your installation of the ZoneMinder.
+
+The details are as follows :-
+
+  Monitor  : %MN%
+  Event Id : %EI%
+  Duration : %ED%
+  Frames   : %EF% (%EFA%)
+  Scores   : t%EST% m%ESM% a%ESA%
+
+This alarm was matched by the %FN% filter and can be viewed at %EPS%
+
+	# %ZP% - The path to your ZoneMinder console
+	# %MN% - The name of the monitor
+	# %MET% - The total number of events for the monitor
+	# %MEH% - The number of events for the monitor in the last hour
+	# %MED% - The number of events for the monitor in the last day
+	# %MEW% - The number of events for the monitor in the last week
+	# %MEM% - The number of events for the monitor in the last month
+	# %MEA% - The number of archived events for the monitor
+	# %MPS% - The path to the monitor stream
+	# %MPI% - The path to the monitor recent image
+	# %EPS% - The path to the event stream
+	# %EPI% - The path to the event images
+	# %EPI1% - The path to the first alarmed event image
+	# %EPIM% - The path to the (first) event image with the highest score
+	# %EI% - The id of the event
+	# %EN% - The name of the event
+	# %ET% - The time of the event
+	# %ED% - The duration of the event
+	# %EF% - The number of frames in the event
+	# %EFA% - The number of alarm frames in the event
+	# %EST% - The total score of the event
+	# %ESA% - The average score of the event
+	# %ESM% - The maximum score of the event
+	# %FN% - The name of the current filter that matched
+	# %FP% - The path to the current filter that matched
+
+ZoneMinder
+";
+}
+
+my $message_subject;
+my $message_body;
+if ( ZM_OPT_MESSAGE )
+{
+	use Mail::Mailer;
+
+	# The tags you can use in here are as follows
+	# %ZP% - The path to your ZoneMinder console
+	# %MN% - The name of the monitor
+	# %MET% - The total number of events for the monitor
+	# %MEH% - The number of events for the monitor in the last hour
+	# %MED% - The number of events for the monitor in the last day
+	# %MEW% - The number of events for the monitor in the last week
+	# %MEM% - The number of events for the monitor in the last month
+	# %MEA% - The number of archived events for the monitor
+	# %MPS% - The path to the monitor stream
+	# %MPI% - The path to the monitor recent image
+	# %EPS% - The path to the event stream
+	# %EPI% - The path to the event images
+	# %EPI1% - The path to the first alarmed event image
+	# %EPIM% - The path to the (first) event image with the highest score
+	# %EI% - The id of the event
+	# %EN% - The name of the event
+	# %ET% - The time of the event
+	# %ED% - The duration of the event
+	# %EF% - The number of frames in the event
+	# %EFA% - The number of alarm frames in the event
+	# %EST% - The total score of the event
+	# %ESA% - The average score of the event
+	# %ESM% - The maximum score of the event
+	# %FN% - The name of the current filter that matched
+	# %FP% - The path to the current filter that matched
+
+	# Change these to suit your own preferences
+	$message_subject = "ZoneMinder: Alarm - %MN%-%EI%";
+	$message_body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score.";
+}
+
 # ==========================================================================
 #
 # You shouldn't need to change anything from here downwards
@@ -79,7 +203,7 @@ if ( ZM_OPT_UPLOAD )
 # ==========================================================================
 
 use DBI;
-use IPC::SysV qw/IPC_CREAT/;
+use POSIX;
 use Date::Manip;
 use Data::Dumper;
 use Getopt::Long;
@@ -187,7 +311,12 @@ while( 1 )
 
 			foreach my $filter ( @$filters )
 			{
-				print( "Checking filter '$filter->{Name}'".($filter->{AutoDelete}?", delete":"").($filter->{AutoUpload}?", upload":"")."\n" ) if ( VERBOSE );
+				print( "Checking filter '$filter->{Name}'".
+				($filter->{AutoDelete}?", delete":"").
+				($filter->{AutoUpload}?", upload":"").
+				($filter->{AutoEmail}?", email":"").
+				($filter->{AutoMessage}?", message":"").
+				"\n" ) if ( VERBOSE );
 				my $sql = $filter->{Sql};
 				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 				my $res;
@@ -203,68 +332,23 @@ while( 1 )
 				while( my $event = $sth->fetchrow_hashref() )
 				{
 					print( "Checking event $event->{Id}\n" ) if ( VERBOSE );
+					if ( ZM_OPT_EMAIL && $filter->{AutoEmail} )
+					{
+						next if ( $event->{Emailed} );
+
+						sendEmail( $filter, $event );
+					}
+					if ( ZM_OPT_MESSAGE && $filter->{AutoMessage} )
+					{
+						next if ( $event->{Messaged} );
+
+						sendMessage( $filter, $event );
+					}
 					if ( ZM_OPT_UPLOAD && $filter->{AutoUpload} )
 					{
 						next if ( $event->{Uploaded} );
 
-						my $arch_file = ZM_UPLOAD_FTP_LOC_DIR.'/'.$filter->{MonitorName}.'-'.$event->{Id};
-						my $arch_image_path = "$filter->{MonitorName}/$event->{Id}/".(ZM_UPLOAD_ARCH_ANALYSE?'*':'capture*').".jpg";
-						my $arch_error;
-
-						if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
-						{
-							$arch_file .= '.zip';
-							my $zip = Archive::Zip->new();
-							print( "Creating upload file '$arch_file'\n" );
-
-							my $status = AZ_OK;
-							foreach my $image_file ( <*$arch_image_path> )
-							{
-								print( "Adding $image_file\n" );
-								my $member = $zip->addFile( $image_file );
-								last unless ( $member );
-								$member->desiredCompressionMethod( ZM_UPLOAD_ARCH_COMPRESS?COMPRESSION_DEFLATED:COMPRESSION_STORED );
-							}
-							$status = $zip->writeToFileNamed( $arch_file );
-
-							if ( $arch_error = ($status != AZ_OK) )
-							{
-								print( "Zip error: $status\n " );
-							}
-						}
-						elsif ( ZM_UPLOAD_ARCH_FORMAT eq "tar" )
-						{
-							if ( ZM_UPLOAD_ARCH_COMPRESS )
-							{
-								$arch_file .= '.tar.gz';
-							}
-							else
-							{
-								$arch_file .= '.tar';
-							}
-							print( "Creating upload file '$arch_file'\n" );
-
-							if ( $arch_error = !Archive::Tar->create_archive( $arch_file, ZM_UPLOAD_ARCH_COMPRESS, <*$arch_image_path> ) )
-							{
-								print( "Tar error: ".Archive::Tar->error()."\n " );
-							}
-						}
-
-
-						if ( !$arch_error )
-						{
-							print( "Uploading to ".ZM_UPLOAD_FTP_HOST."\n" );
-							my $ftp = Net::FTP->new( ZM_UPLOAD_FTP_HOST, Timeout=>ZM_UPLOAD_FTP_TIMEOUT, Passive=>ZM_UPLOAD_FTP_PASSIVE, Debug=>ZM_UPLOAD_FTP_DEBUG );
-							$ftp->login( ZM_UPLOAD_FTP_USER, ZM_UPLOAD_FTP_PASS ) or warn( "FTP - Can't login" );
-							$ftp->binary() or warn( "FTP - Can't go binary" );
-							$ftp->cwd( ZM_UPLOAD_FTP_REM_DIR ) or warn( "FTP - Can't cwd" );
-							$ftp->put( $arch_file ) or warn( "FTP - Can't upload '$arch_file'" );
-							$ftp->quit() or warn( "FTP - Can't quit" );
-							unlink( $arch_file );
-							my $sql = "update Events set Uploaded = 1 where Id = ?";
-							my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-							my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
-						}
+						uploadArchFile( $filter, $event );
 					}
 					if ( $filter->{AutoDelete} )
 					{
@@ -295,7 +379,7 @@ sub GetFilters
 	my $monitor = shift;
 
 	my @filters;
-	my $sql = "select Filters.*,Monitors.Name as MonitorName from Filters inner join Monitors on Filters.MonitorId = Monitors.Id where Monitors.Id = '$monitor' and (AutoDelete = 1 or AutoUpload = 1) order by Name";
+	my $sql = "select Filters.*,Monitors.Name as MonitorName from Filters inner join Monitors on Filters.MonitorId = Monitors.Id where Monitors.Id = '$monitor' and (AutoDelete = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1) order by Name";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	FILTER: while( my $filter_data = $sth->fetchrow_hashref() )
@@ -311,7 +395,7 @@ sub GetFilters
 			}
 		}
 		#print( Dumper( %filter_terms ) );
-		my $sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Uploaded,E.LearnState from Events as E inner join Monitors as M on M.Id = E.MonitorId where M.Id = '$monitor'";
+		my $sql = "select E.Id, E.Name,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Uploaded,E.Emailed,E.Messaged,E.LearnState from Events as E inner join Monitors as M on M.Id = E.MonitorId where M.Id = '$monitor'";
 		my $filter_sql = '';
 		for ( my $i = 1; $i <= $filter_terms{trms}; $i++ )
 		{
@@ -390,4 +474,253 @@ sub GetFilters
 	$sth->finish();
 
 	return( \@filters );
+}
+
+sub uploadArchFile
+{
+	my $filter = shift;
+	my $event = shift;
+
+	my $arch_file = ZM_UPLOAD_FTP_LOC_DIR.'/'.$filter->{MonitorName}.'-'.$event->{Id};
+	my $arch_image_path = "$filter->{MonitorName}/$event->{Id}/".(ZM_UPLOAD_ARCH_ANALYSE?'*':'capture*').".jpg";
+	my $arch_error;
+
+	if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
+	{
+		$arch_file .= '.zip';
+		my $zip = Archive::Zip->new();
+		print( "Creating upload file '$arch_file'\n" );
+
+		my $status = AZ_OK;
+		foreach my $image_file ( <*$arch_image_path> )
+		{
+			print( "Adding $image_file\n" );
+			my $member = $zip->addFile( $image_file );
+			last unless ( $member );
+			$member->desiredCompressionMethod( ZM_UPLOAD_ARCH_COMPRESS?COMPRESSION_DEFLATED:COMPRESSION_STORED );
+		}
+		$status = $zip->writeToFileNamed( $arch_file );
+
+		if ( $arch_error = ($status != AZ_OK) )
+		{
+			print( "Zip error: $status\n " );
+		}
+	}
+	elsif ( ZM_UPLOAD_ARCH_FORMAT eq "tar" )
+	{
+		if ( ZM_UPLOAD_ARCH_COMPRESS )
+		{
+			$arch_file .= '.tar.gz';
+		}
+		else
+		{
+			$arch_file .= '.tar';
+		}
+		print( "Creating upload file '$arch_file'\n" );
+
+		if ( $arch_error = !Archive::Tar->create_archive( $arch_file, ZM_UPLOAD_ARCH_COMPRESS, <*$arch_image_path> ) )
+		{
+			print( "Tar error: ".Archive::Tar->error()."\n " );
+		}
+	}
+
+
+	if ( !$arch_error )
+	{
+		print( "Uploading to ".ZM_UPLOAD_FTP_HOST."\n" );
+		my $ftp = Net::FTP->new( ZM_UPLOAD_FTP_HOST, Timeout=>ZM_UPLOAD_FTP_TIMEOUT, Passive=>ZM_UPLOAD_FTP_PASSIVE, Debug=>ZM_UPLOAD_FTP_DEBUG );
+		if ( !$ftp )
+		{
+			warn( "Can't create ftp connection: $@" );
+			return();
+		}
+
+		$ftp->login( ZM_UPLOAD_FTP_USER, ZM_UPLOAD_FTP_PASS ) or warn( "FTP - Can't login" );
+		$ftp->binary() or warn( "FTP - Can't go binary" );
+		$ftp->cwd( ZM_UPLOAD_FTP_REM_DIR ) or warn( "FTP - Can't cwd" );
+		$ftp->put( $arch_file ) or warn( "FTP - Can't upload '$arch_file'" );
+		$ftp->quit() or warn( "FTP - Can't quit" );
+		unlink( $arch_file );
+		my $sql = "update Events set Uploaded = 1 where Id = ?";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+	}
+}
+
+sub sendEmail
+{
+	my $filter = shift;
+	my $event = shift;
+
+	if ( !ZM_FROM_EMAIL )
+	{
+		warn( "No 'from' email address defined, not sending email" );
+		return;
+	}
+	if ( !ZM_EMAIL_ADDRESS )
+	{
+		warn( "No email address defined, not sending email" );
+		return;
+	}
+
+	print( "Creating notification email\n" );
+
+	my $subject = substituteTags( $email_subject, $filter, $event );
+	my $body = substituteTags( $email_body, $filter, $event );
+
+	print( "Sending notification email '$subject'\n" );
+	print( "$body\n" ) if ( VERBOSE );
+
+	eval
+	{
+		my $mailer = new Mail::Mailer;
+
+		$mailer->open( {
+			Subject=>$subject,
+			From=>ZM_FROM_EMAIL,
+			To=>ZM_EMAIL_ADDRESS
+		} );
+
+		print( $mailer $body );
+
+		$mailer->close();
+	};
+	if ( $@ )
+	{
+		warn( "Can't send email: $@" );
+		return();
+	}
+	my $sql = "update Events set Emailed = 1 where Id = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+}
+
+sub sendMessage
+{
+	my $filter = shift;
+	my $event = shift;
+
+	if ( !ZM_FROM_EMAIL )
+	{
+		warn( "No 'from' email address defined, not sending message" );
+		return;
+	}
+	if ( !ZM_MESSAGE_ADDRESS )
+	{
+		warn( "No message address defined, not sending message" );
+		return;
+	}
+
+	print( "Creating notification email\n" );
+
+	my $subject = substituteTags( $message_subject, $filter, $event );
+	my $body = substituteTags( $message_body, $filter, $event );
+
+	print( "Sending notification message '$subject'\n" );
+	print( "$body\n" ) if ( VERBOSE );
+
+	eval
+	{
+		my $mailer = new Mail::Mailer;
+
+		$mailer->open( {
+			Subject=>$subject,
+			From=>ZM_FROM_EMAIL,
+			To=>ZM_MESSAGE_ADDRESS
+		} );
+
+		print( $mailer $body );
+
+		$mailer->close();
+	};
+	if ( $@ )
+	{
+		warn( "Can't send email: $@" );
+		return();
+	}
+	my $sql = "update Events set Messaged = 1 where Id = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+}
+
+sub substituteTags
+{
+	my $text = shift;
+	my $filter = shift;
+	my $event = shift;
+
+	# First we'd better check what we need to get
+	# We have a filter and an event, do we need any more
+	# monitor information?
+	my $need_monitor = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
+
+	my $monitor = {};
+	if ( $need_monitor )
+	{
+		my $db_now = strftime( "%Y-%m-%d %H:%M:%S", localtime() );
+		my $sql = "select M.*, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id where MonitorId = ? group by E.MonitorId order by Id";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $filter->{MonitorId} ) or die( "Can't execute: ".$sth->errstr() );
+		$monitor = $sth->fetchrow_hashref();
+		return() if ( !$monitor );
+	}
+
+	# Do we need the image information too?
+	my $need_images = $text =~ /%(?:EPI1|EPIM)%/;
+	my @frames = ();
+	my $first_alarm_frame;
+	my $max_alarm_frame;
+	my $max_alarm_score = 0;
+	if ( $need_images )
+	{
+		my $sql = "select * from Frames where EventId = ? order by FrameId";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+		while( my $frame = $sth->fetchrow_hashref() )
+		{
+			push( @frames, $frame );
+			if ( $frame->{AlarmFrame} )
+			{
+				if ( !$first_alarm_frame )
+				{
+					$first_alarm_frame = $frame;
+				}
+				if ( $frame->{Score} > $max_alarm_score )
+				{
+					$max_alarm_frame = $frame;
+					$max_alarm_score = $frame->{Score};
+				}
+			}
+		}
+	}
+
+	my $url = ZM_URL;
+	$text =~ s/%ZP%/$url/g;
+	$text =~ s/%MN%/$filter->{MonitorName}/g;
+	$text =~ s/%MET%/$monitor->{EventCount}/g;
+	$text =~ s/%MEH%/$monitor->{HourEventCount}/g;
+	$text =~ s/%MED%/$monitor->{DayEventCount}/g;
+	$text =~ s/%MEW%/$monitor->{WeekEventCount}/g;
+	$text =~ s/%MEM%/$monitor->{MonthEventCount}/g;
+	$text =~ s/%MEA%/$monitor->{ArchEventCount}/g;
+	$text =~ s/%MPS%/$url?view=watchfeed&mid=$filter->{MonitorId}&mode=stream/g;
+	$text =~ s/%MPI%/$url?view=watchfeed&mid=$filter->{MonitorId}&mode=still/g;
+	$text =~ s/%EPS%/$url?view=event&mode=stream&mid=$filter->{MonitorId}&eid=$event->{Id}/g;
+	$text =~ s/%EPI%/$url?view=event&mode=still&mid=$filter->{MonitorId}&eid=$event->{Id}/g;
+	$text =~ s/%EI%/$event->{Id}/g;
+	$text =~ s/%EN%/$event->{Name}/g;
+	$text =~ s/%ET%/$event->{StartTime}/g;
+	$text =~ s/%ED%/$event->{Length}/g;
+	$text =~ s/%EF%/$event->{Frames}/g;
+	$text =~ s/%EFA%/$event->{AlarmFrames}/g;
+	$text =~ s/%EST%/$event->{TotScore}/g;
+	$text =~ s/%ESA%/$event->{AvgScore}/g;
+	$text =~ s/%ESM%/$event->{MaxScore}/g;
+	$text =~ s/%EPI1%/$url?view=image&mid=$filter->{MonitorId}&eid=$event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
+	$text =~ s/%EPIM%/$url?view=image&mid=$filter->{MonitorId}&eid=$event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+	$text =~ s/%FN%/$filter->{Name}/g;
+	( my $filter_name = $filter->{Name} ) =~ s/ /+/g;
+	$text =~ s/%FP%/$url?view=filter&mid=$filter->{MonitorId}&filter_name=$filter_name/g;
+	
+	return( $text );
 }

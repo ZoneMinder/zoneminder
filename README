@@ -384,11 +384,38 @@ separate the screens out from the rest.
 get most of the device capability information from the device itself.
 14. X-10 integration - A handy feature would be to allow a generated event to trigger some other action
 perhaps to an attached X-10 interface, for instance turn lights on or make a dog barky noise!
+15. Extend the API. Well ok it's not really got an API yet but the image datais held in shared memory in a
+very simple format. In theory you could use the capture daemon to gab the images and other things could
+read them from memory or the analysis daemon could read images from elsewhere. Either way this should be 
+done through an API, and would need a library I think. Also the zmu utility could probably do a whole lot
+more to enable other things to manage when the daemons become active etc.
+16. Finish implementing customisable image timestamps. There is proto support for this and it would be
+easy to do to allow the timestamp to be defined as a strftime string and allow it's position to be moved.
+Possibly also revamp the fonts a bit.
+
 
 Bugs
 ====
 
-Probably a bucket load, just fire them at me.
+1. The shared memory segment(s) are not cleaned up properly. It's difficult to decide how perisistent to make
+them really as they could still be of use even when nothing is using them, or at least writing to them.
+2. Sometimes there is a sync error and very rarely a capture daemon just stops. Probably need a watchdog to 
+restart it when this happens.
+3. I'm not sure if this is a bug or by design but the timestamp is added to the image by the capture daemon.
+I _think_ this isn't necessary as it may contribute to alarms, plus the time is associated with the image 
+anyway. So I think this should be moved to the analysis daemon.
+
+Probably a bucket load more, just fire them at me.
+
+
+Non-Bugs
+========
+
+1. Yes, those are tabs in the indents, I like tabs so don't go changing them to spaces or else. Also yes I
+also like my opening braces on their own line most of the time, what's the point of brackets that don't line up?
+
+Everything else that isn't definately broken is probably deliberate, or was once anyway.
+
 
 License
 =======

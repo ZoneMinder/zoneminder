@@ -53,15 +53,6 @@ switch( $view )
 			daemonControl( 'shutdown' );
 		}
 
-		if ( $start && FAST_DELETE )
-		{
-			daemonControl( 'start', 'zmaudit.pl', '-d 900 -y' );
-		}
-		if ( $start && HAS_X10 )
-		{
-			daemonControl( 'start', 'zmx10.pl', '-c start' );
-		}
-
 		header("Refresh: ".(($start||$stop)?1:REFRESH_MAIN)."; URL='$PHP_SELF'" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -96,6 +87,7 @@ switch( $view )
 			{
 				zmcControl( $row );
 				zmaControl( $row );
+				daemonControl( 'start', 'zmfilter.pl', "-m $row[Id] -e -1" );
 			}
 			$row['zma'] = zmaCheck( $row );
 			if ( $max_width < $row[Width] ) $max_width = $row[Width];
@@ -109,6 +101,17 @@ switch( $view )
 			if ( $row['Function'] != 'None' )
 			{
 				$cycle_count++;
+			}
+		}
+		if ( $start )
+		{
+			if ( FAST_DELETE )
+			{
+				daemonControl( 'start', 'zmaudit.pl', '-d 900 -y' );
+			}
+			if ( HAS_X10 )
+			{
+				daemonControl( 'start', 'zmx10.pl', '-c start' );
 			}
 		}
 ?>

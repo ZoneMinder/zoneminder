@@ -323,7 +323,7 @@ sub runServer
 				if ( defined( $monitor->{LastState} ) )
 				{
 					my $task_list;
-					if ( $state == 1 && $monitor->{LastState} == 0 ) # Gone into alarm state
+					if ( $state == 2 && $monitor->{LastState} == 0 ) # Gone into alarm state
 					{
 						print( "Applying ON_list for $monitor_id\n" ) if ( main::VERBOSE );
 						$task_list = $monitor->{"ON_list"};

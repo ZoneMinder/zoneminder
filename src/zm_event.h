@@ -36,6 +36,8 @@
 
 class Monitor;
 
+#define MAX_PRE_ALARM_FRAMES	16 // Maximum number of prealarm frames that can be stored
+
 //
 // Class describing events, i.e. captured periods of activity.
 //
@@ -51,6 +53,18 @@ protected:
 
 protected:
 	static int		sd;
+
+protected:
+	struct PreAlarmData
+	{
+		Image *image;
+		struct timeval timestamp;
+		unsigned int score;
+		Image *alarm_frame;
+	};
+
+	static int pre_alarm_count;
+	static PreAlarmData pre_alarm_data[MAX_PRE_ALARM_FRAMES];
 
 protected:
 	int				id;
@@ -104,6 +118,45 @@ public:
 #if HAVE_LIBAVCODEC
 	static void StreamMpeg( int event_id, const char *format, int scale=100, int rate=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC
+
+public:
+	static int PreAlarmCount()
+	{
+		return( pre_alarm_count );
+	}
+	static void EmptyPreAlarmFrames()
+	{
+		if ( pre_alarm_count > 0 )
+		{
+			for ( int i = 0; i < MAX_PRE_ALARM_FRAMES; i++ )
+			{
+				delete pre_alarm_data[i].image;
+				delete pre_alarm_data[i].alarm_frame;
+			}
+			memset( pre_alarm_data, 0, sizeof(pre_alarm_data) );
+		}
+		pre_alarm_count = 0;
+	}
+	static void AddPreAlarmFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL )
+	{
+		pre_alarm_data[pre_alarm_count].image = new Image( *image );
+		pre_alarm_data[pre_alarm_count].timestamp = timestamp;
+		pre_alarm_data[pre_alarm_count].score = score;
+		if ( alarm_frame )
+		{
+			pre_alarm_data[pre_alarm_count].alarm_frame = new Image( *alarm_frame );
+		}
+		pre_alarm_count++;
+	}
+	void SavePreAlarmFrames()
+	{
+		for ( int i = 0; i < pre_alarm_count; i++ )
+		{
+			AddFrame( pre_alarm_data[i].image, pre_alarm_data[i].timestamp, pre_alarm_data[i].score, pre_alarm_data[i].alarm_frame );
+		}
+		EmptyPreAlarmFrames();
+	}
+
 };
 
 #endif // ZM_EVENT_H

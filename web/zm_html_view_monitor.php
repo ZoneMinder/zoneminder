@@ -75,6 +75,7 @@ else
 	$monitor['WarmupCount'] = 25;
 	$monitor['PreEventCount'] = 10;
 	$monitor['PostEventCount'] = 10;
+	$monitor['AlarmFrameCount'] = 1;
 	$monitor['SectionLength'] = 600;
 	$monitor['FrameSkip'] = 0;
 	$monitor['EventPrefix'] = 'Event-';
@@ -225,6 +226,7 @@ if ( $tab != 'buffers' )
 <input type="hidden" name="new_monitor[WarmupCount]" value="<?= $new_monitor['WarmupCount'] ?>">
 <input type="hidden" name="new_monitor[PreEventCount]" value="<?= $new_monitor['PreEventCount'] ?>">
 <input type="hidden" name="new_monitor[PostEventCount]" value="<?= $new_monitor['PostEventCount'] ?>">
+<input type="hidden" name="new_monitor[AlarmFrameCount]" value="<?= $new_monitor['AlarmFrameCount'] ?>">
 <?php
 }
 if ( $tab != 'misc' )
@@ -353,6 +355,7 @@ switch ( $tab )
 <tr><td align="left" class="text"><?= $zmSlangWarmupFrames ?></td><td align="left" class="text"><input type="text" name="new_monitor[WarmupCount]" value="<?= $new_monitor['WarmupCount'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangPreEventImageBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[PreEventCount]" value="<?= $new_monitor['PreEventCount'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangPostEventImageBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[PostEventCount]" value="<?= $new_monitor['PostEventCount'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangAlarmFrameCount ?></td><td align="left" class="text"><input type="text" name="new_monitor[AlarmFrameCount]" value="<?= $new_monitor['AlarmFrameCount'] ?>" size="4" class="form"></td></tr>
 <?php
 		break;
 	}

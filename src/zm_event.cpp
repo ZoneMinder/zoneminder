@@ -39,6 +39,9 @@ char Event::capture_file_format[PATH_MAX];
 char Event::analyse_file_format[PATH_MAX];
 char Event::general_file_format[PATH_MAX];
 
+int Event::pre_alarm_count = 0;
+Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = { 0 };
+
 Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
 {
 	if ( !initialised )
@@ -85,7 +88,7 @@ Event::~Event()
 
 		Debug( 1, ( "Adding closing frame %d to DB", frames ));
 		static char sql[BUFSIZ];
-		snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Delta ) values ( %d, %d, %s%ld.%02ld )", id, frames, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+		snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %d ), %s%ld.%02ld )", id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
 		if ( mysql_query( &dbconn, sql ) )
 		{
 			Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
@@ -262,7 +265,7 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
 void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps )
 {
 	static char sql[BUFSIZ];
-	strncpy( sql, "insert into Frames ( EventId, FrameId, Delta ) values ", BUFSIZ );
+	strncpy( sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", BUFSIZ );
 	for ( int i = 0; i < n_frames; i++ )
 	{
 		frames++;
@@ -277,7 +280,7 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
 		DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time, DT_PREC_2 );
 
 		int sql_len = strlen(sql);
-		snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %d, %d, %s%ld.%02ld ), ", id, frames, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+		snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %d, %d, from_unixtime(%d), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
 	}
 
 	Debug( 1, ( "Adding %d frames to DB", n_frames ));
@@ -312,7 +315,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
 		Debug( 1, ( "Adding frame %d to DB", frames ));
 		static char sql[BUFSIZ];
-		snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, Delta, Score ) values ( %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, frame_type, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
+		snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %d ), %s%ld.%02ld, %d )", id, frames, frame_type, timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
 		if ( mysql_query( &dbconn, sql ) )
 		{
 			Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));

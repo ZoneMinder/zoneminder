@@ -28,13 +28,8 @@
 #include <sys/types.h>
 #include <mysql/mysql.h>
 
-extern "C"
-{
-#include "zmcfg.h"
-#include "zmdbg.h"
-}
-
-MYSQL dbconn;
+#include "zm.h"
+#include "zm_db.h"
 
 bool fixDevice( int device )
 {
@@ -90,9 +85,9 @@ bool fixDevice( int device )
 int main( int argc, char *argv[] )
 {
 	char dbg_name_string[16] = "zmfix";
-	dbg_name = dbg_name_string;
+	zm_dbg_name = dbg_name_string;
 
-	DbgInit();
+	zmDbgInit();
 
 	if ( argc > 1 && !strcmp( argv[1], "-a" ) )
 	{
@@ -108,24 +103,10 @@ int main( int argc, char *argv[] )
 	else
 	{
 		// Only do registered devices
-		if ( !mysql_init( &dbconn ) )
-		{
-			fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );
-			exit( mysql_errno( &dbconn ) );
-		}
-		if ( !mysql_connect( &dbconn, ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA ) )
-		{
-			fprintf( stderr, "Can't connect to server: %s\n", mysql_error( &dbconn ) );
-			exit( mysql_errno( &dbconn ) );
-		}
-		if ( mysql_select_db( &dbconn, ZM_DB_NAME ) )
-		{
-			fprintf( stderr, "Can't select database: %s\n", mysql_error( &dbconn ) );
-			exit( mysql_errno( &dbconn ) );
-		}
+		zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
 
 		static char sql[256];
-		sprintf( sql, "select Device from Monitors where Function != 'None'" );
+		sprintf( sql, "select distinct Device from Monitors where Function != 'None' and Type = 'Local'" );
 		if ( mysql_query( &dbconn, sql ) )
 		{
 			Error(( "Can't run query: %s\n", mysql_error( &dbconn ) ));

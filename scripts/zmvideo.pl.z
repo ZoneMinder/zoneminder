@@ -154,6 +154,7 @@ if ( !-s $video_file )
 	{
 		die( "Error: $status" );
 	}
+	print( LOG "Finished $video_file\n" );
 }
 else
 {

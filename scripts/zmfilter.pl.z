@@ -475,8 +475,9 @@ sub sendEmail
 
 	print( "Creating notification email\n" );
 
-	my $subject = substituteTags( $email_subject, $filter, \$event );
-	my $body = substituteTags( $email_body, $filter, \$event );
+	my $subject = substituteTags( $email_subject, $filter, $event );
+	my @attachments;
+	my $body = substituteTags( $email_body, $filter, $event, @attachments );
 
 	print( "Sending notification email '$subject'\n" );
 	print( "$body\n" ) if ( VERBOSE );
@@ -490,17 +491,14 @@ sub sendEmail
 			Data=>$body
 		);
 
-		if ( $event->{attachments} )
+		foreach my $attachment ( @attachments )
 		{
-			foreach my $attachment ( @{$event->{attachments}} )
-			{
-				print( "Attaching '$attachment->{path}\n" );
-				$mail->attach(
-					Path=>$attachment->{path},
-					Type=>$attachment->{type},
-					Encoding=>"base64"
-				);
-			}
+			print( "Attaching '$attachment->{path}\n" );
+			$mail->attach(
+				Path=>$attachment->{path},
+				Type=>$attachment->{type},
+				Encoding=>"base64"
+			);
 		}
 
 		$mail->smtpsend();
@@ -533,8 +531,9 @@ sub sendMessage
 
 	print( "Creating notification message\n" );
 
-	my $subject = substituteTags( $message_subject, $filter, \$event );
-	my $body = substituteTags( $message_body, $filter, \$event );
+	my $subject = substituteTags( $message_subject, $filter, $event );
+	my @attachments;
+	my $body = substituteTags( $message_body, $filter, $event, @$attachments );
 
 	print( "Sending notification message '$subject'\n" );
 	print( "$body\n" ) if ( VERBOSE );
@@ -548,17 +547,14 @@ sub sendMessage
 			Data=>$body
 		);
 
-		if ( $event->{attachments} )
+		foreach my $attachment ( @attachments )
 		{
-			foreach my $attachment ( @{$event->{attachments}} )
-			{
-				print( "Attaching '$attachment->{path}\n" );
-				$mail->attach(
-					Path=>$attachment->{path},
-					Type=>$attachment->{type},
-					Encoding=>"base64"
-				);
-			}
+			print( "Attaching '$attachment->{path}\n" );
+			$mail->attach(
+				Path=>$attachment->{path},
+				Type=>$attachment->{type},
+				Encoding=>"base64"
+			);
 		}
 
 		$mail->smtpsend();
@@ -577,8 +573,8 @@ sub substituteTags
 {
 	my $text = shift;
 	my $filter = shift;
-	my $event_ref = shift;
-	my $event = $$event_ref;
+	my $event = shift;
+	my $attachments_ref = shift;
 
 	# First we'd better check what we need to get
 	# We have a filter and an event, do we need any more
@@ -651,28 +647,23 @@ sub substituteTags
 	$text =~ s/%ESM%/$event->{MaxScore}/g;
 	$text =~ s/%EPI1%/$url?view=image&mid=$filter->{MonitorId}&eid=$event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
 	$text =~ s/%EPIM%/$url?view=image&mid=$filter->{MonitorId}&eid=$event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
-	if ( $text =~ s/%EI1%/First alarm frame attached/g )
+	if ( $attachments_ref && $text =~ s/%EI1%/First alarm frame attached/g )
 	{
-		my $attachments = $event->{attachments};
-		$attachments = $event->{attachments} = [] if ( !$attachments );
-		push( @$attachments, { type=>"image/jpeg", path=>sprintf( "%s/%d/capture-%03d.jpg", $filter->{MonitorName}, $event->{Id}, $first_alarm_frame->{FrameId} ) } );
+		push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%d/capture-%03d.jpg", $filter->{MonitorName}, $event->{Id}, $first_alarm_frame->{FrameId} ) } );
 	}
-	if ( $text =~ s/%EIM%/Max alarm frame attached/g )
+	if ( $attachments_ref && $text =~ s/%EIM%/Max alarm frame attached/g )
 	{
-		my $attachments = $event->{attachments};
-		$attachments = $event->{attachments} = [] if ( !$attachments );
-		push( @$attachments, { type=>"image/jpeg", path=>sprintf( "%s/%d/capture-%03d.jpg", $filter->{MonitorName}, $event->{Id}, $max_alarm_frame->{FrameId} ) } );
+		push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%d/capture-%03d.jpg", $filter->{MonitorName}, $event->{Id}, $max_alarm_frame->{FrameId} ) } );
 	}
-	if ( $text =~ s/%EV%/Event video attached/g )
+	if ( $attachments_ref && $text =~ s/%EV%/Event video attached/g )
 	{
-		my $attachments = $event->{attachments};
-		$attachments = $event->{attachments} = [] if ( !$attachments );
 		my $command = ZM_PATH_BIN."/zmvideo.pl -e $event->{Id}";
 		my $output = qx($command);
 		my $status = $? >> 8;
 		if ( $status == 0 )
 		{
-			push( @$attachments, { type=>"video/mpeg", path=>sprintf( "%s/%d/%s", $filter->{MonitorName}, $event->{Id}, $output ) } );
+			chomp $output;
+			push( @$attachments_ref, { type=>"video/mpeg", path=>sprintf( "%s/%d/%s", $filter->{MonitorName}, $event->{Id}, $output ) } );
 		}
 	}
 	$text =~ s/%FN%/$filter->{Name}/g;

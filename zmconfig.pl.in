@@ -63,7 +63,7 @@ my %types =
 	file => { hint => 'filename', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9-_.]+)$/ ), $1 ) } },
 	hostname => { hint => 'host.your.domain', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9_.-]+)$/ ), $1 ) } },
 	url => { hint => 'http://host.your.domain/', parse => sub { return( int($_[0] =~ /^(?:http:\/\/)?(.+)$/ ), 'http://'.$1 ) } },
-	email => { hint => 'your.name@your.domain/', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9_-.]+)\@([a-zA-Z0-9_-.]+)$/ ), "$1\@$2" ) } },
+	email => { hint => 'your.name@your.domain/', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$/ ), "$1\@$2" ) } },
 	string => { hint => 'string', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9-_]+)$/ ), $1 ) } },
 	boolean => { hint => 'yes/no', parse => sub { return( int($_[0] =~ /^([yn])/i ), ($1 && $1 =~ /^y/) ? 'yes' : 'no' ) } },
 	integer => { hint => 'integer', parse => sub { return( int($_[0] =~ /^(\d+)$/ ), $1 ) } },
@@ -358,7 +358,7 @@ my @options =
 		name => "ZM_OPT_EMAIL",
 		default => "no",
 		description => "Should ZoneMinder email you details of events that match corresponding filters",
-		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should have their details emailed to you at a designated email address. This will allow you to be notified of events as soon as they occur and also to quickly view the events directly. This option specifies whether this functionality should be available. The email created with this option can be any size and is intended to be sent to a regular email reader rather than a mobile device."
+		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should have their details emailed to you at a designated email address. This will allow you to be notified of events as soon as they occur and also to quickly view the events directly. This option specifies whether this functionality should be available. The email created with this option can be any size and is intended to be sent to a regular email reader rather than a mobile device.",
 		type => $types{boolean},
 	},
 	{
@@ -367,13 +367,13 @@ my @options =
 		description => "The email address to send matching event details to",
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" } ],
 		help => "This option is used to define the email address that any events that match the appropriate filters will be sent to.",
-		type => $types{string},
+		type => $types{email},
 	},
 	{
 		name => "ZM_OPT_MESSAGE",
 		default => "no",
 		description => "Should ZoneMinder message you with details of events that match corresponding filters",
-		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should have their details sent to you at a designated short message email address. This will allow you to be notified of events as soon as they occur. This option specifies whether this functionality should be available. The email created by this option will be brief and is intended to be sent to an SMS gateway or a minimal mail reader such as a mobile device or phone rather than a regular email reader."
+		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should have their details sent to you at a designated short message email address. This will allow you to be notified of events as soon as they occur. This option specifies whether this functionality should be available. The email created by this option will be brief and is intended to be sent to an SMS gateway or a minimal mail reader such as a mobile device or phone rather than a regular email reader.",
 		type => $types{boolean},
 	},
 	{
@@ -382,14 +382,14 @@ my @options =
 		description => "The email address to send matching event details to",
 		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "This option is used to define the short message email address that any events that match the appropriate filters will be sent to.",
-		type => $types{string},
+		type => $types{email},
 	},
 	{
 		name => "ZM_FROM_EMAIL",
 		default => "",
 		description => "The email address you wish your event notification emails to originate from",
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
-		help => "The emails or messages that will be sent to you informing you of events can appear to come from a designated email address to help you with mail filtering etc. An address of something like ZoneMinder@your.domain is recommended."
+		help => "The emails or messages that will be sent to you informing you of events can appear to come from a designated email address to help you with mail filtering etc. An address of something like ZoneMinder\@your.domain is recommended.",
 		type => $types{email},
 	},
 	{
@@ -397,7 +397,7 @@ my @options =
 		default => "",
 		description => "The URL of your ZoneMinder installation",
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
-		help => "The emails or messages that will be sent to you informing you of events can include a link to the events themselves for easy viewing. If you intend to use this feature then set this option to the url of your installation as it would appear from where you read your email, e.g. http://host.your.domain/zm.php."
+		help => "The emails or messages that will be sent to you informing you of events can include a link to the events themselves for easy viewing. If you intend to use this feature then set this option to the url of your installation as it would appear from where you read your email, e.g. http://host.your.domain/zm.php.",
 		type => $types{url},
 	},
 	{
@@ -655,6 +655,7 @@ foreach my $option ( @options )
 		$option->{value} = '';
 	}
 }
+
 if ( -s $config_file )
 {
 	loadOptions();
@@ -763,9 +764,8 @@ Press enter to continue: " );
 			}
 		}
 	}
-
-	saveOptions();
 }
+saveOptions();
 
 sub saveOptions
 {
@@ -786,7 +786,6 @@ sub loadOptions
 	print( "Loading '$config_file'\n" );
 	open( CONFIG, "<$config_file" ) or die( "Can't open options file: $!" );
 	local $/ = "\n\n";
-	my $rewrite_options = undef;
 	foreach my $section ( <CONFIG> )
 	{
 		my ( $name, $value, $description ) = $section =~ /Name: (.*)\nValue: (.*)\nDescription: (.*)\n/ms;
@@ -795,23 +794,14 @@ sub loadOptions
 		if ( !$option )
 		{
 			warn( "No option '$name' found, removing" );
-			$rewrite_options = !undef;
 			next;
 		}
 		if ( defined($value) )
 		{
 			$option->{value} = $value;
 		}
-		else
-		{
-			$option->{value} = $option->{default};
-		}
 	}
 	close( CONFIG );
-	if ( $rewrite_options )
-	{
-		saveOptions();
-	}
 }
 
 sub breaktext
@@ -877,6 +867,11 @@ if ( $reprocess )
 				|| $opt_type == $types{hexadecimal} )
 				{
 					$data =~ s/^(use\s+constant\s+$opt_name\s*=>\s*).*$/$1$opt_value;\t# $opt_desc \(from zmconfig\)/mg;
+				}
+				elsif ( $opt_type == $types{email} )
+				{
+					$opt_value =~ s/\@/\\\@/;
+					$data =~ s/^(use\s+constant\s+$opt_name\s*=>\s*).*$/$1"$opt_value";\t# $opt_desc \(from zmconfig\)/mg;
 				}
 				else
 				{

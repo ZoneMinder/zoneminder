@@ -322,8 +322,6 @@ if ( $version )
 	{
 		require DBI;
 
-		# Patch the database
-		patchDB( "1.19.4" );
 		# Rename the event directories and create a new symlink for the names
 		chdir( EVENT_PATH );
 
@@ -342,6 +340,15 @@ if ( $version )
 		}
 		$sth->finish();
 		
+		# Patch the database
+		patchDB( "1.19.4" );
+
+		$cascade = !undef;
+	}
+	if ( $cascade || $version eq "1.19.5" )
+	{
+		# Patch the database
+		patchDB( "1.19.5" );
 		$cascade = !undef;
 	}
 	if ( !$cascade )

@@ -70,7 +70,7 @@ if ( ZM_OPT_UPLOAD )
 	# or don't want to use that format
 	if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
 	{
-		use Archive::Zip;
+		require Archive::Zip;
 		import Archive::Zip qw( :ERROR_CODES :CONSTANTS );
 	}
 	else

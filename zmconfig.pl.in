@@ -63,7 +63,7 @@ my %types =
 	file => { hint => 'filename', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9-_.]+)$/ ), $1 ) } },
 	hostname => { hint => 'host.your.domain', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9_.-]+)$/ ), $1 ) } },
 	url => { hint => 'http://host.your.domain/', parse => sub { return( int($_[0] =~ /^(?:http:\/\/)?(.+)$/ ), 'http://'.$1 ) } },
-	email => { hint => 'your.name@your.domain/', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$/ ), "$1\@$2" ) } },
+	email => { hint => 'your.name@your.domain', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$/ ), "$1\@$2" ) } },
 	string => { hint => 'string', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9-_]+)$/ ), $1 ) } },
 	boolean => { hint => 'yes|no', parse => sub { return( int($_[0] =~ /^([yn])/i ), ($1 && $1 =~ /^y/) ? 'yes' : 'no' ) } },
 	integer => { hint => 'integer', parse => sub { return( int($_[0] =~ /^(\d+)$/ ), $1 ) } },

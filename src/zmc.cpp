@@ -75,7 +75,7 @@ void main( int argc, const char *argv[] )
 	action.sa_flags = 0;
 	sigaction( SIGTERM, &action, &old_action );
 	sigaddset( &block_set, SIGHUP );
-	sigaddset( &block_set, SIGTERM );
+	//sigaddset( &block_set, SIGTERM );
 	if ( n_monitors == 1 )
 	{
 		monitors[0]->PreCapture();

@@ -77,7 +77,8 @@ switch( $view )
 		{
 			$row['zmc'] = zmcCheck( $row );
 			$row['zma'] = zmaCheck( $row );
-			$sql = "select count(Id) as ZoneCount, count(if(Type='Active',1,NULL)) as ActZoneCount, count(if(Type='Inclusive',1,NULL)) as IncZoneCount, count(if(Type='Exclusive',1,NULL)) as ExcZoneCount, count(if(Type='Inactive',1,NULL)) as InactZoneCount from Zones where MonitorId = '$row[Id]'";
+			//$sql = "select count(Id) as ZoneCount, count(if(Type='Active',1,NULL)) as ActZoneCount, count(if(Type='Inclusive',1,NULL)) as IncZoneCount, count(if(Type='Exclusive',1,NULL)) as ExcZoneCount, count(if(Type='Inactive',1,NULL)) as InactZoneCount from Zones where MonitorId = '$row[Id]'";
+			$sql = "select count(Id) as ZoneCount from Zones where MonitorId = '$row[Id]'";
 			$result2 = mysql_query( $sql );
 			if ( !$result2 )
 				echo mysql_error();
@@ -2246,6 +2247,37 @@ function applyZoneType(theForm)
 		theForm.new_min_blobs.value = "";
 		theForm.new_max_blobs.disabled = true;
 		theForm.new_max_blobs.value = "";
+	}
+	else if ( theForm.new_type.value == 'Preventive' )
+	{
+		theForm.new_alarm_rgb_r.disabled = true;
+		theForm.new_alarm_rgb_r.value = "";
+		theForm.new_alarm_rgb_g.disabled = true;
+		theForm.new_alarm_rgb_g.value = "";
+		theForm.new_alarm_rgb_b.disabled = true;
+		theForm.new_alarm_rgb_b.value = "";
+		theForm.new_alarm_threshold.disabled = false;
+		theForm.new_alarm_threshold.value = "<?= $zone[AlarmThreshold] ?>";
+		theForm.new_min_alarm_pixels.disabled = false;
+		theForm.new_min_alarm_pixels.value = "<?= $zone[MinAlarmPixels] ?>";
+		theForm.new_max_alarm_pixels.disabled = false;
+		theForm.new_max_alarm_pixels.value = "<?= $zone[MaxAlarmPixels] ?>";
+		theForm.new_filter_x.disabled = false;
+		theForm.new_filter_x.value = "<?= $zone[FilterX] ?>";
+		theForm.new_filter_y.disabled = false;
+		theForm.new_filter_y.value = "<?= $zone[FilterY] ?>";
+		theForm.new_min_filter_pixels.disabled = false;
+		theForm.new_min_filter_pixels.value = "<?= $zone[MinFilterPixels] ?>";
+		theForm.new_max_filter_pixels.disabled = false;
+		theForm.new_max_filter_pixels.value = "<?= $zone[MaxFilterPixels] ?>";
+		theForm.new_min_blob_pixels.disabled = false;
+		theForm.new_min_blob_pixels.value = "<?= $zone[MinBlobPixels] ?>";
+		theForm.new_max_blob_pixels.disabled = false;
+		theForm.new_max_blob_pixels.value = "<?= $zone[MaxBlobPixels] ?>";
+		theForm.new_min_blobs.disabled = false;
+		theForm.new_min_blobs.value = "<?= $zone[MinBlobs] ?>";
+		theForm.new_max_blobs.disabled = false;
+		theForm.new_max_blobs.value = "<?= $zone[MaxBlobs] ?>";
 	}
 	else
 	{

@@ -618,14 +618,14 @@ int LocalCamera::PostCapture( Image &image )
 		}
 		case VIDEO_PALETTE_GREY :
 		{
-			int size = width*height;
-			for ( int i = 0; i < size; i++ )
-			{
-				if ( buffer[i] < 16 )
-					Info(( "Lo grey %d", buffer[i] ));
-				if ( buffer[i] > 235 )
-					Info(( "Hi grey %d", buffer[i] ));
-			}
+			//int size = width*height;
+			//for ( int i = 0; i < size; i++ )
+			//{
+				//if ( buffer[i] < 16 )
+					//Info(( "Lo grey %d", buffer[i] ));
+				//if ( buffer[i] > 235 )
+					//Info(( "Hi grey %d", buffer[i] ));
+			//}
 		}
 		default : // Everything else is straightforward, for now.
 		{

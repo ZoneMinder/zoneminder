@@ -786,34 +786,40 @@ unsigned int Monitor::Compare( const Image &image )
 		delta_image->Fill( RGB_BLACK, &(zone->Limits()) );
 	}
 
-	// Find all alarm pixels in active zones
+	// Check preventive zones first
 	for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
 	{
 		Zone *zone = zones[n_zone];
-		if ( !zone->IsActive() )
+		if ( !zone->IsPreventive() )
 		{
 			continue;
 		}
-		Debug( 3, ( "Checking active zone %s", zone->Label() ));
+		Debug( 3, ( "Checking preventive zone %s", zone->Label() ));
 		if ( zone->CheckAlarms( delta_image ) )
 		{
 			alarm = true;
 			score += zone->Score();
-			zone->SetAlarm();
 			Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+			zone->ResetStats();
 		}
 	}
 
 	if ( alarm )
 	{
+		alarm = false;
+		score = 0;
+	}
+	else
+	{
+		// Find all alarm pixels in active zones
 		for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
 		{
 			Zone *zone = zones[n_zone];
-			if ( !zone->IsInclusive() )
+			if ( !zone->IsActive() )
 			{
 				continue;
 			}
-			Debug( 3, ( "Checking inclusive zone %s", zone->Label() ));
+			Debug( 3, ( "Checking active zone %s", zone->Label() ));
 			if ( zone->CheckAlarms( delta_image ) )
 			{
 				alarm = true;
@@ -822,24 +828,44 @@ unsigned int Monitor::Compare( const Image &image )
 				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
 			}
 		}
-	}
-	else
-	{
-		// Find all alarm pixels in exclusion zones
-		for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+
+		if ( alarm )
 		{
-			Zone *zone = zones[n_zone];
-			if ( !zone->IsExclusive() )
+			for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
 			{
-				continue;
+				Zone *zone = zones[n_zone];
+				if ( !zone->IsInclusive() )
+				{
+					continue;
+				}
+				Debug( 3, ( "Checking inclusive zone %s", zone->Label() ));
+				if ( zone->CheckAlarms( delta_image ) )
+				{
+					alarm = true;
+					score += zone->Score();
+					zone->SetAlarm();
+					Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+				}
 			}
-			Debug( 3, ( "Checking exclusive zone %s", zone->Label() ));
-			if ( zone->CheckAlarms( delta_image ) )
+		}
+		else
+		{
+			// Find all alarm pixels in exclusion zones
+			for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
 			{
-				alarm = true;
-				score += zone->Score();
-				zone->SetAlarm();
-				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+				Zone *zone = zones[n_zone];
+				if ( !zone->IsExclusive() )
+				{
+					continue;
+				}
+				Debug( 3, ( "Checking exclusive zone %s", zone->Label() ));
+				if ( zone->CheckAlarms( delta_image ) )
+				{
+					alarm = true;
+					score += zone->Score();
+					zone->SetAlarm();
+					Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+				}
 			}
 		}
 	}

@@ -42,7 +42,10 @@ MinX smallint(5) unsigned NOT NULL default '0',
 MaxX smallint(5) unsigned NOT NULL default '0',
 MinY smallint(5) unsigned NOT NULL default '0',
 MaxY smallint(5) unsigned NOT NULL default '0',
-Score smallint(5) unsigned NOT NULL default '0'
+Score smallint(5) unsigned NOT NULL default '0',
+KEY EventId (EventId),
+KEY MonitorId (MonitorId),
+KEY ZoneId (ZoneId)
 ) TYPE=MyISAM;
 -- Not a problem if this fails
 drop table Alarms;

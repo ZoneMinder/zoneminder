@@ -37,8 +37,9 @@ void Usage()
 {
 	fprintf( stderr, "zmc -d <device_id>\n" );
 	fprintf( stderr, "Options:\n" );
-	fprintf( stderr, "  -d, --device <device_id>     : Specify which device to access, 0=>/dev/video0 etc\n" );
-	fprintf( stderr, "  -h, --help                   : This screen\n" );
+	fprintf( stderr, "  -d, --device <device_id>      : For local cameras, device to access 0=>/dev/video0 etc\n" );
+	fprintf( stderr, "  -H <host> -P <port> -p <path> : For remote cameras\n" );
+	fprintf( stderr, "  -h, --help                    : This screen\n" );
 	exit( 0 );
 }
 

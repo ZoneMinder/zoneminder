@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl -wT
 #
 # ==========================================================================
 #
@@ -38,6 +38,7 @@ use constant DB_PASS => "zmadminzm";
 use constant ZM_SHM_KEY => 0x7a6d2000;
 use constant EVENT_PATH => "/data/zm/events";
 use constant FILTER_RELOAD_DELAY => 300; # How often filters are reloaded
+use constant LOG_FILE => '/tmp/zmfilter-%d.log';
 
 # Comment these out if you don't have them and don't want to upload
 # or don't want to use that format
@@ -117,6 +118,18 @@ if ( !$monitor )
 	print( STDERR "Please give a valid monitor id\n" );
 	Usage();
 }
+
+( $monitor ) = ( $monitor =~ /^(\d+)$/ );
+( $ENV{PATH} ) = ( $ENV{PATH} =~ /^(.*)$/ );
+( $ENV{BASH_ENV} ) = ( $ENV{BASH_ENV} =~ /^(.*)$/ );
+
+my $log_file = sprintf( LOG_FILE, $monitor );
+open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
+open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
+select( STDOUT ); $| = 1;
+open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
+select( STDERR ); $| = 1;
+select( LOG ); $| = 1;
 
 chdir( EVENT_PATH );
 

@@ -438,36 +438,39 @@ int RemoteCamera::GetResponse()
 							return( -1 );
 						}
 						static RegExpr *content_expr = 0;
-						if ( mode == SINGLE_JPEG )
-						{
-							static RegExpr *single_jpeg_expr = 0;
-							if ( !content_expr )
-							{
-								content_expr = new RegExpr( "^(.+?)(?:\r?\n){1,2}?$", PCRE_DOTALL );
-							}
-						}
-						else
-						{
-							static RegExpr *multi_jpeg_expr = 0;
-							if ( !content_expr )
-							{
-								char content_pattern[256] = "";
-								snprintf( content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n){1,2}?(?:--)?%s\r?\n", content_boundary );
-								content_expr = new RegExpr( content_pattern, PCRE_DOTALL );
-							}
-						}
 						if ( buffer_len )
 						{
-							if ( content_expr->Match( buffer, buffer.Size() ) == 2 )
+							if ( mode == MULTI_JPEG )
 							{
-								content_length = content_expr->MatchLength( 1 );
-								Debug( 3, ( "Got end of image by pattern, content-length = %d", content_length ));
+								if ( !content_expr )
+								{
+									char content_pattern[256] = "";
+									snprintf( content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n){1,2}?(?:--)?%s\r?\n", content_boundary );
+									content_expr = new RegExpr( content_pattern, PCRE_DOTALL );
+								}
+								if ( content_expr->Match( buffer, buffer.Size() ) == 2 )
+								{
+									content_length = content_expr->MatchLength( 1 );
+									Debug( 3, ( "Got end of image by pattern, content-length = %d", content_length ));
+								}
 							}
 						}
 						else
 						{
 							content_length = buffer.Size();
 							Debug( 3, ( "Got end of image by closure, content-length = %d", content_length ));
+							if ( mode == SINGLE_JPEG )
+							{
+								if ( !content_expr )
+								{
+									content_expr = new RegExpr( "^(.+?)(?:\r?\n){1,2}?$", PCRE_DOTALL );
+								}
+								if ( content_expr->Match( buffer, buffer.Size() ) == 2 )
+								{
+									content_length = content_expr->MatchLength( 1 );
+									Debug( 3, ( "Trimmed end of image, new content-length = %d", content_length ));
+								}
+							}
 						}
 					}
 				}

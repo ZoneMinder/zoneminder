@@ -944,7 +944,7 @@ function newWindow(Url,Name,Width,Height) {
 <form method="post" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="rename">
-<input type="hidden" name="eid" value="$eid">
+<input type="hidden" name="eid" value="<?php echo $eid ?>">
 <input type="text" size="16" name="event_name" value="<?php echo $event[Name] ?>" class="form">
 <input type="submit" value="Rename" class="form"></td>
 </tr>

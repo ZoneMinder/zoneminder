@@ -1,0 +1,49 @@
+#!/bin/sh
+# description: Control ZoneMinder as a Service
+# chkconfig: 2345 99 99
+
+command="@prefix@/bin/zmpkg.pl"
+
+case "$1" in
+'start')
+	$command start
+	status=$?
+	if [ "$status" = "0" ]; then
+		touch /var/lock/subsys/zm
+	fi
+	;;
+'stop')
+	$command stop
+	status=$?
+	if [ "$status" = "0" ]; then
+		rm -f /var/lock/subsys/zm
+	fi
+	;;
+'restart')
+	$command stop
+	status=$?
+	if [ "$status" = "0" ]; then
+		rm -f /var/lock/subsys/zm
+	fi
+	$command start
+	status=$?
+	if [ "$status" = "0" ]; then
+		touch /var/lock/subsys/zm
+	fi
+	;;
+'status')
+	result=`$command status`
+	if [ "$result" = "running" ]; then
+		echo "ZoneMinder is running"
+		status=0
+	else
+		echo "ZoneMinder is stopped"
+		status=1
+	fi
+	;;
+*)
+	echo "Usage: $0 { start | stop | restart | status }"
+	status=1
+	;;
+esac
+exit $status

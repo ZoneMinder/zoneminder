@@ -161,10 +161,15 @@ our %pending_tasks;
 
 sub runServer
 {
-	open( LOG, '>>'.main::X10_LOG_FILE ) or die( "Can't open log file: $!" );
-	select( LOG );
-	$| = 1;
-	print( LOG "X10 server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+	my $log_file = main::X10_LOG_FILE;
+	open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
+	open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
+	select( STDOUT ); $| = 1;
+	open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
+	select( STDERR ); $| = 1;
+	select( LOG ); $| = 1;
+
+	print( "X10 server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
 	socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
 	unlink( main::X10_SOCK_FILE );
@@ -346,7 +351,7 @@ sub runServer
 			}
 		}
 	}
-	print( LOG "X10 server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+	print( "X10 server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 	close( LOG );
 	close( SERVER );
 	exit();
@@ -661,7 +666,7 @@ sub x10listen
 				}
 			}
 		}
-		print( LOG strftime( "%y/%m/%d %H:%M:%S", localtime() )." - ".$event->as_string()."\n" );
+		print( strftime( "%y/%m/%d %H:%M:%S", localtime() )." - ".$event->as_string()."\n" );
 	}
 }
 

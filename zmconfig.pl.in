@@ -191,6 +191,13 @@ my @options =
 		type => $types{directory},
 	},
 	{
+		name => "ZM_PATH_ZMS",
+		default => "/cgi-bin/zms",
+		description => "Web path to zms streaming server",
+		help => "The ZoneMinder streaming server is required to send streamed images to your browser. It will be installed into the cgi-bin path given at configuration time. This option determines what the web path to the server is rather than the local path on your machine.",
+		type => $types{rel_path},
+	},
+	{
 		name => "ZM_OPT_CAMBOZOLA",
 		default => "no",
 		description => "Is the (optional) cambozola java streaming client installed (recommended)",

@@ -344,7 +344,7 @@ function closeWindow()
 <?php
 		if ( $mode == "stream" )
 		{
-			$stream_src = ZMS_PATH."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&ttl=".REFRESH_CYCLE;
+			$stream_src = ZM_PATH_ZMS."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&ttl=".REFRESH_CYCLE;
 			if ( isNetscape() )
 			{
 ?>
@@ -501,7 +501,7 @@ function closeWindow()
 <?php
 		if ( $mode == "stream" )
 		{
-			$stream_src = ZMS_PATH."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
+			$stream_src = ZM_PATH_ZMS."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
 			if ( isNetscape() )
 			{
 ?>
@@ -678,7 +678,7 @@ function closeWindow()
 <?php
 		if ( $mode == "stream" )
 		{
-			$stream_src = ZMS_PATH."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
+			$stream_src = ZM_PATH_ZMS."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
 			if ( isNetscape() )
 			{
 ?>
@@ -1821,7 +1821,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php
 		if ( $mode == "stream" )
 		{
-			$stream_src = ZMS_PATH."?path=".ZM_PATH_WEB."&event=$eid&refresh=".STREAM_EVENT_DELAY;
+			$stream_src = ZM_PATH_ZMS."?path=".ZM_PATH_WEB."&event=$eid&refresh=".STREAM_EVENT_DELAY;
 			if ( isNetscape() )
 			{
 ?>

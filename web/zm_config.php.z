@@ -25,6 +25,7 @@ define( "ZM_VERSION", "<from zmconfig>" );				// Version Number
 define( "ZM_PATH_BIN", "<from zmconfig>" );				// Path to binaries
 define( "ZM_PATH_WEB", "<from zmconfig>" );				// Path to web files
 define( "ZM_PATH_CGI", "<from zmconfig>" );				// Path to cgi files
+define( "ZM_PATH_ZMS", "<from zmconfig>" );				// Web path to zms streaming server
 define( "ZM_DB_SERVER", "<from zmconfig>" );			// Database server
 define( "ZM_DB_NAME", "<from zmconfig>" );				// Database containing the tables
 define( "ZM_DB_USERA", "<from zmconfig>" );				// Database login
@@ -82,7 +83,6 @@ define( "ZM_WEB_P_REFRESH_IMAGE", <from zmconfig> );	// How often the watched im
 define( "ZM_DB_USER", ZM_DB_USERA );					// Database login
 define( "ZM_DB_PASS", ZM_DB_PASSA );					// Database password
 define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );				// Local path to the ZoneMinder Utility
-define( "ZMS_PATH", "/cgi-bin/zms" );					// Web path to the ZoneMinder Stream server
 
 // These are miscellaneous options you won't normally need to change
 //

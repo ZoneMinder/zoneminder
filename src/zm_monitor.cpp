@@ -779,7 +779,7 @@ bool Monitor::Analyse()
 				// Create event
 				event = new Event( this, *timestamp, "Continuous" );
 
-				Info(( "%s: %03d - Starting new event", name, image_count ));
+				Info(( "%s: %03d - Starting new event %d", name, image_count, event->Id() ));
 
 				//if ( (bool)config.Item( ZM_OVERLAP_TIMED_EVENTS ) )
 				if ( true )

@@ -1,0 +1,3 @@
+--
+-- There are no database changes when upgrading from 0.9.7 to 0.9.8
+--

@@ -308,7 +308,7 @@ if ( $action )
 		}
 		elseif ( $action == "settings" )
 		{
-			$zmu_command = ZMU_PATH." -m $mid -B$new_brightness -C$new_contrast -H$new_hue -O$new_colour";
+			$zmu_command = ZMU_COMMAND." -m $mid -B$new_brightness -C$new_contrast -H$new_hue -O$new_colour";
 			$zmu_output = exec( escapeshellcmd( $zmu_command ) );
 			list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
 		}

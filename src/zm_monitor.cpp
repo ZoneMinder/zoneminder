@@ -150,6 +150,11 @@ Monitor::~Monitor()
 	}
 	delete[] image_buffer;
 
+	if ( purpose == ANALYSIS )
+	{
+		shared_data->last_read_index = image_buffer_count;
+	}
+
 	struct shmid_ds shm_data;
 	if ( shmctl( shmid, IPC_STAT, &shm_data ) )
 	{

@@ -21,7 +21,7 @@
 	header("Pragma: no-cache");			// HTTP/1.0
 
 	$db_now = strftime( "%Y-%m-%d %H:%M:%S" );
-	$sql = "select M.*, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
+	$sql = "select M.*, count(if(E.Archived=0,1,NULL)) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();
@@ -227,7 +227,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 <?php } else { ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=$monitor[Id]', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">$monitor[Host]</span>", canEdit( 'Monitors' ) ) ?></td>
 <?php } ?>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[EventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=1&attr1=Archived&val1=0', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[EventCount], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[HourEventCount], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+day', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[DayEventCount], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+week', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[WeekEventCount], canView( 'Events' ) ) ?></td>

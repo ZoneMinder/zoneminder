@@ -35,6 +35,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 
+#include "zm.h"
 #include "zm_remote_camera.h"
 
 RemoteCamera::RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, bool p_capture ) : Camera( REMOTE, p_width, p_height, p_palette, p_capture ), host( p_host ), port( p_port ), path( p_path )

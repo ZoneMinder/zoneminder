@@ -17,14 +17,15 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-#include "zm_local_camera.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/shm.h>
 #include <sys/mman.h>
+
+#include "zm.h"
+#include "zm_local_camera.h"
 
 int LocalCamera::camera_count = 0;
 int LocalCamera::m_cap_frame = 0;

@@ -17,5 +17,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-// This section deliberately left blank
+#include "zm.h"
 
+// This section deliberately left blank

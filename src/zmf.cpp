@@ -31,6 +31,7 @@
 #include <getopt.h>
 #include <signal.h>
 
+#include "zm.h"
 #include "zm_db.h"
 #include "zm_debug.h"
 #include "zm_monitor.h"

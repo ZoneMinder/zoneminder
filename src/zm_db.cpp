@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 
+#include "zm.h"
 #include "zm_db.h"
 
 MYSQL dbconn;

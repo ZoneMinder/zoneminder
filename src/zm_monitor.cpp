@@ -1078,6 +1078,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t ttl, int scale )
 {
 	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
+	fprintf( stdout, "--ZoneMinderFrame\r\n" );
 
 	int last_read_index = image_buffer_count;
 	static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
@@ -1125,10 +1126,10 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 				scaled_image.EncodeJpeg( img_buffer, &img_buffer_size );
 			}
 
-			fprintf( stdout, "--ZoneMinderFrame\r\n" );
-			fprintf( stdout, "Content-length: %d\r\n", img_buffer_size );
-			fprintf( stdout, "Content-type: image/jpeg\r\n\r\n" );
+			fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
+			fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
 			fwrite( img_buffer, img_buffer_size, 1, stdout );
+			fprintf( stdout, "\r\n\r\n--ZoneMinderFrame\r\n" );
 		}
 		usleep( refresh*1000 );
 		for ( int i = 0; shared_data->state == IDLE && i < loop_count; i++ )

@@ -331,7 +331,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 			}
 			else
 			{
-				Info(( "Can't glob '%s': %s", diag_glob, glob_status ));
+				Info(( "Can't glob '%s': %d", diag_glob, glob_status ));
 			}
 		}
 		else
@@ -404,6 +404,7 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 	}
 
 	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
+	fprintf( stdout, "--ZoneMinderFrame\r\n" );
 
 	//int n_frames = mysql_num_rows( result );
 	//Info(( "Got %d frames, at rate %d, scale %d", n_frames, rate, scale ));
@@ -441,6 +442,8 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 		static char filepath[PATH_MAX];
 		sprintf( filepath, "%s/%03d-capture.jpg", eventpath, atoi(dbrow[0]) );
 
+		fprintf( stdout, "Content-Length: %d\r\n", n_bytes );
+		fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
 		if ( scale == 100 )
 		{
 			if ( (fdj = fopen( filepath, "r" )) )
@@ -466,9 +469,7 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 
 			write( fileno(stdout), buffer, n_bytes );
 		}
-		fprintf( stdout, "--ZoneMinderFrame\r\n" );
-		fprintf( stdout, "Content-length: %d\r\n", n_bytes );
-		fprintf( stdout, "Content-type: image/jpeg\r\n\r\n" );
+		fprintf( stdout, "\r\n\r\n--ZoneMinderFrame\r\n" );
 		fflush( stdout );
 	}
 	if ( mysql_errno( &dbconn ) )

@@ -107,6 +107,7 @@ $zmSlangAutoEmailEvents      = 'Automatically email details of all matching even
 $zmSlangAutoMessageEvents    = 'Automatically message details of all matching events';
 $zmSlangAutoUploadEvents     = 'Automatically upload all matching events';
 $zmSlangAvgBrScore           = 'Avg.<br/>Score';
+$zmSlangBadMonitorChars      = 'Monitor Names may only contain alphanumeric characters plus hyphen and underscore';
 $zmSlangBandwidth            = 'Bandwidth';
 $zmSlangBlobPx               = 'Blob Px';
 $zmSlangBlobs                = 'Blobs';

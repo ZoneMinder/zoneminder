@@ -109,6 +109,17 @@ opener.location.reload(true);
 window.focus();
 function validateForm(Form)
 {
+	var errors = new Array();
+
+	if ( Form.elements['new_monitor[Name]'].value.search( /[^\w-]/ ) >= 0 )
+	{
+		errors[errors.length] = "<?= $zmSlangBadMonitorChars ?>";
+	}
+	if ( errors.length )
+	{
+		alert( errors.join( "\n" ) );
+		return( false );
+	}
 	return( true );
 }
 

@@ -377,7 +377,7 @@ my @options =
 	},
 	{
 		name => "ZM_OPT_X10",
-		default => "yes",
+		default => "no",
 		description => "Whether we want to interface with X10 devices",
 		help => "If you have an X10 Home Automation setup in your home you can use ZoneMinder to initiate or react to X10 signals if your computer has the appropriate interface controller. This option indicates whether X10 options will be available in the browser client.",
 		type => $types{boolean},

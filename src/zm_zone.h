@@ -36,6 +36,7 @@ class Zone
 {
 public:
 	typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE } ZoneType;
+	typedef enum { ALARMED_PIXELS=1, FILTERED_PIXELS, BLOBS } CheckMethod;
 
 protected:
 	static bool		initialised;
@@ -50,6 +51,7 @@ protected:
 	ZoneType		type;
 	Box				limits;
 	Rgb				alarm_rgb;
+	CheckMethod		check_method;
 
 	int				min_pixel_threshold;
 	int				max_pixel_threshold;
@@ -85,20 +87,20 @@ protected:
 		record_diag_images = (bool)config.Item( ZM_RECORD_DIAG_IMAGES );
 	}
 
-	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs );
+	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs );
 
 public:
-	Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, int p_min_pixel_threshold=15, int p_max_pixel_threshold=0, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold=15, int p_max_pixel_threshold=0, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
 	{
-		Setup( p_monitor, p_id, p_label, p_type, p_limits, p_alarm_rgb, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
+		Setup( p_monitor, p_id, p_label, p_type, p_limits, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
 	}
-	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Box &p_limits, const Rgb p_alarm_rgb, int p_min_pixel_threshold=15, int p_max_pixel_threshold=0, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Box &p_limits, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold=15, int p_max_pixel_threshold=0, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0 )
 	{
-		Setup( p_monitor, p_id, p_label, Zone::ACTIVE, p_limits, p_alarm_rgb, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
+		Setup( p_monitor, p_id, p_label, Zone::ACTIVE, p_limits, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs );
 	}
 	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Box &p_limits )
 	{
-		Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_limits, RGB_BLACK, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0 );
+		Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_limits, RGB_BLACK, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0 );
 	}
 
 public:

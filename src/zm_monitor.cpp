@@ -244,7 +244,7 @@ void Monitor::Setup()
 	{
 		n_zones = 1;
 		zones = new Zone *[1];
-		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED );
+		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED, Zone::BLOBS );
 	}
 	start_time = last_fps_time = time( 0 );
 

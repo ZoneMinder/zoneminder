@@ -51,6 +51,7 @@ public:
 	inline const Coord &Size() const { return( size ); }
 	inline int Width() const { return( size.X() ); }
 	inline int Height() const { return( size.Y() ); }
+	inline int Area() const { return( size.X()*size.Y() ); }
 
 	inline bool Inside( const Coord &coord ) const
 	{

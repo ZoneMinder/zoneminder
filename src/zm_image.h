@@ -133,7 +133,7 @@ public:
 
 	inline int Width() { return( width ); }
 	inline int Height() { return( height ); }
-	JSAMPLE *Buffer( unsigned int x=0, unsigned int y= 0 ) { return( &buffer[colours*((y*width)+x)] ); }
+	inline JSAMPLE *Buffer( unsigned int x=0, unsigned int y= 0 ) { return( &buffer[colours*((y*width)+x)] ); }
 	
 	inline void Assign( int p_width, int p_height, int p_colours, unsigned char *new_buffer )
 	{

@@ -3,6 +3,7 @@
 --
 -- Make changes to Filter table
 --
+alter table Zones add column CheckMethod enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs' after AlarmRGB;
 alter table Filters drop column MonitorId;
 alter table Filters drop index FilterIDX;
 --

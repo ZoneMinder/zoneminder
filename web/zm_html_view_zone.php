@@ -110,6 +110,7 @@ function applyZoneType( Form )
 		Form.new_alarm_rgb_g.value = "";
 		Form.new_alarm_rgb_b.disabled = true;
 		Form.new_alarm_rgb_b.value = "";
+		Form.new_check_method.disabled = true;
 		Form.new_min_pixel_threshold.disabled = true;
 		Form.new_min_pixel_threshold.value = "";
 		Form.new_max_pixel_threshold.disabled = true;
@@ -143,6 +144,7 @@ function applyZoneType( Form )
 		Form.new_alarm_rgb_g.value = "";
 		Form.new_alarm_rgb_b.disabled = true;
 		Form.new_alarm_rgb_b.value = "";
+		Form.new_check_method.disabled = false;
 		Form.new_max_pixel_threshold.disabled = false;
 		Form.new_max_pixel_threshold.value = "<?= $zone['MaxPixelThreshold'] ?>";
 		Form.new_min_pixel_threshold.disabled = false;
@@ -176,6 +178,7 @@ function applyZoneType( Form )
 		Form.new_alarm_rgb_g.value = "<?= ($zone['AlarmRGB']>>8)&0xff; ?>";
 		Form.new_alarm_rgb_b.disabled = false;
 		Form.new_alarm_rgb_b.value = "<?= $zone['AlarmRGB']&0xff; ?>";
+		Form.new_check_method.disabled = false;
 		Form.new_max_pixel_threshold.disabled = false;
 		Form.new_max_pixel_threshold.value = "<?= $zone['MaxPixelThreshold'] ?>";
 		Form.new_min_pixel_threshold.disabled = false;
@@ -204,6 +207,43 @@ function applyZoneType( Form )
 		Form.new_min_blobs.value = "<?= $zone['MinBlobs'] ?>";
 		Form.new_max_blobs.disabled = false;
 		Form.new_max_blobs.value = "<?= $zone['MaxBlobs'] ?>";
+	}
+}
+
+function applyCheckMethod( Form )
+{
+	if ( Form.new_check_method.value == 'AlarmedPixels' )
+	{
+		Form.new_filter_x.disabled = true;
+		Form.new_filter_y.disabled = true;
+		Form.new_min_filter_pixels.disabled = true;
+		Form.new_max_filter_pixels.disabled = true;
+		Form.new_min_blob_pixels.disabled = true;
+		Form.new_max_blob_pixels.disabled = true;
+		Form.new_min_blobs.disabled = true;
+		Form.new_max_blobs.disabled = true;
+	}
+	else if ( Form.new_check_method.value == 'FilteredPixels' )
+	{
+		Form.new_filter_x.disabled = false;
+		Form.new_filter_y.disabled = false;
+		Form.new_min_filter_pixels.disabled = false;
+		Form.new_max_filter_pixels.disabled = false;
+		Form.new_min_blob_pixels.disabled = true;
+		Form.new_max_blob_pixels.disabled = true;
+		Form.new_min_blobs.disabled = true;
+		Form.new_max_blobs.disabled = true;
+	}
+	else
+	{
+		Form.new_filter_x.disabled = false;
+		Form.new_filter_y.disabled = false;
+		Form.new_min_filter_pixels.disabled = false;
+		Form.new_max_filter_pixels.disabled = false;
+		Form.new_min_blob_pixels.disabled = false;
+		Form.new_max_blob_pixels.disabled = false;
+		Form.new_min_blobs.disabled = false;
+		Form.new_max_blobs.disabled = false;
 	}
 }
 
@@ -359,6 +399,16 @@ foreach ( getEnumValues( 'Zones', 'Units' ) as $opt_units )
 <tr><td align="left" class="text"><?= $zmSlangZoneMaxX ?></td><td align="left" class="text"><input type="text" name="new_hi_x" value="<?= $zone['HiX'] ?>" size="4" class="form" onchange="checkWidth(this,'Maximum X')"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneMaxY ?></td><td align="left" class="text"><input type="text" name="new_hi_y" value="<?= $zone['HiY'] ?>" size="4" class="form" onchange="checkHeight(this,'Maximum Y')"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneAlarmColour ?></td><td align="left" class="text">R:<input type="text" name="new_alarm_rgb_r" value="<?= ($zone['AlarmRGB']>>16)&0xff ?>" size="3" class="form" onchange="limitRange( this, 0, 255 )">&nbsp;G:<input type="text" name="new_alarm_rgb_g" value="<?= ($zone['AlarmRGB']>>8)&0xff ?>" size="3" class="form" onchange="limitRange( this, 0, 255 )">&nbsp;B:<input type="text" name="new_alarm_rgb_b" value="<?= $zone['AlarmRGB']&0xff ?>" size="3" class="form" onchange="limitRange( this, 0, 255 )"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangCheckMethod ?></td><td align="left" class="text"><select name="new_check_method" class="form" onchange="applyCheckMethod(document.zone_form)">
+<?php
+foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $opt_check_method )
+{
+?>
+<option value="<?= $opt_check_method ?>"<?php if ( $opt_check_method == $zone['CheckMethod'] ) { ?> selected<?php } ?>><?= $opt_check_method ?></option>
+<?php
+}
+?>
+</select></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneMinPixelThres ?></td><td align="left" class="text"><input type="text" name="new_min_pixel_threshold" value="<?= $zone['MinPixelThreshold'] ?>" size="4" class="form" onchange="limitRange( this, 0, 255 )"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneMaxPixelThres ?></td><td align="left" class="text"><input type="text" name="new_max_pixel_threshold" value="<?= $zone['MaxPixelThreshold'] ?>" size="4" class="form" onchange="limitRange( this, 0, 255 )"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneMinAlarmedArea ?></td><td align="left" class="text"><input type="text" name="new_min_alarm_pixels" value="<?= $zone['MinAlarmPixels'] ?>" size="6" class="form" onchange="checkArea(this,'Minimum Alarmed Area')"></td></tr>

@@ -1,0 +1,79 @@
+#
+# This is the configuration file for notification emails
+#
+# The tags you can use in here are as follows
+# %ZP% - The path to your ZoneMinder console
+# %MN% - The name of the monitor
+# %MET% - The total number of events for the monitor
+# %MEH% - The number of events for the monitor in the last hour
+# %MED% - The number of events for the monitor in the last day
+# %MEW% - The number of events for the monitor in the last week
+# %MEM% - The number of events for the monitor in the last month
+# %MEA% - The number of archived events for the monitor
+# %MP% - The path to the monitor window
+# %MPS% - The path to the monitor stream
+# %MPI% - The path to the monitor recent image
+# %EP% - The path to the event
+# %EPS% - The path to the event stream
+# %EPI% - The path to the event images
+# %EPI1% - The path to the first alarmed event image
+# %EPIM% - The path to the (first) event image with the highest score
+# %EI% - The id of the event
+# %EN% - The name of the event
+# %ET% - The time of the event
+# %ED% - The duration of the event
+# %EF% - The number of frames in the event
+# %EFA% - The number of alarm frames in the event
+# %EST% - The total score of the event
+# %ESA% - The average score of the event
+# %ESM% - The maximum score of the event
+# %FN% - The name of the current filter that matched
+# %FP% - The path to the current filter that matched
+
+# Change these to suit your own preferences
+subject = "ZoneMinder: Alarm - %MN%-%EI% (%ESM% - %ESA% %EFA%)"
+body = "
+Hello,
+
+An alarm has been detected on your installation of the ZoneMinder.
+
+The details are as follows :-
+
+  Monitor  : %MN%
+  Event Id : %EI%
+  Duration : %ED%
+  Frames   : %EF% (%EFA%)
+  Scores   : t%EST% m%ESM% a%ESA%
+
+This alarm was matched by the %FN% filter and can be viewed at %EPS%
+
+	# %ZP% - The path to your ZoneMinder console
+	# %MN% - The name of the monitor
+	# %MET% - The total number of events for the monitor
+	# %MEH% - The number of events for the monitor in the last hour
+	# %MED% - The number of events for the monitor in the last day
+	# %MEW% - The number of events for the monitor in the last week
+	# %MEM% - The number of events for the monitor in the last month
+	# %MEA% - The number of archived events for the monitor
+	# %MP% - The path to the monitor window
+	# %MPS% - The path to the monitor stream
+	# %MPI% - The path to the monitor recent image
+	# %EP% - The path to the event
+	# %EPS% - The path to the event stream
+	# %EPI% - The path to the event images
+	# %EPI1% - The path to the first alarmed event image
+	# %EPIM% - The path to the (first) event image with the highest score
+	# %EI% - The id of the event
+	# %EN% - The name of the event
+	# %ET% - The time of the event
+	# %ED% - The duration of the event
+	# %EF% - The number of frames in the event
+	# %EFA% - The number of alarm frames in the event
+	# %EST% - The total score of the event
+	# %ESA% - The average score of the event
+	# %ESM% - The maximum score of the event
+	# %FN% - The name of the current filter that matched
+	# %FP% - The path to the current filter that matched
+
+ZoneMinder
+"

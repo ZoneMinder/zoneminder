@@ -263,7 +263,7 @@ function closeWindow()
 </td></tr>
 <?php
 			$select_name = "new_monitor[Type]";
-			$source_types = array( $zmSlangLocal=>"Local", $zmSlangRemote=>"Remote" );
+			$source_types = array( 'Local'=>$zmSlangLocal, 'Remote'=>$zmSlangRemote );
 ?>
 <tr><td align="left" class="text"><?= $zmSlangSourceType ?></td><td><?= buildSelect( $select_name, $source_types ); ?></td></tr>
 <?php

@@ -21,6 +21,7 @@
 
 #include "zm.h"
 #include "zm_db.h"
+#include "zm_user.h"
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
 
@@ -57,6 +58,7 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n" );
 	fprintf( stderr, "  -U, --username <username>      : When running in authenticated mode the username and\n" );
 	fprintf( stderr, "  -P, --password <password>      : and password combination of the given user\n" );
+	fprintf( stderr, "  -A, --auth <authentication>    : Pass authentication hash string instead of user details\n" );
 
 	exit( status );
 }
@@ -81,93 +83,43 @@ typedef enum {
 	COLOUR=0x8000
 } Function;
 
-bool ValidateAccess( const char *username, const char *password, int mon_id, Function function )
+bool ValidateAccess( User *user, int mon_id, Function function )
 {
-	if ( mon_id > 0 && (bool)config.Item( ZM_OPT_USE_AUTH ) )
+	bool allowed = true;
+	if ( function & (STATE|IMAGE|TIME|READ_IDX|WRITE_IDX|FPS) )
 	{
-		if ( !username || !password )
+		if ( user->getStream() < User::PERM_VIEW )
+			allowed = false;
+	}
+	if ( function & EVENT )
+	{
+		if ( user->getEvents() < User::PERM_VIEW )
+			allowed = false;
+	}
+	if ( function & (ZONES|QUERY) )
+	{
+		if ( user->getMonitors() < User::PERM_VIEW )
+			allowed = false;
+	}
+	if ( function & (ALARM|NOALARM|CANCEL|BRIGHTNESS|CONTRAST|HUE|COLOUR) )
+	{
+		if ( user->getMonitors() < User::PERM_EDIT )
+			allowed = false;
+	}
+	if ( mon_id > 0 )
+	{
+		if ( !user->canAccess( mon_id ) )
 		{
-			fprintf( stderr, "Error, username and password must be supplied\n" );
-			exit( -1 );
-		}
-
-		char sql[BUFSIZ] = "";
-		snprintf( sql, sizeof(sql), "select Username, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
-
-		if ( mysql_query( &dbconn, sql ) )
-		{
-			Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
-			exit( mysql_errno( &dbconn ) );
-		}
-
-		MYSQL_RES *result = mysql_store_result( &dbconn );
-		if ( !result )
-		{
-			Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
-			exit( mysql_errno( &dbconn ) );
-		}
-		int n_users = mysql_num_rows( result );
-
-		if ( n_users < 1 )
-		{
-			fprintf( stderr, "Error, invalid username and/or password\n" );
-			exit( -1 );
-		}
-
-		MYSQL_ROW dbrow = mysql_fetch_row( result );
-
-		bool allowed = true;
-		int stream = atoi(dbrow[1]);
-		int events = atoi(dbrow[2]);
-		int monitors = atoi(dbrow[3]);
-		//int system = atoi(dbrow[4]);
-		const char *monitor_ids = dbrow[5];
-		if ( function & (STATE|IMAGE|TIME|READ_IDX|WRITE_IDX|FPS) )
-		{
-			if ( stream < 1 )
-				allowed = false;
-		}
-		if ( function & EVENT )
-		{
-			if ( events < 1 )
-				allowed = false;
-		}
-		if ( function & (ZONES|QUERY) )
-		{
-			if ( monitors < 1 )
-				allowed = false;
-		}
-		if ( function & (ALARM|NOALARM|CANCEL|BRIGHTNESS|CONTRAST|HUE|COLOUR) )
-		{
-			if ( monitors < 2 )
-				allowed = false;
-		}
-		if ( monitor_ids && monitor_ids[0] )
-		{
-			char mon_id_str[256] = "";
-			strncpy( mon_id_str, monitor_ids, sizeof(mon_id_str) );
-			char *mon_id_str_ptr = mon_id_str;
-			char *mon_id_ptr = 0;
-			bool found_mon_id = false;
-			while( (mon_id_ptr = strtok( mon_id_str_ptr, "," )) )
-			{
-				mon_id_str_ptr = 0;
-				if ( mon_id == atoi( mon_id_ptr ) )
-				{
-					found_mon_id = true;
-					break;
-				}
-			}
-			if ( !found_mon_id )
-				allowed = false;
-		}
-		if ( !allowed )
-		{
-			fprintf( stderr, "Error, insufficient privileges for requested action\n" );
-			exit( -1 );
+			Error(( "AA:%d", mon_id ));
+			allowed = false;
 		}
 	}
-	return( true );
+	if ( !allowed )
+	{
+		fprintf( stderr, "Error, insufficient privileges for requested action\n" );
+		exit( -1 );
+	}
+	return( allowed );
 }
 
 int main( int argc, char *argv[] )
@@ -212,11 +164,12 @@ int main( int argc, char *argv[] )
 	int colour = -1;
 	char *username = 0;
 	char *password = 0;
+	char *auth = 0;
 	while (1)
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsrwei::S:t::fzancqphB::C::H::O::U:P:", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsrwei::S:t::fzancqphB::C::H::O::U:P:A:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -314,6 +267,9 @@ int main( int argc, char *argv[] )
 			case 'P':
 				password = optarg;
 				break;
+			case 'A':
+				auth = optarg;
+				break;
 			case 'h':
 				Usage( 0 );
 				break;
@@ -351,7 +307,30 @@ int main( int argc, char *argv[] )
 
 	zmLoadConfig();
 
-	ValidateAccess( username, password, mon_id, function );
+	if ( (bool)config.Item( ZM_OPT_USE_AUTH ) )
+	{
+		if ( !(username && password) && !auth )
+		{
+			fprintf( stderr, "Error, username and password or auth string must be supplied\n" );
+			exit( -1 );
+		}
+
+		User *user = 0;
+		if ( username && password )
+		{
+			user = zmLoadUser( username, password );
+		}
+		else if ( auth )
+		{
+			user = zmLoadAuthUser( auth, false );
+		}
+		if ( !user )
+		{
+			fprintf( stderr, "Error, unable to authenticate user\n" );
+			exit( -1 );
+		}
+		ValidateAccess( user, mon_id, function );
+	}
 
 	if ( dev_id >= 0 )
 	{

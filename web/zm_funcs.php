@@ -27,7 +27,11 @@ function userLogin( $username, $password )
 	if ( !$result )
 		echo mysql_error();
 	$_SESSION['username'] = $username;
-	$_SESSION['password'] = $password;
+	if ( ZM_AUTH_METHOD == "plain" )
+	{
+		// Need to save this in session
+		$_SESSION['password'] = $password;
+	}
 	$_SESSION['remote_addr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
 	if ( $db_user = mysql_fetch_assoc( $result ) )
 	{
@@ -51,19 +55,26 @@ function userLogout()
 	session_destroy();
 }
 
-function authHash()
+function authHash( $use_remote_addr=true )
 {
 	global $_SESSION;
 
-	if ( ZM_OPT_USE_AUTH )
+	if ( ZM_OPT_USE_AUTH && ZM_AUTH_METHOD == "hashed" )
 	{
 		$time = localtime();
-		$auth_key = ZM_AUTH_SECRET.$_SESSION['username'].$_SESSION['password_hash'].$_SESSION['remote_addr'].$time[2].$time[3].$time[4].$time[5];
+		if ( $use_remote_addr )
+		{
+			$auth_key = ZM_AUTH_SECRET.$_SESSION['username'].$_SESSION['password_hash'].$_SESSION['remote_addr'].$time[2].$time[3].$time[4].$time[5];
+		}
+		else
+		{
+			$auth_key = ZM_AUTH_SECRET.$_SESSION['username'].$_SESSION['password_hash'].$time[2].$time[3].$time[4].$time[5];
+		}
 		$auth = md5( $auth_key );
 	}
 	else
 	{
-		$auth = "0";
+		$auth = "";
 	}
 	return( $auth );
 }
@@ -76,8 +87,15 @@ function getStreamSrc( $args )
 
 	if ( ZM_OPT_USE_AUTH )
 	{
-		$args[] = "auth=".authHash();
-		$args[] = "user=".$_SESSION['username'];
+		if ( ZM_AUTH_METHOD == "hashed" )
+		{
+			$args[] = "auth=".authHash();
+		}
+		else
+		{
+			$args[] = "user=".$_SESSION['username'];
+			$args[] = "pass=".$_SESSION['password'];
+		}
 	}
 
 	if ( count($args) )
@@ -86,6 +104,29 @@ function getStreamSrc( $args )
 	}
 
 	return( $stream_src );
+}
+
+function getZmuCommand( $args )
+{
+	global $_SESSION;
+
+	$zmu_command = ZMU_PATH;
+
+	if ( ZM_OPT_USE_AUTH )
+	{
+		if ( ZM_AUTH_METHOD == "hashed" )
+		{
+			$zmu_command .= " -A ".authHash( false );
+		}
+		else
+		{
+			$zmu_command .= " -U ".$_SESSION['username']." -P ".$_SESSION['password'];
+		}
+	}
+
+	$zmu_command .= $args;
+
+	return( $zmu_command );
 }
 
 function visibleMonitor( $mid )
@@ -514,7 +555,7 @@ function createImage( $monitor, $scale )
 		$monitor = $monitor['Id'];
 	}
 	chdir( ZM_DIR_IMAGES );
-	$command = ZMU_COMMAND." -m $monitor -i";
+	$command = getZmuCommand( " -m $monitor -i" );
 	if ( !empty($scale) && $scale < 100 )
 		$command .= " -S $scale";
 	$status = exec( escapeshellcmd( $command ) );

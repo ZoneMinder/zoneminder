@@ -24,7 +24,7 @@ if ( !canView( 'Monitors' ) )
 	return;
 }
 chdir( ZM_DIR_IMAGES );
-$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -z" ) );
+$status = exec( escapeshellcmd( getZmuCommand( " -m $mid -z" ) ) );
 chdir( '..' );
 
 $result = mysql_query( "select * from Monitors where Id = '$mid'" );

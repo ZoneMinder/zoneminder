@@ -28,7 +28,7 @@ if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
 
-$zmu_command = ZMU_COMMAND." -m $mid -B -C -H -O";
+$zmu_command = getZmuCommand( " -m $mid -B -C -H -O" );
 $zmu_output = exec( escapeshellcmd( $zmu_command ) );
 list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
 

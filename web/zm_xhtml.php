@@ -30,7 +30,6 @@ if ( ZM_OPT_USE_AUTH )
 	if ( isset( $_SESSION['user'] ) )
 	{
 		$user = $_SESSION['user'];
-		define( "ZMU_COMMAND", ZMU_PATH." -U ".$_SESSION['username']." -P ".$_SESSION['password'] );
 	}
 	else
 	{
@@ -49,7 +48,6 @@ else
 		"Monitors"=>'Edit',
 		"System"=>'Edit',
 	);
-	define( "ZMU_COMMAND", ZMU_PATH );
 }
 
 require_once( 'zm_lang.php' );

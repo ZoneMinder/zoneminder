@@ -17,108 +17,33 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-#include <openssl/md5.h>
-
 #include "zm.h"
 #include "zm_db.h"
+#include "zm_user.h"
 #include "zm_monitor.h"
 
-bool validateAuth( const char *user, char *auth, int id )
+bool ValidateAccess( User *user, int mon_id )
 {
-#ifdef HAVE_DECL_MD5
-	if ( !(bool)config.Item( ZM_OPT_USE_AUTH ) )
-	{
-		return( true );
-	}
+	bool allowed = true;
 
-	char **env_ptr = environ;
-	const char *remote_addr = "";
-	const char *remote_addr_str = "REMOTE_ADDR=";
-	while ( *env_ptr )
+	if ( mon_id > 0 )
 	{
-		if ( !strncasecmp( remote_addr_str, *env_ptr, strlen(remote_addr_str) ) )
-		{
-			remote_addr = strchr( *env_ptr, '=' )+1;
-			break;
-		}
-		env_ptr++;
-	}
-	if ( !*remote_addr )
-	{
-		Warning(( "Can't determine remote address, using null" ));
-	}
-
-	char sql[BUFSIZ] = "";
-	if ( id > 0 )
-	{
-		snprintf( sql, sizeof(sql), "select Username, Password from Users where Username = '%s' and Enabled = 1 and Stream = 'View' and ( MonitorIds = '' or find_in_set( '%d', MonitorIds ) )", user, id );
+		if ( user->getStream() < User::PERM_VIEW )
+			allowed = false;
+		if ( !user->canAccess( mon_id ) )
+			allowed = false;
 	}
 	else
 	{
-		snprintf( sql, sizeof(sql), "select Username, Password from Users where Username = '%s' and Enabled = 1 and Events != 'None'", user );
+		if ( user->getEvents() < User::PERM_VIEW )
+			allowed = false;
 	}
-
-	if ( mysql_query( &dbconn, sql ) )
+	if ( !allowed )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
-		exit( mysql_errno( &dbconn ) );
+		Error(( "Error, insufficient privileges for requested action" ));
+		exit( -1 );
 	}
-
-	MYSQL_RES *result = mysql_store_result( &dbconn );
-	if ( !result )
-	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
-		exit( mysql_errno( &dbconn ) );
-	}
-	int n_users = mysql_num_rows( result );
-
-	if ( n_users < 1 )
-	{
-		Warning(( "Unable to authenticate user %s", user ));
-		return( false );
-	}
-
-	MYSQL_ROW dbrow = mysql_fetch_row( result );
-
-	char auth_key[512] = "";
-	char auth_md5[32+1] = "";
-	unsigned char md5sum[64] = "";
-
-	time_t now = time( 0 );
-	int max_tries = 2;
-
-	for ( int i = 0; i < max_tries; i++, now -= (60*60) )
-	{
-		struct tm *now_tm = localtime( &now );
-
-		snprintf( auth_key, sizeof(auth_key), "%s%s%s%s%d%d%d%d", 
-			(const char *)config.Item( ZM_AUTH_SECRET ),
-			user,
-			dbrow[1],
-			remote_addr,
-			now_tm->tm_hour,
-			now_tm->tm_mday,
-			now_tm->tm_mon,
-			now_tm->tm_year
-		);
-
-		MD5( (unsigned char *)auth_key, strlen(auth_key), md5sum );
-		auth_md5[0] = '\0';
-		for ( int j = 0; j < strlen((const char *)md5sum); j++ )
-		{
-			sprintf( auth_md5+strlen(auth_md5), "%02x", md5sum[j] );
-		}
-
-		if ( !strcmp( auth, auth_md5 ) )
-		{
-			// We have a match
-			return( true );
-		}
-	}
-	return( false );
-#else // HAVE_DECL_MD5
-	return( true );
-#endif // HAVE_DECL_MD5
+	return( allowed );
 }
 
 int main( int argc, const char *argv[] )
@@ -132,8 +57,9 @@ int main( int argc, const char *argv[] )
 	unsigned int maxfps = 10;
 	unsigned int bitrate = 100000;
 	unsigned int ttl = 0;
+	char username[64] = "";
+	char password[64] = "";
 	char auth[64] = "";
-	char user[64] = "";
 
 	bool nph = false;
 	const char *basename = strrchr( argv[0], '/' );
@@ -143,7 +69,7 @@ int main( int argc, const char *argv[] )
 		nph = true;
 	}
 	
-	zmDbgInit( "zms", "", 0 );
+	zmDbgInit( "zms", "", -1 );
 
 	zmLoadConfig();
 
@@ -190,24 +116,37 @@ int main( int argc, const char *argv[] )
 				ttl = atoi(value);
 			else if ( (bool)config.Item( ZM_OPT_USE_AUTH ) )
 			{
+				if ( !strcmp( name, "user" ) )
+				{
+					strncpy( username, value, sizeof(username) );
+				}
+				if ( !strcmp( name, "pass" ) )
+				{
+					strncpy( password, value, sizeof(password) );
+				}
 				if ( !strcmp( name, "auth" ) )
 				{
 					strncpy( auth, value, sizeof(auth) );
-				}
-				else if ( !strcmp( name, "user" ) )
-				{
-					strncpy( user, value, sizeof(user) );
 				}
 			}
 		}
 	}
 
-	if ( !validateAuth( user, auth, id ) )
+	User *user = 0;
+	if ( *username && *password )
 	{
-		Error(( "Unable to validate authentication on '%s'", query ));
-		fprintf( stderr, "Unable to validate authentication on '%s'\n", query );
+		user = zmLoadUser( username, password );
+	}
+	else if ( *auth )
+	{
+		user = zmLoadAuthUser( auth );
+	}
+	if ( !user )
+	{
+		Error(( "Unable to authenticate user" ));
 		return( -1 );
 	}
+	ValidateAccess( user, id );
 
 	setbuf( stdout, 0 );
 	if ( nph )

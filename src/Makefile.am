@@ -30,11 +30,12 @@ zm_SOURCES = \
 	zm_local_camera.cpp \
 	zm_remote_camera.cpp \
 	zm_monitor.cpp \
+	zm_user.cpp \
 	zm_mpeg.cpp \
+	zm_jpeg.c \
 	zm_regexp.cpp \
 	zm_buffer.cpp \
-	zm_debug.c \
-	zm_jpeg.c
+	zm_debug.c
 
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
 zma_SOURCES = zma.cpp $(zm_SOURCES)
@@ -60,6 +61,7 @@ noinst_HEADERS = \
 	zm_local_camera.h \
 	zm_remote_camera.h \
 	zm_monitor.h \
+	zm_user.h \
 	zm_font.h \
 	jinclude.h \
 	zmf.h \

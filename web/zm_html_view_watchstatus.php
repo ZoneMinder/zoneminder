@@ -24,7 +24,7 @@ if ( !canView( 'Stream' ) )
 	return;
 }
 
-$zmu_command = ZMU_COMMAND." -m $mid -s -f";
+$zmu_command = getZmuCommand( " -m $mid -s -f" );
 if ( canEdit( 'Monitors' ) && isset($force) )
 {
 	$zmu_command .= ($force?" -a":" -c"); 

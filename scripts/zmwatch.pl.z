@@ -32,14 +32,17 @@
 #
 # ==========================================================================
 
-use constant DB_NAME => "zm";
-use constant DB_USER => "zmadmin";
-use constant DB_PASS => "zmadminzm";
+use constant ZM_DB_SERVER => "<from zmconfig>";
+use constant ZM_DB_NAME => "<from zmconfig>";
+use constant ZM_DB_USERA => "<from zmconfig>";
+use constant ZM_DB_PASSA => "<from zmconfig>";
+use constant ZM_PATH_LOGS => "<from zmconfig>";
+use constant ZM_WATCH_CHECK_INTERVAL => <from zmconfig>;
+use constant ZM_WATCH_NUM_BAD_CHECKS => <from zmconfig>;
+use constant ZM_WATCH_MIN_FPS => <from zmconfig>;
+
 use constant COMMAND_PATH => '@prefix@/bin/';
-use constant WATCH_LOG_FILE => '/tmp/zmwatch.log';
-use constant CHECK_INTERVAL => 10; # How often to check the FPS
-use constant NUM_BAD_CHECKS => 3; # How many bad checks before we restart
-use constant MIN_FPS => 0.5; # FPS at or below this are bad
+use constant WATCH_LOG_FILE => ZM_PATH_LOGS.'/zmwatch.log';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
@@ -75,7 +78,7 @@ select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 print( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-my $dbh = DBI->connect( "DBI:mysql@".DB_SERVER.":".DB_NAME, DB_USER, DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql@".ZM_DB_SERVER.":".ZM_DB_NAME, ZM_DB_USERA, ZM_DB_PASSA );
 
 my $sql = "select * from Monitors";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -100,14 +103,14 @@ while( 1 )
 			chomp($fps);
 			print( "Monitor $monitor->{Id} capturing at $fps FPS\n" ) if ( VERBOSE );
 			push( @$fps_list, $fps );
-			if ( @$fps_list > NUM_BAD_CHECKS )
+			if ( @$fps_list > ZM_WATCH_NUM_BAD_CHECKS )
 			{
 				shift( @$fps_list );
 				# See if we can find any good FPS readings
-				my @good_fps = grep { $_ > MIN_FPS } @$fps_list;
-				if ( @good_fps < NUM_BAD_CHECKS )
+				my @good_fps = grep { $_ > ZM_WATCH_MIN_FPS } @$fps_list;
+				if ( @good_fps < ZM_WATCH_NUM_BAD_CHECKS )
 				{
-					print( "Monitor $monitor->{Id} has ".(NUM_BAD_CHECKS-int(@good_fps))." samples below ".MIN_FPS." FPS\n" );
+					print( "Monitor $monitor->{Id} has ".(ZM_WATCH_NUM_BAD_CHECKS-int(@good_fps))." samples below ".ZM_WATCH_MIN_FPS." FPS\n" );
 				}
 				if ( @good_fps )
 				{
@@ -121,7 +124,7 @@ while( 1 )
 			}
 		}
 	}
-	sleep( CHECK_INTERVAL );
+	sleep( ZM_WATCH_CHECK_INTERVAL );
 }
 print( "Watchdog exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 exit();

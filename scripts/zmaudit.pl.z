@@ -35,13 +35,17 @@
 # These are the elements you need to edit to suit your installation
 #
 # ==========================================================================
-use constant DB_NAME => "zm";
-use constant DB_NAME => "zm";
-use constant DB_USER => "zmadmin";
-use constant DB_PASS => "zmadminzm";
-use constant IMAGE_PATH => "@WEB_PREFIX@/images";
-use constant EVENT_PATH => "@WEB_PREFIX@/events";
-use constant LOG_FILE => '/tmp/zmaudit.log';
+use constant ZM_DB_SERVER => "<from zmconfig>";
+use constant ZM_DB_NAME => "<from zmconfig>";
+use constant ZM_DB_USERA => "<from zmconfig>";
+use constant ZM_DB_PASSA => "<from zmconfig>";
+use constant ZM_DIR_IMAGES => "<from zmconfig>";
+use constant ZM_DIR_EVENTS => "<from zmconfig>";
+use constant ZM_PATH_LOGS => "<from zmconfig>";
+
+use constant IMAGE_PATH => "@WEB_PREFIX@/".ZM_DIR_IMAGES;
+use constant EVENT_PATH => "@WEB_PREFIX@/".ZM_DIR_EVENTS;
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmaudit.log';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
@@ -128,7 +132,7 @@ if ( $report && $yes )
 	usage();
 }
 
-my $dbh = DBI->connect( "DBI:mysql@".DB_SERVER.":".DB_NAME, DB_USER, DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql@".ZM_DB_SERVER.":".ZM_DB_NAME, ZM_DB_USERA, ZM_DB_PASSA );
 
 chdir( EVENT_PATH );
 if ( !$yes && !$report )

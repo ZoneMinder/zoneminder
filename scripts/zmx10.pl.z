@@ -31,16 +31,20 @@
 #
 # ==========================================================================
 
-use constant DB_NAME => "zm";
-use constant DB_USER => "zmadmin";
-use constant DB_PASS => "zmadminzm";
-use constant DB_RELOAD_INTERVAL => 60;
-use constant X10_DEVICE => '/dev/ttyS1';
-use constant X10_HOUSE_CODE => 'K';
-use constant X10_SOCK_FILE => '/tmp/zmx10.sock';
-use constant X10_LOG_FILE => '/tmp/zmx10.log';
-use constant COMMAND_PATH => '@prefix@/bin/';
+use constant ZM_DB_SERVER => "<from zmconfig>";
+use constant ZM_DB_NAME => "<from zmconfig>";
+use constant ZM_DB_USERA => "<from zmconfig>";
+use constant ZM_DB_PASSA => "<from zmconfig>";
+use constant ZM_DIR_EVENTS => "<from zmconfig>";
+use constant ZM_PATH_LOGS => "<from zmconfig>";
+use constant ZM_X10_DB_RELOAD_INTERVAL => 60;
+use constant ZM_X10_DEVICE => '/dev/ttyS1';
+use constant ZM_X10_HOUSE_CODE => 'K';
 use constant ZM_SHM_KEY => 0x7a6d2000;
+
+use constant X10_SOCK_FILE => '/tmp/zmx10.sock';
+use constant X10_LOG_FILE => ZM_PATH_LOGS.'/zmx10.log';
+use constant COMMAND_PATH => '@prefix@/bin/';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
@@ -168,9 +172,9 @@ sub runServer
 	bind( SERVER, $saddr ) or die( "Can't bind: $!" );
 	listen( SERVER, SOMAXCONN ) or die( "Can't listen: $!" );
 
-	$dbh = DBI->connect( "DBI:mysql@".DB_SERVER.":".DB_NAME, DB_USER, DB_PASS );
+	$dbh = DBI->connect( "DBI:mysql@".ZM_DB_SERVER.":".ZM_DB_NAME, ZM_DB_USERA, ZM_DB_PASSA );
 
-	$x10 = new X10::ActiveHome( port=>main::X10_DEVICE, house_code=>main::X10_HOUSE_CODE, debug=>1 );
+	$x10 = new X10::ActiveHome( port=>main::ZM_X10_DEVICE, house_code=>main::ZM_X10_HOUSE_CODE, debug=>1 );
 
 	loadTasks();
 
@@ -183,7 +187,7 @@ sub runServer
 	#print( "F:".fileno(SERVER)."\n" );
 	my $reload = undef;
 	my $reload_count = 0;
-	my $reload_limit = main::DB_RELOAD_INTERVAL/$timeout;
+	my $reload_limit = main::ZM_X10_DB_RELOAD_INTERVAL/$timeout;
 	while( 1 )
 	{
 		my $nfound = select( my $rout = $rin, undef, undef, $timeout );
@@ -638,7 +642,7 @@ sub x10listen
 	foreach my $event ( @_ )
 	{
 		#print( Data::Dumper( $_ )."\n" );
-		if ( $event->house_code() eq main::X10_HOUSE_CODE )
+		if ( $event->house_code() eq main::ZM_X10_HOUSE_CODE )
 		{
 			my $unit_code = $event->unit_code();
 			my $device = $device_hash{$unit_code};

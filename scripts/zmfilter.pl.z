@@ -32,33 +32,45 @@ use strict;
 # These are the elements you need to edit to suit your installation
 #
 # ==========================================================================
-use constant DB_NAME => "zm";
-use constant DB_USER => "zmadmin";
-use constant DB_PASS => "zmadminzm";
-use constant ZM_SHM_KEY => 0x7a6d2000;
-use constant EVENT_PATH => "@WEB_PREFIX@/events";
-use constant FILTER_RELOAD_DELAY => 300; # How often filters are reloaded
-use constant LOG_FILE => '/tmp/zmfilter-%d.log';
+use constant ZM_DB_SERVER => "<from zmconfig>";
+use constant ZM_DB_NAME => "<from zmconfig>";
+use constant ZM_DB_USERA => "<from zmconfig>";
+use constant ZM_DB_PASSA => "<from zmconfig>";
+use constant ZM_DIR_EVENTS => "<from zmconfig>";
+use constant ZM_PATH_LOGS => "<from zmconfig>";
+use constant ZM_SHM_KEY => <from zmconfig>;
+use constant ZM_FILTER_RELOAD_DELAY => <from zmconfig>;
+use constant ZM_OPT_UPLOAD => <from zmconfig>;
+use constant ZM_UPLOAD_ARCH_FORMAT => <from zmconfig>;
+use constant ZM_UPLOAD_ARCH_COMPRESS => <from zmconfig>;
+use constant ZM_UPLOAD_ARCH_ANALYSE => <from zmconfig>;
+use constant ZM_UPLOAD_FTP_HOST => "<from zmconfig>";
+use constant ZM_UPLOAD_FTP_USER => "<from zmconfig>";
+use constant ZM_UPLOAD_FTP_PASS => "<from zmconfig>";
+use constant ZM_UPLOAD_FTP_LOC_DIR => "<from zmconfig>";
+use constant ZM_UPLOAD_FTP_REM_DIR => "<from zmconfig>";
+use constant ZM_UPLOAD_FTP_TIMEOUT => <from zmconfig>;
+use constant ZM_UPLOAD_FTP_PASSIVE => <from zmconfig>;
+use constant ZM_UPLOAD_FTP_DEBUG => <from zmconfig>;
+
+use constant EVENT_PATH => "@WEB_PREFIX@/".ZM_DIR_EVENTS;
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter-%d.log';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
-# Comment these out if you don't have them and don't want to upload
-# or don't want to use that format
-use Archive::Zip qw( :ERROR_CODES :CONSTANTS );
-use Archive::Tar;
-use Net::FTP;
-
-use constant ARCH_FORMAT => 'tar'; # This can be 'tar' or 'zip'
-use constant ARCH_COMPRESS => '0'; # Whether to compress archive files
-use constant ARCH_ANALYSE => '0'; # Whether to include the analysis files in the archive, bigger but slower
-
-use constant FTP_HOST => 'raq182.uk2net.com';	# Your ftp host
-use constant FTP_USER => 'admin';				# Your ftp username
-use constant FTP_PASS => 'n603mht';				# Your ftp password
-use constant FTP_LOC_DIR => '/temp_data/';			# The local directory in which to create upload files
-use constant FTP_REM_DIR => 'transfer/';		# The remote directory to upload to
-use constant FTP_TIMEOUT => 120;				# How long we allow the transfer to take for each file
-use constant FTP_PASSIVE => 1;					# Whether to use passive ftp
-use constant FTP_DEBUG => 0;					# Whether to switch ftp debugging on
+if ( ZM_OPT_UPLOAD )
+{
+	# Comment these out if you don't have them and don't want to upload
+	# or don't want to use that format
+	if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
+	{
+		use Archive::Zip qw( :ERROR_CODES :CONSTANTS );
+	}
+	else
+	{
+		use Archive::Tar;
+	}
+	use Net::FTP;
+}
 
 # ==========================================================================
 #
@@ -136,7 +148,7 @@ select( LOG ); $| = 1;
 
 chdir( EVENT_PATH );
 
-my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql@".ZM_DB_SERVER.":".ZM_DB_NAME, ZM_DB_USERA, ZM_DB_PASSA );
 
 my $last_event_id;
 
@@ -167,7 +179,7 @@ while( 1 )
 	if ( $last_event_id > $event_id )
 	{
 		# Got new event to check
-		if ( (time() - $last_action) > FILTER_RELOAD_DELAY )
+		if ( (time() - $last_action) > ZM_FILTER_RELOAD_DELAY )
 		{
 			print( "Reloading filters\n" ) if ( VERBOSE );
 			$last_action = time();
@@ -191,15 +203,15 @@ while( 1 )
 				while( my $event = $sth->fetchrow_hashref() )
 				{
 					print( "Checking event $event->{Id}\n" ) if ( VERBOSE );
-					if ( $filter->{AutoUpload} )
+					if ( ZM_OPT_UPLOAD && $filter->{AutoUpload} )
 					{
 						next if ( $event->{Uploaded} );
 
-						my $arch_file = FTP_LOC_DIR.$filter->{MonitorName}.'-'.$event->{Id};
-						my $arch_image_path = "$filter->{MonitorName}/$event->{Id}/".(ARCH_ANALYSE?'*':'capture*').".jpg";
+						my $arch_file = ZM_UPLOAD_FTP_LOC_DIR.'/'.$filter->{MonitorName}.'-'.$event->{Id};
+						my $arch_image_path = "$filter->{MonitorName}/$event->{Id}/".(ZM_UPLOAD_ARCH_ANALYSE?'*':'capture*').".jpg";
 						my $arch_error;
 
-						if ( ARCH_FORMAT eq "zip" )
+						if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
 						{
 							$arch_file .= '.zip';
 							my $zip = Archive::Zip->new();
@@ -211,7 +223,7 @@ while( 1 )
 								print( "Adding $image_file\n" );
 								my $member = $zip->addFile( $image_file );
 								last unless ( $member );
-								$member->desiredCompressionMethod( ARCH_COMPRESS?COMPRESSION_DEFLATED:COMPRESSION_STORED );
+								$member->desiredCompressionMethod( ZM_UPLOAD_ARCH_COMPRESS?COMPRESSION_DEFLATED:COMPRESSION_STORED );
 							}
 							$status = $zip->writeToFileNamed( $arch_file );
 
@@ -220,9 +232,9 @@ while( 1 )
 								print( "Zip error: $status\n " );
 							}
 						}
-						elsif ( ARCH_FORMAT eq "tar" )
+						elsif ( ZM_UPLOAD_ARCH_FORMAT eq "tar" )
 						{
-							if ( ARCH_COMPRESS )
+							if ( ZM_UPLOAD_ARCH_COMPRESS )
 							{
 								$arch_file .= '.tar.gz';
 							}
@@ -232,7 +244,7 @@ while( 1 )
 							}
 							print( "Creating upload file '$arch_file'\n" );
 
-							if ( $arch_error = !Archive::Tar->create_archive( $arch_file, ARCH_COMPRESS, <*$arch_image_path> ) )
+							if ( $arch_error = !Archive::Tar->create_archive( $arch_file, ZM_UPLOAD_ARCH_COMPRESS, <*$arch_image_path> ) )
 							{
 								print( "Tar error: ".Archive::Tar->error()."\n " );
 							}
@@ -241,11 +253,11 @@ while( 1 )
 
 						if ( !$arch_error )
 						{
-							print( "Uploading to ".FTP_HOST."\n" );
-							my $ftp = Net::FTP->new( FTP_HOST, Timeout=>FTP_TIMEOUT, Passive=>FTP_PASSIVE, Debug=>FTP_DEBUG );
-							$ftp->login( FTP_USER, FTP_PASS ) or warn( "FTP - Can't login" );
+							print( "Uploading to ".ZM_UPLOAD_FTP_HOST."\n" );
+							my $ftp = Net::FTP->new( ZM_UPLOAD_FTP_HOST, Timeout=>ZM_UPLOAD_FTP_TIMEOUT, Passive=>ZM_UPLOAD_FTP_PASSIVE, Debug=>ZM_UPLOAD_FTP_DEBUG );
+							$ftp->login( ZM_UPLOAD_FTP_USER, ZM_UPLOAD_FTP_PASS ) or warn( "FTP - Can't login" );
 							$ftp->binary() or warn( "FTP - Can't go binary" );
-							$ftp->cwd( FTP_REM_DIR ) or warn( "FTP - Can't cwd" );
+							$ftp->cwd( ZM_UPLOAD_FTP_REM_DIR ) or warn( "FTP - Can't cwd" );
 							$ftp->put( $arch_file ) or warn( "FTP - Can't upload '$arch_file'" );
 							$ftp->quit() or warn( "FTP - Can't quit" );
 							unlink( $arch_file );

@@ -22,12 +22,13 @@
 
 void Usage( int status=-1 )
 {
-	fprintf( stderr, "zmu <-d device_no> [-v]\n" );
+	fprintf( stderr, "zmu <-d device_no> [-v] [function]\n" );
 	fprintf( stderr, "zmu [-m monitor_id] [-v] [function]\n" );
 	fprintf( stderr, "Options:\n" );
 	fprintf( stderr, "  -d, --device <device_no>       : Get the current video device settings for /dev/video<device_no>\n" );
 	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 1 if absent\n" );
 	fprintf( stderr, "  -v, --verbose                  : Produce more verbose output\n" );
+	fprintf( stderr, "  -q, --query                    : Query the current settings for the device or monitor\n" );
 	fprintf( stderr, "  -s, --state                    : Output the current monitor state, 0 = idle, 1 = alarm, 2 = alert\n" );
 	fprintf( stderr, "  -i, --image [image_index]      : Write captured image to disk as <monitor_name>.jpg, last image captured\n" );
 	fprintf( stderr, "                                   or specified ring buffer index if given.\n" );
@@ -40,8 +41,8 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -z, --zones                    : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n" );
 	fprintf( stderr, "  -a, --alarm                    : Force alarm in monitor, this will trigger recording until cancelled with -c\n" );
 	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm in monitor, required after being enabled with -a\n" );
-	fprintf( stderr, "  -q, --query                    : Query the current settings for the monitors and zones\n" );
 	fprintf( stderr, "  -h, --help - This screen\n" );
+	fprintf( stderr, "Note, only the -q/--query option is valid with -d/--device\n" );
 
 	exit( status );
 }
@@ -172,9 +173,9 @@ int main( int argc, char *argv[] )
 		Usage();
 	}
 
-	if ( dev_id >= 0 && function != BOGUS )
+	if ( dev_id >= 0 && function != QUERY )
 	{
-		fprintf( stderr, "Error, -d option cannot be used with -m or related options\n" );
+		fprintf( stderr, "Error, -d option cannot be used with this options\n" );
 		Usage();
 	}
 	//printf( "Monitor %d, Function %d\n", mon_id, function );

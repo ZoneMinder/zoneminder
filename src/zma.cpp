@@ -57,9 +57,7 @@ int main( int argc, char *argv[] )
 
 	while (1)
 	{
-		int this_option_optind = optind ? optind : 1;
 		int option_index = 0;
-		int opterr = 1;
 
 		int c = getopt_long (argc, argv, "m:h", long_options, &option_index);
 		if (c == -1)
@@ -130,7 +128,6 @@ int main( int argc, char *argv[] )
 		while( 1 )
 		{
 			// Process the next image
-			bool result = false;
 			sigprocmask( SIG_BLOCK, &block_set, 0 );
 			if ( !monitor->Analyse() )
 			{

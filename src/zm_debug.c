@@ -143,8 +143,6 @@ int zmGetDebugEnv( const char * const command )
 
 int zmDebugInitialise()
 {
-	char *prev_file = (char*)NULL;
-
 	FILE *tmp_fp;
 
 	int status;
@@ -197,12 +195,12 @@ int zmDebugInitialise()
 
 	if ( sigaction( SIGUSR1, &action, &old_action ) < 0 )
 	{
-		Error(("%s(), error = %s",sigaction,strerror(errno)));
+		Error(("sigaction(), error = %s",strerror(errno)));
 		return(ZM_DBG_ERROR);
 	}
 	if ( sigaction( SIGUSR2, &action, &old_action ) < 0)
 	{
-		Error(("%s(), error = %s",sigaction,strerror(errno)));
+		Error(("sigaction(), error = %s",strerror(errno)));
 		return(ZM_DBG_ERROR);
 	}
 	}
@@ -290,7 +288,6 @@ int zmDbgOutput( const char *fstring, ... )
 	int				log_code;
 	struct timeval	tp;
 	struct timezone tzp;
-	static int count = 0;
 	
 	zm_temp_dbg_string[0] = '\0';
 	va_start(arg_ptr,fstring);
@@ -302,7 +299,7 @@ int zmDbgOutput( const char *fstring, ... )
 	{
 		zmDbgSubtractTime( &tp, &zm_dbg_start );
 
-		sprintf( time_string, "%d.%03ld", tp.tv_sec, tp.tv_usec/1000 );
+		sprintf( time_string, "%ld.%03ld", tp.tv_sec, tp.tv_usec/1000 );
 	}
 	else
 	{

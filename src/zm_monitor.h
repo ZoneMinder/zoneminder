@@ -50,17 +50,17 @@ protected:
 	// These are read from the DB and thereafter remain unchanged
 	int		id;
 	char	*name;
+	Function	function;
 	char	label_format[64];	// The format of the timestamp on the images
 	Coord	label_coord;		// The coordinates of the timestamp on the images
+	int		image_buffer_count; // Size of circular image buffer, at least twice the size of the pre_event_count
 	int		warmup_count;		// How many images to process before looking for events
 	int		pre_event_count;	// How many images to hold and prepend to an alarm event
 	int		post_event_count;	// How many unalarmed images must occur before the alarm state is reset
-	int		image_buffer_count; // Size of circular image buffer, at least twice the size of the pre_event_count
 	int 	capture_delay;		// How long we wait between capture frames
 	int		fps_report_interval;// How many images should be captured/processed between reporting the current FPS
 	int		ref_blend_perc;		// Percentage of new image going into reference image.
 
-	Function	function;
 	double	fps;
 	Image	image;
 	Image	ref_image;
@@ -212,7 +212,7 @@ public:
 	static int Load( int device, Monitor **&monitors, bool capture=true );
 	static int Load( const char *host, const char*port, const char*path, Monitor **&monitors, bool capture=true );
 	static Monitor *Load( int id, bool load_zones=false );
-	void StreamImages( unsigned long idle=5000, unsigned long refresh=50, FILE *fd=stdout, unsigned int ttl=0 );
+	void StreamImages( unsigned long idle=5000, unsigned long refresh=50, FILE *fd=stdout, time_t ttl=0 );
 };
 
 #endif // ZM_MONITOR_H

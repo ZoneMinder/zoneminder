@@ -38,7 +38,7 @@ int main( int argc, const char *argv[] )
 		char *q_ptr = temp_query;
 		char *parms[8]; // Shouldn't be more than this
 		int parm_no = 0;
-		while( parms[parm_no] = strtok( q_ptr, "&" ) )
+		while( (parms[parm_no] = strtok( q_ptr, "&" )) )
 		{
 			parm_no++;
 			q_ptr = NULL;

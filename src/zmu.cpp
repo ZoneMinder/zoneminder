@@ -97,9 +97,7 @@ int main( int argc, char *argv[] )
 	int image_idx = -1;
 	while (1)
 	{
-		int this_option_optind = optind ? optind : 1;
 		int option_index = 0;
-		int opterr = 1;
 
 		int c = getopt_long (argc, argv, "d:m:vsrwie::t::fzacqh", long_options, &option_index);
 		if (c == -1)
@@ -237,14 +235,14 @@ int main( int argc, char *argv[] )
 					if ( timestamp.tv_sec )
 						strftime( timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime( &timestamp.tv_sec ) );
 					if ( image_idx == -1 )
-						printf( "Time of last image capture: %s.%02d\n", timestamp_str, timestamp.tv_usec/10000 );
+						printf( "Time of last image capture: %s.%02ld\n", timestamp_str, timestamp.tv_usec/10000 );
 					else
-						printf( "Time of image %d capture: %s.%02d\n", image_idx, timestamp_str, timestamp.tv_usec/10000 );
+						printf( "Time of image %d capture: %s.%02ld\n", image_idx, timestamp_str, timestamp.tv_usec/10000 );
 				}
 				else
 				{
 					if ( have_output ) printf( "%c", separator );
-					printf( "%d.%02d", timestamp.tv_sec, timestamp.tv_usec/10000 );
+					printf( "%ld.%02ld", timestamp.tv_sec, timestamp.tv_usec/10000 );
 					have_output = true;
 				}
 			}
@@ -284,7 +282,7 @@ int main( int argc, char *argv[] )
 			if ( function & FPS )
 			{
 				if ( verbose )
-					printf( "Current capture rate: %.2f frames per second\n", monitor->GetLastEvent() );
+					printf( "Current capture rate: %.2f frames per second\n", monitor->GetFPS() );
 				else
 				{
 					if ( have_output ) printf( "%c", separator );

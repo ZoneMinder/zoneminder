@@ -28,7 +28,7 @@ define( "ZM_PATH", "@prefix@/bin" );			// Path to the general ZoneMonitor execut
 define( "ZMU_PATH", ZM_PATH."/zmu" );			// Path to the ZoneMinder Utility
 define( "ZMS_PATH", "/cgi-bin/zms" );			// Path to the ZoneMinder Stream server
 define( "EVENT_PATH", "events" );				// Local path to where events directory lives
-define( "ZMS_EVENT_PATH", "@webdir@" );			// Full path (not web) to where events directory lives
+define( "ZMS_EVENT_PATH", "@WEB_PREFIX@" );			// Full path (not web) to where events directory lives
 define( "CAMBOZOLA_PATH", "cambozola.jar" );	// Path to (optional) cambozola java streaming client (recommended)
 define( "MPEG_ENCODE_PATH", "./mpeg_encode" );	// Path to (optional) mpeg video encoder
 define( "NETPBM_DIR", "/usr/bin" );				// Path to (optional) Netpbm utilities

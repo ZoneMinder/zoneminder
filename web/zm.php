@@ -457,7 +457,8 @@ function checkAll(form,name){
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <?php
 	//$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." order by E.Id desc";
-	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,sum(F.Score)/count(if(F.AlarmFrame,1,NULL)) as Score, max(F.Score) as MaxScore from Monitors as M, Events as E left join Frames as F on E.Id = F.EventId where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." group by E.Id order by E.Id desc";
+	//$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,sum(F.Score)/count(if(F.AlarmFrame,1,NULL)) as Score, max(F.Score) as MaxScore from Monitors as M, Events as E left join Frames as F on E.Id = F.EventId where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." group by E.Id order by E.Id desc";
+	$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = ".($archived?"1":"0")." order by E.Id desc";
 	if ( $max_events )
 		$sql .= " limit 0,$max_events";
 	$result = mysql_query( $sql );
@@ -501,7 +502,7 @@ function checkAll(form,name){
 <td align="center" class="text"><?php echo strftime( "%m/%d %H:%M:%S", $row[Time] ) ?></td>
 <td align="center" class="text"><?php echo $row[Length] ?></td>
 <td align="center" class="text"><?php echo $row[Frames] ?> (<?php echo $row[AlarmFrames] ?>)</td>
-<td align="center" class="text"><?php echo (int)$row[Score] ?> (<?php echo sprintf( "%d", $row[MaxScore] ) ?>)</td>
+<td align="center" class="text"><?php echo $row[AvgScore] ?> (<?php echo $row[MaxScore] ?>)</td>
 <td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>"></td>
 </tr>
 <?php

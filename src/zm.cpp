@@ -1289,6 +1289,8 @@ Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), 
 	end_time = 0;
 	frames = 0;
 	alarm_frames = 0;
+	tot_score = 0;
+	max_score = 0;
 	sprintf( path, "%s/%04d", monitor->GetTimestampPath( 0 ), id );
 	
 	struct stat statbuf;
@@ -1306,7 +1308,7 @@ Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), 
 Event::~Event()
 {
 	static char sql[256];
-	sprintf( sql, "update Events set Name='Event-%d', EndTime = now(), Length = %d, Frames = %d, AlarmFrames = %d where Id=%d", id, (end_time-start_time), frames, alarm_frames, id );
+	sprintf( sql, "update Events set Name='Event-%d', EndTime = now(), Length = %d, Frames = %d, AlarmFrames = %d, AvgScore = %d, MaxScore = %d where Id=%d", id, (end_time-start_time), frames, alarm_frames, (int)(tot_score/alarm_frames), max_score, id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't update event: %s\n", mysql_error( &dbconn ) ));
@@ -1339,6 +1341,9 @@ void Event::AddFrame( time_t timestamp, const Image *image, const Image *alarm_i
 		alarm_frames++;
 		sprintf( event_file, "%s/analyse-%03d.jpg", path, frames );
 		alarm_image->WriteJpeg( event_file );
+		tot_score += score;
+		if ( score > max_score )
+			max_score = score;
 	}
 }
 

@@ -490,6 +490,8 @@ protected:
 	int		end_frame_id;
 	int		frames;
 	int		alarm_frames;
+	unsigned int	tot_score;
+	unsigned int	max_score;
 	char	path[256];
 
 public:

@@ -366,7 +366,10 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
 	
-	sprintf( sql, "select M.Id, M.Name, E.Length, E.Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
+	if ( !initialised )
+		Initialise();
+
+	sprintf( sql, "select M.Id, M.Name, E.Frames, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -388,8 +391,8 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 	}
 
 	sprintf( eventpath, "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
-	int duration = atoi(dbrow[2]);
-	int frames = atoi(dbrow[3]);
+	int frames = atoi(dbrow[2]);
+	int duration = atoi(dbrow[3]);
 
 	int min_fps = 1;
 	int max_fps = maxfps;
@@ -404,7 +407,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 		frame_mod *= 2; 
 	}
 
-	Debug( 1, ( "Duration:%d, Frames:%d, BFPS:%d, EFPS:%d, FM:%d", atoi(dbrow[2]), atoi(dbrow[3]), base_fps, effective_fps, frame_mod ));
+	Debug( 1, ( "Frames:%d, Duration: %d, BFPS:%d, EFPS:%d, FM:%d", frames, duration, base_fps, effective_fps, frame_mod ));
 
 	mysql_free_result( result );
 
@@ -455,16 +458,11 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 				static char filepath[PATH_MAX];
 				sprintf( filepath, capture_file_format, eventpath, id );
 
-				fprintf( stdout, "Content-Length: %d\r\n", n_bytes );
-				fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
 				if ( scale == 100 )
 				{
 					if ( (fdj = fopen( filepath, "r" )) )
 					{
-						while ( (n_bytes = fread( buffer, 1, sizeof(buffer), fdj )) )
-						{
-							write( fileno(stdout), buffer, n_bytes );
-						}
+						n_bytes = fread( buffer, 1, sizeof(buffer), fdj );
 						fclose( fdj );
 					}
 					else
@@ -479,9 +477,10 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 					image.Scale( scale );
 
 					image.EncodeJpeg( buffer, &n_bytes );
-
-					write( fileno(stdout), buffer, n_bytes );
 				}
+				fprintf( stdout, "Content-Length: %d\r\n", n_bytes );
+				fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
+				write( fileno(stdout), buffer, n_bytes );
 				fprintf( stdout, "\r\n\r\n--ZoneMinderFrame\r\n" );
 				fflush( stdout );
 				last_delta = this_delta;
@@ -512,9 +511,12 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
 	
+	if ( !initialised )
+		Initialise();
+
 	bool timed_frames = (bool)config.Item( ZM_VIDEO_TIMED_FRAMES );
 
-	sprintf( sql, "select M.Id, M.Name, E.Length, E.Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
+	sprintf( sql, "select M.Id, M.Name, E.Frames, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -536,8 +538,8 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 	}
 
 	sprintf( eventpath, "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
-	int duration = atoi(dbrow[2]);
-	int frames = atoi(dbrow[3]);
+	int frames = atoi(dbrow[2]);
+	int duration = atoi(dbrow[3]);
 
 	int min_fps = 1;
 	int max_fps = maxfps;
@@ -552,7 +554,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 		frame_mod *= 2; 
 	}
 
-	Debug( 1, ( "Duration:%d, Frames:%d, BFPS:%d, EFPS:%d, FM:%d", atoi(dbrow[2]), atoi(dbrow[3]), base_fps, effective_fps, frame_mod ));
+	Debug( 1, ( "Frames:%d, Duration: %d, BFPS:%d, EFPS:%d, FM:%d", frames, duration, base_fps, effective_fps, frame_mod ));
 
 	mysql_free_result( result );
 

@@ -40,7 +40,7 @@ $heights = array();
 for ( $i = 0; $i < count($monitors); $i++ )
 {
 	$monitor = $monitors[$i];
-	$frame_height = (ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$monitor['Height'])+16;
+	$frame_height = (ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$monitor['Height'])+(ZM_WEB_COMPACT_MONTAGE?0:16);
 	$frame_width = (ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$monitor['Width']);
 	$row = $i/ZM_WEB_MONTAGE_MAX_COLS;
 	$col = $i%ZM_WEB_MONTAGE_MAX_COLS;
@@ -61,6 +61,15 @@ $col_spec = join( ',', $widths );
 window.focus();
 </script>
 </head>
+<?php
+if ( ZM_WEB_COMPACT_MONTAGE )
+{
+?>
+<frameset rows="16,*" cols="*" border="1" frameborder="no" framespacing="0">
+<frame src="<?= $PHP_SELF ?>?view=montagemenu&mode=<?= $mode ?>" marginwidth="0" marginheight="0" name="MontageMenu" scrolling="no">
+<?php
+}
+?>
 <frameset rows="<?= $row_spec ?>" cols="<?= $col_spec ?>" border="1" frameborder="no" framespacing="0">
 <?php
 for ( $row = 0; $row < $rows; $row++ )
@@ -72,10 +81,18 @@ for ( $row = 0; $row < $rows; $row++ )
 		{
 			$monitor = $monitors[$i];
 ?>
-<frame src="<?= $PHP_SELF ?>?view=montageframe&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MontageFrame<?= $monitor['Id'] ?>" scrolling="no">
+<frame src="<?= $PHP_SELF ?>?view=montageframe&mid=<?= $monitor['Id'] ?>&mode=<?= $mode ?>" marginwidth="0" marginheight="0" name="MontageFrame<?= $monitor['Id'] ?>" scrolling="no">
 <?php
 		}
 	}
+}
+?>
+<?php
+if ( ZM_WEB_COMPACT_MONTAGE )
+{
+?>
+</frameset>
+<?php
 }
 ?>
 </frameset>

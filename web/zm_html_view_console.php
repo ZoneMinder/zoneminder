@@ -137,7 +137,7 @@ preg_match( '/load average: ([\d.]+)/', $uptime, $matches );
 if ( canView( 'Stream' ) && $cycle_count > 1 )
 {
 ?>
-<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $montage_width+$jws['cycle']['w'] ?>, <?= $montage_height+$jws['cycle']['h'] ?> );"><?= sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) ) ?></a>&nbsp;(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage', 'zmMontage', <?= ($montage_cols*$montage_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*(40+$montage_height))+$jws['montage']['h'] ?> );"><?= $zmSlangMontage ?></a>)
+<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $montage_width+$jws['cycle']['w'] ?>, <?= $montage_height+$jws['cycle']['h'] ?> );"><?= sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) ) ?></a>&nbsp;(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage', 'zmMontage', <?= ($montage_cols*$montage_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*((ZM_WEB_COMPACT_MONTAGE?4:40)+$montage_height))+$jws['montage']['h'] ?> );"><?= $zmSlangMontage ?></a>)
 <?php
 }
 else

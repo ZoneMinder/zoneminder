@@ -861,6 +861,14 @@ my @options =
 		category => 'web',
 	},
 	{
+		name => "ZM_WEB_COMPACT_MONTAGE",
+		default => "no",
+		description => "Whether to compact the montage view by removing status and FPS information",
+		help => "The montage view shows the output of all of your active monitors in one window. This include a small menu and status information for each one. This can increase the web traffic and make the window larger than may be desired. Setting this option on removes all this extraneous information and just displays the images.",
+		type => $types{boolean},
+		category => 'web',
+	},
+	{
 		name => "ZM_WEB_H_REFRESH_MAIN",
 		default => "300",
 		introduction => "There are now a number of options that are grouped into bandwidth categories, this allows you to configure the ZoneMinder client to work optimally over the various access methods you might to access the client.\n\nThe next few options control what happens when the client is running in 'high' bandwidth mode. You should set these options for when accessing the ZoneMinder client over a local network or high speed link. In most cases the default values will be suitable as a starting point.",

@@ -384,6 +384,11 @@ if ( !connect( CLIENT, $saddr ) )
 				{
 					$process->{pending} = $process->{stopped}+$process->{delay};
 					$process->{delay} *= 2;
+					# Limit the start delay to 15 minutes max
+					if ( $process->{delay} > 900 )
+					{
+						$process->{delay} = 900;
+					}
 				}
 			}
 		}

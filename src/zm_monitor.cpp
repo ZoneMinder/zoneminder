@@ -43,6 +43,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	state = IDLE;
 
 	int shared_images_size = sizeof(SharedImages)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
+	Info(( "shm.size=%d", shared_images_size ));
 	shmid = shmget( ZM_SHM_KEY|id, shared_images_size, IPC_CREAT|0777 );
 	if ( shmid < 0 )
 	{

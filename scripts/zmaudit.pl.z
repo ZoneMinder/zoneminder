@@ -38,7 +38,7 @@
 use constant DB_NAME => "zm";
 use constant DB_USER => "zmadmin";
 use constant DB_PASS => "zmadminzm";
-use constant EVENT_PATH => "/data/zm/events";
+use constant EVENT_PATH => "@WEB_PREFIX@/events";
 use constant LOG_FILE => '/tmp/zmaudit.log';
 
 # ==========================================================================

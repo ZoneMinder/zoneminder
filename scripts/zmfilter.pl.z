@@ -36,7 +36,7 @@ use constant DB_NAME => "zm";
 use constant DB_USER => "zmadmin";
 use constant DB_PASS => "zmadminzm";
 use constant ZM_SHM_KEY => 0x7a6d2000;
-use constant EVENT_PATH => "/data/zm/events";
+use constant EVENT_PATH => "@WEB_PREFIX@/events";
 use constant FILTER_RELOAD_DELAY => 300; # How often filters are reloaded
 use constant LOG_FILE => '/tmp/zmfilter-%d.log';
 

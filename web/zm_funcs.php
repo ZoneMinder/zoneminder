@@ -22,7 +22,7 @@ function userLogin( $username, $password )
 {
 	global $user, $cookies, $_SESSION, $_SERVER;
 
-	$sql = "select * from Users where Username = '$username' and Password = password('$password') and Enabled = 1";
+	$sql = "select * from Users where Username = '".mysql_escape_string($username)."' and Password = password('".mysql_escape_string($password)."') and Enabled = 1";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();

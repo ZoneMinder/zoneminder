@@ -30,6 +30,7 @@ function closeWindow()
 {
 	window.close();
 }
+window.focus();
 </script>
 </head>
 <body>

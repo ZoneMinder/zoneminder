@@ -100,9 +100,9 @@ void Image::WriteJpeg( const char *filename ) const
 {
 	if ( ZM_COLOUR_JPEG_FILES && colours == 1 )
 	{
-		Image *temp_image = new Image( *this );
-		temp_image->Colourise();
-		temp_image->WriteJpeg( filename );
+		Image temp_image( *this );
+		temp_image.Colourise();
+		temp_image.WriteJpeg( filename );
 		return;
 	}
 

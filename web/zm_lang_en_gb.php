@@ -120,6 +120,7 @@ $zmSlangCaptureHeight        = 'Capture Height';
 $zmSlangCapturePalette       = 'Capture Palette';
 $zmSlangCaptureWidth         = 'Capture Width';
 $zmSlangCheckAll             = 'Check All';
+$zmSlangCheckMethod          = 'Alarm Check Method';
 $zmSlangChooseFilter         = 'Choose Filter';
 $zmSlangClose                = 'Close';
 $zmSlangColour               = 'Colour';

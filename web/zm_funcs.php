@@ -20,7 +20,7 @@
 
 function userLogin( $username, $password )
 {
-	global $user, $HTTP_SESSION_VARS;
+	global $user, $HTTP_SESSION_VARS, $HTTP_SERVER_VARS;
 
 	$sql = "select * from Users where Username = '$username' and Password = password('$password') and Enabled = 1";
 	$result = mysql_query( $sql );
@@ -28,6 +28,7 @@ function userLogin( $username, $password )
 		echo mysql_error();
 	$HTTP_SESSION_VARS['username'] = $username;
 	$HTTP_SESSION_VARS['password'] = $password;
+	$HTTP_SESSION_VARS['remote_addr'] = $HTTP_SERVER_VARS['REMOTE_ADDR']; // To help prevent session hijacking
 	if ( $db_user = mysql_fetch_assoc( $result ) )
 	{
 		$HTTP_SESSION_VARS['user'] = $user = $db_user;
@@ -586,5 +587,23 @@ function parseFilter()
 		}
 	}
 	$filter_sql = " and ( $filter_sql )";
+}
+
+function getLoad()
+{
+	$uptime = shell_exec( 'uptime' );
+	$load = '';
+	if ( preg_match( '/load average: ([\d.]+)/', $uptime, $matches ) )
+		$load = $matches[1];
+	return( $load );
+}
+
+function getSpace()
+{
+	$df = shell_exec( 'df '.ZM_DIR_EVENTS );
+	$load = '';
+	if ( preg_match( '/\s(\d+%)/ms', $df, $matches ) )
+		$space = $matches[1];
+	return( $space );
 }
 ?>

@@ -65,9 +65,9 @@ window.setTimeout( "window.location.reload(true)", <?= $refresh*1000 ?> );
 <body>
 <table width="90%" align="center" border="0" cellpadding="0" cellspacing="0">
 <tr>
-<td width="30%" class="text" align="left">&nbsp;</td>
-<td width="40%" class="<?= $class ?>" align="center" valign="middle">Status:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
-<td width="30%" align="right" class="text">&nbsp;</td>
+<td width="15%" class="text" align="left">&nbsp;</td>
+<td width="70%" class="<?= $class ?>" align="center" valign="middle">Status:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
+<td width="15%" align="right" class="text">&nbsp;</td>
 </tr>
 </table>
 <?php

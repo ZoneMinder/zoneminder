@@ -5,9 +5,9 @@ include_once( 'browser.php' );
 import_request_variables( "GPC" );
 
 $DB_SERVER = "localhost";	// Database Server machine
-$DB_NAME   = "polycam";		// Database containing the tables
-$DB_USER   = "root";		// Database login
-$DB_PASS   = "";		// Database password
+$DB_NAME   = "zm";		// Database containing the tables
+$DB_USER   = "zmadmin";		// Database login
+$DB_PASS   = "zmadminzm";		// Database password
 
 define( "MAX_EVENTS", 12 );
 

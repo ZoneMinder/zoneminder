@@ -154,7 +154,7 @@ function newWindow(Url,Name,Width,Height)
 }
 function eventWindow(Url,Name)
 {
-	var Name = window.open(Url,Name,"resizable,scrollbars,width=<?= $monitor[Width]+$jws['event']['w'] ?>,height=<?= $monitor[Height]+$jws['event']['h'] ?>");
+	var Name = window.open(Url,Name,"resizable,width=<?= $monitor[Width]+$jws['event']['w'] ?>,height=<?= $monitor[Height]+$jws['event']['h'] ?>");
 }
 function filterWindow(Url,Name)
 {

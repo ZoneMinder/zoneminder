@@ -69,7 +69,7 @@ function closeWindow()
 }
 function newWindow(Url,Name,Width,Height)
 {
-	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 </script>
 </head>

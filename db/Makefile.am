@@ -20,4 +20,5 @@ EXTRA_DIST = \
 	zmalter-1.19.1.sql \
 	zmalter-1.19.2.sql \
 	zmalter-1.19.3.sql \
-	zmalter-1.19.4.sql
+	zmalter-1.19.4.sql \
+	zmalter-1.19.5.sql

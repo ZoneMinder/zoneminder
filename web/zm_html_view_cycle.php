@@ -59,8 +59,6 @@ $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
     
 if ( $mode != "stream" )
 {
-	// Prompt an image to be generated
-	createImage( $monitor, $scale );
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
 		header("Refresh: ".ZM_WEB_REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
 }
@@ -127,8 +125,9 @@ if ( $mode == "stream" )
 }
 else
 {
+	$image_src = ZM_PATH_ZMS."?mode=single&monitor=".$monitor['Id']."&scale=".$scale;
 ?>
-<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></a></td></tr>
+<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= $image_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></a></td></tr>
 <?php
 }
 ?>

@@ -46,7 +46,6 @@ $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 if ( $mode != "stream" )
 {
 	// Prompt an image to be generated
-	createImage( $monitor, $scale );
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
 		header("Refresh: ".ZM_WEB_REFRESH_IMAGE."; URL=$PHP_SELF?view=montagefeed&mid=$mid&mode=still&scale=$scale" );
 }
@@ -55,6 +54,8 @@ header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modifie
 header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");			  // HTTP/1.0
+
+$image_src = ZM_PATH_ZMS."?mode=single&monitor=".$monitor['Id']."&scale=".$scale;
 
 ?>
 <html>
@@ -70,16 +71,13 @@ if ( $mode != "stream" && ZM_WEB_REFRESH_METHOD == "javascript" )
 ?>
 function fetchImage()
 {
-	window.parent.MontageFetch<?= $monitor['Id'] ?>.location.reload( true );
-
 	var now = new Date();
 	var zm_image = new Image();
-	zm_image.src = '<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg?'+now.getTime();
+	zm_image.src = '<?= $image_src ?>'+'&'+now.getTime();
 
 	document['zmImage'].src = zm_image.src;
 }
 
-window.parent.MontageFetch<?= $monitor['Id'] ?>.location = '<?= $PHP_SELF ?>?view=imagefetch&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>';
 window.setInterval( "fetchImage()", <?= ZM_WEB_REFRESH_IMAGE*1000 ?> );
 <?php
 	}
@@ -166,7 +164,7 @@ AutoStart=true>
 else
 {
 ?>
-<img name="zmImage" src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
+<img name="zmImage" src="<?= $image_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
 <?php
 }
 ?>

@@ -124,7 +124,6 @@ switch( $view )
 	case "watchfeed" :
 	case "watchstatus" :
 	case "watchevents" :
-	case "imagefetch" :
 	case "settings" :
 	case "events" :
 	case "filter" :

@@ -30,15 +30,7 @@ if ( !canView( 'Stream' ) )
 if ( ZM_WEB_COMPACT_MONTAGE )
 {
 ?>
-<frameset rows="<?= (ZM_WEB_REFRESH_METHOD=='javascript'&&ZM_WEB_DOUBLE_BUFFER)?'0,':'' ?>*" cols="100%" border="1" frameborder="no" framespacing="0">
-<?php
-	if ( ZM_WEB_REFRESH_METHOD == 'javascript' && ZM_WEB_DOUBLE_BUFFER )
-	{
-?>
-<frame src="about:blank" name="MontageFetch<?= $mid ?>" scrolling="no">
-	<?php
-	}
-?>
+<frameset rows="*" cols="100%" border="1" frameborder="no" framespacing="0">
 <frame src="<?= $PHP_SELF ?>?view=montagefeed&mid=<?= $mid ?>&mode=<?= $mode ?>" marginwidth="0" marginheight="0" name="MontageStream<?= $mid ?>" scrolling="no">
 </frameset>
 <?php
@@ -46,16 +38,8 @@ if ( ZM_WEB_COMPACT_MONTAGE )
 else
 {
 ?>
-<frameset rows="24,<?= (ZM_WEB_REFRESH_METHOD=='javascript'&&ZM_WEB_DOUBLE_BUFFER)?'0,':'' ?>*,16" cols="100%" border="1" frameborder="no" framespacing="0">
+<frameset rows="24,*,16" cols="100%" border="1" frameborder="no" framespacing="0">
 <frame src="<?= $PHP_SELF ?>?view=montagemenu&mid=<?= $mid ?>&mode=<?= $mode ?>" marginwidth="0" marginheight="0" name="MontageMenu<?= $mid ?>" scrolling="no">
-<?php
-	if ( ZM_WEB_REFRESH_METHOD == 'javascript' && ZM_WEB_DOUBLE_BUFFER )
-	{
-?>
-<frame src="about:blank" name="MontageFetch<?= $mid ?>" scrolling="no">
-	<?php
-	}
-?>
 <frame src="<?= $PHP_SELF ?>?view=montagefeed&mid=<?= $mid ?>&mode=<?= $mode ?>" marginwidth="0" marginheight="0" name="MontageStream<?= $mid ?>" scrolling="no">
 <frame src="<?= $PHP_SELF ?>?view=montagestatus&mid=<?= $mid ?>" marginwidth="0" marginheight="0" name="MontageStatus<?= $mid ?>" scrolling="no">
 </frameset>

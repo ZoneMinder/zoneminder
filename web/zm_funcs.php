@@ -399,6 +399,7 @@ function createVideo( $event, $rate, $scale, $overwrite=0 )
 	return( $status?"":rtrim($result) );
 }
 
+// Now deprecated
 function createImage( $monitor, $scale )
 {
 	if ( is_array( $monitor ) )

@@ -216,7 +216,7 @@ while( my $frame = $sth7->fetchrow_hashref() )
 	print( "Found orphaned frame records for event '$frame->{EventId}'" );
 	if ( confirm() )
 	{
-		$res = $sth7->execute( $frame->{EventId} ) or die( "Can't execute: ".$sth7->errstr() );
+		$res = $sth5->execute( $frame->{EventId} ) or die( "Can't execute: ".$sth7->errstr() );
 	}
 }
 
@@ -228,7 +228,7 @@ while( my $stat = $sth8->fetchrow_hashref() )
 	print( "Found orphaned statistic records for event '$stat->{EventId}'" );
 	if ( confirm() )
 	{
-		$res = $sth8->execute( $stat->{EventId} ) or die( "Can't execute: ".$sth8->errstr() );
+		$res = $sth6->execute( $stat->{EventId} ) or die( "Can't execute: ".$sth8->errstr() );
 	}
 }
 

@@ -61,7 +61,21 @@ int main( int argc, char *argv[] )
 	};
 
 	int id = 1;
-	enum { BOGUS, STATE, IMAGE, TIME, READ_IDX, WRITE_IDX, EVENT, FPS, ZONES, ALARM, CANCEL } function = BOGUS;
+	typedef enum {
+		BOGUS=0x0000,
+		STATE=0x0001,
+		IMAGE=0x0002,
+		TIME=0x0004,
+		READ_IDX=0x0008,
+		WRITE_IDX=0x0010,
+		EVENT=0x0020,
+		FPS=0x0040,
+		ZONES=0x0080,
+		ALARM=0x0100,
+		CANCEL=0x0200
+	} Function;
+	Function function = BOGUS;
+
 	int image_idx = -1;
 	while (1)
 	{
@@ -81,42 +95,42 @@ int main( int argc, char *argv[] )
 				id = atoi(optarg);
 				break;
 			case 's':
-				function = STATE;
+				function = Function(function | STATE);
 				break;
 			case 'i':
-				function = IMAGE;
+				function = Function(function | IMAGE);
 				if ( optarg )
 				{
 					image_idx = atoi( optarg );
 				}
 				break;
 			case 't':
-				function = TIME;
+				function = Function(function | TIME);
 				if ( optarg )
 				{
 					image_idx = atoi( optarg );
 				}
 				break;
 			case 'r':
-				function = READ_IDX;
+				function = Function(function | READ_IDX);
 				break;
 			case 'w':
-				function = WRITE_IDX;
+				function = Function(function | WRITE_IDX);
 				break;
 			case 'e':
-				function = EVENT;
+				function = Function(function | EVENT);
 				break;
 			case 'f':
-				function = FPS;
+				function = Function(function | FPS);
 				break;
 			case 'z':
-				function = ZONES;
+				function = Function(function | ZONES);
 				break;
 			case 'a':
-				function = ALARM;
+				function = Function(function | ALARM);
 				break;
 			case 'c':
-				function = CANCEL;
+				function = Function(function | CANCEL);
 				break;
 			case 'h':
 				Usage();
@@ -139,7 +153,7 @@ int main( int argc, char *argv[] )
 		Usage();
 	}
 
-	//printf( "Monitor %d, Function %d, ImageIdx %d\n", id, function, image_idx );
+	//printf( "Monitor %d, Function %d\n", id, function );
 
 	dbg_name = "zmu";
 	dbg_level = -1;
@@ -166,47 +180,65 @@ int main( int argc, char *argv[] )
 
 	if ( monitor )
 	{
-		if ( function == STATE )
+		char separator = ' ';
+		bool have_output = false;
+		if ( function & STATE )
 		{
-			printf( "%d\n", monitor->GetState() );
+			if ( have_output ) printf( "%c", separator );
+			printf( "%d", monitor->GetState() );
+			have_output = true;
 		}
-		else if ( function == IMAGE )
+		if ( function & TIME )
+		{
+			if ( have_output ) printf( "%c", separator );
+			printf( "%d", monitor->GetTimestamp( image_idx ) );
+			have_output = true;
+		}
+		if ( function & READ_IDX )
+		{
+			if ( have_output ) printf( "%c", separator );
+			printf( "%d", monitor->GetLastReadIndex() );
+			have_output = true;
+		}
+		if ( function & WRITE_IDX )
+		{
+			if ( have_output ) printf( "%c", separator );
+			printf( "%d", monitor->GetLastWriteIndex() );
+			have_output = true;
+		}
+		if ( function & EVENT )
+		{
+			if ( have_output ) printf( "%c", separator );
+			printf( "%d", monitor->GetLastEvent() );
+			have_output = true;
+		}
+		if ( function & FPS )
+		{
+			if ( have_output ) printf( "%c", separator );
+			printf( "%.2f", monitor->GetFPS() );
+			have_output = true;
+		}
+		if ( function & IMAGE )
 		{
 			monitor->GetImage( image_idx );
 		}
-		else if ( function == TIME )
-		{
-			printf( "%d\n", monitor->GetTimestamp( image_idx ) );
-		}
-		else if ( function == READ_IDX )
-		{
-			printf( "%d\n", monitor->GetLastReadIndex() );
-		}
-		else if ( function == WRITE_IDX )
-		{
-			printf( "%d\n", monitor->GetLastWriteIndex() );
-		}
-		else if ( function == EVENT )
-		{
-			printf( "%d\n", monitor->GetLastEvent() );
-		}
-		else if ( function == FPS )
-		{
-			printf( "%.2f\n", monitor->GetFPS() );
-		}
-		else if ( function == ZONES )
+		if ( function & ZONES )
 		{
 			monitor->ReloadZones();
 		}
-		else if ( function == ALARM )
+		if ( function & ALARM )
 		{
 			monitor->ForceAlarm();
 		}
-		else if ( function == CANCEL )
+		if ( function & CANCEL )
 		{
 			monitor->CancelAlarm();
 		}
-		else
+		if ( have_output )
+		{
+			printf( "\n" );
+		}
+		if ( !function )
 		{
 			Usage();
 		}

@@ -103,11 +103,31 @@ function newWindow(Url,Name,Width,Height)
 {
 	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
+function configureButton(form,name)
+{
+	var checked = false;
+	for (var i = 0; i < form.elements.length; i++)
+	{
+		if ( form.elements[i].name.indexOf(name) == 0)
+		{
+			if ( form.elements[i].checked )
+			{
+				checked = true;
+				break;
+			}
+		}
+	}
+	form.delete_btn.disabled = !checked;
+}
 </script>
 </head>
 <body>
-<p class="head" align="center"><strong>Zone Monitor Console</strong></p>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
+<tr>
+<td class="smallhead" align="left"><?php echo date( "D jS M, g:ia" ) ?></td>
+<td class="bighead" align="center"><strong>Zone Monitor Console</strong></td>
+<td class="smallhead" align="right"><a href="mailto:bugs@zoneminder.com?subject=ZoneMinder Bug">Report Bug</a></td>
+</tr>
 <tr>
 <td class="smallhead" align="left"><?php echo count($monitors) ?> Monitors</td>
 <td class="smallhead" align="center">Currently configured for <strong><?php echo $bandwidth ?></strong> bandwidth (change to
@@ -126,7 +146,7 @@ function newWindow(Url,Name,Width,Height)
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
-<form name="event_form" method="get" action="<?php echo $PHP_SELF ?>">
+<form name="monitor_form" method="get" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="delete">
 <tr><td align="left" class="smallhead">Id</td>
@@ -141,7 +161,7 @@ function newWindow(Url,Name,Width,Height)
 <td align="right" class="smallhead">Month</td>
 <td align="right" class="smallhead">Archive</td>
 <td align="right" class="smallhead">Zones</td>
-<td align="center" class="smallhead">Delete</td>
+<td align="center" class="smallhead">Mark</td>
 </tr>
 <?php
 		$event_count = 0;
@@ -175,7 +195,7 @@ function newWindow(Url,Name,Width,Height)
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $monitor[Id] ?>&filter=1&trms=2&attr1=DateTime&op1=%3e%3d&val1=last+month&cnj2=and&attr2=Archived&val2=0', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[MonthEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $monitor[Id] ?>&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[ArchEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+$jws['zones']['w'] ?>, <?php echo $monitor[Height]+$jws['zones']['h'] ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
-<td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $monitor[Id] ?>"></td>
+<td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $monitor[Id] ?>" onClick="configureButton( monitor_form, 'delete_mids' );"></td>
 </tr>
 <?php
 		}
@@ -190,7 +210,7 @@ function newWindow(Url,Name,Width,Height)
 <td align="right" class="text"><?php echo $month_event_count ?></td>
 <td align="right" class="text"><?php echo $arch_event_count ?></td>
 <td align="right" class="text"><?php echo $zone_count ?></td>
-<td align="center"><input type="submit" value="Delete" class="form"></td>
+<td align="center"><input type="submit" name="delete_btn" value="Delete" class="form" disabled></td>
 </tr>
 </form>
 </table>
@@ -454,6 +474,22 @@ function checkAll(form,name){
 		if (form.elements[i].name.indexOf(name) == 0)
 			form.elements[i].checked = 1;
 }
+function configureButton(form,name)
+{
+	var checked = false;
+	for (var i = 0; i < form.elements.length; i++)
+	{
+		if ( form.elements[i].name.indexOf(name) == 0)
+		{
+			if ( form.elements[i].checked )
+			{
+				checked = true;
+				break;
+			}
+		}
+	}
+	form.delete_btn.disabled = !checked;
+}
 </script>
 </head>
 <body>
@@ -496,7 +532,7 @@ function checkAll(form,name){
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&sort_field=Secs&sort_asc=<?php echo $sort_field == 'Secs'?!$sort_asc:0 ?>">Secs<?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&sort_field=Frames&sort_asc=<?php echo $sort_field == 'Frames'?!$sort_asc:0 ?>">Frames<?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=watchevents&mid=<?php echo $mid ?>&max_events=<?php echo $max_events ?>&sort_field=Score&sort_asc=<?php echo $sort_field == 'Score'?!$sort_asc:0 ?>">Score<?php if ( $sort_field == "Score" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text">Delete</td>
+<td class="text">Mark</td>
 </tr>
 <?php
 		while( $row = mysql_fetch_assoc( $result ) )
@@ -509,7 +545,7 @@ function checkAll(form,name){
 <td align="center" class="text"><?php echo $row[Length] ?></td>
 <td align="center" class="text"><?php echo $row[Frames] ?> (<?php echo $row[AlarmFrames] ?>)</td>
 <td align="center" class="text"><?php echo $row[AvgScore] ?> (<?php echo $row[MaxScore] ?>)</td>
-<td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>"></td>
+<td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>" onClick="configureButton( event_form, 'delete_eids' );"></td>
 </tr>
 <?php
 		}
@@ -517,7 +553,7 @@ function checkAll(form,name){
 </table></td></tr>
 </table></td>
 </tr>
-<tr><td align="right"><input type="submit" value="Delete" class="form"></td></tr>
+<tr><td align="right"><input type="submit" name="delete_btn" value="Delete" class="form" disabled></td></tr>
 </table></center>
 </form>
 </body>
@@ -618,6 +654,12 @@ function checkAll(form,name){
 					case 'Time':
 						$time_val = strtotime( $$value_name );
 						$filter_sql .= "extract( hour_second from E.StartTime ) ".$$op_name." extract( hour_second from from_unixtime( $time_val ) )";
+						$filter_query .= "&$op_name=".urlencode($$op_name);
+						$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
+						break;
+					case 'Weekday':
+						$time_val = strtotime( $$value_name );
+						$filter_sql .= "weekday( E.StartTime ) ".$$op_name." weekday( from_unixtime( $time_val ) )";
 						$filter_query .= "&$op_name=".urlencode($$op_name);
 						$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 						break;
@@ -737,7 +779,7 @@ filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php e
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=AlarmFrames&sort_asc=<?php echo $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>">Alarm Frames<?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=AvgScore&sort_asc=<?php echo $sort_field == 'AvgScore'?!$sort_asc:0 ?>">Avg. Score<?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?><?php echo $sort_parms ?>&sort_field=MaxScore&sort_asc=<?php echo $sort_field == 'MaxScore'?!$sort_asc:0 ?>">Max. Score<?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text">Delete</td>
+<td class="text">Mark</td>
 </tr>
 <?php
 		while( $row = mysql_fetch_assoc( $result ) )
@@ -783,7 +825,7 @@ filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php e
 			$obracket_types[$i] = str_repeat( "(", $i );
 			$cbracket_types[$i] = str_repeat( ")", $i );
 		}
-		$attr_types = array( 'DateTime'=>'Date/Time', 'Date'=>'Date', 'Time'=>'Time', 'Length'=>'Length', 'Frames'=>'Frames', 'AlarmFrames'=>'Alarm Frames', 'AvgScore'=>'Avg. Score', 'MaxScore'=>'Max. Score', 'Archived'=>'Archive Status' );
+		$attr_types = array( 'DateTime'=>'Date/Time', 'Date'=>'Date', 'Time'=>'Time', 'Weekday'=>'Weekday', 'Length'=>'Length', 'Frames'=>'Frames', 'AlarmFrames'=>'Alarm Frames', 'AvgScore'=>'Avg. Score', 'MaxScore'=>'Max. Score', 'Archived'=>'Archive Status' );
 		$op_types = array( '='=>'equal to', '!='=>'not equal to', '>='=>'greater than or equal to', '>'=>'greater than', '<'=>'less than', '<='=>'less than or equal to' );
 		$archive_types = array( '0'=>'Unarchived Only', '1'=>'Archived Only' );
 ?>
@@ -1196,6 +1238,22 @@ function closeWindow()
 {
 	window.close();
 }
+function configureButton(form,name)
+{
+	var checked = false;
+	for (var i = 0; i < form.elements.length; i++)
+	{
+		if ( form.elements[i].name.indexOf(name) == 0)
+		{
+			if ( form.elements[i].checked )
+			{
+				checked = true;
+				break;
+			}
+		}
+	}
+	form.delete_btn.disabled = !checked;
+}
 </script>
 </head>
 <body>
@@ -1219,7 +1277,7 @@ function closeWindow()
 <tr><td colspan="3" align="center"><img src="<?php echo $image ?>" usemap="#zonemap" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>" border="0"></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="0" width="96%">
-<form name="event_form" method="get" action="<?php echo $PHP_SELF ?>">
+<form name="zone_form" method="get" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="delete">
 <input type="hidden" name="mid" value="<?php echo $mid ?>">
@@ -1228,7 +1286,7 @@ function closeWindow()
 <td align="center" class="smallhead">Type</td>
 <td align="center" class="smallhead">Units</td>
 <td align="center" class="smallhead">Dimensions</td>
-<td align="center" class="smallhead">Delete</td>
+<td align="center" class="smallhead">Mark</td>
 </tr>
 <?php
 		foreach( $zones as $zone )
@@ -1240,7 +1298,7 @@ function closeWindow()
 <td align="center" class="text"><?php echo $zone['Type'] ?></td>
 <td align="center" class="text"><?php echo $zone[Units] ?></td>
 <td align="center" class="text"><?php echo $zone[LoX] ?>,<?php echo $zone[LoY] ?>-<?php echo $zone[HiX] ?>,<?php echo $zone[HiY]?></td>
-<td align="center" class="text"><input type="checkbox" name="delete_zids[]" value="<?php echo $zone[Id] ?>"></td>
+<td align="center" class="text"><input type="checkbox" name="delete_zids[]" value="<?php echo $zone[Id] ?>" onClick="configureButton( zone_form, 'delete_zids' );"></td>
 </tr>
 <?php
 		}
@@ -1248,7 +1306,7 @@ function closeWindow()
 <tr>
 <td align="center" class="text">&nbsp;</td>
 <td colspan="4" align="center"><input type="button" value="Add New Zone" class="form" onClick="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zone&mid=<?php echo $mid ?>&zid=-1', 'zmZone', <?php echo $jws['zone']['w'] ?>, <?php echo $jws['zone']['h'] ?> );"></td>
-<td align="center"><input type="submit" value="Delete" class="form"></td>
+<td align="center"><input type="submit" name="delete_btn" value="Delete" class="form" disabled></td>
 </tr>
 </form>
 </table>
@@ -1328,7 +1386,7 @@ function closeWindow()
 <tr><td align="left" class="text">Device Colour Depth</td><td align="left" class="text"><input type="text" name="new_colours" value="<?php echo $monitor[Colours] ?>" size="4" class="form"></td></tr>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
-<td align="left"><input type="submit" value="Update" class="form"></td>
+<td align="left"><input type="submit" value="Save" class="form"></td>
 <td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
@@ -1584,7 +1642,7 @@ function closeWindow()
 <tr><td align="left" class="text">Maximum Blobs</td><td align="left" class="text"><input type="text" name="new_max_blobs" value="<?php echo $zone[MaxBlobs] ?>" size="4" class="form"></td></tr>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
-<td align="left"><input type="submit" value="Update" class="form"></td>
+<td align="left"><input type="submit" value="Save" class="form"></td>
 <td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
@@ -1714,7 +1772,7 @@ function closeWindow()
 <td colspan="2" align="left" class="text">&nbsp;</td>
 </tr>
 <tr>
-<td align="left"><input type="submit" value="Update" class="form"></td>
+<td align="left"><input type="submit" value="Save" class="form"></td>
 <td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
@@ -1776,7 +1834,7 @@ function closeWindow()
 </select></td>
 </tr>
 <tr>
-<td align="center"><input type="submit" value="Update" class="form"></td>
+<td align="center"><input type="submit" value="Save" class="form"></td>
 <td align="center"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>

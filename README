@@ -389,7 +389,7 @@ separate the screens out from the rest.
 get most of the device capability information from the device itself.
 14. X-10 integration - A handy feature would be to allow a generated event to trigger some other action
 perhaps to an attached X-10 interface, for instance turn lights on or make a dog barky noise!
-15. Extend the API. Well ok it's not really got an API yet but the image datais held in shared memory in a
+15. Extend the API. Well ok it's not really got an API yet but the image data is held in shared memory in a
 very simple format. In theory you could use the capture daemon to gab the images and other things could
 read them from memory or the analysis daemon could read images from elsewhere. Either way this should be 
 done through an API, and would need a library I think. Also the zmu utility could probably do a whole lot
@@ -400,6 +400,12 @@ Possibly also revamp the fonts a bit.
 17. Access control should probably be built in rather than relying on htaccess etc.
 18. I've got lots of ideas for enhancing the motion detection part with optional algorithms etc. Just got
 to find the time somewhere!
+19. Create .rpm packages (as there can be several dependencies) and maybe other typs of packages also.
+20. Allow zones to be polygonal, to a (realistically) unlimited degree. This will incur a slight penalty on
+startup and a very slight one on processing for all reasonably shaped zones.
+21. Allow ZM to 'train' itself by allowing the user to select events which are considered important and to
+discard those that should be ignored. ZM will interpolate, add a bit of magic, and recommend settings that
+will support this selection automatically thereafter.
 
 
 Bugs

@@ -207,7 +207,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 						}
 						else
 						{
-							// Amortise blobs
+							// Aggregate blobs
 							BlobStats *bsm = bsx->count>=bsy->count?bsx:bsy;
 							BlobStats *bss = bsm==bsx?bsy:bsx;
 

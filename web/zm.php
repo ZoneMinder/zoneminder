@@ -1,5 +1,7 @@
 <?php
 
+// Zone Monitor web interface file, $Date$, $Id$
+
 import_request_variables( "GPC" );
 
 //phpinfo( INFO_VARIABLES );

@@ -32,9 +32,6 @@ if ( empty($mode) )
 		$mode = "still";
 }
 
-if ( !isset( $scale ) )
-	$scale = SCALE_SCALE;
-
 $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
 	die( mysql_error() );

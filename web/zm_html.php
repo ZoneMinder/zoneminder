@@ -251,7 +251,7 @@ function confirmStatus( new_status )
 <td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+month', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[MonthEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[ArchEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zones&mid=<?= $monitor[Id] ?>', 'zmZones', <?= $monitor[Width]+$jws['zones']['w'] ?>, <?= $monitor[Height]+$jws['zones']['h'] ?> );"><?= $monitor[ZoneCount] ?></a></td>
-<td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor[Id] ?>" onClick="configureButton( monitor_form, 'mark_mids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor[Id] ?>" onClick="configureButton( document.monitor_form, 'mark_mids' );"></td>
 </tr>
 <?php
 		}
@@ -908,7 +908,7 @@ function configureButton(form,name)
 <td class="text"><b>Last <?= $n_rows ?> events</b></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=0', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );">All</a></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );">Archive</a></td>
-<td align="right" class="text"><a href="javascript: checkAll( event_form, 'mark_eids' );">Check All</a></td>
+<td align="right" class="text"><a href="javascript: checkAll( document.event_form, 'mark_eids' );">Check All</a></td>
 </tr>
 <tr><td colspan="5" class="text">&nbsp;</td></tr>
 <tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%" bgcolor="#7F7FB2">
@@ -932,7 +932,7 @@ function configureButton(form,name)
 <td align="center" class="text"><?= $row[Length] ?></td>
 <td align="center" class="text"><?= $row[Frames] ?>/<?= $row[AlarmFrames] ?></td>
 <td align="center" class="text"><?= $row[AvgScore] ?>/<?= $row[MaxScore] ?></td>
-<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( event_form, 'mark_eids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"></td>
 </tr>
 <?php
 		}
@@ -1167,7 +1167,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <tr>
 <td align="right" class="text"><a href="javascript: location.reload();">Refresh</td>
 <td align="right" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?><?= $filter_query ?>', 'zmFilter<?= $monitor[Name] ?>' );">Show Filter Window</a></td>
-<td align="right" class="text"><a href="javascript: checkAll( event_form, 'mark_eids' );">Check All</a></td>
+<td align="right" class="text"><a href="javascript: checkAll( document.event_form, 'mark_eids' );">Check All</a></td>
 </tr>
 <tr><td colspan="3" class="text">&nbsp;</td></tr>
 <tr><td colspan="3"><table border="0" cellspacing="1" cellpadding="0" width="100%" bgcolor="#7F7FB2">
@@ -1209,7 +1209,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <td align="center" class="text"><?= $row[TotScore] ?></td>
 <td align="center" class="text"><?= $row[AvgScore] ?></td>
 <td align="center" class="text"><?= $row[MaxScore] ?></td>
-<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( event_form, 'mark_eids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"></td>
 </tr>
 <?php
 		}
@@ -1383,11 +1383,11 @@ window.focus();
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td align="left" class="text">Use&nbsp;<select name="trms" class="form" onChange="submitToFilter( filter_form );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?= $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?= $i ?></option><?php } ?></select>&nbsp;filter&nbsp;expressions</td>
-<td align="center" class="text">Use filter:&nbsp;<?php if ( count($filter_names) > 1 ) { buildSelect( $select_name, $filter_names, "submitToFilter( filter_form );" ); } else { ?><select class="form" disabled><option>No Saved Filters</option></select><?php } ?></td>
-<td align="center" class="text"><a href="javascript: saveFilter( filter_form );">Save</a></td>
+<td align="left" class="text">Use&nbsp;<select name="trms" class="form" onChange="submitToFilter( document.filter_form );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?= $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?= $i ?></option><?php } ?></select>&nbsp;filter&nbsp;expressions</td>
+<td align="center" class="text">Use filter:&nbsp;<?php if ( count($filter_names) > 1 ) { buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); } else { ?><select class="form" disabled><option>No Saved Filters</option></select><?php } ?></td>
+<td align="center" class="text"><a href="javascript: saveFilter( document.filter_form );">Save</a></td>
 <?php if ( $filter_data ) { ?>
-<td align="center" class="text"><a href="javascript: deleteFilter( filter_form, '<?= $filter_data[Name] ?>', <?= $filter_data[Id] ?> );">Delete</a></td>
+<td align="center" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data[Name] ?>', <?= $filter_data[Id] ?> );">Delete</a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</a></td>
 <?php } ?>
@@ -1425,7 +1425,7 @@ window.focus();
 			}
 ?>
 <td class="text"><?php if ( $trms > 2 ) { buildSelect( $obracket_name, $obracket_types ); } else { ?>&nbsp;<?php } ?></td>
-<td class="text"><?php buildSelect( $attr_name, $attr_types, "$value_name.value = ''; submitToFilter( filter_form );" ); ?></td>
+<td class="text"><?php buildSelect( $attr_name, $attr_types, "$value_name.value = ''; submitToFilter( document.filter_form );" ); ?></td>
 <?php if ( $$attr_name == "Archived" ) { ?>
 <td class="text"><center>is equal to</center></td>
 <td class="text"><?php buildSelect( $value_name, $archive_types ); ?></td>
@@ -1445,7 +1445,7 @@ window.focus();
 </td>
 </tr>
 <tr><td colspan="5" class="text">&nbsp;</td></tr>
-<tr><td colspan="5" align="right"><input type="reset" value="Reset" class="form">&nbsp;&nbsp;<input type="button" value="Submit" class="form" onClick="if ( validateForm( filter_form ) ) submitToEvents( filter_form );"></td></tr>
+<tr><td colspan="5" align="right"><input type="reset" value="Reset" class="form">&nbsp;&nbsp;<input type="button" value="Submit" class="form" onClick="if ( validateForm( document.filter_form ) ) submitToEvents( document.filter_form );"></td></tr>
 </table></center>
 </form>
 </body>
@@ -1477,7 +1477,7 @@ window.focus();
 </script>
 </head>
 <body>
-<form name="filter_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="validateForm( this );">
+<form name="filter_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="validateForm( document.filter_form );">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="filter">
 <input type="hidden" name="mid" value="<?= $mid ?>">
@@ -1523,7 +1523,7 @@ window.focus();
 		}
 ?>
 <?php if ( count($filter_names) ) { ?>
-<td align="left" colspan="2" class="text">Save as:&nbsp;<?php buildSelect( $select_name, $filter_names, "submitToFilter( filter_form );" ); ?>&nbsp;or enter new name:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="<?= $filter ?>" class="form"></td>
+<td align="left" colspan="2" class="text">Save as:&nbsp;<?php buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); ?>&nbsp;or enter new name:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="<?= $filter ?>" class="form"></td>
 <?php } else { ?>
 <td align="left" colspan="2" class="text">Enter new filter name:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="" class="form"></td>
 <?php } ?>
@@ -2020,7 +2020,7 @@ function configureButton(form,name)
 <td align="center" class="text"><?= $zone['Type'] ?></td>
 <td align="center" class="text"><?= $zone[Units] ?></td>
 <td align="center" class="text"><?= $zone[LoX] ?>,<?= $zone[LoY] ?>-<?= $zone[HiX] ?>,<?= $zone[HiY]?></td>
-<td align="center" class="text"><input type="checkbox" name="mark_zids[]" value="<?= $zone[Id] ?>" onClick="configureButton( zone_form, 'mark_zids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_zids[]" value="<?= $zone[Id] ?>" onClick="configureButton( document.zone_form, 'mark_zids' );"></td>
 </tr>
 <?php
 		}
@@ -2097,7 +2097,7 @@ function closeWindow()
 <tr>
 <td colspan="2" align="left" class="head">Monitor <?= $monitor[Name] ?></td>
 </tr>
-<form name="monitorForm" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm(this)">
+<form name="monitor_form" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.monitor_form )">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="">
 <input type="hidden" name="mid" value="<?= $mid ?>">
@@ -2122,7 +2122,7 @@ $select_name = "new_type";
 $$select_name = $$select_name?$$select_name:$monitor[Type];
 $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 ?>
-<tr><td align="left" class="text">Source Type</td><td><?php buildSelect( $select_name, $source_types, "monitorForm.submit();" ); ?></td></tr>
+<tr><td align="left" class="text">Source Type</td><td><?php buildSelect( $select_name, $source_types, "monitor_form.submit();" ); ?></td></tr>
 <?php
 		if ( $$select_name == "Local" )
 		{
@@ -2162,7 +2162,7 @@ $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 <?php } ?>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
-<td align="left"><input type="submit" value="Save" class="form" onClick="monitorForm.view.value='none'; monitorForm.action.value='monitor';"></td>
+<td align="left"><input type="submit" value="Save" class="form" onClick="monitor_form.view.value='none'; monitor_form.action.value='monitor';"></td>
 <td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
@@ -2358,7 +2358,7 @@ function applyZoneUnits(theForm)
 
 function checkBounds(theField,fieldText,minValue,maxValue)
 {
-	if ( document.zoneForm.new_units.value == "Percent" )
+	if ( document.zone_form.new_units.value == "Percent" )
 	{
 		minValue = 0;
 		maxValue = 100;
@@ -2401,7 +2401,7 @@ function closeWindow()
 <tr>
 <td colspan="2" align="left" class="head">Monitor <?= $monitor[Name] ?> - Zone <?= $zone[Name] ?></td>
 </tr>
-<form name="zoneForm" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm(this)">
+<form name="zone_form" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.zone_form )">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="zone">
 <input type="hidden" name="mid" value="<?= $mid ?>">
@@ -2411,7 +2411,7 @@ function closeWindow()
 <td align="left" class="smallhead">Parameter</td><td align="left" class="smallhead">Value</td>
 </tr>
 <tr><td align="left" class="text">Name</td><td align="left" class="text"><input type="text" name="new_name" value="<?= $zone[Name] ?>" size="12" class="form"></td></tr>
-<tr><td align="left" class="text">Type</td><td align="left" class="text"><select name="new_type" class="form" onchange="applyZoneType(zoneForm)">
+<tr><td align="left" class="text">Type</td><td align="left" class="text"><select name="new_type" class="form" onchange="applyZoneType(document.zone_form)">
 <?php
 		foreach ( getEnumValues( 'Zones', 'Type' ) as $opt_type )
 		{
@@ -2421,7 +2421,7 @@ function closeWindow()
 		}
 ?>
 </select></td></tr>
-<tr><td align="left" class="text">Units</td><td align="left" class="text"><select name="new_units" class="form" onchange="applyZoneUnits(zoneForm)">
+<tr><td align="left" class="text">Units</td><td align="left" class="text"><select name="new_units" class="form" onchange="applyZoneUnits(document.zone_form)">
 <?php
 		foreach ( getEnumValues( 'Zones', 'Units' ) as $opt_units )
 		{

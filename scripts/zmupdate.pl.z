@@ -260,10 +260,10 @@ if ( $version )
 		my $command = "mysql -h".ZM_DB_SERVER;
 		if ( $db_user )
 		{
-			$command .= " -u".ZM_DB_USERA;
+			$command .= " -u".$db_user;
 			if ( $db_pass )
 			{
-				$command .= " -p".ZM_DB_PASSA;
+				$command .= " -p".$db_pass;
 			}
 		}
 		$command .= " ".ZM_DB_NAME." < ".ZM_PATH_BUILD."/db/zmalter-".$version.".sql";

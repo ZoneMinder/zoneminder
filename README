@@ -97,7 +97,7 @@ directories could be /var/www/html/zm and /var/www/cgi-bin for example. There
 are also two further arguments you can add if your web user and group are not 
 both 'apache'. These are --with-webuser and --with-webgroup. Type
 
-./configure –help
+./configure -help
 
 for details.
 
@@ -262,7 +262,7 @@ Tutorial
 To start with you should see the ZoneMinder Console window, this will resize 
 itself to avoid being too intrusive on your desktop. Along the top there are 
 several informational entries like the time of the last update and the current 
-server load. There will also be a ‘start’ or ‘stop’ link depending on the 
+server load. There will also be a 'start' or 'stop' link depending on the 
 current state. Below that are various other links including a set allowing you 
 to configure your bandwidth. This enables you to optimise your settings 
 depending on where you are, the actual values relating to this are defined at 
@@ -270,7 +270,7 @@ the top of the zm_config.php file. If you are using a browser on the same
 machine or network then choose high, over a cable or DSL link maybe choose 
 medium and over a dialup choose low. You can experiment to see which is best. 
 This setting is retained on a per machine basis with a persistent cookie. Also 
-on this line is a ‘Report Bug’ email link which you can use to easily report any 
+on this line is a 'Report Bug' email link which you can use to easily report any 
 problems (or successes!) and a couple of other links to the left which will be 
 covered below.
 
@@ -302,22 +302,22 @@ stream being available to watch. If you have specified X10 support then X10 is
 also available as an option which means that the monitor is generally passive 
 but may go active on receipt of X10 commands. Generally you'll want 'Active' but 
 for now leave this at 'None'. 
-Source Type – This determines whether the camera is a local one attached to a 
+Source Type - This determines whether the camera is a local one attached to a 
 physical video or USB port on your machine or a remote network camera or 
 similar. Choosing one or the other affects which set of three options are show 
 next.
 
-Device Number/Channel – For a local camera enter the device number that your 
+Device Number/Channel - For a local camera enter the device number that your 
 camera is attached to. If it is /dev/video0 enter '0' etc. Some video devices, 
 e.g. BTTV cards support multiple cameras so in the Channel box choose the 
 appropriate channel, or leave it at zero if you're using a USB camera or one 
 without channels. 
 
-Device Format – For a local camera enter the video format of the video stream. 
+Device Format - For a local camera enter the video format of the video stream. 
 This is defined in various system files (e.g. /usr/include/linux/videodev.h) but 
 the two most common are 0 for PAL and 1 for NTSC.
 
-Remote Host/Port/Path – For remote cameras use these fields to enter the full 
+Remote Host/Port/Path - For remote cameras use these fields to enter the full 
 URL of the camera. Basically if your camera is at 
 http://camserver.home.net:8192/cameras/camera1.jpg then these fields will be 
 camserver.com, 8192 and /cameras/camera1.jopg respectively. Leave the port at 80 
@@ -338,7 +338,7 @@ Timestamp Label Format - This relates to the timestamp that is applied to each
 frame. It is a sprintf style string. It is actually passed through sprintf and 
 then through print to add the monitor name so a format of '%%s - %y/%m/%d 
 %H:%M:%S' would be recommended though you can modify it if necessary. If you 
-don’t want a timestamp or have a camera that puts one on itself then leave this 
+don't want a timestamp or have a camera that puts one on itself then leave this 
 field blank.
 
 Timestamp Label X/Y - The X and Y values determine where to put the timestamp a 
@@ -347,7 +347,7 @@ value of 0 will place it at the top of the image. A Y value of the height you
 supplied earlier minus 8 will place it on the bottom of the image.
 
 Image Buffer Size - This option determines how many frames are held in the ring 
-buffer at any one time. The ring buffer is the storage space where the last ‘n’ 
+buffer at any one time. The ring buffer is the storage space where the last 'n' 
 images are kept, ready to be resurrected on an alarm or just kept waiting to be 
 analysed. It can be any value you like with a couple of provisos, (see next 
 options). However it is stored in shared memory and making it too large 
@@ -368,7 +368,7 @@ would prefer them to run together to form fewer longer ones then increase the
 Post Event buffer size. Both of these values added together should not exceed 
 the ring buffer size.
 
-Maximum FPS – On some occasions you may have one or more cameras capable of high 
+Maximum FPS - On some occasions you may have one or more cameras capable of high 
 capture rates but find that you generally do not require this performance at all 
 times and would prefer to lighten the load on your server. This option permits 
 you to limit the maximum capture rate to a specified value. This may allow you 
@@ -476,7 +476,7 @@ daemon was running but no zma (analysis) daemon and green means both are
 running. In our case it is red because we defined the Monitor to have a Function 
 of None so no daemons are required. To get the daemons up and running you can 
 either click on the source listed in the Source column and edit the monitor 
-properties or click on the Function listed and change it to ‘Passive’ or 
+properties or click on the Function listed and change it to 'Passive' or 
 'Active', which will ensure that one or more appropriate daemons are started 
 automatically.
 
@@ -497,7 +497,7 @@ You can now add further monitors if you have cameras set up to support them.
 Once you have one or more monitors you may notice the '<n> Monitors' title 
 becomes a link which allows you to cycle through a shot from each of your 
 monitors (unless they are switched off) and get a streamed or still image from 
-each in turn. There may also be a link titled ‘Montage’ which allows you view 
+each in turn. There may also be a link titled 'Montage' which allows you view 
 all your enabled cameras simultaneously. Be aware however that this can consume 
 large amounts of bandwidth and CPU so should not be used continuously unless you 
 have resource to burn. 
@@ -895,19 +895,19 @@ is to type the following (you will probably need to be root),
 
 perl -MCPAN -eshell
 
-this will then (eventually, after some configuration if it’s your first time) 
+this will then (eventually, after some configuration if it's your first time) 
 present you with a prompt. From there you can type install module, e.g. 
 Term::ReadKey and the rest should be more or less automatic as it will chase any 
 dependencies for you. There may be some initial configuration questions it might 
 ask you on startup if you've never run it before and to speed things up I would 
 not install a new Bundle at this point (it can end up building you a whole new 
-perl if you’re not careful) if it asks you but everything else should be quite 
+perl if you're not careful) if it asks you but everything else should be quite 
 straightforward.
 8. Unsupported palettes. ZoneMinder currently is designed to use the simple 
 palettes of greyscale and 24 bit rgb. Some cameras refuse to use anything other 
-than more video oriented format such as YUV420 which ZoneMinder doesn’t support. 
+than more video oriented format such as YUV420 which ZoneMinder doesn't support. 
 This will often show up as the capture daemon being unable to set picture 
-attributes. I’ve now managed to get camera that supports YUV420 so support for 
+attributes. I've now managed to get camera that supports YUV420 so support for 
 this will be forthcoming very soon however.
 
 Also, if you are using IE under Windows and get lots of annoying clicks when 
@@ -919,8 +919,8 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 Whats New
 =========
 
-Release 0.9.10 – Many bug-fixes and major feature enahancements.
-- Configure ‘round’ bug - Fixed a problem with the configure script that didn't  
+Release 0.9.10 - Many bug-fixes and major feature enahancements.
+- Configure 'round' bug - Fixed a problem with the configure script that didn't  
 detect if the 'round' function was already declared before try to do it itself.
 - Low event id bug - Fixed bug where events with an id of < 1000 were being 
 cleaned up by zmaudit.pl by mistake.
@@ -932,7 +932,7 @@ css files from the zone minder install directory first as the old ones won't be
 overwritten and will be left behind.
 - Streamed cycle view -  The monitor cycle view (the one where each monitor is 
 displayed sequentially) now supports streams as well as stills.
-- New ‘montage’ view - Added a montage view showing all your cameras 
+- New 'montage' view - Added a montage view showing all your cameras 
 simultaneously either streaming or stills. The width of this window (in terms of 
 number of monitors) is a configuration option.
 - Network camera support - A major change in this version is support for remote 
@@ -969,16 +969,16 @@ display fully.
 - Event navigation - Added next, prev, delete & next, delete & prev navigation 
 to events to allow you to quickly review events in sequence as had been 
 requested by a number of people.
-- USR blocking – The debug USR signals were not being blocked properly leading 
+- USR blocking - The debug USR signals were not being blocked properly leading 
 to nasty effects in zmc mostly.
-- zmfilter execution – Previously zmfilter execution was not synchronised with 
+- zmfilter execution - Previously zmfilter execution was not synchronised with 
 the monitor state or the analysis daemon leading to it sometimes being run 
 unnecessarily. From now on the zmfilter process will only run when a monitor is 
 active and so actually potentially generating alarms.
-- zmdc short statuses – Removed the logging of the short status values that 
-zmdc.pl returns to it’s clients which had been clogging up the log file.
+- zmdc short statuses - Removed the logging of the short status values that 
+zmdc.pl returns to it's clients which had been clogging up the log file.
 - Bugs and pieces - Fixed various bug(ettes) that I came across that that I 
-don't think had been reported or noticed so I don’t think we need to talk about 
+don't think had been reported or noticed so I don't think we need to talk about 
 them here do we.
 
 Release 0.9.9 - Mainly bug-fixes and minor feature enhancements.
@@ -1030,7 +1030,7 @@ though it still remains primarily for daemon use. Giving the -v or --verbose
 option prints out a bit more as a response to each command.
 - Add -d/--device to zmu - This option is designed to allow you to get your 
 video device working with another application such as xawtv and then use zmu -d 
-to print out the settings it’s using
+to print out the settings it's using
 (especially with the -v option). These options can then be used as a starting 
 point for your ZoneMinder configuration.
 - Added FPS in status field - The status field in the web monitor views now 

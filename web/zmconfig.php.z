@@ -29,8 +29,8 @@ define( "ZM_DB_SERVER", "<from zmconfig>" );			// Database server
 define( "ZM_DB_NAME", "<from zmconfig>" );				// Database containing the tables
 define( "ZM_DB_USERA", "<from zmconfig>" );				// Database login
 define( "ZM_DB_PASSA", "<from zmconfig>" );				// Database password
-define( "ZM_DIR_EVENTS", "<from zmconfig>" );			// Drectory where events live
-define( "ZM_DIR_IMAGES", "<from zmconfig>" );			// Drectory where images live
+define( "ZM_DIR_EVENTS", "<from zmconfig>" );			// Directory where events live
+define( "ZM_DIR_IMAGES", "<from zmconfig>" );			// Directory where images live
 define( "ZM_DIR_SOUNDS", "<from zmconfig>" );			// Drectory where sounds live
 define( "ZM_OPT_CAMBOZOLA", "<from zmconfig>" );		// Is the (optional) cambozola java streaming client installed (recommended)
 define( "ZM_PATH_CAMBOZOLA", "<from zmconfig>" );		// Path to (optional) cambozola java streaming client (recommended)
@@ -40,6 +40,7 @@ define( "ZM_PATH_NETPBM", "<from zmconfig>" );			// Path to (optional) Netpbm ut
 define( "ZM_WEB_POPUP_ON_ALARM", <from zmconfig> );		// Whether the watch window jumps to front if an alarm occurs
 define( "ZM_WEB_SOUND_ON_ALARM", <from zmconfig> );		// Whether the watch window jumps to front if an alarm occurs
 define( "ZM_WEB_ALARM_SOUND", <from zmconfig> );		// A sound to play on alarm, put this in the sounds directory
+define( "ZM_WEB_MONTAGE_MAX_COLS", <from zmconfig> );	// The maximum number of Monitor columns in the montage view
 define( "ZM_OPT_FAST_DELETE", <from zmconfig> );		// Whether we only delete event DB records and leave zmaudit to do the rest
 define( "ZM_OPT_X10", <from zmconfig> );				// Whether we want to interface with X10 devices
 
@@ -141,6 +142,7 @@ switch ( $bandwidth )
 $jws = array( 
 	'console' => array( 'w'=>720, 'h'=>400 ),
 	'cycle' => array( 'w'=>46, 'h'=>80 ),
+	'montage' => array( 'w'=>20, 'h'=>20 ),
 	'monitor' => array( 'w'=>360, 'h'=>450 ),
 	'watch' => array( 'w'=>72, 'h'=>315 ),
 	'device' => array( 'w'=>196, 'h'=>164 ),

@@ -303,6 +303,13 @@ my @options =
 		requires => [ { name => "ZM_WEB_SOUND_ON_ALARM", value => "yes" } ],
 	},
 	{
+		name => "ZM_WEB_MONTAGE_MAX_COLS",
+		default => "2",
+		description => "The maximum number of monitor columns in the montage view",
+		help => "The 'montage' view shows images from all your monitors at once. This parameter defines how many monitors to place across your screen before moving to the next row. If you have a very wide screen and/or small images from your cameras this can be a bigger value however if not, of if you prefer the images stacked vertically it should be small.",
+		type => $types{integer},
+	},
+	{
 		name => "ZM_OPT_FAST_DELETE",
 		default => "yes",
 		description => "When deleting events should the client only delete the database records for speed",

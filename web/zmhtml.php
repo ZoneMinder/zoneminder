@@ -101,6 +101,8 @@ switch( $view )
 				$cycle_count++;
 			}
 		}
+		$montage_rows = intval(ceil(count($monitors)/ZM_WEB_MONTAGE_MAX_COLS));
+		$montage_cols = count($monitors)>=ZM_WEB_MONTAGE_MAX_COLS?ZM_WEB_MONTAGE_MAX_COLS:count($monitors);
 ?>
 <html>
 <head>
@@ -148,9 +150,20 @@ function confirmStatus( new_status )
 </tr>
 <tr>
 <td class="smallhead" align="left">
-<?php if ( $cycle_count > 1 ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $max_width+$jws['cycle']['w'] ?>, <?= $max_height+$jws['cycle']['h'] ?> );"><?php } ?>
+<?php
+	if ( $cycle_count > 1 )
+	{
+?>
+<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $max_width+$jws['cycle']['w'] ?>, <?= $max_height+$jws['cycle']['h'] ?> );"><?= count($monitors) ?> Monitor<?= count($monitors)==1?'':'s' ?></a>&nbsp;(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage', 'zmMontage', <?= ($montage_cols*$max_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*(40+$max_height))+$jws['montage']['h'] ?> );">Montage</a>)
+<?php
+	}
+	else
+	{
+?>
 <?= count($monitors) ?> Monitor<?= count($monitors)==1?'':'s' ?>
-<?php if ( $cycle_count > 1 ) { ?></a><?php } ?>
+<?php
+	}
+?>
 </td>
 <td class="smallhead" align="center">Configured for <strong><?= $bandwidth ?></strong> bandwidth (change to
 <?php
@@ -361,6 +374,233 @@ function closeWindow()
 		}
 ?>
 </table>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "montage" :
+	{
+		$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
+		$monitors = array();
+		while( $row = mysql_fetch_assoc( $result ) )
+		{
+			$monitors[] = $row;
+		}
+		$rows = intval(ceil(count($monitors)/ZM_WEB_MONTAGE_MAX_COLS));
+		$cols = count($monitors)>=ZM_WEB_MONTAGE_MAX_COLS?ZM_WEB_MONTAGE_MAX_COLS:count($monitors);
+		$widths = array();
+		$heights = array();
+		for ( $i = 0; $i < count($monitors); $i++ )
+		{
+			$monitor = $monitors[$i];
+			$frame_height = $monitor[Height]+16;
+			$row = $i/ZM_WEB_MONTAGE_MAX_COLS;
+			$col = $i%ZM_WEB_MONTAGE_MAX_COLS;
+			if ( $frame_height > $heights[$row] )
+				$heights[$row] = $frame_height;
+			if ( $monitor[Width] > $widths[$col] )
+				$widths[$col] = $monitor[Width];
+		}
+		$row_spec = join( ',', $heights );
+		$col_spec = join( ',', $widths );
+?>
+<html>
+<head>
+<title>ZM - Montage</title>
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<script language="JavaScript">
+//window.resizeTo( <?= $jws['montage']['w']*$cols ?>, <?= $jws['montage']['h']*$rows ?> );
+window.focus();
+</script>
+</head>
+<frameset rows="<?= $row_spec ?>" cols="<?= $col_spec ?>" border="1" frameborder="no" framespacing="0">
+<?php
+		for ( $row = 0; $row < $rows; $row++ )
+		{
+			for ( $col = 0; $col < $cols; $col++ )
+			{
+				$i = ($row*$cols)+$col;
+				if ( $i < count($monitors) )
+				{
+					$monitor = $monitors[$i];
+?>
+<frameset rows="*,16" cols="100%" border="1" frameborder="no" framespacing="0">
+<frame src="<?= $PHP_SELF ?>?view=montagefeed&mid=<?= $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
+<frame src="<?= $PHP_SELF ?>?view=montagestatus&mid=<?= $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
+</frameset>
+<?php
+				}
+			}
+		}
+?>
+</frameset>
+<?php
+		break;
+	}
+	case "montagehead" :
+	{
+?>
+<html>
+<head>
+<title>ZM - Montage Header</title>
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<script language="JavaScript">
+function closeWindow()
+{
+	top.window.close();
+}
+</script>
+</head>
+<body>
+<table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
+</table>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "montagefeed" :
+	{
+		if ( !$mode )
+		{
+			if ( canStream() )
+				$mode = "stream";
+			else
+				$mode = "still";
+		}
+
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
+
+		if ( $mode != "stream" )
+		{
+			// Prompt an image to be generated
+			chdir( ZM_DIR_IMAGES );
+			$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
+			chdir( '..' );
+			header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=montagefeed&mid=$mid&mode=still'" );
+		}
+		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+		header("Cache-Control: post-check=0, pre-check=0", false);
+		header("Pragma: no-cache");			  // HTTP/1.0
+?>
+<html>
+<head>
+<title>ZM - <?= $monitor[Name] ?> - MontageFeed</title>
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
+</head>
+<body>
+<table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
+<tr>
+<td width="50%" align="center" class="text"><b><?= $monitor[Name] ?></b></td>
+<?php if ( $mode == "stream" ) { ?>
+<td width="50%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montagefeed&mode=still&mid=<?= $mid ?>">Stills</a></td>
+<?php } elseif ( canStream() ) { ?>
+<td width="50%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montagefeed&mode=stream&mid=<?= $mid ?>">Stream</a></td>
+<?php } else { ?>
+<td width="50%" align="center" class="text">&nbsp;</td>
+<?php } ?>
+</tr>
+<?php
+		if ( $mode == "stream" )
+		{
+			$stream_src = ZMS_PATH."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
+			if ( isNetscape() )
+			{
+?>
+<tr><td colspan="2" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
+<?php
+			}
+			else
+			{
+?>
+<tr><td colspan="2" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<?php
+			}
+		}
+		else
+		{
+?>
+<tr><td colspan="2" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></td></tr>
+<?php
+		}
+?>
+</table>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "montagestatus" :
+	{
+		$zmu_command = ZMU_PATH." -m $mid -s -f";
+		$zmu_output = exec( escapeshellcmd( $zmu_command ) );
+		list( $status, $fps ) = split( ' ', $zmu_output );
+		$status_string = "Unknown";
+		$fps_string = "--.--";
+		$class = "text";
+		if ( $status == 0 )
+		{
+			$status_string = "Idle";
+		}
+		elseif ( $status == 1 )
+		{
+			$status_string = "Alarm";
+			$class = "redtext";
+		}
+		elseif ( $status == 2 )
+		{
+			$status_string = "Alert";
+			$class = "oratext";
+		}
+		$fps_string = sprintf( "%.2f", $fps );
+		$new_alarm = ( $status > 0 && $last_status == 0 );
+		$old_alarm = ( $status == 0 && $last_status > 0 );
+
+		$refresh = (isset($force)||$forced||$status)?1:REFRESH_STATUS;
+		$url = "$PHP_SELF?view=montagestatus&mid=$mid&last_status=$status";
+		header("Refresh: $refresh; URL='$url'" );
+		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+		header("Cache-Control: post-check=0, pre-check=0", false);
+		header("Pragma: no-cache");			  // HTTP/1.0
+?>
+<html>
+<head>
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<script language="JavaScript">
+<?php
+		if ( ZM_WEB_POPUP_ON_ALARM && $new_alarm )
+		{
+?>
+top.window.focus();
+<?php
+		}
+?>
+</script>
+</head>
+<body>
+<table width="90%" align="center" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td width="30%" class="text" align="left">&nbsp;</td>
+<td width="40%" class="<?= $class ?>" align="center" valign="middle">Status:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
+<td width="30%" align="right" class="text">&nbsp;</td>
+</tr>
+</table>
+<?php
+		if ( ZM_WEB_SOUND_ON_ALARM && $status == 1 )
+		{
+?>
+<embed src="<?= ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND ?>" autostart="yes" hidden="true"></embed>
+<?php
+		}
+?>
 </body>
 </html>
 <?php

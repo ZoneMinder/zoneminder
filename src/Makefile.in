@@ -11,10 +11,6 @@
 # PARTICULAR PURPOSE.
 
 
-# IMPORTANT: Set these to your web server user and group
-WEBUSR = apache
-WEBGRP = apache
-
 SHELL = @SHELL@
 
 srcdir = @srcdir@
@@ -52,7 +48,7 @@ AUTOHEADER = @AUTOHEADER@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@ $(AM_INSTALL_PROGRAM_FLAGS)
 INSTALL_DATA = @INSTALL_DATA@
-INSTALL_SCRIPT = @INSTALL_SCRIPT@ -o $(WEBUSR) -g $(WEBGRP)
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
 transform = @program_transform_name@
 
 NORMAL_INSTALL = :
@@ -124,8 +120,7 @@ CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
 HEADERS =  $(noinst_HEADERS)
 
-DIST_COMMON =  Makefile.am Makefile.in config.guess config.sub configure \
-configure.in install-sh
+DIST_COMMON =  Makefile.am Makefile.in install-sh
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)

@@ -39,6 +39,8 @@ define( "ALARM_SOUND", "Yeow.wav" );			// A sound to play on alarm, put this in 
 define( "FAST_DELETE", true );					// Whether we only delete event DB records and leave zmaudit to do the rest
 define( "HAS_X10", true );						// Whether we want to interface with X10 devices
 
+define( "LEARN_MODE", false );					// Currently unimplemented, do not change
+
 switch ( $bandwidth )
 {
 	case "high" :

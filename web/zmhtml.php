@@ -877,7 +877,7 @@ location.href = '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php
 </table></td></tr>
 </table></td>
 </tr>
-<tr><td align="right"><select name="learn_state" class="form" disabled><option value="">Ignore</option><option value="-">Exclude</option><option value="+">Include</option></select>&nbsp;&nbsp;<input type="button" name="learn_btn" value="Set Learn Prefs" class="form" onClick="event_form.action.value = 'learn'; event_form.submit();" disabled>&nbsp;&nbsp;<input type="button" name="delete_btn" value="Delete" class="form" onClick="event_form.action.value = 'delete'; event_form.submit();" disabled></td></tr>
+<tr><td align="right"><?php if ( LEARN_MODE ) { ?><select name="learn_state" class="form" disabled><option value="">Ignore</option><option value="-">Exclude</option><option value="+">Include</option></select>&nbsp;&nbsp;<input type="button" name="learn_btn" value="Set Learn Prefs" class="form" onClick="event_form.action.value = 'learn'; event_form.submit();" disabled>&nbsp;&nbsp;<?php } ?><input type="button" name="delete_btn" value="Delete" class="form" onClick="event_form.action.value = 'delete'; event_form.submit();" disabled></td></tr>
 </table></center>
 </form>
 </body>
@@ -1354,7 +1354,9 @@ function newWindow(Url,Name,Width,Height)
 <input type="hidden" name="action" value="learn">
 <input type="hidden" name="eid" value="<?php echo $eid ?>">
 <input type="hidden" name="mark_eid" value="<?php echo $eid ?>">
+<?php if ( LEARN_MODE ) { ?>
 Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.submit();"><option value=""<?php if ( !$event[LearnState] ) echo " selected" ?>>Ignore</option><option value="-"<?php if ( $event[LearnState]=='-' ) echo " selected" ?>>Exclude</option><option value="+"<?php if ( $event[LearnState]=='+' ) echo " selected" ?>>Include</option></select>
+<?php } ?>
 </form></td>
 </tr>
 <tr>

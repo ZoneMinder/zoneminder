@@ -1,3 +1,2 @@
 AUTOMAKE_OPTIONS = gnu
-SUBDIRS = src web scripts
-
+SUBDIRS = src web scripts db

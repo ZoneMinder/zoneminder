@@ -190,7 +190,7 @@ function closeWindow()
 {
 	window.close();
 	// This is a hack. The only way to close an existing window is to try and open it!
-	var filterWindow = window.open( "<?= $PHP_SELF ?>?view=none", 'zmFilter<?= $monitor['Name'] ?>', 'width=1,height=1' );
+	var filterWindow = window.open( "<?= $PHP_SELF ?>?view=none", 'zmFilter<?= $monitor['Id'] ?>', 'width=1,height=1' );
 	filterWindow.close();
 }
 function checkAll(form,name)
@@ -230,7 +230,7 @@ if ( isset($filter) )
 {
 ?>
 //opener.location.reload(true);
-filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?>&page=<?= $page ?><?= $filter_query ?>', 'zmFilter<?= $monitor['Name'] ?>' );
+filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?>&page=<?= $page ?><?= $filter_query ?>', 'zmFilter<?= $monitor['Id'] ?>' );
 location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?><?= $filter_query ?>' );
 </script>
 </head>
@@ -352,7 +352,7 @@ else
 <tr><td colspan="4" class="text">&nbsp;</td></tr>
 <tr>
 <td align="left" class="text"><a href="javascript: location.reload(true);"><?= $zmSlangRefresh ?></td>
-<td colspan="2" align="right" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?>&page=<?= $page ?><?= $filter_query ?>', 'zmFilter<?= $monitor['Name'] ?>' );"><?= $zmSlangShowFilterWindow ?></a></td>
+<td colspan="2" align="right" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?>&page=<?= $page ?><?= $filter_query ?>', 'zmFilter<?= $monitor['Id'] ?>' );"><?= $zmSlangShowFilterWindow ?></a></td>
 <td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: checkAll( document.event_form, 'mark_eids' );"><?= $zmSlangCheckAll ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr>
 <tr><td colspan="4" class="text">&nbsp;</td></tr>

@@ -94,7 +94,7 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( canView( 'Monitors' ) && $monitor['Type'] == "Local" ) { ?>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor['Id'] ?>', 'zmSettings<?= $monitor['Name'] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );"><?= $zmSlangSettings ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor['Id'] ?>', 'zmSettings<?= $monitor['Id'] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );"><?= $zmSlangSettings ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>

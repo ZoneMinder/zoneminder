@@ -104,7 +104,7 @@ if ( $mode == "stream" )
 	if ( isNetscape() )
 	{
 ?>
-<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Name'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= $stream_src ?>" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></a></td></tr>
+<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= $stream_src ?>" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></a></td></tr>
 <?php
 	}
 	else
@@ -117,7 +117,7 @@ if ( $mode == "stream" )
 else
 {
 ?>
-<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Name'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></a></td></tr>
+<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></a></td></tr>
 <?php
 }
 ?>

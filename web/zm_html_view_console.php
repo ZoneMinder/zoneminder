@@ -281,7 +281,7 @@ foreach( $monitors as $monitor )
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=3&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val2=0&cnj3=and&attr3=DateTime&op3=%3e%3d&val3=-1+month', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor['MonthEventCount'], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=2&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val2=1', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor['ArchEventCount'], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=zones&mid=".$monitor['Id']."', 'zmZones', ".($monitor['Width']+$jws['zones']['w']).", ".($monitor['Height']+$jws['zones']['h'])." );", $monitor['ZoneCount'], canView( 'Monitors' ) ) ?></td>
-<td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor['Id'] ?>" onClick="configureButton( document.monitor_form, 'mark_mids' );"<?php if ( !canEdit( 'Monitors' ) || isset($user['MonitorIds']) ) {?> disabled<?php } ?>></td>
+<td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor['Id'] ?>" onClick="configureButton( document.monitor_form, 'mark_mids' );"<?php if ( !canEdit( 'Monitors' ) || $user['MonitorIds'] ) {?> disabled<?php } ?>></td>
 </tr>
 <?php
 }
@@ -291,7 +291,7 @@ foreach( $monitors as $monitor )
 <input type="button" value="<?= $zmSlangRefresh ?>" class="form" onClick="javascript: location.reload(true);">
 </td>
 <td colspan="2" align="center">
-<input type="button" value="<?= $zmSlangAddNewMonitor ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"<?php if ( !canEdit( 'Monitors' ) || isset($user['MonitorIds']) ) {?> disabled<?php } ?>>
+<input type="button" value="<?= $zmSlangAddNewMonitor ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"<?php if ( !canEdit( 'Monitors' ) || $user['MonitorIds'] ) {?> disabled<?php } ?>>
 </td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=1&attr1=Archived&val1=0', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $event_count, canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=-1+hour', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $hour_event_count, canView( 'Events' ) ) ?></td>

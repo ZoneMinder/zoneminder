@@ -126,16 +126,17 @@ cgidir = @CGI_PREFIX@
 webuser = @WEB_USER@
 webgroup = @WEB_GROUP@
 
-bin_PROGRAMS = zmc zma zmu zms zmfix
+bin_PROGRAMS = zmc zma zmu zms zmf zmfix
 
 zm_SOURCES = zm.cpp zm_db.cpp zm_coord.cpp zm_box.cpp zm_image.cpp zm_event.cpp zm_zone.cpp zm_camera.cpp zm_local_camera.cpp zm_remote_camera.cpp zm_monitor.cpp zm_debug.c zm_jpeg.c
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
 zma_SOURCES = zma.cpp $(zm_SOURCES)
 zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
+zmf_SOURCES = zmf.cpp $(zm_SOURCES)
 zmfix_SOURCES = zmfix.cpp zm_debug.c zm_db.cpp zm.cpp
 
-noinst_HEADERS = zm.h zm_db.h zm_font.h zm_rgb.h zm_config.h zm_debug.h zm_coord.h zm_box.h zm_image.h zm_event.h zm_zone.h zm_camera.h zm_local_camera.h zm_remote_camera.h zm_monitor.h zm_font.h jinclude.h
+noinst_HEADERS = zm.h zm_db.h zm_font.h zm_rgb.h zm_config.h zm_debug.h zm_coord.h zm_box.h zm_image.h zm_event.h zm_zone.h zm_camera.h zm_local_camera.h zm_remote_camera.h zm_monitor.h zm_font.h jinclude.h zmf.h
 
 EXTRA_DIST = zm_config.h.z
 subdir = src
@@ -143,7 +144,7 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 bin_PROGRAMS = zmc$(EXEEXT) zma$(EXEEXT) zmu$(EXEEXT) zms$(EXEEXT) \
-	zmfix$(EXEEXT)
+	zmf$(EXEEXT) zmfix$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 
 am__objects_1 = zm.$(OBJEXT) zm_db.$(OBJEXT) zm_coord.$(OBJEXT) \
@@ -161,6 +162,11 @@ zmc_OBJECTS = $(am_zmc_OBJECTS)
 zmc_LDADD = $(LDADD)
 zmc_DEPENDENCIES =
 zmc_LDFLAGS =
+am_zmf_OBJECTS = zmf.$(OBJEXT) $(am__objects_1)
+zmf_OBJECTS = $(am_zmf_OBJECTS)
+zmf_LDADD = $(LDADD)
+zmf_DEPENDENCIES =
+zmf_LDFLAGS =
 am_zmfix_OBJECTS = zmfix.$(OBJEXT) zm_debug.$(OBJEXT) zm_db.$(OBJEXT) \
 	zm.$(OBJEXT)
 zmfix_OBJECTS = $(am_zmfix_OBJECTS)
@@ -190,8 +196,9 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/zm_monitor.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/zm_remote_camera.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/zm_zone.Po ./$(DEPDIR)/zma.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/zmc.Po ./$(DEPDIR)/zmfix.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/zms.Po ./$(DEPDIR)/zmu.Po
+@AMDEP_TRUE@	./$(DEPDIR)/zmc.Po ./$(DEPDIR)/zmf.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/zmfix.Po ./$(DEPDIR)/zms.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/zmu.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -201,12 +208,12 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-DIST_SOURCES = $(zma_SOURCES) $(zmc_SOURCES) $(zmfix_SOURCES) \
-	$(zms_SOURCES) $(zmu_SOURCES)
+DIST_SOURCES = $(zma_SOURCES) $(zmc_SOURCES) $(zmf_SOURCES) \
+	$(zmfix_SOURCES) $(zms_SOURCES) $(zmu_SOURCES)
 HEADERS = $(noinst_HEADERS)
 
 DIST_COMMON = $(noinst_HEADERS) Makefile.am Makefile.in
-SOURCES = $(zma_SOURCES) $(zmc_SOURCES) $(zmfix_SOURCES) $(zms_SOURCES) $(zmu_SOURCES)
+SOURCES = $(zma_SOURCES) $(zmc_SOURCES) $(zmf_SOURCES) $(zmfix_SOURCES) $(zms_SOURCES) $(zmu_SOURCES)
 
 all: all-am
 
@@ -247,6 +254,9 @@ zma$(EXEEXT): $(zma_OBJECTS) $(zma_DEPENDENCIES)
 zmc$(EXEEXT): $(zmc_OBJECTS) $(zmc_DEPENDENCIES) 
 	@rm -f zmc$(EXEEXT)
 	$(CXXLINK) $(zmc_LDFLAGS) $(zmc_OBJECTS) $(zmc_LDADD) $(LIBS)
+zmf$(EXEEXT): $(zmf_OBJECTS) $(zmf_DEPENDENCIES) 
+	@rm -f zmf$(EXEEXT)
+	$(CXXLINK) $(zmf_LDFLAGS) $(zmf_OBJECTS) $(zmf_LDADD) $(LIBS)
 zmfix$(EXEEXT): $(zmfix_OBJECTS) $(zmfix_DEPENDENCIES) 
 	@rm -f zmfix$(EXEEXT)
 	$(CXXLINK) $(zmfix_LDFLAGS) $(zmfix_OBJECTS) $(zmfix_LDADD) $(LIBS)
@@ -278,6 +288,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_zone.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zma.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmfix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zms.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmu.Po@am__quote@

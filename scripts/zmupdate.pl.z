@@ -81,9 +81,9 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-my $check = undef;
-my $rename = undef;
-my $zone_fix = undef;
+my $check = 0;
+my $rename = 0;
+my $zone_fix = 0;
 sub Usage
 {
     print( "

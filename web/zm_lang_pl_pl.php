@@ -64,8 +64,8 @@ header( "Content-Type: text/html; charset=iso-8859-2" );
 // threaded environment, if you get funny errors it may be this.
 //
 // Examples
-// setlocale( 'LC_ALL', 'pl_PL' ); // All locale settings pre-4.3.0
-setlocale( LC_ALL, 'pl_PL' );   // All locale settings 4.3.0 and after
+setlocale( 'LC_ALL', 'pl_PL' ); // All locale settings pre-4.3.0
+//setlocale( LC_ALL, 'pl_PL' );   // All locale settings 4.3.0 and after
 // setlocale( LC_CTYPE, 'pl_PL' ); // Character class settings 4.3.0 and after
 // setlocale( LC_TIME, 'pl_PL' );  // Date and time formatting 4.3.0 and after
 
@@ -77,18 +77,18 @@ $zmSlangAddNewMonitor        = 'Dodaj nowy monitor';
 $zmSlangAddNewUser           = 'Dodaj u¿ytkownika';
 $zmSlangAddNewZone           = 'Dodaj now± strefê';
 $zmSlangAlarm                = 'Alarm';
-$zmSlangAlarmBrFrames        = 'Alarm<br/>ramek';
-$zmSlangAlarmFrame           = 'Ramka alarmu';
+$zmSlangAlarmBrFrames        = 'Ramki<br/>alarmowe';
+$zmSlangAlarmFrame           = 'Ramka alarmowa';
 $zmSlangAlarmLimits          = 'Ograniczenia alarmu';
 $zmSlangAlarmPx              = 'Alarm Px';
-$zmSlangAlert                = 'Alert';
+$zmSlangAlert                = 'Gotowosc';
 $zmSlangAll                  = 'Wszystko';
 $zmSlangApplyingStateChange  = 'Zmieniam stan pracy';
 $zmSlangApply                = 'Zastosuj';
 $zmSlangArchArchived         = 'Tylko zarchiwizowane';
-$zmSlangArchive              = 'Archiwa';
+$zmSlangArchive              = 'Archiwum';
 $zmSlangArchUnarchived       = 'Tylko niezarchiwizowane';
-$zmSlangAttrAlarmFrames      = 'Alarm Ramek';
+$zmSlangAttrAlarmFrames      = 'Ramki alarmowe';
 $zmSlangAttrArchiveStatus    = 'Status archiwum';
 $zmSlangAttrAvgScore         = '¦red. wynik';
 $zmSlangAttrDate             = 'Data';
@@ -96,19 +96,23 @@ $zmSlangAttrDateTime         = 'Data/Czas';
 $zmSlangAttrDuration         = 'Czas trwania';
 $zmSlangAttrFrames           = 'Ramek';
 $zmSlangAttrMaxScore         = 'Maks. wynik';
+$zmSlangAttrMonitorId        = 'Nr monitora';
+$zmSlangAttrMonitorName      = 'Nazwa monitora';
+$zmSlangAttrMontage          = 'Monta¿';
 $zmSlangAttrTime             = 'Czas';
 $zmSlangAttrTotalScore       = 'Ca³kowity wynik';
 $zmSlangAttrWeekday          = 'Dzieñ roboczy';
 $zmSlangAutoArchiveEvents    = 'Automatycznie archiwizuj wszystkie pasuj±ce zdarzenia';
 $zmSlangAutoDeleteEvents     = 'Automatycznie kasuj wszystkie pasuj±ce zdarzenia';
 $zmSlangAutoEmailEvents      = 'Automatycznie wysy³aj emailem szczegó³y o pasuj±cych zdarzeniach';
-$zmSlangAutoMessageEvents    = 'Automatycznie wysy³aj komunikat o pasuj±cych zdarzeniach';
-$zmSlangAutoUploadEvents     = 'Automatycznie upload-uj wszystkie pasuj±ce zdarzenia';
+$zmSlangAutoMessageEvents    = 'Automatycznie  komunikat o pasuj±cych zdarzeniach';
+$zmSlangAutoUploadEvents     = 'Automatycznie wysy³aj wszystkie pasuj±ce zdarzenia';
 $zmSlangAvgBrScore           = '¦red.<br/>wynik';
+$zmSlangBadMonitorChars      = 'Nazwy monitorów mog± zawieraæ tylko litery, cyfry oraz my¶lnik i podkre¶lenie';
 $zmSlangBandwidth            = 'przepustowo¶æ';
-$zmSlangBlobPx               = 'Blob Px';
-$zmSlangBlobs                = 'Bloby';
-$zmSlangBlobSizes            = 'Rozmiary Blobów';
+$zmSlangBlobPx               = 'Plamka Px';
+$zmSlangBlobSizes            = 'Rozmiary plamek';
+$zmSlangBlobs                = 'Plamki';
 $zmSlangBrightness           = 'Jaskrawo¶æ';
 $zmSlangBuffers              = 'Bufory';
 $zmSlangCancel               = 'Anuluj';
@@ -116,7 +120,8 @@ $zmSlangCancelForcedAlarm    = 'Anuluj&nbsp;wymuszony&nbsp;alarm';
 $zmSlangCaptureHeight        = 'Wysoko¶æ obrazu';
 $zmSlangCapturePalette       = 'Paleta kolorów obrazu';
 $zmSlangCaptureWidth         = 'Szeroko¶æ obrazu';
-$zmSlangCheckAll             = 'Sprawd¼ wszystko';
+$zmSlangCheckAll             = 'Zaznacz wszystko';
+$zmSlangCheckMethod          = 'Metoda sprawdzenia alarmu';
 $zmSlangChooseFilter         = 'Wybierz filtr';
 $zmSlangClose                = 'Zamknij';
 $zmSlangColour               = 'Nasycenie';
@@ -134,7 +139,7 @@ $zmSlangDeleteAndPrev        = 'Usuñ &amp; poprzedni';
 $zmSlangDeleteSavedFilter    = 'Usuñ zapisany filtr';
 $zmSlangDelete               = 'Usuñ';
 $zmSlangDescription          = 'Opis';
-$zmSlangDeviceChannel        = 'Numer wej¶cia';
+$zmSlangDeviceChannel        = 'Numer wej¶cia w urz±dzeniu';
 $zmSlangDeviceFormat         = 'System TV (0=PAL,1=NTSC itd)';
 $zmSlangDeviceNumber         = 'Numer urz±dzenia (/dev/video?)';
 $zmSlangDimensions           = 'Rozmiary';
@@ -156,7 +161,7 @@ $zmSlangFilterPx             = 'Filtr Px';
 $zmSlangFirst                = 'Pierwszy';
 $zmSlangForceAlarm           = 'Wymu¶&nbsp;alarm';
 $zmSlangFPS                  = 'fps';
-$zmSlangFPSReportInterval    = 'Interwa³ raportu FPS';
+$zmSlangFPSReportInterval    = 'Raport (ramek/s)';
 $zmSlangFrameId              = 'Nr ramki';
 $zmSlangFrame                = 'Ramka';
 $zmSlangFrameRate            = 'Tempo ramek';
@@ -174,7 +179,7 @@ $zmSlangHigh                 = 'wysoka';
 $zmSlangHour                 = 'Godzina';
 $zmSlangHue                  = 'Odcieñ';
 $zmSlangIdle                 = 'Bezczynny';
-$zmSlangId                   = 'Lp';
+$zmSlangId                   = 'Nr';
 $zmSlangIgnore               = 'Ignoruj';
 $zmSlangImageBufferSize      = 'Rozmiar bufora obrazu (ramek)';
 $zmSlangImage                = 'Obraz';
@@ -189,17 +194,17 @@ $zmSlangLogin                = 'Login';
 $zmSlangLogout               = 'Wyloguj';
 $zmSlangLowBW                = 'Nis.&nbsp;prz.';
 $zmSlangLow                  = 'niska';
-$zmSlangMark                 = 'Zacznik';
+$zmSlangMark                 = 'Znacznik';
 $zmSlangMaxBrScore           = 'Maks.<br/>wynik';
 $zmSlangMaximumFPS           = 'Maks. FPS';
-$zmSlangMax                  = 'Maks';
+$zmSlangMax                  = 'Maks.';
 $zmSlangMediumBW             = '¦red.&nbsp;prz.';
 $zmSlangMedium               = '¶rednia';
-$zmSlangMinAlarmGeMinBlob    = 'Minimalny rozmiar piksela alarmu musi byæ wiêkszy lub równy od najmniejszego piksela bloba';
+$zmSlangMinAlarmGeMinBlob    = 'Minimalny rozmiar piksela alarmu musi byæ wiêkszy lub równy od najmniejszego piksela plamki';
 $zmSlangMinAlarmGeMinFilter  = 'Minimalny rozmiar piksela alarmu musi byæ wiêkszy lub równy od najmniejszego piksela filtru';
 $zmSlangMinAlarmPixelsLtMax  = 'Minimalna liczba pikseli alarmu powinna byæ wiêksza od maksymalnej liczby pikseli alarmu';
-$zmSlangMinBlobAreaLtMax     = 'Minimalny obszar bloba powinien byæ mniejszy od maksymalnego obszaru bloba';
-$zmSlangMinBlobsLtMax        = 'Najmniejsze bloby powinny byæ mniejsze od najwiêkszych blobów' ;
+$zmSlangMinBlobAreaLtMax     = 'Minimalny obszar plamki powinien byæ mniejszy od maksymalnego obszaru plamki';
+$zmSlangMinBlobsLtMax        = 'Najmniejsze plamki powinny byæ mniejsze od najwiêkszych plamek' ;
 $zmSlangMinFilterPixelsLtMax = 'Najmniejsze piksele filtru powinny byæ mniejsze od najwiêkszych pikseli';
 $zmSlangMinPixelThresLtMax   = 'Najmniejsze progi pikseli powinny byæ mniejsze od najwiêkszych progów pikseli';
 $zmSlangMisc                 = 'Inne';
@@ -226,15 +231,19 @@ $zmSlangNone                 = 'Brak';
 $zmSlangNo                   = 'Nie';
 $zmSlangNormal               = 'Normalny';
 $zmSlangNoSavedFilters       = 'BrakZapisanychFiltrów';
-$zmSlangNoStatisticsRecorded = 'Brak zapisanych satystyk dla tego zdarzenia/ramki';
+$zmSlangNoStatisticsRecorded = 'Brak zapisanych statystyk dla tego zdarzenia/ramki';
 $zmSlangOpEq                 = 'równy';
 $zmSlangOpGtEq               = 'wiêksze lub równe od';
 $zmSlangOpGt                 = 'wiêksze od';
+$zmSlangOpIn                 = 'w zestawie';
 $zmSlangOpLtEq               = 'mniejsze lub równe od';
 $zmSlangOpLt                 = 'mniejsze od';
+$zmSlangOpMatches            = 'pasuj±ce';
 $zmSlangOpNe                 = 'ró¿ne od';
+$zmSlangOpNotIn              = 'brak w zestawie';
+$zmSlangOpNotMatches         = 'nie pasuj±ce';
 $zmSlangOptionHelp           = 'OpcjePomoc';
-$zmSlangOptionRestartWarning = 'Te zmiany mog± nie przyniesæ natychmiastowego\nefektu dopóki system pracuje. Kiedy zakoñczysz\nrobiæ zmiany proszê koniecznie\nzrestartowaæ ZoneMinder.';
+$zmSlangOptionRestartWarning = 'Te zmiany nie przynios± natychmiastowego efektu\ndopóki system pracuje. Kiedy zakoñczysz robiæ zmiany\nproszê koniecznie zrestartowaæ ZoneMinder.';
 $zmSlangOptions              = 'Opcje';
 $zmSlangOrEnterNewName       = 'lub wpisz now± nazwê';
 $zmSlangOrientation          = 'Orientacja';
@@ -249,11 +258,11 @@ $zmSlangPixels               = 'pikseli';
 $zmSlangPleaseWait           = 'Proszê czekaæ';
 $zmSlangPostEventImageBuffer = 'Bufor obrazów po zdarzeniu';
 $zmSlangPreEventImageBuffer  = 'Bufor obrazów przed zdarzeniem';
-$zmSlangPrev                 = 'Wstecz';
+$zmSlangPrev                 = 'Poprzedni';
 $zmSlangRate                 = 'Tempo';
 $zmSlangReal                 = 'Rzeczywiste';
 $zmSlangRecord               = 'Zapis';
-$zmSlangRefImageBlendPct     = 'Mix z obrazem odniesienia';
+$zmSlangRefImageBlendPct     = 'Miks z obrazem odniesienia';
 $zmSlangRefresh              = 'Od¶wie¿';
 $zmSlangRemoteHostName       = 'Nazwa zdalnego hosta';
 $zmSlangRemoteHostPath       = 'Scie¿ka zdalnego hosta';
@@ -305,10 +314,10 @@ $zmSlangTools                = 'Narzêdzia';
 $zmSlangTotalBrScore         = 'Ca³kowity<br/>wynik';
 $zmSlangTriggers             = 'Wyzwalacze';
 $zmSlangType                 = 'Typ';
-$zmSlangUnarchive            = 'Niezarchiwizowane';
+$zmSlangUnarchive            = 'Nie archiwizuj';
 $zmSlangUnits                = 'Jednostki';
 $zmSlangUnknown              = 'Nieznany';
-$zmSlangUpdateAvailable      = 'Jest odstêpne uaktualnienie ZoneMinder ';
+$zmSlangUpdateAvailable      = 'Jest dostêpne uaktualnienie ZoneMinder ';
 $zmSlangUpdateNotNecessary   = 'Nie jest wymagane uaktualnienie';
 $zmSlangUseFilterExprsPost   = '&nbsp;wyra¿enie&nbsp;filtru'; // This is used at the end of the phrase 'use N filter expressions'
 $zmSlangUseFilterExprsPre    = 'U¿yj&nbsp;'; // This is used at the beginning of the phrase 'use N filter expressions'
@@ -317,18 +326,18 @@ $zmSlangUsername             = 'Nazwa u¿ytkownika';
 $zmSlangUsers                = 'U¿ytkownicy';
 $zmSlangUser                 = 'U¿ytkownik';
 $zmSlangValue                = 'Warto¶æ';
-$zmSlangVersionIgnore        = 'Zignoruj tê wersjê';
+$zmSlangVersionIgnore        = 'Zignoruj t± wersjê';
 $zmSlangVersionRemindDay     = 'Przypomnij po 1 dniu';
 $zmSlangVersionRemindHour    = 'Przypomnij po 1 godzinie';
 $zmSlangVersionRemindNever   = 'Nie przypominaj o nowych wersjach';
 $zmSlangVersionRemindWeek    = 'Przypomnij po 1 tygodniu';
 $zmSlangVersion              = 'Wersja';
-$zmSlangVideoGenFailed       = 'Generowanie Video nie powiod³o siê!';
-$zmSlangVideoGenParms        = 'Parametery generowania Video';
-$zmSlangVideoSize            = 'Rozmiar Video';
+$zmSlangVideoGenFailed       = 'Generowanie filmu Video nie powiod³o siê!';
+$zmSlangVideoGenParms        = 'Parametery generowania filmu Video';
+$zmSlangVideoSize            = 'Rozmiar filmu Video';
 $zmSlangVideo                = 'Video';
-$zmSlangViewAll              = 'Zobacz wszystko';
-$zmSlangViewPaged            = 'Zobacz stronami';
+$zmSlangViewAll              = 'Poka¿ wszystko';
+$zmSlangViewPaged            = 'Poka¿ stronami';
 $zmSlangView                 = 'Podgl±d';
 $zmSlangWarmupFrames         = 'Ignorowane ramki';
 $zmSlangWatch                = 'podgl±d';
@@ -345,15 +354,15 @@ $zmSlangZoneAlarmThreshold   = 'Próg alarmu (0>=?<=255)';
 $zmSlangZoneFilterHeight     = 'Wysoko¶æ filtru (piksele)';
 $zmSlangZoneFilterWidth      = 'Szeroko¶æ filtru (piksele)';
 $zmSlangZoneMaxAlarmedArea   = 'Najwiêkszy obszar alarmowany';
-$zmSlangZoneMaxBlobArea      = 'Najwiêkszy obszar Bloba';
-$zmSlangZoneMaxBlobs         = 'Najwiêksze Bloby';
+$zmSlangZoneMaxBlobArea      = 'Najwiêkszy obszar plamki';
+$zmSlangZoneMaxBlobs         = 'Najwiêksze plamki';
 $zmSlangZoneMaxFilteredArea  = 'Najwiêkszy obszar filtrowany';
-$zmSlangZoneMaxPixelThres    = 'Maksymalny próg piksela (0>=?<=255)';
+$zmSlangZoneMaxPixelThres    = 'Najwiêkszy próg piksela (0>=?<=255)';
 $zmSlangZoneMaxX             = 'Najwiêksze X (prawo)';
 $zmSlangZoneMaxY             = 'Najwiêksze Y (dó³)';
 $zmSlangZoneMinAlarmedArea   = 'Najmniejszy obszar alarmowany';
-$zmSlangZoneMinBlobArea      = 'Najmniejszy obszar Bloba';
-$zmSlangZoneMinBlobs         = 'Najmniejsze Bloby';
+$zmSlangZoneMinBlobArea      = 'Najmniejszy obszar plamki';
+$zmSlangZoneMinBlobs         = 'Najmniejsze plamki';
 $zmSlangZoneMinFilteredArea  = 'Najmniejszy obszar filtrowany';
 $zmSlangZoneMinPixelThres    = 'Minimalny próg piksela (0>=?<=255)';
 $zmSlangZoneMinX             = 'Najmniejsze X (lewo)';
@@ -403,80 +412,59 @@ $zmClangRunningRecentVer     = 'Uruchomi³e¶ najnowsz± wersjê ZoneMinder, v%s.';
 //
 
 // Variable arrays expressing plurality, see the zmVlang description above
-$zmVlangEvent                = array( 0=>'Zdarzeñ', 1=>'Zdarzenie', 2=>'Zdarzenia' );
-$zmVlangMonitor              = array( 0=>'Monitorów', 1=>'Monitor', 2=>'Monitory' );
+$zmVlangEvent                = array( 0=>'Zdarzeñ', 1=>'Zdarzenie', 2=>'Zdarzenia');
+$zmVlangMonitor              = array( 0=>'Monitorów', 1=>'Monitor', 2=>'Monitory');
 
 // You will need to choose or write a function that can correlate the plurality string arrays
 // with variable counts. This is used to conjugate the Vlang arrays above with a number passed
 // in to generate the correct noun form.
-//
-// In languages such as English this is fairly simple 
-// Note this still has to be used with printf etc to get the right formating
+
+// This is an version that could be used in the Polish language
+// 
 function zmVlang( $lang_var_array, $count )
 {
-	krsort( $lang_var_array );
-	foreach ( $lang_var_array as $key=>$value )
+ 	$secondlastdigit = substr( $count, -2, 1 );
+ 	$lastdigit = substr( $count, -1, 1 );
+ 	if ( $count == 1 )
 	{
-		if ( abs($count) >= $key )
-		{
-			return( $value );
-		}
+		return( $lang_var_array[1] );
 	}
-	die( 'Error, unable to correlate variable language string' );
+ 	if (($secondlastdigit == 0)|( $secondlastdigit == 1))
+ 	{
+ 		return( $lang_var_array[0] );
+ 	}
+ 	if ( $secondlastdigit >= 2)
+	{
+ 		switch ( $lastdigit )
+ 		{
+ 			case 0 :
+	 		case 1 :
+ 			case 5 :
+ 			case 6 :
+	 		case 7 :
+ 			case 8 :
+ 			case 9 :
+	 		{
+ 				return( $lang_var_array[0] );
+ 				break;
+	 		}
+ 			case 2 :
+ 			case 3 :
+	 		case 4 :
+ 			{
+ 				return( $lang_var_array[2] );
+	 			break;
+ 			}
+	 	}
+	}
+ 	die( 'B£¡D! zmVlang nie mo¿e skorelowac ³añcucha!' );
 }
-
-// This is an version that could be used in the Russian example above
-// The rules are that the first word form is used if the count ends in
-// 0, 5-9 or 11-19. The second form is used then the count ends in 1
-// (not including 11 as above) and the third form is used when the 
-// count ends in 2-4, again excluding any values ending in 12-14.
-// 
-// function zmVlang( $lang_var_array, $count )
-// {
-// 	$secondlastdigit = substr( $count, -2, 1 );
-// 	$lastdigit = substr( $count, -1, 1 );
-// 	// or
-// 	// $secondlastdigit = ($count/10)%10;
-// 	// $lastdigit = $count%10;
-// 
-// 	// Get rid of the special cases first, the teens
-// 	if ( $secondlastdigit == 1 && $lastdigit != 0 )
-// 	{
-// 		return( $lang_var_array[1] );
-// 	}
-// 	switch ( $lastdigit )
-// 	{
-// 		case 0 :
-// 		case 5 :
-// 		case 6 :
-// 		case 7 :
-// 		case 8 :
-// 		case 9 :
-// 		{
-// 			return( $lang_var_array[1] );
-// 			break;
-// 		}
-// 		case 1 :
-// 		{
-// 			return( $lang_var_array[2] );
-// 			break;
-// 		}
-// 		case 2 :
-// 		case 3 :
-// 		case 4 :
-// 		{
-// 			return( $lang_var_array[3] );
-// 			break;
-// 		}
-// 	}
-// 	die( 'Error, unable to correlate variable language string' );
-// }
 
 // This is an example of how the function is used in the code which you can uncomment and 
 // use to test your custom function.
-//$monitors = array();
-//$monitors[] = 1; // Choose any number
-//echo sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) );
+// $monitors = 12; // Choose any number
+// echo $monitors." ";
+// echo zmVlang( $zmVlangMonitor, $monitors);
 
 // In this section you can override the default prompt and help texts for the options area
 // These overrides are in the form of $zmOlangPrompt<option> and $zmOlangHelp<option>

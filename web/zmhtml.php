@@ -424,7 +424,13 @@ function closeWindow()
 	}
 	case "watchstatus" :
 	{
-		$zmu_output = exec( escapeshellcmd( ZMU_PATH." -m $mid -s -f" ) );
+		$zmu_command = ZMU_PATH." -m $mid -s -f";
+		if ( isset($force) )
+		{
+			$zmu_command .= ($force?" -a":" -c"); 
+		}
+
+		$zmu_output = exec( escapeshellcmd( $zmu_command ) );
 		list( $status, $fps ) = split( ' ', $zmu_output );
 		$status_string = "Unknown";
 		$fps_string = "--.--";
@@ -446,7 +452,9 @@ function closeWindow()
 		$fps_string = sprintf( "%.2f", $fps );
 		$new_alarm = ( $status > 0 && $last_status == 0 );
 
-		header("Refresh: ".REFRESH_STATUS."; URL='$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status'" );
+		$refresh = (isset($force)||$forced||$status)?1:REFRESH_STATUS;
+		$url = "$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status".(($force||$forced)?"&forced=1":"");
+		header("Refresh: $refresh; URL='$url'" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -468,7 +476,32 @@ top.window.focus();
 </script>
 </head>
 <body>
-<table width="100%" align="center" border="0" cellpadding="0" cellspacing="0"><tr><td class="<?= $class ?>" align="center" valign="middle">Status:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td></tr></table>
+<table width="90%" align="center" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td width="30%" class="text" align="left">&nbsp;</td>
+<td width="40%" class="<?= $class ?>" align="center" valign="middle">Status:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
+<?php
+		if ( $force || $forced )
+		{
+?>
+<td width="30%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=$status&force=0">Cancel Forced Alarm</a></td>
+<?php
+		}
+		elseif ( zmaCheck( $mid ) )
+		{
+?>
+<td width="30%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=$status&force=1">Force Alarm</a></td>
+<?php
+		}
+		else
+		{
+?>
+<td width="30%" align="right" class="text">&nbsp;</td>
+<?php
+		}
+?>
+</tr>
+</table>
 <?php
 		if ( ZM_WEB_SOUND_ON_ALARM && $status == 1 )
 		{

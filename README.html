@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
 <meta name=Generator content="Microsoft Word 10 (filtered)">
-<title>ZoneMinder v1.19.0</title>
+<title>ZoneMinder v1.19.5</title>
 
 <style>
 <!--
@@ -13,6 +13,9 @@
 	panose-1:5 0 0 0 0 0 0 0 0 0;}
 @font-face
 	{font-family:Tahoma;
+	panose-1:2 11 6 4 3 5 4 4 2 4;}
+@font-face
+	{font-family:Verdana;
 	panose-1:2 11 6 4 3 5 4 4 2 4;}
  /* Style Definitions */
  p.MsoNormal, li.MsoNormal, div.MsoNormal
@@ -171,6 +174,8 @@ p.StyleCommandLeft175cm, li.StyleCommandLeft175cm, div.StyleCommandLeft175cm
 	font-size:10.0pt;
 	font-family:Arial;
 	font-style:italic;}
+span.name1
+	{color:black;}
 ins
 	{text-decoration:none;}
 span.msoIns
@@ -197,7 +202,7 @@ ul
 
 <div class=Section1>
 
-<p class=MsoTitle><u>ZoneMinder v1.19.4</u></p>
+<p class=MsoTitle><u>ZoneMinder v1.19.5</u></p>
 
 <h1 style='text-indent:-22.7pt;page-break-before:auto'><span style='text-decoration:
 none'>1.<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -252,8 +257,8 @@ useful out of it please let me know.</p>
 running and find it useful then please feel free to visit <a
 href="http://www.zoneminder.com/donate.html">http://www.zoneminder.com/donate.html</a>
 where any donations will be appreciated and will help to fund future
-improvements of ZoneMinder. This would be especially appreciated if you use ZoneMinder
-as part of your business or to protect your property.</p>
+improvements of ZoneMinder. This would be especially appreciated if you use
+ZoneMinder as part of your business or to protect your property.</p>
 
 <h1 style='text-indent:-22.7pt'><span style='text-decoration:none'>2.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Requirements</u></h1>
@@ -272,13 +277,13 @@ the netpbm utilities in a very limited way to generate thumbnails under certain
 circumstances though this can be modified.</p>
 
 <p class=MsoPlainText>ZoneMinder can generate MPEG videos if necessary, for
-this you'll need either ffmpeg (recommended) or the Berkeley MPEG encoder (mpeg_encode).
-If you don't have either, don't worry, as the options will be hidden and you'll
-not really miss much. The web interface uses PHP and so you need that in your
-apache or other web server as well, make sure MySQL support is available either
-statically or as a module. There are also various perl modules that you may
-need that vary depending on which options you choose on installation, for more
-details see later in this document.</p>
+this you'll need either ffmpeg (recommended) or the Berkeley MPEG encoder
+(mpeg_encode). If you don't have either, don't worry, as the options will be
+hidden and you'll not really miss much. The web interface uses PHP and so you
+need that in your apache or other web server as well, make sure MySQL support
+is available either statically or as a module. There are also various perl
+modules that you may need that vary depending on which options you choose on
+installation, for more details see later in this document.</p>
 
 <p class=MsoPlainText>Finally, there is quite a bit of image streaming in the
 package. So if you don't have Netscape or another browser that supports image
@@ -314,9 +319,9 @@ directory to which you want to install the PHP files, and <i>--with-cgidir</i>
 is the directory to which you want to install CGI files. These directories
 could be <i>/var/www/html/zm</i> and <i>/var/www/cgi-bin</i> for example. If
 you want to use real MPEG based streaming you will need to have built and
-installed the ffmpeg tools. You can then also use <i>–with-ffmpeg=&lt;path to ffmpeg
-root&gt;</i> to help configure find it. This will be /usr/local if you let ffmpeg
-use it’s default options. Note, you have to make sure you have installed the ffmpeg
+installed the ffmpeg tools. You can then also use <i>–with-ffmpeg=&lt;path to
+ffmpeg root&gt;</i> to help configure find it if it’s not installed in a
+default location. Note, you have to make sure you have installed the ffmpeg
 headers and libraries rather than just the binaries, or a development package
 with them in. Additionally if you have built ffmpeg with the mp3lame feature
 turned on you may additionally need to tell configure where to find that the
@@ -341,9 +346,9 @@ Type</p>
 prompt you by asking you various questions. For most questions typing '?' will
 give you additional help if you need it. Once you've answered all the questions
 it will write out a configuration file called 'zmconfig.txt' and then process
-various files to substitute the information in them. If you run it again it
-will remember your answers from. If you just want to rerun the substitutions
-you can run zmconfig.pl in non-interactive mode by typing</p>
+various files to substitute the information in them. If you run it again it will
+remember your answers from. If you just want to rerun the substitutions you can
+run zmconfig.pl in non-interactive mode by typing</p>
 
 <p class=MsoPlainText><i>perl ./zmconfig.pl -noi</i></p>
 
@@ -383,7 +388,19 @@ to upgrade your database and make the necessary changes where x.y.z identifies
 the version of ZoneMinder you had installed previously. So if you are going
 from version 0.9.7 to version 0.9.11 you would run the scripts for all
 intervening versions to get to the current one, i.e. zmalter-0.9.7.sql,
-zmalter-0.9.8.sql, zmalter-0.9.9.sql and zmalter0.9.10.sql.</p>
+zmalter-0.9.8.sql, zmalter-0.9.9.sql and zmalter0.9.10.sql. Additionally from
+version 1.19.5 you can use the zmupdate.pl script to do all the updating for
+you, this will include all the database changes plus any other tweaks necessary
+to upgrade to the latest version. To use it you should type</p>
+
+<p class=MsoPlainText><i>zmupdate.pl –version=&lt;previous version&gt; [--user=&lt;db
+user&gt; --pass=&lt;db password&gt;]</i></p>
+
+<p class=MsoPlainText>where ‘previous version’ releates to the verion of ZM you
+are upgrading from, 1.19.4 for example. All updates from that versions onwards
+will be applied, however zmupdate.pl will only work with upgrades from 1.19.0
+onwards. The ‘user’ and ‘pass’ options allow you to specify a database user and
+password with sufficient privilege to ‘alter’ the structure of the database.</p>
 
 <p class=MsoPlainText>For a new installation the simplest way to create your
 database and users is as follows,</p>
@@ -398,17 +415,17 @@ first password&gt;';</i></p>
 
 <p class=MsoPlainText><i>grant select on &lt;your database name&gt;.* to
 '&lt;your second username&gt;'@localhost identified by '&lt;your second
-password&gt;'</i></p>
+password&gt;';</i></p>
 
 <p class=MsoPlainText><i>quit</i></p>
 
 <p class=MsoPlainText><i>mysqladmin reload</i></p>
 
-<p class=MsoPlainText>You may need to supply a username and password to the mysql
-commands in the first place to give yourself sufficient privileges to perform
-the required commands. If you want to host your database on a different machine
-than that which ZoneMinder is running on then use the hostname of the remote
-machine instead of localhost.</p>
+<p class=MsoPlainText>You may need to supply a username and password to the
+mysql commands in the first place to give yourself sufficient privileges to
+perform the required commands. If you want to host your database on a different
+machine than that which ZoneMinder is running on then use the hostname of the
+remote machine instead of localhost.</p>
 
 <p class=MsoPlainText>Then just type <i>'make'</i> and off you go.</p>
 
@@ -418,36 +435,37 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span
 <p class=MsoPlainText>Once the build has completed you should have several
 shiny new binaries. I will now briefly describe what each of them does.</p>
 
-<p class=MsoPlainText style='margin-left:18.0pt'><b>zmc</b> - This is the ZoneMinder
-Capture daemon. This binary's job is to sit on a video device and suck frames
-off it as fast as possible, this should run  at more or less constant speed.</p>
+<p class=MsoPlainText style='margin-left:18.0pt'><b>zmc</b> - This is the
+ZoneMinder Capture daemon. This binary's job is to sit on a video device and
+suck frames off it as fast as possible, this should run  at more or less
+constant speed.</p>
 
-<p class=MsoPlainText style='margin-left:18.0pt'><b>zma</b> - This is the ZoneMinder
-Analysis daemon. This is the component that goes through the captured frames
-and checks them for motion which might generate an alarm or event. It generally
-keeps up with the Capture daemon but if very busy may skip some frames to
-prevent it falling behind.</p>
+<p class=MsoPlainText style='margin-left:18.0pt'><b>zma</b> - This is the
+ZoneMinder Analysis daemon. This is the component that goes through the
+captured frames and checks them for motion which might generate an alarm or
+event. It generally keeps up with the Capture daemon but if very busy may skip
+some frames to prevent it falling behind.</p>
 
-<p class=MsoPlainText style='margin-left:18.0pt'><b>zmf</b> - This is the ZoneMinder
-Frame daemon. This is an optional daemon that can run in concert with the
-Analysis daemon and whose function it is to actually write captured frames to
-disk. This frees up the Analysis daemon to do more analysis (!) and so keep up
-with the Capture daemon better. If it isn’t running or dies then the Analysis
-daemon just writes them itself.</p>
+<p class=MsoPlainText style='margin-left:18.0pt'><b>zmf</b> - This is the
+ZoneMinder Frame daemon. This is an optional daemon that can run in concert
+with the Analysis daemon and whose function it is to actually write captured
+frames to disk. This frees up the Analysis daemon to do more analysis (!) and
+so keep up with the Capture daemon better. If it isn’t running or dies then the
+Analysis daemon just writes them itself.</p>
 
-<p class=MsoPlainText style='margin-left:18.0pt'><b>zms</b> - This is the ZoneMinder
-Streaming server. The web interface connects with this to get real-time or
-historical streamed images. It runs only when a live monitor stream or event
-stream is actually being viewed and dies when the event finishes or the
-associate web page is closed. If you find you have several zms processes
-running when nothing is being viewed then it is likely you need a patch for
-apache (see the Troubleshooting section).</p>
+<p class=MsoPlainText style='margin-left:18.0pt'><b>zms</b> - This is the
+ZoneMinder Streaming server. The web interface connects with this to get
+real-time or historical streamed images. It runs only when a live monitor
+stream or event stream is actually being viewed and dies when the event
+finishes or the associate web page is closed. If you find you have several zms
+processes running when nothing is being viewed then it is likely you need a
+patch for apache (see the Troubleshooting section).</p>
 
-<p class=MsoPlainText style='margin-left:18.0pt'><b>zmu</b> - This is the ZoneMinder
-Utility. It's basically a handy command line interface to several useful
-functions. It’s not really meant to be used by anyone except the web page
-(there's only limited 'help' in it so far) but can be if necessary, especially
-for debugging video problems.</p>
+<p class=MsoPlainText style='margin-left:18.0pt'><b>zmu</b> - This is the
+ZoneMinder Utility. It's basically a handy command line interface to several
+useful functions. It’s not really meant to be used by anyone except the web
+page (there's only limited 'help' in it so far) but can be if necessary,
+especially for debugging video problems.</p>
 
 <p class=MsoPlainText style='margin-left:18.0pt'><b>zmfix</b> - This is a small
 binary that exists only to ensure that the video device files can be read by
@@ -461,14 +479,15 @@ directory and some perl scripts in the scripts directory. These scripts all
 have some configuration at the top of the files which should be viewed and
 amended if necessary and are as follows.</p>
 
-<p class=MsoPlainText style='margin-left:18.0pt'><b>zmpkg.pl</b> - This is the ZoneMinder
-Package Control script. This is used by the web interface and service scripts
-to control the execution of the system as a whole.</p>
+<p class=MsoPlainText style='margin-left:18.0pt'><b>zmpkg.pl</b> - This is the
+ZoneMinder Package Control script. This is used by the web interface and
+service scripts to control the execution of the system as a whole.</p>
 
-<p class=MsoPlainText style='margin-left:18.0pt'><b>zmdc.pl</b> - This is the ZoneMinder
-Daemon Control script. This is used by the web interface and the zmpkg.pl
-script to control and maintain the execution of the capture and analysis
-daemons, amongst others. You should not need to run this script yourself.</p>
+<p class=MsoPlainText style='margin-left:18.0pt'><b>zmdc.pl</b> - This is the
+ZoneMinder Daemon Control script. This is used by the web interface and the
+zmpkg.pl script to control and maintain the execution of the capture and
+analysis daemons, amongst others. You should not need to run this script
+yourself.</p>
 
 <p class=MsoPlainText style='margin-left:18.0pt'><b>zmfilter.pl</b> - This
 script controls the execution of saved filters and will be started and stopped
@@ -501,9 +520,9 @@ to cause this so this script makes sure that nothing important gets missed.</p>
 
 <p class=MsoPlainText style='margin-left:18.0pt'><b>zmupdate.pl</b> – Currently
 this script is responsible for checking whether a new version of ZoneMinder is
-available and other miscellaneous actions related to upgrades and migrations.
-Eventually it is intended to be a ‘one stop shop’ for any upgrades and will
-execute everything necessary to update your installation to a new version.</p>
+available and other miscellaneous actions related to upgrades and migrations. It
+is also intended to be a ‘one stop shop’ for any upgrades and will execute
+everything necessary to update your installation to a new version.</p>
 
 <p class=MsoPlainText style='margin-left:18.0pt'><b>zm</b> - This is the
 (optional) ZoneMinder init script, see below for details.</p>
@@ -543,8 +562,8 @@ and off you go.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Tutorial</u></h1>
 
 <p class=MsoPlainText>What you see now (and subsequently) depends on whether
-you chose to run ZoneMinder in authenticated mode or not. This is an option that
-lets you specify whether anyone that goes to the ZoneMinder web pages must
+you chose to run ZoneMinder in authenticated mode or not. This is an option
+that lets you specify whether anyone that goes to the ZoneMinder web pages must
 authenticate themselves in order to be given permissions to perform certain
 tasks. If you chose this mode then you will need to log in here. By default a
 fully privileged user ‘admin’ has been created with a password also of ‘admin’.
@@ -583,10 +602,10 @@ fill in.</p>
 
 <p class=MsoPlainText>To help you get started on the video configuration the
 best thing is to us a tool like 'xawtv' (<a href="http://bytesex.org/xawtv/">http://bytesex.org/xawtv/</a>)
-to get a picture you're happy with, and to check your camera works. Then run 'zmu
--d &lt;device_no&gt; -q -v' to get a dump of the settings (note, you will have
-to additionally supply a username and password to zmu if you are running in
-authenticated mode). You can then enter these values into the video related
+to get a picture you're happy with, and to check your camera works. Then run
+'zmu -d &lt;device_no&gt; -q -v' to get a dump of the settings (note, you will
+have to additionally supply a username and password to zmu if you are running
+in authenticated mode). You can then enter these values into the video related
 options of the monitor configuration panel. The 'device_no' referred to here is
 a number corresponding to the digit at the end of your device file, so
 /dev/video0 has a 'device_no' of 0 etc. If 'zmu' gives you an error related to
@@ -594,8 +613,8 @@ permissions run 'zmfix -a' to make sure you can access all the video devices.</p
 
 <p class=MsoPlainText>The options are divided into a set of tabs to make it
 easier to edit. You do not have to ‘save’ to change to different tab so you can
-make all the changes you require and then click ‘Save’ at the end. The
-individual option are explained in a little more detail below,</p>
+make all the changes you require and then click ‘Save’ at the end. The individual
+option are explained in a little more detail below,</p>
 
 <p class=MonitorTab>‘Monitor’ Tab</p>
 
@@ -784,7 +803,25 @@ This may well be too much and pad out events more than necessary. However a
 fast video card may capture at 25FPS and you will want to ensure that this
 setting enables you to view a reasonable time frame pre and post event.</p>
 
+<p class=MonitorOption><b>Alarm Frame Count</b> – This option allows you to
+specify how many consecutive alarm frames must occur before an alarm event is
+generated. The usual, and default, value is 1 which implies that any alarm
+frame will cause or participate in an event. You can enter any value up to 16
+here to eliminate bogus events caused perhaps by screen flickers or other
+transients. Values over 3 or 4 are unlikely to be useful however. Please note
+that if you have statistics recording enabled then currently statistics are not
+recorded for the first ‘Alarm Frame Count’-1 frames of an event. So if you set
+this value to 5 then the first 4 frames will be missing statistics whereas the
+more usual value of 1 will ensure that all alarm frames have statistics
+recorded.</p>
+
 <p class=MonitorTab>‘Misc’ Tab</p>
+
+<p class=MonitorOption><b>Event Prefix</b> – By default events are named ‘Event-&lt;event
+id&gt;’, however you are free to rename them individually as you wish. This
+option lets you modify the event prefix, the ‘Event-‘ part, to be a value of
+your choice so that events are named differently as they are generated. This
+allows you to name events according to which monitor generated them. </p>
 
 <p class=MonitorOption><b>Maximum FPS</b> – On some occasions you may have one
 or more cameras capable of high capture rates but find that you generally do
@@ -854,8 +891,7 @@ given number of seconds.</p>
 code followed by - means that the monitor is deactivated on receipt of a OFF
 signal for that unit code but will ignore the ON signal and as such will not be
 activated by this instruction. If you prepend a '!' as per the previous
-definition it similarly inverts the mode, i.e. the OFF signal activates the
-monitor.</p>
+definition it similarly inverts the mode, i.e. the OFF signal activates the monitor.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt'><u>n-&lt;seconds&gt;</u> : As
 per the previous mode except that the monitor will activate itself after the
@@ -878,13 +914,13 @@ controls how ZoneMinder emits X10 signals when the current monitor goes into or
 comes out of the alarm state. Thus just entering a number will cause the ON
 signal for that unit code to be sent when going into alarm state and the OFF
 signal when coming out of alarm state. Similarly 7+30 will send the unit code 7
-ON signal when going into alarm state and the OFF signal 30 seconds later regardless
-of state. The combination of the X10 instruction allows ZoneMinder to react
-intelligently to, and also assume control of, other devices when necessary.
-However the indiscriminate use of the Input Alarm and Output Alarm signals can
-cause some horrendous race conditions such as a light going on in response to
-an alarm which then causes an alarm itself and so on. Thus some circumspection
-is required here. Leave this blank for now anyway.</p>
+ON signal when going into alarm state and the OFF signal 30 seconds later
+regardless of state. The combination of the X10 instruction allows ZoneMinder
+to react intelligently to, and also assume control of, other devices when
+necessary. However the indiscriminate use of the Input Alarm and Output Alarm
+signals can cause some horrendous race conditions such as a light going on in
+response to an alarm which then causes an alarm itself and so on. Thus some
+circumspection is required here. Leave this blank for now anyway.</p>
 
 <p class=MsoPlainText>Finally, click 'Save' to add your monitor.</p>
 
@@ -910,8 +946,7 @@ running. In our case it is red because we defined the Monitor to have a
 Function of None so no daemons are required. To get the daemons up and running
 you can either click on the source listed in the Source column and edit the
 monitor properties or click on the Function listed and change it to ’Monitor’,
-which will ensure that one or more appropriate daemons are started
-automatically.</p>
+which will ensure that one or more appropriate daemons are started automatically.</p>
 
 <p class=MsoPlainText>Having a device status of red or orange does not
 necessarily constitute an error if you have deliberately disabled a monitor or
@@ -983,10 +1018,10 @@ specialised of the zone types and you may never use it but in its place it is
 very useful. For instance in the camera covering my garden I keep watch for a
 hedgehog that visits most nights and scoffs the food out of my cats bowls. By
 creating a sensitive Exclusive zone in that area I can ensure that a hedgehog
-alarm will only trigger if there is activity in that small area. If something
-much bigger occurs, like someone walking by it will trigger a regular alarm and
-not one from the Exclusive zone. Thus I can ensure I get alarms for big events
-and also special small events but not the noise in between.</p>
+alarm will only trigger if there is activity in that small area. If something much
+bigger occurs, like someone walking by it will trigger a regular alarm and not
+one from the Exclusive zone. Thus I can ensure I get alarms for big events and
+also special small events but not the noise in between.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt'><u>Preclusive</u> : This zone
 type is relatively recent. It is called a Preclusive zone because if it is
@@ -1016,16 +1051,16 @@ little and see what works for you.</p>
 zone type is the opposite of Active. In this zone type no alarms will ever be
 reported. You can create an Inactive zone to cover any areas in which nothing
 notable will ever happen or where you get constant false alarms that don't
-relate to what you are trying to monitor. An Inactive zone can overlay other zone
-types and will be processed first.</p>
+relate to what you are trying to monitor. An Inactive zone can overlay other
+zone types and will be processed first.</p>
 
-<p class=MsoPlainText style='margin-left:27.0pt'>I mentioned above that
-Inactive zones may be overlaid on other zones to blank out areas however as a
-general principle you should try and make zones abut each other as much as
-possible and do not overlap. This helps avoid repeated duplicate processing of
-the same area. For instance an Inclusive zone overlaying an Active zone when
-all other settings are the same will always trigger when the Active zone does
-which somewhat defeats the object of the exercise. One exception to this is
+<p class=MsoPlainText style='margin-left:27.0pt'>I mentioned above that Inactive
+zones may be overlaid on other zones to blank out areas however as a general
+principle you should try and make zones abut each other as much as possible and
+do not overlap. This helps avoid repeated duplicate processing of the same
+area. For instance an Inclusive zone overlaying an Active zone when all other
+settings are the same will always trigger when the Active zone does which
+somewhat defeats the object of the exercise. One exception to this is
 Preclusive zones. These may be situated within Active areas are they are
 processed first and if small may actually save processing time by preventing
 full analysis of the image.</p>
@@ -1038,17 +1073,17 @@ with or if you change image sizes frequently. If you change this setting all
 appropriate values below are redisplayed in the correct context. A good tip
 would be to initially enter the settings in Percent and then change to Pixels
 and refine any gaps. Repeated flipping between the settings will cause rounding
-errors, as ZoneMinder in general is not at home to Mr Floating Point for
-reasons of performance. Note, the sense of the percentage values changed in
-version 1.19.0. Prior to that percentages referred to the area of the image as
-a whole, whereas it now only refers to the area of the zone. This makes trying
-to work out necessary sizes rather easier.</p>
+errors, as ZoneMinder in general is not at home to Mr Floating Point for reasons
+of performance. Note, the sense of the percentage values changed in version
+1.19.0. Prior to that percentages referred to the area of the image as a whole,
+whereas it now only refers to the area of the zone. This makes trying to work
+out necessary sizes rather easier.</p>
 
 <p class=MsoPlainText style='margin-left:27.0pt'><b>Min/Maximum X/Y</b> -
 Following the units the next four settings define the bounds of the Zone in the
-monitor frame and are self-explanatory with the exception of the fact that the minima
-are at the top left of the frame and the maxima are at the bottom right rather
-than in a Cartesian style.</p>
+monitor frame and are self-explanatory with the exception of the fact that the
+minima are at the top left of the frame and the maxima are at the bottom right
+rather than in a Cartesian style.</p>
 
 <p class=MsoPlainText style='margin-left:27.0pt'><b>Alarm Colour </b>- The
 option after that allows you to specify what colour you'd like any alarms this
@@ -1172,28 +1207,28 @@ expect very brief events. Alternatively you can decrease the refresh interval
 for this window in the configuration though having too frequently refreshing
 may impact on performance.</p>
 
-<p class=MsoPlainText>Below the status is a list of recent events that have
-occurred, by default this  is a listing of just the last 10 but clicking on
-'All' will give you a full list  and 'Archive' will take you to the event
-archive for this monitor, more on this  later. Clicking on any of the column
-headings will sort the events appropriately.</p>
+<p class=MsoPlainText>Below the status is a list of recent events that have occurred,
+by default this  is a listing of just the last 10 but clicking on 'All' will
+give you a full list  and 'Archive' will take you to the event archive for this
+monitor, more on this  later. Clicking on any of the column headings will sort
+the events appropriately.</p>
 
 <p class=MsoPlainText>From here you can also delete events if you wish. The
 events themselves are listed with the event id, and event name (which you can
 change), the time that the event occurred, the length of the event including
 any preamble and postamble frames, the number of frames comprising the event
 with the number that actually contain an alarm in brackets and finally a score.
-This column lists the average score per alarm frame as well as the maximum score
-that any alarm frame had.</p>
+This column lists the average score per alarm frame as well as the maximum
+score that any alarm frame had.</p>
 
 <p class=MsoPlainText>The score is an arbitrary value that essentially
 represents the percentage of pixels in the zone that are in blobs divided by
 the square root of the number of blobs and then divided by the size of the
-zone. This gives a nominal maximum of 100 for a zone and the totals for each
-zone are added together, Active zones scores are added unchanged, Inclusive
-zones are halved first and Exclusive zones are doubled. In reality values are
-likely to be much less than 100 but it does give a simple indication of how
-major the event was.</p>
+zone. This gives a nominal maximum of 100 for a zone and the totals for each zone
+are added together, Active zones scores are added unchanged, Inclusive zones
+are halved first and Exclusive zones are doubled. In reality values are likely
+to be much less than 100 but it does give a simple indication of how major the
+event was.</p>
 
 <h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>5.4.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Filtering
@@ -1338,13 +1373,13 @@ Berkeley MPEG encoder or the faster and new ffmpeg encoder. Either of these
 will generate a short video, which will be downloaded to your browsing machine
 to view. Due to the relatively slow frame rate that ZoneMinder will capture at
 and the high minimum frame rate that the Berkeley encoder uses videos created
-by this method will be very quick. However when using the ffmpeg encoder, ZoneMinder
-will attempt to match the duration of the video with the duration of the event.
-This has the useful effect of making the video watchable and not too quick
-while having the unfortunate side effect of increasing file size and generation
-time. Ffmpeg in particular has a particularly rich set of options and you can
-specify during configuration which additional options you may wish to include
-to suit your preferences.</p>
+by this method will be very quick. However when using the ffmpeg encoder,
+ZoneMinder will attempt to match the duration of the video with the duration of
+the event. This has the useful effect of making the video watchable and not too
+quick while having the unfortunate side effect of increasing file size and
+generation time. Ffmpeg in particular has a particularly rich set of options
+and you can specify during configuration which additional options you may wish
+to include to suit your preferences.</p>
 
 <p class=MsoPlainText>Building an MPEG video, especially for a large event, can
 take some time and should not be undertaken lightly as the effect on your host
@@ -1390,15 +1425,15 @@ assist in creating language files for specific languages. To specify a language
 you will have to give the applicable code, thus for UK English this is en_gb,
 and for US English it would be en_us, if no language is given then UK English
 is assumed. Most languages will be specified in this nn_mm format and to check
-which languages are available look for files named zm_lang_*.php in the ZoneMinder
-build directory where the parts represented by the ‘*’ would be what you would
-enter as a language. This is slightly unwieldy and will probably be improved in
-future to make it easier to determine language availability. On checking which
-languages are available it may be that your preferred language is not currently
-included and if this is the case please consider doing a translation and
-sending it back to it may be included in future releases. All the language
-elements are given in the zm_lang_en_gb.php file along with a few notes to help
-you understand the format.</p>
+which languages are available look for files named zm_lang_*.php in the
+ZoneMinder build directory where the parts represented by the ‘*’ would be what
+you would enter as a language. This is slightly unwieldy and will probably be
+improved in future to make it easier to determine language availability. On
+checking which languages are available it may be that your preferred language
+is not currently included and if this is the case please consider doing a
+translation and sending it back to it may be included in future releases. All
+the language elements are given in the zm_lang_en_gb.php file along with a few
+notes to help you understand the format.</p>
 
 <p class=MsoPlainText>As mentioned above, you may also see a ‘users’ tab in the
 Options area. In this section you will see a list of the current users defined
@@ -1452,7 +1487,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span
 <p class=MsoPlainText>Life eh? Nothing ever works first time does it? In case
 you are having problems here are some things to try. If these don't work then
 check the ZoneMinder FAQ at <a href="http://www.zoneminder.com/faq.html">http://www.zoneminder.com/faq.html</a>
-and then the forums at http://<a href="http://www.zoneminder.com/forums">www.zoneminder.com/forums</a>.html
+and then the forums at <a href="http://www.zoneminder.com/forums">http://www.zoneminder.com/forums.html</a>
 first and see if anyone has had the same problem in the past. If not then feel
 free to get in touch and I'll see if I can suggest something else. The best
 places to look for errors are in the system error log (normally /var/log/messages
@@ -1464,9 +1499,9 @@ you some kind of tip off.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Device configuration. If you can't get your cameras to work in ZoneMinder,
-firstly make sure that you have the correct settings. Use xawtv or something
-like that to check for settings that work and then run zmu -d &lt;device_no&gt;
+</span></span>Device configuration. If you can't get your cameras to work in
+ZoneMinder, firstly make sure that you have the correct settings. Use xawtv or
+something like that to check for settings that work and then run zmu -d &lt;device_no&gt;
 -q -v to get the settings. If you can't get them to work with that then the
 likelihood is they won't work with ZoneMinder. Also check the system logs
 (usually /var/log/messages) for any video configuration errors. If you get some
@@ -1488,13 +1523,13 @@ up afterwards!</p>
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Web server. Ensure that your web server can serve PHP files. It's
-also possible that your php.ini file may have some settings which break ZoneMinder,
-I'm not a PHP guru but setting safe mode may prevent your PHP files from
-running certain programs. You may have to set configuration to allow this. Also
-since the daemons are started by your web server, if it dies or is shut down
-then the daemons may disappear. In this version the daemons are run under the
-control of a script which should trap expected signals but it is possible this
-doesn't cover all circumstances.</p>
+also possible that your php.ini file may have some settings which break
+ZoneMinder, I'm not a PHP guru but setting safe mode may prevent your PHP files
+from running certain programs. You may have to set configuration to allow this.
+Also since the daemons are started by your web server, if it dies or is shut
+down then the daemons may disappear. In this version the daemons are run under
+the control of a script which should trap expected signals but it is possible
+this doesn't cover all circumstances.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1640,10 +1675,10 @@ memory than when it started.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Cambozola. There appears to be an issue with recent versions of Cambozola
-that causes image corruption in the stream. If you are getting this then I
-suggest you stick with version 0.22 which is available from the Downloads
-section of www.zoneminder.com.</p>
+</span></span>Cambozola. There appears to be an issue with recent versions of
+Cambozola that causes image corruption in the stream. If you are getting this
+then I suggest you stick with version 0.22 which is available from the
+Downloads section of www.zoneminder.com.</p>
 
 <p class=MsoPlainText>Also, if you are using IE under Windows and get lots of
 annoying clicks when various windows refresh then you'll need to edit your
@@ -1657,6 +1692,145 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span
 Log </u></h1>
 
 <h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.1.<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
+1.19.5</h2>
+
+<p class=MsoPlainText>Various miscellaneous fixes and features.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – The US English language file was recursively including
+itself rather than the UK English file as the base language.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>LANGUAGE – The Brazilian Portuguese language file detailed in the
+previous release has actually been included in this one.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>LANGUAGE – The Argentinian Spanish, Polish and Italian translations
+have all been updated with tokens introduced in version 1.19.3.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – Sorting event lists by duration was broken and has now been
+corrected.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – The zmfix utility previous corrected file permissions
+on video device files only. This has been modified to do likewise to the X10
+device serial port if enabled.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – The modification suggested by forum user ‘oskin’ has been
+incorporated into the code to try and reduce or remove video for linux errors.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – The remote network camera parsing code has been patched to
+try </p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – The error reported when a ‘shmget’ call fails has been
+changed to include further information about the cause.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>LANGUAGE – Fixed missing semicolon in German language file.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – Added ‘&lt;&lt;’ and ‘&gt;&gt;’  links to the page
+selector in the events list as suggested by forum user ‘<a name=""></a><span
+class=name1>unclerichy’</span><span class=name1><b><span style='font-size:8.5pt;
+font-family:Verdana'>.</span></b></span></p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – Brightness, colour, hue and contrast are now saved
+persistently for a monitor rather than being reset each time the system is
+restarted. This feature is based on a patch submitted by forum user ‘oskin’.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – In previous versions the events folder has been keyed
+by the monitor name. This has caused problems in the past with various
+characters appearing which are legal in names but not in filesystems. From this
+version all files related to monitors are keyed on the monitor id rather than
+the name. To help you navigate through these files the monitor name still exists
+but as a link only. Please ensure you run zmupdate.pl to update your events
+directory.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – You may now optionally have thumbnail images in your
+event lists. To enable this functionality set ZM_WEB_LIST_THUMBS on in
+Options-&gt;Web. You can also control the width or height of these thumbnails but
+should only set one dimension only and leave the other blank or zero.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – You can now specify how many image thumbnails appear
+across and down the page in the event stills listing. In Options-&gt;Web set
+the ZM_WEB_FRAMES_PER_LINE and/or ZM_WEB_FRAME_LINES options.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – ZoneMinder uses ffmpeg (<a
+href="http://ffmpeg.sourceforge.net/">http://ffmpeg.sourceforge.net/</a>) for video
+generation and processing. Recently a new version (0.4.9-pre1) was released
+which changed the interface that ZoneMinder uses and so broke compilation. This
+version will detect which version of ffmpeg you have and compile accordingly.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – You can now specify a prefix for events generated by particular
+monitors. This will replace the default ‘Event-‘ one.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – If you use filters to send event notification emails
+you can now have them sent in HTML format. This is done automatically if your
+mail body includes a ‘&lt;html&gt;’ token,</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – An experimental feature has been added which lets you
+view several events in sequence. In event listing you can check the events you
+want to view and then click the ‘View’ button. This will allow you to navigate
+through only those events in the normal manner (via Prev and Next links) but
+also to view them in sequence by clicking on the ‘Play All’ link. This will
+replay each event and then automatically move onto the next one. You can stop
+this progression at any time by pressing ‘Stop’ (which only stops the sequence
+and not the currently playing event). The timing of the replay is done
+depending on the calculated length of the event (plus one second) and so may
+not exactly correspond to the real event length. In particular this is unlikely
+to work if replaying events using MPEG video and buffering players as the
+timing will likely be incorrect. If you are viewing an event but haven’t
+checked any in the list the ‘Play All’ button will just work down the current
+event list.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – A default php error level excluding notice warnings is now
+explicitly set.</p>
+
+<p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
+"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE – Previously events have been created even if only one
+frame has generated an alarm. This has not always been desirable as sometimes
+glitches and flickers create large numbers of events, however no mechanism
+existed for limiting this. In this version you can now specify the minimum
+number of consecutive alarmed frames that are necessary to create an event. This
+is the ‘Alarm Frame Count’ described above. Note that if an alarm is in
+progress single isolated alarmed frames will still prolong it and the count
+only applies to the initial frames that would cause the event.</p>
+
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.2.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.19.4</h2>
 
@@ -1674,10 +1848,10 @@ previous release has actually been included in this one.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>LANGUAGE – The Argentinian Spanish, Polish and Italian
-translations have all been updated with tokens introduced in version 1.19.3.</p>
+</span></span>LANGUAGE – The Argentinian Spanish, Polish and Italian translations
+have all been updated with tokens introduced in version 1.19.3.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.2.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.3.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.19.3</h2>
 
@@ -1781,7 +1955,7 @@ by Victor Diago and is available by selecting ‘pt_br’ as the language type.</p>
 </span></span>LANGUAGE – Updated versions of the Dutch and Argentinian Spanish
 translations have been included.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.3.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.4.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.19.2</h2>
 
@@ -1918,7 +2092,7 @@ language files in English. There will shortly be a point release which includes
 these language updates assuming I can get translations of them in a reasonable
 timescale.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.4.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.5.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.19.1</h2>
 
@@ -1928,8 +2102,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Ffmpeg Configure Changes. The configure script has been modified
 to look for the ffmpeg libraries in their installed location rather than in a
-build directory. This is to avoid having to build the library when it might
-already be installed.</p>
+build directory. This is to avoid having to build the library when it might already
+be installed.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1965,7 +2139,7 @@ in event filters did not generate valid database queries.</p>
 pass in a username and password to zmu when just querying a device as this was
 slightly broken and was unnecessary anyway.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.5.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.6.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.19.0</h2>
 
@@ -2012,10 +2186,10 @@ disappear so I suspect this is a better way to use zms.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Bulk Frame Records. With the recent advent of the 'Record' and 'Mocord'
-modes a lot of people have started using ZoneMinder as a pseudo-DVR. This meant
-that a lot of database activity was taking place as each captured frame
-required its own entry in the database. The frames table has now been
+</span></span>Bulk Frame Records. With the recent advent of the 'Record' and
+'Mocord' modes a lot of people have started using ZoneMinder as a pseudo-DVR.
+This meant that a lot of database activity was taking place as each captured
+frame required its own entry in the database. The frames table has now been
 reorganised so that 'bulk' frames may be written at defined intervals to reduce
 this database activity. The records act as markers and individual frame timings
 are interpolated in between. Bulk frames are only used when no alarm or motion
@@ -2121,7 +2295,7 @@ deleted when monitor was.</p>
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>A translation for the Dutch (nl_nl) language has been included.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.6.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.7.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.18.1</h2>
 
@@ -2145,7 +2319,7 @@ all of them. It is recommended that you review your list of saved filters and
 delete duplicates before adding any monitor specific terms and resetting the
 actions for any that remain.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.7.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.8.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.18.0</h2>
 
@@ -2290,7 +2464,7 @@ sometimes result in events a multiple of that length. So events that were meant
 to be 15 minutes long could sometimes be 30 or even 45 minutes. This was
 especially the case with monitors that had low frame rates. This is now fixed.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.8.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.9.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.17.2</h2>
 
@@ -2372,7 +2546,7 @@ bit annoying so any alarm flag is now cleared when this daemon exits.</p>
 </span></span>New Languages. Translations for Japanese (ja_jp), French (fr_fr)
 and Russian (ru_ru) are now included.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.9.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.10.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.17.1</h2>
 
@@ -2387,14 +2561,14 @@ bug is now fixed.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>New Languages. Two new language files were added. These allow ZoneMinder
-to use the German (de_de) and Polish (pl_pl) languages.</p>
+</span></span>New Languages. Two new language files were added. These allow
+ZoneMinder to use the German (de_de) and Polish (pl_pl) languages.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Language File Format. The format of the language file was changed
-to allow the specification of character set and locale as well as have more flexibility
-in the calculation of plural forms.</p>
+to allow the specification of character set and locale as well as have more
+flexibility in the calculation of plural forms.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2405,7 +2579,7 @@ settings as this is a rarely accessed area and contains a great deal of text.
 The new format allows individual options to be translated piecemeal as the
 opportunity arises.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.10.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.11.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.17.0</h2>
 
@@ -2464,7 +2638,7 @@ corrected.</p>
 </span></span>Minor Bugs. A number of minor bugs and inconsistencies were
 corrected.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.11.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.12.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.16</h2>
 
@@ -2482,8 +2656,8 @@ the monitors to have these saved functions and then doing a system restart.</p>
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>New Monitor Functions. Instead of Passive, Active, and X10, the
-modes are now Monitor (= old Passive) which just allows you to watch the feed, Modect
-(= old Active) which is MOtion DetECT and which will capture events as
+modes are now Monitor (= old Passive) which just allows you to watch the feed,
+Modect (= old Active) which is MOtion DetECT and which will capture events as
 previously, Record which continuously records with no analysis and MoCord which
 is a hybrid of Modect and Record and which will continuously record but also do
 motion detection and highlight where this has occurred. The Record and Mocord
@@ -2495,9 +2669,9 @@ value to tell it to not record 'n' frames at a time, when not alarmed.</p>
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>X10 Function removed. The X10 mode has been removed and replaced
 by an indication of whether the monitor is 'continuous' or 'triggered'. This
-basically just indicates whether it may be controlled outside of zmdc and zmpkg.
-Additionally the X10 triggers may now be specified in an X10 section. This has
-changed to allow for other types of triggers to be added more easily.</p>
+basically just indicates whether it may be controlled outside of zmdc and
+zmpkg. Additionally the X10 triggers may now be specified in an X10 section.
+This has changed to allow for other types of triggers to be added more easily.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2518,8 +2692,8 @@ monitoring at a higher screen size where the frame is not adjusted properly.</p>
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Variable Frame Rates. Event streams can now be viewed at various
-rates allowing faster review (if your bandwidth allows) to long events, or slower
-for more precision.</p>
+rates allowing faster review (if your bandwidth allows) to long events, or
+slower for more precision.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2552,8 +2726,7 @@ missing unless they have been explicitly configured to be used.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Adaptive Watchdog. zmwatch now more adaptive to actual frame
-rates.</p>
+</span></span>Adaptive Watchdog. zmwatch now more adaptive to actual frame rates.</p>
 
 <p class=BullettedChar style='text-indent:-35.7pt'><span style='font-family:
 "Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2662,7 +2835,7 @@ parsed from command line options passed to zmu.</p>
 </span></span>Event window width variable. Event windows now scale to fit the
 event image size.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.12.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.13.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.15</h2>
 
@@ -2717,7 +2890,7 @@ written by zma directly were colourised whereas those written by  zmf weren’t.
 A change has been made whereby if set all greyscale JPEG images are colourised
 in all circumstances.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.13.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.14.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.14</h2>
 
@@ -2779,7 +2952,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 </span></span>All SQL buffers in the C++ code have been enlarged. There was
 previously an issue with a buffer overflow on certain occasions.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.14.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.15.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.13</h2>
 
@@ -2851,7 +3024,7 @@ from child windows to restart the refresh process. By using JS refresh timers
 which are not interrupted these extraneous refreshes have been mostly
 eliminated.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.15.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.16.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.12</h2>
 
@@ -2960,7 +3133,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 </span></span>Detect linmysqlclient.a. Added better detection script into
 ‘configure’ top spot when libmysqlclient.a is missing.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.16.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.17.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.11</h2>
 
@@ -3077,7 +3250,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 colours were just a bit too gaudy so I've toned them down a bit. Hope you like
 them!</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.17.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.18.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.10</h2>
 
@@ -3203,7 +3376,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 that that I don't think had been reported or noticed so I don’t think we need
 to talk about them here do we.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.18.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.19.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.9</h2>
 
@@ -3278,7 +3451,7 @@ reload if a monitor window for example was clicked. Thsi was removed in the
 last version which meant that sometimes the console never go refreshed as it's
 timing loop was broken. This functionality has now been reinstated.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.19.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.20.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.8</h2>
 
@@ -3330,17 +3503,17 @@ up correctly in zmcfg.h.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Zmwatch now works on image delay and not fps - Previously the zmwatch
-daemon detected capture daemon failure by trying to use the FPS setting. This
-was imprecise and prone to false readings. It now uses the time delay since the
-last captured image.</p>
+</span></span>Zmwatch now works on image delay and not fps - Previously the
+zmwatch daemon detected capture daemon failure by trying to use the FPS
+setting. This was imprecise and prone to false readings. It now uses the time
+delay since the last captured image.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Added zmpkg.pl and zm scripts - There are now two new scripts. zmpkg.pl
 is in charge of starting and stopping ZoneMinder as a whole package and zm is
-designed to be (optionally) installed into your init.d directory to use ZoneMinder
-as a service.</p>
+designed to be (optionally) installed into your init.d directory to use
+ZoneMinder as a service.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3401,7 +3574,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 active and an alarm has occurred the most recent alarms list is immediately
 refreshed to show it.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.20.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.21.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.7</h2>
 
@@ -3520,7 +3693,7 @@ separate events view.</p>
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>And much much more, probably...</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.21.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.22.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.0.1</h2>
 
@@ -3577,7 +3750,8 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 to put a WML interface on to allow you to view event listing and perhaps the
 most significant image from each event on your phone. Also simple management.
 From version 0.9.7 there is a very basic crude initial version that probably won't
-work with your phone but its there as a testbed.</p>
+work with your phone but its there as a testbed. Note, this interface is now in
+xHTML, or will be when finally released.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3592,9 +3766,9 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 image data is held in shared memory in a very simple format. In theory you
 could use the capture daemon to gab the images and other things could read them
 from memory or the analysis daemon could read images from elsewhere. Either way
-this should be done through an API, and would need a library I think. Also the zmu
-utility could probably do a whole lot more to enable other things to manage when
-the daemons become active etc.</p>
+this should be done through an API, and would need a library I think. Also the
+zmu utility could probably do a whole lot more to enable other things to manage
+when the daemons become active etc.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;

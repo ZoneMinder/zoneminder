@@ -277,6 +277,10 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									if ( bss->hi_x > bsm->hi_x ) bsm->hi_x = bss->hi_x;
 									if ( bss->hi_y > bsm->hi_y ) bsm->hi_y = bss->hi_y;
 
+									alarm_blobs--;
+
+									Debug( 2, ( "Merging blob %d with %d, %d current blobs", bss->tag, bsm->tag, alarm_blobs ));
+
 									// Clear out the old blob
 									bss->tag = 0;
 									bss->count = 0;
@@ -284,8 +288,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									bss->lo_y = 0;
 									bss->hi_x = 0;
 									bss->hi_y = 0;
-
-									alarm_blobs--;
 								}
 							}
 							else
@@ -316,7 +318,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 							{
 								// Create a new blob
 								//for ( int i = 1; i < WHITE; i++ )
-								for ( int i = WHITE; i > 0; i-- )
+								for ( int i = (WHITE-1); i > 0; i-- )
 								{
 									BlobStats *bs = &blob_stats[i];
 									if ( !bs->count )
@@ -328,6 +330,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 										bs->lo_x = bs->hi_x = x;
 										bs->lo_y = bs->hi_y = y;
 										alarm_blobs++;
+
+										Debug( 2, ( "Created blob %d, %d current blobs", bs->tag, alarm_blobs ));
 										break;
 									}
 								}
@@ -355,7 +359,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				BlobStats *bs = &blob_stats[i];
 				if ( bs->count && ((min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels)) )
 				{
-					//Info(( "Eliminating blob %d, %d pixels (%d,%d - %d,%d)", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y ));
 					for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
 					{
 						unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
@@ -370,6 +373,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					alarm_blobs--;
 					alarm_blob_pixels -= bs->count;
 					
+					Debug( 2, ( "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs ));
+
 					bs->tag = 0;
 					bs->count = 0;
 					bs->lo_x = 0;

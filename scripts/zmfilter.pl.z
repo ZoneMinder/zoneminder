@@ -193,6 +193,8 @@ while( 1 )
 					print( "Checking event $event->{Id}\n" ) if ( VERBOSE );
 					if ( $filter->{AutoUpload} )
 					{
+						next if ( $event->{Uploaded} );
+
 						my $arch_file = FTP_LOC_DIR.$filter->{MonitorName}.'-'.$event->{Id};
 						my $arch_image_path = "$filter->{MonitorName}/$event->{Id}/".(ARCH_ANALYSE?'*':'capture*').".jpg";
 						my $arch_error;
@@ -247,6 +249,9 @@ while( 1 )
 							$ftp->put( $arch_file ) or warn( "FTP - Can't upload '$arch_file'" );
 							$ftp->quit() or warn( "FTP - Can't quit" );
 							unlink( $arch_file );
+							my $sql = "update Events set Uploaded = 1 where Id = ?";
+							my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+							my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
 						}
 					}
 					if ( $filter->{AutoDelete} )

@@ -1,16 +1,36 @@
 <?php
-	if ( !canView( 'Events' ) )
-	{
-		$view = "error";
-		return;
-	}
-	$result = mysql_query( "select S.*,E.*,Z.Name as ZoneName,M.Name as MonitorName,M.Width,M.Height from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '$eid' and S.FrameId = '$fid' order by S.ZoneId" );
-	if ( !$result )
-		die( mysql_error() );
-	while ( $row = mysql_fetch_assoc( $result ) )
-	{
-		$stats[] = $row;
-	}
+//
+// ZoneMinder web stats view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+if ( !canView( 'Events' ) )
+{
+	$view = "error";
+	return;
+}
+$result = mysql_query( "select S.*,E.*,Z.Name as ZoneName,M.Name as MonitorName,M.Width,M.Height from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '$eid' and S.FrameId = '$fid' order by S.ZoneId" );
+if ( !$result )
+	die( mysql_error() );
+while ( $row = mysql_fetch_assoc( $result ) )
+{
+	$stats[] = $row;
+}
+
 ?>
 <html>
 <head>
@@ -41,10 +61,10 @@ function closeWindow()
 <td class="smallhead" align="right"><?= $zmSlangScore ?></td>
 </tr>
 <?php
-	if ( count($stats) )
+if ( count($stats) )
+{
+	foreach ( $stats as $stat )
 	{
-		foreach ( $stats as $stat )
-		{
 ?>
 <tr bgcolor="#FFFFFF">
 <td class="text"><?= $stat['ZoneName'] ?></td>
@@ -57,16 +77,16 @@ function closeWindow()
 <td class="text" align="right"><?= $stat['Score'] ?></td>
 </tr>
 <?php
-		}
 	}
-	else
-	{
+}
+else
+{
 ?>
 <tr bgcolor="#FFFFFF">
 <td class="text" colspan="8" align="center"><br><?= $zmSlangNoStatisticsRecorded ?><br><br></td>
 </tr>
 <?php
-	}
+}
 ?>
 </table></td>
 </tr>

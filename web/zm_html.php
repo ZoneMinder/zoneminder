@@ -1,5 +1,4 @@
 <?php
-
 //
 // ZoneMinder HTML interface file, $Date$, $Revision$
 // Copyright (C) 2003  Philip Coombes

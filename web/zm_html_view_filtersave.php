@@ -1,13 +1,33 @@
 <?php
-	if ( !canEdit( 'Events' ) )
-	{
-		$view = "error";
-		return;
-	}
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
+//
+// ZoneMinder web filter save view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+if ( !canEdit( 'Events' ) )
+{
+	$view = "error";
+	return;
+}
+$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+if ( !$result )
+	die( mysql_error() );
+$monitor = mysql_fetch_assoc( $result );
+
 ?>
 <html>
 <head>
@@ -32,20 +52,20 @@ window.focus();
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <input type="hidden" name="trms" value="<?= $trms ?>">
 <?php
-	for ( $i = 1; $i <= $trms; $i++ )
+for ( $i = 1; $i <= $trms; $i++ )
+{
+	$conjunction_name = "cnj$i";
+	$obracket_name = "obr$i";
+	$cbracket_name = "cbr$i";
+	$attr_name = "attr$i";
+	$op_name = "op$i";
+	$value_name = "val$i";
+	if ( $i > 1 )
 	{
-		$conjunction_name = "cnj$i";
-		$obracket_name = "obr$i";
-		$cbracket_name = "cbr$i";
-		$attr_name = "attr$i";
-		$op_name = "op$i";
-		$value_name = "val$i";
-		if ( $i > 1 )
-		{
 ?>
 <input type="hidden" name="<?= $conjunction_name ?>" value="<?= $$conjunction_name ?>">
 <?php
-		}
+	}
 ?>
 <input type="hidden" name="<?= $obracket_name ?>" value="<?= isset($$obracket_name)?$$obracket_name:'' ?>">
 <input type="hidden" name="<?= $cbracket_name ?>" value="<?= isset($$cbracket_name)?$$cbracket_name:'' ?>">
@@ -53,23 +73,23 @@ window.focus();
 <input type="hidden" name="<?= $op_name ?>" value="<?= isset($$op_name)?$$op_name:'' ?>">
 <input type="hidden" name="<?= $value_name ?>" value="<?= isset($$value_name)?$$value_name:'' ?>">
 <?php
-	}
+}
 ?>
 <center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
 <tr>
 <?php
-	$select_name = "filter_name";
-	$result = mysql_query( "select * from Filters where MonitorId = '$mid' order by Name" );
-	if ( !$result )
-		die( mysql_error() );
-	while ( $row = mysql_fetch_assoc( $result ) )
+$select_name = "filter_name";
+$result = mysql_query( "select * from Filters where MonitorId = '$mid' order by Name" );
+if ( !$result )
+	die( mysql_error() );
+while ( $row = mysql_fetch_assoc( $result ) )
+{
+	$filter_names[$row['Name']] = $row['Name'];
+	if ( $filter_name == $row['Name'] )
 	{
-		$filter_names[$row['Name']] = $row['Name'];
-		if ( $filter_name == $row['Name'] )
-		{
-			$filter_data = $row;
-		}
+		$filter_data = $row;
 	}
+}
 ?>
 <?php if ( count($filter_names) ) { ?>
 <td align="left" colspan="2" class="text"><?= $zmSlangSaveAs ?>:&nbsp;<?= buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); ?>&nbsp;<?= $zmSlangOrEnterNewName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="<?= $filter_name ?>" class="form"></td>

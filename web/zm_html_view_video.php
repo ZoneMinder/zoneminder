@@ -1,20 +1,40 @@
 <?php
-	if ( !canView( 'Events' ) )
-	{
-		$view = "error";
-		return;
-	}
-	$result = mysql_query( "select E.*,M.Name as MonitorName, M.Palette from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
-	if ( !$result )
-		die( mysql_error() );
-	$event = mysql_fetch_assoc( $result );
+//
+// ZoneMinder web video view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
 
-	if ( !isset( $scale ) )
-		$scale = 1;
-	if ( !isset( $rate ) )
-		$rate = 1;
+if ( !canView( 'Events' ) )
+{
+	$view = "error";
+	return;
+}
+$result = mysql_query( "select E.*,M.Name as MonitorName, M.Palette from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+if ( !$result )
+	die( mysql_error() );
+$event = mysql_fetch_assoc( $result );
 
-	ob_start();
+if ( !isset( $scale ) )
+	$scale = 1;
+if ( !isset( $rate ) )
+	$rate = 1;
+
+ob_start();
+
 ?>
 <html>
 <head>
@@ -40,8 +60,8 @@
 </table>
 </form>
 <?php
-	if ( $generate )
-	{
+if ( $generate )
+{
 ?>
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr><td>&nbsp;</td></tr>
@@ -53,18 +73,18 @@
 </body>
 </html>
 <?php
-		$buffer_string = "<!-- This is some long buffer text to ensure that IE flushes correctly -->";
-		for ( $i = 0; $i < 4096/strlen($buffer_string); $i++ )
-		{
-			echo $buffer_string."\n";
-		}
+	$buffer_string = "<!-- This is some long buffer text to ensure that IE flushes correctly -->";
+	for ( $i = 0; $i < 4096/strlen($buffer_string); $i++ )
+	{
+		echo $buffer_string."\n";
+	}
 ?>
 <?php
-		ob_end_flush();
-		if ( $video_file = createVideo( $event, $rate, $scale, $overwrite ) )
-		{
-			$event_dir = ZM_DIR_EVENTS."/$event['MonitorName']/".sprintf( "%d", $eid );
-			$video_path = $event_dir.'/'.$video_file;
+	ob_end_flush();
+	if ( $video_file = createVideo( $event, $rate, $scale, $overwrite ) )
+	{
+		$event_dir = ZM_DIR_EVENTS."/".$event['MonitorName']."/".sprintf( "%d", $eid );
+		$video_path = $event_dir.'/'.$video_file;
 ?>
 <html>
 <head>
@@ -74,10 +94,10 @@ location.replace('<?= $video_path ?>');
 </head>
 </html>
 <?php
-		}
-		else
-		{
-			ob_end_flush();
+	}
+	else
+	{
+		ob_end_flush();
 ?>
 <html>
 <head>
@@ -86,12 +106,12 @@ location.replace('<?= $video_path ?>');
 <body>
 <p class="head" align="center"><font color="red"><br><br><?= $zmSlangVideoGenFailed ?><br><br></font></p>
 <?php
-		}
 	}
-	else
-	{
-		ob_end_flush();
-	}
+}
+else
+{
+	ob_end_flush();
+}
 ?>
 </body>
 </html>

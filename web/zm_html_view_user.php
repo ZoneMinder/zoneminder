@@ -1,18 +1,38 @@
 <?php
-	if ( !canEdit( 'System' ) )
-	{
-		$view = "error";
-		return;
-	}
-	$result = mysql_query( "select * from Users where Id = '$uid'" );
-	if ( !$result )
-		die( mysql_error() );
-	if ( !($row = mysql_fetch_assoc( $result )) )
-	{
-		$row = array();
-		$row['Username'] = $zmSlangNewUser;
-		$row['Enabled'] = 1;
-	}
+//
+// ZoneMinder web user view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+if ( !canEdit( 'System' ) )
+{
+	$view = "error";
+	return;
+}
+$result = mysql_query( "select * from Users where Id = '$uid'" );
+if ( !$result )
+	die( mysql_error() );
+if ( !($row = mysql_fetch_assoc( $result )) )
+{
+	$row = array();
+	$row['Username'] = $zmSlangNewUser;
+	$row['Enabled'] = 1;
+}
+
 ?>
 <html>
 <head>
@@ -20,12 +40,12 @@
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( !empty($refresh_parent) )
-	{
+if ( !empty($refresh_parent) )
+{
 ?>
 opener.location.reload(true);
 <?php
-	}
+}
 ?>
 window.focus();
 function validateForm(Form)
@@ -78,20 +98,20 @@ function closeWindow()
 <tr><td align="right" class="text"><?= $zmSlangConfirmPassword ?></td><td align="left" class="text"><input type="password" name="new_password2" value="<?= $row['Password'] ?>" size="16" class="form"></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangLanguage ?></td><td align="left" class="text"><input type="text" name="new_language" value="<?= $row['Language'] ?>" size="16" class="form"></td></tr>
 <?php
-	$new_enabled = $row['Enabled'];
-	$yesno = array( 0=>$zmSlangNo, 1=>$zmSlangYes );
+$new_enabled = $row['Enabled'];
+$yesno = array( 0=>$zmSlangNo, 1=>$zmSlangYes );
 ?>
 <tr><td align="right" class="text"><?= $zmSlangEnabled ?></td><td align="left" class="text"><?= buildSelect( "new_enabled", $yesno ) ?></td></tr>
 <?php
-	$new_stream = $row['Stream'];
-	$nv = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView );
+$new_stream = $row['Stream'];
+$nv = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView );
 ?>
 <tr><td align="right" class="text">Stream</td><td align="left" class="text"><?= buildSelect( "new_stream", $nv ) ?></td></tr>
 <?php
-	$new_events = $row['Events'];
-	$new_monitors = $row['Monitors'];
-	$new_system = $row['System'];
-	$nve = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView, 'Edit'=>$zmSlangEdit );
+$new_events = $row['Events'];
+$new_monitors = $row['Monitors'];
+$new_system = $row['System'];
+$nve = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView, 'Edit'=>$zmSlangEdit );
 ?>
 <tr><td align="right" class="text"><?= $zmSlangEvents ?></td><td align="left" class="text"><?= buildSelect( "new_events", $nve ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangMonitors ?></td><td align="left" class="text"><?= buildSelect( "new_monitors", $nve ) ?></td></tr>

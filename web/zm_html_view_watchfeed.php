@@ -1,39 +1,59 @@
 <?php
-	if ( !canView( 'Stream' ) )
-	{
-		$view = "error";
-		return;
-	}
-	if ( !isset($mode) )
-	{
-		if ( canStream() )
-			$mode = "stream";
-		else
-			$mode = "still";
-	}
+//
+// ZoneMinder web watch feed view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
 
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
+if ( !canView( 'Stream' ) )
+{
+	$view = "error";
+	return;
+}
+if ( !isset($mode) )
+{
+	if ( canStream() )
+		$mode = "stream";
+	else
+		$mode = "still";
+}
 
-	if ( $mode != "stream" )
-	{
-		// Prompt an image to be generated
-		chdir( ZM_DIR_IMAGES );
-		$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -i" ) );
-		chdir( '..' );
-		if ( ZM_WEB_REFRESH_METHOD == "http" )
-			header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
-	}
-	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
-	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
-	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
-	header("Cache-Control: post-check=0, pre-check=0", false);
-	header("Pragma: no-cache");			  // HTTP/1.0
+$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+if ( !$result )
+	die( mysql_error() );
+$monitor = mysql_fetch_assoc( $result );
 
-	if ( !isset( $scale ) )
-		$scale = 1;
+if ( $mode != "stream" )
+{
+	// Prompt an image to be generated
+	chdir( ZM_DIR_IMAGES );
+	$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -i" ) );
+	chdir( '..' );
+	if ( ZM_WEB_REFRESH_METHOD == "http" )
+		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
+}
+header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");			  // HTTP/1.0
+
+if ( !isset( $scale ) )
+	$scale = 1;
+
 ?>
 <html>
 <head>
@@ -49,12 +69,12 @@ function closeWindow()
 	top.window.close();
 }
 <?php
-	if ( $mode != "stream" && ZM_WEB_REFRESH_METHOD == "javascript" )
-	{
+if ( $mode != "stream" && ZM_WEB_REFRESH_METHOD == "javascript" )
+{
 ?>
 window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <?php
-	}
+}
 ?>
 </script>
 </head>
@@ -87,28 +107,28 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <?php
-	if ( $mode == "stream" )
+if ( $mode == "stream" )
+{
+	$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&scale=$scale";
+	if ( isNetscape() )
 	{
-		$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&scale=$scale";
-		if ( isNetscape() )
-		{
 ?>
 <tr><td colspan="5" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></td></tr>
 <?php
-		}
-		else
-		{
-?>
-<tr><td colspan="5" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
-<?php
-		}
 	}
 	else
 	{
 ?>
-<tr><td colspan="5" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></td></tr>
+<tr><td colspan="5" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
 <?php
 	}
+}
+else
+{
+?>
+<tr><td colspan="5" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>"></td></tr>
+<?php
+}
 ?>
 </table>
 </body>

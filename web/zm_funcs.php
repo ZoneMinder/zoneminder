@@ -1,7 +1,6 @@
 <?php
-
 //
-// ZoneMinder function library file, $Date$, $Revision$
+// ZoneMinder web function library, $Date$, $Revision$
 // Copyright (C) 2003  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

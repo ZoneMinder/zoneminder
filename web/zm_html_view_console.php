@@ -1,47 +1,67 @@
 <?php
-	$running = daemonCheck();
-	$status = $running?$zmSlangRunning:$zmSlangStopped;
+//
+// ZoneMinder web console file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
 
-	if ( ZM_WEB_REFRESH_METHOD == "http" )
-		header("Refresh: ".REFRESH_MAIN."; URL=$PHP_SELF" );
-	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
-	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
-	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
-	header("Cache-Control: post-check=0, pre-check=0", false);
-	header("Pragma: no-cache");			// HTTP/1.0
+$running = daemonCheck();
+$status = $running?$zmSlangRunning:$zmSlangStopped;
 
-	$db_now = strftime( "%Y-%m-%d %H:%M:%S" );
-	$sql = "select M.*, count(if(E.Archived=0,1,NULL)) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		echo mysql_error();
-	$monitors = array();
-	$max_width = 0;
-	$max_height = 0;
-	$cycle_count = 0;
-	while( $row = mysql_fetch_assoc( $result ) )
+if ( ZM_WEB_REFRESH_METHOD == "http" )
+	header("Refresh: ".REFRESH_MAIN."; URL=$PHP_SELF" );
+header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");			// HTTP/1.0
+
+$db_now = strftime( "%Y-%m-%d %H:%M:%S" );
+$sql = "select M.*, count(if(E.Archived=0,1,NULL)) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
+$result = mysql_query( $sql );
+if ( !$result )
+	echo mysql_error();
+$monitors = array();
+$max_width = 0;
+$max_height = 0;
+$cycle_count = 0;
+while( $row = mysql_fetch_assoc( $result ) )
+{
+	if ( !visibleMonitor( $row['Id'] ) )
 	{
-		if ( !visibleMonitor( $row['Id'] ) )
-		{
-			continue;
-		}
-		$row['zmc'] = zmcCheck( $row );
-		$row['zma'] = zmaCheck( $row );
-		$sql = "select count(Id) as ZoneCount from Zones where MonitorId = '".$row['Id']."'";
-		$result2 = mysql_query( $sql );
-		if ( !$result2 )
-			echo mysql_error();
-		$row2 = mysql_fetch_assoc( $result2 );
-		$monitors[] = array_merge( $row, $row2 );
-		if ( $row['Function'] != 'None' )
-		{
-			$cycle_count++;
-			if ( $max_width < $row['Width'] ) $max_width = $row['Width'];
-			if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
-		}
+		continue;
 	}
-	$montage_rows = intval(ceil($cycle_count/ZM_WEB_MONTAGE_MAX_COLS));
-	$montage_cols = $cycle_count>=ZM_WEB_MONTAGE_MAX_COLS?ZM_WEB_MONTAGE_MAX_COLS:$cycle_count;
+	$row['zmc'] = zmcCheck( $row );
+	$row['zma'] = zmaCheck( $row );
+	$sql = "select count(Id) as ZoneCount from Zones where MonitorId = '".$row['Id']."'";
+	$result2 = mysql_query( $sql );
+	if ( !$result2 )
+		echo mysql_error();
+	$row2 = mysql_fetch_assoc( $result2 );
+	$monitors[] = array_merge( $row, $row2 );
+	if ( $row['Function'] != 'None' )
+	{
+		$cycle_count++;
+		if ( $max_width < $row['Width'] ) $max_width = $row['Width'];
+		if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
+	}
+}
+$montage_rows = intval(ceil($cycle_count/ZM_WEB_MONTAGE_MAX_COLS));
+$montage_cols = $cycle_count>=ZM_WEB_MONTAGE_MAX_COLS?ZM_WEB_MONTAGE_MAX_COLS:$cycle_count;
+
 ?>
 <html>
 <head>
@@ -78,12 +98,12 @@ function confirmDelete()
 	return( confirm( 'Warning, deleting a monitor also deletes all events and database entries associated with it.\nAre you sure you wish to delete?' ) );
 }
 <?php
-		if ( ZM_WEB_REFRESH_METHOD == "javascript" )
-		{
+if ( ZM_WEB_REFRESH_METHOD == "javascript" )
+{
 ?>
 window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_MAIN*1000) ?> );
 <?php
-		}
+}
 ?>
 </script>
 </head>
@@ -93,42 +113,42 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
 <td class="bighead" align="center"><strong>ZoneMinder <?= $zmSlangConsole ?> - <?php if ( canEdit( 'System' ) ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=state', 'zmState', <?= $jws['state']['w'] ?>, <?= $jws['state']['h'] ?> );"><?= $status ?></a> - <?php } ?>v<?= ZM_VERSION ?></strong></td>
 <?php
-	$uptime = shell_exec( 'uptime' );
-	$load = '';
-	preg_match( '/load average: ([\d.]+)/', $uptime, $matches );
+$uptime = shell_exec( 'uptime' );
+$load = '';
+preg_match( '/load average: ([\d.]+)/', $uptime, $matches );
 ?>
 <td class="smallhead" align="right"><?= $zmSlangServerLoad ?>: <?= $matches[1] ?></td>
 </tr>
 <tr>
 <td class="smallhead" align="left">
 <?php
-	if ( canView( 'Stream' ) && $cycle_count > 1 )
-	{
+if ( canView( 'Stream' ) && $cycle_count > 1 )
+{
 ?>
 <a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $max_width+$jws['cycle']['w'] ?>, <?= $max_height+$jws['cycle']['h'] ?> );"><?= sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) ) ?></a>&nbsp;(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage', 'zmMontage', <?= ($montage_cols*$max_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*(40+$max_height))+$jws['montage']['h'] ?> );"><?= $zmSlangMontage ?></a>)
 <?php
-	}
-	else
-	{
+}
+else
+{
 ?>
 <?= sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) ) ?>
 <?php
-	}
+}
 ?>
 </td>
 <?php
-	if ( ZM_OPT_USE_AUTH )
-	{
+if ( ZM_OPT_USE_AUTH )
+{
 ?>
 <td class="smallhead" align="center"><?= $zmSlangLoggedInAs ?> <a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=logout', 'zmLogout', <?= $jws['logout']['w'] ?>, <?= $jws['logout']['h'] ?>);"><?= $user['Username'] ?></a>, <?= strtolower( $zmSlangConfiguredFor ) ?>
 <?php
-	}
-	else
-	{
+}
+else
+{
 ?>
 <td class="smallhead" align="center"><?= $zmSlangConfiguredFor ?>
 <?php
-	}
+}
 ?>
 &nbsp;<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=bandwidth', 'zmBandwidth', <?= $jws['bandwidth']['w'] ?>, <?= $jws['bandwidth']['h'] ?>);"><?= strtolower( $bw_array[$bandwidth] ) ?></a> <?= strtolower( $zmSlangBandwidth ) ?></td>
 <td class="smallhead" align="right"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=options', 'zmOptions', ".$jws['options']['w'].", ".$jws['options']['h']." );", $zmSlangOptions, canView( 'System' ) ) ?></td>
@@ -152,57 +172,57 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 <td align="center" class="smallhead"><?= $zmSlangMark ?></td>
 </tr>
 <?php
-	$event_count = 0;
-	$hour_event_count = 0;
-	$day_event_count = 0;
-	$week_event_count = 0;
-	$month_event_count = 0;
-	$arch_event_count = 0;
-	$zone_count = 0;
-	foreach( $monitors as $monitor )
-	{
-		$event_count += $monitor['EventCount'];
-		$hour_event_count += $monitor['HourEventCount'];
-		$day_event_count += $monitor['DayEventCount'];
-		$week_event_count += $monitor['WeekEventCount'];
-		$month_event_count += $monitor['MonthEventCount'];
-		$arch_event_count += $monitor['ArchEventCount'];
-		$zone_count += $monitor['ZoneCount'];
+$event_count = 0;
+$hour_event_count = 0;
+$day_event_count = 0;
+$week_event_count = 0;
+$month_event_count = 0;
+$arch_event_count = 0;
+$zone_count = 0;
+foreach( $monitors as $monitor )
+{
+	$event_count += $monitor['EventCount'];
+	$hour_event_count += $monitor['HourEventCount'];
+	$day_event_count += $monitor['DayEventCount'];
+	$week_event_count += $monitor['WeekEventCount'];
+	$month_event_count += $monitor['MonthEventCount'];
+	$arch_event_count += $monitor['ArchEventCount'];
+	$zone_count += $monitor['ZoneCount'];
 ?>
 <tr>
 <td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=".$monitor['Id']."', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", $monitor['Id'].'.', canView( 'Monitors' ) ) ?></td>
 <?php
-		if ( !$monitor['zmc'] )
+	if ( !$monitor['zmc'] )
+	{
+		$dclass = "redtext";
+	}
+	else
+	{
+		if ( !$monitor['zma'] )
 		{
-			$dclass = "redtext";
+			$dclass = "ambtext";
 		}
 		else
 		{
-			if ( !$monitor['zma'] )
-			{
-				$dclass = "ambtext";
-			}
-			else
-			{
-				$dclass = "gretext";
-			}
+			$dclass = "gretext";
 		}
-		if ( $monitor['Function'] == 'None' )
-		{
-			$fclass = "redtext";
-		}
-		elseif ( $monitor['Function'] == 'Monitor' )
-		{
-			$fclass = "ambtext";
-		}
-		else
-		{
-			$fclass = "gretext";
-		}
-		if ( $monitor['RunMode'] == 'Triggered' )
-		{
-			$fclass .= "em";
-		}
+	}
+	if ( $monitor['Function'] == 'None' )
+	{
+		$fclass = "redtext";
+	}
+	elseif ( $monitor['Function'] == 'Monitor' )
+	{
+		$fclass = "ambtext";
+	}
+	else
+	{
+		$fclass = "gretext";
+	}
+	if ( $monitor['RunMode'] == 'Triggered' )
+	{
+		$fclass .= "em";
+	}
 ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=watch&mid=".$monitor['Id']."', 'zmWatch".$monitor['Name']."', ".($monitor['Width']+$jws['watch']['w']).", ".($monitor['Height']+$jws['watch']['h'])." );", $monitor['Name'], canView( 'Stream' ) ) ?></td>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=function&mid=".$monitor['Id']."', 'zmFunction', ".$jws['function']['w'].", ".$jws['function']['h']." );", "<span class=\"$fclass\">".$monitor['Function']."</span>", canEdit( 'Monitors' ) ) ?></td>
@@ -221,7 +241,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 <td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor['Id'] ?>" onClick="configureButton( document.monitor_form, 'mark_mids' );"<?php if ( !canEdit( 'Monitors' ) || isset($user['MonitorIds']) ) {?> disabled<?php } ?>></td>
 </tr>
 <?php
-	}
+}
 ?>
 <tr>
 <td colspan="2" align="center">

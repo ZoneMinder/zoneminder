@@ -1,53 +1,72 @@
 <?php
-	if ( !canView( 'Events' ) )
-	{
-		$view = "error";
-		return;
-	}
-	if ( empty($sort_field) )
-	{
-		$sort_field = "Time";
-		$sort_asc = false;
-	}
-	switch( $sort_field )
-	{
-		case 'Id' :
-			$sort_column = "E.Id";
-			break;
-		case 'Name' :
-			$sort_column = "E.Name";
-			break;
-		case 'Time' :
-			$sort_column = "E.StartTime";
-			break;
-		case 'Secs' :
-			$sort_column = "E.Length";
-			break;
-		case 'Frames' :
-			$sort_column = "E.Frames";
-			break;
-		case 'Score' :
-			$sort_column = "E.AvgScore";
-			break;
-		default:
-			$sort_column = "E.StartTime";
-			break;
-	}
-	$sort_order = $sort_asc?"asc":"desc";
-	if ( !$sort_asc )
-		$sort_asc = 0;
-	if ( ZM_WEB_REFRESH_METHOD == "http" )
-		header("Refresh: ".REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
-	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
-	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
-	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
-	header("Cache-Control: post-check=0, pre-check=0", false);
-	header("Pragma: no-cache");			  // HTTP/1.0
+//
+// ZoneMinder web watch events view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
 
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
+if ( !canView( 'Events' ) )
+{
+	$view = "error";
+	return;
+}
+if ( empty($sort_field) )
+{
+	$sort_field = "Time";
+	$sort_asc = false;
+}
+switch( $sort_field )
+{
+	case 'Id' :
+		$sort_column = "E.Id";
+		break;
+	case 'Name' :
+		$sort_column = "E.Name";
+		break;
+	case 'Time' :
+		$sort_column = "E.StartTime";
+		break;
+	case 'Secs' :
+		$sort_column = "E.Length";
+		break;
+	case 'Frames' :
+		$sort_column = "E.Frames";
+		break;
+	case 'Score' :
+		$sort_column = "E.AvgScore";
+		break;
+	default:
+		$sort_column = "E.StartTime";
+		break;
+}
+$sort_order = $sort_asc?"asc":"desc";
+if ( !$sort_asc )
+	$sort_asc = 0;
+if ( ZM_WEB_REFRESH_METHOD == "http" )
+	header("Refresh: ".REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
+header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
+header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");			  // HTTP/1.0
+
+$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+if ( !$result )
+	die( mysql_error() );
+$monitor = mysql_fetch_assoc( $result );
 
 ?>
 <html>
@@ -90,12 +109,12 @@ function configureButton(form,name)
 	form.delete_btn.disabled = !checked;
 }
 <?php
-	if ( ZM_WEB_REFRESH_METHOD == "javascript" )
-	{
+if ( ZM_WEB_REFRESH_METHOD == "javascript" )
+{
 ?>
 window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS ?>' )", <?= REFRESH_EVENTS*1000 ?> );
 <?php
-	}
+}
 ?>
 </script>
 </head>
@@ -109,15 +128,15 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <?php
-	$sql = "select E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M left join Events as E on M.Id = E.MonitorId where M.Id = '$mid' and E.Archived = 0";
-	$sql .= " order by $sort_column $sort_order";
-	$sql .= " limit 0,$max_events";
-	$result = mysql_query( $sql );
-	if ( !$result )
-	{
-		die( mysql_error() );
-	}
-	$n_events = mysql_num_rows( $result );
+$sql = "select E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M left join Events as E on M.Id = E.MonitorId where M.Id = '$mid' and E.Archived = 0";
+$sql .= " order by $sort_column $sort_order";
+$sql .= " limit 0,$max_events";
+$result = mysql_query( $sql );
+if ( !$result )
+{
+	die( mysql_error() );
+}
+$n_events = mysql_num_rows( $result );
 ?>
 <tr>
 <td class="text"><b><?= sprintf( $zmClangLastEvents, $n_events, strtolower( zmVlang( $zmVlangEvent, $n_events ) ) ) ?></b></td>
@@ -137,8 +156,8 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 <td class="text"><?= $zmSlangMark ?></td>
 </tr>
 <?php
-	while( $event = mysql_fetch_assoc( $result ) )
-	{
+while( $event = mysql_fetch_assoc( $result ) )
+{
 ?>
 <tr bgcolor="#FFFFFF">
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event['Id'] ?>&page=1', 'zmEvent' );"><?= $event['Id'] ?></a></td>
@@ -150,7 +169,7 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 <td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $event['Id'] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
-	}
+}
 ?>
 </table></td></tr>
 </table></td>

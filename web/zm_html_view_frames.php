@@ -1,16 +1,35 @@
 <?php
-	if ( !canView( 'Events' ) )
-	{
-		$view = "error";
-		return;
-	}
-	$result = mysql_query( "select F.*,unix_timestamp(F.TimeStamp) as UnixTimeStamp,E.*,M.Name as MonitorName,M.Width,M.Height from Frames as F left join Events as E on F.EventId = E.Id left join Monitors as M on E.MonitorId = M.Id where F.EventId = '$eid' order by F.FrameId" );
-	if ( !$result )
-		die( mysql_error() );
-	while ( $row = mysql_fetch_assoc( $result ) )
-	{
-		$frames[] = $row;
-	}
+//
+// ZoneMinder web frames view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+if ( !canView( 'Events' ) )
+{
+	$view = "error";
+	return;
+}
+$result = mysql_query( "select F.*,unix_timestamp(F.TimeStamp) as UnixTimeStamp,E.*,M.Name as MonitorName,M.Width,M.Height from Frames as F left join Events as E on F.EventId = E.Id left join Monitors as M on E.MonitorId = M.Id where F.EventId = '$eid' order by F.FrameId" );
+if ( !$result )
+	die( mysql_error() );
+while ( $row = mysql_fetch_assoc( $result ) )
+{
+	$frames[] = $row;
+}
 ?>
 <html>
 <head>
@@ -42,10 +61,10 @@ function closeWindow()
 <td class="smallhead" align="center"><?= $zmSlangScore ?></td>
 </tr>
 <?php
-	if ( count($frames) )
+if ( count($frames) )
+{
+	foreach ( $frames as $frame )
 	{
-		foreach ( $frames as $frame )
-		{
 ?>
 <tr bgcolor="<?= $frame['AlarmFrame']?'#FA8072':'#FFFFFF' ?>">
 <td class="text" align="center"><?= $frame['FrameId'] ?></td>
@@ -53,31 +72,31 @@ function closeWindow()
 <td class="text" align="center"><?= date( "H:i:s", $frame['UnixTimeStamp'] ) ?></td>
 <td class="text" align="center"><?= number_format( $frame['Delta'], 2 ) ?></td>
 <?php
-			if ( ZM_RECORD_EVENT_STATS && $frame['AlarmFrame'] )
-			{
+		if ( ZM_RECORD_EVENT_STATS && $frame['AlarmFrame'] )
+		{
 ?>
 <td class="text" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $frame['FrameId'] ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );"><?= $frame['Score'] ?></a></td>
 <?php
-			}
-			else
-			{
+		}
+		else
+		{
 ?> 
 <td class="text" align="center"><?= $frame['Score'] ?></td>
 <?php
-			}
+		}
 ?> 
 </tr>
 <?php
-		}
 	}
-	else
-	{
+}
+else
+{
 ?>
 <tr bgcolor="#FFFFFF">
 <td class="text" colspan="8" align="center"><br><?= $zmSlangNoFramesRecorded ?><br><br></td>
 </tr>
 <?php
-	}
+}
 ?>
 </table></td>
 </tr>

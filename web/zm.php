@@ -1,5 +1,4 @@
 <?php
-
 //
 // ZoneMinder main web interface file, $Date$, $Revision$
 // Copyright (C) 2003  Philip Coombes
@@ -19,12 +18,11 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-
 import_request_variables( "GPC" );
 
+// Use these for debugging, though not both at once!
 //phpinfo( INFO_VARIABLES );
-
-error_reporting( E_ALL );
+//error_reporting( E_ALL );
 
 if ( !isset($PHP_SELF) )
 {

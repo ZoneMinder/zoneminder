@@ -1,7 +1,6 @@
 <?php
-
 //
-// ZoneMinder database interface file, $Date$, $Revision$
+// ZoneMinder web database interface file, $Date$, $Revision$
 // Copyright (C) 2003  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

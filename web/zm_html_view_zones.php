@@ -1,28 +1,48 @@
 <?php
-	if ( !canView( 'Monitors' ) )
-	{
-		$view = "error";
-		return;
-	}
-	chdir( ZM_DIR_IMAGES );
-	$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -z" ) );
-	chdir( '..' );
+//
+// ZoneMinder web zones view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
 
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
+if ( !canView( 'Monitors' ) )
+{
+	$view = "error";
+	return;
+}
+chdir( ZM_DIR_IMAGES );
+$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -z" ) );
+chdir( '..' );
 
-	$result = mysql_query( "select * from Zones where MonitorId = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$zones = array();
-	while( $row = mysql_fetch_assoc( $result ) )
-	{
-		$zones[] = $row;
-	}
+$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+if ( !$result )
+	die( mysql_error() );
+$monitor = mysql_fetch_assoc( $result );
 
-	$image = $monitor['Name']."-Zones.jpg";
+$result = mysql_query( "select * from Zones where MonitorId = '$mid'" );
+if ( !$result )
+	die( mysql_error() );
+$zones = array();
+while( $row = mysql_fetch_assoc( $result ) )
+{
+	$zones[] = $row;
+}
+
+$image = $monitor['Name']."-Zones.jpg";
+
 ?>
 <html>
 <head>
@@ -59,21 +79,21 @@ function configureButton(form,name)
 <body>
 <map name="zonemap">
 <?php
-	foreach( $zones as $zone )
+foreach( $zones as $zone )
+{
+	if ( $zone['Units'] == 'Percent' )
 	{
-		if ( $zone['Units'] == 'Percent' )
-		{
 ?>
 <area shape="rect" coords="<?= sprintf( "%d,%d,%d,%d", ($zone['LoX']*$monitor['Width'])/100, ($zone['LoY']*$monitor['Height'])/100, ($zone['HiX']*$monitor['Width'])/100, ($zone['HiY']*$monitor['Height'])/100 ) ?>" href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );">
 <?php
-		}
-		else
-		{
+	}
+	else
+	{
 ?>
 <area shape="rect" coords="<?= $zone['LoX'].",".$zone['LoY'].",".$zone['HiX'].",".$zone['HiY'] ?>" href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );">
 <?php
-		}
 	}
+}
 ?>
 <area shape="default" nohref>
 </map>
@@ -98,8 +118,8 @@ function configureButton(form,name)
 <td align="center" class="smallhead"><?= $zmSlangMark ?></td>
 </tr>
 <?php
-	foreach( $zones as $zone )
-	{
+foreach( $zones as $zone )
+{
 ?>
 <tr>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );"><?= $zone['Id'] ?>.</a></td>
@@ -110,7 +130,7 @@ function configureButton(form,name)
 <td align="center" class="text"><input type="checkbox" name="mark_zids[]" value="<?= $zone['Id'] ?>" onClick="configureButton( document.zone_form, 'mark_zids' );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
-	}
+}
 ?>
 <tr>
 <td align="center" class="text">&nbsp;</td>

@@ -1,17 +1,37 @@
 <?php
-	if ( !canView( 'Monitors' ) )
-	{
-		$view = "error";
-		return;
-	}
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
+//
+// ZoneMinder web settings view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
 
-	$zmu_command = ZMU_COMMAND." -m $mid -B -C -H -O";
-	$zmu_output = exec( escapeshellcmd( $zmu_command ) );
-	list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
+if ( !canView( 'Monitors' ) )
+{
+	$view = "error";
+	return;
+}
+$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+if ( !$result )
+	die( mysql_error() );
+$monitor = mysql_fetch_assoc( $result );
+
+$zmu_command = ZMU_COMMAND." -m $mid -B -C -H -O";
+$zmu_output = exec( escapeshellcmd( $zmu_command ) );
+list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
+
 ?>
 <html>
 <head>
@@ -19,12 +39,12 @@
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( !empty($refresh_parent) )
-	{
+if ( !empty($refresh_parent) )
+{
 ?>
 opener.location.reload(true);
 <?php
-	}
+}
 ?>
 window.focus();
 function validateForm(Form)

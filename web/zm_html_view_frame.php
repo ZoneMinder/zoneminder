@@ -1,48 +1,68 @@
 <?php
-	if ( !canView( 'Events' ) )
-	{
-		$view = "error";
-		return;
-	}
-	$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+//
+// ZoneMinder web frame view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+if ( !canView( 'Events' ) )
+{
+	$view = "error";
+	return;
+}
+$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+if ( !$result )
+	die( mysql_error() );
+$event = mysql_fetch_assoc( $result );
+
+if ( $fid )
+{
+	$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
 	if ( !$result )
 		die( mysql_error() );
-	$event = mysql_fetch_assoc( $result );
-
-	if ( $fid )
-	{
-		$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
-		if ( !$result )
-			die( mysql_error() );
-		$frame = mysql_fetch_assoc( $result );
-	}
-	else
-	{
-		$result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '".$event['MaxScore']."'" );
-		if ( !$result )
-			die( mysql_error() );
-		$frame = mysql_fetch_assoc( $result );
-		$fid = $frame['FrameId'];
-	}
-
-	$result = mysql_query( "select count(*) as FrameCount from Frames where EventID = '$eid'" );
+	$frame = mysql_fetch_assoc( $result );
+}
+else
+{
+	$result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '".$event['MaxScore']."'" );
 	if ( !$result )
 		die( mysql_error() );
-	$row = mysql_fetch_assoc( $result );
-	$max_fid = $row['FrameCount'];
+	$frame = mysql_fetch_assoc( $result );
+	$fid = $frame['FrameId'];
+}
 
-	$first_fid = 1;
-	$prev_fid = $fid-1;
-	$next_fid = $fid+1;
-	$last_fid = $max_fid;
+$result = mysql_query( "select count(*) as FrameCount from Frames where EventID = '$eid'" );
+if ( !$result )
+	die( mysql_error() );
+$row = mysql_fetch_assoc( $result );
+$max_fid = $row['FrameCount'];
 
-	$image_path = $frame['ImagePath'];
-	$anal_image = preg_replace( "/capture/", "analyse", $image_path );
-	if ( file_exists( $anal_image ) )
-	{
-		$image_path = $anal_image;
-	}
-	$img_class = $frame['AlarmFrame']?"alarm":"normal";
+$first_fid = 1;
+$prev_fid = $fid-1;
+$next_fid = $fid+1;
+$last_fid = $max_fid;
+
+$image_path = $frame['ImagePath'];
+$anal_image = preg_replace( "/capture/", "analyse", $image_path );
+if ( file_exists( $anal_image ) )
+{
+	$image_path = $anal_image;
+}
+$img_class = $frame['AlarmFrame']?"alarm":"normal";
+
 ?>
 <html>
 <head>

@@ -1,40 +1,60 @@
 <?php
-	if ( !canView( 'Events' ) )
-	{
-		$view = "error";
-		return;
-	}
-	if ( !isset($mode) )
-	{
-		if ( canStream() )
-			$mode = "stream";
-		else
-			$mode = "still";
-	}
+//
+// ZoneMinder web event view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
 
-	$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
-	if ( !$result )
-		die( mysql_error() );
-	$event = mysql_fetch_assoc( $result );
+if ( !canView( 'Events' ) )
+{
+	$view = "error";
+	return;
+}
+if ( !isset($mode) )
+{
+	if ( canStream() )
+		$mode = "stream";
+	else
+		$mode = "still";
+}
 
-	$result = mysql_query( "select * from Events where Id < '$eid' and MonitorId = '$mid' order by Id desc limit 0,1" );
-	if ( !$result )
-		die( mysql_error() );
-	$prev_event = mysql_fetch_assoc( $result );
+$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+if ( !$result )
+	die( mysql_error() );
+$event = mysql_fetch_assoc( $result );
 
-	$result = mysql_query( "select * from Events where Id > '$eid' and MonitorId = '$mid' order by Id asc limit 0,1" );
-	if ( !$result )
-		die( mysql_error() );
-	$next_event = mysql_fetch_assoc( $result );
+$result = mysql_query( "select * from Events where Id < '$eid' and MonitorId = '$mid' order by Id desc limit 0,1" );
+if ( !$result )
+	die( mysql_error() );
+$prev_event = mysql_fetch_assoc( $result );
 
-	if ( !isset( $rate ) )
-		$rate = 1;
-	if ( !isset( $scale ) )
-		$scale = 1;
+$result = mysql_query( "select * from Events where Id > '$eid' and MonitorId = '$mid' order by Id asc limit 0,1" );
+if ( !$result )
+	die( mysql_error() );
+$next_event = mysql_fetch_assoc( $result );
 
-	$frames_per_page = EVENT_FRAMES_PER_LINE * EVENT_FRAME_LINES;
+if ( !isset( $rate ) )
+	$rate = 1;
+if ( !isset( $scale ) )
+	$scale = 1;
 
-	$paged = $event['Frames'] > $frames_per_page;
+$frames_per_page = EVENT_FRAMES_PER_LINE * EVENT_FRAME_LINES;
+
+$paged = $event['Frames'] > $frames_per_page;
+
 ?>
 <html>
 <head>
@@ -42,22 +62,22 @@
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( !$event )
-	{
+if ( !$event )
+{
 ?>
 opener.location.reload(true);
 window.close();
 <?php
-	}
+}
 ?>
 window.focus();
 <?php
-	if ( !empty($refresh_parent) )
-	{
+if ( !empty($refresh_parent) )
+{
 ?>
 opener.location.reload(true);
 <?php
-	}
+}
 ?>
 function refreshWindow()
 {
@@ -138,164 +158,164 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <?php
-	if ( $mode == "still" && $paged && !empty($page) )
-	{
+if ( $mode == "still" && $paged && !empty($page) )
+{
 ?>
 <?php
-		$pages = (int)ceil($event['Frames']/$frames_per_page);
-		$max_shortcuts = 5;
+	$pages = (int)ceil($event['Frames']/$frames_per_page);
+	$max_shortcuts = 5;
 ?>
 <tr><td colspan="6" align="center" class="text">
 <?php
-		if ( $page < 0 )
-			$page = 1;
-		if ( $page > $pages )
-			$page = $pages;
+	if ( $page < 0 )
+		$page = 1;
+	if ( $page > $pages )
+		$page = $pages;
 
-		if ( $page > 1 )
+	if ( $page > 1 )
+	{
+		$new_pages = array();
+		$pages_used = array();
+		$lo_exp = max(2,log($page-1)/log($max_shortcuts));
+		for ( $i = 0; $i < $max_shortcuts; $i++ )
 		{
-			$new_pages = array();
-			$pages_used = array();
-			$lo_exp = max(2,log($page-1)/log($max_shortcuts));
-			for ( $i = 0; $i < $max_shortcuts; $i++ )
-			{
-				$new_page = round($page-pow($lo_exp,$i));
-				if ( isset($pages_used[$new_page]) )
-					continue;
-				if ( $new_page <= 1 )
-					break;
-				$pages_used[$new_page] = true;
-				array_unshift( $new_pages, $new_page );
-			}
-			if ( !isset($pages_used[1]) )
-				array_unshift( $new_pages, 1 );
+			$new_page = round($page-pow($lo_exp,$i));
+			if ( isset($pages_used[$new_page]) )
+				continue;
+			if ( $new_page <= 1 )
+				break;
+			$pages_used[$new_page] = true;
+			array_unshift( $new_pages, $new_page );
+		}
+		if ( !isset($pages_used[1]) )
+			array_unshift( $new_pages, 1 );
 
-			foreach ( $new_pages as $new_page )
-			{
+		foreach ( $new_pages as $new_page )
+		{
 ?>
 <a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=<?= $new_page ?>"><?= $new_page ?></a>&nbsp;
 <?php
-			}
 		}
+	}
 ?>
 -&nbsp;<?= $page ?>&nbsp;-
 <?php
-		if ( $page < $pages )
+	if ( $page < $pages )
+	{
+		$new_pages = array();
+		$pages_used = array();
+		$hi_exp = max(2,log($pages-$page)/log($max_shortcuts));
+		for ( $i = 0; $i < $max_shortcuts; $i++ )
 		{
-			$new_pages = array();
-			$pages_used = array();
-			$hi_exp = max(2,log($pages-$page)/log($max_shortcuts));
-			for ( $i = 0; $i < $max_shortcuts; $i++ )
-			{
-				$new_page = round($page+pow($hi_exp,$i));
-				if ( isset($pages_used[$new_page]) )
-					continue;
-				if ( $new_page > $pages )
-					break;
-				$pages_used[$new_page] = true;
-				array_push( $new_pages, $new_page );
-			}
-			if ( !isset($pages_used[$pages]) )
-				array_push( $new_pages, $pages );
+			$new_page = round($page+pow($hi_exp,$i));
+			if ( isset($pages_used[$new_page]) )
+				continue;
+			if ( $new_page > $pages )
+				break;
+			$pages_used[$new_page] = true;
+			array_push( $new_pages, $new_page );
+		}
+		if ( !isset($pages_used[$pages]) )
+			array_push( $new_pages, $pages );
 
-			foreach ( $new_pages as $new_page )
-			{
+		foreach ( $new_pages as $new_page )
+		{
 ?>
 &nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>&page=<?= $new_page ?>"><?= $new_page ?></a>
 <?php
-			}
 		}
+	}
 ?>
 </td></tr>
 <?php
-	}
+}
 ?>
 <?php
-	if ( $mode == "stream" )
+if ( $mode == "stream" )
+{
+	$stream_src = ZM_PATH_ZMS."?path=".ZM_PATH_WEB."&event=$eid&rate=$rate&scale=$scale";
+	if ( isNetscape() )
 	{
-		$stream_src = ZM_PATH_ZMS."?path=".ZM_PATH_WEB."&event=$eid&rate=$rate&scale=$scale";
-		if ( isNetscape() )
-		{
 ?>
 <tr><td colspan="6" align="center" valign="middle"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>"></td></tr>
 <?php
-		}
-		else
-		{
-?>
-<tr><td colspan="6" align="center" valign="middle"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
-<?php
-		}
 	}
 	else
 	{
-		$sql = "select * from Frames where EventID = '$eid' order by Id";
-		if ( $paged && !empty($page) )
-			$sql .= " limit ".(($page-1)*$frames_per_page).", ".$frames_per_page;
-		$result = mysql_query( $sql );
-		if ( !$result )
-			die( mysql_error() );
+?>
+<tr><td colspan="6" align="center" valign="middle"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<?php
+	}
+}
+else
+{
+	$sql = "select * from Frames where EventID = '$eid' order by Id";
+	if ( $paged && !empty($page) )
+		$sql .= " limit ".(($page-1)*$frames_per_page).", ".$frames_per_page;
+	$result = mysql_query( $sql );
+	if ( !$result )
+		die( mysql_error() );
 ?>
 <tr><td colspan="6"><table border="0" cellpadding="0" cellspacing="2" align="center">
 <tr>
 <?php
-		$count = 0;
-		$scale = IMAGE_SCALING;
-		$fraction = sprintf( "%.2f", 1/$scale );
-		$thumb_width = $event['Width']/4;
-		$thumb_height = $event['Height']/4;
-		while( $row = mysql_fetch_assoc( $result ) )
+	$count = 0;
+	$scale = IMAGE_SCALING;
+	$fraction = sprintf( "%.2f", 1/$scale );
+	$thumb_width = $event['Width']/4;
+	$thumb_height = $event['Height']/4;
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		$frame_id = $row['FrameId'];
+		$image_path = $row['ImagePath'];
+
+		$capt_image = $image_path;
+		if ( $scale == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
 		{
-			$frame_id = $row['FrameId'];
-			$image_path = $row['ImagePath'];
+			$anal_image = preg_replace( "/capture/", "analyse", $image_path );
 
-			$capt_image = $image_path;
-			if ( $scale == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
+			if ( file_exists($anal_image) && filesize( $anal_image ) )
 			{
-				$anal_image = preg_replace( "/capture/", "analyse", $image_path );
-
-				if ( file_exists($anal_image) && filesize( $anal_image ) )
-				{
-					$thumb_image = $anal_image;
-				}
-				else
-				{
-					$thumb_image = $capt_image;
-				}
+				$thumb_image = $anal_image;
 			}
 			else
 			{
-				$thumb_image = preg_replace( "/capture/", "thumb", $capt_image );
-
-				if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
-				{
-					$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
-					if ( file_exists( $anal_image ) )
-						$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $anal_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
-					else
-						$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $capt_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
-					#exec( escapeshellcmd( $command ) );
-					exec( $command );
-				}
+				$thumb_image = $capt_image;
 			}
-			$img_class = $row['AlarmFrame']?"alarm":"normal";
+		}
+		else
+		{
+			$thumb_image = preg_replace( "/capture/", "thumb", $capt_image );
+
+			if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
+			{
+				$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
+				if ( file_exists( $anal_image ) )
+					$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $anal_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
+				else
+					$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $capt_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
+				#exec( escapeshellcmd( $command ) );
+				exec( $command );
+			}
+		}
+		$img_class = $row['AlarmFrame']?"alarm":"normal";
 ?>
 <td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<? echo $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $row['Score'] ?>"></a></td>
 <?php
-			flush();
-			if ( !(++$count % 4) )
-			{
+		flush();
+		if ( !(++$count % 4) )
+		{
 ?>
 </tr>
 <tr>
 <?php
-			}
 		}
+	}
 ?>
 </tr>
 </table></td></tr>
 <?php
-	}
+}
 ?>
 <tr>
 <td colspan="6"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>

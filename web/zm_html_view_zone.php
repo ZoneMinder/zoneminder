@@ -1,30 +1,50 @@
 <?php
-	if ( !canView( 'Monitors' ) )
-	{
-		$view = "error";
-		return;
-	}
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+//
+// ZoneMinder web zone view file, $Date$, $Revision$
+// Copyright (C) 2003  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+if ( !canView( 'Monitors' ) )
+{
+	$view = "error";
+	return;
+}
+$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+if ( !$result )
+	die( mysql_error() );
+$monitor = mysql_fetch_assoc( $result );
+
+if ( $zid > 0 )
+{
+	$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
 	if ( !$result )
 		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
+	$zone = mysql_fetch_assoc( $result );
+}
+else
+{
+	$zone = array();
+	$zone['Name'] = $zmSlangNew;
+	$zone['LoX'] = 0;
+	$zone['LoY'] = 0;
+	$zone['HiX'] = $monitor['Width']-1;
+	$zone['HiY'] = $monitor['Height']-1;
+}
 
-	if ( $zid > 0 )
-	{
-		$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
-		if ( !$result )
-			die( mysql_error() );
-		$zone = mysql_fetch_assoc( $result );
-	}
-	else
-	{
-		$zone = array();
-		$zone['Name'] = $zmSlangNew;
-		$zone['LoX'] = 0;
-		$zone['LoY'] = 0;
-		$zone['HiX'] = $monitor['Width']-1;
-		$zone['HiY'] = $monitor['Height']-1;
-	}
 ?>
 <html>
 <head>
@@ -32,12 +52,12 @@
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( !empty($refresh_parent) )
-	{
+if ( !empty($refresh_parent) )
+{
 ?>
 opener.location.reload(true);
 <?php
-	}
+}
 ?>
 window.focus();
 function validateForm( Form )
@@ -258,22 +278,22 @@ function closeWindow()
 <tr><td align="left" class="text"><?= $zmSlangName ?></td><td align="left" class="text"><input type="text" name="new_name" value="<?= $zone['Name'] ?>" size="12" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangType ?></td><td align="left" class="text"><select name="new_type" class="form" onchange="applyZoneType(document.zone_form)">
 <?php
-	foreach ( getEnumValues( 'Zones', 'Type' ) as $opt_type )
-	{
+foreach ( getEnumValues( 'Zones', 'Type' ) as $opt_type )
+{
 ?>
 <option value="<?= $opt_type ?>"<?php if ( $opt_type == $zone['Type'] ) { ?> selected<?php } ?>><?= $opt_type ?></option>
 <?php
-	}
+}
 ?>
 </select></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangUnits ?></td><td align="left" class="text"><select name="new_units" class="form" onchange="applyZoneUnits(document.zone_form)">
 <?php
-	foreach ( getEnumValues( 'Zones', 'Units' ) as $opt_units )
-	{
+foreach ( getEnumValues( 'Zones', 'Units' ) as $opt_units )
+{
 ?>
 <option value="<?= $opt_units ?>"<?php if ( $opt_units == $zone['Units'] ) { ?> selected<?php } ?>><?= $opt_units ?></option>
 <?php
-	}
+}
 ?>
 </select></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneMinX ?></td><td align="left" class="text"><input type="text" name="new_lo_x" value="<?= $zone['LoX'] ?>" size="4" class="form" onchange="checkWidth(this,'Minimum X')"></td></tr>

@@ -26,7 +26,20 @@ if ( $action )
 	{
 		userLogin( $username, $password );
 	}
-	elseif ( canEdit( 'Events' ) )
+	elseif ( $action == "logout" )
+	{
+		userLogout();
+		$refresh_parent = true;
+		$view = 'none';
+	}
+	elseif ( $action == "bandwidth" && $new_bandwidth )
+	{
+		$bandwidth = $new_bandwidth;
+		setcookie( "bandwidth", $new_bandwidth, time()+3600*24*30*12*10 );
+		$refresh_parent = true;
+		$view = 'none';
+	}
+	if ( canEdit( 'Events' ) )
 	{
 		if ( $action == "rename" && $event_name && $eid )
 		{
@@ -111,7 +124,7 @@ if ( $action )
 			}
 		}
 	}
-	elseif ( canEdit( 'Settings' ) )
+	if ( canEdit( 'Monitors', $mid ) )
 	{
 		if ( $action == "function" && $mid )
 		{
@@ -255,7 +268,7 @@ if ( $action )
 						exec( escapeshellcmd( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_name" ) );
 					}
 				}
-				else
+				elseif ( !$user[MonitorIds] )
 				{
 					$sql = "insert into Monitors set ".implode( ", ", $changes );
 					$result = mysql_query( $sql );
@@ -303,7 +316,7 @@ if ( $action )
 					$refresh_parent = true;
 				}
 			}
-			if ( $mark_mids )
+			if ( $mark_mids && !$user[MonitorIds] )
 			{
 				foreach( $mark_mids as $mark_mid )
 				{
@@ -338,6 +351,70 @@ if ( $action )
 					$result = mysql_query( "delete from Monitors where Id = '$mark_mid'" );
 					if ( !$result )
 						die( mysql_error() );
+				}
+			}
+		}
+	}
+	if ( canEdit( 'System' ) )
+	{
+		if ( $action == "user" && isset( $uid ) )
+		{
+			if ( $uid > 0 )
+			{
+				$result = mysql_query( "select * from Users where Id = '$uid'" );
+				if ( !$result )
+					die( mysql_error() );
+				$row = mysql_fetch_assoc( $result );
+			}
+			else
+			{
+				$zone = array();
+			}
+
+			$changes = array();
+			if ( $new_username != $row[Username] ) $changes[] = "Username = '$new_username'";
+			if ( $new_password != $row[Password] ) $changes[] = "Password = password('$new_password')";
+			if ( $new_enabled != $row[Enabled] ) $changes[] = "Enabled = '$new_enabled'";
+			if ( $new_stream != $row[Stream] ) $changes[] = "Stream = '$new_stream'";
+			if ( $new_events != $row[Events] ) $changes[] = "Events = '$new_events'";
+			if ( $new_monitors != $row[Monitors] ) $changes[] = "Monitors = '$new_monitors'";
+			if ( $new_system != $row[System] ) $changes[] = "System = '$new_system'";
+			if ( $new_monitor_ids != $row[MonitorIds] ) $changes[] = "MonitorIds = '$new_monitor_ids'";
+
+			if ( count( $changes ) )
+			{
+				if ( $uid > 0 )
+				{
+					$sql = "update Users set ".implode( ", ", $changes )." where Id = '$uid'";
+				}
+				else
+				{
+					$sql = "insert into Users set ".implode( ", ", $changes );
+				}
+				$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
+				$view = 'none';
+				$refresh_parent = true;
+				if ( $row[Username] == $user[Username] )
+				{
+					userLogin( $row[Username], $row[Password] );
+				}
+			}
+		}
+		elseif ( $action == "delete" )
+		{
+			if ( $mark_uids )
+			{
+				foreach( $mark_uids as $mark_uid )
+				{
+					$result = mysql_query( "delete from Users where Id = '$mark_uid'" );
+					if ( !$result )
+						die( mysql_error() );
+				}
+				if ( $row[Username] == $user[Username] )
+				{
+					userLogout();
 				}
 			}
 		}

@@ -21,9 +21,9 @@
 
 function userLogin( $username, $password )
 {
-	global $HTTP_SESSION_VARS;
+	global $user, $HTTP_SESSION_VARS;
 
-	$sql = "select * from Users where Username = '$username' and Password = password('$password')";
+	$sql = "select * from Users where Username = '$username' and Password = password('$password') and Enabled = 1";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();
@@ -31,32 +31,41 @@ function userLogin( $username, $password )
 	{
 		$HTTP_SESSION_VARS[user] = $user;
 	}
-}
-
-function canView( $area )
-{
-	global $user;
-
-	return( $user[$area] == 'View' || $user[$area] == 'Edit' );
-}
-
-function canEdit( $area )
-{
-	global $user;
-
-	return( $user[$area] == 'Edit' );
-}
-
-function deleteUser( $uid )
-{
-	global $user;
-
-	if ( $user[Users] == 'Edit' && $uid )
+	else
 	{
-		$result = mysql_query( "delete from Users where Id = '$uid'" );
-		if ( !$result )
-			die( mysql_error() );
+		$HTTP_SESSION_VARS[user] = array();
 	}
+}
+
+function userLogout()
+{
+	global $user, $HTTP_SESSION_VARS;
+
+	unset( $HTTP_SESSION_VARS[user] );
+	unset( $user );
+
+	session_destroy();
+}
+
+function visibleMonitor( $mid )
+{
+	global $user;
+
+	return( !$user[MonitorIds] || in_array( $mid, split( ',', $user[MonitorIds] ) ) );
+}
+
+function canView( $area, $mid=false )
+{
+	global $user;
+
+	return( ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor( $mid ) ) );
+}
+
+function canEdit( $area, $mid=false )
+{
+	global $user;
+
+	return( $user[$area] == 'Edit' && ( !$mid || visibleMonitor( $mid ) ) );
 }
 
 function deleteEvent( $eid )

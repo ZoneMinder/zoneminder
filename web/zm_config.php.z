@@ -160,6 +160,10 @@ $jws = array(
 	'video' => array( 'w'=>100, 'h'=>80 ),
 	'image' => array( 'w'=>48, 'h'=>80 ),
 	'stats' => array( 'w'=>600, 'h'=>150 ),
+	'options' => array( 'w'=>600, 'h'=>400 ),
+	'user' => array( 'w'=>230, 'h'=>320 ),
 	'settings' => array( 'w'=>200, 'h'=>225 ),
+	'logout' => array( 'w'=>200, 'h'=>100 ),
+	'bandwidth' => array( 'w'=>200, 'h'=>90 ),
 );
 ?>

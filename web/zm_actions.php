@@ -213,7 +213,6 @@ if ( isset($action) )
 			{
 				if ( $mid > 0 )
 				{
-					echo( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
 					simpleQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
 					if ( $changes['Name'] )
 					{

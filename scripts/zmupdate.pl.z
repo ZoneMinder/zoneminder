@@ -226,11 +226,11 @@ if ( $zone_fix )
 
 	foreach my $zone ( @zones )
 	{
-		my $zone_width = (($zone->{HiX}*$zone->{MonitorWidth})-($zone->{LoX}*$zone->{MonitorWidth}));
-		my $zone_height = (($zone->{HiY}*$zone->{MonitorHeight})-($zone->{LoY}*$zone->{MonitorHeight}));
+		my $zone_width = (($zone->{HiX}*$zone->{MonitorWidth})-($zone->{LoX}*$zone->{MonitorWidth}))/100;
+		my $zone_height = (($zone->{HiY}*$zone->{MonitorHeight})-($zone->{LoY}*$zone->{MonitorHeight}))/100;
 		my $zone_area = $zone_width * $zone_height;
 		my $monitor_area = $zone->{MonitorWidth} * $zone->{MonitorHeight};
-		my $sql = "update Zones set MinAlarmPixels = ?, MaxAlarmPixels = ?, MinFilterPixels = ?, MaxFilterPixels = ?, MinBlobPixels = ?, MaxBlobPixels = ? where MonitorId = ? and Units = 'Percent'";
+		my $sql = "update Zones set MinAlarmPixels = ?, MaxAlarmPixels = ?, MinFilterPixels = ?, MaxFilterPixels = ?, MinBlobPixels = ?, MaxBlobPixels = ? where Id = ?";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 		my $res = $sth->execute(
 			($zone->{MinAlarmPixels}*$monitor_area)/$zone_area,
@@ -239,7 +239,7 @@ if ( $zone_fix )
 			($zone->{MaxFilterPixels}*$monitor_area)/$zone_area,
 			($zone->{MinBlobPixels}*$monitor_area)/$zone_area,
 			($zone->{MaxBlobPixels}*$monitor_area)/$zone_area,
-			$zone->{MonitorId}
+			$zone->{Id}
 		) or die( "Can't execute: ".$sth->errstr() );
 	}
 }

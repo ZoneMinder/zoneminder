@@ -144,13 +144,13 @@ bool Event::OpenFrameSocket( int monitor_id )
 
 	if ( connect( sd, (struct sockaddr *)&addr, strlen(addr.sun_path)+sizeof(addr.sun_family)) < 0 )
 	{
-		Warning(( "Can't connect: %s", strerror(errno) ));
+		Warning(( "Can't connect to frame server: %s", strerror(errno) ));
 		close( sd );
 		sd = -1;
 		return( false );
 	}
 
-	Info(( "Opened connection to frame server" ));
+	Debug( 1, ( "Opened connection to frame server" ));
 	return( true );
 }
 
@@ -331,7 +331,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 			}
 			else
 			{
-				Info(( "Can't glob '%s': %d", diag_glob, glob_status ));
+				Debug( 1, ( "Can't glob '%s': %d", diag_glob, glob_status ));
 			}
 		}
 		else

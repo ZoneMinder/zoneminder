@@ -195,10 +195,10 @@ void Monitor::Setup()
 	last_alarm_count = 0;
 	state = IDLE;
 
-	Info(( "monitor purpose=%d", purpose ));
+	Debug( 1, ( "monitor purpose=%d", purpose ));
 
 	int shared_data_size = sizeof(SharedData)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
-	Info(( "shm.size=%d", shared_data_size ));
+	Debug( 1, ( "shm.size=%d", shared_data_size ));
 	shmid = shmget( (int)config.Item( ZM_SHM_KEY )|id, shared_data_size, IPC_CREAT|0700 );
 	if ( shmid < 0 )
 	{
@@ -253,9 +253,9 @@ void Monitor::Setup()
 
 	event = 0;
 
-	Info(( "Monitor %s has function %d", name, function ));
-	Info(( "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() ));
-	Info(( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
+	Debug( 1, ( "Monitor %s has function %d", name, function ));
+	Debug( 1, ( "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() ));
+	Debug( 1, ( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
 
 	if ( purpose == ANALYSIS )
 	{
@@ -336,9 +336,6 @@ struct timeval Monitor::GetTimestamp( int index ) const
 	{
 		index = shared_data->last_write_index;
 	}
-
-	Info(( "Index %d = %p", index, (void *) image_buffer[index].timestamp ));
-	Info(( "Timestamp %ld.%ld", image_buffer[index].timestamp->tv_sec, image_buffer[index].timestamp->tv_usec ));
 
 	Snapshot *snap = &image_buffer[index];
 	return( *(snap->timestamp) );
@@ -832,7 +829,7 @@ bool Monitor::Analyse()
 
 void Monitor::ReloadZones()
 {
-	Info(( "Reloading zones for monitor %s", name ));
+	Debug( 1, ( "Reloading zones for monitor %s", name ));
 	for( int i = 0; i < n_zones; i++ )
 	{
 		delete zones[i];
@@ -866,7 +863,7 @@ int Monitor::Load( int device, Monitor **&monitors, Purpose purpose )
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_monitors = mysql_num_rows( result );
-	Info(( "Got %d monitors", n_monitors ));
+	Debug( 1, ( "Got %d monitors", n_monitors ));
 	delete[] monitors;
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
@@ -898,7 +895,7 @@ int Monitor::Load( int device, Monitor **&monitors, Purpose purpose )
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
-		Info(( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
+		Debug( 1, ( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -935,7 +932,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_monitors = mysql_num_rows( result );
-	Info(( "Got %d monitors", n_monitors ));
+	Debug( 1, ( "Got %d monitors", n_monitors ));
 	delete[] monitors;
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
@@ -967,7 +964,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
-		Info(( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
+		Debug( 1, ( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -997,7 +994,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_monitors = mysql_num_rows( result );
-	Info(( "Got %d monitors", n_monitors ));
+	Debug( 1, ( "Got %d monitors", n_monitors ));
 	Monitor *monitor = 0;
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
@@ -1062,7 +1059,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 			n_zones = Zone::Load( monitor, zones );
 			monitor->AddZones( n_zones, zones );
 		}
-		Info(( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
+		Debug( 1, ( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )
 	{

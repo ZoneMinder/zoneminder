@@ -146,7 +146,7 @@ int RemoteCamera::Connect()
 
 		if ( connect( sd, (struct sockaddr *)&sa, sizeof(sa) ) < 0 )
 		{
-			Error(( "Can't connect: %s", strerror(errno) ));
+			Error(( "Can't connect to remote camera: %s", strerror(errno) ));
 			return( -1 );
 		}
 	}

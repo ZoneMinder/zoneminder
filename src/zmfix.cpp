@@ -68,7 +68,7 @@ bool fixDevice( int device )
 	mode_t mode = stat_buf.st_mode;
 	if ( (mode & mask) == mask )
 	{
-		Info(( "Permissions on %s are ok at %o", device_path, mode ));
+		Debug( 1, ( "Permissions on %s are ok at %o", device_path, mode ));
 		return( true );
 	}
 	mode |= mask;

@@ -70,7 +70,7 @@ Image::BlendTablePtr Image::GetBlendTable( int transparency )
 	if ( !blend_ptr )
 	{
 		blend_ptr = blend_tables[transparency] = new BlendTable[1];
-		Info(( "Generating blend table for transparency %d", transparency ));
+		//Info(( "Generating blend table for transparency %d", transparency ));
 		int opacity = 100-transparency;
 		//int round_up = 50/transparency;
 		for ( int i = 0; i < 256; i++ )

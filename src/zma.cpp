@@ -32,10 +32,10 @@ void zm_die_handler( int signal )
 	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
 	(void) snprintf(errorString, errorStringSize, "Got signal (%s), crashing.", error);
 
-	Info(( (const char *)errorString ));
+	Error(( (const char *)errorString ));
 	free(errorString);
 #else /* HAVE_DECL_STRSIGNAL */
-	Info(( "Got signal %d, crashing", signal ));
+	Error(( "Got signal %d, crashing", signal ));
 #endif /* HAVE_DECL_STRSIGNAL */
 	exit( signal );
 }

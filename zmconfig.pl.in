@@ -841,7 +841,7 @@ my @options =
 	},
 	{
 		name => "ZM_WATCH_MAX_DELAY",
-		default => "15",
+		default => "5",
 		description => "The maximum delay since the last captured image we will allow before restarting the capture daemons",
 		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines the maximum delay we will allow since the last captured frame. The daemon will be restarted if it has not captured any images after this period though the actual restart may take slightly longer in conjunction with the check interval value above.",
 		type => $types{decimal},

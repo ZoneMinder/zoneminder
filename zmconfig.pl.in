@@ -269,6 +269,21 @@ my @options =
 		type => $types{boolean},
 	},
 	{
+		name => "ZM_OPT_ADAPTIVE_SKIP",
+		default => "yes",
+		description => "Should frame analysis try and be efficient in skipping frames",
+		help => "In previous versions of ZoneMinder the analysis daemon would attempt to keep up with the capture daemon by processing the last captured frame on each pass. This would sometimes have the undesirable side-effect of missing a chunk of the initial activity that caused the alarm because the pre-alarm frames would all have to be written to disk and the database before processing the next frame, leading to some delay between the first and second event frames. Setting this option enables a newer adaptive algorithm where the analysis daemon attempts to process as many captured frames as possible, only skipping frames when in danger of the capture daemon overwriting yet to be processed frames. This skip is variable depending on the size of the ring buffer and the amount of space left in it. Enabling this option will give you much better coverage of the beginning of alarms whilst biasing out any skipped frames towards the middle or end of the event. However you should be aware that this will have the effect of making the analysis daemon run somewhat behind the capture daemon during events and for particularly fast rates of capture it is possible for the adaptive algorithm to be overwhelmed and not have time to react to a rapid build up of pending frames and thus for a buffer overrun condition to occur.",
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_OPT_FRAME_SERVER",
+		default => "no",
+		description => "Should analysis farm out the writing of images to disk",
+		#requires => [ { name => "ZM_OPT_ADAPTIVE_SKIP", value => "yes" } ],
+		help => "In some circumstances it is possible for a slow disk to take so long writing images to disk that it causes the analysis daemon to fall behind especially during hig frame rate events. Setting this option to yes enables a frame server daemon (zmf) which will be sent the images from the analysis daemon and will do the actual writing of images itself freeing up the analysis daemon to get on with other things. Should this transmission fail or other permanent or transient error occur, this function will fall back to the analysis daemon.",
+		type => $types{boolean},
+	},
+	{
 		name => "ZM_OPT_REMOTE_CAMERAS",
 		default => "no",
 		description => "Are you going to use remote/networked cameras",

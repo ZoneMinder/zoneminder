@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/perl -w
 #
 # ==========================================================================
 #
@@ -34,6 +34,7 @@
 
 use constant ZM_VERSION => "<from zmconfig>";
 use constant ZM_PATH_BIN => "<from zmconfig>";
+use constant ZM_PATH_WEB => "<from zmconfig>";
 use constant ZM_DB_SERVER => "<from zmconfig>";
 use constant ZM_DB_NAME => "<from zmconfig>";
 use constant ZM_DB_USERA => "<from zmconfig>";
@@ -59,6 +60,7 @@ BEGIN
 
 use constant UPDATE_LOG_FILE => ZM_PATH_LOGS.'/zmupdate.log';
 use constant CHECK_INTERVAL => (7*24*60*60); # Interval between version checks
+use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
@@ -70,6 +72,7 @@ use constant VERBOSE => 0; # Whether to output more verbose debug
 use strict;
 use POSIX;
 use DBI;
+use Getopt::Long;
 use Data::Dumper;
 
 $| = 1;
@@ -78,18 +81,37 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-if ( !ZM_CHECK_FOR_UPDATES )
-{
-	exit( 0 );
-}
-
+my $check = undef;
+my $rename = undef;
 sub Usage
 {
     print( "
-Usage: zmupdate.pl
+Usage: zmupdate.pl -e <event_id>,--event=<event_id> [-r <rate>,--rate=<rate>] [-s <scale>,--scale=<scale>] [-o,--overwrite]
+Parameters are :-
+-c, --check         - Check for updated versions of ZoneMinder
+-r, --rename        - Rename images from old 'capture-nnn.jpg' format to new 'nnn-capture.jpg' style from v1.17.2
 ");
-	exit( -1 );
+    exit( -1 );
 }
+
+if ( !GetOptions( 'check'=>\$check, 'rename'=>\$rename ) )
+{
+	Usage();
+}
+
+if ( ! ($check || $rename ) )
+{
+	print( STDERR "Please give a valid option\n" );
+	Usage();
+}
+
+if ( ($check && $rename ) )
+{
+	print( STDERR "Please give only one option\n" );
+	Usage();
+}
+
+
 
 open( LOG, '>>'.UPDATE_LOG_FILE ) or die( "Can't open log file: $!" );
 open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
@@ -101,59 +123,90 @@ print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() ).
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 
-my $last_version = ZM_DYN_LAST_VERSION;
-my $curr_version = ZM_DYN_CURR_VERSION;
-my $last_check = ZM_DYN_LAST_CHECK;
-
-if ( !$curr_version )
+if ( $check && ZM_CHECK_FOR_UPDATES )
 {
-	$curr_version = ZM_VERSION;
+	my $last_version = ZM_DYN_LAST_VERSION;
+	my $curr_version = ZM_DYN_CURR_VERSION;
+	my $last_check = ZM_DYN_LAST_CHECK;
 
-	my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute( $curr_version ) or die( "Can't execute: ".$sth->errstr() );
-}
-
-while( 1 )
-{
-	my $now = time();
-	if ( !$last_version || !$last_check || (($now-$last_check) > CHECK_INTERVAL) )
+	if ( !$curr_version )
 	{
-		print( "Checking for updates at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+		$curr_version = ZM_VERSION;
 
-		use LWP::UserAgent;
-		my $ua = LWP::UserAgent->new;
-		$ua->agent( "ZoneMinder Update Agent/".ZM_VERSION );
-
-		my $req = HTTP::Request->new( GET=>'http://www.zoneminder.com/version' );
-		my $res = $ua->request($req);
-
-		if ( $res->is_success )
-		{
-			$last_version = $res->content;
-			chomp($last_version);
-			$last_check = $now;
-
-			print( "Got version: '".$last_version."'\n" );
-
-			{
-			my $sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute( $last_version ) or die( "Can't execute: ".$sth->errstr() );
-			}
-			{
-			my $sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute( $last_check ) or die( "Can't execute: ".$sth->errstr() );
-			}
-		}
-		else
-		{
-			print( "Error check failed: '".$res->status_line()."'\n" );
-		}
-
+		my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $curr_version ) or die( "Can't execute: ".$sth->errstr() );
 	}
-	sleep( 3600 );
+
+	while( 1 )
+	{
+		my $now = time();
+		if ( !$last_version || !$last_check || (($now-$last_check) > CHECK_INTERVAL) )
+		{
+			print( "Checking for updates at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+
+			use LWP::UserAgent;
+			my $ua = LWP::UserAgent->new;
+			$ua->agent( "ZoneMinder Update Agent/".ZM_VERSION );
+
+			my $req = HTTP::Request->new( GET=>'http://www.zoneminder.com/version' );
+			my $res = $ua->request($req);
+
+			if ( $res->is_success )
+			{
+				$last_version = $res->content;
+				chomp($last_version);
+				$last_check = $now;
+
+				print( "Got version: '".$last_version."'\n" );
+
+				{
+				my $sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
+				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				my $res = $sth->execute( $last_version ) or die( "Can't execute: ".$sth->errstr() );
+				}
+				{
+				my $sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
+				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				my $res = $sth->execute( $last_check ) or die( "Can't execute: ".$sth->errstr() );
+				}
+			}
+			else
+			{
+				print( "Error check failed: '".$res->status_line()."'\n" );
+			}
+
+		}
+		sleep( 3600 );
+	}
+}
+if ( $rename )
+{
+	require File::Find;
+
+	chdir( EVENT_PATH );
+
+	sub renameImage
+	{
+		my $file = $_;
+
+		# Ignore directories
+		if ( -d $file )
+		{
+			print( "Checking directory '$file'\n" );
+			return;
+		}
+		if ( $file !~ /(capture|analyse)-(\d+)(\.jpg)/ )
+		{
+			return;
+		}
+		my $new_file = "$2-$1$3";
+
+		print( "Renaming '$file' to '$new_file'\n" );
+		rename( $file, $new_file ) or warn( "Can't rename '$file' to '$new_file'" );
+	}
+
+	File::Find::find( \&renameImage, '.' );
 }
 print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 exit();

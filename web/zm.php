@@ -115,44 +115,29 @@ if ( $action )
 			$result = mysql_query( $sql );
 			if ( !$result )
 				echo mysql_error();
-			$sql = "select * from Monitors where Device = '$monitor[Device]' and Function != 'None'";
+			$sql = "select count(if(Function='Passive',1,NULL)) as PassiveCount, count(if(Function='Active',1,NULL)) as ActiveCount from Monitors where Id = '$mid'";
 			$result = mysql_query( $sql );
 			if ( !$result )
-				die( mysql_error() );
-			$device_monitors = mysql_num_rows( $result );
-			if ( $new_function == "None" )
+				echo mysql_error();
+			$row = mysql_fetch_assoc( $result );
+			$passive_count = $row[PassiveCount];
+			$active_count = $row[ActiveCount];
+
+			if ( !$passive_count && !$active_count )
 			{
-				if ( $device_monitors == 0 )
-				{
-					stopDaemon( "zmc", $monitor[Device] );
-					stopDaemon( "zma", $monitor[Device] );
-				}
-				else
-				{
-					signalDaemon( "zmc", $monitor[Device], 'HUP' );
-					signalDaemon( "zma", $monitor[Device], 'HUP' );
-				}
+				stopDaemon( "zmc", $monitor[Device] );
 			}
-			elseif ( $new_function == "Passive" )
+			else
 			{
 				startDaemon( "zmc", $monitor[Device] );
-				if ( $device_monitors == 0 )
-				{
-					stopDaemon( "zma", $monitor[Device] );
-				}
-				else
-				{
-					signalDaemon( "zmc", $monitor[Device], 'HUP' );
-					startDaemon( "zma", $monitor[Device] );
-					signalDaemon( "zma", $monitor[Device], 'HUP' );
-				}
 			}
-			elseif ( $new_function == "Active" )
+			if ( !$active_count )
 			{
-				startDaemon( "zmc", $monitor[Device] );
-				signalDaemon( "zmc", $monitor[Device], 'HUP' );
+				stopDaemon( "zma", $monitor[Device] );
+			}
+			else
+			{
 				startDaemon( "zma", $monitor[Device] );
-				signalDaemon( "zma", $monitor[Device], 'HUP' );
 			}
 			$refresh_parent = true;
 		}
@@ -1223,7 +1208,10 @@ function startDaemon( $daemon, $did )
 	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
 	$pid = $ps_array[3];
 	if ( $pid )
+	{
+		exec( "kill -HUP $pid" );
 		return;
+	}
 	$command = ZM_PATH."/$daemon $did".' 2>/dev/null >&- <&- >/dev/null &';
 	exec( $command );
 	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
@@ -1253,17 +1241,6 @@ function stopDaemon( $daemon, $did )
 		sleep( 1 );
 		$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
 		$pid = $ps_array[3];
-	}
-}
-
-function signalDaemon( $daemon, $did, $signal )
-{
-	$ps_command = "ps -edalf | grep '$daemon $did' | grep -v grep";
-	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
-	if ( $ps_array[3] )
-	{
-		$pid = $ps_array[3];
-		exec( "kill -$signal $pid" );
 	}
 }
 

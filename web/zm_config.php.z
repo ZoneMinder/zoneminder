@@ -32,7 +32,7 @@ while ( !feof($cfg) )
 	$str = fgets( $cfg );
 	if ( preg_match( '/^\s*$/', $str )) { continue; }
 	elseif ( preg_match( '/^\s*#/', $str )) { continue; }
-	elseif ( preg_match( '/^\s*([^=\s+)\s*=\s*([^=\s+)\s*$/', $str, $matches ))
+	elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/', $str, $matches ))
 	{
 		if (( $matches[1] == "ZM_DB_SERVER") ||
 			( $matches[1] == "ZM_DB_NAME") ||

@@ -76,10 +76,39 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $command = $ARGV[0];
 
+my $state;
+
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+
 if ( !$command || $command !~ /^(?:start|stop|restart|status)$/ )
 {
-	print( "Usage: zmpkg.pl <start|stop|restart|status>\n" );
-	exit( -1 );
+	if ( $command )
+	{
+		# Check to see if it's a valid run state
+		my $sql = "select * from States where Name = '$command'";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+		if ( $state = $sth->fetchrow_hashref() )
+		{
+			$state->{Name} = $command;
+			$state->{Definitions} = [];
+			foreach( split( ',', $state->{Definition} ) )
+			{
+				my ( $id, $function ) = split( ':', $_ );
+				push( @{$state->{Definitions}}, { Id=>$id, Function=>$function } );
+			}
+			$command = 'state';
+		}
+		else
+		{
+			$command = undef;
+		}
+	}
+	if ( !$command )
+	{
+		print( "Usage: zmpkg.pl <start|stop|restart|status|'state'>\n" );
+		exit( -1 );
+	}
 }
 
 sub remove_shm
@@ -127,6 +156,8 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
+print( STDERR "Command: $command\n" );
+
 my $web_uid = (getpwnam( ZM_WEB_USER ))[2];
 my $web_gid = (getgrnam( ZM_WEB_GROUP ))[2];
 if ( $> != $web_uid )
@@ -136,10 +167,40 @@ if ( $> != $web_uid )
 
 my $retval = 0;
 
+if ( $command eq "state" )
+{
+	print( STDERR "Updating DB: $state->{Name}\n" );
+	my $sql = "select * from Monitors order by Id asc";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	while( my $monitor = $sth->fetchrow_hashref() )
+	{
+		foreach my $definition ( @{$state->{Definitions}} )
+		{
+			if ( $monitor->{Id} =~ /^$definition->{Id}$/ )
+			{
+				$monitor->{NewFunction} = $definition->{Function};
+			}
+		}
+		#next if ( !$monitor->{NewFunction} );
+		$monitor->{NewFunction} = 'None' if ( !$monitor->{NewFunction} );
+		if ( $monitor->{Function} ne $monitor->{NewFunction} )
+		{
+			my $sql = "update Monitors set Function = ? where Id = ?";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $monitor->{NewFunction}, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+		}
+	}
+	$sth->finish();
+
+	$command = "restart";
+}
+
 if ( $command =~ /^(?:stop|restart)$/ )
 {
 	my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
 	chomp( $status );
+
 	if ( $status eq "running" )
 	{
 		execute( ZM_PATH_BIN."/zmdc.pl shutdown" );
@@ -155,13 +216,12 @@ if ( $command =~ /^(?:start|restart)$/ )
 {
 	my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
 	chomp( $status );
+
 	if ( $status eq "stopped" )
 	{
 		remove_shm();
 		execute( ZM_PATH_BIN."/zmfix" );
 		execute( ZM_PATH_BIN."/zmdc.pl status" );
-
-		my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 
 		my $sql = "select * from Monitors";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -178,9 +238,9 @@ if ( $command =~ /^(?:start|restart)$/ )
 				{
 					execute( ZM_PATH_BIN."/zmdc.pl start zmc -H $monitor->{Host} -P $monitor->{Port} -p '$monitor->{Path}'" );
 				}
-				if (( $monitor->{Function} eq 'Modect' )
+				if ( ( $monitor->{Function} eq 'Modect' )
 				|| ( $monitor->{Function} eq 'Record' )
-				|| ( $monitor->{Function} eq 'Mocord' ))
+				|| ( $monitor->{Function} eq 'Mocord' ) )
 				{
 					if ( ZM_OPT_FRAME_SERVER )
 					{
@@ -212,6 +272,7 @@ if ( $command eq "status" )
 {
 	my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
 	chomp( $status );
+
 	print( STDOUT $status."\n" );
 }
 

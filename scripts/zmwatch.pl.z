@@ -114,7 +114,7 @@ while( 1 )
 			$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $shm_size, 0 );
 			if ( !defined($monitor->{ShmId}) )
 			{
-				print( "Can't get shared memory id '$monitor->{ShmKey}/$monitor->{ShmId}': $!\n" );
+				print( "Can't get shared memory id '$monitor->{ShmKey}': $!\n" );
 				next;
 			}
 			my $image_time;

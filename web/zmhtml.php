@@ -276,6 +276,14 @@ function confirmStatus( new_status )
 	}
 	case "cycle" :
 	{
+		if ( !$mode )
+		{
+			if ( canStream() )
+				$mode = "stream";
+			else
+				$mode = "still";
+		}
+
 		$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
 		$monitors = array();
 		$mon_idx = 0;
@@ -293,7 +301,7 @@ function confirmStatus( new_status )
 		chdir( ZM_DIR_IMAGES );
 		$status = exec( escapeshellcmd( ZMU_PATH." -m $monitor[Id] -i" ) );
 											 
-		header("Refresh: ".REFRESH_CYCLE."; URL='$PHP_SELF?view=cycle&mid=$next_mid'" );
+		header("Refresh: ".REFRESH_CYCLE."; URL='$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode'" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -309,11 +317,50 @@ function newWindow(Url,Name,Width,Height)
 {
 	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
+function closeWindow()
+{
+	top.window.close();
+}
 </script>
 </head>
 <body>
-<p class="head" align="center"><?= $monitor[Name] ?></p>
-<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor[Id] ?>', 'zmWatch<?= $monitor[Name] ?>', <?= $monitor[Width]+$jws['watch']['w'] ?>, <?= $monitor[Height]+$jws['watch']['h'] ?> );"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0"></a>
+<table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
+<tr>
+<td width="33%" align="left" class="text"><b><?= $monitor[Name] ?></b></td>
+<?php if ( $mode == "stream" ) { ?>
+<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=still&mid=<?= $mid ?>">Stills</a></td>
+<?php } elseif ( canStream() ) { ?>
+<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=stream&mid=<?= $mid ?>">Stream</a></td>
+<?php } else { ?>
+<td width="34%" align="center" class="text">&nbsp;</td>
+<?php } ?>
+<td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+</tr>
+<?php
+		if ( $mode == "stream" )
+		{
+			$stream_src = ZMS_PATH."?monitor=$monitor[Id]&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&ttl=".REFRESH_CYCLE;
+			if ( isNetscape() )
+			{
+?>
+<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor[Id] ?>', 'zmWatch<?= $monitor[Name] ?>', <?= $monitor[Width]+$jws['watch']['w'] ?>, <?= $monitor[Height]+$jws['watch']['h'] ?> );"><img src="<?= $stream_src ?>" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></a></td></tr>
+<?php
+			}
+			else
+			{
+?>
+<tr><td colspan="3" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<?php
+			}
+		}
+		else
+		{
+?>
+<tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor[Id] ?>', 'zmWatch<?= $monitor[Name] ?>', <?= $monitor[Width]+$jws['watch']['w'] ?>, <?= $monitor[Height]+$jws['watch']['h'] ?> );"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor[Name] ?>.jpg" border="0" width="<?= $monitor[Width] ?>" height="<?= $monitor[Height] ?>"></a></td></tr>
+<?php
+		}
+?>
+</table>
 </body>
 </html>
 <?php

@@ -74,7 +74,7 @@ function isNetscape()
 
 function canStream()
 {
-	return( ZM_CAN_STREAM || isNetscape() || (ZM_OPT_CAMBOZOLA && file_exists( ZM_PATH_CAMBOZOLA )) );
+	return( ZM_CAN_STREAM || isNetscape() || (ZM_OPT_CAMBOZOLA && file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) );
 }
 
 function fixDevices()

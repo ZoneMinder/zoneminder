@@ -140,7 +140,7 @@ switch ( $bandwidth )
 // Javascript window sizes
 $jws = array( 
 	'console' => array( 'w'=>720, 'h'=>400 ),
-	'cycle' => array( 'w'=>36, 'h'=>72 ),
+	'cycle' => array( 'w'=>46, 'h'=>80 ),
 	'monitor' => array( 'w'=>360, 'h'=>450 ),
 	'watch' => array( 'w'=>72, 'h'=>315 ),
 	'device' => array( 'w'=>196, 'h'=>164 ),

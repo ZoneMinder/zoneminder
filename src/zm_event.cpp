@@ -1,5 +1,5 @@
 //
-// ZoneMinder Evnet Class Implementation, $Date$, $Revision$
+// ZoneMinder Event Class Implementation, $Date$, $Revision$
 // Copyright (C) 2003  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
@@ -17,10 +17,18 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/uio.h>
+#include <getopt.h>
+
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_event.h"
 #include "zm_monitor.h"
+
+#include "zmf.h"
 
 Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
 {
@@ -71,6 +79,122 @@ Event::~Event()
 	}
 }
 
+int Event::sd = -1;
+
+bool Event::OpenFrameSocket( int monitor_id )
+{
+	if ( sd > 0 )
+	{
+		close( sd );
+	}
+
+	sd = socket( AF_UNIX, SOCK_STREAM, 0);
+	if ( sd < 0 )
+	{
+		Error(( "Can't create socket: %s", strerror(errno) ));
+		return( false );
+	}
+
+	int flags;
+	if ( (flags = fcntl( sd, F_GETFL )) < 0 )
+	{
+		Error(( "Can't get socket flags, error = %s", strerror(errno) ));
+		close( sd );
+		sd = -1;
+		return( false );
+	}
+	flags |= O_NONBLOCK;
+	if ( fcntl( sd, F_SETFL, flags ) < 0 )
+	{
+		Error(( "Can't set socket flags, error = %s", strerror(errno) ));
+		close( sd );
+		sd = -1;
+		return( false );
+	}
+
+	char sock_path[PATH_MAX] = "";
+	sprintf( sock_path, FILE_SOCK_FILE, monitor_id );
+
+	struct sockaddr_un addr;
+
+	strcpy( addr.sun_path, sock_path );
+	addr.sun_family = AF_UNIX;
+
+	if ( connect( sd, (struct sockaddr *)&addr, strlen(addr.sun_path)+sizeof(addr.sun_family)) < 0 )
+	{
+		Warning(( "Can't connect: %s", strerror(errno) ));
+		close( sd );
+		sd = -1;
+		return( false );
+	}
+
+	Info(( "Opened connection to frame server" ));
+	return( true );
+}
+
+bool Event::ValidateFrameSocket( int monitor_id )
+{
+	if ( sd < 0 )
+	{
+		return( OpenFrameSocket( monitor_id ) );
+	}
+	return( true );
+}
+
+bool Event::SendFrameImage( const Image *image, bool alarm_frame )
+{
+	if ( !ValidateFrameSocket( monitor->Id() ) )
+	{
+		return( false );
+	}
+
+	static int jpg_buffer_size = 0;
+	//static unsigned char jpg_buffer[monitor->CameraWidth()*monitor->CameraHeight()];
+	static unsigned char jpg_buffer[2048*1536];
+
+	image->EncodeJpeg( jpg_buffer, &jpg_buffer_size );
+
+	static FrameHeader frame_header;
+
+	frame_header.event_id = id;
+	frame_header.frame_id = frames;
+	frame_header.alarm_frame = alarm_frame;
+	frame_header.image_length = jpg_buffer_size;
+
+	struct iovec iovecs[2];
+	iovecs[0].iov_base = &frame_header;
+	iovecs[0].iov_len = sizeof(frame_header);
+	iovecs[1].iov_base = jpg_buffer;
+	iovecs[1].iov_len = jpg_buffer_size;
+
+	if ( writev( sd, iovecs, sizeof(iovecs)/sizeof(*iovecs) ) != sizeof(frame_header)+jpg_buffer_size )
+	{
+		if ( errno == EAGAIN )
+		{
+			Warning(( "Blocking write detected" ));
+		}
+		else
+		{
+			Error(( "Can't write frame: %s", strerror(errno) ));
+			close( sd );
+			sd = -1;
+		}
+		return( false );
+	}
+	Debug( 1, ( "Wrote frame image", jpg_buffer_size ));
+
+	return( true );
+}
+
+bool Event::WriteFrameImage( const Image *image, const char *event_file, bool alarm_frame )
+{
+	if ( !ZM_OPT_FRAME_SERVER || !SendFrameImage( image, alarm_frame) )
+	{
+		image->WriteJpeg( event_file );
+	}
+	return( true );
+}
+
 void Event::AddFrames( int n_frames, struct timeval **timestamps, const Image **images )
 {
 	static char sql[4096];
@@ -78,10 +202,12 @@ void Event::AddFrames( int n_frames, struct timeval **timestamps, const Image **
 	for ( int i = 0; i < n_frames; i++ )
 	{
 		frames++;
-		Debug( 1, ( "Writing pre-capture frame %d", frames ));
+
 		static char event_file[PATH_MAX];
 		sprintf( event_file, "%s/capture-%03d.jpg", path, frames );
-		images[i]->WriteJpeg( event_file );
+		
+		Debug( 1, ( "Writing pre-capture frame %d", frames ));
+		WriteFrameImage( images[i], event_file );
 
 		struct DeltaTimeval delta_time;
 		DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time );
@@ -103,10 +229,11 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 {
 	frames++;
 
-	Debug( 1, ( "Writing capture frame %d", frames ));
 	static char event_file[PATH_MAX];
 	sprintf( event_file, "%s/capture-%03d.jpg", path, frames );
-	image->WriteJpeg( event_file );
+		
+	Debug( 1, ( "Writing capture frame %d", frames ));
+	WriteFrameImage( image, event_file );
 
 	struct DeltaTimeval delta_time;
 	DELTA_TIMEVAL( delta_time, timestamp, start_time );
@@ -122,12 +249,15 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 
 	if ( alarm_image )
 	{
-		Debug( 1, ( "Writing analysis frame %d", frames ));
 		end_time = timestamp;
 
 		alarm_frames++;
+
 		sprintf( event_file, "%s/analyse-%03d.jpg", path, frames );
-		alarm_image->WriteJpeg( event_file );
+
+		Debug( 1, ( "Writing analysis frame %d", frames ));
+		WriteFrameImage( alarm_image, event_file, true );
+
 		tot_score += score;
 		if ( score > max_score )
 			max_score = score;

@@ -48,6 +48,9 @@ class Monitor;
 class Event
 {
 protected:
+	static int		sd;
+
+protected:
 	int				id;
 	Monitor			*monitor;
 	struct timeval	start_time;
@@ -59,12 +62,19 @@ protected:
 	char			path[PATH_MAX];
 
 public:
+	static bool OpenFrameSocket( int );
+	static bool ValidateFrameSocket( int );
+
+public:
 	Event( Monitor *p_monitor, struct timeval p_start_time );
 	~Event();
 
 	int Id() const { return( id ); }
 	int Frames() const { return( frames ); }
 	int AlarmFrames() const { return( alarm_frames ); }
+
+	bool SendFrameImage( const Image *image, bool alarm_frame=false );
+	bool WriteFrameImage( const Image *image, const char *event_file, bool alarm_frame=false );
 
 	void AddFrames( int n_frames, struct timeval **timestamps, const Image **images );
 	void AddFrame( struct timeval timestamp, const Image *image, const Image *alarm_frame=NULL, unsigned int score=0 );

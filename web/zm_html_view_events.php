@@ -377,7 +377,7 @@ location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?>&page=<?= $page ?
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&mid=<?= $mid ?>&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['AlarmFrames'] ?></a></td>
 <td align="center" class="text"><?= $event['TotScore'] ?></td>
 <td align="center" class="text"><?= $event['AvgScore'] ?></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= $monitor['Width']+$jws['image']['w'] ?>, <?= $monitor['Height']+$jws['image']['h'] ?> );"><?= $event['MaxScore'] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= $monitor['Width']+$jws['image']['w'] ?>, <?= $monitor['Height']+$jws['image']['h'] ?> );"><?= $event['MaxScore'] ?></a></td>
 <td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $event['Id'] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php

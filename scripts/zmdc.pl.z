@@ -130,7 +130,7 @@ if ( !connect( CLIENT, $saddr ) )
 
 		dprint( "Server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-		kill_all();
+		kill_all( 1 );
 
 		socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
 		unlink( DC_SOCK_FILE );
@@ -334,15 +334,16 @@ if ( !connect( CLIENT, $saddr ) )
 		}
 		sub kill_all
 		{
-			sleep( 1 );
+			my $delay = shift;
+			sleep( $delay );
 			foreach my $daemon ( @daemons )
 			{
-				qx( killall --quiet --signal -TERM $daemon );
+				qx( killall --quiet --signal TERM $daemon );
 			}
-			sleep( 1 );
+			sleep( $delay );
 			foreach my $daemon ( @daemons )
 			{
-				qx( killall --quiet --signal -KILL $daemon );
+				qx( killall --quiet --signal KILL $daemon );
 			}
 		}
 		sub shutdown_all()
@@ -351,7 +352,7 @@ if ( !connect( CLIENT, $saddr ) )
 			{
 				stop( $process->{daemon}, @{$process->{args}} );
 			}
-			kill_all();
+			kill_all( 5 );
 			dprint( "Server shutdown at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 			unlink( DC_SOCK_FILE );
 			close( CLIENT );

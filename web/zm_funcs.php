@@ -250,23 +250,21 @@ function zmcControl( $monitor, $restart=false )
 {
 	if ( $monitor[Type] == "Local" )
 	{
-		$sql = "select count(if(Function='Monitor',1,NULL)) as PassiveCount, count(if(Function>'Monitor',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Device = '$monitor[Device]'";
+		$sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Device = '$monitor[Device]'";
 		$zmc_args = "-d $monitor[Device]";
 	}
 	else
 	{
-		$sql = "select count(if(Function='Monitor',1,NULL)) as PassiveCount, count(if(Function>'Monitor',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Host = '$monitor[Host]' and Port = '$monitor[Port]' and Path = '$monitor[Path]'";
+		$sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Host = '$monitor[Host]' and Port = '$monitor[Port]' and Path = '$monitor[Path]'";
 		$zmc_args = "-H $monitor[Host] -P $monitor[Port] -p '$monitor[Path]'";
 	}
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();
 	$row = mysql_fetch_assoc( $result );
-	$passive_count = $row[PassiveCount];
 	$active_count = $row[ActiveCount];
-	$x10_count = $row[X10Count];
 
-	if ( !$passive_count && !$active_count && !$x10_count )
+	if ( !$active_count )
 	{
 		daemonControl( "stop", "zmc", $zmc_args );
 	}
@@ -284,11 +282,16 @@ function zmaControl( $monitor, $restart=false )
 {
 	if ( !is_array( $monitor ) )
 	{
-		$sql = "select Id,Function from Monitors where Id = '$monitor'";
+		$sql = "select Id,Function,RunMode from Monitors where Id = '$monitor'";
 		$result = mysql_query( $sql );
 		if ( !$result )
 			echo mysql_error();
 		$monitor = mysql_fetch_assoc( $result );
+	}
+	if ( $monitor[RunMode] == 'Triggered' )
+	{
+		// Don't touch anything that's triggered
+		return;
 	}
 	switch ( $monitor['Function'] )
 	{

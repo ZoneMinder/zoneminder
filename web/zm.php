@@ -23,6 +23,7 @@ import_request_variables( "GPC" );
 // Use these for debugging, though not both at once!
 //phpinfo( INFO_VARIABLES );
 //error_reporting( E_ALL );
+error_reporting (E_ALL ^ E_NOTICE);
 
 if ( !isset($PHP_SELF) )
 {

@@ -75,11 +75,6 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	{
 		image_buffer[i].timestamp = &(shared_images->timestamps[i]);
 		image_buffer[i].image = new Image( camera->Width(), camera->Height(), camera->Colours(), &(shared_images->images[i*camera->ImageSize()]) );
-		//Info(( "%d: %x - %x", i, image_buffer[i].image, image_buffer[i].image->buffer ));
-		//*(image_buffer[i].timestamp) = time( 0 );
-		//image_buffer[i].image = new Image( width, height, colours );
-		//delete[] image_buffer[i].image->buffer;
-		//image_buffer[i].image->buffer = &(shared_images->images[i*colours*width*height]);
 	}
 	if ( !n_zones )
 	{
@@ -180,11 +175,6 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, co
 	{
 		image_buffer[i].timestamp = &(shared_images->timestamps[i]);
 		image_buffer[i].image = new Image( camera->Width(), camera->Height(), camera->Colours(), &(shared_images->images[i*camera->ImageSize()]) );
-		//Info(( "%d: %x - %x", i, image_buffer[i].image, image_buffer[i].image->buffer ));
-		//*(image_buffer[i].timestamp) = time( 0 );
-		//image_buffer[i].image = new Image( width, height, colours );
-		//delete[] image_buffer[i].image->buffer;
-		//image_buffer[i].image->buffer = &(shared_images->images[i*colours*width*height]);
 	}
 	if ( !n_zones )
 	{
@@ -428,7 +418,29 @@ bool Monitor::Analyse()
 		last_fps_time = now.tv_sec;
 	}
 
-	int index = shared_images->last_write_index%image_buffer_count;
+	int read_margin = shared_images->last_read_index - shared_images->last_write_index;
+	if ( read_margin < 0 ) read_margin += image_buffer_count;
+	read_margin -= post_event_count;
+
+	int step = 1;
+	//int max_margin = image_buffer_count - (pre_event_count+post_event_count);
+	int max_margin = image_buffer_count - post_event_count;
+	if ( read_margin > 0 )
+	{
+		step = max_margin/(read_margin-pre_event_count);
+	}
+
+	Debug( 1, ( "RI:%d, WI: %d, RM = %d, Step = %d", shared_images->last_read_index, shared_images->last_write_index, read_margin, step ));
+	int index;
+	if ( step < (read_margin/2) )
+	{
+		index = (shared_images->last_read_index+step)%image_buffer_count;
+	}
+	else
+	{
+		Warning(( "Approaching buffer overrun, consider increasing ring buffer size" ));
+		index = shared_images->last_write_index%image_buffer_count;
+	}
 	Snapshot *snap = &image_buffer[index];
 	struct timeval *timestamp = snap->timestamp;
 	Image *image = snap->image;
@@ -449,11 +461,16 @@ bool Monitor::Analyse()
 
 				Info(( "%s: %03d - Gone into alarm state", name, image_count ));
 				int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
+				struct timeval *timestamps[pre_event_count];
+				const Image *images[pre_event_count];
 				for ( int i = 0; i < pre_event_count; i++ )
 				{
-					event->AddFrame( *(image_buffer[pre_index].timestamp), image_buffer[pre_index].image );
 					pre_index = (pre_index+1)%image_buffer_count;
+
+					timestamps[i] = image_buffer[pre_index].timestamp;
+					images[i] = image_buffer[pre_index].image;
 				}
+				event->AddFrames( pre_event_count, timestamps, images );
 				//event->AddFrame( now, &image );
 			}
 			shared_images->state = state = ALARM;

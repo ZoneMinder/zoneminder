@@ -35,7 +35,6 @@ use bytes;
 
 use constant ZM_CONFIG => "<from zmconfig>";
 use constant ZM_VERSION => "<from zmconfig>";
-use constant ZM_PATH_BUILD => "<from zmconfig>";
 use constant ZM_PATH_BIN => "<from zmconfig>";
 use constant ZM_PATH_WEB => "<from zmconfig>";
 
@@ -62,7 +61,7 @@ BEGIN
 	close( CONFIG );
 
 	use DBI;
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
+	my $dbh = DBI->connect( "DBI:mysql:database=".&ZM_DB_NAME.";host=".&ZM_DB_SERVER, &ZM_DB_USER, &ZM_DB_PASS );
 	my $sql = "select * from Config";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );

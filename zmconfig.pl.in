@@ -76,6 +76,7 @@ my %types =
 	integer => { db_type=>'integer', hint=>'integer', pattern=>qr|^(\d+)$|, format=>q( $1 ) },
 	decimal => { db_type=>'decimal', hint=>'decimal', pattern=>qr|^(\d+(?:\.\d+)?)$|, format=>q( $1 ) },
 	hexadecimal => { db_type=>'hexadecimal', hint=>'hexadecimal', pattern=>qr|^(?:0x)?([0-9a-f]{1,8})$|, format=>q( '0x'.$1 ) },
+	tristate => { db_type=>'string', hint=>'auto|yes|no', pattern=>qr|^([ayn])|i, check=>q( $1 ), format=>q( ($1 =~ /^y/) ? 'yes' : ($1 =~ /^n/ ? 'no' : 'auto' ) ) },
 	abs_path => { db_type=>'string', hint=>'/absolute/path/to/somewhere', pattern=>qr|^((?:/[^/]*)+?)/?$|, format=>q( $1 ) },
 	rel_path => { db_type=>'string', hint=>'relative/path/to/somewhere', pattern=>qr|^((?:[^/].*)?)/?$|, format=>q( $1 ) },
 	directory => { db_type=>'string', hint=>'directory', pattern=>qr|^([a-zA-Z0-9-_.]+)$|, format=>q( $1 ) },
@@ -262,10 +263,10 @@ my @options =
 	},
 	{
 		name => "ZM_CAN_STREAM",
-		default => "no",
-		description => "Override the detection of streaming capability by browser",
-		help => "If you know that your browser can handle image streams of the type 'multipart/x-mixed-replace' but ZoneMinder does not detect this correctly you can set this option to ensure that the stream is delivered without the use of the Cambozola plugin.",
-		type => $types{boolean},
+		default => "auto",
+		description => "Override the automatic detection of browser streaming capability",
+		help => "If you know that your browser can handle image streams of the type 'multipart/x-mixed-replace' but ZoneMinder does not detect this correctly you can set this option to ensure that the stream is delivered with or without the use of the Cambozola plugin. Selecting 'yes' will tell ZoneMinder that your browser can handle the streams natively, 'no' means that it can't and so the plugin will be used while 'auto' lets ZoneMinder decide.",
+		type => $types{tristate},
 		category => 'tools',
 	},
 	{

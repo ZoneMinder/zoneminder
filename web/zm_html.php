@@ -21,7 +21,7 @@
 
 if ( !$bandwidth )
 {
-	$new_bandwidth = "low";
+	$bandwidth = "low";
 }
 
 ini_set( "session.use_trans_sid", "0" );

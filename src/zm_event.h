@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <time.h>
+#include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <mysql/mysql.h>

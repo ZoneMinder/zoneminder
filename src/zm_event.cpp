@@ -127,9 +127,8 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
-	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n" );
-	fprintf( fd, "\r\n" );
+	fprintf( fd, "Server: ZoneMinder Stream Server\n" );
+	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\n\n" );
 	fprintf( fd, "--ZoneMinderFrame\n" );
 
 	int n_frames = mysql_num_rows( result );

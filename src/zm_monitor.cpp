@@ -669,9 +669,8 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 {
 	time_t start_time, now;
 
-	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
-	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n" );
-	fprintf( fd, "\r\n" );
+	fprintf( fd, "Server: ZoneMinder Stream Server\n" );
+	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\n\n" );
 	fprintf( fd, "--ZoneMinderFrame\n" );
 	int last_read_index = image_buffer_count;
 	JOCTET img_buffer[camera->ImageSize()];

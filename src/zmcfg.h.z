@@ -28,7 +28,7 @@
 
 #define ZM_SHM_KEY				<from zmconfig>	// Shared memory key to use, only change if it clashes with another application (from zmconfig)
 
-#define ZM_EVENT_DIR			"<from zmconfig>"	// Local path to where events directory lives (from zmconfig)
+#define ZM_DIR_EVENTS			"<from zmconfig>"	// Local path to where events directory lives (from zmconfig)
 
 #define ZM_FORCED_ALARM_SCORE	<from zmconfig>	// Score to give X10 forced alarms (from zmconfig)
 

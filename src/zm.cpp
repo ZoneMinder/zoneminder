@@ -1312,7 +1312,7 @@ Event::Event( Monitor *p_monitor, time_t p_start_time ) : monitor( p_monitor ), 
 	alarm_frames = 0;
 	tot_score = 0;
 	max_score = 0;
-	sprintf( path, ZM_EVENT_DIR "/%s/%04d", monitor->Name(), id );
+	sprintf( path, ZM_DIR_EVENTS "/%s/%04d", monitor->Name(), id );
 	
 	struct stat statbuf;
 	errno = 0;
@@ -1499,7 +1499,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 	{
 		static char	path[PATH_MAX];
 
-		sprintf( path, ZM_EVENT_DIR );
+		sprintf( path, ZM_DIR_EVENTS );
 
 		struct stat statbuf;
 		errno = 0;
@@ -1512,7 +1512,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 			}
 		}
 
-		sprintf( path, ZM_EVENT_DIR "/%s", name );
+		sprintf( path, ZM_DIR_EVENTS "/%s", name );
 
 		errno = 0;
 		stat( path, &statbuf );

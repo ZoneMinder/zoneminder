@@ -462,11 +462,11 @@ function zmVlang( $lang_var_array, $count )
 //echo sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) );
 
 // In this section you can override the default prompt and help texts for the options area
-// These overrides are in the form of $zmVarOlangPrompt<option> and $zmVarOlangHelp<option>
+// These overrides are in the form of $zmOlangPrompt<option> and $zmOlangHelp<option>
 // where <option> represents the option name minus the initial ZM_
 // So for example, to override the help text for ZM_LANG_DEFAULT do
-// $zmVarOlangPromptLANG_DEFAULT = "This is a new prompt for this option";
-// $zmVarOlangHelpLANG_DEFAULT = "This is some new help for this option which will be displayed in the popup window when the ? is clicked";
+$zmOlangPromptLANG_DEFAULT = "This is a new prompt for this option";
+$zmOlangHelpLANG_DEFAULT = "This is some new help for this option which will be displayed in the popup window when the ? is clicked";
 //
 
 ?>

@@ -738,5 +738,5 @@ public:
 	void ReloadZones();
 	static int Load( int device, Monitor **&monitors, bool capture=true );
 	static Monitor *Load( int id, bool load_zones=false );
-	void StreamImages( unsigned long idle=5000, unsigned long refresh=50, FILE *fd=stdout );
+	void StreamImages( unsigned long idle=5000, unsigned long refresh=50, FILE *fd=stdout, unsigned int ttl=0 );
 };

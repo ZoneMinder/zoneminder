@@ -26,6 +26,7 @@ int main( int argc, const char *argv[] )
 	unsigned long refresh = 50;
 	int event = 0;
 	char *path = ".";
+	unsigned int ttl = 0;
 
 	const char *query = getenv( "QUERY_STRING" );
 	if ( query )
@@ -55,6 +56,8 @@ int main( int argc, const char *argv[] )
 				event = atoi( value );
 			else if ( !strcmp( name, "path" ) )
 				path = value;
+			else if ( !strcmp( name, "path" ) )
+				ttl = atoi(value);
 		}
 	}
 
@@ -83,7 +86,9 @@ int main( int argc, const char *argv[] )
 		Monitor *monitor = Monitor::Load( id );
 
 		if ( monitor )
-			monitor->StreamImages( idle, refresh, stdout );
+		{
+			monitor->StreamImages( idle, refresh, stdout, ttl );
+		}
 	}
 	else
 	{

@@ -2405,8 +2405,10 @@ Monitor *Monitor::Load( int id, bool load_zones )
 	return( monitor );
 }
 
-void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd )
+void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd, unsigned int ttl )
 {
+	time_t start_time, now;
+
 	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
 	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n" );
 	fprintf( fd, "\r\n" );
@@ -2415,6 +2417,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd 
 	JOCTET img_buffer[camera->ImageSize()];
 	int img_buffer_size = 0;
 	int loop_count = (idle/refresh)-1;
+	time( &start_time );
 	while ( true )
 	{
 		if ( last_read_index != shared_images->last_write_index )
@@ -2436,6 +2439,14 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd 
 		for ( int i = 0; shared_images->state == IDLE && i < loop_count; i++ )
 		{
 			usleep( refresh*1000 );
+		}
+		if ( ttl )
+		{
+			time( &now );
+			if ( (now - start_time) > ttl )
+			{
+				break;
+			}
 		}
 	}
 }

@@ -54,13 +54,13 @@ ob_start();
 <tr><td width="50%">&nbsp;</td><td width="50%">&nbsp;</td></tr>
 <tr><td class="text" align="right"><?= $zmSlangFrameRate ?></td><td><?= buildSelect( "rate", $rates ) ?></td></tr>
 <tr><td class="text" align="right"><?= $zmSlangVideoSize ?></td><td><?= buildSelect( "scale", $scales ) ?></td></tr>
-<tr><td class="text" align="right"><?= $zmSlangOverwriteExisting ?></td><td><input type="checkbox" class="form-noborder" name="overwrite" value="1"<?php if ( $overwrite ) { ?> checked<?php } ?>></td></tr>
+<tr><td class="text" align="right"><?= $zmSlangOverwriteExisting ?></td><td><input type="checkbox" class="form-noborder" name="overwrite" value="1"<?php if ( isset($overwrite) ) { ?> checked<?php } ?>></td></tr>
 <tr><td colspan="2">&nbsp;</td></tr>
 <tr><td colspan="2" align="center"><input type="submit" class="form" value="<?= $zmSlangGenerateVideo ?>"></td></tr>
 </table>
 </form>
 <?php
-if ( $generate )
+if ( isset($generate) )
 {
 ?>
 <table border="0" cellspacing="0" cellpadding="4" width="100%">

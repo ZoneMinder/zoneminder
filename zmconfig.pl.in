@@ -65,7 +65,7 @@ my %types =
 	url => { hint => 'http://host.your.domain/', parse => sub { return( int($_[0] =~ /^(?:http:\/\/)?(.+)$/ ), 'http://'.$1 ) } },
 	email => { hint => 'your.name@your.domain/', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$/ ), "$1\@$2" ) } },
 	string => { hint => 'string', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9-_]+)$/ ), $1 ) } },
-	boolean => { hint => 'yes/no', parse => sub { return( int($_[0] =~ /^([yn])/i ), ($1 && $1 =~ /^y/) ? 'yes' : 'no' ) } },
+	boolean => { hint => 'yes|no', parse => sub { return( int($_[0] =~ /^([yn])/i ), ($1 && $1 =~ /^y/) ? 'yes' : 'no' ) } },
 	integer => { hint => 'integer', parse => sub { return( int($_[0] =~ /^(\d+)$/ ), $1 ) } },
 	decimal => { hint => 'decimal', parse => sub { return( int($_[0] =~ /^(\d+(?:\.\d+)?)$/ ), $1 ) } },
 	hexadecimal => { hint => 'hexadecimal', parse => sub { return( int($_[0] =~ /^(?:0x)?([0-9a-f]{1,8})$/ ), "0x".$1 ) } },
@@ -277,7 +277,7 @@ my @options =
 		description => "What format the uploaded events should be created in. This can be 'tar' or 'zip'",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		help => "Uploaded events may be stored in either .tar or .zip format, this option specifies which. Note that to use this you will need to have the Archive::Tar and/or Archive::Zip perl modules installed.",
-		type => { hint => 'tar/zip', parse => sub { return( int($_[0] =~ /^([tz])/i ), $1 =~ /^t/ ? 'tar' : 'zip' ) } },
+		type => { hint => 'tar|zip', parse => sub { return( int($_[0] =~ /^([tz])/i ), $1 =~ /^t/ ? 'tar' : 'zip' ) } },
 	},
 	{
 		name => "ZM_UPLOAD_ARCH_COMPRESS",
@@ -383,6 +383,22 @@ my @options =
 		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "This option is used to define the short message email address that any events that match the appropriate filters will be sent to.",
 		type => $types{email},
+	},
+	{
+		name => "ZM_EMAIL_METHOD",
+		default => "sendmail",
+		description => "The method your machine uses to send email",
+		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
+		help => "ZoneMinder needs to know how to send you the notification emails or messages. This option tell it which method to use, generally sendmail will work if configured correctly on your machine, otherwise choose smtp and then give your mail host address in the next option.".
+		type => { hint => 'sendmail|smtp', parse => sub { return( int($_[0] =~ /^(se|sm)/i ), $1 =~ /^se/ ? 'sendmail' : 'smtp' ) } },
+	},
+	{
+		name => "ZM_EMAIL_HOST",
+		default => "localhost",
+		description => "The host address of your SMTP mail server",
+		requires => [ { name => "ZM_EMAIL_METHOD", value => "smtp" } ],
+		help => "If you have chosen SMTP as the mthod by which to send notification emails or messages then this option allows you to choose which SMTP server to use to send them. The default of localhost may work if you have the sendmail, exim or a similar daemon running however you may wish to enter your ISP's SMTP mail server here.",
+		type => $types{hostname},
 	},
 	{
 		name => "ZM_FROM_EMAIL",

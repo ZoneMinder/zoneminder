@@ -129,7 +129,7 @@ if ( $play && $next_event )
 		die( mysql_error() );
 	$frame_data = mysql_fetch_assoc( $result );
 ?>
-var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1' );", <?= (((($frame_data[Duration]*1000)+1000)*($rate))/RATE_SCALE) ?> );
+var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1' );", <?= (((($frame_data[Duration]*1000)+1000)*RATE_SCALE)/$rate) ?> );
 <?php
 }
 ?>

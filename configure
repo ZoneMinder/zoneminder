@@ -271,7 +271,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
 ac_unique_file="src/zm.h"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE MYSQL_PREFIX MYSQL_LIBS MYSQL_CFLAGS WEB_PREFIX CGI_PREFIX WEB_USER WEB_GROUP FFMPEG_PREFIX FFMPEG_LIBS FFMPEG_CFLAGS LAME_PREFIX LAME_LIBS CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE CPP EGREP XLIBS LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE MYSQL_PREFIX MYSQL_LIBS MYSQL_CFLAGS FFMPEG_PREFIX FFMPEG_LIBS FFMPEG_CFLAGS LAME_PREFIX LAME_LIBS WEB_PREFIX CGI_PREFIX WEB_USER WEB_GROUP CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE CPP EGREP XLIBS LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -821,13 +821,13 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
- --with-mysql=<path> prefix of MySQL installation. e.g. /usr/local or /usr
- --with-webdir=<path> prefix of web directory. e.g. /var/www/html or /www/vhtdocs/<site>
- --with-cgidir=<path> prefix of cgi directory. e.g. /var/www/cgi-bin or /www/vhtdocs/<site>/cgi-bin
- --with-webuser=<user> username of web user. e.g. apache or web
- --with-webgroup=<group> groupname of web group. e.g. apache or web
- --with-ffmpeg=<directory> location of ffmpeg build directory for libavcodec etc
- --with-lame=<directory> location of lame library directory for libmp3lame
+  --with-mysql=<path>     prefix of MySQL installation. e.g. /usr/local or /usr
+  --with-ffmpeg=<path>    prefix of ffmpeg build directory for libavcodec etc
+  --with-lame=<path>      prefix of lame library directory for libmp3lame
+  --with-webdir=<path>    prefix of web directory. e.g. /var/www/html or /www/vhtdocs/<site>
+  --with-cgidir=<path>    prefix of cgi directory. e.g. /var/www/cgi-bin or /www/vhtdocs/<site>/cgi-bin
+  --with-webuser=<user>   username of web user. e.g. apache or web
+  --with-webgroup=<group> groupname of web group. e.g. apache or web
 
 Some influential environment variables:
   CC          C compiler command
@@ -1656,6 +1656,66 @@ MYSQL_CFLAGS="-I${MYSQL_PREFIX}/include"
 
 LDFLAGS="${MYSQL_LIBS} $LDFLAGS"
 
+FFMPEG_PREFIX=
+# Ask group for ffmpeg:.
+
+# Check whether --with-ffmpeg or --without-ffmpeg was given.
+if test "${with_ffmpeg+set}" = set; then
+  withval="$with_ffmpeg"
+  FFMPEG_PREFIX=$with_ffmpeg
+else
+  { echo "$as_me:$LINENO: WARNING: You can call configure with the --with-ffmpeg option.
+    This tells configure where to find the ffmpeg build directory within which are the libavcodec
+	and libavformat files that can be used to build true MPEG streaming into ZoneMinder. A normal
+	install of ffmpeg only installs the applications and not the libraries or headers necessary
+	to link to so this will probably be a local or temporary directory.
+    e.g. --with-ffmpeg=/home/ffmpeg-0.4.18" >&5
+echo "$as_me: WARNING: You can call configure with the --with-ffmpeg option.
+    This tells configure where to find the ffmpeg build directory within which are the libavcodec
+	and libavformat files that can be used to build true MPEG streaming into ZoneMinder. A normal
+	install of ffmpeg only installs the applications and not the libraries or headers necessary
+	to link to so this will probably be a local or temporary directory.
+    e.g. --with-ffmpeg=/home/ffmpeg-0.4.18" >&2;}
+
+fi;
+
+FFMPEG_LIBS="-L${FFMPEG_PREFIX}/libavcodec -L${FFMPEG_PREFIX}/libavformat"
+FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/libavcodec -I${FFMPEG_PREFIX}/libavformat"
+
+
+
+LDFLAGS="${FFMPEG_LIBS} $LDFLAGS"
+
+LAME_PREFIX=
+# Ask group for lame path:.
+
+# Check whether --with-lame or --without-lame was given.
+if test "${with_lame+set}" = set; then
+  withval="$with_lame"
+  LAME_PREFIX=$with_lame
+else
+  { echo "$as_me:$LINENO: WARNING: You can call configure with the --with-lame option.
+    This tells configure where to find the Lame library which can be used by the ffmpeg libraries
+	to generate IE compatible MPEG audio streams. This option is only necessary if you have built
+	the ffmpeg package itself with the --enable-mp3lame option and if the normal link cannot
+	find the library. Using mp3lame is not necessary or of any benefit to ZoneMinder per se.
+    e.g. --with-lame=/use/local/lib" >&5
+echo "$as_me: WARNING: You can call configure with the --with-lame option.
+    This tells configure where to find the Lame library which can be used by the ffmpeg libraries
+	to generate IE compatible MPEG audio streams. This option is only necessary if you have built
+	the ffmpeg package itself with the --enable-mp3lame option and if the normal link cannot
+	find the library. Using mp3lame is not necessary or of any benefit to ZoneMinder per se.
+    e.g. --with-lame=/use/local/lib" >&2;}
+
+fi;
+
+LAME_LIBS="-L${LAME_PREFIX}"
+#LAME_CFLAGS="-I${LAME_PREFIX}/libavcodec -I${LAME_PREFIX}/libavformat"
+
+#AC_SUBST(LAME_CFLAGS)
+
+LDFLAGS="${LAME_LIBS} $LDFLAGS"
+
 # Ask user for path to web stuff:.
 
 # Check whether --with-webdir or --without-webdir was given.
@@ -1727,60 +1787,6 @@ echo "$as_me: WARNING: You can call configure with the --with-webgroup option.
 
 fi;
 
-
-FFMPEG_PREFIX=
-# Ask group for web group name:.
-
-# Check whether --with-ffmpeg or --without-ffmpeg was given.
-if test "${with_ffmpeg+set}" = set; then
-  withval="$with_ffmpeg"
-  FFMPEG_PREFIX=$with_ffmpeg
-else
-  { echo "$as_me:$LINENO: WARNING: You can call configure with the --with-ffmpeg option.
-    This tells configure where to find the ffmpeg build directory within which are the libavcodec
-	files that can be used to build true MPEG streaming into ZoneMinder.
-    e.g. --with-ffmpeg=/home/ffmpeg-0.4.18" >&5
-echo "$as_me: WARNING: You can call configure with the --with-ffmpeg option.
-    This tells configure where to find the ffmpeg build directory within which are the libavcodec
-	files that can be used to build true MPEG streaming into ZoneMinder.
-    e.g. --with-ffmpeg=/home/ffmpeg-0.4.18" >&2;}
-
-fi;
-
-FFMPEG_LIBS="-L${FFMPEG_PREFIX}/libavcodec -L${FFMPEG_PREFIX}/libavformat"
-FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/libavcodec -I${FFMPEG_PREFIX}/libavformat"
-
-
-
-LDFLAGS="${FFMPEG_LIBS} $LDFLAGS"
-
-LAME_PREFIX=
-# Ask group for web group name:.
-
-# Check whether --with-lame or --without-lame was given.
-if test "${with_lame+set}" = set; then
-  withval="$with_lame"
-  LAME_PREFIX=$with_lame
-else
-  { echo "$as_me:$LINENO: WARNING: You can call configure with the --with-lame option.
-    This tells configure where to find the Lame library which is used by the ffmpeg libraries
-	to generate IE compatible MPEG streams. This option is only necessary if you have built the
-	ffmpeg package with the --enable-mp3lame option and if the normal link cannot find the library.
-    e.g. --with-lame=/use/local/lib" >&5
-echo "$as_me: WARNING: You can call configure with the --with-lame option.
-    This tells configure where to find the Lame library which is used by the ffmpeg libraries
-	to generate IE compatible MPEG streams. This option is only necessary if you have built the
-	ffmpeg package with the --enable-mp3lame option and if the normal link cannot find the library.
-    e.g. --with-lame=/use/local/lib" >&2;}
-
-fi;
-
-LAME_LIBS="-L${LAME_PREFIX}"
-#LAME_CFLAGS="-I${LAME_PREFIX}/libavcodec -I${LAME_PREFIX}/libavformat"
-
-#AC_SUBST(LAME_CFLAGS)
-
-LDFLAGS="${LAME_LIBS} $LDFLAGS"
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -5040,15 +5046,15 @@ s,@SET_MAKE@,$SET_MAKE,;t t
 s,@MYSQL_PREFIX@,$MYSQL_PREFIX,;t t
 s,@MYSQL_LIBS@,$MYSQL_LIBS,;t t
 s,@MYSQL_CFLAGS@,$MYSQL_CFLAGS,;t t
-s,@WEB_PREFIX@,$WEB_PREFIX,;t t
-s,@CGI_PREFIX@,$CGI_PREFIX,;t t
-s,@WEB_USER@,$WEB_USER,;t t
-s,@WEB_GROUP@,$WEB_GROUP,;t t
 s,@FFMPEG_PREFIX@,$FFMPEG_PREFIX,;t t
 s,@FFMPEG_LIBS@,$FFMPEG_LIBS,;t t
 s,@FFMPEG_CFLAGS@,$FFMPEG_CFLAGS,;t t
 s,@LAME_PREFIX@,$LAME_PREFIX,;t t
 s,@LAME_LIBS@,$LAME_LIBS,;t t
+s,@WEB_PREFIX@,$WEB_PREFIX,;t t
+s,@CGI_PREFIX@,$CGI_PREFIX,;t t
+s,@WEB_USER@,$WEB_USER,;t t
+s,@WEB_GROUP@,$WEB_GROUP,;t t
 s,@CC@,$CC,;t t
 s,@CFLAGS@,$CFLAGS,;t t
 s,@LDFLAGS@,$LDFLAGS,;t t

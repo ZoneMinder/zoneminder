@@ -1,9 +1,3 @@
--- MySQL dump 8.23
---
--- Host: localhost    Database: ZM_DB_NAME
----------------------------------------------------------
--- Server version	3.23.58
-
 --
 -- Current Database: ZM_DB_NAME
 --
@@ -54,6 +48,7 @@ CREATE TABLE Events (
   Uploaded tinyint(3) unsigned NOT NULL default '0',
   Emailed tinyint(3) unsigned NOT NULL default '0',
   Messaged tinyint(3) unsigned NOT NULL default '0',
+  Executed tinyint(3) unsigned NOT NULL default '0',
   LearnState char(1) default '',
   PRIMARY KEY  (Id),
   UNIQUE KEY UC_Id (Id),
@@ -74,6 +69,7 @@ CREATE TABLE Filters (
   AutoUpload tinyint(3) unsigned NOT NULL default '0',
   AutoEmail tinyint(3) unsigned NOT NULL default '0',
   AutoMessage tinyint(3) unsigned NOT NULL default '0',
+  AutoExecute tinytext,
   PRIMARY KEY  (Name)
 ) TYPE=MyISAM;
 

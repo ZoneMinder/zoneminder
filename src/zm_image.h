@@ -67,6 +67,7 @@ protected:
 public:
 	Image( const char *filename )
 	{
+		buffer = 0;
 		ReadJpeg( filename );
 		our_buffer = true;
 		blend_buffer = 0;
@@ -169,6 +170,8 @@ public:
 	void Hatch( Rgb colour, const Box *limits=0 );
 
 	void Rotate( int angle );
+
+	void Scale( int factor );
 };
 
 #endif // ZM_IMAGE_H

@@ -79,7 +79,7 @@ void Image::ReadJpeg( const char *filename )
 	size = width*height*colours;
 
 	assert( colours == 1 || colours == 3 );
-	delete buffer;
+	delete[] buffer;
 	buffer = new JSAMPLE[size];
 
 	jpeg_start_decompress(&cinfo);
@@ -171,7 +171,7 @@ void Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 	size = width*height*colours;
 
 	assert( colours == 1 || colours == 3 );
-	delete buffer;
+	delete[] buffer;
 	buffer = new JSAMPLE[size];
 
 	jpeg_start_decompress(&cinfo);
@@ -835,4 +835,72 @@ void Image::Rotate( int angle )
 		}
 	}
 	memcpy( buffer, rotate_buffer, size );
+}
+
+void Image::Scale( int factor )
+{
+	if ( !factor )
+	{
+		return;
+	}
+	if ( factor == 1 )
+	{
+		return;
+	}
+
+	static unsigned char scale_buffer[ZM_MAX_IMAGE_SIZE];
+	if ( factor > 1 )
+	{
+		unsigned char *pd = scale_buffer;
+		unsigned int wc = width*colours;
+		unsigned int wcf = wc*factor;
+		for ( int y = 0; y < height; y++ )
+		{
+			unsigned char *ps = &buffer[y*wc];
+			for ( int x = 0; x < width; x++ )
+			{
+				for ( int f = 0; f < factor; f++ )
+				{
+					for ( int c = 0; c < colours; c++ )
+					{
+						*pd++ = *(ps+c);
+					}
+				}
+				ps += colours;
+			}
+			for ( int f = 1; f < factor; f++ )
+			{
+				memcpy( pd, pd-wcf, wcf );
+				pd += wcf;
+			}
+		}
+		width *= factor;
+		height *= factor;
+		size *= (factor*factor);
+	}
+	else
+	{
+		factor = abs(factor);
+		unsigned char *pd = scale_buffer;
+		unsigned int wc = width*colours;
+		unsigned int cf = factor*colours;
+		for ( int y = 0; y < height; y += factor )
+		{
+			unsigned char *ps = &buffer[y*wc];
+			for ( int x = 0; x < width; x += factor )
+			{
+				for ( int c = 0; c < colours; c++ )
+				{
+					*pd++ = *(ps+c);
+				}
+				ps += cf;
+			}
+		}
+		width /= factor;
+		height /= factor;
+		size /= (factor*factor);
+	}
+	delete[] buffer;
+	buffer = new JSAMPLE[size];
+	memcpy( buffer, scale_buffer, size );
 }

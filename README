@@ -347,6 +347,11 @@ will emit progressively more debug though theres not a lot in there at present.
 5. Paths. I admit it, the various paths in ZM are a bit of a nightmare. Make sure that they are all correct 
 and that permissions are such that the various parts of ZM can actually run.
 
+Also, if you are using IE under Windows and get lots of annoying clicks when various windows refresh then you'll
+need to edit your registry and remove the value for
+HKEY_CURRENT_USER\AppEvents\Schemes\Apps\Explorer\Navigating\.current or download the registry script to do it
+for you from http://www.zoneminder.com/downloads/noIEClick.reg
+
 To Do
 =====
 

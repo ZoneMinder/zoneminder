@@ -36,6 +36,57 @@ extern "C"
 
 MYSQL dbconn;
 
+bool fixDevice( int device )
+{
+	char device_path[64];
+
+	sprintf( device_path, "/dev/video%d", device );
+
+	struct stat stat_buf;
+
+	if ( stat( device_path, &stat_buf ) < 0 )
+	{
+		Error(( "Can't stat %s: %s\n", device_path, strerror(errno)));
+		return( false );
+	}
+
+	uid_t uid = getuid();
+	gid_t gid = getgid();
+
+	mode_t mask = 0; 
+	if ( uid == stat_buf.st_uid )
+	{
+		// If we are the owner
+		mask = 00400;
+	}
+	else if ( gid == stat_buf.st_gid )
+	{
+		// If we are in the owner group
+		mask = 00040;
+	}
+	else
+	{
+		// We are neither the owner nor in the group
+		mask = 00004;
+	}
+
+	mode_t mode = stat_buf.st_mode;
+	if ( mode & mask )
+	{
+		Info(( "Permissions on %s are ok at %o\n", device_path, mode ));
+		return( true );
+	}
+	mode |= mask;
+
+	Info(( "Resetting permission on %s to %o\n", device_path, mode ));
+	if ( chmod( device_path, mode ) < 0 )
+	{
+		Error(( "Can't chmod %s to %o: %s\n", device_path, mode, strerror(errno)));
+		return( false );
+	}
+	return( true );
+}
+
 int main( int argc, char *argv[] )
 {
 	char dbg_name_string[16] = "zmfix";
@@ -43,95 +94,66 @@ int main( int argc, char *argv[] )
 
 	DbgInit();
 
-	if ( !mysql_init( &dbconn ) )
+	if ( argc > 1 && !strcmp( argv[1], "-a" ) )
 	{
-		fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	if ( !mysql_connect( &dbconn, ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA ) )
-	{
-		fprintf( stderr, "Can't connect to server: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	if ( mysql_select_db( &dbconn, ZM_DB_NAME ) )
-	{
-		fprintf( stderr, "Can't select database: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-
-	static char sql[256];
-	sprintf( sql, "select Device from Monitors where Function != 'None'" );
-	if ( mysql_query( &dbconn, sql ) )
-	{
-		Error(( "Can't run query: %s\n", mysql_error( &dbconn ) ));
-		exit( mysql_errno( &dbconn ) );
-	}
-
-	MYSQL_RES *result = mysql_store_result( &dbconn );
-	if ( !result )
-	{
-		Error(( "Can't use query result: %s\n", mysql_error( &dbconn ) ));
-		exit( mysql_errno( &dbconn ) );
-	}
-
-	int n_devices = mysql_num_rows( result );
-	int *devices = new int [n_devices];
-	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
-	{
-		int device = atoi(dbrow[0]);
-		char device_path[64];
-
-		sprintf( device_path, "/dev/video%d", device );
-
-		struct stat stat_buf;
-
-		if ( stat( device_path, &stat_buf ) < 0 )
+		// Do all devices we can find
+		for ( int device = 0; device < 256; device++ )
 		{
-			Error(( "Can't stat %s: %s\n", device_path, strerror(errno)));
-			exit( 1 );
-		}
-
-		uid_t uid = getuid();
-		gid_t gid = getgid();
-
-		mode_t mask = 0; 
-		if ( uid == stat_buf.st_uid )
-		{
-			// If we are the owner
-			mask = 00400;
-		}
-		else if ( gid == stat_buf.st_gid )
-		{
-			// If we are in the owner group
-			mask = 00040;
-		}
-		else
-		{
-			// We are neither the owner nor in the group
-			mask = 00004;
-		}
-
-		mode_t mode = stat_buf.st_mode;
-		if ( mode & mask )
-		{
-			continue;
-		}
-		mode |= mask;
-
-		Info(( "Resetting permission on %s to %o\n", device_path, mode ));
-		if ( chmod( device_path, mode ) < 0 )
-		{
-			Error(( "Can't chmod %s to %o: %s\n", device_path, mode, strerror(errno)));
-			exit( 1 );
+			if ( !fixDevice( device ) )
+			{
+				break;
+			}
 		}
 	}
-
-	if ( mysql_errno( &dbconn ) )
+	else
 	{
-		Error(( "Can't fetch row: %s\n", mysql_error( &dbconn ) ));
-		exit( mysql_errno( &dbconn ) );
+		// Only do registered devices
+		if ( !mysql_init( &dbconn ) )
+		{
+			fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );
+			exit( mysql_errno( &dbconn ) );
+		}
+		if ( !mysql_connect( &dbconn, ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA ) )
+		{
+			fprintf( stderr, "Can't connect to server: %s\n", mysql_error( &dbconn ) );
+			exit( mysql_errno( &dbconn ) );
+		}
+		if ( mysql_select_db( &dbconn, ZM_DB_NAME ) )
+		{
+			fprintf( stderr, "Can't select database: %s\n", mysql_error( &dbconn ) );
+			exit( mysql_errno( &dbconn ) );
+		}
+
+		static char sql[256];
+		sprintf( sql, "select Device from Monitors where Function != 'None'" );
+		if ( mysql_query( &dbconn, sql ) )
+		{
+			Error(( "Can't run query: %s\n", mysql_error( &dbconn ) ));
+			exit( mysql_errno( &dbconn ) );
+		}
+
+		MYSQL_RES *result = mysql_store_result( &dbconn );
+		if ( !result )
+		{
+			Error(( "Can't use query result: %s\n", mysql_error( &dbconn ) ));
+			exit( mysql_errno( &dbconn ) );
+		}
+
+		int n_devices = mysql_num_rows( result );
+		int *devices = new int [n_devices];
+		for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
+		{
+			int device = atoi(dbrow[0]);
+			fixDevice( device );
+		}
+
+		if ( mysql_errno( &dbconn ) )
+		{
+			Error(( "Can't fetch row: %s\n", mysql_error( &dbconn ) ));
+			exit( mysql_errno( &dbconn ) );
+		}
+		// Yadda yadda
+		mysql_free_result( result );
 	}
-	// Yadda yadda
-	mysql_free_result( result );
 	return( 0 );
 }

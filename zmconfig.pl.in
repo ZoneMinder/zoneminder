@@ -62,11 +62,14 @@ my %types =
 	directory => { hint => 'directory', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9-_.]+)$/ ), $1 ) } },
 	file => { hint => 'filename', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9-_.]+)$/ ), $1 ) } },
 	hostname => { hint => 'host.your.domain', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9_.-]+)$/ ), $1 ) } },
+	url => { hint => 'http://host.your.domain/', parse => sub { return( int($_[0] =~ /^(?:http:\/\/)?(.+)$/ ), 'http://'.$1 ) } },
+	email => { hint => 'your.name@your.domain/', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9_-.]+)\@([a-zA-Z0-9_-.]+)$/ ), "$1\@$2" ) } },
 	string => { hint => 'string', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9-_]+)$/ ), $1 ) } },
 	boolean => { hint => 'yes/no', parse => sub { return( int($_[0] =~ /^([yn])/i ), ($1 && $1 =~ /^y/) ? 'yes' : 'no' ) } },
 	integer => { hint => 'integer', parse => sub { return( int($_[0] =~ /^(\d+)$/ ), $1 ) } },
 	decimal => { hint => 'decimal', parse => sub { return( int($_[0] =~ /^(\d+(?:\.\d+)?)$/ ), $1 ) } },
 	hexadecimal => { hint => 'hexadecimal', parse => sub { return( int($_[0] =~ /^(?:0x)?([0-9a-f]{1,8})$/ ), "0x".$1 ) } },
+	include => { hint => 'local/path/to/file', parse => sub { return( (int($_[0] =~ /^(.*)?$/ ) && -s $1), $1 ) } },
 );
 
 my @options =
@@ -350,6 +353,52 @@ my @options =
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		help => "If you are having (or expecting) troubles with uploading archived events then setting this to 'yes' permits additional information to be included in the zmfilter log file.",
 		type => $types{boolean},
+	},
+	{
+		name => "ZM_OPT_EMAIL",
+		default => "no",
+		description => "Should ZoneMinder email you details of events that match corresponding filters",
+		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should have their details emailed to you at a designated email address. This will allow you to be notified of events as soon as they occur and also to quickly view the events directly. This option specifies whether this functionality should be available. The email created with this option can be any size and is intended to be sent to a regular email reader rather than a mobile device."
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_EMAIL_ADDRESS",
+		default => "",
+		description => "The email address to send matching event details to",
+		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" } ],
+		help => "This option is used to define the email address that any events that match the appropriate filters will be sent to.",
+		type => $types{string},
+	},
+	{
+		name => "ZM_OPT_MESSAGE",
+		default => "no",
+		description => "Should ZoneMinder message you with details of events that match corresponding filters",
+		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should have their details sent to you at a designated short message email address. This will allow you to be notified of events as soon as they occur. This option specifies whether this functionality should be available. The email created by this option will be brief and is intended to be sent to an SMS gateway or a minimal mail reader such as a mobile device or phone rather than a regular email reader."
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_MESSAGE_ADDRESS",
+		default => "",
+		description => "The email address to send matching event details to",
+		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
+		help => "This option is used to define the short message email address that any events that match the appropriate filters will be sent to.",
+		type => $types{string},
+	},
+	{
+		name => "ZM_FROM_EMAIL",
+		default => "",
+		description => "The email address you wish your event notification emails to originate from",
+		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
+		help => "The emails or messages that will be sent to you informing you of events can appear to come from a designated email address to help you with mail filtering etc. An address of something like ZoneMinder@your.domain is recommended."
+		type => $types{email},
+	},
+	{
+		name => "ZM_URL",
+		default => "",
+		description => "The URL of your ZoneMinder installation",
+		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
+		help => "The emails or messages that will be sent to you informing you of events can include a link to the events themselves for easy viewing. If you intend to use this feature then set this option to the url of your installation as it would appear from where you read your email, e.g. http://host.your.domain/zm.php."
+		type => $types{url},
 	},
 	{
 		name => "ZM_WATCH_CHECK_INTERVAL",
@@ -637,6 +686,7 @@ Press enter to continue: " );
 					if ( $require_option->{value} =~ /^$require->{value}/ )
 					{
 						$do_option = !undef;
+						last;
 					}
 				}
 			}

@@ -46,10 +46,10 @@ void zm_die_handler( int signal )
 	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
 	(void) snprintf(errorString, errorStringSize, "Got signal (%s), crashing.", error);
 
-	Info(( (const char *)errorString ));
+	Error(( (const char *)errorString ));
 	free(errorString);
 #else /* HAVE_DECL_STRSIGNAL */
-    Info(( "Got signal %d, crashing", signal ));
+    Error(( "Got signal %d, crashing", signal ));
 #endif /* HAVE_DECL_STRSIGNAL */
 	exit( signal );
 }
@@ -244,21 +244,48 @@ int main( int argc, char *argv[] )
 		{
 			Error(( "Select error: %s", strerror(errno) ));
 			ReopenSocket( sd, monitor->Id() );
+			continue;
 		}
 
 		sigprocmask( SIG_BLOCK, &block_set, 0 );
 
-		if ( read( sd, &frame_header, sizeof(frame_header) ) != sizeof(frame_header) )
+		int n_bytes = read( sd, &frame_header, sizeof(frame_header) );
+		if ( n_bytes != sizeof(frame_header) )
 		{
-			Error(( "Can't read frame header: %s", strerror(errno) ));
+			if ( n_bytes < 0 )
+			{
+				Error(( "Can't read frame header: %s", strerror(errno) ));
+			}
+			else if ( n_bytes > 0 )
+			{
+				Error(( "Incomplete read of frame header, %d bytes only", n_bytes ));
+			}
+			else
+			{
+				Warning(( "Socket closed at remote end", n_bytes ));
+			}
 			ReopenSocket( sd, monitor->Id() );
+			continue;
 		}
 		Debug( 1, ( "Read frame header, expecting %ld bytes of image", frame_header.image_length ));
 		static unsigned char image_data[ZM_MAX_IMAGE_SIZE];
-		if ( read( sd, image_data, frame_header.image_length ) != (ssize_t)frame_header.image_length )
+		n_bytes = read( sd, image_data, frame_header.image_length );
+		if ( n_bytes != (ssize_t)frame_header.image_length )
 		{
-			Error(( "Can't read frame image data: %s", strerror(errno) ));
+			if ( n_bytes < 0 )
+			{
+				Error(( "Can't read frame image data: %s", strerror(errno) ));
+			}
+			else if ( n_bytes > 0 )
+			{
+				Error(( "Incomplete read of frame image data, %d bytes only", n_bytes ));
+			}
+			else
+			{
+				Warning(( "Socket closed at remote end", n_bytes ));
+			}
 			ReopenSocket( sd, monitor->Id() );
+			continue;
 		}
 		static char path[PATH_MAX] = "";
 		sprintf( path, "%s/%s/%ld/%03ld-%s.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), frame_header.event_id, frame_header.frame_id, frame_header.alarm_frame?"analyse":"capture" );

@@ -1,6 +1,6 @@
-    21/01/04        ZoneMinder 1.17.1 README                1
+    05/02/04        ZoneMinder 1.17.2 README                1
                                  
-                        ZoneMinder v1.17.1
+                        ZoneMinder v1.17.2
 
 1.   Introduction
    
@@ -54,11 +54,12 @@ ZoneMinder is fresh off the keyboard and so comes with no warranty
 whatsoever,  please  try it, send your feedback  and  if  you  get
 anything useful out of it please let me know.
 
-ZoneMinder  is free but if you do get a ZoneMinder up and  running
-and   find   it   useful   then  please   feel   free   to   visit
+ZoneMinder is free but if you do get ZoneMinder up and running and
+find    it    useful   then   please   feel    free    to    visit
 http://www.zoneminder.com/donate.html where any donations will  be
 appreciated   and  will  help  to  fund  future  improvements   of
-ZoneMinder.
+ZoneMinder.  This  would  be especially  appreciated  if  you  use
+ZoneMinder as part of your business or to protect your property.
 
 
 2.   Requirements
@@ -81,7 +82,7 @@ modified.
 ZoneMinder can generate MPEG videos if necessary, for this  you'll
 need  either  ffmpeg  (recommended) or the Berkeley  MPEG  encoder
 (mpeg_encode).  If  you don't have either,  don't  worry,  as  the
-options  will be hidden and you'll not miss much really.  The  web
+options  will be hidden and you'll not really miss much.  The  web
 interface  uses PHP and so you need that in your apache  or  other
 web  server  as well, make sure MySQL support is available  either
 statically  or  as a module. There are also various  perl  modules
@@ -425,7 +426,7 @@ below,
         
 ú    'Monitor' - The monitor will only stream feeds but no image
 analysis is done and so no alarms or events will be generated,
-ú    'Modect' - or Motion DEteCTtion. All captured images will be
+ú    'Modect' - or MOtion DEteCTtion. All captured images will be
 analysed and events generated where motion is detected,
 ú    'Record' - In this case continuous events of a fixed length
 are generated regardless of motion which is analogous to a
@@ -450,13 +451,13 @@ being highlighted within those events.
    results in every captured frame being saved, whereas one  would
    mean  that  one  frame is skipped between each saved  one,  two
    means  that two frames are skipped between each saved one  etc.
-   An alternate way of hinking is that one in every 'Frame Skip  +
-   1'  frames is saved. The point of this is to ensure that  saved
-   events  do  not  take  up too much space  unnecessarily  whilst
-   still  allowing  the camera to capture at a fairly  high  frame
-   rate.  The  alternate approach is to limit  the  capture  frame
-   rate  which will obviously affect the rate at which frames  are
-   saved.
+   An  alternate way of thinking is that one in every 'Frame  Skip
+   +  1'  frames  is  saved. The point of this is to  ensure  that
+   saved  events  do  not  take  up too much  space  unnecessarily
+   whilst  still allowing the camera to capture at a  fairly  high
+   frame  rate.  The  alternate approach is to limit  the  capture
+   frame  rate  which  will obviously affect  the  rate  at  which
+   frames are saved.
    
    Run  Mode - Two choices are available here. 'Continuous' is the
    usual  setting  and means that the monitor is  expected  to  be
@@ -467,11 +468,11 @@ being highlighted within those events.
    active is devolved to an external triggering mechanism.
    
    Triggers  -  This small section lets you select which  triggers
-   will  apply  if  the run mode has been set to triggered  above.
+   will  apply if the run mode has been set to 'triggered'  above.
    The  most  common trigger is X10 and this will appear  here  if
    you   indicated   that   your  system   supported   it   during
    installation. Only X10 is supported as a shipped  trigger  with
-   ZoneMidner  at  present but it is expected that other  triggers
+   ZoneMinder  at  present but it is expected that other  triggers
    will  become  available as necessary. You  can  also  just  use
    'cron'  jobs or other mechanisms to actually control the camera
    and keep them completely outside of the ZoneMinder settings.
@@ -576,7 +577,7 @@ being highlighted within those events.
    memory  and  making it too large especially  for  large  images
    with  a  high colour depth can use a lot of memory. A value  of
    no  more  than 100 is usually ok. If you find that your  system
-   will  not let you use the value you want it is probably  becase
+   will  not let you use the value you want it is probably because
    your  system  has  an  arbitrary limit on the  size  of  shared
    memory  that  may be used even though you may  have  plenty  of
    free  memory  available. This limit is usually fairly  easy  to
@@ -600,7 +601,7 @@ being highlighted within those events.
    is  a  true buffer and should not really exceed half  the  ring
    buffer  size.  However the post-event buffer is  just  a  count
    that  is applied to captured frames and so can be managed  more
-   flexibly.You  should also bear in mind the frame  rate  of  the
+   flexibly.  You should also bear in mind the frame rate  of  the
    camera  when  choosing  these values. For  instance  a  network
    camera  capturing at 1FPS will give you 10 seconds  before  and
    after  each  event if you chose 10 here. This may well  be  too
@@ -909,17 +910,18 @@ are as follows.
    disabled   For  Inactive  zones  all  subsequent  options   are
    likewise disabled.
    
-   Alarm  Threshold  -  This represents the  difference  in  value
-   between  a  pixel  and its predecessor in the reference  image.
-   For  greyscale images this is simple but for colour images  the
-   colours  are averaged first, originally this used an RMS  (root
-   mean  squared)  algorithm  but calculating  square  roots  mugs
-   performance  and does not seem to improve detection.  Using  an
-   average  does  means  that subtle colour  changes  without  any
-   brightness change may go undetected but this is not the  normal
-   circumstance.  There  is  also  the  option  to  use   a   more
-   sophisticated   integer  algorithm  to  calculate   a   Y   (or
-   brightness) value from the colours themselves.
+   Min/Maximum Alarm Threshold - These setting are used to  define
+   limits  for   the difference in value between a pixel  and  its
+   predecessor  in the reference image. For greyscale images  this
+   is  simple  but  for  colour images the  colours  are  averaged
+   first,   originally  this  used  an  RMS  (root  mean  squared)
+   algorithm  but  calculating square roots mugs  performance  and
+   does  not  seem  to improve detection. Using  an  average  does
+   means  that subtle colour changes without any brightness change
+   may  go  undetected  but this is not the  normal  circumstance.
+   There  is  also the option to use a more sophisticated  integer
+   algorithm  to  calculate  a Y (or brightness)  value  from  the
+   colours themselves.
    
    Min/Maximum  Alarmed Area - The following two  settings  define
    the  minimum  and  maximum number of pixels  that  exceed  this
@@ -944,7 +946,7 @@ are as follows.
    removes  any  pixels that do not participate  in  a  contiguous
    block  of pixels above a certain size. These options are always
    expressed  in  pixels and should be fairly small,  and  an  odd
-   number,  three  or  five is a good value  to  choose  initialy.
+   number,  three  or  five is a good value to  choose  initially.
    Application  of  this filter removes any tiny or  discontinuous
    pixels that don't form part of a discrete block.
    
@@ -1247,7 +1249,7 @@ you  to  define  user specific languages. Setting a language  here
 that  is  different than the system language will mean  that  when
 that  user  logs in they will have the web interface presented  in
 their  own  language  rather than the system  default,  if  it  is
-available. Specifiying a language here is done in the same way  as
+available. Specifying a language here is done in the same  way  as
 for the system default language described above.
 
 There are also four values that define the user permissions, these
@@ -1283,7 +1285,7 @@ place or ensure that you housekeep them strictly.
 Have fun, please report any bugs or features you'd like to see and
 hopefully ZoneMinder can be your camera monitoring friend!
 
-Philip Coombes (philip.coombes@zoneminder.com) - December  2003
+Philip Coombes (philip.coombes@zoneminder.com) - February 2004
 
 
 6.   Troubleshooting
@@ -1479,7 +1481,73 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 7.   Change Log
    
 
-7.1. Release 1.17.1
+7.1. Release 1.17.2
+Minor features, bug fixes and additional languages.
+
+  o    Pending Process Bug. A bug was found whereby a process that
+    was  scheduled  to be started in the future (due  to  repeated
+    failures)  would drop out of the pending queue  if  a  further
+    explicit restart was attempted. This is now fixed.
+    
+o    Strsignal Function. The strsignal function was included from
+version 1.17.1 however this is not ubiquitous on all
+distributions. The existence of this function is now tested for by
+the configure script and it is not used if not present.
+o    Add Max Alarm Threshold. Previously the alarm threshold
+(which is the amount a pixel has to differ from it's counterpart
+in the reference image) existed only in a 'minimum' form meaning
+pixels that were more different matched. A maximum has now been
+added to assist in screening out large changes in brightness. In
+addition to this a number of new consistency checks have been
+added to the zone definition form to try and prevent bogus or
+invalid settings.
+  o    Diagnostic Zone Images. A regularly requested feature is that
+    of adding extra information to allow diagnostics of the process of
+    image detection. This has previously been somewhat hit and miss
+    but    in    this   version   a   new   configuration   option
+    ZM_RECORD_DIAG_IMAGES has been included to allow this. This option
+    will generate several images for each captured frame in an alarm
+    including each reference image and a series of images containing
+    the image differences at various stages in the process. It is not
+    possible to record these for the image prior to an alarm but those
+    following it are included and should assist in tuning the zones to
+    provide optimal motion detection.
+    
+  o     Event  Images  Renamed. The capture  and  analysis  images
+    recorded during an event have been renamed from capture-???.jpg to
+    ???-capture, and from analyse-???.jpg to ???-analyse.jpg. This is
+    to allow all images (including diagnostic ones) to be associated
+    with the frame sequence number more easily. This means that old
+    events will no longer be able to be viewed as the wrong image will
+    be  being  searched for. To avoid this you  can  use  the  new
+    'zmupdate.pl' utility to rename all your old images by doing 'perl
+    zmupdate.pl -r' as a an appropriately privileged or root user.
+    
+o    Version checking. ZoneMinder will now optionally check for
+new versions of itself at zoneminder.com. This is done with a
+simple http get and no personal information otherwise than your
+current version of ZoneMinder is transmitted or recorded. If new
+versions are found you may be alerted of them via the web
+interface. This is an initial step towards enhancing and
+automating the upgrade process.
+  o    Force Java. Previously ZoneMinder could be forced to override
+    it's detection of browser capabilities to prevent the Cambozola
+    Java applet being used. However sometimes the opposite effect was
+    desired  and  using the applet was preferred to  native  image
+    handling.  This  has  now  been made possible  by  making  the
+    ZM_CAN_STREAM option tri-state allowing 'auto', 'yes' or 'no' to
+    be used to provide all alternatives.
+    
+  o    Alarms Cleared on Exit. In previous versions if an alarm was
+    present when the analysis daemon (zma) exited the alarm  would
+    remain flagged. This had little effect except if the monitor was
+    being watched however it was a bit annoying so any alarm flag is
+    now cleared when this daemon exits.
+    
+o    New Languages. Translations for Japanese (ja_jp), French
+(fr_fr) and Russian (ru_ru) are now included.
+
+7.2. Release 1.17.1
 Bugfixes and additional languages.
 
   o    Login Bug. A bug was identified whereby an unauthorised user
@@ -1500,7 +1568,7 @@ accessed area and contains a great deal of text. The new format
 allows individual options to be translated piecemeal as the
 opportunity arises.
 
-7.2. Release 1.17.0
+7.3. Release 1.17.0
 Language changes and other enhancements.
 
   o     Version  Numbering. ZoneMinder version  numbers  have  now
@@ -1545,7 +1613,7 @@ has been corrected.
 o    Minor Bugs. A number of minor bugs and inconsistencies were
 corrected.
 
-7.3. Release 0.9.16
+7.4. Release 0.9.16
 Major useability enhancement and fixes.
 
   o    Run States. Instead of the old 'start/stop' links the current
@@ -1567,7 +1635,7 @@ Mocord functions both records events whose length in seconds is
 defined by the 'Section Length' monitor attribute. You can
 additionally specify a 'Frame Skip' value to tell it to not record
 'n' frames at a time, when not alarmed.
-o    X10 Function removed.The X10 mode has been removed and
+o    X10 Function removed. The X10 mode has been removed and
 replaced by an indication of whether the monitor is 'continuous'
 or 'triggered'. This basically just indicates whether it may be
 controlled outside of zmdc and zmpkg. Additionally the X10
@@ -1665,7 +1733,7 @@ correctly parsed from command line options passed to zmu.
 o    Event window width variable. Event windows now scale to fit
 the event image size.
 
-7.4. Release 0.9.15
+7.5. Release 0.9.15
 Various bug fixes from the last release and before.
 
   o     Bandwidth.  A  bug was introduced in .14  which  caused  a
@@ -1701,7 +1769,7 @@ directly were colourised whereas those written by  zmf weren't. A
 change has been made whereby if set all greyscale JPEG images are
 colourised in all circumstances.
 
-7.5. Release 0.9.14
+7.6. Release 0.9.14
 Major new feature and important bug-fixes.
 
   o     Web  configuration. Following many requests  and  to  make
@@ -1743,7 +1811,7 @@ should still be secure as it will require authentication.
 o    All SQL buffers in the C++ code have been enlarged. There was
 previously an issue with a buffer overflow on certain occasions.
 
-7.6. Release 0.9.13
+7.7. Release 0.9.13
 Beta  version  of  several  features and  fixes,  never  generally
 released.
 
@@ -1793,7 +1861,7 @@ restart the refresh process. By using JS refresh timers which are
 not interrupted these extraneous refreshes have been mostly
 eliminated.
 
-7.7. Release 0.9.12
+7.8. Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
   o    Double first images. Fixed a problem where the first image of
@@ -1865,7 +1933,7 @@ users, attempts to delete monitors will now require confirmation.
 o    Detect linmysqlclient.a. Added better detection script into
 'configure' top spot when libmysqlclient.a is missing.
 
-7.8. Release 0.9.11
+7.9. Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats  view  -  If you have the  RECORD_EVENT_STATS
@@ -1948,7 +2016,7 @@ o    Web colour change - I thought the old red, green and amber
 text colours were just a bit too gaudy so I've toned them down a
 bit. Hope you like them!
 
-7.9. Release 0.9.10
+7.10.     Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
   o     Configure 'round' bug - Fixed a problem with the configure
@@ -2026,7 +2094,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came across
 that that I don't think had been reported or noticed so I don't
 think we need to talk about them here do we.
 
-7.10.     Release 0.9.9
+7.11.     Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o    Added zmu -q/--query option - There is now a new query option
@@ -2073,7 +2141,7 @@ removed in the last version which meant that sometimes the console
 never go refreshed as it's timing loop was broken. This
 functionality has now been reinstated.
 
-7.11.     Release 0.9.8
+7.12.     Release 0.9.8
 Several new features and bug-fixes
 
   o    Upgrade note - If you have installed 0.9.7 and wish to save
@@ -2138,7 +2206,7 @@ o    Monitor window refresh on alarm - When the monitor window is
 active and an alarm has occurred the most recent alarms list is
 immediately refreshed to show it.
 
-7.12.     Release 0.9.7
+7.13.     Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes too.  Now
 somewhat more mature, not really an alpha any more, and a  lot  of
 bugs fixed too.
@@ -2183,7 +2251,7 @@ o    Some of the web views have changed slightly to accommodate
 the separate events view.
 o    And much much more, probably...
 
-7.13.     Release 0.0.1
+7.14.     Release 0.0.1
 Initial release, therefore nothing new.
 
 

@@ -20,12 +20,12 @@
 #include <getopt.h>
 #include "zm.h"
 
-bool terminate = false;
+bool zm_terminate = false;
 
 void term_handler( int signal )
 {
 	Info(( "Got TERM signal, exiting" ));
-	terminate = true;
+	zm_terminate = true;
 }
 
 void Usage()
@@ -140,7 +140,7 @@ int main( int argc, char *argv[] )
 			monitors[i]->PostCapture();
 		}
 		sigprocmask( SIG_UNBLOCK, &block_set, 0 );
-		if ( terminate )
+		if ( zm_terminate )
 		{
 			for ( int i = 0; i < n_monitors; i++ )
 			{

@@ -1798,7 +1798,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 	alarm_frames = 0;
 	tot_score = 0;
 	max_score = 0;
-	sprintf( path, ZM_DIR_EVENTS "/%s/%04d", monitor->Name(), id );
+	//sprintf( path, ZM_DIR_EVENTS "/%s/%04d", monitor->Name(), id );
+	sprintf( path, ZM_DIR_EVENTS "/%s/%d", monitor->Name(), id );
 	
 	struct stat statbuf;
 	errno = 0;
@@ -2199,7 +2200,6 @@ void Monitor::DumpImage( Image *image ) const
 	{
 		static char new_filename[64];
 		static char filename[64];
-		//sprintf( filename, "%s%04d.jpg", name, image_count );
 		sprintf( filename, "%s.jpg", name );
 		sprintf( new_filename, "%s-new.jpg", name );
 		image->WriteJpeg( new_filename );

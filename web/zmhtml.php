@@ -2021,7 +2021,7 @@ function closeWindow()
 			die( mysql_error() );
 		$event = mysql_fetch_assoc( $result );
 
-		$event_dir = ZM_DIR_EVENTS."/$event[MonitorName]/".sprintf( "%04d", $eid );
+		$event_dir = ZM_DIR_EVENTS."/$event[MonitorName]/".sprintf( "%d", $eid );
 		$param_file = $event_dir."/mpeg.param";
 		$video_name = preg_replace( "/\\s/", "_", $event[Name] ).".mpeg";
 		$video_file = $event_dir."/".$video_name;

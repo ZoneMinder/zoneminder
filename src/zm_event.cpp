@@ -34,6 +34,7 @@
 
 bool Event::initialised = false;
 bool Event::timestamp_on_capture;
+bool Event::bulk_frame_interval;
 
 Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
 {
@@ -267,7 +268,7 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
 	}
 }
 
-void Event::AddFrame( Image *image, struct timeval timestamp, unsigned int score, Image *alarm_image )
+void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *alarm_image )
 {
 	frames++;
 
@@ -280,16 +281,23 @@ void Event::AddFrame( Image *image, struct timeval timestamp, unsigned int score
 	struct DeltaTimeval delta_time;
 	DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
 
-	Debug( 1, ( "Adding frame %d to DB", frames ));
-	static char sql[BUFSIZ];
-	sprintf( sql, "insert into Frames ( EventId, FrameId, AlarmFrame, Delta, Score ) values ( %d, %d, %d, %s%ld.%02ld, %d )", id, frames, score>0, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
-	if ( mysql_query( &dbconn, sql ) )
+	bool db_frame = score>=0 || !((frames-1)%bulk_frame_interval);
+
+	if ( db_frame )
 	{
-		Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
-		exit( mysql_errno( &dbconn ) );
+		const char *frame_type = score>0?"Normal":(score<0?"Bulk":"Alarm");
+
+		Debug( 1, ( "Adding frame %d to DB", frames ));
+		static char sql[BUFSIZ];
+		sprintf( sql, "insert into Frames ( EventId, FrameId, AlarmFrame, Delta, Score ) values ( %d, %d, '%s', %s%ld.%02ld, %d )", id, frames, frame_type, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
+		if ( mysql_query( &dbconn, sql ) )
+		{
+			Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
+			exit( mysql_errno( &dbconn ) );
+		}
 	}
 
-	if ( score )
+	if ( score > 0 )
 	{
 		end_time = timestamp;
 

@@ -44,11 +44,7 @@ else
 	$fid = $frame['FrameId'];
 }
 
-$result = mysql_query( "select count(*) as FrameCount from Frames where EventID = '$eid'" );
-if ( !$result )
-	die( mysql_error() );
-$row = mysql_fetch_assoc( $result );
-$max_fid = $row['FrameCount'];
+$max_fid = $event['Frames'];
 
 $first_fid = 1;
 $prev_fid = $fid-1;
@@ -56,13 +52,14 @@ $next_fid = $fid+1;
 $last_fid = $max_fid;
 
 $event_path = ZM_DIR_EVENTS.'/'.$event['MonitorName'].'/'.$event['Id'];
-$image_path = sprintf( "%s/%03d-capture.jpg", $event_path, $frame['FrameId'] );
+$image_path = sprintf( "%s/%03d-capture.jpg", $event_path, $fid );
 $anal_image = preg_replace( "/capture/", "analyse", $image_path );
 if ( file_exists( $anal_image ) )
 {
 	$image_path = $anal_image;
 }
-$img_class = $frame['AlarmFrame']?"alarm":"normal";
+$alarm_frame = $frame['Type']=='Alarm';
+$img_class = $alarm_frame?"alarm":"normal";
 
 ?>
 <html>
@@ -89,7 +86,7 @@ function deleteEvent()
 <body>
 <table border="0">
 <tr><td colspan="2" class="smallhead"><?= $zmSlangFrame ?> <?= $eid."-".$fid." (".$frame['Score'].")" ?>
-<?php if ( ZM_RECORD_EVENT_STATS && $frame['AlarmFrame'] ) { ?>
+<?php if ( ZM_RECORD_EVENT_STATS && $alarm_frame ) { ?>
 (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $fid ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );"><?= $zmSlangStats ?></a>)
 <?php } ?>
 </td>

@@ -1500,7 +1500,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=zm
- VERSION=1.18.1-ms
+ VERSION=1.19.0
 
 
 cat >>confdefs.h <<_ACEOF

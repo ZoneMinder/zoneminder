@@ -314,12 +314,31 @@ AutoStart=true>
 }
 else
 {
-	$sql = "select * from Frames where EventID = '$eid' order by Id";
 	if ( $paged && !empty($page) )
-		$sql .= " limit ".(($page-1)*$frames_per_page).", ".$frames_per_page;
+	{
+		$lo_frame_id = (($page-1)*$frames_per_page)+1;
+		$hi_frame_id = min( $page*$frames_per_page, $event['Frames'] );
+	}
+	else
+	{
+		$lo_frame = 1;
+		$hi_frame = $event['Frames'];
+	}
+	$sql = "select * from Frames where EventID = '$eid'";
+	if ( $paged && !empty($page) )
+		$sql .= " and FrameId between $lo_frame_id and $hi_frame_id";
+	$sql .= "order by FrameId";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		die( mysql_error() );
+	$alarm_frames = array();
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		if ( $row['Type'] == 'Alarm' )
+		{
+			$alarm_frames[$row['FrameId']] = $row;
+		}
+	}
 ?>
 <tr><td colspan="6"><table border="0" cellpadding="0" cellspacing="2" align="center">
 <tr>
@@ -330,9 +349,8 @@ else
 	$thumb_width = $event['Width']/4;
 	$thumb_height = $event['Height']/4;
 	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorName'].'/'.$event['Id'];
-	while( $row = mysql_fetch_assoc( $result ) )
+	for ( $frame_id = $lo_frame; $frame_id <= $hi_frame_id; $frame_id++ )
 	{
-		$frame_id = $row['FrameId'];
 		$image_path = sprintf( "%s/%03d-capture.jpg", $event_path, $frame_id );
 
 		$capt_image = $image_path;
@@ -364,9 +382,10 @@ else
 				exec( $command );
 			}
 		}
-		$img_class = $row['AlarmFrame']?"alarm":"normal";
+		$alarm_frame = $alarm_frames[$frame_id];
+		$img_class = $alarm_frame?"alarm":"normal";
 ?>
-<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<? echo $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $row['Score'] ?>"></a></td>
+<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<? echo $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $alarm_frame['Score'] ?>"></a></td>
 <?php
 		flush();
 		if ( !(++$count % 4) )

@@ -23,13 +23,21 @@ if ( !canView( 'Events' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select F.*,unix_timestamp(F.TimeStamp) as UnixTimeStamp,E.*,M.Name as MonitorName,M.Width,M.Height from Frames as F left join Events as E on F.EventId = E.Id left join Monitors as M on E.MonitorId = M.Id where F.EventId = '$eid' order by F.FrameId" );
+$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$eid'";
+$result = mysql_query( $sql );
+if ( !$result )
+	die( mysql_error() );
+$event = mysql_fetch_assoc( $result );
+
+$sql = "select * from Frames where EventID = '$eid' order by FrameId";
+$result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 while ( $row = mysql_fetch_assoc( $result ) )
 {
 	$frames[] = $row;
 }
+
 ?>
 <html>
 <head>
@@ -65,14 +73,16 @@ if ( count($frames) )
 {
 	foreach ( $frames as $frame )
 	{
+		$alarm_frame = $frame['Type']=='Alarm';
+		$bgcolor = $alarm_frame?'#FA8072':($frame['Type']=='Bulk'?'#CCCCCC':'#FFFFFF');
 ?>
-<tr bgcolor="<?= $frame['AlarmFrame']?'#FA8072':'#FFFFFF' ?>">
+<tr bgcolor="<?= $bgcolor ?>">
 <td class="text" align="center"><?= $frame['FrameId'] ?></td>
-<td class="text" align="center"><?= $frame['AlarmFrame']?"yes":"no" ?></td>
+<td class="text" align="center"><?= $alarm_frame?$zmSlangYes:$zmSlangNo ?></td>
 <td class="text" align="center"><?= date( "H:i:s", $frame['UnixTimeStamp'] ) ?></td>
 <td class="text" align="center"><?= number_format( $frame['Delta'], 2 ) ?></td>
 <?php
-		if ( ZM_RECORD_EVENT_STATS && $frame['AlarmFrame'] )
+		if ( ZM_RECORD_EVENT_STATS && $alarm_frame )
 		{
 ?>
 <td class="text" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $frame['FrameId'] ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );"><?= $frame['Score'] ?></a></td>

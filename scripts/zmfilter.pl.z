@@ -663,29 +663,24 @@ sub substituteTags
 
 	# Do we need the image information too?
 	my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM)%/;
-	my @frames = ();
 	my $first_alarm_frame;
 	my $max_alarm_frame;
 	my $max_alarm_score = 0;
 	if ( $need_images )
 	{
-		my $sql = "select * from Frames where EventId = ? order by FrameId";
+		my $sql = "select * from Frames where EventId = ? and Type = 'Alarm' order by FrameId";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 		my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
 		while( my $frame = $sth->fetchrow_hashref() )
 		{
-			push( @frames, $frame );
-			if ( $frame->{AlarmFrame} )
+			if ( !$first_alarm_frame )
 			{
-				if ( !$first_alarm_frame )
-				{
-					$first_alarm_frame = $frame;
-				}
-				if ( $frame->{Score} > $max_alarm_score )
-				{
-					$max_alarm_frame = $frame;
-					$max_alarm_score = $frame->{Score};
-				}
+				$first_alarm_frame = $frame;
+			}
+			if ( $frame->{Score} > $max_alarm_score )
+			{
+				$max_alarm_frame = $frame;
+				$max_alarm_score = $frame->{Score};
 			}
 		}
 		$sth->finish();

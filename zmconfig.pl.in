@@ -811,6 +811,14 @@ my @options =
 		category => 'video',
 	},
 	{
+		name => "ZM_BULK_FRAME_INTERVAL",
+		default => "100",
+		description => "How often a bulk frame should be written to the database",
+		help => "Traditionally ZoneMinder writes an entry into the Frames database table for each frame that is captured and saved. This works well in motion detection scenarios but when in a DVR situation ('Record' or 'Mocord' mode) this results in a huge number of frame writes and a lot of database and disk bandwidth for very little additional information. Setting this to a non-zero value will enabled ZoneMinder to group these non-alarm frames into one 'bulk' frame entry which saves a lot of bandwidth and space. The only disadvantage of this is that timing information for individual frames is lost but in constant frame rate situations this is usually not significant. This setting is ignored in Modect mode and individual frames are still written if an alarm occurs in Mocord mode also.",
+		type => $types{integer},
+		category => 'video',
+	},
+	{
 		name => "ZM_RECORD_EVENT_STATS",
 		default => "yes",
 		description => "Whether to record event statistical information, switch off if too slow",

@@ -34,6 +34,7 @@ bool Monitor::opt_adaptive_skip;
 bool Monitor::create_analysis_images;
 bool Monitor::blend_alarmed_images;
 bool Monitor::timestamp_on_capture;
+bool Monitor::bulk_frame_interval;
 
 Monitor::Monitor(
 	int p_id,
@@ -779,7 +780,14 @@ bool Monitor::Analyse()
 			{
 				if ( !(image_count%(frame_skip+1)) )
 				{
-					event->AddFrame( snap_image, *timestamp );
+					if ( bulk_frame_interval > 1 )
+					{
+						event->AddFrame( snap_image, *timestamp, -1 );
+					}
+					else
+					{
+						event->AddFrame( snap_image, *timestamp );
+					}
 				}
 			}
 		}

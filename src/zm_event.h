@@ -44,6 +44,7 @@ class Event
 protected:
 	static bool		initialised;
 	static bool		timestamp_on_capture;
+	static bool		bulk_frame_interval;
 
 protected:
 	static int		sd;
@@ -65,6 +66,7 @@ protected:
 		initialised = true;
 
 		timestamp_on_capture = (bool)config.Item( ZM_TIMESTAMP_ON_CAPTURE );
+		bulk_frame_interval = (bool)config.Item( ZM_BULK_FRAME_INTERVAL );
 	}
 
 public:
@@ -87,7 +89,7 @@ public:
 	bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false );
 
 	void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
-	void AddFrame( Image *image, struct timeval timestamp, unsigned int score=0, Image *alarm_frame=NULL );
+	void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
 
 	static void StreamEvent( int event_id, int rate=100, int scale=100 );
 #if HAVE_LIBAVCODEC

@@ -230,7 +230,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 <input type="button" value="Refresh" class="form" onClick="javascript: location.reload(true);">
 </td>
 <td colspan="2" align="center">
-<input type="button" value="Add New Monitor" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&zid=-1', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"<?php if ( !canEdit( 'Monitors' ) || $user[MonitorIds] ) {?> disabled<?php } ?>>
+<input type="button" value="Add New Monitor" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"<?php if ( !canEdit( 'Monitors' ) || $user[MonitorIds] ) {?> disabled<?php } ?>>
 </td>
 <td align="right" class="text"><?= $event_count ?></td>
 <td align="right" class="text"><?= $hour_event_count ?></td>

@@ -1497,6 +1497,7 @@ sub saveOptionsToFile
 		print( CONFIG "Description: $option->{description}\n" );
 		print( CONFIG "\n" );
 	}
+	chmod( 0600, $config_file ) or die( "Can't chmod '$config_file': $!" );
 	close( CONFIG );
 }
 

@@ -658,10 +658,17 @@ my @options =
 		type => $types{boolean},
 	},
 	{
+		name => "ZM_WEB_REFRESH_METHOD",
+		default => "javascript",
+		description => "What method windows should use to refresh themselves, choose either javascript or http",
+		help => "Many windows in Javascript need to refresh themselves to keep their information current. This option determines what method they should use to do this. Choosing 'javascript' means that each window will have a short JavaScript statement in with a timer to prompt the refresh. This is the most compatible method. Choosing 'http' means the refresh instruction is put in the HTTP header. This is a cleaner method but refreshes are interrupted or cancelled when a link in the window is clicked meaning that the window will no longer refresh and this would have to be done manually.",
+		type => { hint => 'javascript|http', parse => sub { return( int($_[0] =~ /^([jh])/i ), $1 =~ /^j/ ? 'javascript' : 'http' ) } },
+	},
+	{
 		name => "ZM_WEB_H_REFRESH_MAIN",
 		default => "300",
-		description => "How often (in seconds) the main console window should refresh itself",
 		introduction => "There are now a number of options that are grouped into bandwidth categories, this allows you to configure the ZoneMinder client to work optimally over the various access methods you might to access the client.\n\nThe next few options control what happens when the client is running in 'high' bandwidth mode. You should set these options for when accessing the ZoneMinder client over a local network or high speed link. In most cases the default values will be suitable as a starting point.",
+		description => "How often (in seconds) the main console window should refresh itself",
 		help => "The main console window lists a general status and the event totals for all monitors. This is not a trivial task and should not be repeated too frequently or it may affect the performance of the rest of the system.",
 		type => $types{integer},
 	},

@@ -57,7 +57,8 @@ switch( $view )
 			packageControl( 'start' );
 		}
 
-		header("Refresh: ".(($start||$stop)?1:REFRESH_MAIN)."; URL=$PHP_SELF" );
+		if ( ZM_WEB_REFRESH_METHOD == "http" )
+			header("Refresh: ".(($start||$stop)?1:REFRESH_MAIN)."; URL=$PHP_SELF" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -128,6 +129,14 @@ function confirmDelete()
 {
 	return( confirm( 'Warning, deleting a monitor also deletes all events and database entries associated with it.\nAre you sure you wish to delete?' ) );
 }
+<?php
+		if ( ZM_WEB_REFRESH_METHOD == "javascript" )
+		{
+?>
+window.setTimeout( 'window.location.reload(true)', <?= ($start||$stop)?250:(REFRESH_MAIN*1000) ?> );
+<?php
+		}
+?>
 </script>
 </head>
 <body>
@@ -262,7 +271,7 @@ function confirmDelete()
 ?>
 <tr>
 <td colspan="2" align="center">
-<input type="button" value="Refresh" class="form" onClick="javascript: location.reload();">
+<input type="button" value="Refresh" class="form" onClick="javascript: location.reload(true);">
 </td>
 <td colspan="2" align="center">
 <input type="button" value="Add New Monitor" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&zid=-1', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);">
@@ -310,7 +319,8 @@ function confirmDelete()
 		chdir( ZM_DIR_IMAGES );
 		$status = exec( escapeshellcmd( ZMU_PATH." -m $monitor[Id] -i" ) );
 											 
-		header("Refresh: ".REFRESH_CYCLE."; URL=$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" );
+		if ( ZM_WEB_REFRESH_METHOD == "http" )
+			header("Refresh: ".REFRESH_CYCLE."; URL=$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -330,6 +340,14 @@ function closeWindow()
 {
 	top.window.close();
 }
+<?php
+		if ( ZM_WEB_REFRESH_METHOD == "javascript" )
+		{
+	?>
+window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" ?>', <?= REFRESH_CYCLE*1000 ?> );
+<?php
+		}
+?>
 </script>
 </head>
 <body>
@@ -477,7 +495,8 @@ function closeWindow()
 			chdir( ZM_DIR_IMAGES );
 			$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
 			chdir( '..' );
-			header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=montagefeed&mid=$mid&mode=still" );
+			if ( ZM_WEB_REFRESH_METHOD == "http" )
+				header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=montagefeed&mid=$mid&mode=still" );
 		}
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -489,6 +508,16 @@ function closeWindow()
 <head>
 <title>ZM - <?= $monitor[Name] ?> - MontageFeed</title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+<?php
+		if ( $mode != "stream" && ZM_WEB_REFRESH_METHOD == "javascript" )
+		{
+?>
+window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
+<?php
+		}
+?>
+</script>
 </head>
 <body>
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
@@ -560,7 +589,8 @@ function closeWindow()
 
 		$refresh = (isset($force)||$forced||$status)?1:REFRESH_STATUS;
 		$url = "$PHP_SELF?view=montagestatus&mid=$mid&last_status=$status";
-		header("Refresh: $refresh; URL=$url" );
+		if ( ZM_WEB_REFRESH_METHOD == "http" )
+			header("Refresh: $refresh; URL=$url" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -576,6 +606,12 @@ function closeWindow()
 		{
 ?>
 top.window.focus();
+<?php
+		}
+		if ( ZM_WEB_REFRESH_METHOD == "javascript" )
+		{
+?>
+window.setTimeout( "window.location.reload(true)", <?= $refresh*1000 ?> );
 <?php
 		}
 ?>
@@ -614,7 +650,7 @@ top.window.focus();
 <title>ZM - <?= $monitor[Name] ?> - Watch</title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
-opener.location.reload();
+//opener.location.reload();
 window.focus();
 </script>
 </head>
@@ -647,7 +683,8 @@ window.focus();
 			chdir( ZM_DIR_IMAGES );
 			$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
 			chdir( '..' );
-			header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
+			if ( ZM_WEB_REFRESH_METHOD == "http" )
+				header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
 		}
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -668,6 +705,14 @@ function closeWindow()
 {
 	top.window.close();
 }
+<?php
+		if ( $mode != "stream" && ZM_WEB_REFRESH_METHOD == "javascript" )
+		{
+?>
+window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
+<?php
+		}
+?>
 </script>
 </head>
 <body>
@@ -738,7 +783,7 @@ function closeWindow()
 		if ( $refresh_parent )
 		{
 ?>
-opener.location.reload();
+opener.location.reload(true);
 <?php
 		}
 ?>
@@ -812,7 +857,8 @@ function closeWindow()
 
 		$refresh = (isset($force)||$forced||$status)?1:REFRESH_STATUS;
 		$url = "$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status".(($force||$forced)?"&forced=1":"");
-		header("Refresh: $refresh; URL=$url" );
+		if ( ZM_WEB_REFRESH_METHOD == "http" )
+			header("Refresh: $refresh; URL=$url" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -833,7 +879,13 @@ top.window.focus();
 		if ( $old_alarm )
 		{
 ?>
-parent.frames[2].location.reload();
+parent.frames[2].location.reload(true);
+<?php
+		}
+		if ( ZM_WEB_REFRESH_METHOD == "javascript" )
+		{
+?>
+window.setTimeout( "window.location.replace( '<?= $url ?>' )", <?= $refresh*1000 ?> );
 <?php
 		}
 ?>
@@ -909,7 +961,8 @@ parent.frames[2].location.reload();
 		$sort_order = $sort_asc?"asc":"desc";
 		if ( !$sort_asc )
 			$sort_asc = 0;
-		header("Refresh: ".REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
+		if ( ZM_WEB_REFRESH_METHOD == "http" )
+			header("Refresh: ".REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 		header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -951,6 +1004,14 @@ function configureButton(form,name)
 	}
 	form.delete_btn.disabled = !checked;
 }
+<?php
+		if ( ZM_WEB_REFRESH_METHOD == "javascript" )
+		{
+?>
+window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS ?>' )", <?= REFRESH_EVENTS*1000 ?> );
+<?php
+		}
+?>
 </script>
 </head>
 <body>
@@ -1221,7 +1282,7 @@ function configureButton(form,name)
 }
 window.focus();
 <?php if ( $filter ) { ?>
-opener.location.reload();
+opener.location.reload(true);
 filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?><?= $filter_query ?>', 'zmFilter<?= $monitor[Name] ?>' );
 location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?>';
 <?php } ?>
@@ -1243,7 +1304,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 </tr>
 <tr><td colspan="3" class="text">&nbsp;</td></tr>
 <tr>
-<td align="right" class="text"><a href="javascript: location.reload();">Refresh</td>
+<td align="right" class="text"><a href="javascript: location.reload(true);">Refresh</td>
 <td align="right" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?><?= $filter_query ?>', 'zmFilter<?= $monitor[Name] ?>' );">Show Filter Window</a></td>
 <td align="right" class="text"><a href="javascript: checkAll( document.event_form, 'mark_eids' );">Check All</a></td>
 </tr>
@@ -1850,7 +1911,7 @@ function closeWindow()
 		if ( !$event )
 		{
 ?>
-opener.location.reload();
+opener.location.reload(true);
 window.close();
 <?php
 		}
@@ -1860,13 +1921,13 @@ window.focus();
 		if ( $refresh_parent )
 		{
 ?>
-opener.location.reload();
+opener.location.reload(true);
 <?php
 		}
 ?>
 function refreshWindow()
 {
-	window.location.reload();
+	window.location.reload(true);
 }
 function closeWindow()
 {
@@ -2182,7 +2243,7 @@ function configureButton(form,name)
 		if ( $refresh_parent )
 		{
 ?>
-opener.location.reload();
+opener.location.reload(true);
 <?php
 		}
 ?>
@@ -2311,7 +2372,7 @@ $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 		if ( $refresh_parent )
 		{
 ?>
-opener.location.reload();
+opener.location.reload(true);
 <?php
 		}
 ?>
@@ -2654,14 +2715,14 @@ location.replace('<?= $video_path ?>');
 	if ( $refresh_parent )
 	{
 ?>
-opener.location.reload();
+opener.location.reload(true);
 <?php
 	}
 ?>
 window.focus();
 function refreshWindow()
 {
-	window.location.reload();
+	window.location.reload(true);
 }
 function closeWindow()
 {
@@ -2713,7 +2774,7 @@ function closeWindow()
 		{
 ?>
 //self.onerror = function() { return( true ); }
-opener.location.reload();
+opener.location.reload(true);
 <?php
 		}
 ?>

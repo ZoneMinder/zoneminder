@@ -46,6 +46,7 @@ define( "ZM_OPT_MPEG", "<from zmconfig>" );				// Is there an (optional) mpeg vi
 define( "ZM_OPT_FAST_DELETE", <from zmconfig> );		// Whether we only delete event DB records and leave zmaudit to do the rest
 define( "ZM_OPT_X10", <from zmconfig> );				// Whether we want to interface with X10 devices
 define( "ZM_OPT_FRAME_SERVER", <from zmconfig> );		// Whether to use the frame server
+define( "ZM_WEB_REFRESH_METHOD", <from zmconfig> );		// What method windows should use to refresh themselves
 
 // Bandwidth specific ones from zmconfig.pl, again do not edit these directly as changes may be lost
 //

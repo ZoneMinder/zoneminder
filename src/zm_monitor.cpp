@@ -711,17 +711,17 @@ bool Monitor::Analyse()
 						}
 					}
 				}
-				event->AddFrame( now, image, &alarm_image, score );
+				event->AddFrame( *timestamp, image, &alarm_image, score );
 			}
 			else if ( state == ALERT )
 			{
-				event->AddFrame( now, image );
+				event->AddFrame( *timestamp, image );
 			}
 			else if ( state == TAPE )
 			{
 				if ( !(image_count%(frame_skip+1)) )
 				{
-					event->AddFrame( now, image );
+					event->AddFrame( *timestamp, image );
 				}
 			}
 		}

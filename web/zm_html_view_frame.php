@@ -53,6 +53,8 @@ $last_fid = $max_fid;
 
 $event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
 $image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $fid );
+$d_image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-d.jpg", $event_path, $fid );
+$r_image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-r.jpg", $event_path, $fid );
 $anal_image = preg_replace( "/capture/", "analyse", $image_path );
 if ( file_exists( $anal_image ) )
 {
@@ -114,6 +116,14 @@ function deleteEvent()
 <td align="center" width="25%" class="text">&nbsp;</td>
 <?php } ?>
 </tr>
+<?php if (file_exists ($d_image_path)) { ?>
+<tr><td colspan="4"><?= $d_image_path ?></tr>
+<tr><td colspan="4"><img src="<?= $d_image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
+<?php } ?>
+<?php if (file_exists ($r_image_path)) { ?>
+<tr><td colspan="4"><?= $r_image_path ?></tr>
+<tr><td colspan="4"><img src="<?= $r_image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
+<?php } ?>
 </table>
 </body>
 </html>

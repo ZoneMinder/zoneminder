@@ -74,7 +74,6 @@ use constant VERBOSE => 0; # Whether to output more verbose debug
 use strict;
 use DBI;
 use Getopt::Long;
-use Term::ReadKey;
 
 $| = 1;
 
@@ -112,21 +111,15 @@ sub confirm
 	else
 	{
 		print( ", delete y/n: " );
-		my $char = ReadKey( 0 );
-		#print( "C:'".ord($char)."'\n" );
+		my $char = <>;
+		chomp( $char );
 		if ( $char eq 'q' )
 		{
-			print( "\n" );
-			ReadMode( 'restore' );
 			exit( 0 );
 		}
-		if ( ord($char) == 10 )
+		if ( !$char )
 		{
 			$char = 'y';
-		}
-		else
-		{
-			print( "$char\n" );
 		}
 		if ( $char eq "a" )
 		{
@@ -152,10 +145,6 @@ if ( $report && $yes )
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 
 chdir( EVENT_PATH );
-if ( !$yes && !$report )
-{
-	ReadMode( 'cbreak' );
-}
 if ( $delay ) # Background mode
 {
 	open( LOG, ">>".LOG_FILE ) or die( "Can't open log file: $!" );
@@ -310,7 +299,3 @@ do
 
 	sleep( $delay ) if ( $delay );
 } while( $delay );
-if ( !$yes && !$report )
-{
-	ReadMode( 'restore' );
-}

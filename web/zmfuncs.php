@@ -21,19 +21,21 @@
 
 function deleteEvent( $eid )
 {
-	$result = mysql_query( "delete from Events where Id = '$mark_eid'" );
-	if ( !$result )
-		die( mysql_error() );
-	if ( !FAST_DELETE )
+	if ( $eid )
 	{
-		$result = mysql_query( "delete from Stats where EventId = '$mark_eid'" );
+		$result = mysql_query( "delete from Events where Id = '$eid'" );
 		if ( !$result )
 			die( mysql_error() );
-		$result = mysql_query( "delete from Frames where EventId = '$mark_eid'" );
-		if ( !$result )
-			die( mysql_error() );
-		if ( $mark_eid )
-			system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $mark_eid ) ) );
+		if ( !FAST_DELETE )
+		{
+			$result = mysql_query( "delete from Stats where EventId = '$eid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$result = mysql_query( "delete from Frames where EventId = '$eid'" );
+			if ( !$result )
+				die( mysql_error() );
+			system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $eid ) ) );
+		}
 	}
 }
 
@@ -75,7 +77,7 @@ function canStream()
 	return( isNetscape() || (CAMBOZOLA_PATH && file_exists( CAMBOZOLA_PATH )) );
 }
 
-function daemonControl( $command, $daemon='', $args='' )
+function daemonControl( $command, $daemon=false, $args=false )
 {
 	$string = ZM_PATH."/zmdc.pl $command";
 	if ( $daemon )
@@ -84,79 +86,87 @@ function daemonControl( $command, $daemon='', $args='' )
 	exec( $string );
 }
 
-function startDaemon( $daemon, $did )
+function zmcControl( $device, $restart=false )
 {
-	daemonControl( 'start', $daemon, $did );
-	return;
-
-	$ps_command = "ps -edalf | grep '$daemon $did' | grep -v grep";
-	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
-	$pid = $ps_array[3];
-	if ( $pid )
+	if ( is_array( $device ) )
 	{
-		exec( "kill -HUP $pid" );
-		return;
+		$device = $device[Device];
 	}
-	$command = ZM_PATH."/$daemon $did".' 2>/dev/null >&- <&- >/dev/null &';
-	exec( $command );
-	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
-	while ( !$pid )
-	{
-		sleep( 1 );
-		$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
-		$pid = $ps_array[3];
-	}
-}
-
-function stopDaemon( $daemon, $did )
-{
-	daemonControl( 'stop', $daemon, $did );
-	return;
-
-	$ps_command = "ps -edalf | grep '$daemon $did' | grep -v grep";
-	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
-	if ( $ps_array[3] )
-	{
-		$pid = $ps_array[3];
-		exec( "kill -TERM $pid" );
-	}
-	else
-	{
-		return;
-	}
-	while( $pid )
-	{
-		sleep( 1 );
-		$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
-		$pid = $ps_array[3];
-	}
-}
-
-function controlDaemons( $device )
-{
-	$sql = "select count(if(Function='Passive',1,NULL)) as PassiveCount, count(if(Function='Active',1,NULL)) as ActiveCount from Monitors where Device = '$device'";
+	$sql = "select count(if(Function='Passive',1,NULL)) as PassiveCount, count(if(Function='Active',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Device = '$device'";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();
 	$row = mysql_fetch_assoc( $result );
 	$passive_count = $row[PassiveCount];
 	$active_count = $row[ActiveCount];
+	$x10_count = $row[X10Count];
 
-	if ( !$passive_count && !$active_count )
+	if ( !$passive_count && !$active_count && !$x10_count )
 	{
-		stopDaemon( "zmc", $device );
+		daemonControl( "stop", "zmc", "-d $device" );
 	}
 	else
 	{
-		startDaemon( "zmc", $device );
+		if ( $restart )
+		{
+			daemonControl( "stop", "zmc", "-d $device" );
+		}
+		daemonControl( "start", "zmc", "-d $device" );
 	}
-	if ( !$active_count )
+}
+
+function zmaControl( $monitor, $restart=false )
+{
+	if ( !is_array( $monitor ) )
 	{
-		stopDaemon( "zma", $device );
+		$sql = "select Id,Function from Monitors where Id = '$monitor'";
+		$result = mysql_query( $sql );
+		if ( !$result )
+			echo mysql_error();
+		$monitor = mysql_fetch_assoc( $result );
+	}
+	if ( $monitor['Function'] == 'Active' )
+	{
+		if ( $restart )
+		{
+			daemonControl( "stop", "zma", "-m $monitor[Id]" );
+		}
+		daemonControl( "start", "zma", "-m $monitor[Id]" );
 	}
 	else
 	{
-		startDaemon( "zma", $device );
+		daemonControl( "stop", "zma", "-m $monitor[Id]" );
 	}
+}
+
+function daemonCheck( $daemon=false, $args=false )
+{
+	$string = ZM_PATH."/zmdc.pl check";
+	if ( $daemon )
+	{
+		$string .= " $daemon";
+		if ( $args )
+			$string .= " $args";
+	}
+	$result = exec( $string );
+	return( preg_match( '/running/', $result ) );
+}
+
+function zmcCheck( $device )
+{
+	if ( is_array( $device ) )
+	{
+		$device = $device[Device];
+	}
+	return( daemonCheck( "zmc", "-d $device" ) );
+}
+
+function zmaCheck( $monitor )
+{
+	if ( is_array( $monitor ) )
+	{
+		$monitor = $monitor[Id];
+	}
+	return( daemonCheck( "zma", "-m $monitor" ) );
 }
 ?>

@@ -769,7 +769,7 @@ sub breaktext
 
 if ( $reprocess )
 {
-	my @config_files = qw( src/zmcfg.h web/zmconfig.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl );
+	my @config_files = qw( src/zmcfg.h web/zmconfig.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl db/zmschema.sql );
 
 	foreach my $config_file ( @config_files )
 	{
@@ -854,6 +854,17 @@ if ( $reprocess )
 				{
 					$data =~ s/^(define\s*\(\s*"$opt_name"\s*,\s*).*$/$1"$opt_value" \);\t\/\/ $opt_desc \(from zmconfig\)/mg;
 				}
+			}
+		}
+		elsif ( $config_file =~ /\.sql$/ )
+		{
+			foreach my $option ( @options )
+			{
+				my $opt_name = $option->{name};
+				my $opt_type = $option->{type};
+				my $opt_value = $option->{value};
+				my $opt_desc = $option->{description};
+				$data =~ s/$opt_name/$opt_value/mg;
 			}
 		}
 		else

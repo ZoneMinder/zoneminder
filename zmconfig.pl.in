@@ -1062,7 +1062,9 @@ Welcome to the ZoneMinder interactive configuration utility.
 You will now be prompted to enter information allowing ZoneMinder to
 be configured for your system. Entering '?' at most prompts will print
 further information about each option if you are not sure what to put.
-You can also type 'q' at any time to exit without saving.
+You can also type 'q' at any time to exit without saving or 'x' to 
+exit with the remaining options set to their previous or default 
+values.
 
 Press enter to continue: " );
 	my $input = <>;
@@ -1122,6 +1124,11 @@ Press enter to continue: " );
 					}
 					next;
 				}
+				elsif ( $new_value eq 'x' )
+				{
+					print( "Using existing values for remaining options\n" );
+					goto FINISHED;
+				}
 				elsif ( $new_value eq 'q' )
 				{
 					print( "Exiting\n" );
@@ -1161,6 +1168,7 @@ Press enter to continue: " );
 		}
 	}
 }
+FINISHED:
 saveOptionsToFile();
 saveOptionsToDB();
 

@@ -123,7 +123,7 @@ void Image::WriteJpeg( const char *filename ) const
 	}
 	jpeg_set_defaults(&cinfo);
 	cinfo.dct_method = JDCT_FASTEST;
-	//jpeg_set_quality(&cinfo, 100, false);
+	jpeg_set_quality(&cinfo, ZM_JPEG_FILE_QUALITY, false);
 	jpeg_start_compress(&cinfo, TRUE);
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
@@ -198,7 +198,7 @@ void Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
 	}
 	jpeg_set_defaults(&cinfo);
 	cinfo.dct_method = JDCT_FASTEST;
-	//jpeg_set_quality(&cinfo, 100, false);
+	jpeg_set_quality(&cinfo, ZM_JPEG_IMAGE_QUALITY, false);
 	jpeg_start_compress(&cinfo, TRUE);
 
 	JSAMPROW row_pointer;	/* pointer to a single row */

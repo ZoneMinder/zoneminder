@@ -20,27 +20,32 @@
 #include "config.h"
 
 #define ZM_VERSION				"<from zmconfig>"	// ZoneMinder verson number
-#define ZM_DB_SERVER			"<from zmconfig>"	// Machine on which the database server is running (from zmconfig)
-#define ZM_DB_NAME				"<from zmconfig>"	// Database containing the tables (from zmconfig)
-#define	ZM_DB_USERA				"<from zmconfig>"	// Privileged DB user name, needs at least select, insert, update and delete privileges (from zmconfig)
-#define	ZM_DB_PASSA				"<from zmconfig>"	// Privileged DB user password (from zmconfig)
-#define	ZM_DB_USERB				"<from zmconfig>"	// Unprivileged DB user name, need just select privilege. (from zmconfig)
-#define	ZM_DB_PASSB				"<from zmconfig>"	// Unprivileged DB user password (from zmconfig)
+#define ZM_DB_SERVER			"<from zmconfig>"	// Machine on which the database server is running
+#define ZM_DB_NAME				"<from zmconfig>"	// Database containing the tables
+#define	ZM_DB_USERA				"<from zmconfig>"	// Privileged DB user name, needs at least select, insert, update and delete privileges
+#define	ZM_DB_PASSA				"<from zmconfig>"	// Privileged DB user password
+#define	ZM_DB_USERB				"<from zmconfig>"	// Unprivileged DB user name, need just select privilege.
+#define	ZM_DB_PASSB				"<from zmconfig>"	// Unprivileged DB user password
 
-#define ZM_HTTP_VERSION         "<from zmconfig>"	// The version of HTTP that ZoneMinder will use to connect (from zmconfig)
-#define ZM_HTTP_UA              "<from zmconfig>"	// The user agent that ZoneMinder uses to identify itself (from zmconfig)
-#define ZM_HTTP_TIMEOUT         <from zmconfig>		// How long ZoneMinder waits before giving up on images (millseconds) (from zmconfig)
+#define ZM_HTTP_VERSION         "<from zmconfig>"	// The version of HTTP that ZoneMinder will use to connect
+#define ZM_HTTP_UA              "<from zmconfig>"	// The user agent that ZoneMinder uses to identify itself
+#define ZM_HTTP_TIMEOUT         <from zmconfig>		// How long ZoneMinder waits before giving up on images (millseconds)
 
-#define ZM_SHM_KEY				<from zmconfig>	// Shared memory key to use, only change if it clashes with another application (from zmconfig)
+#define ZM_SHM_KEY				<from zmconfig>		// Shared memory key to use, only change if it clashes with another application
 
-#define ZM_DIR_EVENTS			"<from zmconfig>"	// Local path to where events directory lives (from zmconfig)
+#define ZM_DIR_EVENTS			"<from zmconfig>"	// Local path to where events directory lives
 
-#define ZM_FORCED_ALARM_SCORE	<from zmconfig>	// Score to give X10 forced alarms (from zmconfig)
+#define ZM_FORCED_ALARM_SCORE	<from zmconfig>		// Score to give X10 forced alarms
 
-#define ZM_RECORD_EVENT_STATS	<from zmconfig>	// Whether to record event statistical information, change to no if too slow (from zmconfig)
+#define ZM_RECORD_EVENT_STATS	<from zmconfig>		// Whether to record event statistical information, change to no if too slow
 
-#define ZM_STRICT_VIDEO_CONFIG	<from zmconfig> // Whether to allow errors in setting video config to be fatal
-#define ZM_LOCAL_BGR_INVERT		<from zmconfig> // Invert BGR colours to RGB
-#define ZM_BLEND_ALARMED_IMAGES	<from zmconfig> // Whether alarmed images are blended to update the reference image
-#define ZM_NO_MAX_FPS_ON_ALARM	<from zmconfig> // Should any Maximum FPS be ignored if an alarm occurs
+#define ZM_STRICT_VIDEO_CONFIG	<from zmconfig>		// Whether to allow errors in setting video config to be fatal
+#define ZM_LOCAL_BGR_INVERT		<from zmconfig>		// Invert BGR colours to RGB
+
+#define ZM_JPEG_FILE_QUALITY	<from zmconfig>		// Set the JPEG quality setting for the saved event files
+#define ZM_JPEG_IMAGE_QUALITY	<from zmconfig>		// Set the JPEG quality setting for the streamed 'live' images
+
+#define ZM_BLEND_ALARMED_IMAGES	<from zmconfig>		// Whether alarmed images are blended to update the reference image
+
+#define ZM_NO_MAX_FPS_ON_ALARM	<from zmconfig>		// Should any Maximum FPS be ignored if an alarm occurs
 

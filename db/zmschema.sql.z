@@ -207,3 +207,8 @@ CREATE TABLE Zones (
   UNIQUE KEY UC_Id (Id)
 ) TYPE=MyISAM;
 
+--
+-- Create a default admin user.
+--
+insert into Users values ('','admin',password('admin'),1,'View','Edit','Edit','Edit',NULL);
+

@@ -4113,6 +4113,73 @@ fi
 #AC_CHECK_LIB(avcodec,avcodec_init,XLIBS="$XLIBS -lavcodec",AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
 #AC_CHECK_LIB(avformat,av_new_stream,XLIBS="$XLIBS -lavformat",AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)
 
+echo "$as_me:$LINENO: checking for pcre_compile in -lpcre" >&5
+echo $ECHO_N "checking for pcre_compile in -lpcre... $ECHO_C" >&6
+if test "${ac_cv_lib_pcre_pcre_compile+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpcre  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char pcre_compile ();
+int
+main ()
+{
+pcre_compile ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_pcre_pcre_compile=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_pcre_pcre_compile=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_pcre_pcre_compile" >&5
+echo "${ECHO_T}$ac_cv_lib_pcre_pcre_compile" >&6
+if test $ac_cv_lib_pcre_pcre_compile = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPCRE 1
+_ACEOF
+
+  LIBS="-lpcre $LIBS"
+
+else
+  { echo "$as_me:$LINENO: WARNING: libpcre.a is required for remote/network camera support" >&5
+echo "$as_me: WARNING: libpcre.a is required for remote/network camera support" >&2;}
+fi
+
+
 echo "$as_me:$LINENO: checking for avcodec_init in -lavcodec" >&5
 echo $ECHO_N "checking for avcodec_init in -lavcodec... $ECHO_C" >&6
 if test "${ac_cv_lib_avcodec_avcodec_init+set}" = set; then

@@ -1312,10 +1312,10 @@ void Monitor::StreamImages( int scale, int maxfps, time_t ttl )
 		}
 		if ( last_read_index != shared_data->last_write_index )
 		{
+			last_read_index = shared_data->last_write_index;
 			if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) )
 			{
 				// Send the next frame
-				last_read_index = shared_data->last_write_index;
 				int index = shared_data->last_write_index%image_buffer_count;
 				//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
 				Snapshot *snap = &image_buffer[index];
@@ -1408,7 +1408,7 @@ void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate
 
 	Debug( 1, ( "BFPS:%d, EFPS:%d, FM:%d", base_fps, effective_fps, frame_mod ));
 
-	VideoStream vid_stream( "pipe:", format, bitrate, fps, camera->Colours(), (width*scale)/ZM_SCALE_SCALE, (height*scale)/ZM_SCALE_SCALE );
+	VideoStream vid_stream( "pipe:", format, bitrate, effective_fps, camera->Colours(), (width*scale)/ZM_SCALE_SCALE, (height*scale)/ZM_SCALE_SCALE );
 
 	int last_read_index = image_buffer_count;
 
@@ -1427,10 +1427,10 @@ void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate
 		}
 		if ( last_read_index != shared_data->last_write_index )
 		{
+			last_read_index = shared_data->last_write_index;
 			if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) )
 			{
 				// Send the next frame
-				last_read_index = shared_data->last_write_index;
 				int index = shared_data->last_write_index%image_buffer_count;
 				//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
 				Snapshot *snap = &image_buffer[index];
@@ -1455,7 +1455,7 @@ void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate
 				}
 				DELTA_TIMEVAL( delta_time, *(snap->timestamp), base_time, DT_PREC_3 );
 				double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size(), timed_frames, delta_time.delta );
-				//Info(( "DTD:%d, PTS:%lf", delta_time.delta, pts ));
+				//Info(( "FC:%d, DTD:%d, PTS:%lf", frame_count, delta_time.delta, pts ));
 			}
 			frame_count++;
 		}

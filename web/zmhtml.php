@@ -280,6 +280,10 @@ function confirmStatus( new_status )
 		$monitor = $monitors[$mon_idx];
 		$next_mid = $mon_idx==(count($monitors)-1)?$monitors[0][Id]:$monitors[$mon_idx+1][Id];
 
+		// Prompt an image to be generated
+		chdir( ZM_DIR_IMAGES );
+		$status = exec( escapeshellcmd( ZMU_PATH." -m $monitor[Id] -i" ) );
+											 
 		header("Refresh: ".REFRESH_CYCLE."; URL='$PHP_SELF?view=cycle&mid=$next_mid'" );
 		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 		header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified

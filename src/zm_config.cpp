@@ -23,40 +23,77 @@
 
 #include "zm.h"
 #include "zm_db.h"
-#include "zm_regexp.h"
 
 char *ZM_DB_SERVER="", *ZM_DB_NAME="", *ZM_DB_USER="", *ZM_DB_PASS="";
 
 void zmLoadConfig()
 {
 	FILE *cfg;
-	RegExpr *ignore=0, *keyval=0;
-	char str[512];
+	char line[512];
 	char *val;
 	int r;
 	if (( cfg = fopen( ZM_CONFIG, "r" )) == NULL )
 	{
 		Fatal(("Can't open %s: %s", ZM_CONFIG, strerror(errno) ));
 	}
-	ignore = new RegExpr( "^\\s*$|\\s*\\#", PCRE_EXTENDED );
-	keyval = new RegExpr( "\\s*([^=\\s]+)\\s*\\=\\s*([^=\\s]+)\\s*", 0 );
-	while ( fgets( str, 511, cfg ) != NULL )
+	while ( fgets( line, sizeof(line), cfg ) != NULL )
 	{
-		if ( ignore->Match( str, strlen(str) ) > 0 ) continue;
-		if (( r=keyval->Match( str, strlen(str) )) != 3 )
+		char *line_ptr = line;
+
+		// Trim off any cr/lf line endings
+		int chomp_len = strcspn( line_ptr, "\r\n" );
+		line_ptr[chomp_len] = '\0';
+
+		// Remove leading white space
+		int white_len = strspn( line_ptr, " \t" );
+		line_ptr += white_len;
+
+		// Check for comment or empty line
+		if ( *line_ptr == '\0' || *line_ptr == '#' )
+			continue;
+
+		// Remove trailing white space
+		char *temp_ptr = line_ptr+strlen(line_ptr)-1;
+		while ( *temp_ptr == ' ' || *temp_ptr == '\t' )
 		{
-			Warning(( "Invalid data in %s: `%s'", ZM_CONFIG, str ));
+			*temp_ptr = '\0';
+			temp_ptr--;
+		}
+
+		// Now look for the '=' in the middle of the line
+		temp_ptr = strchr( line_ptr, '=' );
+		if ( !temp_ptr )
+		{
+			Warning(( "Invalid data in %s: '%s'", ZM_CONFIG, line ));
 			continue;
 		}
-		val = (char*)malloc(keyval->MatchLength( 2 ) + 1);
-		strncpy( val, keyval->MatchString( 2 ), keyval->MatchLength( 2 ));
-		if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_SERVER" ) == 0 ) ZM_DB_SERVER = val;
-		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_NAME" ) == 0 ) ZM_DB_NAME = val;
-		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_USER" ) == 0 ) ZM_DB_USER = val;
-		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_PASS" ) == 0 ) ZM_DB_PASS = val;
+
+		// Assign the name and value parts
+		char *name_ptr = line_ptr;
+		char *val_ptr = temp_ptr+1;
+
+		// Trim trailing space from the name part
+		do
+		{
+			*temp_ptr = '\0';
+			temp_ptr--;
+		}
+		while ( *temp_ptr == ' ' || *temp_ptr == '\t' );
+
+		// Remove leading white space from the value part
+		white_len = strspn( val_ptr, " \t" );
+		val_ptr += white_len;
+
+		val = (char *)malloc( strlen(val_ptr)+1 );
+		strncpy( val, val_ptr, strlen(val_ptr)+1 );
+
+		if ( strcasecmp( name_ptr, "ZM_DB_SERVER" ) == 0 ) ZM_DB_SERVER = val;
+		else if ( strcasecmp( name_ptr, "ZM_DB_NAME" ) == 0 ) ZM_DB_NAME = val;
+		else if ( strcasecmp( name_ptr, "ZM_DB_USER" ) == 0 ) ZM_DB_USER = val;
+		else if ( strcasecmp( name_ptr, "ZM_DB_PASS" ) == 0 ) ZM_DB_PASS = val;
 		else
 		{
-			Warning(( "Invalid parameter \"%s\" in %s", keyval->MatchString( 1 ), ZM_CONFIG ));
+			Warning(( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG ));
 		}
 	}
 	fclose( cfg);

@@ -704,9 +704,9 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_H_STREAM_EVENT_DELAY",
-		default => "0",
-		description => "How long (in milliseconds) to wait between each frame when streaming events",
-		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate otherwise the event may appear too fast or too slow, the default of 0 will try to send the frames at the intervals at which they were captured, bandwidth permitting.",
+		default => "-1",
+		description => "How long to wait between each frame when streaming events",
+		help => "When viewing a captured event this option controls how fast frames are sent to the browser. If this is a positive value then this represents the interval in milliseconds between each frame and should roughly match your capture rate otherwise the event may appear too fast or too slow. If zero then frames are sent as fast as possible. If this value is negative then the frames are sent at a rate proportional to the real interval at which they were captured, bandwidth permitting. Thus the default of -1 will try to send the frames at a real-time rate, -2 will be double real-time etc.",
 		type => $types{integer},
 	},
 	{
@@ -769,9 +769,9 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_M_STREAM_EVENT_DELAY",
-		default => "0",
-		description => "How long (in milliseconds) to wait between each frame when streaming events",
-		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate otherwise the event may appear too fast or too slow, the default of 0 will try to send the frames at the intervals at which they were captured, bandwidth permitting.",
+		default => "-1",
+		description => "How long to wait between each frame when streaming events",
+		help => "When viewing a captured event this option controls how fast frames are sent to the browser. If this is a positive value then this represents the interval in milliseconds between each frame and should roughly match your capture rate otherwise the event may appear too fast or too slow. If zero then frames are sent as fast as possible. If this value is negative then the frames are sent at a rate proportional to the real interval at which they were captured, bandwidth permitting. Thus the default of -1 will try to send the frames at a real-time rate, -2 will be double real-time etc.",
 		type => $types{integer},
 	},
 	{
@@ -834,9 +834,9 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_L_STREAM_EVENT_DELAY",
-		default => "0",
-		description => "How long (in milliseconds) to wait between each frame when streaming events",
-		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate otherwise the event may appear too fast or too slow, the default of 0 will try to send the frames at the intervals at which they were captured, bandwidth permitting.",
+		default => "-1",
+		description => "How long to wait between each frame when streaming events",
+		help => "When viewing a captured event this option controls how fast frames are sent to the browser. If this is a positive value then this represents the interval in milliseconds between each frame and should roughly match your capture rate otherwise the event may appear too fast or too slow. If zero then frames are sent as fast as possible. If this value is negative then the frames are sent at a rate proportional to the real interval at which they were captured, bandwidth permitting. Thus the default of -1 will try to send the frames at a real-time rate, -2 will be double real-time etc.",
 		type => $types{integer},
 	},
 	{

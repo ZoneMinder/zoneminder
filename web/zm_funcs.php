@@ -28,13 +28,13 @@ function userLogin( $username, $password )
 		echo mysql_error();
 	$HTTP_SESSION_VARS['username'] = $username;
 	$HTTP_SESSION_VARS['password'] = $password;
-	if ( $user = mysql_fetch_assoc( $result ) )
+	if ( $db_user = mysql_fetch_assoc( $result ) )
 	{
-		$HTTP_SESSION_VARS['user'] = $user;
+		$HTTP_SESSION_VARS['user'] = $user = $db_user;
 	}
 	else
 	{
-		$HTTP_SESSION_VARS['user'] = array();
+		unset( $user );
 	}
 	session_write_close();
 }

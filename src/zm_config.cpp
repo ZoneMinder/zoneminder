@@ -50,16 +50,17 @@ void zmLoadConfig()
 		}
 		val = (char*)malloc(keyval->MatchLength( 2 ) + 1);
 		strncpy( val, keyval->MatchString( 2 ), keyval->MatchLength( 2 ));
-		if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_SERVER" ) == 0 )     ZM_DB_SERVER = val;
-		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_NAME" ) == 0 )  ZM_DB_NAME   = val;
-		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_USER" ) == 0 ) ZM_DB_USER  = val;
-		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_PASS" ) == 0 ) ZM_DB_PASS  = val;
+		if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_SERVER" ) == 0 ) ZM_DB_SERVER = val;
+		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_NAME" ) == 0 ) ZM_DB_NAME = val;
+		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_USER" ) == 0 ) ZM_DB_USER = val;
+		else if (strcasecmp( keyval->MatchString( 1 ), "ZM_DB_PASS" ) == 0 ) ZM_DB_PASS = val;
 		else
 		{
 			Warning(( "Invalid parameter \"%s\" in %s", keyval->MatchString( 1 ), ZM_CONFIG ));
 		}
 	}
 	fclose( cfg);
+	config.Load();
 }
 
 ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *const p_type )

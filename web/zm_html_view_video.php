@@ -83,7 +83,7 @@ if ( isset($generate) )
 	ob_end_flush();
 	if ( $video_file = createVideo( $event, $rate, $scale, $overwrite ) )
 	{
-		$event_dir = ZM_DIR_EVENTS."/".$event['MonitorName']."/".sprintf( "%d", $eid );
+		$event_dir = ZM_DIR_EVENTS."/".$event['MonitorId']."/".sprintf( "%d", $eid );
 		$video_path = $event_dir.'/'.$video_file;
 ?>
 <html>

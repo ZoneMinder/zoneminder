@@ -60,7 +60,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 	alarm_frames = 0;
 	tot_score = 0;
 	max_score = 0;
-	snprintf( path, sizeof(path), "%s/%s/%d", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), id );
+	snprintf( path, sizeof(path), "%s/%d/%d", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Id(), id );
 	
 	struct stat statbuf;
 	errno = 0;
@@ -344,7 +344,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 	{
 		char diag_glob[PATH_MAX] = "";
 
-		snprintf( diag_glob, sizeof(diag_glob), "%s/%s/diag-*.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name() );
+		snprintf( diag_glob, sizeof(diag_glob), "%s/%d/diag-*.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Id() );
 		glob_t pglob;
 		int glob_status = glob( diag_glob, 0, 0, &pglob );
 		if ( glob_status != 0 )
@@ -411,7 +411,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	snprintf( eventpath, sizeof(eventpath), "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
+	snprintf( eventpath, sizeof(eventpath), "%s/%s/%d/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), atoi( dbrow[0] ), event_id );
 	int frames = atoi(dbrow[2]);
 	int duration = atoi(dbrow[3]);
 
@@ -558,7 +558,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	snprintf( eventpath, sizeof(eventpath), "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
+	snprintf( eventpath, sizeof(eventpath), "%s/%s/%d/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), atoi( dbrow[0] ), event_id );
 	int frames = atoi(dbrow[2]);
 	int duration = atoi(dbrow[3]);
 

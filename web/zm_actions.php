@@ -249,6 +249,10 @@ if ( isset($action) )
 					if ( !$result )
 						die( mysql_error() );
 					//$view = 'none';
+					mkdir( ZM_DIR_EVENTS."/".$mid );
+					chdir( ZM_DIR_EVENTS );
+					symlink( $mid, $new_monitor['Name'] );
+					chdir( ".." );
 				}
 				$restart = true;
 			}
@@ -353,7 +357,8 @@ if ( isset($action) )
 					{
 						deleteEvent( $mark_eid );
 					}
-					system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Name'] );
+					unlink( ZM_DIR_EVENTS."/".$monitor['Name'] );
+					system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Id'] );
 
 					$result = mysql_query( "delete from Zones where MonitorId = '$mark_mid'" );
 					if ( !$result )

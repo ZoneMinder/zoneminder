@@ -288,7 +288,7 @@ int main( int argc, char *argv[] )
 			continue;
 		}
 		static char path[PATH_MAX] = "";
-		snprintf( path, sizeof(path), "%s/%s/%ld/%03ld-%s.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Name(), frame_header.event_id, frame_header.frame_id, frame_header.alarm_frame?"analyse":"capture" );
+		snprintf( path, sizeof(path), "%s/%d/%ld/%03ld-%s.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Id(), frame_header.event_id, frame_header.frame_id, frame_header.alarm_frame?"analyse":"capture" );
 		Debug( 1, ( "Got image, writing to %s", path ));
 
 		FILE *fd = 0;

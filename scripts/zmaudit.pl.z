@@ -162,14 +162,13 @@ my $image_path = IMAGE_PATH;
 do
 {
 	my $fs_monitors;
-	foreach my $monitor ( <*> )
+	foreach my $monitor ( <[0-9]*> )
 	{
-		next if ( $monitor =~ /lost\+found/ ); # Ignore mount points
 		print( "Found filesystem monitor '$monitor'" ) if ( VERBOSE );
 		my $fs_events = $fs_monitors->{$monitor} = {};
 		( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
 		chdir( $monitor_dir );
-		foreach my $event ( <*> )
+		foreach my $event ( <[0-9]*> )
 		{
 			$fs_events->{$event} = !undef;
 		}
@@ -178,15 +177,15 @@ do
 	}
 
 	my $db_monitors;
-	my $sql = "select * from Monitors order by Name";
+	my $sql = "select * from Monitors order by Id";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $sql2 = "select * from Events where MonitorId = ? order by Id";
 	my $sth2 = $dbh->prepare_cached( $sql2 ) or die( "Can't prepare '$sql2': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
-		print( "Found database monitor '$monitor->{Name}'" ) if ( VERBOSE );
-		my $db_events = $db_monitors->{$monitor->{Name}} = {};
+		print( "Found database monitor '$monitor->{Id}'" ) if ( VERBOSE );
+		my $db_events = $db_monitors->{$monitor->{Id}} = {};
 		my $res = $sth2->execute( $monitor->{Id} ) or die( "Can't execute: ".$sth2->errstr() );
 		while ( my $event = $sth2->fetchrow_hashref() )
 		{

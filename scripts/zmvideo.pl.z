@@ -151,7 +151,7 @@ my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->er
 my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 my $event = $sth->fetchrow_hashref();
 $sth->finish();
-chdir( ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorName}.'/'.$event->{Id} );
+chdir( ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id} );
 ( my $video_name = $event->{Name} ) =~ s/\s/_/g; 
 my $video_file = "$video_name.mpg";
 
@@ -264,6 +264,6 @@ else
 {
 	print( LOG "Video file $video_file already exists for event $event->{Id}\n" );
 }
-#print( STDOUT $event->{MonitorName}.'/'.$event->{Id}.'/'.$video_file."\n" );
+#print( STDOUT $event->{MonitorId}.'/'.$event->{Id}.'/'.$video_file."\n" );
 print( STDOUT $video_file."\n" );
 exit( 0 );

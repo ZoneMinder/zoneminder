@@ -376,7 +376,7 @@ else
 	$fraction = sprintf( "%.2f", 1/$scale );
 	$thumb_width = $event['Width']/4;
 	$thumb_height = $event['Height']/4;
-	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorName'].'/'.$event['Id'];
+	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
 	for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++ )
 	{
 		$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $frame_id );

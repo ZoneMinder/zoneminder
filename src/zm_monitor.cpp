@@ -274,7 +274,7 @@ void Monitor::Setup()
 			}
 		}
 
-		snprintf( path, sizeof(path), "%s/%s", (const char *)config.Item( ZM_DIR_EVENTS ), name );
+		snprintf( path, sizeof(path), "%s/%d", (const char *)config.Item( ZM_DIR_EVENTS ), id );
 
 		errno = 0;
 		stat( path, &statbuf );
@@ -284,6 +284,11 @@ void Monitor::Setup()
 			{
 				Error(( "Can't make %s: %s", path, strerror(errno)));
 			}
+			char temp_path[PATH_MAX];
+			snprintf( temp_path, sizeof(temp_path), "%d", id );
+			chdir( (const char *)config.Item( ZM_DIR_EVENTS ) );
+			symlink( temp_path, name );
+			chdir( ".." );
 		}
 
 		while( shared_data->last_write_index == image_buffer_count )
@@ -1338,7 +1343,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-r.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), name );
+			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), id );
 		}
 		ref_image.WriteJpeg( diag_path );
 	}
@@ -1350,7 +1355,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), name );
+			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), id );
 		}
 		delta_image->WriteJpeg( diag_path );
 	}

@@ -4,8 +4,8 @@
 -- Make changes to Filter table
 --
 alter table Zones add column CheckMethod enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs' after AlarmRGB;
-alter table Filters drop column MonitorId;
 alter table Filters drop index FilterIDX;
+alter table Filters drop column MonitorId;
 update Filters set AutoArchive = 0, AutoDelete = 0, AutoUpload = 0, AutoEmail = 0, AutoMessage = 0;
 --
 -- These are optional, but we might as well

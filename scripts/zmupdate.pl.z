@@ -154,7 +154,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 
 	my $lc_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
 	my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
-				}
+
 	while( 1 )
 	{
 		my $now = time();

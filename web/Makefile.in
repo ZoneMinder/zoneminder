@@ -213,6 +213,7 @@ maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 # Yes, you are correct. This is a HACK!
 install-data-local:
 	( cd $(webdir); chown $(webuser):$(webgroup) $(web_DATA) )
+	-( cd $(webdir); ln -s zm.php index.php )
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

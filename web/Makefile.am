@@ -13,3 +13,4 @@ EXTRA_DIST = $(web_DATA)
 # Yes, you are correct. This is a HACK!
 install-data-local:
 	( cd $(webdir); chown $(webuser):$(webgroup) $(web_DATA) )
+	-( cd $(webdir); ln -s zm.php index.php )

@@ -152,7 +152,7 @@ form.submit();
 function submitToEvents( form )
 {
 var Url = '<?= $PHP_SELF ?>';
-var Name = 'zmEvents<?= $monitor['Name'] ?>';
+var Name = 'zmEvents<?= $monitor['Id'] ?>';
 var Width = <?= $jws['events']['w'] ?>;
 var Height = <?= $jws['events']['h'] ?>;
 var Options = 'resizable,scrollbars,width='+Width+',height='+Height;

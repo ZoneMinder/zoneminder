@@ -331,7 +331,7 @@ function newWindow(Url,Name,Width,Height)
 <title>ZM - <?= $monitor[Name] ?> - Watch</title>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
-//opener.location.reload();
+opener.location.reload();
 window.focus();
 </script>
 </head>
@@ -580,7 +580,7 @@ function checkAll(form,name){
 	for (var i = 0; i < form.elements.length; i++)
 		if (form.elements[i].name.indexOf(name) == 0)
 			form.elements[i].checked = 1;
-	form.delete_btn.disabled = !checked;
+	form.delete_btn.disabled = false;
 }
 function configureButton(form,name)
 {
@@ -864,7 +864,7 @@ function configureButton(form,name)
 }
 window.focus();
 <?php if ( $filter ) { ?>
-//opener.location.reload();
+opener.location.reload();
 filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?><?= $filter_query ?>', 'zmFilter<?= $monitor[Name] ?>' );
 location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?>';
 <?php } ?>

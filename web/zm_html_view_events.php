@@ -2,7 +2,7 @@
 	if ( !canView( 'Events' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 	switch( $sort_field )
 	{

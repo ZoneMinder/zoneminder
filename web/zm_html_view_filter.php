@@ -2,7 +2,7 @@
 	if ( !canView( 'Events' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 	if ( !$result )

@@ -2,7 +2,7 @@
 	if ( !canView( 'Events' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 	$result = mysql_query( "select S.*,E.*,Z.Name as ZoneName,M.Name as MonitorName,M.Width,M.Height from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '$eid' and S.FrameId = '$fid' order by S.ZoneId" );
 	if ( !$result )

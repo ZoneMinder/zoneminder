@@ -2,7 +2,7 @@
 	if ( !canView( 'System' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 
 	$tabs = array();

@@ -2,7 +2,7 @@
 	if ( !canView( 'Events' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 	$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
 	if ( !$result )

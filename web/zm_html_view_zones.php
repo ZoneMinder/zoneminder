@@ -2,7 +2,7 @@
 	if ( !canView( 'Monitors' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 	chdir( ZM_DIR_IMAGES );
 	$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -z" ) );

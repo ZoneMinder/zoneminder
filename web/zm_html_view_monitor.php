@@ -2,7 +2,7 @@
 	if ( !canView( 'Monitors' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 	if ( $mid > 0 )
 	{

@@ -2,7 +2,7 @@
 	if ( !canEdit( 'System' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 	$result = mysql_query( "select * from Users where Id = '$uid'" );
 	if ( !$result )

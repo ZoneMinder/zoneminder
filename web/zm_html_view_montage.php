@@ -2,7 +2,7 @@
 	if ( !canView( 'Stream' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 	$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
 	$monitors = array();

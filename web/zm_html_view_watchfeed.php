@@ -2,7 +2,7 @@
 	if ( !canView( 'Stream' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 	if ( !$mode )
 	{

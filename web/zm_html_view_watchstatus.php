@@ -2,7 +2,7 @@
 	if ( !canView( 'Stream' ) )
 	{
 		$view = "error";
-		break;
+		return;
 	}
 	$zmu_command = ZMU_COMMAND." -m $mid -s -f";
 	if ( canEdit( 'Monitors' ) && isset($force) )

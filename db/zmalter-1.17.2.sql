@@ -1,5 +1,5 @@
 --
--- This updates a 1.17.2 database to 1.17.3
+-- This updates a 1.17.2 database to 1.18.0
 --
 -- Make changes to Filter table
 --

@@ -97,6 +97,10 @@ function getStreamSrc( $args )
 			$args[] = "pass=".$_SESSION['password'];
 		}
 	}
+	if ( ZM_RAND_STREAM )
+	{
+		$args[] = "rand=".time();
+	}
 
 	if ( count($args) )
 	{

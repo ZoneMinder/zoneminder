@@ -272,6 +272,14 @@ my @options =
 		category => 'tools',
 	},
 	{
+		name => "ZM_RAND_STREAM",
+		default => "no",
+		description => "Add a random string to prevent caching of streams",
+		help => "Some browsers can cache the streams used by ZoneMinder. In order to prevent his a harmless random string can be appended to the url to make each invocation of the stream appear unique.",
+		type => $types{boolean},
+		category => 'tools',
+	},
+	{
 		name => "ZM_OPT_CAMBOZOLA",
 		default => "no",
 		description => "Is the (optional) cambozola java streaming client installed (recommended)",

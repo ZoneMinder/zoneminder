@@ -18,10 +18,13 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+// ZoneMinder <your language> Translation by <your name>
+
 // Notes for Translators
+// 0. Get some credit, put your name in the line above (optional)
 // 1. When composing the language tokens in your language you should try and keep to roughly the
 //   same length text if possible. Abbreviate where necessary as spacing is quite close in a number of places.
-// 2. There are three types of string replacement
+// 2. There are four types of string replacement
 //   a) Simple replacements are words or short phrases that are static and used directly. This type of
 //     replacement can be used 'as is'.
 //   b) Complex replacements involve some dynamic element being included and so may require substitution
@@ -29,20 +32,42 @@
 //     a formatting string. If the dynamic element is a number you will usually need to use a variable
 //     replacement also as described below.
 //   c) Variable replacements are used in conjunction with complex replacements and involve the generation
-//     of a singular or plural noun depending on the number passed into the zmVlang function. This is
-//     intended to allow phrases such a '0 potatoes', '1 potato', '2 potatoes' etc to conjunct correctly
-//     with the associated numerator. Variable replacements are expressed are arrays with a series of
-//     counts and their associated words. When doing a replacement the passed value is compared with 
-//     those counts in descending order and the nearest match below is used if no exact match is found.
-//     Therefore is you have a variable replacement with 0,1 and 2 counts, which would be the normal form
-//     in English, if you have 5 'things' then the nearest match below is '2' and so that plural would be used.
+//     of a singular or plural noun depending on the number passed into the zmVlang function. See the 
+//     the zmVlang section below for a further description of this.
+//   d) Optional strings which can be used to replace the prompts and/or help text for the Options section
+//     of the web interface. These are not listed below as they are quite large and held in the database
+//     so that they can also be used by the zmconfig.pl script. However you can build up your own list
+//     quite easily from the Config table in the database if necessary.
 // 3. The tokens listed below are not used to build up phrases or sentences from single words. Therefore
 //   you can safely assume that a single word token will only be used in that context.
 // 4. In new language files, or if you are changing only a few words or phrases it makes sense from a 
 //   maintenance point of view to include the original language file and override the old definitions rather
 //   than copy all the language tokens across. To do this change the line below to whatever your base language
 //   is and uncomment it.
-require_once( 'zm_lang_en_gb.php' );
+require_once( 'zm_lang_en_us.php' );
+
+// You may need to change the character set here, if your web server does not already
+// do this by default, uncomment this if required.
+//
+// Example
+// header( "Content-Type: text/html; charset=iso-8859-1" );
+
+// You may need to change your locale here if your default one is incorrect for the
+// language described in this file, or if you have multiple languages supported.
+// If you do need to change your locale, be aware that the format of this function
+// is subtlely different in versions of PHP before and after 4.3.0, see
+// http://uk2.php.net/manual/en/function.setlocale.php for details.
+// Also be aware that changing the whole locale may affect some floating point or decimal 
+// arithmetic in the database, if this is the case change only the individual locale areas
+// that don't affect this rather than all at once. See the examples below.
+// Finally, depending on your setup, PHP may not enjoy have multiple locales in a shared 
+// threaded environment, if you get funny errors it may be this.
+//
+// Examples
+// setlocale( 'LC_ALL', 'en_GB' ); All locale settings pre-4.3.0
+// setlocale( LC_ALL, 'en_GB' ); All locale settings 4.3.0 and after
+// setlocale( LC_CTYPE, 'en_GB' ); Character class settings 4.3.0 and after
+// setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
 
 // Simple String Replacements
 $zmSlang24BitColour          = '24 bit color';

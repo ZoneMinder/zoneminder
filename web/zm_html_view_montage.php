@@ -58,7 +58,6 @@ $col_spec = join( ',', $widths );
 <title>ZM - <?= $zmSlangMontage ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
-//window.resizeTo( <?= $jws['montage']['w']*$cols ?>, <?= $jws['montage']['h']*$rows ?> );
 window.focus();
 </script>
 </head>
@@ -73,13 +72,11 @@ for ( $row = 0; $row < $rows; $row++ )
 		{
 			$monitor = $monitors[$i];
 ?>
-<frameset rows="*,16" cols="100%" border="1" frameborder="no" framespacing="0">
-<frame src="<?= $PHP_SELF ?>?view=montagefeed&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
-<frame src="<?= $PHP_SELF ?>?view=montagestatus&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
-</frameset>
+<frame src="<?= $PHP_SELF ?>?view=montageframe&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MontageFrame<?= $monitor['Id'] ?>" scrolling="no">
 <?php
 		}
 	}
 }
 ?>
 </frameset>
+</html>

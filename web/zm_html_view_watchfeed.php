@@ -70,7 +70,7 @@ if ( $mode != "stream" && ZM_WEB_REFRESH_METHOD == "javascript" )
 ?>
 function fetchImage()
 {
-	window.parent.MonitorFetch.location.reload( true );
+	window.parent.MonitorFetch<?= $monitor['Id'] ?>.location.reload( true );
 
 	zm_image = new Image();
 	zm_image.src = '<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg';
@@ -78,7 +78,7 @@ function fetchImage()
 	document['zmImage'].src = zm_image.src;
 }
 
-window.parent.MonitorFetch.location = '<?= $PHP_SELF ?>?view=watchfetch&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>';
+window.parent.MonitorFetch<?= $monitor['Id'] ?>.location = '<?= $PHP_SELF ?>?view=imagefetch&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>';
 window.setInterval( "fetchImage()", <?= REFRESH_IMAGE*1000 ?> );
 <?php
 	}

@@ -23,13 +23,17 @@ if ( !canView( 'Stream' ) )
 	$view = "error";
 	return;
 }
-if ( !isset($mode) )
+
+if ( empty($mode) )
 {
 	if ( canStream() )
 		$mode = "stream";
 	else
 		$mode = "still";
 }
+
+if ( !isset( $scale ) )
+	$scale = SCALE_SCALE;
 
 $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
@@ -38,15 +42,19 @@ $monitor = mysql_fetch_assoc( $result );
 
 $montage_width = ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$monitor['Width'];
 $montage_height = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$monitor['Height'];
+$width_scale = ($montage_width*SCALE_SCALE)/$monitor['Width'];
+$height_scale = ($montage_height*SCALE_SCALE)/$monitor['Height'];
+$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 
 if ( $mode != "stream" )
 {
-	// Prompt an image to be generated
-	chdir( ZM_DIR_IMAGES );
-	$status = exec( escapeshellcmd( ZMU_COMMAND." -m $mid -i" ) );
-	chdir( '..' );
+	if ( !ZM_WEB_DOUBLE_BUFFER )
+	{
+		// Prompt an image to be generated
+		createImage( $monitor, $scale );
+	}
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
-		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=montagefeed&mid=$mid&mode=still" );
+		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still&scale=$scale" );
 }
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -61,55 +69,58 @@ header("Pragma: no-cache");			  // HTTP/1.0
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( $mode != "stream" && ZM_WEB_REFRESH_METHOD == "javascript" )
+if ( $mode != "stream" && ZM_WEB_REFRESH_METHOD == "javascript" )
+{
+	if ( ZM_WEB_DOUBLE_BUFFER )
+	{
+?>
+function fetchImage()
+{
+	window.parent.MontageFetch<?= $monitor['Id'] ?>.location.reload( true );
+
+	zm_image = new Image();
+	zm_image.src = '<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg';
+
+	document['zmImage'].src = zm_image.src;
+}
+
+window.parent.MontageFetch<?= $monitor['Id'] ?>.location = '<?= $PHP_SELF ?>?view=imagefetch&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>';
+window.setInterval( "fetchImage()", <?= REFRESH_IMAGE*1000 ?> );
+<?php
+	}
+	else
 	{
 ?>
 window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <?php
 	}
+}
 ?>
 </script>
 </head>
 <body>
-<table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
-<tr>
-<td width="50%" align="center" class="text"><b><?= $monitor['Name'] ?></b></td>
-<?php if ( $mode == "stream" ) { ?>
-<td width="50%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montagefeed&mode=still&mid=<?= $mid ?>"><?= $zmSlangStills ?></a></td>
-<?php } elseif ( canStream() ) { ?>
-<td width="50%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montagefeed&mode=stream&mid=<?= $mid ?>"><?= $zmSlangStream ?></a></td>
-<?php } else { ?>
-<td width="50%" align="center" class="text">&nbsp;</td>
-<?php } ?>
-</tr>
+<table width="96%" align="center" border="0" cellspacing="0" cellpadding="2">
 <?php
 if ( $mode == "stream" )
 {
-	$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY;
+	$stream_src = ZM_PATH_ZMS."?monitor=".$monitor['Id']."&idle=".STREAM_IDLE_DELAY."&refresh=".STREAM_FRAME_DELAY."&scale=$scale";
 	if ( canStreamNative() )
 	{
 ?>
-<tr><td colspan="2" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= $montage_width ?>" height="<?= $montage_height ?>"></td></tr>
+<tr><td colspan="5" align="center"><img src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></td></tr>
 <?php
 	}
 	else
 	{
-		$width_scale = ($montage_width*SCALE_SCALE)/$monitor['Width'];
-		$height_scale = ($montage_height*SCALE_SCALE)/$monitor['Height'];
-		$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
-		if ( $scale != SCALE_SCALE )
-		{
-			$stream_src .= "&scale=".$scale;
-		}
 ?>
-<tr><td colspan="2" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= $montage_width ?>" height="<?= $montage_height ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
+<tr><td colspan="5" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet></td></tr>
 <?php
 	}
 }
 else
 {
 ?>
-<tr><td colspan="2" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= $montage_width ?>" height="<?= $montage_height ?>"></td></tr>
+<tr><td colspan="5" align="center"><img name="zmImage" src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></td></tr>
 <?php
 }
 ?>

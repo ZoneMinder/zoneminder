@@ -113,14 +113,16 @@ switch( $view )
 	case "user" :
 	case "cycle" :
 	case "montage" :
+	case "montageframe" :
+	case "montagemenu" :
 	case "montagefeed" :
 	case "montagestatus" :
 	case "watch" :
 	case "watchmenu" :
 	case "watchfeed" :
-	case "watchfetch" :
 	case "watchstatus" :
 	case "watchevents" :
+	case "imagefetch" :
 	case "settings" :
 	case "events" :
 	case "filter" :

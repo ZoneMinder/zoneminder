@@ -44,17 +44,17 @@ window.resizeTo( <?= reScale($monitor['Width'],$width_scale)+$jws['watch']['w'] 
 window.focus();
 </script>
 </head>
-<frameset rows="24,<?= ZM_WEB_DOUBLE_BUFFER?'0,':'' ?><?= reScale($monitor['Height'],$height_scale)+8 ?>,16,*" border="1" frameborder="no" framespacing="0">
-<frame src="<?= $PHP_SELF ?>?view=watchmenu&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>" marginwidth="0" marginheight="0" name="MonitorMenu" scrolling="no">
+<frameset rows="24,<?= (ZM_WEB_REFRESH_METHOD=='javascript'&&ZM_WEB_DOUBLE_BUFFER)?'0,':'' ?><?= reScale($monitor['Height'],$height_scale)+8 ?>,16,*" border="1" frameborder="no" framespacing="0">
+<frame src="<?= $PHP_SELF ?>?view=watchmenu&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>" marginwidth="0" marginheight="0" name="MonitorMenu<?= $monitor['Id' ] ?>" scrolling="no">
 <?php
-if ( ZM_WEB_DOUBLE_BUFFER )
+if ( ZM_WEB_REFRESH_METHOD == 'javascript' && ZM_WEB_DOUBLE_BUFFER )
 {
 ?>
-<frame src="about:blank" name="MonitorFetch" scrolling="no">
+<frame src="about:blank" name="MonitorFetch<?= $monitor['Id'] ?>" scrolling="no">
 <?php
 }
 ?>
-<frame src="<?= $PHP_SELF ?>?view=watchfeed&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
-<frame src="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
-<frame src="<?= $PHP_SELF ?>?view=watchevents&max_events=<?= MAX_EVENTS ?>&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
+<frame src="<?= $PHP_SELF ?>?view=watchfeed&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>" marginwidth="0" marginheight="0" name="MonitorStream<?= $monitor['Id' ] ?>" scrolling="no">
+<frame src="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorStatus<?= $monitor['Id' ] ?>" scrolling="no">
+<frame src="<?= $PHP_SELF ?>?view=watchevents&max_events=<?= MAX_EVENTS ?>&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorEvents<?= $monitor['Id' ] ?>" scrolling="auto">
 </frameset>

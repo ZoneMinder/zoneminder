@@ -66,7 +66,7 @@ function configureButtons(form,name)
 }
 function monitorIds()
 {
-	with ( opener.monitor_form )
+	with ( opener.document.monitor_form )
 	{
 		var monitor_ids = new Array();
 		for (var i = 0; i < elements.length; i++)
@@ -86,10 +86,10 @@ window.focus();
 </script>
 </head>
 <body>
-<table width="100%" border="0" cellpadding="0" cellspacing="0">
 <form name="group_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="groups">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
 <tr><td class="smallhead"><?= $zmSlangName ?></td><td class="smallhead"><?= $zmSlangMonitorIds ?></td><td class="smallhead"><?= $zmSlangMark ?></tr>
 <?php
 if ( count($groups) || $new )
@@ -136,7 +136,7 @@ else
 <input type="button" value="<?= $zmSlangSave ?>" class="form" onClick="group_form.submit()">&nbsp;&nbsp;
 <input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td>
 </tr>
-</form>
 </table>
+</form>
 </body>
 </html>

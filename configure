@@ -1679,8 +1679,8 @@ echo "$as_me: WARNING: You can call configure with the --with-ffmpeg option.
 
 fi;
 
-FFMPEG_LIBS="-L${FFMPEG_PREFIX}/libavcodec -L${FFMPEG_PREFIX}/libavformat"
-FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/libavcodec -I${FFMPEG_PREFIX}/libavformat"
+FFMPEG_LIBS="-L${FFMPEG_PREFIX}/lib"
+FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/include"
 
 
 
@@ -4116,8 +4116,6 @@ echo "$as_me: error: zm requires libmysqlclient.a" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
-#AC_CHECK_LIB(avcodec,avcodec_init,XLIBS="$XLIBS -lavcodec",AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
-#AC_CHECK_LIB(avformat,av_new_stream,XLIBS="$XLIBS -lavformat",AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)
 
 echo "$as_me:$LINENO: checking for pcre_compile in -lpcre" >&5
 echo $ECHO_N "checking for pcre_compile in -lpcre... $ECHO_C" >&6

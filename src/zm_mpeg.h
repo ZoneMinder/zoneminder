@@ -24,7 +24,7 @@
 #ifndef ZM_MPEG_H
 #define ZM_MPEG_H
 
-#include "avformat.h"
+#include <ffmpeg/avformat.h>
 
 class VideoStream
 {

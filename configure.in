@@ -30,8 +30,8 @@ AC_ARG_WITH(ffmpeg,
     e.g. --with-ffmpeg=/home/ffmpeg-0.4.18])
 )
 AC_SUBST(FFMPEG_PREFIX)
-FFMPEG_LIBS="-L${FFMPEG_PREFIX}/libavcodec -L${FFMPEG_PREFIX}/libavformat"
-FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/libavcodec -I${FFMPEG_PREFIX}/libavformat"
+FFMPEG_LIBS="-L${FFMPEG_PREFIX}/lib"
+FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/include"
 AC_SUBST(FFMPEG_LIBS)
 AC_SUBST(FFMPEG_CFLAGS)
 
@@ -116,8 +116,6 @@ AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(z,compress,,AC_MSG_ERROR(zm requires libz.a))
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 AC_CHECK_LIB(mysqlclient,mysql_init,,AC_MSG_ERROR(zm requires libmysqlclient.a))
-#AC_CHECK_LIB(avcodec,avcodec_init,XLIBS="$XLIBS -lavcodec",AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
-#AC_CHECK_LIB(avformat,av_new_stream,XLIBS="$XLIBS -lavformat",AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a is required for remote/network camera support))
 AC_CHECK_LIB(avcodec,avcodec_init,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
 AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)

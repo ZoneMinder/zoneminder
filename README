@@ -1,6 +1,6 @@
-   19/01/05        ZoneMinder 1.20.0 README                1
+   04/02/05        ZoneMinder 1.20.1 README                1
                                
-                      ZoneMinder v1.20.0
+                      ZoneMinder v1.20.1
 
 1.   Introduction
    
@@ -172,11 +172,11 @@ interactive mode by typing
 perl ./zmconfig.pl -noi
 
 which  will just read your file and do the substitutions  with
-no  questions asked. There are two classes of options,  `core'
+no  questions asked. There are two classes of options,  'core'
 options  which  much be specified with zmconfig  which  detail
 things  such  as  database passwords which are  compiled  into
 ZoneMinder  and other options with are stored in the  database
-and  which  can  be  modified dynamically  via  the  `options'
+and  which  can  be  modified dynamically  via  the  'options'
 section  of the web interface. Only the first set need  to  be
 completed  with zmconfig at this stage. If you want to  change
 just a few options and can't access the options dialog via the
@@ -224,12 +224,12 @@ you should type
 zmupdate.pl -version=<previous version> [--user=<db  user>  --
 pass=<db password>]
 
-where `previous version' relates to the version of ZM you  are
+where 'previous version' relates to the version of ZM you  are
 upgrading  from,  1.19.4 for example. All  updates  from  that
 versions  onwards  will be applied, however  zmupdate.pl  will
-only  work  with upgrades from 1.19.0 onwards. The `user'  and
-`pass'  options  allow  you to specify  a  database  user  and
-password with sufficient privilege to `alter' the structure of
+only  work  with upgrades from 1.19.0 onwards. The 'user'  and
+'pass'  options  allow  you to specify  a  database  user  and
+password with sufficient privilege to 'alter' the structure of
 the  database. This is not necessarily the database  user  you
 use for ZoneMinder itself as specified in the section below.
 
@@ -354,7 +354,7 @@ as follows.
   that  is  a more generic solution to external triggering  of
   alarms.  It  can  handle  external  connections  via  either
   internet  socket,  unix  socket or  file/device  interfaces.
-  Currently  you  have to configure these using the  `sources'
+  Currently  you  have to configure these using the  'sources'
   array  in the script itself though ultimately I would expect
   they  would  be  databased. The format of triggers  used  by
   zmtrigger.pl            is            as             follows
@@ -391,7 +391,7 @@ saved. Ignored for 'off' or 'cancel' messages.
   zmupdate.pl  -  Currently  this script  is  responsible  for
   checking  whether a new version of ZoneMinder  is  available
   and  other  miscellaneous actions related  to  upgrades  and
-  migrations. It is also intended to be a `one stop shop'  for
+  migrations. It is also intended to be a 'one stop shop'  for
   any  upgrades  and  will  execute  everything  necessary  to
   update your installation to a new version.
   
@@ -401,7 +401,7 @@ saved. Ignored for 'off' or 'cancel' messages.
 Finally,  check zm_config.php in the web directory  and  amend
 any  configuration necessary in there. Most will have  already
 been done by the configuration utilities but some scripts have
-a `VERBOSE' flag you can set to get more debug out.
+a 'VERBOSE' flag you can set to get more debug out.
 
 At this stage typing 'make install' will install everything to
 the  desired  locations, you may wish  to  su  to  root  first
@@ -426,7 +426,7 @@ chkconfig --add zm
 or similar command for your distribution. ZoneMinder will then
 start  up when your machine reboots and can be controlled  (by
 the  root  user)  by doing 'service zm start' or  'service  zm
-stop'  etc.  You  may need to use the `-levels'  parameter  to
+stop'  etc.  You  may need to use the '-levels'  parameter  to
 chkconfig to ensure that ZoneMinder is started when  you  need
 it to.
 
@@ -442,8 +442,8 @@ an  option that lets you specify whether anyone that  goes  to
 the ZoneMinder web pages must authenticate themselves in order
 to be given permissions to perform certain tasks. If you chose
 this  mode  then you will need to log in here.  By  default  a
-fully privileged user `admin' has been created with a password
-also  of  `admin'. You should change this password as soon  as
+fully privileged user 'admin' has been created with a password
+also  of  'admin'. You should change this password as soon  as
 possible.
 
 Once  you've  logged  in,  or  if  you  are  running  in   un-
@@ -452,7 +452,7 @@ window.  This will resize itself to avoid being too  intrusive
 on your desktop. Along the top there are several informational
 entries  like  the  time of the last update  and  the  current
 server  load. There will also be an indication of  the  system
-state which will probably say `stopped' to start with. This is
+state which will probably say 'stopped' to start with. This is
 a  link that you can click on to control the ZoneMinder system
 as  a whole. Below that are various other links including  one
 detailing  the current user (in authenticated mode  only)  and
@@ -495,12 +495,12 @@ permissions run 'zmfix -a' to make sure you can access all the
 video devices.
 
 The  options are divided into a set of tabs to make it  easier
-to  edit. You do not have to `save' to change to different tab
+to  edit. You do not have to 'save' to change to different tab
 so  you  can  make all the changes you require and then  click
-`Save'  at the end. The individual option are explained  in  a
+'Save'  at the end. The individual option are explained  in  a
 little more detail below,
 
-`Monitor' Tab
+'Monitor' Tab
 
    Name  -  The name for your monitor. This should be made  up
    of  alphanumeric characters (a-z,A-Z,0-9)  and  hyphen  (-)
@@ -517,11 +517,11 @@ image analysis is done and so no alarms or events will be
 generated,
 ú    'Modect' - or MOtion DEteCTtion. All captured images will
 be analysed and events generated where motion is detected.
-ú    `Record' - In this case continuous events of a fixed
+ú    'Record' - In this case continuous events of a fixed
 length are generated regardless of motion which is analogous
 to a convention time-lapse video recorder. No motion detection
 takes place in this mode.
-ú    `Mocord' - This is a hybrid of Modect and Record and
+ú    'Mocord' - This is a hybrid of Modect and Record and
 results in both fixed length events being recorded and also
 any motion being highlighted within those events.
       ú    'Nodect' - or No DEteCTtion. This is a special mode
@@ -529,24 +529,24 @@ any motion being highlighted within those events.
         motion detection takes place but events are recorded if
         external triggers require it.
         
-   Generally  speaking it is best to choose  `Monitor'  as  an
+   Generally  speaking it is best to choose  'Monitor'  as  an
    initial setting here..
    
    Section Length - This specifies the length (in seconds)  of
    any  fixed length events produced when the monitor function
-   is  `Record'  or  `Mocord'. Otherwise it is  ignored.  This
+   is  'Record'  or  'Mocord'. Otherwise it is  ignored.  This
    should  not  be  so  long  that  events  are  difficult  to
    navigate  nor so short that too many events are  generated.
    A length of between 300 and 900 seconds I recommended.
    
    Frame  Skip  -  This  setting  also  applies  only  to  the
-   `Record'  or  `Mocord'  functions and  specifies  how  many
+   'Record'  or  'Mocord'  functions and  specifies  how  many
    frames  should  be  skipped  in the  recorded  events.  The
    default  setting  of zero results in every  captured  frame
    being  saved,  whereas one would mean  that  one  frame  is
    skipped  between each saved one, two means that two  frames
    are  skipped  between each saved one etc. An alternate  way
-   of  thinking is that one in every `Frame Skip +  1'  frames
+   of  thinking is that one in every 'Frame Skip +  1'  frames
    is  saved. The point of this is to ensure that saved events
    do  not  take up too much space unnecessarily whilst  still
    allowing  the  camera  to capture at a  fairly  high  frame
@@ -554,23 +554,23 @@ any motion being highlighted within those events.
    rate  which will obviously affect the rate at which  frames
    are saved.
    
-   Run Mode - Two choices are available here. `Continuous'  is
+   Run Mode - Two choices are available here. 'Continuous'  is
    the  usual  setting and means that the monitor is  expected
    to  be  performing the function selected above at all times
    and  should  one  or more of the daemons  fail  or  not  be
    running  it  will be automatically restarted.  By  contrast
-   `Triggered'  means  that  the decision  about  whether  the
+   'Triggered'  means  that  the decision  about  whether  the
    daemons  should  actually  be  active  is  devolved  to  an
    external triggering mechanism.
    
    Triggers  -  This  small  section  lets  you  select  which
    triggers  will  apply  if the run  mode  has  been  set  to
-   `triggered' above. The most common trigger is X10 and  this
+   'triggered' above. The most common trigger is X10 and  this
    will   appear  here  if  you  indicated  that  your  system
    supported it during installation. Only X10 is supported  as
    a  shipped  trigger with ZoneMinder at present  but  it  is
    expected  that  other  triggers will  become  available  as
-   necessary.  You  can  also just use `cron'  jobs  or  other
+   necessary.  You  can  also just use 'cron'  jobs  or  other
    mechanisms  to  actually control the camera and  keep  them
    completely outside of the ZoneMinder settings.
    
@@ -580,7 +580,7 @@ any motion being highlighted within those events.
    one or the other affects which set of options are shown  in
    the next tab.
    
-`Source' Tab (local device)
+'Source' Tab (local device)
 
    Device  Number/Channel  -  For a  local  camera  enter  the
    device  number that your camera is attached to.  If  it  is
@@ -626,10 +626,10 @@ any motion being highlighted within those events.
    can. If not set the orientation here. If you choose one  of
    the  rotation  options remember to switch  the  height  and
    width  fields  so  that they apply,  e.g.  if  your  camera
-   captures  at  352x288  and you choose `Rotate  Right'  here
+   captures  at  352x288  and you choose 'Rotate  Right'  here
    then set the height to be 352 and width to be 288.
    
-`Source' Tab (remote device)
+'Source' Tab (remote device)
 
    Remote  Host/Port/Path  -  For  remote  cameras  use  these
    fields  to  enter the full URL of the camera. Basically  if
@@ -652,10 +652,10 @@ any motion being highlighted within those events.
    
    Orientation - As per local devices.
    
-`Timestamp' Tab
+'Timestamp' Tab
 
    Timestamp  Label  Format - This relates  to  the  timestamp
-   that  is  applied  to each frame. It is a  `sprintf'  style
+   that  is  applied  to each frame. It is a  'sprintf'  style
    string.  It  is  actually passed through sprintf  and  then
    through printf to add the monitor name so a format of  '%%s
    -  %y/%m/%d  %H:%M:%S' (note the double % at the beginning)
@@ -670,11 +670,11 @@ any motion being highlighted within those events.
    timestamp  at  the bottom of the image use  a  value  eight
    less than the image height.
    
-`Buffers' Tab
+'Buffers' Tab
 
    Image  Buffer Size - This option determines how many frames
    are  held  in  the ring buffer at any one  time.  The  ring
-   buffer  is the storage space where the last `n' images  are
+   buffer  is the storage space where the last 'n' images  are
    kept,  ready  to be resurrected on an alarm  or  just  kept
    waiting  to be analysed. It can be any value you like  with
    a  couple  of provisos, (see next options). However  it  is
@@ -725,18 +725,18 @@ any motion being highlighted within those events.
    flickers  or  other transients. Values  over  3  or  4  are
    unlikely  to  be useful however. Please note  that  if  you
    have    statistics   recording   enabled   then   currently
-   statistics  are  not  recorded for the first  `Alarm  Frame
+   statistics  are  not  recorded for the first  'Alarm  Frame
    Count'-1 frames of an event. So if you set this value to  5
    then  the first 4 frames will be missing statistics whereas
    the  more  usual  value  of 1 will ensure  that  all  alarm
    frames have statistics recorded.
    
-`Misc' Tab
+'Misc' Tab
 
-   Event  Prefix  - By default events are named  `Event-<event
+   Event  Prefix  - By default events are named  'Event-<event
    id>',  however you are free to rename them individually  as
    you  wish.  This option lets you modify the  event  prefix,
-   the  `Event-`  part, to be a value of your choice  so  that
+   the  'Event-'  part, to be a value of your choice  so  that
    events  are  named differently as they are generated.  This
    allows  you  to  name  events according  to  which  monitor
    generated them.
@@ -785,7 +785,7 @@ any motion being highlighted within those events.
    be  for  you but start with 10 here and adjust it  (usually
    down) later if necessary.
    
-`X10' Tab
+'X10' Tab
 
    Note:  This  tab and its options will only  appear  if  you
    have  indicated  that  your system supports  the  X10  home
@@ -793,7 +793,7 @@ any motion being highlighted within those events.
    
    X10   Activation  String  -  The  contents  of  this  field
    determine  when a monitor starts and/or stops being  active
-   when  running  in `Triggered; mode and with  X10  triggers.
+   when  running  in 'Triggered; mode and with  X10  triggers.
    The format of this string is as follows,
    
      n : If you simply enter a number then the monitor will be
@@ -915,12 +915,12 @@ to  view.  For  instance you may only  wish  to  view  outdoor
 monitors  while indoors. You can also choose to  view  all  of
 them.  If  you  choose  a group then your  selection  will  be
 remembered via a cookie and will be used until you change  it.
-You  can  call your groups anything you like, though  `Mobile'
+You  can  call your groups anything you like, though  'Mobile'
 has  a  special meaning (see Mobile Devices below). There  may
-also  be  a  `Cycle' link which allows you to cycle through  a
+also  be  a  'Cycle' link which allows you to cycle through  a
 shot  from each of your monitors (in the selected group unless
 they  are switched off) and get a streamed or still image from
-each in turn. Similarly if you see a link titled `Montage'  it
+each in turn. Similarly if you see a link titled 'Montage'  it
 will  allow you view all your active enabled cameras  (in  the
 selected group) simultaneously. Be aware however that this can
 consume  large amounts of bandwidth and CPU so should  not  be
@@ -1041,8 +1041,8 @@ are as follows.
    
    Units  - This setting which details whether certain of  the
    following   settings  are  in  Pixels  or  Percent,   where
-   `Percent'  refers to a percentage area of the zone  itself.
-   In  general  `Pixels'  is more precise whereas  percentages
+   'Percent'  refers to a percentage area of the zone  itself.
+   In  general  'Pixels'  is more precise whereas  percentages
    are  easier  to  use to start with or if you  change  image
    sizes   frequently.  If  you  change   this   setting   all
    appropriate  values below are redisplayed  in  the  correct
@@ -1077,7 +1077,7 @@ are as follows.
    alarm  checking that will take place, and more specifically
    what  tests  are  applied  to  determine  whether  a  frame
    represents   an  alarm  or  not.  The  three  options   are
-   `AlarmPixels', `FilteredPixels' and `Blobs'  and  depending
+   'AlarmPixels', 'FilteredPixels' and 'Blobs'  and  depending
    on  which  option  is  chosen some of the  following  other
    settings  may  become  unavailable.  The  first  of   these
    indicates  that  only a count of individual alarmed  pixels
@@ -1086,14 +1086,14 @@ are as follows.
    remove  isolated pixels (see below) before  being  counted,
    and  the third uses a more sophisticated analysis which  is
    designed   to  aggregate  alarmed  pixels  into  continuous
-   groups,  or `blobs'. Blob analysis is the method ZoneMinder
+   groups,  or 'blobs'. Blob analysis is the method ZoneMinder
    has  always used previously (before it became optional) and
    so  this is the default. However this method takes slightly
    longer  and  so  if you find that one of the other  methods
    works  just  as  well  for you and  you  wish  to  maximise
    performance you can opt for that instead. Some of the  more
    useful  alarm related features such as highlighted analysis
-   images are only available with the `Blob' setting.
+   images are only available with the 'Blob' setting.
    
    Min/Maximum  Alarm Threshold - These setting  are  used  to
    define limits for  the difference in value between a  pixel
@@ -1188,13 +1188,13 @@ frame  that  just  contains a status;  this  will  be  'Idle',
 and  what's going on in the field of view. Idle means  nothing
 is  happening, Alarm means there is an alarm in  progress  and
 Alert  means  that an alarm has happened and  the  monitor  is
-`cooling down', if another alarm is generated in this time  it
+'cooling down', if another alarm is generated in this time  it
 will just become part of the same event. These indicators  are
 colour coded in green, red and amber.
 
 By  default if you have minimised this window or opened  other
 windows  in  front it will pop up to the front if it  goes  to
-Alarm state. This behaviour can be turned off in `options'  if
+Alarm state. This behaviour can be turned off in 'options'  if
 required.   You  can  also  specify  a  sound  file   in   the
 configuration,  which will be played when an alarm  occurs  to
 alert  you  to  the  fact if you are  not  in  front  of  your
@@ -1285,7 +1285,7 @@ perl  and  so are parsed by the Date::Manip package.  Not  all
 date  formats are available in both so if you are  saved  your
 filter  to  do automatic deletions or other tasks  you  should
 make  sure that the date and time format you use is compatible
-with  both  methods. The safest type of format to use  is  `-3
+with  both  methods. The safest type of format to use  is  '-3
 day' or similar with easily parseable numbers and units are in
 English.
 
@@ -1297,12 +1297,12 @@ elements,  Disk  Blocks and Disk Percent which don't  directly
 relate  to the events themselves but to the disk partition  on
 which  the  events are stored. These allow you to  specify  an
 amount  of  disk  usage either in blocks or in  percentage  as
-returned  by  the `df' command. They relate to the  amount  of
+returned  by  the 'df' command. They relate to the  amount  of
 disk space used and not the amount left free. Once your filter
 is   specified,  clicking  'submit'  will  filter  the  events
 according  to  your specification. As the disk based  elements
 are  not  event related directly if you create  a  filter  and
-include the term `DiskPercent > 95' then if your current  disk
+include the term 'DiskPercent > 95' then if your current  disk
 usage is over that amount when you submit the filter then  all
 events  will be listed whereas if it is less then none at  all
 will.  As  such the disk related terms will tend  to  be  used
@@ -1440,7 +1440,7 @@ The  various options you can specify are displayed in a tabbed
 dialog  with each group of options displayed under a different
 heading.  Each  option is displayed with  its  name,  a  short
 description and the current value. You can also click  on  the
-`?'   link   following  each  description  to  get  a   fuller
+'?'   link   following  each  description  to  get  a   fuller
 explanation about each option. This is the same as  you  would
 get  from zmconfig.pl. A number of option groups have a master
 option near the top which enables or disables the whole  group
@@ -1448,7 +1448,7 @@ so  you  should be aware of the state of this before modifying
 options and expecting them to make any difference.
 
 If  you  have  changed the value of an option you should  then
-`save' it. A number of the option groups will then prompt  you
+'save' it. A number of the option groups will then prompt  you
 to  let  you  know  that the option(s) you have  changed  will
 require  a  system restart. This is not done automatically  in
 case  you  will  be changing many values in the same  session,
@@ -1458,7 +1458,7 @@ that  web  and  some  scripts will pick  up  the  new  changes
 immediately  but some of the daemons will still be  using  the
 old values and this can lead to data inconsistency or loss.
 
-One  of  the options you may notice in the `System' tab allows
+One  of  the options you may notice in the 'System' tab allows
 you  to specify the default language for your installation  of
 ZoneMinder.   Versions  1.17.0  and  later  support   multiple
 languages  but  rely on users to assist in  creating  language
@@ -1469,7 +1469,7 @@ given  then  UK  English is assumed. Most  languages  will  be
 specified  in  this nn_mm format and to check which  languages
 are  available  look  for  files named  zm_lang_*.php  in  the
 ZoneMinder build directory where the parts represented by  the
-`*'  would  be  what  you would enter as a language.  This  is
+'*'  would  be  what  you would enter as a language.  This  is
 slightly  unwieldy and will probably be improved in future  to
 make it easier to determine language availability. On checking
 which  languages are available it may be that  your  preferred
@@ -1479,7 +1479,7 @@ may  be included in future releases. All the language elements
 are given in the zm_lang_en_gb.php file along with a few notes
 to help you understand the format.
 
-As  mentioned  above, you may also see a `users'  tab  in  the
+As  mentioned  above, you may also see a 'users'  tab  in  the
 Options  area.  In this section you will see  a  list  of  the
 current  users  defined on the system. You  can  also  add  or
 delete  users from here. It is recommended you do  not  delete
@@ -1498,28 +1498,28 @@ is  done  in  the same way as for the system default  language
 described above.
 
 There  are  also four values that define the user permissions,
-these are `stream', `events', `monitors' and `system' Each can
-have  values  of `none', `view' or `edit' apart from  `stream'
-which has no `edit' setting. These values cover access to  the
-following areas; `stream' defines whether a user is allowed to
-view  the `live' video feeds coming from the cameras. You  may
+these are 'stream', 'events', 'monitors' and 'system' Each can
+have  values  of 'none', 'view' or 'edit' apart from  'stream'
+which has no 'edit' setting. These values cover access to  the
+following areas; 'stream' defines whether a user is allowed to
+view  the 'live' video feeds coming from the cameras. You  may
 wish  to allow a user to view historical events only in  which
-case  this  setting  should be `none'.  The  `events'  setting
+case  this  setting  should be 'none'.  The  'events'  setting
 determines  whether a user can view and modify or  delete  any
-retained  historical events. The `monitors' setting  specifies
+retained  historical events. The 'monitors' setting  specifies
 whether a user can see the current monitor settings and change
-them.  Finally the `system' setting determines whether a  user
+them.  Finally the 'system' setting determines whether a  user
 can  view  or modify the system settings as a whole,  such  as
 options and users or controlling the running of the system  as
 a whole. As well as these settings there is also a monitor ids
 setting  that can be used for non-'system' users  to  restrict
 them  to only being able to access streams, events or monitors
 for  the given monitors ids as a comma separated list with  no
-spaces.  If a user with `monitors' edit privileges is  limited
+spaces.  If a user with 'monitors' edit privileges is  limited
 to  specific  monitors here they will not be able  to  add  or
 delete monitors but only change the details of those they have
-access  to.  If  a  user  has  `system'  privileges  then  the
-`monitors ids' setting is ignored and has no effect.'
+access  to.  If  a  user  has  'system'  privileges  then  the
+'monitors ids' setting is ignored and has no effect.'
 
 That's  pretty much is it for the tour. You should  experiment
 with  the  various setting to get the results  you  think  are
@@ -1580,11 +1580,11 @@ ZoneMinder itself only has to deal with these capabilities and
 not the individual phone types.
 
 To  use  WURFL you should install the php files  in  the  same
-directory  as  ZoneMinder  and  then  create  a  `wurfl'  sub-
+directory  as  ZoneMinder  and  then  create  a  'wurfl'  sub-
 directory  and  ensure  it  is  readable  and  writeable   (or
 preferably owned by) your web server user. You should put  the
 wurfl.xml  file  in there. One other thing  you  may  need  to
-change,  as the xml file is quite large, is the `memory_limit'
+change,  as the xml file is quite large, is the 'memory_limit'
 setting  in php.ini as the default setting of 8Mb may  be  too
 small.  Once you've done this you should find that your  phone
 or device is recognised and if it can support XHTML-MP it will
@@ -1592,7 +1592,7 @@ receive that interface. If your phone is very new, or you  are
 using an old version of the XML file you might find that it is
 not present however. The WURFL library uses a caching strategy
 to avoid reloading the whole XML file each time so check if  a
-sensible  looking cache file has been created in  the  `wurfl'
+sensible  looking cache file has been created in  the  'wurfl'
 sub-directory also check the wurfl.log in the same place.
 
 The WURFL is a third party application and as such I am unable
@@ -1604,7 +1604,7 @@ me know and I would be pleased to hear about it.
 
 As  support for cookies in mobile devices is patchy  at  best,
 the  groups  feature is not fully implemented in the  XHTML-MP
-views.  Instead  if there is a group called  `Mobile'  already
+views.  Instead  if there is a group called  'Mobile'  already
 defined then that group will always be effective, if not  then
 all monitors available to the logged in user will be visible,
 
@@ -1637,7 +1637,7 @@ Some things to check.
      check the system logs (usually /var/log/messages) for any
      video configuration errors. If you get some and you're sure
      they're not a problem then switch off ZM_STRICT_VIDEO_CONFIG
-     in zmconfig.pl or the `options' tab.
+     in zmconfig.pl or the 'options' tab.
      
 o    Start simple. Begin with a single monitor and single
 zone. You can run the zmc capture daemon from the command line
@@ -1819,14 +1819,70 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 8.   Change Log
    
 
-8.1. Release 1.20.0
-Improved and added features, several minor bugfixes.
+8.1. Release 1.20.1
+Mostly  bug  fixes,  large and small with a  couple  of  minor
+features included.
+
+  o    FIX - A dependency on the regular expression library was
+    introduced in 1.20.0 which caused some people to have build
+    problems. This library has traditionally been is necessary to
+    support network cameras but not otherwise. This situation has
+    now been restored.
+    
+o    FEATURE - Added ZM_RAND_STREAM option. This option adds a
+time code onto the url of each stream to prevent it from being
+cached which had caused some broken image problems with some
+browsers, notably Mozilla.
+o    FIX - Made zms check ZM_OPT_AUTH before loading user
+details. This should have been in there in 1.20.0 but was
+omitted and should fix the issue where streams did not work
+with authentication off.
+o     FIX - There was some debug code left behind in
+zm_xhtml.php. This was unnecessary and has been removed.
+o     FIX - Fixed user sql, added debug and wrapped in check
+for libcrypto in zm_user.cpp. This should correct bogus
+loading of user data which may have affected some people. You
+can also now just bump up the debug level to see what the auth
+strings being used are.
+o    FIX - The xHTML console page now uses the mobile group as
+it should have in 1.20.0
+o    FIX - Modified database username to be binary. You need
+to run the zmalter-1.20.0 sql script as usual to change your
+Users table to disallow case-insensitive checking which may
+have been breaking some people's streams.
+o    FIX - Fixed incorrect constant definitions in
+zmtrigger.pl. This script had not been updated along with the
+other scripts.
+o    FIX - Fixed bogus double .jpg suffix on diagnostic
+images, also included them (if they exist) in frame view.
+o    FIX - Corrected broken check for libcrypto (the check
+happened before any definition) causing build problems for
+some people who do not have MD5 library installed.
+o    FIX - Added permissions mode to mkdir in zm_actions.php
+to remove php warning.
+o    FIX - Added space before -m in zmu command in
+zm_actions.php
+o    FIX - Added quotes around brightness etc SQL in
+zm_actions.php to avoid errors when values are empty.
+o    FIX - Added line length to fgets in zm_config.php.z to
+prevent php warning
+o    FIX - Slightly enlarged a couple of window sizes in
+zm_config.php.z to work better with different browsers.
+o    FIX - Defined empty array in html_view_states to prevent
+php warnings.
+o    FEATURE - Console window now sizes itself according to
+how many monitors in list, though there is a minimum size.
+o    FIX - Corrected bug in zmfilter.pl.z which meant that
+images were not always correctly uploaded.
+
+8.2. Release 1.20.0
+Improved and added features, several minor bug fixes.
 
   o      FEATURE  -  Certain  configuration  (Mostly  database
     settings) is now stored in a new file zm.conf. This means that
     database access settings can be changed without recompilation.
     It  also  allows  the creation of ZoneMinder  rpms.  Watch
-    zoneminder.com for details. Thanks for forum user `oskin' for
+    zoneminder.com for details. Thanks for forum user 'oskin' for
     his work on this.
     
 o    FEATURE - The WML interface is now deprecated and the
@@ -1836,7 +1892,7 @@ o    FEATURE - Monitor groups have now been added allowing
 subsets of monitors to be viewed independently.
 o    FEATURE - A generic external triggering interface has
 been included via the zmtrigger.pl script. A new monitor
-function `Nodect' has been added to support this.
+function 'Nodect' has been added to support this.
   o     FEATURE  - Interaction between the web pages  and  the
     streaming daemons and other utilities has previously been not
     as secure as it could have been and open to possible abuse.
@@ -1901,14 +1957,14 @@ alarm sound, properly. This has been corrected.
     etc) to function with ZoneMinder.
     
 o    FIX - A bug in event streaming when events are of very
-short duration has been fixed. Thanks to forum user `reza' for
+short duration has been fixed. Thanks to forum user 'reza' for
 spotting this one.
   o    FIX - A possible exploit in the login page was identified
-    and  has now been fixed. Thanks again to forum user `reza'
+    and  has now been fixed. Thanks again to forum user 'reza'
     highlighting this problem also.
     
 
-8.2. Release 1.19.5
+8.3. Release 1.19.5
 Various miscellaneous fixes and features.
 
   o    FIX - Sorting event lists by duration was broken and has
@@ -1917,21 +1973,21 @@ Various miscellaneous fixes and features.
 o    FEATURE - The zmfix utility previous corrected file
 permissions on video device files only. This has been modified
 to do likewise to the X10 device serial port if enabled.
-o    FIX - The modification suggested by forum user `oskin'
+o    FIX - The modification suggested by forum user 'oskin'
 has been incorporated into the code to try and reduce or
 remove video for linux errors.
 o    FIX - The remote network camera parsing code has been
 patched to try
-o    FIX - The error reported when a `shmget' call fails has
+o    FIX - The error reported when a 'shmget' call fails has
 been changed to include further information about the cause.
 o    LANGUAGE - Fixed missing semicolon in German language
 file.
-o    FEATURE - Added `<<' and `>>'  links to the page selector
-in the events list as suggested by forum user `unclerichy'.
+o    FEATURE - Added '<<' and '>>'  links to the page selector
+in the events list as suggested by forum user 'unclerichy'.
 o    FEATURE - Brightness, colour, hue and contrast are now
 saved persistently for a monitor rather than being reset each
 time the system is restarted. This feature is based on a patch
-submitted by forum user `oskin'.
+submitted by forum user 'oskin'.
 o    FEATURE - In previous versions the events folder has been
 keyed by the monitor name. This has caused problems in the
 past with various characters appearing which are legal in
@@ -1957,26 +2013,26 @@ compilation. This version will detect which version of ffmpeg
 you have and compile accordingly.
 o    FEATURE - You can now specify a prefix for events
 generated by particular monitors. This will replace the
-default `Event-` one.
+default 'Event-' one.
 o    FEATURE - If you use filters to send event notification
 emails you can now have them sent in HTML format. This is done
-automatically if your mail body includes a `<html>' token,
+automatically if your mail body includes a '<html>' token,
 o    FEATURE - An experimental feature has been added which
 lets you view several events in sequence. In event listing you
 can check the events you want to view and then click the
-`View' button. This will allow you to navigate through only
+'View' button. This will allow you to navigate through only
 those events in the normal manner (via Prev and Next links)
-but also to view them in sequence by clicking on the `Play
+but also to view them in sequence by clicking on the 'Play
 All' link. This will replay each event and then automatically
 move onto the next one. You can stop this progression at any
-time by pressing `Stop' (which only stops the sequence and not
+time by pressing 'Stop' (which only stops the sequence and not
 the currently playing event). The timing of the replay is done
 depending on the calculated length of the event (plus one
 second) and so may not exactly correspond to the real event
 length. In particular this is unlikely to work if replaying
 events using MPEG video and buffering players as the timing
 will likely be incorrect. If you are viewing an event but
-haven't checked any in the list the `Play All' button will
+haven't checked any in the list the 'Play All' button will
 just work down the current event list.
 o    FIX - A default php error level excluding notice warnings
 is now explicitly set.
@@ -1986,12 +2042,12 @@ been desirable as sometimes glitches and flickers create large
 numbers of events, however no mechanism existed for limiting
 this. In this version you can now specify the minimum number
 of consecutive alarmed frames that are necessary to create an
-event. This is the `Alarm Frame Count' described above. Note
+event. This is the 'Alarm Frame Count' described above. Note
 that if an alarm is in progress single isolated alarmed frames
 will still prolong it and the count only applies to the
 initial frames that would cause the event.
 
-8.3. Release 1.19.4
+8.4. Release 1.19.4
 Language fixes and updates.
 
   o     FIX  -  The  US English language file was  recursively
@@ -2005,7 +2061,7 @@ o    LANGUAGE - The Argentinian Spanish, Polish and Italian
 translations have all been updated with tokens introduced in
 version 1.19.3.
 
-8.4. Release 1.19.3
+8.5. Release 1.19.3
 Minor tweaks, fixes and language updates.
 
   o    FEATURE - All stills views now use the single image mode
@@ -2022,7 +2078,7 @@ generates these identifiers. The consequence of this is that
 many more video formats supported by your version of ffmpeg
 should now be available via zms.
 o    FEATURE - When viewing a single frame of an event you can
-select a `stats' link to view the statistics that apply to
+select a 'stats' link to view the statistics that apply to
 that frame, if you have the RECORD_EVENT_STATS option switched
 on. This can be used to help configure your zones for optimal
 motion detection. Previously only pixel count values were
@@ -2045,11 +2101,11 @@ event is always recorded.
 o    FIX - If an analysis daemon terminates abnormally or the
 host computer crashes then events can be left in a state
 whereby they effectively have zero length and are useless. A
-change to zmaudit.pl was made such that any `open' events such
+change to zmaudit.pl was made such that any 'open' events such
 as this which have not been updated for at least five minutes
 are closed and updated to reflect their actual content so that
 they may be viewed or saved. Events recovered in this way are
-named with a `(r)' mark to help identify them.
+named with a '(r)' mark to help identify them.
 o    FIX - In more recent versions of MySQL the password hash
 generated is 50 characters long, which overflows the previous
 password field in the database which was only 32 characters
@@ -2065,7 +2121,7 @@ misnamed. This is now corrected though you may need to reset
 the values that were used previously as these will be lost if
 they had been changed.
 o    FIX - It was previously the case that old images could be
-left in the `images' directory for a long period, sometimes
+left in the 'images' directory for a long period, sometimes
 resulting in incorrectly assuming correct operation. A fix was
 made to zmaudit.pl which modified the previous clean up of old
 WAP images so that any old images left in this directory are
@@ -2076,12 +2132,12 @@ will now be deleted.
 o    FIX - A JavaScript error in the Zone configuration screen
 was identified and fixed.
 o    LANGUAGE - A Brazilian Portuguese translation has been
-supplied by Victor Diago and is available by selecting `pt_br'
+supplied by Victor Diago and is available by selecting 'pt_br'
 as the language type.
 o    LANGUAGE - Updated versions of the Dutch and Argentinian
 Spanish translations have been included.
 
-8.5. Release 1.19.2
+8.6. Release 1.19.2
 Minor features, fixes and language updates.
 
   o     FEATURE  - The default replay rate and live and  event
@@ -2110,7 +2166,7 @@ installations and upgrades is a sample filter called
 PurgeWhenFull which can be used to do this. It is initially
 not set to do anything automatically so if you want to use it,
 you should load it into the filter selection window, modify it
-to your taste and then save it, selecting `auto delete'.
+to your taste and then save it, selecting 'auto delete'.
 Please note that filters created using disk related terms to
 delete events should always contain a limit term also
 otherwise it is possible for all events to match and thus be
@@ -2190,7 +2246,7 @@ in English. There will shortly be a point release which
 includes these language updates assuming I can get
 translations of them in a reasonable timescale.
 
-8.6. Release 1.19.1
+8.7. Release 1.19.1
 Minor bugfixes and enhancements.
 
   o    Ffmpeg Configure Changes. The configure script has been
@@ -2221,7 +2277,7 @@ requirement to pass in a username and password to zmu when
 just querying a device as this was slightly broken and was
 unnecessary anyway.
 
-8.7. Release 1.19.0
+8.8. Release 1.19.0
 Some major enhancements and bugfixes.
 
   o    MPEG video streaming. ZoneMinder now supports true video
@@ -2275,17 +2331,17 @@ between. Bulk frames are only used when no alarm or motion
 detection activity is taking place and normal frame records
 are kept otherwise.
 o    Event List Ordering and Scrolling. It was previously the
-case that the `Next' and `Prev' buttons on the event view did
+case that the 'Next' and 'Prev' buttons on the event view did
 not always go to the event that was expected and sometimes
 disappeared altogether. This behaviour has now been modified
 and these buttons will now take you to the next and previous
 events in the list which the event was selected from. Thus if
-the list was sorted on ascending scores then the `next' event
+the list was sorted on ascending scores then the 'next' event
 is the one below which has a higher score etc. A possibly
 counterintuitive side effect of this is that as the default
-list is sorted by descending time the `next' event is the one
+list is sorted by descending time the 'next' event is the one
 below in the list which will actually be earlier and the
-`previous' event is later. So long as you remember that next
+'previous' event is later. So long as you remember that next
 and prev refer to the order of the list you should be ok.
 o    Zone Percentage Sizes. Zone motion detection parameters
 can be defined either in terms of total pixels or as a
@@ -2299,7 +2355,7 @@ existing zones you can run zmupdate.pl with the -z option,
 though this should be done only once and you should backup
 your database beforehand in case of error.
 o    Console View System Display. The console display was
-slight revamped to indicate disk space usage (via the `df'
+slight revamped to indicate disk space usage (via the 'df'
 command) on the events partition,
 o    Zone Form Validation. Changes applied in version 1.18.0
 to prevent invalidate entries in the zone definition form
@@ -2325,7 +2381,7 @@ filters they actually got a duplicate. This resulted in
 several copies of filters all with the same name as the
 constraint on unique filter names was not present. Well it is
 now so when upgrading your database all the filters will be
-renamed from `myfilter' to `myfilter_<id>' where `<id>' is the
+renamed from 'myfilter' to 'myfilter_<id>' where '<id>' is the
 id number in the database (which is then removed). In general
 the higher the id number the more recent the filter. So you
 should go through your filter list deleting old copies and
@@ -2347,7 +2403,7 @@ being deleted when monitor was.
 o    A translation for the Dutch (nl_nl) language has been
 included.
 
-8.8. Release 1.18.1
+8.9. Release 1.18.1
 Minor bugfixes.
 
   o     Filter  Monitor  Name Bug. A bug was  present  in  the
@@ -2366,7 +2422,7 @@ recommended that you review your list of saved filters and
 delete duplicates before adding any monitor specific terms and
 resetting the actions for any that remain.
 
-8.9. Release 1.18.0
+8.10.     Release 1.18.0
 Major optimisations, important new features and some bugfixes.
 
   o    Optimisations and Performance Improvements. This release
@@ -2396,7 +2452,7 @@ Major optimisations, important new features and some bugfixes.
     and because in some unusual circumstances it may still be more
     accurate (see the ZM_FAST_IMAGE_BLENDS option for details).
     Altogether these optimisations (along with other common sense
-    ones such as not maintaining a reference image in `Record'
+    ones such as not maintaining a reference image in 'Record'
     mode where it is not used) significantly reduce the CPU load
     for most systems, especially when alarms are not in progress.
     If an alarm is detected then a lot of file system and database
@@ -2431,9 +2487,9 @@ filters and delete duplicates before adding any monitor
 specific terms and resetting the actions for any that remain.
 o    New Filter Operators. Two new filter operators and their
 inverse have been added. You can now indicate whether a value
-is in a set of other values, for example `cat' is in the set
-of `cat, dog, cow, horse'. You can also use regular
-expressions so `cat' matches `^c.*'. The `not in set' and `not
+is in a set of other values, for example 'cat' is in the set
+of 'cat, dog, cow, horse'. You can also use regular
+expressions so 'cat' matches '^c.*'. The 'not in set' and 'not
 matches' operators are also available.
 o    Additional Scales. Enhancements to the scaling algorithm
 mean that non binary scales are now just as easy to apply,
@@ -2496,7 +2552,7 @@ could sometimes be 30 or even 45 minutes. This was especially
 the case with monitors that had low frame rates. This is now
 fixed.
 
-8.10.     Release 1.17.2
+8.11.     Release 1.17.2
 Minor features, bug fixes and additional languages.
 
   o     Pending Process Bug. A bug was found whereby a process
@@ -2511,7 +2567,7 @@ for by the configure script and it is not used if not present.
 o    Add Max Alarm Threshold. Previously the alarm threshold
 (which is the amount a pixel has to differ from it's
 counterpart in the reference image) existed only in a
-`minimum' form meaning pixels that were more different
+'minimum' form meaning pixels that were more different
 matched. A maximum has now been added to assist in screening
 out large changes in brightness. In addition to this a number
 of new consistency checks have been added to the zone
@@ -2535,8 +2591,8 @@ analyse.jpg. This is to allow all images (including diagnostic
 ones) to be associated with the frame sequence number more
 easily. This means that old events will no longer be able to
 be viewed as the wrong image will be being searched for. To
-avoid this you can use the new `zmupdate.pl' utility to rename
-all your old images by doing `perl zmupdate.pl -r' as an
+avoid this you can use the new 'zmupdate.pl' utility to rename
+all your old images by doing 'perl zmupdate.pl -r' as an
 appropriately privileged or root user.
 o    Version checking. ZoneMinder will now optionally check
 for new versions of itself at zoneminder.com. This is done
@@ -2550,8 +2606,8 @@ override it's detection of browser capabilities to prevent the
 Cambozola Java applet being used. However sometimes the
 opposite effect was desired and using the applet was preferred
 to native image handling. This has now been made possible by
-making the ZM_CAN_STREAM option tri-state allowing `auto',
-`yes' or `no' to be used to provide all alternatives.
+making the ZM_CAN_STREAM option tri-state allowing 'auto',
+'yes' or 'no' to be used to provide all alternatives.
 o    Alarms Cleared on Exit. In previous versions if an alarm
 was present when the analysis daemon (zma) exited the alarm
 would remain flagged. This had little effect except if the
@@ -2560,7 +2616,7 @@ alarm flag is now cleared when this daemon exits.
 o    New Languages. Translations for Japanese (ja_jp), French
 (fr_fr) and Russian (ru_ru) are now included.
 
-8.11.     Release 1.17.1
+8.12.     Release 1.17.1
 Bugfixes and additional languages.
 
   o    Login Bug. A bug was identified whereby an unauthorised
@@ -2583,11 +2639,11 @@ as this is a rarely accessed area and contains a great deal of
 text. The new format allows individual options to be
 translated piecemeal as the opportunity arises.
 
-8.12.     Release 1.17.0
+8.13.     Release 1.17.0
 Language changes and other enhancements.
 
   o     Version Numbering. ZoneMinder version numbers have now
-    changed. This is to allow more frequent `point' releases which
+    changed. This is to allow more frequent 'point' releases which
     are  expected to happen for instance whenever new language
     files  are included. Previously all releases had the  same
     version increment so it was difficult to tell the significance
@@ -2610,7 +2666,7 @@ zm_lang_nn_mm.php which can be created from the default
 zm_lang_en_gb.php file. If your language is not included then
 please consider doing a translation by checking this file and
 submitting your changes back for inclusion in future releases.
-o    Syntactic Improvements. Previously setting `NOTICE'
+o    Syntactic Improvements. Previously setting 'NOTICE'
 errors on in PHP would flag tens or hundreds of violations in
 the ZoneMinder web files. Whilst not strictly errors this
 represented sloppy coding and sometimes covered up genuine
@@ -2631,10 +2687,10 @@ function call has been corrected.
 o    Minor Bugs. A number of minor bugs and inconsistencies
 were corrected.
 
-8.13.     Release 0.9.16
+8.14.     Release 0.9.16
 Major usability enhancement and fixes.
 
-  o     Run States. Instead of the old `start/stop' links  the
+  o     Run States. Instead of the old 'start/stop' links  the
     current system state is now a link which takes you to a dialog
     which allows you to start, restart or stop the system. You can
     also  save the current run state which basically  takes  a
@@ -2757,7 +2813,7 @@ correctly parsed from command line options passed to zmu.
 o    Event window width variable. Event windows now scale to
 fit the event image size.
 
-8.14.     Release 0.9.15
+8.15.     Release 0.9.15
 Various bug fixes from the last release and before.
 
   o     Bandwidth. A bug was introduced in .14 which caused  a
@@ -2796,7 +2852,7 @@ images written by zma directly were colourised whereas those
 written by  zmf weren't. A change has been made whereby if set
 all greyscale JPEG images are colourised in all circumstances.
 
-8.15.     Release 0.9.14
+8.16.     Release 0.9.14
 Major new feature and important bug-fixes.
 
   o     Web configuration. Following many requests and to make
@@ -2823,7 +2879,7 @@ has been removed. This module had been removed from
 zmconfig.pl previously but had lingered in this script.
 o    A bug was found in zmx10.pl causing a crash if time
 delayed X10 events were used. This has now been fixed.
-o    Removed use of `zmu' binary from zmwatch.pl and zmx10.pl.
+o    Removed use of 'zmu' binary from zmwatch.pl and zmx10.pl.
 Previously these scripts had used zmu to determine last image
 time and alarm state information. The use of this script was a
 bit overkill and the introduction of user permissions
@@ -2840,7 +2896,7 @@ o    All SQL buffers in the C++ code have been enlarged. There
 was previously an issue with a buffer overflow on certain
 occasions.
 
-8.16.     Release 0.9.13
+8.17.     Release 0.9.13
 Beta  version  of several features and fixes, never  generally
 released.
 
@@ -2891,7 +2947,7 @@ windows to restart the refresh process. By using JS refresh
 timers which are not interrupted these extraneous refreshes
 have been mostly eliminated.
 
-8.17.     Release 0.9.12
+8.18.     Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
   o     Double  first images. Fixed a problem where the  first
@@ -2919,7 +2975,7 @@ for short deltas. This routine has been changed to allow
 variable precision and events will now have to be several days
 long to wrap in this way.
 o    Fixed round detection problem. Although the existence or
-otherwise of the `round' function is correctly detected, the
+otherwise of the 'round' function is correctly detected, the
 appropriate header file with the results of this test was not
 included which was not helpful. This has been corrected.
 o    Fixed monitor rename bug. Renaming a monitor did not
@@ -2966,9 +3022,9 @@ o    Delete monitor confirm. Due to some unfortunate accidents
 by users, attempts to delete monitors will now require
 confirmation.
 o    Detect linmysqlclient.a. Added better detection script
-into `configure' top spot when libmysqlclient.a is missing.
+into 'configure' top spot when libmysqlclient.a is missing.
 
-8.18.     Release 0.9.11
+8.19.     Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats view - If you have the RECORD_EVENT_STATS
@@ -3054,10 +3110,10 @@ o    Web colour change - I thought the old red, green and
 amber text colours were just a bit too gaudy so I've toned
 them down a bit. Hope you like them!
 
-8.19.     Release 0.9.10
+8.20.     Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
-  o     Configure  `round'  bug - Fixed  a  problem  with  the
+  o     Configure  'round'  bug - Fixed  a  problem  with  the
      configure script that didn't  detect if the 'round' function
      was already declared before try to do it itself.
      
@@ -3074,7 +3130,7 @@ be left behind.
 o    Streamed cycle view -  The monitor cycle view (the one
 where each monitor is displayed sequentially) now supports
 streams as well as stills.
-o    New `montage' view - Added a montage view showing all
+o    New 'montage' view - Added a montage view showing all
 your cameras simultaneously either streaming or stills. The
 width of this window (in terms of number of monitors) is a
 configuration option.
@@ -3134,7 +3190,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came
 across that that I don't think had been reported or noticed so
 I don't think we need to talk about them here do we.
 
-8.20.     Release 0.9.9
+8.21.     Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o     Added zmu -q/--query option - There is now a new query
@@ -3184,7 +3240,7 @@ was removed in the last version which meant that sometimes the
 console never go refreshed as it's timing loop was broken.
 This functionality has now been reinstated.
 
-8.21.     Release 0.9.8
+8.22.     Release 0.9.8
 Several new features and bug-fixes
 
   o     Upgrade note - If you have installed 0.9.7 and wish to
@@ -3258,7 +3314,7 @@ o    Monitor window refresh on alarm - When the monitor window
 is active and an alarm has occurred the most recent alarms
 list is immediately refreshed to show it.
 
-8.22.     Release 0.9.7
+8.23.     Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes  too.
 Now somewhat more mature, not really an alpha any more, and  a
 lot of bugs fixed too.
@@ -3307,7 +3363,7 @@ o    Some of the web views have changed slightly to
 accommodate the separate events view.
 o    And much much more, probably...
 
-8.23.     Release 0.0.1
+8.24.     Release 0.0.1
 Initial release, therefore nothing new.
 
 

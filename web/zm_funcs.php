@@ -108,7 +108,6 @@ function daemonControl( $command, $daemon=false, $args=false )
 
 function zmcControl( $monitor, $restart=false )
 {
-	print_r( $monitor );
 	if ( $monitor[Type] == "Local" )
 	{
 		$sql = "select count(if(Function='Passive',1,NULL)) as PassiveCount, count(if(Function='Active',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Device = '$monitor[Device]'";

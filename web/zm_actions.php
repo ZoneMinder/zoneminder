@@ -370,7 +370,7 @@ if ( isset($action) )
 					{
 						deleteEvent( $mark_eid );
 					}
-					system( "rm -rf ".EVENT_PATH."/".$monitor['Name'] );
+					system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Name'] );
 
 					$result = mysql_query( "delete from Zones where MonitorId = '$mark_mid'" );
 					if ( !$result )

@@ -30,10 +30,12 @@
 			$result = mysql_query( "select * from TriggersX10 where MonitorId = '$mid'" );
 			if ( !$result )
 				die( mysql_error() );
-			$x10_monitor = mysql_fetch_assoc( $result );
-			foreach( $x10_monitor as $key=>$value )
+			if ( $x10_monitor = mysql_fetch_assoc( $result ) )
 			{
-				$monitor['X10'.$key] = $value;
+				foreach( $x10_monitor as $key=>$value )
+				{
+					$monitor['X10'.$key] = $value;
+				}
 			}
 		}
 	}
@@ -144,6 +146,7 @@ function closeWindow()
 	}
 ?>
 </select></td></tr>
+<tr><td align="left" class="text">Section Length</td><td align="left" class="text"><input type="text" name="new_section_length" value="<?= $monitor[SectionLength] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text">Run Mode</td><td align="left" class="text"><select name="new_runmode" class="form">
 <?php
 	foreach ( getEnumValues( 'Monitors', 'RunMode' ) as $opt_runmode )
@@ -237,7 +240,6 @@ $source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
 		case 'misc' :
 		{
 ?>
-<tr><td align="left" class="text">Section Length</td><td align="left" class="text"><input type="text" name="new_section_length" value="<?= $monitor[SectionLength] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text">Maximum FPS</td><td align="left" class="text"><input type="text" name="new_max_fps" value="<?= $monitor[MaxFPS] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">FPS Report Interval</td><td align="left" class="text"><input type="text" name="new_fps_report_interval" value="<?= $monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_ref_blend_perc" value="<?= $monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>

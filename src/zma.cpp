@@ -30,10 +30,12 @@ void zm_die_handler( int signal )
 	exit( signal );
 }
 
+bool zma_terminate = false;
+
 void zm_term_handler( int signal )
 {
 	Info(( "Got TERM signal, exiting" ));
-	exit( 0 );
+	zma_terminate = true;
 }
 
 void Usage()
@@ -132,7 +134,7 @@ int main( int argc, char *argv[] )
 		sigaction( SIGBUS, &action, &old_action );
 		sigaction( SIGSEGV, &action, &old_action );
 
-		while( 1 )
+		while( !zma_terminate )
 		{
 			// Process the next image
 			sigprocmask( SIG_BLOCK, &block_set, 0 );
@@ -142,6 +144,7 @@ int main( int argc, char *argv[] )
 			}
 			sigprocmask( SIG_UNBLOCK, &block_set, 0 );
 		}
+		delete monitor;
 	}
 	else
 	{

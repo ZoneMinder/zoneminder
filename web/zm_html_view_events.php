@@ -83,26 +83,26 @@
 			switch ( $$attr_name )
 			{
 				case 'DateTime':
-					$dt_val = strtotime( $$value_name );
-					$filter_sql .= "E.StartTime ".$$op_name." from_unixtime( $dt_val )";
+					$dt_val = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) );
+					$filter_sql .= "E.StartTime ".$$op_name." '$dt_val'";
 					$filter_query .= "&$op_name=".urlencode($$op_name);
 					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 					break;
 				case 'Date':
-					$dt_val = strtotime( $$value_name );
-					$filter_sql .= "to_days( E.StartTime ) ".$$op_name." to_days( from_unixtime( $dt_val ) )";
+					$dt_val = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) );
+					$filter_sql .= "to_days( E.StartTime ) ".$$op_name." to_days( '$dt_val' )";
 					$filter_query .= "&$op_name=".urlencode($$op_name);
 					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 					break;
 				case 'Time':
-					$dt_val = strtotime( $$value_name );
-					$filter_sql .= "extract( hour_second from E.StartTime ) ".$$op_name." extract( hour_second from from_unixtime( $dt_val ) )";
+					$dt_val = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) );
+					$filter_sql .= "extract( hour_second from E.StartTime ) ".$$op_name." extract( hour_second from '$dt_val' )";
 					$filter_query .= "&$op_name=".urlencode($$op_name);
 					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 					break;
 				case 'Weekday':
-					$dt_val = strtotime( $$value_name );
-					$filter_sql .= "weekday( E.StartTime ) ".$$op_name." weekday( from_unixtime( $dt_val ) )";
+					$dt_val = strftime( "%Y-%m-%d %H:%M:%S", strtotime( $$value_name ) );
+					$filter_sql .= "weekday( E.StartTime ) ".$$op_name." weekday( '$dt_val' )";
 					$filter_query .= "&$op_name=".urlencode($$op_name);
 					$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'">'."\n";
 					break;

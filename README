@@ -981,8 +981,10 @@ This can be useful in tuning the various motion detection parameters and seeing
 why events occurred.
 - Tabulated events - The main events view is now tabulated to look a bit nicer.
 - New video palette support - As well as the existing greyscale and 24 bit RGB 
-palettes, you can now choose YUV420P and RGB565. Rewrite the palette/colours 
-area a bit to enable support for other palettes in the future if requested. 
+palettes, you can now choose YUV420P and RGB565. Rewrote the palette/colours 
+area a bit to enable support for other palettes in the future if requested. Bear 
+in mind though that YUV palettes are converted into RGB internally so if you 
+have the choice RGB24 may be faster as it's the 'native' format used within. 
 - Added preclusive zones - Added a new zone type, the preclusive zone. For full 
 details see the relevant section above but in brief this is a zone type that if 
 alarmed will actually prevent an alarm. This completes the pantheon of zone 
@@ -1024,8 +1026,14 @@ averaging the differences between each of the RGB components to get an overall
 difference. This is still the default but by setting ZM_FAST_RGB_DIFFS to 'no' 
 you can now make it calculate the Y (or brightness value) of the pixels and use 
 the difference between those instead. This will be more accurate and responsive 
-to changes but is may be slower especially on old machines.
-- Web colour change - I though the old red, green and amber text colours were 
+to changes but is may be slower especially on old machines. There is a slight 
+double whammy here if you have a YUV palette for capture and set this option off 
+as the image will be converted to RGB and then partially converted back to get 
+the Y value. This is currently very inefficient and needs to be optimised.
+- Fixed STRICT_VIDEO_CONFIG - Previously this actually behaved the opposite of 
+what it was supposed to, ie. if you wanted it strict it wasn't and vice versa. 
+Thanks to Dan Merillat for pointing this one out.
+- Web colour change - I thought the old red, green and amber text colours were 
 just a bit too gaudy so I've toned them down a bit. Hope you like them!
 
 Release 0.9.10 - Many bug-fixes and major feature enhancements.

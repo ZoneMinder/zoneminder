@@ -834,9 +834,9 @@ else
 		$frame_id = $row[FrameId];
 		$image_path = $row[ImagePath];
 
+		$capt_image = $image_path;
 		if ( $scale == 1 )
 		{
-			$capt_image = $image_path;
 			$anal_image = preg_replace( "/capture/", "analyse", $image_path );
 
 			if ( file_exists($anal_image) && filesize( $anal_image ) )
@@ -850,15 +850,15 @@ else
 		}
 		else
 		{
-			$thumb_image = preg_replace( "/capture/", "thumb", $image_path );
+			$thumb_image = preg_replace( "/capture/", "thumb", $capt_image );
 
 			if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
 			{
-				$anal_image = preg_replace( "/capture/", "analyse", $image );
+				$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
 				if ( file_exists( $anal_image ) )
 					$command = "jpegtopnm -dct fast $anal_image | pnmscalefixed $fraction | ppmtojpeg --dct=fast > $thumb_image";
 				else
-					$command = "jpegtopnm -dct fast $image | pnmscalefixed $fraction | ppmtojpeg --dct=fast > $thumb_image";
+					$command = "jpegtopnm -dct fast $capt_image | pnmscalefixed $fraction | ppmtojpeg --dct=fast > $thumb_image";
 				#exec( escapeshellcmd( $command ) );
 				exec( $command );
 			}

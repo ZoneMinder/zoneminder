@@ -894,7 +894,7 @@ function configureButton(form,name)
 			die( mysql_error() );
 		$monitor = mysql_fetch_assoc( $result );
 
-		$sql = "select E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = 0";
+		$sql = "select E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M left join Events as E on M.Id = E.MonitorId where M.Id = '$mid' and E.Archived = 0";
 		$sql .= " order by $sort_column $sort_order";
 		$sql .= " limit 0,$max_events";
 		$result = mysql_query( $sql );
@@ -931,7 +931,7 @@ function configureButton(form,name)
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($row[StartTime]) ) ?></td>
 <td align="center" class="text"><?= $row[Length] ?></td>
 <td align="center" class="text"><?= $row[Frames] ?>/<?= $row[AlarmFrames] ?></td>
-<td align="center" class="text"><?= $row[AvgScore] ?>/<?= $row[MaxScore] ?></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $row[Id] ?>&fid=0', 'zmImage', <?= $monitor[Width]+$jws['image']['w'] ?>, <?= $monitor[Height]+$jws['image']['h'] ?> );"><?= $row[AvgScore] ?>/<?= $row[MaxScore] ?></a></td>
 <td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"></td>
 </tr>
 <?php
@@ -1096,6 +1096,10 @@ function configureButton(form,name)
 <title>ZM - <?= $monitor[Name] ?> - Events</title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
+function newWindow(Url,Name,Width,Height)
+{
+   	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+}
 function eventWindow(Url,Name)
 {
 	var Name = window.open(Url,Name,"resizable,scrollbars,width=<?= $jws['event']['w'] ?>,height=<?= $jws['event']['h'] ?>");
@@ -1208,7 +1212,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <td align="center" class="text"><?= $row[AlarmFrames] ?></td>
 <td align="center" class="text"><?= $row[TotScore] ?></td>
 <td align="center" class="text"><?= $row[AvgScore] ?></td>
-<td align="center" class="text"><?= $row[MaxScore] ?></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $row[Id] ?>&fid=0', 'zmImage', <?= $monitor[Width]+$jws['image']['w'] ?>, <?= $monitor[Height]+$jws['image']['h'] ?> );"><?= $row[MaxScore] ?></a></td>
 <td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"></td>
 </tr>
 <?php
@@ -1571,10 +1575,21 @@ window.focus();
 			die( mysql_error() );
 		$event = mysql_fetch_assoc( $result );
 
-		$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
-		if ( !$result )
-			die( mysql_error() );
-		$frame = mysql_fetch_assoc( $result );
+		if ( $fid )
+		{
+			$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$frame = mysql_fetch_assoc( $result );
+		}
+		else
+		{
+			$result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '$event[MaxScore]'" );
+			if ( !$result )
+				die( mysql_error() );
+			$frame = mysql_fetch_assoc( $result );
+			$fid = $frame[FrameId];
+		}
 
 		$result = mysql_query( "select count(*) as FrameCount from Frames where EventID = '$eid'" );
 		if ( !$result )
@@ -1611,8 +1626,8 @@ function closeWindow()
 }
 function deleteEvent()
 {
-	opener.location.href = "<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>";
-	window.close();
+	location.href = "<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>";
+	//window.close();
 }
 </script>
 </head>
@@ -1758,6 +1773,16 @@ function closeWindow()
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 <?php
+		if ( !$event )
+		{
+?>
+opener.location.reload();
+window.close();
+<?php
+		}
+?>
+window.focus();
+<?php
 		if ( $refresh_parent )
 		{
 ?>
@@ -1765,7 +1790,6 @@ opener.location.reload();
 <?php
 		}
 ?>
-window.focus();
 function refreshWindow()
 {
 	window.location.reload();

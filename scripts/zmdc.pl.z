@@ -14,8 +14,7 @@
 # ==========================================================================
 
 use constant DAEMON_PATH => '/usr/local/zm/bin/';
-use constant DAEMON_PATH => './';
-use constant SOCK_FILE => '/tmp/zm.sock';
+use constant DC_SOCK_FILE => '/tmp/zmdc.sock';
 
 # ==========================================================================
 #
@@ -69,7 +68,7 @@ foreach my $arg ( @ARGV )
 
 socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
 
-my $saddr = sockaddr_un( SOCK_FILE );
+my $saddr = sockaddr_un( DC_SOCK_FILE );
 
 if ( !connect( CLIENT, $saddr ) )
 {
@@ -91,7 +90,7 @@ if ( !connect( CLIENT, $saddr ) )
 		dprint( "Server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
 		socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
-		unlink( SOCK_FILE );
+		unlink( DC_SOCK_FILE );
 		bind( SERVER, $saddr ) or die( "Can't bind: $!" );
 		listen( SERVER, SOMAXCONN ) or die( "Can't listen: $!" );
 
@@ -256,7 +255,7 @@ if ( !connect( CLIENT, $saddr ) )
 				stop( $process->{daemon}, @{$process->{args}} );
 			}
 			dprint( "Server shutdown at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-			unlink( SOCK_FILE );
+			unlink( DC_SOCK_FILE );
 			close( CLIENT );
 			close( SERVER );
 			exit();

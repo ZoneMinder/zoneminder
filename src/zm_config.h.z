@@ -40,6 +40,9 @@
 #define ZM_SCALE_SCALE			100					// The factor by which we bump up 'scale' to simulate FP
 #define ZM_RATE_SCALE			100					// The factor by which we bump up 'rate' to simulate FP
 
+#define ZM_MAX_FPS              30                  // The maximum frame rate we expect to handle
+#define ZM_SAMPLE_RATE          int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
+
 class ConfigItem
 {
 private:

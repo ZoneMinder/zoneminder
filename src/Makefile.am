@@ -19,7 +19,7 @@ zmu_SOURCES = zmu.cpp $(zm_SOURCES)
 zmf_SOURCES = zmf.cpp $(zm_SOURCES)
 zmfix_SOURCES = zmfix.cpp zm_debug.c zm_db.cpp zm.cpp
 
-noinst_HEADERS = zm.h zm_db.h zm_font.h zm_rgb.h zm_config.h zm_debug.h zm_coord.h zm_box.h zm_image.h zm_event.h zm_zone.h zm_camera.h zm_local_camera.h zm_remote_camera.h zm_monitor.h zm_font.h jinclude.h zmf.h
+noinst_HEADERS = zm.h zm_db.h zm_font.h zm_rgb.h zm_config.h zm_config_defines.h zm_debug.h zm_coord.h zm_box.h zm_image.h zm_event.h zm_zone.h zm_camera.h zm_local_camera.h zm_remote_camera.h zm_monitor.h zm_font.h jinclude.h zmf.h
 
 EXTRA_DIST = zm_config.h.z
 

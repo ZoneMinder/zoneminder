@@ -894,7 +894,7 @@ function configureButton(form,name)
 			die( mysql_error() );
 		$monitor = mysql_fetch_assoc( $result );
 
-		$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = 0";
+		$sql = "select E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId and E.Archived = 0";
 		$sql .= " order by $sort_column $sort_order";
 		$sql .= " limit 0,$max_events";
 		$result = mysql_query( $sql );
@@ -928,7 +928,7 @@ function configureButton(form,name)
 <tr>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $row[Id] ?>', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $row[Id] ?></a></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $row[Id] ?>', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $row[Name] ?></a></td>
-<td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", $row[Time] ) ?></td>
+<td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($row[StartTime]) ) ?></td>
 <td align="center" class="text"><?= $row[Length] ?></td>
 <td align="center" class="text"><?= $row[Frames] ?>/<?= $row[AlarmFrames] ?></td>
 <td align="center" class="text"><?= $row[AvgScore] ?>/<?= $row[MaxScore] ?></td>
@@ -993,7 +993,7 @@ function configureButton(form,name)
 		$monitor = mysql_fetch_assoc( $result );
 
 		// XXX
-		$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId";
+		$sql = "select E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId";
 		$filter_query = ''; 
 		$filter_sql = '';
 		$filter_fields = '';
@@ -1202,7 +1202,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <tr<?php if ( $bgcolor ) echo ' bgcolor="'.$bgcolor.'"'; ?> >
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Id]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Name]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
-<td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", $row[Time] ) ?></td>
+<td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($row[Time]) ) ?></td>
 <td align="center" class="text"><?= $row[Length] ?></td>
 <td align="center" class="text"><?= $row[Frames] ?></td>
 <td align="center" class="text"><?= $row[AlarmFrames] ?></td>

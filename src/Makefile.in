@@ -1,0 +1,84 @@
+top_srcdir = @top_srcdir@
+srcdir = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = $(exec_prefix)/bin
+
+CC = @CC@
+CXX = @CXX@
+CPPFLAGS = @DEFS@
+CFLAGS= @DEFS@ @CFLAGS@
+CXXFLAGS = @CXXFLAGS@ $(CFLAGS)
+LDFLAGS = @LDFLAGS@ -Wl,-E
+INSTALL = @INSTALL@
+BINDIR = @bindir@
+ZMLIBS = -L/usr/lib/mysql -lmysqlclient @LIBS@
+ZMOBJS = zm.o zmdbg.o jmemdst.o
+ZMHDRS = zm.h zmcfg.h zmdbg.h
+
+all: zmc zma zms zmu
+
+test:
+	@echo "No tests available"
+
+install:
+	$(INSTALL) $(ZMC) $(BINDIR)
+	$(INSTALL) $(ZMA) $(BINDIR)
+	$(INSTALL) $(ZMS) $(BINDIR)
+	$(INSTALL) $(ZMU) $(BINDIR)
+	@echo "You will now need to copy index.php to your desired ZoneMinder web document root"
+
+clean:
+	@$(RM) $(ZMC) $(ZMCOBJS) $(ZMA) $(ZMAOBJS) $(ZMS) $(ZMSOBJS) $(ZMU) $(ZMUOBJS)
+
+distclean:
+	@$(RM) Makefile config.h config.status config.cache config.log
+
+ZMC = zmc
+ZMCOBJS = zmc.o $(ZMOBJS)
+ZMCLIBS = $(ZMLIBS)
+
+ZMA = zma
+ZMAOBJS = zma.o $(ZMOBJS)
+ZMALIBS = $(ZMLIBS)
+
+ZMS = zms
+ZMSOBJS = zms.o $(ZMOBJS)
+ZMSLIBS = $(ZMLIBS)
+
+ZMU = zmu
+ZMUOBJS = zmu.o $(ZMOBJS)
+ZMULIBS = $(ZMLIBS)
+
+zmdbg.o: zmdbg.c zmdbg.h
+	$(CXX) -c $(CXXFLAGS) $<
+
+jmemdst.o: jmemdst.c
+	$(CC) -c $(CFLAGS) $<
+
+zm.o: zm.cpp $(ZMHDRS)
+	$(CXX) -c $(CXXFLAGS) $<
+
+zmc.o: zmc.cpp $(ZMHDRS)
+	$(CXX) -c $(CXXFLAGS) $<
+
+zma.o: zma.cpp $(ZMHDRS)
+	$(CXX) -c $(CXXFLAGS) $<
+
+zms.o: zms.cpp $(ZMHDRS)
+	$(CXX) -c $(CXXFLAGS) $<
+
+zmu.o: zmu.cpp $(ZMHDRS)
+	$(CXX) -c $(CXXFLAGS) $<
+
+$(ZMC): $(ZMCOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(ZMCOBJS) $(ZMCLIBS) $(LDFLAGS) 
+
+$(ZMA): $(ZMAOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(ZMAOBJS) $(ZMALIBS) $(LDFLAGS) 
+
+$(ZMS): $(ZMSOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(ZMSOBJS) $(ZMSLIBS) $(LDFLAGS) 
+
+$(ZMU): $(ZMUOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(ZMUOBJS) $(ZMULIBS) $(LDFLAGS) 

@@ -1,4 +1,4 @@
-    16/03/04        ZoneMinder 1.19.0 README                
+     17/03/04        ZoneMinder 1.19.0 README                1
                                  
                         ZoneMinder v1.19.0
 
@@ -1603,6 +1603,9 @@ of the zone itself instead. This should make calculations somewhat
 easier. To convert your existing zones you can run zmupdate.pl
 with the -z option, though this should be done only once and you
 should backup your database beforehand in case of error.
+o    Console View System Display. The console display was slight
+revamped to indicate disk space usage (via the 'df' command) on
+the events partition,
 o    Zone Form Validation. Changes applied in version 1.18.0 to
 prevent invalidate entries in the zone definition form actually
 had the opposite effect due to JavaScript treating everything as a
@@ -1632,11 +1635,17 @@ database all the filters will be renamed from 'myfilter' to
 more recent the filter. So you should go through your filter list
 deleting old copies and then rename the last one back to it's
 original name.
+o    Filter Form. Problem were reported with the filtering form
+where several selections generated SQL errors. This is now fixed.
 o    Filter Image Attachments. A fix was made to zmfilter.pl to
 prevent it trying to attach‚ alarm images to non-alarm events.
 o    Video Rate Specification. A fix was made to zmvideo.pl that
 corrected a problem with no default frame being used if none was
 passed in.
+o    RBG->BGR Black Screen. Fixed an issue with black screens
+being reported in RGB24 mode if RGB->BGR invert was not selected.
+o    Monitor Deletion. Fixed a problem with event files not being
+deleted when monitor was.
 o    A translation for the Dutch (nl_nl) language has been
 included.
 

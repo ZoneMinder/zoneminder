@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
 <meta name=Generator content="Microsoft Word 10 (filtered)">
-<title>ZoneMinder v1.18.0</title>
+<title>ZoneMinder v1.19.0</title>
 
 <style>
 <!--
@@ -220,9 +220,9 @@ even at work or on the road. It supports variable web capabilities based on
 available bandwidth. The web interface also allows you to view events that your
 cameras have captured and archive them or review them time and again, or delete
 the ones you no longer wish to keep. The web pages directly interact with the
-core daemons ensuring full co-operation at all times. ZoneMinder can even be
-installed as a system service ensuring it is right there if your computer has
-to reboot for any reason.</p>
+core daemons ensuring full co-operation at all times. ZoneMinder can even be installed
+as a system service ensuring it is right there if your computer has to reboot
+for any reason.</p>
 
 <p class=MsoPlainText>The core of ZoneMinder is the capture and analysis of
 images and there is a highly configurable set of parameters that allow you to
@@ -306,12 +306,12 @@ you want to use real MPEG based streaming you will need to have built and
 installed the ffmpeg tools. You can then also use <i>–with-ffmpeg=&lt;path to
 ffmpeg build directory&gt;</i> to help configure find it. Note this path should
 be to the directory you build ffmpeg in and not where it is installed. This
-package installs only binaries whereas ZoneMinder needs access to the header and
-libraries files which remain. If you have built ffmpeg with the mp3lame feature
-turned on your will additionally need to tell configure where to find that, to
-prevent unresolved dependencies. To do this add the <i>–with-lame=&lt;path to
-lame directory&gt;</i>option as well. There are also two further arguments you
-can add if your web user and group are not both 'apache'. These are <i>--with-webuser</i>
+package installs only binaries whereas ZoneMinder needs access to the header
+and libraries files which remain. If you have built ffmpeg with the mp3lame
+feature turned on your will additionally need to tell configure where to find
+that, to prevent unresolved dependencies. To do this add the <i>–with-lame=&lt;path
+to lame directory&gt;</i>option as well. There are also two further arguments
+you can add if your web user and group are not both 'apache'. These are <i>--with-webuser</i>
 and <i>--with-webgroup</i>. Type</p>
 
 <p class=MsoPlainText><i>./configure –help</i></p>
@@ -394,10 +394,10 @@ password&gt;'</i></p>
 <p class=MsoPlainText><i>mysqladmin reload</i></p>
 
 <p class=MsoPlainText>You may need to supply a username and password to the
-mysql commands in the first place to give yourself sufficient privileges to perform
-the required commands. If you want to host your database on a different machine
-than that which ZoneMinder is running on then use the hostname of the remote
-machine instead of localhost.</p>
+mysql commands in the first place to give yourself sufficient privileges to
+perform the required commands. If you want to host your database on a different
+machine than that which ZoneMinder is running on then use the hostname of the
+remote machine instead of localhost.</p>
 
 <p class=MsoPlainText>Then just type <i>'make'</i> and off you go.</p>
 
@@ -507,10 +507,10 @@ to get more debug out.</p>
 <p class=MsoPlainText>At this stage typing 'make install' will install
 everything to the desired locations, you may wish to su to root first though.
 The installation routine will copy the binaries and scripts to your chosen
-install location, usually /usr/local/bin and then move zms to your cgi-bin area.
-It will then copy the web files to your chosen directory and ensure they have
-the right permissions. Finally it tries to link zm.php to index.php but will
-not overwrite an existing file if it already exists.</p>
+install location, usually /usr/local/bin and then move zms to your cgi-bin
+area. It will then copy the web files to your chosen directory and ensure they
+have the right permissions. Finally it tries to link zm.php to index.php but
+will not overwrite an existing file if it already exists.</p>
 
 <p class=MsoPlainText>The 'zm' script does not get installed automatically as
 it is not necessary for the operation of the ZoneMinder setup per se and is not
@@ -536,26 +536,26 @@ and off you go.</p>
 <p class=MsoPlainText>What you see now (and subsequently) depends on whether
 you chose to run ZoneMinder in authenticated mode or not. This is an option
 that lets you specify whether anyone that goes to the ZoneMinder web pages must
-authenticate themselves in order to be given permissions to perform certain
-tasks. If you chose this mode then you will need to log in here. By default a
-fully privileged user ‘admin’ has been created with a password also of ‘admin’.
-You should change this password as soon as possible.</p>
+authenticate themselves in order to be given permissions to perform certain tasks.
+If you chose this mode then you will need to log in here. By default a fully
+privileged user ‘admin’ has been created with a password also of ‘admin’. You
+should change this password as soon as possible.</p>
 
-<p class=MsoPlainText>Once you’ve logged in, or if you are running in
-un-authenticated mode, you will now see the ZoneMinder Console window. This
-will resize itself to avoid being too intrusive on your desktop. Along the top
-there are several informational entries like the time of the last update and
-the current server load. There will also be an indication of the system state
-which will probably say ‘stopped’ to start with. This is a link that you can
-click on to control the ZoneMinder system as a whole. Below that are various
-other links including one detailing the current user (in authenticated mode
-only) and one allowing you to configure your bandwidth. This last one enables
-you to optimise your settings depending on where you are, the actual values
-relating to this are defined in the options. If you are using a browser on the
-same machine or network then choose high, over a cable or DSL link maybe choose
-medium and over a dialup choose low. You can experiment to see which is best.
-This setting is retained on a per machine basis with a persistent cookie. Also
-on this line are a number of other links that will be covered below.</p>
+<p class=MsoPlainText>Once you’ve logged in, or if you are running in un-authenticated
+mode, you will now see the ZoneMinder Console window. This will resize itself
+to avoid being too intrusive on your desktop. Along the top there are several
+informational entries like the time of the last update and the current server
+load. There will also be an indication of the system state which will probably
+say ‘stopped’ to start with. This is a link that you can click on to control
+the ZoneMinder system as a whole. Below that are various other links including
+one detailing the current user (in authenticated mode only) and one allowing
+you to configure your bandwidth. This last one enables you to optimise your
+settings depending on where you are, the actual values relating to this are
+defined in the options. If you are using a browser on the same machine or
+network then choose high, over a cable or DSL link maybe choose medium and over
+a dialup choose low. You can experiment to see which is best. This setting is
+retained on a per machine basis with a persistent cookie. Also on this line are
+a number of other links that will be covered below.</p>
 
 <p class=MsoPlainText>Please bear in mind that from here on the descriptions of
 the web pages are based on what you will see if you are running as a fully
@@ -636,12 +636,13 @@ generated. A length of between 300 and 900 seconds I recommended.</p>
 the ‘Record’ or ‘Mocord’ functions and specifies how many frames should be
 skipped in the recorded events. The default setting of zero results in every
 captured frame being saved, whereas one would mean that one frame is skipped
-between each saved one, two means that two frames are skipped between each saved
-one etc. An alternate way of thinking is that one in every ‘Frame Skip + 1’
-frames is saved. The point of this is to ensure that saved events do not take
-up too much space unnecessarily whilst still allowing the camera to capture at
-a fairly high frame rate. The alternate approach is to limit the capture frame
-rate which will obviously affect the rate at which frames are saved.</p>
+between each saved one, two means that two frames are skipped between each
+saved one etc. An alternate way of thinking is that one in every ‘Frame Skip +
+1’ frames is saved. The point of this is to ensure that saved events do not
+take up too much space unnecessarily whilst still allowing the camera to
+capture at a fairly high frame rate. The alternate approach is to limit the
+capture frame rate which will obviously affect the rate at which frames are
+saved.</p>
 
 <p class=MonitorOption><b>Run Mode </b>– Two choices are available here.
 ‘Continuous’ is the usual setting and means that the monitor is expected to be
@@ -672,15 +673,15 @@ the device number that your camera is attached to. If it is /dev/video0 enter
 device so in this case enter the channel number in the Channel box or leave it
 at zero if you're using a USB camera or one with just one channel. </p>
 
-<p class=MonitorOption><b>Device Format</b> – For a local camera enter the
-video format of the video stream. This is defined in various system files (e.g.
+<p class=MonitorOption><b>Device Format</b> – For a local camera enter the video
+format of the video stream. This is defined in various system files (e.g.
 /usr/include/linux/videodev.h) but the two most common are 0 for PAL and 1 for
 NTSC.</p>
 
 <p class=MonitorOption><b>Capture Palette</b> - Finally for the video part of
-the configuration enter the colour depth. ZoneMinder supports a handful of the most
-common palettes, so choose one here. If in doubt try grey first, and then 24
-bit colour. If neither of these work very well then YUV420P or one of the
+the configuration enter the colour depth. ZoneMinder supports a handful of the
+most common palettes, so choose one here. If in doubt try grey first, and then
+24 bit colour. If neither of these work very well then YUV420P or one of the
 others probably will. There is a slight performance penalty when using palettes
 other than grey or 24 bit colour as an internal conversion is involved. These
 other formats are intended to be supported natively in a future version but for
@@ -689,20 +690,19 @@ now if you have the choice choose one of grey or 24 bit colour.</p>
 <p class=MonitorOption><b>Capture Width/Height</b> - The dimensions of the
 video stream your camera will supply. If your camera supports several just
 enter the one you'll want to use for this application, you can always change it
-later. However I would recommend starting with no larger than 320x240 or
-352x288 and then perhaps increasing and seeing how performance is affected.
-This size should be adequate in most cases. Some cameras are quite choosy about
-the sizes you can use here so unusual sizes such as 197x333 should be avoided
-initially.</p>
+later. However I would recommend starting with no larger than 320x240 or 352x288
+and then perhaps increasing and seeing how performance is affected. This size
+should be adequate in most cases. Some cameras are quite choosy about the sizes
+you can use here so unusual sizes such as 197x333 should be avoided initially.</p>
 
-<p class=MonitorOption><b>Orientation</b> – If your camera is mounted upside down
-or at right angles you can use this field to specify a rotation that is applied
-to the image as it is captured. This incurs an additional processing overhead
-so if possible it is better to mount your camera the right way round if you
-can. If not set the orientation here. If you choose one of the rotation options
-remember to switch the height and width fields so that they apply, e.g. if your
-camera captures at 352x288 and you choose ‘Rotate Right’ here then set the
-height to be 352 and width to be 288.</p>
+<p class=MonitorOption><b>Orientation</b> – If your camera is mounted upside
+down or at right angles you can use this field to specify a rotation that is
+applied to the image as it is captured. This incurs an additional processing
+overhead so if possible it is better to mount your camera the right way round
+if you can. If not set the orientation here. If you choose one of the rotation
+options remember to switch the height and width fields so that they apply, e.g.
+if your camera captures at 352x288 and you choose ‘Rotate Right’ here then set
+the height to be 352 and width to be 288.</p>
 
 <p class=MonitorTab>‘Source’ Tab (remote device)</p>
 
@@ -1300,8 +1300,8 @@ ZoneMinder will attempt to match the duration of the video with the duration of
 the event. This has the useful effect of making the video watchable and not too
 quick while having the unfortunate side effect of increasing file size and
 generation time. Ffmpeg in particular has a particularly rich set of options
-and you can specify during configuration which additional options you may wish
-to include to suit your preferences.</p>
+and you can specify during configuration which additional options you may wish to
+include to suit your preferences.</p>
 
 <p class=MsoPlainText>Building an MPEG video, especially for a large event, can
 take some time and should not be undertaken lightly as the effect on your host
@@ -1365,30 +1365,30 @@ and password (which is hidden) as well as an enabled setting which you can use
 to temporarily enable or disable users, for example a guest user for limited
 time access. As well as that there is a language setting that allows you to
 define user specific languages. Setting a language here that is different than
-the system language will mean that when that user logs in they will have the
-web interface presented in their own language rather than the system default,
-if it is available. Specifying a language here is done in the same way as for
-the system default language described above.</p>
+the system language will mean that when that user logs in they will have the web
+interface presented in their own language rather than the system default, if it
+is available. Specifying a language here is done in the same way as for the
+system default language described above.</p>
 
-<p class=MsoPlainText>There are also four values that define the user
-permissions, these are ‘stream’, ‘events’, ‘monitors’ and ‘system’ Each can
-have values of ‘none’, ‘view’ or ‘edit’ apart from ‘stream’ which has no ‘edit’
-setting. These values cover access to the following areas; ‘stream’ defines
-whether a user is allowed to view the ‘live’ video feeds coming from the
-cameras. You may wish to allow a user to view historical events only in which
-case this setting should be ‘none’. The ‘events’ setting determines whether a
-user can view and modify or delete any retained historical events. The
-‘monitors’ setting specifies whether a user can see the current monitor
-settings and change them. Finally the ‘system’ setting determines whether a
-user can view or modify the system settings as a whole, such as options and
-users or controlling the running of the system as a whole. As well as these
-settings there is also a monitor ids setting that can be used for non-’system’
-users to restrict them to only being able to access streams, events or monitors
-for the given monitors ids as a comma separated list with no spaces. If a user
-with ‘monitors’ edit privileges is limited to specific monitors here they will
-not be able to add or delete monitors but only change the details of those they
-have access to. If a user has ‘system’ privileges then the ‘monitors ids’
-setting is ignored and has no effect.’</p>
+<p class=MsoPlainText>There are also four values that define the user permissions,
+these are ‘stream’, ‘events’, ‘monitors’ and ‘system’ Each can have values of
+‘none’, ‘view’ or ‘edit’ apart from ‘stream’ which has no ‘edit’ setting. These
+values cover access to the following areas; ‘stream’ defines whether a user is
+allowed to view the ‘live’ video feeds coming from the cameras. You may wish to
+allow a user to view historical events only in which case this setting should
+be ‘none’. The ‘events’ setting determines whether a user can view and modify
+or delete any retained historical events. The ‘monitors’ setting specifies
+whether a user can see the current monitor settings and change them. Finally
+the ‘system’ setting determines whether a user can view or modify the system
+settings as a whole, such as options and users or controlling the running of
+the system as a whole. As well as these settings there is also a monitor ids
+setting that can be used for non-’system’ users to restrict them to only being
+able to access streams, events or monitors for the given monitors ids as a
+comma separated list with no spaces. If a user with ‘monitors’ edit privileges
+is limited to specific monitors here they will not be able to add or delete
+monitors but only change the details of those they have access to. If a user
+has ‘system’ privileges then the ‘monitors ids’ setting is ignored and has no
+effect.’</p>
 
 <p class=MsoPlainText>That’s pretty much is it for the tour. You should
 experiment with the various setting to get the results you think are right for
@@ -1460,8 +1460,8 @@ an attempt to allocate an amount of shared memory greater than your system can
 handle. The size it requests is base on the following formula, ring buffer size
 x image width x image height x 3 (for 24 bits images) + a bit of overhead. So
 if for instance you were using 24bit 640x480 then this would come to about 92Mb
-if you are using the default buffer size of 100. If this is too large then you
-can either reduce the image or buffer sizes or increase the maximum amount of
+if you are using the default buffer size of 100. If this is too large then you can
+either reduce the image or buffer sizes or increase the maximum amount of
 shared memory available. If you are using RedHat then you can get details on
 how to change these settings at
 http://www.redhat.com/docs/manuals/database/RHDB-2.1-Manual/admin_user/kernel-resources.html</p>
@@ -1510,11 +1510,12 @@ localhost zma-0[1975]: INF [Front: 221000 - Processing at 4.26 fps ]&quot;</p>
 <p class=MsoPlainText style='margin-left:36.0pt'>where the zma-0 part
 identifies the daemon and the device it is running on. Entries with INF in are
 informational and not an error, if you see ERR then it is one, though not all
-are fatal. You can prevent this information from being emitted by setting the ZM_DBG_LEVEL_zmc
-environment variable to -1 or less once things are working. If you want to run
-any of the daemons from the command line to test, setting ZM_DBG_PRINT to 1
-will output the debug on the console. You can also use the USR1 and USR2
-signals to increase or decrease the amount of debug being emitted.</p>
+are fatal. You can prevent this information from being emitted by setting the
+ZM_DBG_LEVEL_zmc environment variable to -1 or less once things are working. If
+you want to run any of the daemons from the command line to test, setting
+ZM_DBG_PRINT to 1 will output the debug on the console. You can also use the
+USR1 and USR2 signals to increase or decrease the amount of debug being
+emitted.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1553,13 +1554,13 @@ and add it.</p>
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>USB bus problems. If you have multiple USB cameras on one bus
-then it can appear as if ZoneMinder is causing your cameras to fail. This is because
-the bandwidth available to cameras is limited by the fairly low USB speed. In
-order to use more than one USB camera with ZoneMinder (or any application) you
-will need to inform the driver that there are other cameras requiring
-bandwidth. This is usually done with a simple module option. Examples are
-usb_alt=&lt;n&gt; for the OV511 driver and cams=&lt;n&gt; for CPIA etc. Check
-your driver documentation for more details. Be aware however that sharing
+then it can appear as if ZoneMinder is causing your cameras to fail. This is
+because the bandwidth available to cameras is limited by the fairly low USB
+speed. In order to use more than one USB camera with ZoneMinder (or any
+application) you will need to inform the driver that there are other cameras
+requiring bandwidth. This is usually done with a simple module option. Examples
+are usb_alt=&lt;n&gt; for the OV511 driver and cams=&lt;n&gt; for CPIA etc.
+Check your driver documentation for more details. Be aware however that sharing
 cameras in this way on one bus will also limit the capture rate due to the
 reduced bandwidth.</p>
 
@@ -1578,18 +1579,18 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 </span></span>Httpd and zms memory leaks. It has been reported by some users
 with RedHat 9 that the zms process fails to terminate correctly when the
 controlled window is killed and also that it, and it’s associated httpd
-process, continue to grow in memory size until they kill the system. This appears
-to be a bug in early versions of  apache 2. On other systems it may appear that
-zms is leaking and growing. However what grows is the total and shared memory
-size while the non-shared memory size stays constant. It's a little odd but I
-think what it happening is that as zms picks images out of the shared memory
-ring buffer to display, as each slot is read the size of that bit of memory is
-added to the shared memory total for the process. As streamed images are not
-read consecutively it's a semi-random process so initially most of the buffer
-slots are new and the shared memory size grows then as time goes on the
-remaining unaccessed slots reduce until once all have been read the shared
-memory use caps out at the same size as the actual segment. This is what I
-would have expected it to be in the first place, but it seems to do it
+process, continue to grow in memory size until they kill the system. This
+appears to be a bug in early versions of  apache 2. On other systems it may
+appear that zms is leaking and growing. However what grows is the total and
+shared memory size while the non-shared memory size stays constant. It's a
+little odd but I think what it happening is that as zms picks images out of the
+shared memory ring buffer to display, as each slot is read the size of that bit
+of memory is added to the shared memory total for the process. As streamed
+images are not read consecutively it's a semi-random process so initially most
+of the buffer slots are new and the shared memory size grows then as time goes
+on the remaining unaccessed slots reduce until once all have been read the
+shared memory use caps out at the same size as the actual segment. This is what
+I would have expected it to be in the first place, but it seems to do it
 incrementally. Then once this total is hit it grows no further. As it's shared
 memory anyway and already in use this apparent leak is not consuming any more
 memory than when it started.</p>
@@ -1605,8 +1606,7 @@ Downloads section of www.zoneminder.com.</p>
 annoying clicks when various windows refresh then you'll need to edit your
 registry and remove the value for
 HKEY_CURRENT_USER\AppEvents\Schemes\Apps\Explorer\Navigating\.current or
-download the registry script to do it for you from
-http://www.zoneminder.com/downloads/noIEClick.reg</p>
+download the registry script to do it for you from http://www.zoneminder.com/downloads/noIEClick.reg</p>
 
 <h1><span style='text-decoration:none'>7.<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span><u>Change Log </u></h1>
@@ -1633,27 +1633,27 @@ displayed. This can result in the 'live' view being several seconds delayed.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Motion JPEG Capture. Previously image capture from network devices
-has been limited to single stills capture only. This has now changed and if you
-entered a remote camera path that returns the <i>multipart/x-mixed-replace</i>
+</span></span>Motion JPEG Capture. Previously image capture from network
+devices has been limited to single stills capture only. This has now changed
+and if you entered a remote camera path that returns the <i>multipart/x-mixed-replace</i>
 MIME type then this will be parsed and images extracted from the stream. This
-is much faster than before and frame rates can be as fast now with network cameras
-as with capture cards and video. This feature also has the side-effect that one
-ZoneMinder installation can use another as a remote video source.</p>
+is much faster than before and frame rates can be as fast now with network
+cameras as with capture cards and video. This feature also has the side-effect
+that one ZoneMinder installation can use another as a remote video source.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>NPH Streaming. After months of frustration I have finally figured
 out why streams were corrupted using Cambozola versions after 0.22. It turned
 out that apache was injecting characters into the streams which was screwing up
-the headers. I believe this to be because the initial header had no content-length
-header, as the length is indeterminate. So I have added a zero content length
-header which I believe fixes the problem though perhaps not in the best way. I
-have also made the installation link the existing zms binary to nph-zms so that
-you can now use zms in non-parsed-header mode. If it detects it is in this mode
-then the content-length header is not output, though several other additional
-ones are. In nph mode the false character injection seems to disappear so I
-suspect this is a better way to use zms.</p>
+the headers. I believe this to be because the initial header had no
+content-length header, as the length is indeterminate. So I have added a zero
+content length header which I believe fixes the problem though perhaps not in
+the best way. I have also made the installation link the existing zms binary to
+nph-zms so that you can now use zms in non-parsed-header mode. If it detects it
+is in this mode then the content-length header is not output, though several
+other additional ones are. In nph mode the false character injection seems to
+disappear so I suspect this is a better way to use zms.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1676,8 +1676,8 @@ previous events in the list which the event was selected from. Thus if the list
 was sorted on ascending scores then the ‘next’ event is the one below which has
 a higher score etc. A possibly counterintuitive side effect of this is that as
 the default list is sorted by descending time the ‘next’ event is the one below
-in the list which will actually be earlier and the ‘previous’ event is later. So
-long as you remember that next and prev refer to the order of the list you
+in the list which will actually be earlier and the ‘previous’ event is later.
+So long as you remember that next and prev refer to the order of the list you
 should be ok.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
@@ -1694,6 +1694,11 @@ database beforehand in case of error.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Console View System Display. The console display was slight revamped
+to indicate disk space usage (via the ‘df’ command) on the events partition,</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Zone Form Validation. Changes applied in version 1.18.0 to
 prevent invalidate entries in the zone definition form actually had the
 opposite effect due to JavaScript treating everything as a string and not a
@@ -1701,9 +1706,9 @@ number (e.g. 5 is greater than 123). This is now corrected.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Default Rate and Scales. You can now specify (in the options
-dialog) the default scale you would like to view live and event feeds at. You
-can also give a default rate for viewing event replays.</p>
+</span></span>Default Rate and Scales. You can now specify (in the options dialog)
+the default scale you would like to view live and event feeds at. You can also
+give a default rate for viewing event replays.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1725,11 +1730,16 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 table, several people reported that when saving filters they actually got a duplicate.
 This resulted in several copies of filters all with the same name as the
 constraint on unique filter names was not present. Well it is now so when
-upgrading your database all the filters will be renamed from ‘myfilter’ to ‘myfilter_&lt;id&gt;’
-where ‘&lt;id&gt;’ is the id number in the database (which is then removed). In
-general the higher the id number the more recent the filter. So you should go
-through your filter list deleting old copies and then rename the last one back
-to it’s original name.</p>
+upgrading your database all the filters will be renamed from ‘myfilter’ to
+‘myfilter_&lt;id&gt;’ where ‘&lt;id&gt;’ is the id number in the database
+(which is then removed). In general the higher the id number the more recent
+the filter. So you should go through your filter list deleting old copies and
+then rename the last one back to it’s original name.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Filter Form. Problem were reported with the filtering form where
+several selections generated SQL errors. This is now fixed.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1740,6 +1750,16 @@ prevent it trying to attaché alarm images to non-alarm events.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Video Rate Specification. A fix was made to zmvideo.pl that
 corrected a problem with no default frame being used if none was passed in.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>RBG-&gt;BGR Black Screen. Fixed an issue with black screens being
+reported in RGB24 mode if RGB-&gt;BGR invert was not selected.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Monitor Deletion. Fixed a problem with event files not being
+deleted when monitor was.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1779,29 +1799,29 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Optimisations and Performance Improvements. This release contains
 several major performance improvements in various areas. The first of these is
 that image processing for YUV style input formats are now pretty much handled
-at almost the same speed as native RGB formats. As this is what the capture daemons
-spend most of their time doing, the improvement helps reduce the amount of CPU
-time by a significant degree. Application of these changes also highlighted a
-bug that had existed previously in YUV conversion which caused incorrect
-conversions for certain values. The other two main areas of optimisation are in
-the Blend and Delta image functions. Normally when doing motion detection the
-analysis daemons spend about 99% of their time comparing a captured image with
-the reference image and then blending the two ready for the next capture. Both
-of these functions have been significantly improved. In previous versions there
-were two options for calculating image deltas (or differences), a simple RGB
-average and a Y channel calculation. Historically the RGB one was faster
-however with the optimisations the Y channel calculation (which is more
-accurate) is now 15-20% faster and so has become the default though you can
-select either method by the ZM_Y_IMAGE_DELTAS configuration option. A new
-method of image blending has also been added which is up to 6 times faster than
-the old one which is retained for compatibility and because in some unusual
-circumstances it may still be more accurate (see the ZM_FAST_IMAGE_BLENDS
-option for details). Altogether these optimisations (along with other common
-sense ones such as not maintaining a reference image in ‘Record’ mode where it
-is not used) significantly reduce the CPU load for most systems, especially
-when alarms are not in progress. If an alarm is detected then a lot of file
-system and database activity takes place which is limited by the speed of these
-resources so the gain will not be as much.</p>
+at almost the same speed as native RGB formats. As this is what the capture
+daemons spend most of their time doing, the improvement helps reduce the amount
+of CPU time by a significant degree. Application of these changes also
+highlighted a bug that had existed previously in YUV conversion which caused
+incorrect conversions for certain values. The other two main areas of
+optimisation are in the Blend and Delta image functions. Normally when doing
+motion detection the analysis daemons spend about 99% of their time comparing a
+captured image with the reference image and then blending the two ready for the
+next capture. Both of these functions have been significantly improved. In
+previous versions there were two options for calculating image deltas (or
+differences), a simple RGB average and a Y channel calculation. Historically
+the RGB one was faster however with the optimisations the Y channel calculation
+(which is more accurate) is now 15-20% faster and so has become the default
+though you can select either method by the ZM_Y_IMAGE_DELTAS configuration
+option. A new method of image blending has also been added which is up to 6
+times faster than the old one which is retained for compatibility and because
+in some unusual circumstances it may still be more accurate (see the
+ZM_FAST_IMAGE_BLENDS option for details). Altogether these optimisations (along
+with other common sense ones such as not maintaining a reference image in
+‘Record’ mode where it is not used) significantly reduce the CPU load for most
+systems, especially when alarms are not in progress. If an alarm is detected
+then a lot of file system and database activity takes place which is limited by
+the speed of these resources so the gain will not be as much.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1902,8 +1922,8 @@ restructured to allow a double buffering approach. Thus a new image is loaded
 in the background and only written to screen when complete. This removes the
 refresh flicker that means that the screen blanks periodically however uses
 more JavaScript so may not be suitable for all platforms. Whether ZoneMinder
-uses double buffering or not is controlled by the ZM_WEB_DOUBLE_BUFFER
-configuration option.</p>
+uses double buffering or not is controlled by the ZM_WEB_DOUBLE_BUFFER configuration
+option.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1959,10 +1979,10 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 during an event have been renamed from capture-???.jpg to ???-capture, and from
 analyse-???.jpg to ???-analyse.jpg. This is to allow all images (including
 diagnostic ones) to be associated with the frame sequence number more easily.
-This means that old events will no longer be able to be viewed as the wrong image
-will be being searched for. To avoid this you can use the new ‘zmupdate.pl’
-utility to rename all your old images by doing ‘perl zmupdate.pl –r’ as an
-appropriately privileged or root user.</p>
+This means that old events will no longer be able to be viewed as the wrong
+image will be being searched for. To avoid this you can use the new
+‘zmupdate.pl’ utility to rename all your old images by doing ‘perl zmupdate.pl
+–r’ as an appropriately privileged or root user.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2106,9 +2126,9 @@ Modect (= old Active) which is MOtion DetECT and which will capture events as
 previously, Record which continuously records with no analysis and MoCord which
 is a hybrid of Modect and Record and which will continuously record but also do
 motion detection and highlight where this has occurred. The Record and Mocord
-functions both records events whose length in seconds is defined by the
-'Section Length' monitor attribute. You can additionally specify a 'Frame Skip'
-value to tell it to not record 'n' frames at a time, when not alarmed.</p>
+functions both records events whose length in seconds is defined by the 'Section
+Length' monitor attribute. You can additionally specify a 'Frame Skip' value to
+tell it to not record 'n' frames at a time, when not alarmed.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2149,8 +2169,8 @@ modes this will allow a faster review of the period the event covers.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Tabbed Monitor options. Specification and modification of
-monitors is now in a tabbed form for easier navigation.</p>
+</span></span>Tabbed Monitor options. Specification and modification of monitors
+is now in a tabbed form for easier navigation.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2499,9 +2519,9 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 </span></span>Make delta times variable precision. A couple of problems had
 been reported where long events got negative durations. This was due to an
 overflow in a time difference routine. This had been operating on fixed
-precision allowing high precision for short deltas. This routine has been
-changed to allow variable precision and events will now have to be several days
-long to wrap in this way.</p>
+precision allowing high precision for short deltas. This routine has been changed
+to allow variable precision and events will now have to be several days long to
+wrap in this way.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2624,9 +2644,9 @@ notification emails. Use %EV% especially with care!</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Fixed possible motion detection bug – I found a few double
-declared local variables left over from the rewrite. This may have affected the
-motion detection algorithm. Fixed now anyway.</p>
+</span></span>Fixed possible motion detection bug – I found a few double declared
+local variables left over from the rewrite. This may have affected the motion
+detection algorithm. Fixed now anyway.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;

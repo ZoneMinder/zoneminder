@@ -157,6 +157,14 @@ function zmaControl( $monitor, $restart=false )
 		{
 			daemonControl( "stop", "zmfilter.pl", "-m $monitor[Id] -e -1" );
 			daemonControl( "stop", "zma", "-m $monitor[Id]" );
+			if ( ZM_OPT_FRAME_SERVER )
+			{
+				daemonControl( "stop", "zmf", "-m $monitor[Id]" );
+			}
+		}
+		if ( ZM_OPT_FRAME_SERVER )
+		{
+			daemonControl( "start", "zmf", "-m $monitor[Id]" );
 		}
 		daemonControl( "start", "zma", "-m $monitor[Id]" );
 		daemonControl( "start", "zmfilter.pl", "-m $monitor[Id] -e -1" );
@@ -165,6 +173,10 @@ function zmaControl( $monitor, $restart=false )
 	{
 		daemonControl( "stop", "zmfilter.pl", "-m $monitor[Id] -e -1" );
 		daemonControl( "stop", "zma", "-m $monitor[Id]" );
+		if ( ZM_OPT_FRAME_SERVER )
+		{
+			daemonControl( "stop", "zmf", "-m $monitor[Id]" );
+		}
 	}
 }
 

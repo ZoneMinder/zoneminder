@@ -43,6 +43,7 @@ use constant ZM_DB_USERA => "<from zmconfig>";
 use constant ZM_DB_PASSA => "<from zmconfig>";
 use constant ZM_OPT_FAST_DELETE => "<from zmconfig>";
 use constant ZM_OPT_X10 => "<from zmconfig>";
+use constant ZM_OPT_FRAME_SERVER => "<from zmconfig>";
 
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
 use constant WEB_USER => '@WEB_USER@/';
@@ -142,6 +143,10 @@ if ( $command =~ /^(?:start|restart)$/ )
 				}
 				if ( $monitor->{Function} eq 'Active' )
 				{
+					if ( ZM_OPT_FRAME_SERVER )
+					{
+						execute( ZM_PATH_BIN."/zmdc.pl start zmf -m $monitor->{Id}" );
+					}
 					execute( ZM_PATH_BIN."/zmdc.pl start zma -m $monitor->{Id}" );
 					execute( ZM_PATH_BIN."/zmdc.pl start zmfilter.pl -m $monitor->{Id} -e -1" );
 				}

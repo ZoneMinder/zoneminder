@@ -404,10 +404,7 @@ void Event::StreamEvent( int event_id, int rate, int scale, FILE *fd )
 				
 				int delay = (int)((DT_GRAN_1000000*frame_delta))-delta_time.delta;
 
-				if ( rate < 0 )
-					delay *= abs(rate);
-				else
-					delay /= rate;
+				delay = (delay * ZM_RATE_SCALE) / rate;
 
 				//Info(( "FD:%lf, DDT:%d, D:%d, N:%d.%d, LN:%d.%d", frame_delta, delta_time.delta, delay, now.tv_sec, now.tv_usec, last_now.tv_sec, last_now.tv_usec ));
 				if ( delay > 0 )

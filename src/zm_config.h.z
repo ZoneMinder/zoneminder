@@ -37,6 +37,9 @@
 #define ZM_MAX_IMAGE_DIM		(ZM_MAX_IMAGE_WIDTH*ZM_MAX_IMAGE_HEIGHT)
 #define ZM_MAX_IMAGE_SIZE		(ZM_MAX_IMAGE_DIM*ZM_MAX_IMAGE_COLOURS)
 
+#define ZM_SCALE_SCALE			100					// The factor by which we bump up 'scale' to simulate FP
+#define ZM_RATE_SCALE			100					// The factor by which we bump up 'rate' to simulate FP
+
 class ConfigItem
 {
 private:

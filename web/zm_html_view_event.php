@@ -56,9 +56,9 @@ if ( !$result )
 $next_event = mysql_fetch_assoc( $result );
 
 if ( !isset( $rate ) )
-	$rate = 1;
+	$rate = RATE_SCALE;
 if ( !isset( $scale ) )
-	$scale = 1;
+	$scale = SCALE_SCALE;
 
 $frames_per_page = EVENT_FRAMES_PER_LINE * EVENT_FRAME_LINES;
 

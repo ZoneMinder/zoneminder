@@ -168,7 +168,7 @@ public:
 
 	void Rotate( int angle );
 
-	void Scale( int factor );
+	void Scale( unsigned int factor );
 };
 
 #endif // ZM_IMAGE_H

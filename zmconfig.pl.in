@@ -514,6 +514,22 @@ my @options =
 		category => 'web',
 	},
 	{
+		name => "ZM_WEB_MONTAGE_WIDTH",
+		default => "0",
+		description => "What width should each monitor in the montage view be",
+		help => "In the montage view it is possible to view all of your monitors at once. If they are all different sizes this can be fairly untidy. Setting this option allows you to constrain the width of each of the monitor views to a fixed value to make the window tidier overall. Leaving it at the default of zero lets each monitor be displayed at it's normal native size.",
+		type => $types{integer},
+		category => 'web',
+	},
+	{
+		name => "ZM_WEB_MONTAGE_HEIGHT",
+		default => "0",
+		description => "What height should each monitor in the montage view be",
+		help => "In the montage view it is possible to view all of your monitors at once. If they are all different sizes this can be fairly untidy. Setting this option allows you to constrain the height of each of the monitor views to a fixed value to make the window tidier overall. Leaving it at the default of zero lets each monitor be displayed at it's normal native size.",
+		type => $types{integer},
+		category => 'web',
+	},
+	{
 		name => "ZM_OPT_FAST_DELETE",
 		default => "yes",
 		description => "When deleting events should the client only delete the database records for speed",
@@ -1076,7 +1092,7 @@ my %options_hash = map { ( $_->{name}, $_ ) } @options;
 
 foreach my $option ( @options )
 {
-	if ( $option->{default} )
+	if ( defined($option->{default}) )
 	{
 		$option->{value} = $option->{default}
 	}

@@ -40,13 +40,14 @@ $heights = array();
 for ( $i = 0; $i < count($monitors); $i++ )
 {
 	$monitor = $monitors[$i];
-	$frame_height = $monitor['Height']+16;
+	$frame_height = (ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$monitor['Height'])+16;
+	$frame_width = (ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$monitor['Width']);
 	$row = $i/ZM_WEB_MONTAGE_MAX_COLS;
 	$col = $i%ZM_WEB_MONTAGE_MAX_COLS;
 	if ( empty( $heights[$row] ) || $frame_height > $heights[$row] )
 		$heights[$row] = $frame_height;
-	if ( empty( $widths[$col] ) || $monitor['Width'] > $widths[$col] )
-		$widths[$col] = $monitor['Width'];
+	if ( empty( $widths[$col] ) || $frame_width > $widths[$col] )
+		$widths[$col] = $frame_width;
 }
 $row_spec = join( ',', $heights );
 $col_spec = join( ',', $widths );

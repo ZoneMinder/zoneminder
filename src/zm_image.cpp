@@ -834,29 +834,40 @@ void Image::Rotate( int angle )
 	memcpy( buffer, rotate_buffer, size );
 }
 
-void Image::Scale( int factor )
+void Image::Scale( unsigned int factor )
 {
 	if ( !factor )
 	{
+		Error(( "Bogus scale factor %d found", factor ));
 		return;
 	}
-	if ( factor == 1 )
+	if ( factor == ZM_SCALE_SCALE )
 	{
 		return;
 	}
 
 	static unsigned char scale_buffer[ZM_MAX_IMAGE_SIZE];
-	if ( factor > 1 )
+	unsigned int new_width = (width*factor)/ZM_SCALE_SCALE;
+	unsigned int new_height = (height*factor)/ZM_SCALE_SCALE;
+	if ( factor > ZM_SCALE_SCALE )
 	{
 		unsigned char *pd = scale_buffer;
 		unsigned int wc = width*colours;
-		unsigned int wcf = wc*factor;
+		unsigned int nwc = new_width*colours;
+		unsigned int h_count = ZM_SCALE_SCALE/2;
+		unsigned int last_h_index = 0;
+		unsigned int h_index;
 		for ( int y = 0; y < height; y++ )
 		{
 			unsigned char *ps = &buffer[y*wc];
+			unsigned int w_count = ZM_SCALE_SCALE/2;
+			unsigned int last_w_index = 0;
+			unsigned int w_index;
 			for ( int x = 0; x < width; x++ )
 			{
-				for ( int f = 0; f < factor; f++ )
+				w_count += factor;
+				w_index = w_count/ZM_SCALE_SCALE;
+				for ( int f = last_w_index; f < w_index; f++ )
 				{
 					for ( int c = 0; c < colours; c++ )
 					{
@@ -864,43 +875,64 @@ void Image::Scale( int factor )
 					}
 				}
 				ps += colours;
+				last_w_index = w_index;
 			}
-			for ( int f = 1; f < factor; f++ )
+			h_count += factor;
+			h_index = h_count/ZM_SCALE_SCALE;
+			for ( int f = last_h_index+1; f < h_index; f++ )
 			{
-				memcpy( pd, pd-wcf, wcf );
-				pd += wcf;
+				memcpy( pd, pd-nwc, nwc );
+				pd += nwc;
 			}
+			last_h_index = h_index;
 		}
-		width *= factor;
-		height *= factor;
-		size = width*height*colours;
 	}
 	else
 	{
-		factor = abs(factor);
+		unsigned int inv_factor = (ZM_SCALE_SCALE*ZM_SCALE_SCALE)/factor;
 		unsigned char *pd = scale_buffer;
 		unsigned int wc = width*colours;
-		unsigned int cf = factor*colours;
-		unsigned int xrem = width%factor;
-		unsigned int yrem = height%factor;
-		unsigned int xstart = xrem/2;
-		unsigned int ystart = yrem/2;
-		for ( int y = xstart; y < height; y += factor )
+		unsigned int xstart = factor/2;
+		unsigned int ystart = factor/2;
+		unsigned int h_count = ystart;
+		unsigned int last_h_index = 0;
+		unsigned int h_index;
+		for ( unsigned int y = 0; y < height; y++ )
 		{
-			unsigned char *ps = &buffer[y*wc];
-			for ( int x = ystart; x < width; x += factor )
+			h_count += factor;
+			h_index = h_count/ZM_SCALE_SCALE;
+			if ( h_index > last_h_index )
 			{
-				for ( int c = 0; c < colours; c++ )
+				unsigned int w_count = xstart;
+				unsigned int last_w_index = 0;
+				unsigned int w_index;
+
+				unsigned char *ps = &buffer[y*wc];
+				for ( unsigned int x = 0; x < width; x++ )
 				{
-					*pd++ = *(ps+c);
+					w_count += factor;
+					w_index = w_count/ZM_SCALE_SCALE;
+					
+					if ( w_index > last_w_index )
+					{
+						for ( int c = 0; c < colours; c++ )
+						{
+							*pd++ = *ps++;
+						}
+					}
+					else
+					{
+						ps += colours;
+					}
+					last_w_index = w_index;
 				}
-				ps += cf;
 			}
+			last_h_index = h_index;
 		}
-		width = 1+int((width-1)/factor);
-		height = 1+int((height-1)/factor);
-		size = width*height*colours;
 	}
+	width = new_width;
+	height = new_height;
+	size = width*height*colours;
 	delete[] buffer;
 	buffer = new JSAMPLE[size];
 	memcpy( buffer, scale_buffer, size );

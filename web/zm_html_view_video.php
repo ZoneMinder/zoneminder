@@ -28,10 +28,10 @@ if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
 
-if ( !isset( $scale ) )
-	$scale = 1;
 if ( !isset( $rate ) )
-	$rate = 1;
+	$rate = RATE_SCALE;
+if ( !isset( $scale ) )
+	$scale = SCALE_SCALE;
 
 ob_start();
 

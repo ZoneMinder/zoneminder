@@ -26,8 +26,8 @@ int main(void )
 	int id = 1;
 	unsigned long idle = 5000;
 	unsigned long refresh = 50;
-	unsigned int rate = 1;
-	unsigned int scale = 1;
+	unsigned int rate = 100;
+	unsigned int scale = 100;
 	int event = 0;
 	unsigned int ttl = 0;
 

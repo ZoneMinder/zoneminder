@@ -77,8 +77,8 @@ $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $event_id;
-my $rate = 1;
-my $scale = 1;
+my $rate = 0.0;
+my $scale = 1.0;
 my $overwrite = 0;
 
 sub Usage
@@ -87,14 +87,14 @@ sub Usage
 Usage: zmvideo.pl -e <event_id>,--event=<event_id> [-r <rate>,--rate=<rate>] [-s <scale>,--scale=<scale>] [-o,--overwrite]
 Parameters are :-
 -e<event_id>, --event=<event_id>  - What event to create the video for
--r<rate>, --rate=<rate>           - Relative rate to use, 1 = realtime, 2 = double speed , -2 = half speed etc
--s<scale>, --scale=<scale>        - Scale to use, 1 = normal, 2 = double size, -2 = half size etc
+-r<rate>, --rate=<rate>           - Relative rate to use, 1 = realtime, 2 = double speed , 0.5 = half speed etc
+-s<scale>, --scale=<scale>        - Scale to use, 1 = normal, 2 = double size, 0.5 = half size etc
 -o, --overwrite                   - Whether to overwrite an existing file, off by default.
 ");
 	exit( -1 );
 }
 
-if ( !GetOptions( 'event=i'=>\$event_id, 'rate=i'=>\$rate, 'scale=i'=>\$scale, 'overwrite'=>\$overwrite ) )
+if ( !GetOptions( 'event=i'=>\$event_id, 'rate=f'=>\$rate, 'scale=f'=>\$scale, 'overwrite'=>\$overwrite ) )
 {
 	Usage();
 }
@@ -111,21 +111,21 @@ if ( ZM_OPT_MPEG eq "no" )
 	exit(-1);
 }
 
-if ( ZM_OPT_MPEG eq "mpeg_encode" && $rate != 1 )
+if ( ZM_OPT_MPEG eq "mpeg_encode" && $rate != 1.0 )
 {
 	print( STDERR "Variable rate not supported with mpeg_encode\n" );
 	exit(-1);
 }
 
-if ( $rate < -4 || $rate > 10 )
+if ( $rate < 0.25 || $rate > 10 )
 {
-	print( STDERR "Rate is out of range, -4 >= rate <= 10\n" );
+	print( STDERR "Rate is out of range, 0.25 >= rate <= 10\n" );
 	Usage();
 }
 
-if ( !$scale || $scale < -4 || $scale > 4 )
+if ( !$scale || $scale < 0.25 || $scale > 4 )
 {
-	print( STDERR "Scale is out of range, -4 >= scale <= 4\n" );
+	print( STDERR "Scale is out of range, 0.25 >= scale <= 4\n" );
 	Usage();
 }
 
@@ -232,19 +232,9 @@ if ( $overwrite || !-s $video_file )
 	elsif ( ZM_OPT_MPEG eq "ffmpeg" )
 	{
 		my $frame_rate = sprintf( "%.2f", $event->{Frames}/$event->{FullLength} );
-		if ( $rate )
+		if ( $rate != 0.0 )
 		{
-			if ( $rate != 1 )
-			{
-				if ( $rate > 1 )
-				{
-					$frame_rate *= $rate;
-				}
-				else
-				{
-					$frame_rate /= $rate;
-				}
-			}
+			$frame_rate *= $rate;
 		}
 		else
 		{
@@ -252,18 +242,10 @@ if ( $overwrite || !-s $video_file )
 		}
 		my $width = $event->{MonitorWidth};
 		my $height = $event->{MonitorHeight};
-		if ( $scale != 1 )
+		if ( $scale != 1.0 )
 		{
-			if ( $scale > 1 )
-			{
-				$width = int($width*$scale);
-				$height = int($height*$scale);
-			}
-			else
-			{
-				$width = int($width/$scale);
-				$height = int($height/$scale);
-			}
+			$width = int($width*$scale);
+			$height = int($height*$scale);
 		}
 		my $command = ZM_PATH_FFMPEG." -y ".ZM_FFMPEG_OPTIONS." -r $frame_rate -s ${width}x${height} -i %03d-capture.jpg $video_file > mpeg.log";
 		print( LOG $command."\n" );

@@ -377,26 +377,19 @@ function zmaCheck( $monitor )
 
 function createVideo( $event, $rate, $scale, $overwrite=0 )
 {
-	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -r $rate -s $scale";
+	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -r ".sprintf( "%.2f", ($rate/SCALE_SCALE) )." -s ".sprintf( "%.2f", ($scale/SCALE_SCALE) );
 	if ( $overwrite )
 		$command .= " -o";
 	$result = exec( $command, $output, $status );
 	return( $status?"":rtrim($result) );
 }
 
-function reScale( $dimension, $scale=1 )
+function reScale( $dimension, $scale=SCALE_SCALE )
 {
-	if ( $scale == 1 )
+	if ( $scale == SCALE_SCALE )
 		return( $dimension );
 
-	if ( $scale > 0 )
-	{
-		return( (int)($dimension*$scale) );
-	}
-	else
-	{
-		return( (int)(1+(($dimension-1)/-$scale)) );
-	}
+	return( (int)(($dimension*$scale)/SCALE_SCALE) );
 }
 
 ?>

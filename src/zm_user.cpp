@@ -44,10 +44,11 @@ User::User( MYSQL_ROW &dbrow )
 	events = (Permission)atoi( dbrow[4] );
 	monitors = (Permission)atoi( dbrow[5] );
 	system = (Permission)atoi( dbrow[6] );
+	monitor_ids = 0;
 	char *monitor_ids_str = dbrow[7];
 	if ( monitor_ids_str && *monitor_ids_str )
 	{
-		int *monitor_ids = new int[strlen(monitor_ids_str)];
+		monitor_ids = new int[strlen(monitor_ids_str)];
 		int n_monitor_ids = 0;
 		const char *ptr = monitor_ids_str;
 		do
@@ -73,10 +74,6 @@ User::User( MYSQL_ROW &dbrow )
 			}
 		} while( *ptr );
 		monitor_ids[n_monitor_ids] = 0;
-	}
-	else
-	{
-		monitor_ids = 0;
 	}
 }
 

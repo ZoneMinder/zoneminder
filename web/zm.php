@@ -881,7 +881,7 @@ function deleteEvent() {
 </head>
 <body>
 <table border="0">
-<tr><td colspan="2" class="text"><b>Image <?php echo $eid."-".$fid ?></b></td>
+<tr><td colspan="2" class="text"><b>Image <?php echo $eid."-".$fid." ($frame[Score])" ?></b></td>
 <td align="center" class="text"><a href="javascript: deleteEvent();">Delete</a></td>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>

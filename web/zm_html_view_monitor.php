@@ -336,7 +336,7 @@ switch ( $tab )
 	case 'buffers' :
 	{
 ?>
-<tr><td align="left" class="text"><?= $zmSlangImageBufferSize ?> (<?= strtolower($zmSlangFrames) ?>)</td><td align="left" class="text"><input type="text" name="new_monitor[ImageBufferCount]" value="<?= $new_monitor['ImageBufferCount'] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangImageBufferSize ?></td><td align="left" class="text"><input type="text" name="new_monitor[ImageBufferCount]" value="<?= $new_monitor['ImageBufferCount'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangWarmupFrames ?></td><td align="left" class="text"><input type="text" name="new_monitor[WarmupCount]" value="<?= $new_monitor['WarmupCount'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangPreEventImageBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[PreEventCount]" value="<?= $new_monitor['PreEventCount'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangPostEventImageBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[PostEventCount]" value="<?= $new_monitor['PostEventCount'] ?>" size="4" class="form"></td></tr>

@@ -163,7 +163,8 @@ int main( int argc, char *argv[] )
 	action.sa_flags = 0;
 	sigaction( SIGTERM, &action, &old_action );
 
-	//sigaddset( &block_set, SIGTERM );
+	sigaddset( &block_set, SIGUSR1 );
+	sigaddset( &block_set, SIGUSR2 );
 	if ( device >= 0 && n_monitors == 1 )
 	{
 		monitors[0]->PreCapture();

@@ -166,9 +166,13 @@ scripts in the scripts directory, only one of which may actually be used in a
 minimal installation. These scripts all have some configuration at the top of 
 the files which should be viewed and amended if necessary and are as follows.
 
-zmdc.pl - This is the ZoneMinder Daemon Control. This is used by the web 
-interface to control the execution of the capture and analysis daemons amongst 
-others. You should not need to run this script yourself.
+zmpkg.pl - This is the ZoneMinder Package Control script. This is used by the
+web interface ans service scripts to control the execution of the system as a
+whole.
+zmdc.pl - This is the ZoneMinder Daemon Control script. This is used by the web 
+interface and the zmpkg.pl script to control and maintain the execution of the
+capture and analysis daemons amongst others. You should not need to run this
+script yourself.
 zmfilter.pl - This script control the execution of saved filters and will be 
 started and stopped by the web interface based on whether there are filters that 
 have been defined to be autonomous. This script is also responsible for the 
@@ -186,23 +190,35 @@ Home Automation style events and interface with an alarm system either by the
 generation of X10 signals on ZM events or by initiating ZM monitoring and 
 capture on receipt of X10 signals from elsewhere, for instance the triggering of 
 an X10 PIR.
-zmwatch.pl – This is a simple script purely designed to keep an eye on the 
+zmwatch.pl - This is a simple script purely designed to keep an eye on the 
 capture daemons and restart them if they lockup. It has been known for sync 
 problems in the video drivers to cause this so this script makes sure that 
 nothing important gets missed.
+zm - This is the (optional) ZoneMinder init script, see below for details.
 
 Finally, check zmconfig.php in the web directory and amend any configuration 
 necessary in there. Most will have already been done by the configuration 
 utilities.
 
-At this stage typing 'make install' will install these everything to the desired 
+At this stage typing 'make install' will install everything to the desired 
 locations. The installation routine will copy the binaries and scripts to your 
 chosen install location, usually /usr/local/bin and then move zms to your cgi-
 bin area. It will then copy the web files to your chosen directory and ensure 
 they have the right permissions. Finally it tries to link zm.php to index.php 
 but will not overwrite an existing file if it exists.
 
-Start your web browser and point it at zm.php and off you go.
+The 'zm' script does not get installed automatically as it is not necessary
+for the operation of the ZoneMinder setup per se. However if you want to
+ensure that the ZoneMinder daemons are started on reboot etc copy it to your
+init.d directory, usually something like /etc/rc.d/init.d and then add it
+by doing
+
+/sbin/chkconfig --add zm
+
+ZoneMinder will then start up when your machine reboots and can be controlled
+(by the root user) by doing 'zm start' or 'zm stop' etc.
+
+Now start your web browser and point it at zm.php and off you go.
 
 
 Tutorial
@@ -222,7 +238,15 @@ Defining Monitors
 To use ZM properly you need to define at least one Monitor. Essentially a 
 monitor is attached to a camera and will continually check it for motion 
 detection and such like. So, next click 'Add New Monitor' to bring up the 
-dialog. The options you have are as follows,
+dialog. You will see a bunch of things you have to fill in. To help you
+get started on the video configuration the best thing is to use a tool like
+'xawtv' to get a picture you're happy with, and to check your camera works
+and then run 'zmu -d <device_no> -v' to get a dump of the settings. You can
+then enter these values into the video related options of the monitor
+configuration panel. If 'zmu' gives you an error related to permissions
+run 'zmfix -a' to make sure you can access all the video devices.
+
+The options explained in a little more detail are as follows,
 
 Name - First choose a name for it, anything you like. 
 Function - This essentially defines what the monitor is doing. This can be 
@@ -238,7 +262,7 @@ if its /dev/video0 enter '0' etc. Some video devices, e.g. BTTV cards support
 multiple cameras so in the Channel box choose the appropriate channel, or leave 
 it at zero if you're using a USB camera or one without channels. 
 Device Format - Now enter the video format of the video stream. This is defined 
-in various system files but the two most common are 1 for PAL and 2 for NTSC.
+in various system files but the two most common are 0 for PAL and 1 for NTSC.
 Device Width/Height - The dimensions of the video stream your camera will 
 supply. If your camera supports several just enter the one you'll want to use 
 for this application, you can always change it later. However I would recommend 
@@ -660,8 +684,9 @@ that gives you some kind of tip off.
 Some things to check.
 1. Device configuration. If you can't get your cameras to work in ZM, firstly 
 make sure that you have the correct settings. Use xawtv or something like that 
-to check for settings that work. If you can't get them to work with that then 
-the likelihood is they won't work with ZM.
+to check for settings that work and then run zmu -d <device_no> to get the
+settings. If you can't get them to work with that then the likelihood is they
+won't work with ZM.
 2. Web server. Ensure that your web server can serve PHP files. It's also 
 possible that your php.ini file may have some settings which break ZM, I'm not a 
 PHP guru but setting safe mode may prevent your PHP files from running certain 

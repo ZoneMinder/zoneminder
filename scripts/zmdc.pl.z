@@ -155,7 +155,8 @@ if ( !connect( CLIENT, $saddr ) )
 			my $daemon = shift;
 			my @args = @_;
 
-			my $command = join( ' ', ( $daemon, @args ) );
+			my $command = $daemon;
+			$command .= ' '.join( ' ', ( @args ) ) if ( @args );
 			my $process = $cmd_hash{$command};
 
 			if ( !$process )
@@ -220,7 +221,8 @@ if ( !connect( CLIENT, $saddr ) )
 			my $daemon = shift;
 			my @args = @_;
 
-			my $command = "$daemon ".join( ' ', @args );
+			my $command = $daemon;
+			$command .= ' '.join( ' ', ( @args ) ) if ( @args );
 			my $process = $cmd_hash{$command};
 			if ( !$process )
 			{
@@ -266,7 +268,8 @@ if ( !connect( CLIENT, $saddr ) )
 			my $daemon = shift;
 			my @args = @_;
 
-			my $command = "$daemon ".join( ' ', @args );
+			my $command = $daemon;
+			$command .= ' '.join( ' ', ( @args ) ) if ( @args );
 			my $process = $cmd_hash{$command};
 			if ( $process )
 			{
@@ -342,7 +345,8 @@ if ( !connect( CLIENT, $saddr ) )
 			my $daemon = shift;
 			my @args = @_;
 
-			my $command = "$daemon ".join( ' ', @args );
+			my $command = $daemon;
+			$command .= ' '.join( ' ', ( @args ) ) if ( @args );
 			my $process = $cmd_hash{$command};
 			if ( !$process )
 			{
@@ -372,7 +376,8 @@ if ( !connect( CLIENT, $saddr ) )
 
 			if ( defined($daemon) )
 			{
-				my $command = "$daemon ".join( ' ', @args );
+				my $command = $daemon;
+				$command .= ' '.join( ' ', ( @args ) ) if ( @args );
 				my $process = $cmd_hash{$command};
 				if ( !$process )
 				{

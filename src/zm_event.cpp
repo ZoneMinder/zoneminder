@@ -394,11 +394,12 @@ void Event::StreamEvent( int event_id, int rate, int scale, FILE *fd )
 	{
 		if ( rate )
 		{
+			double this_delta = atof(dbrow[2]);
 			if ( i )
 			{
 				gettimeofday( &now, &dummy_tz );
 
-				double frame_delta = atof(dbrow[3])-last_delta;
+				double frame_delta = this_delta-last_delta;
 				DELTA_TIMEVAL( delta_time, now, last_now, DT_PREC_6 );
 				
 				int delay = (int)((DT_GRAN_1000000*frame_delta))-delta_time.delta;
@@ -412,7 +413,7 @@ void Event::StreamEvent( int event_id, int rate, int scale, FILE *fd )
 				if ( delay > 0 )
 					usleep( delay );
 			}
-			last_delta = atof(dbrow[3]);
+			last_delta = this_delta;
 			gettimeofday( &last_now, &dummy_tz );
 		}
 		static char filepath[PATH_MAX];

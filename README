@@ -1,4 +1,4 @@
-ZONE MINDER v0.9.10
+ZONE MINDER v0.9.11
 ===================
 
 Introduction
@@ -140,7 +140,7 @@ is usually called just 'zm'.
 If you are upgrading from a previous version you can use zmalter-x.y.z.sql to 
 upgrade your database and make the necessary changes where x.y.z identifies the 
 version of ZoneMinder you had installed previously. So if you are going from 
-version 0.9.7 to version 0.9.10 you would run the scripts for all intervening 
+version 0.9.7 to version 0.9.11 you would run the scripts for all intervening 
 versions to get to the current one. For a new installation the simplest way to 
 create your database and users is as follows,
 
@@ -541,23 +541,50 @@ an alarm in the Active zone and also in the Inclusive zone they would both be
 registered and the resulting alarm would be that much bigger than if you had 
 blanked it out altogether.
 
-The final zone Type is Exclusive, this means that alarms will only be triggered 
-in this zone if no alarms have already been triggered in Active zones. This is 
-the most specialised of the zone types and you may never use it but in its place 
-it is very useful. For instance in the camera covering my garden I keep watch 
-for a hedgehog that visits most nights and scoffs the food out of my cats bowls. 
-By creating a sensitive Exclusive zone in that area I can ensure that a hedgehog 
-alarm will only trigger if there is activity in that small area. If something 
-much bigger occurs, like someone walking by it will trigger a regular alarm and 
-not one from the Exclusive zone. Thus I can ensure I get alarms for big events 
-and also special small events but not the noise in between.
+After that, the next zone Type is Exclusive, this means that alarms will only be 
+triggered in this zone if no alarms have already been triggered in Active zones. 
+This is the most specialised of the zone types and you may never use it but in 
+its place it is very useful. For instance in the camera covering my garden I 
+keep watch for a hedgehog that visits most nights and scoffs the food out of my 
+cats bowls. By creating a sensitive Exclusive zone in that area I can ensure 
+that a hedgehog alarm will only trigger if there is activity in that small area. 
+If something much bigger occurs, like someone walking by it will trigger a 
+regular alarm and not one from the Exclusive zone. Thus I can ensure I get 
+alarms for big events and also special small events but not the noise in 
+between.
+
+The final zone Type is relatively recent and this is a Preclusive zone. It is 
+called that because if it is triggered it actually precludes an alarm being 
+generated for that image frame. So motion or other changes that occur in a 
+Preclusive zone will have the effect of ensuring that no alarm occurs. The 
+application for this zone type is primarily as a shortcut for detecting general 
+large-scale lighting or other changes. Generally this may be achieved by 
+limiting the maximum number of alarm pixels or other measure in an Active zone. 
+However in some cases that zone may cover an area where the area of variable 
+illumination occurs in different places as the sun and/or shadows move and it 
+thus may be difficult to come up with general values. Additionally, if the sun 
+comes out rapidly then although the initial change may be ignored in this way as 
+the reference image catches up an alarm may ultimately be triggered as the image 
+becomes less different. Using one or more Preclusive zones offers a different 
+approach. Preclusive zones are designed to be fairly small, even just a few 
+pixels across, with quite low alarm thresholds. They should be situated in areas 
+of the image that are less likely to have motion occur such as high on a wall or 
+in a corner. Should a general illumination change occur they will be triggered 
+at least as early as any Active zones and prevent any other zones from 
+generating an alarm. Obviously careful placement is required to ensure that they 
+do not cancel any genuine alarms or that they are not so close together that any 
+motion just hops from one Preclusive zone to another. As always, the best way is 
+to experiment a little and see what works for you.
 
 I mentioned above that Inactive zones may be overlaid on other zones to blank 
 out areas however as a general principle you should try and make zones abut each 
-other as much as possible and not overlap, to avoid repeated duplicate 
+other as much as possible and not overlap. This helps avoid repeated duplicate 
 processing of the same area. For instance an Inclusive zone overlaying an Active 
 zone when all other settings are the same will always trigger when the Active 
-zone does which somewhat defeats the object of the exercise.
+zone does which somewhat defeats the object of the exercise. One exception to 
+this is Preclusive zones. These may be situated within Active areas are they are 
+processed first and if small may actually save processing time by preventing 
+full analysis of the image.
 
 The rest of the zone settings are slightly simpler to explain. The first is 
 Units which details whether certain of the following settings are in Pixels or 
@@ -678,12 +705,12 @@ contain an alarm in brackets and finally a score. This column lists the average
 score per alarm frame as well as the maximum score that any alarm frame had.
 
 The score is an arbitrary value that essentially represents the percentage of 
-pixels in the zone that are in blobs divided by the number of blobs and then 
-divided by the size of the zone. This gives a nominal maximum of 100 for a zone 
-and the totals for each zone are added together, Active zones scores are added 
-unchanged, Inclusive zones are halved first and Exclusive zones are doubled. In 
-reality values are likely to be much less than 100 but it does give a simple 
-indication of how major the event was.
+pixels in the zone that are in blobs divided by the square root of the number of 
+blobs and then divided by the size of the zone. This gives a nominal maximum of 
+100 for a zone and the totals for each zone are added together, Active zones 
+scores are added unchanged, Inclusive zones are halved first and Exclusive zones 
+are doubled. In reality values are likely to be much less than 100 but it does 
+give a simple indication of how major the event was.
 
 Filtering Events
 ----------------
@@ -731,8 +758,15 @@ and save it by clicking 'Save'.
 
 If you do this then the subsequent dialog will also allow you specify whether 
 you want this filter automatically applied in order to delete events or upload 
-events via ftp to another server and mail notifications of event to one or more 
-email accounts. This functionality is explained in more detail elsewhere.
+events via ftp to another server and mail notifications of events to one or more 
+email accounts. In most cases you can specify your preferences for upload 
+formats and email content during configuration time (make sure you type '?' to 
+get help on options). Emails and messages (essentially small emails intended for 
+mobile phones or pagers) have a variety of tokens that can be substituted for 
+various details of the event that caused them. This includes links to the event 
+view or the filter as well as the option of attaching images or videos to the 
+email itself. See the included templates zmconfig_eml.txt and zmconfig_msg.txt 
+for a fuller explanation of the availability and meaning of these tokens.
 
 Filtering is a powerful mechanism you can use to eliminate events that fit a 
 certain pattern however in many cases modifying the zone settings will better 
@@ -759,12 +793,14 @@ outlining the blobs that represent the alarmed area. This outline is in the
 colour defined for that zone and lets you see what it was that caused the alarm. 
 Clicking on one of the thumbnails will take you to a full size window where you 
 can see the image in all its detail and scroll through the various images that 
-make up the event. Should you determine that you don't wish to keep the event, 
-clicking on Delete will erase it from the database and file system. Returning to 
-the event window, other options here are renaming the event to something more 
-meaningful, refreshing the window to replay the event stream, deleting the 
-event, switching between streamed and still versions of the event (if supported) 
-and generating an MPEG video of the event (if supported).
+make up the event. If you have the ZM_RECORD_EVENT_STATS option on, you will be 
+able to click the 'Stats' link here and get some analysis of the cause of the 
+event. Should you determine that you don't wish to keep the event, clicking on 
+Delete will erase it from the database and file system. Returning to the event 
+window, other options here are renaming the event to something more meaningful, 
+refreshing the window to replay the event stream, deleting the event, switching 
+between streamed and still versions of the event (if supported) and generating 
+an MPEG video of the event (if supported).
 
 These last two options require further explanation. Archiving an event means 
 that it is kept to one side and not displayed in the normal event listings 
@@ -773,13 +809,18 @@ keeping events that you think may be important or just wish to protect. Once an
 event is archived it can be deleted or unarchived but you cannot accidentally 
 delete it when viewing normal unarchived events.
 
-The final option of generating an MPEG video is experimental and not likely to 
-be highly useful. It uses the Berkeley MPEG encoder and will generate a short 
-video which will be downloaded to your browsing machine to view. Due to the 
-relatively slow frame rate that ZoneMinder will capture at and the high minimum 
-frame rate that the encoder uses, each image is included twice. This has the 
-useful effect of making the video watchable and not too quick while having the 
-unfortunate side effect of increasing file size and generation time.
+The final option of generating an MPEG video is still somewhat experimental and 
+it's usefulness may vary. It can use either the Berkeley MPEG encoder or the 
+faster and new ffmpeg encoder. Either of these will generate a short video which 
+will be downloaded to your browsing machine to view. Due to the relatively slow 
+frame rate that ZoneMinder will capture at and the high minimum frame rate that 
+the Berkeley encoder uses videos created by this method will be very quick. 
+However when using the ffmpeg encoder, ZoneMinder will attempt to match the 
+duration of the video with the duration of the event. This has the useful effect 
+of making the video watchable and not too quick while having the unfortunate 
+side effect of increasing file size and generation time. Ffmpeg in particular 
+has a particularly rich set of options and you can specify during configuration 
+which additional options you may wish to include to suit your preferences.
 
 Building an MPEG video, especially for a large event, can take some time and 
 should not be undertaken lightly as the effect on your host box of many CPU 
@@ -787,6 +828,9 @@ intensive encoders will not be good. However once a video has been created for
 an event it will be kept so subsequent viewing will not incur the generation 
 overhead. I will be the first to admit that this area of the package is not 
 particularly well implemented and needs work, and probably a better encoder. 
+Videos can also be included in notification emails however care should be taken 
+when using this option as for many frequent events the penalty in CPU and disk 
+space can quickly mount up.
 
 That pretty much is it for the tour. You should experiment with the various 
 setting to get the results you think are right for your. Naturally letting 
@@ -797,7 +841,7 @@ the first place or ensure that you housekeep them strictly.
 Have fun, please report any bugs or features you'd like to see and hopefully 
 ZoneMinder can be your camera monitoring friend!
 
-Philip Coombes (philip.coombes@zoneminder.com) - January 2003
+Philip Coombes (philip.coombes@zoneminder.com) - April 2003
 
 
 Troubleshooting
@@ -824,7 +868,7 @@ zmc capture daemon from the command line as 'zmc --device 0' (or whatever your
 video device is). If it returns immediately there's a problem so check the logs, 
 if it stays up then your video configuration is probably ok. To get more 
 information out of it use debug as specified below. Also check that the shared 
-memory segment has been created by doing 'ipcs -m'. Finally beware of doing 
+memory segment has been created by doing 'ipcs -m'. Finally, beware of doing 
 tests as root and then trying to run as another user as some files may not be 
 accessible. If you're checking things as root make sure that you clean up 
 afterwards!
@@ -904,11 +948,21 @@ not install a new Bundle at this point (it can end up building you a whole new
 perl if you're not careful) if it asks you but everything else should be quite 
 straightforward.
 8. Unsupported palettes. ZoneMinder currently is designed to use the simple 
-palettes of greyscale and 24 bit rgb. Some cameras refuse to use anything other 
-than more video oriented format such as YUV420 which ZoneMinder doesn't support. 
-This will often show up as the capture daemon being unable to set picture 
-attributes. I've now managed to get camera that supports YUV420 so support for 
-this will be forthcoming very soon however.
+palettes of greyscale and 24 bit as well as now the YUV420P palette. This should 
+cover most cameras but it's possible that there are ones out there that might 
+want to use more esoteric formats that ZoneMinder doesn't support. This will 
+often show up as the capture daemon being unable to set picture attributes. If 
+this occurs try using different palettes starting with greyscale and if you 
+can't get anything to work let me know and I'll try and add it.
+9. USB bus problems. If you have multiple USB cameras on one bus then it can 
+appear as if ZoneMinder is causing your cameras to fail. This is because the 
+bandwidth available to cameras is limited by the fairly low USB speed. In order 
+to use more than one USB camera with ZoneMinder (or any application) you will 
+need to inform the driver that there are other cameras requiring bandwidth. This 
+is usually done with a simple module option. Examples are usb_alt=<n> for the 
+OV511 driver and cams=<n> for CPIA etc. Check your driver documentation for more 
+details. Be aware however that sharing cameras in this way on one bus will also 
+limit the capture rate due to the reduced bandwidth.
 
 Also, if you are using IE under Windows and get lots of annoying clicks when 
 various windows refresh then you'll need to edit your registry and remove the 
@@ -916,10 +970,56 @@ value for HKEY_CURRENT_USER\AppEvents\Schemes\Apps\Explorer\Navigating\.current
 or download the registry script to do it for you from 
 http://www.zoneminder.com/downloads/noIEClick.reg
 
-Whats New
-=========
+What's New
+==========
 
-Release 0.9.10 - Many bug-fixes and major feature enahancements.
+Release 0.9.11 - Various new features and fixes.
+- Added stats view - If you have the RECORD_EVENT_STATS directive set and are 
+viewing a still image from an event you can now view the statistics recorded for 
+that frame. This tells you why that frame triggered or participated in an alarm. 
+This can be useful in tuning the various motion detection parameters and seeing 
+why events occurred.
+- Tabulated events - The main events view is now tabulated to look a bit nicer.
+- New video palette support - As well as the existing greyscale and 24 bit RGB 
+palettes, you can now choose YUV420P and RGB565. Rewrite the palette/colours 
+area a bit to enable support for other palettes in the future if requested. 
+- Added preclusive zones - Added a new zone type, the preclusive zone. For full 
+details see the relevant section above but in brief this is a zone type that if 
+alarmed will actually prevent an alarm. This completes the pantheon of zone 
+types I think.
+- Fixed Mozilla JavaScript - Various JavaScript functionality did not function 
+on Mozilla, Netscape and other browsers. This is now (hopefully) fixed.
+- Allow image and mpegs to be attached to emails - Added new tokens (%EI1%, 
+%EIM% and %EV%) to the filter emails. This allows the first alarm image, most 
+highly scored alarm image and an alarm MPEG to be attached to alarm notification 
+emails. Use %EV% especially with care!
+- Fixed possible motion detection bug - I found a few double declared local 
+variables left over from the rewrite. This may have affected the motion 
+detection algorithm. Fixed now anyway.
+- Modified scoring - Alarm scoring has been modified to give more granularity 
+for smaller events. This will have the effect of raising the scores for small 
+events while large ones will still be about the same.
+- Fixed /cgi-bin path problem - Previously you could specify the real path to 
+you cgi-bin directory if you have one but not the web path. You can now do both.
+- Improved video handling in browser - The MPEG/video area of the web GUI had 
+been a bit neglected and looked somewhat ugly. This has now been improved to a 
+degree and looks a bit nicer.
+- Added ffmpeg support - Historically ZoneMinder has only supported the Berkeley 
+mpeg encoder which was slow and rather limited. ZoneMinder now supports the 
+ffmpeg encoder as well which is much much faster and makes generation of MPEG 
+videos at realistic frame rates more of a reality. As ffmpeg has so many options 
+and everyone will probably want a different emphasis you can now also specify 
+additional ffmpeg options via zmconfig.pl.
+- Colourise greyscale image files - In past versions, captured greyscale images 
+were stored as JPEG files with a corresponding greyscale colourspace. This saved 
+a small amount of space but meant that mpeg_encode had to do a conversion to 
+encode them, and ffmpeg just fell in a heap. Now you can optionally opt to have 
+greyscale images saved as full 24 bit colourspace images (they still look the 
+same) at the price of a small penalty in CPU and disk but allowing you to easily 
+and quickly create MPEG files. This option is one by default but can be switched 
+off if you do not require any MPEG encoding.
+
+Release 0.9.10 - Many bug-fixes and major feature enhancements.
 - Configure 'round' bug - Fixed a problem with the configure script that didn't  
 detect if the 'round' function was already declared before try to do it itself.
 - Low event id bug - Fixed bug where events with an id of < 1000 were being 
@@ -1176,6 +1276,8 @@ will support this selection automatically thereafter. The hooks for this are
 already in to some extent.
 16. Add quotes to all PHP array references. I should have done it in the first 
 place but I'm a perl person really and it kind of bugs me that you have to.
+17. Add sound support to allow a captured audio channel to be associated with a 
+video device.
 
 
 Bugs

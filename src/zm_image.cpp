@@ -876,7 +876,7 @@ void Image::Scale( int factor )
 		}
 		width *= factor;
 		height *= factor;
-		size *= (factor*factor);
+		size = width*height*colours;
 	}
 	else
 	{
@@ -884,10 +884,14 @@ void Image::Scale( int factor )
 		unsigned char *pd = scale_buffer;
 		unsigned int wc = width*colours;
 		unsigned int cf = factor*colours;
-		for ( int y = 0; y < height; y += factor )
+		unsigned int xrem = width%factor;
+		unsigned int yrem = height%factor;
+		unsigned int xstart = xrem/2;
+		unsigned int ystart = yrem/2;
+		for ( int y = xstart; y < height; y += factor )
 		{
 			unsigned char *ps = &buffer[y*wc];
-			for ( int x = 0; x < width; x += factor )
+			for ( int x = ystart; x < width; x += factor )
 			{
 				for ( int c = 0; c < colours; c++ )
 				{
@@ -896,9 +900,9 @@ void Image::Scale( int factor )
 				ps += cf;
 			}
 		}
-		width /= factor;
-		height /= factor;
-		size /= (factor*factor);
+		width = 1+int((width-1)/factor);
+		height = 1+int((height-1)/factor);
+		size = width*height*colours;
 	}
 	delete[] buffer;
 	buffer = new JSAMPLE[size];

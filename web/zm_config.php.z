@@ -36,13 +36,13 @@ define( "ZM_DIR_SOUNDS", "<from zmconfig>" );			// Drectory where sounds live
 define( "ZM_OPT_CAMBOZOLA", "<from zmconfig>" );		// Is the (optional) cambozola java streaming client installed (recommended)
 define( "ZM_PATH_CAMBOZOLA", "<from zmconfig>" );		// Path to (optional) cambozola java streaming client (recommended)
 define( "ZM_CAN_STREAM", "<from zmconfig>" );			// Override the detection of streaming capability by browser
-define( "ZM_PATH_MPEG_ENCODE", "<from zmconfig>" );		// Path to (optional) mpeg video encoder
 define( "ZM_PATH_NETPBM", "<from zmconfig>" );			// Path to (optional) Netpbm utilities
 define( "ZM_WEB_POPUP_ON_ALARM", <from zmconfig> );		// Whether the watch window jumps to front if an alarm occurs
 define( "ZM_WEB_SOUND_ON_ALARM", <from zmconfig> );		// Whether the watch window jumps to front if an alarm occurs
 define( "ZM_WEB_ALARM_SOUND", <from zmconfig> );		// A sound to play on alarm, put this in the sounds directory
 define( "ZM_WEB_MONTAGE_MAX_COLS", <from zmconfig> );	// The maximum number of Monitor columns in the montage view
 define( "ZM_RECORD_EVENT_STATS", <from zmconfig> );		// Whether to record event statistical information, switch off if too slow
+define( "ZM_OPT_MPEG", "<from zmconfig>" );				// Is there an (optional) mpeg video encoder installed
 define( "ZM_OPT_FAST_DELETE", <from zmconfig> );		// Whether we only delete event DB records and leave zmaudit to do the rest
 define( "ZM_OPT_X10", <from zmconfig> );				// Whether we want to interface with X10 devices
 define( "ZM_OPT_FRAME_SERVER", <from zmconfig> );		// Whether to use the frame server

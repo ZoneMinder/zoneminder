@@ -30,7 +30,7 @@ header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");			// HTTP/1.0
 
 $db_now = strftime( "%Y-%m-%d %H:%M:%S" );
-$sql = "select M.*, count(if(E.Archived=0,1,NULL)) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
+$sql = "select * from Monitors order by Id";
 $result = mysql_query( $sql );
 if ( !$result )
 	echo mysql_error();
@@ -44,6 +44,10 @@ while( $row = mysql_fetch_assoc( $result ) )
 	{
 		continue;
 	}
+	if ( $group && $group['MonitorIds'] && !in_array( $row['Id'], split( ',', $group['MonitorIds'] ) ) )
+	{
+		continue;
+	}
 	$row['zmc'] = zmcCheck( $row );
 	$row['zma'] = zmaCheck( $row );
 	$sql = "select count(Id) as ZoneCount from Zones where MonitorId = '".$row['Id']."'";
@@ -51,13 +55,18 @@ while( $row = mysql_fetch_assoc( $result ) )
 	if ( !$result2 )
 		echo mysql_error();
 	$row2 = mysql_fetch_assoc( $result2 );
-	$monitors[] = array_merge( $row, $row2 );
+	$sql = "select count(if(Archived=0,1,NULL)) as EventCount, count(if(Archived,1,NULL)) as ArchEventCount, count(if(StartTime>'$db_now' - INTERVAL 1 HOUR && Archived = 0,1,NULL)) as HourEventCount, count(if(StartTime>'$db_now' - INTERVAL 1 DAY && Archived = 0,1,NULL)) as DayEventCount, count(if(StartTime>'$db_now' - INTERVAL 7 DAY && Archived = 0,1,NULL)) as WeekEventCount, count(if(StartTime>'$db_now' - INTERVAL 1 MONTH && Archived = 0,1,NULL)) as MonthEventCount from Events as E where MonitorId = '".$row['Id']."'";
+	$result3 = mysql_query( $sql );
+	if ( !$result3 )
+		echo mysql_error();
+	$row3 = mysql_fetch_assoc( $result3 );
 	if ( $row['Function'] != 'None' )
 	{
 		$cycle_count++;
 		if ( $max_width < $row['Width'] ) $max_width = $row['Width'];
 		if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
 	}
+	$monitors[] = $row = array_merge( $row, $row2, $row3 );
 }
 $montage_rows = intval(ceil($cycle_count/ZM_WEB_MONTAGE_MAX_COLS));
 $montage_cols = $cycle_count>=ZM_WEB_MONTAGE_MAX_COLS?ZM_WEB_MONTAGE_MAX_COLS:$cycle_count;

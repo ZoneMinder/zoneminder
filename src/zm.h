@@ -39,13 +39,20 @@ struct DeltaTimeval
 	unsigned long prec;
 };
 
-#define DT_MAXGRAN		1000000
+#define DT_GRAN_1000000	1000000
+#define DT_PREC_6		DT_GRAN_1000000
+#define DT_GRAN_100000	100000
+#define DT_PREC_5		DT_GRAN_100000
+#define DT_GRAN_10000	10000
+#define DT_PREC_4		DT_GRAN_10000
 #define DT_GRAN_1000	1000
 #define DT_PREC_3		DT_GRAN_1000
 #define DT_GRAN_100		100
 #define DT_PREC_2		DT_GRAN_100
 #define DT_GRAN_10		10
 #define DT_PREC_1		DT_GRAN_10
+
+#define DT_MAXGRAN		DT_GRAN_1000000
 
 // This obviously wouldn't work for massive deltas but as it's mostly
 // for frames it will only usually be a fraction of a second or so

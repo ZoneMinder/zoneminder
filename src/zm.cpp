@@ -1182,9 +1182,9 @@ bool Camera::GetCurrentSettings( int device, char *output, bool verbose )
 			sprintf( output+strlen(output), "  Video Channels: %d\n", vid_cap.channels );
 			sprintf( output+strlen(output), "  Audio Channels: %d\n", vid_cap.audios );
 			sprintf( output+strlen(output), "  Maximum Width: %d\n", vid_cap.maxwidth );
-			sprintf( output+strlen(output), "  Maximum Width: %d\n", vid_cap.maxheight );
+			sprintf( output+strlen(output), "  Maximum Height: %d\n", vid_cap.maxheight );
 			sprintf( output+strlen(output), "  Minimum Width: %d\n", vid_cap.minwidth );
-			sprintf( output+strlen(output), "  Minimum Width: %d\n", vid_cap.minheight );
+			sprintf( output+strlen(output), "  Minimum Height: %d\n", vid_cap.minheight );
 		}
 		else
 		{

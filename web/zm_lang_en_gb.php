@@ -79,6 +79,7 @@ $zmSlangAddNewZone           = 'Add New Zone';
 $zmSlangAlarm                = 'Alarm';
 $zmSlangAlarmBrFrames        = 'Alarm<br/>Frames';
 $zmSlangAlarmFrame           = 'Alarm Frame';
+$zmSlangAlarmFrameCount      = 'Alarm Frame Count';
 $zmSlangAlarmLimits          = 'Alarm Limits';
 $zmSlangAlarmPx              = 'Alarm Px';
 $zmSlangAlert                = 'Alert';

@@ -1669,12 +1669,11 @@ void Monitor::DumpImage( Image *image ) const
 	}
 }
 
-void Monitor::Analyse()
+bool Monitor::Analyse()
 {
 	if ( shared_images->last_read_index == shared_images->last_write_index )
 	{
-		usleep( 10000 );
-		return;
+		return( false );
 	}
 
 	time_t now = time( 0 );
@@ -1753,6 +1752,8 @@ void Monitor::Analyse()
 
 	shared_images->last_read_index = index%IMAGE_BUFFER_COUNT;
 	image_count++;
+
+	return( true );
 }
 
 void Monitor::ReloadZones()
@@ -1772,11 +1773,11 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	static char sql[256];
 	if ( device == -1 )
 	{
-		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, WarmUpCount, PreEventCount, PostEventCount from Monitors where Function != 'Disabled'" );
+		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, WarmUpCount, PreEventCount, PostEventCount from Monitors where Function != 'None'" );
 	}
 	else
 	{
-		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, WarmUpCount, PreEventCount, PostEventCount from Monitors where Function != 'Disabled' and Device = %d", device );
+		sprintf( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Colours, LabelFormat, LabelX, LabelY, WarmUpCount, PreEventCount, PostEventCount from Monitors where Function != 'None' and Device = %d", device );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{

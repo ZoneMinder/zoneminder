@@ -610,7 +610,7 @@ public:
 	}
  
 	void DumpImage( Image *image ) const;
-	void Analyse();
+	bool Analyse();
 
 	void Adjust( double ratio )
 	{

@@ -174,8 +174,11 @@ int RemoteCamera::GetResponse( unsigned char *&buffer, int &max_size )
 	FD_SET(sd, &rfds);
 
 	char *header = 0;
-	unsigned char *content_ptr = buffer;
+	int header_length = 0;
+	unsigned char *content = buffer;
 	int content_length = 0;
+
+	char *content_ptr = 0;
 
 	while( 1 )
 	{
@@ -208,10 +211,14 @@ int RemoteCamera::GetResponse( unsigned char *&buffer, int &max_size )
 			break;
 		}
 
-		if ( !header )
+		if ( !content_ptr )
 		{
-			header = (char *)malloc( bytes_to_read );
-			int n_bytes = read( sd, header, bytes_to_read );
+			if ( !header )
+				header = (char *)malloc( bytes_to_read );
+			else
+				header = (char *)realloc( header, header_length+bytes_to_read );
+
+			int n_bytes = read( sd, header+header_length, bytes_to_read );
 			if ( n_bytes < 0)
 			{
 				Error(( "Read error: %s", strerror(errno) ));
@@ -224,72 +231,78 @@ int RemoteCamera::GetResponse( unsigned char *&buffer, int &max_size )
 				free( header );
 				return( -1 );
 			}
-			Debug( 2, ( "Response: %s", header ));
-			char *content = strstr( header, "\r\n\r\n" );
-			if ( !content )
-			{
-				Error(( "Can't find end of header" ));
-				free( header );
-				return( -1 );
-			}
 			Debug( 3, ( "Read %d bytes of header/content", bytes_to_read ));
-			*(content+2) = 0;
-			content += 4;
-			//printf( "%s", header );
 
-			char version[4];
-			int code;
-			char message[64] = "";
-			int result = sscanf( header, "HTTP/%s %3d %[^\r\n]", version, &code, message );
-
-			if ( result != 3 )
+			content_ptr = strstr( header, "\r\n\r\n" );
+			if ( !content_ptr )
 			{
-				Error(( "Can't parse HTTP header" ));
-				free( header );
-				return( -1 );
+				header_length += bytes_to_read;
 			}
-
-			//printf( "R:%d, %s - %d - %s\n", result, version, code, message );
-
-			if ( code < 200 || code > 299 )
+			else
 			{
-				Error(( "Invalid response status %d: %s", code, message ));
-				free( header );
-				return( -1 );
-			}
+				*(content_ptr+2) = 0;
+				content_ptr += 4;
 
-			int expected_content_length = -1;
-			char header_string[32] = "";
-			if ( GetHeader( header, "Content-Length", header_string ) > 0 )
-			{
-				expected_content_length = atoi( header_string );
-			}
+				Debug( 2, ( "Header: %s", header ));
 
-			content_length = bytes_to_read-(content-header);
-			if ( content_length > max_size )
-			{
-				if ( expected_content_length > max_size )
+				char version[4];
+				int code;
+				char message[64] = "";
+				int result = sscanf( header, "HTTP/%s %3d %[^\r\n]", version, &code, message );
+
+				if ( result != 3 )
 				{
-					max_size = expected_content_length;
+					Error(( "Can't parse HTTP header" ));
+					free( header );
+					return( -1 );
 				}
-				else
-				{
-					max_size = 0x10000;
-				}
-				content_ptr = buffer = (unsigned char *)malloc( max_size );
-			}
-			memcpy( content_ptr, content, content_length );
-			content_ptr += content_length;
 
-			free( header );
+				//printf( "R:%d, %s - %d - %s\n", result, version, code, message );
+
+				if ( code < 200 || code > 299 )
+				{
+					Error(( "Invalid response status %d: %s", code, message ));
+					free( header );
+					return( -1 );
+				}
+
+				int expected_content_length = -1;
+				char header_string[32] = "";
+				if ( GetHeader( header, "Content-Length", header_string ) > 0 )
+				{
+					expected_content_length = atoi( header_string );
+				}
+
+				int excess_length = content_ptr-(header+header_length);
+				Debug( 3, ( "Excess length = %d", excess_length ));
+				content_length = bytes_to_read-excess_length;
+				Debug( 3, ( "Content length = %d", content_length ));
+
+				if ( content_length > max_size )
+				{
+					if ( expected_content_length > max_size )
+					{
+						max_size = expected_content_length;
+					}
+					else
+					{
+						max_size = 0x10000;
+					}
+					content = buffer = (unsigned char *)malloc( max_size );
+				}
+				memcpy( content, content_ptr, content_length );
+				content_ptr = (char *)(content + content_length);
+
+				free( header );
+			}
 		}
 		else
 		{
 			if ( (content_length+bytes_to_read) > max_size )
 			{
 				max_size += 0x10000;
-				buffer = (unsigned char *)realloc( buffer, max_size );
-				content_ptr = buffer+content_length;
+				content = buffer = (unsigned char *)realloc( buffer, max_size );
+				content_ptr = (char *)buffer+content_length;
 			}
 			int n_bytes = read( sd, content_ptr, bytes_to_read );
 			if ( n_bytes < 0)

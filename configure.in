@@ -1,5 +1,5 @@
 AC_INIT(src/zm.h)
-AM_INIT_AUTOMAKE(zm,1.19.4)
+AM_INIT_AUTOMAKE(zm,1.19.5)
 AM_CONFIG_HEADER(config.h)
 
 PATH_BUILD=`pwd`

@@ -24,6 +24,7 @@
 define( "ZM_PATH_BIN", "<from zmconfig>" );				// Path to binaries
 define( "ZM_PATH_WEB", "<from zmconfig>" );				// Path to web files
 define( "ZM_PATH_CGI", "<from zmconfig>" );				// Path to cgi files
+define( "ZM_DB_SERVER", "<from zmconfig>" );			// Database server
 define( "ZM_DB_NAME", "<from zmconfig>" );				// Database containing the tables
 define( "ZM_DB_USERA", "<from zmconfig>" );				// Database login
 define( "ZM_DB_PASSA", "<from zmconfig>" );				// Database password

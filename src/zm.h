@@ -298,6 +298,7 @@ public:
 	}
 	void RecordStats( const Event *event );
 	static int Load( Monitor *monitor, Zone **&zones );
+	bool DumpSettings( char *output, bool verbose );
 };
 
 class Camera;
@@ -635,6 +636,7 @@ public:
 	void ForceAlarm();
 	void CancelAlarm();
 
+	bool DumpSettings( char *output, bool verbose );
 	void DumpZoneImage();
 
 	inline void Capture()

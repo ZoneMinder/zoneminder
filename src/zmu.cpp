@@ -40,6 +40,7 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -z, --zones                    : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n" );
 	fprintf( stderr, "  -a, --alarm                    : Force alarm in monitor, this will trigger recording until cancelled with -c\n" );
 	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm in monitor, required after being enabled with -a\n" );
+	fprintf( stderr, "  -q, --query                    : Query the current settings for the monitors and zones\n" );
 	fprintf( stderr, "  -h, --help - This screen\n" );
 
 	exit( status );
@@ -61,6 +62,7 @@ int main( int argc, char *argv[] )
 		{"zones", 0, 0, 'z'},
 		{"alarm", 0, 0, 'a'},
 		{"cancel", 0, 0, 'c'},
+		{"query", 0, 0, 'q'},
 		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -79,7 +81,8 @@ int main( int argc, char *argv[] )
 		FPS=0x0040,
 		ZONES=0x0080,
 		ALARM=0x0100,
-		CANCEL=0x0200
+		CANCEL=0x0200,
+		QUERY=0x0400
 	} Function;
 	Function function = BOGUS;
 
@@ -90,7 +93,7 @@ int main( int argc, char *argv[] )
 		int option_index = 0;
 		int opterr = 1;
 
-		int c = getopt_long (argc, argv, "d:m:vsrwie::t::fzach", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsrwie::t::fzacqh", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -144,6 +147,9 @@ int main( int argc, char *argv[] )
 				break;
 			case 'c':
 				function = Function(function | CANCEL);
+				break;
+			case 'q':
+				function = Function(function | QUERY);
 				break;
 			case 'h':
 				Usage( 0 );
@@ -203,7 +209,7 @@ int main( int argc, char *argv[] )
 	}
 	else
 	{
-		Monitor *monitor = Monitor::Load( mon_id );
+		Monitor *monitor = Monitor::Load( mon_id, function&QUERY );
 
 		if ( monitor )
 		{
@@ -317,6 +323,12 @@ int main( int argc, char *argv[] )
 				if ( verbose )
 					printf( "Cancelling alarm\n" );
 				monitor->CancelAlarm();
+			}
+			if ( function & QUERY )
+			{
+				char mon_string[1024] = "";
+				monitor->DumpSettings( mon_string, verbose );
+				printf( "%s\n", mon_string );
 			}
 			if ( have_output )
 			{

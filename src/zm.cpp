@@ -2139,3 +2139,65 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd 
 		}
 	}
 }
+
+bool Monitor::DumpSettings( char *output, bool verbose )
+{
+	output[0] = 0;
+
+	sprintf( output+strlen(output), "Id : %d\n", id );
+	sprintf( output+strlen(output), "Name : %s\n", name );
+	sprintf( output+strlen(output), "Device : %d\n", device );
+	sprintf( output+strlen(output), "Channel : %d\n", channel );
+	sprintf( output+strlen(output), "Format : %d\n", format );
+	sprintf( output+strlen(output), "Width : %d\n", width );
+	sprintf( output+strlen(output), "Height : %d\n", height );
+	sprintf( output+strlen(output), "Colour Depth : %d\n", 8*colours );
+	sprintf( output+strlen(output), "Label Format : %s\n", label_format );
+	sprintf( output+strlen(output), "Label Coord : %d,%d\n", label_coord.X(), label_coord.Y() );
+	sprintf( output+strlen(output), "Warmup Count : %d\n", warmup_count );
+	sprintf( output+strlen(output), "Pre Event Count : %d\n", pre_event_count );
+	sprintf( output+strlen(output), "Post Event Count : %d\n", post_event_count );
+	sprintf( output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
+	sprintf( output+strlen(output), "Image Buffer Count : %d\n", image_buffer_count );
+	sprintf( output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc );
+	sprintf( output+strlen(output), "Function: %d - %s\n", function,
+		function==NONE?"None":(
+		function==ACTIVE?"Active":(
+		function==PASSIVE?"Passive":(
+		function==X10?"X10":"Unknown"
+	))));
+	sprintf( output+strlen(output), "Zones : %d\n", n_zones );
+	for ( int i = 0; i < n_zones; i++ )
+	{
+		zones[i]->DumpSettings( output+strlen(output), verbose );
+    }
+	return( true );
+}
+
+bool Zone::DumpSettings( char *output, bool verbose )
+{
+	output[0] = 0;
+
+	sprintf( output+strlen(output), "  Id : %d\n", id );
+	sprintf( output+strlen(output), "  Label : %s\n", label );
+	sprintf( output+strlen(output), "  Type: %d - %s\n", type,
+		type==ACTIVE?"Active":(
+		type==INCLUSIVE?"Inclusive":(
+		type==EXCLUSIVE?"Exclusive":(
+		type==INACTIVE?"Inactive":"Unknown"
+	))));
+	sprintf( output+strlen(output), "  Limits : %d,%d - %d,%d\n", limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY() );
+	sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );
+	sprintf( output+strlen(output), "  Alarm Threshold : %d\n", alarm_threshold );
+	sprintf( output+strlen(output), "  Min Alarm Pixels : %d\n", min_alarm_pixels );
+	sprintf( output+strlen(output), "  Max Alarm Pixels : %d\n", max_alarm_pixels );
+	sprintf( output+strlen(output), "  Filter Box : %d,%d\n", filter_box.X(), filter_box.Y() );
+	sprintf( output+strlen(output), "  Min Filter Pixels : %d\n", min_filter_pixels );
+	sprintf( output+strlen(output), "  Max Filter Pixels : %d\n", max_filter_pixels );
+	sprintf( output+strlen(output), "  Min Blob Pixels : %d\n", min_blob_pixels );
+	sprintf( output+strlen(output), "  Max Blob Pixels : %d\n", max_blob_pixels );
+	sprintf( output+strlen(output), "  Min Blobs : %d\n", min_blobs );
+	sprintf( output+strlen(output), "  Max Blobs : %d\n", max_blobs );
+	return( true );
+}
+

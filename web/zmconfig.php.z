@@ -24,10 +24,7 @@ define( "DB_NAME", "zm" );						// Database containing the tables
 define( "DB_USER", "zmadmin" );					// Database login
 define( "DB_PASS", "zmadminzm" );				// Database password
 
-define( "MAX_EVENTS", 12 );						// The maximum number of events to show in the default event listing
-define( "ALARM_POPUP", 1 );						// Whether the watch window jumps to front if an alarm occurs
-define( "ALARM_SOUND", "Yeow.wav" );			// A sound to play on alarm
-define( "ZM_PATH", "/usr/local/bin" );			// Path to the general ZoneMonitor executables
+define( "ZM_PATH", "@prefix@/bin" );			// Path to the general ZoneMonitor executables
 define( "ZMU_PATH", ZM_PATH."/zmu" );			// Path to the Zone Monitor Utility
 define( "ZMS_PATH", "/cgi-bin/zms" );			// Path to the Zone Monitor Stream server
 define( "EVENT_PATH", "events" );				// Local path to where events directory lives
@@ -35,6 +32,10 @@ define( "ZMS_EVENT_PATH", "/data/zm" );			// Full path (not web) to where events
 define( "CAMBOZOLA_PATH", "cambozola.jar" );	// Path to (optional) cambozola java streaming client (recommended)
 define( "MPEG_ENCODE_PATH", "./mpeg_encode" );	// Path to (optional) mpeg video encoder
 define( "NETPBM_DIR", "/usr/bin" );				// Path to (optional) Netpbm utilities
+
+define( "MAX_EVENTS", 12 );						// The maximum number of events to show in the monitor event listing
+define( "ALARM_POPUP", 1 );						// Whether the watch window jumps to front if an alarm occurs
+define( "ALARM_SOUND", "Yeow.wav" );			// A sound to play on alarm
 
 switch ( $bandwidth )
 {
@@ -80,7 +81,7 @@ switch ( $bandwidth )
 		define( "IMAGE_SCALING", 4 );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		break;
 	}
-	case "mobile" :
+	case "mobile" : // Very incomplete, most of these options don't do anything
 	{
 		define( "REFRESH_MAIN", 300 );              // How often (in seconds) the main console window refreshes
 		define( "REFRESH_CYCLE", 30 );              // How often the cycle watch windows swaps to the next monitor

@@ -109,6 +109,12 @@ if ( $action )
 		if ( !$result )
 			die( mysql_error() );
 	}
+	elseif ( $action == "unarchive" && $eid )
+	{
+		$result = mysql_query( "update Events set Archived = 0 where Id = '$eid'" );
+		if ( !$result )
+			die( mysql_error() );
+	}
 	elseif ( $action == "delete" )
 	{
 		if ( !$delete_eids && $delete_eid )
@@ -951,7 +957,11 @@ function newWindow(Url,Name,Width,Height) {
 <tr>
 <td align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
 <td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=none&action=delete&delete_eid=<?php echo $eid ?>">Delete</a></td>
+<?php if ( $event[Archived] ) { ?>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=unarchive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Unarchive</a></td>
+<?php } else { ?>
 <td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=archive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Archive</a></td>
+<?php } ?>
 <?php if ( $mode == "stream" ) { ?>
 <td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=event&mode=still&mid=<?php echo $mid ?>&eid=<?php echo $eid ?>">Stills</a></td>
 <?php } elseif ( canStream() ) { ?>

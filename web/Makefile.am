@@ -1,10 +1,10 @@
 AUTOMAKE_OPTIONS = gnu
 
-# You need to set this to your web directory
-webdir = /var/www/html
+# This should be set to your CGI directory
+webdir = @WEB_PREFIX@
 # And these to the user and group of your webserver
-webuser = apache
-webgroup = apache
+webuser = @WEB_USER@
+webgroup = @WEB_GROUP@
 
 web_DATA = zmactions.php zmconfig.php zmdb.php zmfilter.php zmfuncs.php zmhtml.php zm.php zmstyles.css zmwml.php
 

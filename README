@@ -87,18 +87,17 @@ relative to the web root directory in zmcfg.h and where in full path terms in
 zmconfig.php. There are also several other paths in index.php but these can wait 
 until later.
 
-The next step is tocheck and/or edit the src/Makefile.in and web/Makefile.in
-files and make sure that the WEBUSR and WEBGRP definitions near the top are
-appropriate for the user associated with your web server, ie. apache or web
-or whatever you've defined. In the web/makefile.in file there is also another
-definition which is webdir which should be the directory you want to install
-the PHP files to, and in src/Makefile.in there is a similar definition of
-cgidir which is where your CGI files should go. This is a bit of a pain I
-will admit so if anyone can tell me how to get this stuff put into the configure
-script I would be most grateful.
+So to continue, just type
 
-So to continue, just type './configure --with-mysql=/usr' (or your MySQL install 
-path). Then just type 'make' and off you go.
+./configure --with-webdir=<your web directory> --with-cgidir=<your cgi directory> --with-mysql=<your Mysql root>
+
+where --with-webdir is the directory to which you want to install the PHP files,
+and --with-cgidir is the directory to which you want to install CGI files.
+There are also two further arguments you can add if your web user and group
+are not apache and apache. These are --with-webuser and --with-webgroup. Type
+./configure --help for details.
+
+Then just type 'make' and off you go.
 
 I know what you are going to say next, it doesn't work. I hope it does but this 
 is my first type with autoconf and quite honestly I haven't a clue what I'm 

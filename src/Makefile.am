@@ -3,11 +3,11 @@ AUTOMAKE_OPTIONS = gnu
 LDADD =    @MYSQL_LIBS@
 CPPFLAGS = @MYSQL_CFLAGS@
 
-# You need to set this to your CGI directory
-cgidir = /var/www/cgi-bin
+# This should be set to your CGI directory
+cgidir = @CGI_PREFIX@
 # And these to the user and group of your webserver
-webuser = apache
-webgroup = apache
+webuser = @WEB_USER@
+webgroup = @WEB_GROUP@
 
 cgi_PROGRAMS = zms
 bin_PROGRAMS = zmc zma zmu

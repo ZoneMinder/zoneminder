@@ -2,7 +2,6 @@ AC_INIT(src/zm.h)
 AM_INIT_AUTOMAKE(zm,1.0.0)
 AM_CONFIG_HEADER(config.h)
 
-# Ask user for path to libmysqlclient stuff:.
 AC_ARG_WITH(mysql,
     [ --with-mysql=<path> prefix of MySQL installation. e.g. /usr/local or /usr],
     [MYSQL_PREFIX=$with_mysql],
@@ -15,6 +14,48 @@ MYSQL_LIBS="-L${MYSQL_PREFIX}/lib/mysql -lmysqlclient"
 MYSQL_CFLAGS="-I${MYSQL_PREFIX}/include"
 AC_SUBST(MYSQL_LIBS)
 AC_SUBST(MYSQL_CFLAGS)
+
+# Ask user for path to web stuff:.
+AC_ARG_WITH(webdir,
+    [ --with-webdir=<path> prefix of web directory. e.g. /var/www/html or /www/vhtdocs/<site>],
+    [WEB_PREFIX=$with_webdir],
+    AC_MSG_ERROR([You must call configure with the --with-webdir option.
+    This tells configure where to install PHP and web files and scripts.
+    e.g. --with-webdir=/var/www/html or --with-mysql=/www/vhtdocs/<site>])
+)
+AC_SUBST(WEB_PREFIX)
+
+# Ask user for path to cgi stuff:.
+AC_ARG_WITH(cgidir,
+    [ --with-cgidir=<path> prefix of cgi directory. e.g. /var/www/cgi-bin or /www/vhtdocs/<site>/cgi-bin],
+    [CGI_PREFIX=$with_cgidir],
+    AC_MSG_ERROR([You must call configure with the --with-cgidir option.
+    This tells configure where to install cgi files and scripts.
+    e.g. --with-cgidir=/var/www/cgi-bin or --with-mysql=/www/vhtdocs/<site>/cgi-bin])
+)
+AC_SUBST(CGI_PREFIX)
+
+WEB_USER=apache
+# Ask user for web user name:.
+AC_ARG_WITH(webuser,
+    [ --with-webuser=<user> username of web user. e.g. apache or web],
+    [WEB_USER=$with_webuser],
+    AC_MSG_WARN([You can call configure with the --with-webuser option.
+    This tells configure what the user name of the web user is if it is not the default of 'apache'.
+    e.g. --with-webuser=apache or --with-webuser=web])
+)
+AC_SUBST(WEB_USER)
+
+WEB_GROUP=apache
+# Ask group for web group name:.
+AC_ARG_WITH(webgroup,
+    [ --with-webgroup=<group> groupname of web group. e.g. apache or web],
+    [WEB_GROUP=$with_webgroup],
+    AC_MSG_WARN([You can call configure with the --with-webgroup option.
+    This tells configure what the group name of the web group is if it is not the default of 'apache'.
+    e.g. --with-webgroup=apache or --with-webgroup=web])
+)
+AC_SUBST(WEB_GROUP)
 
 AC_PROG_CC
 AC_PROG_CXX
@@ -30,15 +71,6 @@ AC_CHECK_LIB(z,compress,,AC_MSG_ERROR(zm requires libz.a))
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 #AC_CHECK_LIB(mysqlclient,mysql_init,,AC_MSG_ERROR(zm requires libmysqlclient.a))
 
-# Ask user for path to libmysqlclient stuff:.
-#AC_ARG_WITH(webdir,
-    #[ --webdir=<path> prefix of web installation. e.g. /var/www/html or /www/vhtdocs/site],
-    #[webdir=$webdir],
-    #AC_MSG_ERROR([You must call configure with the --webdir option.
-    #This tells configure where to put the web files.
-    #e.g. --webdir=/var/www/html or --webdir=/www/vhtdocs/site])
-#)
-#AC_SUBST(webdir)
 AC_SUBST(bindir)
 
 AC_OUTPUT(Makefile src/Makefile web/Makefile web/zmconfig.php scripts/Makefile scripts/zmdc.pl)

@@ -58,6 +58,7 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 CC = @CC@
+CGI_PREFIX = @CGI_PREFIX@
 CXX = @CXX@
 MAKEINFO = @MAKEINFO@
 MYSQL_CFLAGS = @MYSQL_CFLAGS@
@@ -65,15 +66,18 @@ MYSQL_LIBS = @MYSQL_LIBS@
 MYSQL_PREFIX = @MYSQL_PREFIX@
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
+WEB_GROUP = @WEB_GROUP@
+WEB_PREFIX = @WEB_PREFIX@
+WEB_USER = @WEB_USER@
 bindir = @bindir@
 
 AUTOMAKE_OPTIONS = gnu
 
-# You need to set this to your web directory
-webdir = /var/www/html
+# This should be set to your CGI directory
+webdir = @WEB_PREFIX@
 # And these to the user and group of your webserver
-webuser = apache
-webgroup = apache
+webuser = @WEB_USER@
+webgroup = @WEB_GROUP@
 
 web_DATA = zmactions.php zmconfig.php zmdb.php zmfilter.php zmfuncs.php zmhtml.php zm.php zmstyles.css zmwml.php
 

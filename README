@@ -1,13 +1,13 @@
-    21/02/04        ZoneMinder 1.18.1 README                
+    16/03/04        ZoneMinder 1.19.0 README                
                                  
-                        ZoneMinder v1.18.1
+                        ZoneMinder v1.19.0
 
 1.   Introduction
    
 Welcome to ZoneMinder, the all-in-one Linux GPL'd security  camera
 solution.
 
- A few months back my garage was burgled and all my wine and power
+  A  while  back my garage was burgled and all my wine  and  power
 tools were nicked! I realised shortly after that if I'd just had a
 camera  overlooking the door then at least I'd have  know  exactly
 when  and who did the dirty deed. And so ZoneMinder was born. It's
@@ -102,7 +102,7 @@ cameras  with  the V4L interface. I don't have a  lot  of  cameras
 myself  so  I've  not  had change to test it  with  a  huge  range
 personally  however there is a list of devices that are definitely
 known  to work on the web site. Please let me know if your  camera
-works  and  is  not  listed. You do need to  have  Video  4  Linux
+works  and  is  not  listed.  You  do  need  to  have  Video4Linux
 installed. I've not got too many machines so I've only really used
 it  on various RedHat distributions, which seem to have everything
 there by default I think. SlackWare does need a bit more tinkering
@@ -124,13 +124,23 @@ installed MySQL (usually /usr), --with-webdir is the directory  to
 which you want to install the PHP files, and --with-cgidir is  the
 directory   to  which  you  want  to  install  CGI  files.   These
 directories  could  be  /var/www/html/zm and /var/www/cgi-bin  for
-example. There are also two further arguments you can add if  your
-web user and group are not both 'apache'. These are --with-webuser
-and --with-webgroup. Type
+example.  If  you want to use real MPEG based streaming  you  will
+need  to  have built and installed the ffmpeg tools. You can  then
+also  use  -with-ffmpeg=<path to ffmpeg build directory>  to  help
+configure  find it. Note this path should be to the directory  you
+build  ffmpeg  in  and  not  where it is installed.  This  package
+installs  only  binaries whereas ZoneMinder needs  access  to  the
+header  and libraries files which remain. If you have built ffmpeg
+with the mp3lame feature turned on your will additionally need  to
+tell   configure  where  to  find  that,  to  prevent   unresolved
+dependencies.  To  do  this  add  the  -with-lame=<path  to   lame
+directory>option as well. There are also two further arguments you
+can  add  if your web user and group are not both 'apache'.  These
+are --with-webuser and --with-webgroup. Type
 
 ./configure -help
 
-for details.
+for details on these options.
 
 That's the build configuration sorted out. The next thing you have
 to  do  is  do  a  little  more  runtime  specific  configuration.
@@ -164,8 +174,8 @@ and it will just ask you about those. So for example,
 
 perl ./zmconfig.pl ZM_STRICT_VIDEO_CONFIG
 
-however it is fairly dumb will not tell you if you make a typo and
-misspell an option.
+however it is fairly dumb and will not tell you if you make a typo
+and misspell an option.
 
 Among the first questions zmconfig.pl asks you are to do with  the
 database  and the next thing you should do is create  it  and  the
@@ -898,7 +908,11 @@ are as follows.
    to  Pixels  and refine any gaps. Repeated flipping between  the
    settings  will cause rounding errors, as ZoneMinder in  general
    is   not   at  home  to  Mr  Floating  Point  for  reasons   of
-   performance.
+   performance.  Note, the sense of the percentage values  changed
+   in  version 1.19.0. Prior to that percentages referred  to  the
+   area  of  the image as a whole, whereas it now only  refers  to
+   the  area  of the zone. This makes trying to work out necessary
+   sizes rather easier.
    
    Min/Maximum  X/Y - Following the units the next  four  settings
    define  the  bounds of the Zone in the monitor  frame  and  are
@@ -1317,7 +1331,7 @@ place or ensure that you housekeep them strictly.
 Have fun, please report any bugs or features you'd like to see and
 hopefully ZoneMinder can be your camera monitoring friend!
 
-Philip Coombes (philip.coombes@zoneminder.com) - February 2004
+Philip Coombes (philip.coombes@zoneminder.com) - March 2004
 
 
 6.   Troubleshooting
@@ -1515,7 +1529,118 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 7.   Change Log
    
 
-7.1. Release 1.18.1
+7.1. Release 1.19.0
+Some major enhancements and bugfixes.
+
+  o     MPEG  video streaming. ZoneMinder now supports true  video
+    streaming if configured with the -with-ffmpeg option. This allows
+    one or both of live or event streaming to be in this format rather
+    than  motion JPEG style as before. Note however that is  still
+    somewhat experimental and may not work on your system. The reason
+    for  this  is due to the variation in plugins and video  movie
+    formats. Currently I have got it working well with browsers on
+    Windows platforms using the Windows Media Player plugin and the
+    'asf' video format. I have also managed to get event streaming
+    working on Mozilla using mplayer (I think) though it jumps in and
+    out  of it's place in the window a bit. I would appreciate any
+    feedback  or advice on formats and plugins that work  on  your
+    system.  Also note that video streaming tends to get  buffered
+    before being displayed. This can result in the 'live' view being
+    several seconds delayed.
+    
+o    Motion JPEG Capture. Previously image capture from network
+devices has been limited to single stills capture only. This has
+now changed and if you entered a remote camera path that returns
+the multipart/x-mixed-replace MIME type then this will be parsed
+and images extracted from the stream. This is much faster than
+before and frame rates can be as fast now with network cameras as
+with capture cards and video. This feature also has the side-
+effect that one ZoneMinder installation can use another as a
+remote video source.
+o    NPH Streaming. After months of frustration I have finally
+figured out why streams were corrupted using Cambozola versions
+after 0.22. It turned out that apache was injecting characters
+into the streams which was screwing up the headers. I believe this
+to be because the initial header had no content-length header, as
+the length is indeterminate. So I have added a zero content length
+header which I believe fixes the problem though perhaps not in the
+best way. I have also made the installation link the existing zms
+binary to nph-zms so that you can now use zms in non-parsed-header
+mode. If it detects it is in this mode then the content-length
+header is not output, though several other additional ones are. In
+nph mode the false character injection seems to disappear so I
+suspect this is a better way to use zms.
+o    Bulk Frame Records. With the recent advent of the 'Record'
+and 'Mocord' modes a lot of people have started using ZoneMinder
+as a pseudo-DVR. This meant that a lot of database activity was
+taking place as each captured frame required its own entry in the
+database. The frames table has now been reorganised so that 'bulk'
+frames may be written at defined intervals to reduce this database
+activity. The records act as markers and individual frame timings
+are interpolated in between. Bulk frames are only used when no
+alarm or motion detection activity is taking place and normal
+frame records are kept otherwise.
+o    Event List Ordering and Scrolling. It was previously the case
+that the 'Next' and 'Prev' buttons on the event view did not
+always go to the event that was expected and sometimes disappeared
+altogether. This behaviour has now been modified and these buttons
+will now take you to the next and previous events in the list
+which the event was selected from. Thus if the list was sorted on
+ascending scores then the 'next' event is the one below which has
+a higher score etc. A possibly counterintuitive side effect of
+this is that as the default list is sorted by descending time the
+'next' event is the one below in the list which will actually be
+earlier and the 'previous' event is later. So long as you remember
+that next and prev refer to the order of the list you should be
+ok.
+o    Zone Percentage Sizes. Zone motion detection parameters can
+be defined either in terms of total pixels or as a percentage.
+This percentage was defined relative to the size of the image as a
+whole. However this was difficult to calculate or estimate
+especially with several zones of varying sizes. In version 1.19.0
+this has been changed so that the percentage relates to the size
+of the zone itself instead. This should make calculations somewhat
+easier. To convert your existing zones you can run zmupdate.pl
+with the -z option, though this should be done only once and you
+should backup your database beforehand in case of error.
+o    Zone Form Validation. Changes applied in version 1.18.0 to
+prevent invalidate entries in the zone definition form actually
+had the opposite effect due to JavaScript treating everything as a
+string and not a number (e.g. 5 is greater than 123). This is now
+corrected.
+o    Default Rate and Scales. You can now specify (in the options
+dialog) the default scale you would like to view live and event
+feeds at. You can also give a default rate for viewing event
+replays.
+o    More Rates. Additional faster rates have been included, up to
+100 times.
+o    Frame Buffer Size. Previously it was possible for frames
+being sent from the analysis daemon to the frame server to exceed
+the defined maximum buffer size in which case the write would
+fail. It is now possible to define a larger size if necessary to
+prevent this. Note that you may have to adjust your system
+configuration to accommodate this. For further details check the
+help for the ZM_FRAME_SOCKET_SIZE option.
+o    Filter Name Duplication. Following recent changes to the
+filters table, several people reported that when saving filters
+they actually got a duplicate. This resulted in several copies of
+filters all with the same name as the constraint on unique filter
+names was not present. Well it is now so when upgrading your
+database all the filters will be renamed from 'myfilter' to
+'myfilter_<id>' where '<id>' is the id number in the database
+(which is then removed). In general the higher the id number the
+more recent the filter. So you should go through your filter list
+deleting old copies and then rename the last one back to it's
+original name.
+o    Filter Image Attachments. A fix was made to zmfilter.pl to
+prevent it trying to attach‚ alarm images to non-alarm events.
+o    Video Rate Specification. A fix was made to zmvideo.pl that
+corrected a problem with no default frame being used if none was
+passed in.
+o    A translation for the Dutch (nl_nl) language has been
+included.
+
+7.2. Release 1.18.1
 Minor bugfixes.
 
   o     Filter Monitor Name Bug. A bug was present in the previous
@@ -1533,7 +1658,7 @@ for all of them. It is recommended that you review your list of
 saved filters and delete duplicates before adding any monitor
 specific terms and resetting the actions for any that remain.
 
-7.2. Release 1.18.0
+7.3. Release 1.18.0
 Major optimisations, important new features and some bugfixes.
 
   o     Optimisations and Performance Improvements.  This  release
@@ -1569,13 +1694,12 @@ Major optimisations, important new features and some bugfixes.
     place which is limited by the speed of these resources so the gain
     will not be as much.
     
-  o    Remote Authentication. This document has previously indicated
-    that basic authentication for network cameras could be used by
-    entering a hostname of the form of <user>:<pass>@<hostname>. This
-    was not actually the case as the relevant authentication header
-    was never sent. This is now fixed and addresses of this form can
-    now be used.
-    
+o    Remote Authentication. This document has previously indicated
+that basic authentication for network cameras could be used by
+entering a hostname of the form of <user>:<pass>@<hostname>. This
+was not actually the case as the relevant authentication header
+was never sent. This is now fixed and addresses of this form can
+now be used.
 o    Filter Date Parsing. The zmfilter.pl date parsing now
 correctly reports when dates or times which it cannot parse are
 used.
@@ -1612,20 +1736,18 @@ constrain the image size of each monitor in this view to a fixed
 size with the ZM_WEB_MONTAGE_WIDTH and ZM_WEB_MONTAGE_HEIGHT
 configuration options. Monitor images will be enlarged or reduced
 as necessary.
-  o     Compact  Montage.  The traditional montage  view  includes
-    individual small menus for each monitor and a status display. This
-    results in a somewhat cluttered display and the refreshing of the
-    status displays may generate more accesses than desirable. Using
-    the  ZM_WEB_COMPACT_MONTAGE configuration option  allows  this
-    montage view to only include the monitor streams and one overall
-    menu bar with no status displays.
-    
-  o    Monitor Name Constraint. The name given to a monitor is used
-    in file paths and several other areas. Thus it is important that
-    it follows certain conventions but up until this release these
-    names were unrestricted. The monitor form now limits monitor names
-    to alphanumeric characters plus hyphen and underscore.
-    
+o    Compact Montage. The traditional montage view includes
+individual small menus for each monitor and a status display. This
+results in a somewhat cluttered display and the refreshing of the
+status displays may generate more accesses than desirable. Using
+the ZM_WEB_COMPACT_MONTAGE configuration option allows this
+montage view to only include the monitor streams and one overall
+menu bar with no status displays.
+o    Monitor Name Constraint. The name given to a monitor is used
+in file paths and several other areas. Thus it is important that
+it follows certain conventions but up until this release these
+names were unrestricted. The monitor form now limits monitor names
+to alphanumeric characters plus hyphen and underscore.
 o    Timestamp Change. Traditionally ZoneMinder has time-stamped
 each image as it is captured. This ensures that all images have
 their capture time recorded immediately. However there are several
@@ -1654,15 +1776,14 @@ screen blanks periodically however uses more JavaScript so may not
 be suitable for all platforms. Whether ZoneMinder uses double
 buffering or not is controlled by the ZM_WEB_DOUBLE_BUFFER
 configuration option.
-  o    Fixed Length Event Bug. A bug was reported whereby the fixed
-    length events that could be specified for use in Record or Mocord
-    mode could sometimes result in events a multiple of that length.
-    So events that were meant to be 15 minutes long could sometimes be
-    30 or even 45 minutes. This was especially the case with monitors
-    that had low frame rates. This is now fixed.
-    
+o    Fixed Length Event Bug. A bug was reported whereby the fixed
+length events that could be specified for use in Record or Mocord
+mode could sometimes result in events a multiple of that length.
+So events that were meant to be 15 minutes long could sometimes be
+30 or even 45 minutes. This was especially the case with monitors
+that had low frame rates. This is now fixed.
 
-7.3. Release 1.17.2
+7.4. Release 1.17.2
 Minor features, bug fixes and additional languages.
 
   o    Pending Process Bug. A bug was found whereby a process that
@@ -1682,28 +1803,26 @@ added to assist in screening out large changes in brightness. In
 addition to this a number of new consistency checks have been
 added to the zone definition form to try and prevent bogus or
 invalid settings.
-  o    Diagnostic Zone Images. A regularly requested feature is that
-    of adding extra information to allow diagnostics of the process of
-    image detection. This has previously been somewhat hit and miss
-    but    in    this   version   a   new   configuration   option
-    ZM_RECORD_DIAG_IMAGES has been included to allow this. This option
-    will generate several images for each captured frame in an alarm
-    including each reference image and a series of images containing
-    the image differences at various stages in the process. It is not
-    possible to record these for the image prior to an alarm but those
-    following it are included and should assist in tuning the zones to
-    provide optimal motion detection.
-    
-  o     Event  Images  Renamed. The capture  and  analysis  images
-    recorded during an event have been renamed from capture-???.jpg to
-    ???-capture, and from analyse-???.jpg to ???-analyse.jpg. This is
-    to allow all images (including diagnostic ones) to be associated
-    with the frame sequence number more easily. This means that old
-    events will no longer be able to be viewed as the wrong image will
-    be  being  searched for. To avoid this you  can  use  the  new
-    'zmupdate.pl' utility to rename all your old images by doing 'perl
-    zmupdate.pl -r' as an appropriately privileged or root user.
-    
+o    Diagnostic Zone Images. A regularly requested feature is that
+of adding extra information to allow diagnostics of the process of
+image detection. This has previously been somewhat hit and miss
+but in this version a new configuration option
+ZM_RECORD_DIAG_IMAGES has been included to allow this. This option
+will generate several images for each captured frame in an alarm
+including each reference image and a series of images containing
+the image differences at various stages in the process. It is not
+possible to record these for the image prior to an alarm but those
+following it are included and should assist in tuning the zones to
+provide optimal motion detection.
+o    Event Images Renamed. The capture and analysis images
+recorded during an event have been renamed from capture-???.jpg to
+???-capture, and from analyse-???.jpg to ???-analyse.jpg. This is
+to allow all images (including diagnostic ones) to be associated
+with the frame sequence number more easily. This means that old
+events will no longer be able to be viewed as the wrong image will
+be being searched for. To avoid this you can use the new
+'zmupdate.pl' utility to rename all your old images by doing 'perl
+zmupdate.pl -r' as an appropriately privileged or root user.
 o    Version checking. ZoneMinder will now optionally check for
 new versions of itself at zoneminder.com. This is done with a
 simple http get and no personal information otherwise than your
@@ -1711,24 +1830,22 @@ current version of ZoneMinder is transmitted or recorded. If new
 versions are found you may be alerted of them via the web
 interface. This is an initial step towards enhancing and
 automating the upgrade process.
-  o    Force Java. Previously ZoneMinder could be forced to override
-    it's detection of browser capabilities to prevent the Cambozola
-    Java applet being used. However sometimes the opposite effect was
-    desired  and  using the applet was preferred to  native  image
-    handling.  This  has  now  been made possible  by  making  the
-    ZM_CAN_STREAM option tri-state allowing 'auto', 'yes' or 'no' to
-    be used to provide all alternatives.
-    
-  o    Alarms Cleared on Exit. In previous versions if an alarm was
-    present when the analysis daemon (zma) exited the alarm  would
-    remain flagged. This had little effect except if the monitor was
-    being watched however it was a bit annoying so any alarm flag is
-    now cleared when this daemon exits.
-    
+o    Force Java. Previously ZoneMinder could be forced to override
+it's detection of browser capabilities to prevent the Cambozola
+Java applet being used. However sometimes the opposite effect was
+desired and using the applet was preferred to native image
+handling. This has now been made possible by making the
+ZM_CAN_STREAM option tri-state allowing 'auto', 'yes' or 'no' to
+be used to provide all alternatives.
+o    Alarms Cleared on Exit. In previous versions if an alarm was
+present when the analysis daemon (zma) exited the alarm would
+remain flagged. This had little effect except if the monitor was
+being watched however it was a bit annoying so any alarm flag is
+now cleared when this daemon exits.
 o    New Languages. Translations for Japanese (ja_jp), French
 (fr_fr) and Russian (ru_ru) are now included.
 
-7.4. Release 1.17.1
+7.5. Release 1.17.1
 Bugfixes and additional languages.
 
   o    Login Bug. A bug was identified whereby an unauthorised user
@@ -1749,7 +1866,7 @@ accessed area and contains a great deal of text. The new format
 allows individual options to be translated piecemeal as the
 opportunity arises.
 
-7.5. Release 1.17.0
+7.6. Release 1.17.0
 Language changes and other enhancements.
 
   o     Version  Numbering. ZoneMinder version  numbers  have  now
@@ -1794,7 +1911,7 @@ has been corrected.
 o    Minor Bugs. A number of minor bugs and inconsistencies were
 corrected.
 
-7.6. Release 0.9.16
+7.7. Release 0.9.16
 Major usability enhancement and fixes.
 
   o    Run States. Instead of the old 'start/stop' links the current
@@ -1866,10 +1983,9 @@ o    File reorganisation. Various administrative file changes and
 reorganisations.
 o    Compiler warnings. Various tweaks and modifications to reduce
 compiler and memory warnings.
-  o    SQL Buffer size. Increased SQL buffer size to cope with large
-    pre-event  buffers, plus a couple of other buffers  have  been
-    enlarged.
-    
+o    SQL Buffer size. Increased SQL buffer size to cope with large
+pre-event buffers, plus a couple of other buffers have been
+enlarged.
 o    Incorrect Frame time offsets. The time offsets in alarmed
 frames were incorrect and based on the time of storage rather than
 capture. This gave the impression that there was a delay after the
@@ -1914,7 +2030,7 @@ correctly parsed from command line options passed to zmu.
 o    Event window width variable. Event windows now scale to fit
 the event image size.
 
-7.7. Release 0.9.15
+7.8. Release 0.9.15
 Various bug fixes from the last release and before.
 
   o     Bandwidth.  A  bug was introduced in .14  which  caused  a
@@ -1950,7 +2066,7 @@ directly were colourised whereas those written by  zmf weren't. A
 change has been made whereby if set all greyscale JPEG images are
 colourised in all circumstances.
 
-7.8. Release 0.9.14
+7.9. Release 0.9.14
 Major new feature and important bug-fixes.
 
   o     Web  configuration. Following many requests  and  to  make
@@ -1964,9 +2080,8 @@ Major new feature and important bug-fixes.
      the web interface and apply then without recompilation, which is
      now only necessary if you change the core configuration.
      
-  o     Following a number of requests the .sock file directory is
-     now configurable in zmconfig.
-     
+o    Following a number of requests the .sock file directory is
+now configurable in zmconfig.
 o    Y channel bug. When using colour cameras a motion detection
 problem was present if fast RGB images deltas (ZM_FAST_RGB_DIFFS)
 was off. This was an overflow error in the calculation of the Y
@@ -1992,7 +2107,7 @@ should still be secure as it will require authentication.
 o    All SQL buffers in the C++ code have been enlarged. There was
 previously an issue with a buffer overflow on certain occasions.
 
-7.9. Release 0.9.13
+7.10.     Release 0.9.13
 Beta  version  of  several  features and  fixes,  never  generally
 released.
 
@@ -2042,7 +2157,7 @@ restart the refresh process. By using JS refresh timers which are
 not interrupted these extraneous refreshes have been mostly
 eliminated.
 
-7.10.     Release 0.9.12
+7.11.     Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
   o    Double first images. Fixed a problem where the first image of
@@ -2114,7 +2229,7 @@ users, attempts to delete monitors will now require confirmation.
 o    Detect linmysqlclient.a. Added better detection script into
 'configure' top spot when libmysqlclient.a is missing.
 
-7.11.     Release 0.9.11
+7.12.     Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats  view  -  If you have the  RECORD_EVENT_STATS
@@ -2197,7 +2312,7 @@ o    Web colour change - I thought the old red, green and amber
 text colours were just a bit too gaudy so I've toned them down a
 bit. Hope you like them!
 
-7.12.     Release 0.9.10
+7.13.     Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
   o     Configure 'round' bug - Fixed a problem with the configure
@@ -2275,7 +2390,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came across
 that that I don't think had been reported or noticed so I don't
 think we need to talk about them here do we.
 
-7.13.     Release 0.9.9
+7.14.     Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o    Added zmu -q/--query option - There is now a new query option
@@ -2322,7 +2437,7 @@ removed in the last version which meant that sometimes the console
 never go refreshed as it's timing loop was broken. This
 functionality has now been reinstated.
 
-7.14.     Release 0.9.8
+7.15.     Release 0.9.8
 Several new features and bug-fixes
 
   o    Upgrade note - If you have installed 0.9.7 and wish to save
@@ -2387,7 +2502,7 @@ o    Monitor window refresh on alarm - When the monitor window is
 active and an alarm has occurred the most recent alarms list is
 immediately refreshed to show it.
 
-7.15.     Release 0.9.7
+7.16.     Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes too.  Now
 somewhat more mature, not really an alpha any more, and a  lot  of
 bugs fixed too.
@@ -2432,7 +2547,7 @@ o    Some of the web views have changed slightly to accommodate
 the separate events view.
 o    And much much more, probably...
 
-7.16.     Release 0.0.1
+7.17.     Release 0.0.1
 Initial release, therefore nothing new.
 
 

@@ -75,7 +75,8 @@ select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 print( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql@".DB_SERVER.":".DB_NAME, DB_USER, DB_PASS );
+
 my $sql = "select * from Monitors";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 

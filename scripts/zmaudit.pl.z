@@ -36,6 +36,7 @@
 #
 # ==========================================================================
 use constant DB_NAME => "zm";
+use constant DB_NAME => "zm";
 use constant DB_USER => "zmadmin";
 use constant DB_PASS => "zmadminzm";
 use constant IMAGE_PATH => "@WEB_PREFIX@/images";
@@ -127,7 +128,8 @@ if ( $report && $yes )
 	usage();
 }
 
-my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql@".DB_SERVER.":".DB_NAME, DB_USER, DB_PASS );
+
 chdir( EVENT_PATH );
 if ( !$yes && !$report )
 {

@@ -4,6 +4,10 @@ include_once( 'browser.php' );
 
 import_request_variables( "GPC" );
 
+//phpinfo( INFO_VARIABLES );
+
+$PHP_SELF = $_SERVER['PHP_SELF'];
+
 $DB_SERVER = "localhost";	// Database Server machine
 $DB_NAME   = "zm";		// Database containing the tables
 $DB_USER   = "zmadmin";		// Database login
@@ -95,6 +99,60 @@ if ( $action )
 				system( escapeshellcmd( "rm -rf events/*/".sprintf( "%04d", $delete_eid ) ) );
 		}
 	}
+	elseif ( $action == "function" && $mid )
+	{
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
+
+		$old_function = $monitor['Function'];
+		if ( $new_function != $old_function )
+		{
+			if ( $new_function == "None" )
+			{
+			}
+			else
+			{
+			}
+		}
+	}
+	elseif ( $action == "device" && isset( $did ) )
+	{
+		if ( $zmc_status && !$zmc_action )
+		{
+			# Shutdown Capture daemon
+			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
+			if ( $ps_array[3] )
+			{
+				$zmc = $ps_array[3];
+				exec( "kill -TERM $zmc" );
+			}
+		}
+		elseif ( !$zmc_status && $zmc_action )
+		{
+			# Start Capture daemon
+			$command = "/usr/local/bin/zmc $did &";
+			exec( $command );
+		}
+		if ( $zma_status && !$zma_action )
+		{
+			# Shutdown Analysis daemon
+			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
+			if ( $ps_array[3] )
+			{
+				$zma = $ps_array[3];
+				exec( "kill -TERM $zma" );
+			}
+		}
+		elseif ( !$zma_status && $zma_action )
+		{
+			# Start Analysis daemon
+			$command = "/usr/local/bin/zma $did &";
+			exec( $command );
+		}
+		sleep( 3 );
+	}
 }
 
 if ( !$view )
@@ -131,7 +189,26 @@ if ( $view == "console" )
 		$monitors[] = array_merge( $row, $row2 );
 	}
 
-	//echo phpinfo();
+	$sql = "select distinct Device from Monitors order by Device";
+	$result = mysql_query( $sql );
+	if ( !$result )
+		echo mysql_error();
+	$devices = array();
+
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $row[Device]' | grep -v grep" ) );
+		if ( $ps_array[3] )
+		{
+			$row['zmc'] = 1;
+		}
+		$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $row[Device]' | grep -v grep" ) );
+		if ( $ps_array[3] )
+		{
+			$row['zma'] = 1;
+		}
+		$devices[] = $row;
+	}
 ?>
 <html>
 <head>
@@ -184,6 +261,7 @@ function newWindow(Url,Name,Width,Height) {
 	$zone_count = 0;
 	foreach( $monitors as $monitor )
 	{
+		$device = $devices[$monitor[Device]];
 		$event_count += $monitor[EventCount];
 		$hour_event_count += $monitor[HourEventCount];
 		$day_event_count += $monitor[DayEventCount];
@@ -195,8 +273,8 @@ function newWindow(Url,Name,Width,Height) {
 <tr>
 <td align="left" class="text"><a href="javascript: newWindow( 'index.php?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Id] ?>.</a></td>
 <td align="left" class="text"><a href="javascript: newWindow( 'index.php?view=monitor&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[Name] ?></a></td>
-<td align="left" class="text">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</td>
-<td align="left" class="text"><?php echo $monitor['Function'] ?></td>
+<td align="left" class="text"><a href="javascript: newWindow( 'index.php?view=device&did=<?php echo $monitor[Device] ?>', 'zmDevice', 196, 148 );"><span class="<?php if ( $device[zmc] ) { if ( $device[zma] ) { echo "gretext"; } else { echo "oratext"; } } else { echo "redtext"; } ?>">/dev/video<?php echo $monitor[Device] ?> (<?php echo $monitor[Channel] ?>)</span></a></td>
+<td align="left" class="text"><a href="javascript: newWindow( 'index.php?view=function&mid=<?php echo $monitor[Id] ?>', 'zmFunction', 248, 72 );"><?php echo $monitor['Function'] ?></a></td>
 <td align="left" class="text"><?php echo $monitor[Width] ?>x<?php echo $monitor[Height] ?>x<?php echo $monitor[Colours]*8 ?></td>
 <td align="right" class="text"><?php echo $monitor[EventCount] ?></td>
 <td align="right" class="text"><?php echo $monitor[HourEventCount] ?></td>
@@ -374,7 +452,7 @@ elseif ( $view == "status" )
 	elseif ( $status == 2 )
 	{
 		$status_string = "Alert";
-		$class = "ambtext";
+		$class = "oratext";
 	}
 	header("Refresh: ".REFRESH_STATUS."; URL='index.php?view=status&mid=$mid&last_status=$status'" );
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
@@ -882,3 +960,135 @@ elseif( $view == "video" )
 	//header("Content-Disposition: inline; filename=$video_name");
 	header("Location: $video_file" );
 }
+elseif ( $view == "device" )
+{
+	$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
+	if ( $ps_array[3] )
+	{
+		$zmc = 1;
+	}
+	$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
+	if ( $ps_array[3] )
+	{
+		$zma = 1;
+	}
+?>
+<html>
+<head>
+<title>ZM - Device - /dev/video<?php echo $did ?></title>
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<script language="JavaScript">
+window.focus();
+function refreshWindow() {
+        window.location.reload();
+}
+function closeWindow() {
+        window.close();
+}
+</script>
+</head>
+<body>
+<?php
+echo "X:".$SERVER[PHP_SELF];
+echo "Y:".$PHP_SELF;
+?>
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
+<tr>
+<td colspan="2" align="left" class="head">Device Daemon Status</td>
+</tr>
+<form action="index.php" method="post">
+<input type="hidden" name="view" value="<?php echo $view ?>">
+<input type="hidden" name="action" value="device">
+<input type="hidden" name="zmc_status" value="<?php echo $zmc ?>">
+<input type="hidden" name="zma_status" value="<?php echo $zma ?>">
+<input type="hidden" name="action" value="device">
+<input type="hidden" name="did" value="<?php echo $did ?>">
+<tr>
+<td align="left" class="smallhead">Daemon</td><td align="left" class="smallhead">Active</td>
+</tr>
+<tr>
+<td align="left" class="text">Capture</td><td align="left" class="text"><input type="checkbox" name="zmc_action" value="1"<?php if ( $zmc ) { echo " checked"; } ?> class="form"></td>
+</tr>
+<tr>
+<td align="left" class="text">Analysis</td><td align="left" class="text"><input type="checkbox" name="zma_action" value="1"<?php if ( $zma ) { echo " checked"; } ?> class="form"></td>
+</tr>
+<tr>
+<td colspan="2" align="left" class="text">&nbsp;</td>
+</tr>
+<tr>
+<td align="left"><input type="submit" value="Update" class="form"></td>
+<td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
+</tr>
+</table>
+</body>
+</html>
+<?php
+}
+elseif ( $view == "function" )
+{
+	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$monitor = mysql_fetch_assoc( $result );
+?>
+<html>
+<head>
+<title>ZM - Function - <?php echo $monitor[Name] ?></title>
+<link rel="stylesheet" href="zmstyles.css" type="text/css">
+<script language="JavaScript">
+window.focus();
+function refreshWindow() {
+        window.location.reload();
+}
+function closeWindow() {
+        window.close();
+}
+</script>
+</head>
+<body>
+<table border="0" cellspacing="0" cellpadding="4" width="100%">
+<tr>
+<td colspan="2" align="center" class="head">Monitor '<?php echo $monitor[Name] ?>' Function</td>
+</tr>
+<tr>
+<form action="index.php" method="post">
+<input type="hidden" name="view" value="<?php echo $view ?>">
+<input type="hidden" name="action" value="function">
+<td colspan="2" align="center"><select name="new_function" class="form">
+<?php
+	foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
+	{
+?>
+<option value="<?php echo $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> SELECTED<?php } ?>><?php echo $opt_function ?></option>
+<?php
+	}
+?>
+</select></td>
+</tr>
+<tr>
+<td align="center"><input type="submit" value="Change" class="form"></td>
+<td align="center"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
+</tr>
+</table>
+</body>
+</html>
+<?php
+}
+
+function getEnumValues( $table, $column )
+{
+	$enum_values = array();
+	$result = mysql_query( "DESCRIBE $table $column" );
+	if ( $result )
+	{
+		$row = mysql_fetch_assoc($result);
+		preg_match_all( "/'([^']+)'/", $row[Type], $enum_matches );
+		$enum_values = $enum_matches[1];
+	}
+	else
+	{
+		echo mysql_error();
+	}
+	return $enum_values;
+}
+?>

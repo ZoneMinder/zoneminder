@@ -11,4 +11,5 @@ EXTRA_DIST = \
 	zmconfig_eml.txt \
 	zmconfig_msg.txt \
 	README.html \
+	README.pdf \
 	README.rtf

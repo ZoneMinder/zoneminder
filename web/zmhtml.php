@@ -1628,7 +1628,6 @@ function configureButton(form,name)
 			$monitor[FPSReportInterval] = 1000;
 			$monitor[RefBlendPerc] = 10;
 		}
-		}
 ?>
 <html>
 <head>

@@ -171,7 +171,7 @@ function confirmStatus( new_status )
 <a href="<?php echo $PHP_SELF ?>?new_bandwidth=<?php echo $bw_keys[0] ?>"><?php echo $bw_keys[0] ?></a>, 
 <a href="<?php echo $PHP_SELF ?>?new_bandwidth=<?php echo $bw_keys[1] ?>"><?php echo $bw_keys[1] ?></a>)
 <?php if ( $cycle_count > 1 ) { ?>
-<td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+$jws['cycle']['w'] ?>, <?php echo $max_height+$jws['cycle']['h'] ?> );">Watch All</a></td>
+<td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+$jws['cycle']['w'] ?>, <?php echo $max_height+$jws['cycle']['h'] ?> );">Scan</a></td>
 <?php } else { ?>
 <td class="smallhead" align="right">&nbsp;</td>
 <?php } ?>
@@ -1618,6 +1618,16 @@ function configureButton(form,name)
 		{
 			$monitor = array();
 			$monitor[Name] = "New";
+			$monitor[LabelFormat] = "%%s - %y/%m/%d %H:%M:%S";`
+			$monitor[LabelX] = 0;
+			$monitor[LabelY] = 0;`
+			$monitor[ImageBufferCount] = 100;
+			$monitor[WarmupCount] = 25;
+			$monitor[PreEventCount] = 10;
+			$monitor[PostEventCount] = 10;
+			$monitor[FPSReportInterval] = 1000;
+			$monitor[RefBlendPerc] = 10;
+		}
 		}
 ?>
 <html>

@@ -149,11 +149,14 @@ if ( $action )
 		{
 			foreach( $delete_mids as $delete_mid )
 			{
-				$sql = "select * from Monitors where Id = '$mid'";
+				$sql = "select * from Monitors where Id = '$delete_mid'";
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );
-				$monitor = mysql_fetch_assoc( $result );
+				if ( !($monitor = mysql_fetch_assoc( $result )) )
+				{
+					continue;
+				}
 
 				$sql = "select Id from Events where MonitorId = '$delete_mid'";
 				$result = mysql_query( $sql );
@@ -174,7 +177,7 @@ if ( $action )
 					if ( !$result )
 						die( mysql_error() );
 					if ( $delete_eid )
-						system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $delete_eid ) ) );
+						system( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $delete_eid ) );
 				}
 				system( "rm -rf ".EVENT_PATH."/".$monitor[Name] );
 
@@ -479,7 +482,7 @@ function newWindow(Url,Name,Width,Height) {
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&period=month&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[MonthEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=watch&archived=1&mid=<?php echo $monitor[Id] ?>', 'zmWatch<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[ArchEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+232 ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
-<td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $zone[Id] ?>"></td>
+<td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $monitor[Id] ?>"></td>
 </tr>
 <?php
 	}

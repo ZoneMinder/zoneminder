@@ -193,10 +193,9 @@ if ( $command =~ /^(?:start|restart)$/ )
 		}
 		$sth->finish();
 
-		if ( ZM_OPT_FAST_DELETE )
-		{
-			execute( ZM_PATH_BIN."/zmdc.pl start zmaudit.pl -d 900 -y" );
-		}
+		# This is now started unconditionally
+		execute( ZM_PATH_BIN."/zmdc.pl start zmaudit.pl -d 900 -y" );
+
 		if ( ZM_OPT_X10 )
 		{
 			execute( ZM_PATH_BIN."/zmdc.pl start zmx10.pl -c start" );

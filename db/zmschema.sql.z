@@ -1,0 +1,118 @@
+-- MySQL dump 8.21
+--
+-- Host: localhost    Database: zm
+---------------------------------------------------------
+-- Server version	3.23.49
+
+--
+-- Table structure for table 'Alarms'
+--
+
+CREATE TABLE Alarms (
+  Id int(10) unsigned NOT NULL auto_increment,
+  EventId int(10) unsigned default NULL,
+  ZoneId int(10) unsigned default NULL,
+  FrameId int(10) unsigned NOT NULL default '0',
+  LoX smallint(5) unsigned NOT NULL default '0',
+  LoY smallint(5) unsigned NOT NULL default '0',
+  HiX smallint(5) unsigned NOT NULL default '0',
+  HiY smallint(5) unsigned NOT NULL default '0',
+  AlarmPixels int(10) unsigned NOT NULL default '0',
+  AlarmBlobs smallint(5) unsigned NOT NULL default '0',
+  Score double NOT NULL default '0',
+  PRIMARY KEY  (Id),
+  UNIQUE KEY UC_Id (Id)
+) TYPE=MyISAM;
+
+--
+-- Table structure for table 'Events'
+--
+
+CREATE TABLE Events (
+  Id int(10) unsigned NOT NULL auto_increment,
+  MonitorId int(10) unsigned NOT NULL default '0',
+  Name tinytext NOT NULL,
+  StartTime datetime default NULL,
+  EndTime datetime default NULL,
+  Length int(10) unsigned default NULL,
+  Frames int(10) unsigned default NULL,
+  AlarmFrames int(10) unsigned default NULL,
+  AvgScore tinyint(3) unsigned default '0',
+  MaxScore tinyint(3) unsigned default '0',
+  Archived tinyint(4) default '0',
+  PRIMARY KEY  (Id),
+  UNIQUE KEY UC_Id (Id),
+  KEY Id (Id,MonitorId),
+  KEY MonitorId (MonitorId)
+) TYPE=MyISAM;
+
+--
+-- Table structure for table 'Frames'
+--
+
+CREATE TABLE Frames (
+  Id int(10) unsigned NOT NULL auto_increment,
+  EventId int(10) unsigned NOT NULL default '0',
+  FrameId int(10) unsigned NOT NULL default '0',
+  AlarmFrame tinyint(4) NOT NULL default '0',
+  ImagePath tinytext NOT NULL,
+  TimeStamp timestamp(14) NOT NULL,
+  Score smallint(5) unsigned NOT NULL default '0',
+  PRIMARY KEY  (Id),
+  UNIQUE KEY UC_Id (Id),
+  KEY EventId (EventId)
+) TYPE=MyISAM;
+
+--
+-- Table structure for table 'Monitors'
+--
+
+CREATE TABLE Monitors (
+  Id int(10) unsigned NOT NULL auto_increment,
+  Name tinytext NOT NULL,
+  Function enum('None','Passive','Active') NOT NULL default 'Passive',
+  Device tinyint(3) unsigned default '0',
+  Channel tinyint(3) unsigned NOT NULL default '0',
+  Format tinyint(3) unsigned default NULL,
+  Width smallint(5) unsigned NOT NULL default '0',
+  Height smallint(5) unsigned NOT NULL default '0',
+  Colours tinyint(3) unsigned NOT NULL default '0',
+  LabelFormat varchar(32) default NULL,
+  LabelX smallint(5) unsigned default NULL,
+  LabelY smallint(5) unsigned default NULL,
+  WarmUpCount tinyint(3) unsigned default NULL,
+  PreEventCount tinyint(3) unsigned default NULL,
+  PostEventCount tinyint(3) unsigned default NULL,
+  PRIMARY KEY  (Id)
+) TYPE=MyISAM;
+
+--
+-- Table structure for table 'Zones'
+--
+
+CREATE TABLE Zones (
+  Id int(10) unsigned NOT NULL auto_increment,
+  MonitorId int(10) unsigned NOT NULL default '0',
+  Name tinytext NOT NULL,
+  Type enum('Active','Inclusive','Exclusive','Inactive') default 'Active',
+  Units enum('Pixels','Percent') NOT NULL default 'Pixels',
+  LoX smallint(5) unsigned NOT NULL default '0',
+  LoY smallint(5) unsigned NOT NULL default '0',
+  HiX smallint(5) unsigned NOT NULL default '0',
+  HiY smallint(5) unsigned NOT NULL default '0',
+  AlarmRGB int(10) unsigned default NULL,
+  AlarmThreshold smallint(5) unsigned default NULL,
+  MinAlarmPixels int(10) unsigned default NULL,
+  MaxAlarmPixels int(10) unsigned default NULL,
+  FilterX tinyint(3) unsigned default NULL,
+  FilterY tinyint(3) unsigned default NULL,
+  MinFilterPixels int(10) unsigned default NULL,
+  MaxFilterPixels int(10) unsigned default NULL,
+  MinBlobPixels smallint(5) unsigned default NULL,
+  MaxBlobPixels smallint(5) unsigned default NULL,
+  MinBlobs smallint(5) unsigned default NULL,
+  MaxBlobs smallint(5) unsigned default NULL,
+  PRIMARY KEY  (Id),
+  UNIQUE KEY UC_Id (Id)
+) TYPE=MyISAM;
+

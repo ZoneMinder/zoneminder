@@ -29,7 +29,7 @@ define( "ZM_PATH_CGI", "<from zmconfig>" );				// Path to cgi files
 $cfg = fopen( ZM_CONFIG, "r") or die("Could not open config file.");
 while ( !feof($cfg) )
 {
-	$str = fgets( $cfg );
+	$str = fgets( $cfg, 256 );
 	if ( preg_match( '/^\s*$/', $str )) { continue; }
 	elseif ( preg_match( '/^\s*#/', $str )) { continue; }
 	elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/', $str, $matches ))

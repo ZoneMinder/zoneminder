@@ -21,7 +21,7 @@
 #include "zm_db.h"
 #include "zm_monitor.h"
 
-int main(void )
+int main( int argc, const char *argv[] )
 {
 	enum { ZMS_JPEG, ZMS_MPEG } mode = ZMS_JPEG;
 	char format[32] = "";
@@ -38,12 +38,21 @@ int main(void )
 
 	zm_dbg_name = "zms";
 
+	bool nph = false;
+	const char *basename = strrchr( argv[0], '/' );
+	const char *nph_prefix = "nph-";
+	if ( basename && !strncmp( basename+1, nph_prefix, strlen(nph_prefix) ) )
+	{
+		zm_dbg_name = "nph-zms";
+		nph = true;
+	}
+	
 	zmDbgInit();
 
 	const char *query = getenv( "QUERY_STRING" );
 	if ( query )
 	{
-		 Info(( "Query: %s", query ));
+		Debug( 1, ( "Query: %s", query ));
 	
 		char temp_query[1024];
 		strcpy( temp_query, query );
@@ -90,6 +99,10 @@ int main(void )
 	zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
 
 	setbuf( stdout, 0 );
+	if ( nph )
+	{
+		fprintf( stdout, "HTTP/1.0 200 OK\r\n" );
+	}
 	fprintf( stdout, "Server: ZoneMinder Video Server/%s\r\n", ZM_VERSION );
 		        
 	time_t now = time( 0 );
@@ -101,6 +114,10 @@ int main(void )
 	fprintf( stdout, "Cache-Control: no-store, no-cache, must-revalidate\r\n" );
 	fprintf( stdout, "Cache-Control: post-check=0, pre-check=0\r\n" );
 	fprintf( stdout, "Pragma: no-cache\r\n");
+	if ( !nph )
+	{
+		fprintf( stdout, "Content-Length: 0\r\n");
+	}
 
 	if ( !event )
 	{

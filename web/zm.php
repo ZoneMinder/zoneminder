@@ -31,6 +31,7 @@ define( "ZMU_PATH", ZM_PATH."/zmu" );			// Path to the Zone Monitor Utility
 define( "ZMS_PATH", "/cgi-bin/zms" );			// Path to the Zone Monitor Stream server
 define( "ZMS_EVENT_PATH", "/data/zm" );			// Full path (not web) to where events directory lives
 define( "CAMBOZOLA_PATH", "cambozola.jar" );	// Path to (optional) cambozola java streaming client (recommended)
+define( "MPEG_ENCODE_PATH", "./mpeg_encode" );	// Path to (optional) mpeg video encoder
 
 if ( $bandwidth == "high" )
 {
@@ -880,7 +881,11 @@ function newWindow(Url,Name,Width,Height) {
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
+<?php if ( MPEG_ENCODE_PATH && file_exists( MPEG_ENCODE_PATH ) ) { ?>
 <td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=video&eid=<?php echo $eid ?>', 'zmVideo', 100, 80 );">Video</a></td>
+<?php } else { ?>
+<td align="center" class="text">&nbsp;</td>
+<?php } ?>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
 
@@ -1447,7 +1452,7 @@ elseif( $view == "video" )
 		fputs( $fp, "END_INPUT\n" );
 		fclose( $fp );
 
-		exec( escapeshellcmd( "./mpeg_encode $param_file >$event_dir/mpeg.log" ) );
+		exec( escapeshellcmd( MPEG_ENCODE_PATH." $param_file >$event_dir/mpeg.log" ) );
 	}
 
 	//chdir( $event_dir );
@@ -1611,7 +1616,7 @@ function isNetscape()
 
 function canStream()
 {
-	return( isNetscape() || file_exists( CAMBOZOLA_PATH ) );
+	return( isNetscape() || (CAMBOZOLA_PATH && file_exists( CAMBOZOLA_PATH )) );
 }
 
 function startDaemon( $daemon, $did )

@@ -42,7 +42,21 @@ opener.location.reload(true);
 window.focus();
 function validateForm( Form )
 {
+	var errors = new Array();
 	Form.new_alarm_rgb.value = (Form.new_alarm_rgb_r.value<<16)|(Form.new_alarm_rgb_g.value<<8)|Form.new_alarm_rgb_b.value;
+	if ( Form.new_min_alarm_pixels.value < Form.new_min_filter_pixels.value )
+	{
+		errors[errors.length] = "Minimum alarm pixels should be greater than or equal to minimum filter pixels";
+	}
+	if ( Form.new_min_filter_pixels.value < Form.new_min_blob_pixels.value )
+	{
+		errors[errors.length] = "Minimum filter pixels should be greater than or equal to minimum blob pixels";
+	}
+	if ( errors.length )
+	{
+		alert( errors.join( "\n" ) );
+		return( false );
+	}
 	return( true );
 }
 

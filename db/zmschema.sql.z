@@ -106,7 +106,9 @@ CREATE TABLE Monitors (
   Id int(10) unsigned NOT NULL auto_increment,
   Name tinytext NOT NULL,
   Type enum('Local','Remote') NOT NULL default 'Local',
-  Function enum('None','Passive','Active','X10') NOT NULL default 'Passive',
+  Function enum('None','Monitor','Modect','Record','Mocord') NOT NULL default 'Monitor',
+  RunMode enum('Continuous','Triggered') NOT NULL default 'Continuous',
+  Triggers set('X10') NOT NULL default '',
   Device tinyint(3) unsigned NOT NULL default '0',
   Channel tinyint(3) unsigned NOT NULL default '0',
   Format tinyint(3) unsigned NOT NULL default '0',
@@ -124,12 +126,10 @@ CREATE TABLE Monitors (
   WarmupCount smallint(5) unsigned NOT NULL default '25',
   PreEventCount smallint(5) unsigned NOT NULL default '10',
   PostEventCount smallint(5) unsigned NOT NULL default '10',
+  SectionLength int(10) unsigned NOT NULL default '600',
   MaxFPS decimal(5,2) NOT NULL default '0.00',
   FPSReportInterval smallint(5) unsigned NOT NULL default '250',
   RefBlendPerc tinyint(3) unsigned NOT NULL default '10',
-  X10Activation varchar(32) default NULL,
-  X10AlarmInput varchar(32) default NULL,
-  X10AlarmOutput varchar(32) default NULL,
   PRIMARY KEY  (Id)
 ) TYPE=MyISAM;
 
@@ -156,6 +156,18 @@ CREATE TABLE Stats (
   KEY EventId (EventId),
   KEY MonitorId (MonitorId),
   KEY ZoneId (ZoneId)
+) TYPE=MyISAM;
+
+--
+-- Table structure for table 'TriggersX10'
+--
+
+CREATE TABLE TriggersX10 (
+  MonitorId int(10) unsigned NOT NULL default '0',
+  Activation varchar(32) default NULL,
+  AlarmInput varchar(32) default NULL,
+  AlarmOutput varchar(32) default NULL,
+  PRIMARY KEY  (MonitorId)
 ) TYPE=MyISAM;
 
 --
@@ -211,4 +223,3 @@ CREATE TABLE Zones (
 -- Create a default admin user.
 --
 insert into Users values ('','admin',password('admin'),1,'View','Edit','Edit','Edit',NULL);
-

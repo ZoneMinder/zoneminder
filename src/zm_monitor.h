@@ -41,19 +41,26 @@ public:
 		QUERY=0,
 		CAPTURE,
 		ANALYSIS
-	} Mode;
+	} Purpose;
 
 	typedef enum
 	{
-		NONE=1,
-		PASSIVE,
-		ACTIVE,
-		X10
+		CONTINUOUS=0,
+		TRIGGERED,
+	} RunMode;
+
+	typedef enum
+	{
+		OFF=1,
+		MONITOR,
+		MODECT,
+		RECORD,
+		MOCORD
 	} Function;
 
 	typedef enum { ROTATE_0=1, ROTATE_90, ROTATE_180, ROTATE_270 } Orientation;
 
-	typedef enum { IDLE, ALARM, ALERT } State;
+	typedef enum { IDLE, ALARM, ALERT, TAPE } State;
 
 protected:
 	// These are read from the DB and thereafter remain unchanged
@@ -62,6 +69,7 @@ protected:
 	unsigned int    width;		// Normally the same as the camera, but not if partly rotated
 	unsigned int    height;		// Normally the same as the camera, but not if partly rotated
 	Function	function;		// What the monitor is doing
+	RunMode	run_mode;			// Whether the monitor is running continuously or is triggered	
 	Orientation	orientation;	// Whether the image has to be rotated at all
 	char	label_format[64];	// The format of the timestamp on the images
 	Coord	label_coord;		// The coordinates of the timestamp on the images
@@ -69,11 +77,12 @@ protected:
 	int		warmup_count;		// How many images to process before looking for events
 	int		pre_event_count;	// How many images to hold and prepend to an alarm event
 	int		post_event_count;	// How many unalarmed images must occur before the alarm state is reset
+	int		section_length;		// How long events should last in continuous modes
 	int 	capture_delay;		// How long we wait between capture frames
 	int		fps_report_interval;// How many images should be captured/processed between reporting the current FPS
 	int		ref_blend_perc;		// Percentage of new image going into reference image.
 
-	Mode	mode;				// What this monitor has been created to do
+	Purpose	purpose;			// What this monitor has been created to do
 
 	double	fps;
 	Image	image;
@@ -125,8 +134,8 @@ protected:
 	Camera *camera;
 	
 public:
-	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
-	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_section_length, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_section_length, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void Initialise();
@@ -195,7 +204,7 @@ public:
 
 			int index = image_count%image_buffer_count;
 
-			if ( index == shared_data->last_read_index && function == ACTIVE )
+			if ( index == shared_data->last_read_index && function > MONITOR )
 			{
 				Warning(( "Buffer overrun at index %d\n", index ));
 			}
@@ -237,7 +246,7 @@ public:
 
 	inline bool Ready()
 	{
-		return( function >= ACTIVE && image_count > warmup_count );
+		return( function > MONITOR && image_count > warmup_count );
 	}
  
 	void DumpImage( Image *image ) const;
@@ -250,9 +259,9 @@ public:
 
 	unsigned int Compare( const Image &image );
 	void ReloadZones();
-	static int Load( int device, Monitor **&monitors, Mode mode=QUERY );
-	static int Load( const char *host, const char*port, const char*path, Monitor **&monitors, Mode mode=QUERY );
-	static Monitor *Load( int id, bool load_zones=false, Mode mode=QUERY );
+	static int Load( int device, Monitor **&monitors, Purpose purpose=QUERY );
+	static int Load( const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose=QUERY );
+	static Monitor *Load( int id, bool load_zones=false, Purpose purpose=QUERY );
 	void StreamImages( unsigned long idle=5000, unsigned long refresh=50, FILE *fd=stdout, time_t ttl=0 );
 };
 

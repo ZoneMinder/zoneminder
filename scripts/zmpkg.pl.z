@@ -178,7 +178,9 @@ if ( $command =~ /^(?:start|restart)$/ )
 				{
 					execute( ZM_PATH_BIN."/zmdc.pl start zmc -H $monitor->{Host} -P $monitor->{Port} -p '$monitor->{Path}'" );
 				}
-				if ( $monitor->{Function} eq 'Active' )
+				if (( $monitor->{Function} eq 'Modect' )
+				|| ( $monitor->{Function} eq 'Record' )
+				|| ( $monitor->{Function} eq 'Mocord' ))
 				{
 					if ( ZM_OPT_FRAME_SERVER )
 					{

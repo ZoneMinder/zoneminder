@@ -37,6 +37,7 @@ function userLogin( $username, $password )
 	{
 		$HTTP_SESSION_VARS[user] = array();
 	}
+	session_write_close();
 }
 
 function userLogout()
@@ -195,12 +196,12 @@ function zmcControl( $monitor, $restart=false )
 {
 	if ( $monitor[Type] == "Local" )
 	{
-		$sql = "select count(if(Function='Passive',1,NULL)) as PassiveCount, count(if(Function='Active',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Device = '$monitor[Device]'";
+		$sql = "select count(if(Function='Monitor',1,NULL)) as PassiveCount, count(if(Function>'Monitor',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Device = '$monitor[Device]'";
 		$zmc_args = "-d $monitor[Device]";
 	}
 	else
 	{
-		$sql = "select count(if(Function='Passive',1,NULL)) as PassiveCount, count(if(Function='Active',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Host = '$monitor[Host]' and Port = '$monitor[Port]' and Path = '$monitor[Path]'";
+		$sql = "select count(if(Function='Monitor',1,NULL)) as PassiveCount, count(if(Function>'Monitor',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Host = '$monitor[Host]' and Port = '$monitor[Port]' and Path = '$monitor[Path]'";
 		$zmc_args = "-H $monitor[Host] -P $monitor[Port] -p '$monitor[Path]'";
 	}
 	$result = mysql_query( $sql );
@@ -235,9 +236,30 @@ function zmaControl( $monitor, $restart=false )
 			echo mysql_error();
 		$monitor = mysql_fetch_assoc( $result );
 	}
-	if ( $monitor['Function'] == 'Active' )
+	switch ( $monitor['Function'] )
 	{
-		if ( $restart )
+		case 'Modect' :
+		case 'Record' :
+		case 'Mocord' :
+		{
+			if ( $restart )
+			{
+				daemonControl( "stop", "zmfilter.pl", "-m $monitor[Id] -e -1" );
+				daemonControl( "stop", "zma", "-m $monitor[Id]" );
+				if ( ZM_OPT_FRAME_SERVER )
+				{
+					daemonControl( "stop", "zmf", "-m $monitor[Id]" );
+				}
+			}
+			if ( ZM_OPT_FRAME_SERVER )
+			{
+				daemonControl( "start", "zmf", "-m $monitor[Id]" );
+			}
+			daemonControl( "start", "zma", "-m $monitor[Id]" );
+			daemonControl( "start", "zmfilter.pl", "-m $monitor[Id] -e -1" );
+			break;
+		}
+		default :
 		{
 			daemonControl( "stop", "zmfilter.pl", "-m $monitor[Id] -e -1" );
 			daemonControl( "stop", "zma", "-m $monitor[Id]" );
@@ -245,21 +267,7 @@ function zmaControl( $monitor, $restart=false )
 			{
 				daemonControl( "stop", "zmf", "-m $monitor[Id]" );
 			}
-		}
-		if ( ZM_OPT_FRAME_SERVER )
-		{
-			daemonControl( "start", "zmf", "-m $monitor[Id]" );
-		}
-		daemonControl( "start", "zma", "-m $monitor[Id]" );
-		daemonControl( "start", "zmfilter.pl", "-m $monitor[Id] -e -1" );
-	}
-	else
-	{
-		daemonControl( "stop", "zmfilter.pl", "-m $monitor[Id] -e -1" );
-		daemonControl( "stop", "zma", "-m $monitor[Id]" );
-		if ( ZM_OPT_FRAME_SERVER )
-		{
-			daemonControl( "stop", "zmf", "-m $monitor[Id]" );
+			break;
 		}
 	}
 }

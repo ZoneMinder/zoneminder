@@ -24,6 +24,10 @@
 		$status_string = "Alert";
 		$class = "ambtext";
 	}
+	elseif ( $status == 3 )
+	{
+		$status_string = "Record";
+	}
 	$fps_string = sprintf( "%.2f", $fps );
 	$new_alarm = ( $status > 0 && $last_status == 0 );
 	$old_alarm = ( $status == 0 && $last_status > 0 );

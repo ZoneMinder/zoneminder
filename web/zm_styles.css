@@ -84,6 +84,11 @@ a:hover {
 	font-size: 10px;
 	color: #333333
 }
+.form-noborder {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	color: #333333
+}
 .textsmall {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size:9px;

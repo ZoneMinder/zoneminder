@@ -38,4 +38,9 @@ function getEnumValues( $table, $column )
 	}
 	return $enum_values;
 }
+
+function getSetValues( $table, $column )
+{
+	return( getEnumValues( $table, $column ) );
+}
 ?>

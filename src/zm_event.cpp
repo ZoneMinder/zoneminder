@@ -43,6 +43,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 		exit( mysql_errno( &dbconn ) );
 	}
 	id = mysql_insert_id( &dbconn );
+	end_time.tv_sec = 0;
 	frames = 0;
 	alarm_frames = 0;
 	tot_score = 0;
@@ -66,12 +67,16 @@ Event::~Event()
 	static char sql[BUFSIZ];
 	static char end_time_str[32];
 
+	if ( !end_time.tv_sec )
+	{
+		gettimeofday( &end_time, &dummy_tz );
+	}
 	struct DeltaTimeval delta_time;
 	DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
 
 	strftime( end_time_str, sizeof(end_time_str), "%Y-%m-%d %H:%M:%S", localtime( &end_time.tv_sec ) );
 
-	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(tot_score/alarm_frames), max_score, id );
+	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't update event: %s", mysql_error( &dbconn ) ));

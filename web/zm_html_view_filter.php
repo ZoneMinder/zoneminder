@@ -112,7 +112,7 @@ function submitToEvents( form )
 	var Height = <?= $jws['events']['h'] ?>;
 	var Options = 'resizable,scrollbars,width='+Width+',height='+Height;
 
-	window.open( Url, Name, Options );
+	//window.open( Url, Name, Options );
 	form.target = Name;
 	form.view.value = 'events';
 	form.submit();

@@ -29,6 +29,10 @@
 		$status_string = "Alert";
 		$class = "ambtext";
 	}
+	elseif ( $status == 3 )
+	{
+		$status_string = "Record";
+	}
 	$fps_string = sprintf( "%.2f", $fps );
 	$new_alarm = ( $status > 0 && $last_status == 0 );
 	$old_alarm = ( $status == 0 && $last_status > 0 );
@@ -70,27 +74,27 @@ window.setTimeout( "window.location.replace( '<?= $url ?>' )", <?= $refresh*1000
 </script>
 </head>
 <body>
-<table width="90%" align="center" border="0" cellpadding="0" cellspacing="0">
+<table width="96%" align="center" border="0" cellpadding="0" cellspacing="0">
 <tr>
-<td width="30%" class="text" align="left">&nbsp;</td>
-<td width="40%" class="<?= $class ?>" align="center" valign="middle">Status:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
+<td width="15%" class="text" align="left">&nbsp;</td>
+<td width="70%" class="<?= $class ?>" align="center" valign="middle">Status:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
 <?php
 	if ( canEdit( 'Monitors' ) && ($force || $forced) )
 	{
 ?>
-<td width="30%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=$status&force=0">Cancel Forced Alarm</a></td>
+<td width="15%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=$status&force=0">Cancel&nbsp;Forced&nbsp;Alarm</a></td>
 <?php
 	}
 	elseif ( canEdit( 'Monitors' ) && zmaCheck( $mid ) )
 	{
 ?>
-<td width="30%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=$status&force=1">Force Alarm</a></td>
+<td width="15%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=$status&force=1">Force&nbsp;Alarm</a></td>
 <?php
 	}
 	else
 	{
 ?>
-<td width="30%" align="right" class="text">&nbsp;</td>
+<td width="15%" align="right" class="text">&nbsp;</td>
 <?php
 	}
 ?>

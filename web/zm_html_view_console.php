@@ -5,10 +5,12 @@
 
 	if ( $stop )
 	{
+		session_write_close();
 		packageControl( 'stop' );
 	}
 	if ( $start )
 	{
+		session_write_close();
 		packageControl( 'start' );
 	}
 
@@ -203,21 +205,21 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 				$dclass = "gretext";
 			}
 		}
-		if ( $monitor['Function'] == 'Active' )
+		if ( $monitor['Function'] == 'None' )
 		{
-			$fclass = "gretext";
+			$fclass = "redtext";
 		}
-		elseif ( $monitor['Function'] == 'Passive' )
-		{
-			$fclass = "ambtext";
-		}
-		elseif ( $monitor['Function'] == 'X10' )
+		elseif ( $monitor['RunMode'] == 'Triggered' )
 		{
 			$fclass = "blutext";
 		}
+		elseif ( $monitor['Function'] == 'Monitor' )
+		{
+			$fclass = "ambtext";
+		}
 		else
 		{
-			$fclass = "redtext";
+			$fclass = "gretext";
 		}
 ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=watch&mid=$monitor[Id]', 'zmWatch$monitor[Name]', ".($monitor[Width]+$jws['watch']['w']).", ".($monitor[Height]+$jws['watch']['h'])." );", $monitor[Name], canView( 'Stream' ) ) ?></td>

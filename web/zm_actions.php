@@ -222,50 +222,94 @@ if ( $action )
 			}
 
 			$changes = array();
-			if ( $new_name != $monitor[Name] ) $changes[] = "Name = '$new_name'";
-			if ( $new_function != $monitor['Function'] ) $changes[] = "Function = '$new_function'";
-			if ( $new_type != $monitor['Type'] ) $changes[] = "Type = '$new_type'";
-			if ( $new_type == "Local" )
+			switch( $tab )
 			{
-				if ( $new_device != $monitor['Device'] ) $changes[] = "Device = '$new_device'";
-				if ( $new_channel != $monitor['Channel'] ) $changes[] = "Channel = '$new_channel'";
-				if ( $new_format != $monitor['Format'] ) $changes[] = "Format = '$new_format'";
+				case 'monitor' :
+				{
+					if ( $new_name != $monitor[Name] ) $changes[] = "Name = '$new_name'";
+					if ( $new_function != $monitor['Function'] ) $changes[] = "Function = '$new_function'";
+					if ( $new_runmode != $monitor['RunMode'] ) $changes[] = "RunMode = '$new_runmode'";
+					if ( join(',',$new_triggers) != $monitor['Triggers'] ) $changes[] = "Triggers = '".join(',',$new_triggers)."'";
+					if ( $new_type != $monitor['Type'] ) $changes[] = "Type = '$new_type'";
+					break;
+				}
+				case 'source' :
+				{
+					if ( $monitor['Type'] == "Local" )
+					{
+						if ( $new_device != $monitor['Device'] ) $changes[] = "Device = '$new_device'";
+						if ( $new_channel != $monitor['Channel'] ) $changes[] = "Channel = '$new_channel'";
+						if ( $new_format != $monitor['Format'] ) $changes[] = "Format = '$new_format'";
+					}
+					else
+					{
+						if ( $new_host != $monitor['Device'] ) $changes[] = "Host = '$new_host'";
+						if ( $new_port != $monitor['Channel'] ) $changes[] = "port = '$new_port'";
+						if ( $new_path != $monitor['Format'] ) $changes[] = "Path = '$new_path'";
+					}
+					if ( $new_width != $monitor['Width'] ) $changes[] = "Width = '$new_width'";
+					if ( $new_height != $monitor['Height'] ) $changes[] = "Height = '$new_height'";
+					if ( $new_palette != $monitor['Palette'] ) $changes[] = "Palette = '$new_palette'";
+					if ( $new_orientation != $monitor['Orientation'] ) $changes[] = "Orientation = '$new_orientation'";
+					break;
+				}
+				case 'timestamp' :
+				{
+					if ( $new_label_format != $monitor['LabelFormat'] ) $changes[] = "LabelFormat = '$new_label_format'";
+					if ( $new_label_x != $monitor['LabelX'] ) $changes[] = "LabelX = '$new_label_x'";
+					if ( $new_label_y != $monitor['LabelY'] ) $changes[] = "LabelY = '$new_label_y'";
+					break;
+				}
+				case 'buffers' :
+				{
+					if ( $new_image_buffer_count != $monitor['ImageBufferCount'] ) $changes[] = "ImageBufferCount = '$new_image_buffer_count'";
+					if ( $new_warmup_count != $monitor['WarmupCount'] ) $changes[] = "WarmupCount = '$new_warmup_count'";
+					if ( $new_pre_event_count != $monitor['PreEventCount'] ) $changes[] = "PreEventCount = '$new_pre_event_count'";
+					if ( $new_post_event_count != $monitor['PostEventCount'] ) $changes[] = "PostEventCount = '$new_post_event_count'";
+					break;
+				}
+				case 'misc' :
+				{
+					if ( $new_section_length != $monitor['SectionLength'] ) $changes[] = "SectionLength = '$new_section_length'";
+					if ( $new_max_fps != $monitor['MaxFPS'] ) $changes[] = "MaxFPS = '$new_max_fps'";
+					if ( $new_fps_report_interval != $monitor['FPSReportInterval'] ) $changes[] = "FPSReportInterval = '$new_fps_report_interval'";
+					if ( $new_ref_blend_perc != $monitor['RefBlendPerc'] ) $changes[] = "RefBlendPerc = '$new_ref_blend_perc'";
+					break;
+				}
+				case 'x10' :
+				{
+					if ( $new_activation != $monitor['Activation'] ) $changes[] = "Activation = '$new_activation'";
+					if ( $new_alarm_input != $monitor['AlarmInput'] ) $changes[] = "AlarmInput = '$new_alarm_input'";
+					if ( $new_alarm_output != $monitor['AlarmOutput'] ) $changes[] = "AlarmOutput = '$new_alarm_output'";
+					break;
+				}
 			}
-			else
-			{
-				if ( $new_host != $monitor['Device'] ) $changes[] = "Host = '$new_host'";
-				if ( $new_port != $monitor['Channel'] ) $changes[] = "port = '$new_port'";
-				if ( $new_path != $monitor['Format'] ) $changes[] = "Path = '$new_path'";
-			}
-			if ( $new_width != $monitor['Width'] ) $changes[] = "Width = '$new_width'";
-			if ( $new_height != $monitor['Height'] ) $changes[] = "Height = '$new_height'";
-			if ( $new_palette != $monitor['Palette'] ) $changes[] = "Palette = '$new_palette'";
-			if ( $new_orientation != $monitor['Orientation'] ) $changes[] = "Orientation = '$new_orientation'";
-			if ( $new_label_format != $monitor['LabelFormat'] ) $changes[] = "LabelFormat = '$new_label_format'";
-			if ( $new_label_x != $monitor['LabelX'] ) $changes[] = "LabelX = '$new_label_x'";
-			if ( $new_label_y != $monitor['LabelY'] ) $changes[] = "LabelY = '$new_label_y'";
-			if ( $new_image_buffer_count != $monitor['ImageBufferCount'] ) $changes[] = "ImageBufferCount = '$new_image_buffer_count'";
-			if ( $new_warmup_count != $monitor['WarmupCount'] ) $changes[] = "WarmupCount = '$new_warmup_count'";
-			if ( $new_pre_event_count != $monitor['PreEventCount'] ) $changes[] = "PreEventCount = '$new_pre_event_count'";
-			if ( $new_post_event_count != $monitor['PostEventCount'] ) $changes[] = "PostEventCount = '$new_post_event_count'";
-			if ( $new_max_fps != $monitor['MaxFPS'] ) $changes[] = "MaxFPS = '$new_max_fps'";
-			if ( $new_fps_report_interval != $monitor['FPSReportInterval'] ) $changes[] = "FPSReportInterval = '$new_fps_report_interval'";
-			if ( $new_ref_blend_perc != $monitor['RefBlendPerc'] ) $changes[] = "RefBlendPerc = '$new_ref_blend_perc'";
-			if ( $new_x10_activation != $monitor['X10Activation'] ) $changes[] = "X10Activation = '$new_x10_activation'";
-			if ( $new_x10_alarm_input != $monitor['X10AlarmInput'] ) $changes[] = "X10AlarmInput = '$new_x10_alarm_input'";
-			if ( $new_x10_alarm_output != $monitor['X10AlarmOutput'] ) $changes[] = "X10AlarmOutput = '$new_x10_alarm_output'";
-
 			if ( count( $changes ) )
 			{
 				if ( $mid > 0 )
 				{
-					$sql = "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
-					if ( $new_name != $monitor[Name] )
+					switch( $tab )
 					{
-						exec( escapeshellcmd( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_name" ) );
+						case 'x10' :
+						{
+							$sql = "update TriggersX10 set ".implode( ", ", $changes )." where MonitorId = '$mid'";
+							$result = mysql_query( $sql );
+							if ( !$result )
+								die( mysql_error() );
+							break;
+						}
+						default :
+						{
+							$sql = "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'";
+							$result = mysql_query( $sql );
+							if ( !$result )
+								die( mysql_error() );
+							if ( $new_name != $monitor[Name] )
+							{
+								exec( escapeshellcmd( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_name" ) );
+							}
+							break;
+						}
 					}
 				}
 				elseif ( !$user[MonitorIds] )
@@ -279,7 +323,7 @@ if ( $action )
 					$result = mysql_query( $sql );
 					if ( !$result )
 						die( mysql_error() );
-					$view = 'none';
+					//$view = 'none';
 				}
 				$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 				if ( !$result )
@@ -488,6 +532,7 @@ if ( $action )
 	{
 		$HTTP_SESSION_VARS[event_reset_time] = strftime( "%Y-%m-%d %H:%M:%S" );
 		setcookie( "event_reset_time", $HTTP_SESSION_VARS[event_reset_time], time()+3600*24*30*12*10 );
+		session_write_close();
 	}
 }
 

@@ -136,14 +136,6 @@
 	}
 	$sql .= " order by $sort_column $sort_order";
 	//echo $sql;
-	$result = mysql_query( $sql );
-	if ( !$result )
-	{
-		die( mysql_error() );
-	}
-	$n_rows = mysql_num_rows( $result );
-
-	//echo $filter_query;
 ?>
 <html>
 <head>
@@ -201,11 +193,21 @@ function configureButton(form,name)
 <?php } ?>
 }
 window.focus();
-<?php if ( $filter ) { ?>
-opener.location.reload(true);
+<?php
+	if ( $filter )
+	{
+?>
+//opener.location.reload(true);
 filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?><?= $filter_query ?>', 'zmFilter<?= $monitor[Name] ?>' );
-location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?>';
-<?php } ?>
+location.replace( '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?>' );
+</script>
+</head>
+</html>
+<?php
+	}
+	else
+	{
+?>
 </script>
 </head>
 <body>
@@ -231,11 +233,19 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <tr><td colspan="3" class="text">&nbsp;</td></tr>
 <tr><td colspan="3"><table border="0" cellspacing="1" cellpadding="0" width="100%" bgcolor="#7F7FB2">
 <?php
-	$count = 0;
-	while( $row = mysql_fetch_assoc( $result ) )
-	{
-		if ( ($count++%EVENT_HEADER_LINES) == 0 )
+		$result = mysql_query( $sql );
+		if ( !$result )
 		{
+			die( mysql_error() );
+		}
+		$n_rows = mysql_num_rows( $result );
+
+		//echo $filter_query;
+		$count = 0;
+		while( $row = mysql_fetch_assoc( $result ) )
+		{
+			if ( ($count++%EVENT_HEADER_LINES) == 0 )
+			{
 ?>
 <tr align="center" bgcolor="#FFFFFF">
 <td class="text"><a href="<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?><?= $sort_parms ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>">Id<?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
@@ -250,13 +260,13 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <td class="text">Mark</td>
 </tr>
 <?php
-		}
-		if ( $row[LearnState] == '+' )
-			$bgcolor = "#98FB98";
-		elseif ( $row[LearnState] == '-' )
-			$bgcolor = "#FFC0CB";
-		else
-			unset( $bgcolor );
+			}
+			if ( $row[LearnState] == '+' )
+				$bgcolor = "#98FB98";
+			elseif ( $row[LearnState] == '-' )
+				$bgcolor = "#FFC0CB";
+			else
+				unset( $bgcolor );
 ?>
 <tr<?= ' bgcolor="'.($bgcolor?$bgcolor:"#FFFFFF").'"' ?> >
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Id]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
@@ -271,7 +281,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
-	}
+		}
 ?>
 </table></td></tr>
 </table></td>
@@ -281,3 +291,6 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 </form>
 </body>
 </html>
+<?php
+	}
+?>

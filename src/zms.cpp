@@ -48,12 +48,12 @@ void main( int argc, const char *argv[] )
 		fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
-	if ( !mysql_connect( &dbconn, "", "zmuser", "zmuserzm" ) )
+	if ( !mysql_connect( &dbconn, "", ZM_DB_USERB, ZM_DB_PASSB ) )
 	{
 		fprintf( stderr, "Can't connect to server: %s\n", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
-	if ( mysql_select_db( &dbconn, "polycam" ) )
+	if ( mysql_select_db( &dbconn, ZM_DATABASE ) )
 	{
 		fprintf( stderr, "Can't select database: %s\n", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );

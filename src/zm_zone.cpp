@@ -478,8 +478,8 @@ bool Zone::DumpSettings( char *output, bool verbose )
 		type==ACTIVE?"Active":(
 		type==INCLUSIVE?"Inclusive":(
 		type==EXCLUSIVE?"Exclusive":(
-		type==INACTIVE?"Inactive":(
-		type==PREVENTIVE?"Preventive":"Unknown"
+		type==PRECLUSIVE?"Preclusive":(
+		type==INACTIVE?"Inactive":"Unknown"
 	)))));
 	sprintf( output+strlen(output), "  Limits : %d,%d - %d,%d\n", limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY() );
 	sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );

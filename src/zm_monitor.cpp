@@ -786,15 +786,15 @@ unsigned int Monitor::Compare( const Image &image )
 		delta_image->Fill( RGB_BLACK, &(zone->Limits()) );
 	}
 
-	// Check preventive zones first
+	// Check preclusive zones first
 	for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
 	{
 		Zone *zone = zones[n_zone];
-		if ( !zone->IsPreventive() )
+		if ( !zone->IsPreclusive() )
 		{
 			continue;
 		}
-		Debug( 3, ( "Checking preventive zone %s", zone->Label() ));
+		Debug( 3, ( "Checking preclusive zone %s", zone->Label() ));
 		if ( zone->CheckAlarms( delta_image ) )
 		{
 			alarm = true;

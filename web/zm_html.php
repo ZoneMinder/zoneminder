@@ -2248,7 +2248,7 @@ function applyZoneType(theForm)
 		theForm.new_max_blobs.disabled = true;
 		theForm.new_max_blobs.value = "";
 	}
-	else if ( theForm.new_type.value == 'Preventive' )
+	else if ( theForm.new_type.value == 'Preclusive' )
 	{
 		theForm.new_alarm_rgb_r.disabled = true;
 		theForm.new_alarm_rgb_r.value = "";

@@ -35,7 +35,7 @@ class Monitor;
 class Zone
 {
 public:
-	typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, INACTIVE, PREVENTIVE } ZoneType;
+	typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE } ZoneType;
 
 protected:
 	// Inputs
@@ -97,8 +97,8 @@ public:
 	inline bool IsActive() const { return( type == ACTIVE ); }
 	inline bool IsInclusive() const { return( type == INCLUSIVE ); }
 	inline bool IsExclusive() const { return( type == EXCLUSIVE ); }
+	inline bool IsPreclusive() const { return( type == PRECLUSIVE ); }
 	inline bool IsInactive() const { return( type == INACTIVE ); }
-	inline bool IsPreventive() const { return( type == PREVENTIVE ); }
 	inline Image &AlarmImage() const { return( *image ); }
 	inline const Box &Limits() const { return( limits ); }
 	inline bool Alarmed() const { return( alarmed ); }

@@ -2,6 +2,9 @@ AC_INIT(src/zm.h)
 AM_INIT_AUTOMAKE(zm,1.19.4)
 AM_CONFIG_HEADER(config.h)
 
+PATH_BUILD=`pwd`
+AC_SUBST(PATH_BUILD)
+
 AC_ARG_WITH(mysql,
     [  --with-mysql=<path>     prefix of MySQL installation. e.g. /usr/local or /usr],
     [MYSQL_PREFIX=$with_mysql],

@@ -852,6 +852,15 @@ my @options =
 		category => 'web',
 	},
 	{
+		name => "ZM_WEB_DOUBLE_BUFFER",
+		default => "yes",
+		description => "Whether still images should be double buffered to avoid flickering",
+		requires => [ { name => "ZM_WEB_REFRESH_METHOD", value => "javascript" } ],
+		help => "From version 1.18.0 ZoneMinder can use a double buffering method to preload still image prior to displaying them on screen. This reduces flickering and makes viewing still images a more pleasant experience. However some devices may not support the JavaScript/frames combination needed to make this possible in which case this option should be switched off. As this option uses JavaScript it will only have an effect if the ZM_WEB_REFRESH_METHOD option is set to JavaScript also.",
+		type => $types{boolean},
+		category => 'web',
+	},
+	{
 		name => "ZM_WEB_H_REFRESH_MAIN",
 		default => "300",
 		introduction => "There are now a number of options that are grouped into bandwidth categories, this allows you to configure the ZoneMinder client to work optimally over the various access methods you might to access the client.\n\nThe next few options control what happens when the client is running in 'high' bandwidth mode. You should set these options for when accessing the ZoneMinder client over a local network or high speed link. In most cases the default values will be suitable as a starting point.",
@@ -936,7 +945,7 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_M_REFRESH_IMAGE",
-		default => "15",
+		default => "10",
 		description => "How often (in seconds) the watched image is refreshed (if not streaming)",
 		help => "The live images from a monitor can be viewed in either streamed or stills mode. This option determines how often a stills image is refreshed, it has no effect if streaming is selected.",
 		type => $types{integer},
@@ -1002,7 +1011,7 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_L_REFRESH_IMAGE",
-		default => "30",
+		default => "15",
 		description => "How often (in seconds) the watched image is refreshed (if not streaming)",
 		help => "The live images from a monitor can be viewed in either streamed or stills mode. This option determines how often a stills image is refreshed, it has no effect if streaming is selected.",
 		type => $types{integer},

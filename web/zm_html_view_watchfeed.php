@@ -32,6 +32,9 @@ if ( empty($mode) )
 		$mode = "still";
 }
 
+if ( !isset( $scale ) )
+	$scale = SCALE_SCALE;
+
 $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
 	die( mysql_error() );
@@ -39,15 +42,13 @@ $monitor = mysql_fetch_assoc( $result );
 
 if ( $mode != "stream" )
 {
-	// Prompt an image to be generated
-	chdir( ZM_DIR_IMAGES );
-	$command = ZMU_COMMAND." -m $mid -i";
-	if ( !empty($scale) && $scale < 100 )
-		$command .= " -S $scale";
-	$status = exec( escapeshellcmd( $command ) );
-	chdir( '..' );
+	if ( !ZM_WEB_DOUBLE_BUFFER )
+	{
+		// Prompt an image to be generated
+		createImage( $monitor, $scale );
+	}
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
-		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
+		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still&scale=$scale" );
 }
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -55,58 +56,44 @@ header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");			  // HTTP/1.0
 
-if ( !isset( $scale ) )
-	$scale = SCALE_SCALE;
-
 ?>
 <html>
 <head>
 <title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangFeed ?></title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
-function newWindow(Url,Name,Width,Height)
-{
-   	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
-}
-function closeWindow()
-{
-	top.window.close();
-}
 <?php
 if ( $mode != "stream" && ZM_WEB_REFRESH_METHOD == "javascript" )
 {
+	if ( ZM_WEB_DOUBLE_BUFFER )
+	{
+?>
+function fetchImage()
+{
+	window.parent.MonitorFetch.location.reload( true );
+
+	zm_image = new Image();
+	zm_image.src = '<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg';
+
+	document['zmImage'].src = zm_image.src;
+}
+
+window.parent.MonitorFetch.location = '<?= $PHP_SELF ?>?view=watchfetch&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>';
+window.setInterval( "fetchImage()", <?= REFRESH_IMAGE*1000 ?> );
+<?php
+	}
+	else
+	{
 ?>
 window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <?php
+	}
 }
 ?>
 </script>
 </head>
 <body>
-<table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
-<form name="view_form" method="get" action="<?= $PHP_SELF ?>" target="_parent">
-<input type="hidden" name="view" value="watch">
-<input type="hidden" name="mode" value="<?= $mode ?>">
-<input type="hidden" name="mid" value="<?= $mid ?>">
-<tr>
-<td width="25%" align="left" class="text"><b><?= $monitor['Name'] ?></b></td>
-<td align="center" valign="middle" class="text">
-<?= $zmSlangScale ?>: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
-</td>
-<?php if ( canView( 'Monitors' ) && $monitor['Type'] == "Local" ) { ?>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor['Id'] ?>', 'zmSettings<?= $monitor['Id'] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );"><?= $zmSlangSettings ?></a></td>
-<?php } else { ?>
-<td align="center" class="text">&nbsp;</td>
-<?php } ?>
-<?php if ( $mode == "stream" ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=still&mid=<?= $mid ?>&scale=<?= $scale ?>"><?= $zmSlangStills ?></a></td>
-<?php } elseif ( canStream() ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=watchfeed&mode=stream&mid=<?= $mid ?>&scale=<?= $scale ?>"><?= $zmSlangStream ?></a></td>
-<?php } else { ?>
-<td align="center" class="text">&nbsp;</td>
-<?php } ?>
-<td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
-</tr>
+<table width="96%" align="center" border="0" cellspacing="0" cellpadding="2">
 <?php
 if ( $mode == "stream" )
 {
@@ -127,11 +114,10 @@ if ( $mode == "stream" )
 else
 {
 ?>
-<tr><td colspan="5" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></td></tr>
+<tr><td colspan="5" align="center"><img name="zmImage" src="<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></td></tr>
 <?php
 }
 ?>
-</form>
 </table>
 </body>
 </html>

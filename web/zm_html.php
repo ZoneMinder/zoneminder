@@ -116,10 +116,12 @@ switch( $view )
 	case "montagefeed" :
 	case "montagestatus" :
 	case "watch" :
+	case "watchmenu" :
 	case "watchfeed" :
-	case "settings" :
+	case "watchfetch" :
 	case "watchstatus" :
 	case "watchevents" :
+	case "settings" :
 	case "events" :
 	case "filter" :
 	case "filtersave" :

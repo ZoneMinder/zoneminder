@@ -384,6 +384,21 @@ function createVideo( $event, $rate, $scale, $overwrite=0 )
 	return( $status?"":rtrim($result) );
 }
 
+function createImage( $monitor, $scale )
+{
+	if ( is_array( $monitor ) )
+	{
+		$monitor = $monitor['Id'];
+	}
+	chdir( ZM_DIR_IMAGES );
+	$command = ZMU_COMMAND." -m $monitor -i";
+	if ( !empty($scale) && $scale < 100 )
+		$command .= " -S $scale";
+	$status = exec( escapeshellcmd( $command ) );
+	chdir( '..' );
+	return( $status );
+}
+
 function reScale( $dimension, $scale=SCALE_SCALE )
 {
 	if ( $scale == SCALE_SCALE )

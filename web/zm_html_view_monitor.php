@@ -90,7 +90,7 @@ if ( !isset( $new_monitor ) )
 	$new_monitor['Triggers'] = split( ',', isset($monitor['Triggers'])?$monitor['Triggers']:"" );
 	$new_x10_monitor = isset($x10_monitor)?$x10_monitor:array();
 }
-$local_palettes = array( $zmSlangGrey=>1, "RGB24"=>4, "RGB565"=>3, "RGB555"=>6, "YUV422P"=>13, "YUV420P"=>15 );
+$local_palettes = array( $zmSlangGrey=>1, "RGB24"=>4, "RGB565"=>3, "RGB555"=>6, "YUV422"=>7, "YUYV"=>8, "YUV422P"=>13, "YUV420P"=>15 );
 $remote_palettes = array( $zmSlang8BitGrey=>1, $zmSlang24BitColour=>4 );
 $orientations = array( $zmSlangNormal=>0, $zmSlangRotateRight=>90, $zmSlangInverted=>180, $zmSlangRotateLeft=>270 );
 

@@ -770,19 +770,22 @@ up with bits missing then it's possible that there is a problem with the PHP
 configuration. Since version 0.9.8 ZoneMinder has used short PHP open tags to
 output information, so instead of something like this '<?php echo $value ?>',
 it will be something like this '<?= $value ?>' which is easier and quicker to
-write as well as being neater. However although by default most PHP
-installations support this form, some will need to have it switched on
-explicitly. To do this you will first need to find your php.ini file (do a
-'locate php.ini' or 'find / -name php.ini'. Be aware however that sometimes you
-might find more than one, so ensure you identify the one that is actually being
-used. You will then need to find the line that starts 'short_open_tag = ' and
-change the Off value to On. This wil correct the problem. However in some cases
-you may have explicitly switched it off, so that XML compliant documents can be
-more easily served, or you may even not have permission to edit the file. In
-this case you can go into the web directory of 'ZoneMinder' and run 'sh retag.sh'
-which will replace all the short open tags in the files themselves with the
-longer variant. You will obviously have to remember to do this for each 
-subsequent version of ZoneMinder that you install as well.
+write as well as being neater. More information about this directive can be
+seen at the following location,
+http://www.php.net/manual/en/configuration.directives.php#ini.short-open-tag
+However although by default most PHP installations support this form, some will
+need to have it switched on explicitly. To do this you will first need to find
+your php.ini file (do a 'locate php.ini' or 'find / -name php.ini'. Be aware
+however that sometimes you might find more than one, so ensure you identify the
+one that is actually being used. You will then need to find the line that
+starts 'short_open_tag = ' and change the Off value to On. This wil correct the
+problem. However in some cases you may have explicitly switched it off, so that
+XML compliant documents can be more easily served, or you may even not have
+permission to edit the file. In this case you can go into the web directory of
+ZoneMinder and run 'sh retag.sh' which will replace all the short open tags in
+the files themselves with the longer variant. You will obviously have to
+remember to do this for each subsequent version of ZoneMinder that you install
+as well.
 5. Use debug. ZM has various debug in it that by default will go into your 
 system log (via syslog). These will be of the form of
 "Sep 14 14:50:11 localhost zma-0[1975]: INF [Front: 221000 - Processing at 4.26 

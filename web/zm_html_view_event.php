@@ -422,10 +422,10 @@ else
 ?>
 <tr>
 <td colspan="6"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>"><?= $zmSlangDeleteAndNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page ?>"><?= $zmSlangNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr></table></td>
 </tr>
 </table>

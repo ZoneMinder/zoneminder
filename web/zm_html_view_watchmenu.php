@@ -63,7 +63,30 @@ function closeWindow()
 <input type="hidden" name="mode" value="<?= $mode ?>">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <tr>
-<td width="25%" align="left" class="text"><b><?= $monitor['Name'] ?></b></td>
+<td align="left" class="text"><b><?= $monitor['Name'] ?></b></td>
+<?php
+if ( ZM_OPT_CONTROL && $monitor['Controllable'] )
+{
+	if ( !$control )
+	{
+?>
+<td align="center" class="text"><a href="<?= $php_self ?>?view=watch&mid=<?= $mid ?>&mode=<?= $mode ?>&scale=<?= $scale ?>&control=1" target="_parent"><?= $zmSlangControl ?></a></td>
+<?php
+	}
+	else
+	{
+?>
+<td align="center" class="text"><a href="<?= $php_self ?>?view=watch&mid=<?= $mid ?>&mode=<?= $mode ?>&scale=<?= $scale ?>&control=0" target="_parent"><?= $zmSlangEvents ?></a></td>
+<?php
+	}
+}
+else
+{
+?>
+<td align="center" class="text">&nbsp;</td>
+<?php
+}
+?>
 <td align="center" valign="middle" class="text">
 <?= $zmSlangScale ?>: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </td>
@@ -73,9 +96,9 @@ function closeWindow()
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
-<td align="center" class="text"><a href="<?= $php_self ?>?view=watch&mode=still&mid=<?= $mid ?>&scale=<?= $scale ?>" target="_parent"><?= $zmSlangStills ?></a></td>
+<td align="center" class="text"><a href="<?= $php_self ?>?view=watch&mid=<?= $mid ?>&control=<?= $control ?>&mode=still&scale=<?= $scale ?>" target="_parent"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
-<td align="center" class="text"><a href="<?= $php_self ?>?view=watch&mode=stream&mid=<?= $mid ?>&scale=<?= $scale ?>" target="_parent"><?= $zmSlangStream ?></a></td>
+<td align="center" class="text"><a href="<?= $php_self ?>?view=watch&mid=<?= $mid ?>&control=<?= $control ?>&mode=stream&scale=<?= $scale ?>" target="_parent"><?= $zmSlangStream ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>

@@ -35,7 +35,8 @@ if ( empty($mode) )
 if ( !isset( $scale ) )
 	$scale = ZM_WEB_DEFAULT_SCALE;
 
-$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+$sql = "select M.*,C.CanMoveMap,C.CanMoveRel from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'";
+$result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
@@ -52,7 +53,7 @@ header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");			  // HTTP/1.0
 
-$image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
+$image_src = getStreamSrc( array( "mode=single", "monitor=".$mid, "scale=".$scale ) );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
@@ -97,7 +98,7 @@ if ( $mode == "stream" )
 {
 	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_LIVE_FORMAT )
 	{
-		$stream_src = getStreamSrc( array( "mode=mpeg", "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_VIDEO_LIVE_FORMAT ) );
+		$stream_src = getStreamSrc( array( "mode=mpeg", "monitor=".$mid, "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_VIDEO_LIVE_FORMAT ) );
 		if ( isWindows() )
 		{
 			if ( isInternetExplorer() )
@@ -144,12 +145,41 @@ autostart="true">
 	}
 	else
 	{
-		$stream_src = getStreamSrc( array( "mode=jpeg", "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
+		$stream_src = getStreamSrc( array( "mode=jpeg", "monitor=".$mid, "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
 		if ( canStreamNative() )
 		{
+			if ( $control && ($monitor['CanMoveMap'] || $monitor['CanMoveRel']) )
+			{
+?>
+<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="ControlSink<?= $mid ?>">
+<input type="hidden" name="view" value="blank">
+<input type="hidden" name="mid" value="<?= $mid ?>">
+<input type="hidden" name="action" value="control">
+<?php
+				if ( $monitor['CanMoveMap'] ) 
+				{
+?>
+<input type="hidden" name="control" value="move_map">
+<?php
+				}
+				elseif ( $monitor['CanMoveRel'] )
+				{
+?>
+<input type="hidden" name="control" value="move_pseudo_map">
+<?php
+				}
+?>
+<input type="hidden" name="scale" value="<?= $scale ?>">
+<input type="image" src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
+</form>
+<?php
+			}
+			else
+			{
 ?>
 <img src="<?= $stream_src ?>" alt="<?= $monitor['Name'] ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
 <?php
+			}
 		}
 		else
 		{
@@ -161,9 +191,37 @@ autostart="true">
 }
 else
 {
+	if ( $control && ($monitor['CanMoveMap'] || $monitor['CanMoveRel']) )
+	{
+?>
+<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="ControlSink<?= $mid ?>">
+<input type="hidden" name="view" value="blank">
+<input type="hidden" name="mid" value="<?= $mid ?>">
+<input type="hidden" name="action" value="control">
+<?php
+				if ( $monitor['CanMoveMap'] ) 
+				{
+?>
+<input type="hidden" name="control" value="move_map">
+<?php
+				}
+				elseif ( $monitor['CanMoveRel'] )
+				{
+?>
+<input type="hidden" name="control" value="move_pseudo_map">
+<?php
+				}
+?>
+<input type="image" src="<?= $image_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
+</form>
+<?php
+	}
+	else
+	{
 ?>
 <img name="zmImage" src="<?= $image_src ?>" alt="<?= $monitor['Name'] ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
 <?php
+	}
 }
 ?>
 </td></tr>

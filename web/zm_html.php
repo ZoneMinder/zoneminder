@@ -134,6 +134,13 @@ switch( $view )
 	case "zone" :
 	case "video" :
 	case "function" :
+	case "control" :
+	case "controlmenu" :
+	case "controlpanel" :
+	case "controlpreset" :
+	case "controlcap" :
+	case "controlcaps" :
+	case "blank" :
 	case "none" :
 	{
 		require_once( "zm_".$format."_view_".$view.".php" );

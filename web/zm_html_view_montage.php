@@ -82,19 +82,19 @@ window.focus();
 if ( ZM_WEB_COMPACT_MONTAGE )
 {
 ?>
-<frameset rows="16,*" cols="*" border="1" frameborder="no" framespacing="0">
+<frameset rows="16,*,0" cols="*" border="0" frameborder="no" framespacing="0">
 <frame src="<?= $PHP_SELF ?>?view=montagemenu&mode=<?= $mode ?>" marginwidth="0" marginheight="0" name="MontageMenu" scrolling="no">
 <?php
 }
 ?>
-<frameset rows="<?= $row_spec ?>" border="1" frameborder="no" framespacing="0">
+<frameset rows="<?= $row_spec ?>" border="0" frameborder="no" framespacing="0">
 <?php
 $index = 0;
 for ( $row = 0; $row < $rows; $row++ )
 {
 	$col_spec = join( ',', $widths[$row] );
 ?>
-<frameset cols="<?= $col_spec ?>" border="1" frameborder="no" framespacing="0">
+<frameset cols="<?= $col_spec ?>" border="0" frameborder="no" framespacing="0">
 <?php
 	for ( $col = 0; $col < $cols; $col++ )
 	{
@@ -111,13 +111,14 @@ for ( $row = 0; $row < $rows; $row++ )
 <?php
 }
 ?>
+</frameset>
 <?php
 if ( ZM_WEB_COMPACT_MONTAGE )
 {
 ?>
+<frame src="<?= $PHP_SELF ?>?view=blank" marginwidth="0" marginheight="0" name="MontageSink" scrolling="no">
 </frameset>
 <?php
 }
 ?>
-</frameset>
 </html>

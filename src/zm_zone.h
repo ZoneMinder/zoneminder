@@ -78,6 +78,7 @@ protected:
 	int				min_blob_size;
 	int				max_blob_size;
 	Box				alarm_box;
+	Coord			alarm_centre;
 	unsigned int	score;
 	Image			*image;
 
@@ -120,6 +121,7 @@ public:
 	inline bool Alarmed() const { return( alarmed ); }
 	inline void SetAlarm() { alarmed = true; }
 	inline void ClearAlarm() { alarmed = false; }
+	inline Coord GetAlarmCentre() const { return( alarm_centre ); }
 	inline unsigned int Score() const { return( score ); }
 
 	inline void ResetStats()

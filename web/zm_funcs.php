@@ -18,6 +18,17 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+// Compatibility functions
+if ( version_compare( phpversion(), "4.3.0", "<") )
+{
+	function ob_get_clean()
+	{
+		$buffer = ob_get_contents();
+		ob_end_clean();
+		return( $buffer );
+	}
+}
+
 function userLogin( $username, $password )
 {
 	global $user, $cookies;
@@ -442,6 +453,10 @@ function zmaControl( $monitor, $restart=false )
 		{
 			if ( $restart )
 			{
+				if ( ZM_OPT_CONTROL )
+				{
+					daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
+				}
 				daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
 				if ( ZM_OPT_FRAME_SERVER )
 				{
@@ -453,10 +468,18 @@ function zmaControl( $monitor, $restart=false )
 				daemonControl( "start", "zmf", "-m ".$monitor['Id'] );
 			}
 			daemonControl( "start", "zma", "-m ".$monitor['Id'] );
+			if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) )
+			{
+				daemonControl( "start", "zmtrack.pl", "-m ".$monitor['Id'] );
+			}
 			break;
 		}
 		default :
 		{
+			if ( ZM_OPT_CONTROL )
+			{
+				daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
+			}
 			daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
 			if ( ZM_OPT_FRAME_SERVER )
 			{
@@ -596,6 +619,14 @@ function reScale( $dimension, $scale=SCALE_SCALE )
 		return( $dimension );
 
 	return( (int)(($dimension*$scale)/SCALE_SCALE) );
+}
+
+function deScale( $dimension, $scale=SCALE_SCALE )
+{
+	if ( $scale == SCALE_SCALE )
+		return( $dimension );
+
+	return( (int)(($dimension*SCALE_SCALE)/$scale) );
 }
 
 function parseSort( $save_to_session=false )

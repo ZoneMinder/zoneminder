@@ -98,6 +98,9 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	int alarm_lo_y = 0;
 	int alarm_hi_y = 0;
 
+	int alarm_mid_x = -1;
+	int alarm_mid_y = -1;
+
 	int lo_x = limits.Lo().X();
 	int lo_y = limits.Lo().Y();
 	int hi_x = limits.Hi().X();
@@ -418,6 +421,32 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				BlobStats *bs = &blob_stats[i];
 				if ( bs->count )
 				{
+					if ( bs->count == max_blob_size )
+					{
+						//if ( monitor->followMotion() )
+						if ( true )
+						{
+							unsigned long x_total = 0;
+							unsigned long y_total = 0;
+
+							for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
+							{
+								unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
+								for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ )
+								{
+									if ( *spdiff == bs->tag )
+									{
+										x_total += sx;
+										y_total += sy;
+									}
+								}
+							}
+
+							alarm_mid_x = int(round(x_total/bs->count));
+							alarm_mid_y = int(round(y_total/bs->count));
+						}
+					}
+
 					if ( alarm_lo_x > bs->lo_x ) alarm_lo_x = bs->lo_x;
 					if ( alarm_lo_y > bs->lo_y ) alarm_lo_y = bs->lo_y;
 					if ( alarm_hi_x < bs->hi_x ) alarm_hi_x = bs->hi_x;
@@ -443,6 +472,16 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		alarm = true;
 
 		alarm_box = Box( Coord( alarm_lo_x, alarm_lo_y ), Coord( alarm_hi_x, alarm_hi_y ) );
+
+		//if ( monitor->followMotion() )
+		if ( true )
+		{
+			alarm_centre = Coord( alarm_mid_x, alarm_mid_y );
+		}
+		else
+		{
+			alarm_centre = alarm_box.Centre();
+		}
 
 		if ( (type < PRECLUSIVE) && check_method >= BLOBS && create_analysis_images )
 		{

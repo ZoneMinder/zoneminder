@@ -38,11 +38,45 @@ if ( $mid )
 		die( mysql_error() );
 	$monitor = mysql_fetch_assoc( $result );
 }
+elseif ( ZM_OPT_CONTROL )
+{
+	if ( $group )
+	{
+		$sql = "select * from Groups where Id = '$group'";
+		$result = mysql_query( $sql );
+		if ( !$result )
+			die( mysql_error() );
+		$row = mysql_fetch_assoc( $result );
+		$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
+	}
+	$sql = "select * from Monitors where Function != 'None' and Controllable = 1 $group_sql order by Id";
+	$result = mysql_query( $sql ); 
+	if ( !$result )
+		die( mysql_error() );
+	$control_mid = 0;
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		if ( !visibleMonitor( $row['Id'] ) )
+		{
+			continue;
+		}
+		if ( !$control_mid )
+		{
+			$control_mid = $row['Id'];
+		}
+	}
+}
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
+<script type="text/javascript">
+function newWindow(Url,Name,Width,Height)
+{
+	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+}
+</script>
 </head>
 <body>
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
@@ -64,15 +98,20 @@ if ( $mid )
 else
 {
 ?>
-<td width="33%" align="left" class="text"><b><?= $zmSlangMontage ?></b></td>
-<?php if ( $mode == "stream" ) { ?>
-<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montage&mode=still&mid=<?= $mid ?>" target="_parent"><?= $zmSlangStills ?></a></td>
-<?php } elseif ( canStream() ) { ?>
-<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montage&mode=stream&mid=<?= $mid ?>" target="_parent"><?= $zmSlangStream ?></a></td>
+<td width="25%" align="left" class="text"><b><?= $zmSlangMontage ?></b></td>
+<?php if ( ZM_OPT_CONTROL && $control_mid ) { ?>
+<td width="25%" align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=control&menu=1&mid=<?= $control_mid ?>', 'Control', <?= $jws['control']['w'] ?>, <?= $jws['control']['h'] ?> )"><?= $zmSlangControl ?></a></td>
 <?php } else { ?>
-<td width="34%" align="center" class="text">&nbsp;</td>
+<td width="25%" align="center" class="text">&nbsp;</td>
 <?php } ?>
-<td width="33%" align="right" class="text"><a href="javascript: top.window.close()"><?= $zmSlangClose ?></a></td>
+<?php if ( $mode == "stream" ) { ?>
+<td width="25%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montage&mode=still&mid=<?= $mid ?>" target="_parent"><?= $zmSlangStills ?></a></td>
+<?php } elseif ( canStream() ) { ?>
+<td width="25%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montage&mode=stream&mid=<?= $mid ?>" target="_parent"><?= $zmSlangStream ?></a></td>
+<?php } else { ?>
+<td width="25%" align="center" class="text">&nbsp;</td>
+<?php } ?>
+<td width="25%" align="right" class="text"><a href="javascript: top.window.close()"><?= $zmSlangClose ?></a></td>
 <?php
 }
 ?>

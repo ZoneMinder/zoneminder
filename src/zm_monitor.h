@@ -63,61 +63,66 @@ public:
 
 	typedef enum { IDLE, PREALARM, ALARM, ALERT, TAPE } State;
 
+	typedef enum { ACTIVE, SUSPENDED, RESUMING } ActivityState;
+
 protected:  
-	static bool initialised;
-	static bool record_event_stats;
-	static bool record_diag_images;
-	static bool opt_adaptive_skip;
-	static bool create_analysis_images;
-	static bool blend_alarmed_images;
-	static bool timestamp_on_capture;
-	static int bulk_frame_interval;
+	static bool		initialised;
+	static bool		record_event_stats;
+	static bool		record_diag_images;
+	static bool		opt_adaptive_skip;
+	static bool		create_analysis_images;
+	static bool		blend_alarmed_images;
+	static bool		timestamp_on_capture;
+	static int		bulk_frame_interval;
 
 protected:
 	// These are read from the DB and thereafter remain unchanged
-	int		id;
-	char	*name;
-	Function	function;		// What the monitor is doing
-	unsigned int    width;		// Normally the same as the camera, but not if partly rotated
-	unsigned int    height;		// Normally the same as the camera, but not if partly rotated
-	RunMode	run_mode;			// Whether the monitor is running continuously or is triggered	
-	Orientation	orientation;	// Whether the image has to be rotated at all
-	int		brightness;			// The statically saved brightness of the camera
-	int		contrast;			// The statically saved contrast of the camera
-	int		hue;				// The statically saved hue of the camera
-	int		colour;				// The statically saved colour of the camera
-	char	event_prefix[64];	// The prefix applied to event names as they are created
-	char	label_format[64];	// The format of the timestamp on the images
-	Coord	label_coord;		// The coordinates of the timestamp on the images
-	int		image_buffer_count; // Size of circular image buffer, at least twice the size of the pre_event_count
-	int		warmup_count;		// How many images to process before looking for events
-	int		pre_event_count;	// How many images to hold and prepend to an alarm event
-	int		post_event_count;	// How many unalarmed images must occur before the alarm state is reset
-	int		section_length;		// How long events should last in continuous modes
-	int		frame_skip;			// How many frames to skip in continuous modes
-	int 	capture_delay;		// How long we wait between capture frames
-	int		alarm_frame_count;	// How many alarm frames are required before an event is triggered
-	int		fps_report_interval;// How many images should be captured/processed between reporting the current FPS
-	int		ref_blend_perc;		// Percentage of new image going into reference image.
+	int				id;
+	char			*name;
+	Function		function;			// What the monitor is doing
+	unsigned int    width;				// Normally the same as the camera, but not if partly rotated
+	unsigned int    height;				// Normally the same as the camera, but not if partly rotated
+	RunMode			run_mode;			// Whether the monitor is running continuously or is triggered	
+	Orientation		orientation;		// Whether the image has to be rotated at all
+	int				brightness;			// The statically saved brightness of the camera
+	int				contrast;			// The statically saved contrast of the camera
+	int				hue;				// The statically saved hue of the camera
+	int				colour;				// The statically saved colour of the camera
+	char			event_prefix[64];	// The prefix applied to event names as they are created
+	char			label_format[64];	// The format of the timestamp on the images
+	Coord			label_coord;		// The coordinates of the timestamp on the images
+	int				image_buffer_count; // Size of circular image buffer, at least twice the size of the pre_event_count
+	int				warmup_count;		// How many images to process before looking for events
+	int				pre_event_count;	// How many images to hold and prepend to an alarm event
+	int				post_event_count;	// How many unalarmed images must occur before the alarm state is reset
+	int				section_length;		// How long events should last in continuous modes
+	int				frame_skip;			// How many frames to skip in continuous modes
+	int				capture_delay;		// How long we wait between capture frames
+	int				alarm_frame_count;	// How many alarm frames are required before an event is triggered
+	int				fps_report_interval;// How many images should be captured/processed between reporting the current FPS
+	int				ref_blend_perc;		// Percentage of new image going into reference image.
+	bool			track_motion;		// Whether this monitor tries to track detected motion 
 
-	double	fps;
-	Image	image;
-	Image	ref_image;
+	double			fps;
+	Image			image;
+	Image			ref_image;
 
-	Purpose	purpose;			// What this monitor has been created to do
-	int		event_count;
-	int		image_count;
-	int		first_alarm_count;
-	int		last_alarm_count;
-	int		buffer_count;
-	int		prealarm_count;
-	State state;
-	int		n_zones;
-	Zone	**zones;
-	Event	*event;
-	time_t	start_time;
-	time_t	last_fps_time;
-	int		shmid;
+	Purpose			purpose;			// What this monitor has been created to do
+	ActivityState	activity_state;
+	int				event_count;
+	int				image_count;
+	int				resume_image_count;
+	int				first_alarm_count;
+	int				last_alarm_count;
+	int				buffer_count;
+	int				prealarm_count;
+	State			state;
+	int				n_zones;
+	Zone			**zones;
+	Event			*event;
+	time_t			start_time;
+	time_t			last_fps_time;
+	int				shmid;
 
 	typedef struct Snapshot
 	{
@@ -127,7 +132,7 @@ protected:
 
 	Snapshot *image_buffer;
 
-	typedef enum { GET_SETTINGS=0x0001, SET_SETTINGS=0x0002 } Action;
+	typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, SUSPEND=0x4, RESUME=0x8 } Action;
 	typedef struct
 	{
 		int size;
@@ -142,6 +147,8 @@ protected:
 		int hue;
 		int colour;
 		int contrast;
+		int alarm_x;
+		int alarm_y;
 	} SharedData;
 
 	typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
@@ -174,8 +181,8 @@ protected:
 	}
 
 public:
-	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, int p_brightness, int p_contrast, int p_hue, int p_colour, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
-	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, int p_brightness, int p_contrast, int p_hue, int p_colour, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, int p_brightness, int p_contrast, int p_hue, int p_colour, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, int p_brightness, int p_contrast, int p_hue, int p_colour, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void Setup();
@@ -210,6 +217,8 @@ public:
 	void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
 	void ForceAlarmOff();
 	void CancelForced();
+	void Suspend();
+	void Resume();
 
 	inline void TimestampImage( Image *ts_image, time_t ts_time ) const
 	{
@@ -297,7 +306,11 @@ public:
 
 	inline bool Ready()
 	{
-		return( function > MONITOR && image_count > warmup_count );
+		if ( function <= MONITOR )
+			return( false );
+		if ( image_count <= warmup_count )
+			return( false );
+		return( true );
 	}
  
 	void DumpImage( Image *dump_image ) const;

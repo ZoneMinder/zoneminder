@@ -90,7 +90,6 @@ use POSIX;
 use Socket;
 use IO::Handle;
 use Data::Dumper;
-use Posix qw(sys_wait_h);
 
 $| = 1;
 
@@ -98,7 +97,7 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-my @daemons = ( 'zmc', 'zma', 'zmf', 'zmfilter.pl', 'zmaudit.pl', 'zmtrigger.pl', 'zmx10.pl', 'zmwatch.pl', 'zmupdate.pl' );
+my @daemons = ( 'zmc', 'zma', 'zmf', 'zmfilter.pl', 'zmaudit.pl', 'zmtrigger.pl', 'zmx10.pl', 'zmwatch.pl', 'zmupdate.pl', 'zmtrack.pl' );
 
 my $command = shift @ARGV;
 die( "No command given" ) unless( $command );

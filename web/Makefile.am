@@ -1,22 +1,34 @@
 AUTOMAKE_OPTIONS = gnu
 
-# This should be set to your CGI directory
+# This should be set to your web directory
 webdir = @WEB_PREFIX@
 # And these to the user and group of your webserver
 webuser = @WEB_USER@
 webgroup = @WEB_GROUP@
+
+SUBDIRS = \
+    graphics
 
 web_DATA = \
 	favicon.ico \
 	zm.php \
 	zm_actions.php \
 	zm_config.php \
+	zm_control_funcs.php \
 	zm_db.php \
 	zm_funcs.php \
 	zm_html.php \
 	zm_html_styles.css \
 	zm_html_view_bandwidth.php \
+	zm_html_view_blank.php \
 	zm_html_view_console.php \
+	zm_html_view_control.php \
+	zm_html_view_controlcaps.php \
+	zm_html_view_controlmenu.php \
+	zm_html_view_controlpanel.php \
+	zm_html_view_controlpreset.php \
+	zm_html_view_controlcaps.php \
+	zm_html_view_controlcap.php \
 	zm_html_view_cycle.php \
 	zm_html_view_error.php \
 	zm_html_view_event.php \
@@ -92,12 +104,20 @@ EXTRA_DIST = \
 	zm.php \
 	zm_actions.php \
 	zm_config.php.z \
+	zm_control_funcs.php \
 	zm_db.php \
 	zm_funcs.php \
 	zm_html.php \
 	zm_html_styles.css \
 	zm_html_view_bandwidth.php \
+	zm_html_view_blank.php \
 	zm_html_view_console.php \
+	zm_html_view_control.php \
+	zm_html_view_controlmenu.php \
+	zm_html_view_controlpanel.php \
+	zm_html_view_controlpreset.php \
+	zm_html_view_controlcaps.php \
+	zm_html_view_controlcap.php \
 	zm_html_view_cycle.php \
 	zm_html_view_error.php \
 	zm_html_view_event.php \
@@ -170,6 +190,7 @@ EXTRA_DIST = \
 install-data-hook:
 	( cd $(DESTDIR)$(webdir); chown $(webuser):$(webgroup) $(web_DATA) )
 	@-( cd $(DESTDIR)$(webdir); if ! test -e events; then mkdir events; fi; chown $(webuser):$(webgroup) events; chmod u+w events )
+	@-( cd $(DESTDIR)$(webdir); if ! test -e graphics; then mkdir graphics; fi; chown $(webuser):$(webgroup) graphics; chmod u+w graphics )
 	@-( cd $(DESTDIR)$(webdir); if ! test -e images; then mkdir images; fi; chown $(webuser):$(webgroup) images; chmod u+w images )
 	@-( cd $(DESTDIR)$(webdir); if ! test -e sounds; then mkdir sounds; fi; chown $(webuser):$(webgroup) sounds; chmod u+w sounds )
 	@-( cd $(DESTDIR)$(webdir); if ! test -e temp; then mkdir temp; fi; chown $(webuser):$(webgroup) temp; chmod u+w temp )

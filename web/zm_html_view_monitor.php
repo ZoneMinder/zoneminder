@@ -30,6 +30,10 @@ $tabs["source"] = $zmSlangSource;
 $tabs["timestamp"] = $zmSlangTimestamp;
 $tabs["buffers"] = $zmSlangBuffers;
 $tabs["misc"] = $zmSlangMisc;
+if ( ZM_OPT_CONTROL )
+{
+	$tabs["control"] = $zmSlangControl;
+}
 if ( ZM_OPT_X10 )
 {
 	$tabs["x10"] = $zmSlangX10;
@@ -76,6 +80,14 @@ else
 	$monitor['PreEventCount'] = 10;
 	$monitor['PostEventCount'] = 10;
 	$monitor['AlarmFrameCount'] = 1;
+	$monitor['Controllable'] = 0;
+	$monitor['ControlType'] = 0;
+	$monitor['ControlDevice'] = "";
+	$monitor['ControlAddress'] = "";
+	$monitor['TrackMotion'] = 0;
+	$monitor['TrackDelay'] = "";
+	$monitor['ReturnLocation'] = -1;
+	$monitor['ReturnDelay'] = "";
 	$monitor['SectionLength'] = 600;
 	$monitor['FrameSkip'] = 0;
 	$monitor['EventPrefix'] = 'Event-';
@@ -98,7 +110,7 @@ $orientations = array( $zmSlangNormal=>0, $zmSlangRotateRight=>90, $zmSlangInver
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>ZM - <?= $zmSlangMonitor ?> <?= $monitor['Name'] ?></title>
+<title>ZM - <?= $zmSlangMonitor ?> - <?= $monitor['Name'] ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 <?php
@@ -116,7 +128,7 @@ function validateForm(Form)
 
 	if ( Form.elements['new_monitor[Name]'].value.search( /[^\w-]/ ) >= 0 )
 	{
-		errors[errors.length] = "<?= $zmSlangBadMonitorChars ?>";
+		errors[errors.length] = "<?= $zmSlangBadNameChars ?>";
 	}
 	if ( errors.length )
 	{
@@ -133,16 +145,78 @@ function submitTab(Form,Tab)
 	Form.submit();
 }
 
+function newWindow(Url,Name,Width,Height)
+{
+	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+}
+
 function closeWindow()
 {
 	window.close();
 }
+
+<?php
+if ( ZM_OPT_CONTROL && $tab == 'control' )
+{
+?>
+function loadLocations( Form )
+{
+	var controlIdSelect = Form.elements['new_monitor[ControlId]'];
+	var returnLocationSelect = Form.elements['new_monitor[ReturnLocation]'];
+
+	returnLocationSelect.options[option_count++] = new Option( '<?= $zmSlangNone ?>', -1 );
+	if ( controlIdSelect.selectedIndex )
+	{
+		var option_count = 1;
+<?php
+	$sql = "select * from Controls where Type = '".$monitor['Type']."'";
+	$result = mysql_query( $sql );
+	if ( !$result )
+		die( mysql_error() );
+	$control_types = array( ''=>$zmSlangNone );
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		$control_types[$row['Id']] = $row['Name'];
+?>
+		if ( controlIdSelect.selectedIndex > 0 )
+		{
+			if ( controlIdSelect.options[controlIdSelect.selectedIndex].value == <?= $row['Id'] ?> )
+			{
+<?php
+		if ( $row['HasHomePreset'] )
+		{
+?>
+				returnLocationSelect.options[option_count++] = new Option( '<?= $zmSlangHome ?>', 0 );
+<?php
+		}
+		for ( $i = 1; $i <= $row['NumPresets']; $i++ )
+		{
+?>
+				returnLocationSelect.options[option_count++] = new Option( '<?= $zmSlangPreset.' '.$i ?>', <?= $i ?> );
+<?php
+		}
+?>
+			}
+		}
+		returnLocationSelect.options.length = option_count;
+<?php
+	}
+?>
+	}
+	else
+	{
+		returnLocationSelect.options.length = 1;
+	}
+}
+<?php
+}
+?>
 </script>
 </head>
 <body>
 <table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td align="left" class="head"><?= $zmSlangMonitor ?> <?= $monitor['Name'] ?></td>
+<td align="left" class="head"><?= $zmSlangMonitor ?> - <?= $monitor['Name'] ?></td>
 </tr>
 <tr>
 <td>&nbsp;</td>
@@ -230,6 +304,19 @@ if ( $tab != 'buffers' )
 <input type="hidden" name="new_monitor[AlarmFrameCount]" value="<?= $new_monitor['AlarmFrameCount'] ?>">
 <?php
 }
+if ( ZM_OPT_CONTROL && $tab != 'control' )
+{
+?>
+<input type="hidden" name="new_monitor[Controllable]" value="<?= $new_monitor['Controllable'] ?>">
+<input type="hidden" name="new_monitor[ControlId]" value="<?= $new_monitor['ControlId'] ?>">
+<input type="hidden" name="new_monitor[ControlDevice]" value="<?= $new_monitor['ControlDevice'] ?>">
+<input type="hidden" name="new_monitor[ControlAddress]" value="<?= $new_monitor['ControlAddress'] ?>">
+<input type="hidden" name="new_monitor[TrackMotion]" value="<?= $new_monitor['TrackMotion'] ?>">
+<input type="hidden" name="new_monitor[TrackDelay]" value="<?= $new_monitor['TrackDelay'] ?>">
+<input type="hidden" name="new_monitor[ReturnLocation]" value="<?= $new_monitor['ReturnLocation'] ?>">
+<input type="hidden" name="new_monitor[ReturnDelay]" value="<?= $new_monitor['ReturnDelay'] ?>">
+<?php
+}
 if ( $tab != 'misc' )
 {
 ?>
@@ -249,7 +336,7 @@ if ( ZM_OPT_X10 && $tab != 'x10' )
 }
 ?>
 <tr>
-<td align="left" class="smallhead" width="70%"><?= $zmSlangParameter ?></td><td align="left" class="smallhead" width="30%"><?= $zmSlangValue ?></td>
+<td align="left" class="smallhead" width="50%"><?= $zmSlangParameter ?></td><td align="left" class="smallhead" width="50%"><?= $zmSlangValue ?></td>
 </tr>
 <?php
 switch ( $tab )
@@ -357,6 +444,27 @@ switch ( $tab )
 <tr><td align="left" class="text"><?= $zmSlangPreEventImageBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[PreEventCount]" value="<?= $new_monitor['PreEventCount'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangPostEventImageBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[PostEventCount]" value="<?= $new_monitor['PostEventCount'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangAlarmFrameCount ?></td><td align="left" class="text"><input type="text" name="new_monitor[AlarmFrameCount]" value="<?= $new_monitor['AlarmFrameCount'] ?>" size="4" class="form"></td></tr>
+<?php
+		break;
+	}
+	case 'control' :
+	{
+?>
+<tr><td align="left" class="text"><?= $zmSlangControllable ?></td><td align="left" class="text"><input type="checkbox" name="new_monitor[Controllable]" value="1" class="form-noborder"<?php if ( !empty($new_monitor['Controllable']) ) { ?> checked<?php } ?>></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangControlType ?></td><td class="text"><?= buildSelect( "new_monitor[ControlId]", $control_types, 'loadLocations( document.monitor_form )' ); ?>&nbsp;<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=controlcaps', 'zmControlCaps', <?= $jws['controlcaps']['w'] ?>, <?= $jws['controlcaps']['h'] ?> );"><?= $zmSlangEdit ?></a></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangControlDevice ?></td><td align="left" class="text"><input type="text" name="new_monitor[ControlDevice]" value="<?= $new_monitor['ControlDevice'] ?>" size="32" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangControlAddress ?></td><td align="left" class="text"><input type="text" name="new_monitor[ControlAddress]" value="<?= $new_monitor['ControlAddress'] ?>" size="16" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangTrackMotion ?></td><td align="left" class="text"><input type="checkbox" name="new_monitor[TrackMotion]" value="1" class="form-noborder"<?php if ( !empty($new_monitor['TrackMotion']) ) { ?> checked<?php } ?>></td></tr>
+<?php
+		$return_options = array(
+			'-1' => $zmSlangNone,
+			'0' => $zmSlangHome,
+			'1' => $zmSlangPreset." 1",
+		);
+?>
+<tr><td align="left" class="text"><?= $zmSlangTrackDelay ?></td><td align="left" class="text"><input type="text" name="new_monitor[TrackDelay]" value="<?= $new_monitor['TrackDelay'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangReturnLocation ?></td><td><?= buildSelect( "new_monitor[ReturnLocation]", $return_options ); ?></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangReturnDelay ?></td><td align="left" class="text"><input type="text" name="new_monitor[ReturnDelay]" value="<?= $new_monitor['ReturnDelay'] ?>" size="4" class="form"></td></tr>
 <?php
 		break;
 	}

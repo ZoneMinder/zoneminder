@@ -32,7 +32,15 @@ if ( empty($mode) )
 		$mode = "still";
 }
 
-$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+if ( ZM_OPT_CONTROL )
+{
+	$sql = "select M.*,C.CanMoveMap,C.CanMoveRel from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'";
+}
+else
+{
+	$sql = "select * from Monitors where M.Id = '$mid'";
+}
+$result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
@@ -150,9 +158,38 @@ autostart="true">
 		$stream_src = getStreamSrc( array( "mode=jpeg", "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
 		if ( canStreamNative() )
 		{
+			if ( ZM_OPT_CONTROL && ($monitor['CanMoveMap'] || $monitor['CanMoveRel']) )
+			{
+?>
+<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="MontageSink">
+<input type="hidden" name="view" value="blank">
+<input type="hidden" name="mid" value="<?= $mid ?>">
+<input type="hidden" name="action" value="control">
+<?php
+				if ( $monitor['CanMoveMap'] ) 
+				{
+?>
+<input type="hidden" name="control" value="move_map">
+<?php
+				}
+				elseif ( $monitor['CanMoveRel'] )
+				{
+?>
+<input type="hidden" name="control" value="move_pseudo_map">
+<?php
+				}
+?>
+<input type="hidden" name="scale" value="<?= $scale ?>">
+<input type="image" src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
+</form>
+<?php
+			}
+			else
+			{
 ?>
 <img src="<?= $stream_src ?>" alt="<?= $monitor['Name'] ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
 <?php
+			}
 		}
 		else
 		{
@@ -164,9 +201,37 @@ autostart="true">
 }
 else
 {
+	if ( ZM_OPT_CONTROL && ($monitor['CanMoveMap'] || $monitor['CanMoveRel']) )
+	{
+?>
+<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="MontageSink">
+<input type="hidden" name="view" value="blank">
+<input type="hidden" name="mid" value="<?= $mid ?>">
+<input type="hidden" name="action" value="control">
+<?php
+				if ( $monitor['CanMoveMap'] ) 
+				{
+?>
+<input type="hidden" name="control" value="move_map">
+<?php
+				}
+				elseif ( $monitor['CanMoveRel'] )
+				{
+?>
+<input type="hidden" name="control" value="move_pseudo_map">
+<?php
+				}
+?>
+<input type="image" src="<?= $image_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
+</form>
+<?php
+	}
+	else
+	{
 ?>
 <img name="zmImage" src="<?= $image_src ?>" alt="<?= $monitor['Name'] ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
 <?php
+	}
 }
 ?>
 </td></tr>

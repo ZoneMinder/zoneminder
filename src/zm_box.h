@@ -23,6 +23,8 @@
 #include "zm.h"
 #include "zm_coord.h"
 
+#include <math.h>
+
 //
 // Class used for storing a box, which is defined as a region
 // defined by two coordinates
@@ -53,6 +55,12 @@ public:
 	inline int Height() const { return( size.Y() ); }
 	inline int Area() const { return( size.X()*size.Y() ); }
 
+	inline const Coord Centre() const
+	{
+		int mid_x = int(round(lo.X()+(size.X()/2.0)));
+		int mid_y = int(round(lo.Y()+(size.Y()/2.0)));
+		return( Coord( mid_x, mid_y ) );
+	}
 	inline bool Inside( const Coord &coord ) const
 	{
 		return( coord.X() >= lo.X() && coord.X() <= hi.X() && coord.Y() >= lo.Y() && coord.Y() <= hi.Y() );

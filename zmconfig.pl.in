@@ -939,6 +939,14 @@ my @options =
 		category => 'system',
 	},
 	{
+		name => "ZM_OPT_CONTROL",
+		default => "no",
+		description => "Whether to support controllable (e.g. pan/tilt/zoom) cameras",
+		help => "ZoneMinder includes limited support for controllable cameras. A number of sample protocols are included and others can easily be added. If you wish to control your cameras via ZoneMinder then select this option otherwise if you only have static cameras or use other control methods then leave this option off.",
+		type => $types{boolean},
+		category => 'system',
+	},
+	{
 		name => "ZM_CHECK_FOR_UPDATES",
 		default => "yes",
 		description => "Whether to check with zoneminder.com for updated versions",
@@ -1682,7 +1690,7 @@ if ( $reprocess )
 	printf( CFG_HDR_FILE "#define ZM_MAX_CFG_ID $last_id\n" );
 	close( CFG_HDR_FILE );
 
-	my @config_files = qw( zm.conf src/zm_config.h web/zm_config.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmtrigger.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zm db/zmschema.sql );
+	my @config_files = qw( zm.conf src/zm_config.h web/zm_config.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmtrigger.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmcontrol-pelco-d.pl scripts/zmcontrol-visca.pl scripts/zmcontrol-kx-hcm10.pl scripts/zmtrack.pl scripts/zm db/zmschema.sql );
 
 	foreach my $config_file ( @config_files )
 	{

@@ -261,6 +261,16 @@ if ( $command =~ /^(?:start|restart)$/ )
 					}
 					execute( ZM_PATH_BIN."/zmdc.pl start zma -m $monitor->{Id}" );
 				}
+				if ( ZM_OPT_CONTROL )
+				{
+					if ( $monitor->{Function} eq 'Modect' || $monitor->{Function} eq 'Mocord' )
+					{
+						if ( $monitor->{Controllable} && $monitor->{TrackMotion} )
+						{
+							execute( ZM_PATH_BIN."/zmdc.pl start zmtrack.pl -m $monitor->{Id}" );
+						}
+					}
+				}
 			}
 		}
 		$sth->finish();

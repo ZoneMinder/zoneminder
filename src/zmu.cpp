@@ -48,14 +48,16 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -S, --scale <scale_%%ge>        : With --image specify any scaling (in %%) to be applied to the image\n" );
 	fprintf( stderr, "  -t, --timestamp [image_index]  : Output captured image timestamp, last image captured or specified\n" );
 	fprintf( stderr, "                                   ring buffer index if given\n" );
-	fprintf( stderr, "  -r, --read_index               : Output ring buffer read index\n" );
-	fprintf( stderr, "  -w, --write_index              : Output ring buffer write index\n" );
+	fprintf( stderr, "  -R, --read_index               : Output ring buffer read index\n" );
+	fprintf( stderr, "  -W, --write_index              : Output ring buffer write index\n" );
 	fprintf( stderr, "  -e, --event                    : Output last event index\n" );
 	fprintf( stderr, "  -f, --fps                      : Output last Frames Per Second captured reading\n" );
 	fprintf( stderr, "  -z, --zones                    : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n" );
 	fprintf( stderr, "  -a, --alarm                    : Force alarm in monitor, this will trigger recording until cancelled with -c\n" );
 	fprintf( stderr, "  -n, --noalarm                  : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n" );
 	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n" );
+	fprintf( stderr, "  -u, --suspend                  : Suspend detection, useful to prevent bogus alarms when panning etc\n" );
+	fprintf( stderr, "  -r, --resume                   : Resume detection after a suspend\n" );
 	fprintf( stderr, "  -U, --username <username>      : When running in authenticated mode the username and\n" );
 	fprintf( stderr, "  -P, --password <password>      : and password combination of the given user\n" );
 	fprintf( stderr, "  -A, --auth <authentication>    : Pass authentication hash string instead of user details\n" );
@@ -64,23 +66,25 @@ void Usage( int status=-1 )
 }
 
 typedef enum {
-	BOGUS=0x0000,
-	STATE=0x0001,
-	IMAGE=0x0002,
-	TIME=0x0004,
-	READ_IDX=0x0008,
-	WRITE_IDX=0x0010,
-	EVENT=0x0020,
-	FPS=0x0040,
-	ZONES=0x0080,
-	ALARM=0x0100,
-	NOALARM=0x0200,
-	CANCEL=0x0400,
-	QUERY=0x0800,
-	BRIGHTNESS=0x1000,
-	CONTRAST=0x2000,
-	HUE=0x4000,
-	COLOUR=0x8000
+	BOGUS      = 0x00000000,
+	STATE      = 0x00000001,
+	IMAGE      = 0x00000002,
+	TIME       = 0x00000004,
+	READ_IDX   = 0x00000008,
+	WRITE_IDX  = 0x00000010,
+	EVENT      = 0x00000020,
+	FPS        = 0x00000040,
+	ZONES      = 0x00000080,
+	ALARM      = 0x00000100,
+	NOALARM    = 0x00000200,
+	CANCEL     = 0x00000400,
+	QUERY      = 0x00000800,
+	BRIGHTNESS = 0x00001000,
+	CONTRAST   = 0x00002000,
+	HUE        = 0x00004000,
+	COLOUR     = 0x00008000,
+	SUSPEND    = 0x00010000,
+	RESUME     = 0x00020000,
 } Function;
 
 bool ValidateAccess( User *user, int mon_id, Function function )
@@ -101,7 +105,7 @@ bool ValidateAccess( User *user, int mon_id, Function function )
 		if ( user->getMonitors() < User::PERM_VIEW )
 			allowed = false;
 	}
-	if ( function & (ALARM|NOALARM|CANCEL|BRIGHTNESS|CONTRAST|HUE|COLOUR) )
+	if ( function & (ALARM|NOALARM|CANCEL|SUSPEND|RESUME|BRIGHTNESS|CONTRAST|HUE|COLOUR) )
 	{
 		if ( user->getMonitors() < User::PERM_EDIT )
 			allowed = false;
@@ -136,14 +140,16 @@ int main( int argc, char *argv[] )
 		{"contrast", 2, 0, 'C'},
 		{"hue", 2, 0, 'H'},
 		{"contrast", 2, 0, 'O'},
-		{"read_index", 0, 0, 'r'},
-		{"write_index", 0, 0, 'w'},
+		{"read_index", 0, 0, 'R'},
+		{"write_index", 0, 0, 'W'},
 		{"event", 0, 0, 'e'},
 		{"fps", 0, 0, 'f'},
 		{"zones", 0, 0, 'z'},
 		{"alarm", 0, 0, 'a'},
 		{"noalarm", 0, 0, 'n'},
 		{"cancel", 0, 0, 'c'},
+		{"suspend", 0, 0, 'u'},
+		{"resume", 0, 0, 'r'},
 		{"query", 0, 0, 'q'},
 		{"username", 1, 0, 'U'},
 		{"password", 1, 0, 'P'},
@@ -169,7 +175,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsrwei::S:t::fzancqphB::C::H::O::U:P:A:", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsurwei::S:t::fzancqphB::C::H::O::U:P:A:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -206,10 +212,10 @@ int main( int argc, char *argv[] )
 					image_idx = atoi( optarg );
 				}
 				break;
-			case 'r':
+			case 'R':
 				function = Function(function | READ_IDX);
 				break;
-			case 'w':
+			case 'W':
 				function = Function(function | WRITE_IDX);
 				break;
 			case 'e':
@@ -229,6 +235,12 @@ int main( int argc, char *argv[] )
 				break;
 			case 'c':
 				function = Function(function | CANCEL);
+				break;
+			case 'u':
+				function = Function(function | SUSPEND);
+				break;
+			case 'r':
+				function = Function(function | RESUME);
 				break;
 			case 'q':
 				function = Function(function | QUERY);
@@ -467,6 +479,18 @@ int main( int argc, char *argv[] )
 				if ( verbose )
 					printf( "Cancelling forced alarm on/off\n" );
 				monitor->CancelForced();
+			}
+			if ( function & SUSPEND )
+			{
+				if ( verbose )
+					printf( "Suspending motion detection\n" );
+				monitor->Suspend();
+			}
+			if ( function & RESUME )
+			{
+				if ( verbose )
+					printf( "Resuming motion detection\n" );
+				monitor->Resume();
 			}
 			if ( function & QUERY )
 			{

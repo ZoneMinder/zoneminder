@@ -79,11 +79,6 @@ BEGIN
 	}
 	$sth->finish();
 	$dbh->disconnect();
-	if ( !ZM_DB_USER )
-	{
-		*ZM_DB_USER = sub { ZM_DB_USERA };
-		*ZM_DB_PASS = sub { ZM_DB_PASSA };
-	}
 }
 
 use constant UPDATE_LOG_FILE => ZM_PATH_LOGS.'/zmupdate.log';

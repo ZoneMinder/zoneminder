@@ -144,8 +144,8 @@ if ( $command =~ /^(?:start|restart)$/ )
 				{
 					execute( ZM_PATH_BIN."/zmdc.pl start zma -m $monitor->{Id}" );
 				}
+				execute( ZM_PATH_BIN."/zmdc.pl start zmfilter.pl -m $monitor->{Id} -e -1" );
 			}
-			execute( ZM_PATH_BIN."/zmdc.pl start zmfilter.pl -m $monitor->{Id} -e -1" );
 		}
 		$sth->finish();
 

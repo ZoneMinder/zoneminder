@@ -551,7 +551,7 @@ my @options =
 	{
 		name => "ZM_WEB_SOUND_ON_ALARM",
 		default => "no",
-		description => "Should the monitor window play an alarm sound if an alarm occurs",
+		description => "Should the monitor window play a sound if an alarm occurs",
 		help => "When viewing a live monitor stream you can specify whether you want the window to play a sound to alert you if an alarm occurs.",
 		type => $types{boolean},
 		category => 'web',
@@ -941,7 +941,7 @@ my @options =
 	{
 		name => "ZM_WEB_COMPACT_MONTAGE",
 		default => "no",
-		description => "Whether to compact the montage view by removing status and FPS information",
+		description => "Whether to compact the montage view by removing extra detail",
 		help => "The montage view shows the output of all of your active monitors in one window. This include a small menu and status information for each one. This can increase the web traffic and make the window larger than may be desired. Setting this option on removes all this extraneous information and just displays the images.",
 		type => $types{boolean},
 		category => 'web',
@@ -973,7 +973,7 @@ my @options =
 	{
 		name => "ZM_WEB_LIST_THUMBS",
 		default => "no",
-		description => "Whether to display mini-thumbnails of event images in the event list",
+		description => "Whether to display mini-thumbnails of event images in event lists",
 		help => "Ordinarily the event lists just display text details of the events to save space and time. By switching this option on you can also display small thumbnails to help you identify events of interest. The size of these thumbnails is controlled by the following two options.",
 		type => $types{boolean},
 		category => 'web',

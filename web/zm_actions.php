@@ -202,15 +202,18 @@ if ( isset($action) )
 
 			// Define a field type for anything that's not simple text equivalent
 			$types = array(
-				'Triggers' => 'set' 
+				'Triggers' => 'set',
+				'Controllable' => 'toggle',
 			);
 
-			$changes = getFormChanges( $monitor, $new_monitor, $types );
+			$columns = getTableColumns( 'Monitors' );
+			$changes = getFormChanges( $monitor, $new_monitor, $types, $columns );
 
 			if ( count( $changes ) )
 			{
 				if ( $mid > 0 )
 				{
+					echo( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
 					simpleQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
 					if ( $changes['Name'] )
 					{
@@ -1076,7 +1079,15 @@ if ( isset($action) )
 				// Empty
 			);
 
-			$changes = getFormChanges( $control, $new_control, $types );
+			$columns = getTableColumns( 'Controls' );
+			foreach ( $columns as $name=>$type )
+			{
+				if ( preg_match( '/^(Can|Has)/', $name ) )
+				{
+					$types[$name] = 'toggle';
+				}
+			}
+			$changes = getFormChanges( $control, $new_control, $types, $columns );
 
 			if ( count( $changes ) )
 			{

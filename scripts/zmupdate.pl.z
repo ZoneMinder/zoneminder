@@ -146,10 +146,10 @@ if ( $check )
 
 print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
-
 if ( $check && ZM_CHECK_FOR_UPDATES )
 {
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+
 	my $curr_version = ZM_DYN_CURR_VERSION;
 	my $last_version = ZM_DYN_LAST_VERSION;
 	my $last_check = ZM_DYN_LAST_CHECK;
@@ -163,12 +163,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 		my $res = $sth->execute( $curr_version ) or die( "Can't execute: ".$sth->errstr() );
 	}
 
-	my $lv_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
-	my $lv_sth = $dbh->prepare_cached( $lv_sql ) or die( "Can't prepare '$lv_sql': ".$dbh->errstr() );
-
-	my $lc_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
-	my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
-
+	$dbh->disconnect();
 	while( 1 )
 	{
 		my $now = time();
@@ -191,13 +186,23 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 
 				print( "Got version: '".$last_version."'\n" );
 
+				my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+
+				my $lv_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
+				my $lv_sth = $dbh->prepare_cached( $lv_sql ) or die( "Can't prepare '$lv_sql': ".$dbh->errstr() );
 				my $lv_res = $lv_sth->execute( $last_version ) or die( "Can't execute: ".$lv_sth->errstr() );
+
+				my $lc_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
+				my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
 				my $lc_res = $lc_sth->execute( $last_check ) or die( "Can't execute: ".$lc_sth->errstr() );
+
+				$dbh->disconnect();
 			}
 			else
 			{
 				print( "Error check failed: '".$res->status_line()."'\n" );
 			}
+
 		}
 		sleep( 3600 );
 	}
@@ -269,6 +274,7 @@ if ( $version )
 {
 	sub patchDB
 	{
+		my $dbh = shift;
 		my $version = shift;
 
 		my $command = "mysql -h".ZM_DB_SERVER;
@@ -305,31 +311,34 @@ if ( $version )
 
 	if ( ZM_DYN_DB_VERSION && ZM_DYN_DB_VERSION ne $version )
 	{
+		# Nothing yet
 	}
+
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
 
 	my $cascade = undef;
 	if ( $cascade || $version eq "1.19.0" )
 	{
 		# Patch the database
-		patchDB( "1.19.0" );
+		patchDB( $dbh, "1.19.0" );
 		$cascade = !undef;
 	}
 	if ( $cascade || $version eq "1.19.1" )
 	{
 		# Patch the database
-		patchDB( "1.19.1");
+		patchDB( $dbh, "1.19.1");
 		$cascade = !undef;
 	}
 	if ( $cascade || $version eq "1.19.2" )
 	{
 		# Patch the database
-		patchDB( "1.19.2" );
+		patchDB( $dbh, "1.19.2" );
 		$cascade = !undef;
 	}
 	if ( $cascade || $version eq "1.19.3" )
 	{
 		# Patch the database
-		patchDB( "1.19.3" );
+		patchDB( $dbh, "1.19.3" );
 		$cascade = !undef;
 	}
 	if ( $cascade || $version eq "1.19.4" )
@@ -338,8 +347,6 @@ if ( $version )
 
 		# Rename the event directories and create a new symlink for the names
 		chdir( EVENT_PATH );
-
-		my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
 
 		my $sql = "select * from Monitors order by Id";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -355,20 +362,23 @@ if ( $version )
 		$sth->finish();
 		
 		# Patch the database
-		patchDB( "1.19.4" );
+		patchDB( $dbh, "1.19.4" );
 
 		$cascade = !undef;
 	}
 	if ( $cascade || $version eq "1.19.5" )
 	{
 		# Patch the database
-		patchDB( "1.19.5" );
+		print( "This version now only uses one database user.\nPlease ensure you have run zmconfig.pl and re-entered your database username and password prior to upgrading, or the upgrade will fail.\nPress enter to continue or ctrl-C to stop :" );
+		my $dummy = <STDIN>;
+		patchDB( $dbh, "1.19.5" );
 		$cascade = !undef;
 	}
 	if ( !$cascade )
 	{
 		die( "Can't find upgrade from version '$version'" );
 	}
+	$dbh->disconnect();
 }
 print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 exit();

@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
+/* Define to 1 if you have the declaration of `MD5', and to 0 if you don't. */
+#undef HAVE_DECL_MD5
+
 /* Define to 1 if you have the declaration of `round', and to 0 if you don't.
    */
 #undef HAVE_DECL_ROUND
@@ -16,6 +19,9 @@
 
 /* Define to 1 if you have the `avformat' library (-lavformat). */
 #undef HAVE_LIBAVFORMAT
+
+/* Define to 1 if you have the `crypto' library (-lcrypto). */
+#undef HAVE_LIBCRYPTO
 
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL

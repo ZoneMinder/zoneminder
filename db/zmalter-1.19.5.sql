@@ -10,6 +10,10 @@ CREATE TABLE Groups (
   PRIMARY KEY  (Id)
 ) TYPE=MyISAM;
 --
+-- Make changes to Users table
+--
+alter table Users modify MonitorIds tinytext not null default '';
+--
 -- Make changes to Monitors table
 --
 alter table Monitors modify column Function enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor';

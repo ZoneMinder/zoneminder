@@ -4540,6 +4540,70 @@ _ACEOF
 fi
 
 
+echo "$as_me:$LINENO: checking whether MD5 is declared" >&5
+echo $ECHO_N "checking whether MD5 is declared... $ECHO_C" >&6
+if test "${ac_cv_have_decl_MD5+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <openssl/md5.h>
+
+int
+main ()
+{
+#ifndef MD5
+  char *p = (char *) MD5;
+#endif
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_have_decl_MD5=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_have_decl_MD5=no
+fi
+rm -f conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_have_decl_MD5" >&5
+echo "${ECHO_T}$ac_cv_have_decl_MD5" >&6
+if test $ac_cv_have_decl_MD5 = yes; then
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_MD5 1
+_ACEOF
+
+
+else
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_MD5 0
+_ACEOF
+
+
+fi
+
+
 
 echo "$as_me:$LINENO: checking for jpeg_start_compress in -ljpeg" >&5
 echo $ECHO_N "checking for jpeg_start_compress in -ljpeg... $ECHO_C" >&6
@@ -4810,6 +4874,73 @@ else
   { { echo "$as_me:$LINENO: error: zm requires libmysqlclient.a" >&5
 echo "$as_me: error: zm requires libmysqlclient.a" >&2;}
    { (exit 1); exit 1; }; }
+fi
+
+
+echo "$as_me:$LINENO: checking for MD5 in -lcrypto" >&5
+echo $ECHO_N "checking for MD5 in -lcrypto... $ECHO_C" >&6
+if test "${ac_cv_lib_crypto_MD5+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcrypto  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char MD5 ();
+int
+main ()
+{
+MD5 ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_crypto_MD5=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_crypto_MD5=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_crypto_MD5" >&5
+echo "${ECHO_T}$ac_cv_lib_crypto_MD5" >&6
+if test $ac_cv_lib_crypto_MD5 = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBCRYPTO 1
+_ACEOF
+
+  LIBS="-lcrypto $LIBS"
+
+else
+  { echo "$as_me:$LINENO: WARNING: libcrypto.a is required for authenticated streaming" >&5
+echo "$as_me: WARNING: libcrypto.a is required for authenticated streaming" >&2;}
 fi
 
 

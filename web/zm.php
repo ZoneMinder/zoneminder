@@ -18,7 +18,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-import_request_variables( "EGPCS" );
+import_request_variables( "GPC" );
 error_reporting (E_ALL ^ E_NOTICE);
 
 $debug = false;
@@ -137,6 +137,8 @@ else
 		ini_set( "url_rewriter.tags", "a=href,area=href,frame=src,input=src,go=href,card=ontimer" );
 	}
 }
+
+session_start();
 
 if ( !$HTTP_SESSION_VARS['format'] )
 {

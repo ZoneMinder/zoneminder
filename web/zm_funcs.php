@@ -32,6 +32,7 @@ function userLogin( $username, $password )
 	if ( $db_user = mysql_fetch_assoc( $result ) )
 	{
 		$HTTP_SESSION_VARS['user'] = $user = $db_user;
+		$HTTP_SESSION_VARS['password_hash'] = $user['Password'];
 	}
 	else
 	{
@@ -48,6 +49,43 @@ function userLogout()
 	unset( $user );
 
 	session_destroy();
+}
+
+function authHash()
+{
+	global $HTTP_SESSION_VARS;
+
+	if ( ZM_OPT_USE_AUTH )
+	{
+		$time = localtime();
+		$auth_key = ZM_AUTH_SECRET.$HTTP_SESSION_VARS['username'].$HTTP_SESSION_VARS['password_hash'].$HTTP_SESSION_VARS['remote_addr'].$time[2].$time[3].$time[4].$time[5];
+		$auth = md5( $auth_key );
+	}
+	else
+	{
+		$auth = "0";
+	}
+	return( $auth );
+}
+
+function getStreamSrc( $args )
+{
+	global $HTTP_SESSION_VARS;
+
+	$stream_src = ZM_PATH_ZMS;
+
+	if ( ZM_OPT_USE_AUTH )
+	{
+		$args[] = "auth=".authHash();
+		$args[] = "user=".$HTTP_SESSION_VARS['username'];
+	}
+
+	if ( count($args) )
+	{
+		$stream_src .= "?".join( "&", $args );
+	}
+
+	return( $stream_src );
 }
 
 function visibleMonitor( $mid )

@@ -93,8 +93,7 @@ $width_scale = ($device_width*SCALE_SCALE)/$monitor['Width'];
 $height_scale = ($device_height*SCALE_SCALE)/$monitor['Height'];
 $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 
-$image_src = ZM_PATH_ZMS."?mode=single&monitor=".$monitor['Id']."&scale=".$scale;
-
+$image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
 ?>
 <html>
 <head>

@@ -289,7 +289,7 @@ if ( $mode == "stream" )
 <?php
 	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_REPLAY_FORMAT )
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=mpeg&event=$eid&scale=$scale&rate=$rate&bitrate=".ZM_WEB_VIDEO_BITRATE."&maxfps=".ZM_WEB_VIDEO_MAXFPS."&format=".ZM_VIDEO_REPLAY_FORMAT;
+		$stream_src = getStreamSrc( array( "mode=mpeg", "event=".$eid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_VIDEO_REPLAY_FORMAT ) );
 		if ( isWindows() )
 		{
 			if ( isInternetExplorer() )
@@ -336,7 +336,7 @@ autostart="true">
 	}
 	else
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=jpeg&event=$eid&scale=$scale&rate=$rate&maxfps=".ZM_WEB_VIDEO_MAXFPS;
+		$stream_src = getStreamSrc( array( "mode=jpeg", "event=".$eid, "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
 		if ( canStreamNative() )
 		{
 ?>

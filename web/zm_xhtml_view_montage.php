@@ -55,8 +55,7 @@ foreach( $monitors as $monitor )
 	$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 	$scale /= 2; // Try and get two pics per line
 
-	$image_src = ZM_PATH_ZMS."?mode=single&monitor=".$monitor['Id']."&scale=".$scale;
-
+	$image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
 ?>
 <a href="<?= $PHP_SELF ?>?view=watch&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $image_src ?>" style="border: 0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>" alt="<?= $monitor['Name'] ?>"></a>
 <?php

@@ -214,6 +214,15 @@ my @options =
 		category => 'system',
 	},
 	{
+		name => "ZM_AUTH_SECRET",
+		default => "",
+		description => "Secret used when encoding authentication information",
+		help => "When ZoneMinder is running in authentcated mode it is sometimes necessary to generate hashed strings containing sensitive information such as usernames and password. Although these string are reasonably secure the addition of a random secret increases security substantially.",
+		requires => [ { name=>"ZM_OPT_USE_AUTH", value=>"yes" } ],
+		type => $types{string},
+		category => 'system',
+	},
+	{
 		name => "ZM_DIR_EVENTS",
 		default => "events",
 		description => "Directory where events are stored",

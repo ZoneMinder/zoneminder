@@ -123,7 +123,7 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&group=$g
 <?php
 if ( $mode == "stream" )
 {
-	$stream_src = ZM_PATH_ZMS."?mode=jpeg&monitor=".$monitor['Id']."&scale=".$scale."&maxfps=".ZM_WEB_VIDEO_MAXFPS."&ttl=".ZM_WEB_REFRESH_CYCLE;
+	$stream_src = getStreamSrc( array( "mode=jpeg", "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "ttl=".ZM_WEB_REFRESH_CYCLE ) );
 	if ( canStreamNative() )
 	{
 ?>
@@ -139,7 +139,7 @@ if ( $mode == "stream" )
 }
 else
 {
-	$image_src = ZM_PATH_ZMS."?mode=single&monitor=".$monitor['Id']."&scale=".$scale;
+	$image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
 ?>
 <tr><td colspan="3" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', <?= $monitor['Width']+$jws['watch']['w'] ?>, <?= $monitor['Height']+$jws['watch']['h'] ?> );"><img src="<?= $image_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></a></td></tr>
 <?php

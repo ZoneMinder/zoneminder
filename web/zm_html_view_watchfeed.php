@@ -52,7 +52,7 @@ header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");			  // HTTP/1.0
 
-$image_src = ZM_PATH_ZMS."?mode=single&monitor=".$monitor['Id']."&scale=".$scale;
+$image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
@@ -97,7 +97,7 @@ if ( $mode == "stream" )
 {
 	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_LIVE_FORMAT )
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=mpeg&monitor=".$monitor['Id']."&scale=$scale&bitrate=".ZM_WEB_VIDEO_BITRATE."&maxfps=".ZM_WEB_VIDEO_MAXFPS."&format=".ZM_VIDEO_LIVE_FORMAT;
+		$stream_src = getStreamSrc( array( "mode=mpeg", "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_VIDEO_LIVE_FORMAT ) );
 		if ( isWindows() )
 		{
 			if ( isInternetExplorer() )
@@ -144,7 +144,7 @@ autostart="true">
 	}
 	else
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=jpeg&monitor=".$monitor['Id']."&scale=$scale&maxfps=".ZM_WEB_VIDEO_MAXFPS;
+		$stream_src = getStreamSrc( array( "mode=jpeg", "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
 		if ( canStreamNative() )
 		{
 ?>

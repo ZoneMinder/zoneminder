@@ -38,7 +38,7 @@ if ( ZM_OPT_CONTROL )
 }
 else
 {
-	$sql = "select * from Monitors where M.Id = '$mid'";
+	$sql = "select * from Monitors where Id = '$mid'";
 }
 $result = mysql_query( $sql );
 if ( !$result )

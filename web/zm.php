@@ -329,7 +329,7 @@ if ( $action )
 				if ( !$result )
 					die( mysql_error() );
 				$mid = mysql_insert_id();
-				$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active' Units = 'Percent' LoX = 0 LoY = 0 HiX = 100 HiY = 100 AlarmRGB = 0xff0000 AlarmThreshold = 25 MinAlarmPixels = 3 MaxAlarmPixels = 75 FilterX = 3 FilterY = 3 MinFilterPixels = 3 MaxFilterPixels = 75 MinBlobPixels = 2 MaxBlobPixels = 0 MinBlobs = 1 MaxBlobs = 0";
+				$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', LoX = 0, LoY = 0, HiX = 100, HiY = 100, AlarmRGB = 0xff0000, AlarmThreshold = 25, MinAlarmPixels = 3, MaxAlarmPixels = 75, FilterX = 3, FilterY = 3, MinFilterPixels = 3, MaxFilterPixels = 75, MinBlobPixels = 2, MaxBlobPixels = 0, MinBlobs = 1, MaxBlobs = 0";
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );

@@ -64,20 +64,8 @@ switch( $view )
 		header("Cache-Control: post-check=0, pre-check=0", false);
 		header("Pragma: no-cache");			// HTTP/1.0
 
-		$sql = "select distinct Device from Monitors order by Device";
-		$result = mysql_query( $sql );
-		if ( !$result )
-			echo mysql_error();
-		$devices = array();
-
-		while( $row = mysql_fetch_assoc( $result ) )
-		{
-			$row['zmc'] = zmcCheck( $row );
-			$devices[$row[Device]] = $row;
-		}
-
 		$db_now = strftime( "%Y-%m-%d %H:%M:%S" );
-		$sql = "select M.*, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by E.MonitorId order by Id";
+		$sql = "select M.*, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
 		$result = mysql_query( $sql );
 		if ( !$result )
 			echo mysql_error();
@@ -87,6 +75,7 @@ switch( $view )
 		$cycle_count = 0;
 		while( $row = mysql_fetch_assoc( $result ) )
 		{
+			$row['zmc'] = zmcCheck( $row );
 			$row['zma'] = zmaCheck( $row );
 			$sql = "select count(Id) as ZoneCount, count(if(Type='Active',1,NULL)) as ActZoneCount, count(if(Type='Inclusive',1,NULL)) as IncZoneCount, count(if(Type='Exclusive',1,NULL)) as ExcZoneCount, count(if(Type='Inactive',1,NULL)) as InactZoneCount from Zones where MonitorId = '$row[Id]'";
 			$result2 = mysql_query( $sql );
@@ -183,7 +172,7 @@ function confirmStatus( new_status )
 <tr><td align="left" class="smallhead">Id</td>
 <td align="left" class="smallhead">Name</td>
 <td align="left" class="smallhead">Function</td>
-<td align="left" class="smallhead">Device/Channel</td>
+<td align="left" class="smallhead">Source</td>
 <!--<td align="left" class="smallhead">Dimensions</td>-->
 <td align="right" class="smallhead">Events</td>
 <td align="right" class="smallhead">Hour</td>
@@ -204,7 +193,6 @@ function confirmStatus( new_status )
 		$zone_count = 0;
 		foreach( $monitors as $monitor )
 		{
-			$device = $devices[$monitor[Device]];
 			$event_count += $monitor[EventCount];
 			$hour_event_count += $monitor[HourEventCount];
 			$day_event_count += $monitor[DayEventCount];
@@ -216,41 +204,45 @@ function confirmStatus( new_status )
 <tr>
 <td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&mid=<?= $monitor[Id] ?>', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?> );"><?= $monitor[Id] ?>.</a></td>
 <?php
-		if ( !$device[zmc] )
-		{
-			$dclass = "redtext";
-		}
-		else
-		{
-			if ( !$monitor[zma] )
+			if ( !$monitor[zmc] )
 			{
-				$dclass = "oratext";
+				$dclass = "redtext";
 			}
 			else
 			{
-				$dclass = "gretext";
+				if ( !$monitor[zma] )
+				{
+					$dclass = "oratext";
+				}
+				else
+				{
+					$dclass = "gretext";
+				}
 			}
-		}
-		if ( $monitor['Function'] == 'Active' )
-		{
-			$fclass = "gretext";
-		}
-		elseif ( $monitor['Function'] == 'Passive' )
-		{
-			$fclass = "oratext";
-		}
-		elseif ( $monitor['Function'] == 'X10' )
-		{
-			$fclass = "blutext";
-		}
-		else
-		{
-			$fclass = "redtext";
-		}
+			if ( $monitor['Function'] == 'Active' )
+			{
+				$fclass = "gretext";
+			}
+			elseif ( $monitor['Function'] == 'Passive' )
+			{
+				$fclass = "oratext";
+			}
+			elseif ( $monitor['Function'] == 'X10' )
+			{
+				$fclass = "blutext";
+			}
+			else
+			{
+				$fclass = "redtext";
+			}
 ?>
 <td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor[Id] ?>', 'zmWatch<?= $monitor[Name] ?>', <?= $monitor[Width]+$jws['watch']['w'] ?>, <?= $monitor[Height]+$jws['watch']['h'] ?> );"><?= $monitor[Name] ?></a></td>
 <td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=function&mid=<?= $monitor[Id] ?>', 'zmFunction', <?= $jws['function']['w'] ?>, <?= $jws['function']['h'] ?> );"><span class="<?= $fclass ?>"><?= $monitor['Function'] ?></span></a></td>
+<?php if ( $monitor[Type] == "Local" ) { ?>
 <td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&mid=<?= $monitor[Id] ?>', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?> );"><span class="<?= $dclass ?>">/dev/video<?= $monitor[Device] ?> (<?= $monitor[Channel] ?>)</span></a></td>
+<?php } else { ?>
+<td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&mid=<?= $monitor[Id] ?>', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?> );"><span class="<?= $dclass ?>"><?= $monitor[Host] ?></span></a></td>
+<?php } ?>
 <!--<td align="left" class="text"><?= $monitor[Width] ?>x<?= $monitor[Height] ?>x<?= $monitor[Colours]*8 ?></td>-->
 <td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[EventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[HourEventCount] ?></a></td>
@@ -1952,6 +1944,9 @@ function configureButton(form,name)
 		{
 			$monitor = array();
 			$monitor[Name] = "New";
+			$monitor['Function'] = "None";
+			$monitor[Type] = "Local";
+			$monitor[Port] = "80";
 			$monitor[LabelFormat] = '%%s - %y/%m/%d %H:%M:%S';
 			$monitor[LabelX] = 0;
 			$monitor[LabelY] = 0;
@@ -1995,7 +1990,7 @@ function closeWindow()
 </tr>
 <form name="monitorForm" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm(this)">
 <input type="hidden" name="view" value="<?= $view ?>">
-<input type="hidden" name="action" value="monitor">
+<input type="hidden" name="action" value="">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <tr>
 <td align="left" class="smallhead">Parameter</td><td align="left" class="smallhead">Value</td>
@@ -2013,13 +2008,34 @@ function closeWindow()
 		}
 ?>
 </select></td></tr>
+<?php
+$select_name = "new_type";
+$$select_name = $$select_name?$$select_name:$monitor[Type];
+$source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
+?>
+<tr><td align="left" class="text">Source Type</td><td><?php buildSelect( $select_name, $source_types, "monitorForm.submit();" ); ?></td></tr>
+<?php
+		if ( $$select_name == "Local" )
+		{
+?>
 <tr><td align="left" class="text">Device Number (/dev/video?)</td><td align="left" class="text"><input type="text" name="new_device" value="<?= $monitor[Device] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Device Channel</td><td align="left" class="text"><input type="text" name="new_channel" value="<?= $monitor[Channel] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Device Format (0=PAL,1=NTSC etc)</td><td align="left" class="text"><input type="text" name="new_format" value="<?= $monitor[Format] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Device Width (pixels)</td><td align="left" class="text"><input type="text" name="new_width" value="<?= $monitor[Width] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Device Height (pixels)</td><td align="left" class="text"><input type="text" name="new_height" value="<?= $monitor[Height] ?>" size="4" class="form"></td></tr>
+<?php
+		}
+		else
+		{
+?>
+<tr><td align="left" class="text">Remote Host Name</td><td align="left" class="text"><input type="text" name="new_host" value="<?= $monitor[Host] ?>" size="16" class="form"></td></tr>
+<tr><td align="left" class="text">Remote Host Port</td><td align="left" class="text"><input type="text" name="new_port" value="<?= $monitor[Port] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text">Remote Host Path</td><td align="left" class="text"><input type="text" name="new_path" value="<?= $monitor[Path] ?>" size="36" class="form"></td></tr>
+<?php
+		}
+?>
+<tr><td align="left" class="text">Capture Width (pixels)</td><td align="left" class="text"><input type="text" name="new_width" value="<?= $monitor[Width] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Capture Height (pixels)</td><td align="left" class="text"><input type="text" name="new_height" value="<?= $monitor[Height] ?>" size="4" class="form"></td></tr>
 <?php $depths = array( 8, 24 ); ?>
-<tr><td align="left" class="text">Device Colour Depth (bits)</td><td align="left" class="text"><select name="new_colours" class="form"><?php foreach ( $depths as $depth ) { ?><option<?php if ( $depth == $monitor[Colours] ) { ?> selected<?php } ?>><?= $depth ?></option><?php } ?></select></td></tr>
+<tr><td align="left" class="text">Capture Colour Depth (bits)</td><td align="left" class="text"><select name="new_colours" class="form"><?php foreach ( $depths as $depth ) { ?><option<?php if ( $depth == $monitor[Colours] ) { ?> selected<?php } ?>><?= $depth ?></option><?php } ?></select></td></tr>
 <tr><td align="left" class="text">Timestamp Label Format</td><td align="left" class="text"><input type="text" name="new_label_format" value="<?= $monitor[LabelFormat] ?>" size="20" class="form"></td></tr>
 <tr><td align="left" class="text">Timestamp Label X</td><td align="left" class="text"><input type="text" name="new_label_x" value="<?= $monitor[LabelX] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text">Timestamp Label Y</td><td align="left" class="text"><input type="text" name="new_label_y" value="<?= $monitor[LabelY] ?>" size="4" class="form"></td></tr>
@@ -2036,7 +2052,7 @@ function closeWindow()
 <?php } ?>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
-<td align="left"><input type="submit" value="Save" class="form"></td>
+<td align="left"><input type="submit" value="Save" class="form" onClick="monitorForm.view.value='none'; monitorForm.action.value='monitor';"></td>
 <td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
@@ -2359,76 +2375,6 @@ function closeWindow()
 		//header("Content-Disposition: inline; filename=$video_name");
 		header("Location: $video_file" );
 
-		break;
-	}
-	case "device" :
-	{
-		$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
-		if ( $ps_array[3] )
-		{
-			$zmc = 1;
-		}
-		$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
-		if ( $ps_array[3] )
-		{
-			$zma = 1;
-		}
-?>
-<html>
-<head>
-<title>ZM - Device - /dev/video<?= $did ?></title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
-<script language="JavaScript">
-<?php
-		if ( $zmc_status != $zmc_action || $zma_status != $zma_action )
-		{
-?>
-opener.location.reload();
-<?php
-		}
-?>
-window.focus();
-function refreshWindow()
-{
-	window.location.reload();
-}
-function closeWindow()
-{
-	window.close();
-}
-</script>
-</head>
-<body>
-<table border="0" cellspacing="0" cellpadding="2" width="100%">
-<tr>
-<td colspan="2" align="left" class="head">Device Daemon Status</td>
-</tr>
-<form method="get" action="<?= $PHP_SELF ?>">
-<input type="hidden" name="view" value="<?= $view ?>">
-<input type="hidden" name="action" value="device">
-<input type="hidden" name="zmc_status" value="<?= $zmc ?>">
-<input type="hidden" name="zma_status" value="<?= $zma ?>">
-<input type="hidden" name="did" value="<?= $did ?>">
-<tr>
-<td align="left" class="smallhead">Daemon</td><td align="left" class="smallhead">Active</td>
-</tr>
-<tr>
-<td align="left" class="text">Capture</td><td align="left" class="text"><input type="checkbox" name="zmc_action" value="1"<?php if ( $zmc ) { echo " checked"; } ?> class="form"></td>
-</tr>
-<tr>
-<td align="left" class="text">Analysis</td><td align="left" class="text"><input type="checkbox" name="zma_action" value="1"<?php if ( $zma ) { echo " checked"; } ?> class="form"></td>
-</tr>
-<tr>
-<td colspan="2" align="left" class="text">&nbsp;</td>
-</tr>
-<tr>
-<td align="left"><input type="submit" value="Save" class="form"></td>
-<td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
-</tr>
-</table>
-</body>
-</html>
-<?php
 		break;
 	}
 	case "function" :

@@ -231,9 +231,19 @@ if ( $action )
 		$changes = array();
 		if ( $new_name != $monitor[Name] ) $changes[] = "Name = '$new_name'";
 		if ( $new_function != $monitor['Function'] ) $changes[] = "Function = '$new_function'";
-		if ( $new_device != $monitor['Device'] ) $changes[] = "Device = '$new_device'";
-		if ( $new_channel != $monitor['Channel'] ) $changes[] = "Channel = '$new_channel'";
-		if ( $new_format != $monitor['Format'] ) $changes[] = "Format = '$new_format'";
+		if ( $new_type != $monitor['Type'] ) $changes[] = "Type = '$new_type'";
+		if ( $new_type == "Local" )
+		{
+			if ( $new_device != $monitor['Device'] ) $changes[] = "Device = '$new_device'";
+			if ( $new_channel != $monitor['Channel'] ) $changes[] = "Channel = '$new_channel'";
+			if ( $new_format != $monitor['Format'] ) $changes[] = "Format = '$new_format'";
+		}
+		else
+		{
+			if ( $new_host != $monitor['Device'] ) $changes[] = "Host = '$new_host'";
+			if ( $new_port != $monitor['Channel'] ) $changes[] = "port = '$new_port'";
+			if ( $new_path != $monitor['Format'] ) $changes[] = "Path = '$new_path'";
+		}
 		if ( $new_width != $monitor['Width'] ) $changes[] = "Width = '$new_width'";
 		if ( $new_height != $monitor['Height'] ) $changes[] = "Height = '$new_height'";
 		if ( $new_colours != $monitor['Colours'] ) $changes[] = "Colours = '$new_colours'";

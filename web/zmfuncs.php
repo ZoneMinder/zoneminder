@@ -106,13 +106,19 @@ function daemonControl( $command, $daemon=false, $args=false )
 	exec( $string );
 }
 
-function zmcControl( $device, $restart=false )
+function zmcControl( $monitor, $restart=false )
 {
-	if ( is_array( $device ) )
+	print_r( $monitor );
+	if ( $monitor[Type] == "Local" )
 	{
-		$device = $device[Device];
+		$sql = "select count(if(Function='Passive',1,NULL)) as PassiveCount, count(if(Function='Active',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Device = '$monitor[Device]'";
+		$zmc_args = "-d $monitor[Device]";
 	}
-	$sql = "select count(if(Function='Passive',1,NULL)) as PassiveCount, count(if(Function='Active',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Device = '$device'";
+	else
+	{
+		$sql = "select count(if(Function='Passive',1,NULL)) as PassiveCount, count(if(Function='Active',1,NULL)) as ActiveCount, count(if(Function='X10',1,NULL)) as X10Count from Monitors where Host = '$monitor[Host]' and Port = '$monitor[Port]' and Path = '$monitor[Path]'";
+		$zmc_args = "-H $monitor[Host] -P $monitor[Port] -p '$monitor[Path]'";
+	}
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();
@@ -123,15 +129,15 @@ function zmcControl( $device, $restart=false )
 
 	if ( !$passive_count && !$active_count && !$x10_count )
 	{
-		daemonControl( "stop", "zmc", "-d $device" );
+		daemonControl( "stop", "zmc", $zmc_args );
 	}
 	else
 	{
 		if ( $restart )
 		{
-			daemonControl( "stop", "zmc", "-d $device" );
+			daemonControl( "stop", "zmc", $zmc_args );
 		}
-		daemonControl( "start", "zmc", "-d $device" );
+		daemonControl( "start", "zmc", $zmc_args );
 	}
 }
 
@@ -172,13 +178,17 @@ function daemonCheck( $daemon=false, $args=false )
 	return( preg_match( '/running/', $result ) );
 }
 
-function zmcCheck( $device )
+function zmcCheck( $monitor )
 {
-	if ( is_array( $device ) )
+	if ( $monitor[Type] == 'Local' )
 	{
-		$device = $device[Device];
+		$zmc_args = "-d $monitor[Device]";
 	}
-	return( daemonCheck( "zmc", "-d $device" ) );
+	else
+	{
+		$zmc_args = "-H $monitor[Host] -P $monitor[Port] -p '$monitor[Path]'";
+	}
+	return( daemonCheck( "zmc", $zmc_args ) );
 }
 
 function zmaCheck( $monitor )

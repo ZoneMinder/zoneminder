@@ -132,7 +132,14 @@ if ( $command =~ /^(?:start|restart)$/ )
 		{
 			if ( $monitor->{Function} ne 'None' )
 			{
-				execute( ZM_PATH_BIN."/zmdc.pl start zmc -d $monitor->{Device}" );
+				if ( $monitor->{Type} eq 'Local' )
+				{
+					execute( ZM_PATH_BIN."/zmdc.pl start zmc -d $monitor->{Device}" );
+				}
+				else
+				{
+					execute( ZM_PATH_BIN."/zmdc.pl start zmc -H $monitor->{Host} -P $monitor->{Port} -p '$monitor->{Path}'" );
+				}
 				if ( $monitor->{Function} eq 'Active' )
 				{
 					execute( ZM_PATH_BIN."/zmdc.pl start zma -m $monitor->{Id}" );

@@ -106,7 +106,14 @@ while( 1 )
 				next;
 			}
 			# If we are here then something bad has happened
-			$command = ZM_PATH_BIN."/zmdc.pl restart zmc -d ".$monitor->{Device};
+			if ( $monitor->{Type} eq 'Local' )
+			{
+				$command = ZM_PATH_BIN."/zmdc.pl restart zmc -d $monitor->{Device}";
+			}
+			else
+			{
+				$command = ZM_PATH_BIN."/zmdc.pl restart zmc -H $monitor->{Host} -P $monitor->{Port} -p '$monitor->{Path}'";
+			}
 			print( "Restarting capture daemon ('$command')\n" );
 			print( qx( $command ) );
 		}

@@ -84,7 +84,8 @@ if ( $needs_daemon )
 foreach my $arg ( @ARGV )
 {
 	# Detaint arguments, if they look ok
-	if ( $arg =~ /^(-{0,2}[\w]+)/ )
+	#if ( $arg =~ /^(-{0,2}[\w]+)/ )
+	if ( $arg =~ /^(-{0,2}[\w\/?&=.-]+)$/ )
 	{
 		push( @args, $1 );
 	}
@@ -215,7 +216,8 @@ if ( !connect( CLIENT, $saddr ) )
 				foreach my $arg ( @args )
 				{
 					# Detaint arguments, if they look ok
-					if ( $arg =~ /^(-{0,2}[\w]+)/ )
+					#if ( $arg =~ /^(-{0,2}[\w]+)/ )
+					if ( $arg =~ /^(-{0,2}[\w\/?&=.-]+)$/ )
 					{
 						push( @good_args, $1 );
 					}

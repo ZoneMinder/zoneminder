@@ -20,6 +20,25 @@
 #include <getopt.h>
 #include "zm.h"
 
+void Usage()
+{
+	fprintf( stderr, "zmu [-m monitor_id] [function]\n" );
+	fprintf( stderr, "Options:\n" );
+	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 0 if absent\n" );
+	fprintf( stderr, "  -s, --state                    : Output the current monitor state, 0 = idle, 1 = alarm, 2 = alert\n" );
+	fprintf( stderr, "  -i, --image [image_index]      : Write captured image to disk as zmu.jpg, last image captured or \n" );
+	fprintf( stderr, "                                   or specified ring buffer index if given.\n" );
+	fprintf( stderr, "  -t, --timestamp [image_index]  : Output captured image timestamp, last image captured or specified\n" );
+	fprintf( stderr, "                                   ring buffer index if given\n" );
+	fprintf( stderr, "  -r, --read_index               : Output ring buffer read index\n" );
+	fprintf( stderr, "  -w, --write_index              : Output ring buffer write index\n" );
+	fprintf( stderr, "  -f, --fps                      : Output last Frames Per Second captured reading\n" );
+	fprintf( stderr, "  -z, --zones                    : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n" );
+	fprintf( stderr, "  -h, --help - This screen\n" );
+
+	exit( 0 );
+}
+
 int main( int argc, char *argv[] )
 {
 	static struct option long_options[] = {
@@ -31,20 +50,24 @@ int main( int argc, char *argv[] )
 		{"write_index", 0, 0, 'w'},
 		{"fps", 0, 0, 'f'},
 		{"zones", 0, 0, 'z'},
+		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
 	};
 
 	int id = 1;
-	enum { STATE, IMAGE, TIME, READ_IDX, WRITE_IDX, FPS, ZONES } function = STATE;
+	enum { BOGUS, STATE, IMAGE, TIME, READ_IDX, WRITE_IDX, FPS, ZONES } function = BOGUS;
 	int image_idx = -1;
 	while (1)
 	{
 		int this_option_optind = optind ? optind : 1;
 		int option_index = 0;
+		int opterr = 1;
 
-		int c = getopt_long (argc, argv, "m:srwi::t::fz", long_options, &option_index);
+		int c = getopt_long (argc, argv, "m:srwi::t::fzh", long_options, &option_index);
 		if (c == -1)
+		{
 			break;
+		}
 
 		switch (c)
 		{
@@ -80,8 +103,11 @@ int main( int argc, char *argv[] )
 			case 'z':
 				function = ZONES;
 				break;
+			case 'h':
+				Usage();
+				break;
 			case '?':
-				//fprintf( stderr, "What?\n" );
+				Usage();
 				break;
 			default:
 				//fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
@@ -89,16 +115,15 @@ int main( int argc, char *argv[] )
 		}
 	}
 
-#if 0
 	if (optind < argc)
 	{
-		printf ("non-option ARGV-elements: ");
+		fprintf( stderr, "Extraneous options, " );
 		while (optind < argc)
 			printf ("%s ", argv[optind++]);
 		printf ("\n");
+		Usage();
 	}
 
-#endif
 	//printf( "Monitor %d, Function %d, ImageIdx %d\n", id, function, image_idx );
 
 	dbg_name = "zmu";
@@ -153,6 +178,10 @@ int main( int argc, char *argv[] )
 		else if ( function == ZONES )
 		{
 			monitor->ReloadZones();
+		}
+		else
+		{
+			Usage();
 		}
 	}
 	return( 0 );

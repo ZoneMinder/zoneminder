@@ -654,9 +654,6 @@ void Image::Annotate( const char *text, const Coord &coord )
 	if ( hi_text_y > height )
 		hi_text_y = height;
 
-	Warning(( "TL:%d, TW:%d, TH:%d", text_len, text_width, text_height ));
-	Warning(( "LTX:%d, HTX:%d, MnTX:%d, MxTX:%d", lo_text_x, hi_text_x, min_text_x, max_text_x ));
-	Warning(( "LTY:%d, HTY:%d, MnTY:%d, MxTY:%d", lo_text_y, hi_text_y, min_text_y, max_text_y ));
 	if ( colours == 1 )
 	{
 		unsigned char *ptr = &buffer[(lo_text_y*width)+lo_text_x];

@@ -1540,7 +1540,7 @@ elseif( $view == "video" )
 		fputs( $fp, "END_INPUT\n" );
 		fclose( $fp );
 
-		exec( escapeshellcmd( MPEG_ENCODE_PATH." $param_file >$event_dir/mpeg.log" ) );
+		exec( MPEG_ENCODE_PATH." $param_file >$event_dir/mpeg.log" );
 	}
 
 	//chdir( $event_dir );

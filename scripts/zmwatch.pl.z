@@ -1,0 +1,121 @@
+#!/usr/bin/perl -wT
+#
+# ==========================================================================
+#
+# Zone Minder WatchDog Script, $Date$, $Revision$
+# Copyright (C) 2002  Philip Coombes
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+# ==========================================================================
+#
+# This does some basic setup for ZoneMinder to run and then periodically
+# checks the fps output of the active daemons to check they haven't 
+# locked up. If they have then they are killed and restarted
+#
+
+# ==========================================================================
+#
+# These are the elements you need to edit to suit your installation
+#
+# ==========================================================================
+
+use constant DB_NAME => "zm";
+use constant DB_USER => "zmadmin";
+use constant DB_PASS => "zmadminzm";
+use constant CHECK_INTERVAL => 30;
+use constant COMMAND_PATH => '@prefix@/bin/';
+use constant ZM_SHM_KEY => 0x7a6d2000;
+use constant WATCH_LOG_FILE => '/tmp/zmwatch.log';
+
+# ==========================================================================
+#
+# Don't change anything below here
+#
+# ==========================================================================
+
+use strict;
+use POSIX;
+use DBI;
+use Data::Dumper;
+
+$| = 1;
+
+sub Usage
+{
+    print( "
+Usage: zmwatch.pl
+");
+	exit( -1 );
+}
+
+open( LOG, '>>'.WATCH_LOG_FILE ) or die( "Can't open log file: $!" );
+open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
+select( STDOUT ); $| = 1;
+open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
+select( STDERR ); $| = 1;
+select( LOG ); $| = 1;
+print( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+
+( $ENV{PATH} ) = ( $ENV{PATH} =~ /^(.*)$/ );
+( $ENV{BASH_ENV} ) = ( $ENV{BASH_ENV} =~ /^(.*)$/ );
+
+my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
+my $sql = "select * from Monitors";
+my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+
+while( 1 )
+{
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	while( my $monitor = $sth->fetchrow_hashref() )
+	{
+		if ( $monitor->{Function} ne 'None' )
+		{
+			my $device = $monitor->{Device};
+			my $device_file = "/dev/video$device";
+			# Check that the video device is readable
+			print( "Checking '$device_file'\n" );
+			if ( !-R $device_file )
+			{
+				my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size, $atime,$mtime,$ctime,$blksize,$blocks) = stat(_);
+				$mode &= 07777;
+				if ( !$mode & 044 )
+				{
+					print( "Device file '$device_file' unreadable, changing permissions\n" );
+					chmod( $mode | 044, $device_file ) or die( "Can't chmod '$device_file': $!" );
+				}
+			}
+
+			# Check the write index is incrementing, if is isn't for 3 consecutive
+			# times we kill it and start again
+			my $command = COMMAND_PATH."zmu -m ".$monitor->{Id}." -f";
+			print( "Getting FPS for monitor $monitor->{Id} ('$command')\n" );
+			if ( $command )
+			{
+				my $fps = qx( $command );
+				print( "Monitor $monitor->{Id} capturing at $fps FPS\n" );
+				if ( !$fps )
+				{
+					my $command = COMMAND_PATH."zmdc.pl restart zmc -d ".$monitor->{Device};
+					print( "Restarting capture daemon ('$command')\n" );
+					print( qx( $command ) );
+				}
+			}
+		}
+	}
+	sleep( CHECK_INTERVAL );
+}
+print( "Watchdog exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+exit();

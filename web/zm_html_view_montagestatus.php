@@ -51,7 +51,7 @@ $fps_string = sprintf( "%.2f", $fps );
 $new_alarm = ( $status > 0 && empty($last_status) );
 $old_alarm = ( $status == 0 && isset($last_status) && $last_status > 0 );
 
-$refresh = $status?1:REFRESH_STATUS;
+$refresh = $status?1:ZM_WEB_REFRESH_STATUS;
 $url = "$PHP_SELF?view=montagestatus&mid=$mid&last_status=$status";
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: $refresh; URL=$url" );

@@ -56,7 +56,7 @@ $fps_string = sprintf( "%.2f", $fps );
 $new_alarm = ( $status > 0 && $last_status == 0 );
 $old_alarm = ( $status == 0 && $last_status > 0 );
 
-$refresh = (isset($force)||$forced||($status==1)||($status==2))?1:REFRESH_STATUS;
+$refresh = (isset($force)||$forced||($status==1)||($status==2))?1:ZM_WEB_REFRESH_STATUS;
 $url = "$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status".(($force||$forced)?"&forced=1":"");
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: $refresh; URL=$url" );

@@ -62,7 +62,7 @@ if ( $mode != "stream" )
 	// Prompt an image to be generated
 	createImage( $monitor, $scale );
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
-		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
+		header("Refresh: ".ZM_WEB_REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still" );
 }
 
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
@@ -89,7 +89,7 @@ function closeWindow()
 if ( ZM_WEB_REFRESH_METHOD == "javascript" )
 {
 ?>
-window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" ?>' )", <?= REFRESH_CYCLE*1000 ?> );
+window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" ?>' )", <?= ZM_WEB_REFRESH_CYCLE*1000 ?> );
 <?php
 }
 ?>
@@ -111,7 +111,7 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$nex
 <?php
 if ( $mode == "stream" )
 {
-	$stream_src = ZM_PATH_ZMS."?mode=jpeg&monitor=".$monitor['Id']."&scale=".$scale."&maxfps=".VIDEO_MAXFPS."&ttl=".REFRESH_CYCLE;
+	$stream_src = ZM_PATH_ZMS."?mode=jpeg&monitor=".$monitor['Id']."&scale=".$scale."&maxfps=".ZM_WEB_VIDEO_MAXFPS."&ttl=".ZM_WEB_REFRESH_CYCLE;
 	if ( canStreamNative() )
 	{
 ?>

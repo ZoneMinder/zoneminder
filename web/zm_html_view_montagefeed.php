@@ -48,7 +48,7 @@ if ( $mode != "stream" )
 	// Prompt an image to be generated
 	createImage( $monitor, $scale );
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
-		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=montagefeed&mid=$mid&mode=still&scale=$scale" );
+		header("Refresh: ".ZM_WEB_REFRESH_IMAGE."; URL=$PHP_SELF?view=montagefeed&mid=$mid&mode=still&scale=$scale" );
 }
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -101,7 +101,7 @@ if ( $mode == "stream" )
 {
 	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_LIVE_FORMAT )
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=mpeg&monitor=".$monitor['Id']."&scale=$scale&bitrate=".VIDEO_BITRATE."&maxfps=".VIDEO_MAXFPS."&format=".ZM_VIDEO_LIVE_FORMAT;
+		$stream_src = ZM_PATH_ZMS."?mode=mpeg&monitor=".$monitor['Id']."&scale=$scale&bitrate=".ZM_WEB_VIDEO_BITRATE."&maxfps=".ZM_WEB_VIDEO_MAXFPS."&format=".ZM_VIDEO_LIVE_FORMAT;
 		if ( isWindows() )
 		{
 			if ( isInternetExplorer() )
@@ -148,7 +148,7 @@ AutoStart=true>
 	}
 	else
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=jpeg&monitor=".$monitor['Id']."&scale=$scale&maxfps=".VIDEO_MAXFPS;
+		$stream_src = ZM_PATH_ZMS."?mode=jpeg&monitor=".$monitor['Id']."&scale=$scale&maxfps=".ZM_WEB_VIDEO_MAXFPS;
 		if ( canStreamNative() )
 		{
 ?>

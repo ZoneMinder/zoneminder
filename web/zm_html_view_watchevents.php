@@ -27,7 +27,7 @@ if ( !canView( 'Events' ) )
 parseSort();
 
 if ( ZM_WEB_REFRESH_METHOD == "http" )
-	header("Refresh: ".REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
+	header("Refresh: ".ZM_WEB_REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -83,7 +83,7 @@ function configureButton(form,name)
 if ( ZM_WEB_REFRESH_METHOD == "javascript" )
 {
 ?>
-window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS ?>' )", <?= REFRESH_EVENTS*1000 ?> );
+window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS ?>' )", <?= ZM_WEB_REFRESH_EVENTS*1000 ?> );
 <?php
 }
 ?>

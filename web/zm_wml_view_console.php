@@ -67,7 +67,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 ?>
 <wml>
 <card id="zmConsole" title="ZM - <?= $zmSlangConsole ?>" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>">
-<timer value="<?= REFRESH_MAIN*10 ?>"/>
+<timer value="<?= ZM_WEB_REFRESH_MAIN*10 ?>"/>
 <p mode="nowrap" align="center"><strong>ZM - <?= $zmSlangConsole ?></strong></p>
 <p mode="nowrap" align="center"><?= count($monitors) ?> <?= $zmSlangMonitors ?> - <?= strftime( "%T" ) ?></p>
 <p mode="nowrap" align="center"><?= $HTTP_SESSION_VARS['event_reset_time'] ?></p>

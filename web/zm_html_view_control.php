@@ -18,11 +18,12 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canEdit( 'System' ) )
+if ( !canEdit( 'Monitors' ) )
 {
 	$view = "error";
 	return;
 }
+
 $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
 	die( mysql_error() );

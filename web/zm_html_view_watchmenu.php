@@ -69,15 +69,33 @@ if ( ZM_OPT_CONTROL && $monitor['Controllable'] )
 {
 	if ( !$control )
 	{
+		if ( canEdit( 'Monitors' ) )
+		{
 ?>
 <td align="center" class="text"><a href="<?= $php_self ?>?view=watch&mid=<?= $mid ?>&mode=<?= $mode ?>&scale=<?= $scale ?>&control=1" target="_parent"><?= $zmSlangControl ?></a></td>
 <?php
+		}
+		else
+		{
+?>
+<td align="center" class="text">&nbsp;</td>
+<?php
+		}
 	}
 	else
 	{
+		if ( canView( 'Events' ) )
+		{
 ?>
 <td align="center" class="text"><a href="<?= $php_self ?>?view=watch&mid=<?= $mid ?>&mode=<?= $mode ?>&scale=<?= $scale ?>&control=0" target="_parent"><?= $zmSlangEvents ?></a></td>
 <?php
+		}
+		else
+		{
+?>
+<td align="center" class="text">&nbsp;</td>
+<?php
+		}
 	}
 }
 else

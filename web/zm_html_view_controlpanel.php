@@ -18,13 +18,13 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-require_once( 'zm_control_funcs.php' );
-
 if ( !canEdit( 'Monitors' ) )
 {
 	$view = "error";
 	return;
 }
+
+require_once( 'zm_control_funcs.php' );
 
 $sql = "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'";
 $result = mysql_query( $sql );

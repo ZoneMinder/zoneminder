@@ -52,15 +52,21 @@ window.focus();
 <?php
 if ( $control )
 {
+	if ( canEdit( 'Monitors' ) )
+	{
 ?>
 <frame src="<?= $PHP_SELF ?>?view=control&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="ControlPanel<?= $monitor['Id' ] ?>" scrolling="auto">
 <?php
+	}
 }
 else
 {
+	if ( canView( 'Events' ) )
+	{
 ?>
 <frame src="<?= $PHP_SELF ?>?view=watchevents&max_events=<?= MAX_EVENTS ?>&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="MonitorEvents<?= $monitor['Id' ] ?>" scrolling="auto">
 <?php
+	}
 }
 ?>
 </frameset>

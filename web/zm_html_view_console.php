@@ -199,7 +199,7 @@ else
 <?php
 }
 ?>
-</td><td align="right" class="smallhead"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=options', 'zmOptions', ".$jws['options']['w'].", ".$jws['options']['h']." );", $zmSlangOptions, canView( 'System' ) ) ?></td></tr></table></td>
+</td><td align="right" class="smallhead"><?php if ( canView('System') ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=options', 'zmOptions', <?= $jws['options']['w'] ?>, <?= $jws['options']['h'] ?> );"><?= $zmSlangOptions ?></a><?php } else { ?>&nbsp;<?php } ?></td></tr></table></td>
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">

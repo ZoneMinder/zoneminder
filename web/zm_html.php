@@ -1589,6 +1589,7 @@ window.focus();
 		{
 			$image_path = $anal_image;
 		}
+		$img_class = $frame[AlarmFrame]?"alarm":"normal";
 ?>
 <html>
 <head>
@@ -1614,14 +1615,14 @@ function deleteEvent()
 <body>
 <table border="0">
 <tr><td colspan="2" class="smallhead">Image <?= $eid."-".$fid." ($frame[Score])" ?>
-<?php if ( ZM_RECORD_EVENT_STATS ) { ?>
+<?php if ( ZM_RECORD_EVENT_STATS && $frame[AlarmFrame] ) { ?>
 (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $fid ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );">Stats</a>)
 <?php } ?>
 </td>
 <td align="center" class="text"><a href="javascript: deleteEvent();">Delete</a></td>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
-<tr><td colspan="4"><img src="<?= $image_path ?>" width="<?= $event[Width] ?>" height="<?= $event[Height] ?>" border="0"></td></tr>
+<tr><td colspan="4"><img src="<?= $image_path ?>" width="<?= $event[Width] ?>" height="<?= $event[Height] ?>" class="<?= $img_class ?>"></td></tr>
 <tr>
 <?php if ( $fid > 1 ) { ?>
 <td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $first_fid ?>">First</a></td>
@@ -1883,8 +1884,9 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 						exec( $command );
 					}
 				}
+				$img_class = $row[AlarmFrame]?"alarm":"normal";
 ?>
-<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event[Width]+$jws['image']['w'] ?>, <?= $event[Height]+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<? echo $thumb_height ?>" border="0" alt="<?= $frame_id ?>/<?= $row[Score] ?>"></a></td>
+<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event[Width]+$jws['image']['w'] ?>, <?= $event[Height]+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<? echo $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $row[Score] ?>"></a></td>
 <?php
 				flush();
 				if ( !(++$count % 4) )

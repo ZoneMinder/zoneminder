@@ -31,3 +31,5 @@ a:hover { color: #666699; text-decoration: underline}
 .form { border: 1px #7F7FB2 solid; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10px; color: #333333 }
 .textsmall { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:9px; color: #333333; font-weight: normal }
 .closetext { font-family: Verdana, Arial, Helvetica, sans-serif; font-size:10px; color: #333333; font-weight: normal; line-height: 12px }
+img.normal { border: white solid 1px }
+img.alarm { border: red solid 1px }

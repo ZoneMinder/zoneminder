@@ -137,7 +137,7 @@ Parameters are :-
 sub strtotime
 {
 	my $date_str = shift;
-	return( UnixDate( $date_str, '%s' ) );
+	return( localtime(UnixDate( $date_str, '%s' )) );
 }
 
 #
@@ -199,7 +199,7 @@ my $shmid = shmget( $key, $size, 0 ) || die( "Can't get shared memory id: $!" );
 
 while( 1 )
 {
-	next if ( !shmread( $shmid, $last_event_id, 24, 4 ) );
+	shmread( $shmid, $last_event_id, 24, 4 ) or die( "Can't read from shared memory: $!" );
 
 	$last_event_id = unpack( "l", $last_event_id );
 

@@ -389,7 +389,7 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_H_REFRESH_CYCLE",
-		default => "5",
+		default => "2",
 		description => "How often (in seconds) the cycle watch window swaps to the next monitor",
 		help => "The cycle watch window is a method of continuously cycling between still images from all of your monitors. This option determines how often to refresh with a new image.",
 		type => $types{integer},
@@ -454,7 +454,7 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_M_REFRESH_CYCLE",
-		default => "10",
+		default => "5",
 		description => "How often (in seconds) the cycle watch window swaps to the next monitor",
 		help => "The cycle watch window is a method of continuously cycling between still images from all of your monitors. This option determines how often to refresh with a new image.",
 		type => $types{integer},
@@ -519,7 +519,7 @@ my @options =
 	},
 	{
 		name => "ZM_WEB_L_REFRESH_CYCLE",
-		default => "30",
+		default => "10",
 		description => "How often (in seconds) the cycle watch window swaps to the next monitor",
 		help => "The cycle watch window is a method of continuously cycling between still images from all of your monitors. This option determines how often to refresh with a new image.",
 		type => $types{integer},

@@ -102,7 +102,7 @@ function deleteState()
 if ( !$apply )
 {
 ?>
-<form name="state_form" method="get" action="<?= $PHP_SELF ?>">
+<form name="state_form" method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="">
 <input type="hidden" name="apply" value="1">

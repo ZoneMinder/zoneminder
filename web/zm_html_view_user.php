@@ -69,7 +69,7 @@ function closeWindow()
 <tr>
 <td colspan="2" align="left" class="head">User - &quot;<?= $row[Username] ?>&quot;</td>
 </tr>
-<form name="user_form" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.user_form )">
+<form name="user_form" method="post" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.user_form )">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="user">
 <input type="hidden" name="uid" value="<?= $uid ?>">

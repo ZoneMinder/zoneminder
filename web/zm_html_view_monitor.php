@@ -129,7 +129,7 @@ function closeWindow()
 </tr>
 </table>
 <table border="0" cellspacing="0" cellpadding="2" width="100%">
-<form name="monitor_form" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.monitor_form )">
+<form name="monitor_form" method="post" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.monitor_form )">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="tab" value="<?= $tab ?>">
 <input type="hidden" name="action" value="monitor">
@@ -339,6 +339,7 @@ function closeWindow()
 <tr>
 <td colspan="2" align="right"><input type="submit" value="Save" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
 </tr>
+</form>
 </table>
 </body>
 </html>

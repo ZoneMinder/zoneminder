@@ -43,7 +43,7 @@ function closeWindow()
 <tr>
 <td colspan="2" align="left" class="head">Monitor <?= $monitor[Name] ?> - Settings</td>
 </tr>
-<form name="settings_form" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.settings_form )">
+<form name="settings_form" method="post" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.settings_form )">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="settings">
 <input type="hidden" name="mid" value="<?= $mid ?>">

@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 </head>
 <body>
-<form name="video_form" method="get" action="<?= $PHP_SELF ?>">
+<form name="video_form" method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="<?= $action ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">

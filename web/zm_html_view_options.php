@@ -136,7 +136,7 @@ function validateForm( form )
 	if ( $tab == "users" )
 	{
 ?>
-<form name="user_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="validateForm( this )">
+<form name="user_form" method="post" action="<?= $PHP_SELF ?>" onSubmit="validateForm( this )">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="tab" value="<?= $tab ?>">
 <input type="hidden" name="action" value="delete">

@@ -186,30 +186,37 @@ int main( int argc, char *argv[] )
 		for ( int i = 0; i < n_monitors; i++ )
 		{
 			long min_delay = MAXINT;
-			gettimeofday( &now, &dummy_tz );
-			for ( int j = 0; j < n_monitors; j++ )
+			if ( ZM_NO_MAX_FPS_ON_ALARM && monitors[i]->GetState() == Monitor::ALARM )
 			{
-				if ( last_capture_times[j].tv_sec )
+				next_delays[i] = 0;
+			}
+			else
+			{
+				gettimeofday( &now, &dummy_tz );
+				for ( int j = 0; j < n_monitors; j++ )
 				{
-					static struct DeltaTimeval delta_time;
-					//Info(( "Now %d.%d", now.tv_sec, now.tv_usec ));
-					//Info(( "Capture %d.%d", last_capture_times[j].tv_sec, last_capture_times[j].tv_usec ));
-					DELTA_TIMEVAL( delta_time, now, last_capture_times[j] );
-					//Info(( "Delta %d-%d.%d", delta_time.positive, delta_time.tv_sec, delta_time.tv_usec ));
-					next_delays[j] = capture_delays[j]-((delta_time.tv_sec*1000000)+delta_time.tv_usec);
-					if ( next_delays[j] < 0 )
+					if ( last_capture_times[j].tv_sec )
+					{
+						static struct DeltaTimeval delta_time;
+						//Info(( "Now %d.%d", now.tv_sec, now.tv_usec ));
+						//Info(( "Capture %d.%d", last_capture_times[j].tv_sec, last_capture_times[j].tv_usec ));
+						DELTA_TIMEVAL( delta_time, now, last_capture_times[j] );
+						//Info(( "Delta %d-%d.%d", delta_time.positive, delta_time.tv_sec, delta_time.tv_usec ));
+						next_delays[j] = capture_delays[j]-((delta_time.tv_sec*1000000)+delta_time.tv_usec);
+						if ( next_delays[j] < 0 )
+						{
+							next_delays[j] = 0;
+						}
+					}
+					else
 					{
 						next_delays[j] = 0;
 					}
-				}
-				else
-				{
-					next_delays[j] = 0;
-				}
-				//Info(( "%d: %d", j, next_delays[j] ));
-				if ( next_delays[j] <= min_delay )
-				{
-					min_delay = next_delays[j];
+					//Info(( "%d: %d", j, next_delays[j] ));
+					if ( next_delays[j] <= min_delay )
+					{
+						min_delay = next_delays[j];
+					}
 				}
 			}
 			if ( next_delays[i] <= min_delay || next_delays[i] <= 0 )

@@ -134,9 +134,9 @@ if ( $view == "error" )
 	require_once( "zm_".$format."_view_".$view.".php" );
 }
 
-$fp = fopen( "/tmp/output.html", "w" );
-fwrite( $fp, ob_get_contents() );
-fclose( $fp );
+//$fp = fopen( "/tmp/output.html", "w" );
+//fwrite( $fp, ob_get_contents() );
+//fclose( $fp );
 ob_end_flush();
 
 ?>

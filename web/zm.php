@@ -276,7 +276,7 @@ if ( $action )
 	}
 	elseif ( $action == "monitor" && isset( $mid ) )
 	{
-		if ( $zid > 0 )
+		if ( $mid > 0 )
 		{
 			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 			if ( !$result )
@@ -303,19 +303,31 @@ if ( $action )
 			if ( $mid > 0 )
 			{
 				$sql = "update Monitors set ".implode( ", ", $changes )." where MonitorId = '$mid'";
+				$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
+				if ( $new_name != $monitor[Name] )
+				{
+					exec( escape_shell_command( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_name" ) );
+				}
 			}
 			else
 			{
 				$sql = "insert into Monitors set ".implode( ", ", $changes );
+				$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
+				$mid = mysql_insert_id();
+				$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active' Units = 'Percent' LoX = 0 LoY = 0 HiX = 100 HiY = 100 AlarmRGB = 0xff0000 AlarmThreshold = 25 MinAlarmPixels = 3 MaxAlarmPixels = 75 FilterX = 3 FilterY = 3 MinFilterPixels = 3 MaxFilterPixels = 75 MinBlobPixels = 2 MaxBlobPixels = 0 MinBlobs = 1 MaxBlobs = 0";
+				$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
 				$view = 'none';
 			}
-			$result = mysql_query( $sql );
+			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 			if ( !$result )
 				die( mysql_error() );
-			if ( $new_name != $monitor[Name] )
-			{
-				exec( escape_shell_command( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_name" ) );
-			}
+			$monitor = mysql_fetch_assoc( $result );
 			controlDaemons( $monitor[Device] );
 			$refresh_parent = true;
 		}

@@ -30,6 +30,10 @@ int main( int argc, const char *argv[] )
 	char *path = ".";
 	unsigned int ttl = 0;
 
+    //setbuf( fd, 0 );
+    //char streambuf[0x40000];
+    //setbuffer( stdout, streambuf, sizeof(streambuf) );
+
 	const char *query = getenv( "QUERY_STRING" );
 	if ( query )
 	{

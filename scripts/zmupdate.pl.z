@@ -2,7 +2,7 @@
 #
 # ==========================================================================
 #
-# ZoneMinder WatchDog Script, $Date$, $Revision$
+# ZoneMinder Update Script, $Date$, $Revision$
 # Copyright (C) 2003, 2004, 2005  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -385,6 +385,12 @@ if ( $version )
 	{
 		# Patch the database
 		patchDB( $dbh, "1.20.0" );
+		$cascade = !undef;
+	}
+	if ( $cascade || $version eq "1.20.1" )
+	{
+		# Patch the database
+		patchDB( $dbh, "1.20.1" );
 		$cascade = !undef;
 	}
 	if ( !$cascade )

@@ -138,7 +138,7 @@ function confirmStatus( new_status )
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
-<td class="bighead" align="center"><strong>ZoneMinder Console - <?= $status ?> (<a href="javascript: if ( confirmStatus( '<?= $new_status ?>' ) ) location='<?= $PHP_SELF ?>?<?= $new_status ?>=1';"><?= $new_status ?></a>)</strong></td>
+<td class="bighead" align="center"><strong>ZoneMinder Console - <?= $status ?> (<a href="javascript: if ( confirmStatus( '<?= $new_status ?>' ) ) location='<?= $PHP_SELF ?>?<?= $new_status ?>=1';"><?= $new_status ?></a>) - v<?= ZM_VERSION ?></strong></td>
 <?php
 	$uptime = shell_exec( 'uptime' );
 	$load = '';
@@ -160,7 +160,7 @@ function confirmStatus( new_status )
 ?>
 <a href="<?= $PHP_SELF ?>?new_bandwidth=<?= $bw_keys[0] ?>"><?= $bw_keys[0] ?></a>, 
 <a href="<?= $PHP_SELF ?>?new_bandwidth=<?= $bw_keys[1] ?>"><?= $bw_keys[1] ?></a>)
-<td class="smallhead" align="right"><a href="mailto:bugs@zoneminder.com?subject=ZoneMinder Bug">Report Bug</a></td>
+<td class="smallhead" align="right"><a href="mailto:bugs@zoneminder.com?subject=ZoneMinder Bug (v<?= ZM_VERSION ?>)">Report Bug</a></td>
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
@@ -251,9 +251,13 @@ function confirmStatus( new_status )
 <?php
 		}
 ?>
-<tr><td align="left" class="text">&nbsp;</td>
-<td align="left" class="text">&nbsp;</td>
-<td colspan="2" align="center"><input type="button" value="Add New Monitor" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&zid=-1', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"></td>
+<tr>
+<td colspan="2" align="center">
+<input type="button" value="Refresh" class="form" onClick="javascript: location.reload();">
+</td>
+<td colspan="2" align="center">
+<input type="button" value="Add New Monitor" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&zid=-1', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);">
+</td>
 <td align="right" class="text"><?= $event_count ?></td>
 <td align="right" class="text"><?= $hour_event_count ?></td>
 <td align="right" class="text"><?= $day_event_count ?></td>

@@ -51,7 +51,7 @@ if ( $mode != "stream" )
 		createImage( $monitor, $scale );
 	}
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
-		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=watchfeed&mid=$mid&mode=still&scale=$scale" );
+		header("Refresh: ".REFRESH_IMAGE."; URL=$PHP_SELF?view=montagefeed&mid=$mid&mode=still&scale=$scale" );
 }
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified

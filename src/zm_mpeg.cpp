@@ -238,14 +238,16 @@ VideoStream::~VideoStream()
 	av_free(ofc);
 }
 
-double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size )
+double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp )
 {
 	double pts = 0.0;
 
 	/* compute current video time */
 	if (ost)
+	{
 		pts = (double)ost->pts.val * ofc->pts_num / ofc->pts_den;
-
+		//Info(( "PTS:%lf, PTSV:%lld, PTSN:%d(%lld), PTSD:%d(%lld)", pts, ost->pts.val, ofc->pts_num, ost->pts.num, ofc->pts_den, ost->pts.den ));
+	}
 	//if (!ost || pts >= STREAM_DURATION)
 		//break;
 
@@ -277,6 +279,9 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size )
 	}
 	else
 	{
+		// Add a timestamp if supplied
+		if ( add_timestamp )
+			ost->pts.val = timestamp;
 		/* encode the image */
 		int out_size = avcodec_encode_video(c, video_outbuf, video_outbuf_size, opicture_ptr);
 		/* if zero size, it means the image was buffered */
@@ -291,6 +296,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size )
 	{
 		Fatal(( "Error while writing video frame" ));
 	}
+	return( pts );
 }
 
 #endif // HAVE_LIBAVCODEC

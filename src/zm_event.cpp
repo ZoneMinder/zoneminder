@@ -487,7 +487,8 @@ void Event::StreamMpeg( int event_id, const char *format, int bitrate, int rate,
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
 	
-	sprintf( sql, "select M.Id, M.Name,max(F.Delta)-min(F.Delta) as Duration, count(F.Id) as Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on F.EventId = E.Id where E.Id = %d group by F.EventId", event_id );
+	//sprintf( sql, "select M.Id, M.Name,max(F.Delta)-min(F.Delta) as Duration, count(F.Id) as Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on F.EventId = E.Id where E.Id = %d group by F.EventId", event_id );
+	sprintf( sql, "select M.Id, M.Name, E.Length, E.Frames from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -509,19 +510,23 @@ void Event::StreamMpeg( int event_id, const char *format, int bitrate, int rate,
 	}
 
 	sprintf( eventpath, "%s/%s/%s/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), dbrow[1], event_id );
-	int fps = ((atoi(dbrow[3])/atoi(dbrow[2]))*rate)/ZM_RATE_SCALE;
-	if ( rate )
+	int duration = atoi(dbrow[2]);
+	int frames = atoi(dbrow[3]);
+
+	int min_fps = 1;
+	int max_fps = 30;
+	int base_fps = frames/duration;
+	int effective_fps = (base_fps*rate)/ZM_RATE_SCALE;
+
+	int frame_mod = 1;
+	// Min frame repeat?
+	while( effective_fps > max_fps )
 	{
-		if ( fps <= 0 )
-			fps = 1;
-		else if ( fps > 30 )
-			fps = 30;
+		effective_fps /= 2;
+		frame_mod *= 2; 
 	}
-	else
-	{
-		fps = 30;
-	}
-	Info(( "Duration:%d, Frames:%d, FPS:%d", atoi(dbrow[2]), atoi(dbrow[3]), fps ));
+
+	Info(( "Duration:%d, Frames:%d, BFPS:%d, EFPS:%d, FM:%d", atoi(dbrow[2]), atoi(dbrow[3]), base_fps, effective_fps, frame_mod ));
 
 	mysql_free_result( result );
 
@@ -542,23 +547,49 @@ void Event::StreamMpeg( int event_id, const char *format, int bitrate, int rate,
 	fprintf( stdout, "Content-type: video/x-ms-asf\r\n\r\n");
 
 	VideoStream *vid_stream = 0;
-	for( int i = 0; dbrow = mysql_fetch_row( result ); i++ )
+	int id = 1, last_id = 0;
+	double base_delta, last_delta = 0.0L;
+	unsigned int delta_ms =0;
+	while( (id <= frames) && (dbrow = mysql_fetch_row( result )) )
 	{
-		static char filepath[PATH_MAX];
-		sprintf( filepath, "%s/%03d-capture.jpg", eventpath, atoi(dbrow[0]) );
-
-		Image image( filepath );
-
-		if ( !vid_stream )
+		if ( id == 1 )
 		{
-			vid_stream = new VideoStream( "pipe:", format, bitrate, fps, image.Colours(), (image.Width()*scale)/ZM_SCALE_SCALE, (image.Height()*scale)/ZM_SCALE_SCALE );
+			base_delta = last_delta = atof(dbrow[2]);
 		}
 
-		if ( scale != 100 )
+		int db_id = atoi( dbrow[0] );
+		double db_delta = atof( dbrow[2] )-base_delta;
+		while( db_id >= id )
 		{
-			image.Scale( scale );
+			if ( (frame_mod == 1) || (((id-1)%frame_mod) == 0) )
+			{
+				static char filepath[PATH_MAX];
+				sprintf( filepath, "%s/%03d-capture.jpg", eventpath, id );
+
+				Image image( filepath );
+
+				if ( !vid_stream )
+				{
+					vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, image.Colours(), (image.Width()*scale)/ZM_SCALE_SCALE, (image.Height()*scale)/ZM_SCALE_SCALE );
+				}
+
+				if ( scale != 100 )
+				{
+					image.Scale( scale );
+				}
+
+				double temp_delta = ((id-last_id)*(db_delta-last_delta))/(db_id-last_id);
+				delta_ms = (unsigned int)((last_delta+temp_delta)*1000);
+				if ( rate != ZM_RATE_SCALE )
+					delta_ms = (delta_ms*ZM_RATE_SCALE)/rate;
+				double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size(), true, delta_ms );
+
+				//Info(( "I:%d, DI:%d, LI:%d, DD:%lf, LD:%lf, TD:%lf, DM:%d, PTS:%lf", id, db_id, last_id, db_delta, last_delta, temp_delta, delta_ms, pts ));
+			}
+			id++;
 		}
-		double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size() );
+		last_id = db_id;
+		last_delta = db_delta;
 	}
 	if ( mysql_errno( &dbconn ) )
 	{

@@ -54,7 +54,7 @@ protected:
 public:
 	VideoStream( const char *filename, const char *format, int bitrate, int frame_rate, int colours, int width, int height );
 	~VideoStream();
-	double EncodeFrame( uint8_t *buffer, int buffer_size );
+	double EncodeFrame( uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 };
 
 #endif // ZM_MPEG_H

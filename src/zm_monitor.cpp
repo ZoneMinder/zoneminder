@@ -1203,7 +1203,9 @@ void Monitor::StreamMpeg( const char *format, int bitrate, int scale, int buffer
 		}
 	}
 
-	int frame_count;
+	int frame_count = 0;
+	struct timeval base_time;
+	struct DeltaTimeval delta_time;
 	while ( true )
 	{
 		if ( feof( stdout ) || ferror( stdout ) )
@@ -1239,8 +1241,15 @@ void Monitor::StreamMpeg( const char *format, int bitrate, int scale, int buffer
 				snap_image = &scaled_image;
 			}
 
-    		double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size() );
+			if ( !frame_count )
+			{
+				base_time = *(snap->timestamp);
+			}
+			DELTA_TIMEVAL( delta_time, *(snap->timestamp), base_time, DT_PREC_3 );
+    		double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size(), true, delta_time.delta );
+			//Info(( "DTD:%d, PTS:%lf", delta_time.delta, pts ));
 		}
+		frame_count++;
 		usleep( 10000 );
 	}
 }

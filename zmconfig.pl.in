@@ -687,7 +687,7 @@ Press enter to continue: " );
 						last;
 					}
 				}
-				print( "N:$new_value\n" );
+				#print( "N:$new_value\n" );
 				my $parse_func = $type->{parse};
 				my ( $matched, $use_value ) = &$parse_func( $new_value );
 				if ( !$matched )
@@ -695,7 +695,7 @@ Press enter to continue: " );
 					print( "Invalid input, please re-enter or type '?' for help.\n" );
 					next;
 				}
-				print( "U:$use_value\n" );
+				#print( "U:$use_value\n" );
 				$option->{value} = $use_value;
 			}
 			last;

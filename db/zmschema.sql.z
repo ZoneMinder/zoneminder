@@ -200,7 +200,7 @@ CREATE TABLE TriggersX10 (
 
 CREATE TABLE Users (
   Id int(10) unsigned NOT NULL auto_increment,
-  Username varchar(32) NOT NULL default '',
+  Username varchar(32) BINARY NOT NULL default '',
   Password varchar(64) NOT NULL default '',
   Language varchar(8) NOT NULL default '',
   Enabled tinyint(3) unsigned NOT NULL default '1',

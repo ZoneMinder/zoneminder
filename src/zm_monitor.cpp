@@ -428,6 +428,10 @@ void Monitor::DumpZoneImage()
 		{
 			colour = RGB_BLUE;
 		}
+		else if ( zones[i]->IsPreclusive() )
+		{
+			colour = RGB_BLACK;
+		}
 		else
 		{
 			colour = RGB_WHITE;

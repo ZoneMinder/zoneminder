@@ -226,7 +226,7 @@ void Monitor::Setup()
 
 	Debug( 1, ( "monitor purpose=%d", purpose ));
 
-	int shared_data_size = sizeof(SharedData)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
+	int shared_data_size = sizeof(SharedData)+sizeof(TriggerData)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
 	Debug( 1, ( "shm.size=%d", shared_data_size ));
 	shmid = shmget( (int)config.Item( ZM_SHM_KEY )|id, shared_data_size, IPC_CREAT|0700 );
 	if ( shmid < 0 )
@@ -241,13 +241,14 @@ void Monitor::Setup()
 		Error(( "Can't shmat: %s", strerror(errno)));
 		exit( -1 );
 	}
+	trigger_data = (TriggerData *)(shm_ptr + sizeof(SharedData));
 
 	if ( purpose == CAPTURE )
 	{
 		memset( shared_data, 0, shared_data_size );
+		shared_data->size = sizeof(SharedData);
 		shared_data->valid = true;
 		shared_data->state = IDLE;
-		shared_data->force_state = FORCE_NEUTRAL;
 		shared_data->last_write_index = image_buffer_count;
 		shared_data->last_read_index = image_buffer_count;
 		shared_data->last_image_time = 0;
@@ -257,6 +258,11 @@ void Monitor::Setup()
 		shared_data->hue = -1;
 		shared_data->colour = -1;
 		shared_data->contrast = -1;
+		trigger_data->size = sizeof(TriggerData);
+		trigger_data->trigger_state = TRIGGER_CANCEL;
+		trigger_data->trigger_score = 0;
+		trigger_data->trigger_cause[0] = 0;
+		trigger_data->trigger_text[0] = 0;
 	}
 	if ( !shared_data->valid )
 	{
@@ -264,8 +270,8 @@ void Monitor::Setup()
 		exit( -1 );
 	}
 
-	struct timeval *shared_timestamps = (struct timeval *)(shm_ptr+sizeof(SharedData));
-	unsigned char *shared_images = (unsigned char *)(shm_ptr+sizeof(SharedData)+(image_buffer_count*sizeof(struct timeval)));
+	struct timeval *shared_timestamps = (struct timeval *)(shm_ptr+sizeof(SharedData)+sizeof(TriggerData));
+	unsigned char *shared_images = (unsigned char *)(shm_ptr+sizeof(SharedData)+sizeof(TriggerData)+(image_buffer_count*sizeof(struct timeval)));
 	image_buffer = new Snapshot[image_buffer_count];
 	for ( int i = 0; i < image_buffer_count; i++ )
 	{
@@ -420,19 +426,22 @@ double Monitor::GetFPS() const
 	return( curr_fps );
 }
 
-void Monitor::ForceAlarmOn()
+void Monitor::ForceAlarmOn( int force_score, const char *force_cause, const char *force_text )
 {
-	shared_data->force_state = FORCE_ON;
+	trigger_data->trigger_state = TRIGGER_ON;
+	trigger_data->trigger_score = force_score;
+	strncpy( trigger_data->trigger_cause, force_cause, sizeof(trigger_data->trigger_cause) );
+	strncpy( trigger_data->trigger_text, force_text, sizeof(trigger_data->trigger_text) );
 }
 
 void Monitor::ForceAlarmOff()
 {
-	shared_data->force_state = FORCE_OFF;
+	trigger_data->trigger_state = TRIGGER_OFF;
 }
 
 void Monitor::CancelForced()
 {
-	shared_data->force_state = FORCE_NEUTRAL;
+	trigger_data->trigger_state = TRIGGER_CANCEL;
 }
 
 int Monitor::Brightness( int p_brightness )
@@ -684,11 +693,21 @@ bool Monitor::Analyse()
 	unsigned int score = 0;
 	if ( Ready() )
 	{
-		if ( function != RECORD && shared_data->force_state != FORCE_OFF )
-			score = Compare( *snap_image );
-		if ( shared_data->force_state == FORCE_ON )
-			score = (int)config.Item( ZM_FORCED_ALARM_SCORE );
+		const char *cause = "Undefined";
+		const char *text = "";
 
+		//Info(( "St:%d, Sc:%d, Ca:%s, Te:%s", trigger_data->trigger_state, trigger_data->trigger_score, trigger_data->trigger_cause, trigger_data->trigger_text ));
+		if ( function != RECORD && function != NODECT && trigger_data->trigger_state != TRIGGER_OFF )
+		{
+			score = Compare( *snap_image );
+			cause = "Motion";
+		}
+		if ( trigger_data->trigger_state == TRIGGER_ON )
+		{
+			score = trigger_data->trigger_score;
+			cause = trigger_data->trigger_cause;
+			text = trigger_data->trigger_text;
+		}
 		if ( function == RECORD || function == MOCORD )
 		{
 			if ( event )
@@ -713,7 +732,7 @@ bool Monitor::Analyse()
 			if ( !event )
 			{
 				// Create event
-				event = new Event( this, *timestamp );
+				event = new Event( this, *timestamp, "Continuous" );
 
 				Info(( "%s: %03d - Starting new event", name, image_count ));
 
@@ -749,12 +768,12 @@ bool Monitor::Analyse()
 						if ( alarm_frame_count > 1 )
 						{
 							int ts_index = ((index+image_buffer_count)-(alarm_frame_count-1))%image_buffer_count;
-							event = new Event( this, *(image_buffer[ts_index].timestamp) );
+							event = new Event( this, *(image_buffer[ts_index].timestamp), cause, text );
 							pre_index = ((index+image_buffer_count)-((alarm_frame_count-1)+pre_event_count))%image_buffer_count;
 						}
 						else
 						{
-							event = new Event( this, *timestamp );
+							event = new Event( this, *timestamp, cause, text );
 							pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
 						}
 
@@ -1427,8 +1446,9 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 		function==MONITOR?"Monitor":(
 		function==MODECT?"Motion Detection":(
 		function==RECORD?"Continuous Record":(
-		function==MOCORD?"Continuous Record with Motion Detection":"Unknown"
-	)))));
+		function==MOCORD?"Continuous Record with Motion Detection":(
+		function==NODECT?"Externally Triggered only, no Motion Detection":"Unknown"
+	))))));
 	sprintf( output+strlen(output), "Zones : %d\n", n_zones );
 	for ( int i = 0; i < n_zones; i++ )
 	{

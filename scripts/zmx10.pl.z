@@ -327,7 +327,7 @@ sub runServer
 			{
 				my $monitor = $monitor_hash{$monitor_id};
 				my $state;
-				if ( !shmread( $monitor->{ShmId}, $state, 4, 4 ) )
+				if ( !shmread( $monitor->{ShmId}, $state, 8, 4 ) )
 				{
 					print( "Can't read from shared memory: $!\n" );
 					$reload = !undef;
@@ -460,7 +460,7 @@ sub loadTasks
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
-		my $size = 12; # We only need the first 12 bytes really for the alarm state and forced alarm
+		my $size = 512; # We only need the first 512 bytes really for the alarm state and forced alarm
 		$monitor->{ShmKey} = hex(main::ZM_SHM_KEY)|$monitor->{Id};
 		$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 );
 		if ( !defined($monitor->{ShmId}) )
@@ -635,8 +635,8 @@ sub processTask
 			if ( $instruction eq "start" )
 			{
 				#$command = main::ZM_PATH_BIN."/zmu --monitor ".$task->{monitor}->{Id}." --alarm";
-				my $force_alarm = pack( "l", 1 );
-				if ( !shmwrite( $task->{monitor}->{ShmId}, $force_alarm, 8, 4 ) )
+				my $force_data = pack( "llZ*", 1, 0, "X10" );
+				if ( !shmwrite( $task->{monitor}->{ShmId}, $force_data, 52, 12 ) )
 				{
 					print( "Can't write to shared memory: $!\n" );
 				}
@@ -648,8 +648,8 @@ sub processTask
 			elsif( $instruction eq "stop" )
 			{
 				#$command = main::ZM_PATH_BIN."/zmu --monitor ".$task->{monitor}->{Id}." --cancel";
-				my $force_alarm = pack( "l", 0 );
-				if ( !shmwrite( $task->{monitor}->{ShmId}, $force_alarm, 8, 4 ) )
+				my $force_data = pack( "llZ*", 0, 0, "" );
+				if ( !shmwrite( $task->{monitor}->{ShmId}, $force_data, 52, 12 ) )
 				{
 					print( "Can't write to shared memory: $!\n" );
 				}

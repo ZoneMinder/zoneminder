@@ -479,7 +479,7 @@ int main( int argc, char *argv[] )
 			{
 				if ( verbose )
 					printf( "Forcing alarm on\n" );
-				monitor->ForceAlarmOn();
+				monitor->ForceAlarmOn( (int)config.Item( ZM_FORCED_ALARM_SCORE ), "Forced Web" );
 			}
 			if ( function & NOALARM )
 			{

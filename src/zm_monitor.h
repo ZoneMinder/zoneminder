@@ -55,7 +55,8 @@ public:
 		MONITOR,
 		MODECT,
 		RECORD,
-		MOCORD
+		MOCORD,
+		NODECT
 	} Function;
 
 	typedef enum { ROTATE_0=1, ROTATE_90, ROTATE_180, ROTATE_270 } Orientation;
@@ -126,14 +127,12 @@ protected:
 
 	Snapshot *image_buffer;
 
-	typedef enum { FORCE_NEUTRAL, FORCE_ON, FORCE_OFF } ForceState;
 	typedef enum { GET_SETTINGS=0x0001, SET_SETTINGS=0x0002 } Action;
-
 	typedef struct
 	{
+		int size;
 		bool valid;
 		State state;
-		ForceState force_state;
 		int last_write_index;
 		int last_read_index;
 		time_t last_image_time;
@@ -145,7 +144,18 @@ protected:
 		int contrast;
 	} SharedData;
 
+	typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
+	typedef struct
+	{
+		int size;
+		TriggerState trigger_state;
+		int trigger_score;
+		char trigger_cause[32];
+		char trigger_text[256];
+	} TriggerData;
+
 	SharedData *shared_data;
+	TriggerData *trigger_data;
 
 	Camera *camera;
 
@@ -197,7 +207,7 @@ public:
 	unsigned int GetLastWriteIndex() const;
 	unsigned int GetLastEvent() const;
 	double GetFPS() const;
-	void ForceAlarmOn();
+	void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
 	void ForceAlarmOff();
 	void CancelForced();
 

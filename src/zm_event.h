@@ -97,7 +97,7 @@ public:
 	static bool ValidateFrameSocket( int );
 
 public:
-	Event( Monitor *p_monitor, struct timeval p_start_time );
+	Event( Monitor *p_monitor, struct timeval p_start_time, const char *event_cause, const char *event_text="" );
 	~Event();
 
 	int Id() const { return( id ); }

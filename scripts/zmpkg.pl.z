@@ -252,9 +252,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 				{
 					execute( ZM_PATH_BIN."/zmdc.pl start zmc -m $monitor->{Id}" );
 				}
-				if ( ( $monitor->{Function} eq 'Modect' )
-				|| ( $monitor->{Function} eq 'Record' )
-				|| ( $monitor->{Function} eq 'Mocord' ) )
+				if ( $monitor->{Function} ne 'Monitor' )
 				{
 					if ( ZM_OPT_FRAME_SERVER )
 					{
@@ -270,6 +268,10 @@ if ( $command =~ /^(?:start|restart)$/ )
 		execute( ZM_PATH_BIN."/zmdc.pl start zmfilter.pl" );
 		execute( ZM_PATH_BIN."/zmdc.pl start zmaudit.pl -d 900 -y" );
 
+		if ( ZM_OPT_TRIGGERS )
+		{
+			execute( ZM_PATH_BIN."/zmdc.pl start zmtrigger.pl" );
+		}
 		if ( ZM_OPT_X10 )
 		{
 			execute( ZM_PATH_BIN."/zmdc.pl start zmx10.pl -c start" );

@@ -42,7 +42,7 @@ char Event::general_file_format[PATH_MAX];
 int Event::pre_alarm_count = 0;
 Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = { 0 };
 
-Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
+Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *event_cause, const char *event_text ) : monitor( p_monitor ), start_time( p_start_time )
 {
 	if ( !initialised )
 		Initialise();
@@ -51,7 +51,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_mon
 	static char start_time_str[32];
 
 	strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", localtime( &start_time.tv_sec ) );
-	snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime ) values ( %d, 'New Event', '%s' )", monitor->Id(), start_time_str );
+	snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Cause, Notes ) values ( %d, 'New Event', '%s', '%s', '%s' )", monitor->Id(), start_time_str, event_cause, event_text );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert event: %s", mysql_error( &dbconn ) ));

@@ -63,8 +63,8 @@ for ( $i = 1; $i <= ceil(($trms-1)/2); $i++ )
 $attr_types = array(
 	'MonitorId'   => $zmSlangAttrMonitorId,
 	'MonitorName' => $zmSlangAttrMonitorName,
-	'Id'          => $zmSlangAttrId,
 	'Name'        => $zmSlangAttrName,
+	'Cause'       => $zmSlangAttrCause,
 	'DateTime'    => $zmSlangAttrDateTime,
 	'Date'        => $zmSlangAttrDate,
 	'Time'        => $zmSlangAttrTime,
@@ -98,6 +98,7 @@ $archive_types = array(
 $sort_fields = array(
 	'Id'          => $zmSlangAttrId,
 	'Name'        => $zmSlangAttrName,
+	'Cause'       => $zmSlangAttrCause,
 	'MonitorName' => $zmSlangAttrMonitorName,
 	'DateTime'    => $zmSlangAttrDateTime,
 	'Length'      => $zmSlangAttrDuration,

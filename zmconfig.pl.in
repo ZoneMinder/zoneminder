@@ -424,7 +424,7 @@ my @options =
 		name => "ZM_OPT_NETPBM",
 		default => "no",
 		description => "Are the (optional) Netpbm utilities installed",
-		help => "For low bandwidth situations ZoneMinder will resize images into thumbnails on the fly before sending them to the browser to reduce the network traffic at the expense of CPU on the server. It uses the Netpbm package to do this and this option should be set to where the binaries from that package are installed. If you do not have it installed it means that the images will always be sent full sizxe and rescaled on your browser whioch may or not be an isue for you.",
+		help => "For low bandwidth situations ZoneMinder will resize images into thumbnails on the fly before sending them to the browser to reduce the network traffic at the expense of CPU on the server. It uses the Netpbm package to do this and this option should be set to where the binaries from that package are installed. If you do not have it installed it means that the images will always be sent full size and rescaled on your browser which may or not be an issue for you.",
 		type => $types{boolean},
 		category => 'tools',
 	},
@@ -432,9 +432,17 @@ my @options =
 		name => "ZM_PATH_NETPBM",
 		default => "/usr/bin",
 		description => "Path to (optional) Netpbm utilities",
-		help => "For low bandwidth situations ZoneMinder will resize images into thumbnails on the fly before sending them to the browser to reduce the network traffic at the expense of CPU on the server. It uses the Netpbm package to do this and this option should be set to where the binaries from that package are installed. If you do not have it installed it means that the images will always be sent full sizxe and rescaled on your browser whioch may or not be an isue for you.",
+		help => "For low bandwidth situations ZoneMinder will resize images into thumbnails on the fly before sending them to the browser to reduce the network traffic at the expense of CPU on the server. It uses the Netpbm package to do this and this option should be set to where the binaries from that package are installed. If you do not have it installed it means that the images will always be sent full size and rescaled on your browser which may or not be an issue for you.",
 		requires => [ { name=>"ZM_OPT_NETPBM", value=>"yes" } ],
 		type => $types{abs_path},
+		category => 'tools',
+	},
+	{
+		name => "ZM_OPT_TRIGGERS",
+		default => "no",
+		description => "Whether we want to interface external event triggers via socket or device files",
+		help => "ZoneMinder can interact with external systems which prompt or cancel alarms. This is done via the zmtrigger.pl script. This option indicates whether you want to use these external triggers, most people will say no here.",
+		type => $types{boolean},
 		category => 'tools',
 	},
 	{
@@ -1639,7 +1647,7 @@ if ( $reprocess )
 	printf( CFG_HDR_FILE "#define ZM_MAX_CFG_ID $last_id\n" );
 	close( CFG_HDR_FILE );
 
-	my @config_files = qw( zm.conf src/zm_config.h web/zm_config.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zm db/zmschema.sql );
+	my @config_files = qw( zm.conf src/zm_config.h web/zm_config.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmtrigger.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zm db/zmschema.sql );
 
 	foreach my $config_file ( @config_files )
 	{

@@ -1,5 +1,5 @@
 --
--- This updates a 1.19.5 database to 1.19.6
+-- This updates a 1.19.5 database to 1.20.0
 --
 -- Create the Groups table
 --
@@ -9,6 +9,15 @@ CREATE TABLE Groups (
   MonitorIds tinytext NOT NULL,
   PRIMARY KEY  (Id)
 ) TYPE=MyISAM;
+--
+-- Make changes to Monitors table
+--
+alter table Monitors modify column Function enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor';
+--
+-- Make changes to Events table
+--
+alter table Events add column Cause varchar(32) not null default '' after Name;
+alter table Events add column Notes tinytext after LearnState;
 --
 -- Add a new index to the Events table
 --

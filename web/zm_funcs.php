@@ -108,6 +108,11 @@ function makeLink( $url, $label, $condition=1 )
 	return( $string );
 }
 
+function truncText( $text, $length, $deslash=1 )
+{       
+	return( preg_replace( "/^(.{".$length.",}?)\b.*$/", "\\1&hellip;", ($deslash?stripslashes($text):$text) ) );       
+}               
+
 function buildSelect( $name, $contents, $onchange="" )
 {
 	if ( preg_match( "/^(\w+)\s*\[\s*['\"]?(\w+)[\"']?\s*]$/", $name, $matches ) )
@@ -327,6 +332,7 @@ function zmaControl( $monitor, $restart=false )
 		case 'Modect' :
 		case 'Record' :
 		case 'Mocord' :
+		case 'Nodect' :
 		{
 			if ( $restart )
 			{
@@ -507,7 +513,11 @@ function parseSort()
 		case 'Name' :
 			$sort_column = "E.Name";
 			break;
+		case 'Cause' :
+			$sort_column = "E.Cause";
+			break;
 		case 'DateTime' :
+		case 'StartTime' :
 			$sort_column = "E.StartTime";
 			break;
 		case 'Length' :
@@ -583,6 +593,12 @@ function parseFilter()
 					case 'MonitorName':
 						$filter_sql .= 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
 						break;
+					case 'Name':
+						$filter_sql .= "E.Name";
+						break;
+					case 'Cause':
+						$filter_sql .= "E.Cause";
+						break;
 					case 'DateTime':
 						$filter_sql .= "E.StartTime";
 						break;
@@ -622,6 +638,8 @@ function parseFilter()
 					switch ( $$attr_name )
 					{
 						case 'MonitorName':
+						case 'Name':
+						case 'Cause':
 							$value = "'$value'";
 							break;
 						case 'DateTime':

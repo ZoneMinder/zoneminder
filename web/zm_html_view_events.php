@@ -25,7 +25,7 @@ if ( !canView( 'Events' ) )
 }
 
 $count_sql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
-$events_sql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
+$events_sql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,E.Name,E.Cause,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
 if ( $user['MonitorIds'] )
 {
 	$count_sql .= " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
@@ -310,6 +310,7 @@ function viewEvents( form, name )
 <td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangId ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Name&sort_asc=<?= $sort_field == 'Name'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangName ?><?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=MonitorName&sort_asc=<?= $sort_field == 'MonitorName'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangMonitor ?><?php if ( $sort_field == "MonitorName" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Cause&sort_asc=<?= $sort_field == 'Cause'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangCause ?><?php if ( $sort_field == "Cause" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=StartTime&sort_asc=<?= $sort_field == 'StartTime'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangTime ?><?php if ( $sort_field == "StartTime" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Length&sort_asc=<?= $sort_field == 'Length'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangDuration ?><?php if ( $sort_field == "Length" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Frames&sort_asc=<?= $sort_field == 'Frames'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangFrames ?><?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
@@ -340,6 +341,7 @@ function viewEvents( form, name )
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $event['Width']+$jws['event']['w']  ?>, <?= $event['Height']+$jws['event']['h']  ?> );"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $event['Width']+$jws['event']['w']  ?>, <?= $event['Height']+$jws['event']['h']  ?> );"><?= $event['Name'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
 <td align="center" class="text"><?= $event['MonitorName'] ?></td>
+<td align="center" class="text"><?= $event['Cause'] ?></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event['StartTime']) ) ?></td>
 <td align="center" class="text"><?= $event['Length'] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['Frames'] ?></a></td>

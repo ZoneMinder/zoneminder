@@ -4,7 +4,14 @@ bool reload = false;
 
 void hup_handler( int signal )
 {
+	Info(( "Got HUP signal, reloading" ));
 	reload = true;
+}
+
+void term_handler( int signal )
+{
+	Info(( "Got TERM signal, exiting" ));
+	exit( 0 );
 }
 
 void main( int argc, const char *argv[] )
@@ -44,14 +51,27 @@ void main( int argc, const char *argv[] )
 	action.sa_mask = block_set;
 	action.sa_flags = 0;
 	sigaction( SIGHUP, &action, &old_action );
+	action.sa_handler = term_handler;
+	action.sa_mask = block_set;
+	action.sa_flags = 0;
+	sigaction( SIGTERM, &action, &old_action );
 	sigaddset( &block_set, SIGHUP );
+	sigaddset( &block_set, SIGTERM );
 	while( 1 )
 	{
 		// Process the next image
+		bool result = false;
 		sigprocmask( SIG_BLOCK, &block_set, 0 );
 		for ( int i = 0; i < n_monitors; i++ )
 		{
-			monitors[i]->Analyse();
+			if ( monitors[i]->Analyse() )
+			{
+				result = true;
+			}
+		}
+		if ( !result )
+		{
+			usleep( 10000 );
 		}
 		sigprocmask( SIG_UNBLOCK, &block_set, 0 );
 		if ( reload )

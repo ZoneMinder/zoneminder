@@ -1,5 +1,5 @@
 //
-// Zone Monitor Analysis Daemon, $Date$, $Revision$
+// ZoneMinder Analysis Daemon, $Date$, $Revision$
 // Copyright (C) 2002  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

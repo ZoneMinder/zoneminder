@@ -1,5 +1,5 @@
 //
-// Zone Monitor Debug Interface, $Date$, $Revision$
+// ZoneMinder Debug Interface, $Date$, $Revision$
 // Copyright (C) 2002  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

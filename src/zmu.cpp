@@ -1,5 +1,5 @@
 //
-// Zone Monitor Control Utility, $Date$, $Revision$
+// ZoneMinder Control Utility, $Date$, $Revision$
 // Copyright (C) 2002  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

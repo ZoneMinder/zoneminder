@@ -74,3 +74,5 @@ AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 AC_SUBST(bindir)
 
 AC_OUTPUT(Makefile src/Makefile web/Makefile scripts/Makefile db/Makefile zmconfig.pl)
+
+AC_CHECK_FILE(zmconfig.txt,,AC_MSG_WARN([Now run 'perl zmconfig.pl' to create your ZoneMinder configuration]))

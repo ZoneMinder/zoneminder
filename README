@@ -1,6 +1,6 @@
-     13/12/03        ZoneMinder 0.9.16 README                1
+     13/01/04        ZoneMinder 1.17.0 README                1
                                  
-                        ZoneMinder v0.9.16
+                        ZoneMinder v1.17.0
 
 1.   Introduction
    
@@ -1214,15 +1214,41 @@ pick  up the new changes immediately but some of the daemons  will
 still  be  using  the  old  values  and  this  can  lead  to  data
 inconsistency or loss.
 
-As  mentioned  above,  you may also see a  'users'  tab.  In  this
-section  you will see a list of the current users defined  on  the
-system.  You  can  also  add or delete  users  from  here.  It  is
-recommended  you  do  not delete the admin user  unless  you  have
+One  of the options you may notice in the 'System' tab allows  you
+to   specify  the  default  language  for  your  installation   of
+ZoneMinder.  Versions 1.17.0 and later support multiple  languages
+but  rely  on  users  to  assist in creating  language  files  for
+specific  languages. To specify a language you will have  to  give
+the applicable code, thus for UK English this is en_gb, and for US
+English it would be en_us, if no language is given then UK English
+is  assumed. Most languages will be specified in this nn_mm format
+and  to  check which languages are available look for files  named
+zm_lang_*.php  in the ZoneMinder build directory where  the  parts
+represented  by  the  '*'  would be what  you  would  enter  as  a
+language. This is slightly unwieldy and will probably be  improved
+in future to make it easier to determine language availability. On
+checking  which  languages  are available  it  may  be  that  your
+preferred  language is not currently included and if this  is  the
+case please consider doing a translation and sending it back to it
+may  be included in future releases. All the language elements are
+given in the zm_lang_en_gb.php file along with a few notes to help
+you understand the format.
+
+As  mentioned above, you may also see a 'users' tab in the Options
+area.  In  this  section you will see a list of the current  users
+defined on the system. You can also add or delete users from here.
+It is recommended you do not delete the admin user unless you have
 created another fully privileged user to take over the same  role.
 Each user is defined with a name and password (which is hidden) as
 well as an enabled setting which you can use to temporarily enable
 or  disable  users,  for  example a guest user  for  limited  time
-access.
+access.  As  well as that there is a language setting that  allows
+you  to  define  user specific languages. Setting a language  here
+that  is  different than the system language will mean  that  when
+that  user  logs in they will have the web interface presented  in
+their  own  language  rather than the system  default,  if  it  is
+available. Specifiying a language here is done in the same way  as
+for the system default language described above.
 
 There are also four values that define the user permissions, these
 are  'stream',  'events', 'monitors' and 'system'  Each  can  have
@@ -1453,8 +1479,53 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 7.   Change Log
    
 
-7.1. Release 0.9.16
-Major useability enhancement and fxes..
+7.1. Release 1.17.0
+Language changes and other enhancements.
+
+  o     Version  Numbering. ZoneMinder version  numbers  have  now
+    changed. This is to allow more frequent 'point' releases which are
+    expected to happen for instance whenever new language files are
+    included. Previously all releases had the same version increment
+    so it was difficult to tell the significance of any particular
+    release. Now the version number is in the x.y.z format where a
+    change in x signifies a major fundamental or architectural rework,
+    a change in y will indicate a new release containing incremental
+    feature changes or fixes recommend to all users and a change in z
+    will generally mean minor non-functional or critical modifications
+    which  would not be recommended as important to all users.  As
+    ZoneMinder has been referred to by the point release up until now,
+    e.g.  .15, .16 etc the next number in that sequence  has  been
+    retained  for continuity and to avoid having any ambiguity  in
+    version numbers.
+    
+o    Language Support. ZoneMinder now allows specification of
+system and user specific languages other than UK English. These
+languages are given in language files named zm_lang_nn_mm.php
+which can be created from the default zm_lang_en_gb.php file. If
+your language is not included then please consider doing a
+translation by checking this file and submitting your changes back
+for inclusion in future releases.
+o    Syntactic Improvements. Previously setting 'NOTICE' errors on
+in PHP would flag tens or hundreds of violations in the ZoneMinder
+web files. Whilst not strictly errors this represented sloppy
+coding and sometimes covered up genuine bugs. All the files have
+been revisited and revised to ensure that a many of these problems
+as possible have been eliminated and only the very few where the
+fix would be significantly less optimal than the problem remain.
+o    Stream Scaling Resizing. Previously when watching a stream
+and modifying the scale of the streamed feed only the actual feed
+would change size and the containing frames and windows would
+remain the same. This was fine for changes to smaller scales but
+problematic for larger scales. This has been changed for that the
+window and frames will now resize appropriately.
+o    Mmap Return Value. A problem identified by users in the forum
+relating to checking of return values from the mmap function call
+has been corrected.
+o    Minor Bugs. A number of minor bugs and inconsistencies were
+corrected.
+
+7.2. Release 0.9.16
+Major useability enhancement and fixes.
 
   o    Run States. Instead of the old 'start/stop' links the current
     system  state is now a link which takes you to a dialog  which
@@ -1573,7 +1644,7 @@ correctly parsed from command line options passed to zmu.
 o    Event window width variable. Event windows now scale to fit
 the event image size.
 
-7.2. Release 0.9.15
+7.3. Release 0.9.15
 Various bug fixes from the last release and before.
 
   o     Bandwidth.  A  bug was introduced in .14  which  caused  a
@@ -1609,7 +1680,7 @@ directly were colourised whereas those written by  zmf weren't. A
 change has been made whereby if set all greyscale JPEG images are
 colourised in all circumstances.
 
-7.3. Release 0.9.14
+7.4. Release 0.9.14
 Major new feature and important bug-fixes.
 
   o     Web  configuration. Following many requests  and  to  make
@@ -1651,7 +1722,7 @@ should still be secure as it will require authentication.
 o    All SQL buffers in the C++ code have been enlarged. There was
 previously an issue with a buffer overflow on certain occasions.
 
-7.4. Release 0.9.13
+7.5. Release 0.9.13
 Beta  version  of  several  features and  fixes,  never  generally
 released.
 
@@ -1701,7 +1772,7 @@ restart the refresh process. By using JS refresh timers which are
 not interrupted these extraneous refreshes have been mostly
 eliminated.
 
-7.5. Release 0.9.12
+7.6. Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
   o    Double first images. Fixed a problem where the first image of
@@ -1773,7 +1844,7 @@ users, attempts to delete monitors will now require confirmation.
 o    Detect linmysqlclient.a. Added better detection script into
 'configure' top spot when libmysqlclient.a is missing.
 
-7.6. Release 0.9.11
+7.7. Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats  view  -  If you have the  RECORD_EVENT_STATS
@@ -1856,7 +1927,7 @@ o    Web colour change - I thought the old red, green and amber
 text colours were just a bit too gaudy so I've toned them down a
 bit. Hope you like them!
 
-7.7. Release 0.9.10
+7.8. Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
   o     Configure 'round' bug - Fixed a problem with the configure
@@ -1934,7 +2005,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came across
 that that I don't think had been reported or noticed so I don't
 think we need to talk about them here do we.
 
-7.8. Release 0.9.9
+7.9. Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o    Added zmu -q/--query option - There is now a new query option
@@ -1981,7 +2052,7 @@ removed in the last version which meant that sometimes the console
 never go refreshed as it's timing loop was broken. This
 functionality has now been reinstated.
 
-7.9. Release 0.9.8
+7.10.     Release 0.9.8
 Several new features and bug-fixes
 
   o    Upgrade note - If you have installed 0.9.7 and wish to save
@@ -2046,7 +2117,7 @@ o    Monitor window refresh on alarm - When the monitor window is
 active and an alarm has occurred the most recent alarms list is
 immediately refreshed to show it.
 
-7.10.     Release 0.9.7
+7.11.     Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes too.  Now
 somewhat more mature, not really an alpha any more, and a  lot  of
 bugs fixed too.
@@ -2091,7 +2162,7 @@ o    Some of the web views have changed slightly to accommodate
 the separate events view.
 o    And much much more, probably...
 
-7.11.     Release 0.0.1
+7.12.     Release 0.0.1
 Initial release, therefore nothing new.
 
 
@@ -2101,12 +2172,10 @@ Seeing  as  ZoneMinder is so young and has kind of evolved  rather
 than  being  planned  there  are  a  bunch  of  improvements   and
 enhancements still to do, here is just a sample.
 
-  o    Add multi-language support - This will be coming hopefully in
-     the next version.
+  o    Perhaps split out devices - I think devices should probably
+     be a separate table and class from monitors. Not critical but
+     would represent a better model.
      
-o    Perhaps split out devices - I think devices should probably
-be a separate table and class from monitors. Not critical but
-would represent a better model.
 o    Comments - Needs many more, but that's just me I'm hopeless
 at commenting things out. I'll get round to it soon though honest!
 You're lucky to even get this document.
@@ -2153,9 +2222,6 @@ that should be ignored. ZoneMinder will interpolate, add a bit of
 magic, and recommend settings that will support this selection
 automatically thereafter. The hooks for this are already in to
 some extent.
-o    Add quotes to all PHP array references. I should have done it
-in the first place but I'm a perl person really and it kind of
-bugs me that you have to.
 o    Add sound support to allow a captured audio channel to be
 associated with a video device.
 
@@ -2179,9 +2245,6 @@ is more of a major issue).
 o    The .sock files used by the *nix sockets I suspect may have
 the odd permission issue now and again. I think everything
 recovers from it but it needs checking out.
-o    Scaling large than 1x in the monitor streaming windows makes
-it too big to fit in the frame. The frame should be resized to
-fit.
 Probably bucket loads more, just fire them at me.
 
 

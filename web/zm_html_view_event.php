@@ -27,6 +27,8 @@
 		die( mysql_error() );
 	$next_event = mysql_fetch_assoc( $result );
 
+	if ( !isset( $rate ) )
+		$rate = 1;
 ?>
 <html>
 <head>
@@ -76,7 +78,7 @@ function newWindow(Url,Name,Width,Height)
 <input type="hidden" name="eid" value="<?= $eid ?>">
 <input type="text" size="16" name="event_name" value="<?= $event[Name] ?>" class="form">
 <input type="submit" value="Rename" class="form"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></form></td>
-<td colspan="3" align="right" class="text">
+<td colspan="2" align="right" class="text">
 <form name="learn_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="learn">
@@ -87,6 +89,15 @@ function newWindow(Url,Name,Width,Height)
 Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.submit();"><option value=""<?php if ( !$event[LearnState] ) echo " selected" ?>>Ignore</option><option value="-"<?php if ( $event[LearnState]=='-' ) echo " selected" ?>>Exclude</option><option value="+"<?php if ( $event[LearnState]=='+' ) echo " selected" ?>>Include</option></select>
 <?php } ?>
 </form></td>
+<td colspan="1" align="right" class="text">
+<form name="rate_form" method="get" action="<?= $PHP_SELF ?>">
+<input type="hidden" name="view" value="<?= $view ?>">
+<input type="hidden" name="action" value="rename">
+<input type="hidden" name="mid" value="<?= $mid ?>">
+<input type="hidden" name="eid" value="<?= $eid ?>">
+<?php buildSelect( "rate", $rates, "document.rate_form.submit();" ); ?>
+</form>
+</td>
 </tr>
 <tr>
 <td align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
@@ -113,7 +124,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php
 	if ( $mode == "stream" )
 	{
-		$stream_src = ZM_PATH_ZMS."?path=".ZM_PATH_WEB."&event=$eid&refresh=".STREAM_EVENT_DELAY;
+		$stream_src = ZM_PATH_ZMS."?path=".ZM_PATH_WEB."&event=$eid&rate=$rate";
 		if ( isNetscape() )
 		{
 ?>

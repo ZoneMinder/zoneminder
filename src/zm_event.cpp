@@ -265,7 +265,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 	}
 }
 
-void Event::StreamEvent( const char *path, int event_id, long refresh, FILE *fd )
+void Event::StreamEvent( const char *path, int event_id, int rate, FILE *fd )
 {
 	static char sql[BUFSIZ];
 	sprintf( sql, "select Id, EventId, ImagePath, Delta from Frames where EventId = %d order by Id", event_id );
@@ -291,18 +291,23 @@ void Event::StreamEvent( const char *path, int event_id, long refresh, FILE *fd 
 	fprintf( fd, "--ZoneMinderFrame\n" );
 
 	int n_frames = mysql_num_rows( result );
-	Info(( "Got %d frames", n_frames ));
+	Info(( "Got %d frames, at rate %d", n_frames, rate ));
 	FILE *fdj = NULL;
 	int n_bytes = 0;
 	static unsigned char buffer[400000];
 	double last_delta = 0;
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		if ( refresh < 0 )
+		if ( rate )
 		{
 			if ( i )
 			{
-				usleep( (int)((1000000*(atof(dbrow[3])-last_delta))/abs(refresh)) );
+				int delay = 0;
+				if ( rate < 0 )
+					delay = (int)((1000000*(atof(dbrow[3])-last_delta))*abs(rate));
+				else
+					delay = (int)((1000000*(atof(dbrow[3])-last_delta))/rate);
+				usleep( delay );
 			}
 			last_delta = atof(dbrow[3]);
 		}
@@ -321,10 +326,6 @@ void Event::StreamEvent( const char *path, int event_id, long refresh, FILE *fd 
 		else
 		{
 			Error(( "Can't open %s: %s", filepath, strerror(errno) ));
-		}
-		if ( refresh > 0 )
-		{
-			usleep( refresh*1000 );
 		}
 	}
 	if ( mysql_errno( &dbconn ) )

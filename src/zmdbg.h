@@ -79,15 +79,11 @@ extern "C" {
 int DbgInit(void);
 int DbgTerm(void);
 int DbgPrepare(const char * const file,const int line, const int code);
-int DbgArchiveNow ( void );
-void DbgArchive ( const unsigned int ArchiveTime, const unsigned int ArchiveSize );
 int DbgOutput(const char *fstring, ... ) __attribute__ ((format(printf, 1, 2)));
 #else
 int DbgInit();
 int DbgTerm();
 int DbgPrepare();
-DbgArchiveNow();
-DbgArchive();
 int DbgOutput();
 #endif
 

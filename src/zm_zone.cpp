@@ -102,12 +102,13 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	int hi_x = limits.Hi().X();
 	int hi_y = limits.Hi().Y();
 
+	unsigned char *pdiff;
 	for ( int y = lo_y; y <= hi_y; y++ )
 	{
-		unsigned char *pdiff = diff_image->Buffer( lo_x, y );
+		pdiff = diff_image->Buffer( lo_x, y );
 		for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
 		{
-			if ( (*pdiff > min_pixel_threshold) && (max_pixel_threshold && (*pdiff < max_pixel_threshold)) )
+			if ( (*pdiff > min_pixel_threshold) && (!max_pixel_threshold || (*pdiff < max_pixel_threshold)) )
 			{
 				*pdiff = WHITE;
 				alarm_pixels++;
@@ -448,7 +449,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
 	static char sql[BUFSIZ];
-	sprintf( sql, "select Id,Name,Type+0,Units,LoX,LoY,HiX,HiY,AlarmRGB,CheckMethod,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
+	sprintf( sql, "select Id,Name,Type+0,Units,LoX,LoY,HiX,HiY,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));

@@ -38,6 +38,13 @@ class Monitor
 public:
 	typedef enum
 	{
+		QUERY=0,
+		CAPTURE,
+		ANALYSIS
+	} Mode;
+
+	typedef enum
+	{
 		NONE=1,
 		PASSIVE,
 		ACTIVE,
@@ -94,6 +101,7 @@ protected:
 
 	typedef struct
 	{
+		bool valid;
 		State state;
 		int last_write_index;
 		int last_read_index;
@@ -101,20 +109,27 @@ protected:
 		ForceState force_state;
 		struct timeval *timestamps;
 		unsigned char *images;
-	} SharedImages;
+	} SharedData;
 
-	SharedImages *shared_images;
+	SharedData *shared_data;
 
 	bool record_event_stats;
 
 	Camera *camera;
 	
 public:
-	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_capture, int p_n_zones=0, Zone *p_zones[]=0 );
-	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_capture, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
+	void Initialise( Mode mode );
+
 	void AddZones( int p_n_zones, Zone *p_zones[] );
+
+	inline int ShmValid() const
+	{
+		return( shared_data->valid );
+	}
 
 	inline int Id() const
 	{
@@ -168,14 +183,14 @@ public:
 
 			int index = image_count%image_buffer_count;
 
-			if ( index == shared_images->last_read_index && function == ACTIVE )
+			if ( index == shared_data->last_read_index && function == ACTIVE )
 			{
 				Warning(( "Buffer overrun at index %d\n", index ));
 			}
 			gettimeofday( image_buffer[index].timestamp, &dummy_tz );
 			image_buffer[index].image->CopyBuffer( image );
 
-			shared_images->last_write_index = index;
+			shared_data->last_write_index = index;
 
 			image_count++;
 
@@ -185,6 +200,7 @@ public:
 				Info(( "%s: %d - Capturing at %.2f fps", name, image_count, fps ));
 				last_fps_time = now;
 			}
+			sleep( 2 );
 			return( 0 );
 		}
 		return( -1 );
@@ -205,9 +221,9 @@ public:
 
 	unsigned int Compare( const Image &image );
 	void ReloadZones();
-	static int Load( int device, Monitor **&monitors, bool capture=true );
-	static int Load( const char *host, const char*port, const char*path, Monitor **&monitors, bool capture=true );
-	static Monitor *Load( int id, bool load_zones=false );
+	static int Load( int device, Monitor **&monitors, Mode mode=QUERY );
+	static int Load( const char *host, const char*port, const char*path, Monitor **&monitors, Mode mode=QUERY );
+	static Monitor *Load( int id, bool load_zones=false, Mode mode=QUERY );
 	void StreamImages( unsigned long idle=5000, unsigned long refresh=50, FILE *fd=stdout, time_t ttl=0 );
 };
 

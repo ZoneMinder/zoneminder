@@ -137,13 +137,13 @@ int main( int argc, char *argv[] )
 	int n_monitors = 0;
 	if ( device >= 0 )
 	{
-		n_monitors = Monitor::Load( device, monitors );
+		n_monitors = Monitor::Load( device, monitors, Monitor::CAPTURE );
 	}
 	else
 	{
 		if ( !port )
 			port = "80";
-		n_monitors = Monitor::Load( host, port, path, monitors );
+		n_monitors = Monitor::Load( host, port, path, monitors, Monitor::CAPTURE );
 	}
 
 	if ( !n_monitors )

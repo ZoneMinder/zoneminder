@@ -26,205 +26,28 @@
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_capture, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), width( p_width ), height( p_height ), orientation( (Orientation)p_orientation ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), width( p_width ), height( p_height ), orientation( (Orientation)p_orientation ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), n_zones( p_n_zones ), zones( p_zones )
 {
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
 
     strcpy( label_format, p_label_format );
 
-	camera = new LocalCamera( p_device, p_channel, p_format, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, p_capture );
+	camera = new LocalCamera( p_device, p_channel, p_format, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, p_mode==CAPTURE );
 
-	fps = 0.0;
-	event_count = 0;
-	image_count = 0;
-	first_alarm_count = 0;
-	last_alarm_count = 0;
-	state = IDLE;
-
-	int shared_images_size = sizeof(SharedImages)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
-	Info(( "shm.size=%d", shared_images_size ));
-	shmid = shmget( ZM_SHM_KEY|id, shared_images_size, IPC_CREAT|0777 );
-	if ( shmid < 0 )
-	{
-		Error(( "Can't shmget: %s", strerror(errno)));
-		exit( -1 );
-	}
-	unsigned char *shm_ptr = (unsigned char *)shmat( shmid, 0, 0 );
-	shared_images = (SharedImages *)shm_ptr;
-	if ( shared_images < 0 )
-	{
-		Error(( "Can't shmat: %s", strerror(errno)));
-		exit( -1 );
-	}
-
-	if ( p_capture )
-	{
-		memset( shared_images, 0, shared_images_size );
-		shared_images->state = IDLE;
-		shared_images->last_write_index = image_buffer_count;
-		shared_images->last_read_index = image_buffer_count;
-		shared_images->last_event = 0;
-		shared_images->force_state = FORCE_NEUTRAL;
-	}
-	shared_images->timestamps = (struct timeval *)(shm_ptr+sizeof(SharedImages));
-	shared_images->images = (unsigned char *)(shm_ptr+sizeof(SharedImages)+(image_buffer_count*sizeof(struct timeval)));
-
-	image_buffer = new Snapshot[image_buffer_count];
-	for ( int i = 0; i < image_buffer_count; i++ )
-	{
-		image_buffer[i].timestamp = &(shared_images->timestamps[i]);
-		image_buffer[i].image = new Image( width, height, camera->Colours(), &(shared_images->images[i*camera->ImageSize()]) );
-	}
-	if ( !n_zones )
-	{
-		n_zones = 1;
-		zones = new Zone *[1];
-		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED );
-	}
-	start_time = last_fps_time = time( 0 );
-
-	event = 0;
-
-	Info(( "Monitor %s has function %d", name, function ));
-	Info(( "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() ));
-	Info(( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
-
-	if ( !p_capture )
-	{
-		ref_image.Assign( width, height, camera->Colours(), image_buffer[shared_images->last_write_index].image->Buffer() );
-	}
-	else
-	{
-		static char	path[PATH_MAX];
-
-		sprintf( path, ZM_DIR_EVENTS );
-
-		struct stat statbuf;
-		errno = 0;
-		stat( path, &statbuf );
-		if ( errno == ENOENT || errno == ENOTDIR )
-		{
-			if ( mkdir( path, 0755 ) )
-			{
-				Error(( "Can't make %s: %s", path, strerror(errno)));
-			}
-		}
-
-		sprintf( path, ZM_DIR_EVENTS "/%s", name );
-
-		errno = 0;
-		stat( path, &statbuf );
-		if ( errno == ENOENT || errno == ENOTDIR )
-		{
-			if ( mkdir( path, 0755 ) )
-			{
-				Error(( "Can't make %s: %s", path, strerror(errno)));
-			}
-		}
-	}
-
-	record_event_stats = ZM_RECORD_EVENT_STATS;
+	Initialise( p_mode );
 }
 
-Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_capture, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), width( p_width ), height( p_height ), orientation( (Orientation)p_orientation ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), n_zones( p_n_zones ), zones( p_zones )
+Monitor::Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, Mode p_mode, int p_n_zones, Zone *p_zones[] ) : id( p_id ), function( (Function)p_function ), width( p_width ), height( p_height ), orientation( (Orientation)p_orientation ), label_coord( p_label_coord ), image_buffer_count( p_image_buffer_count ), warmup_count( p_warmup_count ), pre_event_count( p_pre_event_count ), post_event_count( p_post_event_count ), capture_delay( p_capture_delay ), fps_report_interval( p_fps_report_interval ), ref_blend_perc( p_ref_blend_perc ), image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ), n_zones( p_n_zones ), zones( p_zones )
 {
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
 
     strcpy( label_format, p_label_format );
 
-	camera = new RemoteCamera( p_host, p_port, p_path, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, p_capture );
+	camera = new RemoteCamera( p_host, p_port, p_path, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, p_mode==CAPTURE );
 
-	fps = 0.0;
-	event_count = 0;
-	image_count = 0;
-	first_alarm_count = 0;
-	last_alarm_count = 0;
-	state = IDLE;
-
-	int shared_images_size = sizeof(SharedImages)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
-	shmid = shmget( ZM_SHM_KEY|id, shared_images_size, IPC_CREAT|0777 );
-	if ( shmid < 0 )
-	{
-		Error(( "Can't shmget: %s", strerror(errno)));
-		exit( -1 );
-	}
-	unsigned char *shm_ptr = (unsigned char *)shmat( shmid, 0, 0 );
-	shared_images = (SharedImages *)shm_ptr;
-	if ( shared_images < 0 )
-	{
-		Error(( "Can't shmat: %s", strerror(errno)));
-		exit( -1 );
-	}
-
-	if ( p_capture )
-	{
-		memset( shared_images, 0, shared_images_size );
-		shared_images->state = IDLE;
-		shared_images->last_write_index = image_buffer_count;
-		shared_images->last_read_index = image_buffer_count;
-		shared_images->last_event = 0;
-		shared_images->force_state = FORCE_NEUTRAL;
-	}
-	shared_images->timestamps = (struct timeval *)(shm_ptr+sizeof(SharedImages));
-	shared_images->images = (unsigned char *)(shm_ptr+sizeof(SharedImages)+(image_buffer_count*sizeof(struct timeval)));
-
-	image_buffer = new Snapshot[image_buffer_count];
-	for ( int i = 0; i < image_buffer_count; i++ )
-	{
-		image_buffer[i].timestamp = &(shared_images->timestamps[i]);
-		image_buffer[i].image = new Image( width, height, camera->Colours(), &(shared_images->images[i*camera->ImageSize()]) );
-	}
-	if ( !n_zones )
-	{
-		n_zones = 1;
-		zones = new Zone *[1];
-		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED );
-	}
-	start_time = last_fps_time = time( 0 );
-
-	event = 0;
-
-	Info(( "Monitor %s has function %d", name, function ));
-	Info(( "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() ));
-	Info(( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
-
-	if ( !p_capture )
-	{
-		ref_image.Assign( width, height, camera->Colours(), image_buffer[shared_images->last_write_index].image->Buffer() );
-	}
-	else
-	{
-		static char	path[PATH_MAX];
-
-		sprintf( path, ZM_DIR_EVENTS );
-
-		struct stat statbuf;
-		errno = 0;
-		stat( path, &statbuf );
-		if ( errno == ENOENT || errno == ENOTDIR )
-		{
-			if ( mkdir( path, 0755 ) )
-			{
-				Error(( "Can't make %s: %s", path, strerror(errno)));
-			}
-		}
-
-		sprintf( path, ZM_DIR_EVENTS "/%s", name );
-
-		errno = 0;
-		stat( path, &statbuf );
-		if ( errno == ENOENT || errno == ENOTDIR )
-		{
-			if ( mkdir( path, 0755 ) )
-			{
-				Error(( "Can't make %s: %s", path, strerror(errno)));
-			}
-		}
-	}
-
-	record_event_stats = ZM_RECORD_EVENT_STATS;
+	Initialise( p_mode);
 }
 
 Monitor::~Monitor()
@@ -248,6 +71,111 @@ Monitor::~Monitor()
 	}
 }
 
+void Monitor::Initialise( Mode mode )
+{
+	fps = 0.0;
+	event_count = 0;
+	image_count = 0;
+	first_alarm_count = 0;
+	last_alarm_count = 0;
+	state = IDLE;
+
+	Info(( "monitor mode=%d", mode ));
+
+	int shared_data_size = sizeof(SharedData)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
+	Info(( "shm.size=%d", shared_data_size ));
+	shmid = shmget( ZM_SHM_KEY|id, shared_data_size, IPC_CREAT|0777 );
+	if ( shmid < 0 )
+	{
+		Error(( "Can't shmget: %s", strerror(errno)));
+		exit( -1 );
+	}
+	unsigned char *shm_ptr = (unsigned char *)shmat( shmid, 0, 0 );
+	shared_data = (SharedData *)shm_ptr;
+	if ( shared_data < 0 )
+	{
+		Error(( "Can't shmat: %s", strerror(errno)));
+		exit( -1 );
+	}
+
+	if ( mode == CAPTURE )
+	{
+		memset( shared_data, 0, shared_data_size );
+		shared_data->valid = true;
+		shared_data->state = IDLE;
+		shared_data->last_write_index = image_buffer_count;
+		shared_data->last_read_index = image_buffer_count;
+		shared_data->last_event = 0;
+		shared_data->force_state = FORCE_NEUTRAL;
+	}
+	if ( !shared_data->valid )
+	{
+		Error(( "Shared memory not initialised by capture daemon" ));
+		exit( -1 );
+	}
+
+	struct timeval *shared_timestamps = (struct timeval *)(shm_ptr+sizeof(SharedData));
+	unsigned char *shared_images = (unsigned char *)(shm_ptr+sizeof(SharedData)+(image_buffer_count*sizeof(struct timeval)));
+	image_buffer = new Snapshot[image_buffer_count];
+	for ( int i = 0; i < image_buffer_count; i++ )
+	{
+		image_buffer[i].timestamp = &(shared_timestamps[i]);
+		image_buffer[i].image = new Image( width, height, camera->Colours(), &(shared_images[i*camera->ImageSize()]) );
+	}
+	if ( !n_zones )
+	{
+		n_zones = 1;
+		zones = new Zone *[1];
+		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED );
+	}
+	start_time = last_fps_time = time( 0 );
+
+	event = 0;
+
+	Info(( "Monitor %s has function %d", name, function ));
+	Info(( "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() ));
+	Info(( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, FRI = %d, RBP = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, fps_report_interval, ref_blend_perc ));
+
+	record_event_stats = ZM_RECORD_EVENT_STATS;
+
+	if ( mode == ANALYSIS )
+	{
+		static char	path[PATH_MAX];
+
+		sprintf( path, ZM_DIR_EVENTS );
+
+		struct stat statbuf;
+		errno = 0;
+		stat( path, &statbuf );
+		if ( errno == ENOENT || errno == ENOTDIR )
+		{
+			if ( mkdir( path, 0755 ) )
+			{
+				Error(( "Can't make %s: %s", path, strerror(errno)));
+			}
+		}
+
+		sprintf( path, ZM_DIR_EVENTS "/%s", name );
+
+		errno = 0;
+		stat( path, &statbuf );
+		if ( errno == ENOENT || errno == ENOTDIR )
+		{
+			if ( mkdir( path, 0755 ) )
+			{
+				Error(( "Can't make %s: %s", path, strerror(errno)));
+			}
+		}
+
+		while( shared_data->last_write_index == image_buffer_count )
+		{
+			Warning(( "Waiting for capture daemon" ));
+			sleep( 1 );
+		}
+		ref_image.Assign( width, height, camera->Colours(), image_buffer[shared_data->last_write_index].image->Buffer() );
+	}
+}
+
 void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
 {
 	n_zones = p_n_zones;
@@ -256,14 +184,14 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
 
 Monitor::State Monitor::GetState() const
 {
-	return( shared_images->state );
+	return( shared_data->state );
 }
 
 int Monitor::GetImage( int index ) const
 {
 	if ( index < 0 || index > image_buffer_count )
 	{
-		index = shared_images->last_write_index;
+		index = shared_data->last_write_index;
 	}
 	Snapshot *snap = &image_buffer[index];
 	Image *image = snap->image;
@@ -278,30 +206,34 @@ struct timeval Monitor::GetTimestamp( int index ) const
 {
 	if ( index < 0 || index > image_buffer_count )
 	{
-		index = shared_images->last_write_index;
+		index = shared_data->last_write_index;
 	}
+
+	Info(( "Index %d = %x", index, image_buffer[index].timestamp ));
+	Info(( "Timestamp %d.%d", image_buffer[index].timestamp->tv_sec, image_buffer[index].timestamp->tv_usec ));
+
 	Snapshot *snap = &image_buffer[index];
 	return( *(snap->timestamp) );
 }
 
 unsigned int Monitor::GetLastReadIndex() const
 {
-	return( shared_images->last_read_index );
+	return( shared_data->last_read_index );
 }
 
 unsigned int Monitor::GetLastWriteIndex() const
 {
-	return( shared_images->last_write_index );
+	return( shared_data->last_write_index );
 }
 
 unsigned int Monitor::GetLastEvent() const
 {
-	return( shared_images->last_event );
+	return( shared_data->last_event );
 }
 
 double Monitor::GetFPS() const
 {
-	int index1 = shared_images->last_write_index;
+	int index1 = shared_data->last_write_index;
 	int index2 = (index1+1)%image_buffer_count;
 
 	//Snapshot *snap1 = &image_buffer[index1];
@@ -318,22 +250,22 @@ double Monitor::GetFPS() const
 
 void Monitor::ForceAlarmOn()
 {
-	shared_images->force_state = FORCE_ON;
+	shared_data->force_state = FORCE_ON;
 }
 
 void Monitor::ForceAlarmOff()
 {
-	shared_images->force_state = FORCE_OFF;
+	shared_data->force_state = FORCE_OFF;
 }
 
 void Monitor::CancelForced()
 {
-	shared_images->force_state = FORCE_NEUTRAL;
+	shared_data->force_state = FORCE_NEUTRAL;
 }
 
 void Monitor::DumpZoneImage()
 {
-	int index = shared_images->last_write_index;
+	int index = shared_data->last_write_index;
 	Snapshot *snap = &image_buffer[index];
 	Image *image = snap->image;
 
@@ -380,7 +312,7 @@ void Monitor::DumpImage( Image *image ) const
 
 bool Monitor::Analyse()
 {
-	if ( shared_images->last_read_index == shared_images->last_write_index )
+	if ( shared_data->last_read_index == shared_data->last_write_index )
 	{
 		return( false );
 	}
@@ -398,7 +330,7 @@ bool Monitor::Analyse()
 	int index;
 	if ( ZM_OPT_ADAPTIVE_SKIP )
 	{
-		int read_margin = shared_images->last_read_index - shared_images->last_write_index;
+		int read_margin = shared_data->last_read_index - shared_data->last_write_index;
 		if ( read_margin < 0 ) read_margin += image_buffer_count;
 
 		int step = 1;
@@ -407,13 +339,13 @@ bool Monitor::Analyse()
 			step = (9*image_buffer_count)/(5*read_margin);
 		}
 
-		int pending_frames = shared_images->last_write_index - shared_images->last_read_index;
+		int pending_frames = shared_data->last_write_index - shared_data->last_read_index;
 		if ( pending_frames < 0 ) pending_frames += image_buffer_count;
 
-		Debug( 1, ( "RI:%d, WI: %d, PF = %d, RM = %d, Step = %d", shared_images->last_read_index, shared_images->last_write_index, pending_frames, read_margin, step ));
+		Debug( 1, ( "RI:%d, WI: %d, PF = %d, RM = %d, Step = %d", shared_data->last_read_index, shared_data->last_write_index, pending_frames, read_margin, step ));
 		if ( step <= pending_frames )
 		{
-			index = (shared_images->last_read_index+step)%image_buffer_count;
+			index = (shared_data->last_read_index+step)%image_buffer_count;
 		}
 		else
 		{
@@ -421,12 +353,12 @@ bool Monitor::Analyse()
 			{
 				Warning(( "Approaching buffer overrun, consider increasing ring buffer size" ));
 			}
-			index = shared_images->last_write_index%image_buffer_count;
+			index = shared_data->last_write_index%image_buffer_count;
 		}
 	}
 	else
 	{
-		index = shared_images->last_write_index%image_buffer_count;
+		index = shared_data->last_write_index%image_buffer_count;
 	}
 
 	Snapshot *snap = &image_buffer[index];
@@ -436,9 +368,9 @@ bool Monitor::Analyse()
 	unsigned int score = 0;
 	if ( Ready() )
 	{
-		if ( shared_images->force_state != FORCE_OFF )
+		if ( shared_data->force_state != FORCE_OFF )
 			score = Compare( *image );
-		if ( shared_images->force_state == FORCE_ON )
+		if ( shared_data->force_state == FORCE_ON )
 			score = ZM_FORCED_ALARM_SCORE;
 
 		if ( score )
@@ -461,23 +393,23 @@ bool Monitor::Analyse()
 				event->AddFrames( pre_event_count, timestamps, images );
 				//event->AddFrame( now, &image );
 			}
-			shared_images->state = state = ALARM;
+			shared_data->state = state = ALARM;
 			last_alarm_count = image_count;
 		}
 		else
 		{
 			if ( state == ALARM )
 			{
-				shared_images->state = state = ALERT;
+				shared_data->state = state = ALERT;
 			}
 			else if ( state == ALERT )
 			{
 				if ( image_count-last_alarm_count > post_event_count )
 				{
 					Info(( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() ));
-					shared_images->last_event = event->Id();
+					shared_data->last_event = event->Id();
 					delete event;
-					shared_images->state = state = IDLE;
+					shared_data->state = state = IDLE;
 				}
 			}
 		}
@@ -512,7 +444,7 @@ bool Monitor::Analyse()
 		//DumpImage( image );
 	}
 
-	shared_images->last_read_index = index%image_buffer_count;
+	shared_data->last_read_index = index%image_buffer_count;
 	image_count++;
 
 	return( true );
@@ -530,7 +462,7 @@ void Monitor::ReloadZones()
 	DumpZoneImage();
 }
 
-int Monitor::Load( int device, Monitor **&monitors, bool capture )
+int Monitor::Load( int device, Monitor **&monitors, Mode mode )
 {
 	static char sql[256];
 	if ( device == -1 )
@@ -559,7 +491,7 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), atoi(dbrow[9]), dbrow[10], Coord( atoi(dbrow[11]), atoi(dbrow[12]) ), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atof(dbrow[17])>0.0?int(DT_PREC_3/atof(dbrow[17])):0, atoi(dbrow[18]), atoi(dbrow[19]), capture );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), atoi(dbrow[9]), dbrow[10], Coord( atoi(dbrow[11]), atoi(dbrow[12]) ), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atof(dbrow[17])>0.0?int(DT_PREC_3/atof(dbrow[17])):0, atoi(dbrow[18]), atoi(dbrow[19]), mode );
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
@@ -576,7 +508,7 @@ int Monitor::Load( int device, Monitor **&monitors, bool capture )
 	return( n_monitors );
 }
 
-int Monitor::Load( const char *host, const char*port, const char *path, Monitor **&monitors, bool capture )
+int Monitor::Load( const char *host, const char*port, const char *path, Monitor **&monitors, Mode mode )
 {
 	static char sql[256];
 	if ( !host )
@@ -605,7 +537,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), dbrow[3], dbrow[4], dbrow[5], atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), atoi(dbrow[9]), dbrow[10], Coord( atoi(dbrow[11]), atoi(dbrow[12]) ), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atof(dbrow[17])>0.0?int(DT_PREC_3/atof(dbrow[17])):0, atoi(dbrow[18]), atoi(dbrow[19]), capture );
+		monitors[i] = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[2]), dbrow[3], dbrow[4], dbrow[5], atoi(dbrow[6]), atoi(dbrow[7]), atoi(dbrow[8]), atoi(dbrow[9]), dbrow[10], Coord( atoi(dbrow[11]), atoi(dbrow[12]) ), atoi(dbrow[13]), atoi(dbrow[14]), atoi(dbrow[15]), atoi(dbrow[16]), atof(dbrow[17])>0.0?int(DT_PREC_3/atof(dbrow[17])):0, atoi(dbrow[18]), atoi(dbrow[19]), mode );
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
@@ -622,7 +554,7 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	return( n_monitors );
 }
 
-Monitor *Monitor::Load( int id, bool load_zones )
+Monitor *Monitor::Load( int id, bool load_zones, Mode mode )
 {
 	static char sql[256];
 	sprintf( sql, "select Id, Name, Type, Function+0, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, MaxFPS, FPSReportInterval, RefBlendPerc from Monitors where Id = %d", id );
@@ -645,11 +577,11 @@ Monitor *Monitor::Load( int id, bool load_zones )
 	{
 		if ( !strcmp( dbrow[2], "Local" ) )
 		{
-			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), atoi(dbrow[13]), dbrow[14], Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atof(dbrow[21])>0.0?int(DT_PREC_3/atof(dbrow[21])):0, atoi(dbrow[22]), atoi(dbrow[23]), false );
+			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), atoi(dbrow[4]), atoi(dbrow[5]), atoi(dbrow[6]), atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), atoi(dbrow[13]), dbrow[14], Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atof(dbrow[21])>0.0?int(DT_PREC_3/atof(dbrow[21])):0, atoi(dbrow[22]), atoi(dbrow[23]), mode );
 		}
 		else
 		{
-			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), dbrow[7], dbrow[8], dbrow[9], atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), atoi(dbrow[13]), dbrow[14], Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atof(dbrow[21])>0.0?int(DT_PREC_3/atof(dbrow[21])):0, atoi(dbrow[22]), atoi(dbrow[23]), false );
+			monitor = new Monitor( atoi(dbrow[0]), dbrow[1], atoi(dbrow[3]), dbrow[7], dbrow[8], dbrow[9], atoi(dbrow[10]), atoi(dbrow[11]), atoi(dbrow[12]), atoi(dbrow[13]), dbrow[14], Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), atoi(dbrow[17]), atoi(dbrow[18]), atoi(dbrow[19]), atoi(dbrow[20]), atof(dbrow[21])>0.0?int(DT_PREC_3/atof(dbrow[21])):0, atoi(dbrow[22]), atoi(dbrow[23]), mode );
 		}
 		int n_zones = 0;
 		if ( load_zones )
@@ -693,11 +625,11 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 		{
 			break;
 		}
-		if ( last_read_index != shared_images->last_write_index )
+		if ( last_read_index != shared_data->last_write_index )
 		{
 			// Send the next frame
-			last_read_index = shared_images->last_write_index;
-			int index = shared_images->last_write_index%image_buffer_count;
+			last_read_index = shared_data->last_write_index;
+			int index = shared_data->last_write_index%image_buffer_count;
 			//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
 			Snapshot *snap = &image_buffer[index];
 			Image *image = snap->image;
@@ -708,7 +640,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 			fprintf( fd, "\n--ZoneMinderFrame\n" );
 		}
 		usleep( refresh*1000 );
-		for ( int i = 0; shared_images->state == IDLE && i < loop_count; i++ )
+		for ( int i = 0; shared_data->state == IDLE && i < loop_count; i++ )
 		{
 			usleep( refresh*1000 );
 		}

@@ -186,7 +186,7 @@ public:
 			if ( image_count && !(image_count%fps_report_interval) )
 			{
 				fps = double(fps_report_interval)/(now-last_fps_time);
-				Info(( "%s: %d - Capturing at %.2f fps\n", name, image_count, fps ));
+				Info(( "%s: %d - Capturing at %.2f fps", name, image_count, fps ));
 				last_fps_time = now;
 			}
 			return( 0 );

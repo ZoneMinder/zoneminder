@@ -19,57 +19,57 @@ if ( $new_bandwidth )
 	setcookie( "bandwidth", $new_bandwidth, time()+3600*24*30*12*10 );
 }
 
-define( "DB_SERVER", "localhost" );	// Database Server machine
-define( "DB_NAME", "zm" );			// Database containing the tables
-define( "DB_USER", "zmadmin" );		// Database login
-define( "DB_PASS", "zmadminzm" );	// Database password
+define( "DB_SERVER", "localhost" );				// Database Server machine
+define( "DB_NAME", "zm" );						// Database containing the tables
+define( "DB_USER", "zmadmin" );					// Database login
+define( "DB_PASS", "zmadminzm" );				// Database password
 
-define( "MAX_EVENTS", 12 );
-define( "ALARM_POPUP", 1 );
-define( "ZM_PATH", "/usr/local/bin" );
-define( "ZMU_PATH", ZM_PATH."/zmu" );
-define( "ZMS_PATH", "/cgi-bin/zms" );
-define( "ZMS_EVENT_PATH", "/data/zm" );
-define( "CAMBOZOLA_PATH", "cambozola.jar" );
+define( "MAX_EVENTS", 12 );						// The maximum number of events to show in the default event listing
+define( "ALARM_POPUP", 1 );						// Whether the watch window jumps to front if an alarm occurs
+define( "ZM_PATH", "/usr/local/bin" );			// Path to the general ZoneMonitor executables
+define( "ZMU_PATH", ZM_PATH."/zmu" );			// Path to the Zone Monitor Utility
+define( "ZMS_PATH", "/cgi-bin/zms" );			// Path to the Zone Monitor Stream server
+define( "ZMS_EVENT_PATH", "/data/zm" );			// Full path (not web) to where events directory lives
+define( "CAMBOZOLA_PATH", "cambozola.jar" );	// Path to (optional) cambozola java streaming client (recommended)
 
 if ( $bandwidth == "high" )
 {
-	define( "REFRESH_MAIN", 300 );
-	define( "REFRESH_CYCLE", 5 );
-	define( "REFRESH_IMAGE", 5 );
-	define( "REFRESH_STATUS", 3 );
-	define( "REFRESH_EVENTS", 30 );
-	define( "REFRESH_EVENTS_ALL", 120 );
-	define( "STREAM_IDLE_DELAY", 1000 );
-	define( "STREAM_FRAME_DELAY", 50 );
-	define( "STREAM_EVENT_DELAY", 200 );
-	define( "IMAGE_SCALING", 1 );
+	define( "REFRESH_MAIN", 300 );				// How often (in seconds) the main console window refreshes
+	define( "REFRESH_CYCLE", 5 );				// How often the cycle watch windows swaps to the next monitor
+	define( "REFRESH_IMAGE", 5 );				// How often the watched image is refreshed (if not streaming)
+	define( "REFRESH_STATUS", 3 );				// How often the little status frame refreshes itself in the watch window
+	define( "REFRESH_EVENTS", 30 );				// How often the event listing is refreshed in the watch window, only for recent events
+	define( "REFRESH_EVENTS_ALL", 120 );		// How often the event listing is refreshed when looking at longer listings
+	define( "STREAM_IDLE_DELAY", 1000 );		// How long (in milliseconds) between streamed frames in the watch window
+	define( "STREAM_FRAME_DELAY", 50 );			// How long (in milliseconds) to wait before looking for the next streamed frame
+	define( "STREAM_EVENT_DELAY", 200 );		// How long (in milliseconds) to wait between each frame when streaming events
+	define( "IMAGE_SCALING", 1 );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 }
 elseif ( $bandwidth == "medium" )
 {
-	define( "REFRESH_MAIN", 300 );
-	define( "REFRESH_CYCLE", 10 );
-	define( "REFRESH_IMAGE", 15 );
-	define( "REFRESH_STATUS", 5 );
-	define( "REFRESH_EVENTS", 60 );
-	define( "REFRESH_EVENTS_ALL", 300 );
-	define( "STREAM_IDLE_DELAY", 5000 );
-	define( "STREAM_FRAME_DELAY", 100 );
-	define( "STREAM_EVENT_DELAY", 50 );
-	define( "IMAGE_SCALING", 2 );
+	define( "REFRESH_MAIN", 300 );				// How often (in seconds) the main console window refreshes
+	define( "REFRESH_CYCLE", 10 );				// How often the cycle watch windows swaps to the next monitor
+	define( "REFRESH_IMAGE", 15 );				// How often the watched image is refreshed (if not streaming)
+	define( "REFRESH_STATUS", 5 );				// How often the little status frame refreshes itself in the watch window
+	define( "REFRESH_EVENTS", 60 );				// How often the event listing is refreshed in the watch window, only for recent events
+	define( "REFRESH_EVENTS_ALL", 300 );		// How often the event listing is refreshed when looking at longer listings
+	define( "STREAM_IDLE_DELAY", 5000 );		// How long (in milliseconds) between streamed frames in the watch window
+	define( "STREAM_FRAME_DELAY", 100 );		// How long (in milliseconds) to wait before looking for the next streamed frame
+	define( "STREAM_EVENT_DELAY", 50 );			// How long (in milliseconds) to wait between each frame when streaming events
+	define( "IMAGE_SCALING", 4 );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 }
 else
 {
-	define( "REFRESH_MAIN", 300 );
-	define( "REFRESH_CYCLE", 30 );
-	define( "REFRESH_IMAGE", 30 );
-	define( "REFRESH_STATUS", 10 );
-	define( "REFRESH_EVENTS", 180 );
-	define( "REFRESH_EVENTS_ALL", 600 );
-	define( "STREAM_IDLE_DELAY", 10000 );
-	define( "STREAM_FRAME_DELAY", 250 );
-	define( "STREAM_EVENT_DELAY", 10 );
-	define( "IMAGE_SCALING", 4 );
+	define( "REFRESH_MAIN", 300 );				// How often (in seconds) the main console window refreshes
+	define( "REFRESH_CYCLE", 30 );				// How often the cycle watch windows swaps to the next monitor
+	define( "REFRESH_IMAGE", 30 );				// How often the watched image is refreshed (if not streaming)
+	define( "REFRESH_STATUS", 10 );				// How often the little status frame refreshes itself in the watch window
+	define( "REFRESH_EVENTS", 180 );			// How often the event listing is refreshed in the watch window, only for recent events
+	define( "REFRESH_EVENTS_ALL", 600 );		// How often the event listing is refreshed when looking at longer listings
+	define( "STREAM_IDLE_DELAY", 10000 );		// How long (in milliseconds) between streamed frames in the watch window
+	define( "STREAM_FRAME_DELAY", 250 );		// How long (in milliseconds) to wait before looking for the next streamed frame
+	define( "STREAM_EVENT_DELAY", 10 );			// How long (in milliseconds) to wait between each frame when streaming events
+	define( "IMAGE_SCALING", 4 );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 }
 
 $conn = mysql_connect( DB_SERVER, DB_USER, DB_PASS ) or die("Could not connect to database: ".mysql_error());

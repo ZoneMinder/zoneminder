@@ -1812,7 +1812,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( ZM_OPT_MPEG != "no" ) { ?>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=video&eid=<?= $eid ?>', 'zmVideo', <?= $jws['video']['w'] ?>, <?= $jws['video']['h'] ?> );">Video</a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=video&eid=<?= $eid ?>', 'zmVideo', <?= $jws['video']['w']+$event[Width] ?>, <?= $jws['video']['h']+$event[Height] ?> );">Video</a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
@@ -2465,6 +2465,101 @@ function closeWindow()
 			die( mysql_error() );
 		$event = mysql_fetch_assoc( $result );
 
+		ob_start();
+
+		// Note this all has a bunch of extra padding as IE won't flush less than 1024 chars
+?>
+<html>
+<head>
+<title>ZM - Video - <?= $event[Name] ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+</head>
+<body>
+<table border="0" cellspacing="0" cellpadding="4" width="100%">
+<tr><td>&nbsp;</td></tr>
+<tr><td>&nbsp;</td></tr>
+<tr><td>&nbsp;</td></tr>
+<tr><td>&nbsp;</td></tr>
+<tr><td>&nbsp;</td></tr>
+<tr>
+<td align="center" class="head">Generating Video</td>
+</tr>
+<tr><td>&nbsp;</td></tr>
+<tr><td>&nbsp;</td></tr>
+</table>
+</body>
+<?php
+		$buffer_string = "<!-- This is some long buffer text to ensure that IE flushes correctly -->";
+		for ( $i = 0; $i < 2048/strlen($buffer_string); $i++ )
+		{
+			echo $buffer_string."\n";
+		}
+?>
+</html>
+<?php
+		ob_end_flush();
+		if ( $video_file = createVideo( $event ) )
+		{
+			$event_dir = ZM_DIR_EVENTS."/$event[MonitorName]/".sprintf( "%d", $eid );
+			$video_path = $event_dir.'/'.$video_file;
+			//header("Location: $video_path" );
+?>
+<html>
+<head>
+<title>ZM - Video - <?= $event[Name] ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+location.replace('<?= $video_path ?>');
+</script>
+</head>
+</html>
+<?php
+		}
+		else
+		{
+?>
+<html>
+<head>
+<title>ZM - Video - <?= $event[Name] ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+</head>
+<body>
+<p class="head" align="center"><font color="red"><br><br><br>Video Generation Failed!<br><br><br></font></p>
+</body>
+</html>
+<?php
+		}
+		break;
+	}
+	case "function" :
+	{
+		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$monitor = mysql_fetch_assoc( $result );
+?>
+<html>
+<head>
+<title>ZM - Function - <?= $monitor[Name] ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+<?php
+	if ( $refresh_parent )
+	{
+?>
+opener.location.reload();
+<?php
+	}
+?>
+window.focus();
+function refreshWindow()
+{
+	window.location.reload();
+}
+</table>
+</body>
+</html>
+<?php
 		if ( $video_file = createVideo( $event ) )
 		{
 			$event_dir = ZM_DIR_EVENTS."/$event[MonitorName]/".sprintf( "%d", $eid );

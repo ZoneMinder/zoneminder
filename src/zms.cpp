@@ -23,7 +23,7 @@
 
 int main( int argc, const char *argv[] )
 {
-	enum { ZMS_JPEG, ZMS_MPEG } mode = ZMS_JPEG;
+	enum { ZMS_JPEG, ZMS_MPEG, ZMS_SINGLE } mode = ZMS_JPEG;
 	char format[32] = "";
 	int id = 1;
 	int event = 0;
@@ -67,7 +67,10 @@ int main( int argc, const char *argv[] )
 			char *name = strtok( parms[p], "=" );
 			char *value = strtok( NULL, "=" );
 			if ( !strcmp( name, "mode" ) )
+			{
 				mode = !strcmp( value, "jpeg" )?ZMS_JPEG:ZMS_MPEG;
+				mode = !strcmp( value, "single" )?ZMS_SINGLE:mode;
+			}
 			else if ( !strcmp( name, "monitor" ) )
 				id = atoi( value );
 			else if ( !strcmp( name, "event" ) )
@@ -121,6 +124,10 @@ int main( int argc, const char *argv[] )
 			{
 				monitor->StreamImages( scale, maxfps, ttl );
 			}
+			else if ( mode == ZMS_SINGLE )
+			{
+				monitor->SingleImage( scale );
+			} 
 			else
 			{
 #if HAVE_LIBAVCODEC

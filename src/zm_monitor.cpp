@@ -1171,6 +1171,32 @@ void Monitor::StreamImages( int scale, int maxfps, time_t ttl )
 	}
 }
 
+void Monitor::SingleImage( int scale)
+{
+	int last_read_index = shared_data->last_write_index;
+	int img_buffer_size = 0;
+	static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
+	Image scaled_image;
+	int index = shared_data->last_write_index%image_buffer_count;
+	Snapshot *snap = &image_buffer[index];
+	Image *snap_image = snap->image;
+
+	if ( scale != 100 )
+	{
+		scaled_image.Assign( *snap_image );
+		scaled_image.Scale( scale );
+		snap_image = &scaled_image;
+	}
+	if ( !timestamp_on_capture )
+	{
+		TimestampImage( snap_image, snap->timestamp->tv_sec );
+	}
+	snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
+	
+	fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
+	fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
+	fwrite( img_buffer, img_buffer_size, 1, stdout );
+}
 
 #if HAVE_LIBAVCODEC
 

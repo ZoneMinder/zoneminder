@@ -5,26 +5,6 @@
 -- Server version	3.23.49
 
 --
--- Table structure for table 'Alarms'
---
-
-CREATE TABLE Alarms (
-  Id int(10) unsigned NOT NULL auto_increment,
-  EventId int(10) unsigned default NULL,
-  ZoneId int(10) unsigned default NULL,
-  FrameId int(10) unsigned NOT NULL default '0',
-  LoX smallint(5) unsigned NOT NULL default '0',
-  LoY smallint(5) unsigned NOT NULL default '0',
-  HiX smallint(5) unsigned NOT NULL default '0',
-  HiY smallint(5) unsigned NOT NULL default '0',
-  AlarmPixels int(10) unsigned NOT NULL default '0',
-  AlarmBlobs smallint(5) unsigned NOT NULL default '0',
-  Score double NOT NULL default '0',
-  PRIMARY KEY  (Id),
-  UNIQUE KEY UC_Id (Id)
-) TYPE=MyISAM;
-
---
 -- Table structure for table 'Events'
 --
 

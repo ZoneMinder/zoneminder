@@ -227,6 +227,7 @@ if ( $action )
 			$result = mysql_query( $sql );
 			if ( !$result )
 				die( mysql_error() );
+			stopDaemon( "zma", $monitor[Device] );
 			startDaemon( "zma", $monitor[Device] );
 			$refresh_parent = true;
 		}

@@ -52,21 +52,21 @@ bool fixDevice( int device )
 	if ( uid == stat_buf.st_uid )
 	{
 		// If we are the owner
-		mask = 00400;
+		mask = 00600;
 	}
 	else if ( gid == stat_buf.st_gid )
 	{
 		// If we are in the owner group
-		mask = 00040;
+		mask = 00060;
 	}
 	else
 	{
 		// We are neither the owner nor in the group
-		mask = 00004;
+		mask = 00006;
 	}
 
 	mode_t mode = stat_buf.st_mode;
-	if ( mode & mask )
+	if ( (mode & mask) == mask )
 	{
 		Info(( "Permissions on %s are ok at %o", device_path, mode ));
 		return( true );

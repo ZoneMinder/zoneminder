@@ -56,7 +56,7 @@ void LocalCamera::Initialise()
 	char device_path[64];
 
 	sprintf( device_path, "/dev/video%d", device );
-	if( (m_videohandle=open(device_path, O_RDONLY)) <=0 )
+	if ( (m_videohandle=open(device_path, O_RDWR)) <=0 )
 	{
 		Error(( "Failed to open video device %s: %s", device_path, strerror(errno) ));
 		exit(-1);
@@ -147,7 +147,7 @@ void LocalCamera::Initialise()
 		m_vmm[loop].format = palette;
 	}
 
-	m_buffer = (unsigned char *)mmap(0, m_vmb.size, PROT_READ, MAP_SHARED, m_videohandle,0);
+	m_buffer = (unsigned char *)mmap(0, m_vmb.size, PROT_READ|PROT_WRITE, MAP_SHARED, m_videohandle,0);
 	if( !((long)m_buffer > 0) )
 	{
 		Error(( "Could not mmap video: %s", strerror(errno) ));
@@ -226,7 +226,7 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 	sprintf( device_path, "/dev/video%d", device );
 	if ( verbose )
 		sprintf( output, output+strlen(output), "Checking Video Device: %s\n", device_path );
-	if( (m_videohandle=open(device_path, O_RDONLY)) <=0 )
+	if ( (m_videohandle=open(device_path, O_RDWR)) <=0 )
 	{
 		Error(( "Failed to open video device %s: %s", device_path, strerror(errno) ));
 		if ( verbose )

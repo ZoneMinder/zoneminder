@@ -69,11 +69,12 @@ if ( ZM_OPT_UPLOAD )
 	# or don't want to use that format
 	if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
 	{
-		use Archive::Zip qw( :ERROR_CODES :CONSTANTS );
+		use Archive::Zip;
+		import Archive::Zip qw( :ERROR_CODES :CONSTANTS );
 	}
 	else
 	{
-		use Archive::Tar;
+		require Archive::Tar;
 	}
 	use Net::FTP;
 }
@@ -403,17 +404,17 @@ sub uploadArchFile
 		my $zip = Archive::Zip->new();
 		print( "Creating upload file '$arch_file'\n" );
 
-		my $status = AZ_OK;
+		my $status = &AZ_OK;
 		foreach my $image_file ( <*$arch_image_path> )
 		{
 			print( "Adding $image_file\n" );
 			my $member = $zip->addFile( $image_file );
 			last unless ( $member );
-			$member->desiredCompressionMethod( (ZM_UPLOAD_ARCH_COMPRESS)?COMPRESSION_DEFLATED:COMPRESSION_STORED );
+			$member->desiredCompressionMethod( (ZM_UPLOAD_ARCH_COMPRESS)?&COMPRESSION_DEFLATED:&COMPRESSION_STORED );
 		}
 		$status = $zip->writeToFileNamed( $arch_file );
 
-		if ( $arch_error = ($status != AZ_OK) )
+		if ( $arch_error = ($status != &AZ_OK) )
 		{
 			print( "Zip error: $status\n " );
 		}

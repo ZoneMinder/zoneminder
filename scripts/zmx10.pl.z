@@ -164,6 +164,7 @@ sub runServer
 	listen( SERVER, SOMAXCONN ) or die( "Can't listen: $!" );
 
 	( $ENV{PATH} ) = ( $ENV{PATH} =~ /^(.*)$/ );
+	( $ENV{BASH_ENV} ) = ( $ENV{BASH_ENV} =~ /^(.*)$/ );
 
 	$dbh = DBI->connect( "DBI:mysql:".main::DB_NAME, main::DB_USER, main::DB_PASS );
 
@@ -258,6 +259,7 @@ sub runServer
 					{
 						$device->{status} = uc($command);
 						dprint( $device->{appliance}->address()." $command, ok\n" );
+						#x10listen( new X10::Event( sprintf("%s %s", $device->{appliance}->address, uc($command) ) ) );
 					}
 					else
 					{
@@ -330,7 +332,7 @@ sub runServer
 				}
 				delete( $pending_tasks{$activation_time} );
 			}
-			if ( $reload || $reload_count >= $reload_limit )
+			if ( $reload || ++$reload_count >= $reload_limit )
 			{
 				loadTasks();
 				$reload = undef;
@@ -571,7 +573,7 @@ sub processTask
 		{
 			if ( $instruction eq "start" )
 			{
-				$command = main::COMMAND_PATH."zmdc.pl start zma ".$task->{monitor};
+				$command = main::COMMAND_PATH."zmdc.pl start zma -m ".$task->{monitor};
 				if ( $task->{limit} )
 				{
 					addPendingTask( $task );
@@ -579,7 +581,7 @@ sub processTask
 			}
 			elsif( $instruction eq "stop" )
 			{
-				$command = main::COMMAND_PATH."zmdc.pl stop zma ".$task->{monitor};
+				$command = main::COMMAND_PATH."zmdc.pl stop zma -m ".$task->{monitor};
 			}
 		}
 		elsif( $class eq "alarm" )
@@ -626,10 +628,7 @@ sub dprint
 	{
 		print CLIENT @_
 	}
-	else
-	{
-		print @_;
-	}
+	print @_;
 }
 
 sub x10listen

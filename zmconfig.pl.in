@@ -240,7 +240,7 @@ my @options =
 		name => "ZM_PATH_ZMS",
 		default => "/cgi-bin/zms",
 		description => "Web path to zms streaming server",
-		help => "The ZoneMinder streaming server is required to send streamed images to your browser. It will be installed into the cgi-bin path given at configuration time. This option determines what the web path to the server is rather than the local path on your machine.",
+		help => "The ZoneMinder streaming server is required to send streamed images to your browser. It will be installed into the cgi-bin path given at configuration time. This option determines what the web path to the server is rather than the local path on your machine. Ordinarily the streaming server runs in parser-header mode however if you experience problems with streaming you can change this to non-parsed-header (nph) mode by changing 'zms' to 'nph-zms'.",
 		type => $types{rel_path},
 		category => 'paths',
 	},

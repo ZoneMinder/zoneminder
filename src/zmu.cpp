@@ -18,7 +18,11 @@
 // 
 
 #include <getopt.h>
+
 #include "zm.h"
+#include "zm_db.h"
+#include "zm_monitor.h"
+#include "zm_local_camera.h"
 
 void Usage( int status=-1 )
 {
@@ -180,26 +184,12 @@ int main( int argc, char *argv[] )
 	}
 	//printf( "Monitor %d, Function %d\n", mon_id, function );
 
-	dbg_name = "zmu";
-	dbg_level = -1;
+	zm_dbg_name = "zmu";
+	zm_dbg_level = -1;
 
-	DbgInit();
+	zmDbgInit();
 
-	if ( !mysql_init( &dbconn ) )
-	{
-		fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	if ( !mysql_connect( &dbconn, ZM_DB_SERVER, ZM_DB_USERB, ZM_DB_PASSB ) )
-	{
-		fprintf( stderr, "Can't connect to server: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	if ( mysql_select_db( &dbconn, ZM_DB_NAME ) )
-	{
-		fprintf( stderr, "Can't select database: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
+	zmDbConnect( ZM_DB_USERB, ZM_DB_PASSB );
 
 	if ( dev_id >= 0 )
 	{
@@ -210,7 +200,7 @@ int main( int argc, char *argv[] )
 	}
 	else
 	{
-		Monitor *monitor = Monitor::Load( mon_id, function&QUERY );
+		Monitor *monitor = Monitor::Load( mon_id, function&(QUERY|ZONES) );
 
 		if ( monitor )
 		{
@@ -311,7 +301,7 @@ int main( int argc, char *argv[] )
 			{
 				if ( verbose )
 					printf( "Dumping zone image to %s-Zones.jpg\n", monitor->Name() );
-				monitor->ReloadZones();
+				monitor->DumpZoneImage();
 			}
 			if ( function & ALARM )
 			{

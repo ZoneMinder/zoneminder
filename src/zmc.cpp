@@ -18,14 +18,18 @@
 // 
 
 #include <getopt.h>
+#include <signal.h>
+
 #include "zm.h"
+#include "zm_db.h"
+#include "zm_monitor.h"
 
-bool zm_terminate = false;
+bool zmc_terminate = false;
 
-void term_handler( int signal )
+void zmc_term_handler( int signal )
 {
 	Info(( "Got TERM signal, exiting" ));
-	zm_terminate = true;
+	zmc_terminate = true;
 }
 
 void Usage()
@@ -40,9 +44,15 @@ void Usage()
 int main( int argc, char *argv[] )
 {
 	int device = -1;
+	char *host = "";
+	char *port = "";
+	char *path = "";
 
 	static struct option long_options[] = {
 		{"device", 1, 0, 'd'},
+		{"host", 1, 0, 'H'},
+		{"port", 1, 0, 'P'},
+		{"path", 1, 0, 'p'},
 		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -53,7 +63,7 @@ int main( int argc, char *argv[] )
 		int option_index = 0;
 		int opterr = 1;
 
-		int c = getopt_long (argc, argv, "d:h", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:H:P:p:h", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -63,6 +73,15 @@ int main( int argc, char *argv[] )
 		{
 			case 'd':
 				device = atoi(optarg);
+				break;
+			case 'H':
+				host = optarg;
+				break;
+			case 'P':
+				port = optarg;
+				break;
+			case 'p':
+				path = optarg;
 				break;
 			case 'h':
 			case '?':
@@ -83,54 +102,72 @@ int main( int argc, char *argv[] )
 		Usage();
 	}
 
-	if ( device < 0 )
+	if ( device >= 0 && host[0] )
 	{
-		fprintf( stderr, "Bogus device %d\n", device );
+		fprintf( stderr, "Only one of device or host/port/path allowed\n" );
 		Usage();
 		exit( 0 );
 	}
 
+	if ( device < 0 && !host[0] )
+	{
+		fprintf( stderr, "One of device or host/port/path must be specified\n" );
+		Usage();
+		exit( 0 );
+	}
+
+	zm_dbg_name = "zmc";
+
 	char dbg_name_string[16];
-	sprintf( dbg_name_string, "zmc-d%d", device );
-	dbg_name = dbg_name_string;
+	if ( device >= 0 )
+	{
+		sprintf( dbg_name_string, "zmc-d%d", device );
+	}
+	else
+	{
+		sprintf( dbg_name_string, "zmc-h%s", host );
+	}
+	zm_dbg_name = dbg_name_string;
 
-	DbgInit();
+	zmDbgInit();
 
-	if ( !mysql_init( &dbconn ) )
-	{
-		fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	if ( !mysql_connect( &dbconn, ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA ) )
-	{
-		fprintf( stderr, "Can't connect to server: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	if ( mysql_select_db( &dbconn, ZM_DB_NAME ) )
-	{
-		fprintf( stderr, "Can't select database: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
+	zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
 
 	Monitor **monitors = 0;
-	int n_monitors = Monitor::Load( device, monitors );
+	int n_monitors = 0;
+	if ( device >= 0 )
+	{
+		n_monitors = Monitor::Load( device, monitors );
+	}
+	else
+	{
+		if ( !port )
+			port = "80";
+		n_monitors = Monitor::Load( host, port, path, monitors );
+	}
+
+	if ( !n_monitors )
+	{
+		Error(( "No monitors found" ));
+		exit ( -1 );
+	}
 
 	Info(( "Starting Capture" ));
 	sigset_t block_set;
 	sigemptyset( &block_set );
 	struct sigaction action, old_action;
 
-	action.sa_handler = term_handler;
+	action.sa_handler = zmc_term_handler;
 	action.sa_mask = block_set;
 	action.sa_flags = 0;
 	sigaction( SIGTERM, &action, &old_action );
 
 	//sigaddset( &block_set, SIGTERM );
-	if ( n_monitors == 1 )
+	if ( device >= 0 && n_monitors == 1 )
 	{
 		monitors[0]->PreCapture();
 	}
-	while( 1 )
+	while( !zmc_terminate )
 	{
 		/* grab a new one */
 		sigprocmask( SIG_BLOCK, &block_set, 0 );
@@ -140,14 +177,10 @@ int main( int argc, char *argv[] )
 			monitors[i]->PostCapture();
 		}
 		sigprocmask( SIG_UNBLOCK, &block_set, 0 );
-		if ( zm_terminate )
-		{
-			for ( int i = 0; i < n_monitors; i++ )
-			{
-				delete monitors[i];
-			}
-			break;
-		}
+	}
+	for ( int i = 0; i < n_monitors; i++ )
+	{
+		delete monitors[i];
 	}
 	return( 0 );
 }

@@ -18,23 +18,19 @@
 // 
 
 #include <getopt.h>
+#include <signal.h>
+
 #include "zm.h"
+#include "zm_db.h"
+#include "zm_monitor.h"
 
-bool reload = false;
-
-void die_handler( int signal )
+void zm_die_handler( int signal )
 {
 	Info(( "Got signal %d, crashing", signal ));
 	exit( signal );
 }
 
-void hup_handler( int signal )
-{
-	Info(( "Got HUP signal, reloading" ));
-	reload = true;
-}
-
-void term_handler( int signal )
+void zm_term_handler( int signal )
 {
 	Info(( "Got TERM signal, exiting" ));
 	exit( 0 );
@@ -104,25 +100,11 @@ int main( int argc, char *argv[] )
 
 	char dbg_name_string[16];
 	sprintf( dbg_name_string, "zma-m%d", id );
-	dbg_name = dbg_name_string;
+	zm_dbg_name = dbg_name_string;
 
-	DbgInit();
+	zmDbgInit();
 
-	if ( !mysql_init( &dbconn ) )
-	{
-		fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	if ( !mysql_connect( &dbconn, ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA ) )
-	{
-		fprintf( stderr, "Can't connect to server: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	if ( mysql_select_db( &dbconn, ZM_DB_NAME ) )
-	{
-		fprintf( stderr, "Can't select database: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
+	zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
 
 	Monitor *monitor = Monitor::Load( id, true );
 
@@ -134,12 +116,12 @@ int main( int argc, char *argv[] )
 		sigemptyset( &block_set );
 		struct sigaction action, old_action;
 
-		action.sa_handler = term_handler;
+		action.sa_handler = zm_term_handler;
 		action.sa_mask = block_set;
 		action.sa_flags = 0;
 		sigaction( SIGTERM, &action, &old_action );
 
-		action.sa_handler = die_handler;
+		action.sa_handler = zm_die_handler;
 		action.sa_mask = block_set;
 		action.sa_flags = 0;
 		sigaction( SIGBUS, &action, &old_action );

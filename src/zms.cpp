@@ -18,6 +18,8 @@
 // 
 
 #include "zm.h"
+#include "zm_db.h"
+#include "zm_monitor.h"
 
 int main( int argc, const char *argv[] )
 {
@@ -61,25 +63,11 @@ int main( int argc, const char *argv[] )
 		}
 	}
 
-	dbg_name = "zms";
+	zm_dbg_name = "zms";
 
-	DbgInit();
+	zmDbgInit();
 
-	if ( !mysql_init( &dbconn ) )
-	{
-		fprintf( stderr, "Can't initialise structure: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	if ( !mysql_connect( &dbconn, ZM_DB_SERVER, ZM_DB_USERB, ZM_DB_PASSB ) )
-	{
-		fprintf( stderr, "Can't connect to server: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	if ( mysql_select_db( &dbconn, ZM_DB_NAME ) )
-	{
-		fprintf( stderr, "Can't select database: %s\n", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
+	zmDbConnect( ZM_DB_USERA, ZM_DB_PASSA );
 
 	if ( !event )
 	{

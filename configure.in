@@ -110,6 +110,8 @@ AC_LANG_CPLUSPLUS
 
 XLIBS=""
 
+AC_CHECK_HEADERS(pcre/pcre.h,,,)
+AC_CHECK_HEADERS(pcre.h,,,)
 AC_CHECK_DECLS(round,,,[#include <math.h>])
 AC_CHECK_DECLS(strsignal,,,[#include <string.h>])
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))

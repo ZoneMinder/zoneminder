@@ -24,7 +24,7 @@ import_request_variables( "GPC" );
 
 //phpinfo( INFO_VARIABLES );
 
-$PHP_SELF = $_SERVER['PHP_SELF'];
+$PHP_SELF = $HTTP_SERVER_VARS['PHP_SELF'];
 
 if ( !$bandwidth )
 {
@@ -52,7 +52,7 @@ define( "EVENT_PATH", "events" );				// Local path to where events directory liv
 define( "ZMS_EVENT_PATH", "/data/zm" );			// Full path (not web) to where events directory lives
 define( "CAMBOZOLA_PATH", "cambozola.jar" );	// Path to (optional) cambozola java streaming client (recommended)
 define( "MPEG_ENCODE_PATH", "./mpeg_encode" );	// Path to (optional) mpeg video encoder
-define( "NETPBM_DIR", "/usr/bin/" );			// Path to (optional) Netpbm utilities
+define( "NETPBM_DIR", "/usr/bin" );				// Path to (optional) Netpbm utilities
 
 if ( $bandwidth == "high" )
 {
@@ -1060,9 +1060,9 @@ else
 			{
 				$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
 				if ( file_exists( $anal_image ) )
-					$command = NETPBM_DIR."jpegtopnm -dct fast $anal_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
+					$command = NETPBM_DIR."/jpegtopnm -dct fast $anal_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
 				else
-					$command = NETPBM_DIR."jpegtopnm -dct fast $capt_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
+					$command = NETPBM_DIR."/jpegtopnm -dct fast $capt_image | ".NETPBM_DIR."/pnmscalefixed $fraction | ".NETPBM_DIR."/ppmtojpeg --dct=fast > $thumb_image";
 				#exec( escapeshellcmd( $command ) );
 				exec( $command );
 			}
@@ -1721,19 +1721,19 @@ window.close();
 
 function getBrowser( &$browser, &$version )
 {
-	global $_SERVER;
+	global $HTTP_SERVER_VARS;
 
-	if (ereg( 'MSIE ([0-9].[0-9]{1,2})',$_SERVER[HTTP_USER_AGENT],$log_version))
+	if (ereg( 'MSIE ([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS[HTTP_USER_AGENT],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'ie';
 	}
-	elseif (ereg( 'Opera ([0-9].[0-9]{1,2})',$_SERVER[HTTP_USER_AGENT],$log_version))
+	elseif (ereg( 'Opera ([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS[HTTP_USER_AGENT],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'opera';
 	}
-	elseif (ereg( 'Mozilla/([0-9].[0-9]{1,2})',$_SERVER[HTTP_USER_AGENT],$log_version))
+	elseif (ereg( 'Mozilla/([0-9].[0-9]{1,2})',$HTTP_SERVER_VARS[HTTP_USER_AGENT],$log_version))
 	{
 		$version = $log_version[1];
 		$browser = 'mozilla';

@@ -75,15 +75,13 @@ AUTOMAKE_OPTIONS = gnu
 
 bin_SCRIPTS = zmdc.pl zmaudit.pl zmfilter.pl zmx10.pl zmwatch.pl zmpkg.pl
 
-EXTRA_DIST = $(bin_SCRIPTS) zm
+EXTRA_DIST = zmdc.pl.z zmaudit.pl.z zmfilter.pl.z zmx10.pl.z zmwatch.pl.z zmpkg.pl.z zm
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
-CONFIG_CLEAN_FILES =  zmdc.pl zmx10.pl zmaudit.pl zmfilter.pl zmwatch.pl \
-zmpkg.pl zm
+CONFIG_CLEAN_FILES = 
 SCRIPTS =  $(bin_SCRIPTS)
 
-DIST_COMMON =  Makefile.am Makefile.in zm.in zmaudit.pl.in zmdc.pl.in \
-zmfilter.pl.in zmpkg.pl.in zmwatch.pl.in zmx10.pl.in
+DIST_COMMON =  Makefile.am Makefile.in
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -99,20 +97,6 @@ Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status $(BUILT_SOURCES)
 	cd $(top_builddir) \
 	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
-zmdc.pl: $(top_builddir)/config.status zmdc.pl.in
-	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
-zmx10.pl: $(top_builddir)/config.status zmx10.pl.in
-	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
-zmaudit.pl: $(top_builddir)/config.status zmaudit.pl.in
-	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
-zmfilter.pl: $(top_builddir)/config.status zmfilter.pl.in
-	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
-zmwatch.pl: $(top_builddir)/config.status zmwatch.pl.in
-	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
-zmpkg.pl: $(top_builddir)/config.status zmpkg.pl.in
-	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
-zm: $(top_builddir)/config.status zm.in
-	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
 install-binSCRIPTS: $(bin_SCRIPTS)
 	@$(NORMAL_INSTALL)

@@ -81,13 +81,13 @@ webgroup = @WEB_GROUP@
 
 web_DATA = zmactions.php zmconfig.php zmdb.php zmfuncs.php zmhtml.php zm.php zmstyles.css zmwml.php
 
-EXTRA_DIST = $(web_DATA)
+EXTRA_DIST = zmconfig.php.z zmactions.php zmdb.php zmfuncs.php zmhtml.php zm.php zmstyles.css zmwml.php
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
-CONFIG_CLEAN_FILES =  zmconfig.php
+CONFIG_CLEAN_FILES = 
 DATA =  $(web_DATA)
 
-DIST_COMMON =  Makefile.am Makefile.in zmconfig.php.in
+DIST_COMMON =  Makefile.am Makefile.in
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -103,8 +103,6 @@ Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status $(BUILT_SOURCES)
 	cd $(top_builddir) \
 	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
-zmconfig.php: $(top_builddir)/config.status zmconfig.php.in
-	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
 install-webDATA: $(web_DATA)
 	@$(NORMAL_INSTALL)

@@ -1821,7 +1821,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "Makefile src/Makefile src/zmcfg.h web/Makefile web/zmconfig.php scripts/Makefile db/Makefile zmconfig.pl scripts/zmdc.pl scripts/zmx10.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmwatch.pl scripts/zmpkg.pl scripts/zm config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile src/Makefile web/Makefile scripts/Makefile db/Makefile zmconfig.pl config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -1915,7 +1915,7 @@ EOF
 
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"Makefile src/Makefile src/zmcfg.h web/Makefile web/zmconfig.php scripts/Makefile db/Makefile zmconfig.pl scripts/zmdc.pl scripts/zmx10.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmwatch.pl scripts/zmpkg.pl scripts/zm"}
+CONFIG_FILES=\${CONFIG_FILES-"Makefile src/Makefile web/Makefile scripts/Makefile db/Makefile zmconfig.pl"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
@@ -2094,5 +2094,4 @@ EOF
 chmod +x $CONFIG_STATUS
 rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
-
 

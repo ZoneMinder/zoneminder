@@ -73,7 +73,7 @@ bindir = @bindir@
 
 AUTOMAKE_OPTIONS = gnu
 
-EXTRA_DIST = zmschema.sql zmalter-0.0.1.sql zmalter-0.9.7.sql
+EXTRA_DIST = zmschema.sql.z zmalter-0.0.1.sql zmalter-0.9.7.sql
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
 CONFIG_CLEAN_FILES = 

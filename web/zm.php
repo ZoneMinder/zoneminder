@@ -290,7 +290,7 @@ function newWindow(Url,Name,Width,Height) {
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&period=week&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[WeekEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&period=month&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[MonthEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=monitor&archived=1&mid=<?php echo $monitor[Id] ?>', 'zm<?php echo $monitor[Name] ?>', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+360 ?> );"><?php echo $monitor[ArchEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+36 ?>, <?php echo $monitor[Height]+72 ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
+<td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+72 ?>, <?php echo $monitor[Height]+232 ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
 <td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $zone[Id] ?>"></td>
 </tr>
 <?php
@@ -954,6 +954,12 @@ elseif( $view == "zones" )
 <head>
 <title>ZM - <?php echo $monitor[Name] ?> - Zones</title>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
+<script language="JavaScript">
+window.focus();
+function closeWindow() {
+        window.close();
+}
+</script>
 </head>
 <body>
 <map name="zonemap">
@@ -967,9 +973,13 @@ elseif( $view == "zones" )
 ?>
 <area shape="default" nohref>
 </map>
-<p class="head" align="center"><strong><?php echo $monitor[Name] ?> Zones</strong></p>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
-<tr><td align="center"><img src="<?php echo $image ?>" usemap="#zonemap" width="352" height="288" border="0"></td></tr>
+<tr>
+<td width="33%" align="left" class="text">&nbsp;</td>
+<td width="34%" align="center" class="head"><strong><?php echo $monitor[Name] ?> Zones</strong></td>
+<td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+</tr>
+<tr><td colspan="3" align="center"><img src="<?php echo $image ?>" usemap="#zonemap" width="352" height="288" border="0"></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="0" width="96%">
 <form name="event_form" method="post" action="<?php echo $PHP_SELF ?>">

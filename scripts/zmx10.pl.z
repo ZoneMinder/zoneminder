@@ -441,83 +441,80 @@ sub loadTasks
 		$device->{OFF_list} = [];
 	}
 
-	my $sql = "select * from Monitors";
+	my $sql = "select M.*,T.* from Monitors as M inner join TriggersX10 as T on (M.Id = T.MonitorId) where M.Function > 'Monitor' and M.RunMode = 'Triggered' and find_in_set( 'X10', M.Triggers )";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
-		if ( $monitor->{Function} ne 'None' )
+		my $size = 12; # We only need the first 12 bytes really for the alarm state and forced alarm
+		$monitor->{ShmKey} = hex(main::ZM_SHM_KEY)|$monitor->{Id};
+		if ( !($monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 )) )
 		{
-			$monitor_hash{$monitor->{Id}} = $monitor;
+			print( "Can't get shared memory id: $!\n" );
+			next;
+		}
 
-			my $size = 12; # We only need the first 12 bytes really for the alarm state and forced alarm
-			$monitor->{ShmKey} = hex(main::ZM_SHM_KEY)|$monitor->{Id};
-			if ( !($monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 )) )
-			{
-				print( "Can't get shared memory id: $!\n" );
-				next;
-			}
+		$monitor_hash{$monitor->{Id}} = $monitor;
 
-			if ( $monitor->{Function} eq 'X10' && $monitor->{X10Activation} )
+		if ( $monitor->{X10Activation} )
+		{
+			print( "$monitor->{Name} has active string '$monitor->{X10Activation}'\n" ) if ( main::VERBOSE );
+			foreach my $code_string ( split( ',', $monitor->{X10Activation} ) )
 			{
-				print( "$monitor->{Name} has active string '$monitor->{X10Activation}'\n" ) if ( main::VERBOSE );
-				foreach my $code_string ( split( ',', $monitor->{X10Activation} ) )
+				#print( "Code string: $code_string\n" );
+				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
+				$limit = 0 if ( !$limit );
+				if ( $unit_code )
 				{
-					#print( "Code string: $code_string\n" );
-					my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
-					$limit = 0 if ( !$limit );
-					if ( $unit_code )
+					if ( !$modifier || $modifier eq '+' )
 					{
-						if ( !$modifier || $modifier eq '+' )
-						{
-							addToDeviceList( $unit_code, "ON", $monitor, !$invert?"start_active":"stop_active", $limit );
-						}
-						if ( !$modifier || $modifier eq '-' )
-						{
-							addToDeviceList( $unit_code, "OFF", $monitor, !$invert?"stop_active":"start_active", $limit );
-						}
+						addToDeviceList( $unit_code, "ON", $monitor, !$invert?"start_active":"stop_active", $limit );
+					}
+					if ( !$modifier || $modifier eq '-' )
+					{
+						addToDeviceList( $unit_code, "OFF", $monitor, !$invert?"stop_active":"start_active", $limit );
 					}
 				}
 			}
-			if ( $monitor->{X10AlarmInput} )
+		}
+		if ( $monitor->{X10AlarmInput} )
+		{
+			print( "$monitor->{Name} has alarm input string '$monitor->{X10AlarmInput}'\n" ) if ( main::VERBOSE );
+			foreach my $code_string ( split( ',', $monitor->{X10AlarmInput} ) )
 			{
-				print( "$monitor->{Name} has alarm input string '$monitor->{X10AlarmInput}'\n" ) if ( main::VERBOSE );
-				foreach my $code_string ( split( ',', $monitor->{X10AlarmInput} ) )
+				#print( "Code string: $code_string\n" );
+				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
+				$limit = 0 if ( !$limit );
+				if ( $unit_code )
 				{
-					#print( "Code string: $code_string\n" );
-					my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
-					$limit = 0 if ( !$limit );
-					if ( $unit_code )
+					if ( !$modifier || $modifier eq '+' )
 					{
-						if ( !$modifier || $modifier eq '+' )
-						{
-							addToDeviceList( $unit_code, "ON", $monitor, !$invert?"start_alarm":"stop_alarm", $limit );
-						}
-						if ( !$modifier || $modifier eq '-' )
-						{
-							addToDeviceList( $unit_code, "OFF", $monitor, !$invert?"stop_alarm":"start_alarm", $limit );
-						}
+						addToDeviceList( $unit_code, "ON", $monitor, !$invert?"start_alarm":"stop_alarm", $limit );
+					}
+					if ( !$modifier || $modifier eq '-' )
+					{
+						addToDeviceList( $unit_code, "OFF", $monitor, !$invert?"stop_alarm":"start_alarm", $limit );
 					}
 				}
 			}
-			if ( $monitor->{X10AlarmOutput} )
+		}
+		if ( $monitor->{X10AlarmOutput} )
+		{
+			print( "$monitor->{Name} has alarm output string '$monitor->{X10AlarmOutput}'\n" ) if ( main::VERBOSE );
+			foreach my $code_string ( split( ',', $monitor->{X10AlarmOutput} ) )
 			{
-				print( "$monitor->{Name} has alarm output string '$monitor->{X10AlarmOutput}'\n" ) if ( main::VERBOSE );
-				foreach my $code_string ( split( ',', $monitor->{X10AlarmOutput} ) )
+				#print( "Code string: $code_string\n" );
+				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
+				$limit = 0 if ( !$limit );
+				if ( $unit_code )
 				{
-					#print( "Code string: $code_string\n" );
-					my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
-					$limit = 0 if ( !$limit );
-					if ( $unit_code )
+					if ( !$modifier || $modifier eq '+' )
 					{
-						if ( !$modifier || $modifier eq '+' )
-						{
-							addToMonitorList( $monitor, "ON", $unit_code, !$invert?"on":"off", $limit );
-						}
-						if ( !$modifier || $modifier eq '-' )
-						{
-							addToMonitorList( $monitor, "OFF", $unit_code, !$invert?"off":"on", $limit );
-						}
+						addToMonitorList( $monitor, "ON", $unit_code, !$invert?"on":"off", $limit );
+					}
+					if ( !$modifier || $modifier eq '-' )
+					{
+						addToMonitorList( $monitor, "OFF", $unit_code, !$invert?"off":"on", $limit );
 					}
 				}
 			}

@@ -1785,7 +1785,7 @@ bool Monitor::Analyse()
 		}
 	}
 	ref_image.Blend( *image, ref_blend_perc );
-	DumpImage( image );
+	//DumpImage( image );
 
 	shared_images->last_read_index = index%image_buffer_count;
 	image_count++;

@@ -360,6 +360,8 @@ window.focus();
 
 		if ( $mode != "stream" )
 		{
+			// Prompt an image to be generated
+			$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
 			header("Refresh: ".REFRESH_IMAGE."; URL='$PHP_SELF?view=watchfeed&mid=$mid&mode=still'" );
 			header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 			header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified

@@ -104,6 +104,9 @@ a:hover {
 	font-size: 10px;
 	color: #333333
 }
+input[disabled] {
+	color:#888888
+}
 .textsmall {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size:9px;

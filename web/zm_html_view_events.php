@@ -390,7 +390,7 @@ else
 <tr><td colspan="4" class="text">&nbsp;</td></tr>
 <tr>
 <td align="left" class="text"><a href="javascript: location.reload(true);"><?= $zmSlangRefresh ?></td>
-<td colspan="2" align="right" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&page=<?= $page ?><?= $filter_query ?>', 'zmFilter<?= $monitor['Id'] ?>' );"><?= $zmSlangShowFilterWindow ?></a></td>
+<td colspan="2" align="right" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&page=<?= $page ?><?= $filter_query ?>', 'zmFilter' );"><?= $zmSlangShowFilterWindow ?></a></td>
 <td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: checkAll( document.event_form, 'mark_eids' );"><?= $zmSlangCheckAll ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr>
 <tr><td colspan="4" class="text">&nbsp;</td></tr>

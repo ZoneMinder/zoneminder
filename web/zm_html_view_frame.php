@@ -87,17 +87,18 @@ function deleteEvent()
 </script>
 </head>
 <body>
-<table border="0">
-<tr><td colspan="2" class="smallhead"><?= $zmSlangFrame ?> <?= $eid."-".$fid." (".$frame['Score'].")" ?>
+<table width="96%" cellpaddin="0" cellspacing="0" border="0">
+<tr><td width="60%" class="smallhead"><?= $zmSlangFrame ?> <?= $eid."-".$fid." (".$frame['Score'].")" ?>
 <?php if ( ZM_RECORD_EVENT_STATS && $alarm_frame ) { ?>
 (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $fid ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );"><?= $zmSlangStats ?></a>)
 <?php } ?>
 </td>
-<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: deleteEvent();"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp<?php } ?></td>
-<td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
+<td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: deleteEvent();"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp<?php } ?></td>
+<td width="20%" align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
-<tr><td colspan="4"><img src="<?= $image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="3" align="center"><img src="<?= $image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
 <tr>
+<tr><td colspan="3" align="center"><table width="96%" cellpaddin="0" cellspacing="0" border="0"><tr>
 <?php if ( $fid > 1 ) { ?>
 <td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $first_fid ?>"><?= $zmSlangFirst ?></a></td>
 <?php } else { ?>
@@ -116,13 +117,14 @@ function deleteEvent()
 <td align="center" width="25%" class="text">&nbsp;</td>
 <?php } ?>
 </tr>
+</table></td></tr>
 <?php if (file_exists ($d_image_path)) { ?>
-<tr><td colspan="4"><?= $d_image_path ?></tr>
-<tr><td colspan="4"><img src="<?= $d_image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="3"><?= $d_image_path ?></tr>
+<tr><td colspan="3"><img src="<?= $d_image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
 <?php } ?>
 <?php if (file_exists ($r_image_path)) { ?>
-<tr><td colspan="4"><?= $r_image_path ?></tr>
-<tr><td colspan="4"><img src="<?= $r_image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="3"><?= $r_image_path ?></tr>
+<tr><td colspan="3"><img src="<?= $r_image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
 <?php } ?>
 </table>
 </body>

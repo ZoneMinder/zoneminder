@@ -88,7 +88,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_M
 ?>
 </script>
 </head>
-<body>
+<body scroll="auto">
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>

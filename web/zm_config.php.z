@@ -143,7 +143,7 @@ function loadConfig()
 
 // Javascript window sizes
 $jws = array( 
-	'console' => array( 'w'=>720, 'h'=>500 ),
+	'console' => array( 'w'=>720, 'h'=>540 ),
 	'state' => array( 'w'=>300, 'h'=>120 ),
 	'cycle' => array( 'w'=>46, 'h'=>80 ),
 	'montage' => array( 'w'=>20, 'h'=>20 ),
@@ -152,7 +152,7 @@ $jws = array(
 	'device' => array( 'w'=>196, 'h'=>164 ),
 	'function' => array( 'w'=>248, 'h'=>92 ),
 	'events' => array( 'w'=>720, 'h'=>480 ),
-	'event' => array( 'w'=>72, 'h'=>160 ),
+	'event' => array( 'w'=>72, 'h'=>168 ),
 	'filter' => array( 'w'=>560, 'h'=>250 ),
 	'filtersave' => array( 'w'=>520, 'h'=>200 ),
 	'zones' => array( 'w'=>72, 'h'=>232 ),

@@ -73,7 +73,7 @@ function newWindow(Url,Name,Width,Height)
 }
 </script>
 </head>
-<body>
+<body scroll="auto">
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
 <td colspan="3" align="left" class="text">

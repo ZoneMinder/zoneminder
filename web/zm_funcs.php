@@ -33,11 +33,25 @@ function userLogin( $username, $password )
 	}
 }
 
+function canView( $area )
+{
+	global $user;
+
+	return( $user[$area] == 'View' || $user[$area] == 'Edit' );
+}
+
+function canEdit( $area )
+{
+	global $user;
+
+	return( $user[$area] == 'Edit' );
+}
+
 function deleteUser( $uid )
 {
 	global $user;
 
-	if ( $user[AdminControl] && $uid )
+	if ( $user[Users] == 'Edit' && $uid )
 	{
 		$result = mysql_query( "delete from Users where Id = '$uid'" );
 		if ( !$result )
@@ -47,7 +61,9 @@ function deleteUser( $uid )
 
 function deleteEvent( $eid )
 {
-	if ( $session[AdminUser] && $eid )
+	global $user;
+
+	if ( $user[Events] == 'Edit' && $eid )
 	{
 		$result = mysql_query( "delete from Events where Id = '$eid'" );
 		if ( !$result )
@@ -70,7 +86,7 @@ function makeLink( $url, $label, $condition=1 )
 	$string = "";
 	if ( $condition )
 	{
-		$string .= '<a href="$url">';
+		$string .= '<a href="'.$url.'">';
 	}
 	$string .= $label;
 	if ( $condition )
@@ -78,6 +94,23 @@ function makeLink( $url, $label, $condition=1 )
 		$string .= '</a>';
 	}
 	return( $string );
+}
+
+function buildSelect( $name, $contents, $onchange="" )
+{
+	global $$name;
+?>
+<select name="<?= $name ?>" class="form"<?php if ( $onchange ) { echo " onChange=\"$onchange\""; } ?>>
+<?php
+	foreach ( $contents as $content_value => $content_text )
+	{
+?>
+<option value="<?= $content_value ?>"<?php if ( $$name == $content_value ) { echo " selected"; } ?>><?= $content_text ?></option>
+<?php
+	}
+?>
+</select>
+<?php
 }
 
 function getBrowser( &$browser, &$version )

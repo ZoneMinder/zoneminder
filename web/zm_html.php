@@ -50,12 +50,10 @@ else
 		"Username"=>"admin",
 		"Password"=>"",
 		"Active"=>1,
-		"ViewFeed"=>1,
-		"ViewEvent"=>1,
-		"ViewMonitor"=>1,
-		"AdminEvent"=>1,
-		"AdminMonitor"=>1,
-		"AdminControl"=>1,
+		"Feed"=>'View',
+		"Event"=>'Edit',
+		"Settings"=>'Edit',
+		"Users"=>'None',
 	);
 }
 
@@ -223,7 +221,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
-<td class="bighead" align="center"><strong>ZoneMinder Console - <?= $status ?><?php if ( $user[AdminControl] ) { ?> (<a href="javascript: if ( confirmStatus( '<?= $new_status ?>' ) ) location='<?= $PHP_SELF ?>?<?= $new_status ?>=1';"><?= $new_status ?></a>) <?php } ?>- v<?= ZM_VERSION ?></strong></td>
+<td class="bighead" align="center"><strong>ZoneMinder Console - <?= $status ?><?php if ( canEdit( 'Settings' ) ) { ?> (<a href="javascript: if ( confirmStatus( '<?= $new_status ?>' ) ) location='<?= $PHP_SELF ?>?<?= $new_status ?>=1';"><?= $new_status ?></a>) <?php } ?>- v<?= ZM_VERSION ?></strong></td>
 <?php
 	$uptime = shell_exec( 'uptime' );
 	$load = '';
@@ -234,7 +232,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 <tr>
 <td class="smallhead" align="left">
 <?php
-	if ( $user[ViewFeed] && $cycle_count > 1 )
+	if ( canView( 'Feed' ) && $cycle_count > 1 )
 	{
 ?>
 <a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $max_width+$jws['cycle']['w'] ?>, <?= $max_height+$jws['cycle']['h'] ?> );"><?= count($monitors) ?> Monitor<?= count($monitors)==1?'':'s' ?></a>&nbsp;(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage', 'zmMontage', <?= ($montage_cols*$max_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*(40+$max_height))+$jws['montage']['h'] ?> );">Montage</a>)
@@ -296,7 +294,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 			$zone_count += $monitor[ZoneCount];
 ?>
 <tr>
-<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=$monitor[Id]', 'zmMonitor', $jws[monitor][w], $jws[monitor][h] );", "$monitor[Id].", $user[AdminMonitor] ) ?></td>
+<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=$monitor[Id]', 'zmMonitor', ".$jws[monitor][w].", ".$jws[monitor][h]." );", "$monitor[Id].", canView( 'Settings' ) ) ?></td>
 <?php
 			if ( !$monitor[zmc] )
 			{
@@ -330,21 +328,21 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 				$fclass = "redtext";
 			}
 ?>
-<td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=watch&mid=<?= $monitor[Id] ?>', 'zmWatch<?= $monitor[Name] ?>', <?= $monitor[Width]+$jws['watch']['w'] ?>, <?= $monitor[Height]+$jws['watch']['h'] ?> );"><?= $monitor[Name] ?></a></td>
-<td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=function&mid=<?= $monitor[Id] ?>', 'zmFunction', <?= $jws['function']['w'] ?>, <?= $jws['function']['h'] ?> );"><span class="<?= $fclass ?>"><?= $monitor['Function'] ?></span></a></td>
+<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=watch&mid=$monitor[Id]', 'zmWatch$monitor[Name]', ".($monitor[Width]+$jws['watch']['w']).", ".($monitor[Height]+$jws['watch']['h'])." );", $monitor[Name], canView( 'Feed' ) ) ?></td>
+<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=function&mid=$monitor[Id]', 'zmFunction', ".$jws['function']['w'].", ".$jws['function']['h']." );", "<span class=\"$fclass\">$monitor[Function]</span>", canEdit( 'Settings' ) ) ?></td>
 <?php if ( $monitor[Type] == "Local" ) { ?>
-<td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&mid=<?= $monitor[Id] ?>', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?> );"><span class="<?= $dclass ?>">/dev/video<?= $monitor[Device] ?> (<?= $monitor[Channel] ?>)</span></a></td>
+<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=$monitor[Id]', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">/dev/video$monitor[Device] ($monitor[Channel])</span>", canEdit( 'Settings' ) ) ?></td>
 <?php } else { ?>
-<td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&mid=<?= $monitor[Id] ?>', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?> );"><span class="<?= $dclass ?>"><?= $monitor[Host] ?></span></a></td>
+<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=$monitor[Id]', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">$monitor[Host]</span>", canEdit( 'Settings' ) ) ?></td>
 <?php } ?>
-<td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[EventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[HourEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+day', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[DayEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+week', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[WeekEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+month', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[MonthEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"><?= $monitor[ArchEventCount] ?></a></td>
-<td align="right" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zones&mid=<?= $monitor[Id] ?>', 'zmZones', <?= $monitor[Width]+$jws['zones']['w'] ?>, <?= $monitor[Height]+$jws['zones']['h'] ?> );"><?= $monitor[ZoneCount] ?></a></td>
-<td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor[Id] ?>" onClick="configureButton( document.monitor_form, 'mark_mids' );"></td>
+<td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[EventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+hour', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[HourEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+day', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[DayEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+week', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[WeekEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=last+month', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[MonthEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&mid=$monitor[Id]&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents$monitor[Name]', ".$jws['events']['w'].", ".$jws['events']['h']." );", $monitor[ArchEventCount], canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=zones&mid=$monitor[Id]', 'zmZones', ".($monitor[Width]+$jws['zones']['w']).", ".($monitor[Height]+$jws['zones']['h'])." );", $monitor[ZoneCount], canView( 'Settings' ) ) ?></td>
+<td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor[Id] ?>" onClick="configureButton( document.monitor_form, 'mark_mids' );"<?php if ( !canEdit( 'Settings' ) ) {?> disabled<?php } ?>></td>
 </tr>
 <?php
 		}
@@ -354,7 +352,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 <input type="button" value="Refresh" class="form" onClick="javascript: location.reload(true);">
 </td>
 <td colspan="2" align="center">
-<input type="button" value="Add New Monitor" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&zid=-1', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);">
+<input type="button" value="Add New Monitor" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&zid=-1', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"<?php if ( !canEdit( 'Settings' ) ) {?> disabled<?php } ?>>
 </td>
 <td align="right" class="text"><?= $event_count ?></td>
 <td align="right" class="text"><?= $hour_event_count ?></td>
@@ -374,6 +372,11 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 	}
 	case "cycle" :
 	{
+		if ( !canView( 'Feed' ) )
+		{
+			$view = "error";
+			break;
+		}
 		if ( !$mode )
 		{
 			if ( canStream() )
@@ -424,7 +427,7 @@ function closeWindow()
 		if ( ZM_WEB_REFRESH_METHOD == "javascript" )
 		{
 	?>
-window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" ?>', <?= REFRESH_CYCLE*1000 ?> );
+window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$next_mid&mode=$mode" ?>' )", <?= REFRESH_CYCLE*1000 ?> );
 <?php
 		}
 ?>
@@ -475,6 +478,11 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&mid=$nex
 	}
 	case "montage" :
 	{
+		if ( !canView( 'Feed' ) )
+		{
+			$view = "error";
+			break;
+		}
 		$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
 		$monitors = array();
 		while( $row = mysql_fetch_assoc( $result ) )
@@ -532,30 +540,13 @@ window.focus();
 <?php
 		break;
 	}
-	case "montagehead" :
-	{
-?>
-<html>
-<head>
-<title>ZM - Montage Header</title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
-<script language="JavaScript">
-function closeWindow()
-{
-	top.window.close();
-}
-</script>
-</head>
-<body>
-<table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
-</table>
-</body>
-</html>
-<?php
-		break;
-	}
 	case "montagefeed" :
 	{
+		if ( !canView( 'Feed' ) )
+		{
+			$view = "error";
+			break;
+		}
 		if ( !$mode )
 		{
 			if ( canStream() )
@@ -643,6 +634,11 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 	}
 	case "montagestatus" :
 	{
+		if ( !canView( 'Feed' ) )
+		{
+			$view = "error";
+			break;
+		}
 		$zmu_command = ZMU_PATH." -m $mid -s -f";
 		$zmu_output = exec( escapeshellcmd( $zmu_command ) );
 		list( $status, $fps ) = split( ' ', $zmu_output );
@@ -667,7 +663,7 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 		$new_alarm = ( $status > 0 && $last_status == 0 );
 		$old_alarm = ( $status == 0 && $last_status > 0 );
 
-		$refresh = (isset($force)||$forced||$status)?1:REFRESH_STATUS;
+		$refresh = $status?1:REFRESH_STATUS;
 		$url = "$PHP_SELF?view=montagestatus&mid=$mid&last_status=$status";
 		if ( ZM_WEB_REFRESH_METHOD == "http" )
 			header("Refresh: $refresh; URL=$url" );
@@ -720,6 +716,11 @@ window.setTimeout( "window.location.reload(true)", <?= $refresh*1000 ?> );
 	}
 	case "watch" :
 	{
+		if ( !canView( 'Feed' ) )
+		{
+			$view = "error";
+			break;
+		}
 		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 		if ( !$result )
 			die( mysql_error() );
@@ -744,6 +745,11 @@ window.focus();
 	}
 	case "watchfeed" :
 	{
+		if ( !canView( 'Feed' ) )
+		{
+			$view = "error";
+			break;
+		}
 		if ( !$mode )
 		{
 			if ( canStream() )
@@ -799,7 +805,7 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
 <tr>
 <td width="25%" align="left" class="text"><b><?= $monitor[Name] ?></b></td>
-<?php if ( $monitor[Type] == "Local" ) { ?>
+<?php if ( canView( 'Settings' ) && $monitor[Type] == "Local" ) { ?>
 <td width="25%" align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor[Id] ?>', 'zmSettings<?= $monitor[Name] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );">Settings</a></td>
 <?php } else { ?>
 <td width="25%" align="center" class="text">&nbsp;</td>
@@ -845,6 +851,11 @@ window.setTimeout( "window.location.reload(true)", <?= REFRESH_IMAGE*1000 ?> );
 	}
 	case "settings" :
 	{
+		if ( !canView( 'Settings' ) )
+		{
+			$view = "error";
+			break;
+		}
 		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 		if ( !$result )
 			die( mysql_error() );
@@ -868,7 +879,7 @@ opener.location.reload(true);
 		}
 ?>
 window.focus();
-function validateForm(theForm)
+function validateForm(Form)
 {
 	return( true );
 }
@@ -891,12 +902,12 @@ function closeWindow()
 <tr>
 <td align="right" class="smallhead">Parameter</td><td align="left" class="smallhead">Value</td>
 </tr>
-<tr><td align="right" class="text">Brightness</td><td align="left" class="text"><input type="text" name="new_brightness" value="<?= $brightness ?>" size="8" class="form"></td></tr>
-<tr><td align="right" class="text">Contrast</td><td align="left" class="text"><input type="text" name="new_contrast" value="<?= $contrast ?>" size="8" class="form"></td></tr>
-<tr><td align="right" class="text">Hue</td><td align="left" class="text"><input type="text" name="new_hue" value="<?= $hue ?>" size="8" class="form"></td></tr>
-<tr><td align="right" class="text">Colour</td><td align="left" class="text"><input type="text" name="new_colour" value="<?= $colour ?>" size="8" class="form"></td></tr>
+<tr><td align="right" class="text">Brightness</td><td align="left" class="text"><input type="text" name="new_brightness" value="<?= $brightness ?>" size="8" class="form"<?php if ( !canEdit( 'Settings' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text">Contrast</td><td align="left" class="text"><input type="text" name="new_contrast" value="<?= $contrast ?>" size="8" class="form"<?php if ( !canEdit( 'Settings' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text">Hue</td><td align="left" class="text"><input type="text" name="new_hue" value="<?= $hue ?>" size="8" class="form"<?php if ( !canEdit( 'Settings' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text">Colour</td><td align="left" class="text"><input type="text" name="new_colour" value="<?= $colour ?>" size="8" class="form"<?php if ( !canEdit( 'Settings' ) ) { ?> disabled<?php } ?>></td></tr>
 <tr>
-<td colspan="2" align="right"><input type="submit" value="Save" class="form">&nbsp;&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
+<td colspan="2" align="right"><input type="submit" value="Save" class="form"<?php if ( !canEdit( 'Settings' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="Close" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
 </body>
@@ -906,8 +917,13 @@ function closeWindow()
 	}
 	case "watchstatus" :
 	{
+		if ( !canView( 'Feed' ) )
+		{
+			$view = "error";
+			break;
+		}
 		$zmu_command = ZMU_PATH." -m $mid -s -f";
-		if ( isset($force) )
+		if ( canEdit( 'Settings' ) && isset($force) )
 		{
 			$zmu_command .= ($force?" -a":" -c"); 
 		}
@@ -977,13 +993,13 @@ window.setTimeout( "window.location.replace( '<?= $url ?>' )", <?= $refresh*1000
 <td width="30%" class="text" align="left">&nbsp;</td>
 <td width="40%" class="<?= $class ?>" align="center" valign="middle">Status:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
 <?php
-		if ( $force || $forced )
+		if ( canEdit( 'Settings' ) && ($force || $forced) )
 		{
 ?>
 <td width="30%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=$status&force=0">Cancel Forced Alarm</a></td>
 <?php
 		}
-		elseif ( zmaCheck( $mid ) )
+		elseif ( canEdit( 'Settings' ) && zmaCheck( $mid ) )
 		{
 ?>
 <td width="30%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=$status&force=1">Force Alarm</a></td>
@@ -1013,6 +1029,11 @@ window.setTimeout( "window.location.replace( '<?= $url ?>' )", <?= $refresh*1000
 	}
 	case "watchevents" :
 	{
+		if ( !canView( 'Events' ) )
+		{
+			$view = "error";
+			break;
+		}
 		switch( $sort_field )
 		{
 			case 'Id' :
@@ -1123,7 +1144,7 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 <td class="text"><b>Last <?= $n_rows ?> events</b></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=0', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );">All</a></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=events&mid=<?= $monitor[Id] ?>&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents<?= $monitor[Name] ?>', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );">Archive</a></td>
-<td align="right" class="text"><a href="javascript: checkAll( document.event_form, 'mark_eids' );">Check All</a></td>
+<td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: checkAll( document.event_form, 'mark_eids' );">Check All</a><<?php } else { ?>&nbsp;<?php } ?></td>
 </tr>
 <tr><td colspan="5" class="text">&nbsp;</td></tr>
 <tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%" bgcolor="#7F7FB2">
@@ -1147,7 +1168,7 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 <td align="center" class="text"><?= $row[Length] ?></td>
 <td align="center" class="text"><?= $row[Frames] ?>/<?= $row[AlarmFrames] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $row[Id] ?>&fid=0', 'zmImage', <?= $monitor[Width]+$jws['image']['w'] ?>, <?= $monitor[Height]+$jws['image']['h'] ?> );"><?= $row[AvgScore] ?>/<?= $row[MaxScore] ?></a></td>
-<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
 		}
@@ -1165,6 +1186,11 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 	}
 	case "events" :
 	{
+		if ( !canView( 'Events' ) )
+		{
+			$view = "error";
+			break;
+		}
 		switch( $sort_field )
 		{
 			case 'Id' :
@@ -1386,7 +1412,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <tr>
 <td align="right" class="text"><a href="javascript: location.reload(true);">Refresh</td>
 <td align="right" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&mid=<?= $mid ?><?= $filter_query ?>', 'zmFilter<?= $monitor[Name] ?>' );">Show Filter Window</a></td>
-<td align="right" class="text"><a href="javascript: checkAll( document.event_form, 'mark_eids' );">Check All</a></td>
+<td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: checkAll( document.event_form, 'mark_eids' );">Check All</a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr>
 <tr><td colspan="3" class="text">&nbsp;</td></tr>
 <tr><td colspan="3"><table border="0" cellspacing="1" cellpadding="0" width="100%" bgcolor="#7F7FB2">
@@ -1428,7 +1454,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <td align="center" class="text"><?= $row[TotScore] ?></td>
 <td align="center" class="text"><?= $row[AvgScore] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=image&eid=<?= $row[Id] ?>&fid=0', 'zmImage', <?= $monitor[Width]+$jws['image']['w'] ?>, <?= $monitor[Height]+$jws['image']['h'] ?> );"><?= $row[MaxScore] ?></a></td>
-<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
 		}
@@ -1446,6 +1472,11 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 	}
 	case "filter" :
 	{
+		if ( !canView( 'Events' ) )
+		{
+			$view = "error";
+			break;
+		}
 		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 		if ( !$result )
 			die( mysql_error() );
@@ -1467,14 +1498,6 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 
 		if ( $filter_data )
 		{
-			//$filter_query = unserialize( $filter_data[Query] );
-			//if ( is_array($filter_query) )
-			//{
-				//while( list( $key, $value ) = each( $filter_query ) )
-				//{
-					//$$key = $value;
-				//}
-			//}
 			foreach( split( '&', $filter_data[Query] ) as $filter_parm )
 			{
 				list( $key, $value ) = split( '=', $filter_parm, 2 );
@@ -1604,8 +1627,12 @@ window.focus();
 <tr>
 <td align="left" class="text">Use&nbsp;<select name="trms" class="form" onChange="submitToFilter( document.filter_form );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?= $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?= $i ?></option><?php } ?></select>&nbsp;filter&nbsp;expressions</td>
 <td align="center" class="text">Use filter:&nbsp;<?php if ( count($filter_names) > 1 ) { buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); } else { ?><select class="form" disabled><option>No Saved Filters</option></select><?php } ?></td>
+<?php if ( canEdit( 'Events' ) ) { ?>
 <td align="center" class="text"><a href="javascript: saveFilter( document.filter_form );">Save</a></td>
-<?php if ( $filter_data ) { ?>
+<?php } else { ?>
+<td align="center" class="text">&nbsp;</a></td>
+<?php } ?>
+<?php if ( canEdit( 'Events' ) && $filter_data ) { ?>
 <td align="center" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data[Name] ?>', <?= $filter_data[Id] ?> );">Delete</a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</a></td>
@@ -1674,6 +1701,11 @@ window.focus();
 	}
 	case "filtersave" :
 	{
+		if ( !canEdit( 'Events' ) )
+		{
+			$view = "error";
+			break;
+		}
 		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 		if ( !$result )
 			die( mysql_error() );
@@ -1774,7 +1806,7 @@ window.focus();
 <td align="right" colspan="2" class="text">&nbsp;</td>
 </tr>
 <tr>
-<td align="right" colspan="2" class="text"><input type="submit" value="Save" class="form">&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow();"></td>
+<td align="right" colspan="2" class="text"><input type="submit" value="Save" class="form"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow();"></td>
 </tr>
 </table></center>
 </form>
@@ -1783,181 +1815,13 @@ window.focus();
 <?php
 		break;
 	}
-	case "image" :
-	{
-		$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
-		if ( !$result )
-			die( mysql_error() );
-		$event = mysql_fetch_assoc( $result );
-
-		if ( $fid )
-		{
-			$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$frame = mysql_fetch_assoc( $result );
-		}
-		else
-		{
-			$result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '$event[MaxScore]'" );
-			if ( !$result )
-				die( mysql_error() );
-			$frame = mysql_fetch_assoc( $result );
-			$fid = $frame[FrameId];
-		}
-
-		$result = mysql_query( "select count(*) as FrameCount from Frames where EventID = '$eid'" );
-		if ( !$result )
-			die( mysql_error() );
-		$row = mysql_fetch_assoc( $result );
-		$max_fid = $row[FrameCount];
-
-		$first_fid = 1;
-		$prev_fid = $fid-1;
-		$next_fid = $fid+1;
-		$last_fid = $max_fid;
-
-		$image_path = $frame[ImagePath];
-		$anal_image = preg_replace( "/capture/", "analyse", $image_path );
-		if ( file_exists( $anal_image ) )
-		{
-			$image_path = $anal_image;
-		}
-		$img_class = $frame[AlarmFrame]?"alarm":"normal";
-?>
-<html>
-<head>
-<title>ZM - Image <?= $eid."-".$fid ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
-<script language="JavaScript">
-window.focus();
-function newWindow(Url,Name,Width,Height)
-{
-   	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
-}
-function closeWindow()
-{
-	window.close();
-}
-function deleteEvent()
-{
-	location.href = "<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>";
-	//window.close();
-}
-</script>
-</head>
-<body>
-<table border="0">
-<tr><td colspan="2" class="smallhead">Image <?= $eid."-".$fid." ($frame[Score])" ?>
-<?php if ( ZM_RECORD_EVENT_STATS && $frame[AlarmFrame] ) { ?>
-(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $fid ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );">Stats</a>)
-<?php } ?>
-</td>
-<td align="center" class="text"><a href="javascript: deleteEvent();">Delete</a></td>
-<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
-</tr>
-<tr><td colspan="4"><img src="<?= $image_path ?>" width="<?= $event[Width] ?>" height="<?= $event[Height] ?>" class="<?= $img_class ?>"></td></tr>
-<tr>
-<?php if ( $fid > 1 ) { ?>
-<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $first_fid ?>">First</a></td>
-<?php } else { ?>
-<td align="center" width="25%" class="text">&nbsp;</td>
-<?php } if ( $fid > 1 ) { ?>
-<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $prev_fid ?>">Prev</a></td>
-<?php } else { ?>
-<td align="center" width="25%" class="text">&nbsp;</td>
-<?php } if ( $fid < $max_fid ) { ?>
-<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $next_fid ?>">Next</a></td>
-<?php } else { ?>
-<td align="center" width="25%" class="text">&nbsp;</td>
-<?php } if ( $fid < $max_fid ) { ?>
-<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $last_fid ?>">Last</a></td>
-<?php } else { ?>
-<td align="center" width="25%" class="text">&nbsp;</td>
-<?php } ?>
-</tr>
-</table>
-</body>
-</html>
-<?php
-		break;
-	}
-	case "stats" :
-	{
-		$result = mysql_query( "select S.*,E.*,Z.Name as ZoneName,M.Name as MonitorName,M.Width,M.Height from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '$eid' and S.FrameId = '$fid' order by S.ZoneId" );
-		if ( !$result )
-			die( mysql_error() );
-		while ( $row = mysql_fetch_assoc( $result ) )
-		{
-			$stats[] = $row;
-		}
-?>
-<html>
-<head>
-<title>ZM - Stats <?= $eid."-".$fid ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
-<script language="JavaScript">
-window.focus();
-function closeWindow()
-{
-	window.close();
-}
-</script>
-</head>
-<body>
-<table width="96%" border="0">
-<tr>
-<td align="left" class="smallhead"><b>Image <?= $eid."-".$fid ?></b></td>
-<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
-</tr>
-<tr><td colspan="2"><table width="100%" border="0" bgcolor="#7F7FB2" cellpadding="3" cellspacing="1"><tr bgcolor="#FFFFFF">
-<td class="smallhead">Zone</td>
-<td class="smallhead" align="right">Alarm Px</td>
-<td class="smallhead" align="right">Filter Px</td>
-<td class="smallhead" align="right">Blob Px</td>
-<td class="smallhead" align="right">Blobs</td>
-<td class="smallhead" align="right">Blob Sizes</td>
-<td class="smallhead" align="right">Alarm Limits</td>
-<td class="smallhead" align="right">Score</td>
-</tr>
-<?php
-	if ( count($stats) )
-	{
-		foreach ( $stats as $stat )
-		{
-?>
-<tr bgcolor="#FFFFFF">
-<td class="text"><?= $stat[ZoneName] ?></td>
-<td class="text" align="right"><?= $stat[AlarmPixels] ?></td>
-<td class="text" align="right"><?= $stat[FilterPixels] ?></td>
-<td class="text" align="right"><?= $stat[BlobPixels] ?></td>
-<td class="text" align="right"><?= $stat[Blobs] ?></td>
-<td class="text" align="right"><?= $stat[MinBlobSize]."-".$stat[MaxBlobSize] ?></td>
-<td class="text" align="right"><?= $stat[MinX].",".$stat[MinY]."-".$stat[MaxX].",".$stat[MaxY] ?></td>
-<td class="text" align="right"><?= $stat[Score] ?></td>
-</tr>
-<?php
-		}
-	}
-	else
-	{
-?>
-<tr bgcolor="#FFFFFF">
-<td class="text" colspan="8" align="center"><br>There are no statistics recorded for this event/frame<br><br></td>
-</tr>
-<?php
-	}
-?>
-</table></td>
-</tr>
-</table>
-</body>
-</html>
-<?php
-		break;
-	}
 	case "event" :
 	{
+		if ( !canView( 'Events' ) )
+		{
+			$view = "error";
+			break;
+		}
 		if ( !$mode )
 		{
 			if ( canStream() )
@@ -2028,7 +1892,7 @@ function newWindow(Url,Name,Width,Height)
 <input type="hidden" name="action" value="rename">
 <input type="hidden" name="eid" value="<?= $eid ?>">
 <input type="text" size="16" name="event_name" value="<?= $event[Name] ?>" class="form">
-<input type="submit" value="Rename" class="form"></form></td>
+<input type="submit" value="Rename" class="form"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></form></td>
 <td colspan="3" align="right" class="text">
 <form name="learn_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
@@ -2042,11 +1906,11 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 </tr>
 <tr>
 <td align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>">Delete</a></td>
+<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>">Delete</a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php if ( $event[Archived] ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&eid=<?= $eid ?>">Unarchive</a></td>
+<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&eid=<?= $eid ?>">Unarchive</a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php } else { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=archive&eid=<?= $eid ?>">Archive</a></td>
+<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=archive&eid=<?= $eid ?>">Archive</a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&mid=<?= $mid ?>&eid=<?= $eid ?>">Stills</a></td>
@@ -2149,8 +2013,8 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <tr>
 <td colspan="6"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
 <td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>">Prev</a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>&action=delete&mark_eid=<?= $eid ?>">Delete & Prev</a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>&action=delete&mark_eid=<?= $eid ?>">Delete & Next</a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $prev_event[Id] ?>&action=delete&mark_eid=<?= $eid ?>">Delete & Prev</a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="25%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>&action=delete&mark_eid=<?= $eid ?>">Delete & Next</a><?php } else { ?>&nbsp;<?php } ?></td>
 <td width="25%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&mid=<?= $mid ?>&eid=<?= $next_event[Id] ?>">Next</a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr></table></td>
 </tr>
@@ -2160,8 +2024,338 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php
 		break;
 	}
+	case "image" :
+	{
+		if ( !canView( 'Events' ) )
+		{
+			$view = "error";
+			break;
+		}
+		$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+		if ( !$result )
+			die( mysql_error() );
+		$event = mysql_fetch_assoc( $result );
+
+		if ( $fid )
+		{
+			$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$frame = mysql_fetch_assoc( $result );
+		}
+		else
+		{
+			$result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '$event[MaxScore]'" );
+			if ( !$result )
+				die( mysql_error() );
+			$frame = mysql_fetch_assoc( $result );
+			$fid = $frame[FrameId];
+		}
+
+		$result = mysql_query( "select count(*) as FrameCount from Frames where EventID = '$eid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$row = mysql_fetch_assoc( $result );
+		$max_fid = $row[FrameCount];
+
+		$first_fid = 1;
+		$prev_fid = $fid-1;
+		$next_fid = $fid+1;
+		$last_fid = $max_fid;
+
+		$image_path = $frame[ImagePath];
+		$anal_image = preg_replace( "/capture/", "analyse", $image_path );
+		if ( file_exists( $anal_image ) )
+		{
+			$image_path = $anal_image;
+		}
+		$img_class = $frame[AlarmFrame]?"alarm":"normal";
+?>
+<html>
+<head>
+<title>ZM - Image <?= $eid."-".$fid ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+window.focus();
+function newWindow(Url,Name,Width,Height)
+{
+   	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+}
+function closeWindow()
+{
+	window.close();
+}
+function deleteEvent()
+{
+	location.href = "<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>";
+	//window.close();
+}
+</script>
+</head>
+<body>
+<table border="0">
+<tr><td colspan="2" class="smallhead">Image <?= $eid."-".$fid." ($frame[Score])" ?>
+<?php if ( ZM_RECORD_EVENT_STATS && $frame[AlarmFrame] ) { ?>
+(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $fid ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );">Stats</a>)
+<?php } ?>
+</td>
+<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: deleteEvent();">Delete</a><?php } else { ?>&nbsp<?php } ?></td>
+<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+</tr>
+<tr><td colspan="4"><img src="<?= $image_path ?>" width="<?= $event[Width] ?>" height="<?= $event[Height] ?>" class="<?= $img_class ?>"></td></tr>
+<tr>
+<?php if ( $fid > 1 ) { ?>
+<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $first_fid ?>">First</a></td>
+<?php } else { ?>
+<td align="center" width="25%" class="text">&nbsp;</td>
+<?php } if ( $fid > 1 ) { ?>
+<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $prev_fid ?>">Prev</a></td>
+<?php } else { ?>
+<td align="center" width="25%" class="text">&nbsp;</td>
+<?php } if ( $fid < $max_fid ) { ?>
+<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $next_fid ?>">Next</a></td>
+<?php } else { ?>
+<td align="center" width="25%" class="text">&nbsp;</td>
+<?php } if ( $fid < $max_fid ) { ?>
+<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=image&eid=<?= $eid ?>&fid=<?= $last_fid ?>">Last</a></td>
+<?php } else { ?>
+<td align="center" width="25%" class="text">&nbsp;</td>
+<?php } ?>
+</tr>
+</table>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "stats" :
+	{
+		if ( !canView( 'Events' ) )
+		{
+			$view = "error";
+			break;
+		}
+		$result = mysql_query( "select S.*,E.*,Z.Name as ZoneName,M.Name as MonitorName,M.Width,M.Height from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '$eid' and S.FrameId = '$fid' order by S.ZoneId" );
+		if ( !$result )
+			die( mysql_error() );
+		while ( $row = mysql_fetch_assoc( $result ) )
+		{
+			$stats[] = $row;
+		}
+?>
+<html>
+<head>
+<title>ZM - Stats <?= $eid."-".$fid ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+window.focus();
+function closeWindow()
+{
+	window.close();
+}
+</script>
+</head>
+<body>
+<table width="96%" border="0">
+<tr>
+<td align="left" class="smallhead"><b>Image <?= $eid."-".$fid ?></b></td>
+<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+</tr>
+<tr><td colspan="2"><table width="100%" border="0" bgcolor="#7F7FB2" cellpadding="3" cellspacing="1"><tr bgcolor="#FFFFFF">
+<td class="smallhead">Zone</td>
+<td class="smallhead" align="right">Alarm Px</td>
+<td class="smallhead" align="right">Filter Px</td>
+<td class="smallhead" align="right">Blob Px</td>
+<td class="smallhead" align="right">Blobs</td>
+<td class="smallhead" align="right">Blob Sizes</td>
+<td class="smallhead" align="right">Alarm Limits</td>
+<td class="smallhead" align="right">Score</td>
+</tr>
+<?php
+	if ( count($stats) )
+	{
+		foreach ( $stats as $stat )
+		{
+?>
+<tr bgcolor="#FFFFFF">
+<td class="text"><?= $stat[ZoneName] ?></td>
+<td class="text" align="right"><?= $stat[AlarmPixels] ?></td>
+<td class="text" align="right"><?= $stat[FilterPixels] ?></td>
+<td class="text" align="right"><?= $stat[BlobPixels] ?></td>
+<td class="text" align="right"><?= $stat[Blobs] ?></td>
+<td class="text" align="right"><?= $stat[MinBlobSize]."-".$stat[MaxBlobSize] ?></td>
+<td class="text" align="right"><?= $stat[MinX].",".$stat[MinY]."-".$stat[MaxX].",".$stat[MaxY] ?></td>
+<td class="text" align="right"><?= $stat[Score] ?></td>
+</tr>
+<?php
+		}
+	}
+	else
+	{
+?>
+<tr bgcolor="#FFFFFF">
+<td class="text" colspan="8" align="center"><br>There are no statistics recorded for this event/frame<br><br></td>
+</tr>
+<?php
+	}
+?>
+</table></td>
+</tr>
+</table>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "monitor" :
+	{
+		if ( !canView( 'Settings' ) )
+		{
+			$view = "error";
+			break;
+		}
+		if ( $mid > 0 )
+		{
+			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$monitor = mysql_fetch_assoc( $result );
+		}
+		else
+		{
+			$monitor = array();
+			$monitor[Name] = "New";
+			$monitor['Function'] = "None";
+			$monitor[Type] = "Local";
+			$monitor[Port] = "80";
+			$monitor[Orientation] = "0";
+			$monitor[LabelFormat] = '%%s - %y/%m/%d %H:%M:%S';
+			$monitor[LabelX] = 0;
+			$monitor[LabelY] = 0;
+			$monitor[ImageBufferCount] = 100;
+			$monitor[WarmupCount] = 25;
+			$monitor[PreEventCount] = 10;
+			$monitor[PostEventCount] = 10;
+			$monitor[MaxFPS] = 0;
+			$monitor[FPSReportInterval] = 1000;
+			$monitor[RefBlendPerc] = 10;
+		}
+		$local_palettes = array( "Grey"=>1, "RGB24"=>4, "RGB565"=>3, "YUV420P"=>15 );
+		$remote_palettes = array( "8 bit greyscale"=>1, "24 bit colour"=>4 );
+		$orientations = array( "Normal"=>0, "Rotate Right"=>90, "Inverted"=>180, "Rotate Left"=>270 );
+?>
+<html>
+<head>
+<title>ZM - Monitor <?= $monitor[Name] ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+<?php
+		if ( $refresh_parent )
+		{
+?>
+opener.location.reload(true);
+<?php
+		}
+?>
+window.focus();
+function validateForm(Form)
+{
+	return( true );
+}
+
+function closeWindow()
+{
+	window.close();
+}
+</script>
+</head>
+<body>
+<table border="0" cellspacing="0" cellpadding="0" width="100%">
+<tr>
+<td colspan="2" align="left" class="head">Monitor <?= $monitor[Name] ?></td>
+</tr>
+<form name="monitor_form" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.monitor_form )">
+<input type="hidden" name="view" value="<?= $view ?>">
+<input type="hidden" name="action" value="">
+<input type="hidden" name="mid" value="<?= $mid ?>">
+<tr>
+<td align="left" class="smallhead">Parameter</td><td align="left" class="smallhead">Value</td>
+</tr>
+<tr><td align="left" class="text">Name</td><td align="left" class="text"><input type="text" name="new_name" value="<?= $monitor[Name] ?>" size="12" class="form"></td></tr>
+<tr><td align="left" class="text">Function</td><td align="left" class="text"><select name="new_function" class="form">
+<?php
+		foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
+		{
+			if ( !ZM_OPT_X10 && $opt_function == 'X10' )
+				continue;
+?>
+<option value="<?= $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?= $opt_function ?></option>
+<?php
+		}
+?>
+</select></td></tr>
+<?php
+$select_name = "new_type";
+$$select_name = $$select_name?$$select_name:$monitor[Type];
+$source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
+?>
+<tr><td align="left" class="text">Source Type</td><td><?php buildSelect( $select_name, $source_types, "document.monitor_form.submit();" ); ?></td></tr>
+<?php
+		if ( $$select_name == "Local" )
+		{
+?>
+<tr><td align="left" class="text">Device Number (/dev/video?)</td><td align="left" class="text"><input type="text" name="new_device" value="<?= $monitor[Device] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Device Channel</td><td align="left" class="text"><input type="text" name="new_channel" value="<?= $monitor[Channel] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Device Format (0=PAL,1=NTSC etc)</td><td align="left" class="text"><input type="text" name="new_format" value="<?= $monitor[Format] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Capture Palette</td><td align="left" class="text"><select name="new_palette" class="form"><?php foreach ( $local_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $monitor[Palette] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<?php
+		}
+		else
+		{
+?>
+<tr><td align="left" class="text">Remote Host Name</td><td align="left" class="text"><input type="text" name="new_host" value="<?= $monitor[Host] ?>" size="16" class="form"></td></tr>
+<tr><td align="left" class="text">Remote Host Port</td><td align="left" class="text"><input type="text" name="new_port" value="<?= $monitor[Port] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text">Remote Host Path</td><td align="left" class="text"><input type="text" name="new_path" value="<?= $monitor[Path] ?>" size="36" class="form"></td></tr>
+<tr><td align="left" class="text">Remote Image Colours</td><td align="left" class="text"><select name="new_palette" class="form"><?php foreach ( $remote_palettes as $name => $value ) { ?><option value= <?= $value ?>"<?php if ( $value == $monitor[Palette] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<?php
+		}
+?>
+<tr><td align="left" class="text">Capture Width (pixels)</td><td align="left" class="text"><input type="text" name="new_width" value="<?= $monitor[Width] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Capture Height (pixels)</td><td align="left" class="text"><input type="text" name="new_height" value="<?= $monitor[Height] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Orientation</td><td align="left" class="text"><select name="new_orientation" class="form"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $monitor[Orientation] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<tr><td align="left" class="text">Timestamp Label Format</td><td align="left" class="text"><input type="text" name="new_label_format" value="<?= $monitor[LabelFormat] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text">Timestamp Label X</td><td align="left" class="text"><input type="text" name="new_label_x" value="<?= $monitor[LabelX] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Timestamp Label Y</td><td align="left" class="text"><input type="text" name="new_label_y" value="<?= $monitor[LabelY] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Image Buffer Size (frames)</td><td align="left" class="text"><input type="text" name="new_image_buffer_count" value="<?= $monitor[ImageBufferCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Warmup Frames</td><td align="left" class="text"><input type="text" name="new_warmup_count" value="<?= $monitor[WarmupCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Pre Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_pre_event_count" value="<?= $monitor[PreEventCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Post Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_post_event_count" value="<?= $monitor[PostEventCount] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Maximum FPS</td><td align="left" class="text"><input type="text" name="new_max_fps" value="<?= $monitor[MaxFPS] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">FPS Report Interval</td><td align="left" class="text"><input type="text" name="new_fps_report_interval" value="<?= $monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_ref_blend_perc" value="<?= $monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
+<?php if ( ZM_OPT_X10 ) { ?>
+<tr><td align="left" class="text">X10 Activation String</td><td align="left" class="text"><input type="text" name="new_x10_activation" value="<?= $monitor[X10Activation] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text">X10 Input Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_input" value="<?= $monitor[X10AlarmInput] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text">X10 Output Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_output" value="<?= $monitor[X10AlarmOutput] ?>" size="20" class="form"></td></tr>
+<?php } ?>
+<tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
+<tr>
+<td align="left">&nbsp;</td>
+<td align="left"><input type="submit" value="Save" class="form" onClick="document.monitor_form.view.value='none'; document.monitor_form.action.value='monitor';"<?php if ( !canEdit( 'Settings' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
+</tr>
+</table>
+</body>
+</html>
+<?php
+		break;
+	}
 	case "zones" :
 	{
+		if ( !canView( 'Settings' ) )
+		{
+			$view = "error";
+			break;
+		}
 		chdir( ZM_DIR_IMAGES );
 		$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -z" ) );
 		chdir( '..' );
@@ -2265,14 +2459,14 @@ function configureButton(form,name)
 <td align="center" class="text"><?= $zone['Type'] ?></td>
 <td align="center" class="text"><?= $zone[Units] ?></td>
 <td align="center" class="text"><?= $zone[LoX] ?>,<?= $zone[LoY] ?>-<?= $zone[HiX] ?>,<?= $zone[HiY]?></td>
-<td align="center" class="text"><input type="checkbox" name="mark_zids[]" value="<?= $zone[Id] ?>" onClick="configureButton( document.zone_form, 'mark_zids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_zids[]" value="<?= $zone[Id] ?>" onClick="configureButton( document.zone_form, 'mark_zids' );"<?php if ( !canEdit( 'Settings' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
 		}
 ?>
 <tr>
 <td align="center" class="text">&nbsp;</td>
-<td colspan="4" align="center"><input type="button" value="Add New Zone" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=-1', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );"></td>
+<td colspan="4" align="center"><input type="button" value="Add New Zone" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=-1', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );"<?php if ( !canEdit( 'Settings' ) ) { ?> disabled<?php } ?>></td>
 <td align="center"><input type="submit" name="delete_btn" value="Delete" class="form" disabled></td>
 </tr>
 </form>
@@ -2282,145 +2476,13 @@ function configureButton(form,name)
 <?php
 		break;
 	}
-	case "monitor" :
-	{
-		if ( $mid > 0 )
-		{
-			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$monitor = mysql_fetch_assoc( $result );
-		}
-		else
-		{
-			$monitor = array();
-			$monitor[Name] = "New";
-			$monitor['Function'] = "None";
-			$monitor[Type] = "Local";
-			$monitor[Port] = "80";
-			$monitor[Orientation] = "0";
-			$monitor[LabelFormat] = '%%s - %y/%m/%d %H:%M:%S';
-			$monitor[LabelX] = 0;
-			$monitor[LabelY] = 0;
-			$monitor[ImageBufferCount] = 100;
-			$monitor[WarmupCount] = 25;
-			$monitor[PreEventCount] = 10;
-			$monitor[PostEventCount] = 10;
-			$monitor[MaxFPS] = 0;
-			$monitor[FPSReportInterval] = 1000;
-			$monitor[RefBlendPerc] = 10;
-		}
-		$local_palettes = array( "Grey"=>1, "RGB24"=>4, "RGB565"=>3, "YUV420P"=>15 );
-		$remote_palettes = array( "8 bit greyscale"=>1, "24 bit colour"=>4 );
-		$orientations = array( "Normal"=>0, "Rotate Right"=>90, "Inverted"=>180, "Rotate Left"=>270 );
-?>
-<html>
-<head>
-<title>ZM - Monitor <?= $monitor[Name] ?></title>
-<link rel="stylesheet" href="zm_styles.css" type="text/css">
-<script language="JavaScript">
-<?php
-		if ( $refresh_parent )
-		{
-?>
-opener.location.reload(true);
-<?php
-		}
-?>
-window.focus();
-function validateForm(theForm)
-{
-	return( true );
-}
-
-function closeWindow()
-{
-	window.close();
-}
-</script>
-</head>
-<body>
-<table border="0" cellspacing="0" cellpadding="0" width="100%">
-<tr>
-<td colspan="2" align="left" class="head">Monitor <?= $monitor[Name] ?></td>
-</tr>
-<form name="monitor_form" method="get" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.monitor_form )">
-<input type="hidden" name="view" value="<?= $view ?>">
-<input type="hidden" name="action" value="">
-<input type="hidden" name="mid" value="<?= $mid ?>">
-<tr>
-<td align="left" class="smallhead">Parameter</td><td align="left" class="smallhead">Value</td>
-</tr>
-<tr><td align="left" class="text">Name</td><td align="left" class="text"><input type="text" name="new_name" value="<?= $monitor[Name] ?>" size="12" class="form"></td></tr>
-<tr><td align="left" class="text">Function</td><td align="left" class="text"><select name="new_function" class="form">
-<?php
-		foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
-		{
-			if ( !ZM_OPT_X10 && $opt_function == 'X10' )
-				continue;
-?>
-<option value="<?= $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?= $opt_function ?></option>
-<?php
-		}
-?>
-</select></td></tr>
-<?php
-$select_name = "new_type";
-$$select_name = $$select_name?$$select_name:$monitor[Type];
-$source_types = array( "Local"=>"Local", "Remote"=>"Remote" );
-?>
-<tr><td align="left" class="text">Source Type</td><td><?php buildSelect( $select_name, $source_types, "document.monitor_form.submit();" ); ?></td></tr>
-<?php
-		if ( $$select_name == "Local" )
-		{
-?>
-<tr><td align="left" class="text">Device Number (/dev/video?)</td><td align="left" class="text"><input type="text" name="new_device" value="<?= $monitor[Device] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Device Channel</td><td align="left" class="text"><input type="text" name="new_channel" value="<?= $monitor[Channel] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Device Format (0=PAL,1=NTSC etc)</td><td align="left" class="text"><input type="text" name="new_format" value="<?= $monitor[Format] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Capture Palette</td><td align="left" class="text"><select name="new_palette" class="form"><?php foreach ( $local_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $monitor[Palette] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
-<?php
-		}
-		else
-		{
-?>
-<tr><td align="left" class="text">Remote Host Name</td><td align="left" class="text"><input type="text" name="new_host" value="<?= $monitor[Host] ?>" size="16" class="form"></td></tr>
-<tr><td align="left" class="text">Remote Host Port</td><td align="left" class="text"><input type="text" name="new_port" value="<?= $monitor[Port] ?>" size="6" class="form"></td></tr>
-<tr><td align="left" class="text">Remote Host Path</td><td align="left" class="text"><input type="text" name="new_path" value="<?= $monitor[Path] ?>" size="36" class="form"></td></tr>
-<tr><td align="left" class="text">Remote Image Colours</td><td align="left" class="text"><select name="new_palette" class="form"><?php foreach ( $remote_palettes as $name => $value ) { ?><option value= <?= $value ?>"<?php if ( $value == $monitor[Palette] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
-<?php
-		}
-?>
-<tr><td align="left" class="text">Capture Width (pixels)</td><td align="left" class="text"><input type="text" name="new_width" value="<?= $monitor[Width] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Capture Height (pixels)</td><td align="left" class="text"><input type="text" name="new_height" value="<?= $monitor[Height] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Orientation</td><td align="left" class="text"><select name="new_orientation" class="form"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $monitor[Orientation] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
-<tr><td align="left" class="text">Timestamp Label Format</td><td align="left" class="text"><input type="text" name="new_label_format" value="<?= $monitor[LabelFormat] ?>" size="20" class="form"></td></tr>
-<tr><td align="left" class="text">Timestamp Label X</td><td align="left" class="text"><input type="text" name="new_label_x" value="<?= $monitor[LabelX] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Timestamp Label Y</td><td align="left" class="text"><input type="text" name="new_label_y" value="<?= $monitor[LabelY] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Image Buffer Size (frames)</td><td align="left" class="text"><input type="text" name="new_image_buffer_count" value="<?= $monitor[ImageBufferCount] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Warmup Frames</td><td align="left" class="text"><input type="text" name="new_warmup_count" value="<?= $monitor[WarmupCount] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Pre Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_pre_event_count" value="<?= $monitor[PreEventCount] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Post Event Image Buffer</td><td align="left" class="text"><input type="text" name="new_post_event_count" value="<?= $monitor[PostEventCount] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Maximum FPS</td><td align="left" class="text"><input type="text" name="new_max_fps" value="<?= $monitor[MaxFPS] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">FPS Report Interval</td><td align="left" class="text"><input type="text" name="new_fps_report_interval" value="<?= $monitor[FPSReportInterval] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text">Reference Image Blend %ge</td><td align="left" class="text"><input type="text" name="new_ref_blend_perc" value="<?= $monitor[RefBlendPerc] ?>" size="4" class="form"></td></tr>
-<?php if ( ZM_OPT_X10 ) { ?>
-<tr><td align="left" class="text">X10 Activation String</td><td align="left" class="text"><input type="text" name="new_x10_activation" value="<?= $monitor[X10Activation] ?>" size="20" class="form"></td></tr>
-<tr><td align="left" class="text">X10 Input Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_input" value="<?= $monitor[X10AlarmInput] ?>" size="20" class="form"></td></tr>
-<tr><td align="left" class="text">X10 Output Alarm String</td><td align="left" class="text"><input type="text" name="new_x10_alarm_output" value="<?= $monitor[X10AlarmOutput] ?>" size="20" class="form"></td></tr>
-<?php } ?>
-<tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
-<tr>
-<td align="left"><input type="submit" value="Save" class="form" onClick="document.monitor_form.view.value='none'; document.monitor_form.action.value='monitor';"></td>
-<td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
-</tr>
-</table>
-</body>
-</html>
-<?php
-		break;
-	}
 	case "zone" :
 	{
+		if ( !canView( 'Settings' ) )
+		{
+			$view = "error";
+			break;
+		}
 		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 		if ( !$result )
 			die( mysql_error() );
@@ -2457,185 +2519,185 @@ opener.location.reload(true);
 		}
 ?>
 window.focus();
-function validateForm(theForm)
+function validateForm( Form )
 {
-	theForm.new_alarm_rgb.value = (theForm.new_alarm_rgb_r.value<<16)|(theForm.new_alarm_rgb_g.value<<8)|theForm.new_alarm_rgb_b.value;
+	Form.new_alarm_rgb.value = (Form.new_alarm_rgb_r.value<<16)|(Form.new_alarm_rgb_g.value<<8)|Form.new_alarm_rgb_b.value;
 	return( true );
 }
 
-function applyZoneType(theForm)
+function applyZoneType( Form )
 {
-	if ( theForm.new_type.value == 'Inactive' )
+	if ( Form.new_type.value == 'Inactive' )
 	{
-		theForm.new_alarm_rgb_r.disabled = true;
-		theForm.new_alarm_rgb_r.value = "";
-		theForm.new_alarm_rgb_g.disabled = true;
-		theForm.new_alarm_rgb_g.value = "";
-		theForm.new_alarm_rgb_b.disabled = true;
-		theForm.new_alarm_rgb_b.value = "";
-		theForm.new_alarm_threshold.disabled = true;
-		theForm.new_alarm_threshold.value = "";
-		theForm.new_min_alarm_pixels.disabled = true;
-		theForm.new_min_alarm_pixels.value = "";
-		theForm.new_max_alarm_pixels.disabled = true;
-		theForm.new_max_alarm_pixels.value = "";
-		theForm.new_filter_x.disabled = true;
-		theForm.new_filter_x.value = "";
-		theForm.new_filter_y.disabled = true;
-		theForm.new_filter_y.value = "";
-		theForm.new_min_filter_pixels.disabled = true;
-		theForm.new_min_filter_pixels.value = "";
-		theForm.new_max_filter_pixels.disabled = true;
-		theForm.new_max_filter_pixels.value = "";
-		theForm.new_min_blob_pixels.disabled = true;
-		theForm.new_min_blob_pixels.value = "";
-		theForm.new_max_blob_pixels.disabled = true;
-		theForm.new_max_blob_pixels.value = "";
-		theForm.new_min_blobs.disabled = true;
-		theForm.new_min_blobs.value = "";
-		theForm.new_max_blobs.disabled = true;
-		theForm.new_max_blobs.value = "";
+		Form.new_alarm_rgb_r.disabled = true;
+		Form.new_alarm_rgb_r.value = "";
+		Form.new_alarm_rgb_g.disabled = true;
+		Form.new_alarm_rgb_g.value = "";
+		Form.new_alarm_rgb_b.disabled = true;
+		Form.new_alarm_rgb_b.value = "";
+		Form.new_alarm_threshold.disabled = true;
+		Form.new_alarm_threshold.value = "";
+		Form.new_min_alarm_pixels.disabled = true;
+		Form.new_min_alarm_pixels.value = "";
+		Form.new_max_alarm_pixels.disabled = true;
+		Form.new_max_alarm_pixels.value = "";
+		Form.new_filter_x.disabled = true;
+		Form.new_filter_x.value = "";
+		Form.new_filter_y.disabled = true;
+		Form.new_filter_y.value = "";
+		Form.new_min_filter_pixels.disabled = true;
+		Form.new_min_filter_pixels.value = "";
+		Form.new_max_filter_pixels.disabled = true;
+		Form.new_max_filter_pixels.value = "";
+		Form.new_min_blob_pixels.disabled = true;
+		Form.new_min_blob_pixels.value = "";
+		Form.new_max_blob_pixels.disabled = true;
+		Form.new_max_blob_pixels.value = "";
+		Form.new_min_blobs.disabled = true;
+		Form.new_min_blobs.value = "";
+		Form.new_max_blobs.disabled = true;
+		Form.new_max_blobs.value = "";
 	}
-	else if ( theForm.new_type.value == 'Preclusive' )
+	else if ( Form.new_type.value == 'Preclusive' )
 	{
-		theForm.new_alarm_rgb_r.disabled = true;
-		theForm.new_alarm_rgb_r.value = "";
-		theForm.new_alarm_rgb_g.disabled = true;
-		theForm.new_alarm_rgb_g.value = "";
-		theForm.new_alarm_rgb_b.disabled = true;
-		theForm.new_alarm_rgb_b.value = "";
-		theForm.new_alarm_threshold.disabled = false;
-		theForm.new_alarm_threshold.value = "<?= $zone[AlarmThreshold] ?>";
-		theForm.new_min_alarm_pixels.disabled = false;
-		theForm.new_min_alarm_pixels.value = "<?= $zone[MinAlarmPixels] ?>";
-		theForm.new_max_alarm_pixels.disabled = false;
-		theForm.new_max_alarm_pixels.value = "<?= $zone[MaxAlarmPixels] ?>";
-		theForm.new_filter_x.disabled = false;
-		theForm.new_filter_x.value = "<?= $zone[FilterX] ?>";
-		theForm.new_filter_y.disabled = false;
-		theForm.new_filter_y.value = "<?= $zone[FilterY] ?>";
-		theForm.new_min_filter_pixels.disabled = false;
-		theForm.new_min_filter_pixels.value = "<?= $zone[MinFilterPixels] ?>";
-		theForm.new_max_filter_pixels.disabled = false;
-		theForm.new_max_filter_pixels.value = "<?= $zone[MaxFilterPixels] ?>";
-		theForm.new_min_blob_pixels.disabled = false;
-		theForm.new_min_blob_pixels.value = "<?= $zone[MinBlobPixels] ?>";
-		theForm.new_max_blob_pixels.disabled = false;
-		theForm.new_max_blob_pixels.value = "<?= $zone[MaxBlobPixels] ?>";
-		theForm.new_min_blobs.disabled = false;
-		theForm.new_min_blobs.value = "<?= $zone[MinBlobs] ?>";
-		theForm.new_max_blobs.disabled = false;
-		theForm.new_max_blobs.value = "<?= $zone[MaxBlobs] ?>";
+		Form.new_alarm_rgb_r.disabled = true;
+		Form.new_alarm_rgb_r.value = "";
+		Form.new_alarm_rgb_g.disabled = true;
+		Form.new_alarm_rgb_g.value = "";
+		Form.new_alarm_rgb_b.disabled = true;
+		Form.new_alarm_rgb_b.value = "";
+		Form.new_alarm_threshold.disabled = false;
+		Form.new_alarm_threshold.value = "<?= $zone[AlarmThreshold] ?>";
+		Form.new_min_alarm_pixels.disabled = false;
+		Form.new_min_alarm_pixels.value = "<?= $zone[MinAlarmPixels] ?>";
+		Form.new_max_alarm_pixels.disabled = false;
+		Form.new_max_alarm_pixels.value = "<?= $zone[MaxAlarmPixels] ?>";
+		Form.new_filter_x.disabled = false;
+		Form.new_filter_x.value = "<?= $zone[FilterX] ?>";
+		Form.new_filter_y.disabled = false;
+		Form.new_filter_y.value = "<?= $zone[FilterY] ?>";
+		Form.new_min_filter_pixels.disabled = false;
+		Form.new_min_filter_pixels.value = "<?= $zone[MinFilterPixels] ?>";
+		Form.new_max_filter_pixels.disabled = false;
+		Form.new_max_filter_pixels.value = "<?= $zone[MaxFilterPixels] ?>";
+		Form.new_min_blob_pixels.disabled = false;
+		Form.new_min_blob_pixels.value = "<?= $zone[MinBlobPixels] ?>";
+		Form.new_max_blob_pixels.disabled = false;
+		Form.new_max_blob_pixels.value = "<?= $zone[MaxBlobPixels] ?>";
+		Form.new_min_blobs.disabled = false;
+		Form.new_min_blobs.value = "<?= $zone[MinBlobs] ?>";
+		Form.new_max_blobs.disabled = false;
+		Form.new_max_blobs.value = "<?= $zone[MaxBlobs] ?>";
 	}
 	else
 	{
-		theForm.new_alarm_rgb_r.disabled = false;
-		theForm.new_alarm_rgb_r.value = "<?= ($zone[AlarmRGB]>>16)&0xff; ?>";
-		theForm.new_alarm_rgb_g.disabled = false;
-		theForm.new_alarm_rgb_g.value = "<?= ($zone[AlarmRGB]>>8)&0xff; ?>";
-		theForm.new_alarm_rgb_b.disabled = false;
-		theForm.new_alarm_rgb_b.value = "<?= $zone[AlarmRGB]&0xff; ?>";
-		theForm.new_alarm_threshold.disabled = false;
-		theForm.new_alarm_threshold.value = "<?= $zone[AlarmThreshold] ?>";
-		theForm.new_min_alarm_pixels.disabled = false;
-		theForm.new_min_alarm_pixels.value = "<?= $zone[MinAlarmPixels] ?>";
-		theForm.new_max_alarm_pixels.disabled = false;
-		theForm.new_max_alarm_pixels.value = "<?= $zone[MaxAlarmPixels] ?>";
-		theForm.new_filter_x.disabled = false;
-		theForm.new_filter_x.value = "<?= $zone[FilterX] ?>";
-		theForm.new_filter_y.disabled = false;
-		theForm.new_filter_y.value = "<?= $zone[FilterY] ?>";
-		theForm.new_min_filter_pixels.disabled = false;
-		theForm.new_min_filter_pixels.value = "<?= $zone[MinFilterPixels] ?>";
-		theForm.new_max_filter_pixels.disabled = false;
-		theForm.new_max_filter_pixels.value = "<?= $zone[MaxFilterPixels] ?>";
-		theForm.new_min_blob_pixels.disabled = false;
-		theForm.new_min_blob_pixels.value = "<?= $zone[MinBlobPixels] ?>";
-		theForm.new_max_blob_pixels.disabled = false;
-		theForm.new_max_blob_pixels.value = "<?= $zone[MaxBlobPixels] ?>";
-		theForm.new_min_blobs.disabled = false;
-		theForm.new_min_blobs.value = "<?= $zone[MinBlobs] ?>";
-		theForm.new_max_blobs.disabled = false;
-		theForm.new_max_blobs.value = "<?= $zone[MaxBlobs] ?>";
+		Form.new_alarm_rgb_r.disabled = false;
+		Form.new_alarm_rgb_r.value = "<?= ($zone[AlarmRGB]>>16)&0xff; ?>";
+		Form.new_alarm_rgb_g.disabled = false;
+		Form.new_alarm_rgb_g.value = "<?= ($zone[AlarmRGB]>>8)&0xff; ?>";
+		Form.new_alarm_rgb_b.disabled = false;
+		Form.new_alarm_rgb_b.value = "<?= $zone[AlarmRGB]&0xff; ?>";
+		Form.new_alarm_threshold.disabled = false;
+		Form.new_alarm_threshold.value = "<?= $zone[AlarmThreshold] ?>";
+		Form.new_min_alarm_pixels.disabled = false;
+		Form.new_min_alarm_pixels.value = "<?= $zone[MinAlarmPixels] ?>";
+		Form.new_max_alarm_pixels.disabled = false;
+		Form.new_max_alarm_pixels.value = "<?= $zone[MaxAlarmPixels] ?>";
+		Form.new_filter_x.disabled = false;
+		Form.new_filter_x.value = "<?= $zone[FilterX] ?>";
+		Form.new_filter_y.disabled = false;
+		Form.new_filter_y.value = "<?= $zone[FilterY] ?>";
+		Form.new_min_filter_pixels.disabled = false;
+		Form.new_min_filter_pixels.value = "<?= $zone[MinFilterPixels] ?>";
+		Form.new_max_filter_pixels.disabled = false;
+		Form.new_max_filter_pixels.value = "<?= $zone[MaxFilterPixels] ?>";
+		Form.new_min_blob_pixels.disabled = false;
+		Form.new_min_blob_pixels.value = "<?= $zone[MinBlobPixels] ?>";
+		Form.new_max_blob_pixels.disabled = false;
+		Form.new_max_blob_pixels.value = "<?= $zone[MaxBlobPixels] ?>";
+		Form.new_min_blobs.disabled = false;
+		Form.new_min_blobs.value = "<?= $zone[MinBlobs] ?>";
+		Form.new_max_blobs.disabled = false;
+		Form.new_max_blobs.value = "<?= $zone[MaxBlobs] ?>";
 	}
 }
 
-function toPixels(theField,maxValue)
+function toPixels( Field, maxValue )
 {
-		theField.value = Math.round((theField.value*maxValue)/100);
+		Field.value = Math.round((Field.value*maxValue)/100);
 }
 
-function toPercent(theField,maxValue)
+function toPercent( Field, maxValue )
 {
-		theField.value = Math.round((100*theField.value)/maxValue);
+		Field.value = Math.round((100*Field.value)/maxValue);
 }
 
-function applyZoneUnits(theForm)
+function applyZoneUnits( Form )
 {
 	var max_width = <?= $monitor[Width]-1 ?>;
 	var max_height = <?= $monitor[Height]-1 ?>;
 	var area = (max_width+1) * (max_height+1);
 
-	if ( theForm.new_units.value == 'Pixels' )
+	if ( Form.new_units.value == 'Pixels' )
 	{
-		toPixels( theForm.new_lo_x, max_width );
-		toPixels( theForm.new_lo_y, max_height );
-		toPixels( theForm.new_hi_x, max_width );
-		toPixels( theForm.new_hi_y, max_height );
-		toPixels( theForm.new_min_alarm_pixels, area );
-		toPixels( theForm.new_max_alarm_pixels, area );
-		toPixels( theForm.new_min_filter_pixels, area );
-		toPixels( theForm.new_max_filter_pixels, area );
-		toPixels( theForm.new_min_blob_pixels, area );
-		toPixels( theForm.new_max_blob_pixels, area );
+		toPixels( Form.new_lo_x, max_width );
+		toPixels( Form.new_lo_y, max_height );
+		toPixels( Form.new_hi_x, max_width );
+		toPixels( Form.new_hi_y, max_height );
+		toPixels( Form.new_min_alarm_pixels, area );
+		toPixels( Form.new_max_alarm_pixels, area );
+		toPixels( Form.new_min_filter_pixels, area );
+		toPixels( Form.new_max_filter_pixels, area );
+		toPixels( Form.new_min_blob_pixels, area );
+		toPixels( Form.new_max_blob_pixels, area );
 	}
 	else
 	{
-		toPercent( theForm.new_lo_x, max_width );
-		toPercent( theForm.new_lo_y, max_height );
-		toPercent( theForm.new_hi_x, max_width );
-		toPercent( theForm.new_hi_y, max_height );
-		toPercent( theForm.new_min_alarm_pixels, area );
-		toPercent( theForm.new_max_alarm_pixels, area );
-		toPercent( theForm.new_min_filter_pixels, area );
-		toPercent( theForm.new_max_filter_pixels, area );
-		toPercent( theForm.new_min_blob_pixels, area );
-		toPercent( theForm.new_max_blob_pixels, area );
+		toPercent( Form.new_lo_x, max_width );
+		toPercent( Form.new_lo_y, max_height );
+		toPercent( Form.new_hi_x, max_width );
+		toPercent( Form.new_hi_y, max_height );
+		toPercent( Form.new_min_alarm_pixels, area );
+		toPercent( Form.new_max_alarm_pixels, area );
+		toPercent( Form.new_min_filter_pixels, area );
+		toPercent( Form.new_max_filter_pixels, area );
+		toPercent( Form.new_min_blob_pixels, area );
+		toPercent( Form.new_max_blob_pixels, area );
 	}
 }
 
-function checkBounds(theField,fieldText,minValue,maxValue)
+function checkBounds( Field, fieldText, minValue, maxValue)
 {
 	if ( document.zone_form.new_units.value == "Percent" )
 	{
 		minValue = 0;
 		maxValue = 100;
 	}
-	if ( theField.value < minValue )
+	if ( Field.value < minValue )
 	{
 		alert( fieldText + " must be greater than or equal to " + minValue );
-		theField.value = minValue;
+		Field.value = minValue;
 	}
-	if ( theField.value > maxValue )
+	if ( Field.value > maxValue )
 	{
 		alert( fieldText + " must be less than or equal to " + maxValue );
-		theField.value = maxValue;
+		Field.value = maxValue;
 	}
 }
 
-function checkWidth(theField,fieldText)
+function checkWidth( Field, fieldText )
 {
-	return( checkBounds( theField, fieldText, 0, <?= $monitor[Width]-1 ?> ) );
+	return( checkBounds( Field, fieldText, 0, <?= $monitor[Width]-1 ?> ) );
 }
 
-function checkHeight(theField,fieldText)
+function checkHeight( Field, fieldText )
 {
-	return( checkBounds( theField, fieldText, 0, <?= $monitor[Height]-1 ?> ) );
+	return( checkBounds( Field, fieldText, 0, <?= $monitor[Height]-1 ?> ) );
 }
 
-function checkArea(theField,fieldText)
+function checkArea( Field, fieldText )
 {
-	return( checkBounds( theField, fieldText, 0, <?= $monitor[Width]*$monitor[Height] ?> ) );
+	return( checkBounds( Field, fieldText, 0, <?= $monitor[Width]*$monitor[Height] ?> ) );
 }
 
 function closeWindow()
@@ -2697,8 +2759,8 @@ function closeWindow()
 <tr><td align="left" class="text">Maximum Blobs</td><td align="left" class="text"><input type="text" name="new_max_blobs" value="<?= $zone[MaxBlobs] ?>" size="4" class="form"></td></tr>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
-<td align="left"><input type="submit" value="Save" class="form"></td>
-<td align="left"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
+<td align="left">&nbsp;</td>
+<td align="left"><input type="submit" value="Save" class="form"<?php if ( !canEdit( 'Settings' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
 </body>
@@ -2708,6 +2770,11 @@ function closeWindow()
 	}
 	case "video" :
 	{
+		if ( !canView( 'Events' ) )
+		{
+			$view = "error";
+			break;
+		}
 		$result = mysql_query( "select E.*,M.Name as MonitorName, M.Palette from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
 		if ( !$result )
 			die( mysql_error() );
@@ -2781,6 +2848,11 @@ location.replace('<?= $video_path ?>');
 	}
 	case "function" :
 	{
+		if ( !canEdit( 'Settings' ) )
+		{
+			$view = "error";
+			break;
+		}
 		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 		if ( !$result )
 			die( mysql_error() );
@@ -2866,23 +2938,39 @@ window.close();
 		break;
 	}
 }
-?>
-<?php
 
-function buildSelect( $name, $contents, $onchange="" )
+if ( $view == "error" )
 {
-	global $$name;
 ?>
-<select name="<?= $name ?>" class="form"<?php if ( $onchange ) { echo " onChange=\"$onchange\""; } ?>>
-<?php
-	foreach ( $contents as $content_value => $content_text )
-	{
-?>
-<option value="<?= $content_value ?>"<?php if ( $$name == $content_value ) { echo " selected"; } ?>><?= $content_text ?></option>
-<?php
-	}
-?>
-</select>
+<html>
+<head>
+<title>ZM - Error</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+function closeWindow()
+{
+if ( window.parent != window )
+	window.close();
+else
+	top.window.close();
+}
+if ( window.parent != window )
+{
+	window.setTimeout( "window.close()", 30000 );
+}
+</script>
+</head>
+<body>
+<table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
+<input type="hidden" name="action" value="login">
+<tr><td colspan="2" class="smallhead" align="center">ZoneMinder Error</td></tr>
+<tr><td colspan="2" class="text" align="center">&nbsp;</td></tr>
+<tr><td colspan="2" class="text" align="center"><strong>You do not have permissions to access this resource.<br/>Please contact your adminstrator for details.</strong></td></tr>
+<tr><td colspan="2" class="text" align="center">&nbsp;</td></tr>
+<tr><td colspan="2" class="text" align="center"><a href="javascript: closeWindow();">Close</a></td></tr>
+</table>
+</body>
+</html>
 <?php
 }
 ?>

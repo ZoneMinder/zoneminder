@@ -45,7 +45,9 @@ extern "C"
 {
 #include <jpeglib.h>
 
+#if !HAVE_DECL_ROUND
 double round(double);
+#endif
 
 void jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_size );
 }

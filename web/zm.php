@@ -140,11 +140,18 @@ if ( $action )
 		}
 		elseif ( $delete_zids )
 		{
+			$deleted_zid = 0;
 			foreach( $delete_zids as $delete_zid )
 			{
 				$result = mysql_query( "delete from Zones where Id = '$delete_zid'" );
 				if ( !$result )
 					die( mysql_error() );
+				$deleted_zid = 1;
+			}
+			if ( $deleted_zid )
+			{
+				startDaemon( "zma", $mid );
+				$refresh_parent = true;
 			}
 		}
 		elseif ( $delete_mids )

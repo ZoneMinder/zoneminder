@@ -22,7 +22,11 @@
 if ( $action )
 {
 	//phpinfo( INFO_VARIABLES );
-	if ( $action == "rename" && $event_name && $eid )
+	if ( $action == "login" && $username && $password )
+	{
+		userLogin( $username, $password );
+	}
+	elseif ( $action == "rename" && $event_name && $eid )
 	{
 		$result = mysql_query( "update Events set Name = '$event_name' where Id = '$eid'" );
 		if ( !$result )

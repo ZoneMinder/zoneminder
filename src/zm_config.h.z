@@ -27,6 +27,7 @@
 #define	ZM_DB_USERB				"<from zmconfig>"	// Unprivileged DB user name, need just select privilege.
 #define	ZM_DB_PASSB				"<from zmconfig>"	// Unprivileged DB user password
 
+#define ZM_OPT_USE_AUTH         "<from zmconfig>"	// Authenticate user logins to ZoneMinder
 #define ZM_HTTP_VERSION         "<from zmconfig>"	// The version of HTTP that ZoneMinder will use to connect
 #define ZM_HTTP_UA              "<from zmconfig>"	// The user agent that ZoneMinder uses to identify itself
 #define ZM_HTTP_TIMEOUT         <from zmconfig>		// How long ZoneMinder waits before giving up on images (millseconds)

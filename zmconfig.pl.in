@@ -168,6 +168,13 @@ my @options =
 		type => $types{string},
 	},
 	{
+		name => "ZM_OPT_USE_AUTH",
+		default => "no",
+		description => "Authenticate user logins to ZoneMinder",
+		help => "ZoneMinder can run in two modes. The simplest is an entirely unauthenticated mode where anyone can access ZoneMinder and perform all tasks. This is most suitable for installation where the web server access is limited in other ways. The other mode enables user accounts with varying sets of permissions. Users must login to access ZoneMinder and are limited by their defined permissions.",
+		type => $types{boolean},
+	},
+	{
 		name => "ZM_DIR_EVENTS",
 		default => "events",
 		description => "Directory where events are stored",

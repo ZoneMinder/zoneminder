@@ -30,6 +30,7 @@ define( "ZM_DB_SERVER", "<from zmconfig>" );			// Database server
 define( "ZM_DB_NAME", "<from zmconfig>" );				// Database containing the tables
 define( "ZM_DB_USERA", "<from zmconfig>" );				// Database login
 define( "ZM_DB_PASSA", "<from zmconfig>" );				// Database password
+define( "ZM_OPT_USE_AUTH", "<from zmconfig>" );			// Authenticate user logins to ZoneMinder
 define( "ZM_DIR_EVENTS", "<from zmconfig>" );			// Directory where events live
 define( "ZM_DIR_IMAGES", "<from zmconfig>" );			// Directory where images live
 define( "ZM_DIR_SOUNDS", "<from zmconfig>" );			// Drectory where sounds live

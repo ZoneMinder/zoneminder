@@ -30,18 +30,98 @@ if ( $new_bandwidth )
 	setcookie( "bandwidth", $new_bandwidth, time()+3600*24*30*12*10 );
 }
 
+ini_set( "session.use_trans_sid", "0" );
+ini_set( "session.name", "ZMSESSID" );
+
+session_start();
+
 require_once( 'zm_config.php' );
 require_once( 'zm_db.php' );
 require_once( 'zm_funcs.php' );
 require_once( 'zm_actions.php' );
 
-if ( !$view )
+if ( ZM_OPT_USE_AUTH )
+{
+	$user = $HTTP_SESSION_VARS[user];
+}
+else
+{
+	$user = array(
+		"Username"=>"admin",
+		"Password"=>"",
+		"Active"=>1,
+		"ViewFeed"=>1,
+		"ViewEvent"=>1,
+		"ViewMonitor"=>1,
+		"AdminEvent"=>1,
+		"AdminMonitor"=>1,
+		"AdminControl"=>1,
+	);
+}
+
+if ( !$user )
+{
+	$view = "login";
+}
+elseif ( !$view )
 {
 	$view = "console";
 }
 
 switch( $view )
 {
+	case "login" :
+	{
+?>
+<html>
+<head>
+<title>ZM - Login</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h'] ?> );
+</script>
+</head>
+<body>
+<table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
+<form name="login_form" method="post" action="<?= $PHP_SELF ?>">
+<input type="hidden" name="action" value="login">
+<input type="hidden" name="view" value="postlogin">
+<tr><td colspan="2" class="smallhead" align="center">ZoneMinder Login</td></tr>
+<tr><td width="50%" class="text" align="right">Username</td><td width="50%" align="left" class="text"><input type="text" class="form" name="username" value="<?= $username ?>" size="12"></tr>
+<tr><td width="50%" class="text" align="right">Password</td><td width="50%" align="left" class="text"><input type="password" class="form" name="password" value="<?= $password ?>" size="12"></tr>
+<tr><td colspan="2" align="center"><input type="submit" value="Login" class="form"></td></tr>
+</form>
+</table>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "postlogin" :
+	{
+?>
+<html>
+<head>
+<title>ZM - Logging In</title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+//window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h'] ?> );
+window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", 250 );
+</script>
+</head>
+<body>
+<table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
+<input type="hidden" name="action" value="login">
+<tr><td colspan="2" class="smallhead" align="center">ZoneMinder Login</td></tr>
+<tr><td colspan="2" class="text" align="center">&nbsp;</td></tr>
+<tr><td colspan="2" class="text" align="center"><strong>Logging In</strong></td></tr>
+<tr><td colspan="2" class="text" align="center">&nbsp;</td></tr>
+</table>
+</body>
+</html>
+<?php
+		break;
+	}
 	case "console" :
 	{
 		$running = daemonCheck();
@@ -133,7 +213,7 @@ function confirmDelete()
 		if ( ZM_WEB_REFRESH_METHOD == "javascript" )
 		{
 ?>
-window.setTimeout( 'window.location.reload(true)', <?= ($start||$stop)?250:(REFRESH_MAIN*1000) ?> );
+window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$stop)?250:(REFRESH_MAIN*1000) ?> );
 <?php
 		}
 ?>
@@ -143,7 +223,7 @@ window.setTimeout( 'window.location.reload(true)', <?= ($start||$stop)?250:(REFR
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
-<td class="bighead" align="center"><strong>ZoneMinder Console - <?= $status ?> (<a href="javascript: if ( confirmStatus( '<?= $new_status ?>' ) ) location='<?= $PHP_SELF ?>?<?= $new_status ?>=1';"><?= $new_status ?></a>) - v<?= ZM_VERSION ?></strong></td>
+<td class="bighead" align="center"><strong>ZoneMinder Console - <?= $status ?><?php if ( $user[AdminControl] ) { ?> (<a href="javascript: if ( confirmStatus( '<?= $new_status ?>' ) ) location='<?= $PHP_SELF ?>?<?= $new_status ?>=1';"><?= $new_status ?></a>) <?php } ?>- v<?= ZM_VERSION ?></strong></td>
 <?php
 	$uptime = shell_exec( 'uptime' );
 	$load = '';
@@ -154,7 +234,7 @@ window.setTimeout( 'window.location.reload(true)', <?= ($start||$stop)?250:(REFR
 <tr>
 <td class="smallhead" align="left">
 <?php
-	if ( $cycle_count > 1 )
+	if ( $user[ViewFeed] && $cycle_count > 1 )
 	{
 ?>
 <a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle', 'zmCycle', <?= $max_width+$jws['cycle']['w'] ?>, <?= $max_height+$jws['cycle']['h'] ?> );"><?= count($monitors) ?> Monitor<?= count($monitors)==1?'':'s' ?></a>&nbsp;(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage', 'zmMontage', <?= ($montage_cols*$max_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*(40+$max_height))+$jws['montage']['h'] ?> );">Montage</a>)
@@ -216,7 +296,7 @@ window.setTimeout( 'window.location.reload(true)', <?= ($start||$stop)?250:(REFR
 			$zone_count += $monitor[ZoneCount];
 ?>
 <tr>
-<td align="left" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor&mid=<?= $monitor[Id] ?>', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?> );"><?= $monitor[Id] ?>.</a></td>
+<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=$monitor[Id]', 'zmMonitor', $jws[monitor][w], $jws[monitor][h] );", "$monitor[Id].", $user[AdminMonitor] ) ?></td>
 <?php
 			if ( !$monitor[zmc] )
 			{

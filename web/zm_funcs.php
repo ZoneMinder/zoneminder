@@ -19,9 +19,35 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+function userLogin( $username, $password )
+{
+	global $HTTP_SESSION_VARS;
+
+	$sql = "select * from Users where Username = '$username' and Password = password('$password')";
+	$result = mysql_query( $sql );
+	if ( !$result )
+		echo mysql_error();
+	if ( $user = mysql_fetch_assoc( $result ) )
+	{
+		$HTTP_SESSION_VARS[user] = $user;
+	}
+}
+
+function deleteUser( $uid )
+{
+	global $user;
+
+	if ( $user[AdminControl] && $uid )
+	{
+		$result = mysql_query( "delete from Users where Id = '$uid'" );
+		if ( !$result )
+			die( mysql_error() );
+	}
+}
+
 function deleteEvent( $eid )
 {
-	if ( $eid )
+	if ( $session[AdminUser] && $eid )
 	{
 		$result = mysql_query( "delete from Events where Id = '$eid'" );
 		if ( !$result )
@@ -37,6 +63,21 @@ function deleteEvent( $eid )
 			system( escapeshellcmd( "rm -rf ".ZM_PATH_EVENTS."/*/".sprintf( "%d", $eid ) ) );
 		}
 	}
+}
+
+function makeLink( $url, $label, $condition=1 )
+{
+	$string = "";
+	if ( $condition )
+	{
+		$string .= '<a href="$url">';
+	}
+	$string .= $label;
+	if ( $condition )
+	{
+		$string .= '</a>';
+	}
+	return( $string );
 }
 
 function getBrowser( &$browser, &$version )

@@ -117,7 +117,6 @@ void RemoteCamera::Initialise()
 			sprintf( &(request[strlen(request)]), "Authorization: Basic %s\n", auth64 );
 		}
 		sprintf( &(request[strlen(request)]), "\n" );
-		Info(( "Request: %s", request ));
 		Debug( 2, ( "Request: %s", request ));
 	}
 	if ( !timeout.tv_sec )
@@ -125,6 +124,13 @@ void RemoteCamera::Initialise()
 		timeout.tv_sec = (int)config.Item( ZM_HTTP_TIMEOUT )/1000; 
 		timeout.tv_usec = (int)config.Item( ZM_HTTP_TIMEOUT )%1000;
 	}
+
+	int max_size = width*height*colours;
+
+	buffer.Size( max_size );
+
+	mode = SINGLE_JPEG;
+	state = HEADER;
 }
 
 int RemoteCamera::Connect()
@@ -163,215 +169,308 @@ int RemoteCamera::SendRequest()
 		Disconnect();
 		return( -1 );
 	}
+	state = HEADER;
 	Debug( 3, ( "Request sent" ));
 	return( 0 );
 }
 
-int RemoteCamera::GetHeader( const char *content, const char *header, char *value )
-{
-	//char *header_string = (char *)malloc( strlen(header)+8 );
-	static char header_string[BUFSIZ];
-	strcpy( header_string, header );
-	strcat( header_string, ":" );
-
-	char *header_ptr = strstr( content, header_string );
-	int result = -1;
-	if ( header_ptr )
-	{
-		strcat( header_string, " %s" );
-		result = sscanf( header_ptr, header_string, value );
-		//Debug( 3, ( "R:%d, %s\n", result, value );
-	}
-	return( result );
-}
-
-int RemoteCamera::GetResponse( unsigned char *&buffer, int &max_size )
+int RemoteCamera::ReadData( Buffer &buffer )
 {
 	fd_set rfds;
 	FD_ZERO(&rfds);
 	FD_SET(sd, &rfds);
 
-	char *header = 0;
-	int header_length = 0;
-	unsigned char *content = buffer;
-	int content_length = 0;
+	struct timeval temp_timeout = timeout;
 
-	char *content_ptr = 0;
-
-	while( 1 )
+	int n_found = select( sd+1, &rfds, NULL, NULL, &temp_timeout );
+	if( n_found == 0 )
 	{
-		struct timeval temp_timeout = timeout;
+		Error(( "Select timed out" ));
+		return( -1 );
+	}
+	else if ( n_found < 0)
+	{
+		Error(( "Select error: %s", strerror(errno) ));
+		return( -1 );
+	}
 
-		int n_found = select( sd+1, &rfds, NULL, NULL, &temp_timeout );
-		if( n_found == 0 )
+	int total_bytes_to_read = 0;
+	if ( ioctl( sd, FIONREAD, &total_bytes_to_read ) < 0 )
+	{
+		Error(( "Can't ioctl(): %s", strerror(errno) ));
+		return( -1 );
+	}
+	Debug( 3, ( "Expecting %d bytes", total_bytes_to_read ));
+
+	if ( total_bytes_to_read == 0 )
+	{
+		Debug( 3, ( "Socket closed" ));
+		Disconnect();
+		return( 0 );
+	}
+
+	int total_bytes_read = 0;
+	do
+	{
+		static unsigned char temp_buffer[BUFSIZ];
+		int bytes_to_read = total_bytes_to_read>sizeof(temp_buffer)?sizeof(temp_buffer):total_bytes_to_read;
+		int bytes_read = read( sd, temp_buffer, bytes_to_read );
+
+		if ( bytes_read < 0)
 		{
-			Error(( "Select timed out" ));
+			Error(( "Read error: %s", strerror(errno) ));
 			return( -1 );
 		}
-		else if ( n_found < 0)
+		else if ( bytes_read < bytes_to_read )
 		{
-			Error(( "Select error: %s", strerror(errno) ));
+			Error(( "Incomplete read, expected %d, got %d", bytes_to_read, bytes_read ));
 			return( -1 );
 		}
+		Debug( 3, ( "Read %d bytes", bytes_read ));
+		buffer.Append( temp_buffer, bytes_read );
+		total_bytes_read += bytes_read;
+		total_bytes_to_read -= bytes_read;
+	}
+	while ( total_bytes_to_read );
 
-		int bytes_to_read = 0;
-		if ( ioctl( sd, FIONREAD, &bytes_to_read ) < 0 )
+	return( total_bytes_read );
+}
+
+int RemoteCamera::GetResponse()
+{
+	const char *header = 0;
+	int header_len = 0;
+	int status_code = 0;
+	const char *status_mesg = 0;
+	const char *connection_type = "";
+	int content_length = 0;
+	const char *content_type = "";
+	const char *content_boundary = "";
+	const char *subheader = 0;
+	int subheader_len = 0;
+	//int subcontent_length = 0;
+	//const char *subcontent_type = "";
+
+	while ( true )
+	{
+		switch( state )
 		{
-			Error(( "Can't ioctl(): %s", strerror(errno) ));
-			return( -1 );
-		}
-		Debug( 3, ( "Expecting %d bytes", bytes_to_read ));
-
-		if ( bytes_to_read == 0 )
-		{
-			Debug( 3, ( "Socket closed" ));
-			Disconnect();
-			break;
-		}
-
-		if ( !content_ptr )
-		{
-			if ( !header )
-				header = (char *)malloc( bytes_to_read );
-			else
-				header = (char *)realloc( header, header_length+bytes_to_read );
-
-			int n_bytes = read( sd, header+header_length, bytes_to_read );
-			if ( n_bytes < 0)
+			case HEADER :
 			{
-				Error(( "Read error: %s", strerror(errno) ));
-				free( header );
-				return( -1 );
-			}
-			else if ( n_bytes < bytes_to_read )
-			{
-				Error(( "Incomplete read, expected %d, got %d", bytes_to_read, n_bytes ));
-				free( header );
-				return( -1 );
-			}
-			Debug( 3, ( "Read %d bytes of header/content", bytes_to_read ));
+				static RegExpr *header_expr = 0;
+				static RegExpr *status_expr = 0;
+				static RegExpr *connection_expr = 0;
+				static RegExpr *content_length_expr = 0;
+				static RegExpr *content_type_expr = 0;
 
-			content_ptr = strstr( header, "\r\n\r\n" );
-			if ( !content_ptr )
-			{
-				header_length += bytes_to_read;
-			}
-			else
-			{
-				*(content_ptr+2) = 0;
-				content_ptr += 4;
-
-				Debug( 2, ( "Header: %s", header ));
-
-				char version[4];
-				int code;
-				char message[64] = "";
-				int result = sscanf( header, "HTTP/%s %3d %[^\r\n]", version, &code, message );
-
-				if ( result != 3 )
+				int buffer_len = ReadData( buffer );
+				if ( buffer_len < 0 )
 				{
-					Error(( "Can't parse HTTP header" ));
-					free( header );
 					return( -1 );
 				}
-
-				//printf( "R:%d, %s - %d - %s\n", result, version, code, message );
-
-				if ( code < 200 || code > 299 )
+				if ( !header_expr )
+					header_expr = new RegExpr( "^(.+?\r?\n)(?=\r?\n)", PCRE_DOTALL );
+				if ( header_expr->Match( (char*)buffer, buffer.Size() ) == 2 )
 				{
-					Error(( "Invalid response status %d: %s", code, message ));
-					free( header );
-					return( -1 );
-				}
+					header = header_expr->MatchString( 1 );
+					header_len = header_expr->MatchLength( 1 );
+					Debug( 4, ( "Captured header (%d bytes):\n'%s'", header_len, header ));
 
-				int expected_content_length = -1;
-				char header_string[32] = "";
-				if ( GetHeader( header, "Content-Length", header_string ) > 0 )
-				{
-					expected_content_length = atoi( header_string );
-				}
-
-				int excess_length = content_ptr-(header+header_length);
-				Debug( 3, ( "Excess length = %d", excess_length ));
-				content_length = bytes_to_read-excess_length;
-				Debug( 3, ( "Content length = %d", content_length ));
-
-				if ( content_length > max_size )
-				{
-					if ( expected_content_length > max_size )
+					if ( !status_expr )
+						status_expr = new RegExpr( "^HTTP/1\\.[01] +([0-9]+) +(.+?)\r?\n", PCRE_MULTILINE|PCRE_CASELESS );
+					if ( status_expr->Match( header, header_len ) < 3 )
 					{
-						max_size = expected_content_length;
+						Error(( "Unable to extract HTTP status from header" ));
+						return( -1 );
 					}
+					status_code = atoi( status_expr->MatchString( 1 ) );
+					status_mesg = status_expr->MatchString( 2 );
+
+					if ( status_code < 200 || status_code > 299 )
+					{
+						Error(( "Invalid response status %d: %s", status_code, status_mesg ));
+						return( -1 );
+					}
+					Debug( 3, ( "Got status '%d' (%s)", status_code, status_mesg ));
+
+					if ( !connection_expr )
+						connection_expr = new RegExpr( "Connection: ?(.+?)\r?\n", PCRE_CASELESS );
+					if ( connection_expr->Match( header, header_len ) == 2 )
+					{
+						connection_type = connection_expr->MatchString( 1 );
+						Debug( 3, ( "Got connection '%s'", connection_type ));
+					}
+
+					if ( !content_length_expr )
+						content_length_expr = new RegExpr( "Content-length: ?([0-9]+)\r?\n", PCRE_CASELESS );
+					if ( content_length_expr->Match( header, header_len ) == 2 )
+					{
+						content_length = atoi( content_length_expr->MatchString( 1 ) );
+						Debug( 3, ( "Got content length '%d'", content_length ));
+					}
+
+					if ( !content_type_expr )
+						content_type_expr = new RegExpr( "Content-type: ?(.+?)(?:; ?boundary=(.+?))?\r?\n", PCRE_CASELESS );
+					if ( content_type_expr->Match( header, header_len ) >= 2 )
+					{
+						content_type = content_type_expr->MatchString( 1 );
+						Debug( 3, ( "Got content type '%s'\n", content_type ));
+						if ( content_type_expr->MatchCount() > 2 )
+						{
+							content_boundary = content_type_expr->MatchString( 2 );
+							Debug( 3, ( "Got content boundary '%s'", content_boundary ));
+						}
+					}
+
+					if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) )
+					{
+						// Single image
+						mode = SINGLE_JPEG;
+						state = CONTENT;
+					}
+					else if ( !strcasecmp( content_type, "multipart/x-mixed-replace" ) )
+					{
+						// Image stream, so start processing
+						if ( !content_boundary[0] )
+						{
+							Error(( "No content boundary found in header '%s'", header ));
+							exit( -1 );
+						}
+						mode = MULTI_JPEG;
+						state = SUBHEADER;
+					}
+					//else if ( !strcasecmp( content_type, "video/mpeg" ) || !strcasecmp( content_type, "video/mpg" ) )
+					//{
+						//// MPEG stream, coming soon!
+					//}
 					else
 					{
-						max_size = 0x10000;
+						Error(( "Unrecognised content type '%s'", content_type ));
+						return( -1 );
 					}
-					content = buffer = (unsigned char *)malloc( max_size );
+					buffer.Consume( header_len );
 				}
-				memcpy( content, content_ptr, content_length );
-				content_ptr = (char *)(content + content_length);
+				else
+				{
+					Debug( 3, ( "Unable to extract header from stream, retrying" ));
+					//return( -1 );
+				}
+				break;
+			}
+			case SUBHEADER :
+			{
+				static RegExpr *subheader_expr = 0;
+				static RegExpr *subcontent_length_expr = 0;
+				static RegExpr *subcontent_type_expr = 0;
 
-				free( header );
+				if ( !subheader_expr )
+				{
+					char subheader_pattern[256] = "";
+					sprintf( subheader_pattern, "^((?:\r?\n)?\r?\n(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
+					subheader_expr = new RegExpr( subheader_pattern, PCRE_MULTILINE|PCRE_DOTALL );
+				}
+				if ( subheader_expr->Match( (char *)buffer, (int)buffer ) == 2 )
+				{
+					subheader = subheader_expr->MatchString( 1 );
+					subheader_len = subheader_expr->MatchLength( 1 );
+					Debug( 4, ( "Captured subheader (%d bytes):'%s'", subheader_len, subheader ));
+
+					if ( !subcontent_length_expr )
+						subcontent_length_expr = new RegExpr( "Content-length: ?([0-9]+)\r?\n", PCRE_CASELESS );
+					if ( subcontent_length_expr->Match( subheader, subheader_len ) == 2 )
+					{
+						content_length = atoi( subcontent_length_expr->MatchString( 1 ) );
+						Debug( 3, ( "Got subcontent length '%d'", content_length ));
+					}
+
+					if ( !subcontent_type_expr )
+						subcontent_type_expr = new RegExpr( "Content-type: ?(.+?)\r?\n", PCRE_CASELESS );
+					if ( subcontent_type_expr->Match( subheader, subheader_len ) == 2 )
+					{
+						content_type = subcontent_type_expr->MatchString( 1 );
+						Debug( 3, ( "Got subcontent type '%s'", content_type ));
+					}
+
+					buffer.Consume( subheader_len );
+					state = CONTENT;
+				}
+				else
+				{
+					Debug( 3, ( "Unable to extract subheader from stream, retrying" ));
+					int buffer_len = ReadData( buffer );
+					if ( buffer_len < 0 )
+					{
+						return( -1 );
+					}
+				}
+				break;
 			}
-		}
-		else
-		{
-			if ( (content_length+bytes_to_read) > max_size )
+			case CONTENT :
 			{
-				max_size += 0x10000;
-				content = buffer = (unsigned char *)realloc( buffer, max_size );
-				content_ptr = (char *)buffer+content_length;
+				if ( strcasecmp( content_type, "image/jpeg" ) && strcasecmp( content_type, "image/jpg" ) )
+				{
+					Error(( "Found unsupported content type '%s'", content_type ));
+					return( -1 );
+				}
+
+				while ( buffer.Size() < content_length )
+				{
+					int buffer_len = ReadData( buffer );
+					if ( buffer_len < 0 )
+					{
+						return( -1 );
+					}
+				}
+
+				if ( mode == SINGLE_JPEG )
+				{
+					state = HEADER;
+					Disconnect();
+				}
+				else
+				{
+					state = SUBHEADER;
+				}
+				Debug( 3, ( "Returning %d bytes of captured content", content_length ));
+				return( content_length );
 			}
-			int n_bytes = read( sd, content_ptr, bytes_to_read );
-			if ( n_bytes < 0)
-			{
-				Error(( "Read error: %s", strerror(errno) ));
-				return( -1 );
-			}
-			else if ( n_bytes < bytes_to_read )
-			{
-				Error(( "Incomplete read, expected %d, got %d", bytes_to_read, n_bytes ));
-				return( -1 );
-			}
-			content_length += bytes_to_read;
-			content_ptr += bytes_to_read;
-			Debug( 3, ( "Read %d bytes of content, total = %d", bytes_to_read, content_length ));
 		}
 	}
-	return( content_length );
+	return( 0 );
 }
 
 int RemoteCamera::PreCapture()
 {
-	Connect();
 	if ( sd < 0 )
 	{
-		return( -1 );
+		Connect();
+		if ( sd < 0 )
+		{
+			return( -1 );
+		}
+		mode = SINGLE_JPEG;
+		buffer.Empty();
 	}
-
-	if ( SendRequest() < 0 )
+	if ( mode == SINGLE_JPEG )
 	{
-		Disconnect();
-		return( -1 );
+		if ( SendRequest() < 0 )
+		{
+			Disconnect();
+			return( -1 );
+		}
 	}
 	return( 0 );
 }
 
 int RemoteCamera::PostCapture( Image &image )
 {
-	int max_size = width*height*colours;
-	unsigned char *buffer = (unsigned char *)malloc( max_size );
-	int content_length = GetResponse( buffer, max_size );
+	int content_length = GetResponse();
 	if ( content_length < 0 )
 	{
-		free( buffer );
 		Disconnect();
 		return( -1 );
 	}
-
-	image.DecodeJpeg( buffer, content_length );
-
-	free( buffer );
+	image.DecodeJpeg( buffer.Extract( content_length ), content_length );
 	return( 0 );
 }
 

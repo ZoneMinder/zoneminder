@@ -38,6 +38,8 @@
 //#include <sys/ioctl.h>
 
 #include "zm_camera.h"
+#include "zm_buffer.h"
+#include "zm_regexp.h"
 
 //
 // Class representing 'remote' cameras, i.e. those which are
@@ -58,6 +60,9 @@ protected:
 	struct hostent *hp;
 	struct sockaddr_in sa;
 	int sd;
+	Buffer buffer;
+	enum { SINGLE_JPEG, MULTI_JPEG, MULTI_MPEG } mode;
+	enum { HEADER, SUBHEADER, CONTENT } state;
 
 protected:
 	static void Base64Encode( const char *in_string, char *out_string );
@@ -76,8 +81,8 @@ public:
 	int Connect();
 	int Disconnect();
 	int SendRequest();
-	int GetHeader( const char *content, const char *header, char *value );
-	int GetResponse( unsigned char *&buffer, int &max_size );
+	int ReadData( Buffer &buffer );
+	int GetResponse();
 	int PreCapture();
 	int PostCapture( Image &image );
 };

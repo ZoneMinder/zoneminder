@@ -40,7 +40,7 @@ struct DeltaTimeval
 // for frames it will only usually be a fraction of a second or so
 #define DELTA_TIMEVAL( result, time1, time2 ) \
 { \
-	int delta_usec = ((time1.tv_sec-time2.tv_sec)*1000000)+(time1.tv_usec-time2.tv_usec); \
+	int delta_usec = (((time1).tv_sec-(time2).tv_sec)*1000000)+((time1).tv_usec-(time2).tv_usec); \
 	result.positive = (delta_usec>=0); \
 	delta_usec = abs(delta_usec); \
 	result.tv_sec = delta_usec/1000000; \

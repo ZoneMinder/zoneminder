@@ -228,6 +228,7 @@ if ( $action )
 				{
 					if ( $new_name != $monitor[Name] ) $changes[] = "Name = '$new_name'";
 					if ( $new_function != $monitor['Function'] ) $changes[] = "Function = '$new_function'";
+					if ( $new_section_length != $monitor['SectionLength'] ) $changes[] = "SectionLength = '$new_section_length'";
 					if ( $new_runmode != $monitor['RunMode'] ) $changes[] = "RunMode = '$new_runmode'";
 					if ( join(',',$new_triggers) != $monitor['Triggers'] ) $changes[] = "Triggers = '".join(',',$new_triggers)."'";
 					if ( $new_type != $monitor['Type'] ) $changes[] = "Type = '$new_type'";
@@ -270,7 +271,6 @@ if ( $action )
 				}
 				case 'misc' :
 				{
-					if ( $new_section_length != $monitor['SectionLength'] ) $changes[] = "SectionLength = '$new_section_length'";
 					if ( $new_max_fps != $monitor['MaxFPS'] ) $changes[] = "MaxFPS = '$new_max_fps'";
 					if ( $new_fps_report_interval != $monitor['FPSReportInterval'] ) $changes[] = "FPSReportInterval = '$new_fps_report_interval'";
 					if ( $new_ref_blend_perc != $monitor['RefBlendPerc'] ) $changes[] = "RefBlendPerc = '$new_ref_blend_perc'";
@@ -535,5 +535,6 @@ if ( $action )
 		session_write_close();
 	}
 }
+session_write_close();
 
 ?>

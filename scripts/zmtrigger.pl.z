@@ -40,10 +40,27 @@ use constant ZM_DB_PASSA => "<from zmconfig>";
 # Load the config from the database into the symbol table
 BEGIN
 {
-	use DBI;
 	no strict 'refs';
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 
+	open( CONFIG, "<".ZM_CONFIG ) or die( "Can't open config file: $!" );
+	foreach my $str ( <CONFIG> )
+	{
+		next if ( $str =~ /^\s*$/ );
+		next if ( $str =~ /^\s*#/ );
+		my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/;
+		$name =~ tr/a-z/A-Z/;
+		if (( $name eq 'ZM_DB_SERVER' ) ||
+			( $name eq 'ZM_DB_NAME' ) ||
+			( $name eq 'ZM_DB_USER' ) ||
+			( $name eq 'ZM_DB_PASS' ))
+		{
+			*{$name} = sub { $value };
+		}
+	}
+	close( CONFIG );
+
+	use DBI;
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 	my $sql = "select * from Config";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );

@@ -41,6 +41,8 @@ use constant ZM_PATH_WEB => "<from zmconfig>";
 # Load the config from the database into the symbol table
 BEGIN
 {
+	no strict 'refs';
+
 	open( CONFIG, "<".ZM_CONFIG ) or die( "Can't open config file: $!" );
 	foreach my $str ( <CONFIG> )
 	{
@@ -59,9 +61,7 @@ BEGIN
 	close( CONFIG );
 
 	use DBI;
-	no strict 'refs';
 	my $dbh = DBI->connect( "DBI:mysql:database=".&ZM_DB_NAME.";host=".&ZM_DB_SERVER, &ZM_DB_USER, &ZM_DB_PASS );
-
 	my $sql = "select * from Config";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );

@@ -110,12 +110,13 @@ void LocalCamera::Initialise()
 			break;
 		}
 		case VIDEO_PALETTE_RGB565 :
+		case VIDEO_PALETTE_YUV420P :
+		case VIDEO_PALETTE_YUV422P :
 		{
 			vid_pic.depth = 16;
 			break;
 		}
 		case VIDEO_PALETTE_RGB24 :
-		case VIDEO_PALETTE_YUV420P :
 		{
 			vid_pic.depth = 24;
 			break;
@@ -644,6 +645,102 @@ int LocalCamera::PostCapture( Image &image )
 			buffer = temp_buffer;
 			break;
 		}
+		case VIDEO_PALETTE_YUV422P :
+		{
+			static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
+			static char u_plane[ZM_MAX_IMAGE_DIM];
+			static char v_plane[ZM_MAX_IMAGE_DIM];
+
+			unsigned char *rgb_ptr = temp_buffer;
+			unsigned char *y_ptr = y_plane;
+			char *u1_ptr = u_plane;
+			char *v1_ptr = v_plane;
+
+			int Y_size = width*height;
+			int C_size = Y_size>>1; // Every little bit helps...
+			unsigned char *Y_ptr = buffer;
+			unsigned char *Cb_ptr = buffer + Y_size;
+			unsigned char *Cr_ptr = Cb_ptr + C_size;
+			
+			int y,u,v;
+			for ( int i = 0; i < Y_size; i++ )
+			{
+				if ( *Y_ptr <= 16 )
+					*y_ptr = 0;
+				else if ( *Y_ptr >= 235 )
+					*y_ptr = 255;
+				else
+					*y_ptr = (76309*((*Y_ptr)-16))>>16;
+				y_ptr++;
+				Y_ptr++;
+			}
+			for ( int i = 0, j = 0; i < C_size; i++, j++ )
+			{
+				if ( *Cb_ptr <= 16 )
+					u = 0;
+				else if ( *Cb_ptr >= 240 )
+					u = 255;
+				else
+					u = (74313*((*Cb_ptr)-128))>>16;
+				Cb_ptr++;
+
+				*u1_ptr++ = u;
+				*u1_ptr++ = u;
+
+				if ( *Cr_ptr <= 16 )
+					v = 0;
+				else if ( *Cr_ptr >= 240 )
+					v = 255;
+				else
+					v = (74313*((*Cr_ptr)-128))>>16;
+				Cr_ptr++;
+
+				*v1_ptr++ = v;
+				*v1_ptr++ = v;
+			}
+
+			y_ptr = y_plane;
+			u1_ptr = u_plane;
+			v1_ptr = v_plane;
+			int size = Y_size*3;
+			int r,g,b;
+			for ( int i = 0; i < size; i += 3 )
+			{
+				y = *y_ptr++;
+				u = *u1_ptr++;
+				v = *v1_ptr++;
+
+				r = y + ((91881*v)>>16);
+				g = y - (((22544*u)>>16)+((46793*v)>>16));
+				b = y + ((116130*u)>>16);
+
+				*rgb_ptr++ = r<0?0:(r>255?255:r);
+				*rgb_ptr++ = g<0?0:(g>255?255:g);
+				*rgb_ptr++ = b<0?0:(b>255?255:b);
+			}
+			buffer = temp_buffer;
+			break;
+		}
+		case VIDEO_PALETTE_RGB555 :
+		{
+			int size = width*height*2;
+			unsigned char r,g,b;
+			unsigned char *s_ptr = buffer;
+			unsigned char *d_ptr = temp_buffer;
+			for ( int i = 0; i < size; i += 2 )
+			{
+				b = ((*s_ptr)<<3)&0xf8;
+				g = (((*(s_ptr+1))<<6)|((*s_ptr)>>2))&0xf8;
+				r = ((*(s_ptr+1))<<1)&0xf8;
+
+				*d_ptr++ = r;
+				*d_ptr++ = g;
+				*d_ptr++ = b;
+				s_ptr += 2;
+			}
+			buffer = temp_buffer;
+			break;
+		}
 		case VIDEO_PALETTE_RGB565 :
 		{
 			int size = width*height*2;
@@ -652,11 +749,8 @@ int LocalCamera::PostCapture( Image &image )
 			unsigned char *d_ptr = temp_buffer;
 			for ( int i = 0; i < size; i += 2 )
 			{
-				//r = ((*(s_ptr+1))<<3)&0xf8;
-				//g = (((*s_ptr)<<5)|(*(s_ptr+1)>>3))&0xf8;
-				//b = (*s_ptr)&0xf8;
 				b = ((*s_ptr)<<3)&0xf8;
-				g = (((*(s_ptr+1))<<5)|((*s_ptr)>>3))&0xf8;
+				g = (((*(s_ptr+1))<<5)|((*s_ptr)>>3))&0xfc;
 				r = (*(s_ptr+1))&0xf8;
 
 				*d_ptr++ = r;

@@ -679,7 +679,7 @@ public:
 
 	inline bool Ready()
 	{
-		return( function == ACTIVE && image_count > warmup_count );
+		return( function >= ACTIVE && image_count > warmup_count );
 	}
  
 	void DumpImage( Image *image ) const;

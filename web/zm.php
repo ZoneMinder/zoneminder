@@ -25,6 +25,7 @@ define( "DB_USER", "zmadmin" );		// Database login
 define( "DB_PASS", "zmadminzm" );	// Database password
 
 define( "MAX_EVENTS", 12 );
+define( "ALARM_POPUP", 1 );
 define( "ZM_PATH", "/usr/local/bin" );
 define( "ZMU_PATH", ZM_PATH."/zmu" );
 define( "ZMS_PATH", "/cgi-bin/zms" );
@@ -589,12 +590,11 @@ elseif ( $view == "status" )
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 <?php
-	if ( $status > 0 && $last_status == 0 )
+	if ( ALARM_POPUP && $status > 0 && $last_status == 0 )
 	{
 ?>
 top.window.focus();
 <?php
-//document.write( "\a" );
 	}
 ?>
 </script>

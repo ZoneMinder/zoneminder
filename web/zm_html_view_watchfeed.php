@@ -72,8 +72,9 @@ function fetchImage()
 {
 	window.parent.MonitorFetch<?= $monitor['Id'] ?>.location.reload( true );
 
-	zm_image = new Image();
-	zm_image.src = '<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg';
+	var now = new Date();
+	var zm_image = new Image();
+	zm_image.src = '<?= ZM_DIR_IMAGES.'/'.$monitor['Name'] ?>.jpg?'+now.getTime();
 
 	document['zmImage'].src = zm_image.src;
 }

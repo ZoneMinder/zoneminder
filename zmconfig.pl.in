@@ -434,7 +434,7 @@ my @options =
 		default => "sendmail",
 		description => "The method your machine uses to send email",
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
-		help => "ZoneMinder needs to know how to send you the notification emails or messages. This option tell it which method to use, generally sendmail will work if configured correctly on your machine, otherwise choose smtp and then give your mail host address in the next option.".
+		help => "ZoneMinder needs to know how to send you the notification emails or messages. This option tell it which method to use, generally sendmail will work if configured correctly on your machine, otherwise choose smtp and then give your mail host address in the next option.",
 		type => { hint => 'sendmail|smtp', parse => sub { return( int($_[0] =~ /^(se|sm)/i ), $1 =~ /^se/ ? 'sendmail' : 'smtp' ) } },
 	},
 	{

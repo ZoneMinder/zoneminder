@@ -34,6 +34,8 @@ protected:
 	int max_matches;
 	int *match_vectors;
 	mutable char **match_buffers;
+	int *match_lengths;
+	bool *match_valid;
 
 protected:
 	const char *match_string;
@@ -43,7 +45,7 @@ protected:
 	bool ok;
 
 public:
-	RegExpr( const char *pattern, int cflags=0, int p_max_matches=256 );
+	RegExpr( const char *pattern, int cflags=0, int p_max_matches=32 );
 	~RegExpr();
 	bool Ok() const { return( ok ); }
 	int MatchCount() const { return( n_matches ); }

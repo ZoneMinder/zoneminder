@@ -161,6 +161,7 @@ do
 	my $fs_monitors;
 	foreach my $monitor ( <*> )
 	{
+		next if ( $monitor =~ /lost\+found/ ); # Ignore mount points
 		print( "Found filesystem monitor '$monitor'" ) if ( VERBOSE );
 		my $fs_events = $fs_monitors->{$monitor} = {};
 		( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
@@ -169,7 +170,7 @@ do
 		{
 			$fs_events->{$event} = !undef;
 		}
-		chdir( '..' );
+		chdir( EVENT_PATH );
 		print( ", got ".int(keys(%$fs_events))." events\n" ) if ( VERBOSE );
 	}
 

@@ -39,7 +39,7 @@ use constant DB_NAME => "zm";
 use constant DB_USER => "zmadmin";
 use constant DB_PASS => "zmadminzm";
 use constant EVENT_PATH => "/data/zm/events";
-use constant AUDIT_LOG_FILE => '/tmp/zmaudit.log';
+use constant LOG_FILE => '/tmp/zmaudit.log';
 
 # ==========================================================================
 #
@@ -129,9 +129,9 @@ if ( !$yes && !$report )
 {
 	ReadMode( 'cbreak' );
 }
-if ( !$delay ) # Background mode
+if ( $delay ) # Background mode
 {
-	open( LOG, ">>".AUDIT_LOG_FILE ) or die( "Can't open log file: $!" );
+	open( LOG, ">>".LOG_FILE ) or die( "Can't open log file: $!" );
 	open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
 	select( STDOUT ); $| = 1;
 	open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );

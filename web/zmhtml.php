@@ -1127,6 +1127,9 @@ window.focus();
 <?php } ?>
 </tr>
 <tr>
+<td align="right" colspan="2" class="text">&nbsp;</td>
+</tr>
+<tr>
 <td align="left" class="text">Automatically upload all matching events:&nbsp;</td>
 <td align="left" class="text"><input type="checkbox" name="auto_upload" value="1"<?php if ( $filter_data[AutoUpload] ) { echo " checked"; } ?>></td>
 </tr>

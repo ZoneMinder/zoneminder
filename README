@@ -824,6 +824,51 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 Whats New
 =========
 
+Release 0.9.9 - Mainly bug-fixes and minor feature enhancements.
+- Added zmu -q/--query option - There is now a new query option for
+zmu. When combined with -d it gives the config of the device and
+when used with -m it dumps the current settings for the monitor
+and zones. Mostly useful for bug reporting. The previous version
+of zmu used with just -d gave this information for a video device
+by default. This now requires the -q option also to bring into
+line with it's -m equivalent.
+- Added creation of events directory - Previously the 'events'
+directory was not created on install, this has been fixed.
+- Can now retag PHP files if necessary - Version 0.9.8 was the
+first version to use short_open_tags in the PHP files. This 
+caused grief to some people so this script will put them back
+to the long verion.
+- Frame and event lengths fractional - A new field has been added
+to the Frames table. This is 'Delta' and is a fractional number
+of seconds relative to the event start time. This is intended to
+support the real-time playback of events rather than just 'as
+fast as possible' or witha configured delay as at present. The
+event length is now also fractional.
+- Corrected extraneous Width to be Height - The last version
+of zmu included a Width comment which should have been height.
+- Changed colour depth to bits - Having colour depths expressed
+in bytes has caused no end of problems. This is now changed to
+be bits and can be changed via a dropdown to limit what can be
+entered. Don't forget to run the zmalter script to update your
+DB.
+- Renamed terminate to zm_terminate - The use of 'terminate' in
+zmc.cpp caused a conflict on some systems so renamed it to
+something more specific.
+- Zone deletion problem - A problem was found such that when
+deleting zones the appropriate daemons were not being asked to
+restart daemons correctly.
+- Console changes - The current version number is now displayed
+in the console. A refresh button has also been added along with
+a minor reorg.
+- Added delete button enable to checkAll - Using the 'Check All'
+button in the main monitor window previously did not enable the
+delete button. This is now fixed.
+- Reload on click - In previous versions the console window would
+reload if a monitor window for example was clicked. Thsi was removed
+in the last version which meant that sometimes the console never
+go refreshed as it's timing loop was broken. This functionality
+has now been reinstated.
+
 Release 0.9.8 - Several new features and bug-fixes
 - Upgrade note - If you have installed 0.9.7 and wish to save
 your configuration then copy your existing zmconfig.txt file
@@ -985,6 +1030,9 @@ selection automatically thereafter. The hooks for this are already in to some
 extent.
 16. Add quotes to all PHP array references. I should have done it in the first 
 place but I'm a perl person really and it kind of bugs me that you have to.
+17. Add support for network cameras such as the Axis. This involves changing
+zmc to source it's images from elsewhere, but other than that hopefully not
+too much of a problem.
 
 
 Bugs

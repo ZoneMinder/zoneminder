@@ -47,12 +47,12 @@ protected:
 	static void Initialise();
 
 	void SetupFormat( const char *p_filename, const char *format );
-	void SetupCodec( int colours, int width, int height, int bit_rate, int frame_rate );
+	void SetupCodec( int colours, int width, int height, int bitrate, int frame_rate );
 	void SetParameters();
 	void OpenStream();
 
 public:
-	VideoStream( const char *filename, const char *format, int bit_rate, int frame_rate, int colours, int width, int height );
+	VideoStream( const char *filename, const char *format, int bitrate, int frame_rate, int colours, int width, int height );
 	~VideoStream();
 	double EncodeFrame( uint8_t *buffer, int buffer_size );
 };

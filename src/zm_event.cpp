@@ -482,7 +482,7 @@ void Event::StreamEvent( int event_id, int rate, int scale )
 
 #if HAVE_LIBAVCODEC     
 
-void Event::StreamMpeg( int event_id, const char *format, int bit_rate, int rate, int scale )
+void Event::StreamMpeg( int event_id, const char *format, int bitrate, int rate, int scale )
 {
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
@@ -551,7 +551,7 @@ void Event::StreamMpeg( int event_id, const char *format, int bit_rate, int rate
 
 		if ( !vid_stream )
 		{
-			vid_stream = new VideoStream( "pipe:", format, bit_rate, fps, image.Colours(), (image.Width()*scale)/ZM_SCALE_SCALE, (image.Height()*scale)/ZM_SCALE_SCALE );
+			vid_stream = new VideoStream( "pipe:", format, bitrate, fps, image.Colours(), (image.Width()*scale)/ZM_SCALE_SCALE, (image.Height()*scale)/ZM_SCALE_SCALE );
 		}
 
 		if ( scale != 100 )

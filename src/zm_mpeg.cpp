@@ -59,7 +59,7 @@ void VideoStream::SetupFormat( const char *p_filename, const char *format )
 	snprintf(ofc->filename, sizeof(ofc->filename), "%s", filename);
 }
 
-void VideoStream::SetupCodec( int colours, int width, int height, int bit_rate, int frame_rate )
+void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, int frame_rate )
 {
 	pf = (colours==1?PIX_FMT_GRAY8:PIX_FMT_RGB24);
 
@@ -79,7 +79,7 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bit_rate, 
 		c->codec_type = CODEC_TYPE_VIDEO;
 
 		/* put sample parameters */
-		c->bit_rate = bit_rate;
+		c->bit_rate = bitrate;
 		/* resolution must be a multiple of two */
 		c->width = width;
 		c->height = height;
@@ -190,7 +190,7 @@ void VideoStream::OpenStream()
 	av_write_header(ofc);
 }
 
-VideoStream::VideoStream( const char *filename, const char *format, int bit_rate, int frame_rate, int colours, int width, int height )
+VideoStream::VideoStream( const char *filename, const char *format, int bitrate, int frame_rate, int colours, int width, int height )
 {
 	if ( !initialised )
 	{
@@ -198,7 +198,7 @@ VideoStream::VideoStream( const char *filename, const char *format, int bit_rate
 	}
 
 	SetupFormat( filename, format );
-	SetupCodec( colours, width, height, bit_rate, frame_rate );
+	SetupCodec( colours, width, height, bitrate, frame_rate );
 	SetParameters();
 	OpenStream();
 }

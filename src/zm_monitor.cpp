@@ -1137,7 +1137,7 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 
 #if HAVE_LIBAVCODEC
 
-void Monitor::StreamMpeg( const char *format, int bit_rate, int scale, int buffer )
+void Monitor::StreamMpeg( const char *format, int bitrate, int scale, int buffer )
 {
 	fprintf( stdout, "Content-type: video/x-ms-asf\r\n\r\n");
 
@@ -1145,7 +1145,7 @@ void Monitor::StreamMpeg( const char *format, int bit_rate, int scale, int buffe
 	if ( !fps )
 		fps = 5;
 
-	VideoStream vid_stream( "pipe:", format, bit_rate, fps, camera->Colours(), (width*scale)/ZM_SCALE_SCALE, (height*scale)/ZM_SCALE_SCALE );
+	VideoStream vid_stream( "pipe:", format, bitrate, fps, camera->Colours(), (width*scale)/ZM_SCALE_SCALE, (height*scale)/ZM_SCALE_SCALE );
 
 	int last_read_index = image_buffer_count;
 

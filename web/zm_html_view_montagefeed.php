@@ -104,7 +104,7 @@ if ( $mode == "stream" )
 {
 	if ( ZM_WEB_VIDEO_STREAM_METHOD == 'mpeg' )
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=mpeg&monitor=".$monitor['Id']."&scale=$scale&bit_rate=".VIDEO_BITRATE."&buffer=0";
+		$stream_src = ZM_PATH_ZMS."?mode=mpeg&monitor=".$monitor['Id']."&scale=$scale&bitrate=".VIDEO_BITRATE."&buffer=0";
 		if ( isWindows() )
 		{
 			if ( isInternetExplorer() )

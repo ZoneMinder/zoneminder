@@ -247,7 +247,7 @@ if ( $mode == "stream" )
 <?php
 	if ( ZM_WEB_VIDEO_STREAM_METHOD == 'mpeg' )
 	{
-		$stream_src = ZM_PATH_ZMS."?mode=mpeg&event=$eid&rate=$rate&scale=$scale&bit_rate=".VIDEO_BITRATE;
+		$stream_src = ZM_PATH_ZMS."?mode=mpeg&event=$eid&rate=$rate&scale=$scale&bitrate=".VIDEO_BITRATE;
 		if ( isWindows() )
 		{
 			if ( isInternetExplorer() )

@@ -93,7 +93,7 @@ public:
 
 	static void StreamEvent( int event_id, int rate=100, int scale=100 );
 #if HAVE_LIBAVCODEC
-	static void StreamMpeg( int event_id, const char *format, int bit_rate=100000, int rate=100, int scale=100 );
+	static void StreamMpeg( int event_id, const char *format, int bitrate=100000, int rate=100, int scale=100 );
 #endif // HAVE_LIBAVCODEC
 };
 

@@ -27,7 +27,7 @@ int main(void )
 	char format[32] = "";
 	int id = 1;
 	int event = 0;
-	unsigned int bit_rate = 100000;
+	unsigned int bitrate = 100000;
 	unsigned int rate = 100;
 	unsigned int scale = 100;
 	unsigned int buffer = 0;
@@ -63,8 +63,8 @@ int main(void )
 				event = strtoull( value, (char **)NULL, 10 );
 			else if ( !strcmp( name, "format" ) )
 				strncpy( format, value, sizeof(format) );
-			else if ( !strcmp( name, "bit_rate" ) )
-				bit_rate = atoi( value );
+			else if ( !strcmp( name, "bitrate" ) )
+				bitrate = atoi( value );
 			else if ( !strcmp( name, "rate" ) )
 				rate = atoi( value );
 			else if ( !strcmp( name, "scale" ) )
@@ -112,7 +112,7 @@ int main(void )
 			else
 			{
 #if HAVE_LIBAVCODEC
-				 monitor->StreamMpeg( format, bit_rate, scale, buffer );
+				 monitor->StreamMpeg( format, bitrate, scale, buffer );
 #else // HAVE_LIBAVCODEC
 				Error(( "MPEG streaming of '%s' attempted while disabled", query ));
 				fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
@@ -130,7 +130,7 @@ int main(void )
 		else
 		{
 #if HAVE_LIBAVCODEC
-			Event::StreamMpeg( event, format, bit_rate, rate, scale );
+			Event::StreamMpeg( event, format, bitrate, rate, scale );
 #else // HAVE_LIBAVCODEC
 			Error(( "MPEG streaming of '%s' attempted while disabled", query ));
 			fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );

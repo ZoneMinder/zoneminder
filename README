@@ -1,6 +1,6 @@
-     13/01/04        ZoneMinder 1.17.0 README                1
+    21/01/04        ZoneMinder 1.17.1 README                1
                                  
-                        ZoneMinder v1.17.0
+                        ZoneMinder v1.17.1
 
 1.   Introduction
    
@@ -1479,7 +1479,28 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 7.   Change Log
    
 
-7.1. Release 1.17.0
+7.1. Release 1.17.1
+Bugfixes and additional languages.
+
+  o    Login Bug. A bug was identified whereby an unauthorised user
+    could gain access to the console view of ZoneMinder. This was the
+    only  view  available  and no access to any  camera  views  or
+    configuration was possible. This bug is now fixed.
+    
+o    New Languages. Two new language files were added. These allow
+ZoneMinder to use the German (de_de) and Polish (pl_pl) languages.
+o    Language File Format. The format of the language file was
+changed to allow the specification of character set and locale as
+well as have more flexibility in the calculation of plural forms.
+o    Option Language. The prompts and help text for the options is
+now also available for translation. A guide is included in the
+language file to allow this if necessary. Currently language
+translations exclude the options settings as this is a rarely
+accessed area and contains a great deal of text. The new format
+allows individual options to be translated piecemeal as the
+opportunity arises.
+
+7.2. Release 1.17.0
 Language changes and other enhancements.
 
   o     Version  Numbering. ZoneMinder version  numbers  have  now
@@ -1524,7 +1545,7 @@ has been corrected.
 o    Minor Bugs. A number of minor bugs and inconsistencies were
 corrected.
 
-7.2. Release 0.9.16
+7.3. Release 0.9.16
 Major useability enhancement and fixes.
 
   o    Run States. Instead of the old 'start/stop' links the current
@@ -1644,7 +1665,7 @@ correctly parsed from command line options passed to zmu.
 o    Event window width variable. Event windows now scale to fit
 the event image size.
 
-7.3. Release 0.9.15
+7.4. Release 0.9.15
 Various bug fixes from the last release and before.
 
   o     Bandwidth.  A  bug was introduced in .14  which  caused  a
@@ -1680,7 +1701,7 @@ directly were colourised whereas those written by  zmf weren't. A
 change has been made whereby if set all greyscale JPEG images are
 colourised in all circumstances.
 
-7.4. Release 0.9.14
+7.5. Release 0.9.14
 Major new feature and important bug-fixes.
 
   o     Web  configuration. Following many requests  and  to  make
@@ -1722,7 +1743,7 @@ should still be secure as it will require authentication.
 o    All SQL buffers in the C++ code have been enlarged. There was
 previously an issue with a buffer overflow on certain occasions.
 
-7.5. Release 0.9.13
+7.6. Release 0.9.13
 Beta  version  of  several  features and  fixes,  never  generally
 released.
 
@@ -1772,7 +1793,7 @@ restart the refresh process. By using JS refresh timers which are
 not interrupted these extraneous refreshes have been mostly
 eliminated.
 
-7.6. Release 0.9.12
+7.7. Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
   o    Double first images. Fixed a problem where the first image of
@@ -1844,7 +1865,7 @@ users, attempts to delete monitors will now require confirmation.
 o    Detect linmysqlclient.a. Added better detection script into
 'configure' top spot when libmysqlclient.a is missing.
 
-7.7. Release 0.9.11
+7.8. Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats  view  -  If you have the  RECORD_EVENT_STATS
@@ -1927,7 +1948,7 @@ o    Web colour change - I thought the old red, green and amber
 text colours were just a bit too gaudy so I've toned them down a
 bit. Hope you like them!
 
-7.8. Release 0.9.10
+7.9. Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
   o     Configure 'round' bug - Fixed a problem with the configure
@@ -2005,7 +2026,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came across
 that that I don't think had been reported or noticed so I don't
 think we need to talk about them here do we.
 
-7.9. Release 0.9.9
+7.10.     Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o    Added zmu -q/--query option - There is now a new query option
@@ -2052,7 +2073,7 @@ removed in the last version which meant that sometimes the console
 never go refreshed as it's timing loop was broken. This
 functionality has now been reinstated.
 
-7.10.     Release 0.9.8
+7.11.     Release 0.9.8
 Several new features and bug-fixes
 
   o    Upgrade note - If you have installed 0.9.7 and wish to save
@@ -2117,7 +2138,7 @@ o    Monitor window refresh on alarm - When the monitor window is
 active and an alarm has occurred the most recent alarms list is
 immediately refreshed to show it.
 
-7.11.     Release 0.9.7
+7.12.     Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes too.  Now
 somewhat more mature, not really an alpha any more, and a  lot  of
 bugs fixed too.
@@ -2162,7 +2183,7 @@ o    Some of the web views have changed slightly to accommodate
 the separate events view.
 o    And much much more, probably...
 
-7.12.     Release 0.0.1
+7.13.     Release 0.0.1
 Initial release, therefore nothing new.
 
 

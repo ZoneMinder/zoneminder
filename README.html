@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
 <meta name=Generator content="Microsoft Word 10 (filtered)">
-<title>ZoneMinder v0.9.16</title>
+<title>ZoneMinder v1.17.1</title>
 
 <style>
 <!--
@@ -189,7 +189,7 @@ ul
 
 <div class=Section1>
 
-<p class=MsoTitle><u>ZoneMinder v1.17.0</u></p>
+<p class=MsoTitle><u>ZoneMinder v1.17.1</u></p>
 
 <h1 style='text-indent:-22.7pt;page-break-before:auto'><span style='text-decoration:
 none'>1.<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1576,6 +1576,39 @@ Log </u></h1>
 
 <h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.1.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
+1.17.1</h2>
+
+<p class=MsoPlainText>Bugfixes and additional languages.</p>
+
+<p class=Bulletted style='text-indent:-35.7pt'><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Login Bug. A bug was identified whereby an unauthorised user
+could gain access to the console view of ZoneMinder. This was the only view
+available and no access to any camera views or configuration was possible. This
+bug is now fixed.</p>
+
+<p class=Bulletted style='text-indent:-35.7pt'><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>New Languages. Two new language files were added. These allow
+ZoneMinder to use the German (de_de) and Polish (pl_pl) languages.</p>
+
+<p class=Bulletted style='text-indent:-35.7pt'><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Language File Format. The format of the language file was changed
+to allow the specification of character set and locale as well as have more
+flexibility in the calculation of plural forms.</p>
+
+<p class=Bulletted style='text-indent:-35.7pt'><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Option Language. The prompts and help text for the options is now
+also available for translation. A guide is included in the language file to
+allow this if necessary. Currently language translations exclude the options
+settings as this is a rarely accessed area and contains a great deal of text.
+The new format allows individual options to be translated piecemeal as the
+opportunity arises.</p>
+
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.2.<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 1.17.0</h2>
 
 <p class=MsoPlainText>Language changes and other enhancements.</p>
@@ -1633,7 +1666,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Minor Bugs. A number of minor bugs and inconsistencies were
 corrected.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.2.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.3.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.16</h2>
 
@@ -1830,7 +1863,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Event window width variable. Event windows now scale to fit the
 event image size.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.3.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.4.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.15</h2>
 
@@ -1885,7 +1918,7 @@ written by zma directly were colourised whereas those written by  zmf weren’t.
 A change has been made whereby if set all greyscale JPEG images are colourised
 in all circumstances.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.4.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.5.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.14</h2>
 
@@ -1944,10 +1977,10 @@ it setuid where it should still be secure as it will require authentication.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>All SQL buffers in the C++ code have been enlarged. There was previously
-an issue with a buffer overflow on certain occasions.</p>
+</span></span>All SQL buffers in the C++ code have been enlarged. There was
+previously an issue with a buffer overflow on certain occasions.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.5.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.6.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.13</h2>
 
@@ -1968,8 +2001,8 @@ not just readonly.</p>
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Shared memory has now been rationalised to prevent some common
-problems. Remember to shutdown the whole ZM package before installing, from
-this version on it will remove all old shared memory segments.</p>
+problems. Remember to shutdown the whole ZM package before installing, from this
+version on it will remove all old shared memory segments.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1999,16 +2032,16 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Added user and access control. If enabled in config (ZM_OPT_USE_AUTH)
-then you will need to define and login as ZM users. There will be one users
-already defined, with username 'admin' and password 'admin'. This user is
-defined will full permissions and clicking on the 'Options' link from the main
-console window will allow you to modify and create users with various
-permission sets which hopefully will satisfy most requirements. These users
-(except any defined with 'system' edit capability) can be restricted to certain
-cameras by adding the monitor ids as a comma-separated list (no spaces) to the
-appropriate field. Users limited to specific monitors may not create or delete
-monitors even if defined with monitor edit permissions.</p>
+</span></span>Added user and access control. If enabled in config
+(ZM_OPT_USE_AUTH) then you will need to define and login as ZM users. There
+will be one users already defined, with username 'admin' and password 'admin'.
+This user is defined will full permissions and clicking on the 'Options' link
+from the main console window will allow you to modify and create users with
+various permission sets which hopefully will satisfy most requirements. These
+users (except any defined with 'system' edit capability) can be restricted to
+certain cameras by adding the monitor ids as a comma-separated list (no spaces)
+to the appropriate field. Users limited to specific monitors may not create or
+delete monitors even if defined with monitor edit permissions.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2019,7 +2052,7 @@ from child windows to restart the refresh process. By using JS refresh timers
 which are not interrupted these extraneous refreshes have been mostly
 eliminated.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.6.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.7.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.12</h2>
 
@@ -2035,17 +2068,17 @@ the other images but one copy was an extra.</p>
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Made zmdc connect more intelligent. On the suggestion of a couple
 of people I have made the zmdc.pl server spawning and waiting a bit more
-intelligent. Rather than waiting a fixed (short) amount of time, it now polls every
-second for a while, stopping if the connection is made. Thanks to Todd McAnally
+intelligent. Rather than waiting a fixed (short) amount of time, it now polls
+every second for a while, stopping if the connection is made. Thanks to Todd McAnally
 for the initial suggestion.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Added image view to events lists. Again a partial implementation
-of a suggested feature. If you click on the score column you will now get a snapshot
-of the event frame with the highest score. This is to enable you to quickly see
-what the event was about without having to watch the stream or view all the
-static images.</p>
+of a suggested feature. If you click on the score column you will now get a
+snapshot of the event frame with the highest score. This is to enable you to
+quickly see what the event was about without having to watch the stream or view
+all the static images.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2125,10 +2158,10 @@ users, attempts to delete monitors will now require confirmation.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Detect linmysqlclient.a. Added better detection script into ‘configure’
-top spot when libmysqlclient.a is missing.</p>
+</span></span>Detect linmysqlclient.a. Added better detection script into
+‘configure’ top spot when libmysqlclient.a is missing.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.7.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.8.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.11</h2>
 
@@ -2245,7 +2278,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 colours were just a bit too gaudy so I've toned them down a bit. Hope you like
 them!</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.8.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.9.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.10</h2>
 
@@ -2284,10 +2317,10 @@ terms of number of monitors) is a configuration option.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Network camera support - A major change in this version is support
-for remote or network cameras. This is currently implemented as series of http
-grabs of stills rather than being able to break up motion jpeg streams. However
-frame rates of from 2-10 should be achievable depending on your network
+</span></span>Network camera support - A major change in this version is
+support for remote or network cameras. This is currently implemented as series
+of http grabs of stills rather than being able to break up motion jpeg streams.
+However frame rates of from 2-10 should be achievable depending on your network
 proximity to the cameras.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
@@ -2371,7 +2404,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 that that I don't think had been reported or noticed so I don’t think we need
 to talk about them here do we.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.9.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.10.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.9</h2>
 
@@ -2393,9 +2426,9 @@ directory was not created on install, this has been fixed.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Can now retag PHP files if necessary - Version 0.9.8 was the first
-version to use short_open_tags in the PHP files. This caused grief to some
-people so this script will put them back to the long verion.</p>
+</span></span>Can now retag PHP files if necessary - Version 0.9.8 was the
+first version to use short_open_tags in the PHP files. This caused grief to
+some people so this script will put them back to the long verion.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2446,7 +2479,7 @@ reload if a monitor window for example was clicked. Thsi was removed in the
 last version which meant that sometimes the console never go refreshed as it's
 timing loop was broken. This functionality has now been reinstated.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.10.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.11.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.8</h2>
 
@@ -2467,8 +2500,8 @@ deterministic order and not related to the order you give them.</p>
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Added -v/--verbose option to zmu - Zmu has been made more human
-friendly though it still remains primarily for daemon use. Giving the -v or
---verbose option prints out a bit more as a response to each command.</p>
+friendly though it still remains primarily for daemon use. Giving the -v or --verbose
+option prints out a bit more as a response to each command.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-36.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2569,7 +2602,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 active and an alarm has occurred the most recent alarms list is immediately
 refreshed to show it.</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.11.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.12.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.9.7</h2>
 
@@ -2688,7 +2721,7 @@ separate events view.</p>
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>And much much more, probably...</p>
 
-<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.12.<span
+<h2 style='text-indent:-21.75pt'><span style='text-decoration:none'>7.13.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 0.0.1</h2>
 

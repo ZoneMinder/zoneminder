@@ -35,9 +35,10 @@ $| = 1;
 sub Usage
 {
 	print( "
-Usage: zmconfig.pl [-f <config file>,--file=<config file>] [-(no)i,--(no)interactive] [-(no)r,--(no)reprocess]
+Usage: zmconfig.pl [-f <config file>,--file=<config file>] [-(no)database] [--(no)interactive] [--(no)reprocess]
 Parameters are :-
 -f <config_file>, --file=<config_file> - Use a configuration file other and the default zmconfig.txt
+-(no)d, --(no)database                 - Whether the database has already been created, on by default 
 -(no)i, --(no)interactive              - Whether to include interactive configuration, on by default 
 -(no)r, --(no)reprocess                - Whether to reprocess files, on by default
 ");
@@ -46,10 +47,11 @@ Parameters are :-
 
 my $config_file = "zmconfig.txt";
 my $config_header = "src/zm_config_defines.h";
+my $database = !undef;
 my $interactive = !undef;
 my $reprocess = !undef;
 
-if ( !GetOptions( 'file=s'=>\$config_file, 'interactive!'=>\$interactive, 'reprocess!'=>\$reprocess ) )
+if ( !GetOptions( 'file=s'=>\$config_file, 'database!'=>\$database, 'interactive!'=>\$interactive, 'reprocess!'=>\$reprocess ) )
 {
 	Usage();
 }
@@ -1027,8 +1029,6 @@ my @options =
 
 my %options_hash = map { ( $_->{name}, $_ ) } @options;
 
-#$config_file = "zmconfig.txt" if ( !$config_file );
-
 foreach my $option ( @options )
 {
 	if ( $option->{default} )
@@ -1041,7 +1041,7 @@ foreach my $option ( @options )
 	}
 }
 
-my $first_run = !(-s $config_file);
+my $first_run = !$database || !(-s $config_file);
 
 my $file_option_count = 0;
 if ( !$first_run )
@@ -1508,6 +1508,5 @@ if ( $reprocess )
 
 if ( $first_run )
 {
-	print( "Now please create your database and database users and then run\n
-'perl zmconfig.pl -noi' to import your configuration into the database\n" );
+	print( "Now please create your database and database users and then run\n'perl zmconfig.pl -noi' to import your configuration into the database\n" );
 }

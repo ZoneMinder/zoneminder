@@ -8,7 +8,7 @@ webgroup = @WEB_GROUP@
 
 web_DATA = zmactions.php zmconfig.php zmdb.php zmfuncs.php zmhtml.php zm.php zmstyles.css zmwml.php
 
-EXTRA_DIST = zmconfig.php.z zmactions.php zmdb.php zmfuncs.php zmhtml.php zm.php zmstyles.css zmwml.php
+EXTRA_DIST = zmconfig.php.z zmactions.php zmdb.php zmfuncs.php zmhtml.php zm.php zmstyles.css zmwml.php swap.pl retag.sh
 
 # Yes, you are correct. This is a HACK!
 install-data-local:

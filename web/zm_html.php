@@ -1811,7 +1811,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
-<?php if ( ZM_OPT_MPEG && file_exists( ZM_PATH_MPEG_ENCODE ) ) { ?>
+<?php if ( ZM_OPT_MPEG != "no" ) { ?>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=video&eid=<?= $eid ?>', 'zmVideo', <?= $jws['video']['w'] ?>, <?= $jws['video']['h'] ?> );">Video</a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>

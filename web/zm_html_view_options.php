@@ -260,7 +260,7 @@ else
 		else
 		{
 ?>
-<td align="left" class="text"><input type="text" class="form" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" size="40"></td>
+<td align="left" class="text"><input type="text" class="form" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" size="32"></td>
 <?php
 		}
 ?>

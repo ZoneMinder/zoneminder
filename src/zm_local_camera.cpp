@@ -69,29 +69,6 @@ void LocalCamera::Initialise()
 		exit(-1);
 	}
 
-	struct video_window vid_win;
-	memset( &vid_win, 0, sizeof(vid_win) );
-	if ( ioctl( m_videohandle, VIDIOCGWIN, &vid_win) < 0 )
-	{
-		Error(( "Failed to get window attributes: %s", strerror(errno) ));
-		exit(-1);
-	}
-	Debug( 1, ( "Old X:%d", vid_win.x ));
-	Debug( 1, ( "Old Y:%d", vid_win.y ));
-	Debug( 1, ( "Old W:%d", vid_win.width ));
-	Debug( 1, ( "Old H:%d", vid_win.height ));
-	
-	vid_win.x = 0;
-	vid_win.y = 0;
-	vid_win.width = width;
-	vid_win.height = height;
-
-	if ( ioctl( m_videohandle, VIDIOCSWIN, &vid_win ) < 0 )
-	{
-		Error(( "Failed to set window attributes: %s", strerror(errno) ));
-		if ( (bool)config.Item( ZM_STRICT_VIDEO_CONFIG ) ) exit(-1);
-	}
-
 	struct video_picture vid_pic;
 	memset( &vid_pic, 0, sizeof(vid_pic) );
 	if ( ioctl( m_videohandle, VIDIOCGPICT, &vid_pic) < 0 )
@@ -132,6 +109,33 @@ void LocalCamera::Initialise()
 		Error(( "Failed to set picture attributes: %s", strerror(errno) ));
 		if ( (bool)config.Item( ZM_STRICT_VIDEO_CONFIG ) ) exit(-1);
 	}
+
+	struct video_window vid_win;
+	memset( &vid_win, 0, sizeof(vid_win) );
+	if ( ioctl( m_videohandle, VIDIOCGWIN, &vid_win) < 0 )
+	{
+		Error(( "Failed to get window attributes: %s", strerror(errno) ));
+		exit(-1);
+	}
+	Debug( 1, ( "Old X:%d", vid_win.x ));
+	Debug( 1, ( "Old Y:%d", vid_win.y ));
+	Debug( 1, ( "Old W:%d", vid_win.width ));
+	Debug( 1, ( "Old H:%d", vid_win.height ));
+	
+	vid_win.x = 0;
+	vid_win.y = 0;
+	vid_win.width = width;
+	vid_win.height = height;
+#ifndef HAVE_V4L2
+	vid_win.flags &= ~VIDEO_WINDOW_INTERLACE;
+#endif
+
+	if ( ioctl( m_videohandle, VIDIOCSWIN, &vid_win ) < 0 )
+	{
+		Error(( "Failed to set window attributes: %s", strerror(errno) ));
+		if ( (bool)config.Item( ZM_STRICT_VIDEO_CONFIG ) ) exit(-1);
+	}
+
 	if ( ioctl(m_videohandle, VIDIOCGMBUF, &m_vmb) < 0 )
 	{
 		Error(( "Failed to setup memory: %s", strerror(errno) ));

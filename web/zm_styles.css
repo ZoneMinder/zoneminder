@@ -27,25 +27,40 @@
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size:10px;
 	color: #DC143C;
-	font-weight: bold
+	font-weight: bold;
 }
 .ambtext {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size:10px;
 	color: #FF8C00;
-	font-weight: bold
-}
-.blutext {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size:10px;
-	color: #48D1CC;
-	font-weight: bold
+	font-weight: bold;
 }
 .gretext {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size:10px;
 	color: #688E23;
-	font-weight: bold
+	font-weight: bold;
+}
+.redtextem {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size:10px;
+	color: #DC143C;
+	font-weight: bold;
+	font-style: italic;
+}
+.ambtextem {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size:10px;
+	color: #FF8C00;
+	font-weight: bold;
+	font-style: italic;
+}
+.gretextem {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size:10px;
+	color: #688E23;
+	font-weight: bold;
+	font-style: italic;
 }
 .smallhead {
 	font-family: Verdana, Arial, Helvetica, sans-serif;

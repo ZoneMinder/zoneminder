@@ -207,10 +207,6 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 		{
 			$fclass = "redtext";
 		}
-		elseif ( $monitor['RunMode'] == 'Triggered' )
-		{
-			$fclass = "blutext";
-		}
 		elseif ( $monitor['Function'] == 'Monitor' )
 		{
 			$fclass = "ambtext";
@@ -218,6 +214,10 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 		else
 		{
 			$fclass = "gretext";
+		}
+		if ( $monitor['RunMode'] == 'Triggered' )
+		{
+			$fclass .= "em";
 		}
 ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=watch&mid=$monitor[Id]', 'zmWatch$monitor[Name]', ".($monitor[Width]+$jws['watch']['w']).", ".($monitor[Height]+$jws['watch']['h'])." );", $monitor[Name], canView( 'Stream' ) ) ?></td>

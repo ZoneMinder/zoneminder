@@ -38,11 +38,11 @@ use constant ZM_DB_USERA => "<from zmconfig>";
 use constant ZM_DB_PASSA => "<from zmconfig>";
 use constant ZM_PATH_LOGS => "<from zmconfig>";
 use constant ZM_WATCH_CHECK_INTERVAL => <from zmconfig>;
-use constant ZM_WATCH_NUM_BAD_CHECKS => <from zmconfig>;
-use constant ZM_WATCH_MIN_FPS => <from zmconfig>;
+use constant ZM_WATCH_MAX_DELAY => <from zmconfig>;
 
 use constant COMMAND_PATH => '@prefix@/bin/';
 use constant WATCH_LOG_FILE => ZM_PATH_LOGS.'/zmwatch.log';
+use constant START_DELAY => 30; # To give everything time to start
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
@@ -77,51 +77,38 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 print( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+print( "Watchdog pausing for ".START_DELAY." seconds\n" );
+sleep( START_DELAY );
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USERA, ZM_DB_PASSA );
 
 my $sql = "select * from Monitors";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 
-my %fps_hash;
 while( 1 )
 {
+	my $now = time();
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
 		if ( $monitor->{Function} ne 'None' )
 		{
-			my $fps_list = $fps_hash{$monitor->{Id}};
-			if ( !$fps_list )
+			# Check we have got an image recently
+			my $command = COMMAND_PATH."zmu -m ".$monitor->{Id}." -t";
+			print( "Getting last image time for monitor $monitor->{Id} ('$command')\n" ) if ( VERBOSE );
+			my $image_time = qx( $command );
+			chomp($image_time);
+			my $image_delay = $now-$image_time;
+			print( "Monitor $monitor->{Id} last captured $image_delay seconds ago\n" ) if ( VERBOSE );
+			if ( $image_delay <= ZM_WATCH_MAX_DELAY )
 			{
-				$fps_list = $fps_hash{$monitor->{Id}} = [];
+				# Yes, so continue
+				next;
 			}
-			# Check we are getting a decent FPS, if not then kill it
-			my $command = COMMAND_PATH."zmu -m ".$monitor->{Id}." -f";
-			print( "Getting FPS for monitor $monitor->{Id} ('$command')\n" ) if ( VERBOSE );
-			my $fps = qx( $command );
-			chomp($fps);
-			print( "Monitor $monitor->{Id} capturing at $fps FPS\n" ) if ( VERBOSE );
-			push( @$fps_list, $fps );
-			if ( @$fps_list > ZM_WATCH_NUM_BAD_CHECKS )
-			{
-				shift( @$fps_list );
-				# See if we can find any good FPS readings
-				my @good_fps = grep { $_ > ZM_WATCH_MIN_FPS } @$fps_list;
-				if ( @good_fps < ZM_WATCH_NUM_BAD_CHECKS )
-				{
-					print( "Monitor $monitor->{Id} has ".(ZM_WATCH_NUM_BAD_CHECKS-int(@good_fps))." samples below ".ZM_WATCH_MIN_FPS." FPS\n" );
-				}
-				if ( @good_fps )
-				{
-					# Yes, so continue
-					next;
-				}
-				# If we are here then something bad has happened
-				$command = COMMAND_PATH."zmdc.pl restart zmc -d ".$monitor->{Device};
-				print( "Restarting capture daemon ('$command')\n" );
-				print( qx( $command ) );
-			}
+			# If we are here then something bad has happened
+			$command = COMMAND_PATH."zmdc.pl restart zmc -d ".$monitor->{Device};
+			print( "Restarting capture daemon ('$command')\n" );
+			print( qx( $command ) );
 		}
 	}
 	sleep( ZM_WATCH_CHECK_INTERVAL );

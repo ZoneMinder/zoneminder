@@ -1,0 +1,321 @@
+#!/usr/bin/perl -w
+#
+# This script continuously monitors the recorded events for the given
+# monitor and applies any filters which would delete and/or upload 
+# matching events
+#
+use strict;
+
+# ==========================================================================
+#
+# These are the elements you need to edit to suit your installation
+#
+# ==========================================================================
+use constant DB_NAME => "zm";
+use constant DB_USER => "zmadmin";
+use constant DB_PASS => "zmadminzm";
+use constant SHM_KEY => 0x7a6d2000;
+use constant EVENT_PATH => "/data/zm/events";
+use constant FILTER_RELOAD_DELAY => 300; # How often filters are reloaded
+
+# Comment these out if you don't have them and don't want to upload
+# or don't want to use that format
+use Archive::Zip qw( :ERROR_CODES :CONSTANTS );
+use Archive::Tar;
+use Net::FTP;
+
+use constant ARCH_FORMAT => 'tar'; # This can be 'tar' or 'zip'
+use constant ARCH_COMPRESS => '0'; # Whether to compress archive files
+
+use constant FTP_HOST => 'raq182.uk2net.com';
+use constant FTP_USER => 'admin';
+use constant FTP_PASS => 'w712jhw';
+use constant FTP_LOC_DIR => '/tmp/';
+use constant FTP_REM_DIR => 'transfer/';
+use constant FTP_TIMEOUT => 120;
+use constant FTP_PASSIVE => 1;
+use constant FTP_DEBUG => 0;
+
+# ==========================================================================
+#
+# You shouldn't need to change anything from here downwards
+#
+# ==========================================================================
+
+use DBI;
+use IPC::SysV qw/IPC_CREAT/;
+use Date::Manip;
+use Data::Dumper;
+use Getopt::Long;
+
+$| = 1;
+
+my $monitor = 0;
+my $delay = 30;
+my $event_id = 0;
+
+sub Usage
+{
+	print( "
+Usage: zmf.pl (-m <monitor_id>,-monitor=<monitor_id>) [-e <event_id>,--event=<event_id>] [-d <seconds>,--delay=<seconds>]
+Parameters are :-
+-m <monitor_id>, --monitor=<monitor_id> - Indicate which monitor id to run for
+-e<event_id>, --event=<event_id>        - What event to start scanning from
+-d<seconds>, --delay=<seconds>          - How long to delay between each check, default 30
+");
+	exit( -1 );
+}
+
+#
+# More or less replicates the equivalent PHP function
+#
+sub strtotime
+{
+	my $date_str = shift;
+	return( UnixDate( $date_str, '%s' ) );
+}
+
+#
+# More or less replicates the equivalent PHP function
+#
+sub str_repeat
+{
+	my $string = shift;
+	my $count = shift;
+	return( ${string}x${count} );
+}
+
+if ( !GetOptions( 'monitor=i'=>\$monitor, 'event=i'=>\$event_id, 'delay=i'=>\$delay ) )
+{
+	Usage();
+}
+
+if ( !$monitor )
+{
+	print( STDERR "Please give a valid monitor id\n" );
+	Usage();
+}
+
+chdir( EVENT_PATH );
+
+my $dbh = DBI->connect( "DBI:mysql:".DB_NAME, DB_USER, DB_PASS );
+
+my $last_event_id;
+
+if ( !$event_id )
+{
+	my $sql = "select max(Id) as MaxEventId from Events where MonitorId = '$monitor'";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	my $row = $sth->fetchrow_hashref();
+	$event_id = $row->{MaxEventId};
+	$sth->finish();
+}
+print( "Scanning for events since id $event_id\n" );
+
+my $filters = GetFilters( $monitor );
+my $last_action = 0;
+
+my $size = 16; # We only need the first 16 bytes really for the last event count
+my $key = SHM_KEY|$monitor;
+my $shmid = shmget( $key, $size, 0 ) || die( "Can't get shared memory id: $!" );
+
+while( 1 )
+{
+	shmread( $shmid, $last_event_id, 12, 4 ) || die( "Can't read from shared memory: $!" );
+	$last_event_id = unpack( "l", $last_event_id );
+
+	print( "Last event generated is $last_event_id\n" );
+	if ( $last_event_id > $event_id )
+	{
+		# Got new event to check
+		if ( (time() - $last_action) > FILTER_RELOAD_DELAY )
+		{
+			print( "Reloading filters\n" );
+			$last_action = time();
+			$filters = GetFilters( $monitor );
+
+			foreach my $filter ( @$filters )
+			{
+				print( "Checking filter '$filter->{Name}'".($filter->{AutoDelete}?", delete":"").($filter->{AutoUpload}?", upload":"")."\n" );
+				my $sql = $filter->{Sql};
+				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				my $res = $sth->execute( $event_id ) or die( "Can't execute: ".$sth->errstr() );
+
+				while( my $event = $sth->fetchrow_hashref() )
+				{
+					print( "Checking event $event->{Id}\n" );
+					if ( $filter->{AutoUpload} )
+					{
+						my $arch_file = FTP_LOC_DIR.$filter->{MonitorName}.'-'.$event->{Id};
+						my $arch_image_path = "$filter->{MonitorName}/$event->{Id}/*.jpg";
+						my $arch_error;
+
+						if ( ARCH_FORMAT eq "zip" )
+						{
+							$arch_file .= '.zip';
+							my $zip = Archive::Zip->new();
+							print( "Creating upload file '$arch_file'\n" );
+
+							my $status = AZ_OK;
+							foreach my $image_file ( <*$arch_image_path> )
+							{
+								print( "Adding $image_file\n" );
+								my $member = $zip->addFile( $image_file );
+								last unless ( $member );
+								$member->desiredCompressionMethod( ARCH_COMPRESS?COMPRESSION_DEFLATED:COMPRESSION_STORED );
+							}
+							$status = $zip->writeToFileNamed( $arch_file );
+
+							if ( $arch_error = ($status != AZ_OK) )
+							{
+								print( "Zip error: $status\n " );
+							}
+						}
+						elsif ( ARCH_FORMAT eq "tar" )
+						{
+							if ( ARCH_COMPRESS )
+							{
+								$arch_file .= '.tar.gz';
+							}
+							else
+							{
+								$arch_file .= '.tar';
+							}
+							print( "Creating upload file '$arch_file'\n" );
+
+							if ( $arch_error = !Archive::Tar->create_archive( $arch_file, ARCH_COMPRESS, <*$arch_image_path> ) )
+							{
+								print( "Tar error: ".Archive::Tar->error()."\n " );
+							}
+						}
+
+
+						if ( !$arch_error )
+						{
+							print( "Uploading to ".FTP_HOST."\n" );
+							my $ftp = Net::FTP->new( FTP_HOST, Timeout=>FTP_TIMEOUT, Passive=>FTP_PASSIVE, Debug=>FTP_DEBUG );
+							$ftp->login( FTP_USER, FTP_PASS ) or die( "FTP - Can't login" );
+							$ftp->binary() or die( "FTP - Can't go binary" );
+							$ftp->cwd( FTP_REM_DIR ) or die( "FTP - Can't cwd" );
+							$ftp->put( $arch_file ) or die( "FTP - Can't upload '$arch_file'" );
+							$ftp->quit() or warn( "FTP - Can't quit" );
+							unlink( $arch_file );
+						}
+					}
+					if ( $filter->{AutoDelete} )
+					{
+						print( "Deleting event\n" );
+						# Do it individually to avoid locking up the table for new events
+						my $sql = "delete from Events where Id = ?";
+						my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+						#my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+
+						# We could now delete from the Frames and Stats table and the files themselves,
+						# but we can let the database checker sort that out for us instead.
+					}
+				}
+				$sth->finish();
+			}
+		}
+		$event_id = $last_event_id;
+	}
+	else
+	{
+		print( "Sleeping for $delay seconds\n" );
+		sleep( $delay );
+	}
+}
+
+sub GetFilters
+{
+	my $monitor = shift;
+
+	my @filters;
+	my $sql = "select Filters.*,Monitors.Name as MonitorName from Filters inner join Monitors on Filters.MonitorId = Monitors.Id where AutoDelete = 1 or AutoUpload = 1 order by Name";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	FILTER: while( my $filter_data = $sth->fetchrow_hashref() )
+	{
+		print( "Found filter '$filter_data->{Name}'\n" );
+		my %filter_terms;
+		foreach my $filter_parm ( split( '&', $filter_data->{Query} ) )
+		{
+			my( $key, $value ) = split( '=', $filter_parm, 2 );
+			if ( $key )
+			{
+				$filter_terms{$key} = $value;
+			}
+		}
+		#print( Dumper( %filter_terms ) );
+		my $sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Events as E inner join Monitors as M on M.Id = E.MonitorId where M.Id = '$monitor' and E.Id > ?";
+		my $filter_sql = '';
+		for ( my $i = 1; $i <= $filter_terms{trms}; $i++ )
+		{
+			my $conjunction_name = "cnj$i";
+			my $obracket_name = "obr$i";
+			my $cbracket_name = "cbr$i";
+			my $attr_name = "attr$i";
+			my $op_name = "op$i";
+			my $value_name = "val$i";
+			if ( $filter_terms{$conjunction_name} )
+			{
+				$filter_sql .= " ".$filter_terms{$conjunction_name}." ";
+			}
+			if ( $filter_terms{$obracket_name} )
+			{
+				$filter_sql .= str_repeat( "(", $filter_terms{$obracket_name} );
+			}
+			if ( $filter_terms{$attr_name} )
+			{
+				if ( $filter_terms{$attr_name} eq 'DateTime' )
+				{
+					my $dt_val = strtotime( $filter_terms{$value_name} );
+					if ( !$dt_val )
+					{
+						printf( STDERR "Error, unable to parse date '$filter_terms{$value_name}', skipping\n" );
+						next FILTER;
+					}
+					$filter_sql .= "E.StartTime ".$filter_terms{$op_name}." from_unixtime( $dt_val )";
+				}
+				elsif ( $filter_terms{$attr_name} eq 'Date' )
+				{
+					my $dt_val = strtotime( $filter_terms{$value_name} );
+					$filter_sql .= "to_days( E.StartTime ) ".$filter_terms{$op_name}." to_days( from_unixtime( $dt_val ) )";
+				}
+				elsif ( $filter_terms{$attr_name} eq 'Time' )
+				{
+					my $dt_val = strtotime( $filter_terms{$value_name} );
+					$filter_sql .= "extract( hour_second from E.StartTime ) ".$filter_terms{$op_name}." extract( hour_second from from_unixtime( $dt_val ) )";
+				}
+				elsif ( $filter_terms{$attr_name} eq 'Weekday' )
+				{
+					my $dt_val = strtotime( $filter_terms{$value_name} );
+					$filter_sql .= "weekday( E.StartTime ) ".$filter_terms{$op_name}." weekday( from_unixtime( $dt_val ) )";
+				}
+				elsif ( $filter_terms{$attr_name} eq 'Archived' )
+				{
+					$filter_sql .= "E.Archived = ".$filter_terms{$value_name};
+				}
+				else
+				{
+					$filter_sql .= "E.".$filter_terms{$attr_name}." ".$filter_terms{$op_name}." ".$filter_terms{$value_name};
+				}
+			}
+			if ( $filter_terms{$cbracket_name} )
+			{
+				$filter_sql .= str_repeat( ")", $filter_terms{$cbracket_name} );
+			}
+		}
+		if ( $filter_sql )
+		{
+			$sql .= " and ( $filter_sql )";
+		}
+		#print $sql."\n";
+		$filter_data->{Sql} = $sql;
+		push( @filters, $filter_data );
+	}
+	$sth->finish();
+
+	return( \@filters );
+}

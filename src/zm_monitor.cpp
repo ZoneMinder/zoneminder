@@ -418,29 +418,40 @@ bool Monitor::Analyse()
 		last_fps_time = now.tv_sec;
 	}
 
-	int read_margin = shared_images->last_read_index - shared_images->last_write_index;
-	if ( read_margin < 0 ) read_margin += image_buffer_count;
-
-	int step = 1;
-	if ( read_margin > 0 )
+	if ( ZM_OPT_ADAPTIVE_SKIP )
 	{
-		step = (9*image_buffer_count)/(5*read_margin);
-	}
+		int read_margin = shared_images->last_read_index - shared_images->last_write_index;
+		if ( read_margin < 0 ) read_margin += image_buffer_count;
 
-	int pending_frames = shared_images->last_write_index - shared_images->last_read_index;
-	if ( pending_frames < 0 ) pending_frames += image_buffer_count;
+		int step = 1;
+		if ( read_margin > 0 )
+		{
+			step = (9*image_buffer_count)/(5*read_margin);
+		}
 
-	Debug( 1, ( "RI:%d, WI: %d, PF = %d, RM = %d, Step = %d", shared_images->last_read_index, shared_images->last_write_index, pending_frames, read_margin, step ));
-	int index;
-	if ( step <= pending_frames )
-	{
-		index = (shared_images->last_read_index+step)%image_buffer_count;
+		int pending_frames = shared_images->last_write_index - shared_images->last_read_index;
+		if ( pending_frames < 0 ) pending_frames += image_buffer_count;
+
+		Debug( 1, ( "RI:%d, WI: %d, PF = %d, RM = %d, Step = %d", shared_images->last_read_index, shared_images->last_write_index, pending_frames, read_margin, step ));
+		int index;
+		if ( step <= pending_frames )
+		{
+			index = (shared_images->last_read_index+step)%image_buffer_count;
+		}
+		else
+		{
+			if ( pending_frames )
+			{
+				Warning(( "Approaching buffer overrun, consider increasing ring buffer size" ));
+			}
+			index = shared_images->last_write_index%image_buffer_count;
+		}
 	}
 	else
 	{
-		Warning(( "Approaching buffer overrun, consider increasing ring buffer size" ));
 		index = shared_images->last_write_index%image_buffer_count;
 	}
+
 	Snapshot *snap = &image_buffer[index];
 	struct timeval *timestamp = snap->timestamp;
 	Image *image = snap->image;

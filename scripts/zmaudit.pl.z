@@ -99,6 +99,9 @@ Parameters are :-
 
 sub confirm
 {
+	my $prompt = shift || "delete";
+	my $action = shift || "deleting";
+
 	my $yesno = $yes?1:0; 
 	if ( $report )
 	{
@@ -106,11 +109,11 @@ sub confirm
 	}
 	elsif ( $yes )
 	{
-		print( ", deleting\n" );
+		print( ", $action\n" );
 	}
 	else
 	{
-		print( ", delete y/n: " );
+		print( ", $prompt y/n: " );
 		my $char = <>;
 		chomp( $char );
 		if ( $char eq 'q' )
@@ -248,7 +251,7 @@ do
 						{
 							my $res = $sth4->execute( $db_event ) or die( "Can't execute: ".$sth4->errstr() );
 							$res = $sth5->execute( $db_event ) or die( "Can't execute: ".$sth5->errstr() );
-							$res = $sth6->execute( $db_event ) or die( "Can't execute: ".$sth5->errstr() );
+							$res = $sth6->execute( $db_event ) or die( "Can't execute: ".$sth6->errstr() );
 						}
 					}
 				}
@@ -273,7 +276,7 @@ do
 		print( "Found orphaned frame records for event '$frame->{EventId}'" );
 		if ( confirm() )
 		{
-			$res = $sth5->execute( $frame->{EventId} ) or die( "Can't execute: ".$sth7->errstr() );
+			$res = $sth5->execute( $frame->{EventId} ) or die( "Can't execute: ".$sth6->errstr() );
 		}
 	}
 
@@ -285,7 +288,22 @@ do
 		print( "Found orphaned statistic records for event '$stat->{EventId}'" );
 		if ( confirm() )
 		{
-			$res = $sth6->execute( $stat->{EventId} ) or die( "Can't execute: ".$sth8->errstr() );
+			$res = $sth6->execute( $stat->{EventId} ) or die( "Can't execute: ".$sth6->errstr() );
+		}
+	}
+
+	# New audit to close any events that were left open for longer than 5 minutes
+	my $sql9 = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, count(F.Id) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore from Events as E inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) group by E.Id having EndTime < (now() - interval 5 minute)"; 
+	my $sth9 = $dbh->prepare_cached( $sql9 ) or die( "Can't prepare '$sql9': ".$dbh->errstr() );
+	my $sql10 = "update Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ? where Id = ?";
+	my $sth10 = $dbh->prepare_cached( $sql10 ) or die( "Can't prepare '$sql10': ".$dbh->errstr() );
+	$res = $sth9->execute() or die( "Can't execute: ".$sth9->errstr() );
+	while( my $event = $sth9->fetchrow_hashref() )
+	{
+		print( "Found open event '$event->{Id}'" );
+		if ( confirm( 'close', 'closing' ) )
+		{
+			$res = $sth10->execute( sprintf( "Event-%d(r)", $event->{Id}), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, $event->{Id} ) or die( "Can't execute: ".$sth10->errstr() );
 		}
 	}
 

@@ -210,7 +210,7 @@ while( 1 )
 						# Do it individually to avoid locking up the table for new events
 						my $sql = "delete from Events where Id = ?";
 						my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-						#my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+						my $res = $sth->execute( $event->{Id} ) or die( "Can't execute: ".$sth->errstr() );
 
 						# We could now delete from the Frames and Stats table and the files themselves,
 						# but we can let the database checker sort that out for us instead.
@@ -233,7 +233,7 @@ sub GetFilters
 	my $monitor = shift;
 
 	my @filters;
-	my $sql = "select Filters.*,Monitors.Name as MonitorName from Filters inner join Monitors on Filters.MonitorId = Monitors.Id where AutoDelete = 1 or AutoUpload = 1 order by Name";
+	my $sql = "select Filters.*,Monitors.Name as MonitorName from Filters inner join Monitors on Filters.MonitorId = Monitors.Id where Monitors.Id = '$monitor' and (AutoDelete = 1 or AutoUpload = 1) order by Name";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	FILTER: while( my $filter_data = $sth->fetchrow_hashref() )
@@ -312,6 +312,7 @@ sub GetFilters
 		{
 			$sql .= " and ( $filter_sql )";
 		}
+		$sql .= " order by E.Id";
 		#print $sql."\n";
 		$filter_data->{Sql} = $sql;
 		push( @filters, $filter_data );

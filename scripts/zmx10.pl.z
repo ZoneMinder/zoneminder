@@ -179,6 +179,8 @@ sub runServer
 	my $timeout = 0.2;
 	#print( "F:".fileno(SERVER)."\n" );
 	my $reload = undef;
+	my $reload_count = 0;
+	my $reload_limit = main::DB_RELOAD_INTERVAL/$timeout;
 	while( 1 )
 	{
 		my $nfound = select( my $rout = $rin, undef, undef, $timeout );
@@ -324,14 +326,15 @@ sub runServer
 				my $pending_list = $pending_tasks{$activation_time};
 				foreach my $task ( @$pending_list )
 				{
-						processTask( $task );
+					processTask( $task );
 				}
 				delete( $pending_tasks{$activation_time} );
 			}
-			if ( $reload || !($now%main::DB_RELOAD_INTERVAL) )
+			if ( $reload || $reload_count >= $reload_limit )
 			{
 				loadTasks();
 				$reload = undef;
+				$reload_count = 0;
 			}
 		}
 	}
@@ -388,7 +391,7 @@ sub addToMonitorList
 	my $task = { type=>"monitor", device=>$device, function=>$function };
 	if ( $limit )
 	{
-		$task->{limit} = $limit
+		$task->{limit} = $limit;
 	}
 
 	my $task_list = $monitor->{$event."_list"};
@@ -518,7 +521,7 @@ sub addPendingTask
 			}
 			elsif ( $task->{type} eq "monitor" )
 			{
-				if (( $task->{device}->unit_code() != $pending_task->{device}->unit_code() )
+				if (( $task->{device}->{appliance}->unit_code() != $pending_task->{device}->{appliance}->unit_code() )
 				|| ( $task->{function} != $pending_task->{function} ))
 				{
 					push( @$new_pending_list, $pending_task )
@@ -544,12 +547,12 @@ sub addPendingTask
 	my $pending_task;
 	if ( $task->{type} eq "device" )
 	{
-		$pending_task = { monitor=>$task->{monitor}, function=>$task->{function} };
+		$pending_task = { type=>$task->{type}, monitor=>$task->{monitor}, function=>$task->{function} };
 		$pending_task->{function} =~ s/start/stop/;
 	}
 	elsif ( $task->{type} eq "monitor" )
 	{
-		$pending_task = { device=>$task->{device}, function=>$task->{function} };
+		$pending_task = { type=>$task->{type}, device=>$task->{device}, function=>$task->{function} };
 		$pending_task->{function} =~ s/on/off/;
 	}
 	push( @$pending_list, $pending_task );

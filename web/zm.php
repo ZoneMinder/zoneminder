@@ -111,6 +111,11 @@ if ( $action )
 	}
 	elseif ( $action == "delete" )
 	{
+		if ( !$delete_eids && $delete_eid )
+		{
+			$delete_eids[] = $delete_eid;
+			$refresh_parent = true;
+		}
 		if ( $delete_eids )
 		{
 			foreach( $delete_eids as $delete_eid )
@@ -857,21 +862,21 @@ elseif( $view == "image" )
 <script language="JavaScript">
 window.focus();
 function newWindow(Url,Name,Width,Height) {
-        var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+   	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
 function closeWindow() {
-        window.close();
+	window.close();
 }
-function deleteImage() {
-	opener.location.href = "<?php echo $PHP_SELF ?>?view=delete&eid=<?php echo $eid ?>";
-        window.close();
+function deleteEvent() {
+	opener.location.href = "<?php echo $PHP_SELF ?>?view=none&action=delete&delete_eid=<?php echo $eid ?>";
+	window.close();
 }
 </script>
 </head>
 <body>
 <table border="0">
 <tr><td colspan="2" class="text"><b>Image <?php echo $eid."-".$fid ?></b></td>
-<td align="center" class="text"><a href="javascript: deleteImage();">Delete</a></td>
+<td align="center" class="text"><a href="javascript: deleteEvent();">Delete</a></td>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
 <tr><td colspan="4"><img src="<?php echo $image_path ?>" width="352" height="288" border="0"></td></tr>
@@ -945,7 +950,7 @@ function newWindow(Url,Name,Width,Height) {
 </tr>
 <tr>
 <td align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
-<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=delete&eid=<?php echo $eid ?>">Delete</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=none&action=delete&delete_eid=<?php echo $eid ?>">Delete</a></td>
 <td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=archive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Archive</a></td>
 <?php if ( $mode == "stream" ) { ?>
 <td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=event&mode=still&mid=<?php echo $mid ?>&eid=<?php echo $eid ?>">Stills</a></td>

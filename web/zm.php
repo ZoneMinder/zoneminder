@@ -1116,6 +1116,18 @@ function closeWindow() {
 </html>
 <?php
 }
+elseif ( $view == "none" )
+{
+?>
+<html>
+<head>
+<script language="JavaScript">
+window.close();
+</script>
+</head>
+</html>
+<?php
+}
 
 function isNetscape()
 {

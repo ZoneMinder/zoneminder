@@ -177,7 +177,7 @@ public:
 		return( name );
 	}
 	State GetState() const;
-	int GetImage( int index=-1 ) const;
+	int GetImage( int index=-1, int scale=100 ) const;
 	struct timeval GetTimestamp( int index=-1 ) const;
 	int GetCaptureDelay() const { return( capture_delay ); }
 	unsigned int GetLastReadIndex() const;

@@ -83,7 +83,7 @@ Monitor::Monitor(
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
 
-    strcpy( label_format, p_label_format );
+	strcpy( label_format, p_label_format );
 
 	camera = new LocalCamera( p_device, p_channel, p_format, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, purpose==CAPTURE );
 
@@ -139,7 +139,7 @@ Monitor::Monitor(
 	name = new char[strlen(p_name)+1];
 	strcpy( name, p_name );
 
-    strcpy( label_format, p_label_format );
+	strcpy( label_format, p_label_format );
 
 	camera = new RemoteCamera( p_host, p_port, p_path, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, purpose==CAPTURE );
 
@@ -304,22 +304,27 @@ Monitor::State Monitor::GetState() const
 	return( shared_data->state );
 }
 
-int Monitor::GetImage( int index ) const
+int Monitor::GetImage( int index, int scale ) const
 {
 	if ( index < 0 || index > image_buffer_count )
 	{
 		index = shared_data->last_write_index;
 	}
 	Snapshot *snap = &image_buffer[index];
-	Image *snap_image = snap->image;
+	Image snap_image( *(snap->image) );
+
+	if ( scale != 100 )
+	{
+		snap_image.Scale( scale );
+	}
 
 	static char filename[PATH_MAX];
 	sprintf( filename, "%s.jpg", name );
 	if ( !timestamp_on_capture )
 	{
-		TimestampImage( snap_image, snap->timestamp->tv_sec );
+		TimestampImage( &snap_image, snap->timestamp->tv_sec );
 	}
-	snap_image->WriteJpeg( filename );
+	snap_image.WriteJpeg( filename );
 	return( 0 );
 }
 
@@ -1152,7 +1157,7 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	for ( int i = 0; i < n_zones; i++ )
 	{
 		zones[i]->DumpSettings( output+strlen(output), verbose );
-    }
+	}
 	return( true );
 }
 

@@ -44,6 +44,7 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -O, --colour [value]           : Output the current colour, set to value if given \n" );
 	fprintf( stderr, "  -i, --image [image_index]      : Write captured image to disk as <monitor_name>.jpg, last image captured\n" );
 	fprintf( stderr, "                                   or specified ring buffer index if given.\n" );
+	fprintf( stderr, "  -S, --scale <scale_%%ge>        : With --image specify any scaling (in %%) to be applied to the image\n" );
 	fprintf( stderr, "  -t, --timestamp [image_index]  : Output captured image timestamp, last image captured or specified\n" );
 	fprintf( stderr, "                                   ring buffer index if given\n" );
 	fprintf( stderr, "  -r, --read_index               : Output ring buffer read index\n" );
@@ -176,6 +177,7 @@ int main( int argc, char *argv[] )
 		{"monitor", 1, 0, 'm'},
 		{"verbose", 0, 0, 'v'},
 		{"image", 2, 0, 'i'},
+		{"scale", 1, 0, 'S'},
 		{"timestamp", 2, 0, 't'},
 		{"state", 0, 0, 's'},
 		{"brightness", 2, 0, 'B'},
@@ -203,6 +205,7 @@ int main( int argc, char *argv[] )
 	Function function = BOGUS;
 
 	int image_idx = -1;
+	int scale = -1;
 	int brightness = -1;
 	int contrast = -1;
 	int hue = -1;
@@ -213,7 +216,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsrwie::t::fzancqphB::C::H::O::U:P:", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsrwei::S:t::fzancqphB::C::H::O::U:P:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -239,6 +242,9 @@ int main( int argc, char *argv[] )
 				{
 					image_idx = atoi( optarg );
 				}
+				break;
+			case 'S':
+				scale = atoi(optarg);
 				break;
 			case 't':
 				function = Function(function | TIME);
@@ -329,9 +335,14 @@ int main( int argc, char *argv[] )
 		Usage();
 	}
 
-	if ( dev_id >= 0 && !(function&(QUERY|QUERY)) )
+	if ( dev_id >= 0 && !(function&QUERY) )
 	{
 		fprintf( stderr, "Error, -d option cannot be used with this option\n" );
+		Usage();
+	}
+	if ( scale != -1 && !(function&IMAGE) )
+	{
+		fprintf( stderr, "Error, -S option cannot be used with this option\n" );
 		Usage();
 	}
 	//printf( "Monitor %d, Function %d\n", mon_id, function );
@@ -448,11 +459,14 @@ int main( int argc, char *argv[] )
 				if ( verbose )
 				{
 					if ( image_idx == -1 )
-						printf( "Dumping last image captured to %s.jpg\n", monitor->Name() );
+						printf( "Dumping last image captured to %s.jpg", monitor->Name() );
 					else
-						printf( "Dumping buffer image %d to %s.jpg\n", image_idx, monitor->Name() );
+						printf( "Dumping buffer image %d to %s.jpg", image_idx, monitor->Name() );
+					if ( scale != -1 )
+						printf( ", scaling by %d%%", scale );
+					printf( "\n" );
 				}
-				monitor->GetImage( image_idx );
+				monitor->GetImage( image_idx, scale>0?scale:100 );
 			}
 			if ( function & ZONES )
 			{

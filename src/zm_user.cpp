@@ -106,7 +106,7 @@ bool User::canAccess( int monitor_id )
 User *zmLoadUser( const char *username, const char *password )
 {
 	char sql[BUFSIZ] = "";
-	snprintf( sql, sizeof(sql), "select Username, Password, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
+	snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
 
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -139,6 +139,7 @@ User *zmLoadUser( const char *username, const char *password )
 // Function to validate an authentication string
 User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 {
+#ifdef HAVE_LIBCRYPTO
 	const char *remote_addr = "";
 	if ( use_remote_addr )
 	{
@@ -150,8 +151,9 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 		}
 	}
 
+	Debug( 1, ( "Attempting to authenticate user from auth string '%s'", auth ));
 	char sql[BUFSIZ] = "";
-	snprintf( sql, sizeof(sql), "select Username, Password, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1" );
+	snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1" );
 
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -180,7 +182,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 
 		char auth_key[512] = "";
 		char auth_md5[32+1] = "";
-		unsigned char md5sum[64] = "";
+		unsigned char md5sum[MD5_DIGEST_LENGTH];
 
 		time_t now = time( 0 );
 		int max_tries = 2;
@@ -202,10 +204,11 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 
 			MD5( (unsigned char *)auth_key, strlen(auth_key), md5sum );
 			auth_md5[0] = '\0';
-			for ( int j = 0; j < strlen((const char *)md5sum); j++ )
+			for ( int j = 0; j < MD5_DIGEST_LENGTH; j++ )
 			{
-				sprintf( auth_md5+strlen(auth_md5), "%02x", md5sum[j] );
+				sprintf( &auth_md5[2*j], "%02x", md5sum[j] );
 			}
+			Debug( 1, ( "Checking auth_key '%s' -> auth_md5 '%s'", auth_key, auth_md5 ));
 
 			if ( !strcmp( auth, auth_md5 ) )
 			{
@@ -216,5 +219,8 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 			}
 		}
 	}
+#else // HAVE_LIBCRYPTO
+	Error(( "You need to build with openssl installed to use hash based authentication" ));
+#endif // HAVE_LIBCRYPTO
 	return( 0 );
 }

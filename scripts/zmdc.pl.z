@@ -343,6 +343,11 @@ if ( !connect( CLIENT, $saddr ) )
 
 			$SIG{CHLD} = \&reaper;
 
+			if ( $cpid < 0 )
+			{
+				return;
+			}
+
 			my $process = $pid_hash{$cpid};
 			delete( $pid_hash{$cpid} );
 
@@ -375,13 +380,14 @@ if ( !connect( CLIENT, $saddr ) )
 
 			if ( $process->{keepalive} )
 			{
-				if ( !$process->{delay} || $process->{runtime} > (10*$process->{delay}) )
+				if ( !$process->{delay} || ($process->{runtime} > (10*$process->{delay})) )
 				{
 					start( $process->{daemon}, @{$process->{args}} );
 					$process->{delay} = 5;
 				}
 				else
 				{
+					$cmd_hash{$process->{command}} = $process;
 					$process->{pending} = $process->{stopped}+$process->{delay};
 					$process->{delay} *= 2;
 					# Limit the start delay to 15 minutes max

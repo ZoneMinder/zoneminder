@@ -35,7 +35,7 @@ require_once( 'zm_config.php' );
 if ( ZM_OPT_USE_AUTH )
 {
 	$user = $HTTP_SESSION_VARS[user];
-	define( "ZMU_COMMAND", ZMU_PATH." -U $user[Username] -P $user[Password]" );
+	define( "ZMU_COMMAND", ZMU_PATH." -U $HTTP_SESSION_VARS[username] -P $HTTP_SESSION_VARS[password]" );
 }
 else
 {

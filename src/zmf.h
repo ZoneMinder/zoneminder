@@ -20,7 +20,7 @@
 #ifndef ZMFILE_H
 #define ZMFILE_H
 
-#define FILE_SOCK_FILE "/tmp/zmf-%d.sock"
+#define FILE_SOCK_FILE ZM_PATH_SOCKS "/zmf-%d.sock"
 
 struct FrameHeader
 {

@@ -1,3 +1,6 @@
+--
+-- This updates a 0.0.1 database to 0.9.8
+--
 alter table Monitors modify Device tinyint unsigned NOT NULL default '0';
 alter table Monitors modify Format tinyint unsigned NOT NULL;
 alter table Monitors drop column WarmUpCount;

@@ -202,7 +202,7 @@ void Monitor::Setup()
 	shmid = shmget( (int)config.Item( ZM_SHM_KEY )|id, shared_data_size, IPC_CREAT|0700 );
 	if ( shmid < 0 )
 	{
-		Error(( "Can't shmget: %s", strerror(errno)));
+		Error(( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno)));
 		exit( -1 );
 	}
 	unsigned char *shm_ptr = (unsigned char *)shmat( shmid, 0, 0 );

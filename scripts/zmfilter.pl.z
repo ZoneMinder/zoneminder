@@ -26,6 +26,7 @@ use Net::FTP;
 
 use constant ARCH_FORMAT => 'tar'; # This can be 'tar' or 'zip'
 use constant ARCH_COMPRESS => '0'; # Whether to compress archive files
+use constant ARCH_ANALYSE => '0'; # Whether to include the analysis files in the archive, bigger but slower
 
 use constant FTP_HOST => 'raq182.uk2net.com';
 use constant FTP_USER => 'admin';
@@ -148,7 +149,7 @@ while( 1 )
 					if ( $filter->{AutoUpload} )
 					{
 						my $arch_file = FTP_LOC_DIR.$filter->{MonitorName}.'-'.$event->{Id};
-						my $arch_image_path = "$filter->{MonitorName}/$event->{Id}/*.jpg";
+						my $arch_image_path = "$filter->{MonitorName}/$event->{Id}/".(ARCH_ANALYSE?'*':'capture*').".jpg";
 						my $arch_error;
 
 						if ( ARCH_FORMAT eq "zip" )

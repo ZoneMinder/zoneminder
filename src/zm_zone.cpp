@@ -105,7 +105,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			*pdiff = BLACK;
 		}
 	}
-	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
@@ -174,7 +174,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 		}
 	}
-	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
@@ -321,7 +321,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 		}
 	}
-	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
@@ -373,7 +373,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 		}
 	}
-	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )

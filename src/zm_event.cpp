@@ -277,7 +277,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, unsigned int
 		}
 	}
 
-	if ( (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	if ( (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
 	{
 		char diag_glob[PATH_MAX] = "";
 

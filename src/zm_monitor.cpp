@@ -1140,7 +1140,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 
 	if ( n_zones <= 0 ) return( alarm );
 
-	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
@@ -1152,7 +1152,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 
 	Image *delta_image = ref_image.Delta( comp_image );
 
-	if (  (bool)config.Item( ZM_RECORD_CHECK_IMAGES ) )
+	if (  (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )

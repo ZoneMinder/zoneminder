@@ -788,10 +788,10 @@ my @options =
 		category => 'system',
 	},
 	{
-		name => "ZM_RECORD_CHECK_IMAGES",
+		name => "ZM_RECORD_DIAG_IMAGES",
 		default => "no",
-		description => "Whether to record intermediate alarm check images, can be very slow",
-		help => "In addition to recording event statistics you can now also record the intermediate images that display the results of the various checks and processing that occur when trying to determine if an alarm event has taken place. There are up to four of these images generated for each zone for each alarm or alert frame so this can have a massive impact on performance. Only switch this setting on for debug or analysis purposes and remember to switch it off again once no longer required.",
+		description => "Whether to record intermediate alarm diagnostic images, can be very slow",
+		help => "In addition to recording event statistics you can also record the intermediate diagnostic images that display the results of the various checks and processing that occur when trying to determine if an alarm event has taken place. There are several of these images generated for each frame and zone for each alarm or alert frame so this can have a massive impact on performance. Only switch this setting on for debug or analysis purposes and remember to switch it off again once no longer required.",
 		type => $types{boolean},
 		category => 'system',
 	},

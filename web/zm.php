@@ -23,7 +23,8 @@ define( "DB_USER", "zmadmin" );		// Database login
 define( "DB_PASS", "zmadminzm" );	// Database password
 
 define( "MAX_EVENTS", 12 );
-define( "ZMU_PATH", "/usr/local/bin/zmu" );
+define( "ZM_PATH", "/usr/local/bin" );
+define( "ZMU_PATH", ZM_PATH."/zmu" );
 define( "ZMS_PATH", "/cgi-bin/zms" );
 define( "ZMS_EVENT_PATH", "/data/zm" );
 define( "CAMBOZOLA_PATH", "cambozola.jar" );
@@ -101,7 +102,8 @@ if ( $action )
 	}
 	elseif ( $action == "function" && $mid )
 	{
-		$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+		$sql = "select * from Monitors where Id = '$mid'";
+		$result = mysql_query( $sql );
 		if ( !$result )
 			die( mysql_error() );
 		$monitor = mysql_fetch_assoc( $result );
@@ -109,75 +111,69 @@ if ( $action )
 		$old_function = $monitor['Function'];
 		if ( $new_function != $old_function )
 		{
+			$sql = "update Monitors set Function = '$new_function' where Id = '$mid'";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				echo mysql_error();
+			$sql = "select * from Monitors where Device = '$monitor[Device]' and Function != 'None'";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				die( mysql_error() );
+			$device_monitors = mysql_num_rows( $result );
 			if ( $new_function == "None" )
 			{
+				if ( $device_monitors == 0 )
+				{
+					stopDaemon( "zmc", $monitor[Device] );
+					stopDaemon( "zma", $monitor[Device] );
+				}
+				else
+				{
+					signalDaemon( "zmc", $monitor[Device], 'HUP' );
+					signalDaemon( "zma", $monitor[Device], 'HUP' );
+				}
 			}
-			else
+			elseif ( $new_function == "Passive" )
 			{
+				startDaemon( "zmc", $monitor[Device] );
+				if ( $device_monitors == 0 )
+				{
+					stopDaemon( "zma", $monitor[Device] );
+				}
+				else
+				{
+					signalDaemon( "zmc", $monitor[Device], 'HUP' );
+					startDaemon( "zma", $monitor[Device] );
+					signalDaemon( "zma", $monitor[Device], 'HUP' );
+				}
 			}
+			elseif ( $new_function == "Active" )
+			{
+				startDaemon( "zmc", $monitor[Device] );
+				signalDaemon( "zmc", $monitor[Device], 'HUP' );
+				startDaemon( "zma", $monitor[Device] );
+				signalDaemon( "zma", $monitor[Device], 'HUP' );
+			}
+			$refresh_parent = true;
 		}
 	}
 	elseif ( $action == "device" && isset( $did ) )
 	{
 		if ( $zmc_status && !$zmc_action )
 		{
-			# Shutdown Capture daemon
-			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
-			if ( $ps_array[3] )
-			{
-				$zmc_pid = $ps_array[3];
-				exec( "kill -TERM $zmc_pid" );
-			}
-			while( $zmc_pid )
-			{
-				sleep( 1 );
-				$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
-				$zmc_pid = $ps_array[3];
-			}
+			stopDaemon( "zmc", $did );
 		}
 		elseif ( !$zmc_status && $zmc_action )
 		{
-			# Start Capture daemon
-			$command = '/usr/local/bin/zmc '.$did.' 2>/dev/null >&- <&- >/dev/null &';
-			exec( $command );
-			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
-			$zmc_pid = $ps_array[3];
-			while ( !$zmc_pid )
-			{
-				sleep( 1 );
-				$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zmc $did' | grep -v grep" ) );
-				$zmc_pid = $ps_array[3];
-			}
+			startDaemon( "zmc", $did );
 		}
 		if ( $zma_status && !$zma_action )
 		{
-			# Shutdown Analysis daemon
-			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
-			if ( $ps_array[3] )
-			{
-				$zma_pid = $ps_array[3];
-				exec( "kill -TERM $zma_pid" );
-			}
-			while( $zma_pid )
-			{
-				sleep( 1 );
-				$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
-				$zma_pid = $ps_array[3];
-			}
+			stopDaemon( "zma", $did );
 		}
 		elseif ( !$zma_status && $zma_action )
 		{
-			# Start Analysis daemon
-			$command = '/usr/local/bin/zma '.$did.' 2>/dev/null >&- <&- >/dev/null &';
-			exec( $command );
-			$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
-			$zma_pid = $ps_array[3];
-			while ( !$zma_pid )
-			{
-				sleep( 1 );
-				$ps_array = preg_split( "/\s+/", exec( "ps -edalf | grep 'zma $did' | grep -v grep" ) );
-				$zma_pid = $ps_array[3];
-			}
+			startDaemon( "zma", $did );
 		}
 	}
 }
@@ -542,7 +538,7 @@ elseif ( $view == "events" )
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name) {
-        var Name = window.open(Url,Name,"resizable,scrollbars,width=400,height=500");
+        var Name = window.open(Url,Name,"resizable,scrollbars,width=420,height=500");
 }
 function closeWindow() {
         top.window.close();
@@ -798,6 +794,14 @@ function deleteImage() {
 }
 elseif( $view == "event" )
 {
+	if ( !$mode )
+	{
+		if ( canStream() )
+			$mode = "stream";
+		else
+			$mode = "still";
+	}
+
 	$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
 	if ( !$result )
 		die( mysql_error() );
@@ -833,14 +837,24 @@ function newWindow(Url,Name,Width,Height) {
 <input type="submit" value="Rename" class="form"></td>
 </tr>
 <tr>
-<td width="20%" align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
-<td width="20%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=delete&eid=<?php echo $eid ?>">Delete</a></td>
-<td width="20%" align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=archive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Archive</a></td>
-<td width="20%" align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=images&eid=<?php echo $eid ?>', 'zmImages', <?php echo $event[Width]+72 ?>, <?php echo $event[Height]+360 ?> );">Images</a></td>
-<td width="20%" align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=video&eid=<?php echo $eid ?>', 'zmVideo', 100, 80 );">Video</a></td>
-<td width="20%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+<td align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=delete&eid=<?php echo $eid ?>">Delete</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=archive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Archive</a></td>
+<?php if ( $mode == "stream" ) { ?>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=event&mode=still&mid=<?php echo $mid ?>&eid=<?php echo $eid ?>">Stills</a></td>
+<?php } elseif ( canStream() ) { ?>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=event&mode=stream&mid=<?php echo $mid ?>&eid=<?php echo $eid ?>">Stream</a></td>
+<?php } else { ?>
+<td align="center" class="text">&nbsp;</td>
+<?php } ?>
+<td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=video&eid=<?php echo $eid ?>', 'zmVideo', 100, 80 );">Video</a></td>
+<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
-<?php
+
+
+
+<?php if ( $mode == "stream" )
+{
 	$stream_src = ZMS_PATH."?path=".ZMS_EVENT_PATH."&event=$eid&refresh=".STREAM_EVENT_DELAY;
 	if ( isNetscape() )
 	{
@@ -854,6 +868,72 @@ function newWindow(Url,Name,Width,Height) {
 <tr><td colspan="6" align="center"><applet code="com.charliemouse.cambozola.Viewer" archive="<?php echo CAMBOZOLA_PATH ?>" align="middle" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>"><param name="url" value="<?php echo $stream_src ?>"></applet></td></tr>
 <?php
 	}
+}
+else
+{
+	$result = mysql_query( "select * from Frames where EventID = '$eid' order by Id" );
+	if ( !$result )
+		die( mysql_error() );
+?>
+<tr><td colspan="6"><table border="0" cellpadding="0" cellspacing="2" align="center">
+<tr>
+<?php
+	$count = 0;
+	$scale = IMAGE_SCALING;
+	$fraction = sprintf( "%.2f", 1/$scale );
+	$thumb_width = $event[Width]/4;
+	$thumb_height = $event[Height]/4;
+	while( $row = mysql_fetch_assoc( $result ) )
+	{
+		$frame_id = $row[FrameId];
+		$image_path = $row[ImagePath];
+
+		if ( $scale == 1 )
+		{
+			$capt_image = $image_path;
+			$anal_image = preg_replace( "/capture/", "analyse", $image_path );
+
+			if ( file_exists($anal_image) && filesize( $anal_image ) )
+			{
+				$thumb_image = $anal_image;
+			}
+			else
+			{
+				$thumb_image = $capt_image;
+			}
+		}
+		else
+		{
+			$thumb_image = preg_replace( "/capture/", "thumb", $image_path );
+
+			if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
+			{
+				$anal_image = preg_replace( "/capture/", "analyse", $image );
+				if ( file_exists( $anal_image ) )
+					$command = "jpegtopnm -dct fast $anal_image | pnmscalefixed $fraction | ppmtojpeg --dct=fast > $thumb_image";
+				else
+					$command = "jpegtopnm -dct fast $image | pnmscalefixed $fraction | ppmtojpeg --dct=fast > $thumb_image";
+				#exec( escapeshellcmd( $command ) );
+				exec( $command );
+			}
+		}
+?>
+<td align="center" width="88"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $frame_id ?>', 'zmImage', <?php echo $event[Width]+48 ?>, <?php echo $event[Height]+72 ?> );"><img src="<?php echo $thumb_image ?>" width="<?php echo $thumb_width ?>" height="<? echo $thumb_height ?>" border="0" alt="<?php echo $frame_id ?>/<?php echo $row[Score] ?>"></a></td>
+<?php
+		flush();
+		if ( !(++$count % 4) )
+		{
+?>
+</tr>
+<tr>
+<?php
+		}
+	}
+?>
+</tr>
+</table></td></tr>
+<?php
+}
 ?>
 </table>
 </body>
@@ -1077,6 +1157,14 @@ elseif ( $view == "function" )
 <title>ZM - Function - <?php echo $monitor[Name] ?></title>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
+<?php
+if ( $refresh_parent )
+{
+?>
+opener.location.reload();
+<?php
+}
+?>
 window.focus();
 function refreshWindow() {
         window.location.reload();
@@ -1095,6 +1183,7 @@ function closeWindow() {
 <form method="post" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="function">
+<input type="hidden" name="mid" value="<?php echo $mid ?>">
 <td colspan="2" align="center"><select name="new_function" class="form">
 <?php
 	foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
@@ -1107,7 +1196,7 @@ function closeWindow() {
 </select></td>
 </tr>
 <tr>
-<td align="center"><input type="submit" value="Change" class="form"></td>
+<td align="center"><input type="submit" value="Update" class="form"></td>
 <td align="center"><input type="button" value="Cancel" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
@@ -1126,6 +1215,56 @@ function isNetscape()
 function canStream()
 {
 	return( isNetscape() || file_exists( CAMBOZOLA_PATH ) );
+}
+
+function startDaemon( $daemon, $did )
+{
+	$ps_command = "ps -edalf | grep '$daemon $did' | grep -v grep";
+	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
+	$pid = $ps_array[3];
+	if ( $pid )
+		return;
+	$command = ZM_PATH."/$daemon $did".' 2>/dev/null >&- <&- >/dev/null &';
+	exec( $command );
+	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
+	while ( !$pid )
+	{
+		sleep( 1 );
+		$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
+		$pid = $ps_array[3];
+	}
+}
+
+function stopDaemon( $daemon, $did )
+{
+	$ps_command = "ps -edalf | grep '$daemon $did' | grep -v grep";
+	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
+	if ( $ps_array[3] )
+	{
+		$pid = $ps_array[3];
+		exec( "kill -TERM $pid" );
+	}
+	else
+	{
+		return;
+	}
+	while( $pid )
+	{
+		sleep( 1 );
+		$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
+		$pid = $ps_array[3];
+	}
+}
+
+function signalDaemon( $daemon, $did, $signal )
+{
+	$ps_command = "ps -edalf | grep '$daemon $did' | grep -v grep";
+	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
+	if ( $ps_array[3] )
+	{
+		$pid = $ps_array[3];
+		exec( "kill -$signal $pid" );
+	}
 }
 
 function getEnumValues( $table, $column )

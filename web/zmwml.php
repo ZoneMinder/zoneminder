@@ -19,6 +19,12 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+//
+// Note: This is _really_ prototypical and not intended to be much
+// use at present. However I'm working on a much nicer version with
+// built in brower capability detection which should be much nicer.
+//
+
 ini_set( "session.name", "ZMSESSID" );
 ini_set( "session.auto_start", "1" );
 ini_set( "session.use_cookies", "0" );
@@ -119,7 +125,7 @@ if ( $view == "console" )
 <tr>
 <td><a href="<?php echo $PHP_SELF ?>?view=feed&amp;mid=<?php echo $monitor[Id] ?>"><?php echo $monitor[Name] ?></a></td>
 <td><a href="<?php echo $PHP_SELF ?>?view=function&amp;mid=<?php echo $monitor[Id] ?>"><?php echo substr( $monitor['Function'], 0, 1 ) ?></a></td>
-<td><a href="<?php echo $PHP_SELF ?>?mid=<?php echo $monitor[Id] ?>"><?php echo $monitor[ResetEventCount] ?></a></td>
+<td><a href="<?php echo $PHP_SELF ?>?view=events&amp;mid=<?php echo $monitor[Id] ?>"><?php echo $monitor[ResetEventCount] ?></a></td>
 </tr>
 <?php
 	}
@@ -170,34 +176,6 @@ function newWindow(Url,Name,Width,Height) {
 </html>
 <?php
 }
-elseif ( $view == "watch" )
-{
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
-
-	if ( !$max_events && !$period && !$archived )
-	{
-		$max_events = MAX_EVENTS;
-	}
-?>
-<html>
-<head>
-<title>ZM - <?php echo $monitor[Name] ?> - Watch</title>
-<link rel="stylesheet" href="zmstyles.css" type="text/css">
-<script language="JavaScript">
-opener.location.reload();
-window.focus();
-</script>
-</head>
-<frameset rows="<?php echo $monitor[Height]+32 ?>,16,*" border="1" frameborder="no" framespacing="0">
-<frame src="<?php echo $PHP_SELF ?>?view=feed&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStream" scrolling="no">
-<frame src="<?php echo $PHP_SELF ?>?view=status&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorStatus" scrolling="no">
-<frame src="<?php echo $PHP_SELF ?>?view=events&max_events=<?php echo $max_events ?>&period=<?php echo $period ?>&archived=<?php echo $archived ?>&mid=<?php echo $monitor[Id] ?>" marginwidth="0" marginheight="0" name="MonitorEvents" scrolling="auto">
-</frameset>
-<?php
-}
 elseif( $view == "feed" )
 {
 	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
@@ -208,11 +186,10 @@ elseif( $view == "feed" )
 	$browser[Width] = 100;
 	$browser[Height] = 80;
 
+	// Generate an image
+	$status = exec( escapeshellcmd( ZMU_PATH." -m $mid -i" ) );
 	$monitor_image = "$monitor[Name].jpg";
 	$image_time = filemtime( $monitor_image );
-	//$browser_image = "$monitor[Name]-wap.gif";
-	//$command = NETPBM_DIR."/jpegtopnm -dct fast $monitor_image | ".NETPBM_DIR."/pnmscale -xysize $browser[Width] $browser[Height] | ".NETPBM_DIR."/ppmquant 256 | ".NETPBM_DIR."/ppmtogif > $browser_image";
-	//exec( $command );
 	$browser_image = "$monitor[Name]-wap-$image_time.jpg";
 	$command = NETPBM_DIR."/jpegtopnm -dct fast $monitor_image | ".NETPBM_DIR."/pnmscale -xysize $browser[Width] $browser[Height] | ".NETPBM_DIR."/ppmtojpeg > $browser_image";
 	exec( $command );

@@ -193,6 +193,16 @@ if ( !connect( CLIENT, $saddr ) )
 			$process->{keepalive} = !$final;
 			kill( 'TERM', $process->{pid} );
 			delete( $cmd_hash{$command} );
+
+			# Now check it has actually gone away, if not kill -9 it
+			my $count = 0;
+			while( kill( 0, $process->{pid} ) )
+			{
+				if ( $count++ > 5 )
+				{
+					kill( 'KILL', $process->{pid} );
+				}
+			}
 		}
 		sub stop
 		{

@@ -229,7 +229,7 @@ if ( isset($action) )
 					if ( !$result )
 						die( mysql_error() );
 					//$view = 'none';
-					mkdir( ZM_DIR_EVENTS."/".$mid );
+					mkdir( ZM_DIR_EVENTS."/".$mid, 0755 );
 					chdir( ZM_DIR_EVENTS );
 					symlink( $mid, $new_monitor['Name'] );
 					chdir( ".." );
@@ -290,7 +290,7 @@ if ( isset($action) )
 			$zmu_command = getZmuCommand( "-m $mid -B$new_brightness -C$new_contrast -H$new_hue -O$new_colour" );
 			$zmu_output = exec( escapeshellcmd( $zmu_command ) );
 			list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
-			$sql = "update Monitors set Brightness = $brightness, Contrast = $contrast, Hue = $hue, Colour = $colour where Id = '$mid'";
+			$sql = "update Monitors set Brightness = '$brightness', Contrast = '$contrast', Hue = '$hue', Colour = '$colour' where Id = '$mid'";
 			$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );

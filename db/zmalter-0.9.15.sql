@@ -39,6 +39,14 @@ alter table Monitors drop column X10Activation ;
 alter table Monitors drop column X10AlarmInput ;
 alter table Monitors drop column X10AlarmOutput ;
 --
+-- Table structure for table `States`
+--
+CREATE TABLE States (
+  Name varchar(32) NOT NULL default '',
+  Definition tinytext NOT NULL,
+  PRIMARY KEY  (Name)
+) TYPE=MyISAM;
+--
 -- These are optional, but we might as well
 --
 optimize table Frames;

@@ -221,6 +221,16 @@ CREATE TABLE Zones (
 ) TYPE=MyISAM;
 
 --
+-- Table structure for table `States`
+--
+
+CREATE TABLE States (
+  Name varchar(32) NOT NULL default '',
+  Definition tinytext NOT NULL,
+  PRIMARY KEY  (Name)
+) TYPE=MyISAM;
+
+--
 -- Create a default admin user.
 --
 insert into Users values ('','admin',password('admin'),1,'View','Edit','Edit','Edit',NULL);

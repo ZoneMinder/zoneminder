@@ -153,7 +153,7 @@ protected:
 		create_analysis_images = (bool)config.Item( ZM_CREATE_ANALYSIS_IMAGES );
 		blend_alarmed_images = (bool)config.Item( ZM_BLEND_ALARMED_IMAGES );
 		timestamp_on_capture = (bool)config.Item( ZM_TIMESTAMP_ON_CAPTURE );
-		bulk_frame_interval = (bool)config.Item( ZM_BULK_FRAME_INTERVAL );
+		bulk_frame_interval = (int)config.Item( ZM_BULK_FRAME_INTERVAL );
 	}
 
 public:

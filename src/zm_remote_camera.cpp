@@ -99,7 +99,7 @@ void RemoteCamera::Initialise()
 		sprintf( &(request[strlen(request)]), "Host: %s\n", host );
 		sprintf( &(request[strlen(request)]), "User-Agent: %s/%s\n", ZM_HTTP_UA, ZM_VERSION );
 		sprintf( &(request[strlen(request)]), "Connection: Keep-Alive\n\n" );
-		Info(( "%s", request ));
+		Debug( 2, ( "Request: %s", request ));
 	}
 	if ( !timeout.tv_sec )
 	{
@@ -150,7 +150,8 @@ int RemoteCamera::SendRequest()
 
 int RemoteCamera::GetHeader( const char *content, const char *header, char *value )
 {
-	char *header_string = (char *)malloc( strlen(header)+8 );
+	//char *header_string = (char *)malloc( strlen(header)+8 );
+	static char header_string[4096];
 	strcpy( header_string, header );
 	strcat( header_string, ":" );
 
@@ -162,7 +163,7 @@ int RemoteCamera::GetHeader( const char *content, const char *header, char *valu
 
 	strcat( header_string, " %s" );
 	int result = sscanf( header_ptr, header_string, value );
-	//printf( "R:%d, %s\n", result, value );
+	//Debug( 3, ( "R:%d, %s\n", result, value );
 	return( result );
 }
 
@@ -214,18 +215,21 @@ int RemoteCamera::GetResponse( unsigned char *&buffer, int &max_size )
 			if ( n_bytes < 0)
 			{
 				Error(( "Read error: %s", strerror(errno) ));
+				free( header );
 				return( -1 );
 			}
 			else if ( n_bytes < bytes_to_read )
 			{
 				Error(( "Incomplete read, expected %d, got %d", bytes_to_read, n_bytes ));
+				free( header );
 				return( -1 );
 			}
-			//printf( "%s", header );
+			Debug( 2, ( "Response: %s", header ));
 			char *content = strstr( header, "\r\n\r\n" );
 			if ( !content )
 			{
 				Error(( "Can't find end of header" ));
+				free( header );
 				return( -1 );
 			}
 			Debug( 3, ( "Read %d bytes of header/content", bytes_to_read ));
@@ -241,6 +245,7 @@ int RemoteCamera::GetResponse( unsigned char *&buffer, int &max_size )
 			if ( result != 3 )
 			{
 				Error(( "Can't parse HTTP header" ));
+				free( header );
 				return( -1 );
 			}
 
@@ -249,6 +254,7 @@ int RemoteCamera::GetResponse( unsigned char *&buffer, int &max_size )
 			if ( code < 200 || code > 299 )
 			{
 				Error(( "Invalid response status %d: %s", code, message ));
+				free( header );
 				return( -1 );
 			}
 
@@ -327,11 +333,13 @@ int RemoteCamera::PostCapture( Image &image )
 	int content_length = GetResponse( buffer, max_size );
 	if ( content_length < 0 )
 	{
+		free( buffer );
 		Disconnect();
 		return( -1 );
 	}
 
 	image.DecodeJpeg( buffer, content_length );
 
+	free( buffer );
 	return( 0 );
 }

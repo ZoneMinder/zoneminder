@@ -143,6 +143,7 @@ if ( $action )
 					echo mysql_error();
 
 				$monitor['Function'] = $new_function;
+				session_write_close();
 				zmcControl( $monitor, true );
 				zmaControl( $monitor, true );
 				$refresh_parent = true;
@@ -203,6 +204,7 @@ if ( $action )
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );
+				session_write_close();
 				zmaControl( $mid, true );
 				$refresh_parent = true;
 			}
@@ -300,6 +302,7 @@ if ( $action )
 					die( mysql_error() );
 				$monitor = mysql_fetch_assoc( $result );
 				fixDevices();
+				session_write_close();
 				zmcControl( $monitor, true );
 				zmaControl( $monitor, true );
 				//daemonControl( 'restart', 'zmwatch.pl' );
@@ -326,6 +329,7 @@ if ( $action )
 				}
 				if ( $deleted_zid )
 				{
+					session_write_close();
 					zmaControl( $mid, true );
 					$refresh_parent = true;
 				}
@@ -471,8 +475,47 @@ if ( $action )
 				}
 			}
 		}
+		elseif ( $action == "state" )
+		{
+			if ( $run_state )
+			{
+				session_write_close();
+				packageControl( $run_state );
+				$refresh_parent = true;
+			}
+		}
+		elseif ( $action == "save" )
+		{
+			if ( $run_state || $new_state )
+			{
+				$sql = "select Id,Function from Monitors order by Id";
+				$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
+
+				$definitions = array();
+				while( $monitor = mysql_fetch_assoc( $result ) )
+				{
+					$definitions[] = $monitor[Id].":".$monitor['Function'];
+				}
+				$definition = join( ',', $definitions );
+				if ( $new_state )
+					$run_state = $new_state;
+				$sql = "replace into States set Name = '$run_state', Definition = '$definition'";
+				$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
+			}
+		}
 		elseif ( $action == "delete" )
 		{
+			if ( $run_state )
+			{
+				$sql = "delete from States where Name = '$run_state'";
+				$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
+			}
 			if ( $mark_uids )
 			{
 				foreach( $mark_uids as $mark_uid )
@@ -512,6 +555,5 @@ if ( $action )
 		session_write_close();
 	}
 }
-session_write_close();
 
 ?>

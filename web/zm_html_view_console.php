@@ -1,19 +1,9 @@
 <?php
 	$running = daemonCheck();
 	$status = $running?"Running":"Stopped";
-	$new_status = $running?"stop":"start";
-
-	if ( $stop )
-	{
-		packageControl( 'stop' );
-	}
-	if ( $start )
-	{
-		packageControl( 'start' );
-	}
 
 	if ( ZM_WEB_REFRESH_METHOD == "http" )
-		header("Refresh: ".(($start||$stop)?1:REFRESH_MAIN)."; URL=$PHP_SELF" );
+		header("Refresh: ".REFRESH_MAIN."; URL=$PHP_SELF" );
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
 	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
@@ -84,10 +74,6 @@ function configureButton(form,name)
 	}
 	form.delete_btn.disabled = !checked;
 }
-function confirmStatus( new_status )
-{
-	return( confirm( 'Are you sure you wish to '+new_status+' all processes?' ) );
-}
 function confirmDelete()
 {
 	return( confirm( 'Warning, deleting a monitor also deletes all events and database entries associated with it.\nAre you sure you wish to delete?' ) );
@@ -96,7 +82,7 @@ function confirmDelete()
 		if ( ZM_WEB_REFRESH_METHOD == "javascript" )
 		{
 ?>
-window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$stop)?250:(REFRESH_MAIN*1000) ?> );
+window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (REFRESH_MAIN*1000) ?> );
 <?php
 		}
 ?>
@@ -106,7 +92,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= ($start||$
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
-<td class="bighead" align="center"><strong>ZoneMinder Console - <?= $status ?><?php if ( canEdit( 'System' ) ) { ?> (<a href="javascript: if ( confirmStatus( '<?= $new_status ?>' ) ) location='<?= $PHP_SELF ?>?<?= $new_status ?>=1';"><?= $new_status ?></a>) <?php } ?>- v<?= ZM_VERSION ?></strong></td>
+<td class="bighead" align="center"><strong>ZoneMinder Console - <?php if ( canEdit( 'System' ) ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=state', 'zmState', <?= $jws['state']['w'] ?>, <?= $jws['state']['h'] ?> );"><?= $status ?></a> - <?php } ?>v<?= ZM_VERSION ?></strong></td>
 <?php
 	$uptime = shell_exec( 'uptime' );
 	$load = '';

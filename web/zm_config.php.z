@@ -144,6 +144,7 @@ function loadConfig()
 // Javascript window sizes
 $jws = array( 
 	'console' => array( 'w'=>720, 'h'=>500 ),
+	'state' => array( 'w'=>300, 'h'=>120 ),
 	'cycle' => array( 'w'=>46, 'h'=>80 ),
 	'montage' => array( 'w'=>20, 'h'=>20 ),
 	'monitor' => array( 'w'=>360, 'h'=>300 ),

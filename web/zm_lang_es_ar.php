@@ -21,6 +21,8 @@
 // ZoneMinder Spanish 'Argentina' Translation by Fernando Diaz.
 
 // Simple String Replacements
+$zmSlangIsEqualTo            = 'is equal to'; 
+$zmSlangConsole              = 'Console'; 
 $zmSlang24BitColour          = 'Color 24 bits';
 $zmSlang8BitGrey             = 'Grises 8 bits';
 $zmSlangActual               = 'Actual';

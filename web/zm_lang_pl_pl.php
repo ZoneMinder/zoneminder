@@ -64,8 +64,8 @@ header( "Content-Type: text/html; charset=iso-8859-2" );
 // threaded environment, if you get funny errors it may be this.
 //
 // Examples
-setlocale( 'LC_ALL', 'pl_PL' ); // All locale settings pre-4.3.0
-//setlocale( LC_ALL, 'pl_PL' );   // All locale settings 4.3.0 and after
+// setlocale( 'LC_ALL', 'pl_PL' ); // All locale settings pre-4.3.0
+setlocale( LC_ALL, 'pl_PL' );   // All locale settings 4.3.0 and after
 // setlocale( LC_CTYPE, 'pl_PL' ); // Character class settings 4.3.0 and after
 // setlocale( LC_TIME, 'pl_PL' );  // Date and time formatting 4.3.0 and after
 
@@ -93,8 +93,8 @@ $zmSlangAttrArchiveStatus    = 'Status archiwum';
 $zmSlangAttrAvgScore         = '¦red. wynik';
 $zmSlangAttrDate             = 'Data';
 $zmSlangAttrDateTime         = 'Data/Czas';
-$zmSlangAttrDiskBlocks       = 'Disk Blocks';
-$zmSlangAttrDiskPercent      = 'Disk Percent';
+$zmSlangAttrDiskBlocks       = 'Dysk Bloki';
+$zmSlangAttrDiskPercent      = 'Dysk Procent';
 $zmSlangAttrDuration         = 'Czas trwania';
 $zmSlangAttrFrames           = 'Ramek';
 $zmSlangAttrId               = 'Id';
@@ -102,16 +102,16 @@ $zmSlangAttrMaxScore         = 'Maks. wynik';
 $zmSlangAttrMonitorId        = 'Nr monitora';
 $zmSlangAttrMonitorName      = 'Nazwa monitora';
 $zmSlangAttrMontage          = 'Monta¿';
-$zmSlangAttrName             = 'Name';
+$zmSlangAttrName             = 'Nazwa';
 $zmSlangAttrTime             = 'Czas';
 $zmSlangAttrTotalScore       = 'Ca³kowity wynik';
 $zmSlangAttrWeekday          = 'Dzieñ roboczy';
-$zmSlangAutoArchiveEvents    = 'Automatically archive all matches';
-$zmSlangAutoDeleteEvents     = 'Automatically delete all matches';
-$zmSlangAutoEmailEvents      = 'Automatically email details of all matches';
-$zmSlangAutoExecuteEvents    = 'Automatically execute command on all matches';
-$zmSlangAutoMessageEvents    = 'Automatically message details of all matches';
-$zmSlangAutoUploadEvents     = 'Automatically upload all matches';
+$zmSlangAutoArchiveEvents    = 'Automatycznie archiwizuj wszystkie pasuj±ce';
+$zmSlangAutoDeleteEvents     = 'Automatycznie usuwaj wszystkie pasuj±ce';
+$zmSlangAutoEmailEvents      = 'Automatycznie wysy³aj poczt± wszystkie pasuj±ce';
+$zmSlangAutoExecuteEvents    = 'Automatycznie wywo³uj komendê na wszystkie pasuj±ce';
+$zmSlangAutoMessageEvents    = 'Automatycznie wy¶wietlaj komunikat na wszystkie pasuj±ce';
+$zmSlangAutoUploadEvents     = 'Automatycznie wysy³aj wszystkie pasuj±ce';
 $zmSlangAvgBrScore           = '¦red.<br/>wynik';
 $zmSlangBadMonitorChars      = 'Nazwy monitorów mog± zawieraæ tylko litery, cyfry oraz my¶lnik i podkre¶lenie';
 $zmSlangBandwidth            = 'przepustowo¶æ';
@@ -130,7 +130,7 @@ $zmSlangCheckMethod          = 'Metoda sprawdzenia alarmu';
 $zmSlangChooseFilter         = 'Wybierz filtr';
 $zmSlangClose                = 'Zamknij';
 $zmSlangColour               = 'Nasycenie';
-$zmSlangConfig               = 'Config';
+$zmSlangConfig               = 'Konfiguracja';
 $zmSlangConfiguredFor        = 'Ustawiona';
 $zmSlangConfirmPassword      = 'Potwierd¼ has³o';
 $zmSlangConjAnd              = 'i';
@@ -149,7 +149,7 @@ $zmSlangDeviceChannel        = 'Numer wej¶cia w urz±dzeniu';
 $zmSlangDeviceFormat         = 'System TV (0=PAL,1=NTSC itd)';
 $zmSlangDeviceNumber         = 'Numer urz±dzenia (/dev/video?)';
 $zmSlangDimensions           = 'Rozmiary';
-$zmSlangDisk                 = 'Disk';
+$zmSlangDisk                 = 'Dysk';
 $zmSlangDuration             = 'Czas trwania';
 $zmSlangEdit                 = 'Edycja';
 $zmSlangEmail                = 'Email';
@@ -160,7 +160,7 @@ $zmSlangErrorBrackets        = 'B³±d, proszê sprawdziæ ilo¶æ nawiasów otwieraj±c
 $zmSlangErrorValidValue      = 'B³±d, proszê sprawdziæ czy wszystkie warunki maj± poprawne warto¶ci';
 $zmSlangEtc                  = 'itp';
 $zmSlangEventFilter          = 'Filtr zdarzeñ';
-$zmSlangEventId              = 'Event Id';
+$zmSlangEventId              = 'Id zdarzenia';
 $zmSlangEvents               = 'Zdarzenia';
 $zmSlangEvent                = 'Zdarzenie';
 $zmSlangExclude              = 'Wyklucz';
@@ -195,9 +195,9 @@ $zmSlangInclude              = 'Do³±cz';
 $zmSlangInverted             = 'Odwrócony';
 $zmSlangLanguage             = 'Jêzyk';
 $zmSlangLast                 = 'Ostatni';
-$zmSlangLimitResultsPost     = 'results only;'; // This is used at the end of the phrase 'Limit to first N results only'
-$zmSlangLimitResultsPre      = 'Limit to first'; // This is used at the beginning of the phrase 'Limit to first N results only'
-$zmSlangLoad                 = 'Load';
+$zmSlangLimitResultsPost     = 'wyników;'; // This is used at the end of the phrase 'Limit to first N results only'
+$zmSlangLimitResultsPre      = 'Ogranicz do pocz±tkowych'; // This is used at the beginning of the phrase 'Limit to first N results only'
+$zmSlangLoad                 = 'Obc.';
 $zmSlangLocal                = 'Lokalny';
 $zmSlangLoggedInAs           = 'Zalogowany jako';
 $zmSlangLoggingIn            = 'Logowanie';
@@ -302,9 +302,9 @@ $zmSlangSetLearnPrefs        = 'Ustaw preferencje nauki'; // This can be ignored
 $zmSlangSetNewBandwidth      = 'Ustaw now± przepustowo¶æ';
 $zmSlangSettings             = 'Ustawienia';
 $zmSlangShowFilterWindow     = 'Poka¿OknoFiltru';
-$zmSlangSortAsc              = 'Asc';
-$zmSlangSortBy               = 'Sort by';
-$zmSlangSortDesc             = 'Desc';
+$zmSlangSortAsc              = 'Nara.';
+$zmSlangSortBy               = 'Sortuj';
+$zmSlangSortDesc             = 'Opad.';
 $zmSlangSource               = '¬ród³o';
 $zmSlangSourceType           = 'Typ ¼ród³a';
 $zmSlangStart                = 'Start';

@@ -911,8 +911,8 @@ function configureButton(form,name)
 <td align="right" class="text"><a href="javascript: checkAll( event_form, 'mark_eids' );">Check All</a></td>
 </tr>
 <tr><td colspan="5" class="text">&nbsp;</td></tr>
-<tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%">
-<tr align="center">
+<tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%" bgcolor="#7F7FB2">
+<tr align="center" bgcolor="#FFFFFF">
 <td width="4%" class="text"><a href="<?= $PHP_SELF ?>?view=watchevents&mid=<?= $mid ?>&max_events=<?= $max_events ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>">Id<?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td width="24%" class="text"><a href="<?= $PHP_SELF ?>?view=watchevents&mid=<?= $mid ?>&max_events=<?= $max_events ?>&sort_field=Name&sort_asc=<?= $sort_field == 'Name'?!$sort_asc:0 ?>">Name<?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=watchevents&mid=<?= $mid ?>&max_events=<?= $max_events ?>&sort_field=Time&sort_asc=<?= $sort_field == 'Time'?!$sort_asc:0 ?>">Time<?php if ( $sort_field == "Time" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
@@ -925,7 +925,7 @@ function configureButton(form,name)
 		while( $row = mysql_fetch_assoc( $result ) )
 		{
 ?>
-<tr>
+<tr bgcolor="#FFFFFF">
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $row[Id] ?></a></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $row[Name] ?></a></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($row[StartTime]) ) ?></td>
@@ -1170,7 +1170,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 <td align="right" class="text"><a href="javascript: checkAll( event_form, 'mark_eids' );">Check All</a></td>
 </tr>
 <tr><td colspan="3" class="text">&nbsp;</td></tr>
-<tr><td colspan="3"><table border="0" cellspacing="0" cellpadding="0" width="100%">
+<tr><td colspan="3"><table border="0" cellspacing="1" cellpadding="0" width="100%" bgcolor="#7F7FB2">
 <?php
 		$count = 0;
 		while( $row = mysql_fetch_assoc( $result ) )
@@ -1178,7 +1178,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 			if ( ($count++%EVENT_HEADER_LINES) == 0 )
 			{
 ?>
-<tr align="center">
+<tr align="center" bgcolor="#FFFFFF">
 <td class="text"><a href="<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?><?= $sort_parms ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>">Id<?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?><?= $sort_parms ?>&sort_field=Name&sort_asc=<?= $sort_field == 'Name'?!$sort_asc:0 ?>">Name<?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?><?= $sort_parms ?>&sort_field=Time&sort_asc=<?= $sort_field == 'Time'?!$sort_asc:0 ?>">Time<?php if ( $sort_field == "Time" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
@@ -1199,7 +1199,7 @@ location.href = '<?= $PHP_SELF ?>?view=events&mid=<?= $mid ?><?= $filter_query ?
 			else
 				unset( $bgcolor );
 ?>
-<tr<?php if ( $bgcolor ) echo ' bgcolor="'.$bgcolor.'"'; ?> >
+<tr<?= ' bgcolor="'.($bgcolor?$bgcolor:"#FFFFFF").'"' ?> >
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Id]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $row[Id] ?>', 'zmEvent' );"><span class="<?= $textclass ?>"><?= "$row[Name]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($row[StartTime]) ) ?></td>
@@ -1613,7 +1613,11 @@ function deleteEvent()
 </head>
 <body>
 <table border="0">
-<tr><td colspan="2" class="text"><b>Image <?= $eid."-".$fid." ($frame[Score])" ?></b></td>
+<tr><td colspan="2" class="smallhead">Image <?= $eid."-".$fid." ($frame[Score])" ?>
+<?php if ( ZM_RECORD_EVENT_STATS ) { ?>
+(<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $fid ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );">Stats</a>)
+<?php } ?>
+</td>
 <td align="center" class="text"><a href="javascript: deleteEvent();">Delete</a></td>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
@@ -1636,6 +1640,80 @@ function deleteEvent()
 <?php } else { ?>
 <td align="center" width="25%" class="text">&nbsp;</td>
 <?php } ?>
+</tr>
+</table>
+</body>
+</html>
+<?php
+		break;
+	}
+	case "stats" :
+	{
+		$result = mysql_query( "select S.*,E.*,Z.Name as ZoneName,M.Name as MonitorName,M.Width,M.Height from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '$eid' and S.FrameId = '$fid' order by S.ZoneId" );
+		if ( !$result )
+			die( mysql_error() );
+		while ( $row = mysql_fetch_assoc( $result ) )
+		{
+			$stats[] = $row;
+		}
+?>
+<html>
+<head>
+<title>ZM - Stats <?= $eid."-".$fid ?></title>
+<link rel="stylesheet" href="zm_styles.css" type="text/css">
+<script language="JavaScript">
+window.focus();
+function closeWindow()
+{
+	window.close();
+}
+</script>
+</head>
+<body>
+<table width="96%" border="0">
+<tr>
+<td align="left" class="smallhead"><b>Image <?= $eid."-".$fid ?></b></td>
+<td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
+</tr>
+<tr><td colspan="2"><table width="100%" border="0" bgcolor="#7F7FB2" cellpadding="3" cellspacing="1"><tr bgcolor="#FFFFFF">
+<td class="smallhead">Zone</td>
+<td class="smallhead" align="right">Alarm Px</td>
+<td class="smallhead" align="right">Filter Px</td>
+<td class="smallhead" align="right">Blob Px</td>
+<td class="smallhead" align="right">Blobs</td>
+<td class="smallhead" align="right">Blob Sizes</td>
+<td class="smallhead" align="right">Alarm Limits</td>
+<td class="smallhead" align="right">Score</td>
+</tr>
+<?php
+	if ( count($stats) )
+	{
+		foreach ( $stats as $stat )
+		{
+?>
+<tr bgcolor="#FFFFFF">
+<td class="text"><?= $stat[ZoneName] ?></td>
+<td class="text" align="right"><?= $stat[AlarmPixels] ?></td>
+<td class="text" align="right"><?= $stat[FilterPixels] ?></td>
+<td class="text" align="right"><?= $stat[BlobPixels] ?></td>
+<td class="text" align="right"><?= $stat[Blobs] ?></td>
+<td class="text" align="right"><?= $stat[MinBlobSize]."-".$stat[MaxBlobSize] ?></td>
+<td class="text" align="right"><?= $stat[MinX].",".$stat[MinY]."-".$stat[MaxX].",".$stat[MaxY] ?></td>
+<td class="text" align="right"><?= $stat[Score] ?></td>
+</tr>
+<?php
+		}
+	}
+	else
+	{
+?>
+<tr bgcolor="#FFFFFF">
+<td class="text" colspan="8" align="center"><br>There are no statistics recorded for this event/frame<br><br></td>
+</tr>
+<?php
+	}
+?>
+</table></td>
 </tr>
 </table>
 </body>

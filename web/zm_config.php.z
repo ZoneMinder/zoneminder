@@ -41,6 +41,7 @@ define( "ZM_WEB_POPUP_ON_ALARM", <from zmconfig> );		// Whether the watch window
 define( "ZM_WEB_SOUND_ON_ALARM", <from zmconfig> );		// Whether the watch window jumps to front if an alarm occurs
 define( "ZM_WEB_ALARM_SOUND", <from zmconfig> );		// A sound to play on alarm, put this in the sounds directory
 define( "ZM_WEB_MONTAGE_MAX_COLS", <from zmconfig> );	// The maximum number of Monitor columns in the montage view
+define( "ZM_RECORD_EVENT_STATS", <from zmconfig> );		// Whether to record event statistical information, switch off if too slow
 define( "ZM_OPT_FAST_DELETE", <from zmconfig> );		// Whether we only delete event DB records and leave zmaudit to do the rest
 define( "ZM_OPT_X10", <from zmconfig> );				// Whether we want to interface with X10 devices
 
@@ -154,6 +155,7 @@ $jws = array(
 	'zones' => array( 'w'=>72, 'h'=>232 ),
 	'zone' => array( 'w'=>360, 'h'=>480 ),
 	'video' => array( 'w'=>100, 'h'=>80 ),
-	'image' => array( 'w'=>48, 'h'=>72 ),
+	'image' => array( 'w'=>48, 'h'=>80 ),
+	'stats' => array( 'w'=>600, 'h'=>150 ),
 );
 ?>

@@ -16,7 +16,7 @@ ZoneMinder is designed around a series of independent components that only
 function when necessary limiting any wasted resource and maximising the 
 efficiency of your machine. A fairly ancient Pentium PC should be able to track 
 one camera per device at up to 25 frames per second with this dropping by half 
-approximately for each additional camera on he same device, additional cameras 
+approximately for each additional camera on the same device. Additional cameras 
 on other devices do not interact so can maintain this frame rate. Even 
 monitoring several cameras still will not overload the CPU as frame processing 
 is designed to synchronise with capture and not stall it.
@@ -67,7 +67,8 @@ have Netscape or other browser that supports image streaming natively I
 recommend you get the excellent Cambozola java applet from 
 http://www.charliemouse.com/code/cambozola/ which will let you view the image 
 stream in Internet Explorer and others. Otherwise you're limited to just 
-refreshing still images.
+refreshing still images. See note about which version to get in Troubleshooting 
+section though.
 
 Hardware-wise, ZoneMinder has been used with BTTV cards and USB cameras with the 
 V4L interface. I don't have a lot of cameras so I've not had change to test it 
@@ -167,13 +168,20 @@ Once the build has completed you should have several shiny new binaries. I will
 now briefly describe what each of them do.
 
 zmc - This is the ZoneMinder Capture daemon. This binary's job is to sit on a 
-video device and such frames off it as fast as possible, this should run                                       
-at more or less constant speed.
+video device and suck frames off it as fast as possible. These are written to a 
+shared memory ring buffer and should run at more or less constant speed.
 
 zma - This is the ZoneMinder Analysis daemon. This is the component that goes 
 through the captured frames and checks them for alarming events. It generally 
 keeps up with the zmc but if very busy may skip some frames to prevent it 
-falling behind.
+falling behind. The algorithm it uses to decide what to skip and when is 
+configurable.
+
+zmf - New in version 0.9.11 is the ZoneMinder Frame daemon. Its sole purpose in 
+life is to work in conjunction with a zma daemon and wait for alarm frames to be 
+sent to it, which it will then write to disk. This allows zma to get on with the 
+more important business of checking the images. Use of zmf is not compulsory and 
+ZoneMinder will work perfectly well without it if so configured.
 
 zms - This is the ZoneMinder Streaming server. The web interface connects with 
 this to get real-time or historical streamed images.
@@ -757,22 +765,24 @@ specification. If you have created a filter you want to keep, you can name it
 and save it by clicking 'Save'.
 
 If you do this then the subsequent dialog will also allow you specify whether 
-you want this filter automatically applied in order to delete events or upload 
-events via ftp to another server and mail notifications of events to one or more 
-email accounts. In most cases you can specify your preferences for upload 
-formats and email content during configuration time (make sure you type '?' to 
-get help on options). Emails and messages (essentially small emails intended for 
-mobile phones or pagers) have a variety of tokens that can be substituted for 
-various details of the event that caused them. This includes links to the event 
-view or the filter as well as the option of attaching images or videos to the 
-email itself. See the included templates zmconfig_eml.txt and zmconfig_msg.txt 
-for a fuller explanation of the availability and meaning of these tokens.
+you want this filter automatically applied in order to archive or delete events 
+or upload events via ftp to another server and mail notifications of events to 
+one or more email accounts. You can choose multiple actions per event, for 
+instance uploading an event and then archiving or deleting it. In most cases you 
+can specify your preferences for upload formats and email content during 
+configuration time (make sure you type '?' to get help on options). Emails and 
+messages (essentially small emails intended for mobile phones or pagers) have a 
+variety of tokens that can be substituted for various details of the event that 
+caused them. This includes links to the event view or the filter as well as the 
+option of attaching images or videos to the email itself. See the included 
+templates zmconfig_eml.txt and zmconfig_msg.txt for a fuller explanation of the 
+availability and meaning of these tokens.
 
 Filtering is a powerful mechanism you can use to eliminate events that fit a 
 certain pattern however in many cases modifying the zone settings will better 
-address this. Where it really comes into its own is generally in applying time 
-filters, so for instance events that happen during weekdays or at certain times 
-of the day are highlighted, uploaded or deleted.
+address this. One of the areas where it really comes into its own is in applying 
+time filters, so for instance events that happen during weekdays or at certain 
+times of the day are highlighted, uploaded or deleted.
 
 Viewing Events
 --------------
@@ -963,6 +973,13 @@ is usually done with a simple module option. Examples are usb_alt=<n> for the
 OV511 driver and cams=<n> for CPIA etc. Check your driver documentation for more 
 details. Be aware however that sharing cameras in this way on one bus will also 
 limit the capture rate due to the reduced bandwidth.
+10. Image corruption with Cambozola. Some users have reported that when 
+installing a recent copy of the Cambozola java applet to view streaming images 
+that they get corrupted or skewed images or worse errors about 'no part 
+content'. The true cause of these errors is still being investigated but in the 
+meantime a previous version of Cambozola, v0.22 is know to work fine in all 
+circumstances and I recommend you use that. If you can't find it anywhere mail 
+me and I will send it to you.
 
 Also, if you are using IE under Windows and get lots of annoying clicks when 
 various windows refresh then you'll need to edit your registry and remove the 
@@ -973,7 +990,8 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 What's New
 ==========
 
-Release 0.9.11 - Various new features and fixes.
+Release 0.9.11 - Various new features and fixes. Hopefully the last release for 
+a little while to allow things to settle before a 1.x series maturity.
 - Added stats view - If you have the RECORD_EVENT_STATS directive set and are 
 viewing a still image from an event you can now view the statistics recorded for 
 that frame. This tells you why that frame triggered or participated in an alarm. 
@@ -1029,25 +1047,70 @@ the difference between those instead. This will be more accurate and responsive
 to changes but is may be slower especially on old machines. There is a slight 
 double whammy here if you have a YUV palette for capture and set this option off 
 as the image will be converted to RGB and then partially converted back to get 
-the Y value. This is currently very inefficient and needs to be optimised.
+the Y value. This is currently very inefficient and needs to be optimised. Also 
+this type of Y based RGB conversion should probably be used elsewhere.
 - Fixed STRICT_VIDEO_CONFIG - Previously this actually behaved the opposite of 
-what it was supposed to, ie. if you wanted it strict it wasn't and vice versa. 
+what it was supposed to, i.e. if you wanted it strict it wasn't and vice versa. 
 Thanks to Dan Merillat for pointing this one out.
+- Adaptive frame skipping - In earlier versions of ZoneMinder the analysis 
+daemon just read the last written frame at all times whether this meant skipping 
+any in the meantime or not. This was usually fine until an event occurred when 
+several pre-event images had to be written to the database and to disk. This 
+meant that a delay of a second or more could occur before the next frame was 
+analysed. The effect of this was that frame coverage of an event was poor at one 
+of the most crucial times. Several optimisations have been such as writing all 
+pre-event frames to the database in one go but the most significant is the use 
+of an adaptive skipping algorithm. This means that the analysis daemon will try 
+to read the frame after the previous one if it can and not just the latest 
+written. Naturally this means it could start to fall behind so it will institute 
+a skipped frame as it does so. In general use only the odd skipped frame is 
+likely to occur as before but when an event occurs the analysis daemon has more 
+work to do and may start to fall behind further. To counter this, the amount of 
+skipped frames is increased to keep pace until a steady state occurs. This means 
+that the coverage of the beginning of an event is likely to at least as good if 
+not better than the remainder of it. It basically runs a frame overdraft for as 
+long as it can to ensure optimal coverage of the event. If the event is short, 
+then once complete the analysis daemon will continue to process its backlog and 
+catch up. Use of this algorithm is controlled by the ZM_OPT_ADAPTIVE_SKIP option 
+and is on by default. The only disadvantages of it are that the analysis daemon 
+may run behind the capture daemon to some 'real-time-ness' may be sacrificed but 
+this would only be a matter of seconds once an event has been running for a 
+while. The second disadvantage is that for fast frame rate capture daemons, 
+those of the order of 25fps, on slow machines it is possible for the analysis 
+daemon to get so bogged down in comparison with the capture rate and not have 
+time to adjust its rate. In this case a buffer overrun will occur and a warning 
+will be produced.
+- Frame daemon - Yes, a new daemon is born. As with the previous change this is 
+to help ease the load of the analysis daemon during events. It is the 'zmf' 
+daemon and exists purely to remove the need for the analysis daemon to write 
+images to disk, which is a slow process. The analysis daemon will instead send 
+it the frame image details via a socket connection and it will write them. This 
+can speed up the analysis daemon somewhat depending on the speed of your disk as 
+new files do not need to be opened up all the time. It can mean that file 
+creation can fall a little behind though. Use of this daemon is optional and is 
+controlled by the ZM_OPT_FRAME_SERVER option which is off by default. If n ot 
+used or if an error occurs the analysis daemon will fall back to writing the 
+images itself as before to ensure that none get lost.
+- Tweaked reference image blending - Since day one the merging of reference 
+images has been an 8 bit process. This lack of precision meant that some changes 
+would never be reflected in the reference image and alarms will occur when they 
+should not. This is now a 16 bit process which makes it a whole lot more 
+accurate and responsive.
 - Web colour change - I thought the old red, green and amber text colours were 
 just a bit too gaudy so I've toned them down a bit. Hope you like them!
 
 Release 0.9.10 - Many bug-fixes and major feature enhancements.
-- Configure 'round' bug - Fixed a problem with the configure script that didn't  
+- Configure 'round' bug - Fixed a problem with the configure script that didn't 
 detect if the 'round' function was already declared before try to do it itself.
 - Low event id bug - Fixed bug where events with an id of < 1000 were being 
 cleaned up by zmaudit.pl by mistake.
-- Source file restructuring - The source files have been broken up and renamed 
+- Source files restructuring - The source files have been broken up and renamed 
 extensively to support the first stage of the code being straightened out. 
 Likewise the class structure has been rationalised somewhat. The php file names 
 have also changed in some cases so it might be best to delete all your php and 
 css files from the zone minder install directory first as the old ones won't be 
 overwritten and will be left behind.
-- Streamed cycle view -  The monitor cycle view (the one where each monitor is 
+- Streamed cycle view - The monitor cycle view (the one where each monitor is 
 displayed sequentially) now supports streams as well as stills.
 - New 'montage' view - Added a montage view showing all your cameras 
 simultaneously either streaming or stills. The width of this window (in terms of 
@@ -1179,7 +1242,7 @@ orphans from being left around.
 configure. Now only zmconfig.pl is generated this way and all the other 
 configuration files are created by zmconfig.pl (from .z files) to centralise 
 configuration more.
-- Fixed cambolzola opt bug - There was a bug in the Cambozola options, I can't 
+- Fixed Cambozola opt bug - There was a bug in the Cambozola options, I can't 
 remember what it was but it's fixed!
 - Retaint arguments in zmdc.pl - In some installations zmdc was complaining 
 about tainted arguments from the socket. These are now detainted prior to 

@@ -272,7 +272,7 @@ if ( $action )
 					die( mysql_error() );
 				if ( $new_name != $monitor[Name] )
 				{
-					exec( escapeshellcommand( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_name" ) );
+					exec( escapeshellcmd( "mv ".EVENTS_PATH."/$monitor[Name] ".EVENTS_PATH."/$new_name" ) );
 				}
 			}
 			else

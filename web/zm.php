@@ -851,6 +851,11 @@ function checkAll(form,name){
 }
 elseif( $view == "image" )
 {
+	$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+	if ( !$result )
+		die( mysql_error() );
+	$event = mysql_fetch_assoc( $result );
+
 	$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
 	if ( !$result )
 		die( mysql_error() );
@@ -899,7 +904,7 @@ function deleteEvent() {
 <td align="center" class="text"><a href="javascript: deleteEvent();">Delete</a></td>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
-<tr><td colspan="4"><img src="<?php echo $image_path ?>" width="352" height="288" border="0"></td></tr>
+<tr><td colspan="4"><img src="<?php echo $image_path ?>" width="<?php echo $event[Width] ?>" height="<?php echo $event[Height] ?>" border="0"></td></tr>
 <tr>
 <?php if ( $fid > 1 ) { ?>
 <td align="center" width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $first_fid ?>">First</a></td>
@@ -990,9 +995,6 @@ function newWindow(Url,Name,Width,Height) {
 <?php } ?>
 <td align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
-
-
-
 <?php if ( $mode == "stream" )
 {
 	$stream_src = ZMS_PATH."?path=".ZMS_EVENT_PATH."&event=$eid&refresh=".STREAM_EVENT_DELAY;
@@ -1132,7 +1134,7 @@ function closeWindow() {
 <td width="34%" align="center" class="head"><strong><?php echo $monitor[Name] ?> Zones</strong></td>
 <td width="33%" align="right" class="text"><a href="javascript: closeWindow();">Close</a></td>
 </tr>
-<tr><td colspan="3" align="center"><img src="<?php echo $image ?>" usemap="#zonemap" width="352" height="288" border="0"></td></tr>
+<tr><td colspan="3" align="center"><img src="<?php echo $image ?>" usemap="#zonemap" width="<?php echo $monitor[Width] ?>" height="<?php echo $monitor[Height] ?>" border="0"></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="0" width="96%">
 <form name="event_form" method="get" action="<?php echo $PHP_SELF ?>">

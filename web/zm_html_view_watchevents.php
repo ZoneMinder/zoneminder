@@ -39,15 +39,25 @@
 	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
 	header("Cache-Control: post-check=0, pre-check=0", false);
 	header("Pragma: no-cache");			  // HTTP/1.0
+
+	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+	if ( !$result )
+		die( mysql_error() );
+	$monitor = mysql_fetch_assoc( $result );
+
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor ?> - Events</title>
+<title>ZM - <?= $monitor[Name] ?> - Events</title>
 <link rel="stylesheet" href="zm_styles.css" type="text/css">
 <script language="JavaScript">
 function newWindow(Url,Name,Width,Height)
 {
    	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+}
+function eventWindow(Url,Name)
+{
+	var Name = window.open(Url,Name,"resizable,scrollbars,width=<?= $monitor[Width]+$jws['event']['w'] ?>,height=<?= $monitor[Height]+$jws['event']['h'] ?>");
 }
 function closeWindow()
 {
@@ -95,11 +105,6 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <?php
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
-
 	$sql = "select E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M left join Events as E on M.Id = E.MonitorId where M.Id = '$mid' and E.Archived = 0";
 	$sql .= " order by $sort_column $sort_order";
 	$sql .= " limit 0,$max_events";
@@ -132,8 +137,8 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 	{
 ?>
 <tr bgcolor="#FFFFFF">
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>&page=1', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $event[Id] ?></a></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>&page=1', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $event[Name] ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>&page=1', 'zmEvent' );"><?= $event[Id] ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&mid=<?= $mid ?>&eid=<?= $event[Id] ?>&page=1', 'zmEvent' );"><?= $event[Name] ?></a></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event[StartTime]) ) ?></td>
 <td align="center" class="text"><?= $event[Length] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&mid=<?= $mid ?>&eid=<?= $event[Id] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event[Frames] ?>/<?= $event[AlarmFrames] ?></a></td>

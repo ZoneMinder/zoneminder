@@ -151,7 +151,7 @@ $jws = array(
 	'device' => array( 'w'=>196, 'h'=>164 ),
 	'function' => array( 'w'=>248, 'h'=>92 ),
 	'events' => array( 'w'=>720, 'h'=>480 ),
-	'event' => array( 'w'=>420, 'h'=>500 ),
+	'event' => array( 'w'=>60, 'h'=>160 ),
 	'filter' => array( 'w'=>560, 'h'=>250 ),
 	'filtersave' => array( 'w'=>520, 'h'=>200 ),
 	'zones' => array( 'w'=>72, 'h'=>232 ),

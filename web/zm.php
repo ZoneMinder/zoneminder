@@ -1668,19 +1668,19 @@ function controlDaemons( $device )
 
 	if ( !$passive_count && !$active_count )
 	{
-		stopDaemon( "zmc", $monitor[Device] );
+		stopDaemon( "zmc", $device );
 	}
 	else
 	{
-		startDaemon( "zmc", $monitor[Device] );
+		startDaemon( "zmc", $device );
 	}
 	if ( !$active_count )
 	{
-		stopDaemon( "zma", $monitor[Device] );
+		stopDaemon( "zma", $device );
 	}
 	else
 	{
-		startDaemon( "zma", $monitor[Device] );
+		startDaemon( "zma", $device );
 	}
 }
 function getEnumValues( $table, $column )

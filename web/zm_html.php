@@ -930,8 +930,8 @@ function configureButton(form,name)
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $row[Id] ?>', 'zmEvent', <?= $jws['event']['w'] ?>, <?= $jws['event']['h'] ?> );"><?= $row[Name] ?></a></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", $row[Time] ) ?></td>
 <td align="center" class="text"><?= $row[Length] ?></td>
-<td align="center" class="text"><?= $row[Frames] ?> (<?= $row[AlarmFrames] ?>)</td>
-<td align="center" class="text"><?= $row[AvgScore] ?> (<?= $row[MaxScore] ?>)</td>
+<td align="center" class="text"><?= $row[Frames] ?>/<?= $row[AlarmFrames] ?></td>
+<td align="center" class="text"><?= $row[AvgScore] ?>/<?= $row[MaxScore] ?></td>
 <td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $row[Id] ?>" onClick="configureButton( event_form, 'mark_eids' );"></td>
 </tr>
 <?php

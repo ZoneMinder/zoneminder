@@ -1192,7 +1192,7 @@ function closeWindow() {
 <body>
 <table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td colspan="2" align="left" class="head">Monitor <?php echo $monitor[Name] ?> - Zone <?php echo $zone[Id] ?></td>
+<td colspan="2" align="left" class="head">Monitor <?php echo $monitor[Name] ?> - Zone <?php echo $zone[Name] ?></td>
 </tr>
 <form name="zoneForm" method="post" action="<?php echo $PHP_SELF ?>" onsubmit="return validateForm(this)">
 <input type="hidden" name="view" value="<?php echo $view ?>">

@@ -18,7 +18,7 @@ AC_SUBST(MYSQL_CFLAGS)
 LDFLAGS="${MYSQL_LIBS} $LDFLAGS"
 
 FFMPEG_PREFIX=
-# Ask group for ffmpeg:.
+# Ask for ffmpeg path:.
 AC_ARG_WITH(ffmpeg,
     [  --with-ffmpeg=<path>    prefix of ffmpeg build directory for libavcodec etc],
     [FFMPEG_PREFIX=$with_ffmpeg],
@@ -27,7 +27,7 @@ AC_ARG_WITH(ffmpeg,
 	and libavformat files that can be used to build true MPEG streaming into ZoneMinder. A normal
 	install of ffmpeg only installs the applications and not the libraries or headers necessary
 	to link to so this will probably be a local or temporary directory.
-    e.g. --with-ffmpeg=/home/ffmpeg-0.4.18])
+    e.g. --with-ffmpeg=/usr/local])
 )
 AC_SUBST(FFMPEG_PREFIX)
 FFMPEG_LIBS="-L${FFMPEG_PREFIX}/lib"
@@ -38,7 +38,7 @@ AC_SUBST(FFMPEG_CFLAGS)
 LDFLAGS="${FFMPEG_LIBS} $LDFLAGS"
 
 LAME_PREFIX=
-# Ask group for lame path:.
+# Ask for lame path:.
 AC_ARG_WITH(lame,
     [  --with-lame=<path>      prefix of lame library directory for libmp3lame],
     [LAME_PREFIX=$with_lame],
@@ -121,7 +121,7 @@ AC_CHECK_LIB(mysqlclient,mysql_init,,AC_MSG_ERROR(zm requires libmysqlclient.a))
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a is required for remote/network camera support))
 AC_CHECK_LIB(avcodec,avcodec_init,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
 AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)
-AC_CHECK_LIB(mp3lame,lame_init,,AC_MSG_WARN(libmp3lame.a may be required for IE compatible MPEG streaming))
+AC_CHECK_LIB(mp3lame,lame_init,,AC_MSG_WARN(libmp3lame.a may be required if ffmpeg was built with it))
 
 AC_SUBST(XLIBS)
 

@@ -1699,7 +1699,7 @@ MYSQL_CFLAGS="-I${MYSQL_PREFIX}/include"
 LDFLAGS="${MYSQL_LIBS} $LDFLAGS"
 
 FFMPEG_PREFIX=
-# Ask group for ffmpeg:.
+# Ask for ffmpeg path:.
 
 # Check whether --with-ffmpeg or --without-ffmpeg was given.
 if test "${with_ffmpeg+set}" = set; then
@@ -1711,13 +1711,13 @@ else
 	and libavformat files that can be used to build true MPEG streaming into ZoneMinder. A normal
 	install of ffmpeg only installs the applications and not the libraries or headers necessary
 	to link to so this will probably be a local or temporary directory.
-    e.g. --with-ffmpeg=/home/ffmpeg-0.4.18" >&5
+    e.g. --with-ffmpeg=/usr/local" >&5
 echo "$as_me: WARNING: You can call configure with the --with-ffmpeg option.
     This tells configure where to find the ffmpeg build directory within which are the libavcodec
 	and libavformat files that can be used to build true MPEG streaming into ZoneMinder. A normal
 	install of ffmpeg only installs the applications and not the libraries or headers necessary
 	to link to so this will probably be a local or temporary directory.
-    e.g. --with-ffmpeg=/home/ffmpeg-0.4.18" >&2;}
+    e.g. --with-ffmpeg=/usr/local" >&2;}
 
 fi;
 
@@ -1729,7 +1729,7 @@ FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/include"
 LDFLAGS="${FFMPEG_LIBS} $LDFLAGS"
 
 LAME_PREFIX=
-# Ask group for lame path:.
+# Ask for lame path:.
 
 # Check whether --with-lame or --without-lame was given.
 if test "${with_lame+set}" = set; then
@@ -5000,8 +5000,8 @@ _ACEOF
   LIBS="-lmp3lame $LIBS"
 
 else
-  { echo "$as_me:$LINENO: WARNING: libmp3lame.a may be required for IE compatible MPEG streaming" >&5
-echo "$as_me: WARNING: libmp3lame.a may be required for IE compatible MPEG streaming" >&2;}
+  { echo "$as_me:$LINENO: WARNING: libmp3lame.a may be required if ffmpeg was built with it" >&5
+echo "$as_me: WARNING: libmp3lame.a may be required if ffmpeg was built with it" >&2;}
 fi
 
 

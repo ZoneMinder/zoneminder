@@ -96,7 +96,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		unsigned char *pdiff = diff_image->Buffer( lo_x, y );
 		for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
 		{
-			if ( (*pdiff > min_pixel_threshold) || (max_pixel_threshold && (*pdiff < max_pixel_threshold)) )
+			if ( (*pdiff > min_pixel_threshold) && (max_pixel_threshold && (*pdiff < max_pixel_threshold)) )
 			{
 				*pdiff = WHITE;
 				alarm_pixels++;

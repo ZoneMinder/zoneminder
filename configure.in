@@ -1,5 +1,5 @@
 AC_INIT(src/zm.h)
-AM_INIT_AUTOMAKE(zm,0.9.9)
+AM_INIT_AUTOMAKE(zm,0.9.10)
 AM_CONFIG_HEADER(config.h)
 
 AC_ARG_WITH(mysql,
@@ -66,6 +66,7 @@ AC_HEADER_STDC
 
 AC_LANG_CPLUSPLUS
 
+AC_CHECK_DECLS(round)
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(z,compress,,AC_MSG_ERROR(zm requires libz.a))
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))

@@ -75,7 +75,6 @@ void Zone::RecordStats( const Event *event )
 bool Zone::CheckAlarms( const Image *delta_image )
 {
 	bool alarm = false;
-	unsigned int score = 0;
 
 	ResetStats();
 
@@ -381,13 +380,13 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	{
 		score *= 2;
 	}
-	score = score;
 
 	// Now outline the changed region
 	if ( alarm_blobs )
 	{
 		alarm = true;
-		Image *high_image = image = diff_image->HighlightEdges( alarm_rgb, &limits );
+		//Image *high_image = image = diff_image->HighlightEdges( alarm_rgb, &limits );
+		image = diff_image->HighlightEdges( alarm_rgb, &limits );
 
 		delete diff_image;
 		//high_image->WriteJpeg( "diff4.jpg" );

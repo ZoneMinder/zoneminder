@@ -40,7 +40,6 @@ void jpeg_mem_src(j_decompress_ptr cinfo, JOCTET *inbuffer, int inbuffer_size );
 void jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_size );
 }
 
-#include "zm_font.h"
 #include "zm_rgb.h"
 #include "zm_coord.h"
 #include "zm_box.h"

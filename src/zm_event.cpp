@@ -67,7 +67,7 @@ Event::~Event()
 
 	strftime( end_time_str, sizeof(end_time_str), "%Y-%m-%d %H:%M:%S", localtime( &end_time.tv_sec ) );
 
-	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %s%d.%02d, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000, frames, alarm_frames, tot_score, (int)(tot_score/alarm_frames), max_score, id );
+	sprintf( sql, "update Events set Name='Event-%d', EndTime = '%s', Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", id, end_time_str, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000, frames, alarm_frames, tot_score, (int)(tot_score/alarm_frames), max_score, id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't update event: %s\n", mysql_error( &dbconn ) ));
@@ -87,7 +87,7 @@ void Event::AddFrame( struct timeval timestamp, const Image *image, const Image 
 	DELTA_TIMEVAL( delta_time, timestamp, start_time );
 
 	static char sql[256];
-	sprintf( sql, "insert into Frames set EventId=%d, FrameId=%d, AlarmFrame=%d, ImagePath='%s', Delta=%s%d.%02d, Score=%d", id, frames, alarm_image!=0, event_file, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000, score );
+	sprintf( sql, "insert into Frames set EventId=%d, FrameId=%d, AlarmFrame=%d, ImagePath='%s', Delta=%s%ld.%02ld, Score=%d", id, frames, alarm_image!=0, event_file, delta_time.positive?"":"-", delta_time.tv_sec, delta_time.tv_usec/10000, score );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert frame: %s\n", mysql_error( &dbconn ) ));
@@ -144,10 +144,10 @@ void Event::StreamEvent( const char *path, int event_id, unsigned long refresh, 
 	{
 		char filepath[PATH_MAX];
 		sprintf( filepath, "%s/%s", path, dbrow[2] );
-		if ( fdj = fopen( filepath, "r" ) )
+		if ( (fdj = fopen( filepath, "r" )) )
 		{
 			fprintf( fd, "Content-type: image/jpg\r\n\r\n" );
-			while ( n_bytes = fread( buffer, 1, sizeof(buffer), fdj ) )
+			while ( (n_bytes = fread( buffer, 1, sizeof(buffer), fdj )) )
 			{
 				fwrite( buffer, 1, n_bytes, fd );
 			}

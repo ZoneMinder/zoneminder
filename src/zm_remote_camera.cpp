@@ -235,7 +235,7 @@ int RemoteCamera::GetResponse( unsigned char *&buffer, int &max_size )
 			char version[4];
 			int code;
 			char message[64] = "";
-			int result = sscanf( header, "HTTP/%s %3d %[^\r\n]", &version, &code, &message );
+			int result = sscanf( header, "HTTP/%s %3d %[^\r\n]", version, &code, message );
 
 			if ( result != 3 )
 			{
@@ -316,13 +316,11 @@ int RemoteCamera::PreCapture()
 		Disconnect();
 		return( -1 );
 	}
+	return( 0 );
 }
 
 unsigned char *RemoteCamera::PostCapture()
 {
-	fd_set rfds;
-	int total_bytes = 0;
-
 	int max_size = width*height*colours;
 	unsigned char *buffer = (unsigned char *)malloc( max_size );
 	int content_length = GetResponse( buffer, max_size );
@@ -337,9 +335,6 @@ unsigned char *RemoteCamera::PostCapture()
 
 int RemoteCamera::PostCapture( Image &image )
 {
-	fd_set rfds;
-	int total_bytes = 0;
-
 	int max_size = width*height*colours;
 	unsigned char *buffer = (unsigned char *)malloc( max_size );
 	int content_length = GetResponse( buffer, max_size );

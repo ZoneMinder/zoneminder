@@ -387,7 +387,7 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 			}
 			else
 			{
-				sprintf( output+strlen(output), "n%d:%d,", chan, vid_src.name );
+				sprintf( output+strlen(output), "n%d:%s,", chan, vid_src.name );
 				sprintf( output+strlen(output), "C%d:%d,", chan, vid_src.channel );
 				sprintf( output+strlen(output), "Fl%d:%x,", chan, vid_src.flags );
 				sprintf( output+strlen(output), "T%d:%d", chan, vid_src.type );

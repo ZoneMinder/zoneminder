@@ -170,7 +170,7 @@ public:
 
 			int index = image_count%image_buffer_count;
 
-			if ( index == shared_images->last_read_index )
+			if ( index == shared_images->last_read_index && function == ACTIVE )
 			{
 				Warning(( "Buffer overrun at index %d\n", index ));
 			}

@@ -60,9 +60,7 @@ int main( int argc, char *argv[] )
 
 	while (1)
 	{
-		int this_option_optind = optind ? optind : 1;
 		int option_index = 0;
-		int opterr = 1;
 
 		int c = getopt_long (argc, argv, "d:H:P:p:h", long_options, &option_index);
 		if (c == -1)
@@ -180,6 +178,7 @@ int main( int argc, char *argv[] )
 	}
 
 	struct timeval now;
+	struct DeltaTimeval delta_time;
 	while( !zmc_terminate )
 	{
 		/* grab a new one */
@@ -198,11 +197,7 @@ int main( int argc, char *argv[] )
 				{
 					if ( last_capture_times[j].tv_sec )
 					{
-						static struct DeltaTimeval delta_time;
-						//Info(( "Now %d.%d", now.tv_sec, now.tv_usec ));
-						//Info(( "Capture %d.%d", last_capture_times[j].tv_sec, last_capture_times[j].tv_usec ));
 						DELTA_TIMEVAL( delta_time, now, last_capture_times[j] );
-						//Info(( "Delta %d-%d.%d", delta_time.positive, delta_time.tv_sec, delta_time.tv_usec ));
 						next_delays[j] = capture_delays[j]-((delta_time.tv_sec*1000000)+delta_time.tv_usec);
 						if ( next_delays[j] < 0 )
 						{
@@ -213,7 +208,6 @@ int main( int argc, char *argv[] )
 					{
 						next_delays[j] = 0;
 					}
-					//Info(( "%d: %d", j, next_delays[j] ));
 					if ( next_delays[j] <= min_delay )
 					{
 						min_delay = next_delays[j];
@@ -222,12 +216,20 @@ int main( int argc, char *argv[] )
 			}
 			if ( next_delays[i] <= min_delay || next_delays[i] <= 0 )
 			{
-				gettimeofday( &(last_capture_times[i]), &dummy_tz );
-
 				monitors[i]->PreCapture();
-				if ( next_delays[i] > 0 )
-					usleep( next_delays[i] );
 				monitors[i]->PostCapture();
+
+				if ( next_delays[i] > 0 )
+				{
+					gettimeofday( &now, &dummy_tz );
+					DELTA_TIMEVAL( delta_time, now, last_capture_times[i] );
+					long sleep_time = next_delays[i]-((delta_time.tv_sec*1000000)+delta_time.tv_usec);
+					if ( sleep_time > 0 )
+					{
+						usleep( sleep_time );
+					}
+				}
+				gettimeofday( &(last_capture_times[i]), &dummy_tz );
 			}
 		}
 		sigprocmask( SIG_UNBLOCK, &block_set, 0 );

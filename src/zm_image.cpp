@@ -17,6 +17,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+#include "zm_font.h"
 #include "zm_image.h"
 
 Image *Image::HighlightEdges( Rgb colour, const Box *limits )
@@ -384,7 +385,8 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 		assert( width == images[i]->width && height == images[i]->height && colours == images[i]->colours );
 	}
 
-	const Image *reference = Merge( n_images, images );
+	// Not even sure why this is here!!
+	//const Image *reference = Merge( n_images, images );
 
 	Image *result = new Image( width, height, images[0]->colours );
 	int size = result->size;
@@ -398,7 +400,7 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 			{
 				JSAMPLE *psrc = images[j]->buffer+c;
 
-				if ( abs((*psrc)-RGB_VAL(ref_colour,c)) >= RGB_VAL(threshold,c) )
+				if ( (unsigned)abs((*psrc)-RGB_VAL(ref_colour,c)) >= RGB_VAL(threshold,c) )
 				{
 					count++;
 				}
@@ -418,9 +420,6 @@ Image *Image::Delta( const Image &image, bool absolute ) const
 	Image *result = new Image( width, height, 1 );
 
 	typedef JSAMPLE IMAGE[width][height][colours];
-	IMAGE &data = reinterpret_cast<IMAGE &>(*buffer);
-	IMAGE &image_data = reinterpret_cast<IMAGE &>(*image.buffer);
-	IMAGE &diff_data = reinterpret_cast<IMAGE &>(*result->buffer);
 
 	unsigned char *psrc = buffer;
 	unsigned char *pref = image.buffer;
@@ -621,7 +620,6 @@ void Image::Hatch( Rgb colour, const Box *limits )
 	int lo_y = limits?limits->Lo().Y():0;
 	int hi_x = limits?limits->Hi().X():width-1;
 	int hi_y = limits?limits->Hi().Y():height-1;
-	unsigned char *p = buffer;
 	for ( int y = lo_y; y <= hi_y; y++ )
 	{
 		unsigned char *p = &buffer[colours*((y*width)+lo_x)];

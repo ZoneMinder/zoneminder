@@ -120,8 +120,6 @@ int main( int argc, char *argv[] )
 			exit( mysql_errno( &dbconn ) );
 		}
 
-		int n_devices = mysql_num_rows( result );
-		int *devices = new int [n_devices];
 		for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 		{
 			int device = atoi(dbrow[0]);

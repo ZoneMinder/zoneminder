@@ -406,6 +406,8 @@ startup and a very slight one on processing for all reasonably shaped zones.
 21. Allow ZM to 'train' itself by allowing the user to select events which are considered important and to
 discard those that should be ignored. ZM will interpolate, add a bit of magic, and recommend settings that
 will support this selection automatically thereafter.
+22. Add quotes to all PHP array references. I should have done it in the first place but I'm a perl person
+really and it kind of bugs me that you have to.
 
 
 Bugs

@@ -27,14 +27,18 @@ alter table Events add column TotScore int unsigned not null default 0 after Ala
 update Events set TotScore = AlarmFrames * AvgScore where TotScore = 0;
 alter table Events modify column Archived tinyint unsigned not null default 0;
 alter table Events add column Uploaded tinyint unsigned not null default 0 after Archived;
+alter table Events add column Emailed tinyint unsigned not null default 0 after Uploaded;
+alter table Events add column Messaged tinyint unsigned not null default 0 after Emailed;
 alter table Events add column LearnState char(1) default '' after Uploaded;
 CREATE TABLE Filters (
 Id int(10) unsigned NOT NULL auto_increment,
 MonitorId int(10) unsigned NOT NULL default '0',
 Name varchar(64) NOT NULL default '',
 Query text NOT NULL,
-AutoDelete tinyint(4) NOT NULL default '0',
-AutoUpload tinyint(4) NOT NULL default '0',
+AutoDelete tinyint(4) unsigned NOT NULL default '0',
+AutoUpload tinyint(4) unsigned NOT NULL default '0',
+AutoEmail tinyint(4) unsigned NOT NULL default '0',
+AutoMessage tinyint(4) unsigned NOT NULL default '0',
 PRIMARY KEY  (Id),
 UNIQUE KEY FilterIDX (MonitorId,Name)
 ) TYPE=MyISAM;

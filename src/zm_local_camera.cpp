@@ -91,6 +91,8 @@ void LocalCamera::Initialise()
 			break;
 		}
 		case VIDEO_PALETTE_RGB565 :
+		case VIDEO_PALETTE_YUYV :
+		case VIDEO_PALETTE_YUV422 :
 		case VIDEO_PALETTE_YUV420P :
 		case VIDEO_PALETTE_YUV422P :
 		{
@@ -379,11 +381,13 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 			vid_pic.palette==VIDEO_PALETTE_YUV420?"YUV420":(
 			vid_pic.palette==VIDEO_PALETTE_YUV411?"YUV411 capture":(
 			vid_pic.palette==VIDEO_PALETTE_RAW?"RAW capture (BT848)":(
+			vid_pic.palette==VIDEO_PALETTE_YUYV?"YUYV":(
+			vid_pic.palette==VIDEO_PALETTE_YUV422?"YUV422":(
 			vid_pic.palette==VIDEO_PALETTE_YUV422P?"YUV 4:2:2 Planar":(
 			vid_pic.palette==VIDEO_PALETTE_YUV411P?"YUV 4:1:1 Planar":(
 			vid_pic.palette==VIDEO_PALETTE_YUV420P?"YUV 4:2:0 Planar":(
 			vid_pic.palette==VIDEO_PALETTE_YUV410P?"YUV 4:1:0 Planar":"Unknown"
-		))))))))))))))));
+		))))))))))))))))));
 		sprintf( output+strlen(output), "  Colour Depth: %d\n", vid_pic.depth );
 		sprintf( output+strlen(output), "  Brightness: %d\n", vid_pic.brightness );
 		sprintf( output+strlen(output), "  Hue: %d\n", vid_pic.hue );
@@ -700,6 +704,41 @@ int LocalCamera::PostCapture( Image &image )
 				*rgb_ptr++ = r<0?0:(r>255?255:r);
 				*rgb_ptr++ = g<0?0:(g>255?255:g);
 				*rgb_ptr++ = b<0?0:(b>255?255:b);
+			}
+			buffer = temp_buffer;
+			break;
+		}
+		case VIDEO_PALETTE_YUYV :
+		case VIDEO_PALETTE_YUV422 :
+		{
+			int size = width*height*2;
+			unsigned char *s_ptr = buffer;
+			unsigned char *d_ptr = temp_buffer;
+
+			int y1,y2,u,v;
+			int r,g,b;
+			for ( int i = 0; i < size; i += 4 )
+			{
+				y1 = *s_ptr++;
+				u = *s_ptr++;
+				y2 = *s_ptr++;
+				v = *s_ptr++;
+
+				r = y1 + r_v_table[v];
+				g = y1 - (g_u_table[u]+g_v_table[v]);
+				b = y1 + b_u_table[u];
+
+				*d_ptr++ = r<0?0:(r>255?255:r);
+				*d_ptr++ = g<0?0:(g>255?255:g);
+				*d_ptr++ = b<0?0:(b>255?255:b);
+
+				r = y2 + r_v_table[v];
+				g = y2 - (g_u_table[u]+g_v_table[v]);
+				b = y2 + b_u_table[u];
+
+				*d_ptr++ = r<0?0:(r>255?255:r);
+				*d_ptr++ = g<0?0:(g>255?255:g);
+				*d_ptr++ = b<0?0:(b>255?255:b);
 			}
 			buffer = temp_buffer;
 			break;

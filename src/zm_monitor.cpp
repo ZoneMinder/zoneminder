@@ -1153,7 +1153,29 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t tt
 
 void Monitor::StreamMpeg( const char *format, int bitrate, int maxfps, int scale, int buffer )
 {
-	fprintf( stdout, "Content-type: video/x-ms-asf\r\n\r\n");
+	// Warning, most of these won't work for real-time streaming
+	const char *mime_type = "video/mpeg";
+	if ( !strcmp( format, "asf" ) )
+	{
+		mime_type = "video/x-ms-asf";
+	}
+	else if ( !strcmp( format, "mpeg" ) || !strcmp( format, "mpg" ) )
+	{
+		mime_type = "video/x-mpeg";
+	}
+	else if ( !strcmp( format, "mpv2" ) || !strcmp( format, "mpev2" ) )
+	{
+		mime_type = "video/x-mpeg2";
+	}
+	else if ( !strcmp( format, "avi" ) )
+	{
+		mime_type = "video/x-msvideo";
+	}
+	else if ( !strcmp( format, "mov" ) )
+	{
+		mime_type = "video/x-quicktime";
+	}
+	fprintf( stdout, "Content-type: %s\r\n\r\n", mime_type );
 
 	bool timed_frames = (bool)config.Item( ZM_WEB_VIDEO_TIMED_FRAMES );
 

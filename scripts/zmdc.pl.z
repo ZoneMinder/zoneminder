@@ -332,7 +332,7 @@ if ( !connect( CLIENT, $saddr ) )
 				}
 			}
 		}
-		sub kill_all()
+		sub kill_all
 		{
 			sleep( 1 );
 			foreach my $daemon ( @daemons )

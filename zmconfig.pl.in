@@ -1,0 +1,819 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Data::Dumper;
+use Term::ReadKey;
+use Getopt::Long;
+
+$| = 1;
+
+sub Usage
+{
+	print( "
+Usage: zmconfig.pl [-f <config file>,--file=<config file>] [-(no)i,--(no)interactive] [-(no)r,--(no)reprocess]
+Parameters are :-
+-f <config_file>, --file=<config_file> - Use a configuration file other and the default zmconfig.txt
+-(no)i, --(no)interactive              - Whether to include interactive configuration, on by default 
+-(no)r, --(no)reprocess                - Whether to reprocess files, on by default
+");
+	exit( -1 );
+}
+
+my $config_file = "zmconfig.txt";
+my $interactive = !undef;
+my $reprocess = !undef;
+
+if ( !GetOptions( 'file=s'=>\$config_file, 'interactive!'=>\$interactive, 'reprocess!'=>\$reprocess ) )
+{
+	Usage();
+}
+
+# Types
+my %types =
+(
+	anything => { hint => 'free text', parse => sub { return( int($_[0] =~ /^(.+)$/ ), $1 ) } },
+	abs_path => { hint => '/absolute/path/to/somewhere', parse => sub { return( int($_[0] =~ /^((?:\/[^\/]*)+)\/?$/ ), $1 ) } },
+	rel_path => { hint => 'relative/path/to/somewhere', parse => sub { return( int($_[0] =~ /^([^\/].*)\/?$/ ), $1 ) } },
+	filename => { hint => 'filename.type', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9-_.]+)$/ ), $1 ) } },
+	hostname => { hint => 'host.your.domain', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9_.-]+)$/ ), $1 ) } },
+	string => { hint => 'string', parse => sub { return( int($_[0] =~ /^([a-zA-Z0-9-_]+)$/ ), $1 ) } },
+	boolean => { hint => 'yes/no', parse => sub { return( int($_[0] =~ /^([yn])/i ), ($1 && $1 =~ /^y/) ? 'yes' : 'no' ) } },
+	integer => { hint => 'integer', parse => sub { return( int($_[0] =~ /^(\d+)$/ ), $1 ) } },
+	decimal => { hint => 'decimal', parse => sub { return( int($_[0] =~ /^(\d+(?:\.\d+)?)$/ ), $1 ) } },
+	hexadecimal => { hint => 'hexadecimal', parse => sub { return( int($_[0] =~ /^(?:0x)?([0-9a-f]{1,8})$/ ), "0x".$1 ) } },
+);
+
+my @options =
+(
+	{
+		name => "ZM_DB_SERVER",
+		default => "localhost",
+		description => "Machine on which the database server is running",
+		help => "This is the machine on which you have installed MySQL and which manages the database. For performance and convenience purposes this is usually on the same machine the web server is running on but can be elsewhere. Enter either your hostname or 'localhost' for this machine.",
+		type => $types{hostname},
+	},
+	{
+		name => "ZM_DB_NAME",
+		default => "zm",
+		description => "Database containing the tables",
+		help => "This is the name of the MySQL database that will be used. Normally this will be just 'zm' though if you two or more installs you may wish to keep databases separate. To create this database just run the following command 'mysql < db/zmschema.sql'. You may need to give additional username and password parameters to MySQL to acquire sufficient privileges to create tables.",
+		type => $types{string},
+	},
+	{
+		name => "ZM_DB_USERA",
+		default => "zmadmin",
+		description => "Privileged DB user name, needs at least select, insert, update and delete privileges",
+		help => "This is the username of a MySQL user that has full privileges to select, insert, update and delete data from your ZoneMinder database. If you have no user available yet you can create one by typing 'mysql mysql' with additional parameters as required to give you access. Then at the prompt type 'grant select,insert,update,delete on <your database name>.* to '<your username>' identified by '<your password>';'. Then type 'quit' to exit. You may also need to type 'mysqladmin reload' to ensure your changes take effect. Note that the username and passwords used here are not related to your Linux login or accounts and should not be the same.",
+		type => $types{string},
+	},
+	{
+		name => "ZM_DB_PASSA",
+		default => "zmadminzm",
+		description => "Privileged DB user password",
+		help => "This is the password of a MySQL user that has full privileges to select, insert, update and delete data from your ZoneMinder database. If you have no user available yet you can create one by typing 'mysql mysql' with additional parameters as required to give you access. Then at the prompt type 'grant select,insert,update,delete on <your database name>.* to '<your username>' identified by '<your password>';'. Then type 'quit' to exit. You may also need to type 'mysqladmin reload' to ensure your changes take effect. Note that the username and passwords used here are not related to your Linux login or accounts and should not be the same.",
+		type => $types{string},
+	},
+	{
+		name => "ZM_DB_USERB",
+		default => "zmuser",
+		description => "Unprivileged DB user name, need just select privilege.",
+		help => "This is the username of a MySQL user that has only privileges to select data from your ZoneMinder database and is used in cgi programs where full access is neither necessary or desiarable. If you have no user available yet you can create one by typing 'mysql mysql' with additional parameters as required to give you access. Then at the prompt type 'grant select on <your database name>.* to '<your username>' identified by '<your password>';'. Then type 'quit' to exit. You may also need to type 'mysqladmin reload' to ensure your changes take effect. Note that the username and passwords used here are not related to your Linux login or accounts and should not be the same.",
+		type => $types{string},
+	},
+	{
+		name => "ZM_DB_PASSB",
+		default => "zmuserzm",
+		description => "Unprivileged DB user password",
+		help => "This is the password of a MySQL user that has only privileges to select data from your ZoneMinder database and is used in cgi programs where full access is neither necessary or desiarable. If you have no user available yet you can create one by typing 'mysql mysql' with additional parameters as required to give you access. Then at the prompt type 'grant select on <your database name>.* to '<your username>' identified by '<your password>';'. Then type 'quit' to exit. You may also need to type 'mysqladmin reload' to ensure your changes take effect. Note that the username and passwords used here are not related to your Linux login or accounts and should not be the same.",
+		type => $types{string},
+	},
+	{
+		name => "ZM_EVENT_DIR",
+		default => "events",
+		description => "Local path to where events directory lives",
+		help => "This is the path to the events directory where all the event images and other miscellaneous files are stored. It is normally given as a subdirectory of the web directory you have specified earlier however if disk space is tight it can reside on another partition in which case you should create a link from that area to the path you give here.",
+		type => $types{abs_path},
+	},
+	{
+		name => "ZM_WEB_CAMBOZOLA",
+		default => "cambozola.jar",
+		description => "Web path to (optional) cambozola java streaming client (recommended)",
+		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. It is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed.",
+		type => $types{rel_path},
+	},
+	{
+		name => "ZM_PATH_MPEG_ENCODE",
+		default => "/usr/local/bin/mpeg_encode",
+		description => "Path to (optional) mpeg video encoder",
+		help => "ZoneMinder can optionally encode a series of video images into an MPGE encoded file and this path should point to where the Berkeley mpeg_encode program has ben installed. This encoder is fairly slow and you don't lose much by not having it as events can still be reviewed as video stream without it.",
+		type => $types{abs_path},
+	},
+	{
+		name => "ZM_PATH_NETPBM",
+		default => "/usr/bin",
+		description => "Path to (optional) Netpbm utilities",
+		help => "For low bandwidth situations ZoneMinder will resize images into thumbnails on the fly before sending them to the browser to reduce the network traffic at the expense of CPU on the server. It uses the Netpbm package to do this and this option should be set to where the binaries from that package are installed. If you do not have it installed it means that the images will always be sent full sizxe and rescaled on your browser whioch may or not be an isue for you.",
+		type => $types{abs_path},
+		guess => sub { },
+	},
+	{
+		name => "ZM_WEB_POPUP_ON_ALARM",
+		default => "yes",
+		description => "Should the monitor window jump to the top if an alarm occurs",
+		help => "When viewing a live monitor stream you can specify whether you want the window to pop to the front if an alarm occurs when the window is minimised or behind another window. This is most useful if your monitors are over doors for example when they can pop up if someone comes to the doorway.",
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_WEB_SOUND_ON_ALARM",
+		default => "no",
+		description => "Should the monitor window play an alarm sound if an alarm occurs",
+		help => "When viewing a live monitor stream you can specify whether you want the window to play a sound to alert you if an alarm occurs.",
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_WEB_ALARM_SOUND",
+		default => "",
+		description => "The sound to play on alarm, put this in the sounds directory",
+		help => "You can specify a sound file to play if an alarm occurs whilst you are watching a live monitor stream. So long as your browser understands the format it does not need to be any particular type. This file should be placed in the /var/www/html/zm/sounds directory.",
+		type => $types{filename},
+		requires => [ { name => "ZM_WEB_SOUND_ON_ALARM", value => "yes" } ],
+	},
+	{
+		name => "ZM_OPT_FAST_DELETE",
+		default => "yes",
+		description => "When deleting events should the client only delete the database records for speed",
+		help => "Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if your are trying to do a lot of events at once. It is recommended that you set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in listing, and leaves the zmaudit daemon to clear up the rest later.",
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_OPT_X10",
+		default => "yes",
+		description => "Whether we want to interface with X10 devices",
+		help => "If you have an X10 Home Automation setup in your home you can use ZoneMinder to initiate or react to X10 signals if your computer has the appropriate interface controller. This option indicates whether X10 options will be available in the browser client.",
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_X10_PORT",
+		default => "/dev/ttyS1",
+		description => "What port is your X10 controller connected on",
+		requires => [ { name => "ZM_OPT_X10", value => "yes" } ],
+		help => "If you have an X10 controller device (e.g. XM10U) connected to your computer this option details which port it is conected on, the default of /dev/ttyS1 maps to serial or com port 1.",
+		type => $types{abs_path},
+	},
+	{
+		name => "ZM_X10_HOUSE_CODE",
+		default => "A",
+		description => "What X10 house code should be used",
+		requires => [ { name => "ZM_OPT_X10", value => "yes" } ],
+		help => "X10 devices are grouped together by identifying them as all belonging to one House Code. This option details what that is. It should be a single letter between A and P.",
+		type => { hint => 'A-P', parse => sub { return( int($_[0] =~ /^([A-P])/i ), uc($1) ) } },
+	},
+	{
+		name => "ZM_X10_DB_RELOAD_INTERVAL",
+		default => "60",
+		description => "How often (in seconds) the X10 damon reloads the monitors from the database",
+		requires => [ { name => "ZM_OPT_X10", value => "yes" } ],
+		help => "The zmx10 daemon periodically checks the database to find out what X10 events trigger, or result from, alarms. This option determines how frequently this check occurs, unless you change this area frequently this can be a fairly large value.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_H_REFRESH_MAIN",
+		default => "300",
+		description => "How often (in seconds) the main console window should refresh itself",
+		introduction => "There are now a number of options that are grouped into bandwidth categories, this allows you to configure the ZoneMinder client to work optimally over the various access methods you might to access the client.\n\nThe next few options control what happens when the client is running in 'high' bandwidth mode. You should set these options for when accessing the ZoneMinder client over a local network or high speed link",
+		help => "The main console window lists a general status and the event totals for all monitors. This is not a trivial taks and should not be repeated too frequently or it may affect the performance of the rest of the system.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_H_REFRESH_CYCLE",
+		default => "5",
+		description => "How often (in seconds) the cycle watch window swaps to the next monitor",
+		help => "The cycle watch window is a method of continuously cycling between still images from all of your monitors. This option determines how often to refresh with a new image.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_H_REFRESH_IMAGE",
+		default => "5",
+		description => "How often (in seconds) the watched image is refreshed (if not streaming)",
+		help => "The live images from a monitor can be viewed in either streamed or stills mode. This option determines how often a stills image is refreshed, it has no effect if streaming is selected.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_H_REFRESH_STATUS",
+		default => "3",
+		description => "How often (in seconds) the status frame refreshes itself in the watch window",
+		help => "The monitor window is actually made from several frames. The one in the middle merely contains a monitor status which needs to refresh fairly frequently to give a true indication. This option determines that frequency.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_H_REFRESH_EVENTS",
+		default => "30",
+		description => "How often (in seconds) the event listing is refreshed in the watch window",
+		help => "The monitor window is actually made from several frames. The lower framme contains a listing of the last few events for easy access. This option determines how often this is refreshed.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_H_STREAM_IDLE_DELAY",
+		default => "250",
+		description => "How long (in milliseconds) between streamed frames in the watch window",
+		help => "The top frame of the monitor window when monitoring a live feed in streaming mode contains a continuous stream of images. This option controls how often a new frame is sent to the browser when the monitor is idle, ie. not in alarm state. It makes little sense to set this too small as if it results in frames being sent much faster than they are being captured you will just get the same ones over and over. It should be set to be less or equal to the capture rate of the cameras you are using which will normally be between 2 and 25 Frames Per Second which maps to values between 500 and 40 being used here though your bandwidth may well limit how much can actually be sent. Note also that this is the update rate when no alarms are being generated, if an alarm situation occurs then the rate speeds up as per the next option so this can be set to a longer delay without you missing anything.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_H_STREAM_FRAME_DELAY",
+		default => "50",
+		description => "How long (in milliseconds) to wait before looking for the next streamed frame",
+		help => "The top frame of the monitor window when monitoring a live feed in streaming mode contains a continuous stream of images. This option controls how often a new frame is sent to the browser when an alarm is being generated. It makes little sense to set this too small as if it results in frames being sent much faster than they are being captured you will just get the same ones over and over. It should be set to roughly match the capture rate of the cameras you are using which will normally be between 2 and 25 Frames Per Second which maps to values between 500 and 40 being used here though your bandwidth may well limit how much can actually be sent.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_H_STREAM_EVENT_DELAY",
+		default => "200",
+		description => "How long (in milliseconds) to wait between each frame when streaming events",
+		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate otherwise the event may appear too fast or too slow, the default of 200 is usually a good starting point.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_H_IMAGE_SCALING",
+		default => "1",
+		description => "How to scale thumbnails in events, bandwidth versus cpu in rescaling",
+		help => "A value of 1 sends the whole image to the browser which resizes it in the window, larger values scale down by that amount on the server before sending a reduced size image to the browser. For high bandwidth settings the default of 1 is usally the fastest does not result in extraneous thumbnail files being generated.",
+		type => $types{integer},
+		requires => [ { name=>"ZM_PATH_NETPBM", value=>'/' } ],
+	},
+	{
+		name => "ZM_WEB_M_REFRESH_MAIN",
+		default => "300",
+		description => "How often (in seconds) the main console window should refresh itself",
+		help => "The main console window lists a general status and the event totals for all monitors. This is not a trivial taks and should not be repeated too frequently or it may affect the performance of the rest of the system.",
+		type => $types{integer},
+		introduction => "The next few options control what happens when the client is running in 'medium' bandwidth mode. You should set these options for when accessing the ZoneMinder client over a slower cable or DSL link",
+	},
+	{
+		name => "ZM_WEB_M_REFRESH_CYCLE",
+		default => "10",
+		description => "How often (in seconds) the cycle watch window swaps to the next monitor",
+		help => "The cycle watch window is a method of continuously cycling between still images from all of your monitors. This option determines how often to refresh with a new image.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_M_REFRESH_IMAGE",
+		default => "15",
+		description => "How often (in seconds) the watched image is refreshed (if not streaming)",
+		help => "The live images from a monitor can be viewed in either streamed or stills mode. This option determines how often a stills image is refreshed, it has no effect if streaming is selected.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_M_REFRESH_STATUS",
+		default => "5",
+		description => "How often (in seconds) the status frame refreshes itself in the watch window",
+		help => "The monitor window is actually made from several frames. The one in the middle merely contains a monitor status which needs to refresh fairly frequently to give a true indication. This option determines that frequency.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_M_REFRESH_EVENTS",
+		default => "60",
+		description => "How often (in seconds) the event listing is refreshed in the watch window",
+		help => "The monitor window is actually made from several frames. The lower framme contains a listing of the last few events for easy access. This option determines how often this is refreshed.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_M_STREAM_IDLE_DELAY",
+		default => "2500",
+		description => "How long (in milliseconds) between streamed frames in the watch window",
+		help => "The top frame of the monitor window when monitoring a live feed in streaming mode contains a continuous stream of images. This option controls how often a new frame is sent to the browser when the monitor is idle, ie. not in alarm state. It makes little sense to set this too small as if it exceeds the available bandwidth and results in frames being sent much faster than they are able to be displayed. In medium bandwidth mode it should be set to be rather less than the capture rate of the cameras you are using. Note also that this is the update rate when no alarms are being generated, if an alarm situation occurs then the rate speeds up as per the next option so this can be set to a longer delay without you missing anything.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_M_STREAM_FRAME_DELAY",
+		default => "100",
+		description => "How long (in milliseconds) to wait before looking for the next streamed frame",
+		help => "The top frame of the monitor window when monitoring a live feed in streaming mode contains a continuous stream of images. This option controls how often a new frame is sent to the browser when an alarm is being generated. It makes little sense to set this too small as if it exceeds the available bandwidth and results in frames being sent much faster than they are able to be displayed though as should be only for a short period it may be possible to catch up. In medium bandwidth mode it should be set to maybe half the capture rate of the cameras you are using.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_M_STREAM_EVENT_DELAY",
+		default => "50",
+		description => "How long (in milliseconds) to wait between each frame when streaming events",
+		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate if possible otherwise the event may appear too fast or too slow, though your bandwidth may also slow the the stream down. The default of 200 is usually a good starting point.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_M_IMAGE_SCALING",
+		default => "4",
+		description => "How to scale thumbnails in events, bandwidth versus cpu in rescaling",
+		help => "A value of 1 sends the whole image to the browser which resizes it in the window, larger values scale down by that amount on the server before sending a reduced size image to the browser. For medium bandwidth settings the default of 4 is usually the fastest though 1 may also work.",
+		type => $types{integer},
+		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
+	},
+	{
+		name => "ZM_WEB_L_REFRESH_MAIN",
+		default => "300",
+		description => "How often (in seconds) the main console window should refresh itself",
+		introduction => "The next few options control what happens when the client is running in 'low' bandwidth mode. You should set these options for when accessing the ZoneMinder client over a modem or slow link",
+		help => "The main console window lists a general status and the event totals for all monitors. This is not a trivial taks and should not be repeated too frequently or it may affect the performance of the rest of the system.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_L_REFRESH_CYCLE",
+		default => "30",
+		description => "How often (in seconds) the cycle watch window swaps to the next monitor",
+		help => "The cycle watch window is a method of continuously cycling between still images from all of your monitors. This option determines how often to refresh with a new image.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_L_REFRESH_IMAGE",
+		default => "30",
+		description => "How often (in seconds) the watched image is refreshed (if not streaming)",
+		help => "The live images from a monitor can be viewed in either streamed or stills mode. This option determines how often a stills image is refreshed, it has no effect if streaming is selected.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_L_REFRESH_STATUS",
+		default => "10",
+		description => "How often (in seconds) the status frame refreshes itself in the watch window",
+		help => "The monitor window is actually made from several frames. The one in the middle merely contains a monitor status which needs to refresh fairly frequently to give a true indication. This option determines that frequency.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_L_REFRESH_EVENTS",
+		default => "180",
+		description => "How often (in seconds) the event listing is refreshed in the watch window",
+		help => "The monitor window is actually made from several frames. The lower framme contains a listing of the last few events for easy access. This option determines how often this is refreshed.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_L_STREAM_IDLE_DELAY",
+		default => "10000",
+		description => "How long (in milliseconds) between streamed frames in the watch window",
+		help => "The top frame of the monitor window when monitoring a live feed in streaming mode contains a continuous stream of images. This option controls how often a new frame is sent to the browser when the monitor is idle, ie. not in alarm state. It makes little sense to set this too small as if it exceeds the available bandwidth and results in frames being sent much faster than they are able to be displayed. In low bandwidth mode it should be set to be far less than the capture rate of the cameras you are using. Note also that this is the update rate when no alarms are being generated, if an alarm situation occurs then the rate speeds up as per the next option so this can be set to a longer delay without you missing anything.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_L_STREAM_FRAME_DELAY",
+		default => "250",
+		description => "How long (in milliseconds) to wait before looking for the next streamed frame",
+		help => "The top frame of the monitor window when monitoring a live feed in streaming mode contains a continuous stream of images. This option controls how often a new frame is sent to the browser when an alarm is being generated. It makes little sense to set this too small as if it exceeds the available bandwidth and results in frames being sent much faster than they are able to be displayed though as should be only for a short period it may be possible to catch up. In low bandwidth mode it should be set to maybe a quarter the capture rate of the cameras you are using.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_L_STREAM_EVENT_DELAY",
+		default => "10",
+		description => "How long (in milliseconds) to wait between each frame when streaming events",
+		help => "When viewing a captured event this option controls how fast frames are sent to the browser. This should roughly match your capture rate if possible otherwise the event may appear too fast or too slow, though your bandwidth may also slow the the stream down. The default of 200 is usually a good starting point.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_L_IMAGE_SCALING",
+		default => "4",
+		description => "How to scale thumbnails in events, bandwidth versus cpu in rescaling",
+		help => "A value of 1 sends the whole image to the browser which resizes it in the window, larger values scale down by that amount on the server before sending a reduced size image to the browser. For low bandwidth settings the default of 4 is usually the best.",
+		type => $types{integer},
+		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
+	},
+	{
+		name => "ZM_WEB_P_REFRESH_MAIN",
+		default => "300",
+		description => "How often (in seconds) the main console window should refresh itself",
+		introduction => "The next few options control what happens when the WAP client is being accessed over a mobile phone link. You should set these options for when accessing the ZoneMinder WAP client over a mobile dialup or GPRS link.",
+		help => "The main console window lists a general status and the event totals for all monitors. This is not a trivial taks and should not be repeated too frequently or it may affect the performance of the rest of the system.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WEB_P_REFRESH_IMAGE",
+		default => "30",
+		description => "How often (in seconds) the watched image is refreshed",
+		help => "The live images from a monitor are viewed as a sequence of still images. This option determines how the image is refreshed. Though the images are small setting this at too frequent a value may rapidly consume a lot of bandwidth resource.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_PATH_IMAGES",
+		default => "/var/www/html/zm/images",
+		description => "Path to the images that the ZoneMinder client generates",
+		help => "ZoneMinder generates a myriad of images, mosty of which are associated with events. For those that aren't this is where they go.",
+		type => $types{abs_path},
+	},
+	{
+		name => "ZM_PATH_EVENTS",
+		default => "/var/www/html/zm/events",
+		description => "Path to the events that ZoneMinder generates",
+		type => $types{abs_path},
+	},
+	{
+		name => "ZM_PATH_LOGS",
+		default => "/tmp",
+		description => "Path to the various logs that the ZoneMinder daemons generate",
+		help => "There are various daemons that are used by ZoneMinder to perform various tasks. Most generate helpful log files and this is where they go. They can be deleted if not required for debugging.",
+		type => $types{abs_path},
+	},
+	{
+		name => "ZM_SHM_KEY",
+		default => "0x7a6d2000",
+		description => "Shared memory key to use, only change if it clashes with another application",
+		help => "ZoneMinder uses shared memory to speed up communication between modules. To identify the right area to use shared memory keys are used. This option controls what the base key is, each monitor will have it's Id or'ed with this to get the actual key used.",
+		type => $types{hexadecimal},
+	},
+	{
+		name => "ZM_FILTER_RELOAD_DELAY",
+		default => "300",
+		description => "How often (in seconds) filters are reloaded in zmfilter.pl",
+		help => "ZoneMinder allows you to save filters to the database which allow events that match certain criteria to be deleted or uploaded to a remote machine. The zmfilter daemon loads these and does the deleting or uploading. This option determine how often the filters are reloaded to get the latest versions of the filters. If you don't change filters very often this can be quite large.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_OPT_UPLOAD",
+		default => "no",
+		description => "Should ZoneMinder try and upload events that match corresponding filters",
+		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should be uploaded to a remote server for archiving. This option specifies whether this functionality should be available",
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_FILTER_ARCH_FORMAT",
+		default => "tar",
+		description => "What format the uploaded events should be created in. This can be 'tar' or 'zip'",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		help => "Uploaded events may be stored in either .tar or .zip format, this option specifies which. Note that to use this you will need to have the Archive::Tar and/or Archive::Zip perl modules installed.",
+		type => { hint => 'tar/zip', parse => sub { return( int($_[0] =~ /^([tz])/i ), $1 =~ /^t/ ? 'tar' : 'zip' ) } },
+	},
+	{
+		name => "ZM_FILTER_ARCH_COMPRESS",
+		default => "no",
+		description => "Should archive files be compressed",
+		help => "When the archive files are created they can be compressed. However in general since the images are compressed already this saves only a minimal amount of space versus utilising more CPU in their creation. Only enable if you have CPU to waste and are limited in disk space on your remote server or bandwidth",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_FILTER_ARCH_ANALYSE",
+		default => "no",
+		description => "Whether to include the analysis files in the archive, bigger but slower",
+		help => "When the archive files are created they can contain either just the captured frames or both the captured frames and for frames that caused an alarm the analysed image with the changed area highlighted. This option controls which to do. Only included analysed frames if you have a high bandwidth connection to the remote server or if you need help in figuring out what caused an alarm in the first place",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_FILTER_FTP_HOST",
+		default => "",
+		description => "The remote server to upload to",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		help => "This is the remote machine that you wish to upload archived events to.",
+		type => $types{hostname},
+	},
+	{
+		name => "ZM_FILTER_FTP_USER",
+		default => "",
+		description => "Your ftp username",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		type => $types{string},
+	},
+	{
+		name => "ZM_FILTER_FTP_PASS",
+		default => "",
+		description => "Your ftp password",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		type => $types{string},
+	},
+	{
+		name => "ZM_FILTER_FTP_LOC_DIR",
+		default => "/tmp/",
+		description => "The local directory in which to create upload files",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		type => $types{abs_path},
+	},
+	{
+		name => "ZM_FILTER_FTP_REM_DIR",
+		default => "",
+		description => "The remote directory to upload to",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		type => $types{rel_path},
+	},
+	{
+		name => "ZM_FILTER_FTP_TIMEOUT",
+		default => "120",
+		description => "How long (in seconds) we allow the transfer to take for each file",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		type => $types{integer},
+	},
+	{
+		name => "ZM_FILTER_FTP_PASSIVE",
+		default => "yes",
+		description => "Whether to use passive ftp",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		help => "If your computer is behind a firewall or proxy you may need to set FTP to passive mode. In fact for simple transfers it makes little sense to do otherwise anyway but you can set this to 'No' if you wish.",
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_FILTER_FTP_DEBUG",
+		default => "yes",
+		description => "Whether to switch ftp debugging on",
+		requires => [ { name => "ZM_OPT_UPLOAD", value => "Yes" } ],
+		help => "If you are having (or expecting) troubles with uploading archived events then setting this to 'Yes' permits additional information to be included in the zmfilter log file.",
+		type => $types{boolean},
+	},
+	{
+		name => "ZM_WATCH_CHECK_INTERVAL",
+		default => "10",
+		description => "How often to check the capture daemons have not locked up",
+		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines how often the daemons are checked.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WATCH_NUM_BAD_CHECKS",
+		default => "3",
+		description => "How many bad daemon checks before we restart",
+		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines how many consecutive checks a daemon should fail before being restarted. The default value of 3 allows periodic restarts of the daemons to be ignored by zmwatch.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_WATCH_MIN_FPS",
+		default => "0.5",
+		description => "The minimum FPS we will allow before restarting the capture daemons",
+		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines what the minimum number of captured frames per second is considered valid. Generally if a lockup occurs the FPS will go to zero but setting this slightly higher will permit slightly earlier detection.",
+		type => $types{decimal},
+	},
+	{
+		name => "ZM_FORCED_ALARM_SCORE",
+		default => "255",
+		description => "Score to give X10 forced alarms",
+		help => "The zmu utility can be used to force an alarm on a monitor rather than rely on the motion detection algorithms. This option determines what score to give these alarms to distinguish them from regular ones. It must be 255 or less.",
+		type => $types{integer},
+	},
+	{
+		name => "ZM_RECORD_EVENT_STATS",
+		default => "yes",
+		description => "Whether to record event statistical information, change to no if too slow",
+		help => "This version of ZoneMinder records detailed information about events in the Stats table. This can help in profiling what the optimum settings are for Zones though this is tricky at present. However in future releases this will be done more easily and intuitively, especially with a large sample of events. The default option of 'Yes' allows this information to be collected now in readiness for this but if you are concerned about performance you can switch this off in which case no Stats information will be saved.",
+		type => $types{boolean},
+	},
+);
+
+my %options_hash = map { ( $_->{name}, $_ ) } @options;
+
+#$config_file = "zmconfig.txt" if ( !$config_file );
+
+if ( !-s $config_file )
+{
+	foreach my $option ( @options )
+	{
+		if ( $option->{default} )
+		{
+			$option->{value} = $option->{default}
+		}
+		else
+		{
+			$option->{value} = '';
+		}
+	}
+}
+else
+{
+	loadOptions();
+}
+
+if ( $interactive )
+{
+	print( "
+Welcome to the ZoneMinder interactive configuration utility.
+
+You will now be prompted to enter information allowing ZoneMinder to
+be configured for your system. Entering '?' at most prompts will print
+further information about each option if you are not sure what to put.
+You can also type 'q' at any time to exit without saving.
+
+Press enter to continue: " );
+	ReadLine( 0 );
+	print( "\n" );
+
+	foreach my $option ( @options )
+	{
+		if ( my $requires = $option->{requires} )
+		{
+			my $do_option;
+			foreach my $require ( @$requires )
+			{
+				if ( my $require_option = $options_hash{$require->{name}} )
+				{
+					if ( $require_option->{value} =~ /^$require->{value}/ )
+					{
+						$do_option = !undef;
+					}
+				}
+			}
+			next if ( !$do_option );
+		}
+		if ( $option->{introduction} )
+		{
+			print( '-'x76 . "\n" );
+			print( breaktext( $option->{introduction} ) );
+			print( '-'x76 . "\n" );
+		}
+		my $type = $option->{type};
+		if ( !$type )
+		{
+			warn( "No type found" );
+			$type = $types{anything};
+		}
+		while( 1 )
+		{
+			print( "$option->{description} ($type->{hint}) " );
+			print( "[$option->{value}] " ) if ( defined($option->{value}) );
+			print( ": " );
+			my $new_value = ReadLine( 0 );
+			chomp( $new_value );
+			if ( defined($new_value) )
+			{
+				if ( $new_value =~ /^\?/ )
+				{
+					if ( $option->{help} )
+					{
+						print( "\n".breaktext($option->{help})."\n" );
+					}
+					else
+					{
+						print( "Sorry, no help is available for this item\n" );
+					}
+					next;
+				}
+				elsif ( $new_value eq 'q' )
+				{
+					print( "Exiting\n" );
+					exit( 0 );
+				}
+				elsif ( $new_value eq '' )
+				{
+					if ( $option->{value} )
+					{
+						last;
+					}
+				}
+				print( "N:$new_value\n" );
+				my $parse_func = $type->{parse};
+				my ( $matched, $use_value ) = &$parse_func( $new_value );
+				if ( !$matched )
+				{
+					print( "Invalid input, please re-enter or type '?' for help.\n" );
+					next;
+				}
+				print( "U:$use_value\n" );
+				$option->{value} = $use_value;
+			}
+			last;
+		}
+		if ( my $check = $option->{check} )
+		{
+			if ( my $result = &$check( $option->{value} ) )
+			{
+				# All ok
+				print( "Exists\n" );
+			}
+			else
+			{
+				print( "Missing\n" );
+			}
+		}
+	}
+
+	saveOptions();
+}
+
+sub saveOptions
+{
+	print( "Creating '$config_file'\n" );
+	open( CONFIG, ">$config_file" ) or die( "Can't open options file: $!" );
+	foreach my $option ( @options )
+	{
+		print( CONFIG "Name: $option->{name}\n" );
+		print( CONFIG "Value: $option->{value}\n" );
+		print( CONFIG "Description: $option->{description}\n" );
+		print( CONFIG "\n" );
+	}
+	close( CONFIG );
+}
+
+sub loadOptions
+{
+	print( "Loading '$config_file'\n" );
+	open( CONFIG, "<$config_file" ) or die( "Can't open options file: $!" );
+	local $/ = "\n\n";
+	foreach my $section ( <CONFIG> )
+	{
+		my ( $name, $value, $description ) = $section =~ /Name: (.*)\nValue: (.*)\nDescription: (.*)\n/ms;
+		#print( "Name = '$name'\n" );
+		my $option = $options_hash{$name};
+		if ( !$option )
+		{
+			warn( "No option '$name' found, ignoring" );
+		}
+		$option->{value} = $value;
+	}
+	close( CONFIG );
+}
+
+sub breaktext
+{
+	my $text = shift;
+	( my $broken_text = $text ) =~ s/(.{1,76})(?:\s|$)/$1\n/g;
+	return( $broken_text );
+}
+
+if ( $reprocess )
+{
+	#my @config_files = qw( src/zmcfg.h scripts/zmdc.pl scripts/zmwatch.pl web/zmconfig.php scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmx10.pl );
+	my @config_files = qw( zmcfg.h );
+
+	foreach my $config_file ( @config_files )
+	{
+		local $/ = undef;
+		open( CFG_IN_FILE, $config_file ) or die( "Can't open '$config_file' for reading" );
+		my $data = <CFG_IN_FILE>;
+		close( CFG_IN_FILE );
+		if ( $config_file =~ /\.h$/ )
+		{
+			foreach my $option ( @options )
+			{
+				my $opt_name = $option->{name};
+				my $opt_type = $option->{type};
+				my $opt_value = $option->{value};
+				my $opt_desc = $option->{description};
+				if ( $opt_type == $types{boolean} )
+				{
+					$opt_value = "true" if ( $opt_value eq "yes" );
+					$opt_value = "false" if ( $opt_value eq "no" );
+				}
+				if ( $opt_type == $types{boolean}
+				|| $opt_type == $types{integer}
+				|| $opt_type == $types{decimal}
+				|| $opt_type == $types{hexadecimal} )
+				{
+					$data =~ s/^(#define\s+$opt_name\s+).*$/$1$opt_value\t\/\/ $opt_desc \(from zmconfig\)/mg;
+				}
+				else
+				{
+					$data =~ s/^(#define\s+$opt_name\s+).*$/$1"$opt_value"\t\/\/ $opt_desc \(from zmconfig\)/mg;
+				}
+			}
+		}
+		elsif ( $config_file =~ /\.pl$/ )
+		{
+			foreach my $option ( @options )
+			{
+				my $opt_name = $option->{name};
+				my $opt_type = $option->{type};
+				my $opt_value = $option->{value};
+				my $opt_desc = $option->{description};
+				if ( $opt_type == $types{boolean} )
+				{
+					$opt_value = 1 if ( $opt_value eq "yes" );
+					$opt_value = 0 if ( $opt_value eq "no" );
+				}
+				if ( $opt_type == $types{boolean}
+				|| $opt_type == $types{integer}
+				|| $opt_type == $types{decimal}
+				|| $opt_type == $types{hexadecimal} )
+				{
+					print $data =~ s/^(use\s+constant\s+$opt_name\s*=>\s*).*$/$1$opt_value;\t# $opt_desc \(from zmconfig\)/mg;
+				}
+				else
+				{
+					print $data =~ s/^(use\s+constant\s+$opt_name\s*=>\s*).*$/$1"$opt_value";\t# $opt_desc \(from zmconfig\)/mg;
+				}
+			}
+		}
+		elsif ( $config_file =~ /\.php$/ )
+		{
+			foreach my $option ( @options )
+			{
+				my $opt_name = $option->{name};
+				my $opt_type = $option->{type};
+				my $opt_value = $option->{value};
+				my $opt_desc = $option->{description};
+				if ( $opt_type == $types{boolean} )
+				{
+					$opt_value = "true" if ( $opt_value eq "yes" );
+					$opt_value = "false" if ( $opt_value eq "no" );
+				}
+				if ( $opt_type == $types{boolean}
+				|| $opt_type == $types{integer}
+				|| $opt_type == $types{decimal}
+				|| $opt_type == $types{hexadecimal} )
+				{
+					$data =~ s/^(define\s*\(\s*"$opt_name"\s*,\s*).*$/$1$opt_value \);\t\/\/ $opt_desc \(from zmconfig\)/mg;
+				}
+				else
+				{
+					$data =~ s/^(define\s*\(\s*"$opt_name"\s*,\s*).*$/$1"$opt_value" \);\t\/\/ $opt_desc \(from zmconfig\)/mg;
+				}
+			}
+		}
+		else
+		{
+			warn( "Unrecognised file type '$config_file'" );
+			next;
+		}
+		my $config_tmp_file = $config_file.".tmp";
+		open( CFG_FILE, ">$config_tmp_file" ) or die( "Can't open '$config_tmp_file' for writing" );
+		print( CFG_FILE $data );
+		close( CFG_FILE );
+		#rename( $config_tmp_file, $config_file ) or warn( "Can't rename '$config_old_file' to '$config_file': $!" );
+	}
+}

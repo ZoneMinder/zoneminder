@@ -77,6 +77,7 @@ else
 	$monitor['PostEventCount'] = 10;
 	$monitor['SectionLength'] = 600;
 	$monitor['FrameSkip'] = 0;
+	$monitor['EventPrefix'] = 'Event-';
 	$monitor['MaxFPS'] = 0;
 	$monitor['FPSReportInterval'] = 1000;
 	$monitor['RefBlendPerc'] = 10;
@@ -229,6 +230,7 @@ if ( $tab != 'buffers' )
 if ( $tab != 'misc' )
 {
 ?>
+<input type="hidden" name="new_monitor[EventPrefix]" value="<?= $new_monitor['EventPrefix'] ?>">
 <input type="hidden" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>">
 <input type="hidden" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor['FPSReportInterval'] ?>">
 <input type="hidden" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>">
@@ -357,6 +359,7 @@ switch ( $tab )
 	case 'misc' :
 	{
 ?>
+<tr><td align="left" class="text"><?= $zmSlangMaximumFPS ?></td><td align="left" class="text"><input type="text" name="new_monitor[EventPrefix]" value="<?= $new_monitor['EventPrefix'] ?>" size="24" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangMaximumFPS ?></td><td align="left" class="text"><input type="text" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangFPSReportInterval ?></td><td align="left" class="text"><input type="text" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor['FPSReportInterval'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangRefImageBlendPct ?></td><td align="left" class="text"><input type="text" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>" size="4" class="form"></td></tr>

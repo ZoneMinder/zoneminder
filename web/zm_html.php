@@ -2063,7 +2063,7 @@ function configureButton(form,name)
 			$monitor[FPSReportInterval] = 1000;
 			$monitor[RefBlendPerc] = 10;
 		}
-		$local_palettes = array( "Greyscale"=>1, "RGB24"=>4, "YUV420P"=>15 );
+		$local_palettes = array( "Grey"=>1, "RGB24"=>4, "RGB565"=>3, "YUV420P"=>15 );
 		$remote_palettes = array( "8 bit greyscale"=>1, "24 bit colour"=>4 );
 ?>
 <html>

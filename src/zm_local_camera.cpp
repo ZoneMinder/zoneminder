@@ -101,13 +101,24 @@ void LocalCamera::Initialise()
 		exit(-1);
 	}
 
-	if ( (vid_pic.palette = palette) == VIDEO_PALETTE_GREY )
+	switch (vid_pic.palette = palette)
 	{
-		vid_pic.depth = 8;
-	}
-	else
-	{
-		vid_pic.depth = 24;
+		case VIDEO_PALETTE_GREY :
+		{
+			vid_pic.depth = 8;
+			break;
+		}
+		case VIDEO_PALETTE_RGB565 :
+		{
+			vid_pic.depth = 16;
+			break;
+		}
+		case VIDEO_PALETTE_RGB24 :
+		case VIDEO_PALETTE_YUV420P :
+		{
+			vid_pic.depth = 24;
+			break;
+		}
 	}
 
 	if( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) )
@@ -547,7 +558,7 @@ int LocalCamera::PostCapture( Image &image )
 			v1_ptr = v_plane;
 			int size = Y_size*3;
 			int r,g,b;
-			for ( int i = 0; i < size; i++ )
+			for ( int i = 0; i < size; i += 3 )
 			{
 				y = *y_ptr++;
 				u = *u1_ptr++;
@@ -564,20 +575,57 @@ int LocalCamera::PostCapture( Image &image )
 			buffer = temp_buffer;
 			break;
 		}
+		case VIDEO_PALETTE_RGB565 :
+		{
+			int size = width*height*2;
+			unsigned char r,g,b;
+			unsigned char *s_ptr = buffer;
+			unsigned char *d_ptr = temp_buffer;
+			for ( int i = 0; i < size; i += 2 )
+			{
+				//r = ((*(s_ptr+1))<<3)&0xf8;
+				//g = (((*s_ptr)<<5)|(*(s_ptr+1)>>3))&0xf8;
+				//b = (*s_ptr)&0xf8;
+				b = ((*s_ptr)<<3)&0xf8;
+				g = (((*(s_ptr+1))<<5)|((*s_ptr)>>3))&0xf8;
+				r = (*(s_ptr+1))&0xf8;
+
+				*d_ptr++ = r;
+				*d_ptr++ = g;
+				*d_ptr++ = b;
+				s_ptr += 2;
+			}
+			buffer = temp_buffer;
+			break;
+		}
 		case VIDEO_PALETTE_RGB24 :
 		{
 			if ( ZM_LOCAL_BGR_INVERT )
 			{
 				int size = width*height*3;
+				unsigned char *s_ptr = buffer;
+				unsigned char *d_ptr = temp_buffer;
 				for ( int i = 0; i < size; i += 3 )
 				{
-					temp_buffer[i] = buffer[i+2];
-					temp_buffer[i+1] = buffer[i+1];
-					temp_buffer[i+2] = buffer[i];
+					*d_ptr++ = *(s_ptr+2);
+					*d_ptr++ = *(s_ptr+1);
+					*d_ptr++ = *s_ptr;
+					s_ptr += 3;
 				}
 			}
 			buffer = temp_buffer;
 			break;
+		}
+		case VIDEO_PALETTE_GREY :
+		{
+			int size = width*height;
+			for ( int i = 0; i < size; i++ )
+			{
+				if ( buffer[i] < 16 )
+					Info(( "Lo grey %d", buffer[i] ));
+				if ( buffer[i] > 235 )
+					Info(( "Hi grey %d", buffer[i] ));
+			}
 		}
 		default : // Everything else is straightforward, for now.
 		{

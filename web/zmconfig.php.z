@@ -36,57 +36,64 @@ define( "CAMBOZOLA_PATH", "cambozola.jar" );	// Path to (optional) cambozola jav
 define( "MPEG_ENCODE_PATH", "./mpeg_encode" );	// Path to (optional) mpeg video encoder
 define( "NETPBM_DIR", "/usr/bin" );				// Path to (optional) Netpbm utilities
 
-if ( $bandwidth == "high" )
+switch ( $bandwidth )
 {
-	define( "REFRESH_MAIN", 300 );				// How often (in seconds) the main console window refreshes
-	define( "REFRESH_CYCLE", 5 );				// How often the cycle watch windows swaps to the next monitor
-	define( "REFRESH_IMAGE", 5 );				// How often the watched image is refreshed (if not streaming)
-	define( "REFRESH_STATUS", 3 );				// How often the little status frame refreshes itself in the watch window
-	define( "REFRESH_EVENTS", 30 );				// How often the event listing is refreshed in the watch window, only for recent events
-	define( "REFRESH_EVENTS_ALL", 120 );		// How often the event listing is refreshed when looking at longer listings
-	define( "STREAM_IDLE_DELAY", 1000 );		// How long (in milliseconds) between streamed frames in the watch window
-	define( "STREAM_FRAME_DELAY", 50 );			// How long (in milliseconds) to wait before looking for the next streamed frame
-	define( "STREAM_EVENT_DELAY", 200 );		// How long (in milliseconds) to wait between each frame when streaming events
-	define( "IMAGE_SCALING", 1 );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
-}
-elseif ( $bandwidth == "medium" )
-{
-	define( "REFRESH_MAIN", 300 );				// How often (in seconds) the main console window refreshes
-	define( "REFRESH_CYCLE", 10 );				// How often the cycle watch windows swaps to the next monitor
-	define( "REFRESH_IMAGE", 15 );				// How often the watched image is refreshed (if not streaming)
-	define( "REFRESH_STATUS", 5 );				// How often the little status frame refreshes itself in the watch window
-	define( "REFRESH_EVENTS", 60 );				// How often the event listing is refreshed in the watch window, only for recent events
-	define( "REFRESH_EVENTS_ALL", 300 );		// How often the event listing is refreshed when looking at longer listings
-	define( "STREAM_IDLE_DELAY", 5000 );		// How long (in milliseconds) between streamed frames in the watch window
-	define( "STREAM_FRAME_DELAY", 100 );		// How long (in milliseconds) to wait before looking for the next streamed frame
-	define( "STREAM_EVENT_DELAY", 50 );			// How long (in milliseconds) to wait between each frame when streaming events
-	define( "IMAGE_SCALING", 4 );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
-}
-elseif ( $bandwidth == "medium" )
-{
-	define( "REFRESH_MAIN", 300 );				// How often (in seconds) the main console window refreshes
-	define( "REFRESH_CYCLE", 30 );				// How often the cycle watch windows swaps to the next monitor
-	define( "REFRESH_IMAGE", 30 );				// How often the watched image is refreshed (if not streaming)
-	define( "REFRESH_STATUS", 10 );				// How often the little status frame refreshes itself in the watch window
-	define( "REFRESH_EVENTS", 180 );			// How often the event listing is refreshed in the watch window, only for recent events
-	define( "REFRESH_EVENTS_ALL", 600 );		// How often the event listing is refreshed when looking at longer listings
-	define( "STREAM_IDLE_DELAY", 10000 );		// How long (in milliseconds) between streamed frames in the watch window
-	define( "STREAM_FRAME_DELAY", 250 );		// How long (in milliseconds) to wait before looking for the next streamed frame
-	define( "STREAM_EVENT_DELAY", 10 );			// How long (in milliseconds) to wait between each frame when streaming events
-	define( "IMAGE_SCALING", 4 );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
-}
-elseif ( $bandwidth == "mobile" )
-{
-	define( "REFRESH_MAIN", 300 );              // How often (in seconds) the main console window refreshes
-	define( "REFRESH_CYCLE", 30 );              // How often the cycle watch windows swaps to the next monitor
-	define( "REFRESH_IMAGE", 30 );              // How often the watched image is refreshed (if not streaming)
-	define( "REFRESH_STATUS", 10 );             // How often the little status frame refreshes itself in the watch window
-	define( "REFRESH_EVENTS", 180 );            // How often the event listing is refreshed in the watch window, only for recent events
-	define( "REFRESH_EVENTS_ALL", 600 );        // How often the event listing is refreshed when looking at longer listings
-	define( "STREAM_IDLE_DELAY", 10000 );       // How long (in milliseconds) between streamed frames in the watch window
-	define( "STREAM_FRAME_DELAY", 250 );        // How long (in milliseconds) to wait before looking for the next streamed frame
-	define( "STREAM_EVENT_DELAY", 10 );         // How long (in milliseconds) to wait between each frame when streaming events
-	define( "IMAGE_SCALING", 4 );               // Image scaling for thumbnails, bandwidth versus cpu in rescaling
+	case "high" :
+	{
+		define( "REFRESH_MAIN", 300 );				// How often (in seconds) the main console window refreshes
+		define( "REFRESH_CYCLE", 5 );				// How often the cycle watch windows swaps to the next monitor
+		define( "REFRESH_IMAGE", 5 );				// How often the watched image is refreshed (if not streaming)
+		define( "REFRESH_STATUS", 3 );				// How often the little status frame refreshes itself in the watch window
+		define( "REFRESH_EVENTS", 30 );				// How often the event listing is refreshed in the watch window, only for recent events
+		define( "REFRESH_EVENTS_ALL", 120 );		// How often the event listing is refreshed when looking at longer listings
+		define( "STREAM_IDLE_DELAY", 1000 );		// How long (in milliseconds) between streamed frames in the watch window
+		define( "STREAM_FRAME_DELAY", 50 );			// How long (in milliseconds) to wait before looking for the next streamed frame
+		define( "STREAM_EVENT_DELAY", 200 );		// How long (in milliseconds) to wait between each frame when streaming events
+		define( "IMAGE_SCALING", 1 );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		break;
+	}
+	case "medium" : 
+	{
+		define( "REFRESH_MAIN", 300 );				// How often (in seconds) the main console window refreshes
+		define( "REFRESH_CYCLE", 10 );				// How often the cycle watch windows swaps to the next monitor
+		define( "REFRESH_IMAGE", 15 );				// How often the watched image is refreshed (if not streaming)
+		define( "REFRESH_STATUS", 5 );				// How often the little status frame refreshes itself in the watch window
+		define( "REFRESH_EVENTS", 60 );				// How often the event listing is refreshed in the watch window, only for recent events
+		define( "REFRESH_EVENTS_ALL", 300 );		// How often the event listing is refreshed when looking at longer listings
+		define( "STREAM_IDLE_DELAY", 5000 );		// How long (in milliseconds) between streamed frames in the watch window
+		define( "STREAM_FRAME_DELAY", 100 );		// How long (in milliseconds) to wait before looking for the next streamed frame
+		define( "STREAM_EVENT_DELAY", 50 );			// How long (in milliseconds) to wait between each frame when streaming events
+		define( "IMAGE_SCALING", 4 );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		break;
+	}
+	case "low" :
+	{
+		define( "REFRESH_MAIN", 300 );				// How often (in seconds) the main console window refreshes
+		define( "REFRESH_CYCLE", 30 );				// How often the cycle watch windows swaps to the next monitor
+		define( "REFRESH_IMAGE", 30 );				// How often the watched image is refreshed (if not streaming)
+		define( "REFRESH_STATUS", 10 );				// How often the little status frame refreshes itself in the watch window
+		define( "REFRESH_EVENTS", 180 );			// How often the event listing is refreshed in the watch window, only for recent events
+		define( "REFRESH_EVENTS_ALL", 600 );		// How often the event listing is refreshed when looking at longer listings
+		define( "STREAM_IDLE_DELAY", 10000 );		// How long (in milliseconds) between streamed frames in the watch window
+		define( "STREAM_FRAME_DELAY", 250 );		// How long (in milliseconds) to wait before looking for the next streamed frame
+		define( "STREAM_EVENT_DELAY", 10 );			// How long (in milliseconds) to wait between each frame when streaming events
+		define( "IMAGE_SCALING", 4 );				// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		break;
+	}
+	case "mobile" :
+	{
+		define( "REFRESH_MAIN", 300 );              // How often (in seconds) the main console window refreshes
+		define( "REFRESH_CYCLE", 30 );              // How often the cycle watch windows swaps to the next monitor
+		define( "REFRESH_IMAGE", 30 );              // How often the watched image is refreshed (if not streaming)
+		define( "REFRESH_STATUS", 10 );             // How often the little status frame refreshes itself in the watch window
+		define( "REFRESH_EVENTS", 180 );            // How often the event listing is refreshed in the watch window, only for recent events
+		define( "REFRESH_EVENTS_ALL", 600 );        // How often the event listing is refreshed when looking at longer listings
+		define( "STREAM_IDLE_DELAY", 10000 );       // How long (in milliseconds) between streamed frames in the watch window
+		define( "STREAM_FRAME_DELAY", 250 );        // How long (in milliseconds) to wait before looking for the next streamed frame
+		define( "STREAM_EVENT_DELAY", 10 );         // How long (in milliseconds) to wait between each frame when streaming events
+		define( "IMAGE_SCALING", 4 );               // Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		break;
+	}
 }
 
 // Javascript window sizes

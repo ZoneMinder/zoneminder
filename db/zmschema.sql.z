@@ -1,16 +1,16 @@
 -- MySQL dump 8.21
 --
--- Host: localhost    Database: ZM_DB_NAME
+-- Host: localhost    Database: zm
 ---------------------------------------------------------
 -- Server version	3.23.49
 
 --
--- Current Database: ZM_DB_NAME
+-- Current Database: zm
 --
 
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ ZM_DB_NAME;
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ zm;
 
-USE ZM_DB_NAME;
+USE zm;
 
 --
 -- Table structure for table 'Events'

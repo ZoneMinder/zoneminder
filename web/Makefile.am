@@ -91,6 +91,7 @@ EXTRA_DIST = \
 	zm_html_view_montagefeed.php \
 	zm_html_view_montageframe.php \
 	zm_html_view_montage.php \
+	zm_html_view_montagemenu.php \
 	zm_html_view_montagestatus.php \
 	zm_html_view_none.php \
 	zm_html_view_optionhelp.php \

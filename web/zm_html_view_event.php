@@ -321,13 +321,13 @@ else
 	}
 	else
 	{
-		$lo_frame = 1;
-		$hi_frame = $event['Frames'];
+		$lo_frame_id = 1;
+		$hi_frame_id = $event['Frames'];
 	}
 	$sql = "select * from Frames where EventID = '$eid'";
 	if ( $paged && !empty($page) )
 		$sql .= " and FrameId between $lo_frame_id and $hi_frame_id";
-	$sql .= "order by FrameId";
+	$sql .= " order by FrameId";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		die( mysql_error() );
@@ -349,7 +349,7 @@ else
 	$thumb_width = $event['Width']/4;
 	$thumb_height = $event['Height']/4;
 	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorName'].'/'.$event['Id'];
-	for ( $frame_id = $lo_frame; $frame_id <= $hi_frame_id; $frame_id++ )
+	for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++ )
 	{
 		$image_path = sprintf( "%s/%03d-capture.jpg", $event_path, $frame_id );
 
@@ -385,7 +385,7 @@ else
 		$alarm_frame = $alarm_frames[$frame_id];
 		$img_class = $alarm_frame?"alarm":"normal";
 ?>
-<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<? echo $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $alarm_frame['Score'] ?>"></a></td>
+<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<? echo $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $alarm_frame?$alarm_frame['Score']:0 ?>"></a></td>
 <?php
 		flush();
 		if ( !(++$count % 4) )

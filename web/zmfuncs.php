@@ -77,6 +77,10 @@ function canStream()
 
 function startDaemon( $daemon, $did )
 {
+	$command = ZM_PATH."/zmdc.pl start $daemon $did";
+	exec( $command );
+	return;
+
 	$ps_command = "ps -edalf | grep '$daemon $did' | grep -v grep";
 	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
 	$pid = $ps_array[3];
@@ -98,6 +102,10 @@ function startDaemon( $daemon, $did )
 
 function stopDaemon( $daemon, $did )
 {
+	$command = ZM_PATH."/zmdc.pl stop $daemon $did";
+	exec( $command );
+	return;
+
 	$ps_command = "ps -edalf | grep '$daemon $did' | grep -v grep";
 	$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
 	if ( $ps_array[3] )

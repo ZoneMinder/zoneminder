@@ -73,5 +73,5 @@ AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 
 AC_SUBST(bindir)
 
-AC_OUTPUT(Makefile src/Makefile web/Makefile web/zmconfig.php scripts/Makefile db/Makefile scripts/zmdc.pl scripts/zmx10.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmwatch.pl)
+AC_OUTPUT(Makefile src/Makefile src/zmcfg.h web/Makefile web/zmconfig.php scripts/Makefile db/Makefile scripts/zmdc.pl scripts/zmx10.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmwatch.pl)
 

@@ -112,6 +112,7 @@ if ( !-s $video_file )
 	open( PARAMS, ">$param_file" ) or die( "Can't open '$param_file': $!" );
 
 	print( PARAMS "PATTERN		IBBPBBPBBPBBPBB\n" );
+	print( PARAMS "FORCE_ENCODE_LAST_FRAME\n" );
 	print( PARAMS "OUTPUT		$video_file\n" );
 
 	print( PARAMS "BASE_FILE_FORMAT	JPEG\n" );

@@ -21,6 +21,7 @@
 
 // This section contains options substituted by the zmconfig.pl utility, do not edit these directly
 //
+define( "ZM_VERSION", "<from zmconfig>" );				// Version Number
 define( "ZM_PATH_BIN", "<from zmconfig>" );				// Path to binaries
 define( "ZM_PATH_WEB", "<from zmconfig>" );				// Path to web files
 define( "ZM_PATH_CGI", "<from zmconfig>" );				// Path to cgi files

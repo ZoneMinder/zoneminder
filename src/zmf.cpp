@@ -293,7 +293,7 @@ int main( int argc, char *argv[] )
 			continue;
 		}
 		static char path[PATH_MAX] = "";
-		snprintf( path, sizeof(path), frame_header.alarm_frame?anal_path:capt_path, "%s/%d/%ld/%03ld-%s.jpg", frame_header.event_id, frame_header.frame_id );
+		snprintf( path, sizeof(path), frame_header.alarm_frame?anal_path:capt_path, frame_header.event_id, frame_header.frame_id );
 		Debug( 1, ( "Got image, writing to %s", path ));
 
 		FILE *fd = 0;

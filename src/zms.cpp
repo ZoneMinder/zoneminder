@@ -85,7 +85,7 @@ int main( int argc, const char *argv[] )
 
 		if ( monitor )
 		{
-			monitor->StreamImages( idle, refresh, stdout, ttl );
+			monitor->StreamImages( idle, refresh, ttl, scale, stdout );
 		}
 	}
 	else

@@ -66,9 +66,9 @@ protected:
 	// These are read from the DB and thereafter remain unchanged
 	int		id;
 	char	*name;
+	Function	function;		// What the monitor is doing
 	unsigned int    width;		// Normally the same as the camera, but not if partly rotated
 	unsigned int    height;		// Normally the same as the camera, but not if partly rotated
-	Function	function;		// What the monitor is doing
 	RunMode	run_mode;			// Whether the monitor is running continuously or is triggered	
 	Orientation	orientation;	// Whether the image has to be rotated at all
 	char	label_format[64];	// The format of the timestamp on the images
@@ -83,11 +83,12 @@ protected:
 	int		fps_report_interval;// How many images should be captured/processed between reporting the current FPS
 	int		ref_blend_perc;		// Percentage of new image going into reference image.
 
+	Image	ref_image;
+
 	Purpose	purpose;			// What this monitor has been created to do
 
 	double	fps;
 	Image	image;
-	Image	ref_image;
 	int		event_count;
 	int		image_count;
 	int		first_alarm_count;
@@ -263,7 +264,7 @@ public:
 	static int Load( int device, Monitor **&monitors, Purpose purpose=QUERY );
 	static int Load( const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose=QUERY );
 	static Monitor *Load( int id, bool load_zones=false, Purpose purpose=QUERY );
-	void StreamImages( unsigned long idle=5000, unsigned long refresh=50, FILE *fd=stdout, time_t ttl=0 );
+	void StreamImages( unsigned long idle=5000, unsigned long refresh=50, time_t ttl=0, int scale=1, FILE *fd=stdout );
 };
 
 #endif // ZM_MONITOR_H

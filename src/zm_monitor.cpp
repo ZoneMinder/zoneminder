@@ -997,11 +997,10 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 	return( monitor );
 }
 
-void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd, time_t ttl )
+void Monitor::StreamImages( unsigned long idle, unsigned long refresh, time_t ttl, int scale, FILE *fd )
 {
-	time_t start_time, now;
+	setbuf( fd, 0 );
 
-	//setbuf( fd, 0 );
 	fprintf( fd, "Server: ZoneMinder Stream Server\r\n" );
 	fprintf( fd, "Pragma: no-cache\r\n" );
 	fprintf( fd, "Cache-Control: no-cache\r\n" );
@@ -1009,10 +1008,14 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 	fprintf( fd, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
 	fprintf( fd, "--ZoneMinderFrame\n" );
 	int last_read_index = image_buffer_count;
-	JOCTET img_buffer[camera->ImageSize()];
+	//JOCTET img_buffer[camera->ImageSize()];
+	JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
 	int img_buffer_size = 0;
 	int loop_count = (idle/refresh)-1;
+
+	time_t start_time, now;
 	time( &start_time );
+
 	while ( true )
 	{
 		if ( feof( fd ) || ferror( fd ) )
@@ -1027,10 +1030,24 @@ void Monitor::StreamImages( unsigned long idle, unsigned long refresh, FILE *fd,
 			//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
 			Snapshot *snap = &image_buffer[index];
 			Image *image = snap->image;
-			image->EncodeJpeg( img_buffer, &img_buffer_size );
+
+			if ( scale == 1 )
+			{
+				image->EncodeJpeg( img_buffer, &img_buffer_size );
+			}
+			else
+			{
+				Image scaled_image( *image );
+
+				scaled_image.Scale( scale );
+
+				scaled_image.EncodeJpeg( img_buffer, &img_buffer_size );
+			}
 
 			fprintf( fd, "Content-type: image/jpg\n\n" );
-			fwrite( img_buffer, 1, img_buffer_size, fd );
+			fwrite( img_buffer, img_buffer_size, 1, fd );
+			//fwrite( img_buffer, 1, img_buffer_size, fd );
+			//write( fileno(fd), img_buffer, img_buffer_size );
 			fprintf( fd, "\n--ZoneMinderFrame\n" );
 		}
 		usleep( refresh*1000 );

@@ -444,7 +444,7 @@ sub processTask
 	{
 		if ( $instruction eq "start" )
 		{
-			$command = COMMAND_PATH."zmdc.pl start zma ".$task->{monitor};
+			$command = main::COMMAND_PATH."zmdc.pl start zma ".$task->{monitor};
 			if ( $task->{limit} )
 			{
 				addPendingTask( $task );
@@ -452,14 +452,14 @@ sub processTask
 		}
 		elsif( $instruction eq "stop" )
 		{
-			$command = COMMAND_PATH."zmdc.pl stop zma ".$task->{monitor};
+			$command = main::COMMAND_PATH."zmdc.pl stop zma ".$task->{monitor};
 		}
 	}
 	elsif( $class eq "alarm" )
 	{
 		if ( $instruction eq "start" )
 		{
-			$command = COMMAND_PATH."zmu --monitor ".$task->{monitor}." --alarm";
+			$command = main::COMMAND_PATH."zmu --monitor ".$task->{monitor}." --alarm";
 			if ( $task->{limit} )
 			{
 				addPendingTask( $task );
@@ -467,7 +467,7 @@ sub processTask
 		}
 		elsif( $instruction eq "stop" )
 		{
-			$command = COMMAND_PATH."zmu --monitor ".$task->{monitor}." --cancel";
+			$command = main::COMMAND_PATH."zmu --monitor ".$task->{monitor}." --cancel";
 		}
 	}
 	print( "Executing command '$command'\n" );

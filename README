@@ -1,14 +1,14 @@
-     17/03/04        ZoneMinder 1.19.0 README                1
+    22/03/04        ZoneMinder 1.19.1 README                
                                  
-                        ZoneMinder v1.19.0
+                        ZoneMinder v1.19.1
 
 1.   Introduction
    
 Welcome to ZoneMinder, the all-in-one Linux GPL'd security  camera
 solution.
 
-  A  while  back my garage was burgled and all my wine  and  power
-tools were nicked! I realised shortly after that if I'd just had a
+A while back my garage was burgled and all my wine and power tools
+were  nicked!  I  realised shortly after that if I'd  just  had  a
 camera  overlooking the door then at least I'd have  know  exactly
 when  and who did the dirty deed. And so ZoneMinder was born. It's
 still a baby but hopefully it can grow up to be something that can
@@ -126,17 +126,17 @@ directory   to  which  you  want  to  install  CGI  files.   These
 directories  could  be  /var/www/html/zm and /var/www/cgi-bin  for
 example.  If  you want to use real MPEG based streaming  you  will
 need  to  have built and installed the ffmpeg tools. You can  then
-also  use  -with-ffmpeg=<path to ffmpeg build directory>  to  help
-configure  find it. Note this path should be to the directory  you
-build  ffmpeg  in  and  not  where it is installed.  This  package
-installs  only  binaries whereas ZoneMinder needs  access  to  the
-header  and libraries files which remain. If you have built ffmpeg
-with the mp3lame feature turned on your will additionally need  to
-tell   configure  where  to  find  that,  to  prevent   unresolved
-dependencies.  To  do  this  add  the  -with-lame=<path  to   lame
-directory>option as well. There are also two further arguments you
-can  add  if your web user and group are not both 'apache'.  These
-are --with-webuser and --with-webgroup. Type
+also use -with-ffmpeg=<path to ffmpeg root> to help configure find
+it.  This  will be /usr/local if you let ffmpeg use  it's  default
+options. Note, you have to make sure you have installed the ffmpeg
+headers  and  libraries  rather  than  just  the  binaries,  or  a
+development package with them in. Additionally if you  have  built
+ffmpeg  with  the  mp3lame feature turned on you may  additionally
+need to tell configure where to find that the mp3lame library,  to
+prevent  unresolved  dependencies.  To  do  this  add  the  -with-
+lame=<path  to lame directory>option as well. There are  also  two
+further  arguments you can add if your web user and group are  not
+both 'apache'. These are --with-webuser and --with-webgroup. Type
 
 ./configure -help
 
@@ -1529,7 +1529,35 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 7.   Change Log
    
 
-7.1. Release 1.19.0
+7.1. Release 1.19.1
+Minor bugfixes and enhancements.
+
+  o     Ffmpeg  Configure Changes. The configure script  has  been
+    modified  to look for the ffmpeg libraries in their  installed
+    location rather than in a build directory. This is to avoid having
+    to build the library when it might already be installed.
+    
+  o     Pcre  Configure  Changes. The configure  script  has  been
+    modified to look for the pcre.h header file in both /usr/include
+    and /usr/include/pcre rather than just the latter as previously.
+    
+  o    Remote Image Parsing. Further improvements have been made to
+    handle additional patterns of images with differing styles  of
+    terminations or none at all.
+    
+o    Event Image Numbering. An additional configuration option
+(ZM_EVENT_IMAGE_DIGITS) has been added to allow the user to define
+how many significant figures should be used to number individual
+event images.
+o    Frame Listing Timestamp Bug. Fixed a bug where in the event
+frame listing view the timestamps were not correctly displayed.
+o    Event Filters Bug. Fixed (again) a bug where several fields
+used in event filters did not generate valid database queries.
+o    Zmu Device Authentication. Removed the previous requirement
+to pass in a username and password to zmu when just querying a
+device as this was slightly broken and was unnecessary anyway.
+
+7.2. Release 1.19.0
 Some major enhancements and bugfixes.
 
   o     MPEG  video streaming. ZoneMinder now supports true  video
@@ -1649,7 +1677,7 @@ deleted when monitor was.
 o    A translation for the Dutch (nl_nl) language has been
 included.
 
-7.2. Release 1.18.1
+7.3. Release 1.18.1
 Minor bugfixes.
 
   o     Filter Monitor Name Bug. A bug was present in the previous
@@ -1667,7 +1695,7 @@ for all of them. It is recommended that you review your list of
 saved filters and delete duplicates before adding any monitor
 specific terms and resetting the actions for any that remain.
 
-7.3. Release 1.18.0
+7.4. Release 1.18.0
 Major optimisations, important new features and some bugfixes.
 
   o     Optimisations and Performance Improvements.  This  release
@@ -1792,7 +1820,7 @@ So events that were meant to be 15 minutes long could sometimes be
 30 or even 45 minutes. This was especially the case with monitors
 that had low frame rates. This is now fixed.
 
-7.4. Release 1.17.2
+7.5. Release 1.17.2
 Minor features, bug fixes and additional languages.
 
   o    Pending Process Bug. A bug was found whereby a process that
@@ -1854,7 +1882,7 @@ now cleared when this daemon exits.
 o    New Languages. Translations for Japanese (ja_jp), French
 (fr_fr) and Russian (ru_ru) are now included.
 
-7.5. Release 1.17.1
+7.6. Release 1.17.1
 Bugfixes and additional languages.
 
   o    Login Bug. A bug was identified whereby an unauthorised user
@@ -1875,7 +1903,7 @@ accessed area and contains a great deal of text. The new format
 allows individual options to be translated piecemeal as the
 opportunity arises.
 
-7.6. Release 1.17.0
+7.7. Release 1.17.0
 Language changes and other enhancements.
 
   o     Version  Numbering. ZoneMinder version  numbers  have  now
@@ -1920,7 +1948,7 @@ has been corrected.
 o    Minor Bugs. A number of minor bugs and inconsistencies were
 corrected.
 
-7.7. Release 0.9.16
+7.8. Release 0.9.16
 Major usability enhancement and fixes.
 
   o    Run States. Instead of the old 'start/stop' links the current
@@ -2039,7 +2067,7 @@ correctly parsed from command line options passed to zmu.
 o    Event window width variable. Event windows now scale to fit
 the event image size.
 
-7.8. Release 0.9.15
+7.9. Release 0.9.15
 Various bug fixes from the last release and before.
 
   o     Bandwidth.  A  bug was introduced in .14  which  caused  a
@@ -2075,7 +2103,7 @@ directly were colourised whereas those written by  zmf weren't. A
 change has been made whereby if set all greyscale JPEG images are
 colourised in all circumstances.
 
-7.9. Release 0.9.14
+7.10.     Release 0.9.14
 Major new feature and important bug-fixes.
 
   o     Web  configuration. Following many requests  and  to  make
@@ -2116,7 +2144,7 @@ should still be secure as it will require authentication.
 o    All SQL buffers in the C++ code have been enlarged. There was
 previously an issue with a buffer overflow on certain occasions.
 
-7.10.     Release 0.9.13
+7.11.     Release 0.9.13
 Beta  version  of  several  features and  fixes,  never  generally
 released.
 
@@ -2166,7 +2194,7 @@ restart the refresh process. By using JS refresh timers which are
 not interrupted these extraneous refreshes have been mostly
 eliminated.
 
-7.11.     Release 0.9.12
+7.12.     Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
   o    Double first images. Fixed a problem where the first image of
@@ -2238,7 +2266,7 @@ users, attempts to delete monitors will now require confirmation.
 o    Detect linmysqlclient.a. Added better detection script into
 'configure' top spot when libmysqlclient.a is missing.
 
-7.12.     Release 0.9.11
+7.13.     Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats  view  -  If you have the  RECORD_EVENT_STATS
@@ -2321,7 +2349,7 @@ o    Web colour change - I thought the old red, green and amber
 text colours were just a bit too gaudy so I've toned them down a
 bit. Hope you like them!
 
-7.13.     Release 0.9.10
+7.14.     Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
   o     Configure 'round' bug - Fixed a problem with the configure
@@ -2399,7 +2427,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came across
 that that I don't think had been reported or noticed so I don't
 think we need to talk about them here do we.
 
-7.14.     Release 0.9.9
+7.15.     Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o    Added zmu -q/--query option - There is now a new query option
@@ -2446,7 +2474,7 @@ removed in the last version which meant that sometimes the console
 never go refreshed as it's timing loop was broken. This
 functionality has now been reinstated.
 
-7.15.     Release 0.9.8
+7.16.     Release 0.9.8
 Several new features and bug-fixes
 
   o    Upgrade note - If you have installed 0.9.7 and wish to save
@@ -2511,7 +2539,7 @@ o    Monitor window refresh on alarm - When the monitor window is
 active and an alarm has occurred the most recent alarms list is
 immediately refreshed to show it.
 
-7.16.     Release 0.9.7
+7.17.     Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes too.  Now
 somewhat more mature, not really an alpha any more, and a  lot  of
 bugs fixed too.
@@ -2556,7 +2584,7 @@ o    Some of the web views have changed slightly to accommodate
 the separate events view.
 o    And much much more, probably...
 
-7.17.     Release 0.0.1
+7.18.     Release 0.0.1
 Initial release, therefore nothing new.
 
 

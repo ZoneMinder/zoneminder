@@ -82,7 +82,7 @@ void LocalCamera::Initialise()
 	if( ioctl( m_videohandle, VIDIOCSWIN, &vid_win ) )
 	{
 		Error(( "Failed to set window attributes: %s", strerror(errno) ));
-		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
+		if ( ZM_STRICT_VIDEO_CONFIG ) exit(-1);
 	}
 
 	struct video_picture vid_pic;
@@ -124,7 +124,7 @@ void LocalCamera::Initialise()
 	if( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) )
 	{
 		Error(( "Failed to set picture attributes: %s", strerror(errno) ));
-		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
+		if ( ZM_STRICT_VIDEO_CONFIG ) exit(-1);
 	}
 	if(!ioctl(m_videohandle, VIDIOCGMBUF, &m_vmb))
 	{
@@ -176,7 +176,7 @@ void LocalCamera::Initialise()
 	if(ioctl(m_videohandle, VIDIOCSCHAN, &vid_src))
 	{
 		Error(( "Failed to set camera source %d: %s", channel, strerror(errno) ));
-		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
+		if ( ZM_STRICT_VIDEO_CONFIG ) exit(-1);
 	}
 
 	if( !ioctl( m_videohandle, VIDIOCGWIN, &vid_win))

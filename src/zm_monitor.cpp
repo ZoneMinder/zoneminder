@@ -648,6 +648,7 @@ bool Monitor::Analyse()
 
 	static struct timeval **timestamps;
 	static Image **images;
+	static int last_section_mod = 0;
 
 	unsigned int score = 0;
 	if ( Ready() )
@@ -663,12 +664,18 @@ bool Monitor::Analyse()
 			{
 				if ( state == IDLE || state == TAPE )
 				{
-					if ( (timestamp->tv_sec - event->StartTime().tv_sec) >= section_length )
+					int section_mod = timestamp->tv_sec%section_length;
+					if ( section_mod < last_section_mod )
 					{
 						Info(( "Ended event" ));
 						gettimeofday( &(event->EndTime()), &dummy_tz );
 						delete event;
 						event = 0;
+						last_section_mod = 0;
+					}
+					else
+					{
+						last_section_mod = section_mod;
 					}
 				}
 			}
@@ -795,12 +802,18 @@ bool Monitor::Analyse()
 		{
 			if ( state == IDLE || state == TAPE )
 			{
-				if ( (timestamp->tv_sec - event->StartTime().tv_sec) >= section_length )
+				int section_mod = timestamp->tv_sec%section_length;
+				if ( section_mod < last_section_mod )
 				{
 					Info(( "Ended event" ));
 					gettimeofday( &(event->EndTime()), &dummy_tz );
 					delete event;
 					event = 0;
+					last_section_mod = 0;
+				}
+				else
+				{
+					last_section_mod = section_mod;
 				}
 			}
 		}

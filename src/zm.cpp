@@ -1570,7 +1570,10 @@ int Monitor::GetImage( int index ) const
 	}
 	Snapshot *snap = &image_buffer[index];
 	Image *image = snap->image;
-	image->WriteJpeg( "zmu.jpg" );
+
+	char filename[64];
+	sprintf( filename, "%s.jpg", name );
+	image->WriteJpeg( filename );
 	return( 0 );
 }
 

@@ -26,7 +26,7 @@ void Usage()
 	fprintf( stderr, "Options:\n" );
 	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 0 if absent\n" );
 	fprintf( stderr, "  -s, --state                    : Output the current monitor state, 0 = idle, 1 = alarm, 2 = alert\n" );
-	fprintf( stderr, "  -i, --image [image_index]      : Write captured image to disk as zmu.jpg, last image captured or \n" );
+	fprintf( stderr, "  -i, --image [image_index]      : Write captured image to disk as <monitor_name>.jpg, last image captured\n" );
 	fprintf( stderr, "                                   or specified ring buffer index if given.\n" );
 	fprintf( stderr, "  -t, --timestamp [image_index]  : Output captured image timestamp, last image captured or specified\n" );
 	fprintf( stderr, "                                   ring buffer index if given\n" );

@@ -80,6 +80,9 @@ sub execute
 	return( qx( $command ) );
 }
 
+# Move to the right place
+chdir( ZM_PATH_WEB ) or die( "Can't chdir to '".ZM_PATH_WEB."': $!" );
+
 my $log_file = LOG_FILE;
 open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
 #open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
@@ -95,12 +98,12 @@ if ( $> != $web_uid )
 	chown( $web_uid, $web_gid, $log_file ) or die( "Can't change permissions on log file: $!" )
 }
 
-my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
 my $retval = 0;
 
-chomp( $status );
 if ( $command =~ /^(?:stop|restart)$/ )
 {
+	my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
+	chomp( $status );
 	if ( $status eq "running" )
 	{
 		execute( ZM_PATH_BIN."/zmdc.pl shutdown" );
@@ -113,6 +116,8 @@ if ( $command =~ /^(?:stop|restart)$/ )
 
 if ( $command =~ /^(?:start|restart)$/ )
 {
+	my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
+	chomp( $status );
 	if ( $status eq "stopped" )
 	{
 		execute( ZM_PATH_BIN."/zmfix" );
@@ -155,6 +160,8 @@ if ( $command =~ /^(?:start|restart)$/ )
 
 if ( $command eq "status" )
 {
+	my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
+	chomp( $status );
 	print( STDOUT $status."\n" );
 }
 

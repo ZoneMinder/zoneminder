@@ -347,13 +347,44 @@ public:
 class Camera
 {
 protected:
-	int			device;
-	int			channel;
-	int			format;
 	unsigned int	width;
 	unsigned int	height;
 	unsigned int	colours;
-	bool		capture;
+	bool			capture;
+
+public:
+	Camera( int p_width, int p_height, int p_colours, bool p_capture=true );
+	~Camera();
+	unsigned int Width() const { return( width ); }
+	unsigned int Height() const { return( height ); }
+	unsigned int Colours() const { return( colours ); }
+	unsigned int ImageSize() const { return( colours*width*height ); }
+
+	virtual void Initialise();
+	void Terminate();
+
+	virtual void PreCapture()=0;
+	virtual unsigned char *PostCapture()=0;
+	virtual void PostCapture( Image &image )=0;
+
+	inline unsigned char *Capture()
+	{
+		PreCapture();
+		return( PostCapture() );
+	}
+	inline void Capture( Image &image )
+	{
+		PreCapture();
+		return( PostCapture( image ) );
+	}
+};
+
+class LocalCamera : public Camera
+{
+protected:
+	int			device;
+	int			channel;
+	int			format;
 
 protected:
 	static int m_cap_frame;
@@ -365,21 +396,18 @@ protected:
 	static int camera_count;
 
 public:
-	Camera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture=true );
-	~Camera();
+	LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture=true );
+	~LocalCamera();
 	unsigned int Device() const { return( device ); }
 	unsigned int Channel() const { return( channel ); }
 	unsigned int Format() const { return( format ); }
-	unsigned int Width() const { return( width ); }
-	unsigned int Height() const { return( height ); }
-	unsigned int Colours() const { return( colours ); }
-	unsigned int ImageSize() const { return( colours*width*height ); }
 
-	static bool Camera::GetCurrentSettings( int device, char *output, bool verbose );
-	static void Initialise( int device, int channel, int format, int width, int height, int colours );
-	void Terminate();
+	static bool GetCurrentSettings( int device, char *output, bool verbose );
 
-	inline void PreCapture()
+	virtual void Initialise();
+	virtual void Terminate();
+
+	virtual void PreCapture()
 	{
 		//Info(( "%s: Capturing image\n", id ));
 
@@ -405,7 +433,7 @@ public:
 		}
 		m_cap_frame = (m_cap_frame+1)%m_vmb.frames;
 	}
-	inline unsigned char *PostCapture()
+	virtual unsigned char *PostCapture()
 	{
 		//Info(( "%s: Capturing image\n", id ));
 
@@ -419,7 +447,7 @@ public:
 
 		return( buffer );
 	}
-	inline void PostCapture( Image &image )
+	virtual void PostCapture( Image &image )
 	{
 		//Info(( "%s: Capturing image\n", id ));
 
@@ -432,16 +460,6 @@ public:
 		m_sync_frame = (m_sync_frame+1)%m_vmb.frames;
 
 		image.Assign( width, height, colours, buffer );
-	}
-	inline unsigned char *Capture()
-	{
-		PreCapture();
-		return( PostCapture() );
-	}
-	inline void Capture( Image &image )
-	{
-		PreCapture();
-		return( PostCapture( image ) );
 	}
 };
 

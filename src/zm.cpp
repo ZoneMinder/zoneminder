@@ -1381,16 +1381,39 @@ void Image::DeColourise()
 	}
 }
 
-Camera::Camera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture ) : device( p_device ), channel( p_channel ), format( p_format ), width( p_width), height( p_height ), colours( p_colours ), capture( p_capture )
+Camera::Camera( int p_width, int p_height, int p_colours, bool p_capture ) : width( p_width), height( p_height ), colours( p_colours ), capture( p_capture )
 {
-	if ( !camera_count++ && capture )
-	{
-		Initialise( device, channel, format, width, height, colours );
-
-	}
 }
 
 Camera::~Camera()
+{
+}
+
+void Camera::Initialise()
+{
+}
+
+void Camera::Terminate()
+{
+}
+
+int LocalCamera::camera_count = 0;
+int LocalCamera::m_cap_frame = 0;
+int LocalCamera::m_sync_frame = 0;
+video_mbuf LocalCamera::m_vmb;
+video_mmap *LocalCamera::m_vmm;
+int LocalCamera::m_videohandle;
+unsigned char *LocalCamera::m_buffer=0;
+
+LocalCamera::LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_colours, bool p_capture ) : Camera( p_width, p_height, p_colours, p_capture ), device( p_device ), channel( p_channel ), format( p_format )
+{
+	if ( !camera_count++ && capture )
+	{
+		Initialise();
+	}
+}
+
+LocalCamera::~LocalCamera()
 {
 	if ( !--camera_count && capture )
 	{
@@ -1398,7 +1421,165 @@ Camera::~Camera()
 	}
 }
 
-bool Camera::GetCurrentSettings( int device, char *output, bool verbose )
+void LocalCamera::Initialise()
+{
+	char device_path[64];
+
+	sprintf( device_path, "/dev/video%d", device );
+	if( (m_videohandle=open(device_path, O_RDONLY)) <=0 )
+	{
+		Error(( "Failed to open video device %s: %s\n", device_path, strerror(errno) ));
+		exit(-1);
+	}
+
+	struct video_window vid_win;
+	if( !ioctl( m_videohandle, VIDIOCGWIN, &vid_win))
+	{
+		Info(( "X:%d\n", vid_win.x ));
+		Info(( "Y:%d\n", vid_win.y ));
+		Info(( "W:%d\n", vid_win.width ));
+		Info(( "H:%d\n", vid_win.height ));
+	}
+	else
+	{
+		Error(( "Failed to get window attributes: %s\n", strerror(errno) ));
+		exit(-1);
+	}
+	vid_win.x = 0;
+	vid_win.y = 0;
+	vid_win.width = width;
+	vid_win.height = height;
+
+	if( ioctl( m_videohandle, VIDIOCSWIN, &vid_win ) )
+	{
+		Error(( "Failed to set window attributes: %s\n", strerror(errno) ));
+		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
+	}
+
+	struct video_picture vid_pic;
+	if( !ioctl( m_videohandle, VIDIOCGPICT, &vid_pic))
+	{
+		Info(( "P:%d\n", vid_pic.palette ));
+		Info(( "D:%d\n", vid_pic.depth ));
+		Info(( "B:%d\n", vid_pic.brightness ));
+		Info(( "h:%d\n", vid_pic.hue ));
+		Info(( "Cl:%d\n", vid_pic.colour ));
+		Info(( "Cn:%d\n", vid_pic.contrast ));
+	}
+	else
+	{
+		Error(( "Failed to get picture attributes: %s\n", strerror(errno) ));
+		exit(-1);
+	}
+
+	if ( colours == 1 )
+	{
+		vid_pic.palette = VIDEO_PALETTE_GREY;
+		vid_pic.depth = 8;
+	}
+	else
+	{
+		vid_pic.palette = VIDEO_PALETTE_RGB24;
+		vid_pic.depth = 24;
+	}
+
+	if( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) )
+	{
+		Error(( "Failed to set picture attributes: %s\n", strerror(errno) ));
+		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
+	}
+	if(!ioctl(m_videohandle, VIDIOCGMBUF, &m_vmb))
+	{
+		m_vmm = new video_mmap[m_vmb.frames];
+		Info(( "vmb.frames = %d\n", m_vmb.frames ));
+		Info(( "vmb.size = %d\n", m_vmb.size ));
+	}
+	else
+	{
+		Error(( "Failed to setup memory: %s\n", strerror(errno) ));
+		exit(-1);
+	}
+
+	for(int loop=0; loop < m_vmb.frames; loop++)
+	{
+		m_vmm[loop].frame = loop;
+		m_vmm[loop].width = width;
+		m_vmm[loop].height = height;
+		m_vmm[loop].format = (colours==1?VIDEO_PALETTE_GREY:VIDEO_PALETTE_RGB24);
+	}
+
+	m_buffer = (unsigned char *)mmap(0, m_vmb.size, PROT_READ, MAP_SHARED, m_videohandle,0);
+	if( !((long)m_buffer > 0) )
+	{
+		Error(( "Could not mmap video: %s", strerror(errno) ));
+		exit(-1);
+	}
+
+	struct video_channel vid_src;
+	vid_src.channel = channel;
+
+	if( !ioctl( m_videohandle, VIDIOCGCHAN, &vid_src))
+	{
+		Info(( "C:%d\n", vid_src.channel ));
+		Info(( "F:%d\n", vid_src.norm ));
+		Info(( "Fl:%x\n", vid_src.flags ));
+		Info(( "T:%d\n", vid_src.type ));
+	}
+	else
+	{
+		Error(( "Failed to get camera source: %s\n", strerror(errno) ));
+		exit(-1);
+	}
+
+	//vid_src.norm = VIDEO_MODE_AUTO;
+	vid_src.norm = format;
+	vid_src.flags = 0;
+	vid_src.type = VIDEO_TYPE_CAMERA;
+	if(ioctl(m_videohandle, VIDIOCSCHAN, &vid_src))
+	{
+		Error(( "Failed to set camera source %d: %s\n", channel, strerror(errno) ));
+		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
+	}
+
+	if( !ioctl( m_videohandle, VIDIOCGWIN, &vid_win))
+	{
+		Info(( "X:%d\n", vid_win.x ));
+		Info(( "Y:%d\n", vid_win.y ));
+		Info(( "W:%d\n", vid_win.width ));
+		Info(( "H:%d\n", vid_win.height ));
+	}
+	else
+	{
+		Error(( "Failed to get window data: %s\n", strerror(errno) ));
+		exit(-1);
+	}
+
+	if( !ioctl( m_videohandle, VIDIOCGPICT, &vid_pic))
+	{
+		Info(( "P:%d\n", vid_pic.palette ));
+		Info(( "D:%d\n", vid_pic.depth ));
+		Info(( "B:%d\n", vid_pic.brightness ));
+		Info(( "h:%d\n", vid_pic.hue ));
+		Info(( "Cl:%d\n", vid_pic.colour ));
+		Info(( "Cn:%d\n", vid_pic.contrast ));
+	}
+	else
+	{
+		Error(( "Failed to get window data: %s\n", strerror(errno) ));
+		exit(-1);
+	}
+}
+
+void LocalCamera::Terminate()
+{
+	munmap((char*)m_buffer, m_vmb.size);
+
+	delete[] m_vmm;
+
+	close(m_videohandle);
+}
+
+bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 {
 	char device_path[64];
 
@@ -1597,172 +1778,6 @@ bool Camera::GetCurrentSettings( int device, char *output, bool verbose )
 	return( true );
 }
 
-void Camera::Initialise( int device, int channel, int format, int width, int height, int colours )
-{
-	char device_path[64];
-
-	sprintf( device_path, "/dev/video%d", device );
-	if( (m_videohandle=open(device_path, O_RDONLY)) <=0 )
-	{
-		Error(( "Failed to open video device %s: %s\n", device_path, strerror(errno) ));
-		exit(-1);
-	}
-
-	struct video_window vid_win;
-	if( !ioctl( m_videohandle, VIDIOCGWIN, &vid_win))
-	{
-		Info(( "X:%d\n", vid_win.x ));
-		Info(( "Y:%d\n", vid_win.y ));
-		Info(( "W:%d\n", vid_win.width ));
-		Info(( "H:%d\n", vid_win.height ));
-	}
-	else
-	{
-		Error(( "Failed to get window attributes: %s\n", strerror(errno) ));
-		exit(-1);
-	}
-	vid_win.x = 0;
-	vid_win.y = 0;
-	vid_win.width = width;
-	vid_win.height = height;
-
-	if( ioctl( m_videohandle, VIDIOCSWIN, &vid_win ) )
-	{
-		Error(( "Failed to set window attributes: %s\n", strerror(errno) ));
-		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
-	}
-
-	struct video_picture vid_pic;
-	if( !ioctl( m_videohandle, VIDIOCGPICT, &vid_pic))
-	{
-		Info(( "P:%d\n", vid_pic.palette ));
-		Info(( "D:%d\n", vid_pic.depth ));
-		Info(( "B:%d\n", vid_pic.brightness ));
-		Info(( "h:%d\n", vid_pic.hue ));
-		Info(( "Cl:%d\n", vid_pic.colour ));
-		Info(( "Cn:%d\n", vid_pic.contrast ));
-	}
-	else
-	{
-		Error(( "Failed to get picture attributes: %s\n", strerror(errno) ));
-		exit(-1);
-	}
-
-	if ( colours == 1 )
-	{
-		vid_pic.palette = VIDEO_PALETTE_GREY;
-		vid_pic.depth = 8;
-	}
-	else
-	{
-		vid_pic.palette = VIDEO_PALETTE_RGB24;
-		vid_pic.depth = 24;
-	}
-
-	if( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) )
-	{
-		Error(( "Failed to set picture attributes: %s\n", strerror(errno) ));
-		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
-	}
-	if(!ioctl(m_videohandle, VIDIOCGMBUF, &m_vmb))
-	{
-		m_vmm = new video_mmap[m_vmb.frames];
-		Info(( "vmb.frames = %d\n", m_vmb.frames ));
-		Info(( "vmb.size = %d\n", m_vmb.size ));
-	}
-	else
-	{
-		Error(( "Failed to setup memory: %s\n", strerror(errno) ));
-		exit(-1);
-	}
-
-	for(int loop=0; loop < m_vmb.frames; loop++)
-	{
-		m_vmm[loop].frame = loop;
-		m_vmm[loop].width = width;
-		m_vmm[loop].height = height;
-		m_vmm[loop].format = (colours==1?VIDEO_PALETTE_GREY:VIDEO_PALETTE_RGB24);
-	}
-
-	m_buffer = (unsigned char *)mmap(0, m_vmb.size, PROT_READ, MAP_SHARED, m_videohandle,0);
-	if( !((long)m_buffer > 0) )
-	{
-		Error(( "Could not mmap video: %s", strerror(errno) ));
-		exit(-1);
-	}
-
-	struct video_channel vid_src;
-	vid_src.channel = channel;
-
-	if( !ioctl( m_videohandle, VIDIOCGCHAN, &vid_src))
-	{
-		Info(( "C:%d\n", vid_src.channel ));
-		Info(( "F:%d\n", vid_src.norm ));
-		Info(( "Fl:%x\n", vid_src.flags ));
-		Info(( "T:%d\n", vid_src.type ));
-	}
-	else
-	{
-		Error(( "Failed to get camera source: %s\n", strerror(errno) ));
-		exit(-1);
-	}
-
-	//vid_src.norm = VIDEO_MODE_AUTO;
-	vid_src.norm = format;
-	vid_src.flags = 0;
-	vid_src.type = VIDEO_TYPE_CAMERA;
-	if(ioctl(m_videohandle, VIDIOCSCHAN, &vid_src))
-	{
-		Error(( "Failed to set camera source %d: %s\n", channel, strerror(errno) ));
-		if ( !ZM_STRICT_VIDEO_CONFIG ) exit(-1);
-	}
-
-	if( !ioctl( m_videohandle, VIDIOCGWIN, &vid_win))
-	{
-		Info(( "X:%d\n", vid_win.x ));
-		Info(( "Y:%d\n", vid_win.y ));
-		Info(( "W:%d\n", vid_win.width ));
-		Info(( "H:%d\n", vid_win.height ));
-	}
-	else
-	{
-		Error(( "Failed to get window data: %s\n", strerror(errno) ));
-		exit(-1);
-	}
-
-	if( !ioctl( m_videohandle, VIDIOCGPICT, &vid_pic))
-	{
-		Info(( "P:%d\n", vid_pic.palette ));
-		Info(( "D:%d\n", vid_pic.depth ));
-		Info(( "B:%d\n", vid_pic.brightness ));
-		Info(( "h:%d\n", vid_pic.hue ));
-		Info(( "Cl:%d\n", vid_pic.colour ));
-		Info(( "Cn:%d\n", vid_pic.contrast ));
-	}
-	else
-	{
-		Error(( "Failed to get window data: %s\n", strerror(errno) ));
-		exit(-1);
-	}
-}
-
-void Camera::Terminate()
-{
-	munmap((char*)m_buffer, m_vmb.size);
-
-	delete[] m_vmm;
-
-	close(m_videohandle);
-}
-
-int Camera::m_cap_frame = 0;
-int Camera::m_sync_frame = 0;
-video_mbuf Camera::m_vmb;
-video_mmap *Camera::m_vmm;
-int Camera::m_videohandle;
-unsigned char *Camera::m_buffer=0;
-int Camera::camera_count = 0;
-
 Event::Event( Monitor *p_monitor, struct timeval p_start_time ) : monitor( p_monitor ), start_time( p_start_time )
 {
 	static char sql[256];
@@ -1914,7 +1929,7 @@ Monitor::Monitor( int p_id, char *p_name, int p_function, int p_device, int p_ch
 
     strcpy( label_format, p_label_format );
 
-	camera = new Camera( p_device, p_channel, p_format, p_width, p_height, p_colours, p_capture );
+	camera = new LocalCamera( p_device, p_channel, p_format, p_width, p_height, p_colours, p_capture );
 
 	fps = 0.0;
 	event_count = 0;
@@ -2431,10 +2446,10 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 
 	sprintf( output+strlen(output), "Id : %d\n", id );
 	sprintf( output+strlen(output), "Name : %s\n", name );
-	sprintf( output+strlen(output), "Device : %d\n", camera->Device() );
-	sprintf( output+strlen(output), "Channel : %d\n", camera->Channel() );
-	sprintf( output+strlen(output), "Format : %d\n", camera->Format() );
-	sprintf( output+strlen(output), "Width : %d\n", camera->Width() );
+	sprintf( output+strlen(output), "Device : %d\n", ((LocalCamera *)camera)->Device() );
+	sprintf( output+strlen(output), "Channel : %d\n", ((LocalCamera *)camera)->Channel() );
+	sprintf( output+strlen(output), "Format : %d\n", ((LocalCamera *)camera)->Format() );
+	sprintf( output+strlen(output), "Width : %d\n", ((LocalCamera *)camera)->Width() );
 	sprintf( output+strlen(output), "Height : %d\n", camera->Height() );
 	sprintf( output+strlen(output), "Colour Depth : %d\n", 8*camera->Colours() );
 	sprintf( output+strlen(output), "Label Format : %s\n", label_format );

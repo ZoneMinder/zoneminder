@@ -515,7 +515,7 @@ function closeWindow()
 }
 
 <?php
-		if ( $tab == 'user' )
+		if ( $tab == 'users' )
 		{
 ?>
 function validateForm( form )
@@ -618,11 +618,13 @@ function validateForm( form )
 <td align="left" class="ruled"><?= $row[MonitorIds]?$row[MonitorIds]:"&nbsp;" ?></td>
 <td align="center" class="ruled"><input type="checkbox" name="mark_uids[]" value="<?= $row[Id] ?>" onClick="configureButton( document.user_form, 'mark_uids' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>></td>
 </tr>
+<?php
+			}
+?>
 <tr><td colspan="10" class="ruled">&nbsp;</td></tr>
 <tr><td colspan="10" align="right"><input type="button" value="Add New User" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=user&uid=-1', 'zmUser', <?= $jws['user']['w'] ?>, <?= $jws['user']['h'] ?> );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="submit" name="delete_btn" value="Delete" class="form" disabled>&nbsp;<input type="button" value="Cancel" class="form" onClick="closeWindow();"></td></tr>
 </form>
 <?php
-			}
 		}
 		else
 		{

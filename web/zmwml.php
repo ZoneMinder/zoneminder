@@ -389,7 +389,7 @@ function checkAll(form,name){
 <?php if ( !$archived ) { ?>
 <td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?>&archived=1">Archive</a></td>
 <?php } ?>
-<td align="right" class="text"><a href="javascript: checkAll( event_form, 'delete_eids' );">Check All</a></td>
+<td align="right" class="text"><a href="javascript: checkAll( event_form, 'mark_eids' );">Check All</a></td>
 </tr>
 <tr><td colspan="5" class="text">&nbsp;</td></tr>
 <tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%">
@@ -413,7 +413,7 @@ function checkAll(form,name){
 <td align="center" class="text"><?php echo $row[Length] ?></td>
 <td align="center" class="text"><?php echo $row[Frames] ?> (<?php echo $row[AlarmFrames] ?>)</td>
 <td align="center" class="text"><?php echo $row[AvgScore] ?> (<?php echo $row[MaxScore] ?>)</td>
-<td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?php echo $row[Id] ?>"></td>
 </tr>
 <?php
 	}
@@ -472,7 +472,7 @@ function closeWindow() {
 	window.close();
 }
 function deleteEvent() {
-	opener.location.href = "<?php echo $PHP_SELF ?>?view=none&action=delete&delete_eid=<?php echo $eid ?>";
+	opener.location.href = "<?php echo $PHP_SELF ?>?view=none&action=delete&mark_eid=<?php echo $eid ?>";
 	window.close();
 }
 </script>
@@ -554,7 +554,7 @@ function newWindow(Url,Name,Width,Height) {
 </tr>
 <tr>
 <td align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
-<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=none&action=delete&delete_eid=<?php echo $eid ?>">Delete</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=none&action=delete&mark_eid=<?php echo $eid ?>">Delete</a></td>
 <?php if ( $event[Archived] ) { ?>
 <td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=unarchive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Unarchive</a></td>
 <?php } else { ?>
@@ -737,7 +737,7 @@ function closeWindow() {
 <td align="center" class="text"><?php echo $zone['Type'] ?></td>
 <td align="center" class="text"><?php echo $zone[Units] ?></td>
 <td align="center" class="text"><?php echo $zone[LoX] ?>,<?php echo $zone[LoY] ?>-<?php echo $zone[HiX] ?>,<?php echo $zone[HiY]?></td>
-<td align="center" class="text"><input type="checkbox" name="delete_zids[]" value="<?php echo $zone[Id] ?>"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_zids[]" value="<?php echo $zone[Id] ?>"></td>
 </tr>
 <?php
 	}

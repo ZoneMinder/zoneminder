@@ -196,7 +196,7 @@ function configureButton(form,name)
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $monitor[Id] ?>&filter=1&trms=2&attr1=DateTime&op1=%3e%3d&val1=last+month&cnj2=and&attr2=Archived&val2=0', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[MonthEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $monitor[Id] ?>&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );"><?php echo $monitor[ArchEventCount] ?></a></td>
 <td align="right" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=zones&mid=<?php echo $monitor[Id] ?>', 'zmZones', <?php echo $monitor[Width]+$jws['zones']['w'] ?>, <?php echo $monitor[Height]+$jws['zones']['h'] ?> );"><?php echo $monitor[ZoneCount] ?></a></td>
-<td align="center" class="text"><input type="checkbox" name="delete_mids[]" value="<?php echo $monitor[Id] ?>" onClick="configureButton( monitor_form, 'delete_mids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?php echo $monitor[Id] ?>" onClick="configureButton( monitor_form, 'mark_mids' );"></td>
 </tr>
 <?php
 		}
@@ -522,7 +522,7 @@ function configureButton(form,name)
 <td class="text"><b>Last <?php echo $n_rows ?> events</b></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $monitor[Id] ?>&filter=1&trms=0', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );">All</a></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $monitor[Id] ?>&filter=1&trms=1&attr1=Archived&val1=1', 'zmEvents<?php echo $monitor[Name] ?>', <?php echo $jws['events']['w'] ?>, <?php echo $jws['events']['h'] ?> );">Archive</a></td>
-<td align="right" class="text"><a href="javascript: checkAll( event_form, 'delete_eids' );">Check All</a></td>
+<td align="right" class="text"><a href="javascript: checkAll( event_form, 'mark_eids' );">Check All</a></td>
 </tr>
 <tr><td colspan="5" class="text">&nbsp;</td></tr>
 <tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%">
@@ -546,7 +546,7 @@ function configureButton(form,name)
 <td align="center" class="text"><?php echo $row[Length] ?></td>
 <td align="center" class="text"><?php echo $row[Frames] ?> (<?php echo $row[AlarmFrames] ?>)</td>
 <td align="center" class="text"><?php echo $row[AvgScore] ?> (<?php echo $row[MaxScore] ?>)</td>
-<td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>" onClick="configureButton( event_form, 'delete_eids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?php echo $row[Id] ?>" onClick="configureButton( event_form, 'mark_eids' );"></td>
 </tr>
 <?php
 		}
@@ -604,7 +604,7 @@ function configureButton(form,name)
 		$monitor = mysql_fetch_assoc( $result );
 
 		// XXX
-		$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId";
+		$sql = "select E.Id, E.Name,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M, Events as E where M.Id = '$mid' and M.Id = E.MonitorId";
 		$filter_query = ''; 
 		$filter_sql = '';
 		$filter_fields = '';
@@ -726,6 +726,8 @@ function checkAll(form,name){
 		if (form.elements[i].name.indexOf(name) == 0)
 			form.elements[i].checked = 1;
 	form.delete_btn.disabled = false;
+	form.learn_btn.disabled = false;
+	form.learn_state.disabled = false;
 }
 function configureButton(form,name)
 {
@@ -742,10 +744,14 @@ function configureButton(form,name)
 		}
 	}
 	form.delete_btn.disabled = !checked;
+	form.learn_btn.disabled = !checked;
+	form.learn_state.disabled = !checked;
 }
 window.focus();
 <?php if ( $filter ) { ?>
+opener.location.reload();
 filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php echo $filter_query ?>', 'zmFilter<?php echo $monitor[Name] ?>' );
+location.href = '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?>';
 <?php } ?>
 </script>
 </head>
@@ -767,7 +773,7 @@ filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php e
 <tr>
 <td align="right" class="text"><a href="javascript: location.reload();">Refresh</td>
 <td align="right" class="text"><a href="javascript: filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php echo $filter_query ?>', 'zmFilter<?php echo $monitor[Name] ?>' );">Filter</a></td>
-<td align="right" class="text"><a href="javascript: checkAll( event_form, 'delete_eids' );">Check All</a></td>
+<td align="right" class="text"><a href="javascript: checkAll( event_form, 'mark_eids' );">Check All</a></td>
 </tr>
 <tr><td colspan="3" class="text">&nbsp;</td></tr>
 <tr><td colspan="3"><table border="0" cellspacing="0" cellpadding="0" width="100%">
@@ -785,17 +791,23 @@ filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php e
 <?php
 		while( $row = mysql_fetch_assoc( $result ) )
 		{
+			if ( $row[LearnState] == '+' )
+				$bgcolor = "#98FB98";
+			elseif ( $row[LearnState] == '-' )
+				$bgcolor = "#FFC0CB";
+			else
+				unset( $bgcolor );
 ?>
-<tr>
-<td align="center" class="text"><a href="javascript: eventWindow( '<?php echo $PHP_SELF ?>?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Id] ?><?php if ( $row[Archived] ) echo "*" ?></a></td>
-<td align="center" class="text"><a href="javascript: eventWindow( '<?php echo $PHP_SELF ?>?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><?php echo $row[Name] ?><?php if ( $row[Archived] ) echo "*" ?></a></td>
+<tr<?php if ( $bgcolor ) echo ' bgcolor="'.$bgcolor.'"'; ?> >
+<td align="center" class="text"><a href="javascript: eventWindow( '<?php echo $PHP_SELF ?>?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><span class="<?php echo $textclass ?>"><?php echo "$row[Id]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?php echo $PHP_SELF ?>?view=event&eid=<?php echo $row[Id] ?>', 'zmEvent' );"><span class="<?php echo $textclass ?>"><?php echo "$row[Name]" ?><?php if ( $row[Archived] ) echo "*" ?></span></a></td>
 <td align="center" class="text"><?php echo strftime( "%m/%d %H:%M:%S", $row[Time] ) ?></td>
 <td align="center" class="text"><?php echo $row[Length] ?></td>
 <td align="center" class="text"><?php echo $row[Frames] ?></td>
 <td align="center" class="text"><?php echo $row[AlarmFrames] ?></td>
 <td align="center" class="text"><?php echo $row[AvgScore] ?></td>
 <td align="center" class="text"><?php echo $row[MaxScore] ?></td>
-<td align="center" class="text"><input type="checkbox" name="delete_eids[]" value="<?php echo $row[Id] ?>" onClick="configureButton( event_form, 'delete_eids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?php echo $row[Id] ?>" onClick="configureButton( event_form, 'mark_eids' );"></td>
 </tr>
 <?php
 		}
@@ -803,7 +815,7 @@ filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php e
 </table></td></tr>
 </table></td>
 </tr>
-<tr><td align="right"><input type="button" name="delete_btn" value="Delete" class="form" onClick="event_form.action.value = 'delete'; event_form.submit();" disabled></td></tr>
+<tr><td align="right"><select name="learn_state" class="form" disabled><option value="">Ignore</option><option value="-">Exclude</option><option value="+">Include</option></select>&nbsp;&nbsp;<input type="button" name="learn_btn" value="Set Learn Prefs" class="form" onClick="event_form.action.value = 'learn'; event_form.submit();" disabled>&nbsp;&nbsp;<input type="button" name="delete_btn" value="Delete" class="form" onClick="event_form.action.value = 'delete'; event_form.submit();" disabled></td></tr>
 </table></center>
 </form>
 </body>
@@ -835,6 +847,10 @@ filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php e
 <title>ZM - <?php echo $monitor[Name] ?> - Event Filter</title>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
+function newWindow(Url,Name,Width,Height)
+{
+   	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+}
 function closeWindow()
 {
 	top.window.close();
@@ -885,7 +901,14 @@ function submitToFilter( form )
 }
 function submitToEvents( form )
 {
-	form.target = 'zmEvents<?php echo $monitor[Name] ?>';
+   	var Url = '<?php echo $PHP_SELF ?>';
+	var Name = 'zmEvents<?php echo $monitor[Name] ?>';
+	var Width = <?php echo $jws['events']['w'] ?>;
+	var Height = <?php echo $jws['events']['h'] ?>;
+	var Options = 'resizable,scrollbars,width='+Width+',height='+Height;
+
+	window.open( Url, Name, Options );
+	form.target = Name;
 	form.view.value = 'events';
 	form.submit();
 }
@@ -1011,7 +1034,7 @@ function closeWindow()
 }
 function deleteEvent()
 {
-	opener.location.href = "<?php echo $PHP_SELF ?>?view=none&action=delete&delete_eid=<?php echo $eid ?>";
+	opener.location.href = "<?php echo $PHP_SELF ?>?view=none&action=delete&mark_eid=<?php echo $eid ?>";
 	window.close();
 }
 </script>
@@ -1068,7 +1091,14 @@ function deleteEvent()
 <title>ZM - Event - <?php echo $event[Name] ?></title>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
-//opener.location.reload();
+<?php
+		if ( $refresh_parent )
+		{
+?>
+opener.location.reload();
+<?php
+		}
+?>
 window.focus();
 function refreshWindow()
 {
@@ -1087,21 +1117,29 @@ function newWindow(Url,Name,Width,Height)
 <body>
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
-<td colspan="6" align="left" class="text">
-<form method="get" action="<?php echo $PHP_SELF ?>">
+<td colspan="3" align="left" class="text">
+<form name="rename_form" method="get" action="<?php echo $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?php echo $view ?>">
 <input type="hidden" name="action" value="rename">
 <input type="hidden" name="eid" value="<?php echo $eid ?>">
 <input type="text" size="16" name="event_name" value="<?php echo $event[Name] ?>" class="form">
-<input type="submit" value="Rename" class="form"></td>
+<input type="submit" value="Rename" class="form"></form></td>
+<td colspan="3" align="right" class="text">
+<form name="learn_form" method="get" action="<?php echo $PHP_SELF ?>">
+<input type="hidden" name="view" value="<?php echo $view ?>">
+<input type="hidden" name="action" value="learn">
+<input type="hidden" name="eid" value="<?php echo $eid ?>">
+<input type="hidden" name="mark_eid" value="<?php echo $eid ?>">
+Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.submit();"><option value=""<?php if ( !$event[LearnState] ) echo " selected" ?>>Ignore</option><option value="-"<?php if ( $event[LearnState]=='-' ) echo " selected" ?>>Exclude</option><option value="+"<?php if ( $event[LearnState]=='+' ) echo " selected" ?>>Include</option></select>
+</form></td>
 </tr>
 <tr>
 <td align="center" class="text"><a href="javascript: refreshWindow();">Refresh</a></td>
-<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=none&action=delete&delete_eid=<?php echo $eid ?>">Delete</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=none&action=delete&mark_eid=<?php echo $eid ?>">Delete</a></td>
 <?php if ( $event[Archived] ) { ?>
-<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=unarchive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Unarchive</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=unarchive&eid=<?php echo $eid ?>">Unarchive</a></td>
 <?php } else { ?>
-<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=archive&mid=<?php echo $event[MonitorName] ?>&eid=<?php echo $eid ?>">Archive</a></td>
+<td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=<?php echo $view ?>&action=archive&eid=<?php echo $eid ?>">Archive</a></td>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
 <td align="center" class="text"><a href="<?php echo $PHP_SELF ?>?view=event&mode=still&mid=<?php echo $mid ?>&eid=<?php echo $eid ?>">Stills</a></td>
@@ -1300,7 +1338,7 @@ function configureButton(form,name)
 <td align="center" class="text"><?php echo $zone['Type'] ?></td>
 <td align="center" class="text"><?php echo $zone[Units] ?></td>
 <td align="center" class="text"><?php echo $zone[LoX] ?>,<?php echo $zone[LoY] ?>-<?php echo $zone[HiX] ?>,<?php echo $zone[HiY]?></td>
-<td align="center" class="text"><input type="checkbox" name="delete_zids[]" value="<?php echo $zone[Id] ?>" onClick="configureButton( zone_form, 'delete_zids' );"></td>
+<td align="center" class="text"><input type="checkbox" name="mark_zids[]" value="<?php echo $zone[Id] ?>" onClick="configureButton( zone_form, 'mark_zids' );"></td>
 </tr>
 <?php
 		}

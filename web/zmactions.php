@@ -41,31 +41,34 @@ if ( $action )
 	}
 	elseif ( $action == "delete" )
 	{
-		if ( !$delete_eids && $delete_eid )
+		if ( !$mark_eids && $mark_eid )
 		{
-			$delete_eids[] = $delete_eid;
+			$mark_eids[] = $mark_eid;
 			$refresh_parent = true;
 		}
-		if ( $delete_eids )
+		if ( $mark_eids )
 		{
-			foreach( $delete_eids as $delete_eid )
+			foreach( $mark_eids as $mark_eid )
 			{
-				$result = mysql_query( "delete from Frames where EventId = '$delete_eid'" );
+				$result = mysql_query( "delete from Stats where EventId = '$mark_eid'" );
 				if ( !$result )
 					die( mysql_error() );
-				$result = mysql_query( "delete from Events where Id = '$delete_eid'" );
+				$result = mysql_query( "delete from Frames where EventId = '$mark_eid'" );
 				if ( !$result )
 					die( mysql_error() );
-				if ( $delete_eid )
-					system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $delete_eid ) ) );
+				$result = mysql_query( "delete from Events where Id = '$mark_eid'" );
+				if ( !$result )
+					die( mysql_error() );
+				if ( $mark_eid )
+					system( escapeshellcmd( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $mark_eid ) ) );
 			}
 		}
-		elseif ( $delete_zids )
+		elseif ( $mark_zids )
 		{
 			$deleted_zid = 0;
-			foreach( $delete_zids as $delete_zid )
+			foreach( $mark_zids as $mark_zid )
 			{
-				$result = mysql_query( "delete from Zones where Id = '$delete_zid'" );
+				$result = mysql_query( "delete from Zones where Id = '$mark_zid'" );
 				if ( !$result )
 					die( mysql_error() );
 				$deleted_zid = 1;
@@ -76,11 +79,11 @@ if ( $action )
 				$refresh_parent = true;
 			}
 		}
-		elseif ( $delete_mids )
+		elseif ( $mark_mids )
 		{
-			foreach( $delete_mids as $delete_mid )
+			foreach( $mark_mids as $mark_mid )
 			{
-				$sql = "select * from Monitors where Id = '$delete_mid'";
+				$sql = "select * from Monitors where Id = '$mark_mid'";
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );
@@ -89,33 +92,53 @@ if ( $action )
 					continue;
 				}
 
-				$sql = "select Id from Events where MonitorId = '$delete_mid'";
+				$sql = "select Id from Events where MonitorId = '$mark_mid'";
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );
 
-				$delete_eids = array();
+				$mark_eids = array();
 				while( $row = mysql_fetch_assoc( $result ) )
 				{
-					$delete_eids[] = $row[Id];
+					$mark_eids[] = $row[Id];
 				}
-				foreach( $delete_eids as $delete_eid )
+				foreach( $mark_eids as $mark_eid )
 				{
-					$result = mysql_query( "delete from Frames where EventId = '$delete_eid'" );
+					$result = mysql_query( "delete from Stats where EventId = '$mark_eid'" );
 					if ( !$result )
 						die( mysql_error() );
-					$result = mysql_query( "delete from Events where Id = '$delete_eid'" );
+					$result = mysql_query( "delete from Frames where EventId = '$mark_eid'" );
 					if ( !$result )
 						die( mysql_error() );
-					if ( $delete_eid )
-						system( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $delete_eid ) );
+					$result = mysql_query( "delete from Events where Id = '$mark_eid'" );
+					if ( !$result )
+						die( mysql_error() );
+					if ( $mark_eid )
+						system( "rm -rf ".EVENT_PATH."/*/".sprintf( "%04d", $mark_eid ) );
 				}
 				system( "rm -rf ".EVENT_PATH."/".$monitor[Name] );
 
-				$result = mysql_query( "delete from Zones where MonitorId = '$delete_mid'" );
+				$result = mysql_query( "delete from Zones where MonitorId = '$mark_mid'" );
 				if ( !$result )
 					die( mysql_error() );
-				$result = mysql_query( "delete from Monitors where Id = '$delete_mid'" );
+				$result = mysql_query( "delete from Monitors where Id = '$mark_mid'" );
+				if ( !$result )
+					die( mysql_error() );
+			}
+		}
+	}
+	elseif ( $action == "learn" )
+	{
+		if ( !$mark_eids && $mark_eid )
+		{
+			$mark_eids[] = $mark_eid;
+			$refresh_parent = true;
+		}
+		if ( $mark_eids )
+		{
+			foreach( $mark_eids as $mark_eid )
+			{
+				$result = mysql_query( "update Events set LearnState = '$learn_state' where Id = '$mark_eid'" );
 				if ( !$result )
 					die( mysql_error() );
 			}

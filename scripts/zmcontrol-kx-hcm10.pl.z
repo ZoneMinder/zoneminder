@@ -159,7 +159,7 @@ sub sendCmd
 	my $ua = LWP::UserAgent->new;
 	$ua->agent( "ZoneMinder Control Agent/".ZM_VERSION );
 
-	print( "http://$address/$cmd\n" );
+	#print( "http://$address/$cmd\n" );
 	my $req = HTTP::Request->new( GET=>"http://$address/$cmd" );
 	my $res = $ua->request($req);
 

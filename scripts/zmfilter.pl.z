@@ -79,7 +79,7 @@ my $event_id = 0;
 sub Usage
 {
 	print( "
-Usage: zmf.pl (-m <monitor_id>,-monitor=<monitor_id>) [-e <event_id>,--event=<event_id>] [-d <seconds>,--delay=<seconds>]
+Usage: zmfilter.pl (-m <monitor_id>,-monitor=<monitor_id>) [-e <event_id>,--event=<event_id>] [-d <seconds>,--delay=<seconds>]
 Parameters are :-
 -m <monitor_id>, --monitor=<monitor_id> - Indicate which monitor id to run for
 -e<event_id>, --event=<event_id>        - What event to start scanning from

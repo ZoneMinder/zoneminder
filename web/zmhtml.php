@@ -337,7 +337,7 @@ function newWindow(Url,Name,Width,Height)
 <title>ZM - <?php echo $monitor[Name] ?> - Watch</title>
 <link rel="stylesheet" href="zmstyles.css" type="text/css">
 <script language="JavaScript">
-opener.location.reload();
+//opener.location.reload();
 window.focus();
 </script>
 </head>
@@ -817,7 +817,7 @@ function configureButton(form,name)
 }
 window.focus();
 <?php if ( $filter ) { ?>
-opener.location.reload();
+//opener.location.reload();
 filterWindow( '<?php echo $PHP_SELF ?>?view=filter&mid=<?php echo $mid ?><?php echo $filter_query ?>', 'zmFilter<?php echo $monitor[Name] ?>' );
 location.href = '<?php echo $PHP_SELF ?>?view=events&mid=<?php echo $mid ?><?php echo $filter_query ?>';
 <?php } ?>

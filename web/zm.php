@@ -307,6 +307,7 @@ if ( $view == "console" )
 	$monitors = array();
 	$max_width = 0;
 	$max_height = 0;
+	$cycle_count = 0;
 	while( $row = mysql_fetch_assoc( $result ) )
 	{
 		if ( $max_width < $row[Width] ) $max_width = $row[Width];
@@ -317,6 +318,7 @@ if ( $view == "console" )
 			echo mysql_error();
 		$row2 = mysql_fetch_assoc( $result2 );
 		$monitors[] = array_merge( $row, $row2 );
+		if ( $row['Function'] != 'None' ) $cycle_count++;
 	}
 
 	$sql = "select distinct Device from Monitors order by Device";
@@ -360,7 +362,11 @@ function newWindow(Url,Name,Width,Height) {
 <?php if ( $bandwidth != "high" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=high">high</a><?php } ?>
 <?php if ( $bandwidth != "medium" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=medium">medium</a><?php } ?>
 <?php if ( $bandwidth != "low" ) { ?> <a href="<?php echo $PHP_SELF ?>?new_bandwidth=low">low</a><?php } ?> )</td>
+<?php if ( $cycle_count > 1 ) { ?>
 <td class="smallhead" align="right"><a href="javascript: newWindow( '<?php echo $PHP_SELF ?>?view=cycle', 'zmCycle', <?php echo $max_width+36 ?>, <?php echo $max_height+72 ?> );">Watch All</a></td>
+<?php } else { ?>
+<td class="smallhead" align="right">&nbsp;</td>
+<?php } ?>
 </tr>
 </table>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">

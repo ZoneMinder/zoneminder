@@ -251,22 +251,18 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 {
 	double pts = 0.0;
 
-	/* compute current video time */
 	if (ost)
 	{
+#if FFMPEG_VERSION_INT <= 0x000408
 		pts = (double)ost->pts.val * ofc->pts_num / ofc->pts_den;
-		//Info(( "PTS:%lf, PTSV:%lld, PTSN:%d(%lld), PTSD:%d(%lld)", pts, ost->pts.val, ofc->pts_num, ost->pts.num, ofc->pts_den, ost->pts.den ));
+#else
+		pts = (double)ost->pts.val * ost->time_base.num / ost->time_base.den;
+#endif
 	}
-	//if (!ost || pts >= STREAM_DURATION)
-		//break;
 
-	/* write video frames */
 	AVCodecContext *c = &ost->codec;
 	if (c->pix_fmt != pf)
 	{
-		/* as we only access a RGB24 picture, we must convert it
-		   to the codec pixel format if needed */
-		//tmp_opicture->data[0] = snap_image->Buffer();
 		memcpy( tmp_opicture->data[0], buffer, buffer_size );
 		img_convert((AVPicture *)opicture, c->pix_fmt, 
 					(AVPicture *)tmp_opicture, pf,
@@ -274,7 +270,6 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 	}
 	else
 	{
-		//opicture->data[0] = snap_image->Buffer();
 		memcpy( opicture->data[0], buffer, buffer_size );
 	}
 	AVFrame *opicture_ptr = opicture;
@@ -282,23 +277,42 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 	int ret = 0;
 	if (ofc->oformat->flags & AVFMT_RAWPICTURE)
 	{
-		/* raw video case. The API will change slightly in the near
-		   futur for that */
+#if FFMPEG_VERSION_INT <= 0x000408
 		ret = av_write_frame(ofc, ost->index, (uint8_t *)opicture_ptr, sizeof(AVPicture));
+#else
+		AVPacket pkt;
+		av_init_packet(&pkt);
+
+		pkt.flags |= PKT_FLAG_KEY;
+		pkt.stream_index = ost->index;
+		pkt.data = (uint8_t *)opicture_ptr;
+		pkt.size = sizeof(AVPicture);
+
+		ret = av_write_frame(ofc, &pkt);
+#endif
 	}
 	else
 	{
-		// Add a timestamp if supplied
 		if ( add_timestamp )
 			ost->pts.val = timestamp;
-		/* encode the image */
 		int out_size = avcodec_encode_video(c, video_outbuf, video_outbuf_size, opicture_ptr);
-		/* if zero size, it means the image was buffered */
 		if (out_size != 0)
 		{
-			/* write the compressed frame in the media file */
-			/* XXX: in case of B frames, the pts is not yet valid */
+#if FFMPEG_VERSION_INT <= 0x000408
 			ret = av_write_frame(ofc, ost->index, video_outbuf, out_size);
+#else
+			AVPacket pkt;
+			av_init_packet(&pkt);
+
+			pkt.pts = c->coded_frame->pts;
+			if(c->coded_frame->key_frame)
+				pkt.flags |= PKT_FLAG_KEY;
+			pkt.stream_index = ost->index;
+			pkt.data = video_outbuf;
+			pkt.size = out_size;
+
+			ret = av_write_frame(ofc, &pkt);
+#endif
 		}
 	}
 	if (ret != 0)

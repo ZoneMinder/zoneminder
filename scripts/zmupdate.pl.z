@@ -59,7 +59,7 @@ BEGIN
 }
 
 use constant UPDATE_LOG_FILE => ZM_PATH_LOGS.'/zmupdate.log';
-use constant CHECK_INTERVAL => (7*24*60*60); # Interval between version checks
+use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
@@ -110,8 +110,6 @@ if ( ($check && $rename ) )
 	print( STDERR "Please give only one option\n" );
 	Usage();
 }
-
-
 
 open( LOG, '>>'.UPDATE_LOG_FILE ) or die( "Can't open log file: $!" );
 open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );

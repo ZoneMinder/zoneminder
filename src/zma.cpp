@@ -17,6 +17,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+#include <getopt.h>
 #include "zm.h"
 
 bool reload = false;
@@ -39,12 +40,70 @@ void term_handler( int signal )
 	exit( 0 );
 }
 
-int main( int argc, const char *argv[] )
+void Usage()
 {
-	int device = argv[1]?atoi( argv[1] ):0;
+	fprintf( stderr, "zma -m <monitor_id>\n" );
+	fprintf( stderr, "Options:\n" );
+	fprintf( stderr, "  -m, --monitor <monitor_id>   : Specify which monitor to use\n" );
+	fprintf( stderr, "  -h, --help                   : This screen\n" );
+	exit( 0 );
+}
+
+int main( int argc, char *argv[] )
+{
+	int id = -1;
+
+	static struct option long_options[] = {
+		{"monitor", 1, 0, 'm'},
+		{"help", 0, 0, 'h'},
+		{0, 0, 0, 0}
+	};
+
+	while (1)
+	{
+		int this_option_optind = optind ? optind : 1;
+		int option_index = 0;
+		int opterr = 1;
+
+		int c = getopt_long (argc, argv, "m:h", long_options, &option_index);
+		if (c == -1)
+		{
+			break;
+		}
+
+		switch (c)
+		{
+			case 'm':
+				id = atoi(optarg);
+				break;
+			case 'h':
+			case '?':
+				Usage();
+				break;
+			default:
+				//fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
+				break;
+		}
+	}
+
+	if (optind < argc)
+	{
+		fprintf( stderr, "Extraneous options, " );
+		while (optind < argc)
+			printf ("%s ", argv[optind++]);
+		printf ("\n");
+		Usage();
+	}
+
+	if ( id < 0 )
+	{
+		fprintf( stderr, "Bogus monitor %d\n", id );
+		Usage();
+		exit( 0 );
+	}
 
 	char dbg_name_string[16];
-	sprintf( dbg_name_string, "zma-%d", device );
+	sprintf( dbg_name_string, "zma-m%d", id );
 	dbg_name = dbg_name_string;
 
 	DbgInit();
@@ -65,59 +124,42 @@ int main( int argc, const char *argv[] )
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	Monitor **monitors = 0;
-	int n_monitors = Monitor::Load( device, monitors, false );
+	Monitor *monitor = Monitor::Load( id, true );
 
-	Info(( "Warming up" ));
-
-	sigset_t block_set;
-	sigemptyset( &block_set );
-	struct sigaction action, old_action;
-
-	action.sa_handler = hup_handler;
-	action.sa_mask = block_set;
-	action.sa_flags = 0;
-	sigaction( SIGHUP, &action, &old_action );
-
-	action.sa_handler = term_handler;
-	action.sa_mask = block_set;
-	action.sa_flags = 0;
-	sigaction( SIGTERM, &action, &old_action );
-
-	action.sa_handler = die_handler;
-	action.sa_mask = block_set;
-	action.sa_flags = 0;
-	sigaction( SIGBUS, &action, &old_action );
-	sigaction( SIGSEGV, &action, &old_action );
-
-	sigaddset( &block_set, SIGHUP );
-	//sigaddset( &block_set, SIGTERM );
-	while( 1 )
+	if ( monitor )
 	{
-		// Process the next image
-		bool result = false;
-		sigprocmask( SIG_BLOCK, &block_set, 0 );
-		for ( int i = 0; i < n_monitors; i++ )
+		Info(( "Warming up" ));
+
+		sigset_t block_set;
+		sigemptyset( &block_set );
+		struct sigaction action, old_action;
+
+		action.sa_handler = term_handler;
+		action.sa_mask = block_set;
+		action.sa_flags = 0;
+		sigaction( SIGTERM, &action, &old_action );
+
+		action.sa_handler = die_handler;
+		action.sa_mask = block_set;
+		action.sa_flags = 0;
+		sigaction( SIGBUS, &action, &old_action );
+		sigaction( SIGSEGV, &action, &old_action );
+
+		while( 1 )
 		{
-			if ( monitors[i]->Analyse() )
+			// Process the next image
+			bool result = false;
+			sigprocmask( SIG_BLOCK, &block_set, 0 );
+			if ( !monitor->Analyse() )
 			{
-				result = true;
+				usleep( 10000 );
 			}
+			sigprocmask( SIG_UNBLOCK, &block_set, 0 );
 		}
-		if ( !result )
-		{
-			usleep( 10000 );
-		}
-		sigprocmask( SIG_UNBLOCK, &block_set, 0 );
-		if ( reload )
-		{
-			for ( int i = 0; i < n_monitors; i++ )
-			{
-				monitors[i]->ReloadZones();
-				monitors[i]->CheckFunction();
-			}
-			reload = false;
-		}
+	}
+	else
+	{
+		fprintf( stderr, "Can't find monitor with id of %d\n", id );
 	}
 	return( 0 );
 }

@@ -888,21 +888,21 @@ function deleteEvent() {
 <tr><td colspan="4"><img src="<?php echo $image_path ?>" width="352" height="288" border="0"></td></tr>
 <tr>
 <?php if ( $fid > 1 ) { ?>
-<td width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $first_fid ?>">First</a></td>
+<td align="center" width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $first_fid ?>">First</a></td>
 <?php } else { ?>
-<td width="25%" class="text">&nbsp;</td>
+<td align="center" width="25%" class="text">&nbsp;</td>
 <?php } if ( $fid > 1 ) { ?>
-<td width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $prev_fid ?>">Prev</a></td>
+<td align="center" width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $prev_fid ?>">Prev</a></td>
 <?php } else { ?>
-<td width="25%" class="text">&nbsp;</td>
+<td align="center" width="25%" class="text">&nbsp;</td>
 <?php } if ( $fid < $max_fid ) { ?>
-<td width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $next_fid ?>">Next</a></td>
+<td align="center" width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $next_fid ?>">Next</a></td>
 <?php } else { ?>
-<td width="25%" class="text">&nbsp;</td>
+<td align="center" width="25%" class="text">&nbsp;</td>
 <?php } if ( $fid < $max_fid ) { ?>
-<td width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $last_fid ?>">Last</a></td>
+<td align="center" width="25%" class="text"><a href="<?php echo $PHP_SELF ?>?view=image&eid=<?php echo $eid ?>&fid=<?php echo $last_fid ?>">Last</a></td>
 <?php } else { ?>
-<td width="25%" class="text">&nbsp;</td>
+<td align="center" width="25%" class="text">&nbsp;</td>
 <?php } ?>
 </tr>
 </table>

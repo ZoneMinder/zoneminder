@@ -437,7 +437,8 @@ else
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['AlarmFrames'] ?></a></td>
 <td align="center" class="text"><?= $event['TotScore'] ?></td>
 <td align="center" class="text"><?= $event['AvgScore'] ?></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= $monitor['Width']+$jws['image']['w'] ?>, <?= $monitor['Height']+$jws['image']['h'] ?> );"><?= $event['MaxScore'] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= $monitors[$event['MonitorId']]['Width']+$jws['image']['w']  ?>, <?= $monitors[$event['MonitorId']
+]['Height']+$jws['image']['h']  ?> );"><?= $event['MaxScore'] ?></a></td>
 <td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $event['Id'] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php

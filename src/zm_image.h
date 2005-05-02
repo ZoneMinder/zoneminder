@@ -30,10 +30,6 @@
 
 extern "C"
 {
-#if !HAVE_DECL_ROUND
-double round(double);
-#endif
-
 #include "zm_jpeg.h"
 }
 

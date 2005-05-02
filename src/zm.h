@@ -27,6 +27,13 @@ extern "C"
 
 #include "zm_config.h"
 
+extern "C"
+{
+#if !HAVE_DECL_ROUND
+double round(double);
+#endif
+}
+
 // Structure used for storing the results of the subtraction
 // of one struct timeval from another
 

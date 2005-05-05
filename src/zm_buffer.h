@@ -83,12 +83,22 @@ public:
 
 	unsigned int Consume( unsigned int count )
 	{
+		if ( count > size )
+		{
+			Warning(( "Attempt to consume %d bytes of buffer, size is only %d bytes", count, size ));
+			count = size;
+		}
 		head += count;
 		size -= count;
 		return( size );
 	}
 	unsigned int Shrink( unsigned int count )
 	{
+		if ( count > size )
+		{
+			Warning(( "Attempt to shrink buffer by %d bytes, size is only %d bytes", count, size ));
+			count = size;
+		}
 		size -= count;
 		if ( tail > head + size )
 			tail = head + size;

@@ -838,6 +838,7 @@ void Image::Rotate( int angle )
 		return;
 	}
 	static unsigned char rotate_buffer[ZM_MAX_IMAGE_SIZE];
+	int line_bytes = width+colours;
 	switch( angle )
 	{
 		case 90 :
@@ -857,7 +858,7 @@ void Image::Rotate( int angle )
 					for ( int j = height-1; j >= 0; j-- )
 					{
 						*d_ptr = *s_ptr++;
-						d_ptr += width;
+						d_ptr += line_bytes;
 					}
 				}
 			}
@@ -872,7 +873,7 @@ void Image::Rotate( int angle )
 						*d_ptr = *s_ptr++;
 						*(d_ptr+1) = *s_ptr++;
 						*(d_ptr+2) = *s_ptr++;
-						d_ptr += (3*width);
+						d_ptr += line_bytes;
 					}
 				}
 			}
@@ -921,7 +922,7 @@ void Image::Rotate( int angle )
 					{
 						s_ptr--;
 						*d_ptr = *s_ptr;
-						d_ptr += width;
+						d_ptr += line_bytes;
 					}
 				}
 			}
@@ -936,7 +937,7 @@ void Image::Rotate( int angle )
 						*(d_ptr+2) = *(--s_ptr);
 						*(d_ptr+1) = *(--s_ptr);
 						*d_ptr = *(--s_ptr);
-						d_ptr += (3*width);
+						d_ptr += line_bytes;
 					}
 				}
 			}
@@ -944,6 +945,61 @@ void Image::Rotate( int angle )
 		}
 	}
 	memcpy( buffer, rotate_buffer, size );
+}
+
+void Image::Flip( bool leftright )
+{
+	static unsigned char flip_buffer[ZM_MAX_IMAGE_SIZE];
+	int line_bytes = width*colours;
+	int line_bytes2 = 2*line_bytes;
+	if ( leftright )
+	{
+		// Horizontal flip, left to right
+		unsigned char *s_ptr = buffer+line_bytes;
+		unsigned char *d_ptr = flip_buffer;
+		unsigned char *max_d_ptr = flip_buffer + size;
+
+		if ( colours == 1 )
+		{
+			while( d_ptr < max_d_ptr )
+			{
+				for ( int j = 0; j < width; j++ )
+				{
+					s_ptr--;
+					*d_ptr++ = *s_ptr;
+				}
+				s_ptr += line_bytes2;
+			}
+		}
+		else
+		{
+			while( d_ptr < max_d_ptr )
+			{
+				for ( int j = 0; j < width; j++ )
+				{
+					s_ptr -= 3;
+					*d_ptr++ = *s_ptr;
+					*d_ptr++ = *(s_ptr+1);
+					*d_ptr++ = *(s_ptr+2);
+				}
+				s_ptr += line_bytes2;
+			}
+		}
+	}
+	else
+	{
+		// Vertical flip, top to bottom
+		unsigned char *s_ptr = buffer+(height*line_bytes);
+		unsigned char *d_ptr = flip_buffer;
+
+		while( s_ptr > buffer )
+		{
+			s_ptr -= line_bytes;
+			memcpy( d_ptr, s_ptr, line_bytes );
+			d_ptr += line_bytes;
+		}
+	}
+	memcpy( buffer, flip_buffer, size );
 }
 
 void Image::Scale( unsigned int factor )

@@ -218,6 +218,7 @@ public:
 	void Hatch( Rgb colour, const Box *limits=0 );
 
 	void Rotate( int angle );
+	void Flip( bool leftright );
 
 	void Scale( unsigned int factor );
 };

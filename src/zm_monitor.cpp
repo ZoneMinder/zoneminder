@@ -35,6 +35,8 @@ bool Monitor::create_analysis_images;
 bool Monitor::blend_alarmed_images;
 bool Monitor::timestamp_on_capture;
 int Monitor::bulk_frame_interval;
+bool Monitor::opt_control;
+const char *Monitor::dir_events;
 
 Monitor::Monitor(
 	int p_id,
@@ -101,7 +103,9 @@ Monitor::Monitor(
 	strncpy( event_prefix, p_event_prefix, sizeof(event_prefix) );
 	strncpy( label_format, p_label_format, sizeof(label_format) );
 
-	camera = new LocalCamera( p_device, p_channel, p_format, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, p_brightness, p_contrast, p_hue, p_colour, purpose==CAPTURE );
+	int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
+	int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
+	camera = new LocalCamera( p_device, p_channel, p_format, cam_width, cam_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, purpose==CAPTURE );
 
 	Setup();
 }
@@ -171,7 +175,9 @@ Monitor::Monitor(
 	strncpy( event_prefix, p_event_prefix, sizeof(event_prefix) );
 	strncpy( label_format, p_label_format, sizeof(label_format) );
 
-	camera = new RemoteCamera( p_host, p_port, p_path, (p_orientation%2)?width:height, (orientation%2)?height:width, p_palette, p_brightness, p_contrast, p_hue, p_colour, purpose==CAPTURE );
+	int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
+	int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
+	camera = new RemoteCamera( p_host, p_port, p_path, cam_width, cam_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, purpose==CAPTURE );
 
 	Setup();
 }
@@ -304,7 +310,7 @@ void Monitor::Setup()
 	{
 		static char	path[PATH_MAX];
 
-		strncpy( path, (const char *)config.Item( ZM_DIR_EVENTS ), sizeof(path) );
+		strncpy( path, dir_events, sizeof(path) );
 
 		struct stat statbuf;
 		errno = 0;
@@ -317,7 +323,7 @@ void Monitor::Setup()
 			}
 		}
 
-		snprintf( path, sizeof(path), "%s/%d", (const char *)config.Item( ZM_DIR_EVENTS ), id );
+		snprintf( path, sizeof(path), "%s/%d", dir_events, id );
 
 		errno = 0;
 		stat( path, &statbuf );
@@ -329,7 +335,7 @@ void Monitor::Setup()
 			}
 			char temp_path[PATH_MAX];
 			snprintf( temp_path, sizeof(temp_path), "%d", id );
-			chdir( (const char *)config.Item( ZM_DIR_EVENTS ) );
+			chdir( dir_events );
 			symlink( temp_path, name );
 			chdir( ".." );
 		}
@@ -801,7 +807,7 @@ bool Monitor::Analyse()
 		}
 		if ( score )
 		{
-			if ( (bool)config.Item( ZM_OPT_CONTROL ) && track_motion && activity_state != ACTIVE )
+			if ( opt_control && track_motion && (activity_state != ACTIVE) )
 			{
 				// Do nothing
 			}
@@ -858,7 +864,7 @@ bool Monitor::Analyse()
 		}
 		else
 		{
-			if ( (bool)config.Item( ZM_OPT_CONTROL ) && track_motion && activity_state != ACTIVE )
+			if ( opt_control && track_motion && (activity_state != ACTIVE) )
 			{
 				// Do nothing
 			}
@@ -1527,7 +1533,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), id );
+			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", dir_events, id );
 		}
 		ref_image.WriteJpeg( diag_path );
 	}
@@ -1539,7 +1545,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), id );
+			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", dir_events, id );
 		}
 		delta_image->WriteJpeg( diag_path );
 	}
@@ -1602,7 +1608,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 				score += zone->Score();
 				zone->SetAlarm();
 				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
-				if ( (bool)config.Item( ZM_OPT_CONTROL ) && track_motion )
+				if ( opt_control && track_motion )
 				{
 					if ( (int)zone->Score() > top_score )
 					{
@@ -1629,7 +1635,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 					score += zone->Score();
 					zone->SetAlarm();
 					Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
-					if ( (bool)config.Item( ZM_OPT_CONTROL ) && track_motion )
+					if ( opt_control && track_motion )
 					{
 						if ( zone->Score() > top_score )
 						{

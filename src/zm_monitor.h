@@ -59,7 +59,7 @@ public:
 		NODECT
 	} Function;
 
-	typedef enum { ROTATE_0=1, ROTATE_90, ROTATE_180, ROTATE_270 } Orientation;
+	typedef enum { ROTATE_0=1, ROTATE_90, ROTATE_180, ROTATE_270, FLIP_HORI, FLIP_VERT } Orientation;
 
 	typedef enum { IDLE, PREALARM, ALARM, ALERT, TAPE } State;
 
@@ -74,6 +74,8 @@ protected:
 	static bool		blend_alarmed_images;
 	static bool		timestamp_on_capture;
 	static int		bulk_frame_interval;
+	static bool		opt_control;
+	static const char *dir_events;
 
 protected:
 	// These are read from the DB and thereafter remain unchanged
@@ -178,6 +180,8 @@ protected:
 		blend_alarmed_images = (bool)config.Item( ZM_BLEND_ALARMED_IMAGES );
 		timestamp_on_capture = (bool)config.Item( ZM_TIMESTAMP_ON_CAPTURE );
 		bulk_frame_interval = (int)config.Item( ZM_BULK_FRAME_INTERVAL );
+		opt_control = (bool)config.Item( ZM_OPT_CONTROL );
+		dir_events = (const char *)config.Item( ZM_DIR_EVENTS );
 	}
 
 public:
@@ -253,7 +257,22 @@ public:
 		{
 			if ( orientation != ROTATE_0 )
 			{
-				image.Rotate( (orientation-1)*90 );
+				switch ( orientation )
+				{
+					case ROTATE_90 :
+					case ROTATE_180 :
+					case ROTATE_270 :
+					{
+						image.Rotate( (orientation-1)*90 );
+						break;
+					}
+					case FLIP_HORI :
+					case FLIP_VERT :
+					{
+						image.Flip( orientation==FLIP_HORI );
+						break;
+					}
+				}
 			}
 
 			int index = image_count%image_buffer_count;

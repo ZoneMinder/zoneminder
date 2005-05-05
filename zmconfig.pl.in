@@ -405,7 +405,7 @@ my @options =
 	{
 		name => "ZM_HTTP_TIMEOUT",
 		default => "2500",
-		description => "How long ZoneMinder waits before giving up on images (millseconds)",
+		description => "How long ZoneMinder waits before giving up on images (milliseconds)",
 		requires => [ { name => "ZM_OPT_REMOTE_CAMERAS", value => "yes" } ],
 		help => "When retrieving remote images ZoneMinder will wait for this length of time before deciding that an image is not going to arrive and taking steps to retry. This timeout is in milliseconds (1000 per second) and will apply to each part of an image if it is not sent in one whole chunk.",
 		type => $types{integer},

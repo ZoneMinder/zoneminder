@@ -104,7 +104,7 @@ if ( !isset( $new_monitor ) )
 }
 $local_palettes = array( $zmSlangGrey=>1, "RGB24"=>4, "RGB565"=>3, "RGB555"=>6, "YUV422"=>7, "YUYV"=>8, "YUV422P"=>13, "YUV420P"=>15 );
 $remote_palettes = array( $zmSlang8BitGrey=>1, $zmSlang24BitColour=>4 );
-$orientations = array( $zmSlangNormal=>0, $zmSlangRotateRight=>90, $zmSlangInverted=>180, $zmSlangRotateLeft=>270 );
+$orientations = array( $zmSlangNormal=>'0', $zmSlangRotateRight=>'90', $zmSlangInverted=>'180', $zmSlangRotateLeft=>'270', $zmSlangFlippedHori=>'hori', $zmSlangFlippedVert=>'vert' );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

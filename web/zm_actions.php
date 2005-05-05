@@ -322,6 +322,8 @@ if ( isset($action) )
 					{
 						case '0' :
 						case '180' :
+						case 'hori' :
+						case 'vert' :
 							$width = $monitor['Width'];
 							$height = $monitor['Height'];
 							break;
@@ -346,6 +348,12 @@ if ( isset($action) )
 							$temp_x = $x;
 							$x = $width - $y;
 							$y = $temp_x;
+							break;
+						case 'hori' :
+							$x = $width - $x;
+							break;
+						case 'vert' :
+							$y = $height - $y;
 							break;
 					}
 					$ctrl_command .= " -xcoord $x -ycoord $y -width $width -height $height";
@@ -375,6 +383,12 @@ if ( isset($action) )
 							$temp_x_factor = $x;
 							$x_factor = -$y_factor;
 							$y_factor = $tenp_x_factor;
+							break;
+						case 'hori' :
+							$x_factor = -$x_factor;
+							break;
+						case 'vert' :
+							$y_factor = -$y_factor;
 							break;
 					}
 
@@ -691,6 +705,26 @@ if ( isset($action) )
 											'upright' => 'downright',
 											'downleft' => 'upleft',
 											'downright' => 'downleft',
+										),
+										'hori' => array(
+											'up' => 'up',
+											'down' => 'down',
+											'left' => 'right',
+											'right' => 'left',
+											'upleft' => 'upright',
+											'upright' => 'upleft',
+											'downleft' => 'downright',
+											'downright' => 'downleft',
+										),
+										'vert' => array(
+											'up' => 'down',
+											'down' => 'up',
+											'left' => 'left',
+											'right' => 'right',
+											'upleft' => 'downleft',
+											'upright' => 'downright',
+											'downleft' => 'upleft',
+											'downright' => 'upright',
 										),
 									);
 									$new_dirn = $conversions[$monitor['Orientation']][$dirn];

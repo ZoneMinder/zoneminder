@@ -35,7 +35,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 ?>
 <html>
 <head>
-<title>ZM - <?= $zmSlangEventFilter ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEventFilter ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 </head>
 <body>

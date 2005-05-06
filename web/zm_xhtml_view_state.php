@@ -36,7 +36,7 @@ while( $state = mysql_fetch_assoc( $result ) )
 ?>
 <html>
 <head>
-<title>ZM - <?= $zmSlangState ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangState ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 </head>
 <body>

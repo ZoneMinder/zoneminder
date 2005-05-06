@@ -38,7 +38,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>ZM - <?= $zmSlangControlCaps ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangControlCaps ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 //window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h']+(25*(count($controls)>6?count($controls):6)) ?> );

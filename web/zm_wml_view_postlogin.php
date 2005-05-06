@@ -20,7 +20,7 @@
 
 ?>
 <wml>
-  <card id="zmLoggingIn" title="ZM - <?= $zmSlangLoggingIn ?>" ontimer="<?= $PHP_SELF ?>?view=console">
+  <card id="zmLoggingIn" title="<?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangLoggingIn ?>" ontimer="<?= $PHP_SELF ?>?view=console">
     <timer value="25"/>
     <p align="center"><br/>ZoneMinder - <?= $zmSlangLogin ?></p>
     <p align="center"><br/><strong><?= $zmSlangLoggingIn ?></strong><br/><br/>

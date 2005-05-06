@@ -64,7 +64,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 ?>
 <html>
 <head>
-<title>ZM - <?= $zmSlangConsole ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangConsole ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 </head>
 <body>

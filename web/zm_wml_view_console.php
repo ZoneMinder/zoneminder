@@ -53,7 +53,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 }
 ?>
 <wml>
-<card id="zmConsole" title="ZM - <?= $zmSlangConsole ?>" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>">
+<card id="zmConsole" title="<?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangConsole ?>" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>">
 <timer value="<?= REFRESH_MAIN*10 ?>"/>
 <p align="center">
 <?= date( "H:i" ) ?> - <?= makeLink( "$PHP_SELF?view=state", $status, canEdit( 'System' ) ) ?> - <?= getLoad() ?> / <?= getDiskPercent() ?>%

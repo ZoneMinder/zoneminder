@@ -20,7 +20,7 @@
 
 ?>
 <wml>
-<card id="zmError" title="ZM - <?= $zmSlangError ?>">
+<card id="zmError" title="<?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangError ?>">
 <table columns="1" align="C">
 <tr><td>ZoneMinder <?= $zmSlangError ?></td></tr>
 <tr><td>&nbsp;</td></tr>

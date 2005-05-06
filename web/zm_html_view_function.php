@@ -32,7 +32,7 @@ $monitor = mysql_fetch_assoc( $result );
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>ZM - <?= $zmSlangFunction ?> - <?= $monitor['Name'] ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangFunction ?> - <?= $monitor['Name'] ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 <?php

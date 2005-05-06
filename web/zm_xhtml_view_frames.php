@@ -41,7 +41,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 ?>
 <html>
 <head>
-<title>ZM - <?= $zmSlangFrames ?> <?= $eid ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangFrames ?> <?= $eid ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 window.focus();

@@ -47,7 +47,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 ?>
 <html>
 <head>
-<title>ZM - <?= $zmSlangMontage ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangMontage ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
 </head>
 <body>

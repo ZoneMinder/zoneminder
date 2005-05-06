@@ -38,9 +38,9 @@ chdir( '..' );
 
 ?>
 <wml>
-<card id="zmFeed" title="ZM - <?= $monitor['Name'] ?>" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;mid=<?= $mid ?>">
+<card id="zmFeed" title="<?= ZM_WEB_TITLE_PREFIX ?> - <?= $monitor['Name'] ?>" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;mid=<?= $mid ?>">
 <timer value="<?= ZM_WEB_REFRESH_IMAGE*10 ?>"/>
-<p mode="nowrap" align="center"><strong>ZM - <?= $monitor['Name'] ?></strong></p>
+<p mode="nowrap" align="center"><strong><?= $monitor['Name'] ?></strong></p>
 <p mode="nowrap" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$browser_image ?>" alt="<?= $monitor['Name'] ?>" hspace="0" vspace="0" align="middle"/></p>
 </card>
 </wml>

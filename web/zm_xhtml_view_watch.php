@@ -97,7 +97,7 @@ $image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "sca
 ?>
 <html>
 <head>
-<title>ZM - <?= $monitor['Name'] ?> - <?= $zmSlangWatch ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $monitor['Name'] ?> - <?= $zmSlangWatch ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
 </head>
 <body>

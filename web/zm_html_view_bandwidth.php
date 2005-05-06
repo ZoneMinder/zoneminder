@@ -24,7 +24,7 @@ $new_bandwidth = $bandwidth;
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>ZM - <?= $zmSlangBandwidth ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangBandwidth ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 function closeWindow()

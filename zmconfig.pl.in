@@ -523,6 +523,14 @@ my @options =
 		category => 'video',
 	},
 	{
+		name => "ZM_WEB_TITLE_PREFIX",
+		default => "ZM",
+		description => "The title prefix displayed on each window",
+		help => "If you have more than one installation of ZoneMinder it can be helpful to display different titles for each one. Changing this option allows you to customise the window titles to include further information to aid identification.",
+		type => $types{string},
+		category => 'web',
+	},
+	{
 		name => "ZM_WEB_RESIZE_CONSOLE",
 		default => "yes",
 		description => "Should the console window resize itself to fit",

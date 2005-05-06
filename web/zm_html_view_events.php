@@ -69,7 +69,7 @@ elseif ( !empty( $limit ) )
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>ZM - <?= $zmSlangEvents ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEvents ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 function newWindow(Url,Name,Width,Height)

@@ -21,7 +21,7 @@
 ?>
 <html>
 <head>
-<title>ZM - <?= $zmSlangLogin ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangLogin ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 </head>
 <body>

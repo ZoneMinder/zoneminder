@@ -72,7 +72,7 @@ $row_spec = join( ',', $heights );
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
 <html>
 <head>
-<title>ZM - <?= $zmSlangMontage ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangMontage ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 window.focus();

@@ -20,7 +20,7 @@
 
 ?>
 <wml>
-<card id="zmLogin" title="ZM - <?= $zmSlangLogin ?>">
+<card id="zmLogin" title="<?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangLogin ?>">
 <p align="center">ZoneMinder <?= $zmSlangLogin ?></p>
 <p align="center">
 <input title="<?= $zmSlangUsername ?>" type="text" name="Username" value="<?= isset($username)?$username:"" ?>" size="12"/><br/>

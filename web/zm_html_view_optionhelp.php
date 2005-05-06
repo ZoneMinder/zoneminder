@@ -25,7 +25,7 @@ $option_help_text = $$option_help_var?$$option_help_var:$config[$option]['Help']
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>ZM - <?= $zmSlangOptionHelp ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangOptionHelp ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 function closeWindow()

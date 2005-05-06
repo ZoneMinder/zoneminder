@@ -94,7 +94,14 @@ $montage_height = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$max_height;
 <link rel="shortcut icon" href="favicon.ico">
 <link rel="icon" type="image/ico" href="favicon.ico">
 <script type="text/javascript">
+<?php
+if ( ZM_WEB_RESIZE_CONSOLE )
+{
+?>
 window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h']+(25*(count($monitors)>6?count($monitors):6)) ?> );
+<?php
+}
+?>
 function newWindow(Url,Name,Width,Height)
 {
 	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);

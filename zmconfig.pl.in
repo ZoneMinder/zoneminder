@@ -385,6 +385,15 @@ my @options =
 		category => 'network',
 	},
 	{
+		name => "ZM_NETCAM_REGEXPS",
+		default => "no",
+		description => "Whether to use regular expression matching with network cameras",
+		help => "Traditionally ZoneMinder has used complex regular regular expressions to handle the multitude of formats that network cameras produce. In versions from 1.21.1 the default is to use a simpler and faster built in pattern matching methodology. This works well with most networks cameras but if you have problems you can try the older, but more flexible, regular expression based method by selecting this option. Note, to use this method you must have libpcre installed on your system.",
+		requires => [ { name => "ZM_OPT_REMOTE_CAMERAS", value => "yes" } ],
+		type => $types{boolean},
+		category => 'network',
+	},
+	{
 		name => "ZM_HTTP_VERSION",
 		default => "1.1",
 		description => "The version of HTTP that ZoneMinder will use to connect",

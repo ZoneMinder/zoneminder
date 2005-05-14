@@ -48,6 +48,9 @@
 class RemoteCamera : public Camera
 {
 protected:
+	static bool netcam_regexps;
+
+protected:
 	const char *host;
 	const char *port;
 	const char *path;
@@ -62,10 +65,76 @@ protected:
 	int sd;
 	Buffer buffer;
 	enum { SINGLE_JPEG, MULTI_JPEG, MULTI_MPEG } mode;
-	enum { HEADER, SUBHEADER, CONTENT } state;
+	enum { HEADER, HEADERCONT, SUBHEADER, SUBHEADERCONT, CONTENT } state;
 
 protected:
 	static void Base64Encode( const char *in_string, char *out_string );
+	inline static char *mempbrk(const char *s, const char *accept, size_t limit )
+	{
+		if ( limit <= 0 )
+			return( 0 );
+
+		register int i,j;
+		size_t acc_len = strlen( accept );
+
+		for ( i = 0; i < limit; s++, i++ )
+		{
+			for ( j = 0; j < acc_len; j++ )
+			{
+				if ( *s == accept[j] )
+				{
+					return( (char *)s );
+				}
+			}
+		}
+		return( 0 );
+	}
+	inline static size_t memspn( const char *s, const char *accept, size_t limit )
+	{
+		if ( limit <= 0 )
+			return( 0 );
+
+		register int i,j;
+		size_t acc_len = strlen( accept );
+
+		for ( i = 0; i < limit; s++, i++ )
+		{
+			register bool found = false;
+			for ( j = 0; j < acc_len; j++ )
+			{
+				if ( *s == accept[j] )
+				{
+					found = true;
+					break;
+				}
+			}
+			if ( !found )
+			{
+				return( i );
+			}
+		}
+		return( limit );
+	}
+	inline static size_t memcspn( const char *s, const char *reject, size_t limit )
+	{
+		if ( limit <= 0 )
+			return( 0 );
+
+		register int i,j;
+		size_t rej_len = strlen( reject );
+
+		for ( i = 0; i < limit; s++, i++ )
+		{
+			for ( j = 0; j < rej_len; j++ )
+			{
+				if ( *s == reject[j] )
+				{
+					return( i );
+				}
+			}
+		}
+		return( limit );
+	}
 
 public:
 	RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
@@ -81,7 +150,7 @@ public:
 	int Connect();
 	int Disconnect();
 	int SendRequest();
-	int ReadData( Buffer &buffer );
+	int ReadData( Buffer &buffer, int bytes_expected=0 );
 	int GetResponse();
 	int PreCapture();
 	int PostCapture( Image &image );

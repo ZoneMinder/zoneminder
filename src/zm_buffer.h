@@ -90,7 +90,7 @@ public:
 		}
 		head += count;
 		size -= count;
-		return( size );
+		return( count );
 	}
 	unsigned int Shrink( unsigned int count )
 	{
@@ -102,7 +102,7 @@ public:
 		size -= count;
 		if ( tail > head + size )
 			tail = head + size;
-		return( size );
+		return( count );
 	}
 	unsigned int Expand( unsigned int count );
 	unsigned char *Extract( unsigned int p_size )
@@ -147,9 +147,9 @@ public:
 	{
 		return( (char *)head );
 	}
-	operator unsigned int () const
+	unsigned char operator[](int index) const
 	{
-		return( size );
+		return( *(head+index) );
 	}
 	operator int () const
 	{

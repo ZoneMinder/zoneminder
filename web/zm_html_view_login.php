@@ -24,9 +24,16 @@
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangLogin ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
+<?php
+if ( ZM_WEB_RESIZE_CONSOLE )
+{
+?>
 <script type="text/javascript">
 window.resizeTo( <?= $jws['login']['w'] ?>, <?= $jws['login']['h'] ?> );
 </script>
+<?php
+}
+?>
 </head>
 <body>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">

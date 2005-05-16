@@ -118,12 +118,18 @@ else
 		die( mysql_error() );
 	$max_width = 0;
 	$max_height = 0;
+	$archived = false;
+	$unarchived = false;
 	$events = array();
 	while( $event = mysql_fetch_assoc( $result ) )
 	{
 		$events[] = $event;
 		if ( $max_width < $event['Width'] ) $max_width = $event['Width'];
 		if ( $max_height < $event['Height'] ) $max_height = $event['Height'];
+		if ( $event['Archived'] )
+			$archived = true;
+		else
+			$unarchived = true;
 	}
 ?>
 function checkAll(form,name)
@@ -132,6 +138,9 @@ function checkAll(form,name)
 		if (form.elements[i].name.indexOf(name) == 0)
 			form.elements[i].checked = 1;
 	form.view_btn.disabled = false;
+	form.edit_btn.disabled = false;
+	form.archive_btn.disabled = <?= $unarchived?"false":"true" ?>;
+	form.unarchive_btn.disabled = <?= $archived?"false":"true" ?>;
 	form.delete_btn.disabled = false;
 <?php if ( LEARN_MODE ) { ?>
 	form.learn_btn.disabled = false;
@@ -153,11 +162,29 @@ function configureButton(form,name)
 		}
 	}
 	form.view_btn.disabled = !checked;
+	form.edit_btn.disabled = !checked;
+	form.archive_btn.disabled = (!checked)||<?= $unarchived?"false":"true" ?>;
+	form.unarchive_btn.disabled = (!checked)||<?= $archived?"false":"true" ?>;
 	form.delete_btn.disabled = !checked;
 <?php if ( LEARN_MODE ) { ?>
 	form.learn_btn.disabled = !checked;
 	form.learn_state.disabled = !checked;
 <?php } ?>
+}
+function editEvents( form, name )
+{
+	var eids = new Array();
+	for (var i = 0; i < form.elements.length; i++)
+	{
+		if (form.elements[i].name.indexOf(name) == 0)
+		{
+			if ( form.elements[i].checked )
+			{
+				eids[eids.length] = 'eids[]='+form.elements[i].value;
+			}
+		}
+	}
+	var Name = newWindow( '<?= $PHP_SELF ?>?view=eventdetail&'+eids.join( '&' ), 'zmEventDetail', <?= $jws['eventdetail']['w'] ?>, <?= $jws['eventdetail']['h'] ?> );
 }
 function viewEvents( form, name )
 {
@@ -284,7 +311,7 @@ function viewEvents( form, name )
 		{
 ?>
 <td align="center" class="text" width="60%">&nbsp;</td>
-<td align="center" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $zmSlangViewPaged ?></a></td>
+<td align="center" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $zmSlangViewPaged ?></a></td>
 <?php
 		}
 	}
@@ -308,17 +335,17 @@ function viewEvents( form, name )
 		{
 ?>
 <tr align="center" bgcolor="#FFFFFF">
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangId ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Name&sort_asc=<?= $sort_field == 'Name'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangName ?><?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=MonitorName&sort_asc=<?= $sort_field == 'MonitorName'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangMonitor ?><?php if ( $sort_field == "MonitorName" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Cause&sort_asc=<?= $sort_field == 'Cause'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangCause ?><?php if ( $sort_field == "Cause" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=StartTime&sort_asc=<?= $sort_field == 'StartTime'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangTime ?><?php if ( $sort_field == "StartTime" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Length&sort_asc=<?= $sort_field == 'Length'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangDuration ?><?php if ( $sort_field == "Length" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=Frames&sort_asc=<?= $sort_field == 'Frames'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangFrames ?><?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=AlarmFrames&sort_asc=<?= $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangAlarmBrFrames ?><?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=TotScore&sort_asc=<?= $sort_field == 'TotScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangTotalBrScore ?><?php if ( $sort_field == "TotScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=AvgScore&sort_asc=<?= $sort_field == 'AvgScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangAvgBrScore ?><?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&<?= $filter_query ?>&sort_field=MaxScore&sort_asc=<?= $sort_field == 'MaxScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangMaxBrScore ?><?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangId ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=Name&sort_asc=<?= $sort_field == 'Name'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangName ?><?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=MonitorName&sort_asc=<?= $sort_field == 'MonitorName'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangMonitor ?><?php if ( $sort_field == "MonitorName" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=Cause&sort_asc=<?= $sort_field == 'Cause'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangCause ?><?php if ( $sort_field == "Cause" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=StartTime&sort_asc=<?= $sort_field == 'StartTime'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangTime ?><?php if ( $sort_field == "StartTime" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=Length&sort_asc=<?= $sort_field == 'Length'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangDuration ?><?php if ( $sort_field == "Length" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=Frames&sort_asc=<?= $sort_field == 'Frames'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangFrames ?><?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=AlarmFrames&sort_asc=<?= $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangAlarmBrFrames ?><?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=TotScore&sort_asc=<?= $sort_field == 'TotScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangTotalBrScore ?><?php if ( $sort_field == "TotScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=AvgScore&sort_asc=<?= $sort_field == 'AvgScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangAvgBrScore ?><?php if ( $sort_field == "AvgScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
+<td class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?>&sort_field=MaxScore&sort_asc=<?= $sort_field == 'MaxScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= $zmSlangMaxBrScore ?><?php if ( $sort_field == "MaxScore" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <?php
 		if ( ZM_WEB_LIST_THUMBS )
 		{
@@ -367,7 +394,16 @@ function viewEvents( form, name )
 </table></td></tr>
 </table></td>
 </tr>
-<tr><td align="right"><?php if ( LEARN_MODE ) { ?><select name="learn_state" class="form" disabled><option value=""><?= $zmSlangIgnore ?></option><option value="-"><?= $zmSlangExclude ?></option><option value="+"><?= $zmSlangInclude ?></option></select>&nbsp;&nbsp;<input type="button" name="learn_btn" value="<?= $zmSlangSetLearnPrefs ?>" class="form" onClick="document.event_form.action.value = 'learn'; document.event_form.submit();" disabled>&nbsp;&nbsp;<?php } ?><input type="button" name="view_btn" value="<?= $zmSlangView ?>" class="form" onClick="viewEvents( document.event_form, 'mark_eids' );" disabled>&nbsp;&nbsp;<input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="document.event_form.action.value = 'delete'; document.event_form.submit();" disabled></td></tr>
+<?php if ( true || canEdit( 'Events' ) ) { ?>
+<tr><td align="right">
+<?php if ( LEARN_MODE ) { ?><select name="learn_state" class="form" disabled><option value=""><?= $zmSlangIgnore ?></option><option value="-"><?= $zmSlangExclude ?></option><option value="+"><?= $zmSlangInclude ?></option></select>&nbsp;&nbsp;<input type="button" name="learn_btn" value="<?= $zmSlangSetLearnPrefs ?>" class="form" onClick="document.event_form.action.value = 'learn'; document.event_form.submit();" disabled>&nbsp;&nbsp;<?php } ?>
+<input type="button" name="view_btn" value="<?= $zmSlangView ?>" class="form" onClick="viewEvents( document.event_form, 'mark_eids' );" disabled>
+&nbsp;&nbsp;<input type="button" name="archive_btn" value="<?= $zmSlangArchive ?>" class="form" onClick="document.event_form.action.value = 'archive'; document.event_form.submit();" disabled>
+&nbsp;&nbsp;<input type="button" name="unarchive_btn" value="<?= $zmSlangUnarchive ?>" class="form" onClick="document.event_form.action.value = 'unarchive'; document.event_form.submit();" disabled>
+&nbsp;&nbsp;<input type="button" name="edit_btn" value="<?= $zmSlangEdit ?>" class="form" onClick="editEvents( document.event_form, 'mark_eids' )" disabled>
+&nbsp;&nbsp;<input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="document.event_form.action.value = 'delete'; document.event_form.submit();" disabled>
+</td></tr>
+<?php } ?>
 </table></center>
 </form>
 </body>

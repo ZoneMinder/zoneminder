@@ -23,12 +23,18 @@ if ( !canEdit( 'Events' ) )
 	$view = "error";
 	return;
 }
-$sql = "select E.* from Events as E where E.Id = '$eid'";
-$result = mysql_query( $sql );
-if ( !$result )
-	die( mysql_error() );
-$new_event = mysql_fetch_assoc( $result );
-
+if ( $eid )
+{
+	$sql = "select E.* from Events as E where E.Id = '$eid'";
+	$result = mysql_query( $sql );
+	if ( !$result )
+		die( mysql_error() );
+	$new_event = mysql_fetch_assoc( $result );
+}
+elseif ( $eids )
+{
+	$new_event = array();
+}
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
@@ -59,9 +65,29 @@ function closeWindow()
 </tr>
 <tr><td colspan="2"><table width="100%" border="0" cellpadding="3" cellspacing="1">
 <form name="event_form" method="post" action="<?= $PHP_SELF ?>">
+<?php
+if ( $eid )
+{
+?>
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="eventdetail">
 <input type="hidden" name="eid" value="<?= $eid ?>">
+<?php
+}
+elseif ( $eids )
+{
+?>
+<input type="hidden" name="view" value="none">
+<input type="hidden" name="action" value="eventdetail">
+<?php
+	foreach ( $eids as $eid )
+	{
+?>
+<input type="hidden" name="mark_eids[]" value="<?= $eid ?>">
+<?php
+	}
+}
+?>
 <tr valign="top"><td align="left" class="text"><?= $zmSlangCause ?></td><td align="left" class="text"><input type="text" name="new_event[Cause]" value="<?= $new_event['Cause'] ?>" size="32" class="form"></td></tr>
 <tr valign="top"><td align="left" class="text"><?= $zmSlangNotes ?></td><td align="left" class="text"><textarea name="new_event[Notes]" rows="6" cols="50" class="form"><?= $new_event['Notes'] ?></textarea></td></tr>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>

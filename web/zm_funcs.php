@@ -651,8 +651,8 @@ function createListThumbnail( $event, $overwrite=false )
 	}
 	$thumb_data = $frame;
 	$thumb_data['Path'] = $thumb_image;
-	$thumb_data['Width'] = $thumb_width;
-	$thumb_data['Height'] = $thumb_height;
+	$thumb_data['Width'] = (int)$thumb_width;
+	$thumb_data['Height'] = (int)$thumb_height;
 
 	return( $thumb_data );
 }

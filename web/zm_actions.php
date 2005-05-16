@@ -44,18 +44,52 @@ if ( isset($action) )
 		{
 			simpleQuery( "update Events set Name = '$event_name' where Id = '$eid'" );
 		}
-		else if ( $action == "eventdetail" && $eid )
+		else if ( $action == "eventdetail" )
 		{
-			simpleQuery( "update Events set Cause = '".addslashes($new_event['Cause'])."', Notes = '".addslashes($new_event['Notes'])."' where Id = '$eid'" );
-			$refresh_parent = true;
+			if ( $eid )
+			{
+				simpleQuery( "update Events set Cause = '".addslashes($new_event['Cause'])."', Notes = '".addslashes($new_event['Notes'])."' where Id = '$eid'" );
+				$refresh_parent = true;
+			}
+			elseif ( $mark_eids || $mark_eid )
+			{
+				if ( !$mark_eids && $mark_eid )
+				{
+					$mark_eids[] = $mark_eid;
+				}
+				if ( $mark_eids )
+				{
+					foreach( $mark_eids as $mark_eid )
+					{
+						simpleQuery( "update Events set Cause = '".addslashes($new_event['Cause'])."', Notes = '".addslashes($new_event['Notes'])."' where Id = '$mark_eid'" );
+					}
+					$refresh_parent = true;
+				}
+			}
 		}
-		elseif ( $action == "archive" && $eid )
+		elseif ( $action == "archive" || $action == "unarchive" )
 		{
-			simpleQuery( "update Events set Archived = 1 where Id = '$eid'" );
-		}
-		elseif ( $action == "unarchive" && $eid )
-		{
-			simpleQuery( "update Events set Archived = 0 where Id = '$eid'" );
+			$archive_val = ($action == "archive")?1:0;
+
+			if ( $eid )
+			{
+				simpleQuery( "update Events set Archived = $archive_val where Id = '$eid'" );
+			}
+			elseif ( $mark_eids || $mark_eid )
+			{
+				if ( !$mark_eids && $mark_eid )
+				{
+					$mark_eids[] = $mark_eid;
+				}
+				if ( $mark_eids )
+				{
+					foreach( $mark_eids as $mark_eid )
+					{
+						simpleQuery( "update Events set Archived = $archive_val where Id = '$mark_eid'" );
+					}
+					$refresh_parent = true;
+				}
+			}
 		}
 		elseif ( $action == "filter" )
 		{
@@ -101,7 +135,6 @@ if ( isset($action) )
 			if ( !$mark_eids && $mark_eid )
 			{
 				$mark_eids[] = $mark_eid;
-				$refresh_parent = true;
 			}
 			if ( $mark_eids )
 			{
@@ -109,6 +142,7 @@ if ( isset($action) )
 				{
 					deleteEvent( $mark_eid );
 				}
+				$refresh_parent = true;
 			}
 			if ( $fid )
 			{

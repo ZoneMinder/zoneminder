@@ -33,8 +33,6 @@
 #include "zmf.h"
 
 bool Event::initialised = false;
-bool Event::timestamp_on_capture;
-int Event::bulk_frame_interval;
 char Event::capture_file_format[PATH_MAX];
 char Event::analyse_file_format[PATH_MAX];
 char Event::general_file_format[PATH_MAX];
@@ -63,7 +61,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *event
 	alarm_frames = 0;
 	tot_score = 0;
 	max_score = 0;
-	snprintf( path, sizeof(path), "%s/%d/%d", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Id(), id );
+	snprintf( path, sizeof(path), "%s/%d/%d", config.dir_events, monitor->Id(), id );
 	
 	struct stat statbuf;
 	errno = 0;
@@ -128,7 +126,7 @@ bool Event::OpenFrameSocket( int monitor_id )
 		return( false );
 	}
 
-	int socket_buffer_size = (int)config.Item( ZM_FRAME_SOCKET_SIZE ); 
+	int socket_buffer_size = config.frame_socket_size;
 	if ( socket_buffer_size > 0 )
 	{
 		if ( setsockopt( sd, SOL_SOCKET, SO_SNDBUF, &socket_buffer_size, sizeof(socket_buffer_size) ) < 0 )
@@ -158,7 +156,7 @@ bool Event::OpenFrameSocket( int monitor_id )
 	}
 
 	char sock_path[PATH_MAX] = "";
-	snprintf( sock_path, sizeof(sock_path), "%s/zmf-%d.sock", (const char *)config.Item( ZM_PATH_SOCKS ), monitor_id );
+	snprintf( sock_path, sizeof(sock_path), "%s/zmf-%d.sock", config.path_socks, monitor_id );
 
 	struct sockaddr_un addr;
 
@@ -243,9 +241,9 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 
 bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 {
-	if ( timestamp_on_capture )
+	if ( config.timestamp_on_capture )
 	{
-		if ( !(bool)config.Item( ZM_OPT_FRAME_SERVER ) || !SendFrameImage( image, alarm_frame) )
+		if ( !config.opt_frame_server || !SendFrameImage( image, alarm_frame) )
 		{
 			image->WriteJpeg( event_file );
 		}
@@ -254,7 +252,7 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
 	{
 		Image ts_image( *image );
 		monitor->TimestampImage( &ts_image, timestamp.tv_sec );
-		if ( !(bool)config.Item( ZM_OPT_FRAME_SERVER ) || !SendFrameImage( &ts_image, alarm_frame) )
+		if ( !config.opt_frame_server || !SendFrameImage( &ts_image, alarm_frame) )
 		{
 			ts_image.WriteJpeg( event_file );
 		}
@@ -307,7 +305,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 	struct DeltaTimeval delta_time;
 	DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
 
-	bool db_frame = (score>=0) || ((frames%bulk_frame_interval)==0) || !frames;
+	bool db_frame = (score>=0) || ((frames%config.bulk_frame_interval)==0) || !frames;
 
 	if ( db_frame )
 	{
@@ -343,11 +341,11 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 		}
 	}
 
-	if ( (bool)config.Item( ZM_RECORD_DIAG_IMAGES ) )
+	if ( config.record_diag_images )
 	{
 		char diag_glob[PATH_MAX] = "";
 
-		snprintf( diag_glob, sizeof(diag_glob), "%s/%d/diag-*.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Id() );
+		snprintf( diag_glob, sizeof(diag_glob), "%s/%d/diag-*.jpg", config.dir_events, monitor->Id() );
 		glob_t pglob;
 		int glob_status = glob( diag_glob, 0, 0, &pglob );
 		if ( glob_status != 0 )
@@ -414,7 +412,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	snprintf( eventpath, sizeof(eventpath), "%s/%s/%d/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), atoi( dbrow[0] ), event_id );
+	snprintf( eventpath, sizeof(eventpath), "%s/%s/%d/%d", ZM_PATH_WEB, config.dir_events, atoi( dbrow[0] ), event_id );
 	int frames = atoi(dbrow[2]);
 	double duration = atof(dbrow[3]);
 
@@ -538,8 +536,6 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 	if ( !initialised )
 		Initialise();
 
-	bool timed_frames = (bool)config.Item( ZM_VIDEO_TIMED_FRAMES );
-
 	snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.Frames, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -561,7 +557,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 		exit( mysql_errno( &dbconn ) );
 	}
 
-	snprintf( eventpath, sizeof(eventpath), "%s/%s/%d/%d", ZM_PATH_WEB, (const char *)config.Item( ZM_DIR_EVENTS ), atoi( dbrow[0] ), event_id );
+	snprintf( eventpath, sizeof(eventpath), "%s/%s/%d/%d", ZM_PATH_WEB, config.dir_events, atoi( dbrow[0] ), event_id );
 	int frames = atoi(dbrow[2]);
 	double duration = atof(dbrow[3]);
 
@@ -633,7 +629,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 				delta_ms = (unsigned int)((last_delta+temp_delta)*1000);
 				if ( rate != ZM_RATE_SCALE )
 					delta_ms = (delta_ms*ZM_RATE_SCALE)/rate;
-				double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size(), timed_frames, delta_ms );
+				double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size(), config.video_timed_frames, delta_ms );
 
 				Debug( 2, ( "I:%d, DI:%d, LI:%d, DD:%lf, LD:%lf, TD:%lf, DM:%d, PTS:%lf", id, db_id, last_id, db_delta, last_delta, temp_delta, delta_ms, pts ));
 

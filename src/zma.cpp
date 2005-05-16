@@ -131,7 +131,7 @@ int main( int argc, char *argv[] )
 	{
 		Info(( "Warming up" ));
 
-		if ( (bool)config.Item( ZM_OPT_FRAME_SERVER ) )
+		if ( config.opt_frame_server )
 		{
 			Event::OpenFrameSocket( monitor->Id() );
 		}

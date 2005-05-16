@@ -80,7 +80,7 @@ int OpenSocket( int monitor_id )
 	}
 
 	char sock_path[PATH_MAX] = "";
-	snprintf( sock_path, sizeof(sock_path), "%s/zmf-%d.sock", (const char *)config.Item( ZM_PATH_SOCKS ), monitor_id );
+	snprintf( sock_path, sizeof(sock_path), "%s/zmf-%d.sock", config.path_socks, monitor_id );
 	if ( unlink( sock_path ) < 0 )
 	{
 		Warning(( "Can't unlink '%s': %s", sock_path, strerror(errno) ));
@@ -202,8 +202,8 @@ int main( int argc, char *argv[] )
 
 	char capt_path[PATH_MAX];
 	char anal_path[PATH_MAX];
-	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%d/%%0%dd-capture.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Id(), (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
-	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%d/%%0%dd-analyse.jpg", (const char *)config.Item( ZM_DIR_EVENTS ), monitor->Id(), (int)config.Item( ZM_EVENT_IMAGE_DIGITS ) );
+	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%d/%%0%dd-capture.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
+	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%d/%%0%dd-analyse.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
 
 	sigset_t block_set;
 	sigemptyset( &block_set );

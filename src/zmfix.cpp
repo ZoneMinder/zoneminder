@@ -137,13 +137,11 @@ int main( int argc, char *argv[] )
 		// Yadda yadda
 		mysql_free_result( result );
 
-		if ( (bool)config.Item( ZM_OPT_X10 ) )
+		if ( config.opt_x10 )
 		{
-			const char *x10_port = (const char *)config.Item( ZM_X10_DEVICE );
-
-			if ( x10_port )
+			if ( config.x10_device )
 			{
-				fixDevice( x10_port );
+				fixDevice( config.x10_device );
 			}
 		}
 	}

@@ -88,6 +88,9 @@ public:
 
 class Config
 {
+public:
+	ZM_CFG_DECLARE_LIST
+
 private:
 	int n_items;
 	ConfigItem **items;
@@ -97,6 +100,7 @@ public:
 	~Config();
 
 	void Load();
+	void Assign();
 	const ConfigItem &Item( int id );
 };
 

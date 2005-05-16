@@ -319,7 +319,7 @@ int main( int argc, char *argv[] )
 
 	zmLoadConfig();
 
-	if ( (bool)config.Item( ZM_OPT_USE_AUTH ) )
+	if ( config.opt_use_auth )
 	{
 		if ( !(username && password) && !auth )
 		{
@@ -466,7 +466,7 @@ int main( int argc, char *argv[] )
 			{
 				if ( verbose )
 					printf( "Forcing alarm on\n" );
-				monitor->ForceAlarmOn( (int)config.Item( ZM_FORCED_ALARM_SCORE ), "Forced Web" );
+				monitor->ForceAlarmOn( config.forced_alarm_score, "Forced Web" );
 			}
 			if ( function & NOALARM )
 			{

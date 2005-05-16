@@ -50,9 +50,6 @@ protected:
 
 protected:
 	static bool initialised;
-	static bool y_image_deltas;
-	static bool fast_image_blends;
-	static bool colour_jpeg_files;
 	static unsigned char *abs_table;
 	static unsigned char *y_r_table;
 	static unsigned char *y_g_table;

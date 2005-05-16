@@ -65,18 +65,6 @@ public:
 
 	typedef enum { ACTIVE, SUSPENDED, RESUMING } ActivityState;
 
-protected:  
-	static bool		initialised;
-	static bool		record_event_stats;
-	static bool		record_diag_images;
-	static bool		opt_adaptive_skip;
-	static bool		create_analysis_images;
-	static bool		blend_alarmed_images;
-	static bool		timestamp_on_capture;
-	static int		bulk_frame_interval;
-	static bool		opt_control;
-	static const char *dir_events;
-
 protected:
 	// These are read from the DB and thereafter remain unchanged
 	int				id;
@@ -167,22 +155,6 @@ protected:
 	TriggerData *trigger_data;
 
 	Camera *camera;
-
-protected:
-	static void Initialise()
-	{
-		initialised = true;
-
-		record_event_stats = (bool)config.Item( ZM_RECORD_EVENT_STATS );
-		record_diag_images = (bool)config.Item( ZM_RECORD_DIAG_IMAGES );
-		opt_adaptive_skip = (bool)config.Item( ZM_OPT_ADAPTIVE_SKIP );
-		create_analysis_images = (bool)config.Item( ZM_CREATE_ANALYSIS_IMAGES );
-		blend_alarmed_images = (bool)config.Item( ZM_BLEND_ALARMED_IMAGES );
-		timestamp_on_capture = (bool)config.Item( ZM_TIMESTAMP_ON_CAPTURE );
-		bulk_frame_interval = (int)config.Item( ZM_BULK_FRAME_INTERVAL );
-		opt_control = (bool)config.Item( ZM_OPT_CONTROL );
-		dir_events = (const char *)config.Item( ZM_DIR_EVENTS );
-	}
 
 public:
 	Monitor( int p_id, char *p_name, int p_function, int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, int p_brightness, int p_contrast, int p_hue, int p_colour, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
@@ -283,7 +255,7 @@ public:
 			}
 
 			gettimeofday( image_buffer[index].timestamp, &dummy_tz );
-			if ( timestamp_on_capture )
+			if ( config.timestamp_on_capture )
 			{
 				TimestampImage( &image, image_buffer[index].timestamp->tv_sec );
 			}

@@ -114,7 +114,7 @@ int main( int argc, const char *argv[] )
 				bitrate = atoi( value );
 			else if ( !strcmp( name, "ttl" ) )
 				ttl = atoi(value);
-			else if ( (bool)config.Item( ZM_OPT_USE_AUTH ) )
+			else if ( config.opt_use_auth )
 			{
 				if ( !strcmp( name, "user" ) )
 				{
@@ -132,7 +132,7 @@ int main( int argc, const char *argv[] )
 		}
 	}
 
-	if ( (bool)config.Item( ZM_OPT_USE_AUTH ) )
+	if ( config.opt_use_auth )
 	{
 		User *user = 0;
 		if ( *username && *password )

@@ -38,8 +38,6 @@
 #include "zm.h"
 #include "zm_remote_camera.h"
 
-bool RemoteCamera::netcam_regexps = false;
-
 RemoteCamera::RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : Camera( REMOTE, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture ), host( p_host ), port( p_port ), path( p_path )
 {
 	auth = 0;
@@ -67,8 +65,6 @@ RemoteCamera::~RemoteCamera()
 
 void RemoteCamera::Initialise()
 {
-    netcam_regexps = (bool)config.Item( ZM_NETCAM_REGEXPS );
-
 	if( !host )
 	{
 		Error(( "No host specified for remote get" ));
@@ -112,8 +108,8 @@ void RemoteCamera::Initialise()
 
 	if ( !request[0] )
 	{
-		snprintf( request, sizeof(request), "GET %s HTTP/%s\n", path, (const char *)config.Item( ZM_HTTP_VERSION ) );
-		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "User-Agent: %s/%s\n", (const char *)config.Item( ZM_HTTP_UA ), ZM_VERSION );
+		snprintf( request, sizeof(request), "GET %s HTTP/%s\n", path, config.http_version );
+		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "User-Agent: %s/%s\n", config.http_ua, ZM_VERSION );
 		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Host: %s\n", host );
 		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Connection: Keep-Alive\n" );
 		if ( auth )
@@ -125,8 +121,8 @@ void RemoteCamera::Initialise()
 	}
 	if ( !timeout.tv_sec )
 	{
-		timeout.tv_sec = (int)config.Item( ZM_HTTP_TIMEOUT )/1000; 
-		timeout.tv_usec = (int)config.Item( ZM_HTTP_TIMEOUT )%1000;
+		timeout.tv_sec = config.http_timeout/1000; 
+		timeout.tv_usec = config.http_timeout%1000; 
 	}
 
 	int max_size = width*height*colours;
@@ -258,7 +254,7 @@ int RemoteCamera::ReadData( Buffer &buffer, int bytes_expected )
 int RemoteCamera::GetResponse()
 {
 #if HAVE_LIBPCRE
-	if ( netcam_regexps )
+	if ( config.netcam_regexps )
 	{
 		const char *header = 0;
 		int header_len = 0;

@@ -23,9 +23,6 @@
 #define ABSDIFF(a,b) 	(((a)<(b))?((b)-(a)):((a)-(b)))
 
 bool Image::initialised = false;
-bool Image::y_image_deltas;
-bool Image::fast_image_blends;
-bool Image::colour_jpeg_files;
 unsigned char *Image::abs_table;
 unsigned char *Image::y_r_table;
 unsigned char *Image::y_g_table;
@@ -36,9 +33,6 @@ void Image::Initialise()
 {
 	initialised = true;
 
-	y_image_deltas = (bool)config.Item( ZM_Y_IMAGE_DELTAS );
-	fast_image_blends = (bool)config.Item( ZM_FAST_IMAGE_BLENDS );
-	colour_jpeg_files = (bool)config.Item( ZM_COLOUR_JPEG_FILES );
 	abs_table = new unsigned char[(6*255)+1];
 	abs_table += (3*255);
 	y_r_table = new unsigned char[511];
@@ -164,7 +158,7 @@ void Image::ReadJpeg( const char *filename )
 
 void Image::WriteJpeg( const char *filename ) const
 {
-	if ( colour_jpeg_files && colours == 1 )
+	if ( config.colour_jpeg_files && colours == 1 )
 	{
 		Image temp_image( *this );
 		temp_image.Colourise();
@@ -199,7 +193,7 @@ void Image::WriteJpeg( const char *filename ) const
 	}
 	jpeg_set_defaults(&cinfo);
 	cinfo.dct_method = JDCT_FASTEST;
-	jpeg_set_quality(&cinfo, (int)config.Item( ZM_JPEG_FILE_QUALITY ), false);
+	jpeg_set_quality(&cinfo, config.jpeg_file_quality, false);
 	jpeg_start_compress(&cinfo, TRUE);
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
@@ -254,7 +248,7 @@ void Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 
 void Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
 {
-	if ( colour_jpeg_files && colours == 1 )
+	if ( config.colour_jpeg_files && colours == 1 )
 	{
 		Image temp_image( *this );
 		temp_image.Colourise();
@@ -282,7 +276,7 @@ void Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
 	}
 	jpeg_set_defaults(&cinfo);
 	cinfo.dct_method = JDCT_FASTEST;
-	jpeg_set_quality(&cinfo, (int)config.Item( ZM_JPEG_IMAGE_QUALITY ), false);
+	jpeg_set_quality(&cinfo, config.jpeg_file_quality, false);
 	jpeg_start_compress(&cinfo, TRUE);
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
@@ -371,7 +365,7 @@ void Image::Blend( const Image &image, int transparency ) const
 {
 	assert( width == image.width && height == image.height && colours == image.colours );
 
-	if ( fast_image_blends )
+	if ( config.fast_image_blends )
 	{
 		BlendTablePtr blend_ptr = GetBlendTable( transparency );
 
@@ -540,7 +534,7 @@ Image *Image::Delta( const Image &image ) const
 		register int red, green, blue;
 		while( psrc < (buffer+size) )
 		{
-			if ( y_image_deltas )
+			if ( config.y_image_deltas )
 			{
 				//Info(( "RS:%d, RR: %d", *psrc, *pref ));
 				red = y_r_table[*psrc++ - *pref++];

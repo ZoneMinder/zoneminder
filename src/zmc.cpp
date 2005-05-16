@@ -198,8 +198,6 @@ int main( int argc, char *argv[] )
 		capture_delays[i] = monitors[i]->GetCaptureDelay();
 	}
 
-	bool no_max_fps = (bool)config.Item( ZM_NO_MAX_FPS_ON_ALARM );
-
 	struct timeval now;
 	struct DeltaTimeval delta_time;
 	while( !zmc_terminate )
@@ -209,7 +207,7 @@ int main( int argc, char *argv[] )
 		for ( int i = 0; i < n_monitors; i++ )
 		{
 			long min_delay = MAXINT;
-			if ( no_max_fps && (monitors[i]->GetState() == Monitor::ALARM) )
+			if ( config.no_max_fps_on_alarm && (monitors[i]->GetState() == Monitor::ALARM) )
 			{
 				next_delays[i] = 0;
 			}

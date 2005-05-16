@@ -99,6 +99,7 @@ void zmLoadConfig()
 	fclose( cfg);
 	zmDbConnect();
 	config.Load();
+	config.Assign();
 }
 
 ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *const p_type )
@@ -235,6 +236,11 @@ void Config::Load()
 	{
 		items[i] = new ConfigItem( dbrow[0], dbrow[1], dbrow[2] );
 	}
+}
+
+void Config::Assign()
+{
+ZM_CFG_ASSIGN_LIST
 }
 
 const ConfigItem &Config::Item( int id )

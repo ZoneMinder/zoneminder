@@ -114,7 +114,8 @@ void LocalCamera::Initialise()
 	if ( ioctl( m_videohandle, VIDIOCSPICT, &vid_pic ) < 0 )
 	{
 		Error(( "Failed to set picture attributes: %s", strerror(errno) ));
-		if ( (bool)config.Item( ZM_STRICT_VIDEO_CONFIG ) ) exit(-1);
+		if ( config.strict_video_config )
+			exit(-1);
 	}
 
 	struct video_window vid_win;
@@ -140,7 +141,8 @@ void LocalCamera::Initialise()
 	if ( ioctl( m_videohandle, VIDIOCSWIN, &vid_win ) < 0 )
 	{
 		Error(( "Failed to set window attributes: %s", strerror(errno) ));
-		if ( (bool)config.Item( ZM_STRICT_VIDEO_CONFIG ) ) exit(-1);
+		if ( config.strict_video_config )
+			exit(-1);
 	}
 
 	if ( ioctl(m_videohandle, VIDIOCGMBUF, &m_vmb) < 0 )
@@ -186,7 +188,8 @@ void LocalCamera::Initialise()
 	if ( ioctl( m_videohandle, VIDIOCSCHAN, &vid_src) < 0 )
 	{
 		Error(( "Failed to set camera source %d: %s", channel, strerror(errno) ));
-		if ( (bool)config.Item( ZM_STRICT_VIDEO_CONFIG ) ) exit(-1);
+		if ( config.strict_video_config )
+			exit(-1);
 	}
 
 	if ( ioctl( m_videohandle, VIDIOCGWIN, &vid_win) < 0 )
@@ -785,7 +788,7 @@ int LocalCamera::PostCapture( Image &image )
 		}
 		case VIDEO_PALETTE_RGB24 :
 		{
-			if ( (bool)config.Item( ZM_LOCAL_BGR_INVERT ) )
+			if ( config.local_bgr_invert )
 			{
 				int size = width*height*3;
 				unsigned char *s_ptr = buffer;

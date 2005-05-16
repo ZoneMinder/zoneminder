@@ -39,11 +39,6 @@ public:
 	typedef enum { ALARMED_PIXELS=1, FILTERED_PIXELS, BLOBS } CheckMethod;
 
 protected:
-	static bool		initialised;
-	static bool		record_diag_images;
-	static bool		create_analysis_images;
-
-protected:
 	// Inputs
 	Monitor			*monitor;
 
@@ -83,13 +78,6 @@ protected:
 	Image			*image;
 
 protected:
-	static void Initialise()
-	{
-		initialised = true;
-		record_diag_images = (bool)config.Item( ZM_RECORD_DIAG_IMAGES );
-		create_analysis_images = (bool)config.Item( ZM_CREATE_ANALYSIS_IMAGES );
-	}
-
 	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs );
 
 public:

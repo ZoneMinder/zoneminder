@@ -188,7 +188,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 			struct tm *now_tm = localtime( &now );
 
 			snprintf( auth_key, sizeof(auth_key), "%s%s%s%s%d%d%d%d", 
-				(const char *)config.Item( ZM_AUTH_SECRET ),
+				config.auth_secret,
 				user,
 				pass,
 				remote_addr,

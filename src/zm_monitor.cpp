@@ -27,17 +27,6 @@
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
 
-bool Monitor::initialised = false;
-bool Monitor::record_event_stats;
-bool Monitor::record_diag_images;
-bool Monitor::opt_adaptive_skip;
-bool Monitor::create_analysis_images;
-bool Monitor::blend_alarmed_images;
-bool Monitor::timestamp_on_capture;
-int Monitor::bulk_frame_interval;
-bool Monitor::opt_control;
-const char *Monitor::dir_events;
-
 Monitor::Monitor(
 	int p_id,
 	char *p_name,
@@ -219,9 +208,6 @@ Monitor::~Monitor()
 
 void Monitor::Setup()
 {
-	if ( !initialised )
-		Initialise();
-
 	fps = 0.0;
 	event_count = 0;
 	image_count = 0;
@@ -240,7 +226,7 @@ void Monitor::Setup()
 
 	int shared_data_size = sizeof(SharedData)+sizeof(TriggerData)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
 	Debug( 1, ( "shm.size=%d", shared_data_size ));
-	shmid = shmget( (int)config.Item( ZM_SHM_KEY )|id, shared_data_size, IPC_CREAT|0700 );
+	shmid = shmget( config.shm_key|id, shared_data_size, IPC_CREAT|0700 );
 	if ( shmid < 0 )
 	{
 		Error(( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno)));
@@ -310,7 +296,7 @@ void Monitor::Setup()
 	{
 		static char	path[PATH_MAX];
 
-		strncpy( path, dir_events, sizeof(path) );
+		strncpy( path, config.dir_events, sizeof(path) );
 
 		struct stat statbuf;
 		errno = 0;
@@ -323,7 +309,7 @@ void Monitor::Setup()
 			}
 		}
 
-		snprintf( path, sizeof(path), "%s/%d", dir_events, id );
+		snprintf( path, sizeof(path), "%s/%d", config.dir_events, id );
 
 		errno = 0;
 		stat( path, &statbuf );
@@ -335,7 +321,7 @@ void Monitor::Setup()
 			}
 			char temp_path[PATH_MAX];
 			snprintf( temp_path, sizeof(temp_path), "%d", id );
-			chdir( dir_events );
+			chdir( config.dir_events );
 			symlink( temp_path, name );
 			chdir( ".." );
 		}
@@ -376,7 +362,7 @@ int Monitor::GetImage( int index, int scale ) const
 
 	static char filename[PATH_MAX];
 	snprintf( filename, sizeof(filename), "%s.jpg", name );
-	if ( !timestamp_on_capture )
+	if ( !config.timestamp_on_capture )
 	{
 		TimestampImage( &snap_image, snap->timestamp->tv_sec );
 	}
@@ -673,7 +659,7 @@ bool Monitor::Analyse()
 	}
 
 	int index;
-	if ( opt_adaptive_skip )
+	if ( config.opt_adaptive_skip )
 	{
 		int read_margin = shared_data->last_read_index - shared_data->last_write_index;
 		if ( read_margin < 0 ) read_margin += image_buffer_count;
@@ -787,7 +773,7 @@ bool Monitor::Analyse()
 
 				Info(( "%s: %03d - Starting new event %d", name, image_count, event->Id() ));
 
-				//if ( (bool)config.Item( ZM_OVERLAP_TIMED_EVENTS ) )
+				//if ( config.overlap_timed_events )
 				if ( true )
 				{
 					int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
@@ -807,7 +793,7 @@ bool Monitor::Analyse()
 		}
 		if ( score )
 		{
-			if ( opt_control && track_motion && (activity_state != ACTIVE) )
+			if ( config.opt_control && track_motion && (activity_state != ACTIVE) )
 			{
 				// Do nothing
 			}
@@ -864,7 +850,7 @@ bool Monitor::Analyse()
 		}
 		else
 		{
-			if ( opt_control && track_motion && (activity_state != ACTIVE) )
+			if ( config.opt_control && track_motion && (activity_state != ACTIVE) )
 			{
 				// Do nothing
 			}
@@ -909,7 +895,7 @@ bool Monitor::Analyse()
 		{
 			if ( state == PREALARM || state == ALARM )
 			{
-				if ( create_analysis_images )
+				if ( config.create_analysis_images )
 				{
 					bool got_anal_image = false;
 					Image alarm_image( *snap_image );
@@ -922,7 +908,7 @@ bool Monitor::Analyse()
 								alarm_image.Overlay( *(zones[i]->AlarmImage()) );
 								got_anal_image = true;
 							}
-							if ( record_event_stats && state == ALARM )
+							if ( config.record_event_stats && state == ALARM )
 							{
 								zones[i]->RecordStats( event );
 							}
@@ -959,7 +945,7 @@ bool Monitor::Analyse()
 			{
 				if ( !(image_count%(frame_skip+1)) )
 				{
-					if ( bulk_frame_interval > 1 )
+					if ( config.bulk_frame_interval > 1 )
 					{
 						event->AddFrame( snap_image, *timestamp, -1 );
 					}
@@ -991,7 +977,7 @@ bool Monitor::Analyse()
 		}
 	}
 
-	if ( (function == MODECT || function == MOCORD) && (blend_alarmed_images || state != ALARM) )
+	if ( (function == MODECT || function == MOCORD) && (config.blend_alarmed_images || state != ALARM) )
 	{
 		ref_image.Blend( *snap_image, ref_blend_perc );
 	}
@@ -1335,7 +1321,7 @@ void Monitor::StreamImages( int scale, int maxfps, time_t ttl )
 
 					snap_image = &scaled_image;
 				}
-				if ( !timestamp_on_capture )
+				if ( !config.timestamp_on_capture )
 				{
 					TimestampImage( snap_image, snap->timestamp->tv_sec );
 				}
@@ -1378,7 +1364,7 @@ void Monitor::SingleImage( int scale)
 		scaled_image.Scale( scale );
 		snap_image = &scaled_image;
 	}
-	if ( !timestamp_on_capture )
+	if ( !config.timestamp_on_capture )
 	{
 		TimestampImage( snap_image, snap->timestamp->tv_sec );
 	}
@@ -1393,8 +1379,6 @@ void Monitor::SingleImage( int scale)
 
 void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate )
 {
-	bool timed_frames = (bool)config.Item( ZM_VIDEO_TIMED_FRAMES );
-
 	int fps = int(GetFPS());
 	if ( !fps )
 		fps = 5;
@@ -1450,7 +1434,7 @@ void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate
 
 					snap_image = &scaled_image;
 				}
-				if ( !timestamp_on_capture )
+				if ( !config.timestamp_on_capture )
 				{
 					TimestampImage( snap_image, snap->timestamp->tv_sec );
 				}
@@ -1460,7 +1444,7 @@ void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate
 					base_time = *(snap->timestamp);
 				}
 				DELTA_TIMEVAL( delta_time, *(snap->timestamp), base_time, DT_PREC_3 );
-				double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size(), timed_frames, delta_time.delta );
+				double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size(), config.video_timed_frames, delta_time.delta );
 				//Info(( "FC:%d, DTD:%d, PTS:%lf", frame_count, delta_time.delta, pts ));
 			}
 			frame_count++;
@@ -1528,24 +1512,24 @@ unsigned int Monitor::Compare( const Image &comp_image )
 
 	if ( n_zones <= 0 ) return( alarm );
 
-	if ( record_diag_images )
+	if ( config.record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", dir_events, id );
+			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", config.dir_events, id );
 		}
 		ref_image.WriteJpeg( diag_path );
 	}
 
 	Image *delta_image = ref_image.Delta( comp_image );
 
-	if ( record_diag_images )
+	if ( config.record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", dir_events, id );
+			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", config.dir_events, id );
 		}
 		delta_image->WriteJpeg( diag_path );
 	}
@@ -1608,7 +1592,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 				score += zone->Score();
 				zone->SetAlarm();
 				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
-				if ( opt_control && track_motion )
+				if ( config.opt_control && track_motion )
 				{
 					if ( (int)zone->Score() > top_score )
 					{
@@ -1635,7 +1619,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 					score += zone->Score();
 					zone->SetAlarm();
 					Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
-					if ( opt_control && track_motion )
+					if ( config.opt_control && track_motion )
 					{
 						if ( zone->Score() > top_score )
 						{

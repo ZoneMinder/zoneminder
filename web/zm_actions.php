@@ -44,6 +44,11 @@ if ( isset($action) )
 		{
 			simpleQuery( "update Events set Name = '$event_name' where Id = '$eid'" );
 		}
+		else if ( $action == "eventdetail" && $eid )
+		{
+			simpleQuery( "update Events set Cause = '".addslashes($new_event['Cause'])."', Notes = '".addslashes($new_event['Notes'])."' where Id = '$eid'" );
+			$refresh_parent = true;
+		}
 		elseif ( $action == "archive" && $eid )
 		{
 			simpleQuery( "update Events set Archived = 1 where Id = '$eid'" );

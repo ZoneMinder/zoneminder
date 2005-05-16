@@ -32,6 +32,7 @@ web_DATA = \
 	zm_html_view_cycle.php \
 	zm_html_view_error.php \
 	zm_html_view_event.php \
+	zm_html_view_eventdetail.php \
 	zm_html_view_events.php \
 	zm_html_view_filter.php \
 	zm_html_view_filtersave.php \
@@ -122,6 +123,7 @@ EXTRA_DIST = \
 	zm_html_view_cycle.php \
 	zm_html_view_error.php \
 	zm_html_view_event.php \
+	zm_html_view_eventdetail.php \
 	zm_html_view_events.php \
 	zm_html_view_filter.php \
 	zm_html_view_filtersave.php \

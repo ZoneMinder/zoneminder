@@ -160,6 +160,7 @@ $jws = array(
 	'cycle' => array( 'w'=>16, 'h'=>32 ),
 	'device' => array( 'w'=>196, 'h'=>164 ),
 	'event' => array( 'w'=>96, 'h'=>168 ),
+	'eventdetail' => array( 'w'=>400, 'h'=>220 ),
 	'events' => array( 'w'=>720, 'h'=>480 ),
 	'filter' => array( 'w'=>560, 'h'=>250 ),
 	'filtersave' => array( 'w'=>560, 'h'=>220 ),

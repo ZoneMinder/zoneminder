@@ -342,7 +342,7 @@ function viewEvents( form, name )
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $event['Width']+$jws['event']['w']  ?>, <?= $event['Height']+$jws['event']['h']  ?> );"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $event['Width']+$jws['event']['w']  ?>, <?= $event['Height']+$jws['event']['h']  ?> );"><?= $event['Name'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
 <td align="center" class="text"><?= $event['MonitorName'] ?></td>
-<td align="center" class="text"><?= $event['Cause'] ?></td>
+<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=eventdetail&eid=".$event['Id']."', 'zmEventDetail', ".$jws['eventdetail']['w'].", ".$jws['eventdetail']['h']." );", $event['Cause'], canEdit( 'Events' ) ) ?></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event['StartTime']) ) ?></td>
 <td align="center" class="text"><?= $event['Length'] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['Frames'] ?></a></td>

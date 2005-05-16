@@ -126,6 +126,7 @@ switch( $view )
 	case "filter" :
 	case "filtersave" :
 	case "event" :
+	case "eventdetail" :
 	case "frame" :
 	case "frames" :
 	case "stats" :

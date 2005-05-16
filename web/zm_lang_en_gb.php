@@ -366,6 +366,7 @@ $zmSlangNo                   = 'No';
 $zmSlangNormal               = 'Normal';
 $zmSlangNoSavedFilters       = 'NoSavedFilters';
 $zmSlangNoStatisticsRecorded = 'There are no statistics recorded for this event/frame';
+$zmSlangNotes                = 'Notes';
 $zmSlangNumPresets           = 'Num Presets';
 $zmSlangOpen                 = 'Open';
 $zmSlangOpEq                 = 'equal to';

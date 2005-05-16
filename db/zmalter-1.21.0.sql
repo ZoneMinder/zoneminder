@@ -5,6 +5,11 @@
 --
 alter table Monitors modify column Orientation enum('0','90','180','270','hori','vert') NOT NULL default '0';
 --
+-- Make changes to Stats table
+--
+alter table Sats modify column MinBlobSize int(10) unsigned NOT NULL default '0';
+alter table Sats modify column MaxBlobSize int(10) unsigned NOT NULL default '0';
+--
 -- These are optional, but we might as well do it now
 --
 optimize table Frames;

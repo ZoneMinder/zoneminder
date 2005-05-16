@@ -134,7 +134,6 @@ function confirmDelete()
 if ( ZM_WEB_REFRESH_METHOD == "javascript" )
 {
 ?>
-//window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>?view=<?= $view ?>')", <?= (ZM_WEB_REFRESH_MAIN*1000) ?> );
 window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (ZM_WEB_REFRESH_MAIN*1000) ?> );
 <?php
 }

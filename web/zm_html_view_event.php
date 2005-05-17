@@ -139,7 +139,9 @@ var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?
 <body scroll="auto">
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
-<td colspan="3" align="left" class="text">
+<td><table border="0" cellspacing="0" cellpadding="2" width="100%">
+<tr>
+<td align="left" class="text">
 <form name="rename_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="rename">
@@ -154,7 +156,7 @@ var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?
 <input type="text" size="16" name="event_name" value="<?= $event['Name'] ?>" class="form">
 <input type="submit" value="<?= $zmSlangRename ?>" class="form"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></form></td>
 <?php if ( 0 ) { ?>
-<td colspan="2" align="right" class="text">
+<td align="center" class="text">
 <form name="learn_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="learn">
@@ -165,7 +167,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php } ?>
 </form></td>
 <?php } ?>
-<td colspan="3" align="right" class="text">
+<td align="right" class="text">
 <form name="view_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
@@ -178,6 +180,9 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 </form>
 </td>
 </tr>
+</table></td></tr>
+<tr>
+<td><table border="0" cellspacing="0" cellpadding="2" width="100%">
 <tr>
 <?php if ( $mode == "stream" ) { ?>
 <td align="center" class="text"><a href="javascript: refreshWindow();"><?= $zmSlangReplay ?></a></td>
@@ -185,30 +190,28 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=0"><?= $zmSlangAll ?></a></td>
 <?php } elseif ( $paged && empty($page) ) { ?>
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=1"><?= $zmSlangPaged ?></a></td>
-<?php } else { ?>
-<td align="center" class="text">&nbsp;</td>
 <?php } ?>
-<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=eventdetail&eid=<?= $eid ?>"><?= $zmSlangEdit ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>"><?= $zmSlangDelete ?></a></td><?php } ?>
+<?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=eventdetail&eid=<?= $eid ?>"><?= $zmSlangEdit ?></a></td><?php } ?>
+<?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=export&eid=<?= $eid ?>', 'zmExport', <?= $jws['export']['w'] ?>, <?= $jws['export']['h'] ?> )"><?= $zmSlangExport ?></a></td><?php } ?>
+<?php if ( canEdit( 'Events' ) ) { ?>
 <?php if ( $event['Archived'] ) { ?>
-<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangUnarchive ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangUnarchive ?></a></td>
 <?php } else { ?>
-<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=archive&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangArchive ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=archive&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangArchive ?></a></td>
+<?php } ?>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=1"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=stream&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangStream ?></a></td>
-<?php } else { ?>
-<td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( ZM_OPT_MPEG != "no" ) { ?>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=video&eid=<?= $eid ?>', 'zmVideo', <?= $jws['video']['w']+$event['Width'] ?>, <?= $jws['video']['h']+$event['Height'] ?> );"><?= $zmSlangVideo ?></a></td>
-<?php } else { ?>
-<td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
+</table></td></tr>
 <?php
 if ( $mode == "still" && $paged && !empty($page) )
 {
@@ -217,7 +220,7 @@ if ( $mode == "still" && $paged && !empty($page) )
 	$pages = (int)ceil($event['Frames']/$frames_per_page);
 	$max_shortcuts = 5;
 ?>
-<tr><td colspan="7" align="center" class="text">
+<tr><td align="center" class="text">
 <?php
 	if ( $page < 0 )
 		$page = 1;
@@ -286,7 +289,7 @@ if ( $mode == "still" && $paged && !empty($page) )
 if ( $mode == "stream" )
 {
 ?>
-<tr><td colspan="7" align="center" valign="middle">
+<tr><td align="center" valign="middle">
 <?php
 	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_REPLAY_FORMAT )
 	{
@@ -375,7 +378,7 @@ else
 		}
 	}
 ?>
-<tr><td colspan="7"><table border="0" cellpadding="0" cellspacing="2" align="center">
+<tr><td><table border="0" cellpadding="0" cellspacing="2" align="center">
 <tr>
 <?php
 	$count = 0;
@@ -438,7 +441,7 @@ else
 }
 ?>
 <tr>
-<td colspan="7"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
 <td width="20%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 <td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 <td width="20%" align="center" class="text"><?php if ( $frame_data ) { ?><a href="javascript: window.clearTimeout( timeout_id );"><?= $zmSlangStop ?></a><?php } elseif ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1"><?= $zmSlangPlayAll ?></a><?php } else { ?>&nbsp;<?php } ?></td>

@@ -189,6 +189,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <td align="center" class="text">&nbsp;</td>
 <?php } ?>
 <td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=eventdetail&eid=<?= $eid ?>"><?= $zmSlangEdit ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php if ( $event['Archived'] ) { ?>
 <td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangUnarchive ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 <?php } else { ?>
@@ -216,7 +217,7 @@ if ( $mode == "still" && $paged && !empty($page) )
 	$pages = (int)ceil($event['Frames']/$frames_per_page);
 	$max_shortcuts = 5;
 ?>
-<tr><td colspan="6" align="center" class="text">
+<tr><td colspan="7" align="center" class="text">
 <?php
 	if ( $page < 0 )
 		$page = 1;
@@ -285,7 +286,7 @@ if ( $mode == "still" && $paged && !empty($page) )
 if ( $mode == "stream" )
 {
 ?>
-<tr><td colspan="6" align="center" valign="middle">
+<tr><td colspan="7" align="center" valign="middle">
 <?php
 	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_REPLAY_FORMAT )
 	{
@@ -374,7 +375,7 @@ else
 		}
 	}
 ?>
-<tr><td colspan="6"><table border="0" cellpadding="0" cellspacing="2" align="center">
+<tr><td colspan="7"><table border="0" cellpadding="0" cellspacing="2" align="center">
 <tr>
 <?php
 	$count = 0;
@@ -437,7 +438,7 @@ else
 }
 ?>
 <tr>
-<td colspan="6"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td colspan="7"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
 <td width="20%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 <td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 <td width="20%" align="center" class="text"><?php if ( $frame_data ) { ?><a href="javascript: window.clearTimeout( timeout_id );"><?= $zmSlangStop ?></a><?php } elseif ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1"><?= $zmSlangPlayAll ?></a><?php } else { ?>&nbsp;<?php } ?></td>

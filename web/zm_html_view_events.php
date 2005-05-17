@@ -141,6 +141,7 @@ function checkAll(form,name)
 	form.edit_btn.disabled = false;
 	form.archive_btn.disabled = <?= $unarchived?"false":"true" ?>;
 	form.unarchive_btn.disabled = <?= $archived?"false":"true" ?>;
+	form.export_btn.disabled = false;
 	form.delete_btn.disabled = false;
 <?php if ( LEARN_MODE ) { ?>
 	form.learn_btn.disabled = false;
@@ -165,6 +166,7 @@ function configureButton(form,name)
 	form.edit_btn.disabled = !checked;
 	form.archive_btn.disabled = (!checked)||<?= $unarchived?"false":"true" ?>;
 	form.unarchive_btn.disabled = (!checked)||<?= $archived?"false":"true" ?>;
+	form.export_btn.disabled = !checked;
 	form.delete_btn.disabled = !checked;
 <?php if ( LEARN_MODE ) { ?>
 	form.learn_btn.disabled = !checked;
@@ -185,6 +187,21 @@ function editEvents( form, name )
 		}
 	}
 	var Name = newWindow( '<?= $PHP_SELF ?>?view=eventdetail&'+eids.join( '&' ), 'zmEventDetail', <?= $jws['eventdetail']['w'] ?>, <?= $jws['eventdetail']['h'] ?> );
+}
+function exportEvents( form, name )
+{
+	var eids = new Array();
+	for (var i = 0; i < form.elements.length; i++)
+	{
+		if (form.elements[i].name.indexOf(name) == 0)
+		{
+			if ( form.elements[i].checked )
+			{
+				eids[eids.length] = 'eids[]='+form.elements[i].value;
+			}
+		}
+	}
+	var Name = newWindow( '<?= $PHP_SELF ?>?view=export&'+eids.join( '&' ), 'zmExport', <?= $jws['export']['w'] ?>, <?= $jws['export']['h'] ?> );
 }
 function viewEvents( form, name )
 {
@@ -401,6 +418,7 @@ function viewEvents( form, name )
 &nbsp;&nbsp;<input type="button" name="archive_btn" value="<?= $zmSlangArchive ?>" class="form" onClick="document.event_form.action.value = 'archive'; document.event_form.submit();" disabled>
 &nbsp;&nbsp;<input type="button" name="unarchive_btn" value="<?= $zmSlangUnarchive ?>" class="form" onClick="document.event_form.action.value = 'unarchive'; document.event_form.submit();" disabled>
 &nbsp;&nbsp;<input type="button" name="edit_btn" value="<?= $zmSlangEdit ?>" class="form" onClick="editEvents( document.event_form, 'mark_eids' )" disabled>
+&nbsp;&nbsp;<input type="button" name="export_btn" value="<?= $zmSlangExport ?>" class="form" onClick="exportEvents( document.event_form, 'mark_eids' )" disabled>
 &nbsp;&nbsp;<input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="document.event_form.action.value = 'delete'; document.event_form.submit();" disabled>
 </td></tr>
 <?php } ?>

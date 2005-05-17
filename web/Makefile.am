@@ -16,6 +16,7 @@ web_DATA = \
 	zm_config.php \
 	zm_control_funcs.php \
 	zm_db.php \
+	zm_export_funcs.php \
 	zm_funcs.php \
 	zm_html.php \
 	zm_html_styles.css \
@@ -34,6 +35,7 @@ web_DATA = \
 	zm_html_view_event.php \
 	zm_html_view_eventdetail.php \
 	zm_html_view_events.php \
+	zm_html_view_export.php \
 	zm_html_view_filter.php \
 	zm_html_view_filtersave.php \
 	zm_html_view_frame.php \
@@ -108,6 +110,7 @@ EXTRA_DIST = \
 	zm_config.php.z \
 	zm_control_funcs.php \
 	zm_db.php \
+	zm_export_funcs.php \
 	zm_funcs.php \
 	zm_html.php \
 	zm_html_styles.css \
@@ -125,6 +128,7 @@ EXTRA_DIST = \
 	zm_html_view_event.php \
 	zm_html_view_eventdetail.php \
 	zm_html_view_events.php \
+	zm_html_view_export.php \
 	zm_html_view_filter.php \
 	zm_html_view_filtersave.php \
 	zm_html_view_frame.php \

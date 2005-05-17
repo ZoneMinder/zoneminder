@@ -151,7 +151,7 @@ if ( isset($action) )
 			}
 		}
 	}
-	if ( canEdit( 'Monitors', $mid ) )
+	if ( isset($mid) && canEdit( 'Monitors', $mid ) )
 	{
 		if ( $action == "function" && isset( $mid ) )
 		{

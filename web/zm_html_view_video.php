@@ -61,7 +61,7 @@ ob_start();
 </table>
 </form>
 <?php
-if ( isset($generate) )
+if ( !empty($generate) )
 {
 ?>
 <table border="0" cellspacing="0" cellpadding="4" width="100%">

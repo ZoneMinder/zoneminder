@@ -104,7 +104,7 @@ else
 {
 ?>
 <tr bgcolor="#FFFFFF">
-<td class="text" colspan="8" align="center"><br><?= $zmSlangNoFramesRecorded ?><br><br></td>
+<td class="text" colspan="5" align="center"><br><?= $zmSlangNoFramesRecorded ?><br><br></td>
 </tr>
 <?php
 }

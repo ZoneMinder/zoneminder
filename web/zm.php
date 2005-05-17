@@ -19,7 +19,7 @@
 // 
 
 error_reporting (E_ALL ^ E_NOTICE);
-import_request_variables( "GPC" );
+import_request_variables( "CGP" );
 
 $debug = false;
 if ( $debug )

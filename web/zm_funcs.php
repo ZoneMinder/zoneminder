@@ -199,7 +199,7 @@ function deleteEvent( $eid )
 			$result = mysql_query( "delete from Frames where EventId = '$eid'" );
 			if ( !$result )
 				die( mysql_error() );
-			system( escapeshellcmd( "rm -rf ".ZM_PATH_EVENTS."/*/".sprintf( "%d", $eid ) ) );
+			system( escapeshellcmd( "rm -rf ".ZM_DIR_EVENTS."/*/".sprintf( "%d", $eid ) ) );
 		}
 	}
 }

@@ -151,7 +151,7 @@ if ( isset($action) )
 			}
 		}
 	}
-	if ( isset($mid) && canEdit( 'Monitors', $mid ) )
+	if ( canEdit( 'Monitors', $mid ) )
 	{
 		if ( $action == "function" && isset( $mid ) )
 		{
@@ -243,6 +243,7 @@ if ( isset($action) )
 			$types = array(
 				'Triggers' => 'set',
 				'Controllable' => 'toggle',
+				'TrackMotion' => 'toggle',
 			);
 
 			$columns = getTableColumns( 'Monitors' );

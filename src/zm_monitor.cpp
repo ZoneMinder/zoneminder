@@ -263,6 +263,7 @@ void Monitor::Setup()
 		trigger_data->trigger_score = 0;
 		trigger_data->trigger_cause[0] = 0;
 		trigger_data->trigger_text[0] = 0;
+		trigger_data->trigger_showtext[0] = 0;
 	}
 	if ( !shared_data->valid )
 	{

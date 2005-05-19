@@ -149,6 +149,7 @@ protected:
 		int trigger_score;
 		char trigger_cause[32];
 		char trigger_text[256];
+		char trigger_showtext[32];
 	} TriggerData;
 
 	SharedData *shared_data;
@@ -200,11 +201,36 @@ public:
 	{
 		if ( label_format[0] )
 		{
+			static int token_count = -1;
 			static char label_time_text[256];
 			static char label_text[256];
 
+			if ( token_count < 0 )
+			{
+				const char *token_ptr = label_format;
+				const char *token_string = "%%s";
+				token_count = 0;
+				while( token_ptr = strstr( token_ptr, token_string ) )
+				{
+					token_count++;
+					token_ptr += strlen(token_string);
+				}
+				Info(( "Found %d tokens, in %s", token_count, label_format ));
+			}
 			strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time ) );
-			snprintf( label_text, sizeof(label_text), label_time_text, name );
+			switch ( token_count )
+			{
+				case 1:
+				{
+					snprintf( label_text, sizeof(label_text), label_time_text, name );
+					break;
+				}
+				case 2:
+				{
+					snprintf( label_text, sizeof(label_text), label_time_text, name, trigger_data->trigger_showtext );
+					break;
+				}
+			}
 
 			ts_image->Annotate( label_text, label_coord );
 		}

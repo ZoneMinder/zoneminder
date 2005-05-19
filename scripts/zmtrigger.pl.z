@@ -156,7 +156,8 @@ foreach my $source ( @sources )
 	{
 		local *sfh;
 		#sysopen( *sfh, $source->{path}, O_NONBLOCK|O_RDONLY ) or die( "Can't sysopen: $!" );
-		open( *sfh, "<".$source->{path} ) or die( "Can't open: $!" );
+		#open( *sfh, "<".$source->{path} ) or die( "Can't open: $!" );
+		open( *sfh, "+<".$source->{path} ) or die( "Can't open: $!" );
 		$source->{handle} = *sfh;
 		vec( $base_rin, fileno($source->{handle}),1) = 1;
 	}
@@ -278,7 +279,10 @@ sub handleMessage
 	{
 		next if ( !$message );
 		print( "Processing message '$message'\n" ) if ( VERBOSE );
-		my ( $id, $action, $score, $cause, $text ) = split( /\|/, $message );
+		my ( $id, $action, $score, $cause, $text, $showtext ) = split( /\|/, $message );
+		$score = 0 if ( !defined($score) );
+		$cause = 0 if ( !defined($cause) );
+		$text = 0 if ( !defined($text) );
 
 		my $res = $sth->execute( $id, $id ) or die( "Can't execute '$sql': ".$sth->errstr() );
 		my $monitor = $sth->fetchrow_hashref();
@@ -289,7 +293,7 @@ sub handleMessage
 			next;
 		}
 		print( "Found monitor for id '$id'\n" ) if ( VERBOSE );
-		my $size = 512; # We only need the first 512 bytes really for the alarm state and forced alarm
+		my $size = 512; # We only need the first 512 bytes really for the shared data and trigger section
 		$monitor->{ShmKey} = hex(ZM_SHM_KEY)|$monitor->{Id};
 		$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 );
 		if ( !defined($monitor->{ShmId}) )
@@ -298,13 +302,30 @@ sub handleMessage
 			next;
 		}
 
+		my $shm_data_size;
+		if ( !shmread( $monitor->{ShmId}, $shm_data_size, 0, 4 ) )
+		{
+			print( "Can't read from shared memory: $!\n" );
+			exit( -1 );
+		}
+		$shm_data_size = unpack( "l", $shm_data_size );
+		my $trigger_data_offset = $shm_data_size+4; # Allow for 'size' member of trigger data
+
 		print( "Handling action '$action'\n" ) if ( VERBOSE );
 		if ( $action =~ /^(on|off)(?:\+(\d+))?$/ )
 		{
 			my $trigger = $1;
 			my $delay = $2;
-			my $force_data = pack( "llZ32Z256", $trigger eq "on"?1:2, $trigger eq "on"?$score:0, $cause, $text );
-			if ( !shmwrite( $monitor->{ShmId}, $force_data, 60, 4+4+32+256 ) )
+			my $trigger_data;
+			if ( defined($showtext) )
+			{
+				$trigger_data = pack( "llZ32Z256Z32", $trigger eq "on"?1:2, $trigger eq "on"?$score:0, $cause, $text, $showtext );
+			}
+			else
+			{
+				$trigger_data = pack( "llZ32Z256", $trigger eq "on"?1:2, $trigger eq "on"?$score:0, $cause, $text );
+			}
+			if ( !shmwrite( $monitor->{ShmId}, $trigger_data, $trigger_data_offset, length($trigger_data) ) )
 			{
 				print( "Can't write to shared memory: $!\n" );
 			}
@@ -312,7 +333,7 @@ sub handleMessage
 			if ( $delay )
 			{
 				my $action_time = time()+$delay;
-				my $action_text = $id."|cancel|".$cause."|".$text;
+				my $action_text = $id."|cancel|0|".$cause."|".$text;
 				my $action_array = $actions{$action_time};
 				if ( !$action_array )
 				{
@@ -324,12 +345,29 @@ sub handleMessage
 		}
 		elsif( $action eq "cancel" )
 		{
-			my $force_data = pack( "llZ32Z256", 0, 0, "", "" );
-			if ( !shmwrite( $monitor->{ShmId}, $force_data, 60, 4+4+32+256 ) )
+			my $trigger_data;
+			if ( defined($showtext) )
+			{
+				$trigger_data = pack( "llZ32Z256Z32", 0, 0, "", "", $showtext );
+			}
+			else
+			{
+				$trigger_data = pack( "llZ32Z256", 0, 0, "", "" );
+			}
+			if ( !shmwrite( $monitor->{ShmId}, $trigger_data, $trigger_data_offset, length($trigger_data) ) )
 			{
 				print( "Can't write to shared memory: $!\n" );
 			}
 			print( "Cancelled event '$cause'\n" );
+		}
+		elsif( $action eq "show" )
+		{
+			my $trigger_data = pack( "Z32", $showtext );
+			if ( !shmwrite( $monitor->{ShmId}, $trigger_data, $trigger_data_offset, length($trigger_data) ) )
+			{
+				print( "Can't write to shared memory: $!\n" );
+			}
+			print( "Updated show text to '$showtext'\n" );
 		}
 		else
 		{

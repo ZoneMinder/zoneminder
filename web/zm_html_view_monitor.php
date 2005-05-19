@@ -430,7 +430,7 @@ switch ( $tab )
 	case 'timestamp' :
 	{
 ?>
-<tr><td align="left" class="text"><?= $zmSlangTimestampLabelFormat ?></td><td align="left" class="text"><input type="text" name="new_monitor[LabelFormat]" value="<?= $new_monitor['LabelFormat'] ?>" size="20" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangTimestampLabelFormat ?></td><td align="left" class="text"><input type="text" name="new_monitor[LabelFormat]" value="<?= $new_monitor['LabelFormat'] ?>" size="32" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangTimestampLabelX ?></td><td align="left" class="text"><input type="text" name="new_monitor[LabelX]" value="<?= $new_monitor['LabelX'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangTimestampLabelY ?></td><td align="left" class="text"><input type="text" name="new_monitor[LabelY]" value="<?= $new_monitor['LabelY'] ?>" size="4" class="form"></td></tr>
 <?php

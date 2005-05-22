@@ -148,6 +148,7 @@ CREATE TABLE Monitors (
   ControlId int(10) unsigned NOT NULL default '0',
   ControlDevice varchar(255) default NULL,
   ControlAddress varchar(255) default NULL,
+  AutoStopTimeout decimal(5,2) default NULL,
   TrackMotion tinyint(3) unsigned NOT NULL default '0',
   TrackDelay smallint(5) unsigned NOT NULL default '0',
   ReturnLocation tinyint(3) NOT NULL default '-1',

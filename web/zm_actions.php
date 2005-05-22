@@ -518,6 +518,7 @@ if ( isset($action) )
 				}
 				else
 				{
+					$slow = 0.25; // Threshold for slow speed/timeouts
 					$turbo = 0.9; // Threshold for turbo speed
 					$long_y = 48;
 					$short_x = 32;
@@ -560,6 +561,18 @@ if ( isset($action) )
 										$ctrl_command .= " --step=".$step;
 										break;
 									}
+									case 'con' :
+									{
+										if ( $monitor['AutoStopTimeout'] )
+										{
+											$slow_speed = intval(round($monitor['MinFocusSpeed']+(($monitor['MaxFocusSpeed']-$monitor['MinFocusSpeed'])*$slow)));
+											if ( $speed < $slow_speed )
+											{
+												$ctrl_command .= " --autostop=".$monitor['AutoStopTimeout'];
+											}
+										}
+										break;
+									}
 								}
 								break;
 							}
@@ -590,6 +603,18 @@ if ( isset($action) )
 									{
 										$step = intval(round($monitor['MinZoomStep']+(($monitor['MaxZoomStep']-$monitor['MinZoomStep'])*$x_factor)));
 										$ctrl_command .= " --step=".$step;
+										break;
+									}
+									case 'con' :
+									{
+										if ( $monitor['AutoStopTimeout'] )
+										{
+											$slow_speed = intval(round($monitor['MinZoomSpeed']+(($monitor['MaxZoomSpeed']-$monitor['MinZoomSpeed'])*$slow)));
+											if ( $speed < $slow_speed )
+											{
+												$ctrl_command .= " --autostop=".$monitor['AutoStopTimeout'];
+											}
+										}
 										break;
 									}
 								}
@@ -823,10 +848,22 @@ if ( isset($action) )
 											$ctrl_command .= " --panstep=".$pan_step;
 										}
 										if ( preg_match( '/^(up|down)/', $dirn ) )
-
 										{
 											$tilt_step = intval(round($monitor['MinTiltStep']+(($monitor['MaxTiltStep']-$monitor['MinTiltStep'])*$y_factor)));
 											$ctrl_command .= " --tiltstep=".$tilt_step;
+										}
+										break;
+									}
+									case 'con' :
+									{
+										if ( $monitor['AutoStopTimeout'] )
+										{
+											$slow_pan_speed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$slow)));
+											$slow_tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$slow)));
+											if ( (isset($pan_speed) && ($pan_speed < $slow_pan_speed)) || (isset($tilt_speed) && ($tilt_speed < $slow_tilt_speed)) )
+											{
+												$ctrl_command .= " --autostop=".$monitor['AutoStopTimeout'];
+											}
 										}
 										break;
 									}

@@ -115,6 +115,7 @@ $zmSlangAutoDeleteEvents     = 'Automatically delete all matches';
 $zmSlangAutoEmailEvents      = 'Automatically email details of all matches';
 $zmSlangAutoExecuteEvents    = 'Automatically execute command on all matches';
 $zmSlangAutoMessageEvents    = 'Automatically message details of all matches';
+$zmSlangAutoStopTimeout      = 'Auto Stop Timeout';
 $zmSlangAutoUploadEvents     = 'Automatically upload all matches';
 $zmSlangAvgBrScore           = 'Avg.<br/>Score';
 $zmSlangBadNameChars         = 'Names may only contain alphanumeric characters plus hyphen and underscore';

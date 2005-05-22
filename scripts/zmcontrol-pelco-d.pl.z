@@ -72,6 +72,7 @@ BEGIN
 
 use Getopt::Long;
 use Device::SerialPort;
+use Time::HiRes qw( usleep );
 
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-pelco-d.log';
 
@@ -94,6 +95,7 @@ my $arg_string = join( " ", @ARGV );
 my $device = "/dev/ttyS0";
 my $address = 1;
 my $command;
+my $autostop;
 my ( $speed, $step );
 my ( $xcoord, $ycoord );
 my ( $panspeed, $tiltspeed );
@@ -104,6 +106,7 @@ if ( !GetOptions(
 	'device=s'=>\$device,
 	'address=i'=>\$address,
 	'command=s'=>\$command,
+	'autostop=f'=>\$autostop,
 	'speed=i'=>\$speed,
 	'step=i'=>\$step,
 	'xcoord=i'=>\$xcoord,
@@ -117,6 +120,12 @@ if ( !GetOptions(
 )
 {
 	Usage();
+}
+
+if ( defined($autostop) )
+{
+	# Convert to microseconds.
+	$autostop = int(1000000*$autostop);
 }
 
 my $log_file = LOG_FILE;
@@ -218,7 +227,7 @@ sub sendCmd
 					}
 					else
 					{
-						printf( "Error, got bogus response\n" );
+						print( "Error, got bogus response\n" );
 					}
 					last;
 				}
@@ -229,6 +238,7 @@ sub sendCmd
 			}
 			if ( (time() - $now) > $max_wait )
 			{
+				print( "Warning, response timeout\n" );
 				last;
 			}
 		}
@@ -278,6 +288,11 @@ sub moveUp
 	my $speed = shift || 0x3f;
 	my @msg = ( $sync, $address, 0x00, 0x08, 0x00, $speed );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		stop();
+	}
 }
 
 sub moveDown
@@ -286,6 +301,11 @@ sub moveDown
 	my $speed = shift || 0x3f;
 	my @msg = ( $sync, $address, 0x00, 0x10, 0x00, $speed );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		stop();
+	}
 }
 
 sub moveLeft
@@ -294,6 +314,11 @@ sub moveLeft
 	my $speed = shift || 0x3f;
 	my @msg = ( $sync, $address, 0x00, 0x04, $speed, 0x00 );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		stop();
+	}
 }
 
 sub moveRight
@@ -302,6 +327,11 @@ sub moveRight
 	my $speed = shift || 0x3f;
 	my @msg = ( $sync, $address, 0x00, 0x02, $speed, 0x00 );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		stop();
+	}
 }
 
 sub moveUpLeft
@@ -311,6 +341,11 @@ sub moveUpLeft
 	my $tiltspeed = shift || 0x3f;
 	my @msg = ( $sync, $address, 0x00, 0x0c, $panspeed, $tiltspeed );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		stop();
+	}
 }
 
 sub moveUpRight
@@ -320,6 +355,11 @@ sub moveUpRight
 	my $tiltspeed = shift || 0x3f;
 	my @msg = ( $sync, $address, 0x00, 0x0a, $panspeed, $tiltspeed );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		stop();
+	}
 }
 
 sub moveDownLeft
@@ -329,6 +369,11 @@ sub moveDownLeft
 	my $tiltspeed = shift || 0x3f;
 	my @msg = ( $sync, $address, 0x00, 0x14, $panspeed, $tiltspeed );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		stop();
+	}
 }
 
 sub moveDownRight
@@ -338,6 +383,11 @@ sub moveDownRight
 	my $tiltspeed = shift || 0x3f;
 	my @msg = ( $sync, $address, 0x00, 0x12, $panspeed, $tiltspeed );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		stop();
+	}
 }
 
 sub flip180
@@ -358,7 +408,7 @@ sub setZoomSpeed
 {
 	my $speed = shift;
 	my @msg = ( $sync, $address, 0x00, 0x25, 0x00, $speed );
-	sendCmd( \@msg, 1 );
+	sendCmd( \@msg );
 }
 
 sub zoomTele
@@ -368,6 +418,11 @@ sub zoomTele
 	setZoomSpeed( $speed );
 	my @msg = ( $sync, $address, 0x00, 0x20, 0x00, 0x00 );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		setZoomSpeed( 0 );
+	}
 }
 
 sub zoomWide
@@ -377,13 +432,18 @@ sub zoomWide
 	setZoomSpeed( $speed );
 	my @msg = ( $sync, $address, 0x00, 0x40, 0x00, 0x00 );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		setZoomSpeed( 0 );
+	}
 }
 
 sub setFocusSpeed
 {
 	my $speed = shift;
 	my @msg = ( $sync, $address, 0x00, 0x27, 0x00, $speed );
-	sendCmd( \@msg, 1 );
+	sendCmd( \@msg );
 }
 
 sub focusNear
@@ -393,6 +453,11 @@ sub focusNear
 	setFocusSpeed( $speed );
 	my @msg = ( $sync, $address, 0x01, 0x00, 0x00, 0x00 );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		setFocusSpeed( 0 );
+	}
 }
 
 sub focusFar
@@ -402,6 +467,11 @@ sub focusFar
 	setFocusSpeed( $speed );
 	my @msg = ( $sync, $address, 0x00, 0x80, 0x00, 0x00 );
 	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		setFocusSpeed( 0 );
+	}
 }
 
 sub focusAuto

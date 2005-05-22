@@ -84,6 +84,7 @@ else
 	$monitor['ControlType'] = 0;
 	$monitor['ControlDevice'] = "";
 	$monitor['ControlAddress'] = "";
+	$monitor['AutoStopTimeout'] = "";
 	$monitor['TrackMotion'] = 0;
 	$monitor['TrackDelay'] = "";
 	$monitor['ReturnLocation'] = -1;
@@ -311,6 +312,7 @@ if ( ZM_OPT_CONTROL && $tab != 'control' )
 <input type="hidden" name="new_monitor[ControlId]" value="<?= $new_monitor['ControlId'] ?>">
 <input type="hidden" name="new_monitor[ControlDevice]" value="<?= $new_monitor['ControlDevice'] ?>">
 <input type="hidden" name="new_monitor[ControlAddress]" value="<?= $new_monitor['ControlAddress'] ?>">
+<input type="hidden" name="new_monitor[AutoStopTimeout]" value="<?= $new_monitor['AutoStopTimeout'] ?>">
 <input type="hidden" name="new_monitor[TrackMotion]" value="<?= $new_monitor['TrackMotion'] ?>">
 <input type="hidden" name="new_monitor[TrackDelay]" value="<?= $new_monitor['TrackDelay'] ?>">
 <input type="hidden" name="new_monitor[ReturnLocation]" value="<?= $new_monitor['ReturnLocation'] ?>">
@@ -454,6 +456,7 @@ switch ( $tab )
 <tr><td align="left" class="text"><?= $zmSlangControlType ?></td><td class="text"><?= buildSelect( "new_monitor[ControlId]", $control_types, 'loadLocations( document.monitor_form )' ); ?>&nbsp;<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=controlcaps', 'zmControlCaps', <?= $jws['controlcaps']['w'] ?>, <?= $jws['controlcaps']['h'] ?> );"><?= $zmSlangEdit ?></a></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangControlDevice ?></td><td align="left" class="text"><input type="text" name="new_monitor[ControlDevice]" value="<?= $new_monitor['ControlDevice'] ?>" size="32" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangControlAddress ?></td><td align="left" class="text"><input type="text" name="new_monitor[ControlAddress]" value="<?= $new_monitor['ControlAddress'] ?>" size="16" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangAutoStopTimeout ?></td><td align="left" class="text"><input type="text" name="new_monitor[AutoStopTimeout]" value="<?= $new_monitor['AutoStopTimeout'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangTrackMotion ?></td><td align="left" class="text"><input type="checkbox" name="new_monitor[TrackMotion]" value="1" class="form-noborder"<?php if ( !empty($new_monitor['TrackMotion']) ) { ?> checked<?php } ?>></td></tr>
 <?php
 		$return_options = array(

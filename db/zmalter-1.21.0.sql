@@ -4,6 +4,7 @@
 -- Make changes to Monitors table
 --
 alter table Monitors modify column Orientation enum('0','90','180','270','hori','vert') NOT NULL default '0';
+alter table Monitors add column AutoStopTimeout decimal(5,2) default NULL after ControlAddress;
 --
 -- Make changes to Stats table
 --

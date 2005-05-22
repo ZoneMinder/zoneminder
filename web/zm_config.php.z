@@ -171,7 +171,7 @@ $jws = array(
 	'image' => array( 'w'=>48, 'h'=>80 ),
 	'login' => array( 'w'=>720, 'h'=>480 ),
 	'logout' => array( 'w'=>200, 'h'=>100 ),
-	'monitor' => array( 'w'=>360, 'h'=>300 ),
+	'monitor' => array( 'w'=>360, 'h'=>324 ),
 	'montage' => array( 'w'=>10, 'h'=>20 ),
 	'optionhelp' => array( 'w'=>320, 'h'=>240 ),
 	'options' => array( 'w'=>760, 'h'=>480 ),

@@ -215,7 +215,6 @@ public:
 					token_count++;
 					token_ptr += strlen(token_string);
 				}
-				Info(( "Found %d tokens, in %s", token_count, label_format ));
 			}
 			strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time ) );
 			switch ( token_count )
@@ -296,7 +295,9 @@ public:
 			{
 				time_t now = image_buffer[index].timestamp->tv_sec;
 				fps = double(fps_report_interval)/(now-last_fps_time);
-				Info(( "%s: %d - Capturing at %.2f fps", name, image_count, fps ));
+				//Info(( "%d -> %d -> %d", fps_report_interval, now, last_fps_time ));
+				//Info(( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps ));
+				Info(( "%s: %d - Capturing at %.2lf fps", name, image_count, fps ));
 				last_fps_time = now;
 			}
 

@@ -130,7 +130,7 @@ function loadConfig()
 	$config = array();
 	$config_cat = array();
 
-	$sql = "select * from Config";
+	$sql = "select * from Config order by Id asc";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();

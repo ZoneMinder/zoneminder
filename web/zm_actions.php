@@ -843,6 +843,10 @@ if ( isset($action) )
 					$control = 'preset_goto';
 					$ctrl_command .= " --preset ".$matches[1];
 				}
+				elseif ( $control == "preset_set" )
+				{
+					$ctrl_command .= " --preset ".$preset;
+				}
 				elseif ( $control == "move_map" )
 				{
 					$ctrl_command .= " -xcoord $x -ycoord $y";

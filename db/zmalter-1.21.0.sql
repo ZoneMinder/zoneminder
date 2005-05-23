@@ -16,6 +16,10 @@ alter table Stats modify column MaxBlobSize int(10) unsigned NOT NULL default '0
 alter table Zones modify column MinBlobPixels int(10) unsigned default NULL;
 alter table Zones modify column MaxBlobPixels int(10) unsigned default NULL;
 --
+-- Add in extra PTZ protocol
+--
+insert into Controls values (0,'pelco-p','Local','/usr/local/bin/zmcontrol-pelco-p.pl',1,1,0,1,1,0,0,1,NULL,NULL,NULL,NULL,1,0,3,1,1,0,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL,1,1,0,1,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,1,0,1,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,20,1,1,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,1,0,63,1,254,1,NULL,NULL,NULL,NULL,1,0,63,1,254,0,0);
+--
 -- These are optional, but we might as well do it now
 --
 optimize table Frames;

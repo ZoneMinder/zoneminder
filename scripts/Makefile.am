@@ -11,6 +11,7 @@ bin_SCRIPTS = \
 	zmupdate.pl \
 	zmvideo.pl \
 	zmcontrol-pelco-d.pl \
+	zmcontrol-pelco-p.pl \
 	zmcontrol-visca.pl \
 	zmcontrol-kx-hcm10.pl \
 	zmtrack.pl
@@ -26,6 +27,7 @@ EXTRA_DIST = \
 	zmupdate.pl.z \
 	zmvideo.pl.z \
 	zmcontrol-pelco-d.pl.z \
+	zmcontrol-pelco-p.pl.z \
 	zmcontrol-visca.pl.z \
 	zmcontrol-kx-hcm10.pl.z \
 	zmtrack.pl.z \

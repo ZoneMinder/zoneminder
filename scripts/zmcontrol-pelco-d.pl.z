@@ -536,7 +536,7 @@ sub presetGoto
 sub presetHome
 {
 	print( "Home Preset\n" );
-	my @msg = ( $sync, $address, 0x00, 0x07, 0x00, 22 );
+	my @msg = ( $sync, $address, 0x00, 0x07, 0x00, 0x22 );
 	sendCmd( \@msg );
 }
 

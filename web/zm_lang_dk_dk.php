@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web UK English language file, $Date$, $Revision$
+// ZoneMinder web Danish language file, $Date$, $Revision$
 // Copyright (C) 2003, 2004, 2005  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or

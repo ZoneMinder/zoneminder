@@ -557,7 +557,7 @@ if ( isset($action) )
 									case 'abs' :
 									case 'rel' :
 									{
-										$step = intval(round($monitor['MinFocusStep']+(($monitor['MaxFocusStep']-$monitor['MinFocusStep'])*$x_factor)));
+										$step = intval(round($monitor['MinFocusStep']+(($monitor['MaxFocusStep']-$monitor['MinFocusStep'])*$factor)));
 										$ctrl_command .= " --step=".$step;
 										break;
 									}
@@ -601,7 +601,7 @@ if ( isset($action) )
 									case 'abs' :
 									case 'rel' :
 									{
-										$step = intval(round($monitor['MinZoomStep']+(($monitor['MaxZoomStep']-$monitor['MinZoomStep'])*$x_factor)));
+										$step = intval(round($monitor['MinZoomStep']+(($monitor['MaxZoomStep']-$monitor['MinZoomStep'])*$factor)));
 										$ctrl_command .= " --step=".$step;
 										break;
 									}
@@ -645,7 +645,7 @@ if ( isset($action) )
 									case 'abs' :
 									case 'rel' :
 									{
-										$step = intval(round($monitor['MinIrisStep']+(($monitor['MaxIrisStep']-$monitor['MinIrisStep'])*$x_factor)));
+										$step = intval(round($monitor['MinIrisStep']+(($monitor['MaxIrisStep']-$monitor['MinIrisStep'])*$factor)));
 										$ctrl_command .= " --step=".$step;
 										break;
 									}
@@ -677,7 +677,7 @@ if ( isset($action) )
 									case 'abs' :
 									case 'rel' :
 									{
-										$step = intval(round($monitor['MinWhiteStep']+(($monitor['MaxWhiteStep']-$monitor['MinWhiteStep'])*$x_factor)));
+										$step = intval(round($monitor['MinWhiteStep']+(($monitor['MaxWhiteStep']-$monitor['MinWhiteStep'])*$factor)));
 										$ctrl_command .= " --step=".$step;
 										break;
 									}
@@ -709,7 +709,7 @@ if ( isset($action) )
 									case 'abs' :
 									case 'rel' :
 									{
-										$step = intval(round($monitor['MinGainStep']+(($monitor['MaxGainStep']-$monitor['MinGainStep'])*$x_factor)));
+										$step = intval(round($monitor['MinGainStep']+(($monitor['MaxGainStep']-$monitor['MinGainStep'])*$factor)));
 										$ctrl_command .= " --step=".$step;
 										break;
 									}

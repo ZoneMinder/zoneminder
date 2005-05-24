@@ -1769,7 +1769,28 @@ if ( $reprocess )
 	printf( CFG_HDR_FILE $assign_list."\n\n" );
 	close( CFG_HDR_FILE );
 
-	my @config_files = qw( zm.conf src/zm_config.h web/zm_config.php scripts/zmdc.pl scripts/zmwatch.pl scripts/zmaudit.pl scripts/zmfilter.pl scripts/zmtrigger.pl scripts/zmx10.pl scripts/zmpkg.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmcontrol-pelco-d.pl scripts/zmcontrol-pelco-p.pl scripts/zmcontrol-visca.pl scripts/zmcontrol-kx-hcm10.pl scripts/zmtrack.pl scripts/zm db/zmschema.sql );
+	my @config_files = qw(
+		zm.conf
+		src/zm_config.h
+		web/zm_config.php
+		scripts/zmdc.pl
+		scripts/zmwatch.pl
+		scripts/zmaudit.pl
+		scripts/zmfilter.pl
+		scripts/zmtrigger.pl
+		scripts/zmx10.pl
+		scripts/zmpkg.pl
+		scripts/zmupdate.pl
+		scripts/zmvideo.pl
+		scripts/zmcontrol-pelco-d.pl
+		scripts/zmcontrol-pelco-p.pl
+		scripts/zmcontrol-visca.pl
+		scripts/zmcontrol-kx-hcm10.pl
+		scripts/zmcontrol-axis-v2.pl
+		scripts/zmtrack.pl
+		scripts/zm
+		db/zmschema.sql
+	);
 
 	foreach my $config_file ( @config_files )
 	{

@@ -14,6 +14,7 @@ bin_SCRIPTS = \
 	zmcontrol-pelco-p.pl \
 	zmcontrol-visca.pl \
 	zmcontrol-kx-hcm10.pl \
+	zmcontrol-axis-v2.pl \
 	zmtrack.pl
 
 EXTRA_DIST = \
@@ -30,5 +31,6 @@ EXTRA_DIST = \
 	zmcontrol-pelco-p.pl.z \
 	zmcontrol-visca.pl.z \
 	zmcontrol-kx-hcm10.pl.z \
+	zmcontrol-axis-v2.pl.z \
 	zmtrack.pl.z \
 	zm.z

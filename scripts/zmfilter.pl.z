@@ -804,7 +804,7 @@ sub sendEmail
 					Encoding => "base64"
 				);
 			}
-			$mail->smtpsend();
+			$mail->smtpsend( Host => ZM_EMAIL_HOST, MailFrom => ZM_FROM_EMAIL );
 		}
 	};
 	if ( $@ )
@@ -895,7 +895,7 @@ sub sendMessage
 					Encoding => "base64"
 				);
 			}
-			$mail->smtpsend();
+			$mail->smtpsend( Host => ZM_EMAIL_HOST, MailFrom => ZM_FROM_EMAIL );
 		}
 	};
 	if ( $@ )

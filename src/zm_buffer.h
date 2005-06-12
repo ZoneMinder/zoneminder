@@ -107,6 +107,11 @@ public:
 	unsigned int Expand( unsigned int count );
 	unsigned char *Extract( unsigned int p_size )
 	{
+		if ( p_size > size )
+		{
+			Warning(( "Attempt to extract %d bytes of buffer, size is only %d bytes", p_size, size ));
+			p_size = size;
+		}
 		unsigned char *old_head = head;
 		head += p_size;
 		size -= p_size;

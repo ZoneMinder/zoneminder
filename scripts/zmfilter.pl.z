@@ -590,8 +590,25 @@ sub checkFilter
 			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 			my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
 
-			# We could now delete from the Frames and Stats table and the files themselves,
-			# but we can let the database checker sort that out for us instead
+			if ( !ZM_OPT_FAST_DELETE )
+			{
+				my $sql = "delete from Frames where EventId = ?";
+				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+
+				$sql = "delete from Stats where EventId = ?";
+				$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				$res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+
+				my $command = "rm -rf ".ZM_DIR_EVENTS."/*/".sprintf( "%d", $event->{Id} );
+				my $output = qx($command);
+				my $status = $? >> 8;
+				if ( $status || VERBOSE )
+				{
+					chomp( $output );
+					print( "Output: $output\n" );
+				}
+			}
 		}
 	}
 	$sth->finish();

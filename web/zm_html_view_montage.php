@@ -48,10 +48,8 @@ while( $row = mysql_fetch_assoc( $result ) )
 	$monitors[] = $row;
 }
 
-$max_cols = 8;
-$cols = (int)((count($monitors)+1)/((int)((count($monitors)-1)/ZM_WEB_MONTAGE_MAX_COLS)+1));
-$rows = intval(ceil(count($monitors)/$cols));
-$last_cols = count($monitors)%$rows;
+$rows = intval(((count($monitors)-1)/ZM_WEB_MONTAGE_MAX_COLS)+1);
+$cols = intval(ceil(count($monitors)/$rows));
 
 $widths = array();
 $heights = array();

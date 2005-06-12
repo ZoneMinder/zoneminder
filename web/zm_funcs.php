@@ -105,10 +105,10 @@ function getStreamSrc( $args )
 {
 	if ( version_compare( phpversion(), "4.1.0", "<") )
 	{
-		global $_SESSION;
+		global $_SESSION, $_SERVER;
 	}
 
-	$stream_src = ZM_PATH_ZMS;
+	$stream_src = "http://".$_SERVER['HTTP_HOST'].ZM_PATH_ZMS;
 
 	if ( ZM_OPT_USE_AUTH )
 	{
@@ -978,5 +978,27 @@ function sidField()
 <input type="hidden" name="<?= $sessname ?>" value="<?= $sessid ?>"/>
 <?php
 	}
+}
+
+function verNum( $version )
+{
+	$vNum = "";
+	$maxFields = 3;
+	$vFields = explode( ".", $version );
+	array_splice( $vFields, $maxFields );
+	while ( count($vFields) < $maxFields )
+	{
+		$vFields[] = 0;
+	}
+	foreach ( $vFields as $vField )
+	{
+		$vField = sprintf( "%02d", $vField );
+		while ( strlen($vField) < 2 )
+		{
+			$vField = "0".$vField;
+		}
+		$vNum .= $vField;
+	}
+	return( $vNum );
 }
 ?>

@@ -69,9 +69,9 @@ protected:
 
 protected:
 	static void Base64Encode( const char *in_string, char *out_string );
-	inline static char *mempbrk(const char *s, const char *accept, size_t limit )
+	inline static char *mempbrk( register const char *s, const char *accept, size_t limit )
 	{
-		if ( limit <= 0 )
+		if ( limit <= 0 || !s || !accept || !*accept )
 			return( 0 );
 
 		register int i,j;
@@ -89,9 +89,36 @@ protected:
 		}
 		return( 0 );
 	}
-	inline static size_t memspn( const char *s, const char *accept, size_t limit )
+	inline static char *memstr( register const char *s, const char *n, size_t limit )
 	{
-		if ( limit <= 0 )
+		if ( limit <= 0 || !s || !n )
+			return( 0 );
+
+		if ( !*n )
+			return( (char *)s );
+
+		register int i,j,k;
+		size_t n_len = strlen( n );
+
+		for ( i = 0; i < limit; i++, s++ )
+		{
+			if ( *s != *n )
+				continue;
+			j = 1;
+			k = 1;
+			while ( true )
+			{
+				if ( k >= n_len )
+					return( (char *)s );
+				if ( s[j++] != n[k++] )
+					break;
+			}
+		}
+		return( 0 );
+	}
+	inline static size_t memspn( register const char *s, const char *accept, size_t limit )
+	{
+		if ( limit <= 0 || !s || !accept || !*accept )
 			return( 0 );
 
 		register int i,j;
@@ -115,10 +142,13 @@ protected:
 		}
 		return( limit );
 	}
-	inline static size_t memcspn( const char *s, const char *reject, size_t limit )
+	inline static size_t memcspn( register const char *s, const char *reject, size_t limit )
 	{
-		if ( limit <= 0 )
+		if ( limit <= 0 || !s || !reject )
 			return( 0 );
+
+		if ( !*reject )
+			return( limit );
 
 		register int i,j;
 		size_t rej_len = strlen( reject );

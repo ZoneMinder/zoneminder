@@ -27,7 +27,7 @@ $options = array(
 	"go" => $zmSlangGoToZoneMinder
 );
 
-if ( ZM_DYN_CURR_VERSION != ZM_DYN_LAST_VERSION )
+if ( verNum( ZM_DYN_CURR_VERSION ) != verNum( ZM_DYN_LAST_VERSION ) )
 {
 	$options = array_merge( $options, array(
 		"ignore" => $zmSlangVersionIgnore,
@@ -85,7 +85,7 @@ zmWindow();
 </tr>
 </table>
 <?php
-if ( ZM_DYN_LAST_VERSION == ZM_VERSION )
+if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) )
 {
 ?>
 <table border="0" cellspacing="0" cellpadding="6" width="100%">

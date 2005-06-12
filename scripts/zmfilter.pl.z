@@ -92,15 +92,22 @@ if ( ZM_OPT_UPLOAD )
 	{
 		require Archive::Tar;
 	}
-	use Net::FTP;
+	require Net::FTP;
 }
 
 my $email_subject;
 my $email_body;
 if ( ZM_OPT_EMAIL )
 {
-	use MIME::Entity;
-
+	if ( ZM_NEW_MAIL_MODULES )
+	{
+		require MIME::Lite;
+		require Net::SMTP;
+	}
+	else
+	{
+		require MIME::Entity;
+	}
 	( $email_subject, $email_body ) = ZM_EMAIL_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"/ms;
 }
 
@@ -108,7 +115,15 @@ my $message_subject;
 my $message_body;
 if ( ZM_OPT_MESSAGE )
 {
-	use MIME::Entity;
+	if ( ZM_NEW_MAIL_MODULES )
+	{
+		require MIME::Lite;
+		require Net::SMTP;
+	}
+	else
+	{
+		require MIME::Entity;
+	}
 
 	( $message_subject, $message_body ) = ZM_MESSAGE_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"/ms;
 }
@@ -742,30 +757,64 @@ sub sendEmail
 
 	eval
 	{
-		my $mail = MIME::Entity->build(
-			From =>ZM_FROM_EMAIL,
-			To=>ZM_EMAIL_ADDRESS,
-			Subject=>$subject,
-			Type=>(($body=~/<html>/)?'text/html':'text/plain'),
-			Data=>$body
-		);
-
-		foreach my $attachment ( @attachments )
+		if ( ZM_NEW_MAIL_MODULES )
 		{
-			print( "Attaching '$attachment->{path}\n" );
-			$mail->attach(
-				Path=>$attachment->{path},
-				Type=>$attachment->{type},
-				Encoding=>"base64"
+			### Create the multipart container
+			my $mail = MIME::Lite->new (
+				From => ZM_FROM_EMAIL,
+				To => ZM_EMAIL_ADDRESS,
+				Subject => $subject,
+				Type => "multipart/mixed"
 			);
-		}
+			### Add the text message part
+			$mail->attach (
+				Type => "TEXT",
+				Data => $body
+			);
+			### Add the attachments
+			foreach my $attachment ( @attachments )
+			{
+				print( "Attaching '$attachment->{path}\n" );
+				$mail->attach(
+					Path => $attachment->{path},
+					Type => $attachment->{type},
+					Disposition => "attachment"
+				);
+			}
+			### Send the Message
+			MIME::Lite->send( "smtp", ZM_EMAIL_HOST, Timeout=>60 );
+			$mail->send();
+        } 
+		else
+		{
+			my $mail = MIME::Entity->build(
+				From => ZM_FROM_EMAIL,
+				To => ZM_EMAIL_ADDRESS,
+				Subject => $subject,
+				Type => (($body=~/<html>/)?'text/html':'text/plain'),
+				Data => $body
+			);
 
-		$mail->smtpsend();
+			foreach my $attachment ( @attachments )
+			{
+				print( "Attaching '$attachment->{path}\n" );
+				$mail->attach(
+					Path => $attachment->{path},
+					Type => $attachment->{type},
+					Encoding => "base64"
+				);
+			}
+			$mail->smtpsend();
+		}
 	};
 	if ( $@ )
 	{
 		warn( "Can't send email: $@" );
 		return();
+	}
+	else
+	{
+		print( "Notification email sent\n" );
 	}
 	my $sql = "update Events set Emailed = 1 where Id = ?";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -799,30 +848,64 @@ sub sendMessage
 
 	eval
 	{
-		my $mail = MIME::Entity->build(
-			From =>ZM_FROM_EMAIL,
-			To=>ZM_MESSAGE_ADDRESS,
-			Subject=>$subject,
-			Type=>(($body=~/<html>/)?'text/html':'text/plain'),
-			Data=>$body
-		);
-
-		foreach my $attachment ( @attachments )
+		if ( ZM_NEW_MAIL_MODULES )
 		{
-			print( "Attaching '$attachment->{path}\n" );
-			$mail->attach(
-				Path=>$attachment->{path},
-				Type=>$attachment->{type},
-				Encoding=>"base64"
+			### Create the multipart container
+			my $mail = MIME::Lite->new (
+				From => ZM_FROM_EMAIL,
+				To => ZM_EMAIL_ADDRESS,
+				Subject => $subject,
+				Type => "multipart/mixed"
 			);
-		}
+			### Add the text message part
+			$mail->attach (
+				Type => "TEXT",
+				Data => $body
+			);
+			### Add the attachments
+			foreach my $attachment ( @attachments )
+			{
+				print( "Attaching '$attachment->{path}\n" );
+				$mail->attach(
+					Path => $attachment->{path},
+					Type => $attachment->{type},
+					Disposition => "attachment"
+				);
+			}
+			### Send the Message
+			MIME::Lite->send( "smtp", ZM_EMAIL_HOST, Timeout=>60 );
+			$mail->send();
+        } 
+		else
+		{
+			my $mail = MIME::Entity->build(
+				From => ZM_FROM_EMAIL,
+				To => ZM_MESSAGE_ADDRESS,
+				Subject => $subject,
+				Type => (($body=~/<html>/)?'text/html':'text/plain'),
+				Data => $body
+			);
 
-		$mail->smtpsend();
+			foreach my $attachment ( @attachments )
+			{
+				print( "Attaching '$attachment->{path}\n" );
+				$mail->attach(
+					Path => $attachment->{path},
+					Type => $attachment->{type},
+					Encoding => "base64"
+				);
+			}
+			$mail->smtpsend();
+		}
 	};
 	if ( $@ )
 	{
 		warn( "Can't send email: $@" );
 		return();
+	}
+	else
+	{
+		print( "Notification message sent\n" );
 	}
 	my $sql = "update Events set Messaged = 1 where Id = ?";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );

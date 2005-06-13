@@ -204,10 +204,22 @@ do
 		print( "Found filesystem monitor '$monitor'" ) if ( VERBOSE );
 		my $fs_events = $fs_monitors->{$monitor} = {};
 		( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
+
+		opendir( DIR, $monitor_dir ) or die( "Can't open directory '$monitor_dir': $!" );
+		my @temp_events = sort { $b <=> $a } grep { $_ =~ /^\d+$/ } readdir( DIR );
+		closedir( DIR );
 		chdir( $monitor_dir );
-		foreach my $event ( <[0-9]*> )
+		my $count = 0;
+		foreach my $event ( @temp_events )
 		{
-			$fs_events->{$event} = ($fs_now - ($^T - ((-M $event) * 24*60*60)));
+			if ( $count++ > 25 )
+			{
+				$fs_events->{$event} = -1;
+			}
+			else
+			{
+				$fs_events->{$event} = ($fs_now - ($^T - ((-M $event) * 24*60*60)));
+			}
 		}
 		chdir( EVENT_PATH );
 		print( ", got ".int(keys(%$fs_events))." events\n" ) if ( VERBOSE );
@@ -221,7 +233,7 @@ do
 			{
 				while ( my ( $fs_event, $age ) = each(%$fs_events ) )
 				{
-					if ( !$db_events->{$fs_event} && ($age > MIN_AGE) )
+					if ( !$db_events->{$fs_event} && (!$age || ($age > MIN_AGE)) )
 					{
 						print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
 						if ( confirm() )

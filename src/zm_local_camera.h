@@ -39,6 +39,7 @@ protected:
 
 protected:
 	static int m_cap_frame;
+       static int m_cap_frame_active;
 	static int m_sync_frame;
 	static video_mbuf m_vmb;
 	static video_mmap *m_vmm;

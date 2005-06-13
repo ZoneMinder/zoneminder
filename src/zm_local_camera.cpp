@@ -29,6 +29,7 @@
 
 int LocalCamera::camera_count = 0;
 int LocalCamera::m_cap_frame = 0;
+int LocalCamera::m_cap_frame_active = 0;
 int LocalCamera::m_sync_frame = 0;
 video_mbuf LocalCamera::m_vmb;
 video_mmap *LocalCamera::m_vmm;
@@ -546,6 +547,13 @@ int LocalCamera::PreCapture()
 	{
 		//Info(( "Switching" ));
 		struct video_channel vid_src;
+		memset( &vid_src, 0, sizeof(vid_src) );
+		vid_src.channel = channel;
+		if ( ioctl( m_videohandle, VIDIOCGCHAN, &vid_src) < 0 )
+		{
+			Error(( "Failed to get camera source %d: %s", channel, strerror(errno) ));
+			return(-1);
+		}
 
 		vid_src.channel = channel;
 		vid_src.norm = format;
@@ -557,9 +565,10 @@ int LocalCamera::PreCapture()
 			return( -1 );
 		}
 	}
-	if ( ioctl( m_videohandle, VIDIOCMCAPTURE, &m_vmm[m_cap_frame] ) < 0 )
+	m_cap_frame_active = m_cap_frame;
+	if ( ioctl( m_videohandle, VIDIOCMCAPTURE, &m_vmm[m_cap_frame_active] ) < 0 )
 	{
-		Error(( "Capture failure for frame %d: %s", m_cap_frame, strerror(errno)));
+		Error(( "Capture failure for frame %d: %s", m_cap_frame_active, strerror(errno) ));
 		return( -1 );
 	}
 	m_cap_frame = (m_cap_frame+1)%m_vmb.frames;
@@ -569,12 +578,27 @@ int LocalCamera::PreCapture()
 int LocalCamera::PostCapture( Image &image )
 {
 	//Info(( "%s: Capturing image", id ));
-
-	if ( ioctl( m_videohandle, VIDIOCSYNC, &m_sync_frame ) )
+	int captures_per_frame = 1;
+	if ( camera_count > 1 )
+		captures_per_frame = config.captures_per_frame;
+	while ( captures_per_frame )
 	{
-		Error(( "Sync failure for frame %d: %s", m_sync_frame, strerror(errno)));
-		return( -1 );
+		if ( ioctl( m_videohandle, VIDIOCSYNC, &m_sync_frame ) < 0 )
+		{
+			Error(( "Sync failure for frame %d buffer %d(%d): %s", m_sync_frame, m_cap_frame_active, captures_per_frame, strerror(errno) ));
+			return( -1 );
+		}
+		captures_per_frame--;
+		if ( captures_per_frame )
+		{
+			if ( ioctl( m_videohandle, VIDIOCMCAPTURE, &m_vmm[m_cap_frame_active] ) < 0 )
+			{
+				Error(( "Capture failure for buffer %d(%d): %s", m_cap_frame_active, captures_per_frame, strerror(errno) ));
+				return( -1 );
+			}
+		}
 	}
+	//Info(( "Captured %d for %d into %d", m_sync_frame, channel, m_cap_frame_active));
 
 	unsigned char *buffer = m_buffer+(m_sync_frame*m_vmb.size/m_vmb.frames);
 	m_sync_frame = (m_sync_frame+1)%m_vmb.frames;

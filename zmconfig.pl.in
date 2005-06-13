@@ -656,6 +656,14 @@ my @options =
 		category => 'config',
 	},
 	{
+		name => "ZM_CAPTURES_PER_FRAME",
+		default => "1",
+		description => "How many images are captured per returned frame, for shared local cameras",
+		help => "If you are using cameras attached to a video capture card which forces multiple inputs to share one capture chip, it can sometimes produce images with interlaced frames reversed resulting in poor image quality and a distinctive comb edge appearance. Increasing this setting allows you to force additional image captures before one is selected as the captured frame. This allows the capture hardware to 'settle down' and produce better quality images at the price of lesser capture rates. This option has no effect on (a) network cameras, or (b) where multiple inputs do not share a capture chip",
+		type => $types{integer},
+		category => 'config',
+	},
+	{
 		name => "ZM_SHM_KEY",
 		default => "0x7a6d2000",
 		description => "Shared memory key to use, only change if it clashes with another application",

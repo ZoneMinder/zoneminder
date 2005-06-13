@@ -248,11 +248,11 @@ ul
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoTitle><u><span style='font-size:48.0pt;font-variant:small-caps;
-color:#3366CC'>ZoneMinder</span></u></p>
+<p class=MsoTitle><u><span style='font-size:48.0pt;color:#3366CC;text-transform:
+uppercase'>ZoneMinder</span></u></p>
 
-<p class=MsoTitle><u><span style='font-size:36.0pt;font-variant:small-caps;
-color:#3366CC'>v1.21.1</span></u></p>
+<p class=MsoTitle><u><span style='font-size:36.0pt;color:#3366CC;text-transform:
+uppercase'>v1.21.1</span></u></p>
 
 <p class=MsoNormal align=center style='text-align:center'>&nbsp;</p>
 
@@ -597,7 +597,7 @@ display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>61</span></a></span></p>
 
 <h1><span style='text-decoration:none'>1.<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><a name="_Toc104622493">Introduction</a></h1>
+</span></span><u><a name="_Toc104622493">Introduction</a></u></h1>
 
 <p class=MsoPlainText>Welcome to ZoneMinder, the all-in-one Linux GPL'd
 security camera solution.</p>
@@ -652,7 +652,7 @@ improvements to ZoneMinder. This would be especially relevant if you use
 ZoneMinder as part of your business, or to protect your property.</p>
 
 <h1><a name="_Toc104622494"><span style='text-decoration:none'>2.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Requirements</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Requirements</u></a></h1>
 
 <p class=MsoPlainText>ZoneMinder needs a couple of things to work.</p>
 
@@ -666,19 +666,19 @@ pure mysql rpm files to be sure you have the right ones.</p>
 libjpeg.a which I think come as standard nowadays with most distributions. Users
 have reported varying degrees of success with other jpeg libraries such as
 jpeg-mmx but these are not officially supported. It also uses the netpbm
-utilities in a very limited way to generate thumbnails under certain
-circumstances though this can be modified.</p>
+utilities in a very limited way to generate thumbnails under certain circumstances
+though this can be modified.</p>
 
 <p class=MsoPlainText>ZoneMinder can generate MPEG videos if necessary, for
 this you'll need either ffmpeg (recommended) or the Berkeley MPEG encoder
-(mpeg_encode). If you don't have either, don't worry, as the options will be hidden
-and you'll not really miss too much. Some of the authentication uses openssl
-MD5 functions, if you get a grumble about these during configuration all it
-will mean is that authentication won’t be used for streaming. The web interface
-uses PHP and so you need that in your apache or other web server as well, make
-sure MySQL support is available either statically or as a module. There are
-also various perl modules that you may need that vary depending on which
-options you choose on installation, for more details see later in this
+(mpeg_encode). If you don't have either, don't worry, as the options will be
+hidden and you'll not really miss too much. Some of the authentication uses
+openssl MD5 functions, if you get a grumble about these during configuration
+all it will mean is that authentication won’t be used for streaming. The web
+interface uses PHP and so you need that in your apache or other web server as
+well, make sure MySQL support is available either statically or as a module.
+There are also various perl modules that you may need that vary depending on
+which options you choose on installation, for more details see later in this
 document.</p>
 
 <p class=MsoPlainText>Finally, there is quite a bit of image streaming in the
@@ -695,13 +695,13 @@ there is a list of devices that are definitely known to work on the web site.
 Please let me know if your camera works and is not listed. You do need to have
 Video4Linux installed. I've not got too many machines so I've only really used
 it on various RedHat/Fedora distributions, which seem to have everything there
-by default I think. SlackWare does need a bit more tinkering than other distributions;
-there is a document on the web site describing what users have had to do to get
-it working. Please give me feedback on other distributions not listed on the
-site.</p>
+by default I think. SlackWare does need a bit more tinkering than other
+distributions; there is a document on the web site describing what users have
+had to do to get it working. Please give me feedback on other distributions not
+listed on the site.</p>
 
 <h1><a name="_Toc104622495"><span style='text-decoration:none'>3.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Building</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Building</u></a></h1>
 
 <p class=MsoPlainText>The first thing you need to do is run the included
 configure script to define some initial configuration, just type</p>
@@ -821,7 +821,7 @@ remote machine instead of localhost.</p>
 <p class=MsoPlainText>Then just type <i>'make'</i> and off you go.</p>
 
 <h1><a name="_Toc104622496"><span style='text-decoration:none'>4.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Installation</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Installation</u></a></h1>
 
 <p class=MsoPlainText>Once the build has completed you should have several
 shiny new binaries. I will now briefly describe what each of them does.</p>
@@ -840,8 +840,8 @@ some frames to prevent it falling behind.</p>
 <p class=MsoPlainText style='margin-left:18.0pt'><b>zmf</b> - This is the
 ZoneMinder Frame daemon. This is an optional daemon that can run in concert
 with the Analysis daemon and whose function it is to actually write captured
-frames to disk. This frees up the Analysis daemon to do more analysis (!) and so
-keep up with the Capture daemon better. If it isn’t running or dies then the
+frames to disk. This frees up the Analysis daemon to do more analysis (!) and
+so keep up with the Capture daemon better. If it isn’t running or dies then the
 Analysis daemon just writes them itself.</p>
 
 <p class=MsoPlainText style='margin-left:18.0pt'><b>zms</b> - This is the
@@ -871,8 +871,8 @@ have some configuration at the top of the files which should be viewed and
 amended if necessary and are as follows.</p>
 
 <p class=MsoPlainText style='margin-left:18.0pt'><b>zmpkg.pl</b> - This is the
-ZoneMinder Package Control script. This is used by the web interface and
-service scripts to control the execution of the system as a whole.</p>
+ZoneMinder Package Control script. This is used by the web interface and service
+scripts to control the execution of the system as a whole.</p>
 
 <p class=MsoPlainText style='margin-left:18.0pt'><b>zmdc.pl</b> - This is the
 ZoneMinder Daemon Control script. This is used by the web interface and the
@@ -934,8 +934,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>'action' is 'on', 'off', 'cancel' or ‘show’ where 'on' forces an
 alarm condition on, 'off' forces an alarm condition off and 'cancel' negates
-the previous 'on' or 'off'. The ‘show’ action merely updates some auxiliary
-text which can optionally be displayed in the images captured by the monitor. Ordinarily
+the previous 'on' or 'off'. The ‘show’ action merely updates some auxiliary text
+which can optionally be displayed in the images captured by the monitor. Ordinarily
 you would use 'on' and 'cancel', 'off' would tend to be used to suppress motion
 based events. Additionally 'on' and 'off' can take an additional time offset,
 e.g. on+20 which automatically 'cancel's the previous action after that number
@@ -1031,7 +1031,7 @@ off you go.</p>
 
 <h1><a name="_Toc104622497"></a><a name="_Toc98561778"><span style='font-weight:
 normal;text-decoration:none'>5.<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Installing from RPM</a></h1>
+</span></span><u>Installing from RPM</u></a></h1>
 
 <p class=MsoPlainText style='margin-left:18.0pt'>Installing from the RPM is
 Distribution specific so make sure you download the correct RPM for the
@@ -1109,7 +1109,7 @@ href="http://localhost/zm">http://localhost/zm</a></p>
 /var/lib/zm</p>
 
 <h1><a name="_Toc104622498"><span style='text-decoration:none'>6.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Tutorial</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Tutorial</u></a></h1>
 
 <p class=MsoPlainText>What you see now (and subsequently) depends on whether
 you chose to run ZoneMinder in authenticated mode or not. This is an option
@@ -1128,9 +1128,9 @@ which will probably say ‘stopped’ to start with. This is a link that you can
 click on to control the ZoneMinder system as a whole. Below that are various
 other links including one detailing the current user (in authenticated mode
 only) and one allowing you to configure your bandwidth. This last one enables
-you to optimise your settings depending on where you are, the actual values relating
-to this are defined in the options. If you are using a browser on the same
-machine or network then choose high, over a cable or DSL link maybe choose
+you to optimise your settings depending on where you are, the actual values
+relating to this are defined in the options. If you are using a browser on the
+same machine or network then choose high, over a cable or DSL link maybe choose
 medium and over a dialup choose low. You can experiment to see which is best.
 This setting is retained on a per machine basis with a persistent cookie. Also
 on this line are a number of other links that will be covered below.</p>
@@ -1345,12 +1345,13 @@ how many frames are held in the ring buffer at any one time. The ring buffer is
 the storage space where the last ‘n’ images are kept, ready to be resurrected
 on an alarm or just kept waiting to be analysed. It can be any value you like
 with a couple of provisos, (see next options). However it is stored in shared
-memory and making it too large especially for large images with a high colour depth
-can use a lot of memory. A value of no more than 50  is usually ok. If you find
-that your system will not let you use the value you want it is probably because
-your system has an arbitrary limit on the size of shared memory that may be
-used even though you may have plenty of free memory available. This limit is
-usually fairly easy to change, see the Troubleshooting section for details.</p>
+memory and making it too large especially for large images with a high colour
+depth can use a lot of memory. A value of no more than 50  is usually ok. If
+you find that your system will not let you use the value you want it is
+probably because your system has an arbitrary limit on the size of shared
+memory that may be used even though you may have plenty of free memory
+available. This limit is usually fairly easy to change, see the Troubleshooting
+section for details.</p>
 
 <p class=MonitorOption><b>Warm-up Frames – </b>This specifies how many frames
 the analysis daemon should process but not examine when it starts. This allows
@@ -1411,8 +1412,8 @@ that allows you to turn this limiting off in the event of an alarm.</p>
 <p class=MonitorOption><b>FPS Report Interval</b> <b>– </b>How often the
 current performance in terms of Frames Per Second is output to the system log.
 Not used in any functional way so set it to maybe 1000 for now. If you watch
-/var/log/messages (normally) you will see this value being emitted at the
-frequency you specify both for video capture and processing.</p>
+/var/log/messages (normally) you will see this value being emitted at the frequency
+you specify both for video capture and processing.</p>
 
 <p class=MonitorOption><b>Reference Image Blend %ge</b> <b>– </b>Each analysed
 image in ZoneMinder is a composite of previous images and is formed by applying
@@ -1444,12 +1445,13 @@ camera can be controlled.</p>
 <p class=MonitorOption><b>Control Type – </b>Select the control type that is
 appropriate for your camera. ZoneMinder ships with a small number of predefined
 control protocols which will works with some cameras without modification but
-which may have to amended to function with others, Choose the edit link to create
-new control types or to edit the existing ones.</p>
+which may have to amended to function with others, Choose the edit link to
+create new control types or to edit the existing ones.</p>
 
 <p class=MonitorOption><b>Control Device – </b>This is the device that is used
 to control your camera. This will normally be a serial or similar port. If your
-camera is a network camera, you will generally not need to specify a control device.</p>
+camera is a network camera, you will generally not need to specify a control
+device.</p>
 
 <p class=MonitorOption><b>Control Address – </b>This is the address of your
 camera. Some control protocols require that each camera is identified by a
@@ -1462,11 +1464,11 @@ the same as that given for the camera itself.</p>
 continuous mode of movement. For instance you tell the camera to pan right and
 then when it is aligned correctly you tell it to stop. In some cases it is
 difficult to time this precisely over a web interface so this option allows you
-to specify an automatic timeout where the command will be automatically stopped.
-So a value of 0.25 here can tell the script to stop moving a quarter of a
-second after starting. This allows a more precise method of fine control. If
-this value is left blank or at zero it will be ignored, if set then it will be
-used as the timeout however it will only be applied for the lower 25% of
+to specify an automatic timeout where the command will be automatically
+stopped. So a value of 0.25 here can tell the script to stop moving a quarter
+of a second after starting. This allows a more precise method of fine control.
+If this value is left blank or at zero it will be ignored, if set then it will
+be used as the timeout however it will only be applied for the lower 25% of
 possible speed ranges. In other words if your camera has a pan speed range of 1
 to 100 then selecting to move at 26 or over will be assumed to imply that you
 want a larger movement that you can control yourself and no timeout will be
@@ -1477,9 +1479,9 @@ finer control and the automatic timeout will be invoked.</p>
 options are used with the experimental motion function. This will only work if
 your camera supports mapped movement modes where a point on an image can be
 mapped to a control command. This is generally most common on network cameras
-but can be replicated to some degree on other cameras that support relative movement
-modes. See the Camera Control section for more details. Check this box to
-enable motion tracking.</p>
+but can be replicated to some degree on other cameras that support relative
+movement modes. See the Camera Control section for more details. Check this box
+to enable motion tracking.</p>
 
 <p class=MonitorOption><b>Track Delay –</b> This is the number of seconds to
 suspend motion detection for following any movement that the camera may make to
@@ -1603,9 +1605,9 @@ status does not go green then check your system and web server logs to see if
 it's something obvious.</p>
 
 <p class=MsoPlainText>You can now add further monitors if you have cameras set
-up to support them. Once you have one or more monitors you may notice the '&lt;n&gt;
-Monitors' title becomes a link. Clicking on this link will open up a window
-which allows you to assign your monitors to groups. These let you select
+up to support them. Once you have one or more monitors you may notice the
+'&lt;n&gt; Monitors' title becomes a link. Clicking on this link will open up a
+window which allows you to assign your monitors to groups. These let you select
 certain monitors to view. For instance you may only wish to view outdoor
 monitors while indoors. You can also choose to view all of them. If you choose
 a group then your selection will be remembered via a cookie and will be used
@@ -1629,11 +1631,11 @@ when you created your monitor but you might want to modify it or add others.
 Click on the Zones column for your monitor and you should see a small popup
 window appear which contains an image from your camera overlain with a stippled
 pattern representing your zone. In the default case this will cover the whole
-image and will be red. Beneath that will be a table containing a listing of
-your zones. Clicking on either the relevant bit of the image or on the Id or
-Name in the table will bring up another window where you can edit the
-particulars for your Zones. As you can see there are quite a few, so now is a
-good time to go through them. The options are as follows.</p>
+image and will be red. Beneath that will be a table containing a listing of your
+zones. Clicking on either the relevant bit of the image or on the Id or Name in
+the table will bring up another window where you can edit the particulars for
+your Zones. As you can see there are quite a few, so now is a good time to go
+through them. The options are as follows.</p>
 
 <p class=MsoPlainText style='margin-left:27.0pt'><b>Name</b> – This is just a
 label to identify the zone by. You can change this to be more representative if
@@ -1650,9 +1652,9 @@ it that meet the selection criteria. </p>
 <p class=MsoPlainText style='margin-left:36.0pt'><u>Inclusive</u> : This zone
 type can be used for any zones that you want to trigger an alarm only if at
 least one other Active zone has already triggered one. This might be for
-example to cover an area of the image like a plant or tree which moves a lot and
-which would trigger lots of alarms. Perhaps this is behind an area you'd like
-to monitor though, in this case you'd create an active zone covering the
+example to cover an area of the image like a plant or tree which moves a lot
+and which would trigger lots of alarms. Perhaps this is behind an area you'd
+like to monitor though, in this case you'd create an active zone covering the
 non-moving parts and an inclusive zone covering the tree perhaps with less
 sensitive detection settings also. If something triggered an alarm in the
 Active zone and also in the Inclusive zone they would both be registered and
@@ -1671,11 +1673,11 @@ much bigger occurs, like someone walking by it will trigger a regular alarm and
 not one from the Exclusive zone. Thus I can ensure I get alarms for big events
 and also special small events but not the noise in between.</p>
 
-<p class=MsoPlainText style='margin-left:36.0pt'><u>Preclusive</u> : This zone type
-is relatively recent. It is called a Preclusive zone because if it is triggered
-it actually precludes an alarm being generated for that image frame. So motion
-or other changes that occur in a Preclusive zone will have the effect of
-ensuring that no alarm occurs at all. The application for this zone type is
+<p class=MsoPlainText style='margin-left:36.0pt'><u>Preclusive</u> : This zone
+type is relatively recent. It is called a Preclusive zone because if it is
+triggered it actually precludes an alarm being generated for that image frame.
+So motion or other changes that occur in a Preclusive zone will have the effect
+of ensuring that no alarm occurs at all. The application for this zone type is
 primarily as a shortcut for detecting general large-scale lighting or other
 changes. Generally this may be achieved by limiting the maximum number of alarm
 pixels or other measure in an Active zone. However in some cases that zone may
@@ -1699,8 +1701,8 @@ little and see what works for you.</p>
 zone type is the opposite of Active. In this zone type no alarms will ever be
 reported. You can create an Inactive zone to cover any areas in which nothing
 notable will ever happen or where you get constant false alarms that don't
-relate to what you are trying to monitor. An Inactive zone can overlay other
-zone types and will be processed first.</p>
+relate to what you are trying to monitor. An Inactive zone can overlay other zone
+types and will be processed first.</p>
 
 <p class=MsoPlainText style='margin-left:27.0pt'>I mentioned above that
 Inactive zones may be overlaid on other zones to blank out areas however as a
@@ -1729,9 +1731,9 @@ to work out necessary sizes rather easier.</p>
 
 <p class=MsoPlainText style='margin-left:27.0pt'><b>Min/Maximum X/Y</b> -
 Following the units the next four settings define the bounds of the Zone in the
-monitor frame and are self-explanatory with the exception of the fact that the
-minima are at the top left of the frame and the maxima are at the bottom right
-rather than in a Cartesian style.</p>
+monitor frame and are self-explanatory with the exception of the fact that the minima
+are at the top left of the frame and the maxima are at the bottom right rather
+than in a Cartesian style.</p>
 
 <p class=MsoPlainText style='margin-left:27.0pt'><b>Alarm Colour </b>- The
 option after that allows you to specify what colour you'd like any alarms this
@@ -1744,8 +1746,8 @@ subsequent options are likewise disabled.</p>
 is a new addition to Zone definitions. It allows you to specify the nature of
 the alarm checking that will take place, and more specifically what tests are
 applied to determine whether a frame represents an alarm or not. The three
-options are ‘AlarmPixels’, ‘FilteredPixels’ and ‘Blobs’ and depending on which option
-is chosen some of the following other settings may become unavailable. The
+options are ‘AlarmPixels’, ‘FilteredPixels’ and ‘Blobs’ and depending on which
+option is chosen some of the following other settings may become unavailable. The
 first of these indicates that only a count of individual alarmed pixels should
 be used to determine the state of a image, the second indicate that the pixels
 should be filtered to remove isolated pixels (see below) before being counted,
@@ -1775,8 +1777,8 @@ that exceed this threshold that would cause an alarm. If the units are Percent
 this (and following options) refers to the percentage of the frame and not the
 zone, this is so these values can be related between zones. The minimum value
 must be matched or exceeded for an alarm to be generated whereas the maximum
-must not be exceeded or the alarm will be cancelled. This is to allow for sudden
-changes such as lights coming on etc, which you may wish to disregard. In
+must not be exceeded or the alarm will be cancelled. This is to allow for
+sudden changes such as lights coming on etc, which you may wish to disregard. In
 general a value of zero for any of these settings causes that value to be
 ignored, so you can safely set a maximum to zero and it will not be used. The
 use of just a number of pixels is however a very brute force method of
@@ -1955,11 +1957,10 @@ function (http://www.zend.com/manual/function.strtotime.php). This allows
 values such as 'last Wednesday' etc to be entered. I recommend acquainting
 yourself with this function to see what the allowed formats are. However
 automated filters are run in perl and so are parsed by the Date::Manip package.
-Not all date formats are available in both so if you are saved your filter to
-do automatic deletions or other tasks you should make sure that the date and
-time format you use is compatible with both methods. The safest type of format
-to use is ‘-3 day’ or similar with easily parseable numbers and units are in
-English.</p>
+Not all date formats are available in both so if you are saved your filter to do
+automatic deletions or other tasks you should make sure that the date and time
+format you use is compatible with both methods. The safest type of format to
+use is ‘-3 day’ or similar with easily parseable numbers and units are in English.</p>
 
 <p class=MsoPlainText>The other elements you can filter on are all fairly self
 explanatory except perhaps for 'Archived' which you can use to include or
@@ -1974,8 +1975,8 @@ specification. As the disk based elements are not event related directly if you
 create a filter and include the term ‘DiskPercent &gt; 95’ then if your current
 disk usage is over that amount when you submit the filter then all events will
 be listed whereas if it is less then none at all will. As such the disk related
-terms will tend to be used mostly for automatic filters (see below). If you have
-created a filter you want to keep, you can name it and save it by clicking
+terms will tend to be used mostly for automatic filters (see below). If you
+have created a filter you want to keep, you can name it and save it by clicking
 'Save'.</p>
 
 <p class=MsoPlainText>If you do this then the subsequent dialog will also allow
@@ -2027,10 +2028,10 @@ click on an event to view it in more detail. If you have streaming capability
 you will see a series of images that make up the event. You will also see a
 link to allow you to view the still images themselves. If you don't have
 streaming then you will be taken directly to this page. The images themselves
-are thumbnail size and depending on the configuration and bandwidth you have chosen
-will either be the full images scaled in your browser of actual scaled images.
-If it is the latter, if you have low bandwidth for example, it may take a few
-seconds to generate the images. If thumbnail images are required to be
+are thumbnail size and depending on the configuration and bandwidth you have
+chosen will either be the full images scaled in your browser of actual scaled
+images. If it is the latter, if you have low bandwidth for example, it may take
+a few seconds to generate the images. If thumbnail images are required to be
 generated, they will be kept and not re-generated in future. Once the images
 appear you can mouse over them to get the image sequence number and the image
 score.</p>
@@ -2088,15 +2089,15 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Options
 and Users</a></h2>
 
 <p class=MsoPlainText>The final area covered by the tutorial is the options and
-user section. If you are running in authenticated mode and don’t have system
-privileges then you will not see this section at all and if you are running in
+user section. If you are running in authenticated mode and don’t have system privileges
+then you will not see this section at all and if you are running in
 un-authenticated mode then no user section will be displayed.</p>
 
 <p class=MsoPlainText>The various options you can specify are displayed in a
 tabbed dialog with each group of options displayed under a different heading.
-Each option is displayed with its name, a short description and the current value.
-You can also click on the ‘?’ link following each description to get a fuller
-explanation about each option. This is the same as you would get from
+Each option is displayed with its name, a short description and the current
+value. You can also click on the ‘?’ link following each description to get a
+fuller explanation about each option. This is the same as you would get from
 zmconfig.pl. A number of option groups have a master option near the top which
 enables or disables the whole group so you should be aware of the state of this
 before modifying options and expecting them to make any difference.</p>
@@ -2112,20 +2113,20 @@ still be using the old values and this can lead to data inconsistency or loss.</
 
 <p class=MsoPlainText>One of the options you may notice in the ‘System’ tab
 allows you to specify the default language for your installation of ZoneMinder.
-Versions 1.17.0 and later support multiple languages but rely on users to
-assist in creating language files for specific languages. To specify a language
-you will have to give the applicable code, thus for UK English this is en_gb,
-and for US English it would be en_us, if no language is given then UK English
-is assumed. Most languages will be specified in this nn_mm format and to check
+Versions 1.17.0 and later support multiple languages but rely on users to assist
+in creating language files for specific languages. To specify a language you
+will have to give the applicable code, thus for UK English this is en_gb, and
+for US English it would be en_us, if no language is given then UK English is
+assumed. Most languages will be specified in this nn_mm format and to check
 which languages are available look for files named zm_lang_*.php in the
 ZoneMinder build directory where the parts represented by the ‘*’ would be what
 you would enter as a language. This is slightly unwieldy and will probably be
 improved in future to make it easier to determine language availability. On
 checking which languages are available it may be that your preferred language
-is not currently included and if this is the case please consider doing a
-translation and sending it back to it may be included in future releases. All
-the language elements are given in the zm_lang_en_gb.php file along with a few
-notes to help you understand the format.</p>
+is not currently included and if this is the case please consider doing a translation
+and sending it back to it may be included in future releases. All the language
+elements are given in the zm_lang_en_gb.php file along with a few notes to help
+you understand the format.</p>
 
 <p class=MsoPlainText>As mentioned above, you may also see a ‘users’ tab in the
 Options area. In this section you will see a list of the current users defined
@@ -2166,8 +2167,8 @@ lot more to ZoneMinder as you will discover. You should experiment with the
 various setting to get the results you think are right for your requirements.</p>
 
 <h1><a name="_Toc104622506"><span style='text-decoration:none'>7.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Camera
-Control</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Camera
+Control</u></a></h1>
 
 <p class=MsoPlainText>Version 1.21.0 of ZoneMinder introduced a new feature,
 allowing you to control cameras from the web interface and to some extent
@@ -2443,8 +2444,8 @@ specified.</p>
 <p class=MsoPlainText style='margin-top:0cm;margin-right:0cm;margin-bottom:
 3.0pt;margin-left:1.0cm'><b><span style='color:black'>--address=&lt;address&gt;
 </span></b>– This is the control address from the monitor definition. This will
-usually be a hostname or ip address for network cameras or a simple numeric
-camera id for other cameras.</p>
+usually be a hostname or ip address for network cameras or a simple numeric camera
+id for other cameras.</p>
 
 <p class=MsoPlainText style='margin-top:0cm;margin-right:0cm;margin-bottom:
 3.0pt;margin-left:1.0cm'><b><span style='color:black'>--autostop=&lt;timeout&gt;
@@ -2477,10 +2478,10 @@ and vertical components.</p>
 specifies the amount of motion that the command should use, if appropriate.
 Normally used for relative commands only.</p>
 
-<p class=MsoPlainText style='margin-left:1.0cm'><b>--panstep=&lt;step&gt;, --tiltstep=&lt;step&gt;
-– </b>This indicates the specific pan and tilt steps for diagonal movements
-which may allow a different amount of motion for horizontal and vertical
-components.</p>
+<p class=MsoPlainText style='margin-left:1.0cm'><b>--panstep=&lt;step&gt;,
+--tiltstep=&lt;step&gt; – </b>This indicates the specific pan and tilt steps
+for diagonal movements which may allow a different amount of motion for
+horizontal and vertical components.</p>
 
 <p class=MsoPlainText style='margin-left:1.0cm'><b>--preset=&lt;preset&gt; – </b>This
 specifies the particular preset that relevant commands should operate on.</p>
@@ -2574,8 +2575,8 @@ the ‘home’ preset.</p>
 <p class=MsoPlainText style='margin-left:1.0cm'>&nbsp;</p>
 
 <h1><a name="_Toc104622509"><span style='text-decoration:none'>8.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Mobile
-Devices</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Mobile
+Devices</u></a></h1>
 
 <p class=MsoPlainText>ZoneMinder has always had a minimal WML (Wireless Markup
 Language) capability to allow it to function on mobile phones and similar
@@ -2627,8 +2628,8 @@ that your phone or device is recognised and if it can support XHTML-MP it will
 receive that interface. If your phone is very new, or you are using an old
 version of the XML file you might find that it is not present however. The
 WURFL library uses a caching strategy to avoid reloading the whole XML file
-each time so check if a sensible looking cache file has been created in the ‘wurfl’
-sub-directory also check the wurfl.log in the same place.</p>
+each time so check if a sensible looking cache file has been created in the
+‘wurfl’ sub-directory also check the wurfl.log in the same place.</p>
 
 <p class=MsoPlainText>The WURFL is a third party application and as such I am
 unable to offer support directly for it. If you feel your device is missing or
@@ -2638,14 +2639,14 @@ specifically please let me know and I would be pleased to hear about it.</p>
 
 <p class=MsoPlainText>As support for cookies in mobile devices is patchy at
 best, the groups feature is not fully implemented in the XHTML-MP views.
-Instead if there is a group called ‘Mobile’ already defined then that group
-will always be effective, if not then all monitors available to the logged in
-user will be visible,</p>
+Instead if there is a group called ‘Mobile’ already defined then that group will
+always be effective, if not then all monitors available to the logged in user will
+be visible,</p>
 
 <p class=MsoPlainText>&nbsp;</p>
 
 <h1><a name="_Toc104622510"><span style='text-decoration:none'>9.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Troubleshooting</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Troubleshooting</u></a></h1>
 
 <p class=MsoPlainText>Life eh? Nothing ever works first time does it? In case
 you are having problems here are some things to try. If these don't work then
@@ -2668,9 +2669,9 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 ZoneMinder, firstly make sure that you have the correct settings. Use xawtv or
 something like that to check for settings that work and then run zmu -d
 &lt;device_no&gt; -q -v to get the settings. If you can't get them to work with
-that then the likelihood is they won't work with ZoneMinder. Also check the system
-logs (usually /var/log/messages) for any video configuration errors. If you get
-some and you're sure they're not a problem then switch off
+that then the likelihood is they won't work with ZoneMinder. Also check the
+system logs (usually /var/log/messages) for any video configuration errors. If
+you get some and you're sure they're not a problem then switch off
 ZM_STRICT_VIDEO_CONFIG in zmconfig.pl or the ‘options’ tab.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
@@ -2692,10 +2693,10 @@ also possible that your php.ini file may have some settings which break
 ZoneMinder, I'm not a PHP guru but setting safe mode may prevent your PHP files
 from running certain programs. You may have to set configuration to allow this.
 Also since the daemons are started by your web server, if it dies or is shut
-down then the daemons may disappear. In this version the daemons are run under the
-control of a script which should trap expected signals but it is possible this
-doesn't cover all circumstances. If everything else works but you can’t get
-images in your browser a likely cause is a mismatch between where your web
+down then the daemons may disappear. In this version the daemons are run under
+the control of a script which should trap expected signals but it is possible
+this doesn't cover all circumstances. If everything else works but you can’t
+get images in your browser a likely cause is a mismatch between where your web
 server expects to execute CGI scripts and where you have installed the zms
 streaming server. Check your server configuration for the correct CGI location
 and ensure you have supplied the same directory to the ZoneMinder configure
@@ -2717,14 +2718,14 @@ href="http://www.redhat.com/docs/manuals/database/RHDB-2.1-Manual/admin_user/ker
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>You should be able to use a similar procedure with other
-distributions to modify the shared memory pool without kernel recompilations
-though in some cases this may be necessary. You can also sometimes get shared
-memory errors if you have changed the monitor image size for instance. In this
-case it is sometimes that an old process is hanging onto the shared memory and
-will not let it be resized. Ensure that you do a full ZoneMinder restart and/or
-manually delete the shared memory segment to check. Use the ipcs and ipcrm
-system commands to check and remove segments if necessary.</p>
+</span></span>You should be able to use a similar procedure with other distributions
+to modify the shared memory pool without kernel recompilations though in some
+cases this may be necessary. You can also sometimes get shared memory errors if
+you have changed the monitor image size for instance. In this case it is
+sometimes that an old process is hanging onto the shared memory and will not
+let it be resized. Ensure that you do a full ZoneMinder restart and/or manually
+delete the shared memory segment to check. Use the ipcs and ipcrm system
+commands to check and remove segments if necessary.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2785,9 +2786,9 @@ install them is to type the following (you will probably need to be root),</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt'>this will then (eventually,
 after some configuration if it’s your first time) present you with a prompt.
-From there you can type install module, e.g. Archive::Zip and the rest should
-be more or less automatic as it will chase any dependencies for you. There may
-be some initial configuration questions it might ask you on startup if you've
+From there you can type install module, e.g. Archive::Zip and the rest should be
+more or less automatic as it will chase any dependencies for you. There may be
+some initial configuration questions it might ask you on startup if you've
 never run it before and to speed things up I would not install a new Bundle at
 this point (it can end up building you a whole new perl if you’re not careful)
 if it asks you but everything else should be quite straightforward. You can
@@ -2860,14 +2861,13 @@ non-parsed headers which should work somewhat better.</p>
 
 <p class=MsoPlainText>Also, if you are using IE under Windows and get lots of
 annoying clicks when various windows refresh then you'll need to edit your
-registry and remove the value for
-HKEY_CURRENT_USER\AppEvents\Schemes\Apps\Explorer\Navigating\.current or
-download the registry script to do it for you from
+registry and remove the value for HKEY_CURRENT_USER\AppEvents\Schemes\Apps\Explorer\Navigating\.current
+or download the registry script to do it for you from
 http://www.zoneminder.com/downloads/noIEClick.reg</p>
 
 <h1><a name="_Toc104622511"><span style='text-decoration:none'>10.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Change
-Log</a> </h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><u>Change
+Log</u></a><u> </u></h1>
 
 <h2><a name="_Toc104622512"><span style='text-decoration:none'>10.1.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
@@ -3010,13 +3010,14 @@ frequently thrash disks while determining timestamps on directories.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE – A contributed patch by Ross Melin has been included.
 This gives you the option of using an alternative mailing method in the
-zmfilter.pl script if the default method does not work correctly. To use the
-new method go to Options-&gt;Email and set ZM_NEW_MAIL_MODULES to on.</p>
+zmfilter.pl script if the default method does not work correctly. To use the new
+method go to Options-&gt;Email and set ZM_NEW_MAIL_MODULES to on.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FIX – Previously the ZM_EMAIL_HOST config was not passed to the
-zmfilter.pl script so hosts other than localhost were not used. This has been fixed.</p>
+zmfilter.pl script so hosts other than localhost were not used. This has been
+fixed.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3070,15 +3071,16 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 Compatible Regular Expression (PCRE) library, mostly to do with it not being
 found or an incorrect version being used. This version allows an alternative
 method of parsing the output from network cameras that does not depend on
-libpcre at all. Which method is used is controlled by the option Options-&gt;Network-&gt;ZM_NETCAM_REGEXPS.
-If this option is on then the traditional regular expression based parsing is
-implemented, provided you have built with libpcre. If the option is off or
-libpcre is missing then a more basic parsing is used instead. This new method
-should be slightly faster as it does not have the overhead of regular
-expression parsing, however this also makes it slightly more inflexible. If you
-experience problems using the new method with your netcam then you should try
-switching to the regular expression based method, and report the issue via the
-forums, preferably with a snapshot of the output of your camera.</p>
+libpcre at all. Which method is used is controlled by the option
+Options-&gt;Network-&gt;ZM_NETCAM_REGEXPS. If this option is on then the
+traditional regular expression based parsing is implemented, provided you have
+built with libpcre. If the option is off or libpcre is missing then a more
+basic parsing is used instead. This new method should be slightly faster as it
+does not have the overhead of regular expression parsing, however this also
+makes it slightly more inflexible. If you experience problems using the new
+method with your netcam then you should try switching to the regular expression
+based method, and report the issue via the forums, preferably with a snapshot
+of the output of your camera.</p>
 
 <h2><a name="_Toc104622513"><span style='text-decoration:none'>10.2.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
@@ -3150,10 +3152,10 @@ originally.</span></p>
 
 <p class=BullettedChar><span class=postbody><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span></span><span class=postbody>FIX – Previously separate ‘object’ and
-‘embed’ tags were used for Internet Explorer and non-IE browsers. These have
-been merged so that browsers will use whichever tag is appropriate. Any player
-controls that were present should now be hidden as well.</span></p>
+</span></span></span><span class=postbody>FIX – Previously separate ‘object’
+and ‘embed’ tags were used for Internet Explorer and non-IE browsers. These
+have been merged so that browsers will use whichever tag is appropriate. Any
+player controls that were present should now be hidden as well.</span></p>
 
 <p class=BullettedChar><span class=postbody><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3172,10 +3174,10 @@ are applied correctly.</span></p>
 <p class=BullettedChar><span class=postbody><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span></span><span class=postbody>FIX – Users created with only ‘view
-streams’ permissions were presented with a ‘permission denied’ error in the area
-of the Watch window normally containing the recent events list. Whilst this was
-technically correct it was unnecessary and untidy, and has now been changed
-just to be blank.</span></p>
+streams’ permissions were presented with a ‘permission denied’ error in the
+area of the Watch window normally containing the recent events list. Whilst
+this was technically correct it was unnecessary and untidy, and has now been
+changed just to be blank.</span></p>
 
 <h2><a name="_Toc104622514"><span style='text-decoration:none'>10.3.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
@@ -3486,17 +3488,16 @@ but should only set one dimension only and leave the other blank or zero.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE – You can now specify how many image thumbnails appear
-across and down the page in the event stills listing. In Options-&gt;Web set
-the ZM_WEB_FRAMES_PER_LINE and/or ZM_WEB_FRAME_LINES options.</p>
+across and down the page in the event stills listing. In Options-&gt;Web set the
+ZM_WEB_FRAMES_PER_LINE and/or ZM_WEB_FRAME_LINES options.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE – ZoneMinder uses ffmpeg (<a
 href="http://ffmpeg.sourceforge.net/">http://ffmpeg.sourceforge.net/</a>) for
-video generation and processing. Recently a new version (0.4.9-pre1) was
-released which changed the interface that ZoneMinder uses and so broke
-compilation. This version will detect which version of ffmpeg you have and
-compile accordingly.</p>
+video generation and processing. Recently a new version (0.4.9-pre1) was released
+which changed the interface that ZoneMinder uses and so broke compilation. This
+version will detect which version of ffmpeg you have and compile accordingly.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3606,10 +3607,10 @@ has not been corrected.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FIX – A problem was reported whereby when using bulk frame
-records to reduce database load the last frame record was not written.
-Replaying the event via the web interface resulting in the event being
-truncated. A correction has been made so prevent this and ensure that the last
-frame of an event is always recorded.</p>
+records to reduce database load the last frame record was not written. Replaying
+the event via the web interface resulting in the event being truncated. A
+correction has been made so prevent this and ensure that the last frame of an
+event is always recorded.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3944,8 +3945,8 @@ partition,</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Zone Form Validation. Changes applied in version 1.18.0 to
 prevent invalidate entries in the zone definition form actually had the
-opposite effect due to JavaScript treating everything as a string and not a
-number (e.g. 5 is greater than 123). This is now corrected.</p>
+opposite effect due to JavaScript treating everything as a string and not a number
+(e.g. 5 is greater than 123). This is now corrected.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4060,21 +4061,21 @@ the RGB one was faster however with the optimisations the Y channel calculation
 though you can select either method by the ZM_Y_IMAGE_DELTAS configuration
 option. A new method of image blending has also been added which is up to 6
 times faster than the old one which is retained for compatibility and because
-in some unusual circumstances it may still be more accurate (see the ZM_FAST_IMAGE_BLENDS
-option for details). Altogether these optimisations (along with other common
-sense ones such as not maintaining a reference image in ‘Record’ mode where it
-is not used) significantly reduce the CPU load for most systems, especially
-when alarms are not in progress. If an alarm is detected then a lot of file
-system and database activity takes place which is limited by the speed of these
-resources so the gain will not be as much.</p>
+in some unusual circumstances it may still be more accurate (see the
+ZM_FAST_IMAGE_BLENDS option for details). Altogether these optimisations (along
+with other common sense ones such as not maintaining a reference image in
+‘Record’ mode where it is not used) significantly reduce the CPU load for most
+systems, especially when alarms are not in progress. If an alarm is detected
+then a lot of file system and database activity takes place which is limited by
+the speed of these resources so the gain will not be as much.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Remote Authentication. This document has previously indicated that
-basic authentication for network cameras could be used by entering a hostname
-of the form of &lt;user&gt;:&lt;pass&gt;@&lt;hostname&gt;. This was not
-actually the case as the relevant authentication header was never sent. This is
-now fixed and addresses of this form can now be used.</p>
+</span></span>Remote Authentication. This document has previously indicated
+that basic authentication for network cameras could be used by entering a
+hostname of the form of &lt;user&gt;:&lt;pass&gt;@&lt;hostname&gt;. This was
+not actually the case as the relevant authentication header was never sent.
+This is now fixed and addresses of this form can now be used.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4100,16 +4101,16 @@ any monitor specific terms and resetting the actions for any that remain.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>New Filter Operators. Two new filter operators and their inverse
-have been added. You can now indicate whether a value is in a set of other values,
-for example ‘cat’ is in the set of ‘cat, dog, cow, horse’. You can also use
-regular expressions so ‘cat’ matches ‘^c.*’. The ‘not in set’ and ‘not matches’
-operators are also available.</p>
+have been added. You can now indicate whether a value is in a set of other
+values, for example ‘cat’ is in the set of ‘cat, dog, cow, horse’. You can also
+use regular expressions so ‘cat’ matches ‘^c.*’. The ‘not in set’ and ‘not
+matches’ operators are also available.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Additional Scales. Enhancements to the scaling algorithm mean that
-non binary scales are now just as easy to apply, thus new scales such as 0.75x
-have been added. Others can be easily included if necessary.</p>
+</span></span>Additional Scales. Enhancements to the scaling algorithm mean
+that non binary scales are now just as easy to apply, thus new scales such as
+0.75x have been added. Others can be easily included if necessary.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4202,9 +4203,9 @@ not used if not present.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Add Max Alarm Threshold. Previously the alarm threshold (which is
 the amount a pixel has to differ from it’s counterpart in the reference image)
-existed only in a ‘minimum’ form meaning pixels that were more different
-matched. A maximum has now been added to assist in screening out large changes
-in brightness. In addition to this a number of new consistency checks have been
+existed only in a ‘minimum’ form meaning pixels that were more different matched.
+A maximum has now been added to assist in screening out large changes in
+brightness. In addition to this a number of new consistency checks have been
 added to the zone definition form to try and prevent bogus or invalid settings.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
@@ -4281,8 +4282,8 @@ ZoneMinder to use the German (de_de) and Polish (pl_pl) languages.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Language File Format. The format of the language file was changed
-to allow the specification of character set and locale as well as have more
-flexibility in the calculation of plural forms.</p>
+to allow the specification of character set and locale as well as have more flexibility
+in the calculation of plural forms.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4330,8 +4331,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 PHP would flag tens or hundreds of violations in the ZoneMinder web files.
 Whilst not strictly errors this represented sloppy coding and sometimes covered
 up genuine bugs. All the files have been revisited and revised to ensure that a
-many of these problems as possible have been eliminated and only the very few where
-the fix would be significantly less optimal than the problem remain.</p>
+many of these problems as possible have been eliminated and only the very few
+where the fix would be significantly less optimal than the problem remain.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4344,8 +4345,7 @@ changed for that the window and frames will now resize appropriately.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Mmap Return Value. A problem identified by users in the forum
-relating to checking of return values from the mmap function call has been
-corrected.</p>
+relating to checking of return values from the mmap function call has been corrected.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4393,8 +4393,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 default. You can list all of the events if you like by choosing the appropriate
 option. There are shortcuts to pages of events at the top of the listing. If
 these produce strange looking sequences like 1,2, 3, 5, 9, 17, 37 etc this is
-deliberate and uses an exponential algorithm intended to allow you to quickly
-navigate through the list to a particular page in the minimum number of clicks.</p>
+deliberate and uses an exponential algorithm intended to allow you to quickly navigate
+through the list to a particular page in the minimum number of clicks.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4406,8 +4406,8 @@ monitoring at a higher screen size where the frame is not adjusted properly.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Variable Frame Rates. Event streams can now be viewed at various
-rates allowing faster review (if your bandwidth allows) to long events, or
-slower for more precision.</p>
+rates allowing faster review (if your bandwidth allows) to long events, or slower
+for more precision.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4434,9 +4434,9 @@ processes.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Intelligent Module inclusion. zmfilter.pl now includes
-Archive::Zip and other modules on an as needed basis so won't complain about
-them being missing unless they have been explicitly configured to be used.</p>
+</span></span>Intelligent Module inclusion. zmfilter.pl now includes Archive::Zip
+and other modules on an as needed basis so won't complain about them being
+missing unless they have been explicitly configured to be used.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5226,10 +5226,10 @@ delay since the last captured image.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Added zmpkg.pl and zm scripts - There are now two new scripts.
-zmpkg.pl is in charge of starting and stopping ZoneMinder as a whole package
-and zm is designed to be (optionally) installed into your init.d directory to
-use ZoneMinder as a service.</p>
+</span></span>Added zmpkg.pl and zm scripts - There are now two new scripts. zmpkg.pl
+is in charge of starting and stopping ZoneMinder as a whole package and zm is
+designed to be (optionally) installed into your init.d directory to use
+ZoneMinder as a service.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5389,8 +5389,8 @@ be specified in zmconfig.php</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Changed form methods to 'get' from 'post' to avoid resubmit warnings
-all the time.</p>
+</span></span>Changed form methods to 'get' from 'post' to avoid resubmit
+warnings all the time.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5416,7 +5416,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Release
 <p class=MsoPlainText>Initial release, therefore nothing new.</p>
 
 <h1><a name="_Toc104622538"><span style='text-decoration:none'>11.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>To Do</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><u>To Do</u></a></h1>
 
 <p class=MsoPlainText>Seeing as ZoneMinder is so young and has kind of evolved
 rather than being planned there are a bunch of improvements and enhancements
@@ -5442,9 +5442,9 @@ resource unless your zones are kept very tidy.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Create zones using server side image maps - This would make it
-easier to precisely define and see where your zone is going to go. Not critical
-but handy but a bugger to do.</p>
+</span></span>Create zones using server side image maps - This would make it easier
+to precisely define and see where your zone is going to go. Not critical but
+handy but a bugger to do.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5490,7 +5490,7 @@ style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&n
 associated with a video device. Work on this feature has already begun.</p>
 
 <h1><a name="_Toc104622539"><span style='text-decoration:none'>12.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Bugs</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><u>Bugs</u></a></h1>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5509,7 +5509,7 @@ needs checking out.</p>
 <p class=MsoPlainText>Probably bucket loads more, just fire them at me.</p>
 
 <h1><a name="_Toc104622540"><span style='text-decoration:none'>13.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>Non-Bugs</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><u>Non-Bugs</u></a></h1>
 
 <p class=MsoPlainText style='margin-left:36.0pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5521,7 +5521,7 @@ own line most of the time, what's the point of brackets that don't line up?</p>
 deliberate, or was once anyway.</p>
 
 <h1><a name="_Toc104622541"><span style='text-decoration:none'>14.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span>License</a></h1>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><u>License</u></a></h1>
 
 <p class=MsoPlainText>ZoneMinder is released under the GPL, see below.</p>
 

@@ -542,8 +542,8 @@ int RemoteCamera::GetResponse()
 		static char *content_length_header;
 		static char *content_type_header;
 		static char *boundary_header;
-		static char *subcontent_length_header;
-		static char *subcontent_type_header;
+		static char subcontent_length_header[32];
+		static char subcontent_type_header[64];
 	
 		static char http_version[16];
 		static char status_code[16];
@@ -773,8 +773,8 @@ int RemoteCamera::GetResponse()
 				{
 					n_subheaders = 0;
 					boundary_header = 0;
-					subcontent_length_header = 0;
-					subcontent_type_header = 0;
+					subcontent_length_header[0] = '\0';
+					subcontent_type_header[0] = '\0';
 					content_length = 0;
 					content_type[0] = '\0';
 				}
@@ -813,7 +813,6 @@ int RemoteCamera::GetResponse()
 							}
 						}
 
-						Debug( 6, ( "%d = %d", buffer.Size(), (subheader_ptr-(char *)buffer) ));
 						Debug( 6, ( "%d: %s", subheader_len, subheader_ptr ));
 
 						if ( crlf = mempbrk( subheader_ptr, "\r\n", subheader_len ) )
@@ -825,15 +824,17 @@ int RemoteCamera::GetResponse()
 								boundary_header = subheader_ptr;
 								Debug( 4, ( "Got boundary subheader '%s'", subheader_ptr ));
 							}
-							else if ( !subcontent_length_header && (strncasecmp( subheader_ptr, content_length_match, content_length_match_len) == 0) )
+							else if ( !subcontent_length_header[0] && (strncasecmp( subheader_ptr, content_length_match, content_length_match_len) == 0) )
 							{
-								subcontent_length_header = subheader_ptr+content_length_match_len;
-								Debug( 4, ( "Got content length subheader '%s'", subheader_ptr ));
+								strncpy( subcontent_length_header, subheader_ptr+content_length_match_len, sizeof(subcontent_length_header) );
+								*(subcontent_length_header+strcspn( subcontent_length_header, "\r\n" )) = '\0';
+								Debug( 4, ( "Got content length subheader '%s'", subcontent_length_header ));
 							}
-							else if ( !subcontent_type_header && (strncasecmp( subheader_ptr, content_type_match, content_type_match_len) == 0) )
+							else if ( !subcontent_type_header[0] && (strncasecmp( subheader_ptr, content_type_match, content_type_match_len) == 0) )
 							{
-								subcontent_type_header = subheader_ptr+content_type_match_len;
-								Debug( 4, ( "Got content type subheader '%s'", subheader_ptr ));
+								strncpy( subcontent_type_header, subheader_ptr+content_type_match_len, sizeof(subcontent_type_header) );
+								*(subcontent_type_header+strcspn( subcontent_type_header, "\r\n" )) = '\0';
+								Debug( 4, ( "Got content type subheader '%s'", subcontent_type_header ));
 							}
 							else
 							{
@@ -914,9 +915,11 @@ int RemoteCamera::GetResponse()
 					}
 					else
 					{
+						int content_pos = 0;
 						while ( !content_length )
 						{
 							int buffer_len = ReadData( buffer );
+							int buffer_size = buffer.Size();
 							if ( buffer_len < 0 )
 							{
 								return( -1 );
@@ -925,29 +928,21 @@ int RemoteCamera::GetResponse()
 							{
 								if ( mode == MULTI_JPEG )
 								{
-									char *start_ptr = buffer;
-									int offset = 0;
-									while ( offset = memspn( start_ptr, "\r\n", buffer.Size()-(start_ptr-(char *)buffer) ) )
+									while ( char *start_ptr = (char *)memstr( (char *)buffer+content_pos, "\r\n--", buffer_size-content_pos ) )
 									{
-										start_ptr += offset;
-										if ( *start_ptr == '\r' )
-										{
-											start_ptr++;
-											if ( *start_ptr == '\n' )
-												start_ptr++;
-											content_length = start_ptr - (char *)buffer;
-											Debug( 3, ( "Got end of image by pattern, content-length = %d", content_length ));
-										}
+										content_length = start_ptr - (char *)buffer;
+										Debug( 3, ( "Got end of image by pattern (crlf--), content-length = %d", content_length ));
+										break;
 									}
 								}
 							}
 							else
 							{
-								content_length = buffer.Size();
+								content_length = buffer_size;
 								Debug( 3, ( "Got end of image by closure, content-length = %d", content_length ));
 								if ( mode == SINGLE_JPEG )
 								{
-									char *end_ptr = (char *)buffer+buffer.Size();
+									char *end_ptr = (char *)buffer+buffer_size;
 
 									while( *end_ptr == '\r' || *end_ptr == '\n' )
 									{
@@ -955,7 +950,7 @@ int RemoteCamera::GetResponse()
 										end_ptr--;
 									}
 
-									if ( end_ptr != ((char *)buffer+buffer.Size()) )
+									if ( end_ptr != ((char *)buffer+buffer_size) )
 									{
 										Debug( 3, ( "Trimmed end of image, new content-length = %d", content_length ));
 									}

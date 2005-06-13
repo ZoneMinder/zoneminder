@@ -138,7 +138,7 @@ window.setTimeout( "window.location.replace('<?= $PHP_SELF ?>')", <?= (ZM_WEB_RE
 }
 ?>
 <?php
-if ( ZM_CHECK_FOR_UPDATES && canEdit( 'System' ) && ZM_DYN_LAST_VERSION && ( verNum(ZM_VERSION) != verNum(ZM_DYN_LAST_VERSION) ) && ( verNum(ZM_DYN_LAST_VERSION) != verNum(ZM_DYN_CURR_VERSION) ) && ( ZM_DYN_NEXT_REMINDER < time() ) )
+if ( ZM_CHECK_FOR_UPDATES && canEdit( 'System' ) && ZM_DYN_LAST_VERSION && ( verNum(ZM_VERSION) < verNum(ZM_DYN_LAST_VERSION) ) && ( verNum(ZM_DYN_CURR_VERSION) < verNum(ZM_DYN_LAST_VERSION) ) && ( ZM_DYN_NEXT_REMINDER < time() ) )
 {
 ?>
 newWindow( '<?= $PHP_SELF ?>?view=version', 'zmVersion', <?= $jws['version']['w'] ?>, <?= $jws['version']['h'] ?> );

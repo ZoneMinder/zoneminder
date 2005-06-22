@@ -219,6 +219,11 @@ public:
 			strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time ) );
 			switch ( token_count )
 			{
+				case 0:
+				{
+					strncpy( label_text, label_time_text, sizeof(label_text) );
+					break;
+				}
 				case 1:
 				{
 					snprintf( label_text, sizeof(label_text), label_time_text, name );

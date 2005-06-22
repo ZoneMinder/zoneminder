@@ -416,6 +416,7 @@ sub zoomTele
 	print( "Zoom Tele\n" );
 	my $speed = shift || 0x01;
 	setZoomSpeed( $speed );
+	usleep( 250000 );
 	my @msg = ( $sync, $address, 0x00, 0x20, 0x00, 0x00 );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -430,6 +431,7 @@ sub zoomWide
 	print( "Zoom Wide\n" );
 	my $speed = shift || 0x01;
 	setZoomSpeed( $speed );
+	usleep( 250000 );
 	my @msg = ( $sync, $address, 0x00, 0x40, 0x00, 0x00 );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -451,6 +453,7 @@ sub focusNear
 	print( "Focus Near\n" );
 	my $speed = shift || 0x03;
 	setFocusSpeed( $speed );
+	usleep( 250000 );
 	my @msg = ( $sync, $address, 0x01, 0x00, 0x00, 0x00 );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -465,6 +468,7 @@ sub focusFar
 	print( "Focus Far\n" );
 	my $speed = shift || 0x03;
 	setFocusSpeed( $speed );
+	usleep( 250000 );
 	my @msg = ( $sync, $address, 0x00, 0x80, 0x00, 0x00 );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -477,7 +481,7 @@ sub focusFar
 sub focusAuto
 {
 	print( "Focus Auto\n" );
-	my @msg = ( $sync, $address, 0x00, 0x2b, 0x00, 0x01 );
+	my @msg = ( $sync, $address, 0x00, 0x2b, 0x00, 0x00 );
 	sendCmd( \@msg );
 }
 
@@ -485,6 +489,44 @@ sub focusMan
 {
 	print( "Focus Man\n" );
 	my @msg = ( $sync, $address, 0x00, 0x2b, 0x00, 0x02 );
+	sendCmd( \@msg );
+}
+
+sub irisClose
+{
+	print( "Iris Close\n" );
+	my @msg = ( $sync, $address, 0x04, 0x00, 0x00, 0x00 );
+	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		setIrisSpeed( 0 );
+	}
+}
+
+sub irisOpen
+{
+	print( "Iris Open\n" );
+	my @msg = ( $sync, $address, 0x02, 0x80, 0x00, 0x00 );
+	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		setIrisSpeed( 0 );
+	}
+}
+
+sub irisAuto
+{
+	print( "Iris Auto\n" );
+	my @msg = ( $sync, $address, 0x00, 0x2d, 0x00, 0x00 );
+	sendCmd( \@msg );
+}
+
+sub irisMan
+{
+	print( "Iris Man\n" );
+	my @msg = ( $sync, $address, 0x00, 0x2d, 0x00, 0x02 );
 	sendCmd( \@msg );
 }
 
@@ -606,7 +648,8 @@ elsif ( $command eq "focus_con_far" )
 }
 elsif ( $command eq "focus_stop" )
 {
-	setFocusSpeed( 0 );
+	stop();
+	#setFocusSpeed( 0 );
 }
 elsif ( $command eq "focus_auto" )
 {
@@ -615,6 +658,26 @@ elsif ( $command eq "focus_auto" )
 elsif ( $command eq "focus_man" )
 {
 	focusMan();
+}
+elsif ( $command eq "iris_con_close" )
+{
+	irisClose();
+}
+elsif ( $command eq "iris_con_open" )
+{
+	irisOpen();
+}
+elsif ( $command eq "iris_stop" )
+{
+	stop();
+}
+elsif ( $command eq "iris_auto" )
+{
+	irisAuto();
+}
+elsif ( $command eq "iris_man" )
+{
+	irisMan();
 }
 elsif ( $command eq "preset_home" )
 {

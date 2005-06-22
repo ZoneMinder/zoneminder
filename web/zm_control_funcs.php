@@ -62,6 +62,7 @@ function getControlCommands( $monitor )
 		$cmds['IrisRoot'] = "iris_abs_";
 	$cmds['IrisOpen'] = $cmds['IrisRoot']."open";
 	$cmds['IrisClose'] = $cmds['IrisRoot']."close";
+	$cmds['IrisStop'] = "iris_stop";
 	$cmds['IrisAuto'] = "iris_auto";
 	$cmds['IrisMan'] = "iris_man";
 

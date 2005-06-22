@@ -1,4 +1,4 @@
-#, $etx!/usr/bin/perl -wT
+#!/usr/bin/perl -wT
 #
 # ==========================================================================
 #
@@ -70,6 +70,7 @@ BEGIN
 	$dbh->disconnect();
 }
 
+#use Data::Dumper;
 use Getopt::Long;
 use Device::SerialPort;
 use Time::HiRes qw( usleep );
@@ -178,11 +179,13 @@ sub sendCmd
 
 	my $result = undef;
 
+	#print( Dumper( @$cmd ) );
 	my $checksum = 0x00;
-	for ( my $i = 0; $i < int(@$cmd); $i++ )
+	for ( my $i = 0; $i < int(@$cmd)-1; $i++ )
 	{
 		$checksum ^= $cmd->[$i];
 		$checksum &= 0xff;
+		#printf( "%02x - %02x\n", $cmd->[$i], $checksum );
 	}
 	push( @$cmd, $checksum );
 

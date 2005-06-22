@@ -78,12 +78,19 @@ while( $row = mysql_fetch_assoc( $result ) )
 	}
 	$monitors[] = $row = array_merge( $row, $row2, $row3 );
 }
-$montage_rows = intval((($cycle_count-1)/ZM_WEB_MONTAGE_MAX_COLS)+1);
-$montage_cols = intval(ceil($cycle_count/$montage_rows));
 
+if ( $cycle_count )
+{
+	$montage_rows = intval((($cycle_count-1)/ZM_WEB_MONTAGE_MAX_COLS)+1);
+	$montage_cols = intval(ceil($cycle_count/$montage_rows));
+}
+else
+{
+	$montage_rows = 0;
+	$montage_cols = 0;
+}
 $montage_width = ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$max_width;
 $montage_height = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$max_height;
-
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>

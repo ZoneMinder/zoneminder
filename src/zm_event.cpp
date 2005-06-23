@@ -448,7 +448,6 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 	}
 
 	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-	fprintf( stdout, "--ZoneMinderFrame\r\n" );
 
 	FILE *fdj = NULL;
 	int n_bytes = 0;
@@ -500,10 +499,11 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 
 					image.EncodeJpeg( buffer, &n_bytes );
 				}
+				fprintf( stdout, "--ZoneMinderFrame\r\n" );
 				fprintf( stdout, "Content-Length: %d\r\n", n_bytes );
 				fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
-				write( fileno(stdout), buffer, n_bytes );
-				fprintf( stdout, "\r\n\r\n--ZoneMinderFrame\r\n" );
+				fwrite( buffer, n_bytes, 1, stdout );
+				fprintf( stdout, "\r\n\r\n" );
 				fflush( stdout );
 				last_delta = this_delta;
 				db_written = true;

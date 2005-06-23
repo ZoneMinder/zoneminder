@@ -1265,7 +1265,6 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 void Monitor::StreamImages( int scale, int maxfps, time_t ttl )
 {
 	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-	fprintf( stdout, "--ZoneMinderFrame\r\n" );
 
 	int fps = int(GetFPS());
 	if ( !fps )
@@ -1328,10 +1327,11 @@ void Monitor::StreamImages( int scale, int maxfps, time_t ttl )
 				}
 				snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
 
+				fprintf( stdout, "--ZoneMinderFrame\r\n" );
 				fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
 				fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
 				fwrite( img_buffer, img_buffer_size, 1, stdout );
-				fprintf( stdout, "\r\n\r\n--ZoneMinderFrame\r\n" );
+				fprintf( stdout, "\r\n\r\n" );
 
 				if ( ttl )
 				{

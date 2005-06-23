@@ -80,7 +80,8 @@ use constant IMAGE_PATH => ZM_PATH_WEB.'/'.ZM_DIR_IMAGES;
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmaudit.log';
 use constant MIN_AGE => 300; # Minimum age when we will delete anything
-use constant VERBOSE => 1; # Whether to output more verbose debug
+
+use constant DBG_LEVEL => 1; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
 #
@@ -89,6 +90,8 @@ use constant VERBOSE => 1; # Whether to output more verbose debug
 # ==========================================================================
 
 use DBI;
+use POSIX;
+use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
 
 $| = 1;
@@ -113,6 +116,86 @@ Parameters are :-
 	exit( -1 );
 }
 
+my $dbg_id = "";
+
+sub dbgInit
+{
+	my $id = shift;
+	if ( $id )
+	{
+		$dbg_id = $id;
+		my $add_parms = shift;
+		if ( $add_parms )
+		{
+			foreach my $arg ( @ARGV )
+			{
+				if ( $arg =~ /^-(.*)$/ )
+				{
+					$dbg_id .= "_$1";
+				}
+				else
+				{
+					$dbg_id .= $arg;
+				}
+			}
+		}
+	}
+}
+
+sub dbgPrint
+{
+	my $code = shift;
+	my $string = shift;
+	my $line = shift;
+
+	$string =~ s/[\r\n]+$//g;
+
+	my ($seconds, $microseconds) = gettimeofday();
+	if ( $line )
+	{
+		my $file = __FILE__;
+		$file =~ s|^.*/||g;
+		printf( "%s.%06d %s[%d].%s-%s/%d [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $file, $line, $code, $string );
+	}
+	else
+	{
+		printf( "%s.%06d %s[%d].%s [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $code, $string );
+	}
+}
+
+sub Debug
+{
+	dbgPrint( "DBG", $_[0] ) if ( DBG_LEVEL >= 1 );
+}
+
+sub Info
+{
+	dbgPrint( "INF", $_[0] ) if ( DBG_LEVEL >= 0 );
+}
+
+sub Warning
+{
+	dbgPrint( "WAR", $_[0] ) if ( DBG_LEVEL >= -1 );
+}
+
+sub Error
+{
+	dbgPrint( "ERR", $_[0] ) if ( DBG_LEVEL >= -2 );
+}
+
+sub aud_print
+{
+	my $string = shift;
+	if ( $delay )
+	{
+		Info( $string );
+	}
+	else
+	{
+		print( $string );
+	}
+}
+
 sub confirm
 {
 	my $prompt = shift || "delete";
@@ -121,11 +204,21 @@ sub confirm
 	my $yesno = $yes?1:0; 
 	if ( $report )
 	{
-		print( "\n" );
+		if ( !$delay )
+		{
+			print( "\n" );
+		}
 	}
 	elsif ( $yes )
 	{
-		print( ", $action\n" );
+		if ( $delay )
+		{
+			Info( "$action\n" );
+		}
+		else
+		{
+			print( ", $action\n" );
+		}
 	}
 	else
 	{
@@ -149,6 +242,8 @@ sub confirm
 	}
 	return( $yesno );
 }
+
+dbgInit( "zmaudit", 1 );
 
 if ( !GetOptions( 'report'=>\$report, 'yes'=>\$yes, 'delay=i'=>\$delay ) )
 {
@@ -185,14 +280,14 @@ do
 	my $res = $sth1->execute() or die( "Can't execute: ".$sth1->errstr() );
 	while( my $monitor = $sth1->fetchrow_hashref() )
 	{
-		print( "Found database monitor '$monitor->{Id}'" ) if ( VERBOSE );
+		Debug( "Found database monitor '$monitor->{Id}'" );
 		my $db_events = $db_monitors->{$monitor->{Id}} = {};
 		my $res = $sth2->execute( $monitor->{Id} ) or die( "Can't execute: ".$sth2->errstr() );
 		while ( my $event = $sth2->fetchrow_hashref() )
 		{
 			$db_events->{$event->{Id}} = $event->{Age};
 		}
-		print( ", got ".int(keys(%$db_events))." events\n" ) if ( VERBOSE );
+		Debug( "Got ".int(keys(%$db_events))." events\n" );
 		$sth2->finish();
 	}
 	$sth1->finish();
@@ -201,7 +296,7 @@ do
 	my $fs_monitors;
 	foreach my $monitor ( <[0-9]*> )
 	{
-		print( "Found filesystem monitor '$monitor'" ) if ( VERBOSE );
+		Debug( "Found filesystem monitor '$monitor'" );
 		my $fs_events = $fs_monitors->{$monitor} = {};
 		( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
 
@@ -222,7 +317,7 @@ do
 			}
 		}
 		chdir( EVENT_PATH );
-		print( ", got ".int(keys(%$fs_events))." events\n" ) if ( VERBOSE );
+		Debug( "Got ".int(keys(%$fs_events))." events\n" );
 	}
 
 	while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
@@ -233,9 +328,9 @@ do
 			{
 				while ( my ( $fs_event, $age ) = each(%$fs_events ) )
 				{
-					if ( !$db_events->{$fs_event} && (!$age || ($age > MIN_AGE)) )
+					if ( !$db_events->{$fs_event} && ($age < 0 || ($age > MIN_AGE)) )
 					{
-						print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
+						aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
 						if ( confirm() )
 						{
 							my $command = "/bin/rm -rf ".EVENT_PATH."/$fs_monitor/$fs_event";
@@ -247,7 +342,7 @@ do
 		}
 		else
 		{
-			print( "Filesystem monitor '$fs_monitor' does not exist in database" );
+			aud_print( "Filesystem monitor '$fs_monitor' does not exist in database" );
 			if ( confirm() )
 			{
 				my $command = "rm -rf ".EVENT_PATH."/$fs_monitor";
@@ -274,7 +369,7 @@ do
 				{
 					if ( !$fs_events->{$db_event} && ($age > MIN_AGE) )
 					{
-						print( "Database event '$db_monitor/$db_event' does not exist in filesystem" );
+						aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem" );
 						if ( confirm() )
 						{
 							my $res = $sth4->execute( $db_event ) or die( "Can't execute: ".$sth4->errstr() );
@@ -287,7 +382,7 @@ do
 		}
 		else
 		{
-			#print( "Database monitor '$db_monitor' does not exist in filesystem" );
+			#aud_print( "Database monitor '$db_monitor' does not exist in filesystem" );
 			#if ( confirm() )
 			#{
 				# We don't actually do this in case it's new
@@ -301,7 +396,7 @@ do
 	$res = $sth7->execute() or die( "Can't execute: ".$sth7->errstr() );
 	while( my $frame = $sth7->fetchrow_hashref() )
 	{
-		print( "Found orphaned frame records for event '$frame->{EventId}'" );
+		aud_print( "Found orphaned frame records for event '$frame->{EventId}'" );
 		if ( confirm() )
 		{
 			$res = $sth5->execute( $frame->{EventId} ) or die( "Can't execute: ".$sth6->errstr() );
@@ -313,7 +408,7 @@ do
 	$res = $sth8->execute() or die( "Can't execute: ".$sth8->errstr() );
 	while( my $stat = $sth8->fetchrow_hashref() )
 	{
-		print( "Found orphaned statistic records for event '$stat->{EventId}'" );
+		aud_print( "Found orphaned statistic records for event '$stat->{EventId}'" );
 		if ( confirm() )
 		{
 			$res = $sth6->execute( $stat->{EventId} ) or die( "Can't execute: ".$sth6->errstr() );
@@ -328,7 +423,7 @@ do
 	$res = $sth9->execute() or die( "Can't execute: ".$sth9->errstr() );
 	while( my $event = $sth9->fetchrow_hashref() )
 	{
-		print( "Found open event '$event->{Id}'" );
+		aud_print( "Found open event '$event->{Id}'" );
 		if ( confirm( 'close', 'closing' ) )
 		{
 			$res = $sth10->execute( sprintf( "%s-%d(r)", $event->{Prefix}, $event->{Id} ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, $event->{Id} ) or die( "Can't execute: ".$sth10->errstr() );
@@ -338,7 +433,7 @@ do
 	# Now delete any old image files
 	if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> )
 	{
-		print( "Deleting ".int(@old_files)." old images\n" );
+		aud_print( "Deleting ".int(@old_files)." old images\n" );
 		my $untainted_old_files = join( ";", @old_files );
 		( $untainted_old_files ) = ( $untainted_old_files =~ /^(.*)$/ );
 		unlink( split( ";", $untainted_old_files ) );

@@ -1,4 +1,4 @@
-   22/06/05        ZoneMinder 1.21.2 README                1
+   23/06/05        ZoneMinder 1.21.2 README                1
                                
                                
                                
@@ -24,8 +24,8 @@
                                
                                
                                
-                               
-                               
+
+
 Introduction
 Welcome  to  ZoneMinder, the all-in-one Linux  GPL'd  security
 camera solution.
@@ -2416,6 +2416,11 @@ properly support Iris control.
 o    FIX - Fixed a nasty problem in zmaudit which meant that
 older events sometimes didn't get tidied up and deleted
 properly.
+o    FIX - Fixed an issue with the multi-part jpeg streams
+having frame boundaries output at the end of each image and
+not the beginning. Apart from this not being ideal
+semantically it also meant that ZM had trouble parsing it's
+own output!
 o    FEATURE - Some of the scripts have a new debug format
 that is more similar to the one used in the binaries.
 

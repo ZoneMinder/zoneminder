@@ -328,7 +328,7 @@ do
 			{
 				while ( my ( $fs_event, $age ) = each(%$fs_events ) )
 				{
-					if ( !$db_events->{$fs_event} && ($age < 0 || ($age > MIN_AGE)) )
+					if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > MIN_AGE)) )
 					{
 						aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
 						if ( confirm() )
@@ -367,7 +367,7 @@ do
 			{
 				while ( my ( $db_event, $age ) = each(%$db_events ) )
 				{
-					if ( !$fs_events->{$db_event} && ($age > MIN_AGE) )
+					if ( !defined($fs_events->{$db_event}) && ($age > MIN_AGE) )
 					{
 						aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem" );
 						if ( confirm() )

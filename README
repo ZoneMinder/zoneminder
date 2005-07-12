@@ -1,4 +1,8 @@
-   23/06/05        ZoneMinder 1.21.2 README                1
+   12/07/05        ZoneMinder 1.21.3 README                1
+                               
+                               
+                               
+                               
                                
                                
                                
@@ -6,7 +10,7 @@
                                
                           ZoneMinder
                                
-                            v1.21.2
+                            v1.21.3
                                
                                
                                
@@ -24,7 +28,108 @@
                                
                                
                                
+                               
+                               
+                               
+                               
+                           CONTENTS
 
+1. Introduction                                              4
+
+2. Requirements                                              5
+
+3. Components                                                6
+
+4. Building                                                  9
+
+5. Installation                                             10
+
+6. Upgrading                                                11
+
+7. Installing from RPM                                      12
+
+8. Tutorial                                                 13
+ 8.1.Defining Monitors                                     13
+ 8.2.Defining Zones                                        19
+ 8.3.Viewing Monitors                                      21
+ 8.4.Controlling Monitors                                  22
+ 8.5.Filtering Events                                      23
+ 8.6.Viewing Events                                        24
+ 8.7.Options and Users                                     25
+
+9. Camera Control                                           27
+ 9.1.Control Capabilities                                  27
+ 9.2.Control Scripts                                       29
+
+10.  Mobile Devices                                         31
+
+11.  Troubleshooting                                        32
+
+12.  Change Log                                             35
+ 12.1.                                         Release 1.21.3
+ 35
+ 12.2.                                         Release 1.21.2
+ 35
+ 12.3.                                         Release 1.21.1
+ 35
+ 12.4.                                         Release 1.21.0
+ 37
+ 12.5.                                         Release 1.20.1
+ 38
+ 12.6.                                         Release 1.20.0
+ 39
+ 12.7.                                         Release 1.19.5
+ 40
+ 12.8.                                         Release 1.19.4
+ 41
+ 12.9.                                         Release 1.19.3
+ 41
+ 12.10.                                        Release 1.19.2
+ 42
+ 12.11.                                        Release 1.19.1
+ 44
+ 12.12.                                        Release 1.19.0
+ 44
+ 12.13.                                        Release 1.18.1
+ 46
+ 12.14.                                        Release 1.18.0
+ 46
+ 12.15.                                        Release 1.17.2
+ 48
+ 12.16.                                        Release 1.17.1
+ 49
+ 12.17.                                        Release 1.17.0
+ 49
+ 12.18.                                        Release 0.9.16
+ 50
+ 12.19.                                        Release 0.9.15
+ 51
+ 12.20.                                        Release 0.9.14
+ 52
+ 12.21.                                        Release 0.9.13
+ 53
+ 12.22.                                        Release 0.9.12
+ 53
+ 12.23.                                        Release 0.9.11
+ 54
+ 12.24.                                        Release 0.9.10
+ 56
+ 12.25.                                         Release 0.9.9
+ 57
+ 12.26.                                         Release 0.9.8
+ 57
+ 12.27.                                         Release 0.9.7
+ 59
+ 12.28.                                         Release 0.0.1
+ 59
+
+13.  To Do                                                  60
+
+14.  Bugs                                                   61
+
+15.  Non-Bugs                                               62
+
+16.  License                                                63
 
 Introduction
 Welcome  to  ZoneMinder, the all-in-one Linux  GPL'd  security
@@ -143,144 +248,17 @@ what  users have had to do to get it working. Please  give  me
 feedback on other distributions not listed on the site.
 
 
-3.   Building
+3.   Components
    
-The  first  thing you need to do is run the included configure
-script to define some initial configuration, just type
+ZoneMinder  is  not  a single monolithic  application  but  is
+formed  from  several  components. These components  primarily
+include  executable compiled binaries which do the main  video
+processing  work,  perl scripts which usually  perform  helper
+and/or external interface tasks and php web scripts which  are
+used for the web interface.
 
-./configure --with-mysql=<your MySQL root> --with-webdir=<your
-web directory> --with-cgidir=<your cgi directory>
-
-where  --with-mysql  identifies the root directory  where  you
-have  installed  MySQL  (usually /usr), --with-webdir  is  the
-directory to which you want to install the PHP files,  and  --
-with-cgidir is the directory to which you want to install  CGI
-files.   These  directories  could  be  /var/www/html/zm   and
-/var/www/cgi-bin  for example. If you want to  use  real  MPEG
-based streaming you will need to have built and installed  the
-ffmpeg  tools.  You  can  then also use -with-ffmpeg=<path  to
-ffmpeg  root> to help configure find it if it's not  installed
-in  a  default location. Note, you have to make sure you  have
-installed  the ffmpeg headers and libraries rather  than  just
-the   binaries,  or  a  development  package  with  them   in.
-Additionally if you have built ffmpeg with the mp3lame feature
-turned on you may additionally need to tell configure where to
-find   that   the  mp3lame  library,  to  prevent   unresolved
-dependencies.  To  do  this add the -with-lame=<path  to  lame
-directory>option as well. There are also two further arguments
-you  can add if your web user and group are not both 'apache'.
-These are --with-webuser and --with-webgroup. Type
-
-./configure -help
-
-for details on these options.
-
-That's the build configuration sorted out. The next thing  you
-have to do is do a little more runtime specific configuration.
-ZoneMinder configuration is scattered around various files  in
-the  distribution so to make things easier for you there is  a
-ZoneMinder configuration utility included. Type
-
-perl ./zmconfig.pl
-
-to  get  it  started. It is an interactive  utility  and  will
-prompt you by asking you various questions. For most questions
-typing '?' will give you additional help if you need it.  Once
-you've  answered  all  the  questions  it  will  write  out  a
-configuration  file  called 'zmconfig.txt'  and  then  process
-various  files to substitute the information in them.  If  you
-run  it again it will remember your answers from. If you  just
-want to rerun the substitutions you can run zmconfig.pl in non-
-interactive mode by typing
-
-perl ./zmconfig.pl -noi
-
-which  will just read your file and do the substitutions  with
-no  questions asked. There are two classes of options,  'core'
-options  which  much be specified with zmconfig  which  detail
-things  such  as  database passwords which are  compiled  into
-ZoneMinder  and other options with are stored in the  database
-and  which  can  be  modified dynamically  via  the  'options'
-section  of the web interface. Only the first set need  to  be
-completed  with zmconfig at this stage. If you want to  change
-just a few options and can't access the options dialog via the
-web  you can append them as parameters to zmconfig and it will
-just ask you about those. So for example,
-
-perl ./zmconfig.pl ZM_STRICT_VIDEO_CONFIG
-
-however it is fairly dumb and will not tell you if you make  a
-typo and misspell an option.
-
-Among the first questions zmconfig.pl asks you are to do  with
-the database and the next thing you should do is create it and
-the    associated   database   user.   The   included   schema
-(zmschema.sql)  can  be  used to actually  create  the  tables
-required. The database is usually called just 'zm' but can  be
-anything you like.
-
-If you are a first time user the first run of zmconfig.pl will
-warn  you  about  the missing database, you can  ignore  those
-errors  this time. Once you've run it for the first  time  the
-schema  file should have your desired database name in  it  so
-use  it  to create the database (see below). Once the database
-and  permissions are set up rerun zmconfig.pl  with  the  -noi
-option  to  get  it to load the configuration  into  your  new
-database.
-
-If  you  are  upgrading from a previous version  you  can  use
-zmalter-x.y.z.sql  to  upgrade  your  database  and  make  the
-necessary  changes  where  x.y.z  identifies  the  version  of
-ZoneMinder you had installed previously. So if you  are  going
-from version 0.9.7 to version 0.9.11 you would run the scripts
-for  all intervening versions to get to the current one,  i.e.
-zmalter-0.9.7.sql,  zmalter-0.9.8.sql,  zmalter-0.9.9.sql  and
-zmalter0.9.10.sql. Alternatively from version 1.19.5  you  can
-use  the  zmupdate.pl script to do all the updating  for  you,
-this  will  include all the database changes  plus  any  other
-tweaks  necessary to upgrade to the latest version. To use  it
-you should type
-
-zmupdate.pl -version=<previous version> [--user=<db  user>  --
-pass=<db password>]
-
-where 'previous version' relates to the version of ZM you  are
-upgrading  from,  1.19.4 for example. All  updates  from  that
-versions  onwards  will be applied, however  zmupdate.pl  will
-only  work  with upgrades from 1.19.0 onwards. The 'user'  and
-'pass'  options  allow  you to specify  a  database  user  and
-password with sufficient privilege to 'alter' the structure of
-the  database. This is not necessarily the database  user  you
-use for ZoneMinder itself as specified in the section below.
-
-For  a  new  installation  the simplest  way  to  create  your
-database and users is to type the commands as follows,
-
-mysql mysql < db/zmschema.sql
-
-mysql mysql
-
-grant select,insert,update,delete on <your database name>.* to
-'<username>'@localhost identified by '<password>';
-
-quit
-
-mysqladmin reload
-
-You  may  need to supply a username and password to the  mysql
-commands  in  the  first  place to  give  yourself  sufficient
-privileges  to perform the required commands. If you  want  to
-host  your  database on a different machine  than  that  which
-ZoneMinder  is running on then use the hostname of the  remote
-machine instead of localhost.
-
-Then just type 'make' and off you go.
-
-
-4.   Installation
-   
-Once the build has completed you should have several shiny new
-binaries. I will now briefly describe what each of them does.
+A  brief  description  of  each of  the  principle  components
+follows.
 
   zmc  -  This is the ZoneMinder Capture daemon. This binary's
   job  is to sit on a video device and suck frames off  it  as
@@ -308,7 +286,9 @@ binaries. I will now briefly describe what each of them does.
   event  finishes or the associate web page is closed. If  you
   find you have several zms processes running when nothing  is
   being  viewed then it is likely you need a patch for  apache
-  (see the Troubleshooting section).
+  (see  the  Troubleshooting  section).  A  non-parsed  header
+  version  of zms, called nph-zms, is also installed  and  may
+  be used instead depending on your web server configuration.
   
   zmu  -  This  is  the ZoneMinder Utility. It's  basically  a
   handy  command  line interface to several useful  functions.
@@ -451,20 +431,130 @@ identity etc.
   zm  -  This  is the (optional) ZoneMinder init  script,  see
   below for details.
   
-Finally,  check zm_config.php in the web directory  and  amend
-any  configuration necessary in there. Most will have  already
-been done by the configuration utilities but some scripts have
-a 'VERBOSE' flag you can set to get more debug out.
+
+4.   Building
+   
+To  build ZoneMinder the first thing you need to do is run the
+included    configure   script   to   define   some    initial
+configuration, just type
+
+./configure --with-mysql=<your MySQL root> --with-webdir=<your
+web directory> --with-cgidir=<your cgi directory>
+
+where  --with-mysql  identifies the root directory  where  you
+have  installed  MySQL  (usually /usr), --with-webdir  is  the
+directory to which you want to install the PHP files,  and  --
+with-cgidir is the directory to which you want to install  CGI
+files.   These  directories  could  be  /var/www/html/zm   and
+/var/www/cgi-bin  for example. If you want to  use  real  MPEG
+based streaming you will need to have built and installed  the
+ffmpeg  tools.  You  can  then also use -with-ffmpeg=<path  to
+ffmpeg  root> to help configure find it if it's not  installed
+in  a  default location. Note, you have to make sure you  have
+installed  the ffmpeg headers and libraries rather  than  just
+the   binaries,  or  a  development  package  with  them   in.
+Additionally if you have already built ffmpeg with the mp3lame
+feature  turned on you may additionally need to tell configure
+where  to find that the mp3lame library, to prevent unresolved
+dependencies.  To  do  this add the -with-lame=<path  to  lame
+directory>option as well. Otherwise ignore this option.  There
+are  also  two further arguments you can add if your web  user
+and  group are not both 'apache'. These are --with-webuser and
+--with-webgroup. Type
+
+./configure -help
+
+for details on these options.
+
+That's the build configuration sorted out. The next thing  you
+have to do is do a little more runtime specific configuration.
+ZoneMinder configuration is scattered around various files  in
+the  distribution so to make things easier for you there is  a
+ZoneMinder configuration utility included. Type
+
+perl ./zmconfig.pl
+
+to  get  it  started. It is an interactive  utility  and  will
+prompt you by asking you various questions. For most questions
+typing '?' will give you additional help if you need it.  Once
+you've  answered  all  the  questions  it  will  write  out  a
+configuration  file  called 'zmconfig.txt'  and  then  process
+various  files to substitute the information in them.  If  you
+run it again it will remember your answers from beforehand. If
+you   just  want  to  rerun  the  substitutions  you  can  run
+zmconfig.pl in non-interactive mode by typing
+
+perl ./zmconfig.pl -noi
+
+which will just read your file (and later on the database) and
+do  the  substitutions with no questions asked. There are  two
+classes  of  options, 'core' options which much  be  specified
+with  zmconfig which detail things such as database  passwords
+which are compiled into ZoneMinder and other options with  are
+stored  in  the database and which can be modified dynamically
+via  the 'options' section of the web interface. You only need
+to  complete the first set with zmconfig at this stage. If you
+want to change just a few options and can't access the options
+dialog  via  the  web  you can append them  as  parameters  to
+zmconfig and it will just ask you about those. So for example,
+
+perl ./zmconfig.pl ZM_STRICT_VIDEO_CONFIG
+
+However it is fairly dumb and will not tell you if you make  a
+typo and misspell an option.
+
+Among the first questions zmconfig.pl asks you are to do  with
+the database and the next thing you should do is create it and
+the    associated   database   user.   The   included   schema
+(zmschema.sql)  can  be  used to actually  create  the  tables
+required. The database is usually called just 'zm' but can  be
+anything you like.
+
+If you are a first time user the first run of zmconfig.pl will
+warn  you  about  the missing database, you can  ignore  those
+errors  this time. Once you've run it for the first  time  the
+schema  file should have your desired database name in  it  so
+use  it  to create the database (see below). Once the database
+and  permissions are set up rerun zmconfig.pl  with  the  -noi
+option  to  get  it to load the configuration  into  your  new
+database.
+
+Then just type 'make' to do the build.
+
+
+5.   Installation
+   
+For  a new installation the next thing you will need to do  is
+create  your database and database users. So type the commands
+as follows,
+
+mysql mysql < db/zmschema.sql
+
+mysql mysql
+
+grant select,insert,update,delete on <your database name>.* to
+'<username>'@localhost identified by '<password>';
+
+quit
+
+mysqladmin reload
+
+You  may  need to supply a username and password to the  mysql
+commands  in  the  first  place to  give  yourself  sufficient
+privileges  to perform the required commands. If you  want  to
+host  your  database on a different machine  than  that  which
+ZoneMinder  is running on then use the hostname of the  remote
+machine instead of localhost.
 
 At this stage typing 'make install' will install everything to
 the  desired  locations, you may wish  to  su  to  root  first
 though.  The  installation routine will copy the binaries  and
 scripts    to   your   chosen   install   location,    usually
-/usr/local/bin and then move zms to your cgi-bin area. It will
-then  copy  the web files to your chosen directory and  ensure
-they  have  the  right permissions. Finally it tries  to  link
-zm.php to index.php but will not overwrite an existing file if
-it already exists.
+/usr/local/bin and then move zms (and nph-zms) to your cgi-bin
+area. It will then copy the web files to your chosen directory
+and  ensure they have the right permissions. Finally it  tries
+to link zm.php to index.php but will not overwrite an existing
+file if it already exists.
 
 The 'zm' script does not get installed automatically as it  is
 not necessary for the operation of the ZoneMinder setup per se
@@ -483,11 +573,97 @@ stop'  etc.  You  may need to use the '-levels'  parameter  to
 chkconfig to ensure that ZoneMinder is started when  you  need
 it to.
 
-Now  start your web browser, point it at your zm.php  and  off
+If you are running a distribution which doesn't support the zm
+script, or if you just prefer more direct control, you can now
+start ZoneMinder by typing
+
+zmpkg.pl start
+
+which,  after a few seconds, should return without error.  You
+can  subsequently stop and restart everything by changing  the
+'start' parameter to 'stop' or 'restart'.
+
+Now  fire up your web browser, point it at your zm.php and off
 you go.
 
 
-5.   Installing from RPM
+6.   Upgrading
+   
+If you are upgrading from a previous version of ZoneMinder you
+should  follow the build instructions above up  to  the  point
+where you run zmconfig.pl. At this point you can either,  just
+enter the initial basic configuration manually as before so it
+can  access  the  database, or if you  prefer,  you  can  copy
+zmconfig.txt from your previous build directory into  the  new
+build directory and then just run
+
+zmconfig.pl -noi
+
+which  will ensure that the key configuration will be imported
+though  it  will not overwrite anything saved in the database.
+You  can then build ZoneMinder by typing 'make'  as for a  new
+build.
+
+Assuming  your build completes successfully you should  ensure
+that if ZoneMinder is currently running on your system that it
+is shutdown before you go any further. Once it has stopped you
+can execute 'make install'.
+
+New  versions  of  ZoneMinder often  involve  database  schema
+changes  and before you restart it you should make  sure  that
+these changes have been applied.
+
+To  do this you can either run the zmupdate.pl script or apply
+the changes manually. The zmupdate.pl script is designed to do
+all  the  updating for you; this includes any database changes
+plus  any  other  tweaks necessary to upgrade  to  the  latest
+version. To use it you should ensure you are logged  in  as  a
+user with privileges to run ZoneMinder scripts and then type
+
+zmupdate.pl -version=<previous version> [--user=<db  user>  --
+pass=<db password>]
+
+where 'previous version' relates to the version of ZM you  are
+upgrading  from,  1.21.1 for example. All  updates  from  that
+versions  onwards  will be applied, however  zmupdate.pl  will
+only  work  with upgrades from 1.19.0 onwards. The 'user'  and
+'pass'  options  allow  you to specify  a  database  user  and
+password with sufficient privilege to 'alter' the structure of
+the  database. This is not necessarily the database  user  you
+use for ZoneMinder itself as specified in the section below.
+
+To  apply  the  changes manually you can use  the  appropriate
+zmalter-x.y.z.sql scripts in the db directory to upgrade  your
+database and make the necessary changes where x.y.z identifies
+the version of ZoneMinder you had installed previously. So  if
+you  are going from version 1.20.0 to version 1.21.2 you would
+run  the  scripts for all intervening versions to get  to  the
+current   one,  i.e.  zmalter-1.20.0.sql,  zmalter-1.20.1.sql,
+zmalter-1.21.0.sql and zmalter-1.21.1.sql. To do this type
+
+mysql zm < db/zmalter-x.y.z.sql
+
+for  each  script, replacing zm with the name of your database
+if different.
+
+There will always be a zmalter script even if, as is often the
+case  for minor updates, there are no actual database changes.
+Usually  the  zmalter  script includes  commands  to  optimise
+tables just to ensure that the database gets a bit of a spring
+clean  while  ZoneMinder isn't running. If you  are  upgrading
+through  several versions then the optimisation  process  will
+occur  several times in succession, though only the first  one
+may take more than a second or two.
+
+Once  the  upgrade process is complete, you can  then  restart
+ZoneMinder using the zmpkg.pl script or using service  control
+commands    for   your   distribution.   You   should    check
+/var/log/messages and the other ZoneMinder logs for the  first
+few   minutes  to  ensure  that  everything  comes   back   up
+successfully.
+
+
+7.   Installing from RPM
    
   Installing  from  the RPM is Distribution specific  so  make
   sure  you download the correct RPM for the distribution that
@@ -558,7 +734,7 @@ you go.
   Events are located at /var/lib/zm
   
 
-6.   Tutorial
+8.   Tutorial
    
 What  you  see now (and subsequently) depends on  whether  you
 chose to run ZoneMinder in authenticated mode or not. This  is
@@ -597,7 +773,7 @@ authenticated  mode  or as a less privileged  user  then  some
 elements may not be shown or will be disabled.
 
 
-6.1. Defining Monitors
+8.1. Defining Monitors
 To  use  ZoneMinder properly you need to define at  least  one
 Monitor.  Essentially, a monitor is associated with  a  camera
 and  can  continually check it for motion detection  and  such
@@ -1145,7 +1321,7 @@ consume  large amounts of bandwidth and CPU so should  not  be
 used continuously unless you have resource to burn.
 
 
-6.2. Defining Zones
+8.2. Defining Zones
 The  next important thing to do with a new monitor is  set  up
 Zones  for  it  to  use. By default you'll  already  have  one
 generated for you when you created your monitor but you  might
@@ -1379,7 +1555,7 @@ are as follows.
    requirements it starts or continues an alarm event.
    
 
-6.3. Viewing Monitors
+8.3. Viewing Monitors
 As  this  point  you should have one or more Monitors  running
 with  one  or  more Zones each. Returning to the main  Console
 window  you  will  see  your monitors listed  once  more.  The
@@ -1454,7 +1630,7 @@ likely  to  be  much less than 100 but it does give  a  simple
 indication of how major the event was.
 
 
-6.4. Controlling Monitors
+8.4. Controlling Monitors
 If  you  have  defined  your  system  as  having  controllable
 monitors  and you are looking at a monitor that is  configured
 for control, then clicking on the 'Control' link along the top
@@ -1492,7 +1668,7 @@ distance away from the centre, resulting in a 'dead'  zone  in
 the middle of the image.
 
 
-6.5. Filtering Events
+8.5. Filtering Events
 The  other columns on the main console window contain  various
 event  totals for your monitors over the last hour, day,  week
 and month as well as a grand total and a total for events that
@@ -1618,7 +1794,7 @@ option.  This will then run in the background and ensure  that
 your disk does not fill up with events.
 
 
-6.6. Viewing Events
+8.6. Viewing Events
 From  the monitor or filtered events listing you can now click
 on  an  event to view it in more detail. If you have streaming
 capability  you will see a series of images that make  up  the
@@ -1694,7 +1870,7 @@ this option as for many frequent events the penalty in CPU and
 disk space can quickly mount up.
 
 
-6.7. Options and Users
+8.7. Options and Users
 The final area covered by the tutorial is the options and user
 section.  If you are running in authenticated mode  and  don't
 have  system privileges then you will not see this section  at
@@ -1792,7 +1968,7 @@ with  the  various setting to get the results  you  think  are
 right for your requirements.
 
 
-7.   Camera Control
+9.   Camera Control
    
 Version   1.21.0  of  ZoneMinder  introduced  a  new  feature,
 allowing you to control cameras from the web interface and  to
@@ -1841,7 +2017,7 @@ me  as possible so that I may be able to extend the ZoneMinder
 model to encompass them.
 
 
-7.1. Control Capabilities
+9.1. Control Capabilities
 If  you  have a camera that supports PTZ controls and wish  to
 use it with ZoneMinder then the first thing you need to do  is
 ensure  that  it  has  an accurate entry in  the  capabilities
@@ -1946,7 +2122,7 @@ tabs, the mean and use of these are briefly explained below.
    Can  Set  Presets  -  The  camera supports  setting  preset
    locations via its control protocol.
 
-7.2. Control Scripts
+9.2. Control Scripts
 The  second key element to controlling cameras with ZoneMinder
 is  ensuring that an appropriate control script or application
 is present. A small number of sample scripts are included with
@@ -2097,7 +2273,7 @@ following commands as a parameter.
    
    
 
-8.   Mobile Devices
+10.  Mobile Devices
    
 ZoneMinder  has  always  had a minimal  WML  (Wireless  Markup
 Language) capability to allow it to function on mobile  phones
@@ -2178,7 +2354,7 @@ all monitors available to the logged in user will be visible,
 
 
 
-9.   Troubleshooting
+11.  Troubleshooting
    
 Life  eh?  Nothing ever works first time does it? In case  you
 are  having  problems here are some things to  try.  If  these
@@ -2399,10 +2575,28 @@ current or download the registry script to do it for you  from
 http://www.zoneminder.com/downloads/noIEClick.reg
 
 
-10.  Change Log
+12.  Change Log
    
 
-10.1.     Release 1.21.2
+12.1.     Release 1.21.3
+Additional bug fix release.
+
+  o    FIX - Images from rotated monitors had been broken in a
+    previous release. This has been corrected.
+    
+o    FIX - The bogus deletion of events by zmaudit has finally
+been completely fixed.
+o    FIX - Fixed a problem where Axis PTZ controls sometimes
+caused the camera to move in an incorrect direction.
+o    FIX - A problem existed where renaming monitors did not
+rename the symbolic link to the events directory. Thanks to
+forum user 'tommy' for suggesting the fix to this issue.
+o    FIX - The README document has been restructured slightly
+to make it easier to find the information you require. This
+includes the addition of an Upgrading section to clarify the
+process of upgrading from a previous version.
+
+12.2.     Release 1.21.2
 Minor-ish bug fixes to the 1.21.1 release.
 
   o    FIX - If the defined image timestamp format for a monitor
@@ -2424,7 +2618,7 @@ own output!
 o    FEATURE - Some of the scripts have a new debug format
 that is more similar to the one used in the binaries.
 
-10.2.     Release 1.21.1
+12.3.     Release 1.21.1
 Menage of various new features and bug fixes.
 
   o    FIX - The HTTP refresh method of updating the Cycle view
@@ -2574,7 +2768,7 @@ switching to the regular expression based method, and report
 the issue via the forums, preferably with a snapshot of the
 output of your camera.
 
-10.3.     Release 1.21.0
+12.4.     Release 1.21.0
 Addition of camera control, plus several bugfixes.
 
   o     FEATURE - Added support for Pan/Tilt/Zoom and  general
@@ -2628,7 +2822,7 @@ the Watch window normally containing the recent events list.
 Whilst this was technically correct it was unnecessary and
 untidy, and has now been changed just to be blank.
 
-10.4.     Release 1.20.1
+12.5.     Release 1.20.1
 Mostly  bug  fixes,  large and small with a  couple  of  minor
 features included.
 
@@ -2684,7 +2878,7 @@ how many monitors in list, though there is a minimum size.
 o    FIX - Corrected bug in zmfilter.pl.z which meant that
 images were not always correctly uploaded.
 
-10.5.     Release 1.20.0
+12.6.     Release 1.20.0
 Improved and added features, several minor bug fixes.
 
   o      FEATURE  -  Certain  configuration  (Mostly  database
@@ -2773,7 +2967,7 @@ spotting this one.
     highlighting this problem also.
     
 
-10.6.     Release 1.19.5
+12.7.     Release 1.19.5
 Various miscellaneous fixes and features.
 
   o    FIX - Sorting event lists by duration was broken and has
@@ -2856,7 +3050,7 @@ that if an alarm is in progress single isolated alarmed frames
 will still prolong it and the count only applies to the
 initial frames that would cause the event.
 
-10.7.     Release 1.19.4
+12.8.     Release 1.19.4
 Language fixes and updates.
 
   o     FIX  -  The  US English language file was  recursively
@@ -2870,7 +3064,7 @@ o    LANGUAGE - The Argentinian Spanish, Polish and Italian
 translations have all been updated with tokens introduced in
 version 1.19.3.
 
-10.8.     Release 1.19.3
+12.9.     Release 1.19.3
 Minor tweaks, fixes and language updates.
 
   o    FEATURE - All stills views now use the single image mode
@@ -2946,7 +3140,7 @@ as the language type.
 o    LANGUAGE - Updated versions of the Dutch and Argentinian
 Spanish translations have been included.
 
-10.9.     Release 1.19.2
+12.10.    Release 1.19.2
 Minor features, fixes and language updates.
 
   o     FEATURE  - The default replay rate and live and  event
@@ -3055,7 +3249,7 @@ in English. There will shortly be a point release which
 includes these language updates assuming I can get
 translations of them in a reasonable timescale.
 
-10.10.    Release 1.19.1
+12.11.    Release 1.19.1
 Minor bugfixes and enhancements.
 
   o    Ffmpeg Configure Changes. The configure script has been
@@ -3086,7 +3280,7 @@ requirement to pass in a username and password to zmu when
 just querying a device as this was slightly broken and was
 unnecessary anyway.
 
-10.11.    Release 1.19.0
+12.12.    Release 1.19.0
 Some major enhancements and bugfixes.
 
   o    MPEG video streaming. ZoneMinder now supports true video
@@ -3212,7 +3406,7 @@ being deleted when monitor was.
 o    A translation for the Dutch (nl_nl) language has been
 included.
 
-10.12.    Release 1.18.1
+12.13.    Release 1.18.1
 Minor bugfixes.
 
   o     Filter  Monitor  Name Bug. A bug was  present  in  the
@@ -3231,7 +3425,7 @@ recommended that you review your list of saved filters and
 delete duplicates before adding any monitor specific terms and
 resetting the actions for any that remain.
 
-10.13.    Release 1.18.0
+12.14.    Release 1.18.0
 Major optimisations, important new features and some bugfixes.
 
   o    Optimisations and Performance Improvements. This release
@@ -3361,7 +3555,7 @@ could sometimes be 30 or even 45 minutes. This was especially
 the case with monitors that had low frame rates. This is now
 fixed.
 
-10.14.    Release 1.17.2
+12.15.    Release 1.17.2
 Minor features, bug fixes and additional languages.
 
   o     Pending Process Bug. A bug was found whereby a process
@@ -3425,7 +3619,7 @@ alarm flag is now cleared when this daemon exits.
 o    New Languages. Translations for Japanese (ja_jp), French
 (fr_fr) and Russian (ru_ru) are now included.
 
-10.15.    Release 1.17.1
+12.16.    Release 1.17.1
 Bugfixes and additional languages.
 
   o    Login Bug. A bug was identified whereby an unauthorised
@@ -3448,7 +3642,7 @@ as this is a rarely accessed area and contains a great deal of
 text. The new format allows individual options to be
 translated piecemeal as the opportunity arises.
 
-10.16.    Release 1.17.0
+12.17.    Release 1.17.0
 Language changes and other enhancements.
 
   o     Version Numbering. ZoneMinder version numbers have now
@@ -3496,7 +3690,7 @@ function call has been corrected.
 o    Minor Bugs. A number of minor bugs and inconsistencies
 were corrected.
 
-10.17.    Release 0.9.16
+12.18.    Release 0.9.16
 Major usability enhancement and fixes.
 
   o     Run States. Instead of the old 'start/stop' links  the
@@ -3622,7 +3816,7 @@ correctly parsed from command line options passed to zmu.
 o    Event window width variable. Event windows now scale to
 fit the event image size.
 
-10.18.    Release 0.9.15
+12.19.    Release 0.9.15
 Various bug fixes from the last release and before.
 
   o     Bandwidth. A bug was introduced in .14 which caused  a
@@ -3661,7 +3855,7 @@ images written by zma directly were colourised whereas those
 written by  zmf weren't. A change has been made whereby if set
 all greyscale JPEG images are colourised in all circumstances.
 
-10.19.    Release 0.9.14
+12.20.    Release 0.9.14
 Major new feature and important bug-fixes.
 
   o     Web configuration. Following many requests and to make
@@ -3705,7 +3899,7 @@ o    All SQL buffers in the C++ code have been enlarged. There
 was previously an issue with a buffer overflow on certain
 occasions.
 
-10.20.    Release 0.9.13
+12.21.    Release 0.9.13
 Beta  version  of several features and fixes, never  generally
 released.
 
@@ -3756,7 +3950,7 @@ windows to restart the refresh process. By using JS refresh
 timers which are not interrupted these extraneous refreshes
 have been mostly eliminated.
 
-10.21.    Release 0.9.12
+12.22.    Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
   o     Double  first images. Fixed a problem where the  first
@@ -3833,7 +4027,7 @@ confirmation.
 o    Detect linmysqlclient.a. Added better detection script
 into 'configure' top spot when libmysqlclient.a is missing.
 
-10.22.    Release 0.9.11
+12.23.    Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats view - If you have the RECORD_EVENT_STATS
@@ -3919,7 +4113,7 @@ o    Web colour change - I thought the old red, green and
 amber text colours were just a bit too gaudy so I've toned
 them down a bit. Hope you like them!
 
-10.23.    Release 0.9.10
+12.24.    Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
   o     Configure  'round'  bug - Fixed  a  problem  with  the
@@ -3999,7 +4193,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came
 across that that I don't think had been reported or noticed so
 I don't think we need to talk about them here do we.
 
-10.24.    Release 0.9.9
+12.25.    Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o     Added zmu -q/--query option - There is now a new query
@@ -4049,7 +4243,7 @@ was removed in the last version which meant that sometimes the
 console never go refreshed as it's timing loop was broken.
 This functionality has now been reinstated.
 
-10.25.    Release 0.9.8
+12.26.    Release 0.9.8
 Several new features and bug-fixes
 
   o     Upgrade note - If you have installed 0.9.7 and wish to
@@ -4123,7 +4317,7 @@ o    Monitor window refresh on alarm - When the monitor window
 is active and an alarm has occurred the most recent alarms
 list is immediately refreshed to show it.
 
-10.26.    Release 0.9.7
+12.27.    Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes  too.
 Now somewhat more mature, not really an alpha any more, and  a
 lot of bugs fixed too.
@@ -4172,11 +4366,11 @@ o    Some of the web views have changed slightly to
 accommodate the separate events view.
 o    And much much more, probably...
 
-10.27.    Release 0.0.1
+12.28.    Release 0.0.1
 Initial release, therefore nothing new.
 
 
-11.  To Do
+13.  To Do
    
 Seeing  as  ZoneMinder is so young and  has  kind  of  evolved
 rather  than  being planned there are a bunch of  improvements
@@ -4229,7 +4423,7 @@ o    Add sound support to allow a captured audio channel to be
 associated with a video device. Work on this feature has
 already begun.
 
-12.  Bugs
+14.  Bugs
    
   o    When opening a link to an event etc from a notification
      email the window that is opened is just a regular browser
@@ -4244,7 +4438,7 @@ everything recovers from it but it needs checking out.
 Probably bucket loads more, just fire them at me.
 
 
-13.  Non-Bugs
+15.  Non-Bugs
    
   o    Yes, those are tabs in the indents; I like tabs so don't
      go  changing them to spaces please. Also, yes I  like  my
@@ -4255,7 +4449,7 @@ Everything  else  that  isn't definitely  broken  is  probably
 deliberate, or was once anyway.
 
 
-14.  License
+16.  License
    
 ZoneMinder is released under the GPL, see below.
 

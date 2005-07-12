@@ -256,7 +256,7 @@ if ( isset($action) )
 					simpleQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
 					if ( $changes['Name'] )
 					{
-						exec( escapeshellcmd( "mv ".EVENTS_PATH."/".$monitor['Name']." ".EVENTS_PATH."/".$new_monitor['Name'] ) );
+						exec( escapeshellcmd( "mv ".ZM_DIR_EVENTS."/".$monitor['Name']." ".ZM_DIR_EVENTS."/".$new_monitor['Name'] ) );
 					}
 				}
 				elseif ( !$user['MonitorIds'] )

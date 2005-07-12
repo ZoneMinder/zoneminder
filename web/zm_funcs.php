@@ -276,12 +276,12 @@ function getFormChanges( $values, $new_values, $types=false, $columns=false )
 				{
 					if ( join(',',$new_values[$key]) != $values[$key] )
 					{
-						$changes[] = "$key = '".join(',',$new_values[$key])."'";
+						$changes[$key] = "$key = '".join(',',$new_values[$key])."'";
 					}
 				}
 				elseif ( $values[$key] )
 				{
-					$changes[] = "$key = ''";
+					$changes[$key] = "$key = ''";
 				}
 				break;
 			}
@@ -301,7 +301,7 @@ function getFormChanges( $values, $new_values, $types=false, $columns=false )
 				}
 				else
 				{
-					$changes[] = "$key = '$value'";
+					$changes[$key] = "$key = '$value'";
 				}
 				break;
 			}
@@ -319,7 +319,7 @@ function getFormChanges( $values, $new_values, $types=false, $columns=false )
 				}
 				else
 				{
-					$changes[] = "$key = '$value'";
+					$changes[$key] = "$key = '$value'";
 				}
 				break;
 			}
@@ -337,7 +337,7 @@ function getFormChanges( $values, $new_values, $types=false, $columns=false )
 			{
 				if ( $values[$key] != $value )
 				{
-					$changes[] = "$key = $value";
+					$changes[$key] = "$key = $value";
 				}
 				break;
 			}
@@ -345,7 +345,7 @@ function getFormChanges( $values, $new_values, $types=false, $columns=false )
 			{
 				if ( $values[$key] != $value )
 				{
-					$changes[] = "$key = '$value'";
+					$changes[$key] = "$key = '$value'";
 				}
 				break;
 			}
@@ -357,7 +357,7 @@ function getFormChanges( $values, $new_values, $types=false, $columns=false )
 		{
 			if ( !isset($new_values[$key]) && !empty($value) )
 			{
-				$changes[] = "$key = 0";
+				$changes[$key] = "$key = 0";
 			}
 		}
 	}

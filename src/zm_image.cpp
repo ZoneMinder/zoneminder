@@ -832,7 +832,6 @@ void Image::Rotate( int angle )
 		return;
 	}
 	static unsigned char rotate_buffer[ZM_MAX_IMAGE_SIZE];
-	int line_bytes = width+colours;
 	switch( angle )
 	{
 		case 90 :
@@ -841,6 +840,7 @@ void Image::Rotate( int angle )
 			width = height;
 			height = temp;
 
+			int line_bytes = width*colours;
 			unsigned char *s_ptr = buffer;
 
 			if ( colours == 1 )
@@ -904,6 +904,7 @@ void Image::Rotate( int angle )
 			width = height;
 			height = temp;
 
+			int line_bytes = width*colours;
 			unsigned char *s_ptr = buffer+size;
 
 			if ( colours == 1 )

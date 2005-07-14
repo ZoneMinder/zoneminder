@@ -1,4 +1,4 @@
-   12/07/05        ZoneMinder 1.21.3 README                1
+   14/07/05        ZoneMinder 1.21.3 README                2
                                
                                
                                
@@ -83,9 +83,9 @@
  12.8.                                         Release 1.19.4
  41
  12.9.                                         Release 1.19.3
- 41
- 12.10.                                        Release 1.19.2
  42
+ 12.10.                                        Release 1.19.2
+ 43
  12.11.                                        Release 1.19.1
  44
  12.12.                                        Release 1.19.0
@@ -103,7 +103,7 @@
  12.18.                                        Release 0.9.16
  50
  12.19.                                        Release 0.9.15
- 51
+ 52
  12.20.                                        Release 0.9.14
  52
  12.21.                                        Release 0.9.13
@@ -111,25 +111,25 @@
  12.22.                                        Release 0.9.12
  53
  12.23.                                        Release 0.9.11
- 54
+ 55
  12.24.                                        Release 0.9.10
  56
  12.25.                                         Release 0.9.9
  57
  12.26.                                         Release 0.9.8
- 57
+ 58
  12.27.                                         Release 0.9.7
  59
  12.28.                                         Release 0.0.1
- 59
+ 60
 
-13.  To Do                                                  60
+13.  To Do                                                  61
 
-14.  Bugs                                                   61
+14.  Bugs                                                   62
 
-15.  Non-Bugs                                               62
+15.  Non-Bugs                                               63
 
-16.  License                                                63
+16.  License                                                64
 
 Introduction
 Welcome  to  ZoneMinder, the all-in-one Linux  GPL'd  security
@@ -2588,6 +2588,9 @@ o    FIX - The bogus deletion of events by zmaudit has finally
 been completely fixed.
 o    FIX - Fixed a problem where Axis PTZ controls sometimes
 caused the camera to move in an incorrect direction.
+o    FIX - Fixed an issue where the 'goto preset' command did
+not pass the appropriate preset number (and so defaulted to 1)
+for the Axis, Panasonic and VISCA protocols.
 o    FIX - A problem existed where renaming monitors did not
 rename the symbolic link to the events directory. Thanks to
 forum user 'tommy' for suggesting the fix to this issue.

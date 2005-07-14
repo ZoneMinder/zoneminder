@@ -338,7 +338,7 @@ elsif ( $command eq "preset_set" )
 }
 elsif ( $command eq "preset_goto" )
 {
-	presetGoto();
+	presetGoto( $preset );
 }
 else
 {

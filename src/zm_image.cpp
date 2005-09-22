@@ -276,7 +276,7 @@ void Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
 	}
 	jpeg_set_defaults(&cinfo);
 	cinfo.dct_method = JDCT_FASTEST;
-	jpeg_set_quality(&cinfo, config.jpeg_file_quality, false);
+	jpeg_set_quality(&cinfo, config.jpeg_image_quality, false);
 	jpeg_start_compress(&cinfo, TRUE);
 
 	JSAMPROW row_pointer;	/* pointer to a single row */

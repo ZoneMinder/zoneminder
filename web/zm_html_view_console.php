@@ -58,8 +58,8 @@ while( $row = mysql_fetch_assoc( $result ) )
 	{
 		continue;
 	}
-	$row['zmc'] = zmcCheck( $row );
-	$row['zma'] = zmaCheck( $row );
+	$row['zmc'] = zmcStatus( $row );
+	$row['zma'] = zmaStatus( $row );
 	$sql = "select count(Id) as ZoneCount from Zones where MonitorId = '".$row['Id']."'";
 	$result2 = mysql_query( $sql );
 	if ( !$result2 )
@@ -110,11 +110,11 @@ window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h']+(25*(coun
 ?>
 function newWindow(Url,Name,Width,Height)
 {
-	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 function scrollWindow(Url,Name,Width,Height)
 {
-	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+	var Win = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
 function configureButton(form,name)
 {

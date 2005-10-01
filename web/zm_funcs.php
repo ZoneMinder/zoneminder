@@ -559,6 +559,51 @@ function zmaControl( $monitor, $restart=false )
 	}
 }
 
+function initDaemonStatus()
+{
+	global $daemon_status;
+
+	if ( !$daemon_status )
+	{
+		$string = ZM_PATH_BIN."/zmdc.pl status";
+		$daemon_status = shell_exec( $string );
+	}
+}
+
+function daemonStatus( $daemon, $args=false )
+{
+	global $daemon_status;
+
+	initDaemonStatus();
+	
+	$string .= "$daemon";
+	if ( $args )
+		$string .= " $args";
+	return( strpos( $daemon_status, "'$string' running" ) !== false );
+}
+
+function zmcStatus( $monitor )
+{
+	if ( $monitor['Type'] == 'Local' )
+	{
+		$zmc_args = "-d ".$monitor['Device'];
+	}
+	else
+	{
+		$zmc_args = "-m ".$monitor['Id'];
+	}
+	return( daemonStatus( "zmc", $zmc_args ) );
+}
+
+function zmaStatus( $monitor )
+{
+	if ( is_array( $monitor ) )
+	{
+		$monitor = $monitor['Id'];
+	}
+	return( daemonStatus( "zma", "-m $monitor" ) );
+}
+
 function daemonCheck( $daemon=false, $args=false )
 {
 	$string = ZM_PATH_BIN."/zmdc.pl check";

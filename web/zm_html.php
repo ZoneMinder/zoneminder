@@ -123,6 +123,7 @@ switch( $view )
 	case "watchevents" :
 	case "settings" :
 	case "events" :
+	case "timeline" :
 	case "filter" :
 	case "filtersave" :
 	case "event" :

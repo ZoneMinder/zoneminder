@@ -84,6 +84,10 @@ function filterWindow(Url,Name)
 {
 	var Name = window.open(Url,Name,"resizable,scrollbars,width=<?= $jws['filter']['w'] ?>,height=<?= $jws['filter']['h'] ?>");
 }
+function timelineWindow(Url,Name)
+{
+	var Name = window.open(Url,Name,"resizable,scrollbars,width=<?= $jws['timeline']['w'] ?>,height=<?= $jws['timeline']['h'] ?>");
+}
 function closeWindow()
 {
 	window.close();
@@ -327,18 +331,19 @@ function viewEvents( form, name )
 		else
 		{
 ?>
-<td align="center" class="text" width="60%">&nbsp;</td>
-<td align="center" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $zmSlangViewPaged ?></a></td>
+<td align="center" class="text" width="40%">&nbsp;</td>
+<td align="center" class="text" width="25%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $zmSlangViewPaged ?></a></td>
 <?php
 		}
 	}
 ?>
-<td align="right" class="text" width="10%"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
+<td align="right" class="text" width="15%"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <tr><td colspan="4" class="text">&nbsp;</td></tr>
 <tr>
 <td align="left" class="text"><a href="javascript: location.reload(true);"><?= $zmSlangRefresh ?></td>
-<td colspan="2" align="right" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&page=<?= $page ?><?= $filter_query ?>', 'zmFilter' );"><?= $zmSlangShowFilterWindow ?></a></td>
+<td colspan="1" align="center" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&page=<?= $page ?><?= $filter_query ?>', 'zmFilter' );"><?= $zmSlangShowFilterWindow ?></a></td>
+<td colspan="1" align="right" class="text"><a href="javascript: timelineWindow( '<?= $PHP_SELF ?>?view=timeline&<?= $filter_query ?>', 'zmTimeline' );"><?= $zmSlangShowTimeline ?></a></td>
 <td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: checkAll( document.event_form, 'mark_eids' );"><?= $zmSlangCheckAll ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr>
 <tr><td colspan="4" class="text">&nbsp;</td></tr>

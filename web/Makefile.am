@@ -57,6 +57,7 @@ web_DATA = \
 	zm_html_view_settings.php \
 	zm_html_view_state.php \
 	zm_html_view_stats.php \
+	zm_html_view_timeline.php \
 	zm_html_view_user.php \
 	zm_html_view_version.php \
 	zm_html_view_video.php \
@@ -150,6 +151,7 @@ EXTRA_DIST = \
 	zm_html_view_settings.php \
 	zm_html_view_state.php \
 	zm_html_view_stats.php \
+	zm_html_view_timeline.php \
 	zm_html_view_user.php \
 	zm_html_view_version.php \
 	zm_html_view_video.php \

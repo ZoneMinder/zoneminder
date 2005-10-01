@@ -32,7 +32,7 @@ if ( !isset($mouseover) )
 
 $mode = "overlay";
 if ( !isset($mode) )
-	$mode = "split";
+	$mode = "overlay";
 
 $min_event_width = 5;
 $max_event_width = 20;
@@ -199,9 +199,7 @@ $scales = array(
 );
 
 $maj_x_scale = getDateScale( $scales, $range, $chart['grid']['x']['major']['min'], $chart['grid']['x']['major']['max'] );
-//$min_x_scale = getDateScale( $scales, $range, $chart['grid']['x']['minor']['min'], $chart['grid']['x']['minor']['max'] );
 //print_r( $maj_x_scale );
-//print_r( $min_x_scale );
 
 // Adjust the range etc for scale
 $min_time_t -= $min_time_t%($maj_x_scale['factor']*$maj_x_scale['align']);
@@ -716,16 +714,9 @@ function eventWindow(Url,Name,Width,Height)
 {
 	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height );
 }
-function filterWindow(Url,Name)
-{
-	var Win = window.open(Url,Name,"resizable,scrollbars,width=<?= $jws['filter']['w'] ?>,height=<?= $jws['filter']['h'] ?>");
-}
 function closeWindow()
 {
 	window.close();
-	// This is a hack. The only way to close an existing window is to try and open it!
-	var filterWindow = window.open( "<?= $PHP_SELF ?>?view=none", 'zmFilter', 'width=1,height=1' );
-	filterWindow.close();
 }
 //var width = document.screen.availWidth;
 //var height = document.screen.availHeight;
@@ -872,26 +863,26 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 <?php
 $graph_height = $chart['graph']['height'];
 
-$min_event_bar_height = 10;
-$max_event_bar_height = 40;
-$max_event_label_height = 10;
+if ( $mode == "overlay" )
+{
+	$min_event_bar_height = 10;
+	$max_event_bar_height = 40;
 
-if ( count($monitor_ids) )
-{
-	$chart['graph']['event_bar_height'] = $min_event_bar_height;
-	while ( ($chart['graph']['events_height'] = (($chart['graph']['event_bar_height'] * count($monitor_ids)) + (count($monitor_ids)-1))) < $max_event_bar_height )
+	if ( count($monitor_ids) )
 	{
-		$chart['graph']['event_bar_height']++;
+		$chart['graph']['event_bar_height'] = $min_event_bar_height;
+		while ( ($chart['graph']['events_height'] = (($chart['graph']['event_bar_height'] * count($monitor_ids)) + (count($monitor_ids)-1))) < $max_event_bar_height )
+		{
+			$chart['graph']['event_bar_height']++;
+		}
 	}
-}
-else
-{
-	$chart['graph']['event_bar_height'] = $max_event_bar_height;
-	$chart['graph']['events_height'] = $max_event_bar_height;
-}
-$chart['graph']['event_label_height'] = $chart['graph']['event_bar_height']>$max_event_label_height?$max_event_label_height:$chart['graph']['event_bar_height'];
-$chart['graph']['activity_height'] = ($graph_height - $chart['graph']['events_height']);
-$chart['data']['y']['density'] = $chart['data']['y']['range']/$chart['graph']['activity_height'];
+	else
+	{
+		$chart['graph']['event_bar_height'] = $max_event_bar_height;
+		$chart['graph']['events_height'] = $max_event_bar_height;
+	}
+	$chart['graph']['activity_height'] = ($graph_height - $chart['graph']['events_height']);
+	$chart['data']['y']['density'] = $chart['data']['y']['range']/$chart['graph']['activity_height'];
 
 ?>
 #ChartBox #ChartPanel #Activity {
@@ -905,10 +896,10 @@ $chart['data']['y']['density'] = $chart['data']['y']['range']/$chart['graph']['a
 	margin: auto;
 }
 <?php
-$top = $chart['graph']['activity_height'];
-$event_bar_count = 1;
-foreach ( array_keys($monitor_ids) as $monitor_id )
-{
+	$top = $chart['graph']['activity_height'];
+	$event_bar_count = 1;
+	foreach ( array_keys($monitor_ids) as $monitor_id )
+	{
 ?>
 #ChartBox #ChartPanel #Events<?= $monitor_id ?> {
 	position: absolute;
@@ -921,15 +912,98 @@ foreach ( array_keys($monitor_ids) as $monitor_id )
 	margin: auto;
 	background-color: #fcfcfc;
 <?php
-	if ( $event_bar_count < count($monitor_ids) )
-	{
+		if ( $event_bar_count < count($monitor_ids) )
+		{
 ?>
 	border-bottom: 1px solid lightgrey;
 <?php
-	}
+		}
 ?>
 }
+<?php
+		$event_bar_count++;
+		$top += $chart['graph']['event_bar_height']+1;
+	}
+}
+elseif ( $mode == "split" )
+{
+	$min_activity_bar_height = 30;
+	$min_event_bar_height = 10;
+	$max_event_bar_height = 40;
 
+	if ( count($monitor_ids) )
+	{
+		$chart['graph']['event_bar_height'] = $min_event_bar_height;
+		$chart['graph']['activity_bar_height'] = $min_activity_bar_height;
+		while ( ((($chart['graph']['event_bar_height']+$chart['graph']['activity_bar_height']) * count($monitor_ids)) + ((2*count($monitor_ids))-1)) < $graph_height )
+		{
+			$chart['graph']['activity_bar_height']++;
+			if ( $chart['graph']['event_bar_height'] < $max_event_bar_height )
+			{
+				$chart['graph']['event_bar_height']++;
+			}
+		}
+	}
+	else
+	{
+		$chart['graph']['event_bar_height'] = $max_event_bar_height;
+		$chart['graph']['activity_bar_height'] = $graph_height - $chart['graph']['event_bar_height'];
+	}
+	$chart['data']['y']['density'] = $chart['data']['y']['range']/$chart['graph']['activity_bar_height'];
+
+?>
+<?php
+	$top = 0;
+	$bar_count = 1;
+	foreach ( array_keys($monitor_ids) as $monitor_id )
+	{
+?>
+#ChartBox #ChartPanel #Activity<?= $monitor_id ?> {
+	position: absolute;
+	text-align: center;
+	vertical-align: top;
+	top: <?= $top ?>px;
+	width: <?= $chart['graph']['width'] ?>px;
+	height: <?= $chart['graph']['activity_bar_height'] ?>px;
+	padding: 0px;
+	margin: auto;
+<?php
+		if ( $bar_count < count($monitor_ids) )
+		{
+?>
+	border-bottom: 1px solid lightgrey;
+<?php
+		}
+?>
+}
+#ChartBox #ChartPanel #Events<?= $monitor_id ?> {
+	position: absolute;
+	text-align: center;
+	vertical-align: middle;
+	top: <?= $top+$chart['graph']['activity_bar_height']+1 ?>px;
+	width: <?= $chart['graph']['width'] ?>px;
+	height: <?= $chart['graph']['event_bar_height'] ?>px;
+	padding: 0px;
+	margin: auto;
+	background-color: #fcfcfc;
+<?php
+		if ( $bar_count < count($monitor_ids) )
+		{
+?>
+	border-bottom: 1px solid black;
+<?php
+		}
+?>
+}
+<?php
+		$bar_count++;
+		$top +=  $chart['graph']['activity_bar_height']+1+$chart['graph']['event_bar_height']+1;
+	}
+}
+
+foreach ( array_keys($monitor_ids) as $monitor_id )
+{
+?>
 div.activity<?= $monitor_id ?> {
 	position: absolute;
 	bottom: 0px;
@@ -945,8 +1019,6 @@ div.event<?= $monitor_id ?> {
 	background-color: <?= $monitors[$monitor_id]['WebColour'] ?>;
 }
 <?php
-	$event_bar_count++;
-	$top += $chart['graph']['event_bar_height']+1;
 }
 ?>
 #ChartBox #Range {
@@ -982,32 +1054,6 @@ div.majlabelx {
 	bottom: -20px;
 	width: 50px;
 	font-size: 9px;
-	font-weight: normal;
-}
-
-div.mingridx {
-	position: absolute;
-	z-index: 1;
-	top: 0px;
-	width: 1px;
-	height: <?= $chart['graph']['activity_height'] ?>px;
-	border-left: dotted 1px lightgrey;
-}
-div.majtickx {
-	position: absolute;
-	z-index: 0;
-	bottom: -3px;
-	width: 1px;
-	height: 3px;
-	border-left: solid 1px lightgrey;
-}
-div.minlabelx {
-	position: absolute;
-	text-align: center;
-	z-index: 0;
-	bottom: -15px;
-	width: 20px;
-	font-size: 7px;
 	font-weight: normal;
 }
 
@@ -1074,41 +1120,83 @@ foreach( array_keys($mon_event_slots) as $monitor_id )
   </div>
   <div id="ChartPanel">
     <div id="Chart">
-<?= drawYGrid( $chart, $maj_y_scale, "majlabely", "majticky", "majgridy" ) ?>
+<?php if ( $mode == "overlay" ) { echo drawYGrid( $chart, $maj_y_scale, "majlabely", "majticky", "majgridy" ); } ?>
 <?= drawXGrid( $chart, $maj_x_scale, "majlabelx", "majtickx", "majgridx", "zoom" ) ?>
+<?php
+if ( $mode == "overlay" )
+{
+?>
       <div id="Activity">
 <?php
-foreach ( $frame_slots as $index=>$slots )
-{
-	foreach ( $slots as $slot )
+	foreach ( $frame_slots as $index=>$slots )
 	{
-		$slot_height = (int)($slot['value']/$chart['data']['y']['density']);
-
-		if ( $slot_height <= 0 )
-			continue;
-
-		if ( $mouseover )
+		foreach ( $slots as $slot )
 		{
-			$behaviours = array(
-				"onClick=".getSlotViewEventBehaviour( $slot ),
-				"onMouseOver=".getSlotLoadImageBehaviour( $slot ),
-			);
-		}
-		else
-		{
-			$behaviours = array(
-				"onClick=".getSlotLoadImageBehaviour( $slot ),
-			);
-		}
+			$slot_height = (int)($slot['value']/$chart['data']['y']['density']);
+	
+			if ( $slot_height <= 0 )
+				continue;
+	
+			if ( $mouseover )
+			{
+				$behaviours = array(
+					"onClick=".getSlotViewEventBehaviour( $slot ),
+					"onMouseOver=".getSlotLoadImageBehaviour( $slot ),
+				);
+			}
+			else
+			{
+				$behaviours = array(
+					"onClick=".getSlotLoadImageBehaviour( $slot ),
+				);
+			}
 ?>
         <div class="activity<?= $slot['event']['MonitorId'] ?>" style="left: <?= $index ?>px; height: <?= $slot_height ?>px;" <?= join( " ", $behaviours ) ?>></div>
 <?php
+		}
 	}
-}
 ?>
       </div>
-
 <?php
+}
+elseif ( $mode == "split" )
+{
+	foreach( array_keys($mon_frame_slots) as $monitor_id )
+	{
+?>
+      <div id="Activity<?= $monitor_id ?>">
+<?php
+		unset( $curr_frame_slots );
+		$curr_frame_slots = &$mon_frame_slots[$monitor_id];
+		foreach ( $curr_frame_slots as $index=>$slot )
+		{
+			$slot_height = (int)($slot['value']/$chart['data']['y']['density']);
+	
+			if ( $slot_height <= 0 )
+				continue;
+	
+			if ( $mouseover )
+			{
+				$behaviours = array(
+					"onClick=".getSlotViewEventBehaviour( $slot ),
+					"onMouseOver=".getSlotLoadImageBehaviour( $slot ),
+				);
+			}
+			else
+			{
+				$behaviours = array(
+					"onClick=".getSlotLoadImageBehaviour( $slot ),
+				);
+			}
+	?>
+	  <div class="activity<?= $slot['event']['MonitorId'] ?>" style="left: <?= $index ?>px; height: <?= $slot_height ?>px;" <?= join( " ", $behaviours ) ?>></div>
+	<?php
+		}
+?>
+      </div>
+<?php
+	}
+}
 foreach( array_keys($mon_event_slots) as $monitor_id )
 {
 ?>

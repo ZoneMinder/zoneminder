@@ -755,6 +755,13 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 	font-weight: bold;
 	line-height: 20px
 }
+#ChartBox #Close {
+	position: absolute;
+	top: 5px;
+	right: 20px;
+	margin: auto;
+	height: 15;
+}
 #ChartBox #TopPanel {
 	position: relative;
 	height: 220px;
@@ -1097,6 +1104,7 @@ div.zoom {
 <body>
 <div id="ChartBox">
   <div id="Title">Event Navigator</div>
+  <div id="Close" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></div>
   <div id="TopPanel">
     <div id="ImageNav">
       <div id="Image"><img id="ImageSrc" src="graphics/spacer.gif" height="<?= $chart['image']['height'] ?>"/></div>

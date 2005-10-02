@@ -246,8 +246,8 @@ function viewEvents( form, name )
 	if ( $pages <= 1 )
 	{
 ?>
-<td align="center" class="text" width="60%">&nbsp;</td>
-<td align="center" class="text" width="10%">&nbsp;</td>
+<td align="center" class="text" width="40%">&nbsp;</td>
+<td align="center" class="text" width="25%">&nbsp;</td>
 <?php
 	}
 	else
@@ -256,7 +256,7 @@ function viewEvents( form, name )
 		{
 			$max_shortcuts = 5;
 ?>
-<td align="center" class="text" width="34%">
+<td align="center" class="text" width="40%">
 <?php
 			if ( $page < 0 )
 				$page = 1;
@@ -325,7 +325,7 @@ function viewEvents( form, name )
 			}
 ?>
 </td>
-<td align="right" class="text" width="10%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=0<?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $zmSlangViewAll ?></a></td>
+<td align="right" class="text" width="25%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=0<?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $zmSlangViewAll ?></a></td>
 <?php
 		}
 		else

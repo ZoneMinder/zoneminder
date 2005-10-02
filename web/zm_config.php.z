@@ -180,7 +180,7 @@ $jws = array(
 	'settings' => array( 'w'=>200, 'h'=>225 ),
 	'state' => array( 'w'=>300, 'h'=>120 ),
 	'stats' => array( 'w'=>680, 'h'=>200 ),
-	'timeline' => array( 'w'=>720, 'h'=>480 ),
+	'timeline' => array( 'w'=>760, 'h'=>500 ),
 	'user' => array( 'w'=>280, 'h'=>340 ),
 	'version' => array( 'w'=>320, 'h'=>140 ),
 	'video' => array( 'w'=>100, 'h'=>80 ),

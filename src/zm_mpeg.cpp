@@ -75,7 +75,12 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, i
 			Fatal(( "Could not alloc stream" ));
 		}
 		
+#if ZM_FFMPEG_CVS
+		AVCodecContext *c = ost->codec;
+#else
 		AVCodecContext *c = &ost->codec;
+#endif
+
 		c->codec_id = of->video_codec;
 		c->codec_type = CODEC_TYPE_VIDEO;
 
@@ -84,9 +89,18 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, i
 		/* resolution must be a multiple of two */
 		c->width = width;
 		c->height = height;
+#if ZM_FFMPEG_CVS
+		/* time base: this is the fundamental unit of time (in seconds) in terms
+		   of which frame timestamps are represented. for fixed-fps content,
+		   timebase should be 1/framerate and timestamp increments should be
+		   identically 1. */
+		c->time_base.den = frame_rate;
+		c->time_base.num = 1;
+#else
 		/* frames per second */
 		c->frame_rate = frame_rate;
 		c->frame_rate_base = 1;
+#endif
 		c->gop_size = frame_rate/2; /* emit one intra frame every half second or so */
 		c->gop_size = 30;
 		if ( c->gop_size < 3 )
@@ -117,7 +131,11 @@ void VideoStream::OpenStream()
 	   video codecs and allocate the necessary encode buffers */
 	if (ost)
 	{
+#if ZM_FFMPEG_CVS
+		AVCodecContext *c = ost->codec;
+#else
 		AVCodecContext *c = &ost->codec;
+#endif
 
 		/* find the video encoder */
 		AVCodec *codec = avcodec_find_encoder(c->codec_id);
@@ -217,7 +235,11 @@ VideoStream::~VideoStream()
 	/* close each codec */
 	if (ost)
 	{
+#if ZM_FFMPEG_CVS
+		avcodec_close(ost->codec);
+#else
 		avcodec_close(&ost->codec);
+#endif
 		av_free(opicture->data[0]);
 		av_free(opicture);
 		if (tmp_opicture)
@@ -253,14 +275,18 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 
 	if (ost)
 	{
-#if FFMPEG_VERSION_INT <= 0x000408
+#if FFMPEG_VERSION_INT < 0x000409
 		pts = (double)ost->pts.val * ofc->pts_num / ofc->pts_den;
 #else
 		pts = (double)ost->pts.val * ost->time_base.num / ost->time_base.den;
 #endif
 	}
 
+#if ZM_FFMPEG_CVS
+	AVCodecContext *c = ost->codec;
+#else
 	AVCodecContext *c = &ost->codec;
+#endif
 	if (c->pix_fmt != pf)
 	{
 		memcpy( tmp_opicture->data[0], buffer, buffer_size );
@@ -277,7 +303,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 	int ret = 0;
 	if (ofc->oformat->flags & AVFMT_RAWPICTURE)
 	{
-#if FFMPEG_VERSION_INT <= 0x000408
+#if FFMPEG_VERSION_INT < 0x000409
 		ret = av_write_frame(ofc, ost->index, (uint8_t *)opicture_ptr, sizeof(AVPicture));
 #else
 		AVPacket pkt;
@@ -298,7 +324,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 		int out_size = avcodec_encode_video(c, video_outbuf, video_outbuf_size, opicture_ptr);
 		if (out_size != 0)
 		{
-#if FFMPEG_VERSION_INT <= 0x000408
+#if FFMPEG_VERSION_INT < 0x000409
 			ret = av_write_frame(ofc, ost->index, video_outbuf, out_size);
 #else
 			AVPacket pkt;

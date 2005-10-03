@@ -24,6 +24,10 @@
 #ifndef ZM_MPEG_H
 #define ZM_MPEG_H
 
+#ifdef HAVE_LIBAVUTIL
+#define ZM_FFMPEG_CVS	1
+#endif
+
 #include <ffmpeg/avformat.h>
 
 class VideoStream

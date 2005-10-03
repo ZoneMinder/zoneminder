@@ -1,6 +1,5 @@
 AUTOMAKE_OPTIONS = gnu
 
-LDADD = @MYSQL_LIBS@
 AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@
 
 # This should be set to your CGI directory

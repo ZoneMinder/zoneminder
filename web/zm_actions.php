@@ -1037,6 +1037,54 @@ if ( isset($action) )
 				}
 			}
 		}
+		if ( $action == "donate" && isset($option) )
+		{
+			switch( $option )
+			{
+				case 'go' :
+				{
+					// Ignore this, the caller will open the page itself
+					break;
+				}
+				case 'hour' :
+				case 'day' :
+				case 'week' :
+				case 'month' :
+				{
+					$next_reminder = time();
+					if ( $option == 'hour' )
+					{
+						$next_reminder += 60*60;
+					}
+					elseif ( $option == 'day' )
+					{
+						$next_reminder += 24*60*60;
+					}
+					elseif ( $option == 'week' )
+					{
+						$next_reminder += 7*24*60*60;
+					}
+					elseif ( $option == 'month' )
+					{
+						$next_reminder += 30*24*60*60;
+					}
+					$sql = "update Config set Value = '".$next_reminder."' where Name = 'ZM_DYN_DONATE_REMINDER_TIME'";
+					$result = mysql_query( $sql );
+					if ( !$result )
+						die( mysql_error() );
+					break;
+				}
+				case 'never' :
+				case 'already' :
+				{
+					$sql = "update Config set Value = '0' where Name = 'ZM_DYN_SHOW_DONATE_REMINDER'";
+					$result = mysql_query( $sql );
+					if ( !$result )
+						die( mysql_error() );
+					break;
+				}
+			}
+		}
 		if ( $action == "options" && isset( $tab ) )
 		{
 			$config_cat = $config_cats[$tab];

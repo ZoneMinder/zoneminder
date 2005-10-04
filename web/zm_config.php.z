@@ -159,6 +159,7 @@ $jws = array(
 	'controlcap' => array( 'w'=>360, 'h'=>440 ),
 	'cycle' => array( 'w'=>16, 'h'=>32 ),
 	'device' => array( 'w'=>196, 'h'=>164 ),
+	'donate' => array( 'w'=>500, 'h'=>280 ),
 	'event' => array( 'w'=>96, 'h'=>168 ),
 	'eventdetail' => array( 'w'=>400, 'h'=>220 ),
 	'events' => array( 'w'=>720, 'h'=>480 ),

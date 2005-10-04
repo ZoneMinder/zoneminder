@@ -143,6 +143,7 @@ switch( $view )
 	case "controlpreset" :
 	case "controlcap" :
 	case "controlcaps" :
+	case "donate" :
 	case "blank" :
 	case "none" :
 	{

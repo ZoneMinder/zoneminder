@@ -345,6 +345,8 @@ if ( isset($action) )
 			$monitor = mysql_fetch_assoc( $result );
 
 			$ctrl_command = $monitor['Command'];
+			if ( !preg_match( '/^\//', $ctrl_command ) )
+				$ctrl_command = ZM_PATH_BIN.'/'.$ctrl_command;
 			if ( $monitor['ControlDevice'] )
 				$ctrl_command .= " --device=".$monitor['ControlDevice'];
 			if ( $monitor['ControlAddress'] )

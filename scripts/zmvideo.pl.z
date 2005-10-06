@@ -168,7 +168,15 @@ my $event = $sth->fetchrow_hashref();
 $sth->finish();
 chdir( ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id} );
 ( my $video_name = $event->{Name} ) =~ s/\s/_/g; 
-my $video_file = "$video_name.mpg";
+my $file_rate = $rate;
+$file_rate =~ s/\./_/;
+$file_rate =~ s/_00//;
+$file_rate =~ s/0$//;
+my $file_scale = $scale;
+$file_scale =~ s/\./_/;
+$file_scale =~ s/_00//;
+$file_scale =~ s/0$//;
+my $video_file = "$video_name-$file_rate-$file_scale.mpg";
 
 if ( $overwrite || !-s $video_file )
 {
@@ -258,7 +266,7 @@ if ( $overwrite || !-s $video_file )
 			$width = int($width*$scale);
 			$height = int($height*$scale);
 		}
-		my $command = ZM_PATH_FFMPEG." -y ".ZM_FFMPEG_OPTIONS." -r $frame_rate -s ${width}x${height} -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg $video_file > mpeg.log";
+		my $command = ZM_PATH_FFMPEG." -y -r $frame_rate -s ${width}x${height} ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg ".ZM_FFMPEG_OUTPUT_OPTIONS." $video_file > mpeg.log";
 		print( LOG $command."\n" );
 		my $output = qx($command);
 		print( LOG $output."\n" );

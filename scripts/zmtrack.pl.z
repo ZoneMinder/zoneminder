@@ -194,6 +194,7 @@ sub Track
 	my ( $detaint_x ) = $x =~ /^(\d+)$/; $x = $detaint_x;
 	my ( $detaint_y ) = $y =~ /^(\d+)$/; $y = $detaint_y;
 	my $move_cmd = $monitor->{Command};
+	$move_cmd = ZM_PATH_BIN.'/'.$move_cmd if ( $move_cmd !~ m|^/| );
 	$move_cmd .= " --device=".$monitor->{ControlDevice} if ( $monitor->{ControlDevice} );
 	$move_cmd .= " --address=".$monitor->{ControlAddress} if ( $monitor->{ControlAddress} );
 	$move_cmd .= " --command=".($monitor->{CanMoveMap}?"move_map":"move_pseudo_map")." --xcoord=$x --ycoord=$y --width=".$monitor->{Width}." --height=".$monitor->{Height};
@@ -204,6 +205,7 @@ sub Return
 {
 	my $monitor = shift;
 	my $move_cmd = $monitor->{Command};
+	$move_cmd = ZM_PATH_BIN.'/'.$move_cmd if ( $move_cmd !~ m|^/| );
 	$move_cmd .= " --device=".$monitor->{ControlDevice} if ( $monitor->{ControlDevice} );
 	$move_cmd .= " --address=".$monitor->{ControlAddress} if ( $monitor->{ControlAddress} );
 	$move_cmd .= " --command=".($monitor->{ReturnLocation}?"preset1":"preset_home");

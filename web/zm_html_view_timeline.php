@@ -108,7 +108,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 }
 
 $range_sql = "select min(E.StartTime) as MinTime, max(E.EndTime) as MaxTime from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(E.StartTime) and not isnull(E.EndTime)";
-$events_sql = "select E.Id,E.Name,E.StartTime,E.EndTime,E.Length,E.Frames,E.MaxScore,E.MonitorId from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(StartTime)";
+$events_sql = "select E.Id,E.Name,E.StartTime,E.EndTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.MonitorId from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(StartTime)";
 
 if ( $user['MonitorIds'] )
 {
@@ -655,19 +655,19 @@ function drawYGrid( $chart, $scale, $label_class, $tick_class, $grid_class )
 		if ( $label_class )
 		{
 ?>
-      <div class="<?= $label_class ?>" style="bottom: <?= $y-3 ?>px;"><?= $label ?></div>
+      <div class="<?= $label_class ?>" style="top: <?= $chart['graph']['height']-($y+8) ?>px;"><?= $label ?></div>
 <?php
 		}
 		if ( $tick_class )
 		{
 ?>
-      <div class="<?= $tick_class ?>" style="bottom: <?= $y ?>px;"></div>
+      <div class="<?= $tick_class ?>" style="top: <?= $chart['graph']['height']-($y+2) ?>px;"></div>
 <?php
 		}
 		if ( $grid_class )
 		{
 ?>
-      <div class="<?= $grid_class ?>" style="bottom: <?= $y ?>px;<?= $i <= 0?' border-top: solid 1px black;':'' ?>"></div>
+      <div class="<?= $grid_class ?>" style="top: <?= $chart['graph']['height']-($y+2) ?>px;<?= $i <= 0?' border-top: solid 1px black;':'' ?>"></div>
 <?php
 		}
 	}
@@ -689,7 +689,13 @@ function getSlotLoadImageBehaviour( $slot )
 		$image_path = $anal_image;
 	}
 
-	return( "\"loadEventImage( '".$image_path."', '".$monitors[$slot['event']['MonitorId']]['Name']."<br>".$slot['event']['Name'].(isset($slot['frame'])?("(".$slot['frame']['FrameId'].")"):"")."<br>".strftime( "%m/%d %H:%M:%S", strtotime($slot['event']['StartTime']) )."<br>".$slot['event']['Length']."s', '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."', ".($monitors[$slot['event']['MonitorId']]['Width']+$jws['event']['w']).", ".($monitors[$slot['event']['MonitorId']]['Height']+$jws['event']['h'])." );\"" );
+	$annotation = $monitors[$slot['event']['MonitorId']]['Name'].
+		"<br>".$slot['event']['Name'].(isset($slot['frame'])?("(".$slot['frame']['FrameId'].")"):"").
+		"<br>".strftime( "%y/%m/%d %H:%M:%S", strtotime($slot['event']['StartTime']) ).
+		" - ".$slot['event']['Length']."s".
+		"<br>".htmlentities($slot['event']['Cause']).
+		(!empty($slot['event']['Notes'])?("<br>".htmlentities($slot['event']['Notes'])):"");
+	return( "\"loadEventImage( '".$image_path."', '".$annotation."', '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."', ".($monitors[$slot['event']['MonitorId']]['Width']+$jws['event']['w']).", ".($monitors[$slot['event']['MonitorId']]['Height']+$jws['event']['h'])." );\"" );
 }
 
 function getSlotViewEventBehaviour( $slot )
@@ -718,8 +724,6 @@ function closeWindow()
 {
 	window.close();
 }
-//var width = document.screen.availWidth;
-//var height = document.screen.availHeight;
 
 window.focus();
 
@@ -738,8 +742,7 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 #ChartBox {
 	position: relative;
 	text-align: center;
-	vertical-align: middle;
-	border: 1px solid grey;
+	border: 1px solid #666666;
 	width: <?= $chart['width'] ?>px;
 	height: <?= $chart['height'] ?>px;
 	padding: 0px;
@@ -755,11 +758,16 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 	font-weight: bold;
 	line-height: 20px
 }
+#ChartBox #List {
+	position: absolute;
+	top: 5px;
+	left: 20px;
+	height: 15;
+}
 #ChartBox #Close {
 	position: absolute;
 	top: 5px;
 	right: 20px;
-	margin: auto;
 	height: 15;
 }
 #ChartBox #TopPanel {
@@ -768,17 +776,6 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 	width: 90%;
 	padding: 0px;
 	margin: auto;
-}
-#ChartBox #TopPanel a {
-	border: 1px solid #cccccc;
-	background-color: #eeeeee;
-	padding: 5px;
-}
-#ChartBox #TopPanel a:link, a:visited {
-	text-decoration: none
-}
-#ChartBox #TopPanel a:hover {
-	text-decoration: none
 }
 #ChartBox #TopPanel #LeftNav {
 	position: absolute;
@@ -793,12 +790,20 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 #ChartBox #TopPanel #RightNav {
 	text-align: left;
 	position: absolute;
-	top: 40%;
+	top: 50%;
 	left: 50%;
 	width: 180px;
 	height: 70px
 	padding: 0px;
 	margin: auto;
+}
+#ChartBox #TopPanel #RightNav a {
+	border: 1px solid #cccccc;
+	background-color: #eeeeee;
+	padding: 5px;
+}
+#ChartBox #TopPanel #RightNav a:link,a:visited,a:hover {
+	text-decoration: none
 }
 #ChartBox #TopPanel #Image {
 	position: absolute;
@@ -810,8 +815,7 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 }
 #ChartBox #TopPanel #Image img{
 	position: relative;
-	vertical-align: middle;
-	bottom: 0px;
+	top: 0px;
 	height: <?= $chart['image']['height'] ?>px;
 	background-color: #f8f8f8;
 	margin: auto;
@@ -835,7 +839,6 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 #ChartBox #TopPanel #Key {
 	position: absolute;
 	text-align: left;
-	vertical-align: bottom;
 	margin: auto;
 	bottom: 30px;
 	left: 50%;
@@ -895,12 +898,11 @@ if ( $mode == "overlay" )
 #ChartBox #ChartPanel #Activity {
 	position: absolute;
 	text-align: center;
-	vertical-align: top;
 	top: 0px;
+	left: 0px;
 	width: <?= $chart['graph']['width'] ?>px;
 	height: <?= $chart['graph']['activity_height'] ?>px;
 	padding: 0px;
-	margin: auto;
 }
 <?php
 	$top = $chart['graph']['activity_height'];
@@ -911,18 +913,17 @@ if ( $mode == "overlay" )
 #ChartBox #ChartPanel #Events<?= $monitor_id ?> {
 	position: absolute;
 	text-align: center;
-	vertical-align: middle;
 	top: <?= $top ?>px;
+	left: 0px;
 	width: <?= $chart['graph']['width'] ?>px;
 	height: <?= $chart['graph']['event_bar_height'] ?>px;
 	padding: 0px;
-	margin: auto;
 	background-color: #fcfcfc;
 <?php
 		if ( $event_bar_count < count($monitor_ids) )
 		{
 ?>
-	border-bottom: 1px solid lightgrey;
+	border-bottom: 1px solid #cccccc;
 <?php
 		}
 ?>
@@ -968,17 +969,16 @@ elseif ( $mode == "split" )
 #ChartBox #ChartPanel #Activity<?= $monitor_id ?> {
 	position: absolute;
 	text-align: center;
-	vertical-align: top;
 	top: <?= $top ?>px;
+	left: 0px;
 	width: <?= $chart['graph']['width'] ?>px;
 	height: <?= $chart['graph']['activity_bar_height'] ?>px;
 	padding: 0px;
-	margin: auto;
 <?php
 		if ( $bar_count < count($monitor_ids) )
 		{
 ?>
-	border-bottom: 1px solid lightgrey;
+	border-bottom: 1px solid #cccccc;
 <?php
 		}
 ?>
@@ -986,12 +986,11 @@ elseif ( $mode == "split" )
 #ChartBox #ChartPanel #Events<?= $monitor_id ?> {
 	position: absolute;
 	text-align: center;
-	vertical-align: middle;
 	top: <?= $top+$chart['graph']['activity_bar_height']+1 ?>px;
+	left: 0px;
 	width: <?= $chart['graph']['width'] ?>px;
 	height: <?= $chart['graph']['event_bar_height'] ?>px;
 	padding: 0px;
-	margin: auto;
 	background-color: #fcfcfc;
 <?php
 		if ( $bar_count < count($monitor_ids) )
@@ -1011,14 +1010,14 @@ elseif ( $mode == "split" )
 foreach ( array_keys($monitor_ids) as $monitor_id )
 {
 ?>
-div.activity<?= $monitor_id ?> {
+#ChartBox #ChartPanel #Activity<?= $mode=='split'?$monitor_id:'' ?> div.activity<?= $monitor_id ?> {
 	position: absolute;
 	bottom: 0px;
 	z-index: 3;
 	width: 1px;
 	background-color: <?= $monitors[$monitor_id]['WebColour'] ?>;
 }
-div.event<?= $monitor_id ?> {
+#ChartBox #ChartPanel #Events<?= $monitor_id ?> div.event<?= $monitor_id ?> {
 	position: absolute;
 	height: <?= $chart['graph']['event_bar_height'] ?>px; 
 	bottom: 0px;
@@ -1044,7 +1043,7 @@ div.majgridx {
 	top: 0px;
 	width: 1px;
 	height: <?= $chart['graph']['height'] ?>px;
-	border-left: dotted 1px grey;
+	border-left: dotted 1px #cccccc;
 }
 div.majtickx {
 	position: absolute;
@@ -1070,7 +1069,7 @@ div.majgridy {
 	left: 0px;
 	height: 1px;
 	width: <?= $chart['graph']['width'] ?>px;
-	border-top: dotted 1px grey;
+	border-top: dotted 1px #cccccc;
 }
 div.majticky {
 	position: absolute;
@@ -1083,7 +1082,6 @@ div.majticky {
 div.majlabely {
 	position: absolute;
 	text-align: right;
-	vertical-align: middle;
 	z-index: 0;
 	left: -30px;
 	width: 20px;
@@ -1103,6 +1101,7 @@ div.zoom {
 </head>
 <body>
 <div id="ChartBox">
+  <div id="List" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=-1+day', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangList, canView( 'Events' ) ) ?></a></div>
   <div id="Title">Event Navigator</div>
   <div id="Close" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></div>
   <div id="TopPanel">

@@ -95,6 +95,7 @@ else
 	$monitor['MaxFPS'] = 0;
 	$monitor['FPSReportInterval'] = 1000;
 	$monitor['RefBlendPerc'] = 10;
+	$monitor['WebColour'] = 'red';
 	$monitor['Triggers'] = "";
 }
 if ( !isset( $new_monitor ) )
@@ -326,6 +327,7 @@ if ( $tab != 'misc' )
 <input type="hidden" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>">
 <input type="hidden" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor['FPSReportInterval'] ?>">
 <input type="hidden" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>">
+<input type="hidden" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>">
 <?php
 }
 if ( ZM_OPT_X10 && $tab != 'x10' )
@@ -453,7 +455,7 @@ switch ( $tab )
 	{
 ?>
 <tr><td align="left" class="text"><?= $zmSlangControllable ?></td><td align="left" class="text"><input type="checkbox" name="new_monitor[Controllable]" value="1" class="form-noborder"<?php if ( !empty($new_monitor['Controllable']) ) { ?> checked<?php } ?>></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangControlType ?></td><td class="text"><?= buildSelect( "new_monitor[ControlId]", $control_types, 'loadLocations( document.monitor_form )' ); ?>&nbsp;<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=controlcaps', 'zmControlCaps', <?= $jws['controlcaps']['w'] ?>, <?= $jws['controlcaps']['h'] ?> );"><?= $zmSlangEdit ?></a></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangControlType ?></td><td class="text"><?= buildSelect( "new_monitor[ControlId]", $control_types, 'loadLocations( document.monitor_form )' ); ?><?php if ( canEdit( 'Control' ) ) { ?>&nbsp;<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=controlcaps', 'zmControlCaps', <?= $jws['controlcaps']['w'] ?>, <?= $jws['controlcaps']['h'] ?> );"><?= $zmSlangEdit ?></a><?php } ?></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangControlDevice ?></td><td align="left" class="text"><input type="text" name="new_monitor[ControlDevice]" value="<?= $new_monitor['ControlDevice'] ?>" size="32" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangControlAddress ?></td><td align="left" class="text"><input type="text" name="new_monitor[ControlAddress]" value="<?= $new_monitor['ControlAddress'] ?>" size="32" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangAutoStopTimeout ?></td><td align="left" class="text"><input type="text" name="new_monitor[AutoStopTimeout]" value="<?= $new_monitor['AutoStopTimeout'] ?>" size="4" class="form"></td></tr>
@@ -478,6 +480,7 @@ switch ( $tab )
 <tr><td align="left" class="text"><?= $zmSlangMaximumFPS ?></td><td align="left" class="text"><input type="text" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangFPSReportInterval ?></td><td align="left" class="text"><input type="text" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor['FPSReportInterval'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangRefImageBlendPct ?></td><td align="left" class="text"><input type="text" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangWebColour ?></td><td align="left" class="text"><input type="text" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>" size="10" class="form" onChange="document.getElementById('Swatch').style.backgroundColor=this.value">&nbsp;&nbsp;<span id="Swatch" style="background-color: <?= $new_monitor['WebColour'] ?>; border: 1px solid black; width: 20px; height: 10px; padding: 0px;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
 <?php
 		break;
 	}

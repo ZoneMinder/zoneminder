@@ -74,44 +74,47 @@ switch ( $bandwidth )
 {
 	case "high" :
 	{
-		define( "ZM_WEB_REFRESH_MAIN", ZM_WEB_H_REFRESH_MAIN );		// How often (in seconds) the main console window refreshes
-		define( "ZM_WEB_REFRESH_CYCLE", ZM_WEB_H_REFRESH_CYCLE );	// How often the cycle watch windows swaps to the next monitor
-		define( "ZM_WEB_REFRESH_IMAGE", ZM_WEB_H_REFRESH_IMAGE );	// How often the watched image is refreshed (if not streaming)
-		define( "ZM_WEB_REFRESH_STATUS", ZM_WEB_H_REFRESH_STATUS );	// How often the little status frame refreshes itself in the watch window
-		define( "ZM_WEB_REFRESH_EVENTS", ZM_WEB_H_REFRESH_EVENTS );	// How often the event listing is refreshed in the watch window, only for recent events
-		define( "ZM_WEB_DEFAULT_SCALE", ZM_WEB_H_DEFAULT_SCALE );	// What the default scaling factor applied to 'live' or 'event' views is (%)
-		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_H_DEFAULT_RATE );		// What the default replay rate factor applied to 'event' views is (%)
-		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_H_VIDEO_BITRATE );	// What the bitrate of any streamed video should be
-		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_H_VIDEO_MAXFPS );		// What the maximum frame rate of any streamed video should be
-		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_H_IMAGE_SCALING );	// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_REFRESH_MAIN", ZM_WEB_H_REFRESH_MAIN );			// How often (in seconds) the main console window refreshes
+		define( "ZM_WEB_REFRESH_CYCLE", ZM_WEB_H_REFRESH_CYCLE );		// How often the cycle watch windows swaps to the next monitor
+		define( "ZM_WEB_REFRESH_IMAGE", ZM_WEB_H_REFRESH_IMAGE );		// How often the watched image is refreshed (if not streaming)
+		define( "ZM_WEB_REFRESH_STATUS", ZM_WEB_H_REFRESH_STATUS );		// How often the little status frame refreshes itself in the watch window
+		define( "ZM_WEB_REFRESH_EVENTS", ZM_WEB_H_REFRESH_EVENTS );		// How often the event listing is refreshed in the watch window, only for recent events
+		define( "ZM_WEB_DEFAULT_SCALE", ZM_WEB_H_DEFAULT_SCALE );		// What the default scaling factor applied to 'live' or 'event' views is (%)
+		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_H_DEFAULT_RATE );			// What the default replay rate factor applied to 'event' views is (%)
+		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_H_VIDEO_BITRATE );		// What the bitrate of any streamed video should be
+		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_H_VIDEO_MAXFPS );			// What the maximum frame rate of any streamed video should be
+		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_H_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_H_EVENTS_VIEW );			// What the default view of multiple events should be.
 		break;
 	}
 	case "medium" : 
 	{
-		define( "ZM_WEB_REFRESH_MAIN", ZM_WEB_M_REFRESH_MAIN );		// How often (in seconds) the main console window refreshes
-		define( "ZM_WEB_REFRESH_CYCLE", ZM_WEB_M_REFRESH_CYCLE );	// How often the cycle watch windows swaps to the next monitor
-		define( "ZM_WEB_REFRESH_IMAGE", ZM_WEB_M_REFRESH_IMAGE );	// How often the watched image is refreshed (if not streaming)
-		define( "ZM_WEB_REFRESH_STATUS", ZM_WEB_M_REFRESH_STATUS );	// How often the little status frame refreshes itself in the watch window
-		define( "ZM_WEB_REFRESH_EVENTS", ZM_WEB_M_REFRESH_EVENTS );	// How often the event listing is refreshed in the watch window, only for recent events
-		define( "ZM_WEB_DEFAULT_SCALE", ZM_WEB_M_DEFAULT_SCALE );	// What the default scaling factor applied to 'live' or 'event' views is (%)
-		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_M_DEFAULT_RATE );		// What the default replay rate factor applied to 'event' views is (%)
-		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_M_VIDEO_BITRATE );	// What the bitrate of any streamed video should be
-		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_M_VIDEO_MAXFPS );		// What the maximum frame rate of any streamed video should be
-		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_M_IMAGE_SCALING );	// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_REFRESH_MAIN", ZM_WEB_M_REFRESH_MAIN );			// How often (in seconds) the main console window refreshes
+		define( "ZM_WEB_REFRESH_CYCLE", ZM_WEB_M_REFRESH_CYCLE );		// How often the cycle watch windows swaps to the next monitor
+		define( "ZM_WEB_REFRESH_IMAGE", ZM_WEB_M_REFRESH_IMAGE );		// How often the watched image is refreshed (if not streaming)
+		define( "ZM_WEB_REFRESH_STATUS", ZM_WEB_M_REFRESH_STATUS );		// How often the little status frame refreshes itself in the watch window
+		define( "ZM_WEB_REFRESH_EVENTS", ZM_WEB_M_REFRESH_EVENTS );		// How often the event listing is refreshed in the watch window, only for recent events
+		define( "ZM_WEB_DEFAULT_SCALE", ZM_WEB_M_DEFAULT_SCALE );		// What the default scaling factor applied to 'live' or 'event' views is (%)
+		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_M_DEFAULT_RATE );			// What the default replay rate factor applied to 'event' views is (%)
+		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_M_VIDEO_BITRATE );		// What the bitrate of any streamed video should be
+		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_M_VIDEO_MAXFPS );			// What the maximum frame rate of any streamed video should be
+		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_M_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_M_EVENTS_VIEW );			// What the default view of multiple events should be.
 		break;
 	}
 	case "low" :
 	{
-		define( "ZM_WEB_REFRESH_MAIN", ZM_WEB_L_REFRESH_MAIN );		// How often (in seconds) the main console window refreshes
-		define( "ZM_WEB_REFRESH_CYCLE", ZM_WEB_L_REFRESH_CYCLE );	// How often the cycle watch windows swaps to the next monitor
-		define( "ZM_WEB_REFRESH_IMAGE", ZM_WEB_L_REFRESH_IMAGE );	// How often the watched image is refreshed (if not streaming)
-		define( "ZM_WEB_REFRESH_STATUS", ZM_WEB_L_REFRESH_STATUS );	// How often the little status frame refreshes itself in the watch window
-		define( "ZM_WEB_REFRESH_EVENTS", ZM_WEB_L_REFRESH_EVENTS );	// How often the event listing is refreshed in the watch window, only for recent events
-		define( "ZM_WEB_DEFAULT_SCALE", ZM_WEB_L_DEFAULT_SCALE );	// What the default scaling factor applied to 'live' or 'event' views is (%)
-		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_L_DEFAULT_RATE );		// What the default replay rate factor applied to 'event' views is (%)
-		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_L_VIDEO_BITRATE );	// What the bitrate of any streamed video should be
-		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_L_VIDEO_MAXFPS );		// What the maximum frame rate of any streamed video should be
-		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_L_IMAGE_SCALING );	// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_REFRESH_MAIN", ZM_WEB_L_REFRESH_MAIN );			// How often (in seconds) the main console window refreshes
+		define( "ZM_WEB_REFRESH_CYCLE", ZM_WEB_L_REFRESH_CYCLE );		// How often the cycle watch windows swaps to the next monitor
+		define( "ZM_WEB_REFRESH_IMAGE", ZM_WEB_L_REFRESH_IMAGE );		// How often the watched image is refreshed (if not streaming)
+		define( "ZM_WEB_REFRESH_STATUS", ZM_WEB_L_REFRESH_STATUS );		// How often the little status frame refreshes itself in the watch window
+		define( "ZM_WEB_REFRESH_EVENTS", ZM_WEB_L_REFRESH_EVENTS );		// How often the event listing is refreshed in the watch window, only for recent events
+		define( "ZM_WEB_DEFAULT_SCALE", ZM_WEB_L_DEFAULT_SCALE );		// What the default scaling factor applied to 'live' or 'event' views is (%)
+		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_L_DEFAULT_RATE );			// What the default replay rate factor applied to 'event' views is (%)
+		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_L_VIDEO_BITRATE );		// What the bitrate of any streamed video should be
+		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_L_VIDEO_MAXFPS );			// What the maximum frame rate of any streamed video should be
+		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_L_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_L_EVENTS_VIEW );			// What the default view of multiple events should be.
 		break;
 	}
 	case "mobile" : // Very incomplete at present

@@ -405,6 +405,31 @@ if ( $version )
 		patchDB( $dbh, "1.21.1" );
 		$cascade = !undef;
 	}
+	if ( $cascade || $version eq "1.21.2" )
+	{
+		# Patch the database
+		patchDB( $dbh, "1.21.2" );
+		$cascade = !undef;
+	}
+	if ( $cascade || $version eq "1.21.3" )
+	{
+		# Patch the database
+		patchDB( $dbh, "1.21.3" );
+
+		# Add appropriate widths and heights to events
+		print( "Updating events. This may take a minute. Please wait\n" );
+		my $sql = "select * from Monitors order by Id";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+		while( my $monitor = $sth->fetchrow_hashref() )
+		{
+			my $sql = "update Events set Width = ?, Height = ? where MonitorId = ?";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $monitor->{Width}, $monitor->{Height}, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+		}
+		$sth->finish();
+		$cascade = !undef;
+	}
 	if ( !$cascade )
 	{
 		die( "Can't find upgrade from version '$version'" );

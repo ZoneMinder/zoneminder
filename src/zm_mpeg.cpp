@@ -86,6 +86,7 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, i
 
 		/* put sample parameters */
 		c->bit_rate = bitrate;
+		c->pix_fmt = PIX_FMT_YUV420P;
 		/* resolution must be a multiple of two */
 		c->width = width;
 		c->height = height;
@@ -102,15 +103,12 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, i
 		c->frame_rate_base = 1;
 #endif
 		c->gop_size = frame_rate/2; /* emit one intra frame every half second or so */
-		c->gop_size = 30;
+		c->gop_size = 12;
 		if ( c->gop_size < 3 )
 			c->gop_size = 3;
-		if (c->codec_id == CODEC_ID_MPEG1VIDEO ||
-			c->codec_id == CODEC_ID_MPEG2VIDEO)
-			{
-			/* just for testing, we also add B frames */
-			c->max_b_frames = 2;
-		}
+		// some formats want stream headers to be seperate
+		if(!strcmp(ofc->oformat->name, "mp4") || !strcmp(ofc->oformat->name, "mov") || !strcmp(ofc->oformat->name, "3gp"))
+			c->flags |= CODEC_FLAG_GLOBAL_HEADER;
 	}
 }
 
@@ -147,7 +145,7 @@ void VideoStream::OpenStream()
 		/* open the codec */
 		if (avcodec_open(c, codec) < 0)
 		{
-			Fatal(( "could not open codec" ));
+			Fatal(( "Could not open codec" ));
 		}
 
 		/* allocate the encoded raw picture */
@@ -322,7 +320,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 		if ( add_timestamp )
 			ost->pts.val = timestamp;
 		int out_size = avcodec_encode_video(c, video_outbuf, video_outbuf_size, opicture_ptr);
-		if (out_size != 0)
+		if (out_size > 0)
 		{
 #if FFMPEG_VERSION_INT < 0x000409
 			ret = av_write_frame(ofc, ost->index, video_outbuf, out_size);
@@ -330,7 +328,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 			AVPacket pkt;
 			av_init_packet(&pkt);
 
-			pkt.pts = c->coded_frame->pts;
+			pkt.pts= av_rescale_q( c->coded_frame->pts, c->time_base, ost->time_base );
 			if(c->coded_frame->key_frame)
 				pkt.flags |= PKT_FLAG_KEY;
 			pkt.stream_index = ost->index;

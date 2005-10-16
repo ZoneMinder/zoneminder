@@ -473,6 +473,15 @@ my @options =
 		category => 'tools',
 	},
 	{
+		name => "ZM_FFMPEG_FORMATS",
+		default => "mpg* mpeg wmv avi mov 3gp",
+		description => "Formats to allow for ffmpeg video generation",
+		help => "Ffmpeg can generate video in many different formats. This option allows you to list the ones you want to be able to select. As new formats are supported by ffmpeg you can add them here and be able to use them immediately. Adding a '*' after a format indicates that this will be the default format used.",
+		requires => [ { name=>"ZM_OPT_MPEG", value=>"ffmpeg" } ],
+		type => $types{string},
+		category => 'tools',
+	},
+	{
 		name => "ZM_OPT_NETPBM",
 		default => "no",
 		description => "Are the (optional) Netpbm utilities installed",

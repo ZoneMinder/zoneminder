@@ -119,7 +119,7 @@ function closeWindow()
 }
 function newWindow(Url,Name,Width,Height)
 {
-	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 <?php
 if ( $play && $next_event )

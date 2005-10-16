@@ -48,7 +48,7 @@ if ( !isset( $scale ) )
 <script type="text/javascript">
 function newWindow(Url,Name,Width,Height)
 {
-   	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+   	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 function closeWindow()
 {
@@ -69,7 +69,7 @@ if ( ZM_OPT_CONTROL && $monitor['Controllable'] )
 {
 	if ( !$control )
 	{
-		if ( canEdit( 'Monitors' ) )
+		if ( canView( 'Control' ) )
 		{
 ?>
 <td align="center" class="text"><a href="<?= $php_self ?>?view=watch&mid=<?= $mid ?>&mode=<?= $mode ?>&scale=<?= $scale ?>&control=1" target="_parent"><?= $zmSlangControl ?></a></td>

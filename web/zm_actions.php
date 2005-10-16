@@ -151,193 +151,9 @@ if ( isset($action) )
 			}
 		}
 	}
-	if ( canEdit( 'Monitors', $mid ) )
+	if ( canView( 'Control', $mid ) )
 	{
-		if ( $action == "function" && isset( $mid ) )
-		{
-			$sql = "select * from Monitors where Id = '$mid'";
-			$result = mysql_query( $sql );
-			if ( !$result )
-				die( mysql_error() );
-			$monitor = mysql_fetch_assoc( $result );
-
-			$old_function = $monitor['Function'];
-			if ( $new_function != $old_function )
-			{
-				simpleQuery( "update Monitors set Function = '$new_function' where Id = '$mid'" );
-
-				$monitor['Function'] = $new_function;
-				if ( $cookies ) session_write_close();
-				zmcControl( $monitor, true );
-				zmaControl( $monitor, true );
-				$refresh_parent = true;
-			}
-		}
-		elseif ( $action == "zone" && isset( $mid ) && isset( $zid ) )
-		{
-			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$monitor = mysql_fetch_assoc( $result );
-
-			if ( $zid > 0 )
-			{
-				$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$zone = mysql_fetch_assoc( $result );
-			}
-			else
-			{
-				$zone = array();
-			}
-
-			$types = array();
-			$changes = getFormChanges( $zone, $new_zone, $types );
-
-			if ( count( $changes ) )
-			{
-				if ( $zid > 0 )
-				{
-					$sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '$mid' and Id = '$zid'";
-				}
-				else
-				{
-					$sql = "insert into Zones set MonitorId = '$mid', ".implode( ", ", $changes );
-					$view = 'none';
-				}
-				//echo "<html>$sql</html>";
-				simpleQuery( $sql );
-				if ( $cookies ) session_write_close();
-				zmaControl( $mid, true );
-				$refresh_parent = true;
-			}
-		}
-		elseif ( $action == "monitor" && isset( $mid ) )
-		{
-			if ( $mid > 0 )
-			{
-				$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$monitor = mysql_fetch_assoc( $result );
-
-				if ( ZM_OPT_X10 )
-				{
-					$result = mysql_query( "select * from TriggersX10 where MonitorId = '$mid'" );
-					if ( !$result )
-						die( mysql_error() );
-					$x10_monitor = mysql_fetch_assoc( $result );
-				}
-			}
-			else
-			{
-				$monitor = array();
-				if ( ZM_OPT_X10 )
-				{
-					$x10_monitor = array();
-				}
-			}
-
-			// Define a field type for anything that's not simple text equivalent
-			$types = array(
-				'Triggers' => 'set',
-				'Controllable' => 'toggle',
-				'TrackMotion' => 'toggle',
-			);
-
-			$columns = getTableColumns( 'Monitors' );
-			$changes = getFormChanges( $monitor, $new_monitor, $types, $columns );
-
-			if ( count( $changes ) )
-			{
-				if ( $mid > 0 )
-				{
-					simpleQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
-					if ( $changes['Name'] )
-					{
-						exec( escapeshellcmd( "mv ".ZM_DIR_EVENTS."/".$monitor['Name']." ".ZM_DIR_EVENTS."/".$new_monitor['Name'] ) );
-					}
-				}
-				elseif ( !$user['MonitorIds'] )
-				{
-					$sql = "insert into Monitors set ".implode( ", ", $changes );
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
-					$mid = mysql_insert_id();
-					$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', LoX = 0, LoY = 0, HiX = 100, HiY = 100, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MaxPixelThreshold = 0, MinAlarmPixels = 3, MaxAlarmPixels = 75, FilterX = 3, FilterY = 3, MinFilterPixels = 3, MaxFilterPixels = 75, MinBlobPixels = 2, MaxBlobPixels = 0, MinBlobs = 1, MaxBlobs = 0";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
-					//$view = 'none';
-					mkdir( ZM_DIR_EVENTS."/".$mid, 0755 );
-					chdir( ZM_DIR_EVENTS );
-					symlink( $mid, $new_monitor['Name'] );
-					chdir( ".." );
-				}
-				$restart = true;
-			}
-
-			if ( ZM_OPT_X10 )
-			{
-				$x10_changes = getFormChanges( $x10_monitor, $new_x10_monitor );
-
-				if ( count( $x10_changes ) )
-				{
-					if ( $x10_monitor && $new_x10_monitor )
-					{
-						$sql = "update TriggersX10 set ".implode( ", ", $x10_changes )." where MonitorId = '$mid'";
-						$result = mysql_query( $sql );
-						if ( !$result )
-							die( mysql_error() );
-					}
-					elseif ( !$user['MonitorIds'] )
-					{
-						if ( !$x10_monitor )
-						{
-							$sql = "insert into TriggersX10 set MonitorId = '$mid', ".implode( ", ", $x10_changes );
-							$result = mysql_query( $sql );
-							if ( !$result )
-								die( mysql_error() );
-						}
-						else
-						{
-							$sql = "delete from TriggersX10 where MonitorId = '$mid'";
-							$result = mysql_query( $sql );
-							if ( !$result )
-								die( mysql_error() );
-						}
-					}
-					$restart = true;
-				}
-			}
-
-			if ( $restart )
-			{
-				$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$monitor = mysql_fetch_assoc( $result );
-				fixDevices();
-				if ( $cookies ) session_write_close();
-				zmcControl( $monitor, true );
-				zmaControl( $monitor, true );
-				//daemonControl( 'restart', 'zmwatch.pl' );
-				$refresh_parent = true;
-			}
-		}
-		elseif ( $action == "settings" && isset( $mid ) )
-		{
-			$zmu_command = getZmuCommand( " -m $mid -B$new_brightness -C$new_contrast -H$new_hue -O$new_colour" );
-			$zmu_output = exec( escapeshellcmd( $zmu_command ) );
-			list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
-			$sql = "update Monitors set Brightness = '$brightness', Contrast = '$contrast', Hue = '$hue', Colour = '$colour' where Id = '$mid'";
-			$result = mysql_query( $sql );
-				if ( !$result )
-					die( mysql_error() );
-		}
-		elseif ( $action == "control" && isset( $mid ) )
+		if ( $action == "control" && isset( $mid ) )
 		{
 			$result = mysql_query( "select * from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'" );
 			if ( !$result )
@@ -893,16 +709,266 @@ if ( isset($action) )
 			}
 			if ( $control != 'null' )
 			{
-				if ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' )
-				{
-					$zmu_command = getZmuCommand( " -m $mid -r" );
-					$zmu_output = exec( escapeshellcmd( $zmu_command ) );
-				}
+				//if ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' )
+				//{
+					//$zmu_command = getZmuCommand( " -m $mid -r" );
+					//$zmu_output = exec( escapeshellcmd( $zmu_command ) );
+				//}
 				$ctrl_command .= " --command=".$control;
 				//echo $ctrl_command;
 				$ctrl_output = exec( escapeshellcmd( $ctrl_command ) );
 				//echo $ctrl_output;
 			}
+		}
+	}
+	if ( canEdit( 'Control' ) )
+	{
+		if ( $action == "controlcap" && isset( $cid ) )
+		{
+			if ( $cid > 0 )
+			{
+				$result = mysql_query( "select * from Controls where Id = '$cid'" );
+				if ( !$result )
+					die( mysql_error() );
+				$control = mysql_fetch_assoc( $result );
+			}
+			else
+			{
+				$control = array();
+			}
+
+			// Define a field type for anything that's not simple text equivalent
+			$types = array(
+				// Empty
+			);
+
+			$columns = getTableColumns( 'Controls' );
+			foreach ( $columns as $name=>$type )
+			{
+				if ( preg_match( '/^(Can|Has)/', $name ) )
+				{
+					$types[$name] = 'toggle';
+				}
+			}
+			$changes = getFormChanges( $control, $new_control, $types, $columns );
+
+			if ( count( $changes ) )
+			{
+				if ( $cid > 0 )
+				{
+					simpleQuery( "update Controls set ".implode( ", ", $changes )." where Id = '$cid'" );
+					$refresh_parent = true;
+				}
+				else
+				{
+
+					$sql = "insert into Controls set ".implode( ", ", $changes );
+					$result = mysql_query( $sql );
+					if ( !$result )
+						die( mysql_error() );
+					$cid = mysql_insert_id();
+				}
+				$refresh_parent = true;
+			}
+		}
+		elseif ( $action == "delete" )
+		{
+			if ( $mark_cids )
+			{
+				foreach( $mark_cids as $mark_cid )
+				{
+					simpleQuery( "delete from Controls where Id = '$mark_cid'" );
+					simpleQuery( "update Monitors set Controllable = 0, ControlId = 0 where ControlId = '$mark_cid'" );
+					$refresh_parent = true;
+				}
+			}
+		}
+	}
+	if ( canEdit( 'Monitors', $mid ) )
+	{
+		if ( $action == "function" && isset( $mid ) )
+		{
+			$sql = "select * from Monitors where Id = '$mid'";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				die( mysql_error() );
+			$monitor = mysql_fetch_assoc( $result );
+
+			$old_function = $monitor['Function'];
+			if ( $new_function != $old_function )
+			{
+				simpleQuery( "update Monitors set Function = '$new_function' where Id = '$mid'" );
+
+				$monitor['Function'] = $new_function;
+				if ( $cookies ) session_write_close();
+				zmcControl( $monitor, true );
+				zmaControl( $monitor, true );
+				$refresh_parent = true;
+			}
+		}
+		elseif ( $action == "zone" && isset( $mid ) && isset( $zid ) )
+		{
+			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$monitor = mysql_fetch_assoc( $result );
+
+			if ( $zid > 0 )
+			{
+				$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
+				if ( !$result )
+					die( mysql_error() );
+				$zone = mysql_fetch_assoc( $result );
+			}
+			else
+			{
+				$zone = array();
+			}
+
+			$types = array();
+			$changes = getFormChanges( $zone, $new_zone, $types );
+
+			if ( count( $changes ) )
+			{
+				if ( $zid > 0 )
+				{
+					$sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '$mid' and Id = '$zid'";
+				}
+				else
+				{
+					$sql = "insert into Zones set MonitorId = '$mid', ".implode( ", ", $changes );
+					$view = 'none';
+				}
+				//echo "<html>$sql</html>";
+				simpleQuery( $sql );
+				if ( $cookies ) session_write_close();
+				zmaControl( $mid, true );
+				$refresh_parent = true;
+			}
+		}
+		elseif ( $action == "monitor" && isset( $mid ) )
+		{
+			if ( $mid > 0 )
+			{
+				$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+				if ( !$result )
+					die( mysql_error() );
+				$monitor = mysql_fetch_assoc( $result );
+
+				if ( ZM_OPT_X10 )
+				{
+					$result = mysql_query( "select * from TriggersX10 where MonitorId = '$mid'" );
+					if ( !$result )
+						die( mysql_error() );
+					$x10_monitor = mysql_fetch_assoc( $result );
+				}
+			}
+			else
+			{
+				$monitor = array();
+				if ( ZM_OPT_X10 )
+				{
+					$x10_monitor = array();
+				}
+			}
+
+			// Define a field type for anything that's not simple text equivalent
+			$types = array(
+				'Triggers' => 'set',
+				'Controllable' => 'toggle',
+				'TrackMotion' => 'toggle',
+			);
+
+			$columns = getTableColumns( 'Monitors' );
+			$changes = getFormChanges( $monitor, $new_monitor, $types, $columns );
+
+			if ( count( $changes ) )
+			{
+				if ( $mid > 0 )
+				{
+					simpleQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
+					if ( $changes['Name'] )
+					{
+						exec( escapeshellcmd( "mv ".ZM_DIR_EVENTS."/".$monitor['Name']." ".ZM_DIR_EVENTS."/".$new_monitor['Name'] ) );
+					}
+				}
+				elseif ( !$user['MonitorIds'] )
+				{
+					$sql = "insert into Monitors set ".implode( ", ", $changes );
+					$result = mysql_query( $sql );
+					if ( !$result )
+						die( mysql_error() );
+					$mid = mysql_insert_id();
+					$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', LoX = 0, LoY = 0, HiX = 100, HiY = 100, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MaxPixelThreshold = 0, MinAlarmPixels = 3, MaxAlarmPixels = 75, FilterX = 3, FilterY = 3, MinFilterPixels = 3, MaxFilterPixels = 75, MinBlobPixels = 2, MaxBlobPixels = 0, MinBlobs = 1, MaxBlobs = 0";
+					$result = mysql_query( $sql );
+					if ( !$result )
+						die( mysql_error() );
+					//$view = 'none';
+					mkdir( ZM_DIR_EVENTS."/".$mid, 0755 );
+					chdir( ZM_DIR_EVENTS );
+					symlink( $mid, $new_monitor['Name'] );
+					chdir( ".." );
+				}
+				$restart = true;
+			}
+
+			if ( ZM_OPT_X10 )
+			{
+				$x10_changes = getFormChanges( $x10_monitor, $new_x10_monitor );
+
+				if ( count( $x10_changes ) )
+				{
+					if ( $x10_monitor && $new_x10_monitor )
+					{
+						$sql = "update TriggersX10 set ".implode( ", ", $x10_changes )." where MonitorId = '$mid'";
+						$result = mysql_query( $sql );
+						if ( !$result )
+							die( mysql_error() );
+					}
+					elseif ( !$user['MonitorIds'] )
+					{
+						if ( !$x10_monitor )
+						{
+							$sql = "insert into TriggersX10 set MonitorId = '$mid', ".implode( ", ", $x10_changes );
+							$result = mysql_query( $sql );
+							if ( !$result )
+								die( mysql_error() );
+						}
+						else
+						{
+							$sql = "delete from TriggersX10 where MonitorId = '$mid'";
+							$result = mysql_query( $sql );
+							if ( !$result )
+								die( mysql_error() );
+						}
+					}
+					$restart = true;
+				}
+			}
+
+			if ( $restart )
+			{
+				$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+				if ( !$result )
+					die( mysql_error() );
+				$monitor = mysql_fetch_assoc( $result );
+				fixDevices();
+				if ( $cookies ) session_write_close();
+				zmcControl( $monitor, true );
+				zmaControl( $monitor, true );
+				//daemonControl( 'restart', 'zmwatch.pl' );
+				$refresh_parent = true;
+			}
+		}
+		elseif ( $action == "settings" && isset( $mid ) )
+		{
+			$zmu_command = getZmuCommand( " -m $mid -B$new_brightness -C$new_contrast -H$new_hue -O$new_colour" );
+			$zmu_output = exec( escapeshellcmd( $zmu_command ) );
+			list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
+			$sql = "update Monitors set Brightness = '$brightness', Contrast = '$contrast', Hue = '$hue', Colour = '$colour' where Id = '$mid'";
+			$result = mysql_query( $sql );
+				if ( !$result )
+					die( mysql_error() );
 		}
 		elseif ( $action == "delete" )
 		{
@@ -1155,6 +1221,7 @@ if ( isset($action) )
 			if ( $new_enabled != $row['Enabled'] ) $changes[] = "Enabled = '$new_enabled'";
 			if ( $new_stream != $row['Stream'] ) $changes[] = "Stream = '$new_stream'";
 			if ( $new_events != $row['Events'] ) $changes[] = "Events = '$new_events'";
+			if ( $new_control != $row['Control'] ) $changes[] = "Control = '$new_control'";
 			if ( $new_monitors != $row['Monitors'] ) $changes[] = "Monitors = '$new_monitors'";
 			if ( $new_system != $row['System'] ) $changes[] = "System = '$new_system'";
 			if ( $new_monitor_ids != $row['MonitorIds'] ) $changes[] = "MonitorIds = '$new_monitor_ids'";
@@ -1224,54 +1291,6 @@ if ( isset($action) )
 			}
 			$refresh_parent = true;
 		}
-		elseif ( $action == "controlcap" && isset( $cid ) )
-		{
-			if ( $cid > 0 )
-			{
-				$result = mysql_query( "select * from Controls where Id = '$cid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$control = mysql_fetch_assoc( $result );
-			}
-			else
-			{
-				$control = array();
-			}
-
-			// Define a field type for anything that's not simple text equivalent
-			$types = array(
-				// Empty
-			);
-
-			$columns = getTableColumns( 'Controls' );
-			foreach ( $columns as $name=>$type )
-			{
-				if ( preg_match( '/^(Can|Has)/', $name ) )
-				{
-					$types[$name] = 'toggle';
-				}
-			}
-			$changes = getFormChanges( $control, $new_control, $types, $columns );
-
-			if ( count( $changes ) )
-			{
-				if ( $cid > 0 )
-				{
-					simpleQuery( "update Controls set ".implode( ", ", $changes )." where Id = '$cid'" );
-					$refresh_parent = true;
-				}
-				else
-				{
-
-					$sql = "insert into Controls set ".implode( ", ", $changes );
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
-					$cid = mysql_insert_id();
-				}
-				$refresh_parent = true;
-			}
-		}
 		elseif ( $action == "delete" )
 		{
 			if ( $run_state )
@@ -1300,15 +1319,6 @@ if ( isset($action) )
 						setcookie( "cgroup", "", time()-3600*24*2 );
 						$refresh_parent = true;
 					}
-				}
-			}
-			if ( $mark_cids )
-			{
-				foreach( $mark_cids as $mark_cid )
-				{
-					simpleQuery( "delete from Controls where Id = '$mark_cid'" );
-					simpleQuery( "update Monitors set Controllable = 0, ControlId = 0 where ControlId = '$mark_cid'" );
-					$refresh_parent = true;
 				}
 			}
 		}

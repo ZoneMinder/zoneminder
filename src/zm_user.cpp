@@ -31,21 +31,23 @@ User::User()
 {
 	username[0] = password[0] = 0;
 	enabled = false;
-	stream = events = monitors = system = PERM_NONE;
+	stream = events = control = monitors = system = PERM_NONE;
 	monitor_ids = 0;
 }
 
 User::User( MYSQL_ROW &dbrow )
 {
-	strncpy( username, dbrow[0], sizeof(username) );
-	strncpy( password, dbrow[1], sizeof(password) );
-	enabled = (bool)atoi( dbrow[2] );
-	stream = (Permission)atoi( dbrow[3] );
-	events = (Permission)atoi( dbrow[4] );
-	monitors = (Permission)atoi( dbrow[5] );
-	system = (Permission)atoi( dbrow[6] );
+	int index = 0;
+	strncpy( username, dbrow[index++], sizeof(username) );
+	strncpy( password, dbrow[index++], sizeof(password) );
+	enabled = (bool)atoi( dbrow[index++] );
+	stream = (Permission)atoi( dbrow[index++] );
+	events = (Permission)atoi( dbrow[index++] );
+	control = (Permission)atoi( dbrow[index++] );
+	monitors = (Permission)atoi( dbrow[index++] );
+	system = (Permission)atoi( dbrow[index++] );
 	monitor_ids = 0;
-	char *monitor_ids_str = dbrow[7];
+	char *monitor_ids_str = dbrow[index++];
 	if ( monitor_ids_str && *monitor_ids_str )
 	{
 		monitor_ids = new int[strlen(monitor_ids_str)];
@@ -102,7 +104,7 @@ bool User::canAccess( int monitor_id )
 User *zmLoadUser( const char *username, const char *password )
 {
 	char sql[BUFSIZ] = "";
-	snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
+	snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
 
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -149,7 +151,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 
 	Debug( 1, ( "Attempting to authenticate user from auth string '%s'", auth ));
 	char sql[BUFSIZ] = "";
-	snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1" );
+	snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1" );
 
 	if ( mysql_query( &dbconn, sql ) )
 	{

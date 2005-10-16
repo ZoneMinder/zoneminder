@@ -38,6 +38,7 @@ protected:
 	bool enabled;
 	Permission stream;
 	Permission events;
+	Permission control;
 	Permission monitors;
 	Permission system;
 	int *monitor_ids;
@@ -52,6 +53,7 @@ public:
 	bool isEnabled() const { return( enabled ); }
 	Permission getStream() const { return( stream ); }
 	Permission getEvents() const { return( events ); }
+	Permission getControl() const { return( control ); }
 	Permission getMonitors() const { return( monitors ); }
 	Permission getSystem() const { return( system ); }
 	bool canAccess( int monitor_id );

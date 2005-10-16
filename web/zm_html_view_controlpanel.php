@@ -43,7 +43,7 @@ $cmds = getControlCommands( $monitor );
 <script type="text/javascript">
 function newWindow(Url,Name,Width,Height)
 {
-   	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+   	var Win = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
 function closeWindow()
 {

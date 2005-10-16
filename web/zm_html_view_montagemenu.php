@@ -99,7 +99,7 @@ else
 {
 ?>
 <td width="25%" align="left" class="text"><b><?= $zmSlangMontage ?></b></td>
-<?php if ( ZM_OPT_CONTROL && $control_mid ) { ?>
+<?php if ( ZM_OPT_CONTROL && $control_mid && canView( 'Control' ) ) { ?>
 <td width="25%" align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=control&menu=1&mid=<?= $control_mid ?>', 'Control', <?= $jws['control']['w'] ?>, <?= $jws['control']['h'] ?> )"><?= $zmSlangControl ?></a></td>
 <?php } else { ?>
 <td width="25%" align="center" class="text">&nbsp;</td>

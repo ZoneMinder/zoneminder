@@ -30,7 +30,7 @@ $tabs["source"] = $zmSlangSource;
 $tabs["timestamp"] = $zmSlangTimestamp;
 $tabs["buffers"] = $zmSlangBuffers;
 $tabs["misc"] = $zmSlangMisc;
-if ( ZM_OPT_CONTROL )
+if ( ZM_OPT_CONTROL && canView( 'Control' ) )
 {
 	$tabs["control"] = $zmSlangControl;
 }

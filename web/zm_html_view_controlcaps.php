@@ -18,7 +18,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canView( 'System' ) )
+if ( !canView( 'Control' ) )
 {
     $view = "error";
     return;
@@ -99,8 +99,8 @@ foreach( $controls as $control )
 {
 ?>
 <tr>
-<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=controlcap&cid=".$control['Id']."', 'zmControlCap', ".$jws['controlcap']['w'].", ".$jws['controlcap']['h']." );", $control['Id'].'.', canView( 'System' ) ) ?></td>
-<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=controlcap&cid=".$control['Id']."', 'zmControlCap', ".$jws['controlcap']['w'].", ".$jws['controlcap']['h']." );", $control['Name'], canView( 'System' ) ) ?></td>
+<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=controlcap&cid=".$control['Id']."', 'zmControlCap', ".$jws['controlcap']['w'].", ".$jws['controlcap']['h']." );", $control['Id'].'.', canView( 'Control' ) ) ?></td>
+<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=controlcap&cid=".$control['Id']."', 'zmControlCap', ".$jws['controlcap']['w'].", ".$jws['controlcap']['h']." );", $control['Name'], canView( 'Control' ) ) ?></td>
 <td align="center" class="text"><?= $control['Type'] ?></td>
 <td align="center" class="text"><?= $control['CanMove']?$zmSlangYes:$zmSlangNo ?></td>
 <td align="center" class="text"><?= $control['CanZoom']?$zmSlangYes:$zmSlangNo ?></td>
@@ -108,7 +108,7 @@ foreach( $controls as $control )
 <td align="center" class="text"><?= $control['CanIris']?$zmSlangYes:$zmSlangNo ?></td>
 <td align="center" class="text"><?= $control['CanWhite']?$zmSlangYes:$zmSlangNo ?></td>
 <td align="center" class="text"><?= $control['HasHomePreset']?'H':'' ?><?= $control['HasPresets']?$control['NumPresets']:'0' ?></td>
-<td align="center" class="text"><input type="checkbox" name="mark_cids[]" value="<?= $control['Id'] ?>" onClick="configureButton( document.control_form, 'mark_cids' );"<?php if ( !canEdit( 'System' ) ) {?> disabled<?php } ?>></td>
+<td align="center" class="text"><input type="checkbox" name="mark_cids[]" value="<?= $control['Id'] ?>" onClick="configureButton( document.control_form, 'mark_cids' );"<?php if ( !canEdit( 'Control' ) ) {?> disabled<?php } ?>></td>
 </tr>
 <?php
 }
@@ -118,7 +118,7 @@ foreach( $controls as $control )
 <input type="button" value="<?= $zmSlangRefresh ?>" class="form" onClick="javascript: location.reload(true);">
 </td>
 <td colspan="2" align="center">
-<input type="button" value="<?= $zmSlangAddNewControl ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=controlcap', 'zmControlCap', <?= $jws['controlcap']['w'] ?>, <?= $jws['controlcap']['h'] ?>);"<?php if ( !canEdit( 'System' ) ) {?> disabled<?php } ?>>
+<input type="button" value="<?= $zmSlangAddNewControl ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=controlcap', 'zmControlCap', <?= $jws['controlcap']['w'] ?>, <?= $jws['controlcap']['h'] ?>);"<?php if ( !canEdit( 'Control' ) ) {?> disabled<?php } ?>>
 </td>
 <td colspan="5" align="center">&nbsp;</td>
 <td align="center"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>

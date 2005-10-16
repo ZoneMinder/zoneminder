@@ -110,11 +110,13 @@ $nv = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView );
 <tr><td align="right" class="text">Stream</td><td align="left" class="text"><?= buildSelect( "new_stream", $nv ) ?></td></tr>
 <?php
 $new_events = $row['Events'];
+$new_control = $row['Control'];
 $new_monitors = $row['Monitors'];
 $new_system = $row['System'];
 $nve = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView, 'Edit'=>$zmSlangEdit );
 ?>
 <tr><td align="right" class="text"><?= $zmSlangEvents ?></td><td align="left" class="text"><?= buildSelect( "new_events", $nve ) ?></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangControl ?></td><td align="left" class="text"><?= buildSelect( "new_control", $nve ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangMonitors ?></td><td align="left" class="text"><?= buildSelect( "new_monitors", $nve ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangSystem ?></td><td align="left" class="text"><?= buildSelect( "new_system", $nve ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangRestrictedCameraIds ?></td><td align="left" class="text"><input type="text" name="new_monitor_ids" value="<?= $row['MonitorIds'] ?>" size="16" class="form"></td></tr>

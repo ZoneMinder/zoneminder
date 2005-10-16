@@ -168,6 +168,7 @@ if ( $tab == "users" )
 <td align="left" class="smallhead"><?= $zmSlangEnabled ?></td>
 <td align="left" class="smallhead"><?= $zmSlangStream ?></td>
 <td align="left" class="smallhead"><?= $zmSlangEvents ?></td>
+<td align="left" class="smallhead"><?= $zmSlangControl ?></td>
 <td align="left" class="smallhead"><?= $zmSlangMonitors ?></td>
 <td align="left" class="smallhead"><?= $zmSlangSystem ?></td>
 <td align="left" class="smallhead"><?= $zmSlangMonitor ?></td>
@@ -187,6 +188,7 @@ if ( $tab == "users" )
 <td align="left" class="ruled"><?= $row['Enabled']?$zmSlangYes:$zmSlangNo ?></td>
 <td align="left" class="ruled"><?= $row['Stream'] ?></td>
 <td align="left" class="ruled"><?= $row['Events'] ?></td>
+<td align="left" class="ruled"><?= $row['Control'] ?></td>
 <td align="left" class="ruled"><?= $row['Monitors'] ?></td>
 <td align="left" class="ruled"><?= $row['System'] ?></td>
 <td align="left" class="ruled"><?= $row['MonitorIds']?$row['MonitorIds']:"&nbsp;" ?></td>
@@ -233,7 +235,7 @@ else
 		elseif ( preg_match( "/\|/", $value['Hint'] ) )
 		{
 ?>
-<td align="left" class="text">
+<td align="left" class="text"><nobr>
 <?php
 			foreach ( split( "\|", $value['Hint'] ) as $option )
 			{
@@ -242,7 +244,7 @@ else
 <?php
 			}
 ?>
-</td>
+</nobr></td>
 <?php
 		}
 		elseif ( $value['Type'] == "text" )

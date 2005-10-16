@@ -1040,14 +1040,6 @@ my @options =
 		category => 'web',
 	},
 	{
-		name => "ZM_WEB_DEFAULT_EVENTS_VIEW",
-		default => "events",
-		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
-		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
-		type => { db_type=>'string', hint=>'events|timeline', pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? 'events' : 'timeline' ) },
-		category => 'web',
-	},
-	{
 		name => "ZM_WEB_EVENTS_PER_PAGE",
 		default => "25",
 		description => "How many events to list per page in paged mode",
@@ -1180,6 +1172,14 @@ my @options =
 		category => 'highband',
 	},
 	{
+		name => "ZM_WEB_H_EVENTS_VIEW",
+		default => "events",
+		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
+		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
+		type => { db_type=>'string', hint=>'events|timeline', pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? 'events' : 'timeline' ) },
+		category => 'highband',
+	},
+	{
 		name => "ZM_WEB_M_REFRESH_MAIN",
 		default => "300",
 		description => "How often (in seconds) the main console window should refresh itself",
@@ -1262,6 +1262,14 @@ my @options =
 		category => 'medband',
 	},
 	{
+		name => "ZM_WEB_M_EVENTS_VIEW",
+		default => "events",
+		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
+		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
+		type => { db_type=>'string', hint=>'events|timeline', pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? 'events' : 'timeline' ) },
+		category => 'medband',
+	},
+	{
 		name => "ZM_WEB_L_REFRESH_MAIN",
 		default => "300",
 		description => "How often (in seconds) the main console window should refresh itself",
@@ -1341,6 +1349,14 @@ my @options =
 		help => "A value of 1 sends the whole image to the browser which resizes it in the window, larger values scale down by that amount on the server before sending a reduced size image to the browser. For low bandwidth settings the default of 4 is usually the best.",
 		type => $types{integer},
 		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
+		category => 'lowband',
+	},
+	{
+		name => "ZM_WEB_L_EVENTS_VIEW",
+		default => "events",
+		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
+		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
+		type => { db_type=>'string', hint=>'events|timeline', pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? 'events' : 'timeline' ) },
 		category => 'lowband',
 	},
 	{

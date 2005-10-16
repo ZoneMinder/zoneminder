@@ -49,7 +49,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *event
 	static char start_time_str[32];
 
 	strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", localtime( &start_time.tv_sec ) );
-	snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Cause, Notes ) values ( %d, 'New Event', '%s', '%s', '%s' )", monitor->Id(), start_time_str, event_cause, event_text );
+	snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', '%s', %d, %d, '%s', '%s' )", monitor->Id(), start_time_str, monitor->Width(), monitor->Height(), event_cause, event_text );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert event: %s", mysql_error( &dbconn ) ));

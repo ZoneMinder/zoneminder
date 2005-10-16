@@ -702,9 +702,9 @@ function createListThumbnail( $event, $overwrite=false )
 	return( $thumb_data );
 }
 
-function createVideo( $event, $rate, $scale, $overwrite=false )
+function createVideo( $event, $format, $rate, $scale, $overwrite=false )
 {
-	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -r ".sprintf( "%.2f", ($rate/RATE_SCALE) )." -s ".sprintf( "%.2f", ($scale/SCALE_SCALE) );
+	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$format." -r ".sprintf( "%.2f", ($rate/RATE_SCALE) )." -s ".sprintf( "%.2f", ($scale/SCALE_SCALE) );
 	if ( $overwrite )
 		$command .= " -o";
 	$result = exec( $command, $output, $status );

@@ -45,6 +45,48 @@ if ( !isset( $scale ) )
 
 $event_dir = ZM_DIR_EVENTS."/".$event['MonitorId']."/".sprintf( "%d", $eid );
 
+$video_formats = array();
+$ffmpeg_formats = preg_split( '/\s+/', ZM_FFMPEG_FORMATS );
+foreach ( $ffmpeg_formats as $ffmpeg_format )
+{
+	if ( preg_match( '/^(.+)\*$/', $ffmpeg_format, $matches ) )
+	{
+		$video_formats[$matches[1]] = $matches[1];
+		if ( !isset($video_format) )
+		{
+			$video_format = $matches[1];
+		}
+	}
+	else
+	{
+		$video_formats[$ffmpeg_format] = $ffmpeg_format;
+	}
+}
+
+$video_files = array();
+if ( $dir = opendir( $event_dir ) )
+{
+	while ( ($file = readdir( $dir )) !== false )
+	{
+		$file = $event_dir.'/'.$file;
+		if ( is_file( $file ) )
+		{
+			if ( preg_match( '/\.(?:'.join( '|', $video_formats ).')$/', $file ) )
+			{
+				$video_files[] = $file;
+			}
+		}
+	}
+	closedir( $dir );
+}
+
+if ( isset($download) )
+{
+	header( "Content-disposition: attachment; filename=".$video_files[$download]."; size=".filesize($video_files[$download]) );
+	readfile( $video_files[$download] );
+	exit;
+}
+
 ob_start();
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
@@ -79,7 +121,7 @@ if ( !empty($generate) )
 </table>
 <?php
 	$buffer_string = "<!-- This is some long buffer text to ensure that IE flushes correctly -->";
-	for ( $i = 0; $i < 4096/strlen($buffer_string); $i++ )
+	for ( $i = 0; $i < 8192/strlen($buffer_string); $i++ )
 	{
 		echo $buffer_string."\n";
 	}
@@ -87,10 +129,9 @@ if ( !empty($generate) )
 </body>
 </html>
 <?php
-	ob_flush();
-	ob_start();
+	ob_end_flush();
 
-	if ( $video_file = createVideo( $event, $rate, $scale, $overwrite ) )
+	if ( $video_file = createVideo( $event, $video_format, $rate, $scale, $overwrite ) )
 	{
 		$video_path = $event_dir.'/'.$video_file;
 	}
@@ -98,7 +139,7 @@ if ( !empty($generate) )
 <html>
 <head>
 <script type="text/javascript">
-location.replace('<?= $PHP_FILE ?>?view=<?= $view ?>&eid=<?= $eid ?>&generated=<?= $video_file?1:0 ?>');
+location.replace('<?= $PHP_FILE ?>?view=<?= $view ?>&eid=<?= $eid ?>&video_format=<?= $video_format ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&generated=<?= $video_file?1:0 ?>');
 </script>
 </head>
 <body>
@@ -115,11 +156,12 @@ else
 <tr><td width="50">&nbsp;</td><td class="head" align="center"><?= $zmSlangVideoGenParms ?></td><td width="50" class="text" align="right"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="2" width="96%">
-<tr><td width="50%">&nbsp;</td><td width="50%">&nbsp;</td></tr>
+<tr><td width="50%"><img src="graphics/spacer.gif" width="1" height="5"></td><td width="50%"><img src="graphics/spacer.gif" width="1" height="5"></td></tr>
+<tr><td class="text" align="right"><?= $zmSlangVideoFormat ?></td><td><?= buildSelect( "video_format", $video_formats ) ?></td></tr>
 <tr><td class="text" align="right"><?= $zmSlangFrameRate ?></td><td><?= buildSelect( "rate", $rates ) ?></td></tr>
 <tr><td class="text" align="right"><?= $zmSlangVideoSize ?></td><td><?= buildSelect( "scale", $scales ) ?></td></tr>
 <tr><td class="text" align="right"><?= $zmSlangOverwriteExisting ?></td><td><input type="checkbox" class="form-noborder" name="overwrite" value="1"<?php if ( isset($overwrite) ) { ?> checked<?php } ?>></td></tr>
-<tr><td colspan="2">&nbsp;</td></tr>
+<tr><td colspan="2"><img src="graphics/spacer.gif" width="1" height="5"></td></tr>
 <tr><td colspan="2" align="center"><input type="submit" class="form" value="<?= $zmSlangGenerateVideo ?>"></td></tr>
 </table>
 </form>
@@ -149,24 +191,6 @@ else
 <tr><td>
 <table align="center" border="0" cellspacing="0" cellpadding="3">
 <?php
-	$video_files = array();
-	$video_types = array( "mpg", "mpeg", "asf", "mov", "3gp" );
-	if ( $dir = opendir( $event_dir ) )
-	{
-		while ( ($file = readdir( $dir )) !== false )
-		{
-			$file = $event_dir.'/'.$file;
-			if ( is_file( $file ) )
-			{
-				if ( preg_match( '/\.(?:'.join( '|', $video_types ).')$/', $file ) )
-				{
-					$video_files[] = $file;
-				}
-			}
-		}
-		closedir( $dir );
-	}
-
 	if ( count($video_files) )
 	{
 ?>
@@ -197,7 +221,7 @@ else
   <td class="text" align="center"><?= filesize( $file ) ?></td>
   <td class="text" align="center"><?= $rate_text ?></td>
   <td class="text" align="center"><?= $scale_text ?></td>
-  <td class="text" align="center"><a href="javascript:viewVideo( '<?= $file ?>', 'zmVideo<?= $eid ?>-<?= $scale ?>', 12+<?= reScale( $event['Width'], $scale ) ?>, 20+<?= reScale( $event['Height'], $scale ) ?> );"><?= $zmSlangView ?></a>&nbsp;/&nbsp;<a href="<?= $file ?>" target="_blank"><?= $zmSlangDownload ?></a>&nbsp;/&nbsp;<a href="javascript: deleteVideo( <?= $index ?> )"><?= $zmSlangDelete ?></a></td>
+  <td class="text" align="center"><a href="javascript:viewVideo( '<?= $file ?>', 'zmVideo<?= $eid ?>-<?= $scale ?>', 12+<?= reScale( $event['Width'], $scale ) ?>, 20+<?= reScale( $event['Height'], $scale ) ?> );"><?= $zmSlangView ?></a>&nbsp;/&nbsp;<a href="<?= $file ?>" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&eid=<?= $eid ?>&download=<?= $index ?>'" target="_blank"><?= $zmSlangDownload ?></a>&nbsp;/&nbsp;<a href="javascript: deleteVideo( <?= $index ?> )"><?= $zmSlangDelete ?></a></td>
 </tr>
 <?php
 			$index++;

@@ -25,9 +25,16 @@ if ( !canView( 'Stream' ) )
 }
 
 $zmu_command = getZmuCommand( " -m $mid -s -f" );
-if ( canEdit( 'Monitors' ) && isset($force) )
+if ( canEdit( 'Monitors' ) )
 {
-	$zmu_command .= ($force?" -a":" -c"); 
+	if ( isset($force) )
+	{
+		$zmu_command .= ($force?" -a":" -c"); 
+	}
+	elseif ( isset($disable) )
+	{
+		$zmu_command .= ($disable?" -n":" -c"); 
+	}
 }
 
 $zmu_output = exec( escapeshellcmd( $zmu_command ) );
@@ -57,8 +64,8 @@ $fps_string = sprintf( "%.2f", $fps );
 $new_alarm = ( $status > STATE_PREALARM && $last_status <= STATE_PREALARM );
 $old_alarm = ( $status <= STATE_PREALARM && $last_status > STATE_PREALARM );
 
-$refresh = (isset($force)||$forced||(($status>=STATE_PREALARM)&&($status<=STATE_ALERT)))?1:ZM_WEB_REFRESH_STATUS;
-$url = "$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status".(($force||$forced)?"&forced=1":"");
+$refresh = (isset($force)||$forced||isset($disable)||$disabled||(($status>=STATE_PREALARM)&&($status<=STATE_ALERT)))?1:ZM_WEB_REFRESH_STATUS;
+$url = "$PHP_SELF?view=watchstatus&mid=$mid&last_status=$status".(($force||$forced)?"&forced=1":"").(($disable||$disabled)?"&disabled=1":"");
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: $refresh; URL=$url" );
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
@@ -83,7 +90,10 @@ top.window.focus();
 if ( $old_alarm )
 {
 ?>
-window.parent.MonitorEvents<?= $mid ?>.location.reload(true);
+if ( window.parent.MonitorEvents<?= $mid ?> != null )
+{
+	window.parent.MonitorEvents<?= $mid ?>.location.reload(true);
+}
 <?php
 }
 if ( ZM_WEB_REFRESH_METHOD == "javascript" )
@@ -98,25 +108,50 @@ window.setTimeout( "window.location.replace( '<?= $url ?>' )", <?= $refresh*1000
 <body>
 <table width="96%" align="center" border="0" cellpadding="0" cellspacing="0">
 <tr>
-<td width="15%" class="text" align="left">&nbsp;</td>
-<td width="70%" class="<?= $class ?>" align="center" valign="middle"><?= $zmSlangStatus ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
 <?php
-if ( canEdit( 'Monitors' ) && ($force || $forced) )
+if ( !($force || $forced) )
 {
+	if ( canEdit( 'Monitors' ) && ($disable || $disabled) )
+	{
 ?>
-<td width="15%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=$status&force=0"><?= $zmSlangCancelForcedAlarm ?></a></td>
+<td width="20%" align="left" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&disable=0"><?= $zmSlangEnableAlarms ?></a></td>
 <?php
-}
-elseif ( canEdit( 'Monitors' ) && zmaCheck( $mid ) )
-{
+	}
+	elseif ( canEdit( 'Monitors' ) && zmaCheck( $mid ) )
+	{
 ?>
-<td width="15%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=$status&force=1"><?= $zmSlangForceAlarm ?></a></td>
+<td width="20%" align="left" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&disable=1"><?= $zmSlangDisableAlarms ?></a></td>
 <?php
+	}
 }
 else
 {
 ?>
-<td width="15%" align="right" class="text">&nbsp;</td>
+<td width="20%" align="left" class="text">&nbsp;</td>
+<?php
+}
+?>
+<td width="60%" class="<?= $class ?>" align="center" valign="middle"><?= $zmSlangStatus ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
+<?php
+if ( !($disable || $disabled) )
+{
+	if ( canEdit( 'Monitors' ) && ($force || $forced) )
+	{
+?>
+<td width="20%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&force=0"><?= $zmSlangCancelForcedAlarm ?></a></td>
+<?php
+	}
+	elseif ( canEdit( 'Monitors' ) && zmaCheck( $mid ) )
+	{
+?>
+<td width="20%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&force=1"><?= $zmSlangForceAlarm ?></a></td>
+<?php
+	}
+}
+else
+{
+?>
+<td width="20%" align="right" class="text">&nbsp;</td>
 <?php
 }
 ?>

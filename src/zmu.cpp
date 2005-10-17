@@ -27,13 +27,13 @@
 
 void Usage( int status=-1 )
 {
-	fprintf( stderr, "zmu <-d device_no> [-v] [function] [-U<username> -P<password>]\n" );
+	fprintf( stderr, "zmu <-d device_path> [-v] [function] [-U<username> -P<password>]\n" );
 	fprintf( stderr, "zmu <-m monitor_id> [-v] [function] [-U<username> -P<password>]\n" );
 	fprintf( stderr, "General options:\n" );
 	fprintf( stderr, "  -h, --help                     : This screen\n" );
 	fprintf( stderr, "  -v, --verbose                  : Produce more verbose output\n" );
 	fprintf( stderr, "Options for use with devices:\n" );
-	fprintf( stderr, "  -d, --device <device_no>       : Get the current video device settings for /dev/video<device_no>\n" );
+	fprintf( stderr, "  -d, --device <device_path>     : Get the current video device settings for <device_path>\n" );
 	fprintf( stderr, "  -q, --query                    : Query the current settings for the device\n" );
 	fprintf( stderr, "Options for use with monitors:\n" );
 	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 1 if absent\n" );
@@ -157,7 +157,7 @@ int main( int argc, char *argv[] )
 		{0, 0, 0, 0}
 	};
 
-	int dev_id = -1;
+	const char *device = "";
 	int mon_id = 0;
 	bool verbose = false;
 	Function function = BOGUS;
@@ -184,7 +184,7 @@ int main( int argc, char *argv[] )
 		switch (c)
 		{
 			case 'd':
-				dev_id = atoi(optarg);
+				device = optarg;
 				break;
 			case 'm':
 				mon_id = atoi(optarg);
@@ -303,7 +303,7 @@ int main( int argc, char *argv[] )
 		Usage();
 	}
 
-	if ( dev_id >= 0 && !(function&QUERY) )
+	if ( device[0] && !(function&QUERY) )
 	{
 		fprintf( stderr, "Error, -d option cannot be used with this option\n" );
 		Usage();
@@ -344,12 +344,12 @@ int main( int argc, char *argv[] )
 		ValidateAccess( user, mon_id, function );
 	}
 
-	if ( dev_id >= 0 )
+	if ( device[0] )
 	{
 		if ( function & QUERY )
 		{
 			char vid_string[BUFSIZ] = "";
-			bool ok = LocalCamera::GetCurrentSettings( dev_id, vid_string, verbose );
+			bool ok = LocalCamera::GetCurrentSettings( device, vid_string, verbose );
 			printf( "%s", vid_string );
 			exit( ok?0:-1 );
 		}

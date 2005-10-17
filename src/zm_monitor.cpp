@@ -31,7 +31,7 @@ Monitor::Monitor(
 	int p_id,
 	char *p_name,
 	int p_function,
-	int p_device,
+	const char *p_device,
 	int p_channel,
 	int p_format,
 	int p_width,
@@ -1001,16 +1001,16 @@ void Monitor::ReloadZones()
 	DumpZoneImage();
 }
 
-int Monitor::Load( int device, Monitor **&monitors, Purpose purpose )
+int Monitor::Load( const char *device, Monitor **&monitors, Purpose purpose )
 {
 	static char sql[BUFSIZ];
-	if ( device == -1 )
+	if ( !device[0] )
 	{
 		strncpy( sql, "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local'", sizeof(sql) );
 	}
 	else
 	{
-		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local' and Device = %d", device );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local' and Device = '%s'", device );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1034,7 +1034,7 @@ int Monitor::Load( int device, Monitor **&monitors, Purpose purpose )
 			atoi(dbrow[0]), // Id
 			dbrow[1], // Name
 			atoi(dbrow[2]), // Function
-			atoi(dbrow[3]), // Device
+			dbrow[3], // Device
 			atoi(dbrow[4]), // Channel
 			atoi(dbrow[5]), // Format
 			atoi(dbrow[6]), // Width
@@ -1180,7 +1180,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 				atoi(dbrow[0]), // Id
 				dbrow[1], // Name
 				atoi(dbrow[3]), // Function
-				atoi(dbrow[4]), // Device
+				dbrow[4], // Device
 				atoi(dbrow[5]), // Channel
 				atoi(dbrow[6]), // Format
 				atoi(dbrow[10]), // Width
@@ -1464,7 +1464,7 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":"Remote" );
 	if ( camera->IsLocal() )
 	{
-		sprintf( output+strlen(output), "Device : %d\n", ((LocalCamera *)camera)->Device() );
+		sprintf( output+strlen(output), "Device : %s\n", ((LocalCamera *)camera)->Device() );
 		sprintf( output+strlen(output), "Channel : %d\n", ((LocalCamera *)camera)->Channel() );
 		sprintf( output+strlen(output), "Format : %d\n", ((LocalCamera *)camera)->Format() );
 	}

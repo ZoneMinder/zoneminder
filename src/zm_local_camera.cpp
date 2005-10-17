@@ -43,7 +43,7 @@ short *LocalCamera::g_v_table;
 short *LocalCamera::g_u_table;
 short *LocalCamera::b_u_table;
 
-LocalCamera::LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : Camera( LOCAL, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture ), device( p_device ), channel( p_channel ), format( p_format )
+LocalCamera::LocalCamera( const char *p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : Camera( LOCAL, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture ), device( p_device ), channel( p_channel ), format( p_format )
 {
 	if ( !camera_count++ && capture )
 	{
@@ -61,12 +61,9 @@ LocalCamera::~LocalCamera()
 
 void LocalCamera::Initialise()
 {
-	char device_path[64];
-
-	snprintf( device_path, sizeof(device_path), "/dev/video%d", device );
-	if ( (m_videohandle=open(device_path, O_RDWR)) < 0 )
+	if ( (m_videohandle=open(device, O_RDWR)) < 0 )
 	{
-		Error(( "Failed to open video device %s: %s", device_path, strerror(errno) ));
+		Error(( "Failed to open video device %s: %s", device, strerror(errno) ));
 		exit(-1);
 	}
 
@@ -266,19 +263,16 @@ void LocalCamera::Terminate()
 	close(m_videohandle);
 }
 
-bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
+bool LocalCamera::GetCurrentSettings( const char *device, char *output, bool verbose )
 {
-	char device_path[64];
-
 	output[0] = 0;
-	snprintf( device_path, sizeof(device_path), "/dev/video%d", device );
 	if ( verbose )
-		sprintf( output, output+strlen(output), "Checking Video Device: %s\n", device_path );
-	if ( (m_videohandle=open(device_path, O_RDWR)) <=0 )
+		sprintf( output, output+strlen(output), "Checking Video Device: %s\n", device );
+	if ( (m_videohandle=open(device, O_RDWR)) <=0 )
 	{
-		Error(( "Failed to open video device %s: %s", device_path, strerror(errno) ));
+		Error(( "Failed to open video device %s: %s", device, strerror(errno) ));
 		if ( verbose )
-			sprintf( output+strlen(output), "Error, failed to open video device: %s\n", strerror(errno) );
+			sprintf( output+strlen(output), "Error, failed to open video device %s: %s\n", device, strerror(errno) );
 		else
 			sprintf( output+strlen(output), "error%d\n", errno );
 		return( false );
@@ -289,7 +283,7 @@ bool LocalCamera::GetCurrentSettings( int device, char *output, bool verbose )
 	{
 		Error(( "Failed to get video capabilities: %s", strerror(errno) ));
 		if ( verbose )
-			sprintf( output, "Error, failed to get video capabilities: %s\n", strerror(errno) );
+			sprintf( output, "Error, failed to get video capabilities %s: %s\n", device, strerror(errno) );
 		else
 			sprintf( output, "error%d\n", errno );
 		return( false );

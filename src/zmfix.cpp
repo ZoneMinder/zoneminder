@@ -78,71 +78,47 @@ bool fixDevice( const char *device_path )
 	return( true );
 }
 
-bool fixVideoDevice( int device )
-{
-	char device_path[64];
-
-	snprintf( device_path, sizeof(device_path), "/dev/video%d", device );
-
-	return( fixDevice( device_path ) );
-}
-
 int main( int argc, char *argv[] )
 {
 	zmDbgInit( "zmfix", "", -1 );
 
 	zmLoadConfig();
 
-	if ( argc > 1 && !strcmp( argv[1], "-a" ) )
+	// Only do registered devices
+	static char sql[BUFSIZ];
+	snprintf( sql, sizeof(sql), "select distinct Device from Monitors where Type = 'Local'" );
+	if ( mysql_query( &dbconn, sql ) )
 	{
-		// Do all devices we can find
-		for ( int device = 0; device < 256; device++ )
-		{
-			if ( !fixVideoDevice( device ) )
-			{
-				break;
-			}
-		}
+		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
 	}
-	else
+
+	MYSQL_RES *result = mysql_store_result( &dbconn );
+	if ( !result )
 	{
-		// Only do registered devices
-		static char sql[BUFSIZ];
-		//snprintf( sql, sizeof(sql), "select distinct Device from Monitors where Function != 'None' and Type = 'Local'" );
-		snprintf( sql, sizeof(sql), "select distinct Device from Monitors where Type = 'Local'" );
-		if ( mysql_query( &dbconn, sql ) )
-		{
-			Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
-			exit( mysql_errno( &dbconn ) );
-		}
+		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
 
-		MYSQL_RES *result = mysql_store_result( &dbconn );
-		if ( !result )
-		{
-			Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
-			exit( mysql_errno( &dbconn ) );
-		}
+	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
+	{
+		const char *device = dbrow[0];
+		fixDevice( device );
+	}
 
-		for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
-		{
-			int device = atoi(dbrow[0]);
-			fixVideoDevice( device );
-		}
+	if ( mysql_errno( &dbconn ) )
+	{
+		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+	// Yadda yadda
+	mysql_free_result( result );
 
-		if ( mysql_errno( &dbconn ) )
+	if ( config.opt_x10 )
+	{
+		if ( config.x10_device )
 		{
-			Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
-			exit( mysql_errno( &dbconn ) );
-		}
-		// Yadda yadda
-		mysql_free_result( result );
-
-		if ( config.opt_x10 )
-		{
-			if ( config.x10_device )
-			{
-				fixDevice( config.x10_device );
-			}
+			fixDevice( config.x10_device );
 		}
 	}
 	return( 0 );

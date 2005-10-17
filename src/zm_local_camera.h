@@ -33,13 +33,13 @@
 class LocalCamera : public Camera
 {
 protected:
-	int			device;
+	const char *device;
 	int			channel;
 	int			format;
 
 protected:
 	static int m_cap_frame;
-       static int m_cap_frame_active;
+	static int m_cap_frame_active;
 	static int m_sync_frame;
 	static video_mbuf m_vmb;
 	static video_mmap *m_vmm;
@@ -54,13 +54,13 @@ protected:
 	static short *b_u_table;
 
 public:
-	LocalCamera( int p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
+	LocalCamera( const char *p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
 	~LocalCamera();
 
 	void Initialise();
 	void Terminate();
 
-	unsigned int Device() const { return( device ); }
+	const char *Device() const { return( device ); }
 	unsigned int Channel() const { return( channel ); }
 	unsigned int Format() const { return( format ); }
 
@@ -72,7 +72,7 @@ public:
 	int PreCapture();
 	int PostCapture( Image &image );
 
-	static bool GetCurrentSettings( int device, char *output, bool verbose );
+	static bool GetCurrentSettings( const char *device, char *output, bool verbose );
 };
 
 #endif // ZM_LOCAL_CAMERA_H

@@ -35,10 +35,10 @@ void zmc_term_handler( int /* signal */ )
 
 void Usage()
 {
-	fprintf( stderr, "zmc -d <device_id> or -m <monitor_id>\n" );
+	fprintf( stderr, "zmc -d <device_path> or -H <host> -P <port> -p <path> or -m <monitor_id>\n" );
 
 	fprintf( stderr, "Options:\n" );
-	fprintf( stderr, "  -d, --device <device_id>      : For local cameras, device to access 0=>/dev/video0 etc\n" );
+	fprintf( stderr, "  -d, --device <device_path>    : For local cameras, device to access. E.g /dev/video0 etc\n" );
 	fprintf( stderr, "  -H <host> -P <port> -p <path> : For remote cameras\n" );
 	fprintf( stderr, "  -m, --monitor <monitor_id>    : For sources associated with a single monitor\n" );
 	fprintf( stderr, "  -h, --help                    : This screen\n" );
@@ -47,7 +47,7 @@ void Usage()
 
 int main( int argc, char *argv[] )
 {
-	int device = -1;
+	const char *device = "";
 	const char *host = "";
 	const char *port = "";
 	const char *path = "";
@@ -76,7 +76,7 @@ int main( int argc, char *argv[] )
 		switch (c)
 		{
 			case 'd':
-				device = atoi(optarg);
+				device = optarg;
 				break;
 			case 'H':
 				host = optarg;
@@ -109,8 +109,8 @@ int main( int argc, char *argv[] )
 		Usage();
 	}
 
-	if (( device >= 0 && host[0] )
-	|| ( device >= 0 && monitor_id > 0 )
+	if (( device[0] && host[0] )
+	|| ( device[0] && monitor_id > 0 )
 	|| ( monitor_id > 0 && host[0] ))
 	{
 		fprintf( stderr, "Only one of device or host/port/path or monitor id allowed\n" );
@@ -118,7 +118,7 @@ int main( int argc, char *argv[] )
 		exit( 0 );
 	}
 
-	if ( device < 0 && !host[0] && monitor_id <= 0 )
+	if ( !device[0] && !host[0] && monitor_id <= 0 )
 	{
 		fprintf( stderr, "One of device or host/port/path or monitor id must be specified\n" );
 		Usage();
@@ -126,9 +126,10 @@ int main( int argc, char *argv[] )
 	}
 
 	char dbg_id_string[16];
-	if ( device >= 0 )
+	if ( device[0] )
 	{
-		snprintf( dbg_id_string, sizeof(dbg_id_string), "d%d", device );
+		const char *slash_ptr = strrchr( device, '/' );
+		snprintf( dbg_id_string, sizeof(dbg_id_string), "d%s", slash_ptr?slash_ptr+1:device );
 	}
 	else if ( host[0] )
 	{
@@ -145,7 +146,7 @@ int main( int argc, char *argv[] )
 
 	Monitor **monitors = 0;
 	int n_monitors = 0;
-	if ( device >= 0 )
+	if ( device[0] )
 	{
 		n_monitors = Monitor::Load( device, monitors, Monitor::CAPTURE );
 	}
@@ -184,7 +185,7 @@ int main( int argc, char *argv[] )
 
 	sigaddset( &block_set, SIGUSR1 );
 	sigaddset( &block_set, SIGUSR2 );
-	if ( device >= 0 && n_monitors == 1 )
+	if ( device[0] && n_monitors == 1 )
 	{
 		monitors[0]->PreCapture();
 	}

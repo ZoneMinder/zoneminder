@@ -200,6 +200,7 @@ $zmSlangDeleteAndPrev        = 'Delete &amp; Prev';
 $zmSlangDelete               = 'Delete';
 $zmSlangDeleteSavedFilter    = 'Delete saved filter';
 $zmSlangDescription          = 'Description';
+$zmSlangDevicePath           = 'Device Path';
 $zmSlangDeviceChannel        = 'Device Channel';
 $zmSlangDeviceFormat         = 'Device Format (0=PAL,1=NTSC etc)';
 $zmSlangDeviceNumber         = 'Device Number (/dev/video?)';

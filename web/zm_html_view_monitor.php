@@ -409,7 +409,7 @@ switch ( $tab )
 		if ( $new_monitor['Type'] == "Local" )
 		{
 ?>
-<tr><td align="left" class="text"><?= $zmSlangDeviceNumber ?></td><td align="left" class="text"><input type="text" name="new_monitor[Device]" value="<?= $new_monitor['Device'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangDevicePath ?></td><td align="left" class="text"><input type="text" name="new_monitor[Device]" value="<?= $new_monitor['Device'] ?>" size="24" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangDeviceChannel ?></td><td align="left" class="text"><input type="text" name="new_monitor[Channel]" value="<?= $new_monitor['Channel'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangDeviceFormat ?></td><td align="left" class="text"><input type="text" name="new_monitor[Format]" value="<?= $new_monitor['Format'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangCapturePalette ?></td><td align="left" class="text"><select name="new_monitor[Palette]" class="form"><?php foreach ( $local_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor['Palette'] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>

@@ -17,7 +17,9 @@ web_DATA = \
 	arrow-ur.gif \
 	arrow-l-u.gif \
 	arrow-l-d.gif \
-	center.gif
+	center.gif \
+	seq-u.gif \
+	seq-d.gif
 
 EXTRA_DIST = $(web_DATA)
 

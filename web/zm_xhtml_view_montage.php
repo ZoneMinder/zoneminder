@@ -24,7 +24,7 @@ if ( !$result )
     echo mysql_error();
 $group = mysql_fetch_assoc( $result );
 
-$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
+$result = mysql_query( "select * from Monitors where Function != 'None' order by Sequence" );
 $monitors = array();
 $max_width = 0;
 $max_height = 0;

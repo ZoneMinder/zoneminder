@@ -413,6 +413,7 @@ $zmSlangOptionRestartWarning = 'These changes may not come into effect fully\nwh
 $zmSlangOptions              = 'Options';
 $zmSlangOrEnterNewName       = 'or enter new name';
 $zmSlangOrientation          = 'Orientation';
+$zmSlangOrder                = 'Order';
 $zmSlangOut                  = 'Out';
 $zmSlangOverwriteExisting    = 'Overwrite Existing';
 $zmSlangPaged                = 'Paged';

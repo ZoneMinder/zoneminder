@@ -1046,4 +1046,24 @@ function verNum( $version )
 	}
 	return( $vNum );
 }
+
+function fixSequences()
+{
+	$sql = "select * from Monitors order by Sequence asc, Id asc";
+	$result = mysql_query( $sql );
+	if ( !$result )
+		echo mysql_error();
+	$sequence = 1;
+	while ( $monitor = mysql_fetch_assoc( $result ) )
+	{
+		if ( $monitor['Sequence'] != $sequence )
+		{
+			$sql2 = "update Monitors set Sequence = '".$sequence."' where Id = '".$monitor['Id']."'";
+			$result2 = mysql_query( $sql2 );
+			if ( !$result2 )
+				echo mysql_error();
+		}
+		$sequence++;
+	}
+}
 ?>

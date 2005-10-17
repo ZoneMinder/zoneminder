@@ -94,7 +94,7 @@ $chart = array(
 );
 
 $monitors = array();
-$monitors_sql = "select * from Monitors order by Id asc";
+$monitors_sql = "select * from Monitors order by Sequence asc";
 if ( !($result = mysql_query( $monitors_sql )) )
 	die( mysql_error() );
 srand( 97981 );

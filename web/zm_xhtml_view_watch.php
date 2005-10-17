@@ -62,7 +62,7 @@ $fps_string = sprintf( "%.2f", $fps );
 $new_alarm = ( $status > STATE_PREALARM && $last_status <= STATE_PREALARM );
 $old_alarm = ( $status <= STATE_PREALARM && $last_status > STATE_PREALARM );
 
-$result = mysql_query( "select * from Monitors where Function != 'None' order by Id" );
+$result = mysql_query( "select * from Monitors where Function != 'None' order by Sequence" );
 $monitors = array();
 $mon_idx = 0;
 $max_width = 0;

@@ -428,6 +428,20 @@ if ( $version )
 			my $res = $sth->execute( $monitor->{Width}, $monitor->{Height}, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
 		}
 		$sth->finish();
+
+		# Add sequence numbers
+		print( "Updating monitor sequences. Please wait\n" );
+		my $sql = "select * from Monitors order by Id";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+		my $sequence = 1;
+		while( my $monitor = $sth->fetchrow_hashref() )
+		{
+			my $sql = "update Monitors set Sequence = ? where MonitorId = ?";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $sequence++, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+		}
+		$sth->finish();
 		$cascade = !undef;
 	}
 	if ( !$cascade )

@@ -40,7 +40,7 @@ header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");			// HTTP/1.0
 
 $db_now = strftime( "%Y-%m-%d %H:%M:%S" );
-$sql = "select * from Monitors order by Id";
+$sql = "select * from Monitors order by Sequence asc";
 $result = mysql_query( $sql );
 if ( !$result )
 	echo mysql_error();
@@ -48,6 +48,9 @@ $monitors = array();
 $max_width = 0;
 $max_height = 0;
 $cycle_count = 0;
+$min_sequence = 0;
+$max_sequence = 1;
+$seq_id_list = array();
 while( $row = mysql_fetch_assoc( $result ) )
 {
 	if ( !visibleMonitor( $row['Id'] ) )
@@ -57,6 +60,14 @@ while( $row = mysql_fetch_assoc( $result ) )
 	if ( $group && $group['MonitorIds'] && !in_array( $row['Id'], split( ',', $group['MonitorIds'] ) ) )
 	{
 		continue;
+	}
+	if ( empty($min_sequence) || ($row['Sequence'] < $min_sequence) )
+	{
+		$min_sequence = $row['Sequence'];
+	}
+	if ( $row['Sequence'] > $max_sequence )
+	{
+		$max_sequence = $row['Sequence'];
 	}
 	$row['zmc'] = zmcStatus( $row );
 	$row['zma'] = zmaStatus( $row );
@@ -77,6 +88,27 @@ while( $row = mysql_fetch_assoc( $result ) )
 		if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
 	}
 	$monitors[] = $row = array_merge( $row, $row2, $row3 );
+	$seq_id_list[] = $row['Id'];
+}
+$last_id = 0;
+$seq_id_u_list = array();
+foreach ( $seq_id_list as $seq_id )
+{
+	if ( !empty($last_id) )
+	{
+		$seq_id_u_list[$seq_id] = $last_id;
+	}
+	$last_id = $seq_id;
+}
+$last_id = 0;
+$seq_id_d_list = array();
+foreach ( array_reverse($seq_id_list) as $seq_id )
+{
+	if ( !empty($last_id) )
+	{
+		$seq_id_d_list[$seq_id] = $last_id;
+	}
+	$last_id = $seq_id;
 }
 
 if ( $cycle_count )
@@ -232,6 +264,14 @@ else
 <td align="right" class="smallhead"><?= $zmSlangMonth ?></td>
 <td align="right" class="smallhead"><?= $zmSlangArchive ?></td>
 <td align="right" class="smallhead"><?= $zmSlangZones ?></td>
+<?php
+if ( canEdit('Monitors') )
+{
+?>
+<td align="center" class="smallhead"><?= $zmSlangOrder ?></td>
+<?php
+}
+?>
 <td align="center" class="smallhead"><?= $zmSlangMark ?></td>
 </tr>
 <?php
@@ -304,6 +344,14 @@ foreach( $monitors as $monitor )
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=3&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val2=0&cnj3=and&attr3=DateTime&op3=%3e%3d&val3=-1+month', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['MonthEventCount'], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=2&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val2=1', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['ArchEventCount'], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=zones&mid=".$monitor['Id']."', 'zmZones', ".($monitor['Width']+$jws['zones']['w']).", ".($monitor['Height']+$jws['zones']['h'])." );", $monitor['ZoneCount'], canView( 'Monitors' ) ) ?></td>
+<?php
+if ( canEdit('Monitors') )
+{
+?>
+<td align="right" class="text"><?= makeLink( "$PHP_SELF?view=$view&action=sequence&mid=".$monitor['Id']."&smid=".$seq_id_u_list[$monitor['Id']], '<img src="graphics/seq-u.gif" alt="" width="12" height="11" border="0">', $monitor['Sequence']>$min_sequence ) ?><?= makeLink( "$PHP_SELF?view=$view&action=sequence&mid=".$monitor['Id']."&smid=".$seq_id_d_list[$monitor['Id']], '<img src="graphics/seq-d.gif" alt="" width="12" height="11" border="0">', $monitor['Sequence']<$max_sequence ) ?></td>
+<?php
+}
+?>
 <td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor['Id'] ?>" onClick="configureButton( document.monitor_form, 'mark_mids' );"<?php if ( !canEdit( 'Monitors' ) || $user['MonitorIds'] ) {?> disabled<?php } ?>></td>
 </tr>
 <?php
@@ -323,7 +371,7 @@ foreach( $monitors as $monitor )
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=-1+month', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $month_event_count, canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=1&attr1=Archived&val1=1', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $arch_event_count, canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= $zone_count ?></td>
-<td align="center"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>
+<td align="center" colspan="<?= canEdit('Monitors')?2:1 ?>"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>
 </tr>
 </form>
 </table>

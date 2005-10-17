@@ -34,7 +34,7 @@ if ( $group )
 	$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 
-$sql = "select * from Monitors where Function != 'None' $group_sql order by Id";
+$sql = "select * from Monitors where Function != 'None' $group_sql order by Sequence";
 $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );

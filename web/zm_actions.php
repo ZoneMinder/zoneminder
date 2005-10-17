@@ -894,6 +894,12 @@ if ( isset($action) )
 				}
 				elseif ( !$user['MonitorIds'] )
 				{
+					$sql = "select max(Sequence) as MaxSequence from Monitors";
+					if ( !$result )
+						die( mysql_error() );
+					$row = mysql_fetch_assoc( $result );
+					$changes[] = "Sequence = ".($row['MaxSequence']+1);
+
 					$sql = "insert into Monitors set ".implode( ", ", $changes );
 					$result = mysql_query( $sql );
 					if ( !$result )
@@ -967,8 +973,31 @@ if ( isset($action) )
 			list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
 			$sql = "update Monitors set Brightness = '$brightness', Contrast = '$contrast', Hue = '$hue', Colour = '$colour' where Id = '$mid'";
 			$result = mysql_query( $sql );
-				if ( !$result )
-					die( mysql_error() );
+			if ( !$result )
+				die( mysql_error() );
+		}
+		elseif ( $action == "sequence" && isset( $mid ) && isset($smid) )
+		{
+			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$monitor = mysql_fetch_assoc( $result );
+			$result = mysql_query( "select * from Monitors where Id = '$smid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$smonitor = mysql_fetch_assoc( $result );
+
+			$sql = "update Monitors set Sequence = '".$smonitor['Sequence']."' where Id = '".$monitor['Id']."'";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				die( mysql_error() );
+			$sql = "update Monitors set Sequence = '".$monitor['Sequence']."' where Id = '".$smonitor['Id']."'";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				die( mysql_error() );
+
+			$refresh_parent = true;
+			fixSequences();
 		}
 		elseif ( $action == "delete" )
 		{
@@ -1032,6 +1061,7 @@ if ( isset($action) )
 					if ( !$result )
 						die( mysql_error() );
 
+					fixSequences();
 				}
 			}
 		}

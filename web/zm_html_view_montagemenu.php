@@ -49,7 +49,7 @@ elseif ( ZM_OPT_CONTROL )
 		$row = mysql_fetch_assoc( $result );
 		$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
 	}
-	$sql = "select * from Monitors where Function != 'None' and Controllable = 1 $group_sql order by Id";
+	$sql = "select * from Monitors where Function != 'None' and Controllable = 1 $group_sql order by Sequence";
 	$result = mysql_query( $sql ); 
 	if ( !$result )
 		die( mysql_error() );

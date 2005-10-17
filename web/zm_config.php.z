@@ -156,7 +156,7 @@ function loadConfig()
 // Javascript window sizes
 $jws = array( 
 	'bandwidth' => array( 'w'=>200, 'h'=>90 ),
-	'console' => array( 'w'=>720, 'h'=>312 ),
+	'console' => array( 'w'=>750, 'h'=>312 ),
 	'control' => array( 'w'=>380, 'h'=>480 ),
 	'controlcaps' => array( 'w'=>700, 'h'=>320 ),
 	'controlcap' => array( 'w'=>360, 'h'=>440 ),

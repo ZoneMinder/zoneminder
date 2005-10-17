@@ -334,8 +334,12 @@ foreach( $monitors as $monitor )
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=function&mid=".$monitor['Id']."', 'zmFunction', ".$jws['function']['w'].", ".$jws['function']['h']." );", "<span class=\"$fclass\">".$monitor['Function']."</span>", canEdit( 'Monitors' ) ) ?></td>
 <?php if ( $monitor['Type'] == "Local" ) { ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=".$monitor['Id']."', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">".$monitor['Device']." (".$monitor['Channel'].")</span>", canEdit( 'Monitors' ) ) ?></td>
-<?php } else { ?>
+<?php } elseif ( $monitor['Type'] == "Remote" ) { ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=".$monitor['Id']."', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">".preg_replace( '/^.*@/', '', $monitor['Host'] )."</span>", canEdit( 'Monitors' ) ) ?></td>
+<?php } elseif ( $monitor['Type'] == "File" ) { ?>
+<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=".$monitor['Id']."', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">".preg_replace( '/^.*\//', '', $monitor['Path'] )."</span>", canEdit( 'Monitors' ) ) ?></td>
+<?php } else { ?>
+<td align="left" class="text">&nbsp;</td>
 <?php } ?>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=2&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val2=0', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['EventCount'], canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=3&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val2=0&cnj3=and&attr3=DateTime&op3=%3e%3d&val3=-1+hour', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['HourEventCount'], canView( 'Events' ) ) ?></td>

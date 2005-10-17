@@ -105,7 +105,7 @@ if ( !isset( $new_monitor ) )
 	$new_x10_monitor = isset($x10_monitor)?$x10_monitor:array();
 }
 $local_palettes = array( $zmSlangGrey=>1, "RGB24"=>4, "RGB565"=>3, "RGB555"=>6, "YUV422"=>7, "YUYV"=>8, "YUV422P"=>13, "YUV420P"=>15 );
-$remote_palettes = array( $zmSlang8BitGrey=>1, $zmSlang24BitColour=>4 );
+$remote_palettes = $file_palettes = array( $zmSlang8BitGrey=>1, $zmSlang24BitColour=>4 );
 $orientations = array( $zmSlangNormal=>'0', $zmSlangRotateRight=>'90', $zmSlangInverted=>'180', $zmSlangRotateLeft=>'270', $zmSlangFlippedHori=>'hori', $zmSlangFlippedVert=>'vert' );
 
 ?>
@@ -398,7 +398,11 @@ switch ( $tab )
 </td></tr>
 <?php
 		$select_name = "new_monitor[Type]";
-		$source_types = array( 'Local'=>$zmSlangLocal, 'Remote'=>$zmSlangRemote );
+		$source_types = array(
+			'Local'=>$zmSlangLocal,
+			'Remote'=>$zmSlangRemote,
+			'File'=>$zmSlangFile
+		);
 ?>
 <tr><td align="left" class="text"><?= $zmSlangSourceType ?></td><td><?= buildSelect( $select_name, $source_types ); ?></td></tr>
 <?php
@@ -415,13 +419,20 @@ switch ( $tab )
 <tr><td align="left" class="text"><?= $zmSlangCapturePalette ?></td><td align="left" class="text"><select name="new_monitor[Palette]" class="form"><?php foreach ( $local_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor['Palette'] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
 		}
-		else
+		elseif ( $new_monitor['Type'] == "Remote" )
 		{
 ?>
 <tr><td align="left" class="text"><?= $zmSlangRemoteHostName ?></td><td align="left" class="text"><input type="text" name="new_monitor[Host]" value="<?= $new_monitor['Host'] ?>" size="36" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangRemoteHostPort ?></td><td align="left" class="text"><input type="text" name="new_monitor[Port]" value="<?= $new_monitor['Port'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangRemoteHostPath ?></td><td align="left" class="text"><input type="text" name="new_monitor[Path]" value="<?= $new_monitor['Path'] ?>" size="36" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangRemoteImageColours ?></td><td align="left" class="text"><select name="new_monitor[Palette]" class="form"><?php foreach ( $remote_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor['Palette'] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<?php
+		}
+		elseif ( $new_monitor['Type'] == "File" )
+		{
+?>
+<tr><td align="left" class="text"><?= $zmSlangFilePath ?></td><td align="left" class="text"><input type="text" name="new_monitor[Path]" value="<?= $new_monitor['Path'] ?>" size="36" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangFileColours ?></td><td align="left" class="text"><select name="new_monitor[Palette]" class="form"><?php foreach ( $file_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor['Palette'] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
 		}
 ?>

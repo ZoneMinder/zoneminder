@@ -1020,7 +1020,10 @@ int RemoteCamera::PostCapture( Image &image )
 		Disconnect();
 		return( -1 );
 	}
-	image.DecodeJpeg( buffer.Extract( content_length ), content_length );
+	if ( !image.DecodeJpeg( buffer.Extract( content_length ), content_length ) )
+	{
+		return( -1 );
+	}
 	return( 0 );
 }
 

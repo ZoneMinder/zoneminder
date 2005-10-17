@@ -158,8 +158,7 @@ protected:
 	Camera *camera;
 
 public:
-	Monitor( int p_id, char *p_name, int p_function, const char *p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_orientation, int p_brightness, int p_contrast, int p_hue, int p_colour, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
-	Monitor( int p_id, char *p_name, int p_function, const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_orientation, int p_brightness, int p_contrast, int p_hue, int p_colour, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, Camera *p_camera, int p_orientation, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void Setup();
@@ -341,8 +340,9 @@ public:
 
 	unsigned int Compare( const Image &comp_image );
 	void ReloadZones();
-	static int Load( const char *device, Monitor **&monitors, Purpose purpose=QUERY );
-	static int Load( const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose=QUERY );
+	static int LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose=QUERY );
+	static int LoadRemoteMonitors( const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose=QUERY );
+	static int LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose=QUERY );
 	static Monitor *Load( int id, bool load_zones=false, Purpose purpose=QUERY );
 	void StreamImages( int scale=100, int maxfps=10, time_t ttl=0 );
 	void SingleImage( int scale=100 );

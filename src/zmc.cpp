@@ -35,11 +35,12 @@ void zmc_term_handler( int /* signal */ )
 
 void Usage()
 {
-	fprintf( stderr, "zmc -d <device_path> or -H <host> -P <port> -p <path> or -m <monitor_id>\n" );
+	fprintf( stderr, "zmc -d <device_path> or -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n" );
 
 	fprintf( stderr, "Options:\n" );
 	fprintf( stderr, "  -d, --device <device_path>    : For local cameras, device to access. E.g /dev/video0 etc\n" );
 	fprintf( stderr, "  -H <host> -P <port> -p <path> : For remote cameras\n" );
+	fprintf( stderr, "  -f, --file <file_path>        : For local images, jpg file to access.\n" );
 	fprintf( stderr, "  -m, --monitor <monitor_id>    : For sources associated with a single monitor\n" );
 	fprintf( stderr, "  -h, --help                    : This screen\n" );
 	exit( 0 );
@@ -51,6 +52,7 @@ int main( int argc, char *argv[] )
 	const char *host = "";
 	const char *port = "";
 	const char *path = "";
+	const char *file = "";
 	int monitor_id = -1;
 
 	static struct option long_options[] = {
@@ -58,6 +60,7 @@ int main( int argc, char *argv[] )
 		{"host", 1, 0, 'H'},
 		{"port", 1, 0, 'P'},
 	 	{"path", 1, 0, 'p'},
+	 	{"file", 1, 0, 'f'},
 		{"monitor", 1, 0, 'm'},
 		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
@@ -67,7 +70,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:H:P:p:m:h", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:H:P:p:f:m:h", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -86,6 +89,9 @@ int main( int argc, char *argv[] )
 				break;
 			case 'p':
 				path = optarg;
+				break;
+			case 'f':
+				file = optarg;
 				break;
 			case 'm':
 				monitor_id = atoi(optarg);
@@ -109,18 +115,17 @@ int main( int argc, char *argv[] )
 		Usage();
 	}
 
-	if (( device[0] && host[0] )
-	|| ( device[0] && monitor_id > 0 )
-	|| ( monitor_id > 0 && host[0] ))
+	int modes = ( device[0]?1:0 + host[0]?1:0 + file[0]?1:0 + (monitor_id>0?1:0) );
+	if ( modes > 1 )
 	{
-		fprintf( stderr, "Only one of device or host/port/path or monitor id allowed\n" );
+		fprintf( stderr, "Only one of device, host/port/path, file or monitor id allowed\n" );
 		Usage();
 		exit( 0 );
 	}
 
-	if ( !device[0] && !host[0] && monitor_id <= 0 )
+	if ( modes < 1 )
 	{
-		fprintf( stderr, "One of device or host/port/path or monitor id must be specified\n" );
+		fprintf( stderr, "One of device, host/port/path, file or monitor id must be specified\n" );
 		Usage();
 		exit( 0 );
 	}
@@ -135,6 +140,11 @@ int main( int argc, char *argv[] )
 	{
 		snprintf( dbg_id_string, sizeof(dbg_id_string), "h%s", host );
 	}
+	else if ( file[0] )
+	{
+		const char *slash_ptr = strrchr( file, '/' );
+		snprintf( dbg_id_string, sizeof(dbg_id_string), "f%s", slash_ptr?slash_ptr+1:file );
+	}
 	else
 	{
 		snprintf( dbg_id_string, sizeof(dbg_id_string), "m%d", monitor_id );
@@ -148,13 +158,17 @@ int main( int argc, char *argv[] )
 	int n_monitors = 0;
 	if ( device[0] )
 	{
-		n_monitors = Monitor::Load( device, monitors, Monitor::CAPTURE );
+		n_monitors = Monitor::LoadLocalMonitors( device, monitors, Monitor::CAPTURE );
 	}
 	else if ( host[0] )
 	{
 		if ( !port )
 			port = "80";
-		n_monitors = Monitor::Load( host, port, path, monitors, Monitor::CAPTURE );
+		n_monitors = Monitor::LoadRemoteMonitors( host, port, path, monitors, Monitor::CAPTURE );
+	}
+	else if ( file[0] )
+	{
+		n_monitors = Monitor::LoadFileMonitors( file, monitors, Monitor::CAPTURE );
 	}
 	else
 	{

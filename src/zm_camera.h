@@ -33,7 +33,7 @@
 class Camera
 {
 protected:
-	typedef enum { LOCAL, REMOTE } SourceType;
+	typedef enum { LOCAL, REMOTE, FILE } SourceType;
 
 	SourceType		type;
 	unsigned int	width;
@@ -53,6 +53,7 @@ public:
 	SourceType Type() const { return( type ); }
 	bool IsLocal() const { return( type == LOCAL ); }
 	bool IsRemote() const { return( type == REMOTE ); }
+	bool IsFile() const { return( type == FILE ); }
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
 	unsigned int Palette() const { return( palette ); }

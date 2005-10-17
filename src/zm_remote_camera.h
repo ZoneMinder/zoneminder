@@ -20,22 +20,7 @@
 #ifndef ZM_REMOTE_CAMERA_H
 #define ZM_REMOTE_CAMERA_H
 
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
-//#include <unistd.h>
-//#include <time.h>
-//#include <sys/time.h>
-//#include <signal.h>
-//#include <stdarg.h>
-//#include <errno.h>
-//#include <netdb.h>
-//#include <unistd.h>
 #include <netinet/in.h>
-//#include <sys/types.h>
-//#include <sys/time.h>
-//#include <sys/socket.h>
-//#include <sys/ioctl.h>
 
 #include "zm_camera.h"
 #include "zm_buffer.h"
@@ -47,9 +32,6 @@
 //
 class RemoteCamera : public Camera
 {
-protected:
-	static bool netcam_regexps;
-
 protected:
 	const char *host;
 	const char *port;

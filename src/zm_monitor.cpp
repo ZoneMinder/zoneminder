@@ -26,22 +26,14 @@
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
+#include "zm_file_camera.h"
 
 Monitor::Monitor(
 	int p_id,
 	char *p_name,
 	int p_function,
-	const char *p_device,
-	int p_channel,
-	int p_format,
-	int p_width,
-	int p_height,
-	int p_palette,
+	Camera *p_camera,
 	int p_orientation,
-	int p_brightness,
-	int p_contrast,
-	int p_hue,
-	int p_colour,
 	char *p_event_prefix,
 	char *p_label_format,
 	const Coord &p_label_coord,
@@ -61,13 +53,10 @@ Monitor::Monitor(
 	Zone *p_zones[]
 ) : id( p_id ),
 	function( (Function)p_function ),
-	width( p_width ),
-	height( p_height ),
+	camera( p_camera ),
 	orientation( (Orientation)p_orientation ),
-	brightness( p_brightness ),
-	contrast( p_contrast ),
-	hue( p_hue ),
-	colour( p_colour ),
+	width( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ),
+	height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
 	label_coord( p_label_coord ),
 	image_buffer_count( p_image_buffer_count ),
 	warmup_count( p_warmup_count ),
@@ -80,8 +69,8 @@ Monitor::Monitor(
 	fps_report_interval( p_fps_report_interval ),
 	ref_blend_perc( p_ref_blend_perc ),
 	track_motion( p_track_motion ),
-	image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ),
-	ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ),
+	image( width, height, p_camera->Colours() ),
+	ref_image( width, height, p_camera->Colours() ),
 	purpose( p_purpose ),
 	n_zones( p_n_zones ),
 	zones( p_zones )
@@ -91,82 +80,6 @@ Monitor::Monitor(
 
 	strncpy( event_prefix, p_event_prefix, sizeof(event_prefix) );
 	strncpy( label_format, p_label_format, sizeof(label_format) );
-
-	int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-	int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-	camera = new LocalCamera( p_device, p_channel, p_format, cam_width, cam_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, purpose==CAPTURE );
-
-	Setup();
-}
-
-Monitor::Monitor(
-	int p_id,
-	char *p_name,
-	int p_function,
-	const char *p_host,
-	const char *p_port,
-	const char *p_path,
-	int p_width,
-	int p_height,
-	int p_palette,
-	int p_orientation,
-	int p_brightness,
-	int p_contrast,
-	int p_hue,
-	int p_colour,
-	char *p_event_prefix,
-	char *p_label_format,
-	const Coord &p_label_coord,
-	int p_image_buffer_count,
-	int p_warmup_count,
-	int p_pre_event_count,
-	int p_post_event_count,
-	int p_alarm_frame_count,
-	int p_section_length,
-	int p_frame_skip,
-	int p_capture_delay,
-	int p_fps_report_interval,
-	int p_ref_blend_perc,
-	bool p_track_motion,
-	Purpose p_purpose,
-	int p_n_zones,
-	Zone *p_zones[]
-) : id( p_id ),
-	function( (Function)p_function ),
-	width( p_width ),
-	height( p_height ),
-	orientation( (Orientation)p_orientation ),
-	brightness( p_brightness ),
-	contrast( p_contrast ),
-	hue( p_hue ),
-	colour( p_colour ),
-	label_coord( p_label_coord ),
-	image_buffer_count( p_image_buffer_count ),
-	warmup_count( p_warmup_count ),
-	pre_event_count( p_pre_event_count ),
-	post_event_count( p_post_event_count ),
-	alarm_frame_count( p_alarm_frame_count ),
-	section_length( p_section_length ),
-	frame_skip( p_frame_skip ),
-	capture_delay( p_capture_delay ),
-	fps_report_interval( p_fps_report_interval ),
-	ref_blend_perc( p_ref_blend_perc ),
-	track_motion( p_track_motion ),
-	image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ),
-	ref_image( width, height, (p_palette==VIDEO_PALETTE_GREY?1:3) ),
-	purpose( p_purpose ),
-	n_zones( p_n_zones ),
-	zones( p_zones )
-{
-	name = new char[strlen(p_name)+1];
-	strcpy( name, p_name );
-
-	strncpy( event_prefix, p_event_prefix, sizeof(event_prefix) );
-	strncpy( label_format, p_label_format, sizeof(label_format) );
-
-	int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-	int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-	camera = new RemoteCamera( p_host, p_port, p_path, cam_width, cam_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, purpose==CAPTURE );
 
 	Setup();
 }
@@ -1001,7 +914,7 @@ void Monitor::ReloadZones()
 	DumpZoneImage();
 }
 
-int Monitor::Load( const char *device, Monitor **&monitors, Purpose purpose )
+int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose )
 {
 	static char sql[BUFSIZ];
 	if ( !device[0] )
@@ -1030,21 +943,38 @@ int Monitor::Load( const char *device, Monitor **&monitors, Purpose purpose )
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
+		int width = atoi(dbrow[6]);
+		int height = atoi(dbrow[7]);
+		int palette = atoi(dbrow[8]);
+		Orientation orientation = (Orientation)atoi(dbrow[9]);
+		int brightness = atoi(dbrow[10]);
+		int contrast = atoi(dbrow[11]);
+		int hue = atoi(dbrow[12]);
+		int colour = atoi(dbrow[13]);
+
+		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
+		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
+
+		Camera *camera = new LocalCamera(
+			dbrow[3], // Device
+			atoi(dbrow[4]), // Channel
+			atoi(dbrow[5]), // Format
+			cam_width,
+			cam_height,
+			palette,
+			brightness,
+			contrast,
+			hue,
+			colour,
+			purpose==CAPTURE
+		);
+
 		monitors[i] = new Monitor(
 			atoi(dbrow[0]), // Id
 			dbrow[1], // Name
 			atoi(dbrow[2]), // Function
-			dbrow[3], // Device
-			atoi(dbrow[4]), // Channel
-			atoi(dbrow[5]), // Format
-			atoi(dbrow[6]), // Width
-			atoi(dbrow[7]), // Height
-			atoi(dbrow[8]), // Palette
-			atoi(dbrow[9]), // Orientation
-			atoi(dbrow[10]), // Brightness
-			atoi(dbrow[11]), // Contrast
-			atoi(dbrow[12]), // Hue
-			atoi(dbrow[13]), // Colour
+			camera,
+			orientation,
 			dbrow[14], // EventPrefix
 			dbrow[15], // LabelFormat
 			Coord( atoi(dbrow[16]), atoi(dbrow[17]) ), // LabelX, LabelY
@@ -1077,7 +1007,7 @@ int Monitor::Load( const char *device, Monitor **&monitors, Purpose purpose )
 	return( n_monitors );
 }
 
-int Monitor::Load( const char *host, const char*port, const char *path, Monitor **&monitors, Purpose purpose )
+int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *path, Monitor **&monitors, Purpose purpose )
 {
 	static char sql[BUFSIZ];
 	if ( !host )
@@ -1106,21 +1036,38 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
+		int width = atoi(dbrow[6]);
+		int height = atoi(dbrow[7]);
+		int palette = atoi(dbrow[8]);
+		Orientation orientation = (Orientation)atoi(dbrow[9]);
+		int brightness = atoi(dbrow[10]);
+		int contrast = atoi(dbrow[11]);
+		int hue = atoi(dbrow[12]);
+		int colour = atoi(dbrow[13]);
+
+		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
+		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
+
+		Camera *camera = new RemoteCamera(
+			dbrow[3], // Host
+			dbrow[4], // Port
+			dbrow[5], // Path
+			cam_width,
+			cam_height,
+			palette,
+			brightness,
+			contrast,
+			hue,
+			colour,
+			purpose==CAPTURE
+		);
+
 		monitors[i] = new Monitor(
 			atoi(dbrow[0]), // Id
 			dbrow[1], // Name
 			atoi(dbrow[2]), // Function
-			dbrow[3], // Host
-			dbrow[4], // Port
-			dbrow[5], // Path
-			atoi(dbrow[6]), // Width
-			atoi(dbrow[7]), // Height
-			atoi(dbrow[8]), // Palette
+			camera,
 			atoi(dbrow[9]), // Orientation
-			atoi(dbrow[10]), // Brightness
-			atoi(dbrow[11]), // Contrast
-			atoi(dbrow[12]), // Hue
-			atoi(dbrow[13]), // Colour
 			dbrow[14], // EventPrefix
 			dbrow[15], // LabelFormat
 			Coord( atoi(dbrow[16]), atoi(dbrow[17]) ), // LabelX, LabelY
@@ -1135,6 +1082,97 @@ int Monitor::Load( const char *host, const char*port, const char *path, Monitor 
 			atoi(dbrow[26]), // FPSReportInterval
 			atoi(dbrow[27]), // RefBlendPerc
 			atoi(dbrow[28]), // TrackMotion
+			purpose
+		);
+		Zone **zones = 0;
+		int n_zones = Zone::Load( monitors[i], zones );
+		monitors[i]->AddZones( n_zones, zones );
+		Debug( 1, ( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
+	}
+	if ( mysql_errno( &dbconn ) )
+	{
+		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+	// Yadda yadda
+	mysql_free_result( result );
+
+	return( n_monitors );
+}
+
+int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose )
+{
+	static char sql[BUFSIZ];
+	if ( !file[0] )
+	{
+		strncpy( sql, "select Id, Name, Function+0, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
+	}
+	else
+	{
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
+	}
+	if ( mysql_query( &dbconn, sql ) )
+	{
+		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+
+	MYSQL_RES *result = mysql_store_result( &dbconn );
+	if ( !result )
+	{
+		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+	int n_monitors = mysql_num_rows( result );
+	Debug( 1, ( "Got %d monitors", n_monitors ));
+	delete[] monitors;
+	monitors = new Monitor *[n_monitors];
+	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
+	{
+		int width = atoi(dbrow[4]);
+		int height = atoi(dbrow[5]);
+		int palette = atoi(dbrow[6]);
+		Orientation orientation = (Orientation)atoi(dbrow[7]);
+		int brightness = atoi(dbrow[8]);
+		int contrast = atoi(dbrow[9]);
+		int hue = atoi(dbrow[10]);
+		int colour = atoi(dbrow[11]);
+
+		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
+		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
+
+		Camera *camera = new FileCamera(
+			dbrow[3], // File
+			cam_width,
+			cam_height,
+			palette,
+			brightness,
+			contrast,
+			hue,
+			colour,
+			purpose==CAPTURE
+		);
+
+		monitors[i] = new Monitor(
+			atoi(dbrow[0]), // Id
+			dbrow[1], // Name
+			atoi(dbrow[2]), // Function
+			camera,
+			atoi(dbrow[7]), // Orientation
+			dbrow[12], // EventPrefix
+			dbrow[13], // LabelFormat
+			Coord( atoi(dbrow[14]), atoi(dbrow[15]) ), // LabelX, LabelY
+			atoi(dbrow[16]), // ImageBufferCount
+			atoi(dbrow[17]), // WarmupCount
+			atoi(dbrow[18]), // PreEventCount
+			atoi(dbrow[19]), // PostEventCount
+			atoi(dbrow[20]), // AlarmFrameCount
+			atoi(dbrow[21]), // SectionLength
+			atoi(dbrow[22]), // FrameSkip
+			atof(dbrow[23])>0.0?int(DT_PREC_3/atof(dbrow[23])):0, // MaxFPS
+			atoi(dbrow[24]), // FPSReportInterval
+			atoi(dbrow[25]), // RefBlendPerc
+			atoi(dbrow[26]), // TrackMotion
 			purpose
 		);
 		Zone **zones = 0;
@@ -1174,74 +1212,93 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 	Monitor *monitor = 0;
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
+		int width = atoi(dbrow[10]);
+		int height = atoi(dbrow[11]);
+		int palette = atoi(dbrow[12]);
+		Orientation orientation = (Orientation)atoi(dbrow[13]);
+		int brightness = atoi(dbrow[14]);
+		int contrast = atoi(dbrow[15]);
+		int hue = atoi(dbrow[16]);
+		int colour = atoi(dbrow[17]);
+
+		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
+		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
+
+		Camera *camera = 0;
 		if ( !strcmp( dbrow[2], "Local" ) )
 		{
-			monitor = new Monitor(
-				atoi(dbrow[0]), // Id
-				dbrow[1], // Name
-				atoi(dbrow[3]), // Function
+			camera = new LocalCamera(
 				dbrow[4], // Device
 				atoi(dbrow[5]), // Channel
 				atoi(dbrow[6]), // Format
-				atoi(dbrow[10]), // Width
-				atoi(dbrow[11]), // Height
-				atoi(dbrow[12]), // Palette
-				atoi(dbrow[13]), // Orientation
-				atoi(dbrow[14]), // Brightness
-				atoi(dbrow[15]), // Contrast
-				atoi(dbrow[16]), // Hue
-				atoi(dbrow[17]), // Colour
-				dbrow[18], // EventPrefix
-				dbrow[19], // LabelFormat
-				Coord( atoi(dbrow[20]), atoi(dbrow[21]) ), // LabelX, LabelY
-				atoi(dbrow[22]), // ImageBufferCount
-				atoi(dbrow[23]), // WarmupCount
-				atoi(dbrow[24]), // PreEventCount
-				atoi(dbrow[25]), // PostEventCount
-				atoi(dbrow[26]), // AlarmFrameCount
-				atoi(dbrow[27]), // SectionLength
-				atoi(dbrow[28]), // FrameSkip
-				atof(dbrow[29])>0.0?int(DT_PREC_3/atof(dbrow[29])):0, // MaxFPS
-				atoi(dbrow[30]), // FPSReportInterval
-				atoi(dbrow[31]), // RefBlendPerc
-				atoi(dbrow[32]), // TrackMotion
-				purpose
+				cam_width,
+				cam_height,
+				palette,
+				brightness,
+				contrast,
+				hue,
+				colour,
+				purpose==CAPTURE
+			);
+		}
+		else if ( !strcmp( dbrow[2], "Remote" ) )
+		{
+			camera = new RemoteCamera(
+				dbrow[7], // Host
+				dbrow[8], // Port
+				dbrow[9], // Path
+				cam_width,
+				cam_height,
+				palette,
+				brightness,
+				contrast,
+				hue,
+				colour,
+				purpose==CAPTURE
+			);
+		}
+		else if ( !strcmp( dbrow[2], "File" ) )
+		{
+			camera = new FileCamera(
+				dbrow[9], // Path
+				cam_width,
+				cam_height,
+				palette,
+				brightness,
+				contrast,
+				hue,
+				colour,
+				purpose==CAPTURE
 			);
 		}
 		else
 		{
-			monitor = new Monitor(
-				atoi(dbrow[0]), // Id
-				dbrow[1], // Name
-				atoi(dbrow[3]), // Function
-				dbrow[7], // Host
-				dbrow[8], // Port
-				dbrow[9], // Path
-				atoi(dbrow[10]), // Width
-				atoi(dbrow[11]), // Height
-				atoi(dbrow[12]), // Palette
-				atoi(dbrow[13]), // Orientation
-				atoi(dbrow[14]), // Brightness
-				atoi(dbrow[15]), // Contrast
-				atoi(dbrow[16]), // Hue
-				atoi(dbrow[17]), // Colour
-				dbrow[18], // EventPrefix
-				dbrow[19], // LabelFormat
-				Coord( atoi(dbrow[20]), atoi(dbrow[21]) ), // LabelX, LabelY
-				atoi(dbrow[22]), // ImageBufferCount
-				atoi(dbrow[23]), // WarmupCount
-				atoi(dbrow[24]), // PreEventCount
-				atoi(dbrow[25]), // PostEventCount
-				atoi(dbrow[26]), // AlarmFrameCount
-				atoi(dbrow[27]), // SectionLength
-				atoi(dbrow[28]), // FrameSkip
-				atof(dbrow[29])>0.0?int(DT_PREC_3/atof(dbrow[29])):0, // MaxFPS
-				atoi(dbrow[30]), // FPSReportInterval
-				atoi(dbrow[31]), // RefBlendPerc
-				atoi(dbrow[32]), // TrackMotion
-				purpose
-			);
+			Error(( "Bogus monitor type '%s' for monitor %d", dbrow[2], atoi(dbrow[0]) ));
+			exit( -1 );
 		}
+		monitor = new Monitor(
+			atoi(dbrow[0]), // Id
+			dbrow[1], // Name
+			atoi(dbrow[3]), // Function
+			camera,
+			orientation,
+			dbrow[18], // EventPrefix
+			dbrow[19], // LabelFormat
+			Coord( atoi(dbrow[20]), atoi(dbrow[21]) ), // LabelX, LabelY
+			atoi(dbrow[22]), // ImageBufferCount
+			atoi(dbrow[23]), // WarmupCount
+			atoi(dbrow[24]), // PreEventCount
+			atoi(dbrow[25]), // PostEventCount
+			atoi(dbrow[26]), // AlarmFrameCount
+			atoi(dbrow[27]), // SectionLength
+			atoi(dbrow[28]), // FrameSkip
+			atof(dbrow[29])>0.0?int(DT_PREC_3/atof(dbrow[29])):0, // MaxFPS
+			atoi(dbrow[30]), // FPSReportInterval
+			atoi(dbrow[31]), // RefBlendPerc
+			atoi(dbrow[32]), // TrackMotion
+			purpose
+		);
+
 		int n_zones = 0;
 		if ( load_zones )
 		{

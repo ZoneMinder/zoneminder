@@ -7,6 +7,7 @@ alter table Monitors add column Sequence smallint unsigned;
 alter table Monitors modify column Device tinytext;
 update Monitors set Device = concat( "/dev/video", Device );
 update Monitors set Device = NULL where Type = "Remote";
+alter table Monitors modify column Type enum('Local','Remote','File') NOT NULL default 'Local';
 alter table Events add column Height smallint(5) unsigned not null default '0' after EndTime;
 alter table Events add column Width smallint(5) unsigned not null default '0' after EndTime;
 --

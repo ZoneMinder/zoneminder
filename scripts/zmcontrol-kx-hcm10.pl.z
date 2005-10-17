@@ -160,7 +160,7 @@ sub sendCmd
 	$ua->agent( "ZoneMinder Control Agent/".ZM_VERSION );
 
 	#print( "http://$address/$cmd\n" );
-	my $req = HTTP::Request->new( GET=>"http://$address$cmd" );
+	my $req = HTTP::Request->new( GET=>"http://$address/$cmd" );
 	my $res = $ua->request($req);
 
 	if ( $res->is_success )

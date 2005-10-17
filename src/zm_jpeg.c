@@ -18,6 +18,30 @@
 */ 
 
 #include "zm_jpeg.h"
+#include "zm_debug.h"
+
+/* Overridden error handlers, mostly for decompression */
+
+#define MAX_JPEG_ERRS 25
+
+static int jpeg_err_count = 0;
+void zm_jpeg_error_exit( j_common_ptr cinfo )
+{
+	static char message[JMSG_LENGTH_MAX];
+
+	zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
+
+	(*cinfo->err->format_message)( cinfo, message ); 
+
+	Error(( "JPEG error: %s", message ));
+	if ( ++jpeg_err_count == MAX_JPEG_ERRS )
+	{
+		Fatal(( "Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count ));
+		exit( -1 );
+	}
+
+	longjmp( zmerr->setjmp_buffer, 1 );
+}
 
 /* Expanded data destination object for memory */
 

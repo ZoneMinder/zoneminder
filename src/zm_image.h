@@ -191,10 +191,10 @@ public:
 		return( *this );
 	}
 
-	void ReadJpeg( const char *filename );
-	void WriteJpeg( const char *filename ) const;
-	void DecodeJpeg( JOCTET *inbuffer, int inbuffer_size );
-	void EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const;
+	bool ReadJpeg( const char *filename );
+	bool WriteJpeg( const char *filename ) const;
+	bool DecodeJpeg( JOCTET *inbuffer, int inbuffer_size );
+	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const;
 
 	void Overlay( const Image &image );
 	void Blend( const Image &image, int transparency=10 ) const;

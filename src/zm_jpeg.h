@@ -17,9 +17,22 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */  
 
+#include <setjmp.h>
+
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jerror.h"
+
+/* Stuff for overriden error handlers */
+struct zm_error_mgr
+{
+	struct jpeg_error_mgr pub;
+	jmp_buf setjmp_buffer;
+};
+
+typedef struct zm_error_mgr *zm_error_ptr;
+
+void zm_jpeg_error_exit( j_common_ptr cinfo );
 
 // Prototypes for memory compress/decompression object */
 void jpeg_mem_src(j_decompress_ptr cinfo, JOCTET *inbuffer, int inbuffer_size );

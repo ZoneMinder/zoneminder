@@ -113,19 +113,29 @@ Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 	return( high_image );
 }
 
-void Image::ReadJpeg( const char *filename )
+bool Image::ReadJpeg( const char *filename )
 {
 	struct jpeg_decompress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	cinfo.err = jpeg_std_error(&jerr);
+	struct zm_error_mgr jerr;
+	cinfo.err = jpeg_std_error(&jerr.pub);
+	jerr.pub.error_exit = zm_jpeg_error_exit;
+
 	jpeg_create_decompress(&cinfo);
 
 	FILE * infile;
 	if ((infile = fopen(filename, "rb" )) == NULL)
 	{
 		Error(( "Can't open %s: %s", filename, strerror(errno)));
-		exit( -1 );
+		return( false );
 	}
+
+	if ( setjmp(jerr.setjmp_buffer) )
+	{
+		jpeg_destroy_decompress(&cinfo);
+		fclose( infile );
+		return( false );
+	}
+
 	jpeg_stdio_src(&cinfo, infile);
 
 	jpeg_read_header(&cinfo, TRUE);
@@ -154,16 +164,17 @@ void Image::ReadJpeg( const char *filename )
 	jpeg_destroy_decompress(&cinfo);
 
 	fclose( infile );
+
+	return( true );
 }
 
-void Image::WriteJpeg( const char *filename ) const
+bool Image::WriteJpeg( const char *filename ) const
 {
 	if ( config.colour_jpeg_files && colours == 1 )
 	{
 		Image temp_image( *this );
 		temp_image.Colourise();
-		temp_image.WriteJpeg( filename );
-		return;
+		return( temp_image.WriteJpeg( filename ) );
 	}
 
 	struct jpeg_compress_struct cinfo;
@@ -175,7 +186,7 @@ void Image::WriteJpeg( const char *filename ) const
 	if ((outfile = fopen(filename, "wb" )) == NULL)
 	{
 		Error(( "Can't open %s: %s", filename, strerror(errno)));
-		exit( -1 );
+		return( false );
 	}
 	jpeg_stdio_dest(&cinfo, outfile);
 
@@ -209,14 +220,24 @@ void Image::WriteJpeg( const char *filename ) const
 	jpeg_destroy_compress(&cinfo);
 
 	fclose( outfile );
+
+	return( true );
 }
 
-void Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
+bool Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 {
 	struct jpeg_decompress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	cinfo.err = jpeg_std_error(&jerr);
+	struct zm_error_mgr jerr;
+	cinfo.err = jpeg_std_error(&jerr.pub);
+	jerr.pub.error_exit = zm_jpeg_error_exit;
+
 	jpeg_create_decompress(&cinfo);
+
+	if ( setjmp(jerr.setjmp_buffer) )
+	{
+		jpeg_destroy_decompress(&cinfo);
+		return( false );
+	}
 
 	jpeg_mem_src(&cinfo, inbuffer, inbuffer_size );
 
@@ -244,16 +265,17 @@ void Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 	jpeg_finish_decompress(&cinfo);
 
 	jpeg_destroy_decompress(&cinfo);
+
+	return( true );
 }
 
-void Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
+bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
 {
 	if ( config.colour_jpeg_files && colours == 1 )
 	{
 		Image temp_image( *this );
 		temp_image.Colourise();
-		temp_image.EncodeJpeg( outbuffer, outbuffer_size );
-		return;
+		return( temp_image.EncodeJpeg( outbuffer, outbuffer_size ) );
 	}
 
 	struct jpeg_compress_struct cinfo;
@@ -290,6 +312,8 @@ void Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
 	jpeg_finish_compress(&cinfo);
 
 	jpeg_destroy_compress(&cinfo);
+
+	return( true );
 }
 
 void Image::Overlay( const Image &image )

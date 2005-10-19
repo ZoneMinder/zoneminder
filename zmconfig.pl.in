@@ -1160,7 +1160,7 @@ my @options =
 		default => "100",
 		description => "What the default scaling factor applied to 'live' or 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'live' or 'event' streams in their native size. However if you have monitors with large dimensions or a slow link you may prefer to reduce this size, alternatively for small monitors you can enlarge it. This options lets you specify what the default scaling factor will be. It is expressed as a percentage so 100 is normal size, 200 is double size etc.",
-		type => $types{integer},
+		type => { db_type=>'integer', hint=>'25|33|50|75|100|150|200|300|400', pattern=>qr|^(\d+)$|, format=>q( $1 ) },
 		category => 'highband',
 	},
 	{
@@ -1258,7 +1258,7 @@ my @options =
 		default => "100",
 		description => "What the default scaling factor applied to 'live' or 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'live' or 'event' streams in their native size. However if you have monitors with large dimensions or a slow link you may prefer to reduce this size, alternatively for small monitors you can enlarge it. This options lets you specify what the default scaling factor will be. It is expressed as a percentage so 100 is normal size, 200 is double size etc.",
-		type => $types{integer},
+		type => { db_type=>'integer', hint=>'25|33|50|75|100|150|200|300|400', pattern=>qr|^(\d+)$|, format=>q( $1 ) },
 		category => 'medband',
 	},
 	{
@@ -1356,7 +1356,7 @@ my @options =
 		default => "100",
 		description => "What the default scaling factor applied to 'live' or 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'live' or 'event' streams in their native size. However if you have monitors with large dimensions or a slow link you may prefer to reduce this size, alternatively for small monitors you can enlarge it. This options lets you specify what the default scaling factor will be. It is expressed as a percentage so 100 is normal size, 200 is double size etc.",
-		type => $types{integer},
+		type => { db_type=>'integer', hint=>'25|33|50|75|100|150|200|300|400', pattern=>qr|^(\d+)$|, format=>q( $1 ) },
 		category => 'lowband',
 	},
 	{

@@ -47,8 +47,6 @@ if ( !$result )
 	die( mysql_error() );
 $monitors = array();
 $mon_idx = 0;
-$max_width = 0;
-$max_height = 0;
 while( $row = mysql_fetch_assoc( $result ) )
 {
 	if ( !visibleMonitor( $row['Id'] ) )
@@ -57,15 +55,15 @@ while( $row = mysql_fetch_assoc( $result ) )
 	}
 	if ( isset($mid) && $row['Id'] == $mid )
 		$mon_idx = count($monitors);
-	if ( $max_width < $row['Width'] ) $max_width = $row['Width'];
-	if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
+	$row['ScaledWidth'] = reScale( $monitor['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+	$row['ScaledHeight'] = reScale( $monitor['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 	$monitors[] = $row;
 }
 
 $monitor = $monitors[$mon_idx];
 $next_mid = $mon_idx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$mon_idx+1]['Id'];
-$montage_width = ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$monitor['Width'];
-$montage_height = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$monitor['Height'];
+$montage_width = ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$monitor['ScaledWidth'];
+$montage_height = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$monitor['ScaledHeight'];
 $width_scale = ($montage_width*SCALE_SCALE)/$monitor['Width'];
 $height_scale = ($montage_height*SCALE_SCALE)/$monitor['Height'];
 $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);

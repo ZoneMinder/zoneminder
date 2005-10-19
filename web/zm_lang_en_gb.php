@@ -195,6 +195,7 @@ $zmSlangControlType          = 'Control Type';
 $zmSlangCycle                = 'Cycle';
 $zmSlangCycleWatch           = 'Cycle Watch';
 $zmSlangDay                  = 'Day';
+$zmSlangDefaultScale         = 'Default Scale';
 $zmSlangDeleteAndNext        = 'Delete &amp; Next';
 $zmSlangDeleteAndPrev        = 'Delete &amp; Prev';
 $zmSlangDelete               = 'Delete';

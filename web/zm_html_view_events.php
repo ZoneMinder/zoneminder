@@ -25,7 +25,7 @@ if ( !canView( 'Events' ) )
 }
 
 $count_sql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
-$events_sql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,E.Name,E.Cause,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
+$events_sql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,M.DefaultScale,E.Name,E.Cause,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.LearnState from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
 if ( $user['MonitorIds'] )
 {
 	$count_sql .= " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
@@ -128,8 +128,11 @@ else
 	while( $event = mysql_fetch_assoc( $result ) )
 	{
 		$events[] = $event;
-		if ( $max_width < $event['Width'] ) $max_width = $event['Width'];
-		if ( $max_height < $event['Height'] ) $max_height = $event['Height'];
+		$scale = max( reScale( SCALE_SCALE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_SCALE );
+		$event_width = reScale( $event['Width'], $scale );
+		$event_height = reScale( $event['Height'], $$scale );
+		if ( $max_width < $event_width ) $max_width = $event_width;
+		if ( $max_height < $event_height ) $max_height = $event_height;
 		if ( $event['Archived'] )
 			$archived = true;
 		else
@@ -386,10 +389,12 @@ function viewEvents( form, name )
 			$bgcolor = "#FFC0CB";
 		else
 			unset( $bgcolor );
+
+		$scale = max( reScale( SCALE_SCALE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_SCALE );
 ?>
 <tr<?= ' bgcolor="'.(isset($bgcolor)?$bgcolor:"#FFFFFF").'"' ?> >
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $event['Width']+$jws['event']['w']  ?>, <?= $event['Height']+$jws['event']['h']  ?> );"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= $event['Width']+$jws['event']['w']  ?>, <?= $event['Height']+$jws['event']['h']  ?> );"><?= $event['Name'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= reScale( $event['Width'], $scale )+$jws['event']['w']  ?>, <?= reScale( $event['Height'], $scale )+$jws['event']['h'] ?> );"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']  ?>, <?= reScale( $event['Height'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'] ?> );"><?= $event['Name'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
 <td align="center" class="text"><?= $event['MonitorName'] ?></td>
 <td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=eventdetail&eid=".$event['Id']."', 'zmEventDetail', ".$jws['eventdetail']['w'].", ".$jws['eventdetail']['h']." );", $event['Cause'], canEdit( 'Events' ) ) ?></td>
 <td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event['StartTime']) ) ?></td>
@@ -398,13 +403,13 @@ function viewEvents( form, name )
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['AlarmFrames'] ?></a></td>
 <td align="center" class="text"><?= $event['TotScore'] ?></td>
 <td align="center" class="text"><?= $event['AvgScore'] ?></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= $event['Width']+$jws['image']['w']  ?>, <?= $event['Height']+$jws['image']['h']  ?> );"><?= $event['MaxScore'] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= reScale( $event['Width'], $scale )+$jws['image']['w']  ?>, <?= reScale( $event['Height'], $scale )+$jws['image']['h']  ?> );"><?= $event['MaxScore'] ?></a></td>
 <?php
 	if ( ZM_WEB_LIST_THUMBS )
 	{
 		$thumb_data = createListThumbnail( $event );
 ?>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $thumb_data['FrameId'] ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><img src="<?= $thumb_data['Path'] ?>" width="<?= $thumb_data['Width'] ?>" height="<?= $thumb_data['Height'] ?>" border="0" alt="<?= $thumb_data['FrameId'] ?>/<?= $event['MaxScore'] ?>"></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $thumb_data['FrameId'] ?>', 'zmImage', <?= reScale( $event['Width'], $scale )+$jws['image']['w']  ?>, <?= reScale( $event['Height'], $scale )+$jws['image']['h']  ?> );"><img src="<?= $thumb_data['Path'] ?>" width="<?= $thumb_data['Width'] ?>" height="<?= $thumb_data['Height'] ?>" border="0" alt="<?= $thumb_data['FrameId'] ?>/<?= $event['MaxScore'] ?>"></a></td>
 <?php
 	}
 ?>

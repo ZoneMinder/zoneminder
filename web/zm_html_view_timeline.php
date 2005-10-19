@@ -689,20 +689,22 @@ function getSlotLoadImageBehaviour( $slot )
 		$image_path = $anal_image;
 	}
 
-	$annotation = $monitors[$slot['event']['MonitorId']]['Name'].
+	$monitor = &$monitors[$slot['event']['MonitorId']];
+	$annotation = $monitor['Name'].
 		"<br>".$slot['event']['Name'].(isset($slot['frame'])?("(".$slot['frame']['FrameId'].")"):"").
 		"<br>".strftime( "%y/%m/%d %H:%M:%S", strtotime($slot['event']['StartTime']) ).
 		" - ".$slot['event']['Length']."s".
 		"<br>".htmlentities($slot['event']['Cause']).
 		(!empty($slot['event']['Notes'])?("<br>".htmlentities($slot['event']['Notes'])):"");
-	return( "\"loadEventImage( '".$image_path."', '".$annotation."', '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."', ".($monitors[$slot['event']['MonitorId']]['Width']+$jws['event']['w']).", ".($monitors[$slot['event']['MonitorId']]['Height']+$jws['event']['h'])." );\"" );
+	return( "\"loadEventImage( '".$image_path."', '".$annotation."', '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."', ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
 }
 
 function getSlotViewEventBehaviour( $slot )
 {
 	global $monitors, $jws, $PHP_SELF;
 
-	return( "\"eventWindow( '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."', 'zmEvent', ".($monitors[$slot['event']['MonitorId']]['Width']+$jws['event']['w']).", ".($monitors[$slot['event']['MonitorId']]['Height']+$jws['event']['h'])." );\"" );
+	$monitor = &$monitors[$slot['event']['MonitorId']];
+	return( "\"eventWindow( '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."', 'zmEvent', ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
 }
 
 ?>

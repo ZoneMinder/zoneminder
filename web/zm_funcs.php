@@ -727,20 +727,26 @@ function createImage( $monitor, $scale )
 	return( $status );
 }
 
-function reScale( $dimension, $scale=SCALE_SCALE )
+function reScale( $dimension, $dummy )
 {
-	if ( $scale == SCALE_SCALE )
-		return( $dimension );
-
-	return( (int)(($dimension*$scale)/SCALE_SCALE) );
+	for ( $i = 1; $i < func_num_args(); $i++ )
+	{
+		$scale = func_get_arg( $i );
+		if ( !empty($scale) && $scale != SCALE_SCALE )
+			$dimension = (int)(($dimension*$scale)/SCALE_SCALE);
+	}
+	return( $dimension );
 }
 
-function deScale( $dimension, $scale=SCALE_SCALE )
+function deScale( $dimension, $dummy )
 {
-	if ( $scale == SCALE_SCALE )
-		return( $dimension );
-
-	return( (int)(($dimension*SCALE_SCALE)/$scale) );
+	for ( $i = 1; $i < func_num_args(); $i++ )
+	{
+		$scale = func_get_arg( $i );
+		if ( !empty($scale) && $scale != SCALE_SCALE )
+			$dimension = (int)(($dimension*SCALE_SCALE)/$scale);
+	}
+	return( $dimension );
 }
 
 function parseSort( $save_to_session=false )
@@ -1066,4 +1072,14 @@ function fixSequences()
 		$sequence++;
 	}
 }
+
+function firstSet()
+{
+	foreach ( func_get_args() as $arg )
+	{
+	if ( !empty( $arg ) )
+		return( $arg );
+	}
+}
+
 ?>

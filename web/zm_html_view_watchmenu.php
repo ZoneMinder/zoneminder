@@ -38,7 +38,7 @@ if ( !$result )
 $monitor = mysql_fetch_assoc( $result );
 
 if ( !isset( $scale ) )
-	$scale = ZM_WEB_DEFAULT_SCALE;
+	$scale = $monitor['DefaultScale'] * ZM_WEB_DEFAULT_SCALE;
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

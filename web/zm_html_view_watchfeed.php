@@ -32,14 +32,14 @@ if ( empty($mode) )
 		$mode = "still";
 }
 
-if ( !isset( $scale ) )
-	$scale = ZM_WEB_DEFAULT_SCALE;
-
 $sql = "select M.*,C.CanMoveMap,C.CanMoveRel from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'";
 $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
+
+if ( !isset( $scale ) )
+	$scale = reScale( SCALE_SCALE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
 if ( $mode != "stream" )
 {

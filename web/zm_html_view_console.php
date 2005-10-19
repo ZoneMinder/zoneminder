@@ -84,8 +84,10 @@ while( $row = mysql_fetch_assoc( $result ) )
 	if ( $row['Function'] != 'None' )
 	{
 		$cycle_count++;
-		if ( $max_width < $row['Width'] ) $max_width = $row['Width'];
-		if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
+		$scale_width = reScale( $row['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+		$scale_height = reScale( $row['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+		if ( $max_width < $scale_width ) $max_width = $scale_width;
+		if ( $max_height < $scale_height ) $max_height = $scale_height;
 	}
 	$monitors[] = $row = array_merge( $row, $row2, $row3 );
 	$seq_id_list[] = $row['Id'];
@@ -329,8 +331,9 @@ foreach( $monitors as $monitor )
 	{
 		$fclass .= "em";
 	}
+	$scale = max( reScale( SCALE_SCALE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_SCALE );
 ?>
-<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=watch&mid=".$monitor['Id']."', 'zmWatch".$monitor['Id']."', ".($monitor['Width']+$jws['watch']['w']).", ".($monitor['Height']+$jws['watch']['h'])." );", $monitor['Name'], ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
+<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=watch&mid=".$monitor['Id']."', 'zmWatch".$monitor['Id']."', ".(reScale( $monitor['Width'], $scale )+$jws['watch']['w']).", ".(reScale( $monitor['Height'], $scale )+$jws['watch']['h'])." );", $monitor['Name'], ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=function&mid=".$monitor['Id']."', 'zmFunction', ".$jws['function']['w'].", ".$jws['function']['h']." );", "<span class=\"$fclass\">".$monitor['Function']."</span>", canEdit( 'Monitors' ) ) ?></td>
 <?php if ( $monitor['Type'] == "Local" ) { ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=".$monitor['Id']."', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">".$monitor['Device']." (".$monitor['Channel'].")</span>", canEdit( 'Monitors' ) ) ?></td>

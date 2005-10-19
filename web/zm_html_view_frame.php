@@ -23,7 +23,7 @@ if ( !canView( 'Events' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultScale from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
 if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
@@ -96,7 +96,7 @@ function deleteEvent()
 <td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: deleteEvent();"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp<?php } ?></td>
 <td width="20%" align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
-<tr><td colspan="3" align="center"><img src="<?= $image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="3" align="center"><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" class="<?= $img_class ?>"></td></tr>
 <tr>
 <tr><td colspan="3" align="center"><table width="96%" cellpaddin="0" cellspacing="0" border="0"><tr>
 <?php if ( $fid > 1 ) { ?>
@@ -120,11 +120,13 @@ function deleteEvent()
 </table></td></tr>
 <?php if (file_exists ($d_image_path)) { ?>
 <tr><td colspan="3"><?= $d_image_path ?></tr>
-<tr><td colspan="3"><img src="<?= $d_image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="3"><img src="<?= $d_image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" height="<?= reScale( $event['He
+ight'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" class="<?= $img_class ?>"></td></tr>
 <?php } ?>
 <?php if (file_exists ($r_image_path)) { ?>
 <tr><td colspan="3"><?= $r_image_path ?></tr>
-<tr><td colspan="3"><img src="<?= $r_image_path ?>" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="3"><img src="<?= $r_image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" height="<?= reScale( $event['He
+ight'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" class="<?= $img_class ?>"></td></tr>
 <?php } ?>
 </table>
 </body>

@@ -26,7 +26,7 @@ if ( !canView( 'Stream' ) )
 
 if ( empty($mode) )
 {
-	if ( canStream() )
+	if ( ZM_WEB_USE_STREAMS && canStream() )
 		$mode = "stream";
 	else
 		$mode = "still";

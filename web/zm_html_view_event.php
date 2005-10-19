@@ -25,7 +25,7 @@ if ( !canView( 'Events' ) )
 }
 if ( !isset($mode) )
 {
-	if ( canStream() )
+	if ( ZM_WEB_USE_STREAMS && canStream() )
 		$mode = "stream";
 	else
 		$mode = "still";

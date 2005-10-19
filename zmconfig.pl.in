@@ -1181,6 +1181,14 @@ my @options =
 		category => 'highband',
 	},
 	{
+		name => "ZM_WEB_H_USE_STREAMS",
+		default => "yes",
+		description => "Whether to use streaming or stills for live and events views",
+		help => "Both the live and events views can use streaming to deliver a smoother feed. However over slow connections or in some other circumstances you can prefer to view stills instead. You can configure this globally with ZM_CAN_STREAM but this option allows you to modify your preference based on the bandwidth setting. Note that this option does not prevent you switching to streaming mode but just selects what the initial default setting is.",
+		type => $types{boolean},
+		category => 'highband',
+	},
+	{
 		name => "ZM_WEB_H_EVENTS_VIEW",
 		default => "events",
 		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
@@ -1271,6 +1279,14 @@ my @options =
 		category => 'medband',
 	},
 	{
+		name => "ZM_WEB_M_USE_STREAMS",
+		default => "yes",
+		description => "Whether to use streaming or stills for live and events views",
+		help => "Both the live and events views can use streaming to deliver a smoother feed. However over slow connections or in some other circumstances you can prefer to view stills instead. You can configure this globally with ZM_CAN_STREAM but this option allows you to modify your preference based on the bandwidth setting. Note that this option does not prevent you switching to streaming mode but just selects what the initial default setting is.",
+		type => $types{boolean},
+		category => 'medband',
+	},
+	{
 		name => "ZM_WEB_M_EVENTS_VIEW",
 		default => "events",
 		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
@@ -1358,6 +1374,14 @@ my @options =
 		help => "A value of 1 sends the whole image to the browser which resizes it in the window, larger values scale down by that amount on the server before sending a reduced size image to the browser. For low bandwidth settings the default of 4 is usually the best.",
 		type => $types{integer},
 		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
+		category => 'lowband',
+	},
+	{
+		name => "ZM_WEB_L_USE_STREAMS",
+		default => "yes",
+		description => "Whether to use streaming or stills for live and events views",
+		help => "Both the live and events views can use streaming to deliver a smoother feed. However over slow connections or in some other circumstances you can prefer to view stills instead. You can configure this globally with ZM_CAN_STREAM but this option allows you to modify your preference based on the bandwidth setting. Note that this option does not prevent you switching to streaming mode but just selects what the initial default setting is.",
+		type => $types{boolean},
 		category => 'lowband',
 	},
 	{

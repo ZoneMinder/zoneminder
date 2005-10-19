@@ -84,6 +84,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_H_VIDEO_BITRATE );		// What the bitrate of any streamed video should be
 		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_H_VIDEO_MAXFPS );			// What the maximum frame rate of any streamed video should be
 		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_H_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_USE_STREAMS", ZM_WEB_H_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_H_EVENTS_VIEW );			// What the default view of multiple events should be.
 		break;
 	}
@@ -99,6 +100,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_M_VIDEO_BITRATE );		// What the bitrate of any streamed video should be
 		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_M_VIDEO_MAXFPS );			// What the maximum frame rate of any streamed video should be
 		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_M_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_USE_STREAMS", ZM_WEB_M_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_M_EVENTS_VIEW );			// What the default view of multiple events should be.
 		break;
 	}
@@ -114,6 +116,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_L_VIDEO_BITRATE );		// What the bitrate of any streamed video should be
 		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_L_VIDEO_MAXFPS );			// What the maximum frame rate of any streamed video should be
 		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_L_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_USE_STREAMS", ZM_WEB_L_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_L_EVENTS_VIEW );			// What the default view of multiple events should be.
 		break;
 	}

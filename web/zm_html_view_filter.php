@@ -24,7 +24,7 @@ if ( !canView( 'Events' ) )
 	return;
 }
 $select_name = "filter_name";
-$filter_names = array( ''=>'<?= $zmSlangChooseFilter ?>' );
+$filter_names = array( ''=>$zmSlangChooseFilter );
 $result = mysql_query( "select * from Filters order by Name" );
 if ( !$result )
 	die( mysql_error() );
@@ -108,14 +108,15 @@ $sort_fields = array(
 	'AvgScore'    => $zmSlangAttrAvgScore,
 	'MaxScore'    => $zmSlangAttrMaxScore,
 );
-if ( !$sort_field )
-{
-	$sort_field = "DateTime";
-}
 $sort_dirns = array(
 	'1' => $zmSlangSortAsc,
 	'0'  => $zmSlangSortDesc
 );
+if ( !$sort_field )
+{
+	$sort_field = ZM_EVENT_SORT_FIELD; 
+	$sort_asc = (ZM_EVENT_SORT_ORDER == "asc");
+}
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

@@ -237,11 +237,30 @@ else
 ?>
 <td align="left" class="text"><nobr>
 <?php
-			foreach ( split( "\|", $value['Hint'] ) as $option )
+			$options = split( "\|", $value['Hint'] );
+			if ( count( $options ) > 3 )
 			{
+?>
+<select name="new_config[<?= $value['Name'] ?>] ?>" class="form">
+<?php
+				foreach ( $options as $option )
+				{
+?>
+<option value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { echo " selected"; } ?>><?= htmlentities($option) ?></option>
+<?php
+				}
+?>
+</select>
+<?php
+			}
+			else
+			{
+				foreach ( $options as $option )
+				{
 ?>
 <input type="radio" class="text" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { ?> checked<?php } ?>>&nbsp;<?= $option ?>&nbsp;&nbsp;
 <?php
+				}
 			}
 ?>
 </nobr></td>

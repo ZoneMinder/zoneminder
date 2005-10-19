@@ -245,7 +245,7 @@ function buildSelect( $name, $contents, $onchange="" )
 	foreach ( $contents as $content_value => $content_text )
 	{
 ?>
-<option value="<?= $content_value ?>"<?php if ( $value == $content_value ) { echo " selected"; } ?>><?= $content_text ?></option>
+<option value="<?= $content_value ?>"<?php if ( $value == $content_value ) { echo " selected"; } ?>><?= htmlentities($content_text) ?></option>
 <?php
 	}
 ?>
@@ -760,8 +760,8 @@ function parseSort( $save_to_session=false )
 
 	if ( !isset($sort_field) )
 	{
-		$sort_field = "StartTime";
-		$sort_asc = false;
+		$sort_field = ZM_EVENT_SORT_FIELD;
+		$sort_asc = (ZM_EVENT_SORT_ORDER == "asc");
 	}
 	switch( $sort_field )
 	{

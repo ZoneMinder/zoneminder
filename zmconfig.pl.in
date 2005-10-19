@@ -974,6 +974,22 @@ my @options =
 		category => 'config',
 	},
 	{
+		name => "ZM_EVENT_SORT_FIELD",
+		default => "DateTime",
+		description => "Default field the event lists are sorted by",
+		help => "Events in lists can be initially ordered in any way you want. This option controls what field is used to sort them. You can modify this ordering from filters or by clicking on headings in the lists themselves. Bear in mind however that the 'Prev' and 'Next' links, when scrolling through events, relate to the ordering in the lists and so not always to time based ordering.",
+		type => { db_type=>'string', hint=>'Id|Name|Cause|MonitorName|DateTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore', pattern=>qr|.|, format=>q( $1 ) },
+		category => 'config',
+	},
+	{
+		name => "ZM_EVENT_SORT_ORDER",
+		default => "asc",
+		description => "Default order the event lists are sorted by",
+		help => "Events in lists can be initially ordered in any way you want. This option controls what order (ascending or descending) is used to sort them. You can modify this ordering from filters or by clicking on headings in the lists themselves. Bear in mind however that the 'Prev' and 'Next' links, when scrolling through events, relate to the ordering in the lists and so not always to time based ordering.",
+		type => { db_type=>'string', hint=>'asc|desc', pattern=>qr|^([ad])|i, format=>q( $1 =~ /^a/i ? 'asc' : 'desc' ) },
+		category => 'config',
+	},
+	{
 		name => "ZM_RECORD_EVENT_STATS",
 		default => "yes",
 		description => "Whether to record event statistical information, switch off if too slow",
@@ -1034,7 +1050,7 @@ my @options =
 	{
 		name => "ZM_WEB_REFRESH_METHOD",
 		default => "javascript",
-		description => "What method windows should use to refresh themselves, choose either javascript or http",
+		description => "What method windows should use to refresh themselves",
 		help => "Many windows in Javascript need to refresh themselves to keep their information current. This option determines what method they should use to do this. Choosing 'javascript' means that each window will have a short JavaScript statement in with a timer to prompt the refresh. This is the most compatible method. Choosing 'http' means the refresh instruction is put in the HTTP header. This is a cleaner method but refreshes are interrupted or cancelled when a link in the window is clicked meaning that the window will no longer refresh and this would have to be done manually.",
 		type => { db_type=>'string', hint=>'javascript|http', pattern=>qr|^([jh])|i, format=>q( $1 =~ /^j/ ? 'javascript' : 'http' ) },
 		category => 'web',

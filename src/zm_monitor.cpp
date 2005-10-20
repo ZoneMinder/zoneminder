@@ -139,7 +139,7 @@ void Monitor::Setup()
 
 	int shared_data_size = sizeof(SharedData)+sizeof(TriggerData)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
 	Debug( 1, ( "shm.size=%d", shared_data_size ));
-	shmid = shmget( config.shm_key|id, shared_data_size, IPC_CREAT|0700 );
+	shmid = shmget( (config.shm_key&0xffffff00)|id, shared_data_size, IPC_CREAT|0700 );
 	if ( shmid < 0 )
 	{
 		Error(( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno)));

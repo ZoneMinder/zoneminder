@@ -11,8 +11,9 @@ MYSQL_PREFIX=/usr
 AC_ARG_WITH(mysql,
     [  --with-mysql=<path>     prefix of MySQL installation. e.g. /usr/local or /usr],
     [MYSQL_PREFIX=$with_mysql],
-    AC_MSG_ERROR([You must call configure with the --with-mysql option.
-    This tells configure where to find the MySql C library and headers.
+    AC_MSG_WARN([You can call configure with the --with-mysql option.
+    This tells configure where to find the MySql C library and headers if configure cannot
+	locate them automatically..
     e.g. --with-mysql=/usr/local or --with-mysql=/usr])
 )
 AC_SUBST(MYSQL_PREFIX)

@@ -26,8 +26,8 @@ if ( !canView( 'System' ) )
 
 $tabs = array();
 $tabs['system'] = $zmSlangSystem;
-$tabs['paths'] = $zmSlangPaths;
 $tabs['config'] = $zmSlangConfig;
+$tabs['paths'] = $zmSlangPaths;
 $tabs['network'] = $zmSlangNetwork;
 $tabs['web'] = $zmSlangWeb;
 $tabs['video'] = $zmSlangVideo;
@@ -273,6 +273,18 @@ else
 <?php
 		}
 		elseif ( $value['Type'] == "integer" )
+		{
+?>
+<td align="left" class="text"><input type="text" class="form" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" size="8"></td>
+<?php
+		}
+		elseif ( $value['Type'] == "hexadecimal" )
+		{
+?>
+<td align="left" class="text"><input type="text" class="form" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" size="12"></td>
+<?php
+		}
+		elseif ( $value['Type'] == "decimal" )
 		{
 ?>
 <td align="left" class="text"><input type="text" class="form" id="<?= $value['Name'] ?>" name="new_config[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" size="8"></td>

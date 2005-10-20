@@ -225,7 +225,7 @@ else
 if ( ZM_OPT_USE_AUTH )
 {
 ?>
-<td class="smallhead" align="center"><?= $zmSlangLoggedInAs ?> <a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=logout', 'zmLogout', <?= $jws['logout']['w'] ?>, <?= $jws['logout']['h'] ?>);"><?= $user['Username'] ?></a>, <?= strtolower( $zmSlangConfiguredFor ) ?>
+<td class="smallhead" align="center"><?= $zmSlangLoggedInAs ?> <?= makeLink( "javascript: newWindow( '$PHP_SELF?view=logout', 'zmLogout', ".$jws['logout']['w'].", ".$jws['logout']['h'].");", $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>, <?= strtolower( $zmSlangConfiguredFor ) ?>
 <?php
 }
 else

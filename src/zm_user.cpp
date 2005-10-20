@@ -104,7 +104,15 @@ bool User::canAccess( int monitor_id )
 User *zmLoadUser( const char *username, const char *password )
 {
 	char sql[BUFSIZ] = "";
-	snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
+
+	if ( password )
+	{
+		snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", username, password );
+	}
+	else
+	{
+		snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Enabled = 1", username );
+	}
 
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -190,7 +198,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 			struct tm *now_tm = localtime( &now );
 
 			snprintf( auth_key, sizeof(auth_key), "%s%s%s%s%d%d%d%d", 
-				config.auth_secret,
+				config.auth_hash_secret,
 				user,
 				pass,
 				remote_addr,

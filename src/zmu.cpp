@@ -59,7 +59,7 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -u, --suspend                  : Suspend detection, useful to prevent bogus alarms when panning etc\n" );
 	fprintf( stderr, "  -r, --resume                   : Resume detection after a suspend\n" );
 	fprintf( stderr, "  -U, --username <username>      : When running in authenticated mode the username and\n" );
-	fprintf( stderr, "  -P, --password <password>      : and password combination of the given user\n" );
+	fprintf( stderr, "  -P, --password <password>      : password combination of the given user\n" );
 	fprintf( stderr, "  -A, --auth <authentication>    : Pass authentication hash string instead of user details\n" );
 
 	exit( status );
@@ -328,13 +328,20 @@ int main( int argc, char *argv[] )
 		}
 
 		User *user = 0;
-		if ( username && password )
+
+		if ( strcmp( config.auth_relay, "hashed" ) == 0 )
 		{
-			user = zmLoadUser( username, password );
+			if ( auth )
+			{
+				user = zmLoadAuthUser( auth, false );
+			}
 		}
-		else if ( auth )
+		else if ( strcmp( config.auth_relay, "plain" ) == 0 )
 		{
-			user = zmLoadAuthUser( auth, false );
+			if ( username && password )
+			{
+				user = zmLoadUser( username, password );
+			}
 		}
 		if ( !user )
 		{

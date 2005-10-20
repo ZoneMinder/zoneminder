@@ -21,7 +21,7 @@
 if ( isset($action) )
 {
 	//phpinfo( INFO_VARIABLES );
-	if ( $action == "login" && $username && $password )
+	if ( $action == "login" && $username && ( ZM_AUTH_TYPE == "remote" || $password ) )
 	{
 		userLogin( $username, $password );
 	}

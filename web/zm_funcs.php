@@ -29,7 +29,7 @@ if ( version_compare( phpversion(), "4.3.0", "<") )
 	}
 }
 
-function userLogin( $username, $password )
+function userLogin( $username, $password="" )
 {
 	global $user, $cookies;
 	if ( version_compare( phpversion(), "4.1.0", "<") )
@@ -37,12 +37,19 @@ function userLogin( $username, $password )
 		global $_SESSION, $_SERVER;
 	}
 
-	$sql = "select * from Users where Username = '".mysql_escape_string($username)."' and Password = password('".mysql_escape_string($password)."') and Enabled = 1";
+	if ( ZM_AUTH_TYPE == "builtin" )
+	{
+		$sql = "select * from Users where Username = '".mysql_escape_string($username)."' and Password = password('".mysql_escape_string($password)."') and Enabled = 1";
+	}
+	else
+	{
+		$sql = "select * from Users where Username = '".mysql_escape_string($username)."' and Enabled = 1";
+	}
 	$result = mysql_query( $sql );
 	if ( !$result )
 		echo mysql_error();
 	$_SESSION['username'] = $username;
-	if ( ZM_AUTH_METHOD == "plain" )
+	if ( ZM_AUTH_RELAY == "plain" )
 	{
 		// Need to save this in session
 		$_SESSION['password'] = $password;
@@ -51,7 +58,10 @@ function userLogin( $username, $password )
 	if ( $db_user = mysql_fetch_assoc( $result ) )
 	{
 		$_SESSION['user'] = $user = $db_user;
-		$_SESSION['password_hash'] = $user['Password'];
+		if ( ZM_AUTH_TYPE == "builtin" )
+		{
+			$_SESSION['password_hash'] = $user['Password'];
+		}
 	}
 	else
 	{
@@ -74,14 +84,14 @@ function userLogout()
 	session_destroy();
 }
 
-function authHash( $use_remote_addr=true )
+function authHash( $use_remote_addr)
 {
 	if ( version_compare( phpversion(), "4.1.0", "<") )
 	{
 		global $_SESSION;
 	}
 
-	if ( ZM_OPT_USE_AUTH && ZM_AUTH_METHOD == "hashed" )
+	if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" )
 	{
 		$time = localtime();
 		if ( $use_remote_addr )
@@ -112,11 +122,11 @@ function getStreamSrc( $args )
 
 	if ( ZM_OPT_USE_AUTH )
 	{
-		if ( ZM_AUTH_METHOD == "hashed" )
+		if ( ZM_AUTH_RELAY == "hashed" )
 		{
-			$args[] = "auth=".authHash();
+			$args[] = "auth=".authHash( ZM_AUTH_HASH_IPS );
 		}
-		else
+		elseif ( ZM_AUTH_RELAY == "plain" )
 		{
 			$args[] = "user=".$_SESSION['username'];
 			$args[] = "pass=".$_SESSION['password'];
@@ -146,11 +156,11 @@ function getZmuCommand( $args )
 
 	if ( ZM_OPT_USE_AUTH )
 	{
-		if ( ZM_AUTH_METHOD == "hashed" )
+		if ( ZM_AUTH_RELAY == "hashed" )
 		{
 			$zmu_command .= " -A ".authHash( false );
 		}
-		else
+		elseif ( ZM_AUTH_RELAY == "plain" )
 		{
 			$zmu_command .= " -U ".$_SESSION['username']." -P ".$_SESSION['password'];
 		}

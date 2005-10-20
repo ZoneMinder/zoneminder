@@ -60,6 +60,6 @@ public:
 };
 
 User *zmLoadUser( const char *username, const char *password );
-User *zmLoadAuthUser( const char *auth, bool use_remote_addr=true );
+User *zmLoadAuthUser( const char *auth, bool use_remote_addr );
 
 #endif // ZM_USER_H

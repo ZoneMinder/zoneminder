@@ -116,17 +116,23 @@ int main( int argc, const char *argv[] )
 				ttl = atoi(value);
 			else if ( config.opt_use_auth )
 			{
-				if ( !strcmp( name, "user" ) )
+				if ( strcmp( config.auth_relay, "hashed" ) == 0 )
 				{
-					strncpy( username, value, sizeof(username) );
+					if ( !strcmp( name, "auth" ) )
+					{
+						strncpy( auth, value, sizeof(auth) );
+					}
 				}
-				if ( !strcmp( name, "pass" ) )
+				else if ( strcmp( config.auth_relay, "plain" ) == 0 )
 				{
-					strncpy( password, value, sizeof(password) );
-				}
-				if ( !strcmp( name, "auth" ) )
-				{
-					strncpy( auth, value, sizeof(auth) );
+					if ( !strcmp( name, "user" ) )
+					{
+						strncpy( username, value, sizeof(username) );
+					}
+					if ( !strcmp( name, "pass" ) )
+					{
+						strncpy( password, value, sizeof(password) );
+					}
 				}
 			}
 		}
@@ -135,13 +141,20 @@ int main( int argc, const char *argv[] )
 	if ( config.opt_use_auth )
 	{
 		User *user = 0;
-		if ( *username && *password )
+
+		if ( strcmp( config.auth_relay, "hashed" ) == 0 )
 		{
-			user = zmLoadUser( username, password );
+			if ( *auth )
+			{
+				user = zmLoadAuthUser( auth, config.auth_hash_ips );
+			}
 		}
-		else if ( *auth )
+		else if ( strcmp( config.auth_relay, "plain" ) == 0 )
 		{
-			user = zmLoadAuthUser( auth );
+			if ( *username && *password )
+			{
+				user = zmLoadUser( username, password );
+			}
 		}
 		if ( !user )
 		{

@@ -119,6 +119,11 @@ $nve = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView, 'Edit'=>$zmSlangEdit )
 <tr><td align="right" class="text"><?= $zmSlangControl ?></td><td align="left" class="text"><?= buildSelect( "new_control", $nve ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangMonitors ?></td><td align="left" class="text"><?= buildSelect( "new_monitors", $nve ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangSystem ?></td><td align="left" class="text"><?= buildSelect( "new_system", $nve ) ?></td></tr>
+<?php
+$new_max_bandwidth = $row['MaxBandwidth'];
+$bandwidths = array_merge( array( ""=>"" ), $bw_array );
+?>
+<tr><td align="right" class="text"><?= $zmSlangMaxBandwidth ?></td><td align="left" class="text"><?= buildSelect( "new_max_bandwidth", $bandwidths ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangRestrictedCameraIds ?></td><td align="left" class="text"><input type="text" name="new_monitor_ids" value="<?= $row['MonitorIds'] ?>" size="16" class="form"></td></tr>
 <tr>
 <td align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"></td><td align="left"><input type="button" value="<?= $zmSlangClose ?>" class="form" onClick="closeWindow()"></td>

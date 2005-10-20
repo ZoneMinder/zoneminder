@@ -144,7 +144,7 @@ foreach ( $tabs as $name=>$value )
 	else
 	{
 ?>
-<td width="10" class="passivetab"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&tab=<?= $name ?>"?><?= $value ?></a></td>
+<td width="10" class="passivetab"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&tab=<?= $name ?>"><?= $value ?></a></td>
 <?php
 	}
 }
@@ -171,6 +171,7 @@ if ( $tab == "users" )
 <td align="left" class="smallhead"><?= $zmSlangControl ?></td>
 <td align="left" class="smallhead"><?= $zmSlangMonitors ?></td>
 <td align="left" class="smallhead"><?= $zmSlangSystem ?></td>
+<td align="left" class="smallhead"><?= $zmSlangBandwidth ?></td>
 <td align="left" class="smallhead"><?= $zmSlangMonitor ?></td>
 <td align="left" class="smallhead"><?= $zmSlangMark ?></td>
 </tr>
@@ -191,14 +192,15 @@ if ( $tab == "users" )
 <td align="left" class="ruled"><?= $row['Control'] ?></td>
 <td align="left" class="ruled"><?= $row['Monitors'] ?></td>
 <td align="left" class="ruled"><?= $row['System'] ?></td>
+<td align="left" class="ruled"><?= $row['MaxBandwidth']?$bw_array[$row['MaxBandwidth']]:'&nbsp;' ?></td>
 <td align="left" class="ruled"><?= $row['MonitorIds']?$row['MonitorIds']:"&nbsp;" ?></td>
 <td align="center" class="ruled"><input type="checkbox" name="mark_uids[]" value="<?= $row['Id'] ?>" onClick="configureButton( document.user_form, 'mark_uids' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
 	}
 ?>
-<tr><td colspan="10" class="ruled">&nbsp;</td></tr>
-<tr><td colspan="10" align="right"><input type="button" value="<?= $zmSlangAddNewUser ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=user&uid=-1', 'zmUser', <?= $jws['user']['w'] ?>, <?= $jws['user']['h'] ?> );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled>&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td></tr>
+<tr><td colspan="12" class="ruled">&nbsp;</td></tr>
+<tr><td colspan="12" align="right"><input type="button" value="<?= $zmSlangAddNewUser ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=user&uid=-1', 'zmUser', <?= $jws['user']['w'] ?>, <?= $jws['user']['h'] ?> );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled>&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td></tr>
 </form>
 <?php
 }

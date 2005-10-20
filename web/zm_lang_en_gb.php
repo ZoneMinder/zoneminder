@@ -317,6 +317,7 @@ $zmSlangMain                 = 'Main';
 $zmSlangMan                  = 'Man';
 $zmSlangManual               = 'Manual';
 $zmSlangMark                 = 'Mark';
+$zmSlangMaxBandwidth         = 'Max Bandwidth';
 $zmSlangMaxBrScore           = 'Max.<br/>Score';
 $zmSlangMaxFocusRange        = 'Max Focus Range';
 $zmSlangMaxFocusSpeed        = 'Max Focus Speed';

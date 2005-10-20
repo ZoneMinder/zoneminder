@@ -102,6 +102,22 @@ if ( !isset($user) )
 		}
 	}
 }
+else
+{
+	// Bandwidth Limiter
+	if ( !empty($user['MaxBandwidth']) )
+	{
+		if ( $user['MaxBandwidth'] == "low" )
+		{
+			$bandwidth = "low";
+		}
+		elseif ( $user['MaxBandwidth'] == "medium" && $bandwidth = "high" )
+		{
+			$bandwidth = "medium";
+		}
+	}
+}
+
 if ( !isset($view) )
 {
 	$view = "console";

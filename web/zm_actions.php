@@ -1254,6 +1254,7 @@ if ( isset($action) )
 			if ( $new_control != $row['Control'] ) $changes[] = "Control = '$new_control'";
 			if ( $new_monitors != $row['Monitors'] ) $changes[] = "Monitors = '$new_monitors'";
 			if ( $new_system != $row['System'] ) $changes[] = "System = '$new_system'";
+			if ( $new_max_bandwidth != $row['MaxBandwidth'] ) $changes[] = "MaxBandwidth = '$new_max_bandwidth'";
 			if ( $new_monitor_ids != $row['MonitorIds'] ) $changes[] = "MonitorIds = '$new_monitor_ids'";
 
 			if ( count( $changes ) )

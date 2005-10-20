@@ -20,6 +20,19 @@
 
 $new_bandwidth = $bandwidth;
 
+if ( $user && !empty($user['MaxBandwidth']) )
+{
+	if ( $user['MaxBandwidth'] == "low" )
+	{
+		unset( $bw_array['high'] );
+		unset( $bw_array['medium'] );
+	}
+	elseif ( $user['MaxBandwidth'] == "medium" )
+	{
+		unset( $bw_array['high'] );
+	}
+}
+
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>

@@ -235,7 +235,7 @@ else
 <?php
 }
 ?>
-&nbsp;<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=bandwidth', 'zmBandwidth', <?= $jws['bandwidth']['w'] ?>, <?= $jws['bandwidth']['h'] ?>);"><?= strtolower( $bw_array[$bandwidth] ) ?></a> <?= strtolower( $zmSlangBandwidth ) ?></td>
+&nbsp;<?= makeLink( "javascript: newWindow( '$PHP_SELF?view=bandwidth', 'zmBandwidth', ".$jws['bandwidth']['w'].", ".$jws['bandwidth']['h']." );", strtolower( $bw_array[$bandwidth] ), ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?= strtolower( $zmSlangBandwidth ) ?></td>
 <td class="smallhead" align="right"><table width="100%" border="0" cellpadding="0" cellspacing="0"><tr><td class="smallhead" align="left">
 <?php
 if ( canView( 'Stream' ) && $cycle_count > 1 )

@@ -29,7 +29,9 @@ if ( !$result )
 $monitor = mysql_fetch_assoc( $result );
 
 if ( !isset($scale) )
-	$scale = max( reScale( SCALE_SCALE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_SCALE );
+	$scale = reScale( SCALE_SCALE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+
+$resize_scale = max( $scale, SCALE_SCALE );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
@@ -38,14 +40,14 @@ if ( !isset($scale) )
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $monitor['Name'] ?> - <?= $zmSlangWatch ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
-window.resizeTo( <?= reScale($monitor['Width'],$scale)+$jws['watch']['w'] ?>, <?= reScale($monitor['Height'],$scale)+$jws['watch']['h'] ?> );
+window.resizeTo( <?= reScale( $monitor['Width'], $resize_scale )+$jws['watch']['w'] ?>, <?= reScale( $monitor['Height'], $resize_scale )+$jws['watch']['h'] ?> );
 //opener.location.reload();
 window.focus();
 </script>
 </head>
 <frameset rows="24,<?= reScale($monitor['Height'],$scale)+8 ?>,16,*" border="0" frameborder="no" framespacing="0">
-<frame src="<?= $PHP_SELF ?>?view=watchmenu&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= reScale( SCALE_SCALE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>&control=<?= $control ?>" marginwidth="0" marginheight="0" name="MonitorMenu<?= $monitor['Id' ] ?>" scrolling="no">
-<frame src="<?= $PHP_SELF ?>?view=watchfeed&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= reScale( SCALE_SCALE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>&control=<?= $control ?>" marginwidth="0" marginheight="0" name="MonitorStream<?= $monitor['Id' ] ?>" scrolling="no">
+<frame src="<?= $PHP_SELF ?>?view=watchmenu&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>&control=<?= $control ?>" marginwidth="0" marginheight="0" name="MonitorMenu<?= $monitor['Id' ] ?>" scrolling="no">
+<frame src="<?= $PHP_SELF ?>?view=watchfeed&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>&control=<?= $control ?>" marginwidth="0" marginheight="0" name="MonitorStream<?= $monitor['Id' ] ?>" scrolling="no">
 <frame src="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $monitor['Id'] ?>&control=<?= $control ?>" marginwidth="0" marginheight="0" name="MonitorStatus<?= $monitor['Id' ] ?>" scrolling="no">
 <?php
 if ( $control )

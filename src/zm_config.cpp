@@ -241,6 +241,26 @@ void Config::Load()
 void Config::Assign()
 {
 ZM_CFG_ASSIGN_LIST
+
+	if ( extra_debug )
+	{
+		static char extra_level_env[PATH_MAX] = "";
+		static char extra_log_env[PATH_MAX] = "";
+
+		snprintf( extra_level_env, sizeof(extra_level_env), "ZM_DBG_LEVEL%s=%d", extra_debug_target, extra_debug_level );
+		if ( putenv( extra_level_env ) < 0 )
+		{
+			Error(("Can't putenv %s: %s", extra_level_env, strerror(errno) ));
+		}
+
+		snprintf( extra_log_env, sizeof(extra_log_env), "ZM_DBG_LOG%s=%s", extra_debug_target, extra_debug_log );
+		if ( putenv( extra_log_env ) < 0 )
+		{
+			Error(("Can't putenv %s: %s", extra_log_env, strerror(errno) ));
+		}
+
+		zmDbgReinit( extra_debug_target );
+	}
 }
 
 const ConfigItem &Config::Item( int id )
@@ -248,6 +268,7 @@ const ConfigItem &Config::Item( int id )
 	if ( !n_items )
 	{
 		Load();
+		Assign();
 	}
 
 	if ( id < 0 || id > ZM_MAX_CFG_ID )

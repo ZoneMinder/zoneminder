@@ -507,6 +507,41 @@ my @options =
 		category => 'tools',
 	},
 	{
+		name => "ZM_EXTRA_DEBUG",
+		default => "no",
+		description => "Whether to switch additional debugging on",
+		help => "ZoneMinder binary components usually have several levels of debug information they can output. Normally this is set to a fairly low level to avoid filling logs too quickly. This options lets you switch on other options that allow you to configure additional debug information to be output. Components will pick up this instruction when they are restarted.",
+		type => $types{boolean},
+		category => 'tools',
+	},
+	{
+		name => "ZM_EXTRA_DEBUG_TARGET",
+		default => "",
+		description => "What components should have extra debug enabled",
+		help => "There are three scopes of debug available. Leaving this option blank means that all components will use extra debug (not recommended). Setting this option to '_<component>', e.g. _zmc, will limit extra debug to that component only. Setting this option to '_<component>_<identity>', e.g. '_zmc_m1' will limit extra debug to that instance of the component only. This is ordinarily what you probably want to do.",
+		requires => [ { name => "ZM_EXTRA_DEBUG", value => "yes" } ],
+		type => $types{string},
+		category => 'tools',
+	},
+	{
+		name => "ZM_EXTRA_DEBUG_LEVEL",
+		default => 0,
+		description => "What level of extra debug should be enabled",
+		help => "There are 9 levels of debug available, with higher numbers being more debug and level 0 being no debug. However not all levels are used by all components. Also if there is debug at a high level it is usually likely to be output at such a volume that it may obstruct normal operation. For this reason you should set the level carefully and cautiously until the degree of debug you wish to see is present.",
+		requires => [ { name => "ZM_EXTRA_DEBUG", value => "yes" } ],
+		type => { db_type=>'integer', hint=>'0|1|2|3|4|5|6|7|8|9', pattern=>qr|^(\d+)$|, format=>q( $1 ) },
+		category => 'tools',
+	},
+	{
+		name => "ZM_EXTRA_DEBUG_LOG",
+		default => "/tmp/zm_debug.log+",
+		description => "Where extra debug is output to",
+		help => "Depending on your system configuration you may find that only errors, warning and informational messages are logged to your system log. This option allows you to specify an additional target for these messages and debug. This also has the advantage of partitioning debug for the component you are tracing, from messages from other components. Be warned however that if this is a simple filename and you are debugging several components then they will all try and write to the same file with undesirable consequences. Appending a '+' to the filename will cause the file to be created with a '.<pid>' suffic containing your process id. In this way debug from each run of a component is kept separate. This is the recommended setting as it will also prevent subsequent runs from overwriting the same log.",
+		requires => [ { name => "ZM_EXTRA_DEBUG", value => "yes" } ],
+		type => $types{string},
+		category => 'tools',
+	},
+	{
 		name => "ZM_PATH_SOCKS",
 		default => "/tmp",
 		description => "Path to the various Unix domain socket files that ZoneMinder uses",
@@ -1847,15 +1882,15 @@ if ( $reprocess )
 		$define_list .= sprintf( "#define $opt_name $opt_id\n" );
 
 		$declare_list .= sprintf( "\t" );
-		if ( $opt_type == $types{boolean} )
+		if ( $opt_type->{db_type} eq 'boolean' )
 		{
 			$declare_list .= sprintf( "bool " );
 		}
-		elsif ( $opt_type == $types{integer} || $opt_type == $types{hexadecimal} )
+		elsif ( $opt_type->{db_type} eq 'integer' || $opt_type->{db_type} eq 'hexadecimal' )
 		{
 			$declare_list .= sprintf( "int " );
 		}
-		elsif ( $opt_type == $types{decimal} )
+		elsif ( $opt_type->{db_type} eq 'decimal' )
 		{
 			$declare_list .= sprintf( "double " );
 		}
@@ -1867,15 +1902,15 @@ if ( $reprocess )
 
 		$assign_list .= sprintf( "\t" );
 		$assign_list .= sprintf( $var_name." = " );
-		if ( $opt_type == $types{boolean} )
+		if ( $opt_type->{db_type} eq 'boolean' )
 		{
 			$assign_list .= sprintf( "(bool)" );
 		}
-		elsif ( $opt_type == $types{integer} || $opt_type == $types{hexadecimal} )
+		elsif ( $opt_type->{db_type} eq 'integer' || $opt_type->{db_type} eq 'hexadecimal' )
 		{
 			$assign_list .= sprintf( "(int)" );
 		}
-		elsif ( $opt_type == $types{decimal} )
+		elsif ( $opt_type->{db_type} eq 'decimal' )
 		{
 			$assign_list .= sprintf( "(double) " );
 		}
@@ -1939,10 +1974,10 @@ if ( $reprocess )
 					$opt_value = "true" if ( $opt_value eq "yes" );
 					$opt_value = "false" if ( $opt_value eq "no" );
 				}
-				if ( $opt_type == $types{boolean}
-				|| $opt_type == $types{integer}
-				|| $opt_type == $types{decimal}
-				|| $opt_type == $types{hexadecimal} )
+				if ( $opt_type->{db_type} eq 'boolean'
+				|| $opt_type->{db_type} eq 'integer'
+				|| $opt_type->{db_type} eq 'decimal'
+				|| $opt_type->{db_type} eq 'hexadecimal' )
 				{
 					$data =~ s/^(#define\s+$opt_name\s+).*$/$1$opt_value\t\/\/ $opt_desc \(from zmconfig\)/mg;
 				}
@@ -1965,10 +2000,10 @@ if ( $reprocess )
 					$opt_value = 1 if ( $opt_value eq "yes" );
 					$opt_value = 0 if ( $opt_value eq "no" );
 				}
-				if ( $opt_type == $types{boolean}
-				|| $opt_type == $types{integer}
-				|| $opt_type == $types{decimal}
-				|| $opt_type == $types{hexadecimal} )
+				if ( $opt_type->{db_type} eq 'boolean'
+				|| $opt_type->{db_type} eq 'integer'
+				|| $opt_type->{db_type} eq 'decimal'
+				|| $opt_type->{db_type} eq 'hexadecimal' )
 				{
 					$data =~ s/^(\s*use\s+constant\s+$opt_name\s*=>\s*).*$/$1$opt_value;\t# $opt_desc \(from zmconfig\)/mg;
 				}
@@ -2004,10 +2039,10 @@ if ( $reprocess )
 					$opt_value = "true" if ( $opt_value eq "yes" );
 					$opt_value = "false" if ( $opt_value eq "no" );
 				}
-				if ( $opt_type == $types{boolean}
-				|| $opt_type == $types{integer}
-				|| $opt_type == $types{decimal}
-				|| $opt_type == $types{hexadecimal} )
+				if ( $opt_type->{db_type} eq 'boolean'
+				|| $opt_type->{db_type} eq 'integer'
+				|| $opt_type->{db_type} eq 'decimal'
+				|| $opt_type->{db_type} eq 'hexadecimal' )
 				{
 					$data =~ s/^(define\s*\(\s*"$opt_name"\s*,\s*).*$/$1$opt_value \);\t\/\/ $opt_desc \(from zmconfig\)/mg;
 				}

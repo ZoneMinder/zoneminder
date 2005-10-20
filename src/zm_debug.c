@@ -108,15 +108,15 @@ int zmGetDebugEnv()
 	}
 
 	env_ptr = NULL;
-	sprintf(buffer,"ZM_DBG_LEVEL_%s_%s",zm_dbg_name,zm_dbg_id);
+	sprintf( buffer, "ZM_DBG_LEVEL_%s_%s", zm_dbg_name, zm_dbg_id );
 	env_ptr = getenv(buffer);
 	if ( env_ptr == (char *)NULL )
 	{
-		sprintf(buffer,"ZM_DBG_LEVEL_%s",zm_dbg_name);
+		sprintf( buffer, "ZM_DBG_LEVEL_%s", zm_dbg_name );
 		env_ptr = getenv(buffer);
 		if ( env_ptr == (char *)NULL )
 		{
-			sprintf(buffer,"ZM_DBG_LEVEL");
+			sprintf( buffer, "ZM_DBG_LEVEL" );
 			env_ptr = getenv(buffer);
 		}
 	}
@@ -162,40 +162,20 @@ int zmGetDebugEnv()
 	return( 0 );
 }
 
-int zmDebugInitialise( const char *name, const char *id, int level )
+int zmDebugPrepareLog()
 {
 	FILE *tmp_fp;
-	int status;
-	struct timezone tzp;
 
-	gettimeofday( &zm_dbg_start, &tzp );
-
-	Debug( 1,( "Initialising Debug" ));
-
-	strncpy( zm_dbg_name, name, sizeof(zm_dbg_name) );
-	strncpy( zm_dbg_id, id, sizeof(zm_dbg_id) );
-	zm_dbg_level = level;
-	
-	/* Now set up the syslog stuff */
-	if ( zm_dbg_id[0] )
-		snprintf( zm_dbg_syslog, sizeof(zm_dbg_syslog), "%s_%s", zm_dbg_name, zm_dbg_id );
-	else
-		strncpy( zm_dbg_syslog, zm_dbg_name, sizeof(zm_dbg_syslog) );
-
-	(void) openlog( zm_dbg_syslog, LOG_PID|LOG_NDELAY, LOG_LOCAL1 );
-
-	zm_temp_dbg_string[0] = '\0';
-	zm_dbg_class[0] = '\0';
-
-	zm_dbg_pid = getpid();
-	zm_dbg_log_fd = (FILE *)NULL;
-	if( (status = zmGetDebugEnv() ) < 0)
+	if ( zm_dbg_log_fd )
 	{
-		Error(( "Debug Environment Error, status = %d", status ));
-		return(ZM_DBG_ERROR);
+		fflush( zm_dbg_log_fd );
+		if ( fclose(zm_dbg_log_fd) == -1 )
+		{
+			Error(( "fclose(), error = %s",strerror(errno)) );
+			return( ZM_DBG_ERROR );
+		}
+		zm_dbg_log_fd = (FILE *)NULL;
 	}
-
-	strncpy( zm_dbg_name, zm_dbg_syslog, sizeof(zm_dbg_name) );
 
 	if ( ( zm_dbg_add_log_id == FALSE && zm_dbg_log[0] ) && ( zm_dbg_log[strlen(zm_dbg_log)-1] == '~' ) )
 	{
@@ -216,6 +196,45 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 	    Error(("fopen() for %s, error = %s",zm_dbg_log,strerror(errno)));
 		return(ZM_DBG_ERROR);
 	}
+}
+
+int zmDebugInitialise( const char *name, const char *id, int level )
+{
+	int status;
+	struct timezone tzp;
+
+	gettimeofday( &zm_dbg_start, &tzp );
+
+	Debug( 1,( "Initialising Debug" ));
+
+	strncpy( zm_dbg_name, name, sizeof(zm_dbg_name) );
+	strncpy( zm_dbg_id, id, sizeof(zm_dbg_id) );
+	zm_dbg_level = level;
+	
+	/* Now set up the syslog stuff */
+	if ( zm_dbg_id[0] )
+		snprintf( zm_dbg_syslog, sizeof(zm_dbg_syslog), "%s_%s", zm_dbg_name, zm_dbg_id );
+	else
+		strncpy( zm_dbg_syslog, zm_dbg_name, sizeof(zm_dbg_syslog) );
+
+	(void) openlog( zm_dbg_syslog, LOG_PID|LOG_NDELAY, LOG_LOCAL1 );
+
+	strncpy( zm_dbg_name, zm_dbg_syslog, sizeof(zm_dbg_name) );
+
+	zm_temp_dbg_string[0] = '\0';
+	zm_dbg_class[0] = '\0';
+
+	zm_dbg_pid = getpid();
+	zm_dbg_log_fd = (FILE *)NULL;
+
+	if( (status = zmGetDebugEnv() ) < 0)
+	{
+		Error(( "Debug Environment Error, status = %d", status ));
+		return(ZM_DBG_ERROR);
+	}
+
+	zmDebugPrepareLog();
+
 	Info(( "Debug Level = %d, Debug Log = %s", zm_dbg_level,zm_dbg_log[0]?zm_dbg_log:"<none>" ));
 
 	{
@@ -243,20 +262,71 @@ int zmDbgInit( const char *name, const char *id, int level )
 	return((zmDebugInitialise( name, id, level ) == ZM_DBG_OK ? 0 : 1));
 }
 
+int zmDebugReinitialise( const char *target )
+{
+	int status;
+	int reinit = FALSE;
+	char buffer[64];
+
+	if ( target )
+	{
+		snprintf( buffer, sizeof(buffer), "_%s_%s", zm_dbg_name, zm_dbg_id );
+		if ( strcmp( target, buffer ) == 0 )
+		{
+			reinit = TRUE;
+		}
+		else
+		{
+			snprintf( buffer, sizeof(buffer), "_%s", zm_dbg_name );
+			if ( strcmp( target, buffer ) == 0 )
+			{
+				reinit = TRUE;
+			}
+			else
+			{
+				if ( strcmp( target, "" ) == 0 )
+				{
+					reinit = TRUE;
+				}
+			}
+		}
+	}
+
+	if ( reinit )
+	{
+		if ( (status = zmGetDebugEnv() ) < 0 )
+		{
+			Error(( "Debug Environment Error, status = %d", status ));
+			return(ZM_DBG_ERROR);
+		}
+
+		zmDebugPrepareLog();
+
+		Info(( "New Debug Level = %d, New Debug Log = %s", zm_dbg_level, zm_dbg_log[0]?zm_dbg_log:"<none>" ));
+	}
+
+	return(ZM_DBG_OK);
+}
+
+int zmDbgReinit( const char *target )
+{
+	return( (zmDebugReinitialise( target )==ZM_DBG_OK?0:1) );
+}
+
 int zmDebugTerminate()
 {
-	Debug(1,("Terminating Debug"));
-	fflush(zm_dbg_log_fd);
-	if((fclose(zm_dbg_log_fd)) == -1)
+	Debug( 1,( "Terminating Debug" ));
+	fflush( zm_dbg_log_fd );
+	if ( fclose(zm_dbg_log_fd) == -1 )
 	{
-		Error(("fclose(), error = %s",strerror(errno)));
-		return(ZM_DBG_ERROR);
+		Error(( "fclose(), error = %s",strerror(errno)) );
+		return( ZM_DBG_ERROR );
 	}
 	zm_dbg_log_fd = (FILE *)NULL;
 	(void) closelog();
 
 	zm_dbg_running = FALSE;
-	return(ZM_DBG_OK);
+	return( ZM_DBG_OK );
 }
 
 int zmDbgTerm()
@@ -382,8 +452,7 @@ int zmDbgOutput( const char *fstring, ... )
 				log_code = LOG_CRIT;
 				break;
 			default:
-				/* log_code = LOG_DEBUG; */
-				log_code = LOG_INFO;
+				log_code = LOG_DEBUG;
 				break;
 		}
 		log_code |= LOG_LOCAL1;

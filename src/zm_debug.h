@@ -98,18 +98,21 @@ extern "C" {
 /* function declarations */
 void zmUsrHandler( int sig );
 int zmGetDebugEnv( void );
+int zmDebugPrepareLog( void );
 int zmDebugInitialise( const char *name, const char *id, int level );
+int zmDebugReinitialise( const char *target );
 int zmDebugTerminate( void );
 void zmDbgSubtractTime( struct timeval * const tp1, struct timeval * const tp2 );
 
-
 #if defined(__STDC__) || defined(__cplusplus)
 int zmDbgInit( const char *name, const char *id, int level );
+int zmDbgReinit( const char *target );
 int zmDbgTerm(void);
-int zmDbgPrepare(const char * const file,const int line, const int code);
-int zmDbgOutput(const char *fstring, ... ) __attribute__ ((format(printf, 1, 2)));
+int zmDbgPrepare( const char * const file, const int line, const int code );
+int zmDbgOutput( const char *fstring, ... ) __attribute__ ((format(printf, 1, 2)));
 #else
 int zmDbgInit();
+int zmDbgReinit();
 int zmDbgTerm();
 int zmDbgPrepare();
 int zmDbgOutput();

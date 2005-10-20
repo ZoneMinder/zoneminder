@@ -1216,11 +1216,11 @@ if ( isset($action) )
 					case "x10" :
 					case "mail" :
 					case "ftp" :
+					case "tools" :
 						$restart = true;
 						break;
 					case "web" :
 					case "video" :
-					case "tools" :
 					case "highband" :
 					case "medband" :
 					case "lowband" :

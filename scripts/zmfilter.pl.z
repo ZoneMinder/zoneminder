@@ -76,7 +76,6 @@ BEGIN
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter.log';
 use constant START_DELAY => 5; # How long to wait before starting
-use constant CHECK_DELAY => 60; # How long between each event check
 
 use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
@@ -148,7 +147,7 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-my $delay = CHECK_DELAY;
+my $delay = ZM_FILTER_EXECUTE_INTERVAL;
 my $event_id = 0;
 
 sub Usage

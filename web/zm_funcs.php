@@ -84,7 +84,7 @@ function userLogout()
 	session_destroy();
 }
 
-function authHash( $use_remote_addr)
+function authHash( $use_remote_addr )
 {
 	if ( version_compare( phpversion(), "4.1.0", "<") )
 	{
@@ -96,11 +96,11 @@ function authHash( $use_remote_addr)
 		$time = localtime();
 		if ( $use_remote_addr )
 		{
-			$auth_key = ZM_AUTH_SECRET.$_SESSION['username'].$_SESSION['password_hash'].$_SESSION['remote_addr'].$time[2].$time[3].$time[4].$time[5];
+			$auth_key = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['password_hash'].$_SESSION['remote_addr'].$time[2].$time[3].$time[4].$time[5];
 		}
 		else
 		{
-			$auth_key = ZM_AUTH_SECRET.$_SESSION['username'].$_SESSION['password_hash'].$time[2].$time[3].$time[4].$time[5];
+			$auth_key = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['password_hash'].$time[2].$time[3].$time[4].$time[5];
 		}
 		$auth = md5( $auth_key );
 	}

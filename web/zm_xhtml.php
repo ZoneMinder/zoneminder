@@ -45,14 +45,13 @@ else
 		"Enabled"=>1,
 		"Stream"=>'View',
 		"Events"=>'Edit',
+		"Control"=>'Edit',
 		"Monitors"=>'Edit',
 		"System"=>'Edit',
 	);
 }
 
 require_once( 'zm_lang.php' );
-require_once( 'zm_funcs.php' );
-require_once( 'zm_actions.php' );
 
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
@@ -92,12 +91,27 @@ $scales = array(
 
 if ( !isset($user) )
 {
-	$view = "login";
+	if ( ZM_OPT_USE_AUTH )
+	{
+		if ( ZM_AUTH_TYPE == "remote" && !empty( $_SERVER['REMOTE_USER'] ) )
+		{
+			$view = "postlogin";
+			$action = "login";
+			$username = $_SERVER['REMOTE_USER'];
+		}
+		else
+		{
+			$view = "login";
+		}
+	}
 }
 elseif ( !isset($view) )
 {
 	$view = "console";
 }
+
+require_once( 'zm_funcs.php' );
+require_once( 'zm_actions.php' );
 
 switch( $view )
 {

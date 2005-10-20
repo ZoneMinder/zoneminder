@@ -156,6 +156,7 @@ if ( !$_SESSION['format'] )
 	if ( $cookies )
 	{
 		setcookie( "format", $format );
+		setcookie( "cookies", $cookies );
 	}
 }
 

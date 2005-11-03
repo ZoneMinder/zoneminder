@@ -895,6 +895,7 @@ if ( isset($action) )
 				elseif ( !$user['MonitorIds'] )
 				{
 					$sql = "select max(Sequence) as MaxSequence from Monitors";
+					$result = mysql_query( $sql );
 					if ( !$result )
 						die( mysql_error() );
 					$row = mysql_fetch_assoc( $result );

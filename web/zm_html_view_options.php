@@ -226,7 +226,7 @@ else
 ?>
 <tr>
 <td align="left" class="text"><?= $value['Name'] ?></td>
-<td align="left" class="text"><?= $option_prompt_text ?> (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=optionhelp&option=<?= $value['Name'] ?>', 'zmOptionHelp', <?= $jws['optionhelp']['w'] ?>, <?= $jws['optionhelp']['h'] ?>);">?</a>)</td>
+<td align="left" class="text"><?= htmlentities($option_prompt_text) ?> (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=optionhelp&option=<?= $value['Name'] ?>', 'zmOptionHelp', <?= $jws['optionhelp']['w'] ?>, <?= $jws['optionhelp']['h'] ?>);">?</a>)</td>
 <?php	
 		if ( $value['Type'] == "boolean" )
 		{

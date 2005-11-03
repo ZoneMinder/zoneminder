@@ -214,9 +214,10 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			BlobStats blob_stats[256];
 			memset( blob_stats, 0, sizeof(BlobStats)*256 );
 			unsigned char *pdiff, *spdiff;
-			int lx, ly;
+			int last_x, last_y;
 			BlobStats *bsx, *bsy;
 			BlobStats *bsm, *bss;
+			int diff_width = diff_image->Width();
 			for ( int y = lo_y; y <= hi_y; y++ )
 			{
 				pdiff = diff_image->Buffer( lo_x, y );
@@ -225,21 +226,21 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					if ( *pdiff == WHITE )
 					{
 						//printf( "Got white pixel at %d,%d (%x)\n", x, y, pdiff );
-						lx = x>lo_x?*(pdiff-1):0;
-						ly = y>lo_y?*(pdiff-diff_image->Width()):0;
-						if ( lx )
+						last_x = x>lo_x?*(pdiff-1):0;
+						last_y = y>lo_y?*(pdiff-diff_width):0;
+						if ( last_x )
 						{
-							//printf( "Left neighbour is %d\n", lx );
-							bsx = &blob_stats[lx];
-							if ( ly )
+							//printf( "Left neighbour is %d\n", last_x );
+							bsx = &blob_stats[last_x];
+							if ( last_y )
 							{
-								//printf( "Top neighbour is %d\n", ly );
-								bsy = &blob_stats[ly];
-								if ( lx == ly )
+								//printf( "Top neighbour is %d\n", last_y );
+								bsy = &blob_stats[last_y];
+								if ( last_x == last_y )
 								{
-									//printf( "Matching neighbours, setting to %d\n", lx );
+									//printf( "Matching neighbours, setting to %d\n", last_x );
 									// Add to the blob from the x side (either side really)
-									*pdiff = lx;
+									*pdiff = last_x;
 									bsx->count++;
 									if ( x > bsx->hi_x ) bsx->hi_x = x;
 									if ( y > bsx->hi_y ) bsx->hi_y = y;
@@ -292,9 +293,9 @@ bool Zone::CheckAlarms( const Image *delta_image )
 							}
 							else
 							{
-								//printf( "Setting to left neighbour %d\n", lx );
+								//printf( "Setting to left neighbour %d\n", last_x );
 								// Add to the blob from the x side 
-								*pdiff = lx;
+								*pdiff = last_x;
 								bsx->count++;
 								if ( x > bsx->hi_x ) bsx->hi_x = x;
 								if ( y > bsx->hi_y ) bsx->hi_y = y;
@@ -302,14 +303,14 @@ bool Zone::CheckAlarms( const Image *delta_image )
 						}
 						else
 						{
-							if ( ly )
+							if ( last_y )
 							{
-								//printf( "Setting to top neighbour %d\n", ly );
+								//printf( "Setting to top neighbour %d\n", last_y );
 
 								// Add to the blob from the y side
-								BlobStats *bsy = &blob_stats[ly];
+								BlobStats *bsy = &blob_stats[last_y];
 
-								*pdiff = ly;
+								*pdiff = last_y;
 								bsy->count++;
 								if ( x > bsy->hi_x ) bsy->hi_x = x;
 								if ( y > bsy->hi_y ) bsy->hi_y = y;
@@ -317,8 +318,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 							else
 							{
 								// Create a new blob
-								//for ( int i = 1; i < WHITE; i++ )
-								for ( int i = (WHITE-1); i > 0; i-- )
+								int i;
+								for ( i = (WHITE-1); i > 0; i-- )
 								{
 									BlobStats *bs = &blob_stats[i];
 									if ( !bs->count )
@@ -334,6 +335,15 @@ bool Zone::CheckAlarms( const Image *delta_image )
 										Debug( 2, ( "Created blob %d, %d current blobs", bs->tag, alarm_blobs ));
 										break;
 									}
+								}
+								if ( i == 0 )
+								{
+									i = 1;
+									Warning(( "Max blob count reached. Unable to allocate new blob so extending last one." ));
+									BlobStats *bs = &blob_stats[i];
+									*pdiff = i;
+									if ( x > bs->hi_x ) bs->hi_x = x;
+									if ( y > bs->hi_y ) bs->hi_y = y;
 								}
 							}
 						}

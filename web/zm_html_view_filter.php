@@ -278,10 +278,10 @@ else
 <td class="text"><?= buildSelect( $value_name, $archive_types ); ?></td>
 <?php } elseif ( $$attr_name ) { ?>
 <td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>
-<td class="text"><input name="<?= $value_name ?>" value="<?= $$value_name ?>" class="form" size="16"></td>
+<td class="text"><input name="<?= $value_name ?>" value="<?= $$value_name ?>" class="form" size="24"></td>
 <?php } else { ?>
 <td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>
-<td class="text"><input name="<?= $value_name ?>" value="<?= isset($$value_name)?$$value_name:'' ?>" class="form" size="16"></td>
+<td class="text"><input name="<?= $value_name ?>" value="<?= isset($$value_name)?$$value_name:'' ?>" class="form" size="24"></td>
 <?php } ?>
 <td class="text"><?php if ( $trms > 2 ) { echo buildSelect( $cbracket_name, $cbracket_types ); } else { ?>&nbsp;<?php } ?></td>
 </tr>

@@ -162,12 +162,28 @@ elseif ( isset($min_time) && isset($max_time) )
 	$mid_time = date( "Y-m-d H:i:s", $mid_time_t );
 }
 
-if ( !isset($min_time) || !isset($max_time) )
+if ( isset($min_time) && isset($max_time) )
+{
+	$temp_min_time = $temp_max_time = $temp_expandable = false;
+	extractDatetimeRange( $tree, $temp_min_time, $temp_max_time, $temp_expandable );
+	$filter_sql = parseTreeToSQL( $tree );
+	//echo $filter_sql;
+	//echo '<br>';
+
+	if ( $filter_sql )
+	{
+		$filter_sql = " and $filter_sql";
+		$events_sql .= $filter_sql;
+	}
+}
+else
 {
 	//$filter_query = parseTreeToQuery( $tree );
 	//echo $filter_query;
 	//echo '<br>';
 	$filter_sql = parseTreeToSQL( $tree );
+	$temp_min_time = $temp_max_time = $temp_expandable = false;
+	extractDatetimeRange( $tree, $temp_min_time, $temp_max_time, $temp_expandable );
 	//echo $filter_sql;
 	//echo '<br>';
 
@@ -200,8 +216,6 @@ if ( !isset($min_time) || !isset($max_time) )
 	$mid_time = date( "Y-m-d H:i:s", $mid_time_t );
 }
 
-$temp_min_time = $temp_max_time = $temp_expandable = false;
-extractDatetimeRange( $tree, $temp_min_time, $temp_max_time, $temp_expandable );
 //echo "MnT: $temp_min_time, MxT: $temp_max_time, ExP: $temp_expandable<br>";
 appendDatetimeRange( $tree, $min_time, $max_time );
 
@@ -1146,9 +1160,9 @@ div.zoom {
     <div id="ImageNav">
       <div id="Image"><img id="ImageSrc" src="graphics/spacer.gif" height="<?= $chart['image']['height'] ?>"/></div>
       <div id="RightNav">
-        <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= $min_time ?>&range=<?= $range ?>">&lt;&lt;</a>&nbsp;&nbsp;
-	    <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= $mid_time ?>&range=<?= (int)($range*$maj_x_scale['zoomout']) ?>">-</a>&nbsp;&nbsp;
-		<a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= $mid_time ?>&range=<?= $range ?>">&gt;&gt;</a>
+        <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($min_time) ?>&range=<?= $range ?>">&lt;&lt;</a>&nbsp;&nbsp;
+	    <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($mid_time) ?>&range=<?= (int)($range*$maj_x_scale['zoomout']) ?>">-</a>&nbsp;&nbsp;
+		<a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= urlencode($mid_time) ?>&range=<?= $range ?>">&gt;&gt;</a>
       </div>
       <div id="ImageText">No Event</div>
       <div id="Key">

@@ -97,18 +97,18 @@ $monitors = array();
 $monitors_sql = "select * from Monitors order by Sequence asc";
 if ( !($result = mysql_query( $monitors_sql )) )
 	die( mysql_error() );
-srand( 97981 );
+//srand( 97981 );
 while ( $row = mysql_fetch_assoc( $result ) )
 {
-	if ( empty($row['WebColour']) )
-	{
-		$row['WebColour'] = sprintf( "#%02x%02x%02x", rand( 0, 255 ), rand( 0, 255), rand( 0, 255 ) );
-	}
+	//if ( empty($row['WebColour']) )
+	//{
+		//$row['WebColour'] = sprintf( "#%02x%02x%02x", rand( 0, 255 ), rand( 0, 255), rand( 0, 255 ) );
+	//}
 	$monitors[$row['Id']] = $row;
 }
 
 $range_sql = "select min(E.StartTime) as MinTime, max(E.EndTime) as MaxTime from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(E.StartTime) and not isnull(E.EndTime)";
-$events_sql = "select E.Id,E.Name,E.StartTime,E.EndTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.MonitorId from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(StartTime)";
+$events_sql = "select E.Id,E.Name,E.StartTime,E.EndTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(StartTime)";
 
 if ( $user['MonitorIds'] )
 {
@@ -117,6 +117,8 @@ if ( $user['MonitorIds'] )
 	$range_sql .= $mon_filter_sql;
 	$events_sql .= $mon_filter_sql;
 }
+
+$tree = parseFilterToTree();
 
 if ( isset($range) )
 {
@@ -162,22 +164,34 @@ elseif ( isset($min_time) && isset($max_time) )
 
 if ( !isset($min_time) || !isset($max_time) )
 {
-	parseFilter();
+	//$filter_query = parseTreeToQuery( $tree );
+	//echo $filter_query;
+	//echo '<br>';
+	$filter_sql = parseTreeToSQL( $tree );
+	//echo $filter_sql;
+	//echo '<br>';
+
 	if ( $filter_sql )
 	{
+		$filter_sql = " and $filter_sql";
 		$range_sql .= $filter_sql;
 		$events_sql .= $filter_sql;
 	}
 
-	// Dynamically determine range
-	if ( !($result = mysql_query( $range_sql )) )
-		die( mysql_error() );
-	$row = mysql_fetch_assoc( $result );
+	if ( !isset($min_time) || !isset($max_time) )
+	{
+		//echo $range_sql;
+		// Dynamically determine range
+		if ( !($result = mysql_query( $range_sql )) )
+			die( mysql_error() );
+		$row = mysql_fetch_assoc( $result );
 
-	if ( !isset($min_time) )
-		$min_time = $row['MinTime'];
-	if ( !isset($max_time) )
-		$max_time = $row['MaxTime'];
+		if ( !isset($min_time) )
+			$min_time = $row['MinTime'];
+		if ( !isset($max_time) )
+			$max_time = $row['MaxTime'];
+	}
+
 	$min_time_t = strtotime($min_time);
 	$max_time_t = strtotime($max_time);
 	$range = ($max_time_t - $min_time_t) + 1;
@@ -185,6 +199,19 @@ if ( !isset($min_time) || !isset($max_time) )
 	$mid_time_t = $min_time_t + $half_range;
 	$mid_time = date( "Y-m-d H:i:s", $mid_time_t );
 }
+
+$temp_min_time = $temp_max_time = $temp_expandable = false;
+extractDatetimeRange( $tree, $temp_min_time, $temp_max_time, $temp_expandable );
+//echo "MnT: $temp_min_time, MxT: $temp_max_time, ExP: $temp_expandable<br>";
+appendDatetimeRange( $tree, $min_time, $max_time );
+
+$filter_query = parseTreeToQuery( $tree );
+if ( $filter_query )
+{
+	$filter_query = '&'.$filter_query;
+}
+//echo $filter_query;
+//echo '<br>';
 
 $scales = array(
 	array( "name"=>"year",     "factor"=>60*60*24*365, "align"=>1,  "zoomout"=>2, "label"=>"Y" ),
@@ -223,9 +250,9 @@ $mid_time = date( "Y-m-d H:i:s", $mid_time_t );
 
 if ( isset($min_time) && isset($max_time) )
 {
-	$range_sql .= " and E.EndTime >= '$min_time' and E.StartTime <= '$max_time'";
 	$events_sql .= " and E.EndTime >= '$min_time' and E.StartTime <= '$max_time'";
 }
+
 $events_sql .= " order by Id asc";
 //echo "ESQL: $events_sql<br>";
 
@@ -690,12 +717,18 @@ function getSlotLoadImageBehaviour( $slot )
 	}
 
 	$monitor = &$monitors[$slot['event']['MonitorId']];
+	$annotation = '';
+	if ( $slot['event']['Archived'] )
+		$annotation .= "<em>";
 	$annotation = $monitor['Name'].
 		"<br>".$slot['event']['Name'].(isset($slot['frame'])?("(".$slot['frame']['FrameId'].")"):"").
 		"<br>".strftime( "%y/%m/%d %H:%M:%S", strtotime($slot['event']['StartTime']) ).
 		" - ".$slot['event']['Length']."s".
 		"<br>".htmlentities($slot['event']['Cause']).
-		(!empty($slot['event']['Notes'])?("<br>".htmlentities($slot['event']['Notes'])):"");
+		(!empty($slot['event']['Notes'])?("<br>".htmlentities($slot['event']['Notes'])):"").
+		(!empty($slot['event']['Archived'])?("<br>".$zmSlangArchived):"");
+	if ( $slot['event']['Archived'] )
+		$annotation .= "</em>";
 	return( "\"loadEventImage( '".$image_path."', '".$annotation."', '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."', ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
 }
 
@@ -758,19 +791,22 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 	height: 30px;
 	font-size: 13px;
 	font-weight: bold;
-	line-height: 20px
+	line-height: 20px;
+	z-index: 0;
 }
 #ChartBox #List {
 	position: absolute;
 	top: 5px;
 	left: 20px;
 	height: 15;
+	z-index: 1;
 }
 #ChartBox #Close {
 	position: absolute;
 	top: 5px;
 	right: 20px;
 	height: 15;
+	z-index: 1;
 }
 #ChartBox #TopPanel {
 	position: relative;
@@ -1103,16 +1139,16 @@ div.zoom {
 </head>
 <body>
 <div id="ChartBox">
-  <div id="List" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=2&attr1=Archived&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=-1+day', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangList, canView( 'Events' ) ) ?></a></div>
+  <div id="List" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter=1$filter_query', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangList, canView( 'Events' ) ) ?></div>
   <div id="Title">Event Navigator</div>
   <div id="Close" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></div>
   <div id="TopPanel">
     <div id="ImageNav">
       <div id="Image"><img id="ImageSrc" src="graphics/spacer.gif" height="<?= $chart['image']['height'] ?>"/></div>
       <div id="RightNav">
-        <a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mid_time=<?= $min_time ?>&range=<?= $range ?>">&lt;&lt;</a>&nbsp;&nbsp;
-	    <a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mid_time=<?= $mid_time ?>&range=<?= (int)($range*$maj_x_scale['zoomout']) ?>">-</a>&nbsp;&nbsp;
-		<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&min_time=<?= $mid_time ?>&range=<?= $range ?>">&gt;&gt;</a>
+        <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= $min_time ?>&range=<?= $range ?>">&lt;&lt;</a>&nbsp;&nbsp;
+	    <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= $mid_time ?>&range=<?= (int)($range*$maj_x_scale['zoomout']) ?>">-</a>&nbsp;&nbsp;
+		<a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= $mid_time ?>&range=<?= $range ?>">&gt;&gt;</a>
       </div>
       <div id="ImageText">No Event</div>
       <div id="Key">
@@ -1249,3 +1285,493 @@ foreach( array_keys($mon_event_slots) as $monitor_id )
 </div>
 </body>
 </html>
+<?php
+
+function parseFilterToTree()
+{
+	global $trms;
+
+	if ( $trms > 0 )
+	{
+		$postfix_expr = array();
+		$postfix_stack = array();
+
+		$priorities = array(
+			'<' => 1,
+			'<=' => 1,
+			'>' => 1,
+			'>=' => 1,
+			'=' => 2,
+			'!=' => 2,
+			'=~' => 2,
+			'!~' => 2,
+			'=[]' => 2,
+			'![]' => 2,
+			'and' => 3,
+			'or' => 4,
+		);
+
+		for ( $i = 1; $i <= $trms; $i++ )
+		{
+			$conjunction_name = "cnj$i";
+			$obracket_name = "obr$i";
+			$cbracket_name = "cbr$i";
+			$attr_name = "attr$i";
+			$op_name = "op$i";
+			$value_name = "val$i";
+
+			global $$conjunction_name, $$obracket_name, $$cbracket_name, $$attr_name, $$op_name, $$value_name;
+
+			if ( !empty($$conjunction_name) )
+			{
+				while( true )
+				{
+					if ( !count($postfix_stack) )
+					{
+						$postfix_stack[] = array( 'type'=>"cnj", 'value'=>$$conjunction_name, 'sql_value'=>$$conjunction_name );
+						break;
+					}
+					elseif ( $postfix_stack[count($postfix_stack)-1]['type'] == 'obr' )
+					{
+						$postfix_stack[] = array( 'type'=>"cnj", 'value'=>$$conjunction_name, 'sql_value'=>$$conjunction_name );
+						break;
+					}
+					elseif ( $priorities[$$conjunction_name] < $priorities[$postfix_stack[count($postfix_stack)-1]['value']] )
+					{
+						$postfix_stack[] = array( 'type'=>"cnj", 'value'=>$$conjunction_name, 'sql_value'=>$$conjunction_name );
+						break;
+					}
+					else
+					{
+						$postfix_expr[] = array_pop( $postfix_stack );
+					}
+				}
+			}
+			if ( !empty($$obracket_name) )
+			{
+				for ( $j = 0; $j < $$obracket_name; $j++ )
+				{
+					$postfix_stack[] = array( 'type'=>"obr", 'value'=>$$obracket_name );
+				}
+			}
+			if ( !empty($$attr_name) )
+			{
+				$dt_attr = false;
+				switch ( $$attr_name )
+				{
+					case 'MonitorName':
+						$sql_value = 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
+						break;
+					case 'Name':
+						$sql_value = "E.Name";
+						break;
+					case 'Cause':
+						$sql_value = "E.Cause";
+						break;
+					case 'DateTime':
+						$sql_value = "E.StartTime";
+						$dt_attr = true;
+						break;
+					case 'Date':
+						$sql_value = "to_days( E.StartTime )";
+						$dt_attr = true;
+						break;
+					case 'Time':
+						$sql_value = "extract( hour_second from E.StartTime )";
+						break;
+					case 'Weekday':
+						$sql_value = "weekday( E.StartTime )";
+						break;
+					case 'Id':
+					case 'Name':
+					case 'MonitorId':
+					case 'Length':
+					case 'Frames':
+					case 'AlarmFrames':
+					case 'TotScore':
+					case 'AvgScore':
+					case 'MaxScore':
+					case 'Archived':
+						$sql_value = "E.".$$attr_name;
+						break;
+					case 'DiskPercent':
+						$sql_value = getDiskPercent();
+						break;
+					case 'DiskBlocks':
+						$sql_value = getDiskBlocks();
+						break;
+					default :
+						$sql_value = $$attr_name;
+						break;
+				}
+				if ( $dt_attr )
+				{
+					$postfix_expr[] = array( 'type'=>"attr", 'value'=>$$attr_name, 'sql_value'=>$sql_value, 'dt_attr'=>true );
+				}
+				else
+				{
+					$postfix_expr[] = array( 'type'=>"attr", 'value'=>$$attr_name, 'sql_value'=>$sql_value );
+				}
+			}
+			if ( isset($$op_name) )
+			{
+				if ( empty($$op_name) )
+				{
+					$$op_name = '=';
+				}
+				switch ( $$op_name )
+				{
+					case '=' :
+					case '!=' :
+					case '>=' :
+					case '>' :
+					case '<' :
+					case '<=' :
+						$sql_value = $$op_name;
+						break;
+					case '=~' :
+						$sql_value = "regexp";
+						break;
+					case '!~' :
+						$sql_value = "not regexp";
+						break;
+					case '=[]' :
+						$sql_value = 'in (';
+						break;
+					case '![]' :
+						$sql_value = 'not in (';
+						break;
+				}
+				while( true )
+				{
+					if ( !count($postfix_stack) )
+					{
+						$postfix_stack[] = array( 'type'=>"op", 'value'=>$$op_name, 'sql_value'=>$sql_value );
+						break;
+					}
+					elseif ( $postfix_stack[count($postfix_stack)-1]['type'] == 'obr' )
+					{
+						$postfix_stack[] = array( 'type'=>"op", 'value'=>$$op_name, 'sql_value'=>$sql_value );
+						break;
+					}
+					elseif ( $priorities[$$op_name] < $priorities[$postfix_stack[count($postfix_stack)-1]['value']] )
+					{
+						$postfix_stack[] = array( 'type'=>"op", 'value'=>$$op_name, 'sql_value'=>$sql_value );
+						break;
+					}
+					else
+					{
+						$postfix_expr[] = array_pop( $postfix_stack );
+					}
+				}
+			}
+			if ( isset($$value_name) )
+			{
+				$value_list = array();
+				foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $$value_name ) ) as $value )
+				{
+					switch ( $$attr_name )
+					{
+						case 'MonitorName':
+						case 'Name':
+						case 'Cause':
+							$value = "'$value'";
+							break;
+						case 'DateTime':
+							$value = "'".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."'";
+							break;
+						case 'Date':
+							$value = "to_days( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							break;
+						case 'Time':
+							$value = "extract( hour_second from '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							break;
+						case 'Weekday':
+							$value = "weekday( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							break;
+					}
+					$value_list[] = $value;
+				}
+				$postfix_expr[] = array( 'type'=>"val", 'value'=>$$value_name, 'sql_value'=>join( ',', $value_list ) );
+			}
+			if ( !empty($$cbracket_name) )
+			{
+				for ( $j = 0; $j < $$cbracket_name; $j++ )
+				{
+					while ( count($postfix_stack) )
+					{
+						$element = array_pop( $postfix_stack );
+						if ( $element['type'] == "obr" )
+						{
+							$postfix_expr[count($postfix_expr)-1]['bracket'] = true;
+							break;
+						}
+						$postfix_expr[] = $element;
+					}
+				}
+			}
+		}
+		while ( count($postfix_stack) )
+		{
+			$postfix_expr[] = array_pop( $postfix_stack );
+		}
+
+		$expr_stack = array();
+		//foreach ( $postfix_expr as $element )
+		//{
+			//echo $element['value']." "; 
+		//}
+		//echo "<br>";
+		foreach ( $postfix_expr as $element )
+		{
+			if ( $element['type'] == 'attr' || $element['type'] == 'val' )
+			{
+				$node = array( 'data'=>$element, 'count'=>0 );
+				$expr_stack[] = $node;
+			}
+			elseif ( $element['type'] == 'op' || $element['type'] == 'cnj' )
+			{
+				$right = array_pop( $expr_stack );
+				$left = array_pop( $expr_stack );
+				$node = array( 'data'=>$element, 'count'=>2+$left['count']+$right['count'], 'right'=>$right, 'left'=>$left );
+				$expr_stack[] = $node;
+			}
+			else
+			{
+				die( "Unexpected element type '".$element['type']."', value '".$element['value']."'" );
+			}
+		}
+		if ( count($expr_stack) != 1 )
+		{
+			die( "Expression stack has ".count($expr_stack)." elements" );
+		}
+		$expr_tree = array_pop( $expr_stack );
+		return( $expr_tree );
+	}
+	return( false );
+}
+
+function _parseTreeToInfix( $node )
+{
+	$expression = '';
+	if ( isset($node) )
+	{
+		if ( isset($node['left']) )
+		{
+			if ( !empty($node['data']['bracket']) )
+				$expression .= '( ';
+			$expression .= _parseTreeToInfix( $node['left'] );
+		}
+		$expression .= $node['data']['value']." ";
+		if ( isset($node['right']) )
+		{
+			$expression .= _parseTreeToInfix( $node['right'] );
+			if ( !empty($node['data']['bracket']) )
+				$expression .= ') ';
+		}
+	}
+	return( $expression );
+}
+
+function parseTreeToInfix( $tree )
+{
+	return( _parseTreeToInfix( $tree ) );
+}
+
+function _parseTreeToSQL( $node, $cbr=false )
+{
+	$expression = '';
+	if ( isset($node) )
+	{
+		if ( isset($node['left']) )
+		{
+			if ( !empty($node['data']['bracket']) )
+				$expression .= '( ';
+			$expression .= _parseTreeToSQL( $node['left'] );
+		}
+		$in_expr = $node['data']['type'] == 'op' && ($node['data']['value'] == '=[]' || $node['data']['value'] == '![]');
+		$expression .= $node['data']['sql_value'];
+		if ( !$in_expr )
+			$expression .= ' ';
+		if ( $cbr )
+			$expression .= ') ';
+		if ( isset($node['right']) )
+		{
+			$expression .= _parseTreeToSQL( $node['right'], $in_expr );
+			if ( !empty($node['data']['bracket']) )
+				$expression .= ') ';
+		}
+	}
+	return( $expression );
+}
+
+function parseTreeToSQL( $tree )
+{
+	return( _parseTreeToSQL( $tree ) );
+}
+
+function _parseTreeToQuery( $node, &$level )
+{
+	$elements = array();
+	if ( isset($node) )
+	{
+		if ( isset($node['left']) )
+		{
+			$elements[] = array( 'name'=>'obr'.$level, 'value'=>!empty($node['data']['bracket'])?1:0 );
+			$elements = array_merge( $elements, _parseTreeToQuery( $node['left'], $level ) );
+		}
+		if ( $node['data']['type'] == 'cnj' )
+		{
+			$level++;
+		}
+		$elements[] = array( 'name'=>$node['data']['type'].$level, 'value'=>urlencode($node['data']['value']) );
+		if ( isset($node['right']) )
+		{
+			$elements = array_merge( $elements, _parseTreeToQuery( $node['right'], $level ) );
+			$elements[] = array( 'name'=>'cbr'.$level, 'value'=>!empty($node['data']['bracket'])?1:0 );
+		}
+	}
+	return( $elements );
+}
+
+function parseTreeToQuery( $tree )
+{
+	$query = '';
+	if ( isset($tree) )
+	{
+		$level = 1;
+		$elements = _parseTreeToQuery( $tree, $level );
+		// Merge duplicate bracketing elements
+		for ( $i = 0; $i < count($elements); $i++ )
+		{
+			if ( $i > 0 && $elements[$i]['name'] == $elements[$i-1]['name'] )
+			{
+				$elements[$i-1]['value'] += $elements[$i]['value'];
+				array_splice( $elements, $i--, 1 );
+			}
+		}
+		$query = "trms=".$level;
+		foreach ( $elements as $element )
+		{
+			$query .= '&'.$element['name'].'='.$element['value'];
+		}
+	}
+	return( $query );
+}
+
+function _drawTree( $node, $level )
+{
+	if ( isset($node['left']) )
+	{
+		_drawTree( $node['left'], $level+1 );
+	}
+	echo str_repeat( ".", $level*2 ).$node['data']['value']."<br>";
+	if ( isset($node['right']) )
+	{
+		_drawTree( $node['right'], $level+1 );
+	}
+}
+
+function drawTree( $tree )
+{
+	_drawTree( $tree, 0 );
+}
+
+function _extractDatetimeRange( &$node, &$min_time, &$max_time, &$expandable, $sub_or )
+{
+	$pruned = $left_pruned = $right_pruned = false;
+	if ( isset($node) )
+	{
+		if ( isset($node['left']) && isset($node['right']) )
+		{
+			if ( $node['data']['type'] == 'cnj' && $node['data']['value'] == 'or' )
+			{
+				$sub_or = true;
+			}
+			elseif ( !empty($node['left']['data']['dt_attr']) )
+			{
+				if ( $sub_or )
+				{
+					$expandable = false;
+				}
+				elseif ( $node['data']['type'] == 'op' )
+				{
+					if ( $node['data']['value'] == '>' || $node['data']['value'] == '>=' )
+					{
+						if ( !$min_time || $min_time > $node['right']['data']['sql_value'] )
+						{
+							$min_time = $node['right']['data']['sql_value'];
+							return( true );
+						}
+					}
+					if ( $node['data']['value'] == '<' || $node['data']['value'] == '<=' )
+					{
+						if ( !$max_time || $max_time < $node['right']['data']['sql_value'] )
+						{
+							$max_time = $node['right']['data']['sql_value'];
+							return( true );
+						}
+					}
+				}
+				else
+				{
+					die( "Unexpected node type '".$node['data']['type']."'" );
+				}
+				return( false );
+			}
+
+			$left_pruned = _extractDatetimeRange( $node['left'], $min_time, $max_time, $expandable, $sub_or );
+			$right_pruned = _extractDatetimeRange( $node['right'], $min_time, $max_time, $expandable, $sub_or );
+
+			if ( $left_pruned && $right_pruned )
+			{
+				$pruned = true;
+			}
+			elseif ( $left_pruned )
+			{
+				$node = $node['right'];
+			}
+			elseif ( $right_pruned )
+			{
+				$node = $node['left'];
+			}
+		}
+	}
+	return( $pruned );
+}
+
+function extractDatetimeRange( &$tree, &$min_time, &$max_time, &$expandable )
+{
+	$min_time = "";
+	$max_time = "";
+	$expandable = true;
+
+	_extractDateTimeRange( $tree, $min_time, $max_time, $expandable, false );
+}
+
+function appendDatetimeRange( &$tree, $min_time, $max_time=false )
+{
+	$attr_node = array( 'data'=>array( 'type'=>'attr', 'value'=>'DateTime', 'sql_value'=>'E.StartTime', 'dt_attr'=>true ), 'count'=>0 );
+	$val_node = array( 'data'=>array( 'type'=>'val', 'value'=>$min_time, 'sql_value'=>$min_time ), 'count'=>0 );
+	$op_node = array( 'data'=>array( 'type'=>'op', 'value'=>'>=', 'sql_value'=>'>=' ), 'count'=>2, 'left'=>$attr_node, 'right'=>$val_node );
+	if ( isset($tree) )
+	{
+		$cnj_node = array( 'data'=>array( 'type'=>'cnj', 'value'=>'and', 'sql_value'=>'and' ), 'count'=>2+$tree['count']+$op_node['count'], 'left'=>$tree, 'right'=>$op_node );
+		$tree = $cnj_node;
+	}
+	else
+	{
+		$tree = $op_node;
+	}
+
+	if ( $max_time )
+	{
+		$attr_node = array( 'data'=>array( 'type'=>'attr', 'value'=>'DateTime', 'sql_value'=>'E.StartTime', 'dt_attr'=>true ), 'count'=>0 );
+		$val_node = array( 'data'=>array( 'type'=>'val', 'value'=>$max_time, 'sql_value'=>$max_time ), 'count'=>0 );
+		$op_node = array( 'data'=>array( 'type'=>'op', 'value'=>'<=', 'sql_value'=>'<=' ), 'count'=>2, 'left'=>$attr_node, 'right'=>$val_node );
+		$cnj_node = array( 'data'=>array( 'type'=>'cnj', 'value'=>'and', 'sql_value'=>'and' ), 'count'=>2+$tree['count']+$op_node['count'], 'left'=>$tree, 'right'=>$op_node );
+		$tree = $cnj_node;
+	}
+}
+
+?>

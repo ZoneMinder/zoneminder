@@ -53,8 +53,8 @@ $conjunction_types = array(
 	'and' => $zmSlangConjAnd,
 	'or'  => $zmSlangConjOr
 );
-$obracket_types = array( '' => '' );
-$cbracket_types = array( '' => '' );
+$obracket_types = array( '0' => '' );
+$cbracket_types = array( '0' => '' );
 for ( $i = 1; $i <= ceil(($trms-1)/2); $i++ )
 {
 	$obracket_types[$i] = str_repeat( "(", $i );
@@ -127,7 +127,7 @@ if ( !$sort_field )
 <script type="text/javascript">
 function newWindow(Url,Name,Width,Height)
 {
-	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+	var Win = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
 function closeWindow()
 {
@@ -144,8 +144,8 @@ if ( $trms > 2 )
 for ( $i = 1; $i <= $trms; $i++ )
 {
 ?>
-	bracket_count += form.obr<?= $i ?>.value;
-	bracket_count -= form.cbr<?= $i ?>.value;
+	bracket_count += parseInt(form.obr<?= $i ?>.options[form.obr<?= $i ?>.selectedIndex].value);
+	bracket_count -= parseInt(form.cbr<?= $i ?>.options[form.cbr<?= $i ?>.selectedIndex].value);
 <?php
 }
 ?>
@@ -274,7 +274,7 @@ else
 <td class="text"><?php if ( $trms > 2 ) { echo buildSelect( $obracket_name, $obracket_types ); } else { ?>&nbsp;<?php } ?></td>
 <td class="text"><?= buildSelect( $attr_name, $attr_types, "$value_name.value = ''; submitToFilter( document.filter_form, 0 );" ); ?></td>
 <?php if ( $$attr_name == "Archived" ) { ?>
-<td class="text"><center><?= $zmSlangIsEqualTo ?></center></td>
+<td class="text"><center><?= $zmSlangIsEqualTo ?><input type="hidden" name="<?= $op_name ?>" value="="></center></td>
 <td class="text"><?= buildSelect( $value_name, $archive_types ); ?></td>
 <?php } elseif ( $$attr_name ) { ?>
 <td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>

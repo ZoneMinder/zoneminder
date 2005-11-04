@@ -912,10 +912,8 @@ function parseFilter( $save_to_session=false )
 					case 'TotScore':
 					case 'AvgScore':
 					case 'MaxScore':
-						$filter_sql .= "E.".$$attr_name;
-						break;
 					case 'Archived':
-						$filter_sql .= "E.Archived = ".$$value_name;
+						$filter_sql .= "E.".$$attr_name;
 						break;
 					case 'DiskPercent':
 						$filter_sql .= getDiskPercent();

@@ -706,7 +706,7 @@ function drawYGrid( $chart, $scale, $label_class, $tick_class, $grid_class )
 
 function getSlotLoadImageBehaviour( $slot )
 {
-	global $monitors, $jws, $PHP_SELF;
+	global $monitors, $jws, $PHP_SELF, $zmSlangArchived;
 
 	$event_path = ZM_DIR_EVENTS.'/'.$slot['event']['MonitorId'].'/'.$slot['event']['Id'];
 	$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, isset($slot['frame'])?$slot['frame']['FrameId']:1 );
@@ -720,7 +720,7 @@ function getSlotLoadImageBehaviour( $slot )
 	$annotation = '';
 	if ( $slot['event']['Archived'] )
 		$annotation .= "<em>";
-	$annotation = $monitor['Name'].
+	$annotation .= $monitor['Name'].
 		"<br>".$slot['event']['Name'].(isset($slot['frame'])?("(".$slot['frame']['FrameId'].")"):"").
 		"<br>".strftime( "%y/%m/%d %H:%M:%S", strtotime($slot['event']['StartTime']) ).
 		" - ".$slot['event']['Length']."s".

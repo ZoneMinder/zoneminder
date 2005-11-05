@@ -46,8 +46,8 @@ while( $row = mysql_fetch_assoc( $result ) )
 	{
 		continue;
 	}
-	$row['zmc'] = zmcCheck( $row );
-	$row['zma'] = zmaCheck( $row );
+	$row['zmc'] = zmcStatus( $row );
+	$row['zma'] = zmaStatus( $row );
 	$sql = "select count(Id) as ZoneCount from Zones where MonitorId = '".$row['Id']."'";
 	$result2 = mysql_query( $sql );
 	if ( !$result2 )
@@ -114,8 +114,8 @@ foreach( $monitors as $monitor )
 ?>
 <td align="left" style="width: 6em"><?= makeLink( "$PHP_SELF?view=watch&amp;mid=".$monitor['Id'], substr( $monitor['Name'], 0, 8 ), ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
 <td align="left" style="width: 4em"><?= makeLink( "$PHP_SELF?view=function&amp;mid=".$monitor['Id'], "<span class=\"$fclass\">".substr( $monitor['Function'], 0, 4 )."</span>", canEdit( 'Monitors' ) ) ?></td>
-<td align="right" style="width: 3em"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=3&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;cnj2=and&amp;attr2=Archived&amp;val2=0&amp;cnj3=and&amp;attr3=DateTime&amp;op3=%3e%3d&amp;val3=-1%20hour", $monitor['HourEventCount'], canView( 'Events' ) ) ?></td>
-<td align="right" style="width: 3em"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=3&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;cnj2=and&amp;attr2=Archived&amp;val2=0&amp;cnj3=and&amp;attr3=Date&amp;op3=%3e%3d&amp;val3=today", $monitor['TodayEventCount'], canView( 'Events' ) ) ?></td>
+<td align="right" style="width: 3em"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=3&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;cnj2=and&amp;attr2=Archived&amp;op2=%3d&amp;val2=0&amp;cnj3=and&amp;attr3=DateTime&amp;op3=%3e%3d&amp;val3=-1%20hour", $monitor['HourEventCount'], canView( 'Events' ) ) ?></td>
+<td align="right" style="width: 3em"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=3&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;cnj2=and&amp;attr2=Archived&amp;op2=%3d&amp;val2=0&amp;cnj3=and&amp;attr3=Date&amp;op3=%3e%3d&amp;val3=today", $monitor['TodayEventCount'], canView( 'Events' ) ) ?></td>
 </tr>
 <?php
 }
@@ -123,8 +123,8 @@ foreach( $monitors as $monitor )
 <tr>
 <td align="left">&nbsp;</td>
 <td align="center"><?= makeLink( "$PHP_SELF?view=montage", count($monitors), ( canView( 'Stream' ) && $cycle_count > 1 ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;val1=0&amp;cnj2=and&amp;attr2=DateTime&amp;op2=%3e%3d&amp;val2=-1%20hour", $hour_event_count, canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;val1=0&amp;cnj2=and&amp;attr2=Date&amp;op2=%3e%3d&amp;val2=today", $today_event_count, canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;op1=%3d&amp;val1=0&amp;cnj2=and&amp;attr2=DateTime&amp;op2=%3e%3d&amp;val2=-1%20hour", $hour_event_count, canView( 'Events' ) ) ?></td>
+<td align="right" class="text"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;op1=%3d&amp;val1=0&amp;cnj2=and&amp;attr2=Date&amp;op2=%3e%3d&amp;val2=today", $today_event_count, canView( 'Events' ) ) ?></td>
 </tr>
 </table>
 </body>

@@ -89,29 +89,27 @@ $scales = array(
 	"25" => "1/4x",
 );
 
+if ( !isset($user) && ZM_OPT_USE_AUTH )
+{
+	if ( ZM_AUTH_TYPE == "remote" && !empty( $_SERVER['REMOTE_USER'] ) )
+	{
+		$view = "postlogin";
+		$action = "login";
+		$username = $_SERVER['REMOTE_USER'];
+	}
+}
+
+require_once( 'zm_funcs.php' );
+require_once( 'zm_actions.php' );
+
 if ( !isset($user) )
 {
-	if ( ZM_OPT_USE_AUTH )
-	{
-		if ( ZM_AUTH_TYPE == "remote" && !empty( $_SERVER['REMOTE_USER'] ) )
-		{
-			$view = "postlogin";
-			$action = "login";
-			$username = $_SERVER['REMOTE_USER'];
-		}
-		else
-		{
-			$view = "login";
-		}
-	}
+	$view = "login";
 }
 elseif ( !isset($view) )
 {
 	$view = "console";
 }
-
-require_once( 'zm_funcs.php' );
-require_once( 'zm_actions.php' );
 
 switch( $view )
 {
@@ -127,6 +125,7 @@ switch( $view )
 	case "events" :
 	case "filter" :
 	case "event" :
+	case "eventdetails" :
 	case "frame" :
 	case "frames" :
 	case "monitor" :

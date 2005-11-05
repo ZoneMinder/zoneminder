@@ -269,7 +269,8 @@ function viewEvents( form, name )
 			if ( $page > 1 )
 			{
 ?>
-				<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page - 1 ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>">&lt;&lt;</a>
+				<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>">&lt;&lt;</a>
+				<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page - 1 ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>">&lt;</a>
 <?php
 				$new_pages = array();
 				$pages_used = array();
@@ -323,7 +324,8 @@ function viewEvents( form, name )
 <?php
 				}
 ?>
-				<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page + 1 ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>">&gt;&gt;</a>
+				<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page + 1 ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>">&gt;</a>
+				<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $pages ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>">&gt;&gt;</a>
 <?php
 			}
 ?>

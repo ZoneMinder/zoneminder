@@ -71,17 +71,18 @@ web_DATA = \
 	zm_html_view_zones.php \
 	zm_xhtml.php \
 	zm_xhtml_styles.css \
-	zm_xhtml_view_login.php \
 	zm_xhtml_view_console.php \
-	zm_xhtml_view_state.php \
-	zm_xhtml_view_function.php \
-	zm_xhtml_view_watch.php \
-	zm_xhtml_view_montage.php \
-	zm_xhtml_view_events.php \
-	zm_xhtml_view_event.php \
-	zm_xhtml_view_frame.php \
-	zm_xhtml_view_filter.php \
 	zm_xhtml_view_error.php \
+	zm_xhtml_view_eventdetails.php \
+	zm_xhtml_view_event.php \
+	zm_xhtml_view_events.php \
+	zm_xhtml_view_filter.php \
+	zm_xhtml_view_frame.php \
+	zm_xhtml_view_function.php \
+	zm_xhtml_view_login.php \
+	zm_xhtml_view_montage.php \
+	zm_xhtml_view_state.php \
+	zm_xhtml_view_watch.php \
 	zm_wml.php \
 	zm_wml_view_login.php \
 	zm_wml_view_postlogin.php \
@@ -166,17 +167,18 @@ EXTRA_DIST = \
 	zm_html_view_zones.php \
 	zm_xhtml.php \
 	zm_xhtml_styles.css \
-	zm_xhtml_view_login.php \
 	zm_xhtml_view_console.php \
-	zm_xhtml_view_state.php \
-	zm_xhtml_view_function.php \
-	zm_xhtml_view_watch.php \
-	zm_xhtml_view_montage.php \
-	zm_xhtml_view_events.php \
-	zm_xhtml_view_event.php \
-	zm_xhtml_view_frame.php \
-	zm_xhtml_view_filter.php \
 	zm_xhtml_view_error.php \
+	zm_xhtml_view_eventdetails.php \
+	zm_xhtml_view_event.php \
+	zm_xhtml_view_events.php \
+	zm_xhtml_view_filter.php \
+	zm_xhtml_view_frame.php \
+	zm_xhtml_view_function.php \
+	zm_xhtml_view_login.php \
+	zm_xhtml_view_montage.php \
+	zm_xhtml_view_state.php \
+	zm_xhtml_view_watch.php \
 	zm_wml.php \
 	zm_wml_view_login.php \
 	zm_wml_view_postlogin.php \

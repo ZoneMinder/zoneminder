@@ -253,6 +253,7 @@ $zmSlangFile                 = 'File';
 $zmSlangFilePath             = 'File Path';
 $zmSlangFileColours          = 'File Colours';
 $zmSlangFilterPx             = 'Filter Px';
+$zmSlangFilters              = 'Filters';
 $zmSlangFirst                = 'First';
 $zmSlangFlippedHori          = 'Flipped Horizontally';
 $zmSlangFlippedVert          = 'Flipped Vertically';

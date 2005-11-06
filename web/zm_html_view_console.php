@@ -150,6 +150,10 @@ function scrollWindow(Url,Name,Width,Height)
 {
 	var Win = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
+function filterWindow(Url,Name)
+{   
+	var Win = window.open(Url,Name,"resizable,scrollbars,width=<?= $jws['filter']['w'] ?>,height=<?= $jws['filter']['h'] ?>");
+}   
 function configureButton(form,name)
 {
 	var checked = false;
@@ -365,11 +369,14 @@ if ( canEdit('Monitors') )
 }
 ?>
 <tr>
-<td colspan="2" align="center">
-<input type="button" value="<?= $zmSlangRefresh ?>" class="form" onClick="javascript: location.reload(true);">
-</td>
-<td colspan="2" align="center">
-<input type="button" value="<?= $zmSlangAddNewMonitor ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"<?php if ( !canEdit( 'Monitors' ) || $user['MonitorIds'] ) {?> disabled<?php } ?>>
+<td colspan="4" align="center">
+<table align="center" border="0" cellspacing="0" cellpadding="0" width="100%">
+<tr>
+<td align="center"><input type="button" value="<?= $zmSlangRefresh ?>" class="form" onClick="javascript: location.reload(true);"></td>
+<td align="center"><input type="button" value="<?= $zmSlangAddNewMonitor ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor', 'zmMonitor', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"<?php if ( !canEdit( 'Monitors' ) || $user['MonitorIds'] ) {?> disabled<?php } ?>></td>
+<td align="center"><input type="button" value="<?= $zmSlangFilters ?>" class="form" onClick="javascript: scrollWindow( '<?= $PHP_SELF ?>?view=events&page=1&filter=1&trms=1&attr1=DateTime&op1=%3c&val1=now', 'zmEvents', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"<?php if ( !canView( 'Events' ) ) {?> disabled<?php } ?>></td>
+</tr>
+</table>
 </td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=1&attr1=Archived&op1=%3d&val1=0', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $event_count, canView( 'Events' ) ) ?></td>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=2&attr1=Archived&op1=%3d&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=-1+hour', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $hour_event_count, canView( 'Events' ) ) ?></td>

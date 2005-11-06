@@ -83,7 +83,7 @@ use constant VERBOSE => 0; # Whether to output more verbose debug
 
 use DBI;
 use Data::Dumper;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case );
 
 $| = 1;
 
@@ -93,8 +93,10 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $event_id;
 my $format = 'mpg';
-my $rate = 1.0;
-my $scale = 1.0;
+my $rate = '';
+my $scale = '';
+my $fps = '';
+my $size = '';
 my $overwrite = 0;
 
 my @formats = split( '/\s+/', ZM_FFMPEG_FORMATS );
@@ -109,18 +111,20 @@ for ( my $i = 0; $i < @formats; $i++ )
 sub Usage
 {
 	print( "
-Usage: zmvideo.pl -e <event_id>,--event=<event_id> [--format <format>] [--rate=<rate>] [--scale=<scale>] [--overwrite]
+Usage: zmvideo.pl -e <event_id>,--event=<event_id> [--format <format>] [--rate=<rate>] [--scale=<scale>] [--fps=<fps>] [--size=<size>] [--overwrite]
 Parameters are :-
 -e<event_id>, --event=<event_id>  - What event to create the video for
 -f<format>, --format=<format>     - What format to create the video in, default is mpg. For ffmpeg only.
--r<rate>, --rate=<rate>           - Relative rate to use, 1 = realtime, 2 = double speed , 0.5 = half speed etc
--s<scale>, --scale=<scale>        - Scale to use, 1 = normal, 2 = double size, 0.5 = half size etc
+-r<rate>, --rate=<rate>           - Relative rate , 1 = realtime, 2 = double speed , 0.5 = half speed etc
+-s<scale>, --scale=<scale>        - Scale, 1 = normal, 2 = double size, 0.5 = half size etc
+-F<fps>, --fps=<fps>              - Absolute frame rate, in frames per second
+-S<size>, --size=<size>           - Absolute video size, WxH or other specification supported by ffmpeg
 -o, --overwrite                   - Whether to overwrite an existing file, off by default.
 ");
 	exit( -1 );
 }
 
-if ( !GetOptions( 'event=i'=>\$event_id, 'format=s'=>\$format, 'rate=f'=>\$rate, 'scale=f'=>\$scale, 'overwrite'=>\$overwrite ) )
+if ( !GetOptions( 'event=i'=>\$event_id, 'format|f=s'=>\$format, 'rate|r=f'=>\$rate, 'scale|s=f'=>\$scale, 'fps|F=f'=>\$fps, 'size|S=s'=>\$size, 'overwrite'=>\$overwrite ) )
 {
 	Usage();
 }
@@ -149,25 +153,45 @@ if ( $format ne 'mpg' && ZM_OPT_MPEG eq "mpeg_encode" )
 	Usage();
 }
 
-if ( $rate < 0.25 || $rate > 100 )
+if ( !$rate && !$fps )
+{
+	$rate = 1;
+}
+
+if ( !$scale && !$size )
+{
+	$scale = 1;
+}
+
+if ( $rate && ($rate < 0.25 || $rate > 100) )
 {
 	print( STDERR "Rate is out of range, 0.25 >= rate <= 100\n" );
 	Usage();
 }
 
-if ( !$scale || $scale < 0.25 || $scale > 4 )
+if ( $scale && ($scale < 0.25 || $scale > 4) )
 {
 	print( STDERR "Scale is out of range, 0.25 >= scale <= 4\n" );
+	Usage();
+}
+
+if ( $fps && ($fps > 30) )
+{
+	print( STDERR "FPS is out of range, <= 30\n" );
 	Usage();
 }
 
 my ( $detaint_format ) = $format =~ /^(\w+)$/;
 my ( $detaint_rate ) = $rate =~ /^(-?\d+(?:\.\d+)?)$/;
 my ( $detaint_scale ) = $scale =~ /^(-?\d+(?:\.\d+)?)$/;
+my ( $detaint_fps ) = $fps =~ /^(-?\d+(?:\.\d+)?)$/;
+my ( $detaint_size ) = $size =~ /^(\w+)$/;
 
 $format = $detaint_format;
 $rate = $detaint_rate;
 $scale = $detaint_scale;
+$fps = $detaint_fps;
+$size = $detaint_size;
 
 my $log_file = LOG_FILE;
 open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
@@ -187,15 +211,42 @@ my $event = $sth->fetchrow_hashref();
 $sth->finish();
 chdir( ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id} );
 ( my $video_name = $event->{Name} ) =~ s/\s/_/g; 
-my $file_rate = $rate;
-$file_rate =~ s/\./_/;
-$file_rate =~ s/_00//;
-$file_rate =~ s/(_\d+)0+$/$1/;
-my $file_scale = $scale;
-$file_scale =~ s/\./_/;
-$file_scale =~ s/_00//;
-$file_scale =~ s/(_\d+)0+$/$1/;
-my $video_file = "$video_name-$file_rate-$file_scale.$format";
+
+my @file_parts;
+if ( $rate )
+{
+	my $file_rate = $rate;
+	$file_rate =~ s/\./_/;
+	$file_rate =~ s/_00//;
+	$file_rate =~ s/(_\d+)0+$/$1/;
+	$file_rate = 'r'.$file_rate;
+	push( @file_parts, $file_rate );
+}
+elsif ( $fps )
+{
+	my $file_fps = $fps;
+	$file_fps =~ s/\./_/;
+	$file_fps =~ s/_00//;
+	$file_fps =~ s/(_\d+)0+$/$1/;
+	$file_fps = 'R'.$file_fps;
+	push( @file_parts, $file_fps );
+}
+
+if ( $scale )
+{
+	my $file_scale = $scale;
+	$file_scale =~ s/\./_/;
+	$file_scale =~ s/_00//;
+	$file_scale =~ s/(_\d+)0+$/$1/;
+	$file_scale = 's'.$file_scale;
+	push( @file_parts, $file_scale );
+}
+elsif ( $size )
+{
+	my $file_size = 'S'.$size;
+	push( @file_parts, $file_size );
+}
+my $video_file = "$video_name-".$file_parts[0]."-".$file_parts[1].".$format";
 
 if ( $overwrite || !-s $video_file )
 {
@@ -274,18 +325,38 @@ if ( $overwrite || !-s $video_file )
 	elsif ( ZM_OPT_MPEG eq "ffmpeg" )
 	{
 		my $frame_rate = sprintf( "%.2f", $event->{Frames}/$event->{FullLength} );
-		if ( $rate != 1.0 )
+		if ( $rate )
 		{
-			$frame_rate *= $rate;
+			if ( $rate != 1.0 )
+			{
+				$frame_rate *= $rate;
+			}
 		}
+		elsif ( $fps )
+		{
+			$frame_rate = $fps;
+		}
+
 		my $width = $event->{MonitorWidth};
 		my $height = $event->{MonitorHeight};
-		if ( $scale != 1.0 )
+		my $video_size = " ${width}x${height}";
+
+		if ( $scale )
 		{
-			$width = int($width*$scale);
-			$height = int($height*$scale);
+			if ( $scale != 1.0 )
+			{
+				$width = int($width*$scale);
+				$height = int($height*$scale);
+				$video_size = " ${width}x${height}";
+			}
 		}
-		my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s ${width}x${height} ".ZM_FFMPEG_OUTPUT_OPTIONS." $video_file > ffmpeg.log";
+		elsif ( $size )
+		{
+			$video_size = $size;
+		}
+
+
+		my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s $video_size ".ZM_FFMPEG_OUTPUT_OPTIONS." $video_file > ffmpeg.log";
 		print( LOG $command."\n" );
 		my $output = qx($command);
 		print( LOG $output."\n" );
@@ -300,6 +371,7 @@ if ( $overwrite || !-s $video_file )
 	{
 		die( "Error: $status" );
 	}
+
 	print( LOG "Finished $video_file\n" );
 }
 else

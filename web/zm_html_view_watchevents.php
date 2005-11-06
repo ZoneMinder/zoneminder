@@ -24,6 +24,9 @@ if ( !canView( 'Events' ) )
 	return;
 }
 
+$sort_field = "DateTime";
+$sort_asc = false;
+
 parseSort();
 
 if ( !$max_events )

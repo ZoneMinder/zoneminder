@@ -42,7 +42,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 <html>
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangFrames ?> <?= $eid ?></title>
-<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
 <script type="text/javascript">
 window.focus();
 function newWindow(Url,Name,Width,Height)

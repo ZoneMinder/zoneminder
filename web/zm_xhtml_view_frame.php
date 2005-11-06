@@ -105,7 +105,7 @@ else
 <html>
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangFrame ?> <?= $eid."-".$fid ?></title>
-<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
 </head>
 <body>
 <table>

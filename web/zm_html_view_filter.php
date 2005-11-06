@@ -212,6 +212,22 @@ function deleteFilter( form, name )
 		submitToFilter( form, 1 );
 	}
 }
+function addTerm( form, line )
+{
+	form.target = window.name;
+	form.view.value = '<?= $view ?>';
+	form.action.value = 'addterm';
+	form.subaction.value = line;
+	form.submit();
+}
+function delTerm( form, line )
+{
+	form.target = window.name;
+	form.view.value = '<?= $view ?>';
+	form.action.value = 'delterm';
+	form.subaction.value = line;
+	form.submit();
+}
 window.focus();
 </script>
 </head>
@@ -221,30 +237,31 @@ window.focus();
 <input type="hidden" name="page" value="<?= $page ?>">
 <input type="hidden" name="reload" value="0">
 <input type="hidden" name="action" value="">
+<input type="hidden" name="subaction" value="">
 <input type="hidden" name="fid" value="">
+<input type="hidden" name="trms" value="<?= $trms ?>">
 <center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td align="left" class="text"><?= $zmSlangUseFilterExprsPre ?><select name="trms" class="form" onChange="submitToFilter( document.filter_form, 0 );"><?php for ( $i = 0; $i <= 8; $i++ ) { ?><option value="<?= $i ?>"<?php if ( $i == $trms ) { echo " selected"; } ?>><?= $i ?></option><?php } ?></select><?= $zmSlangUseFilterExprsPost ?></td>
-<td align="center" class="text"><?= $zmSlangUseFilter ?>:&nbsp;<?php if ( count($filter_names) > 1 ) { echo buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form, 1 );" ); } else { ?><select class="form" disabled><option><?= $zmSlangNoSavedFilters ?></option></select><?php } ?></td>
+<td align="left" class="text"><?= $zmSlangUseFilter ?>:&nbsp;<?php if ( count($filter_names) > 1 ) { echo buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form, 1 );" ); } else { ?><select class="form" disabled><option><?= $zmSlangNoSavedFilters ?></option></select><?php } ?></td>
 <?php if ( canEdit( 'Events' ) ) { ?>
-<td align="center" class="text"><a href="javascript: saveFilter( document.filter_form );"><?= $zmSlangSave ?></a></td>
+<td align="right" class="text"><a href="javascript: saveFilter( document.filter_form );"><?= $zmSlangSave ?></a></td>
 <?php } else { ?>
-<td align="center" class="text">&nbsp;</a></td>
+<td align="right" class="text">&nbsp;</a></td>
 <?php } ?>
 <?php if ( canEdit( 'Events' ) && isset($filter_data) ) { ?>
-<td align="center" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data['Name'] ?>' );"><?= $zmSlangDelete ?></a></td>
+<td align="right" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data['Name'] ?>' );"><?= $zmSlangDelete ?></a></td>
 <?php } else { ?>
-<td align="center" class="text">&nbsp;</a></td>
+<td align="right" class="text">&nbsp;</a></td>
 <?php } ?>
 <td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
 <tr>
-<td colspan="5" class="text"><hr width="100%"></td>
+<td colspan="4" class="text"><hr width="100%"></td>
 </tr>
 <tr>
-<td colspan="5">
+<td colspan="4">
 <table width="100%" border="0" cellspacing="0" cellpadding="0">
 <?php
 for ( $i = 1; $i <= $trms; $i++ )
@@ -284,6 +301,7 @@ else
 <td class="text"><input name="<?= $value_name ?>" value="<?= isset($$value_name)?$$value_name:'' ?>" class="form" size="24"></td>
 <?php } ?>
 <td class="text"><?php if ( $trms > 2 ) { echo buildSelect( $cbracket_name, $cbracket_types ); } else { ?>&nbsp;<?php } ?></td>
+<td class="text"><a href="javascript: addTerm(document.filter_form,<?= $i ?>)">+</a><?php if ( $trms > 1 ) { ?><a href="javascript: delTerm(document.filter_form,<?= $i ?>)">&ndash;</a><?php } ?></td>
 </tr>
 <?php
 }
@@ -292,15 +310,17 @@ else
 </td>
 </tr>
 <tr>
-<td colspan="5" class="text"><hr width="100%"></td>
+<td colspan="4" class="text"><hr width="100%"></td>
 </tr>
 <tr>
-<td colspan="5" class="text"><table width="100%" cellpadding="0" cellspacing="0"><tr><td class="text" align="left"><?= $zmSlangSortBy ?>&nbsp;<?= buildSelect( "sort_field", $sort_fields ); ?>&nbsp;<?= buildSelect( "sort_asc", $sort_dirns ); ?></td><td class="text" align="right"><?= $zmSlangLimitResultsPre ?> <input type="input" size="6" name="limit" value="<?= $limit ?>" class="form"> <?= $zmSlangLimitResultsPost ?></td></tr></table></td>
+<td colspan="4" class="text"><table width="100%" cellpadding="0" cellspacing="0"><tr><td class="text" align="left"><?= $zmSlangSortBy ?>&nbsp;<?= buildSelect( "sort_field", $sort_fields ); ?>&nbsp;<?= buildSelect( "sort_asc", $sort_dirns ); ?></td><td class="text" align="right"><?= $zmSlangLimitResultsPre ?> <input type="input" size="6" name="limit" value="<?= $limit ?>" class="form"> <?= $zmSlangLimitResultsPost ?></td></tr></table></td>
 </tr>
 <tr>
-<td colspan="5" class="text"><hr width="100%"></td>
+<td colspan="4" class="text"><hr width="100%"></td>
 </tr>
-<tr><td colspan="5" align="right"><input type="button" value="<?= $zmSlangReset ?>" class="form" onClick="submitToFilter( document.filter_form, 1 );">&nbsp;&nbsp;<input type="button" value="<?= $zmSlangSubmit ?>" class="form" onClick="if ( validateForm( document.filter_form ) ) submitToEvents( document.filter_form, 1 );"></td></tr>
+<tr>
+<td colspan="4" align="right"><input type="button" value="<?= $zmSlangReset ?>" class="form" onClick="submitToFilter( document.filter_form, 1 );">&nbsp;&nbsp;<input type="button" value="<?= $zmSlangSubmit ?>" class="form" onClick="if ( validateForm( document.filter_form ) ) submitToEvents( document.filter_form, 1 );"></td>
+</tr>
 </table></center>
 </form>
 </body>

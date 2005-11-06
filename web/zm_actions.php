@@ -130,6 +130,73 @@ if ( isset($action) )
 				$refresh_parent = true;
 			}
 		}
+		elseif ( $action == "addterm" )
+		{
+			for ( $i = $trms; $i > $subaction; $i-- )
+			{
+				$conjunction_name1 = "cnj".($i+1);
+				$obracket_name1 = "obr".($i+1);
+				$cbracket_name1 = "cbr".($i+1);
+				$attr_name1 = "attr".($i+1);
+				$op_name1 = "op".($i+1);
+				$value_name1 = "val".($i+1);
+
+				$conjunction_name2 = "cnj$i";
+				$obracket_name2 = "obr$i";
+				$cbracket_name2 = "cbr$i";
+				$attr_name2 = "attr$i";
+				$op_name2 = "op$i";
+				$value_name2 = "val$i";
+
+				$$conjunction_name1 = $$conjunction_name2;
+				$$obracket_name1 = $$obracket_name2;
+				$$cbracket_name1 = $$cbracket_name2;
+				$$attr_name1 = $$attr_name2;
+				$$op_name1 = $$op_name2;
+				$$value_name1 = $$value_name2;
+			}
+			$$conjunction_name2 = false;
+			$$obracket_name2 = false;
+			$$cbracket_name2 = false;
+			$$attr_name2 = false;
+			$$op_name2 = false;
+			$$value_name2 = false;
+
+			$trms++;
+		}
+		elseif ( $action == "delterm" )
+		{
+			$trms--;
+			for ( $i = $subaction; $i <= $trms; $i++ )
+			{
+				$conjunction_name1 = "cnj$i";
+				$obracket_name1 = "obr$i";
+				$cbracket_name1 = "cbr$i";
+				$attr_name1 = "attr$i";
+				$op_name1 = "op$i";
+				$value_name1 = "val$i";
+
+				$conjunction_name2 = "cnj".($i+1);
+				$obracket_name2 = "obr".($i+1);
+				$cbracket_name2 = "cbr".($i+1);
+				$attr_name2 = "attr".($i+1);
+				$op_name2 = "op".($i+1);
+				$value_name2 = "val".($i+1);
+
+				$$conjunction_name1 = $$conjunction_name2;
+				$$obracket_name1 = $$obracket_name2;
+				$$cbracket_name1 = $$cbracket_name2;
+				$$attr_name1 = $$attr_name2;
+				$$op_name1 = $$op_name2;
+				$$value_name1 = $$value_name2;
+			}
+			$$conjunction_name2 = false;
+			$$obracket_name2 = false;
+			$$cbracket_name2 = false;
+			$$attr_name2 = false;
+			$$op_name2 = false;
+			$$value_name2 = false;
+		}
 		elseif ( $action == "delete" )
 		{
 			if ( !$mark_eids && $mark_eid )

@@ -207,14 +207,30 @@ else
 			unlink( $video_files[$delete] );
 			unset( $video_files[$delete] );
 		}
-		$index = 0;
-		foreach ( $video_files as $file )
+		if ( count($video_files) > 0 )
 		{
-			preg_match( '/^(.+)-([_\d]+)-([_\d]+)\.([^.]+)$/', $file, $matches );
-			$rate = (int)(100 * preg_replace( '/_/', '.', $matches[2] ) );
-			$scale = (int)(100 * preg_replace( '/_/', '.', $matches[3] ) );
-			$rate_text = isset($rates[$rate])?$rates[$rate]:($rate."x");
-			$scale_text = isset($scales[$scale])?$scales[$scale]:($scale."x");
+			$index = 0;
+			foreach ( $video_files as $file )
+			{
+				preg_match( '/^(.+)-((?:r[_\d]+)|(?:F[_\d]+))-((?:s[_\d]+)|(?:S[0-9a-z]+))\.([^.]+)$/', $file, $matches );
+				if ( preg_match( '/^r(.+)$/', $matches[2], $temp_matches ) )
+				{
+					$rate = (int)(100 * preg_replace( '/_/', '.', $temp_matches[1] ) );
+					$rate_text = isset($rates[$rate])?$rates[$rate]:($rate."x");
+				}
+				elseif ( preg_match( '/^F(.+)$/', $matches[2], $temp_matches ) )
+				{
+					$rate_text = $temp_matches[1]."fps";
+				}
+				if ( preg_match( '/^s(.+)$/', $matches[3], $temp_matches ) )
+				{
+					$scale = (int)(100 * preg_replace( '/_/', '.', $temp_matches[1] ) );
+					$scale_text = isset($scales[$scale])?$scales[$scale]:($scale."x");
+				}
+				elseif ( preg_match( '/^S(.+)$/', $matches[3], $temp_matches ) )
+				{
+					$scale_text = $temp_matches[1];
+				}
 ?>
 <tr>
   <td class="text" align="center"><?= $matches[4] ?></td>
@@ -224,7 +240,8 @@ else
   <td class="text" align="center"><a href="javascript:viewVideo( '<?= $file ?>', 'zmVideo<?= $eid ?>-<?= $scale ?>', 12+<?= reScale( $event['Width'], $scale ) ?>, 20+<?= reScale( $event['Height'], $scale ) ?> );"><?= $zmSlangView ?></a>&nbsp;/&nbsp;<a href="<?= $file ?>" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&eid=<?= $eid ?>&download=<?= $index ?>'" target="_blank"><?= $zmSlangDownload ?></a>&nbsp;/&nbsp;<a href="javascript: deleteVideo( <?= $index ?> )"><?= $zmSlangDelete ?></a></td>
 </tr>
 <?php
-			$index++;
+				$index++;
+			}
 		}
 	}
 	else

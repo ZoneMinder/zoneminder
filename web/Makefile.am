@@ -82,6 +82,7 @@ web_DATA = \
 	zm_xhtml_view_login.php \
 	zm_xhtml_view_montage.php \
 	zm_xhtml_view_state.php \
+	zm_xhtml_view_video.php \
 	zm_xhtml_view_watch.php \
 	zm_wml.php \
 	zm_wml_view_login.php \
@@ -178,6 +179,7 @@ EXTRA_DIST = \
 	zm_xhtml_view_login.php \
 	zm_xhtml_view_montage.php \
 	zm_xhtml_view_state.php \
+	zm_xhtml_view_video.php \
 	zm_xhtml_view_watch.php \
 	zm_wml.php \
 	zm_wml_view_login.php \

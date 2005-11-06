@@ -89,7 +89,8 @@ while ( $row = mysql_fetch_assoc( $result ) )
 	}
 }
 
-$frames_per_page = 10;
+$frames_per_page = 15;
+$frames_per_line = 3;
 
 $paged = $event['Frames'] > $frames_per_page;
 
@@ -97,23 +98,25 @@ $paged = $event['Frames'] > $frames_per_page;
 <html>
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEvent ?> - <?= $event['Name'] ?></title>
-<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
 </head>
 <body> 
-<table>
+<table style="width: 100%">
 <tr>
-<td align="left" class="text"><?= makeLink( "$PHP_SELF?view=eventdetails&eid=$eid", $event['Name'].($event['Archived']?'*':''), canEdit( 'Events' ) ) ?></td>
-<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=events&action=delete&mark_eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td align="left" class="text"><?= makeLink( "$PHP_SELF?view=eventdetails&amp;eid=$eid", $event['Name'].($event['Archived']?'*':''), canEdit( 'Events' ) ) ?></td>
+<td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=events&amp;action=delete&amp;mark_eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;limit=<?= $limit ?>&amp;page=<?= $page ?>"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr>
+</table>
 <?php
 if ( $paged && !empty($page) )
 {
 ?>
+<table style="width:100%">
+<tr>
 <?php
 	$pages = (int)ceil($event['Frames']/$frames_per_page);
-	$max_shortcuts = 2;
+	$max_shortcuts = 3;
 ?>
-<tr><td colspan="2" align="center" class="text">
 <?php
 	if ( $fid )
 		$page = ($fid/$frames_per_page)+1;
@@ -124,6 +127,10 @@ if ( $paged && !empty($page) )
 
 	if ( $page > 1 )
 	{
+?>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=1">&lt;&lt;</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $page-1 ?>">&lt;</a></td>
+<?php
 		$new_pages = array();
 		$pages_used = array();
 		$lo_exp = max(2,log($page-1)/log($max_shortcuts));
@@ -143,12 +150,12 @@ if ( $paged && !empty($page) )
 		foreach ( $new_pages as $new_page )
 		{
 ?>
-<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>&nbsp;
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
 <?php
 		}
 	}
 ?>
--&nbsp;<?= $page ?>&nbsp;-
+<td align="center" class="text"><?= $page ?></td>
 <?php
 	if ( $page < $pages )
 	{
@@ -171,16 +178,20 @@ if ( $paged && !empty($page) )
 		foreach ( $new_pages as $new_page )
 		{
 ?>
-&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
 <?php
 		}
+?>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $page+1 ?>">&gt;</a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $pages ?>">&gt;&gt;</a></td>
+<?php
 	}
 ?>
-</td></tr>
+</tr>
+</table>
 <?php
 }
 ?>
-</table>
 <?php
 if ( $paged && !empty($page) )
 {
@@ -208,7 +219,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 	}
 }
 ?>
-<p>
+<table>
 <?php
 $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
 $device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
@@ -220,13 +231,20 @@ $device_height -= 16;
 $width_scale = ($device_width*SCALE_SCALE)/$event['Width'];
 $height_scale = ($device_height*SCALE_SCALE)/$event['Height'];
 $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
-$scale /= 2; // Try and get two pics per line
+$scale /= $frames_per_line; // Try and get two pics per line
 
 $count = 0;
 $fraction = sprintf( "%.2f", $scale/100 );
 $event_path = ZM_DIR_EVENTS.'/'.$event['MonitorName'].'/'.$event['Id'];
-for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++ )
+for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++, $count++ )
 {
+	if ( $count%$frames_per_line == 0 )
+	{
+?>
+<tr>
+<?php
+	}
+
 	$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $frame_id );
 
 	$capt_image = $image_path;
@@ -261,10 +279,28 @@ for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++ )
 	$alarm_frame = $alarm_frames[$frame_id];
 	$img_class = $alarm_frame?"alarm":"normal";
 ?>
-<a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>"><img src="<?= $thumb_image ?>" style="border: 0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $alarm_frame?$alarm_frame['Score']:0 ?>"></a>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $frame_id ?>"><img src="<?= $thumb_image ?>" style="border: 0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $alarm_frame?$alarm_frame['Score']:0 ?>"></a></td>
+<?php
+	if ( $count%$frames_per_line == ($frames_per_line-1) )
+	{
+?>
+</tr>
+<?php
+	}
+}
+if ( $count%$frames_per_line != 0 )
+{
+	while ( $count%$frames_per_line != ($frames_per_line-1) )
+	{
+?>
+<td>&nbsp;</td>
+<?php
+	}
+?>
+</tr>
 <?php
 }
 ?>
-</p>
+</table>
 </body>
 </html>

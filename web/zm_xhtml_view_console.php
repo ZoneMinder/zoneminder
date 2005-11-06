@@ -68,7 +68,11 @@ while( $row = mysql_fetch_assoc( $result ) )
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 </head>
 <body>
-<p align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>"><?= date( "H:i" ) ?></a> - <?= makeLink( "$PHP_SELF?view=state", $status, canEdit( 'System' ) ) ?> - <?= getLoad() ?> / <?= getDiskPercent() ?>%</p>
+<table style="width: 100%">
+<tr>
+<td align="left"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>"><?= date( "H:i" ) ?></a></td><td align="center"><?= makeLink( "$PHP_SELF?view=state", $status, canEdit( 'System' ) ) ?></td><td align="right"><?= getLoad() ?>/<?= getDiskPercent() ?>%</td>
+</tr>
+</table>
 <table>
 <?php
 $hour_event_count = 0;

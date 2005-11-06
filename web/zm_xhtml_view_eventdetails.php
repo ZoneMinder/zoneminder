@@ -89,7 +89,7 @@ function getThumbnail( $event, $fid, $scale )
 <html>
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEvent ?> <?= $eid ?></title>
-<link rel="stylesheet" href="zm_html_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
 </head>
 <body>
 <table>
@@ -105,9 +105,12 @@ function getThumbnail( $event, $fid, $scale )
 </table>
 <table>
 <tr>
-<td><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=1"><img src="<?= $image1 ?>" style="border: 0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" alt="1"></a></td>
-<td><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $fid ?>"><img src="<?= $image2 ?>" style="border: 0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" alt="<?= $fid ?>"></a></td>
+<td><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=1"><img src="<?= $image1 ?>" style="border: 0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" alt="1"></a></td>
+<td><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $fid ?>"><img src="<?= $image2 ?>" style="border: 0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" alt="<?= $fid ?>"></a></td>
 </tr>
+</table>
+<table>
+<tr><td><a href="<?= $PHP_SELF ?>?view=event&amp;eid=<?= $eid ?>&amp;page=1"><?= $zmSlangFrames ?></a></td><td><a href="<?= $PHP_SELF ?>?view=video&amp;eid=<?= $eid ?>"><?= $zmSlangVideo ?></a></td></tr>
 </table>
 </body>
 </html>

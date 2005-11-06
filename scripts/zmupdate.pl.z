@@ -209,7 +209,6 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 			{
 				print( "Error check failed: '".$res->status_line()."'\n" );
 			}
-
 		}
 		sleep( 3600 );
 	}

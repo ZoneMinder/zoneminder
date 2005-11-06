@@ -49,6 +49,16 @@ if ( !isset($PHP_SELF) )
 	$PHP_SELF = $_SERVER['PHP_SELF'];
 }
 
+if ( isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == 'on' )
+{
+	$protocol = 'https';
+}
+else
+{
+	$protocol = 'http';
+}
+define( "ZM_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
+
 if ( empty($format) )
 {
 	$wurfl_file = "./wurfl_class.php";

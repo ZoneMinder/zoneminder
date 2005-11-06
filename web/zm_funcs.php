@@ -118,7 +118,7 @@ function getStreamSrc( $args )
 		global $_SESSION, $_SERVER;
 	}
 
-	$stream_src = "http://".$_SERVER['HTTP_HOST'].ZM_PATH_ZMS;
+	$stream_src = ZM_URL.ZM_PATH_ZMS;
 
 	if ( ZM_OPT_USE_AUTH )
 	{

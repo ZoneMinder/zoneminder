@@ -175,7 +175,7 @@ if ( !defined($monitor->{ShmId}) )
 sub Suspend
 {
 	my $monitor = shift;
-	my $suspend_cmd = "/usr/local/bin/zmu -m ".$monitor->{Id}." -u -U admin -P pc00zm";
+	my $suspend_cmd = ZM_PATH_BIN."/zmu -m ".$monitor->{Id}." -u -U admin -P pc00zm";
 	qx( $suspend_cmd );
 }
 
@@ -183,7 +183,7 @@ sub Resume
 {
 	my $monitor = shift;
 	sleep( $monitor->{TrackDelay} );
-	my $resume_cmd = "/usr/local/bin/zmu -m ".$monitor->{Id}." -r -U admin -P pc00zm";
+	my $resume_cmd = ZM_PATH_BIN."/zmu -m ".$monitor->{Id}." -r -U admin -P pc00zm";
 	qx( $resume_cmd );
 }
 

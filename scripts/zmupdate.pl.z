@@ -308,7 +308,7 @@ if ( $version )
 			}
 		}
 		my $backup = ZM_DB_NAME."-".$version.".dump";
-		$command .= " ".ZM_DB_NAME." > ".$backup;
+		$command .= " --add-drop-table --databases ".ZM_DB_NAME." > ".$backup;
 		print( "Creating backup to $backup. This may take several minutes.\n" );
 		print( "Executing '$command'\n" ) if ( VERBOSE );
 		my $output = qx($command);
@@ -373,6 +373,8 @@ if ( $version )
 	{
 		# Nothing yet
 	}
+
+	print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
 	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
 
@@ -493,7 +495,7 @@ if ( $version )
 			my $sequence = 1;
 			while( my $monitor = $sth->fetchrow_hashref() )
 			{
-				my $sql = "update Monitors set Sequence = ? where MonitorId = ?";
+				my $sql = "update Monitors set Sequence = ? where Id = ?";
 				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 				my $res = $sth->execute( $sequence++, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
 			}
@@ -503,7 +505,7 @@ if ( $version )
 		# Update saved filters
 		{
 			print( "Updating saved filters. Please wait.\n" );
-			my $sql = "select * from Filter";
+			my $sql = "select * from Filters";
 			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			my @filters;

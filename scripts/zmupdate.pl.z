@@ -416,6 +416,7 @@ if ( $version )
 		patchDB( $dbh, "1.21.3" );
 
 		# Add appropriate widths and heights to events
+		{
 		print( "Updating events. This may take a minute. Please wait\n" );
 		my $sql = "select * from Monitors order by Id";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -427,20 +428,48 @@ if ( $version )
 			my $res = $sth->execute( $monitor->{Width}, $monitor->{Height}, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
 		}
 		$sth->finish();
+		}
 
 		# Add sequence numbers
-		print( "Updating monitor sequences. Please wait\n" );
-		my $sql = "select * from Monitors order by Id";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-		my $sequence = 1;
-		while( my $monitor = $sth->fetchrow_hashref() )
 		{
-			my $sql = "update Monitors set Sequence = ? where MonitorId = ?";
+			print( "Updating monitor sequences. Please wait\n" );
+			my $sql = "select * from Monitors order by Id";
 			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute( $sequence++, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			my $sequence = 1;
+			while( my $monitor = $sth->fetchrow_hashref() )
+			{
+				my $sql = "update Monitors set Sequence = ? where MonitorId = ?";
+				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				my $res = $sth->execute( $sequence++, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+			}
+			$sth->finish();
 		}
-		$sth->finish();
+
+		# Update saved filters
+		{
+			print( "Updating saved filters. Please wait\n" );
+			my $sql = "select * from Filter";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			my @filters;
+			while( my $filter = $sth->fetchrow_hashref() )
+			{
+				push( @filters, $filter );
+			}
+			$sth->finish();
+			$sql = "update Filters set Query = ? where Name = ?";
+			$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			foreach my $filter ( @filters )
+			{
+				if ( $filter->{Query} =~ /op\d=&/ )
+				{
+					( my $new_query = $filter->{Query} ) =~ s/(op\d=)&/$1=&/g;
+					$res = $sth->execute( $new_query, filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+				}
+			}
+		}
+
 		$cascade = !undef;
 	}
 	if ( !$cascade )

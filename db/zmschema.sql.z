@@ -29,16 +29,126 @@ CREATE TABLE Config (
 ) TYPE=MyISAM;
 
 --
+-- Table structure for table `Controls`
+--
+
+CREATE TABLE Controls (
+  Id int(10) unsigned NOT NULL auto_increment,
+  Name varchar(64) NOT NULL default '',
+  Type enum('Local','Remote') NOT NULL default 'Local',
+  Command varchar(255) default NULL,
+  CanWake tinyint(3) unsigned NOT NULL default '0',
+  CanSleep tinyint(3) unsigned NOT NULL default '0',
+  CanReset tinyint(3) unsigned NOT NULL default '0',
+  CanZoom tinyint(3) unsigned NOT NULL default '0',
+  CanAutoZoom tinyint(3) unsigned NOT NULL default '0',
+  CanZoomAbs tinyint(3) unsigned NOT NULL default '0',
+  CanZoomRel tinyint(3) unsigned NOT NULL default '0',
+  CanZoomCon tinyint(3) unsigned NOT NULL default '0',
+  MinZoomRange int(10) unsigned default NULL,
+  MaxZoomRange int(10) unsigned default NULL,
+  MinZoomStep int(10) unsigned default NULL,
+  MaxZoomStep int(10) unsigned default NULL,
+  HasZoomSpeed tinyint(3) unsigned NOT NULL default '0',
+  MinZoomSpeed int(10) unsigned default NULL,
+  MaxZoomSpeed int(10) unsigned default NULL,
+  CanFocus tinyint(3) unsigned NOT NULL default '0',
+  CanAutoFocus tinyint(3) unsigned NOT NULL default '0',
+  CanFocusAbs tinyint(3) unsigned NOT NULL default '0',
+  CanFocusRel tinyint(3) unsigned NOT NULL default '0',
+  CanFocusCon tinyint(3) unsigned NOT NULL default '0',
+  MinFocusRange int(10) unsigned default NULL,
+  MaxFocusRange int(10) unsigned default NULL,
+  MinFocusStep int(10) unsigned default NULL,
+  MaxFocusStep int(10) unsigned default NULL,
+  HasFocusSpeed tinyint(3) unsigned NOT NULL default '0',
+  MinFocusSpeed int(10) unsigned default NULL,
+  MaxFocusSpeed int(10) unsigned default NULL,
+  CanIris tinyint(3) unsigned NOT NULL default '0',
+  CanAutoIris tinyint(3) unsigned NOT NULL default '0',
+  CanIrisAbs tinyint(3) unsigned NOT NULL default '0',
+  CanIrisRel tinyint(3) unsigned NOT NULL default '0',
+  CanIrisCon tinyint(3) unsigned NOT NULL default '0',
+  MinIrisRange int(10) unsigned default NULL,
+  MaxIrisRange int(10) unsigned default NULL,
+  MinIrisStep int(10) unsigned default NULL,
+  MaxIrisStep int(10) unsigned default NULL,
+  HasIrisSpeed tinyint(3) unsigned NOT NULL default '0',
+  MinIrisSpeed int(10) unsigned default NULL,
+  MaxIrisSpeed int(10) unsigned default NULL,
+  CanGain tinyint(3) unsigned NOT NULL default '0',
+  CanAutoGain tinyint(3) unsigned NOT NULL default '0',
+  CanGainAbs tinyint(3) unsigned NOT NULL default '0',
+  CanGainRel tinyint(3) unsigned NOT NULL default '0',
+  CanGainCon tinyint(3) unsigned NOT NULL default '0',
+  MinGainRange int(10) unsigned default NULL,
+  MaxGainRange int(10) unsigned default NULL,
+  MinGainStep int(10) unsigned default NULL,
+  MaxGainStep int(10) unsigned default NULL,
+  HasGainSpeed tinyint(3) unsigned NOT NULL default '0',
+  MinGainSpeed int(10) unsigned default NULL,
+  MaxGainSpeed int(10) unsigned default NULL,
+  CanWhite tinyint(3) unsigned NOT NULL default '0',
+  CanAutoWhite tinyint(3) unsigned NOT NULL default '0',
+  CanWhiteAbs tinyint(3) unsigned NOT NULL default '0',
+  CanWhiteRel tinyint(3) unsigned NOT NULL default '0',
+  CanWhiteCon tinyint(3) unsigned NOT NULL default '0',
+  MinWhiteRange int(10) unsigned default NULL,
+  MaxWhiteRange int(10) unsigned default NULL,
+  MinWhiteStep int(10) unsigned default NULL,
+  MaxWhiteStep int(10) unsigned default NULL,
+  HasWhiteSpeed tinyint(3) unsigned NOT NULL default '0',
+  MinWhiteSpeed int(10) unsigned default NULL,
+  MaxWhiteSpeed int(10) unsigned default NULL,
+  HasPresets tinyint(3) unsigned NOT NULL default '0',
+  NumPresets tinyint(3) unsigned NOT NULL default '0',
+  HasHomePreset tinyint(3) unsigned NOT NULL default '0',
+  CanSetPresets tinyint(3) unsigned NOT NULL default '0',
+  CanMove tinyint(3) unsigned NOT NULL default '0',
+  CanMoveDiag tinyint(3) unsigned NOT NULL default '0',
+  CanMoveMap tinyint(3) unsigned NOT NULL default '0',
+  CanMoveAbs tinyint(3) unsigned NOT NULL default '0',
+  CanMoveRel tinyint(3) unsigned NOT NULL default '0',
+  CanMoveCon tinyint(3) unsigned NOT NULL default '0',
+  CanPan tinyint(3) unsigned NOT NULL default '0',
+  MinPanRange int(10) default NULL,
+  MaxPanRange int(10) default NULL,
+  MinPanStep int(10) default NULL,
+  MaxPanStep int(10) default NULL,
+  HasPanSpeed tinyint(3) unsigned NOT NULL default '0',
+  MinPanSpeed int(10) default NULL,
+  MaxPanSpeed int(10) default NULL,
+  HasTurboPan tinyint(3) unsigned NOT NULL default '0',
+  TurboPanSpeed int(10) default NULL,
+  CanTilt tinyint(3) unsigned NOT NULL default '0',
+  MinTiltRange int(10) default NULL,
+  MaxTiltRange int(10) default NULL,
+  MinTiltStep int(10) default NULL,
+  MaxTiltStep int(10) default NULL,
+  HasTiltSpeed tinyint(3) unsigned NOT NULL default '0',
+  MinTiltSpeed int(10) default NULL,
+  MaxTiltSpeed int(10) default NULL,
+  HasTurboTilt tinyint(3) unsigned NOT NULL default '0',
+  TurboTiltSpeed int(10) default NULL,
+  CanAutoScan tinyint(3) unsigned NOT NULL default '0',
+  NumScanPaths tinyint(3) unsigned NOT NULL default '0',
+  PRIMARY KEY  (Id),
+  UNIQUE KEY UC_Id (Id)
+) TYPE=MyISAM;
+
+--
 -- Table structure for table `Events`
 --
 
 CREATE TABLE Events (
   Id int(10) unsigned NOT NULL auto_increment,
   MonitorId int(10) unsigned NOT NULL default '0',
-  Name varchar(64) NOT NULL,
+  Name varchar(64) NOT NULL default '',
   Cause varchar(32) NOT NULL default '',
   StartTime datetime default NULL,
   EndTime datetime default NULL,
+  Width smallint(5) unsigned NOT NULL default '0',
+  Height smallint(5) unsigned NOT NULL default '0',
   Length decimal(10,2) NOT NULL default '0.00',
   Frames int(10) unsigned default NULL,
   AlarmFrames int(10) unsigned default NULL,
@@ -66,7 +176,7 @@ CREATE TABLE Events (
 --
 
 CREATE TABLE Filters (
-  Name varchar(64) NOT NULL,
+  Name varchar(64) NOT NULL default '',
   Query text NOT NULL,
   AutoArchive tinyint(3) unsigned NOT NULL default '0',
   AutoDelete tinyint(3) unsigned NOT NULL default '0',
@@ -91,7 +201,9 @@ CREATE TABLE Frames (
   Score smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY  (Id),
   UNIQUE KEY UC_Id (Id),
-  KEY EventId (EventId)
+  KEY EventId (EventId),
+  KEY Type (Type),
+  KEY TimeStamp (TimeStamp)
 ) TYPE=MyISAM;
 
 --
@@ -100,7 +212,7 @@ CREATE TABLE Frames (
 
 CREATE TABLE Groups (
   Id int(10) unsigned NOT NULL auto_increment,
-  Name varchar(64) NOT NULL,
+  Name varchar(64) NOT NULL default '',
   MonitorIds tinytext NOT NULL,
   PRIMARY KEY  (Id)
 ) TYPE=MyISAM;
@@ -111,12 +223,12 @@ CREATE TABLE Groups (
 
 CREATE TABLE Monitors (
   Id int(10) unsigned NOT NULL auto_increment,
-  Name varchar(64) NOT NULL,
-  Type enum('Local','Remote') NOT NULL default 'Local',
+  Name varchar(64) NOT NULL default '',
+  Type enum('Local','Remote','File') NOT NULL default 'Local',
   Function enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   RunMode enum('Continuous','Triggered') NOT NULL default 'Continuous',
   Triggers set('X10') NOT NULL default '',
-  Device tinyint(3) unsigned NOT NULL default '0',
+  Device tinytext,
   Channel tinyint(3) unsigned NOT NULL default '0',
   Format tinyint(3) unsigned NOT NULL default '0',
   Host varchar(64) default NULL,
@@ -153,6 +265,9 @@ CREATE TABLE Monitors (
   TrackDelay smallint(5) unsigned NOT NULL default '0',
   ReturnLocation tinyint(3) NOT NULL default '-1',
   ReturnDelay smallint(5) unsigned NOT NULL default '0',
+  DefaultScale smallint(5) unsigned NOT NULL default '100',
+  WebColour varchar(32) NOT NULL default 'red',
+  Sequence smallint(5) unsigned default NULL,
   PRIMARY KEY  (Id)
 ) TYPE=MyISAM;
 
@@ -161,7 +276,7 @@ CREATE TABLE Monitors (
 --
 
 CREATE TABLE States (
-  Name varchar(64) NOT NULL,
+  Name varchar(64) NOT NULL default '',
   Definition tinytext NOT NULL,
   PRIMARY KEY  (Name)
 ) TYPE=MyISAM;
@@ -209,18 +324,20 @@ CREATE TABLE TriggersX10 (
 
 CREATE TABLE Users (
   Id int(10) unsigned NOT NULL auto_increment,
-  Username varchar(32) BINARY NOT NULL default '',
+  Username varchar(32) binary NOT NULL default '',
   Password varchar(64) NOT NULL default '',
   Language varchar(8) NOT NULL default '',
   Enabled tinyint(3) unsigned NOT NULL default '1',
   Stream enum('None','View') NOT NULL default 'None',
   Events enum('None','View','Edit') NOT NULL default 'None',
+  Control enum('None','View','Edit') NOT NULL default 'None',
   Monitors enum('None','View','Edit') NOT NULL default 'None',
   System enum('None','View','Edit') NOT NULL default 'None',
-  MonitorIds tinytext,
+  MaxBandwidth varchar(16) NOT NULL default '',
+  MonitorIds tinytext NOT NULL,
   PRIMARY KEY  (Id),
-  UNIQUE KEY UC_Username (Username),
-  UNIQUE KEY UC_Id (Id)
+  UNIQUE KEY UC_Id (Id),
+  UNIQUE KEY UC_Username (Username)
 ) TYPE=MyISAM;
 
 --
@@ -256,139 +373,18 @@ CREATE TABLE Zones (
 ) TYPE=MyISAM;
 
 --
--- Table structure for table `Controls`
---
-
-CREATE TABLE Controls (
-  Id int(10) unsigned NOT NULL auto_increment,
-  Name varchar(64) NOT NULL default '',
-  Type enum('Local','Remote') NOT NULL default 'Local',
-  Command varchar(255) default NULL,
-
-  CanWake tinyint(3) unsigned NOT NULL default '0',
-  CanSleep tinyint(3) unsigned NOT NULL default '0',
-  CanReset tinyint(3) unsigned NOT NULL default '0',
-
-  CanZoom tinyint(3) unsigned NOT NULL default '0',
-  CanAutoZoom tinyint(3) unsigned NOT NULL default '0',
-  CanZoomAbs tinyint(3) unsigned NOT NULL default '0',
-  CanZoomRel tinyint(3) unsigned NOT NULL default '0',
-  CanZoomCon tinyint(3) unsigned NOT NULL default '0',
-  MinZoomRange int(10) unsigned default NULL,
-  MaxZoomRange int(10) unsigned default NULL,
-  MinZoomStep int(10) unsigned default NULL,
-  MaxZoomStep int(10) unsigned default NULL,
-  HasZoomSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinZoomSpeed int(10) unsigned default NULL,
-  MaxZoomSpeed int(10) unsigned default NULL,
-
-  CanFocus tinyint(3) unsigned NOT NULL default '0',
-  CanAutoFocus tinyint(3) unsigned NOT NULL default '0',
-  CanFocusAbs tinyint(3) unsigned NOT NULL default '0',
-  CanFocusRel tinyint(3) unsigned NOT NULL default '0',
-  CanFocusCon tinyint(3) unsigned NOT NULL default '0',
-  MinFocusRange int(10) unsigned default NULL,
-  MaxFocusRange int(10) unsigned default NULL,
-  MinFocusStep int(10) unsigned default NULL,
-  MaxFocusStep int(10) unsigned default NULL,
-  HasFocusSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinFocusSpeed int(10) unsigned default NULL,
-  MaxFocusSpeed int(10) unsigned default NULL,
-
-  CanIris tinyint(3) unsigned NOT NULL default '0',
-  CanAutoIris tinyint(3) unsigned NOT NULL default '0',
-  CanIrisAbs tinyint(3) unsigned NOT NULL default '0',
-  CanIrisRel tinyint(3) unsigned NOT NULL default '0',
-  CanIrisCon tinyint(3) unsigned NOT NULL default '0',
-  MinIrisRange int(10) unsigned default NULL,
-  MaxIrisRange int(10) unsigned default NULL,
-  MinIrisStep int(10) unsigned default NULL,
-  MaxIrisStep int(10) unsigned default NULL,
-  HasIrisSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinIrisSpeed int(10) unsigned default NULL,
-  MaxIrisSpeed int(10) unsigned default NULL,
-
-  CanGain tinyint(3) unsigned NOT NULL default '0',
-  CanAutoGain tinyint(3) unsigned NOT NULL default '0',
-  CanGainAbs tinyint(3) unsigned NOT NULL default '0',
-  CanGainRel tinyint(3) unsigned NOT NULL default '0',
-  CanGainCon tinyint(3) unsigned NOT NULL default '0',
-  MinGainRange int(10) unsigned default NULL,
-  MaxGainRange int(10) unsigned default NULL,
-  MinGainStep int(10) unsigned default NULL,
-  MaxGainStep int(10) unsigned default NULL,
-  HasGainSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinGainSpeed int(10) unsigned default NULL,
-  MaxGainSpeed int(10) unsigned default NULL,
-
-  CanWhite tinyint(3) unsigned NOT NULL default '0',
-  CanAutoWhite tinyint(3) unsigned NOT NULL default '0',
-  CanWhiteAbs tinyint(3) unsigned NOT NULL default '0',
-  CanWhiteRel tinyint(3) unsigned NOT NULL default '0',
-  CanWhiteCon tinyint(3) unsigned NOT NULL default '0',
-  MinWhiteRange int(10) unsigned default NULL,
-  MaxWhiteRange int(10) unsigned default NULL,
-  MinWhiteStep int(10) unsigned default NULL,
-  MaxWhiteStep int(10) unsigned default NULL,
-  HasWhiteSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinWhiteSpeed int(10) unsigned default NULL,
-  MaxWhiteSpeed int(10) unsigned default NULL,
-
-  HasPresets tinyint(3) unsigned NOT NULL default '0',
-  NumPresets tinyint(3) unsigned NOT NULL default '0',
-  HasHomePreset tinyint(3) unsigned NOT NULL default '0',
-  CanSetPresets tinyint(3) unsigned NOT NULL default '0',
-
-  CanMove tinyint(3) unsigned NOT NULL default '0',
-  CanMoveDiag tinyint(3) unsigned NOT NULL default '0',
-  CanMoveMap tinyint(3) unsigned NOT NULL default '0',
-  CanMoveAbs tinyint(3) unsigned NOT NULL default '0',
-  CanMoveRel tinyint(3) unsigned NOT NULL default '0',
-  CanMoveCon tinyint(3) unsigned NOT NULL default '0',
-  CanPan tinyint(3) unsigned NOT NULL default '0',
-  MinPanRange int(10) default NULL,
-  MaxPanRange int(10) default NULL,
-  MinPanStep int(10) default NULL,
-  MaxPanStep int(10) default NULL,
-  HasPanSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinPanSpeed int(10) default NULL,
-  MaxPanSpeed int(10) default NULL,
-  HasTurboPan tinyint(3) unsigned NOT NULL default '0',
-  TurboPanSpeed int(10) default NULL,
-  CanTilt tinyint(3) unsigned NOT NULL default '0',
-  MinTiltRange int(10) default NULL,
-  MaxTiltRange int(10) default NULL,
-  MinTiltStep int(10) default NULL,
-  MaxTiltStep int(10) default NULL,
-  HasTiltSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinTiltSpeed int(10) default NULL,
-  MaxTiltSpeed int(10) default NULL,
-  HasTurboTilt tinyint(3) unsigned NOT NULL default '0',
-  TurboTiltSpeed int(10) default NULL,
-
-  CanAutoScan tinyint(3) unsigned NOT NULL default '0',
-  NumScanPaths tinyint(3) unsigned NOT NULL default '0',
-
-  PRIMARY KEY  (Id),
-  UNIQUE KEY UC_Id (Id)
-) TYPE=MyISAM;
-
-
---
 -- Create a default admin user.
 --
 insert into Users values ('','admin',password('admin'),'',1,'View','Edit','Edit','Edit',NULL);
 --
--- Add in a sample filter to purge the oldest 5 events when the disk is 99% full, delete is disabled though
+-- Add in a sample filter to purge the oldest 5 events when the disk is 95% full, delete is disabled though
 --
-insert into Filters values ('PurgeWhenFull','trms=2&obr1=&cbr1=&attr1=Archived&op1=&val1=0&cnj2=and&obr2=&cbr2=&attr2=DiskPercent&op2=>=&val2=99&sort_field=Id&sort_asc=1&limit=5',0,0,0,0,0,'');
+insert into Filters values ('PurgeWhenFull','trms=2&obr1=&cbr1=&attr1=Archived&op1==&val1=0&cnj2=and&obr2=&cbr2=&attr2=DiskPercent&op2=>=&val2=95&sort_field=Id&sort_asc=1&limit=5',0,0,0,0,0,'');
 --
 -- Add in some sample control protocol definitions
 --
-insert into Controls values (1,'PELCO-D','Local','/usr/local/bin/zmcontrol-pelco-d.pl',1,1,0,1,1,0,0,1,NULL,NULL,NULL,NULL,1,0,3,1,1,0,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL,1,1,0,1,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,1,0,1,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,20,1,1,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,1,0,63,1,254,1,NULL,NULL,NULL,NULL,1,0,63,1,254,0,0);
-insert into Controls values (2,'PELCO-P','Local','/usr/local/bin/zmcontrol-pelco-p.pl',1,1,0,1,1,0,0,1,NULL,NULL,NULL,NULL,1,0,3,1,1,0,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL,1,1,0,1,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,1,0,1,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,20,1,1,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,1,0,63,1,254,1,NULL,NULL,NULL,NULL,1,0,63,1,254,0,0);
-insert into Controls values (3,'Sony VISCA','Local','/usr/local/bin/zmcontrol-visca.pl',1,1,0,1,0,0,0,1,0,16384,10,4000,1,1,6,1,1,1,0,1,0,1536,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,3,1,1,1,1,0,1,1,0,1,-15578,15578,100,10000,1,1,50,1,254,1,-7789,7789,100,5000,1,1,50,1,254,0,0);
-INSERT INTO Controls VALUES (4,'Axis API v2','Remote','/usr/local/bin/zmcontrol-axis-v2.pl',0,0,0,1,0,0,1,0,0,9999,10,2500,0,NULL,NULL,1,1,0,1,0,0,9999,10,2500,0,NULL,NULL,1,1,0,1,0,0,9999,10,2500,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,12,1,1,1,1,1,0,1,0,1,-360,360,1,90,0,NULL,NULL,0,NULL,1,-360,360,1,90,0,NULL,NULL,0,NULL,0,0);
-insert into Controls values (5,'KX-HCM10','Remote','/usr/local/bin/zmcontrol-kx-hcm10.pl',0,0,0,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,8,1,1,1,0,1,0,0,1,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,NULL,0,0);
-
-update Monitors set WebColour = concat( '#', hex(14*rand()),hex(15*rand()),hex(14*rand()),hex(15*rand()),hex(14*rand()),hex(15*rand()) );
+insert into Controls values (1,'PELCO-D','Local','zmcontrol-pelco-d.pl',1,1,0,1,1,0,0,1,NULL,NULL,NULL,NULL,1,0,3,1,1,0,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL,1,1,0,1,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,1,0,1,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,20,1,1,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,1,0,63,1,254,1,NULL,NULL,NULL,NULL,1,0,63,1,254,0,0);
+insert into Controls values (2,'PELCO-P','Local','zmcontrol-pelco-p.pl',1,1,0,1,1,0,0,1,NULL,NULL,NULL,NULL,1,0,3,1,1,0,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL,1,1,0,1,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,1,0,1,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,20,1,1,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,1,0,63,1,254,1,NULL,NULL,NULL,NULL,1,0,63,1,254,0,0);
+insert into Controls values (3,'Sony VISCA','Local','zmcontrol-visca.pl',1,1,0,1,0,0,0,1,0,16384,10,4000,1,1,6,1,1,1,0,1,0,1536,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,3,1,1,1,1,0,1,1,0,1,-15578,15578,100,10000,1,1,50,1,254,1,-7789,7789,100,5000,1,1,50,1,254,0,0);
+INSERT INTO Controls VALUES (4,'Axis API v2','Remote','zmcontrol-axis-v2.pl',0,0,0,1,0,0,1,0,0,9999,10,2500,0,NULL,NULL,1,1,0,1,0,0,9999,10,2500,0,NULL,NULL,1,1,0,1,0,0,9999,10,2500,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,12,1,1,1,1,1,0,1,0,1,-360,360,1,90,0,NULL,NULL,0,NULL,1,-360,360,1,90,0,NULL,NULL,0,NULL,0,0);
+insert into Controls values (5,'KX-HCM10','Remote','zmcontrol-kx-hcm10.pl',0,0,0,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,8,1,1,1,0,1,0,0,1,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,NULL,0,0);

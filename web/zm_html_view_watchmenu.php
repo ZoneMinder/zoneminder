@@ -108,7 +108,7 @@ else
 <td align="center" valign="middle" class="text">
 <?= $zmSlangScale ?>: <?= buildSelect( "scale", $scales, "document.view_form.submit();" ); ?>
 </td>
-<?php if ( canView( 'Monitors' ) && $monitor['Type'] == "Local" ) { ?>
+<?php if ( canView( 'Control' ) && $monitor['Type'] == "Local" ) { ?>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=settings&mid=<?= $monitor['Id'] ?>', 'zmSettings<?= $monitor['Id'] ?>', <?= $jws['settings']['w'] ?>, <?= $jws['settings']['h'] ?> );"><?= $zmSlangSettings ?></a></td>
 <?php } else { ?>
 <td align="center" class="text">&nbsp;</td>

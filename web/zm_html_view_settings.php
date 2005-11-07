@@ -18,7 +18,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canView( 'Monitors' ) )
+if ( !canView( 'Control' ) )
 {
 	$view = "error";
 	return;
@@ -76,12 +76,12 @@ function closeWindow()
 <tr>
 <td align="right" class="smallhead"><?= $zmSlangParameter ?></td><td align="left" class="smallhead"><?= $zmSlangValue ?></td>
 </tr>
-<tr><td align="right" class="text"><?= $zmSlangBrightness ?></td><td align="left" class="text"><input type="text" name="new_brightness" value="<?= $monitor['Brightness'] ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangContrast ?></td><td align="left" class="text"><input type="text" name="new_contrast" value="<?= $monitor['Contrast'] ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangHue ?></td><td align="left" class="text"><input type="text" name="new_hue" value="<?= $monitor['Hue'] ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangColour ?></td><td align="left" class="text"><input type="text" name="new_colour" value="<?= $monitor['Colour'] ?>" size="8" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangBrightness ?></td><td align="left" class="text"><input type="text" name="new_brightness" value="<?= $monitor['Brightness'] ?>" size="8" class="form"<?php if ( !canView( 'Control' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangContrast ?></td><td align="left" class="text"><input type="text" name="new_contrast" value="<?= $monitor['Contrast'] ?>" size="8" class="form"<?php if ( !canView( 'Control' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangHue ?></td><td align="left" class="text"><input type="text" name="new_hue" value="<?= $monitor['Hue'] ?>" size="8" class="form"<?php if ( !canView( 'Control' ) ) { ?> disabled<?php } ?>></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangColour ?></td><td align="left" class="text"><input type="text" name="new_colour" value="<?= $monitor['Colour'] ?>" size="8" class="form"<?php if ( !canView( 'Control' ) ) { ?> disabled<?php } ?>></td></tr>
 <tr>
-<td colspan="2" align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="<?= $zmSlangClose ?>" class="form" onClick="closeWindow()"></td>
+<td colspan="2" align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canView( 'Control' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="<?= $zmSlangClose ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
 </form>

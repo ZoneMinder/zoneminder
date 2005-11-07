@@ -329,14 +329,14 @@ int main( int argc, char *argv[] )
 
 		User *user = 0;
 
-		if ( strcmp( config.auth_relay, "hashed" ) == 0 )
+		//if ( strcmp( config.auth_relay, "hashed" ) == 0 )
 		{
 			if ( auth )
 			{
 				user = zmLoadAuthUser( auth, false );
 			}
 		}
-		else if ( strcmp( config.auth_relay, "plain" ) == 0 )
+		//else if ( strcmp( config.auth_relay, "plain" ) == 0 )
 		{
 			if ( username && password )
 			{

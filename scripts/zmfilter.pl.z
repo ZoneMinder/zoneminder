@@ -389,10 +389,6 @@ sub getFilters
 				{
 					$filter_sql .= "weekday( E.StartTime )";
 				}
-				elsif ( $filter_terms{$attr_name} eq 'Archived' )
-				{
-					$filter_sql .= "E.Archived = ".$filter_terms{$value_name};
-				}
 				elsif ( $filter_terms{$attr_name} eq 'DiskPercent' )
 				{
 					$filter_sql .= "zmDiskPercent";

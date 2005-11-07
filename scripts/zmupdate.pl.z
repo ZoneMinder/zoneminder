@@ -278,6 +278,60 @@ if ( $zone_fix )
 }
 if ( $version )
 {
+	my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
+	$version = $detaint_version;
+
+	print( "\nInitiating database upgrade to version ".ZM_VERSION."\n" );
+	print( "Please ensure that ZoneMinder is stopped on your system prior to upgrading the database.\nPress enter to continue or ctrl-C to stop : " );
+	my $response = <STDIN>;
+
+	print( "\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : " );
+
+	$response = <STDIN>;
+	chomp( $response );
+	while ( $response !~ /^[yYnN]$/ )
+	{
+		print( "Please press 'y' for a backup or 'n' to continue only : " );
+		$response = <STDIN>;
+		chomp( $response );
+	}
+
+	if ( $response =~ /^[yY]$/ )
+	{
+		my $command = "mysqldump -h".ZM_DB_SERVER;
+		if ( $db_user )
+		{
+			$command .= " -u".$db_user;
+			if ( $db_pass )
+			{
+				$command .= " -p".$db_pass;
+			}
+		}
+		my $backup = ZM_DB_NAME."-".$version.".dump";
+		$command .= " ".ZM_DB_NAME." > ".$backup;
+		print( "Creating backup to $backup. This may take several minutes.\n" );
+		print( "Executing '$command'\n" ) if ( VERBOSE );
+		my $output = qx($command);
+		my $status = $? >> 8;
+		if ( $status || VERBOSE )
+		{
+				chomp( $output );
+				print( "Output: $output\n" );
+		}
+		if ( $status )
+		{
+			die( "Command '$command' exited with status: $status\n" );
+		}
+		else
+		{
+			print( "Database successfully backed up to $backup, proceeding to upgrade.\n" );
+		}
+	}
+	elsif ( $response !~ /^[nN]$/ )
+	{
+		die( "Unexpected response '$response'" );
+	}
+
 	sub patchDB
 	{
 		my $dbh = shift;
@@ -308,7 +362,7 @@ if ( $version )
 		}
 		else
 		{
-			print( "Database successfully upgraded to version '$version'\n" );
+			print( "\nDatabase successfully upgraded to version $version.\n" );
 			my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
 			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 			my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
@@ -374,7 +428,7 @@ if ( $version )
 	}
 	if ( $cascade || $version eq "1.19.5" )
 	{
-		print( "This version now only uses one database user.\nPlease ensure you have run zmconfig.pl and re-entered your database username and password prior to upgrading, or the upgrade will fail.\nPress enter to continue or ctrl-C to stop :" );
+		print( "\nThis version now only uses one database user.\nPlease ensure you have run zmconfig.pl and re-entered your database username and password prior to upgrading, or the upgrade will fail.\nPress enter to continue or ctrl-C to stop : " );
 		# Patch the database
 		my $dummy = <STDIN>;
 		patchDB( $dbh, "1.19.5" );
@@ -417,7 +471,7 @@ if ( $version )
 
 		# Add appropriate widths and heights to events
 		{
-		print( "Updating events. This may take a minute. Please wait\n" );
+		print( "Updating events. This may take a few minutes. Please wait.\n" );
 		my $sql = "select * from Monitors order by Id";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
@@ -432,7 +486,7 @@ if ( $version )
 
 		# Add sequence numbers
 		{
-			print( "Updating monitor sequences. Please wait\n" );
+			print( "Updating monitor sequences. Please wait.\n" );
 			my $sql = "select * from Monitors order by Id";
 			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
@@ -448,7 +502,7 @@ if ( $version )
 
 		# Update saved filters
 		{
-			print( "Updating saved filters. Please wait\n" );
+			print( "Updating saved filters. Please wait.\n" );
 			my $sql = "select * from Filter";
 			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
@@ -465,7 +519,7 @@ if ( $version )
 				if ( $filter->{Query} =~ /op\d=&/ )
 				{
 					( my $new_query = $filter->{Query} ) =~ s/(op\d=)&/$1=&/g;
-					$res = $sth->execute( $new_query, filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+					$res = $sth->execute( $new_query, $filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
 				}
 			}
 		}
@@ -477,6 +531,7 @@ if ( $version )
 		die( "Can't find upgrade from version '$version'" );
 	}
 	$dbh->disconnect();
+	print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n" );
 }
 print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 exit();

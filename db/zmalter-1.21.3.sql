@@ -11,6 +11,8 @@ alter table Monitors add column DefaultScale smallint unsigned after ReturnDelay
 alter table Monitors modify column Type enum('Local','Remote','File') NOT NULL default 'Local';
 alter table Events add column Height smallint(5) unsigned not null default '0' after EndTime;
 alter table Events add column Width smallint(5) unsigned not null default '0' after EndTime;
+alter table Users add column Control enum('None','View','Edit') NOT NULL default 'None' after Events;
+update Users set Control = System;
 alter table Users add column MaxBandwidth varchar(16) not null default '' after System;
 --
 -- These are optional, but we might as well do it now

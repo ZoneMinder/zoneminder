@@ -1,4 +1,4 @@
-   14/07/05        ZoneMinder 1.21.3 README                2
+   07/11/05        ZoneMinder 1.21.4 README                1
                                
                                
                                
@@ -10,7 +10,7 @@
                                
                           ZoneMinder
                                
-                            v1.21.3
+                            v1.21.4
                                
                                
                                
@@ -51,7 +51,7 @@
 8. Tutorial                                                 13
  8.1.Defining Monitors                                     13
  8.2.Defining Zones                                        19
- 8.3.Viewing Monitors                                      21
+ 8.3.Viewing Monitors                                      22
  8.4.Controlling Monitors                                  22
  8.5.Filtering Events                                      23
  8.6.Viewing Events                                        24
@@ -69,67 +69,67 @@
  12.1.                                         Release 1.21.3
  35
  12.2.                                         Release 1.21.2
- 35
- 12.3.                                         Release 1.21.1
- 35
- 12.4.                                         Release 1.21.0
  37
- 12.5.                                         Release 1.20.1
- 38
- 12.6.                                         Release 1.20.0
+ 12.3.                                         Release 1.21.1
+ 37
+ 12.4.                                         Release 1.21.0
  39
- 12.7.                                         Release 1.19.5
+ 12.5.                                         Release 1.20.1
  40
- 12.8.                                         Release 1.19.4
+ 12.6.                                         Release 1.20.0
  41
- 12.9.                                         Release 1.19.3
+ 12.7.                                         Release 1.19.5
  42
- 12.10.                                        Release 1.19.2
+ 12.8.                                         Release 1.19.4
  43
+ 12.9.                                         Release 1.19.3
+ 44
+ 12.10.                                        Release 1.19.2
+ 45
  12.11.                                        Release 1.19.1
- 44
+ 46
  12.12.                                        Release 1.19.0
- 44
+ 47
  12.13.                                        Release 1.18.1
- 46
- 12.14.                                        Release 1.18.0
- 46
- 12.15.                                        Release 1.17.2
  48
- 12.16.                                        Release 1.17.1
- 49
- 12.17.                                        Release 1.17.0
- 49
- 12.18.                                        Release 0.9.16
+ 12.14.                                        Release 1.18.0
+ 48
+ 12.15.                                        Release 1.17.2
  50
+ 12.16.                                        Release 1.17.1
+ 51
+ 12.17.                                        Release 1.17.0
+ 51
+ 12.18.                                        Release 0.9.16
+ 52
  12.19.                                        Release 0.9.15
- 52
+ 54
  12.20.                                        Release 0.9.14
- 52
+ 54
  12.21.                                        Release 0.9.13
- 53
- 12.22.                                        Release 0.9.12
- 53
- 12.23.                                        Release 0.9.11
  55
- 12.24.                                        Release 0.9.10
+ 12.22.                                        Release 0.9.12
  56
- 12.25.                                         Release 0.9.9
+ 12.23.                                        Release 0.9.11
  57
- 12.26.                                         Release 0.9.8
+ 12.24.                                        Release 0.9.10
  58
- 12.27.                                         Release 0.9.7
+ 12.25.                                         Release 0.9.9
  59
- 12.28.                                         Release 0.0.1
+ 12.26.                                         Release 0.9.8
  60
+ 12.27.                                         Release 0.9.7
+ 61
+ 12.28.                                         Release 0.0.1
+ 62
 
-13.  To Do                                                  61
+13.  To Do                                                  63
 
-14.  Bugs                                                   62
+14.  Bugs                                                   64
 
-15.  Non-Bugs                                               63
+15.  Non-Bugs                                               65
 
-16.  License                                                64
+16.  License                                                66
 
 Introduction
 Welcome  to  ZoneMinder, the all-in-one Linux  GPL'd  security
@@ -207,9 +207,12 @@ Next  it  does  things  with JPEGs so  you'll  need  at  least
 libjpeg.a  which I think come as standard nowadays  with  most
 distributions. Users have reported varying degrees of  success
 with  other jpeg libraries such as jpeg-mmx but these are  not
-officially supported. It also uses the netpbm utilities  in  a
-very   limited  way  to  generate  thumbnails  under   certain
-circumstances though this can be modified.
+officially supported. If you plan to use network cameras  then
+the Perl Compatible Regular Expression library (libpcre.a) can
+prove useful but is not always essential. ZoneMinder also uses
+the  netpbm  utilities  in  a very  limited  way  to  generate
+thumbnails  under  certain circumstances though  this  can  be
+modified.
 
 ZoneMinder  can  generate MPEG videos if necessary,  for  this
 you'll  need either ffmpeg (recommended) or the Berkeley  MPEG
@@ -352,6 +355,11 @@ as follows.
   any  upgrades  and  will  execute  everything  necessary  to
   update your installation to a new version.
   
+  zmvideo.pl  - This script is used from the web interface  to
+  generate  video files in various formats in  a  common  way.
+  You  can  also  use  it  from the command  line  in  certain
+  circumstances but this is not usually necessary.
+  
   zmx10.pl  - This is an optional script that can be  used  to
   initiate  and monitor X10 Home Automation style  events  and
   interface  with an alarm system either by the generation  of
@@ -438,29 +446,30 @@ To  build ZoneMinder the first thing you need to do is run the
 included    configure   script   to   define   some    initial
 configuration, just type
 
-./configure --with-mysql=<your MySQL root> --with-webdir=<your
-web directory> --with-cgidir=<your cgi directory>
+./configure   --with-webdir=<your   web   directory>   --with-
+cgidir=<your cgi directory>
 
-where  --with-mysql  identifies the root directory  where  you
-have  installed  MySQL  (usually /usr), --with-webdir  is  the
-directory to which you want to install the PHP files,  and  --
-with-cgidir is the directory to which you want to install  CGI
-files.   These  directories  could  be  /var/www/html/zm   and
-/var/www/cgi-bin  for example. If you want to  use  real  MPEG
-based streaming you will need to have built and installed  the
-ffmpeg  tools.  You  can  then also use -with-ffmpeg=<path  to
-ffmpeg  root> to help configure find it if it's not  installed
-in  a  default location. Note, you have to make sure you  have
-installed  the ffmpeg headers and libraries rather  than  just
-the   binaries,  or  a  development  package  with  them   in.
-Additionally if you have already built ffmpeg with the mp3lame
-feature  turned on you may additionally need to tell configure
-where  to find that the mp3lame library, to prevent unresolved
-dependencies.  To  do  this add the -with-lame=<path  to  lame
-directory>option as well. Otherwise ignore this option.  There
-are  also  two further arguments you can add if your web  user
-and  group are not both 'apache'. These are --with-webuser and
---with-webgroup. Type
+where  --with-webdir is the directory to  which  you  want  to
+install  the PHP files, and --with-cgidir is the directory  to
+which  you want to install CGI files. These directories  could
+be  /var/www/html/zm and /var/www/cgi-bin for example. If  the
+script cannot find your MySQL installation, for instance if it
+is   installed  in  an  unusual  location,  then  --with-mysql
+identifies  the  root directory where you have  installed  it,
+usually /usr. If you want to use real MPEG based streaming you
+will  need  to have built and installed the ffmpeg tools.  You
+can  then also use -with-ffmpeg=<path to ffmpeg root> to  help
+configure find it if it's not installed in a default location.
+Note,  you  have  to make sure you have installed  the  ffmpeg
+headers  and  libraries rather than just the  binaries,  or  a
+development  package with them in. Additionally  if  you  have
+already  built ffmpeg with the mp3lame feature turned  on  you
+may additionally need to tell configure where to find that the
+mp3lame  library,  to prevent unresolved dependencies.  To  do
+this  add  the  -with-lame=<path to lame  directory>option  as
+well. Otherwise ignore this option. There are also two further
+arguments you can add if your web user and group are not  both
+'apache'. These are --with-webuser and --with-webgroup. Type
 
 ./configure -help
 
@@ -890,24 +899,25 @@ any motion being highlighted within those events.
    
    Source  Type  -  This determines whether the  camera  is  a
    local one attached to a physical video or USB port on  your
-   machine  or  a  remote network camera or similar.  Choosing
-   one or the other affects which set of options are shown  in
-   the next tab.
+   machine,  a  remote network camera or an image source  that
+   is   represented  by  a  file  (for  instance  periodically
+   downloaded from a alternate location). Choosing one or  the
+   other  affects which set of options are shown in  the  next
+   tab.
    
 'Source' Tab (local device)
 
-   Device  Number/Channel  -  For a  local  camera  enter  the
-   device  number that your camera is attached to.  If  it  is
-   /dev/video0  enter '0' etc. Some video devices,  e.g.  BTTV
-   cards  support multiple cameras on one device  so  in  this
-   case  enter the channel number in the Channel box or  leave
-   it  at  zero if you're using a USB camera or one with  just
-   one channel.
+   Device  Path/Channel - Enter the full path  to  the  device
+   file  that  your  camera is attached to, e.g.  /dev/video0.
+   Some  video  devices,  e.g.  BTTV  cards  support  multiple
+   cameras  on  one device so in this case enter  the  channel
+   number  in  the Channel box or leave it at zero  if  you're
+   using a USB camera or one with just one channel.
    
-   Device  Format - For a local camera enter the video  format
-   of  the  video  stream. This is defined in  various  system
-   files  (e.g.  /usr/include/linux/videodev.h)  but  the  two
-   most common are 0 for PAL and 1 for NTSC.
+   Device  Format  -  Enter  the video  format  of  the  video
+   stream.  This  is  defined in various  system  files  (e.g.
+   /usr/include/linux/videodev.h) but the two most common  are
+   0 for PAL and 1 for NTSC.
    
    Capture  Palette  -  Finally for  the  video  part  of  the
    configuration  enter the colour depth. ZoneMinder  supports
@@ -946,16 +956,16 @@ any motion being highlighted within those events.
    
 'Source' Tab (remote device)
 
-   Remote  Host/Port/Path  -  For  remote  cameras  use  these
-   fields  to  enter the full URL of the camera. Basically  if
-   your               camera               is               at
+   Remote Host/Port/Path - Use these fields to enter the  full
+   URL  of  the  camera.  Basically  if  your  camera  is   at
    http://camserver.home.net:8192/cameras/camera1.jpg     then
    these   fields   will  be  camserver.home.net,   8192   and
    /cameras/camera1.jopg respectively. Leave the  port  at  80
    if  there  is  no  special port required.  If  you  require
    authentication  to access your camera then  add  this  onto
    the        host        name       in        the        form
-   <username>:<password>@<hostname>.com.
+   <username>:<password>@<hostname>.com. This will usually  be
+   24 bit colour even if the image looks black and white.
    
    Remote  Image  Colours - Specify the amount of  colours  in
    the  captured  image.  Unlike with local  cameras  changing
@@ -967,7 +977,19 @@ any motion being highlighted within those events.
    
    Orientation - As per local devices.
    
-'Timestamp' Tab
+'Source' Tab (file device)
+
+   File  Path - Enter the full path to the file to be used  as
+   the image source.
+   
+   File  Colours - Specify the amount of colours in the image.
+   Usually 24 bit colour.
+   
+   Capture Width/Height - As per local devices.
+   
+   Orientation - As per local devices.
+   
+ 'Timestamp' Tab
 
    Timestamp  Label  Format - This relates  to  the  timestamp
    that  is  applied  to each frame. It is a 'strftime'  style
@@ -1103,6 +1125,18 @@ any motion being highlighted within those events.
    be  for  you but start with 10 here and adjust it  (usually
    down) later if necessary.
    
+   Default  Scale  - If your monitor has been defined  with  a
+   particularly large or small image size then you can  choose
+   a  default scale here with which to view the monitor so  it
+   is easier or more visible from the web interface.
+   
+   Web  Colour  - Some elements of ZoneMinder now use  colours
+   to  identify  monitors  on certain views.  You  can  select
+   which   colour   is  used  for  each  monitor   here.   Any
+   specification  that  is  valid for HTML  colours  is  valid
+   here,  e.g. 'red' or '#ff0000'. A small swatch next to  the
+   input box displays the colour you have chosen.
+   
 'Control' Tab
 
    Note:  This  tab and its options will only  appear  if  you
@@ -1176,8 +1210,6 @@ any motion being highlighted within those events.
    Return  Delay - This is the delay, in seconds, once  motion
    has  stopped being detected, before the camera  returns  to
    any defined return location.
-   
-   
    
  'X10' Tab
 
@@ -1711,7 +1743,7 @@ may only contain the relevant subsets of this, 'Weekday' which
 as  expected  is  a  day  of the week. All  of  the  preceding
 elements  take a very flexible free format of dates  and  time
 based       on       the      PHP      strtotime      function
-(http://www.zend.com/manual/function.strtotime.php).      This
+(http://www.php.net/manual/en/function.strtotime.php).    This
 allows  values such as 'last Wednesday' etc to be  entered.  I
 recommend acquainting yourself with this function to see  what
 the allowed formats are. However automated filters are run  in
@@ -1938,29 +1970,34 @@ system default, if it is available. Specifying a language here
 is  done  in  the same way as for the system default  language
 described above.
 
-There  are  also four values that define the user permissions,
-these are 'stream', 'events', 'monitors' and 'system' Each can
-have  values  of 'none', 'view' or 'edit' apart from  'stream'
-which has no 'edit' setting. These values cover access to  the
-following areas; 'stream' defines whether a user is allowed to
-view  the 'live' video feeds coming from the cameras. You  may
-wish  to allow a user to view historical events only in  which
-case  this  setting  should be 'none'.  The  'events'  setting
-determines  whether a user can view and modify or  delete  any
-retained  historical events. The 'monitors' setting  specifies
-whether a user can see the current monitor settings and change
-them.  Finally the 'system' setting determines whether a  user
-can  view  or modify the system settings as a whole,  such  as
-options and users or controlling the running of the system  as
-a whole. As well as these settings there is also a monitor ids
-setting  that can be used for non-'system' users  to  restrict
-them  to only being able to access streams, events or monitors
-for  the given monitors ids as a comma separated list with  no
-spaces.  If a user with 'monitors' edit privileges is  limited
-to  specific  monitors here they will not be able  to  add  or
-delete monitors but only change the details of those they have
-access  to.  If  a  user  has  'system'  privileges  then  the
-'monitors ids' setting is ignored and has no effect.'
+There  are  also five values that define the user permissions,
+these  are  'Stream',  'Events',  'Control',  'Monitors'   and
+'System'  Each  can have values of 'None',  'View'  or  'Edit'
+apart  from 'Stream' which has no 'Edit' setting. These values
+cover  access to the following areas; 'Stream' defines whether
+a  user is allowed to view the 'live' video feeds coming  from
+the  cameras. You may wish to allow a user to view  historical
+events  only in which case this setting should be 'none'.  The
+'Events' setting determines whether a user can view and modify
+or  delete  any  retained  historical  events.  The  'Control'
+setting  allows you to indicate whether the user  is  able  to
+control  any Pan/Tilt/Zoom type cameras you may have  on  your
+system.  The 'Monitors' setting specifies whether a  user  can
+see  the current monitor settings and change them. Finally the
+'System' setting determines whether a user can view or  modify
+the  system settings as a whole, such as options and users  or
+controlling the running of the system as a whole. As  well  as
+these  settings there is also a 'Bandwidth' setting which  can
+be used to limit the maximum bandwidth that a user can view at
+and  a 'Monitor Ids' setting that can be used for non-'System'
+users  to  restrict them to only being able to access streams,
+events  or  monitors for the given monitors  ids  as  a  comma
+separated list with no spaces. If a user with 'Monitors'  edit
+privileges is limited to specific monitors here they will  not
+be  able to add or delete monitors but only change the details
+of  those  they  have  access  to.  If  a  user  has  'System'
+privileges then the 'Monitors Ids' setting is ignored and  has
+no effect.'
 
 That's pretty much is it for the tour, though there is  a  lot
 more to ZoneMinder as you will discover. You should experiment
@@ -2294,28 +2331,30 @@ requiring manual refreshing. For now the XHTML-MP interface is
 presented  as a prototype interface; rather than one  offering
 full  capabilities. As such, please feel free to make comments
 or     offer     suggestions     via     the     forums     on
-http://www.zoneminder.com. One final word  on  mobile  mark-up
-standards  in  general  and their application  to  ZoneMinder.
-Ideally  I'd  like to offer a WML2.0 interface.  WML2.0  is  a
-blending  of WML1.3, which is traditional WAP, and  XHTML.  As
-such  it  offers  the  scripting that  WML  has  traditionally
-included  plus the better control of markup that is the  realm
-of XHTML. Unfortunately so far I'm unaware of any devices that
-support WML2.0, certainly I've never had a phone that does. If
-you  find  out that a particular phone does support this  then
-please let me know (or better still send me the phone!).
+http://www.zoneminder.com.
+
+As  well  as XHTML-MP, ideally I'd like to be able to offer  a
+WML2.0  interface. WML2.0 is a blending of  WML1.3,  which  is
+traditional  WAP, and XHTML. As such it offers  the  scripting
+that WML has traditionally included plus the better control of
+mark-up  that is the realm of XHTML. Unfortunately so far  I'm
+unaware  of any devices that support WML2.0 even if  they  say
+they are WAP2 compliant, certainly I've never had a phone that
+does.  If  you  find out that a particular phone does  support
+this  then  please let me know (or better still  send  me  the
+phone!).
 
 If  you wish to use the XHTML-MP interface to ZoneMinder there
 is  no  extra  configuration required to  enable  it  per  se.
 However ZoneMinder needs to be able to figure out what kind of
 content  to  deliver to particular browsers, so you  have  two
-choices.  You can either edit zm.php and include a  definition
-that  corresponds to your phone describing a small  number  of
-basic  capabilities, you will see a couple of examples already
-there,  or  you  can use the comprehensive open  source  WURFL
-package available from http://wurfl.sourceforge.net/. You will
-need  to  download both the WURFL php files and the  wurfl.xml
-file itself. WURFL is a resource containing information on the
+choices.  You  can edit zm.php and include a  definition  that
+corresponds to your phone, describing a small number of  basic
+capabilities, you will see a couple of examples already there,
+or  you  can  use the comprehensive open source WURFL  package
+available from http://wurfl.sourceforge.net/. You will need to
+download  both  the  WURFL php files and  the  wurfl.xml  file
+itself.  WURFL  is  a resource containing information  on  the
 capabilities  of a huge number of mobile phones,  devices  and
 browsers. Thus once it has matched your phone it can determine
 various   capabilities  it  may  possess.  This   means   that
@@ -2377,25 +2416,25 @@ Some things to check first.
   o     Device configuration. If you can't get your cameras to
      work  in ZoneMinder, firstly make sure that you have  the
      correct settings. Use xawtv or something like that to check
-     for settings that work and then run zmu -d <device_no> -q -v
-     to get the settings. If you can't get them to work with that
-     then the likelihood is they won't work with ZoneMinder. Also
-     check the system logs (usually /var/log/messages) for any
-     video configuration errors. If you get some and you're sure
-     they're not a problem then switch off ZM_STRICT_VIDEO_CONFIG
-     in zmconfig.pl or the 'options' tab.
+     for settings that work and then run zmu -d <device> -q -v to
+     get the settings. If you can't get them to work with that then
+     the likelihood is they won't work with ZoneMinder. Also check
+     the system logs (usually /var/log/messages) for any video
+     configuration errors. If you get some and you're sure they're
+     not  a problem then switch off ZM_STRICT_VIDEO_CONFIG  in
+     zmconfig.pl or the 'options' tab.
      
 o    Start simple. Begin with a single monitor and single
 zone. You can run the zmc capture daemon from the command line
-as 'zmc --device 0' (or whatever your video device is). If it
-returns immediately there's a problem so check the logs, if it
-stays up then your video configuration is probably ok. To get
-more information out of it use debug as specified below. Also
-check that the shared memory segment has been created by doing
-'ipcs -m'. Finally, beware of doing tests as root and then
-trying to run as another user as some files may not be
-accessible. If you're checking things as root make sure that
-you clean up afterwards!
+as 'zmc --device <device>' (or whatever your video device is).
+If it returns immediately there's a problem so check the logs,
+if it stays up then your video configuration is probably ok.
+To get more information out of it use debug as specified
+below. Also check that the shared memory segment has been
+created by doing 'ipcs -m'. Finally, beware of doing tests as
+root and then trying to run as another user as some files may
+not be accessible. If you're checking things as root make sure
+that you clean up afterwards!
 o    Web server. Ensure that your web server can serve PHP
 files. It's also possible that your php.ini file may have some
 settings which break ZoneMinder, I'm not a PHP guru but
@@ -2578,7 +2617,156 @@ http://www.zoneminder.com/downloads/noIEClick.reg
 12.  Change Log
    
 
-12.1.     Release 1.21.3
+12.1.     Release 1.21.4
+A whole bunch of improvements and fixes.
+
+  o     FEATURE  -  The  video generation interface  has  been
+    redesigned and expanded. This allows you to see what videos
+    have been generated previously and manage, view or download
+    them.  You can also specify more precisely what input  and
+    output options to pass to ffmpeg and what video formats you
+    want to support. These options are available from the Options-
+    >Tools view.
+    
+o    FEATURE - Historical video is now supported from the
+XHTML mobile device interface allowing you to replay previous
+events etc.
+o    FEATURE - A new timeline view has been added. This is an
+enhanced graphic activity view that represents events as
+colour coded bars on a time based chart. Passing your mouse
+over the activity will display images and details from the
+events in the chart. You are able to choose whether you see
+this view or the traditional events view as a default. Since
+this view can be a large file and dynamic loading of event
+images can be bandwidth intensive this preference can be
+specific on a bandwidth specific basis. The option to switch
+between the traditional list and the timeline view is
+available at all times however. IMPORTANT NOTE: This view is a
+beta version only and due to extensive use of CSS currently
+only renders correctly on FireFox type browsers. Even then as
+it can use huge numbers of elements it is possible it may
+degrade or crash your browser. Specifically Internet Explorer
+seems to get totally confused and renders some elements twice
+and others in the wrong place etc. I hope to remedy this
+situation for the next release but for now using this view
+with IE is not recommended.
+o    FIX - References to the video device files are now
+expressed as full file paths rather than just numbers. This
+allows files other than /dev/videoX to be used easily.
+o    FIX - Integration with all versions of ffmpeg, including
+CVS, is now supported. At least until the next ffmpeg
+interface change anyway!
+o    FEATURE - Monitors can now use a file path as a video
+source. This allows you to use scripts such as wget or other
+webcam type applications to generate your images which can
+then be fed into ZoneMinder as a monitor and analysed and
+archived etc.
+o    FEATURE - Users can now be defined with a maximum
+bandwidth setting. This prevents low privilege users from
+swamping the system with lots of high bandwidth streaming.
+o    FEATURE - Debug levels for the binaries can now be
+controlled in a limited fashion from the Options screen. For
+more details see the help on the Options->Tools-
+>ZM_EXTRA_DEBUG* options.
+o    FEATURE - The user authentication methods have been
+revised to separate authentication at the web front end from
+authentication at back end streaming. Thus there are now
+several more authentication options to allow more fine
+control. The most significant of these ZM_AUTH_TYPE now offers
+a choice of 'remote' authentication which allows you to use a
+third party authentication scheme such as http basic
+authentication and have that users name passed via the
+REMOTE_USER environment variable. Providing there is a user of
+that name known to ZoneMinder they will be automatically
+logged in. Be warned however that there is no facility for
+this user to log out so ensure that you do not lock yourself
+into a low privilege account. Also you may need to remove user
+cookies when you change authentication methods.
+o    FEATURE - Users now have a 'control' permission which
+determines whether they are able to control PTZ style cameras.
+As with the other permissions there are three levels, None,
+View and Edit. Unlike some of the other options it may not be
+obvious what levels do what. The 'None' level bars access to
+any control functionality, the 'View' level permits users to
+actually control the positioning and settings of a camera
+(rather than just look at them which is what might be
+expected) and the 'Edit' level allows users to modify the
+various control capabilities.
+o    FIX - A bug was fixed where the streamed images were
+using the quality settings for saved files.
+o    FIX - Jpeg errors are now reported via the generic
+ZoneMinder error and debug mechanism rather than just to
+standard output as is the default in libjpeg.
+o    FIX - The time taken to load and refresh the console view
+has been reduced. This is especially significant where you may
+have lots of monitors.
+o    FIX - Paths to the control scripts were hard coded with a
+full path. This broke the packaged ZoneMinder distributions so
+the paths are now relative to the ZM_PATH_BIN config unless
+they start with a '/'.
+o    FIX - The masks used for shared memory have now been
+refined to prevent invalid values from causing duplicates.
+o    FEATURE - Monitors can now be re-ordered from the console
+view to allow you to choose how you would like them arranged.
+o    FEATURE - Motion detection can now be temporarily
+disabled from the watch view. This is most useful with PTZ
+type cameras where you can switch off motion detection whilst
+repositioning the camera. Just don't forget to switch it back
+on again afterwards!
+o    FEATURE - A default scale per bandwidth setting can now
+be defined. This allows you to reduce the size of streams etc
+on slow connections.
+o    FEATURE - Monitors can now be defined with a default
+scale. This allows you to reduce the viewing size of a monitor
+that might be capturing at a large image size. This works in
+conjunction with the bandwidth specific scaling so if you
+bandwidth setting is 50% and your monitor is also 50% then at
+that bandwidth you will be viewing at 25%. This is to ensure
+that all monitors maintain relative scaling at all bandwidths.
+o    FEATURE - The choice of streaming versus stills views as
+default can now be specified per bandwidth setting.
+o    FEATURE - In the past there has been some confusion about
+what the 'prev' and 'next' options do when scrolling through
+events. They actually move to the previous or next event in
+the list from which the event was selected rather than in
+chronological order. Previously this order was descending
+date/time in most cases meaning that the previous event would
+be one that occurred after the current event. In order to
+prevent this confusion and allow users to define a default
+order which they prefer there are now two more options in
+Options->System called ZM_EVENT_SORT_FIELD and
+ZM_EVENT_SORT_ORDER which allow you to choose your own sort
+type and order. The default for these is now date/time
+ascending meaning oldest first which is opposite to the
+previous default and you will need to update these options to
+retain the previous behaviour. Note also that this ordering
+applies only to event lists and not the 'last x events' in the
+watch window which are still newest first.
+o    FIX - A curious problem with logging in on PHP 4.4 has
+now been fixed.
+o    FEATURE - Following requests and some confusion about how
+often filters are executed versus reloaded from the database,
+this is now a configurable options (Options->System->
+ZM_FILTER_EXECUTE_INTERVAL). Please read the help on this
+option for guidance on what values to use.
+o    FEATURE - A 'Filters' button has been added to the main
+console view allowing easier access to the filters view.
+o    FEATURE - Support for the HTTPS protocol has been added
+allowing streaming etc to function over secure links.
+o    FEATURE - The layout and functionality of the XHTML
+screens has been enhanced to make them more useful overall.
+o    FEATURE - Following virtual extinction of donations I
+have added a small one time nag screen which invites you to
+donate to ZoneMinder after a month of use. That's all it does
+and once dismissed you will never see it again!
+o    LANGUAGE - A lot of new tokens have been added. These
+have been included in all the language files in English. It
+would be appreciated if anyone who is able to edit their
+zm_lang_xx_yy.php language files and translate these tokens
+could email them back to me so I can include them in future
+releases.
+
+12.2.     Release 1.21.3
 Additional bug fix release.
 
   o    FIX - Images from rotated monitors had been broken in a
@@ -2599,7 +2787,7 @@ to make it easier to find the information you require. This
 includes the addition of an Upgrading section to clarify the
 process of upgrading from a previous version.
 
-12.2.     Release 1.21.2
+12.3.     Release 1.21.2
 Minor-ish bug fixes to the 1.21.1 release.
 
   o    FIX - If the defined image timestamp format for a monitor
@@ -2621,7 +2809,7 @@ own output!
 o    FEATURE - Some of the scripts have a new debug format
 that is more similar to the one used in the binaries.
 
-12.3.     Release 1.21.1
+12.4.     Release 1.21.1
 Menage of various new features and bug fixes.
 
   o    FIX - The HTTP refresh method of updating the Cycle view
@@ -2771,7 +2959,7 @@ switching to the regular expression based method, and report
 the issue via the forums, preferably with a snapshot of the
 output of your camera.
 
-12.4.     Release 1.21.0
+12.5.     Release 1.21.0
 Addition of camera control, plus several bugfixes.
 
   o     FEATURE - Added support for Pan/Tilt/Zoom and  general
@@ -2825,7 +3013,7 @@ the Watch window normally containing the recent events list.
 Whilst this was technically correct it was unnecessary and
 untidy, and has now been changed just to be blank.
 
-12.5.     Release 1.20.1
+12.6.     Release 1.20.1
 Mostly  bug  fixes,  large and small with a  couple  of  minor
 features included.
 
@@ -2881,7 +3069,7 @@ how many monitors in list, though there is a minimum size.
 o    FIX - Corrected bug in zmfilter.pl.z which meant that
 images were not always correctly uploaded.
 
-12.6.     Release 1.20.0
+12.7.     Release 1.20.0
 Improved and added features, several minor bug fixes.
 
   o      FEATURE  -  Certain  configuration  (Mostly  database
@@ -2970,7 +3158,7 @@ spotting this one.
     highlighting this problem also.
     
 
-12.7.     Release 1.19.5
+12.8.     Release 1.19.5
 Various miscellaneous fixes and features.
 
   o    FIX - Sorting event lists by duration was broken and has
@@ -3053,7 +3241,7 @@ that if an alarm is in progress single isolated alarmed frames
 will still prolong it and the count only applies to the
 initial frames that would cause the event.
 
-12.8.     Release 1.19.4
+12.9.     Release 1.19.4
 Language fixes and updates.
 
   o     FIX  -  The  US English language file was  recursively
@@ -3067,7 +3255,7 @@ o    LANGUAGE - The Argentinian Spanish, Polish and Italian
 translations have all been updated with tokens introduced in
 version 1.19.3.
 
-12.9.     Release 1.19.3
+12.10.    Release 1.19.3
 Minor tweaks, fixes and language updates.
 
   o    FEATURE - All stills views now use the single image mode
@@ -3143,7 +3331,7 @@ as the language type.
 o    LANGUAGE - Updated versions of the Dutch and Argentinian
 Spanish translations have been included.
 
-12.10.    Release 1.19.2
+12.11.    Release 1.19.2
 Minor features, fixes and language updates.
 
   o     FEATURE  - The default replay rate and live and  event
@@ -3252,7 +3440,7 @@ in English. There will shortly be a point release which
 includes these language updates assuming I can get
 translations of them in a reasonable timescale.
 
-12.11.    Release 1.19.1
+12.12.    Release 1.19.1
 Minor bugfixes and enhancements.
 
   o    Ffmpeg Configure Changes. The configure script has been
@@ -3283,7 +3471,7 @@ requirement to pass in a username and password to zmu when
 just querying a device as this was slightly broken and was
 unnecessary anyway.
 
-12.12.    Release 1.19.0
+12.13.    Release 1.19.0
 Some major enhancements and bugfixes.
 
   o    MPEG video streaming. ZoneMinder now supports true video
@@ -3409,7 +3597,7 @@ being deleted when monitor was.
 o    A translation for the Dutch (nl_nl) language has been
 included.
 
-12.13.    Release 1.18.1
+12.14.    Release 1.18.1
 Minor bugfixes.
 
   o     Filter  Monitor  Name Bug. A bug was  present  in  the
@@ -3428,7 +3616,7 @@ recommended that you review your list of saved filters and
 delete duplicates before adding any monitor specific terms and
 resetting the actions for any that remain.
 
-12.14.    Release 1.18.0
+12.15.    Release 1.18.0
 Major optimisations, important new features and some bugfixes.
 
   o    Optimisations and Performance Improvements. This release
@@ -3558,7 +3746,7 @@ could sometimes be 30 or even 45 minutes. This was especially
 the case with monitors that had low frame rates. This is now
 fixed.
 
-12.15.    Release 1.17.2
+12.16.    Release 1.17.2
 Minor features, bug fixes and additional languages.
 
   o     Pending Process Bug. A bug was found whereby a process
@@ -3622,7 +3810,7 @@ alarm flag is now cleared when this daemon exits.
 o    New Languages. Translations for Japanese (ja_jp), French
 (fr_fr) and Russian (ru_ru) are now included.
 
-12.16.    Release 1.17.1
+12.17.    Release 1.17.1
 Bugfixes and additional languages.
 
   o    Login Bug. A bug was identified whereby an unauthorised
@@ -3645,7 +3833,7 @@ as this is a rarely accessed area and contains a great deal of
 text. The new format allows individual options to be
 translated piecemeal as the opportunity arises.
 
-12.17.    Release 1.17.0
+12.18.    Release 1.17.0
 Language changes and other enhancements.
 
   o     Version Numbering. ZoneMinder version numbers have now
@@ -3693,7 +3881,7 @@ function call has been corrected.
 o    Minor Bugs. A number of minor bugs and inconsistencies
 were corrected.
 
-12.18.    Release 0.9.16
+12.19.    Release 0.9.16
 Major usability enhancement and fixes.
 
   o     Run States. Instead of the old 'start/stop' links  the
@@ -3819,7 +4007,7 @@ correctly parsed from command line options passed to zmu.
 o    Event window width variable. Event windows now scale to
 fit the event image size.
 
-12.19.    Release 0.9.15
+12.20.    Release 0.9.15
 Various bug fixes from the last release and before.
 
   o     Bandwidth. A bug was introduced in .14 which caused  a
@@ -3858,7 +4046,7 @@ images written by zma directly were colourised whereas those
 written by  zmf weren't. A change has been made whereby if set
 all greyscale JPEG images are colourised in all circumstances.
 
-12.20.    Release 0.9.14
+12.21.    Release 0.9.14
 Major new feature and important bug-fixes.
 
   o     Web configuration. Following many requests and to make
@@ -3902,7 +4090,7 @@ o    All SQL buffers in the C++ code have been enlarged. There
 was previously an issue with a buffer overflow on certain
 occasions.
 
-12.21.    Release 0.9.13
+12.22.    Release 0.9.13
 Beta  version  of several features and fixes, never  generally
 released.
 
@@ -3953,7 +4141,7 @@ windows to restart the refresh process. By using JS refresh
 timers which are not interrupted these extraneous refreshes
 have been mostly eliminated.
 
-12.22.    Release 0.9.12
+12.23.    Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
   o     Double  first images. Fixed a problem where the  first
@@ -4030,7 +4218,7 @@ confirmation.
 o    Detect linmysqlclient.a. Added better detection script
 into 'configure' top spot when libmysqlclient.a is missing.
 
-12.23.    Release 0.9.11
+12.24.    Release 0.9.11
 Various new features and fixes.
 
   o     Added  stats view - If you have the RECORD_EVENT_STATS
@@ -4116,7 +4304,7 @@ o    Web colour change - I thought the old red, green and
 amber text colours were just a bit too gaudy so I've toned
 them down a bit. Hope you like them!
 
-12.24.    Release 0.9.10
+12.25.    Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
   o     Configure  'round'  bug - Fixed  a  problem  with  the
@@ -4196,7 +4384,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came
 across that that I don't think had been reported or noticed so
 I don't think we need to talk about them here do we.
 
-12.25.    Release 0.9.9
+12.26.    Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
   o     Added zmu -q/--query option - There is now a new query
@@ -4246,7 +4434,7 @@ was removed in the last version which meant that sometimes the
 console never go refreshed as it's timing loop was broken.
 This functionality has now been reinstated.
 
-12.26.    Release 0.9.8
+12.27.    Release 0.9.8
 Several new features and bug-fixes
 
   o     Upgrade note - If you have installed 0.9.7 and wish to
@@ -4320,7 +4508,7 @@ o    Monitor window refresh on alarm - When the monitor window
 is active and an alarm has occurred the most recent alarms
 list is immediately refreshed to show it.
 
-12.27.    Release 0.9.7
+12.28.    Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes  too.
 Now somewhat more mature, not really an alpha any more, and  a
 lot of bugs fixed too.
@@ -4369,7 +4557,7 @@ o    Some of the web views have changed slightly to
 accommodate the separate events view.
 o    And much much more, probably...
 
-12.28.    Release 0.0.1
+12.29.    Release 0.0.1
 Initial release, therefore nothing new.
 
 

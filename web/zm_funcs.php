@@ -759,7 +759,7 @@ function deScale( $dimension, $dummy )
 	return( $dimension );
 }
 
-function parseSort( $save_to_session=false )
+function parseSort( $save_to_session=false, $term_sep='&' )
 {
 	global $sort_field, $sort_asc; // Inputs
 	global $sort_query, $sort_column, $sort_order; // Outputs
@@ -815,7 +815,7 @@ function parseSort( $save_to_session=false )
 	}
 	$sort_order = $sort_asc?"asc":"desc";
 	if ( !$sort_asc ) $sort_asc = 0;
-	$sort_query = "&sort_field=$sort_field&sort_asc=$sort_asc";
+	$sort_query = $term_sep."sort_field=".$sort_field.$term_sep."sort_asc=".$sort_asc;
 	if ( $save_to_session )
 	{
 		$_SESSION['sort_field'] = $sort_field;
@@ -823,7 +823,7 @@ function parseSort( $save_to_session=false )
 	}
 }
 
-function parseFilter( $save_to_session=false )
+function parseFilter( $save_to_session=false, $term_sep='&' )
 {
 	global $trms; // Inputs
 	global $filter_query, $filter_sql, $filter_fields; // Outputs
@@ -842,7 +842,7 @@ function parseFilter( $save_to_session=false )
 		{
 			$_SESSION['trms'] = $trms;
 		}
-		$filter_query .= "&trms=$trms";
+		$filter_query .= $term_sep."trms=".$trms;
 		$filter_fields .= '<input type="hidden" name="trms" value="'.$trms.'"/>'."\n";
 
 		for ( $i = 1; $i <= $trms; $i++ )
@@ -858,7 +858,7 @@ function parseFilter( $save_to_session=false )
 
 			if ( isset($$conjunction_name) )
 			{
-				$filter_query .= "&$conjunction_name=".$$conjunction_name;
+				$filter_query .= $term_sep.$conjunction_name."=".$$conjunction_name;
 				$filter_sql .= " ".$$conjunction_name." ";
 				$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'"/>'."\n";
 				if ( $save_to_session )
@@ -868,7 +868,7 @@ function parseFilter( $save_to_session=false )
 			}
 			if ( isset($$obracket_name) )
 			{
-				$filter_query .= "&$obracket_name=".$$obracket_name;
+				$filter_query .= $term_sep.$obracket_name."=".$$obracket_name;
 				$filter_sql .= str_repeat( "(", $$obracket_name );
 				$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'"/>'."\n";
 				if ( $save_to_session )
@@ -878,7 +878,7 @@ function parseFilter( $save_to_session=false )
 			}
 			if ( isset($$attr_name) )
 			{
-				$filter_query .= "&$attr_name=".$$attr_name;
+				$filter_query .= $term_sep.$attr_name."=".$$attr_name;
 				$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'"/>'."\n";
 				switch ( $$attr_name )
 				{
@@ -972,9 +972,9 @@ function parseFilter( $save_to_session=false )
 						break;
 				}
 
-				$filter_query .= "&$op_name=".urlencode($$op_name);
+				$filter_query .= $term_sep.$op_name."=".urlencode($$op_name);
 				$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'"/>'."\n";
-				$filter_query .= "&$value_name=".urlencode($$value_name);
+				$filter_query .= $term_sep.$value_name."=".urlencode($$value_name);
 				$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'"/>'."\n";
 				if ( $save_to_session )
 				{
@@ -985,7 +985,7 @@ function parseFilter( $save_to_session=false )
 			}
 			if ( isset($$cbracket_name) )
 			{
-				$filter_query .= "&$cbracket_name=".$$cbracket_name;
+				$filter_query .= $term_sep.$cbracket_name."=".$$cbracket_name;
 				$filter_sql .= str_repeat( ")", $$cbracket_name );
 				$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'"/>'."\n";
 				if ( $save_to_session )

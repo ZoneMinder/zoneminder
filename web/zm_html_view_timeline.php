@@ -1157,9 +1157,9 @@ div.zoom {
     <div id="ImageNav">
       <div id="Image"><img id="ImageSrc" src="graphics/spacer.gif" height="<?= $chart['image']['height'] ?>"/></div>
       <div id="RightNav">
-        <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($min_time) ?>&range=<?= $range ?>">&lt;&lt;</a>&nbsp;&nbsp;
+        <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($min_time) ?>&range=<?= $range ?>">&lt;</a>&nbsp;&nbsp;
 	    <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($mid_time) ?>&range=<?= (int)($range*$maj_x_scale['zoomout']) ?>">-</a>&nbsp;&nbsp;
-		<a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= urlencode($mid_time) ?>&range=<?= $range ?>">&gt;&gt;</a>
+		<a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= urlencode($mid_time) ?>&range=<?= $range ?>">&gt;</a>
       </div>
       <div id="ImageText">No Event</div>
       <div id="Key">

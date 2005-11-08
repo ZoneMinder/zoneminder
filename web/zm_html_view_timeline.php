@@ -167,8 +167,6 @@ if ( isset($min_time) && isset($max_time) )
 	$temp_min_time = $temp_max_time = $temp_expandable = false;
 	extractDatetimeRange( $tree, $temp_min_time, $temp_max_time, $temp_expandable );
 	$filter_sql = parseTreeToSQL( $tree );
-	//echo $filter_sql;
-	//echo '<br>';
 
 	if ( $filter_sql )
 	{
@@ -196,7 +194,6 @@ else
 
 	if ( !isset($min_time) || !isset($max_time) )
 	{
-		//echo $range_sql;
 		// Dynamically determine range
 		if ( !($result = mysql_query( $range_sql )) )
 			die( mysql_error() );
@@ -612,7 +609,7 @@ function getYScale( $range, $min_lines, $max_lines )
 
 function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoom_class=0 )
 {
-	global $PHP_SELF, $view;
+	global $PHP_SELF, $view, $filter_query;
 
 	ob_start();
 	$label_count = 0;
@@ -665,7 +662,7 @@ function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoo
 					$zoom_min_time = date( "Y-m-d H:i:s", (int)($chart['data']['x']['lo'] + ($last_tick * $chart['data']['x']['density'])) );
 					$zoom_max_time = date( "Y-m-d H:i:s", (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-      <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&min_time=<?= $zoom_min_time ?>&max_time=<?= $zoom_max_time ?>'"></div>
+      <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= $zoom_min_time ?>&max_time=<?= $zoom_max_time ?>'"></div>
 <?php
 				}
 				$last_tick = $i;
@@ -678,7 +675,7 @@ function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoo
 		$zoom_min_time = date( "Y-m-d H:i:s", (int)($chart['data']['x']['lo'] + ($last_tick * $chart['data']['x']['density'])) );
 		$zoom_max_time = date( "Y-m-d H:i:s", (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-      <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&min_time=<?= $zoom_min_time ?>&max_time=<?= $zoom_max_time ?>'"></div>
+      <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= $zoom_min_time ?>&max_time=<?= $zoom_max_time ?>'"></div>
 <?php
 	}
 	$contents = ob_get_contents();
@@ -1595,7 +1592,7 @@ function parseTreeToInfix( $tree )
 function _parseTreeToSQL( $node, $cbr=false )
 {
 	$expression = '';
-	if ( isset($node) )
+	if ( $node )
 	{
 		if ( isset($node['left']) )
 		{
@@ -1627,7 +1624,7 @@ function parseTreeToSQL( $tree )
 function _parseTreeToQuery( $node, &$level )
 {
 	$elements = array();
-	if ( isset($node) )
+	if ( $node )
 	{
 		if ( isset($node['left']) )
 		{
@@ -1694,7 +1691,7 @@ function drawTree( $tree )
 function _extractDatetimeRange( &$node, &$min_time, &$max_time, &$expandable, $sub_or )
 {
 	$pruned = $left_pruned = $right_pruned = false;
-	if ( isset($node) )
+	if ( $node )
 	{
 		if ( isset($node['left']) && isset($node['right']) )
 		{

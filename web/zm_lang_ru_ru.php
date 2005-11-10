@@ -425,7 +425,9 @@ $zmSlangOrientation          = 'Ориентация';
 $zmSlangOut                  = 'Out';
 $zmSlangOverwriteExisting    = 'Перезаписать существующее';
 $zmSlangPaged                = 'По страницам';
+$zmSlangPanLeft              = 'Pan Left';
 $zmSlangPan                  = 'Pan';
+$zmSlangPanRight             = 'Pan Right';
 $zmSlangPanTilt              = 'Pan/Tilt';
 $zmSlangParameter            = 'Парамер';
 $zmSlangPassword             = 'Пароль';
@@ -555,6 +557,7 @@ $zmSlangVideoGenSucceeded    = 'Video Generation Succeeded!';
 $zmSlangVideoSize            = 'Размер изображения';
 $zmSlangViewAll              = 'Просм. все';
 $zmSlangView                 = 'Просмотр';
+$zmSlangViewEvent            = 'View Event';
 $zmSlangViewPaged            = 'Просм. постранично';
 $zmSlangWake                 = 'Wake';
 $zmSlangWarmupFrames         = 'Кадры разогрева';
@@ -591,7 +594,10 @@ $zmSlangZoneMinX             = 'Мин. X координата (левый край)';
 $zmSlangZoneMinY             = 'Mин. Y координата (верхний край)';
 $zmSlangZones                = 'Зоны';
 $zmSlangZone                 = 'Зона';
+$zmSlangZoomIn               = 'Zoom In';
+$zmSlangZoomOut              = 'Zoom Out';
 $zmSlangZoom                 = 'Zoom';
+
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $zmClangCurrentLogin         = 'Текущий пользователь: \'%1$s\'';

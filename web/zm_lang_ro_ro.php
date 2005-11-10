@@ -395,6 +395,8 @@ $zmSlangOrientation          = 'Orientare';
 $zmSlangOut                  = 'Out';
 $zmSlangOverwriteExisting    = 'Suprascrie existent';
 $zmSlangPaged                = 'Paginat';
+$zmSlangPanLeft              = 'Pan Left';
+$zmSlangPanRight             = 'Pan Right';
 $zmSlangPan                  = 'Rotire';
 $zmSlangPanTilt              = 'Rotire/&#206;nclinare';
 $zmSlangParameter            = 'Parametru';
@@ -524,6 +526,7 @@ $zmSlangVideoGenSucceeded    = 'Video Generation Succeeded!';
 $zmSlangVideoSize            = 'M&#259;rime video';
 $zmSlangVideo                = 'Video';
 $zmSlangViewAll              = 'Vizual. tot';
+$zmSlangViewEvent            = 'View Event';
 $zmSlangViewPaged            = 'Vizual. paginat';
 $zmSlangView                 = 'Vizual';
 $zmSlangWake                 = 'Wake';
@@ -560,7 +563,10 @@ $zmSlangZoneMinX             = 'Minimum X (left)';
 $zmSlangZoneMinY             = 'Minimum Y (top)';
 $zmSlangZones                = 'Zona';
 $zmSlangZone                 = 'Zone';
+$zmSlangZoomIn               = 'Zoom In';
+$zmSlangZoomOut              = 'Zoom Out';
 $zmSlangZoom                 = 'Zoom';
+
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $zmClangCurrentLogin         = 'E&#351;ti logat ca \'%1$s\'';

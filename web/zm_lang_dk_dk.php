@@ -425,7 +425,9 @@ $zmSlangOrientation          = 'Orientation';
 $zmSlangOut                  = 'Ud';
 $zmSlangOverwriteExisting    = 'Overskriv Eksisterende';
 $zmSlangPaged                = 'Paged';
+$zmSlangPanLeft              = 'Pan Left';
 $zmSlangPan                  = 'Pan';
+$zmSlangPanRight             = 'Pan Right';
 $zmSlangPanTilt              = 'Pan/Tilt';
 $zmSlangParameter            = 'Parameter';
 $zmSlangPassword             = 'Password';
@@ -554,6 +556,7 @@ $zmSlangVideoGenSucceeded    = 'Video Generation Succeeded!';
 $zmSlangVideoSize            = 'Video Størelse';
 $zmSlangVideo                = 'Video';
 $zmSlangViewAll              = 'Vis Alle';
+$zmSlangViewEvent            = 'View Event';
 $zmSlangViewPaged            = 'View Paged';
 $zmSlangView                 = 'Vis';
 $zmSlangWake                 = 'Wake';
@@ -590,7 +593,10 @@ $zmSlangZoneMinX             = 'Minimum X (venstre)';
 $zmSlangZoneMinY             = 'Minimum Y (top)';
 $zmSlangZones                = 'Zoner';
 $zmSlangZone                 = 'Zone';
+$zmSlangZoomIn               = 'Zoom In';
+$zmSlangZoomOut              = 'Zoom Out';
 $zmSlangZoom                 = 'Zoom';
+
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $zmClangCurrentLogin         = 'Nuværende login er \'%1$s\'';

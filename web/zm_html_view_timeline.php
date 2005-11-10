@@ -205,6 +205,13 @@ else
 			$max_time = $row['MaxTime'];
 	}
 
+	if ( empty($min_time) )
+		$min_time = $temp_min_time;
+	if ( empty($max_time) )
+		$max_time = $temp_max_time;
+	if ( empty($max_time) )
+		$max_time = "now";
+
 	$min_time_t = strtotime($min_time);
 	$max_time_t = strtotime($max_time);
 	$range = ($max_time_t - $min_time_t) + 1;
@@ -610,6 +617,7 @@ function getYScale( $range, $min_lines, $max_lines )
 function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoom_class=0 )
 {
 	global $PHP_SELF, $view, $filter_query;
+	global $zmSlangZoomIn;
 
 	ob_start();
 	$label_count = 0;
@@ -662,7 +670,7 @@ function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoo
 					$zoom_min_time = date( "Y-m-d H:i:s", (int)($chart['data']['x']['lo'] + ($last_tick * $chart['data']['x']['density'])) );
 					$zoom_max_time = date( "Y-m-d H:i:s", (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-      <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= $zoom_min_time ?>&max_time=<?= $zoom_max_time ?>'"></div>
+      <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" title="<?= $zmSlangZoomIn ?>" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= $zoom_min_time ?>&max_time=<?= $zoom_max_time ?>'"></div>
 <?php
 				}
 				$last_tick = $i;
@@ -717,7 +725,8 @@ function drawYGrid( $chart, $scale, $label_class, $tick_class, $grid_class )
 
 function getSlotLoadImageBehaviour( $slot )
 {
-	global $monitors, $jws, $PHP_SELF, $zmSlangArchived;
+	global $monitors, $jws, $PHP_SELF;
+	global $zmSlangArchived;
 
 	$event_path = ZM_DIR_EVENTS.'/'.$slot['event']['MonitorId'].'/'.$slot['event']['Id'];
 	$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, isset($slot['frame'])?$slot['frame']['FrameId']:1 );
@@ -1155,11 +1164,11 @@ div.zoom {
   <div id="Close" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></div>
   <div id="TopPanel">
     <div id="ImageNav">
-      <div id="Image"><img id="ImageSrc" src="graphics/spacer.gif" height="<?= $chart['image']['height'] ?>"/></div>
+      <div id="Image"><img id="ImageSrc" src="graphics/spacer.gif" height="<?= $chart['image']['height'] ?>" title="<?= $zmSlangViewEvent ?>"></div>
       <div id="RightNav">
-        <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($min_time) ?>&range=<?= $range ?>">&lt;</a>&nbsp;&nbsp;
-	    <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($mid_time) ?>&range=<?= (int)($range*$maj_x_scale['zoomout']) ?>">-</a>&nbsp;&nbsp;
-		<a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= urlencode($mid_time) ?>&range=<?= $range ?>">&gt;</a>
+        <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($min_time) ?>&range=<?= $range ?>" title="<?= $zmSlangPanLeft ?>">&lt;</a>&nbsp;&nbsp;
+	    <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($mid_time) ?>&range=<?= (int)($range*$maj_x_scale['zoomout']) ?>" title="<?= $zmSlangZoomOut ?>">-</a>&nbsp;&nbsp;
+		<a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= urlencode($mid_time) ?>&range=<?= $range ?>" title="<?= $zmSlangPanRight ?>">&gt;</a>
       </div>
       <div id="ImageText">No Event</div>
       <div id="Key">
@@ -1711,7 +1720,7 @@ function _extractDatetimeRange( &$node, &$min_time, &$max_time, &$expandable, $s
 					{
 						if ( !$min_time || $min_time > $node['right']['data']['sql_value'] )
 						{
-							$min_time = $node['right']['data']['sql_value'];
+							$min_time = $node['right']['data']['value'];
 							return( true );
 						}
 					}
@@ -1719,7 +1728,7 @@ function _extractDatetimeRange( &$node, &$min_time, &$max_time, &$expandable, $s
 					{
 						if ( !$max_time || $max_time < $node['right']['data']['sql_value'] )
 						{
-							$max_time = $node['right']['data']['sql_value'];
+							$max_time = $node['right']['data']['value'];
 							return( true );
 						}
 					}

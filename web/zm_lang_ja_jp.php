@@ -424,7 +424,9 @@ $zmSlangOrientation          = 'ｵﾘｵﾝﾃｰｼｮﾝ';
 $zmSlangOut                  = 'Out';
 $zmSlangOverwriteExisting    = '上書きします';
 $zmSlangPaged                = 'ﾍﾟｰｼﾞ化';
+$zmSlangPanLeft              = 'Pan Left';
 $zmSlangPan                  = 'Pan';
+$zmSlangPanRight             = 'Pan Right';
 $zmSlangPanTilt              = 'Pan/Tilt';
 $zmSlangParameter            = 'ﾊﾟﾗﾒｰﾀ';
 $zmSlangPassword             = 'ﾊﾟｽﾜｰﾄﾞ';
@@ -554,6 +556,7 @@ $zmSlangVideoGenSucceeded    = 'Video Generation Succeeded!';
 $zmSlangVideoSize            = 'ﾋﾞﾃﾞｵ ｻｲｽﾞ';
 $zmSlangView                 = '表示';
 $zmSlangViewAll              = '全部表示';
+$zmSlangViewEvent            = 'View Event';
 $zmSlangViewPaged            = 'ﾍﾟｰｼﾞ化の表示';
 $zmSlangWake                 = 'Wake';
 $zmSlangWarmupFrames         = 'ｳｫｰﾑｱｯﾌﾟ ﾌﾚｰﾑ';
@@ -590,7 +593,10 @@ $zmSlangZoneMinX             = 'X (右)最低';
 $zmSlangZoneMinY             = 'Y (左)最低';
 $zmSlangZones                = 'ｿﾞｰﾝ';
 $zmSlangZone                 = 'ｿﾞｰﾝ';
+$zmSlangZoomIn               = 'Zoom In';
+$zmSlangZoomOut              = 'Zoom Out';
 $zmSlangZoom                 = 'Zoom';
+
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $zmClangCurrentLogin         = 'ただ今\'%1$s\がﾛｸﾞｲﾝしています';

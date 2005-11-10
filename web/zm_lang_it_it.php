@@ -424,7 +424,9 @@ $zmSlangOrientation          = 'Orientamento';
 $zmSlangOut                  = 'Out';
 $zmSlangOverwriteExisting    = 'Sovrascrivi';
 $zmSlangPaged                = 'Con paginazione';
+$zmSlangPanLeft              = 'Pan Left';
 $zmSlangPan                  = 'Pan';
+$zmSlangPanRight             = 'Pan Right';
 $zmSlangPanTilt              = 'Pan/Tilt';
 $zmSlangParameter            = 'Parametri';
 $zmSlangPassword             = 'Password';
@@ -553,6 +555,7 @@ $zmSlangVideoGenSucceeded    = 'Video Generation Succeeded!';
 $zmSlangVideoSize            = 'Dimensioni Video';
 $zmSlangVideo                = 'Video';
 $zmSlangViewAll              = 'Vedi Tutte';
+$zmSlangViewEvent            = 'View Event';
 $zmSlangViewPaged            = 'Vedi con paginazione';
 $zmSlangView                 = 'vedi';
 $zmSlangWake                 = 'Wake';
@@ -589,7 +592,10 @@ $zmSlangZoneMinX             = 'X Minimo (sinistra)';
 $zmSlangZoneMinY             = 'Y Minimo (alto)';
 $zmSlangZones                = 'Zone';
 $zmSlangZone                 = 'Zona';
+$zmSlangZoomIn               = 'Zoom In';
+$zmSlangZoomOut              = 'Zoom Out';
 $zmSlangZoom                 = 'Zoom';
+
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $zmClangCurrentLogin         = 'Login attuale: \'%1$s\'';

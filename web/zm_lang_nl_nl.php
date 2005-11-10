@@ -425,7 +425,9 @@ $zmSlangOrientation          = 'Orientatie';
 $zmSlangOut                  = 'Out';
 $zmSlangOverwriteExisting    = 'Overschrijf bestaande';
 $zmSlangPaged                = 'Paged';
+$zmSlangPanLeft              = 'Pan Left';
 $zmSlangPan                  = 'Pan';
+$zmSlangPanRight             = 'Pan Right';
 $zmSlangPanTilt              = 'Pan/Tilt';
 $zmSlangParameter            = 'Parameter';
 $zmSlangPasswordsDifferent   = 'Het nieuwe en bevestigde wachtwoord zijn verschillend';
@@ -555,6 +557,7 @@ $zmSlangVideoSize            = 'Video grootte';
 $zmSlangVideo                = 'Video';
 $zmSlangViewAll              = 'Bekijk Alles';
 $zmSlangView                 = 'Bekijk';
+$zmSlangViewEvent            = 'View Event';
 $zmSlangViewPaged            = 'Bekijk Paged';
 $zmSlangWake                 = 'Wake';
 $zmSlangWarmupFrames         = 'Warmup Frames';
@@ -591,7 +594,10 @@ $zmSlangZoneMinX             = 'Minimum X (links)';
 $zmSlangZoneMinY             = 'Minimum Y (boven)';
 $zmSlangZones                = 'Zones';
 $zmSlangZone                 = 'Zone';
+$zmSlangZoomIn               = 'Zoom In';
+$zmSlangZoomOut              = 'Zoom Out';
 $zmSlangZoom                 = 'Zoom';
+
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $zmClangCurrentLogin         = 'huidige login is \'%1$s\'';

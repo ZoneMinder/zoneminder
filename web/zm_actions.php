@@ -401,6 +401,122 @@ if ( isset($action) )
 						}
 					}
 				}
+				elseif ( $control == "move_con_map" )
+				{
+					$x = deScale( $x, $scale );
+					$y = deScale( $y, $scale );
+					
+					$half_width = $monitor['Width'] / 2;
+					$half_height = $monitor['Height'] / 2;
+					$x_factor = ($x - $half_width)/$half_width;
+					$y_factor = ($y - $half_height)/$half_height;
+
+					switch ( $monitor['Orientation'] )
+					{
+						case '90' :
+							$temp_y_factor = $y;
+							$y_factor = -$x_factor;
+							$x_factor = $temp_y_factor;
+							break;
+						case '180' :
+							$x_factor = -$x_factor;
+							$y_factor = -$y_factor;
+							break;
+						case '270' :
+							$temp_x_factor = $x;
+							$x_factor = -$y_factor;
+							$y_factor = $tenp_x_factor;
+							break;
+						case 'hori' :
+							$x_factor = -$x_factor;
+							break;
+						case 'vert' :
+							$y_factor = -$y_factor;
+							break;
+					}
+
+					$turbo = 0.9; // Threshold for turbo speed
+					$blind = 0.1; // Threshold for blind spot
+
+					$pan_control = '';
+					$tilt_control = '';
+					if ( $x_factor > $blind )
+					{
+						$pan_control = 'right';
+					}
+					elseif ( $x_factor < -$blind )
+					{
+						$pan_control = 'left';
+					}
+					if ( $y_factor > $blind )
+					{
+						$tilt_control = 'down';
+					}
+					elseif ( $y_factor < -$blind )
+					{
+						$tilt_control = 'up';
+					}
+
+					$dirn = $tilt_control.$pan_control;
+					if ( !$dirn )
+					{
+						// No command, probably in blind spot in middle
+						$control = 'move_stop';
+					}
+					else
+					{
+						$control = 'move_con_'.$dirn;
+						$x_factor = abs($x_factor);
+						$y_factor = abs($y_factor);
+
+						if ( $monitor['HasPanSpeed'] && $x_factor )
+						{
+							if ( $monitor['HasTurboPan'] )
+							{
+								if ( $x_factor >= $turbo )
+								{
+									$pan_speed = $monitor['TurboPanSpeed'];
+								}
+								else
+								{
+									$x_factor = $x_factor/$turbo;
+									$pan_speed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$x_factor)));
+								}
+							}
+							else
+							{
+								$pan_speed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$x_factor)));
+							}
+						}
+						if ( $monitor['HasTiltSpeed'] && $y_factor )
+						{
+							if ( $monitor['HasTurboTilt'] )
+							{
+								if ( $y_factor >= $turbo )
+								{
+									$tilt_speed = $monitor['TurboTiltSpeed'];
+								}
+								else
+								{
+									$y_factor = $y_factor/$turbo;
+									$tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$y_factor)));
+								}
+							}
+							else
+							{
+								$tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$y_factor)));
+							}
+						}
+						if ( preg_match( '/(left|right)$/', $dirn ) )
+						{
+							$ctrl_command .= " --panspeed=".$pan_speed;
+						}
+						if ( preg_match( '/^(up|down)/', $dirn ) )
+						{
+							$ctrl_command .= " --tiltspeed=".$tilt_speed;
+						}
+					}
+				}
 				else
 				{
 					$slow = 0.25; // Threshold for slow speed/timeouts

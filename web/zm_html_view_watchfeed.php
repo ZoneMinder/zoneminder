@@ -32,7 +32,7 @@ if ( empty($mode) )
 		$mode = "still";
 }
 
-$sql = "select M.*,C.CanMoveMap,C.CanMoveRel from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'";
+$sql = "select M.*,C.CanMoveMap,C.CanMoveRel,C.CanMoveCon from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'";
 $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
@@ -140,7 +140,7 @@ showcontrols="0">
 		$stream_src = getStreamSrc( array( "mode=jpeg", "monitor=".$mid, "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
 		if ( canStreamNative() )
 		{
-			if ( $control && ($monitor['CanMoveMap'] || $monitor['CanMoveRel']) )
+			if ( $control && ($monitor['CanMoveMap'] || $monitor['CanMoveRel'] || $monitor['CanMoveCon']) )
 			{
 ?>
 <form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="ControlSink<?= $mid ?>">
@@ -158,6 +158,12 @@ showcontrols="0">
 				{
 ?>
 <input type="hidden" name="control" value="move_pseudo_map">
+<?php
+				}
+				elseif ( $monitor['CanMoveCon'] )
+				{
+?>
+<input type="hidden" name="control" value="move_con_map">
 <?php
 				}
 ?>
@@ -183,7 +189,7 @@ showcontrols="0">
 }
 else
 {
-	if ( $control && ($monitor['CanMoveMap'] || $monitor['CanMoveRel']) )
+	if ( $control && ($monitor['CanMoveMap'] || $monitor['CanMoveRel'] || $monitor['CanMoveCon']) )
 	{
 ?>
 <form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="ControlSink<?= $mid ?>">
@@ -201,6 +207,12 @@ else
 				{
 ?>
 <input type="hidden" name="control" value="move_pseudo_map">
+<?php
+				}
+				elseif ( $monitor['CanMoveCon'] )
+				{
+?>
+<input type="hidden" name="control" value="move_con_map">
 <?php
 				}
 ?>

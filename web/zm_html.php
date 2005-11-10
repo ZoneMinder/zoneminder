@@ -112,7 +112,7 @@ else
 		{
 			$bandwidth = "low";
 		}
-		elseif ( $user['MaxBandwidth'] == "medium" && $bandwidth = "high" )
+		elseif ( $user['MaxBandwidth'] == "medium" && $bandwidth == "high" )
 		{
 			$bandwidth = "medium";
 		}

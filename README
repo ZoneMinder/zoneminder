@@ -8,9 +8,9 @@
                                
 
                                
-                          ZoneMinder
+                          ZONEMINDER
                                
-                            v1.21.4
+                            V1.21.4
                                
                                
                                
@@ -46,92 +46,92 @@
 
 6. Upgrading                                                11
 
-7. Installing from RPM                                      12
+7. Installing from RPM                                      13
 
-8. Tutorial                                                 13
- 8.1.Defining Monitors                                     13
- 8.2.Defining Zones                                        19
- 8.3.Viewing Monitors                                      22
- 8.4.Controlling Monitors                                  22
- 8.5.Filtering Events                                      23
- 8.6.Viewing Events                                        24
- 8.7.Options and Users                                     25
+8. Tutorial                                                 14
+ 8.1.Defining Monitors                                     14
+ 8.2.Defining Zones                                        20
+ 8.3.Viewing Monitors                                      23
+ 8.4.Controlling Monitors                                  23
+ 8.5.Filtering Events                                      24
+ 8.6.Viewing Events                                        25
+ 8.7.Options and Users                                     26
 
-9. Camera Control                                           27
- 9.1.Control Capabilities                                  27
- 9.2.Control Scripts                                       29
+9. Camera Control                                           28
+ 9.1.Control Capabilities                                  28
+ 9.2.Control Scripts                                       30
 
-10.  Mobile Devices                                         31
+10.  Mobile Devices                                         32
 
-11.  Troubleshooting                                        32
+11.  Troubleshooting                                        33
 
-12.  Change Log                                             35
+12.  Change Log                                             36
  12.1.                                         Release 1.21.4
- 35
+ 36
  12.2.                                         Release 1.21.3
- 37
+ 38
  12.3.                                         Release 1.21.2
- 37
+ 38
  12.4.                                         Release 1.21.1
- 37
+ 38
  12.5.                                         Release 1.21.0
- 39
- 12.6.                                         Release 1.20.1
  40
- 12.7.                                         Release 1.20.0
+ 12.6.                                         Release 1.20.1
  41
- 12.8.                                         Release 1.19.5
+ 12.7.                                         Release 1.20.0
  42
+ 12.8.                                         Release 1.19.5
+ 43
  12.9.                                         Release 1.19.4
- 43
- 12.10.                                        Release 1.19.3
- 43
- 12.11.                                        Release 1.19.2
  44
+ 12.10.                                        Release 1.19.3
+ 45
+ 12.11.                                        Release 1.19.2
+ 46
  12.12.                                        Release 1.19.1
- 46
+ 47
  12.13.                                        Release 1.19.0
- 46
+ 48
  12.14.                                        Release 1.18.1
- 48
+ 49
  12.15.                                        Release 1.18.0
- 48
+ 49
  12.16.                                        Release 1.17.2
- 50
+ 51
  12.17.                                        Release 1.17.1
- 51
- 12.18.                                        Release 1.17.0
- 51
- 12.19.                                        Release 0.9.16
  52
- 12.20.                                        Release 0.9.15
+ 12.18.                                        Release 1.17.0
+ 52
+ 12.19.                                        Release 0.9.16
  53
- 12.21.                                        Release 0.9.14
- 54
- 12.22.                                        Release 0.9.13
- 54
- 12.23.                                        Release 0.9.12
+ 12.20.                                        Release 0.9.15
  55
- 12.24.                                        Release 0.9.11
+ 12.21.                                        Release 0.9.14
+ 55
+ 12.22.                                        Release 0.9.13
  56
- 12.25.                                        Release 0.9.10
+ 12.23.                                        Release 0.9.12
  57
+ 12.24.                                        Release 0.9.11
+ 58
+ 12.25.                                        Release 0.9.10
+ 59
  12.26.                                         Release 0.9.9
- 59
- 12.27.                                         Release 0.9.8
- 59
- 12.28.                                         Release 0.9.7
  60
- 12.29.                                         Release 0.0.1
+ 12.27.                                         Release 0.9.8
  61
+ 12.28.                                         Release 0.9.7
+ 62
+ 12.29.                                         Release 0.0.1
+ 63
 
-13.  To Do                                                  62
+13.  To Do                                                  64
 
-14.  Bugs                                                   63
+14.  Bugs                                                   65
 
-15.  Non-Bugs                                               64
+15.  Non-Bugs                                               66
 
-16.  License                                                65
+16.  License                                                67
 
 Introduction
 Welcome  to  ZoneMinder, the all-in-one Linux  GPL'd  security
@@ -602,73 +602,88 @@ you go.
    
 If you are upgrading from a previous version of ZoneMinder you
 should  follow the build instructions above up  to  the  point
-where you run zmconfig.pl. At this point you can either,  just
-enter the initial basic configuration manually as before so it
-can  access  the  database, or if you  prefer,  you  can  copy
+where you run zmconfig.pl. At this point you may wish to  make
+a  backup of your database in case things go wrong, though  if
+you  have  a very large database and limited disk space  which
+may not be feasible. To create a backup type
+
+mysqldump --add-drop-table --databases zm > zm.dump
+
+for a regular dump or
+
+mysqldump --add-drop-table --databases zm | gzip > zm.dump.gz
+
+for  a  compressed  one if you are tight on  space.  Obviously
+change zm to be the name of your database if different. If  at
+any point during the upgrade something goes wrong and you need
+to restore your database you can type the following
+
+mysql < zm.dump
+
+or
+
+gunzip -c zm.dump | mysql
+
+Note,  you may need to add parameters to the mysql command  in
+order  to run as a user with appropriate privileges to  modify
+the database.
+
+The   next  step  is  to  run  zmconfig.pl  to  set   up   the
+configuration.  You can either, just enter the  initial  basic
+configuration  manually  as  before  so  it  can  access   the
+database,  or,  an  easier way if you  prefer,  you  can  copy
 zmconfig.txt from your previous build directory into  the  new
 build directory and then just run
 
 zmconfig.pl -noi
 
 which  will ensure that the key configuration will be imported
-though  it  will not overwrite anything saved in the database.
-You  can then build ZoneMinder by typing 'make'  as for a  new
-build.
+though it will not overwrite anything saved in the database.
+
+You can then build ZoneMinder by typing
+
+make
+
+as for a new build.
 
 Assuming  your build completes successfully you should  ensure
 that if ZoneMinder is currently running on your system that it
 is shutdown before you go any further. Once it has stopped you
-can execute 'make install'.
+can execute
+
+make install
+
+to install the software.
 
 New  versions  of  ZoneMinder often  involve  database  schema
 changes  and before you restart it you should make  sure  that
 these changes have been applied.
 
-To  do this you can either run the zmupdate.pl script or apply
-the changes manually. The zmupdate.pl script is designed to do
-all  the  updating for you; this includes any database changes
-plus  any  other  tweaks necessary to upgrade  to  the  latest
-version. To use it you should ensure you are logged  in  as  a
-user with privileges to run ZoneMinder scripts and then type
+To do this you must run the zmupdate.pl script. This script is
+designed  to  do all the updating for you; this  includes  any
+database changes plus any other tweaks necessary to upgrade to
+the latest version. To use it you should ensure you are logged
+in  as  a user with privileges to run ZoneMinder scripts (this
+will  usually  be  root,  not necessarily  the  user  you  are
+building as) and then type
 
 zmupdate.pl -version=<previous version> [--user=<db  user>  --
 pass=<db password>]
 
 where 'previous version' relates to the version of ZM you  are
-upgrading  from,  1.21.1 for example. All  updates  from  that
-versions  onwards  will be applied, however  zmupdate.pl  will
-only  work  with upgrades from 1.19.0 onwards. The 'user'  and
-'pass'  options  allow  you to specify  a  database  user  and
-password with sufficient privilege to 'alter' the structure of
-the  database. This is not necessarily the database  user  you
-use for ZoneMinder itself as specified in the section below.
-
-To  apply  the  changes manually you can use  the  appropriate
-zmalter-x.y.z.sql scripts in the db directory to upgrade  your
-database and make the necessary changes where x.y.z identifies
-the version of ZoneMinder you had installed previously. So  if
-you  are going from version 1.20.0 to version 1.21.2 you would
-run  the  scripts for all intervening versions to get  to  the
-current   one,  i.e.  zmalter-1.20.0.sql,  zmalter-1.20.1.sql,
-zmalter-1.21.0.sql and zmalter-1.21.1.sql. To do this type
-
-mysql zm < db/zmalter-x.y.z.sql
-
-for  each  script, replacing zm with the name of your database
-if different.
-
-There will always be a zmalter script even if, as is often the
-case  for minor updates, there are no actual database changes.
-Usually  the  zmalter  script includes  commands  to  optimise
-tables just to ensure that the database gets a bit of a spring
-clean  while  ZoneMinder isn't running. If you  are  upgrading
-through  several versions then the optimisation  process  will
-occur  several times in succession, though only the first  one
-may take more than a second or two.
+upgrading  from, 1.21.1 for example, and not the  version  you
+are  upgrading to. All updates from that versions onwards will
+be  applied; however zmupdate.pl will only work with  upgrades
+from  1.19.0 onwards. The 'user' and 'pass' options allow  you
+to  specify  a  database  user and  password  with  sufficient
+privilege  to 'alter' the structure of the database.  This  is
+not  necessarily  the  database user you use  for  ZoneMinder.
+Check   that   the  database  upgrade  is  successful   before
+continuing.
 
 Once  the  upgrade process is complete, you can  then  restart
-ZoneMinder using the zmpkg.pl script or using service  control
-commands    for   your   distribution.   You   should    check
+ZoneMinder  using  the zmpkg.pl script or  using  the  service
+control  commands  for  your distribution.  You  should  check
 /var/log/messages and the other ZoneMinder logs for the  first
 few   minutes  to  ensure  that  everything  comes   back   up
 successfully.

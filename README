@@ -1,4 +1,4 @@
-   07/11/05        ZoneMinder 1.21.4 README                1
+   11/11/05        ZoneMinder 1.21.4 README                1
                                
                                
                                
@@ -66,70 +66,72 @@
 11.  Troubleshooting                                        32
 
 12.  Change Log                                             35
- 12.1.                                         Release 1.21.3
+ 12.1.                                         Release 1.21.4
  35
- 12.2.                                         Release 1.21.2
+ 12.2.                                         Release 1.21.3
  37
- 12.3.                                         Release 1.21.1
+ 12.3.                                         Release 1.21.2
  37
- 12.4.                                         Release 1.21.0
+ 12.4.                                         Release 1.21.1
+ 37
+ 12.5.                                         Release 1.21.0
  39
- 12.5.                                         Release 1.20.1
+ 12.6.                                         Release 1.20.1
  40
- 12.6.                                         Release 1.20.0
+ 12.7.                                         Release 1.20.0
  41
- 12.7.                                         Release 1.19.5
+ 12.8.                                         Release 1.19.5
  42
- 12.8.                                         Release 1.19.4
+ 12.9.                                         Release 1.19.4
  43
- 12.9.                                         Release 1.19.3
+ 12.10.                                        Release 1.19.3
+ 43
+ 12.11.                                        Release 1.19.2
  44
- 12.10.                                        Release 1.19.2
- 45
- 12.11.                                        Release 1.19.1
+ 12.12.                                        Release 1.19.1
  46
- 12.12.                                        Release 1.19.0
- 47
- 12.13.                                        Release 1.18.1
+ 12.13.                                        Release 1.19.0
+ 46
+ 12.14.                                        Release 1.18.1
  48
- 12.14.                                        Release 1.18.0
+ 12.15.                                        Release 1.18.0
  48
- 12.15.                                        Release 1.17.2
+ 12.16.                                        Release 1.17.2
  50
- 12.16.                                        Release 1.17.1
+ 12.17.                                        Release 1.17.1
  51
- 12.17.                                        Release 1.17.0
+ 12.18.                                        Release 1.17.0
  51
- 12.18.                                        Release 0.9.16
+ 12.19.                                        Release 0.9.16
  52
- 12.19.                                        Release 0.9.15
+ 12.20.                                        Release 0.9.15
+ 53
+ 12.21.                                        Release 0.9.14
  54
- 12.20.                                        Release 0.9.14
+ 12.22.                                        Release 0.9.13
  54
- 12.21.                                        Release 0.9.13
+ 12.23.                                        Release 0.9.12
  55
- 12.22.                                        Release 0.9.12
+ 12.24.                                        Release 0.9.11
  56
- 12.23.                                        Release 0.9.11
+ 12.25.                                        Release 0.9.10
  57
- 12.24.                                        Release 0.9.10
- 58
- 12.25.                                         Release 0.9.9
+ 12.26.                                         Release 0.9.9
  59
- 12.26.                                         Release 0.9.8
+ 12.27.                                         Release 0.9.8
+ 59
+ 12.28.                                         Release 0.9.7
  60
- 12.27.                                         Release 0.9.7
+ 12.29.                                         Release 0.0.1
  61
- 12.28.                                         Release 0.0.1
- 62
 
-13.  To Do                                                  63
+13.  To Do                                                  62
 
-14.  Bugs                                                   64
+14.  Bugs                                                   63
 
-15.  Non-Bugs                                               65
+15.  Non-Bugs                                               64
 
-16.  License                                                66
+16.  License                                                65
 
 Introduction
 Welcome  to  ZoneMinder, the all-in-one Linux  GPL'd  security

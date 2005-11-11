@@ -192,7 +192,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=1"><?= $zmSlangPaged ?></a></td>
 <?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>"><?= $zmSlangDelete ?></a></td><?php } ?>
-<?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=eventdetail&eid=<?= $eid ?>"><?= $zmSlangEdit ?></a></td><?php } ?>
+<?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=eventdetail&eid=<?= $eid ?>', 'zmEventDetail', <?= $jws['eventdetail']['w'] ?>, <?= $jws['eventdetail']['h'] ?> )"><?= $zmSlangEdit ?></a></td><?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=export&eid=<?= $eid ?>', 'zmExport', <?= $jws['export']['w'] ?>, <?= $jws['export']['h'] ?> )"><?= $zmSlangExport ?></a></td><?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?>
 <?php if ( $event['Archived'] ) { ?>
@@ -229,6 +229,15 @@ if ( $mode == "still" && $paged && !empty($page) )
 
 	if ( $page > 1 )
 	{
+		if ( false && $page > 2 )
+		{
+?>
+<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=1">&lt;&lt;</a>&nbsp;
+<?php
+		}
+?>
+<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page - 1 ?>">&lt;</a>&nbsp;
+<?php
 		$new_pages = array();
 		$pages_used = array();
 		$lo_exp = max(2,log($page-1)/log($max_shortcuts));
@@ -277,6 +286,15 @@ if ( $mode == "still" && $paged && !empty($page) )
 		{
 ?>
 &nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>
+<?php
+		}
+?>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page + 1 ?>">&gt;</a>
+<?php
+		if ( false && $page < ($pages-1) )
+		{
+?>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $pages ?>">&gt;&gt;</a>
 <?php
 		}
 	}

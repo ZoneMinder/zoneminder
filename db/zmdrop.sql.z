@@ -1,0 +1,5 @@
+--
+-- Current Database: ZM_DB_NAME
+--
+
+DROP DATABASE /*!40000 IF EXISTS*/ ZM_DB_NAME;

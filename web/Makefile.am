@@ -212,3 +212,5 @@ install-data-hook:
 	@-( cd $(DESTDIR)$(webdir); if ! test -e temp; then mkdir temp; fi; chown $(webuser):$(webgroup) temp; chmod u+w temp )
 	-( cd $(DESTDIR)$(webdir); ln -s zm.php index.php )
 
+uninstall-hook:
+	@-( cd $(DESTDIR)$(webdir); rm -rf events graphics images sounds temp )

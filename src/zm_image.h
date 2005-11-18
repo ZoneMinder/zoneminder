@@ -192,9 +192,9 @@ public:
 	}
 
 	bool ReadJpeg( const char *filename );
-	bool WriteJpeg( const char *filename ) const;
+	bool WriteJpeg( const char *filename, int quality_override=0 ) const;
 	bool DecodeJpeg( JOCTET *inbuffer, int inbuffer_size );
-	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const;
+	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;
 
 	void Overlay( const Image &image );
 	void Blend( const Image &image, int transparency=10 ) const;

@@ -168,7 +168,7 @@ bool Image::ReadJpeg( const char *filename )
 	return( true );
 }
 
-bool Image::WriteJpeg( const char *filename ) const
+bool Image::WriteJpeg( const char *filename, int quality_override ) const
 {
 	if ( config.colour_jpeg_files && colours == 1 )
 	{
@@ -204,7 +204,7 @@ bool Image::WriteJpeg( const char *filename ) const
 	}
 	jpeg_set_defaults(&cinfo);
 	cinfo.dct_method = JDCT_FASTEST;
-	jpeg_set_quality(&cinfo, config.jpeg_file_quality, false);
+	jpeg_set_quality(&cinfo, quality_override?quality_override:config.jpeg_file_quality, false);
 	jpeg_start_compress(&cinfo, TRUE);
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
@@ -269,7 +269,7 @@ bool Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 	return( true );
 }
 
-bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
+bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override ) const
 {
 	if ( config.colour_jpeg_files && colours == 1 )
 	{
@@ -298,7 +298,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size ) const
 	}
 	jpeg_set_defaults(&cinfo);
 	cinfo.dct_method = JDCT_FASTEST;
-	jpeg_set_quality(&cinfo, config.jpeg_image_quality, false);
+	jpeg_set_quality(&cinfo, quality_override?quality_override:config.jpeg_image_quality, false);
 	jpeg_start_compress(&cinfo, TRUE);
 
 	JSAMPROW row_pointer;	/* pointer to a single row */

@@ -194,7 +194,7 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 	static int jpg_buffer_size = 0;
 	static unsigned char jpg_buffer[ZM_MAX_IMAGE_SIZE];
 
-	image->EncodeJpeg( jpg_buffer, &jpg_buffer_size );
+	image->EncodeJpeg( jpg_buffer, &jpg_buffer_size, config.jpeg_file_quality );
 
 	static FrameHeader frame_header;
 

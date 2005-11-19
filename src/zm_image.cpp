@@ -115,31 +115,39 @@ Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 
 bool Image::ReadJpeg( const char *filename )
 {
-	struct jpeg_decompress_struct cinfo;
-	struct zm_error_mgr jerr;
-	cinfo.err = jpeg_std_error(&jerr.pub);
-	jerr.pub.error_exit = zm_jpeg_error_exit;
-	jerr.pub.emit_message = zm_jpeg_emit_message;
+	static bool cinfo_created = false;
+	static struct jpeg_decompress_struct cinfo;
+	static struct zm_error_mgr jerr;
 
-	jpeg_create_decompress(&cinfo);
-
-	FILE * infile;
-	if ((infile = fopen(filename, "rb" )) == NULL)
+	if ( !cinfo_created )
 	{
-		Error(( "Can't open %s: %s", filename, strerror(errno)));
+		cinfo.err = jpeg_std_error( &jerr.pub );
+		jerr.pub.error_exit = zm_jpeg_error_exit;
+		jerr.pub.emit_message = zm_jpeg_emit_message;
+		jpeg_create_decompress( &cinfo );
+		cinfo_created = true;
+	}
+
+	FILE *infile;
+	if ( (infile = fopen( filename, "rb" )) == NULL )
+	{
+		Error(( "Can't open %s: %s", filename, strerror(errno) ));
 		return( false );
 	}
 
-	if ( setjmp(jerr.setjmp_buffer) )
+	if ( setjmp( jerr.setjmp_buffer ) )
 	{
-		jpeg_destroy_decompress(&cinfo);
+		if ( false )
+		{
+			jpeg_destroy_decompress( &cinfo );
+		}
 		fclose( infile );
 		return( false );
 	}
 
-	jpeg_stdio_src(&cinfo, infile);
+	jpeg_stdio_src( &cinfo, infile );
 
-	jpeg_read_header(&cinfo, TRUE);
+	jpeg_read_header( &cinfo, TRUE );
 
 	width = cinfo.image_width;
 	height = cinfo.image_height;
@@ -150,19 +158,22 @@ bool Image::ReadJpeg( const char *filename )
 	delete[] buffer;
 	buffer = new JSAMPLE[size];
 
-	jpeg_start_decompress(&cinfo);
+	jpeg_start_decompress( &cinfo );
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
 	int row_stride = width * colours;	/* physical row width in buffer */
-	while (cinfo.output_scanline < cinfo.output_height)
+	while ( cinfo.output_scanline < cinfo.output_height )
 	{
 		row_pointer = &buffer[cinfo.output_scanline * row_stride];
-		jpeg_read_scanlines(&cinfo, &row_pointer, 1);
+		jpeg_read_scanlines( &cinfo, &row_pointer, 1 );
 	}
 
-	jpeg_finish_decompress(&cinfo);
+	jpeg_finish_decompress( &cinfo );
 
-	jpeg_destroy_decompress(&cinfo);
+	if ( false )
+	{
+		jpeg_destroy_decompress( &cinfo );
+	}
 
 	fclose( infile );
 
@@ -178,20 +189,27 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 		return( temp_image.WriteJpeg( filename ) );
 	}
 
-	struct jpeg_compress_struct cinfo;
-	struct zm_error_mgr jerr;
-	cinfo.err = jpeg_std_error(&jerr.pub);
-	jerr.pub.error_exit = zm_jpeg_error_exit;
-	jerr.pub.emit_message = zm_jpeg_emit_message;
-	jpeg_create_compress(&cinfo);
+	static bool cinfo_created = false;
+	static bool qualitys_used[100] = { false };
+	static struct jpeg_compress_struct cinfo;
+	static struct zm_error_mgr jerr;
+
+	if ( !cinfo_created )
+	{
+		cinfo.err = jpeg_std_error( &jerr.pub );
+		jerr.pub.error_exit = zm_jpeg_error_exit;
+		jerr.pub.emit_message = zm_jpeg_emit_message;
+		jpeg_create_compress( &cinfo );
+		cinfo_created = true;
+	}
 
 	FILE *outfile;
-	if ((outfile = fopen(filename, "wb" )) == NULL)
+	if ( (outfile = fopen( filename, "wb" )) == NULL )
 	{
-		Error(( "Can't open %s: %s", filename, strerror(errno)));
+		Error(( "Can't open %s: %s", filename, strerror(errno) ));
 		return( false );
 	}
-	jpeg_stdio_dest(&cinfo, outfile);
+	jpeg_stdio_dest( &cinfo, outfile );
 
 	cinfo.image_width = width; 	/* image width and height, in pixels */
 	cinfo.image_height = height;
@@ -207,9 +225,15 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	}
 	jpeg_set_defaults( &cinfo );
 	cinfo.dct_method = JDCT_FASTEST;
-	jpeg_set_quality( &cinfo, quality_override?quality_override:config.jpeg_file_quality, false );
-	jpeg_start_compress( &cinfo, TRUE );
 
+	int quality = quality_override?quality_override:config.jpeg_file_quality;
+	if ( !qualitys_used[quality] )
+	{
+		jpeg_set_quality( &cinfo, quality, false );
+		qualitys_used[quality] = true;
+	}
+
+	jpeg_start_compress( &cinfo, TRUE );
 	if ( true && text[0] )
 	{
 		jpeg_write_marker( &cinfo, JPEG_COM, (const JOCTET *)text, strlen(text) );
@@ -217,15 +241,18 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
 	int row_stride = cinfo.image_width * cinfo.input_components;	/* physical row width in buffer */
-	while (cinfo.next_scanline < cinfo.image_height)
+	while ( cinfo.next_scanline < cinfo.image_height )
 	{
 		row_pointer = &buffer[cinfo.next_scanline * row_stride];
-		jpeg_write_scanlines(&cinfo, &row_pointer, 1);
+		jpeg_write_scanlines( &cinfo, &row_pointer, 1 );
 	}
 
-	jpeg_finish_compress(&cinfo);
+	jpeg_finish_compress( &cinfo );
 
-	jpeg_destroy_compress(&cinfo);
+	if ( false )
+	{
+		jpeg_destroy_compress( &cinfo );
+	}
 
 	fclose( outfile );
 
@@ -234,23 +261,31 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 
 bool Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 {
-	struct jpeg_decompress_struct cinfo;
-	struct zm_error_mgr jerr;
-	cinfo.err = jpeg_std_error(&jerr.pub);
-	jerr.pub.error_exit = zm_jpeg_error_exit;
-	jerr.pub.emit_message = zm_jpeg_emit_message;
+	static bool cinfo_created = false;
+	static struct jpeg_decompress_struct cinfo;
+	static struct zm_error_mgr jerr;
 
-	jpeg_create_decompress(&cinfo);
-
-	if ( setjmp(jerr.setjmp_buffer) )
+	if ( !cinfo_created )
 	{
-		jpeg_destroy_decompress(&cinfo);
+		cinfo.err = jpeg_std_error( &jerr.pub );
+		jerr.pub.error_exit = zm_jpeg_error_exit;
+		jerr.pub.emit_message = zm_jpeg_emit_message;
+		jpeg_create_decompress( &cinfo );
+		cinfo_created = true;
+	}
+
+	if ( setjmp( jerr.setjmp_buffer ) )
+	{
+		if ( false )
+		{
+			jpeg_destroy_decompress( &cinfo );
+		}
 		return( false );
 	}
 
-	jpeg_mem_src(&cinfo, inbuffer, inbuffer_size );
+	jpeg_mem_src( &cinfo, inbuffer, inbuffer_size );
 
-	jpeg_read_header(&cinfo, TRUE);
+	jpeg_read_header( &cinfo, TRUE );
 
 	width = cinfo.image_width;
 	height = cinfo.image_height;
@@ -261,20 +296,22 @@ bool Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 	delete[] buffer;
 	buffer = new JSAMPLE[size];
 
-	jpeg_start_decompress(&cinfo);
+	jpeg_start_decompress( &cinfo );
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
 	int row_stride = width * colours;	/* physical row width in buffer */
-	while (cinfo.output_scanline < cinfo.output_height)
+	while ( cinfo.output_scanline < cinfo.output_height )
 	{
 		row_pointer = &buffer[cinfo.output_scanline * row_stride];
-		jpeg_read_scanlines(&cinfo, &row_pointer, 1);
+		jpeg_read_scanlines( &cinfo, &row_pointer, 1 );
 	}
 
-	jpeg_finish_decompress(&cinfo);
+	jpeg_finish_decompress( &cinfo );
 
-	jpeg_destroy_decompress(&cinfo);
-
+	if ( false )
+	{
+		jpeg_destroy_decompress( &cinfo );
+	}
 	return( true );
 }
 
@@ -287,14 +324,21 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 		return( temp_image.EncodeJpeg( outbuffer, outbuffer_size, quality_override ) );
 	}
 
-	struct jpeg_compress_struct cinfo;
-	struct zm_error_mgr jerr;
-	cinfo.err = jpeg_std_error(&jerr.pub);
-	jerr.pub.error_exit = zm_jpeg_error_exit;
-	jerr.pub.emit_message = zm_jpeg_emit_message;
-	jpeg_create_compress(&cinfo);
+	static bool cinfo_created = false;
+	static bool qualitys_used[100] = { false };
+	static struct jpeg_compress_struct cinfo;
+	static struct zm_error_mgr jerr;
 
-	jpeg_mem_dest(&cinfo, outbuffer, outbuffer_size );
+	if ( !cinfo_created )
+	{
+		cinfo.err = jpeg_std_error( &jerr.pub );
+		jerr.pub.error_exit = zm_jpeg_error_exit;
+		jerr.pub.emit_message = zm_jpeg_emit_message;
+		jpeg_create_compress( &cinfo );
+		cinfo_created = true;
+	}
+
+	jpeg_mem_dest( &cinfo, outbuffer, outbuffer_size );
 
 	cinfo.image_width = width; 	/* image width and height, in pixels */
 	cinfo.image_height = height;
@@ -307,23 +351,32 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 	{
 		cinfo.in_color_space = JCS_RGB; /* colorspace of input image */
 	}
-	jpeg_set_defaults(&cinfo);
+	jpeg_set_defaults( &cinfo );
 	cinfo.dct_method = JDCT_FASTEST;
-	jpeg_set_quality(&cinfo, quality_override?quality_override:config.jpeg_image_quality, false);
-	jpeg_start_compress(&cinfo, TRUE);
+
+	int quality = quality_override?quality_override:config.jpeg_file_quality;
+	if ( !qualitys_used[quality] )
+	{
+		jpeg_set_quality( &cinfo, quality, false );
+		qualitys_used[quality] = true;
+	}
+
+	jpeg_start_compress( &cinfo, TRUE );
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
 	int row_stride = cinfo.image_width * cinfo.input_components;	/* physical row width in buffer */
-	while (cinfo.next_scanline < cinfo.image_height)
+	while ( cinfo.next_scanline < cinfo.image_height )
 	{
 		row_pointer = &buffer[cinfo.next_scanline * row_stride];
-		jpeg_write_scanlines(&cinfo, &row_pointer, 1);
+		jpeg_write_scanlines( &cinfo, &row_pointer, 1 );
 	}
 
-	jpeg_finish_compress(&cinfo);
+	jpeg_finish_compress( &cinfo );
 
-	jpeg_destroy_compress(&cinfo);
-
+	if ( false )
+	{
+		jpeg_destroy_compress( &cinfo );
+	}
 	return( true );
 }
 

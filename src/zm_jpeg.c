@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */ 
 
+#include <unistd.h>
+
 #include "zm_jpeg.h"
 #include "zm_debug.h"
 
@@ -27,13 +29,12 @@
 static int jpeg_err_count = 0;
 void zm_jpeg_error_exit( j_common_ptr cinfo )
 {
-	static char message[JMSG_LENGTH_MAX];
-
+	static char buffer[JMSG_LENGTH_MAX];
 	zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
 
-	(*cinfo->err->format_message)( cinfo, message ); 
+	(zmerr->pub.format_message)( cinfo, buffer ); 
 
-	Error(( "JPEG error: %s", message ));
+	Error(( "%s", buffer ));
 	if ( ++jpeg_err_count == MAX_JPEG_ERRS )
 	{
 		Fatal(( "Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count ));
@@ -41,6 +42,36 @@ void zm_jpeg_error_exit( j_common_ptr cinfo )
 	}
 
 	longjmp( zmerr->setjmp_buffer, 1 );
+}
+
+void zm_jpeg_emit_message( j_common_ptr cinfo, int msg_level )
+{
+	static char buffer[JMSG_LENGTH_MAX];
+	zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
+
+	if ( msg_level < 0 )
+	{
+		/* It's a warning message.  Since corrupt files may generate many warnings,
+		 * the policy implemented here is to show only the first warning,
+		 * unless trace_level >= 3.
+		 */
+		if ( zmerr->pub.num_warnings == 0 || zmerr->pub.trace_level >= 3 )
+		{
+			(zmerr->pub.format_message)( cinfo, buffer ); 
+			Warning(( "%s", buffer ));
+		}
+		/* Always count warnings in num_warnings. */
+		zmerr->pub.num_warnings++;
+	}
+	else
+	{
+		/* It's a trace message.  Show it if trace_level >= msg_level. */
+		if ( zmerr->pub.trace_level >= msg_level )
+		{
+			(zmerr->pub.format_message)( cinfo, buffer ); 
+			Debug( msg_level, ( "%s", buffer ) );
+		}
+	}
 }
 
 /* Expanded data destination object for memory */

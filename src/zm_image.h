@@ -63,6 +63,7 @@ protected:
 	int size;
 	JSAMPLE *buffer;
 	bool our_buffer;
+	char text[256];
 
 protected:
 	mutable unsigned int *blend_buffer;
@@ -83,6 +84,7 @@ public:
 		our_buffer = true;
 		buffer = 0;
 		blend_buffer = 0;
+		text[0] = '\0';
 	}
 	Image( const char *filename )
 	{
@@ -92,6 +94,7 @@ public:
 		ReadJpeg( filename );
 		our_buffer = true;
 		blend_buffer = 0;
+		text[0] = '\0';
 	}
 	Image( int p_width, int p_height, int p_colours, JSAMPLE *p_buffer=0 )
 	{
@@ -113,6 +116,7 @@ public:
 			memset( buffer, 0, size );
 		}
 		blend_buffer = 0;
+		text[0] = '\0';
 	}
 	Image( const Image &p_image )
 	{
@@ -126,6 +130,7 @@ public:
 		memcpy( buffer, p_image.buffer, size );
 		our_buffer = true;
 		blend_buffer = 0;
+		strncpy( text, p_image.text, sizeof(text) );
 	}
 	~Image()
 	{
@@ -203,8 +208,8 @@ public:
 	static Image *Highlight( int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
 	Image *Delta( const Image &image ) const;
 
-	void Annotate( const char *text, const Coord &coord, const Rgb colour );
-	void Annotate( const char *text, const Coord &coord );
+	void Annotate( const char *p_text, const Coord &coord, const Rgb colour );
+	void Annotate( const char *p_text, const Coord &coord );
 	Image *HighlightEdges( Rgb colour, const Box *limits=0 );
 	void Timestamp( const char *label, const time_t when, const Coord &coord );
 	void Colourise();

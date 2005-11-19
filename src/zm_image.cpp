@@ -205,10 +205,15 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	{
 		cinfo.in_color_space = JCS_RGB; /* colorspace of input image */
 	}
-	jpeg_set_defaults(&cinfo);
+	jpeg_set_defaults( &cinfo );
 	cinfo.dct_method = JDCT_FASTEST;
-	jpeg_set_quality(&cinfo, quality_override?quality_override:config.jpeg_file_quality, false);
-	jpeg_start_compress(&cinfo, TRUE);
+	jpeg_set_quality( &cinfo, quality_override?quality_override:config.jpeg_file_quality, false );
+	jpeg_start_compress( &cinfo, TRUE );
+
+	if ( true && text[0] )
+	{
+		jpeg_write_marker( &cinfo, JPEG_COM, (const JOCTET *)text, strlen(text) );
+	}
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
 	int row_stride = cinfo.image_width * cinfo.input_components;	/* physical row width in buffer */
@@ -594,8 +599,10 @@ Image *Image::Delta( const Image &image ) const
 	return( result );
 }
 
-void Image::Annotate( const char *text, const Coord &coord, const Rgb colour )
+void Image::Annotate( const char *p_text, const Coord &coord, const Rgb colour )
 {
+	strncpy( text, p_text, sizeof(text) );
+
 	int text_len = strlen( text );
 	int text_width = text_len * CHAR_WIDTH;
 	int text_height = CHAR_HEIGHT;
@@ -647,8 +654,10 @@ void Image::Annotate( const char *text, const Coord &coord, const Rgb colour )
 	}
 }
 
-void Image::Annotate( const char *text, const Coord &coord )
+void Image::Annotate( const char *p_text, const Coord &coord )
 {
+	strncpy( text, p_text, sizeof(text) );
+
 	int text_len = strlen( text );
 	int text_width = text_len * CHAR_WIDTH;
 	int text_height = CHAR_HEIGHT;

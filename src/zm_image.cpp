@@ -119,6 +119,7 @@ bool Image::ReadJpeg( const char *filename )
 	struct zm_error_mgr jerr;
 	cinfo.err = jpeg_std_error(&jerr.pub);
 	jerr.pub.error_exit = zm_jpeg_error_exit;
+	jerr.pub.emit_message = zm_jpeg_emit_message;
 
 	jpeg_create_decompress(&cinfo);
 
@@ -178,8 +179,10 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	}
 
 	struct jpeg_compress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	cinfo.err = jpeg_std_error(&jerr);
+	struct zm_error_mgr jerr;
+	cinfo.err = jpeg_std_error(&jerr.pub);
+	jerr.pub.error_exit = zm_jpeg_error_exit;
+	jerr.pub.emit_message = zm_jpeg_emit_message;
 	jpeg_create_compress(&cinfo);
 
 	FILE *outfile;
@@ -230,6 +233,7 @@ bool Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 	struct zm_error_mgr jerr;
 	cinfo.err = jpeg_std_error(&jerr.pub);
 	jerr.pub.error_exit = zm_jpeg_error_exit;
+	jerr.pub.emit_message = zm_jpeg_emit_message;
 
 	jpeg_create_decompress(&cinfo);
 
@@ -275,12 +279,14 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 	{
 		Image temp_image( *this );
 		temp_image.Colourise();
-		return( temp_image.EncodeJpeg( outbuffer, outbuffer_size ) );
+		return( temp_image.EncodeJpeg( outbuffer, outbuffer_size, quality_override ) );
 	}
 
 	struct jpeg_compress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	cinfo.err = jpeg_std_error(&jerr);
+	struct zm_error_mgr jerr;
+	cinfo.err = jpeg_std_error(&jerr.pub);
+	jerr.pub.error_exit = zm_jpeg_error_exit;
+	jerr.pub.emit_message = zm_jpeg_emit_message;
 	jpeg_create_compress(&cinfo);
 
 	jpeg_mem_dest(&cinfo, outbuffer, outbuffer_size );

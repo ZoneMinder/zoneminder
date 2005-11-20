@@ -33,7 +33,31 @@ if ( $eid )
 }
 elseif ( $eids )
 {
-	$new_event = array();
+	$sql = "select E.* from Events as E where ";
+	$sql_where = array();
+	foreach ( $eids as $eid )
+	{
+		$sql_where[] = "E.Id = '$eid'";
+	}
+	unset( $eid );
+	$sql .= join( " or ", $sql_where );
+	$result = mysql_query( $sql );
+	if ( !$result )
+		die( mysql_error() );
+	while ( $row = mysql_fetch_assoc( $result ) )
+	{
+		if ( !isset($new_event) )
+		{
+			$new_event = $row;
+		}
+		else
+		{
+			if ( $new_event['Cause'] && $new_event['Cause'] != $row['Cause'] )
+				$new_event['Cause'] = "";
+			if ( $new_event['Notes'] && $new_event['Notes'] != $row['Notes'] )
+				$new_event['Notes'] = "";
+		}
+	}
 }
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
@@ -86,6 +110,7 @@ elseif ( $eids )
 <input type="hidden" name="mark_eids[]" value="<?= $eid ?>">
 <?php
 	}
+	unset( $eid );
 }
 ?>
 <tr valign="top"><td align="left" class="text"><?= $zmSlangCause ?></td><td align="left" class="text"><input type="text" name="new_event[Cause]" value="<?= $new_event['Cause'] ?>" size="32" class="form"></td></tr>

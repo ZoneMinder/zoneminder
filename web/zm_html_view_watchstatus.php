@@ -114,44 +114,44 @@ if ( !($force || $forced) )
 	if ( canEdit( 'Monitors' ) && ($disable || $disabled) )
 	{
 ?>
-<td width="20%" align="left" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&disable=0"><?= $zmSlangEnableAlarms ?></a></td>
+<td width="25%" align="left" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&disable=0"><?= $zmSlangEnableAlarms ?></a></td>
 <?php
 	}
 	elseif ( canEdit( 'Monitors' ) && zmaCheck( $mid ) )
 	{
 ?>
-<td width="20%" align="left" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&disable=1"><?= $zmSlangDisableAlarms ?></a></td>
+<td width="25%" align="left" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&disable=1"><?= $zmSlangDisableAlarms ?></a></td>
 <?php
 	}
 }
 else
 {
 ?>
-<td width="20%" align="left" class="text">&nbsp;</td>
+<td width="25%" align="left" class="text">&nbsp;</td>
 <?php
 }
 ?>
-<td width="60%" class="<?= $class ?>" align="center" valign="middle"><?= $zmSlangStatus ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
+<td width="50%" class="<?= $class ?>" align="center" valign="middle"><?= $zmSlangStatus ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</td>
 <?php
 if ( !($disable || $disabled) )
 {
 	if ( canEdit( 'Monitors' ) && ($force || $forced) )
 	{
 ?>
-<td width="20%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&force=0"><?= $zmSlangCancelForcedAlarm ?></a></td>
+<td width="25%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&force=0"><?= $zmSlangCancelForcedAlarm ?></a></td>
 <?php
 	}
 	elseif ( canEdit( 'Monitors' ) && zmaCheck( $mid ) )
 	{
 ?>
-<td width="20%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&force=1"><?= $zmSlangForceAlarm ?></a></td>
+<td width="25%" align="right" class="text"><a href="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $mid ?>&last_status=<?= $status ?>&force=1"><?= $zmSlangForceAlarm ?></a></td>
 <?php
 	}
 }
 else
 {
 ?>
-<td width="20%" align="right" class="text">&nbsp;</td>
+<td width="25%" align="right" class="text">&nbsp;</td>
 <?php
 }
 ?>

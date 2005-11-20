@@ -1053,7 +1053,10 @@ if ( isset($action) )
 					$result = mysql_query( "select * from TriggersX10 where MonitorId = '$mid'" );
 					if ( !$result )
 						die( mysql_error() );
-					$x10_monitor = mysql_fetch_assoc( $result );
+					if ( !($x10_monitor = mysql_fetch_assoc( $result )) )
+					{
+						$x10_monitor = array();
+					}
 				}
 			}
 			else

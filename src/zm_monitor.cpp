@@ -266,21 +266,29 @@ int Monitor::GetImage( int index, int scale ) const
 	{
 		index = shared_data->last_write_index;
 	}
-	Snapshot *snap = &image_buffer[index];
-	Image snap_image( *(snap->image) );
 
-	if ( scale != 100 )
+	if ( index != image_buffer_count )
 	{
-		snap_image.Scale( scale );
-	}
+		Snapshot *snap = &image_buffer[index];
+		Image snap_image( *(snap->image) );
 
-	static char filename[PATH_MAX];
-	snprintf( filename, sizeof(filename), "%s.jpg", name );
-	if ( !config.timestamp_on_capture )
-	{
-		TimestampImage( &snap_image, snap->timestamp->tv_sec );
+		if ( scale != 100 )
+		{
+			snap_image.Scale( scale );
+		}
+
+		static char filename[PATH_MAX];
+		snprintf( filename, sizeof(filename), "%s.jpg", name );
+		if ( !config.timestamp_on_capture )
+		{
+			TimestampImage( &snap_image, snap->timestamp->tv_sec );
+		}
+		snap_image.WriteJpeg( filename );
 	}
-	snap_image.WriteJpeg( filename );
+	else
+	{
+		Error(( "Unable to generate image, no images in buffer" ));
+	}
 	return( 0 );
 }
 
@@ -291,18 +299,28 @@ struct timeval Monitor::GetTimestamp( int index ) const
 		index = shared_data->last_write_index;
 	}
 
-	Snapshot *snap = &image_buffer[index];
-	return( *(snap->timestamp) );
+	if ( index != image_buffer_count )
+	{
+		Snapshot *snap = &image_buffer[index];
+
+		return( *(snap->timestamp) );
+	}
+	else
+	{
+		static struct timeval null_tv = { 0, 0 };
+
+		return( null_tv );
+	}
 }
 
 unsigned int Monitor::GetLastReadIndex() const
 {
-	return( shared_data->last_read_index );
+	return( shared_data->last_read_index!=image_buffer_count?shared_data->last_read_index:-1 );
 }
 
 unsigned int Monitor::GetLastWriteIndex() const
 {
-	return( shared_data->last_write_index );
+	return( shared_data->last_write_index!=image_buffer_count?shared_data->last_write_index:-1 );
 }
 
 unsigned int Monitor::GetLastEvent() const
@@ -313,6 +331,10 @@ unsigned int Monitor::GetLastEvent() const
 double Monitor::GetFPS() const
 {
 	int index1 = shared_data->last_write_index;
+	if ( index1 == image_buffer_count )
+	{
+		return( 0.0 );
+	}
 	Snapshot *snap1 = &image_buffer[index1];
 	if ( !snap1->timestamp || !snap1->timestamp->tv_sec )
 	{
@@ -322,6 +344,10 @@ double Monitor::GetFPS() const
 
 	int image_count = image_buffer_count;
 	int index2 = (index1+1)%image_buffer_count;
+	if ( index2 == image_buffer_count )
+	{
+		return( 0.0 );
+	}
 	Snapshot *snap2 = &image_buffer[index2];
 	while ( !snap2->timestamp || !snap2->timestamp->tv_sec || time1 == snap2->timestamp->tv_sec )
 	{
@@ -845,6 +871,16 @@ bool Monitor::Analyse()
 				}
 				else
 				{
+					for( int i = 0; i < n_zones; i++ )
+					{
+						if ( zones[i]->Alarmed() )
+						{
+							if ( config.record_event_stats && state == ALARM )
+							{
+								zones[i]->RecordStats( event );
+							}
+						}
+					}
 					if ( state == PREALARM )
 						Event::AddPreAlarmFrame( snap_image, *timestamp, score );
 					else
@@ -1620,7 +1656,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 			alarm = true;
 			score += zone->Score();
 			Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
-			zone->ResetStats();
+			//zone->ResetStats();
 		}
 	}
 

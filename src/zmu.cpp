@@ -32,13 +32,15 @@ void Usage( int status=-1 )
 	fprintf( stderr, "General options:\n" );
 	fprintf( stderr, "  -h, --help                     : This screen\n" );
 	fprintf( stderr, "  -v, --verbose                  : Produce more verbose output\n" );
+	fprintf( stderr, "  -l, --list                     : List the current status of active (or all with -v) monitors\n" );
 	fprintf( stderr, "Options for use with devices:\n" );
 	fprintf( stderr, "  -d, --device <device_path>     : Get the current video device settings for <device_path>\n" );
 	fprintf( stderr, "  -q, --query                    : Query the current settings for the device\n" );
 	fprintf( stderr, "Options for use with monitors:\n" );
 	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 1 if absent\n" );
 	fprintf( stderr, "  -q, --query                    : Query the current settings for the monitor\n" );
-	fprintf( stderr, "  -s, --state                    : Output the current monitor state, 0 = idle, 1 = alarm, 2 = alert\n" );
+	fprintf( stderr, "  -s, --state                    : Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,\n" );
+	fprintf( stderr, "                                   3 = alert, 4 = tape\n" );
 	fprintf( stderr, "  -B, --brightness [value]       : Output the current brightness, set to value if given \n" );
 	fprintf( stderr, "  -C, --contrast [value]         : Output the current contrast, set to value if given \n" );
 	fprintf( stderr, "  -H, --hue [value]              : Output the current hue, set to value if given \n" );
@@ -85,9 +87,10 @@ typedef enum {
 	COLOUR     = 0x00008000,
 	SUSPEND    = 0x00010000,
 	RESUME     = 0x00020000,
+	LIST       = 0x10000000,
 } Function;
 
-bool ValidateAccess( User *user, int mon_id, Function function )
+bool ValidateAccess( User *user, int mon_id, int function )
 {
 	bool allowed = true;
 	if ( function & (STATE|IMAGE|TIME|READ_IDX|WRITE_IDX|FPS) )
@@ -100,7 +103,7 @@ bool ValidateAccess( User *user, int mon_id, Function function )
 		if ( user->getEvents() < User::PERM_VIEW )
 			allowed = false;
 	}
-	if ( function & (ZONES|QUERY) )
+	if ( function & (ZONES|QUERY|LIST) )
 	{
 		if ( user->getMonitors() < User::PERM_VIEW )
 			allowed = false;
@@ -114,7 +117,6 @@ bool ValidateAccess( User *user, int mon_id, Function function )
 	{
 		if ( !user->canAccess( mon_id ) )
 		{
-			Error(( "AA:%d", mon_id ));
 			allowed = false;
 		}
 	}
@@ -154,13 +156,14 @@ int main( int argc, char *argv[] )
 		{"username", 1, 0, 'U'},
 		{"password", 1, 0, 'P'},
 		{"help", 0, 0, 'h'},
+		{"list", 0, 0, 'l'},
 		{0, 0, 0, 0}
 	};
 
 	const char *device = "";
 	int mon_id = 0;
 	bool verbose = false;
-	Function function = BOGUS;
+	int function = BOGUS;
 
 	int image_idx = -1;
 	int scale = -1;
@@ -175,7 +178,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsurwei::S:t::fzancqphB::C::H::O::U:P:A:", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsurwei::S:t::fzancqphlB::C::H::O::U:P:A:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -193,10 +196,10 @@ int main( int argc, char *argv[] )
 				verbose = true;
 				break;
 			case 's':
-				function = Function(function | STATE);
+				function |= STATE;
 				break;
 			case 'i':
-				function = Function(function | IMAGE);
+				function |= IMAGE;
 				if ( optarg )
 				{
 					image_idx = atoi( optarg );
@@ -206,68 +209,68 @@ int main( int argc, char *argv[] )
 				scale = atoi(optarg);
 				break;
 			case 't':
-				function = Function(function | TIME);
+				function |= TIME;
 				if ( optarg )
 				{
 					image_idx = atoi( optarg );
 				}
 				break;
 			case 'R':
-				function = Function(function | READ_IDX);
+				function |= READ_IDX;
 				break;
 			case 'W':
-				function = Function(function | WRITE_IDX);
+				function |= WRITE_IDX;
 				break;
 			case 'e':
-				function = Function(function | EVENT);
+				function |= EVENT;
 				break;
 			case 'f':
-				function = Function(function | FPS);
+				function |= FPS;
 				break;
 			case 'z':
-				function = Function(function | ZONES);
+				function |= ZONES;
 				break;
 			case 'a':
-				function = Function(function | ALARM);
+				function |= ALARM;
 				break;
 			case 'n':
-				function = Function(function | NOALARM);
+				function |= NOALARM;
 				break;
 			case 'c':
-				function = Function(function | CANCEL);
+				function |= CANCEL;
 				break;
 			case 'u':
-				function = Function(function | SUSPEND);
+				function |= SUSPEND;
 				break;
 			case 'r':
-				function = Function(function | RESUME);
+				function |= RESUME;
 				break;
 			case 'q':
-				function = Function(function | QUERY);
+				function |= QUERY;
 				break;
 			case 'B':
-				function = Function(function | BRIGHTNESS);
+				function |= BRIGHTNESS;
 				if ( optarg )
 				{
 					brightness = atoi( optarg );
 				}
 				break;
 			case 'C':
-				function = Function(function | CONTRAST);
+				function |= CONTRAST;
 				if ( optarg )
 				{
 					contrast = atoi( optarg );
 				}
 				break;
 			case 'H':
-				function = Function(function | HUE);
+				function |= HUE;
 				if ( optarg )
 				{
 					hue = atoi( optarg );
 				}
 				break;
 			case 'O':
-				function = Function(function | COLOUR);
+				function |= COLOUR;
 				if ( optarg )
 				{
 					colour = atoi( optarg );
@@ -284,6 +287,9 @@ int main( int argc, char *argv[] )
 				break;
 			case 'h':
 				Usage( 0 );
+				break;
+			case 'l':
+				function |= LIST;
 				break;
 			case '?':
 				Usage();
@@ -319,6 +325,8 @@ int main( int argc, char *argv[] )
 
 	zmLoadConfig();
 
+	User *user = 0;
+
 	if ( config.opt_use_auth )
 	{
 		if ( !(username && password) && !auth )
@@ -326,8 +334,6 @@ int main( int argc, char *argv[] )
 			fprintf( stderr, "Error, username and password or auth string must be supplied\n" );
 			exit( -1 );
 		}
-
-		User *user = 0;
 
 		//if ( strcmp( config.auth_relay, "hashed" ) == 0 )
 		{
@@ -361,7 +367,7 @@ int main( int argc, char *argv[] )
 			exit( ok?0:-1 );
 		}
 	}
-	else
+	else if ( mon_id > 0 )
 	{
 		Monitor *monitor = Monitor::Load( mon_id, function&(QUERY|ZONES) );
 
@@ -594,6 +600,79 @@ int main( int argc, char *argv[] )
 		{
 			fprintf( stderr, "Error, invalid monitor id %d\n", mon_id );
 			exit( -1 );
+		}
+	}
+	else
+	{
+		if ( function & LIST )
+		{
+			char sql[BUFSIZ];
+			strncpy( sql, "select Id, Function+0 from Monitors", sizeof(sql) );
+			if ( !verbose )
+			{
+				strncat( sql, " where Function != 'None'", sizeof(sql)-strlen(sql) );
+			}
+			strncat( sql, " order by Id asc", sizeof(sql)-strlen(sql) );
+
+			if ( mysql_query( &dbconn, sql ) )
+			{
+				Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+				exit( mysql_errno( &dbconn ) );
+			}
+
+			MYSQL_RES *result = mysql_store_result( &dbconn );
+			if ( !result )
+			{
+				Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+				exit( mysql_errno( &dbconn ) );
+			}
+			int n_monitors = mysql_num_rows( result );
+			Debug( 1, ( "Got %d monitors", n_monitors ));
+
+			printf( "%4s%5s%6s%9s%14s%6s%6s%8s%8s\n", "Id", "Func", "State", "TrgState", "LastImgTim", "RdIdx", "WrIdx", "LastEvt", "FrmRate" );
+			for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
+			{
+				int mon_id = atoi(dbrow[0]);
+				int function = atoi(dbrow[1]);
+				if ( !user || user->canAccess( mon_id ) )
+				{
+					if ( function > 1 )
+					{
+						Monitor *monitor = Monitor::Load( mon_id );
+						if ( monitor )
+						{
+							struct timeval tv = monitor->GetTimestamp();
+							printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
+								monitor->Id(),
+								function,
+								monitor->GetState(),
+								monitor->GetTriggerState(),
+								tv.tv_sec, tv.tv_usec/10000,
+								monitor->GetLastReadIndex(),
+								monitor->GetLastWriteIndex(),
+								monitor->GetLastEvent(),
+								monitor->GetFPS()
+							);
+							delete monitor;
+						}
+					}
+					else
+					{
+						struct timeval tv = { 0, 0 };
+						printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
+							mon_id,
+							function,
+							0,
+							0,
+							tv.tv_sec, tv.tv_usec/10000,
+							0,
+							0,
+							0,
+							0.0
+						);
+					}
+				}
+			}
 		}
 	}
 	return( 0 );

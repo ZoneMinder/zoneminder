@@ -193,6 +193,7 @@ public:
 	void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
 	void ForceAlarmOff();
 	void CancelForced();
+	TriggerState GetTriggerState() const { return( trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL ); }
 	void Suspend();
 	void Resume();
 

@@ -152,7 +152,7 @@ foreach ( $tabs as $name=>$value )
 <td class="nontab">&nbsp;</td>
 </tr>
 </table>
-<table border="0" cellspacing="0" cellpadding="2" width="100%">
+<table border="0" cellspacing="1" cellpadding="1" width="100%">
 <?php 
 if ( $tab == "users" )
 {

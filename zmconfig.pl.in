@@ -1977,6 +1977,7 @@ if ( $reprocess )
 		scripts/zmtrack.pl
 		scripts/zm
 		db/zmschema.sql
+		db/zmdrop.sql
 	);
 
 	foreach my $config_file ( @config_files )

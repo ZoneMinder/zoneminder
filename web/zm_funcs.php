@@ -885,12 +885,6 @@ function parseFilter( $save_to_session=false, $term_sep='&' )
 					case 'MonitorName':
 						$filter_sql .= 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
 						break;
-					case 'Name':
-						$filter_sql .= "E.Name";
-						break;
-					case 'Cause':
-						$filter_sql .= "E.Cause";
-						break;
 					case 'DateTime':
 						$filter_sql .= "E.StartTime";
 						break;
@@ -912,6 +906,8 @@ function parseFilter( $save_to_session=false, $term_sep='&' )
 					case 'TotScore':
 					case 'AvgScore':
 					case 'MaxScore':
+					case 'Cause':
+					case 'Notes':
 					case 'Archived':
 						$filter_sql .= "E.".$$attr_name;
 						break;
@@ -930,6 +926,7 @@ function parseFilter( $save_to_session=false, $term_sep='&' )
 						case 'MonitorName':
 						case 'Name':
 						case 'Cause':
+						case 'Notes':
 							$value = "'$value'";
 							break;
 						case 'DateTime':

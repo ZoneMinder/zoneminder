@@ -107,6 +107,7 @@ $zmSlangAttrMaxScore         = 'Max. Score';
 $zmSlangAttrMonitorId        = 'Monitor Id';
 $zmSlangAttrMonitorName      = 'Monitor Name';
 $zmSlangAttrName             = 'Name';
+$zmSlangAttrNotes            = 'Notes';
 $zmSlangAttrTime             = 'Time';
 $zmSlangAttrTotalScore       = 'Total Score';
 $zmSlangAttrWeekday          = 'Weekday';

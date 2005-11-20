@@ -63,6 +63,7 @@ for ( $i = 1; $i <= ceil(($trms-1)/2); $i++ )
 $attr_types = array(
 	'MonitorId'   => $zmSlangAttrMonitorId,
 	'MonitorName' => $zmSlangAttrMonitorName,
+	'Id'          => $zmSlangAttrId,
 	'Name'        => $zmSlangAttrName,
 	'Cause'       => $zmSlangAttrCause,
 	'Notes'       => $zmSlangAttrNotes,

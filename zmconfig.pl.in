@@ -363,6 +363,14 @@ my @options =
 		category => 'config',
 	},
 	{
+		name => "ZM_ADD_JPEG_COMMENTS",
+		default => "no",
+		description => "Add jpeg timestamp annotations as file header comments",
+		help => "JPEG files may have a number of extra fields added to the file header. The comment field may have any kind of text added. This options allows you to have the same text that is used to annotate the image additionally included as a file header comment. If you archive event images to other locations this may help you locate images for particular events or times if you use software that can read comment headers.",
+		type => $types{boolean},
+		category => 'config',
+	},
+	{
 		name => "ZM_JPEG_FILE_QUALITY",
 		default => "70",
 		description => "Set the JPEG quality setting for the saved event files (1-100)",

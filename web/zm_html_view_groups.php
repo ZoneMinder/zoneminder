@@ -28,8 +28,14 @@ $result = mysql_query( "select * from Groups order by Id" );
 if ( !$result )
 	die( mysql_error() );
 $groups = array();
+$selected = false;
 while ( $row = mysql_fetch_assoc( $result ) )
 {
+	if ( $row['Id'] == $cgroup )
+	{
+		$row['selected'] = true;
+		$selected = true;
+	}
 	$groups[] = $row;
 }
 ?>
@@ -47,40 +53,29 @@ function validateForm( form )
 {
 	return( true );
 }
-function configureButtons(form,name)
+function configureButtons(element)
 {
-	var count = 0;
-	for (var i = 0; i < form.elements.length; i++)
+	var form = element.form;
+	if ( element.checked )
 	{
-		if ( form.elements[i].name.indexOf(name) == 0)
-		{
-			if ( form.elements[i].checked )
-			{
-				count++;
-			}
-		}
+		form.delete_btn.disabled = (element.value == 0);
 	}
-	form.select_btn.disabled = (count != 1);
-	form.new_btn.disabled = (count > 0);
-	form.delete_btn.disabled = (count < 1);
 }
 function monitorIds()
 {
-	with ( opener.document.monitor_form )
+	var form = opener.document.monitor_form;
+	var monitor_ids = new Array();
+	for ( var i = 0; i < form.elements.length; i++ )
 	{
-		var monitor_ids = new Array();
-		for (var i = 0; i < elements.length; i++)
+		if ( form.elements[i].name.indexOf('mark_mids') == 0)
 		{
-			if ( elements[i].name.indexOf('mark_mids') == 0)
+			if ( form.elements[i].checked )
 			{
-				if ( elements[i].checked )
-				{
-					monitor_ids[monitor_ids.length] = elements[i].value;
-				}
+				monitor_ids[monitor_ids.length] = form.elements[i].value;
 			}
 		}
-		return( monitor_ids.join( ',' ) );
 	}
+	return( monitor_ids.join( ',' ) );
 }
 window.focus();
 </script>
@@ -89,8 +84,13 @@ window.focus();
 <form name="group_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="groups">
-<table width="100%" border="0" cellpadding="0" cellspacing="0">
-<tr><td class="smallhead"><?= $zmSlangName ?></td><td class="smallhead"><?= $zmSlangMonitorIds ?></td><td class="smallhead"><?= $zmSlangMark ?></tr>
+<table width="100%" border="0" cellpadding="0" cellspacing="4">
+<tr><td class="smallhead"><?= $zmSlangName ?></td><td class="smallhead"><?= $zmSlangMonitorIds ?></td><td class="smallhead"><?= $zmSlangSelect ?></tr>
+<tr>
+<td align="left" class="text"><input class="form" value="<?= $zmSlangNoGroup ?>" size="20" disabled></td>
+<td align="left" class="text"><input class="form" value="<?= $zmSlangAll ?>" size="40" disabled></td>
+<td align="center"><input class="form-noborder" type="radio" name="gid" value="0"<?= !$selected?" checked":"" ?> onClick="configureButtons( this );"></td>
+</tr>
 <?php
 if ( count($groups) || $new )
 {
@@ -98,9 +98,9 @@ if ( count($groups) || $new )
 	{
 ?>
 <tr>
-<td align="left" class="text"><input class="form" name="names[<?= $group['Id'] ?>]" value="<?= $group['Name'] ?>" size="16"></td>
-<td align="left" class="text"><input class="form" name="monitor_ids[<?= $group['Id'] ?>]" value="<?= $group['MonitorIds'] ?>" size="24"></td>
-<td align="center"><input class="form-noborder" type="checkbox" name="mark_gids[]" value="<?= $group['Id'] ?>" onClick="configureButtons( document.group_form, 'mark_gids' );"></td>
+<td align="left" class="text"><input class="form" name="names[<?= $group['Id'] ?>]" value="<?= $group['Name'] ?>" size="20"></td>
+<td align="left" class="text"><input class="form" name="monitor_ids[<?= $group['Id'] ?>]" value="<?= $group['MonitorIds'] ?>" size="40"></td>
+<td align="center"><input class="form-noborder" type="radio" name="gid" value="<?= $group['Id'] ?>"<?= $group['selected']?" checked":"" ?> onClick="configureButtons( this );"></td>
 </tr>
 <?php
 	}
@@ -108,20 +108,12 @@ if ( count($groups) || $new )
 	{
 ?>
 <tr>
-<td align="left" class="text"><input class="form" name="new_name" value="<?= $zmSlangNewGroup ?>" size="16"></td>
-<td align="left" class="text"><input class="form" name="new_monitor_ids" value="<?= $monitor_ids ?>" size="24"></td>
-<td align="center" class="text"><input type="checkbox" disabled></td>
+<td align="left" class="text"><input class="form" name="new_name" value="<?= $zmSlangNewGroup ?>" size="20"></td>
+<td align="left" class="text"><input class="form" name="new_monitor_ids" value="<?= $monitor_ids ?>" size="40"></td>
+<td align="center"><input class="form-noborder" type="radio" name="gid" value="<?= $group['Id'] ?>" onClick="configureButtons( this );"></td>
 </tr>
 <?php
 	}
-}
-else
-{
-?>
-<tr><td colspan="3" class="text" align="center">&nbsp;</td></tr>
-<tr><td colspan="3" class="text" align="center"><?= $zmSlangNoGroups ?></td></tr>
-<tr><td colspan="3" class="text" align="center">&nbsp;</td></tr>
-<?php
 }
 ?>
 <tr>
@@ -129,10 +121,9 @@ else
 </tr>
 <tr>
 <td align="right" colspan="3" class="text">
-<input type="button" name="select_btn" value="<?= $zmSlangSelect ?>" class="form" onClick="group_form.action.value='group'; group_form.submit();" disabled>&nbsp;&nbsp;
-<input type="button" name="none_btn" value="<?= $zmSlangNone ?>" class="form" onClick="group_form.action.value='group'; group_form.submit();">&nbsp;&nbsp;
+<input type="button" name="select_btn" value="<?= $zmSlangApply ?>" class="form" onClick="group_form.action.value='group'; group_form.submit();">&nbsp;&nbsp;
 <input type="button" name="new_btn" value="<?= $zmSlangNew ?>" class="form" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&monitor_ids='+monitorIds()+'&new=1'">&nbsp;&nbsp;
-<input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="group_form.action.value='<?= $view ?>'; group_form.action.value='delete'; group_form.submit();" disabled>&nbsp;&nbsp;
+<input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="group_form.action.value='<?= $view ?>'; group_form.action.value='delete'; group_form.submit();"<?= $selected?"":" disabled" ?>>&nbsp;&nbsp;
 <input type="button" value="<?= $zmSlangSave ?>" class="form" onClick="group_form.submit()">&nbsp;&nbsp;
 <input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td>
 </tr>

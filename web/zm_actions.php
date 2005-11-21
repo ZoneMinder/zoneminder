@@ -1257,9 +1257,9 @@ if ( isset($action) )
 	{
 		if ( $action == "group" )
 		{
-			if ( count($mark_gids) )
+			if ( !empty($gid) )
 			{
-				setcookie( "cgroup", $mark_gids[0], time()+3600*24*30*12*10 );
+				setcookie( "cgroup", $gid, time()+3600*24*30*12*10 );
 			}
 			else
 			{
@@ -1526,17 +1526,14 @@ if ( isset($action) )
 					userLogout();
 				}
 			}
-			if ( $mark_gids )
+			if ( !empty($gid) )
 			{
-				foreach( $mark_gids as $mark_gid )
+				simpleQuery( "delete from Groups where Id = '$gid'" );
+				if ( $gid == $cgroup )
 				{
-					simpleQuery( "delete from Groups where Id = '$mark_gid'" );
-					if ( $mark_gid == $cgroup )
-					{
-						unset( $cgroup );
-						setcookie( "cgroup", "", time()-3600*24*2 );
-						$refresh_parent = true;
-					}
+					unset( $cgroup );
+					setcookie( "cgroup", "", time()-3600*24*2 );
+					$refresh_parent = true;
 				}
 			}
 		}

@@ -689,21 +689,28 @@ bool Monitor::Analyse()
 		{
 			if ( event )
 			{
-				if ( state == IDLE || state == TAPE )
+				int section_mod = timestamp->tv_sec%section_length;
+				if ( section_mod < last_section_mod )
 				{
-					int section_mod = timestamp->tv_sec%section_length;
-					if ( section_mod < last_section_mod )
+					if ( state == IDLE || state == TAPE || config.force_close_events )
 					{
-						Info(( "Ended event" ));
+						if ( state == IDLE || state == TAPE )
+						{
+							Info(( "Ended event" ));
+						}
+						else
+						{
+							Info(( "Force closed event" ));
+						}
 						gettimeofday( &(event->EndTime()), &dummy_tz );
 						delete event;
 						event = 0;
 						last_section_mod = 0;
 					}
-					else
-					{
-						last_section_mod = section_mod;
-					}
+				}
+				else
+				{
+					last_section_mod = section_mod;
 				}
 			}
 			if ( !event )

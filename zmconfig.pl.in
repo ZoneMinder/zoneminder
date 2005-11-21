@@ -1109,6 +1109,14 @@ my @options =
 		category => 'system',
 	},
 	{
+		name => "ZM_FORCE_CLOSE_EVENTS",
+		default => "no",
+		description => "Whether events are closed at section ends.",
+		help => "When a monitor is running in a continuous recording moe (Record or Mocord) events are usually closed after a fixed period of time (the section length). However in Mocord mode it is possible that motion detection may occur near the end of a section and ordinarily this will prevent the event being closed until the motion has ceased. Switching this option on will force the event closed at the specified time regardless of any motion activity.",
+		type => $types{boolean},
+		category => 'system',
+	},
+	{
 		name => "ZM_CHECK_FOR_UPDATES",
 		default => "yes",
 		description => "Whether to check with zoneminder.com for updated versions",

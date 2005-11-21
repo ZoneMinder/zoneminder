@@ -240,10 +240,10 @@ void LocalCamera::Initialise()
 	g_v_table = new short[255];
 	g_u_table = new short[255];
 	b_u_table = new short[255];
-	r_v_table += 128;
-	g_v_table += 128;
-	g_u_table += 128;
-	b_u_table += 128;
+	r_v_table += 127;
+	g_v_table += 127;
+	g_u_table += 127;
+	b_u_table += 127;
 	for ( int i = -127; i <= 127; i++ )
 	{
 		signed char c = i;

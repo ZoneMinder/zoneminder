@@ -171,7 +171,6 @@ $zmSlangCaptureHeight        = 'Capture Height';
 $zmSlangCapturePalette       = 'Capture Palette';
 $zmSlangCaptureWidth         = 'Capture Width';
 $zmSlangCause                = 'Cause';
-$zmSlangCheckAll             = 'Check All';
 $zmSlangCheckMethod          = 'Alarm Check Method';
 $zmSlangChooseFilter         = 'Choose Filter';
 $zmSlangClose                = 'Close';

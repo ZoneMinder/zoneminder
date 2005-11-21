@@ -56,36 +56,45 @@ $monitor = mysql_fetch_assoc( $result );
 <script type="text/javascript">
 function newWindow(Url,Name,Width,Height)
 {
-   	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+   	var Win = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
 function eventWindow(Url,Name)
 {
-	var Name = window.open(Url,Name,"resizable,width=<?= $monitor['Width']+$jws['event']['w'] ?>,height=<?= $monitor['Height']+$jws['event']['h'] ?>");
+	var Win = window.open(Url,Name,"resizable,width=<?= $monitor['Width']+$jws['event']['w'] ?>,height=<?= $monitor['Height']+$jws['event']['h'] ?>");
 }
 function closeWindow()
 {
 	top.window.close();
 }
-function checkAll(form,name){
+function toggleCheck(element,name)
+{
+	var form = element.form;
+	var checked = element.checked;
 	for (var i = 0; i < form.elements.length; i++)
 		if (form.elements[i].name.indexOf(name) == 0)
-			form.elements[i].checked = 1;
-	form.delete_btn.disabled = false;
+			form.elements[i].checked = checked;
+	form.delete_btn.disabled = !checked;
 }
-function configureButton(form,name)
+function configureButton(element,name)
 {
-	var checked = false;
-	for (var i = 0; i < form.elements.length; i++)
+	var form = element.form;
+	var checked = element.checked;
+	if ( !checked )
 	{
-		if ( form.elements[i].name.indexOf(name) == 0)
+		for (var i = 0; i < form.elements.length; i++)
 		{
-			if ( form.elements[i].checked )
+			if ( form.elements[i].name.indexOf(name) == 0)
 			{
-				checked = true;
-				break;
+				if ( form.elements[i].checked )
+				{
+					checked = true;
+					break;
+				}
 			}
 		}
 	}
+	if ( !element.checked )
+		form.toggle_check.checked = false;
 	form.delete_btn.disabled = !checked;
 }
 <?php
@@ -119,13 +128,12 @@ if ( !$result )
 $n_events = mysql_num_rows( $result );
 ?>
 <tr>
-<td class="text"><b><?= sprintf( $zmClangLastEvents, $n_events, strtolower( zmVlang( $zmVlangEvent, $n_events ) ) ) ?></b></td>
+<td width="30%"align="left" class="text"><b><?= sprintf( $zmClangLastEvents, $n_events, strtolower( zmVlang( $zmVlangEvent, $n_events ) ) ) ?></b></td>
 <td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=1&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangAll, canView( 'Events' ) ) ?></td>
-<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=2&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val2=1', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangArchive, canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: checkAll( document.event_form, 'mark_eids' );"><?= $zmSlangCheckAll ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="30%"align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=2&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val2=1', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangArchive, canView( 'Events' ) ) ?></td>
 </tr>
-<tr><td colspan="5" class="text">&nbsp;</td></tr>
-<tr><td colspan="5"><table border="0" cellspacing="0" cellpadding="0" width="100%" bgcolor="#7F7FB2">
+<tr><td colspan="3" class="text">&nbsp;</td></tr>
+<tr><td colspan="3"><table border="0" cellspacing="0" cellpadding="0" width="100%" bgcolor="#7F7FB2">
 <tr align="center" bgcolor="#FFFFFF">
 <td width="4%" class="text"><a href="<?= $PHP_SELF ?>?view=watchevents&mid=<?= $mid ?>&max_events=<?= $max_events ?>&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>"><?= $zmSlangId ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td width="24%" class="text"><a href="<?= $PHP_SELF ?>?view=watchevents&mid=<?= $mid ?>&max_events=<?= $max_events ?>&sort_field=Name&sort_asc=<?= $sort_field == 'Name'?!$sort_asc:0 ?>"><?= $zmSlangName ?><?php if ( $sort_field == "Name" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
@@ -133,7 +141,7 @@ $n_events = mysql_num_rows( $result );
 <td class="text"><a href="<?= $PHP_SELF ?>?view=watchevents&mid=<?= $mid ?>&max_events=<?= $max_events ?>&sort_field=Length&sort_asc=<?= $sort_field == 'Length'?!$sort_asc:0 ?>"><?= $zmSlangSecs ?><?php if ( $sort_field == "Length" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=watchevents&mid=<?= $mid ?>&max_events=<?= $max_events ?>&sort_field=Frames&sort_asc=<?= $sort_field == 'Frames'?!$sort_asc:0 ?>"><?= $zmSlangFrames ?><?php if ( $sort_field == "Frames" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
 <td class="text"><a href="<?= $PHP_SELF ?>?view=watchevents&mid=<?= $mid ?>&max_events=<?= $max_events ?>&sort_field=Score&sort_asc=<?= $sort_field == 'Score'?!$sort_asc:0 ?>"><?= $zmSlangScore ?><?php if ( $sort_field == "Score" ) if ( $sort_asc ) echo "(^)"; else echo "(v)"; ?></a></td>
-<td class="text"><?= $zmSlangMark ?></td>
+<td class="text"><input type="checkbox" name="toggle_check" value="1" onClick="toggleCheck( this, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
 while( $event = mysql_fetch_assoc( $result ) )
@@ -146,7 +154,7 @@ while( $event = mysql_fetch_assoc( $result ) )
 <td align="center" class="text"><?= $event['Length'] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['Frames'] ?>/<?= $event['AlarmFrames'] ?></a></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= $monitor['Width']+$jws['image']['w'] ?>, <?= $monitor['Height']+$jws['image']['h'] ?> );"><?= $event['AvgScore'] ?>/<?= $event['MaxScore'] ?></a></td>
-<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $event['Id'] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
+<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $event['Id'] ?>" onClick="configureButton( this, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
 }

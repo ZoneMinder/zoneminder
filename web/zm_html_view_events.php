@@ -74,19 +74,19 @@ elseif ( !empty( $limit ) )
 <script type="text/javascript">
 function newWindow(Url,Name,Width,Height)
 {
-   	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+   	var Win = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
 function eventWindow(Url,Name,Width,Height)
 {
-	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height );
+	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height );
 }
 function filterWindow(Url,Name)
 {
-	var Name = window.open(Url,Name,"resizable,scrollbars,width=<?= $jws['filter']['w'] ?>,height=<?= $jws['filter']['h'] ?>");
+	var Win = window.open(Url,Name,"resizable,scrollbars,width=<?= $jws['filter']['w'] ?>,height=<?= $jws['filter']['h'] ?>");
 }
 function timelineWindow(Url,Name)
 {
-	var Name = window.open(Url,Name,"resizable,scrollbars,width=<?= $jws['timeline']['w'] ?>,height=<?= $jws['timeline']['h'] ?>");
+	var Win = window.open(Url,Name,"resizable,scrollbars,width=<?= $jws['timeline']['w'] ?>,height=<?= $jws['timeline']['h'] ?>");
 }
 function closeWindow()
 {
@@ -139,36 +139,44 @@ else
 			$unarchived = true;
 	}
 ?>
-function checkAll(form,name)
+function toggleCheck(element,name)
 {
+	var form = element.form;
+	var checked = element.checked;
 	for (var i = 0; i < form.elements.length; i++)
 		if (form.elements[i].name.indexOf(name) == 0)
-			form.elements[i].checked = 1;
-	form.view_btn.disabled = false;
-	form.edit_btn.disabled = false;
-	form.archive_btn.disabled = <?= $unarchived?"false":"true" ?>;
-	form.unarchive_btn.disabled = <?= $archived?"false":"true" ?>;
-	form.export_btn.disabled = false;
-	form.delete_btn.disabled = false;
+			form.elements[i].checked = checked;
+	form.view_btn.disabled = !checked;
+	form.edit_btn.disabled = !checked;
+	form.archive_btn.disabled = <?= $unarchived?"!checked":"true" ?>;
+	form.unarchive_btn.disabled = <?= $archived?"!checked":"true" ?>;
+	form.export_btn.disabled = !checked;
+	form.delete_btn.disabled = !checked;
 <?php if ( LEARN_MODE ) { ?>
-	form.learn_btn.disabled = false;
-	form.learn_state.disabled = false;
+	form.learn_btn.disabled = !checked;
+	form.learn_state.disabled = !checked;
 <?php } ?>
 }
-function configureButton(form,name)
+function configureButton(element,name)
 {
-	var checked = false;
-	for (var i = 0; i < form.elements.length; i++)
+	var form = element.form;
+	var checked = element.checked;
+	if ( !checked )
 	{
-		if ( form.elements[i].name.indexOf(name) == 0)
+		for (var i = 0; i < form.elements.length; i++)
 		{
-			if ( form.elements[i].checked )
+			if ( form.elements[i].name.indexOf(name) == 0)
 			{
-				checked = true;
-				break;
+				if ( form.elements[i].checked )
+				{
+					checked = true;
+					break;
+				}
 			}
 		}
 	}
+	if ( !element.checked )
+		form.toggle_check.checked = false;
 	form.view_btn.disabled = !checked;
 	form.edit_btn.disabled = !checked;
 	form.archive_btn.disabled = (!checked)||<?= $unarchived?"false":"true" ?>;
@@ -193,7 +201,7 @@ function editEvents( form, name )
 			}
 		}
 	}
-	var Name = newWindow( '<?= $PHP_SELF ?>?view=eventdetail&'+eids.join( '&' ), 'zmEventDetail', <?= $jws['eventdetail']['w'] ?>, <?= $jws['eventdetail']['h'] ?> );
+	var Win = newWindow( '<?= $PHP_SELF ?>?view=eventdetail&'+eids.join( '&' ), 'zmEventDetail', <?= $jws['eventdetail']['w'] ?>, <?= $jws['eventdetail']['h'] ?> );
 }
 function exportEvents( form, name )
 {
@@ -208,7 +216,7 @@ function exportEvents( form, name )
 			}
 		}
 	}
-	var Name = newWindow( '<?= $PHP_SELF ?>?view=export&'+eids.join( '&' ), 'zmExport', <?= $jws['export']['w'] ?>, <?= $jws['export']['h'] ?> );
+	var Win = newWindow( '<?= $PHP_SELF ?>?view=export&'+eids.join( '&' ), 'zmExport', <?= $jws['export']['w'] ?>, <?= $jws['export']['h'] ?> );
 }
 function viewEvents( form, name )
 {
@@ -358,8 +366,7 @@ function viewEvents( form, name )
 <tr>
 <td align="left" class="text"><a href="javascript: location.reload(true);"><?= $zmSlangRefresh ?></td>
 <td colspan="1" align="center" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&page=<?= $page ?><?= $filter_query ?>', 'zmFilter' );"><?= $zmSlangShowFilterWindow ?></a></td>
-<td colspan="1" align="right" class="text"><a href="javascript: timelineWindow( '<?= $PHP_SELF ?>?view=timeline&<?= $filter_query ?>', 'zmTimeline' );"><?= $zmSlangShowTimeline ?></a></td>
-<td align="right" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: checkAll( document.event_form, 'mark_eids' );"><?= $zmSlangCheckAll ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td colspan="2" align="right" class="text"><a href="javascript: timelineWindow( '<?= $PHP_SELF ?>?view=timeline&<?= $filter_query ?>', 'zmTimeline' );"><?= $zmSlangShowTimeline ?></a></td>
 </tr>
 <tr><td colspan="4" class="text">&nbsp;</td></tr>
 <tr><td colspan="4"><table border="0" cellspacing="1" cellpadding="0" width="100%" bgcolor="#7F7FB2">
@@ -391,7 +398,7 @@ function viewEvents( form, name )
 <?php
 		}
 ?>
-<td class="text"><?= $zmSlangMark ?></td>
+<td class="text"><input type="checkbox" name="toggle_check" value="1" onClick="toggleCheck( this, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
 		}
@@ -425,7 +432,7 @@ function viewEvents( form, name )
 <?php
 	}
 ?>
-<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $event['Id'] ?>" onClick="configureButton( document.event_form, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
+<td align="center" class="text"><input type="checkbox" name="mark_eids[]" value="<?= $event['Id'] ?>" onClick="configureButton( this, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
 	}

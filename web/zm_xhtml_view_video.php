@@ -71,13 +71,26 @@ foreach ( $ffmpeg_formats as $ffmpeg_format )
 {
 	preg_match( '/^([^*]+)(\**)$/', $ffmpeg_format, $matches );
 	$video_formats[$matches[1]] = $matches[1];
-	if ( $matches[2] == '**' )
+	if ( $matches[2] == '*' )
 	{
-		if ( !isset($video_format) )
-		{
-			$video_format = $matches[1];
-		}
+		$default_video_format = $matches[1];
 	}
+	elseif ( $matches[2] == '**' )
+	{
+		$default_phone_format = $matches[1];
+	}
+}
+if ( isset($default_phone_format) )
+{
+	$video_format = $default_phone_format;
+}
+elseif ( isset($default_video_format) )
+{
+	$video_format = $default_video_format;
+}
+else
+{
+	$video_format = $ffmpeg_formats[0];
 }
 
 if ( !empty($generate) )

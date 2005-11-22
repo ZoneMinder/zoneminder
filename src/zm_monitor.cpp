@@ -137,7 +137,11 @@ void Monitor::Setup()
 
 	Debug( 1, ( "monitor purpose=%d", purpose ));
 
-	int shared_data_size = sizeof(SharedData)+sizeof(TriggerData)+(image_buffer_count*sizeof(time_t))+(image_buffer_count*camera->ImageSize());
+	int shared_data_size = sizeof(SharedData)
+						 + sizeof(TriggerData)
+						 + (image_buffer_count*sizeof(struct timeval))
+						 + (image_buffer_count*camera->ImageSize());
+
 	Debug( 1, ( "shm.size=%d", shared_data_size ));
 	shmid = shmget( (config.shm_key&0xffffff00)|id, shared_data_size, IPC_CREAT|0700 );
 	if ( shmid < 0 )
@@ -146,13 +150,16 @@ void Monitor::Setup()
 		exit( -1 );
 	}
 	unsigned char *shm_ptr = (unsigned char *)shmat( shmid, 0, 0 );
-	shared_data = (SharedData *)shm_ptr;
-	if ( shared_data < 0 )
+	if ( shm_ptr < 0 )
 	{
 		Error(( "Can't shmat: %s", strerror(errno)));
 		exit( -1 );
 	}
-	trigger_data = (TriggerData *)(shm_ptr + sizeof(SharedData));
+
+	shared_data = (SharedData *)shm_ptr;
+	trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
+	struct timeval *shared_timestamps = (struct timeval *)((char *)trigger_data + sizeof(TriggerData));
+	unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
 	if ( purpose == CAPTURE )
 	{
@@ -184,8 +191,6 @@ void Monitor::Setup()
 		exit( -1 );
 	}
 
-	struct timeval *shared_timestamps = (struct timeval *)(shm_ptr+sizeof(SharedData)+sizeof(TriggerData));
-	unsigned char *shared_images = (unsigned char *)(shm_ptr+sizeof(SharedData)+sizeof(TriggerData)+(image_buffer_count*sizeof(struct timeval)));
 	image_buffer = new Snapshot[image_buffer_count];
 	for ( int i = 0; i < image_buffer_count; i++ )
 	{

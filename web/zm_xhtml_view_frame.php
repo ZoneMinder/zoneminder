@@ -23,7 +23,8 @@ if ( !canView( 'Events' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$eid'";
+$result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );

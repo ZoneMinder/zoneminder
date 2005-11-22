@@ -584,9 +584,16 @@ function daemonStatus( $daemon, $args=false )
 {
 	global $daemon_status;
 
-	initDaemonStatus();
+	if ( daemonCheck() )
+	{
+		initDaemonStatus();
+	}
+	else
+	{
+		$daemon_status = "";
+	}
 	
-	$string .= "$daemon";
+	$string = "$daemon";
 	if ( $args )
 		$string .= " $args";
 	return( strpos( $daemon_status, "'$string' running" ) !== false );

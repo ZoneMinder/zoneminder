@@ -126,7 +126,7 @@ if ( isset($action) )
 				$filter_parms[] = "sort_asc=$sort_asc";
 				$filter_parms[] = "limit=$limit";
 				$filter_query_string = join( '&', $filter_parms );
- 				simpleQuery( "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoVideo = '$auto_video', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute', AutoDelete = '$auto_delete'" );
+				simpleQuery( "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoVideo = '$auto_video', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute', AutoDelete = '$auto_delete'" );
 				$refresh_parent = true;
 			}
 		}
@@ -994,8 +994,11 @@ if ( isset($action) )
 
 				$monitor['Function'] = $new_function;
 				if ( $cookies ) session_write_close();
-				zmcControl( $monitor, true );
-				zmaControl( $monitor, true );
+				if ( daemonCheck() )
+				{
+					zmcControl( $monitor, true );
+					zmaControl( $monitor, true );
+				}
 				$refresh_parent = true;
 			}
 		}
@@ -1035,7 +1038,10 @@ if ( isset($action) )
 				//echo "<html>$sql</html>";
 				simpleQuery( $sql );
 				if ( $cookies ) session_write_close();
-				zmaControl( $mid, true );
+				if ( daemonCheck() )
+				{
+					zmaControl( $mid, true );
+				}
 				$refresh_parent = true;
 			}
 		}
@@ -1157,8 +1163,11 @@ if ( isset($action) )
 				$monitor = mysql_fetch_assoc( $result );
 				fixDevices();
 				if ( $cookies ) session_write_close();
-				zmcControl( $monitor, true );
-				zmaControl( $monitor, true );
+				if ( daemonCheck() )
+				{
+					zmcControl( $monitor, true );
+					zmaControl( $monitor, true );
+				}
 				//daemonControl( 'restart', 'zmwatch.pl' );
 				$refresh_parent = true;
 			}
@@ -1201,7 +1210,10 @@ if ( isset($action) )
 				if ( $deleted_zid )
 				{
 					if ( $cookies ) session_write_close();
-					zmaControl( $mid, true );
+					if ( daemonCheck() )
+					{
+						zmaControl( $mid, true );
+					}
 					$refresh_parent = true;
 				}
 			}

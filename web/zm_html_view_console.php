@@ -245,7 +245,7 @@ else
 if ( canView( 'Stream' ) && $cycle_count > 1 )
 {
 ?>
-<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=cycle&group=<?= $cgroup ?>', 'zmCycle<?= $cgroup ?>', <?= $montage_width+$jws['cycle']['w'] ?>, <?= $montage_height+$jws['cycle']['h'] ?> );"><?= $zmSlangCycle ?></a>&nbsp;/&nbsp;<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=montage&group=<?= $cgroup ?>', 'zmMontage<?= $cgroup ?>', <?= ($montage_cols*$montage_width)+$jws['montage']['w'] ?>, <?= ($montage_rows*((ZM_WEB_COMPACT_MONTAGE?4:40)+$montage_height))+$jws['montage']['h'] ?> );"><?= $zmSlangMontage ?></a>
+<?= makeLink( "javascript: newWindow( '$PHP_SELF?view=cycle&group=$cgroup', 'zmCycle$cgroup', ".($montage_width+$jws['cycle']['w']).", ".($montage_height+$jws['cycle']['h'])." );", $zmSlangCycle, $running ) ?>&nbsp;/&nbsp;<?= makeLink( "javascript: newWindow( '$PHP_SELF?view=montage&group=$cgroup', 'zmMontage$cgroup', ".(($montage_cols*$montage_width)+$jws['montage']['w']).", ".(($montage_rows*((ZM_WEB_COMPACT_MONTAGE?4:40)+$montage_height))+$jws['montage']['h'])." );", $zmSlangMontage, $running ) ?>
 <?php
 }
 else
@@ -337,7 +337,7 @@ foreach( $monitors as $monitor )
 	}
 	$scale = max( reScale( SCALE_SCALE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_SCALE );
 ?>
-<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=watch&mid=".$monitor['Id']."', 'zmWatch".$monitor['Id']."', ".(reScale( $monitor['Width'], $scale )+$jws['watch']['w']).", ".(reScale( $monitor['Height'], $scale )+$jws['watch']['h'])." );", $monitor['Name'], ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
+<td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=watch&mid=".$monitor['Id']."', 'zmWatch".$monitor['Id']."', ".(reScale( $monitor['Width'], $scale )+$jws['watch']['w']).", ".(reScale( $monitor['Height'], $scale )+$jws['watch']['h'])." );", $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=function&mid=".$monitor['Id']."', 'zmFunction', ".$jws['function']['w'].", ".$jws['function']['h']." );", "<span class=\"$fclass\">".$monitor['Function']."</span>", canEdit( 'Monitors' ) ) ?></td>
 <?php if ( $monitor['Type'] == "Local" ) { ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitor&mid=".$monitor['Id']."', 'zmMonitor', ".$jws['monitor']['w'].", ".$jws['monitor']['h']." );", "<span class=\"$dclass\">".$monitor['Device']." (".$monitor['Channel'].")</span>", canEdit( 'Monitors' ) ) ?></td>

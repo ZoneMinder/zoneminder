@@ -122,8 +122,7 @@ switch ( $bandwidth )
 	}
 	case "mobile" : // Very incomplete at present
 	{
-		define( "ZM_WEB_REFRESH_MAIN", ZM_WEB_P_REFRESH_MAIN );		// How often (in seconds) the main console window refreshes
-		define( "ZM_WEB_REFRESH_IMAGE", ZM_WEB_P_REFRESH_IMAGE );	// How often the watched image is refreshed (if not streaming)
+		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_P_DEFAULT_RATE );			// What the default replay rate factor applied to 'event' views is (%)
 		break;
 	}
 }

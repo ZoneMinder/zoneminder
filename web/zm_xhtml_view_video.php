@@ -32,7 +32,7 @@ else
 {
 	$mid_sql = '';
 }
-$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$eid'$mid_sql";
+$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultRate from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$eid'$mid_sql";
 $result = mysql_query( $sql );
 if ( !$result )
     die( mysql_error() );
@@ -61,7 +61,7 @@ else
 }
 
 if ( !isset( $rate ) )
-	$rate = RATE_SCALE;
+	$rate = reScale( RATE_SCALE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
 
 $event_dir = ZM_DIR_EVENTS."/".$event['MonitorId']."/".sprintf( "%d", $eid );
 

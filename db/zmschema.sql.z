@@ -265,6 +265,7 @@ CREATE TABLE Monitors (
   TrackDelay smallint(5) unsigned NOT NULL default '0',
   ReturnLocation tinyint(3) NOT NULL default '-1',
   ReturnDelay smallint(5) unsigned NOT NULL default '0',
+  DefaultRate smallint(5) unsigned NOT NULL default '100',
   DefaultScale smallint(5) unsigned NOT NULL default '100',
   WebColour varchar(32) NOT NULL default 'red',
   Sequence smallint(5) unsigned default NULL,

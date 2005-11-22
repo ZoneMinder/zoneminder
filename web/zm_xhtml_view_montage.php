@@ -51,27 +51,64 @@ while( $row = mysql_fetch_assoc( $result ) )
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
 </head>
 <body>
-<p align="center">
+<table style="width: 100%">
 <?php
+
 $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
 $device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
+
 // Allow for margins etc
 $device_width -= 16;
 $device_height -= 16;
 
+$images_per_line = 2;
+
+$count = 0;
 foreach( $monitors as $monitor )
 {
 	$width_scale = ($device_width*SCALE_SCALE)/$monitor['Width'];
 	$height_scale = ($device_height*SCALE_SCALE)/$monitor['Height'];
 	$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
-	$scale /= 2; // Try and get two pics per line
+	$scale /= $images_per_line; // Try and get several pics per line
 
-	$image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
+	if ( $count%$images_per_line == 0 )
+	{
 ?>
-<a href="<?= $PHP_SELF ?>?view=watch&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $image_src ?>" alt="<?= $monitor['Name'] ?>" style="border: 0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></a>
+<tr>
+<?php
+	}
+
+	$image_path = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
+	//$alarm_frame = $alarm_frames[$frame_id];
+	//$img_class = $alarm_frame?"alarm":"normal";
+?>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=watch&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $image_path ?>" alt="<?= $monitor['Name'] ?>" style="border: 0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></a></td>
+<?php
+
+	if ( $count%$images_per_line == ($images_per_line-1) )
+	{
+?>
+</tr>
+<?php
+	}
+	$count++;
+}
+if ( $count%$images_per_line != 0 )
+{
+	while ( $count%$images_per_line != ($images_per_line-1) )
+	{
+?>
+<td>&nbsp;</td>
+<?php
+	}
+?>
+</tr>
 <?php
 }
 ?>
-</p>
+<tr>
+<td colspan="<?= $images_per_line ?>" align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>"><?= $zmSlangRefresh ?></a></td>
+</tr>
+</table>
 </body>
 </html>

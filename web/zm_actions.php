@@ -126,7 +126,7 @@ if ( isset($action) )
 				$filter_parms[] = "sort_asc=$sort_asc";
 				$filter_parms[] = "limit=$limit";
 				$filter_query_string = join( '&', $filter_parms );
-				simpleQuery( "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoVideo = '$auto_video', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute', AutoDelete = '$auto_delete'" );
+				simpleQuery( "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoVideo = '$auto_video', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute', AutoExecuteCmd = '".addslashes($auto_execute_cmd)."', AutoDelete = '$auto_delete'" );
 				$refresh_parent = true;
 			}
 		}

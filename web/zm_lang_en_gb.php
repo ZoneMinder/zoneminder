@@ -119,6 +119,7 @@ $zmSlangAutoExecuteEvents    = 'Automatically execute command on all matches';
 $zmSlangAutoMessageEvents    = 'Automatically message details of all matches';
 $zmSlangAutoStopTimeout      = 'Auto Stop Timeout';
 $zmSlangAutoUploadEvents     = 'Automatically upload all matches';
+$zmSlangAutoVideoEvents      = 'Automatically create video for all matches';
 $zmSlangAvgBrScore           = 'Avg.<br/>Score';
 $zmSlangBadNameChars         = 'Names may only contain alphanumeric characters plus hyphen and underscore';
 $zmSlangBandwidth            = 'Bandwidth';

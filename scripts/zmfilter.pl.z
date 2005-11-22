@@ -155,7 +155,7 @@ sub Usage
 	print( "
 Usage: zmfilter.pl [-d <seconds>,--delay=<seconds>]
 Parameters are :-
--d<seconds>, --delay=<seconds>          - How long to delay between each check, default 60
+-d<seconds>, --delay=<seconds>          - How long to delay between each check, default ".ZM_FILTER_EXECUTE_INTERVAL."
 ");
 	exit( -1 );
 }
@@ -330,7 +330,7 @@ sub getDiskBlocks
 sub getFilters
 {
 	my @filters;
-	my $sql = "select * from Filters where (AutoArchive = 1 or AutoDelete = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1 or AutoExecute != '') order by Name";
+	my $sql = "select * from Filters where (AutoDelete = 1 or AutoArchive = 1 or AutoVideo = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1 or AutoExecute != '') order by Name";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
 	FILTER: while( my $filter_data = $sth->fetchrow_hashref() )
@@ -346,7 +346,7 @@ sub getFilters
 			}
 		}
 		#Debug( Dumper( %filter_terms ) );
-		my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,E.Name,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Uploaded,E.Emailed,E.Messaged,E.LearnState from Events as E inner join Monitors as M on M.Id = E.MonitorId where not isnull(E.EndTime)";
+		my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,M.DefaultRate,M.DefaultScale,E.Name,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Videoed,E.Uploaded,E.Emailed,E.Messaged,E.Executed from Events as E inner join Monitors as M on M.Id = E.MonitorId where not isnull(E.EndTime)";
 		my $filter_sql = '';
 		for ( my $i = 1; $i <= $filter_terms{trms}; $i++ )
 		{
@@ -495,6 +495,10 @@ sub getFilters
 		{
 			push( @auto_terms, "E.Archived = 0" )
 		}
+		if ( $filter_data->{AutoVideo} )
+		{
+			push( @auto_terms, "E.Videoed = 0" )
+		}
 		if ( $filter_data->{AutoUpload} )
 		{
 			push( @auto_terms, "E.Uploaded = 0" )
@@ -600,8 +604,9 @@ sub checkFilter
 	my $filter = shift;
 
 	Debug( "Checking filter '$filter->{Name}'".
-		($filter->{AutoArchive}?", archive":"").
 		($filter->{AutoDelete}?", delete":"").
+		($filter->{AutoArchive}?", archive":"").
+		($filter->{AutoVideo}?", video":"").
 		($filter->{AutoUpload}?", upload":"").
 		($filter->{AutoEmail}?", email":"").
 		($filter->{AutoMessage}?", message":"").
@@ -627,34 +632,7 @@ sub checkFilter
 	while( my $event = $sth->fetchrow_hashref() )
 	{
 		Debug( "Checking event $event->{Id}\n" );
-		if ( $filter->{AutoExecute} )
-		{
-			if ( !$event->{Execute} )
-			{
-				executeCommand( $filter, $event );
-			}
-		}
-		if ( ZM_OPT_EMAIL && $filter->{AutoEmail} )
-		{
-			if ( !$event->{Emailed} )
-			{
-				sendEmail( $filter, $event );
-			}
-		}
-		if ( ZM_OPT_MESSAGE && $filter->{AutoMessage} )
-		{
-			if ( !$event->{Messaged} )
-			{
-				sendMessage( $filter, $event );
-			}
-		}
-		if ( ZM_OPT_UPLOAD && $filter->{AutoUpload} )
-		{
-			if ( !$event->{Uploaded} )
-			{
-				uploadArchFile( $filter, $event );
-			}
-		}
+		my $delete_ok = !undef;
 		if ( $filter->{AutoArchive} )
 		{
 			Info( "Archiving event $event->{Id}\n" );
@@ -663,49 +641,119 @@ sub checkFilter
 			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 			my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
 		}
+		if ( ZM_OPT_MPEG ne "no" && $filter->{AutoVideo} )
+		{
+			if ( !$event->{Videoed} )
+			{
+				$delete_ok = undef if ( !generateVideo( $filter, $event ) );
+			}
+		}
+		if ( ZM_OPT_EMAIL && $filter->{AutoEmail} )
+		{
+			if ( !$event->{Emailed} )
+			{
+				$delete_ok = undef if ( !sendEmail( $filter, $event ) );
+			}
+		}
+		if ( ZM_OPT_MESSAGE && $filter->{AutoMessage} )
+		{
+			if ( !$event->{Messaged} )
+			{
+				$delete_ok = undef if ( !sendMessage( $filter, $event ) );
+			}
+		}
+		if ( ZM_OPT_UPLOAD && $filter->{AutoUpload} )
+		{
+			if ( !$event->{Uploaded} )
+			{
+				$delete_ok = undef if ( !uploadArchFile( $filter, $event ) );
+			}
+		}
+		if ( $filter->{AutoExecute} )
+		{
+			if ( !$event->{Execute} )
+			{
+				$delete_ok = undef if ( !executeCommand( $filter, $event ) );
+			}
+		}
 		if ( $filter->{AutoDelete} )
 		{
-			Info( "Deleting event $event->{Id}\n" );
-			# Do it individually to avoid locking up the table for new events
-			my $sql = "delete from Events where Id = ?";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
-
-			if ( !ZM_OPT_FAST_DELETE )
+			if ( $delete_ok )
 			{
-				my $sql = "delete from Frames where EventId = ?";
+				Info( "Deleting event $event->{Id}\n" );
+				# Do it individually to avoid locking up the table for new events
+				my $sql = "delete from Events where Id = ?";
 				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 				my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
 
-				$sql = "delete from Stats where EventId = ?";
-				$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				$res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
-
-				my $command = "rm -rf ".ZM_DIR_EVENTS."/*/".sprintf( "%d", $event->{Id} );
-				my $output = qx($command);
-				my $status = $? >> 8;
-				if ( $status || DBG_LEVEL > 0 )
+				if ( !ZM_OPT_FAST_DELETE )
 				{
-					chomp( $output );
-					Debug( "Output: $output\n" );
+					my $sql = "delete from Frames where EventId = ?";
+					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+					my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+
+					$sql = "delete from Stats where EventId = ?";
+					$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+					$res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+
+					my $command = "rm -rf ".ZM_DIR_EVENTS."/*/".sprintf( "%d", $event->{Id} );
+					my $output = qx($command);
+					my $status = $? >> 8;
+					if ( $status || DBG_LEVEL > 0 )
+					{
+						chomp( $output );
+						Debug( "Output: $output\n" );
+					}
 				}
+			}
+			else
+			{
+				Error( "Unable to delete event $event->{Id} as previous operations failed\n" );
 			}
 		}
 	}
 	$sth->finish();
 }
 
-sub executeCommand
+sub generateVideo
 {
 	my $filter = shift;
 	my $event = shift;
+	my $phone = shift;
 
-	my $event_path = "$event->{MonitorId}/$event->{Id}";
+	my $rate = $event->{DefaultRate}/100;
+	my $scale = $event->{DefaultScale}/100;
+	my $format;
 
-	my $command = $filter->{AutoExecute};
-	$command .= " $event_path";
+	my @ffmpeg_formats = split( /\s+/, ZM_FFMPEG_FORMATS );
+	my $default_video_format;
+	my $default_phone_format;
+	foreach my $ffmpeg_format( @ffmpeg_formats )
+	{
+		if ( $ffmpeg_format =~ /^(.+)\*\*$/ )
+		{
+			$default_phone_format = $1;
+		}
+		elsif ( $ffmpeg_format =~ /^(.+)\*$/ )
+		{
+			$default_video_format = $1;
+		}
+	}
 
-	Info( "Executing '$command'\n" );
+	if ( $phone && $default_phone_format )
+	{
+		$format = $default_phone_format;
+	}
+	elsif ( $default_video_format )
+	{
+		$format = $default_video_format;
+	}
+	else
+	{
+		$format = $ffmpeg_formats[0];
+	}
+
+	my $command = ZM_PATH_BIN."/zmvideo.pl -e ".$event->{Id}." -r ".$rate." -s ".$scale." -f ".$format;
 	my $output = qx($command);
 	my $status = $? >> 8;
 	if ( $status || DBG_LEVEL > 0 )
@@ -715,14 +763,18 @@ sub executeCommand
 	}
 	if ( $status )
 	{
-		Error( "Command '$command' exited with status: $status\n" );
+		Error( "Video generation '$command' failed with status: $status\n" );
+		if ( wantarray() )
+		{
+			return( undef, undef );
+		}
+		return( 0 );
 	}
-	else
+	if ( wantarray() )
 	{
-		my $sql = "update Events set Executed = 1 where Id = ?";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+		return( $format, sprintf( "%d/%d/%s", $event->{MonitorId}, $event->{Id}, $output ) );
 	}
+	return( 1 );
 }
 
 sub uploadArchFile
@@ -773,15 +825,18 @@ sub uploadArchFile
 		}
 	}
 
-
-	if ( !$arch_error )
+	if ( $arch_error )
+	{
+		return( 0 );
+	}
+	else
 	{
 		Info( "Uploading to ".ZM_UPLOAD_FTP_HOST."\n" );
 		my $ftp = Net::FTP->new( ZM_UPLOAD_FTP_HOST, Timeout=>ZM_UPLOAD_FTP_TIMEOUT, Passive=>ZM_UPLOAD_FTP_PASSIVE, Debug=>ZM_UPLOAD_FTP_DEBUG );
 		if ( !$ftp )
 		{
 			warn( "Can't create ftp connection: $@" );
-			return();
+			return( 0 );
 		}
 
 		$ftp->login( ZM_UPLOAD_FTP_USER, ZM_UPLOAD_FTP_PASS ) or warn( "FTP - Can't login" );
@@ -794,186 +849,7 @@ sub uploadArchFile
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 		my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
 	}
-}
-
-sub sendEmail
-{
-	my $filter = shift;
-	my $event = shift;
-
-	if ( !ZM_FROM_EMAIL )
-	{
-		warn( "No 'from' email address defined, not sending email" );
-		return;
-	}
-	if ( !ZM_EMAIL_ADDRESS )
-	{
-		warn( "No email address defined, not sending email" );
-		return;
-	}
-
-	Info( "Creating notification email\n" );
-
-	my $subject = substituteTags( $email_subject, $filter, $event );
-	my @attachments;
-	my $body = substituteTags( $email_body, $filter, $event, \@attachments );
-
-	Info( "Sending notification email '$subject'\n" );
-
-	eval
-	{
-		if ( ZM_NEW_MAIL_MODULES )
-		{
-			### Create the multipart container
-			my $mail = MIME::Lite->new (
-				From => ZM_FROM_EMAIL,
-				To => ZM_EMAIL_ADDRESS,
-				Subject => $subject,
-				Type => "multipart/mixed"
-			);
-			### Add the text message part
-			$mail->attach (
-				Type => "TEXT",
-				Data => $body
-			);
-			### Add the attachments
-			foreach my $attachment ( @attachments )
-			{
-				Info( "Attaching '$attachment->{path}\n" );
-				$mail->attach(
-					Path => $attachment->{path},
-					Type => $attachment->{type},
-					Disposition => "attachment"
-				);
-			}
-			### Send the Message
-			MIME::Lite->send( "smtp", ZM_EMAIL_HOST, Timeout=>60 );
-			$mail->send();
-        } 
-		else
-		{
-			my $mail = MIME::Entity->build(
-				From => ZM_FROM_EMAIL,
-				To => ZM_EMAIL_ADDRESS,
-				Subject => $subject,
-				Type => (($body=~/<html>/)?'text/html':'text/plain'),
-				Data => $body
-			);
-
-			foreach my $attachment ( @attachments )
-			{
-				Info( "Attaching '$attachment->{path}\n" );
-				$mail->attach(
-					Path => $attachment->{path},
-					Type => $attachment->{type},
-					Encoding => "base64"
-				);
-			}
-			$mail->smtpsend( Host => ZM_EMAIL_HOST, MailFrom => ZM_FROM_EMAIL );
-		}
-	};
-	if ( $@ )
-	{
-		warn( "Can't send email: $@" );
-		return();
-	}
-	else
-	{
-		Info( "Notification email sent\n" );
-	}
-	my $sql = "update Events set Emailed = 1 where Id = ?";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
-}
-
-sub sendMessage
-{
-	my $filter = shift;
-	my $event = shift;
-
-	if ( !ZM_FROM_EMAIL )
-	{
-		warn( "No 'from' email address defined, not sending message" );
-		return;
-	}
-	if ( !ZM_MESSAGE_ADDRESS )
-	{
-		warn( "No message address defined, not sending message" );
-		return;
-	}
-
-	Info( "Creating notification message\n" );
-
-	my $subject = substituteTags( $message_subject, $filter, $event );
-	my @attachments;
-	my $body = substituteTags( $message_body, $filter, $event, \@attachments );
-
-	Info( "Sending notification message '$subject'\n" );
-
-	eval
-	{
-		if ( ZM_NEW_MAIL_MODULES )
-		{
-			### Create the multipart container
-			my $mail = MIME::Lite->new (
-				From => ZM_FROM_EMAIL,
-				To => ZM_EMAIL_ADDRESS,
-				Subject => $subject,
-				Type => "multipart/mixed"
-			);
-			### Add the text message part
-			$mail->attach (
-				Type => "TEXT",
-				Data => $body
-			);
-			### Add the attachments
-			foreach my $attachment ( @attachments )
-			{
-				Info( "Attaching '$attachment->{path}\n" );
-				$mail->attach(
-					Path => $attachment->{path},
-					Type => $attachment->{type},
-					Disposition => "attachment"
-				);
-			}
-			### Send the Message
-			MIME::Lite->send( "smtp", ZM_EMAIL_HOST, Timeout=>60 );
-			$mail->send();
-        } 
-		else
-		{
-			my $mail = MIME::Entity->build(
-				From => ZM_FROM_EMAIL,
-				To => ZM_MESSAGE_ADDRESS,
-				Subject => $subject,
-				Type => (($body=~/<html>/)?'text/html':'text/plain'),
-				Data => $body
-			);
-
-			foreach my $attachment ( @attachments )
-			{
-				Info( "Attaching '$attachment->{path}\n" );
-				$mail->attach(
-					Path => $attachment->{path},
-					Type => $attachment->{type},
-					Encoding => "base64"
-				);
-			}
-			$mail->smtpsend( Host => ZM_EMAIL_HOST, MailFrom => ZM_FROM_EMAIL );
-		}
-	};
-	if ( $@ )
-	{
-		warn( "Can't send email: $@" );
-		return();
-	}
-	else
-	{
-		Info( "Notification message sent\n" );
-	}
-	my $sql = "update Events set Messaged = 1 where Id = ?";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+	return( 1 );
 }
 
 sub substituteTags
@@ -1066,15 +942,25 @@ sub substituteTags
 			}
 		}
 	}
-	if ( $attachments_ref && ZM_OPT_MPEG ne "no" && $text =~ s/%EV%//g )
+	if ( $attachments_ref && ZM_OPT_MPEG ne "no" )
 	{
-		my $command = ZM_PATH_BIN."/zmvideo.pl -e $event->{Id}";
-		my $output = qx($command);
-		my $status = $? >> 8;
-		if ( $status == 0 )
+		if ( $text =~ s/%EV%//g )
 		{
-			chomp $output;
-			push( @$attachments_ref, { type=>"video/mpeg", path=>sprintf( "%d/%d/%s", $event->{MonitorId}, $event->{Id}, $output ) } );
+			my ( $format, $path ) = generateVideo( $filter, $event );
+			if ( !$format )
+			{
+				return( undef );
+			}
+			push( @$attachments_ref, { type=>"video/$format", path=>$path } );
+		}
+		if ( $text =~ s/%EVM%//g )
+		{
+			my ( $format, $path ) = generateVideo( $filter, $event, 1 );
+			if ( !$format )
+			{
+				return( undef );
+			}
+			push( @$attachments_ref, { type=>"video/$format", path=>$path } );
 		}
 	}
 	$text =~ s/%FN%/$filter->{Name}/g;
@@ -1083,3 +969,224 @@ sub substituteTags
 	
 	return( $text );
 }
+
+sub sendEmail
+{
+	my $filter = shift;
+	my $event = shift;
+
+	if ( !ZM_FROM_EMAIL )
+	{
+		warn( "No 'from' email address defined, not sending email" );
+		return( 0 );
+	}
+	if ( !ZM_EMAIL_ADDRESS )
+	{
+		warn( "No email address defined, not sending email" );
+		return( 0 );
+	}
+
+	Info( "Creating notification email\n" );
+
+	my $subject = substituteTags( $email_subject, $filter, $event );
+	return( 0 ) if ( !$subject );
+	my @attachments;
+	my $body = substituteTags( $email_body, $filter, $event, \@attachments );
+	return( 0 ) if ( !$body );
+
+	Info( "Sending notification email '$subject'\n" );
+
+	eval
+	{
+		if ( ZM_NEW_MAIL_MODULES )
+		{
+			### Create the multipart container
+			my $mail = MIME::Lite->new (
+				From => ZM_FROM_EMAIL,
+				To => ZM_EMAIL_ADDRESS,
+				Subject => $subject,
+				Type => "multipart/mixed"
+			);
+			### Add the text message part
+			$mail->attach (
+				Type => "TEXT",
+				Data => $body
+			);
+			### Add the attachments
+			foreach my $attachment ( @attachments )
+			{
+				Info( "Attaching '$attachment->{path}\n" );
+				$mail->attach(
+					Path => $attachment->{path},
+					Type => $attachment->{type},
+					Disposition => "attachment"
+				);
+			}
+			### Send the Message
+			MIME::Lite->send( "smtp", ZM_EMAIL_HOST, Timeout=>60 );
+			$mail->send();
+        } 
+		else
+		{
+			my $mail = MIME::Entity->build(
+				From => ZM_FROM_EMAIL,
+				To => ZM_EMAIL_ADDRESS,
+				Subject => $subject,
+				Type => (($body=~/<html>/)?'text/html':'text/plain'),
+				Data => $body
+			);
+
+			foreach my $attachment ( @attachments )
+			{
+				Info( "Attaching '$attachment->{path}\n" );
+				$mail->attach(
+					Path => $attachment->{path},
+					Type => $attachment->{type},
+					Encoding => "base64"
+				);
+			}
+			$mail->smtpsend( Host => ZM_EMAIL_HOST, MailFrom => ZM_FROM_EMAIL );
+		}
+	};
+	if ( $@ )
+	{
+		warn( "Can't send email: $@" );
+		return( 0 );
+	}
+	else
+	{
+		Info( "Notification email sent\n" );
+	}
+	my $sql = "update Events set Emailed = 1 where Id = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+
+	return( 1 );
+}
+
+sub sendMessage
+{
+	my $filter = shift;
+	my $event = shift;
+
+	if ( !ZM_FROM_EMAIL )
+	{
+		warn( "No 'from' email address defined, not sending message" );
+		return( 0 );
+	}
+	if ( !ZM_MESSAGE_ADDRESS )
+	{
+		warn( "No message address defined, not sending message" );
+		return( 0 );
+	}
+
+	Info( "Creating notification message\n" );
+
+	my $subject = substituteTags( $message_subject, $filter, $event );
+	return( 0 ) if ( !$subject );
+	my @attachments;
+	my $body = substituteTags( $message_body, $filter, $event, \@attachments );
+	return( 0 ) if ( !$body );
+
+	Info( "Sending notification message '$subject'\n" );
+
+	eval
+	{
+		if ( ZM_NEW_MAIL_MODULES )
+		{
+			### Create the multipart container
+			my $mail = MIME::Lite->new (
+				From => ZM_FROM_EMAIL,
+				To => ZM_EMAIL_ADDRESS,
+				Subject => $subject,
+				Type => "multipart/mixed"
+			);
+			### Add the text message part
+			$mail->attach (
+				Type => "TEXT",
+				Data => $body
+			);
+			### Add the attachments
+			foreach my $attachment ( @attachments )
+			{
+				Info( "Attaching '$attachment->{path}\n" );
+				$mail->attach(
+					Path => $attachment->{path},
+					Type => $attachment->{type},
+					Disposition => "attachment"
+				);
+			}
+			### Send the Message
+			MIME::Lite->send( "smtp", ZM_EMAIL_HOST, Timeout=>60 );
+			$mail->send();
+        } 
+		else
+		{
+			my $mail = MIME::Entity->build(
+				From => ZM_FROM_EMAIL,
+				To => ZM_MESSAGE_ADDRESS,
+				Subject => $subject,
+				Type => (($body=~/<html>/)?'text/html':'text/plain'),
+				Data => $body
+			);
+
+			foreach my $attachment ( @attachments )
+			{
+				Info( "Attaching '$attachment->{path}\n" );
+				$mail->attach(
+					Path => $attachment->{path},
+					Type => $attachment->{type},
+					Encoding => "base64"
+				);
+			}
+			$mail->smtpsend( Host => ZM_EMAIL_HOST, MailFrom => ZM_FROM_EMAIL );
+		}
+	};
+	if ( $@ )
+	{
+		warn( "Can't send email: $@" );
+		return( 0 );
+	}
+	else
+	{
+		Info( "Notification message sent\n" );
+	}
+	my $sql = "update Events set Messaged = 1 where Id = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+
+	return( 1 );
+}
+
+sub executeCommand
+{
+	my $filter = shift;
+	my $event = shift;
+
+	my $event_path = "$event->{MonitorId}/$event->{Id}";
+
+	my $command = $filter->{AutoExecute};
+	$command .= " $event_path";
+
+	Info( "Executing '$command'\n" );
+	my $output = qx($command);
+	my $status = $? >> 8;
+	if ( $status || DBG_LEVEL > 0 )
+	{
+		chomp( $output );
+		Debug( "Output: $output\n" );
+	}
+	if ( $status )
+	{
+		Error( "Command '$command' exited with status: $status\n" );
+		return( 0 );
+	}
+	else
+	{
+		my $sql = "update Events set Executed = 1 where Id = ?";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+	}
+	return( 1 );
+}
+

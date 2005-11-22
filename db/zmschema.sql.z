@@ -156,6 +156,7 @@ CREATE TABLE Events (
   AvgScore smallint(5) unsigned default '0',
   MaxScore smallint(5) unsigned default '0',
   Archived tinyint(3) unsigned NOT NULL default '0',
+  Videoed tinyint(3) unsigned NOT NULL default '0',
   Uploaded tinyint(3) unsigned NOT NULL default '0',
   Emailed tinyint(3) unsigned NOT NULL default '0',
   Messaged tinyint(3) unsigned NOT NULL default '0',
@@ -179,11 +180,12 @@ CREATE TABLE Filters (
   Name varchar(64) NOT NULL default '',
   Query text NOT NULL,
   AutoArchive tinyint(3) unsigned NOT NULL default '0',
-  AutoDelete tinyint(3) unsigned NOT NULL default '0',
+  AutoVideo tinyint(3) unsigned NOT NULL default '0',
   AutoUpload tinyint(3) unsigned NOT NULL default '0',
   AutoEmail tinyint(3) unsigned NOT NULL default '0',
   AutoMessage tinyint(3) unsigned NOT NULL default '0',
   AutoExecute tinytext,
+  AutoDelete tinyint(3) unsigned NOT NULL default '0',
   PRIMARY KEY  (Name)
 ) TYPE=MyISAM;
 

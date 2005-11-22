@@ -23,21 +23,22 @@ if ( !canView( 'Events' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultScale from Events as E inner join Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$eid' and E.MonitorId = M.Id";
+$result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
 
 if ( $fid )
 {
-	$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
+	$result = mysql_query( "select * from Frames where EventId = '$eid' and FrameId = '$fid'" );
 	if ( !$result )
 		die( mysql_error() );
 	$frame = mysql_fetch_assoc( $result );
 }
 else
 {
-	$result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '".$event['MaxScore']."'" );
+	$result = mysql_query( "select * from Frames where EventId = '$eid' and Score = '".$event['MaxScore']."'" );
 	if ( !$result )
 		die( mysql_error() );
 	$frame = mysql_fetch_assoc( $result );

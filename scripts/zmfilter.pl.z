@@ -580,7 +580,7 @@ sub getFilters
 		if ( $filter_data->{AutoExecute} )
 		{
 			my $script = $filter_data->{AutoExecuteCmd};
-			$script ~= s/\s.*$//;
+			$script =~ s/\s.*$//;
 			if ( !-e $script )
 			{
 				Error( "Auto execute script '$script' not found, skipping filter '$filter_data->{Name}'\n" );

@@ -9,6 +9,9 @@ alter table Filters add column Temp tinyint unsigned not null default 0;
 update Filters set Temp = AutoDelete;
 alter table Filters drop column AutoDelete;
 alter table Filters change column Temp AutoDelete tinyint unsigned not null default 0;
+alter table Filters change column AutoExecute AutoExecuteCmd tinytext;
+alter table Filters add column AutoExecute tinyint unsigned not null default 0 after AutoMessage;
+update Filters set AutoExecute =  if(isnull(AutoExecuteCmd)||AutoExecuteCmd='', 0, 1 );
 --
 -- These are optional, but we might as well do it now
 --

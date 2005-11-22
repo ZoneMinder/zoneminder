@@ -90,17 +90,17 @@ while ( $row = mysql_fetch_assoc( $result ) )
 }
 ?>
 <?php if ( count($filter_names) ) { ?>
-<td align="left" colspan="2" class="text"><?= $zmSlangSaveAs ?>:&nbsp;<?= buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); ?>&nbsp;<?= $zmSlangOrEnterNewName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="<?= $filter_name ?>" class="form"></td>
+<td align="left" colspan="3" class="text"><?= $zmSlangSaveAs ?>:&nbsp;<?= buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); ?>&nbsp;<?= $zmSlangOrEnterNewName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="<?= $filter_name ?>" class="form"></td>
 <?php } else { ?>
-<td align="left" colspan="2" class="text"><?= $zmSlangEnterNewFilterName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="" class="form"></td>
+<td align="left" colspan="3" class="text"><?= $zmSlangEnterNewFilterName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="" class="form"></td>
 <?php } ?>
 </tr>
 <tr>
-<td align="right" colspan="2" class="text">&nbsp;</td>
+<td align="right" colspan="3" class="text">&nbsp;</td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoArchiveEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_archive" value="1"<?php if ( $filter_data['AutoArchive'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_archive" value="1"<?php if ( $filter_data['AutoArchive'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <?php
 if ( ZM_OPT_MPEG != "no" )
@@ -108,7 +108,7 @@ if ( ZM_OPT_MPEG != "no" )
 ?>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoVideoEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_video" value="1"<?php if ( $filter_data['AutoVideo'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_video" value="1"<?php if ( $filter_data['AutoVideo'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <?php
 }
@@ -117,7 +117,7 @@ if ( ZM_OPT_UPLOAD )
 ?>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoUploadEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_upload" value="1"<?php if ( $filter_data['AutoUpload'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_upload" value="1"<?php if ( $filter_data['AutoUpload'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <?php
 }
@@ -126,7 +126,7 @@ if ( ZM_OPT_EMAIL )
 ?>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoEmailEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_email" value="1"<?php if ( $filter_data['AutoEmail'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_email" value="1"<?php if ( $filter_data['AutoEmail'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <?php
 }
@@ -135,24 +135,25 @@ if ( ZM_OPT_MESSAGE )
 ?>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoMessageEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_message" value="1"<?php if ( $filter_data['AutoMessage'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_message" value="1"<?php if ( $filter_data['AutoMessage'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <?php
 }
 ?>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoExecuteEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="text" name="auto_execute" value="<?= $filter_data['AutoExecute'] ?>" size="32" maxlength="255" class="form"></td>
+<td align="left" class="text"><input type="checkbox" name="auto_execute" value="1"<?php if ( $filter_data['AutoExecute'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text"><input type="text" name="auto_execute_cmd" value="<?= $filter_data['AutoExecuteCmd'] ?>" size="32" maxlength="255" class="form"></td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangAutoDeleteEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_delete" value="1"<?php if ( $filter_data['AutoDelete'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_delete" value="1"<?php if ( $filter_data['AutoDelete'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <tr>
-<td align="right" colspan="2" class="text">&nbsp;</td>
+<td align="right" colspan="3" class="text">&nbsp;</td>
 </tr>
 <tr>
-<td align="right" colspan="2" class="text"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td>
+<td align="right" colspan="3" class="text"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td>
 </tr>
 </table></center>
 </form>

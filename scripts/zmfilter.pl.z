@@ -330,7 +330,7 @@ sub getDiskBlocks
 sub getFilters
 {
 	my @filters;
-	my $sql = "select * from Filters where (AutoDelete = 1 or AutoArchive = 1 or AutoVideo = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1 or AutoExecute != '') order by Name";
+	my $sql = "select * from Filters where (AutoArchive = 1 or AutoVideo = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1 or AutoExecute = 1 or AutoDelete = 1) order by Name";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
 	FILTER: while( my $filter_data = $sth->fetchrow_hashref() )
@@ -579,7 +579,8 @@ sub getFilters
 		$filter_data->{Sql} = $sql;
 		if ( $filter_data->{AutoExecute} )
 		{
-			my $script = $filter_data->{AutoExecute};
+			my $script = $filter_data->{AutoExecuteCmd};
+			$script ~= s/\s.*$//;
 			if ( !-e $script )
 			{
 				Error( "Auto execute script '$script' not found, skipping filter '$filter_data->{Name}'\n" );
@@ -1165,7 +1166,7 @@ sub executeCommand
 
 	my $event_path = "$event->{MonitorId}/$event->{Id}";
 
-	my $command = $filter->{AutoExecute};
+	my $command = $filter->{AutoExecuteCmd};
 	$command .= " $event_path";
 
 	Info( "Executing '$command'\n" );

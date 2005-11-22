@@ -184,7 +184,8 @@ CREATE TABLE Filters (
   AutoUpload tinyint(3) unsigned NOT NULL default '0',
   AutoEmail tinyint(3) unsigned NOT NULL default '0',
   AutoMessage tinyint(3) unsigned NOT NULL default '0',
-  AutoExecute tinytext,
+  AutoExecute tinyint(3) unsigned NOT NULL default '0',
+  AutoExecuteCmd tinytext,
   AutoDelete tinyint(3) unsigned NOT NULL default '0',
   PRIMARY KEY  (Name)
 ) TYPE=MyISAM;

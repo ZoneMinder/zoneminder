@@ -247,6 +247,13 @@ sub sendCmd
 
 my $sync = 0xff;
 
+sub remoteReset
+{
+	print( "Remote Reset\n" );
+	my @msg = ( $sync, $address, 0x00, 0x0f, 0x00, 0x00 );
+	sendCmd( \@msg );
+}
+
 sub cameraOff
 {
 	print( "Camera Off\n" );
@@ -582,7 +589,11 @@ sub presetHome
 	sendCmd( \@msg );
 }
 
-if ( $command eq "wake" )
+if ( $command eq "reset" )
+{
+	remoteReset();
+}
+elsif ( $command eq "wake" )
 {
 	cameraOn();
 }

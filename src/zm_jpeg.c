@@ -205,6 +205,7 @@ typedef struct {
 
   JOCTET * inbuffer;		/* source stream */
   int    inbuffer_size;
+  int    inbuffer_size_hwm; /* High water mark */
 
   JOCTET * buffer;		/* start of buffer */
   boolean start_of_data;	/* have we gotten any data yet? */
@@ -347,7 +348,7 @@ static void term_source (j_decompress_ptr cinfo)
  * for closing it after finishing decompression.
  */
 
-void jpeg_mem_src (j_decompress_ptr cinfo, JOCTET *inbuffer, int inbuffer_size )
+void jpeg_mem_src( j_decompress_ptr cinfo, JOCTET *inbuffer, int inbuffer_size )
 {
   mem_src_ptr src;
 
@@ -358,7 +359,9 @@ void jpeg_mem_src (j_decompress_ptr cinfo, JOCTET *inbuffer, int inbuffer_size )
    * This makes it unsafe to use this manager and a different source
    * manager serially with the same JPEG object.  Caveat programmer.
    */
-  if (cinfo->src == NULL) {	/* first time for this JPEG object? */
+  if (cinfo->src == NULL)
+  {
+  	/* first time for this JPEG object? */
     cinfo->src = (struct jpeg_source_mgr *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
 				  SIZEOF(mem_source_mgr));
@@ -366,6 +369,18 @@ void jpeg_mem_src (j_decompress_ptr cinfo, JOCTET *inbuffer, int inbuffer_size )
     src->buffer = (JOCTET *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
 				  inbuffer_size * SIZEOF(JOCTET));
+	src->inbuffer_size_hwm = inbuffer_size;
+  }
+  else
+  {
+    src = (mem_src_ptr) cinfo->src;
+	if ( src->inbuffer_size_hwm < inbuffer_size )
+	{
+      src->buffer = (JOCTET *)
+        (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
+				    inbuffer_size * SIZEOF(JOCTET));
+	  src->inbuffer_size_hwm = inbuffer_size;
+	}
   }
 
   src = (mem_src_ptr) cinfo->src;

@@ -55,6 +55,9 @@ protected:
 	static unsigned char *y_g_table;
 	static unsigned char *y_b_table;
 	static BlendTablePtr blend_tables[101];
+	static jpeg_compress_struct *jpg_ccinfo[100];
+	static jpeg_decompress_struct *jpg_dcinfo;
+	static struct zm_error_mgr jpg_err;
 
 protected:
 	int	width;
@@ -156,7 +159,7 @@ public:
 			height = p_height;
 			colours = p_colours;
 			int new_size = width*height*colours;
-			if ( size != new_size )
+			if ( size < new_size )
 			{
 				size = new_size;
 				delete[] buffer;
@@ -174,7 +177,7 @@ public:
 			height = image.height;
 			colours = image.colours;
 			int new_size = width*height*colours;
-			if ( size != new_size )
+			if ( size < new_size )
 			{
 				size = new_size;
 				delete[] buffer;

@@ -37,8 +37,29 @@ while ( $row = mysql_fetch_assoc( $result ) )
 	}
 }
 
+$auto_str = "";
 if ( isset($filter_data) )
 {
+	$auto_text = array();
+	if ( $filter_data['AutoArchive'] ) 
+		$auto_text[] = $zmSlangAutoArchiveAbbr;
+	if ( $filter_data['AutoVideo'] ) 
+		$auto_text[] = $zmSlangAutoVideoAbbr;
+	if ( $filter_data['AutoUpload'] ) 
+		$auto_text[] = $zmSlangAutoUploadAbbr;
+	if ( $filter_data['AutoEmail'] ) 
+		$auto_text[] = $zmSlangAutoEmailAbbr;
+	if ( $filter_data['AutoMessage'] ) 
+		$auto_text[] = $zmSlangAutoMessageAbbr;
+	if ( $filter_data['AutoExecute'] ) 
+		$auto_text[] = $zmSlangAutoExecuteAbbr;
+	if ( $filter_data['AutoDelete'] ) 
+		$auto_text[] = $zmSlangAutoDeleteAbbr;
+	if ( count($auto_text) )
+	{
+		$auto_str = '['.join( ',', $auto_text ).']';
+	}
+
 	foreach( split( '&', $filter_data['Query'] ) as $filter_parm )
 	{
 		list( $key, $value ) = split( '=', $filter_parm, 2 );
@@ -247,7 +268,7 @@ window.focus();
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td align="left" class="text"><?= $zmSlangUseFilter ?>:&nbsp;<?php if ( count($filter_names) > 1 ) { echo buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form, 1 );" ); } else { ?><select class="form" disabled><option><?= $zmSlangNoSavedFilters ?></option></select><?php } ?></td>
+<td align="left" class="text"><?= $zmSlangUseFilter ?>:&nbsp;<?php if ( count($filter_names) > 1 ) { echo buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form, 1 );" ); } else { ?><select class="form" disabled><option><?= $zmSlangNoSavedFilters ?></option></select><?php } ?>&nbsp;&nbsp;<?= $auto_str ?></td>
 <?php if ( canEdit( 'Events' ) ) { ?>
 <td align="right" class="text"><a href="javascript: saveFilter( document.filter_form );"><?= $zmSlangSave ?></a></td>
 <?php } else { ?>

@@ -217,11 +217,6 @@ if ( !connect( CLIENT, $saddr ) )
 			{
 				# It's not running, or at least it's not been started by us
 				$process = { daemon=>$daemon, args=>\@args, command=>$command, keepalive=>!undef };
-				# So check whether someone else has started it
-				#$ps_command = "ps -wh --user $> | grep '$command' | grep -v grep";
-				#$ps_array = preg_split( "/\s+/", exec( $ps_command ) );
-				#$pid = $ps_array[3];
-				#if ( $pid )
 			}
 			elsif ( $process->{pid} && $pid_hash{$process->{pid}} )
 			{
@@ -266,7 +261,6 @@ if ( !connect( CLIENT, $saddr ) )
 				foreach my $arg ( @args )
 				{
 					# Detaint arguments, if they look ok
-					#if ( $arg =~ /^(-{0,2}[\w]+)/ )
 					if ( $arg =~ /^(-{0,2}[\w\/?&=.-]+)$/ )
 					{
 						push( @good_args, $1 );
@@ -342,11 +336,14 @@ if ( !connect( CLIENT, $saddr ) )
 			my $process = $cmd_hash{$command};
 			if ( $process )
 			{
-				my $cpid = $process->{pid};
-				if ( $pid_hash{$cpid} )
+				if ( $process->{pid} )
 				{
-					_stop( 0, $daemon, @args );
-					return;
+					my $cpid = $process->{pid};
+					if ( defined($pid_hash{$cpid}) )
+					{
+						_stop( 0, $daemon, @args );
+						return;
+					}
 				}
 			}
 			start( $daemon, @args );

@@ -116,14 +116,14 @@ int main( int argc, const char *argv[] )
 				ttl = atoi(value);
 			else if ( config.opt_use_auth )
 			{
-				if ( strcmp( config.auth_relay, "hashed" ) == 0 )
+				//if ( strcmp( config.auth_relay, "hashed" ) == 0 )
 				{
 					if ( !strcmp( name, "auth" ) )
 					{
 						strncpy( auth, value, sizeof(auth) );
 					}
 				}
-				else if ( strcmp( config.auth_relay, "plain" ) == 0 )
+				//else if ( strcmp( config.auth_relay, "plain" ) == 0 )
 				{
 					if ( !strcmp( name, "user" ) )
 					{

@@ -131,7 +131,6 @@ bool Image::ReadJpeg( const char *filename )
 		jpeg_create_decompress( cinfo );
 	}
 
-
 	FILE *infile;
 	if ( (infile = fopen( filename, "rb" )) == NULL )
 	{

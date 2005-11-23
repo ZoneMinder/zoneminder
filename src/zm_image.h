@@ -93,6 +93,10 @@ public:
 	{
 		if ( !initialised )
 			Initialise();
+		width = 0;
+		height = 0;
+		colours = 0;
+		size = 0;
 		buffer = 0;
 		ReadJpeg( filename );
 		our_buffer = true;

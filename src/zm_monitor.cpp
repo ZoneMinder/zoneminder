@@ -94,7 +94,21 @@ Monitor::~Monitor()
 		}
 		delete event;
 	}
+	for ( int i = 0; i < image_buffer_count; i++ )
+	{
+		delete image_buffer[i].image;
+	}
 	delete[] image_buffer;
+
+	for ( int i = 0; i < n_zones; i++ )
+	{
+		delete zones[i];
+	}
+	delete[] zones;
+
+	delete camera;
+
+	delete[] name;
 
 	if ( purpose == ANALYSIS )
 	{
@@ -201,7 +215,8 @@ void Monitor::Setup()
 	{
 		n_zones = 1;
 		zones = new Zone *[1];
-		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Box( width, height ), RGB_RED, Zone::BLOBS );
+		Coord coords[4] = { Coord( 0, 0 ), Coord( width, 0 ), Coord( width, height ), Coord( 0, height ) };
+		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Polygon( sizeof(coords)/sizeof(*coords), coords ), RGB_RED, Zone::BLOBS );
 	}
 	start_time = last_fps_time = time( 0 );
 
@@ -256,6 +271,9 @@ void Monitor::Setup()
 
 void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
 {
+	for ( int i = 0; i < n_zones; i++ )
+		delete zones[i];
+	delete[] zones;
 	n_zones = p_n_zones;
 	zones = p_zones;
 }
@@ -535,8 +553,20 @@ int Monitor::Colour( int p_colour )
 	return( camera->Colour( p_colour ) );
 }
 
-void Monitor::DumpZoneImage()
+void Monitor::DumpZoneImage( const char *zone_string )
 {
+	int exclude_id = 0;
+	int extra_colour = 0;
+	Polygon extra_zone;
+
+	if ( zone_string )
+	{
+		if ( !Zone::ParseZoneString( zone_string, exclude_id, extra_colour, extra_zone ) )
+		{
+			Error(( "Failed to parse zone string, ignoring" ));
+		}
+	}
+
 	int index = shared_data->last_write_index;
 	Snapshot *snap = &image_buffer[index];
 	Image *snap_image = snap->image;
@@ -545,6 +575,9 @@ void Monitor::DumpZoneImage()
 	zone_image.Colourise();
 	for( int i = 0; i < n_zones; i++ )
 	{
+		if ( exclude_id && zones[i]->Id() == exclude_id )
+			continue;
+
 		Rgb colour;
 		if ( zones[i]->IsActive() )
 		{
@@ -552,22 +585,29 @@ void Monitor::DumpZoneImage()
 		}
 		else if ( zones[i]->IsInclusive() )
 		{
-			colour = RGB_GREEN;
+			colour = RGB_ORANGE;
 		}
 		else if ( zones[i]->IsExclusive() )
 		{
-			colour = RGB_BLUE;
+			colour = RGB_PURPLE;
 		}
 		else if ( zones[i]->IsPreclusive() )
 		{
-			colour = RGB_BLACK;
+			colour = RGB_BLUE;
 		}
 		else
 		{
 			colour = RGB_WHITE;
 		}
-		zone_image.Hatch( colour, &(zones[i]->Limits()) );
+		zone_image.Fill( colour, 2, zones[i]->GetPolygon() );
 	}
+
+	if ( extra_zone.getNumCoords() )
+	{
+		zone_image.Fill( extra_colour, 2, extra_zone );
+		zone_image.Outline( extra_colour, extra_zone );
+	}
+
 	static char filename[PATH_MAX];
 	snprintf( filename, sizeof(filename), "%s-Zones.jpg", name );
 	zone_image.WriteJpeg( filename );
@@ -1651,7 +1691,7 @@ unsigned int Monitor::Compare( const Image &comp_image )
 			continue;
 		}
 
-		delta_image->Fill( RGB_BLACK, &(zone->Limits()) );
+		delta_image->Fill( RGB_BLACK, zone->GetPolygon() );
 	}
 
 	// Check preclusive zones first

@@ -18,5 +18,6 @@
 // 
 
 #include "zm.h"
+#include "zm_coord.h"
 
 // This section deliberately left blank

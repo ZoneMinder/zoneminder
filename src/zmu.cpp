@@ -146,7 +146,7 @@ int main( int argc, char *argv[] )
 		{"write_index", 0, 0, 'W'},
 		{"event", 0, 0, 'e'},
 		{"fps", 0, 0, 'f'},
-		{"zones", 0, 0, 'z'},
+		{"zones", 1, 0, 'z'},
 		{"alarm", 0, 0, 'a'},
 		{"noalarm", 0, 0, 'n'},
 		{"cancel", 0, 0, 'c'},
@@ -171,6 +171,7 @@ int main( int argc, char *argv[] )
 	int contrast = -1;
 	int hue = -1;
 	int colour = -1;
+	char *zone_string = 0;
 	char *username = 0;
 	char *password = 0;
 	char *auth = 0;
@@ -178,7 +179,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsurwei::S:t::fzancqphlB::C::H::O::U:P:A:", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsurwei::S:t::fz:ancqhlB::C::H::O::U:P:A:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -229,6 +230,10 @@ int main( int argc, char *argv[] )
 				break;
 			case 'z':
 				function |= ZONES;
+				if ( optarg )
+				{
+					zone_string = optarg;
+				}
 				break;
 			case 'a':
 				function |= ALARM;
@@ -356,6 +361,7 @@ int main( int argc, char *argv[] )
 		}
 		ValidateAccess( user, mon_id, function );
 	}
+	
 
 	if ( device[0] )
 	{
@@ -370,7 +376,6 @@ int main( int argc, char *argv[] )
 	else if ( mon_id > 0 )
 	{
 		Monitor *monitor = Monitor::Load( mon_id, function&(QUERY|ZONES) );
-
 		if ( monitor )
 		{
 			if ( verbose )
@@ -473,7 +478,7 @@ int main( int argc, char *argv[] )
 			{
 				if ( verbose )
 					printf( "Dumping zone image to %s-Zones.jpg\n", monitor->Name() );
-				monitor->DumpZoneImage();
+				monitor->DumpZoneImage( zone_string );
 			}
 			if ( function & ALARM )
 			{
@@ -595,6 +600,7 @@ int main( int argc, char *argv[] )
 			{
 				Usage();
 			}
+			delete monitor;
 		}
 		else
 		{
@@ -655,6 +661,7 @@ int main( int argc, char *argv[] )
 							);
 							delete monitor;
 						}
+						delete monitor;
 					}
 					else
 					{
@@ -673,7 +680,10 @@ int main( int argc, char *argv[] )
 					}
 				}
 			}
+			mysql_free_result( result );
 		}
 	}
+	delete user;
+
 	return( 0 );
 }

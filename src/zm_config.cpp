@@ -236,6 +236,7 @@ void Config::Load()
 	{
 		items[i] = new ConfigItem( dbrow[0], dbrow[1], dbrow[2] );
 	}
+	mysql_free_result( result );
 }
 
 void Config::Assign()

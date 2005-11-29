@@ -22,6 +22,7 @@ zm_SOURCES = \
 	zm_config.cpp \
 	zm_coord.cpp \
 	zm_box.cpp \
+	zm_poly.cpp \
 	zm_image.cpp \
 	zm_event.cpp \
 	zm_zone.cpp \
@@ -54,6 +55,7 @@ noinst_HEADERS = \
 	zm_debug.h \
 	zm_coord.h \
 	zm_box.h \
+	zm_poly.h \
 	zm_image.h \
 	zm_event.h \
 	zm_zone.h \

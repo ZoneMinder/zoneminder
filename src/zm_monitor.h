@@ -245,7 +245,7 @@ public:
 	int Contrast( int p_contrast=-1 );
 
 	bool DumpSettings( char *output, bool verbose );
-	void DumpZoneImage();
+	void DumpZoneImage( const char *zone_string=0 );
 
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }

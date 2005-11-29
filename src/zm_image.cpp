@@ -20,6 +20,8 @@
 #include "zm_font.h"
 #include "zm_image.h"
 
+#include <sys/stat.h>
+
 #define ABSDIFF(a,b) 	(((a)<(b))?((b)-(a)):((a)-(b)))
 
 bool Image::initialised = false;
@@ -118,6 +120,51 @@ Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 		}
 	}
 	return( high_image );
+}
+
+bool Image::ReadRaw( const char *filename )
+{
+	FILE *infile;
+	if ( (infile = fopen( filename, "rb" )) == NULL )
+	{
+		Error(( "Can't open %s: %s", filename, strerror(errno) ));
+		return( false );
+	}
+
+	struct stat statbuf;
+	if ( fstat( fileno(infile), &statbuf ) < 0 )
+	{
+		Error(( "Can't fstat %s: %s", filename, strerror(errno) ));
+		return( false );
+	}
+
+	if ( statbuf.st_size  != size )
+	{
+		Error(( "Raw file size mismatch, expected %d bytes, found %d", size, statbuf.st_size ));
+		return( false );
+	}
+
+	fread( buffer, size, 1, infile );
+
+	fclose( infile );
+
+	return( true );
+}
+
+bool Image::WriteRaw( const char *filename ) const
+{
+	FILE *outfile;
+	if ( (outfile = fopen( filename, "wb" )) == NULL )
+	{
+		Error(( "Can't open %s: %s", filename, strerror(errno) ));
+		return( false );
+	}
+
+	fwrite( buffer, size, 1, outfile );
+
+	fclose( outfile );
+
+	return( true );
 }
 
 bool Image::ReadJpeg( const char *filename )
@@ -811,40 +858,6 @@ void Image::DeColourise()
 	}
 }
 
-void Image::Hatch( Rgb colour, const Box *limits )
-{
-	assert( colours == 1 || colours == 3 );
-
-	int lo_x = limits?limits->Lo().X():0;
-	int lo_y = limits?limits->Lo().Y():0;
-	int hi_x = limits?limits->Hi().X():width-1;
-	int hi_y = limits?limits->Hi().Y():height-1;
-	for ( int y = lo_y; y <= hi_y; y++ )
-	{
-		unsigned char *p = &buffer[colours*((y*width)+lo_x)];
-		for ( int x = lo_x; x <= hi_x; x++, p += colours )
-		{
-
-			//if ( ( (x == lo_x || x == hi_x) && (y >= lo_y && y <= hi_y) )
-			//|| ( (y == lo_y || y == hi_y) && (x >= lo_x && x <= hi_x) )
-			//|| ( (x > lo_x && x < hi_x && y > lo_y && y < hi_y) && !(x%2) && !(y%2) ) )
-			if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%2) && !(y%2) ) )
-			{
-				if ( colours == 1 )
-				{
-					*p = colour;
-				}
-				else if ( colours == 3 )
-				{
-					RED(p) = RGB_RED_VAL(colour);
-					GREEN(p) = RGB_GREEN_VAL(colour);
-					BLUE(p) = RGB_BLUE_VAL(colour);
-				}
-			}
-		}
-	}
-}
-
 void Image::Fill( Rgb colour, const Box *limits )
 {
 	assert( colours == 1 || colours == 3 );
@@ -877,6 +890,240 @@ void Image::Fill( Rgb colour, const Box *limits )
 			}
 		}
 	}
+}
+
+void Image::Fill( Rgb colour, int density, const Box *limits )
+{
+	assert( colours == 1 || colours == 3 );
+
+	int lo_x = limits?limits->Lo().X():0;
+	int lo_y = limits?limits->Lo().Y():0;
+	int hi_x = limits?limits->Hi().X():width-1;
+	int hi_y = limits?limits->Hi().Y():height-1;
+	for ( int y = lo_y; y <= hi_y; y++ )
+	{
+		unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+		for ( int x = lo_x; x <= hi_x; x++, p += colours )
+		{
+			if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
+			{
+				if ( colours == 1 )
+				{
+					*p = colour;
+				}
+				else if ( colours == 3 )
+				{
+					RED(p) = RGB_RED_VAL(colour);
+					GREEN(p) = RGB_GREEN_VAL(colour);
+					BLUE(p) = RGB_BLUE_VAL(colour);
+				}
+			}
+		}
+	}
+}
+
+void Image::Outline( Rgb colour, const Polygon &polygon )
+{
+	assert( colours == 1 || colours == 3 );
+	int n_coords = polygon.getNumCoords();
+	for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ )
+	{
+		const Coord &p1 = polygon.getCoord( i );
+		const Coord &p2 = polygon.getCoord( j );
+
+		int x1 = p1.X();
+		int x2 = p2.X();
+		int y1 = p1.Y();
+		int y2 = p2.Y();
+
+		double dx = x2 - x1;
+		double dy = y2 - y1;
+
+		double grad;
+
+		//printf( "dx: %.2lf, dy: %.2lf\n", dx, dy );
+		if ( fabs(dx) <= fabs(dy) )
+		{
+			//printf( "dx <= dy\n" );
+			if ( y1 != y2 )
+				grad = dx/dy;
+			else
+				grad = width;
+
+			double x;
+			int y, yinc = (y1<y2)?1:-1;
+			grad *= yinc;
+			if ( colours == 1 )
+			{
+				//printf( "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f\n", x1, x2, y1, y2, grad );
+				for ( x = x1, y = y1; y != y2; y += yinc, x += grad )
+				{
+					//printf( "x:%.2f, y:%d\n", x, y );
+					buffer[(y*width)+int(round(x))] = colour;
+				}
+			}
+			else if ( colours == 3 )
+			{
+				for ( x = x1, y = y1; y != y2; y += yinc, x += grad )
+				{
+					unsigned char *p = &buffer[colours*((y*width)+int(round(x)))];
+					RED(p) = RGB_RED_VAL(colour);
+					GREEN(p) = RGB_GREEN_VAL(colour);
+					BLUE(p) = RGB_BLUE_VAL(colour);
+				}
+			}
+		}
+		else
+		{
+			//printf( "dx > dy\n" );
+			if ( x1 != x2 )
+				grad = dy/dx;
+			else
+				grad = height;
+			//printf( "grad: %.2lf\n", grad );
+
+			double y;
+			int x, xinc = (x1<x2)?1:-1;
+			grad *= xinc;
+			if ( colours == 1 )
+			{
+				//printf( "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf\n", x1, x2, y1, y2, grad );
+				for ( y = y1, x = x1; x != x2; x += xinc, y += grad )
+				{
+					//printf( "x:%d, y:%.2f\n", x, y );
+					buffer[(int(round(y))*width)+x] = colour;
+				}
+			}
+			else if ( colours == 3 )
+			{
+				for ( y = y1, x = x1; x != x2; x += xinc, y += grad )
+				{
+					unsigned char *p = &buffer[colours*((int(round(y))*width)+x)];
+					RED(p) = RGB_RED_VAL(colour);
+					GREEN(p) = RGB_GREEN_VAL(colour);
+					BLUE(p) = RGB_BLUE_VAL(colour);
+				}
+			}
+		}
+	}
+}
+
+void Image::Fill( Rgb colour, int density, const Polygon &polygon )
+{
+	assert( colours == 1 || colours == 3 );
+
+	int n_coords = polygon.getNumCoords();
+	int n_global_edges = 0;
+	Edge global_edges[n_coords];
+	for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ )
+	{
+		const Coord &p1 = polygon.getCoord( i );
+		const Coord &p2 = polygon.getCoord( j );
+
+		int x1 = p1.X();
+		int x2 = p2.X();
+		int y1 = p1.Y();
+		int y2 = p2.Y();
+
+		//printf( "x1:%d,y1:%d x2:%d,y2:%d\n", x1, y1, x2, y2 );
+		if ( y1 == y2 )
+			continue;
+
+		double dx = x2 - x1;
+		double dy = y2 - y1;
+
+		global_edges[n_global_edges].min_y = y1<y2?y1:y2;
+		global_edges[n_global_edges].max_y = y1<y2?y2:y1;
+		global_edges[n_global_edges].min_x = y1<y2?x1:x2;
+		global_edges[n_global_edges]._1_m = dx/dy;
+		n_global_edges++;
+	}
+	qsort( global_edges, n_global_edges, sizeof(*global_edges), Edge::CompareYX );
+
+	//for ( int i = 0; i < n_global_edges; i++ )
+	//{
+		//printf( "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f\n", i, global_edges[i].min_y, global_edges[i].max_y, global_edges[i].min_x, global_edges[i]._1_m );
+	//}
+
+	int n_active_edges = 0;
+	Edge active_edges[n_global_edges];
+	int y = global_edges[0].min_y;
+	do 
+	{
+		for ( int i = 0; i < n_global_edges; i++ )
+		{
+			if ( global_edges[i].min_y == y )
+			{
+				//printf( "Moving global edge\n" );
+				active_edges[n_active_edges++] = global_edges[i];
+				if ( i < (n_global_edges-1) )
+				{
+					memcpy( &global_edges[i], &global_edges[i+1], sizeof(*global_edges)*(n_global_edges-i) );
+					i--;
+				}
+				n_global_edges--;
+			}
+			else
+			{
+				break;
+			}
+		}
+		qsort( active_edges, n_active_edges, sizeof(*active_edges), Edge::CompareX );
+		//for ( int i = 0; i < n_active_edges; i++ )
+		//{
+			//printf( "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f\n", y, i, active_edges[i].min_y, active_edges[i].max_y, active_edges[i].min_x, active_edges[i]._1_m );
+		//}
+		if ( !(y%density) )
+		{
+		//printf( "%d\n", y );
+			for ( int i = 0; i < n_active_edges; )
+			{
+				int lo_x = int(round(active_edges[i++].min_x));
+				int hi_x = int(round(active_edges[i++].min_x));
+				unsigned char *p = &buffer[colours*((y*width)+lo_x)];
+				for ( int x = lo_x; x <= hi_x; x++, p += colours )
+				{
+					if ( !(x%density) )
+					{
+						//printf( " %d", x );
+						if ( colours == 1 )
+						{
+							*p == colour;
+						}
+						else
+						{
+							RED(p) = RGB_RED_VAL(colour);
+							GREEN(p) = RGB_GREEN_VAL(colour);
+							BLUE(p) = RGB_BLUE_VAL(colour);
+						}
+					}
+				}
+			}
+		//printf( "\n" );
+		}
+		y++;
+		for ( int i = n_active_edges-1; i >= 0; i-- )
+		{
+			if ( y >= active_edges[i].max_y ) // Or >= as per sheets
+			{
+				//printf( "Deleting active_edge\n" );
+				if ( i < (n_active_edges-1) )
+				{
+					memcpy( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
+				}
+				n_active_edges--;
+			}
+			else
+			{
+				active_edges[i].min_x += active_edges[i]._1_m;
+			}
+		}
+	} while ( n_global_edges || n_active_edges );
+}
+
+void Image::Fill( Rgb colour, const Polygon &polygon )
+{
+	Fill( colour, 1, polygon );
 }
 
 void Image::Rotate( int angle )

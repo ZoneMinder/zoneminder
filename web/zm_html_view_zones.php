@@ -32,13 +32,17 @@ if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
 
-$result = mysql_query( "select * from Zones where MonitorId = '$mid'" );
+$result = mysql_query( "select * from Zones where MonitorId = '$mid' order by Area desc" );
 if ( !$result )
 	die( mysql_error() );
 $zones = array();
 while( $row = mysql_fetch_assoc( $result ) )
 {
-	$zones[] = $row;
+	if ( $row['Points'] = coordsToPoints( $row['Coords'] ) )
+	{
+		$row['AreaCoords'] = preg_replace( '/\s+/', ',', $row['Coords'] );
+		$zones[] = $row;
+	}
 }
 
 $image = $monitor['Name']."-Zones.jpg";
@@ -53,7 +57,7 @@ $image = $monitor['Name']."-Zones.jpg";
 window.focus();
 function newWindow(Url,Name,Width,Height)
 {
-	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 function closeWindow()
 {
@@ -80,20 +84,11 @@ function configureButton(form,name)
 <body>
 <map name="zonemap">
 <?php
-foreach( $zones as $zone )
+foreach( array_reverse($zones) as $zone )
 {
-	if ( $zone['Units'] == 'Percent' )
-	{
 ?>
-<area shape="rect" coords="<?= sprintf( "%d,%d,%d,%d", ($zone['LoX']*$monitor['Width'])/100, ($zone['LoY']*$monitor['Height'])/100, ($zone['HiX']*$monitor['Width'])/100, ($zone['HiY']*$monitor['Height'])/100 ) ?>" href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );">
+<area shape="poly" coords="<?= $zone['AreaCoords'] ?>" href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', <?= $monitor['Width']+$jws['zone']['w'] ?>, <?= $monitor['Height']<$jws['zone']['h']?$jws['zone']['h']:$monitor['Height'] ?> );">
 <?php
-	}
-	else
-	{
-?>
-<area shape="rect" coords="<?= $zone['LoX'].",".$zone['LoY'].",".$zone['HiX'].",".$zone['HiY'] ?>" href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );">
-<?php
-	}
 }
 ?>
 <area shape="default" nohref>
@@ -114,8 +109,7 @@ foreach( $zones as $zone )
 <tr><td align="center" class="smallhead"><?= $zmSlangId ?></td>
 <td align="center" class="smallhead"><?= $zmSlangName ?></td>
 <td align="center" class="smallhead"><?= $zmSlangType ?></td>
-<td align="center" class="smallhead"><?= $zmSlangUnits ?></td>
-<td align="center" class="smallhead"><?= $zmSlangDimensions ?></td>
+<td align="center" class="smallhead"><?= $zmSlangAreaUnits ?></td>
 <td align="center" class="smallhead"><?= $zmSlangMark ?></td>
 </tr>
 <?php
@@ -123,11 +117,10 @@ foreach( $zones as $zone )
 {
 ?>
 <tr>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );"><?= $zone['Id'] ?>.</a></td>
-<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );"><?= $zone['Name'] ?></a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', <?= $monitor['Width']+$jws['zone']['w'] ?>, <?= $monitor['Height']<$jws['zone']['h']?$jws['zone']['h']:$monitor['Height'] ?> );"><?= $zone['Id'] ?>.</a></td>
+<td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', <?= $monitor['Width']+$jws['zone']['w'] ?>, <?= $monitor['Height']<$jws['zone']['h']?$jws['zone']['h']:$monitor['Height'] ?> );"><?= $zone['Name'] ?></a></td>
 <td align="center" class="text"><?= $zone['Type'] ?></td>
-<td align="center" class="text"><?= $zone['Units'] ?></td>
-<td align="center" class="text"><?= $zone['LoX'] ?>,<?= $zone['LoY'] ?>-<?= $zone['HiX'] ?>,<?= $zone['HiY']?></td>
+<td align="center" class="text"><?= $zone['Area'] ?>&nbsp;/&nbsp;<?= sprintf( "%.2f", ($zone['Area']*100)/($monitor['Width']*$monitor['Height']) ) ?></td>
 <td align="center" class="text"><input type="checkbox" name="mark_zids[]" value="<?= $zone['Id'] ?>" onClick="configureButton( document.zone_form, 'mark_zids' );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
@@ -135,7 +128,7 @@ foreach( $zones as $zone )
 ?>
 <tr>
 <td align="center" class="text">&nbsp;</td>
-<td colspan="4" align="center"><input type="button" value="<?= $zmSlangAddNewZone ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=-1', 'zmZone', <?= $jws['zone']['w'] ?>, <?= $jws['zone']['h'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td>
+<td colspan="3" align="center"><input type="button" value="<?= $zmSlangAddNewZone ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=zone&mid=<?= $mid ?>&zid=0', 'zmZone', <?= $monitor['Width']+$jws['zone']['w'] ?>, <?= $monitor['Height']<$jws['zone']['h']?$jws['zone']['h']:$monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>></td>
 <td align="center"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>
 </tr>
 </form>

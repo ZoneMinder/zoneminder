@@ -531,6 +531,77 @@ if ( $version )
 
 		$cascade = !undef;
 	}
+	if ( $cascade || $version eq "1.21.4" )
+	{
+		# Patch the database
+		patchDB( $dbh, "1.21.4" );
+
+		# Convert zones to new format
+		{
+			print( "Updating zones. Please wait.\n" );
+
+			# Get the existing zones from the DB
+			my $sql = "select Z.*,M.Width,M.Height from Zones as Z inner join Monitors as M on (Z.MonitorId = M.Id)";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			my @zones;
+			while( my $zone = $sth->fetchrow_hashref() )
+			{
+				push( @zones, $zone );
+			}
+			$sth->finish();
+
+			# Give them four points
+			{
+			my $sql = "update Zones set NumCoords = 4";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+			}
+
+			foreach my $zone ( @zones )
+			{
+				# Create the coordinate strings
+				if ( $zone->{Units} eq "Pixels" )
+				{
+					# Create the coordinate strings
+					{
+					my $sql = "update Zones set Coords = concat( LoX,',',LoY,' ',HiX,',',LoY,' ',HiX,',',HiY,' ',LoX,',',HiY ) where Id = ?"; 
+					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+					my $res = $sth->execute( $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+					}
+					# Calculate an area
+					{
+					my $sql = "update Zones set Area = round( ((HiX-LoX)+1)*((HiY-LoY)+1) ) where Id = ?";
+					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+					my $res = $sth->execute( $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+					}
+				}
+				else
+				{
+					my $lo_x = ($zone->{LoX} * ($zone->{Width}-1) ) / 100;
+					my $hi_x = ($zone->{HiX} * ($zone->{Width}-1) ) / 100;
+					my $lo_y = ($zone->{LoY} * ($zone->{Height}-1) ) / 100;
+					my $hi_y = ($zone->{HiY} * ($zone->{Height}-1) ) / 100;
+					my $area = (($hi_x-$lo_x)+1)*(($hi_y-$lo_y)+1);
+
+					# Create the coordinate strings
+					{
+					my $sql = "update Zones set Coords = concat( round(?),',',round(?),' ',round(?),',',round(?),' ',round(?),',',round(?),' ',round(?),',',round(?) ) where Id = ?"; 
+					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+					my $res = $sth->execute( $lo_x, $lo_y, $hi_x, $lo_y, $hi_x, $hi_y, $lo_x, $hi_y, $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+					}
+					# Calculate an area
+					{
+					my $sql = "update Zones set Area = round( ? ) where Id = ?";
+					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+					my $res = $sth->execute( $area, $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+					}
+				}
+			}
+		}
+
+		$cascade = !undef;
+	}
 	if ( !$cascade )
 	{
 		die( "Can't find upgrade from version '$version'" );

@@ -191,7 +191,7 @@ $jws = array(
 	'version' => array( 'w'=>320, 'h'=>140 ),
 	'video' => array( 'w'=>100, 'h'=>80 ),
 	'watch' => array( 'w'=>96, 'h'=>384 ),
-	'zone' => array( 'w'=>360, 'h'=>500 ),
+	'zone' => array( 'w'=>400, 'h'=>450 ),
 	'zones' => array( 'w'=>72, 'h'=>232 ),
 );
 ?>

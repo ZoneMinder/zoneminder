@@ -139,6 +139,8 @@ User *zmLoadUser( const char *username, const char *password )
 	User *user = new User( dbrow );
 	Info(( "Authenticated user '%s'", user->getUsername() ));
 
+	mysql_free_result( result );
+
 	return( user );
 }
 

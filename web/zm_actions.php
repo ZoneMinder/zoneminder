@@ -1020,6 +1020,22 @@ if ( isset($action) )
 			{
 				$zone = array();
 			}
+			if ( false && $points )
+			{
+				$zone['NumCoords'] = count($points);
+				$zone['Coords'] = pointsToCoords( $points );
+				$zone['Area'] = getPolyArea( $points );
+			}
+
+			if ( $new_zone['Units'] == 'Percent' )
+			{
+				$new_zone['MinAlarmPixels'] = intval(($new_zone['MinAlarmPixels']*$new_zone['Area'])/100);
+				$new_zone['MaxAlarmPixels'] = intval(($new_zone['MaxAlarmPixels']*$new_zone['Area'])/100);
+				$new_zone['MinFilterPixels'] = intval(($new_zone['MinFilterPixels']*$new_zone['Area'])/100);
+				$new_zone['MaxFilterPixels'] = intval(($new_zone['MaxFilterPixels']*$new_zone['Area'])/100);
+				$new_zone['MinBlobPixels'] = intval(($new_zone['MinBlobPixels']*$new_zone['Area'])/100);
+				$new_zone['MaxBlobPixels'] = intval(($new_zone['MaxBlobPixels']*$new_zone['Area'])/100);
+			}
 
 			$types = array();
 			$changes = getFormChanges( $zone, $new_zone, $types );
@@ -1091,14 +1107,51 @@ if ( isset($action) )
 					simpleQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
 					if ( $changes['Name'] )
 					{
-						chdir( ZM_DIR_EVENTS );
-						if ( file_exists( $monitor['Name'] ) )
+						exec( escapeshellcmd( "mv ".ZM_DIR_EVENTS."/".$monitor['Name']." ".ZM_DIR_EVENTS."/".$new_monitor['Name'] ) );
+					}
+					if ( $changes['Width'] || $changes['Height'] )
+					{
+						$new_w = $new_monitor['Width'];
+						$new_h = $new_monitor['Height'];
+						$new_a = $new_w * $new_h;
+						$old_w = $monitor['Width'];
+						$old_h = $monitor['Height'];
+						$old_a = $old_w * $old_h;
+
+						$result = mysql_query( "select * from Zones where MonitorId = '$mid'" );
+						if ( !$result )
+							die( mysql_error() );
+						$zones = array();
+						while ( $zone = mysql_fetch_assoc( $result ) )
 						{
-							exec( escapeshellcmd( "mv ".$monitor['Name']." ".$new_monitor['Name'] ) );
+							$zones[] = $zone;
 						}
-						else
+						foreach ( $zones as $zone )
 						{
-							symlink( $mid, $new_monitor['Name'] );
+							$new_zone = $zone;
+							$points = coordsToPoints( $zone['Coords'] );
+							for ( $i = 0; $i < count($points); $i++ )
+							{
+								$points[$i]['x'] = intval(round((($points[$i]['x']*$new_w)/$old_w)));
+								$points[$i]['y'] = intval(round((($points[$i]['y']*$new_h)/$old_h)));
+							}
+							$new_zone['Coords'] = pointsToCoords( $points );
+							$new_zone['Area'] = intval(round(($zone['Area']*$new_a)/$old_a));
+							$new_zone['MinAlarmPixels'] = intval(round(($new_zone['MinAlarmPixels']*$new_a)/$old_a));
+							$new_zone['MaxAlarmPixels'] = intval(round(($new_zone['MaxAlarmPixels']*$new_a)/$old_a));
+							$new_zone['MinFilterPixels'] = intval(round(($new_zone['MinFilterPixels']*$new_a)/$old_a));
+							$new_zone['MaxFilterPixels'] = intval(round(($new_zone['MaxFilterPixels']*$new_a)/$old_a));
+							$new_zone['MinBlobPixels'] = intval(round(($new_zone['MinBlobPixels']*$new_a)/$old_a));
+							$new_zone['MaxBlobPixels'] = intval(round(($new_zone['MaxBlobPixels']*$new_a)/$old_a));
+
+							$changes = getFormChanges( $zone, $new_zone, $types );
+
+							if ( count( $changes ) )
+							{
+								$sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '$mid' and Id = '".$zone['Id']."'";
+								//echo "<html>$sql</html>";
+								simpleQuery( $sql );
+							}
 						}
 					}
 				}
@@ -1116,7 +1169,7 @@ if ( isset($action) )
 					if ( !$result )
 						die( mysql_error() );
 					$mid = mysql_insert_id();
-					$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', LoX = 0, LoY = 0, HiX = 100, HiY = 100, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MaxPixelThreshold = 0, MinAlarmPixels = 3, MaxAlarmPixels = 75, FilterX = 3, FilterY = 3, MinFilterPixels = 3, MaxFilterPixels = 75, MinBlobPixels = 2, MaxBlobPixels = 0, MinBlobs = 1, MaxBlobs = 0";
+					$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = '".sprintf( "%d,%d %d,%d, %d,%d", 0, 0, $new_monitor['Width']-1, 0, $new_monitor['Width']-1, $new_monitor['Height']-1, 0, $new_monitor['Height']-1 )."', Area = ".($new_monitor['Width']*$new_monitor['Height']).", AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels = 3, MaxAlarmPixels = 75, FilterX = 3, FilterY = 3, MinFilterPixels = 3, MaxFilterPixels = 75, MinBlobPixels = 2, MinBlobs = 1";
 					$result = mysql_query( $sql );
 					if ( !$result )
 						die( mysql_error() );

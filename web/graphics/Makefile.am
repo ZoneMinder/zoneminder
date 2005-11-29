@@ -20,6 +20,9 @@ web_DATA = \
 	center.gif \
 	seq-u.gif \
 	seq-d.gif \
+	point-g.gif \
+	point-o.gif \
+	point-r.gif \
 	spacer.gif
 
 EXTRA_DIST = $(web_DATA)

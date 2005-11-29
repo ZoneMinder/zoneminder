@@ -41,6 +41,8 @@ typedef unsigned int Rgb;	// RGB colour type
 #define RGB_RED		(0x00ff0000)
 #define RGB_GREEN	(0x0000ff00)
 #define RGB_BLUE	(0x000000ff)
+#define RGB_ORANGE	(0x00ffa500)
+#define RGB_PURPLE	(0x00800080)
 
 #define RGB_VAL(v,c)	(((v)>>(16-((c)*8)))&0xff)
 #define RGB_RED_VAL(v)		(((v)>>16)&0xff)

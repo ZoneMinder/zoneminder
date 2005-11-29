@@ -36,6 +36,7 @@ extern "C"
 #include "zm_rgb.h"
 #include "zm_coord.h"
 #include "zm_box.h"
+#include "zm_poly.h"
 
 //
 // This is image class, and represents a frame captured from a 
@@ -47,6 +48,28 @@ protected:
 	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 };
 	typedef unsigned char BlendTable[256][256];
 	typedef BlendTable *BlendTablePtr;
+
+	struct Edge
+	{
+		int min_y;
+		int max_y;
+		double min_x;
+		double _1_m;
+
+		static int CompareYX( const void *p1, const void *p2 )
+		{
+			const Edge *e1 = (const Edge *)p1, *e2 = (const Edge *)p2;
+			if ( e1->min_y == e2->min_y )
+				return( int(e1->min_x - e2->min_x) );
+			else
+				return( int(e1->min_y - e2->min_y) );
+		}
+		static int CompareX( const void *p1, const void *p2 )
+		{
+			const Edge *e1 = (const Edge *)p1, *e2 = (const Edge *)p2;
+			return( int(e1->min_x - e2->min_x) );
+		}
+	};
 
 protected:
 	static bool initialised;
@@ -203,6 +226,9 @@ public:
 		return( *this );
 	}
 
+	bool ReadRaw( const char *filename );
+	bool WriteRaw( const char *filename ) const;
+
 	bool ReadJpeg( const char *filename );
 	bool WriteJpeg( const char *filename, int quality_override=0 ) const;
 	bool DecodeJpeg( JOCTET *inbuffer, int inbuffer_size );
@@ -224,7 +250,10 @@ public:
 
 	void Clear() { memset( buffer, 0, size ); }
 	void Fill( Rgb colour, const Box *limits=0 );
-	void Hatch( Rgb colour, const Box *limits=0 );
+	void Fill( Rgb colour, int density, const Box *limits=0 );
+	void Outline( Rgb colour, const Polygon &polygon );
+	void Fill( Rgb colour, const Polygon &polygon );
+	void Fill( Rgb colour, int density, const Polygon &polygon );
 
 	void Rotate( int angle );
 	void Flip( bool leftright );

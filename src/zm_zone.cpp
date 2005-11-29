@@ -23,7 +23,7 @@
 #include "zm_image.h"
 #include "zm_monitor.h"
 
-void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Box &p_limits, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs )
+void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs )
 {
 	monitor = p_monitor;
 
@@ -31,7 +31,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	label = new char[strlen(p_label)+1];
 	strcpy( label, p_label );
 	type = p_type;
-	limits = p_limits;
+	polygon = p_polygon;
 	alarm_rgb = p_alarm_rgb;
 	check_method = p_check_method;
 	min_pixel_threshold = p_min_pixel_threshold;
@@ -46,7 +46,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	min_blobs = p_min_blobs;
 	max_blobs = p_max_blobs;
 
-	Debug( 1, ( "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d", id, label, type, limits.Width(), limits.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
+	Debug( 1, ( "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d", id, label, type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
 
 	alarmed = false;
 	alarm_pixels = 0;
@@ -57,12 +57,41 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	max_blob_size = 0;
 	image = 0;
 	score = 0;
+
+	pg_image = new Image( polygon.Width(), polygon.Height(), 1 );
+	pg_image->Fill( 0xff, polygon );
+	pg_image->Outline( 0xff, polygon );
+
+	ranges = new Range[polygon.Height()];
+	int y = polygon.LoY();
+	for ( int py = 0; py < polygon.Height(); py++, y++ )
+	{
+		int x = polygon.LoX();
+		ranges[py].lo_x = -1;
+		ranges[py].hi_x = -1;
+		unsigned char *ppoly = pg_image->Buffer( x, y );
+		for ( int px = 0; px < polygon.Width(); px++, x++, ppoly++ )
+		{
+			if ( *ppoly )
+			{
+				if ( ranges[y].lo_x == -1 )
+					ranges[y].lo_x = x;
+			}
+			else
+			{
+				if ( ranges[y].lo_x != -1 && ranges[y].hi_x < x )
+					ranges[y].hi_x = x;
+			}
+		}
+	}
 }
 
 Zone::~Zone()
 {
 	delete[] label;
 	delete image;
+	delete pg_image;
+	delete[] ranges;
 }
 
 void Zone::RecordStats( const Event *event )
@@ -94,18 +123,20 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	int alarm_mid_x = -1;
 	int alarm_mid_y = -1;
 
-	int lo_x = limits.Lo().X();
-	int lo_y = limits.Lo().Y();
-	int hi_x = limits.Hi().X();
-	int hi_y = limits.Hi().Y();
+	int lo_y = polygon.LoY();
+	int hi_y = polygon.HiY();
 
-	unsigned char *pdiff;
-	for ( int y = lo_y; y <= hi_y; y++ )
+	unsigned char *pdiff, *ppoly;
+	for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
 	{
+		int lo_x = ranges[py].lo_x;
+		int hi_x = ranges[py].hi_x;
+
 		pdiff = diff_image->Buffer( lo_x, y );
-		for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
+		ppoly = pg_image->Buffer( lo_x, y );
+		for ( int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ )
 		{
-			if ( (*pdiff > min_pixel_threshold) && (!max_pixel_threshold || (*pdiff < max_pixel_threshold)) )
+			if ( *ppoly && (*pdiff > min_pixel_threshold) && (!max_pixel_threshold || (*pdiff < max_pixel_threshold)) )
 			{
 				*pdiff = WHITE;
 				alarm_pixels++;
@@ -130,7 +161,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	if ( min_alarm_pixels && alarm_pixels < min_alarm_pixels ) return( false );
 	if ( max_alarm_pixels && alarm_pixels > max_alarm_pixels ) return( false );
 
-	score = (100*alarm_pixels)/(limits.Size().X()*limits.Size().Y());
+	score = (100*alarm_pixels)/polygon.Area();
 
 	if ( check_method >= FILTERED_PIXELS )
 	{
@@ -146,8 +177,11 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			unsigned char *cpdiff;
 			int ldx, hdx, ldy, hdy;
 			bool block;
-			for ( int y = lo_y; y <= hi_y; y++ )
+			for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
 			{
+				int lo_x = ranges[py].lo_x;
+				int hi_x = ranges[py].hi_x;
+
 				pdiff = diff_image->Buffer( lo_x, y );
 
 				for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
@@ -206,7 +240,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		if ( min_filter_pixels && alarm_filter_pixels < min_filter_pixels ) return( false );
 		if ( max_filter_pixels && alarm_filter_pixels > max_filter_pixels ) return( false );
 
-		score = (100*alarm_filter_pixels)/(limits.Size().X()*limits.Size().Y());
+		score = (100*alarm_filter_pixels)/(polygon.Area());
 
 		if ( check_method >= BLOBS )
 		{
@@ -218,8 +252,11 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			BlobStats *bsx, *bsy;
 			BlobStats *bsm, *bss;
 			int diff_width = diff_image->Width();
-			for ( int y = lo_y; y <= hi_y; y++ )
+			for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
 			{
+				int lo_x = ranges[py].lo_x;
+				int hi_x = ranges[py].hi_x;
+
 				pdiff = diff_image->Buffer( lo_x, y );
 				for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
 				{
@@ -415,10 +452,10 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			if ( min_blobs && alarm_blobs < min_blobs ) return( false );
 			if ( max_blobs && alarm_blobs > max_blobs ) return( false );
 
-			alarm_lo_x = hi_x+1;
-			alarm_hi_x = lo_x-1;
-			alarm_lo_y = hi_y+1;
-			alarm_hi_y = lo_y-1;
+			alarm_lo_x = polygon.HiX()+1;
+			alarm_hi_x = polygon.LoX()-1;
+			alarm_lo_y = polygon.HiY()+1;
+			alarm_hi_y = polygon.LoY()-1;
 			for ( int i = 1; i < WHITE; i++ )
 			{
 				BlobStats *bs = &blob_stats[i];
@@ -456,7 +493,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					if ( alarm_hi_y < bs->hi_y ) alarm_hi_y = bs->hi_y;
 				}
 			}
-			score = ((100*alarm_blob_pixels)/int(sqrt((double)alarm_blobs)))/(limits.Size().X()*limits.Size().Y());
+			score = ((100*alarm_blob_pixels)/int(sqrt((double)alarm_blobs)))/(polygon.Area());
 		}
 	}
 
@@ -488,7 +525,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 		if ( (type < PRECLUSIVE) && check_method >= BLOBS && config.create_analysis_images )
 		{
-			image = diff_image->HighlightEdges( alarm_rgb, &limits );
+			image = diff_image->HighlightEdges( alarm_rgb, &polygon.Extent() );
 			// Only need to delete this when 'image' becomes detached and points somewhere else
 			delete diff_image;
 		}
@@ -503,10 +540,126 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	return( true );
 }
 
+bool Zone::ParsePolygonString( const char *poly_string, Polygon &polygon )
+{
+	Debug( 3, ( "Parsing polygon string '%s'", poly_string ));
+
+	char *str_ptr = new char[strlen(poly_string)+1];
+	char *str = str_ptr;
+	strcpy( str, poly_string );
+
+	char *ws;
+	int n_coords = 0;
+	int max_n_coords = strlen(str)/4;
+	Coord *coords = new Coord[max_n_coords];
+	while( true )
+	{
+		if ( *str == '\0' )
+		{
+			break;
+		}
+		ws = strchr( str, ' ' );
+		if ( ws )
+		{
+			*ws = '\0';
+		}
+		char *cp = strchr( str, ',' );
+		if ( !cp )
+		{
+			Error(( "Bogus coordinate %s found in polygon string", str ));
+			delete[] coords;
+			delete[] str_ptr;
+			return( false );
+		}
+		else
+		{
+			*cp = '\0';
+			char *xp = str;
+			char *yp = cp+1;
+
+			int x = atoi(xp);
+			int y = atoi(yp);
+
+			Debug( 3, ( "Got coordinate %d,%d from polygon string", x, y ));
+#if 0
+			if ( x < 0 )
+				x = 0;
+			else if ( x >= width )
+				x = width-1;
+			if ( y < 0 )
+				y = 0;
+			else if ( y >= height )
+				y = height-1;
+#endif
+			coords[n_coords++] = Coord( x, y );
+		}
+		if ( ws )
+			str = ws+1;
+		else
+			break;
+	}
+	polygon = Polygon( n_coords, coords );
+
+	Debug( 3, ( "Successfully parsed polygon string" ));
+	//printf( "Area: %d\n", pg.Area() );
+	//printf( "Centre: %d,%d\n", pg.Centre().X(), pg.Centre().Y() );
+
+	delete[] coords;
+	delete[] str_ptr;
+
+	return( true );
+}
+
+bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, Polygon &polygon )
+{
+	Debug( 3, ( "Parsing zone string '%s'", zone_string ));
+
+	char *str_ptr = new char[strlen(zone_string)+1];
+	char *str = str_ptr;
+	strcpy( str, zone_string );
+
+	char *ws = strchr( str, ' ' );
+	if ( !ws )
+	{
+		Debug( 3, ( "No whitespace found in zone string, finishing", zone_string ));
+	}
+	zone_id = strtol( str, 0, 10 );
+	Debug( 3, ( "Got zone %d from zone string", zone_id ));
+	if ( !ws )
+	{
+		delete str_ptr;
+		return( true );
+	}
+
+	*ws = '\0';
+	str = ws+1;
+
+	ws = strchr( str, ' ' );
+	if ( !ws )
+	{
+		Error(( "No whitespace found in zone string '%s'", zone_string ));
+		delete[] str_ptr;
+		return( false );
+	}
+	*ws = '\0';
+	colour = strtol( str, 0, 16 );
+	Debug( 3, ( "Got colour %06x from zone string", colour ));
+	str = ws+1;
+
+	bool result = ParsePolygonString( str, polygon );
+
+	//printf( "Area: %d\n", pg.Area() );
+	//printf( "Centre: %d,%d\n", pg.Centre().X(), pg.Centre().Y() );
+
+	delete[] str_ptr;
+
+	return( result );
+}
+
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
 	static char sql[BUFSIZ];
-	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,LoX,LoY,HiX,HiY,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
+	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,NumCoords,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -531,10 +684,8 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		const char *Name = dbrow[col++];
 		int Type = atoi(dbrow[col++]);
 		const char *Units = dbrow[col++];
-		int LoX = atoi(dbrow[col++]);
-		int LoY = atoi(dbrow[col++]);
-		int HiX = atoi(dbrow[col++]);
-		int HiY = atoi(dbrow[col++]);
+		int NumCoords = atoi(dbrow[col++]);
+		const char *Coords = dbrow[col++];
 		int AlarmRGB = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int CheckMethod = atoi(dbrow[col++]);
 		int MinPixelThreshold = dbrow[col]?atoi(dbrow[col]):0; col++;
@@ -550,28 +701,27 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		int MinBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int MaxBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
 
-		if ( !strcmp( Units, "Percent" ) )
+		Polygon polygon;
+		if ( !ParsePolygonString( Coords, polygon ) )
+			continue;
+
+		if ( false && !strcmp( Units, "Percent" ) )
 		{
-			LoX = (LoX*(monitor->Width()-1))/100;
-			LoY = (LoY*(monitor->Height()-1))/100;
-			HiX = (HiX*(monitor->Width()-1))/100;
-			HiY = (HiY*(monitor->Height()-1))/100;
-			Box box( LoX, LoY, HiX, HiY );
-			MinAlarmPixels = (MinAlarmPixels*box.Width()*box.Height())/100;
-			MaxAlarmPixels = (MaxAlarmPixels*box.Width()*box.Height())/100;
-			MinFilterPixels = (MinFilterPixels*box.Width()*box.Height())/100;
-			MaxFilterPixels = (MaxFilterPixels*box.Width()*box.Height())/100;
-			MinBlobPixels = (MinBlobPixels*box.Width()*box.Height())/100;
-			MaxBlobPixels = (MaxBlobPixels*box.Width()*box.Height())/100;
+			MinAlarmPixels = (MinAlarmPixels*polygon.Area())/100;
+			MaxAlarmPixels = (MaxAlarmPixels*polygon.Area())/100;
+			MinFilterPixels = (MinFilterPixels*polygon.Area())/100;
+			MaxFilterPixels = (MaxFilterPixels*polygon.Area())/100;
+			MinBlobPixels = (MinBlobPixels*polygon.Area())/100;
+			MaxBlobPixels = (MaxBlobPixels*polygon.Area())/100;
 		}
 
 		if ( atoi(dbrow[2]) == Zone::INACTIVE )
 		{
-			zones[i] = new Zone( monitor, Id, Name, Box( LoX, LoY, HiX, HiY ) );
+			zones[i] = new Zone( monitor, Id, Name, polygon );
 		}
 		else
 		{
-			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, Box( LoX, LoY, HiX, HiY ), AlarmRGB, (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs );
+			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB, (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs );
 		}
 	}
 	if ( mysql_errno( &dbconn ) )
@@ -597,7 +747,7 @@ bool Zone::DumpSettings( char *output, bool /*verbose*/ )
 		type==PRECLUSIVE?"Preclusive":(
 		type==INACTIVE?"Inactive":"Unknown"
 	)))));
-	sprintf( output+strlen(output), "  Limits : %d,%d - %d,%d\n", limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY() );
+	//sprintf( output+strlen(output), "  Limits : %d,%d - %d,%d\n", limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY() );
 	sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );
 	sprintf( output+strlen(output), "  Check Method: %d - %s\n", check_method,
 		check_method==ALARMED_PIXELS?"Alarmed Pixels":(

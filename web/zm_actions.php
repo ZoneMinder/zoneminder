@@ -1091,7 +1091,15 @@ if ( isset($action) )
 					simpleQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
 					if ( $changes['Name'] )
 					{
-						exec( escapeshellcmd( "mv ".ZM_DIR_EVENTS."/".$monitor['Name']." ".ZM_DIR_EVENTS."/".$new_monitor['Name'] ) );
+						chdir( ZM_DIR_EVENTS );
+						if ( file_exists( $monitor['Name'] ) )
+						{
+							exec( escapeshellcmd( "mv ".$monitor['Name']." ".$new_monitor['Name'] ) );
+						}
+						else
+						{
+							symlink( $mid, $new_monitor['Name'] );
+						}
 					}
 				}
 				elseif ( !$user['MonitorIds'] )

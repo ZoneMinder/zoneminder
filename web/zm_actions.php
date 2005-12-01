@@ -1049,7 +1049,6 @@ if ( isset($action) )
 				else
 				{
 					$sql = "insert into Zones set MonitorId = '$mid', ".implode( ", ", $changes );
-					$view = 'none';
 				}
 				//echo "<html>$sql</html>";
 				simpleQuery( $sql );
@@ -1060,6 +1059,7 @@ if ( isset($action) )
 				}
 				$refresh_parent = true;
 			}
+			$view = 'none';
 		}
 		elseif ( $action == "monitor" && isset( $mid ) )
 		{

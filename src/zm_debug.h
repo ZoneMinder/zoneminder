@@ -28,31 +28,30 @@
 #define FALSE 0
 #endif
 
-/* Leve 0 and below */
-#define ZM_DBG_OK			0
-#define ZM_DBG_SUCCESS			0
-#define ZM_DBG_INFO			1
-#define ZM_DBG_WARNING			-1
-#define ZM_DBG_ERROR			-2
-#define ZM_DBG_FATAL			-3
-
+/* Leave 0 and below for debug */
 #define ZM_DBG_INF			0
 #define	ZM_DBG_WAR			-1
 #define ZM_DBG_ERR			-2
 #define ZM_DBG_FAT			-3
 
-#ifndef ZM_DBG_OFF
+/* Define the level at which messages go through syslog */
+#define ZM_DBG_SYSLOG		0 
 
-#define zmDbgPrintf(code,params)	{\
-					if (code <= zm_dbg_level)\
+#define zmDbgPrintf(level,params)	{\
+					if (level <= zm_dbg_level)\
 					{\
-						(void) zmDbgPrepare(__FILE__,__LINE__,code);\
+						(void) zmDbgPrepare(__FILE__,__LINE__,level);\
 						(void) zmDbgOutput params;\
 					}\
 				}
 
-#define Null(params)
+/* Turn off debug here */
+#ifndef ZM_DBG_OFF
 #define Debug(level,params)	zmDbgPrintf(level,params)
+#else
+#define Debug(level,params)
+#endif
+
 #define Info(params)		zmDbgPrintf(0, params)
 #define Warning(params)		zmDbgPrintf(ZM_DBG_WAR,params)
 #define Error(params)		zmDbgPrintf(ZM_DBG_ERR,params)
@@ -73,7 +72,7 @@
 #define Exit(level)			
 #endif
 
-#define HexDump(t,n)		{if(zm_dbg_level == 9)	\
+#define HexDump(level,t,n)	{if(level<=zm_dbg_level)	\
 							{	\
 								int _i;	\
 								int _len;	\
@@ -108,7 +107,7 @@ void zmDbgSubtractTime( struct timeval * const tp1, struct timeval * const tp2 )
 int zmDbgInit( const char *name, const char *id, int level );
 int zmDbgReinit( const char *target );
 int zmDbgTerm(void);
-int zmDbgPrepare( const char * const file, const int line, const int code );
+int zmDbgPrepare( const char * const file, const int line, const int level );
 int zmDbgOutput( const char *fstring, ... ) __attribute__ ((format(printf, 1, 2)));
 #else
 int zmDbgInit();
@@ -134,23 +133,3 @@ extern int zm_dbg_add_log_id;
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-
-#else
-
-#define zmDebugInitialise(params)		ZM_DBG_OK
-#define zmDebugTerminate(params)		ZM_DBG_OK
-
-#define Debug(lvl,params)
-#define Info(params)
-#define Warning(params)
-#define Error(params)
-#define Fatal(params)
-#define Mark()
-#define Log()
-#define Enter()
-#define Exit()
-
-#define zmDbgInit(name,id,level)
-#define zmDbgTerm()
-
-#endif /* !ZM_DBG_OFF */

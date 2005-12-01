@@ -172,7 +172,7 @@ int zmDebugPrepareLog()
 		if ( fclose(zm_dbg_log_fd) == -1 )
 		{
 			Error(( "fclose(), error = %s",strerror(errno)) );
-			return( ZM_DBG_ERROR );
+			return( -1 );
 		}
 		zm_dbg_log_fd = (FILE *)NULL;
 	}
@@ -194,7 +194,7 @@ int zmDebugPrepareLog()
 	if( zm_dbg_log[0] && (zm_dbg_log_fd = fopen(zm_dbg_log,"w")) == (FILE *)NULL )
 	{
 	    Error(("fopen() for %s, error = %s",zm_dbg_log,strerror(errno)));
-		return(ZM_DBG_ERROR);
+		return( -1 );
 	}
 }
 
@@ -230,7 +230,7 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 	if( (status = zmGetDebugEnv() ) < 0)
 	{
 		Error(( "Debug Environment Error, status = %d", status ));
-		return(ZM_DBG_ERROR);
+		return( -1 );
 	}
 
 	zmDebugPrepareLog();
@@ -245,21 +245,21 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 	if ( sigaction( SIGUSR1, &action, &old_action ) < 0 )
 	{
 		Error(("sigaction(), error = %s",strerror(errno)));
-		return(ZM_DBG_ERROR);
+		return( -1 );
 	}
 	if ( sigaction( SIGUSR2, &action, &old_action ) < 0)
 	{
 		Error(("sigaction(), error = %s",strerror(errno)));
-		return(ZM_DBG_ERROR);
+		return( -1 );
 	}
 	}
 	zm_dbg_running = TRUE;
-	return(ZM_DBG_OK);
+	return( 0 );
 }
 
 int zmDbgInit( const char *name, const char *id, int level )
 {
-	return((zmDebugInitialise( name, id, level ) == ZM_DBG_OK ? 0 : 1));
+	return( zmDebugInitialise( name, id, level ) );
 }
 
 int zmDebugReinitialise( const char *target )
@@ -297,7 +297,7 @@ int zmDebugReinitialise( const char *target )
 		if ( (status = zmGetDebugEnv() ) < 0 )
 		{
 			Error(( "Debug Environment Error, status = %d", status ));
-			return(ZM_DBG_ERROR);
+			return( -1 );
 		}
 
 		zmDebugPrepareLog();
@@ -305,12 +305,12 @@ int zmDebugReinitialise( const char *target )
 		Info(( "New Debug Level = %d, New Debug Log = %s", zm_dbg_level, zm_dbg_log[0]?zm_dbg_log:"<none>" ));
 	}
 
-	return(ZM_DBG_OK);
+	return( 0 );
 }
 
 int zmDbgReinit( const char *target )
 {
-	return( (zmDebugReinitialise( target )==ZM_DBG_OK?0:1) );
+	return( zmDebugReinitialise( target ) );
 }
 
 int zmDebugTerminate()
@@ -320,18 +320,18 @@ int zmDebugTerminate()
 	if ( fclose(zm_dbg_log_fd) == -1 )
 	{
 		Error(( "fclose(), error = %s",strerror(errno)) );
-		return( ZM_DBG_ERROR );
+		return( -1 );
 	}
 	zm_dbg_log_fd = (FILE *)NULL;
 	(void) closelog();
 
 	zm_dbg_running = FALSE;
-	return( ZM_DBG_OK );
+	return( 0 );
 }
 
 int zmDbgTerm()
 {
-	return((zmDebugTerminate() == ZM_DBG_OK ? 0 : 1));
+	return( zmDebugTerminate() );
 }
 
 void zmDbgSubtractTime( struct timeval * const tp1, struct timeval * const tp2 )
@@ -348,37 +348,37 @@ void zmDbgSubtractTime( struct timeval * const tp1, struct timeval * const tp2 )
 	}
 }
 
-int zmDbgPrepare( const char * const file, const int line, const int code )
+int zmDbgPrepare( const char * const file, const int line, const int level )
 {
 	zm_dbg_file = file;
 	zm_dbg_line = line;
-	zm_dbg_code = code;
-	switch(code)
+	zm_dbg_code = level;
+	switch(level)
 	{
 	case ZM_DBG_INF:
-		strcpy(zm_dbg_class,"INF");
+		strcpy( zm_dbg_class,"INF" );
 		break;
 	case ZM_DBG_WAR:
-		strcpy(zm_dbg_class,"WAR");
+		strcpy( zm_dbg_class,"WAR" );
 		break;
 	case ZM_DBG_ERR:
-		strcpy(zm_dbg_class,"ERR");
+		strcpy( zm_dbg_class,"ERR" );
 		break;
 	case ZM_DBG_FAT:
-		strcpy(zm_dbg_class,"FAT");
+		strcpy( zm_dbg_class,"FAT" );
 		break;
 	default:
-		if(code > 0 && code <= 9)
+		if ( level > 0 && level <= 9 )
 		{
-			sprintf(zm_dbg_class,"DB%d",code);
+			sprintf( zm_dbg_class, "DB%d", level );
 		}
 		else
 		{
-			Error(("Unknown Error Code %d",code));
+			Error(( "Unknown Error Level %d", level ));
 		}
 		break;
 	}
-	return(code);
+	return( level );
 }
 
 int zmDbgOutput( const char *fstring, ... )
@@ -435,7 +435,7 @@ int zmDbgOutput( const char *fstring, ... )
 		}
 	}
 	/* For Info, Warning, Errors etc we want to log them */
-	if ( 1 || zm_dbg_code <= ZM_DBG_INF )
+	if ( zm_dbg_code >= ZM_DBG_SYSLOG )
 	{
 		switch(zm_dbg_code)
 		{
@@ -449,19 +449,19 @@ int zmDbgOutput( const char *fstring, ... )
 				log_code = LOG_ERR;
 				break;
 			case ZM_DBG_FAT:
-				log_code = LOG_CRIT;
+				log_code = LOG_ERR;
 				break;
 			default:
 				log_code = LOG_DEBUG;
 				break;
 		}
-		log_code |= LOG_LOCAL1;
+		log_code |= LOG_DAEMON;
 		syslog( log_code, "%s [%s]", zm_dbg_class, zm_temp_dbg_string );
 	}
 	va_end(arg_ptr);
 	if ( zm_dbg_code == ZM_DBG_FAT )
 	{
-		exit(-1);
+		exit( -1 );
 	}
 	return( strlen( zm_temp_dbg_string ) );
 }

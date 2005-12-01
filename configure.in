@@ -103,6 +103,22 @@ AC_ARG_WITH(webgroup,
 )
 AC_SUBST(WEB_GROUP)
 
+ENABLE_DEBUG=yes
+# Ask group for web group name:.
+AC_ARG_ENABLE(debug,
+    [  --enable-debug=<yes|no>    enable or disabled debug, default enabled],
+    [ENABLE_DEBUG=$enable_debug],
+    AC_MSG_WARN([You can call configure with the --enable-debug=<yes|no> or --disable-debug option.
+    This tells configure whether to compile ZoneMinder with debug included. Although debug is included
+    by default it is not output unless explicitly switched on elsewhere. These checks may induce a
+    small penalty on performance and if you are after squeezing the maximum possible performance out
+    of ZoneMinder you may use this switch to prevent debug from being compiled in.
+    e.g. --enable-debug=yes or --disable-debug])
+)
+if test "$enable_debug" != yes; then
+  AC_DEFINE(ZM_DBG_OFF,1,"Whether debug is switched off and compiled out")
+fi
+
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL

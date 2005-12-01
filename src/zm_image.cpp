@@ -1090,6 +1090,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 	}
 	qsort( global_edges, n_global_edges, sizeof(*global_edges), Edge::CompareYX );
 
+#ifndef ZM_DBG_OFF
 	if ( zm_dbg_level >= 9 )
 	{
 		for ( int i = 0; i < n_global_edges; i++ )
@@ -1097,6 +1098,8 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 			Debug( 9, ( "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f", i, global_edges[i].min_y, global_edges[i].max_y, global_edges[i].min_x, global_edges[i]._1_m ));
 		}
 	}
+#endif
+
 	int n_active_edges = 0;
 	Edge active_edges[n_global_edges];
 	int y = global_edges[0].min_y;
@@ -1121,6 +1124,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 			}
 		}
 		qsort( active_edges, n_active_edges, sizeof(*active_edges), Edge::CompareX );
+#ifndef ZM_DBG_OFF
 		if ( zm_dbg_level >= 9 )
 		{
 			for ( int i = 0; i < n_active_edges; i++ )
@@ -1128,6 +1132,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 				Debug( 9, ( "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f", y, i, active_edges[i].min_y, active_edges[i].max_y, active_edges[i].min_x, active_edges[i]._1_m ));
 			}
 		}
+#endif
 		if ( !(y%density) )
 		{
 			//Debug( 9, ( "%d", y ));

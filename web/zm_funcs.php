@@ -153,7 +153,6 @@ function getZmuCommand( $args )
 	}
 
 	$zmu_command = ZMU_PATH;
-	$zmu_command = "/home/stan/zm/src/zmu";
 
 	if ( ZM_OPT_USE_AUTH )
 	{

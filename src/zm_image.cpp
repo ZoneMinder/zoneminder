@@ -395,6 +395,56 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 	return( true );
 }
 
+bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
+{
+	int new_width = (hi_x-lo_x)+1;;
+	int new_height = (hi_y-lo_y)+1;;
+
+	if ( lo_x > hi_x || lo_y > hi_y )
+	{
+		Error(( "Invalid or reversed crop region %d,%d -> %d,%d", lo_x, lo_y, hi_x, hi_y ));
+		return( false );
+	}
+	if ( lo_x < 0 || hi_x > (width-1) || ( lo_y < 0 || hi_y > (height-1) ) )
+	{
+		Error(( "Attempting to crop outside image, %d,%d -> %d,%d not in %d,%d", lo_x, lo_y, hi_x, hi_y, width, height ));
+		return( false );
+	}
+
+	if ( new_width == width && new_height == height )
+	{
+		return( true );
+	}
+
+	int new_size = new_width*new_height*colours;
+	JSAMPLE *new_buffer = new JSAMPLE[new_size];
+
+	int new_stride = new_width*colours;
+	for ( int y = lo_y, ny = 0; y <= hi_y; y++, ny++ )
+	{
+		unsigned char *pbuf = &buffer[((y*width)+lo_x)*colours];
+		unsigned char *pnbuf = &new_buffer[(ny*new_width)*colours];
+		memcpy( pnbuf, pbuf, new_stride );
+	}
+
+	if ( our_buffer )
+	{
+		delete[] buffer;
+	}
+	width = new_width;
+	height = new_height;
+	size = new_size;
+	buffer = new_buffer;
+	our_buffer = true;
+	if ( blend_buffer )
+	{
+		delete[] blend_buffer;
+		blend_buffer = 0;
+	}
+
+	return( true );
+}
+
 void Image::Overlay( const Image &image )
 {
 	//assert( width == image.width && height == image.height && colours == image.colours );
@@ -941,10 +991,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 
 		double grad;
 
-		//printf( "dx: %.2lf, dy: %.2lf\n", dx, dy );
+		Debug( 9, ( "dx: %.2lf, dy: %.2lf", dx, dy ));
 		if ( fabs(dx) <= fabs(dy) )
 		{
-			//printf( "dx <= dy\n" );
+			Debug( 9, ( "dx <= dy" ));
 			if ( y1 != y2 )
 				grad = dx/dy;
 			else
@@ -955,10 +1005,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 			grad *= yinc;
 			if ( colours == 1 )
 			{
-				//printf( "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f\n", x1, x2, y1, y2, grad );
+				Debug( 9, ( "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f", x1, x2, y1, y2, grad ));
 				for ( x = x1, y = y1; y != y2; y += yinc, x += grad )
 				{
-					//printf( "x:%.2f, y:%d\n", x, y );
+					Debug( 9, ( "x:%.2f, y:%d", x, y ));
 					buffer[(y*width)+int(round(x))] = colour;
 				}
 			}
@@ -975,22 +1025,22 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 		}
 		else
 		{
-			//printf( "dx > dy\n" );
+			Debug( 9, ( "dx > dy" ));
 			if ( x1 != x2 )
 				grad = dy/dx;
 			else
 				grad = height;
-			//printf( "grad: %.2lf\n", grad );
+			Debug( 9, ( "grad: %.2lf", grad ));
 
 			double y;
 			int x, xinc = (x1<x2)?1:-1;
 			grad *= xinc;
 			if ( colours == 1 )
 			{
-				//printf( "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf\n", x1, x2, y1, y2, grad );
+				Debug( 9, ( "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad ));
 				for ( y = y1, x = x1; x != x2; x += xinc, y += grad )
 				{
-					//printf( "x:%d, y:%.2f\n", x, y );
+					Debug( 9, ( "x:%d, y:%.2f", x, y ));
 					buffer[(int(round(y))*width)+x] = colour;
 				}
 			}
@@ -1025,7 +1075,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 		int y1 = p1.Y();
 		int y2 = p2.Y();
 
-		//printf( "x1:%d,y1:%d x2:%d,y2:%d\n", x1, y1, x2, y2 );
+		Debug( 9, ( "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 ));
 		if ( y1 == y2 )
 			continue;
 
@@ -1040,11 +1090,13 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 	}
 	qsort( global_edges, n_global_edges, sizeof(*global_edges), Edge::CompareYX );
 
-	//for ( int i = 0; i < n_global_edges; i++ )
-	//{
-		//printf( "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f\n", i, global_edges[i].min_y, global_edges[i].max_y, global_edges[i].min_x, global_edges[i]._1_m );
-	//}
-
+	if ( zm_dbg_level >= 9 )
+	{
+		for ( int i = 0; i < n_global_edges; i++ )
+		{
+			Debug( 9, ( "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f", i, global_edges[i].min_y, global_edges[i].max_y, global_edges[i].min_x, global_edges[i]._1_m ));
+		}
+	}
 	int n_active_edges = 0;
 	Edge active_edges[n_global_edges];
 	int y = global_edges[0].min_y;
@@ -1054,7 +1106,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 		{
 			if ( global_edges[i].min_y == y )
 			{
-				//printf( "Moving global edge\n" );
+				Debug( 9, ( "Moving global edge" ));
 				active_edges[n_active_edges++] = global_edges[i];
 				if ( i < (n_global_edges-1) )
 				{
@@ -1069,13 +1121,16 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 			}
 		}
 		qsort( active_edges, n_active_edges, sizeof(*active_edges), Edge::CompareX );
-		//for ( int i = 0; i < n_active_edges; i++ )
-		//{
-			//printf( "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f\n", y, i, active_edges[i].min_y, active_edges[i].max_y, active_edges[i].min_x, active_edges[i]._1_m );
-		//}
+		if ( zm_dbg_level >= 9 )
+		{
+			for ( int i = 0; i < n_active_edges; i++ )
+			{
+				Debug( 9, ( "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f", y, i, active_edges[i].min_y, active_edges[i].max_y, active_edges[i].min_x, active_edges[i]._1_m ));
+			}
+		}
 		if ( !(y%density) )
 		{
-		//printf( "%d\n", y );
+			//Debug( 9, ( "%d", y ));
 			for ( int i = 0; i < n_active_edges; )
 			{
 				int lo_x = int(round(active_edges[i++].min_x));
@@ -1085,10 +1140,10 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 				{
 					if ( !(x%density) )
 					{
-						//printf( " %d", x );
+						//Debug( 9, ( " %d", x ));
 						if ( colours == 1 )
 						{
-							*p == colour;
+							*p = colour;
 						}
 						else
 						{
@@ -1099,14 +1154,13 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 					}
 				}
 			}
-		//printf( "\n" );
 		}
 		y++;
 		for ( int i = n_active_edges-1; i >= 0; i-- )
 		{
 			if ( y >= active_edges[i].max_y ) // Or >= as per sheets
 			{
-				//printf( "Deleting active_edge\n" );
+				Debug( 9, ( "Deleting active_edge" ));
 				if ( i < (n_active_edges-1) )
 				{
 					memcpy( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );

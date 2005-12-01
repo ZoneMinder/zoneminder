@@ -234,6 +234,8 @@ public:
 	bool DecodeJpeg( JOCTET *inbuffer, int inbuffer_size );
 	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;
 
+	bool Crop( int lo_x, int lo_y, int hi_y, int hi_y );
+
 	void Overlay( const Image &image );
 	void Blend( const Image &image, int transparency=10 ) const;
 	static Image *Merge( int n_images, Image *images[] );

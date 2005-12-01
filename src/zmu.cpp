@@ -146,7 +146,7 @@ int main( int argc, char *argv[] )
 		{"write_index", 0, 0, 'W'},
 		{"event", 0, 0, 'e'},
 		{"fps", 0, 0, 'f'},
-		{"zones", 1, 0, 'z'},
+		{"zones", 2, 0, 'z'},
 		{"alarm", 0, 0, 'a'},
 		{"noalarm", 0, 0, 'n'},
 		{"cancel", 0, 0, 'c'},
@@ -179,7 +179,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsurwei::S:t::fz:ancqhlB::C::H::O::U:P:A:", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;

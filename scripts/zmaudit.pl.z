@@ -80,6 +80,8 @@ use constant IMAGE_PATH => ZM_PATH_WEB.'/'.ZM_DIR_IMAGES;
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmaudit.log';
 use constant MIN_AGE => 300; # Minimum age when we will delete anything
+use constant RECOVER_TAG => "(r)"; # Tag to append to event name when recovered
+use constant RECOVER_TEXT => "Recovered."; # Text to append to event notes when recovered
 
 use constant DBG_LEVEL => 1; # 0 is errors, warnings and info only, > 0 for debug
 
@@ -418,7 +420,7 @@ do
 	# New audit to close any events that were left open for longer than MIN_AGE seconds
 	my $sql9 = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, count(F.Id) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
 	my $sth9 = $dbh->prepare_cached( $sql9 ) or die( "Can't prepare '$sql9': ".$dbh->errstr() );
-	my $sql10 = "update Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ? where Id = ?";
+	my $sql10 = "update Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ?, Notes = concat_ws( ' ', Notes, ? ) where Id = ?";
 	my $sth10 = $dbh->prepare_cached( $sql10 ) or die( "Can't prepare '$sql10': ".$dbh->errstr() );
 	$res = $sth9->execute() or die( "Can't execute: ".$sth9->errstr() );
 	while( my $event = $sth9->fetchrow_hashref() )
@@ -426,7 +428,7 @@ do
 		aud_print( "Found open event '$event->{Id}'" );
 		if ( confirm( 'close', 'closing' ) )
 		{
-			$res = $sth10->execute( sprintf( "%s-%d(r)", $event->{Prefix}, $event->{Id} ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, $event->{Id} ) or die( "Can't execute: ".$sth10->errstr() );
+			$res = $sth10->execute( sprintf( "%s%d%s", $event->{Prefix}, $event->{Id}, RECOVER_TAG ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, RECOVER_TEXT, $event->{Id} ) or die( "Can't execute: ".$sth10->errstr() );
 		}
 	}
 

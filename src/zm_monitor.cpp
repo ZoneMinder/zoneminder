@@ -215,7 +215,7 @@ void Monitor::Setup()
 	{
 		n_zones = 1;
 		zones = new Zone *[1];
-		Coord coords[4] = { Coord( 0, 0 ), Coord( width, 0 ), Coord( width, height ), Coord( 0, height ) };
+		Coord coords[4] = { Coord( 0, 0 ), Coord( width-1, 0 ), Coord( width-1, height-1 ), Coord( 0, height-1 ) };
 		zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Polygon( sizeof(coords)/sizeof(*coords), coords ), RGB_RED, Zone::BLOBS );
 	}
 	start_time = last_fps_time = time( 0 );
@@ -600,6 +600,7 @@ void Monitor::DumpZoneImage( const char *zone_string )
 			colour = RGB_WHITE;
 		}
 		zone_image.Fill( colour, 2, zones[i]->GetPolygon() );
+		zone_image.Outline( colour, zones[i]->GetPolygon() );
 	}
 
 	if ( extra_zone.getNumCoords() )
@@ -667,7 +668,7 @@ bool Monitor::Analyse()
 		{
 			if ( pending_frames )
 			{
-				Warning(( "Approaching buffer overrun, consider increasing ring buffer size" ));
+				Warning(( "Approaching buffer overrun, consider slowing capture, simplifying analysis or increasing ring buffer size" ));
 			}
 			index = shared_data->last_write_index%image_buffer_count;
 		}
@@ -1685,12 +1686,11 @@ unsigned int Monitor::Compare( const Image &comp_image )
 	{
 		Zone *zone = zones[n_zone];
 		zone->ClearAlarm();
-		Debug( 3, ( "Blanking inactive zone %s", zone->Label() ));
 		if ( !zone->IsInactive() )
 		{
 			continue;
 		}
-
+		Debug( 3, ( "Blanking inactive zone %s", zone->Label() ));
 		delta_image->Fill( RGB_BLACK, zone->GetPolygon() );
 	}
 
@@ -1722,7 +1722,6 @@ unsigned int Monitor::Compare( const Image &comp_image )
 	}
 	else
 	{
-
 		// Find all alarm pixels in active zones
 		for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
 		{

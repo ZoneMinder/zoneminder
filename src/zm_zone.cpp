@@ -58,9 +58,10 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	image = 0;
 	score = 0;
 
-	pg_image = new Image( polygon.Width(), polygon.Height(), 1 );
+	pg_image = new Image( monitor->Width(), monitor->Height(), 1 );
 	pg_image->Fill( 0xff, polygon );
 	pg_image->Outline( 0xff, polygon );
+	pg_image->Crop( polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
 
 	ranges = new Range[polygon.Height()];
 	int y = polygon.LoY();
@@ -69,18 +70,21 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 		int x = polygon.LoX();
 		ranges[py].lo_x = -1;
 		ranges[py].hi_x = -1;
-		unsigned char *ppoly = pg_image->Buffer( x, y );
+		ranges[py].off_x = 0;
+		unsigned char *ppoly = pg_image->Buffer( 0, py );
 		for ( int px = 0; px < polygon.Width(); px++, x++, ppoly++ )
 		{
 			if ( *ppoly )
 			{
-				if ( ranges[y].lo_x == -1 )
-					ranges[y].lo_x = x;
-			}
-			else
-			{
-				if ( ranges[y].lo_x != -1 && ranges[y].hi_x < x )
-					ranges[y].hi_x = x;
+				if ( ranges[py].lo_x == -1 )
+				{
+					ranges[py].lo_x = x;
+					ranges[py].off_x = px;
+				}
+				else if ( ranges[py].hi_x < x )
+				{
+					ranges[py].hi_x = x;
+				}
 			}
 		}
 	}
@@ -114,6 +118,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	delete image;
 	// Get the difference image
 	Image *diff_image = image = new Image( *delta_image );
+	int diff_width = diff_image->Width();
+	int diff_height = diff_image->Height();
 
 	int alarm_lo_x = 0;
 	int alarm_hi_x = 0;
@@ -125,15 +131,46 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	int lo_y = polygon.LoY();
 	int hi_y = polygon.HiY();
+	int lo_x;
+	int hi_x;
 
+	Debug( 4, ( "Checking alarms for zone %d/%s in lines %d -> %d", id, label, lo_y, hi_y ));
+	Debug( 5, ( "Checking for alarmed pixels" ));
 	unsigned char *pdiff, *ppoly;
+	// Create an upper margin
+	if ( lo_y > 0 )
+	{
+		lo_x = ranges[0].lo_x;
+		if ( lo_x > 0 )
+			lo_x--;
+		hi_x = ranges[0].hi_x;
+		if ( hi_x < (diff_width-1) )
+			hi_x++;
+		pdiff = diff_image->Buffer( lo_x, lo_y-1 );
+		memset( pdiff, BLACK, (hi_x-lo_x)+1 );
+	}
 	for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
 	{
-		int lo_x = ranges[py].lo_x;
-		int hi_x = ranges[py].hi_x;
+		lo_x = ranges[py].lo_x;
+		hi_x = ranges[py].hi_x;
 
+		Debug( 7, ( "Checking line %d from %d -> %d", y, lo_x, hi_x ));
 		pdiff = diff_image->Buffer( lo_x, y );
-		ppoly = pg_image->Buffer( lo_x, y );
+		ppoly = pg_image->Buffer( ranges[py].off_x, py );
+		// Left margin
+		if ( y < hi_y )
+		{
+			int next_lo_x = ranges[py+1].lo_x;
+			if ( next_lo_x < lo_x )
+			{
+				int lo_x_diff = lo_x-next_lo_x;
+				memset( pdiff-lo_x_diff, BLACK, lo_x_diff  );
+			}
+			else  if ( lo_x > 0 )
+				*(pdiff-1) = BLACK;
+		}
+		else  if ( lo_x > 0 )
+			*(pdiff-1) = BLACK;
 		for ( int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ )
 		{
 			if ( *ppoly && (*pdiff > min_pixel_threshold) && (!max_pixel_threshold || (*pdiff < max_pixel_threshold)) )
@@ -146,7 +183,18 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				*pdiff = BLACK;
 			}
 		}
+		// Right margin
+		if ( y < hi_y )
+		{
+			int next_hi_x = ranges[py+1].hi_x;
+			if ( next_hi_x > hi_x )
+			{
+				//printf( "%d: Setting %d-%d = %d\n", y, hi_x, next_hi_x, next_hi_x-hi_x );
+				memset( pdiff, BLACK, next_hi_x-hi_x );
+			}
+		}
 	}
+	Debug( 5, ( "Got %d alarmed pixels, need %d -> %d", alarm_pixels, min_alarm_pixels, max_alarm_pixels ));
 	if ( config.record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
@@ -162,6 +210,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	if ( max_alarm_pixels && alarm_pixels > max_alarm_pixels ) return( false );
 
 	score = (100*alarm_pixels)/polygon.Area();
+	Debug( 5, ( "Current score is %d", score ));
 
 	if ( check_method >= FILTERED_PIXELS )
 	{
@@ -170,6 +219,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		int bx1 = bx-1;
 		int by1 = by-1;
 
+		Debug( 5, ( "Checking for filtered pixels" ));
 		if ( bx > 1 || by > 1 )
 		{
 			// Now remove any pixels smaller than our filter size
@@ -235,15 +285,18 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 			diff_image->WriteJpeg( diag_path );
 		}
+		Debug( 5, ( "Got %d filtered pixels, need %d -> %d", alarm_filter_pixels, min_filter_pixels, max_filter_pixels ));
 
 		if ( !alarm_filter_pixels ) return( false );
 		if ( min_filter_pixels && alarm_filter_pixels < min_filter_pixels ) return( false );
 		if ( max_filter_pixels && alarm_filter_pixels > max_filter_pixels ) return( false );
 
 		score = (100*alarm_filter_pixels)/(polygon.Area());
+		Debug( 5, ( "Current score is %d", score ));
 
 		if ( check_method >= BLOBS )
 		{
+			Debug( 5, ( "Checking for blob pixels" ));
 			typedef struct { unsigned char tag; int count; int lo_x; int hi_x; int lo_y; int hi_y; } BlobStats;
 			BlobStats blob_stats[256];
 			memset( blob_stats, 0, sizeof(BlobStats)*256 );
@@ -251,31 +304,35 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			int last_x, last_y;
 			BlobStats *bsx, *bsy;
 			BlobStats *bsm, *bss;
-			int diff_width = diff_image->Width();
 			for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
 			{
 				int lo_x = ranges[py].lo_x;
 				int hi_x = ranges[py].hi_x;
+				int last_lo_x = py>=0?ranges[py-1].lo_x:0;
+				int last_hi_x = py>=0?ranges[py-1].hi_x:0;
 
 				pdiff = diff_image->Buffer( lo_x, y );
 				for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
 				{
 					if ( *pdiff == WHITE )
 					{
-						//printf( "Got white pixel at %d,%d (%x)\n", x, y, pdiff );
-						last_x = x>lo_x?*(pdiff-1):0;
-						last_y = y>lo_y?*(pdiff-diff_width):0;
+						Debug( 9, ( "Got white pixel at %d,%d (%x)", x, y, pdiff ));
+						//last_x = (x>lo_x)?*(pdiff-1):0;
+						//last_y = (y>lo_y&&x>=last_lo_x&&x<=last_hi_x)?*(pdiff-diff_width):0;
+						last_x = x>0?*(pdiff-1):0;
+						last_y = y>0?*(pdiff-diff_width):0;
+						
 						if ( last_x )
 						{
-							//printf( "Left neighbour is %d\n", last_x );
+							Debug( 9, ( "Left neighbour is %d", last_x ));
 							bsx = &blob_stats[last_x];
 							if ( last_y )
 							{
-								//printf( "Top neighbour is %d\n", last_y );
+								Debug( 9, ( "Top neighbour is %d", last_y ));
 								bsy = &blob_stats[last_y];
 								if ( last_x == last_y )
 								{
-									//printf( "Matching neighbours, setting to %d\n", last_x );
+									Debug( 9, ( "Matching neighbours, setting to %d", last_x ));
 									// Add to the blob from the x side (either side really)
 									*pdiff = last_x;
 									bsx->count++;
@@ -288,23 +345,38 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									bsm = bsx->count>=bsy->count?bsx:bsy;
 									bss = bsm==bsx?bsy:bsx;
 
-									//printf( "Different neighbours, setting pixels of %d to %d\n", bss->tag, bsm->tag );
+									Debug( 9, ( "Different neighbours, setting pixels of %d to %d", bss->tag, bsm->tag ));
+									Debug( 9, ( "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y ));
+									Debug( 9, ( "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y ));
 									// Now change all those pixels to the other setting
-									for ( int sy = bss->lo_y; sy <= bss->hi_y; sy++ )
+									int changed = 0;
+									for ( int sy = bss->lo_y, psy = bss->lo_y-lo_y; sy <= bss->hi_y; sy++, psy++ )
 									{
-										spdiff = diff_image->Buffer( bss->lo_x, sy );
-										for ( int sx = bss->lo_x; sx <= bss->hi_x; sx++, spdiff++ )
+										int lo_sx = bss->lo_x>=ranges[psy].lo_x?bss->lo_x:ranges[psy].lo_x;
+										int hi_sx = bss->hi_x<=ranges[psy].hi_x?bss->hi_x:ranges[psy].hi_x;
+
+										Debug( 9, ( "Changing %d(%d), %d->%d", sy, psy, lo_sx, hi_sx ));
+										Debug( 9, ( "Range %d(%d), %d->%d", sy, psy, ranges[psy].lo_x, ranges[psy].hi_x ));
+										spdiff = diff_image->Buffer( lo_sx, sy );
+										for ( int sx = lo_sx; sx <= hi_sx; sx++, spdiff++ )
 										{
-											//printf( "Pixel at %d,%d (%x) is %d", sx, sy, spdiff, *spdiff );
+											Debug( 9, ( "Pixel at %d,%d (%x) is %d", sx, sy, spdiff, *spdiff ));
 											if ( *spdiff == bss->tag )
 											{
-												//printf( ", setting" );
+												Debug( 9, ( "Setting pixel" ));
 												*spdiff = bsm->tag;
+												changed++;
 											}
-											//printf( "\n" );
 										}
 									}
 									*pdiff = bsm->tag;
+									if ( !changed )
+									{
+										Info(( "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y ));
+										Info(( "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y ));
+										Error(( "No pixels changed, exiting" ));
+										exit( -1 );
+									}
 
 									// Merge the slave blob into the master
 									bsm->count += bss->count+1;
@@ -317,7 +389,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 									alarm_blobs--;
 
-									Debug( 2, ( "Merging blob %d with %d, %d current blobs", bss->tag, bsm->tag, alarm_blobs ));
+									Debug( 6, ( "Merging blob %d with %d at %d,%d, %d current blobs", bss->tag, bsm->tag, x, y, alarm_blobs ));
 
 									// Clear out the old blob
 									bss->tag = 0;
@@ -330,7 +402,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 							}
 							else
 							{
-								//printf( "Setting to left neighbour %d\n", last_x );
+								Debug( 9, ( "Setting to left neighbour %d", last_x ));
 								// Add to the blob from the x side 
 								*pdiff = last_x;
 								bsx->count++;
@@ -342,7 +414,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 						{
 							if ( last_y )
 							{
-								//printf( "Setting to top neighbour %d\n", last_y );
+								Debug( 9, ( "Setting to top neighbour %d", last_y ));
 
 								// Add to the blob from the y side
 								BlobStats *bsy = &blob_stats[last_y];
@@ -361,7 +433,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									BlobStats *bs = &blob_stats[i];
 									if ( !bs->count )
 									{
-										//printf( "Creating new blob %d\n", i );
+										Debug( 9, ( "Creating new blob %d", i ));
 										*pdiff = i;
 										bs->tag = i;
 										bs->count++;
@@ -369,7 +441,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 										bs->lo_y = bs->hi_y = y;
 										alarm_blobs++;
 
-										Debug( 2, ( "Created blob %d, %d current blobs", bs->tag, alarm_blobs ));
+										Debug( 6, ( "Created blob %d at %d,%d, %d current blobs", bs->tag, x, y, alarm_blobs ));
 										break;
 									}
 								}
@@ -399,40 +471,42 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 			if ( !alarm_blobs ) return( false );
 			alarm_blob_pixels = alarm_filter_pixels;
+			Debug( 5, ( "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
 
 			// Now eliminate blobs under the threshold
 			for ( int i = 1; i < WHITE; i++ )
 			{
 				BlobStats *bs = &blob_stats[i];
-				if ( bs->count && ((min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels)) )
+				if ( bs->count )
 				{
-					for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
+					if ( (min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels) )
 					{
-						unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
-						for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ )
+						for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
 						{
-							if ( *spdiff == bs->tag )
+							unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
+							for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ )
 							{
-								*spdiff = BLACK;
+								if ( *spdiff == bs->tag )
+								{
+									*spdiff = BLACK;
+								}
 							}
 						}
-					}
-					alarm_blobs--;
-					alarm_blob_pixels -= bs->count;
-					
-					Debug( 2, ( "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs ));
+						alarm_blobs--;
+						alarm_blob_pixels -= bs->count;
+						
+						Debug( 6, ( "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs ));
 
-					bs->tag = 0;
-					bs->count = 0;
-					bs->lo_x = 0;
-					bs->lo_y = 0;
-					bs->hi_x = 0;
-					bs->hi_y = 0;
-				}
-				else
-				{
-					if ( bs->count )
+						bs->tag = 0;
+						bs->count = 0;
+						bs->lo_x = 0;
+						bs->lo_y = 0;
+						bs->hi_x = 0;
+						bs->hi_y = 0;
+					}
+					else
 					{
+						Debug( 6, ( "Preserved blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs ));
 						if ( !min_blob_size || bs->count < min_blob_size ) min_blob_size = bs->count;
 						if ( !max_blob_size || bs->count > max_blob_size ) max_blob_size = bs->count;
 					}
@@ -447,6 +521,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				}
 				diff_image->WriteJpeg( diag_path );
 			}
+			Debug( 5, ( "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
 
 			if ( !alarm_blobs ) return( false );
 			if ( min_blobs && alarm_blobs < min_blobs ) return( false );
@@ -494,6 +569,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				}
 			}
 			score = ((100*alarm_blob_pixels)/int(sqrt((double)alarm_blobs)))/(polygon.Area());
+			Debug( 5, ( "Current score is %d", score ));
 		}
 	}
 
@@ -505,6 +581,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	{
 		score *= 2;
 	}
+
+	Debug( 5, ( "Adjusted score is %d", score ));
 
 	// Now outline the changed region
 	if ( score )
@@ -701,6 +779,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		int MinBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int MaxBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
 
+		Debug( 5, ( "Parsing polygon %s", Coords ));
 		Polygon polygon;
 		if ( !ParsePolygonString( Coords, polygon ) )
 			continue;

@@ -39,6 +39,7 @@ protected:
 	{
 		int lo_x;
 		int hi_x;
+		int off_x;
 	};
 
 public:

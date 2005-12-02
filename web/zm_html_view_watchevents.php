@@ -115,7 +115,7 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 <input type="hidden" name="max_events" value="<?= $max_events ?>">
 <center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
 <tr>
-<td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
+<td colspan="2" valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <?php
 $sql = "select E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M left join Events as E on M.Id = E.MonitorId where M.Id = '$mid' and E.Archived = 0";
 $sql .= " order by $sort_column $sort_order";
@@ -162,7 +162,11 @@ while( $event = mysql_fetch_assoc( $result ) )
 </table></td></tr>
 </table></td>
 </tr>
-<tr><td align="right"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td></tr>
+<tr
+<td align="left"><input type="button" value="<?= $zmSlangZones ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=zones&mid=<?= $monitor['Id'] ?>', 'zmZones', <?= $monitor['Width']+$jws['zones']['w'] ?>, <?= $monitor['Height']+$jws['zones']['h'] ?> );"<?php if ( !canView( 'Monitors' ) ) { ?> disabled<?php } ?>></td>
+
+<td align="right"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>
+</tr>
 </table></center>
 </form>
 </body>

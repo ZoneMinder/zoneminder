@@ -431,6 +431,39 @@ bool Zone::CheckAlarms( const Image *delta_image )
 								for ( i = (WHITE-1); i > 0; i-- )
 								{
 									BlobStats *bs = &blob_stats[i];
+									// See if we can recycle one first, only if it's at least two rows up
+									if ( bs->count && bs->hi_y < (y-1) )
+									{
+										if ( (min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels) )
+										{
+											if ( config.create_analysis_images || config.record_diag_images )
+											{
+												// I think blanking out the blob is unnecessary apart from in the diag image
+												for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
+												{
+													unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
+													for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ )
+													{
+														if ( *spdiff == bs->tag )
+														{
+															*spdiff = BLACK;
+														}
+													}
+												}
+											}
+											alarm_blobs--;
+											alarm_blob_pixels -= bs->count;
+										
+											Debug( 6, ( "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs ));
+
+											bs->tag = 0;
+											bs->count = 0;
+											bs->lo_x = 0;
+											bs->lo_y = 0;
+											bs->hi_x = 0;
+											bs->hi_y = 0;
+										}
+									}
 									if ( !bs->count )
 									{
 										Debug( 9, ( "Creating new blob %d", i ));
@@ -447,12 +480,9 @@ bool Zone::CheckAlarms( const Image *delta_image )
 								}
 								if ( i == 0 )
 								{
-									i = 1;
-									Warning(( "Max blob count reached. Unable to allocate new blob so extending last one." ));
-									BlobStats *bs = &blob_stats[i];
-									*pdiff = i;
-									if ( x > bs->hi_x ) bs->hi_x = x;
-									if ( y > bs->hi_y ) bs->hi_y = y;
+									Warning(( "Max blob count reached. Unable to allocate new blobs so terminating. Zone settings may be too sensitive." ));
+									x = hi_x+1;
+									y = hi_y+1;
 								}
 							}
 						}
@@ -481,14 +511,18 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				{
 					if ( (min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels) )
 					{
-						for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
+						if ( config.create_analysis_images || config.record_diag_images )
 						{
-							unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
-							for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ )
+							// I think blanking out the blob is unnecessary apart from in the diag image
+							for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
 							{
-								if ( *spdiff == bs->tag )
+								unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
+								for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ )
 								{
-									*spdiff = BLACK;
+									if ( *spdiff == bs->tag )
+									{
+										*spdiff = BLACK;
+									}
 								}
 							}
 						}
@@ -538,8 +572,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				{
 					if ( bs->count == max_blob_size )
 					{
-						//if ( monitor->followMotion() )
-						if ( true )
+						if ( config.weighted_alarm_centres )
 						{
 							unsigned long x_total = 0;
 							unsigned long y_total = 0;
@@ -556,9 +589,13 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									}
 								}
 							}
-
 							alarm_mid_x = int(round(x_total/bs->count));
 							alarm_mid_y = int(round(y_total/bs->count));
+						}
+						else
+						{
+							alarm_mid_x = int((bs->hi_x+bs->lo_x+1)/2);
+							alarm_mid_y = int((bs->hi_y+bs->lo_y+1)/2);
 						}
 					}
 
@@ -570,6 +607,11 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 			score = ((100*alarm_blob_pixels)/int(sqrt((double)alarm_blobs)))/(polygon.Area());
 			Debug( 5, ( "Current score is %d", score ));
+		}
+		else
+		{
+			alarm_mid_x = int((alarm_hi_x+alarm_lo_x+1)/2);
+			alarm_mid_y = int((alarm_hi_y+alarm_lo_y+1)/2);
 		}
 	}
 

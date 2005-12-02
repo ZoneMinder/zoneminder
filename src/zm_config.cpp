@@ -159,7 +159,10 @@ bool ConfigItem::BooleanValue() const
 		ConvertValue();
 
 	if ( cfg_type != CFG_BOOLEAN )
-		Warning(( "Attempt to fetch boolean value for %s, actual type is %s", name, type ));
+	{
+		Error(( "Attempt to fetch boolean value for %s, actual type is %s. Try running zmconfig.pl to reload config.", name, type ));
+		exit( -1 );
+	}
 
 	return( cfg_value.boolean_value );
 }
@@ -170,7 +173,10 @@ int ConfigItem::IntegerValue() const
 		ConvertValue();
 
 	if ( cfg_type != CFG_INTEGER )
-		Warning(( "Attempt to fetch integer value for %s, actual type is %s", name, type ));
+	{
+		Error(( "Attempt to fetch integer value for %s, actual type is %s". Try running zmconfig.pl to reload config., name, type ));
+		exit( -1 );
+	}
 
 	return( cfg_value.integer_value );
 }
@@ -181,7 +187,10 @@ double ConfigItem::DecimalValue() const
 		ConvertValue();
 
 	if ( cfg_type != CFG_DECIMAL )
-		Warning(( "Attempt to fetch decimal value for %s, actual type is %s", name, type ));
+	{
+		Error(( "Attempt to fetch decimal value for %s, actual type is %s". Try running zmconfig.pl to reload config., name, type ));
+		exit( -1 );
+	}
 
 	return( cfg_value.decimal_value );
 }
@@ -192,7 +201,10 @@ const char *ConfigItem::StringValue() const
 		ConvertValue();
 
 	if ( cfg_type != CFG_STRING )
-		Warning(( "Attempt to fetch string value for %s, actual type is %s", name, type ));
+	{
+		Error(( "Attempt to fetch string value for %s, actual type is %s". Try running zmconfig.pl to reload config., name, type ));
+		exit( -1 );
+	}
 
 	return( cfg_value.string_value );
 }
@@ -205,12 +217,14 @@ Config::Config()
 
 Config::~Config()
 {
-	for ( int i = 0; i < n_items; i++ )
+	if ( items )
 	{
-		delete items[i];
+		for ( int i = 0; i < n_items; i++ )
+		{
+			delete items[i];
+		}
+		delete[] items;
 	}
-	delete[] items;
-	n_items = 0;
 }
 
 void Config::Load()
@@ -231,6 +245,13 @@ void Config::Load()
 		exit( mysql_errno( &dbconn ) );
 	}
 	n_items = mysql_num_rows( result );
+
+	if ( n_items <= ZM_MAX_CFG_ID )
+	{
+		Error(( "Config mismatch, expected %d items, read %d. . Try running zmconfig.pl to reload config.", ZM_MAX_CFG_ID+1, n_items ));
+		exit( -1 );
+	}
+
 	items = new ConfigItem *[n_items];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
@@ -274,7 +295,7 @@ const ConfigItem &Config::Item( int id )
 
 	if ( id < 0 || id > ZM_MAX_CFG_ID )
 	{
-		Error(( "Attempt to access invalid config, id = %d", id ));
+		Error(( "Attempt to access invalid config, id = %d. Try running zmconfig.pl to reload config.", id ));
 		exit( -1 );
 	}
 

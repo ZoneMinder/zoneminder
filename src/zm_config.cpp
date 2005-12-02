@@ -174,7 +174,7 @@ int ConfigItem::IntegerValue() const
 
 	if ( cfg_type != CFG_INTEGER )
 	{
-		Error(( "Attempt to fetch integer value for %s, actual type is %s". Try running zmconfig.pl to reload config., name, type ));
+		Error(( "Attempt to fetch integer value for %s, actual type is %s. Try running zmconfig.pl to reload config.", name, type ));
 		exit( -1 );
 	}
 
@@ -188,7 +188,7 @@ double ConfigItem::DecimalValue() const
 
 	if ( cfg_type != CFG_DECIMAL )
 	{
-		Error(( "Attempt to fetch decimal value for %s, actual type is %s". Try running zmconfig.pl to reload config., name, type ));
+		Error(( "Attempt to fetch decimal value for %s, actual type is %s. Try running zmconfig.pl to reload config.", name, type ));
 		exit( -1 );
 	}
 
@@ -202,7 +202,7 @@ const char *ConfigItem::StringValue() const
 
 	if ( cfg_type != CFG_STRING )
 	{
-		Error(( "Attempt to fetch string value for %s, actual type is %s". Try running zmconfig.pl to reload config., name, type ));
+		Error(( "Attempt to fetch string value for %s, actual type is %s. Try running zmconfig.pl to reload config.", name, type ));
 		exit( -1 );
 	}
 

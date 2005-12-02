@@ -1051,19 +1051,19 @@ my @options =
 		category => 'config',
 	},
 	{
+		name => "ZM_WEIGHTED_ALARM_CENTRES",
+		default => "no",
+		description => "Whether to use a weighted algorithm to calculate the centre of an alarm",
+		help => "ZoneMinder will always calculate the centre point of an alarm in a zone to give some indication of where on the screen it is. This can be used by the experimental motion tracking feature or your own custom extensions. In the alarmed or filtered pixels mode this is a simple midpoint between the extents of the detected pxiesl. However in the blob method this can instead be calculated using weighted pixel locations to give more accurate positioning for irregularly shaped blobs. This method, while more precise is also slower and so is turned off by default.",
+		type => $types{boolean},
+		category => 'config',
+	},
+	{
 		name => "ZM_EVENT_IMAGE_DIGITS",
 		default => "3",
 		description => "How many significant digits are used in event image numbering",
 		help => "As event images are captured they are stored to the filesystem with a numerical index. By default this index has three digits so the numbers start 001, 002 etc. This works works for most scenarios as events with more than 999 frames are rarely captured. However if you have extremely long events and use external applications then you may wish to increase this to ensure correct sorting of images in listings etc. Warning, increasing this value on a live system may render existing events unviewable as the event will have been saved with the previous scheme. Decreasing this value should have no ill effects.",
 		type => $types{integer},
-		category => 'config',
-	},
-	{
-		name => "ZM_SHM_KEY",
-		default => "0x7a6d2000",
-		description => "Shared memory key to use, only change if it clashes with another application",
-		help => "ZoneMinder uses shared memory to speed up communication between modules. To identify the right area to use shared memory keys are used. This option controls what the base key is, each monitor will have it's Id or'ed with this to get the actual key used.",
-		type => $types{hexadecimal},
 		category => 'config',
 	},
 	{
@@ -1122,6 +1122,14 @@ my @options =
 		description => "Whether to check with zoneminder.com for updated versions",
 		help => "From ZoneMinder version 1.17.0 onwards new versions are expected to be more frequent. To save checking manually for each new version ZoneMinder can check with the zoneminder.com website to determine the most recent release. These checks are infrequent, about once per week, and no personal or system information is transmitted other than your current version number. If you do not wish these checks to take place or your ZoneMinder system has no internet access you can switch these check off with this configuration variable",
 		type => $types{boolean},
+		category => 'system',
+	},
+	{
+		name => "ZM_SHM_KEY",
+		default => "0x7a6d2000",
+		description => "Shared memory key to use, only change if it clashes with another application",
+		help => "ZoneMinder uses shared memory to speed up communication between modules. To identify the right area to use shared memory keys are used. This option controls what the base key is, each monitor will have it's Id or'ed with this to get the actual key used.",
+		type => $types{hexadecimal},
 		category => 'system',
 	},
 	{

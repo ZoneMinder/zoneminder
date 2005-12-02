@@ -239,15 +239,16 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 
 	{
 	struct sigaction action, old_action;
+	memset( &action, 0, sizeof(action) );
 	action.sa_handler = zmUsrHandler;
 	action.sa_flags = SA_RESTART;
 
-	if ( sigaction( SIGUSR1, &action, &old_action ) < 0 )
+	if ( sigaction( SIGUSR1, &action, 0 ) < 0 )
 	{
 		Error(("sigaction(), error = %s",strerror(errno)));
 		return( -1 );
 	}
-	if ( sigaction( SIGUSR2, &action, &old_action ) < 0)
+	if ( sigaction( SIGUSR2, &action, 0 ) < 0)
 	{
 		Error(("sigaction(), error = %s",strerror(errno)));
 		return( -1 );
@@ -435,7 +436,7 @@ int zmDbgOutput( const char *fstring, ... )
 		}
 	}
 	/* For Info, Warning, Errors etc we want to log them */
-	if ( zm_dbg_code >= ZM_DBG_SYSLOG )
+	if ( zm_dbg_code <= ZM_DBG_SYSLOG )
 	{
 		switch(zm_dbg_code)
 		{

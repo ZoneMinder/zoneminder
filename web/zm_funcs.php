@@ -1094,6 +1094,219 @@ function firstSet()
 	}
 }
 
+function getDeterminant( $x0, $y0, $x1, $y1 )
+{
+	return( ( $x0 * $y1 ) - ( $x1 * $y0 ) );
+}
+
+function linesIntersect2( $line1, $line2 )
+{
+	// Checking if bounding boxes intersect
+	if ( max( $line1[0]['x'], $line1[1]['x'] ) < min( $line2[0]['x'], $line2[1]['x'] ) )
+		return( false );
+	elseif ( max( $line2[0]['x'], $line2[1]['x'] ) < min( $line1[0]['x'], $line1[1]['x'] ) )
+		return( false );
+	elseif ( max( $line1[0]['y'], $line1[1]['y'] ) < min( $line2[0]['y'], $line2[1]['y'] ) )
+		return( false );
+	elseif ( max( $line2[0]['y'], $line2[1]['y'] ) < min( $line1[0]['y'], $line1[1]['y'] ) )
+		return( false );
+
+	$dx = $line1[1]['x'] - $line1[0]['x'];
+	$dy = $line1[1]['y'] - $line1[0]['y'];
+
+	$det1 = getDeterminant( $line2[0]['x'] - $line1[0]['x'], $line2[0]['y'] - $line1[0]['y'], $dx, $dy );
+	$det2 = getDeterminant( $line2[1]['x'] - $line1[0]['x'], $line2[1]['y'] - $line1[0]['y'], $dx, $dy );
+
+	if ( ( $det1 < 0 && $det2 > 0 ) || ( $det1 > 0 && $det2 < 0 ) )
+	{
+		return( true );
+	}
+
+	if ( !$det1 )
+	{
+		if ( !$det2 )
+			return( true );
+		elseif ( ($line2[1]['x'] == $line2[0]['x']) && ($line2[1]['y'] == $line2[0]['y']) )
+			return( true );
+	}
+	elseif ( !$det2 )
+	{
+		if ( !$dx && !$dy )
+			return( true );
+	}
+
+	return( false );
+}
+
+function linesIntersect( $line1, $line2 )
+{
+	global $debug;
+
+	$min_x1 = min( $line1[0]['x'], $line1[1]['x'] );
+	$max_x1 = max( $line1[0]['x'], $line1[1]['x'] );
+	$min_x2 = min( $line2[0]['x'], $line2[1]['x'] );
+	$max_x2 = max( $line2[0]['x'], $line2[1]['x'] );
+	$min_y1 = min( $line1[0]['y'], $line1[1]['y'] );
+	$max_y1 = max( $line1[0]['y'], $line1[1]['y'] );
+	$min_y2 = min( $line2[0]['y'], $line2[1]['y'] );
+	$max_y2 = max( $line2[0]['y'], $line2[1]['y'] );
+
+	// Checking if bounding boxes intersect
+	if ( $max_x1 < $min_x2 || $max_x2 < $min_x1 ||$max_y1 < $min_y2 || $max_y2 < $min_y1 )
+	{
+		if ( $debug ) echo "Not intersecting, out of bounds<br>";
+		return( false );
+	}
+
+	$dx1 = $line1[1]['x'] - $line1[0]['x'];
+	$dy1 = $line1[1]['y'] - $line1[0]['y'];
+	$dx2 = $line2[1]['x'] - $line2[0]['x'];
+	$dy2 = $line2[1]['y'] - $line2[0]['y'];
+
+	if ( $dx1 )
+	{
+		$m1 = $dy1/$dx1;
+		$b1 = $line1[0]['y'] - ($m1 * $line1[0]['x']);
+	}
+	else
+	{
+		$b1 = $line1[0]['y'];
+	}
+	if ( $dx2 )
+	{
+		$m2 = $dy2/$dx2;
+		$b2 = $line2[0]['y'] - ($m2 * $line2[0]['x']);
+	}
+	else
+	{
+		$b2 = $line2[0]['y'];
+	}
+
+	if ( $dx1 && $dx2 ) // Both not vertical
+	{
+		//if ( isset($m1) && isset($m2) ) // Both not horizontal
+		{
+			if ( $m1 != $m2 ) // Not parallel or colinear
+			{
+				$x = ( $b2 - $b1 ) / ( $m1 - $m2 );
+
+				if ( $x >= $min_x1 && $x <= $max_x1 && $x >= $min_x2 && $x <= $max_x2 )
+				{
+					if ( $debug ) echo "Intersecting, at x $x<br>";
+					return( true );
+				}
+				else
+				{
+					if ( $debug ) echo "Not intersecting, out of range at x $x<br>";
+					return( false );
+				}
+			}
+			elseif ( $b1 == $b2 )
+			{
+				// Colinear, must overlap due to box check, intersect? 
+				if ( $debug ) echo "Intersecting, colinear<br>";
+				return( true );
+			}
+			else
+			{
+				// Parallel
+				if ( $debug ) echo "Not intersecting, parallel<br>";
+				return( false );
+			}
+		}
+		//elseif ( isset($m1) ) // Line 2 is horizontal
+		//{
+		//	
+		//}
+		//else // Both lines are horizontal
+		//{
+			//if ( $line1[0]['y'] == $line2[0]['y'] )
+			//{
+				//// Colinear, must overlap due to box check, intersect? 
+				//if ( $debug ) echo "Intersecting, horizontal, colinear<br>";
+				//return( true );
+			//}
+			//else
+			//{
+				//// Parallel
+				//if ( $debug ) echo "Not intersecting, horizontal, parallel<br>";
+				//return( false );
+			//}
+		//}
+	}
+	elseif ( !$dx1 ) // Line 1 is vertical
+	{
+		$y = ( $m2 * $line1[0]['x'] ) * $b2;
+		if ( $y >= $min_y1 && $y <= $max_y1 )
+		{
+			if ( $debug ) echo "Intersecting, at y $y<br>";
+			return( true );
+		}
+		else
+		{
+			if ( $debug ) echo "Not intersecting, out of range at y $y<br>";
+			return( false );
+		}
+	}
+	elseif ( !$dx2 ) // Line 2 is vertical
+	{
+		$y = ( $m1 * $line2[0]['x'] ) * $b1;
+		if ( $y >= $min_y2 && $y <= $max_y2 )
+		{
+			if ( $debug ) echo "Intersecting, at y $y<br>";
+			return( true );
+		}
+		else
+		{
+			if ( $debug ) echo "Not intersecting, out of range at y $y<br>";
+			return( false );
+		}
+	}
+	else // Both lines are vertical
+	{
+		if ( $line1[0]['x'] == $line2[0]['x'] )
+		{
+			// Colinear, must overlap due to box check, intersect? 
+			if ( $debug ) echo "Intersecting, vertical, colinear<br>";
+			return( true );
+		}
+		else
+		{
+			// Parallel
+			if ( $debug ) echo "Not intersecting, vertical, parallel<br>";
+			return( false );
+		}
+	}
+	if ( $debug ) echo "Whoops, unexpected scenario<br>";
+	return( false );
+}
+
+function isSelfIntersecting( $points )
+{
+	global $debug;
+
+	$n_coords = count($points);
+	$edges = array();
+	for ( $j = 0, $i = $n_coords-1; $j < $n_coords; $i = $j++ )
+	{
+		$edges[] = array( $points[$i], $points[$j] );
+	}
+
+	for ( $i = 0; $i <= ($n_coords-2); $i++ )
+	{
+		for ( $j = $i+2; $j < $n_coords+min(0,$i-1); $j++ )
+		{
+			if ( $debug ) echo "Checking $i and $j<br>";
+			if ( linesIntersect( $edges[$i], $edges[$j] ) )
+			{
+				if ( $debug ) echo "Lines $i and $j intersect<br>";
+				return( true );
+			}
+		}
+	}
+	return( false );
+}
+
 function getPolyCentre( $points, $area=0 )
 {
 	$cx = 0.0;
@@ -1128,6 +1341,8 @@ function _CompareX( $a, $b )
 function getPolyArea( $points )
 {
 	//error_reporting( E_ALL );
+	global $debug;
+
 	$n_coords = count($points);
 	$global_edges = array();
 	for ( $j = 0, $i = $n_coords-1; $j < $n_coords; $i = $j++ )
@@ -1146,7 +1361,7 @@ function getPolyArea( $points )
 
 		$global_edges[] = array(
 			"min_y" => $y1<$y2?$y1:$y2,
-			"max_y" => $y1<$y2?$y2:$y1,
+			"max_y" => ($y1<$y2?$y2:$y1)+1,
 			"min_x" => $y1<$y2?$x1:$x2,
 			"_1_m" => $dx/$dy,
 		);
@@ -1189,26 +1404,26 @@ function getPolyArea( $points )
 				printf( "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>", $y, $i, $active_edges[$i]['min_y'], $active_edges[$i]['max_y'], $active_edges[$i]['min_x'], $active_edges[$i]['_1_m'] );
 			}
 		}
-		$last_hi_x = -1;
-		for ( $i = 0; $i < count($active_edges); )
+		$last_x = 0;
+		$row_area = 0;
+		$parity = false;
+		for ( $i = 0; $i < count($active_edges); $i++ )
 		{
-			$lo_x = intval(round($active_edges[$i++]['min_x']));
-			$hi_x = intval(round($active_edges[$i++]['min_x']));
-
-			//printf( "lx:%d, hx:%d<br>", $lo_x, $hi_x );
-			$row_area = ($hi_x - $lo_x);
-			if ( $hi_x != $last_hi_x )
-				$row_area++;
-			$area += $row_area;
-
-			if ( $debug ) printf( "%d: Area:%d<br>", $y, $row_area );
-			$last_hi_x = $hi_x;
+			$x = intval(round($active_edges[$i]['min_x']));
+			if ( $parity )
+			{
+				$row_area += ($x - $last_x)+1;
+				$area += $row_area;
+			}
+			if ( $active_edges[$i]['max_y'] != $y )
+				$parity = !$parity;
+			$last_x = $x;
 		}
-		//if ( $debug ) printf( "\n" );
+		if ( $debug ) printf( "%d: Area:%d<br>", $y, $row_area );
 		$y++;
 		for ( $i = 0; $i < count($active_edges); $i++ )
 		{
-			if ( $y > $active_edges[$i]['max_y'] ) // Or >= as per sheets
+			if ( $y >= $active_edges[$i]['max_y'] ) // Or >= as per sheets
 			{
 				if ( $debug ) printf( "Deleting active_edge<br>" );
 				array_splice( $active_edges, $i, 1 );

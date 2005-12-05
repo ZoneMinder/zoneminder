@@ -493,6 +493,7 @@ $zmSlangScore                = 'Score';
 $zmSlangSecs                 = 'Secs';
 $zmSlangSectionlength        = 'Section length';
 $zmSlangSelect               = 'Select';
+$zmSlangSelfIntersecting     = 'Polygon edges must not intersect';
 $zmSlangSetLearnPrefs        = 'Set Learn Prefs'; // This can be ignored for now
 $zmSlangSetNewBandwidth      = 'Set New Bandwidth';
 $zmSlangSetPreset            = 'Set Preset';

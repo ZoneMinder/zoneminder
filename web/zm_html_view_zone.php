@@ -24,6 +24,8 @@ if ( !canView( 'Monitors' ) )
 	return;
 }
 
+//phpinfo( INFO_VARIABLES );
+error_reporting( E_ALL );
 $scale = SCALE_SCALE;
 
 $hicolor = "0x00ff00"; // Green
@@ -46,61 +48,68 @@ $max_x = $monitor['Width']-1;
 $min_y = 0;
 $max_y = $monitor['Height']-1;
 
-if ( $zid > 0 )
+if ( !isset($new_zone) )
 {
-	$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$zone = mysql_fetch_assoc( $result );
-}
-else
-{
-	$zone = array();
-	$zone['Name'] = $zmSlangNew;
-	$zone['CheckMethod'] = 'Blobs';
-	$zone['AlarmRGB'] = 0xff0000;
-	$zone['NumCoords'] = 4;
-	$zone['Coords'] = sprintf( "%d,%d %d,%d, %d,%d %d,%d", $min_x, $min_y, $max_x, $min_y, $max_x, $max_y, $min_x, $max_y );
-	$zone['Area'] = $monitor['Width'] * $monitor['Height'];
-}
-$zone['Points'] = coordsToPoints( $zone['Coords'] );
-
-$new_zone = $zone;
-
-if ( !$points )
-{
-	$points = $zone['Points'];
-}
-
-ksort( $points, SORT_NUMERIC );
-
-if ( $action == "loc_addpoint" )
-{
-	if ( $subaction < (count($points)-1) )
+	if ( $zid > 0 )
 	{
-		$new_x = intval(round(($points[$subaction]['x']+$points[$subaction+1]['x'])/2));
-		$new_y = intval(round(($points[$subaction]['y']+$points[$subaction+1]['y'])/2));
+		$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
+		if ( !$result )
+			die( mysql_error() );
+		$zone = mysql_fetch_assoc( $result );
 	}
 	else
 	{
-		$new_x = intval(round(($points[$subaction]['x']+$points[0]['x'])/2));
-		$new_y = intval(round(($points[$subaction]['y']+$points[0]['y'])/2));
+		$zone = array();
+		$zone['Name'] = $zmSlangNew;
+		$zone['CheckMethod'] = 'Blobs';
+		$zone['AlarmRGB'] = 0xff0000;
+		$zone['NumCoords'] = 4;
+		$zone['Coords'] = sprintf( "%d,%d %d,%d, %d,%d %d,%d", $min_x, $min_y, $max_x, $min_y, $max_x, $max_y, $min_x, $max_y );
+		$zone['Area'] = $monitor['Width'] * $monitor['Height'];
 	}
-	array_splice( $points, $subaction+1, 0, array( array( 'x'=>$new_x, 'y'=>$new_y ) ) );
-}
-elseif ( $action == "loc_delpoint" )
-{
-	array_splice( $points, $subaction, 1 );
+	$zone['Points'] = coordsToPoints( $zone['Coords'] );
+
+	$new_zone = $zone;
 }
 
-$coords = pointsToCoords( $points );
-$area = getPolyArea( $points );
+//if ( !$points )
+//{
+	//$points = $zone['Points'];
+//}
+
+ksort( $new_zone['Points'], SORT_NUMERIC );
+
+if ( isset($action) )
+{
+	if ( $action == "loc_addpoint" )
+	{
+		if ( $subaction < (count($new_zone['Points'])-1) )
+		{
+			$new_x = intval(round(($new_zone['Points'][$subaction]['x']+$new_zone['Points'][$subaction+1]['x'])/2));
+			$new_y = intval(round(($new_zone['Points'][$subaction]['y']+$new_zone['Points'][$subaction+1]['y'])/2));
+		}
+		else
+		{
+			$new_x = intval(round(($new_zone['Points'][$subaction]['x']+$new_zone['Points'][0]['x'])/2));
+			$new_y = intval(round(($new_zone['Points'][$subaction]['y']+$new_zone['Points'][0]['y'])/2));
+		}
+		array_splice( $new_zone['Points'], $subaction+1, 0, array( array( 'x'=>$new_x, 'y'=>$new_y ) ) );
+	}
+	elseif ( $action == "loc_delpoint" )
+	{
+		array_splice( $new_zone['Points'], $subaction, 1 );
+	}
+}
+
+$new_zone['Coords'] = pointsToCoords( $new_zone['Points'] );
+$new_zone['Area'] = getPolyArea( $new_zone['Points'] );
+$self_intersecting = isSelfIntersecting( $new_zone['Points'] );
 
 chdir( ZM_DIR_IMAGES );
 $command = getZmuCommand( " -m $mid -z" );
 if ( !$zid )
 	$zid = 0;
-$command .= "\"$zid $hicolor $coords\"";
+$command .= "\"$zid $hicolor ".$new_zone['Coords']."\"";
 $status = exec( escapeshellcmd( $command ) );
 chdir( '..' );
 
@@ -110,7 +119,7 @@ $zone_image = ZM_DIR_IMAGES.'/'.$monitor['Name']."-Zones.jpg?".time();
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $monitor['Name'] ?> - <?= $zmSlangZone ?> <?= $zone['Name'] ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $monitor['Name'] ?> - <?= $zmSlangZone ?> <?= $new_zone['Name'] ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 <?php
@@ -133,11 +142,18 @@ function closeWindow()
 	window.close();
 }
 
+var active = -1;
+var self_intersecting = <?= $self_intersecting?'true':'false' ?>;
+
 function validateForm()
 {
 	var form = document.zone_form;
 	var errors = new Array();
 
+	if ( self_intersecting )
+	{
+		errors[errors.length] = "<?= $zmSlangSelfIntersecting ?>";
+	}
 	if ( form.elements['new_zone[Type]'].value != 'Inactive' )
 	{
 		if ( !form.new_alarm_rgb_r.value || !form.new_alarm_rgb_g.value || !form.new_alarm_rgb_b.value )
@@ -162,21 +178,21 @@ function validateForm()
 		}
 		if ( !form.elements['new_zone[MinAlarmPixels]'].value || (parseFloat(form.elements['new_zone[MinAlarmPixels]'].value) <= 0 ) )
 		{
-			errors[errors.length] = "<?= $zmSlangMinAlarmPixelsUnset ?>";
+			errors[errors.length] = "<?= $zmSlangMinAlarmAreaUnset ?>";
 		}
 		else if ( (parseFloat(form.elements['new_zone[MinAlarmPixels]'].value) >= parseFloat(form.elements['new_zone[MaxAlarmPixels]'].value)) && (parseFloat(form.elements['new_zone[MaxAlarmPixels]'].value) > 0) )
 		{
-			errors[errors.length] = "<?= $zmSlangMinAlarmPixelsLtMax ?>";
+			errors[errors.length] = "<?= $zmSlangMinAlarmAreaLtMax ?>";
 		}
 		if ( form.elements['new_zone[CheckMethod]'].value == 'FilteredPixels' || form.elements['new_zone[CheckMethod]'].value == 'Blobs' )
 		{
 			if ( !form.elements['new_zone[MinFilterPixels]'].value || (parseFloat(form.elements['new_zone[MinFilterPixels]'].value) <= 0 ) )
 			{
-				errors[errors.length] = "<?= $zmSlangMinFilterPixelsUnset ?>";
+				errors[errors.length] = "<?= $zmSlangMinFilterAreaUnset ?>";
 			}
 			else if ( (parseFloat(form.elements['new_zone[MinFilterPixels]'].value) >= parseFloat(form.elements['new_zone[MaxFilterPixels]'].value)) && (parseFloat(form.elements['new_zone[MaxFilterPixels]'].value) > 0) )
 			{
-				errors[errors.length] = "<?= $zmSlangMinFilterPixelsLtMax ?>";
+				errors[errors.length] = "<?= $zmSlangMinFilterAreaLtMax ?>";
 			}
 			else if ( parseFloat(form.elements['new_zone[MinAlarmPixels]'].value) < parseFloat(form.elements['new_zone[MinFilterPixels]'].value) )
 			{
@@ -186,11 +202,11 @@ function validateForm()
 			{
 				if ( !form.elements['new_zone[MinBlobPixels]'].value || (parseFloat(form.elements['new_zone[MinBlobPixels]'].value) <= 0 ) )
 				{
-					errors[errors.length] = "<?= $zmSlangMinBlobPixelsUnset ?>";
+					errors[errors.length] = "<?= $zmSlangMinBlobAreaUnset ?>";
 				}
 				else if ( (parseFloat(form.elements['new_zone[MinBlobPixels]'].value) >= parseFloat(form.elements['new_zone[MaxBlobPixels]'].value)) && (parseFloat(form.elements['new_zone[MaxBlobPixels]'].value) > 0) )
 				{
-					errors[errors.length] = "<?= $zmSlangMinBlobPixelsLtMax ?>";
+					errors[errors.length] = "<?= $zmSlangMinBlobAreaLtMax ?>";
 				}
 				else if ( parseFloat(form.elements['new_zone[MinFilterPixels]'].value) < parseFloat(form.elements['new_zone[MinBlobPixels]'].value) )
 				{
@@ -213,6 +229,15 @@ function validateForm()
 		return( false );
 	}
 	return( true );
+}
+
+function submitForm()
+{
+	var form = document.zone_form;
+
+	form.elements['new_zone[AlarmRGB]'].value = (form.new_alarm_rgb_r.value<<16)|(form.new_alarm_rgb_g.value<<8)|form.new_alarm_rgb_b.value;
+
+	form.submit();
 }
 
 function applyZoneType()
@@ -317,21 +342,18 @@ function applyZoneUnits( initial )
 {
 	var max_width = <?= $monitor['Width']-1 ?>;
 	var max_height = <?= $monitor['Height']-1 ?>;
-	var area = <?= $area ?>;
+	var area = <?= $new_zone['Area'] ?>;
 
 	var form = document.zone_form;
 	if ( form.elements['new_zone[Units]'].value == 'Pixels' )
 	{
-		if ( !initial )
-		{
-			form.elements['new_zone[TempArea]'].value = area;
-			toPixels( form.elements['new_zone[MinAlarmPixels]'], area );
-			toPixels( form.elements['new_zone[MaxAlarmPixels]'], area );
-			toPixels( form.elements['new_zone[MinFilterPixels]'], area );
-			toPixels( form.elements['new_zone[MaxFilterPixels]'], area );
-			toPixels( form.elements['new_zone[MinBlobPixels]'], area );
-			toPixels( form.elements['new_zone[MaxBlobPixels]'], area );
-		}
+		form.elements['new_zone[TempArea]'].value = area;
+		toPixels( form.elements['new_zone[MinAlarmPixels]'], area );
+		toPixels( form.elements['new_zone[MaxAlarmPixels]'], area );
+		toPixels( form.elements['new_zone[MinFilterPixels]'], area );
+		toPixels( form.elements['new_zone[MaxFilterPixels]'], area );
+		toPixels( form.elements['new_zone[MinBlobPixels]'], area );
+		toPixels( form.elements['new_zone[MaxBlobPixels]'], area );
 	}
 	else
 	{
@@ -376,7 +398,7 @@ function limitFilter( field )
 function limitArea( field )
 {
 	var minValue = 0;
-	var maxValue = <?= $area ?>;
+	var maxValue = <?= $new_zone['Area'] ?>;
 	if ( document.zone_form.elements['new_zone[Units]'].value == "Percent" )
 	{
 		maxValue = 100;
@@ -395,8 +417,6 @@ function swapImage( id, src )
 	var element = document.getElementById( id );
 	element.src = src;
 }
-
-var active = -1;
 
 function highlightOn( index )
 {
@@ -427,8 +447,8 @@ function setActivePoint( index )
 	}
 	setBgColor( 'row'+index, '#FFA07A' );
 	swapImage( 'point'+index, '<?= $marker['actsrc'] ?>' );
-	document.getElementById( 'points['+index+'][x]' ).disabled = false;
-	document.getElementById( 'points['+index+'][y]' ).disabled = false;
+	document.getElementById( 'new_zone[Points]['+index+'][x]' ).disabled = false;
+	document.getElementById( 'new_zone[Points]['+index+'][y]' ).disabled = false;
 	if ( document.getElementById( 'delete'+index ) )
 		document.getElementById( 'delete'+index ).innerHTML="&ndash;";
 	document.getElementById( 'cancel'+index ).innerHTML="X";
@@ -450,10 +470,10 @@ function unsetActivePoint( index )
 		document.getElementById( 'zoneImage' ).ondblclick = '';
 		document.getElementById( 'zoneImage' ).onmousemove = '';
 		document.zone_form.reset();
-		for ( var i = 0; i < <?= count($points) ?>; i++ )
+		for ( var i = 0; i < <?= count($new_zone['Points']) ?>; i++ )
 		{
-			//document.getElementById( 'points['+i+'][x]' ).disabled = true;
-			//document.getElementById( 'points['+i+'][y]' ).disabled = true;
+			//document.getElementById( 'new_zone[Points]['+i+'][x]' ).disabled = true;
+			//document.getElementById( 'new_zone[Points]['+i+'][y]' ).disabled = true;
 		}
 	}
 }
@@ -468,7 +488,7 @@ function fixActivePoint( event )
 		event = window.event;
 	}
 	updateActivePoint( event );
-	document.zone_form.submit();
+	submitForm();
 }
 
 function updateActivePoint( event )
@@ -487,8 +507,8 @@ function updateActivePoint( event )
 		y = event.offsetY;
 	}
 
-	x_point = document.getElementById( 'points['+active+'][x]' );
-	y_point = document.getElementById( 'points['+active+'][y]' );
+	x_point = document.getElementById( 'new_zone[Points]['+active+'][x]' );
+	y_point = document.getElementById( 'new_zone[Points]['+active+'][y]' );
 	x_point.value = x;
 	y_point.value = y;
 }
@@ -497,14 +517,14 @@ function addPoint( index )
 {
 	document.zone_form.action.value = "loc_addpoint";
 	document.zone_form.subaction.value = index;
-	document.zone_form.submit();
+	submitForm();
 }
 
 function delPoint( index )
 {
 	document.zone_form.action.value = "loc_delpoint";
 	document.zone_form.subaction.value = index;
-	document.zone_form.submit();
+	submitForm();
 }
 
 function updatePoint( point, lo_val, hi_val )
@@ -519,18 +539,18 @@ function updatePoint( point, lo_val, hi_val )
 
 function updateX( index )
 {
-	updatePoint( document.getElementById( 'points['+index+'][x]' ), 0, <?= $monitor['Width']-1 ?> );
+	updatePoint( document.getElementById( 'new_zone[Points]['+index+'][x]' ), 0, <?= $monitor['Width']-1 ?> );
 }
 
 function updateY( index )
 {
-	updatePoint( document.getElementById( 'points['+index+'][y]' ), 0, <?= $monitor['Height']-1 ?> );
+	updatePoint( document.getElementById( 'new_zone[Points]['+index+'][y]' ), 0, <?= $monitor['Height']-1 ?> );
 }
 
 function updateValues()
 {
 	document.zone_form.action.value = '';
-	document.zone_form.submit();
+	submitForm();
 }
 
 function saveChanges()
@@ -538,7 +558,7 @@ function saveChanges()
 	if ( validateForm() )
 	{
 		document.zone_form.action.value = 'zone';
-		document.zone_form.submit();
+		submitForm();
 		return( true );
 	}
 	return( false );
@@ -552,13 +572,13 @@ function saveChanges()
 <input type="hidden" name="subaction" value="">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <input type="hidden" name="zid" value="<?= $zid ?>">
-<input type="hidden" name="new_zone[NumCoords]" value="<?= count($points ) ?>">
-<input type="hidden" name="new_zone[Coords]" value="<?= $coords ?>">
-<input type="hidden" name="new_zone[Area]" value="<?= $area ?>">
+<input type="hidden" name="new_zone[NumCoords]" value="<?= count($new_zone['Points']) ?>">
+<input type="hidden" name="new_zone[Coords]" value="<?= $new_zone['Coords'] ?>">
+<input type="hidden" name="new_zone[Area]" value="<?= $new_zone['Area'] ?>">
 <input type="hidden" name="new_zone[AlarmRGB]" value=""
 <table border="0" cellspacing="0" cellpadding="1" width="100%">
 <tr>
-<td align="left" class="head"><?= $zmSlangMonitor ?> <?= $monitor['Name'] ?> - <?= $zmSlangZone ?> <?= $zone['Name'] ?></td>
+<td align="left" class="head"><?= $zmSlangMonitor ?> <?= $monitor['Name'] ?> - <?= $zmSlangZone ?> <?= $new_zone['Name'] ?></td>
 </tr>
 </table>
 <table border="0" cellspacing="0" cellpadding="1" width="100%">
@@ -604,7 +624,7 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $opt_check_method )
 <tr><td align="left" class="text"><?= $zmSlangZoneMinMaxPixelThres ?></td><td align="left" class="text"><input type="text" name="new_zone[MinPixelThreshold]" value="<?= $new_zone['MinPixelThreshold'] ?>" size="4" class="form" onchange="limitRange( this, 0, 255 )"></td><td align="left" class="text"><input type="text" name="new_zone[MaxPixelThreshold]" value="<?= $new_zone['MaxPixelThreshold'] ?>" size="4" class="form" onchange="limitRange( this, 0, 255 )"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneFilterSize ?></td><td align="left" class="text"><input type="text" name="new_zone[FilterX]" value="<?= $new_zone['FilterX'] ?>" size="4" class="form" onchange="limitFilter( this )"></td><td align="left" class="text"><input type="text" name="new_zone[FilterY]" value="<?= $new_zone['FilterY'] ?>" size="4" class="form" onchange="limitFilter( this )"></td></tr>
 <tr><td colspan="3"><img src="graphics/spacer.gif" width="1" height="5"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangZoneArea ?></td><td colspan="2" align="left" class="text"><input type="text" name="new_zone[TempArea]" value="<?= $area ?>" size="7" class="form" disabled></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneArea ?></td><td colspan="2" align="left" class="text"><input type="text" name="new_zone[TempArea]" value="<?= $new_zone['Area'] ?>" size="7" class="form" disabled></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneMinMaxAlarmArea ?></td><td align="left" class="text"><input type="text" name="new_zone[MinAlarmPixels]" value="<?= $new_zone['MinAlarmPixels'] ?>" size="6" class="form" onchange="limitArea(this)"></td><td align="left" class="text"><input type="text" name="new_zone[MaxAlarmPixels]" value="<?= $new_zone['MaxAlarmPixels'] ?>" size="6" class="form" onchange="limitArea(this)"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneMinMaxFiltArea ?></td><td align="left" class="text"><input type="text" name="new_zone[MinFilterPixels]" value="<?= $new_zone['MinFilterPixels'] ?>" size="6" class="form" onchange="limitArea(this)"></td><td align="left" class="text"><input type="text" name="new_zone[MaxFilterPixels]" value="<?= $new_zone['MaxFilterPixels'] ?>" size="6" class="form" onchange="limitArea(this)"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneMinMaxBlobArea ?></td><td align="left" class="text"><input type="text" name="new_zone[MinBlobPixels]" value="<?= $new_zone['MinBlobPixels'] ?>" size="6" class="form"></td><td align="left" class="text"><input type="text" name="new_zone[MaxBlobPixels]" value="<?= $new_zone['MaxBlobPixels'] ?>" size="6" class="form"></td></tr>
@@ -619,10 +639,10 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $opt_check_method )
 <div id="canvas" style="position:relative; width:<?= reScale( $monitor['Width'], $scale ) ?>px; height:<?= reScale( $monitor['Height'], $scale ) ?>px;">
 <img name="zoneImage" id="zoneImage" src="<?= $zone_image ?>" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>" border="0">
 <?php
-for ( $i = 0; $i < count($points); $i++ )
+for ( $i = 0; $i < count($new_zone['Points']); $i++ )
 {
 ?>
-<div style="position:absolute; width:<?= $marker['width'] ?>px; height:<?= $marker['height'] ?>px; left: <?= $points[$i]['x']-intval($marker['width']/2) ?>px; top: <?= $points[$i]['y']-intval($marker['height']/2) ?>px"><img id="point<?= $i ?>" src="<?= $marker['src'] ?>" width="<?= $marker['width'] ?>" height="<?= $marker['height'] ?>" border="0" onMouseOver="highlightOn( <?= $i ?> )" onMouseOut="highlightOff( <?= $i ?> )" onClick="setActivePoint( <?= $i ?> )"></div>
+<div style="position:absolute; width:<?= $marker['width'] ?>px; height:<?= $marker['height'] ?>px; left: <?= $new_zone['Points'][$i]['x']-intval($marker['width']/2) ?>px; top: <?= $new_zone['Points'][$i]['y']-intval($marker['height']/2) ?>px"><img id="point<?= $i ?>" src="<?= $marker['src'] ?>" width="<?= $marker['width'] ?>" height="<?= $marker['height'] ?>" border="0" onMouseOver="highlightOn( <?= $i ?> )" onMouseOut="highlightOff( <?= $i ?> )" onClick="setActivePoint( <?= $i ?> )"></div>
 <?php
 }
 ?>
@@ -644,14 +664,14 @@ for ( $i = 0; $i < $point_cols; $i++ )
 <td align="center" class="smallhead"><?= $zmSlangAction ?></td>
 </tr>
 <?php
-	for ( $j = $i; $j < count($points); $j += 2 )
+	for ( $j = $i; $j < count($new_zone['Points']); $j += 2 )
 	{
 ?>
 <tr id="row<?= $j ?>" onMouseOver="highlightOn( <?= $j ?> )" onMouseOut="highlightOff( <?= $j ?> )" onClick="setActivePoint( <?= $j ?> )">
 <td align="center" class="text"><?= $j+1 ?></td>
-<td align="center" class="text"><input name="points[<?= $j ?>][x]" id="points[<?= $j ?>][x]" size="5" value="<?= $points[$j]['x'] ?>" onChange="updateX( <?= $j ?> )" class="form"></td>
-<td align="center" class="text"><input name="points[<?= $j ?>][y]" id="points[<?= $j ?>][y]" size="5" value="<?= $points[$j]['y'] ?>" onChange="updateY( <?= $j ?> )" class="form"></td>
-<td align="center" class="text"><a href="javascript: addPoint( <?= $j ?> );">+</a><?php if ( count($points) > 3 ) { ?>&nbsp;<a id="delete<?= $j ?>" href="javascript: delPoint( <?= $j ?> )"></a><?php } ?>&nbsp;<a id="cancel<?= $j ?>" href="javascript: unsetActivePoint( <?= $j ?> )"></a></td>
+<td align="center" class="text"><input name="new_zone[Points][<?= $j ?>][x]" id="new_zone[Points][<?= $j ?>][x]" size="5" value="<?= $new_zone['Points'][$j]['x'] ?>" onChange="updateX( <?= $j ?> )" class="form"></td>
+<td align="center" class="text"><input name="new_zone[Points][<?= $j ?>][y]" id="new_zone[Points][<?= $j ?>][y]" size="5" value="<?= $new_zone['Points'][$j]['y'] ?>" onChange="updateY( <?= $j ?> )" class="form"></td>
+<td align="center" class="text"><a href="javascript: addPoint( <?= $j ?> );">+</a><?php if ( count($new_zone['Points']) > 3 ) { ?>&nbsp;<a id="delete<?= $j ?>" href="javascript: delPoint( <?= $j ?> )"></a><?php } ?>&nbsp;<a id="cancel<?= $j ?>" href="javascript: unsetActivePoint( <?= $j ?> )"></a></td>
 </tr>
 <?php
 	}
@@ -675,7 +695,7 @@ for ( $i = 0; $i < $point_cols; $i++ )
 <tr>
 <td align="left" width="40%">&nbsp;</td>
 <td align="center" width="20%"><!--<input type="button" name="update_btn" value="<?= $zmSlangUpdate ?>" class="form" onClick="updateValues()" disabled>--></td>
-<td align="right" width="40%"><input type="submit" value="<?= $zmSlangSave ?>" onClick="return saveChanges()" class="form">&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
+<td align="right" width="40%"><input type="submit" value="<?= $zmSlangSave ?>" onClick="return saveChanges()" class="form"<?= false && $self_intersecting?" disabled":"" ?>>&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
 </body>
@@ -686,7 +706,17 @@ for ( $i = 0; $i < $point_cols; $i++ )
 </form>
 <script type="text/javascript">
 applyZoneType();
-applyZoneUnits( true );
+<?php
+if ( isset($zone) )
+{
+?>
+if ( document.zone_form.elements['new_zone[Units]'].value == 'Percent' )
+{
+	applyZoneUnits();
+}
+<?php
+}
+?>
 applyCheckMethod();
 </script>
 </body>

@@ -234,7 +234,7 @@ function truncText( $text, $length, $deslash=1 )
 	return( preg_replace( "/^(.{".$length.",}?)\b.*$/", "\\1&hellip;", ($deslash?stripslashes($text):$text) ) );       
 }               
 
-function buildSelect( $name, $contents, $onchange="" )
+function buildSelect( $name, $contents, $behaviours=false )
 {
 	if ( preg_match( "/^(\w+)\s*\[\s*['\"]?(\w+)[\"']?\s*]$/", $name, $matches ) )
 	{
@@ -249,8 +249,23 @@ function buildSelect( $name, $contents, $onchange="" )
 		$value = $$name;
 	}
 	ob_start();
+	$behaviour_text = "";
+	if ( isset($behaviours) )
+	{
+		if ( is_array($behaviours) )
+		{
+			foreach ( $behaviours as $event=>$action )
+			{
+				$behaviour_text .= ' '.$event.'="'.$action.'"';
+			}
+		}
+		else
+		{
+			$behaviour_text = ' onChange="'.$behaviours.'"';
+		}
+	}
 ?>
-<select name="<?= $name ?>" class="form"<?php if ( $onchange ) { echo " onChange=\"$onchange\""; } ?>>
+<select name="<?= $name ?>" class="form"<?= $behaviour_text ?>>
 <?php
 	foreach ( $contents as $content_value => $content_text )
 	{

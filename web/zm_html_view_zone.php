@@ -38,6 +38,16 @@ $marker = array(
 	"height"=>7,
 );
 
+$presets = array(
+	0=>$zmSlangZonePresetChoose,
+	1=>$zmSlangZonePresetFastLow,
+	2=>$zmSlangZonePresetFastMed,
+	3=>$zmSlangZonePresetFastHigh,
+	11=>$zmSlangZonePresetBestLow,
+	12=>$zmSlangZonePresetBestMed,
+	13=>$zmSlangZonePresetBestHigh,
+);
+
 $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
 	die( mysql_error() );
@@ -245,6 +255,7 @@ function applyZoneType()
 	var form = document.zone_form;
 	if ( form.elements['new_zone[Type]'].value == 'Inactive' )
 	{
+		form.presetSelector.disabled = true;
 		form.new_alarm_rgb_r.disabled = true;
 		form.new_alarm_rgb_g.disabled = true;
 		form.new_alarm_rgb_b.disabled = true;
@@ -264,6 +275,7 @@ function applyZoneType()
 	}
 	else if ( form.elements['new_zone[Type]'].value == 'Preclusive' )
 	{
+		form.presetSelector.disabled = false;
 		form.new_alarm_rgb_r.disabled = true;
 		form.new_alarm_rgb_g.disabled = true;
 		form.new_alarm_rgb_b.disabled = true;
@@ -276,6 +288,7 @@ function applyZoneType()
 	}
 	else
 	{
+		form.presetSelector.disabled = false;
 		form.new_alarm_rgb_r.disabled = false;
 		form.new_alarm_rgb_g.disabled = false;
 		form.new_alarm_rgb_b.disabled = false;
@@ -326,6 +339,83 @@ function applyCheckMethod()
 	}
 }
 
+function applyPreset()
+{
+	var form = document.zone_form;
+	var preset = form.elements['presetSelector'].options[form.elements['presetSelector'].selectedIndex].value;
+
+	if ( preset >= 1 && preset <= 3 )
+	{
+		form.elements['new_zone[Units]'].selectedIndex = 1;
+		form.elements['new_zone[CheckMethod]'].selectedIndex = 0;
+		form.elements['new_zone[MaxPixelThreshold]'].value = ''
+		form.elements['new_zone[FilterX]'].value = '';
+		form.elements['new_zone[FilterY]'].value = '';
+		form.elements['new_zone[MaxAlarmPixels]'].value = '';
+		form.elements['new_zone[MinFilterPixels]'].value = '';
+		form.elements['new_zone[MaxFilterPixels]'].value = '';
+		form.elements['new_zone[MinBlobPixels]'].value = '';
+		form.elements['new_zone[MaxBlobPixels]'].value = '';
+		form.elements['new_zone[MinBlobs]'].value = '';
+		form.elements['new_zone[MaxBlobs]'].value = '';
+		if ( preset == 1 )
+		{
+			form.elements['new_zone[MinPixelThreshold]'].value = 25;
+			form.elements['new_zone[MinAlarmPixels]'].value = 20;
+		}
+		else if ( preset == 2 )
+		{
+			form.elements['new_zone[MinPixelThreshold]'].value = 15;
+			form.elements['new_zone[MinAlarmPixels]'].value = 10;
+		}
+		else if ( preset == 3 )
+		{
+			form.elements['new_zone[MinPixelThreshold]'].value = 10;
+			form.elements['new_zone[MinAlarmPixels]'].value = 5;
+		}
+	}
+	else if ( preset >= 11 && preset <= 13 )
+	{
+		form.elements['new_zone[Units]'].selectedIndex = 1;
+		form.elements['new_zone[CheckMethod]'].selectedIndex = 2;
+		form.elements['new_zone[MaxPixelThreshold]'].value = ''
+		form.elements['new_zone[MaxAlarmPixels]'].value = '';
+		form.elements['new_zone[MaxFilterPixels]'].value = '';
+		form.elements['new_zone[MaxBlobPixels]'].value = '';
+		form.elements['new_zone[MinBlobs]'].value = 1;
+		form.elements['new_zone[MaxBlobs]'].value = '';
+		if ( preset == 11 )
+		{
+			form.elements['new_zone[MinPixelThreshold]'].value = 25;
+			form.elements['new_zone[FilterX]'].value = 7;
+			form.elements['new_zone[FilterY]'].value = 7;
+			form.elements['new_zone[MinAlarmPixels]'].value = 36;
+			form.elements['new_zone[MinFilterPixels]'].value = 24;
+			form.elements['new_zone[MinBlobPixels]'].value = 20;
+		}
+		else if ( preset == 12 )
+		{
+			form.elements['new_zone[MinPixelThreshold]'].value = 15;
+			form.elements['new_zone[FilterX]'].value = 5;
+			form.elements['new_zone[FilterY]'].value = 5;
+			form.elements['new_zone[MinAlarmPixels]'].value = 16;
+			form.elements['new_zone[MinFilterPixels]'].value = 12;
+			form.elements['new_zone[MinBlobPixels]'].value = 10;
+		}
+		else if ( preset == 13 )
+		{
+			form.elements['new_zone[MinPixelThreshold]'].value = 10;
+			form.elements['new_zone[FilterX]'].value = 3;
+			form.elements['new_zone[FilterY]'].value = 3;
+			form.elements['new_zone[MinAlarmPixels]'].value = 8;
+			form.elements['new_zone[MinFilterPixels]'].value = 6;
+			form.elements['new_zone[MinBlobPixels]'].value = 5;
+		}
+	}
+	applyCheckMethod();
+	form.elements['new_zone[TempArea]'].value = 100;
+}
+
 function toPixels( field, maxValue )
 {
 	if ( field.value != '' )
@@ -338,7 +428,7 @@ function toPercent( field, maxValue )
 		field.value = Math.round((100*100*field.value)/maxValue)/100;
 }
 
-function applyZoneUnits( initial )
+function applyZoneUnits()
 {
 	var max_width = <?= $monitor['Width']-1 ?>;
 	var max_height = <?= $monitor['Height']-1 ?>;
@@ -599,7 +689,9 @@ foreach ( getEnumValues( 'Zones', 'Type' ) as $opt_type )
 }
 ?>
 </select></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangUnits ?></td><td colspan="2" align="left" class="text"><select name="new_zone[Units]" class="form" onchange="applyZoneUnits( false )">
+<tr><td align="left" class="text"><?= $zmSlangPreset ?></td><td colspan="2" align="left" class="text"><?= buildSelect( "presetSelector", $presets, array( "onChange"=>"applyPreset()", "onBlur"=>"this.selectedIndex=0" ) ) ?></td></tr>
+<tr><td colspan="3"><img src="graphics/spacer.gif" width="1" height="5"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangUnits ?></td><td colspan="2" align="left" class="text"><select name="new_zone[Units]" class="form" onchange="applyZoneUnits()">
 <?php
 foreach ( getEnumValues( 'Zones', 'Units' ) as $opt_units )
 {

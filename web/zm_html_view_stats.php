@@ -73,7 +73,20 @@ if ( count($stats) )
 <td class="text" align="center"><?= sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']) ) ?></td>
 <td class="text" align="center"><?= sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']) ) ?></td>
 <td class="text" align="center"><?= $stat['Blobs'] ?></td>
+<?php
+if ( $stat['Blobs'] > 1 )
+{
+?>
 <td class="text" align="center"><?= sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']) ) ?></td>
+<?php
+}
+else
+{
+?>
+<td class="text" align="center"><?= sprintf( "%d (%d%%)", $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$stat['Area'] ) ?></td>
+<?php
+}
+?>
 <td class="text" align="center"><?= $stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY'] ?></td>
 <td class="text" align="center"><?= $stat['Score'] ?></td>
 </tr>

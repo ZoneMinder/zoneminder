@@ -120,6 +120,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	Image *diff_image = image = new Image( *delta_image );
 	int diff_width = diff_image->Width();
 	int diff_height = diff_image->Height();
+	int diff_stride = diff_width * diff_image->Colours();
 
 	int alarm_lo_x = 0;
 	int alarm_hi_x = 0;
@@ -438,7 +439,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 										{
 											if ( config.create_analysis_images || config.record_diag_images )
 											{
-												// I think blanking out the blob is unnecessary apart from in the diag image
 												for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
 												{
 													unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
@@ -513,7 +513,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					{
 						if ( config.create_analysis_images || config.record_diag_images )
 						{
-							// I think blanking out the blob is unnecessary apart from in the diag image
 							for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
 							{
 								unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
@@ -645,6 +644,54 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 		if ( (type < PRECLUSIVE) && check_method >= BLOBS && config.create_analysis_images )
 		{
+			int lo_x = polygon.LoX();
+			int hi_x = polygon.HiX();
+			int lo_y = polygon.LoY();
+			int hi_y = polygon.HiY();
+			// First mask out anything we don't want
+			for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
+			{
+				pdiff = diff_image->Buffer( lo_x, y );
+
+				int lo_x2 = ranges[py].lo_x;
+				int hi_x2 = ranges[py].hi_x;
+
+				int lo_gap = lo_x2-lo_x;
+				if ( lo_gap > 0 )
+				{
+					if ( lo_gap == 1 )
+					{
+						*pdiff++ = BLACK;
+					}
+					else
+					{
+						memset( pdiff, BLACK, lo_gap );
+						pdiff += lo_gap;
+					}
+				}
+
+				ppoly = pg_image->Buffer( lo_gap, py );
+				for ( int x = lo_x2; x <= hi_x2; x++, pdiff++, ppoly++ )
+				{
+					if ( !*ppoly )
+					{
+						*pdiff = BLACK;
+					}
+				}
+
+				int hi_gap = hi_x-hi_x2;
+				if ( hi_gap > 0 )
+				{
+					if ( hi_gap == 1 )
+					{
+						*pdiff = BLACK;
+					}
+					else
+					{
+						memset( pdiff, BLACK, hi_gap );
+					}
+				}
+			}
 			image = diff_image->HighlightEdges( alarm_rgb, &polygon.Extent() );
 			// Only need to delete this when 'image' becomes detached and points somewhere else
 			delete diff_image;

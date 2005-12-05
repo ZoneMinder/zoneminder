@@ -1037,6 +1037,7 @@ if ( isset($action) )
 				$new_zone['MaxBlobPixels'] = intval(($new_zone['MaxBlobPixels']*$new_zone['Area'])/100);
 			}
 
+			unset( $new_zone['Points'] );
 			$types = array();
 			$changes = getFormChanges( $zone, $new_zone, $types );
 

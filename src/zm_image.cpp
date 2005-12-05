@@ -633,9 +633,6 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 		assert( width == images[i]->width && height == images[i]->height && colours == images[i]->colours );
 	}
 
-	// Not even sure why this is here!!
-	//const Image *reference = Merge( n_images, images );
-
 	Image *result = new Image( width, height, images[0]->colours );
 	int size = result->size;
 	for ( int c = 0; c < 3; c++ )

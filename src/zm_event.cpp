@@ -618,6 +618,8 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 				if ( !vid_stream )
 				{
 					vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, image.Colours(), (image.Width()*scale)/ZM_SCALE_SCALE, (image.Height()*scale)/ZM_SCALE_SCALE );
+					fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType() );
+					vid_stream->OpenStream();
 				}
 
 				if ( scale != 100 )

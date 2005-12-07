@@ -1547,6 +1547,9 @@ void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate
 
 	VideoStream vid_stream( "pipe:", format, bitrate, effective_fps, camera->Colours(), (width*scale)/ZM_SCALE_SCALE, (height*scale)/ZM_SCALE_SCALE );
 
+	fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream.MimeType() );
+	vid_stream.OpenStream();
+
 	int last_read_index = image_buffer_count;
 
 	time_t stream_start_time;

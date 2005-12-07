@@ -33,7 +33,15 @@
 class VideoStream
 {
 protected:
+	struct MimeData
+	{
+		const char *format;
+		const char *mime_type;
+	};
+
+protected:
 	static bool initialised;
+	static struct MimeData mime_data[];
 
 protected:
 	const char *filename;
@@ -54,11 +62,12 @@ protected:
 	void SetupFormat( const char *p_filename, const char *format );
 	void SetupCodec( int colours, int width, int height, int bitrate, int frame_rate );
 	void SetParameters();
-	void OpenStream();
 
 public:
 	VideoStream( const char *filename, const char *format, int bitrate, int frame_rate, int colours, int width, int height );
 	~VideoStream();
+	const char *MimeType() const;
+	void OpenStream();
 	double EncodeFrame( uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 };
 

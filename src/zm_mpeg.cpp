@@ -27,6 +27,13 @@
 
 bool VideoStream::initialised = false;
 
+VideoStream::MimeData VideoStream::mime_data[] = {
+	{ "asf", "video/x-ms-asf" },
+	{ "swf", "application/x-shockwave-flash" },
+	{ "mp4", "video/mp4" },
+	{ "move", "video/quicktime" }
+};
+
 void VideoStream::Initialise()
 {
 	av_register_all();
@@ -57,7 +64,7 @@ void VideoStream::SetupFormat( const char *p_filename, const char *p_format )
 		Fatal(( "Memory error" ));
 	}
 	ofc->oformat = of;
-	snprintf(ofc->filename, sizeof(ofc->filename), "%s", filename);
+	snprintf( ofc->filename, sizeof(ofc->filename), "%s", filename );
 }
 
 void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, int frame_rate )
@@ -116,18 +123,37 @@ void VideoStream::SetParameters()
 {
 	/* set the output parameters (must be done even if no
 	   parameters). */
-	if (av_set_parameters(ofc, NULL) < 0)
+	if ( av_set_parameters(ofc, NULL) < 0 )
 	{
 		Fatal(( "Invalid output format parameters" ));
 	}
 	//dump_format(ofc, 0, filename, 1);
 }
 
+const char *VideoStream::MimeType() const
+{
+	for ( int i = 0; i < sizeof(mime_data)/sizeof(*mime_data); i++ )
+	{
+		if ( strcmp( format, mime_data[i].format ) == 0 )
+		{
+			return( mime_data[i].mime_type );
+		}
+	}
+	const char *mime_type = of->mime_type;
+	if ( !mime_type )
+	{
+		mime_type = "video/mpeg";
+		Warning(( "Unable to determine mime type for '%s' format, using '%s' as default", format, mime_type ));
+	}
+
+	return( mime_type );
+}
+
 void VideoStream::OpenStream()
 {
 	/* now that all the parameters are set, we can open the 
 	   video codecs and allocate the necessary encode buffers */
-	if (ost)
+	if ( ost )
 	{
 #if ZM_FFMPEG_CVS
 		AVCodecContext *c = ost->codec;
@@ -137,40 +163,40 @@ void VideoStream::OpenStream()
 
 		/* find the video encoder */
 		AVCodec *codec = avcodec_find_encoder(c->codec_id);
-		if (!codec)
+		if ( !codec )
 		{
 			Fatal(( "codec not found" ));
 		}
 
 		/* open the codec */
-		if (avcodec_open(c, codec) < 0)
+		if ( avcodec_open(c, codec) < 0 )
 		{
 			Fatal(( "Could not open codec" ));
 		}
 
 		/* allocate the encoded raw picture */
 		opicture = avcodec_alloc_frame();
-		if (!opicture)
+		if ( !opicture )
 		{
 			Fatal(( "Could not allocate opicture" ));
 		}
 		int size = avpicture_get_size( c->pix_fmt, c->width, c->height);
 		uint8_t *opicture_buf = (uint8_t *)malloc(size);
-		if (!opicture_buf)
+		if ( !opicture_buf )
 		{
 			av_free(opicture);
 			Fatal(( "Could not allocate opicture" ));
 		}
-		avpicture_fill((AVPicture *)opicture, opicture_buf, c->pix_fmt, c->width, c->height);
+		avpicture_fill( (AVPicture *)opicture, opicture_buf, c->pix_fmt, c->width, c->height );
 
 		/* if the output format is not RGB24, then a temporary RGB24
 		   picture is needed too. It is then converted to the required
 		   output format */
 		tmp_opicture = NULL;
-		if (c->pix_fmt != pf)
+		if ( c->pix_fmt != pf )
 		{
 			tmp_opicture = avcodec_alloc_frame();
-			if (!tmp_opicture)
+			if ( !tmp_opicture )
 			{
 				Fatal(( "Could not allocate temporary opicture" ));
 			}
@@ -178,38 +204,30 @@ void VideoStream::OpenStream()
 			uint8_t *tmp_opicture_buf = (uint8_t *)malloc(size);
 			if (!tmp_opicture_buf)
 			{
-				av_free(tmp_opicture);
+				av_free( tmp_opicture );
 				Fatal(( "Could not allocate temporary opicture" ));
 			}
-			avpicture_fill((AVPicture *)tmp_opicture, tmp_opicture_buf, pf, c->width, c->height);
+			avpicture_fill( (AVPicture *)tmp_opicture, tmp_opicture_buf, pf, c->width, c->height );
 		}
 	}
 
 	/* open the output file, if needed */
-	if (!(of->flags & AVFMT_NOFILE))
+	if ( !(of->flags & AVFMT_NOFILE) )
 	{
-		if (url_fopen(&ofc->pb, filename, URL_WRONLY) < 0)
+		if ( url_fopen(&ofc->pb, filename, URL_WRONLY) < 0 )
 		{
 			Fatal(( "Could not open '%s'", filename ));
 		}
 	}
 
 	video_outbuf = NULL;
-	if (!(ofc->oformat->flags & AVFMT_RAWPICTURE))
+	if ( !(ofc->oformat->flags & AVFMT_RAWPICTURE) )
 	{
 		/* allocate output buffer */
 		/* XXX: API change will be done */
 		video_outbuf_size = 200000;
 		video_outbuf = (uint8_t *)malloc(video_outbuf_size);
 	}
-
-	const char *mime_type = of->mime_type;
-	if ( !mime_type )
-	{
-		mime_type = "video/mpeg";
-		Warning(( "Unable to determine mime type for '%s' format, using '%s' as default", format, mime_type ));
-	}
-	fprintf( stdout, "Content-type: %s\r\n\r\n", mime_type );
 
 	/* write the stream header, if any */
 	av_write_header(ofc);
@@ -225,7 +243,6 @@ VideoStream::VideoStream( const char *filename, const char *format, int bitrate,
 	SetupFormat( filename, format );
 	SetupCodec( colours, width, height, bitrate, frame_rate );
 	SetParameters();
-	OpenStream();
 }
 
 VideoStream::~VideoStream()

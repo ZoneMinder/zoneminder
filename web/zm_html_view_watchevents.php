@@ -162,9 +162,8 @@ while( $event = mysql_fetch_assoc( $result ) )
 </table></td></tr>
 </table></td>
 </tr>
-<tr
+<tr>
 <td align="left"><input type="button" value="<?= $zmSlangZones ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=zones&mid=<?= $monitor['Id'] ?>', 'zmZones', <?= $monitor['Width']+$jws['zones']['w'] ?>, <?= $monitor['Height']+$jws['zones']['h'] ?> );"<?php if ( !canView( 'Monitors' ) ) { ?> disabled<?php } ?>></td>
-
 <td align="right"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>
 </tr>
 </table></center>

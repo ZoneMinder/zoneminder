@@ -160,9 +160,34 @@ else
 <?php
 if ( ZM_WEB_SOUND_ON_ALARM && ($status == STATE_ALARM || $status == STATE_ALERT) )
 {
+	$sound_src = ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND;
+	if ( ZM_WEB_USE_OBJECT_TAGS && isWindows()
+	{
 ?>
-<embed src="<?= ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND ?>" autostart="true" hidden="true"></embed>
+<object id="MediaPlayer" width="0" height="0"
+classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
+codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
+type="application/x-oleobject">
+<param name="FileName" value="<?= $sound_src ?>">
+<param name="autoStart" value="1">
+<param name=hidden value="1">
+<param name="showControls" value="0">
+<embed src="<?= $sound_src ?>"
+autostart="true"
+hidden="true">
+</embed>
+</object>
 <?php
+	}
+	else
+	{
+?>
+<embed src="<?= $sound_src ?>"
+autostart="true"
+hidden="true">
+</embed>
+<?php
+	}
 }
 ?>
 </body>

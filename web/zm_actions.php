@@ -435,6 +435,7 @@ if ( isset($action) )
 							break;
 					}
 
+					$slow = 0.9; // Threshold for slow speed/timeouts
 					$turbo = 0.9; // Threshold for turbo speed
 					$blind = 0.1; // Threshold for blind spot
 
@@ -515,11 +516,20 @@ if ( isset($action) )
 						{
 							$ctrl_command .= " --tiltspeed=".$tilt_speed;
 						}
+						if ( $monitor['AutoStopTimeout'] )
+						{
+							$slow_pan_speed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$slow)));
+							$slow_tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$slow)));
+							if ( (!isset($pan_speed) || ($pan_speed < $slow_pan_speed)) && (!isset($tilt_speed) || ($tilt_speed < $slow_tilt_speed)) )
+							{
+								$ctrl_command .= " --autostop=".$monitor['AutoStopTimeout'];
+							}
+						}
 					}
 				}
 				else
 				{
-					$slow = 0.25; // Threshold for slow speed/timeouts
+					$slow = 0.9; // Threshold for slow speed/timeouts
 					$turbo = 0.9; // Threshold for turbo speed
 					$long_y = 48;
 					$short_x = 32;
@@ -861,7 +871,7 @@ if ( isset($action) )
 										{
 											$slow_pan_speed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$slow)));
 											$slow_tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$slow)));
-											if ( (isset($pan_speed) && ($pan_speed < $slow_pan_speed)) || (isset($tilt_speed) && ($tilt_speed < $slow_tilt_speed)) )
+											if ( (!isset($pan_speed) || ($pan_speed < $slow_pan_speed)) && (!isset($tilt_speed) || ($tilt_speed < $slow_tilt_speed)) )
 											{
 												$ctrl_command .= " --autostop=".$monitor['AutoStopTimeout'];
 											}

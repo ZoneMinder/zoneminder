@@ -81,15 +81,31 @@ header("Pragma: no-cache");			  // HTTP/1.0
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 <?php
-if ( ZM_WEB_POPUP_ON_ALARM && $new_alarm )
+if ( $new_alarm )
 {
+	if ( ZM_WEB_SOUND_ON_ALARM )
+	{
+?>
+if ( window.parent.Siren<?= $mid ?> != null )
+{
+	window.parent.Siren<?= $mid ?>.location = '<?= $PHP_SELF ?>?view=siren&mid=<?= $mid ?>';
+}
+<?php
+	}
+	if ( ZM_WEB_POPUP_ON_ALARM )
+	{
 ?>
 top.window.focus();
 <?php
+	}
 }
 if ( $old_alarm )
 {
 ?>
+if ( window.parent.Siren<?= $mid ?> != null )
+{
+	window.parent.Siren<?= $mid ?>.location = '<?= $PHP_SELF ?>?view=blank';
+}
 if ( window.parent.MonitorEvents<?= $mid ?> != null )
 {
 	window.parent.MonitorEvents<?= $mid ?>.location.reload(true);
@@ -157,38 +173,5 @@ else
 ?>
 </tr>
 </table>
-<?php
-if ( ZM_WEB_SOUND_ON_ALARM && ($status == STATE_ALARM || $status == STATE_ALERT) )
-{
-	$sound_src = ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND;
-	if ( ZM_WEB_USE_OBJECT_TAGS && isWindows()
-	{
-?>
-<object id="MediaPlayer" width="0" height="0"
-classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
-codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
-type="application/x-oleobject">
-<param name="FileName" value="<?= $sound_src ?>">
-<param name="autoStart" value="1">
-<param name=hidden value="1">
-<param name="showControls" value="0">
-<embed src="<?= $sound_src ?>"
-autostart="true"
-hidden="true">
-</embed>
-</object>
-<?php
-	}
-	else
-	{
-?>
-<embed src="<?= $sound_src ?>"
-autostart="true"
-hidden="true">
-</embed>
-<?php
-	}
-}
-?>
 </body>
 </html>

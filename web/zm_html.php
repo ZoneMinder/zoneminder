@@ -149,6 +149,7 @@ switch( $view )
 	case "watchfeed" :
 	case "watchstatus" :
 	case "watchevents" :
+	case "siren" :
 	case "settings" :
 	case "events" :
 	case "timeline" :

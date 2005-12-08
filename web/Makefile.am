@@ -56,6 +56,7 @@ web_DATA = \
 	zm_html_view_options.php \
 	zm_html_view_postlogin.php \
 	zm_html_view_settings.php \
+	zm_html_view_siren.php \
 	zm_html_view_state.php \
 	zm_html_view_stats.php \
 	zm_html_view_timeline.php \
@@ -153,6 +154,7 @@ EXTRA_DIST = \
 	zm_html_view_options.php \
 	zm_html_view_postlogin.php \
 	zm_html_view_settings.php \
+	zm_html_view_siren.php \
 	zm_html_view_state.php \
 	zm_html_view_stats.php \
 	zm_html_view_timeline.php \

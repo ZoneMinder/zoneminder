@@ -45,7 +45,7 @@ window.resizeTo( <?= reScale( $monitor['Width'], $resize_scale )+$jws['watch']['
 window.focus();
 </script>
 </head>
-<frameset rows="24,<?= reScale($monitor['Height'],$scale)+8 ?>,16,*" border="0" frameborder="no" framespacing="0">
+<frameset rows="24,<?= reScale($monitor['Height'],$scale)+8 ?>,16,*,0" border="0" frameborder="no" framespacing="0">
 <frame src="<?= $PHP_SELF ?>?view=watchmenu&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>&control=<?= $control ?>" marginwidth="0" marginheight="0" name="MonitorMenu<?= $monitor['Id' ] ?>" scrolling="no">
 <frame src="<?= $PHP_SELF ?>?view=watchfeed&mode=<?= $mode ?>&mid=<?= $monitor['Id'] ?>&scale=<?= $scale ?>&control=<?= $control ?>" marginwidth="0" marginheight="0" name="MonitorStream<?= $monitor['Id' ] ?>" scrolling="no">
 <frame src="<?= $PHP_SELF ?>?view=watchstatus&mid=<?= $monitor['Id'] ?>&control=<?= $control ?>" marginwidth="0" marginheight="0" name="MonitorStatus<?= $monitor['Id' ] ?>" scrolling="no">
@@ -69,4 +69,5 @@ else
 	}
 }
 ?>
+<frame src="<?= $PHP_SELF ?>?view=blank" marginwidth="0" marginheight="0" name="Siren<?= $monitor['Id' ] ?>" scrolling="no">
 </frameset>

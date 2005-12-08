@@ -99,41 +99,7 @@ if ( $mode == "stream" )
 	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_LIVE_FORMAT )
 	{
 		$stream_src = getStreamSrc( array( "mode=mpeg", "monitor=".$mid, "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_VIDEO_LIVE_FORMAT ) );
-		if ( isWindows() )
-		{
-?>
-<object id="MediaPlayer" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"
-classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
-codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
-standby="Loading Microsoft Windows Media Player components..."
-type="application/x-oleobject">
-<param name="FileName" value="<?= $stream_src ?>">
-<param name="autoStart" value="1">
-<param name="showControls" value="0">
-<embed type="application/x-mplayer2"
-pluginspage = "http://www.microsoft.com/Windows/MediaPlayer/"
-src="<?= $stream_src ?>"
-name="MediaPlayer"
-width="<?= reScale( $monitor['Width'], $scale ) ?>"
-height="<?= reScale( $monitor['Height'], $scale ) ?>"
-autostart="1"
-showcontrols="0">
-</embed>
-</object>
-<?php
-		}
-		else
-		{
-?>
-<embed type="video/mpeg"
-src="<?= $stream_src ?>"
-width="<?= reScale( $monitor['Width'], $scale ) ?>"
-height="<?= reScale( $monitor['Height'], $scale ) ?>"
-autostart="1"
-showcontrols="0">
-</embed>
-<?php
-		}
+		outputVideoStream( $stream_src, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'], ZM_VIDEO_LIVE_FORMAT );
 	}
 	else
 	{
@@ -142,48 +108,16 @@ showcontrols="0">
 		{
 			if ( $control && ($monitor['CanMoveMap'] || $monitor['CanMoveRel'] || $monitor['CanMoveCon']) )
 			{
-?>
-<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="ControlSink<?= $mid ?>">
-<input type="hidden" name="view" value="blank">
-<input type="hidden" name="mid" value="<?= $mid ?>">
-<input type="hidden" name="action" value="control">
-<?php
-				if ( $monitor['CanMoveMap'] ) 
-				{
-?>
-<input type="hidden" name="control" value="move_map">
-<?php
-				}
-				elseif ( $monitor['CanMoveRel'] )
-				{
-?>
-<input type="hidden" name="control" value="move_pseudo_map">
-<?php
-				}
-				elseif ( $monitor['CanMoveCon'] )
-				{
-?>
-<input type="hidden" name="control" value="move_con_map">
-<?php
-				}
-?>
-<input type="hidden" name="scale" value="<?= $scale ?>">
-<input type="image" src="<?= $stream_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
-</form>
-<?php
+				outputControlStream( $stream_src, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor, $scale, "ControlSink".$mid );
 			}
 			else
 			{
-?>
-<img src="<?= $stream_src ?>" alt="<?= $monitor['Name'] ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
-<?php
+				outputImageStream( $stream_src, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
 			}
 		}
 		else
 		{
-?>
-<applet code="com.charliemouse.cambozola.Viewer" archive="<?= ZM_PATH_CAMBOZOLA ?>" align="middle" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"><param name="url" value="<?= $stream_src ?>"></applet>
-<?php
+			outputHelperStream( $stream_src, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) );
 		}
 	}
 }
@@ -191,40 +125,11 @@ else
 {
 	if ( $control && ($monitor['CanMoveMap'] || $monitor['CanMoveRel'] || $monitor['CanMoveCon']) )
 	{
-?>
-<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="ControlSink<?= $mid ?>">
-<input type="hidden" name="view" value="blank">
-<input type="hidden" name="mid" value="<?= $mid ?>">
-<input type="hidden" name="action" value="control">
-<?php
-				if ( $monitor['CanMoveMap'] ) 
-				{
-?>
-<input type="hidden" name="control" value="move_map">
-<?php
-				}
-				elseif ( $monitor['CanMoveRel'] )
-				{
-?>
-<input type="hidden" name="control" value="move_pseudo_map">
-<?php
-				}
-				elseif ( $monitor['CanMoveCon'] )
-				{
-?>
-<input type="hidden" name="control" value="move_con_map">
-<?php
-				}
-?>
-<input type="image" src="<?= $image_src ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
-</form>
-<?php
+		outputControlStill( $image_src, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor, $scale, "ControlSink".$mid );
 	}
 	else
 	{
-?>
-<img name="zmImage" src="<?= $image_src ?>" alt="<?= $monitor['Name'] ?>" border="0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>">
-<?php
+		outputImageStill( $image_src, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
 	}
 }
 ?>

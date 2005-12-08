@@ -145,6 +145,220 @@ function getStreamSrc( $args )
 	return( $stream_src );
 }
 
+function outputVideoStream( $src, $width, $height, $name, $format )
+{
+	switch ( $format )
+	{
+		case "asf" :
+				$mime_type = "video/x-ms-asf";
+				break;
+		case "swf" :
+				$mime_type = "application/x-shockwave-flash";
+				break;
+		case "mp4" :
+				$mime_type = "video/mp4";
+				break;
+		case "mov" :
+				$mime_type = "video/quicktime";
+				break;
+		default :
+				$mime_type = "video/$format";
+				break;
+	} 
+	$object_tag = false;
+	if ( ZM_WEB_USE_OBJECT_TAGS )
+	{
+		switch( $format )
+		{
+			case "asf" :
+			case "wmv" :
+			{
+				if ( isWindows() )
+				{
+?>
+<object id="<?= $name ?>" width="<?= $width ?>" height="<?= $height ?>"
+classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
+codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
+standby="Loading Microsoft Windows Media Player components..."
+type="application/x-oleobject">
+<param name="FileName" value="<?= $src ?>">
+<param name="autoStart" value="1">
+<param name="showControls" value="0">
+<embed type="<?= $mime_type ?>"
+pluginspage = "http://www.microsoft.com/Windows/MediaPlayer/"
+src="<?= $src ?>"
+name="<?= $name ?>"
+width="<?= $width ?>"
+height="<?= $height ?>"
+autostart="1"
+showcontrols="0">
+</embed>
+</object>
+<?php
+					$object_tag = true;
+				}
+				break;
+			}
+			case "mov" :
+			{
+?>
+<object id="<?= $name ?>" width="<?= $width ?>" height="<?= $height ?>"
+classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
+codebase="http://www.apple.com/qtactivex/qtplugin.cab"
+<param name="src" value="<?= $src ?>">
+<PARAM name="autoplay" VALUE="true">
+<PARAM name="controller" VALUE="false">
+<embed type="<?= $mime_type ?>"
+src="<?= $src ?>"
+pluginspage="http://www.apple.com/quicktime/download/"
+name="<?= $name ?>"
+width="<?= $width ?>"
+height="<?= $height ?>"
+autoplay="true"
+controller="true"
+</embed>
+</object>
+<?php
+				$object_tag = true;
+				break;
+			}
+			case "swf" :
+			{
+?>
+<object id="<?= $name ?>" width="<?= $width ?>" height="<?= $height ?>"
+classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
+codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
+<param name="movie" value="<?= $src ?>">
+<param name=quality value="high">
+<param name=bgcolor value="#ffffff">
+<embed type="<?= $mime_type ?>"
+pluginspage="http://www.macromedia.com/go/getflashplayer"
+src="<?= $src ?>"
+width="<?= $width ?>"
+height="<?= $height ?>"
+name="<?= $name ?>"
+quality="high"
+bgcolor="#ffffff"
+</embed>
+</object>
+<?php
+				$object_tag = true;
+				break;
+			}
+		}
+	}
+	if ( !$object_tag )
+	{
+?>
+<embed<?= isset($mime_type)?(' type="'.$mime_type.'"'):"" ?> 
+src="<?= $src ?>"
+width="<?= $width ?>"
+height="<?= $height ?>"
+name="<?= $name ?>"
+autostart="1"
+autoplay="1"
+showcontrols="0"
+controller="0">
+</embed>
+<?php
+	}
+}
+
+function outputImageStream( $src, $width, $height, $name="" )
+{
+?>
+<img src="<?= $src ?>" alt="<?= $name ?>" border="0" width="<?= $width ?>" height="<?= $height ?>">
+<?php
+}
+
+function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
+{
+	global $PHP_SELF;
+?>
+<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="<?= $target ?>">
+<input type="hidden" name="view" value="blank">
+<input type="hidden" name="mid" value="<?= $monitor['Id'] ?>">
+<input type="hidden" name="action" value="control">
+<?php
+				if ( $monitor['CanMoveMap'] ) 
+				{
+?>
+<input type="hidden" name="control" value="move_map">
+<?php
+				}
+				elseif ( $monitor['CanMoveRel'] )
+				{
+?>
+<input type="hidden" name="control" value="move_pseudo_map">
+<?php
+				}
+				elseif ( $monitor['CanMoveCon'] )
+				{
+?>
+<input type="hidden" name="control" value="move_con_map">
+<?php
+				}
+?>
+<input type="hidden" name="scale" value="<?= $scale ?>">
+<input type="image" src="<?= $src ?>" border="0" width="<?= $width ?>" height="<?= $height ?>">
+</form>
+<?php
+}
+
+function outputHelperStream( $src, $width, $height, $name="" )
+{
+?>
+<applet code="com.charliemouse.cambozola.Viewer"
+archive="<?= ZM_PATH_CAMBOZOLA ?>"
+align="middle"
+width="<?= $width ?>"
+height="<?= $height ?>">
+<param name="url" value="<?= $src ?>">
+</applet>
+<?php
+}
+
+function outputImageStill( $src, $width, $height, $name="" )
+{
+?>
+<img name="zmImage" src="<?= $src ?>" alt="<?= $name ?>" border="0" width="<?= $width ?>" height="<?= $height ?>">
+<?php
+}
+
+function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
+{
+	global $PHP_SELF;
+?>
+<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="<?= $target ?>">
+<input type="hidden" name="view" value="blank">
+<input type="hidden" name="mid" value="<?= $monitor['Id'] ?>">
+<input type="hidden" name="action" value="control">
+<?php
+				if ( $monitor['CanMoveMap'] ) 
+				{
+?>
+<input type="hidden" name="control" value="move_map">
+<?php
+				}
+				elseif ( $monitor['CanMoveRel'] )
+				{
+?>
+<input type="hidden" name="control" value="move_pseudo_map">
+<?php
+				}
+				elseif ( $monitor['CanMoveCon'] )
+				{
+?>
+<input type="hidden" name="control" value="move_con_map">
+<?php
+				}
+?>
+<input type="hidden" name="scale" value="<?= $scale ?>">
+<input type="image" src="<?= $src ?>" border="0" width="<?= $width ?>" height="<?= $height ?>">
+</form>
+<?php
+}
+
 function getZmuCommand( $args )
 {
 	if ( version_compare( phpversion(), "4.1.0", "<") )
@@ -1109,50 +1323,6 @@ function firstSet()
 	}
 }
 
-function getDeterminant( $x0, $y0, $x1, $y1 )
-{
-	return( ( $x0 * $y1 ) - ( $x1 * $y0 ) );
-}
-
-function linesIntersect2( $line1, $line2 )
-{
-	// Checking if bounding boxes intersect
-	if ( max( $line1[0]['x'], $line1[1]['x'] ) < min( $line2[0]['x'], $line2[1]['x'] ) )
-		return( false );
-	elseif ( max( $line2[0]['x'], $line2[1]['x'] ) < min( $line1[0]['x'], $line1[1]['x'] ) )
-		return( false );
-	elseif ( max( $line1[0]['y'], $line1[1]['y'] ) < min( $line2[0]['y'], $line2[1]['y'] ) )
-		return( false );
-	elseif ( max( $line2[0]['y'], $line2[1]['y'] ) < min( $line1[0]['y'], $line1[1]['y'] ) )
-		return( false );
-
-	$dx = $line1[1]['x'] - $line1[0]['x'];
-	$dy = $line1[1]['y'] - $line1[0]['y'];
-
-	$det1 = getDeterminant( $line2[0]['x'] - $line1[0]['x'], $line2[0]['y'] - $line1[0]['y'], $dx, $dy );
-	$det2 = getDeterminant( $line2[1]['x'] - $line1[0]['x'], $line2[1]['y'] - $line1[0]['y'], $dx, $dy );
-
-	if ( ( $det1 < 0 && $det2 > 0 ) || ( $det1 > 0 && $det2 < 0 ) )
-	{
-		return( true );
-	}
-
-	if ( !$det1 )
-	{
-		if ( !$det2 )
-			return( true );
-		elseif ( ($line2[1]['x'] == $line2[0]['x']) && ($line2[1]['y'] == $line2[0]['y']) )
-			return( true );
-	}
-	elseif ( !$det2 )
-	{
-		if ( !$dx && !$dy )
-			return( true );
-	}
-
-	return( false );
-}
-
 function linesIntersect( $line1, $line2 )
 {
 	global $debug;
@@ -1199,55 +1369,33 @@ function linesIntersect( $line1, $line2 )
 
 	if ( $dx1 && $dx2 ) // Both not vertical
 	{
-		//if ( isset($m1) && isset($m2) ) // Both not horizontal
+		if ( $m1 != $m2 ) // Not parallel or colinear
 		{
-			if ( $m1 != $m2 ) // Not parallel or colinear
-			{
-				$x = ( $b2 - $b1 ) / ( $m1 - $m2 );
+			$x = ( $b2 - $b1 ) / ( $m1 - $m2 );
 
-				if ( $x >= $min_x1 && $x <= $max_x1 && $x >= $min_x2 && $x <= $max_x2 )
-				{
-					if ( $debug ) echo "Intersecting, at x $x<br>";
-					return( true );
-				}
-				else
-				{
-					if ( $debug ) echo "Not intersecting, out of range at x $x<br>";
-					return( false );
-				}
-			}
-			elseif ( $b1 == $b2 )
+			if ( $x >= $min_x1 && $x <= $max_x1 && $x >= $min_x2 && $x <= $max_x2 )
 			{
-				// Colinear, must overlap due to box check, intersect? 
-				if ( $debug ) echo "Intersecting, colinear<br>";
+				if ( $debug ) echo "Intersecting, at x $x<br>";
 				return( true );
 			}
 			else
 			{
-				// Parallel
-				if ( $debug ) echo "Not intersecting, parallel<br>";
+				if ( $debug ) echo "Not intersecting, out of range at x $x<br>";
 				return( false );
 			}
 		}
-		//elseif ( isset($m1) ) // Line 2 is horizontal
-		//{
-		//	
-		//}
-		//else // Both lines are horizontal
-		//{
-			//if ( $line1[0]['y'] == $line2[0]['y'] )
-			//{
-				//// Colinear, must overlap due to box check, intersect? 
-				//if ( $debug ) echo "Intersecting, horizontal, colinear<br>";
-				//return( true );
-			//}
-			//else
-			//{
-				//// Parallel
-				//if ( $debug ) echo "Not intersecting, horizontal, parallel<br>";
-				//return( false );
-			//}
-		//}
+		elseif ( $b1 == $b2 )
+		{
+			// Colinear, must overlap due to box check, intersect? 
+			if ( $debug ) echo "Intersecting, colinear<br>";
+			return( true );
+		}
+		else
+		{
+			// Parallel
+			if ( $debug ) echo "Not intersecting, parallel<br>";
+			return( false );
+		}
 	}
 	elseif ( !$dx1 ) // Line 1 is vertical
 	{

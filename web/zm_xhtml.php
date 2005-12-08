@@ -127,7 +127,6 @@ switch( $view )
 	case "event" :
 	case "eventdetails" :
 	case "frame" :
-	case "frames" :
 	case "monitor" :
 	case "video" :
 	case "function" :

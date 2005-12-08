@@ -48,7 +48,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 window.focus();
 function newWindow(Url,Name,Width,Height)
 {
-   	var Name = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+   	var Win = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
 function closeWindow()
 {

@@ -55,7 +55,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 <script type="text/javascript">
 function newWindow(Url,Name,Width,Height)
 {
-   	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+   	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 function closeWindow()
 {

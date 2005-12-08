@@ -44,7 +44,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 //window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h']+(25*(count($controls)>6?count($controls):6)) ?> );
 function newWindow(Url,Name,Width,Height)
 {
-	var Name = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 function closeWindow()
 {

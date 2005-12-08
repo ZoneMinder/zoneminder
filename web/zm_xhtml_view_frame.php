@@ -112,7 +112,6 @@ else
 <table>
 <tr>
 <td class="smallhead"><?= $zmSlangFrame ?> <?= $eid."-".$fid." (".$frame['Score'].")" ?></td>
-<!--<td align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: deleteEvent();"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp<?php } ?></td>-->
 </tr>
 </table>
 <table>

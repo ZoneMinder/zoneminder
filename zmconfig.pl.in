@@ -1200,6 +1200,14 @@ my @options =
 		category => 'web',
 	},
 	{
+		name => "ZM_WEB_USE_OBJECT_TAGS",
+		default => "no",
+		description => "Whether to wrap embed in object tags for media content",
+		help => "There are two methods of including media content in web pages. The most common way is use the EMBED tag which is able to give some indication of the type of content. However this is not a standard part of HTML. The official method is to use OBJECT tags which are able to give more information allowing the correct media viewers etc to be loaded. However these are less widely supported and content may be specifically tailored to a particular platform or player. This option controls whether media content is enclosed in EMBED tags only or whether, where appropriate, it is additionally wrapped in OBJECT tags. Currently OBJECT tags are only used in a limited number of circumstances but they may become more widespread in the future. It is suggested that you leave this option off unless you encounter problems playing some content.",
+		type => $types{boolean},
+		category => 'web',
+	},
+	{
 		name => "ZM_WEB_H_REFRESH_MAIN",
 		default => "300",
 		introduction => "There are now a number of options that are grouped into bandwidth categories, this allows you to configure the ZoneMinder client to work optimally over the various access methods you might to access the client.\n\nThe next few options control what happens when the client is running in 'high' bandwidth mode. You should set these options for when accessing the ZoneMinder client over a local network or high speed link. In most cases the default values will be suitable as a starting point.",

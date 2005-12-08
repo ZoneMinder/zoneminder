@@ -281,7 +281,7 @@ public:
 
 			if ( index == shared_data->last_read_index && function > MONITOR )
 			{
-				Warning(( "Buffer overrun at index %d, slow down capture, speed up anaylsis or increase ring buffer size", index ));
+				Warning(( "Buffer overrun at index %d, slow down capture, speed up analysis or increase ring buffer size", index ));
 			}
 
 			gettimeofday( image_buffer[index].timestamp, &dummy_tz );

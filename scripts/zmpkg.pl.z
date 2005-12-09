@@ -75,7 +75,7 @@ BEGIN
 }
 
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
-use constant VERBOSE => 0; # Whether to output more verbose debug
+use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
 #
@@ -83,6 +83,8 @@ use constant VERBOSE => 0; # Whether to output more verbose debug
 #
 # ==========================================================================
 use DBI;
+use POSIX;
+use Time::HiRes qw/gettimeofday/;
 
 # Detaint our environment
 $ENV{PATH}  = '/bin:/usr/bin';
@@ -126,52 +128,18 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status)$/ )
 	}
 }
 
-sub remove_shm
-{
-	print( STDERR "Removing shared memory\n" );
-	# Find ZoneMinder shared memory
-	my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", hex(ZM_SHM_KEY) ), 0, -2 )."'";
-	print( "Checking for shared memory with '$command'\n" ) if ( VERBOSE );
-	open( CMD, "$command |" ) or die( "Can't execute '$command': $!" );
-	while( <CMD> )
-	{
-		chomp;
-		my ( $key, $id ) = split( /\s+/ );
-		if ( $id =~ /^(\d+)/ )
-		{
-			$id = $1;
-			my $command = "ipcrm shm $id";
-			print( "Removing shared memory with '$command'\n" ) if ( VERBOSE );
-			qx( $command );
-		}
-	}
-	close( CMD );
-}
-
-sub execute
-{
-	my $command = shift;
-	my ( $name ) = getpwuid( $> );
-	if ( $name ne ZM_WEB_USER )
-	{
-		$command = "su ".ZM_WEB_USER." --shell=/bin/sh --command='$command'";
-	}
-	print( STDERR "Executing: $command\n" );
-	return( qx( $command ) );
-}
-
 # Move to the right place
 chdir( ZM_PATH_WEB ) or die( "Can't chdir to '".ZM_PATH_WEB."': $!" );
 
+my $dbg_id = "";
+
 my $log_file = LOG_FILE;
 open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
-#open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-#select( STDOUT ); $| = 1;
 open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-print( STDERR "Command: $command\n" );
+Info( "Command: $command\n" );
 
 my $web_uid = (getpwnam( ZM_WEB_USER ))[2];
 my $web_gid = (getgrnam( ZM_WEB_GROUP ))[2];
@@ -182,9 +150,13 @@ if ( $> != $web_uid )
 
 my $retval = 0;
 
+# Determine the appropriate syntax for the su command
+
+my $cmd_prefix = getCmdPrefix();
+
 if ( $command eq "state" )
 {
-	print( STDERR "Updating DB: $state->{Name}\n" );
+	Info( "Updating DB: $state->{Name}\n" );
 	my $sql = "select * from Monitors order by Id asc";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
@@ -213,13 +185,12 @@ if ( $command eq "state" )
 
 if ( $command =~ /^(?:stop|restart)$/ )
 {
-	my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
-	chomp( $status );
+	my $status = runCommand( "zmdc.pl check" );
 
 	if ( $status eq "running" )
 	{
-		execute( ZM_PATH_BIN."/zmdc.pl shutdown" );
-		remove_shm();
+		runCommand( "zmdc.pl shutdown" );
+		removeShm();
 	}
 	else
 	{
@@ -229,14 +200,13 @@ if ( $command =~ /^(?:stop|restart)$/ )
 
 if ( $command =~ /^(?:start|restart)$/ )
 {
-	my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
-	chomp( $status );
+	my $status = runCommand( "zmdc.pl check" );
 
 	if ( $status eq "stopped" )
 	{
-		remove_shm();
-		execute( ZM_PATH_BIN."/zmfix" );
-		execute( ZM_PATH_BIN."/zmdc.pl status" );
+		removeShm();
+		runCommand( "zmfix" );
+		runCommand( "zmdc.pl status" );
 
 		my $sql = "select * from Monitors";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -247,19 +217,19 @@ if ( $command =~ /^(?:start|restart)$/ )
 			{
 				if ( $monitor->{Type} eq 'Local' )
 				{
-					execute( ZM_PATH_BIN."/zmdc.pl start zmc -d $monitor->{Device}" );
+					runCommand( "zmdc.pl start zmc -d $monitor->{Device}" );
 				}
 				else
 				{
-					execute( ZM_PATH_BIN."/zmdc.pl start zmc -m $monitor->{Id}" );
+					runCommand( "zmdc.pl start zmc -m $monitor->{Id}" );
 				}
 				if ( $monitor->{Function} ne 'Monitor' )
 				{
 					if ( ZM_OPT_FRAME_SERVER )
 					{
-						execute( ZM_PATH_BIN."/zmdc.pl start zmf -m $monitor->{Id}" );
+						runCommand( "zmdc.pl start zmf -m $monitor->{Id}" );
 					}
-					execute( ZM_PATH_BIN."/zmdc.pl start zma -m $monitor->{Id}" );
+					runCommand( "zmdc.pl start zma -m $monitor->{Id}" );
 				}
 				if ( ZM_OPT_CONTROL )
 				{
@@ -267,7 +237,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 					{
 						if ( $monitor->{Controllable} && $monitor->{TrackMotion} )
 						{
-							execute( ZM_PATH_BIN."/zmdc.pl start zmtrack.pl -m $monitor->{Id}" );
+							runCommand( "zmdc.pl start zmtrack.pl -m $monitor->{Id}" );
 						}
 					}
 				}
@@ -276,21 +246,21 @@ if ( $command =~ /^(?:start|restart)$/ )
 		$sth->finish();
 
 		# This is now started unconditionally
-		execute( ZM_PATH_BIN."/zmdc.pl start zmfilter.pl" );
-		execute( ZM_PATH_BIN."/zmdc.pl start zmaudit.pl -d 900 -y" );
+		runCommand( "zmdc.pl start zmfilter.pl" );
+		runCommand( "zmdc.pl start zmaudit.pl -d 900 -y" );
 
 		if ( ZM_OPT_TRIGGERS )
 		{
-			execute( ZM_PATH_BIN."/zmdc.pl start zmtrigger.pl" );
+			runCommand( "zmdc.pl start zmtrigger.pl" );
 		}
 		if ( ZM_OPT_X10 )
 		{
-			execute( ZM_PATH_BIN."/zmdc.pl start zmx10.pl -c start" );
+			runCommand( "zmdc.pl start zmx10.pl -c start" );
 		}
-		execute( ZM_PATH_BIN."/zmdc.pl start zmwatch.pl" );
+		runCommand( "zmdc.pl start zmwatch.pl" );
 		if ( ZM_CHECK_FOR_UPDATES )
 		{
-			execute( ZM_PATH_BIN."/zmdc.pl start zmupdate.pl -c" );
+			runCommand( "zmdc.pl start zmupdate.pl -c" );
 		}
 	}
 	else
@@ -301,10 +271,144 @@ if ( $command =~ /^(?:start|restart)$/ )
 
 if ( $command eq "status" )
 {
-	my $status = execute( ZM_PATH_BIN."/zmdc.pl check" );
-	chomp( $status );
+	my $status = runCommand( "zmdc.pl check" );
 
 	print( STDOUT $status."\n" );
 }
 
 exit( $retval );
+
+sub getCmdPrefix
+{
+	Debug( "Testing valid shell syntax\n" );
+
+	my ( $name ) = getpwuid( $> );
+	if ( $name eq ZM_WEB_USER )
+	{
+		Debug( "Running as '$name', su commands not needed\n" );
+		return( "" );
+	}
+
+	my $null_command = "true";
+	my $prefix = "su ".ZM_WEB_USER." -c ";
+	my $command = $prefix."'".$null_command."'";
+	Debug( "Testing '$command'\n" );
+	my $output = qx($command);
+	my $status = $? >> 8;
+	if ( !$status )
+	{
+		Debug( "Test ok, using prefix '$prefix'\n" );
+		return( $prefix );
+	}
+	else
+	{
+		chomp( $output );
+		Debug( "Test failed, '$output'\n" );
+
+		$prefix = "su ".ZM_WEB_USER." --shell=/bin/sh --command=";
+		$command = $prefix."'true'";
+		Debug( "Testing '$command'\n" );
+		$output = qx($command);
+		$status = $? >> 8;
+		if ( !$status )
+		{
+			Debug( "Test ok, using prefix '$prefix'\n" );
+			return( $prefix );
+		}
+		else
+		{
+			chomp( $output );
+			Debug( "Test failed, '$output'\n" );
+		}
+	}
+
+	Error( "Unable to find valid 'su' syntax\n" );
+	exit( -1 );
+}
+
+sub removeShm
+{
+	Debug( "Removing shared memory\n" );
+	# Find ZoneMinder shared memory
+	my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", hex(ZM_SHM_KEY) ), 0, -2 )."'";
+	Debug( "Checking for shared memory with '$command'\n" );
+	open( CMD, "$command |" ) or die( "Can't execute '$command': $!" );
+	while( <CMD> )
+	{
+		chomp;
+		my ( $key, $id ) = split( /\s+/ );
+		if ( $id =~ /^(\d+)/ )
+		{
+			$id = $1;
+			$command = "ipcrm shm $id";
+			Debug( "Removing shared memory with '$command'\n" );
+			qx( $command );
+		}
+	}
+	close( CMD );
+}
+
+sub runCommand
+{
+	my $command = shift;
+	$command = $cmd_prefix."'".ZM_PATH_BIN."/".$command."'";
+	Debug( "Command: $command\n" );
+	my $output = qx($command);
+	my $status = $? >> 8;
+	chomp( $output );
+	if ( $status || DBG_LEVEL > 0 )
+	{
+		if ( $status )
+		{
+			Error( "Unable to run '$command', output is '$output'\n" );
+			exit( -1 );
+		}
+		else
+		{
+			Debug( "Output: $output\n" );
+		}
+	}
+	return( $output );
+}
+
+sub dbgPrint
+{
+	my $code = shift;
+	my $string = shift;
+	my $line = shift;
+
+	$string =~ s/[\r\n]+$//g;
+
+	my ($seconds, $microseconds) = gettimeofday();
+	if ( $line )
+	{
+		my $file = __FILE__;
+		$file =~ s|^.*/||g;
+		printf( STDERR "%s.%06d %s[%d].%s-%s/%d [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $file, $line, $code, $string );
+	}
+	else
+	{
+		printf( STDERR "%s.%06d %s[%d].%s [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $code, $string );
+	}
+}
+
+sub Debug
+{
+	dbgPrint( "DBG", $_[0] ) if ( DBG_LEVEL >= 1 );
+}
+
+sub Info
+{
+	dbgPrint( "INF", $_[0] ) if ( DBG_LEVEL >= 0 );
+}
+
+sub Warning
+{
+	dbgPrint( "WAR", $_[0] ) if ( DBG_LEVEL >= -1 );
+}
+
+sub Error
+{
+	dbgPrint( "ERR", $_[0] ) if ( DBG_LEVEL >= -2 );
+}
+

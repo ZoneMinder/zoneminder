@@ -309,6 +309,8 @@ int RemoteCamera::GetResponse()
 						if ( status_code < 200 || status_code > 299 )
 						{
 							Error(( "Invalid response status %d: %s", status_code, status_mesg ));
+							if ( status_code >= 400 )
+								exit( -1 );
 							return( -1 );
 						}
 						Debug( 3, ( "Got status '%d' (%s), http version %s", status_code, status_mesg, http_version ));

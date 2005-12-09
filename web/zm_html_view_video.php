@@ -95,13 +95,13 @@ ob_start();
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangVideo ?> - <?= $event['Name'] ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
+function newWindow(Url,Name,Width,Height)
+{
+	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+}
 function closeWindow()
 {
 	window.close();
-}
-function viewVideo(Url,Name,Width,Height)
-{
-	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 function deleteVideo( index )
 {
@@ -111,7 +111,21 @@ function deleteVideo( index )
 </head>
 <body>
 <?php
-if ( !empty($generate) )
+if ( isset( $show ) )
+{
+	preg_match( '/([^\/]+)\.([^.]+)$/', $video_files[$show], $matches );
+	$name = $matches[1];
+	$format = $matches[2];
+?>
+<table align="center" border="0" cellspacing="0" cellpadding="2" width="96%">
+<tr><td width="50%">&nbsp;</td><td width="50%" class="text" align="right"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td></tr>
+</table>
+<table align="center" border="0" cellspacing="0" cellpadding="2" width="96%">
+<tr><td align="center"><?php outputVideoStream( $video_files[$show], $width, $height, $name, $format ) ?></td></tr>
+</table>
+<?php
+}
+elseif ( !empty($generate) )
 {
 ?>
 <table border="0" cellspacing="0" cellpadding="4" width="100%" height="70">
@@ -233,13 +247,15 @@ else
 					{
 						$scale_text = $temp_matches[1];
 					}
+					$width = $scale?reScale( $event['Width'], $scale ):$event['Width'];
+					$height = $scale?reScale( $event['Height'], $scale ):$event['Height'];
 ?>
 <tr>
   <td class="text" align="center"><?= $matches[4] ?></td>
   <td class="text" align="center"><?= filesize( $file ) ?></td>
   <td class="text" align="center"><?= $rate_text ?></td>
-  <td class="text" align="center"><?= $scale_text ?></td>
-  <td class="text" align="center"><a href="javascript:viewVideo( '<?= $file ?>', 'zmVideo<?= $eid ?>-<?= $scale ?>', 12+<?= reScale( $event['Width'], $scale ) ?>, 20+<?= reScale( $event['Height'], $scale ) ?> );"><?= $zmSlangView ?></a>&nbsp;/&nbsp;<a href="<?= $file ?>" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&eid=<?= $eid ?>&download=<?= $index ?>'" target="_blank"><?= $zmSlangDownload ?></a>&nbsp;/&nbsp;<a href="javascript: deleteVideo( <?= $index ?> )"><?= $zmSlangDelete ?></a></td>
+  <td class="text" align="center"><?= $scale_text ?></td
+  <td class="text" align="center"><a href="javascript:newWindow( '<?= $PHP_SELF ?>?view=<?= $view ?>&eid=<?= $eid ?>&width=<?= $width ?>&height=<?= $height ?>&show=<?= $index ?>', 'zmVideo<?= $eid ?>-<?= $scale ?>', <?= 24+$width ?>, <?= 48+$height ?> );"><?= $zmSlangView ?></a>&nbsp;/&nbsp;<a href="<?= $file ?>" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&eid=<?= $eid ?>&download=<?= $index ?>'"><?= $zmSlangDownload ?></a>&nbsp;/&nbsp;<a href="javascript: deleteVideo( <?= $index ?> )"><?= $zmSlangDelete ?></a></td>
 </tr>
 <?php
 					$index++;

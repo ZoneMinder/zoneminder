@@ -290,7 +290,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 
 	if (ost)
 	{
-#if FFMPEG_VERSION_INT < 0x000409
+#if ZM_FFMPEG_048
 		pts = (double)ost->pts.val * ofc->pts_num / ofc->pts_den;
 #else
 		pts = (double)ost->pts.val * ost->time_base.num / ost->time_base.den;
@@ -318,7 +318,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 	int ret = 0;
 	if (ofc->oformat->flags & AVFMT_RAWPICTURE)
 	{
-#if FFMPEG_VERSION_INT < 0x000409
+#if ZM_FFMPEG_048
 		ret = av_write_frame(ofc, ost->index, (uint8_t *)opicture_ptr, sizeof(AVPicture));
 #else
 		AVPacket pkt;
@@ -339,13 +339,17 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 		int out_size = avcodec_encode_video(c, video_outbuf, video_outbuf_size, opicture_ptr);
 		if (out_size > 0)
 		{
-#if FFMPEG_VERSION_INT < 0x000409
+#if ZM_FFMPEG_048
 			ret = av_write_frame(ofc, ost->index, video_outbuf, out_size);
 #else
 			AVPacket pkt;
 			av_init_packet(&pkt);
 
+#if ZM_FFMPEG_049
+			pkt.pts = c->coded_frame->pts;
+#else
 			pkt.pts= av_rescale_q( c->coded_frame->pts, c->time_base, ost->time_base );
+#endif
 			if(c->coded_frame->key_frame)
 				pkt.flags |= PKT_FLAG_KEY;
 			pkt.stream_index = ost->index;

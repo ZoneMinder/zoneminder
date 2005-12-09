@@ -24,11 +24,17 @@
 #ifndef ZM_MPEG_H
 #define ZM_MPEG_H
 
-#ifdef HAVE_LIBAVUTIL
-#define ZM_FFMPEG_CVS	1
-#endif
-
 #include <ffmpeg/avformat.h>
+
+#if FFMPEG_VERSION_INT == 0x000408
+#define ZM_FFMPEG_048	1
+#elif FFMPEG_VERSION_INT == 0x000409
+#if LIBAVCODEC_VERSION_INT < ((50<<16)+(0<<8)+0)
+#define ZM_FFMPEG_049	1
+#else // LIBAVCODEC_VERSION_INT
+#define ZM_FFMPEG_CVS	1
+#endif // LIBAVCODEC_VERSION_INT
+#endif // FFMPEG_VERSION_INT
 
 class VideoStream
 {

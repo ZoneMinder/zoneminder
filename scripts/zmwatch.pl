@@ -72,7 +72,7 @@ select( STDOUT ); $| = 1;
 open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
-Info( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+Info( "Watchdog starting\n" );
 Info( "Watchdog pausing for ".START_DELAY." seconds\n" );
 sleep( START_DELAY );
 
@@ -142,5 +142,5 @@ while( 1 )
 	}
 	sleep( ZM_WATCH_CHECK_INTERVAL );
 }
-Info( "Watchdog exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+Info( "Watchdog exiting\n" );
 exit();

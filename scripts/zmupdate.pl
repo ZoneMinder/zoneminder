@@ -133,7 +133,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 		my $now = time();
 		if ( !$last_version || !$last_check || (($now-$last_check) > CHECK_INTERVAL) )
 		{
-			Info( "Checking for updates at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+			Info( "Checking for updates\n" );
 
 			use LWP::UserAgent;
 			my $ua = LWP::UserAgent->new;

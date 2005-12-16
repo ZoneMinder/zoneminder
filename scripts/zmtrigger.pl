@@ -81,7 +81,7 @@ open(STDERR, ">&LOG") || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-Info( "Trigger daemon starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+Info( "Trigger daemon starting\n" );
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
@@ -217,7 +217,7 @@ while( 1 )
 	}
 	else
 	{
-		Debug( "Checking for timed actions at ".time()."\n" ) if ( int(keys(%actions)) );
+		Debug( "Checking for timed actions\n" ) if ( int(keys(%actions)) );
 		my $now = time();
 		foreach my $action_time ( sort( grep { $_ < $now } keys( %actions ) ) )
 		{
@@ -262,7 +262,7 @@ sub handleMessage
 		$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 );
 		if ( !defined($monitor->{ShmId}) )
 		{
-			Error( "Can't get shared memory id '%x': $!\n", $monitor->{ShmKey}, $! );
+			Error( sprintf( "Can't get shared memory id '%x': $!\n", $monitor->{ShmKey}, $! ) );
 			next;
 		}
 

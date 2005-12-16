@@ -165,7 +165,7 @@ sub runServer
 	select( STDERR ); $| = 1;
 	select( LOG ); $| = 1;
 
-	Info( "X10 server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+	Info( "X10 server starting\n" );
 
 	socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
 	unlink( main::X10_SOCK_FILE );
@@ -347,7 +347,7 @@ sub runServer
 			}
 		}
 	}
-	Info( "X10 server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+	Info( "X10 server exiting\n" );
 	close( LOG );
 	close( SERVER );
 	exit();
@@ -680,7 +680,7 @@ sub x10listen
 				}
 			}
 		}
-		Info( strftime( "%y/%m/%d %H:%M:%S", localtime() )." - ".$event->as_string()."\n" );
+		Info( "Got event - ".$event->as_string()."\n" );
 	}
 }
 

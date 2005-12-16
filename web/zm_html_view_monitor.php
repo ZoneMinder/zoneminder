@@ -94,7 +94,7 @@ else
 	$monitor['EventPrefix'] = 'Event-';
 	$monitor['MaxFPS'] = 0;
 	$monitor['FPSReportInterval'] = 1000;
-	$monitor['RefBlendPerc'] = 10;
+	$monitor['RefBlendPerc'] = 7;
 	$monitor['DefaultRate'] = '100';
 	$monitor['DefaultScale'] = '100';
 	$monitor['WebColour'] = 'red';

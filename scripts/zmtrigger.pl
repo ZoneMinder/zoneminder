@@ -33,8 +33,10 @@ use bytes;
 #
 # ==========================================================================
 
-use constant MAX_CONNECT_DELAY => 10;
+use constant DBG_ID => "zmtrigger"; # Tag that appears in debug to identify source
 use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
+
+use constant MAX_CONNECT_DELAY => 10;
 
 # Now define the trigger sources, can be inet socket, unix socket or file based
 # Ignore parser field for now.

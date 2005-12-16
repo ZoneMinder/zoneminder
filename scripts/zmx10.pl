@@ -33,6 +33,7 @@ use bytes;
 #
 # ==========================================================================
 
+use constant DBG_ID => "zmx10"; # Tag that appears in debug to identify source
 use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
@@ -140,6 +141,7 @@ package X10Server;
 use strict;
 use bytes;
 
+use ZoneMinder;
 use POSIX;
 use DBI;
 use Socket;

@@ -36,8 +36,10 @@ use bytes;
 #
 # ==========================================================================
 
-use constant MAX_CONNECT_DELAY => 10;
+use constant DBG_ID => "zmdc"; # Tag that appears in debug to identify source
 use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
+
+use constant MAX_CONNECT_DELAY => 10;
 
 # ==========================================================================
 #
@@ -334,18 +336,21 @@ if ( !connect( CLIENT, $saddr ) )
 				my $exit_signal = $status&0xfe;
 				my $core_dumped = $status&0x01;
 
+				my $out_str = "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' ";
+				$out_str .= ($exit_status==0)?"died":"crashed";
+				$out_str .= ", exit status $exit_status" if ( $exit_status );
+				$out_str .= ", signal $exit_signal" if ( $exit_signal );
+				#print( ", core dumped" ) if ( $core_dumped );
+				$out_str .= "\n";
+
 				if ( $exit_status == 0 )
 				{
-					Info( "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' died at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{stopped} ) ) );
+					Info( $out_str );
 				}
 				else
 				{
-					Error( "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' crashed at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{stopped} ) ) );
+					Error( $out_str );
 				}
-				print( ", exit status $exit_status" ) if ( $exit_status );
-				print( ", signal $exit_signal" ) if ( $exit_signal );
-				#print( ", core dumped" ) if ( $core_dumped );
-				print( "\n" );
 
 				if ( $process->{keepalive} )
 				{
@@ -454,15 +459,16 @@ if ( !connect( CLIENT, $saddr ) )
 						return();
 					}
 				}
-				dprint( "'$process->{command}' running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
+				dprint( "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
 			}
 			else
 			{
 				foreach my $process ( values(%pid_hash) )
 				{
-					dprint( "'$process->{command}' running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
-					dprint( ", valid" ) if ( kill( 0, $process->{pid} ) );
-					dprint( "\n" );
+					my $out_str = "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}";
+					$out_str .= ", valid" if ( kill( 0, $process->{pid} ) );
+					$out_str .= "\n";
+					dprint( $out_str );
 				}
 				foreach my $process ( values( %cmd_hash ) )
 				{

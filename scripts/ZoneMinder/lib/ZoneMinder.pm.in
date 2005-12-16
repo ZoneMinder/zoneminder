@@ -94,8 +94,6 @@ BEGIN
 use POSIX;
 use Time::HiRes qw/gettimeofday/;
 
-our $dbg_id = "zm";
-
 sub dbgPrint
 {
 	my $code = shift;
@@ -109,11 +107,11 @@ sub dbgPrint
 	{
 		my $file = __FILE__;
 		$file =~ s|^.*/||g;
-		printf( STDERR "%s.%06d %s[%d].%s-%s/%d [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $file, $line, $code, $string );
+		printf( STDERR "%s.%06d %s[%d].%s-%s/%d [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $file, $line, $code, $string );
 	}
 	else
 	{
-		printf( STDERR "%s.%06d %s[%d].%s [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $code, $string );
+		printf( STDERR "%s.%06d %s[%d].%s [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $code, $string );
 	}
 }
 
@@ -177,7 +175,7 @@ If you have a web site set up for your module, mention it here.
 
 =head1 AUTHOR
 
-Philip Coombes, E<lt>stan@localdomainE<gt>
+Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 

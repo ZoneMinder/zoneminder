@@ -34,8 +34,10 @@ use bytes;
 #
 # ==========================================================================
 
-use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
+use constant DBG_ID => "zmupdate"; # Tag that appears in debug to identify source
 use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
+
+use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 
 # ==========================================================================
 #

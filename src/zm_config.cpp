@@ -24,7 +24,7 @@
 #include "zm.h"
 #include "zm_db.h"
 
-char *ZM_DB_SERVER="", *ZM_DB_NAME="", *ZM_DB_USER="", *ZM_DB_PASS="";
+char *ZM_DB_HOST="", *ZM_DB_NAME="", *ZM_DB_USER="", *ZM_DB_PASS="", *ZM_PATH_WEB="";
 
 void zmLoadConfig()
 {
@@ -32,7 +32,7 @@ void zmLoadConfig()
 	char line[512];
 	char *val;
 	int r;
-	if (( cfg = fopen( ZM_CONFIG, "r" )) == NULL )
+	if ( (cfg = fopen( ZM_CONFIG, "r")) == NULL )
 	{
 		Fatal(("Can't open %s: %s", ZM_CONFIG, strerror(errno) ));
 	}
@@ -56,7 +56,7 @@ void zmLoadConfig()
 		char *temp_ptr = line_ptr+strlen(line_ptr)-1;
 		while ( *temp_ptr == ' ' || *temp_ptr == '\t' )
 		{
-			*temp_ptr = '\0';
+			*temp_ptr-- = '\0';
 			temp_ptr--;
 		}
 
@@ -87,13 +87,16 @@ void zmLoadConfig()
 		val = (char *)malloc( strlen(val_ptr)+1 );
 		strncpy( val, val_ptr, strlen(val_ptr)+1 );
 
-		if ( strcasecmp( name_ptr, "ZM_DB_SERVER" ) == 0 ) ZM_DB_SERVER = val;
+		if ( strcasecmp( name_ptr, "ZM_DB_HOST" ) == 0 ) ZM_DB_HOST = val;
 		else if ( strcasecmp( name_ptr, "ZM_DB_NAME" ) == 0 ) ZM_DB_NAME = val;
 		else if ( strcasecmp( name_ptr, "ZM_DB_USER" ) == 0 ) ZM_DB_USER = val;
 		else if ( strcasecmp( name_ptr, "ZM_DB_PASS" ) == 0 ) ZM_DB_PASS = val;
+		else if ( strcasecmp( name_ptr, "ZM_PATH_WEB" ) == 0 ) ZM_PATH_WEB = val;
 		else
 		{
-			Warning(( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG ));
+			// We ignore this now as there may be more parameters than the
+			// c/c++ binaries are bothered about
+			// Warning(( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG ));
 		}
 	}
 	fclose( cfg);

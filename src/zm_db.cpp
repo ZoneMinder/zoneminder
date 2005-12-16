@@ -31,7 +31,7 @@ void zmDbConnect()
 		Error(( "Can't initialise structure: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );
 	}
-	if ( !mysql_real_connect( &dbconn, ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS, 0, 0, 0, 0 ) )
+	if ( !mysql_real_connect( &dbconn, ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS, 0, 0, 0, 0 ) )
 	{
 		Error(( "Can't connect to server: %s", mysql_error( &dbconn ) ));
 		exit( mysql_errno( &dbconn ) );

@@ -1,5 +1,0 @@
-# ZoneMinder config
-ZM_DB_SERVER=<from zmconfig>
-ZM_DB_NAME=<from zmconfig>
-ZM_DB_USER=<from zmconfig>
-ZM_DB_PASS=<from zmconfig>

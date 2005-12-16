@@ -46,6 +46,3 @@ EXTRA_DIST = \
 	ZoneMinder/META.yml \
 	zm.z
 
-dist-hook:
-	cd ZoneMinder
-

@@ -35,7 +35,8 @@ use bytes;
 # ==========================================================================
 
 use constant START_DELAY => 30; # To give everything else time to start
-use constant VERBOSE => 0; # Whether to output more verbose debug
+use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
+
 
 # ==========================================================================
 #
@@ -70,8 +71,8 @@ select( STDOUT ); $| = 1;
 open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
-print( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-print( "Watchdog pausing for ".START_DELAY." seconds\n" );
+Info( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+Info( "Watchdog pausing for ".START_DELAY." seconds\n" );
 sleep( START_DELAY );
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
@@ -93,19 +94,19 @@ while( 1 )
 			$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $shm_size, 0 );
 			if ( !defined($monitor->{ShmId}) )
 			{
-				print( "Can't get shared memory id '$monitor->{ShmKey}': $!\n" );
+				Error( "Can't get shared memory id '$monitor->{ShmKey}': $!\n" );
 				next;
 			}
 			my $image_time;
 			if ( !shmread( $monitor->{ShmId}, $image_time, 20, 4 ) )
 			{
-				print( "Can't read from shared memory '$monitor->{ShmKey}/$monitor->{ShmId}': $!\n" );
+				Error( "Can't read from shared memory '$monitor->{ShmKey}/$monitor->{ShmId}': $!\n" );
 				next;
 			}
 			$image_time = unpack( "l", $image_time );
 
 			#my $command = ZM_PATH_BIN."/zmu -m ".$monitor->{Id}." -t";
-			#print( "Getting last image time for monitor $monitor->{Id} ('$command')\n" ) if ( VERBOSE );
+			#Debug( "Getting last image time for monitor $monitor->{Id} ('$command')\n" );
 			#my $image_time = qx( $command );
 			#chomp($image_time);
 
@@ -117,7 +118,7 @@ while( 1 )
 
 			my $max_image_delay = (($monitor->{MaxFPS}>0)&&($monitor->{MaxFPS}<1))?(3/$monitor->{MaxFPS}):ZM_WATCH_MAX_DELAY;
 			my $image_delay = $now-$image_time;
-			print( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" ) if ( VERBOSE );
+			Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
 			if ( $image_delay <= $max_image_delay )
 			{
 				# Yes, so continue
@@ -134,11 +135,11 @@ while( 1 )
 			{
 				$command = ZM_PATH_BIN."/zmdc.pl restart zmc -m $monitor->{Id}";
 			}
-			print( "Restarting capture daemon ('$command'), time since last capture $image_delay seconds ($now-$image_time)\n" );
-			print( qx( $command ) );
+			Info( "Restarting capture daemon ('$command'), time since last capture $image_delay seconds ($now-$image_time)\n" );
+			Info( qx( $command ) );
 		}
 	}
 	sleep( ZM_WATCH_CHECK_INTERVAL );
 }
-print( "Watchdog exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+Info( "Watchdog exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 exit();

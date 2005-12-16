@@ -37,7 +37,7 @@ use bytes;
 # ==========================================================================
 
 use constant MAX_CONNECT_DELAY => 10;
-use constant VERBOSE => 0; # Whether to output more verbose debug
+use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
 #
@@ -165,7 +165,7 @@ if ( !connect( CLIENT, $saddr ) )
 			{
 				print CLIENT @_
 			}
-			print @_;
+			Info @_;
 		}
 		sub start
 		{
@@ -336,11 +336,11 @@ if ( !connect( CLIENT, $saddr ) )
 
 				if ( $exit_status == 0 )
 				{
-					print( "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' died at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{stopped} ) ) );
+					Info( "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' died at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{stopped} ) ) );
 				}
 				else
 				{
-					print( "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' crashed at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{stopped} ) ) );
+					Error( "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' crashed at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{stopped} ) ) );
 				}
 				print( ", exit status $exit_status" ) if ( $exit_status );
 				print( ", signal $exit_signal" ) if ( $exit_signal );

@@ -35,7 +35,7 @@ use bytes;
 # ==========================================================================
 
 use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
-use constant VERBOSE => 0; # Whether to output more verbose debug
+use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
 #
@@ -131,7 +131,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 		my $now = time();
 		if ( !$last_version || !$last_check || (($now-$last_check) > CHECK_INTERVAL) )
 		{
-			print( "Checking for updates at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+			Info( "Checking for updates at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
 			use LWP::UserAgent;
 			my $ua = LWP::UserAgent->new;
@@ -146,7 +146,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 				chomp($last_version);
 				$last_check = $now;
 
-				print( "Got version: '".$last_version."'\n" );
+				Info( "Got version: '".$last_version."'\n" );
 
 				my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
@@ -162,7 +162,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 			}
 			else
 			{
-				print( "Error check failed: '".$res->status_line()."'\n" );
+				Error( "Error check failed: '".$res->status_line()."'\n" );
 			}
 		}
 		sleep( 3600 );
@@ -267,10 +267,10 @@ if ( $version )
 		my $backup = ZM_DB_NAME."-".$version.".dump";
 		$command .= " --add-drop-table --databases ".ZM_DB_NAME." > ".$backup;
 		print( "Creating backup to $backup. This may take several minutes.\n" );
-		print( "Executing '$command'\n" ) if ( VERBOSE );
+		print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
 		my $output = qx($command);
 		my $status = $? >> 8;
-		if ( $status || VERBOSE )
+		if ( $status || DBG_LEVEL > 0 )
 		{
 				chomp( $output );
 				print( "Output: $output\n" );
@@ -306,10 +306,10 @@ if ( $version )
 		}
 		$command .= " ".ZM_DB_NAME." < ".ZM_PATH_BUILD."/db/zmalter-".$version.".sql";
 
-		print( "Executing '$command'\n" ) if ( VERBOSE );
+		print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
 		my $output = qx($command);
 		my $status = $? >> 8;
-		if ( $status || VERBOSE )
+		if ( $status || DBG_LEVEL > 0 )
 		{
 				chomp( $output );
 				print( "Output: $output\n" );

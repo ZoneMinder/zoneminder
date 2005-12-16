@@ -33,7 +33,7 @@ use bytes;
 #
 # ==========================================================================
 
-use constant VERBOSE => 0; # Whether to output more verbose debug
+use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
 #
@@ -163,7 +163,7 @@ sub runServer
 	select( STDERR ); $| = 1;
 	select( LOG ); $| = 1;
 
-	print( "X10 server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+	Info( "X10 server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
 	socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
 	unlink( main::X10_SOCK_FILE );
@@ -171,7 +171,7 @@ sub runServer
 	bind( SERVER, $saddr ) or die( "Can't bind: $!" );
 	listen( SERVER, SOMAXCONN ) or die( "Can't listen: $!" );
 
-	$dbh = DBI->connect( "DBI:mysql:database=".main::ZM_DB_NAME.";host=".main::ZM_DB_SERVER, main::ZM_DB_USER, main::ZM_DB_PASS );
+	$dbh = DBI->connect( "DBI:mysql:database=".main::ZM_DB_NAME.";host=".main::ZM_DB_HOST, main::ZM_DB_USER, main::ZM_DB_PASS );
 
 	$x10 = new X10::ActiveHome( port=>main::ZM_X10_DEVICE, house_code=>main::ZM_X10_HOUSE_CODE, debug=>1 );
 
@@ -296,7 +296,7 @@ sub runServer
 				my $state;
 				if ( !shmread( $monitor->{ShmId}, $state, 8, 4 ) )
 				{
-					print( "Can't read from shared memory: $!\n" );
+					Error( "Can't read from shared memory: $!\n" );
 					$reload = !undef;
 					next;
 				}
@@ -306,12 +306,12 @@ sub runServer
 					my $task_list;
 					if ( $state == 2 && $monitor->{LastState} == 0 ) # Gone into alarm state
 					{
-						print( "Applying ON_list for $monitor_id\n" ) if ( main::VERBOSE );
+						Debug( "Applying ON_list for $monitor_id\n" );
 						$task_list = $monitor->{"ON_list"};
 					}
 					elsif ( $state == 0 && $monitor->{LastState} > 0 ) # Come out of alarm state
 					{
-						print( "Applying OFF_list for $monitor_id\n" ) if ( main::VERBOSE );
+						Debug( "Applying OFF_list for $monitor_id\n" );
 						$task_list = $monitor->{"OFF_list"};
 					}
 					if ( $task_list )
@@ -345,7 +345,7 @@ sub runServer
 			}
 		}
 	}
-	print( "X10 server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+	Info( "X10 server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 	close( LOG );
 	close( SERVER );
 	exit();
@@ -359,7 +359,7 @@ sub addToDeviceList
 	my $function = shift;
 	my $limit = shift;
 
-	print( "Adding to device list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" ) if ( main::VERBOSE );
+	Debug( "Adding to device list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" );
 	my $device = $device_hash{$unit_code};
 	if ( !$device )
 	{
@@ -388,7 +388,7 @@ sub addToMonitorList
 	my $function = shift;
 	my $limit = shift;
 
-	print( "Adding to monitor list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" ) if ( main::VERBOSE );
+	Debug( "Adding to monitor list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" );
 	my $device = $device_hash{$unit_code};
 	if ( !$device )
 	{
@@ -413,7 +413,7 @@ sub loadTasks
 {
 	%monitor_hash = ();
 
-	print( "Loading tasks\n" ) if ( main::VERBOSE );
+	Debug( "Loading tasks\n" );
 	# Clear out all old device task lists
 	foreach my $unit_code ( sort( keys(%device_hash) ) )
 	{
@@ -432,7 +432,7 @@ sub loadTasks
 		$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 );
 		if ( !defined($monitor->{ShmId}) )
 		{
-			print( "Can't get shared memory id '$monitor->{ShmKey}': $!\n" );
+			Error( "Can't get shared memory id '$monitor->{ShmKey}': $!\n" );
 			next;
 		}
 
@@ -440,10 +440,10 @@ sub loadTasks
 
 		if ( $monitor->{Activation} )
 		{
-			print( "$monitor->{Name} has active string '$monitor->{Activation}'\n" ) if ( main::VERBOSE );
+			Debug( "$monitor->{Name} has active string '$monitor->{Activation}'\n" );
 			foreach my $code_string ( split( ',', $monitor->{Activation} ) )
 			{
-				#print( "Code string: $code_string\n" );
+				#Debug( "Code string: $code_string\n" );
 				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
 				$limit = 0 if ( !$limit );
 				if ( $unit_code )
@@ -461,10 +461,10 @@ sub loadTasks
 		}
 		if ( $monitor->{AlarmInput} )
 		{
-			print( "$monitor->{Name} has alarm input string '$monitor->{AlarmInput}'\n" ) if ( main::VERBOSE );
+			Debug( "$monitor->{Name} has alarm input string '$monitor->{AlarmInput}'\n" );
 			foreach my $code_string ( split( ',', $monitor->{AlarmInput} ) )
 			{
-				#print( "Code string: $code_string\n" );
+				#Debug( "Code string: $code_string\n" );
 				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
 				$limit = 0 if ( !$limit );
 				if ( $unit_code )
@@ -482,10 +482,10 @@ sub loadTasks
 		}
 		if ( $monitor->{AlarmOutput} )
 		{
-			print( "$monitor->{Name} has alarm output string '$monitor->{AlarmOutput}'\n" ) if ( main::VERBOSE );
+			Debug( "$monitor->{Name} has alarm output string '$monitor->{AlarmOutput}'\n" );
 			foreach my $code_string ( split( ',', $monitor->{AlarmOutput} ) )
 			{
-				#print( "Code string: $code_string\n" );
+				#Debug( "Code string: $code_string\n" );
 				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
 				$limit = 0 if ( !$limit );
 				if ( $unit_code )
@@ -605,7 +605,7 @@ sub processTask
 				my $force_data = pack( "llZ*", 1, 0, "X10" );
 				if ( !shmwrite( $task->{monitor}->{ShmId}, $force_data, 52, 12 ) )
 				{
-					print( "Can't write to shared memory: $!\n" );
+					Error( "Can't write to shared memory: $!\n" );
 				}
 				if ( $task->{limit} )
 				{
@@ -618,13 +618,13 @@ sub processTask
 				my $force_data = pack( "llZ*", 0, 0, "" );
 				if ( !shmwrite( $task->{monitor}->{ShmId}, $force_data, 52, 12 ) )
 				{
-					print( "Can't write to shared memory: $!\n" );
+					Error( "Can't write to shared memory: $!\n" );
 				}
 			}
 		}
 		foreach my $command ( @commands )
 		{
-			print( "Executing command '$command'\n" );
+			Info( "Executing command '$command'\n" );
 			qx( $command );
 		}
 	}
@@ -651,7 +651,7 @@ sub dprint
 	{
 		print CLIENT @_
 	}
-	print @_;
+	Info( @_ );
 }
 
 sub x10listen
@@ -678,7 +678,7 @@ sub x10listen
 				}
 			}
 		}
-		print( strftime( "%y/%m/%d %H:%M:%S", localtime() )." - ".$event->as_string()."\n" );
+		Info( strftime( "%y/%m/%d %H:%M:%S", localtime() )." - ".$event->as_string()."\n" );
 	}
 }
 

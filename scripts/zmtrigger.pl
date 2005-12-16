@@ -34,7 +34,7 @@ use bytes;
 # ==========================================================================
 
 use constant MAX_CONNECT_DELAY => 10;
-use constant VERBOSE => 0; # Whether to output more verbose debug
+use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 # Now define the trigger sources, can be inet socket, unix socket or file based
 # Ignore parser field for now.
@@ -79,9 +79,9 @@ open(STDERR, ">&LOG") || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-print( "Trigger daemon starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+Info( "Trigger daemon starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 my $sql = "select * from Monitors where Id = ? or Name = ?";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -91,7 +91,7 @@ $SIG{HUP} = \&status;
 my $base_rin = '';
 foreach my $source ( @sources )
 {
-	print( "Opening source '$source->{name}'\n" );
+	Info( "Opening source '$source->{name}'\n" );
 	if ( $source->{type} eq "inet" )
 	{
 		local *sfh;
@@ -151,18 +151,18 @@ while( 1 )
 	my $nfound = select( my $rout = $rin, undef, my $eout = $ein, $timeout );
 	if ( $nfound > 0 )
 	{
-		print( "Got input from $nfound sources\n" ) if ( VERBOSE );
+		Debug( "Got input from $nfound sources\n" );
 		foreach my $source ( @sources )
 		{
 			if ( vec( $rout, fileno($source->{handle}),1) )
 			{
-				print( "Got input from source $source->{name} (".fileno($source->{handle}).")\n" ) if ( VERBOSE );
+				Debug( "Got input from source $source->{name} (".fileno($source->{handle}).")\n" );
 				if ( $source->{type} eq "inet" || $source->{type} eq "unix" )
 				{
 					local *cfh;
 					my $paddr = accept( *cfh, $source->{handle} );
 					$connections{fileno(*cfh)} = { source=>$source, handle=>*cfh };
-					print( "Added new connection (".fileno(*cfh)."), ".int(keys(%connections))." connections\n" ) if ( VERBOSE );
+					Debug( "Added new connection (".fileno(*cfh)."), ".int(keys(%connections))." connections\n" );
 				}
 				else
 				{
@@ -174,7 +174,7 @@ while( 1 )
 					}
 					else
 					{
-						print( "Got '$buffer' ($nbytes bytes)\n" ) if ( VERBOSE );
+						Debug( "Got '$buffer' ($nbytes bytes)\n" );
 						handleMessage( $buffer );
 					}
 				}
@@ -182,7 +182,7 @@ while( 1 )
 		}
 		foreach my $connection ( values(%connections) )
 		{
-			print( "Got input from connection on ".$connection->{source}->{name}." (".fileno($connection->{handle}).")\n" ) if ( VERBOSE );
+			Debug( "Got input from connection on ".$connection->{source}->{name}." (".fileno($connection->{handle}).")\n" );
 			if ( vec( $rout, fileno($connection->{handle}),1) )
 			{
 				my $buffer;
@@ -190,12 +190,12 @@ while( 1 )
 				if ( !$nbytes )
 				{
 					delete( $connections{fileno($connection->{handle})} );
-					print( "Removed connection (".fileno($connection->{handle})."), ".int(keys(%connections))." connections\n" ) if ( VERBOSE );
+					Debug( "Removed connection (".fileno($connection->{handle})."), ".int(keys(%connections))." connections\n" );
 					close( $connection->{handle} );
 				}
 				else
 				{
-					print( "Got '$buffer' ($nbytes bytes)\n" ) if ( VERBOSE );
+					Debug( "Got '$buffer' ($nbytes bytes)\n" );
 					handleMessage( $buffer );
 				}
 			}
@@ -206,7 +206,7 @@ while( 1 )
 		if ( $! == EINTR )
 		{
 			# Dead child, will be reaped
-			#print( "Probable dead child\n" );
+			#Info( "Probable dead child\n" );
 		}
 		else
 		{
@@ -215,32 +215,32 @@ while( 1 )
 	}
 	else
 	{
-		print( "Checking for timed actions at ".time()."\n" ) if ( VERBOSE && int(keys(%actions)) );
+		Debug( "Checking for timed actions at ".time()."\n" ) if ( int(keys(%actions)) );
 		my $now = time();
 		foreach my $action_time ( sort( grep { $_ < $now } keys( %actions ) ) )
 		{
-			print( "Found actions expiring at $action_time\n" );
+			Info( "Found actions expiring at $action_time\n" );
 			foreach my $action ( @{$actions{$action_time}} )
 			{
-				print( "Found action '$action'\n" );
+				Info( "Found action '$action'\n" );
 				handleMessage( $action );
 			}
 			delete( $actions{$action_time} );
 		}
 	}
 }
-print( "Trigger daemon exiting\n" );
+Info( "Trigger daemon exiting\n" );
 
 sub handleMessage
 {
 	my $buffer = shift;
 	#chomp( $buffer );
 
-	print( "Processing buffer '$buffer'\n" ) if ( VERBOSE );
+	Debug( "Processing buffer '$buffer'\n" );
 	foreach my $message ( split( /\r?\n/, $buffer ) )
 	{
 		next if ( !$message );
-		print( "Processing message '$message'\n" ) if ( VERBOSE );
+		Debug( "Processing message '$message'\n" );
 		my ( $id, $action, $score, $cause, $text, $showtext ) = split( /\|/, $message );
 		$score = 0 if ( !defined($score) );
 		$cause = 0 if ( !defined($cause) );
@@ -251,29 +251,29 @@ sub handleMessage
 
 		if ( !$monitor )
 		{
-			print( "Can't find monitor '$id' for message '$message'\n" );
+			Warning( "Can't find monitor '$id' for message '$message'\n" );
 			next;
 		}
-		print( "Found monitor for id '$id'\n" ) if ( VERBOSE );
+		Debug( "Found monitor for id '$id'\n" );
 		my $size = 512; # We only need the first 512 bytes really for the shared data and trigger section
 		$monitor->{ShmKey} = hex(ZM_SHM_KEY)|$monitor->{Id};
 		$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 );
 		if ( !defined($monitor->{ShmId}) )
 		{
-			printf( "Can't get shared memory id '%x': $!\n", $monitor->{ShmKey}, $! );
+			Error( "Can't get shared memory id '%x': $!\n", $monitor->{ShmKey}, $! );
 			next;
 		}
 
 		my $shm_data_size;
 		if ( !shmread( $monitor->{ShmId}, $shm_data_size, 0, 4 ) )
 		{
-			print( "Can't read from shared memory: $!\n" );
+			Error( "Can't read from shared memory: $!\n" );
 			exit( -1 );
 		}
 		$shm_data_size = unpack( "l", $shm_data_size );
 		my $trigger_data_offset = $shm_data_size+4; # Allow for 'size' member of trigger data
 
-		print( "Handling action '$action'\n" ) if ( VERBOSE );
+		Debug( "Handling action '$action'\n" );
 		if ( $action =~ /^(on|off)(?:\+(\d+))?$/ )
 		{
 			my $trigger = $1;
@@ -289,9 +289,9 @@ sub handleMessage
 			}
 			if ( !shmwrite( $monitor->{ShmId}, $trigger_data, $trigger_data_offset, length($trigger_data) ) )
 			{
-				print( "Can't write to shared memory: $!\n" );
+				Error( "Can't write to shared memory: $!\n" );
 			}
-			print( "Triggered event $trigger '$cause'\n" );
+			Info( "Triggered event $trigger '$cause'\n" );
 			if ( $delay )
 			{
 				my $action_time = time()+$delay;
@@ -302,7 +302,7 @@ sub handleMessage
 					$action_array = $actions{$action_time} = [];
 				}
 				push( @$action_array, $action_text );
-				print( "Added timed event '$action_text', expires at $action_time (+$delay secs)\n" ) if ( VERBOSE );
+				Debug( "Added timed event '$action_text', expires at $action_time (+$delay secs)\n" );
 			}
 		}
 		elsif( $action eq "cancel" )
@@ -318,22 +318,22 @@ sub handleMessage
 			}
 			if ( !shmwrite( $monitor->{ShmId}, $trigger_data, $trigger_data_offset, length($trigger_data) ) )
 			{
-				print( "Can't write to shared memory: $!\n" );
+				Error( "Can't write to shared memory: $!\n" );
 			}
-			print( "Cancelled event '$cause'\n" );
+			Info( "Cancelled event '$cause'\n" );
 		}
 		elsif( $action eq "show" )
 		{
 			my $trigger_data = pack( "Z32", $showtext );
 			if ( !shmwrite( $monitor->{ShmId}, $trigger_data, $trigger_data_offset, length($trigger_data) ) )
 			{
-				print( "Can't write to shared memory: $!\n" );
+				Error( "Can't write to shared memory: $!\n" );
 			}
-			print( "Updated show text to '$showtext'\n" );
+			Info( "Updated show text to '$showtext'\n" );
 		}
 		else
 		{
-			print( "Unrecognised action '$action' in message '$message'\n" );
+			Error( "Unrecognised action '$action' in message '$message'\n" );
 		}
 	}
 }

@@ -34,7 +34,7 @@ use bytes;
 # ==========================================================================
 
 use constant SLEEP_TIME => 10000; # In microseconds
-use constant VERBOSE => 1; # Whether to output more verbose debug
+use constant DBG_LEVEL => 1; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
 #
@@ -87,7 +87,7 @@ select( LOG ); $| = 1;
 
 print( "Tracker daemon $mid (experimental) starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 my $sql = "select C.*,M.* from Monitors as M left join Controls as C on M.ControlId = C.Id where M.Id = ?";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -125,7 +125,7 @@ if ( !$monitor->{CanMoveMap} )
 	}
 }
 
-print( "Found monitor for id '$monitor'\n" ) if ( VERBOSE );
+Debug( "Found monitor for id '$monitor'\n" );
 my $size = 512; # We only need the first 512 bytes really for the alarm state and forced alarm
 $monitor->{ShmKey} = hex(ZM_SHM_KEY)|$monitor->{Id};
 $monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 );
@@ -205,7 +205,7 @@ while( 1 )
 		my ( $alarm_x, $alarm_y ) = unpack( "ll", $alarm_pos );
 		if ( $alarm_x > 0 && $alarm_y > 0 )
 		{
-			print( "Got alarm at $alarm_x, $alarm_y\n" ) if ( VERBOSE );
+			Debug( "Got alarm at $alarm_x, $alarm_y\n" );
 			Suspend( $monitor );
 			Track( $monitor, $alarm_x, $alarm_y );
 			Resume( $monitor );
@@ -215,14 +215,14 @@ while( 1 )
 	}
 	else
 	{
-		if ( VERBOSE && $alarmed )
+		if ( DBG_LEVEL > 0 && $alarmed )
 		{
 			print( "Left alarm state\n" );
 			$alarmed = undef;
 		}
 		if ( ($monitor->{ReturnLocation} >= 0) && ($last_alarm > 0) && ((time()-$last_alarm) > $monitor->{ReturnDelay}) )
 		{
-			print( "Returning to location ".$monitor->{ReturnLocation}."\n" ) if ( VERBOSE );
+			Debug( "Returning to location ".$monitor->{ReturnLocation}."\n" );
 			Suspend( $monitor );
 			Return( $monitor );
 			Resume( $monitor );

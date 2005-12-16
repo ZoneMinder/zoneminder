@@ -33,7 +33,7 @@ use strict;
 #
 # ==========================================================================
 
-# None
+use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
 
@@ -101,7 +101,7 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-print( $arg_string."\n" );
+Info( $arg_string."\n" );
 
 srand( time() );
 
@@ -110,8 +110,7 @@ sub printMsg
 	my $msg = shift;
 	my $msg_len = length($msg);
 
-	print( $msg );
-	print( "[".$msg_len."]\n" );
+	Info( $msg."[".$msg_len."]\n" );
 }
 
 sub sendCmd
@@ -136,7 +135,7 @@ sub sendCmd
 	}
 	else
 	{
-		print( "Error check failed: '".$res->status_line()."'\n" );
+		Error( "Error check failed: '".$res->status_line()."'\n" );
 	}
 
 	return( $result );
@@ -144,35 +143,35 @@ sub sendCmd
 
 sub cameraReset
 {
-	print( "Camera Reset\n" );
+	Info( "Camera Reset\n" );
 	my $cmd = "nphRestart?PAGE=Restart&Restart=OK";
 	sendCmd( $cmd );
 }
 
 sub moveUp
 {
-	print( "Move Up\n" );
+	Info( "Move Up\n" );
 	my $cmd = "nphControlCamera?Direction=TiltUp";
 	sendCmd( $cmd );
 }
 
 sub moveDown
 {
-	print( "Move Down\n" );
+	Info( "Move Down\n" );
 	my $cmd = "nphControlCamera?Direction=TiltDown";
 	sendCmd( $cmd );
 }
 
 sub moveLeft
 {
-	print( "Move Left\n" );
+	Info( "Move Left\n" );
 	my $cmd = "nphControlCamera?Direction=PanLeft";
 	sendCmd( $cmd );
 }
 
 sub moveRight
 {
-	print( "Move Right\n" );
+	Info( "Move Right\n" );
 	my $cmd = "nphControlCamera?Direction=PanRight";
 	sendCmd( $cmd );
 }
@@ -180,42 +179,42 @@ sub moveRight
 sub moveMap
 {
 	my ( $xcoord, $ycoord, $width, $height ) = @_;
-	print( "Move Map to $xcoord,$ycoord\n" );
+	Info( "Move Map to $xcoord,$ycoord\n" );
 	my $cmd = "nphControlCamera?Direction=Direct&NewPosition.x=$xcoord&NewPosition.y=$ycoord&Width=$width&Height=$height";
 	sendCmd( $cmd );
 }
 
 sub zoomTele
 {
-	print( "Zoom Tele\n" );
+	Info( "Zoom Tele\n" );
 	my $cmd = "nphControlCamera?Direction=ZoomTele";
 	sendCmd( $cmd );
 }
 
 sub zoomWide
 {
-	print( "Zoom Wide\n" );
+	Info( "Zoom Wide\n" );
 	my $cmd = "nphControlCamera?Direction=ZoomWide";
 	sendCmd( $cmd );
 }
 
 sub focusNear
 {
-	print( "Focus Near\n" );
+	Info( "Focus Near\n" );
 	my $cmd = "nphControlCamera?Direction=FocusNear";
 	sendCmd( $cmd );
 }
 
 sub focusFar
 {
-	print( "Focus Far\n" );
+	Info( "Focus Far\n" );
 	my $cmd = "nphControlCamera?Direction=FocusFar";
 	sendCmd( $cmd );
 }
 
 sub focusAuto
 {
-	print( "Focus Auto\n" );
+	Info( "Focus Auto\n" );
 	my $cmd = "nphControlCamera?Direction=FocusAuto";
 	sendCmd( $cmd );
 }
@@ -223,7 +222,7 @@ sub focusAuto
 sub presetClear
 {
 	my $preset = shift || 1;
-	print( "Clear Preset $preset\n" );
+	Info( "Clear Preset $preset\n" );
 	my $cmd = "nphPresetNameCheck?Data=$preset";
 	sendCmd( $cmd );
 }
@@ -231,7 +230,7 @@ sub presetClear
 sub presetSet
 {
 	my $preset = shift || 1;
-	print( "Set Preset $preset\n" );
+	Info( "Set Preset $preset\n" );
 	my $cmd = "nphPresetNameCheck?PresetName=$preset&Data=$preset";
 	sendCmd( $cmd );
 }
@@ -239,14 +238,14 @@ sub presetSet
 sub presetGoto
 {
 	my $preset = shift || 1;
-	print( "Goto Preset $preset\n" );
+	Info( "Goto Preset $preset\n" );
 	my $cmd = "nphControlCamera?Direction=Preset&PresetOperation=Move&Data=$preset";
 	sendCmd( $cmd );
 }
 
 sub presetHome
 {
-	print( "Home Preset\n" );
+	Info( "Home Preset\n" );
 	my $cmd = "nphControlCamera?Direction=HomePosition";
 	sendCmd( $cmd );
 }
@@ -309,5 +308,5 @@ elsif ( $command eq "preset_goto" )
 }
 else
 {
-	print( "Error, can't handle command $command\n" );
+	Error( "Can't handle command $command\n" );
 }

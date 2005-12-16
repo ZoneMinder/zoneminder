@@ -149,47 +149,6 @@ sub dbgInit
 	}
 }
 
-sub dbgPrint
-{
-	my $code = shift;
-	my $string = shift;
-	my $line = shift;
-
-	$string =~ s/[\r\n]+$//g;
-
-	my ($seconds, $microseconds) = gettimeofday();
-	if ( $line )
-	{
-		my $file = __FILE__;
-		$file =~ s|^.*/||g;
-		printf( "%s.%06d %s[%d].%s-%s/%d [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $file, $line, $code, $string );
-	}
-	else
-	{
-		printf( "%s.%06d %s[%d].%s [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $code, $string );
-	}
-}
-
-sub Debug
-{
-	dbgPrint( "DBG", $_[0] ) if ( DBG_LEVEL >= 1 );
-}
-
-sub Info
-{
-	dbgPrint( "INF", $_[0] ) if ( DBG_LEVEL >= 0 );
-}
-
-sub Warning
-{
-	dbgPrint( "WAR", $_[0] ) if ( DBG_LEVEL >= -1 );
-}
-
-sub Error
-{
-	dbgPrint( "ERR", $_[0] ) if ( DBG_LEVEL >= -2 );
-}
-
 #
 # More or less replicates the equivalent PHP function
 #
@@ -239,7 +198,7 @@ select( LOG ); $| = 1;
 
 chdir( EVENT_PATH );
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 Info( "Scanning for events\n" );
 

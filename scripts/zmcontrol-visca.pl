@@ -33,7 +33,7 @@ use strict;
 #
 # ==========================================================================
 
-# None
+use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
 
@@ -95,7 +95,7 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-print( $arg_string."\n" );
+Info( $arg_string."\n" );
 
 srand( time() );
 
@@ -119,16 +119,16 @@ sub printMsg
 	my $line_length = 16;
 	my $msg_len = int(@$msg);
 
-	print( $prefix );
+	my $msg_str = $prefix;
 	for ( my $i = 0; $i < $msg_len; $i++ )
 	{
 		if ( ($i > 0) && ($i%$line_length == 0) && ($i != ($msg_len-1)) )
 		{
-			printf( "\n%*s", length($prefix), "" );
+			$msg_str .= sprintf( "\n%*s", length($prefix), "" );
 		}
-		printf( "%02x ", $msg->[$i] );
+		$msg_str .= sprintf( "%02x ", $msg->[$i] );
 	}
-	print( "[".$msg_len."]\n" );
+	$msg_str .= "[".$msg_len."]\n";
 }
 
 sub sendCmd
@@ -148,16 +148,16 @@ sub sendCmd
 	my $n_bytes = $serial_port->write( $tx_msg );
 	if ( !$n_bytes )
 	{
-		print( "Error, write failed: $!" );
+		Error( "Write failed: $!" );
 	}
 	if ( $n_bytes != length($tx_msg) )
 	{
-		print( "Error, incomplete write, only ".$n_bytes." of ".length($tx_msg)." written: $!" );
+		Error( "Incomplete write, only ".$n_bytes." of ".length($tx_msg)." written: $!" );
 	}
 
 	if ( $ack )
 	{
-		print( "Waiting for ack\n" );
+		Info( "Waiting for ack\n" );
 		my $max_wait = 3;
 		my $now = time();
 		while( 1 )
@@ -175,18 +175,18 @@ sub sendCmd
 					if ( ($resp[1] & 0xf0) == 0x40 )
 					{
 						my $socket = $resp[1] & 0x0f;
-						print( "Got ack for socket $socket\n" );
+						Info( "Got ack for socket $socket\n" );
 						$result = !undef;
 					}
 					else
 					{
-						printf( "Error, got bogus response\n" );
+						Error( "Got bogus response\n" );
 					}
 					last;
 				}
 				else
 				{
-					print( "Error, got message for camera ".(($resp[0]-0x80)>>4)."\n" );
+					Error( "Got message for camera ".(($resp[0]-0x80)>>4)."\n" );
 				}
 			}
 			if ( (time() - $now) > $max_wait )
@@ -198,7 +198,7 @@ sub sendCmd
 
 	if ( $cmp )
 	{
-		print( "Waiting for command complete\n" );
+		Info( "Waiting for command complete\n" );
 		my $max_wait = 10;
 		my $now = time();
 		while( 1 )
@@ -216,18 +216,18 @@ sub sendCmd
 				{
 					if ( ($resp[1] & 0xf0) == 0x50 )
 					{
-						printf( "Got command complete\n" );
+						Info( "Got command complete\n" );
 						$result = !undef;
 					}
 					else
 					{
-						printf( "Error, got bogus response\n" );
+						Error( "Got bogus response\n" );
 					}
 					last;
 				}
 				else
 				{
-					print( "Error, got message for camera ".(($resp[0]-0x80)>>4)."\n" );
+					Error( "Got message for camera ".(($resp[0]-0x80)>>4)."\n" );
 				}
 			}
 			if ( (time() - $now) > $max_wait )
@@ -243,28 +243,28 @@ my $sync = 0xff;
 
 sub cameraOff
 {
-	print( "Camera Off\n" );
+	Info( "Camera Off\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x00, 0x03, $sync );
 	sendCmd( \@msg );
 }
 
 sub cameraOn
 {
-	print( "Camera On\n" );
+	Info( "Camera On\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x00, 0x02, $sync );
 	sendCmd( \@msg );
 }
 
 sub stop
 {
-	print( "Stop\n" );
+	Info( "Stop\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, 0x00, 0x00, 0x03, 0x03, $sync );
 	sendCmd( \@msg );
 }
 
 sub moveUp
 {
-	print( "Move Up\n" );
+	Info( "Move Up\n" );
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, 0x00, $speed, 0x03, 0x01, $sync );
 	sendCmd( \@msg );
@@ -272,7 +272,7 @@ sub moveUp
 
 sub moveDown
 {
-	print( "Move Down\n" );
+	Info( "Move Down\n" );
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, 0x00, $speed, 0x03, 0x02, $sync );
 	sendCmd( \@msg );
@@ -280,7 +280,7 @@ sub moveDown
 
 sub moveLeft
 {
-	print( "Move Left\n" );
+	Info( "Move Left\n" );
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $speed, 0x00, 0x01, 0x03, $sync );
 	sendCmd( \@msg );
@@ -288,7 +288,7 @@ sub moveLeft
 
 sub moveRight
 {
-	print( "Move Right\n" );
+	Info( "Move Right\n" );
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $speed, 0x00, 0x02, 0x03, $sync );
 	sendCmd( \@msg );
@@ -296,7 +296,7 @@ sub moveRight
 
 sub moveUpLeft
 {
-	print( "Move Up/Left\n" );
+	Info( "Move Up/Left\n" );
 	my $panspeed = shift || 0x40;
 	my $tiltspeed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x01, 0x01, $sync );
@@ -305,7 +305,7 @@ sub moveUpLeft
 
 sub moveUpRight
 {
-	print( "Move Up/Right\n" );
+	Info( "Move Up/Right\n" );
 	my $panspeed = shift || 0x40;
 	my $tiltspeed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x02, 0x01, $sync );
@@ -314,7 +314,7 @@ sub moveUpRight
 
 sub moveDownLeft
 {
-	print( "Move Down/Left\n" );
+	Info( "Move Down/Left\n" );
 	my $panspeed = shift || 0x40;
 	my $tiltspeed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x01, 0x02, $sync );
@@ -323,7 +323,7 @@ sub moveDownLeft
 
 sub moveDownRight
 {
-	print( "Move Down/Right\n" );
+	Info( "Move Down/Right\n" );
 	my $panspeed = shift || 0x40;
 	my $tiltspeed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x02, 0x02, $sync );
@@ -332,7 +332,7 @@ sub moveDownRight
 
 sub stepUp
 {
-	print( "Step Up\n" );
+	Info( "Step Up\n" );
 	my $step = shift;
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x03, 0x00, $speed, 0x00, 0x00, 0x00, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, $sync );
@@ -342,7 +342,7 @@ sub stepUp
 
 sub stepDown
 {
-	print( "Step Down\n" );
+	Info( "Step Down\n" );
 	my $step = shift;
 	$step = -$step;
 	my $speed = shift || 0x40;
@@ -352,7 +352,7 @@ sub stepDown
 
 sub stepLeft
 {
-	print( "Step Left\n" );
+	Info( "Step Left\n" );
 	my $step = shift;
 	$step = -$step;
 	my $speed = shift || 0x40;
@@ -362,7 +362,7 @@ sub stepLeft
 
 sub stepRight
 {
-	print( "Step Right\n" );
+	Info( "Step Right\n" );
 	my $step = shift;
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x03, $speed, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, 0x00, 0x00, 0x00, 0x00, $sync );
@@ -371,7 +371,7 @@ sub stepRight
 
 sub stepUpLeft
 {
-	print( "Step Up/Left\n" );
+	Info( "Step Up/Left\n" );
 	my $panstep = shift;
 	$panstep = -$panstep;
 	my $tiltstep = shift;
@@ -383,7 +383,7 @@ sub stepUpLeft
 
 sub stepUpRight
 {
-	print( "Step Up/Right\n" );
+	Info( "Step Up/Right\n" );
 	my $panstep = shift;
 	my $tiltstep = shift;
 	my $panspeed = shift || 0x40;
@@ -394,7 +394,7 @@ sub stepUpRight
 
 sub stepDownLeft
 {
-	print( "Step Down/Left\n" );
+	Info( "Step Down/Left\n" );
 	my $panstep = shift;
 	$panstep = -$panstep;
 	my $tiltstep = shift;
@@ -407,7 +407,7 @@ sub stepDownLeft
 
 sub stepDownRight
 {
-	print( "Step Down/Right\n" );
+	Info( "Step Down/Right\n" );
 	my $panstep = shift;
 	my $tiltstep = shift;
 	$tiltstep = -$tiltstep;
@@ -419,7 +419,7 @@ sub stepDownRight
 
 sub zoomTele
 {
-	print( "Zoom Tele\n" );
+	Info( "Zoom Tele\n" );
 	my $speed = shift || 0x06;
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x07, 0x20|$speed, $sync );
 	sendCmd( \@msg );
@@ -427,7 +427,7 @@ sub zoomTele
 
 sub zoomWide
 {
-	print( "Zoom Wide\n" );
+	Info( "Zoom Wide\n" );
 	my $speed = shift || 0x06;
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x07, 0x30|$speed, $sync );
 	sendCmd( \@msg );
@@ -435,7 +435,7 @@ sub zoomWide
 
 sub zoomStop
 {
-	print( "Zoom Stop\n" );
+	Info( "Zoom Stop\n" );
 	my $speed = shift || 0x06;
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x07, 0x00, $sync );
 	sendCmd( \@msg );
@@ -443,35 +443,35 @@ sub zoomStop
 
 sub focusNear
 {
-	print( "Focus Near\n" );
+	Info( "Focus Near\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x08, 0x03, $sync );
 	sendCmd( \@msg );
 }
 
 sub focusFar
 {
-	print( "Focus Far\n" );
+	Info( "Focus Far\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x08, 0x02, $sync );
 	sendCmd( \@msg );
 }
 
 sub focusStop
 {
-	print( "Focus Far\n" );
+	Info( "Focus Far\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x08, 0x00, $sync );
 	sendCmd( \@msg );
 }
 
 sub focusAuto
 {
-	print( "Focus Auto\n" );
+	Info( "Focus Auto\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x38, 0x02, $sync );
 	sendCmd( \@msg );
 }
 
 sub focusMan
 {
-	print( "Focus Man\n" );
+	Info( "Focus Man\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x38, 0x03, $sync );
 	sendCmd( \@msg );
 }
@@ -479,7 +479,7 @@ sub focusMan
 sub presetClear
 {
 	my $preset = shift || 1;
-	print( "Clear Preset $preset\n" );
+	Info( "Clear Preset $preset\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x3f, 0x00, $preset, $sync );
 	sendCmd( \@msg );
 }
@@ -487,7 +487,7 @@ sub presetClear
 sub presetSet
 {
 	my $preset = shift || 1;
-	print( "Set Preset $preset\n" );
+	Info( "Set Preset $preset\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x3f, 0x01, $preset, $sync );
 	sendCmd( \@msg );
 }
@@ -495,14 +495,14 @@ sub presetSet
 sub presetGoto
 {
 	my $preset = shift || 1;
-	print( "Goto Preset $preset\n" );
+	Info( "Goto Preset $preset\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x3f, 0x02, $preset, $sync );
 	sendCmd( \@msg );
 }
 
 sub presetHome
 {
-	print( "Home Preset\n" );
+	Info( "Home Preset\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x04, $sync );
 	sendCmd( \@msg );
 }
@@ -621,7 +621,7 @@ elsif ( $command eq "preset_goto" )
 }
 else
 {
-	print( "Error, can't handle command $command\n" );
+	Error( "Can't handle command $command\n" );
 }
 
 $serial_port->close();

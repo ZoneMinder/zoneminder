@@ -17,6 +17,9 @@ bin_SCRIPTS = \
 	zmcontrol-axis-v2.pl \
 	zmtrack.pl
 
+SUBDIRS = \
+    ZoneMinder
+
 EXTRA_DIST = \
 	zmdc.pl.z \
 	zmaudit.pl.z \
@@ -33,4 +36,16 @@ EXTRA_DIST = \
 	zmcontrol-kx-hcm10.pl.z \
 	zmcontrol-axis-v2.pl.z \
 	zmtrack.pl.z \
+	ZoneMinder/lib/ZoneMinder.pm.in \
+	ZoneMinder/lib/ZoneMinder.pm \
+	ZoneMinder/Makefile.PL \
+	ZoneMinder/README \
+	ZoneMinder/t/ZoneMinder.t \
+	ZoneMinder/Changes \
+	ZoneMinder/MANIFEST \
+	ZoneMinder/META.yml \
 	zm.z
+
+dist-hook:
+	cd ZoneMinder
+

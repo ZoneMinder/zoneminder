@@ -27,11 +27,9 @@
 use strict;
 use bytes;
 
-use ZoneMinder;
-
 # ==========================================================================
 #
-# These are the elements you need to edit to suit your installation
+# These are the elements you can edit to suit your installation
 #
 # ==========================================================================
 
@@ -45,6 +43,7 @@ use constant VERBOSE => 0; # Whether to output more verbose debug
 #
 # ==========================================================================
 
+use ZoneMinder;
 use POSIX;
 use Socket;
 use Getopt::Long;
@@ -359,7 +358,7 @@ sub addToDeviceList
 	my $function = shift;
 	my $limit = shift;
 
-	print( "Adding to device list, uc:$unit_code, ev:$event, mo:".$monitor->{Id}.", fu:$function, li:$limit\n" ) if ( main::VERBOSE );
+	print( "Adding to device list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" ) if ( main::VERBOSE );
 	my $device = $device_hash{$unit_code};
 	if ( !$device )
 	{
@@ -388,7 +387,7 @@ sub addToMonitorList
 	my $function = shift;
 	my $limit = shift;
 
-	print( "Adding to monitor list, uc:$unit_code, ev:$event, mo:".$monitor->{Id}.", fu:$function, li:$limit\n" ) if ( main::VERBOSE );
+	print( "Adding to monitor list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" ) if ( main::VERBOSE );
 	my $device = $device_hash{$unit_code};
 	if ( !$device )
 	{

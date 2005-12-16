@@ -29,51 +29,17 @@ use strict;
 
 # ==========================================================================
 #
-# These are the elements you need to edit to suit your installation
+# These are the elements you can edit to suit your installation
 #
 # ==========================================================================
-use constant ZM_CONFIG => "<from zmconfig>";
-use constant ZM_VERSION => "<from zmconfig>";
-use constant ZM_PATH_BIN => "<from zmconfig>";
-
-# Load the config from the database into the symbol table
-BEGIN
-{
-	no strict 'refs';
-
-	open( CONFIG, "<".ZM_CONFIG ) or die( "Can't open config file: $!" );
-	foreach my $str ( <CONFIG> )
-	{
-		next if ( $str =~ /^\s*$/ );
-		next if ( $str =~ /^\s*#/ );
-		my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/;
-		$name =~ tr/a-z/A-Z/;
-		if (( $name eq 'ZM_DB_SERVER' ) ||
-			( $name eq 'ZM_DB_NAME' ) ||
-			( $name eq 'ZM_DB_USER' ) ||
-			( $name eq 'ZM_DB_PASS' ))
-		{
-			*{$name} = sub { $value };
-		}
-	}
-	close( CONFIG );
-
-	use DBI;
-	my $dbh = DBI->connect( "DBI:mysql:database=".&ZM_DB_NAME.";host=".&ZM_DB_SERVER, &ZM_DB_USER, &ZM_DB_PASS );
-	my $sql = "select * from Config";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
-	while( my $config = $sth->fetchrow_hashref() )
-	{
-		*{$config->{Name}} = sub { $config->{Value} };
-	}
-	$sth->finish();
-	$dbh->disconnect();
-}
-
-use Getopt::Long;
 
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-axis-v2.log';
+
+# ==========================================================================
+
+use ZoneMinder;
+use Getopt::Long;
+use Device::SerialPort;
 
 $| = 1;
 

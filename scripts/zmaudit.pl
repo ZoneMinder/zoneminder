@@ -32,16 +32,12 @@
 use strict;
 use bytes;
 
-use ZoneMinder;
-
 # ==========================================================================
 #
-# These are the elements you need to edit to suit your installation
+# These are the elements you can edit to suit your installation
 #
 # ==========================================================================
 
-use constant IMAGE_PATH => ZM_PATH_WEB.'/'.ZM_DIR_IMAGES;
-use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmaudit.log';
 use constant MIN_AGE => 300; # Minimum age when we will delete anything
 use constant RECOVER_TAG => "(r)"; # Tag to append to event name when recovered
@@ -55,10 +51,14 @@ use constant DBG_LEVEL => 1; # 0 is errors, warnings and info only, > 0 for debu
 #
 # ==========================================================================
 
+use ZoneMinder;
 use DBI;
 use POSIX;
 use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
+
+use constant IMAGE_PATH => ZM_PATH_WEB.'/'.ZM_DIR_IMAGES;
+use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 
 $| = 1;
 

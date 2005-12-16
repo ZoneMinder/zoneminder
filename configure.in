@@ -1,11 +1,30 @@
-AC_INIT(src/zm.h)
-AM_INIT_AUTOMAKE(zm,1.22.0)
+AC_INIT(zm,1.22.0,support@zoneminder.com,ZoneMinder)
+AC_CONFIG_SRCDIR(src/zm.h)
+AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 
 PATH_BUILD=`pwd`
 AC_SUBST(PATH_BUILD)
 TIME_BUILD=`date +'%s'`
 AC_SUBST(TIME_BUILD)
+
+AC_ARG_VAR(ZM_DB_HOST,[Hostname where ZoneMinder database located])
+AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database])
+AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user])
+AC_ARG_VAR(ZM_DB_PASS,[Password of ZoneMinder database user])
+
+if test "$ZM_DB_HOST" == ""; then
+	AC_SUBST(ZM_DB_HOST,[localhost])
+fi
+if test "$ZM_DB_NAME" == ""; then
+	AC_SUBST(ZM_DB_NAME,[zm])
+fi
+if test "$ZM_DB_USER" == ""; then
+	AC_SUBST(ZM_DB_USER,[zmuser])
+fi
+if test "$ZM_DB_PASS" == ""; then
+	AC_SUBST(ZM_DB_PASS,[zmpass])
+fi
 
 MYSQL_PREFIX=/usr
 AC_ARG_WITH(mysql,
@@ -115,7 +134,7 @@ AC_ARG_ENABLE(debug,
     of ZoneMinder you may use this switch to prevent debug from being compiled in.
     e.g. --enable-debug=yes or --disable-debug])
 )
-if test "$enable_debug" != yes; then
+if test "$enable_debug" != "yes"; then
   AC_DEFINE(ZM_DBG_OFF,1,"Whether debug is switched off and compiled out")
 fi
 
@@ -130,23 +149,46 @@ AC_LANG_CPLUSPLUS
 
 AC_SUBST(LDFLAGS)
 
+AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires mysql/mysql.h),)
 AC_CHECK_HEADERS(pcre/pcre.h,,,)
 AC_CHECK_HEADERS(pcre.h,,,)
 AC_CHECK_DECLS(round,,,[#include <math.h>])
 AC_CHECK_DECLS(strsignal,,,[#include <string.h>])
-AC_CHECK_DECLS(MD5,,,[#include <openssl/md5.h>])
+AC_CHECK_DECLS(MD5,,AC_MSG_ERROR(zm requires openssl/md5.h),[#include <openssl/md5.h>])
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(z,compress,,AC_MSG_ERROR(zm requires libz.a))
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 AC_CHECK_LIB(mysqlclient,mysql_init,,AC_MSG_ERROR(zm requires libmysqlclient.a))
 AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN(libcrypto.a is required for authenticated streaming))
-AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for some remote/network camera support))
+AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
 AC_CHECK_LIB(avutil,ff_gcd,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
 AC_CHECK_LIB(avcodec,avcodec_init,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
 AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)
 
-AC_SUBST(bindir)
+AC_PROG_PERL_VERSION(5.6.0)
 
-AC_OUTPUT(Makefile src/Makefile web/Makefile web/graphics/Makefile scripts/Makefile db/Makefile zmconfig.pl)
+AC_PROG_PERL_MODULES(DBI,,AC_MSG_ERROR(zm requires DBI))
+AC_PROG_PERL_MODULES(DBD::mysql,,AC_MSG_ERROR(zm requires DBD::mysql))
+AC_PROG_PERL_MODULES(Getopt::Long,,AC_MSG_ERROR(zm requires Getopt::Long))
+AC_PROG_PERL_MODULES(Time::HiRes,,AC_MSG_ERROR(zm requires Time::HiRes))
+AC_PROG_PERL_MODULES(Date::Manip,,AC_MSG_ERROR(zm requires Date::Manip))
 
-AC_CHECK_FILE(zmconfig.txt,,AC_MSG_WARN([Now run 'perl zmconfig.pl' to create your ZoneMinder configuration]))
+AC_PROG_PERL_MODULES(LWP::UserAgent,,AC_MSG_WARN(LWP::UserAgent is required for PTZ network camera control))
+AC_PROG_PERL_MODULES(Device::SerialPort,,AC_MSG_WARN(Device::SerialPort is required for RS232/RS485 PTZ camera control))
+AC_PROG_PERL_MODULES(Net::FTP,,AC_MSG_WARN(Net::FTP is required for automatic event uploading))
+AC_PROG_PERL_MODULES(Archive::Tar,,AC_MSG_WARN(Archive::Tar may be required for automatic event uploading))
+AC_PROG_PERL_MODULES(Archive::Zip,,AC_MSG_WARN(Archive::Zip may be required for automatic event uploading))
+AC_PROG_PERL_MODULES(Net::SMTP,,AC_MSG_WARN(Net::SMTP may be required for automatic event email notification))
+AC_PROG_PERL_MODULES(MIME::Lite,,AC_MSG_WARN(MIME::Lite may be required for automatic event email notification))
+AC_PROG_PERL_MODULES(MIME::Entity,,AC_MSG_WARN(MIME::Entity may be required for automatic event email notification))
+AC_PROG_PERL_MODULES(X10::ActiveHome,,AC_MSG_WARN(X10::ActiveHome is required for X.10 support))
+
+AC_DEFINE_DIR([BINDIR],[bindir],[Expanded binary directory])
+AC_DEFINE_DIR([LIBDIR],[libdir],[Expanded library directory])
+AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
+AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
+
+AC_OUTPUT(Makefile src/Makefile web/Makefile web/graphics/Makefile scripts/Makefile db/Makefile)
+AC_OUTPUT(zm.conf zmconfig.pl src/zm_config.h web/zm_config.php scripts/ZoneMinder/lib/ZoneMinder.pm scripts/zm db/zmschema.sql db/zmdrop.sql)
+
+AC_CHECK_FILE(scripts/ZoneMinder/Makefile,,[cd scripts/ZoneMinder;perl Makefile.PL])

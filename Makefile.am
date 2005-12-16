@@ -15,9 +15,7 @@ SUBDIRS = \
 
 EXTRA_DIST = \
 	zmconfig.pl.in \
-	zmconfig_eml.txt \
-	zmconfig_msg.txt \
-	zm.conf.z \
+	zm.conf.in \
 	README.html \
 	README.pdf \
 	README.rtf

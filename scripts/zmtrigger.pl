@@ -33,7 +33,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmtrigger.log';
 use constant MAX_CONNECT_DELAY => 10;
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
@@ -64,6 +63,8 @@ use Fcntl;
 use Socket;
 use IO::Handle;
 use Data::Dumper;
+
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmtrigger.log';
 
 $| = 1;
 

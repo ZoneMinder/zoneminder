@@ -33,7 +33,7 @@ use strict;
 #
 # ==========================================================================
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-pelco-d.log';
+# None
 
 # ==========================================================================
 
@@ -41,6 +41,8 @@ use ZoneMinder;
 use Getopt::Long;
 use Device::SerialPort;
 use Time::HiRes qw( usleep );
+
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-pelco-d.log';
 
 $| = 1;
 

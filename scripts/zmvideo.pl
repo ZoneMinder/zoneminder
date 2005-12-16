@@ -33,7 +33,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmvideo.log';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
@@ -46,6 +45,8 @@ use ZoneMinder;
 use DBI;
 use Data::Dumper;
 use Getopt::Long qw(:config no_ignore_case );
+
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmvideo.log';
 
 $| = 1;
 
@@ -163,7 +164,7 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 my @filters;
 my $sql = "select max(F.Delta)-min(F.Delta) as FullLength, E.*, M.Name as MonitorName, M.Width as MonitorWidth, M.Height as MonitorHeight, M.Palette from Frames as F inner join Events as E on F.EventId = E.Id inner join Monitors as M on E.MonitorId = M.Id where EventId = '$event_id' group by F.EventId";

@@ -33,13 +33,15 @@ use strict;
 #
 # ==========================================================================
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-visca.log';
+# None
 
 # ==========================================================================
 
 use ZoneMinder;
 use Getopt::Long;
 use Device::SerialPort;
+
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-visca.log';
 
 $| = 1;
 

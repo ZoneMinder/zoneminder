@@ -34,7 +34,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant UPDATE_LOG_FILE => ZM_PATH_LOGS.'/zmupdate.log';
 use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
@@ -51,6 +50,7 @@ use Getopt::Long;
 use Data::Dumper;
 
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
+use constant UPDATE_LOG_FILE => ZM_PATH_LOGS.'/zmupdate.log';
 
 $| = 1;
 
@@ -110,7 +110,7 @@ print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() ).
 
 if ( $check && ZM_CHECK_FOR_UPDATES )
 {
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 	my $curr_version = ZM_DYN_CURR_VERSION;
 	my $last_version = ZM_DYN_LAST_VERSION;
@@ -148,7 +148,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 
 				print( "Got version: '".$last_version."'\n" );
 
-				my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+				my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 				my $lv_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
 				my $lv_sth = $dbh->prepare_cached( $lv_sql ) or die( "Can't prepare '$lv_sql': ".$dbh->errstr() );
@@ -200,7 +200,7 @@ if ( $zone_fix )
 {
 	require DBI;
 
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 	my $sql = "select Z.*, M.Width as MonitorWidth, M.Height as MonitorHeight from Zones as Z inner join Monitors as M on Z.MonitorId = M.Id where Z.Units = 'Percent'";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -255,7 +255,7 @@ if ( $version )
 
 	if ( $response =~ /^[yY]$/ )
 	{
-		my $command = "mysqldump -h".ZM_DB_SERVER;
+		my $command = "mysqldump -h".ZM_DB_HOST;
 		if ( $db_user )
 		{
 			$command .= " -u".$db_user;
@@ -295,7 +295,7 @@ if ( $version )
 		my $dbh = shift;
 		my $version = shift;
 
-		my $command = "mysql -h".ZM_DB_SERVER;
+		my $command = "mysql -h".ZM_DB_HOST;
 		if ( $db_user )
 		{
 			$command .= " -u".$db_user;
@@ -334,7 +334,7 @@ if ( $version )
 
 	print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 	my $cascade = undef;
 	if ( $cascade || $version eq "1.19.0" )

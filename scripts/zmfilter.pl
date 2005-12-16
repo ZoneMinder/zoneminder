@@ -34,10 +34,25 @@ use bytes;
 #
 # ==========================================================================
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter.log';
 use constant START_DELAY => 5; # How long to wait before starting
-
 use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
+
+# ==========================================================================
+#
+# You shouldn't need to change anything from here downwards
+#
+# ==========================================================================
+
+use ZoneMinder;
+use DBI;
+use POSIX;
+use Time::HiRes qw/gettimeofday/;
+use Date::Manip;
+use Data::Dumper;
+use Getopt::Long;
+
+use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter.log';
 
 if ( ZM_OPT_UPLOAD )
 {
@@ -88,21 +103,6 @@ if ( ZM_OPT_MESSAGE )
 	( $message_subject, $message_body ) = ZM_MESSAGE_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"/ms;
 }
 
-# ==========================================================================
-#
-# You shouldn't need to change anything from here downwards
-#
-# ==========================================================================
-
-use ZoneMinder;
-use DBI;
-use POSIX;
-use Time::HiRes qw/gettimeofday/;
-use Date::Manip;
-use Data::Dumper;
-use Getopt::Long;
-
-use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 
 $| = 1;
 

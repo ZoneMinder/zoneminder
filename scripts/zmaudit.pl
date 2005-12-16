@@ -38,7 +38,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmaudit.log';
 use constant MIN_AGE => 300; # Minimum age when we will delete anything
 use constant RECOVER_TAG => "(r)"; # Tag to append to event name when recovered
 use constant RECOVER_TEXT => "Recovered."; # Text to append to event notes when recovered
@@ -57,6 +56,7 @@ use POSIX;
 use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
 
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmaudit.log';
 use constant IMAGE_PATH => ZM_PATH_WEB.'/'.ZM_DIR_IMAGES;
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 
@@ -222,7 +222,7 @@ if ( $report && $yes )
 	usage();
 }
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 chdir( EVENT_PATH );
 if ( $delay ) # Background mode

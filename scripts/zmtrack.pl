@@ -33,7 +33,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmtrack-%s.log';
 use constant SLEEP_TIME => 10000; # In microseconds
 use constant VERBOSE => 1; # Whether to output more verbose debug
 
@@ -49,6 +48,8 @@ use POSIX;
 use Data::Dumper;
 use Getopt::Long;
 use Time::HiRes qw( usleep );
+
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmtrack-%s.log';
 
 $| = 1;
 

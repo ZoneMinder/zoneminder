@@ -36,8 +36,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant DC_SOCK_FILE => ZM_PATH_SOCKS.'/zmdc.sock';
-use constant DC_LOG_FILE => ZM_PATH_LOGS.'/zmdc.log';
 use constant MAX_CONNECT_DELAY => 10;
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
@@ -52,6 +50,9 @@ use POSIX;
 use Socket;
 use IO::Handle;
 use Data::Dumper;
+
+use constant DC_SOCK_FILE => ZM_PATH_SOCKS.'/zmdc.sock';
+use constant DC_LOG_FILE => ZM_PATH_LOGS.'/zmdc.log';
 
 $| = 1;
 

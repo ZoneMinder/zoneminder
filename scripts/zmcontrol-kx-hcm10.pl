@@ -33,13 +33,15 @@ use strict;
 #
 # ==========================================================================
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-kx-hcm10.log';
+# None
 
 # ==========================================================================
 
 use ZoneMinder;
 use Getopt::Long;
 use Device::SerialPort;
+
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-kx-hcm10.log';
 
 $| = 1;
 

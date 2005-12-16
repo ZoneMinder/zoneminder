@@ -33,8 +33,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant X10_SOCK_FILE => ZM_PATH_SOCKS.'/zmx10.sock';
-use constant X10_LOG_FILE => ZM_PATH_LOGS.'/zmx10.log';
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
 # ==========================================================================
@@ -48,6 +46,9 @@ use POSIX;
 use Socket;
 use Getopt::Long;
 use Data::Dumper;
+
+use constant X10_SOCK_FILE => ZM_PATH_SOCKS.'/zmx10.sock';
+use constant X10_LOG_FILE => ZM_PATH_LOGS.'/zmx10.log';
 
 $| = 1;
 

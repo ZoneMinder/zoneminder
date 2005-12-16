@@ -33,7 +33,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
 use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
@@ -47,6 +46,8 @@ use DBI;
 use POSIX;
 use Time::HiRes qw/gettimeofday/;
 
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmpkg.log';
+
 # Detaint our environment
 $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -56,7 +57,7 @@ my $command = $ARGV[0];
 
 my $state;
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 if ( !$command || $command !~ /^(?:start|stop|restart|status)$/ )
 {

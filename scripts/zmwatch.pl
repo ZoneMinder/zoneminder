@@ -34,7 +34,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant WATCH_LOG_FILE => ZM_PATH_LOGS.'/zmwatch.log';
 use constant START_DELAY => 30; # To give everything else time to start
 use constant VERBOSE => 0; # Whether to output more verbose debug
 
@@ -48,6 +47,8 @@ use ZoneMinder;
 use POSIX;
 use DBI;
 use Data::Dumper;
+
+use constant WATCH_LOG_FILE => ZM_PATH_LOGS.'/zmwatch.log';
 
 $| = 1;
 
@@ -73,7 +74,7 @@ print( "Watchdog starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n"
 print( "Watchdog pausing for ".START_DELAY." seconds\n" );
 sleep( START_DELAY );
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 my $sql = "select * from Monitors";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );

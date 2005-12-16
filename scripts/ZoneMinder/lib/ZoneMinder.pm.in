@@ -46,10 +46,11 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw(
-	Error
-	Warning
-	Info
 	Debug
+	Info
+	Warning
+	Error
+	Fatal
 );
 our @EXPORT_CONFIG; # Get populated by BEGIN
 push( @EXPORT, @EXPORT_CONFIG );
@@ -133,6 +134,12 @@ sub Warning
 sub Error
 {
 	dbgPrint( "ERR", $_[0] ) if ( main::DBG_LEVEL >= -2 );
+}
+
+sub Fatal
+{
+	dbgPrint( "FAT", $_[0] ) if ( main::DBG_LEVEL >= -3 );
+	die( $_[0] );
 }
 
 1;

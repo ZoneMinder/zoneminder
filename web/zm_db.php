@@ -18,7 +18,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-$conn = mysql_pconnect( ZM_DB_SERVER, ZM_DB_USER, ZM_DB_PASS ) or die("Could not connect to database: ".mysql_error());
+$conn = mysql_pconnect( ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die("Could not connect to database: ".mysql_error());
 mysql_select_db( ZM_DB_NAME, $conn) or die("Could not select database: ".mysql_error());
 
 function simpleQuery( $sql )

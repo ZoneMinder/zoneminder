@@ -40,12 +40,6 @@ $event = mysql_fetch_assoc( $result );
 
 $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
 $device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
-// Allow for margins etc
-$device_width -= 16;
-$device_height -= 16;
-
-$event_width = $event['Width'];
-$event_height = $event['Height'];
 
 if ( $device_width >= 352 && $device_height >= 288 )
 {
@@ -59,6 +53,13 @@ else
 {
 	$video_size = "128x96";
 }
+
+// Allow for margins etc
+$device_width -= 16;
+$device_height -= 16;
+
+$event_width = $event['Width'];
+$event_height = $event['Height'];
 
 if ( !isset( $rate ) )
 	$rate = reScale( RATE_SCALE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
@@ -180,9 +181,9 @@ if ( isset($download) )
 ?>
 <tr>
   <td class="text" align="center" style="width: 5em"><?= $zmSlangFormat ?></td>
-  <td class="text" align="center" style="width: 5em"><?= $zmSlangSize ?></td>
+  <td class="text" align="center" style="width: 6em"><?= $zmSlangSize ?></td>
   <td class="text" align="center" style="width: 4em"><?= $zmSlangRate ?></td>
-  <td class="text" align="center" style="width: 5em"><?= $zmSlangScale ?></td>
+  <td class="text" align="center" style="width: 6em"><?= $zmSlangScale ?></td>
   <td class="text" align="center" style="width: 8em"><?= $zmSlangAction ?></td>
 </tr>
 <?php

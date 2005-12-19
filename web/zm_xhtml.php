@@ -66,15 +66,12 @@ echo( '<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www
 ob_start();
 
 $rates = array(
-	"10000" => "100x",
 	"5000" => "50x",
-	"2500" => "25x",
-	"1000" => "10x",
-	"400" => "4x",
+	"2000" => "20x",
+	"500" => "5x",
 	"200" => "2x",
 	"100" => $zmSlangReal,
 	"50" => "1/2x",
-	"25" => "1/4x",
 );
 
 $scales = array(

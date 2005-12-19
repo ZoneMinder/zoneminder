@@ -231,7 +231,7 @@ if ( !empty($limit) && $n_events > $limit )
 		{
 ?>
 <tr align="center" bgcolor="#FFFFFF">
-<td style="width:45px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= substr( $zmSlangId, 0, 5 ) ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
+<td style="width:50px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= substr( $zmSlangId, 0, 5 ) ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
 <td style="width:60px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&sort_field=StartTime&sort_asc=<?= $sort_field == 'StartTime'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= substr( $zmSlangTime, 0, 5 ) ?><?php if ( $sort_field == "StartTime" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
 <td style="width:35px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&sort_field=Secs&sort_asc=<?= $sort_field == 'Secs'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= substr( $zmSlangDuration, 0, 2 ) ?><?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
 <td style="width:30px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&sort_field=AlarmFrames&sort_asc=<?= $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= substr( $zmSlangFrames, 0, 2 ) ?><?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
@@ -243,7 +243,7 @@ if ( !empty($limit) && $n_events > $limit )
 ?>
 <tr<?= ' bgcolor="'.(isset($bgcolor)?$bgcolor:"#FFFFFF").'"' ?> >
 <td align="center"><a href="<?= $PHP_SELF ?>?view=eventdetails&eid=<?= $event['Id'] ?>&page=1"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
-<td align="center"><?= strftime( "%d %H:%M", strtotime($event['StartTime']) ) ?></td>
+<td align="center"><?= strftime( "%d/%H:%M", strtotime($event['StartTime']) ) ?></td>
 <td align="center"><?= sprintf( "%d", $event['Length'] ) ?></td>
 <td align="center"><a href="<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&page=1"><?= $event['AlarmFrames'] ?></a></td>
 <td align="center"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0"><?= $event['MaxScore'] ?></a></td>

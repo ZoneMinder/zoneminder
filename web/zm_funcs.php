@@ -466,7 +466,7 @@ function buildSelect( $name, $contents, $behaviours=false )
 	}
 	ob_start();
 	$behaviour_text = "";
-	if ( isset($behaviours) )
+	if ( !empty($behaviours) )
 	{
 		if ( is_array($behaviours) )
 		{

@@ -314,7 +314,11 @@ sub removeShm
 sub runCommand
 {
 	my $command = shift;
-	$command = $cmd_prefix."'".ZM_PATH_BIN."/".$command."'";
+	$command = ZM_PATH_BIN."/".$command;
+	if ( $cmd_prefix )
+	{
+		$command = $cmd_prefix."'".$command."'";
+	}
 	Debug( "Command: $command\n" );
 	my $output = qx($command);
 	my $status = $? >> 8;

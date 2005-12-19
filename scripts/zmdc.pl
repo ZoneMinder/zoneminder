@@ -140,10 +140,10 @@ if ( !connect( CLIENT, $saddr ) )
 
 		kill_all( 1 );
 
-		socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
+		socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
 		unlink( DC_SOCK_FILE );
-		bind( SERVER, $saddr ) or die( "Can't bind: $!" );
-		listen( SERVER, SOMAXCONN ) or die( "Can't listen: $!" );
+		bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
+		listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
 		$SIG{CHLD} = \&reaper;
 		$SIG{INT} = \&shutdown_all;
@@ -167,7 +167,7 @@ if ( !connect( CLIENT, $saddr ) )
 			{
 				print CLIENT @_
 			}
-			Info @_;
+			Info( @_ );
 		}
 		sub start
 		{
@@ -193,7 +193,7 @@ if ( !connect( CLIENT, $saddr ) )
 			{
 				my $sigset = POSIX::SigSet->new;
 				my $blockset = POSIX::SigSet->new( SIGCHLD );
-				sigprocmask( SIG_BLOCK, $blockset, $sigset ) or die( "Can't block SIGCHLD: $!" );
+				sigprocmask( SIG_BLOCK, $blockset, $sigset ) or Fatal( "Can't block SIGCHLD: $!" );
 				$process->{pid} = $cpid;
 				$process->{started} = time();
 				delete( $process->{pending} );
@@ -201,7 +201,7 @@ if ( !connect( CLIENT, $saddr ) )
 				dprint( "'$command' starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
 
 				$cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
-				sigprocmask( SIG_SETMASK, $sigset ) or die( "Can't restore SIGCHLD: $!" );
+				sigprocmask( SIG_SETMASK, $sigset ) or Fatal( "Can't restore SIGCHLD: $!" );
 			}
 			elsif ( defined($cpid ) )
 			{
@@ -219,7 +219,7 @@ if ( !connect( CLIENT, $saddr ) )
 				}
 				else
 				{
-					die( "Invalid daemon '$daemon' specified" );
+					Fatal( "Invalid daemon '$daemon' specified" );
 				}
 
 				my @good_args;
@@ -232,15 +232,15 @@ if ( !connect( CLIENT, $saddr ) )
 					}
 					else
 					{
-						die( "Bogus argument '$arg' found" );
+						Fatal( "Bogus argument '$arg' found" );
 					}
 				}
 
-				exec( $daemon, @good_args ) or die( "Can't exec: $!" );
+				exec( $daemon, @good_args ) or Fatal( "Can't exec: $!" );
 			}
 			else
 			{
-				die( "Can't fork: $!" );
+				Fatal( "Can't fork: $!" );
 			}
 		}
 		sub _stop
@@ -315,6 +315,7 @@ if ( !connect( CLIENT, $saddr ) )
 		}
 		sub reaper
 		{
+			my $saved_status = $!;
 			while ( (my $cpid = waitpid( -1, WNOHANG )) > 0 )
 			{
 				my $status = $?;
@@ -356,7 +357,10 @@ if ( !connect( CLIENT, $saddr ) )
 				{
 					if ( !$process->{delay} || ($process->{runtime} > (10*$process->{delay})) )
 					{
-						start( $process->{daemon}, @{$process->{args}} );
+						#start( $process->{daemon}, @{$process->{args}} );
+						# Schedule for immediate restart
+						$cmd_hash{$process->{command}} = $process;
+						$process->{pending} = $process->{stopped};
 						$process->{delay} = 5;
 					}
 					else
@@ -373,6 +377,7 @@ if ( !connect( CLIENT, $saddr ) )
 				}
 			}
 			$SIG{CHLD} = \&reaper;
+			$! = $saved_status;
 		}
 		sub kill_all
 		{
@@ -386,6 +391,18 @@ if ( !connect( CLIENT, $saddr ) )
 			foreach my $daemon ( @daemons )
 			{
 				qx( killall --quiet --signal KILL $daemon );
+			}
+		}
+		sub restart_pending
+		{
+			# Restart any pending processes
+			foreach my $process ( values( %cmd_hash ) )
+			{
+				if ( $process->{pending} && $process->{pending} <= time() )
+				{
+					dprint( "Starting pending process, $process->{command}\n" );
+					start( $process->{daemon}, @{$process->{args}} );
+				}
 			}
 		}
 		sub shutdown_all()
@@ -481,22 +498,16 @@ if ( !connect( CLIENT, $saddr ) )
 		}
 
 		my $rin = '';
-		vec( $rin, fileno(SERVER),1) = 1;
+		vec( $rin, fileno(SERVER), 1 ) = 1;
 		my $win = $rin;
 		my $ein = $win;
 		my $timeout = 1;
-		#my ( $nfound, $timeleft) = select( $rin, $win, $ein, $timeout );
-		#print( "F:".fileno(SERVER)."\n" );
 		while( 1 )
 		{
-			my $nfound = select( my $rout = $rin, undef, my $eout = $ein, $timeout );
-			#print( "Off select, NF:$nfound, ER:$!\n" );
-			#print( vec( $rout, fileno(SERVER),1)."\n" );
-			#print( vec( $eout, fileno(SERVER),1)."\n" );
-			#print( "C:".fileno(CLIENT)."S:".fileno(SERVER)."\n" );
+			my $nfound = select( my $rout = $rin, undef, undef, $timeout );
 			if ( $nfound > 0 )
 			{
-				if ( vec( $rout, fileno(SERVER),1) )
+				if ( vec( $rout, fileno(SERVER), 1 ) )
 				{
 					my $paddr = accept( CLIENT, SERVER );
 					my $message = <CLIENT>;
@@ -544,32 +555,32 @@ if ( !connect( CLIENT, $saddr ) )
 				}
 				else
 				{
-					die( "Bogus descriptor" );
+					Fatal( "Bogus descriptor" );
 				}
 			}
 			elsif ( $nfound < 0 )
 			{
+					print( "Got: $nfound - $!\n" );
 				if ( $! == EINTR )
 				{
 					# Dead child, will be reaped
 					#print( "Probable dead child\n" );
+					# See if it needs to start up again
+					restart_pending();
+				}
+				elsif ( $! == EPIPE )
+				{
+					Error( "Can't select: $!" );
 				}
 				else
 				{
-					die( "Can't select: $!" );
+					Fatal( "Can't select: $!" );
 				}
 			}
 			else
 			{
 				#print( "Select timed out\n" );
-				foreach my $process ( values( %cmd_hash ) )
-				{
-					if ( $process->{pending} && $process->{pending} <= time() )
-					{
-						dprint( "Starting pending process, $process->{command}\n" );
-						start( $process->{daemon}, @{$process->{args}} );
-					}
-				}
+				restart_pending();
 			}
 		}
 		dprint( "Server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
@@ -578,7 +589,7 @@ if ( !connect( CLIENT, $saddr ) )
 	}
 	else
 	{
-		die( "Can't fork: $!" );
+		Fatal( "Can't fork: $!" );
 	}
 }
 if ( $command eq "check" && !$daemon )

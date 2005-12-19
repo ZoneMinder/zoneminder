@@ -167,11 +167,11 @@ sub runServer
 
 	Info( "X10 server starting\n" );
 
-	socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
+	socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
 	unlink( main::X10_SOCK_FILE );
 	my $saddr = sockaddr_un( main::X10_SOCK_FILE );
-	bind( SERVER, $saddr ) or die( "Can't bind: $!" );
-	listen( SERVER, SOMAXCONN ) or die( "Can't listen: $!" );
+	bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
+	listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
 	$dbh = DBI->connect( "DBI:mysql:database=".main::ZM_DB_NAME.";host=".main::ZM_DB_HOST, main::ZM_DB_USER, main::ZM_DB_PASS );
 
@@ -281,12 +281,12 @@ sub runServer
 			}
 			else
 			{
-				die( "Bogus descriptor" );
+				Fatal( "Bogus descriptor" );
 			}
 		}
 		elsif ( $nfound < 0 )
 		{
-			die( "Can't select: $!" );
+			Fatal( "Can't select: $!" );
 		}
 		else
 		{
@@ -425,8 +425,8 @@ sub loadTasks
 	}
 
 	my $sql = "select M.*,T.* from Monitors as M inner join TriggersX10 as T on (M.Id = T.MonitorId) where find_in_set( M.Function, 'Modect,Record,Mocord' ) and M.RunMode = 'Triggered' and find_in_set( 'X10', M.Triggers )";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
 		my $size = 512; # We only need the first 512 bytes really for the alarm state and forced alarm

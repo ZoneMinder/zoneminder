@@ -112,7 +112,7 @@ EXTRA_DIST = \
 	swap.pl \
 	zm.php \
 	zm_actions.php \
-	zm_config.php.z \
+	zm_config.php.in \
 	zm_control_funcs.php \
 	zm_db.php \
 	zm_export_funcs.php \

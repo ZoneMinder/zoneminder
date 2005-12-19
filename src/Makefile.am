@@ -73,7 +73,9 @@ noinst_HEADERS = \
 	zm_regexp.h \
 	zm_buffer.h
 
-EXTRA_DIST = zm_config.h.z
+EXTRA_DIST = \
+	zm_config.h.in \
+	zm_config_defines.h
 
 dist-hook:
 	@( rm $(distdir)/zm_config.h )

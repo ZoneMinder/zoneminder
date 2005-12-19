@@ -35,10 +35,10 @@ $| = 1;
 sub Usage
 {
 	print( "
-Usage: zmconfig.pl [--(no)interactive] [--(no)reprocess]
+Usage: zmconfig.pl [--interactive|--generate]
 Parameters are :-
--(no)i, --(no)interactive              - Whether to include interactive configuration, on by default 
--(no)r, --(no)reprocess                - Whether to reprocess files, off by default
+-i, --interactive             - Whether to include interactive configuration, off by default 
+-g, --generate                - Whether to generate config include files, off by default
 ");
 	exit( -1 );
 }
@@ -51,9 +51,14 @@ use constant ZM_DB_PASS => "@ZM_DB_PASS@";
 my $config_header = "src/zm_config_defines.h";
 my $config_sql = "db/zm_config.sql";
 my $interactive = undef;
-my $reprocess = undef;
+my $generate = undef;
 
-if ( !GetOptions( 'interactive!'=>\$interactive, 'reprocess!'=>\$reprocess ) )
+if ( !GetOptions( 'interactive!'=>\$interactive, 'generate!'=>\$generate ) )
+{
+	Usage();
+}
+
+if ( $interactive && $generate )
 {
 	Usage();
 }
@@ -691,6 +696,7 @@ my @options =
 		name => "ZM_UPLOAD_FTP_HOST",
 		default => "",
 		description => "The remote server to upload to",
+		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the name, or ip address, of the server to use.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		help => "This is the remote machine that you wish to upload archived events to.",
 		type => $types{hostname},
@@ -700,6 +706,7 @@ my @options =
 		name => "ZM_UPLOAD_FTP_USER",
 		default => "",
 		description => "Your ftp username",
+		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the username that ZoneMinder should use to log in for ftp transfer.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{alphanum},
 		category => 'ftp',
@@ -708,6 +715,7 @@ my @options =
 		name => "ZM_UPLOAD_FTP_PASS",
 		default => "",
 		description => "Your ftp password",
+		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the password that ZoneMinder should use to log in for ftp transfer.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{string},
 		category => 'ftp',
@@ -716,6 +724,7 @@ my @options =
 		name => "ZM_UPLOAD_FTP_LOC_DIR",
 		default => "/tmp",
 		description => "The local directory in which to create upload files",
+		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the local directory that ZoneMinder should use for temporary upload files. These are files that are created from events, uploaded and then deleted.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{abs_path},
 		category => 'ftp',
@@ -724,6 +733,7 @@ my @options =
 		name => "ZM_UPLOAD_FTP_REM_DIR",
 		default => "",
 		description => "The remote directory to upload to",
+		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the remote directory that ZoneMinder should use to upload event files to.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{rel_path},
 		category => 'ftp',
@@ -732,6 +742,7 @@ my @options =
 		name => "ZM_UPLOAD_FTP_TIMEOUT",
 		default => "120",
 		description => "How long (in seconds) we allow the transfer to take for each file",
+		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the maximum ftp inactivity timeout that should be tolerated before ZoneMinder determiesn that the transfer has failed and closes down the connection.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{integer},
 		category => 'ftp',
@@ -740,6 +751,7 @@ my @options =
 		name => "ZM_UPLOAD_FTP_PASSIVE",
 		default => "yes",
 		description => "Whether to use passive ftp",
+		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates that ftp transfers should be done in passive mode. This uses a single connection for all ftp activity and, whilst slower than active transfers, is more robust and likely to work from behind filewalls.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		help => "If your computer is behind a firewall or proxy you may need to set FTP to passive mode. In fact for simple transfers it makes little sense to do otherwise anyway but you can set this to 'No' if you wish.",
 		type => $types{boolean},
@@ -749,8 +761,8 @@ my @options =
 		name => "ZM_UPLOAD_FTP_DEBUG",
 		default => "yes",
 		description => "Whether to switch ftp debugging on",
+		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. If you are having (or expecting) troubles with uploading events then setting this to 'yes' permits additional information to be included in the zmfilter log file.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
-		help => "If you are having (or expecting) troubles with uploading archived events then setting this to 'yes' permits additional information to be included in the zmfilter log file.",
 		type => $types{boolean},
 		category => 'ftp',
 	},
@@ -788,37 +800,6 @@ The details are as follows :-
   Scores   : t%EST% m%ESM% a%ESA%
 
 This alarm was matched by the %FN% filter and can be viewed at %EPS%
-
-	# %ZP% - The path to your ZoneMinder console
-	# %MN% - The name of the monitor
-	# %MET% - The total number of events for the monitor
-	# %MEH% - The number of events for the monitor in the last hour
-	# %MED% - The number of events for the monitor in the last day
-	# %MEW% - The number of events for the monitor in the last week
-	# %MEM% - The number of events for the monitor in the last month
-	# %MEA% - The number of archived events for the monitor
-	# %MP% - The path to the monitor window
-	# %MPS% - The path to the monitor stream
-	# %MPI% - The path to the monitor recent image
-	# %EP% - The path to the event
-	# %EPS% - The path to the event stream
-	# %EPI% - The path to the event images
-	# %EPI1% - The path to the first alarmed event image
-	# %EPIM% - The path to the (first) event image with the highest score
-	# %EI1% - Attach first alarmed event image
-	# %EIM% - Attach (first) event image with the highest score
-	# %EV% - Attach event mpeg video
-	# %EI% - The id of the event
-	# %EN% - The name of the event
-	# %ET% - The time of the event
-	# %ED% - The duration of the event
-	# %EF% - The number of frames in the event
-	# %EFA% - The number of alarm frames in the event
-	# %EST% - The total score of the event
-	# %ESA% - The average score of the event
-	# %ESM% - The maximum score of the event
-	# %FN% - The name of the current filter that matched
-	# %FP% - The path to the current filter that matched
 
 ZoneMinder',
 		description => "The text of the email used to send matching event details",
@@ -1492,124 +1473,6 @@ foreach my $option ( @options )
 	}
 }
 
-my $db_option_count = loadOptionsFromDB();
-
-if ( $interactive )
-{
-	print( "
-Welcome to the ZoneMinder interactive configuration utility.
-
-You will now be prompted to enter information allowing ZoneMinder to
-be configured for your system. Entering '?' at most prompts will print
-further information about each option if you are not sure what to put.
-You can also type 'q' at any time to exit without saving or 'x' to 
-exit with the remaining options set to their previous or default 
-values.
-
-Press enter to continue: " );
-	my $input = <>;
-	print( "\n" );
-
-	foreach my $option ( @options )
-	{
-		next if ( $option->{readonly} );
-		next if ( @match_options && !grep { $option->{name} =~ /^$_$/ } @match_options );
-	
-		if ( my $requires = $option->{requires} )
-		{
-			my $do_option;
-			foreach my $require ( @$requires )
-			{
-				if ( my $require_option = $options_hash{$require->{name}} )
-				{
-					if ( $require_option->{value} =~ /^$require->{value}/ )
-					{
-						$do_option = !undef;
-						last;
-					}
-				}
-			}
-			next if ( !$do_option );
-		}
-		if ( $option->{introduction} )
-		{
-			print( '-'x76 . "\n" );
-			print( breaktext( $option->{introduction} ) );
-			print( '-'x76 . "\n" );
-		}
-		my $type = $option->{type};
-		if ( !$type )
-		{
-			warn( "No type found" );
-			$type = $types{string};
-		}
-		while( 1 )
-		{
-			print( "$option->{description} ($type->{hint}) " );
-			print( "[$option->{value}] " ) if ( defined($option->{value}) );
-			print( ": " );
-			my $new_value = <>;
-			chomp( $new_value );
-			if ( defined($new_value) )
-			{
-				if ( $new_value =~ /^\?/ )
-				{
-					if ( $option->{help} )
-					{
-						print( "\n".breaktext($option->{help})."\n" );
-					}
-					else
-					{
-						print( "Sorry, no help is available for this item\n" );
-					}
-					next;
-				}
-				elsif ( $new_value eq 'x' )
-				{
-					print( "Using existing values for remaining options\n" );
-					goto FINISHED;
-				}
-				elsif ( $new_value eq 'q' )
-				{
-					print( "Exiting\n" );
-					exit( 0 );
-				}
-				elsif ( $new_value eq '' )
-				{
-					if ( $option->{value} )
-					{
-						last;
-					}
-				}
-				#print( "N:$new_value\n" );
-				my $pattern = $type->{pattern};
-				if ( $new_value !~ $pattern || ( $type->{check} && !eval( $type->{check} ) ) )
-				{
-					print( "Invalid input, please re-enter or type '?' for help.\n" );
-					next;
-				}
-				#print( "U:$use_value\n" );
-				my $format = $type->{format};
-				$option->{value} = eval( $format );
-			}
-			last;
-		}
-		if ( my $check = $option->{check} )
-		{
-			if ( my $result = &$check( $option->{value} ) )
-			{
-				# All ok
-				print( "Exists\n" );
-			}
-			else
-			{
-				print( "Missing\n" );
-			}
-		}
-	}
-}
-FINISHED:
-
 # Create option ids
 my $option_id = 0;
 foreach my $option ( @options )
@@ -1619,108 +1482,8 @@ foreach my $option ( @options )
 	$option->{id} = $option_id++;
 }
 
-saveOptionsToDB();
 
-sub saveOptionsToDB
-{
-	print( "Saving config to DB\n" );
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
-
-	if ( !$dbh )
-	{
-		print( "Error: unable to save options to database: $DBI::errstr\n" );
-		return( 0 );
-	}
-	my $sql = "delete from Config";
-	my $res = $dbh->do( $sql ) or die( "Can't do '$sql': ".$dbh->errstr() );
-
-	$sql = "replace into Config set Id = ?, Name = ?, Value = ?, Type = ?, DefaultValue = ?, Hint = ?, Pattern = ?, Format = ?, Prompt = ?, Help = ?, Category = ?, Readonly = ?, Requires = ?";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	foreach my $option ( @options )
-	{
-		next if ( $option->{category} eq 'core' );
-		next if ( $option->{type} == $types{include} );
-		#print( $option->{name}."\n" ) if ( !$option->{category} );
-		$option->{db_type} = $option->{type}->{db_type};
-		$option->{db_hint} = $option->{type}->{hint};
-		$option->{db_pattern} = $option->{type}->{pattern};
-		$option->{db_format} = $option->{type}->{format};
-		if ( $option->{db_type} eq "boolean" )
-		{
-			$option->{db_value} = ($option->{value} eq "yes")?"1":"0";
-		}
-		else
-		{
-			$option->{db_value} = $option->{value};
-		}
-		if ( my $requires = $option->{requires} )
-		{
-			$option->{db_requires} = join( ";", map { my $value = $_->{value}; $value = ($value eq "yes")?1:0 if ( $options_hash{$_->{name}}->{db_type} eq "boolean" ); ( "$_->{name}=$value" ) } @$requires );
-		}
-		else
-		{
-		}
-		my $res = $sth->execute( $option->{id}, $option->{name}, $option->{db_value}, $option->{db_type}, $option->{default}, $option->{db_hint}, $option->{db_pattern}, $option->{db_format}, $option->{description}, $option->{help}, $option->{category}, $option->{readonly}?1:0, $option->{db_requires} ) or die( "Can't execute: ".$sth->errstr() );
-	}
-	$sth->finish();
-	$dbh->disconnect();
-}
-
-sub loadOptionsFromDB
-{
-	print( "Loading config from DB\n" );
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
-	
-	if ( !$dbh )
-	{
-		print( "Error: unable to load options from database: $DBI::errstr\n" );
-		return( 0 );
-	}
-	my $sql = "select * from Config";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-	my $option_count = 0;
-	while( my $config = $sth->fetchrow_hashref() )
-	{
-		my ( $name, $value ) = ( $config->{Name}, $config->{Value} );
-		#print( "Name = '$name'\n" );
-		my $option = $options_hash{$name};
-		if ( !$option )
-		{
-			warn( "No option '$name' found, removing" );
-			next;
-		}
-		next if ( $option->{category} eq 'core' );
-		if ( defined($value) )
-		{
-			if ( $name eq "ZM_OPT_MPEG" && $value eq "yes" )
-			{
-				$value = "mpeg_encode";
-			}
-			if ( $option->{type} == $types{boolean} )
-			{
-				$option->{value} = $value?"yes":"no";
-			}
-			else
-			{
-				$option->{value} = $value;
-			}
-		}
-		$option_count++;;
-	}
-	close( CONFIG );
-	$dbh->disconnect();
-	return( $option_count );
-}
-
-sub breaktext
-{
-	my $text = shift;
-	( my $broken_text = $text ) =~ s/(.{1,76})(?:\s|$)/$1\n/g;
-	return( $broken_text );
-}
-
-if ( $reprocess )
+if ( $generate )
 {
 	print( "Generating '$config_header'\n" );
 	open( CFG_HDR_FILE, ">$config_header" ) or die( "Can't open '$config_header' for writing" );
@@ -1828,3 +1591,226 @@ if ( $reprocess )
 	print( CFG_SQL_FILE "\n" );
 	close( CFG_SQL_FILE );
 }
+else
+{
+	loadOptionsFromDB();
+
+	if ( $interactive )
+	{
+		print( "
+Welcome to the ZoneMinder interactive configuration utility.
+
+You will now be prompted to enter information allowing ZoneMinder to
+be configured for your system. Entering '?' at most prompts will print
+further information about each option if you are not sure what to put.
+You can also type 'q' at any time to exit without saving or 'x' to 
+exit with the remaining options set to their previous or default 
+values.
+
+Press enter to continue: " );
+		my $input = <>;
+		print( "\n" );
+
+		foreach my $option ( @options )
+		{
+			next if ( $option->{readonly} );
+			next if ( @match_options && !grep { $option->{name} =~ /^$_$/ } @match_options );
+		
+			if ( my $requires = $option->{requires} )
+			{
+				my $do_option;
+				foreach my $require ( @$requires )
+				{
+					if ( my $require_option = $options_hash{$require->{name}} )
+					{
+						if ( $require_option->{value} =~ /^$require->{value}/ )
+						{
+							$do_option = !undef;
+							last;
+						}
+					}
+				}
+				next if ( !$do_option );
+			}
+			if ( $option->{introduction} )
+			{
+				print( '-'x76 . "\n" );
+				print( breaktext( $option->{introduction} ) );
+				print( '-'x76 . "\n" );
+			}
+			my $type = $option->{type};
+			if ( !$type )
+			{
+				warn( "No type found" );
+				$type = $types{string};
+			}
+			while( 1 )
+			{
+				print( "$option->{description} ($type->{hint}) " );
+				print( "[$option->{value}] " ) if ( defined($option->{value}) );
+				print( ": " );
+				my $new_value = <>;
+				chomp( $new_value );
+				if ( defined($new_value) )
+				{
+					if ( $new_value =~ /^\?/ )
+					{
+						if ( $option->{help} )
+						{
+							print( "\n".breaktext($option->{help})."\n" );
+						}
+						else
+						{
+							print( "Sorry, no help is available for this item\n" );
+						}
+						next;
+					}
+					elsif ( $new_value eq 'x' )
+					{
+						print( "Using existing values for remaining options\n" );
+						goto FINISHED;
+					}
+					elsif ( $new_value eq 'q' )
+					{
+						print( "Exiting\n" );
+						exit( 0 );
+					}
+					elsif ( $new_value eq '' )
+					{
+						if ( $option->{value} )
+						{
+							last;
+						}
+					}
+					#print( "N:$new_value\n" );
+					my $pattern = $type->{pattern};
+					if ( $new_value !~ $pattern || ( $type->{check} && !eval( $type->{check} ) ) )
+					{
+						print( "Invalid input, please re-enter or type '?' for help.\n" );
+						next;
+					}
+					#print( "U:$use_value\n" );
+					my $format = $type->{format};
+					$option->{value} = eval( $format );
+				}
+				last;
+			}
+			if ( my $check = $option->{check} )
+			{
+				if ( my $result = &$check( $option->{value} ) )
+				{
+					# All ok
+					print( "Exists\n" );
+				}
+				else
+				{
+					print( "Missing\n" );
+				}
+			}
+		}
+	}
+FINISHED:
+
+	saveOptionsToDB();
+}
+
+exit;
+
+sub saveOptionsToDB
+{
+	print( "Saving config to DB\n" );
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+
+	if ( !$dbh )
+	{
+		print( "Error: unable to save options to database: $DBI::errstr\n" );
+		return( 0 );
+	}
+	my $sql = "delete from Config";
+	my $res = $dbh->do( $sql ) or die( "Can't do '$sql': ".$dbh->errstr() );
+
+	$sql = "replace into Config set Id = ?, Name = ?, Value = ?, Type = ?, DefaultValue = ?, Hint = ?, Pattern = ?, Format = ?, Prompt = ?, Help = ?, Category = ?, Readonly = ?, Requires = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	foreach my $option ( @options )
+	{
+		next if ( $option->{category} eq 'core' );
+		next if ( $option->{type} == $types{include} );
+		#print( $option->{name}."\n" ) if ( !$option->{category} );
+		$option->{db_type} = $option->{type}->{db_type};
+		$option->{db_hint} = $option->{type}->{hint};
+		$option->{db_pattern} = $option->{type}->{pattern};
+		$option->{db_format} = $option->{type}->{format};
+		if ( $option->{db_type} eq "boolean" )
+		{
+			$option->{db_value} = ($option->{value} eq "yes")?"1":"0";
+		}
+		else
+		{
+			$option->{db_value} = $option->{value};
+		}
+		if ( my $requires = $option->{requires} )
+		{
+			$option->{db_requires} = join( ";", map { my $value = $_->{value}; $value = ($value eq "yes")?1:0 if ( $options_hash{$_->{name}}->{db_type} eq "boolean" ); ( "$_->{name}=$value" ) } @$requires );
+		}
+		else
+		{
+		}
+		my $res = $sth->execute( $option->{id}, $option->{name}, $option->{db_value}, $option->{db_type}, $option->{default}, $option->{db_hint}, $option->{db_pattern}, $option->{db_format}, $option->{description}, $option->{help}, $option->{category}, $option->{readonly}?1:0, $option->{db_requires} ) or die( "Can't execute: ".$sth->errstr() );
+	}
+	$sth->finish();
+	$dbh->disconnect();
+}
+
+sub loadOptionsFromDB
+{
+	print( "Loading config from DB\n" );
+	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+	
+	if ( !$dbh )
+	{
+		print( "Error: unable to load options from database: $DBI::errstr\n" );
+		return( 0 );
+	}
+	my $sql = "select * from Config";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	my $option_count = 0;
+	while( my $config = $sth->fetchrow_hashref() )
+	{
+		my ( $name, $value ) = ( $config->{Name}, $config->{Value} );
+		#print( "Name = '$name'\n" );
+		my $option = $options_hash{$name};
+		if ( !$option )
+		{
+			warn( "No option '$name' found, removing" );
+			next;
+		}
+		next if ( $option->{category} eq 'core' );
+		if ( defined($value) )
+		{
+			if ( $name eq "ZM_OPT_MPEG" && $value eq "yes" )
+			{
+				$value = "mpeg_encode";
+			}
+			if ( $option->{type} == $types{boolean} )
+			{
+				$option->{value} = $value?"yes":"no";
+			}
+			else
+			{
+				$option->{value} = $value;
+			}
+		}
+		$option_count++;;
+	}
+	$dbh->disconnect();
+	return( $option_count );
+}
+
+sub breaktext
+{
+	my $text = shift;
+	( my $broken_text = $text ) =~ s/(.{1,76})(?:\s|$)/$1\n/g;
+	return( $broken_text );
+}
+

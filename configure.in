@@ -167,6 +167,7 @@ AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for M
 
 AC_PROG_PERL_VERSION(5.6.0)
 
+AC_PROG_PERL_MODULES(Sys::Syslog,,AC_MSG_ERROR(zm requires SYS:Syslog))
 AC_PROG_PERL_MODULES(DBI,,AC_MSG_ERROR(zm requires DBI))
 AC_PROG_PERL_MODULES(DBD::mysql,,AC_MSG_ERROR(zm requires DBD::mysql))
 AC_PROG_PERL_MODULES(Getopt::Long,,AC_MSG_ERROR(zm requires Getopt::Long))

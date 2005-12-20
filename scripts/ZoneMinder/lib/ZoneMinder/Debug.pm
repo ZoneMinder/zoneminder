@@ -47,6 +47,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw(
+	zmDbgInit
 	Debug
 	Info
 	Warning
@@ -82,20 +83,13 @@ sub zmDbgInit
 	{
 		$dbg_id = $id;
 	}
-	else
-	{
-		$dbg_id = main::DBG_ID;
-	}
 	if ( defined($level) )
 	{
 		$dbg_level = $level;
 	}
-	else
-	{
-		$dbg_level = main::DBG_LEVEL;
-	}
 
 	openlog( $dbg_id, "pid,ndelay", "local1" );
+
 	$dbg_initialised = !undef;
 }
 

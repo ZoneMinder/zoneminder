@@ -56,6 +56,8 @@ use Getopt::Long;
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter.log';
 
+zmDbgInit( DBG_ID, DBG_LEVEL );
+
 if ( ZM_OPT_UPLOAD )
 {
 	# Comment these out if you don't have them and don't want to upload

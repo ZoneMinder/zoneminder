@@ -83,32 +83,6 @@ Parameters are :-
 	exit( -1 );
 }
 
-my $dbg_id = "";
-
-sub dbgInit
-{
-	my $id = shift;
-	if ( $id )
-	{
-		$dbg_id = $id;
-		my $add_parms = shift;
-		if ( $add_parms )
-		{
-			foreach my $arg ( @ARGV )
-			{
-				if ( $arg =~ /^-(.*)$/ )
-				{
-					$dbg_id .= "_$1";
-				}
-				else
-				{
-					$dbg_id .= $arg;
-				}
-			}
-		}
-	}
-}
-
 sub aud_print
 {
 	my $string = shift;
@@ -169,7 +143,7 @@ sub confirm
 	return( $yesno );
 }
 
-dbgInit( "zmaudit", 1 );
+zmDbgInit( DBG_ID, DBG_LEVEL );
 
 if ( !GetOptions( 'report'=>\$report, 'yes'=>\$yes, 'delay=i'=>\$delay ) )
 {

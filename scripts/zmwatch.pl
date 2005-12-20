@@ -66,6 +66,8 @@ Usage: zmwatch.pl
 	exit( -1 );
 }
 
+zmDbgInit( DBG_ID, DBG_LEVEL );
+
 open( LOG, '>>'.WATCH_LOG_FILE ) or die( "Can't open log file: $!" );
 open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
 select( STDOUT ); $| = 1;

@@ -74,6 +74,8 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
+zmDbgInit( DBG_ID, DBG_LEVEL );
+
 open( LOG, ">>".LOG_FILE ) or die( "Can't open log file: $!" );
 open(STDOUT, ">&LOG") || die( "Can't dup stdout: $!" );
 select( STDOUT ); $| = 1;

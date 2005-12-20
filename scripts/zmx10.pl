@@ -68,6 +68,8 @@ Parameters are :-
 	exit( -1 );
 }
 
+zmDbgInit( DBG_ID, DBG_LEVEL );
+
 my $command;
 my $unit_code;
 

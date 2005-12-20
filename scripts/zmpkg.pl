@@ -54,6 +54,8 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
+zmDbgInit( DBG_ID, DBG_LEVEL );
+
 my $command = $ARGV[0];
 
 my $state;

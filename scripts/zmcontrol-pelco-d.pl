@@ -59,6 +59,8 @@ Usage: zmcontrol-pelco-d.pl <various options>
 	exit( -1 );
 }
 
+zmDbgInit( DBG_ID, DBG_LEVEL );
+
 my $arg_string = join( " ", @ARGV );
 
 my $device = "/dev/ttyS0";

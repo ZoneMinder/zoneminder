@@ -62,6 +62,8 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
+zmDbgInit( DBG_ID, DBG_LEVEL );
+
 my @daemons = ( 'zmc', 'zma', 'zmf', 'zmfilter.pl', 'zmaudit.pl', 'zmtrigger.pl', 'zmx10.pl', 'zmwatch.pl', 'zmupdate.pl', 'zmtrack.pl' );
 
 my $command = shift @ARGV;

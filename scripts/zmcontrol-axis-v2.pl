@@ -58,6 +58,8 @@ Usage: zmcontrol-axis-v2.pl <various options>
 	exit( -1 );
 }
 
+zmDbgInit( DBG_ID, DBG_LEVEL );
+
 my $arg_string = join( " ", @ARGV );
 
 my $address;

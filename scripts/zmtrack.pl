@@ -76,6 +76,8 @@ if ( !GetOptions( 'monitor=s'=>\$mid ) )
 	Usage();
 }
 
+zmDbgInit( DBG_ID, DBG_LEVEL );
+
 my ( $detaint_mid ) = $mid =~ /^(\d+)$/;
 $mid = $detaint_mid;
 

@@ -60,6 +60,8 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
+zmDbgInit( DBG_ID, DBG_LEVEL );
+
 my $check = 0;
 my $rename = 0;
 my $zone_fix = 0;

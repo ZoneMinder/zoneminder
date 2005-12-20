@@ -205,8 +205,6 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 
 	gettimeofday( &zm_dbg_start, &tzp );
 
-	Debug( 1,( "Initialising Debug" ));
-
 	strncpy( zm_dbg_name, name, sizeof(zm_dbg_name) );
 	strncpy( zm_dbg_id, id, sizeof(zm_dbg_id) );
 	zm_dbg_level = level;
@@ -456,7 +454,7 @@ int zmDbgOutput( const char *fstring, ... )
 				log_code = LOG_DEBUG;
 				break;
 		}
-		log_code |= LOG_DAEMON;
+		//log_code |= LOG_DAEMON;
 		syslog( log_code, "%s [%s]", zm_dbg_class, zm_temp_dbg_string );
 	}
 	va_end(arg_ptr);

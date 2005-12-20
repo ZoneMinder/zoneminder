@@ -14,7 +14,6 @@ SUBDIRS = \
 	db
 
 EXTRA_DIST = \
-	zmconfig.pl.in \
 	zm.conf.in \
 	README.html \
 	README.pdf \

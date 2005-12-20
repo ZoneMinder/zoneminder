@@ -36,8 +36,13 @@ EXTRA_DIST = \
 	zmcontrol-kx-hcm10.pl
 	zmcontrol-axis-v2.pl
 	zmtrack.pl
-	ZoneMinder/lib/ZoneMinder.pm.in \
 	ZoneMinder/lib/ZoneMinder.pm \
+	ZoneMinder/lib/ZoneMinder/Base.pm.in \
+	ZoneMinder/lib/ZoneMinder/Config.pm.in \
+	ZoneMinder/lib/ZoneMinder/Debug.pm \
+	ZoneMinder/lib/ZoneMinder/Database.pm \
+	ZoneMinder/lib/ZoneMinder/SharedMem.pm \
+	ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm \
 	ZoneMinder/Makefile.PL \
 	ZoneMinder/README \
 	ZoneMinder/t/ZoneMinder.t \

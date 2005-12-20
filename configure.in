@@ -190,7 +190,7 @@ AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
 AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
 
 AC_OUTPUT(Makefile src/Makefile web/Makefile web/graphics/Makefile scripts/Makefile db/Makefile)
-AC_OUTPUT(zm.conf zmconfig.pl src/zm_config.h web/zm_config.php scripts/zm db/zmschema.sql db/zmdrop.sql)
-AC_OUTPUT(scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm)
+AC_OUTPUT(zm.conf src/zm_config.h web/zm_config.php scripts/zm db/zmschema.sql db/zmdrop.sql)
+AC_OUTPUT(scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm )
 
 AC_CHECK_FILE(scripts/ZoneMinder/Makefile,,[cd scripts/ZoneMinder;perl Makefile.PL])

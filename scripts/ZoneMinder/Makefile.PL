@@ -13,6 +13,7 @@ WriteMakefile(
 		'lib/ZoneMinder/Debug.pm' => '$(INST_LIBDIR)/ZoneMinder/Debug.pm',
 		'lib/ZoneMinder/Database.pm' => '$(INST_LIBDIR)/ZoneMinder/Database.pm',
 		'lib/ZoneMinder/SharedMem.pm' => '$(INST_LIBDIR)/ZoneMinder/SharedMem.pm',
+		'lib/ZoneMinder/ConfigAdmin.pm' => '$(INST_LIBDIR)/ZoneMinder/ConfigAdmin.pm',
 	},
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/ZoneMinder.pm', # retrieve abstract from module

@@ -64,7 +64,13 @@ BEGIN
 {
 	no strict 'refs';
 
-	open( CONFIG, "<".ZM_CONFIG ) or die( "Can't open config file: $!" );
+	my $config_file = ZM_CONFIG;
+	( my $local_config_file = ZM_CONFIG ) =~ s|^.*/|./|;
+	if ( -s $local_config_file && -r $local_config_file )
+	{
+		$config_file = $local_config_file;
+	}
+	open( CONFIG, "<".$config_file ) or die( "Can't open config file '$config_file': $!" );
 	foreach my $str ( <CONFIG> )
 	{
 		next if ( $str =~ /^\s*$/ );
@@ -104,10 +110,33 @@ use Time::HiRes qw/gettimeofday/;
 use constant CARP_DEBUG => 0;
 
 our $dbg_initialised = undef;
+our $dbg_id = "zm?";
+our $dbg_level = 0;
 
-INIT
+sub zmDbgInit
 {
-	openlog( main::DBG_ID, "pid", "local1" );
+	my $id = shift;
+	my $level = shift;
+
+	if ( $id )
+	{
+		$dbg_id = $id;
+	}
+	else
+	{
+		$dbg_id = main::DBG_ID;
+	}
+	if ( defined($level) )
+	{
+		$dbg_level = $level;
+	}
+	else
+	{
+		$dbg_level = main::DBG_LEVEL;
+	}
+
+	openlog( $dbg_id, "pid,ndelay", "local1" );
+	$dbg_initialised = !undef;
 }
 
 sub dbgPrint
@@ -120,8 +149,7 @@ sub dbgPrint
 
 	if ( !$dbg_initialised )
 	{
-		#openlog( main::DBG_ID, "pid,ndelay", "local1" );
-		$dbg_initialised = !undef;
+		zmDbgInit();
 	}
 
 	my ($seconds, $microseconds) = gettimeofday();
@@ -131,52 +159,52 @@ sub dbgPrint
 		$file =~ s|^.*/||g;
 		if ( CARP_DEBUG )
 		{
-			print( STDERR Carp::shortmess( sprintf( "%s.%06d %s[%d].%s-%s/%d [%s]", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $file, $line, $code, $string ) ) );
+			print( STDERR Carp::shortmess( sprintf( "%s.%06d %s[%d].%s-%s/%d [%s]", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $file, $line, $code, $string ) ) );
 		}
 		else
 		{
-			printf( STDERR "%s.%06d %s[%d].%s-%s/%d [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $file, $line, $code, $string );
+			printf( STDERR "%s.%06d %s[%d].%s-%s/%d [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $file, $line, $code, $string );
 		}
 	}
 	else
 	{
 		if ( CARP_DEBUG )
 		{
-			printf( STDERR Carp::shortmess( sprintf( "%s.%06d %s[%d].%s [%s]", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $code, $string ) ) );
+			printf( STDERR Carp::shortmess( sprintf( "%s.%06d %s[%d].%s [%s]", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $code, $string ) ) );
 		}
 		else
 		{
-			printf( STDERR "%s.%06d %s[%d].%s [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $code, $string );
+			printf( STDERR "%s.%06d %s[%d].%s [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $dbg_id, $$, $code, $string );
 		}
 	}
 }
 
 sub Debug
 {
-	dbgPrint( "DBG", $_[0] ) if ( main::DBG_LEVEL >= 1 );
+	dbgPrint( "DBG", $_[0] ) if ( $dbg_level >= 1 );
 }
 
 sub Info
 {
-	dbgPrint( "INF", $_[0] ) if ( main::DBG_LEVEL >= 0 );
+	dbgPrint( "INF", $_[0] ) if ( $dbg_level >= 0 );
 	syslog( "info", "INF [%s]", $_[0] );
 }
 
 sub Warning
 {
-	dbgPrint( "WAR", $_[0] ) if ( main::DBG_LEVEL >= -1 );
+	dbgPrint( "WAR", $_[0] ) if ( $dbg_level >= -1 );
 	syslog( "warning", "WAR [%s]", $_[0] );
 }
 
 sub Error
 {
-	dbgPrint( "ERR", $_[0] ) if ( main::DBG_LEVEL >= -2 );
+	dbgPrint( "ERR", $_[0] ) if ( $dbg_level >= -2 );
 	syslog( "err", "ERR [%s]", $_[0] );
 }
 
 sub Fatal
 {
-	dbgPrint( "FAT", $_[0] ) if ( main::DBG_LEVEL >= -3 );
+	dbgPrint( "FAT", $_[0] ) if ( $dbg_level >= -3 );
 	syslog( "err", "ERR [%s]", $_[0] );
 	confess( $_[0] );
 }
@@ -257,11 +285,14 @@ sub zmDbGetMonitors
     {
 		push( @monitors, $monitor );
 	}
+	$sth->finish();
 	return( \@monitors );
 }
 
 sub zmDbGetMonitor( $ )
 {
+	zmDbConnect();
+
 	my $id = shift;
 
 	return( undef ) if ( !defined($id) );
@@ -430,12 +461,17 @@ sub zmShmRead( $$ )
 sub zmShmWrite( $$ )
 {
 	my $monitor = shift;
+	my $field_values_ref = shift;
 
 	zmShmGet( $monitor );
 	my $shm_key = $monitor->{ShmKey};
 	my $shm_id = $monitor->{ShmId};
 	
-	my %field_values = @{$_[0]};
+	if ( ref($field_values_ref) eq "HASH" )
+	{
+		$field_values_ref = [ %$field_values_ref ];
+	}
+	my %field_values = @$field_values_ref;
 	while ( my ( $field, $value ) = each( %field_values ) )
 	{
 		my ( $section, $element ) = split( /[\/:.]/, $field );
@@ -476,6 +512,72 @@ sub zmGetMonitorState( $ )
 	my $monitor = shift;
 
 	return( zmShmRead( $monitor, "shared_data:state" ) );
+}
+
+sub zmGetLastEventId( $ )
+{
+	my $monitor = shift;
+
+	return( zmShmRead( $monitor, "shared_data:last_event" ) );
+}
+
+sub zmGetAlarmLocation( $ )
+{
+	my $monitor = shift;
+
+	return( zmShmRead( $monitor, [ "shared_data:alarm_x", "shared_data:alarm_y" ] ) );
+}
+
+sub zmIsAlarmed( $ )
+{
+	my $monitor = shift;
+
+	my $state = zmGetMonitorState( $monitor );
+
+	return( $state == STATE_ALARM || $state == STATE_ALERT );
+}
+
+sub zmHasAlarmed( $$ )
+{
+	my $monitor = shift;
+	my $last_event_id = shift;
+
+	my ( $state, $last_event ) = zmShmRead( $monitor, [ "shared_data:state", "shared_data:last_event" ] );
+
+	if ( $state == STATE_ALARM || $state == STATE_ALERT )
+	{
+		return( !undef );
+	}
+	elsif( $last_event != $last_event_id )
+	{
+		return( !undef );
+	}
+	return( undef );
+}
+
+sub zmGetMonitorActions( $ )
+{
+	my $monitor = shift;
+
+	return( zmShmRead( $monitor, "shared_data:action" ) );
+}
+
+sub zmMonitorSuspend( $ )
+{
+	my $monitor = shift;
+
+	my $action = zmShmRead( $monitor, "shared_data:action" );
+	$action |= ACTION_SUSPEND;
+	zmShmWrite( $monitor, { "shared_data:action" => $action } );
+}
+
+sub zmMonitorResume( $ )
+{
+	my $monitor = shift;
+
+	my $action = zmShmRead( $monitor, "shared_data:action" );
+	$action |= ACTION_RESUME;
+	zmShmWrite( $monitor, { "shared_data:action" => $action } );
 }
 
 sub zmTriggerEventOn( $$$$;$ )

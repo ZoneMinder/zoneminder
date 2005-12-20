@@ -46,6 +46,7 @@ use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 # ==========================================================================
 
 use ZoneMinder;
+use ZoneMinder::ConfigAdmin qw( :funcs );
 use POSIX;
 use DBI;
 use Getopt::Long;
@@ -308,7 +309,7 @@ if ( $version )
 				$command .= " -p".$db_pass;
 			}
 		}
-		$command .= " ".ZM_DB_NAME." < ".ZM_PATH_BUILD."/db/zmalter-".$version.".sql";
+		$command .= " ".ZM_DB_NAME." < ".ZM_PATH_BUILD."/db/zmupdate-".$version.".sql";
 
 		print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
 		my $output = qx($command);
@@ -536,11 +537,17 @@ if ( $version )
 
 		$cascade = !undef;
 	}
-	if ( !$cascade )
+	$dbh->disconnect();
+	if ( $cascade )
+	{
+		# We've done something so make sure the config is updated too
+		loadConfigFromDB();
+		saveConfigToDB();
+	}
+	else
 	{
 		die( "Can't find upgrade from version '$version'" );
 	}
-	$dbh->disconnect();
 	print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n" );
 }
 print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );

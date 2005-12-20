@@ -90,10 +90,25 @@ BEGIN
 	$dbh->disconnect();
 }
 
-# Preloaded methods go here.
+# ==========================================================================
+#
+# Debug Facilities
+#
+# ==========================================================================
 
+use Carp;
 use POSIX;
+use Sys::Syslog;
 use Time::HiRes qw/gettimeofday/;
+
+use constant CARP_DEBUG => 0;
+
+our $dbg_initialised = undef;
+
+INIT
+{
+	openlog( main::DBG_ID, "pid", "local1" );
+}
 
 sub dbgPrint
 {
@@ -103,16 +118,36 @@ sub dbgPrint
 
 	$string =~ s/[\r\n]+$//g;
 
+	if ( !$dbg_initialised )
+	{
+		#openlog( main::DBG_ID, "pid,ndelay", "local1" );
+		$dbg_initialised = !undef;
+	}
+
 	my ($seconds, $microseconds) = gettimeofday();
 	if ( $line )
 	{
 		my $file = __FILE__;
 		$file =~ s|^.*/||g;
-		printf( STDERR "%s.%06d %s[%d].%s-%s/%d [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $file, $line, $code, $string );
+		if ( CARP_DEBUG )
+		{
+			print( STDERR Carp::shortmess( sprintf( "%s.%06d %s[%d].%s-%s/%d [%s]", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $file, $line, $code, $string ) ) );
+		}
+		else
+		{
+			printf( STDERR "%s.%06d %s[%d].%s-%s/%d [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $file, $line, $code, $string );
+		}
 	}
 	else
 	{
-		printf( STDERR "%s.%06d %s[%d].%s [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $code, $string );
+		if ( CARP_DEBUG )
+		{
+			printf( STDERR Carp::shortmess( sprintf( "%s.%06d %s[%d].%s [%s]", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $code, $string ) ) );
+		}
+		else
+		{
+			printf( STDERR "%s.%06d %s[%d].%s [%s]\n", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, main::DBG_ID, $$, $code, $string );
+		}
 	}
 }
 
@@ -124,22 +159,388 @@ sub Debug
 sub Info
 {
 	dbgPrint( "INF", $_[0] ) if ( main::DBG_LEVEL >= 0 );
+	syslog( "info", "INF [%s]", $_[0] );
 }
 
 sub Warning
 {
 	dbgPrint( "WAR", $_[0] ) if ( main::DBG_LEVEL >= -1 );
+	syslog( "warning", "WAR [%s]", $_[0] );
 }
 
 sub Error
 {
 	dbgPrint( "ERR", $_[0] ) if ( main::DBG_LEVEL >= -2 );
+	syslog( "err", "ERR [%s]", $_[0] );
 }
 
 sub Fatal
 {
 	dbgPrint( "FAT", $_[0] ) if ( main::DBG_LEVEL >= -3 );
-	die( $_[0] );
+	syslog( "err", "ERR [%s]", $_[0] );
+	confess( $_[0] );
+}
+
+# ==========================================================================
+#
+# Database Access
+#
+# ==========================================================================
+
+our $dbh = undef;
+
+sub zmDbConnect
+{
+	my $force = shift;
+	if ( $force )
+	{
+		 zmDbDisconnect();
+	}
+	if ( !defined( $dbh ) )
+	{
+		$dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+	}
+	return( $dbh );
+}
+
+sub zmDbDisconnect
+{
+	if ( defined( $dbh ) )
+	{
+		$dbh->disconnect();
+		$dbh = undef;
+	}
+}
+
+use constant DB_MON_ALL => 0; # All monitors
+use constant DB_MON_CAPT => 1; # All monitors that are capturing
+use constant DB_MON_ACTIVE => 2; # All monitors that are active
+use constant DB_MON_MOTION => 3; # All monitors that are doing motion detection
+use constant DB_MON_RECORD => 4; # All monitors that are doing unconditional recording
+use constant DB_MON_PASSIVE => 5; # All monitors that are in nodect state
+
+sub zmDbGetMonitors
+{
+	zmDbConnect();
+
+	my $function = shift || DB_MON_ALL;
+	my $sql = "select * from Monitors";
+
+	if ( $function )
+	{
+		if ( $function == DB_MON_CAPT )
+		{
+			$sql .= " where Function >= 'Monitor'";
+		}
+		elsif ( $function == DB_MON_ACTIVE )
+		{
+			$sql .= " where Function > 'Monitor'";
+		}
+		elsif ( $function == DB_MON_MOTION )
+		{
+			$sql .= " where Function = 'Modect' or Function = 'Mocord'";
+		}
+		elsif ( $function == DB_MON_RECORD )
+		{
+			$sql .= " where Function = 'Record' or Function = 'Mocord'";
+		}
+		elsif ( $function == DB_MON_PASSIVE )
+		{
+			$sql .= " where Function = 'Nodect'";
+		}
+	}
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
+
+	my @monitors;
+    while( my $monitor = $sth->fetchrow_hashref() )
+    {
+		push( @monitors, $monitor );
+	}
+	return( \@monitors );
+}
+
+sub zmDbGetMonitor( $ )
+{
+	my $id = shift;
+
+	return( undef ) if ( !defined($id) );
+
+	my $sql = "select * from Monitors where Id = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute( $id ) or die( "Can't execute '$sql': ".$sth->errstr() );
+    my $monitor = $sth->fetchrow_hashref();
+
+	return( $monitor );
+}
+
+# ==========================================================================
+#
+# Shared Memory Facilities
+#
+# ==========================================================================
+
+use constant STATE_IDLE     => 0;
+use constant STATE_PREALARM => 1;
+use constant STATE_ALARM    => 2;
+use constant STATE_ALERT    => 3;
+use constant STATE_TAPE     => 4;
+
+use constant ACTION_GET     => 1;
+use constant ACTION_SET     => 2;
+use constant ACTION_SUSPEND => 4;
+use constant ACTION_RESUME  => 8;
+
+use constant TRIGGER_CANCEL => 0;
+use constant TRIGGER_ON     => 1;
+use constant TRIGGER_OFF    => 2;
+
+our $shm_data =
+{
+	"shared_data" => { "offset"=>0, "size"=>56, "type"=>"SharedData", "contents"=> {
+		"size"             => { "offset"=>0,  "size"=>4, "type"=>"int" },
+		"valid"            => { "offset"=>4,  "size"=>4, "type"=>"bool" },
+		"state"            => { "offset"=>8,  "size"=>4, "type"=>"enum"},
+		"last_write_index" => { "offset"=>12, "size"=>4, "type"=>"int" },
+		"last_read_index"  => { "offset"=>16, "size"=>4, "type"=>"int" },
+		"last_image_time"  => { "offset"=>20, "size"=>4, "type"=>"time_t" },
+		"last_event"       => { "offset"=>24, "size"=>4, "type"=>"int" },
+		"action"           => { "offset"=>28, "size"=>4, "type"=>"set" },
+		"brightness"       => { "offset"=>32, "size"=>4, "type"=>"int" },
+		"hue"              => { "offset"=>36, "size"=>4, "type"=>"int" },
+		"colour"           => { "offset"=>40, "size"=>4, "type"=>"int" },
+		"contrast"         => { "offset"=>44, "size"=>4, "type"=>"int" },
+		"alarm_x"          => { "offset"=>48, "size"=>4, "type"=>"int" },
+		"alarm_y"          => { "offset"=>52, "size"=>4, "type"=>"int" },
+		}
+	},
+	"trigger_data" => { "offset"=>56, "size"=>332, "type"=>"TriggerData", "contents"=> {
+		"size"             => { "offset"=>56+0,   "size"=>4,   "type"=>"int" },
+		"trigger_state"    => { "offset"=>56+4,   "size"=>4,   "type"=>"enum" },
+		"trigger_score"    => { "offset"=>56+8,   "size"=>4,   "type"=>"int" },
+		"trigger_cause"    => { "offset"=>56+12,  "size"=>32,  "type"=>"char[]" },
+		"trigger_text"     => { "offset"=>56+44,  "size"=>256, "type"=>"char[]" },
+		"trigger_showtext" => { "offset"=>56+300, "size"=>32,  "type"=>"char[]" },
+		}
+	},
+	"end" => { "offset"=>56+332, "size"=> 0 }
+};
+
+our $shm_size = $shm_data->{end}->{offset};
+
+our $shm_verified = {};
+
+sub zmShmGet( $ )
+{
+	my $monitor = shift;
+	if ( !defined($monitor->{ShmId}) )
+	{
+		my $shm_key = hex(ZM_SHM_KEY)|$monitor->{Id};
+		my $shm_id = shmget( $shm_key, $shm_size, 0 );
+		if ( !defined($shm_id) )
+		{
+    		Error( "Can't get shared memory id '%x', %d: $!\n", $shm_key, $monitor->{Id}, $! );
+			return( undef );
+		}
+		$monitor->{ShmKey} = $shm_key;
+		$monitor->{ShmId} = $shm_id;
+		zmShmVerify( $monitor );
+	}
+}
+
+sub zmShmVerify( $ )
+{
+	my $monitor = shift;
+	my $shm_key = $monitor->{ShmKey};
+
+	if ( !defined($shm_verified->{$shm_key}) )
+	{
+		my $shm_id = $monitor->{ShmId};
+		my $sd_size = zmShmRead( $monitor, "shared_data:size" );
+		if ( $sd_size != $shm_data->{shared_data}->{size} )
+		{
+			Error( "Shared memory size conflict in shared_data, expected ".$shm_data->{shared_data}->{size}.", got ".$sd_size );
+			return;
+		}
+		my $td_size = zmShmRead( $monitor, "trigger_data:size" );
+		if ( $td_size != $shm_data->{trigger_data}->{size} )
+		{
+			Error( "Shared memory size conflict in trigger_data, expected ".$shm_data->{triggger_data}->{size}.", got ".$td_size );
+			return;
+		}
+		$shm_verified->{$shm_key} = !undef;
+	}
+}
+
+sub zmShmRead( $$ )
+{
+	my $monitor = shift;
+	my $fields = shift;
+
+	zmShmGet( $monitor );
+	my $shm_key = $monitor->{ShmKey};
+	my $shm_id = $monitor->{ShmId};
+	
+	if ( !ref($fields) )
+	{
+		$fields = [ $fields ];
+	}
+	my @values;
+	foreach my $field ( @$fields )
+	{
+		my ( $section, $element ) = split( /[\/:.]/, $field );
+		Fatal( "Invalid shm selector '$field'" ) if ( !$section || !$element );
+
+		my $offset = $shm_data->{$section}->{contents}->{$element}->{offset};
+		my $type = $shm_data->{$section}->{contents}->{$element}->{type};
+		my $size = $shm_data->{$section}->{contents}->{$element}->{size};
+
+		my $data;
+		if ( !shmread( $shm_id, $data, $offset, $size ) )
+		{
+			Error( "Can't read '$field' from shared memory '$shm_key/$shm_id': $!" );
+		}
+	
+		my $value;
+		if ( $type eq "char" )
+		{
+			( $value ) = unpack( "c", $data );
+		}
+		elsif ( $type eq "short" )
+		{
+			( $value ) = unpack( "s", $data );
+		}
+		elsif ( $type eq "int" || $type eq "bool" || $type eq "time_t" || $type eq "enum" || $type eq "set" )
+		{
+			( $value ) = unpack( "l", $data );
+		}
+		elsif ( $type eq "char[]" )
+		{
+			( $value ) = unpack( "Z".$size, $data );
+		}
+		push( @values, $value );
+	}
+	if ( wantarray() )
+	{
+		return( @values )
+	}
+	return( $values[0] );
+}
+
+sub zmShmWrite( $$ )
+{
+	my $monitor = shift;
+
+	zmShmGet( $monitor );
+	my $shm_key = $monitor->{ShmKey};
+	my $shm_id = $monitor->{ShmId};
+	
+	my %field_values = @{$_[0]};
+	while ( my ( $field, $value ) = each( %field_values ) )
+	{
+		my ( $section, $element ) = split( /[\/:.]/, $field );
+		die( "Invalid shm selector '$field'" ) if ( !$section || !$element );
+
+		my $offset = $shm_data->{$section}->{contents}->{$element}->{offset};
+		my $type = $shm_data->{$section}->{contents}->{$element}->{type};
+		my $size = $shm_data->{$section}->{contents}->{$element}->{size};
+
+		my $data;
+		if ( $type eq "char" )
+		{
+			$data = pack( "c", $value );
+		}
+		elsif ( $type eq "short" )
+		{
+			$data = pack( "s", $value );
+		}
+		elsif ( $type eq "int" || $type eq "bool" || $type eq "time_t" || $type eq "enum" || $type eq "set" )
+		{
+			$data = pack( "l", $value );
+		}
+		elsif ( $type eq "char[]" )
+		{
+			$data = pack( "Z".$size, $value );
+		}
+
+		if ( !shmwrite( $shm_id, $data, $offset, $size ) )
+		{
+			Error( "Can't write value '$value' to '$field' in shared memory '$shm_key/$shm_id': $!" );
+		}
+	
+	}
+}
+
+sub zmGetMonitorState( $ )
+{
+	my $monitor = shift;
+
+	return( zmShmRead( $monitor, "shared_data:state" ) );
+}
+
+sub zmTriggerEventOn( $$$$;$ )
+{
+	my $monitor = shift;
+	my $score = shift;
+	my $cause = shift;
+	my $text = shift;
+	my $showtext = shift;
+
+	my @values = (
+		( "trigger_data:trigger_score" => $score ),
+		( "trigger_data:trigger_cause" => $cause ),
+		( "trigger_data:trigger_text"  => $text ),
+		( "trigger_data:trigger_state" => TRIGGER_ON ), # Write state last so event not read incomplete
+	);
+
+	if ( defined($showtext) )
+	{
+		push( @values, ( "trigger_data:trigger_showtext" => $showtext ) );
+	}
+
+	zmShmWrite( $monitor, \@values );
+}
+
+sub zmTriggerEventOff( $ )
+{
+	my $monitor = shift;
+
+	my @values = (
+		( "trigger_data:trigger_state"    => TRIGGER_OFF ),
+		( "trigger_data:trigger_score"    => 0 ),
+		( "trigger_data:trigger_cause"    => "" ),
+		( "trigger_data:trigger_text"     => "" ),
+		( "trigger_data:trigger_showtext" => "" ),
+	);
+
+	zmShmWrite( $monitor, \@values );
+}
+
+sub zmTriggerEventCancel( $ )
+{
+	my $monitor = shift;
+
+	my @values = (
+		( "trigger_data:trigger_state"    => TRIGGER_CANCEL ),
+		( "trigger_data:trigger_score"    => 0 ),
+		( "trigger_data:trigger_cause"    => "" ),
+		( "trigger_data:trigger_text"     => "" ),
+		( "trigger_data:trigger_showtext" => "" ),
+	);
+
+	zmShmWrite( $monitor, \@values );
+}
+
+sub zmTriggerShowtext( $$ )
+{
+	my $monitor = shift;
+	my $showtext = shift;
+
+	my @values = (
+		( "trigger_data:trigger_showtext" => $showtext ),
+	);
+
+	zmShmWrite( $monitor, \@values );
 }
 
 1;

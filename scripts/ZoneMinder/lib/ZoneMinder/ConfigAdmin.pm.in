@@ -40,13 +40,21 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # This allows declaration	use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+our %EXPORT_TAGS = (
+	'data' => [ qw(
+		%types
+		@options
+		%options_hash
+	) ],
+	'funcs' => [ qw(
+		loadConfigfromDB
+		saveConfigToDB
+	) ]
+);
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{'data'} }, @{ $EXPORT_TAGS{'funcs'} } );
 
-our @EXPORT = qw();
+our @EXPORT = qw( %types @options %options_hash loadConfigFromDB saveConfigToDB );
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
@@ -56,8 +64,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 #
 # ==========================================================================
 
-use DBI;
-use Data::Dumper;
+use ZoneMinder::Config;
 
 our $config_header = "src/zm_config_defines.h";
 our $config_sql = "db/zm_config.sql";

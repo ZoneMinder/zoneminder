@@ -59,7 +59,13 @@ BEGIN
 {
 	no strict 'refs';
 
-	open( CONFIG, "<".ZM_CONFIG ) or die( "Can't open config file: $!" );
+	my $config_file = ZM_CONFIG;
+	( my $local_config_file = $config_file ) =~ s|^.*/|./|;
+	if ( -s $local_config_file && -r $local_config_file )
+	{
+		$config_file = $local_config_file;
+	}
+	open( CONFIG, "<".$config_file ) or die( "Can't open config file '$config_file': $!" );
 	foreach my $str ( <CONFIG> )
 	{
 		next if ( $str =~ /^\s*$/ );

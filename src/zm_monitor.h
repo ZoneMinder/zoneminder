@@ -346,7 +346,9 @@ public:
 	static int LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose=QUERY );
 	static Monitor *Load( int id, bool load_zones=false, Purpose purpose=QUERY );
 	void StreamImages( int scale=100, int maxfps=10, time_t ttl=0 );
+	void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );
 	void SingleImage( int scale=100 );
+	void SingleImageRaw( int scale=100 );
 #if HAVE_LIBAVCODEC
 	void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC

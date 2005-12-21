@@ -1495,6 +1495,90 @@ void Monitor::StreamImages( int scale, int maxfps, time_t ttl )
 	}
 }
 
+void Monitor::StreamImagesRaw( int scale, int maxfps, time_t ttl )
+{
+	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
+
+	int fps = int(GetFPS());
+	if ( !fps )
+		fps = 5;
+
+	int min_fps = 1;
+	int max_fps = maxfps;
+	int base_fps = int(GetFPS());
+	int effective_fps = base_fps;
+
+	int frame_mod = 1;
+	// Min frame repeat?
+	while( effective_fps > max_fps )
+	{
+		effective_fps /= 2;
+		frame_mod *= 2;
+	}
+
+	Debug( 1, ( "BFPS:%d, EFPS:%d, FM:%d", base_fps, effective_fps, frame_mod ));
+
+	int last_read_index = image_buffer_count;
+
+	time_t stream_start_time;
+	time( &stream_start_time );
+
+	int frame_count = 0;
+	struct timeval base_time;
+	struct DeltaTimeval delta_time;
+	Image scaled_image;
+	while ( true )
+	{
+		if ( feof( stdout ) || ferror( stdout ) )
+		{
+			break;
+		}
+		if ( last_read_index != shared_data->last_write_index )
+		{
+			last_read_index = shared_data->last_write_index;
+			if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) )
+			{
+				// Send the next frame
+				int index = shared_data->last_write_index%image_buffer_count;
+				//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
+				Snapshot *snap = &image_buffer[index];
+				Image *snap_image = snap->image;
+
+				if ( scale != 100 )
+				{
+					scaled_image.Assign( *snap_image );
+
+					scaled_image.Scale( scale );
+
+					snap_image = &scaled_image;
+				}
+				if ( !config.timestamp_on_capture )
+				{
+					TimestampImage( snap_image, snap->timestamp->tv_sec );
+				}
+
+				fprintf( stdout, "--ZoneMinderFrame\r\n" );
+				fprintf( stdout, "Content-Length: %d\r\n", snap_image->Size() );
+				fprintf( stdout, "Content-Type: image/x-rgb\r\n\r\n" );
+				fwrite( snap_image->Buffer(), snap_image->Size(), 1, stdout );
+				fprintf( stdout, "\r\n\r\n" );
+
+				if ( ttl )
+				{
+					time_t now;
+					time( &now );
+					if ( (now - stream_start_time) > ttl )
+					{
+						break;
+					}
+				}
+			}
+			frame_count++;
+		}
+		usleep( ZM_SAMPLE_RATE );
+	}
+}
+
 void Monitor::SingleImage( int scale)
 {
 	int last_read_index = shared_data->last_write_index;
@@ -1520,6 +1604,30 @@ void Monitor::SingleImage( int scale)
 	fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
 	fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
 	fwrite( img_buffer, img_buffer_size, 1, stdout );
+}
+
+void Monitor::SingleImageRaw( int scale)
+{
+	int last_read_index = shared_data->last_write_index;
+	Image scaled_image;
+	int index = shared_data->last_write_index%image_buffer_count;
+	Snapshot *snap = &image_buffer[index];
+	Image *snap_image = snap->image;
+
+	if ( scale != 100 )
+	{
+		scaled_image.Assign( *snap_image );
+		scaled_image.Scale( scale );
+		snap_image = &scaled_image;
+	}
+	if ( !config.timestamp_on_capture )
+	{
+		TimestampImage( snap_image, snap->timestamp->tv_sec );
+	}
+	
+	fprintf( stdout, "Content-Length: %d\r\n", snap_image->Size() );
+	fprintf( stdout, "Content-Type: image/x-rgb\r\n\r\n" );
+	fwrite( snap_image->Buffer(), snap_image->Size(), 1, stdout );
 }
 
 #if HAVE_LIBAVCODEC

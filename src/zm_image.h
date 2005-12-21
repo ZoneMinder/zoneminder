@@ -246,6 +246,7 @@ public:
 	void Annotate( const char *p_text, const Coord &coord, const Rgb colour );
 	void Annotate( const char *p_text, const Coord &coord );
 	Image *HighlightEdges( Rgb colour, const Box *limits=0 );
+	//Image *HighlightEdges( Rgb colour, const Polygon &polygon );
 	void Timestamp( const char *label, const time_t when, const Coord &coord );
 	void Colourise();
 	void DeColourise();

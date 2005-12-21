@@ -54,7 +54,7 @@ our %EXPORT_TAGS = (
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'data'} }, @{ $EXPORT_TAGS{'funcs'} } );
 
-our @EXPORT = qw( %types @options %options_hash loadConfigFromDB saveConfigToDB );
+our @EXPORT = qw();
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
@@ -72,22 +72,22 @@ our $config_sql = "db/zm_config.sql";
 # Types
 our %types =
 (
-	string => { db_type=>'string', hint=>'string', pattern=>qr|^(.+)$|, format=>q( $1 ) },
-	alphanum => { db_type=>'string', hint=>'alphanumeric', pattern=>qr|^([a-zA-Z0-9-_]+)$|, format=>q( $1 ) },
-	text => { db_type=>'text', hint=>'free text', pattern=>qr|^(.+)$|, format=>q( $1 ) },
-	boolean => { db_type=>'boolean', hint=>'yes|no', pattern=>qr|^([yn])|i, check=>q( $1 ), format=>q( ($1 =~ /^y/) ? 'yes' : 'no' ) },
-	integer => { db_type=>'integer', hint=>'integer', pattern=>qr|^(\d+)$|, format=>q( $1 ) },
-	decimal => { db_type=>'decimal', hint=>'decimal', pattern=>qr|^(\d+(?:\.\d+)?)$|, format=>q( $1 ) },
-	hexadecimal => { db_type=>'hexadecimal', hint=>'hexadecimal', pattern=>qr|^(?:0x)?([0-9a-f]{1,8})$|, format=>q( '0x'.$1 ) },
-	tristate => { db_type=>'string', hint=>'auto|yes|no', pattern=>qr|^([ayn])|i, check=>q( $1 ), format=>q( ($1 =~ /^y/) ? 'yes' : ($1 =~ /^n/ ? 'no' : 'auto' ) ) },
-	abs_path => { db_type=>'string', hint=>'/absolute/path/to/somewhere', pattern=>qr|^((?:/[^/]*)+?)/?$|, format=>q( $1 ) },
-	rel_path => { db_type=>'string', hint=>'relative/path/to/somewhere', pattern=>qr|^((?:[^/].*)?)/?$|, format=>q( $1 ) },
-	directory => { db_type=>'string', hint=>'directory', pattern=>qr|^([a-zA-Z0-9-_.]+)$|, format=>q( $1 ) },
-	file => { db_type=>'string', hint=>'filename', pattern=>qr|^([a-zA-Z0-9-_.]+)$|, format=>q( $1 ) },
-	hostname => { db_type=>'string', hint=>'host.your.domain', pattern=>qr|^([a-zA-Z0-9_.-]+)$|, format=>q( $1 ) },
-	url => { db_type=>'string', hint=>'http://host.your.domain/', pattern=>qr|^(?:http://)?(.+)$|, format=>q( 'http://'.$1 ) },
-	email => { db_type=>'string', hint=>'your.name@your.domain', pattern=>qr|^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$|, format=>q( $1\@$2" ) },
-	include => { db_type=>'include', hint=>'local/path/to/file', pattern=>qr|^(.*)?$|, check=>q( -e $1 ), format=>q( $1 ) },
+	string => { db_type=>"string", hint=>"string", pattern=>qr|^(.+)$|, format=>q( $1 ) },
+	alphanum => { db_type=>"string", hint=>"alphanumeric", pattern=>qr|^([a-zA-Z0-9-_]+)$|, format=>q( $1 ) },
+	text => { db_type=>"text", hint=>"free text", pattern=>qr|^(.+)$|, format=>q( $1 ) },
+	boolean => { db_type=>"boolean", hint=>"yes|no", pattern=>qr|^([yn])|i, check=>q( $1 ), format=>q( ($1 =~ /^y/) ? "yes" : "no" ) },
+	integer => { db_type=>"integer", hint=>"integer", pattern=>qr|^(\d+)$|, format=>q( $1 ) },
+	decimal => { db_type=>"decimal", hint=>"decimal", pattern=>qr|^(\d+(?:\.\d+)?)$|, format=>q( $1 ) },
+	hexadecimal => { db_type=>"hexadecimal", hint=>"hexadecimal", pattern=>qr|^(?:0x)?([0-9a-f]{1,8})$|, format=>q( "0x".$1 ) },
+	tristate => { db_type=>"string", hint=>"auto|yes|no", pattern=>qr|^([ayn])|i, check=>q( $1 ), format=>q( ($1 =~ /^y/) ? "yes" : ($1 =~ /^n/ ? "no" : "auto" ) ) },
+	abs_path => { db_type=>"string", hint=>"/absolute/path/to/somewhere", pattern=>qr|^((?:/[^/]*)+?)/?$|, format=>q( $1 ) },
+	rel_path => { db_type=>"string", hint=>"relative/path/to/somewhere", pattern=>qr|^((?:[^/].*)?)/?$|, format=>q( $1 ) },
+	directory => { db_type=>"string", hint=>"directory", pattern=>qr|^([a-zA-Z0-9-_.]+)$|, format=>q( $1 ) },
+	file => { db_type=>"string", hint=>"filename", pattern=>qr|^([a-zA-Z0-9-_.]+)$|, format=>q( $1 ) },
+	hostname => { db_type=>"string", hint=>"host.your.domain", pattern=>qr|^([a-zA-Z0-9_.-]+)$|, format=>q( $1 ) },
+	url => { db_type=>"string", hint=>"http://host.your.domain/", pattern=>qr|^(?:http://)?(.+)$|, format=>q( "http://".$1 ) },
+	email => { db_type=>"string", hint=>"your.name\@your.domain", pattern=>qr|^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$|, format=>q( $1\@$2 ) },
+	include => { db_type=>"include", hint=>"local/path/to/file", pattern=>qr|^(.*)?$|, check=>q( -e $1 ), format=>q( $1 ) },
 );
 
 our @options =
@@ -98,7 +98,7 @@ our @options =
 		description => "Default language used by web interface",
 		help => "ZoneMinder allows the web interface to use languages other than English if the appropriate language file has been created and is present. This option allows you to change the default language that is used from the shipped language, British English, to another language",
 		type => $types{directory},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_OPT_USE_AUTH",
@@ -106,7 +106,7 @@ our @options =
 		description => "Authenticate user logins to ZoneMinder",
 		help => "ZoneMinder can run in two modes. The simplest is an entirely unauthenticated mode where anyone can access ZoneMinder and perform all tasks. This is most suitable for installations where the web server access is limited in other ways. The other mode enables user accounts with varying sets of permissions. Users must login or authenticate to access ZoneMinder and are limited by their defined permissions.",
 		type => $types{boolean},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_AUTH_TYPE",
@@ -114,8 +114,8 @@ our @options =
 		description => "What is used to authenticate ZoneMinder users",
 		help => "ZoneMinder can use two methods to authenticate users when running in authenticated mode. The first is a builtin method where ZoneMinder provides facilities for users to log in and maintains track of their identity. The second method allows interworking with other methods such as http basic authentication which passes an independently authentication 'remote' user via http. In this case ZoneMinder would use the supplied user without additional authentication provided such a user is configured ion ZoneMinder.",
 		requires => [ { name=>"ZM_OPT_USE_AUTH", value=>"yes" } ],
-		type => { db_type=>'string', hint=>'builtin|remote', pattern=>qr|^([br])|i, format=>q( $1 =~ /^b/ ? 'builtin' : 'remote' ) },
-		category => 'system',
+		type => { db_type=>"string", hint=>"builtin|remote", pattern=>qr|^([br])|i, format=>q( $1 =~ /^b/ ? "builtin" : "remote" ) },
+		category => "system",
 	},
 	{
 		name => "ZM_AUTH_RELAY",
@@ -123,8 +123,8 @@ our @options =
 		description => "Method used to relay authentication information",
 		help => "When ZoneMinder is running in authenticated mode it can pass user details between the web pages and the back end processes. There are two methods for doing this. This first is to use a time limited hashed string which contains no direct username or password details, the second method is to pass the username and passwords around in plaintext. This method is not recommend except where you do not have the md5 libraries available on your system or you have a completely isolated system with no external access. You can also switch off authentication relaying if your system is isolated in other ways.",
 		requires => [ { name=>"ZM_OPT_USE_AUTH", value=>"yes" } ],
-		type => { db_type=>'string', hint=>'hashed|plain|none', pattern=>qr|^([hpn])|i, format=>q( ($1 =~ /^h/) ? 'hashed' : ($1 =~ /^p/ ? 'plain' : 'none' ) ) },
-		category => 'system',
+		type => { db_type=>"string", hint=>"hashed|plain|none", pattern=>qr|^([hpn])|i, format=>q( ($1 =~ /^h/) ? "hashed" : ($1 =~ /^p/ ? "plain" : "none" ) ) },
+		category => "system",
 	},
 	{
 		name => "ZM_AUTH_HASH_SECRET",
@@ -133,7 +133,7 @@ our @options =
 		help => "When ZoneMinder is running in hashed authenticated mode it is necessary to generate hashed strings containing encrypted sensitive information such as usernames and password. Although these string are reasonably secure the addition of a random secret increases security substantially.",
 		requires => [ { name=>"ZM_OPT_USE_AUTH", value=>"yes" }, { name=>"ZM_AUTH_RELAY", value=>"hashed" } ],
 		type => $types{string},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_AUTH_HASH_IPS",
@@ -142,7 +142,7 @@ our @options =
 		help => "When ZoneMinder is running in hashed authenticated mode it can optionally include the requesting IP address in the resultant hash. This adds an extra level of security as only requests from that address may use that authentication key. However in some circumstances, such as access over mobile networks, the requesting address can change for each request which will cause most requests to fail. This option allows you to control whether IP addresses are included in the authentication hash on your system. If you experience intermitent problems with authentication, switching this option off may help.",
 		requires => [ { name=>"ZM_OPT_USE_AUTH", value=>"yes" }, { name=>"ZM_AUTH_RELAY", value=>"hashed" } ],
 		type => $types{boolean},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_DIR_EVENTS",
@@ -150,7 +150,7 @@ our @options =
 		description => "Directory where events are stored",
 		help => "This is the path to the events directory where all the event images and other miscellaneous files are stored. It is normally given as a subdirectory of the web directory you have specified earlier however if disk space is tight it can reside on another partition in which case you should create a link from that area to the path you give here.",
 		type => $types{directory},
-		category => 'paths',
+		category => "paths",
 	},
 	{
 		name => "ZM_DIR_IMAGES",
@@ -158,7 +158,7 @@ our @options =
 		description => "Directory where the images that the ZoneMinder client generates are stored",
 		help => "ZoneMinder generates a myriad of images, mosty of which are associated with events. For those that aren't this is where they go.",
 		type => $types{directory},
-		category => 'paths',
+		category => "paths",
 	},
 	{
 		name => "ZM_DIR_SOUNDS",
@@ -166,7 +166,7 @@ our @options =
 		description => "Directory to the sounds that the ZoneMinder client can use",
 		help => "ZoneMinder can optionally play a sound file when an alarm is detected. This indicates where (relative to the web root) to look for this file.",
 		type => $types{directory},
-		category => 'paths',
+		category => "paths",
 	},
 	{
 		name => "ZM_PATH_ZMS",
@@ -174,7 +174,7 @@ our @options =
 		description => "Web path to zms streaming server",
 		help => "The ZoneMinder streaming server is required to send streamed images to your browser. It will be installed into the cgi-bin path given at configuration time. This option determines what the web path to the server is rather than the local path on your machine. Ordinarily the streaming server runs in parser-header mode however if you experience problems with streaming you can change this to non-parsed-header (nph) mode by changing 'zms' to 'nph-zms'.",
 		type => $types{rel_path},
-		category => 'paths',
+		category => "paths",
 	},
 	{
 		name => "ZM_CAN_STREAM",
@@ -182,7 +182,7 @@ our @options =
 		description => "Override the automatic detection of browser streaming capability",
 		help => "If you know that your browser can handle image streams of the type 'multipart/x-mixed-replace' but ZoneMinder does not detect this correctly you can set this option to ensure that the stream is delivered with or without the use of the Cambozola plugin. Selecting 'yes' will tell ZoneMinder that your browser can handle the streams natively, 'no' means that it can't and so the plugin will be used while 'auto' lets ZoneMinder decide.",
 		type => $types{tristate},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_RAND_STREAM",
@@ -190,7 +190,7 @@ our @options =
 		description => "Add a random string to prevent caching of streams",
 		help => "Some browsers can cache the streams used by ZoneMinder. In order to prevent his a harmless random string can be appended to the url to make each invocation of the stream appear unique.",
 		type => $types{boolean},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_OPT_CAMBOZOLA",
@@ -198,7 +198,7 @@ our @options =
 		description => "Is the (optional) cambozola java streaming client installed (recommended)",
 		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. It is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed.",
 		type => $types{boolean},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_PATH_CAMBOZOLA",
@@ -207,7 +207,7 @@ our @options =
 		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. It is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed. Leave this as 'cambozola.jar' if cambozola is installed in the same directory as the ZoneMinder web client files.",
 		requires => [ { name=>"ZM_OPT_CAMBOZOLA", value=>"yes" } ],
 		type => $types{rel_path},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_TIMESTAMP_ON_CAPTURE",
@@ -215,7 +215,7 @@ our @options =
 		description => "Timestamp images as soon as they are captured",
 		help => "ZoneMinder can add a timestamp to images in two ways. The default method, when this option is set, is that each image is timestamped immediately when captured and so the image held in memory is marked right away. The second method does not timestamp the images until they are either saved as part of an event or accessed over the web. The timestamp used in both methods will contain the same time as this is preserved along with the image. The first method ensures that an image is timestamped regardless of any other circumstances but will result in all images being timestamped even those never saved or viewed. The second method necessitates that saved images are copied before being saved otherwise two timestamps perhaps at different scales may be applied. This has the (perhaps) desirable side effect that the timestamp is always applied at the same resolution so an image that has scaling applied will still have a legible and correctly scaled timestamp.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_LOCAL_BGR_INVERT",
@@ -223,7 +223,7 @@ our @options =
 		description => "Invert BGR colours to RGB",
 		help => "Some cameras or video cards capture images in BGR (Blue-Green-Red) order even when the palette says RGB. If you see strange colours casts on your images then it may be worth trying this option to see if that corrects the issue. Note this option will apply only to local cameras and not those over a network.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_Y_IMAGE_DELTAS",
@@ -231,7 +231,7 @@ our @options =
 		description => "Whether we calculate images differences using Y channel",
 		help => "When ZoneMinder tries to establish the differences between two colour images it generates a greyscale 'delta' image between the two sets of images. In order to do this it determines the differences found between the different RGB colour components and calculates a greyscale value representing this. If this option is set then a calculation will be made to convert each pixel of the image into a brightness value (Y from YUV) and then find the difference between the two. If this option is not set then the resulting difference is determined as the average of the differences of each colour which is a simple calculation. Using the Y value is likely to be more accurate and is up to 15% faster. Only switch this option off if Y based deltas do not work as well for you as RGB ones.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_FAST_IMAGE_BLENDS",
@@ -239,7 +239,7 @@ our @options =
 		description => "Whether we use a fast algorithm to blend the reference image",
 		help => "In most modes of operation ZoneMinder needs to blend the captured image with the stored reference image to update it for the next image. The reference blend percentage specified for the monitor controls how much the new image affects the reference image. There are two methods that are available for this. If this option is set then a basic calculation is applied which though fast and fairly accurate can (due to rounding) mean that the actual range of pixel values in the reference image may be reduced from that in the captured image, e.g. a pixel may only be able to achieve a maximum of say 250 while the captured image is consistently at 255. If you also have a small minimum pixel difference threshold this can cause multiple bogus alarms. The alternative is to switch this option off which stores an additional set of temporary values which eliminate any significant rounding errors. This is more accurate though up to 6 times slower and should not really be necessary unless you find problems with the default method.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_COLOUR_JPEG_FILES",
@@ -247,7 +247,7 @@ our @options =
 		description => "Colourise greyscale JPEG files",
 		help => "Cameras that capture in greyscale can write their captured images to jpeg files with a corresponding greyscale colour space. This saves a small amount of disk space over colour ones. However some tools such as ffmpeg and mpeg_encode either fail to work with this colour space or have to convert it beforehand. Setting this option to yes uses up a little more space but makes creation of MPEG files much faster.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_ADD_JPEG_COMMENTS",
@@ -255,7 +255,7 @@ our @options =
 		description => "Add jpeg timestamp annotations as file header comments",
 		help => "JPEG files may have a number of extra fields added to the file header. The comment field may have any kind of text added. This options allows you to have the same text that is used to annotate the image additionally included as a file header comment. If you archive event images to other locations this may help you locate images for particular events or times if you use software that can read comment headers.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_JPEG_FILE_QUALITY",
@@ -263,7 +263,7 @@ our @options =
 		description => "Set the JPEG quality setting for the saved event files (1-100)",
 		help => "When ZoneMinder detects an event it will save the images associated with that event to files. These files are in the JPEG format and can be viewed or streamed later. This option specifies what image quality should be used to save these files. A higher number means better quality but less compression so will take up more disk space and take longer to view over a slow connection. By contrast a low number means smaller, quicker to view, files but at the price of lower quality images.",
 		type => $types{integer},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_JPEG_IMAGE_QUALITY",
@@ -271,7 +271,7 @@ our @options =
 		description => "Set the JPEG quality setting for the streamed 'live' images (1-100)",
 		help => "When viewing a 'live' stream for a monitor ZoneMinder will grab an image from the buffer and encode it into JPEG format before sending it. This option specifies what image quality should be used to encode these images. A higher number means better quality but less compression so will take longer to view over a slow connection. By contrast a low number means quicker to view files but at the price of lower quality images. This option does not apply when viewing still images as these are just read from disk and so will be encoded at the quality specified by the previous option.",
 		type => $types{integer},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_BLEND_ALARMED_IMAGES",
@@ -279,7 +279,7 @@ our @options =
 		description => "Whether alarmed images are blended to update the reference image",
 		help => "To detect alarms ZoneMinder compares an image with a reference image which is formed from a composite of the previous images. This option determines whether images that cause events are included in this process. Doing so may increase the precision of the alarmed region but can cause problems if wholescale lighting changes cause alarms as this would not get fed back into the image and an alarm may persist indefinately. A better way to achive the same effect in most cases is to lower substantially the reference blend persentage in specific monitors.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_NO_MAX_FPS_ON_ALARM",
@@ -287,7 +287,7 @@ our @options =
 		description => "Should any Maximum FPS be ignored if an alarm occurs",
 		help => "When configuring monitors you can optionally specify a maximum setting for the capture rate rate in frames per second. This can used to limit your video or network bandwidth or reduce CPU load. This setting tells ZoneMinder to ignore these constraints if an alarm is detected an attempt to capture as fast as possible.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_OPT_ADAPTIVE_SKIP",
@@ -295,7 +295,7 @@ our @options =
 		description => "Should frame analysis try and be efficient in skipping frames",
 		help => "In previous versions of ZoneMinder the analysis daemon would attempt to keep up with the capture daemon by processing the last captured frame on each pass. This would sometimes have the undesirable side-effect of missing a chunk of the initial activity that caused the alarm because the pre-alarm frames would all have to be written to disk and the database before processing the next frame, leading to some delay between the first and second event frames. Setting this option enables a newer adaptive algorithm where the analysis daemon attempts to process as many captured frames as possible, only skipping frames when in danger of the capture daemon overwriting yet to be processed frames. This skip is variable depending on the size of the ring buffer and the amount of space left in it. Enabling this option will give you much better coverage of the beginning of alarms whilst biasing out any skipped frames towards the middle or end of the event. However you should be aware that this will have the effect of making the analysis daemon run somewhat behind the capture daemon during events and for particularly fast rates of capture it is possible for the adaptive algorithm to be overwhelmed and not have time to react to a rapid build up of pending frames and thus for a buffer overrun condition to occur.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_OPT_REMOTE_CAMERAS",
@@ -303,7 +303,7 @@ our @options =
 		description => "Are you going to use remote/networked cameras",
 		help => "ZoneMinder can work with both local cameras, ie. those attached physically to your computer and remote or network cameras. If you will be using networked cameras select this option.",
 		type => $types{boolean},
-		category => 'network',
+		category => "network",
 	},
 	{
 		name => "ZM_NETCAM_REGEXPS",
@@ -312,7 +312,7 @@ our @options =
 		help => "Traditionally ZoneMinder has used complex regular regular expressions to handle the multitude of formats that network cameras produce. In versions from 1.21.1 the default is to use a simpler and faster built in pattern matching methodology. This works well with most networks cameras but if you have problems you can try the older, but more flexible, regular expression based method by selecting this option. Note, to use this method you must have libpcre installed on your system.",
 		requires => [ { name => "ZM_OPT_REMOTE_CAMERAS", value => "yes" } ],
 		type => $types{boolean},
-		category => 'network',
+		category => "network",
 	},
 	{
 		name => "ZM_HTTP_VERSION",
@@ -320,8 +320,8 @@ our @options =
 		description => "The version of HTTP that ZoneMinder will use to connect",
 		requires => [ { name => "ZM_OPT_REMOTE_CAMERAS", value => "yes" } ],
 		help => "ZoneMinder can communicate using either of the HTTP/1.1 or HTTP/1.0 standard. A server will normally fall back to the version it supports iwht no problem so this should usually by left at the default. However it can be changed to HTTP/1.0 if necessary to resolve particular issues.",
-		type => { db_type=>'string', hint=>'1.1|1.0', pattern=>qr|^(1\.[01])$|, format=>q( $1?$1:"" ) },
-		category => 'network',
+		type => { db_type=>"string", hint=>"1.1|1.0", pattern=>qr|^(1\.[01])$|, format=>q( $1?$1:"" ) },
+		category => "network",
 	},
 	{
 		name => "ZM_HTTP_UA",
@@ -330,7 +330,7 @@ our @options =
 		requires => [ { name => "ZM_OPT_REMOTE_CAMERAS", value => "yes" } ],
 		help => "When ZoneMinder communicates with remote cameras it will identify itself using this string and it's version number. This is normally sufficient, however if a particular cameras expects only to communicate with certain browsers then this can be changed to a different string identifying ZoneMinder as Internet Explorer or Netscape etc.",
 		type => $types{string},
-		category => 'network',
+		category => "network",
 	},
 	{
 		name => "ZM_HTTP_TIMEOUT",
@@ -339,15 +339,15 @@ our @options =
 		requires => [ { name => "ZM_OPT_REMOTE_CAMERAS", value => "yes" } ],
 		help => "When retrieving remote images ZoneMinder will wait for this length of time before deciding that an image is not going to arrive and taking steps to retry. This timeout is in milliseconds (1000 per second) and will apply to each part of an image if it is not sent in one whole chunk.",
 		type => $types{integer},
-		category => 'network',
+		category => "network",
 	},
 	{
 		name => "ZM_OPT_MPEG",
 		default => "no",
 		description => "Is there an (optional) mpeg video encoder installed",
 		help => "ZoneMinder can optionally encode a series of video images into an MPEG encoded file. This option allows you to specifiy whether you have an mpeg encoder installed and if so which one. The two that ZoneMinder supports are mpeg_encode and ffmpeg, of which the latter is by far the fastest. However creating MPEG files can be fairly CPU and disk intensive and is not required as events can still be reviewed as video stream without it.",
-		type => { db_type=>'string', hint=>'no|mpeg_encode|ffmpeg', pattern=>qr|^([nmf])|i, format=>q( $1 =~ /^n/ ? 'no' : ( $1 =~ /^m/ ? 'mpeg_encode' : 'ffmpeg') ) },
-		category => 'tools',
+		type => { db_type=>"string", hint=>"no|mpeg_encode|ffmpeg", pattern=>qr|^([nmf])|i, format=>q( $1 =~ /^n/ ? "no" : ( $1 =~ /^m/ ? "mpeg_encode" : "ffmpeg") ) },
+		category => "tools",
 	},
 	{
 		name => "ZM_PATH_MPEG_ENCODE",
@@ -356,7 +356,7 @@ our @options =
 		help => "This path should point to where the Berkeley mpeg_encode program has been installed.",
 		requires => [ { name=>"ZM_OPT_MPEG", value=>"mpeg_encode" } ],
 		type => $types{abs_path},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_PATH_FFMPEG",
@@ -365,7 +365,7 @@ our @options =
 		help => "This path should point to where the ffmpeg has been installed.",
 		requires => [ { name=>"ZM_OPT_MPEG", value=>"ffmpeg" } ],
 		type => $types{abs_path},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_FFMPEG_INPUT_OPTIONS",
@@ -374,7 +374,7 @@ our @options =
 		help => "Ffmpeg can take many options on the command line to control the quality of video produced. This option allows you to specify your own set that apply to the input to ffmpeg (options that are given before the -i option). Check the ffmpeg documentation for a full list of options which may be used here.",
 		requires => [ { name=>"ZM_OPT_MPEG", value=>"ffmpeg" } ],
 		type => $types{string},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_FFMPEG_OUTPUT_OPTIONS",
@@ -383,7 +383,7 @@ our @options =
 		help => "Ffmpeg can take many options on the command line to control the quality of video produced. This option allows you to specify your own set that apply to the output from ffmpeg (options that are given after the -i option). Check the ffmpeg documentation for a full list of options which may be used here. The most common one will often be to force an output frame rate supported by the video encoder.",
 		requires => [ { name=>"ZM_OPT_MPEG", value=>"ffmpeg" } ],
 		type => $types{string},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_FFMPEG_FORMATS",
@@ -392,7 +392,7 @@ our @options =
 		help => "Ffmpeg can generate video in many different formats. This option allows you to list the ones you want to be able to select. As new formats are supported by ffmpeg you can add them here and be able to use them immediately. Adding a '*' after a format indicates that this will be the default format used for web video, adding '**' defines the default format for phone video.",
 		requires => [ { name=>"ZM_OPT_MPEG", value=>"ffmpeg" } ],
 		type => $types{string},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_OPT_NETPBM",
@@ -400,7 +400,7 @@ our @options =
 		description => "Are the (optional) Netpbm utilities installed",
 		help => "For low bandwidth situations ZoneMinder will resize images into thumbnails on the fly before sending them to the browser to reduce the network traffic at the expense of CPU on the server. It uses the Netpbm package to do this and this option should be set to where the binaries from that package are installed. If you do not have it installed it means that the images will always be sent full size and rescaled on your browser which may or not be an issue for you.",
 		type => $types{boolean},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_PATH_NETPBM",
@@ -409,7 +409,7 @@ our @options =
 		help => "For low bandwidth situations ZoneMinder will resize images into thumbnails on the fly before sending them to the browser to reduce the network traffic at the expense of CPU on the server. It uses the Netpbm package to do this and this option should be set to where the binaries from that package are installed. If you do not have it installed it means that the images will always be sent full size and rescaled on your browser which may or not be an issue for you.",
 		requires => [ { name=>"ZM_OPT_NETPBM", value=>"yes" } ],
 		type => $types{abs_path},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_OPT_TRIGGERS",
@@ -417,7 +417,7 @@ our @options =
 		description => "Whether we want to interface external event triggers via socket or device files",
 		help => "ZoneMinder can interact with external systems which prompt or cancel alarms. This is done via the zmtrigger.pl script. This option indicates whether you want to use these external triggers, most people will say no here.",
 		type => $types{boolean},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_EXTRA_DEBUG",
@@ -425,7 +425,7 @@ our @options =
 		description => "Whether to switch additional debugging on",
 		help => "ZoneMinder binary components usually have several levels of debug information they can output. Normally this is set to a fairly low level to avoid filling logs too quickly. This options lets you switch on other options that allow you to configure additional debug information to be output. Components will pick up this instruction when they are restarted.",
 		type => $types{boolean},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_EXTRA_DEBUG_TARGET",
@@ -434,7 +434,7 @@ our @options =
 		help => "There are three scopes of debug available. Leaving this option blank means that all components will use extra debug (not recommended). Setting this option to '_<component>', e.g. _zmc, will limit extra debug to that component only. Setting this option to '_<component>_<identity>', e.g. '_zmc_m1' will limit extra debug to that instance of the component only. This is ordinarily what you probably want to do.",
 		requires => [ { name => "ZM_EXTRA_DEBUG", value => "yes" } ],
 		type => $types{string},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_EXTRA_DEBUG_LEVEL",
@@ -442,8 +442,8 @@ our @options =
 		description => "What level of extra debug should be enabled",
 		help => "There are 9 levels of debug available, with higher numbers being more debug and level 0 being no debug. However not all levels are used by all components. Also if there is debug at a high level it is usually likely to be output at such a volume that it may obstruct normal operation. For this reason you should set the level carefully and cautiously until the degree of debug you wish to see is present.",
 		requires => [ { name => "ZM_EXTRA_DEBUG", value => "yes" } ],
-		type => { db_type=>'integer', hint=>'0|1|2|3|4|5|6|7|8|9', pattern=>qr|^(\d+)$|, format=>q( $1 ) },
-		category => 'tools',
+		type => { db_type=>"integer", hint=>"0|1|2|3|4|5|6|7|8|9", pattern=>qr|^(\d+)$|, format=>q( $1 ) },
+		category => "tools",
 	},
 	{
 		name => "ZM_EXTRA_DEBUG_LOG",
@@ -452,7 +452,7 @@ our @options =
 		help => "Depending on your system configuration you may find that only errors, warning and informational messages are logged to your system log. This option allows you to specify an additional target for these messages and debug. This also has the advantage of partitioning debug for the component you are tracing, from messages from other components. Be warned however that if this is a simple filename and you are debugging several components then they will all try and write to the same file with undesirable consequences. Appending a '+' to the filename will cause the file to be created with a '.<pid>' suffix containing your process id. In this way debug from each run of a component is kept separate. This is the recommended setting as it will also prevent subsequent runs from overwriting the same log.",
 		requires => [ { name => "ZM_EXTRA_DEBUG", value => "yes" } ],
 		type => $types{string},
-		category => 'tools',
+		category => "tools",
 	},
 	{
 		name => "ZM_PATH_SOCKS",
@@ -460,7 +460,7 @@ our @options =
 		description => "Path to the various Unix domain socket files that ZoneMinder uses",
 		help => "ZoneMinder generally uses Unix domain sockets where possible. This reduces the need for port assignments and prevents external applications from possibly compromising the daemons. However each Unix socket requires a .sock file to be created. This option where those socket files go.",
 		type => $types{abs_path},
-		category => 'paths',
+		category => "paths",
 	},
 	{
 		name => "ZM_PATH_LOGS",
@@ -468,15 +468,15 @@ our @options =
 		description => "Path to the various logs that the ZoneMinder daemons generate",
 		help => "There are various daemons that are used by ZoneMinder to perform various tasks. Most generate helpful log files and this is where they go. They can be deleted if not required for debugging.",
 		type => $types{abs_path},
-		category => 'paths',
+		category => "paths",
 	},
 	{
 		name => "ZM_VIDEO_STREAM_METHOD",
 		default => "jpeg",
 		description => "Which method should be used to send video streams to your browser, choose 'mpeg' or 'jpeg'",
 		help => "ZoneMinder can be configured to use either mpeg encoded video or a series or still jpeg images when sending video streams. This option defines which is used. If you choose mpeg you should ensure that you have the appropriate plugins available on your browser whereas choosing jpeg will work natively on Mozilla and related browsers and with a Java applet on Internet Explorer",
-		type => { db_type=>'string', hint=>'mpeg|jpeg', pattern=>qr|^([mj])|i, format=>q( $1 =~ /^m/ ? 'mpeg' : 'jpeg' ) },
-		category => 'video',
+		type => { db_type=>"string", hint=>"mpeg|jpeg", pattern=>qr|^([mj])|i, format=>q( $1 =~ /^m/ ? "mpeg" : "jpeg" ) },
+		category => "video",
 	},
 	{
 		name => "ZM_VIDEO_TIMED_FRAMES",
@@ -485,7 +485,7 @@ our @options =
 		help => "When using streamed MPEG based video, either for live monitor streams or events, ZoneMinder can send the streams in two ways. If this option is selected then the timestamp for each frame, taken from it's capture time, is included in the stream. This means that where the frame rate varies, for instance around an alarm, the stream will still maintain it's 'real' timing. If this option is not selected then an approximate frame rate is calculated and that is used to schedule frames instead. This option should be selected unless you encounter problems with your preferred streaming method.",
 		requires => [ { name=>"ZM_VIDEO_STREAM_METHOD", value=>"mpeg" } ],
 		type => $types{boolean},
-		category => 'video',
+		category => "video",
 	},
 	{
 		name => "ZM_VIDEO_LIVE_FORMAT",
@@ -494,7 +494,7 @@ our @options =
 		help => "When using MPEG mode ZoneMinder can output live video. However what formats are handled by the browser varies greatly between machines. This option allows you to specify a video format using a file extension format, so you would just enter the extension of the file type you would like and the rest is determined from that. The default of 'asf' works well under Windows with Windows Media Player but I'm currently not sure what, if anything, works on a Linux platform. If you find out please let me know! If this option is left blank then live streams will revert to being in motion jpeg format",
 		requires => [ { name=>"ZM_VIDEO_STREAM_METHOD", value=>"mpeg" } ],
 		type => $types{string},
-		category => 'video',
+		category => "video",
 	},
 	{
 		name => "ZM_VIDEO_REPLAY_FORMAT",
@@ -503,7 +503,7 @@ our @options =
 		help => "When using MPEG mode ZoneMinder can replay events in encoded video format. However what formats are handled by the browser varies greatly between machines. This option allows you to specify a video format using a file extension format, so you would just enter the extension of the file type you would like and the rest is determined from that. The default of 'asf' works well under Windows with Windows Media Player and 'mpg', or 'avi' etc should work under Linux. If you knwo any more then please let me know! If this option is left blank then live streams will revert to being in motion jpeg format",
 		requires => [ { name=>"ZM_VIDEO_STREAM_METHOD", value=>"mpeg" } ],
 		type => $types{string},
-		category => 'video',
+		category => "video",
 	},
 	{
 		name => "ZM_WEB_TITLE_PREFIX",
@@ -511,7 +511,7 @@ our @options =
 		description => "The title prefix displayed on each window",
 		help => "If you have more than one installation of ZoneMinder it can be helpful to display different titles for each one. Changing this option allows you to customise the window titles to include further information to aid identification.",
 		type => $types{string},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_RESIZE_CONSOLE",
@@ -519,7 +519,7 @@ our @options =
 		description => "Should the console window resize itself to fit",
 		help => "Traditionally the main ZoneMinder web console window has resized itself to shrink to a size small enough to list only the monitors that are actually present. This is intended to make the window more unobtrusize but may not be to everyones tastes, especially if opened in a tab in browsers which support this kind if layout. Switch this option off to have the console window size left to the users preference",
 		type => $types{boolean},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_POPUP_ON_ALARM",
@@ -527,7 +527,7 @@ our @options =
 		description => "Should the monitor window jump to the top if an alarm occurs",
 		help => "When viewing a live monitor stream you can specify whether you want the window to pop to the front if an alarm occurs when the window is minimised or behind another window. This is most useful if your monitors are over doors for example when they can pop up if someone comes to the doorway.",
 		type => $types{boolean},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_OPT_X10",
@@ -535,7 +535,7 @@ our @options =
 		description => "Whether we want to interface with X10 devices",
 		help => "If you have an X10 Home Automation setup in your home you can use ZoneMinder to initiate or react to X10 signals if your computer has the appropriate interface controller. This option indicates whether X10 options will be available in the browser client.",
 		type => $types{boolean},
-		category => 'x10',
+		category => "x10",
 	},
 	{
 		name => "ZM_X10_DEVICE",
@@ -544,7 +544,7 @@ our @options =
 		requires => [ { name => "ZM_OPT_X10", value => "yes" } ],
 		help => "If you have an X10 controller device (e.g. XM10U) connected to your computer this option details which port it is conected on, the default of /dev/ttyS0 maps to serial or com port 1.",
 		type => $types{abs_path},
-		category => 'x10',
+		category => "x10",
 	},
 	{
 		name => "ZM_X10_HOUSE_CODE",
@@ -552,8 +552,8 @@ our @options =
 		description => "What X10 house code should be used",
 		requires => [ { name => "ZM_OPT_X10", value => "yes" } ],
 		help => "X10 devices are grouped together by identifying them as all belonging to one House Code. This option details what that is. It should be a single letter between A and P.",
-		type => { db_type=>'string', hint=>'A-P', pattern=>qr|^([A-P])|i, format=>q( uc($1) ) },
-		category => 'x10',
+		type => { db_type=>"string", hint=>"A-P", pattern=>qr|^([A-P])|i, format=>q( uc($1) ) },
+		category => "x10",
 	},
 	{
 		name => "ZM_X10_DB_RELOAD_INTERVAL",
@@ -562,7 +562,7 @@ our @options =
 		requires => [ { name => "ZM_OPT_X10", value => "yes" } ],
 		help => "The zmx10 daemon periodically checks the database to find out what X10 events trigger, or result from, alarms. This option determines how frequently this check occurs, unless you change this area frequently this can be a fairly large value.",
 		type => $types{integer},
-		category => 'x10',
+		category => "x10",
 	},
 	{
 		name => "ZM_WEB_SOUND_ON_ALARM",
@@ -570,7 +570,7 @@ our @options =
 		description => "Should the monitor window play a sound if an alarm occurs",
 		help => "When viewing a live monitor stream you can specify whether you want the window to play a sound to alert you if an alarm occurs.",
 		type => $types{boolean},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_ALARM_SOUND",
@@ -579,7 +579,7 @@ our @options =
 		help => "You can specify a sound file to play if an alarm occurs whilst you are watching a live monitor stream. So long as your browser understands the format it does not need to be any particular type. This file should be placed in the sounds directory defined earlier.",
 		type => $types{file},
 		requires => [ { name => "ZM_WEB_SOUND_ON_ALARM", value => "yes" } ],
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_COMPACT_MONTAGE",
@@ -587,7 +587,7 @@ our @options =
 		description => "Whether to compact the montage view by removing extra detail",
 		help => "The montage view shows the output of all of your active monitors in one window. This include a small menu and status information for each one. This can increase the web traffic and make the window larger than may be desired. Setting this option on removes all this extraneous information and just displays the images.",
 		type => $types{boolean},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_MONTAGE_MAX_COLS",
@@ -595,7 +595,7 @@ our @options =
 		description => "The maximum number of monitor columns in the montage view",
 		help => "The 'montage' view shows images from all your monitors at once. This parameter defines how many monitors to place across your screen before moving to the next row. If you have a very wide screen and/or small images from your cameras this can be a bigger value however if not, of if you prefer the images stacked vertically it should be small.",
 		type => $types{integer},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_MONTAGE_WIDTH",
@@ -603,7 +603,7 @@ our @options =
 		description => "What width should each monitor in the montage view be",
 		help => "In the montage view it is possible to view all of your monitors at once. If they are all different sizes this can be fairly untidy. Setting this option allows you to constrain the width of each of the monitor views to a fixed value to make the window tidier overall. Leaving it at the default of zero lets each monitor be displayed at it's normal native size.",
 		type => $types{integer},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_MONTAGE_HEIGHT",
@@ -611,7 +611,7 @@ our @options =
 		description => "What height should each monitor in the montage view be",
 		help => "In the montage view it is possible to view all of your monitors at once. If they are all different sizes this can be fairly untidy. Setting this option allows you to constrain the height of each of the monitor views to a fixed value to make the window tidier overall. Leaving it at the default of zero lets each monitor be displayed at it's normal native size.",
 		type => $types{integer},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_OPT_FAST_DELETE",
@@ -619,7 +619,7 @@ our @options =
 		description => "When deleting events should the client only delete the database records for speed",
 		help => "Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if your are trying to do a lot of events at once. It is recommended that you set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in listing, and leaves the zmaudit daemon to clear up the rest later.",
 		type => $types{boolean},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_STRICT_VIDEO_CONFIG",
@@ -627,7 +627,7 @@ our @options =
 		description => "Whether to allow errors in setting video config to be fatal",
 		help => "With some video devices errors can be reported in setting the various video attributes when in fact the operation was successful. Switching this option off will still allow these errors to be reported but will not cause them to kill the video capture daemon. Note however that doing this will cause all errors to be ignored including those which are genuine and which may cause the video capture to not function correctly. Use this option with caution.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_CAPTURES_PER_FRAME",
@@ -635,7 +635,7 @@ our @options =
 		description => "How many images are captured per returned frame, for shared local cameras",
 		help => "If you are using cameras attached to a video capture card which forces multiple inputs to share one capture chip, it can sometimes produce images with interlaced frames reversed resulting in poor image quality and a distinctive comb edge appearance. Increasing this setting allows you to force additional image captures before one is selected as the captured frame. This allows the capture hardware to 'settle down' and produce better quality images at the price of lesser capture rates. This option has no effect on (a) network cameras, or (b) where multiple inputs do not share a capture chip",
 		type => $types{integer},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_FILTER_RELOAD_DELAY",
@@ -643,7 +643,7 @@ our @options =
 		description => "How often (in seconds) filters are reloaded in zmfilter.pl",
 		help => "ZoneMinder allows you to save filters to the database which allow events that match certain criteria to be emailed, deleted or uploaded to a remote machine etc. The zmfilter daemon loads these and does the actual operation. This option determines how often the filters are reloaded from the database to get the latest versions or new filters. If you don't change filters very often this value can be set to a large value.",
 		type => $types{integer},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_FILTER_EXECUTE_INTERVAL",
@@ -651,7 +651,7 @@ our @options =
 		description => "How often (in seconds) to run automatic saved filters",
 		help => "ZoneMinder allows you to save filters to the database which allow events that match certain criteria to be emailed, deleted or uploaded to a remote machine etc. The zmfilter daemon loads these and does the actual operation. This option determines how often the filters are executed on the saved event in the database. If you want a rapid response to new events this should be a smaller value, however this may increase the overall load on the system and affect performance of other elements.",
 		type => $types{integer},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_OPT_UPLOAD",
@@ -659,7 +659,7 @@ our @options =
 		description => "Should ZoneMinder try and upload events that match corresponding filters",
 		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should be uploaded to a remote server for archiving. This option specifies whether this functionality should be available",
 		type => $types{boolean},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_ARCH_FORMAT",
@@ -667,8 +667,8 @@ our @options =
 		description => "What format the uploaded events should be created in. This can be 'tar' or 'zip'",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		help => "Uploaded events may be stored in either .tar or .zip format, this option specifies which. Note that to use this you will need to have the Archive::Tar and/or Archive::Zip perl modules installed.",
-		type => { db_type=>'string', hint=>'tar|zip', pattern=>qr|^([tz])|i, format=>q( $1 =~ /^t/ ? 'tar' : 'zip' ) },
-		category => 'ftp',
+		type => { db_type=>"string", hint=>"tar|zip", pattern=>qr|^([tz])|i, format=>q( $1 =~ /^t/ ? "tar" : "zip" ) },
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_ARCH_COMPRESS",
@@ -677,7 +677,7 @@ our @options =
 		help => "When the archive files are created they can be compressed. However in general since the images are compressed already this saves only a minimal amount of space versus utilising more CPU in their creation. Only enable if you have CPU to waste and are limited in disk space on your remote server or bandwidth",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{boolean},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_ARCH_ANALYSE",
@@ -686,7 +686,7 @@ our @options =
 		help => "When the archive files are created they can contain either just the captured frames or both the captured frames and for frames that caused an alarm the analysed image with the changed area highlighted. This option controls which to do. Only included analysed frames if you have a high bandwidth connection to the remote server or if you need help in figuring out what caused an alarm in the first place",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{boolean},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_FTP_HOST",
@@ -696,7 +696,7 @@ our @options =
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		help => "This is the remote machine that you wish to upload archived events to.",
 		type => $types{hostname},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_FTP_USER",
@@ -705,7 +705,7 @@ our @options =
 		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the username that ZoneMinder should use to log in for ftp transfer.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{alphanum},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_FTP_PASS",
@@ -714,7 +714,7 @@ our @options =
 		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the password that ZoneMinder should use to log in for ftp transfer.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{string},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_FTP_LOC_DIR",
@@ -723,7 +723,7 @@ our @options =
 		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the local directory that ZoneMinder should use for temporary upload files. These are files that are created from events, uploaded and then deleted.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{abs_path},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_FTP_REM_DIR",
@@ -732,7 +732,7 @@ our @options =
 		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the remote directory that ZoneMinder should use to upload event files to.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{rel_path},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_FTP_TIMEOUT",
@@ -741,7 +741,7 @@ our @options =
 		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the maximum ftp inactivity timeout that should be tolerated before ZoneMinder determiesn that the transfer has failed and closes down the connection.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{integer},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_FTP_PASSIVE",
@@ -751,7 +751,7 @@ our @options =
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		help => "If your computer is behind a firewall or proxy you may need to set FTP to passive mode. In fact for simple transfers it makes little sense to do otherwise anyway but you can set this to 'No' if you wish.",
 		type => $types{boolean},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_UPLOAD_FTP_DEBUG",
@@ -760,7 +760,7 @@ our @options =
 		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. If you are having (or expecting) troubles with uploading events then setting this to 'yes' permits additional information to be included in the zmfilter log file.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{boolean},
-		category => 'ftp',
+		category => "ftp",
 	},
 	{
 		name => "ZM_OPT_EMAIL",
@@ -768,7 +768,7 @@ our @options =
 		description => "Should ZoneMinder email you details of events that match corresponding filters",
 		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should have their details emailed to you at a designated email address. This will allow you to be notified of events as soon as they occur and also to quickly view the events directly. This option specifies whether this functionality should be available. The email created with this option can be any size and is intended to be sent to a regular email reader rather than a mobile device.",
 		type => $types{boolean},
-		category => 'mail',
+		category => "mail",
 	},
 	{
 		name => "ZM_EMAIL_ADDRESS",
@@ -777,7 +777,7 @@ our @options =
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" } ],
 		help => "This option is used to define the email address that any events that match the appropriate filters will be sent to.",
 		type => $types{email},
-		category => 'mail',
+		category => "mail",
 	},
 	{
 		name => "ZM_EMAIL_TEXT",
@@ -802,7 +802,7 @@ ZoneMinder',
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" } ],
 		help => "This option is used to define the content of the email that is sent for any events that match the appropriate filters.",
 		type => $types{text},
-		category => 'mail',
+		category => "mail",
 	},
 	{
 		name => "ZM_OPT_MESSAGE",
@@ -810,7 +810,7 @@ ZoneMinder',
 		description => "Should ZoneMinder message you with details of events that match corresponding filters",
 		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should have their details sent to you at a designated short message email address. This will allow you to be notified of events as soon as they occur. This option specifies whether this functionality should be available. The email created by this option will be brief and is intended to be sent to an SMS gateway or a minimal mail reader such as a mobile device or phone rather than a regular email reader.",
 		type => $types{boolean},
-		category => 'mail',
+		category => "mail",
 	},
 	{
 		name => "ZM_MESSAGE_ADDRESS",
@@ -819,7 +819,7 @@ ZoneMinder',
 		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "This option is used to define the short message email address that any events that match the appropriate filters will be sent to.",
 		type => $types{email},
-		category => 'mail',
+		category => "mail",
 	},
 	{
 		name => "ZM_MESSAGE_TEXT",
@@ -829,7 +829,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "This option is used to define the content of the message that is sent for any events that match the appropriate filters.",
 		type => $types{text},
-		category => 'mail',
+		category => "mail",
 	},
 	{
 		name => "ZM_NEW_MAIL_MODULES",
@@ -838,7 +838,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "Traditionally ZoneMinder has used the MIME::Entity perl module to construct and send notification emails and messages. Some people have reported problems with this module not being present at all or flexible enough for their needs. If you are one of those people this option allows you to select a new mailing method using MIME::Lite and Net::SMTP instead. This method was contributed by Ross Melin and should work for everyone but has not been extensively tested so currently is not selected by default.",
 		type => $types{boolean},
-		category => 'mail',
+		category => "mail",
 	},
 	{
 		name => "ZM_EMAIL_HOST",
@@ -847,7 +847,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "If you have chosen SMTP as the method by which to send notification emails or messages then this option allows you to choose which SMTP server to use to send them. The default of localhost may work if you have the sendmail, exim or a similar daemon running however you may wish to enter your ISP's SMTP mail server here.",
 		type => $types{hostname},
-		category => 'mail',
+		category => "mail",
 	},
 	{
 		name => "ZM_FROM_EMAIL",
@@ -856,7 +856,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "The emails or messages that will be sent to you informing you of events can appear to come from a designated email address to help you with mail filtering etc. An address of something like ZoneMinder\@your.domain is recommended.",
 		type => $types{email},
-		category => 'mail',
+		category => "mail",
 	},
 	{
 		name => "ZM_URL",
@@ -865,7 +865,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "The emails or messages that will be sent to you informing you of events can include a link to the events themselves for easy viewing. If you intend to use this feature then set this option to the url of your installation as it would appear from where you read your email, e.g. http://host.your.domain/zm.php.",
 		type => $types{url},
-		category => 'mail',
+		category => "mail",
 	},
 	{
 		name => "ZM_MAX_RESTART_DELAY",
@@ -873,7 +873,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Maximum delay (in seconds) for daemon restart attempts.",
 		help => "The zmdc (zm daemon control) process controls when processeses are started or stopped and will attempt to restart any that fail. If a daemon fails frequently then a delay is introduced between each restart attempt. If the daemon stills fails then this delay is increased to prevent extra load being placed on the system by continual restarts. This option controls what this maximum delay is.",
 		type => $types{integer},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_WATCH_CHECK_INTERVAL",
@@ -881,7 +881,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often to check the capture daemons have not locked up",
 		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines how often the daemons are checked.",
 		type => $types{integer},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_WATCH_MAX_DELAY",
@@ -889,7 +889,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "The maximum delay since the last captured image we will allow before restarting the capture daemons",
 		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines the maximum delay we will allow since the last captured frame. The daemon will be restarted if it has not captured any images after this period though the actual restart may take slightly longer in conjunction with the check interval value above.",
 		type => $types{decimal},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_FORCED_ALARM_SCORE",
@@ -897,7 +897,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Score to give forced alarms",
 		help => "The 'zmu' utility can be used to force an alarm on a monitor rather than rely on the motion detection algorithms. This option determines what score to give these alarms to distinguish them from regular ones. It must be 255 or less.",
 		type => $types{integer},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_BULK_FRAME_INTERVAL",
@@ -905,7 +905,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often a bulk frame should be written to the database",
 		help => "Traditionally ZoneMinder writes an entry into the Frames database table for each frame that is captured and saved. This works well in motion detection scenarios but when in a DVR situation ('Record' or 'Mocord' mode) this results in a huge number of frame writes and a lot of database and disk bandwidth for very little additional information. Setting this to a non-zero value will enabled ZoneMinder to group these non-alarm frames into one 'bulk' frame entry which saves a lot of bandwidth and space. The only disadvantage of this is that timing information for individual frames is lost but in constant frame rate situations this is usually not significant. This setting is ignored in Modect mode and individual frames are still written if an alarm occurs in Mocord mode also.",
 		type => $types{integer},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_RECORD_EVENT_STATS",
@@ -913,7 +913,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to record event statistical information, switch off if too slow",
 		help => "This version of ZoneMinder records detailed information about events in the Stats table. This can help in profiling what the optimum settings are for Zones though this is tricky at present. However in future releases this will be done more easily and intuitively, especially with a large sample of events. The default option of 'yes' allows this information to be collected now in readiness for this but if you are concerned about performance you can switch this off in which case no Stats information will be saved.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_RECORD_DIAG_IMAGES",
@@ -921,7 +921,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to record intermediate alarm diagnostic images, can be very slow",
 		help => "In addition to recording event statistics you can also record the intermediate diagnostic images that display the results of the various checks and processing that occur when trying to determine if an alarm event has taken place. There are several of these images generated for each frame and zone for each alarm or alert frame so this can have a massive impact on performance. Only switch this setting on for debug or analysis purposes and remember to switch it off again once no longer required.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_CREATE_ANALYSIS_IMAGES",
@@ -929,7 +929,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to create analysed alarm images with motion outlined",
 		help => "By default during an alarm ZoneMinder records both the raw captured image and one that has been analysed and had areas where motion was detected outlined. This can be very useful during zone configuration or in analysing why events occured. However it also incurs some overhead and in a stable system may no longer be necessary. This parameter allows you to switch the generation of these images off.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_WEIGHTED_ALARM_CENTRES",
@@ -937,7 +937,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to use a weighted algorithm to calculate the centre of an alarm",
 		help => "ZoneMinder will always calculate the centre point of an alarm in a zone to give some indication of where on the screen it is. This can be used by the experimental motion tracking feature or your own custom extensions. In the alarmed or filtered pixels mode this is a simple midpoint between the extents of the detected pxiesl. However in the blob method this can instead be calculated using weighted pixel locations to give more accurate positioning for irregularly shaped blobs. This method, while more precise is also slower and so is turned off by default.",
 		type => $types{boolean},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_EVENT_IMAGE_DIGITS",
@@ -945,7 +945,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How many significant digits are used in event image numbering",
 		help => "As event images are captured they are stored to the filesystem with a numerical index. By default this index has three digits so the numbers start 001, 002 etc. This works works for most scenarios as events with more than 999 frames are rarely captured. However if you have extremely long events and use external applications then you may wish to increase this to ensure correct sorting of images in listings etc. Warning, increasing this value on a live system may render existing events unviewable as the event will have been saved with the previous scheme. Decreasing this value should have no ill effects.",
 		type => $types{integer},
-		category => 'config',
+		category => "config",
 	},
 	{
 		name => "ZM_OPT_FRAME_SERVER",
@@ -954,7 +954,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		#requires => [ { name => "ZM_OPT_ADAPTIVE_SKIP", value => "yes" } ],
 		help => "In some circumstances it is possible for a slow disk to take so long writing images to disk that it causes the analysis daemon to fall behind especially during high frame rate events. Setting this option to yes enables a frame server daemon (zmf) which will be sent the images from the analysis daemon and will do the actual writing of images itself freeing up the analysis daemon to get on with other things. Should this transmission fail or other permanent or transient error occur, this function will fall back to the analysis daemon.",
 		type => $types{boolean},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_FRAME_SOCKET_SIZE",
@@ -963,7 +963,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		requires => [ { name => "ZM_OPT_FRAME_SERVER", value => "yes" } ],
 		help => "For large captured images it is possible for the writes from the analysis daemon to the frame server to fail as the amount to be written exceeds the default buffer size. While the images are then written by the analysis daemon so no data is lost, it defeats the object of the frame server daemon in the first place. You can use this option to indicate that a larger buffer size should be used. Note that you may have to change the existing maximum socket buffer size on your system via sysctl (or in /proc/sys/net/core/wmem_max) to allow this new size to be set. Alternatively you can change the default buffer size on your system in the same way in which case that will be used with no change necessary in this option",
 		type => $types{integer},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_OPT_CONTROL",
@@ -971,23 +971,23 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to support controllable (e.g. PTZ) cameras",
 		help => "ZoneMinder includes limited support for controllable cameras. A number of sample protocols are included and others can easily be added. If you wish to control your cameras via ZoneMinder then select this option otherwise if you only have static cameras or use other control methods then leave this option off.",
 		type => $types{boolean},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_EVENT_SORT_FIELD",
 		default => "DateTime",
 		description => "Default field the event lists are sorted by",
 		help => "Events in lists can be initially ordered in any way you want. This option controls what field is used to sort them. You can modify this ordering from filters or by clicking on headings in the lists themselves. Bear in mind however that the 'Prev' and 'Next' links, when scrolling through events, relate to the ordering in the lists and so not always to time based ordering.",
-		type => { db_type=>'string', hint=>'Id|Name|Cause|MonitorName|DateTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore', pattern=>qr|.|, format=>q( $1 ) },
-		category => 'system',
+		type => { db_type=>"string", hint=>"Id|Name|Cause|MonitorName|DateTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore", pattern=>qr|.|, format=>q( $1 ) },
+		category => "system",
 	},
 	{
 		name => "ZM_EVENT_SORT_ORDER",
 		default => "asc",
 		description => "Default order the event lists are sorted by",
 		help => "Events in lists can be initially ordered in any way you want. This option controls what order (ascending or descending) is used to sort them. You can modify this ordering from filters or by clicking on headings in the lists themselves. Bear in mind however that the 'Prev' and 'Next' links, when scrolling through events, relate to the ordering in the lists and so not always to time based ordering.",
-		type => { db_type=>'string', hint=>'asc|desc', pattern=>qr|^([ad])|i, format=>q( $1 =~ /^a/i ? 'asc' : 'desc' ) },
-		category => 'system',
+		type => { db_type=>"string", hint=>"asc|desc", pattern=>qr|^([ad])|i, format=>q( $1 =~ /^a/i ? "asc" : "desc" ) },
+		category => "system",
 	},
 	{
 		name => "ZM_FORCE_CLOSE_EVENTS",
@@ -995,7 +995,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether events are closed at section ends.",
 		help => "When a monitor is running in a continuous recording moe (Record or Mocord) events are usually closed after a fixed period of time (the section length). However in Mocord mode it is possible that motion detection may occur near the end of a section and ordinarily this will prevent the event being closed until the motion has ceased. Switching this option on will force the event closed at the specified time regardless of any motion activity.",
 		type => $types{boolean},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_CHECK_FOR_UPDATES",
@@ -1003,7 +1003,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to check with zoneminder.com for updated versions",
 		help => "From ZoneMinder version 1.17.0 onwards new versions are expected to be more frequent. To save checking manually for each new version ZoneMinder can check with the zoneminder.com website to determine the most recent release. These checks are infrequent, about once per week, and no personal or system information is transmitted other than your current version number. If you do not wish these checks to take place or your ZoneMinder system has no internet access you can switch these check off with this configuration variable",
 		type => $types{boolean},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_SHM_KEY",
@@ -1011,15 +1011,15 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Shared memory key to use, only change if it clashes with another application",
 		help => "ZoneMinder uses shared memory to speed up communication between modules. To identify the right area to use shared memory keys are used. This option controls what the base key is, each monitor will have it's Id or'ed with this to get the actual key used.",
 		type => $types{hexadecimal},
-		category => 'system',
+		category => "system",
 	},
 	{
 		name => "ZM_WEB_REFRESH_METHOD",
 		default => "javascript",
 		description => "What method windows should use to refresh themselves",
 		help => "Many windows in Javascript need to refresh themselves to keep their information current. This option determines what method they should use to do this. Choosing 'javascript' means that each window will have a short JavaScript statement in with a timer to prompt the refresh. This is the most compatible method. Choosing 'http' means the refresh instruction is put in the HTTP header. This is a cleaner method but refreshes are interrupted or cancelled when a link in the window is clicked meaning that the window will no longer refresh and this would have to be done manually.",
-		type => { db_type=>'string', hint=>'javascript|http', pattern=>qr|^([jh])|i, format=>q( $1 =~ /^j/ ? 'javascript' : 'http' ) },
-		category => 'web',
+		type => { db_type=>"string", hint=>"javascript|http", pattern=>qr|^([jh])|i, format=>q( $1 =~ /^j/ ? "javascript" : "http" ) },
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_DOUBLE_BUFFER",
@@ -1028,7 +1028,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		requires => [ { name => "ZM_WEB_REFRESH_METHOD", value => "javascript" } ],
 		help => "From version 1.18.0 ZoneMinder can use a double buffering method to preload still image prior to displaying them on screen. This reduces flickering and makes viewing still images a more pleasant experience. However some devices may not support the JavaScript/frames combination needed to make this possible in which case this option should be switched off. As this option uses JavaScript it will only have an effect if the ZM_WEB_REFRESH_METHOD option is set to JavaScript also.",
 		type => $types{boolean},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_EVENTS_PER_PAGE",
@@ -1036,7 +1036,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How many events to list per page in paged mode",
 		help => "In the event list view you can either list all events or just a page at a time. This option controls how many events are listed per page in paged mode and how often to repeat the column headers in non-paged mode.",
 		type => $types{integer},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_FRAMES_PER_LINE",
@@ -1044,7 +1044,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How many frames to list per line in the frame view",
 		help => "In the event frame view you can view the individual frames that comprise an event. This option allows you to specify how many frames go on each line. The product of this option and the frame lines option are the number of frames per page",
 		type => $types{integer},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_FRAME_LINES",
@@ -1052,7 +1052,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How many lines of frames to list in the frame view",
 		help => "In the event frame view you can view the individual frames that comprise an event. This option allows you to specify how many lines of frames are shown per page. The product of this option and the frames per line option are the number of frames per page.",
 		type => $types{integer},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_LIST_THUMBS",
@@ -1060,7 +1060,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to display mini-thumbnails of event images in event lists",
 		help => "Ordinarily the event lists just display text details of the events to save space and time. By switching this option on you can also display small thumbnails to help you identify events of interest. The size of these thumbnails is controlled by the following two options.",
 		type => $types{boolean},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_LIST_THUMB_WIDTH",
@@ -1069,7 +1069,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "This options controls the width of the thumbnail images that appear in the event lists. It should be fairly small to fit in with the rest of the table. If you prefer you can specify a height instead in the next option but you should only use one of the width or height and the other option should be set to zero. If both width and height are specified then width will be used and height ignored.",
 		type => $types{integer},
 		requires => [ { name => "ZM_WEB_LIST_THUMBS", value => "yes" } ],
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_LIST_THUMB_HEIGHT",
@@ -1078,7 +1078,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "This options controls the height of the thumbnail images that appear in the event lists. It should be fairly small to fit in with the rest of the table. If you prefer you can specify a width instead in the previous option but you should only use one of the width or height and the other option should be set to zero. If both width and height are specified then width will be used and height ignored.",
 		type => $types{integer},
 		requires => [ { name => "ZM_WEB_LIST_THUMBS", value => "yes" } ],
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_USE_OBJECT_TAGS",
@@ -1086,7 +1086,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to wrap embed in object tags for media content",
 		help => "There are two methods of including media content in web pages. The most common way is use the EMBED tag which is able to give some indication of the type of content. However this is not a standard part of HTML. The official method is to use OBJECT tags which are able to give more information allowing the correct media viewers etc to be loaded. However these are less widely supported and content may be specifically tailored to a particular platform or player. This option controls whether media content is enclosed in EMBED tags only or whether, where appropriate, it is additionally wrapped in OBJECT tags. Currently OBJECT tags are only used in a limited number of circumstances but they may become more widespread in the future. It is suggested that you leave this option off unless you encounter problems playing some content.",
 		type => $types{boolean},
-		category => 'web',
+		category => "web",
 	},
 	{
 		name => "ZM_WEB_H_REFRESH_MAIN",
@@ -1095,7 +1095,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the main console window should refresh itself",
 		help => "The main console window lists a general status and the event totals for all monitors. This is not a trivial task and should not be repeated too frequently or it may affect the performance of the rest of the system.",
 		type => $types{integer},
-		category => 'highband',
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_REFRESH_CYCLE",
@@ -1103,7 +1103,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the cycle watch window swaps to the next monitor",
 		help => "The cycle watch window is a method of continuously cycling between images from all of your monitors. This option determines how often to refresh with a new image.",
 		type => $types{integer},
-		category => 'highband',
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_REFRESH_IMAGE",
@@ -1111,7 +1111,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the watched image is refreshed (if not streaming)",
 		help => "The live images from a monitor can be viewed in either streamed or stills mode. This option determines how often a stills image is refreshed, it has no effect if streaming is selected.",
 		type => $types{integer},
-		category => 'highband',
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_REFRESH_STATUS",
@@ -1119,7 +1119,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the status frame refreshes itself in the watch window",
 		help => "The monitor window is actually made from several frames. The one in the middle merely contains a monitor status which needs to refresh fairly frequently to give a true indication. This option determines that frequency.",
 		type => $types{integer},
-		category => 'highband',
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_REFRESH_EVENTS",
@@ -1127,15 +1127,15 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the event listing is refreshed in the watch window",
 		help => "The monitor window is actually made from several frames. The lower framme contains a listing of the last few events for easy access. This option determines how often this is refreshed.",
 		type => $types{integer},
-		category => 'highband',
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_DEFAULT_SCALE",
 		default => "100",
 		description => "What the default scaling factor applied to 'live' or 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'live' or 'event' streams in their native size. However if you have monitors with large dimensions or a slow link you may prefer to reduce this size, alternatively for small monitors you can enlarge it. This options lets you specify what the default scaling factor will be. It is expressed as a percentage so 100 is normal size, 200 is double size etc.",
-		type => { db_type=>'integer', hint=>'25|33|50|75|100|150|200|300|400', pattern=>qr|^(\d+)$|, format=>q( $1 ) },
-		category => 'highband',
+		type => { db_type=>"integer", hint=>"25|33|50|75|100|150|200|300|400", pattern=>qr|^(\d+)$|, format=>q( $1 ) },
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_DEFAULT_RATE",
@@ -1143,7 +1143,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the default replay rate factor applied to 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
 		type => $types{integer},
-		category => 'highband',
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_VIDEO_BITRATE",
@@ -1151,7 +1151,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the bitrate of the video encoded stream should be set to",
 		help => "When encoding real video via the ffmpeg library a bit rate can be specified which roughly corresponds to the available bandwidth used for the stream. This setting effectively corresponds to a 'quality' setting for the video. A low value will result in a blocky image whereas a high value will produce a clearer view. Note that this setting does not control the frame rate of the video however the quality of the video produced is affected both by this setting and the frame rate that the video is produced at. A higher frame rate at a particular bit rate result in individual frames being at a lower quality.",
 		type => $types{integer},
-		category => 'highband',
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_VIDEO_MAXFPS",
@@ -1159,7 +1159,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the maximum frame rate for streamed video should be",
 		help => "When using streamed video the main control is the bitrate which determines how much data can be transmitted. However a lower bitrate at high frame rates results in a lower quality image. This option allows you to limit the maximum frame rate to ensure that video quality is maintained. An additional advantage is that encoding video at high frame rates is a processor intensive task when for the most part a very high frame rate offers little perceptible improvement over one that has a more manageable resource requirement. Note, this option is implemented as a cap beyond which binary reduction takes place. So if you have a device capturing at 15fps and set this option to 10fps then the video is not produced at 10fps, but rather at 7.5fps (15 divided by 2) as the final frame rate must be the original divided by a power of 2.",
 		type => $types{integer},
-		category => 'highband',
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_IMAGE_SCALING",
@@ -1167,8 +1167,8 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How to scale thumbnails in events, bandwidth versus cpu in rescaling",
 		help => "A value of 1 sends the whole image to the browser which resizes it in the window, larger values scale down by that amount on the server before sending a reduced size image to the browser. For high bandwidth settings the default of 1 is usually the fastest and also does not result in extraneous thumbnail files being generated.",
 		type => $types{integer},
-		requires => [ { name=>"ZM_PATH_NETPBM", value=>'/' } ],
-		category => 'highband',
+		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_USE_STREAMS",
@@ -1176,15 +1176,15 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to use streaming or stills for live and events views",
 		help => "Both the live and events views can use streaming to deliver a smoother feed. However over slow connections or in some other circumstances you can prefer to view stills instead. You can configure this globally with ZM_CAN_STREAM but this option allows you to modify your preference based on the bandwidth setting. Note that this option does not prevent you switching to streaming mode but just selects what the initial default setting is.",
 		type => $types{boolean},
-		category => 'highband',
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_H_EVENTS_VIEW",
 		default => "events",
 		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
 		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
-		type => { db_type=>'string', hint=>'events|timeline', pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? 'events' : 'timeline' ) },
-		category => 'highband',
+		type => { db_type=>"string", hint=>"events|timeline", pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? "events" : "timeline" ) },
+		category => "highband",
 	},
 	{
 		name => "ZM_WEB_M_REFRESH_MAIN",
@@ -1193,7 +1193,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "The main console window lists a general status and the event totals for all monitors. This is not a trivial task and should not be repeated too frequently or it may affect the performance of the rest of the system.",
 		type => $types{integer},
 		introduction => "The next few options control what happens when the client is running in 'medium' bandwidth mode. You should set these options for when accessing the ZoneMinder client over a slower cable or DSL link. In most cases the default values will be suitable as a starting point.",
-		category => 'medband',
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_REFRESH_CYCLE",
@@ -1201,7 +1201,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the cycle watch window swaps to the next monitor",
 		help => "The cycle watch window is a method of continuously cycling between images from all of your monitors. This option determines how often to refresh with a new image.",
 		type => $types{integer},
-		category => 'medband',
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_REFRESH_IMAGE",
@@ -1209,7 +1209,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the watched image is refreshed (if not streaming)",
 		help => "The live images from a monitor can be viewed in either streamed or stills mode. This option determines how often a stills image is refreshed, it has no effect if streaming is selected.",
 		type => $types{integer},
-		category => 'medband',
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_REFRESH_STATUS",
@@ -1217,7 +1217,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the status frame refreshes itself in the watch window",
 		help => "The monitor window is actually made from several frames. The one in the middle merely contains a monitor status which needs to refresh fairly frequently to give a true indication. This option determines that frequency.",
 		type => $types{integer},
-		category => 'medband',
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_REFRESH_EVENTS",
@@ -1225,15 +1225,15 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the event listing is refreshed in the watch window",
 		help => "The monitor window is actually made from several frames. The lower framme contains a listing of the last few events for easy access. This option determines how often this is refreshed.",
 		type => $types{integer},
-		category => 'medband',
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_DEFAULT_SCALE",
 		default => "100",
 		description => "What the default scaling factor applied to 'live' or 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'live' or 'event' streams in their native size. However if you have monitors with large dimensions or a slow link you may prefer to reduce this size, alternatively for small monitors you can enlarge it. This options lets you specify what the default scaling factor will be. It is expressed as a percentage so 100 is normal size, 200 is double size etc.",
-		type => { db_type=>'integer', hint=>'25|33|50|75|100|150|200|300|400', pattern=>qr|^(\d+)$|, format=>q( $1 ) },
-		category => 'medband',
+		type => { db_type=>"integer", hint=>"25|33|50|75|100|150|200|300|400", pattern=>qr|^(\d+)$|, format=>q( $1 ) },
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_DEFAULT_RATE",
@@ -1241,7 +1241,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the default replay rate factor applied to 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
 		type => $types{integer},
-		category => 'medband',
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_VIDEO_BITRATE",
@@ -1249,7 +1249,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the bitrate of the video encoded stream should be set to",
 		help => "When encoding real video via the ffmpeg library a bit rate can be specified which roughly corresponds to the available bandwidth used for the stream. This setting effectively corresponds to a 'quality' setting for the video. A low value will result in a blocky image whereas a high value will produce a clearer view. Note that this setting does not control the frame rate of the video however the quality of the video produced is affected both by this setting and the frame rate that the video is produced at. A higher frame rate at a particular bit rate result in individual frames being at a lower quality.",
 		type => $types{integer},
-		category => 'medband',
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_VIDEO_MAXFPS",
@@ -1257,7 +1257,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the maximum frame rate for streamed video should be",
 		help => "When using streamed video the main control is the bitrate which determines how much data can be transmitted. However a lower bitrate at high frame rates results in a lower quality image. This option allows you to limit the maximum frame rate to ensure that video quality is maintained. An additional advantage is that encoding video at high frame rates is a processor intensive task when for the most part a very high frame rate offers little perceptible improvement over one that has a more manageable resource requirement. Note, this option is implemented as a cap beyond which binary reduction takes place. So if you have a device capturing at 15fps and set this option to 10fps then the video is not produced at 10fps, but rather at 7.5fps (15 divided by 2) as the final frame rate must be the original divided by a power of 2.",
 		type => $types{integer},
-		category => 'medband',
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_IMAGE_SCALING",
@@ -1266,7 +1266,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "A value of 1 sends the whole image to the browser which resizes it in the window, larger values scale down by that amount on the server before sending a reduced size image to the browser. For medium bandwidth settings the default of 4 is usually the fastest though 1 may also work.",
 		type => $types{integer},
 		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
-		category => 'medband',
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_USE_STREAMS",
@@ -1274,15 +1274,15 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to use streaming or stills for live and events views",
 		help => "Both the live and events views can use streaming to deliver a smoother feed. However over slow connections or in some other circumstances you can prefer to view stills instead. You can configure this globally with ZM_CAN_STREAM but this option allows you to modify your preference based on the bandwidth setting. Note that this option does not prevent you switching to streaming mode but just selects what the initial default setting is.",
 		type => $types{boolean},
-		category => 'medband',
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_M_EVENTS_VIEW",
 		default => "events",
 		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
 		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
-		type => { db_type=>'string', hint=>'events|timeline', pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? 'events' : 'timeline' ) },
-		category => 'medband',
+		type => { db_type=>"string", hint=>"events|timeline", pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? "events" : "timeline" ) },
+		category => "medband",
 	},
 	{
 		name => "ZM_WEB_L_REFRESH_MAIN",
@@ -1291,7 +1291,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		introduction => "The next few options control what happens when the client is running in 'low' bandwidth mode. You should set these options for when accessing the ZoneMinder client over a modem or slow link. In most cases the default values will be suitable as a starting point.",
 		help => "The main console window lists a general status and the event totals for all monitors. This is not a trivial task and should not be repeated too frequently or it may affect the performance of the rest of the system.",
 		type => $types{integer},
-		category => 'lowband',
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_REFRESH_CYCLE",
@@ -1299,7 +1299,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the cycle watch window swaps to the next monitor",
 		help => "The cycle watch window is a method of continuously cycling between images from all of your monitors. This option determines how often to refresh with a new image.",
 		type => $types{integer},
-		category => 'lowband',
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_REFRESH_IMAGE",
@@ -1307,7 +1307,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the watched image is refreshed (if not streaming)",
 		help => "The live images from a monitor can be viewed in either streamed or stills mode. This option determines how often a stills image is refreshed, it has no effect if streaming is selected.",
 		type => $types{integer},
-		category => 'lowband',
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_REFRESH_STATUS",
@@ -1315,7 +1315,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the status frame refreshes itself in the watch window",
 		help => "The monitor window is actually made from several frames. The one in the middle merely contains a monitor status which needs to refresh fairly frequently to give a true indication. This option determines that frequency.",
 		type => $types{integer},
-		category => 'lowband',
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_REFRESH_EVENTS",
@@ -1323,15 +1323,15 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "How often (in seconds) the event listing is refreshed in the watch window",
 		help => "The monitor window is actually made from several frames. The lower framme contains a listing of the last few events for easy access. This option determines how often this is refreshed.",
 		type => $types{integer},
-		category => 'lowband',
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_DEFAULT_SCALE",
 		default => "100",
 		description => "What the default scaling factor applied to 'live' or 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'live' or 'event' streams in their native size. However if you have monitors with large dimensions or a slow link you may prefer to reduce this size, alternatively for small monitors you can enlarge it. This options lets you specify what the default scaling factor will be. It is expressed as a percentage so 100 is normal size, 200 is double size etc.",
-		type => { db_type=>'integer', hint=>'25|33|50|75|100|150|200|300|400', pattern=>qr|^(\d+)$|, format=>q( $1 ) },
-		category => 'lowband',
+		type => { db_type=>"integer", hint=>"25|33|50|75|100|150|200|300|400", pattern=>qr|^(\d+)$|, format=>q( $1 ) },
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_DEFAULT_RATE",
@@ -1339,7 +1339,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the default replay rate factor applied to 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
 		type => $types{integer},
-		category => 'lowband',
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_VIDEO_BITRATE",
@@ -1347,7 +1347,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the bitrate of the video encoded stream should be set to",
 		help => "When encoding real video via the ffmpeg library a bit rate can be specified which roughly corresponds to the available bandwidth used for the stream. This setting effectively corresponds to a 'quality' setting for the video. A low value will result in a blocky image whereas a high value will produce a clearer view. Note that this setting does not control the frame rate of the video however the quality of the video produced is affected both by this setting and the frame rate that the video is produced at. A higher frame rate at a particular bit rate result in individual frames being at a lower quality.",
 		type => $types{integer},
-		category => 'lowband',
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_VIDEO_MAXFPS",
@@ -1355,7 +1355,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the maximum frame rate for streamed video should be",
 		help => "When using streamed video the main control is the bitrate which determines how much data can be transmitted. However a lower bitrate at high frame rates results in a lower quality image. This option allows you to limit the maximum frame rate to ensure that video quality is maintained. An additional advantage is that encoding video at high frame rates is a processor intensive task when for the most part a very high frame rate offers little perceptible improvement over one that has a more manageable resource requirement. Note, this option is implemented as a cap beyond which binary reduction takes place. So if you have a device capturing at 15fps and set this option to 10fps then the video is not produced at 10fps, but rather at 7.5fps (15 divided by 2) as the final frame rate must be the original divided by a power of 2.",
 		type => $types{integer},
-		category => 'lowband',
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_IMAGE_SCALING",
@@ -1364,7 +1364,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "A value of 1 sends the whole image to the browser which resizes it in the window, larger values scale down by that amount on the server before sending a reduced size image to the browser. For low bandwidth settings the default of 4 is usually the best.",
 		type => $types{integer},
 		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
-		category => 'lowband',
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_USE_STREAMS",
@@ -1372,15 +1372,15 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to use streaming or stills for live and events views",
 		help => "Both the live and events views can use streaming to deliver a smoother feed. However over slow connections or in some other circumstances you can prefer to view stills instead. You can configure this globally with ZM_CAN_STREAM but this option allows you to modify your preference based on the bandwidth setting. Note that this option does not prevent you switching to streaming mode but just selects what the initial default setting is.",
 		type => $types{boolean},
-		category => 'lowband',
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_L_EVENTS_VIEW",
 		default => "events",
 		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
 		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
-		type => { db_type=>'string', hint=>'events|timeline', pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? 'events' : 'timeline' ) },
-		category => 'lowband',
+		type => { db_type=>"string", hint=>"events|timeline", pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? "events" : "timeline" ) },
+		category => "lowband",
 	},
 	{
 		name => "ZM_WEB_P_DEFAULT_RATE",
@@ -1388,7 +1388,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the default replay rate factor applied to 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
 		type => $types{integer},
-		category => 'phoneband',
+		category => "phoneband",
 	},
 	{
 		name => "ZM_DYN_LAST_VERSION",
@@ -1397,7 +1397,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "",
 		type => $types{string},
 		readonly => 1,
-		category => 'dynamic',
+		category => "dynamic",
 	},
 	{
 		name => "ZM_DYN_CURR_VERSION",
@@ -1406,7 +1406,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "",
 		type => $types{string},
 		readonly => 1,
-		category => 'dynamic',
+		category => "dynamic",
 	},
 	{
 		name => "ZM_DYN_DB_VERSION",
@@ -1415,7 +1415,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "",
 		type => $types{string},
 		readonly => 1,
-		category => 'dynamic',
+		category => "dynamic",
 	},
 	{
 		name => "ZM_DYN_LAST_CHECK",
@@ -1424,7 +1424,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "",
 		type => $types{integer},
 		readonly => 1,
-		category => 'dynamic',
+		category => "dynamic",
 	},
 	{
 		name => "ZM_DYN_NEXT_REMINDER",
@@ -1433,7 +1433,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "",
 		type => $types{string},
 		readonly => 1,
-		category => 'dynamic',
+		category => "dynamic",
 	},
 	{
 		name => "ZM_DYN_DONATE_REMINDER_TIME",
@@ -1442,7 +1442,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "",
 		type => $types{integer},
 		readonly => 1,
-		category => 'dynamic',
+		category => "dynamic",
 	},
 	{
 		name => "ZM_DYN_SHOW_DONATE_REMINDER",
@@ -1451,7 +1451,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "",
 		type => $types{boolean},
 		readonly => 1,
-		category => 'dynamic',
+		category => "dynamic",
 	},
 );
 

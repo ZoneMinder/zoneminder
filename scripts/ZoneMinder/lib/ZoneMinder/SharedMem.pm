@@ -282,6 +282,15 @@ sub zmIsAlarmed( $ )
 
 	my $state = zmGetMonitorState( $monitor );
 
+	return( $state == STATE_ALARM );
+}
+
+sub zmInAlarm( $ )
+{
+	my $monitor = shift;
+
+	my $state = zmGetMonitorState( $monitor );
+
 	return( $state == STATE_ALARM || $state == STATE_ALERT );
 }
 

@@ -140,6 +140,12 @@ if ( !connect( CLIENT, $saddr ) )
 
 		dprint( "Server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
+		if ( open( PID, ">".ZM_PID ) )
+		{
+			print( PID $$ );
+			close( PID );
+		}
+
 		kill_all( 1 );
 
 		socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
@@ -416,6 +422,8 @@ if ( !connect( CLIENT, $saddr ) )
 			kill_all( 5 );
 			dprint( "Server shutdown at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 			unlink( DC_SOCK_FILE );
+			unlink( ZM_PID );
+			close( LOG );
 			close( CLIENT );
 			close( SERVER );
 			exit();
@@ -587,6 +595,8 @@ if ( !connect( CLIENT, $saddr ) )
 		}
 		dprint( "Server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 		close( LOG );
+		unlink( DC_SOCK_FILE );
+		unlink( ZM_PID );
 		exit();
 	}
 	else

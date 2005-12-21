@@ -142,16 +142,14 @@ if ( !defined($monitor->{ShmId}) )
 sub Suspend
 {
 	my $monitor = shift;
-	my $suspend_cmd = ZM_PATH_BIN."/zmu -m ".$monitor->{Id}." -u -U admin -P pc00zm";
-	qx( $suspend_cmd );
+	zmMonitorSuspend( $monitor );
 }
 
 sub Resume
 {
 	my $monitor = shift;
 	sleep( $monitor->{TrackDelay} );
-	my $resume_cmd = ZM_PATH_BIN."/zmu -m ".$monitor->{Id}." -r -U admin -P pc00zm";
-	qx( $resume_cmd );
+	zmMonitorResume( $monitor );
 }
 
 sub Track
@@ -190,24 +188,10 @@ if ( ($monitor->{ReturnLocation} >= 0) )
 my $alarmed = undef;
 while( 1 )
 {
-	my $state;
-	if ( !shmread( $monitor->{ShmId}, $state, 8, 4 ) )
-	{ 
-		print( "Can't read from shared memory: $!\n" );
-		exit( -1 );
-	}
-	$state = unpack( "l", $state );
-
-	if ( $state == 2 ) # Alarmed
+	if ( zmIsAlarmed( $monitor ) )
 	{
-		my $alarm_pos;
-		if ( !shmread( $monitor->{ShmId}, $alarm_pos, 48, 8 ) )
-		{
-			print( "Can't read from shared memory '$monitor->{ShmKey}/$monitor->{ShmId}': $!\n" );
-			next;
-		}
-		my ( $alarm_x, $alarm_y ) = unpack( "ll", $alarm_pos );
-		if ( $alarm_x > 0 && $alarm_y > 0 )
+		my ( $alarm_x, $alarm_y ) = zmGetAlarmLocation( $monitor );
+		if ( $alarm_x >= 0 && $alarm_y >= 0 )
 		{
 			Debug( "Got alarm at $alarm_x, $alarm_y\n" );
 			Suspend( $monitor );

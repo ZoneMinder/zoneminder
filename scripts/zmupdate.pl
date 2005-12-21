@@ -245,8 +245,6 @@ if ( $version )
 	print( "Please ensure that ZoneMinder is stopped on your system prior to upgrading the database.\nPress enter to continue or ctrl-C to stop : " );
 	my $response = <STDIN>;
 
-	if ( 0 )
-	{
 	print( "\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : " );
 
 	$response = <STDIN>;
@@ -292,7 +290,6 @@ if ( $version )
 	elsif ( $response !~ /^[nN]$/ )
 	{
 		die( "Unexpected response '$response'" );
-	}
 	}
 
 	sub patchDB

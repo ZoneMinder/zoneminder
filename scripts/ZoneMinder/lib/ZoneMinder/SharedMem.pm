@@ -40,9 +40,43 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # This allows declaration	use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+our %EXPORT_TAGS = (
+	'constants' => [ qw(
+		STATE_IDLE
+		STATE_PREALARM
+		STATE_ALARM
+		STATE_ALERT
+		STATE_TAPE
+		ACTION_GET
+		ACTION_SET
+		ACTION_SUSPEND
+		ACTION_RESUME
+		TRIGGER_CANCEL
+		TRIGGER_ON
+		TRIGGER_OFF 
+	) ],
+	'functions' => [ qw(
+		zmShmGet
+		zmShmVerify
+		zmShmRead
+		zmShmWrite
+		zmGetMonitorState
+		zmGetLastEventId
+		zmGetAlarmLocation
+		zmIsAlarmed
+		zmInAlarm
+		zmHasAlarmed
+		zmGetLastImageTime
+		zmGetMonitorActions
+		zmMonitorSuspend
+		zmMonitorResume
+		zmTriggerEventOn
+		zmTriggerEventOff
+		zmTriggerEventCancel
+		zmTriggerShowtext
+	) ],
+);
+push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
@@ -56,8 +90,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 #
 # ==========================================================================
 
-use ZoneMinder::Config;
-use ZoneMinder::Debug;
+use ZoneMinder::Config qw(:all);
+use ZoneMinder::Debug qw(:all);
 
 use constant STATE_IDLE     => 0;
 use constant STATE_PREALARM => 1;
@@ -125,6 +159,7 @@ sub zmShmGet( $ )
 		$monitor->{ShmId} = $shm_id;
 		zmShmVerify( $monitor );
 	}
+	return( !undef );
 }
 
 sub zmShmVerify( $ )
@@ -139,16 +174,17 @@ sub zmShmVerify( $ )
 		if ( $sd_size != $shm_data->{shared_data}->{size} )
 		{
 			Error( "Shared memory size conflict in shared_data, expected ".$shm_data->{shared_data}->{size}.", got ".$sd_size );
-			return;
+			return( undef );
 		}
 		my $td_size = zmShmRead( $monitor, "trigger_data:size" );
 		if ( $td_size != $shm_data->{trigger_data}->{size} )
 		{
 			Error( "Shared memory size conflict in trigger_data, expected ".$shm_data->{triggger_data}->{size}.", got ".$td_size );
-			return;
+			return( undef );
 		}
 		$shm_verified->{$shm_key} = !undef;
 	}
+	return( !undef );
 }
 
 sub zmShmRead( $$ )
@@ -156,7 +192,11 @@ sub zmShmRead( $$ )
 	my $monitor = shift;
 	my $fields = shift;
 
-	zmShmGet( $monitor );
+	if ( !zmShmGet( $monitor ) )
+	{
+		return( undef );
+	}
+
 	my $shm_key = $monitor->{ShmKey};
 	my $shm_id = $monitor->{ShmId};
 	
@@ -178,6 +218,7 @@ sub zmShmRead( $$ )
 		if ( !shmread( $shm_id, $data, $offset, $size ) )
 		{
 			Error( "Can't read '$field' from shared memory '$shm_key/$shm_id': $!" );
+			return( undef );
 		}
 	
 		my $value;
@@ -211,7 +252,11 @@ sub zmShmWrite( $$ )
 	my $monitor = shift;
 	my $field_values_ref = shift;
 
-	zmShmGet( $monitor );
+	if ( !zmShmGet( $monitor ) )
+	{
+		return( undef );
+	}
+
 	my $shm_key = $monitor->{ShmKey};
 	my $shm_id = $monitor->{ShmId};
 	
@@ -250,9 +295,10 @@ sub zmShmWrite( $$ )
 		if ( !shmwrite( $shm_id, $data, $offset, $size ) )
 		{
 			Error( "Can't write value '$value' to '$field' in shared memory '$shm_key/$shm_id': $!" );
+			return( undef );
 		}
-	
 	}
+	return( !undef );
 }
 
 sub zmGetMonitorState( $ )
@@ -312,6 +358,13 @@ sub zmHasAlarmed( $$ )
 	return( undef );
 }
 
+sub zmGetLastImageTime( $ )
+{
+	my $monitor = shift;
+
+	return( zmShmRead( $monitor, "shared_data:last_image_time" ) );
+}
+
 sub zmGetMonitorActions( $ )
 {
 	my $monitor = shift;
@@ -337,7 +390,14 @@ sub zmMonitorResume( $ )
 	zmShmWrite( $monitor, { "shared_data:action" => $action } );
 }
 
-sub zmTriggerEventOn( $$$$;$ )
+sub zmGetTriggerState( $ )
+{
+	my $monitor = shift;
+
+	return( zmShmRead( $monitor, "trigger_data:trigger_state" ) );
+}
+
+sub zmTriggerEventOn( $$$;$$ )
 {
 	my $monitor = shift;
 	my $score = shift;
@@ -348,14 +408,10 @@ sub zmTriggerEventOn( $$$$;$ )
 	my @values = (
 		( "trigger_data:trigger_score" => $score ),
 		( "trigger_data:trigger_cause" => $cause ),
-		( "trigger_data:trigger_text"  => $text ),
-		( "trigger_data:trigger_state" => TRIGGER_ON ), # Write state last so event not read incomplete
 	);
-
-	if ( defined($showtext) )
-	{
-		push( @values, ( "trigger_data:trigger_showtext" => $showtext ) );
-	}
+	push( @values, ( "trigger_data:trigger_text" => $text ) ) if ( defined($text) );
+	push( @values, ( "trigger_data:trigger_showtext" => $showtext ) ) if ( defined($showtext) );
+	push( @values, ( "trigger_data:trigger_state" => TRIGGER_ON ) ); # Write state last so event not read incomplete
 
 	zmShmWrite( $monitor, \@values );
 }

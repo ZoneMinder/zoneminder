@@ -29,11 +29,11 @@ use strict;
 use warnings;
 
 require Exporter;
-use ZoneMinder::Base;
-use ZoneMinder::Config;
-use ZoneMinder::Debug;
-use ZoneMinder::Database;
-use ZoneMinder::SharedMem;
+use ZoneMinder::Base qw(:all);
+use ZoneMinder::Config qw(:all);
+use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Database qw(:all);
+use ZoneMinder::SharedMem qw(:all);
 
 our @ISA = qw(Exporter ZoneMinder::Base ZoneMinder::Config ZoneMinder::Debug ZoneMinder::Database ZoneMinder::SharedMem);
 
@@ -44,19 +44,28 @@ our @ISA = qw(Exporter ZoneMinder::Base ZoneMinder::Config ZoneMinder::Debug Zon
 # This allows declaration	use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = (
-	@ZoneMinder::Base::EXPORT,
-	@ZoneMinder::Debug::EXPORT,
-	@ZoneMinder::Config::EXPORT,
-	@ZoneMinder::Database::EXPORT,
-	@ZoneMinder::SharedMem::EXPORT
+our %EXPORT_TAGS = (
+	'base' => [ 
+		@ZoneMinder::Base::EXPORT_OK
+	],
+	'debug' => [ 
+		@ZoneMinder::Debug::EXPORT_OK
+	],
+	'config' => [ 
+		@ZoneMinder::Config::EXPORT_OK
+	],
+	'database' => [ 
+		@ZoneMinder::Database::EXPORT_OK
+	],
+	'sharedmem' => [ 
+		@ZoneMinder::SharedMem::EXPORT_OK
+	],
 );
+push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
+
+our @EXPORT_OK = @{ $EXPORT_TAGS{'all'} };
+
+our @EXPORT = ( @EXPORT_OK );
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 

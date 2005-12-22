@@ -40,20 +40,28 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # This allows declaration	use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+our %EXPORT_TAGS = (
+	'constants' => [ qw(
+		DBG_DEBUG
+		DBG_INFO
+		DBG_WARNING
+		DBG_ERROR
+		DBG_FATAL
+	) ],
+	'functions' => [ qw(
+		zmDbgInit
+		Debug
+		Info
+		Warning
+		Error
+		Fatal
+	) ]
+);
+push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-our @EXPORT = qw(
-	zmDbgInit
-	Debug
-	Info
-	Warning
-	Error
-	Fatal
-);
+our @EXPORT = qw();
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
@@ -69,6 +77,12 @@ use Sys::Syslog;
 use Time::HiRes qw/gettimeofday/;
 
 use constant CARP_DEBUG => 0;
+
+use constant DBG_DEBUG => 1;
+use constant DBG_INFO => 0;
+use constant DBG_WARNING => -1;
+use constant DBG_ERROR => -2;
+use constant DBG_FATAL => -3;
 
 our $dbg_initialised = undef;
 our $dbg_id = "zm?";
@@ -135,30 +149,30 @@ sub dbgPrint
 
 sub Debug
 {
-	dbgPrint( "DBG", $_[0] ) if ( $dbg_level >= 1 );
+	dbgPrint( "DBG", $_[0] ) if ( $dbg_level >= DBG_DEBUG );
 }
 
 sub Info
 {
-	dbgPrint( "INF", $_[0] ) if ( $dbg_level >= 0 );
+	dbgPrint( "INF", $_[0] ) if ( $dbg_level >= DBG_INFO );
 	syslog( "info", "INF [%s]", $_[0] );
 }
 
 sub Warning
 {
-	dbgPrint( "WAR", $_[0] ) if ( $dbg_level >= -1 );
+	dbgPrint( "WAR", $_[0] ) if ( $dbg_level >= DBG_WARNING );
 	syslog( "warning", "WAR [%s]", $_[0] );
 }
 
 sub Error
 {
-	dbgPrint( "ERR", $_[0] ) if ( $dbg_level >= -2 );
+	dbgPrint( "ERR", $_[0] ) if ( $dbg_level >= DBG_ERROR );
 	syslog( "err", "ERR [%s]", $_[0] );
 }
 
 sub Fatal
 {
-	dbgPrint( "FAT", $_[0] ) if ( $dbg_level >= -3 );
+	dbgPrint( "FAT", $_[0] ) if ( $dbg_level >= DBG_FATAL );
 	syslog( "err", "ERR [%s]", $_[0] );
 	confess( $_[0] );
 }

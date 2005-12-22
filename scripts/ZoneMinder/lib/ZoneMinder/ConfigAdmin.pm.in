@@ -64,7 +64,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 #
 # ==========================================================================
 
-use ZoneMinder::Config;
+use ZoneMinder::Config qw(:all);
 
 our $config_header = "src/zm_config_defines.h";
 our $config_sql = "db/zm_config.sql";

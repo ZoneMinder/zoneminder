@@ -56,8 +56,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 #
 # ==========================================================================
 
-use ZoneMinder::Debug;
-use ZoneMinder::Config;
+use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Config qw(:all);
 
 our $dbh = undef;
 

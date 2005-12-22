@@ -76,8 +76,8 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status)$/ )
 			$state->{Definitions} = [];
 			foreach( split( ',', $state->{Definition} ) )
 			{
-				my ( $id, $function ) = split( ':', $_ );
-				push( @{$state->{Definitions}}, { Id=>$id, Function=>$function } );
+				my ( $id, $function, $enabled ) = split( ':', $_ );
+				push( @{$state->{Definitions}}, { Id=>$id, Function=>$function, Enabled=>$enabled } );
 			}
 			$command = 'state';
 		}
@@ -132,15 +132,17 @@ if ( $command eq "state" )
 			if ( $monitor->{Id} =~ /^$definition->{Id}$/ )
 			{
 				$monitor->{NewFunction} = $definition->{Function};
+				$monitor->{NewEnabled} = $definition->{Enabled};
 			}
 		}
 		#next if ( !$monitor->{NewFunction} );
 		$monitor->{NewFunction} = 'None' if ( !$monitor->{NewFunction} );
-		if ( $monitor->{Function} ne $monitor->{NewFunction} )
+		$monitor->{NewEnabled} = 0 if ( !$monitor->{Enabled} );
+		if ( $monitor->{Function} ne $monitor->{NewFunction} || $monitor->{Enabled} ne $monitor->{NewEnabled} )
 		{
-			my $sql = "update Monitors set Function = ? where Id = ?";
+			my $sql = "update Monitors set Function = ?, Enabled = ? where Id = ?";
 			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute( $monitor->{NewFunction}, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+			my $res = $sth->execute( $monitor->{NewFunction}, $monitor->{NewEnabled}, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
 		}
 	}
 	$sth->finish();
@@ -171,7 +173,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 	{
 		removeShm();
 		runCommand( "zmfix" );
-		runCommand( "zmdc.pl status" );
+		runCommand( "zmdc.pl startup" );
 
 		my $sql = "select * from Monitors";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );

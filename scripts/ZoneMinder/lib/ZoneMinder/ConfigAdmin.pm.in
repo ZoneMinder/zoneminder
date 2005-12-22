@@ -274,6 +274,14 @@ our @options =
 		category => "config",
 	},
 	{
+		name => "ZM_OPT_ADAPTIVE_SKIP",
+		default => "yes",
+		description => "Should frame analysis try and be efficient in skipping frames",
+		help => "In previous versions of ZoneMinder the analysis daemon would attempt to keep up with the capture daemon by processing the last captured frame on each pass. This would sometimes have the undesirable side-effect of missing a chunk of the initial activity that caused the alarm because the pre-alarm frames would all have to be written to disk and the database before processing the next frame, leading to some delay between the first and second event frames. Setting this option enables a newer adaptive algorithm where the analysis daemon attempts to process as many captured frames as possible, only skipping frames when in danger of the capture daemon overwriting yet to be processed frames. This skip is variable depending on the size of the ring buffer and the amount of space left in it. Enabling this option will give you much better coverage of the beginning of alarms whilst biasing out any skipped frames towards the middle or end of the event. However you should be aware that this will have the effect of making the analysis daemon run somewhat behind the capture daemon during events and for particularly fast rates of capture it is possible for the adaptive algorithm to be overwhelmed and not have time to react to a rapid build up of pending frames and thus for a buffer overrun condition to occur.",
+		type => $types{boolean},
+		category => "config",
+	},
+	{
 		name => "ZM_BLEND_ALARMED_IMAGES",
 		default => "yes",
 		description => "Whether alarmed images are blended to update the reference image",
@@ -290,11 +298,11 @@ our @options =
 		category => "config",
 	},
 	{
-		name => "ZM_OPT_ADAPTIVE_SKIP",
-		default => "yes",
-		description => "Should frame analysis try and be efficient in skipping frames",
-		help => "In previous versions of ZoneMinder the analysis daemon would attempt to keep up with the capture daemon by processing the last captured frame on each pass. This would sometimes have the undesirable side-effect of missing a chunk of the initial activity that caused the alarm because the pre-alarm frames would all have to be written to disk and the database before processing the next frame, leading to some delay between the first and second event frames. Setting this option enables a newer adaptive algorithm where the analysis daemon attempts to process as many captured frames as possible, only skipping frames when in danger of the capture daemon overwriting yet to be processed frames. This skip is variable depending on the size of the ring buffer and the amount of space left in it. Enabling this option will give you much better coverage of the beginning of alarms whilst biasing out any skipped frames towards the middle or end of the event. However you should be aware that this will have the effect of making the analysis daemon run somewhat behind the capture daemon during events and for particularly fast rates of capture it is possible for the adaptive algorithm to be overwhelmed and not have time to react to a rapid build up of pending frames and thus for a buffer overrun condition to occur.",
-		type => $types{boolean},
+		name => "ZM_MAX_SUSPEND_TIME",
+		default => "30",
+		description => "Maximum time that a monitor may have motion detection suspended",
+		help => "ZoneMinder allows monitors to have motion detection to be suspended, for instance while panning a camera. Ordinarily this relies on the operator resuming motion detection afterwards as failure to do so can leave a monitor in a permanently suspended state. This setting allows you to set a maximum time which a camera may be suspended for before it automatically resumes motion detection. This time can be extended by subsequent suspend indications after the first so continuous camera movement will also occur while the monitor is suspended.",
+		type => $types{integer},
 		category => "config",
 	},
 	{

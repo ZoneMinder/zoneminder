@@ -46,7 +46,7 @@ use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 # ==========================================================================
 
 use ZoneMinder;
-use ZoneMinder::ConfigAdmin qw( :funcs );
+use ZoneMinder::ConfigAdmin qw( :functions );
 use POSIX;
 use DBI;
 use Getopt::Long;
@@ -64,6 +64,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 zmDbgInit( DBG_ID, DBG_LEVEL );
 
 my $check = 0;
+my $freshen = 0;
 my $rename = 0;
 my $zone_fix = 0;
 my $version = '';
@@ -72,11 +73,10 @@ my $db_pass = ZM_DB_PASS;
 sub Usage
 {
     print( "
-Usage: zmupdate.pl <-c,--check|-r,--rename|-z,--zone-fix|-v<version>,--version=<version> [-u<dbuser> -p<dbpass>]>
+Usage: zmupdate.pl <-c,--check|-f,--freshen|-v<version>,--version=<version>> [-u<dbuser> -p<dbpass>]>
 Parameters are :-
 -c, --check                      - Check for updated versions of ZoneMinder
--r, --rename                     - Rename images from old 'capture-nnn.jpg' format to new 'nnn-capture.jpg' style from v1.17.2
--z, --zone-fix                   - Update zone percentage sizes from %ge of image to %ge of zone from 1.18.2 onwards
+-f, --freshen                    - Freshen the configuration in the database. Equivalent of old zmconfig.pl -noi
 -v<version>, --version=<version> - Upgrade to the current version from <version>
 -u<dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
 -p<dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
@@ -84,18 +84,18 @@ Parameters are :-
     exit( -1 );
 }
 
-if ( !GetOptions( 'check'=>\$check, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix, 'version=s'=>\$version, 'user:s'=>\$db_user, 'pass:s'=>\$db_pass ) )
+if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix, 'version=s'=>\$version, 'user:s'=>\$db_user, 'pass:s'=>\$db_pass ) )
 {
 	Usage();
 }
 
-if ( ! ($check || $rename || $zone_fix || $version) )
+if ( ! ($check || $freshen || $rename || $zone_fix || $version) )
 {
 	print( STDERR "Please give a valid option\n" );
 	Usage();
 }
 
-if ( ($check + $rename + $zone_fix + ($version?1:0)) > 1 )
+if ( ($check + $freshen + $rename + $zone_fix + ($version?1:0)) > 1 )
 {
 	print( STDERR "Please give only one option\n" );
 	Usage();
@@ -235,6 +235,12 @@ if ( $zone_fix )
 			$zone->{Id}
 		) or die( "Can't execute: ".$sth->errstr() );
 	}
+}
+if ( $freshen )
+{
+	print( "\nFreshening configuration in database\n" );
+	loadConfigFromDB();
+	saveConfigToDB();
 }
 if ( $version )
 {
@@ -529,6 +535,33 @@ if ( $version )
 					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 					my $res = $sth->execute( $lo_x, $lo_y, $hi_x, $lo_y, $hi_x, $hi_y, $lo_x, $hi_y, $area, ($zone->{MinAlarmPixels}*$area)/100, ($zone->{MaxAlarmPixels}*$area)/100, ($zone->{MinFilterPixels}*$area)/100, ($zone->{MaxFilterPixels}*$area)/100, ($zone->{MinBlobPixels}*$area)/100, ($zone->{MaxBlobPixels}*$area)/100, $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
 				}
+			}
+		}
+		# Convert run states to new format
+		{
+			print( "Updating run states. Please wait.\n" );
+
+			# Get the existing zones from the DB
+			my $sql = "select * from States";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			my @states;
+			while( my $state = $sth->fetchrow_hashref() )
+			{
+				push( @states, $state );
+			}
+			$sth->finish();
+
+			foreach my $state ( @states )
+			{
+				my @new_defns;
+				foreach my $defn ( split( /,/, $state->{Definition} ) )
+				{
+					push( @new_defns, $defn.":1" );
+				}
+				my $sql = "update States set Definition = ? where Name = ?";
+				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				my $res = $sth->execute( join( ',', @new_defns ), $state->{Name} ) or die( "Can't execute: ".$sth->errstr() );
 			}
 		}
 

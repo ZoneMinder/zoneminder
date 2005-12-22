@@ -1,8 +1,8 @@
 --
 -- This updates a 1.21.3 database to 1.21.4
 --
+alter table Monitors change column RunMode Enabled tinyint(3) unsigned NOT NULL default '1';
 alter table Monitors add column DefaultRate smallint unsigned not null default 100 after ReturnDelay;
-alter table Monitors modify column DefaultRate smallint unsigned not null default 100;
 --
 alter table Events add column Videoed tinyint unsigned not null default 0 after Archived;
 alter table Filters add column AutoVideo tinyint unsigned not null default 0 after AutoArchive;

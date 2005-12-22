@@ -297,23 +297,21 @@ sub runServer
 			foreach my $monitor_id ( sort(keys(%monitor_hash) ) )
 			{
 				my $monitor = $monitor_hash{$monitor_id};
-				my $state;
-				if ( !shmread( $monitor->{ShmId}, $state, 8, 4 ) )
+				my $state = zmGetMonitorState( $monitor );
+				if ( !defined($state) )
 				{
-					Error( "Can't read from shared memory: $!\n" );
 					$reload = !undef;
 					next;
 				}
-				$state = unpack( "l", $state );
 				if ( defined( $monitor->{LastState} ) )
 				{
 					my $task_list;
-					if ( $state == 2 && $monitor->{LastState} == 0 ) # Gone into alarm state
+					if ( $state == STATE_ALARM && $monitor->{LastState} == STATE_IDLE ) # Gone into alarm state
 					{
 						Debug( "Applying ON_list for $monitor_id\n" );
 						$task_list = $monitor->{"ON_list"};
 					}
-					elsif ( $state == 0 && $monitor->{LastState} > 0 ) # Come out of alarm state
+					elsif ( $state == STATE_IDLE && $monitor->{LastState} > STATE_IDLE ) # Come out of alarm state
 					{
 						Debug( "Applying OFF_list for $monitor_id\n" );
 						$task_list = $monitor->{"OFF_list"};
@@ -431,14 +429,7 @@ sub loadTasks
 	my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
-		my $size = 512; # We only need the first 512 bytes really for the alarm state and forced alarm
-		$monitor->{ShmKey} = hex(main::ZM_SHM_KEY)|$monitor->{Id};
-		$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 );
-		if ( !defined($monitor->{ShmId}) )
-		{
-			Error( "Can't get shared memory id '$monitor->{ShmKey}': $!\n" );
-			next;
-		}
+		next if ( !zmShmGet( $monitor ) ); # Check shared memory ok
 
 		$monitor_hash{$monitor->{Id}} = $monitor;
 
@@ -579,16 +570,11 @@ sub processTask
 	{
 		my ( $instruction, $class ) = ( $task->{function} =~ /^(.+)_(.+)$/ );
 
-		my @commands;
 		if ( $class eq "active" )
 		{
 			if ( $instruction eq "start" )
 			{
-				push( @commands, main::ZM_PATH_BIN."/zmdc.pl start zma -m ".$task->{monitor}->{Id} );
-				push( @commands, main::ZM_PATH_BIN."/zmdc.pl start zmf -m ".$task->{monitor}->{Id} );
-				if ( main::ZM_OPT_FRAME_SERVER )
-				{
-				}
+				zmMonitorEnable( $task->{monitor} );
 				if ( $task->{limit} )
 				{
 					addPendingTask( $task );
@@ -596,21 +582,14 @@ sub processTask
 			}
 			elsif( $instruction eq "stop" )
 			{
-				$command = main::ZM_PATH_BIN."/zmdc.pl stop zma -m ".$task->{monitor}->{Id};
-				push( @commands, main::ZM_PATH_BIN."/zmdc.pl stop zma -m ".$task->{monitor}->{Id} );
-				push( @commands, main::ZM_PATH_BIN."/zmdc.pl stop zmf -m ".$task->{monitor}->{Id} );
+				zmMonitorDisable( $task->{monitor} );
 			}
 		}
 		elsif( $class eq "alarm" )
 		{
 			if ( $instruction eq "start" )
 			{
-				#$command = main::ZM_PATH_BIN."/zmu --monitor ".$task->{monitor}->{Id}." --alarm";
-				my $force_data = pack( "llZ*", 1, 0, "X10" );
-				if ( !shmwrite( $task->{monitor}->{ShmId}, $force_data, 52, 12 ) )
-				{
-					Error( "Can't write to shared memory: $!\n" );
-				}
+				zmTriggerEventOn( $task->{monitor}, 0, "X10" );
 				if ( $task->{limit} )
 				{
 					addPendingTask( $task );
@@ -618,18 +597,8 @@ sub processTask
 			}
 			elsif( $instruction eq "stop" )
 			{
-				#$command = main::ZM_PATH_BIN."/zmu --monitor ".$task->{monitor}->{Id}." --cancel";
-				my $force_data = pack( "llZ*", 0, 0, "" );
-				if ( !shmwrite( $task->{monitor}->{ShmId}, $force_data, 52, 12 ) )
-				{
-					Error( "Can't write to shared memory: $!\n" );
-				}
+				zmTriggerEventCancel( $task->{monitor} );
 			}
-		}
-		foreach my $command ( @commands )
-		{
-			Info( "Executing command '$command'\n" );
-			qx( $command );
 		}
 	}
 	elsif( $task->{type} eq "monitor" )

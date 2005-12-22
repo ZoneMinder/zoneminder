@@ -811,6 +811,7 @@ bool Monitor::Analyse()
 					{
 						// Create event
 						event = new Event( this, *timestamp, "Continuous" );
+						shared_data->last_event = event->Id();
 
 						Info(( "%s: %03d - Starting new event %d", name, image_count, event->Id() ));
 
@@ -854,6 +855,7 @@ bool Monitor::Analyse()
 									event = new Event( this, *timestamp, cause, text );
 									pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
 								}
+								shared_data->last_event = event->Id();
 
 								if ( !timestamps ) timestamps = new struct timeval *[pre_event_count];
 								if ( !images ) images = new Image *[pre_event_count];
@@ -897,7 +899,6 @@ bool Monitor::Analyse()
 						if ( image_count-last_alarm_count > post_event_count )
 						{
 							Info(( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() ));
-							shared_data->last_event = event->Id();
 							if ( function != MOCORD )
 							{
 								shared_data->state = state = IDLE;

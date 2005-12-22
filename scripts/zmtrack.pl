@@ -130,14 +130,7 @@ if ( !$monitor->{CanMoveMap} )
 }
 
 Debug( "Found monitor for id '$monitor'\n" );
-my $size = 512; # We only need the first 512 bytes really for the alarm state and forced alarm
-$monitor->{ShmKey} = hex(ZM_SHM_KEY)|$monitor->{Id};
-$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $size, 0 );
-if ( !defined($monitor->{ShmId}) )
-{
-	printf( "Can't get shared memory id '%x': $!\n", $monitor->{ShmKey}, $! );
-	exit( -1 );
-}
+exit( -1 ) if ( !zmShmGet( $monitor ) );
 
 sub Suspend
 {

@@ -68,7 +68,7 @@ my @daemons = ( 'zmc', 'zma', 'zmf', 'zmfilter.pl', 'zmaudit.pl', 'zmtrigger.pl'
 
 my $command = shift @ARGV;
 die( "No command given" ) unless( $command );
-my $needs_daemon = $command !~ /(?:shutdown|status|check)/;
+my $needs_daemon = $command !~ /(?:startup|shutdown|status|check)/;
 my $daemon = shift( @ARGV );
 die( "No daemon given" ) unless( !$needs_daemon || $daemon );
 my @args;
@@ -111,8 +111,13 @@ if ( !connect( CLIENT, $saddr ) )
 		print( "stopped\n" );
 		exit();
 	}
+	elsif ( $command ne "startup" )
+	{
+		print( "Unable to connect to server\n" );
+		exit( -1 );
+	}
 	# The server isn't there 
-	print( "Unable to connect, starting server\n" );
+	print( "Starting server\n" );
 	close( CLIENT );
 
 	if ( my $cpid = fork() )
@@ -138,7 +143,7 @@ if ( !connect( CLIENT, $saddr ) )
 		select( STDERR ); $| = 1;
 		select( LOG ); $| = 1;
 
-		dprint( "Server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+		dprint( DBG_INFO, "Server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
 		if ( open( PID, ">".ZM_PID ) )
 		{
@@ -162,6 +167,107 @@ if ( !connect( CLIENT, $saddr ) )
 		my %cmd_hash;
 		my %pid_hash;
 
+		my $rin = '';
+		vec( $rin, fileno(SERVER), 1 ) = 1;
+		my $win = $rin;
+		my $ein = $win;
+		my $timeout = 0.1;
+		while( 1 )
+		{
+			my $nfound = select( my $rout = $rin, undef, undef, $timeout );
+			if ( $nfound > 0 )
+			{
+				if ( vec( $rout, fileno(SERVER), 1 ) )
+				{
+					my $paddr = accept( CLIENT, SERVER );
+					my $message = <CLIENT>;
+
+					next if ( !$message );
+
+					my ( $command, $daemon, @args ) = split( ';', $message );
+
+					if ( $command eq 'start' )
+					{
+						start( $daemon, @args );
+					}
+					elsif ( $command eq 'stop' )
+					{
+						stop( $daemon, @args );
+					}
+					elsif ( $command eq 'restart' )
+					{
+						restart( $daemon, @args );
+					}
+					elsif ( $command eq 'reload' )
+					{
+						reload( $daemon, @args );
+					}
+					elsif ( $command eq 'startup' )
+					{
+						# Do nothing, this is all we're here for
+						dprint( DBG_WARNING, "Already running, ignoring command '$command'\n" );
+					}
+					elsif ( $command eq 'shutdown' )
+					{
+						shutdown_all();
+					}
+					elsif ( $command eq 'check' )
+					{
+						check( $daemon, @args );
+					}
+					elsif ( $command eq 'status' )
+					{
+						if ( $daemon )
+						{
+							status( $daemon, @args );
+						}
+						else
+						{
+							status();
+						}
+					}
+					else
+					{
+						dprint( DBG_ERROR, "Invalid command '$command'\n" );
+					}
+					close( CLIENT );
+				}
+				else
+				{
+					Fatal( "Bogus descriptor" );
+				}
+			}
+			elsif ( $nfound < 0 )
+			{
+					print( "Got: $nfound - $!\n" );
+				if ( $! == EINTR )
+				{
+					# Dead child, will be reaped
+					#print( "Probable dead child\n" );
+					# See if it needs to start up again
+					restart_pending();
+				}
+				elsif ( $! == EPIPE )
+				{
+					Error( "Can't select: $!" );
+				}
+				else
+				{
+					Fatal( "Can't select: $!" );
+				}
+			}
+			else
+			{
+				#print( "Select timed out\n" );
+				restart_pending();
+			}
+		}
+		dprint( DBG_INFO, "Server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+		close( LOG );
+		unlink( DC_SOCK_FILE );
+		unlink( ZM_PID );
+		exit();
+
 		sub cprint
 		{
 			if ( fileno(CLIENT) )
@@ -171,11 +277,31 @@ if ( !connect( CLIENT, $saddr ) )
 		}
 		sub dprint
 		{
+			my $dbg_level = shift;
 			if ( fileno(CLIENT) )
 			{
 				print CLIENT @_
 			}
-			Info( @_ );
+			if ( $dbg_level == DBG_DEBUG )
+			{
+				Debug( @_ );
+			}
+			elsif ( $dbg_level == DBG_INFO )
+			{
+				Info( @_ );
+			}
+			elsif ( $dbg_level == DBG_WARNING )
+			{
+				Warning( @_ );
+			}
+			elsif ( $dbg_level == DBG_ERROR )
+			{
+				Error( @_ );
+			}
+			elsif ( $dbg_level == DBG_FATAL )
+			{
+				Fatal( @_ );
+			}
 		}
 		sub start
 		{
@@ -193,7 +319,7 @@ if ( !connect( CLIENT, $saddr ) )
 			}
 			elsif ( $process->{pid} && $pid_hash{$process->{pid}} )
 			{
-				dprint( "'$process->{command}' already running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
+				dprint( DBG_INFO, "'$process->{command}' already running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
 				return();
 			}
 
@@ -206,7 +332,7 @@ if ( !connect( CLIENT, $saddr ) )
 				$process->{started} = time();
 				delete( $process->{pending} );
 
-				dprint( "'$command' starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
+				dprint( DBG_INFO, "'$command' starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
 
 				$cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
 				sigprocmask( SIG_SETMASK, $sigset ) or Fatal( "Can't restore SIGCHLD: $!" );
@@ -219,7 +345,7 @@ if ( !connect( CLIENT, $saddr ) )
 				$SIG{TERM} = 'DEFAULT';
 				$SIG{ABRT} = 'DEFAULT';
 				$SIG{HUP} = 'DEFAULT';
-				dprint( "'".join( ' ', ( $daemon, @args ) )."' started at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+				dprint( DBG_INFO, "'".join( ' ', ( $daemon, @args ) )."' started at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 	
 				if ( $daemon =~ /^${daemon_patt}$/ )
 				{
@@ -262,20 +388,20 @@ if ( !connect( CLIENT, $saddr ) )
 			my $process = $cmd_hash{$command};
 			if ( !$process )
 			{
-				dprint( "Can't find process with command of '$command'\n" );
+				dprint( DBG_WARNING, "Can't find process with command of '$command'\n" );
 				return();
 			}
 			elsif ( $process->{pending} )
 			{
 				delete( $cmd_hash{$command} );
-				dprint( "Command '$command' removed from pending list at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+				dprint( DBG_INFO, "Command '$command' removed from pending list at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 				return();
 			}
 
 			my $cpid = $process->{pid};
 			if ( !$pid_hash{$cpid} )
 			{
-				dprint( "No process with command of '$command' is running\n" );
+				dprint( DBG_ERROR, "No process with command of '$command' is running\n" );
 				return();
 			}
 
@@ -321,6 +447,22 @@ if ( !connect( CLIENT, $saddr ) )
 			}
 			start( $daemon, @args );
 		}
+		sub reload
+		{
+			my $daemon = shift;
+			my @args = @_;
+
+			my $command = $daemon;
+			$command .= ' '.join( ' ', ( @args ) ) if ( @args );
+			my $process = $cmd_hash{$command};
+			if ( $process )
+			{
+				if ( $process->{pid} )
+				{
+					kill( 'HUP', $process->{pid} );
+				}
+			}
+		}
 		sub reaper
 		{
 			my $saved_status = $!;
@@ -333,7 +475,7 @@ if ( !connect( CLIENT, $saddr ) )
 
 				if ( !$process )
 				{
-					dprint( "Can't find child with pid of '$cpid'\n" );
+					dprint( DBG_INFO, "Can't find child with pid of '$cpid'\n" );
 					next;
 				}
 
@@ -408,19 +550,19 @@ if ( !connect( CLIENT, $saddr ) )
 			{
 				if ( $process->{pending} && $process->{pending} <= time() )
 				{
-					dprint( "Starting pending process, $process->{command}\n" );
+					dprint( DBG_INFO, "Starting pending process, $process->{command}\n" );
 					start( $process->{daemon}, @{$process->{args}} );
 				}
 			}
 		}
-		sub shutdown_all()
+		sub shutdown_all
 		{
 			foreach my $process ( values( %pid_hash ) )
 			{
 				stop( $process->{daemon}, @{$process->{args}} );
 			}
 			kill_all( 5 );
-			dprint( "Server shutdown at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+			dprint( DBG_INFO, "Server shutdown at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 			unlink( DC_SOCK_FILE );
 			unlink( ZM_PID );
 			close( LOG );
@@ -469,24 +611,24 @@ if ( !connect( CLIENT, $saddr ) )
 				my $process = $cmd_hash{$command};
 				if ( !$process )
 				{
-					dprint( "'$command' not running\n" );
+					dprint( DBG_DEBUG, "'$command' not running\n" );
 					return();
 				}
 
 				if ( $process->{pending} )
 				{
-					dprint( "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
+					dprint( DBG_DEBUG, "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
 				}
 				else
 				{
 					my $cpid = $process->{pid};
 					if ( !$pid_hash{$cpid} )
 					{
-						dprint( "'$command' not running\n" );
+						dprint( DBG_DEBUG, "'$command' not running\n" );
 						return();
 					}
 				}
-				dprint( "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
+				dprint( DBG_DEBUG, "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
 			}
 			else
 			{
@@ -495,109 +637,18 @@ if ( !connect( CLIENT, $saddr ) )
 					my $out_str = "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}";
 					$out_str .= ", valid" if ( kill( 0, $process->{pid} ) );
 					$out_str .= "\n";
-					dprint( $out_str );
+					dprint( DBG_DEBUG, $out_str );
 				}
 				foreach my $process ( values( %cmd_hash ) )
 				{
 					if ( $process->{pending} )
 					{
-						dprint( "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
+						dprint( DBG_DEBUG, "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
 					}
 				}
 			}
 		}
 
-		my $rin = '';
-		vec( $rin, fileno(SERVER), 1 ) = 1;
-		my $win = $rin;
-		my $ein = $win;
-		my $timeout = 1;
-		while( 1 )
-		{
-			my $nfound = select( my $rout = $rin, undef, undef, $timeout );
-			if ( $nfound > 0 )
-			{
-				if ( vec( $rout, fileno(SERVER), 1 ) )
-				{
-					my $paddr = accept( CLIENT, SERVER );
-					my $message = <CLIENT>;
-
-					next if ( !$message );
-
-					my ( $command, $daemon, @args ) = split( ';', $message );
-
-					if ( $command eq 'start' )
-					{
-						start( $daemon, @args );
-					}
-					elsif ( $command eq 'stop' )
-					{
-						stop( $daemon, @args );
-					}
-					elsif ( $command eq 'restart' )
-					{
-						restart( $daemon, @args );
-					}
-					elsif ( $command eq 'shutdown' )
-					{
-						shutdown_all();
-					}
-					elsif ( $command eq 'check' )
-					{
-						check( $daemon, @args );
-					}
-					elsif ( $command eq 'status' )
-					{
-						if ( $daemon )
-						{
-							status( $daemon, @args );
-						}
-						else
-						{
-							status();
-						}
-					}
-					else
-					{
-						dprint( "Invalid command '$command'\n" );
-					}
-					close( CLIENT );
-				}
-				else
-				{
-					Fatal( "Bogus descriptor" );
-				}
-			}
-			elsif ( $nfound < 0 )
-			{
-					print( "Got: $nfound - $!\n" );
-				if ( $! == EINTR )
-				{
-					# Dead child, will be reaped
-					#print( "Probable dead child\n" );
-					# See if it needs to start up again
-					restart_pending();
-				}
-				elsif ( $! == EPIPE )
-				{
-					Error( "Can't select: $!" );
-				}
-				else
-				{
-					Fatal( "Can't select: $!" );
-				}
-			}
-			else
-			{
-				#print( "Select timed out\n" );
-				restart_pending();
-			}
-		}
-		dprint( "Server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-		close( LOG );
-		unlink( DC_SOCK_FILE );
-		unlink( ZM_PID );
-		exit();
 	}
 	else
 	{

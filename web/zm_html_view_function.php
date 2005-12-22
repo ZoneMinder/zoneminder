@@ -55,16 +55,16 @@ function closeWindow()
 </script>
 </head>
 <body>
+<form method="get" action="<?= $PHP_SELF ?>">
+<input type="hidden" name="view" value="none">
+<input type="hidden" name="action" value="function">
+<input type="hidden" name="mid" value="<?= $mid ?>">
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
 <td colspan="2" align="center" class="head"><?= sprintf( $zmClangMonitorFunction, $monitor['Name'] ) ?></td>
 </tr>
 <tr>
-<form method="get" action="<?= $PHP_SELF ?>">
-<input type="hidden" name="view" value="none">
-<input type="hidden" name="action" value="function">
-<input type="hidden" name="mid" value="<?= $mid ?>">
-<td colspan="2" align="center"><select name="new_function" class="form">
+<td colspan="2" align="center" valign="middle" class="text"><select name="new_function" class="form">
 <?php
 foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 {
@@ -73,12 +73,13 @@ foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 <?php
 }
 ?>
-</select></td>
+</select>&nbsp;&nbsp;<?= $zmSlangEnabled ?>&nbsp;<input type="checkbox" name="new_enabled" value="1" class="form-noborder"<?php if ( !empty($monitor['Enabled']) ) { ?> checked<?php } ?>></td>
 </tr>
 <tr>
 <td align="center"><input type="submit" value="<?= $zmSlangSave ?>" class="form"></td>
 <td align="center"><input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
+</form>
 </body>
 </html>

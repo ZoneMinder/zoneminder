@@ -707,7 +707,7 @@ function daemonControl( $command, $daemon=false, $args=false )
 	exec( $string );
 }
 
-function zmcControl( $monitor, $restart=false )
+function zmcControl( $monitor, $mode=false )
 {
 	if ( $monitor['Type'] == "Local" )
 	{
@@ -731,7 +731,7 @@ function zmcControl( $monitor, $restart=false )
 	}
 	else
 	{
-		if ( $restart )
+		if ( $mode == "restart" )
 		{
 			daemonControl( "stop", "zmc", $zmc_args );
 		}
@@ -739,20 +739,15 @@ function zmcControl( $monitor, $restart=false )
 	}
 }
 
-function zmaControl( $monitor, $restart=false )
+function zmaControl( $monitor, $mode=false )
 {
 	if ( !is_array( $monitor ) )
 	{
-		$sql = "select Id,Function,RunMode from Monitors where Id = '$monitor'";
+		$sql = "select Id,Function,Enabled from Monitors where Id = '$monitor'";
 		$result = mysql_query( $sql );
 		if ( !$result )
 			echo mysql_error();
 		$monitor = mysql_fetch_assoc( $result );
-	}
-	if ( $monitor['RunMode'] == 'Triggered' )
-	{
-		// Don't touch anything that's triggered
-		return;
 	}
 	switch ( $monitor['Function'] )
 	{
@@ -761,7 +756,7 @@ function zmaControl( $monitor, $restart=false )
 		case 'Mocord' :
 		case 'Nodect' :
 		{
-			if ( $restart )
+			if ( $mode == restart )
 			{
 				if ( ZM_OPT_CONTROL )
 				{
@@ -781,6 +776,10 @@ function zmaControl( $monitor, $restart=false )
 			if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) )
 			{
 				daemonControl( "start", "zmtrack.pl", "-m ".$monitor['Id'] );
+			}
+			if ( $mode == "reload" )
+			{
+				daemonControl( "reload", "zma", "-m ".$monitor['Id'] );
 			}
 			break;
 		}

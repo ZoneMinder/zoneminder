@@ -61,7 +61,7 @@ else
 	$monitor = array();
 	$monitor['Name'] = $zmSlangNew;
 	$monitor['Function'] = "None";
-	$monitor['RunMode'] = "Continuous";
+	$monitor['Enabled'] = true;
 	$monitor['Type'] = "Local";
 	$monitor['Device'] = "";
 	$monitor['Channel'] = "";
@@ -261,9 +261,9 @@ if ( $tab != 'monitor' )
 <input type="hidden" name="new_monitor[Name]" value="<?= $new_monitor['Name'] ?>">
 <input Type="hidden" name="new_monitor[Type]" value="<?= $new_monitor['Type'] ?>">
 <input type="hidden" name="new_monitor[Function]" value="<?= $new_monitor['Function'] ?>">
+<input type="hidden" name="new_monitor[Enabled]" value="<?= $new_monitor['Enabled'] ?>">
 <input type="hidden" name="new_monitor[SectionLength]" value="<?= $new_monitor['SectionLength'] ?>">
 <input type="hidden" name="new_monitor[FrameSkip]" value="<?= $new_monitor['FrameSkip'] ?>">
-<input type="hidden" name="new_monitor[RunMode]" value="<?= $new_monitor['RunMode'] ?>">
 <?php
 	if ( isset($new_monitor['Triggers']) )
 	{
@@ -363,18 +363,9 @@ switch ( $tab )
 		}
 ?>
 </select></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangEnabled ?></td><td align="left" class="text"><input type="checkbox" name="new_monitor[Enabled]" value="1" class="form-noborder"<?php if ( !empty($new_monitor['Enabled']) ) { ?> checked<?php } ?>></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangSectionlength ?></td><td align="left" class="text"><input type="text" name="new_monitor[SectionLength]" value="<?= $new_monitor['SectionLength'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangFrameSkip ?></td><td align="left" class="text"><input type="text" name="new_monitor[FrameSkip]" value="<?= $new_monitor['FrameSkip'] ?>" size="6" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangRunMode ?></td><td align="left" class="text"><select name="new_monitor[RunMode]" class="form">
-<?php
-		foreach ( getEnumValues( 'Monitors', 'RunMode' ) as $opt_runmode )
-		{
-?>
-<option value="<?= $opt_runmode ?>"<?php if ( $opt_runmode == $new_monitor['RunMode'] ) { ?> selected<?php } ?>><?= $opt_runmode ?></option>
-<?php
-		}
-?>
-</select></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangTriggers ?></td><td align="left" class="text">
 <?php
 		$opt_triggers = getSetValues( 'Monitors', 'Triggers' );

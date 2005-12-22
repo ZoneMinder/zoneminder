@@ -111,7 +111,7 @@ foreach( $monitors as $monitor )
 	{
 		$fclass = "gretext";
 	}
-	if ( $monitor['RunMode'] == 'Triggered' )
+	if ( !$monitor['Enabled'] )
 	{
 		$fclass .= "em";
 	}

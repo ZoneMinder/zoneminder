@@ -998,16 +998,18 @@ if ( isset($action) )
 			$monitor = mysql_fetch_assoc( $result );
 
 			$old_function = $monitor['Function'];
-			if ( $new_function != $old_function )
+			$old_enabled = $monitor['Enabled'];
+			if ( $new_function != $old_function || $new_enabled != $old_enabled )
 			{
-				simpleQuery( "update Monitors set Function = '$new_function' where Id = '$mid'" );
+				simpleQuery( "update Monitors set Function = '$new_function', Enabled = '$new_enabled' where Id = '$mid'" );
 
 				$monitor['Function'] = $new_function;
+				$monitor['Enabled'] = $new_enabled;
 				if ( $cookies ) session_write_close();
 				if ( daemonCheck() )
 				{
-					zmcControl( $monitor, true );
-					zmaControl( $monitor, true );
+					zmcControl( $monitor );
+					zmaControl( $monitor, "reload" );
 				}
 				$refresh_parent = true;
 			}
@@ -1066,7 +1068,7 @@ if ( isset($action) )
 				if ( $cookies ) session_write_close();
 				if ( daemonCheck() )
 				{
-					zmaControl( $mid, true );
+					zmaControl( $mid, "restart" );
 				}
 				$refresh_parent = true;
 			}
@@ -1237,8 +1239,8 @@ if ( isset($action) )
 				if ( $cookies ) session_write_close();
 				if ( daemonCheck() )
 				{
-					zmcControl( $monitor, true );
-					zmaControl( $monitor, true );
+					zmcControl( $monitor, "restart" );
+					zmaControl( $monitor, "restart" );
 				}
 				//daemonControl( 'restart', 'zmwatch.pl' );
 				$refresh_parent = true;
@@ -1284,7 +1286,7 @@ if ( isset($action) )
 					if ( $cookies ) session_write_close();
 					if ( daemonCheck() )
 					{
-						zmaControl( $mid, true );
+						zmaControl( $mid, "restart" );
 					}
 					$refresh_parent = true;
 				}
@@ -1570,7 +1572,7 @@ if ( isset($action) )
 				$definitions = array();
 				while( $monitor = mysql_fetch_assoc( $result ) )
 				{
-					$definitions[] = $monitor['Id'].":".$monitor['Function'];
+					$definitions[] = $monitor['Id'].":".$monitor['Function'].":".$monitor['Enabled'];
 				}
 				$definition = join( ',', $definitions );
 				if ( $new_state )

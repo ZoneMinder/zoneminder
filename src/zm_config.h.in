@@ -34,6 +34,7 @@
 
 #define ZM_MAX_FPS              30                  // The maximum frame rate we expect to handle
 #define ZM_SAMPLE_RATE          int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
+#define ZM_SUSPENDED_RATE       int(1000000/4) // A slower rate for when disabled etc
 
 extern char *ZM_DB_HOST, *ZM_DB_NAME, *ZM_DB_USER, *ZM_DB_PASS, *ZM_PATH_WEB;
 extern void zmLoadConfig();

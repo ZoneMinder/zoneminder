@@ -58,6 +58,9 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -a, --alarm                    : Force alarm in monitor, this will trigger recording until cancelled with -c\n" );
 	fprintf( stderr, "  -n, --noalarm                  : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n" );
 	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n" );
+	fprintf( stderr, "  -L, --reload                   : Signal monitor to reload settings\n" );
+	fprintf( stderr, "  -E, --enable                   : Enable detection, wake monitor up\n" );
+	fprintf( stderr, "  -D, --disable                  : Disble detection, put monitor to sleep\n" );
 	fprintf( stderr, "  -u, --suspend                  : Suspend detection, useful to prevent bogus alarms when panning etc\n" );
 	fprintf( stderr, "  -r, --resume                   : Resume detection after a suspend\n" );
 	fprintf( stderr, "  -U, --username <username>      : When running in authenticated mode the username and\n" );
@@ -85,8 +88,11 @@ typedef enum {
 	CONTRAST   = 0x00002000,
 	HUE        = 0x00004000,
 	COLOUR     = 0x00008000,
-	SUSPEND    = 0x00010000,
-	RESUME     = 0x00020000,
+	RELOAD     = 0x00010000,
+	ENABLE     = 0x00100000,
+	DISABLE    = 0x00200000,
+	SUSPEND    = 0x00400000,
+	RESUME     = 0x00800000,
 	LIST       = 0x10000000,
 } Function;
 
@@ -108,7 +114,7 @@ bool ValidateAccess( User *user, int mon_id, int function )
 		if ( user->getMonitors() < User::PERM_VIEW )
 			allowed = false;
 	}
-	if ( function & (ALARM|NOALARM|CANCEL|SUSPEND|RESUME|BRIGHTNESS|CONTRAST|HUE|COLOUR) )
+	if ( function & (ALARM|NOALARM|CANCEL|RELOAD|ENABLE|DISABLE|SUSPEND|RESUME|BRIGHTNESS|CONTRAST|HUE|COLOUR) )
 	{
 		if ( user->getMonitors() < User::PERM_EDIT )
 			allowed = false;
@@ -150,6 +156,9 @@ int main( int argc, char *argv[] )
 		{"alarm", 0, 0, 'a'},
 		{"noalarm", 0, 0, 'n'},
 		{"cancel", 0, 0, 'c'},
+		{"reload", 0, 0, 'L'},
+		{"enable", 0, 0, 'E'},
+		{"disable", 0, 0, 'D'},
 		{"suspend", 0, 0, 'u'},
 		{"resume", 0, 0, 'r'},
 		{"query", 0, 0, 'q'},
@@ -179,7 +188,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsEDurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -243,6 +252,15 @@ int main( int argc, char *argv[] )
 				break;
 			case 'c':
 				function |= CANCEL;
+				break;
+			case 'L':
+				function |= RELOAD;
+				break;
+			case 'E':
+				function |= ENABLE;
+				break;
+			case 'D':
+				function |= DISABLE;
 				break;
 			case 'u':
 				function |= SUSPEND;
@@ -498,17 +516,35 @@ int main( int argc, char *argv[] )
 					printf( "Cancelling forced alarm on/off\n" );
 				monitor->CancelForced();
 			}
+			if ( function & RELOAD )
+			{
+				if ( verbose )
+					printf( "Reloading monitor settings\n" );
+				monitor->actionReload();
+			}
+			if ( function & ENABLE )
+			{
+				if ( verbose )
+					printf( "Enabling event generation\n" );
+				monitor->actionEnable();
+			}
+			if ( function & DISABLE )
+			{
+				if ( verbose )
+					printf( "Disabling event generation\n" );
+				monitor->actionDisable();
+			}
 			if ( function & SUSPEND )
 			{
 				if ( verbose )
-					printf( "Suspending motion detection\n" );
-				monitor->Suspend();
+					printf( "Suspending event generation\n" );
+				monitor->actionSuspend();
 			}
 			if ( function & RESUME )
 			{
 				if ( verbose )
-					printf( "Resuming motion detection\n" );
-				monitor->Resume();
+					printf( "Resuming event generation\n" );
+				monitor->actionResume();
 			}
 			if ( function & QUERY )
 			{
@@ -521,17 +557,17 @@ int main( int argc, char *argv[] )
 				if ( verbose )
 				{
 					if ( brightness >= 0 )
-						printf( "New brightness: %d\n", monitor->Brightness( brightness ) );
+						printf( "New brightness: %d\n", monitor->actionBrightness( brightness ) );
 					else
-						printf( "Current brightness: %d\n", monitor->Brightness() );
+						printf( "Current brightness: %d\n", monitor->actionBrightness() );
 				}
 				else
 				{
 					if ( have_output ) printf( "%c", separator );
 					if ( brightness >= 0 )
-						printf( "%d", monitor->Brightness( brightness ) );
+						printf( "%d", monitor->actionBrightness( brightness ) );
 					else
-						printf( "%d", monitor->Brightness() );
+						printf( "%d", monitor->actionBrightness() );
 					have_output = true;
 				}
 			}
@@ -540,17 +576,17 @@ int main( int argc, char *argv[] )
 				if ( verbose )
 				{
 					if ( contrast >= 0 )
-						printf( "New brightness: %d\n", monitor->Contrast( contrast ) );
+						printf( "New brightness: %d\n", monitor->actionContrast( contrast ) );
 					else
-						printf( "Current contrast: %d\n", monitor->Contrast() );
+						printf( "Current contrast: %d\n", monitor->actionContrast() );
 				}
 				else
 				{
 					if ( have_output ) printf( "%c", separator );
 					if ( contrast >= 0 )
-						printf( "%d", monitor->Contrast( contrast ) );
+						printf( "%d", monitor->actionContrast( contrast ) );
 					else
-						printf( "%d", monitor->Contrast() );
+						printf( "%d", monitor->actionContrast() );
 					have_output = true;
 				}
 			}
@@ -559,17 +595,17 @@ int main( int argc, char *argv[] )
 				if ( verbose )
 				{
 					if ( hue >= 0 )
-						printf( "New hue: %d\n", monitor->Hue( hue ) );
+						printf( "New hue: %d\n", monitor->actionHue( hue ) );
 					else
-						printf( "Current hue: %d\n", monitor->Hue() );
+						printf( "Current hue: %d\n", monitor->actionHue() );
 				}
 				else
 				{
 					if ( have_output ) printf( "%c", separator );
 					if ( hue >= 0 )
-						printf( "%d", monitor->Hue( hue ) );
+						printf( "%d", monitor->actionHue( hue ) );
 					else
-						printf( "%d", monitor->Hue() );
+						printf( "%d", monitor->actionHue() );
 					have_output = true;
 				}
 			}
@@ -578,17 +614,17 @@ int main( int argc, char *argv[] )
 				if ( verbose )
 				{
 					if ( colour >= 0 )
-						printf( "New colour: %d\n", monitor->Colour( colour ) );
+						printf( "New colour: %d\n", monitor->actionColour( colour ) );
 					else
-						printf( "Current colour: %d\n", monitor->Colour() );
+						printf( "Current colour: %d\n", monitor->actionColour() );
 				}
 				else
 				{
 					if ( have_output ) printf( "%c", separator );
 					if ( colour >= 0 )
-						printf( "%d", monitor->Colour( colour ) );
+						printf( "%d", monitor->actionColour( colour ) );
 					else
-						printf( "%d", monitor->Colour() );
+						printf( "%d", monitor->actionColour() );
 					have_output = true;
 				}
 			}

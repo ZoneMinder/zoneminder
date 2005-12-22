@@ -58,6 +58,24 @@ void zm_term_handler( int signal )
 	zma_terminate = true;
 }
 
+bool zma_reload = false;
+
+void  zm_hup_handler( int signal )
+{
+#if HAVE_DECL_STRSIGNAL
+	char * error = strsignal(signal);
+	size_t errorStringSize = strlen(error) + strlen("Got signal (), reloading.");
+	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
+	(void) snprintf(errorString, errorStringSize, "Got signal (%s), reloading.", error);
+
+	Info(( (const char *)errorString ));
+	free(errorString);
+#else /* HAVE_DECL_STRSIGNAL */
+	Info(( "Got HUP signal, reloading" ));
+#endif /* HAVE_DECL_STRSIGNAL */
+	zma_reload = true;
+}
+
 void Usage()
 {
 	fprintf( stderr, "zma -m <monitor_id>\n" );
@@ -129,7 +147,7 @@ int main( int argc, char *argv[] )
 
 	if ( monitor )
 	{
-		Info(( "Warming up" ));
+		Info(( "In mode %d/%d, warming up", monitor->GetFunction(), monitor->Enabled() ));
 
 		if ( config.opt_frame_server )
 		{
@@ -139,6 +157,11 @@ int main( int argc, char *argv[] )
 		sigset_t block_set;
 		sigemptyset( &block_set );
 		struct sigaction action, old_action;
+
+		action.sa_handler = zm_hup_handler;
+		action.sa_mask = block_set;
+		action.sa_flags = 0;
+		sigaction( SIGHUP, &action, &old_action );
 
 		action.sa_handler = zm_term_handler;
 		action.sa_mask = block_set;
@@ -157,7 +180,12 @@ int main( int argc, char *argv[] )
 			sigprocmask( SIG_BLOCK, &block_set, 0 );
 			if ( !monitor->Analyse() )
 			{
-				usleep( ZM_SAMPLE_RATE ); // Nyquist sampling rate at 30fps, wouldn't expect any more than this
+				usleep( monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE );
+			}
+			if ( zma_reload )
+			{
+				monitor->Reload();
+				zma_reload = false;
 			}
 			sigprocmask( SIG_UNBLOCK, &block_set, 0 );
 		}

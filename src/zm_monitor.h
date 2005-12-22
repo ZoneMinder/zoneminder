@@ -45,13 +45,7 @@ public:
 
 	typedef enum
 	{
-		CONTINUOUS=0,
-		TRIGGERED
-	} RunMode;
-
-	typedef enum
-	{
-		OFF=1,
+		NONE=1,
 		MONITOR,
 		MODECT,
 		RECORD,
@@ -59,20 +53,33 @@ public:
 		NODECT
 	} Function;
 
-	typedef enum { ROTATE_0=1, ROTATE_90, ROTATE_180, ROTATE_270, FLIP_HORI, FLIP_VERT } Orientation;
+	typedef enum
+	{ 
+		ROTATE_0=1,
+		ROTATE_90,
+		ROTATE_180,
+		ROTATE_270,
+		FLIP_HORI,
+		FLIP_VERT
+	} Orientation;
 
-	typedef enum { IDLE, PREALARM, ALARM, ALERT, TAPE } State;
-
-	typedef enum { ACTIVE, SUSPENDED, RESUMING } ActivityState;
+	typedef enum
+	{
+		IDLE,
+		PREALARM,
+		ALARM,
+		ALERT,
+		TAPE
+	} State;
 
 protected:
 	// These are read from the DB and thereafter remain unchanged
 	int				id;
 	char			*name;
 	Function		function;			// What the monitor is doing
+	bool			enabled;			// Whether the monitor is enabled or asleep
 	unsigned int    width;				// Normally the same as the camera, but not if partly rotated
 	unsigned int    height;				// Normally the same as the camera, but not if partly rotated
-	RunMode			run_mode;			// Whether the monitor is running continuously or is triggered	
 	Orientation		orientation;		// Whether the image has to be rotated at all
 	int				brightness;			// The statically saved brightness of the camera
 	int				contrast;			// The statically saved contrast of the camera
@@ -98,10 +105,9 @@ protected:
 	Image			ref_image;
 
 	Purpose			purpose;			// What this monitor has been created to do
-	ActivityState	activity_state;
 	int				event_count;
 	int				image_count;
-	int				resume_image_count;
+	int				ready_count;
 	int				first_alarm_count;
 	int				last_alarm_count;
 	int				buffer_count;
@@ -112,6 +118,7 @@ protected:
 	Event			*event;
 	time_t			start_time;
 	time_t			last_fps_time;
+	time_t			auto_resume_time;
 	int				shmid;
 
 	typedef struct Snapshot
@@ -122,11 +129,12 @@ protected:
 
 	Snapshot *image_buffer;
 
-	typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, SUSPEND=0x4, RESUME=0x8 } Action;
+	typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, RELOAD=0x4, SUSPEND=0x10, RESUME=0x20 } Action;
 	typedef struct
 	{
 		int size;
 		bool valid;
+		bool active;
 		State state;
 		int last_write_index;
 		int last_read_index;
@@ -158,7 +166,7 @@ protected:
 	Camera *camera;
 
 public:
-	Monitor( int p_id, char *p_name, int p_function, Camera *p_camera, int p_orientation, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, char *p_name, int p_function, bool p_enabled, Camera *p_camera, int p_orientation, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void Setup();
@@ -178,10 +186,36 @@ public:
 	{
 		return( name );
 	}
+	inline Function GetFunction() const
+	{
+		return( function );
+	}
 	inline const char *EventPrefix() const
 	{
 		return( event_prefix );
 	}
+	inline bool Ready()
+	{
+		if ( function <= MONITOR )
+			return( false );
+		return( image_count > ready_count );
+	}
+	inline bool Enabled()
+	{
+		if ( function <= MONITOR )
+			return( false );
+		return( enabled );
+	}
+	inline bool Active()
+	{
+		if ( function <= MONITOR )
+			return( false );
+		return( enabled && shared_data->active );
+	}
+
+	unsigned int Width() const { return( width ); }
+	unsigned int Height() const { return( height ); }
+ 
 	State GetState() const;
 	int GetImage( int index=-1, int scale=100 ) const;
 	struct timeval GetTimestamp( int index=-1 ) const;
@@ -194,153 +228,36 @@ public:
 	void ForceAlarmOff();
 	void CancelForced();
 	TriggerState GetTriggerState() const { return( trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL ); }
-	void Suspend();
-	void Resume();
 
-	inline void TimestampImage( Image *ts_image, time_t ts_time ) const
-	{
-		if ( label_format[0] )
-		{
-			static int token_count = -1;
-			static char label_time_text[256];
-			static char label_text[256];
+	void actionReload();
+	void actionEnable();
+	void actionDisable();
+	void actionSuspend();
+	void actionResume();
 
-			if ( token_count < 0 )
-			{
-				const char *token_ptr = label_format;
-				const char *token_string = "%%s";
-				token_count = 0;
-				while( token_ptr = strstr( token_ptr, token_string ) )
-				{
-					token_count++;
-					token_ptr += strlen(token_string);
-				}
-			}
-			strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time ) );
-			switch ( token_count )
-			{
-				case 0:
-				{
-					strncpy( label_text, label_time_text, sizeof(label_text) );
-					break;
-				}
-				case 1:
-				{
-					snprintf( label_text, sizeof(label_text), label_time_text, name );
-					break;
-				}
-				case 2:
-				{
-					snprintf( label_text, sizeof(label_text), label_time_text, name, trigger_data->trigger_showtext );
-					break;
-				}
-			}
+	int actionBrightness( int p_brightness=-1 );
+	int actionHue( int p_hue=-1 );
+	int actionColour( int p_colour=-1 );
+	int actionContrast( int p_contrast=-1 );
 
-			ts_image->Annotate( label_text, label_coord );
-		}
-	}
-	int Brightness( int p_brightness=-1 );
-	int Hue( int p_hue=-1 );
-	int Colour( int p_colour=-1 );
-	int Contrast( int p_contrast=-1 );
-
-	bool DumpSettings( char *output, bool verbose );
-	void DumpZoneImage( const char *zone_string=0 );
-
-	unsigned int Width() const { return( width ); }
-	unsigned int Height() const { return( height ); }
 	inline int PreCapture()
 	{
 		return( camera->PreCapture() );
 	}
-	inline int PostCapture()
-	{
-		if ( camera->PostCapture( image ) == 0 )
-		{
-			if ( orientation != ROTATE_0 )
-			{
-				switch ( orientation )
-				{
-					case ROTATE_90 :
-					case ROTATE_180 :
-					case ROTATE_270 :
-					{
-						image.Rotate( (orientation-1)*90 );
-						break;
-					}
-					case FLIP_HORI :
-					case FLIP_VERT :
-					{
-						image.Flip( orientation==FLIP_HORI );
-						break;
-					}
-				}
-			}
-
-			int index = image_count%image_buffer_count;
-
-			if ( index == shared_data->last_read_index && function > MONITOR )
-			{
-				Warning(( "Buffer overrun at index %d, slow down capture, speed up analysis or increase ring buffer size", index ));
-			}
-
-			gettimeofday( image_buffer[index].timestamp, &dummy_tz );
-			if ( config.timestamp_on_capture )
-			{
-				TimestampImage( &image, image_buffer[index].timestamp->tv_sec );
-			}
-			image_buffer[index].image->CopyBuffer( image );
-
-			shared_data->last_write_index = index;
-			shared_data->last_image_time = image_buffer[index].timestamp->tv_sec;
-
-			image_count++;
-
-			if ( image_count && !(image_count%fps_report_interval) )
-			{
-				time_t now = image_buffer[index].timestamp->tv_sec;
-				fps = double(fps_report_interval)/(now-last_fps_time);
-				//Info(( "%d -> %d -> %d", fps_report_interval, now, last_fps_time ));
-				//Info(( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps ));
-				Info(( "%s: %d - Capturing at %.2lf fps", name, image_count, fps ));
-				last_fps_time = now;
-			}
-
-			if ( shared_data->action & GET_SETTINGS )
-			{
-				shared_data->brightness = camera->Brightness();
-				shared_data->hue = camera->Hue();
-				shared_data->colour = camera->Colour();
-				shared_data->contrast = camera->Contrast();
-				shared_data->action &= ~GET_SETTINGS;
-			}
-			if ( shared_data->action & SET_SETTINGS )
-			{
-				camera->Brightness( shared_data->brightness );
-				camera->Hue( shared_data->hue );
-				camera->Colour( shared_data->colour );
-				camera->Contrast( shared_data->contrast );
-				shared_data->action &= ~SET_SETTINGS;
-			}
-			return( 0 );
-		}
-		return( -1 );
-	}
-
-	inline bool Ready()
-	{
-		if ( function <= MONITOR )
-			return( false );
-		if ( image_count <= warmup_count )
-			return( false );
-		return( true );
-	}
- 
-	void DumpImage( Image *dump_image ) const;
-	bool Analyse();
+	int PostCapture();
 
 	unsigned int Compare( const Image &comp_image );
+	bool Analyse();
+	void DumpImage( Image *dump_image ) const;
+	void TimestampImage( Image *ts_image, time_t ts_time ) const;
+	bool closeEvent();
+
+	void Reload();
 	void ReloadZones();
+
+	bool DumpSettings( char *output, bool verbose );
+	void DumpZoneImage( const char *zone_string=0 );
+
 	static int LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose=QUERY );
 	static int LoadRemoteMonitors( const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose=QUERY );
 	static int LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose=QUERY );

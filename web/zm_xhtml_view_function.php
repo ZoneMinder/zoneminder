@@ -60,6 +60,9 @@ foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 </select></td>
 </tr>
 <tr>
+<td align="center"><?= $zmSlangEnabled ?>&nbsp;<input type="checkbox" name="new_enabled" value="1" class="form-noborder"<?php if ( !empty($monitor['Enabled']) ) { ?> checked<?php } ?>></td>
+</tr>
+<tr>
 <td align="center"><input type="submit" value="<?= $zmSlangSave ?>" class="form"></td>
 </tr>
 </table>

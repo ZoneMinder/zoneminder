@@ -87,37 +87,14 @@ while( 1 )
 {
 	my $now = time();
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-	my $shm_size = 24; # We only need the first 24 bytes really for the last event time
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
 		if ( $monitor->{Function} ne 'None' )
 		{
 			# Check we have got an image recently
-			$monitor->{ShmKey} = hex(ZM_SHM_KEY)|$monitor->{Id};
-			$monitor->{ShmId} = shmget( $monitor->{ShmKey}, $shm_size, 0 );
-			if ( !defined($monitor->{ShmId}) )
-			{
-				Error( "Can't get shared memory id '$monitor->{ShmKey}': $!\n" );
-				next;
-			}
-			my $image_time;
-			if ( !shmread( $monitor->{ShmId}, $image_time, 20, 4 ) )
-			{
-				Error( "Can't read from shared memory '$monitor->{ShmKey}/$monitor->{ShmId}': $!\n" );
-				next;
-			}
-			$image_time = unpack( "l", $image_time );
-
-			#my $command = ZM_PATH_BIN."/zmu -m ".$monitor->{Id}." -t";
-			#Debug( "Getting last image time for monitor $monitor->{Id} ('$command')\n" );
-			#my $image_time = qx( $command );
-			#chomp($image_time);
-
-			if ( !$image_time )
-			{
-				# We can't get the last capture time so can't be sure it's died.
-				next;
-			}
+			my $image_time = zmGetLastImageTime( $monitor );
+			next if ( !defined($image_time) ); # Can't read from shared memory
+			next if ( !$image_time ); # We can't get the last capture time so can't be sure it's died.
 
 			my $max_image_delay = (($monitor->{MaxFPS}>0)&&($monitor->{MaxFPS}<1))?(3/$monitor->{MaxFPS}):ZM_WATCH_MAX_DELAY;
 			my $image_delay = $now-$image_time;

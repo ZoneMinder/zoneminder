@@ -49,6 +49,7 @@ our %EXPORT_TAGS = (
 		STATE_TAPE
 		ACTION_GET
 		ACTION_SET
+		ACTION_RELOAD
 		ACTION_SUSPEND
 		ACTION_RESUME
 		TRIGGER_CANCEL
@@ -66,8 +67,11 @@ our %EXPORT_TAGS = (
 		zmIsAlarmed
 		zmInAlarm
 		zmHasAlarmed
+		zmGetLastEvent
 		zmGetLastImageTime
 		zmGetMonitorActions
+		zmMonitorEnable
+		zmMonitorDisable
 		zmMonitorSuspend
 		zmMonitorResume
 		zmTriggerEventOn
@@ -101,8 +105,9 @@ use constant STATE_TAPE     => 4;
 
 use constant ACTION_GET     => 1;
 use constant ACTION_SET     => 2;
-use constant ACTION_SUSPEND => 4;
-use constant ACTION_RESUME  => 8;
+use constant ACTION_RELOAD  => 4;
+use constant ACTION_SUSPEND => 16;
+use constant ACTION_RESUME  => 32;
 
 use constant TRIGGER_CANCEL => 0;
 use constant TRIGGER_ON     => 1;
@@ -349,13 +354,20 @@ sub zmHasAlarmed( $$ )
 
 	if ( $state == STATE_ALARM || $state == STATE_ALERT )
 	{
-		return( !undef );
+		return( $last_event );
 	}
 	elsif( $last_event != $last_event_id )
 	{
-		return( !undef );
+		return( $last_event );
 	}
 	return( undef );
+}
+
+sub zmGetLastEvent( $ )
+{
+	my $monitor = shift;
+
+	return( zmShmRead( $monitor, "shared_data:last_event" ) );
 }
 
 sub zmGetLastImageTime( $ )
@@ -370,6 +382,24 @@ sub zmGetMonitorActions( $ )
 	my $monitor = shift;
 
 	return( zmShmRead( $monitor, "shared_data:action" ) );
+}
+
+sub zmMonitorEnable( $ )
+{
+	my $monitor = shift;
+
+	my $action = zmShmRead( $monitor, "shared_data:action" );
+	$action |= ACTION_SUSPEND;
+	zmShmWrite( $monitor, { "shared_data:action" => $action } );
+}
+
+sub zmMonitorDisable( $ )
+{
+	my $monitor = shift;
+
+	my $action = zmShmRead( $monitor, "shared_data:action" );
+	$action |= ACTION_RESUME;
+	zmShmWrite( $monitor, { "shared_data:action" => $action } );
 }
 
 sub zmMonitorSuspend( $ )

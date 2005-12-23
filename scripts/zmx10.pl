@@ -34,7 +34,9 @@ use bytes;
 # ==========================================================================
 
 use constant DBG_ID => "zmx10"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
+use constant DBG_LEVEL => 1; # 0 is errors, warnings and info only, > 0 for debug
+
+use constant CAUSE_STRING => "X10"; # What gets written as the cause of any events
 
 # ==========================================================================
 #
@@ -211,7 +213,7 @@ sub runServer
 				{
 					if ( $unit_code < 1 || $unit_code > 16 )
 					{
-						dprint( "Error, invalid unit code '$unit_code'\n" );
+						dPrint( DBG_ERROR, "Invalid unit code '$unit_code'\n" );
 						next;
 					}
 
@@ -243,14 +245,14 @@ sub runServer
 				{
 					if ( $device )
 					{
-						dprint( $unit_code." ".$device->{status}."\n" );
+						dPrint( DBG_DEBUG, $unit_code." ".$device->{status}."\n" );
 					}
 					else
 					{
 						foreach my $unit_code ( sort( keys(%device_hash) ) )
 						{
 							my $device = $device_hash{$unit_code};
-							dprint( $unit_code." ".$device->{status}."\n" );
+							dPrint( DBG_DEBUG, $unit_code." ".$device->{status}."\n" );
 						}
 					}
 				}
@@ -260,19 +262,19 @@ sub runServer
 				}
 				else
 				{
-					dprint( "Error, invalid command '$command'\n" );
+					dPrint( DBG_ERROR, "Invalid command '$command'\n" );
 				}
 				if ( defined($result) )
 				{
 					if ( 1 || $result )
 					{
 						$device->{status} = uc($command);
-						dprint( $device->{appliance}->address()." $command, ok\n" );
+						dPrint( DBG_DEBUG, $device->{appliance}->address()." $command, ok\n" );
 						#x10listen( new X10::Event( sprintf("%s %s", $device->{appliance}->address, uc($command) ) ) );
 					}
 					else
 					{
-						dprint( $device->{appliance}->address()." $command, failed\n" );
+						dPrint( DBG_ERROR, $device->{appliance}->address()." $command, failed\n" );
 					}
 				}
 				close( CLIENT );
@@ -288,7 +290,10 @@ sub runServer
 		}
 		elsif ( $nfound < 0 )
 		{
-			Fatal( "Can't select: $!" );
+			if ( $! != EINTR )
+			{
+				Fatal( "Can't select: $!" );
+			}
 		}
 		else
 		{
@@ -361,14 +366,14 @@ sub addToDeviceList
 	my $function = shift;
 	my $limit = shift;
 
-	Debug( "Adding to device list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" );
+	Debug( "Adding to device list, uc:$unit_code, ev:$event, mo:".$monitor->{Id}.", fu:$function, li:$limit\n" );
 	my $device = $device_hash{$unit_code};
 	if ( !$device )
 	{
 		$device = $device_hash{$unit_code} = { appliance=>$x10->Appliance( unit_code=>$unit_code ), status=>'unknown' };
 	}
 
-	my $task = { type=>"device", monitor=>$monitor, function=>$function };
+	my $task = { type=>"device", monitor=>$monitor, address=>$device->{appliance}->address(), function=>$function };
 	if ( $limit )
 	{
 		$task->{limit} = $limit
@@ -390,14 +395,14 @@ sub addToMonitorList
 	my $function = shift;
 	my $limit = shift;
 
-	Debug( "Adding to monitor list, uc:$unit_code, ev:$event, mo:$monitor, fu:$function, li:$limit\n" );
+	Debug( "Adding to monitor list, uc:$unit_code, ev:$event, mo:".$monitor->{Id}.", fu:$function, li:$limit\n" );
 	my $device = $device_hash{$unit_code};
 	if ( !$device )
 	{
 		$device = $device_hash{$unit_code} = { appliance=>$x10->Appliance( unit_code=>$unit_code ), status=>'unknown' };
 	}
 
-	my $task = { type=>"monitor", device=>$device, function=>$function };
+	my $task = { type=>"monitor", device=>$device, id=>$monitor->{Id}, function=>$function };
 	if ( $limit )
 	{
 		$task->{limit} = $limit;
@@ -589,7 +594,7 @@ sub processTask
 		{
 			if ( $instruction eq "start" )
 			{
-				zmTriggerEventOn( $task->{monitor}, 0, "X10" );
+				zmTriggerEventOn( $task->{monitor}, 0, main::CAUSE_STRING, $task->{address} );
 				if ( $task->{limit} )
 				{
 					addPendingTask( $task );
@@ -618,13 +623,33 @@ sub processTask
 	}
 }
 
-sub dprint
+sub dPrint
 {
+	my $dbg_level = shift;
 	if ( fileno(CLIENT) )
 	{
 		print CLIENT @_
 	}
-	Info( @_ );
+	if ( $dbg_level == DBG_DEBUG )
+	{
+		Debug( @_ );
+	}
+	elsif ( $dbg_level == DBG_INFO )
+	{
+		Info( @_ );
+	}
+	elsif ( $dbg_level == DBG_WARNING )
+	{
+		Warning( @_ );
+	}
+	elsif ( $dbg_level == DBG_ERROR )
+	{
+		Error( @_ );
+	}
+	elsif ( $dbg_level == DBG_FATAL )
+	{
+		Fatal( @_ );
+	}
 }
 
 sub x10listen

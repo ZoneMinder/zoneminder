@@ -404,7 +404,7 @@ if ( !$server_up )
 				return();
 			}
 
-			print( "'$daemon ".join( ' ', @args )."' stopping at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+			dPrint( DBG_INFO, "'$daemon ".join( ' ', @args )."' stopping at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 			$process->{keepalive} = !$final;
 			kill( 'TERM', $cpid );
 			delete( $cmd_hash{$command} );

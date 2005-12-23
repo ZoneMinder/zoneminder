@@ -239,7 +239,6 @@ if ( !$server_up )
 			}
 			elsif ( $nfound < 0 )
 			{
-					print( "Got: $nfound - $!\n" );
 				if ( $! == EINTR )
 				{
 					# Dead child, will be reaped

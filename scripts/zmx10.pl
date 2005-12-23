@@ -175,9 +175,9 @@ sub runServer
 	bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
 	listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
-	$dbh = DBI->connect( "DBI:mysql:database=".main::ZM_DB_NAME.";host=".main::ZM_DB_HOST, main::ZM_DB_USER, main::ZM_DB_PASS );
+	$dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
-	$x10 = new X10::ActiveHome( port=>main::ZM_X10_DEVICE, house_code=>main::ZM_X10_HOUSE_CODE, debug=>1 );
+	$x10 = new X10::ActiveHome( port=>ZM_X10_DEVICE, house_code=>ZM_X10_HOUSE_CODE, debug=>1 );
 
 	loadTasks();
 
@@ -190,7 +190,7 @@ sub runServer
 	#print( "F:".fileno(SERVER)."\n" );
 	my $reload = undef;
 	my $reload_count = 0;
-	my $reload_limit = (main::ZM_X10_DB_RELOAD_INTERVAL)/$timeout;
+	my $reload_limit = &ZM_X10_DB_RELOAD_INTERVAL / $timeout;
 	while( 1 )
 	{
 		my $nfound = select( my $rout = $rin, undef, undef, $timeout );
@@ -424,7 +424,7 @@ sub loadTasks
 		$device->{OFF_list} = [];
 	}
 
-	my $sql = "select M.*,T.* from Monitors as M inner join TriggersX10 as T on (M.Id = T.MonitorId) where find_in_set( M.Function, 'Modect,Record,Mocord' ) and M.RunMode = 'Triggered' and find_in_set( 'X10', M.Triggers )";
+	my $sql = "select M.*,T.* from Monitors as M inner join TriggersX10 as T on (M.Id = T.MonitorId) where find_in_set( M.Function, 'Modect,Record,Mocord,Nodect' ) and M.Enabled = 1 and find_in_set( 'X10', M.Triggers )";
 	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
@@ -632,7 +632,7 @@ sub x10listen
 	foreach my $event ( @_ )
 	{
 		#print( Data::Dumper( $_ )."\n" );
-		if ( $event->house_code() eq main::ZM_X10_HOUSE_CODE )
+		if ( $event->house_code() eq ZM_X10_HOUSE_CODE )
 		{
 			my $unit_code = $event->unit_code();
 			my $device = $device_hash{$unit_code};

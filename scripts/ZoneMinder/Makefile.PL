@@ -14,6 +14,15 @@ WriteMakefile(
 		'lib/ZoneMinder/Database.pm' => '$(INST_LIBDIR)/ZoneMinder/Database.pm',
 		'lib/ZoneMinder/SharedMem.pm' => '$(INST_LIBDIR)/ZoneMinder/SharedMem.pm',
 		'lib/ZoneMinder/ConfigAdmin.pm' => '$(INST_LIBDIR)/ZoneMinder/ConfigAdmin.pm',
+		'lib/ZoneMinder/Trigger/Channel.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel.pm',
+		'lib/ZoneMinder/Trigger/Channel/Handle.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel/Handle.pm',
+		'lib/ZoneMinder/Trigger/Channel/Spawning.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel/Spawning.pm',
+		'lib/ZoneMinder/Trigger/Channel/Inet.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel/Inet.pm',
+		'lib/ZoneMinder/Trigger/Channel/Unix.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel/Unix.pm',
+		'lib/ZoneMinder/Trigger/Channel/File.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel/File.pm',
+		'lib/ZoneMinder/Trigger/Channel/Serial.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel/Serial.pm',
+		'lib/ZoneMinder/Trigger/Connection.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Connection.pm',
+		'lib/ZoneMinder/Trigger/Connection/Example.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Connection/Example.pm',
 	},
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/ZoneMinder.pm', # retrieve abstract from module

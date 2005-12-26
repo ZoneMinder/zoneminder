@@ -49,5 +49,14 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder/Database.pm \
 	ZoneMinder/lib/ZoneMinder/SharedMem.pm \
 	ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm \
+	ZoneMinder/lib/ZoneMinder/Trigger/Channel.pm \
+	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Handle.pm \
+	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Spawning.pm \
+	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Inet.pm \
+	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Unix.pm \
+	ZoneMinder/lib/ZoneMinder/Trigger/Channel/File.pm \
+	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Serial.pm \
+	ZoneMinder/lib/ZoneMinder/Trigger/Connection.pm \
+	ZoneMinder/lib/ZoneMinder/Trigger/Connection/Example.pm \
 	zm.in
 

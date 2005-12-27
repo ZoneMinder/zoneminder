@@ -809,6 +809,8 @@ bool Monitor::Analyse()
 					}
 					if ( !event )
 					{
+						shared_data->state = state = TAPE;
+
 						// Create event
 						event = new Event( this, *timestamp, "Continuous" );
 						shared_data->last_event = event->Id();
@@ -830,7 +832,6 @@ bool Monitor::Analyse()
 							}
 							event->AddFrames( pre_event_count, images, timestamps );
 						}
-						shared_data->state = state = TAPE;
 					}
 				}
 				if ( score )
@@ -840,6 +841,7 @@ bool Monitor::Analyse()
 						if ( Event::PreAlarmCount() >= (alarm_frame_count-1) )
 						{
 							Info(( "%s: %03d - Gone into alarm state", name, image_count ));
+							shared_data->state = state = ALARM;
 							if ( function != MOCORD && state != ALERT )
 							{
 								int pre_index;
@@ -872,7 +874,6 @@ bool Monitor::Analyse()
 									event->SavePreAlarmFrames();
 								}
 							}
-							shared_data->state = state = ALARM;
 						}
 						else if ( state != PREALARM )
 						{

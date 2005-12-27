@@ -38,15 +38,17 @@ $marker = array(
 	"height"=>7,
 );
 
-$presets = array(
-	0=>$zmSlangZonePresetChoose,
-	1=>$zmSlangZonePresetFastLow,
-	2=>$zmSlangZonePresetFastMed,
-	3=>$zmSlangZonePresetFastHigh,
-	11=>$zmSlangZonePresetBestLow,
-	12=>$zmSlangZonePresetBestMed,
-	13=>$zmSlangZonePresetBestHigh,
-);
+$result = mysql_query( "select *, Units-1 as UnitsIndex, CheckMethod-1 as CheckMethodIndex from ZonePresets order by Id asc" );
+if ( !$result )
+	die( mysql_error() );
+$presets = array();
+$preset_names = array();
+$preset_names[0] = $zmSlangChoosePreset;
+while ( $preset = mysql_fetch_assoc( $result ) )
+{
+	$preset_names[$preset['Id']] = $preset['Name'];
+	$presets[] = $preset;
+}
 
 $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
@@ -344,73 +346,33 @@ function applyPreset()
 	var form = document.zone_form;
 	var preset = form.elements['presetSelector'].options[form.elements['presetSelector'].selectedIndex].value;
 
-	if ( preset >= 1 && preset <= 3 )
+	switch( preset )
 	{
-		form.elements['new_zone[Units]'].selectedIndex = 1;
-		form.elements['new_zone[CheckMethod]'].selectedIndex = 0;
-		form.elements['new_zone[MaxPixelThreshold]'].value = ''
-		form.elements['new_zone[FilterX]'].value = '';
-		form.elements['new_zone[FilterY]'].value = '';
-		form.elements['new_zone[MaxAlarmPixels]'].value = '';
-		form.elements['new_zone[MinFilterPixels]'].value = '';
-		form.elements['new_zone[MaxFilterPixels]'].value = '';
-		form.elements['new_zone[MinBlobPixels]'].value = '';
-		form.elements['new_zone[MaxBlobPixels]'].value = '';
-		form.elements['new_zone[MinBlobs]'].value = '';
-		form.elements['new_zone[MaxBlobs]'].value = '';
-		if ( preset == 1 )
+<?php
+foreach ( $presets as $preset )
+{
+?>
+		case '<?= $preset['Id'] ?>':
 		{
-			form.elements['new_zone[MinPixelThreshold]'].value = 25;
-			form.elements['new_zone[MinAlarmPixels]'].value = 20;
+			form.elements['new_zone[Units]'].selectedIndex = <?= $preset['UnitsIndex'] ?>;
+			form.elements['new_zone[CheckMethod]'].selectedIndex = <?= $preset['CheckMethodIndex'] ?>;
+			form.elements['new_zone[MinPixelThreshold]'].value = '<?= $preset['MinPixelThreshold'] ?>';
+			form.elements['new_zone[MaxPixelThreshold]'].value = '<?= $preset['MaxPixelThreshold'] ?>';
+			form.elements['new_zone[FilterX]'].value = '<?= $preset['FilterX'] ?>';
+			form.elements['new_zone[FilterY]'].value = '<?= $preset['FilterY'] ?>';
+			form.elements['new_zone[MinAlarmPixels]'].value = '<?= $preset['MinAlarmPixels'] ?>';
+			form.elements['new_zone[MaxAlarmPixels]'].value = '<?= $preset['MaxAlarmPixels'] ?>';
+			form.elements['new_zone[MinFilterPixels]'].value = '<?= $preset['MinFilterPixels'] ?>';
+			form.elements['new_zone[MaxFilterPixels]'].value = '<?= $preset['MaxFilterPixels'] ?>';
+			form.elements['new_zone[MinBlobPixels]'].value = '<?= $preset['MinBlobPixels'] ?>';
+			form.elements['new_zone[MaxBlobPixels]'].value = '<?= $preset['MaxBlobPixels'] ?>';
+			form.elements['new_zone[MinBlobs]'].value = '<?= $preset['MinBlobs'] ?>';
+			form.elements['new_zone[MaxBlobs]'].value = '<?= $preset['MaxBlobs'] ?>';
+			break;
 		}
-		else if ( preset == 2 )
-		{
-			form.elements['new_zone[MinPixelThreshold]'].value = 15;
-			form.elements['new_zone[MinAlarmPixels]'].value = 10;
-		}
-		else if ( preset == 3 )
-		{
-			form.elements['new_zone[MinPixelThreshold]'].value = 10;
-			form.elements['new_zone[MinAlarmPixels]'].value = 5;
-		}
-	}
-	else if ( preset >= 11 && preset <= 13 )
-	{
-		form.elements['new_zone[Units]'].selectedIndex = 1;
-		form.elements['new_zone[CheckMethod]'].selectedIndex = 2;
-		form.elements['new_zone[MaxPixelThreshold]'].value = ''
-		form.elements['new_zone[MaxAlarmPixels]'].value = '';
-		form.elements['new_zone[MaxFilterPixels]'].value = '';
-		form.elements['new_zone[MaxBlobPixels]'].value = '';
-		form.elements['new_zone[MinBlobs]'].value = 1;
-		form.elements['new_zone[MaxBlobs]'].value = '';
-		if ( preset == 11 )
-		{
-			form.elements['new_zone[MinPixelThreshold]'].value = 25;
-			form.elements['new_zone[FilterX]'].value = 7;
-			form.elements['new_zone[FilterY]'].value = 7;
-			form.elements['new_zone[MinAlarmPixels]'].value = 36;
-			form.elements['new_zone[MinFilterPixels]'].value = 24;
-			form.elements['new_zone[MinBlobPixels]'].value = 20;
-		}
-		else if ( preset == 12 )
-		{
-			form.elements['new_zone[MinPixelThreshold]'].value = 15;
-			form.elements['new_zone[FilterX]'].value = 5;
-			form.elements['new_zone[FilterY]'].value = 5;
-			form.elements['new_zone[MinAlarmPixels]'].value = 16;
-			form.elements['new_zone[MinFilterPixels]'].value = 12;
-			form.elements['new_zone[MinBlobPixels]'].value = 10;
-		}
-		else if ( preset == 13 )
-		{
-			form.elements['new_zone[MinPixelThreshold]'].value = 10;
-			form.elements['new_zone[FilterX]'].value = 3;
-			form.elements['new_zone[FilterY]'].value = 3;
-			form.elements['new_zone[MinAlarmPixels]'].value = 8;
-			form.elements['new_zone[MinFilterPixels]'].value = 6;
-			form.elements['new_zone[MinBlobPixels]'].value = 5;
-		}
+<?php
+}
+?>
 	}
 	applyCheckMethod();
 	form.elements['new_zone[TempArea]'].value = 100;
@@ -689,7 +651,7 @@ foreach ( getEnumValues( 'Zones', 'Type' ) as $opt_type )
 }
 ?>
 </select></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangPreset ?></td><td colspan="2" align="left" class="text"><?= buildSelect( "presetSelector", $presets, array( "onChange"=>"applyPreset()", "onBlur"=>"this.selectedIndex=0" ) ) ?></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangPreset ?></td><td colspan="2" align="left" class="text"><?= buildSelect( "presetSelector", $preset_names, array( "onChange"=>"applyPreset()", "onBlur"=>"this.selectedIndex=0" ) ) ?></td></tr>
 <tr><td colspan="3"><img src="graphics/spacer.gif" width="1" height="5"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangUnits ?></td><td colspan="2" align="left" class="text"><select name="new_zone[Units]" class="form" onchange="applyZoneUnits()">
 <?php

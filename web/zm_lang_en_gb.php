@@ -285,6 +285,7 @@ $zmSlangFTP                  = 'FTP';
 $zmSlangFunc                 = 'Func';
 $zmSlangFunction             = 'Function';
 $zmSlangGain                 = 'Gain';
+$zmSlangGeneral              = 'General';
 $zmSlangGenerateVideo        = 'Generate Video';
 $zmSlangGeneratingVideo      = 'Generating Video';
 $zmSlangGoToZoneMinder       = 'Go to ZoneMinder.com';

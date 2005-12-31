@@ -25,11 +25,10 @@ if ( !canView( 'Monitors' ) )
 }
 
 $tabs = array();
-$tabs["monitor"] = $zmSlangMonitor;
+$tabs["general"] = $zmSlangGeneral;
 $tabs["source"] = $zmSlangSource;
 $tabs["timestamp"] = $zmSlangTimestamp;
 $tabs["buffers"] = $zmSlangBuffers;
-$tabs["misc"] = $zmSlangMisc;
 if ( ZM_OPT_CONTROL && canView( 'Control' ) )
 {
 	$tabs["control"] = $zmSlangControl;
@@ -38,9 +37,10 @@ if ( ZM_OPT_X10 )
 {
 	$tabs["x10"] = $zmSlangX10;
 }
+$tabs["misc"] = $zmSlangMisc;
 
 if ( !isset($tab) )
-	$tab = "monitor";
+	$tab = "general";
 
 if ( !empty($mid) )
 {
@@ -255,15 +255,15 @@ foreach ( $tabs as $name=>$value )
 <input type="hidden" name="action" value="monitor">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <?php
-if ( $tab != 'monitor' )
+if ( $tab != 'general' )
 {
 ?>
 <input type="hidden" name="new_monitor[Name]" value="<?= $new_monitor['Name'] ?>">
 <input Type="hidden" name="new_monitor[Type]" value="<?= $new_monitor['Type'] ?>">
 <input type="hidden" name="new_monitor[Function]" value="<?= $new_monitor['Function'] ?>">
 <input type="hidden" name="new_monitor[Enabled]" value="<?= $new_monitor['Enabled'] ?>">
-<input type="hidden" name="new_monitor[SectionLength]" value="<?= $new_monitor['SectionLength'] ?>">
-<input type="hidden" name="new_monitor[FrameSkip]" value="<?= $new_monitor['FrameSkip'] ?>">
+<input type="hidden" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>">
+<input type="hidden" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>">
 <?php
 	if ( isset($new_monitor['Triggers']) )
 	{
@@ -322,24 +322,24 @@ if ( ZM_OPT_CONTROL && $tab != 'control' )
 <input type="hidden" name="new_monitor[ReturnDelay]" value="<?= $new_monitor['ReturnDelay'] ?>">
 <?php
 }
-if ( $tab != 'misc' )
-{
-?>
-<input type="hidden" name="new_monitor[EventPrefix]" value="<?= $new_monitor['EventPrefix'] ?>">
-<input type="hidden" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>">
-<input type="hidden" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor['FPSReportInterval'] ?>">
-<input type="hidden" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>">
-<input type="hidden" name="new_monitor[DefaultRate]" value="<?= $new_monitor['DefaultRate'] ?>">
-<input type="hidden" name="new_monitor[DefaultScale]" value="<?= $new_monitor['DefaultScale'] ?>">
-<input type="hidden" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>">
-<?php
-}
 if ( ZM_OPT_X10 && $tab != 'x10' )
 {
 ?>
 <input type="hidden" name="new_x10_monitor[Activation]" value="<?= $new_x10_monitor['Activation'] ?>">
 <input type="hidden" name="new_x10_monitor[AlarmInput]" value="<?= $new_x10_monitor['AlarmInput'] ?>">
 <input type="hidden" name="new_x10_monitor[AlarmOutput]" value="<?= $new_x10_monitor['AlarmOutput'] ?>">
+<?php
+}
+if ( $tab != 'misc' )
+{
+?>
+<input type="hidden" name="new_monitor[EventPrefix]" value="<?= $new_monitor['EventPrefix'] ?>">
+<input type="hidden" name="new_monitor[SectionLength]" value="<?= $new_monitor['SectionLength'] ?>">
+<input type="hidden" name="new_monitor[FrameSkip]" value="<?= $new_monitor['FrameSkip'] ?>">
+<input type="hidden" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor['FPSReportInterval'] ?>">
+<input type="hidden" name="new_monitor[DefaultRate]" value="<?= $new_monitor['DefaultRate'] ?>">
+<input type="hidden" name="new_monitor[DefaultScale]" value="<?= $new_monitor['DefaultScale'] ?>">
+<input type="hidden" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>">
 <?php
 }
 ?>
@@ -349,10 +349,19 @@ if ( ZM_OPT_X10 && $tab != 'x10' )
 <?php
 switch ( $tab )
 {
-	case 'monitor' :
+	case 'general' :
 	{
 ?>
 <tr><td align="left" class="text"><?= $zmSlangName ?></td><td align="left" class="text"><input type="text" name="new_monitor[Name]" value="<?= $new_monitor['Name'] ?>" size="16" class="form"></td></tr>
+<?php
+		$select_name = "new_monitor[Type]";
+		$source_types = array(
+			'Local'=>$zmSlangLocal,
+			'Remote'=>$zmSlangRemote,
+			'File'=>$zmSlangFile
+		);
+?>
+<tr><td align="left" class="text"><?= $zmSlangSourceType ?></td><td><?= buildSelect( $select_name, $source_types ); ?></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangFunction ?></td><td align="left" class="text"><select name="new_monitor[Function]" class="form">
 <?php
 		foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
@@ -364,8 +373,8 @@ switch ( $tab )
 ?>
 </select></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangEnabled ?></td><td align="left" class="text"><input type="checkbox" name="new_monitor[Enabled]" value="1" class="form-noborder"<?php if ( !empty($new_monitor['Enabled']) ) { ?> checked<?php } ?>></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangSectionlength ?></td><td align="left" class="text"><input type="text" name="new_monitor[SectionLength]" value="<?= $new_monitor['SectionLength'] ?>" size="6" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangFrameSkip ?></td><td align="left" class="text"><input type="text" name="new_monitor[FrameSkip]" value="<?= $new_monitor['FrameSkip'] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangMaximumFPS ?></td><td align="left" class="text"><input type="text" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangRefImageBlendPct ?></td><td align="left" class="text"><input type="text" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangTriggers ?></td><td align="left" class="text">
 <?php
 		$opt_triggers = getSetValues( 'Monitors', 'Triggers' );
@@ -391,15 +400,6 @@ switch ( $tab )
 		}
 ?>
 </td></tr>
-<?php
-		$select_name = "new_monitor[Type]";
-		$source_types = array(
-			'Local'=>$zmSlangLocal,
-			'Remote'=>$zmSlangRemote,
-			'File'=>$zmSlangFile
-		);
-?>
-<tr><td align="left" class="text"><?= $zmSlangSourceType ?></td><td><?= buildSelect( $select_name, $source_types ); ?></td></tr>
 <?php
 		break;
 	}
@@ -479,25 +479,25 @@ switch ( $tab )
 <?php
 		break;
 	}
-	case 'misc' :
-	{
-?>
-<tr><td align="left" class="text"><?= $zmSlangEventPrefix ?></td><td align="left" class="text"><input type="text" name="new_monitor[EventPrefix]" value="<?= $new_monitor['EventPrefix'] ?>" size="24" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangMaximumFPS ?></td><td align="left" class="text"><input type="text" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>" size="6" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangFPSReportInterval ?></td><td align="left" class="text"><input type="text" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor['FPSReportInterval'] ?>" size="6" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangRefImageBlendPct ?></td><td align="left" class="text"><input type="text" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangDefaultRate ?></td><td align="left" class="text"><?= buildSelect( "new_monitor[DefaultRate]", $rates ); ?></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangDefaultScale ?></td><td align="left" class="text"><?= buildSelect( "new_monitor[DefaultScale]", $scales ); ?></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangWebColour ?></td><td align="left" class="text"><input type="text" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>" size="10" class="form" onChange="document.getElementById('Swatch').style.backgroundColor=this.value">&nbsp;&nbsp;<span id="Swatch" style="background-color: <?= $new_monitor['WebColour'] ?>; border: 1px solid black; width: 20px; height: 10px; padding: 0px;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
-<?php
-		break;
-	}
 	case 'x10' :
 	{
 ?>
 <tr><td align="left" class="text"><?= $zmSlangX10ActivationString ?></td><td align="left" class="text"><input type="text" name="new_x10_monitor[Activation]" value="<?= $new_x10_monitor['Activation'] ?>" size="20" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangX10InputAlarmString ?></td><td align="left" class="text"><input type="text" name="new_x10_monitor[AlarmInput]" value="<?= $new_x10_monitor['AlarmInput'] ?>" size="20" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangX10OutputAlarmString ?></td><td align="left" class="text"><input type="text" name="new_x10_monitor[AlarmOutput]" value="<?= $new_x10_monitor['AlarmOutput'] ?>" size="20" class="form"></td></tr>
+<?php
+		break;
+	}
+	case 'misc' :
+	{
+?>
+<tr><td align="left" class="text"><?= $zmSlangEventPrefix ?></td><td align="left" class="text"><input type="text" name="new_monitor[EventPrefix]" value="<?= $new_monitor['EventPrefix'] ?>" size="24" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangSectionlength ?></td><td align="left" class="text"><input type="text" name="new_monitor[SectionLength]" value="<?= $new_monitor['SectionLength'] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangFrameSkip ?></td><td align="left" class="text"><input type="text" name="new_monitor[FrameSkip]" value="<?= $new_monitor['FrameSkip'] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangFPSReportInterval ?></td><td align="left" class="text"><input type="text" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor['FPSReportInterval'] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangDefaultRate ?></td><td align="left" class="text"><?= buildSelect( "new_monitor[DefaultRate]", $rates ); ?></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangDefaultScale ?></td><td align="left" class="text"><?= buildSelect( "new_monitor[DefaultScale]", $scales ); ?></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangWebColour ?></td><td align="left" class="text"><input type="text" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>" size="10" class="form" onChange="document.getElementById('Swatch').style.backgroundColor=this.value">&nbsp;&nbsp;<span id="Swatch" style="background-color: <?= $new_monitor['WebColour'] ?>; border: 1px solid black; width: 20px; height: 10px; padding: 0px;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
 <?php
 		break;
 	}

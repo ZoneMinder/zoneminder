@@ -168,6 +168,7 @@ $jws = array(
 	'login' => array( 'w'=>720, 'h'=>480 ),
 	'logout' => array( 'w'=>200, 'h'=>100 ),
 	'monitor' => array( 'w'=>360, 'h'=>324 ),
+	'monitorpreset' => array( 'w'=>400, 'h'=>200 ),
 	'montage' => array( 'w'=>10, 'h'=>20 ),
 	'optionhelp' => array( 'w'=>320, 'h'=>284 ),
 	'options' => array( 'w'=>780, 'h'=>540 ),

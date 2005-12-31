@@ -92,7 +92,7 @@ else
 	$monitor['SectionLength'] = 600;
 	$monitor['FrameSkip'] = 0;
 	$monitor['EventPrefix'] = 'Event-';
-	$monitor['MaxFPS'] = 0;
+	$monitor['MaxFPS'] = "";
 	$monitor['FPSReportInterval'] = 1000;
 	$monitor['RefBlendPerc'] = 7;
 	$monitor['DefaultRate'] = '100';
@@ -106,6 +106,21 @@ if ( !isset( $new_monitor ) )
 	$new_monitor['Triggers'] = split( ',', isset($monitor['Triggers'])?$monitor['Triggers']:"" );
 	$new_x10_monitor = isset($x10_monitor)?$x10_monitor:array();
 }
+if ( !empty($preset) )
+{
+	$result = mysql_query( "select Type, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '$preset'" );
+	if ( !$result )
+		die( mysql_error() );
+	$preset = mysql_fetch_assoc( $result );
+	foreach ( $preset as $name=>$value )
+	{
+		if ( isset($value) )
+		{
+			$new_monitor[$name] = $value;
+		}
+	}
+}
+
 $local_palettes = array( $zmSlangGrey=>1, "RGB24"=>4, "RGB565"=>3, "RGB555"=>6, "YUV422"=>7, "YUYV"=>8, "YUV422P"=>13, "YUV420P"=>15 );
 $remote_palettes = $file_palettes = array( $zmSlang8BitGrey=>1, $zmSlang24BitColour=>4 );
 $orientations = array( $zmSlangNormal=>'0', $zmSlangRotateRight=>'90', $zmSlangInverted=>'180', $zmSlangRotateLeft=>'270', $zmSlangFlippedHori=>'hori', $zmSlangFlippedVert=>'vert' );
@@ -221,6 +236,7 @@ function loadLocations( Form )
 <table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
 <td align="left" class="head"><?= $zmSlangMonitor ?> - <?= $monitor['Name'] ?></td>
+<td align="right" valign="bottom" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitorpreset&mid=$mid', 'zmMonitorPreset<?= $mid ?>', ".$jws['monitorpreset']['w'].", ".$jws['monitorpreset']['h']." );", $zmSlangPresets, canEdit( 'Monitors' ) ) ?></td>
 </tr>
 <tr>
 <td>&nbsp;</td>
@@ -504,10 +520,10 @@ switch ( $tab )
 }
 ?>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
-<tr>
+<tr style="height: 100%; vertical-align: bottom;">
 <td colspan="2" align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
 </tr>
-</form>
 </table>
+</form>
 </body>
 </html>

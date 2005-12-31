@@ -162,6 +162,7 @@ switch( $view )
 	case "frames" :
 	case "stats" :
 	case "monitor" :
+	case "monitorpreset" :
 	case "zones" :
 	case "zone" :
 	case "video" :

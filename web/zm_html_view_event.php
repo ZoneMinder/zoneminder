@@ -79,8 +79,11 @@ if ( !isset( $rate ) )
 	$rate = reScale( RATE_SCALE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
 if ( !isset( $scale ) )
 	$scale = reScale( SCALE_SCALE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+if ( $mode == "still" && $scale < SCALE_SCALE )
+	$scale = SCALE_SCALE;
 
-$frames_per_page = ZM_WEB_FRAMES_PER_LINE * ZM_WEB_FRAME_LINES;
+$frames_per_line = reScale( ZM_WEB_FRAMES_PER_LINE, $scale );
+$frames_per_page = reScale( $frames_per_line * ZM_WEB_FRAME_LINES, $scale );
 
 $paged = $event['Frames'] > $frames_per_page;
 
@@ -145,6 +148,7 @@ var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?
 <form name="rename_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="rename">
+<input type="hidden" name="mode" value="<?= $mode ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
 <?= $filter_fields ?>
 <input type="hidden" name="sort_field" value="<?= $sort_field ?>">
@@ -160,6 +164,7 @@ var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?
 <form name="learn_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="learn">
+<input type="hidden" name="mode" value="<?= $mode ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
 <input type="hidden" name="mark_eid" value="<?= $eid ?>">
 <?php if ( LEARN_MODE ) { ?>
@@ -170,6 +175,8 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <td align="right" class="text">
 <form name="view_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
+<input type="hidden" name="mode" value="<?= $mode ?>">
+<input type="hidden" name="page" value="<?= $page ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
 <?= $filter_fields ?>
 <input type="hidden" name="sort_field" value="<?= $sort_field ?>">
@@ -187,9 +194,9 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php if ( $mode == "stream" ) { ?>
 <td align="center" class="text"><a href="javascript: refreshWindow();"><?= $zmSlangReplay ?></a></td>
 <?php } elseif ( $paged && !empty($page) ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=0"><?= $zmSlangAll ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=0"><?= $zmSlangAll ?></a></td>
 <?php } elseif ( $paged && empty($page) ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=1"><?= $zmSlangPaged ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=1"><?= $zmSlangPaged ?></a></td>
 <?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>"><?= $zmSlangDelete ?></a></td><?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=eventdetail&eid=<?= $eid ?>', 'zmEventDetail', <?= $jws['eventdetail']['w'] ?>, <?= $jws['eventdetail']['h'] ?> )"><?= $zmSlangEdit ?></a></td><?php } ?>
@@ -202,7 +209,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php } ?>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=1"><?= $zmSlangStills ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=1"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=stream&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangStream ?></a></td>
 <?php } ?>
@@ -232,11 +239,11 @@ if ( $mode == "still" && $paged && !empty($page) )
 		if ( false && $page > 2 )
 		{
 ?>
-<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=1">&lt;&lt;</a>&nbsp;
+<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=1">&lt;&lt;</a>&nbsp;
 <?php
 		}
 ?>
-<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page - 1 ?>">&lt;</a>&nbsp;
+<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page - 1 ?>">&lt;</a>&nbsp;
 <?php
 		$new_pages = array();
 		$pages_used = array();
@@ -257,7 +264,7 @@ if ( $mode == "still" && $paged && !empty($page) )
 		foreach ( $new_pages as $new_page )
 		{
 ?>
-<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>&nbsp;
+<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>&nbsp;
 <?php
 		}
 	}
@@ -285,16 +292,16 @@ if ( $mode == "still" && $paged && !empty($page) )
 		foreach ( $new_pages as $new_page )
 		{
 ?>
-&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>
 <?php
 		}
 ?>
-&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page + 1 ?>">&gt;</a>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page + 1 ?>">&gt;</a>
 <?php
 		if ( false && $page < ($pages-1) )
 		{
 ?>
-&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $pages ?>">&gt;&gt;</a>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $pages ?>">&gt;&gt;</a>
 <?php
 		}
 	}
@@ -362,8 +369,8 @@ else
 <tr>
 <?php
 	$count = 0;
-	$scale = ZM_WEB_IMAGE_SCALING;
-	$fraction = sprintf( "%.2f", 1/$scale );
+	$image_scaling = ZM_WEB_IMAGE_SCALING;
+	$fraction = sprintf( "%.2f", 1/$image_scaling );
 	$thumb_width = $event['Width']/ZM_WEB_FRAMES_PER_LINE;
 	$thumb_height = $event['Height']/ZM_WEB_FRAMES_PER_LINE;
 	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
@@ -372,7 +379,7 @@ else
 		$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $frame_id );
 
 		$capt_image = $image_path;
-		if ( $scale == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
+		if ( $image_scaling == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
 		{
 			$anal_image = preg_replace( "/capture/", "analyse", $image_path );
 
@@ -403,10 +410,10 @@ else
 		$alarm_frame = $alarm_frames[$frame_id];
 		$img_class = $alarm_frame?"alarm":"normal";
 ?>
-<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<?= $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $alarm_frame?$alarm_frame['Score']:0 ?>"></a></td>
+<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>&scale=<?= $scale ?>', 'zmImage', <?= reScale( $event['Width'], $scale )+$jws['image']['w']  ?>, <?= reScale( $event['Height'], $scale )+$jws['image']['h'] ?> );"><img src="<?= $thumb_image ?>" width="<?= $thumb_width ?>" height="<?= $thumb_height ?>" class="<?= $img_class ?>" alt="<?= $frame_id ?>/<?= $alarm_frame?$alarm_frame['Score']:0 ?>"></a></td>
 <?php
 		flush();
-		if ( !(++$count % ZM_WEB_FRAMES_PER_LINE) )
+		if ( !(++$count % $frames_per_line) )
 		{
 ?>
 </tr>

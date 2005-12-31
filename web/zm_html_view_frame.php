@@ -64,6 +64,8 @@ if ( file_exists( $anal_image ) )
 $alarm_frame = $frame['Type']=='Alarm';
 $img_class = $alarm_frame?"alarm":"normal";
 
+if ( !isset( $scale ) )
+	$scale = max( reScale( SCALE_SCALE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_SCALE );
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
@@ -97,23 +99,23 @@ function deleteEvent()
 <td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: deleteEvent();"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp<?php } ?></td>
 <td width="20%" align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
-<tr><td colspan="3" align="center"><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="3" align="center"><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $img_class ?>"></td></tr>
 <tr>
 <tr><td colspan="3" align="center"><table width="96%" cellpaddin="0" cellspacing="0" border="0"><tr>
 <?php if ( $fid > 1 ) { ?>
-<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $first_fid ?>"><?= $zmSlangFirst ?></a></td>
+<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $first_fid ?>&scale=<?= $scale ?>"><?= $zmSlangFirst ?></a></td>
 <?php } else { ?>
 <td align="center" width="25%" class="text">&nbsp;</td>
 <?php } if ( $fid > 1 ) { ?>
-<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $prev_fid ?>"><?= $zmSlangPrev ?></a></td>
+<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $prev_fid ?>&scale=<?= $scale ?>"><?= $zmSlangPrev ?></a></td>
 <?php } else { ?>
 <td align="center" width="25%" class="text">&nbsp;</td>
 <?php } if ( $fid < $max_fid ) { ?>
-<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $next_fid ?>"><?= $zmSlangNext ?></a></td>
+<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $next_fid ?>&scale=<?= $scale ?>"><?= $zmSlangNext ?></a></td>
 <?php } else { ?>
 <td align="center" width="25%" class="text">&nbsp;</td>
 <?php } if ( $fid < $max_fid ) { ?>
-<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $last_fid ?>"><?= $zmSlangLast ?></a></td>
+<td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $last_fid ?>&scale=<?= $scale ?>"><?= $zmSlangLast ?></a></td>
 <?php } else { ?>
 <td align="center" width="25%" class="text">&nbsp;</td>
 <?php } ?>
@@ -121,13 +123,13 @@ function deleteEvent()
 </table></td></tr>
 <?php if (file_exists ($d_image_path)) { ?>
 <tr><td colspan="3"><?= $d_image_path ?></tr>
-<tr><td colspan="3"><img src="<?= $d_image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" height="<?= reScale( $event['He
-ight'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="3"><img src="<?= $d_image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['He
+ight'], $event['DefaultScale'], $scale ) ?>" class="<?= $img_class ?>"></td></tr>
 <?php } ?>
 <?php if (file_exists ($r_image_path)) { ?>
 <tr><td colspan="3"><?= $r_image_path ?></tr>
-<tr><td colspan="3"><img src="<?= $r_image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" height="<?= reScale( $event['He
-ight'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="3"><img src="<?= $r_image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['He
+ight'], $event['DefaultScale'], $scale ) ?>" class="<?= $img_class ?>"></td></tr>
 <?php } ?>
 </table>
 </body>

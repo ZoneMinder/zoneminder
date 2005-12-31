@@ -13,7 +13,7 @@ bin_SCRIPTS = \
 	zmcontrol-pelco-d.pl \
 	zmcontrol-pelco-p.pl \
 	zmcontrol-visca.pl \
-	zmcontrol-kx-hcm10.pl \
+	zmcontrol-panasonic-ip.pl \
 	zmcontrol-axis-v2.pl \
 	zmtrack.pl
 
@@ -33,7 +33,7 @@ EXTRA_DIST = \
 	zmcontrol-pelco-d.pl \
 	zmcontrol-pelco-p.pl \
 	zmcontrol-visca.pl \
-	zmcontrol-kx-hcm10.pl \
+	zmcontrol-panasonic-ip.pl \
 	zmcontrol-axis-v2.pl \
 	zmtrack.pl \
 	ZoneMinder/Makefile.PL \

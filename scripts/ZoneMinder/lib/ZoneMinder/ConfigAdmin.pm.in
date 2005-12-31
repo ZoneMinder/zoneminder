@@ -1445,7 +1445,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_DYN_DONATE_REMINDER_TIME",
-		default => @TIME_BUILD@ + (60*60*24*30),
+		default => 0,
 		description => "When the earliest time to remind about donations will be",
 		help => "",
 		type => $types{integer},

@@ -189,11 +189,28 @@ if ( ZM_CHECK_FOR_UPDATES && canEdit('System') && ZM_DYN_LAST_VERSION && ( verNu
 newWindow( '<?= $PHP_SELF ?>?view=version', 'zmVersion', <?= $jws['version']['w'] ?>, <?= $jws['version']['h'] ?> );
 <?php
 }
-elseif ( ZM_DYN_SHOW_DONATE_REMINDER && canEdit('System') && ( ZM_DYN_DONATE_REMINDER_TIME < time() ) )
+elseif ( ZM_DYN_SHOW_DONATE_REMINDER )
 {
+	if ( canEdit('System') )
+	{
+		if ( ZM_DYN_DONATE_REMINDER_TIME > 0 )
+		{
+			if ( ZM_DYN_DONATE_REMINDER_TIME < time() )
+			{
 ?>
 newWindow( '<?= $PHP_SELF ?>?view=donate', 'zmDonate', <?= $jws['donate']['w'] ?>, <?= $jws['donate']['h'] ?> );
 <?php
+			}
+		}
+		else
+		{
+			$next_reminder = time() + 30*24*60*60;
+			$sql = "update Config set Value = '".$next_reminder."' where Name = 'ZM_DYN_DONATE_REMINDER_TIME'";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				die( mysql_error() );
+		}
+	}
 }
 ?>
 </script>

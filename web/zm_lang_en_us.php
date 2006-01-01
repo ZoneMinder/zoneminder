@@ -75,6 +75,6 @@ $zmSlang8BitGrey             = '8 bit grayscale';
 $zmSlangColour               = 'Color';
 $zmSlangGrey                 = 'Gray';
 $zmSlangRemoteImageColours   = 'Remote Image Colors';
-$zmSlangZoneAlarmColour      = 'Alarm Color (RGB)';
+$zmSlangZoneAlarmColour      = 'Alarm Color (Red/Green/Blue)';
 
 ?>

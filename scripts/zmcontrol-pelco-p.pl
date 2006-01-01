@@ -108,7 +108,7 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-Info( $arg_string."\n" );
+Debug( $arg_string."\n" );
 
 srand( time() );
 
@@ -178,7 +178,7 @@ sub sendCmd
 
 	if ( $ack )
 	{
-		Info( "Waiting for ack\n" );
+		Debug( "Waiting for ack\n" );
 		my $max_wait = 3;
 		my $now = time();
 		while( 1 )
@@ -196,7 +196,7 @@ sub sendCmd
 					if ( ($resp[1] & 0xf0) == 0x40 )
 					{
 						my $socket = $resp[1] & 0x0f;
-						Info( "Got ack for socket $socket\n" );
+						Debug( "Got ack for socket $socket\n" );
 						$result = !undef;
 					}
 					else
@@ -224,42 +224,42 @@ my $etx = 0xaf;
 
 sub cameraOff
 {
-	Info( "Camera Off\n" );
+	Debug( "Camera Off\n" );
 	my @msg = ( $stx, $address, 0x10, 0x00, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 }
 
 sub cameraOn
 {
-	Info( "Camera On\n" );
+	Debug( "Camera On\n" );
 	my @msg = ( $stx, $address, 0x40, 0x00, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 }
 
 sub autoScan
 {
-	Info( "Auto Scan\n" );
+	Debug( "Auto Scan\n" );
 	my @msg = ( $stx, $address, 0x90, 0x00, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 }
 
 sub manScan
 {
-	Info( "Manual Scan\n" );
+	Debug( "Manual Scan\n" );
 	my @msg = ( $stx, $address, 0x10, 0x00, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 }
 
 sub stop
 {
-	Info( "Stop\n" );
+	Debug( "Stop\n" );
 	my @msg = ( $stx, $address, 0x00, 0x00, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 }
 
 sub moveUp
 {
-	Info( "Move Up\n" );
+	Debug( "Move Up\n" );
 	my $speed = shift || 0x3f;
 	my @msg = ( $stx, $address, 0x00, 0x08, 0x00, $speed, $etx );
 	sendCmd( \@msg );
@@ -272,7 +272,7 @@ sub moveUp
 
 sub moveDown
 {
-	Info( "Move Down\n" );
+	Debug( "Move Down\n" );
 	my $speed = shift || 0x3f;
 	my @msg = ( $stx, $address, 0x00, 0x10, 0x00, $speed, $etx );
 	sendCmd( \@msg );
@@ -285,7 +285,7 @@ sub moveDown
 
 sub moveLeft
 {
-	Info( "Move Left\n" );
+	Debug( "Move Left\n" );
 	my $speed = shift || 0x3f;
 	my @msg = ( $stx, $address, 0x00, 0x04, $speed, 0x00, $etx );
 	sendCmd( \@msg );
@@ -298,7 +298,7 @@ sub moveLeft
 
 sub moveRight
 {
-	Info( "Move Right\n" );
+	Debug( "Move Right\n" );
 	my $speed = shift || 0x3f;
 	my @msg = ( $stx, $address, 0x00, 0x02, $speed, 0x00 , $etx);
 	sendCmd( \@msg );
@@ -311,7 +311,7 @@ sub moveRight
 
 sub moveUpLeft
 {
-	Info( "Move Up/Left\n" );
+	Debug( "Move Up/Left\n" );
 	my $panspeed = shift || 0x3f;
 	my $tiltspeed = shift || 0x3f;
 	my @msg = ( $stx, $address, 0x00, 0x0c, $panspeed, $tiltspeed, $etx );
@@ -325,7 +325,7 @@ sub moveUpLeft
 
 sub moveUpRight
 {
-	Info( "Move Up/Right\n" );
+	Debug( "Move Up/Right\n" );
 	my $panspeed = shift || 0x3f;
 	my $tiltspeed = shift || 0x3f;
 	my @msg = ( $stx, $address, 0x00, 0x0a, $panspeed, $tiltspeed, $etx );
@@ -339,7 +339,7 @@ sub moveUpRight
 
 sub moveDownLeft
 {
-	Info( "Move Down/Left\n" );
+	Debug( "Move Down/Left\n" );
 	my $panspeed = shift || 0x3f;
 	my $tiltspeed = shift || 0x3f;
 	my @msg = ( $stx, $address, 0x00, 0x14, $panspeed, $tiltspeed, $etx );
@@ -353,7 +353,7 @@ sub moveDownLeft
 
 sub moveDownRight
 {
-	Info( "Move Down/Right\n" );
+	Debug( "Move Down/Right\n" );
 	my $panspeed = shift || 0x3f;
 	my $tiltspeed = shift || 0x3f;
 	my @msg = ( $stx, $address, 0x00, 0x12, $panspeed, $tiltspeed, $etx );
@@ -367,14 +367,14 @@ sub moveDownRight
 
 sub flip180
 {
-	Info( "Flip 180\n" );
+	Debug( "Flip 180\n" );
 	my @msg = ( $stx, $address, 0x00, 0x07, 0x00, 0x21, $etx );
 	sendCmd( \@msg );
 }
 
 sub zeroPan
 {
-	Info( "Zero Pan\n" );
+	Debug( "Zero Pan\n" );
 	my @msg = ( $stx, $address, 0x00, 0x07, 0x00, 0x22, $etx );
 	sendCmd( \@msg );
 }
@@ -388,7 +388,7 @@ sub setZoomSpeed
 
 sub zoomTele
 {
-	Info( "Zoom Tele\n" );
+	Debug( "Zoom Tele\n" );
 	my $speed = shift || 0x01;
 	setZoomSpeed( $speed );
 	my @msg = ( $stx, $address, 0x00, 0x20, 0x00, 0x00, $etx );
@@ -402,7 +402,7 @@ sub zoomTele
 
 sub zoomWide
 {
-	Info( "Zoom Wide\n" );
+	Debug( "Zoom Wide\n" );
 	my $speed = shift || 0x01;
 	setZoomSpeed( $speed );
 	my @msg = ( $stx, $address, 0x00, 0x40, 0x00, 0x00, $etx );
@@ -423,7 +423,7 @@ sub setFocusSpeed
 
 sub focusNear
 {
-	Info( "Focus Near\n" );
+	Debug( "Focus Near\n" );
 	my $speed = shift || 0x03;
 	setFocusSpeed( $speed );
 	my @msg = ( $stx, $address, 0x02, 0x00, 0x00, 0x00, $etx );
@@ -437,7 +437,7 @@ sub focusNear
 
 sub focusFar
 {
-	Info( "Focus Far\n" );
+	Debug( "Focus Far\n" );
 	my $speed = shift || 0x03;
 	setFocusSpeed( $speed );
 	my @msg = ( $stx, $address, 0x01, 0x80, 0x00, 0x00, $etx );
@@ -451,14 +451,14 @@ sub focusFar
 
 sub focusAuto
 {
-	Info( "Focus Auto\n" );
+	Debug( "Focus Auto\n" );
 	my @msg = ( $stx, $address, 0x00, 0x2b, 0x00, 0x01, $etx );
 	sendCmd( \@msg );
 }
 
 sub focusMan
 {
-	Info( "Focus Man\n" );
+	Debug( "Focus Man\n" );
 	my @msg = ( $stx, $address, 0x00, 0x2b, 0x00, 0x02, $etx );
 	sendCmd( \@msg );
 }
@@ -466,7 +466,7 @@ sub focusMan
 sub writeScreen
 {
 	my $string = shift;
-	Info( "Writing '$string' to screen\n" );
+	Debug( "Writing '$string' to screen\n" );
 	
 	my @chars = unpack( "C*", $string );
 	for ( my $i = 0; $i < length($string); $i++ )
@@ -479,7 +479,7 @@ sub writeScreen
 
 sub clearScreen
 {
-	Info( "Clear Screen\n" );
+	Debug( "Clear Screen\n" );
 	my @msg = ( $stx, $address, 0x00, 0x17, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 }
@@ -487,7 +487,7 @@ sub clearScreen
 sub clearPreset
 {
 	my $preset = shift || 1;
-	Info( "Clear Preset $preset\n" );
+	Debug( "Clear Preset $preset\n" );
 	my @msg = ( $stx, $address, 0x00, 0x05, 0x00, $preset, $etx );
 	sendCmd( \@msg );
 }
@@ -495,7 +495,7 @@ sub clearPreset
 sub presetSet
 {
 	my $preset = shift || 1;
-	Info( "Set Preset $preset\n" );
+	Debug( "Set Preset $preset\n" );
 	my @msg = ( $stx, $address, 0x00, 0x03, 0x00, $preset, $etx );
 	sendCmd( \@msg );
 }
@@ -503,14 +503,14 @@ sub presetSet
 sub presetGoto
 {
 	my $preset = shift || 1;
-	Info( "Goto Preset $preset\n" );
+	Debug( "Goto Preset $preset\n" );
 	my @msg = ( $stx, $address, 0x00, 0x07, 0x00, $preset, $etx );
 	sendCmd( \@msg );
 }
 
 sub presetHome
 {
-	Info( "Home Preset\n" );
+	Debug( "Home Preset\n" );
 	my @msg = ( $stx, $address, 0x00, 0x07, 0x00, 0x22, $etx );
 	sendCmd( \@msg );
 }

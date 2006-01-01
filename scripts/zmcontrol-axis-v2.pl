@@ -104,7 +104,7 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-Info( $arg_string."\n" );
+Debug( $arg_string."\n" );
 
 srand( time() );
 
@@ -113,7 +113,7 @@ sub printMsg
 	my $msg = shift;
 	my $msg_len = length($msg);
 
-	Info( $msg."[".$msg_len."]\n" );
+	Debug( $msg."[".$msg_len."]\n" );
 }
 
 sub sendCmd
@@ -146,63 +146,63 @@ sub sendCmd
 
 sub cameraReset
 {
-	Info( "Camera Reset\n" );
+	Debug( "Camera Reset\n" );
 	my $cmd = "nphRestart?PAGE=Restart&Restart=OK";
 	sendCmd( $cmd );
 }
 
 sub moveUp
 {
-	Info( "Move Up\n" );
+	Debug( "Move Up\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?move=up";
 	sendCmd( $cmd );
 }
 
 sub moveDown
 {
-	Info( "Move Down\n" );
+	Debug( "Move Down\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?move=down";
 	sendCmd( $cmd );
 }
 
 sub moveLeft
 {
-	Info( "Move Left\n" );
+	Debug( "Move Left\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?move=left";
 	sendCmd( $cmd );
 }
 
 sub moveRight
 {
-	Info( "Move Right\n" );
+	Debug( "Move Right\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?move=right";
 	sendCmd( $cmd );
 }
 
 sub moveUpRight
 {
-	Info( "Move Up/Right\n" );
+	Debug( "Move Up/Right\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?move=upright";
 	sendCmd( $cmd );
 }
 
 sub moveUpLeft
 {
-	Info( "Move Up/Left\n" );
+	Debug( "Move Up/Left\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?move=upleft";
 	sendCmd( $cmd );
 }
 
 sub moveDownRight
 {
-	Info( "Move Down/Right\n" );
+	Debug( "Move Down/Right\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?move=downright";
 	sendCmd( $cmd );
 }
 
 sub moveDownLeft
 {
-	Info( "Move Down/Left\n" );
+	Debug( "Move Down/Left\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?move=downleft";
 	sendCmd( $cmd );
 }
@@ -210,7 +210,7 @@ sub moveDownLeft
 sub moveMap
 {
 	my ( $xcoord, $ycoord, $width, $height ) = @_;
-	Info( "Move Map to $xcoord,$ycoord\n" );
+	Debug( "Move Map to $xcoord,$ycoord\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?center=$xcoord,$ycoord&imagewidth=$width&imageheight=$height";
 	sendCmd( $cmd );
 }
@@ -218,7 +218,7 @@ sub moveMap
 sub stepUp
 {
 	my $step = shift;
-	Info( "Step Up $step\n" );
+	Debug( "Step Up $step\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rtilt=$step";
 	sendCmd( $cmd );
 }
@@ -226,7 +226,7 @@ sub stepUp
 sub stepDown
 {
 	my $step = shift;
-	Info( "Step Down $step\n" );
+	Debug( "Step Down $step\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rtilt=-$step";
 	sendCmd( $cmd );
 }
@@ -234,7 +234,7 @@ sub stepDown
 sub stepLeft
 {
 	my $step = shift;
-	Info( "Step Left $step\n" );
+	Debug( "Step Left $step\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rpan=-$step";
 	sendCmd( $cmd );
 }
@@ -242,7 +242,7 @@ sub stepLeft
 sub stepRight
 {
 	my $step = shift;
-	Info( "Step Right $step\n" );
+	Debug( "Step Right $step\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rpan=$step";
 	sendCmd( $cmd );
 }
@@ -251,7 +251,7 @@ sub stepUpRight
 {
 	my $panstep = shift;
 	my $tiltstep = shift;
-	Info( "Step Up/Right $tiltstep/$panstep\n" );
+	Debug( "Step Up/Right $tiltstep/$panstep\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rpan=$panstep&rtilt=$tiltstep";
 	sendCmd( $cmd );
 }
@@ -260,7 +260,7 @@ sub stepUpLeft
 {
 	my $panstep = shift;
 	my $tiltstep = shift;
-	Info( "Step Up/Left $tiltstep/$panstep\n" );
+	Debug( "Step Up/Left $tiltstep/$panstep\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rpan=-$panstep&rtilt=$tiltstep";
 	sendCmd( $cmd );
 }
@@ -269,7 +269,7 @@ sub stepDownRight
 {
 	my $panstep = shift;
 	my $tiltstep = shift;
-	Info( "Step Down/Right $tiltstep/$panstep\n" );
+	Debug( "Step Down/Right $tiltstep/$panstep\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rpan=$panstep&rtilt=-$tiltstep";
 	sendCmd( $cmd );
 }
@@ -278,7 +278,7 @@ sub stepDownLeft
 {
 	my $panstep = shift;
 	my $tiltstep = shift;
-	Info( "Step Down/Left $tiltstep/$panstep\n" );
+	Debug( "Step Down/Left $tiltstep/$panstep\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rpan=-$panstep&rtilt=-$tiltstep";
 	sendCmd( $cmd );
 }
@@ -286,7 +286,7 @@ sub stepDownLeft
 sub zoomTele
 {
 	my $step = shift;
-	Info( "Zoom Tele\n" );
+	Debug( "Zoom Tele\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rzoom=$step";
 	sendCmd( $cmd );
 }
@@ -294,7 +294,7 @@ sub zoomTele
 sub zoomWide
 {
 	my $step = shift;
-	Info( "Zoom Wide\n" );
+	Debug( "Zoom Wide\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rzoom=-$step";
 	sendCmd( $cmd );
 }
@@ -302,7 +302,7 @@ sub zoomWide
 sub focusNear
 {
 	my $step = shift;
-	Info( "Focus Near\n" );
+	Debug( "Focus Near\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=-$step";
 	sendCmd( $cmd );
 }
@@ -310,21 +310,21 @@ sub focusNear
 sub focusFar
 {
 	my $step = shift;
-	Info( "Focus Far\n" );
+	Debug( "Focus Far\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=$step";
 	sendCmd( $cmd );
 }
 
 sub focusAuto
 {
-	Info( "Focus Auto\n" );
+	Debug( "Focus Auto\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?autofocus=on";
 	sendCmd( $cmd );
 }
 
 sub focusMan
 {
-	Info( "Focus Manual\n" );
+	Debug( "Focus Manual\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?autofocus=off";
 	sendCmd( $cmd );
 }
@@ -332,7 +332,7 @@ sub focusMan
 sub irisOpen
 {
 	my $step = shift;
-	Info( "Iris Open\n" );
+	Debug( "Iris Open\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?riris=$step";
 	sendCmd( $cmd );
 }
@@ -340,21 +340,21 @@ sub irisOpen
 sub irisClose
 {
 	my $step = shift;
-	Info( "Iris Close\n" );
+	Debug( "Iris Close\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?riris=-$step";
 	sendCmd( $cmd );
 }
 
 sub irisAuto
 {
-	Info( "Iris Auto\n" );
+	Debug( "Iris Auto\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?autoiris=on";
 	sendCmd( $cmd );
 }
 
 sub irisMan
 {
-	Info( "Iris Manual\n" );
+	Debug( "Iris Manual\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?autoiris=off";
 	sendCmd( $cmd );
 }
@@ -362,7 +362,7 @@ sub irisMan
 sub presetClear
 {
 	my $preset = shift || 1;
-	Info( "Clear Preset $preset\n" );
+	Debug( "Clear Preset $preset\n" );
 	my $cmd = "nphPresetNameCheck?Data=$preset";
 	sendCmd( $cmd );
 }
@@ -370,7 +370,7 @@ sub presetClear
 sub presetSet
 {
 	my $preset = shift || 1;
-	Info( "Set Preset $preset\n" );
+	Debug( "Set Preset $preset\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?setserverpresetno=$preset";
 	sendCmd( $cmd );
 }
@@ -378,14 +378,14 @@ sub presetSet
 sub presetGoto
 {
 	my $preset = shift || 1;
-	Info( "Goto Preset $preset\n" );
+	Debug( "Goto Preset $preset\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?gotoserverpresetno=$preset";
 	sendCmd( $cmd );
 }
 
 sub presetHome
 {
-	Info( "Home Preset\n" );
+	Debug( "Home Preset\n" );
 	my $cmd = "/axis-cgi/com/ptz.cgi?move=home";
 	sendCmd( $cmd );
 }

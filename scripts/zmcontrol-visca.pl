@@ -98,7 +98,7 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-Info( $arg_string."\n" );
+Debug( $arg_string."\n" );
 
 srand( time() );
 
@@ -160,7 +160,7 @@ sub sendCmd
 
 	if ( $ack )
 	{
-		Info( "Waiting for ack\n" );
+		Debug( "Waiting for ack\n" );
 		my $max_wait = 3;
 		my $now = time();
 		while( 1 )
@@ -178,7 +178,7 @@ sub sendCmd
 					if ( ($resp[1] & 0xf0) == 0x40 )
 					{
 						my $socket = $resp[1] & 0x0f;
-						Info( "Got ack for socket $socket\n" );
+						Debug( "Got ack for socket $socket\n" );
 						$result = !undef;
 					}
 					else
@@ -201,7 +201,7 @@ sub sendCmd
 
 	if ( $cmp )
 	{
-		Info( "Waiting for command complete\n" );
+		Debug( "Waiting for command complete\n" );
 		my $max_wait = 10;
 		my $now = time();
 		while( 1 )
@@ -219,7 +219,7 @@ sub sendCmd
 				{
 					if ( ($resp[1] & 0xf0) == 0x50 )
 					{
-						Info( "Got command complete\n" );
+						Debug( "Got command complete\n" );
 						$result = !undef;
 					}
 					else
@@ -246,28 +246,28 @@ my $sync = 0xff;
 
 sub cameraOff
 {
-	Info( "Camera Off\n" );
+	Debug( "Camera Off\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x00, 0x03, $sync );
 	sendCmd( \@msg );
 }
 
 sub cameraOn
 {
-	Info( "Camera On\n" );
+	Debug( "Camera On\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x00, 0x02, $sync );
 	sendCmd( \@msg );
 }
 
 sub stop
 {
-	Info( "Stop\n" );
+	Debug( "Stop\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, 0x00, 0x00, 0x03, 0x03, $sync );
 	sendCmd( \@msg );
 }
 
 sub moveUp
 {
-	Info( "Move Up\n" );
+	Debug( "Move Up\n" );
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, 0x00, $speed, 0x03, 0x01, $sync );
 	sendCmd( \@msg );
@@ -275,7 +275,7 @@ sub moveUp
 
 sub moveDown
 {
-	Info( "Move Down\n" );
+	Debug( "Move Down\n" );
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, 0x00, $speed, 0x03, 0x02, $sync );
 	sendCmd( \@msg );
@@ -283,7 +283,7 @@ sub moveDown
 
 sub moveLeft
 {
-	Info( "Move Left\n" );
+	Debug( "Move Left\n" );
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $speed, 0x00, 0x01, 0x03, $sync );
 	sendCmd( \@msg );
@@ -291,7 +291,7 @@ sub moveLeft
 
 sub moveRight
 {
-	Info( "Move Right\n" );
+	Debug( "Move Right\n" );
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $speed, 0x00, 0x02, 0x03, $sync );
 	sendCmd( \@msg );
@@ -299,7 +299,7 @@ sub moveRight
 
 sub moveUpLeft
 {
-	Info( "Move Up/Left\n" );
+	Debug( "Move Up/Left\n" );
 	my $panspeed = shift || 0x40;
 	my $tiltspeed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x01, 0x01, $sync );
@@ -308,7 +308,7 @@ sub moveUpLeft
 
 sub moveUpRight
 {
-	Info( "Move Up/Right\n" );
+	Debug( "Move Up/Right\n" );
 	my $panspeed = shift || 0x40;
 	my $tiltspeed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x02, 0x01, $sync );
@@ -317,7 +317,7 @@ sub moveUpRight
 
 sub moveDownLeft
 {
-	Info( "Move Down/Left\n" );
+	Debug( "Move Down/Left\n" );
 	my $panspeed = shift || 0x40;
 	my $tiltspeed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x01, 0x02, $sync );
@@ -326,7 +326,7 @@ sub moveDownLeft
 
 sub moveDownRight
 {
-	Info( "Move Down/Right\n" );
+	Debug( "Move Down/Right\n" );
 	my $panspeed = shift || 0x40;
 	my $tiltspeed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x02, 0x02, $sync );
@@ -335,7 +335,7 @@ sub moveDownRight
 
 sub stepUp
 {
-	Info( "Step Up\n" );
+	Debug( "Step Up\n" );
 	my $step = shift;
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x03, 0x00, $speed, 0x00, 0x00, 0x00, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, $sync );
@@ -345,7 +345,7 @@ sub stepUp
 
 sub stepDown
 {
-	Info( "Step Down\n" );
+	Debug( "Step Down\n" );
 	my $step = shift;
 	$step = -$step;
 	my $speed = shift || 0x40;
@@ -355,7 +355,7 @@ sub stepDown
 
 sub stepLeft
 {
-	Info( "Step Left\n" );
+	Debug( "Step Left\n" );
 	my $step = shift;
 	$step = -$step;
 	my $speed = shift || 0x40;
@@ -365,7 +365,7 @@ sub stepLeft
 
 sub stepRight
 {
-	Info( "Step Right\n" );
+	Debug( "Step Right\n" );
 	my $step = shift;
 	my $speed = shift || 0x40;
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x03, $speed, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, 0x00, 0x00, 0x00, 0x00, $sync );
@@ -374,7 +374,7 @@ sub stepRight
 
 sub stepUpLeft
 {
-	Info( "Step Up/Left\n" );
+	Debug( "Step Up/Left\n" );
 	my $panstep = shift;
 	$panstep = -$panstep;
 	my $tiltstep = shift;
@@ -386,7 +386,7 @@ sub stepUpLeft
 
 sub stepUpRight
 {
-	Info( "Step Up/Right\n" );
+	Debug( "Step Up/Right\n" );
 	my $panstep = shift;
 	my $tiltstep = shift;
 	my $panspeed = shift || 0x40;
@@ -397,7 +397,7 @@ sub stepUpRight
 
 sub stepDownLeft
 {
-	Info( "Step Down/Left\n" );
+	Debug( "Step Down/Left\n" );
 	my $panstep = shift;
 	$panstep = -$panstep;
 	my $tiltstep = shift;
@@ -410,7 +410,7 @@ sub stepDownLeft
 
 sub stepDownRight
 {
-	Info( "Step Down/Right\n" );
+	Debug( "Step Down/Right\n" );
 	my $panstep = shift;
 	my $tiltstep = shift;
 	$tiltstep = -$tiltstep;
@@ -422,7 +422,7 @@ sub stepDownRight
 
 sub zoomTele
 {
-	Info( "Zoom Tele\n" );
+	Debug( "Zoom Tele\n" );
 	my $speed = shift || 0x06;
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x07, 0x20|$speed, $sync );
 	sendCmd( \@msg );
@@ -430,7 +430,7 @@ sub zoomTele
 
 sub zoomWide
 {
-	Info( "Zoom Wide\n" );
+	Debug( "Zoom Wide\n" );
 	my $speed = shift || 0x06;
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x07, 0x30|$speed, $sync );
 	sendCmd( \@msg );
@@ -438,7 +438,7 @@ sub zoomWide
 
 sub zoomStop
 {
-	Info( "Zoom Stop\n" );
+	Debug( "Zoom Stop\n" );
 	my $speed = shift || 0x06;
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x07, 0x00, $sync );
 	sendCmd( \@msg );
@@ -446,35 +446,35 @@ sub zoomStop
 
 sub focusNear
 {
-	Info( "Focus Near\n" );
+	Debug( "Focus Near\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x08, 0x03, $sync );
 	sendCmd( \@msg );
 }
 
 sub focusFar
 {
-	Info( "Focus Far\n" );
+	Debug( "Focus Far\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x08, 0x02, $sync );
 	sendCmd( \@msg );
 }
 
 sub focusStop
 {
-	Info( "Focus Far\n" );
+	Debug( "Focus Far\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x08, 0x00, $sync );
 	sendCmd( \@msg );
 }
 
 sub focusAuto
 {
-	Info( "Focus Auto\n" );
+	Debug( "Focus Auto\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x38, 0x02, $sync );
 	sendCmd( \@msg );
 }
 
 sub focusMan
 {
-	Info( "Focus Man\n" );
+	Debug( "Focus Man\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x38, 0x03, $sync );
 	sendCmd( \@msg );
 }
@@ -482,7 +482,7 @@ sub focusMan
 sub presetClear
 {
 	my $preset = shift || 1;
-	Info( "Clear Preset $preset\n" );
+	Debug( "Clear Preset $preset\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x3f, 0x00, $preset, $sync );
 	sendCmd( \@msg );
 }
@@ -490,7 +490,7 @@ sub presetClear
 sub presetSet
 {
 	my $preset = shift || 1;
-	Info( "Set Preset $preset\n" );
+	Debug( "Set Preset $preset\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x3f, 0x01, $preset, $sync );
 	sendCmd( \@msg );
 }
@@ -498,14 +498,14 @@ sub presetSet
 sub presetGoto
 {
 	my $preset = shift || 1;
-	Info( "Goto Preset $preset\n" );
+	Debug( "Goto Preset $preset\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x04, 0x3f, 0x02, $preset, $sync );
 	sendCmd( \@msg );
 }
 
 sub presetHome
 {
-	Info( "Home Preset\n" );
+	Debug( "Home Preset\n" );
 	my @msg = ( 0x80|$address, 0x01, 0x06, 0x04, $sync );
 	sendCmd( \@msg );
 }

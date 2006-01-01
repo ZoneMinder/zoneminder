@@ -2,7 +2,7 @@
 #
 # ==========================================================================
 #
-# ZoneMinder Panasonic KX-HCM10 Control Script, $Date$, $Revision$
+# ZoneMinder Panasonic IP Camera Control Script, $Date$, $Revision$
 # Copyright (C) 2003, 2004, 2005  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -42,7 +42,7 @@ use ZoneMinder;
 use Getopt::Long;
 use Device::SerialPort;
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-kx-hcm10.log';
+use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-panasonic-ip.log';
 
 $| = 1;
 
@@ -53,7 +53,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 sub Usage
 {
 	print( "
-Usage: zmcontrol-kx-hcm10.pl <various options>
+Usage: zmcontrol-pansonic-ip.pl <various options>
 ");
 	exit( -1 );
 }
@@ -104,7 +104,7 @@ open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
 select( STDERR ); $| = 1;
 select( LOG ); $| = 1;
 
-Info( $arg_string."\n" );
+Debug( $arg_string."\n" );
 
 srand( time() );
 
@@ -113,7 +113,7 @@ sub printMsg
 	my $msg = shift;
 	my $msg_len = length($msg);
 
-	Info( $msg."[".$msg_len."]\n" );
+	Debug( $msg."[".$msg_len."]\n" );
 }
 
 sub sendCmd
@@ -146,35 +146,35 @@ sub sendCmd
 
 sub cameraReset
 {
-	Info( "Camera Reset\n" );
+	Debug( "Camera Reset\n" );
 	my $cmd = "nphRestart?PAGE=Restart&Restart=OK";
 	sendCmd( $cmd );
 }
 
 sub moveUp
 {
-	Info( "Move Up\n" );
+	Debug( "Move Up\n" );
 	my $cmd = "nphControlCamera?Direction=TiltUp";
 	sendCmd( $cmd );
 }
 
 sub moveDown
 {
-	Info( "Move Down\n" );
+	Debug( "Move Down\n" );
 	my $cmd = "nphControlCamera?Direction=TiltDown";
 	sendCmd( $cmd );
 }
 
 sub moveLeft
 {
-	Info( "Move Left\n" );
+	Debug( "Move Left\n" );
 	my $cmd = "nphControlCamera?Direction=PanLeft";
 	sendCmd( $cmd );
 }
 
 sub moveRight
 {
-	Info( "Move Right\n" );
+	Debug( "Move Right\n" );
 	my $cmd = "nphControlCamera?Direction=PanRight";
 	sendCmd( $cmd );
 }
@@ -182,42 +182,42 @@ sub moveRight
 sub moveMap
 {
 	my ( $xcoord, $ycoord, $width, $height ) = @_;
-	Info( "Move Map to $xcoord,$ycoord\n" );
+	Debug( "Move Map to $xcoord,$ycoord\n" );
 	my $cmd = "nphControlCamera?Direction=Direct&NewPosition.x=$xcoord&NewPosition.y=$ycoord&Width=$width&Height=$height";
 	sendCmd( $cmd );
 }
 
 sub zoomTele
 {
-	Info( "Zoom Tele\n" );
+	Debug( "Zoom Tele\n" );
 	my $cmd = "nphControlCamera?Direction=ZoomTele";
 	sendCmd( $cmd );
 }
 
 sub zoomWide
 {
-	Info( "Zoom Wide\n" );
+	Debug( "Zoom Wide\n" );
 	my $cmd = "nphControlCamera?Direction=ZoomWide";
 	sendCmd( $cmd );
 }
 
 sub focusNear
 {
-	Info( "Focus Near\n" );
+	Debug( "Focus Near\n" );
 	my $cmd = "nphControlCamera?Direction=FocusNear";
 	sendCmd( $cmd );
 }
 
 sub focusFar
 {
-	Info( "Focus Far\n" );
+	Debug( "Focus Far\n" );
 	my $cmd = "nphControlCamera?Direction=FocusFar";
 	sendCmd( $cmd );
 }
 
 sub focusAuto
 {
-	Info( "Focus Auto\n" );
+	Debug( "Focus Auto\n" );
 	my $cmd = "nphControlCamera?Direction=FocusAuto";
 	sendCmd( $cmd );
 }
@@ -225,7 +225,7 @@ sub focusAuto
 sub presetClear
 {
 	my $preset = shift || 1;
-	Info( "Clear Preset $preset\n" );
+	Debug( "Clear Preset $preset\n" );
 	my $cmd = "nphPresetNameCheck?Data=$preset";
 	sendCmd( $cmd );
 }
@@ -233,7 +233,7 @@ sub presetClear
 sub presetSet
 {
 	my $preset = shift || 1;
-	Info( "Set Preset $preset\n" );
+	Debug( "Set Preset $preset\n" );
 	my $cmd = "nphPresetNameCheck?PresetName=$preset&Data=$preset";
 	sendCmd( $cmd );
 }
@@ -241,14 +241,14 @@ sub presetSet
 sub presetGoto
 {
 	my $preset = shift || 1;
-	Info( "Goto Preset $preset\n" );
+	Debug( "Goto Preset $preset\n" );
 	my $cmd = "nphControlCamera?Direction=Preset&PresetOperation=Move&Data=$preset";
 	sendCmd( $cmd );
 }
 
 sub presetHome
 {
-	Info( "Home Preset\n" );
+	Debug( "Home Preset\n" );
 	my $cmd = "nphControlCamera?Direction=HomePosition";
 	sendCmd( $cmd );
 }

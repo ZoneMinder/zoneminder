@@ -15,8 +15,8 @@ alter table Filters add column AutoExecute tinyint unsigned not null default 0 a
 update Filters set AutoExecute =  if(isnull(AutoExecuteCmd)||AutoExecuteCmd='', 0, 1 );
 --
 alter table Zones add column NumCoords tinyint(3) unsigned NOT NULL default '0' after Units;
-alter table Zones add column Coords tinytext NOT NULL after Points;
-alter table Zones add column Area int(10) unsigned not null default 0 after Coordinates;
+alter table Zones add column Coords tinytext NOT NULL after NumCoords;
+alter table Zones add column Area int(10) unsigned not null default 0 after Coords;
 alter table Zones modify column AlarmRGB int(10) unsigned default '0';
 
 --

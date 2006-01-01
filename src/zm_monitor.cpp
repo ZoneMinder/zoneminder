@@ -725,7 +725,7 @@ bool Monitor::Analyse()
 			{
 				Info(( "Received suspend indication at count %d", image_count ));
 				shared_data->active = false;
-				closeEvent();
+				//closeEvent();
 			}
 			if ( config.max_suspend_time )
 			{

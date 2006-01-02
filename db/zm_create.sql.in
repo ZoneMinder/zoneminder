@@ -408,7 +408,7 @@ CREATE TABLE Zones (
   Type enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
   Units enum('Pixels','Percent') NOT NULL default 'Pixels',
   NumCoords tinyint(3) unsigned NOT NULL default '0',
-  Coordinates tinytext NOT NULL,
+  Coords tinytext NOT NULL,
   Area int(10) unsigned NOT NULL default '0',
   LoX smallint(5) unsigned NOT NULL default '0',
   LoY smallint(5) unsigned NOT NULL default '0',

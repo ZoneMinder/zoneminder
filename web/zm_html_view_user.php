@@ -26,18 +26,26 @@ if ( !canEdit( 'System' ) )
 $result = mysql_query( "select * from Users where Id = '$uid'" );
 if ( !$result )
 	die( mysql_error() );
-if ( !($row = mysql_fetch_assoc( $result )) )
+if ( !($db_user = mysql_fetch_assoc( $result )) )
 {
-	$row = array();
-	$row['Username'] = $zmSlangNewUser;
-	$row['Enabled'] = 1;
+	$db_user = array();
+	$db_user['Username'] = $zmSlangNewUser;
+	$db_user['Enabled'] = 1;
 }
+
+$new_user = $db_user;
+
+$yesno = array( 0=>$zmSlangNo, 1=>$zmSlangYes );
+$nv = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView );
+$nve = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView, 'Edit'=>$zmSlangEdit );
+$bandwidths = array_merge( array( ""=>"" ), $bw_array );
+$langs = array_merge( array( ""=>"" ), getLanguages() );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangUser ?> - <?= $row['Username'] ?></title>
+<title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangUser ?> - <?= $new_user['Username'] ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
 <?php
@@ -49,24 +57,24 @@ opener.location.reload(true);
 }
 ?>
 window.focus();
-function validateForm(Form)
+function validateForm(form)
 {
 	var errors = new Array();
-	if ( !Form.new_username.value )
+	if ( !form.elements['new_user[Username]'].value )
 	{
 		errors[errors.length] = "You must supply a username";
 	}
-	if ( !Form.new_password.value )
+	if ( !form.elements['new_user[Password]'].value )
 	{
 		errors[errors.length] = "You must supply a password";
 	}
 	else
 	{
-		if ( !Form.new_password2.value )
+		if ( !form.conf_password.value )
 		{
 			errors[errors.length] = "You must confirm the password";
 		}
-		else if ( Form.new_password.value != Form.new_password2.value )
+		else if ( form.elements['new_user[Password]'].value != form.conf_password.value )
 		{
 			errors[errors.length] = "The new and confirm passwords are different";
 		}
@@ -88,43 +96,24 @@ function closeWindow()
 <body>
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
-<td colspan="2" align="left" class="head"><?= $zmSlangUser ?> - &quot;<?= $row['Username'] ?>&quot;</td>
+<td colspan="2" align="left" class="head"><?= $zmSlangUser ?> - &quot;<?= $new_user['Username'] ?>&quot;</td>
 </tr>
 <form name="user_form" method="post" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.user_form )">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="user">
 <input type="hidden" name="uid" value="<?= $uid ?>">
-<tr><td align="right" class="text"><?= $zmSlangUsername ?></td><td align="left" class="text"><input type="text" name="new_username" value="<?= $row['Username'] ?>" size="16" class="form"></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangNewPassword ?></td><td align="left" class="text"><input type="password" name="new_password" value="<?= $row['Password'] ?>" size="16" class="form"></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangConfirmPassword ?></td><td align="left" class="text"><input type="password" name="new_password2" value="<?= $row['Password'] ?>" size="16" class="form"></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangLanguage ?></td><td align="left" class="text"><input type="text" name="new_language" value="<?= $row['Language'] ?>" size="16" class="form"></td></tr>
-<?php
-$new_enabled = $row['Enabled'];
-$yesno = array( 0=>$zmSlangNo, 1=>$zmSlangYes );
-?>
-<tr><td align="right" class="text"><?= $zmSlangEnabled ?></td><td align="left" class="text"><?= buildSelect( "new_enabled", $yesno ) ?></td></tr>
-<?php
-$new_stream = $row['Stream'];
-$nv = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView );
-?>
-<tr><td align="right" class="text">Stream</td><td align="left" class="text"><?= buildSelect( "new_stream", $nv ) ?></td></tr>
-<?php
-$new_events = $row['Events'];
-$new_control = $row['Control'];
-$new_monitors = $row['Monitors'];
-$new_system = $row['System'];
-$nve = array( 'None'=>$zmSlangNone, 'View'=>$zmSlangView, 'Edit'=>$zmSlangEdit );
-?>
-<tr><td align="right" class="text"><?= $zmSlangEvents ?></td><td align="left" class="text"><?= buildSelect( "new_events", $nve ) ?></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangControl ?></td><td align="left" class="text"><?= buildSelect( "new_control", $nve ) ?></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangMonitors ?></td><td align="left" class="text"><?= buildSelect( "new_monitors", $nve ) ?></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangSystem ?></td><td align="left" class="text"><?= buildSelect( "new_system", $nve ) ?></td></tr>
-<?php
-$new_max_bandwidth = $row['MaxBandwidth'];
-$bandwidths = array_merge( array( ""=>"" ), $bw_array );
-?>
-<tr><td align="right" class="text"><?= $zmSlangMaxBandwidth ?></td><td align="left" class="text"><?= buildSelect( "new_max_bandwidth", $bandwidths ) ?></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangRestrictedCameraIds ?></td><td align="left" class="text"><input type="text" name="new_monitor_ids" value="<?= $row['MonitorIds'] ?>" size="16" class="form"></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangUsername ?></td><td align="left" class="text"><input type="text" name="new_user[Username]" value="<?= $new_user['Username'] ?>" size="16" class="form"></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangNewPassword ?></td><td align="left" class="text"><input type="password" name="new_user[Password]" value="<?= $new_user['Password'] ?>" size="16" class="form"></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangConfirmPassword ?></td><td align="left" class="text"><input type="password" name="conf_password" value="<?= $new_user['Password'] ?>" size="16" class="form"></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangLanguage ?></td><td align="left" class="text"><?= buildSelect( "new_user[Language]", $langs ) ?></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangEnabled ?></td><td align="left" class="text"><?= buildSelect( "new_user[Enabled]", $yesno ) ?></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangStream ?></td><td align="left" class="text"><?= buildSelect( "new_user[Stream]", $nv ) ?></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangEvents ?></td><td align="left" class="text"><?= buildSelect( "new_user[Events]", $nve ) ?></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangControl ?></td><td align="left" class="text"><?= buildSelect( "new_user[Control]", $nve ) ?></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangMonitors ?></td><td align="left" class="text"><?= buildSelect( "new_user[Monitors]", $nve ) ?></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangSystem ?></td><td align="left" class="text"><?= buildSelect( "new_user[System]", $nve ) ?></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangMaxBandwidth ?></td><td align="left" class="text"><?= buildSelect( "new_user[MaxBandwidth]", $bandwidths ) ?></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangRestrictedCameraIds ?></td><td align="left" class="text"><input type="text" name="new_user['MonitorIds]" value="<?= $new_user['MonitorIds'] ?>" size="16" class="form"></td></tr>
 <tr>
 <td align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"></td><td align="left"><input type="button" value="<?= $zmSlangClose ?>" class="form" onClick="closeWindow()"></td>
 </tr>

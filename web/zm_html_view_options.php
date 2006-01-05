@@ -206,6 +206,10 @@ if ( $tab == "users" )
 }
 else
 {
+	if ( $tab == "system" )
+	{
+		$config_cats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join( '|', getLanguages() );
+	}
 ?>
 <form name="options_form" method="post" action="<?= $PHP_SELF ?>" onSubmit="return( validateForm( document.options_form ) );">
 <input type="hidden" name="view" value="<?= $view ?>">

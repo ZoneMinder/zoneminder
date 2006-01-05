@@ -1510,28 +1510,20 @@ if ( isset($action) )
 				$result = mysql_query( "select * from Users where Id = '$uid'" );
 				if ( !$result )
 					die( mysql_error() );
-				$row = mysql_fetch_assoc( $result );
+				$db_user = mysql_fetch_assoc( $result );
 			}
 			else
 			{
 				$zone = array();
 			}
 
-			$changes = array();
-			if ( $new_username != $row['Username'] ) $changes[] = "Username = '$new_username'";
-			if ( $new_password != $row['Password'] ) $changes[] = "Password = password('$new_password')";
-			if ( $new_username != $row['Language'] ) $changes[] = "Language = '$new_language'";
-			if ( $new_enabled != $row['Enabled'] ) $changes[] = "Enabled = '$new_enabled'";
-			if ( $new_stream != $row['Stream'] ) $changes[] = "Stream = '$new_stream'";
-			if ( $new_events != $row['Events'] ) $changes[] = "Events = '$new_events'";
-			if ( $new_control != $row['Control'] ) $changes[] = "Control = '$new_control'";
-			if ( $new_monitors != $row['Monitors'] ) $changes[] = "Monitors = '$new_monitors'";
-			if ( $new_system != $row['System'] ) $changes[] = "System = '$new_system'";
-			if ( $new_max_bandwidth != $row['MaxBandwidth'] ) $changes[] = "MaxBandwidth = '$new_max_bandwidth'";
-			if ( $new_monitor_ids != $row['MonitorIds'] ) $changes[] = "MonitorIds = '$new_monitor_ids'";
+			$types = array();
+			$changes = getFormChanges( $db_user, $new_user, $types );
 
 			if ( count( $changes ) )
 			{
+				if ( $changes['Password'] )
+					$changes['Password'] = "Password = password('".$new_user['Password']."')";
 				if ( $uid > 0 )
 				{
 					$sql = "update Users set ".implode( ", ", $changes )." where Id = '$uid'";
@@ -1545,9 +1537,9 @@ if ( isset($action) )
 					die( mysql_error() );
 				$view = 'none';
 				$refresh_parent = true;
-				if ( $row['Username'] == $user['Username'] )
+				if ( $db_user['Username'] == $user['Username'] )
 				{
-					userLogin( $row['Username'], $row['Password'] );
+					userLogin( $db_user['Username'], $db_user['Password'] );
 				}
 			}
 		}
@@ -1607,7 +1599,7 @@ if ( isset($action) )
 				{
 					simpleQuery( "delete from Users where Id = '$mark_uid'" );
 				}
-				if ( $row['Username'] == $user['Username'] )
+				if ( $mark_uid == $user['Id'] )
 				{
 					userLogout();
 				}

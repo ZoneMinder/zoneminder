@@ -1661,4 +1661,15 @@ function coordsToPoints( $coords )
 	return( $points );
 }
 
+function getLanguages()
+{
+	$langs = array();
+	foreach ( glob("zm_lang_*_*.php") as $file )
+	{
+		preg_match( '/zm_lang_(.+_.+)\.php/', $file, $matches );
+		$langs[$matches[1]] = $matches[1];
+	}
+	return( $langs );
+}
+
 ?>

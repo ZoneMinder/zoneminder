@@ -50,8 +50,6 @@ use POSIX;
 use DBI;
 use Data::Dumper;
 
-use constant WATCH_LOG_FILE => ZM_PATH_LOGS.'/zmwatch.log';
-
 $| = 1;
 
 $ENV{PATH}  = '/bin:/usr/bin';
@@ -66,14 +64,8 @@ Usage: zmwatch.pl
 	exit( -1 );
 }
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
+zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
-open( LOG, '>>'.WATCH_LOG_FILE ) or die( "Can't open log file: $!" );
-open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-select( STDOUT ); $| = 1;
-open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-select( STDERR ); $| = 1;
-select( LOG ); $| = 1;
 Info( "Watchdog starting\n" );
 Info( "Watchdog pausing for ".START_DELAY." seconds\n" );
 sleep( START_DELAY );
@@ -91,18 +83,26 @@ while( 1 )
 	{
 		if ( $monitor->{Function} ne 'None' )
 		{
-			# Check we have got an image recently
-			my $image_time = zmGetLastImageTime( $monitor );
-			next if ( !defined($image_time) ); # Can't read from shared memory
-			next if ( !$image_time ); # We can't get the last capture time so can't be sure it's died.
-
-			my $max_image_delay = (($monitor->{MaxFPS}>0)&&($monitor->{MaxFPS}<1))?(3/$monitor->{MaxFPS}):ZM_WATCH_MAX_DELAY;
-			my $image_delay = $now-$image_time;
-			Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
-			if ( $image_delay <= $max_image_delay )
+			if ( zmShmVerify( $monitor ) && zmShmRead( $monitor, "shared_data:valid" ) )
 			{
-				# Yes, so continue
-				next;
+				# Check we have got an image recently
+				my $image_time = zmGetLastImageTime( $monitor );
+				next if ( !defined($image_time) ); # Can't read from shared memory
+				next if ( !$image_time ); # We can't get the last capture time so can't be sure it's died.
+
+				my $max_image_delay = (($monitor->{MaxFPS}>0)&&($monitor->{MaxFPS}<1))?(3/$monitor->{MaxFPS}):ZM_WATCH_MAX_DELAY;
+				my $image_delay = $now-$image_time;
+				Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
+				if ( $image_delay <= $max_image_delay )
+				{
+					# Yes, so continue
+					next;
+				}
+				Info( "Restarting capture daemon for ".$monitor->{Name}.", time since last capture $image_delay seconds ($now-$image_time)\n" );
+			}
+			else
+			{
+				Info( "Restarting capture daemon for ".$monitor->{Name}.", shared memory not valid\n" );
 			}
 
 			my $command;
@@ -115,7 +115,6 @@ while( 1 )
 			{
 				$command = ZM_PATH_BIN."/zmdc.pl restart zmc -m $monitor->{Id}";
 			}
-			Info( "Restarting capture daemon ('$command'), time since last capture $image_delay seconds ($now-$image_time)\n" );
 			Info( qx( $command ) );
 		}
 	}

@@ -71,41 +71,44 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
-ZoneMinder - Perl extension for blah blah blah
+ZoneMinder - Container module for common ZoneMinder modules
 
 =head1 SYNOPSIS
 
   use ZoneMinder;
-  blah blah blah
 
 =head1 DESCRIPTION
 
-Stub documentation for ZoneMinder, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
+This module is a convenience container module that uses the
+ZoneMinder::Base, ZoneMinder::Common, ZoneMinder::Debug,
+ZoneMinder::Database and ZoneMinder::SharedMem modules. It also
+exports by default all symbols provided by the 'all' tag of 
+each of the modules.
 
-Blah blah blah.
+Thus 'use'ing this module is equivalent to the following 
+
+  use ZoneMinder::Base qw(:all);
+  use ZoneMinder::Config qw(:all);
+  use ZoneMinder::Debug qw(:all);
+  use ZoneMinder::Database qw(:all);
+  use ZoneMinder::SharedMem qw(:all);
+
+but is somewhat easier.
 
 =head2 EXPORT
 
-None by default.
-
-
+All symbols exported by the 'all' tag of each of the included
+modules.
 
 =head1 SEE ALSO
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
+ZoneMinder::Base, ZoneMinder::Common, ZoneMinder::Debug,
+ZoneMinder::Database, ZoneMinder::SharedMem
 
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+http://www.zoneminder.com
 
 =head1 AUTHOR
 

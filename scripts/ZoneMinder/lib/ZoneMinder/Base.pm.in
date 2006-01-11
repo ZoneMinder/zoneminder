@@ -39,9 +39,7 @@ our @ISA = qw(Exporter);
 # This allows declaration	use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
@@ -51,41 +49,26 @@ our $VERSION = "@VERSION@";
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
-ZoneMinder - Perl extension for blah blah blah
+ZoneMinder::Base - Base perl module for ZoneMinder
 
 =head1 SYNOPSIS
 
-  use ZoneMinder;
-  blah blah blah
+  use ZoneMinder::Base;
 
 =head1 DESCRIPTION
 
-Stub documentation for ZoneMinder, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
-
-Blah blah blah.
+This module is the base module for the rest of the ZoneMinder modules. It is included by each of the other modules but serves no purpose other than to propagate the perl module version amongst the other modules. You will never need to use this module directly but if you write new ZoneMinder modules they should include it.
 
 =head2 EXPORT
 
 None by default.
 
-
-
 =head1 SEE ALSO
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+http://www.zoneminder.com
 
 =head1 AUTHOR
 

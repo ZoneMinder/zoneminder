@@ -50,8 +50,7 @@ use Socket;
 use Getopt::Long;
 use Data::Dumper;
 
-use constant X10_SOCK_FILE => ZM_PATH_SOCKS.'/zmx10.sock';
-use constant X10_LOG_FILE => ZM_PATH_LOGS.'/zmx10.log';
+use constant SOCK_FILE => ZM_PATH_SOCKS.'/zmx10.sock';
 
 $| = 1;
 
@@ -70,7 +69,7 @@ Parameters are :-
 	exit( -1 );
 }
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
+zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 my $command;
 my $unit_code;
@@ -91,7 +90,7 @@ if ( $command eq "start" )
 
 socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
 
-my $saddr = sockaddr_un( X10_SOCK_FILE );
+my $saddr = sockaddr_un( SOCK_FILE );
 
 if ( !connect( CLIENT, $saddr ) )
 {
@@ -161,19 +160,11 @@ our %pending_tasks;
 
 sub runServer
 {
-	my $log_file = main::X10_LOG_FILE;
-	open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
-	open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-	select( STDOUT ); $| = 1;
-	open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-	select( STDERR ); $| = 1;
-	select( LOG ); $| = 1;
-
 	Info( "X10 server starting\n" );
 
 	socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-	unlink( main::X10_SOCK_FILE );
-	my $saddr = sockaddr_un( main::X10_SOCK_FILE );
+	unlink( main::SOCK_FILE );
+	my $saddr = sockaddr_un( main::SOCK_FILE );
 	bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
 	listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
@@ -434,7 +425,7 @@ sub loadTasks
 	my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
-		next if ( !zmShmGet( $monitor ) ); # Check shared memory ok
+		next if ( !zmShmVerify( $monitor ) ); # Check shared memory ok
 
 		$monitor_hash{$monitor->{Id}} = $monitor;
 

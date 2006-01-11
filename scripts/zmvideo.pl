@@ -47,15 +47,13 @@ use DBI;
 use Data::Dumper;
 use Getopt::Long qw(:config no_ignore_case );
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmvideo.log';
-
 $| = 1;
 
 $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
+zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 my $event_id;
 my $format = 'mpg';
@@ -158,14 +156,6 @@ $rate = $detaint_rate;
 $scale = $detaint_scale;
 $fps = $detaint_fps;
 $size = $detaint_size;
-
-my $log_file = LOG_FILE;
-open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
-#open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-#select( STDOUT ); $| = 1;
-open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-select( STDERR ); $| = 1;
-select( LOG ); $| = 1;
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
@@ -322,7 +312,7 @@ if ( $overwrite || !-s $video_file )
 		}
 
 
-		my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s $video_size ".ZM_FFMPEG_OUTPUT_OPTIONS." $video_file > ffmpeg.log";
+		my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s $video_size ".ZM_FFMPEG_OUTPUT_OPTIONS." '$video_file' > ffmpeg.log";
 		print( LOG $command."\n" );
 		my $output = qx($command);
 		print( LOG $output."\n" );

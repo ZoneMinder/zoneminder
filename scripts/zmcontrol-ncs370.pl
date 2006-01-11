@@ -2,8 +2,9 @@
 #
 # ==========================================================================
 #
-# ZoneMinder Panasonic IP Camera Control Script, $Date$, $Revision$
-# Copyright (C) 2003, 2004, 2005  Philip Coombes
+# ZoneMinder Neu-Fusion Control Script, $Date$, $Revision$
+# Copyright (C) 2005 Richard Yeardley
+# Portions Copyright (C) 2003, 2004, 2005  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -33,10 +34,8 @@ use strict;
 #
 # ==========================================================================
 
-use constant DBG_ID => "zmctrl-pana"; # Tag that appears in debug to identify source
+use constant DBG_ID => "zmctrl-ncs370"; # Tag that appears in debug to identify source
 use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
-
-# ==========================================================================
 
 use ZoneMinder;
 use Getopt::Long;
@@ -51,7 +50,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 sub Usage
 {
 	print( "
-Usage: zmcontrol-pansonic-ip.pl <various options>
+Usage: zmcontrol-ncs370.pl <various options>
 ");
 	exit( -1 );
 }
@@ -118,8 +117,8 @@ sub sendCmd
 	my $ua = LWP::UserAgent->new;
 	$ua->agent( "ZoneMinder Control Agent/".ZM_VERSION );
 
-	#print( "http://$address/$cmd\n" );
-	my $req = HTTP::Request->new( GET=>"http://$address/$cmd" );
+	my $req = HTTP::Request->new( POST=>"http://$address/PANTILTCONTROL.CGI" );
+	$req->content($cmd); 
 	my $res = $ua->request($req);
 
 	if ( $res->is_success )
@@ -144,71 +143,68 @@ sub cameraReset
 sub moveUp
 {
 	Debug( "Move Up\n" );
-	my $cmd = "nphControlCamera?Direction=TiltUp";
+	my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=1\nPanTiltSingleMove=1";
 	sendCmd( $cmd );
 }
 
 sub moveDown
 {
 	Debug( "Move Down\n" );
-	my $cmd = "nphControlCamera?Direction=TiltDown";
+	my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=1\nPanTiltSingleMove=7";
 	sendCmd( $cmd );
 }
 
 sub moveLeft
 {
 	Debug( "Move Left\n" );
-	my $cmd = "nphControlCamera?Direction=PanLeft";
+	my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=1\nPanTiltSingleMove=3";
 	sendCmd( $cmd );
 }
 
 sub moveRight
 {
 	Debug( "Move Right\n" );
-	my $cmd = "nphControlCamera?Direction=PanRight";
+	my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=1\nPanTiltSingleMove=5";
 	sendCmd( $cmd );
+}
+
+sub moveUpRight
+{
+	moveUp();
+	moveRight();
+}
+
+sub moveUpLeft
+{
+	moveUp();
+	moveLeft();
+}
+
+sub moveDownRight
+{
+	moveDown();
+	moveRight();
+}
+
+sub moveDownLeft
+{
+	moveDown();
+	moveLeft();
 }
 
 sub moveMap
 {
 	my ( $xcoord, $ycoord, $width, $height ) = @_;
 	Debug( "Move Map to $xcoord,$ycoord\n" );
-	my $cmd = "nphControlCamera?Direction=Direct&NewPosition.x=$xcoord&NewPosition.y=$ycoord&Width=$width&Height=$height";
+	my $cmd = "/axis-cgi/com/ptz.cgi?center=$xcoord,$ycoord&imagewidth=$width&imageheight=$height";
 	sendCmd( $cmd );
 }
 
-sub zoomTele
+sub stepUp
 {
-	Debug( "Zoom Tele\n" );
-	my $cmd = "nphControlCamera?Direction=ZoomTele";
-	sendCmd( $cmd );
-}
-
-sub zoomWide
-{
-	Debug( "Zoom Wide\n" );
-	my $cmd = "nphControlCamera?Direction=ZoomWide";
-	sendCmd( $cmd );
-}
-
-sub focusNear
-{
-	Debug( "Focus Near\n" );
-	my $cmd = "nphControlCamera?Direction=FocusNear";
-	sendCmd( $cmd );
-}
-
-sub focusFar
-{
-	Debug( "Focus Far\n" );
-	my $cmd = "nphControlCamera?Direction=FocusFar";
-	sendCmd( $cmd );
-}
-
-sub focusAuto
-{
-	Debug( "Focus Auto\n" );
-	my $cmd = "nphControlCamera?Direction=FocusAuto";
+	my $step = shift;
+	Debug( "Step Up $step\n" );
+	my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=$step\nPanTiltSingleMove=1";
 	sendCmd( $cmd );
 }
 
@@ -224,7 +220,7 @@ sub presetSet
 {
 	my $preset = shift || 1;
 	Debug( "Set Preset $preset\n" );
-	my $cmd = "nphPresetNameCheck?PresetName=$preset&Data=$preset";
+	my $cmd = "/axis-cgi/com/ptz.cgi?setserverpresetno=$preset";
 	sendCmd( $cmd );
 }
 
@@ -232,14 +228,14 @@ sub presetGoto
 {
 	my $preset = shift || 1;
 	Debug( "Goto Preset $preset\n" );
-	my $cmd = "nphControlCamera?Direction=Preset&PresetOperation=Move&Data=$preset";
+	my $cmd = "PanTiltPresetPositionMove=$preset";
 	sendCmd( $cmd );
 }
 
 sub presetHome
 {
 	Debug( "Home Preset\n" );
-	my $cmd = "nphControlCamera?Direction=HomePosition";
+	my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=1\nPanTiltSingleMove=4";
 	sendCmd( $cmd );
 }
 
@@ -259,33 +255,25 @@ elsif ( $command eq "move_con_right" )
 {
 	moveRight();
 }
+elsif ( $command eq "move_con_upleft" )
+{
+	moveUpLeft();
+}
+elsif ( $command eq "move_con_upright" )
+{
+	moveUpRight();
+}
+elsif ( $command eq "move_con_downleft" )
+{
+	moveDownLeft();
+}
+elsif ( $command eq "move_con_downright" )
+{
+	moveDownRight();
+}
 elsif ( $command eq "move_map" )
 {
-	moveMap( $xcoord, $ycoord, $width, $height );
-}
-elsif ( $command eq "zoom_con_tele" )
-{
-	zoomTele();
-}
-elsif ( $command eq "zoom_con_wide" )
-{
-	zoomWide();
-}
-elsif ( $command eq "focus_con_near" )
-{
-	focusNear();
-}
-elsif ( $command eq "focus_con_far" )
-{
-	focusFar();
-}
-elsif ( $command eq "focus_auto" )
-{
-	focusAuto();
-}
-elsif ( $command eq "focus_man" )
-{
-	#focusMan();
+#	moveMap( $xcoord, $ycoord, $width, $height );
 }
 elsif ( $command eq "preset_home" )
 {
@@ -293,7 +281,7 @@ elsif ( $command eq "preset_home" )
 }
 elsif ( $command eq "preset_set" )
 {
-	presetSet( $preset );
+#	presetSet( $preset );
 }
 elsif ( $command eq "preset_goto" )
 {

@@ -51,8 +51,6 @@ use Data::Dumper;
 use Getopt::Long;
 use Time::HiRes qw( usleep );
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmtrack-%s.log';
-
 $| = 1;
 
 $ENV{PATH}  = '/bin:/usr/bin';
@@ -76,18 +74,10 @@ if ( !GetOptions( 'monitor=s'=>\$mid ) )
 	Usage();
 }
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
+zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 my ( $detaint_mid ) = $mid =~ /^(\d+)$/;
 $mid = $detaint_mid;
-
-my $log_file = sprintf( LOG_FILE, $mid );
-open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
-open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-select( STDOUT ); $| = 1;
-open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-select( STDERR ); $| = 1;
-select( LOG ); $| = 1;
 
 print( "Tracker daemon $mid (experimental) starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
@@ -130,7 +120,7 @@ if ( !$monitor->{CanMoveMap} )
 }
 
 Debug( "Found monitor for id '$monitor'\n" );
-exit( -1 ) if ( !zmShmGet( $monitor ) );
+exit( -1 ) if ( !zmShmVerify( $monitor ) );
 
 sub Suspend
 {

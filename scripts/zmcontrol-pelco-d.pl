@@ -43,8 +43,6 @@ use Getopt::Long;
 use Device::SerialPort;
 use Time::HiRes qw( usleep );
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmcontrol-pelco-d.log';
-
 $| = 1;
 
 $ENV{PATH}  = '/bin:/usr/bin';
@@ -59,7 +57,7 @@ Usage: zmcontrol-pelco-d.pl <various options>
 	exit( -1 );
 }
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
+zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 my $arg_string = join( " ", @ARGV );
 
@@ -98,14 +96,6 @@ if ( defined($autostop) )
 	# Convert to microseconds.
 	$autostop = int(1000000*$autostop);
 }
-
-my $log_file = LOG_FILE;
-open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
-open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-select( STDOUT ); $| = 1;
-open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-select( STDERR ); $| = 1;
-select( LOG ); $| = 1;
 
 Debug( $arg_string."\n" );
 

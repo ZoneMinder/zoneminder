@@ -63,22 +63,13 @@ use POSIX;
 #use Socket;
 use Data::Dumper;
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmtrigger.log';
-
 $| = 1;
 
 $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
-
-open( LOG, ">>".LOG_FILE ) or die( "Can't open log file: $!" );
-open(STDOUT, ">&LOG") || die( "Can't dup stdout: $!" );
-select( STDOUT ); $| = 1;
-open(STDERR, ">&LOG") || die( "Can't dup stderr: $!" );
-select( STDERR ); $| = 1;
-select( LOG ); $| = 1;
+zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 Info( "Trigger daemon starting\n" );
 
@@ -283,7 +274,7 @@ sub loadMonitors
 	my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
-		next if ( !zmShmGet( $monitor ) ); # Check shared memory ok
+		next if ( !zmShmVerify( $monitor ) ); # Check shared memory ok
 
 		if ( defined($monitors{$monitor->{Id}}->{LastState}) )
 		{
@@ -324,7 +315,7 @@ sub handleMessage
 	}
 	Debug( "Found monitor for id '$id'\n" );
 
-	next if ( !zmShmGet( $monitor ) );
+	next if ( !zmShmVerify( $monitor ) );
 
 	Debug( "Handling action '$action'\n" );
 	if ( $action =~ /^(enable|disable)(?:\+(\d+))?$/ )

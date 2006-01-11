@@ -53,7 +53,6 @@ use Getopt::Long;
 use Data::Dumper;
 
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
-use constant UPDATE_LOG_FILE => ZM_PATH_LOGS.'/zmupdate.log';
 
 $| = 1;
 
@@ -61,7 +60,7 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
+zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 my $check = 0;
 my $freshen = 0;
@@ -103,12 +102,6 @@ if ( ($check + $freshen + $rename + $zone_fix + ($version?1:0)) > 1 )
 
 if ( $check )
 {
-	open( LOG, '>>'.UPDATE_LOG_FILE ) or die( "Can't open log file: $!" );
-	open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-	select( STDOUT ); $| = 1;
-	open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-	select( STDERR ); $| = 1;
-	select( LOG ); $| = 1;
 }
 
 print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );

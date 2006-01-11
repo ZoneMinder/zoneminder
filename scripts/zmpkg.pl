@@ -47,14 +47,12 @@ use DBI;
 use POSIX;
 use Time::HiRes qw/gettimeofday/;
 
-use constant LOG_FILE => ZoneMinder::ZM_PATH_LOGS.'/zmpkg.log';
-
 # Detaint our environment
 $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
+zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 my $command = $ARGV[0];
 
@@ -98,20 +96,7 @@ chdir( ZM_PATH_WEB ) or die( "Can't chdir to '".ZM_PATH_WEB."': $!" );
 
 my $dbg_id = "";
 
-my $log_file = LOG_FILE;
-open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
-open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-select( STDERR ); $| = 1;
-select( LOG ); $| = 1;
-
 Info( "Command: $command\n" );
-
-my $web_uid = (getpwnam( ZM_WEB_USER ))[2];
-my $web_gid = (getgrnam( ZM_WEB_GROUP ))[2];
-if ( $> != $web_uid )
-{
-	chown( $web_uid, $web_gid, $log_file ) or die( "Can't change permissions on log file: $!" )
-}
 
 my $retval = 0;
 

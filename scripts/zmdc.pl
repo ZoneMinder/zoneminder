@@ -53,8 +53,7 @@ use Socket;
 use IO::Handle;
 use Data::Dumper;
 
-use constant DC_SOCK_FILE => ZM_PATH_SOCKS.'/zmdc.sock';
-use constant DC_LOG_FILE => ZM_PATH_LOGS.'/zmdc.log';
+use constant SOCK_FILE => ZM_PATH_SOCKS.'/zmdc.sock';
 
 $| = 1;
 
@@ -62,9 +61,18 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
-
-my @daemons = ( 'zmc', 'zma', 'zmf', 'zmfilter.pl', 'zmaudit.pl', 'zmtrigger.pl', 'zmx10.pl', 'zmwatch.pl', 'zmupdate.pl', 'zmtrack.pl' );
+my @daemons = (
+	'zmc',
+	'zma',
+	'zmf',
+	'zmfilter.pl',
+	'zmaudit.pl',
+	'zmtrigger.pl',
+	'zmx10.pl',
+	'zmwatch.pl',
+	'zmupdate.pl',
+	'zmtrack.pl'
+);
 
 my $command = shift @ARGV;
 die( "No command given" ) unless( $command );
@@ -102,7 +110,7 @@ foreach my $arg ( @ARGV )
 
 socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
 
-my $saddr = sockaddr_un( DC_SOCK_FILE );
+my $saddr = sockaddr_un( SOCK_FILE );
 my $server_up = connect( CLIENT, $saddr );
 if ( !$server_up )
 {
@@ -122,26 +130,26 @@ if ( !$server_up )
 
 	if ( my $cpid = fork() )
 	{
+		zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+
 		# Parent process just sleep and fall through
 		socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
 		my $attempts = 0;
 		while (!connect( CLIENT, $saddr ))
 		{
 			$attempts++;
-			die( "Can't connect: $!" ) if ($attempts > MAX_CONNECT_DELAY);
+			Fatal( "Can't connect: $!" ) if ($attempts > MAX_CONNECT_DELAY);
 			sleep(1);
 		}
 	}
 	elsif ( defined($cpid) )
 	{
+		close( STDOUT );
+		close( STDERR );
+
 		setpgrp();
 
-		open( LOG, ">>".DC_LOG_FILE ) or die( "Can't open log file: $!" );
-		open(STDOUT, ">&LOG") || die( "Can't dup stdout: $!" );
-		select( STDOUT ); $| = 1;
-		open(STDERR, ">&LOG") || die( "Can't dup stderr: $!" );
-		select( STDERR ); $| = 1;
-		select( LOG ); $| = 1;
+		zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 		dPrint( DBG_INFO, "Server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
@@ -154,7 +162,7 @@ if ( !$server_up )
 		killAll( 1 );
 
 		socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-		unlink( DC_SOCK_FILE );
+		unlink( SOCK_FILE );
 		bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
 		listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
@@ -262,8 +270,7 @@ if ( !$server_up )
 			}
 		}
 		dPrint( DBG_INFO, "Server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-		close( LOG );
-		unlink( DC_SOCK_FILE );
+		unlink( SOCK_FILE );
 		unlink( ZM_PID );
 		exit();
 
@@ -338,6 +345,9 @@ if ( !$server_up )
 			}
 			elsif ( defined($cpid ) )
 			{
+				close( STDOUT );
+				close( STDERR );
+
 				# Child process
 				$SIG{CHLD} = 'DEFAULT';
 				$SIG{INT} = 'DEFAULT';
@@ -548,9 +558,8 @@ if ( !$server_up )
 			}
 			killAll( 5 );
 			dPrint( DBG_INFO, "Server shutdown at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-			unlink( DC_SOCK_FILE );
+			unlink( SOCK_FILE );
 			unlink( ZM_PID );
-			close( LOG );
 			close( CLIENT );
 			close( SERVER );
 			exit();
@@ -674,11 +683,15 @@ sub killAll
 	sleep( $delay );
 	foreach my $daemon ( @daemons )
 	{
-		qx( killall --quiet --signal TERM $daemon );
+		my $cmd = "killall --quiet --signal TERM $daemon";
+		Debug( $cmd );
+		qx( $cmd );
 	}
 	sleep( $delay );
 	foreach my $daemon ( @daemons )
 	{
-		qx( killall --quiet --signal KILL $daemon );
+		my $cmd = "killall --quiet --signal KILL $daemon";
+		Debug( $cmd );
+		qx( $cmd );
 	}
 }

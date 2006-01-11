@@ -54,9 +54,8 @@ use Data::Dumper;
 use Getopt::Long;
 
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmfilter.log';
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
+zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 if ( ZM_OPT_UPLOAD )
 {
@@ -127,32 +126,6 @@ Parameters are :-
 	exit( -1 );
 }
 
-my $dbg_id = "";
-
-sub dbgInit
-{
-	my $id = shift;
-	if ( $id )
-	{
-		$dbg_id = $id;
-		my $add_parms = shift;
-		if ( $add_parms )
-		{
-			foreach my $arg ( @ARGV )
-			{
-				if ( $arg =~ /^-(.*)$/ )
-				{
-					$dbg_id .= "_$1";
-				}
-				else
-				{
-					$dbg_id .= $arg;
-				}
-			}
-		}
-	}
-}
-
 #
 # More or less replicates the equivalent PHP function
 #
@@ -185,20 +158,10 @@ sub DateTimeToSQL
 	return( strftime( "%Y-%m-%d %H:%M:%S", localtime( $dt_val ) ) );
 }
 
-dbgInit( "zmfilter", 1 );
-
 if ( !GetOptions( 'delay=i'=>\$delay ) )
 {
 	Usage();
 }
-
-my $log_file = LOG_FILE;
-open( LOG, ">>$log_file" ) or die( "Can't open log file: $!" );
-open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-select( STDOUT ); $| = 1;
-open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-select( STDERR ); $| = 1;
-select( LOG ); $| = 1;
 
 chdir( EVENT_PATH );
 

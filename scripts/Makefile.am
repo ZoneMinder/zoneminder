@@ -15,6 +15,7 @@ bin_SCRIPTS = \
 	zmcontrol-visca.pl \
 	zmcontrol-panasonic-ip.pl \
 	zmcontrol-axis-v2.pl \
+	zmcontrol-ncs370.pl \
 	zmtrack.pl
 
 SUBDIRS = \
@@ -35,6 +36,7 @@ EXTRA_DIST = \
 	zmcontrol-visca.pl \
 	zmcontrol-panasonic-ip.pl \
 	zmcontrol-axis-v2.pl \
+	zmcontrol-ncs370.pl \
 	zmtrack.pl \
 	ZoneMinder/Makefile.PL \
 	ZoneMinder/README \

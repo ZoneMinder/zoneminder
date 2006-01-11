@@ -57,7 +57,6 @@ use POSIX;
 use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
 
-use constant LOG_FILE => ZM_PATH_LOGS.'/zmaudit.log';
 use constant IMAGE_PATH => ZM_PATH_WEB.'/'.ZM_DIR_IMAGES;
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 
@@ -68,17 +67,15 @@ $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $report = 0;
-my $yes = 0;
-my $delay = 0;
+my $interactive = 0;
 
 sub usage
 {
 	print( "
-Usage: zmaudit.pl [-r,-report|-y,-yes] [-d <seconds>,-delay=<seconds>]
+Usage: zmaudit.pl [-r,-report|-i,-interactive]
 Parameters are :-
 -r, --report                    - Just report don't actually do anything
--y, --yes                       - Just do all actions without confirmation
--d <seconds>, --delay=<seconds> - how long to delay between each pass, the default of 0 means run once only.
+-i, --interactive               - Ask before applying any changes
 ");
 	exit( -1 );
 }
@@ -86,13 +83,13 @@ Parameters are :-
 sub aud_print
 {
 	my $string = shift;
-	if ( $delay )
+	if ( $report || $interactive )
 	{
-		Info( $string );
+		print( $string );
 	}
 	else
 	{
-		print( $string );
+		Info( $string );
 	}
 }
 
@@ -101,26 +98,12 @@ sub confirm
 	my $prompt = shift || "delete";
 	my $action = shift || "deleting";
 
-	my $yesno = $yes?1:0; 
+	my $yesno = 0;
 	if ( $report )
 	{
-		if ( !$delay )
-		{
-			print( "\n" );
-		}
+		print( "\n" );
 	}
-	elsif ( $yes )
-	{
-		if ( $delay )
-		{
-			Info( "$action\n" );
-		}
-		else
-		{
-			print( ", $action\n" );
-		}
-	}
-	else
+	elsif ( $interactive )
 	{
 		print( ", $prompt y/n: " );
 		my $char = <>;
@@ -133,41 +116,35 @@ sub confirm
 		{
 			$char = 'y';
 		}
-		if ( $char eq "a" )
-		{
-			$yes = 1;
-			return( 1 );
-		}
 		$yesno = ( $char =~ /[yY]/ );
+	}
+	else
+	{
+		Info( "$action\n" );
+		$yesno = 1;
 	}
 	return( $yesno );
 }
 
-zmDbgInit( DBG_ID, DBG_LEVEL );
+zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
-if ( !GetOptions( 'report'=>\$report, 'yes'=>\$yes, 'delay=i'=>\$delay ) )
+if ( !GetOptions( 'report'=>\$report, 'interactive'=>\$interactive ) )
 {
 	usage();
 }
 
-if ( $report && $yes )
+if ( $report && $interactive )
 {
-	print( STDERR "Error, only one of --report and --yes may be specified\n" );
+	print( STDERR "Error, only one of --report and --interactive may be specified\n" );
 	usage();
 }
+
+my $once = ($report || $interactive || -t STDOUT);
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 chdir( EVENT_PATH );
-if ( $delay ) # Background mode
-{
-	open( LOG, ">>".LOG_FILE ) or die( "Can't open log file: $!" );
-	open( STDOUT, ">&LOG" ) || die( "Can't dup stdout: $!" );
-	select( STDOUT ); $| = 1;
-	open( STDERR, ">&LOG" ) || die( "Can't dup stderr: $!" );
-	select( STDERR ); $| = 1;
-	select( LOG ); $| = 1;
-}
+
 my $max_image_age = 15/(24*60); # 15 Minutes
 my $image_path = IMAGE_PATH;
 do
@@ -339,5 +316,5 @@ do
 		unlink( split( ";", $untainted_old_files ) );
 	}
 
-	sleep( $delay ) if ( $delay );
-} while( $delay );
+	sleep( ZM_AUDIT_CHECK_INTERVAL ) if ( !$once );
+} while( !$once );

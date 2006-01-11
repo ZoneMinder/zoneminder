@@ -113,40 +113,106 @@ use constant TRIGGER_CANCEL => 0;
 use constant TRIGGER_ON     => 1;
 use constant TRIGGER_OFF    => 2;
 
+# Native architecture
+our $arch = int(3.2*length(~0));
+our $native = $arch/8;
+our $shm_seq = 0;
+
 our $shm_data =
 {
-	"shared_data" => { "offset"=>0, "size"=>56, "type"=>"SharedData", "contents"=> {
-		"size"             => { "offset"=>0,  "size"=>4, "type"=>"int" },
-		"valid"            => { "offset"=>4,  "size"=>4, "type"=>"bool" },
-		"state"            => { "offset"=>8,  "size"=>4, "type"=>"enum"},
-		"last_write_index" => { "offset"=>12, "size"=>4, "type"=>"int" },
-		"last_read_index"  => { "offset"=>16, "size"=>4, "type"=>"int" },
-		"last_image_time"  => { "offset"=>20, "size"=>4, "type"=>"time_t" },
-		"last_event"       => { "offset"=>24, "size"=>4, "type"=>"int" },
-		"action"           => { "offset"=>28, "size"=>4, "type"=>"set" },
-		"brightness"       => { "offset"=>32, "size"=>4, "type"=>"int" },
-		"hue"              => { "offset"=>36, "size"=>4, "type"=>"int" },
-		"colour"           => { "offset"=>40, "size"=>4, "type"=>"int" },
-		"contrast"         => { "offset"=>44, "size"=>4, "type"=>"int" },
-		"alarm_x"          => { "offset"=>48, "size"=>4, "type"=>"int" },
-		"alarm_y"          => { "offset"=>52, "size"=>4, "type"=>"int" },
+	"shared_data" => { "type"=>"SharedData", "seq"=>$shm_seq++, "contents"=> {
+		"size"             => { "type"=>"int", "seq"=>$shm_seq++ },
+		"valid"            => { "type"=>"bool1", "seq"=>$shm_seq++ },
+		"active"           => { "type"=>"bool1", "seq"=>$shm_seq++ },
+		"state"            => { "type"=>"enum", "seq"=>$shm_seq++},
+		"last_write_index" => { "type"=>"int", "seq"=>$shm_seq++ },
+		"last_read_index"  => { "type"=>"int", "seq"=>$shm_seq++ },
+		"last_image_time"  => { "type"=>"time_t", "seq"=>$shm_seq++ },
+		"last_event"       => { "type"=>"int", "seq"=>$shm_seq++ },
+		"action"           => { "type"=>"enum", "seq"=>$shm_seq++ },
+		"brightness"       => { "type"=>"int", "seq"=>$shm_seq++ },
+		"hue"              => { "type"=>"int", "seq"=>$shm_seq++ },
+		"colour"           => { "type"=>"int", "seq"=>$shm_seq++ },
+		"contrast"         => { "type"=>"int", "seq"=>$shm_seq++ },
+		"alarm_x"          => { "type"=>"int", "seq"=>$shm_seq++ },
+		"alarm_y"          => { "type"=>"int", "seq"=>$shm_seq++ },
 		}
 	},
-	"trigger_data" => { "offset"=>56, "size"=>332, "type"=>"TriggerData", "contents"=> {
-		"size"             => { "offset"=>56+0,   "size"=>4,   "type"=>"int" },
-		"trigger_state"    => { "offset"=>56+4,   "size"=>4,   "type"=>"enum" },
-		"trigger_score"    => { "offset"=>56+8,   "size"=>4,   "type"=>"int" },
-		"trigger_cause"    => { "offset"=>56+12,  "size"=>32,  "type"=>"char[]" },
-		"trigger_text"     => { "offset"=>56+44,  "size"=>256, "type"=>"char[]" },
-		"trigger_showtext" => { "offset"=>56+300, "size"=>32,  "type"=>"char[]" },
+	"trigger_data" => { "type"=>"TriggerData", "seq"=>$shm_seq++, "contents"=> {
+		"size"             => { "type"=>"int", "seq"=>$shm_seq++ },
+		"trigger_state"    => { "type"=>"enum", "seq"=>$shm_seq++ },
+		"trigger_score"    => { "type"=>"int", "seq"=>$shm_seq++ },
+		"trigger_cause"    => { "type"=>"char[32]", "seq"=>$shm_seq++ },
+		"trigger_text"     => { "type"=>"char[256]", "seq"=>$shm_seq++ },
+		"trigger_showtext" => { "type"=>"char[32]", "seq"=>$shm_seq++ },
 		}
 	},
-	"end" => { "offset"=>56+332, "size"=> 0 }
+	"end" => { "seq"=>$shm_seq++, "size"=> 0 }
 };
 
-our $shm_size = $shm_data->{end}->{offset};
+our $shm_size = 0;
 
 our $shm_verified = {};
+
+sub zmShmInit
+{
+	my $offset = 0;
+
+	foreach my $section_data ( sort { $a->{seq} <=> $b->{seq} } values( %$shm_data ) )
+	{
+		$section_data->{offset} = $offset;
+		$section_data->{align} = 4;
+
+		if ( $section_data->{align} > 1 )
+		{
+			my $rem = $offset % $section_data->{align};
+			if ( $rem > 0 )
+			{
+				$offset += ($section_data->{align} - $rem);
+			}
+		}
+		foreach my $member_data ( sort { $a->{seq} <=> $b->{seq} } values( %{$section_data->{contents}} ) )
+		{
+			if ( $member_data->{type} eq "long" || $member_data->{type} eq "time_t" || $member_data->{type} eq "size_t" || $member_data->{type} eq "bool8" )
+			{
+				$member_data->{size} = $member_data->{align} = $native;
+			}
+			elsif ( $member_data->{type} eq "int" || $member_data->{type} eq "enum" || $member_data->{type} eq "bool4" )
+			{
+				$member_data->{size} = $member_data->{align} = 4;
+			}
+			elsif ( $member_data->{type} eq "short" )
+			{
+				$member_data->{size} = $member_data->{align} = 2;
+			}
+			elsif ( $member_data->{type} eq "char" || $member_data->{type} eq "bool1" )
+			{
+				$member_data->{size} = $member_data->{align} = 1;
+			}
+			elsif ( $member_data->{type} =~ /^char\[(\d+)\]$/ )
+			{
+				$member_data->{size} = $1;
+				$member_data->{align} = 1;
+			}
+			else
+			{
+				Fatal( "Unexpected type '".$member_data->{type}."' found in shared memory definition." );
+			}
+
+			if ( $member_data->{align} > 1 && ($offset%$member_data->{align}) > 0 )
+			{
+				$offset += ($member_data->{align} - ($offset%$member_data->{align}));
+			}
+			$member_data->{offset} = $offset;
+			$offset += $member_data->{size}
+		}
+		$section_data->{size} = $offset - $section_data->{offset};
+	}
+
+	$shm_size = $offset;
+}
+
+&zmShmInit();
 
 sub zmShmGet( $ )
 {
@@ -157,12 +223,11 @@ sub zmShmGet( $ )
 		my $shm_id = shmget( $shm_key, $shm_size, 0 );
 		if ( !defined($shm_id) )
 		{
-    		Error( "Can't get shared memory id '%x', %d: $!\n", $shm_key, $monitor->{Id}, $! );
+    		Error( sprintf( "Can't get shared memory id '%x', %d: $!\n", $shm_key, $monitor->{Id}, $! ) );
 			return( undef );
 		}
 		$monitor->{ShmKey} = $shm_key;
 		$monitor->{ShmId} = $shm_id;
-		zmShmVerify( $monitor );
 	}
 	return( !undef );
 }
@@ -170,21 +235,39 @@ sub zmShmGet( $ )
 sub zmShmVerify( $ )
 {
 	my $monitor = shift;
-	my $shm_key = $monitor->{ShmKey};
+	if ( !zmShmGet( $monitor ) )
+	{
+		return( undef );
+	}
 
+	my $shm_key = $monitor->{ShmKey};
 	if ( !defined($shm_verified->{$shm_key}) )
 	{
 		my $shm_id = $monitor->{ShmId};
-		my $sd_size = zmShmRead( $monitor, "shared_data:size" );
+		my $sd_size = zmShmRead( $monitor, "shared_data:size", 1 );
 		if ( $sd_size != $shm_data->{shared_data}->{size} )
 		{
-			Error( "Shared memory size conflict in shared_data, expected ".$shm_data->{shared_data}->{size}.", got ".$sd_size );
+			if ( $sd_size )
+			{
+				Error( "Shared memory size conflict in shared_data, expected ".$shm_data->{shared_data}->{size}.", got ".$sd_size );
+			}
+			else
+			{
+				Debug( "Shared memory size conflict in shared_data, expected ".$shm_data->{shared_data}->{size}.", got ".$sd_size );
+			}
 			return( undef );
 		}
-		my $td_size = zmShmRead( $monitor, "trigger_data:size" );
+		my $td_size = zmShmRead( $monitor, "trigger_data:size", 1 );
 		if ( $td_size != $shm_data->{trigger_data}->{size} )
 		{
-			Error( "Shared memory size conflict in trigger_data, expected ".$shm_data->{triggger_data}->{size}.", got ".$td_size );
+			if ( $td_size )
+			{
+				Error( "Shared memory size conflict in trigger_data, expected ".$shm_data->{triggger_data}->{size}.", got ".$td_size );
+			}
+			else
+			{
+				Debug( "Shared memory size conflict in trigger_data, expected ".$shm_data->{triggger_data}->{size}.", got ".$td_size );
+			}
 			return( undef );
 		}
 		$shm_verified->{$shm_key} = !undef;
@@ -192,12 +275,13 @@ sub zmShmVerify( $ )
 	return( !undef );
 }
 
-sub zmShmRead( $$ )
+sub zmShmRead( $$;$ )
 {
 	my $monitor = shift;
 	my $fields = shift;
+	my $nocheck = shift;
 
-	if ( !zmShmGet( $monitor ) )
+	if ( !$nocheck && !zmShmVerify( $monitor ) )
 	{
 		return( undef );
 	}
@@ -227,21 +311,29 @@ sub zmShmRead( $$ )
 		}
 	
 		my $value;
-		if ( $type eq "char" )
+		if ( $type eq "long" || $type eq "time_t" || $type eq "size_t" || $type eq "bool8" )
 		{
-			( $value ) = unpack( "c", $data );
+			( $value ) = unpack( "l!", $data );
+		}
+		elsif ( $type eq "int" || $type eq "enum" || $type eq "bool4" )
+		{
+			( $value ) = unpack( "l", $data );
 		}
 		elsif ( $type eq "short" )
 		{
 			( $value ) = unpack( "s", $data );
 		}
-		elsif ( $type eq "int" || $type eq "bool" || $type eq "time_t" || $type eq "enum" || $type eq "set" )
+		elsif ( $type eq "char" || $type eq "bool1" )
 		{
-			( $value ) = unpack( "l", $data );
+			( $value ) = unpack( "c", $data );
 		}
-		elsif ( $type eq "char[]" )
+		elsif ( $type =~ /^char[\d+]$/ )
 		{
 			( $value ) = unpack( "Z".$size, $data );
+		}
+		else
+		{
+			Fatal( "Unexpected type '".$type."' found for '".$field."'" );
 		}
 		push( @values, $value );
 	}
@@ -252,12 +344,13 @@ sub zmShmRead( $$ )
 	return( $values[0] );
 }
 
-sub zmShmWrite( $$ )
+sub zmShmWrite( $$;$ )
 {
 	my $monitor = shift;
 	my $field_values_ref = shift;
+	my $nocheck = shift;
 
-	if ( !zmShmGet( $monitor ) )
+	if ( !$nocheck && !zmShmVerify( $monitor ) )
 	{
 		return( undef );
 	}
@@ -273,28 +366,36 @@ sub zmShmWrite( $$ )
 	while ( my ( $field, $value ) = each( %field_values ) )
 	{
 		my ( $section, $element ) = split( /[\/:.]/, $field );
-		die( "Invalid shm selector '$field'" ) if ( !$section || !$element );
+		Fatal( "Invalid shm selector '$field'" ) if ( !$section || !$element );
 
 		my $offset = $shm_data->{$section}->{contents}->{$element}->{offset};
 		my $type = $shm_data->{$section}->{contents}->{$element}->{type};
 		my $size = $shm_data->{$section}->{contents}->{$element}->{size};
 
 		my $data;
-		if ( $type eq "char" )
+		if ( $type eq "long" || $type eq "time_t" || $type eq "size_t" || $type eq "bool8" )
 		{
-			$data = pack( "c", $value );
+			$data = pack( "l!", $value );
+		}
+		elsif ( $type eq "int" || $type eq "enum" || $type eq "bool4" )
+		{
+			$data = pack( "l", $value );
 		}
 		elsif ( $type eq "short" )
 		{
 			$data = pack( "s", $value );
 		}
-		elsif ( $type eq "int" || $type eq "bool" || $type eq "time_t" || $type eq "enum" || $type eq "set" )
+		elsif ( $type eq "char" || $type eq "bool1" )
 		{
-			$data = pack( "l", $value );
+			$data = pack( "c", $value );
 		}
-		elsif ( $type eq "char[]" )
+		elsif ( $type =~ /^char[\d+]$/ )
 		{
 			$data = pack( "Z".$size, $value );
+		}
+		else
+		{
+			Fatal( "Unexpected type '".$type."' found for '".$field."'" );
 		}
 
 		if ( !shmwrite( $shm_id, $data, $offset, $size ) )

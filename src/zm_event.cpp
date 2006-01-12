@@ -471,7 +471,11 @@ void Event::StreamEvent( int event_id, int frame_id, int scale, int rate, int ma
 			if ( (frame_mod == 1) || (((id-1)%frame_mod) == 0) )
 			{
 				double this_delta = last_db_delta+(((id-last_db_id)*(db_delta-last_db_delta))/(db_id-last_db_id));
-				delta_us = (unsigned int)((this_delta-last_delta) * 1000000);
+				if (this_delta > last_delta)
+					delta_us = (unsigned int)((this_delta-last_delta) * 1000000);
+				else
+					delta_us = 0;
+
 				if ( rate != ZM_RATE_SCALE )
 					delta_us = (delta_us*ZM_RATE_SCALE)/rate;
 				Debug( 2, ( "I:%d, DI:%d, LDBI:%d, DD:%lf, LD:%lf, LDBD:%lf, TD:%lf, DU:%d", id, db_id, last_db_id, db_delta, last_delta, last_db_delta, this_delta, delta_us ));

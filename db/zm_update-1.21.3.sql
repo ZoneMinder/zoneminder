@@ -1,5 +1,5 @@
 --
--- This updates a 1.21.2 database to 1.21.3
+-- This updates a 1.21.3 database to 1.21.4
 --
 alter table Monitors add column WebColour varchar(32) not null default 'red';
 update Monitors set WebColour = concat( '#', hex(14*rand()),hex(15*rand()),hex(14*rand()),hex(15*rand()),hex(14*rand()),hex(15*rand()) );

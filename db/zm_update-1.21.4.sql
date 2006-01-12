@@ -1,5 +1,5 @@
 --
--- This updates a 1.21.3 database to 1.21.4
+-- This updates a 1.21.4 database to 1.22.0
 --
 alter table Monitors change column RunMode Enabled tinyint(3) unsigned NOT NULL default '1';
 alter table Monitors add column DefaultRate smallint unsigned not null default 100 after ReturnDelay;
@@ -18,6 +18,8 @@ alter table Zones add column NumCoords tinyint(3) unsigned NOT NULL default '0' 
 alter table Zones add column Coords tinytext NOT NULL after NumCoords;
 alter table Zones add column Area int(10) unsigned not null default 0 after Coords;
 alter table Zones modify column AlarmRGB int(10) unsigned default '0';
+--
+insert into Controls values ('','Neu-Fusion NCS370','Remote','zmcontrol-ncs370.pl',0,0,0,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,24,1,0,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,NULL,0,NULL,0,0);
 
 --
 -- Table structure for table `MonitorPresets`

@@ -223,7 +223,7 @@ sub zmShmGet( $ )
 		my $shm_id = shmget( $shm_key, $shm_size, 0 );
 		if ( !defined($shm_id) )
 		{
-    		Error( sprintf( "Can't get shared memory id '%x', %d: $!\n", $shm_key, $monitor->{Id}, $! ) );
+    		Error( sprintf( "Can't get shared memory id '%x', %d: $!\n", $shm_key, $monitor->{Id} ) );
 			return( undef );
 		}
 		$monitor->{ShmKey} = $shm_key;
@@ -306,7 +306,7 @@ sub zmShmRead( $$;$ )
 		my $data;
 		if ( !shmread( $shm_id, $data, $offset, $size ) )
 		{
-			Error( "Can't read '$field' from shared memory '$shm_key/$shm_id': $!" );
+			Error( sprintf( "Can't read '$field' from shared memory '%x/%d': $!", $shm_key, $shm_id ) );
 			return( undef );
 		}
 	
@@ -400,7 +400,7 @@ sub zmShmWrite( $$;$ )
 
 		if ( !shmwrite( $shm_id, $data, $offset, $size ) )
 		{
-			Error( "Can't write value '$value' to '$field' in shared memory '$shm_key/$shm_id': $!" );
+			Error( sprintf( "Can't write '$value' to '$field' in shared memory '%x/%d': $!", $shm_key, $shm_id ) );
 			return( undef );
 		}
 	}

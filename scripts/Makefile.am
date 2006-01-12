@@ -1,5 +1,11 @@
 AUTOMAKE_OPTIONS = gnu
 
+# Ack! Nasty hack to get modules Makefile regenerated if wiped with make clean
+all-local: ZoneMinder/Makefile
+
+ZoneMinder/Makefile: ZoneMinder/Makefile.PL
+	( cd ZoneMinder; perl Makefile.PL )
+
 bin_SCRIPTS = \
 	zmdc.pl \
 	zmaudit.pl \
@@ -19,6 +25,7 @@ bin_SCRIPTS = \
 	zmtrack.pl
 
 SUBDIRS = \
+	. \
     ZoneMinder
 
 EXTRA_DIST = \

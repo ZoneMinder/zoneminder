@@ -195,16 +195,16 @@ our @options =
 	{
 		name => "ZM_OPT_CAMBOZOLA",
 		default => "no",
-		description => "Is the (optional) cambozola java streaming client installed (recommended)",
-		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. It is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed.",
+		description => "Is the (optional) cambozola java streaming client installed",
+		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. If you use this browser it is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed.",
 		type => $types{boolean},
 		category => "tools",
 	},
 	{
 		name => "ZM_PATH_CAMBOZOLA",
 		default => "cambozola.jar",
-		description => "Web path to (optional) cambozola java streaming client (recommended)",
-		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. It is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed. Leave this as 'cambozola.jar' if cambozola is installed in the same directory as the ZoneMinder web client files.",
+		description => "Web path to (optional) cambozola java streaming client",
+		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. If you use this browser it is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed. Leave this as 'cambozola.jar' if cambozola is installed in the same directory as the ZoneMinder web client files.",
 		requires => [ { name=>"ZM_OPT_CAMBOZOLA", value=>"yes" } ],
 		type => $types{rel_path},
 		category => "tools",
@@ -423,7 +423,7 @@ our @options =
 		name => "ZM_OPT_TRIGGERS",
 		default => "no",
 		description => "Whether we want to interface external event triggers via socket or device files",
-		help => "ZoneMinder can interact with external systems which prompt or cancel alarms. This is done via the zmtrigger.pl script. This option indicates whether you want to use these external triggers, most people will say no here.",
+		help => "ZoneMinder can interact with external systems which prompt or cancel alarms. This is done via the zmtrigger.pl script. This option indicates whether you want to use these external triggers. Most people will say no here.",
 		type => $types{boolean},
 		category => "tools",
 	},
@@ -481,7 +481,7 @@ our @options =
 	{
 		name => "ZM_VIDEO_STREAM_METHOD",
 		default => "jpeg",
-		description => "Which method should be used to send video streams to your browser, choose 'mpeg' or 'jpeg'",
+		description => "Which method should be used to send video streams to your browser.",
 		help => "ZoneMinder can be configured to use either mpeg encoded video or a series or still jpeg images when sending video streams. This option defines which is used. If you choose mpeg you should ensure that you have the appropriate plugins available on your browser whereas choosing jpeg will work natively on Mozilla and related browsers and with a Java applet on Internet Explorer",
 		type => { db_type=>"string", hint=>"mpeg|jpeg", pattern=>qr|^([mj])|i, format=>q( $1 =~ /^m/ ? "mpeg" : "jpeg" ) },
 		category => "video",
@@ -489,7 +489,7 @@ our @options =
 	{
 		name => "ZM_VIDEO_TIMED_FRAMES",
 		default => "yes",
-		description => "Whether video frames are sent tagged with a timestamp for more realistic streaming",
+		description => "Tag video frames with a timestamp for more realistic streaming",
 		help => "When using streamed MPEG based video, either for live monitor streams or events, ZoneMinder can send the streams in two ways. If this option is selected then the timestamp for each frame, taken from it's capture time, is included in the stream. This means that where the frame rate varies, for instance around an alarm, the stream will still maintain it's 'real' timing. If this option is not selected then an approximate frame rate is calculated and that is used to schedule frames instead. This option should be selected unless you encounter problems with your preferred streaming method.",
 		requires => [ { name=>"ZM_VIDEO_STREAM_METHOD", value=>"mpeg" } ],
 		type => $types{boolean},
@@ -624,8 +624,8 @@ our @options =
 	{
 		name => "ZM_OPT_FAST_DELETE",
 		default => "yes",
-		description => "When deleting events should the client only delete the database records for speed",
-		help => "Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if your are trying to do a lot of events at once. It is recommended that you set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in listing, and leaves the zmaudit daemon to clear up the rest later.",
+		description => "Delete only event database records for speed",
+		help => "Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if your are trying to do a lot of events at once. It is recommended that you set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in the listing, and leaves the zmaudit daemon to clear up the rest later.",
 		type => $types{boolean},
 		category => "system",
 	},
@@ -664,7 +664,7 @@ our @options =
 	{
 		name => "ZM_OPT_UPLOAD",
 		default => "no",
-		description => "Should ZoneMinder try and upload events that match corresponding filters",
+		description => "Should ZoneMinder support uploading events from filters",
 		help => "In ZoneMinder you can create event filters that specify whether events that match certain criteria should be uploaded to a remote server for archiving. This option specifies whether this functionality should be available",
 		type => $types{boolean},
 		category => "ftp",
@@ -672,7 +672,7 @@ our @options =
 	{
 		name => "ZM_UPLOAD_ARCH_FORMAT",
 		default => "tar",
-		description => "What format the uploaded events should be created in. This can be 'tar' or 'zip'",
+		description => "What format the uploaded events should be created in.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		help => "Uploaded events may be stored in either .tar or .zip format, this option specifies which. Note that to use this you will need to have the Archive::Tar and/or Archive::Zip perl modules installed.",
 		type => { db_type=>"string", hint=>"tar|zip", pattern=>qr|^([tz])|i, format=>q( $1 =~ /^t/ ? "tar" : "zip" ) },
@@ -682,7 +682,7 @@ our @options =
 		name => "ZM_UPLOAD_ARCH_COMPRESS",
 		default => "no",
 		description => "Should archive files be compressed",
-		help => "When the archive files are created they can be compressed. However in general since the images are compressed already this saves only a minimal amount of space versus utilising more CPU in their creation. Only enable if you have CPU to waste and are limited in disk space on your remote server or bandwidth",
+		help => "When the archive files are created they can be compressed. However in general since the images are compressed already this saves only a minimal amount of space versus utilising more CPU in their creation. Only enable if you have CPU to waste and are limited in disk space on your remote server or bandwidth.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{boolean},
 		category => "ftp",
@@ -690,8 +690,8 @@ our @options =
 	{
 		name => "ZM_UPLOAD_ARCH_ANALYSE",
 		default => "no",
-		description => "Whether to include the analysis files in the archive, bigger but slower",
-		help => "When the archive files are created they can contain either just the captured frames or both the captured frames and for frames that caused an alarm the analysed image with the changed area highlighted. This option controls which to do. Only included analysed frames if you have a high bandwidth connection to the remote server or if you need help in figuring out what caused an alarm in the first place",
+		description => "Whether to include the analysis files in the archive",
+		help => "When the archive files are created they can contain either just the captured frames or both the captured frames and, for frames that caused an alarm, the analysed image with the changed area highlighted. This option controls files are included. Only include analysed frames if you have a high bandwidth connection to the remote server or if you need help in figuring out what caused an alarm in the first place as archives with these files in can be considerably larger.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{boolean},
 		category => "ftp",
@@ -894,7 +894,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WATCH_MAX_DELAY",
 		default => "5",
-		description => "The maximum delay since the last captured image we will allow before restarting the capture daemons",
+		description => "The maximum delay allowed since the last captured image",
 		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines the maximum delay we will allow since the last captured frame. The daemon will be restarted if it has not captured any images after this period though the actual restart may take slightly longer in conjunction with the check interval value above.",
 		type => $types{decimal},
 		category => "system",
@@ -903,7 +903,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 
 		name => "ZM_RUN_AUDIT",
 		default => "yes",
-		description => "Whether to run the zmaudit daemon to check data consistency",
+		description => "Whether to run zmaudit to check data consistency",
 		help => "The zmaudit daemon exists to check that the saved information in the database and on the filesystem match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronise the two data stores. This option controls whether zmaudit is run in the background and performs these checks and fixes continuously. This is recommended for most systems however if you have a very large number of events the process of scanning the database and filesystem may take a long time and impact performance. In this case you may prefer to not have zmaudit running unconditionally and schedule occasional checks at other, more convenient, times.",
 		type => $types{boolean},
 		category => "system",
@@ -912,7 +912,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 
 		name => "ZM_AUDIT_CHECK_INTERVAL",
 		default => "900",
-		description => "How often to check that the database and filesystem are consistent",
+		description => "How often to check database and filesystem consistency",
 		help => "The zmaudit daemon exists to check that the saved information in the database and on the filesystem match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronise the two data stores. The default check interval of 900 seconds (15 minutes) is fine for most systems however if you have a very large number of events the process of scanning the database and filesystem may take a long time and impact performance. In this case you may prefer to make this interval much larger to reduce the impact on your system. This option determines how often these checks are performed.",
 		type => $types{integer},
 		category => "system",
@@ -985,7 +985,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_FRAME_SOCKET_SIZE",
 		default => "0",
-		description => "Specify the size of the frame server socket buffer if non-standard",
+		description => "Specify the frame server socket buffer size if non-standard",
 		requires => [ { name => "ZM_OPT_FRAME_SERVER", value => "yes" } ],
 		help => "For large captured images it is possible for the writes from the analysis daemon to the frame server to fail as the amount to be written exceeds the default buffer size. While the images are then written by the analysis daemon so no data is lost, it defeats the object of the frame server daemon in the first place. You can use this option to indicate that a larger buffer size should be used. Note that you may have to change the existing maximum socket buffer size on your system via sysctl (or in /proc/sys/net/core/wmem_max) to allow this new size to be set. Alternatively you can change the default buffer size on your system in the same way in which case that will be used with no change necessary in this option",
 		type => $types{integer},
@@ -1034,8 +1034,8 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_SHM_KEY",
 		default => "0x7a6d2000",
-		description => "Shared memory key to use, only change if it clashes with another application",
-		help => "ZoneMinder uses shared memory to speed up communication between modules. To identify the right area to use shared memory keys are used. This option controls what the base key is, each monitor will have it's Id or'ed with this to get the actual key used.",
+		description => "Shared memory root key to use",
+		help => "ZoneMinder uses shared memory to speed up communication between modules. To identify the right area to use shared memory keys are used. This option controls what the base key is, each monitor will have it's Id or'ed with this to get the actual key used. You will not normally need to change this value unless it clashes with another instance of ZoneMinder on the same machine.",
 		type => $types{hexadecimal},
 		category => "system",
 	},
@@ -1142,7 +1142,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_H_REFRESH_STATUS",
 		default => "3",
-		description => "How often (in seconds) the status frame refreshes itself in the watch window",
+		description => "How often (in seconds) the status refreshes itself in the watch window",
 		help => "The monitor window is actually made from several frames. The one in the middle merely contains a monitor status which needs to refresh fairly frequently to give a true indication. This option determines that frequency.",
 		type => $types{integer},
 		category => "highband",
@@ -1207,7 +1207,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_H_EVENTS_VIEW",
 		default => "events",
-		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
+		description => "What the default view of multiple events should be.",
 		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
 		type => { db_type=>"string", hint=>"events|timeline", pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? "events" : "timeline" ) },
 		category => "highband",
@@ -1240,7 +1240,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_M_REFRESH_STATUS",
 		default => "5",
-		description => "How often (in seconds) the status frame refreshes itself in the watch window",
+		description => "How often (in seconds) the status refreshes itself in the watch window",
 		help => "The monitor window is actually made from several frames. The one in the middle merely contains a monitor status which needs to refresh fairly frequently to give a true indication. This option determines that frequency.",
 		type => $types{integer},
 		category => "medband",
@@ -1305,7 +1305,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_M_EVENTS_VIEW",
 		default => "events",
-		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
+		description => "What the default view of multiple events should be.",
 		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
 		type => { db_type=>"string", hint=>"events|timeline", pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? "events" : "timeline" ) },
 		category => "medband",
@@ -1338,7 +1338,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_L_REFRESH_STATUS",
 		default => "10",
-		description => "How often (in seconds) the status frame refreshes itself in the watch window",
+		description => "How often (in seconds) the status refreshes itself in the watch window",
 		help => "The monitor window is actually made from several frames. The one in the middle merely contains a monitor status which needs to refresh fairly frequently to give a true indication. This option determines that frequency.",
 		type => $types{integer},
 		category => "lowband",
@@ -1403,7 +1403,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_L_EVENTS_VIEW",
 		default => "events",
-		description => "What the default view of multiple events should be. This can be 'events' or 'timeline'",
+		description => "What the default view of multiple events should be.",
 		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
 		type => { db_type=>"string", hint=>"events|timeline", pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? "events" : "timeline" ) },
 		category => "lowband",

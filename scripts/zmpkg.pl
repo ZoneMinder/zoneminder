@@ -201,7 +201,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 		runCommand( "zmdc.pl start zmfilter.pl" );
 		if ( ZM_RUN_AUDIT )
 		{
-			runCommand( "zmdc.pl start zmaudit.pl" );
+			runCommand( "zmdc.pl start zmaudit.pl -c" );
 		}
 		if ( ZM_OPT_TRIGGERS )
 		{

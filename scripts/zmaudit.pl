@@ -68,7 +68,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $report = 0;
 my $interactive = 0;
-my $has_term = 0;
+my $continuous = 0;
 
 sub usage
 {
@@ -77,6 +77,7 @@ Usage: zmaudit.pl [-r,-report|-i,-interactive]
 Parameters are :-
 -r, --report                    - Just report don't actually do anything
 -i, --interactive               - Ask before applying any changes
+-c, --continuous                - Run continuously
 ");
 	exit( -1 );
 }
@@ -84,7 +85,7 @@ Parameters are :-
 sub aud_print
 {
 	my $string = shift;
-	if ( $has_term )
+	if ( !$continuous )
 	{
 		print( $string );
 	}
@@ -121,7 +122,7 @@ sub confirm
 	}
 	else
 	{
-		if ( $has_term )
+		if ( !$continuous )
 		{
 			print( ", $action\n" );
 		}
@@ -136,18 +137,16 @@ sub confirm
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
-if ( !GetOptions( 'report'=>\$report, 'interactive'=>\$interactive ) )
+if ( !GetOptions( 'report'=>\$report, 'interactive'=>\$interactive, 'continuous'=>\$continuous ) )
 {
 	usage();
 }
 
-if ( $report && $interactive )
+if ( ($report + $interactive + $continuous) > 1 )
 {
-	print( STDERR "Error, only one of --report and --interactive may be specified\n" );
+	print( STDERR "Error, only option may be specified\n" );
 	usage();
 }
-
-$has_term = ($report || $interactive || -t STDOUT);
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
@@ -324,5 +323,5 @@ do
 		unlink( split( ";", $untainted_old_files ) );
 	}
 
-	sleep( ZM_AUDIT_CHECK_INTERVAL ) if ( !$has_term );
-} while( !$has_term );
+	sleep( ZM_AUDIT_CHECK_INTERVAL ) if ( $continuous );
+} while( $continuous );

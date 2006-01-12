@@ -45,6 +45,7 @@ $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 parseSort();
 parseFilter();
@@ -61,6 +62,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 		break;
 	}
 }
+mysql_free_result( $result );
 
 $sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[preg_replace( '/^.*\./', '', $sort_column )]."'$filter_sql$mid_sql order by $sort_column $sort_order";
 $result = mysql_query( $sql );
@@ -74,6 +76,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 		break;
 	}
 }
+mysql_free_result( $result );
 
 if ( !isset( $rate ) )
 	$rate = reScale( RATE_SCALE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
@@ -86,6 +89,32 @@ $frames_per_line = reScale( ZM_WEB_FRAMES_PER_LINE, $scale );
 $frames_per_page = reScale( $frames_per_line * ZM_WEB_FRAME_LINES, $scale );
 
 $paged = $event['Frames'] > $frames_per_page;
+
+if ( $mode == "stream" )
+{
+	$sql = "select max(Delta)-min(Delta) as Duration from Frames where EventId = '$eid'";
+	$result = mysql_query( $sql );
+	if ( !$result )
+		die( mysql_error() );
+	$frame_data = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
+	$frame_data['RealDuration'] = ($frame_data['Duration']*RATE_SCALE)/$rate;
+
+	$panel_init_color = '#eeeeee';
+	$panel_done_color = '#aaaaaa';
+	$panel_border_color = '#666666';
+	$panel_divider_color = '#999999';
+
+	$panel_sections = 40;
+	$panel_section_width = (int)ceil($event['Width']/$panel_sections);
+	$panel_width = ($panel_sections*$panel_section_width-1);
+	//$panel_section_width = 10;
+	//$panel_sections = ((int)($event['Width']/$panel_section_width))+1;
+	//$panel_width = $panel_sections*$panel_section_width;
+	$panel_timeout = (int)((($frame_data['RealDuration']+1)*1000)/$panel_sections);
+}
+
+ob_start();
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
@@ -125,19 +154,59 @@ function newWindow(Url,Name,Width,Height)
 	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 <?php
-if ( $play && $next_event )
+if ( $mode == "stream" )
 {
-	$sql = "select max(Delta)-min(Delta) as Duration from Frames where EventId = '$eid'";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		die( mysql_error() );
-	$frame_data = mysql_fetch_assoc( $result );
+	if ( $play && $next_event )
+	{
 ?>
-var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1' );", <?= (((($frame_data[Duration]*1000)+1000)*RATE_SCALE)/$rate) ?> );
+var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1' );", <?= ($frame_data['RealDuration']+1)*1000 ?> );
+<?php
+	}
+	$start_section = 0;
+	if ( !empty($fid) )
+	{
+		$start_section = (int)floor(($fid * $panel_sections)/($event['Frames']+1));
+	}
+?>
+window.setTimeout( "incrementPanel( <?= $start_section ?> )", <?= 2000+$panel_timeout ?> );
+function incrementPanel( section )
+{
+	document.getElementById( 'PanelSection'+section ).style.backgroundColor = '<?= $panel_done_color ?>';
+	section++;
+	if ( section < <?= $panel_sections ?> )
+	{
+		window.setTimeout( "incrementPanel( "+section+" )", <?= $panel_timeout ?> );
+	}
+}
 <?php
 }
 ?>
 </script>
+<?php
+if ( $mode == "stream" )
+{
+?>
+<style type="text/css">
+<!--
+#Panel {
+	position: relative;
+	text-align: center;
+	border: 1px solid <?= $panel_border_color ?>;
+	height: 15px;
+	width: <?= $panel_width ?>px;
+	padding: 0px;
+	margin: auto;
+}
+
+#Panel div.Section {
+	position: absolute;
+	height: 15px;
+}
+-->
+</style>
+<?php
+}
+?>
 </head>
 <body scroll="auto">
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
@@ -318,12 +387,12 @@ if ( $mode == "stream" )
 <?php
 	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_REPLAY_FORMAT )
 	{
-		$stream_src = getStreamSrc( array( "mode=mpeg", "event=".$eid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_VIDEO_REPLAY_FORMAT ) );
+		$stream_src = getStreamSrc( array( "mode=mpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_VIDEO_REPLAY_FORMAT ) );
 		outputVideoStream( $stream_src, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), $event['Name'], ZM_VIDEO_REPLAY_FORMAT );
 	}
 	else
 	{
-		$stream_src = getStreamSrc( array( "mode=jpeg", "event=".$eid, "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
+		$stream_src = getStreamSrc( array( "mode=jpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
 		if ( canStreamNative() )
 		{
 			outputImageStream( $stream_src, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), $event['Name'] );
@@ -336,6 +405,46 @@ if ( $mode == "stream" )
 ?>
 </td></tr>
 <?php
+	if ( isNetscape() )
+	{
+?>
+<tr>
+<td><div id="Panel">
+<?php
+		for ( $i = 0; $i < $panel_sections; $i++ )
+		{
+			$start_frame = (int)round(($i * $event[Frames])/$panel_sections);
+			if ( !empty($fid) && $start_frame < $fid )
+			{
+				$section_color = $panel_done_color;
+			}
+			else
+			{
+				$section_color = $panel_init_color;
+			}
+			$section_width = $panel_section_width;
+			if ($i == 0 || $i == ($panel_sections-1) )
+				$section_width--;
+			if ( $i )
+			{
+				$section_offset = ($i * $panel_section_width)-1;
+				$divider = " border-left: solid 1px $panel_divider_color;";
+			}
+			else
+			{
+				$section_offset = 0;
+				$divider = "";
+			}
+			$title = "+".(int)round(($i * $frame_data['Duration'])/$panel_sections)."s";
+?>
+<div class="Section" id="PanelSection<?= $i ?>" title="<?= $title ?>" style="width: <?= $section_width ?>px; left: <?= $section_offset ?>px; background-color: <?= $section_color ?>;<?= $divider ?>" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $event['Id'] ?>&fid=<?= $start_frame ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>'"></div>
+<?php
+		}
+?>
+</div></td>
+</tr>
+<?php
+	}
 }
 else
 {
@@ -364,6 +473,7 @@ else
 			$alarm_frames[$row['FrameId']] = $row;
 		}
 	}
+	mysql_free_result( $result );
 ?>
 <tr><td><table border="0" cellpadding="0" cellspacing="2" align="center">
 <tr>
@@ -439,3 +549,6 @@ else
 </table>
 </body>
 </html>
+<?php
+ob_end_flush();
+?>

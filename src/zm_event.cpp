@@ -383,7 +383,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 	}
 }
 
-void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
+void Event::StreamEvent( int event_id, int frame_id, int scale, int rate, int maxfps )
 {
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
@@ -433,7 +433,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 
 	mysql_free_result( result );
 
-	snprintf( sql, sizeof(sql), "select FrameId, EventId, Delta from Frames where EventId = %d order by FrameId", event_id );
+	snprintf( sql, sizeof(sql), "select FrameId, EventId, Delta from Frames where EventId = %d and FrameId >= %d order by FrameId", event_id, frame_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -451,14 +451,14 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 
 	FILE *fdj = NULL;
 	int n_bytes = 0;
-	int id = 1, db_id, last_db_id = 0;
+	int id = frame_id, db_id, last_db_id = 0;
 	double base_delta, last_delta = 0.0L;
 	double db_delta, last_db_delta = 0.0L;
 	unsigned int delta_us =0;
 	static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
 	while( (id <= frames) && (dbrow = mysql_fetch_row( result )) )
 	{
-		if ( id == 1 )
+		if ( id == frame_id )
 		{
 			base_delta = atof(dbrow[2]);
 		}
@@ -528,7 +528,7 @@ void Event::StreamEvent( int event_id, int scale, int rate, int maxfps )
 
 #if HAVE_LIBAVCODEC     
 
-void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, int maxfps, int bitrate )
+void Event::StreamMpeg( int event_id, int frame_id, const char *format, int scale, int rate, int maxfps, int bitrate )
 {
 	static char sql[BUFSIZ];
 	static char eventpath[PATH_MAX];
@@ -578,7 +578,7 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 
 	mysql_free_result( result );
 
-	snprintf( sql, sizeof(sql), "select FrameId, EventId, Delta from Frames where EventId = %d order by FrameId", event_id );
+	snprintf( sql, sizeof(sql), "select FrameId, EventId, Delta from Frames where EventId = %d and FrameId >= %d order by FrameId", event_id, frame_id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -593,12 +593,12 @@ void Event::StreamMpeg( int event_id, const char *format, int scale, int rate, i
 	}
 
 	VideoStream *vid_stream = 0;
-	int id = 1, last_id = 0;
+	int id = frame_id, last_id = 0;
 	double base_delta, last_delta = 0.0L;
 	unsigned int delta_ms =0;
 	while( (id <= frames) && (dbrow = mysql_fetch_row( result )) )
 	{
-		if ( id == 1 )
+		if ( id == frame_id )
 		{
 			base_delta = last_delta = atof(dbrow[2]);
 		}

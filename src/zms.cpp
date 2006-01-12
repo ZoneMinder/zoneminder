@@ -52,6 +52,7 @@ int main( int argc, const char *argv[] )
 	char format[32] = "";
 	int id = 0;
 	int event = 0;
+	int frame = 1;
 	unsigned int scale = 100;
 	unsigned int rate = 100;
 	unsigned int maxfps = 10;
@@ -103,6 +104,8 @@ int main( int argc, const char *argv[] )
 				id = atoi( value );
 			else if ( !strcmp( name, "event" ) )
 				event = strtoull( value, (char **)NULL, 10 );
+			else if ( !strcmp( name, "frame" ) )
+				frame = strtoull( value, (char **)NULL, 10 );
 			else if ( !strcmp( name, "format" ) )
 				strncpy( format, value, sizeof(format) );
 			else if ( !strcmp( name, "scale" ) )
@@ -221,12 +224,12 @@ int main( int argc, const char *argv[] )
 	{
 		if ( mode == ZMS_JPEG )
 		{
-			Event::StreamEvent( event, scale, rate, maxfps );
+			Event::StreamEvent( event, frame, scale, rate, maxfps );
 		}
 		else
 		{
 #if HAVE_LIBAVCODEC
-			Event::StreamMpeg( event, format, scale, rate, maxfps, bitrate );
+			Event::StreamMpeg( event, frame, format, scale, rate, maxfps, bitrate );
 #else // HAVE_LIBAVCODEC
 			Error(( "MPEG streaming of '%s' attempted while disabled", query ));
 			fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );

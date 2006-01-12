@@ -156,19 +156,7 @@ function newWindow(Url,Name,Width,Height)
 <?php
 if ( $mode == "stream" )
 {
-	if ( $play && $next_event )
-	{
 ?>
-var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1' );", <?= ($frame_data['RealDuration']+1)*1000 ?> );
-<?php
-	}
-	$start_section = 0;
-	if ( !empty($fid) )
-	{
-		$start_section = (int)floor(($fid * $panel_sections)/($event['Frames']+1));
-	}
-?>
-window.setTimeout( "incrementPanel( <?= $start_section ?> )", <?= 2000+$panel_timeout ?> );
 function incrementPanel( section )
 {
 	document.getElementById( 'PanelSection'+section ).style.backgroundColor = '<?= $panel_done_color ?>';
@@ -413,7 +401,7 @@ if ( $mode == "stream" )
 <?php
 		for ( $i = 0; $i < $panel_sections; $i++ )
 		{
-			$start_frame = (int)round(($i * $event[Frames])/$panel_sections);
+			$start_frame = 1+(int)round(($i * $event[Frames])/$panel_sections);
 			if ( !empty($fid) && $start_frame < $fid )
 			{
 				$section_color = $panel_done_color;
@@ -547,6 +535,38 @@ else
 </tr></table></td>
 </tr>
 </table>
+<?php
+if ( $mode == "stream" )
+{
+?>
+<script type="text/javascript">
+<?php
+	if ( $play && $next_event )
+	{
+?>
+var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1' );", <?= ($frame_data['RealDuration']+1)*1000 ?> );
+<?php
+	}
+	$start_section = 0;
+	if ( !empty($fid) )
+	{
+		$start_section = (int)floor(($fid * $panel_sections)/($event['Frames']+1));
+	}
+?>
+window.setTimeout( "incrementPanel( <?= $start_section ?> )", <?= 2000+$panel_timeout ?> );
+function incrementPanel( section )
+{
+	document.getElementById( 'PanelSection'+section ).style.backgroundColor = '<?= $panel_done_color ?>';
+	section++;
+	if ( section < <?= $panel_sections ?> )
+	{
+		window.setTimeout( "incrementPanel( "+section+" )", <?= $panel_timeout ?> );
+	}
+}
+</script>
+<?php
+}
+?>
 </body>
 </html>
 <?php

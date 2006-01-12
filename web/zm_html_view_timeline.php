@@ -736,12 +736,13 @@ function getSlotLoadImageBehaviour( $slot )
 		$image_path = $anal_image;
 	}
 
+	$slot_frame = isset($slot['frame'])?$slot['frame']['FrameId']:0;
 	$monitor = &$monitors[$slot['event']['MonitorId']];
 	$annotation = '';
 	if ( $slot['event']['Archived'] )
 		$annotation .= "<em>";
 	$annotation .= $monitor['Name'].
-		"<br>".$slot['event']['Name'].(isset($slot['frame'])?("(".$slot['frame']['FrameId'].")"):"").
+		"<br>".$slot['event']['Name'].($slot_frame?("(".$slot_frame.")"):"").
 		"<br>".strftime( "%y/%m/%d %H:%M:%S", strtotime($slot['event']['StartTime']) ).
 		" - ".$slot['event']['Length']."s".
 		"<br>".htmlentities($slot['event']['Cause']).
@@ -749,7 +750,13 @@ function getSlotLoadImageBehaviour( $slot )
 		(!empty($slot['event']['Archived'])?("<br>".$zmSlangArchived):"");
 	if ( $slot['event']['Archived'] )
 		$annotation .= "</em>";
-	return( "\"loadEventImage( '".$image_path."', '".$annotation."', '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."', ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
+	if ( $slot_frame )
+	{
+		$slot_frame -= $monitor['PreEventCount'];
+		if ( $slot_frame < 1 )
+			$slot_frame = 1;
+	}
+	return( "\"loadEventImage( '".$image_path."', '".$annotation."', '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."&fid=".($slot_frame?$slot_frame:1)."', ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
 }
 
 function getSlotViewEventBehaviour( $slot )
@@ -757,7 +764,14 @@ function getSlotViewEventBehaviour( $slot )
 	global $monitors, $jws, $PHP_SELF;
 
 	$monitor = &$monitors[$slot['event']['MonitorId']];
-	return( "\"eventWindow( '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."', 'zmEvent', ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
+	$slot_frame = isset($slot['frame'])?$slot['frame']['FrameId']:0;
+	if ( $slot_frame )
+	{
+		$slot_frame -= $monitor['PreEventCount'];
+		if ( $slot_frame < 1 )
+			$slot_frame = 1;
+	}
+	return( "\"eventWindow( '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."&fid=".($slot_frame?$slot_frame:1)."', 'zmEvent', ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
 }
 
 ?>

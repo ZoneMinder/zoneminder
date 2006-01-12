@@ -35,7 +35,7 @@
 #define ZM_DBG_FAT			-3
 
 /* Define the level at which messages go through syslog */
-#define ZM_DBG_SYSLOG		0 
+#define ZM_DBG_SYSLOG		ZM_DBG_INF 
 
 #define zmDbgPrintf(level,params)	{\
 					if (level <= zm_dbg_level)\

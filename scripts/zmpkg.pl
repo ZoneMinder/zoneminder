@@ -199,8 +199,10 @@ if ( $command =~ /^(?:start|restart)$/ )
 
 		# This is now started unconditionally
 		runCommand( "zmdc.pl start zmfilter.pl" );
-		runCommand( "zmdc.pl start zmaudit.pl -d 900 -y" );
-
+		if ( ZM_RUN_AUDIT )
+		{
+			runCommand( "zmdc.pl start zmaudit.pl" );
+		}
 		if ( ZM_OPT_TRIGGERS )
 		{
 			runCommand( "zmdc.pl start zmtrigger.pl" );

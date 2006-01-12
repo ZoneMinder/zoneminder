@@ -1182,7 +1182,7 @@ if ( isset($action) )
 					if ( !$result )
 						die( mysql_error() );
 					$mid = mysql_insert_id();
-					$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = '".sprintf( "%d,%d %d,%d, %d,%d", 0, 0, $new_monitor['Width']-1, 0, $new_monitor['Width']-1, $new_monitor['Height']-1, 0, $new_monitor['Height']-1 )."', Area = ".($new_monitor['Width']*$new_monitor['Height']).", AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels = 3, MaxAlarmPixels = 75, FilterX = 3, FilterY = 3, MinFilterPixels = 3, MaxFilterPixels = 75, MinBlobPixels = 2, MinBlobs = 1";
+					$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = '".sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $new_monitor['Width']-1, 0, $new_monitor['Width']-1, $new_monitor['Height']-1, 0, $new_monitor['Height']-1 )."', Area = ".($new_monitor['Width']*$new_monitor['Height']).", AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels = 3, MaxAlarmPixels = 75, FilterX = 3, FilterY = 3, MinFilterPixels = 3, MaxFilterPixels = 75, MinBlobPixels = 2, MinBlobs = 1";
 					$result = mysql_query( $sql );
 					if ( !$result )
 						die( mysql_error() );

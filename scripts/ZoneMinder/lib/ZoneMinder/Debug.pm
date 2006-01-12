@@ -235,14 +235,21 @@ sub _dbgOpenLog
 	if ( $dbg_to_log )
 	{
 		$dbg_log_file = ZM_PATH_LOGS."/".$dbg_id.".log";
-		open( LOG, ">>".$dbg_log_file ) or Fatal( "Can't open log file '$dbg_log_file': $!" );
-		LOG->autoflush();
-
-		my $web_uid = (getpwnam( ZM_WEB_USER ))[2];
-		my $web_gid = (getgrnam( ZM_WEB_GROUP ))[2];
-		if ( $> != $web_uid )
+		if ( open( LOG, ">>".$dbg_log_file ) )
 		{
-			chown( $web_uid, $web_gid, $dbg_log_file ) or die( "Can't change permissions on log file: $!" )
+			LOG->autoflush();
+
+			my $web_uid = (getpwnam( ZM_WEB_USER ))[2];
+			my $web_gid = (getgrnam( ZM_WEB_GROUP ))[2];
+			if ( $> == 0 )
+			{
+				chown( $web_uid, $web_gid, $dbg_log_file ) or die( "Can't change permissions on log file: $!" )
+			}
+		}
+		else
+		{
+			warn( "Can't open log file '$dbg_log_file': $!" );
+			$dbg_to_log = 0;
 		}
 	}
 }

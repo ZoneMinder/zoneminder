@@ -1601,41 +1601,48 @@ sub saveConfigToDB
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
-ZoneMinder::Debug - Perl extension for blah blah blah
+ZoneMinder::ConfigAdmin - ZoneMinder Configuration Administration module
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Debug;
-  blah blah blah
+  use ZoneMinder::ConfigAdmin;
+  use ZoneMinder::ConfigAdmin qw(:all);
+
+  loadConfigFromDB();
+  saveConfigToDB();
 
 =head1 DESCRIPTION
 
-Stub documentation for ZoneMinder, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
+The ZoneMinder:ConfigAdmin module contains the master definition of the ZoneMinder configuration options as well as helper methods. This module is intended for specialist confguration management and would not normally be used by end users.
 
-Blah blah blah.
+The configuration held in this module, which was previously in zmconfig.pl, includes the name, default value, description, help text, type and category for each option, as well as a number of additional fields in a small number of cases.
+
+=head1 METHODS
+
+=over 4
+
+=item loadConfigFromDB ();
+
+Loads existing configuration from the database (if any) and merges it with the definitions held in this module. This results in the merging of any new configuration and the removal of any deprecated configuration while preserving the existing values of every else.
+
+=item saveConfigToDB ();
+
+Saves configuration held in memory to the database. The act of loading and saving configuration is a convenient way to ensure that the configuration held in the database corresponds with the most recent definitions and that all components are using the same set of configuration.
 
 =head2 EXPORT
 
 None by default.
-
+The :data tag will export the various configuration data structures
+The :functions tag will export the helper functions.
+The :all tag will export all above symbols.
 
 
 =head1 SEE ALSO
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+http://www.zoneminder.com
 
 =head1 AUTHOR
 

@@ -1015,8 +1015,8 @@ function parseSort( $save_to_session=false, $term_sep='&' )
 
 	if ( !isset($sort_field) )
 	{
-		$sort_field = ZM_EVENT_SORT_FIELD;
-		$sort_asc = (ZM_EVENT_SORT_ORDER == "asc");
+		$sort_field = ZM_WEB_EVENT_SORT_FIELD;
+		$sort_asc = (ZM_WEB_EVENT_SORT_ORDER == "asc");
 	}
 	switch( $sort_field )
 	{

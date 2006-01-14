@@ -373,10 +373,10 @@ if ( $mode == "stream" )
 ?>
 <tr><td align="center" valign="middle">
 <?php
-	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_REPLAY_FORMAT )
+	if ( ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_REPLAY_FORMAT )
 	{
-		$stream_src = getStreamSrc( array( "mode=mpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_VIDEO_REPLAY_FORMAT ) );
-		outputVideoStream( $stream_src, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), $event['Name'], ZM_VIDEO_REPLAY_FORMAT );
+		$stream_src = getStreamSrc( array( "mode=mpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT ) );
+		outputVideoStream( $stream_src, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), $event['Name'], ZM_MPEG_REPLAY_FORMAT );
 	}
 	else
 	{
@@ -550,7 +550,7 @@ var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?
 	$start_section = 0;
 	if ( !empty($fid) )
 	{
-		$start_section = (int)floor(($fid * $panel_sections)/($event['Frames']+1));
+		$start_section = (int)floor((($fid-1) * $panel_sections)/($event['Frames']+1));
 	}
 	if ( ZM_WEB_SHOW_PROGRESS )
 	{

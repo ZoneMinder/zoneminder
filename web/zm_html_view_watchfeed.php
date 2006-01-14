@@ -96,10 +96,10 @@ window.setTimeout( "window.location.reload(true)", <?= ZM_WEB_REFRESH_IMAGE*1000
 <?php
 if ( $mode == "stream" )
 {
-	if ( ZM_VIDEO_STREAM_METHOD == 'mpeg' && ZM_VIDEO_LIVE_FORMAT )
+	if ( ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 	{
-		$stream_src = getStreamSrc( array( "mode=mpeg", "monitor=".$mid, "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_VIDEO_LIVE_FORMAT ) );
-		outputVideoStream( $stream_src, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'], ZM_VIDEO_LIVE_FORMAT );
+		$stream_src = getStreamSrc( array( "mode=mpeg", "monitor=".$mid, "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+		outputVideoStream( $stream_src, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'], ZM_MPEG_LIVE_FORMAT );
 	}
 	else
 	{

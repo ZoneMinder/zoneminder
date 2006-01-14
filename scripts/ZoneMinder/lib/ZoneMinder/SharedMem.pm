@@ -122,6 +122,7 @@ our $shm_data =
 		"size"             => { "type"=>"int", "seq"=>$shm_seq++ },
 		"valid"            => { "type"=>"bool1", "seq"=>$shm_seq++ },
 		"active"           => { "type"=>"bool1", "seq"=>$shm_seq++ },
+		"signal"           => { "type"=>"bool1", "seq"=>$shm_seq++ },
 		"state"            => { "type"=>"enum", "seq"=>$shm_seq++},
 		"last_write_index" => { "type"=>"int", "seq"=>$shm_seq++ },
 		"last_read_index"  => { "type"=>"int", "seq"=>$shm_seq++ },
@@ -682,7 +683,8 @@ The data fields in shared memory that may be accessed are as follows. There are 
   shared_data         The general shared memory section
     size              The size, in bytes, of this section
     valid             Flag indicating whether this section has been initialised
-    active            Flag indicatinf whether this monitor is active
+    active            Flag indicating whether this monitor is active (enabled/disabled)
+    signal            Flag indicating whether this monitor is reciving a valid signal
     state             The current monitor state, see the STATE constants below
     last_write_index  The last index, in the image buffer, that an image has been saved to
     last_read_index   The last index, in the image buffer, that an image has been analysed from

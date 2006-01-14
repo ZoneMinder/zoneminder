@@ -344,7 +344,6 @@ sub runServer
 		}
 	}
 	Info( "X10 server exiting\n" );
-	close( LOG );
 	close( SERVER );
 	exit();
 }

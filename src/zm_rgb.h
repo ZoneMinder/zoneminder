@@ -22,9 +22,9 @@
 
 typedef unsigned int Rgb;	// RGB colour type
 
-#define RED(byte)	(*(byte))
-#define GREEN(byte)	(*(byte+1))
-#define BLUE(byte)	(*(byte+2))
+#define RED(ptr)	(*(ptr))
+#define GREEN(ptr)	(*(ptr+1))
+#define BLUE(ptr)	(*(ptr+2))
 
 #define WHITE	0xff
 #define WHITE_R	0xff

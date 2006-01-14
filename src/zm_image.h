@@ -85,6 +85,7 @@ protected:
 protected:
 	int	width;
 	int height;
+	int pixels;
 	int colours;
 	int size;
 	JSAMPLE *buffer;
@@ -105,6 +106,7 @@ public:
 			Initialise();
 		width = 0;
 		height = 0;
+		pixels = 0;
 		colours = 0;
 		size = 0;
 		our_buffer = true;
@@ -118,6 +120,7 @@ public:
 			Initialise();
 		width = 0;
 		height = 0;
+		pixels = 0;
 		colours = 0;
 		size = 0;
 		buffer = 0;
@@ -132,6 +135,7 @@ public:
 			Initialise();
 		width = p_width;
 		height = p_height;
+		pixels = width*height;
 		colours = p_colours;
 		size = width*height*colours;
 		if ( p_buffer )
@@ -154,6 +158,7 @@ public:
 			Initialise();
 		width = p_image.width;
 		height = p_image.height;
+		pixels = p_image.pixels;
 		colours = p_image.colours;
 		size = p_image.size;
 		buffer = new JSAMPLE[size];
@@ -173,8 +178,9 @@ public:
 
 	inline int Width() const { return( width ); }
 	inline int Height() const { return( height ); }
-	inline int Size() const { return( size ); }
+	inline int Pixels() const { return( pixels ); }
 	inline int Colours() const { return( colours ); }
+	inline int Size() const { return( size ); }
 	inline JSAMPLE *Buffer() const { return( buffer ); }
 	inline JSAMPLE *Buffer( unsigned int x, unsigned int y= 0 ) const { return( &buffer[colours*((y*width)+x)] ); }
 	
@@ -184,6 +190,7 @@ public:
 		{
 			width = p_width;
 			height = p_height;
+			pixels = width*height;
 			colours = p_colours;
 			int new_size = width*height*colours;
 			if ( size < new_size )
@@ -202,6 +209,7 @@ public:
 		{
 			width = image.width;
 			height = image.height;
+			pixels = width*height;
 			colours = image.colours;
 			int new_size = width*height*colours;
 			if ( size < new_size )

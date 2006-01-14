@@ -178,6 +178,7 @@ void Monitor::Setup()
 		shared_data->size = sizeof(SharedData);
 		shared_data->valid = true;
 		shared_data->active = enabled;
+		shared_data->signal = true;
 		shared_data->state = IDLE;
 		shared_data->last_write_index = image_buffer_count;
 		shared_data->last_read_index = image_buffer_count;
@@ -265,6 +266,7 @@ void Monitor::Setup()
 		}
 		ref_image.Assign( width, height, camera->Colours(), image_buffer[shared_data->last_write_index].image->Buffer() );
 	}
+	srand( time( 0 ) );
 }
 
 void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
@@ -656,6 +658,41 @@ void Monitor::DumpImage( Image *dump_image ) const
 	}
 }
 
+bool Monitor::CheckSignal( const Image *image )
+{
+	static bool static_undef = true;
+	static unsigned char red_val;
+	static unsigned char green_val;
+	static unsigned char blue_val;
+
+	if ( camera->IsLocal() && config.signal_check_points > 0 )
+	{
+		if ( static_undef )
+		{
+			static_undef = false;
+			red_val = RGB_RED_VAL(config.signal_check_colour);
+			green_val = RGB_GREEN_VAL(config.signal_check_colour);
+			blue_val = RGB_BLUE_VAL(config.signal_check_colour);
+		}
+
+		const unsigned char *buffer = image->Buffer();
+		int pixels = image->Pixels();
+		int colours = image->Colours();
+
+		for ( int i = 0; i < config.signal_check_points; i++ )
+		{
+			int index = (rand()*pixels)/RAND_MAX;
+			const unsigned char *ptr = buffer+(index*colours);
+			if ( (RED(ptr) != red_val) || (GREEN(ptr) != green_val) || (BLUE(ptr) != blue_val) )
+			{
+				return( true );
+			}
+		}
+		return( false );
+	}
+	return( true );
+}
+
 bool Monitor::Analyse()
 {
 	if ( shared_data->last_read_index == shared_data->last_write_index )
@@ -755,12 +792,24 @@ bool Monitor::Analyse()
 		auto_resume_time = 0;
 	}
 
+	static bool static_undef = true;
 	static struct timeval **timestamps;
 	static Image **images;
 	static int last_section_mod = 0;
+	static bool last_signal;
+
+	if ( static_undef )
+	{
+		static_undef = false;
+		timestamps = new struct timeval *[pre_event_count];
+		images = new Image *[pre_event_count];
+		last_signal = shared_data->signal;
+	}
 
 	if ( Enabled() )
 	{
+		bool signal = shared_data->signal;
+		bool signal_change = (signal != last_signal);
 		if ( trigger_data->trigger_state != TRIGGER_OFF )
 		{
 			unsigned int score = 0;
@@ -770,7 +819,25 @@ bool Monitor::Analyse()
 				const char *text = "";
 
 				//Info(( "St:%d, Sc:%d, Ca:%s, Te:%s", trigger_data->trigger_state, trigger_data->trigger_score, trigger_data->trigger_cause, trigger_data->trigger_text ));
-				if ( trigger_data->trigger_state == TRIGGER_ON )
+				if ( signal_change )
+				{
+					score = 100;
+					cause = "Signal";
+					if ( !signal )
+						text = "Signal Lost";
+					else
+						text = "Signal Regained";
+					Warning(( text ));
+					if ( event )
+					{
+						closeEvent();
+						shared_data->state = state = IDLE;
+						last_section_mod = 0;
+					}
+					shared_data->active = signal;
+					ref_image = *snap_image;
+				}
+				else if ( trigger_data->trigger_state == TRIGGER_ON )
 				{
 					score = trigger_data->trigger_score;
 					cause = trigger_data->trigger_cause;
@@ -781,7 +848,7 @@ bool Monitor::Analyse()
 					score = Compare( *snap_image );
 					cause = "Motion";
 				}
-				if ( function == RECORD || function == MOCORD )
+				if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) )
 				{
 					if ( event )
 					{
@@ -821,8 +888,6 @@ bool Monitor::Analyse()
 						if ( true )
 						{
 							int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
-							if ( !timestamps ) timestamps = new struct timeval *[pre_event_count];
-							if ( !images ) images = new Image *[pre_event_count];
 							for ( int i = 0; i < pre_event_count; i++ )
 							{
 								timestamps[i] = image_buffer[pre_index].timestamp;
@@ -842,7 +907,7 @@ bool Monitor::Analyse()
 						{
 							Info(( "%s: %03d - Gone into alarm state", name, image_count ));
 							shared_data->state = state = ALARM;
-							if ( function != MOCORD && state != ALERT )
+							if ( signal_change || (function != MOCORD && state != ALERT) )
 							{
 								int pre_index;
 
@@ -859,8 +924,6 @@ bool Monitor::Analyse()
 								}
 								shared_data->last_event = event->Id();
 
-								if ( !timestamps ) timestamps = new struct timeval *[pre_event_count];
-								if ( !images ) images = new Image *[pre_event_count];
 								for ( int i = 0; i < pre_event_count; i++ )
 								{
 									timestamps[i] = image_buffer[pre_index].timestamp;
@@ -900,7 +963,7 @@ bool Monitor::Analyse()
 						if ( image_count-last_alarm_count > post_event_count )
 						{
 							Info(( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() ));
-							if ( function != MOCORD )
+							if ( function != MOCORD || !strcmp( event->Cause(), "Signal" ) )
 							{
 								shared_data->state = state = IDLE;
 								delete event;
@@ -1020,10 +1083,11 @@ bool Monitor::Analyse()
 				}
 			}
 		}
-		if ( (function == MODECT || function == MOCORD) && (config.blend_alarmed_images || state != ALARM) )
+		if ( !signal_change && (function == MODECT || function == MOCORD) && (config.blend_alarmed_images || state != ALARM) )
 		{
 			ref_image.Blend( *snap_image, ref_blend_perc );
 		}
+		last_signal = signal;
 	}
 
 	shared_data->last_read_index = index%image_buffer_count;
@@ -1035,6 +1099,8 @@ bool Monitor::Analyse()
 void Monitor::Reload()
 {
 	Debug( 1, ( "Reloading monitor %s", name ));
+
+	closeEvent();
 
 	static char sql[BUFSIZ];
 	snprintf( sql, sizeof(sql), "select Function+0, Enabled, EventPrefix, LabelFormat, LabelX, LabelY, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Id = '%d'", id );
@@ -1056,6 +1122,7 @@ void Monitor::Reload()
 		Error(( "Bogus number of monitors, %d, returned. Can't reload", n_monitors )); 
 		return;
 	}
+
 	if ( MYSQL_ROW dbrow = mysql_fetch_row( result ) )
 	{
 		int index = 0;
@@ -1074,8 +1141,6 @@ void Monitor::Reload()
 		fps_report_interval = atoi(dbrow[index++]);
 		ref_blend_perc = atoi(dbrow[index++]);
 		track_motion = atoi(dbrow[index++]);
-
-		closeEvent();
 
 		shared_data->state = state = IDLE;
 		shared_data->alarm_x = shared_data->alarm_y = -1;
@@ -1806,7 +1871,7 @@ void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate
 					base_time = *(snap->timestamp);
 				}
 				DELTA_TIMEVAL( delta_time, *(snap->timestamp), base_time, DT_PREC_3 );
-				double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size(), config.video_timed_frames, delta_time.delta );
+				double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size(), config.mpeg_timed_frames, delta_time.delta );
 				//Info(( "FC:%d, DTD:%d, PTS:%lf", frame_count, delta_time.delta, pts ));
 			}
 			frame_count++;
@@ -1854,6 +1919,7 @@ int Monitor::PostCapture()
 		}
 		image_buffer[index].image->CopyBuffer( image );
 
+		shared_data->signal = CheckSignal( &image );
 		shared_data->last_write_index = index;
 		shared_data->last_image_time = image_buffer[index].timestamp->tv_sec;
 

@@ -69,6 +69,8 @@ protected:
 	Monitor			*monitor;
 	struct timeval	start_time;
 	struct timeval	end_time;
+	char			cause[32];
+	char			text[256];
 	int				frames;
 	int				alarm_frames;
 	unsigned int	tot_score;
@@ -93,10 +95,12 @@ public:
 	static bool ValidateFrameSocket( int );
 
 public:
-	Event( Monitor *p_monitor, struct timeval p_start_time, const char *event_cause, const char *event_text="" );
+	Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cause, const char *p_text="" );
 	~Event();
 
 	int Id() const { return( id ); }
+	const char *Cause() { return( cause ); }
+	const char *Text() { return( text ); }
 	int Frames() const { return( frames ); }
 	int AlarmFrames() const { return( alarm_frames ); }
 

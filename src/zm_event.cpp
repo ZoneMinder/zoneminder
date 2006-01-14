@@ -40,16 +40,19 @@ char Event::general_file_format[PATH_MAX];
 int Event::pre_alarm_count = 0;
 Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = { 0 };
 
-Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *event_cause, const char *event_text ) : monitor( p_monitor ), start_time( p_start_time )
+Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cause, const char *p_text ) : monitor( p_monitor ), start_time( p_start_time )
 {
 	if ( !initialised )
 		Initialise();
+
+	strncpy( cause, p_cause, sizeof(cause) );
+	strncpy( text, p_text, sizeof(text) );
 
 	static char sql[BUFSIZ];
 	static char start_time_str[32];
 
 	strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", localtime( &start_time.tv_sec ) );
-	snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', '%s', %d, %d, '%s', '%s' )", monitor->Id(), start_time_str, monitor->Width(), monitor->Height(), event_cause, event_text );
+	snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', '%s', %d, %d, '%s', '%s' )", monitor->Id(), start_time_str, monitor->Width(), monitor->Height(), cause, text );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert event: %s", mysql_error( &dbconn ) ));
@@ -635,7 +638,7 @@ void Event::StreamMpeg( int event_id, int frame_id, const char *format, int scal
 				delta_ms = (unsigned int)((last_delta+temp_delta)*1000);
 				if ( rate != ZM_RATE_SCALE )
 					delta_ms = (delta_ms*ZM_RATE_SCALE)/rate;
-				double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size(), config.video_timed_frames, delta_ms );
+				double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size(), config.mpeg_timed_frames, delta_ms );
 
 				Debug( 2, ( "I:%d, DI:%d, LI:%d, DD:%lf, LD:%lf, TD:%lf, DM:%d, PTS:%lf", id, db_id, last_id, db_delta, last_delta, temp_delta, delta_ms, pts ));
 

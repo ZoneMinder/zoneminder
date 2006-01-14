@@ -200,6 +200,7 @@ bool Image::ReadJpeg( const char *filename )
 	{
 		width = cinfo->image_width;
 		height = cinfo->image_height;
+		pixels = width*height;
 		colours = cinfo->num_components;
 		assert( colours == 1 || colours == 3 );
 		int new_size = width*height*colours;
@@ -317,6 +318,7 @@ bool Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
 	{
 		width = cinfo->image_width;
 		height = cinfo->image_height;
+		pixels = width*height;
 		colours = cinfo->num_components;
 		assert( colours == 1 || colours == 3 );
 		int new_size = width*height*colours;
@@ -433,6 +435,7 @@ bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
 	}
 	width = new_width;
 	height = new_height;
+	pixels = width*height;
 	size = new_size;
 	buffer = new_buffer;
 	our_buffer = true;
@@ -1458,6 +1461,7 @@ void Image::Scale( unsigned int factor )
 	}
 	width = new_width;
 	height = new_height;
+	pixels = width*height;
 	size = width*height*colours;
 	delete[] buffer;
 	buffer = new JSAMPLE[size];

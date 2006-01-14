@@ -135,6 +135,7 @@ protected:
 		int size;
 		bool valid;
 		bool active;
+		bool signal;
 		State state;
 		int last_write_index;
 		int last_read_index;
@@ -247,6 +248,7 @@ public:
 	int PostCapture();
 
 	unsigned int Compare( const Image &comp_image );
+	bool CheckSignal( const Image *image );
 	bool Analyse();
 	void DumpImage( Image *dump_image ) const;
 	void TimestampImage( Image *ts_image, time_t ts_time ) const;

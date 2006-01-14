@@ -178,6 +178,7 @@ $zmSlangControlType          = 'Tip control';
 $zmSlangCycle                = 'Ciclu';
 $zmSlangCycleWatch           = 'Vizual. ciclu';
 $zmSlangDay                  = 'Zi';
+$zmSlangDebug                = 'Debug';
 $zmSlangDefaultRate          = 'Default Rate';
 $zmSlangDefaultScale         = 'Default Scale';
 $zmSlangDelete               = '&#350;terge';

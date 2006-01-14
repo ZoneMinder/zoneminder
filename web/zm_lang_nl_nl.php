@@ -208,6 +208,7 @@ $zmSlangControlType          = 'Control Type';
 $zmSlangCycle                = 'Cycle';
 $zmSlangCycleWatch           = 'Observeer cyclus';
 $zmSlangDay                  = 'Dag';
+$zmSlangDebug                = 'Debug';
 $zmSlangDefaultRate          = 'Default Rate';
 $zmSlangDefaultScale         = 'Default Scale';
 $zmSlangDeleteAndNext        = 'verwijder &amp; volgende';

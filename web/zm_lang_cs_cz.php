@@ -207,6 +207,7 @@ $zmSlangControlType          = 'Typ øízení';
 $zmSlangCycle                = 'Cyklus';
 $zmSlangCycleWatch           = 'Cyklické prohlí¾ení';
 $zmSlangDay                  = 'Den';
+$zmSlangDebug                = 'Debug';
 $zmSlangDefaultRate          = 'Default Rate';
 $zmSlangDefaultScale         = 'Pøednastavená velikost';
 $zmSlangDeleteAndNext        = 'Smazat &amp; Dal¹í';

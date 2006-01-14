@@ -113,7 +113,7 @@ function closeWindow()
 <tr><td align="right" class="text"><?= $zmSlangMonitors ?></td><td align="left" class="text"><?= buildSelect( "new_user[Monitors]", $nve ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangSystem ?></td><td align="left" class="text"><?= buildSelect( "new_user[System]", $nve ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangMaxBandwidth ?></td><td align="left" class="text"><?= buildSelect( "new_user[MaxBandwidth]", $bandwidths ) ?></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangRestrictedCameraIds ?></td><td align="left" class="text"><input type="text" name="new_user['MonitorIds]" value="<?= $new_user['MonitorIds'] ?>" size="16" class="form"></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangRestrictedCameraIds ?></td><td align="left" class="text"><input type="text" name="new_user[MonitorIds]" value="<?= $new_user['MonitorIds'] ?>" size="16" class="form"></td></tr>
 <tr>
 <td align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"></td><td align="left"><input type="button" value="<?= $zmSlangClose ?>" class="form" onClick="closeWindow()"></td>
 </tr>

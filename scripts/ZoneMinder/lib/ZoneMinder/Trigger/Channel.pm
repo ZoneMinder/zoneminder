@@ -40,6 +40,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 
 use ZoneMinder::Debug qw(:all);
 
+use Carp;
+
 our $AUTOLOAD;
 
 sub new
@@ -64,15 +66,15 @@ sub clone
 sub open()
 {
 	my $self = shift;
-	my $class = ref($self) or die( "Can't get class for non object $self" );
-	die( "Abstract base class method called for object of class $class" );
+	my $class = ref($self) or croak( "Can't get class for non object $self" );
+	croak( "Abstract base class method called for object of class $class" );
 }
 
 sub close()
 {
 	my $self = shift;
-	my $class = ref($self) or die( "Can't get class for non object $self" );
-	die( "Abstract base class method called for object of class $class" );
+	my $class = ref($self) or croak( "Can't get class for non object $self" );
+	croak( "Abstract base class method called for object of class $class" );
 }
 
 sub getState()
@@ -100,12 +102,12 @@ sub DESTROY
 sub AUTOLOAD
 {
 	my $self = shift;
-	my $class = ref($self) || die( "$self not object" );
+	my $class = ref($self) || croak( "$self not object" );
 	my $name = $AUTOLOAD;
 	$name =~ s/.*://;
 	if ( !exists($self->{$name}) )
 	{
-		die( "Can't access $name member of object of class $class" );
+		croak( "Can't access $name member of object of class $class" );
 	}
 	return( $self->{$name} );
 }

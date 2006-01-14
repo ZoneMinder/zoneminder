@@ -59,6 +59,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use constant ZM_PID => "@ZM_PID@"; # Path to the ZoneMinder run pid file
 use constant ZM_CONFIG => "@ZM_CONFIG@"; # Path to the ZoneMinder config file
 
+use Carp;
+
 # Load the config from the database into the symbol table
 BEGIN
 {
@@ -70,7 +72,7 @@ BEGIN
 	{
 		$config_file = $local_config_file;
 	}
-	open( CONFIG, "<".$config_file ) or die( "Can't open config file '$config_file': $!" );
+	open( CONFIG, "<".$config_file ) or croak( "Can't open config file '$config_file': $!" );
 	foreach my $str ( <CONFIG> )
 	{
 		next if ( $str =~ /^\s*$/ );
@@ -85,8 +87,8 @@ BEGIN
 	use DBI;
 	my $dbh = DBI->connect( "DBI:mysql:database=".&ZM_DB_NAME.";host=".&ZM_DB_HOST, &ZM_DB_USER, &ZM_DB_PASS );
 	my $sql = "select * from Config";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
 	while( my $config = $sth->fetchrow_hashref() )
 	{
 		*{$config->{Name}} = sub { $config->{Value} };

@@ -42,6 +42,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # ==========================================================================
 
 use ZoneMinder::Debug qw(:all);
+
+use Carp;
 use Socket;
 
 sub new
@@ -60,10 +62,10 @@ sub open()
 	my $self = shift;
 	local *sfh;
 	my $saddr = sockaddr_in( $self->{port}, INADDR_ANY );
-	socket( *sfh, PF_INET, SOCK_STREAM, getprotobyname('tcp') ) or die( "Can't open socket: $!" );
+	socket( *sfh, PF_INET, SOCK_STREAM, getprotobyname('tcp') ) or croak( "Can't open socket: $!" );
 	setsockopt( *sfh, SOL_SOCKET, SO_REUSEADDR, 1 );
-	bind( *sfh, $saddr ) or die( "Can't bind: $!" );
-	listen( *sfh, SOMAXCONN ) or die( "Can't listen: $!" );
+	bind( *sfh, $saddr ) or croak( "Can't bind: $!" );
+	listen( *sfh, SOMAXCONN ) or croak( "Can't listen: $!" );
 	$self->{state} = 'open';
 	$self->{handle} = *sfh;
 }

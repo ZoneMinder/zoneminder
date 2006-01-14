@@ -59,6 +59,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Debug qw(:all);
 use ZoneMinder::Config qw(:all);
 
+use Carp;
+
 our $dbh = undef;
 
 sub zmDbConnect
@@ -121,8 +123,8 @@ sub zmDbGetMonitors
 			$sql .= " where Function = 'Nodect'";
 		}
 	}
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or croak( "Can't execute '$sql': ".$sth->errstr() );
 
 	my @monitors;
     while( my $monitor = $sth->fetchrow_hashref() )
@@ -142,8 +144,8 @@ sub zmDbGetMonitor( $ )
 	return( undef ) if ( !defined($id) );
 
 	my $sql = "select * from Monitors where Id = ?";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute( $id ) or die( "Can't execute '$sql': ".$sth->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute( $id ) or croak( "Can't execute '$sql': ".$sth->errstr() );
     my $monitor = $sth->fetchrow_hashref();
 
 	return( $monitor );

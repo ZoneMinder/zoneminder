@@ -66,6 +66,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 
 use ZoneMinder::Config qw(:all);
 
+use Carp;
+
 our $config_header = "src/zm_config_defines.h";
 our $config_sql = "db/zm_config.sql";
 
@@ -1543,8 +1545,8 @@ sub loadConfigFromDB
 		return( 0 );
 	}
 	my $sql = "select * from Config";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
 	my $option_count = 0;
 	while( my $config = $sth->fetchrow_hashref() )
 	{
@@ -1589,10 +1591,10 @@ sub saveConfigToDB
 		return( 0 );
 	}
 	my $sql = "delete from Config";
-	my $res = $dbh->do( $sql ) or die( "Can't do '$sql': ".$dbh->errstr() );
+	my $res = $dbh->do( $sql ) or croak( "Can't do '$sql': ".$dbh->errstr() );
 
 	$sql = "replace into Config set Id = ?, Name = ?, Value = ?, Type = ?, DefaultValue = ?, Hint = ?, Pattern = ?, Format = ?, Prompt = ?, Help = ?, Category = ?, Readonly = ?, Requires = ?";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
 	foreach my $option ( @options )
 	{
 		next if ( $option->{category} eq 'core' );
@@ -1617,7 +1619,7 @@ sub saveConfigToDB
 		else
 		{
 		}
-		my $res = $sth->execute( $option->{id}, $option->{name}, $option->{db_value}, $option->{db_type}, $option->{default}, $option->{db_hint}, $option->{db_pattern}, $option->{db_format}, $option->{description}, $option->{help}, $option->{category}, $option->{readonly}?1:0, $option->{db_requires} ) or die( "Can't execute: ".$sth->errstr() );
+		my $res = $sth->execute( $option->{id}, $option->{name}, $option->{db_value}, $option->{db_type}, $option->{default}, $option->{db_hint}, $option->{db_pattern}, $option->{db_format}, $option->{description}, $option->{help}, $option->{category}, $option->{readonly}?1:0, $option->{db_requires} ) or croak( "Can't execute: ".$sth->errstr() );
 	}
 	$sth->finish();
 	$dbh->disconnect();

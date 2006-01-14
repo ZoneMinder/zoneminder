@@ -243,7 +243,7 @@ sub _dbgOpenLog
 			my $web_gid = (getgrnam( ZM_WEB_GROUP ))[2];
 			if ( $> == 0 )
 			{
-				chown( $web_uid, $web_gid, $dbg_log_file ) or die( "Can't change permissions on log file: $!" )
+				chown( $web_uid, $web_gid, $dbg_log_file ) or croak( "Can't change permissions on log file: $!" )
 			}
 		}
 		else

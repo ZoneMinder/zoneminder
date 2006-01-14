@@ -40,6 +40,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 
 use ZoneMinder::Debug qw(:all);
 
+use Carp;
+
 our $AUTOLOAD;
 
 sub new
@@ -156,7 +158,7 @@ sub DESTROY
 sub AUTOLOAD
 {
 	my $self = shift;
-	my $class = ref($self) || die( "$self not object" );
+	my $class = ref($self) || croak( "$self not object" );
 	my $name = $AUTOLOAD;
 	$name =~ s/.*://;
 	if ( exists($self->{$name}) )
@@ -170,7 +172,7 @@ sub AUTOLOAD
 			return( $self->{channel}->{$name} );
 		}
 	}
-	die( "Can't access $name member of object of class $class" );
+	croak( "Can't access $name member of object of class $class" );
 }
 
 1;

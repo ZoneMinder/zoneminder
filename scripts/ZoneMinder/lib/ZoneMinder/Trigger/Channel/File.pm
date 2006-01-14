@@ -42,6 +42,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # ==========================================================================
 
 use ZoneMinder::Debug qw(:all);
+
+use Carp;
 use Fcntl;
 
 sub new
@@ -58,9 +60,9 @@ sub open()
 {
 	my $self = shift;
 	local *sfh;
-	#sysopen( *sfh, $conn->{path}, O_NONBLOCK|O_RDONLY ) or die( "Can't sysopen: $!" );
-	#open( *sfh, "<".$conn->{path} ) or die( "Can't open: $!" );
-	open( *sfh, "+<".$self->{path} ) or die( "Can't open: $!" );
+	#sysopen( *sfh, $conn->{path}, O_NONBLOCK|O_RDONLY ) or croak( "Can't sysopen: $!" );
+	#open( *sfh, "<".$conn->{path} ) or croak( "Can't open: $!" );
+	open( *sfh, "+<".$self->{path} ) or croak( "Can't open: $!" );
 	$self->{state} = 'open';
 	$self->{handle} = *sfh;
 }

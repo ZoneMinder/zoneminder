@@ -131,6 +131,10 @@ function getStreamSrc( $args )
 			$args[] = "user=".$_SESSION['username'];
 			$args[] = "pass=".$_SESSION['password'];
 		}
+		elseif ( ZM_AUTH_RELAY == "none" )
+		{
+			$args[] = "user=".$_SESSION['username'];
+		}
 	}
 	if ( ZM_RAND_STREAM )
 	{
@@ -379,6 +383,10 @@ function getZmuCommand( $args )
 		elseif ( ZM_AUTH_RELAY == "plain" )
 		{
 			$zmu_command .= " -U ".$_SESSION['username']." -P ".$_SESSION['password'];
+		}
+		elseif ( ZM_AUTH_RELAY == "none" )
+		{
+			$zmu_command .= " -U ".$_SESSION['username'];
 		}
 	}
 

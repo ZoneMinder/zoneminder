@@ -30,6 +30,7 @@ $result = mysql_query( $sql );
 if ( !$result )
 	echo mysql_error();
 $group = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: ".ZM_WEB_REFRESH_MAIN."; URL=$PHP_SELF" );
@@ -76,11 +77,13 @@ while( $row = mysql_fetch_assoc( $result ) )
 	if ( !$result2 )
 		echo mysql_error();
 	$row2 = mysql_fetch_assoc( $result2 );
+	mysql_free_result( $result2 );
 	$sql = "select count(if(Archived=0,1,NULL)) as EventCount, count(if(Archived,1,NULL)) as ArchEventCount, count(if(StartTime>'$db_now' - INTERVAL 1 HOUR && Archived = 0,1,NULL)) as HourEventCount, count(if(StartTime>'$db_now' - INTERVAL 1 DAY && Archived = 0,1,NULL)) as DayEventCount, count(if(StartTime>'$db_now' - INTERVAL 7 DAY && Archived = 0,1,NULL)) as WeekEventCount, count(if(StartTime>'$db_now' - INTERVAL 1 MONTH && Archived = 0,1,NULL)) as MonthEventCount from Events as E where MonitorId = '".$row['Id']."'";
 	$result3 = mysql_query( $sql );
 	if ( !$result3 )
 		echo mysql_error();
 	$row3 = mysql_fetch_assoc( $result3 );
+	mysql_free_result( $result3 );
 	if ( $row['Function'] != 'None' )
 	{
 		$cycle_count++;
@@ -92,6 +95,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 	$monitors[] = $row = array_merge( $row, $row2, $row3 );
 	$seq_id_list[] = $row['Id'];
 }
+mysql_free_result( $result );
 $last_id = 0;
 $seq_id_u_list = array();
 foreach ( $seq_id_list as $seq_id )

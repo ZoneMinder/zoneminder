@@ -352,24 +352,40 @@ int main( int argc, char *argv[] )
 
 	if ( config.opt_use_auth )
 	{
-		if ( !(username && password) && !auth )
+		if ( strcmp( config.auth_relay, "none" ) == 0 )
 		{
-			fprintf( stderr, "Error, username and password or auth string must be supplied\n" );
-			exit( -1 );
-		}
-
-		//if ( strcmp( config.auth_relay, "hashed" ) == 0 )
-		{
-			if ( auth )
+			if ( !username )
 			{
-				user = zmLoadAuthUser( auth, false );
+				fprintf( stderr, "Error, username must be supplied\n" );
+				exit( -1 );
+			}
+
+			if ( username )
+			{
+				user = zmLoadUser( username );
 			}
 		}
-		//else if ( strcmp( config.auth_relay, "plain" ) == 0 )
+		else
 		{
-			if ( username && password )
+			if ( !(username && password) && !auth )
 			{
-				user = zmLoadUser( username, password );
+				fprintf( stderr, "Error, username and password or auth string must be supplied\n" );
+				exit( -1 );
+			}
+
+			//if ( strcmp( config.auth_relay, "hashed" ) == 0 )
+			{
+				if ( auth )
+				{
+					user = zmLoadAuthUser( auth, false );
+				}
+			}
+			//else if ( strcmp( config.auth_relay, "plain" ) == 0 )
+			{
+				if ( username && password )
+				{
+					user = zmLoadUser( username, password );
+				}
 			}
 		}
 		if ( !user )

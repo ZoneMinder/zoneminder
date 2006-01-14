@@ -59,7 +59,7 @@ public:
 	bool canAccess( int monitor_id );
 };
 
-User *zmLoadUser( const char *username, const char *password );
+User *zmLoadUser( const char *username, const char *password=0 );
 User *zmLoadAuthUser( const char *auth, bool use_remote_addr );
 
 #endif // ZM_USER_H

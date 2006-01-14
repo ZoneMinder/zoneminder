@@ -206,7 +206,7 @@ my $video_file = "$video_name-".$file_parts[0]."-".$file_parts[1].".$format";
 
 if ( $overwrite || !-s $video_file )
 {
-	print( LOG "Creating video file $video_file for event $event->{Id}\n" );
+	Info( "Creating video file $video_file for event $event->{Id}\n" );
 
 	if ( ZM_OPT_MPEG eq "mpeg_encode" )
 	{
@@ -274,9 +274,9 @@ if ( $overwrite || !-s $video_file )
 		close( PARAMS );
 
 		my $command = ZM_PATH_MPEG_ENCODE." $param_file >mpeg_encode.log";
-		print( LOG $command."\n" );
+		Info( $command."\n" );
 		my $output = qx($command);
-		print( LOG $output."\n" );
+		Info( $output."\n" );
 	}
 	elsif ( ZM_OPT_MPEG eq "ffmpeg" )
 	{
@@ -313,9 +313,9 @@ if ( $overwrite || !-s $video_file )
 
 
 		my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s $video_size ".ZM_FFMPEG_OUTPUT_OPTIONS." '$video_file' > ffmpeg.log";
-		print( LOG $command."\n" );
+		Info( $command."\n" );
 		my $output = qx($command);
-		print( LOG $output."\n" );
+		Info( $output."\n" );
 	}
 	else
 	{
@@ -328,11 +328,11 @@ if ( $overwrite || !-s $video_file )
 		die( "Error: $status" );
 	}
 
-	print( LOG "Finished $video_file\n" );
+	Info( "Finished $video_file\n" );
 }
 else
 {
-	print( LOG "Video file $video_file already exists for event $event->{Id}\n" );
+	Info( "Video file $video_file already exists for event $event->{Id}\n" );
 }
 #print( STDOUT $event->{MonitorId}.'/'.$event->{Id}.'/'.$video_file."\n" );
 print( STDOUT $video_file."\n" );

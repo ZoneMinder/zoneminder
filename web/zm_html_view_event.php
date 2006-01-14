@@ -154,7 +154,7 @@ function newWindow(Url,Name,Width,Height)
 	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 <?php
-if ( $mode == "stream" )
+if ( $mode == "stream" && ZM_WEB_SHOW_PROGRESS )
 {
 ?>
 function incrementPanel( section )
@@ -402,7 +402,7 @@ if ( $mode == "stream" )
 		for ( $i = 0; $i < $panel_sections; $i++ )
 		{
 			$start_frame = 1+(int)round(($i * $event[Frames])/$panel_sections);
-			if ( !empty($fid) && $start_frame < $fid )
+			if ( ZM_WEB_SHOW_PROGRESS && !empty($fid) && $start_frame < $fid )
 			{
 				$section_color = $panel_done_color;
 			}
@@ -552,17 +552,13 @@ var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?
 	{
 		$start_section = (int)floor(($fid * $panel_sections)/($event['Frames']+1));
 	}
+	if ( ZM_WEB_SHOW_PROGRESS )
+	{
 ?>
 window.setTimeout( "incrementPanel( <?= $start_section ?> )", <?= 2000+$panel_timeout ?> );
-function incrementPanel( section )
-{
-	document.getElementById( 'PanelSection'+section ).style.backgroundColor = '<?= $panel_done_color ?>';
-	section++;
-	if ( section < <?= $panel_sections ?> )
-	{
-		window.setTimeout( "incrementPanel( "+section+" )", <?= $panel_timeout ?> );
+<?php
 	}
-}
+?>
 </script>
 <?php
 }

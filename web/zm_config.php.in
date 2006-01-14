@@ -76,6 +76,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_H_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		define( "ZM_WEB_USE_STREAMS", ZM_WEB_H_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_H_EVENTS_VIEW );			// What the default view of multiple events should be.
+		define( "ZM_WEB_SHOW_PROGRESS", ZM_WEB_H_SHOW_PROGRESS );		// Whether to show the progress of replay in event view.
 		break;
 	}
 	case "medium" : 
@@ -92,6 +93,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_M_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		define( "ZM_WEB_USE_STREAMS", ZM_WEB_M_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_M_EVENTS_VIEW );			// What the default view of multiple events should be.
+		define( "ZM_WEB_SHOW_PROGRESS", ZM_WEB_M_SHOW_PROGRESS );		// Whether to show the progress of replay in event view.
 		break;
 	}
 	case "low" :
@@ -108,6 +110,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_L_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		define( "ZM_WEB_USE_STREAMS", ZM_WEB_L_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_L_EVENTS_VIEW );			// What the default view of multiple events should be.
+		define( "ZM_WEB_SHOW_PROGRESS", ZM_WEB_L_SHOW_PROGRESS );		// Whether to show the progress of replay in event view.
 		break;
 	}
 	case "mobile" : // Very incomplete at present

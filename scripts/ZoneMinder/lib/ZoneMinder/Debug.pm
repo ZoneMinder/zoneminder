@@ -350,7 +350,7 @@ ZoneMinder::Debug - ZoneMinder Debug module
 
 The ZoneMinder:Debug module contains the common debug and error reporting routines used by the ZoneMinder scripts.
 
-To use debug in your scripts you need to include this module, and call zmDbgInit. Thereafter you can sprinkle Debug or Error cals etc throughout the code  safe in the knowledge that they will be reported to your error log, and possibly the syslogger, in a meaningful and consistent format.
+To use debug in your scripts you need to include this module, and call zmDbgInit. Thereafter you can sprinkle Debug or Error calls etc throughout the code safe in the knowledge that they will be reported to your error log, and possibly the syslogger, in a meaningful and consistent format.
 
 Debug is discussed in terms of levels where 1 and above (currently only 1 for scripts) is considered debug, 0 is considered as informational, -1 is a warning, -2 is an error and -3 is a fatal error or panic. Where levels are mentioned below as thresholds the value given and anything with a lower level (ie. more serious) will be included.
 

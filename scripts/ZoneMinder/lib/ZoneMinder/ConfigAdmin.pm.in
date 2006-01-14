@@ -1213,6 +1213,14 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		category => "highband",
 	},
 	{
+		name => "ZM_WEB_H_SHOW_PROGRESS",
+		default => "yes",
+		description => "Whether to show the progress of replay in event view.",
+		help => "When viewing events an event navigation panel and progress bar is shown below the event itself. This allows you to jump to specific points in the event, but can can also dynamically update to display the current progress of the event replay itself. This progress is calculated from the actual event duration and is not directly linked to the replay itself, so on limited bandwidth connections may be out of step with the replay. This option allows you to turn off the progress display, whilst still keeping the navigation aspect, where bandwidth prevents it functioning effectively.",
+		type => $types{boolean},
+		category => "highband",
+	},
+	{
 		name => "ZM_WEB_M_REFRESH_MAIN",
 		default => "300",
 		description => "How often (in seconds) the main console window should refresh itself",
@@ -1311,6 +1319,14 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		category => "medband",
 	},
 	{
+		name => "ZM_WEB_M_SHOW_PROGRESS",
+		default => "yes",
+		description => "Whether to show the progress of replay in event view.",
+		help => "When viewing events an event navigation panel and progress bar is shown below the event itself. This allows you to jump to specific points in the event, but can can also dynamically update to display the current progress of the event replay itself. This progress is calculated from the actual event duration and is not directly linked to the replay itself, so on limited bandwidth connections may be out of step with the replay. This option allows you to turn off the progress display, whilst still keeping the navigation aspect, where bandwidth prevents it functioning effectively.",
+		type => $types{boolean},
+		category => "medband",
+	},
+	{
 		name => "ZM_WEB_L_REFRESH_MAIN",
 		default => "300",
 		description => "How often (in seconds) the main console window should refresh itself",
@@ -1406,6 +1422,14 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "What the default view of multiple events should be.",
 		help => "Stored events can be viewed in either an events list format or in a timeline based one. This option sets the default view that will be used. Choosing one view here does not prevent the other view being used as it will always be selectable from whichever view is currently being used.",
 		type => { db_type=>"string", hint=>"events|timeline", pattern=>qr|^([lt])|i, format=>q( $1 =~ /^e/ ? "events" : "timeline" ) },
+		category => "lowband",
+	},
+	{
+		name => "ZM_WEB_L_SHOW_PROGRESS",
+		default => "no",
+		description => "Whether to show the progress of replay in event view.",
+		help => "When viewing events an event navigation panel and progress bar is shown below the event itself. This allows you to jump to specific points in the event, but can can also dynamically update to display the current progress of the event replay itself. This progress is calculated from the actual event duration and is not directly linked to the replay itself, so on limited bandwidth connections may be out of step with the replay. This option allows you to turn off the progress display, whilst still keeping the navigation aspect, where bandwidth prevents it functioning effectively.",
+		type => $types{boolean},
 		category => "lowband",
 	},
 	{

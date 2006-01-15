@@ -178,7 +178,7 @@ void Monitor::Setup()
 		shared_data->size = sizeof(SharedData);
 		shared_data->valid = true;
 		shared_data->active = enabled;
-		shared_data->signal = true;
+		shared_data->signal = false;
 		shared_data->state = IDLE;
 		shared_data->last_write_index = image_buffer_count;
 		shared_data->last_read_index = image_buffer_count;
@@ -826,7 +826,7 @@ bool Monitor::Analyse()
 					if ( !signal )
 						text = "Signal Lost";
 					else
-						text = "Signal Regained";
+						text = "Signal Reacquired";
 					Warning(( text ));
 					if ( event )
 					{
@@ -1953,6 +1953,7 @@ int Monitor::PostCapture()
 		}
 		return( 0 );
 	}
+	shared_data->signal = false;
 	return( -1 );
 }
 

@@ -201,7 +201,10 @@ int main( int argc, char *argv[] )
 	sigaddset( &block_set, SIGUSR2 );
 	if ( device[0] && n_monitors == 1 )
 	{
-		monitors[0]->PreCapture();
+		if ( monitors[0]->PreCapture() < 0 )
+		{
+			exit( -1 );
+		}
 	}
 
 	long *capture_delays = new long[n_monitors];
@@ -252,7 +255,10 @@ int main( int argc, char *argv[] )
 			}
 			if ( next_delays[i] <= min_delay || next_delays[i] <= 0 )
 			{
-				monitors[i]->PreCapture();
+				if ( monitors[i]->PreCapture() < 0 )
+				{
+					exit( -1 );
+				}
 				monitors[i]->PostCapture();
 
 				if ( next_delays[i] > 0 )

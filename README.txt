@@ -1,4 +1,4 @@
- 14/01/06        ZoneMinder v1.22.0 README                1
+  15/01/06        ZoneMinder 1.22.0 README                1
                                
                                
                                
@@ -2896,11 +2896,13 @@ compatibility checking including checks for required and
 optional perl modules.
 o    FEATURE - All libjpeg output is now trapped and handled
 as regular format debug.
-o    FEATURE - Some jpeg data is cached on first use instead
-of being regenerated each time. This should speed up jpeg
-handling to some degree.
-o    FEATURE - Event data can be optionally saved to COM
-fields in the jpeg file header.
+o     FEATURE - Some jpeg data is cached on first use  instead
+  of  being regenerated each time. This should speed  up  jpeg
+  handling to some degree.
+  
+o     FEATURE  -  Event data can be optionally  saved  to  COM
+  fields in the jpeg file header.
+  
 o    FEATURE - A system summary command has been added to zmu.
 o    FEATURE - Filtering can now be done on the event id
 field.
@@ -3019,6 +3021,8 @@ o    FIX - A problem with brackets in filters has been fixed.
 o    FIX - The console view previously could spawn instances
 of zmdc.pl when ZM wasn't running. This has now been
 corrected.
+o    FIX - The console view has been optimised to speed up
+display by up to a factor of ten.
 o    FIX - Scaling of stills event views has now been
 rationalised to not ever be smaller than 100% as the image is
 always sent at at least this resolution.

@@ -3567,6 +3567,11 @@ zmdc.pl when ZM wasn’t running. This has now been corrected.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX – The console view has been optimised to speed up display by
+up to a factor of ten.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FIX – Scaling of stills event views has now been rationalised to
 not ever be smaller than 100% as the image is always sent at at least this
 resolution.</p>
@@ -3770,9 +3775,9 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE – Monitors can now be defined with a default scale. This
 allows you to reduce the viewing size of a monitor that might be capturing at a
 large image size. This works in conjunction with the bandwidth specific scaling
-so if you bandwidth setting is 50% and your monitor is also 50% then at that
-bandwidth you will be viewing at 25%. This is to ensure that all monitors
-maintain relative scaling at all bandwidths.</p>
+so if you bandwidth setting is 50% and your monitor is also 50% then at that bandwidth
+you will be viewing at 25%. This is to ensure that all monitors maintain
+relative scaling at all bandwidths.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3784,10 +3789,10 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE – In the past there has been some confusion about what
 the ‘prev’ and ‘next’ options do when scrolling through events. They actually
 move to the previous or next event in the list from which the event was
-selected rather than in chronological order. Previously this order was
-descending date/time in most cases meaning that the previous event would be one
-that occurred after the current event. In order to prevent this confusion and
-allow users to define a default order which they prefer there are now two more
+selected rather than in chronological order. Previously this order was descending
+date/time in most cases meaning that the previous event would be one that
+occurred after the current event. In order to prevent this confusion and allow
+users to define a default order which they prefer there are now two more
 options in Options-&gt;System called ZM_EVENT_SORT_FIELD and
 ZM_EVENT_SORT_ORDER which allow you to choose your own sort type and order. The
 default for these is now date/time ascending meaning oldest first which is
@@ -4068,16 +4073,16 @@ fixed.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>LANGUAGE – A translation for the Romanian language has been added.
-To use it select ro_ro as the language.</p>
+</span></span>LANGUAGE – A translation for the Romanian language has been
+added. To use it select ro_ro as the language.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FIX – In previous versions the path to the zms daemon from web
 pages was in the form of a local web path without hostname. This has been
-reported as not working with certain media players where the hostname is not implied,
-as with browsers. The paths to the streaming server now always have the
-hostname prepended so that they are always a full valid url.</p>
+reported as not working with certain media players where the hostname is not
+implied, as with browsers. The paths to the streaming server now always have
+the hostname prepended so that they are always a full valid url.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4109,16 +4114,16 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 been included. This allows a specified number of frames to be discarded to
 alleviate problems with broken interlaced frames where multiple cameras share
 one bttv chip and produce a ‘comb edge’ like image. To invoke this option go to
-Options-&gt;Config and set ZM_CAPTURES_PER_FRAME to greater than 1, a value of
-3 is recommended in the first instance.</p>
+Options-&gt;Config and set ZM_CAPTURES_PER_FRAME to greater than 1, a value of 3
+is recommended in the first instance.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE – Several users have reported problems using the Perl
 Compatible Regular Expression (PCRE) library, mostly to do with it not being
-found or an incorrect version being used. This version allows an alternative
-method of parsing the output from network cameras that does not depend on
-libpcre at all. Which method is used is controlled by the option
+found or an incorrect version being used. This version allows an alternative method
+of parsing the output from network cameras that does not depend on libpcre at
+all. Which method is used is controlled by the option
 Options-&gt;Network-&gt;ZM_NETCAM_REGEXPS. If this option is on then the
 traditional regular expression based parsing is implemented, provided you have
 built with libpcre. If the option is off or libpcre is missing then a more
@@ -4308,8 +4313,7 @@ zm_config.php.z to work better with different browsers.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FIX – Defined empty array in html_view_states to prevent php
-warnings.</p>
+</span></span>FIX – Defined empty array in html_view_states to prevent php warnings.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4566,8 +4570,8 @@ glitches and flickers create large numbers of events, however no mechanism
 existed for limiting this. In this version you can now specify the minimum
 number of consecutive alarmed frames that are necessary to create an event.
 This is the ‘Alarm Frame Count’ described above. Note that if an alarm is in
-progress single isolated alarmed frames will still prolong it and the count only
-applies to the initial frames that would cause the event.</p>
+progress single isolated alarmed frames will still prolong it and the count
+only applies to the initial frames that would cause the event.</p>
 
 <h2><a name="_Toc125043068"><span style='text-decoration:none'>12.10.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.19.4</a></h2>
@@ -4576,8 +4580,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.19.4</a></h2
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FIX – The US English language file was recursively including
-itself rather than the UK English file as the base language.</p>
+</span></span>FIX – The US English language file was recursively including itself
+rather than the UK English file as the base language.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4721,9 +4725,9 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 blocks and disk percentage. These are event independent and return the amount
 of disk space used on the event partition in terms of disk blocks or percentage
 as returned by <i>df(1)</i>. Thus filters using these criteria will either
-match all events or none at all depending on the disk usage at the time of filter
-execution. The addition of these terms along with the ability to sort and limit
-filter results now means it is possible to create a filter that will
+match all events or none at all depending on the disk usage at the time of
+filter execution. The addition of these terms along with the ability to sort
+and limit filter results now means it is possible to create a filter that will
 automatically clear out old events once disk usage exceeds a certain value.
 Included in the database schemas for both new installations and upgrades is a
 sample filter called PurgeWhenFull which can be used to do this. It is
@@ -4747,8 +4751,8 @@ the form <i>&lt;MonitorName&gt;/&lt;EventId&gt;</i> so it it possible to
 determine both the monitor and event in question from the path. Note also that
 a flag is set per event as with other auto actions indicating that an
 executable script has been run on that event and so to exclude it from
-subsequent matches. However if you have several filters all with executable
-scripts you will find that only the first gets executed as the flag will be set
+subsequent matches. However if you have several filters all with executable scripts
+you will find that only the first gets executed as the flag will be set
 following successful completion and so no further scripts will be run on that
 event. Successful completion is indicated by the script returning a zero exit
 status, any other status indicates an error and the <i>executed </i>flag will
@@ -4825,9 +4829,9 @@ should be made.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>NOTE – None of the non-English language files in this release do
 not contain any translations of the new, or modified, tokens which have been
-introduced in this release. All new or modified tokens are included in the
-language files in English. There will shortly be a point release which includes
-these language updates assuming I can get translations of them in a reasonable
+introduced in this release. All new or modified tokens are included in the language
+files in English. There will shortly be a point release which includes these
+language updates assuming I can get translations of them in a reasonable
 timescale.</p>
 
 <h2><a name="_Toc125043071"><span style='text-decoration:none'>12.13.<span
@@ -4845,8 +4849,8 @@ already be installed.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Pcre Configure Changes. The configure script has been modified to
-look for the pcre.h header file in both /usr/include and /usr/include/pcre rather
-than just the latter as previously.</p>
+look for the pcre.h header file in both /usr/include and /usr/include/pcre
+rather than just the latter as previously.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4856,9 +4860,9 @@ none at all.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Event Image Numbering. An additional configuration option (ZM_EVENT_IMAGE_DIGITS)
-has been added to allow the user to define how many significant figures should
-be used to number individual event images.</p>
+</span></span>Event Image Numbering. An additional configuration option
+(ZM_EVENT_IMAGE_DIGITS) has been added to allow the user to define how many
+significant figures should be used to number individual event images.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4993,9 +4997,9 @@ for the ZM_FRAME_SOCKET_SIZE option.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Filter Name Duplication. Following recent changes to the filters
-table, several people reported that when saving filters they actually got a duplicate.
-This resulted in several copies of filters all with the same name as the
-constraint on unique filter names was not present. Well it is now so when
+table, several people reported that when saving filters they actually got a
+duplicate. This resulted in several copies of filters all with the same name as
+the constraint on unique filter names was not present. Well it is now so when
 upgrading your database all the filters will be renamed from ‘myfilter’ to
 ‘myfilter_&lt;id&gt;’ where ‘&lt;id&gt;’ is the id number in the database
 (which is then removed). In general the higher the id number the more recent
@@ -5070,8 +5074,8 @@ daemons spend most of their time doing, the improvement helps reduce the amount
 of CPU time by a significant degree. Application of these changes also
 highlighted a bug that had existed previously in YUV conversion which caused
 incorrect conversions for certain values. The other two main areas of
-optimisation are in the Blend and Delta image functions. Normally when doing
-motion detection the analysis daemons spend about 99% of their time comparing a
+optimisation are in the Blend and Delta image functions. Normally when doing motion
+detection the analysis daemons spend about 99% of their time comparing a
 captured image with the reference image and then blending the two ready for the
 next capture. Both of these functions have been significantly improved. In
 previous versions there were two options for calculating image deltas (or
@@ -5080,8 +5084,8 @@ the RGB one was faster however with the optimisations the Y channel calculation
 (which is more accurate) is now 15-20% faster and so has become the default
 though you can select either method by the ZM_Y_IMAGE_DELTAS configuration
 option. A new method of image blending has also been added which is up to 6
-times faster than the old one which is retained for compatibility and because
-in some unusual circumstances it may still be more accurate (see the
+times faster than the old one which is retained for compatibility and because in
+some unusual circumstances it may still be more accurate (see the
 ZM_FAST_IMAGE_BLENDS option for details). Altogether these optimisations (along
 with other common sense ones such as not maintaining a reference image in
 ‘Record’ mode where it is not used) significantly reduce the CPU load for most
@@ -5107,8 +5111,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Monitor Independent Filters. Previously filters were closely tied
 to a monitor and a new filter had to be created for each monitor. This has now
 changed and filters can now specify an associated monitor in the same was as
-other parameters. Links have now been added to the main console view to allow
-you to view lists of events from all monitors in one and saved filters can now
+other parameters. Links have now been added to the main console view to allow you
+to view lists of events from all monitors in one and saved filters can now
 affected as many or as few monitors as you wish. IMPORTANT: Please note that as
 part of the upgrade process all your filters will have any automatic actions
 unset. This is because the previous affinity to a particular monitor has now
@@ -5137,9 +5141,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Montage Sizing. The montage view allows you to view all of your
 active cameras in one window. However if your cameras are different sizes then
 this becomes very untidy. You can now constrain the image size of each monitor
-in this view to a fixed size with the ZM_WEB_MONTAGE_WIDTH and
-ZM_WEB_MONTAGE_HEIGHT configuration options. Monitor images will be enlarged or
-reduced as necessary.</p>
+in this view to a fixed size with the ZM_WEB_MONTAGE_WIDTH and ZM_WEB_MONTAGE_HEIGHT
+configuration options. Monitor images will be enlarged or reduced as necessary.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5163,17 +5166,17 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Timestamp Change. Traditionally ZoneMinder has time-stamped each
 image as it is captured. This ensures that all images have their capture time
 recorded immediately. However there are several side-effects which may be
-undesirable. Firstly the time and resource is spent time-stamping images that are
-not recorded and which are discarded, secondly the timestamp is included in any
-motion detection and may potentially trigger an alarm if detection parameters
-are very sensitive. The third effect is that as the timestamp is added to the
-image at it’s native resolution, if the image is scaled then the timestamp is
-scaled also. This may not be a problem for enlargement but if the image size is
-reduced then it may become illegible. This version now allows you, via the
-ZM_TIMESTAMP_ON_CAPTURE configuration option, to indicate whether the
-timestamps should be added on capture, as before, or only added when the image
-is viewed or recorded. Setting it to this later value allows timestamps to be
-added to scaled images. This is little performance impact either way.</p>
+undesirable. Firstly the time and resource is spent time-stamping images that
+are not recorded and which are discarded, secondly the timestamp is included in
+any motion detection and may potentially trigger an alarm if detection
+parameters are very sensitive. The third effect is that as the timestamp is
+added to the image at it’s native resolution, if the image is scaled then the
+timestamp is scaled also. This may not be a problem for enlargement but if the
+image size is reduced then it may become illegible. This version now allows
+you, via the ZM_TIMESTAMP_ON_CAPTURE configuration option, to indicate whether
+the timestamps should be added on capture, as before, or only added when the
+image is viewed or recorded. Setting it to this later value allows timestamps
+to be added to scaled images. This is little performance impact either way.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5287,10 +5290,10 @@ style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.17.1</a></h2
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Login Bug. A bug was identified whereby an unauthorised user
-could gain access to the console view of ZoneMinder. This was the only view
-available and no access to any camera views or configuration was possible. This
-bug is now fixed.</p>
+</span></span>Login Bug. A bug was identified whereby an unauthorised user could
+gain access to the console view of ZoneMinder. This was the only view available
+and no access to any camera views or configuration was possible. This bug is
+now fixed.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5430,8 +5433,8 @@ slower for more precision.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Scaleable/Variable MPEG generation. Generation of MPEG videos now
 also allows you to specify the scale relative to the original image and also
-the frame rate. Again, for long events captured in the perpetual recording modes
-this will allow a faster review of the period the event covers.</p>
+the frame rate. Again, for long events captured in the perpetual recording
+modes this will allow a faster review of the period the event covers.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5451,9 +5454,9 @@ processes.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Intelligent Module inclusion. zmfilter.pl now includes Archive::Zip
-and other modules on an as needed basis so won't complain about them being
-missing unless they have been explicitly configured to be used.</p>
+</span></span>Intelligent Module inclusion. zmfilter.pl now includes
+Archive::Zip and other modules on an as needed basis so won't complain about
+them being missing unless they have been explicitly configured to be used.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5581,11 +5584,11 @@ fixed.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Again in .14 a problem occurred for a new release whereby
-zmconfig wanted to know the database details and but also previously wanted to
-access the database before it had asked the questions. This has now been
-addressed though it does require that zmconfig is run twice initially, once to
-created the scripts and once to import the configuration into the database.</p>
+</span></span>Again in .14 a problem occurred for a new release whereby zmconfig
+wanted to know the database details and but also previously wanted to access
+the database before it had asked the questions. This has now been addressed
+though it does require that zmconfig is run twice initially, once to created
+the scripts and once to import the configuration into the database.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5616,10 +5619,10 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>A problem was found if using the zmf frame server and greyscale
 images. The option to colourise JPEG images is intended to be used to ensure
 that all JPEG files are written with a 24 bit colourspace as certain tools such
-as ffmpeg require this. However in the circumstances described above images written
-by zma directly were colourised whereas those written by  zmf weren’t. A change
-has been made whereby if set all greyscale JPEG images are colourised in all
-circumstances.</p>
+as ffmpeg require this. However in the circumstances described above images
+written by zma directly were colourised whereas those written by  zmf weren’t.
+A change has been made whereby if set all greyscale JPEG images are colourised
+in all circumstances.</p>
 
 <h2><a name="_Toc125043080"><span style='text-decoration:none'>12.22.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.14</a></h2>
@@ -5645,10 +5648,10 @@ configurable in zmconfig.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Y channel bug. When using colour cameras a motion detection problem
-was present if fast RGB images deltas (ZM_FAST_RGB_DIFFS) was off. This was an
-overflow error in the calculation of the Y channel and caused excessive image
-differences to be calculated. This has now been fixed.</p>
+</span></span>Y channel bug. When using colour cameras a motion detection
+problem was present if fast RGB images deltas (ZM_FAST_RGB_DIFFS) was off. This
+was an overflow error in the calculation of the Y channel and caused excessive
+image differences to be calculated. This has now been fixed.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5666,8 +5669,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Removed use of ‘zmu’ binary from zmwatch.pl and zmx10.pl.
 Previously these scripts had used zmu to determine last image time and alarm
 state information. The use of this script was a bit overkill and the
-introduction of user permissions complicated matter slightly so these scripts now
-access the shared memory directly.</p>
+introduction of user permissions complicated matter slightly so these scripts
+now access the shared memory directly.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5750,7 +5753,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 themselves rather than a refresh header. Since refresh headers were interrupted
 if a link of the page was linked there were previously various forced refreshes
 from child windows to restart the refresh process. By using JS refresh timers
-which are not interrupted these extraneous refreshes have been mostly eliminated.</p>
+which are not interrupted these extraneous refreshes have been mostly
+eliminated.</p>
 
 <h2><a name="_Toc125043082"><span style='text-decoration:none'>12.24.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.12</a></h2>
@@ -5889,9 +5893,9 @@ format used within. </p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Added preclusive zones – Added a new zone type, the preclusive
-zone. For full details see the relevant section above but in brief this is a
-zone type that if alarmed will actually prevent an alarm. This completes the
+</span></span>Added preclusive zones – Added a new zone type, the preclusive zone.
+For full details see the relevant section above but in brief this is a zone
+type that if alarmed will actually prevent an alarm. This completes the
 pantheon of zone types I think.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
@@ -5948,8 +5952,8 @@ colourspace. This saved a small amount of space but meant that mpeg_encode had
 to do a conversion to encode them, and ffmpeg just fell in a heap. Now you can
 optionally opt to have greyscale images saved as full 24 bit colourspace images
 (they still look the same) at the price of a small penalty in CPU and disk but
-allowing you to easily and quickly create MPEG files. This option is one by
-default but can be switched off if you do not require any MPEG encoding.</p>
+allowing you to easily and quickly create MPEG files. This option is one by default
+but can be switched off if you do not require any MPEG encoding.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6331,8 +6335,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Added Fast delete to PHP files. This allows the web interface to
-only delete the event entries themselves for speed and then have the zmaudit script
-periodically tidy up the rest.</p>
+only delete the event entries themselves for speed and then have the zmaudit
+script periodically tidy up the rest.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6374,8 +6378,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Split out the PHP files into a bunch with specific functions
-rather than one monolithic one.</p>
+</span></span>Split out the PHP files into a bunch with specific functions rather
+than one monolithic one.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;

@@ -31,6 +31,7 @@ $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 $cmds = getControlCommands( $monitor );
 

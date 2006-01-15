@@ -27,11 +27,13 @@ $result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from E
 if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 $result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '".$event['MaxScore']."'" );
 if ( !$result )
 	die( mysql_error() );
 $frame = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 $fid = $frame['FrameId'];
 
 $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;

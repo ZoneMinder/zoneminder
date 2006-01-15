@@ -26,6 +26,7 @@ $result = mysql_query( $sql );
 if ( !$result )
 	echo mysql_error();
 $group = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 $db_now = strftime( "%Y-%m-%d %H:%M:%S" );
 $sql = "select M.*, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if((to_days(E.StartTime)=to_days('$db_now')) && E.Archived = 0,1,NULL)) as TodayEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
@@ -53,6 +54,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 	if ( !$result2 )
 		echo mysql_error();
 	$row2 = mysql_fetch_assoc( $result2 );
+	mysql_free_result( $result2 );
 	$monitors[] = array_merge( $row, $row2 );
 	if ( $row['Function'] != 'None' )
 	{
@@ -61,6 +63,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 		if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
 	}
 }
+mysql_free_result( $result );
 ?>
 <html>
 <head>

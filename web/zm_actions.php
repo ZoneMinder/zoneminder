@@ -226,6 +226,7 @@ if ( isset($action) )
 			if ( !$result )
 				die( mysql_error() );
 			$monitor = mysql_fetch_assoc( $result );
+			mysql_free_result( $result );
 
 			$ctrl_command = $monitor['Command'];
 			if ( !preg_match( '/^\//', $ctrl_command ) )
@@ -934,6 +935,7 @@ if ( isset($action) )
 				if ( !$result )
 					die( mysql_error() );
 				$control = mysql_fetch_assoc( $result );
+				mysql_free_result( $result );
 			}
 			else
 			{
@@ -996,6 +998,7 @@ if ( isset($action) )
 			if ( !$result )
 				die( mysql_error() );
 			$monitor = mysql_fetch_assoc( $result );
+			mysql_free_result( $result );
 
 			$old_function = $monitor['Function'];
 			$old_enabled = $monitor['Enabled'];
@@ -1020,6 +1023,7 @@ if ( isset($action) )
 			if ( !$result )
 				die( mysql_error() );
 			$monitor = mysql_fetch_assoc( $result );
+			mysql_free_result( $result );
 
 			if ( $zid > 0 )
 			{
@@ -1027,6 +1031,7 @@ if ( isset($action) )
 				if ( !$result )
 					die( mysql_error() );
 				$zone = mysql_fetch_assoc( $result );
+				mysql_free_result( $result );
 			}
 			else
 			{
@@ -1082,6 +1087,7 @@ if ( isset($action) )
 				if ( !$result )
 					die( mysql_error() );
 				$monitor = mysql_fetch_assoc( $result );
+				mysql_free_result( $result );
 
 				if ( ZM_OPT_X10 )
 				{
@@ -1092,6 +1098,7 @@ if ( isset($action) )
 					{
 						$x10_monitor = array();
 					}
+					mysql_free_result( $result );
 				}
 			}
 			else
@@ -1139,6 +1146,7 @@ if ( isset($action) )
 						{
 							$zones[] = $zone;
 						}
+						mysql_free_result( $result );
 						foreach ( $zones as $zone )
 						{
 							$new_zone = $zone;
@@ -1175,6 +1183,7 @@ if ( isset($action) )
 					if ( !$result )
 						die( mysql_error() );
 					$row = mysql_fetch_assoc( $result );
+					mysql_free_result( $result );
 					$changes[] = "Sequence = ".($row['MaxSequence']+1);
 
 					$sql = "insert into Monitors set ".implode( ", ", $changes );
@@ -1235,6 +1244,7 @@ if ( isset($action) )
 				if ( !$result )
 					die( mysql_error() );
 				$monitor = mysql_fetch_assoc( $result );
+				mysql_free_result( $result );
 				fixDevices();
 				if ( $cookies ) session_write_close();
 				if ( daemonCheck() )
@@ -1252,10 +1262,12 @@ if ( isset($action) )
 			if ( !$result )
 				die( mysql_error() );
 			$monitor = mysql_fetch_assoc( $result );
+			mysql_free_result( $result );
 			$result = mysql_query( "select * from Monitors where Id = '$smid'" );
 			if ( !$result )
 				die( mysql_error() );
 			$smonitor = mysql_fetch_assoc( $result );
+			mysql_free_result( $result );
 
 			$sql = "update Monitors set Sequence = '".$smonitor['Sequence']."' where Id = '".$monitor['Id']."'";
 			$result = mysql_query( $sql );
@@ -1303,6 +1315,7 @@ if ( isset($action) )
 					{
 						continue;
 					}
+					mysql_free_result( $result );
 
 					$sql = "select Id from Events where MonitorId = '$mark_mid'";
 					$result = mysql_query( $sql );
@@ -1314,6 +1327,7 @@ if ( isset($action) )
 					{
 						$mark_eids[] = $row['Id'];
 					}
+					mysql_free_result( $result );
 					foreach( $mark_eids as $mark_eid )
 					{
 						deleteEvent( $mark_eid );
@@ -1511,6 +1525,7 @@ if ( isset($action) )
 				if ( !$result )
 					die( mysql_error() );
 				$db_user = mysql_fetch_assoc( $result );
+				mysql_free_result( $result );
 			}
 			else
 			{
@@ -1566,6 +1581,7 @@ if ( isset($action) )
 				{
 					$definitions[] = $monitor['Id'].":".$monitor['Function'].":".$monitor['Enabled'];
 				}
+				mysql_free_result( $result );
 				$definition = join( ',', $definitions );
 				if ( $new_state )
 					$run_state = $new_state;

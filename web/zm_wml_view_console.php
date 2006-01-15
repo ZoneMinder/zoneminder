@@ -51,6 +51,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 		if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
 	}
 }
+mysql_free_result( $result );
 ?>
 <wml>
 <card id="zmConsole" title="<?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangConsole ?>" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>">

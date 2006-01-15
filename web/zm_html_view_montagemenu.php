@@ -37,6 +37,7 @@ if ( $mid )
 	if ( !$result )
 		die( mysql_error() );
 	$monitor = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 }
 elseif ( ZM_OPT_CONTROL )
 {
@@ -47,6 +48,7 @@ elseif ( ZM_OPT_CONTROL )
 		if ( !$result )
 			die( mysql_error() );
 		$row = mysql_fetch_assoc( $result );
+		mysql_free_result( $result );
 		$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
 	}
 	$sql = "select * from Monitors where Function != 'None' and Controllable = 1 $group_sql order by Sequence";
@@ -65,6 +67,7 @@ elseif ( ZM_OPT_CONTROL )
 			$control_mid = $row['Id'];
 		}
 	}
+	mysql_free_result( $result );
 }
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

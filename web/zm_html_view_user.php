@@ -32,6 +32,7 @@ if ( !($db_user = mysql_fetch_assoc( $result )) )
 	$db_user['Username'] = $zmSlangNewUser;
 	$db_user['Enabled'] = 1;
 }
+mysql_free_result( $result );
 
 $new_user = $db_user;
 

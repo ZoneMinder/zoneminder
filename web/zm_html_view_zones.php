@@ -31,6 +31,7 @@ $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 $result = mysql_query( "select * from Zones where MonitorId = '$mid' order by Area desc" );
 if ( !$result )
@@ -44,6 +45,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 		$zones[] = $row;
 	}
 }
+mysql_free_result( $result );
 
 $image = $monitor['Name']."-Zones.jpg";
 

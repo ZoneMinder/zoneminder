@@ -30,6 +30,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 {
 	$stats[] = $row;
 }
+mysql_free_result( $result );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

@@ -23,6 +23,7 @@ $result = mysql_query( $sql );
 if ( !$result )
     echo mysql_error();
 $group = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 $result = mysql_query( "select * from Monitors where Function != 'None' order by Sequence" );
 $monitors = array();
@@ -43,6 +44,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 	if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
 	$monitors[] = $row;
 }
+mysql_free_result( $result );
 
 ?>
 <html>

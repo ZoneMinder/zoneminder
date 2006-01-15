@@ -22,6 +22,7 @@ $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 $browser = array();
 $browser['Width'] = 100;
 $browser['Height'] = 80;

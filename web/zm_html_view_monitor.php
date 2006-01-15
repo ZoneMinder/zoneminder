@@ -48,12 +48,14 @@ if ( !empty($mid) )
 	if ( !$result )
 		die( mysql_error() );
 	$monitor = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 	if ( ZM_OPT_X10 )
 	{
 		$result = mysql_query( "select * from TriggersX10 where MonitorId = '$mid'" );
 		if ( !$result )
 			die( mysql_error() );
 		$x10_monitor = mysql_fetch_assoc( $result );
+		mysql_free_result( $result );
 	}
 }
 else
@@ -112,6 +114,7 @@ if ( !empty($preset) )
 	if ( !$result )
 		die( mysql_error() );
 	$preset = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 	foreach ( $preset as $name=>$value )
 	{
 		if ( isset($value) )
@@ -220,6 +223,7 @@ function loadLocations( Form )
 		returnLocationSelect.options.length = option_count;
 <?php
 	}
+	mysql_free_result( $result );
 ?>
 	}
 	else

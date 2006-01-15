@@ -32,6 +32,7 @@ while( $state = mysql_fetch_assoc( $result ) )
 {
 	$states[] = $state;
 }
+mysql_free_result( $result );
 
 ?>
 <html>

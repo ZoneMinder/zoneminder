@@ -27,6 +27,7 @@ $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 $zmu_command = getZmuCommand( " -m $mid -B -C -H -O" );
 $zmu_output = exec( escapeshellcmd( $zmu_command ) );

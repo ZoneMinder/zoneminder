@@ -113,6 +113,7 @@ else
 	if ( !($result = mysql_query( $count_sql )) )
 		die( mysql_error() );
 	$row = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 	$n_events = $row['EventCount'];
 	if ( !empty($limit) && $n_events > $limit )
 	{
@@ -138,6 +139,7 @@ else
 		else
 			$unarchived = true;
 	}
+	mysql_free_result( $result );
 ?>
 function toggleCheck(element,name)
 {

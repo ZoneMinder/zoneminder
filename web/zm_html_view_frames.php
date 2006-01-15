@@ -28,6 +28,7 @@ $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 $sql = "select *, unix_timestamp( TimeStamp ) as UnixTimeStamp from Frames where EventID = '$eid' order by FrameId";
 $result = mysql_query( $sql );
@@ -37,6 +38,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 {
 	$frames[] = $row;
 }
+mysql_free_result( $result );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

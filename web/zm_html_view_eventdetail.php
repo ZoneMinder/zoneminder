@@ -30,6 +30,7 @@ if ( $eid )
 	if ( !$result )
 		die( mysql_error() );
 	$new_event = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 }
 elseif ( $eids )
 {
@@ -58,6 +59,7 @@ elseif ( $eids )
 				$new_event['Notes'] = "";
 		}
 	}
+	mysql_free_result( $result );
 }
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

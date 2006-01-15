@@ -44,6 +44,7 @@ if ( !empty($cid) )
 	if ( !$result )
 		die( mysql_error() );
 	$control = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 }
 else
 {

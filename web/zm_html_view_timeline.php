@@ -106,6 +106,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 	//}
 	$monitors[$row['Id']] = $row;
 }
+mysql_free_result( $result );
 
 $range_sql = "select min(E.StartTime) as MinTime, max(E.EndTime) as MaxTime from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(E.StartTime) and not isnull(E.EndTime)";
 $events_sql = "select E.Id,E.Name,E.StartTime,E.EndTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(StartTime)";
@@ -198,6 +199,7 @@ else
 		if ( !($result = mysql_query( $range_sql )) )
 			die( mysql_error() );
 		$row = mysql_fetch_assoc( $result );
+		mysql_free_result( $result );
 
 		if ( !isset($min_time) )
 			$min_time = $row['MinTime'];
@@ -400,9 +402,11 @@ while( $event = mysql_fetch_assoc( $event_result ) )
 					$chart['data']['y']['hi'] = $frame['Score'];
 				}
 			}
+			mysql_free_result( $frame_result );
 		}
 	}
 }
+mysql_free_result( $event_result );
 
 ksort($monitor_ids,SORT_NUMERIC);
 ksort($mon_event_slots,SORT_NUMERIC);
@@ -426,6 +430,7 @@ foreach( array_keys($mon_frame_slots) as $monitor_id )
 				if ( !($frame_result = mysql_query( $frames_sql )) )
 					die( mysql_error() );
 				$curr_frame_slots[$i]['frame'] = mysql_fetch_assoc( $frame_result );
+				mysql_free_result( $frame_result );
 			}
 		}
 	}

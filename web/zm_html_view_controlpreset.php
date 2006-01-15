@@ -28,6 +28,7 @@ $result = mysql_query( "select * from Monitors as M inner join Controls as C on 
 if ( !$result )
     die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 $presets = array();
 for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )

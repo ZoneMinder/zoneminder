@@ -27,6 +27,7 @@ $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 if ( !isset($scale) )
 	$scale = ZM_WEB_DEFAULT_SCALE;
@@ -79,6 +80,8 @@ while( $row = mysql_fetch_assoc( $result ) )
 	if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
 	$monitors[] = $row;
 }
+mysql_free_result( $result );
+
 //$monitor = $monitors[$mon_idx];
 $next_mid = $mon_idx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$mon_idx+1]['Id'];
 $prev_mid = $mon_idx==0?$mon_index[(count($monitors)-1)]['Id']:$monitors[$mon_idx-1]['Id'];

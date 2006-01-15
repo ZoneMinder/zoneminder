@@ -43,6 +43,7 @@ $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 if ( $fid )
 {
@@ -50,6 +51,7 @@ if ( $fid )
 	if ( !$result )
 		die( mysql_error() );
 	$frame = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 }
 elseif ( isset( $fid ) )
 {
@@ -57,6 +59,7 @@ elseif ( isset( $fid ) )
 	if ( !$result )
 		die( mysql_error() );
 	$frame = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 	$fid = $frame['FrameId'];
 }
 
@@ -75,6 +78,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 		break;
 	}
 }
+mysql_free_result( $result );
 
 $sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[$sort_field]."'$filter_sql$mid_sql order by $sort_column $sort_order";
 $result = mysql_query( $sql );
@@ -88,6 +92,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 		break;
 	}
 }
+mysql_free_result( $result );
 
 $frames_per_page = 15;
 $frames_per_line = 3;
@@ -228,6 +233,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 		$alarm_frames[$row['FrameId']] = $row;
 	}
 }
+mysql_free_result( $result );
 ?>
 <table>
 <?php

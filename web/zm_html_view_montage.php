@@ -31,6 +31,7 @@ if ( $group )
 	if ( !$result )
 		die( mysql_error() );
 	$row = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 	$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 
@@ -47,6 +48,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 	}
 	$monitors[] = $row;
 }
+mysql_free_result( $result );
 
 $rows = intval(((count($monitors)-1)/ZM_WEB_MONTAGE_MAX_COLS)+1);
 $cols = intval(ceil(count($monitors)/$rows));

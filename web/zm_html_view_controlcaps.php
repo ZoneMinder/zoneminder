@@ -33,6 +33,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 {
 	$controls[] = $row;
 }
+mysql_free_result( $result );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

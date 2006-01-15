@@ -37,6 +37,7 @@ $result = mysql_query( $sql );
 if ( !$result )
     die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 if ( !isset( $rate ) )
 	$rate = reScale( RATE_SCALE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );

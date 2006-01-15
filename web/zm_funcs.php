@@ -67,6 +67,7 @@ function userLogin( $username, $password="" )
 	{
 		unset( $user );
 	}
+	mysql_free_result( $result );
 	if ( $cookies ) session_write_close();
 }
 
@@ -900,6 +901,7 @@ function createListThumbnail( $event, $overwrite=false )
 	if ( !($result = mysql_query( $sql )) )
 		die( mysql_error() );
 	$frame = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 	$frame_id = $frame['FrameId'];
 
 	if ( ZM_WEB_LIST_THUMB_WIDTH )
@@ -1321,6 +1323,7 @@ function fixSequences()
 		}
 		$sequence++;
 	}
+	mysql_free_result( $result );
 }
 
 function firstSet()

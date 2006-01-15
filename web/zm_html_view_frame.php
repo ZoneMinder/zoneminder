@@ -28,6 +28,7 @@ $result = mysql_query( $sql );
 if ( !$result )
 	die( mysql_error() );
 $event = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 if ( $fid )
 {
@@ -35,6 +36,7 @@ if ( $fid )
 	if ( !$result )
 		die( mysql_error() );
 	$frame = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 }
 else
 {
@@ -42,6 +44,7 @@ else
 	if ( !$result )
 		die( mysql_error() );
 	$frame = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 	$fid = $frame['FrameId'];
 }
 

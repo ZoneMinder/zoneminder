@@ -88,6 +88,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 		$filter_data = $row;
 	}
 }
+mysql_free_result( $result );
 ?>
 <?php if ( count($filter_names) ) { ?>
 <td align="left" colspan="3" class="text"><?= $zmSlangSaveAs ?>:&nbsp;<?= buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); ?>&nbsp;<?= $zmSlangOrEnterNewName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="<?= $filter_name ?>" class="form"></td>

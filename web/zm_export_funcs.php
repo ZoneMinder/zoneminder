@@ -106,6 +106,7 @@ function exportEventFrames( $event )
 	{
 		$frames[] = $row;
 	}
+	mysql_free_result( $result );
 
 	ob_start();
 	exportHeader( $zmSlangFrames." ".$event['Id'] );
@@ -190,6 +191,7 @@ function exportFileList( $eid )
 		if ( !($result = mysql_query( $sql )) )
 			die( mysql_error() );
 		$event = mysql_fetch_assoc( $result );
+		mysql_free_result( $result );
 
 		$event_path = sprintf( "%s/%s/%d", ZM_DIR_EVENTS, $event['MonitorName'], $event['Id'] );
 		$files = array();

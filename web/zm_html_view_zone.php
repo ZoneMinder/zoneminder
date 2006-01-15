@@ -49,11 +49,13 @@ while ( $preset = mysql_fetch_assoc( $result ) )
 	$preset_names[$preset['Id']] = $preset['Name'];
 	$presets[] = $preset;
 }
+mysql_free_result( $result );
 
 $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
 	die( mysql_error() );
 $monitor = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 
 $min_x = 0;
 $max_x = $monitor['Width']-1;
@@ -68,6 +70,7 @@ if ( !isset($new_zone) )
 		if ( !$result )
 			die( mysql_error() );
 		$zone = mysql_fetch_assoc( $result );
+		mysql_free_result( $result );
 	}
 	else
 	{

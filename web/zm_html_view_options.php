@@ -198,6 +198,7 @@ if ( $tab == "users" )
 </tr>
 <?php
 	}
+	mysql_free_result( $result );
 ?>
 <tr><td colspan="12" class="ruled">&nbsp;</td></tr>
 <tr><td colspan="12" align="right"><input type="button" value="<?= $zmSlangAddNewUser ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=user&uid=-1', 'zmUser', <?= $jws['user']['w'] ?>, <?= $jws['user']['h'] ?> );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled>&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td></tr>

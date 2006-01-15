@@ -38,6 +38,7 @@ if ( $group )
 	if ( !$result )
 		die( mysql_error() );
 	$row = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 	$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 
@@ -59,6 +60,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 	$row['ScaledHeight'] = reScale( $monitor['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 	$monitors[] = $row;
 }
+mysql_free_result( $result );
 
 $monitor = $monitors[$mon_idx];
 $next_mid = $mon_idx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$mon_idx+1]['Id'];

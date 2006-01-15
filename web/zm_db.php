@@ -39,17 +39,13 @@ function getEnumValues( $table, $column )
 {
 	$enum_values = array();
 	$result = mysql_query( "DESCRIBE $table $column" );
-	if ( $result )
-	{
-		$row = mysql_fetch_assoc($result);
-		preg_match_all( "/'([^']+)'/", $row['Type'], $enum_matches );
-		$enum_values = $enum_matches[1];
-	}
-	else
-	{
-		echo mysql_error();
-	}
-	return $enum_values;
+	if ( !$result )
+		die( mysql_error() );
+	$row = mysql_fetch_assoc($result);
+	mysql_free_result( $result );
+	preg_match_all( "/'([^']+)'/", $row['Type'], $enum_matches );
+	$enum_values = $enum_matches[1];
+	return( $enum_values );
 }
 
 function getSetValues( $table, $column )
@@ -70,6 +66,7 @@ function getUniqueValues( $table, $column, $as_string=1 )
 			else
 				$values = $row[0];
 		}
+		mysql_free_result( $result );
 	}     
 	else          
 	{             
@@ -91,6 +88,7 @@ function getTableColumns( $table, $as_string=1 )
 			else
 				$columns[] = $row[Type];
 		}
+		mysql_free_result( $result );
 	}     
 	else          
 	{             

@@ -31,6 +31,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 {
 	$filter_names[$row['Name']] = $row['Name'];
 }
+mysql_free_result( $result );
 
 ?>
 <html>

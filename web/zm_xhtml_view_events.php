@@ -31,6 +31,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 {
 	$monitors[$row[Id]] = $row;
 }
+mysql_free_result( $result );
 
 if ( $filter_name )
 {
@@ -38,6 +39,7 @@ if ( $filter_name )
 	if ( !$result )
 		die( mysql_error() );
 	$filter_data = mysql_fetch_assoc( $result );
+	mysql_free_result( $result );
 
 	if ( !empty($filter_data) )
 	{
@@ -111,6 +113,7 @@ elseif ( !empty( $limit ) )
 if ( !($result = mysql_query( $count_sql )) )
 	die( mysql_error() );
 $row = mysql_fetch_assoc( $result );
+mysql_free_result( $result );
 $n_events = $row['EventCount'];
 if ( !empty($limit) && $n_events > $limit )
 {
@@ -250,6 +253,7 @@ if ( !empty($limit) && $n_events > $limit )
 </tr>
 <?php
 	}
+	mysql_free_result( $result );
 ?>
 </table>
 </body>

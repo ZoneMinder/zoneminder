@@ -36,6 +36,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 		$filter_data = $row;
 	}
 }
+mysql_free_result( $result );
 
 $auto_str = "";
 if ( isset($filter_data) )

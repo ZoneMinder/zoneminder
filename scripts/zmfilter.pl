@@ -235,7 +235,7 @@ sub getFilters
 			}
 		}
 		#Debug( Dumper( %filter_terms ) );
-		my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,M.DefaultRate,M.DefaultScale,E.Name,E.Cause,E.Description,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Videoed,E.Uploaded,E.Emailed,E.Messaged,E.Executed from Events as E inner join Monitors as M on M.Id = E.MonitorId where not isnull(E.EndTime)";
+		my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,M.DefaultRate,M.DefaultScale,E.Name,E.Cause,E.Notes,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Videoed,E.Uploaded,E.Emailed,E.Messaged,E.Executed from Events as E inner join Monitors as M on M.Id = E.MonitorId where not isnull(E.EndTime)";
 		my $filter_sql = '';
 		for ( my $i = 1; $i <= $filter_terms{trms}; $i++ )
 		{
@@ -809,7 +809,7 @@ sub substituteTags
 	$text =~ s/%EI%/$event->{Id}/g;
 	$text =~ s/%EN%/$event->{Name}/g;
 	$text =~ s/%EC%/$event->{Cause}/g;
-	$text =~ s/%ED%/$event->{Text}/g;
+	$text =~ s/%ED%/$event->{Notes}/g;
 	$text =~ s/%ET%/$event->{StartTime}/g;
 	$text =~ s/%EL%/$event->{Length}/g;
 	$text =~ s/%EF%/$event->{Frames}/g;

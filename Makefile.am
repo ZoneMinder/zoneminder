@@ -15,6 +15,7 @@ SUBDIRS = \
 
 EXTRA_DIST = \
 	zm.conf.in \
+	README.txt \
 	README.html \
 	README.pdf \
 	README.rtf

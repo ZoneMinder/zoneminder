@@ -437,7 +437,7 @@ function controlPresets( $monitor )
 </tr>
 </table></td>
 <?php
-	if ( $monitor['CanSetPresets'] )
+	if ( canEdit( 'Monitors' ) && $monitor['CanSetPresets'] )
 	{
 ?>
 <td class="text" align="left"><input type="button" class="smallbutton" value="<?= $zmSlangSet ?>" onClick="newWindow( '<?= $PHP_SELF ?>?view=controlpreset&mid=<?= $monitor['Id'] ?>', 'zmPreset', <?= $jws['preset']['w'] ?>, <?= $jws['preset']['h'] ?> );"></td>

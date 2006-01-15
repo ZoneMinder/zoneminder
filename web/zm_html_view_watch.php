@@ -53,7 +53,7 @@ window.focus();
 <?php
 if ( $control )
 {
-	if ( canEdit( 'Monitors' ) )
+	if ( canView( 'Control' ) )
 	{
 ?>
 <frame src="<?= $PHP_SELF ?>?view=control&mid=<?= $monitor['Id'] ?>" marginwidth="0" marginheight="0" name="ControlPanel<?= $monitor['Id' ] ?>" scrolling="auto">

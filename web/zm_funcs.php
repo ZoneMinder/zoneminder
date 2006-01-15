@@ -37,13 +37,24 @@ function userLogin( $username, $password="" )
 		global $_SESSION, $_SERVER;
 	}
 
-	if ( ZM_AUTH_TYPE == "builtin" )
+	if ( version_compare( phpversion(), "4.3.0", "<") )
 	{
-		$sql = "select * from Users where Username = '".mysql_escape_string($username)."' and Password = password('".mysql_escape_string($password)."') and Enabled = 1";
+		$mysql_username = mysql_escape_string($username);
+		$mysql_password = mysql_escape_string($password);
 	}
 	else
 	{
-		$sql = "select * from Users where Username = '".mysql_escape_string($username)."' and Enabled = 1";
+		$mysql_username = mysql_real_escape_string($username);
+		$mysql_password = mysql_real_escape_string($password);
+	}
+
+	if ( ZM_AUTH_TYPE == "builtin" )
+	{
+		$sql = "select * from Users where Username = '$mysql_username' and Password = password('$mysql_password') and Enabled = 1";
+	}
+	else
+	{
+		$sql = "select * from Users where Username = '$mysql_username' and Enabled = 1";
 	}
 	$result = mysql_query( $sql );
 	if ( !$result )

@@ -1535,10 +1535,12 @@ if ( isset($action) )
 			$types = array();
 			$changes = getFormChanges( $db_user, $new_user, $types );
 
+			if ( $new_user['Password'] )
+				$changes['Password'] = "Password = password('".$new_user['Password']."')";
+			else
+				unset( $changes['Password'] );
 			if ( count( $changes ) )
 			{
-				if ( $changes['Password'] )
-					$changes['Password'] = "Password = password('".$new_user['Password']."')";
 				if ( $uid > 0 )
 				{
 					$sql = "update Users set ".implode( ", ", $changes )." where Id = '$uid'";
@@ -1550,13 +1552,13 @@ if ( isset($action) )
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );
-				$view = 'none';
 				$refresh_parent = true;
 				if ( $db_user['Username'] == $user['Username'] )
 				{
 					userLogin( $db_user['Username'], $db_user['Password'] );
 				}
 			}
+			$view = 'none';
 		}
 		elseif ( $action == "state" )
 		{

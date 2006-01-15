@@ -65,11 +65,7 @@ function validateForm(form)
 	{
 		errors[errors.length] = "You must supply a username";
 	}
-	if ( !form.elements['new_user[Password]'].value )
-	{
-		errors[errors.length] = "You must supply a password";
-	}
-	else
+	if ( form.elements['new_user[Password]'].value )
 	{
 		if ( !form.conf_password.value )
 		{
@@ -80,6 +76,17 @@ function validateForm(form)
 			errors[errors.length] = "The new and confirm passwords are different";
 		}
 	}
+<?php
+if ( !$new_user['Password'] )
+{
+?>
+	else
+	{
+		errors[errors.length] = "You must supply a password";
+	}
+<?php
+}
+?>
 	if ( errors.length )
 	{
 		alert( errors.join( "\n" ) );
@@ -104,8 +111,8 @@ function closeWindow()
 <input type="hidden" name="action" value="user">
 <input type="hidden" name="uid" value="<?= $uid ?>">
 <tr><td align="right" class="text"><?= $zmSlangUsername ?></td><td align="left" class="text"><input type="text" name="new_user[Username]" value="<?= $new_user['Username'] ?>" size="16" class="form"></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangNewPassword ?></td><td align="left" class="text"><input type="password" name="new_user[Password]" value="<?= $new_user['Password'] ?>" size="16" class="form"></td></tr>
-<tr><td align="right" class="text"><?= $zmSlangConfirmPassword ?></td><td align="left" class="text"><input type="password" name="conf_password" value="<?= $new_user['Password'] ?>" size="16" class="form"></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangNewPassword ?></td><td align="left" class="text"><input type="password" name="new_user[Password]" value="" size="16" class="form"></td></tr>
+<tr><td align="right" class="text"><?= $zmSlangConfirmPassword ?></td><td align="left" class="text"><input type="password" name="conf_password" value="" size="16" class="form"></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangLanguage ?></td><td align="left" class="text"><?= buildSelect( "new_user[Language]", $langs ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangEnabled ?></td><td align="left" class="text"><?= buildSelect( "new_user[Enabled]", $yesno ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangStream ?></td><td align="left" class="text"><?= buildSelect( "new_user[Stream]", $nv ) ?></td></tr>

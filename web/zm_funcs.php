@@ -811,10 +811,17 @@ function initDaemonStatus()
 {
 	global $daemon_status;
 
-	if ( !$daemon_status )
+	if ( !isset($daemon_status) )
 	{
-		$string = ZM_PATH_BIN."/zmdc.pl status";
-		$daemon_status = shell_exec( $string );
+		if ( daemonCheck() )
+		{
+			$string = ZM_PATH_BIN."/zmdc.pl status";
+			$daemon_status = shell_exec( $string );
+		}
+		else
+		{
+			$daemon_status = "";
+		}
 	}
 }
 
@@ -822,14 +829,7 @@ function daemonStatus( $daemon, $args=false )
 {
 	global $daemon_status;
 
-	if ( daemonCheck() )
-	{
-		initDaemonStatus();
-	}
-	else
-	{
-		$daemon_status = "";
-	}
+	initDaemonStatus();
 	
 	$string = "$daemon";
 	if ( $args )

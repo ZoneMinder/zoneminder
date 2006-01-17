@@ -1,7 +1,7 @@
 <?php
 //
 // ZoneMinder web frame view file, $Date$, $Revision$
-// Copyright (C) 2003, 2004, 2005  Philip Coombes
+// Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,6 +18,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+error_reporting( E_ALL );
 if ( !canView( 'Events' ) )
 {
 	$view = "error";
@@ -56,14 +57,13 @@ $next_fid = $fid+1;
 $last_fid = $max_fid;
 
 $event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
-$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $fid );
+$capt_image = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $fid );
 $d_image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-d.jpg", $event_path, $fid );
 $r_image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-r.jpg", $event_path, $fid );
-$anal_image = preg_replace( "/capture/", "analyse", $image_path );
-if ( file_exists( $anal_image ) )
-{
-	$image_path = $anal_image;
-}
+$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
+$has_anal_image = file_exists( $anal_image );
+$image_path = ($has_anal_image&&(empty($show)||$show=="anal"))?$anal_image:$capt_image;
+
 $alarm_frame = $frame['Type']=='Alarm';
 $img_class = $alarm_frame?"alarm":"normal";
 
@@ -93,7 +93,7 @@ function deleteEvent()
 </script>
 </head>
 <body>
-<table width="96%" cellpaddin="0" cellspacing="0" border="0">
+<table width="96%" cellpadding="3" cellspacing="0" border="0">
 <tr><td width="60%" class="smallhead"><?= $zmSlangFrame ?> <?= $eid."-".$fid." (".$frame['Score'].")" ?>
 <?php if ( ZM_RECORD_EVENT_STATS && $alarm_frame ) { ?>
 (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $fid ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );"><?= $zmSlangStats ?></a>)
@@ -102,9 +102,9 @@ function deleteEvent()
 <td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: deleteEvent();"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp<?php } ?></td>
 <td width="20%" align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
-<tr><td colspan="3" align="center"><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td colspan="3" align="center"><?php if ( $has_anal_image ) { ?><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $fid ?>&scale=<?= $scale ?>&show=<?= $image_path==$anal_image?"capt":"anal" ?>"><?php } ?><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $img_class ?>"><?php if ( $has_anal_image ) { ?></a><?php } ?></td></tr>
 <tr>
-<tr><td colspan="3" align="center"><table width="96%" cellpaddin="0" cellspacing="0" border="0"><tr>
+<tr><td colspan="3" align="center"><table width="96%" cellpadding="0" cellspacing="0" border="0"><tr>
 <?php if ( $fid > 1 ) { ?>
 <td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $first_fid ?>&scale=<?= $scale ?>"><?= $zmSlangFirst ?></a></td>
 <?php } else { ?>

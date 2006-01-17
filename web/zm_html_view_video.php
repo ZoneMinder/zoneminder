@@ -1,7 +1,7 @@
 <?php
 //
 // ZoneMinder web video view file, $Date$, $Revision$
-// Copyright (C) 2003, 2004, 2005  Philip Coombes
+// Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -177,7 +177,7 @@ else
 <tr><td class="text" align="right"><?= $zmSlangVideoSize ?></td><td><?= buildSelect( "scale", $scales ) ?></td></tr>
 <tr><td class="text" align="right"><?= $zmSlangOverwriteExisting ?></td><td><input type="checkbox" class="form-noborder" name="overwrite" value="1"<?php if ( isset($overwrite) ) { ?> checked<?php } ?>></td></tr>
 <tr><td colspan="2"><img src="graphics/spacer.gif" width="1" height="5"></td></tr>
-<tr><td colspan="2" align="center"><input type="submit" class="form" value="<?= $zmSlangGenerateVideo ?>"></td></tr>
+<tr><td colspan="2" align="center"><input type="submit" class="form" value="<?= $zmSlangGenerateVideo ?>"<?= ( ZM_OPT_MPEG == "no" )?" disabled":"" ?>></td></tr>
 </table>
 </form>
 <table align="center" border="0" cellspacing="0" cellpadding="8" width="96%">

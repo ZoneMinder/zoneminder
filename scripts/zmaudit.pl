@@ -152,7 +152,7 @@ my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM
 
 chdir( EVENT_PATH );
 
-my $max_image_age = 15/(24*60); # 15 Minutes
+my $max_image_age = 6/24; # 6 hours
 my $image_path = IMAGE_PATH;
 do
 {

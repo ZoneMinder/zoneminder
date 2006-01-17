@@ -557,7 +557,7 @@ int RemoteCamera::GetResponse()
 		static int content_length;
 		static char content_type[32];
 		static char content_boundary[64];
-		int content_boundary_len;
+		static int content_boundary_len;
 
 		while ( true )
 		{
@@ -579,6 +579,7 @@ int RemoteCamera::GetResponse()
 					content_length = 0;
 					content_type[0] = '\0';
 					content_boundary[0] = '\0';
+					content_boundary_length = 0;
 				}
 				case HEADERCONT :
 				{

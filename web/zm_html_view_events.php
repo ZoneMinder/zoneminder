@@ -131,7 +131,7 @@ else
 		$events[] = $event;
 		$scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 		$event_width = reScale( $event['Width'], $scale );
-		$event_height = reScale( $event['Height'], $$scale );
+		$event_height = reScale( $event['Height'], $scale );
 		if ( $max_width < $event_width ) $max_width = $event_width;
 		if ( $max_height < $event_height ) $max_height = $event_height;
 		if ( $event['Archived'] )

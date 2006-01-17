@@ -130,7 +130,7 @@ function getStreamSrc( $args )
 		global $_SESSION, $_SERVER;
 	}
 
-	$stream_src = ZM_URL.ZM_PATH_ZMS;
+	$stream_src = ZM_BASE_URL.ZM_PATH_ZMS;
 
 	if ( ZM_OPT_USE_AUTH )
 	{
@@ -1065,6 +1065,8 @@ function parseSort( $save_to_session=false, $term_sep='&' )
 {
 	global $sort_field, $sort_asc; // Inputs
 	global $sort_query, $sort_column, $sort_order; // Outputs
+	global $limit;
+
 	if ( version_compare( phpversion(), "4.1.0", "<") )
 	{
 		global $_SESSION;
@@ -1118,6 +1120,7 @@ function parseSort( $save_to_session=false, $term_sep='&' )
 	$sort_order = $sort_asc?"asc":"desc";
 	if ( !$sort_asc ) $sort_asc = 0;
 	$sort_query = $term_sep."sort_field=".$sort_field.$term_sep."sort_asc=".$sort_asc;
+	if ( !isset($limit) ) $limit = "";
 	if ( $save_to_session )
 	{
 		$_SESSION['sort_field'] = $sort_field;

@@ -31,7 +31,7 @@ if ( !$result )
 while ( $row = mysql_fetch_assoc( $result ) )
 {
 	$filter_names[$row['Name']] = $row['Name'];
-	if ( $reload && isset($filter_name) && $filter_name == $row['Name'] )
+	if ( isset($reload) && isset($filter_name) && $filter_name == $row['Name'] )
 	{
 		$filter_data = $row;
 	}
@@ -137,7 +137,7 @@ $sort_dirns = array(
 	'1' => $zmSlangSortAsc,
 	'0'  => $zmSlangSortDesc
 );
-if ( !$sort_field )
+if ( empty($sort_field) )
 {
 	$sort_field = ZM_WEB_EVENT_SORT_FIELD; 
 	$sort_asc = (ZM_WEB_EVENT_SORT_ORDER == "asc");
@@ -316,7 +316,7 @@ else
 <td class="text"><?php if ( $trms > 2 ) { echo buildSelect( $obracket_name, $obracket_types ); } else { ?>&nbsp;<?php } ?></td>
 <td class="text"><?= buildSelect( $attr_name, $attr_types, "$value_name.value = ''; submitToFilter( document.filter_form, 0 );" ); ?></td>
 <?php if ( $$attr_name == "Archived" ) { ?>
-<td class="text"><center><?= $zmSlangIsEqualTo ?><input type="hidden" name="<?= $op_name ?>" value="="></center></td>
+<td class="text"><center><?= $zmSlangOpEq ?><input type="hidden" name="<?= $op_name ?>" value="="></center></td>
 <td class="text"><?= buildSelect( $value_name, $archive_types ); ?></td>
 <?php } elseif ( $$attr_name ) { ?>
 <td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>

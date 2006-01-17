@@ -56,7 +56,7 @@ if ( !$result )
 	die( mysql_error() );
 while ( $row = mysql_fetch_assoc( $result ) )
 {
-	if ( $row[Id] == $eid )
+	if ( $row['Id'] == $eid )
 	{
 		$prev_event = mysql_fetch_assoc( $result );
 		break;
@@ -70,7 +70,7 @@ if ( !$result )
 	die( mysql_error() );
 while ( $row = mysql_fetch_assoc( $result ) )
 {
-	if ( $row[Id] == $eid )
+	if ( $row['Id'] == $eid )
 	{
 		$next_event = mysql_fetch_assoc( $result );
 		break;
@@ -114,6 +114,9 @@ if ( $mode == "stream" )
 	//$panel_sections = ((int)($event['Width']/$panel_section_width))+1;
 	//$panel_width = $panel_sections*$panel_section_width;
 	$panel_timeout = (int)((($frame_data['RealDuration']+1)*1000)/$panel_sections);
+
+	if ( !isset( $play ) )
+		$play = false;
 }
 
 ob_start();
@@ -403,7 +406,7 @@ if ( $mode == "stream" )
 <?php
 		for ( $i = 0; $i < $panel_sections; $i++ )
 		{
-			$start_frame = 1+(int)round(($i * $event[Frames])/$panel_sections);
+			$start_frame = 1+(int)round(($i * $event['Frames'])/$panel_sections);
 			if ( ZM_WEB_SHOW_PROGRESS && !empty($fid) && $start_frame < $fid )
 			{
 				$section_color = $panel_done_color;
@@ -462,36 +465,24 @@ else
 	}
 	mysql_free_result( $result );
 ?>
-<tr><td><table border="0" cellpadding="0" cellspacing="2" align="center">
-<tr>
+<tr><td><div style="text-align: center">
 <?php
 	$count = 0;
 
 	$thumb_width = (int)round($event['Width']/ZM_WEB_FRAMES_PER_LINE);
 	$thumb_height = (int)round($event['Height']/ZM_WEB_FRAMES_PER_LINE);
-	$scale = (int)round( SCALE_BASE/ZM_WEB_FRAMES_PER_LINE );
+	$thumb_scale = (int)round( SCALE_BASE/ZM_WEB_FRAMES_PER_LINE );
 
 	for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++ )
 	{
 		$frame = $frames[$frame_id];
-		$image_data = getImageSrc( $event, $frame, $scale );
+		$image_data = getImageSrc( $event, $frame, $thumb_scale );
 ?>
-<td align="center" width="88"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>&scale=<?= $scale ?>', 'zmImage', <?= reScale( $event['Width'], $scale )+$jws['image']['w']  ?>, <?= reScale( $event['Height'], $scale )+$jws['image']['h'] ?> );"><img src="<?= $image_data['thumbPath'] ?>" width="<?= $thumb_width ?>" height="<?= $thumb_height ?>" class="<?= $image_data['imageClass'] ?>" alt="<?= $frame_id ?>/<?= $frame['Type']=='alarm'?$frame['Score']:0 ?>"></a></td>
+<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>&scale=<?= $scale ?>', 'zmImage', <?= reScale( $event['Width'], $scale )+$jws['image']['w']  ?>, <?= reScale( $event['Height'], $scale )+$jws['image']['h'] ?> );"><img src="<?= $image_data['thumbPath'] ?>" width="<?= $thumb_width ?>" height="<?= $thumb_height ?>" class="<?= $image_data['imageClass'] ?>" alt="<?= $frame_id ?>/<?= $frame['Type']=='alarm'?$frame['Score']:0 ?>"></a>
 <?php
-		if ( !(++$count % $frames_per_line) )
-		{
-?>
-</tr>
-<?php
-		flush();
-?>
-<tr>
-<?php
-		}
 	}
 ?>
-</tr>
-</table></td></tr>
+</div></td></tr>
 <?php
 }
 ?>

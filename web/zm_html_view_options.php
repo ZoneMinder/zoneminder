@@ -227,7 +227,7 @@ else
 	foreach ( $config_cat as $name=>$value )
 	{
 		$option_prompt_var = "zmOlangPrompt".preg_replace( '/^ZM_/', '', $value['Name'] );
-		$option_prompt_text = $$option_prompt_var?$$option_prompt_var:$value['Prompt'];
+		$option_prompt_text = isset($$option_prompt_var)?$$option_prompt_var:$value['Prompt'];
 ?>
 <tr>
 <td align="left" class="text"><?= $value['Name'] ?></td>

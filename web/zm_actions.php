@@ -218,7 +218,7 @@ if ( isset($action) )
 			}
 		}
 	}
-	if ( canView( 'Control', $mid ) )
+	if ( isset($mid) && canView( 'Control', $mid ) )
 	{
 		if ( $action == "control" && isset( $mid ) )
 		{
@@ -925,7 +925,7 @@ if ( isset($action) )
 				die( mysql_error() );
 		}
 	}
-	if ( canEdit( 'Control' ) )
+	if ( isset($mid) && canEdit( 'Control' ) )
 	{
 		if ( $action == "controlcap" && isset( $cid ) )
 		{
@@ -989,7 +989,7 @@ if ( isset($action) )
 			}
 		}
 	}
-	if ( canEdit( 'Monitors', $mid ) )
+	if ( isset($mid) && canEdit( 'Monitors', $mid ) )
 	{
 		if ( $action == "function" && isset( $mid ) )
 		{

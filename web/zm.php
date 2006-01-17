@@ -18,7 +18,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-error_reporting (E_ALL ^ E_NOTICE);
+error_reporting(E_ALL ^ E_NOTICE);
 import_request_variables( "CGP" );
 
 $debug = false;
@@ -57,7 +57,7 @@ else
 {
 	$protocol = 'http';
 }
-define( "ZM_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
+define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
 
 if ( empty($format) )
 {

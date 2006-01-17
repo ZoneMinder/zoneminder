@@ -1,7 +1,7 @@
 <?php
 //
 // ZoneMinder web event view file, $Date$, $Revision$
-// Copyright (C) 2003, 2004, 2005  Philip Coombes
+// Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -555,7 +555,7 @@ var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?
 	if ( ZM_WEB_SHOW_PROGRESS )
 	{
 ?>
-window.setTimeout( "incrementPanel( <?= $start_section ?> )", <?= 2000+$panel_timeout ?> );
+window.setTimeout( "incrementPanel( <?= $start_section ?> )", <?= $panel_timeout ?> );
 <?php
 	}
 ?>

@@ -579,7 +579,7 @@ int RemoteCamera::GetResponse()
 					content_length = 0;
 					content_type[0] = '\0';
 					content_boundary[0] = '\0';
-					content_boundary_length = 0;
+					content_boundary_len = 0;
 				}
 				case HEADERCONT :
 				{

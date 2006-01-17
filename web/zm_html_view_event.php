@@ -85,8 +85,6 @@ if ( !isset( $scale ) )
 if ( $mode == "still" && $scale < SCALE_BASE )
 	$scale = SCALE_BASE;
 
-//$frames_per_line = reScale( ZM_WEB_FRAMES_PER_LINE, $scale );
-//$frames_per_page = reScale( $frames_per_line * ZM_WEB_FRAME_LINES, $scale );
 $frames_per_line = ZM_WEB_FRAMES_PER_LINE;
 $frames_per_page = $frames_per_line * ZM_WEB_FRAME_LINES;
 

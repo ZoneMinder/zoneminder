@@ -4,7 +4,7 @@
 #
 # ZoneMinder Neu-Fusion Control Script, $Date$, $Revision$
 # Copyright (C) 2005 Richard Yeardley
-# Portions Copyright (C) 2003, 2004, 2005  Philip Coombes
+# Portions Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License

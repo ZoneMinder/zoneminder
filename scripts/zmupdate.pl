@@ -3,7 +3,7 @@
 # ==========================================================================
 #
 # ZoneMinder Update Script, $Date$, $Revision$
-# Copyright (C) 2003, 2004, 2005  Philip Coombes
+# Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -577,4 +577,4 @@ if ( $version )
 	print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n" );
 }
 print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-exit();
+exit( 0 );

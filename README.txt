@@ -1,5 +1,4 @@
-
-  15/01/06        ZoneMinder 1.22.0 README                174
+  17/01/06        ZoneMinder 1.22.0 README                1
 
                                
                                
@@ -1882,11 +1881,12 @@ follows.
     %EPS% Path to the event stream
     %EPI% Path to the event images
     %EPI1%     Path to the first alarmed event image
-    %EPIM%     Path to the (first) event image with the
+     %EPIM%      Path  to  the (first) event  image  with  the
 highest score
     %EI1% Attach first alarmed event image
     %EIM% Attach (first) event image with the highest score
     %EV%  Attach event mpeg video
+
     %MN%  Name of the monitor
     %MET% Total number of events for the monitor
     %MEH% Number of events for the monitor in the last hour
@@ -2931,6 +2931,11 @@ parameters can be supplied to the configure script.
 o    FEATURE - The configure script now includes more system
 compatibility checking including checks for required and
 optional perl modules.
+o    FEATURE - Generation and management of thumbnail images
+is now improved. Thumbnail images (and any that are not
+directly created for the event) are now stored in the images
+directory under the web root, where zmaudit will periodically
+remove them.
 o    FEATURE - All libjpeg output is now trapped and handled
 as regular format debug.
 o     FEATURE - Some jpeg data is cached on first use  instead
@@ -5042,22 +5047,13 @@ o     Perhaps  split  out  devices - I  think  devices  should
   probably  be  a separate table and class from monitors.  Not
   critical but would represent a better model.
   
-o    Comments - Needs many more, but that's just me I'm
-hopeless at commenting things out. I'll get round to it soon
-though honest! You're lucky to even get this document.
-o    Optimised zones - The zones could do with being sorted
-out a bit to optimise the processing of overlapping ones, at
-the moment you can waste resource unless your zones are kept
-very tidy.
-o    Create zones using server side image maps - This would
-make it easier to precisely define and see where your zone is
-going to go. Not critical but handy but a bugger to do.
-o    Zone Definitions - Allow zones to be defined according to
-a colour coded bitmap or as polygons. Currently all zones are
-rectangular this would add a bit of flexibility. Would need a
-bit of a rewrite though. This will incur a slight penalty on
-startup and a very slight one on processing for all reasonably
-shaped zones. Work has already begun on this feature.
+o    Support multicasting real-time video streaming. Current
+video streaming methods tend to lag after a while. This is a
+limitation of a single tcp stream per se I think. Using
+multicasting would make this more responsive.
+o    Support mpeg video as an input. This is easy to pick up
+if it's a tcp stream, but a bit more of a pain if it's over
+udp.
 o    Mouseover help - A bit more help popping up when you
 mouseover things would be handy. A bit more help full stop
 actually.
@@ -5068,13 +5064,14 @@ zmu utility does this now but it's not yet integrated into the
 web pages.
 o    Extend the API. Well ok it's not really got an API yet
 but the image data is held in shared memory in a very simple
-format. In theory you could use the capture daemon to gab the
-images and other things could read them from memory or the
+format. In theory you could use the capture daemon to grab the
+images and other things could read them from memory, or the
 analysis daemon could read images from elsewhere. Either way
 this should be done through an API, and would need a library I
 think. Also the zmu utility could probably do a whole lot more
 to enable other things to manage when the daemons become
-active etc.
+active etc. The perl modules in 1.22.0 are a first step in
+this direction.
 o    Allow ZoneMinder to 'train' itself by allowing the user
 to select events that are considered important and to discard
 those that should be ignored. ZoneMinder will interpolate, add
@@ -5084,6 +5081,10 @@ already in to some extent.
 o    Add sound support to allow a captured audio channel to be
 associated with a video device. Work on this feature has
 already begun.
+o     Comments  -  Needs  many more, but that's  just  me  I'm
+  hopeless at commenting things out. I'll get round to it soon
+  though honest! You're lucky to even get this document.
+  
 
 14.
    
@@ -5126,10 +5127,7 @@ ZoneMinder is released under the GPL, see below.
 
 
 
-ZoneMinder  README, $Date$,  $Revision:
-1.9 $
-
-Copyright (C) 2004  Philip Coombes
+Copyright (C) 2004, 2005, 2006  Philip Coombes
 
 This  program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License as

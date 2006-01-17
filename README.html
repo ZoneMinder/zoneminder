@@ -86,6 +86,20 @@ p.MsoToc3, li.MsoToc3, div.MsoToc3
 	text-autospace:none;
 	font-size:11.0pt;
 	font-family:Arial;}
+p.MsoHeader, li.MsoHeader, div.MsoHeader
+	{margin:0cm;
+	margin-bottom:.0001pt;
+	punctuation-wrap:simple;
+	text-autospace:none;
+	font-size:12.0pt;
+	font-family:"Times New Roman";}
+p.MsoFooter, li.MsoFooter, div.MsoFooter
+	{margin:0cm;
+	margin-bottom:.0001pt;
+	punctuation-wrap:simple;
+	text-autospace:none;
+	font-size:12.0pt;
+	font-family:"Times New Roman";}
 p.MsoCaption, li.MsoCaption, div.MsoCaption
 	{margin-top:6.0pt;
 	margin-right:0cm;
@@ -203,7 +217,7 @@ span.MonitorTabChar1
  /* Page Definitions */
  @page Section1
 	{size:595.3pt 841.9pt;
-	margin:68.05pt 73.7pt 62.35pt 73.7pt;}
+	margin:2.0cm 73.7pt 2.0cm 73.7pt;}
 div.Section1
 	{page:Section1;}
  /* List Definitions */
@@ -3430,6 +3444,13 @@ checking including checks for required and optional perl modules.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE &#8211; Generation and management of thumbnail images is
+now improved. Thumbnail images (and any that are not directly created for the
+event) are now stored in the images directory under the web root, where zmaudit
+will periodically remove them.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; All libjpeg output is now trapped and handled as
 regular format debug.</p>
 
@@ -3577,8 +3598,8 @@ watch view.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FEATURE &#8211; The event link in the xHTML interface now goes somewhere
-useful.</p>
+</span></span>FEATURE &#8211; The event link in the xHTML interface now goes
+somewhere useful.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3592,8 +3613,8 @@ been changed to 7% to persist events slightly longer.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FEATURE &#8211; The monitor configuration view has been
-re-organised slightly and some fields have moved between tabs.</p>
+</span></span>FEATURE &#8211; The monitor configuration view has been re-organised
+slightly and some fields have moved between tabs.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3790,11 +3811,11 @@ details from the events in the chart. You are able to choose whether you see
 this view or the traditional events view as a default. Since this view can be a
 large file and dynamic loading of event images can be bandwidth intensive this
 preference can be specific on a bandwidth specific basis. The option to switch
-between the traditional list and the timeline view is available at all times however.
-IMPORTANT NOTE: This view is a beta version only and due to extensive use of
-CSS currently only renders correctly on FireFox type browsers. Even then as it
-can use huge numbers of elements it is possible it may degrade or crash your
-browser. Specifically Internet Explorer seems to get totally confused and
+between the traditional list and the timeline view is available at all times
+however. IMPORTANT NOTE: This view is a beta version only and due to extensive
+use of CSS currently only renders correctly on FireFox type browsers. Even then
+as it can use huge numbers of elements it is possible it may degrade or crash
+your browser. Specifically Internet Explorer seems to get totally confused and
 renders some elements twice and others in the wrong place etc. I hope to remedy
 this situation for the next release but for now using this view with IE is not
 recommended.  </p>
@@ -3928,9 +3949,9 @@ prefer there are now two more options in Options-&gt;System called
 ZM_EVENT_SORT_FIELD and ZM_EVENT_SORT_ORDER which allow you to choose your own
 sort type and order. The default for these is now date/time ascending meaning
 oldest first which is opposite to the previous default and you will need to
-update these options to retain the previous behaviour. Note also that this
-ordering applies only to event lists and not the &#8216;last x events&#8217; in
-the watch window which are still newest first.</p>
+update these options to retain the previous behaviour. Note also that this ordering
+applies only to event lists and not the &#8216;last x events&#8217; in the
+watch window which are still newest first.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4112,9 +4133,9 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; Version 1.21.0 added support for events to be
 labelled with Cause and Notes fields. However these could not be modified
 directly from the web interface. This has been amended so that an
-&#8216;Edit&#8217; link is now present in the events listing. Clicking on this
-allows you to modify these fields for one or more events so they can be
-identified as belonging to a particular incident.</p>
+&#8216;Edit&#8217; link is now present in the events listing. Clicking on this allows
+you to modify these fields for one or more events so they can be identified as
+belonging to a particular incident.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4246,9 +4267,9 @@ montage window.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; A contributed patch by forum user
 &#8216;lazyleopard&#8217; has been included. This allows a specified number of
-frames to be discarded to alleviate problems with broken interlaced frames
-where multiple cameras share one bttv chip and produce a &#8216;comb
-edge&#8217; like image. To invoke this option go to Options-&gt;Config and set
+frames to be discarded to alleviate problems with broken interlaced frames where
+multiple cameras share one bttv chip and produce a &#8216;comb edge&#8217; like
+image. To invoke this option go to Options-&gt;Config and set
 ZM_CAPTURES_PER_FRAME to greater than 1, a value of 3 is recommended in the
 first instance.</p>
 
@@ -4257,8 +4278,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; Several users have reported problems using the
 Perl Compatible Regular Expression (PCRE) library, mostly to do with it not
 being found or an incorrect version being used. This version allows an
-alternative method of parsing the output from network cameras that does not depend
-on libpcre at all. Which method is used is controlled by the option
+alternative method of parsing the output from network cameras that does not
+depend on libpcre at all. Which method is used is controlled by the option
 Options-&gt;Network-&gt;ZM_NETCAM_REGEXPS. If this option is on then the
 traditional regular expression based parsing is implemented, provided you have
 built with libpcre. If the option is off or libpcre is missing then a more
@@ -4570,10 +4591,10 @@ and some HTML was tidied up to be more compliant.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FIX &#8211; There was a problem with the interaction between monitor
-statuses and the status web window. This meant that sometimes the window did
-not pop to the front, or play the alarm sound, properly. This has been
-corrected.</p>
+</span></span>FIX &#8211; There was a problem with the interaction between
+monitor statuses and the status web window. This meant that sometimes the
+window did not pop to the front, or play the alarm sound, properly. This has
+been corrected.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4649,9 +4670,9 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 keyed by the monitor name. This has caused problems in the past with various
 characters appearing which are legal in names but not in filesystems. From this
 version all files related to monitors are keyed on the monitor id rather than
-the name. To help you navigate through these files the monitor name still
-exists but as a link only. Please ensure you run zmupdate.pl to update your
-events directory.</p>
+the name. To help you navigate through these files the monitor name still exists
+but as a link only. Please ensure you run zmupdate.pl to update your events
+directory.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4670,9 +4691,10 @@ set the ZM_WEB_FRAMES_PER_LINE and/or ZM_WEB_FRAME_LINES options.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; ZoneMinder uses ffmpeg (<a
 href="http://ffmpeg.sourceforge.net/"><span class=Internetlink>http://ffmpeg.sourceforge.net/</span></a>)
-for video generation and processing. Recently a new version (0.4.9-pre1) was released
-which changed the interface that ZoneMinder uses and so broke compilation. This
-version will detect which version of ffmpeg you have and compile accordingly.</p>
+for video generation and processing. Recently a new version (0.4.9-pre1) was
+released which changed the interface that ZoneMinder uses and so broke
+compilation. This version will detect which version of ffmpeg you have and
+compile accordingly.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4747,8 +4769,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.19.3</a></h2
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; All stills views now use the single image mode of
 zms rather than spawning off a zmu process to write an image which is then
-read. This reduces complexity of double buffering significantly and also
-reduces the chance of errors caused by multiple simultaneous image generation.</p>
+read. This reduces complexity of double buffering significantly and also reduces
+the chance of errors caused by multiple simultaneous image generation.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4775,8 +4797,8 @@ generation.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FIX &#8211; When doing motion detection an extra blob, that could
-never be removed, was sometimes included. This could have caused false triggering
-and has not been corrected.</p>
+never be removed, was sometimes included. This could have caused false
+triggering and has not been corrected.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4876,15 +4898,15 @@ percentage as returned by <i>df(1)</i>. Thus filters using these criteria will
 either match all events or none at all depending on the disk usage at the time
 of filter execution. The addition of these terms along with the ability to sort
 and limit filter results now means it is possible to create a filter that will
-automatically clear out old events once disk usage exceeds a certain value. Included
-in the database schemas for both new installations and upgrades is a sample
-filter called PurgeWhenFull which can be used to do this. It is initially not
-set to do anything automatically so if you want to use it, you should load it
-into the filter selection window, modify it to your taste and then save it,
-selecting &#8216;auto delete&#8217;. Please note that filters created using
-disk related terms to delete events should always contain a limit term also
-otherwise it is possible for all events to match and thus be deleted. Using a
-limit ensures that only a small number are affected at any one time.</p>
+automatically clear out old events once disk usage exceeds a certain value.
+Included in the database schemas for both new installations and upgrades is a
+sample filter called PurgeWhenFull which can be used to do this. It is
+initially not set to do anything automatically so if you want to use it, you
+should load it into the filter selection window, modify it to your taste and
+then save it, selecting &#8216;auto delete&#8217;. Please note that filters
+created using disk related terms to delete events should always contain a limit
+term also otherwise it is possible for all events to match and thus be deleted.
+Using a limit ensures that only a small number are affected at any one time.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4957,8 +4979,8 @@ name CAN-2004-0227 to this issue.&quot;</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>LANGUAGE &#8211; An additional Italian language translation has
-been added. One, by Davide Morelli, was included in 1.19.1 but not announced.
+</span></span>LANGUAGE &#8211; An additional Italian language translation has been
+added. One, by Davide Morelli, was included in 1.19.1 but not announced.
 However like buses another one has come along, from Tolmino Muccitelli, and so
 they are both now present. The original translation is accessible by selecting <i>it_it</i>
 as the language whereas the new one is <i>it_it2</i>. I would prefer if they
@@ -5149,12 +5171,12 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 table, several people reported that when saving filters they actually got a
 duplicate. This resulted in several copies of filters all with the same name as
 the constraint on unique filter names was not present. Well it is now so when
-upgrading your database all the filters will be renamed from &#8216;myfilter&#8217;
-to &#8216;myfilter_&lt;id&gt;&#8217; where &#8216;&lt;id&gt;&#8217; is the id
-number in the database (which is then removed). In general the higher the id
-number the more recent the filter. So you should go through your filter list
-deleting old copies and then rename the last one back to it&#8217;s original
-name.</p>
+upgrading your database all the filters will be renamed from
+&#8216;myfilter&#8217; to &#8216;myfilter_&lt;id&gt;&#8217; where
+&#8216;&lt;id&gt;&#8217; is the id number in the database (which is then
+removed). In general the higher the id number the more recent the filter. So
+you should go through your filter list deleting old copies and then rename the
+last one back to it&#8217;s original name.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5235,21 +5257,21 @@ the RGB one was faster however with the optimisations the Y channel calculation
 though you can select either method by the ZM_Y_IMAGE_DELTAS configuration
 option. A new method of image blending has also been added which is up to 6
 times faster than the old one which is retained for compatibility and because
-in some unusual circumstances it may still be more accurate (see the
-ZM_FAST_IMAGE_BLENDS option for details). Altogether these optimisations (along
-with other common sense ones such as not maintaining a reference image in
-&#8216;Record&#8217; mode where it is not used) significantly reduce the CPU
-load for most systems, especially when alarms are not in progress. If an alarm
-is detected then a lot of file system and database activity takes place which
-is limited by the speed of these resources so the gain will not be as much.</p>
+in some unusual circumstances it may still be more accurate (see the ZM_FAST_IMAGE_BLENDS
+option for details). Altogether these optimisations (along with other common
+sense ones such as not maintaining a reference image in &#8216;Record&#8217;
+mode where it is not used) significantly reduce the CPU load for most systems,
+especially when alarms are not in progress. If an alarm is detected then a lot
+of file system and database activity takes place which is limited by the speed
+of these resources so the gain will not be as much.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Remote Authentication. This document has previously indicated
-that basic authentication for network cameras could be used by entering a
-hostname of the form of &lt;user&gt;:&lt;pass&gt;@&lt;hostname&gt;. This was
-not actually the case as the relevant authentication header was never sent.
-This is now fixed and addresses of this form can now be used.</p>
+</span></span>Remote Authentication. This document has previously indicated that
+basic authentication for network cameras could be used by entering a hostname
+of the form of &lt;user&gt;:&lt;pass&gt;@&lt;hostname&gt;. This was not
+actually the case as the relevant authentication header was never sent. This is
+now fixed and addresses of this form can now be used.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5275,17 +5297,17 @@ any monitor specific terms and resetting the actions for any that remain.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>New Filter Operators. Two new filter operators and their inverse
-have been added. You can now indicate whether a value is in a set of other
-values, for example &#8216;cat&#8217; is in the set of &#8216;cat, dog, cow,
+have been added. You can now indicate whether a value is in a set of other values,
+for example &#8216;cat&#8217; is in the set of &#8216;cat, dog, cow,
 horse&#8217;. You can also use regular expressions so &#8216;cat&#8217; matches
 &#8216;^c.*&#8217;. The &#8216;not in set&#8217; and &#8216;not matches&#8217;
 operators are also available.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Additional Scales. Enhancements to the scaling algorithm mean
-that non binary scales are now just as easy to apply, thus new scales such as
-0.75x have been added. Others can be easily included if necessary.</p>
+</span></span>Additional Scales. Enhancements to the scaling algorithm mean that
+non binary scales are now just as easy to apply, thus new scales such as 0.75x
+have been added. Others can be easily included if necessary.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5520,8 +5542,9 @@ changed for that the window and frames will now resize appropriately.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Mmap Return Value. A problem identified by users in the forum relating
-to checking of return values from the mmap function call has been corrected.</p>
+</span></span>Mmap Return Value. A problem identified by users in the forum
+relating to checking of return values from the mmap function call has been
+corrected.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5574,9 +5597,9 @@ navigate through the list to a particular page in the minimum number of clicks.<
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Scaleable Streams. Event and monitor streams can now be scaled to
-a certain extent allowing you to view at a different resolution than that captured.
-This area may be somewhat incomplete especially in terms of monitoring at a
-higher screen size where the frame is not adjusted properly.</p>
+a certain extent allowing you to view at a different resolution than that
+captured. This area may be somewhat incomplete especially in terms of
+monitoring at a higher screen size where the frame is not adjusted properly.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6049,15 +6072,15 @@ into RGB internally so if you have the choice RGB24 may be faster as it's the
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Added preclusive zones &#8211; Added a new zone type, the
-preclusive zone. For full details see the relevant section above but in brief this
-is a zone type that if alarmed will actually prevent an alarm. This completes
-the pantheon of zone types I think.</p>
+preclusive zone. For full details see the relevant section above but in brief
+this is a zone type that if alarmed will actually prevent an alarm. This
+completes the pantheon of zone types I think.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Fixed Mozilla JavaScript &#8211; Various JavaScript functionality
-did not function on Mozilla, Netscape and other browsers. This is now (hopefully)
-fixed.</p>
+did not function on Mozilla, Netscape and other browsers. This is now
+(hopefully) fixed.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6119,11 +6142,11 @@ basically averaging the differences between each of the RGB components to get
 an overall difference. This is still the default but by setting
 ZM_FAST_RGB_DIFFS to 'no' you can now make it calculate the Y (or brightness
 value) of the pixels and use the difference between those instead. This will be
-more accurate and responsive to changes but is may be slower especially on old
-machines. There is a slight double whammy here if you have a YUV palette for
-capture and set this option off as the image will be converted to RGB and then
-partially converted back to get the Y value. This is currently very inefficient
-and needs to be optimised.</p>
+more accurate and responsive to changes but is may be slower especially on old machines.
+There is a slight double whammy here if you have a YUV palette for capture and
+set this option off as the image will be converted to RGB and then partially
+converted back to get the Y value. This is currently very inefficient and needs
+to be optimised.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6402,8 +6425,8 @@ use ZoneMinder as a service.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Fixed bug in Scan mode - The monitor cycle or scan mode had stopped
-working properly due to images not being generated. This is now fixed.</p>
+</span></span>Fixed bug in Scan mode - The monitor cycle or scan mode had
+stopped working properly due to images not being generated. This is now fixed.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6463,8 +6486,8 @@ refreshed to show it.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.7</a></h2>
 
 <p class=MsoPlainText>Yes, a big jump in release number but a lot of changes
-too. Now somewhat more mature, not really an alpha any more, and a lot of bugs fixed
-too. </p>
+too. Now somewhat more mature, not really an alpha any more, and a lot of bugs
+fixed too. </p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6477,7 +6500,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Monitors now have more configuration options, including some that
-were statically defined before such as location and format of the image timestamps.</p>
+were statically defined before such as location and format of the image
+timestamps.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6556,8 +6580,8 @@ be specified in zmconfig.php</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Changed form methods to 'get' from 'post' to avoid resubmit
-warnings all the time.</p>
+</span></span>Changed form methods to 'get' from 'post' to avoid resubmit warnings
+all the time.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6600,29 +6624,14 @@ better model.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Comments - Needs many more, but that's just me I'm hopeless at
-commenting things out. I'll get round to it soon though honest! You're lucky to
-even get this document.</p>
+</span></span>Support multicasting real-time video streaming. Current video
+streaming methods tend to lag after a while. This is a limitation of a single
+tcp stream per se I think. Using multicasting would make this more responsive.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Optimised zones - The zones could do with being sorted out a bit
-to optimise the processing of overlapping ones, at the moment you can waste
-resource unless your zones are kept very tidy.</p>
-
-<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Create zones using server side image maps - This would make it
-easier to precisely define and see where your zone is going to go. Not critical
-but handy but a bugger to do.</p>
-
-<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Zone Definitions - Allow zones to be defined according to a
-colour coded bitmap or as polygons. Currently all zones are rectangular this
-would add a bit of flexibility. Would need a bit of a rewrite though. This will
-incur a slight penalty on startup and a very slight one on processing for all
-reasonably shaped zones. Work has already begun on this feature.</p>
+</span></span>Support mpeg video as an input. This is easy to pick up if
+it&#8217;s a tcp stream, but a bit more of a pain if it&#8217;s over udp.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6640,11 +6649,12 @@ yet integrated into the web pages.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Extend the API. Well ok it's not really got an API yet but the
 image data is held in shared memory in a very simple format. In theory you
-could use the capture daemon to gab the images and other things could read them
-from memory or the analysis daemon could read images from elsewhere. Either way
-this should be done through an API, and would need a library I think. Also the
-zmu utility could probably do a whole lot more to enable other things to manage
-when the daemons become active etc.</p>
+could use the capture daemon to grab the images and other things could read
+them from memory, or the analysis daemon could read images from elsewhere.
+Either way this should be done through an API, and would need a library I
+think. Also the zmu utility could probably do a whole lot more to enable other
+things to manage when the daemons become active etc. The perl modules in 1.22.0
+are a first step in this direction.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6658,6 +6668,12 @@ for this are already in to some extent.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Add sound support to allow a captured audio channel to be
 associated with a video device. Work on this feature has already begun.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Comments - Needs many more, but that's just me I'm hopeless at
+commenting things out. I'll get round to it soon though honest! You're lucky to
+even get this document.</p>
 
 <b><u><span style='font-size:14.0pt;font-family:Arial'><br clear=all
 style='page-break-before:always'>
@@ -6709,10 +6725,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><u>License</u></a></h1
 
 <p class=MsoPlainText>&nbsp;</p>
 
-<p class=MsoPlainText>ZoneMinder README, $Date$, $Revision:
-1.9 $</p>
-
-<p class=MsoPlainText>Copyright (C) 2004  Philip Coombes</p>
+<p class=MsoPlainText>Copyright (C) 2004, 2005, 2006  Philip Coombes</p>
 
 <p class=MsoPlainText>This program is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public License as published

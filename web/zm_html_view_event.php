@@ -157,7 +157,7 @@ function newWindow(Url,Name,Width,Height)
 	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
 }
 <?php
-if ( $mode == "stream" && ZM_WEB_SHOW_PROGRESS )
+if ( $mode == "stream" && ZM_WEB_SHOW_PROGRESS && isNetscape() )
 {
 ?>
 function incrementPanel( section )
@@ -511,7 +511,7 @@ var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?
 	{
 		$start_section = (int)floor((($fid-1) * $panel_sections)/($event['Frames']+1));
 	}
-	if ( ZM_WEB_SHOW_PROGRESS )
+	if ( ZM_WEB_SHOW_PROGRESS && isNetscape() )
 	{
 ?>
 window.setTimeout( "incrementPanel( <?= $start_section ?> )", <?= $panel_timeout ?> );

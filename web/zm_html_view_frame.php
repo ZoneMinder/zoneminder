@@ -56,19 +56,18 @@ $prev_fid = $fid-1;
 $next_fid = $fid+1;
 $last_fid = $max_fid;
 
-$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
-$capt_image = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $fid );
-$d_image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-d.jpg", $event_path, $fid );
-$r_image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-r.jpg", $event_path, $fid );
-$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
-$has_anal_image = file_exists( $anal_image );
-$image_path = ($has_anal_image&&(empty($show)||$show=="anal"))?$anal_image:$capt_image;
-
 $alarm_frame = $frame['Type']=='Alarm';
-$img_class = $alarm_frame?"alarm":"normal";
 
 if ( !isset( $scale ) )
-	$scale = max( reScale( SCALE_SCALE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_SCALE );
+	$scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+
+$image_data = getImageSrc( $event, $frame, $scale, (isset($show)&&$show=="capt") );
+
+$image_path = $image_data['thumbPath'];
+$event_path = $image_data['eventPath'];
+$d_image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-d.jpg", $event_path, $fid );
+$r_image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-r.jpg", $event_path, $fid );
+
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
@@ -102,7 +101,7 @@ function deleteEvent()
 <td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: deleteEvent();"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp<?php } ?></td>
 <td width="20%" align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
-<tr><td colspan="3" align="center"><?php if ( $has_anal_image ) { ?><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $fid ?>&scale=<?= $scale ?>&show=<?= $image_path==$anal_image?"capt":"anal" ?>"><?php } ?><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $img_class ?>"><?php if ( $has_anal_image ) { ?></a><?php } ?></td></tr>
+<tr><td colspan="3" align="center"><?php if ( $image_data['hasAnalImage'] ) { ?><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $fid ?>&scale=<?= $scale ?>&show=<?= $image_data['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $image_data['imageClass'] ?>"><?php if ( $image_data['hasAnalImage'] ) { ?></a><?php } ?></td></tr>
 <tr>
 <tr><td colspan="3" align="center"><table width="96%" cellpadding="0" cellspacing="0" border="0"><tr>
 <?php if ( $fid > 1 ) { ?>
@@ -127,12 +126,12 @@ function deleteEvent()
 <?php if (file_exists ($d_image_path)) { ?>
 <tr><td colspan="3"><?= $d_image_path ?></tr>
 <tr><td colspan="3"><img src="<?= $d_image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['He
-ight'], $event['DefaultScale'], $scale ) ?>" class="<?= $img_class ?>"></td></tr>
+ight'], $event['DefaultScale'], $scale ) ?>" class="<?= $image_data['imageClass'] ?>"></td></tr>
 <?php } ?>
 <?php if (file_exists ($r_image_path)) { ?>
 <tr><td colspan="3"><?= $r_image_path ?></tr>
 <tr><td colspan="3"><img src="<?= $r_image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['He
-ight'], $event['DefaultScale'], $scale ) ?>" class="<?= $img_class ?>"></td></tr>
+ight'], $event['DefaultScale'], $scale ) ?>" class="<?= $image_data['imageClass'] ?>"></td></tr>
 <?php } ?>
 </table>
 </body>

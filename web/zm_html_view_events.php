@@ -129,7 +129,7 @@ else
 	while( $event = mysql_fetch_assoc( $result ) )
 	{
 		$events[] = $event;
-		$scale = max( reScale( SCALE_SCALE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_SCALE );
+		$scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 		$event_width = reScale( $event['Width'], $scale );
 		$event_height = reScale( $event['Height'], $$scale );
 		if ( $max_width < $event_width ) $max_width = $event_width;
@@ -411,7 +411,7 @@ function viewEvents( form, name )
 		else
 			unset( $bgcolor );
 
-		$scale = max( reScale( SCALE_SCALE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_SCALE );
+		$scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
 <tr<?= ' bgcolor="'.(isset($bgcolor)?$bgcolor:"#FFFFFF").'"' ?> >
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&page=1', 'zmEvent', <?= reScale( $event['Width'], $scale )+$jws['event']['w']  ?>, <?= reScale( $event['Height'], $scale )+$jws['event']['h'] ?> );"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>

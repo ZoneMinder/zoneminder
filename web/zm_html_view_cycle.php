@@ -66,8 +66,8 @@ $monitor = $monitors[$mon_idx];
 $next_mid = $mon_idx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$mon_idx+1]['Id'];
 $montage_width = ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$monitor['ScaledWidth'];
 $montage_height = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$monitor['ScaledHeight'];
-$width_scale = ($montage_width*SCALE_SCALE)/$monitor['Width'];
-$height_scale = ($montage_height*SCALE_SCALE)/$monitor['Height'];
+$width_scale = ($montage_width*SCALE_BASE)/$monitor['Width'];
+$height_scale = ($montage_height*SCALE_BASE)/$monitor['Height'];
 $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
     
 if ( ZM_WEB_REFRESH_METHOD == "http" )

@@ -32,7 +32,7 @@ mysql_free_result( $result );
 if ( !isset($scale) )
 	$scale = ZM_WEB_DEFAULT_SCALE;
 
-$width_scale = ($scale<SCALE_SCALE)?SCALE_SCALE:$scale;
+$width_scale = ($scale<SCALE_BASE)?SCALE_BASE:$scale;
 $height_scale = $scale;
 
 $zmu_command = getZmuCommand( " -m $mid -s -f" );
@@ -92,8 +92,8 @@ $device_height = (isset($device)&&!empty($device['height']))?$device['height']:D
 $device_width -= 16;
 $device_height -= 16;
 
-$width_scale = ($device_width*SCALE_SCALE)/$monitor['Width'];
-$height_scale = ($device_height*SCALE_SCALE)/$monitor['Height'];
+$width_scale = ($device_width*SCALE_BASE)/$monitor['Width'];
+$height_scale = ($device_height*SCALE_BASE)/$monitor['Height'];
 $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 
 $image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );

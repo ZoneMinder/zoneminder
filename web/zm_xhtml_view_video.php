@@ -63,7 +63,7 @@ $event_width = $event['Width'];
 $event_height = $event['Height'];
 
 if ( !isset( $rate ) )
-	$rate = reScale( RATE_SCALE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
+	$rate = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
 
 $event_dir = ZM_DIR_EVENTS."/".$event['MonitorId']."/".sprintf( "%d", $eid );
 
@@ -97,7 +97,7 @@ else
 
 if ( !empty($generate) )
 {
-	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$video_format." -r ".sprintf( "%.2f", ($rate/RATE_SCALE) )." -S ".$video_size;
+	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$video_format." -r ".sprintf( "%.2f", ($rate/RATE_BASE) )." -S ".$video_size;
 	if ( $overwrite )
 		$command .= " -o";
 	$generated = exec( $command, $output, $status );

@@ -48,8 +48,8 @@ mysql_free_result( $result );
 
 $montage_width = ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 $montage_height = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-$width_scale = ($montage_width*SCALE_SCALE)/$monitor['Width'];
-$height_scale = ($montage_height*SCALE_SCALE)/$monitor['Height'];
+$width_scale = ($montage_width*SCALE_BASE)/$monitor['Width'];
+$height_scale = ($montage_height*SCALE_BASE)/$monitor['Height'];
 $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 
 if ( $mode != "stream" )

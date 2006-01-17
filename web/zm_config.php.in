@@ -50,8 +50,8 @@ define( "STATE_TAPE", 4 );
 // These are miscellaneous options you won't normally need to change
 //
 define( "MAX_EVENTS", 10 );								// The maximum number of events to show in the monitor event listing
-define( "RATE_SCALE", 100 );							// The additional scaling factor used to help get fractional rates in integer format
-define( "SCALE_SCALE", 100 );							// The additional scaling factor used to help get fractional scales in integer format
+define( "RATE_BASE", 100 );							// The additional scaling factor used to help get fractional rates in integer format
+define( "SCALE_BASE", 100 );							// The additional scaling factor used to help get fractional scales in integer format
 define( "LEARN_MODE", false );							// Currently unimplemented, do not change
 define( 'DEVICE_WIDTH', 150 );							// Default device width for phones and handhelds
 define( 'DEVICE_HEIGHT', 150 );							// Default device height for phones and handhelds
@@ -73,7 +73,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_H_DEFAULT_RATE );			// What the default replay rate factor applied to 'event' views is (%)
 		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_H_VIDEO_BITRATE );		// What the bitrate of any streamed video should be
 		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_H_VIDEO_MAXFPS );			// What the maximum frame rate of any streamed video should be
-		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_H_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_SCALE_THUMBS", ZM_WEB_H_SCALE_THUMBS );			// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		define( "ZM_WEB_USE_STREAMS", ZM_WEB_H_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_H_EVENTS_VIEW );			// What the default view of multiple events should be.
 		define( "ZM_WEB_SHOW_PROGRESS", ZM_WEB_H_SHOW_PROGRESS );		// Whether to show the progress of replay in event view.
@@ -90,7 +90,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_M_DEFAULT_RATE );			// What the default replay rate factor applied to 'event' views is (%)
 		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_M_VIDEO_BITRATE );		// What the bitrate of any streamed video should be
 		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_M_VIDEO_MAXFPS );			// What the maximum frame rate of any streamed video should be
-		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_M_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_SCALE_THUMBS", ZM_WEB_M_SCALE_THUMBS );			// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		define( "ZM_WEB_USE_STREAMS", ZM_WEB_M_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_M_EVENTS_VIEW );			// What the default view of multiple events should be.
 		define( "ZM_WEB_SHOW_PROGRESS", ZM_WEB_M_SHOW_PROGRESS );		// Whether to show the progress of replay in event view.
@@ -107,7 +107,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_L_DEFAULT_RATE );			// What the default replay rate factor applied to 'event' views is (%)
 		define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_L_VIDEO_BITRATE );		// What the bitrate of any streamed video should be
 		define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_L_VIDEO_MAXFPS );			// What the maximum frame rate of any streamed video should be
-		define( "ZM_WEB_IMAGE_SCALING", ZM_WEB_L_IMAGE_SCALING );		// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+		define( "ZM_WEB_SCALE_THUMBS", ZM_WEB_L_SCALE_THUMBS );			// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		define( "ZM_WEB_USE_STREAMS", ZM_WEB_L_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_L_EVENTS_VIEW );			// What the default view of multiple events should be.
 		define( "ZM_WEB_SHOW_PROGRESS", ZM_WEB_L_SHOW_PROGRESS );		// Whether to show the progress of replay in event view.
@@ -116,6 +116,7 @@ switch ( $bandwidth )
 	case "mobile" : // Very incomplete at present
 	{
 		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_P_DEFAULT_RATE );			// What the default replay rate factor applied to 'event' views is (%)
+		define( "ZM_WEB_SCALE_THUMBS", ZM_WEB_P_SCALE_THUMBS );			// Image scaling for thumbnails, bandwidth versus cpu in rescaling
 		break;
 	}
 }

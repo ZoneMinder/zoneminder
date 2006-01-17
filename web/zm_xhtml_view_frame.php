@@ -55,55 +55,20 @@ $prev_fid = $fid-1;
 $next_fid = $fid+1;
 $last_fid = $max_fid;
 
-$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
-$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $fid );
-$anal_image = preg_replace( "/capture/", "analyse", $image_path );
-if ( file_exists( $anal_image ) )
-{
-	$image_path = $anal_image;
-}
-$alarm_frame = $frame['Type']=='Alarm';
-$img_class = $alarm_frame?"alarm":"normal";
-
 $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
 $device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
 // Allow for margins etc
 $device_width -= 16;
 $device_height -= 16;
 
-$width_scale = ($device_width*SCALE_SCALE)/$event['Width'];
-$height_scale = ($device_height*SCALE_SCALE)/$event['Height'];
+$width_scale = ($device_width*SCALE_BASE)/$event['Width'];
+$height_scale = ($device_height*SCALE_BASE)/$event['Height'];
 $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 
-$capt_image = $image_path;
-if ( $scale == 100 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
-{
-	$anal_image = preg_replace( "/capture/", "analyse", $image_path );
+$image_data = getImageSrc( $event, $frame, $scale, (isset($show)&&$show=="capt") );
 
-	if ( file_exists($anal_image) && filesize( $anal_image ) )
-	{
-		$thumb_image = $anal_image;
-	}
-	else
-	{
-		$thumb_image = $capt_image;
-	}
-}
-else
-{
-	$thumb_image = preg_replace( "/capture/", "$scale", $capt_image );
-
-	if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
-	{
-		$fraction = sprintf( "%.2f", $scale/100 );
-		$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
-		if ( file_exists( $anal_image ) )
-			$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $anal_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
-		else
-			$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $capt_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
-		exec( $command );
-	}
-}
+$image_path = $image_data['thumbPath'];
+$event_path = $image_data['eventPath'];
 
 ?>
 <html>
@@ -118,7 +83,8 @@ else
 </tr>
 </table>
 <table>
-<tr><td><img src="<?= $thumb_image ?>" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $img_class ?>"></td></tr>
+<tr><td><?php if ( $has_anal_image ) { ?><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $fid ?>&show=<?= $image_path==$anal_image?"capt":"anal" ?>"><?php } ?><img src="<?= $thumb_image_path ?>" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $img_class ?>"><?php if ( $has_anal_image ) { ?></a><?php } ?></td></tr>
+<tr><td><?php if ( $image_data['hasAnalImage'] ) { ?><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $fid ?>&show=<?= $image_data['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $image_data['imageClass'] ?>"><?php if ( $image_data['hasAnalImage'] ) { ?></a><?php } ?></td></tr>
 </table>
 <table>
 <tr>

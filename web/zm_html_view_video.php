@@ -40,9 +40,9 @@ $event = mysql_fetch_assoc( $result );
 mysql_free_result( $result );
 
 if ( !isset( $rate ) )
-	$rate = reScale( RATE_SCALE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
+	$rate = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
 if ( !isset( $scale ) )
-	$scale = reScale( SCALE_SCALE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+	$scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
 $event_dir = ZM_DIR_EVENTS."/".$event['MonitorId']."/".sprintf( "%d", $eid );
 

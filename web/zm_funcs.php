@@ -906,6 +906,79 @@ function zmaCheck( $monitor )
 	return( daemonCheck( "zma", "-m $monitor" ) );
 }
 
+function getImageSrc( $event, $frame, $scale, $capture_only=false, $overwrite=false )
+{
+	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
+
+	//echo "S:$scale, CO:$capture_only<br>";
+	$capt_image = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
+	$capt_path = $event_path.'/'.$capt_image;
+	$thumb_capt_path = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$capt_image;
+	//echo "CI:$capt_image, CP:$capt_path, TCP:$thumb_capt_path<br>";
+
+	$anal_image = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
+	$anal_path = $event_path.'/'.$anal_image;
+	$thumb_anal_path = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$anal_image;
+	//echo "AI:$anal_image, AP:$anal_path, TAP:$thumb_anal_path<br>";
+
+	$alarm_frame = $frame['Type']=='Alarm';
+
+	$has_anal_image = $alarm_frame && file_exists( $anal_path ) && filesize( $anal_path );
+	$is_anal_image = $has_anal_image && !$capture_only;
+
+	if ( $scale >= 100 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
+	{
+		$image_path = $thumb_path = $is_anal_image?$anal_path:$capt_path;
+	}
+	else
+	{
+		$fraction = sprintf( "%.3f", $scale/100 );
+		//echo "F:$fraction<br>";
+		$scale = (int)round( $scale );
+		//echo "S:$scale<br>";
+
+		$thumb_capt_path = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumb_capt_path );
+		$thumb_anal_path = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumb_anal_path );
+
+		if ( $is_anal_image )
+		{
+			$image_path = $anal_path;
+			$thumb_path = $thumb_anal_path;
+		}
+		else
+		{
+			$image_path = $capt_path;
+			$thumb_path = $thumb_capt_path;
+		}
+
+		if ( !file_exists( $thumb_path ) || !filesize( $thumb_path ) )
+		{
+			if ( ZM_WEB_SCALE_THUMBS )
+			{
+				$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $image_path | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_path";
+				exec( $command );
+			}
+			else
+			{
+				$image_path = $thumb_path = $is_anal_image?$anal_path:$capt_path;
+			}
+		}
+	}
+
+	$image_data = array(
+		'eventPath' => $event_path,
+		'imagePath' => $image_path,
+		'thumbPath' => $thumb_path,
+		'imageClass' => $alarm_frame?"alarm":"normal",
+		'isAnalImage' => $is_anal_image,
+		'hasAnalImage' => $has_anal_image,
+	);
+
+	//echo "IP:$image_path<br>";
+	//echo "TP:$thumb_path<br>";
+	return( $image_data );
+}
+
 function createListThumbnail( $event, $overwrite=false )
 {
 	$sql = "select * from Frames where EventId = '".$event['Id']."' and Score = '".$event['MaxScore']."' order by FrameId limit 0,1";
@@ -918,52 +991,23 @@ function createListThumbnail( $event, $overwrite=false )
 	if ( ZM_WEB_LIST_THUMB_WIDTH )
 	{
 		$thumb_width = ZM_WEB_LIST_THUMB_WIDTH;
-		$fraction = ZM_WEB_LIST_THUMB_WIDTH/$event['Width'];
-		$thumb_height = $event['Height']*$fraction;
+		$scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$event['Width'];
+		$thumb_height = reScale( $event['Height'], $scale );
 	}
 	elseif ( ZM_WEB_LIST_THUMB_HEIGHT )
 	{
 		$thumb_height = ZM_WEB_LIST_THUMB_HEIGHT;
-		$fraction = ZM_WEB_LIST_THUMB_HEIGHT/$event['Height'];
-		$thumb_width = $event['Width']*$fraction;
+		$scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$event['Height'];
+		$thumb_width = reScale( $event['Width'], $scale );
 	}
 	else
 	{
 		die( "No thumbnail width or height specified, please check in Options->Web" );
 	}
-	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
-	$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $frame_id );
-	$capt_image = $image_path;
-	if ( $scale == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
-	{
-		$anal_image = preg_replace( "/capture/", "analyse", $image_path );
 
-		if ( file_exists($anal_image) && filesize( $anal_image ) )
-		{
-			$thumb_image = $anal_image;
-		}
-		else
-		{
-			$thumb_image = $capt_image;
-		}
-	}
-	else
-	{
-		$thumb_image = preg_replace( "/capture/", "mini", $capt_image );
-
-		if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
-		{
-			$anal_image = preg_replace( "/capture/", "analyse", $capt_image );
-			if ( file_exists( $anal_image ) )
-				$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $anal_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
-			else
-				$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $capt_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
-			#exec( escapeshellcmd( $command ) );
-			exec( $command );
-		}
-	}
+	$image_data = getImageSrc( $event, $frame, $scale );
 	$thumb_data = $frame;
-	$thumb_data['Path'] = $thumb_image;
+	$thumb_data['Path'] = $image_data['thumbPath'];
 	$thumb_data['Width'] = (int)$thumb_width;
 	$thumb_data['Height'] = (int)$thumb_height;
 
@@ -972,7 +1016,7 @@ function createListThumbnail( $event, $overwrite=false )
 
 function createVideo( $event, $format, $rate, $scale, $overwrite=false )
 {
-	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$format." -r ".sprintf( "%.2f", ($rate/RATE_SCALE) )." -s ".sprintf( "%.2f", ($scale/SCALE_SCALE) );
+	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$format." -r ".sprintf( "%.2f", ($rate/RATE_BASE) )." -s ".sprintf( "%.2f", ($scale/SCALE_BASE) );
 	if ( $overwrite )
 		$command .= " -o";
 	$result = exec( $command, $output, $status );
@@ -1000,8 +1044,8 @@ function reScale( $dimension, $dummy )
 	for ( $i = 1; $i < func_num_args(); $i++ )
 	{
 		$scale = func_get_arg( $i );
-		if ( !empty($scale) && $scale != SCALE_SCALE )
-			$dimension = (int)(($dimension*$scale)/SCALE_SCALE);
+		if ( !empty($scale) && $scale != SCALE_BASE )
+			$dimension = (int)(($dimension*$scale)/SCALE_BASE);
 	}
 	return( $dimension );
 }
@@ -1011,8 +1055,8 @@ function deScale( $dimension, $dummy )
 	for ( $i = 1; $i < func_num_args(); $i++ )
 	{
 		$scale = func_get_arg( $i );
-		if ( !empty($scale) && $scale != SCALE_SCALE )
-			$dimension = (int)(($dimension*SCALE_SCALE)/$scale);
+		if ( !empty($scale) && $scale != SCALE_BASE )
+			$dimension = (int)(($dimension*SCALE_BASE)/$scale);
 	}
 	return( $dimension );
 }

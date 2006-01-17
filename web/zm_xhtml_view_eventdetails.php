@@ -42,8 +42,8 @@ $device_height = (isset($device)&&!empty($device['height']))?$device['height']:D
 $device_width -= 16;
 $device_height -= 16;
 
-$width_scale = ($device_width*SCALE_SCALE)/$event['Width'];
-$height_scale = ($device_height*SCALE_SCALE)/$event['Height'];
+$width_scale = ($device_width*SCALE_BASE)/$event['Width'];
+$height_scale = ($device_height*SCALE_BASE)/$event['Height'];
 $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 $scale /= 2;
 

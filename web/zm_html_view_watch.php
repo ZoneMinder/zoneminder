@@ -30,9 +30,9 @@ $monitor = mysql_fetch_assoc( $result );
 mysql_free_result( $result );
 
 if ( !isset($scale) )
-	$scale = reScale( SCALE_SCALE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+	$scale = reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
-$resize_scale = max( $scale, SCALE_SCALE );
+$resize_scale = max( $scale, SCALE_BASE );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">

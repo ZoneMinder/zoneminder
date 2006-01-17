@@ -356,7 +356,7 @@ foreach( $monitors as $monitor )
 	{
 		$fclass .= "em";
 	}
-	$scale = max( reScale( SCALE_SCALE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_SCALE );
+	$scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=watch&mid=".$monitor['Id']."', 'zmWatch".$monitor['Id']."', ".(reScale( $monitor['Width'], $scale )+$jws['watch']['w']).", ".(reScale( $monitor['Height'], $scale )+$jws['watch']['h'])." );", $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
 <td align="left" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=function&mid=".$monitor['Id']."', 'zmFunction', ".$jws['function']['w'].", ".$jws['function']['h']." );", "<span class=\"$fclass\">".$monitor['Function']."</span>", canEdit( 'Monitors' ) ) ?></td>

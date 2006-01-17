@@ -26,7 +26,7 @@ if ( !canView( 'Monitors' ) )
 
 //phpinfo( INFO_VARIABLES );
 //error_reporting( E_ALL );
-$scale = SCALE_SCALE;
+$scale = SCALE_BASE;
 
 $hicolor = "0x00ff00"; // Green
 

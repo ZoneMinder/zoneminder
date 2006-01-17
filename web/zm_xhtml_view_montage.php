@@ -68,8 +68,8 @@ $images_per_line = 2;
 $count = 0;
 foreach( $monitors as $monitor )
 {
-	$width_scale = ($device_width*SCALE_SCALE)/$monitor['Width'];
-	$height_scale = ($device_height*SCALE_SCALE)/$monitor['Height'];
+	$width_scale = ($device_width*SCALE_BASE)/$monitor['Width'];
+	$height_scale = ($device_height*SCALE_BASE)/$monitor['Height'];
 	$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 	$scale /= $images_per_line; // Try and get several pics per line
 

@@ -28,4 +28,5 @@ EXTRA_DIST = \
 	zm_update-1.21.1.sql \
 	zm_update-1.21.2.sql \
 	zm_update-1.21.3.sql \
-	zm_update-1.21.4.sql
+	zm_update-1.21.4.sql \
+	zm_update-1.22.0.sql

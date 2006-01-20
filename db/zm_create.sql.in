@@ -496,11 +496,12 @@ INSERT INTO MonitorPresets VALUES ('','Panasonic IP PTZ, 640x480, jpeg, max 5 FP
 --
 -- Add some zone preset values
 --
-INSERT INTO ZonePresets VALUES (1,'Fast, low sensitivity','Active','Percent','AlarmedPixels',25,NULL,20,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO ZonePresets VALUES (2,'Fast, medium sensitivity','Active','Percent','AlarmedPixels',15,NULL,10,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO ZonePresets VALUES (3,'Fast, high sensitivity','Active','Percent','AlarmedPixels',10,NULL,5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO ZonePresets VALUES (4,'Best, low sensitivity','Active','Percent','Blobs',25,NULL,36,NULL,7,7,24,NULL,20,NULL,1,NULL);
-INSERT INTO ZonePresets VALUES (5,'Best, medium sensitivity','Active','Percent','Blobs',15,NULL,16,NULL,5,5,12,NULL,10,NULL,1,NULL);
+INSERT INTO ZonePresets VALUES (1,'Fast, low sensitivity','Active','Percent','AlarmedPixels',60,NULL,20,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO ZonePresets VALUES (2,'Fast, medium sensitivity','Active','Percent','AlarmedPixels',40,NULL,10,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO ZonePresets VALUES (3,'Fast, high sensitivity','Active','Percent','AlarmedPixels',20,NULL,5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO ZonePresets VALUES (4,'Best, low sensitivity','Active','Percent','Blobs',60,NULL,36,NULL,7,7,24,NULL,20,NULL,1,NULL);
+INSERT INTO ZonePresets VALUES (5,'Best, medium sensitivity','Active','Percent','Blobs',40,NULL,16,NULL,5,5,12,NULL,10,NULL,1,NULL);
+INSERT INTO ZonePresets VALUES (6,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,8,NULL,3,3,6,NULL,5,NULL,1,NULL);
 
 --
 -- Apply the initial configuration

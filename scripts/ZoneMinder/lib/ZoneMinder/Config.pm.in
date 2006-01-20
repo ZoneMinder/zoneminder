@@ -70,6 +70,7 @@ BEGIN
 	( my $local_config_file = $config_file ) =~ s|^.*/|./|;
 	if ( -s $local_config_file && -r $local_config_file )
 	{
+		print( STDERR, "Overriding installed $local_config_file file with local copy\n" );
 		$config_file = $local_config_file;
 	}
 	open( CONFIG, "<".$config_file ) or croak( "Can't open config file '$config_file': $!" );

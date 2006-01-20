@@ -111,9 +111,14 @@ Monitor::~Monitor()
 		shared_data->state = state = IDLE;
 		shared_data->last_read_index = image_buffer_count;
 	}
+	else if ( purpose == CAPTURE )
+	{
+		shared_data->valid = false;
+		memset( shm_ptr, 0, shm_size );
+	}
 
 	struct shmid_ds shm_data;
-	if ( shmctl( shmid, IPC_STAT, &shm_data ) )
+	if ( shmctl( shm_id, IPC_STAT, &shm_data ) )
 	{
 		Error(( "Can't shmctl: %s", strerror(errno)));
 		exit( -1 );
@@ -121,7 +126,7 @@ Monitor::~Monitor()
 
 	if ( shm_data.shm_nattch <= 1 )
 	{
-		if ( shmctl( shmid, IPC_RMID, 0 ) )
+		if ( shmctl( shm_id, IPC_RMID, 0 ) )
 		{
 			Error(( "Can't shmctl: %s", strerror(errno)));
 			exit( -1 );
@@ -148,19 +153,19 @@ void Monitor::Setup()
 
 	Debug( 1, ( "monitor purpose=%d", purpose ));
 
-	int shared_data_size = sizeof(SharedData)
-						 + sizeof(TriggerData)
-						 + (image_buffer_count*sizeof(struct timeval))
-						 + (image_buffer_count*camera->ImageSize());
+	shm_size = sizeof(SharedData)
+			 + sizeof(TriggerData)
+			 + (image_buffer_count*sizeof(struct timeval))
+			 + (image_buffer_count*camera->ImageSize());
 
-	Debug( 1, ( "shm.size=%d", shared_data_size ));
-	shmid = shmget( (config.shm_key&0xffffff00)|id, shared_data_size, IPC_CREAT|0700 );
-	if ( shmid < 0 )
+	Debug( 1, ( "shm.size=%d", shm_size ));
+	shm_id = shmget( (config.shm_key&0xffffff00)|id, shm_size, IPC_CREAT|0700 );
+	if ( shm_id < 0 )
 	{
 		Error(( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno)));
 		exit( -1 );
 	}
-	unsigned char *shm_ptr = (unsigned char *)shmat( shmid, 0, 0 );
+	shm_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
 	if ( shm_ptr < 0 )
 	{
 		Error(( "Can't shmat: %s", strerror(errno)));
@@ -174,7 +179,7 @@ void Monitor::Setup()
 
 	if ( purpose == CAPTURE )
 	{
-		memset( shared_data, 0, shared_data_size );
+		memset( shm_ptr, 0, shm_size );
 		shared_data->size = sizeof(SharedData);
 		shared_data->valid = true;
 		shared_data->active = enabled;

@@ -73,6 +73,46 @@ public:
 	} State;
 
 protected:
+	typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, RELOAD=0x4, SUSPEND=0x10, RESUME=0x20 } Action;
+
+	typedef struct
+	{
+		int size;
+		bool valid;
+		bool active;
+		bool signal;
+		State state;
+		int last_write_index;
+		int last_read_index;
+		time_t last_image_time;
+		int last_event;
+		int action;
+		int brightness;
+		int hue;
+		int colour;
+		int contrast;
+		int alarm_x;
+		int alarm_y;
+	} SharedData;
+
+	typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
+	typedef struct
+	{
+		int size;
+		TriggerState trigger_state;
+		int trigger_score;
+		char trigger_cause[32];
+		char trigger_text[256];
+		char trigger_showtext[32];
+	} TriggerData;
+
+	typedef struct Snapshot
+	{
+		struct timeval	*timestamp;
+		Image	*image;
+	};
+
+protected:
 	// These are read from the DB and thereafter remain unchanged
 	int				id;
 	char			*name;
@@ -119,52 +159,17 @@ protected:
 	time_t			start_time;
 	time_t			last_fps_time;
 	time_t			auto_resume_time;
-	int				shmid;
 
-	typedef struct Snapshot
-	{
-		struct timeval	*timestamp;
-		Image	*image;
-	};
+	int				shm_id;
+	int				shm_size;
+	unsigned char	*shm_ptr;
 
-	Snapshot *image_buffer;
+	SharedData		*shared_data;
+	TriggerData		*trigger_data;
 
-	typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, RELOAD=0x4, SUSPEND=0x10, RESUME=0x20 } Action;
-	typedef struct
-	{
-		int size;
-		bool valid;
-		bool active;
-		bool signal;
-		State state;
-		int last_write_index;
-		int last_read_index;
-		time_t last_image_time;
-		int last_event;
-		int action;
-		int brightness;
-		int hue;
-		int colour;
-		int contrast;
-		int alarm_x;
-		int alarm_y;
-	} SharedData;
+	Snapshot		*image_buffer;
 
-	typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
-	typedef struct
-	{
-		int size;
-		TriggerState trigger_state;
-		int trigger_score;
-		char trigger_cause[32];
-		char trigger_text[256];
-		char trigger_showtext[32];
-	} TriggerData;
-
-	SharedData *shared_data;
-	TriggerData *trigger_data;
-
-	Camera *camera;
+	Camera			*camera;
 
 public:
 	Monitor( int p_id, char *p_name, int p_function, bool p_enabled, Camera *p_camera, int p_orientation, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );

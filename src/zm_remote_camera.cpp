@@ -358,6 +358,13 @@ int RemoteCamera::GetResponse()
 							format = X_RGB;
 							state = CONTENT;
 						}
+						else if ( !strcasecmp( content_type, "image/x-rgbz" ) )
+						{
+							// Single image
+							mode = SINGLE_IMAGE;
+							format = X_RGBZ;
+							state = CONTENT;
+						}
 						else if ( !strcasecmp( content_type, "multipart/x-mixed-replace" ) )
 						{
 							// Image stream, so start processing
@@ -444,6 +451,10 @@ int RemoteCamera::GetResponse()
 					else if ( !strcasecmp( content_type, "image/x-rgb" ) )
 					{
 						format = X_RGB;
+					}
+					else if ( !strcasecmp( content_type, "image/x-rgbz" ) )
+					{
+						format = X_RGBZ;
 					}
 					else
 					{
@@ -771,6 +782,13 @@ int RemoteCamera::GetResponse()
 							format = X_RGB;
 							state = CONTENT;
 						}
+						else if ( !strcasecmp( content_type, "image/x-rgbz" ) )
+						{
+							// Single image
+							mode = SINGLE_IMAGE;
+							format = X_RGBZ;
+							state = CONTENT;
+						}
 						else if ( !strcasecmp( content_type, "multipart/x-mixed-replace" ) )
 						{
 							// Image stream, so start processing
@@ -924,6 +942,10 @@ int RemoteCamera::GetResponse()
 					{
 						format = X_RGB;
 					}
+					else if ( !strcasecmp( content_type, "image/x-rgbz" ) )
+					{
+						format = X_RGBZ;
+					}
 					else
 					{
 						Error(( "Found unsupported content type '%s'", content_type ));
@@ -1062,6 +1084,7 @@ int RemoteCamera::PostCapture( Image &image )
 		{
 			if ( !image.DecodeJpeg( buffer.Extract( content_length ), content_length ) )
 			{
+				Disconnect();
 				return( -1 );
 			}
 			break;
@@ -1071,6 +1094,16 @@ int RemoteCamera::PostCapture( Image &image )
 			if ( content_length != image.Size() )
 			{
 				Error(( "Image length mismatch, expected %d bytes, content length was %d", image.Size(), content_length ));
+				Disconnect();
+				return( -1 );
+			}
+			image.Assign( width, height, colours, buffer );
+			break;
+		}
+		case X_RGBZ :
+		{
+			if ( !image.Unzip( buffer.Extract( content_length ), content_length ) )
+			{
 				Disconnect();
 				return( -1 );
 			}

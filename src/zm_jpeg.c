@@ -348,7 +348,7 @@ static void term_source (j_decompress_ptr cinfo)
  * for closing it after finishing decompression.
  */
 
-void jpeg_mem_src( j_decompress_ptr cinfo, JOCTET *inbuffer, int inbuffer_size )
+void jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuffer_size )
 {
   mem_src_ptr src;
 

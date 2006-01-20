@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <time.h>
 #include <math.h>
+#include <zlib.h>
 
 extern "C"
 {
@@ -239,8 +240,11 @@ public:
 
 	bool ReadJpeg( const char *filename );
 	bool WriteJpeg( const char *filename, int quality_override=0 ) const;
-	bool DecodeJpeg( JOCTET *inbuffer, int inbuffer_size );
+	bool DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size );
 	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;
+
+	bool Unzip( const Bytef *inbuffer, unsigned long inbuffer_size );
+	bool Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compression_level=Z_BEST_SPEED ) const;
 
 	bool Crop( int lo_x, int lo_y, int hi_y, int hi_y );
 

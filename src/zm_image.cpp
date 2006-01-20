@@ -293,7 +293,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	return( true );
 }
 
-bool Image::DecodeJpeg( JOCTET *inbuffer, int inbuffer_size )
+bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size )
 {
 	struct jpeg_decompress_struct *cinfo = jpg_dcinfo;
 
@@ -394,6 +394,34 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 
 	jpeg_finish_compress( cinfo );
 
+	return( true );
+}
+
+bool Image::Unzip( const Bytef *inbuffer, unsigned long inbuffer_size )
+{
+	unsigned long zip_size = size;
+	int result = uncompress( buffer, &zip_size, inbuffer, inbuffer_size );
+	if ( result != Z_OK )
+	{
+		Error(( "Unzip failed, result = %d", result ));
+		return( false );
+	}
+	if ( zip_size != size )
+	{
+		Error(( "Unzip failed, size mismatch, expected %d bytes, got %d", size, zip_size ));
+		return( false );
+	}
+	return( true );
+}
+
+bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compression_level ) const
+{
+	int result = compress2( outbuffer, outbuffer_size, buffer, size, compression_level );
+	if ( result != Z_OK )
+	{
+		Error(( "Zip failed, result = %d", result ));
+		return( false );
+	}
 	return( true );
 }
 

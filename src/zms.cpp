@@ -48,7 +48,7 @@ bool ValidateAccess( User *user, int mon_id )
 
 int main( int argc, const char *argv[] )
 {
-	enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_SINGLE } mode = ZMS_JPEG;
+	enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } mode = ZMS_JPEG;
 	char format[32] = "";
 	int id = 0;
 	int event = 0;
@@ -98,6 +98,7 @@ int main( int argc, const char *argv[] )
 			{
 				mode = !strcmp( value, "jpeg" )?ZMS_JPEG:ZMS_MPEG;
 				mode = !strcmp( value, "raw" )?ZMS_RAW:mode;
+				mode = !strcmp( value, "zip" )?ZMS_ZIP:mode;
 				mode = !strcmp( value, "single" )?ZMS_SINGLE:mode;
 			}
 			else if ( !strcmp( name, "monitor" ) )
@@ -223,6 +224,10 @@ int main( int argc, const char *argv[] )
 			else if ( mode == ZMS_RAW )
 			{
 				monitor->StreamImagesRaw( scale, maxfps, ttl );
+			}
+			else if ( mode == ZMS_ZIP )
+			{
+				monitor->StreamImagesZip( scale, maxfps, ttl );
 			}
 			else if ( mode == ZMS_SINGLE )
 			{

@@ -47,7 +47,7 @@ protected:
 	int sd;
 	Buffer buffer;
 	enum { SINGLE_IMAGE, MULTI_IMAGE } mode;
-	enum { UNDEF, JPEG, X_RGB } format;
+	enum { UNDEF, JPEG, X_RGB, X_RGBZ } format;
 	enum { HEADER, HEADERCONT, SUBHEADER, SUBHEADERCONT, CONTENT } state;
 
 protected:

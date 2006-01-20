@@ -129,7 +129,8 @@ void RemoteCamera::Initialise()
 
 	buffer.Size( max_size );
 
-	mode = SINGLE_JPEG;
+	mode = SINGLE_IMAGE;
+	format = UNDEF;
 	state = HEADER;
 }
 
@@ -170,6 +171,7 @@ int RemoteCamera::SendRequest()
 		Disconnect();
 		return( -1 );
 	}
+	format = UNDEF;
 	state = HEADER;
 	Debug( 3, ( "Request sent" ));
 	return( 0 );
@@ -345,7 +347,15 @@ int RemoteCamera::GetResponse()
 						if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) )
 						{
 							// Single image
-							mode = SINGLE_JPEG;
+							mode = SINGLE_IMAGE;
+							format = JPEG;
+							state = CONTENT;
+						}
+						else if ( !strcasecmp( content_type, "image/x-rgb" ) )
+						{
+							// Single image
+							mode = SINGLE_IMAGE;
+							format = X_RGB;
 							state = CONTENT;
 						}
 						else if ( !strcasecmp( content_type, "multipart/x-mixed-replace" ) )
@@ -356,7 +366,7 @@ int RemoteCamera::GetResponse()
 								Error(( "No content boundary found in header '%s'", header ));
 								return( -1 );
 							}
-							mode = MULTI_JPEG;
+							mode = MULTI_IMAGE;
 							state = SUBHEADER;
 						}
 						//else if ( !strcasecmp( content_type, "video/mpeg" ) || !strcasecmp( content_type, "video/mpg" ) )
@@ -427,7 +437,15 @@ int RemoteCamera::GetResponse()
 				}
 				case CONTENT :
 				{
-					if ( strcasecmp( content_type, "image/jpeg" ) && strcasecmp( content_type, "image/jpg" ) )
+					if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) )
+					{
+						format = JPEG;
+					}
+					else if ( !strcasecmp( content_type, "image/x-rgb" ) )
+					{
+						format = X_RGB;
+					}
+					else
 					{
 						Error(( "Found unsupported content type '%s'", content_type ));
 						return( -1 );
@@ -457,7 +475,7 @@ int RemoteCamera::GetResponse()
 							static RegExpr *content_expr = 0;
 							if ( buffer_len )
 							{
-								if ( mode == MULTI_JPEG )
+								if ( mode == MULTI_IMAGE )
 								{
 									if ( !content_expr )
 									{
@@ -476,7 +494,7 @@ int RemoteCamera::GetResponse()
 							{
 								content_length = buffer.Size();
 								Debug( 3, ( "Got end of image by closure, content-length = %d", content_length ));
-								if ( mode == SINGLE_JPEG )
+								if ( mode == SINGLE_IMAGE )
 								{
 									if ( !content_expr )
 									{
@@ -491,7 +509,7 @@ int RemoteCamera::GetResponse()
 							}
 						}
 					}
-					if ( mode == SINGLE_JPEG )
+					if ( mode == SINGLE_IMAGE )
 					{
 						state = HEADER;
 						Disconnect();
@@ -742,7 +760,15 @@ int RemoteCamera::GetResponse()
 						if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) )
 						{
 							// Single image
-							mode = SINGLE_JPEG;
+							mode = SINGLE_IMAGE;
+							format = JPEG;
+							state = CONTENT;
+						}
+						else if ( !strcasecmp( content_type, "image/x-rgb" ) )
+						{
+							// Single image
+							mode = SINGLE_IMAGE;
+							format = X_RGB;
 							state = CONTENT;
 						}
 						else if ( !strcasecmp( content_type, "multipart/x-mixed-replace" ) )
@@ -753,7 +779,7 @@ int RemoteCamera::GetResponse()
 								Error(( "No content boundary found in header '%s'", content_type_header ));
 								return( -1 );
 							}
-							mode = MULTI_JPEG;
+							mode = MULTI_IMAGE;
 							state = SUBHEADER;
 						}
 						//else if ( !strcasecmp( content_type, "video/mpeg" ) || !strcasecmp( content_type, "video/mpg" ) )
@@ -890,13 +916,21 @@ int RemoteCamera::GetResponse()
 				}
 				case CONTENT :
 				{
-					if ( strcasecmp( content_type, "image/jpeg" ) && strcasecmp( content_type, "image/jpg" ) )
+					if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) )
+					{
+						format = JPEG;
+					}
+					else if ( !strcasecmp( content_type, "image/x-rgb" ) )
+					{
+						format = X_RGB;
+					}
+					else
 					{
 						Error(( "Found unsupported content type '%s'", content_type ));
 						return( -1 );
 					}
 
-					if ( buffer.Size() >= 2 )
+					if ( format == JPEG && buffer.Size() >= 2 )
 					{
 						if ( buffer[0] != 0xff || buffer[1] != 0xd8 )
 						{
@@ -931,7 +965,7 @@ int RemoteCamera::GetResponse()
 							}
 							if ( buffer_len )
 							{
-								if ( mode == MULTI_JPEG )
+								if ( mode == MULTI_IMAGE )
 								{
 									while ( char *start_ptr = (char *)memstr( (char *)buffer+content_pos, "\r\n--", buffer_size-content_pos ) )
 									{
@@ -945,7 +979,7 @@ int RemoteCamera::GetResponse()
 							{
 								content_length = buffer_size;
 								Debug( 3, ( "Got end of image by closure, content-length = %d", content_length ));
-								if ( mode == SINGLE_JPEG )
+								if ( mode == SINGLE_IMAGE )
 								{
 									char *end_ptr = (char *)buffer+buffer_size;
 
@@ -963,7 +997,7 @@ int RemoteCamera::GetResponse()
 							}
 						}
 					}
-					if ( mode == SINGLE_JPEG )
+					if ( mode == SINGLE_IMAGE )
 					{
 						state = HEADER;
 						Disconnect();
@@ -972,7 +1006,8 @@ int RemoteCamera::GetResponse()
 					{
 						state = SUBHEADER;
 					}
-					if ( buffer.Size() >= 2 )
+
+					if ( format == JPEG && buffer.Size() >= 2 )
 					{
 						if ( buffer[0] != 0xff || buffer[1] != 0xd8 )
 						{
@@ -999,10 +1034,10 @@ int RemoteCamera::PreCapture()
 		{
 			return( -1 );
 		}
-		mode = SINGLE_JPEG;
+		mode = SINGLE_IMAGE;
 		buffer.Empty();
 	}
-	if ( mode == SINGLE_JPEG )
+	if ( mode == SINGLE_IMAGE )
 	{
 		if ( SendRequest() < 0 )
 		{
@@ -1021,9 +1056,33 @@ int RemoteCamera::PostCapture( Image &image )
 		Disconnect();
 		return( -1 );
 	}
-	if ( !image.DecodeJpeg( buffer.Extract( content_length ), content_length ) )
+	switch( format )
 	{
-		return( -1 );
+		case JPEG :
+		{
+			if ( !image.DecodeJpeg( buffer.Extract( content_length ), content_length ) )
+			{
+				return( -1 );
+			}
+			break;
+		}
+		case X_RGB :
+		{
+			if ( content_length != image.Size() )
+			{
+				Error(( "Image length mismatch, expected %d bytes, content length was %d", image.Size(), content_length ));
+				Disconnect();
+				return( -1 );
+			}
+			image.Assign( width, height, colours, buffer );
+			break;
+		}
+		default :
+		{
+			Error(( "Unexpected image format encountered" ));
+			Disconnect();
+			return( -1 );
+		}
 	}
 	return( 0 );
 }

@@ -46,7 +46,8 @@ protected:
 	struct sockaddr_in sa;
 	int sd;
 	Buffer buffer;
-	enum { SINGLE_JPEG, MULTI_JPEG, MULTI_MPEG } mode;
+	enum { SINGLE_IMAGE, MULTI_IMAGE } mode;
+	enum { UNDEF, JPEG, X_RGB } format;
 	enum { HEADER, HEADERCONT, SUBHEADER, SUBHEADERCONT, CONTENT } state;
 
 protected:

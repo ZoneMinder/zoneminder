@@ -2301,18 +2301,22 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 
 	sprintf( output+strlen(output), "Id : %d\n", id );
 	sprintf( output+strlen(output), "Name : %s\n", name );
-	sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":"Remote" );
+	sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File") );
 	if ( camera->IsLocal() )
 	{
 		sprintf( output+strlen(output), "Device : %s\n", ((LocalCamera *)camera)->Device() );
 		sprintf( output+strlen(output), "Channel : %d\n", ((LocalCamera *)camera)->Channel() );
 		sprintf( output+strlen(output), "Format : %d\n", ((LocalCamera *)camera)->Format() );
 	}
-	else
+	else if ( camera->IsRemote() )
 	{
 		sprintf( output+strlen(output), "Host : %s\n", ((RemoteCamera *)camera)->Host() );
 		sprintf( output+strlen(output), "Port : %s\n", ((RemoteCamera *)camera)->Port() );
 		sprintf( output+strlen(output), "Path : %s\n", ((RemoteCamera *)camera)->Path() );
+	}
+	else if ( camera->IsFile() )
+	{
+		sprintf( output+strlen(output), "Path : %s\n", ((FileCamera *)camera)->Path() );
 	}
 	sprintf( output+strlen(output), "Width : %d\n", camera->Width() );
 	sprintf( output+strlen(output), "Height : %d\n", camera->Height() );
@@ -2345,4 +2349,3 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	}
 	return( true );
 }
-

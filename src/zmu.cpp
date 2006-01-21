@@ -564,7 +564,7 @@ int main( int argc, char *argv[] )
 			}
 			if ( function & ZMU_QUERY )
 			{
-				char mon_string[1024] = "";
+				char mon_string[16382] = "";
 				monitor->DumpSettings( mon_string, verbose );
 				printf( "%s\n", mon_string );
 			}

@@ -915,7 +915,11 @@ bool Zone::DumpSettings( char *output, bool /*verbose*/ )
 		type==PRECLUSIVE?"Preclusive":(
 		type==INACTIVE?"Inactive":"Unknown"
 	)))));
-	//sprintf( output+strlen(output), "  Limits : %d,%d - %d,%d\n", limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY() );
+	sprintf( output+strlen(output), "  Shape : %d points\n", polygon.getNumCoords() );
+	for ( int i = 0; i < polygon.getNumCoords(); i++ )
+	{
+		sprintf( output+strlen(output), "    %i: %d,%d\n", i, polygon.getCoord( i ).X(), polygon.getCoord( i ).Y() );
+	}
 	sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );
 	sprintf( output+strlen(output), "  Check Method: %d - %s\n", check_method,
 		check_method==ALARMED_PIXELS?"Alarmed Pixels":(

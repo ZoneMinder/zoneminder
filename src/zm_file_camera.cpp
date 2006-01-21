@@ -36,7 +36,7 @@
 
 FileCamera::FileCamera( const char *p_path, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : Camera( FILE, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture )
 {
-	memcpy( path, p_path, sizeof(path) );
+	strncpy( path, p_path, sizeof(path) );
 	if ( capture )
 	{
 		Initialise();

@@ -38,9 +38,13 @@
 #include "zm.h"
 #include "zm_remote_camera.h"
 
-RemoteCamera::RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : Camera( REMOTE, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture ), host( p_host ), port( p_port ), path( p_path )
+RemoteCamera::RemoteCamera( const char *p_host, const char *p_port, const char *p_path, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : Camera( REMOTE, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture )
 {
-	auth = 0;
+	strncpy( host, p_host, sizeof(host) );
+	strncpy( port, p_port, sizeof(port) );
+	strncpy( path, p_path, sizeof(path) );
+
+	auth[0] = '\0';
 	auth64[0] = '\0';
 
 	sd = -1;
@@ -88,9 +92,9 @@ void RemoteCamera::Initialise()
 
 	if ( auth_ptr )
 	{
-		auth = host;
-		host = auth_ptr+1;
 		*auth_ptr = '\0';
+		strncpy( auth, host, sizeof(auth) );
+		strncpy( host, auth_ptr+1, sizeof(host) );
 		Base64Encode( auth, auth64 );
 	}
 
@@ -112,7 +116,7 @@ void RemoteCamera::Initialise()
 		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "User-Agent: %s/%s\n", config.http_ua, ZM_VERSION );
 		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Host: %s\n", host );
 		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Connection: Keep-Alive\n" );
-		if ( auth )
+		if ( auth[0] )
 		{
 			snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Authorization: Basic %s\n", auth64 );
 		}

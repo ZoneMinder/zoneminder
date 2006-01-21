@@ -33,11 +33,11 @@
 class RemoteCamera : public Camera
 {
 protected:
-	const char *host;
-	const char *port;
-	const char *path;
-	const char *auth;
-	char auth64[256];
+	char	host[64];
+	char	port[8];
+	char	path[256];
+	char	auth[32];
+	char	auth64[256];
 
 protected:
 	char request[1024];

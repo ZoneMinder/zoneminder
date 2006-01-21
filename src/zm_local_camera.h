@@ -33,25 +33,25 @@
 class LocalCamera : public Camera
 {
 protected:
-	const char *device;
-	int			channel;
-	int			format;
+	char 	device[PATH_MAX];
+	int		channel;
+	int		format;
 
 protected:
-	static int m_cap_frame;
-	static int m_cap_frame_active;
-	static int m_sync_frame;
-	static video_mbuf m_vmb;
-	static video_mmap *m_vmm;
-	static int m_videohandle;
-	static unsigned char *m_buffer;
-	static int camera_count;
-	static unsigned char *y_table;
-	static signed char *uv_table;
-	static short *r_v_table;
-	static short *g_v_table;
-	static short *g_u_table;
-	static short *b_u_table;
+	static int				m_cap_frame;
+	static int				m_cap_frame_active;
+	static int				m_sync_frame;
+	static video_mbuf		m_vmb;
+	static video_mmap		*m_vmm;
+	static int				m_videohandle;
+	static unsigned char	*m_buffer;
+	static int				camera_count;
+	static unsigned char	*y_table;
+	static signed char		*uv_table;
+	static short			*r_v_table;
+	static short			*g_v_table;
+	static short			*g_u_table;
+	static short			*b_u_table;
 
 public:
 	LocalCamera( const char *p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );

@@ -989,7 +989,7 @@ sub sendMessage
 			### Create the multipart container
 			my $mail = MIME::Lite->new (
 				From => ZM_FROM_EMAIL,
-				To => ZM_EMAIL_ADDRESS,
+				To => ZM_MESSAGE_ADDRESS,
 				Subject => $subject,
 				Type => "multipart/mixed"
 			);

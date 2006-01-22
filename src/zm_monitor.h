@@ -112,10 +112,59 @@ protected:
 		Image	*image;
 	};
 
+	class MonitorLink
+	{
+	protected:
+		int				id;
+		char			name[64];
+
+		bool			connected;
+		time_t			last_connect_time;
+
+		int				shm_id;
+		int				shm_size;
+		unsigned char	*shm_ptr;
+
+		SharedData		*shared_data;
+		TriggerData		*trigger_data;
+
+		int				last_state;
+		int				last_event;
+
+	public:
+		MonitorLink( int p_id, const char *p_name );
+		~MonitorLink();
+
+		inline int Id() const
+		{
+			return( id );
+		}
+		inline const char *Name() const
+		{
+			return( name );
+		}
+
+		inline bool isConnected() const
+		{   
+			return( connected );
+		}
+		inline time_t getLastConnectTime() const
+		{
+			return( last_connect_time );
+		}
+
+		bool connect();
+		bool disconnect();
+
+		bool isAlarmed();
+		bool inAlarm();
+		bool hasAlarmed();
+	};
+
 protected:
 	// These are read from the DB and thereafter remain unchanged
 	int				id;
-	char			*name;
+	char			name[64];
 	Function		function;			// What the monitor is doing
 	bool			enabled;			// Whether the monitor is enabled or asleep
 	unsigned int    width;				// Normally the same as the camera, but not if partly rotated
@@ -153,9 +202,6 @@ protected:
 	int				buffer_count;
 	int				prealarm_count;
 	State			state;
-	int				n_zones;
-	Zone			**zones;
-	Event			*event;
 	time_t			start_time;
 	time_t			last_fps_time;
 	time_t			auto_resume_time;
@@ -171,11 +217,17 @@ protected:
 
 	Camera			*camera;
 
-public:
-	Monitor( int p_id, char *p_name, int p_function, bool p_enabled, Camera *p_camera, int p_orientation, char *p_event_prefix, char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
-	~Monitor();
+	Event			*event;
 
-	void Setup();
+	int				n_zones;
+	Zone			**zones;
+
+	int				n_linked_monitors;
+	MonitorLink		**linked_monitors;
+
+public:
+	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
+	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
 
@@ -188,13 +240,19 @@ public:
 	{
 		return( id );
 	}
-	inline char *Name() const
+	inline const char *Name() const
 	{
 		return( name );
 	}
 	inline Function GetFunction() const
 	{
 		return( function );
+	}
+	inline bool Enabled()
+	{
+		if ( function <= MONITOR )
+			return( false );
+		return( enabled );
 	}
 	inline const char *EventPrefix() const
 	{
@@ -205,12 +263,6 @@ public:
 		if ( function <= MONITOR )
 			return( false );
 		return( image_count > ready_count );
-	}
-	inline bool Enabled()
-	{
-		if ( function <= MONITOR )
-			return( false );
-		return( enabled );
 	}
 	inline bool Active()
 	{
@@ -261,6 +313,7 @@ public:
 
 	void Reload();
 	void ReloadZones();
+	void ReloadLinkedMonitors( const char * );
 
 	bool DumpSettings( char *output, bool verbose );
 	void DumpZoneImage( const char *zone_string=0 );

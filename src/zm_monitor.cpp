@@ -28,15 +28,148 @@
 #include "zm_remote_camera.h"
 #include "zm_file_camera.h"
 
+Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id )
+{
+	strncpy( name, p_name, sizeof(name) );
+
+	shm_id = 0;
+	shm_size = 0;
+	shm_ptr = 0;
+
+	last_event = 0;
+	last_state = IDLE;
+
+	last_connect_time = 0;
+	connected = false;
+}
+
+Monitor::MonitorLink::~MonitorLink()
+{
+	disconnect();
+}
+
+bool Monitor::MonitorLink::connect()
+{
+	if ( !last_connect_time || (time( 0 ) - last_connect_time) > 60 )
+	{
+		last_connect_time = time( 0 );
+
+		shm_size = sizeof(SharedData)
+				 + sizeof(TriggerData);
+
+		Debug( 1, ( "link.shm.size=%d", shm_size ));
+		shm_id = shmget( (config.shm_key&0xffffff00)|id, shm_size, 0700 );
+		if ( shm_id < 0 )
+		{
+			Debug( 3, ( "Can't shmget link memory: %s", strerror(errno)));
+			connected = false;
+			return( false );
+		}
+		shm_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
+		if ( shm_ptr < 0 )
+		{
+			Debug( 3, ( "Can't shmat link memory: %s", strerror(errno)));
+			connected = false;
+			return( false );
+		}
+
+		shared_data = (SharedData *)shm_ptr;
+		trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
+
+		if ( !shared_data->valid )
+		{
+			Debug( 3, ( "Linked memory not initialised by capture daemon" ));
+			disconnect();
+			return( false );
+		}
+
+		last_state = shared_data->state;
+		last_event = shared_data->last_event;
+		connected = true;
+
+		return( true );
+	}
+	return( false );
+}
+
+bool Monitor::MonitorLink::disconnect()
+{
+	if ( connected )
+	{
+		connected = false;
+
+		struct shmid_ds shm_data;
+		if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )
+		{
+			Debug( 3, ( "Can't shmctl: %s", strerror(errno)));
+			return( false );
+		}
+
+		shm_id = 0;
+
+		if ( shm_data.shm_nattch <= 1 )
+		{
+			if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 )
+			{
+				Debug( 3, ( "Can't shmctl: %s", strerror(errno)));
+				return( false );
+			}
+		}
+
+		if ( shmdt( shm_ptr ) < 0 )
+		{
+			Debug( 3, ( "Can't shmdt: %s", strerror(errno)));
+			return( false );
+		}
+
+		shm_size = 0;
+		shm_ptr = 0;
+	}
+	return( true );
+}
+
+bool Monitor::MonitorLink::isAlarmed()
+{
+	if ( !connected )
+	{
+		return( false );
+	}
+	return( shared_data->state == ALARM );
+}
+
+bool Monitor::MonitorLink::inAlarm()
+{
+	if ( !connected )
+	{
+		return( false );
+	}
+	return( shared_data->state == ALARM || shared_data->state == ALERT );
+}
+
+bool Monitor::MonitorLink::hasAlarmed()
+{
+	if ( shared_data->state == ALARM || shared_data->state == ALERT )
+	{
+		return( true );
+	}
+	else if( shared_data->last_event != last_event )
+	{
+		last_event = shared_data->last_event;
+		return( true );
+	}
+	return( false );
+}
+
 Monitor::Monitor(
 	int p_id,
-	char *p_name,
+	const char *p_name,
 	int p_function,
 	bool p_enabled,
+	const char *p_linked_monitors,
 	Camera *p_camera,
 	int p_orientation,
-	char *p_event_prefix,
-	char *p_label_format,
+	const char *p_event_prefix,
+	const char *p_label_format,
 	const Coord &p_label_coord,
 	int p_image_buffer_count,
 	int p_warmup_count,
@@ -77,65 +210,11 @@ Monitor::Monitor(
 	n_zones( p_n_zones ),
 	zones( p_zones )
 {
-	name = new char[strlen(p_name)+1];
-	strcpy( name, p_name );
+	strncpy( name, p_name, sizeof(name) );
 
 	strncpy( event_prefix, p_event_prefix, sizeof(event_prefix) );
 	strncpy( label_format, p_label_format, sizeof(label_format) );
 
-	Setup();
-}
-
-Monitor::~Monitor()
-{
-	closeEvent();
-
-	for ( int i = 0; i < image_buffer_count; i++ )
-	{
-		delete image_buffer[i].image;
-	}
-	delete[] image_buffer;
-
-	for ( int i = 0; i < n_zones; i++ )
-	{
-		delete zones[i];
-	}
-	delete[] zones;
-
-	delete camera;
-
-	delete[] name;
-
-	if ( purpose == ANALYSIS )
-	{
-		shared_data->state = state = IDLE;
-		shared_data->last_read_index = image_buffer_count;
-	}
-	else if ( purpose == CAPTURE )
-	{
-		shared_data->valid = false;
-		memset( shm_ptr, 0, shm_size );
-	}
-
-	struct shmid_ds shm_data;
-	if ( shmctl( shm_id, IPC_STAT, &shm_data ) )
-	{
-		Error(( "Can't shmctl: %s", strerror(errno)));
-		exit( -1 );
-	}
-
-	if ( shm_data.shm_nattch <= 1 )
-	{
-		if ( shmctl( shm_id, IPC_RMID, 0 ) )
-		{
-			Error(( "Can't shmctl: %s", strerror(errno)));
-			exit( -1 );
-		}
-	}
-}
-
-void Monitor::Setup()
-{
 	fps = 0.0;
 	event_count = 0;
 	image_count = 0;
@@ -203,6 +282,7 @@ void Monitor::Setup()
 		trigger_data->trigger_text[0] = 0;
 		trigger_data->trigger_showtext[0] = 0;
 	}
+
 	if ( !shared_data->valid )
 	{
 		Error(( "Shared memory not initialised by capture daemon" ));
@@ -270,8 +350,60 @@ void Monitor::Setup()
 			sleep( 1 );
 		}
 		ref_image.Assign( width, height, camera->Colours(), image_buffer[shared_data->last_write_index].image->Buffer() );
+
+		n_linked_monitors = 0;
+		linked_monitors = 0;
+		ReloadLinkedMonitors( p_linked_monitors );
 	}
 	srand( time( 0 ) );
+}
+
+Monitor::~Monitor()
+{
+	closeEvent();
+
+	for ( int i = 0; i < image_buffer_count; i++ )
+	{
+		delete image_buffer[i].image;
+	}
+	delete[] image_buffer;
+
+	for ( int i = 0; i < n_zones; i++ )
+	{
+		delete zones[i];
+	}
+	delete[] zones;
+
+	delete camera;
+
+	delete[] name;
+
+	if ( purpose == ANALYSIS )
+	{
+		shared_data->state = state = IDLE;
+		shared_data->last_read_index = image_buffer_count;
+	}
+	else if ( purpose == CAPTURE )
+	{
+		shared_data->valid = false;
+		memset( shm_ptr, 0, shm_size );
+	}
+
+	struct shmid_ds shm_data;
+	if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )
+	{
+		Error(( "Can't shmctl: %s", strerror(errno)));
+		exit( -1 );
+	}
+
+	if ( shm_data.shm_nattch <= 1 )
+	{
+		if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 )
+		{
+			Error(( "Can't shmctl: %s", strerror(errno)));
+			exit( -1 );
+		}
+	}
 }
 
 void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
@@ -848,6 +980,37 @@ bool Monitor::Analyse()
 					cause = trigger_data->trigger_cause;
 					text = trigger_data->trigger_text;
 				}
+				else if ( n_linked_monitors > 0 )
+				{
+					char link_text[1024] = "";
+					char *text_ptr = link_text;
+					*text_ptr = '\0';
+					
+					for ( int i = 0; i < n_linked_monitors; i++ )
+					{
+						if ( linked_monitors[i]->isConnected() )
+						{
+							if ( linked_monitors[i]->hasAlarmed() )
+							{
+								if ( !score )
+								{
+									cause = "Linked Monitor";
+									text_ptr += snprintf( text_ptr, sizeof(link_text)-(text_ptr-link_text), "Monitor: %s", linked_monitors[i]->Name() );
+								}
+								else
+								{
+									text_ptr += snprintf( text_ptr, sizeof(link_text)-(text_ptr-link_text), ", %s", linked_monitors[i]->Name() );
+								}
+								score += 50;
+							}
+						}
+						else
+						{
+							linked_monitors[i]->connect();
+						}
+					}
+					text = link_text;
+				}
 				else if ( Active() && function != RECORD && function != NODECT )
 				{
 					score = Compare( *snap_image );
@@ -1133,6 +1296,7 @@ void Monitor::Reload()
 		int index = 0;
 		function = (Function)atoi(dbrow[index++]);
 		enabled = atoi(dbrow[index++]);
+		const char *p_linked_monitors = dbrow[index++];
 		strncpy( event_prefix, dbrow[index++], sizeof(event_prefix) );
 		strncpy( label_format, dbrow[index++], sizeof(label_format) );
 		label_coord = Coord( atoi(dbrow[index]), atoi(dbrow[index+1]) ); index += 2;
@@ -1152,6 +1316,8 @@ void Monitor::Reload()
 		if ( enabled )
 			shared_data->active = true;
 		ready_count = image_count+warmup_count;
+
+		ReloadLinkedMonitors( p_linked_monitors );
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -1176,16 +1342,119 @@ void Monitor::ReloadZones()
 	//DumpZoneImage();
 }
 
+void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
+{
+	Debug( 1, ( "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors ));
+	if ( n_linked_monitors )
+	{
+		for( int i = 0; i < n_zones; i++ )
+		{
+			delete linked_monitors[i];
+		}
+		delete[] linked_monitors;
+		linked_monitors = 0;
+	}
+
+	n_linked_monitors = 0;
+	if ( p_linked_monitors )
+	{
+		int n_link_ids = 0;
+		int link_ids[256];
+
+		char link_id_str[8];
+		char *dest_ptr = link_id_str;
+		const char *src_ptr = p_linked_monitors;
+		while( 1 )
+		{
+			dest_ptr = link_id_str;
+			while( *src_ptr >= '0' && *src_ptr <= '9' )
+			{
+				if ( (dest_ptr-link_id_str) < (sizeof(link_id_str)-1) )
+				{
+					*dest_ptr++ = *src_ptr++;
+				}
+				else
+				{
+					break;
+				}
+			}
+			// Add the link monitor
+			if ( dest_ptr != link_id_str )
+			{
+				*dest_ptr = '\0';
+				int link_id = atoi(link_id_str);
+				if ( link_id > 0 )
+				{
+					Debug( 3, ( "Found linked monitor id %d", link_id ));
+					int j;
+					for ( j = 0; j < n_link_ids; j++ )
+					{
+						if ( link_ids[j] == link_id )
+							break;
+					}
+					if ( j == n_link_ids ) // Not already found
+					{
+						link_ids[n_link_ids++] = link_id;
+					}
+				}
+			}
+			if ( !*src_ptr )
+				break;
+			while( *src_ptr && (*src_ptr < '0' || *src_ptr > '9') )
+				src_ptr++;
+			if ( !*src_ptr )
+				break;
+		}
+		if ( n_link_ids > 0 )
+		{
+			Debug( 1, ( "Linking to %d monitors", n_link_ids ));
+			n_linked_monitors = n_link_ids;
+			linked_monitors = new MonitorLink *[n_linked_monitors];
+			for ( int i = 0; i < n_linked_monitors; i++ )
+			{
+				static char sql[BUFSIZ];
+				Debug( 1, ( "Checking linked monitor %d", link_ids[i] ));
+
+				snprintf( sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
+				if ( mysql_query( &dbconn, sql ) )
+				{
+					Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+					exit( mysql_errno( &dbconn ) );
+				}
+
+				MYSQL_RES *result = mysql_store_result( &dbconn );
+				if ( !result )
+				{
+					Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+					exit( mysql_errno( &dbconn ) );
+				}
+				int n_monitors = mysql_num_rows( result );
+				if ( n_monitors == 1 )
+				{
+					MYSQL_ROW dbrow = mysql_fetch_row( result );
+					Debug( 1, ( "Linking to monitor %d", link_ids[i] ));
+					linked_monitors[i] = new MonitorLink( link_ids[i], dbrow[1] );
+				}
+				else
+				{
+					Debug( 1, ( "Can't link to monitor %d, invalid id, function or not enabled", link_ids[i] ));
+				}
+				mysql_free_result( result );
+			}
+		}
+	}
+}
+
 int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose )
 {
 	static char sql[BUFSIZ];
 	if ( !device[0] )
 	{
-		strncpy( sql, "select Id, Name, Function+0, Enabled, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local'", sizeof(sql) );
+		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local'", sizeof(sql) );
 	}
 	else
 	{
-		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local' and Device = '%s'", device );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local' and Device = '%s'", device );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1205,22 +1474,52 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		int width = atoi(dbrow[7]);
-		int height = atoi(dbrow[8]);
-		int palette = atoi(dbrow[9]);
-		Orientation orientation = (Orientation)atoi(dbrow[10]);
-		int brightness = atoi(dbrow[11]);
-		int contrast = atoi(dbrow[12]);
-		int hue = atoi(dbrow[13]);
-		int colour = atoi(dbrow[14]);
+		int col = 0;
+
+		int id = atoi(dbrow[col]); col++;
+		const char *name = dbrow[col]; col++;
+		int function = atoi(dbrow[col]); col++;
+		int enabled = atoi(dbrow[col]); col++;
+		const char *linked_monitors = dbrow[col]; col++;
+
+		const char *device = dbrow[col]; col++;
+		int channel = atoi(dbrow[col]); col++;
+		int format = atoi(dbrow[col]); col++;
+
+		int width = atoi(dbrow[col]); col++;
+		int height = atoi(dbrow[col]); col++;
+		int palette = atoi(dbrow[col]); col++;
+		Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
+		int brightness = atoi(dbrow[col]); col++;
+		int contrast = atoi(dbrow[col]); col++;
+		int hue = atoi(dbrow[col]); col++;
+		int colour = atoi(dbrow[col]); col++;
+
+		const char *event_prefix = dbrow[col]; col++;
+		const char *label_format = dbrow[col]; col++;
+
+		int label_x = atoi(dbrow[col]); col++;
+		int label_y = atoi(dbrow[col]); col++;
+
+		int image_buffer_count = atoi(dbrow[col]); col++;
+		int warmup_count = atoi(dbrow[col]); col++;
+		int pre_event_count = atoi(dbrow[col]); col++;
+		int post_event_count = atoi(dbrow[col]); col++;
+		int alarm_frame_count = atoi(dbrow[col]); col++;
+		int section_length = atoi(dbrow[col]); col++;
+		int frame_skip = atoi(dbrow[col]); col++;
+		int capture_delay = atof(dbrow[col])>0.0?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+		int fps_report_interval = atoi(dbrow[col]); col++;
+		int ref_blend_perc = atoi(dbrow[col]); col++;
+		int track_motion = atoi(dbrow[col]); col++;
 
 		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
 		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
 		Camera *camera = new LocalCamera(
-			dbrow[4], // Device
-			atoi(dbrow[5]), // Channel
-			atoi(dbrow[6]), // Format
+			device, // Device
+			channel, // Channel
+			format, // Format
 			cam_width,
 			cam_height,
 			palette,
@@ -1232,32 +1531,33 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 		);
 
 		monitors[i] = new Monitor(
-			atoi(dbrow[0]), // Id
-			dbrow[1], // Name
-			atoi(dbrow[2]), // Function
-			atoi(dbrow[3]), // Enabled
+			id,
+			name,
+			function,
+			enabled,
+			linked_monitors,
 			camera,
 			orientation,
-			dbrow[15], // EventPrefix
-			dbrow[16], // LabelFormat
-			Coord( atoi(dbrow[17]), atoi(dbrow[18]) ), // LabelX, LabelY
-			atoi(dbrow[19]), // ImageBufferCount
-			atoi(dbrow[20]), // WarmupCount
-			atoi(dbrow[21]), // PreEventCount
-			atoi(dbrow[22]), // PostEventCount
-			atoi(dbrow[23]), // AlarmFrameCount
-			atoi(dbrow[24]), // SectionLength
-			atoi(dbrow[25]), // FrameSkip
-			atof(dbrow[26])>0.0?int(DT_PREC_3/atof(dbrow[26])):0, // MaxFPS
-			atoi(dbrow[27]), // FPSReportInterval
-			atoi(dbrow[28]), // RefBlendPerc
-			atoi(dbrow[29]), // TrackMotion
+			event_prefix,
+			label_format,
+			Coord( label_x, label_y ),
+			image_buffer_count,
+			warmup_count,
+			pre_event_count,
+			post_event_count,
+			alarm_frame_count,
+			section_length,
+			frame_skip,
+			capture_delay,
+			fps_report_interval,
+			ref_blend_perc,
+			track_motion,
 			purpose
 		);
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
-		Debug( 1, ( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
+		Debug( 1, ( "Loaded monitor %d(%s), %d zones", id, name, n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -1275,11 +1575,11 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 	static char sql[BUFSIZ];
 	if ( !host )
 	{
-		strncpy( sql, "select Id, Name, Function+0, Enabled, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
+		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
 	}
 	else
 	{
-		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1299,22 +1599,52 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		int width = atoi(dbrow[7]);
-		int height = atoi(dbrow[8]);
-		int palette = atoi(dbrow[9]);
-		Orientation orientation = (Orientation)atoi(dbrow[10]);
-		int brightness = atoi(dbrow[11]);
-		int contrast = atoi(dbrow[12]);
-		int hue = atoi(dbrow[13]);
-		int colour = atoi(dbrow[14]);
+		int col = 0;
+
+		int id = atoi(dbrow[col]); col++;
+		const char *name = dbrow[col]; col++;
+		int function = atoi(dbrow[col]); col++;
+		int enabled = atoi(dbrow[col]); col++;
+		const char *linked_monitors = dbrow[col]; col++;
+
+		const char *host = dbrow[col]; col++;
+		const char *port = dbrow[col]; col++;
+		const char *path = dbrow[col]; col++;
+
+		int width = atoi(dbrow[col]); col++;
+		int height = atoi(dbrow[col]); col++;
+		int palette = atoi(dbrow[col]); col++;
+		Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
+		int brightness = atoi(dbrow[col]); col++;
+		int contrast = atoi(dbrow[col]); col++;
+		int hue = atoi(dbrow[col]); col++;
+		int colour = atoi(dbrow[col]); col++;
+
+		const char *event_prefix = dbrow[col]; col++;
+		const char *label_format = dbrow[col]; col++;
+
+		int label_x = atoi(dbrow[col]); col++;
+		int label_y = atoi(dbrow[col]); col++;
+
+		int image_buffer_count = atoi(dbrow[col]); col++;
+		int warmup_count = atoi(dbrow[col]); col++;
+		int pre_event_count = atoi(dbrow[col]); col++;
+		int post_event_count = atoi(dbrow[col]); col++;
+		int alarm_frame_count = atoi(dbrow[col]); col++;
+		int section_length = atoi(dbrow[col]); col++;
+		int frame_skip = atoi(dbrow[col]); col++;
+		int capture_delay = atof(dbrow[col])>0.0?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+		int fps_report_interval = atoi(dbrow[col]); col++;
+		int ref_blend_perc = atoi(dbrow[col]); col++;
+		int track_motion = atoi(dbrow[col]); col++;
 
 		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
 		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
 		Camera *camera = new RemoteCamera(
-			dbrow[4], // Host
-			dbrow[5], // Port
-			dbrow[6], // Path
+			host, // Host
+			port, // Port
+			path, // Path
 			cam_width,
 			cam_height,
 			palette,
@@ -1326,32 +1656,33 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 		);
 
 		monitors[i] = new Monitor(
-			atoi(dbrow[0]), // Id
-			dbrow[1], // Name
-			atoi(dbrow[2]), // Function
-			atoi(dbrow[3]), // Enabled
+			id,
+			name,
+			function,
+			enabled,
+			linked_monitors,
 			camera,
-			atoi(dbrow[10]), // Orientation
-			dbrow[15], // EventPrefix
-			dbrow[16], // LabelFormat
-			Coord( atoi(dbrow[17]), atoi(dbrow[18]) ), // LabelX, LabelY
-			atoi(dbrow[19]), // ImageBufferCount
-			atoi(dbrow[20]), // WarmupCount
-			atoi(dbrow[21]), // PreEventCount
-			atoi(dbrow[22]), // PostEventCount
-			atoi(dbrow[23]), // AlarmFrameCount
-			atoi(dbrow[24]), // SectionLength
-			atoi(dbrow[25]), // FrameSkip
-			atof(dbrow[26])>0.0?int(DT_PREC_3/atof(dbrow[26])):0, // MaxFPS
-			atoi(dbrow[27]), // FPSReportInterval
-			atoi(dbrow[28]), // RefBlendPerc
-			atoi(dbrow[29]), // TrackMotion
+			orientation,
+			event_prefix,
+			label_format,
+			Coord( label_x, label_y ),
+			image_buffer_count,
+			warmup_count,
+			pre_event_count,
+			post_event_count,
+			alarm_frame_count,
+			section_length,
+			frame_skip,
+			capture_delay,
+			fps_report_interval,
+			ref_blend_perc,
+			track_motion,
 			purpose
 		);
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
-		Debug( 1, ( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
+		Debug( 1, ( "Loaded monitor %d(%s), %d zones", id, name, n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -1369,11 +1700,11 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 	static char sql[BUFSIZ];
 	if ( !file[0] )
 	{
-		strncpy( sql, "select Id, Name, Function+0, Enabled, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
+		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
 	}
 	else
 	{
-		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1393,20 +1724,48 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		int width = atoi(dbrow[5]);
-		int height = atoi(dbrow[6]);
-		int palette = atoi(dbrow[7]);
-		Orientation orientation = (Orientation)atoi(dbrow[8]);
-		int brightness = atoi(dbrow[9]);
-		int contrast = atoi(dbrow[10]);
-		int hue = atoi(dbrow[11]);
-		int colour = atoi(dbrow[12]);
+		int col = 0;
+
+		int id = atoi(dbrow[col]); col++;
+		const char *name = dbrow[col]; col++;
+		int function = atoi(dbrow[col]); col++;
+		int enabled = atoi(dbrow[col]); col++;
+		const char *linked_monitors = dbrow[col]; col++;
+
+		const char *path = dbrow[col]; col++;
+
+		int width = atoi(dbrow[col]); col++;
+		int height = atoi(dbrow[col]); col++;
+		int palette = atoi(dbrow[col]); col++;
+		Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
+		int brightness = atoi(dbrow[col]); col++;
+		int contrast = atoi(dbrow[col]); col++;
+		int hue = atoi(dbrow[col]); col++;
+		int colour = atoi(dbrow[col]); col++;
+
+		const char *event_prefix = dbrow[col]; col++;
+		const char *label_format = dbrow[col]; col++;
+
+		int label_x = atoi(dbrow[col]); col++;
+		int label_y = atoi(dbrow[col]); col++;
+
+		int image_buffer_count = atoi(dbrow[col]); col++;
+		int warmup_count = atoi(dbrow[col]); col++;
+		int pre_event_count = atoi(dbrow[col]); col++;
+		int post_event_count = atoi(dbrow[col]); col++;
+		int alarm_frame_count = atoi(dbrow[col]); col++;
+		int section_length = atoi(dbrow[col]); col++;
+		int frame_skip = atoi(dbrow[col]); col++;
+		int capture_delay = atof(dbrow[col])>0.0?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+		int fps_report_interval = atoi(dbrow[col]); col++;
+		int ref_blend_perc = atoi(dbrow[col]); col++;
+		int track_motion = atoi(dbrow[col]); col++;
 
 		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
 		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
 		Camera *camera = new FileCamera(
-			dbrow[4], // File
+			path, // File
 			cam_width,
 			cam_height,
 			palette,
@@ -1418,32 +1777,33 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 		);
 
 		monitors[i] = new Monitor(
-			atoi(dbrow[0]), // Id
-			dbrow[1], // Name
-			atoi(dbrow[2]), // Function
-			atoi(dbrow[3]), // Enabled
+			id,
+			name,
+			function,
+			enabled,
+			linked_monitors,
 			camera,
-			atoi(dbrow[8]), // Orientation
-			dbrow[13], // EventPrefix
-			dbrow[14], // LabelFormat
-			Coord( atoi(dbrow[15]), atoi(dbrow[16]) ), // LabelX, LabelY
-			atoi(dbrow[17]), // ImageBufferCount
-			atoi(dbrow[18]), // WarmupCount
-			atoi(dbrow[19]), // PreEventCount
-			atoi(dbrow[20]), // PostEventCount
-			atoi(dbrow[21]), // AlarmFrameCount
-			atoi(dbrow[22]), // SectionLength
-			atoi(dbrow[23]), // FrameSkip
-			atof(dbrow[24])>0.0?int(DT_PREC_3/atof(dbrow[24])):0, // MaxFPS
-			atoi(dbrow[25]), // FPSReportInterval
-			atoi(dbrow[26]), // RefBlendPerc
-			atoi(dbrow[27]), // TrackMotion
+			orientation,
+			event_prefix,
+			label_format,
+			Coord( label_x, label_y ),
+			image_buffer_count,
+			warmup_count,
+			pre_event_count,
+			post_event_count,
+			alarm_frame_count,
+			section_length,
+			frame_skip,
+			capture_delay,
+			fps_report_interval,
+			ref_blend_perc,
+			track_motion,
 			purpose
 		);
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
-		Debug( 1, ( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
+		Debug( 1, ( "Loaded monitor %d(%s), %d zones", id, name, n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -1459,7 +1819,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
 	static char sql[BUFSIZ];
-	snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Id = %d", id );
+	snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -1477,25 +1837,60 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 	Monitor *monitor = 0;
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		int width = atoi(dbrow[11]);
-		int height = atoi(dbrow[12]);
-		int palette = atoi(dbrow[13]);
-		Orientation orientation = (Orientation)atoi(dbrow[14]);
-		int brightness = atoi(dbrow[15]);
-		int contrast = atoi(dbrow[16]);
-		int hue = atoi(dbrow[17]);
-		int colour = atoi(dbrow[18]);
+		int col = 0;
+
+		int id = atoi(dbrow[col]); col++;
+		const char *name = dbrow[col]; col++;
+		const char *type = dbrow[col]; col++;
+		int function = atoi(dbrow[col]); col++;
+		int enabled = atoi(dbrow[col]); col++;
+		const char *linked_monitors = dbrow[col]; col++;
+
+		const char *device = dbrow[col]; col++;
+		int channel = atoi(dbrow[col]); col++;
+		int format = atoi(dbrow[col]); col++;
+
+		const char *host = dbrow[col]; col++;
+		const char *port = dbrow[col]; col++;
+		const char *path = dbrow[col]; col++;
+
+		int width = atoi(dbrow[col]); col++;
+		int height = atoi(dbrow[col]); col++;
+		int palette = atoi(dbrow[col]); col++;
+		Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
+		int brightness = atoi(dbrow[col]); col++;
+		int contrast = atoi(dbrow[col]); col++;
+		int hue = atoi(dbrow[col]); col++;
+		int colour = atoi(dbrow[col]); col++;
+
+		const char *event_prefix = dbrow[col]; col++;
+		const char *label_format = dbrow[col]; col++;
+
+		int label_x = atoi(dbrow[col]); col++;
+		int label_y = atoi(dbrow[col]); col++;
+
+		int image_buffer_count = atoi(dbrow[col]); col++;
+		int warmup_count = atoi(dbrow[col]); col++;
+		int pre_event_count = atoi(dbrow[col]); col++;
+		int post_event_count = atoi(dbrow[col]); col++;
+		int alarm_frame_count = atoi(dbrow[col]); col++;
+		int section_length = atoi(dbrow[col]); col++;
+		int frame_skip = atoi(dbrow[col]); col++;
+		int capture_delay = atof(dbrow[col])>0.0?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+		int fps_report_interval = atoi(dbrow[col]); col++;
+		int ref_blend_perc = atoi(dbrow[col]); col++;
+		int track_motion = atoi(dbrow[col]); col++;
 
 		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
 		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
 		Camera *camera = 0;
-		if ( !strcmp( dbrow[2], "Local" ) )
+		if ( !strcmp( type, "Local" ) )
 		{
 			camera = new LocalCamera(
-				dbrow[5], // Device
-				atoi(dbrow[6]), // Channel
-				atoi(dbrow[7]), // Format
+				device, // Device
+				channel, // Channel
+				format, // Format
 				cam_width,
 				cam_height,
 				palette,
@@ -1506,12 +1901,12 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 				purpose==CAPTURE
 			);
 		}
-		else if ( !strcmp( dbrow[2], "Remote" ) )
+		else if ( !strcmp( type, "Remote" ) )
 		{
 			camera = new RemoteCamera(
-				dbrow[8], // Host
-				dbrow[9], // Port
-				dbrow[10], // Path
+				host, // Host
+				port, // Port
+				path, // Path
 				cam_width,
 				cam_height,
 				palette,
@@ -1522,10 +1917,10 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 				purpose==CAPTURE
 			);
 		}
-		else if ( !strcmp( dbrow[2], "File" ) )
+		else if ( !strcmp( type, "File" ) )
 		{
 			camera = new FileCamera(
-				dbrow[10], // Path
+				path, // Path
 				cam_width,
 				cam_height,
 				palette,
@@ -1538,30 +1933,31 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 		}
 		else
 		{
-			Error(( "Bogus monitor type '%s' for monitor %d", dbrow[2], atoi(dbrow[0]) ));
+			Error(( "Bogus monitor type '%s' for monitor %d", type, id ));
 			exit( -1 );
 		}
 		monitor = new Monitor(
-			atoi(dbrow[0]), // Id
-			dbrow[1], // Name
-			atoi(dbrow[3]), // Function
-			atoi(dbrow[4]), // Enabled
+			id,
+			name,
+			function,
+			enabled,
+			linked_monitors,
 			camera,
 			orientation,
-			dbrow[19], // EventPrefix
-			dbrow[20], // LabelFormat
-			Coord( atoi(dbrow[21]), atoi(dbrow[22]) ), // LabelX, LabelY
-			atoi(dbrow[23]), // ImageBufferCount
-			atoi(dbrow[24]), // WarmupCount
-			atoi(dbrow[25]), // PreEventCount
-			atoi(dbrow[26]), // PostEventCount
-			atoi(dbrow[27]), // AlarmFrameCount
-			atoi(dbrow[28]), // SectionLength
-			atoi(dbrow[29]), // FrameSkip
-			atof(dbrow[30])>0.0?int(DT_PREC_3/atof(dbrow[30])):0, // MaxFPS
-			atoi(dbrow[31]), // FPSReportInterval
-			atoi(dbrow[32]), // RefBlendPerc
-			atoi(dbrow[33]), // TrackMotion
+			event_prefix,
+			label_format,
+			Coord( label_x, label_y ),
+			image_buffer_count,
+			warmup_count,
+			pre_event_count,
+			post_event_count,
+			alarm_frame_count,
+			section_length,
+			frame_skip,
+			capture_delay,
+			fps_report_interval,
+			ref_blend_perc,
+			track_motion,
 			purpose
 		);
 
@@ -1572,7 +1968,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 			n_zones = Zone::Load( monitor, zones );
 			monitor->AddZones( n_zones, zones );
 		}
-		Debug( 1, ( "Loaded monitor %d(%s), %d zones", atoi(dbrow[0]), dbrow[1], n_zones ));
+		Debug( 1, ( "Loaded monitor %d(%s), %d zones", id, name, n_zones ));
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -2349,3 +2745,4 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	}
 	return( true );
 }
+

@@ -304,7 +304,7 @@ public:
 	}
 	int PostCapture();
 
-	unsigned int Compare( const Image &comp_image );
+	unsigned int DetectMotion( const Image &comp_image, char *text_ptr=0, size_t text_size=0 );
 	bool CheckSignal( const Image *image );
 	bool Analyse();
 	void DumpImage( Image *dump_image ) const;

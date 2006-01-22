@@ -376,8 +376,6 @@ Monitor::~Monitor()
 
 	delete camera;
 
-	delete[] name;
-
 	if ( purpose == ANALYSIS )
 	{
 		shared_data->state = state = IDLE;
@@ -952,54 +950,88 @@ bool Monitor::Analyse()
 			unsigned int score = 0;
 			if ( Ready() )
 			{
-				const char *cause = "Undefined";
-				const char *text = "";
+				static char cause[256];
+				static char text[1024];
+
+				char *cause_ptr = cause;
+				char *text_ptr = text;
+
+				*cause_ptr = '\0';
+				*text_ptr = '\0';
 
 				//Info(( "St:%d, Sc:%d, Ca:%s, Te:%s", trigger_data->trigger_state, trigger_data->trigger_score, trigger_data->trigger_cause, trigger_data->trigger_text ));
+				if ( trigger_data->trigger_state == TRIGGER_ON )
+				{
+					score += trigger_data->trigger_score;
+					if ( !event )
+					{
+						cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", trigger_data->trigger_cause );
+						text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%s%s", text[0]?"\n":"", trigger_data->trigger_text );
+					}
+				}
 				if ( signal_change )
 				{
-					score = 100;
-					cause = "Signal";
+					score += 100;
+					const char *signal_text;
 					if ( !signal )
-						text = "Signal Lost";
+						signal_text = "Signal: Lost";
 					else
-						text = "Signal Reacquired";
-					Warning(( text ));
+						signal_text = "Signal: Reacquired";
+					Warning(( signal_text ));
 					if ( event )
 					{
 						closeEvent();
 						shared_data->state = state = IDLE;
 						last_section_mod = 0;
 					}
+					if ( !event )
+					{
+						cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", "Signal" );
+						text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%s%s", text[0]?"\n":"", signal_text );
+					}
 					shared_data->active = signal;
 					ref_image = *snap_image;
 				}
-				else if ( trigger_data->trigger_state == TRIGGER_ON )
+				else if ( Active() && function != RECORD && function != NODECT )
 				{
-					score = trigger_data->trigger_score;
-					cause = trigger_data->trigger_cause;
-					text = trigger_data->trigger_text;
+					if ( !event )
+					{
+						char motion_text[256];
+						int motion_score = DetectMotion( *snap_image, motion_text, sizeof(motion_text) );
+						if ( motion_score )
+						{
+							score += motion_score;
+							cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", "Motion" );
+							text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%sZone: %s", text[0]?"\n":"", motion_text );
+						}
+					}
+					else
+					{
+						score += DetectMotion( *snap_image );
+					}
+					shared_data->active = signal;
 				}
-				else if ( n_linked_monitors > 0 )
+				if ( n_linked_monitors > 0 )
 				{
-					char link_text[1024] = "";
-					char *text_ptr = link_text;
-					*text_ptr = '\0';
-					
+					bool first_link = true;
 					for ( int i = 0; i < n_linked_monitors; i++ )
 					{
 						if ( linked_monitors[i]->isConnected() )
 						{
 							if ( linked_monitors[i]->hasAlarmed() )
 							{
-								if ( !score )
+								if ( !event )
 								{
-									cause = "Linked Monitor";
-									text_ptr += snprintf( text_ptr, sizeof(link_text)-(text_ptr-link_text), "Monitor: %s", linked_monitors[i]->Name() );
-								}
-								else
-								{
-									text_ptr += snprintf( text_ptr, sizeof(link_text)-(text_ptr-link_text), ", %s", linked_monitors[i]->Name() );
+									if ( first_link )
+									{
+										cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", "Linked Monitor" );
+										text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%sMonitor: %s", text[0]?"\n":"", linked_monitors[i]->Name() );
+										first_link = false;
+									}
+									else
+									{
+										text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), ", %s", linked_monitors[i]->Name() );
+									}
 								}
 								score += 50;
 							}
@@ -1009,12 +1041,6 @@ bool Monitor::Analyse()
 							linked_monitors[i]->connect();
 						}
 					}
-					text = link_text;
-				}
-				else if ( Active() && function != RECORD && function != NODECT )
-				{
-					score = Compare( *snap_image );
-					cause = "Motion";
 				}
 				if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) )
 				{
@@ -2529,10 +2555,11 @@ bool Monitor::closeEvent()
 	return( false );
 }
 
-unsigned int Monitor::Compare( const Image &comp_image )
+unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, size_t text_size )
 {
 	bool alarm = false;
 	unsigned int score = 0;
+	char *orig_text_ptr = text_ptr;
 
 	if ( n_zones <= 0 ) return( alarm );
 
@@ -2585,6 +2612,8 @@ unsigned int Monitor::Compare( const Image &comp_image )
 			alarm = true;
 			score += zone->Score();
 			Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+			if ( text_ptr )
+				text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
 			//zone->ResetStats();
 		}
 	}
@@ -2614,6 +2643,8 @@ unsigned int Monitor::Compare( const Image &comp_image )
 				score += zone->Score();
 				zone->SetAlarm();
 				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+				if ( text_ptr )
+					text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
 				if ( config.opt_control && track_motion )
 				{
 					if ( (int)zone->Score() > top_score )
@@ -2641,6 +2672,8 @@ unsigned int Monitor::Compare( const Image &comp_image )
 					score += zone->Score();
 					zone->SetAlarm();
 					Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+					if ( text_ptr )
+						text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
 					if ( config.opt_control && track_motion )
 					{
 						if ( zone->Score() > top_score )
@@ -2669,6 +2702,8 @@ unsigned int Monitor::Compare( const Image &comp_image )
 					score += zone->Score();
 					zone->SetAlarm();
 					Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+					if ( text_ptr )
+						text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
 				}
 			}
 		}
@@ -2732,7 +2767,7 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	sprintf( output+strlen(output), "Track Motion : %d\n", track_motion );
 	sprintf( output+strlen(output), "Function: %d - %s\n", function,
 		function==NONE?"None":(
-		function==MONITOR?"Monitor":(
+		function==MONITOR?"Monitor Only":(
 		function==MODECT?"Motion Detection":(
 		function==RECORD?"Continuous Record":(
 		function==MOCORD?"Continuous Record with Motion Detection":(

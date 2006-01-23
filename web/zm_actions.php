@@ -18,9 +18,11 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( isset($action) )
+if ( !empty($action) )
 {
 	//phpinfo( INFO_VARIABLES );
+
+	// General scope actions
 	if ( $action == "login" && $username && ( ZM_AUTH_TYPE == "remote" || $password ) )
 	{
 		userLogin( $username, $password );
@@ -38,6 +40,80 @@ if ( isset($action) )
 		$refresh_parent = true;
 		$view = 'none';
 	}
+
+	// Event scope actions, view permissions only required
+	if ( canView( 'Events' ) )
+	{
+		if ( $action == "addterm" )
+		{
+			for ( $i = $trms; $i > $subaction; $i-- )
+			{
+				$conjunction_name1 = "cnj".($i+1);
+				$obracket_name1 = "obr".($i+1);
+				$cbracket_name1 = "cbr".($i+1);
+				$attr_name1 = "attr".($i+1);
+				$op_name1 = "op".($i+1);
+				$value_name1 = "val".($i+1);
+
+				$conjunction_name2 = "cnj$i";
+				$obracket_name2 = "obr$i";
+				$cbracket_name2 = "cbr$i";
+				$attr_name2 = "attr$i";
+				$op_name2 = "op$i";
+				$value_name2 = "val$i";
+
+				$$conjunction_name1 = $$conjunction_name2;
+				$$obracket_name1 = $$obracket_name2;
+				$$cbracket_name1 = $$cbracket_name2;
+				$$attr_name1 = $$attr_name2;
+				$$op_name1 = $$op_name2;
+				$$value_name1 = $$value_name2;
+			}
+			$$conjunction_name2 = false;
+			$$obracket_name2 = false;
+			$$cbracket_name2 = false;
+			$$attr_name2 = false;
+			$$op_name2 = false;
+			$$value_name2 = false;
+
+			$trms++;
+		}
+		elseif ( $action == "delterm" )
+		{
+			$trms--;
+			for ( $i = $subaction; $i <= $trms; $i++ )
+			{
+				$conjunction_name1 = "cnj$i";
+				$obracket_name1 = "obr$i";
+				$cbracket_name1 = "cbr$i";
+				$attr_name1 = "attr$i";
+				$op_name1 = "op$i";
+				$value_name1 = "val$i";
+
+				$conjunction_name2 = "cnj".($i+1);
+				$obracket_name2 = "obr".($i+1);
+				$cbracket_name2 = "cbr".($i+1);
+				$attr_name2 = "attr".($i+1);
+				$op_name2 = "op".($i+1);
+				$value_name2 = "val".($i+1);
+
+				$$conjunction_name1 = $$conjunction_name2;
+				$$obracket_name1 = $$obracket_name2;
+				$$cbracket_name1 = $$cbracket_name2;
+				$$attr_name1 = $$attr_name2;
+				$$op_name1 = $$op_name2;
+				$$value_name1 = $$value_name2;
+			}
+			$$conjunction_name2 = false;
+			$$obracket_name2 = false;
+			$$cbracket_name2 = false;
+			$$attr_name2 = false;
+			$$op_name2 = false;
+			$$value_name2 = false;
+		}
+	}
+
+	// Event scope actions, edit permissions required
 	if ( canEdit( 'Events' ) )
 	{
 		if ( $action == "rename" && $event_name && $eid )
@@ -130,73 +206,6 @@ if ( isset($action) )
 				$refresh_parent = true;
 			}
 		}
-		elseif ( $action == "addterm" )
-		{
-			for ( $i = $trms; $i > $subaction; $i-- )
-			{
-				$conjunction_name1 = "cnj".($i+1);
-				$obracket_name1 = "obr".($i+1);
-				$cbracket_name1 = "cbr".($i+1);
-				$attr_name1 = "attr".($i+1);
-				$op_name1 = "op".($i+1);
-				$value_name1 = "val".($i+1);
-
-				$conjunction_name2 = "cnj$i";
-				$obracket_name2 = "obr$i";
-				$cbracket_name2 = "cbr$i";
-				$attr_name2 = "attr$i";
-				$op_name2 = "op$i";
-				$value_name2 = "val$i";
-
-				$$conjunction_name1 = $$conjunction_name2;
-				$$obracket_name1 = $$obracket_name2;
-				$$cbracket_name1 = $$cbracket_name2;
-				$$attr_name1 = $$attr_name2;
-				$$op_name1 = $$op_name2;
-				$$value_name1 = $$value_name2;
-			}
-			$$conjunction_name2 = false;
-			$$obracket_name2 = false;
-			$$cbracket_name2 = false;
-			$$attr_name2 = false;
-			$$op_name2 = false;
-			$$value_name2 = false;
-
-			$trms++;
-		}
-		elseif ( $action == "delterm" )
-		{
-			$trms--;
-			for ( $i = $subaction; $i <= $trms; $i++ )
-			{
-				$conjunction_name1 = "cnj$i";
-				$obracket_name1 = "obr$i";
-				$cbracket_name1 = "cbr$i";
-				$attr_name1 = "attr$i";
-				$op_name1 = "op$i";
-				$value_name1 = "val$i";
-
-				$conjunction_name2 = "cnj".($i+1);
-				$obracket_name2 = "obr".($i+1);
-				$cbracket_name2 = "cbr".($i+1);
-				$attr_name2 = "attr".($i+1);
-				$op_name2 = "op".($i+1);
-				$value_name2 = "val".($i+1);
-
-				$$conjunction_name1 = $$conjunction_name2;
-				$$obracket_name1 = $$obracket_name2;
-				$$cbracket_name1 = $$cbracket_name2;
-				$$attr_name1 = $$attr_name2;
-				$$op_name1 = $$op_name2;
-				$$value_name1 = $$value_name2;
-			}
-			$$conjunction_name2 = false;
-			$$obracket_name2 = false;
-			$$cbracket_name2 = false;
-			$$attr_name2 = false;
-			$$op_name2 = false;
-			$$value_name2 = false;
-		}
 		elseif ( $action == "delete" )
 		{
 			if ( !$mark_eids && $mark_eid )
@@ -218,9 +227,11 @@ if ( isset($action) )
 			}
 		}
 	}
-	if ( isset($mid) && canView( 'Control', $mid ) )
+
+	// Monitor control actions, require a monitor id and control view permissions for that monitor
+	if ( !empty($mid) && canView( 'Control', $mid ) )
 	{
-		if ( $action == "control" && isset( $mid ) )
+		if ( $action == "control" )
 		{
 			$result = mysql_query( "select * from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'" );
 			if ( !$result )
@@ -914,7 +925,7 @@ if ( isset($action) )
 				//echo $ctrl_output;
 			}
 		}
-		elseif ( $action == "settings" && isset( $mid ) )
+		elseif ( $action == "settings" )
 		{
 			$zmu_command = getZmuCommand( " -m $mid -B$new_brightness -C$new_contrast -H$new_hue -O$new_colour" );
 			$zmu_output = exec( escapeshellcmd( $zmu_command ) );
@@ -925,11 +936,13 @@ if ( isset($action) )
 				die( mysql_error() );
 		}
 	}
-	if ( isset($mid) && canEdit( 'Control' ) )
+
+	// Control capability actions, require control edit permissions
+	if ( canEdit( 'Control' ) )
 	{
-		if ( $action == "controlcap" && isset( $cid ) )
+		if ( $action == "controlcap" )
 		{
-			if ( $cid > 0 )
+			if ( !empty($cid) )
 			{
 				$result = mysql_query( "select * from Controls where Id = '$cid'" );
 				if ( !$result )
@@ -959,7 +972,7 @@ if ( isset($action) )
 
 			if ( count( $changes ) )
 			{
-				if ( $cid > 0 )
+				if ( !empty($cid) )
 				{
 					simpleQuery( "update Controls set ".implode( ", ", $changes )." where Id = '$cid'" );
 					$refresh_parent = true;
@@ -989,9 +1002,11 @@ if ( isset($action) )
 			}
 		}
 	}
-	if ( isset($mid) && canEdit( 'Monitors', $mid ) )
+
+	// Monitor edit actions, require a monitor id and edit permissions for that monitor
+	if ( !empty($mid) && canEdit( 'Monitors', $mid ) )
 	{
-		if ( $action == "function" && isset( $mid ) )
+		if ( $action == "function" )
 		{
 			$sql = "select * from Monitors where Id = '$mid'";
 			$result = mysql_query( $sql );
@@ -1017,7 +1032,7 @@ if ( isset($action) )
 				$refresh_parent = true;
 			}
 		}
-		elseif ( $action == "zone" && isset( $mid ) && isset( $zid ) )
+		elseif ( $action == "zone" && !empty( $zid ) )
 		{
 			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 			if ( !$result )
@@ -1079,9 +1094,62 @@ if ( isset($action) )
 			}
 			$view = 'none';
 		}
-		elseif ( $action == "monitor" && isset( $mid ) )
+		elseif ( $action == "sequence" && isset($smid) )
 		{
-			if ( $mid > 0 )
+			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$monitor = mysql_fetch_assoc( $result );
+			mysql_free_result( $result );
+			$result = mysql_query( "select * from Monitors where Id = '$smid'" );
+			if ( !$result )
+				die( mysql_error() );
+			$smonitor = mysql_fetch_assoc( $result );
+			mysql_free_result( $result );
+
+			$sql = "update Monitors set Sequence = '".$smonitor['Sequence']."' where Id = '".$monitor['Id']."'";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				die( mysql_error() );
+			$sql = "update Monitors set Sequence = '".$monitor['Sequence']."' where Id = '".$smonitor['Id']."'";
+			$result = mysql_query( $sql );
+			if ( !$result )
+				die( mysql_error() );
+
+			$refresh_parent = true;
+			fixSequences();
+		}
+		if ( $action == "delete" )
+		{
+			if ( $mark_zids )
+			{
+				$deleted_zid = 0;
+				foreach( $mark_zids as $mark_zid )
+				{
+					$result = mysql_query( "delete from Zones where MonitorId = '$mid' && Id = '$mark_zid'" );
+					if ( !$result )
+						die( mysql_error() );
+					$deleted_zid = 1;
+				}
+				if ( $deleted_zid )
+				{
+					if ( $cookies ) session_write_close();
+					if ( daemonCheck() )
+					{
+						zmaControl( $mid, "restart" );
+					}
+					$refresh_parent = true;
+				}
+			}
+		}
+	}
+
+	// Monitor edit actions, monitor id derived, require edit permissions for that monitor
+	if ( canEdit( 'Monitors' ) )
+	{
+		if ( $action == "monitor" )
+		{
+			if ( !empty($mid) )
 			{
 				$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 				if ( !$result )
@@ -1122,7 +1190,7 @@ if ( isset($action) )
 
 			if ( count( $changes ) )
 			{
-				if ( $mid > 0 )
+				if ( !empty($mid) )
 				{
 					simpleQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
 					if ( $changes['Name'] )
@@ -1256,103 +1324,66 @@ if ( isset($action) )
 				$refresh_parent = true;
 			}
 		}
-		elseif ( $action == "sequence" && isset( $mid ) && isset($smid) )
+		if ( $action == "delete" )
 		{
-			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$monitor = mysql_fetch_assoc( $result );
-			mysql_free_result( $result );
-			$result = mysql_query( "select * from Monitors where Id = '$smid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$smonitor = mysql_fetch_assoc( $result );
-			mysql_free_result( $result );
-
-			$sql = "update Monitors set Sequence = '".$smonitor['Sequence']."' where Id = '".$monitor['Id']."'";
-			$result = mysql_query( $sql );
-			if ( !$result )
-				die( mysql_error() );
-			$sql = "update Monitors set Sequence = '".$monitor['Sequence']."' where Id = '".$smonitor['Id']."'";
-			$result = mysql_query( $sql );
-			if ( !$result )
-				die( mysql_error() );
-
-			$refresh_parent = true;
-			fixSequences();
-		}
-		elseif ( $action == "delete" )
-		{
-			if ( $mark_zids )
-			{
-				$deleted_zid = 0;
-				foreach( $mark_zids as $mark_zid )
-				{
-					$result = mysql_query( "delete from Zones where Id = '$mark_zid'" );
-					if ( !$result )
-						die( mysql_error() );
-					$deleted_zid = 1;
-				}
-				if ( $deleted_zid )
-				{
-					if ( $cookies ) session_write_close();
-					if ( daemonCheck() )
-					{
-						zmaControl( $mid, "restart" );
-					}
-					$refresh_parent = true;
-				}
-			}
 			if ( $mark_mids && !$user['MonitorIds'] )
 			{
 				foreach( $mark_mids as $mark_mid )
 				{
-					$sql = "select * from Monitors where Id = '$mark_mid'";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
-					if ( !($monitor = mysql_fetch_assoc( $result )) )
+					if ( canEdit( 'Monitors', $mark_mid ) )
 					{
-						continue;
-					}
-					mysql_free_result( $result );
+						zmaControl( $monitor, "stop" );
+						zmcControl( $monitor, "stop" );
 
-					$sql = "select Id from Events where MonitorId = '$mark_mid'";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
-
-					$mark_eids = array();
-					while( $row = mysql_fetch_assoc( $result ) )
-					{
-						$mark_eids[] = $row['Id'];
-					}
-					mysql_free_result( $result );
-					foreach( $mark_eids as $mark_eid )
-					{
-						deleteEvent( $mark_eid );
-					}
-					unlink( ZM_DIR_EVENTS."/".$monitor['Name'] );
-					system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Id'] );
-
-					$result = mysql_query( "delete from Zones where MonitorId = '$mark_mid'" );
-					if ( !$result )
-						die( mysql_error() );
-					if ( ZM_OPT_X10 )
-					{
-						$result = mysql_query( "delete from TriggersX10 where MonitorId = '$mark_mid'" );
+						$sql = "select * from Monitors where Id = '$mark_mid'";
+						$result = mysql_query( $sql );
 						if ( !$result )
 							die( mysql_error() );
-					}
-					$result = mysql_query( "delete from Monitors where Id = '$mark_mid'" );
-					if ( !$result )
-						die( mysql_error() );
+						if ( !($monitor = mysql_fetch_assoc( $result )) )
+						{
+							continue;
+						}
+						mysql_free_result( $result );
 
-					fixSequences();
+						$sql = "select Id from Events where MonitorId = '$mark_mid'";
+						$result = mysql_query( $sql );
+						if ( !$result )
+							die( mysql_error() );
+
+						$mark_eids = array();
+						while( $row = mysql_fetch_assoc( $result ) )
+						{
+							$mark_eids[] = $row['Id'];
+						}
+						mysql_free_result( $result );
+						foreach( $mark_eids as $mark_eid )
+						{
+							deleteEvent( $mark_eid );
+						}
+						unlink( ZM_DIR_EVENTS."/".$monitor['Name'] );
+						system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Id'] );
+
+						$result = mysql_query( "delete from Zones where MonitorId = '$mark_mid'" );
+						if ( !$result )
+							die( mysql_error() );
+						if ( ZM_OPT_X10 )
+						{
+							$result = mysql_query( "delete from TriggersX10 where MonitorId = '$mark_mid'" );
+							if ( !$result )
+								die( mysql_error() );
+						}
+						$result = mysql_query( "delete from Monitors where Id = '$mark_mid'" );
+						if ( !$result )
+							die( mysql_error() );
+
+						fixSequences();
+					}
 				}
 			}
 		}
 	}
+
+	// System view actions
 	if ( canView( 'System' ) )
 	{
 		if ( $action == "group" )
@@ -1368,6 +1399,8 @@ if ( isset($action) )
 			$refresh_parent = true;
 		}
 	}
+
+	// System edit actions
 	if ( canEdit( 'System' ) )
 	{
 		if ( $action == "version" && isset($option) )
@@ -1497,17 +1530,19 @@ if ( isset($action) )
 				switch( $tab )
 				{
 					case "system" :
-					case "paths" :
 					case "config" :
-					case "network" :
-					case "x10" :
-					case "mail" :
-					case "ftp" :
-					case "tools" :
+					case "paths" :
 						$restart = true;
 						break;
 					case "web" :
-					case "video" :
+					case "tools" :
+						break;
+					case "debug" :
+					case "network" :
+					case "mail" :
+					case "ftp" :
+						$restart = true;
+						break;
 					case "highband" :
 					case "medband" :
 					case "lowband" :
@@ -1517,9 +1552,9 @@ if ( isset($action) )
 			}
 			loadConfig();
 		}
-		elseif ( $action == "user" && isset( $uid ) )
+		elseif ( $action == "user" )
 		{
-			if ( $uid > 0 )
+			if ( !empty($uid) )
 			{
 				$result = mysql_query( "select * from Users where Id = '$uid'" );
 				if ( !$result )

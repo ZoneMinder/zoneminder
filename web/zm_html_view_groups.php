@@ -18,13 +18,13 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canEdit( 'System' ) )
+if ( !canView( 'System' ) )
 {
 	$view = "error";
 	return;
 }
 
-$result = mysql_query( "select * from Groups order by Id" );
+$result = mysql_query( "select * from Groups order by Name" );
 if ( !$result )
 	die( mysql_error() );
 $groups = array();
@@ -46,45 +46,59 @@ mysql_free_result( $result );
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangGroups ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
+function newWindow(Url,Name,Width,Height)
+{
+	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+}
 function closeWindow()
 {
 	top.window.close();
 }
-function validateForm( form )
+function newGroup()
 {
-	return( true );
+	newWindow( '<?= $PHP_SELF ?>?view=group', 'zmGroup', <?= $jws['group']['w'] ?>, <?= $jws['group']['h'] ?> );
+}
+function editGroup()
+{
+	for ( var i = 0; i < groups_form.gid.length; i++ )
+	{
+		if ( groups_form.gid[i].checked )
+		{
+			newWindow( '<?= $PHP_SELF ?>?view=group&gid='+groups_form.gid[i].value, 'zmGroup', <?= $jws['group']['w'] ?>, <?= $jws['group']['h'] ?> );
+			return;
+		}
+	}
+}
+function deleteGroup()
+{
+	groups_form.view.value='<?= $view ?>';
+	groups_form.action.value='delete';
+	groups_form.submit();
+
 }
 function configureButtons(element)
 {
+<?php
+if ( canEdit('System' ) )
+{
+?>
 	var form = element.form;
 	if ( element.checked )
 	{
+		form.edit_btn.disabled = (element.value == 0);
 		form.delete_btn.disabled = (element.value == 0);
 	}
+<?php
 }
-function monitorIds()
-{
-	var form = opener.document.monitor_form;
-	var monitor_ids = new Array();
-	for ( var i = 0; i < form.elements.length; i++ )
-	{
-		if ( form.elements[i].name.indexOf('mark_mids') == 0)
-		{
-			if ( form.elements[i].checked )
-			{
-				monitor_ids[monitor_ids.length] = form.elements[i].value;
-			}
-		}
-	}
-	return( monitor_ids.join( ',' ) );
+?>
 }
 window.focus();
 </script>
 </head>
 <body>
-<form name="group_form" method="get" action="<?= $PHP_SELF ?>">
+<form name="groups_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="none">
-<input type="hidden" name="action" value="groups">
+<input type="hidden" name="action" value="cgroup">
 <table width="100%" border="0" cellpadding="0" cellspacing="4">
 <tr><td class="smallhead"><?= $zmSlangName ?></td><td class="smallhead"><?= $zmSlangMonitorIds ?></td><td class="smallhead"><?= $zmSlangSelect ?></tr>
 <tr>
@@ -93,28 +107,15 @@ window.focus();
 <td align="center"><input class="form-noborder" type="radio" name="gid" value="0"<?= !$selected?" checked":"" ?> onClick="configureButtons( this );"></td>
 </tr>
 <?php
-if ( count($groups) || $new )
+foreach ( $groups as $group )
 {
-	foreach ( $groups as $group )
-	{
 ?>
 <tr>
 <td align="left" class="text"><input class="form" name="names[<?= $group['Id'] ?>]" value="<?= $group['Name'] ?>" size="20"></td>
-<td align="left" class="text"><input class="form" name="monitor_ids[<?= $group['Id'] ?>]" value="<?= $group['MonitorIds'] ?>" size="40"></td>
+<td align="left" class="text"><input class="form" name="monitor_ids[<?= $group['Id'] ?>]" value="<?= $group['MonitorIds'] ?>" size="40" disabled></td>
 <td align="center"><input class="form-noborder" type="radio" name="gid" value="<?= $group['Id'] ?>"<?= $group['selected']?" checked":"" ?> onClick="configureButtons( this );"></td>
 </tr>
 <?php
-	}
-	if ( $new )
-	{
-?>
-<tr>
-<td align="left" class="text"><input class="form" name="new_name" value="<?= $zmSlangNewGroup ?>" size="20"></td>
-<td align="left" class="text"><input class="form" name="new_monitor_ids" value="<?= $monitor_ids ?>" size="40"></td>
-<td align="center"><input class="form-noborder" type="radio" name="gid" value="<?= $group['Id'] ?>" onClick="configureButtons( this );"></td>
-</tr>
-<?php
-	}
 }
 ?>
 <tr>
@@ -122,10 +123,10 @@ if ( count($groups) || $new )
 </tr>
 <tr>
 <td align="right" colspan="3" class="text">
-<input type="button" name="select_btn" value="<?= $zmSlangApply ?>" class="form" onClick="group_form.action.value='group'; group_form.submit();">&nbsp;&nbsp;
-<input type="button" name="new_btn" value="<?= $zmSlangNew ?>" class="form" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&monitor_ids='+monitorIds()+'&new=1'">&nbsp;&nbsp;
-<input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="group_form.action.value='<?= $view ?>'; group_form.action.value='delete'; group_form.submit();"<?= $selected?"":" disabled" ?>>&nbsp;&nbsp;
-<input type="button" value="<?= $zmSlangSave ?>" class="form" onClick="group_form.submit()">&nbsp;&nbsp;
+<input type="submit" value="<?= $zmSlangApply ?>" class="form" onClick="groups_form.action.value='cgroup'; groups_form.submit();">&nbsp;&nbsp;
+<input type="button" value="<?= $zmSlangNew ?>" class="form" onClick="newGroup()"<?= canEdit('System')?"":" disabled" ?>>&nbsp;&nbsp;
+<input type="button" name="edit_btn" value="<?= $zmSlangEdit ?>" class="form" onClick="editGroup()"<?= $selected&&canEdit('System')?"":" disabled" ?>>&nbsp;&nbsp;
+<input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="deleteGroup()"<?= $selected&&canEdit('System')?"":" disabled" ?>>&nbsp;&nbsp;
 <input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td>
 </tr>
 </table>

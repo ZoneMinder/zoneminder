@@ -145,6 +145,7 @@ switch( $view )
 	case "frame" :
 	case "frames" :
 	case "function" :
+	case "group" :
 	case "groups" :
 	case "login" :
 	case "logout" :

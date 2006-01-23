@@ -1386,7 +1386,7 @@ if ( !empty($action) )
 	// System view actions
 	if ( canView( 'System' ) )
 	{
-		if ( $action == "group" )
+		if ( $action == "cgroup" )
 		{
 			if ( !empty($gid) )
 			{
@@ -1625,20 +1625,18 @@ if ( !empty($action) )
 				simpleQuery( "replace into States set Name = '$run_state', Definition = '$definition'" );
 			}
 		}
-		elseif ( $action == "groups" )
+		elseif ( $action == "group" )
 		{
-			if ( $names )
+			if ( $eid )
 			{
-				foreach ( array_keys( $names ) as $id )
-				{
-					simpleQuery( "update Groups set Name = '".$names[$id]."', MonitorIds = '".$monitor_ids[$id]."' where Id = '$id'" );
-				}
+				simpleQuery( "update Groups set Name = '".addslashes($new_group['Name'])."', MonitorIds = '".addslashes($new_group['MonitorIds'])."' where Id = '$gid'" );
 			}
-			if ( $new_monitor_ids )
+			else
 			{
-				simpleQuery( "insert into Groups set Name = '".$new_name."', MonitorIds = '".$new_monitor_ids."'" );
+				simpleQuery( "insert into Groups set Name = '".addslashes($new_group['Name'])."', MonitorIds = '".addslashes($new_group['MonitorIds'])."'" );
 			}
 			$refresh_parent = true;
+			$view = 'none';
 		}
 		elseif ( $action == "delete" )
 		{

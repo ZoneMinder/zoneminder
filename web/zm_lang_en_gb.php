@@ -291,6 +291,7 @@ $zmSlangGenerateVideo        = 'Generate Video';
 $zmSlangGeneratingVideo      = 'Generating Video';
 $zmSlangGoToZoneMinder       = 'Go to ZoneMinder.com';
 $zmSlangGrey                 = 'Grey';
+$zmSlangGroup                = 'Group';
 $zmSlangGroups               = 'Groups';
 $zmSlangHasFocusSpeed        = 'Has Focus Speed';
 $zmSlangHasGainSpeed         = 'Has Gain Speed';

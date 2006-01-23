@@ -167,6 +167,7 @@ $jws = array(
 	'filtersave' => array( 'w'=>560, 'h'=>220 ),
 	'frames' => array( 'w'=>500, 'h'=>300 ),
 	'function' => array( 'w'=>248, 'h'=>92 ),
+	'group' => array( 'w'=>360, 'h'=>150 ),
 	'groups' => array( 'w'=>400, 'h'=>220 ),
 	'image' => array( 'w'=>48, 'h'=>80 ),
 	'login' => array( 'w'=>720, 'h'=>480 ),

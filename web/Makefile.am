@@ -43,6 +43,7 @@ web_DATA = \
 	zm_html_view_frames.php \
 	zm_html_view_function.php \
 	zm_html_view_login.php \
+	zm_html_view_group.php \
 	zm_html_view_groups.php \
 	zm_html_view_logout.php \
 	zm_html_view_monitor.php \
@@ -143,6 +144,7 @@ EXTRA_DIST = \
 	zm_html_view_frame.php \
 	zm_html_view_frames.php \
 	zm_html_view_function.php \
+	zm_html_view_group.php \
 	zm_html_view_groups.php \
 	zm_html_view_login.php \
 	zm_html_view_logout.php \

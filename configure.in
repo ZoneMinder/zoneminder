@@ -1,4 +1,4 @@
-AC_INIT(zm,1.22.0,support@zoneminder.com,ZoneMinder)
+AC_INIT(zm,1.22.1,support@zoneminder.com,ZoneMinder)
 AC_CONFIG_SRCDIR(src/zm.h)
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)

@@ -259,7 +259,10 @@ int main( int argc, char *argv[] )
 				{
 					exit( -1 );
 				}
-				monitors[i]->PostCapture();
+				if ( monitors[i]->PostCapture() < 0 )
+				{
+					exit( -1 );
+				}
 
 				if ( next_delays[i] > 0 )
 				{

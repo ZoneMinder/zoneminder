@@ -497,7 +497,7 @@ if ( !$server_up )
 				my $core_dumped = $status&0x01;
 
 				my $out_str = "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' ";
-				$out_str .= ($exit_status==0)?"died":"crashed";
+				$out_str .= $exit_signal?"crashed":("exited ".(($exit_status==0)?"normally":"abnormally"));
 				$out_str .= ", exit status $exit_status" if ( $exit_status );
 				$out_str .= ", signal $exit_signal" if ( $exit_signal );
 				#print( ", core dumped" ) if ( $core_dumped );

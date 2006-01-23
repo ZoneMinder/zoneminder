@@ -71,6 +71,7 @@ else
 	$monitor['Host'] = "";
 	$monitor['Path'] = "";
 	$monitor['Port'] = "80";
+	$monitor['Palette'] = "4";
 	$monitor['Width'] = "";
 	$monitor['Height'] = "";
 	$monitor['Orientation'] = "0";
@@ -144,13 +145,111 @@ opener.location.reload(true);
 }
 ?>
 window.focus();
-function validateForm(Form)
+function validateForm(form)
 {
 	var errors = new Array();
 
-	if ( Form.elements['new_monitor[Name]'].value.search( /[^\w-]/ ) >= 0 )
+	if ( form.elements['new_monitor[Name]'].value.search( /[^\w-]/ ) >= 0 )
 	{
 		errors[errors.length] = "<?= $zmSlangBadNameChars ?>";
+	}
+	if ( form.elements['new_monitor[MaxFPS]'].value && !(parseFloat(form.elements['new_monitor[MaxFPS]'].value) > 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadMaxFPS ?>";
+	}
+	if ( !form.elements['new_monitor[RefBlendPerc]'].value || !(parseInt(form.elements['new_monitor[RefBlendPerc]'].value) > 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadRefBlendPerc ?>";
+	}
+	if ( form.elements['new_monitor[Type]'].value == 'Local' )
+	{
+		if ( !form.elements['new_monitor[Device]'].value )
+		{
+			errors[errors.length] = "<?= $zmSlangBadDevice ?>";
+		}
+		if ( !form.elements['new_monitor[Channel]'].value || !form.elements['new_monitor[Channel]'].value.match( /^\d+$/ ) )
+		{
+			errors[errors.length] = "<?= $zmSlangBadChannel ?>";
+		}
+		if ( !form.elements['new_monitor[Format]'].value || !form.elements['new_monitor[Format]'].value.match( /^\d+$/ ) )
+		{
+			errors[errors.length] = "<?= $zmSlangBadFormat ?>";
+		}
+	}
+	else if ( form.elements['new_monitor[Type]'].value == 'Remote' )
+	{
+		if ( !form.elements['new_monitor[Host]'].value || !form.elements['new_monitor[Host]'].value.match( /^[0-9a-zA-Z_.-]+$/ ) )
+		{
+			errors[errors.length] = "<?= $zmSlangBadHost ?>";
+		}
+		if ( form.elements['new_monitor[Port]'].value && !form.elements['new_monitor[Port]'].value.match( /^\d+$/ ) )
+		{
+			errors[errors.length] = "<?= $zmSlangBadPort ?>";
+		}
+		if ( !form.elements['new_monitor[Path]'].value )
+		{
+			errors[errors.length] = "<?= $zmSlangBadPath ?>";
+		}
+	}
+	else if ( form.elements['new_monitor[Type]'].value == 'File' )
+	{
+		if ( !form.elements['new_monitor[Path]'].value )
+		{
+			errors[errors.length] = "<?= $zmSlangBadPath ?>";
+		}
+	}
+	if ( !form.elements['new_monitor[Width]'].value || !(parseInt(form.elements['new_monitor[Width]'].value) > 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadWidth ?>";
+	}
+	alert( parseInt(form.elements['new_monitor[Height]'].value) );
+	if ( !form.elements['new_monitor[Height]'].value || !(parseInt(form.elements['new_monitor[Height]'].value) > 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadHeight ?>";
+	}
+	if ( !form.elements['new_monitor[LabelX]'].value || !(parseInt(form.elements['new_monitor[LabelX]'].value) >= 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadLabelX ?>";
+	}
+	if ( !form.elements['new_monitor[LabelY]'].value || !(parseInt(form.elements['new_monitor[LabelY]'].value) >= 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadLabelY ?>";
+	}
+	if ( !form.elements['new_monitor[ImageBufferCount]'].value || !(parseInt(form.elements['new_monitor[ImageBufferCount]'].value) >= 10 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadImageBufferCount ?>";
+	}
+	if ( !form.elements['new_monitor[WarmupCount]'].value || !(parseInt(form.elements['new_monitor[WarmupCount]'].value) >= 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadWarmupCount ?>";
+	}
+	if ( !form.elements['new_monitor[PreEventCount]'].value || !(parseInt(form.elements['new_monitor[PreEventCount]'].value) > 0 ) || (parseInt(form.elements['new_monitor[PreEventCount]'].value) > parseInt(form.elements['new_monitor[ImageBufferCount]'].value)) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadPreEventCount ?>";
+	}
+	if ( !form.elements['new_monitor[PostEventCount]'].value || !(parseInt(form.elements['new_monitor[PostEventCount]'].value) >= 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadPostEventCount ?>";
+	}
+	if ( !form.elements['new_monitor[AlarmFrameCount]'].value || !(parseInt(form.elements['new_monitor[AlarmFrameCount]'].value) > 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadAlarmFrameCount ?>";
+	}
+	if ( !form.elements['new_monitor[SectionLength]'].value || !(parseInt(form.elements['new_monitor[SectionLength]'].value) >= 30 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadSectionLength ?>";
+	}
+	if ( !form.elements['new_monitor[FPSReportInterval]'].value || !(parseInt(form.elements['new_monitor[FPSReportInterval]'].value) >= 100 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadFPSReportInterval ?>";
+	}
+	if ( !form.elements['new_monitor[FrameSkip]'].value || !(parseInt(form.elements['new_monitor[FrameSkip]'].value) >= 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadFrameSkip ?>";
+	}
+	if ( !form.elements['new_monitor[WebColour]'].value || !form.elements['new_monitor[WebColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadWebColour ?>";
 	}
 	if ( errors.length )
 	{
@@ -160,11 +259,11 @@ function validateForm(Form)
 	return( true );
 }
 
-function submitTab(Form,Tab)
+function submitTab(form,tab)
 {
-	Form.action.value = "";
-	Form.tab.value = Tab;
-	Form.submit();
+	form.action.value = "";
+	form.tab.value = tab;
+	form.submit();
 }
 
 function selectLinkedMonitors()
@@ -186,10 +285,10 @@ function closeWindow()
 if ( ZM_OPT_CONTROL && $tab == 'control' )
 {
 ?>
-function loadLocations( Form )
+function loadLocations( form )
 {
-	var controlIdSelect = Form.elements['new_monitor[ControlId]'];
-	var returnLocationSelect = Form.elements['new_monitor[ReturnLocation]'];
+	var controlIdSelect = form.elements['new_monitor[ControlId]'];
+	var returnLocationSelect = form.elements['new_monitor[ReturnLocation]'];
 
 	returnLocationSelect.options[option_count++] = new Option( '<?= $zmSlangNone ?>', -1 );
 	if ( controlIdSelect.selectedIndex )
@@ -301,15 +400,30 @@ if ( $tab != 'general' )
 		}
 	}
 }
-if ( $tab != 'source' )
+if ( $tab != 'source' || $new_monitor['Type'] != 'Local' )
 {
 ?>
 <input type="hidden" name="new_monitor[Device]" value="<?= $new_monitor['Device'] ?>">
 <input type="hidden" name="new_monitor[Channel]" value="<?= $new_monitor['Channel'] ?>">
 <input type="hidden" name="new_monitor[Format]" value="<?= $new_monitor['Format'] ?>">
+<?php
+}
+if ( $tab != 'source' || $new_monitor['Type'] != 'Remote' )
+{
+?>
 <input type="hidden" name="new_monitor[Host]" value="<?= $new_monitor['Host'] ?>">
 <input type="hidden" name="new_monitor[Port]" value="<?= $new_monitor['Port'] ?>">
+<?php
+}
+if ( $tab != 'source' || ($new_monitor['Type'] != 'Remote' && $new_monitor['Type'] != 'File') )
+{
+?>
 <input type="hidden" name="new_monitor[Path]" value="<?= $new_monitor['Path'] ?>">
+<?php
+}
+if ( $tab != 'source' )
+{
+?>
 <input type="hidden" name="new_monitor[Palette]" value="<?= $new_monitor['Palette'] ?>">
 <input type="hidden" name="new_monitor[Width]" value="<?= $new_monitor['Width'] ?>">
 <input type="hidden" name="new_monitor[Height]" value="<?= $new_monitor['Height'] ?>">

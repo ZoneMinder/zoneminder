@@ -126,54 +126,55 @@ if ( !isset($view) )
 
 switch( $view )
 {
-	case "login" :
-	case "postlogin" :
-	case "logout" :
-	case "console" :
-	case "groups" :
-	case "state" :
 	case "bandwidth" : 
-	case "version" :
-	case "options" :
-	case "optionhelp" :
-	case "restarting" :
-	case "user" :
-	case "cycle" :
-	case "montage" :
-	case "montageframe" :
-	case "montagemenu" :
-	case "montagefeed" :
-	case "montagestatus" :
-	case "watch" :
-	case "watchmenu" :
-	case "watchfeed" :
-	case "watchstatus" :
-	case "watchevents" :
-	case "siren" :
-	case "settings" :
-	case "events" :
-	case "timeline" :
-	case "filter" :
-	case "filtersave" :
-	case "event" :
-	case "eventdetail" :
-	case "export" :
-	case "frame" :
-	case "frames" :
-	case "stats" :
-	case "monitor" :
-	case "monitorpreset" :
-	case "zones" :
-	case "zone" :
-	case "video" :
-	case "function" :
+	case "console" :
 	case "control" :
+	case "controlcap" :
+	case "controlcaps" :
 	case "controlmenu" :
 	case "controlpanel" :
 	case "controlpreset" :
-	case "controlcap" :
-	case "controlcaps" :
+	case "cycle" :
 	case "donate" :
+	case "event" :
+	case "eventdetail" :
+	case "events" :
+	case "export" :
+	case "filter" :
+	case "filtersave" :
+	case "frame" :
+	case "frames" :
+	case "function" :
+	case "groups" :
+	case "login" :
+	case "logout" :
+	case "monitor" :
+	case "monitorpreset" :
+	case "monitorselect" :
+	case "montage" :
+	case "montagefeed" :
+	case "montageframe" :
+	case "montagemenu" :
+	case "montagestatus" :
+	case "optionhelp" :
+	case "options" :
+	case "postlogin" :
+	case "restarting" :
+	case "settings" :
+	case "siren" :
+	case "state" :
+	case "stats" :
+	case "timeline" :
+	case "user" :
+	case "version" :
+	case "video" :
+	case "watch" :
+	case "watchevents" :
+	case "watchfeed" :
+	case "watchmenu" :
+	case "watchstatus" :
+	case "zone" :
+	case "zones" :
 	case "blank" :
 	case "none" :
 	{

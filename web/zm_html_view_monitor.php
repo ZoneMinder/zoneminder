@@ -167,6 +167,11 @@ function submitTab(Form,Tab)
 	Form.submit();
 }
 
+function selectLinkedMonitors()
+{
+	newWindow( "<?= $PHP_SELF ?>?view=monitorselect&callForm=<?= urlencode( 'monitor_form' ) ?>&callField=<?= urlencode( 'new_monitor[LinkedMonitors]' ) ?>", "zmLinkedMonitors", <?= $jws['monitorselect']['w'] ?>, <?= $jws['monitorselect']['h'] ?> );
+}
+
 function newWindow(Url,Name,Width,Height)
 {
 	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
@@ -282,6 +287,7 @@ if ( $tab != 'general' )
 <input Type="hidden" name="new_monitor[Type]" value="<?= $new_monitor['Type'] ?>">
 <input type="hidden" name="new_monitor[Function]" value="<?= $new_monitor['Function'] ?>">
 <input type="hidden" name="new_monitor[Enabled]" value="<?= $new_monitor['Enabled'] ?>">
+<input type="hidden" name="new_monitor[LinkedMonitors]" value="<?= $new_monitor['LinkedMonitors'] ?>">
 <input type="hidden" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>">
 <input type="hidden" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>">
 <?php
@@ -393,6 +399,7 @@ switch ( $tab )
 ?>
 </select></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangEnabled ?></td><td align="left" class="text"><input type="checkbox" name="new_monitor[Enabled]" value="1" class="form-noborder"<?php if ( !empty($new_monitor['Enabled']) ) { ?> checked<?php } ?>></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangLinkedMonitors ?></td><td align="left" class="text"><input type="text" name="new_monitor[LinkedMonitors]" value="<?= $new_monitor['LinkedMonitors'] ?>" size="16" class="form">&nbsp;<a href="#" onClick="selectLinkedMonitors()"><?= $zmSlangSelect ?></a></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangMaximumFPS ?></td><td align="left" class="text"><input type="text" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangRefImageBlendPct ?></td><td align="left" class="text"><input type="text" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangTriggers ?></td><td align="left" class="text">

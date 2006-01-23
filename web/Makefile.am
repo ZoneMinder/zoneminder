@@ -47,6 +47,7 @@ web_DATA = \
 	zm_html_view_logout.php \
 	zm_html_view_monitor.php \
 	zm_html_view_monitorpreset.php \
+	zm_html_view_monitorselect.php \
 	zm_html_view_montagefeed.php \
 	zm_html_view_montageframe.php \
 	zm_html_view_montagemenu.php \
@@ -147,6 +148,7 @@ EXTRA_DIST = \
 	zm_html_view_logout.php \
 	zm_html_view_monitor.php \
 	zm_html_view_monitorpreset.php \
+	zm_html_view_monitorselect.php \
 	zm_html_view_montagefeed.php \
 	zm_html_view_montageframe.php \
 	zm_html_view_montage.php \

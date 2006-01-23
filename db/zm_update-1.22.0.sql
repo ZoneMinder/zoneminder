@@ -1,6 +1,18 @@
 --
 -- This updates a 1.22.0 database to 1.22.1
 --
+
+--
+-- Add support for linked monitors
+--
+alter table Monitors add column LinkedMonitors varchar(255) NOT NULL default '' after Enabled;
+alter table Monitors modify column Device varchar(64) not null default '';
+alter table Monitors modify column Host varchar(64) not null default '';
+alter table Monitors modify column Port varchar(8) not null default '';
+alter table Monitors modify column Path varchar(255) not null default '';
+alter table Monitors modify column LabelX smallint(5) unsigned not null default 0;
+alter table Monitors modify column LabelY smallint(5) unsigned not null default 0;
+
 --
 -- Modify zone presets a bit
 --

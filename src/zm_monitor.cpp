@@ -1002,7 +1002,7 @@ bool Monitor::Analyse()
 						{
 							score += motion_score;
 							cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", "Motion" );
-							text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%sZone: %s", text[0]?"\n":"", motion_text );
+							text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%sMotion: %s", text[0]?"\n":"", motion_text );
 						}
 					}
 					else
@@ -1024,8 +1024,8 @@ bool Monitor::Analyse()
 								{
 									if ( first_link )
 									{
-										cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", "Linked Monitor" );
-										text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%sMonitor: %s", text[0]?"\n":"", linked_monitors[i]->Name() );
+										cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", "Linked" );
+										text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%sLinked: %s", text[0]?"\n":"", linked_monitors[i]->Name() );
 										first_link = false;
 									}
 									else

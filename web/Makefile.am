@@ -104,7 +104,6 @@ web_DATA = \
 	zm_lang_ru_ru.php \
 	zm_lang_nl_nl.php \
 	zm_lang_it_it.php \
-	zm_lang_it_it2.php \
 	zm_lang_es_ar.php \
 	zm_lang_pt_br.php \
 	zm_lang_dk_dk.php \
@@ -206,7 +205,6 @@ EXTRA_DIST = \
 	zm_lang_ru_ru.php \
 	zm_lang_nl_nl.php \
 	zm_lang_it_it.php \
-	zm_lang_it_it2.php \
 	zm_lang_es_ar.php \
 	zm_lang_pt_br.php \
 	zm_lang_dk_dk.php \

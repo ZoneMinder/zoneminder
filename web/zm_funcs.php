@@ -1741,4 +1741,37 @@ function getLanguages()
 	return( $langs );
 }
 
+function trimString( $string, $length )
+{
+	return( preg_replace( '/^(.{'.$length.',}?)\b.*$/', '\\1&hellip;', $string ) );
+}
+
+function monitorIdsToNames( $ids )
+{
+	global $mITN_monitors;
+	if ( !$mITN_monitors )
+	{
+		$sql = "select Id, Name from Monitors";
+		$result = mysql_query( $sql );
+		if ( !$result )
+			echo mysql_error();
+		while ( $monitor = mysql_fetch_assoc( $result ) )
+		{
+			$mITN_monitors[$monitor['Id']] = $monitor;
+		}
+	}
+	$names = array();
+	foreach ( preg_split( '/\s*,\s*/', $ids ) as $id )
+	{
+		if ( visibleMonitor( $id ) )
+		{
+			if ( isset($mITN_monitors[$id]) )
+			{
+				$names[] = $mITN_monitors[$id]['Name'];
+			}
+		}
+	}
+	$name_string = join( ', ', $names );
+	return( $name_string );
+}
 ?>

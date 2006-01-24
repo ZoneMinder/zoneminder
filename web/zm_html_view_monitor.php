@@ -202,7 +202,6 @@ function validateForm(form)
 	{
 		errors[errors.length] = "<?= $zmSlangBadWidth ?>";
 	}
-	alert( parseInt(form.elements['new_monitor[Height]'].value) );
 	if ( !form.elements['new_monitor[Height]'].value || !(parseInt(form.elements['new_monitor[Height]'].value) > 0 ) )
 	{
 		errors[errors.length] = "<?= $zmSlangBadHeight ?>";

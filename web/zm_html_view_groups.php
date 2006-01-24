@@ -99,29 +99,29 @@ window.focus();
 <form name="groups_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="cgroup">
-<table width="100%" border="0" cellpadding="0" cellspacing="4">
-<tr><td class="smallhead"><?= $zmSlangName ?></td><td class="smallhead"><?= $zmSlangMonitorIds ?></td><td class="smallhead"><?= $zmSlangSelect ?></tr>
-<tr>
-<td align="left" class="text"><input class="form" value="<?= $zmSlangNoGroup ?>" size="20" disabled></td>
-<td align="left" class="text"><input class="form" value="<?= $zmSlangAll ?>" size="40" disabled></td>
+<table width="100%" border="0" cellspacing="1" cellpadding="2" bgcolor="#7F7FB2">
+<tr bgcolor="#FFFFFF"><td class="smallhead"><?= $zmSlangName ?></td><td class="smallhead"><?= $zmSlangMonitorIds ?></td><td class="smallhead"><?= $zmSlangSelect ?></tr>
+<tr bgcolor="#CCCCCC">
+<td align="left" class="text" style="white-space: nowrap;"><?= $zmSlangNoGroup ?></td>
+<td align="left" class="text"><?= $zmSlangAll ?></td>
 <td align="center"><input class="form-noborder" type="radio" name="gid" value="0"<?= !$selected?" checked":"" ?> onClick="configureButtons( this );"></td>
 </tr>
 <?php
 foreach ( $groups as $group )
 {
 ?>
-<tr>
-<td align="left" class="text"><input class="form" name="names[<?= $group['Id'] ?>]" value="<?= $group['Name'] ?>" size="20"></td>
-<td align="left" class="text"><input class="form" name="monitor_ids[<?= $group['Id'] ?>]" value="<?= $group['MonitorIds'] ?>" size="40" disabled></td>
+<tr bgcolor="#FFFFFF">
+<td align="left" class="text" style="white-space: nowrap;"><?= $group['Name'] ?></td>
+<td align="left" class="text"><?= monitorIdsToNames( $group['MonitorIds'], 30 ) ?></td>
 <td align="center"><input class="form-noborder" type="radio" name="gid" value="<?= $group['Id'] ?>"<?= $group['selected']?" checked":"" ?> onClick="configureButtons( this );"></td>
 </tr>
 <?php
 }
 ?>
-<tr>
-<td align="right" colspan="3" class="text">&nbsp;</td>
+<tr bgcolor="#FFFFFF">
+<td align="right" colspan="3" class="text"><img src="graphics/spacer.gif" width="1" height="4"></td>
 </tr>
-<tr>
+<tr bgcolor="#FFFFFF">
 <td align="right" colspan="3" class="text">
 <input type="submit" value="<?= $zmSlangApply ?>" class="form" onClick="groups_form.action.value='cgroup'; groups_form.submit();">&nbsp;&nbsp;
 <input type="button" value="<?= $zmSlangNew ?>" class="form" onClick="newGroup()"<?= canEdit('System')?"":" disabled" ?>>&nbsp;&nbsp;

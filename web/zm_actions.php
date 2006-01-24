@@ -1627,7 +1627,7 @@ if ( !empty($action) )
 		}
 		elseif ( $action == "group" )
 		{
-			if ( $eid )
+			if ( $gid )
 			{
 				simpleQuery( "update Groups set Name = '".addslashes($new_group['Name'])."', MonitorIds = '".addslashes($new_group['MonitorIds'])."' where Id = '$gid'" );
 			}

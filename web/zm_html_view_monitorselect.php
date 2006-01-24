@@ -92,9 +92,12 @@ window.focus();
 <?php
 foreach ( $monitors as $monitor )
 {
+	if ( visibleMonitor( $monitor['Id'] ) )
+	{
 ?>
 <option value="<?= $monitor['Id'] ?>"><?= htmlentities($monitor['Name']) ?></option>
 <?php
+	}
 }
 ?>
 </select>

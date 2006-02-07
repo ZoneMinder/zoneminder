@@ -60,7 +60,7 @@ function closeWindow()
 </script>
 </head>
 <body>
-<form name="presetForm" method="get" action="<?= $PHP_SELF ?>">
+<form name="presetForm" method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <table border="0" cellspacing="0" cellpadding="4" width="100%">

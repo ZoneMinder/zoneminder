@@ -56,7 +56,7 @@ function closeWindow()
 </script>
 </head>
 <body>
-<form method="get" action="<?= $PHP_SELF ?>">
+<form method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="function">
 <input type="hidden" name="mid" value="<?= $mid ?>">

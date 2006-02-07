@@ -293,7 +293,7 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
 {
 	global $PHP_SELF;
 ?>
-<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="<?= $target ?>">
+<form name="ctrl_form" method="post" action="<?= $PHP_SELF ?>" target="<?= $target ?>">
 <input type="hidden" name="view" value="blank">
 <input type="hidden" name="mid" value="<?= $monitor['Id'] ?>">
 <input type="hidden" name="action" value="control">
@@ -347,7 +347,7 @@ function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
 {
 	global $PHP_SELF;
 ?>
-<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="<?= $target ?>">
+<form name="ctrl_form" method="post" action="<?= $PHP_SELF ?>" target="<?= $target ?>">
 <input type="hidden" name="view" value="blank">
 <input type="hidden" name="mid" value="<?= $monitor['Id'] ?>">
 <input type="hidden" name="action" value="control">

@@ -53,7 +53,7 @@ function closeWindow()
 </script>
 </head>
 <body>
-<form name="ctrl_form" method="get" action="<?= $PHP_SELF ?>" target="ControlSink<?= $menu?'':$mid ?>">
+<form name="ctrl_form" method="post" action="<?= $PHP_SELF ?>" target="ControlSink<?= $menu?'':$mid ?>">
 <input type="hidden" name="view" value="blank">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <input type="hidden" name="action" value="control">

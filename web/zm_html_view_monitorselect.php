@@ -82,7 +82,7 @@ window.focus();
 </script>
 </head>
 <body>
-<form name="selectForm" method="get" action="<?= $PHP_SELF ?>" onSubmit="setSelectedIds()">
+<form name="selectForm" method="post" action="<?= $PHP_SELF ?>" onSubmit="setSelectedIds()">
 <input type="hidden" name="view" value="none">
 <table width="100%" border="0" cellpadding="0" cellspacing="4">
 <tr><td class="head"><?= $zmSlangSelectMonitors ?></td></tr>

@@ -257,7 +257,7 @@ window.focus();
 </script>
 </head>
 <body>
-<form name="filter_form" method="get" action="<?= $PHP_SELF ?>">
+<form name="filter_form" method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="filter">
 <input type="hidden" name="page" value="<?= $page ?>">
 <input type="hidden" name="reload" value="0">

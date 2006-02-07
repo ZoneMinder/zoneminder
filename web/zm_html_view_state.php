@@ -180,7 +180,7 @@ else
 <tr>
 <td colspan="2" align="center" class="text"><?= $zmSlangApplyingStateChange ?><br/><?= $zmSlangPleaseWait ?></td>
 </tr>
-<form name="state_form" method="get" action="<?= $PHP_SELF ?>">
+<form name="state_form" method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="state">
 <input type="hidden" name="run_state" value="<?= $run_state ?>">

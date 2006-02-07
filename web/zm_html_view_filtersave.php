@@ -42,7 +42,7 @@ window.focus();
 </script>
 </head>
 <body>
-<form name="filter_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="validateForm( document.filter_form );">
+<form name="filter_form" method="post" action="<?= $PHP_SELF ?>" onSubmit="validateForm( document.filter_form );">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="filter">
 <input type="hidden" name="trms" value="<?= $trms ?>">

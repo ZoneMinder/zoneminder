@@ -66,7 +66,7 @@ function closeWindow()
 </script>
 </head>
 <body>
-<form name="menu_form" method="get" action="<?= $PHP_SELF ?>" target="ControlPanel">
+<form name="menu_form" method="post" action="<?= $PHP_SELF ?>" target="ControlPanel">
 <input type="hidden" name="view" value="controlpanel">
 <input type="hidden" name="menu" value="1">
 <table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">

@@ -796,7 +796,7 @@ int RemoteCamera::GetResponse()
 						else if ( !strcasecmp( content_type, "multipart/x-mixed-replace" ) )
 						{
 							// Image stream, so start processing
-							if ( !content_boundary )
+							if ( !content_boundary[0] )
 							{
 								Error(( "No content boundary found in header '%s'", content_type_header ));
 								return( -1 );

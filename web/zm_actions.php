@@ -906,6 +906,7 @@ if ( !empty($action) )
 				elseif ( $control == "preset_set" )
 				{
 					$ctrl_command .= " --preset ".$preset;
+					$view = 'none';
 				}
 				elseif ( $control == "move_map" )
 				{
@@ -979,7 +980,6 @@ if ( !empty($action) )
 				}
 				else
 				{
-
 					$sql = "insert into Controls set ".implode( ", ", $changes );
 					$result = mysql_query( $sql );
 					if ( !$result )
@@ -1032,7 +1032,7 @@ if ( !empty($action) )
 				$refresh_parent = true;
 			}
 		}
-		elseif ( $action == "zone" && !empty( $zid ) )
+		elseif ( $action == "zone" && isset( $zid ) )
 		{
 			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
 			if ( !$result )
@@ -1608,7 +1608,7 @@ if ( !empty($action) )
 		{
 			if ( $run_state || $new_state )
 			{
-				$sql = "select Id,Function from Monitors order by Id";
+				$sql = "select Id,Function,Enabled from Monitors order by Id";
 				$result = mysql_query( $sql );
 				if ( !$result )
 					die( mysql_error() );

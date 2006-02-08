@@ -216,6 +216,13 @@ sub remoteReset
 	sendCmd( \@msg );
 }
 
+sub resetDefaults
+{
+	Debug( "Reset Defaults\n" );
+	my @msg = ( $sync, $address, 0x00, 0x29, 0x00, 0x00 );
+	sendCmd( \@msg );
+}
+
 sub cameraOff
 {
 	Debug( "Camera Off\n" );
@@ -380,6 +387,12 @@ sub setZoomSpeed
 	sendCmd( \@msg );
 }
 
+sub zoomStop
+{
+	stop();
+	setZoomSpeed( 0 );
+}
+
 sub zoomTele
 {
 	Debug( "Zoom Tele\n" );
@@ -391,7 +404,7 @@ sub zoomTele
 	if ( $autostop )
 	{
 		usleep( $autostop );
-		setZoomSpeed( 0 );
+		zoomStop();
 	}
 }
 
@@ -406,7 +419,7 @@ sub zoomWide
 	if ( $autostop )
 	{
 		usleep( $autostop );
-		setZoomSpeed( 0 );
+		zoomStop();
 	}
 }
 
@@ -554,6 +567,7 @@ sub presetHome
 if ( $command eq "reset" )
 {
 	remoteReset();
+	resetDefaults();
 }
 elsif ( $command eq "wake" )
 {
@@ -609,7 +623,7 @@ elsif ( $command eq "zoom_con_wide" )
 }
 elsif ( $command eq "zoom_stop" )
 {
-	setZoomSpeed( 0 );
+	zoomStop();
 }
 elsif ( $command eq "focus_con_near" )
 {

@@ -116,13 +116,13 @@ if ( isset( $show ) )
 {
 	preg_match( '/([^\/]+)\.([^.]+)$/', $video_files[$show], $matches );
 	$name = $matches[1];
-	$format = $matches[2];
+	$video_format = $matches[2];
 ?>
 <table align="center" border="0" cellspacing="0" cellpadding="2" width="96%">
 <tr><td width="50%">&nbsp;</td><td width="50%" class="text" align="right"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="2" width="96%">
-<tr><td align="center"><?php outputVideoStream( $video_files[$show], $width, $height, $name, $format ) ?></td></tr>
+<tr><td align="center"><?php outputVideoStream( $video_files[$show], $width, $height, $name, $video_format ) ?></td></tr>
 </table>
 <?php
 }

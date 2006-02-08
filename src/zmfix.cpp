@@ -86,7 +86,7 @@ int main( int argc, char *argv[] )
 
 	// Only do registered devices
 	static char sql[BUFSIZ];
-	snprintf( sql, sizeof(sql), "select distinct Device from Monitors where Type = 'Local'" );
+	snprintf( sql, sizeof(sql), "select distinct Device from Monitors where not isnull(ControlDevice) and Type = 'Local'" );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -102,8 +102,34 @@ int main( int argc, char *argv[] )
 
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
-		const char *device = dbrow[0];
-		fixDevice( device );
+		fixDevice( dbrow[0] );
+	}
+
+	if ( mysql_errno( &dbconn ) )
+	{
+		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+	// Yadda yadda
+	mysql_free_result( result );
+
+	snprintf( sql, sizeof(sql), "select distinct ControlDevice from Monitors where not isnull(ControlDevice)" );
+	if ( mysql_query( &dbconn, sql ) )
+	{
+		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+
+	result = mysql_store_result( &dbconn );
+	if ( !result )
+	{
+		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		exit( mysql_errno( &dbconn ) );
+	}
+
+	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
+	{
+		fixDevice( dbrow[0] );
 	}
 
 	if ( mysql_errno( &dbconn ) )
@@ -121,5 +147,6 @@ int main( int argc, char *argv[] )
 			fixDevice( config.x10_device );
 		}
 	}
+
 	return( 0 );
 }

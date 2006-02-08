@@ -831,7 +831,7 @@ The details are as follows :-
 
 This alarm was matched by the %FN% filter and can be viewed at %EPS%
 
-ZoneMinder',
+ZoneMinder"',
 		description => "The text of the email used to send matching event details",
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" } ],
 		help => "This option is used to define the content of the email that is sent for any events that match the appropriate filters.",
@@ -858,7 +858,7 @@ ZoneMinder',
 	{
 		name => "ZM_MESSAGE_TEXT",
 		default => 'subject = "ZoneMinder: Alarm - %MN%-%EI%"
-body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score.',
+body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score."',
 		description => "The text of the message used to send matching event details",
 		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "This option is used to define the content of the message that is sent for any events that match the appropriate filters.",

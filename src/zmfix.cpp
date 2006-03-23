@@ -86,7 +86,7 @@ int main( int argc, char *argv[] )
 
 	// Only do registered devices
 	static char sql[BUFSIZ];
-	snprintf( sql, sizeof(sql), "select distinct Device from Monitors where not isnull(ControlDevice) and Type = 'Local'" );
+	snprintf( sql, sizeof(sql), "select distinct Device from Monitors where not isnull(Device) and Type = 'Local'" );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));

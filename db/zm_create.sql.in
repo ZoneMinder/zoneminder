@@ -284,7 +284,7 @@ CREATE TABLE Monitors (
   AlarmFrameCount smallint(5) unsigned NOT NULL default '1',
   SectionLength int(10) unsigned NOT NULL default '600',
   FrameSkip smallint(5) unsigned NOT NULL default '0',
-  MaxFPS decimal(5,2) NOT NULL default '0.00',
+  MaxFPS decimal(5,2) default NULL,
   FPSReportInterval smallint(5) unsigned NOT NULL default '250',
   RefBlendPerc tinyint(3) unsigned NOT NULL default '10',
   Controllable tinyint(3) unsigned NOT NULL default '0',

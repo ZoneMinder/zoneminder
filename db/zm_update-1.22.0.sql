@@ -12,6 +12,8 @@ alter table Monitors modify column Port varchar(8) not null default '';
 alter table Monitors modify column Path varchar(255) not null default '';
 alter table Monitors modify column LabelX smallint(5) unsigned not null default 0;
 alter table Monitors modify column LabelY smallint(5) unsigned not null default 0;
+alter table Monitors modify column MaxFPS decimal(5,2) default NULL;
+update Monitors set MaxFPS = NULL where MaxFPS = 0.00; 
 
 --
 -- Modify zone presets a bit

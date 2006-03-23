@@ -101,7 +101,7 @@ $image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "sca
 <html>
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $monitor['Name'] ?> - <?= $zmSlangWatch ?></title>
-<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 </head>
 <body>
 <p class="<?= $class ?>" align="center"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=1&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;&sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</p>

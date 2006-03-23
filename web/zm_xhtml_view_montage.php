@@ -50,7 +50,7 @@ mysql_free_result( $result );
 <html>
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangMontage ?></title>
-<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 </head>
 <body>
 <table style="width: 100%">

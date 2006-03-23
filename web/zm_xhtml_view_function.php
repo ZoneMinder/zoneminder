@@ -33,7 +33,7 @@ mysql_free_result( $result );
 <html>
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangFunction ?> - <?= $monitor['Name'] ?></title>
-<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 </head>
 <body>
 <form method="post" action="<?= $PHP_SELF ?>">

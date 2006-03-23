@@ -108,7 +108,7 @@ elseif ( !empty( $limit ) )
 <html>
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEvents ?></title>
-<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 <?php
 if ( !($result = mysql_query( $count_sql )) )
 	die( mysql_error() );

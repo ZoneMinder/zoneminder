@@ -103,7 +103,7 @@ $paged = $event['Frames'] > $frames_per_page;
 <html>
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEvent ?> - <?= $event['Name'] ?></title>
-<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css">
+<link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 </head>
 <body> 
 <table style="width: 100%">

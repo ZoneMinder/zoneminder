@@ -78,10 +78,10 @@ function validateForm(Form)
 {
 	var errors = new Array();
 
-	if ( Form.elements['new_control[Name]'].value.search( /[^\w-]/ ) >= 0 )
-	{
-		errors[errors.length] = "<?= $zmSlangBadNameChars ?>";
-	}
+	//if ( Form.elements['new_control[Name]'].value.search( /[^\w-]/ ) >= 0 )
+	//{
+		//errors[errors.length] = "<?= $zmSlangBadNameChars ?>";
+	//}
 	if ( errors.length )
 	{
 		alert( errors.join( "\n" ) );

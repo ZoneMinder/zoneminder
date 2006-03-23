@@ -839,6 +839,39 @@ ZoneMinder"',
 		category => "mail",
 	},
 	{
+		name => "ZM_EMAIL_SUBJECT",
+		default => "ZoneMinder: Alarm - %MN%-%EI% (%ESM% - %ESA% %EFA%)",
+		description => "The subject of the email used to send matching event details",
+		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" } ],
+		help => "This option is used to define the subject of the email that is sent for any events that match the appropriate filters.",
+		type => $types{string},
+		category => "hidden",
+	},
+	{
+		name => "ZM_EMAIL_BODY",
+		default => "
+Hello,
+
+An alarm has been detected on your installation of the ZoneMinder.
+
+The details are as follows :-
+
+  Monitor  : %MN%
+  Event Id : %EI%
+  Duration : %ED%
+  Frames   : %EF% (%EFA%)
+  Scores   : t%EST% m%ESM% a%ESA%
+
+This alarm was matched by the %FN% filter and can be viewed at %EPS%
+
+ZoneMinder",
+		description => "The body of the email used to send matching event details",
+		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" } ],
+		help => "This option is used to define the content of the email that is sent for any events that match the appropriate filters.",
+		type => $types{text},
+		category => "hidden",
+	},
+	{
 		name => "ZM_OPT_MESSAGE",
 		default => "no",
 		description => "Should ZoneMinder message you with details of events that match corresponding filters",
@@ -864,6 +897,24 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "This option is used to define the content of the message that is sent for any events that match the appropriate filters.",
 		type => $types{text},
 		category => "mail",
+	},
+	{
+		name => "ZM_MESSAGE_SUBJECT",
+		default => "ZoneMinder: Alarm - %MN%-%EI%",
+		description => "The subject of the message used to send matching event details",
+		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
+		help => "This option is used to define the subject of the message that is sent for any events that match the appropriate filters.",
+		type => $types{string},
+		category => "hidden",
+	},
+	{
+		name => "ZM_MESSAGE_BODY",
+		default => "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score.",
+		description => "The body of the message used to send matching event details",
+		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
+		help => "This option is used to define the content of the message that is sent for any events that match the appropriate filters.",
+		type => $types{text},
+		category => "hidden",
 	},
 	{
 		name => "ZM_NEW_MAIL_MODULES",
@@ -1554,6 +1605,7 @@ sub INIT
 	foreach my $option ( @options )
 	{
 		next if ( $option->{category} eq 'core' );
+		next if ( $option->{category} eq 'hidden' );
 		next if ( $option->{type} == $types{include} );
 		$option->{id} = $option_id++;
 	}
@@ -1584,6 +1636,7 @@ sub loadConfigFromDB
 			next;
 		}
 		next if ( $option->{category} eq 'core' );
+		next if ( $option->{category} eq 'hidden' );
 		if ( defined($value) )
 		{
 			if ( $name eq "ZM_OPT_MPEG" && $value eq "yes" )
@@ -1623,6 +1676,7 @@ sub saveConfigToDB
 	foreach my $option ( @options )
 	{
 		next if ( $option->{category} eq 'core' );
+		next if ( $option->{category} eq 'hidden' );
 		next if ( $option->{type} == $types{include} );
 		#print( $option->{name}."\n" ) if ( !$option->{category} );
 		$option->{db_type} = $option->{type}->{db_type};

@@ -538,10 +538,6 @@ function fixActivePoint( event )
 	if ( active < 0 )
 		return;
 	
-	if ( !event )
-	{
-		event = window.event;
-	}
 	updateActivePoint( event );
 	submitForm();
 }

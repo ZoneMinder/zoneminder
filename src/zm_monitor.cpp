@@ -1332,7 +1332,7 @@ void Monitor::Reload()
 		alarm_frame_count = atoi(dbrow[index++]);
 		section_length = atoi(dbrow[index++]);
 		frame_skip = atoi(dbrow[index++]);
-		capture_delay = atof(dbrow[index])>0.0?int(DT_PREC_3/atof(dbrow[index])):0; index++;
+		capture_delay = (dbrow[index]&&atof(dbrow[index])>0.0)?int(DT_PREC_3/atof(dbrow[index])):0; index++;
 		fps_report_interval = atoi(dbrow[index++]);
 		ref_blend_perc = atoi(dbrow[index++]);
 		track_motion = atoi(dbrow[index++]);
@@ -1534,7 +1534,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 		int alarm_frame_count = atoi(dbrow[col]); col++;
 		int section_length = atoi(dbrow[col]); col++;
 		int frame_skip = atoi(dbrow[col]); col++;
-		int capture_delay = atof(dbrow[col])>0.0?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+		int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 		int fps_report_interval = atoi(dbrow[col]); col++;
 		int ref_blend_perc = atoi(dbrow[col]); col++;
 		int track_motion = atoi(dbrow[col]); col++;
@@ -1659,7 +1659,7 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 		int alarm_frame_count = atoi(dbrow[col]); col++;
 		int section_length = atoi(dbrow[col]); col++;
 		int frame_skip = atoi(dbrow[col]); col++;
-		int capture_delay = atof(dbrow[col])>0.0?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+		int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 		int fps_report_interval = atoi(dbrow[col]); col++;
 		int ref_blend_perc = atoi(dbrow[col]); col++;
 		int track_motion = atoi(dbrow[col]); col++;
@@ -1782,7 +1782,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 		int alarm_frame_count = atoi(dbrow[col]); col++;
 		int section_length = atoi(dbrow[col]); col++;
 		int frame_skip = atoi(dbrow[col]); col++;
-		int capture_delay = atof(dbrow[col])>0.0?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+		int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 		int fps_report_interval = atoi(dbrow[col]); col++;
 		int ref_blend_perc = atoi(dbrow[col]); col++;
 		int track_motion = atoi(dbrow[col]); col++;
@@ -1902,7 +1902,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 		int alarm_frame_count = atoi(dbrow[col]); col++;
 		int section_length = atoi(dbrow[col]); col++;
 		int frame_skip = atoi(dbrow[col]); col++;
-		int capture_delay = atof(dbrow[col])>0.0?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+		int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 		int fps_report_interval = atoi(dbrow[col]); col++;
 		int ref_blend_perc = atoi(dbrow[col]); col++;
 		int track_motion = atoi(dbrow[col]); col++;

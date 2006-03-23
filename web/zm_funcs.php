@@ -955,7 +955,7 @@ function getImageSrc( $event, $frame, $scale, $capture_only=false, $overwrite=fa
 		{
 			if ( ZM_WEB_SCALE_THUMBS )
 			{
-				$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $image_path | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_path";
+				$command = ZM_PATH_NETPBM."/jpegtopnm -quiet -dct fast $image_path | ".ZM_PATH_NETPBM."/pnmscalefixed -quiet $fraction | ".ZM_PATH_NETPBM."/pnmtojpeg -quiet -dct=fast > $thumb_path";
 				exec( $command );
 			}
 			else

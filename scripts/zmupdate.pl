@@ -65,6 +65,7 @@ my $use_log = (($> == 0) || ($> == $web_uid));
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL, to_log=>$use_log );
 
+my $interactive = 1;
 my $check = 0;
 my $freshen = 0;
 my $rename = 0;
@@ -86,7 +87,7 @@ Parameters are :-
     exit( -1 );
 }
 
-if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix, 'version=s'=>\$version, 'user:s'=>\$db_user, 'pass:s'=>\$db_pass ) )
+if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix, 'version=s'=>\$version, 'interactive!'=>\$interactive, 'user:s'=>\$db_user, 'pass:s'=>\$db_pass ) )
 {
 	Usage();
 }
@@ -244,56 +245,58 @@ if ( $version )
 	$version = $detaint_version;
 
 	print( "\nInitiating database upgrade to version ".ZM_VERSION."\n" );
-	print( "Please ensure that ZoneMinder is stopped on your system prior to upgrading the database.\nPress enter to continue or ctrl-C to stop : " );
-	my $response = <STDIN>;
-
-	print( "\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : " );
-
-	$response = <STDIN>;
-	chomp( $response );
-	while ( $response !~ /^[yYnN]$/ )
+	if ( $interactive )
 	{
-		print( "Please press 'y' for a backup or 'n' to continue only : " );
+		print( "Please ensure that ZoneMinder is stopped on your system prior to upgrading the database.\nPress enter to continue or ctrl-C to stop : " );
+		my $response = <STDIN>;
+
+		print( "\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : " );
+
 		$response = <STDIN>;
 		chomp( $response );
-	}
-
-	if ( $response =~ /^[yY]$/ )
-	{
-		my $command = "mysqldump -h".ZM_DB_HOST;
-		if ( $db_user )
+		while ( $response !~ /^[yYnN]$/ )
 		{
-			$command .= " -u".$db_user;
-			if ( $db_pass )
+			print( "Please press 'y' for a backup or 'n' to continue only : " );
+			$response = <STDIN>;
+			chomp( $response );
+		}
+
+		if ( $response =~ /^[yY]$/ )
+		{
+			my $command = "mysqldump -h".ZM_DB_HOST;
+			if ( $db_user )
 			{
-				$command .= " -p".$db_pass;
+				$command .= " -u".$db_user;
+				if ( $db_pass )
+				{
+					$command .= " -p".$db_pass;
+				}
+			}
+			my $backup = ZM_DB_NAME."-".$version.".dump";
+			$command .= " --add-drop-table --databases ".ZM_DB_NAME." > ".$backup;
+			print( "Creating backup to $backup. This may take several minutes.\n" );
+			print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
+			my $output = qx($command);
+			my $status = $? >> 8;
+			if ( $status || DBG_LEVEL > 0 )
+			{
+					chomp( $output );
+					print( "Output: $output\n" );
+			}
+			if ( $status )
+			{
+				die( "Command '$command' exited with status: $status\n" );
+			}
+			else
+			{
+				print( "Database successfully backed up to $backup, proceeding to upgrade.\n" );
 			}
 		}
-		my $backup = ZM_DB_NAME."-".$version.".dump";
-		$command .= " --add-drop-table --databases ".ZM_DB_NAME." > ".$backup;
-		print( "Creating backup to $backup. This may take several minutes.\n" );
-		print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
-		my $output = qx($command);
-		my $status = $? >> 8;
-		if ( $status || DBG_LEVEL > 0 )
+		elsif ( $response !~ /^[nN]$/ )
 		{
-				chomp( $output );
-				print( "Output: $output\n" );
-		}
-		if ( $status )
-		{
-			die( "Command '$command' exited with status: $status\n" );
-		}
-		else
-		{
-			print( "Database successfully backed up to $backup, proceeding to upgrade.\n" );
+			die( "Unexpected response '$response'" );
 		}
 	}
-	elsif ( $response !~ /^[nN]$/ )
-	{
-		die( "Unexpected response '$response'" );
-	}
-
 	sub patchDB
 	{
 		my $dbh = shift;
@@ -308,7 +311,7 @@ if ( $version )
 				$command .= " -p".$db_pass;
 			}
 		}
-		$command .= " ".ZM_DB_NAME." < ".ZM_PATH_BUILD."/db/zm_update-".$version.".sql";
+		$command .= " ".ZM_DB_NAME." < ".ZM_PATH_UPDATE."/zm_update-".$version.".sql";
 
 		print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
 		my $output = qx($command);
@@ -324,7 +327,7 @@ if ( $version )
 		}
 		else
 		{
-			print( "\nDatabase successfully upgraded to version $version.\n" );
+			print( "\nDatabase successfully upgraded from version $version.\n" );
 			my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
 			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 			my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
@@ -563,15 +566,20 @@ if ( $version )
 
 		$cascade = !undef;
 	}
-	$dbh->disconnect();
 	if ( $cascade )
 	{
+		my $installed_version = ZM_VERSION;
+		my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $installed_version ) or die( "Can't execute: ".$sth->errstr() );
+		$dbh->disconnect();
 		# We've done something so make sure the config is updated too
 		loadConfigFromDB();
 		saveConfigToDB();
 	}
 	else
 	{
+		$dbh->disconnect();
 		die( "Can't find upgrade from version '$version'" );
 	}
 	print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n" );

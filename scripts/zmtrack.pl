@@ -156,7 +156,15 @@ sub Return
 	$move_cmd = ZM_PATH_BIN.'/'.$move_cmd if ( $move_cmd !~ m|^/| );
 	$move_cmd .= " --device=".$monitor->{ControlDevice} if ( $monitor->{ControlDevice} );
 	$move_cmd .= " --address=".$monitor->{ControlAddress} if ( $monitor->{ControlAddress} );
-	$move_cmd .= " --command=".($monitor->{ReturnLocation}?"preset1":"preset_home");
+	$move_cmd .= " --command=".($monitor->{ReturnLocation}?"preset_1":"preset_home");
+	if ( $monitor->{ReturnLocation} > 0 )
+	{
+		$move_cmd .= " --command=preset_goto --preset=".$monitor->{ReturnLocation};
+	}
+	else
+	{
+		$move_cmd .= " --command=preset_home";
+	}
 	qx( $move_cmd );
 }
 

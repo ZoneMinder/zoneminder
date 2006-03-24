@@ -261,7 +261,7 @@ sub stop
 sub moveUp
 {
 	Debug( "Move Up\n" );
-	my $speed = shift || 0x3f;
+	my $speed = shift;
 	my @msg = ( $sync, $address, 0x00, 0x08, 0x00, $speed );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -274,7 +274,7 @@ sub moveUp
 sub moveDown
 {
 	Debug( "Move Down\n" );
-	my $speed = shift || 0x3f;
+	my $speed = shift;
 	my @msg = ( $sync, $address, 0x00, 0x10, 0x00, $speed );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -287,7 +287,7 @@ sub moveDown
 sub moveLeft
 {
 	Debug( "Move Left\n" );
-	my $speed = shift || 0x3f;
+	my $speed = shift;
 	my @msg = ( $sync, $address, 0x00, 0x04, $speed, 0x00 );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -300,7 +300,7 @@ sub moveLeft
 sub moveRight
 {
 	Debug( "Move Right\n" );
-	my $speed = shift || 0x3f;
+	my $speed = shift;
 	my @msg = ( $sync, $address, 0x00, 0x02, $speed, 0x00 );
 	sendCmd( \@msg );
 	if ( $autostop )

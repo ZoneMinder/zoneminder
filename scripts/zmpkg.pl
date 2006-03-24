@@ -102,7 +102,7 @@ my $retval = 0;
 
 # Determine the appropriate syntax for the su command
 
-my $cmd_prefix = getCmdPrefix();
+my ( $cmd_prefix, $cmd_suffix ) = getCmdFormat();
 
 if ( $command eq "state" )
 {
@@ -232,7 +232,7 @@ if ( $command eq "status" )
 
 exit( $retval );
 
-sub getCmdPrefix
+sub getCmdFormat
 {
 	Debug( "Testing valid shell syntax\n" );
 
@@ -244,38 +244,57 @@ sub getCmdPrefix
 	}
 
 	my $null_command = "true";
-	my $prefix = "su ".ZM_WEB_USER." -c ";
-	my $command = $prefix."'".$null_command."'";
-	Debug( "Testing '$command'\n" );
+
+	my $prefix = "sudo -u ".ZM_WEB_USER." ";
+	my $suffix = "";
+	my $command = $prefix.$null_command.$suffix;
+	Debug( "Testing \"$command\"\n" );
 	my $output = qx($command);
 	my $status = $? >> 8;
 	if ( !$status )
 	{
-		Debug( "Test ok, using prefix '$prefix'\n" );
-		return( $prefix );
+		Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+		return( $prefix, $suffix );
 	}
 	else
 	{
 		chomp( $output );
 		Debug( "Test failed, '$output'\n" );
 
-		$prefix = "su ".ZM_WEB_USER." --shell=/bin/sh --command=";
-		$command = $prefix."'true'";
-		Debug( "Testing '$command'\n" );
-		$output = qx($command);
-		$status = $? >> 8;
+		$prefix = "su ".ZM_WEB_USER." --shell=/bin/sh --command='";
+		$suffix = "'";
+		$command = $prefix.$null_command.$suffix;
+		Debug( "Testing \"$command\"\n" );
+		my $output = qx($command);
+		my $status = $? >> 8;
 		if ( !$status )
 		{
-			Debug( "Test ok, using prefix '$prefix'\n" );
-			return( $prefix );
+			Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+			return( $prefix, $suffix );
 		}
 		else
 		{
 			chomp( $output );
 			Debug( "Test failed, '$output'\n" );
+
+			$prefix = "su ".ZM_WEB_USER." -c ";
+			$suffix = "'";
+			$command = $prefix.$null_command.$suffix;
+			Debug( "Testing \"$command\"\n" );
+			$output = qx($command);
+			$status = $? >> 8;
+			if ( !$status )
+			{
+				Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+				return( $prefix, $suffix );
+			}
+			else
+			{
+				chomp( $output );
+				Debug( "Test failed, '$output'\n" );
+			}
 		}
 	}
-
 	Error( "Unable to find valid 'su' syntax\n" );
 	exit( -1 );
 }
@@ -308,7 +327,7 @@ sub runCommand
 	$command = ZM_PATH_BIN."/".$command;
 	if ( $cmd_prefix )
 	{
-		$command = $cmd_prefix."'".$command."'";
+		$command = $cmd_prefix.$command.$cmd_suffix;
 	}
 	Debug( "Command: $command\n" );
 	my $output = qx($command);
@@ -318,7 +337,7 @@ sub runCommand
 	{
 		if ( $status )
 		{
-			Error( "Unable to run '$command', output is '$output'\n" );
+			Error( "Unable to run \"$command\", output is \"$output\"\n" );
 			exit( -1 );
 		}
 		else

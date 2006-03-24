@@ -713,7 +713,6 @@ int main( int argc, char *argv[] )
 							);
 							delete monitor;
 						}
-						delete monitor;
 					}
 					else
 					{

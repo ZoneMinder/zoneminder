@@ -2,7 +2,7 @@
 #
 # ==========================================================================
 #
-# ZoneMinder Pelco-P Control Script, $Date$, $Revision$
+# ZoneMinder Pelco-D Control Script, $Date$, $Revision$
 # Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -34,12 +34,11 @@ use strict;
 # ==========================================================================
 
 use constant DBG_ID => "zmctrl-pelp"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
+use constant DBG_LEVEL => 1; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
 
 use ZoneMinder;
-#use Data::Dumper;
 use Getopt::Long;
 use Device::SerialPort;
 use Time::HiRes qw( usleep );
@@ -92,6 +91,8 @@ if ( !GetOptions(
 	Usage();
 }
 
+$address -= 1;
+
 if ( defined($autostop) )
 {
 	# Convert to microseconds.
@@ -103,7 +104,7 @@ Debug( $arg_string."\n" );
 srand( time() );
 
 my $serial_port = new Device::SerialPort( $device );
-$serial_port->baudrate(2400);
+$serial_port->baudrate(4800);
 $serial_port->databits(8);
 $serial_port->parity('none');
 $serial_port->stopbits(1);
@@ -126,11 +127,12 @@ sub printMsg
 	{
 		if ( ($i > 0) && ($i%$line_length == 0) && ($i != ($msg_len-1)) )
 		{
-			$msg_str .= printf( "\n%*s", length($prefix), "" );
+			$msg_str .= sprintf( "\n%*s", length($prefix), "" );
 		}
-		$msg_str .= printf( "%02x ", $msg->[$i] );
+		$msg_str .= sprintf( "%02x ", $msg->[$i] );
 	}
 	$msg_str .= "[".$msg_len."]\n";
+	Debug( $msg_str );
 }
 
 sub sendCmd
@@ -140,14 +142,12 @@ sub sendCmd
 
 	my $result = undef;
 
-	#print( Dumper( @$cmd ) );
 	my $checksum = 0x00;
-	for ( my $i = 0; $i < int(@$cmd)-1; $i++ )
+	for ( my $i = 0; $i < int(@$cmd); $i++ )
 	{
 		$checksum ^= $cmd->[$i];
-		$checksum &= 0xff;
-		#printf( "%02x - %02x\n", $cmd->[$i], $checksum );
 	}
+	$checksum &= 0xff;
 	push( @$cmd, $checksum );
 
 	printMsg( $cmd, "Tx" );
@@ -212,6 +212,20 @@ sub sendCmd
 my $stx = 0xa0;
 my $etx = 0xaf;
 
+sub remoteReset
+{
+	Debug( "Remote Reset\n" );
+	my @msg = ( $stx, $address, 0x00, 0x0f, 0x00, 0x00, $etx );
+	sendCmd( \@msg );
+}
+
+sub resetDefaults
+{
+	Debug( "Reset Defaults\n" );
+	my @msg = ( $stx, $address, 0x00, 0x29, 0x00, 0x00, $etx );
+	sendCmd( \@msg );
+}
+
 sub cameraOff
 {
 	Debug( "Camera Off\n" );
@@ -236,7 +250,7 @@ sub autoScan
 sub manScan
 {
 	Debug( "Manual Scan\n" );
-	my @msg = ( $stx, $address, 0x10, 0x00, 0x00, 0x00, $etx );
+	my @msg = ( $stx, $address, 0x0b, 0x00, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 }
 
@@ -250,7 +264,7 @@ sub stop
 sub moveUp
 {
 	Debug( "Move Up\n" );
-	my $speed = shift || 0x3f;
+	my $speed = shift;
 	my @msg = ( $stx, $address, 0x00, 0x08, 0x00, $speed, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -263,7 +277,7 @@ sub moveUp
 sub moveDown
 {
 	Debug( "Move Down\n" );
-	my $speed = shift || 0x3f;
+	my $speed = shift;
 	my @msg = ( $stx, $address, 0x00, 0x10, 0x00, $speed, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -276,7 +290,7 @@ sub moveDown
 sub moveLeft
 {
 	Debug( "Move Left\n" );
-	my $speed = shift || 0x3f;
+	my $speed = shift;
 	my @msg = ( $stx, $address, 0x00, 0x04, $speed, 0x00, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -289,8 +303,8 @@ sub moveLeft
 sub moveRight
 {
 	Debug( "Move Right\n" );
-	my $speed = shift || 0x3f;
-	my @msg = ( $stx, $address, 0x00, 0x02, $speed, 0x00 , $etx);
+	my $speed = shift;
+	my @msg = ( $stx, $address, 0x00, 0x02, $speed, 0x00, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
 	{
@@ -302,8 +316,8 @@ sub moveRight
 sub moveUpLeft
 {
 	Debug( "Move Up/Left\n" );
-	my $panspeed = shift || 0x3f;
-	my $tiltspeed = shift || 0x3f;
+	my $panspeed = shift;
+	my $tiltspeed = shift;
 	my @msg = ( $stx, $address, 0x00, 0x0c, $panspeed, $tiltspeed, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -316,8 +330,8 @@ sub moveUpLeft
 sub moveUpRight
 {
 	Debug( "Move Up/Right\n" );
-	my $panspeed = shift || 0x3f;
-	my $tiltspeed = shift || 0x3f;
+	my $panspeed = shift;
+	my $tiltspeed = shift;
 	my @msg = ( $stx, $address, 0x00, 0x0a, $panspeed, $tiltspeed, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -330,8 +344,8 @@ sub moveUpRight
 sub moveDownLeft
 {
 	Debug( "Move Down/Left\n" );
-	my $panspeed = shift || 0x3f;
-	my $tiltspeed = shift || 0x3f;
+	my $panspeed = shift;
+	my $tiltspeed = shift;
 	my @msg = ( $stx, $address, 0x00, 0x14, $panspeed, $tiltspeed, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
@@ -376,17 +390,24 @@ sub setZoomSpeed
 	sendCmd( \@msg );
 }
 
+sub zoomStop
+{
+	stop();
+	setZoomSpeed( 0 );
+}
+
 sub zoomTele
 {
 	Debug( "Zoom Tele\n" );
 	my $speed = shift || 0x01;
 	setZoomSpeed( $speed );
+	usleep( 250000 );
 	my @msg = ( $stx, $address, 0x00, 0x20, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
 	{
 		usleep( $autostop );
-		setZoomSpeed( 0 );
+		zoomStop();
 	}
 }
 
@@ -395,12 +416,13 @@ sub zoomWide
 	Debug( "Zoom Wide\n" );
 	my $speed = shift || 0x01;
 	setZoomSpeed( $speed );
+	usleep( 250000 );
 	my @msg = ( $stx, $address, 0x00, 0x40, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
 	{
 		usleep( $autostop );
-		setZoomSpeed( 0 );
+		zoomStop();
 	}
 }
 
@@ -416,7 +438,8 @@ sub focusNear
 	Debug( "Focus Near\n" );
 	my $speed = shift || 0x03;
 	setFocusSpeed( $speed );
-	my @msg = ( $stx, $address, 0x02, 0x00, 0x00, 0x00, $etx );
+	usleep( 250000 );
+	my @msg = ( $stx, $address, 0x01, 0x00, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
 	{
@@ -430,7 +453,8 @@ sub focusFar
 	Debug( "Focus Far\n" );
 	my $speed = shift || 0x03;
 	setFocusSpeed( $speed );
-	my @msg = ( $stx, $address, 0x01, 0x80, 0x00, 0x00, $etx );
+	usleep( 250000 );
+	my @msg = ( $stx, $address, 0x00, 0x80, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 	if ( $autostop )
 	{
@@ -442,7 +466,7 @@ sub focusFar
 sub focusAuto
 {
 	Debug( "Focus Auto\n" );
-	my @msg = ( $stx, $address, 0x00, 0x2b, 0x00, 0x01, $etx );
+	my @msg = ( $stx, $address, 0x00, 0x2b, 0x00, 0x00, $etx );
 	sendCmd( \@msg );
 }
 
@@ -450,6 +474,44 @@ sub focusMan
 {
 	Debug( "Focus Man\n" );
 	my @msg = ( $stx, $address, 0x00, 0x2b, 0x00, 0x02, $etx );
+	sendCmd( \@msg );
+}
+
+sub irisClose
+{
+	Debug( "Iris Close\n" );
+	my @msg = ( $stx, $address, 0x04, 0x00, 0x00, 0x00, $etx );
+	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		setIrisSpeed( 0 );
+	}
+}
+
+sub irisOpen
+{
+	Debug( "Iris Open\n" );
+	my @msg = ( $stx, $address, 0x02, 0x80, 0x00, 0x00, $etx );
+	sendCmd( \@msg );
+	if ( $autostop )
+	{
+		usleep( $autostop );
+		setIrisSpeed( 0 );
+	}
+}
+
+sub irisAuto
+{
+	Debug( "Iris Auto\n" );
+	my @msg = ( $stx, $address, 0x00, 0x2d, 0x00, 0x00, $etx );
+	sendCmd( \@msg );
+}
+
+sub irisMan
+{
+	Debug( "Iris Man\n" );
+	my @msg = ( $stx, $address, 0x00, 0x2d, 0x00, 0x02, $etx );
 	sendCmd( \@msg );
 }
 
@@ -461,7 +523,7 @@ sub writeScreen
 	my @chars = unpack( "C*", $string );
 	for ( my $i = 0; $i < length($string); $i++ )
 	{
-		printf( "0x%02x\n", $chars[$i] );
+		#printf( "0x%02x\n", $chars[$i] );
 		my @msg = ( $stx, $address, 0x00, 0x15, $i, $chars[$i], $etx );
 		sendCmd( \@msg );
 	}
@@ -505,7 +567,12 @@ sub presetHome
 	sendCmd( \@msg );
 }
 
-if ( $command eq "wake" )
+if ( $command eq "reset" )
+{
+	remoteReset();
+	resetDefaults();
+}
+elsif ( $command eq "wake" )
 {
 	cameraOn();
 }
@@ -559,7 +626,7 @@ elsif ( $command eq "zoom_con_wide" )
 }
 elsif ( $command eq "zoom_stop" )
 {
-	setZoomSpeed( 0 );
+	zoomStop();
 }
 elsif ( $command eq "focus_con_near" )
 {
@@ -571,7 +638,8 @@ elsif ( $command eq "focus_con_far" )
 }
 elsif ( $command eq "focus_stop" )
 {
-	setFocusSpeed( 0 );
+	stop();
+	#setFocusSpeed( 0 );
 }
 elsif ( $command eq "focus_auto" )
 {
@@ -580,6 +648,26 @@ elsif ( $command eq "focus_auto" )
 elsif ( $command eq "focus_man" )
 {
 	focusMan();
+}
+elsif ( $command eq "iris_con_close" )
+{
+	irisClose();
+}
+elsif ( $command eq "iris_con_open" )
+{
+	irisOpen();
+}
+elsif ( $command eq "iris_stop" )
+{
+	stop();
+}
+elsif ( $command eq "iris_auto" )
+{
+	irisAuto();
+}
+elsif ( $command eq "iris_man" )
+{
+	irisMan();
 }
 elsif ( $command eq "preset_home" )
 {

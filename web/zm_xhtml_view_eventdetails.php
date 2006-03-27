@@ -78,10 +78,15 @@ function getThumbnail( $event, $fid, $scale )
 
 		if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
 		{
-			$fraction = sprintf( "%.2f", $scale/100 );
+			if ( version_compare( phpversion(), "4.3.10", ">=") )
+				$fraction = sprintf( "%.2F", $scale/100 );
+			else
+				$fraction = sprintf( "%.2f", $scale/100 );
 			if ( file_exists( $image_path ) )
+			{
 				$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $image_path | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
-			exec( $command );
+				exec( $command );
+			}
 		}
 	}
 	return( $thumb_image );

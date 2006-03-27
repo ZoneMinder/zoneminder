@@ -932,10 +932,11 @@ function getImageSrc( $event, $frame, $scale, $capture_only=false, $overwrite=fa
 	}
 	else
 	{
-		$fraction = sprintf( "%.3f", $scale/100 );
-		//echo "F:$fraction<br>";
+		if ( version_compare( phpversion(), "4.3.10", ">=") )
+			$fraction = sprintf( "%.3F", $scale/100 );
+		else
+			$fraction = sprintf( "%.3f", $scale/100 );
 		$scale = (int)round( $scale );
-		//echo "S:$scale<br>";
 
 		$thumb_capt_path = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumb_capt_path );
 		$thumb_anal_path = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumb_anal_path );
@@ -1016,7 +1017,10 @@ function createListThumbnail( $event, $overwrite=false )
 
 function createVideo( $event, $format, $rate, $scale, $overwrite=false )
 {
-	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$format." -r ".sprintf( "%.2f", ($rate/RATE_BASE) )." -s ".sprintf( "%.2f", ($scale/SCALE_BASE) );
+	if ( version_compare( phpversion(), "4.3.10", ">=") )
+		$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$format." -r ".sprintf( "%.2F", ($rate/RATE_BASE) )." -s ".sprintf( "%.2F", ($scale/SCALE_BASE) );
+	else
+		$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$format." -r ".sprintf( "%.2f", ($rate/RATE_BASE) )." -s ".sprintf( "%.2f", ($scale/SCALE_BASE) );
 	if ( $overwrite )
 		$command .= " -o";
 	$result = exec( $command, $output, $status );

@@ -97,7 +97,10 @@ else
 
 if ( !empty($generate) )
 {
-	$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$video_format." -r ".sprintf( "%.2f", ($rate/RATE_BASE) )." -S ".$video_size;
+	if ( version_compare( phpversion(), "4.3.10", ">=") )
+		$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$video_format." -r ".sprintf( "%.2F", ($rate/RATE_BASE) )." -S ".$video_size;
+	else
+		$command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$video_format." -r ".sprintf( "%.2f", ($rate/RATE_BASE) )." -S ".$video_size;
 	if ( $overwrite )
 		$command .= " -o";
 	$generated = exec( $command, $output, $status );

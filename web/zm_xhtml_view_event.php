@@ -250,7 +250,10 @@ $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 $scale /= $frames_per_line; // Try and get two pics per line
 
 $count = 0;
-$fraction = sprintf( "%.2f", $scale/100 );
+if ( version_compare( phpversion(), "4.3.10", ">=") )
+	$fraction = sprintf( "%.2F", $scale/100 );
+else
+	$fraction = sprintf( "%.2f", $scale/100 );
 $event_path = ZM_DIR_EVENTS.'/'.$event['MonitorName'].'/'.$event['Id'];
 for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++, $count++ )
 {

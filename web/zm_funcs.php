@@ -96,6 +96,15 @@ function userLogout()
 	session_destroy();
 }
 
+function noCacheHeaders()
+{
+	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+	header("Last-Modified: ".gmdate( "D, d M Y H:i:s" )." GMT"); // always modified
+	header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
+	header("Cache-Control: post-check=0, pre-check=0", false);
+	header("Pragma: no-cache");         // HTTP/1.0
+}
+
 function authHash( $use_remote_addr )
 {
 	if ( version_compare( phpversion(), "4.1.0", "<") )
@@ -1239,16 +1248,16 @@ function parseFilter( $save_to_session=false, $term_sep='&' )
 							$value = "'$value'";
 							break;
 						case 'DateTime':
-							$value = "'".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."'";
+							$value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
 							break;
 						case 'Date':
-							$value = "to_days( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							$value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
 							break;
 						case 'Time':
-							$value = "extract( hour_second from '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							$value = "extract( hour_second from '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
 							break;
 						case 'Weekday':
-							$value = "weekday( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							$value = "weekday( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
 							break;
 					}
 					$value_list[] = $value;

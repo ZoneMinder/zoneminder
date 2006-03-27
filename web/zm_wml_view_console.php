@@ -21,7 +21,7 @@
 $running = daemonCheck();
 $status = $running?$zmSlangRunning:$zmSlangStopped;
 
-$db_now = strftime( "%Y-%m-%d %H:%M:%S" );
+$db_now = strftime( STRF_FMT_DATETIME_DB );
 $sql = "select M.*, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if((to_days(E.StartTime)=to_days('$db_now')) && E.Archived = 0,1,NULL)) as TodayEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
 $result = mysql_query( $sql );
 if ( !$result )
@@ -57,7 +57,7 @@ mysql_free_result( $result );
 <card id="zmConsole" title="<?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangConsole ?>" ontimer="<?= $PHP_SELF ?>?view=<?= $view ?>">
 <timer value="<?= REFRESH_MAIN*10 ?>"/>
 <p align="center">
-<?= date( "H:i" ) ?> - <?= makeLink( "$PHP_SELF?view=state", $status, canEdit( 'System' ) ) ?> - <?= getLoad() ?> / <?= getDiskPercent() ?>%
+<?= strftime( DATE_FMT_CONSOLE_SHORT ) ?> - <?= makeLink( "$PHP_SELF?view=state", $status, canEdit( 'System' ) ) ?> - <?= getLoad() ?> / <?= getDiskPercent() ?>%
 <table columns="4" align="LLRR">
 <?php
 if ( false )

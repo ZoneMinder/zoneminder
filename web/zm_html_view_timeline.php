@@ -24,6 +24,43 @@ if ( !canView( 'Events' ) )
 	return;
 }
 
+//
+// Date/time formats used in charts 
+//
+// These are the time axis range text. The first of each pair is the start date/time
+// and the second is the last so often contains additional information
+//
+
+// When the chart range is years
+define( "STRF_TL_AXIS_RANGE_YEAR1", "%b %Y" );
+define( "STRF_TL_AXIS_RANGE_YEAR2", STRF_TL_AXIS_RANGE_YEAR1 );
+
+// When the chart range is months
+define( "STRF_TL_AXIS_RANGE_MONTH1", "%b" );
+define( "STRF_TL_AXIS_RANGE_MONTH2", STRF_TL_AXIS_RANGE_MONTH1." %Y" );
+
+// When the chart range is days
+define( "STRF_TL_AXIS_RANGE_DAY1", "%d" );
+define( "STRF_TL_AXIS_RANGE_DAY2", STRF_TL_AXIS_RANGE_DAY1." %b %Y" );
+
+// When the chart range is less than a day
+define( "STRF_TL_AXIS_RANGE_TIME1", "%H:%M" );
+define( "STRF_TL_AXIS_RANGE_TIME2", STRF_TL_AXIS_RANGE_TIME1.", %d %b %Y" );
+
+//
+// These are the time axis tick labels
+//
+define( "STRF_TL_AXIS_LABEL_YEAR", "%Y" );
+define( "STRF_TL_AXIS_LABEL_MONTH", "%M" );
+define( "STRF_TL_AXIS_LABEL_WEEK", "%d/%m" );
+define( "STRF_TL_AXIS_LABEL_DAY", "%d" );
+define( "STRF_TL_AXIS_LABEL_HOUR", "%H:00" );
+define( "STRF_TL_AXIS_LABEL_10MINUTE", "%H:%M" );
+define( "STRF_TL_AXIS_LABEL_MINUTE", "%H:%M" );
+define( "STRF_TL_AXIS_LABEL_10SECOND", "%S" );
+define( "STRF_TL_AXIS_LABEL_SECOND", "%S" );
+
+// Turn error reporting on full temporarily.
 error_reporting( E_ALL );
 
 $mouseover = true;
@@ -133,24 +170,24 @@ if ( isset($range) )
 		{
 			$max_time_t--;
 		}
-		$min_time = date( "Y-m-d H:i:s", $min_time_t );
-		$max_time = date( "Y-m-d H:i:s", $max_time_t );
+		$min_time = strftime( STRF_FMT_DATETIME_DB, $min_time_t );
+		$max_time = strftime( STRF_FMT_DATETIME_DB, $max_time_t );
 	}
 	elseif ( isset($min_time) )
 	{
 		$min_time_t = strtotime($min_time);
 		$max_time_t = $min_time_t + $range;
 		$mid_time_t = $min_time_t + $half_range;
-		$mid_time = date( "Y-m-d H:i:s", $mid_time_t );
-		$max_time = date( "Y-m-d H:i:s", $max_time_t );
+		$mid_time = strftime( STRF_FMT_DATETIME_DB, $mid_time_t );
+		$max_time = strftime( STRF_FMT_DATETIME_DB, $max_time_t );
 	}
 	elseif ( isset($max_time) )
 	{
 		$max_time_t = strtotime($max_time);
 		$min_time_t = $max_time_t - $range;
 		$mid_time_t = $min_time_t + $half_range;
-		$min_time = date( "Y-m-d H:i:s", $min_time_t );
-		$mid_time = date( "Y-m-d H:i:s", $mid_time_t );
+		$min_time = strftime( STRF_FMT_DATETIME_DB, $min_time_t );
+		$mid_time = strftime( STRF_FMT_DATETIME_DB, $mid_time_t );
 	}
 }
 elseif ( isset($min_time) && isset($max_time) )
@@ -160,7 +197,7 @@ elseif ( isset($min_time) && isset($max_time) )
 	$range = ($max_time_t - $min_time_t) + 1;
 	$half_range = (int)($range/2);
 	$mid_time_t = $min_time_t + $half_range;
-	$mid_time = date( "Y-m-d H:i:s", $mid_time_t );
+	$mid_time = strftime( STRF_FMT_DATETIME_DB, $mid_time_t );
 }
 
 if ( isset($min_time) && isset($max_time) )
@@ -219,7 +256,7 @@ else
 	$range = ($max_time_t - $min_time_t) + 1;
 	$half_range = (int)($range/2);
 	$mid_time_t = $min_time_t + $half_range;
-	$mid_time = date( "Y-m-d H:i:s", $mid_time_t );
+	$mid_time = strftime( STRF_FMT_DATETIME_DB, $mid_time_t );
 }
 
 //echo "MnT: $temp_min_time, MxT: $temp_max_time, ExP: $temp_expandable<br>";
@@ -234,15 +271,15 @@ if ( $filter_query )
 //echo '<br>';
 
 $scales = array(
-	array( "name"=>"year",     "factor"=>60*60*24*365, "align"=>1,  "zoomout"=>2, "label"=>"Y" ),
-	array( "name"=>"month",    "factor"=>60*60*24*30,  "align"=>1,  "zoomout"=>12, "label"=>"M" ),
-	array( "name"=>"week",     "factor"=>60*60*24*7,   "align"=>1,  "zoomout"=>4.25, "label"=>"j/n",  "label_check"=>"W" ),
-	array( "name"=>"day",      "factor"=>60*60*24,     "align"=>1,  "zoomout"=>7, "label"=>"j" ),
-	array( "name"=>"hour",     "factor"=>60*60,        "align"=>1,  "zoomout"=>24, "label"=>"H:00", "label_check"=>"H" ),
-	array( "name"=>"minute10", "factor"=>60,           "align"=>10, "zoomout"=>6, "label"=>"H:i",  "label_check"=>"i" ),
-	array( "name"=>"minute",   "factor"=>60,           "align"=>1,  "zoomout"=>10, "label"=>"H:i",  "label_check"=>"i" ),
-	array( "name"=>"second10", "factor"=>1,            "align"=>10, "zoomout"=>6, "label"=>"s" ),
-	array( "name"=>"second",   "factor"=>1,            "align"=>1,  "zoomout"=>10, "label"=>"s" ),
+	array( "name"=>"year",     "factor"=>60*60*24*365, "align"=>1,  "zoomout"=>2, "label"=>STRF_TL_AXIS_LABEL_YEAR ),
+	array( "name"=>"month",    "factor"=>60*60*24*30,  "align"=>1,  "zoomout"=>12, "label"=>STRF_TL_AXIS_LABEL_MONTH ),
+	array( "name"=>"week",     "factor"=>60*60*24*7,   "align"=>1,  "zoomout"=>4.25, "label"=>STRF_TL_AXIS_LABEL_WEEK, "label_check"=>"%W" ),
+	array( "name"=>"day",      "factor"=>60*60*24,     "align"=>1,  "zoomout"=>7, "label"=>STRF_TL_AXIS_LABEL_DAY ),
+	array( "name"=>"hour",     "factor"=>60*60,        "align"=>1,  "zoomout"=>24, "label"=>STRF_TL_AXIS_LABEL_HOUR, "label_check"=>"%H" ),
+	array( "name"=>"minute10", "factor"=>60,           "align"=>10, "zoomout"=>6, "label"=>STRF_TL_AXIS_LABEL_10MINUTE,  "label_check"=>"%M" ),
+	array( "name"=>"minute",   "factor"=>60,           "align"=>1,  "zoomout"=>10, "label"=>STRF_TL_AXIS_LABEL_MINUTE,  "label_check"=>"%M" ),
+	array( "name"=>"second10", "factor"=>1,            "align"=>10, "zoomout"=>6, "label"=>STRF_TL_AXIS_LABEL_10SECOND ),
+	array( "name"=>"second",   "factor"=>1,            "align"=>1,  "zoomout"=>10, "label"=>STRF_TL_AXIS_LABEL_SECOND ),
 );
 
 $maj_x_scale = getDateScale( $scales, $range, $chart['grid']['x']['major']['min'], $chart['grid']['x']['major']['max'] );
@@ -250,15 +287,15 @@ $maj_x_scale = getDateScale( $scales, $range, $chart['grid']['x']['major']['min'
 
 // Adjust the range etc for scale
 $min_time_t -= $min_time_t%($maj_x_scale['factor']*$maj_x_scale['align']);
-$min_time = date( "Y-m-d H:i:s", $min_time_t );
+$min_time = strftime( STRF_FMT_DATETIME_DB, $min_time_t );
 $max_time_t += (($maj_x_scale['factor']*$maj_x_scale['align'])-$max_time_t%($maj_x_scale['factor']*$maj_x_scale['align']))-1;
 if ( $max_time_t > time() )
 	$max_time_t = time();
-$max_time = date( "Y-m-d H:i:s", $max_time_t );
+$max_time = strftime( STRF_FMT_DATETIME_DB, $max_time_t );
 $range = ($max_time_t - $min_time_t) + 1;
 $half_range = (int)($range/2);
 $mid_time_t = $min_time_t + $half_range;
-$mid_time = date( "Y-m-d H:i:s", $mid_time_t );
+$mid_time = strftime( STRF_FMT_DATETIME_DB, $mid_time_t );
 
 //echo "R:$range<br>";
 //echo "MnT:$min_time<br>";
@@ -295,7 +332,6 @@ $mon_frame_slots = array();
 if ( !($event_result = mysql_query( $events_sql )) )
 	die( mysql_error() );
 $monitor_ids = array();
-//echo "YYY:".date( "r" )."<br>"; flush();
 while( $event = mysql_fetch_assoc( $event_result ) )
 {
 	if ( !isset($monitor_ids[$event['MonitorId']]) )
@@ -412,7 +448,6 @@ ksort($monitor_ids,SORT_NUMERIC);
 ksort($mon_event_slots,SORT_NUMERIC);
 ksort($mon_frame_slots,SORT_NUMERIC);
 
-//echo "AAA:".date( "r" )."<br>"; flush();
 // Add on missing frames
 $xcount = 0;
 foreach( array_keys($mon_frame_slots) as $monitor_id )
@@ -435,8 +470,6 @@ foreach( array_keys($mon_frame_slots) as $monitor_id )
 		}
 	}
 }
-//echo "Fetched $xcount frames<br>";
-//echo "BBB:".date( "r" )."<br>"; flush();
 
 $chart['data']['y']['range'] = ($chart['data']['y']['hi'] - $chart['data']['y']['lo']) + 1;
 $chart['data']['y']['density'] = $chart['data']['y']['range']/$chart['graph']['height'];
@@ -455,7 +488,6 @@ foreach ( array_keys($monitor_ids) as $monitor_id )
 		$max_height = $monitors[$monitor_id]['Height'];
 }
 
-//echo "ZZZ:".date( "r" )."<br>"; flush();
 // Optimise boxes
 foreach( array_keys($mon_event_slots) as $monitor_id )
 {
@@ -514,7 +546,6 @@ foreach( array_keys($mon_event_slots) as $monitor_id )
 }
 
 // Stack events
-//echo "XXX:".date( "r" )."<br>"; flush();
 $frame_slots = array();
 $frame_monitor_ids = array_keys($mon_frame_slots);
 for ( $i = 0; $i < $chart['graph']['width']; $i++ )
@@ -550,7 +581,6 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ )
 		}
 	}
 }
-//echo "YYY:".date( "r" )."<br>"; flush();
 
 //print_r( $mon_event_slots );
 //print_r( $mon_frame_slots );
@@ -562,22 +592,22 @@ preg_match( '/^(\d+)-(\d+)-(\d+) (\d+):(\d+)/', $max_time, $end_matches );
 if ( $start_matches[1] != $end_matches[1] )
 {
 	// Different years
-	$title = date( "M Y", $chart['data']['x']['lo'] )." - ".date( "M Y", $chart['data']['x']['hi'] );
+	$title = strftime( STRF_TL_AXIS_RANGE_YEAR1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_YEAR2, $chart['data']['x']['hi'] );
 }
 elseif ( $start_matches[2] != $end_matches[2] )
 {
 	// Different months
-	$title = date( "M", $chart['data']['x']['lo'] )." - ".date( "M Y", $chart['data']['x']['hi'] );
+	$title = strftime( STRF_TL_AXIS_RANGE_MONTH1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_MONTH2, $chart['data']['x']['hi'] );
 }
 elseif ( $start_matches[3] != $end_matches[3] )
 {
 	// Different dates
-	$title = date( "j", $chart['data']['x']['lo'] )." - ".date( "j M Y", $chart['data']['x']['hi'] );
+	$title = strftime( STRF_TL_AXIS_RANGE_DAY1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_DAY2, $chart['data']['x']['hi'] );
 }
 else
 {
 	// Different times
-	$title = date( "H:i", $chart['data']['x']['lo'] )." - ".date( "H:i, j M Y", $chart['data']['x']['hi'] );
+	$title = strftime( STRF_TL_AXIS_RANGE_TIME1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_TIME2, $chart['data']['x']['hi'] );
 }
 
 function getDateScale( $scales, $range, $min_lines, $max_lines )
@@ -635,11 +665,11 @@ function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoo
 		$time_offset = (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density']));
 		if ( $scale['align'] > 1 )
 		{
-			$label = (int)(date( $label_check, $time_offset )/$scale['align']);
+			$label = (int)(strftime( $label_check, $time_offset )/$scale['align']);
 		}
 		else
 		{
-			$label = date( $label_check, $time_offset );
+			$label = strftime( $label_check, $time_offset );
 		}
 		if ( !isset($last_label) || ($last_label != $label) )
 		{
@@ -653,7 +683,7 @@ function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoo
 				if ( $label_class )
 				{
 ?>
-      <div class="<?= $label_class ?>" style="left: <?= $x-25 ?>px;"><?= date( $scale['label'], $time_offset ); ?></div>
+      <div class="<?= $label_class ?>" style="left: <?= $x-25 ?>px;"><?= strftime( $scale['label'], $time_offset ); ?></div>
 <?php
 				}
 				if ( $tick_class )
@@ -672,8 +702,8 @@ function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoo
 				{
 					//$zoom_mid_time = (int)($chart['data']['x']['lo'] + (($last_tick+(($i - $last_tick)/2)) * $chart['data']['x']['density'])); 
 
-					$zoom_min_time = date( "Y-m-d H:i:s", (int)($chart['data']['x']['lo'] + ($last_tick * $chart['data']['x']['density'])) );
-					$zoom_max_time = date( "Y-m-d H:i:s", (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
+					$zoom_min_time = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($last_tick * $chart['data']['x']['density'])) );
+					$zoom_max_time = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
       <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" title="<?= $zmSlangZoomIn ?>" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= $zoom_min_time ?>&max_time=<?= $zoom_max_time ?>'"></div>
 <?php
@@ -685,8 +715,8 @@ function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoo
 	}
 	if ( $zoom_class )
 	{
-		$zoom_min_time = date( "Y-m-d H:i:s", (int)($chart['data']['x']['lo'] + ($last_tick * $chart['data']['x']['density'])) );
-		$zoom_max_time = date( "Y-m-d H:i:s", (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
+		$zoom_min_time = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($last_tick * $chart['data']['x']['density'])) );
+		$zoom_max_time = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
       <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= $zoom_min_time ?>&max_time=<?= $zoom_max_time ?>'"></div>
 <?php
@@ -748,7 +778,7 @@ function getSlotLoadImageBehaviour( $slot )
 		$annotation .= "<em>";
 	$annotation .= $monitor['Name'].
 		"<br>".$slot['event']['Name'].($slot_frame?("(".$slot_frame.")"):"").
-		"<br>".strftime( "%y/%m/%d %H:%M:%S", strtotime($slot['event']['StartTime']) ).
+		"<br>".strftime( STRF_FMT_DATETIME_SHORT, strtotime($slot['event']['StartTime']) ).
 		" - ".$slot['event']['Length']."s".
 		"<br>".htmlentities($slot['event']['Cause']).
 		(!empty($slot['event']['Notes'])?("<br>".htmlentities($slot['event']['Notes'])):"").
@@ -1517,16 +1547,16 @@ function parseFilterToTree()
 							$value = "'$value'";
 							break;
 						case 'DateTime':
-							$value = "'".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."'";
+							$value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
 							break;
 						case 'Date':
-							$value = "to_days( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							$value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
 							break;
 						case 'Time':
-							$value = "extract( hour_second from '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							$value = "extract( hour_second from '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
 							break;
 						case 'Weekday':
-							$value = "weekday( '".strftime( "%Y-%m-%d %H:%M:%S", strtotime( $value ) )."' )";
+							$value = "weekday( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
 							break;
 					}
 					$value_list[] = $value;

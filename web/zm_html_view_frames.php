@@ -82,7 +82,7 @@ if ( count($frames) )
 <tr bgcolor="<?= $bgcolor ?>">
 <td class="text" align="center"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame['FrameId'] ?>', 'zmImage', <?= $event['Width']+$jws['image']['w'] ?>, <?= $event['Height']+$jws['image']['h'] ?> );"><?= $frame['FrameId'] ?></a></td>
 <td class="text" align="center"><?= $alarm_frame?$zmSlangYes:$zmSlangNo ?></td>
-<td class="text" align="center"><?= date( "H:i:s", $frame['UnixTimeStamp'] ) ?></td>
+<td class="text" align="center"><?= strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
 <td class="text" align="center"><?= number_format( $frame['Delta'], 2 ) ?></td>
 <?php
 		if ( ZM_RECORD_EVENT_STATS && $alarm_frame )

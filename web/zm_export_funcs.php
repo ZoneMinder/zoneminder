@@ -68,7 +68,7 @@ function exportEventDetail( $event )
 <tr><td><?= $zmSlangMonitor ?></td><td><?= $event['MonitorName'] ?> (<?= $event['MonitorId'] ?>)</td></tr>
 <tr><td><?= $zmSlangCause ?></td><td><?= $event['Cause'] ?></td></tr>
 <tr><td><?= $zmSlangNotes ?></td><td><?= $event['Notes'] ?></td></tr>
-<tr><td><?= $zmSlangTime ?></td><td><?= strftime( "%m/%d %H:%M:%S", strtotime($event['StartTime']) ) ?></td></tr>
+<tr><td><?= $zmSlangTime ?></td><td><?= strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td></tr>
 <tr><td><?= $zmSlangDuration ?></td><td><?= $event['Length'] ?></td></tr>
 <tr><td><?= $zmSlangFrames ?></td><td><?= $event['Frames'] ?></td></tr>
 <tr><td><?= $zmSlangAttrAlarmFrames ?></td><td><?= $event['AlarmFrames'] ?></td></tr>
@@ -148,7 +148,7 @@ function exportEventFrames( $event )
 <tr bgcolor="<?= $bgcolor ?>">
 <td align="center"><?= $frame['FrameId'] ?></td>
 <td align="center"><?= $alarm_frame?$zmSlangYes:$zmSlangNo ?></td>
-<td align="center"><?= date( "H:i:s", $frame['UnixTimeStamp'] ) ?></td>
+<td align="center"><?= strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
 <td align="center"><?= number_format( $frame['Delta'], 2 ) ?></td>
 <td align="center"><?= $frame['Score'] ?></td>
 <?php

@@ -18,6 +18,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+//
 // This section contains options substituted by the zmconfig.pl utility, do not edit these directly
 //
 define( "ZM_CONFIG", "@ZM_CONFIG@" );				// Path to config file
@@ -35,10 +36,12 @@ while ( !feof($cfg) )
 }
 fclose( $cfg );
 
+//
 // This section is options normally derived from other options or configuration
 //
 define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );				// Local path to the ZoneMinder Utility
 
+//
 // Alarm states
 //
 define( "STATE_IDLE", 0 );
@@ -47,15 +50,31 @@ define( "STATE_ALARM", 2 );
 define( "STATE_ALERT", 3 );
 define( "STATE_TAPE", 4 );
 
+//
 // These are miscellaneous options you won't normally need to change
 //
 define( "MAX_EVENTS", 10 );								// The maximum number of events to show in the monitor event listing
-define( "RATE_BASE", 100 );							// The additional scaling factor used to help get fractional rates in integer format
+define( "RATE_BASE", 100 );								// The additional scaling factor used to help get fractional rates in integer format
 define( "SCALE_BASE", 100 );							// The additional scaling factor used to help get fractional scales in integer format
 define( "LEARN_MODE", false );							// Currently unimplemented, do not change
 define( 'DEVICE_WIDTH', 150 );							// Default device width for phones and handhelds
 define( 'DEVICE_HEIGHT', 150 );							// Default device height for phones and handhelds
 define( 'DEVICE_LINES', 10 );							// Default device lines for phones and handhelds
+
+//
+// Date and time formats, eventually some of these may end up in the language files
+//
+define( "DATE_FMT_CONSOLE_LONG", "D jS M, g:ia" );		// This is the main console date/time, date() or strftime() format
+define( "DATE_FMT_CONSOLE_SHORT", "%H:%M" );			// This is the xHTML console date/time, date() or strftime() format
+
+define( "STRF_FMT_DATETIME_DB", "%Y-%m-%d %H:%M:%S" );	// Strftime format for database queries, don't change
+
+define( "STRF_FMT_DATETIME", "%c" );					// Strftime locale aware format for dates with times
+define( "STRF_FMT_DATE", "%x" );						// Strftime locale aware format for dates without times
+define( "STRF_FMT_TIME", "%X" );						// Strftime locale aware format for times without dates
+
+define( "STRF_FMT_DATETIME_SHORT", "%y/%m/%d %H:%M:%S" ); // Strftime shorter format for dates with time, not locale aware
+define( "STRF_FMT_DATETIME_SHORTER", "%m/%d %H:%M:%S" ); // Strftime shorter format for dates with time, not locale aware, used where space is tight
 
 require_once( 'zm_db.php' );
 loadConfig();

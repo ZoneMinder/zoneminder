@@ -1686,7 +1686,7 @@ if ( !empty($action) )
 	}
 	elseif ( $action == "reset" )
 	{
-		$_SESSION['event_reset_time'] = strftime( "%Y-%m-%d %H:%M:%S" );
+		$_SESSION['event_reset_time'] = strftime( STRF_FMT_DATETIME_DB );
 		setcookie( "event_reset_time", $_SESSION['event_reset_time'], time()+3600*24*30*12*10 );
 		if ( $cookies ) session_write_close();
 	}

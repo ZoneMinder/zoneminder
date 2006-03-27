@@ -36,11 +36,7 @@ if ( !$max_events )
 
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: ".ZM_WEB_REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
-header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
-header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
-header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
-header("Cache-Control: post-check=0, pre-check=0", false);
-header("Pragma: no-cache");			  // HTTP/1.0
+noCacheHeaders();
 
 $result = mysql_query( "select * from Monitors where Id = '$mid'" );
 if ( !$result )
@@ -151,7 +147,7 @@ while( $event = mysql_fetch_assoc( $result ) )
 <tr bgcolor="#FFFFFF">
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&trms=1&attr1=MonitorId&op1=%3d&val1=<?= $mid ?><?= $sort_query ?>&page=1', 'zmEvent' );"><?= $event['Id'] ?></a></td>
 <td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&trms=1&attr1=MonitorId&op1=%3d&val1=<?= $mid ?><?= $sort_query ?>&page=1', 'zmEvent' );"><?= $event['Name'] ?></a></td>
-<td align="center" class="text"><?= strftime( "%m/%d %H:%M:%S", strtotime($event['StartTime']) ) ?></td>
+<td align="center" class="text"><?= strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td>
 <td align="center" class="text"><?= $event['Length'] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['Frames'] ?>/<?= $event['AlarmFrames'] ?></a></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0', 'zmImage', <?= $monitor['Width']+$jws['image']['w'] ?>, <?= $monitor['Height']+$jws['image']['h'] ?> );"><?= $event['AvgScore'] ?>/<?= $event['MaxScore'] ?></a></td>

@@ -28,7 +28,7 @@ if ( !$result )
 $group = mysql_fetch_assoc( $result );
 mysql_free_result( $result );
 
-$db_now = strftime( "%Y-%m-%d %H:%M:%S" );
+$db_now = strftime( STRF_FMT_DATETIME_DB );
 $sql = "select M.*, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if((to_days(E.StartTime)=to_days('$db_now')) && E.Archived = 0,1,NULL)) as TodayEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
 $result = mysql_query( $sql );
 if ( !$result )
@@ -73,7 +73,7 @@ mysql_free_result( $result );
 <body>
 <table style="width: 100%">
 <tr>
-<td align="left"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>"><?= date( "H:i" ) ?></a></td><td align="center"><?= makeLink( "$PHP_SELF?view=state", $status, canEdit( 'System' ) ) ?></td><td align="right"><?= getLoad() ?>/<?= getDiskPercent() ?>%</td>
+<td align="left"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>"><?= <?= preg_match( '/%/', DATE_FMT_CONSOLE_SHORT )?strftime( DATE_FMT_CONSOLE_SHORT ):date( DATE_FMT_CONSOLE_SHORT ) ?></a></td><td align="center"><?= makeLink( "$PHP_SELF?view=state", $status, canEdit( 'System' ) ) ?></td><td align="right"><?= getLoad() ?>/<?= getDiskPercent() ?>%</td>
 </tr>
 </table>
 <table>

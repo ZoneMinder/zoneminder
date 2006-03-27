@@ -34,13 +34,9 @@ mysql_free_result( $result );
 
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: ".ZM_WEB_REFRESH_MAIN."; URL=$PHP_SELF" );
-header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
-header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT"); // always modified
-header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
-header("Cache-Control: post-check=0, pre-check=0", false);
-header("Pragma: no-cache");			// HTTP/1.0
+noCacheHeaders();
 
-$db_now = strftime( "%Y-%m-%d %H:%M:%S" );
+$db_now = strftime( STRF_FMT_DATETIME_DB );
 $sql = "select * from Monitors order by Sequence asc";
 $result = mysql_query( $sql );
 if ( !$result )
@@ -225,7 +221,7 @@ newWindow( '<?= $PHP_SELF ?>?view=donate', 'zmDonate', <?= $jws['donate']['w'] ?
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="delete">
 <tr>
-<td class="smallhead" align="left"><?= date( "D jS M, g:ia" ) ?></td>
+<td class="smallhead" align="left"><?= preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG ) ?></td>
 <td class="bighead" align="center"><strong><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?= $zmSlangConsole ?> - <?php if ( canEdit( 'System' ) ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=state', 'zmState', <?= $jws['state']['w'] ?>, <?= $jws['state']['h'] ?> );"><?= $status ?></a> - <?php } ?><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=version', 'zmVersion', ".$jws['version']['w'].", ".$jws['version']['h']." );", "v".ZM_VERSION, canEdit( 'System' ) ) ?></strong></td>
 <td class="smallhead" align="right"><?= $zmSlangLoad ?>: <?= getLoad() ?> / <?= $zmSlangDisk ?>: <?= getDiskPercent() ?>%</td>
 </tr>

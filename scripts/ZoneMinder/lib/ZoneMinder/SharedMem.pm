@@ -111,6 +111,8 @@ use constant TRIGGER_CANCEL => 0;
 use constant TRIGGER_ON     => 1;
 use constant TRIGGER_OFF    => 2;
 
+use Storable qw( freeze thaw );
+
 # Native architecture
 our $arch = int(3.2*length(~0));
 our $native = $arch/8;
@@ -135,6 +137,7 @@ our $shm_data =
 		"contrast"         => { "type"=>"int", "seq"=>$shm_seq++ },
 		"alarm_x"          => { "type"=>"int", "seq"=>$shm_seq++ },
 		"alarm_y"          => { "type"=>"int", "seq"=>$shm_seq++ },
+		"control_state"    => { "type"=>"uchar[256]", "seq"=>$shm_seq++ },
 		}
 	},
 	"trigger_data" => { "type"=>"TriggerData", "seq"=>$shm_seq++, "contents"=> {
@@ -184,11 +187,11 @@ sub zmShmInit
 			{
 				$member_data->{size} = $member_data->{align} = 2;
 			}
-			elsif ( $member_data->{type} eq "char" || $member_data->{type} eq "bool1" )
+			elsif ( $member_data->{type} =~ "/^u?char$/" || $member_data->{type} eq "bool1" )
 			{
 				$member_data->{size} = $member_data->{align} = 1;
 			}
-			elsif ( $member_data->{type} =~ /^char\[(\d+)\]$/ )
+			elsif ( $member_data->{type} =~ /^u?char\[(\d+)\]$/ )
 			{
 				$member_data->{size} = $1;
 				$member_data->{align} = 1;
@@ -326,10 +329,18 @@ sub zmShmRead( $$;$ )
 		{
 			( $value ) = unpack( "c", $data );
 		}
+		elsif ( $type eq "uchar" )
+		{
+			( $value ) = unpack( "C", $data );
+		}
 		elsif ( $type =~ /^char\[\d+\]$/ )
 		{
 			( $value ) = unpack( "Z".$size, $data );
-		}
+		} 
+		elsif ( $type =~ /^uchar\[\d+\]$/ )
+		{
+			( $value ) = unpack( "C".$size, $data );
+		} 
 		else
 		{
 			Fatal( "Unexpected type '".$type."' found for '".$field."'" );
@@ -383,9 +394,17 @@ sub zmShmWrite( $$;$ )
 		{
 			$data = pack( "c", $value );
 		}
+		elsif ( $type eq "uchar" )
+		{
+			$data = pack( "C", $value );
+		}
 		elsif ( $type =~ /^char\[\d+\]$/ )
 		{
 			$data = pack( "Z".$size, $value );
+		}
+		elsif ( $type =~ /^uchar\[\d+\]$/ )
+		{
+			$data = pack( "C".$size, $value );
 		}
 		else
 		{
@@ -413,6 +432,36 @@ sub zmGetAlarmLocation( $ )
 	my $monitor = shift;
 
 	return( zmShmRead( $monitor, [ "shared_data:alarm_x", "shared_data:alarm_y" ] ) );
+}
+
+sub zmSetControlState( $$ )
+{
+	my $monitor = shift;
+	my $control_state = shift;
+
+	zmShmWrite( $monitor, { "shared_data:control_state" => $control_state } );
+}
+
+sub zmGetControlState( $ )
+{
+	my $monitor = shift;
+
+	return( zmShmRead( $monitor, "shared_data:control_state" ) );
+}
+
+sub zmSaveControlState( $$ )
+{
+	my $monitor = shift;
+	my $control_state = shift;
+
+	zmSetControlState( $monitor, freeze( $control_state ) );
+}
+
+sub zmRestoreControlState( $ )
+{
+	my $monitor = shift;
+
+	return( thaw( zmGetControlState( $monitor ) ) );
 }
 
 sub zmIsAlarmed( $ )

@@ -93,6 +93,7 @@ protected:
 		int contrast;
 		int alarm_x;
 		int alarm_y;
+		char control_state[256];
 	} SharedData;
 
 	typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;

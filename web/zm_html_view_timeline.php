@@ -705,7 +705,7 @@ function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoo
 					$zoom_min_time = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($last_tick * $chart['data']['x']['density'])) );
 					$zoom_max_time = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-      <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" title="<?= $zmSlangZoomIn ?>" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= $zoom_min_time ?>&max_time=<?= $zoom_max_time ?>'"></div>
+      <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" title="<?= $zmSlangZoomIn ?>" onClick="zoomTimeline( '<?= urlencode($zoom_min_time) ?>', '<?= urlencode($zoom_max_time) ?>' )"></div>
 <?php
 				}
 				$last_tick = $i;
@@ -718,7 +718,7 @@ function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoo
 		$zoom_min_time = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($last_tick * $chart['data']['x']['density'])) );
 		$zoom_max_time = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-      <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= $zoom_min_time ?>&max_time=<?= $zoom_max_time ?>'"></div>
+      <div class="<?= $zoom_class ?>" style="left: <?= $last_tick-1 ?>px; width: <?= $i-$last_tick ?>px;" title="<?= $zmSlangZoomIn ?>" onClick="zoomTimeline( '<?= urlencode($zoom_min_time) ?>', '<?= urlencode($zoom_max_time) ?>' )"></div>
 <?php
 	}
 	$contents = ob_get_contents();
@@ -791,7 +791,7 @@ function getSlotLoadImageBehaviour( $slot )
 		if ( $slot_frame < 1 )
 			$slot_frame = 1;
 	}
-	return( "\"loadEventImage( '".$image_path."', '".$annotation."', '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."&fid=".($slot_frame?$slot_frame:1)."', ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
+	return( "\"loadEventImage( '".$image_path."', '".$annotation."', ".$slot['event']['Id'].", ".($slot_frame?$slot_frame:1).", ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
 }
 
 function getSlotViewEventBehaviour( $slot )
@@ -806,7 +806,7 @@ function getSlotViewEventBehaviour( $slot )
 		if ( $slot_frame < 1 )
 			$slot_frame = 1;
 	}
-	return( "\"eventWindow( '".$PHP_SELF."?view=event&eid=".$slot['event']['Id']."&fid=".($slot_frame?$slot_frame:1)."', 'zmEvent', ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
+	return( "\"eventWindow( ".$slot['event']['Id'].", ".($slot_frame?$slot_frame:1).", ".(reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['w']).", ".(reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )+$jws['event']['h'])." );\"" );
 }
 
 ?>
@@ -820,8 +820,11 @@ function newWindow(Url,Name,Width,Height)
 {
    	var Win = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
 }
-function eventWindow(Url,Name,Width,Height)
+function eventWindow(Eid,Fid,Width,Height)
 {
+	var Url = '<?= $PHP_SELF ?>?view=event&eid='+Eid+'&fid='+Fid;
+	Url += '<?= $filter_query ?>';
+	var Name = 'zmEvent';
 	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height );
 }
 function closeWindow()
@@ -831,14 +834,19 @@ function closeWindow()
 
 window.focus();
 
-function loadEventImage( image_path, image_label, image_link, image_width, image_height )
+function loadEventImage( image_path, image_label, eid, fid, width, height )
 {
 	var image_src = document.getElementById('ImageSrc');
 	var image_text = document.getElementById('ImageText');
 	image_src.src = image_path;
-	image_src.setAttribute( "onclick",  "eventWindow( '"+image_link+"', 'zmEvent', "+image_width+", "+image_height+" )" );
+	image_src.setAttribute( "onclick",  "eventWindow( "+eid+", "+fid+", "+width+", "+height+" )" );
 	image_text.innerHTML = image_label;
-	image_text.setAttribute( "onclick",  "eventWindow( '"+image_link+"', 'zmEvent', "+image_width+", "+image_height+" )" );
+	image_text.setAttribute( "onclick",  "eventWindow( "+eid+", "+fid+", "+width+", "+height+" )" );
+}
+
+function zoomTimeline( min_time, max_time )
+{
+	window.location='<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time='+min_time+'&max_time='+max_time;
 }
 </script>
 <style type="text/css">
@@ -900,7 +908,7 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 	top: 50%;
 	left: 50%;
 	width: 180px;
-	height: 70px
+	height: 70px;
 	padding: 0px;
 	margin: auto;
 }
@@ -940,7 +948,7 @@ function loadEventImage( image_path, image_label, image_link, image_width, image
 	color: #016A9D;
 	font-size: 11px;
 	font-weight: bold;
-	line-height: 20px
+	line-height: 20px;
 	background-color: #f8f8f8;
 }
 #ChartBox #TopPanel #Key {
@@ -1216,8 +1224,8 @@ div.zoom {
       <div id="Image"><img id="ImageSrc" src="graphics/spacer.gif" height="<?= $chart['image']['height'] ?>" title="<?= $zmSlangViewEvent ?>"></div>
       <div id="RightNav">
         <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($min_time) ?>&range=<?= $range ?>" title="<?= $zmSlangPanLeft ?>">&lt;</a>&nbsp;&nbsp;
-	    <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($mid_time) ?>&range=<?= (int)($range*$maj_x_scale['zoomout']) ?>" title="<?= $zmSlangZoomOut ?>">-</a>&nbsp;&nbsp;
-		<a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= urlencode($mid_time) ?>&range=<?= $range ?>" title="<?= $zmSlangPanRight ?>">&gt;</a>
+        <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&mid_time=<?= urlencode($mid_time) ?>&range=<?= (int)($range*$maj_x_scale['zoomout']) ?>" title="<?= $zmSlangZoomOut ?>">-</a>&nbsp;&nbsp;
+        <a href="<?= $PHP_SELF ?>?view=<?= $view ?><?= $filter_query ?>&min_time=<?= urlencode($mid_time) ?>&range=<?= $range ?>" title="<?= $zmSlangPanRight ?>">&gt;</a>
       </div>
       <div id="ImageText">No Event</div>
       <div id="Key">

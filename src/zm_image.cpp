@@ -247,7 +247,6 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 		cinfo = jpg_ccinfo[quality] = new jpeg_compress_struct;
 		cinfo->err = jpeg_std_error( &jpg_err.pub );
 		jpeg_create_compress( cinfo );
-		jpeg_set_quality( cinfo, quality, false );
 	}
 
 	FILE *outfile;
@@ -270,6 +269,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 		cinfo->in_color_space = JCS_RGB; /* colorspace of input image */
 	}
 	jpeg_set_defaults( cinfo );
+	jpeg_set_quality( cinfo, quality, false );
 	cinfo->dct_method = JDCT_FASTEST;
 
 	jpeg_start_compress( cinfo, TRUE );
@@ -354,7 +354,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 		return( temp_image.EncodeJpeg( outbuffer, outbuffer_size, quality_override ) );
 	}
 
-	int quality = quality_override?quality_override:config.jpeg_file_quality;
+	int quality = quality_override?quality_override:config.jpeg_image_quality;
 
 	struct jpeg_compress_struct *cinfo = jpg_ccinfo[quality];
 
@@ -363,7 +363,6 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 		cinfo = jpg_ccinfo[quality] = new jpeg_compress_struct;
 		cinfo->err = jpeg_std_error( &jpg_err.pub );
 		jpeg_create_compress( cinfo );
-		jpeg_set_quality( cinfo, quality, false );
 	}
 
 	jpeg_mem_dest( cinfo, outbuffer, outbuffer_size );
@@ -380,6 +379,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 		cinfo->in_color_space = JCS_RGB; /* colorspace of input image */
 	}
 	jpeg_set_defaults( cinfo );
+	jpeg_set_quality( cinfo, quality, false );
 	cinfo->dct_method = JDCT_FASTEST;
 
 	jpeg_start_compress( cinfo, TRUE );

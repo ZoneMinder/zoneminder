@@ -50,10 +50,10 @@ $video_formats = array();
 $ffmpeg_formats = preg_split( '/\s+/', ZM_FFMPEG_FORMATS );
 foreach ( $ffmpeg_formats as $ffmpeg_format )
 {
-	if ( preg_match( '/^(.+)\*$/', $ffmpeg_format, $matches ) )
+	if ( preg_match( '/^([^*]+)(\*\*?)$/', $ffmpeg_format, $matches ) )
 	{
 		$video_formats[$matches[1]] = $matches[1];
-		if ( !isset($video_format) )
+		if ( !isset($video_format) && $matches[2] == "*" )
 		{
 			$video_format = $matches[1];
 		}

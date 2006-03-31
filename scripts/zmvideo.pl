@@ -275,8 +275,10 @@ if ( $overwrite || !-s $video_file )
 
 		my $command = ZM_PATH_MPEG_ENCODE." $param_file >mpeg_encode.log";
 		Info( $command."\n" );
-		my $output = qx($command);
-		Info( $output."\n" );
+		if ( my $output = qx($command) )
+		{
+			Info( $output."\n" );
+		}
 	}
 	elsif ( ZM_OPT_MPEG eq "ffmpeg" )
 	{
@@ -314,8 +316,10 @@ if ( $overwrite || !-s $video_file )
 
 		my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s $video_size ".ZM_FFMPEG_OUTPUT_OPTIONS." '$video_file' > ffmpeg.log";
 		Info( $command."\n" );
-		my $output = qx($command);
-		Info( $output."\n" );
+		if ( my $output = qx($command) )
+		{
+			Info( $output."\n" );
+		}
 	}
 	else
 	{

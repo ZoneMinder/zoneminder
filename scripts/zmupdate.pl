@@ -566,6 +566,33 @@ if ( $version )
 
 		$cascade = !undef;
 	}
+	if ( $cascade || $version eq "1.22.0" )
+	{
+		# Patch the database
+		patchDB( $dbh, "1.22.0" );
+
+		# Check for maximum FPS setting and update alarm max fps settings
+		{
+			print( "Updating monitors. Please wait.\n" );
+
+			if ( ZM_NO_MAX_FPS_ON_ALARM )
+			{
+				# Update the individual monitor settings to match the previous global one
+				my $sql = "update Monitors set AlarmMaxFPS = NULL";
+				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			}
+			else
+			{
+				# Update the individual monitor settings to match the previous global one
+				my $sql = "update Monitors set AlarmMaxFPS = MaxFPS";
+				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			}
+		}
+
+		$cascade = !undef;
+	}
 	if ( $cascade )
 	{
 		my $installed_version = ZM_VERSION;

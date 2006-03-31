@@ -327,14 +327,6 @@ our @options =
 		category => "config",
 	},
 	{
-		name => "ZM_NO_MAX_FPS_ON_ALARM",
-		default => "yes",
-		description => "Should any Maximum FPS be ignored if an alarm occurs",
-		help => "When configuring monitors you can optionally specify a maximum setting for the capture rate rate in frames per second. This can used to limit your video or network bandwidth or reduce CPU load. This setting tells ZoneMinder to ignore these constraints if an alarm is detected an attempt to capture as fast as possible.",
-		type => $types{boolean},
-		category => "config",
-	},
-	{
 		name => "ZM_MAX_SUSPEND_TIME",
 		default => "30",
 		description => "Maximum time that a monitor may have motion detection suspended",

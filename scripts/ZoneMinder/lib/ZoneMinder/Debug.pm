@@ -289,8 +289,8 @@ sub _dbgPrint
 		{
 			$message = $message."\n";
 		}
-		printf( STDERR $message ) if ( $dbg_to_term == 1 || ($dbg_to_term == 2 && $_dbg_has_term) );
-		printf( LOG $message ) if ( $dbg_to_log );
+		print( STDERR $message ) if ( $dbg_to_term == 1 || ($dbg_to_term == 2 && $_dbg_has_term) );
+		print( LOG $message ) if ( $dbg_to_log );
 		syslog( $dbg_priorities{$level}, $code." [%s]", $string ) if ( $level <= $dbg_to_syslog );
 	}
 }

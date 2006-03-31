@@ -201,7 +201,7 @@ $jws = array(
 	'restarting' => array( 'w'=>250, 'h'=>150 ),
 	'settings' => array( 'w'=>200, 'h'=>225 ),
 	'state' => array( 'w'=>300, 'h'=>120 ),
-	'stats' => array( 'w'=>680, 'h'=>200 ),
+	'stats' => array( 'w'=>740, 'h'=>200 ),
 	'timeline' => array( 'w'=>760, 'h'=>500 ),
 	'user' => array( 'w'=>280, 'h'=>372 ),
 	'version' => array( 'w'=>320, 'h'=>140 ),

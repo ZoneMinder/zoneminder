@@ -482,6 +482,7 @@ $zmSlangPasswordsDifferent   = 'Lösenorden skiljer sig åt';
 $zmSlangPaths                = 'Sökvägar';
 $zmSlangPhoneBW              = 'Mobil&nbsp;B/W';
 $zmSlangPhone                = 'Mobil';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'bildpunkter';
 $zmSlangPlayAll              = 'Visa alla';
 $zmSlangPleaseWait           = 'Vänta...';

@@ -483,6 +483,7 @@ $zmSlangPassword             = 'Wachtwoord';
 $zmSlangPaths                = 'Paden';
 $zmSlangPhoneBW              = 'Telefoon&nbsp;B/W';
 $zmSlangPhone                = 'Phone';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'pixels';
 $zmSlangPlayAll              = 'Play All';
 $zmSlangPleaseWait           = 'wacht A.U.B.';

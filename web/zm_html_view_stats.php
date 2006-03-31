@@ -54,6 +54,7 @@ function closeWindow()
 </tr>
 <tr><td colspan="2"><table width="100%" border="0" bgcolor="#7F7FB2" cellpadding="3" cellspacing="1"><tr bgcolor="#FFFFFF">
 <td class="smallhead"><?= $zmSlangZone ?></td>
+<td class="smallhead" align="center"><?= $zmSlangPixelDiff ?></td>
 <td class="smallhead" align="center"><?= $zmSlangAlarmPx ?></td>
 <td class="smallhead" align="center"><?= $zmSlangFilterPx ?></td>
 <td class="smallhead" align="center"><?= $zmSlangBlobPx ?></td>
@@ -70,6 +71,7 @@ if ( count($stats) )
 ?>
 <tr bgcolor="#FFFFFF">
 <td class="text"><?= $stat['ZoneName'] ?></td>
+<td class="text" align="center"><?= $stat['PixelDiff'] ?></td>
 <td class="text" align="center"><?= sprintf( "%d (%d%%)", $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']) ) ?></td>
 <td class="text" align="center"><?= sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']) ) ?></td>
 <td class="text" align="center"><?= sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']) ) ?></td>

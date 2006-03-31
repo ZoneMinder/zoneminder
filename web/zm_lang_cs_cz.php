@@ -482,6 +482,7 @@ $zmSlangPasswordsDifferent   = 'Hesla se neshodují';
 $zmSlangPaths                = 'Cesty';
 $zmSlangPhoneBW              = 'Modem&nbsp;B/W';
 $zmSlangPhone                = 'Modem';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'pixely';
 $zmSlangPlayAll              = 'Pøehrát v¹e';
 $zmSlangPleaseWait           = 'Prosím èekejte';

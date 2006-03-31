@@ -74,6 +74,7 @@ protected:
 
 	// Outputs/Statistics
 	bool			alarmed;
+	int				pixel_diff;
 	int				alarm_pixels;
 	int				alarm_filter_pixels;
 	int				alarm_blob_pixels;
@@ -126,6 +127,7 @@ public:
 	inline void ResetStats()
 	{
 		alarmed = false;
+		pixel_diff = 0;
 		alarm_pixels = 0;
 		alarm_filter_pixels = 0;
 		alarm_blob_pixels = 0;

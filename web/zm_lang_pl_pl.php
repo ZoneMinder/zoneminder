@@ -483,6 +483,7 @@ $zmSlangPasswordsDifferent   = 'Has³a: nowe i potwierdzone s± ró¿ne!';
 $zmSlangPaths                = '¦cie¿ki';
 $zmSlangPhoneBW              = 'Tel.&nbsp;prz.';
 $zmSlangPhone                = 'Phone';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'pikseli';
 $zmSlangPlayAll              = 'Play All';
 $zmSlangPleaseWait           = 'Proszê czekaæ';

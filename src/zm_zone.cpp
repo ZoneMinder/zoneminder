@@ -49,6 +49,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	Debug( 1, ( "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d", id, label, type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
 
 	alarmed = false;
+	pixel_diff = 0;
 	alarm_pixels = 0;
 	alarm_filter_pixels = 0;
 	alarm_blob_pixels = 0;
@@ -101,7 +102,7 @@ Zone::~Zone()
 void Zone::RecordStats( const Event *event )
 {
 	static char sql[BUFSIZ];
-	snprintf( sql, sizeof(sql), "insert into Stats set MonitorId=%d, ZoneId=%d, EventId=%d, FrameId=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d", monitor->Id(), id, event->Id(), event->Frames()+1, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score );
+	snprintf( sql, sizeof(sql), "insert into Stats set MonitorId=%d, ZoneId=%d, EventId=%d, FrameId=%d, PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d", monitor->Id(), id, event->Id(), event->Frames()+1, pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't insert event stats: %s", mysql_error( &dbconn ) ));
@@ -121,6 +122,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	int diff_width = diff_image->Width();
 	int diff_height = diff_image->Height();
 	int diff_stride = diff_width * diff_image->Colours();
+
+	unsigned long pixel_diff_count = 0;
 
 	int alarm_lo_x = 0;
 	int alarm_hi_x = 0;
@@ -176,8 +179,9 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		{
 			if ( *ppoly && (*pdiff > min_pixel_threshold) && (!max_pixel_threshold || (*pdiff < max_pixel_threshold)) )
 			{
-				*pdiff = WHITE;
 				alarm_pixels++;
+				pixel_diff_count += abs(*pdiff);
+				*pdiff = WHITE;
 			}
 			else
 			{
@@ -195,7 +199,9 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 		}
 	}
-	Debug( 5, ( "Got %d alarmed pixels, need %d -> %d", alarm_pixels, min_alarm_pixels, max_alarm_pixels ));
+	if ( pixel_diff_count && alarm_pixels )
+		pixel_diff = pixel_diff_count/alarm_pixels;
+	Debug( 5, ( "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d", alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff ));
 	if ( config.record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
@@ -702,7 +708,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			image = 0;
 		}
 
-		Debug( 1, ( "%s: Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score ));
+		Debug( 1, ( "%s: Pixel Diff: %d, Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score ));
 	}
 	return( true );
 }

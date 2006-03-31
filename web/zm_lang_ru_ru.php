@@ -483,6 +483,7 @@ $zmSlangPasswordsDifferent   = 'Пароли не совпадают';
 $zmSlangPaths                = 'Пути';
 $zmSlangPhoneBW              = 'Телефонная линия';
 $zmSlangPhone                = 'Phone';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'в пикселях';
 $zmSlangPlayAll              = 'Play All';
 $zmSlangPleaseWait           = 'Пожалуйста подождите';

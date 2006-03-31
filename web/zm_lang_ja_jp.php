@@ -482,6 +482,7 @@ $zmSlangPasswordsDifferent   = '新しいパスワードと再入力パスワードが一致しません
 $zmSlangPaths                = 'ﾊﾟｽ';
 $zmSlangPhoneBW              = '携帯用';
 $zmSlangPhone                = 'Phone';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'ﾋﾟｸｾﾙ';
 $zmSlangPlayAll              = 'Play All';
 $zmSlangPleaseWait           = 'お待ちください';

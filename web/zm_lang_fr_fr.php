@@ -482,6 +482,7 @@ $zmSlangPasswordsDifferent   = 'Les 2 mots de passe sont différents';
 $zmSlangPaths                = 'Paths';
 $zmSlangPhoneBW              = 'Phone&nbsp;B/W';
 $zmSlangPhone                = 'Phone';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'pixels';
 $zmSlangPlayAll              = 'Play All';
 $zmSlangPleaseWait           = 'Attendez';

@@ -6,6 +6,10 @@
 -- Add support for linked monitors
 --
 alter table Monitors add column LinkedMonitors varchar(255) NOT NULL default '' after Enabled;
+
+--
+-- Revise some defaults and sizes
+--
 alter table Monitors modify column Device varchar(64) not null default '';
 alter table Monitors modify column Host varchar(64) not null default '';
 alter table Monitors modify column Port varchar(8) not null default '';
@@ -14,7 +18,16 @@ alter table Monitors modify column LabelX smallint(5) unsigned not null default 
 alter table Monitors modify column LabelY smallint(5) unsigned not null default 0;
 alter table Monitors modify column MaxFPS decimal(5,2) default NULL;
 update Monitors set MaxFPS = NULL where MaxFPS = 0.00; 
+
+--
+-- Add monitor specific alarm max FPS
+--
 alter table Monitors add column AlarmMaxFPS decimal(5,2) default NULL after MaxFPS;
+
+--
+-- Add average pixel difference to stats
+--
+alter table Stats add column PixelDiff tinyint(3) unsigned NOT NULL default '0' after FrameId;
 
 --
 -- Add some new monitor presets

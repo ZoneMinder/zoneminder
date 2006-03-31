@@ -323,6 +323,7 @@ CREATE TABLE Stats (
   ZoneId int(10) unsigned NOT NULL default '0',
   EventId int(10) unsigned NOT NULL default '0',
   FrameId int(10) unsigned NOT NULL default '0',
+  PixelDiff tinyint(3) unsigned NOT NULL default '0',
   AlarmPixels int(10) unsigned NOT NULL default '0',
   FilterPixels int(10) unsigned NOT NULL default '0',
   BlobPixels int(10) unsigned NOT NULL default '0',

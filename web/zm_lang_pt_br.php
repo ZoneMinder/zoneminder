@@ -422,6 +422,7 @@ $zmSlangPassword             = 'Senha';
 $zmSlangPaths                = 'Caminhos';
 $zmSlangPhoneBW              = 'Discada&nbsp;L/B';
 $zmSlangPhone                = 'Phone';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'pixels';
 $zmSlangPlayAll              = 'Play All';
 $zmSlangPleaseWait           = 'Por Favor Espere';

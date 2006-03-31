@@ -483,6 +483,7 @@ $zmSlangPasswordsDifferent   = 'Det nye og konfimerede passwords er forskellige'
 $zmSlangPaths                = 'Stiger';
 $zmSlangPhoneBW              = 'Telefon&nbsp;B/B';
 $zmSlangPhone                = 'Telefon';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'pixels';
 $zmSlangPlayAll              = 'Afspil Alle';
 $zmSlangPleaseWait           = 'Vent venligst';

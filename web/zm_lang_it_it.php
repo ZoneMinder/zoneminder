@@ -489,6 +489,7 @@ $zmSlangPasswordsDifferent   = 'Le password non coincidono';
 $zmSlangPaths                = 'Percorsi';
 $zmSlangPhoneBW              = 'Banda&nbsp;Tel';
 $zmSlangPhone                = 'Telefono';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'pixels';
 $zmSlangPlayAll              = 'Vedi tutti';
 $zmSlangPleaseWait           = 'Attendere prego';

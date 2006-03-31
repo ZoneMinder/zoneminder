@@ -453,6 +453,7 @@ $zmSlangPasswordsDifferent   = 'Cele dou&#259; parole difer&#259;.';
 $zmSlangPaths                = 'Cale';
 $zmSlangPhoneBW              = 'Phone&nbsp;B/W';
 $zmSlangPhone                = 'Phone';
+$zmSlangPixelDiff            = 'Pixel Diff';
 $zmSlangPixels               = 'Pixeli';
 $zmSlangPlayAll              = 'Play All';
 $zmSlangPleaseWait           = 'V&#259; rug&#259;m a&#351;tepta&#355;i';

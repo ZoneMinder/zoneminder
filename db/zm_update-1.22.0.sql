@@ -14,6 +14,7 @@ alter table Monitors modify column LabelX smallint(5) unsigned not null default 
 alter table Monitors modify column LabelY smallint(5) unsigned not null default 0;
 alter table Monitors modify column MaxFPS decimal(5,2) default NULL;
 update Monitors set MaxFPS = NULL where MaxFPS = 0.00; 
+alter table Monitors add column AlarmMaxFPS decimal(5,2) default NULL after MaxFPS;
 
 --
 -- Modify zone presets a bit

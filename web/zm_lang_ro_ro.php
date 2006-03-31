@@ -184,6 +184,7 @@ $zmSlangColour               = 'Culoare';
 $zmSlangCommand              = 'Comanda';
 $zmSlangConfig               = 'Config';
 $zmSlangConfiguredFor        = 'Configurat pentru';
+$zmSlangConfirmDeleteEvents  = 'Are you sure you wish to delete the selected events?';
 $zmSlangConfirmPassword      = 'Confirm parola';
 $zmSlangConjAnd              = '&#351;i';
 $zmSlangConjOr               = 'sau';

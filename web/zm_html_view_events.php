@@ -201,6 +201,29 @@ function configureButton(element,name)
 	form.learn_state.disabled = !checked;
 <?php } ?>
 }
+function deleteEvents( form, name )
+{
+	var count = 0;
+	for (var i = 0; i < form.elements.length; i++)
+	{
+		if (form.elements[i].name.indexOf(name) == 0)
+		{
+			if ( form.elements[i].checked )
+			{
+				count++;
+				break;
+			}
+		}
+	}
+	if ( count > 0 )
+	{
+		if ( confirm( "<?= $zmSlangConfirmDeleteEvents ?>" ) )
+		{
+			form.action.value = 'delete';
+			form.submit();
+		}
+	}
+}
 function editEvents( form, name )
 {
 	var eids = new Array();
@@ -461,7 +484,7 @@ function viewEvents( form, name )
 &nbsp;&nbsp;<input type="button" name="unarchive_btn" value="<?= $zmSlangUnarchive ?>" class="form" onClick="document.event_form.action.value = 'unarchive'; document.event_form.submit();" disabled>
 &nbsp;&nbsp;<input type="button" name="edit_btn" value="<?= $zmSlangEdit ?>" class="form" onClick="editEvents( document.event_form, 'mark_eids' )" disabled>
 &nbsp;&nbsp;<input type="button" name="export_btn" value="<?= $zmSlangExport ?>" class="form" onClick="exportEvents( document.event_form, 'mark_eids' )" disabled>
-&nbsp;&nbsp;<input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="document.event_form.action.value = 'delete'; document.event_form.submit();" disabled>
+&nbsp;&nbsp;<input type="button" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" onClick="deleteEvents( document.event_form, 'mark_eids' );" disabled>
 </td></tr>
 <?php } ?>
 </table></center>

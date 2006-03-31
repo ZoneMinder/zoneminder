@@ -213,6 +213,7 @@ $zmSlangColour               = 'Barva';
 $zmSlangCommand              = 'Pøíkaz';
 $zmSlangConfig               = 'Nastavení';
 $zmSlangConfiguredFor        = 'Nastaveno pro';
+$zmSlangConfirmDeleteEvents  = 'Are you sure you wish to delete the selected events?';
 $zmSlangConfirmPassword      = 'Potvrdit heslo';
 $zmSlangConjAnd              = 'a';
 $zmSlangConjOr               = 'nebo';

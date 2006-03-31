@@ -165,6 +165,7 @@ $zmSlangColour               = 'Color';
 $zmSlangCommand              = 'Command';
 $zmSlangConfig		     = 'Config.';
 $zmSlangConfiguredFor        = 'Configurado Para';
+$zmSlangConfirmDeleteEvents  = 'Are you sure you wish to delete the selected events?';
 $zmSlangConfirmPassword      = 'Confirmar Contraseña';
 $zmSlangConjAnd              = 'y';
 $zmSlangConjOr               = 'o';

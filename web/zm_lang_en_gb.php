@@ -214,6 +214,7 @@ $zmSlangCommand              = 'Command';
 $zmSlangConfig               = 'Config';
 $zmSlangConfiguredFor        = 'Configured for';
 $zmSlangConfirmPassword      = 'Confirm Password';
+$zmSlangConfirmDeleteEvents  = 'Are you sure you wish to delete the selected events?';
 $zmSlangConjAnd              = 'and';
 $zmSlangConjOr               = 'or';
 $zmSlangConsole              = 'Console';

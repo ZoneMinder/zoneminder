@@ -214,6 +214,7 @@ $zmSlangColour               = 'Nasycenie';
 $zmSlangCommand              = 'Command';
 $zmSlangConfig               = 'Konfiguracja';
 $zmSlangConfiguredFor        = 'Ustawiona';
+$zmSlangConfirmDeleteEvents  = 'Are you sure you wish to delete the selected events?';
 $zmSlangConfirmPassword      = 'Potwierd¼ has³o';
 $zmSlangConjAnd              = 'i';
 $zmSlangConjOr               = 'lub';

@@ -96,6 +96,7 @@ else
 	$monitor['FrameSkip'] = 0;
 	$monitor['EventPrefix'] = 'Event-';
 	$monitor['MaxFPS'] = "";
+	$monitor['AlarmMaxFPS'] = "";
 	$monitor['FPSReportInterval'] = 1000;
 	$monitor['RefBlendPerc'] = 7;
 	$monitor['DefaultRate'] = '100';
@@ -111,7 +112,7 @@ if ( !isset( $new_monitor ) )
 }
 if ( !empty($preset) )
 {
-	$result = mysql_query( "select Type, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '$preset'" );
+	$result = mysql_query( "select Type, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, MaxFPS, AlarmMaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '$preset'" );
 	if ( !$result )
 		die( mysql_error() );
 	$preset = mysql_fetch_assoc( $result );
@@ -156,6 +157,10 @@ function validateForm(form)
 	if ( form.elements['new_monitor[MaxFPS]'].value && !(parseFloat(form.elements['new_monitor[MaxFPS]'].value) > 0 ) )
 	{
 		errors[errors.length] = "<?= $zmSlangBadMaxFPS ?>";
+	}
+	if ( form.elements['new_monitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['new_monitor[AlarmMaxFPS]'].value) > 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadAlarmMaxFPS ?>";
 	}
 	if ( !form.elements['new_monitor[RefBlendPerc]'].value || !(parseInt(form.elements['new_monitor[RefBlendPerc]'].value) > 0 ) )
 	{
@@ -388,6 +393,7 @@ if ( $tab != 'general' )
 <input type="hidden" name="new_monitor[LinkedMonitors]" value="<?= $new_monitor['LinkedMonitors'] ?>">
 <input type="hidden" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>">
 <input type="hidden" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>">
+<input type="hidden" name="new_monitor[AlarmMaxFPS]" value="<?= $new_monitor['AlarmMaxFPS'] ?>">
 <?php
 	if ( isset($new_monitor['Triggers']) )
 	{
@@ -514,6 +520,7 @@ switch ( $tab )
 <tr><td align="left" class="text"><?= $zmSlangEnabled ?></td><td align="left" class="text"><input type="checkbox" name="new_monitor[Enabled]" value="1" class="form-noborder"<?php if ( !empty($new_monitor['Enabled']) ) { ?> checked<?php } ?>></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangLinkedMonitors ?></td><td align="left" class="text"><input type="text" name="new_monitor[LinkedMonitors]" value="<?= $new_monitor['LinkedMonitors'] ?>" size="16" class="form">&nbsp;<a href="#" onClick="selectLinkedMonitors()"><?= $zmSlangSelect ?></a></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangMaximumFPS ?></td><td align="left" class="text"><input type="text" name="new_monitor[MaxFPS]" value="<?= $new_monitor['MaxFPS'] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangAlarmMaximumFPS ?></td><td align="left" class="text"><input type="text" name="new_monitor[AlarmMaxFPS]" value="<?= $new_monitor['AlarmMaxFPS'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangRefImageBlendPct ?></td><td align="left" class="text"><input type="text" name="new_monitor[RefBlendPerc]" value="<?= $new_monitor['RefBlendPerc'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangTriggers ?></td><td align="left" class="text">
 <?php

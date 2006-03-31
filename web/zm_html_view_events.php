@@ -46,25 +46,6 @@ if ( $filter_sql )
 	$events_sql .= $filter_sql;
 }
 $events_sql .= " order by $sort_column $sort_order";
-if ( $page )
-{
-	$limit_start = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
-	if ( empty( $limit ) )
-	{
-		$limit_amount = ZM_WEB_EVENTS_PER_PAGE;
-	}
-	else
-	{
-		$limit_left = $limit - $limit_start;
-		$limit_amount = ($limit_left>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limit_left;
-	}
-	$events_sql .= " limit $limit_start, $limit_amount";
-}
-elseif ( !empty( $limit ) )
-{
-	$events_sql .= " limit 0, $limit";
-}
-
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
@@ -119,6 +100,36 @@ else
 	{
 		$n_events = $limit;
 	}
+	$pages = (int)ceil($n_events/ZM_WEB_EVENTS_PER_PAGE);
+	if ( $pages > 1 )
+	{
+		if ( $page )
+		{
+			if ( $page < 0 )
+				$page = 1;
+			if ( $page > $pages )
+				$page = $pages;
+		}
+	}
+	if ( $page )
+	{
+		$limit_start = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
+		if ( empty( $limit ) )
+		{
+			$limit_amount = ZM_WEB_EVENTS_PER_PAGE;
+		}
+		else
+		{
+			$limit_left = $limit - $limit_start;
+			$limit_amount = ($limit_left>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limit_left;
+		}
+		$events_sql .= " limit $limit_start, $limit_amount";
+	}
+	elseif ( !empty( $limit ) )
+	{
+		$events_sql .= " limit 0, $limit";
+	}
+
 	if ( !($result = mysql_query( $events_sql )) )
 		die( mysql_error() );
 	$max_width = 0;

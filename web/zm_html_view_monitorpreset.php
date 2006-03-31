@@ -30,7 +30,7 @@ $presets = array();
 $presets[0] = $zmSlangChoosePreset;
 while ( $preset = mysql_fetch_assoc( $result ) )
 {
-	$presets[$preset['Id']] = $preset['Name'];
+	$presets[$preset['Id']] = htmlentities( $preset['Name'] );
 }
 mysql_free_result( $result );
 

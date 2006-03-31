@@ -441,25 +441,25 @@ else
 {
 	if ( $paged && !empty($page) )
 	{
-		$lo_frame_id = (($page-1)*$frames_per_page)+1;
+		$lo_frame_id = (($page-1)*$frames_per_page);
 		$hi_frame_id = min( $page*$frames_per_page, $event['Frames'] );
 	}
 	else
 	{
-		$lo_frame_id = 1;
+		$lo_frame_id = 0;
 		$hi_frame_id = $event['Frames'];
 	}
 	$sql = "select * from Frames where EventId = '$eid'";
-	if ( $paged && !empty($page) )
-		$sql .= " and FrameId between $lo_frame_id and $hi_frame_id";
 	$sql .= " order by FrameId";
+	if ( $paged && !empty($page) )
+		$sql .= " limit $lo_frame_id, $hi_frame_id";
 	$result = mysql_query( $sql );
 	if ( !$result )
 		die( mysql_error() );
 	$frames = array();
 	while( $frame = mysql_fetch_assoc( $result ) )
 	{
-		$frames[$frame['FrameId']] = $frame;
+		$frames[] = $frame;
 	}
 	mysql_free_result( $result );
 ?>
@@ -471,12 +471,12 @@ else
 	$thumb_height = (int)round($event['Height']/ZM_WEB_FRAMES_PER_LINE);
 	$thumb_scale = (int)round( SCALE_BASE/ZM_WEB_FRAMES_PER_LINE );
 
-	for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++ )
+	for ( $i = 0; $i < $frames_per_page; $i++ )
 	{
-		$frame = $frames[$frame_id];
+		$frame = $frames[$i];
 		$image_data = getImageSrc( $event, $frame, $thumb_scale );
 ?>
-<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame_id ?>&scale=<?= $scale ?>', 'zmImage', <?= reScale( $event['Width'], $scale )+$jws['image']['w']  ?>, <?= reScale( $event['Height'], $scale )+$jws['image']['h'] ?> );"><img src="<?= $image_data['thumbPath'] ?>" width="<?= $thumb_width ?>" height="<?= $thumb_height ?>" class="<?= $image_data['imageClass'] ?>" alt="<?= $frame_id ?>/<?= $frame['Type']=='alarm'?$frame['Score']:0 ?>"></a>
+<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame['FrameId'] ?>&scale=<?= $scale ?>', 'zmImage', <?= reScale( $event['Width'], $scale )+$jws['image']['w']  ?>, <?= reScale( $event['Height'], $scale )+$jws['image']['h'] ?> );"><img src="<?= $image_data['thumbPath'] ?>" width="<?= $thumb_width ?>" height="<?= $thumb_height ?>" class="<?= $image_data['imageClass'] ?>" alt="<?= $frame['FrameId'] ?>/<?= $frame['Type']=='alarm'?$frame['Score']:0 ?>"></a>
 <?php
 	}
 ?>

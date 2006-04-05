@@ -20,6 +20,7 @@
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_user.h"
+#include "zm_signal.h"
 #include "zm_monitor.h"
 
 bool ValidateAccess( User *user, int mon_id )
@@ -73,6 +74,9 @@ int main( int argc, const char *argv[] )
 	zmDbgInit( "zms", "", -1 );
 
 	zmLoadConfig();
+
+	zmSetDefaultTermHandler();
+	zmSetDefaultDieHandler();
 
 	const char *query = getenv( "QUERY_STRING" );
 	if ( query )

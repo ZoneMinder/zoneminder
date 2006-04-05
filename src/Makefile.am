@@ -35,6 +35,7 @@ zm_SOURCES = \
 	zm_mpeg.cpp \
 	zm_jpeg.c \
 	zm_regexp.cpp \
+	zm_signal.cpp \
 	zm_buffer.cpp \
 	zm_debug.c
 
@@ -71,6 +72,7 @@ noinst_HEADERS = \
 	zm_jpeg.h \
 	zm_mpeg.h \
 	zm_regexp.h \
+	zm_signal.h \
 	zm_buffer.h
 
 EXTRA_DIST = \

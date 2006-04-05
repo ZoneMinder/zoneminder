@@ -22,6 +22,7 @@
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_user.h"
+#include "zm_signal.h"
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
 
@@ -347,6 +348,9 @@ int main( int argc, char *argv[] )
 	zmDbgInit( "zmu", "", -1 );
 
 	zmLoadConfig();
+
+	zmSetDefaultTermHandler();
+	zmSetDefaultDieHandler();
 
 	User *user = 0;
 

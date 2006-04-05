@@ -22,59 +22,8 @@
 
 #include "zm.h"
 #include "zm_db.h"
+#include "zm_signal.h"
 #include "zm_monitor.h"
-
-void zm_die_handler( int signal )
-{
-#if HAVE_DECL_STRSIGNAL
-	char * error = strsignal(signal);
-	size_t errorStringSize = strlen(error) + strlen("Got signal (), crashing.");
-	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
-	(void) snprintf(errorString, errorStringSize, "Got signal (%s), crashing.", error);
-
-	Error(( (const char *)errorString ));
-	free(errorString);
-#else /* HAVE_DECL_STRSIGNAL */
-	Error(( "Got signal %d, crashing", signal ));
-#endif /* HAVE_DECL_STRSIGNAL */
-	exit( signal );
-}
-
-bool zma_terminate = false;
-
-void zm_term_handler( int signal )
-{
-#if HAVE_DECL_STRSIGNAL
-	char * error = strsignal(signal);
-	size_t errorStringSize = strlen(error) + strlen("Got signal (), exiting.");
-	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
-	(void) snprintf(errorString, errorStringSize, "Got signal (%s), exiting.", error);
-
-	Info(( (const char *)errorString ));
-	free(errorString);
-#else /* HAVE_DECL_STRSIGNAL */
-	Info(( "Got TERM signal, exiting" ));
-#endif /* HAVE_DECL_STRSIGNAL */
-	zma_terminate = true;
-}
-
-bool zma_reload = false;
-
-void  zm_hup_handler( int signal )
-{
-#if HAVE_DECL_STRSIGNAL
-	char * error = strsignal(signal);
-	size_t errorStringSize = strlen(error) + strlen("Got signal (), reloading.");
-	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
-	(void) snprintf(errorString, errorStringSize, "Got signal (%s), reloading.", error);
-
-	Info(( (const char *)errorString ));
-	free(errorString);
-#else /* HAVE_DECL_STRSIGNAL */
-	Info(( "Got HUP signal, reloading" ));
-#endif /* HAVE_DECL_STRSIGNAL */
-	zma_reload = true;
-}
 
 void Usage()
 {
@@ -154,27 +103,15 @@ int main( int argc, char *argv[] )
 			Event::OpenFrameSocket( monitor->Id() );
 		}
 
+		zmSetDefaultHupHandler();
+		zmSetDefaultTermHandler();
+		zmSetDefaultDieHandler();
+
 		sigset_t block_set;
 		sigemptyset( &block_set );
 		struct sigaction action, old_action;
 
-		action.sa_handler = zm_hup_handler;
-		action.sa_mask = block_set;
-		action.sa_flags = 0;
-		sigaction( SIGHUP, &action, &old_action );
-
-		action.sa_handler = zm_term_handler;
-		action.sa_mask = block_set;
-		action.sa_flags = 0;
-		sigaction( SIGTERM, &action, &old_action );
-
-		action.sa_handler = zm_die_handler;
-		action.sa_mask = block_set;
-		action.sa_flags = 0;
-		sigaction( SIGBUS, &action, &old_action );
-		sigaction( SIGSEGV, &action, &old_action );
-
-		while( !zma_terminate )
+		while( !zm_terminate )
 		{
 			// Process the next image
 			sigprocmask( SIG_BLOCK, &block_set, 0 );
@@ -182,10 +119,10 @@ int main( int argc, char *argv[] )
 			{
 				usleep( monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE );
 			}
-			if ( zma_reload )
+			if ( zm_reload )
 			{
 				monitor->Reload();
-				zma_reload = false;
+				zm_reload = false;
 			}
 			sigprocmask( SIG_UNBLOCK, &block_set, 0 );
 		}

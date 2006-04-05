@@ -23,15 +23,8 @@
 
 #include "zm.h"
 #include "zm_db.h"
+#include "zm_signal.h"
 #include "zm_monitor.h"
-
-bool zmc_terminate = false;
-
-void zmc_term_handler( int /* signal */ )
-{
-	Info(( "Got TERM signal, exiting" ));
-	zmc_terminate = true;
-}
 
 void Usage()
 {
@@ -188,14 +181,13 @@ int main( int argc, char *argv[] )
 	}
 
 	Info(( "Starting Capture" ));
+
+	zmSetDefaultTermHandler();
+	zmSetDefaultDieHandler();
+
 	sigset_t block_set;
 	sigemptyset( &block_set );
 	struct sigaction action, old_action;
-
-	action.sa_handler = zmc_term_handler;
-	action.sa_mask = block_set;
-	action.sa_flags = 0;
-	sigaction( SIGTERM, &action, &old_action );
 
 	sigaddset( &block_set, SIGUSR1 );
 	sigaddset( &block_set, SIGUSR2 );
@@ -220,7 +212,7 @@ int main( int argc, char *argv[] )
 
 	struct timeval now;
 	struct DeltaTimeval delta_time;
-	while( !zmc_terminate )
+	while( !zm_terminate )
 	{
 		/* grab a new one */
 		sigprocmask( SIG_BLOCK, &block_set, 0 );

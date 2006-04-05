@@ -33,42 +33,10 @@
 
 #include "zm.h"
 #include "zm_db.h"
-//#include "zm_debug.h"
+#include "zm_signal.h"
 #include "zm_monitor.h"
 
 #include "zmf.h"
-
-void zm_die_handler( int signal )
-{
-#if HAVE_DECL_STRSIGNAL
-	char * error = strsignal(signal);
-	size_t errorStringSize = strlen(error) + strlen("Got signal (), crashing.");
-	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
-	(void) snprintf(errorString, errorStringSize, "Got signal (%s), crashing.", error);
-
-	Error(( (const char *)errorString ));
-	free(errorString);
-#else /* HAVE_DECL_STRSIGNAL */
-    Error(( "Got signal %d, crashing", signal ));
-#endif /* HAVE_DECL_STRSIGNAL */
-	exit( signal );
-}
-
-void zm_term_handler( int signal )
-{
-#if HAVE_DECL_STRSIGNAL
-	char * error = strsignal(signal);
-	size_t errorStringSize = strlen(error) + strlen("Got signal (), exiting.");
-	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
-	(void) snprintf(errorString, errorStringSize, "Got signal (%s), exiting.", error);
-
-	Info(( (const char *)errorString ));
-	free(errorString);
-#else /* HAVE_DECL_STRSIGNAL */
-    Info(( "Got TERM signal, exiting" ));
-#endif /* HAVE_DECL_STRSIGNAL */
-	exit( 0 );
-}
 
 int OpenSocket( int monitor_id )
 {
@@ -205,20 +173,12 @@ int main( int argc, char *argv[] )
 	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%d/%%0%dd-capture.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
 	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%d/%%0%dd-analyse.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
 
+	zmSetDefaultTermHandler();
+	zmSetDefaultDieHandler();
+
 	sigset_t block_set;
 	sigemptyset( &block_set );
 	struct sigaction action, old_action;
-
-	action.sa_handler = zm_term_handler;
-	action.sa_mask = block_set;
-	action.sa_flags = 0;
-	sigaction( SIGTERM, &action, &old_action );
-
-	action.sa_handler = zm_die_handler;
-	action.sa_mask = block_set;
-	action.sa_flags = 0;
-	sigaction( SIGBUS, &action, &old_action );
-	sigaction( SIGSEGV, &action, &old_action );
 
 	int sd = OpenSocket( monitor->Id() );
 

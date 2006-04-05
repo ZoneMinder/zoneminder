@@ -400,7 +400,15 @@ function controlPresets( $monitor )
 	define( "MAX_PRESETS", "12" );
 
 	ob_start();
-?><table border="0" cellspacing="0" cellpadding="2">
+?>
+<script type="text/javascript">
+function controlPreset( command )
+{
+	ctrl_form.control.value=command;
+	ctrl_form.submit();
+}
+</script>
+<table border="0" cellspacing="0" cellpadding="2">
 <tr>
 <td class="text" align="center"><?= $zmSlangPresets ?></td>
 </tr>
@@ -412,7 +420,7 @@ function controlPresets( $monitor )
 	if ( $monitor['HasHomePreset'] )
 	{
 ?>
-<td class="text" align="left"><input type="button" class="smallbutton" value="<?= $zmSlangHome ?>" onClick="ctrl_form.control.value='<?= $cmds['PresetHome'] ?>'; ctrl_form.submit();"></td>
+<td class="text" align="left"><input type="button" class="smallbutton" value="<?= $zmSlangHome ?>" onClick="controlPreset( '<?= $cmds['PresetHome'] ?>' );"></td>
 <?php
 	}
 ?>
@@ -424,7 +432,7 @@ function controlPresets( $monitor )
 	for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )
 	{
 ?>
-<input type="button" class="numbutton" value="<?= $i ?>" onClick="ctrl_form.control.value='<?= $cmds['PresetGoto'] ?><?=$i?>'; ctrl_form.submit();"><?php (($i%$preset_break)==0)?"<br>":"&nbsp;&nbsp;" ?>
+<input type="button" class="numbutton" value="<?= $i ?>" onClick="controlPreset( '<?= $cmds['PresetGoto'] ?><?=$i?>' );"><?php (($i%$preset_break)==0)?"<br>":"&nbsp;&nbsp;" ?>
 <?php
 		if ( $i && (($i%$preset_break) == 0) )
 		{

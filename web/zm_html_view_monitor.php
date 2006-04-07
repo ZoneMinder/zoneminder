@@ -65,9 +65,9 @@ else
 	$monitor['Function'] = "None";
 	$monitor['Enabled'] = true;
 	$monitor['Type'] = "Local";
-	$monitor['Device'] = "";
-	$monitor['Channel'] = "";
-	$monitor['Format'] = "";
+	$monitor['Device'] = "/dev/video";
+	$monitor['Channel'] = "0";
+	$monitor['Format'] = "0";
 	$monitor['Host'] = "";
 	$monitor['Path'] = "";
 	$monitor['Port'] = "80";
@@ -126,6 +126,8 @@ if ( !empty($preset) )
 	}
 }
 
+$device_formats = array( "PAL"=>0, "NTSC"=>1, "SECAM"=>2, "AUTO"=>3, "FMT4"=>4, "FMT5"=>5, "FMT6"=>6, "FMT7"=>7 );
+$device_channels = array( "0"=>0, "1"=>1, "2"=>2, "3"=>3 );
 $local_palettes = array( $zmSlangGrey=>1, "RGB24"=>4, "RGB565"=>3, "RGB555"=>6, "YUV422"=>7, "YUYV"=>8, "YUV422P"=>13, "YUV420P"=>15 );
 $remote_palettes = $file_palettes = array( $zmSlang8BitGrey=>1, $zmSlang24BitColour=>4 );
 $orientations = array( $zmSlangNormal=>'0', $zmSlangRotateRight=>'90', $zmSlangInverted=>'180', $zmSlangRotateLeft=>'270', $zmSlangFlippedHori=>'hori', $zmSlangFlippedVert=>'vert' );
@@ -556,8 +558,8 @@ switch ( $tab )
 		{
 ?>
 <tr><td align="left" class="text"><?= $zmSlangDevicePath ?></td><td align="left" class="text"><input type="text" name="new_monitor[Device]" value="<?= $new_monitor['Device'] ?>" size="24" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangDeviceChannel ?></td><td align="left" class="text"><input type="text" name="new_monitor[Channel]" value="<?= $new_monitor['Channel'] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangDeviceFormat ?></td><td align="left" class="text"><input type="text" name="new_monitor[Format]" value="<?= $new_monitor['Format'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangDeviceChannel ?></td><td align="left" class="text"><select name="new_monitor[Channel]" class="form"><?php foreach ( $device_channels as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor['Channel'] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangDeviceFormat ?></td><td align="left" class="text"><select name="new_monitor[Format]" class="form"><?php foreach ( $device_formats as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor['Format'] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangCapturePalette ?></td><td align="left" class="text"><select name="new_monitor[Palette]" class="form"><?php foreach ( $local_palettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor['Palette'] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
 		}

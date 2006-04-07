@@ -31,7 +31,7 @@ if ( !$result )
 while ( $row = mysql_fetch_assoc( $result ) )
 {
 	$filter_names[$row['Name']] = $row['Name'];
-	if ( isset($reload) && isset($filter_name) && $filter_name == $row['Name'] )
+	if ( !empty($reload) && isset($filter_name) && $filter_name == $row['Name'] )
 	{
 		$filter_data = $row;
 	}

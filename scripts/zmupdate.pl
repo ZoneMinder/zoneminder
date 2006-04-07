@@ -575,7 +575,7 @@ if ( $version )
 		{
 			print( "Updating monitors. Please wait.\n" );
 
-			if ( ZM_NO_MAX_FPS_ON_ALARM )
+			if ( defined(&ZM_NO_MAX_FPS_ON_ALARM) && &ZM_NO_MAX_FPS_ON_ALARM )
 			{
 				# Update the individual monitor settings to match the previous global one
 				my $sql = "update Monitors set AlarmMaxFPS = NULL";

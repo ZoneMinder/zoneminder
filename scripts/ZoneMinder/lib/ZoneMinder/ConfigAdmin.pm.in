@@ -1596,9 +1596,9 @@ sub INIT
 	my $option_id = 0;
 	foreach my $option ( @options )
 	{
-		next if ( $option->{category} eq 'core' );
-		next if ( $option->{category} eq 'hidden' );
-		next if ( $option->{type} == $types{include} );
+		#next if ( $option->{category} eq 'core' );
+		#next if ( $option->{category} eq 'hidden' );
+		#next if ( $option->{type} == $types{include} );
 		$option->{id} = $option_id++;
 	}
 }
@@ -1627,8 +1627,8 @@ sub loadConfigFromDB
 			warn( "No option '$name' found, removing" );
 			next;
 		}
-		next if ( $option->{category} eq 'core' );
-		next if ( $option->{category} eq 'hidden' );
+		#next if ( $option->{category} eq 'core' );
+		#next if ( $option->{category} eq 'hidden' );
 		if ( defined($value) )
 		{
 			if ( $name eq "ZM_OPT_MPEG" && $value eq "yes" )
@@ -1667,9 +1667,9 @@ sub saveConfigToDB
 	my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
 	foreach my $option ( @options )
 	{
-		next if ( $option->{category} eq 'core' );
-		next if ( $option->{category} eq 'hidden' );
-		next if ( $option->{type} == $types{include} );
+		#next if ( $option->{category} eq 'core' );
+		#next if ( $option->{category} eq 'hidden' );
+		#next if ( $option->{type} == $types{include} );
 		#print( $option->{name}."\n" ) if ( !$option->{category} );
 		$option->{db_type} = $option->{type}->{db_type};
 		$option->{db_hint} = $option->{type}->{hint};

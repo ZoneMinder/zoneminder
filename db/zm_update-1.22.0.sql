@@ -34,6 +34,9 @@ alter table Stats add column PixelDiff tinyint(3) unsigned NOT NULL default '0' 
 --
 INSERT INTO MonitorPresets VALUES ('','Axis IP, 320x240, mpjpeg, B&W','Remote',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240&color=0',320,240,4,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES ('','Axis IP, 640x480, mpjpeg, B&W','Remote',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480&color=0',640,480,4,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','Gadspot IP, jpeg, max 5 FPS','Remote',NULL,NULL,NULL,'<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,4,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','Gadspot IP, mpjpeg','Remote',NULL,NULL,NULL,'<ip-address>',80,'/GetData.cgi',NULL,NULL,4,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','Gadspot IP, mpjpeg','Remote',NULL,NULL,NULL,'<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,4,5.0,0,NULL,NULL,NULL,100,100);
 
 --
 -- Modify zone presets a bit

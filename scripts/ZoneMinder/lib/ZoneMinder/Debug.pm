@@ -94,7 +94,7 @@ use constant DBG_FATAL => -3;
 use constant DBG_NOSYSLOG => -4;
 
 our $dbg_initialised = undef;
-our $dbg_id = "zm?";
+our $dbg_id = "zmundef";
 our $dbg_level = DBG_INFO;
 our $dbg_carp = 0;
 our $dbg_to_log = 1;

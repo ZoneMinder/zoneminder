@@ -40,9 +40,15 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # This allows declaration	use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+our %EXPORT_TAGS = (
+    'functions' => [ qw(
+		zmDbConnect
+		zmDbDisConnect
+		zmDbGetMonitors
+		zmDbGetMonitor
+	) ]
+);
+push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 

@@ -1324,6 +1324,7 @@ if ( !empty($action) )
 				//daemonControl( 'restart', 'zmwatch.pl' );
 				$refresh_parent = true;
 			}
+			$view = 'none';
 		}
 		if ( $action == "delete" )
 		{

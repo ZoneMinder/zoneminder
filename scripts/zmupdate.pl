@@ -574,7 +574,6 @@ if ( $version )
 		# Check for maximum FPS setting and update alarm max fps settings
 		{
 			print( "Updating monitors. Please wait.\n" );
-
 			if ( defined(&ZM_NO_MAX_FPS_ON_ALARM) && &ZM_NO_MAX_FPS_ON_ALARM )
 			{
 				# Update the individual monitor settings to match the previous global one
@@ -590,7 +589,30 @@ if ( $version )
 				my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			}
 		}
-
+		{
+			print( "Updating mail configuration. Please wait.\n" );
+			my ( $sql, $sth, $res );
+			if ( defined(&ZM_EMAIL_TEXT) && &ZM_EMAIL_TEXT )
+			{
+				my ( $email_subject, $email_body ) = ZM_EMAIL_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"?$/ms;
+				$sql = "replace into Config set Id = 0, Name = 'ZM_EMAIL_SUBJECT', Value = '".$email_subject."', Type = 'string', DefaultValue = 'ZoneMinder: Alarm - %MN%-%EI% (%ESM% - %ESA% %EFA%)', Hint = 'string', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The subject of the email used to send matching event details', Help = 'This option is used to define the subject of the email that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_EMAIL=1'";
+				$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+				$sql = "replace into Config set Id = 0, Name = 'ZM_EMAIL_BODY', Value = '".$email_body."', Hint = 'free text', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The body of the email used to send matching event details', Help = 'This option is used to define the content of the email that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_EMAIL=1'";
+				$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			}
+			if ( defined(&ZM_MESSAGE_TEXT) && &ZM_MESSAGE_TEXT )
+			{
+				my ( $message_subject, $message_body ) = ZM_MESSAGE_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"?$/ms;
+				$sql = "replace into Config set Id = 0, Name = 'ZM_MESSAGE_SUBJECT', Value = '".$message_subject."', Type = 'string', DefaultValue = 'ZoneMinder: Alarm - %MN%-%EI%', Hint = 'string', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The subject of the message used to send matching event details', Help = 'This option is used to define the subject of the message that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_MESSAGE=1'";
+				$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+				$sql = "replace into Config set Id = 0, Name = 'ZM_MESSAGE_BODY', Value = '".$message_body."', Type = 'text', DefaultValue = 'ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score.', Hint = 'free text', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The body of the message used to send matching event details', Help = 'This option is used to define the content of the message that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_MESSAGE=1'";
+				$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			}
+		}
 		$cascade = !undef;
 	}
 	if ( $cascade )

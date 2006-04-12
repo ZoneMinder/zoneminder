@@ -73,8 +73,6 @@ if ( ZM_OPT_UPLOAD )
 	require Net::FTP;
 }
 
-my $email_subject;
-my $email_body;
 if ( ZM_OPT_EMAIL )
 {
 	if ( ZM_NEW_MAIL_MODULES )
@@ -86,11 +84,8 @@ if ( ZM_OPT_EMAIL )
 	{
 		require MIME::Entity;
 	}
-	( $email_subject, $email_body ) = ZM_EMAIL_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"/ms;
 }
 
-my $message_subject;
-my $message_body;
 if ( ZM_OPT_MESSAGE )
 {
 	if ( ZM_NEW_MAIL_MODULES )
@@ -102,8 +97,6 @@ if ( ZM_OPT_MESSAGE )
 	{
 		require MIME::Entity;
 	}
-
-	( $message_subject, $message_body ) = ZM_MESSAGE_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"/ms;
 }
 
 
@@ -880,10 +873,10 @@ sub sendEmail
 
 	Info( "Creating notification email\n" );
 
-	my $subject = substituteTags( $email_subject, $filter, $event );
+	my $subject = substituteTags( ZM_EMAIL_SUBJECT, $filter, $event );
 	return( 0 ) if ( !$subject );
 	my @attachments;
-	my $body = substituteTags( $email_body, $filter, $event, \@attachments );
+	my $body = substituteTags( ZM_EMAIL_BODY, $filter, $event, \@attachments );
 	return( 0 ) if ( !$body );
 
 	Info( "Sending notification email '$subject'\n" );
@@ -974,10 +967,10 @@ sub sendMessage
 
 	Info( "Creating notification message\n" );
 
-	my $subject = substituteTags( $message_subject, $filter, $event );
+	my $subject = substituteTags( ZM_MESSAGE_SUBJECT, $filter, $event );
 	return( 0 ) if ( !$subject );
 	my @attachments;
-	my $body = substituteTags( $message_body, $filter, $event, \@attachments );
+	my $body = substituteTags( ZM_MESSAGE_BODY, $filter, $event, \@attachments );
 	return( 0 ) if ( !$body );
 
 	Info( "Sending notification message '$subject'\n" );

@@ -185,7 +185,7 @@ function validateForm(form)
 	}
 	else if ( form.elements['new_monitor[Type]'].value == 'Remote' )
 	{
-		if ( !form.elements['new_monitor[Host]'].value || !form.elements['new_monitor[Host]'].value.match( /^[0-9a-zA-Z_.-]+$/ ) )
+		if ( !form.elements['new_monitor[Host]'].value || !form.elements['new_monitor[Host]'].value.match( /^[0-9a-zA-Z_.-:@]+$/ ) )
 		{
 			errors[errors.length] = "<?= $zmSlangBadHost ?>";
 		}

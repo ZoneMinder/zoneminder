@@ -2456,6 +2456,12 @@ int Monitor::PostCapture()
 			}
 		}
 
+		if ( image.Size() != camera->ImageSize() )
+		{
+			Error(( "Captured image does not match expected size, check width, height and colour depth" ));
+			return( -1 );
+		}
+
 		int index = image_count%image_buffer_count;
 
 		if ( index == shared_data->last_read_index && function > MONITOR )

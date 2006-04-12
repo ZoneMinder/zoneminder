@@ -40,6 +40,7 @@ protected:
 	unsigned int	height;
 	unsigned int	palette;
 	unsigned int	colours;
+	unsigned int	size;
 	int				brightness;
 	int				hue;
 	int				colour;
@@ -58,7 +59,7 @@ public:
 	unsigned int Height() const { return( height ); }
 	unsigned int Palette() const { return( palette ); }
 	unsigned int Colours() const { return( colours ); }
-	unsigned int ImageSize() const { return( colours*width*height ); }
+	unsigned int ImageSize() const { return( size ); }
 
 	virtual int Brightness( int/*p_brightness*/=-1 ) { return( -1 ); }
 	virtual int Hue( int/*p_hue*/=-1 ) { return( -1 ); }

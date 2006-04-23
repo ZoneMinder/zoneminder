@@ -91,7 +91,7 @@ checkdb()
 			echo tbls | grep Config >/dev/null 2>&1
 			RETVAL=$?
 			if [ $RETVAL != 0 ]; then
-				cat $ZM_PATH_UPDATE/zmschema.sql | mysql -B -h $ZM_DB_HOST -u $ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME
+				mysql -B -h $ZM_DB_HOST -u $ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME < $ZM_PATH_UPDATE/zm_create.sql 
 				RETVAL=$?
 				[ $RETVAL = 0 ] && echo_success
 				[ $RETVAL != 0 ] && echo_failure

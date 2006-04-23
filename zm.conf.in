@@ -14,6 +14,7 @@ ZM_VERSION=@VERSION@
 
 # Path to build directory, used mostly for finding DB upgrade scripts
 ZM_PATH_BUILD=@PATH_BUILD@
+ZM_PATH_UPDATE=@PATH_BUILD@/db
 
 # Build time, used to record when to trigger various checks
 ZM_TIME_BUILD=@TIME_BUILD@
@@ -48,4 +49,3 @@ ZM_DB_USER=@ZM_DB_USER@
 
 # ZoneMinder database password
 ZM_DB_PASS=@ZM_DB_PASS@
-

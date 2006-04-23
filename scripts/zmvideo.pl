@@ -161,11 +161,12 @@ my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM
 
 my @filters;
 my $sql = "select max(F.Delta)-min(F.Delta) as FullLength, E.*, M.Name as MonitorName, M.Width as MonitorWidth, M.Height as MonitorHeight, M.Palette from Frames as F inner join Events as E on F.EventId = E.Id inner join Monitors as M on E.MonitorId = M.Id where EventId = '$event_id' group by F.EventId";
-my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 my $event = $sth->fetchrow_hashref();
 $sth->finish();
-chdir( ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id} );
+my $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id};
+chdir( $event_path );
 ( my $video_name = $event->{Name} ) =~ s/\s/_/g; 
 
 my @file_parts;
@@ -211,7 +212,7 @@ if ( $overwrite || !-s $video_file )
 	if ( ZM_OPT_MPEG eq "mpeg_encode" )
 	{
 		my $param_file = "$video_name.mpe";
-		open( PARAMS, ">$param_file" ) or die( "Can't open '$param_file': $!" );
+		open( PARAMS, ">$param_file" ) or Fatal( "Can't open '$param_file': $!" );
 
 		print( PARAMS "PATTERN		IBBPBBPBBPBBPBB\n" );
 		print( PARAMS "FORCE_ENCODE_LAST_FRAME\n" );
@@ -279,6 +280,11 @@ if ( $overwrite || !-s $video_file )
 		{
 			Info( $output."\n" );
 		}
+		my $status = $? >> 8;
+		if ( $status )
+		{
+			Fatal( "Error: $status" );
+		}
 	}
 	elsif ( ZM_OPT_MPEG eq "ffmpeg" )
 	{
@@ -314,24 +320,22 @@ if ( $overwrite || !-s $video_file )
 		}
 
 
-		my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s $video_size ".ZM_FFMPEG_OUTPUT_OPTIONS." '$video_file' > ffmpeg.log";
+		my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s $video_size ".ZM_FFMPEG_OUTPUT_OPTIONS." '$video_file' >& ffmpeg.log";
 		Info( $command."\n" );
-		if ( my $output = qx($command) )
+		my $output = qx($command);
+
+		my $status = $? >> 8;
+		if ( $status )
 		{
-			Info( $output."\n" );
+			Error( "Unable to generate video, check ".$event_path."/ffmpeg.log for details" );
+			exit( -1 );
 		}
 	}
 	else
 	{
-		die( "Bogus mpeg option ".ZM_OPT_MPEG."\n" );
+		Fatal( "Bogus mpeg option ".ZM_OPT_MPEG."\n" );
 	}
 	
-	my $status = $? >> 8;
-	if ( $status )
-	{
-		die( "Error: $status" );
-	}
-
 	Info( "Finished $video_file\n" );
 }
 else

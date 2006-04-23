@@ -213,8 +213,8 @@ sub getFilters
 {
 	my @filters;
 	my $sql = "select * from Filters where (AutoArchive = 1 or AutoVideo = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1 or AutoExecute = 1 or AutoDelete = 1) order by Name";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 	FILTER: while( my $filter_data = $sth->fetchrow_hashref() )
 	{
 		Debug( "Found filter '$filter_data->{Name}'\n" );
@@ -509,8 +509,13 @@ sub checkFilter
 		$sql =~ s/zmDiskBlocks/$disk_blocks/g;
 	}
 
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute();
+	if ( !$res )
+	{
+		Error( "Can't execute filter '$sql', ignoring: ".$sth->errstr() );
+		return;
+	}
 
 	while( my $event = $sth->fetchrow_hashref() )
 	{
@@ -521,8 +526,8 @@ sub checkFilter
 			Info( "Archiving event $event->{Id}\n" );
 			# Do it individually to avoid locking up the table for new events
 			my $sql = "update Events set Archived = 1 where Id = ?";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+			my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 		}
 		if ( ZM_OPT_MPEG ne "no" && $filter->{AutoVideo} )
 		{
@@ -566,18 +571,18 @@ sub checkFilter
 				Info( "Deleting event $event->{Id}\n" );
 				# Do it individually to avoid locking up the table for new events
 				my $sql = "delete from Events where Id = ?";
-				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+				my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+				my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 
 				if ( !ZM_OPT_FAST_DELETE )
 				{
 					my $sql = "delete from Frames where EventId = ?";
-					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-					my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+					my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+					my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 
 					$sql = "delete from Stats where EventId = ?";
-					$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-					$res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+					$sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+					$res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 
 					my $command = "rm -rf ".ZM_DIR_EVENTS."/*/".sprintf( "%d", $event->{Id} );
 					my $output = qx($command);
@@ -638,10 +643,10 @@ sub generateVideo
 
 	my $command = ZM_PATH_BIN."/zmvideo.pl -e ".$event->{Id}." -r ".$rate." -s ".$scale." -f ".$format;
 	my $output = qx($command);
+	chomp( $output );
 	my $status = $? >> 8;
 	if ( $status || DBG_LEVEL > 0 )
 	{
-		chomp( $output );
 		Debug( "Output: $output\n" );
 	}
 	if ( $status )
@@ -729,8 +734,8 @@ sub uploadArchFile
 		$ftp->quit() or warn( "FTP - Can't quit" );
 		unlink( $arch_file );
 		my $sql = "update Events set Uploaded = 1 where Id = ?";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+		my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 	}
 	return( 1 );
 }
@@ -752,8 +757,8 @@ sub substituteTags
 	{
 		my $db_now = strftime( "%Y-%m-%d %H:%M:%S", localtime() );
 		my $sql = "select M.Id, count(E.Id) as EventCount, count(if(E.Archived,1,NULL)) as ArchEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL)) as DayEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL)) as WeekEventCount, count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL)) as MonthEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id where MonitorId = ? group by E.MonitorId order by Id";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute( $event->{MonitorId} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+		my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $event->{MonitorId} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 		$monitor = $sth->fetchrow_hashref();
 		$sth->finish();
 		return() if ( !$monitor );
@@ -767,8 +772,8 @@ sub substituteTags
 	if ( $need_images )
 	{
 		my $sql = "select * from Frames where EventId = ? and Type = 'Alarm' order by FrameId";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+		my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 		while( my $frame = $sth->fetchrow_hashref() )
 		{
 			if ( !$first_alarm_frame )
@@ -943,8 +948,8 @@ sub sendEmail
 		Info( "Notification email sent\n" );
 	}
 	my $sql = "update Events set Emailed = 1 where Id = ?";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 
 	return( 1 );
 }
@@ -1037,8 +1042,8 @@ sub sendMessage
 		Info( "Notification message sent\n" );
 	}
 	my $sql = "update Events set Messaged = 1 where Id = ?";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 
 	return( 1 );
 }
@@ -1069,8 +1074,8 @@ sub executeCommand
 	else
 	{
 		my $sql = "update Events set Executed = 1 where Id = ?";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute( $event->{Id} ) or die( "Can't execute '$sql': ".$sth->errstr() );
+		my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 	}
 	return( 1 );
 }

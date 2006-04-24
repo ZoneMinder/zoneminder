@@ -1925,8 +1925,10 @@ follows.
 
     %EI%  Id of the event
     %EN%  Name of the event
+    %EC%  Cause of the event
+    %ED%  Event description
     %ET%  Time of the event
-    %ED%  Duration of the event
+    %EL%  Length of the event
     %EF%  Number of frames in the event
     %EFA% Number of alarm frames in the event
     %EST% Total score of the event

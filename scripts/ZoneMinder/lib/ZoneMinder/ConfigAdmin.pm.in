@@ -817,7 +817,7 @@ The details are as follows :-
 
   Monitor  : %MN%
   Event Id : %EI%
-  Duration : %ED%
+  Length   : %EL%
   Frames   : %EF% (%EFA%)
   Scores   : t%EST% m%ESM% a%ESA%
 
@@ -850,7 +850,7 @@ The details are as follows :-
 
   Monitor  : %MN%
   Event Id : %EI%
-  Duration : %ED%
+  Length   : %EL%
   Frames   : %EF% (%EFA%)
   Scores   : t%EST% m%ESM% a%ESA%
 
@@ -883,7 +883,7 @@ ZoneMinder",
 	{
 		name => "ZM_MESSAGE_TEXT",
 		default => 'subject = "ZoneMinder: Alarm - %MN%-%EI%"
-body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score."',
+body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score."',
 		description => "The text of the message used to send matching event details",
 		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "This option is used to define the content of the message that is sent for any events that match the appropriate filters.",
@@ -901,7 +901,7 @@ body = "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_MESSAGE_BODY",
-		default => "ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score.",
+		default => "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score.",
 		description => "The body of the message used to send matching event details",
 		requires => [ { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "This option is used to define the content of the message that is sent for any events that match the appropriate filters.",

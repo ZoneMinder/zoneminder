@@ -273,12 +273,12 @@ window.focus();
 <?php if ( canEdit( 'Events' ) ) { ?>
 <td align="right" class="text"><a href="javascript: saveFilter( document.filter_form );"><?= $zmSlangSave ?></a></td>
 <?php } else { ?>
-<td align="right" class="text">&nbsp;</a></td>
+<td align="right" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( canEdit( 'Events' ) && isset($filter_data) ) { ?>
 <td align="right" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data['Name'] ?>' );"><?= $zmSlangDelete ?></a></td>
 <?php } else { ?>
-<td align="right" class="text">&nbsp;</a></td>
+<td align="right" class="text">&nbsp;</td>
 <?php } ?>
 <td align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
@@ -345,6 +345,9 @@ else
 </tr>
 <tr>
 <td colspan="4" align="right"><input type="button" value="<?= $zmSlangReset ?>" class="form" onClick="submitToFilter( document.filter_form, 1 );">&nbsp;&nbsp;<input type="button" value="<?= $zmSlangSubmit ?>" class="form" onClick="if ( validateForm( document.filter_form ) ) submitToEvents( document.filter_form, 1 );"></td>
+</tr>
+</table>
+</td>
 </tr>
 </table></center>
 </form>

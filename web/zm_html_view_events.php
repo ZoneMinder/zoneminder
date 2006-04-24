@@ -400,9 +400,9 @@ function viewEvents( form, name )
 </tr>
 <tr><td colspan="4" class="text">&nbsp;</td></tr>
 <tr>
-<td align="left" class="text"><a href="javascript: location.reload(true);"><?= $zmSlangRefresh ?></td>
+<td align="left" class="text"><a href="javascript: location.reload(true);"><?= $zmSlangRefresh ?></a></td>
 <td colspan="1" align="center" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&page=<?= $page ?><?= $filter_query ?>', 'zmFilter' );"><?= $zmSlangShowFilterWindow ?></a></td>
-<td colspan="2" align="right" class="text"><a href="javascript: timelineWindow( '<?= $PHP_SELF ?>?view=timeline&<?= $filter_query ?>', 'zmTimeline' );"><?= $zmSlangShowTimeline ?></a></td>
+<td colspan="2" align="right" class="text"><a href="javascript: timelineWindow( '<?= $PHP_SELF ?>?view=timeline<?= $filter_query ?>', 'zmTimeline' );"><?= $zmSlangShowTimeline ?></a></td>
 </tr>
 <tr><td colspan="4" class="text">&nbsp;</td></tr>
 <tr><td colspan="4"><table border="0" cellspacing="1" cellpadding="0" width="100%" bgcolor="#7F7FB2">

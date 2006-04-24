@@ -216,10 +216,10 @@ newWindow( '<?= $PHP_SELF ?>?view=donate', 'zmDonate', <?= $jws['donate']['w'] ?
 </script>
 </head>
 <body scroll="auto">
-<table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <form name="monitor_form" method="get" action="<?= $PHP_SELF ?>" onSubmit="return(confirmDelete());">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="delete">
+<table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr>
 <td class="smallhead" align="left"><?= preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG ) ?></td>
 <td class="bighead" align="center"><strong><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?= $zmSlangConsole ?> - <?php if ( canEdit( 'System' ) ) { ?><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=state', 'zmState', <?= $jws['state']['w'] ?>, <?= $jws['state']['h'] ?> );"><?= $status ?></a> - <?php } ?><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=version', 'zmVersion', ".$jws['version']['w'].", ".$jws['version']['h']." );", "v".ZM_VERSION, canEdit( 'System' ) ) ?></strong></td>
@@ -404,7 +404,7 @@ if ( canEdit('Monitors') )
 <td align="right" class="text"><?= $zone_count ?></td>
 <td align="center" colspan="<?= canEdit('Monitors')?2:1 ?>"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>
 </tr>
-</form>
 </table>
+</form>
 </body>
 </html>

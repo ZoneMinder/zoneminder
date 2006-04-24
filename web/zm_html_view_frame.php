@@ -93,7 +93,8 @@ function deleteEvent()
 </head>
 <body>
 <table width="96%" cellpadding="3" cellspacing="0" border="0">
-<tr><td width="60%" class="smallhead"><?= $zmSlangFrame ?> <?= $eid."-".$fid." (".$frame['Score'].")" ?>
+<tr>
+<td width="60%" class="smallhead"><?= $zmSlangFrame ?> <?= $eid."-".$fid." (".$frame['Score'].")" ?>
 <?php if ( ZM_RECORD_EVENT_STATS && $alarm_frame ) { ?>
 (<a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=stats&eid=<?= $eid ?>&fid=<?= $fid ?>', 'zmStats', <?= $jws['stats']['w'] ?>, <?= $jws['stats']['h'] ?> );"><?= $zmSlangStats ?></a>)
 <?php } ?>
@@ -101,9 +102,11 @@ function deleteEvent()
 <td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) ) { ?><a href="javascript: deleteEvent();"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp<?php } ?></td>
 <td width="20%" align="right" class="text"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
-<tr><td colspan="3" align="center"><?php if ( $image_data['hasAnalImage'] ) { ?><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $fid ?>&scale=<?= $scale ?>&show=<?= $image_data['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $image_data['imageClass'] ?>"><?php if ( $image_data['hasAnalImage'] ) { ?></a><?php } ?></td></tr>
 <tr>
-<tr><td colspan="3" align="center"><table width="96%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td colspan="3" align="center"><?php if ( $image_data['hasAnalImage'] ) { ?><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $fid ?>&scale=<?= $scale ?>&show=<?= $image_data['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $image_data['imageClass'] ?>"><?php if ( $image_data['hasAnalImage'] ) { ?></a><?php } ?></td>
+</tr>
+<tr>
+<td colspan="3" align="center"><table width="96%" cellpadding="0" cellspacing="0" border="0"><tr>
 <?php if ( $fid > 1 ) { ?>
 <td align="center" width="25%" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $first_fid ?>&scale=<?= $scale ?>"><?= $zmSlangFirst ?></a></td>
 <?php } else { ?>

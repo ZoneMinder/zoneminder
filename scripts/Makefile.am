@@ -67,5 +67,6 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Serial.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Connection.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Connection/Example.pm \
+	zminit \
 	zm.in
 

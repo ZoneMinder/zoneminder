@@ -249,7 +249,7 @@ sub getCmdFormat
 	my $suffix = "";
 	my $command = $prefix.$null_command.$suffix;
 	Debug( "Testing \"$command\"\n" );
-	$command .= " >& /dev/null"
+	$command .= " >& /dev/null";
 	my $output = qx($command);
 	my $status = $? >> 8;
 	if ( !$status )

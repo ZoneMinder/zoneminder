@@ -104,7 +104,7 @@ foreach( array_reverse($zones) as $zone )
 <tr><td colspan="3" align="center"><img src="<?= ZM_DIR_IMAGES.'/'.$image ?>" usemap="#zonemap" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>" border="0"></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="0" width="96%">
-<form name="zone_form" method="post" action="<?= $PHP_SELF ?>">
+<form name="zone_form" method="get" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="delete">
 <input type="hidden" name="mid" value="<?= $mid ?>">

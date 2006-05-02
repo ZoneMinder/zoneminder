@@ -339,6 +339,7 @@ $zmSlangIdle                 = 'Ongebruikt';
 $zmSlangIgnore               = 'Negeer';
 $zmSlangImageBufferSize      = 'Image buffer grootte (frames)';
 $zmSlangImage                = 'Image';
+$zmSlangImages               = 'Images';
 $zmSlangInclude              = 'voeg in';
 $zmSlangIn                   = 'In';
 $zmSlangInverted             = 'omgedraaid';

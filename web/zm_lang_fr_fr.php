@@ -338,6 +338,7 @@ $zmSlangId                   = 'N°';
 $zmSlangIgnore               = 'Ignorer';
 $zmSlangImageBufferSize      = 'Taille tampon image';
 $zmSlangImage                = 'Image';
+$zmSlangImages               = 'Images';
 $zmSlangInclude              = 'Inclure';
 $zmSlangIn                   = 'In';
 $zmSlangInverted             = 'Inversé';

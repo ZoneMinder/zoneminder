@@ -338,6 +338,7 @@ $zmSlangIdle                 = '▒р▀@▐С▒т';
 $zmSlangIgnore               = '√Ё▌▀';
 $zmSlangImage                = '┴Ф▒°';
 $zmSlangImageBufferSize      = '┴Ф▒° йч╞л╖ ╩╡╫ч';
+$zmSlangImages               = 'Images';
 $zmSlangInclude              = '▒g┌щ█·┌ч';
 $zmSlangIn                   = 'In';
 $zmSlangInverted             = '■╫⌠]';

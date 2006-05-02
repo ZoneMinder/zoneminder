@@ -309,6 +309,7 @@ $zmSlangId                   = 'Nr.';
 $zmSlangIgnore               = 'Ignor';
 $zmSlangImageBufferSize      = 'Zon&#259; tampon imagine (cadre)';
 $zmSlangImage                = 'Imagine';
+$zmSlangImages               = 'Images';
 $zmSlangInclude              = 'Includ';
 $zmSlangIn                   = 'In';
 $zmSlangInverted             = 'Invers&#259;';

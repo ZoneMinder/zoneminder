@@ -338,6 +338,7 @@ $zmSlangIdle                 = 'Pøipraven';
 $zmSlangIgnore               = 'Ignorovat';
 $zmSlangImageBufferSize      = 'Velikost buferu snímkù';
 $zmSlangImage                = 'Obraz';
+$zmSlangImages               = 'Images';
 $zmSlangInclude              = 'Vlo¾it';
 $zmSlangIn                   = 'Dovnitø';
 $zmSlangInverted             = 'Pøevrácenì';

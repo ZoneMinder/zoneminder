@@ -339,6 +339,7 @@ $zmSlangIdle                 = 'Idle';
 $zmSlangIgnore               = 'Ignorer';
 $zmSlangImage                = 'Billede';
 $zmSlangImageBufferSize      = 'Billede Buffer Størelse (Billeder)';
+$zmSlangImages               = 'Images';
 $zmSlangInclude              = 'Inkluder';
 $zmSlangIn                   = 'Ind';
 $zmSlangInverted             = 'Inverteret';

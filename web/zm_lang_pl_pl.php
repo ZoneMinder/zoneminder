@@ -339,6 +339,7 @@ $zmSlangId                   = 'Nr';
 $zmSlangIgnore               = 'Ignoruj';
 $zmSlangImageBufferSize      = 'Rozmiar bufora obrazu (ramek)';
 $zmSlangImage                = 'Obraz';
+$zmSlangImages               = 'Images';
 $zmSlangInclude              = 'Do³±cz';
 $zmSlangIn                   = 'In';
 $zmSlangInverted             = 'Odwrócony';

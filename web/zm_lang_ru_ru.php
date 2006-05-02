@@ -339,6 +339,7 @@ $zmSlangIdle                 = 'Idle';
 $zmSlangIgnore               = 'Игнорировать';
 $zmSlangImageBufferSize      = 'Размер буфера изображения';
 $zmSlangImage                = 'Изображение';
+$zmSlangImages               = 'Images';
 $zmSlangInclude              = 'Включить';
 $zmSlangIn                   = 'In';
 $zmSlangInverted             = 'Инвертировать';

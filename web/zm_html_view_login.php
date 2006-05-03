@@ -35,7 +35,7 @@ window.resizeTo( <?= $jws['login']['w'] ?>, <?= $jws['login']['h'] ?> );
 }
 ?>
 </head>
-<body>
+<body onLoad="document.forms.login_form.username.focus();">
 <form name="login_form" method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="action" value="login">
 <input type="hidden" name="view" value="postlogin">

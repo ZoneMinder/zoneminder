@@ -44,7 +44,7 @@
 //   maintenance point of view to include the original language file and override the old definitions rather
 //   than copy all the language tokens across. To do this change the line below to whatever your base language
 //   is and uncomment it.
-require_once( 'zm_lang_big5_big5.php' );
+//require_once( 'zm_lang_en_gb.php' );
 
 // You may need to change the character set here, if your web server does not already
 // do this by default, uncomment this if required.
@@ -72,6 +72,7 @@ setlocale( 'LC_ALL', 'Big5' ); //All locale settings pre-4.3.0
 //setlocale( LC_ALL, 'Big5' ); //All locale settings 4.3.0 and after
 setlocale( 'LC_CTYPE', 'Big5' ); //Character class settings 4.3.0 and after
 setlocale( 'LC_TIME', 'Big5' ); //Date and time formatting 4.3.0 and after
+
 // Simple String Replacements
 $zmSlang24BitColour          = '24 位元色彩';
 $zmSlang8BitGrey             = '8 位元灰階';

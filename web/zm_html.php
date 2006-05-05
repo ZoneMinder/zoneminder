@@ -25,7 +25,7 @@ if ( !$bandwidth )
 
 //ini_set( "magic_quotes_gpc", "Off" );
 
-require_once( 'zm_config.php' );
+require_once( 'zm_html_config.php' );
 
 if ( ZM_OPT_USE_AUTH )
 {
@@ -41,50 +41,11 @@ if ( ZM_OPT_USE_AUTH )
 }
 else
 {
-	$user = array(
-		"Username"=>"admin",
-		"Password"=>"",
-		"Language"=>"",
-		"Enabled"=>1,
-		"Stream"=>'View',
-		"Events"=>'Edit',
-		"Control"=>'Edit',
-		"Monitors"=>'Edit',
-		"System"=>'Edit',
-	);
+	$user = $default_user;
 }
 
 require_once( 'zm_lang.php' );
-
-$bw_array = array(
-	"high"=>$zmSlangHigh,
-	"medium"=>$zmSlangMedium,
-	"low"=>$zmSlangLow
-);
-
-$rates = array(
-	"10000" => "100x",
-	"5000" => "50x",
-	"2500" => "25x",
-	"1000" => "10x",
-	"400" => "4x",
-	"200" => "2x",
-	"100" => $zmSlangReal,
-	"50" => "1/2x",
-	"25" => "1/4x",
-);
-
-$scales = array(
-	"400" => "4x",
-	"300" => "3x",
-	"200" => "2x",
-	"150" => "1.5x",
-	"100" => $zmSlangActual,
-	"75" => "3/4x",
-	"50" => "1/2x",
-	"33" => "1/3x",
-	"25" => "1/4x",
-);
+require_once( 'zm_funcs.php' );
 
 if ( !isset($user) && ZM_OPT_USE_AUTH )
 {
@@ -96,7 +57,6 @@ if ( !isset($user) && ZM_OPT_USE_AUTH )
 	}
 }
 
-require_once( 'zm_funcs.php' );
 require_once( 'zm_actions.php' );
 
 if ( !isset($user) )

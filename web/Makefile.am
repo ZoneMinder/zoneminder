@@ -20,6 +20,7 @@ web_DATA = \
 	zm_funcs.php \
 	zm_html.php \
 	zm_html_styles.css \
+	zm_html_config.php \
 	zm_html_view_bandwidth.php \
 	zm_html_view_blank.php \
 	zm_html_view_console.php \
@@ -75,6 +76,7 @@ web_DATA = \
 	zm_html_view_zones.php \
 	zm_xhtml.php \
 	zm_xhtml_styles.css \
+	zm_xhtml_config.php \
 	zm_xhtml_view_console.php \
 	zm_xhtml_view_error.php \
 	zm_xhtml_view_eventdetails.php \
@@ -122,6 +124,7 @@ EXTRA_DIST = \
 	zm_funcs.php \
 	zm_html.php \
 	zm_html_styles.css \
+	zm_html_config.php \
 	zm_html_view_bandwidth.php \
 	zm_html_view_blank.php \
 	zm_html_view_console.php \
@@ -176,6 +179,7 @@ EXTRA_DIST = \
 	zm_html_view_zones.php \
 	zm_xhtml.php \
 	zm_xhtml_styles.css \
+	zm_xhtml_config.php \
 	zm_xhtml_view_console.php \
 	zm_xhtml_view_error.php \
 	zm_xhtml_view_eventdetails.php \

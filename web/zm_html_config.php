@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web configuration file, $Date$, $Revision$
+// ZoneMinder HTML configuration file, $Date$, $Revision$
 // Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -18,66 +18,37 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-//
-// This section contains options substituted by the zmconfig.pl utility, do not edit these directly
-//
-define( "ZM_CONFIG", "@ZM_CONFIG@" );				// Path to config file
+require_once( 'zm_config.php' );
 
-$cfg = fopen( ZM_CONFIG, "r") or die("Could not open config file.");
-while ( !feof($cfg) )
-{
-	$str = fgets( $cfg, 256 );
-	if ( preg_match( '/^\s*$/', $str )) { continue; }
-	elseif ( preg_match( '/^\s*#/', $str )) { continue; }
-	elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.+)\s*$/', $str, $matches ))
-	{
-		define( $matches[1], $matches[2] );
-	}
-}
-fclose( $cfg );
+$rates = array(
+	"10000" => "100x",
+	"5000" => "50x",
+	"2500" => "25x",
+	"1000" => "10x",
+	"400" => "4x",
+	"200" => "2x",
+	"100" => $zmSlangReal,
+	"50" => "1/2x",
+	"25" => "1/4x",
+);
 
-//
-// This section is options normally derived from other options or configuration
-//
-define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );				// Local path to the ZoneMinder Utility
+$scales = array(
+	"400" => "4x",
+	"300" => "3x",
+	"200" => "2x",
+	"150" => "1.5x",
+	"100" => $zmSlangActual,
+	"75" => "3/4x",
+	"50" => "1/2x",
+	"33" => "1/3x",
+	"25" => "1/4x",
+);
 
-//
-// Alarm states
-//
-define( "STATE_IDLE", 0 );
-define( "STATE_PREALARM", 1 );
-define( "STATE_ALARM", 2 );
-define( "STATE_ALERT", 3 );
-define( "STATE_TAPE", 4 );
-
-//
-// These are miscellaneous options you won't normally need to change
-//
-define( "MAX_EVENTS", 10 );								// The maximum number of events to show in the monitor event listing
-define( "RATE_BASE", 100 );								// The additional scaling factor used to help get fractional rates in integer format
-define( "SCALE_BASE", 100 );							// The additional scaling factor used to help get fractional scales in integer format
-define( "LEARN_MODE", false );							// Currently unimplemented, do not change
-define( 'DEVICE_WIDTH', 150 );							// Default device width for phones and handhelds
-define( 'DEVICE_HEIGHT', 150 );							// Default device height for phones and handhelds
-define( 'DEVICE_LINES', 10 );							// Default device lines for phones and handhelds
-
-//
-// Date and time formats, eventually some of these may end up in the language files
-//
-define( "DATE_FMT_CONSOLE_LONG", "D jS M, g:ia" );		// This is the main console date/time, date() or strftime() format
-define( "DATE_FMT_CONSOLE_SHORT", "%H:%M" );			// This is the xHTML console date/time, date() or strftime() format
-
-define( "STRF_FMT_DATETIME_DB", "%Y-%m-%d %H:%M:%S" );	// Strftime format for database queries, don't change
-
-define( "STRF_FMT_DATETIME", "%c" );					// Strftime locale aware format for dates with times
-define( "STRF_FMT_DATE", "%x" );						// Strftime locale aware format for dates without times
-define( "STRF_FMT_TIME", "%X" );						// Strftime locale aware format for times without dates
-
-define( "STRF_FMT_DATETIME_SHORT", "%y/%m/%d %H:%M:%S" ); // Strftime shorter format for dates with time, not locale aware
-define( "STRF_FMT_DATETIME_SHORTER", "%m/%d %H:%M:%S" ); // Strftime shorter format for dates with time, not locale aware, used where space is tight
-
-require_once( 'zm_db.php' );
-loadConfig();
+$bw_array = array(
+	"high"=>$zmSlangHigh,
+	"medium"=>$zmSlangMedium,
+	"low"=>$zmSlangLow
+);
 
 switch ( $bandwidth )
 {
@@ -132,40 +103,6 @@ switch ( $bandwidth )
 		define( "ZM_WEB_SHOW_PROGRESS", ZM_WEB_L_SHOW_PROGRESS );		// Whether to show the progress of replay in event view.
 		break;
 	}
-	case "mobile" : // Very incomplete at present
-	{
-		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_P_DEFAULT_RATE );			// What the default replay rate factor applied to 'event' views is (%)
-		define( "ZM_WEB_SCALE_THUMBS", ZM_WEB_P_SCALE_THUMBS );			// Image scaling for thumbnails, bandwidth versus cpu in rescaling
-		break;
-	}
-}
-
-function loadConfig()
-{
-	global $config;
-	global $config_cats;
-
-	$config = array();
-	$config_cat = array();
-
-	$sql = "select * from Config order by Id asc";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		echo mysql_error();
-	$monitors = array();
-	while( $row = mysql_fetch_assoc( $result ) )
-	{
-		define( $row['Name'], $row['Value'] );
-		$config[$row['Name']] = $row;
-		if ( !($config_cat = &$config_cats[$row['Category']]) )
-		{
-			$config_cats[$row['Category']] = array();
-			$config_cat = &$config_cats[$row['Category']];
-		}
-		$config_cat[$row['Name']] = $row;
-	}
-	//print_r( $config );
-	//print_r( $config_cats );
 }
 
 // Javascript window sizes
@@ -210,4 +147,6 @@ $jws = array(
 	'zone' => array( 'w'=>400, 'h'=>450 ),
 	'zones' => array( 'w'=>72, 'h'=>232 ),
 );
+
+
 ?>

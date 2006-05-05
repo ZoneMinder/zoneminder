@@ -278,7 +278,7 @@ sub getCmdFormat
 			chomp( $output );
 			Debug( "Test failed, '$output'\n" );
 
-			$prefix = "su ".ZM_WEB_USER." -c ";
+			$prefix = "su ".ZM_WEB_USER." -c '";
 			$suffix = "'";
 			$command = $prefix.$null_command.$suffix;
 			Debug( "Testing \"$command\"\n" );

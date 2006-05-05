@@ -97,6 +97,7 @@ web_DATA = \
 	zm_wml_view_feed.php \
 	zm_wml_view_error.php \
 	zm_lang.php \
+	zm_lang_big5_big5.php \
 	zm_lang_de_de.php \
 	zm_lang_en_gb.php \
 	zm_lang_en_us.php \
@@ -200,6 +201,7 @@ EXTRA_DIST = \
 	zm_wml_view_feed.php \
 	zm_wml_view_error.php \
 	zm_lang.php \
+	zm_lang_big5_big5.php \
 	zm_lang_de_de.php \
 	zm_lang_en_gb.php \
 	zm_lang_en_us.php \

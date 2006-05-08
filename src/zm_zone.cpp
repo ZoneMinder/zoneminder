@@ -877,7 +877,10 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		Debug( 5, ( "Parsing polygon %s", Coords ));
 		Polygon polygon;
 		if ( !ParsePolygonString( Coords, polygon ) )
-			continue;
+			Fatal(( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s", Coords, Id, Name, monitor->Name() ));
+
+        if ( polygon.LoX() < 0 || polygon.HiX() >= monitor->Width() || polygon.LoY() < 0 || polygon.HiY() >= monitor->Height() )
+            Fatal(( "Zone %d/%s for monitor %s extends outside of image dimensions", Id, Name, monitor->Name() ));
 
 		if ( false && !strcmp( Units, "Percent" ) )
 		{

@@ -59,6 +59,7 @@ our %EXPORT_TAGS = (
 	'functions' => [ qw(
 		zmShmGet
 		zmShmVerify
+		zmShmInvalidate
 		zmShmRead
 		zmShmWrite
 		zmGetMonitorState
@@ -277,6 +278,14 @@ sub zmShmVerify( $ )
 	return( !undef );
 }
 
+sub zmShmInvalidate( $ )
+{
+	my $monitor = shift;
+
+	delete $monitor->{ShmId};
+	delete $shm_verified->{$monitor->{ShmKey}};
+}
+
 sub zmShmRead( $$;$ )
 {
 	my $monitor = shift;
@@ -309,6 +318,7 @@ sub zmShmRead( $$;$ )
 		if ( !shmread( $shm_id, $data, $offset, $size ) )
 		{
 			Error( sprintf( "Can't read '$field' from shared memory '%x/%d': $!", $shm_key, $shm_id ) );
+            zmShmInvalidate( $monitor );
 			return( undef );
 		}
 	
@@ -414,6 +424,7 @@ sub zmShmWrite( $$;$ )
 		if ( !shmwrite( $shm_id, $data, $offset, $size ) )
 		{
 			Error( sprintf( "Can't write '$value' to '$field' in shared memory '%x/%d': $!", $shm_key, $shm_id ) );
+            zmShmInvalidate( $monitor );
 			return( undef );
 		}
 	}
@@ -664,6 +675,10 @@ All the methods listed below require a 'monitor' parameter. This must be a refer
 =item zmShmVerify ( $monitor );
 
 Verify that the shared memory of the monitor given exists and is valid. It will return an undefined value if it is not valid. You should generally call this method first before using any of the other methods, but most of the remaining methods will also do so if the memory has not already been verified.
+
+=item zmShmInvalidate ( $monitor );
+
+Following an error, reset the shared memory ids and attempt to reverify on the next operation. This is mostly used when a shared memory segment has gone away and been recreated with a different id.
 
 =item zmShmRead ( $monitor, $readspec );
 

@@ -29,7 +29,8 @@ while ( !feof($cfg) )
 	$str = fgets( $cfg, 256 );
 	if ( preg_match( '/^\s*$/', $str )) { continue; }
 	elseif ( preg_match( '/^\s*#/', $str )) { continue; }
-	elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.+)\s*$/', $str, $matches ))
+	elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.+?)\s*$/', $str, $matches ))
+
 	{
 		define( $matches[1], $matches[2] );
 	}

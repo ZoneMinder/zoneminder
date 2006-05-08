@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <assert.h>
 #include <time.h>
 #include <math.h>
 #include <zlib.h>
@@ -226,7 +225,10 @@ public:
 
 	inline void CopyBuffer( const Image &image )
 	{
-		assert( width == image.width && height == image.height && colours == image.colours );
+		if ( image.size != size )
+        {
+            Fatal(( "Attempt to copy different size image buffers, expected %d, got %d", size, image.size ));
+        }
 		memcpy( buffer, image.buffer, size );
 	}
 	inline Image &operator=( const unsigned char *new_buffer )

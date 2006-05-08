@@ -91,7 +91,10 @@ Image::BlendTablePtr Image::GetBlendTable( int transparency )
 
 Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 {
-	assert( colours = 1 );
+    if ( colours != 1 )
+    {
+        Fatal(( "Attempt to highlight image edges when colours = %d", colours ));
+    }
 	Image *high_image = new Image( width, height, 3 );
 	int lo_x = limits?limits->Lo().X():0;
 	int lo_y = limits?limits->Lo().Y():0;
@@ -202,7 +205,13 @@ bool Image::ReadJpeg( const char *filename )
 		height = cinfo->image_height;
 		pixels = width*height;
 		colours = cinfo->num_components;
-		assert( colours == 1 || colours == 3 );
+		if ( !(colours == 1 || colours == 3) )
+        {
+            Error(( "Unexpected colours (%d) when reading jpeg image", colours ));
+		    jpeg_abort_decompress( cinfo );
+		    fclose( infile );
+            return( false );
+        }
 		int new_size = width*height*colours;
 		if ( !buffer || size < new_size )
 		{
@@ -320,7 +329,12 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size )
 		height = cinfo->image_height;
 		pixels = width*height;
 		colours = cinfo->num_components;
-		assert( colours == 1 || colours == 3 );
+		if ( !(colours == 1 || colours == 3) )
+        {
+            Error(( "Unexpected colours (%d) when decoding jpeg image", colours ));
+		    jpeg_abort_decompress( cinfo );
+            return( false );
+        }
 		int new_size = width*height*colours;
 		if ( !buffer || size < new_size )
 		{
@@ -437,7 +451,7 @@ bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
 	}
 	if ( lo_x < 0 || hi_x > (width-1) || ( lo_y < 0 || hi_y > (height-1) ) )
 	{
-		Error(( "Attempting to crop outside image, %d,%d -> %d,%d not in %d,%d", lo_x, lo_y, hi_x, hi_y, width, height ));
+		Error(( "Attempting to crop outside image, %d,%d -> %d,%d not in %d,%d", lo_x, lo_y, hi_x, hi_y, width-1, height-1 ));
 		return( false );
 	}
 
@@ -478,8 +492,10 @@ bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
 
 void Image::Overlay( const Image &image )
 {
-	//assert( width == image.width && height == image.height && colours == image.colours );
-	assert( width == image.width && height == image.height );
+	if ( !(width == image.width && height == image.height) )
+    {
+        Fatal(( "Attempt to overlay different sized images, expected %dx%d, got %dx%d", width, height, image.width, image.height ));
+    }
 
 	unsigned char *pdest = buffer;
 	unsigned char *psrc = image.buffer;
@@ -547,7 +563,10 @@ void Image::Overlay( const Image &image )
 
 void Image::Blend( const Image &image, int transparency ) const
 {
-	assert( width == image.width && height == image.height && colours == image.colours );
+	if ( !(width == image.width && height == image.height && colours == image.colours) )
+    {
+        Fatal(( "Attempt to blend different sized images, expected %dx%dx%d, got %dx%dx%d", width, height, colours, image.width, image.height, image.colours ));
+    }
 
 	if ( config.fast_image_blends )
 	{
@@ -599,7 +618,10 @@ Image *Image::Merge( int n_images, Image *images[] )
 	int colours = images[0]->colours;
 	for ( int i = 1; i < n_images; i++ )
 	{
-		assert( width == images[i]->width && height == images[i]->height && colours == images[i]->colours );
+	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
+        {
+            Fatal(( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i ));
+        }
 	}
 
 	Image *result = new Image( width, height, images[0]->colours );
@@ -630,7 +652,10 @@ Image *Image::Merge( int n_images, Image *images[], double weight )
 	int colours = images[0]->colours;
 	for ( int i = 1; i < n_images; i++ )
 	{
-		assert( width == images[i]->width && height == images[i]->height && colours == images[i]->colours );
+	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
+        {
+            Fatal(( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i ));
+        }
 	}
 
 	Image *result = new Image( *images[0] );
@@ -661,7 +686,10 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 	int colours = images[0]->colours;
 	for ( int i = 1; i < n_images; i++ )
 	{
-		assert( width == images[i]->width && height == images[i]->height && colours == images[i]->colours );
+	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
+        {
+            Fatal(( "Attempt to highlight different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i ));
+        }
 	}
 
 	Image *result = new Image( width, height, images[0]->colours );
@@ -691,7 +719,10 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 
 Image *Image::Delta( const Image &image ) const
 {
-	assert( width == image.width && height == image.height && colours == image.colours );
+	if ( !(width == image.width && height == image.height && colours == image.colours) )
+    {
+        Fatal(( "Attempt to get delta of different sized images, expected %dx%dx%d, got %dx%dx%d", width, height, colours, image.width, image.height, image.colours ));
+    }
 
 	Image *result = new Image( width, height, 1 );
 
@@ -938,7 +969,10 @@ void Image::DeColourise()
 
 void Image::Fill( Rgb colour, const Box *limits )
 {
-	assert( colours == 1 || colours == 3 );
+	if ( !(colours == 1 || colours == 3 ) )
+    {
+        Fatal(( "Attempt to fill image with unexpected colours %d", colours ));
+    }
 	int lo_x = limits?limits->Lo().X():0;
 	int lo_y = limits?limits->Lo().Y():0;
 	int hi_x = limits?limits->Hi().X():width-1;
@@ -972,7 +1006,10 @@ void Image::Fill( Rgb colour, const Box *limits )
 
 void Image::Fill( Rgb colour, int density, const Box *limits )
 {
-	assert( colours == 1 || colours == 3 );
+	if ( !(colours == 1 || colours == 3 ) )
+    {
+        Fatal(( "Attempt to fill image with unexpected colours %d", colours ));
+    }
 
 	int lo_x = limits?limits->Lo().X():0;
 	int lo_y = limits?limits->Lo().Y():0;
@@ -1002,7 +1039,10 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 
 void Image::Outline( Rgb colour, const Polygon &polygon )
 {
-	assert( colours == 1 || colours == 3 );
+	if ( !(colours == 1 || colours == 3 ) )
+    {
+        Fatal(( "Attempt to outline image with unexpected colours %d", colours ));
+    }
 	int n_coords = polygon.getNumCoords();
 	for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ )
 	{
@@ -1088,7 +1128,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 
 void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 {
-	assert( colours == 1 || colours == 3 );
+	if ( !(colours == 1 || colours == 3 ) )
+    {
+        Fatal(( "Attempt to fill image with unexpected colours %d", colours ));
+    }
 
 	int n_coords = polygon.getNumCoords();
 	int n_global_edges = 0;

@@ -548,8 +548,8 @@ function updateActivePoint( event )
 	var x_point, y_point;
 	if ( event )
 	{
-		x = event.layerX;
-		y = event.layerY;
+		x = event.layerX-1;
+		y = event.layerY-1;
 	}
 	else
 	{
@@ -626,7 +626,7 @@ function saveChanges()
 <input type="hidden" name="new_zone[NumCoords]" value="<?= count($new_zone['Points']) ?>">
 <input type="hidden" name="new_zone[Coords]" value="<?= $new_zone['Coords'] ?>">
 <input type="hidden" name="new_zone[Area]" value="<?= $new_zone['Area'] ?>">
-<input type="hidden" name="new_zone[AlarmRGB]" value=""
+<input type="hidden" name="new_zone[AlarmRGB]" value="">
 <table border="0" cellspacing="0" cellpadding="1" width="100%">
 <tr>
 <td align="left" class="head"><?= $zmSlangMonitor ?> <?= $monitor['Name'] ?> - <?= $zmSlangZone ?> <?= $new_zone['Name'] ?></td>

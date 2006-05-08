@@ -1221,8 +1221,8 @@ if ( !empty($action) )
 							$points = coordsToPoints( $zone['Coords'] );
 							for ( $i = 0; $i < count($points); $i++ )
 							{
-								$points[$i]['x'] = intval(round((($points[$i]['x']*$new_w)/$old_w)));
-								$points[$i]['y'] = intval(round((($points[$i]['y']*$new_h)/$old_h)));
+                                $points[$i]['x'] = intval(($points[$i]['x']*($new_w-1))/($old_w-1));
+                                $points[$i]['y'] = intval(($points[$i]['y']*($new_h-1))/($old_h-1));
 							}
 							$new_zone['Coords'] = pointsToCoords( $points );
 							$new_zone['Area'] = intval(round(($zone['Area']*$new_a)/$old_a));

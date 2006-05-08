@@ -460,6 +460,7 @@ int zmDbgOutput( const char *fstring, ... )
 	va_end(arg_ptr);
 	if ( zm_dbg_code == ZM_DBG_FAT )
 	{
+        abort();
 		exit( -1 );
 	}
 	return( strlen( zm_temp_dbg_string ) );

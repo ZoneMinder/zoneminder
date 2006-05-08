@@ -41,7 +41,6 @@ else
 	$user = $default_user;
 }
 
-require_once( 'zm_lang.php' );
 require_once( 'zm_funcs.php' );
 
 noCacheHeaders();

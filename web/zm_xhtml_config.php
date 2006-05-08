@@ -19,6 +19,7 @@
 //
 
 require_once( 'zm_config.php' );
+require_once( 'zm_lang.php' );
 
 define( 'DEVICE_WIDTH', 150 );							// Default device width for phones and handhelds
 define( 'DEVICE_HEIGHT', 150 );							// Default device height for phones and handhelds

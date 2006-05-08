@@ -19,6 +19,7 @@
 //
 
 require_once( 'zm_config.php' );
+require_once( 'zm_lang.php' );
 
 $rates = array(
 	"10000" => "100x",

@@ -56,7 +56,7 @@ use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -613,6 +613,12 @@ if ( $version )
 				$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			}
 		}
+		$cascade = !undef;
+	}
+	if ( $cascade || $version eq "1.22.1" )
+	{
+		# Patch the database
+		patchDB( $dbh, "1.22.1" );
 		$cascade = !undef;
 	}
 	if ( $cascade )

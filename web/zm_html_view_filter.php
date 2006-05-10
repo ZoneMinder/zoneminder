@@ -119,6 +119,11 @@ $archive_types = array(
 	'0' => $zmSlangArchUnarchived,
 	'1' => $zmSlangArchArchived
 );
+$weekdays = array();
+for ( $i = 0; $i < 7; $i++ )
+{
+    $weekdays[$i] = strftime( "%A", mktime( 12, 0, 0, 1, $i+1, 2001 ) );
+}
 $sort_fields = array(
 	'Id'          => $zmSlangAttrId,
 	'Name'        => $zmSlangAttrName,
@@ -287,7 +292,7 @@ window.focus();
 </tr>
 <tr>
 <td colspan="4">
-<table width="100%" border="0" cellspacing="0" cellpadding="0">
+<table width="100%" border="0" cellspacing="1" cellpadding="0">
 <?php
 for ( $i = 1; $i <= $trms; $i++ )
 {
@@ -318,6 +323,9 @@ else
 <?php if ( $$attr_name == "Archived" ) { ?>
 <td class="text"><center><?= $zmSlangOpEq ?><input type="hidden" name="<?= $op_name ?>" value="="></center></td>
 <td class="text"><?= buildSelect( $value_name, $archive_types ); ?></td>
+<?php } elseif ( $$attr_name == "Weekday" ) { ?>
+<td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>
+<td class="text"><?= buildSelect( $value_name, $weekdays ); ?></td>
 <?php } elseif ( $$attr_name ) { ?>
 <td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>
 <td class="text"><input name="<?= $value_name ?>" value="<?= $$value_name ?>" class="form" size="24"></td>

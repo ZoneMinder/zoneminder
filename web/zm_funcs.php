@@ -1256,9 +1256,6 @@ function parseFilter( $save_to_session=false, $term_sep='&' )
 						case 'Time':
 							$value = "extract( hour_second from '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
 							break;
-						case 'Weekday':
-							$value = "weekday( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
-							break;
 					}
 					$value_list[] = $value;
 				}

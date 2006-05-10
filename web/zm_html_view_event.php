@@ -471,7 +471,7 @@ else
 	$thumb_height = (int)round($event['Height']/ZM_WEB_FRAMES_PER_LINE);
 	$thumb_scale = (int)round( SCALE_BASE/ZM_WEB_FRAMES_PER_LINE );
 
-	for ( $i = 0; $i < $frames_per_page; $i++ )
+	for ( $i = 0; $i < count($frames); $i++ )
 	{
 		$frame = $frames[$i];
 		$image_data = getImageSrc( $event, $frame, $thumb_scale );

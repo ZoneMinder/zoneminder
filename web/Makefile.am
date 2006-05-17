@@ -63,6 +63,7 @@ web_DATA = \
 	zm_html_view_siren.php \
 	zm_html_view_state.php \
 	zm_html_view_stats.php \
+	zm_html_view_status.php \
 	zm_html_view_timeline.php \
 	zm_html_view_user.php \
 	zm_html_view_version.php \
@@ -167,6 +168,7 @@ EXTRA_DIST = \
 	zm_html_view_siren.php \
 	zm_html_view_state.php \
 	zm_html_view_stats.php \
+	zm_html_view_status.php \
 	zm_html_view_timeline.php \
 	zm_html_view_user.php \
 	zm_html_view_version.php \

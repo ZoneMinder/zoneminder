@@ -106,9 +106,9 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=cycle&group=$g
 <tr>
 <td width="33%" align="left" class="text"><b><?= $monitor['Name'] ?></b></td>
 <?php if ( $mode == "stream" ) { ?>
-<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=still&mid=<?= $mid ?>"><?= $zmSlangStills ?></a></td>
+<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=still&group=<?= $group ?>&mid=<?= $mid ?>"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
-<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=stream&mid=<?= $mid ?>"><?= $zmSlangStream ?></a></td>
+<td width="34%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=stream&group=<?= $group ?>&mid=<?= $mid ?>"><?= $zmSlangStream ?></a></td>
 <?php } else { ?>
 <td width="34%" align="center" class="text">&nbsp;</td>
 <?php } ?>

@@ -83,7 +83,7 @@ if ( ZM_WEB_COMPACT_MONTAGE )
 {
 ?>
 <frameset rows="16,*,0" cols="*" border="0" frameborder="no" framespacing="0">
-<frame src="<?= $PHP_SELF ?>?view=montagemenu&mode=<?= $mode ?>" marginwidth="0" marginheight="0" name="MontageMenu" scrolling="no">
+<frame src="<?= $PHP_SELF ?>?view=montagemenu&mode=<?= $mode ?>&group=<?= $group ?>" marginwidth="0" marginheight="0" name="MontageMenu" scrolling="no">
 <?php
 }
 ?>

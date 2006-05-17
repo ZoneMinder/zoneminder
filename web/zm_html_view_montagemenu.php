@@ -108,9 +108,9 @@ else
 <td width="25%" align="center" class="text">&nbsp;</td>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
-<td width="25%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montage&mode=still&mid=<?= $mid ?>" target="_parent"><?= $zmSlangStills ?></a></td>
+<td width="25%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montage&mode=still&group=<?= $group ?>" target="_parent"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
-<td width="25%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montage&mode=stream&mid=<?= $mid ?>" target="_parent"><?= $zmSlangStream ?></a></td>
+<td width="25%" align="center" class="text"><a href="<?= $PHP_SELF ?>?view=montage&mode=stream&group=<?= $group ?>" target="_parent"><?= $zmSlangStream ?></a></td>
 <?php } else { ?>
 <td width="25%" align="center" class="text">&nbsp;</td>
 <?php } ?>

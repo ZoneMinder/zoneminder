@@ -124,6 +124,7 @@ switch( $view )
 	case "siren" :
 	case "state" :
 	case "stats" :
+	case "status" :
 	case "timeline" :
 	case "user" :
 	case "version" :

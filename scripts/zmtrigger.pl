@@ -361,7 +361,7 @@ sub handleMessage
 		{
 			zmTriggerEventOff( $monitor );
 		}
-		zmTriggerShowText( $showtext ) if defined($showtext);
+		zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
 		Info( "Triggered event '$trigger' '$cause'\n" );
 		if ( $delay )
 		{
@@ -380,12 +380,12 @@ sub handleMessage
 	elsif( $action eq "cancel" )
 	{
 		zmTriggerEventCancel( $monitor );
-		zmTriggerShowText( $showtext ) if defined($showtext);
+		zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
 		Info( "Cancelled event '$cause'\n" );
 	}
 	elsif( $action eq "show" )
 	{
-		zmTriggerShowText( $showtext );
+		zmTriggerShowtext( $monitor, $showtext );
 		Info( "Updated show text to '$showtext'\n" );
 	}
 	else

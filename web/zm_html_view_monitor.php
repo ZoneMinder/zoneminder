@@ -127,7 +127,9 @@ if ( !empty($preset) )
 }
 
 $device_formats = array( "PAL"=>0, "NTSC"=>1, "SECAM"=>2, "AUTO"=>3, "FMT4"=>4, "FMT5"=>5, "FMT6"=>6, "FMT7"=>7 );
-$device_channels = array( "0"=>0, "1"=>1, "2"=>2, "3"=>3 );
+$device_channels = array();
+for ( $i = 0; $i <= 15; $i++ )
+    $device_channels["$i"] = $i;
 $local_palettes = array( $zmSlangGrey=>1, "RGB24"=>4, "RGB565"=>3, "RGB555"=>6, "YUV422"=>7, "YUYV"=>8, "YUV422P"=>13, "YUV420P"=>15 );
 $remote_palettes = $file_palettes = array( $zmSlang8BitGrey=>1, $zmSlang24BitColour=>4 );
 $orientations = array( $zmSlangNormal=>'0', $zmSlangRotateRight=>'90', $zmSlangInverted=>'180', $zmSlangRotateLeft=>'270', $zmSlangFlippedHori=>'hori', $zmSlangFlippedVert=>'vert' );

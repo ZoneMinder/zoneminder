@@ -205,7 +205,7 @@ if ( $mode == "stream" )
 <td><table border="0" cellspacing="1" cellpadding="2" width="100%" style="background: #666699">
 <tr style="background: #ffffff">
 <td class="text" align="center"><span title="<?= $zmSlangId ?>"><?= $event['Id'] ?></span></td>
-<td class="text" align="center"><span title="<?= htmlentities($event['Notes']) ?>"><?= htmlentities($event['Cause']) ?></span></td>
+<td class="text" align="center"><span title="<?= $event['Notes']?htmlentities($event['Notes']):$zmSlangAttrCause ?>"><?= htmlentities($event['Cause']) ?></span></td>
 <td class="text" align="center"><span title="<?= $zmSlangTime ?>"><?= strftime( STRF_FMT_DATETIME_SHORT, strtotime($event['StartTime'] ) ) ?></span></td>
 <td class="text" align="center"><span title="<?= $zmSlangDuration ?>"><?= $event['Length']."s" ?></span></td>
 <td class="text" align="center"><span title="<?= $zmSlangAttrFrames."/".$zmSlangAttrAlarmFrames ?>"><?= $event['Frames'] ?>/<?= $event['AlarmFrames'] ?></span></td>
@@ -460,7 +460,7 @@ else
     $sql = "select * from Frames where EventId = '$eid'";
     $sql .= " order by FrameId";
     if ( $paged && !empty($page) )
-        $sql .= " limit $lo_frame_id, $hi_frame_id";
+        $sql .= " limit $lo_frame_id, ".($hi_frame_id-$lo_frame_id);
     $result = mysql_query( $sql );
     if ( !$result )
         die( mysql_error() );

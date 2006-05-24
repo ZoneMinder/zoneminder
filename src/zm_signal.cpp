@@ -29,9 +29,9 @@ RETSIGTYPE zm_hup_handler( int signal )
 {
 #if HAVE_DECL_STRSIGNAL
 	char * error = strsignal(signal);
-	size_t errorStringSize = strlen(error) + strlen("Got signal (), exiting.");
+	size_t errorStringSize = strlen(error) + strlen("Got signal (), reloading.");
 	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
-	(void) snprintf(errorString, errorStringSize, "Got signal (%s), exiting.", error);
+	(void) snprintf(errorString, errorStringSize, "Got signal (%s), reloading.", error);
 
 	Info(( (const char *)errorString ));
 	free(errorString);

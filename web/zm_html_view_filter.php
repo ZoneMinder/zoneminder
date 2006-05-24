@@ -155,6 +155,7 @@ if ( empty($sort_field) )
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEventFilter ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
+window.focus();
 function newWindow(Url,Name,Width,Height)
 {
 	var Win = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
@@ -258,7 +259,6 @@ function delTerm( form, line )
 	form.subaction.value = line;
 	form.submit();
 }
-window.focus();
 </script>
 </head>
 <body>

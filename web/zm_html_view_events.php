@@ -76,7 +76,6 @@ function closeWindow()
 	var filterWindow = window.open( "<?= $PHP_SELF ?>?view=none", 'zmFilter', 'width=1,height=1' );
 	filterWindow.close();
 }
-window.focus();
 <?php
 if ( isset($filter) )
 {
@@ -489,6 +488,9 @@ function viewEvents( form, name )
 <?php } ?>
 </table></center>
 </form>
+<script type="text/javascript">
+window.setTimeout( "window.focus()", 500 );
+</script>
 </body>
 </html>
 <?php

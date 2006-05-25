@@ -1,4 +1,4 @@
-  24/04/06        ZoneMinder 1.22.1 README                1
+  25/05/06        ZoneMinder 1.22.2 README                
 
                                
                                
@@ -11,7 +11,7 @@
                                
                           ZoneMinder
                                
-                            v1.22.1
+                            v1.22.2
                                
                                
                                
@@ -56,41 +56,42 @@ Contents
 11.  Logging                                                34
 12.  Troubleshooting                                        36
 13.  Change Log                                             39
- 13.1. Release 1.22.1                                      39
- 13.2. Release 1.22.0                                      41
- 13.3. Release 1.21.4                                      44
- 13.4. Release 1.21.3                                      46
- 13.5. Release 1.21.2                                      47
- 13.6. Release 1.21.1                                      47
- 13.7. Release 1.21.0                                      49
- 13.8. Release 1.20.1                                      50
- 13.9. Release 1.20.0                                      50
- 13.10.Release 1.19.5                                      52
- 13.11.Release 1.19.4                                      53
- 13.12.Release 1.19.3                                      53
- 13.13.Release 1.19.2                                      54
- 13.14.Release 1.19.1                                      55
- 13.15.Release 1.19.0                                      56
- 13.16.Release 1.18.1                                      57
- 13.17.Release 1.18.0                                      57
- 13.18.Release 1.17.2                                      59
- 13.19.Release 1.17.1                                      60
- 13.20.Release 1.17.0                                      60
- 13.21.Release 0.9.16                                      61
- 13.22.Release 0.9.15                                      62
- 13.23.Release 0.9.14                                      63
- 13.24.Release 0.9.13                                      63
- 13.25.Release 0.9.12                                      64
- 13.26.Release 0.9.11                                      65
- 13.27.Release 0.9.10                                      66
- 13.28.Release 0.9.9                                       67
- 13.29.Release 0.9.8                                       68
- 13.30.Release 0.9.7                                       69
- 13.31.Release 0.0.1                                       70
-14.  To Do                                                  71
-15.  Bugs                                                   72
-16.  Non-Bugs                                               73
-17.  License                                                74
+ 13.1. Release 1.22.2                                      39
+ 13.2. Release 1.22.1                                      40
+ 13.3. Release 1.22.0                                      42
+ 13.4. Release 1.21.4                                      45
+ 13.5. Release 1.21.3                                      47
+ 13.6. Release 1.21.2                                      48
+ 13.7. Release 1.21.1                                      48
+ 13.8. Release 1.21.0                                      50
+ 13.9. Release 1.20.1                                      51
+ 13.10.Release 1.20.0                                      52
+ 13.11.Release 1.19.5                                      53
+ 13.12.Release 1.19.4                                      54
+ 13.13.Release 1.19.3                                      54
+ 13.14.Release 1.19.2                                      55
+ 13.15.Release 1.19.1                                      56
+ 13.16.Release 1.19.0                                      57
+ 13.17.Release 1.18.1                                      58
+ 13.18.Release 1.18.0                                      58
+ 13.19.Release 1.17.2                                      60
+ 13.20.Release 1.17.1                                      61
+ 13.21.Release 1.17.0                                      61
+ 13.22.Release 0.9.16                                      62
+ 13.23.Release 0.9.15                                      63
+ 13.24.Release 0.9.14                                      64
+ 13.25.Release 0.9.13                                      64
+ 13.26.Release 0.9.12                                      65
+ 13.27.Release 0.9.11                                      66
+ 13.28.Release 0.9.10                                      67
+ 13.29.Release 0.9.9                                       68
+ 13.30.Release 0.9.8                                       69
+ 13.31.Release 0.9.7                                       70
+ 13.32.Release 0.0.1                                       71
+14.  To Do                                                  72
+15.  Bugs                                                   73
+16.  Non-Bugs                                               74
+17.  License                                                75
 
 
 1.
@@ -2967,7 +2968,89 @@ http://www.zoneminder.com/downloads/noIEClick.reg
    Change Log
    
 
-13.1.     Release 1.22.1
+13.1.     Release 1.22.2
+Mostly bug fixes with a couple of minor feature additions.
+
+o    FEATURE - Long events generated by Record or MoCord modes
+  previously  were  not  able to be reviewed  until  they  had
+  finished. This has changed and the event record is now updated
+  whenever a bulk frame is generated. In most cases this  will
+  mean  that  the  event  will become  replayable  soon  after
+  commencing, and the record will be updated one  or  twice  a
+  minute.
+  
+o     FEATURE  -  The  event replay view now  has  some  basic
+  details about the event included as a header to the window.
+  
+o    FEATURE - Weekday selection in filters is now implemented
+via drop down selections and not day indices.
+o    FEATURE - Focus is now automatically set to the username
+field of the login screen when the page is opened.
+o     FEATURE  -  The  Fatal debug call now calls  'abort'  to
+  generate a back trace (if enabled).
+  
+o    FEATURE - Added system status view, primarily for use by
+other utilities.
+o     FIX  -  Fixed  an  issue with an  sql  error  concerning
+  AlarmMaxFPS showing up when selecting monitor presets.
+  
+o     FIX  -  Fixed the missing 'images' token in  non-English
+  language files.
+  
+o    FIX - Added missing zone sensitivity preset.
+o     FIX  -  Fixed  a  problem with a missing  field  in  the
+  sigcontext  structure on some distributions. This  caused  a
+  build error when stack tracing was on.
+  
+o     FIX  - Fixed a problem in zmpkg.pl where one of the 'su'
+  tests was missing a quote.
+  
+o    FIX - Removed inclusion of Device::SerialPort perl module
+from zmcontrol script for IP cameras.
+o    FX - Added /usr/local/bin to PATH in zmupdate.pl
+o    FIX - Errors in shared memory access via the perl modules
+  now  invalidate  the  id,  causing  subsequent  accesses  to
+  revalidate the id. Previously access would continue to invalid
+  segments on error even if a new valid segment existed.
+  
+o     FIX  - All outstanding 'assert' calls have been replaced
+  by more useful and informative error messages.
+  
+o    FIX - Fixed a problem in some browsers where zone co-
+ordinates could be defined to have extents outside of the
+legal range for the size of image.
+o     FIX  -  Settings (e.g. paths) in zm.conf may now contain
+  spaces.
+  
+o    FIX - Fixed an issue with weekday handling in filters not
+being handled correctly.
+o    FIX - Fixed the event stills image view to correct a
+problem with some broken images.
+o     FIX  -  Zones  were not being correctly resized  when  a
+  monitor had its dimensions amended. In some circumstances this
+  could  result  in  a  zone outside of the  legal  range  and
+  thereafter crashes.
+  
+o    FIX - Fixed a problem with the montage and cycle views
+forgetting the current selected group if stills views were
+selected and then streams reselected.
+o    FIX - Corrected some typos in zmtrigger.pl to do with the
+  showtext functions.
+  
+o     FIX  -  Added more sanity checking in various places  to
+  ensure that zones are valid before processing.
+  
+o    FIX - Increased the valid card channel range to 0-15 from
+  -3.
+  
+o     FIX  - Corrected a problem with zmfilter.pl causing  sql
+  errors when running saved filters that used the monitor name.
+  
+o      LANGUAGE   -   Added  initial  Chinese  Big5   language
+  translation.
+  
+
+13.2.     Release 1.22.1
 A   few  important  features  plus  some  minor  enhancements,
 usability updates and bug fixes.
 
@@ -3175,7 +3258,7 @@ o     LANGUAGE - The two existing Italian language files  have
   
 o    LANGUAGE - A new Swedish translation has been added.
 
-13.2.     Release 1.22.0
+13.3.     Release 1.22.0
 Major  architectural changes as well as a whole raft of  other
 enhancements and fixes.
 
@@ -3447,7 +3530,7 @@ o    FIX - Some configuration has had default values changed.
 o    LANGUAGE - A Czech translation has been included. Thanks
 for user '' for this file.
 
-13.3.     Release 1.21.4
+13.4.     Release 1.21.4
 A whole bunch of improvements and fixes.
 
 o     FEATURE  -  The  video  generation  interface  has  been
@@ -3618,7 +3701,7 @@ o     LANGUAGE  -  A lot of new tokens have been added.  These
   releases.
   
 
-13.4.     Release 1.21.3
+13.5.     Release 1.21.3
 Additional bug fix release.
 
 o     FIX - Images from rotated monitors had been broken in  a
@@ -3642,7 +3725,7 @@ o     FIX - The README document has been restructured slightly
   process of upgrading from a previous version.
   
 
-13.5.     Release 1.21.2
+13.6.     Release 1.21.2
 Minor-ish bug fixes to the 1.21.1 release.
 
 o    FIX - If the defined image timestamp format for a monitor
@@ -3668,7 +3751,7 @@ o     FEATURE  -  Some of the scripts have a new debug  format
   that is more similar to the one used in the binaries.
   
 
-13.6.     Release 1.21.1
+13.7.     Release 1.21.1
 Menage of various new features and bug fixes.
 
 o     FIX - The HTTP refresh method of updating the Cycle view
@@ -3837,7 +3920,7 @@ o     FEATURE - Several users have reported problems using the
   output of your camera.
   
 
-13.7.     Release 1.21.0
+13.8.     Release 1.21.0
 Addition of camera control, plus several bugfixes.
 
 o     FEATURE  -  Added support for Pan/Tilt/Zoom and  general
@@ -3901,7 +3984,7 @@ the Watch window normally containing the recent events list.
 Whilst this was technically correct it was unnecessary and
 untidy, and has now been changed just to be blank.
 
-13.8.     Release 1.20.1
+13.9.     Release 1.20.1
 Mostly  bug  fixes,  large and small with a  couple  of  minor
 features included.
 
@@ -3969,7 +4052,7 @@ o     FIX  -  Corrected bug in zmfilter.pl.z which meant  that
   images were not always correctly uploaded.
   
 
-13.9.     Release 1.20.0
+13.10.    Release 1.20.0
 Improved and added features, several minor bug fixes.
 
 o      FEATURE   -  Certain  configuration  (Mostly   database
@@ -4060,7 +4143,7 @@ o    FIX - A possible exploit in the login page was identified
 and has now been fixed. Thanks again to forum user 'reza'
 highlighting this problem also.
 
-13.10.    Release 1.19.5
+13.11.    Release 1.19.5
 Various miscellaneous fixes and features.
 
 o     FIX - Sorting event lists by duration was broken and has
@@ -4157,7 +4240,7 @@ o     FEATURE  - Previously events have been created  even  if
   initial frames that would cause the event.
   
 
-13.11.    Release 1.19.4
+13.12.    Release 1.19.4
 Language fixes and updates.
 
 o     FIX  -  The  US  English language file  was  recursively
@@ -4171,7 +4254,7 @@ o    LANGUAGE - The Argentinian Spanish, Polish and Italian
 translations have all been updated with tokens introduced in
 version 1.19.3.
 
-13.12.    Release 1.19.3
+13.13.    Release 1.19.3
 Minor tweaks, fixes and language updates.
 
 o     FEATURE - All stills views now use the single image mode
@@ -4256,7 +4339,7 @@ o     LANGUAGE - A Brazilian Portuguese translation  has  been
 o    LANGUAGE - Updated versions of the Dutch and Argentinian
 Spanish translations have been included.
 
-13.13.    Release 1.19.2
+13.14.    Release 1.19.2
 Minor features, fixes and language updates.
 
 o     FEATURE  -  The default replay rate and live  and  event
@@ -4342,9 +4425,8 @@ o    FIX - Following notification of a potential vulnerability
   has also askedme to include the following notice relating to
   this, which I am very happy to do.
   
-"This  issue was discovered by Mark J Cox <mark@awe.com>.  The
-  Common
-  
+"This issue was discovered by Mark J Cox <mark@awe.com>.   The
+Common
 Vulnerabilities  and  Exposures  project  (cve.mitre.org)  has
 assigned the
 name CAN-2004-0227 to this issue."
@@ -4374,7 +4456,7 @@ o     NOTE  -  None of the non-English language files in  this
   translations of them in a reasonable timescale.
   
 
-13.14.    Release 1.19.1
+13.15.    Release 1.19.1
 Minor bugfixes and enhancements.
 
 o     Ffmpeg Configure Changes. The configure script has  been
@@ -4409,7 +4491,7 @@ o      Zmu   Device   Authentication.  Removed  the   previous
   unnecessary anyway.
   
 
-13.15.    Release 1.19.0
+13.16.    Release 1.19.0
 Some major enhancements and bugfixes.
 
 o     MPEG video streaming. ZoneMinder now supports true video
@@ -4548,7 +4630,7 @@ o     Monitor  Deletion. Fixed a problem with event files  not
 o    A translation for the Dutch (nl_nl) language has been
 included.
 
-13.16.    Release 1.18.1
+13.17.    Release 1.18.1
 Minor bugfixes.
 
 o     Filter  Monitor  Name  Bug. A bug  was  present  in  the
@@ -4568,7 +4650,7 @@ o     Database  Upgrade Change. Users upgrading from  releases
   resetting the actions for any that remain.
   
 
-13.17.    Release 1.18.0
+13.18.    Release 1.18.0
 Major optimisations, important new features and some bugfixes.
 
 o     Optimisations and Performance Improvements. This release
@@ -4709,7 +4791,7 @@ o     Fixed  Length Event Bug. A bug was reported whereby  the
   fixed.
   
 
-13.18.    Release 1.17.2
+13.19.    Release 1.17.2
 Minor features, bug fixes and additional languages.
 
 o     Pending  Process Bug. A bug was found whereby a  process
@@ -4779,7 +4861,7 @@ o     New Languages. Translations for Japanese (ja_jp), French
   (fr_fr) and Russian (ru_ru) are now included.
   
 
-13.19.    Release 1.17.1
+13.20.    Release 1.17.1
 Bugfixes and additional languages.
 
 o     Login  Bug. A bug was identified whereby an unauthorised
@@ -4804,7 +4886,7 @@ o     Option  Language.  The prompts and  help  text  for  the
   translated piecemeal as the opportunity arises.
   
 
-13.20.    Release 1.17.0
+13.21.    Release 1.17.0
 Language changes and other enhancements.
 
 o     Version  Numbering. ZoneMinder version numbers have  now
@@ -4856,7 +4938,7 @@ o     Minor  Bugs.  A number of minor bugs and inconsistencies
   were corrected.
   
 
-13.21.    Release 0.9.16
+13.22.    Release 0.9.16
 Major usability enhancement and fixes.
 
 o     Run  States. Instead of the old 'start/stop'  links  the
@@ -4998,7 +5080,7 @@ o     Event window width variable. Event windows now scale  to
   fit the event image size.
   
 
-13.22.    Release 0.9.15
+13.23.    Release 0.9.15
 Various bug fixes from the last release and before.
 
 o     Bandwidth.  A bug was introduced in .14 which  caused  a
@@ -5043,7 +5125,7 @@ o     A  problem  was found if using the zmf frame server  and
   all greyscale JPEG images are colourised in all circumstances.
   
 
-13.23.    Release 0.9.14
+13.24.    Release 0.9.14
 Major new feature and important bug-fixes.
 
 o     Web  configuration. Following many requests and to  make
@@ -5092,7 +5174,7 @@ o    All SQL buffers in the C++ code have been enlarged. There
   occasions.
   
 
-13.24.    Release 0.9.13
+13.25.    Release 0.9.13
 Beta  version  of several features and fixes, never  generally
 released.
 
@@ -5150,7 +5232,7 @@ o    Some windows now (optionally) use a JavaScript timeout to
   have been mostly eliminated.
   
 
-13.25.    Release 0.9.12
+13.26.    Release 0.9.12
 Mostly bug-fixes with a couple of minor features.
 
 o     Double  first  images. Fixed a problem where  the  first
@@ -5237,7 +5319,7 @@ o    Delete monitor confirm. Due to some unfortunate accidents
 o    Detect linmysqlclient.a. Added better detection script
 into 'configure' top spot when libmysqlclient.a is missing.
 
-13.26.    Release 0.9.11
+13.27.    Release 0.9.11
 Various new features and fixes.
 
 o     Added  stats  view  - If you have the RECORD_EVENT_STATS
@@ -5337,7 +5419,7 @@ o     Web  colour  change - I thought the old red,  green  and
   them down a bit. Hope you like them!
   
 
-13.27.    Release 0.9.10
+13.28.    Release 0.9.10
 Many bug-fixes and major feature enhancements.
 
 o     Configure  'round'  bug  -  Fixed  a  problem  with  the
@@ -5430,7 +5512,7 @@ o    Bugs and pieces - Fixed various bug(ettes) that I came
 across that that I don't think had been reported or noticed so
 I don't think we need to talk about them here do we.
 
-13.28.    Release 0.9.9
+13.29.    Release 0.9.9
 Mainly bug-fixes and minor feature enhancements.
 
 o     Added  zmu -q/--query option - There is now a new  query
@@ -5487,7 +5569,7 @@ o    Reload on click - In previous versions the console window
   This functionality has now been reinstated.
   
 
-13.29.    Release 0.9.8
+13.30.    Release 0.9.8
 Several new features and bug-fixes
 
 o     Upgrade note - If you have installed 0.9.7 and  wish  to
@@ -5570,7 +5652,7 @@ o    Monitor window refresh on alarm - When the monitor window
 is active and an alarm has occurred the most recent alarms
 list is immediately refreshed to show it.
 
-13.30.    Release 0.9.7
+13.31.    Release 0.9.7
 Yes,  a  big jump in release number but a lot of changes  too.
 Now somewhat more mature, not really an alpha any more, and  a
 lot of bugs fixed too.
@@ -5625,7 +5707,7 @@ o    Some of the web views have changed slightly to
 accommodate the separate events view.
 o    And much much more, probably...
 
-13.31.    Release 0.0.1
+13.32.    Release 0.0.1
 Initial release, therefore nothing new.
 
 

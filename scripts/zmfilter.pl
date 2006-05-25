@@ -250,7 +250,7 @@ sub getFilters
 			my @value_list;
 			if ( $filter_terms{$attr_name} )
 			{
-				if ( $filter_terms{$attr_name} =~ '/^Monitor/' )
+				if ( $filter_terms{$attr_name} =~ /^Monitor/ )
 				{
 					my ( $temp_attr_name ) = $filter_terms{$attr_name} =~ /^Monitor(.+)$/;
 					$filter_sql .= "M.".$temp_attr_name;
@@ -289,7 +289,7 @@ sub getFilters
 				( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
 				foreach my $temp_value ( split( '/["\'\s]*?,["\'\s]*?/', $stripped_value ) )
 				{
-					if ( $filter_terms{$attr_name} =~ '/^Monitor/' )
+					if ( $filter_terms{$attr_name} =~ /^Monitor/ )
 					{
 						$value = "'$temp_value'";
 					}

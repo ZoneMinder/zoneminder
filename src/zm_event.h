@@ -53,6 +53,8 @@ protected:
 	static int		sd;
 
 protected:
+    typedef enum { NORMAL, BULK, ALARM } FrameType;
+
 	struct PreAlarmData
 	{
 		Image *image;

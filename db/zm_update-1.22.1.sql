@@ -5,7 +5,7 @@
 --
 -- Add missing Zone Preset
 --
-insert into ZonePresets values (6,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,8,NULL,3,3,6,NULL,5,NULL,1,NULL);
+replace into ZonePresets values (6,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,8,NULL,3,3,6,NULL,5,NULL,1,NULL);
 
 --
 -- Remove redundant Zone columns

@@ -80,6 +80,18 @@ define( "STRF_FMT_DATETIME_SHORTER", "%m/%d %H:%M:%S" ); // Strftime shorter for
 require_once( 'zm_db.php' );
 loadConfig();
 
+$default_user = array(
+	"Username"=>"admin",
+	"Password"=>"",
+	"Language"=>"",
+	"Enabled"=>1,
+	"Stream"=>'View',
+	"Events"=>'Edit',
+	"Control"=>'Edit',
+	"Monitors"=>'Edit',
+	"System"=>'Edit',
+);
+
 switch ( $bandwidth )
 {
 	case "high" :

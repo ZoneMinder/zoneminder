@@ -21,16 +21,17 @@
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
-<head>
-<script type="text/javascript">
 <?php
 if ( !empty($refresh_parent) )
 {
 ?>
+<head>
+<script type="text/javascript">
 //self.onerror = function() { return( true ); }
 opener.location.reload(true);
-<?php
-}
 </script>
 </head>
+<?php
+}
+?>
 </html>

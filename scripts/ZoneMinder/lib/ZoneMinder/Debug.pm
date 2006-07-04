@@ -52,6 +52,9 @@ our %EXPORT_TAGS = (
 	'functions' => [ qw(
 		zmDbgInit
 		zmDbgTerm
+		zmDbgReinit
+		zmDbgSetSignal
+		zmDbgClearSignal
 		zmDbgId
 		zmDbgLevel
 		zmDbgCarp
@@ -154,6 +157,31 @@ sub zmDbgTerm
 		_dbgCloseSyslog();
 	}
 	$dbg_initialised = undef;
+}
+
+sub zmDbgReinit
+{
+    my $saved_errno = $!;
+	if ( $dbg_initialised )
+	{
+		_dbgCloseLog();
+		#_dbgCloseSyslog();
+
+	    #_dbgOpenSyslog();
+	    _dbgOpenLog();
+    }
+    zmDbgSetSignal();
+    $! = $saved_errno;
+}
+
+sub zmDbgSetSignal
+{
+    $SIG{HUP} = \&zmDbgReinit;
+}
+
+sub zmDbgClearSignal
+{
+    $SIG{HUP} = 'DEFAULT';
 }
 
 sub zmDbgId

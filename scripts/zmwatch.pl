@@ -73,12 +73,12 @@ sleep( START_DELAY );
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 my $sql = "select * from Monitors";
-my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 
 while( 1 )
 {
 	my $now = time();
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
 		if ( $monitor->{Function} ne 'None' )

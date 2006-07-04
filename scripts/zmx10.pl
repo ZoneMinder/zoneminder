@@ -88,7 +88,7 @@ if ( $command eq "start" )
 	exit();
 }
 
-socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
+socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
 
 my $saddr = sockaddr_un( SOCK_FILE );
 
@@ -102,8 +102,8 @@ if ( !connect( CLIENT, $saddr ) )
 	{
 		# Parent process just sleep and fall through
 		sleep( 2 );
-		socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
-		connect( CLIENT, $saddr ) or die( "Can't connect: $!" );
+		socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
+		connect( CLIENT, $saddr ) or Fatal( "Can't connect: $!" );
 	}
 	elsif ( defined($cpid) )
 	{
@@ -113,7 +113,7 @@ if ( !connect( CLIENT, $saddr ) )
 	}
 	else
 	{
-		die( "Can't fork: $!" );
+		Fatal( "Can't fork: $!" );
 	}
 }
 # The server is there, connect to it

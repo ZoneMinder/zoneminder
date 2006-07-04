@@ -158,15 +158,15 @@ do
 {
 	my $db_monitors;
 	my $sql1 = "select Id from Monitors order by Id";
-	my $sth1 = $dbh->prepare_cached( $sql1 ) or die( "Can't prepare '$sql1': ".$dbh->errstr() );
+	my $sth1 = $dbh->prepare_cached( $sql1 ) or Fatal( "Can't prepare '$sql1': ".$dbh->errstr() );
 	my $sql2 = "select Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age from Events where MonitorId = ? order by Id";
-	my $sth2 = $dbh->prepare_cached( $sql2 ) or die( "Can't prepare '$sql2': ".$dbh->errstr() );
-	my $res = $sth1->execute() or die( "Can't execute: ".$sth1->errstr() );
+	my $sth2 = $dbh->prepare_cached( $sql2 ) or Fatal( "Can't prepare '$sql2': ".$dbh->errstr() );
+	my $res = $sth1->execute() or Fatal( "Can't execute: ".$sth1->errstr() );
 	while( my $monitor = $sth1->fetchrow_hashref() )
 	{
 		Debug( "Found database monitor '$monitor->{Id}'" );
 		my $db_events = $db_monitors->{$monitor->{Id}} = {};
-		my $res = $sth2->execute( $monitor->{Id} ) or die( "Can't execute: ".$sth2->errstr() );
+		my $res = $sth2->execute( $monitor->{Id} ) or Fatal( "Can't execute: ".$sth2->errstr() );
 		while ( my $event = $sth2->fetchrow_hashref() )
 		{
 			$db_events->{$event->{Id}} = $event->{Age};
@@ -184,7 +184,7 @@ do
 		my $fs_events = $fs_monitors->{$monitor} = {};
 		( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
 
-		opendir( DIR, $monitor_dir ) or die( "Can't open directory '$monitor_dir': $!" );
+		opendir( DIR, $monitor_dir ) or Fatal( "Can't open directory '$monitor_dir': $!" );
 		my @temp_events = sort { $b <=> $a } grep { $_ =~ /^\d+$/ } readdir( DIR );
 		closedir( DIR );
 		chdir( $monitor_dir );
@@ -236,13 +236,13 @@ do
 	}
 
 	my $sql3 = "delete from Monitors where Id = ?";
-	my $sth3 = $dbh->prepare_cached( $sql3 ) or die( "Can't prepare '$sql3': ".$dbh->errstr() );
+	my $sth3 = $dbh->prepare_cached( $sql3 ) or Fatal( "Can't prepare '$sql3': ".$dbh->errstr() );
 	my $sql4 = "delete from Events where Id = ?";
-	my $sth4 = $dbh->prepare_cached( $sql4 ) or die( "Can't prepare '$sql4': ".$dbh->errstr() );
+	my $sth4 = $dbh->prepare_cached( $sql4 ) or Fatal( "Can't prepare '$sql4': ".$dbh->errstr() );
 	my $sql5 = "delete from Frames where EventId = ?";
-	my $sth5 = $dbh->prepare_cached( $sql5 ) or die( "Can't prepare '$sql5': ".$dbh->errstr() );
+	my $sth5 = $dbh->prepare_cached( $sql5 ) or Fatal( "Can't prepare '$sql5': ".$dbh->errstr() );
 	my $sql6 = "delete from Stats where EventId = ?";
-	my $sth6 = $dbh->prepare_cached( $sql6 ) or die( "Can't prepare '$sql6': ".$dbh->errstr() );
+	my $sth6 = $dbh->prepare_cached( $sql6 ) or Fatal( "Can't prepare '$sql6': ".$dbh->errstr() );
 	while ( my ( $db_monitor, $db_events ) = each(%$db_monitors) )
 	{
 		if ( my $fs_events = $fs_monitors->{$db_monitor} )
@@ -256,9 +256,9 @@ do
 						aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem" );
 						if ( confirm() )
 						{
-							my $res = $sth4->execute( $db_event ) or die( "Can't execute: ".$sth4->errstr() );
-							$res = $sth5->execute( $db_event ) or die( "Can't execute: ".$sth5->errstr() );
-							$res = $sth6->execute( $db_event ) or die( "Can't execute: ".$sth6->errstr() );
+							my $res = $sth4->execute( $db_event ) or Fatal( "Can't execute: ".$sth4->errstr() );
+							$res = $sth5->execute( $db_event ) or Fatal( "Can't execute: ".$sth5->errstr() );
+							$res = $sth6->execute( $db_event ) or Fatal( "Can't execute: ".$sth6->errstr() );
 						}
 					}
 				}
@@ -270,47 +270,47 @@ do
 			#if ( confirm() )
 			#{
 				# We don't actually do this in case it's new
-				#my $res = $sth3->execute( $db_monitor ) or die( "Can't execute: ".$sth3->errstr() );
+				#my $res = $sth3->execute( $db_monitor ) or Fatal( "Can't execute: ".$sth3->errstr() );
 			#}
 		}
 	}
 
 	my $sql7 = "select distinct EventId from Frames left join Events on Frames.EventId = Events.Id where isnull(Events.Id) group by EventId";
-	my $sth7 = $dbh->prepare_cached( $sql7 ) or die( "Can't prepare '$sql7': ".$dbh->errstr() );
-	$res = $sth7->execute() or die( "Can't execute: ".$sth7->errstr() );
+	my $sth7 = $dbh->prepare_cached( $sql7 ) or Fatal( "Can't prepare '$sql7': ".$dbh->errstr() );
+	$res = $sth7->execute() or Fatal( "Can't execute: ".$sth7->errstr() );
 	while( my $frame = $sth7->fetchrow_hashref() )
 	{
 		aud_print( "Found orphaned frame records for event '$frame->{EventId}'" );
 		if ( confirm() )
 		{
-			$res = $sth5->execute( $frame->{EventId} ) or die( "Can't execute: ".$sth6->errstr() );
+			$res = $sth5->execute( $frame->{EventId} ) or Fatal( "Can't execute: ".$sth6->errstr() );
 		}
 	}
 
 	my $sql8 = "select distinct EventId from Stats left join Events on Stats.EventId = Events.Id where isnull(Events.Id) group by EventId";
-	my $sth8 = $dbh->prepare_cached( $sql8 ) or die( "Can't prepare '$sql8': ".$dbh->errstr() );
-	$res = $sth8->execute() or die( "Can't execute: ".$sth8->errstr() );
+	my $sth8 = $dbh->prepare_cached( $sql8 ) or Fatal( "Can't prepare '$sql8': ".$dbh->errstr() );
+	$res = $sth8->execute() or Fatal( "Can't execute: ".$sth8->errstr() );
 	while( my $stat = $sth8->fetchrow_hashref() )
 	{
 		aud_print( "Found orphaned statistic records for event '$stat->{EventId}'" );
 		if ( confirm() )
 		{
-			$res = $sth6->execute( $stat->{EventId} ) or die( "Can't execute: ".$sth6->errstr() );
+			$res = $sth6->execute( $stat->{EventId} ) or Fatal( "Can't execute: ".$sth6->errstr() );
 		}
 	}
 
 	# New audit to close any events that were left open for longer than MIN_AGE seconds
 	my $sql9 = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, count(F.Id) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
-	my $sth9 = $dbh->prepare_cached( $sql9 ) or die( "Can't prepare '$sql9': ".$dbh->errstr() );
+	my $sth9 = $dbh->prepare_cached( $sql9 ) or Fatal( "Can't prepare '$sql9': ".$dbh->errstr() );
 	my $sql10 = "update Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ?, Notes = concat_ws( ' ', Notes, ? ) where Id = ?";
-	my $sth10 = $dbh->prepare_cached( $sql10 ) or die( "Can't prepare '$sql10': ".$dbh->errstr() );
-	$res = $sth9->execute() or die( "Can't execute: ".$sth9->errstr() );
+	my $sth10 = $dbh->prepare_cached( $sql10 ) or Fatal( "Can't prepare '$sql10': ".$dbh->errstr() );
+	$res = $sth9->execute() or Fatal( "Can't execute: ".$sth9->errstr() );
 	while( my $event = $sth9->fetchrow_hashref() )
 	{
 		aud_print( "Found open event '$event->{Id}'" );
 		if ( confirm( 'close', 'closing' ) )
 		{
-			$res = $sth10->execute( sprintf( "%s%d%s", $event->{Prefix}, $event->{Id}, RECOVER_TAG ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, RECOVER_TEXT, $event->{Id} ) or die( "Can't execute: ".$sth10->errstr() );
+			$res = $sth10->execute( sprintf( "%s%d%s", $event->{Prefix}, $event->{Id}, RECOVER_TAG ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, RECOVER_TEXT, $event->{Id} ) or Fatal( "Can't execute: ".$sth10->errstr() );
 		}
 	}
 

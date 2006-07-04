@@ -1229,7 +1229,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		default => "100",
 		description => "What the default replay rate factor applied to 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
-		type => $types{integer},
+		type => { db_type=>"integer", hint=>"25|50|100|150|200|400|1000|2500|5000|10000", pattern=>qr|^(\d+)$|, format=>q( $1 ) },
 		category => "highband",
 	},
 	{
@@ -1335,7 +1335,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		default => "100",
 		description => "What the default replay rate factor applied to 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
-		type => $types{integer},
+		type => { db_type=>"integer", hint=>"25|50|100|150|200|400|1000|2500|5000|10000", pattern=>qr|^(\d+)$|, format=>q( $1 ) },
 		category => "medband",
 	},
 	{
@@ -1441,7 +1441,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		default => "100",
 		description => "What the default replay rate factor applied to 'event' views is (%)",
 		help => "Normally ZoneMinder will display 'event' streams at their native rate, i.e. as close to real-time as possible. However if you have long events it is often convenient to replay them at a faster rate for review. This option lets you specify what the default replay rate will be. It is expressed as a percentage so 100 is normal rate, 200 is double speed etc.",
-		type => $types{integer},
+		type => { db_type=>"integer", hint=>"25|50|100|150|200|400|1000|2500|5000|10000", pattern=>qr|^(\d+)$|, format=>q( $1 ) },
 		category => "lowband",
 	},
 	{

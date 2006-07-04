@@ -163,6 +163,7 @@ sub sendCmd
 	{
 		Error( "Incomplete write, only ".$n_bytes." of ".length($tx_msg)." written: $!" );
 	}
+    $serial_port->write_drain();
 
 	if ( $ack )
 	{

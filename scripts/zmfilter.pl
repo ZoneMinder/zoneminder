@@ -56,6 +56,7 @@ use Getopt::Long;
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+zmDbgSetSignal();
 
 if ( ZM_OPT_UPLOAD )
 {
@@ -293,6 +294,10 @@ sub getFilters
 					{
 						$value = "'$temp_value'";
 					}
+                    elsif ( $filter_terms{$attr_name} eq 'Cause' || $filter_terms{$attr_name} eq 'Notes' )
+                    {
+                        $value = "'$temp_value'";
+                    }
 					elsif ( $filter_terms{$attr_name} eq 'DateTime' )
 					{
 						$value = DateTimeToSQL( $temp_value );

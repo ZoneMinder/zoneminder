@@ -65,6 +65,7 @@ Usage: zmwatch.pl
 }
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+zmDbgSetSignal();
 
 Info( "Watchdog starting\n" );
 Info( "Watchdog pausing for ".START_DELAY." seconds\n" );

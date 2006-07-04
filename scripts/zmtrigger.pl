@@ -70,12 +70,11 @@ $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+zmDbgSetSignal();
 
 Info( "Trigger daemon starting\n" );
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
-
-$SIG{HUP} = \&status;
 
 my $base_rin = '';
 foreach my $connection ( @connections )
@@ -175,7 +174,7 @@ while( 1 )
 		}
 		else
 		{
-			die( "Can't select: $!" );
+			Fatal( "Can't select: $!" );
 		}
 	}
 

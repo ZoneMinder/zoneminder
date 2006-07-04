@@ -64,6 +64,7 @@ my $web_uid = (getpwnam( ZM_WEB_USER ))[2];
 my $use_log = (($> == 0) || ($> == $web_uid));
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL, to_log=>$use_log );
+zmDbgSetSignal();
 
 my $interactive = 1;
 my $check = 0;

@@ -60,7 +60,7 @@ my $state;
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
-if ( !$command || $command !~ /^(?:start|stop|restart|status)$/ )
+if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot)$/ )
 {
 	if ( $command )
 	{
@@ -86,7 +86,7 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status)$/ )
 	}
 	if ( !$command )
 	{
-		print( "Usage: zmpkg.pl <start|stop|restart|status|'state'>\n" );
+		print( "Usage: zmpkg.pl <start|stop|restart|status|logrot|'state'>\n" );
 		exit( -1 );
 	}
 }
@@ -228,6 +228,11 @@ if ( $command eq "status" )
 	my $status = runCommand( "zmdc.pl check" );
 
 	print( STDOUT $status."\n" );
+}
+
+if ( $command eq "logrot" )
+{
+	runCommand( "zmdc.pl logrot" );
 }
 
 exit( $retval );

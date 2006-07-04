@@ -76,7 +76,7 @@ my @daemons = (
 
 my $command = shift @ARGV;
 die( "No command given" ) unless( $command );
-my $needs_daemon = $command !~ /(?:startup|shutdown|status|check)/;
+my $needs_daemon = $command !~ /(?:startup|shutdown|status|check|logrot)/;
 my $daemon = shift( @ARGV );
 die( "No daemon given" ) unless( !$needs_daemon || $daemon );
 my @args;
@@ -114,6 +114,10 @@ my $saddr = sockaddr_un( SOCK_FILE );
 my $server_up = connect( CLIENT, $saddr );
 if ( !$server_up )
 {
+	if ( $command eq "logrot" )
+    {
+        exit();
+    }
 	if ( $command eq "check" )
 	{
 		print( "stopped\n" );
@@ -170,7 +174,7 @@ if ( !$server_up )
 		$SIG{INT} = \&shutdownAll;
 		$SIG{TERM} = \&shutdownAll;
 		$SIG{ABRT} = \&shutdownAll;
-		$SIG{HUP} = \&status;
+		$SIG{HUP} = \&logrot;
 
 		my %cmd_hash;
 		my %pid_hash;
@@ -233,6 +237,10 @@ if ( !$server_up )
 						{
 							status();
 						}
+					}
+					elsif ( $command eq 'logrot' )
+					{
+						logrot();
 					}
 					else
 					{
@@ -353,7 +361,6 @@ if ( !$server_up )
 				$SIG{INT} = 'DEFAULT';
 				$SIG{TERM} = 'DEFAULT';
 				$SIG{ABRT} = 'DEFAULT';
-				$SIG{HUP} = 'DEFAULT';
 				dPrint( DBG_INFO, "'".join( ' ', ( $daemon, @args ) )."' started at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 	
 				if ( $daemon =~ /^${daemon_patt}$/ )
@@ -470,6 +477,17 @@ if ( !$server_up )
 				{
 					kill( 'HUP', $process->{pid} );
 				}
+			}
+		}
+		sub logrot
+		{
+            zmDbgReinit();
+			foreach my $process ( values( %pid_hash ) )
+			{
+                if ( $process->{pid} && $process->{command} =~ /^zm.*\.pl/ )
+                {
+					kill( 'HUP', $process->{pid} );
+                }
 			}
 		}
 		sub reaper

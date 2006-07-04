@@ -136,6 +136,7 @@ sub confirm
 }
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+zmDbgSetSignal();
 
 if ( !GetOptions( 'report'=>\$report, 'interactive'=>\$interactive, 'continuous'=>\$continuous ) )
 {

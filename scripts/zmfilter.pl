@@ -56,6 +56,7 @@ use Getopt::Long;
 use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+zmDbgSetSignal();
 
 if ( ZM_OPT_UPLOAD )
 {

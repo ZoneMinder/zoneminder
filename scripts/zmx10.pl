@@ -70,6 +70,7 @@ Parameters are :-
 }
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+zmDbgSetSignal();
 
 my $command;
 my $unit_code;

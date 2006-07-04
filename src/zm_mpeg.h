@@ -34,6 +34,8 @@
 #else // LIBAVCODEC_VERSION_INT
 #define ZM_FFMPEG_CVS	1
 #endif // LIBAVCODEC_VERSION_INT
+#else // FFMPEG_VERSION_INT
+#define ZM_FFMPEG_CVS	1
 #endif // FFMPEG_VERSION_INT
 
 class VideoStream

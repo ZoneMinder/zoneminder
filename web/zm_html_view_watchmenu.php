@@ -59,10 +59,10 @@ function closeWindow()
 </head>
 <body>
 <form name="view_form" method="post" action="<?= $PHP_SELF ?>" target="_parent">
-<table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
 <input type="hidden" name="view" value="watch">
 <input type="hidden" name="mode" value="<?= $mode ?>">
 <input type="hidden" name="mid" value="<?= $mid ?>">
+<table width="96%" align="center" border="0" cellspacing="0" cellpadding="4">
 <tr>
 <td align="left" class="text"><b><?= $monitor['Name'] ?></b></td>
 <?php

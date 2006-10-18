@@ -1055,7 +1055,7 @@ bool Monitor::Analyse()
 							{
 								if ( state == IDLE || state == TAPE )
 								{
-									Info(( "Ended event" ));
+							        Info(( "Ended event" ));
 								}
 								else
 								{
@@ -1299,7 +1299,7 @@ void Monitor::Reload()
 	closeEvent();
 
 	static char sql[BUFSIZ];
-	snprintf( sql, sizeof(sql), "select Function+0, Enabled, EventPrefix, LabelFormat, LabelX, LabelY, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Id = '%d'", id );
+	snprintf( sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Id = '%d'", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));

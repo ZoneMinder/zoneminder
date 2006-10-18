@@ -91,7 +91,7 @@ while( 1 )
 				next if ( !defined($image_time) ); # Can't read from shared memory
 				next if ( !$image_time ); # We can't get the last capture time so can't be sure it's died.
 
-				my $max_image_delay = ($monitor->{MaxFPS}&&($monitor->{MaxFPS}<1))?(3/$monitor->{MaxFPS}):ZM_WATCH_MAX_DELAY;
+				my $max_image_delay = ($monitor->{MaxFPS}&&($monitor->{MaxFPS}>0)&&($monitor->{MaxFPS}<1))?(3/$monitor->{MaxFPS}):ZM_WATCH_MAX_DELAY;
 				my $image_delay = $now-$image_time;
 				Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
 				if ( $image_delay <= $max_image_delay )

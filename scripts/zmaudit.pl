@@ -287,6 +287,7 @@ do
 			$res = $sth5->execute( $frame->{EventId} ) or Fatal( "Can't execute: ".$sth6->errstr() );
 		}
 	}
+    $sth7->finish();
 
 	my $sql8 = "select distinct EventId from Stats left join Events on Stats.EventId = Events.Id where isnull(Events.Id) group by EventId";
 	my $sth8 = $dbh->prepare_cached( $sql8 ) or Fatal( "Can't prepare '$sql8': ".$dbh->errstr() );
@@ -299,6 +300,7 @@ do
 			$res = $sth6->execute( $stat->{EventId} ) or Fatal( "Can't execute: ".$sth6->errstr() );
 		}
 	}
+    $sth8->finish();
 
 	# New audit to close any events that were left open for longer than MIN_AGE seconds
 	my $sql9 = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, count(F.Id) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
@@ -314,6 +316,7 @@ do
 			$res = $sth10->execute( sprintf( "%s%d%s", $event->{Prefix}, $event->{Id}, RECOVER_TAG ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, RECOVER_TEXT, $event->{Id} ) or Fatal( "Can't execute: ".$sth10->errstr() );
 		}
 	}
+    $sth9->finish();
 
 	# Now delete any old image files
 	if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> )

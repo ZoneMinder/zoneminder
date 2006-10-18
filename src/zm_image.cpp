@@ -62,9 +62,6 @@ void Image::Initialise()
 	{
 		blend_tables[i] = 0;
 	}
-
-	jpg_err.pub.error_exit = zm_jpeg_error_exit;
-	jpg_err.pub.emit_message = zm_jpeg_emit_message;
 }
 
 Image::BlendTablePtr Image::GetBlendTable( int transparency )
@@ -178,6 +175,8 @@ bool Image::ReadJpeg( const char *filename )
 	{
 		cinfo = jpg_dcinfo = new jpeg_decompress_struct;
 		cinfo->err = jpeg_std_error( &jpg_err.pub );
+	    jpg_err.pub.error_exit = zm_jpeg_error_exit;
+	    jpg_err.pub.emit_message = zm_jpeg_emit_message;
 		jpeg_create_decompress( cinfo );
 	}
 
@@ -255,6 +254,8 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	{
 		cinfo = jpg_ccinfo[quality] = new jpeg_compress_struct;
 		cinfo->err = jpeg_std_error( &jpg_err.pub );
+	    jpg_err.pub.error_exit = zm_jpeg_error_exit;
+	    jpg_err.pub.emit_message = zm_jpeg_emit_message;
 		jpeg_create_compress( cinfo );
 	}
 
@@ -310,6 +311,8 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size )
 	{
 		cinfo = jpg_dcinfo = new jpeg_decompress_struct;
 		cinfo->err = jpeg_std_error( &jpg_err.pub );
+	    jpg_err.pub.error_exit = zm_jpeg_error_exit;
+	    jpg_err.pub.emit_message = zm_jpeg_emit_message;
 		jpeg_create_decompress( cinfo );
 	}
 
@@ -376,6 +379,8 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 	{
 		cinfo = jpg_ccinfo[quality] = new jpeg_compress_struct;
 		cinfo->err = jpeg_std_error( &jpg_err.pub );
+	    jpg_err.pub.error_exit = zm_jpeg_error_exit;
+	    jpg_err.pub.emit_message = zm_jpeg_emit_message;
 		jpeg_create_compress( cinfo );
 	}
 

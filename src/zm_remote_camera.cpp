@@ -113,14 +113,14 @@ void RemoteCamera::Initialise()
 	if ( !request[0] )
 	{
 		snprintf( request, sizeof(request), "GET %s HTTP/%s\n", path, config.http_version );
-		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "User-Agent: %s/%s\n", config.http_ua, ZM_VERSION );
-		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Host: %s\n", host );
-		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Connection: Keep-Alive\n" );
+		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
+		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Host: %s\r\n", host );
+		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Connection: Keep-Alive\r\n" );
 		if ( auth[0] )
 		{
-			snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Authorization: Basic %s\n", auth64 );
+			snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Authorization: Basic %s\r\n", auth64 );
 		}
-		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "\n" );
+		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "\r\n" );
 		Debug( 2, ( "Request: %s", request ));
 	}
 	if ( !timeout.tv_sec )

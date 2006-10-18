@@ -18,9 +18,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-require_once( 'zm_config.php' );
-require_once( 'zm_lang.php' );
-
 define( 'DEVICE_WIDTH', 150 );							// Default device width for phones and handhelds
 define( 'DEVICE_HEIGHT', 150 );							// Default device height for phones and handhelds
 define( 'DEVICE_LINES', 10 );							// Default device lines for phones and handhelds

@@ -22,7 +22,7 @@ $bandwidth = "phone";
 
 //ini_set( "magic_quotes_gpc", "Off" );
 
-require_once( 'zm_xhtml_config.php' );
+require_once( 'zm_config.php' );
 
 if ( ZM_OPT_USE_AUTH )
 {
@@ -41,7 +41,9 @@ else
 	$user = $default_user;
 }
 
+require_once( 'zm_lang.php' );
 require_once( 'zm_funcs.php' );
+require_once( 'zm_xhtml_config.php' );
 
 noCacheHeaders();
 header("Content-type: application/xhtml+xml" );

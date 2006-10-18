@@ -18,9 +18,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-require_once( 'zm_config.php' );
-require_once( 'zm_lang.php' );
-
 $rates = array(
 	"10000" => "100x",
 	"5000" => "50x",
@@ -148,6 +145,5 @@ $jws = array(
 	'zone' => array( 'w'=>400, 'h'=>450 ),
 	'zones' => array( 'w'=>72, 'h'=>232 ),
 );
-
 
 ?>

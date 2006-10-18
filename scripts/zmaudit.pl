@@ -39,6 +39,7 @@ use bytes;
 # ==========================================================================
 
 use constant MIN_AGE => 300; # Minimum age when we will delete anything
+use constant MAX_AGED_DIRS => 10; # Number of event dirs to check age on
 use constant RECOVER_TAG => "(r)"; # Tag to append to event name when recovered
 use constant RECOVER_TEXT => "Recovered."; # Text to append to event notes when recovered
 
@@ -177,7 +178,6 @@ do
 	}
 	$sth1->finish();
 
-	my $fs_now = time();
 	my $fs_monitors;
 	foreach my $monitor ( <[0-9]*> )
 	{
@@ -192,13 +192,13 @@ do
 		my $count = 0;
 		foreach my $event ( @temp_events )
 		{
-			if ( $count++ > 25 )
+			if ( $count++ > MAX_AGED_DIRS )
 			{
 				$fs_events->{$event} = -1;
 			}
 			else
 			{
-				$fs_events->{$event} = ($fs_now - ($^T - ((-M $event) * 24*60*60)));
+				$fs_events->{$event} = (time() - ($^T - ((-M $event) * 24*60*60)));
 			}
 		}
 		chdir( EVENT_PATH );

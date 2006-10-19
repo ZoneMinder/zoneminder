@@ -328,16 +328,6 @@ sub getFilters
 						}
 						$value = "extract( hour_second from '$value' )";
 					}
-					elsif ( $filter_terms{$attr_name} eq 'Weekday' )
-					{
-						$value = DateTimeToSQL( $temp_value );
-						if ( !$value )
-						{
-							Error( "Error parsing date/time '$temp_value', skipping filter '$filter_data->{Name}'\n" );
-							next FILTER;
-						}
-						$value = "weekday( '$value' )";
-					}
 					else
 					{
 						$value = $temp_value;

@@ -663,9 +663,15 @@ sub generateVideo
 		}
 		return( 0 );
 	}
-	if ( wantarray() )
+	else
 	{
-		return( $format, sprintf( "%d/%d/%s", $event->{MonitorId}, $event->{Id}, $output ) );
+		my $sql = "update Events set Videoed = 1 where Id = ?";
+		my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+	    if ( wantarray() )
+	    {
+		    return( $format, sprintf( "%d/%d/%s", $event->{MonitorId}, $event->{Id}, $output ) );
+	    }
 	}
 	return( 1 );
 }

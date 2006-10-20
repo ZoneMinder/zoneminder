@@ -1077,6 +1077,14 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		category => "system",
 	},
 	{
+		name => "ZM_UPDATE_CHECK_PROXY",
+		default => "",
+		description => "Proxy url if required to access zoneminder.com",
+		help => "If you use a proxy to access the internet then ZoneMinder needs to know so it can access zoneminder.com to check for updates. If you do use a proxy enter the full proxy url here in the form of http://<proxy host>:<proxy port>/",
+		type => $types{string},
+		category => "system",
+	},
+	{
 		name => "ZM_SHM_KEY",
 		default => "0x7a6d2000",
 		description => "Shared memory root key to use",

@@ -74,11 +74,31 @@ my @daemons = (
 	'zmtrack.pl'
 );
 
+sub Usage
+{   
+    print( "
+Usage: zmdc.pl <command> [daemon [options]]
+Parameters are :-
+<command>           - One of 'startup|shutdown|status|check|logrot' or
+                      'start|stop|restart|reload'.
+[daemon [options]]  - Daemon name and options, required for second group of commands
+");     
+    exit( -1 );
+}
+
 my $command = shift @ARGV;
-die( "No command given" ) unless( $command );
+if( !$command )
+{
+    print( STDERR "No command given\n" );
+    Usage();
+}
 my $needs_daemon = $command !~ /(?:startup|shutdown|status|check|logrot)/;
 my $daemon = shift( @ARGV );
-die( "No daemon given" ) unless( !$needs_daemon || $daemon );
+if( $needs_daemon && !$daemon )
+{
+    print( STDERR "No daemon given\n" );
+    Usage();
+}
 my @args;
 
 my $daemon_patt = '('.join( '|', @daemons ).')';
@@ -90,7 +110,8 @@ if ( $needs_daemon )
 	}
 	else
 	{
-		die( "Invalid daemon '$daemon' specified" );
+		print( STDERR "Invalid daemon '$daemon' specified" );
+        Usage();
 	}
 }
 
@@ -104,11 +125,12 @@ foreach my $arg ( @ARGV )
 	}
 	else
 	{
-		die( "Bogus argument '$arg' found" );
+		print( STDERR "Bogus argument '$arg' found" );
+        exit( -1 );
 	}
 }
 
-socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
+socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
 
 my $saddr = sockaddr_un( SOCK_FILE );
 my $server_up = connect( CLIENT, $saddr );
@@ -137,7 +159,7 @@ if ( !$server_up )
 		zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 		# Parent process just sleep and fall through
-		socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
+		socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
 		my $attempts = 0;
 		while (!connect( CLIENT, $saddr ))
 		{

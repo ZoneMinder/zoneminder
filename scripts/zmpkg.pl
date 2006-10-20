@@ -66,8 +66,8 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot)$/ )
 	{
 		# Check to see if it's a valid run state
 		my $sql = "select * from States where Name = '$command'";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+		my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 		if ( $state = $sth->fetchrow_hashref() )
 		{
 			$state->{Name} = $command;
@@ -92,7 +92,7 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot)$/ )
 }
 
 # Move to the right place
-chdir( ZM_PATH_WEB ) or die( "Can't chdir to '".ZM_PATH_WEB."': $!" );
+chdir( ZM_PATH_WEB ) or Fatal( "Can't chdir to '".ZM_PATH_WEB."': $!" );
 
 my $dbg_id = "";
 
@@ -108,8 +108,8 @@ if ( $command eq "state" )
 {
 	Info( "Updating DB: $state->{Name}\n" );
 	my $sql = "select * from Monitors order by Id asc";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
 		foreach my $definition ( @{$state->{Definitions}} )
@@ -126,8 +126,8 @@ if ( $command eq "state" )
 		if ( $monitor->{Function} ne $monitor->{NewFunction} || $monitor->{Enabled} ne $monitor->{NewEnabled} )
 		{
 			my $sql = "update Monitors set Function = ?, Enabled = ? where Id = ?";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute( $monitor->{NewFunction}, $monitor->{NewEnabled}, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+			my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute( $monitor->{NewFunction}, $monitor->{NewEnabled}, $monitor->{Id} ) or Fatal( "Can't execute: ".$sth->errstr() );
 		}
 	}
 	$sth->finish();
@@ -161,8 +161,8 @@ if ( $command =~ /^(?:start|restart)$/ )
 		runCommand( "zmdc.pl startup" );
 
 		my $sql = "select * from Monitors";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+		my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 		while( my $monitor = $sth->fetchrow_hashref() )
 		{
 			if ( $monitor->{Function} ne 'None' )
@@ -311,7 +311,7 @@ sub removeShm
 	# Find ZoneMinder shared memory
 	my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", hex(ZM_SHM_KEY) ), 0, -2 )."'";
 	Debug( "Checking for shared memory with '$command'\n" );
-	open( CMD, "$command |" ) or die( "Can't execute '$command': $!" );
+	open( CMD, "$command |" ) or Fatal( "Can't execute '$command': $!" );
 	while( <CMD> )
 	{
 		chomp;

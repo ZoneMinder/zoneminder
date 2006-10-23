@@ -1052,6 +1052,16 @@ function createImage( $monitor, $scale )
 	return( $status );
 }
 
+function executeFilter( $filter )
+{
+	$command = ZM_PATH_BIN."/zmfilter.pl --filter ".$filter;
+	$result = exec( $command, $output, $status );
+	$result = mysql_query( "delete from Filters where Name like '_TempFilter%'" );
+	if ( !$result )
+	    die( mysql_error() );
+	return( $status );
+}
+
 function reScale( $dimension, $dummy )
 {
 	for ( $i = 1; $i < func_num_args(); $i++ )

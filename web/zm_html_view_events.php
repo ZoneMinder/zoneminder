@@ -18,10 +18,15 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canView( 'Events' ) )
+if ( !canView( 'Events' ) || ($execute && !canEdit('Events')) )
 {
 	$view = "error";
 	return;
+}
+
+if ( $execute )
+{
+    executeFilter( $temp_filter_name );
 }
 
 $count_sql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";

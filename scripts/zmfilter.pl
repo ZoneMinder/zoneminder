@@ -35,7 +35,7 @@ use bytes;
 # ==========================================================================
 
 use constant DBG_ID => "zmfilter"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
+use constant DBG_LEVEL => 1; # 0 is errors, warnings and info only, > 0 for debug
 
 use constant START_DELAY => 5; # How long to wait before starting
 
@@ -109,13 +109,14 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $delay = ZM_FILTER_EXECUTE_INTERVAL;
 my $event_id = 0;
+my $filter_parm = "";
 
 sub Usage
 {
 	print( "
-Usage: zmfilter.pl [-d <seconds>,--delay=<seconds>]
+Usage: zmfilter.pl [-f <filter name>,--filter=<filter name>]
 Parameters are :-
--d<seconds>, --delay=<seconds>          - How long to delay between each check, default ".ZM_FILTER_EXECUTE_INTERVAL."
+-f<filter name>, --filter=<filter name>  - The name of a specific filter to run
 ");
 	exit( -1 );
 }
@@ -152,7 +153,7 @@ sub DateTimeToSQL
 	return( strftime( "%Y-%m-%d %H:%M:%S", localtime( $dt_val ) ) );
 }
 
-if ( !GetOptions( 'delay=i'=>\$delay ) )
+if ( !GetOptions( 'filter=s'=>\$filter_parm ) )
 {
 	Usage();
 }
@@ -161,11 +162,21 @@ chdir( EVENT_PATH );
 
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
-Info( "Scanning for events\n" );
+if ( $filter_parm )
+{
+    Info( "Scanning for events using filter '$filter_parm'\n" );
+}
+else
+{
+    Info( "Scanning for events\n" );
+}
 
-sleep( START_DELAY );
+if ( !$filter_parm )
+{
+    sleep( START_DELAY );
+}
 
-my $filters = getFilters();
+my $filters;
 my $last_action = 0;
 
 while( 1 )
@@ -174,13 +185,15 @@ while( 1 )
 	{
 		Debug( "Reloading filters\n" );
 		$last_action = time();
-		$filters = getFilters();
+		$filters = getFilters( $filter_parm );
 	}
 
 	foreach my $filter ( @$filters )
 	{
 		checkFilter( $filter );
 	}
+
+    last if ( $filter_parm );
 
 	Debug( "Sleeping for $delay seconds\n" );
 	sleep( $delay );
@@ -212,10 +225,29 @@ sub getDiskBlocks
 
 sub getFilters
 {
+    my $filter_name = shift;
+
 	my @filters;
-	my $sql = "select * from Filters where (AutoArchive = 1 or AutoVideo = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1 or AutoExecute = 1 or AutoDelete = 1) order by Name";
+	my $sql = "select * from Filters where";
+    if ( $filter_name )
+    {
+        $sql .= " Name = ? and";
+    }
+    else
+    {
+        $sql .= " Background = 1 and";
+    }
+    $sql .= " (AutoArchive = 1 or AutoVideo = 1 or AutoUpload = 1 or AutoEmail = 1 or AutoMessage = 1 or AutoExecute = 1 or AutoDelete = 1) order by Name";
 	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+	my $res;
+    if ( $filter_name )
+    {
+        $res = $sth->execute( $filter_name ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+    }
+    else
+    {
+        $res = $sth->execute() or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+    }
 	FILTER: while( my $filter_data = $sth->fetchrow_hashref() )
 	{
 		Debug( "Found filter '$filter_data->{Name}'\n" );

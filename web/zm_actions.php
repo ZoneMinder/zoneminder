@@ -169,9 +169,15 @@ if ( !empty($action) )
 		}
 		elseif ( $action == "filter" )
 		{
+            if ( $execute )
+            {
+                $temp_filter_name = "_TempFilter".time();
+            }
 			if ( $filter_name || $new_filter_name )
 			{
-				if ( $new_filter_name )
+				if ( $temp_filter_name )
+					$filter_name = $temp_filter_name;
+				elseif ( $new_filter_name )
 					$filter_name = $new_filter_name;
 				$filter_query = array();
 				$filter_query['trms'] = $trms;

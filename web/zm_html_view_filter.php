@@ -31,6 +31,8 @@ if ( !$result )
 while ( $row = mysql_fetch_assoc( $result ) )
 {
 	$filter_names[$row['Name']] = $row['Name'];
+    if ( $row['Background'] )
+	    $filter_names[$row['Name']] .= "*";
 	if ( !empty($reload) && isset($filter_name) && $filter_name == $row['Name'] )
 	{
 		$filter_data = $row;
@@ -38,28 +40,11 @@ while ( $row = mysql_fetch_assoc( $result ) )
 }
 mysql_free_result( $result );
 
-$auto_str = "";
+$background_str = "";
 if ( isset($filter_data) )
 {
-	$auto_text = array();
-	if ( $filter_data['AutoArchive'] ) 
-		$auto_text[] = $zmSlangAutoArchiveAbbr;
-	if ( $filter_data['AutoVideo'] ) 
-		$auto_text[] = $zmSlangAutoVideoAbbr;
-	if ( $filter_data['AutoUpload'] ) 
-		$auto_text[] = $zmSlangAutoUploadAbbr;
-	if ( $filter_data['AutoEmail'] ) 
-		$auto_text[] = $zmSlangAutoEmailAbbr;
-	if ( $filter_data['AutoMessage'] ) 
-		$auto_text[] = $zmSlangAutoMessageAbbr;
-	if ( $filter_data['AutoExecute'] ) 
-		$auto_text[] = $zmSlangAutoExecuteAbbr;
-	if ( $filter_data['AutoDelete'] ) 
-		$auto_text[] = $zmSlangAutoDeleteAbbr;
-	if ( count($auto_text) )
-	{
-		$auto_str = '['.join( ',', $auto_text ).']';
-	}
+	if ( $filter_data['Background'] ) 
+		$background_str = '['.strtolower($zmSlangBackground).']';
 
 	foreach( split( '&', $filter_data['Query'] ) as $filter_parm )
 	{
@@ -211,14 +196,22 @@ function submitToFilter( form, reload )
 }
 function submitToEvents( form )
 {
-	var Url = '<?= $PHP_SELF ?>';
 	var Name = 'zmEvents';
-	var Width = <?= $jws['events']['w'] ?>;
-	var Height = <?= $jws['events']['h'] ?>;
-	var Options = 'resizable,scrollbars,width='+Width+',height='+Height;
 
 	form.target = Name;
 	form.view.value = 'events';
+	form.action.value = '';
+	form.execute.value = 0;
+	form.submit();
+}
+function executeFilter( form )
+{
+	var Name = 'zmEvents';
+
+	form.target = Name;
+	form.view.value = 'events';
+	form.action.value = 'filter';
+	form.execute.value = 1;
 	form.submit();
 }
 function saveFilter( form )
@@ -266,6 +259,7 @@ function delTerm( form, line )
 <input type="hidden" name="view" value="filter">
 <input type="hidden" name="page" value="<?= $page ?>">
 <input type="hidden" name="reload" value="0">
+<input type="hidden" name="execute" value="0">
 <input type="hidden" name="action" value="">
 <input type="hidden" name="subaction" value="">
 <input type="hidden" name="fid" value="">
@@ -274,7 +268,7 @@ function delTerm( form, line )
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
-<td align="left" class="text"><?= $zmSlangUseFilter ?>:&nbsp;<?php if ( count($filter_names) > 1 ) { echo buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form, 1 );" ); } else { ?><select class="form" disabled><option><?= $zmSlangNoSavedFilters ?></option></select><?php } ?>&nbsp;&nbsp;<?= $auto_str ?></td>
+<td align="left" class="text"><?= $zmSlangUseFilter ?>:&nbsp;<?php if ( count($filter_names) > 1 ) { echo buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form, 1 );" ); } else { ?><select class="form" disabled><option><?= $zmSlangNoSavedFilters ?></option></select><?php } ?>&nbsp;&nbsp;<?= $background_str ?></td>
 <?php if ( canEdit( 'Events' ) ) { ?>
 <td align="right" class="text"><a href="javascript: saveFilter( document.filter_form );"><?= $zmSlangSave ?></a></td>
 <?php } else { ?>
@@ -352,7 +346,67 @@ else
 <td colspan="4" class="text"><hr width="100%"></td>
 </tr>
 <tr>
-<td colspan="4" align="right"><input type="button" value="<?= $zmSlangReset ?>" class="form" onClick="submitToFilter( document.filter_form, 1 );">&nbsp;&nbsp;<input type="button" value="<?= $zmSlangSubmit ?>" class="form" onClick="if ( validateForm( document.filter_form ) ) submitToEvents( document.filter_form, 1 );"></td>
+<td colspan="4" class="text"><table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td align="left" class="text"><?= $zmSlangAutoArchiveEvents ?>:&nbsp;</td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_archive" value="1"<?php if ( $filter_data['AutoArchive'] ) { echo " checked"; } ?> class="form-noborder"></td>
+</tr>
+<?php
+if ( ZM_OPT_MPEG != "no" )
+{
+?>
+<tr>
+<td align="left" class="text"><?= $zmSlangAutoVideoEvents ?>:&nbsp;</td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_video" value="1"<?php if ( $filter_data['AutoVideo'] ) { echo " checked"; } ?> class="form-noborder"></td>
+</tr>
+<?php
+}
+if ( ZM_OPT_UPLOAD )
+{
+?>
+<tr>
+<td align="left" class="text"><?= $zmSlangAutoUploadEvents ?>:&nbsp;</td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_upload" value="1"<?php if ( $filter_data['AutoUpload'] ) { echo " checked"; } ?> class="form-noborder"></td>
+</tr>
+<?php
+}
+if ( ZM_OPT_EMAIL )
+{
+?>
+<tr>
+<td align="left" class="text"><?= $zmSlangAutoEmailEvents ?>:&nbsp;</td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_email" value="1"<?php if ( $filter_data['AutoEmail'] ) { echo " checked"; } ?> class="form-noborder"></td>
+</tr>
+<?php
+}
+if ( ZM_OPT_MESSAGE )
+{
+?>
+<tr>
+<td align="left" class="text"><?= $zmSlangAutoMessageEvents ?>:&nbsp;</td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_message" value="1"<?php if ( $filter_data['AutoMessage'] ) { echo " checked"; } ?> class="form-noborder"></td>
+</tr>
+<?php
+}
+?>
+<tr>
+<td align="left" class="text"><?= $zmSlangAutoExecuteEvents ?>:&nbsp;</td>
+<td align="left" class="text"><input type="checkbox" name="auto_execute" value="1"<?php if ( $filter_data['AutoExecute'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text"><input type="text" name="auto_execute_cmd" value="<?= $filter_data['AutoExecuteCmd'] ?>" size="32" maxlength="255" class="form"></td>
+</tr>
+<tr>
+<td align="left" class="text"><?= $zmSlangAutoDeleteEvents ?>:&nbsp;</td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_delete" value="1"<?php if ( $filter_data['AutoDelete'] ) { echo " checked"; } ?> class="form-noborder"></td>
+</tr></table></td>
+<tr>
+<td colspan="4" class="text"><hr width="100%"></td>
+</tr>
+<tr>
+<td colspan="4" align="right">
+<input type="button" value="<?= $zmSlangSubmit ?>" class="form" onClick="if ( validateForm( document.filter_form ) ) submitToEvents( document.filter_form );">&nbsp;&nbsp;
+<input type="button" value="<?= $zmSlangExecute ?>" class="form" onClick="if ( validateForm( document.filter_form ) ) executeFilter( document.filter_form );">&nbsp;&nbsp;
+<input type="button" value="<?= $zmSlangReset ?>" class="form" onClick="submitToFilter( document.filter_form, 1 );">
+</td>
 </tr>
 </table>
 </td>

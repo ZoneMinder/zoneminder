@@ -195,7 +195,7 @@ $jws = array(
 	'eventdetail' => array( 'w'=>400, 'h'=>220 ),
 	'events' => array( 'w'=>720, 'h'=>480 ),
 	'export' => array( 'w'=>400, 'h'=>340 ),
-	'filter' => array( 'w'=>620, 'h'=>250 ),
+	'filter' => array( 'w'=>620, 'h'=>360 ),
 	'filtersave' => array( 'w'=>560, 'h'=>220 ),
 	'frames' => array( 'w'=>500, 'h'=>300 ),
 	'function' => array( 'w'=>248, 'h'=>92 ),

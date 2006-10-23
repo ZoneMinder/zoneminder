@@ -139,11 +139,15 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 			use LWP::UserAgent;
 			my $ua = LWP::UserAgent->new;
 			$ua->agent( "ZoneMinder Update Agent/".ZM_VERSION );
-            if ( ZM_UPDATE_CHECK_PROXY )
+            if ( eval('defined(ZM_UPDATE_CHECK_PROXY)') )
             {
-                $ua->proxy( "http", ZM_UPDATE_CHECK_PROXY );
+                no strict 'subs';
+                if ( ZM_UPDATE_CHECK_PROXY )
+                {
+                    $ua->proxy( "http", ZM_UPDATE_CHECK_PROXY );
+                }
+                use strict 'subs';
             }
-
 			my $req = HTTP::Request->new( GET=>'http://www.zoneminder.com/version' );
 			my $res = $ua->request($req);
 

@@ -169,6 +169,14 @@ if ( !$_SESSION['format'] )
 		setcookie( "cookies", $cookies );
 	}
 }
+elseif ( $_REQUEST['format'] )
+{
+	$_SESSION['format'] = $format;
+	if ( $cookies )
+	{
+	    setcookie( "format", $format );
+    }
+}
 
 require_once( "zm_$format.php" );
 

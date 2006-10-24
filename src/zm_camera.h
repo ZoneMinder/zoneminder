@@ -68,6 +68,7 @@ public:
 
 	bool CanCapture() const { return( capture ); }
 
+	virtual int PrimeCapture() { return( 0 ); }
 	virtual int PreCapture()=0;
 	virtual int PostCapture( Image &image )=0;
 };

@@ -1032,7 +1032,8 @@ if ( !empty($action) )
 				if ( $cookies ) session_write_close();
 				if ( daemonCheck() )
 				{
-					zmcControl( $monitor );
+                    $restart = ($old_function == 'None') || ($new_function == 'None') || ($new_enabled != $old_enabled);
+					zmcControl( $monitor, $restart?"restart":"" );
 					zmaControl( $monitor, "reload" );
 				}
 				$refresh_parent = true;

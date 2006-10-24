@@ -28,6 +28,9 @@
 #include "zm_local_camera.h"
 
 int LocalCamera::camera_count = 0;
+int LocalCamera::channel_count = 0;
+int LocalCamera::last_channel = -1;
+
 int LocalCamera::m_cap_frame = 0;
 int LocalCamera::m_cap_frame_active = 0;
 int LocalCamera::m_sync_frame = 0;
@@ -50,6 +53,16 @@ LocalCamera::LocalCamera( const char *p_device, int p_channel, int p_format, int
 	{
 		Initialise();
 	}
+    if ( channel != last_channel )
+    {
+        channel_index = 0;
+        channel_count++;
+        last_channel = channel;
+    }
+    else
+    {
+        channel_index = 1;
+    }
 }
 
 LocalCamera::~LocalCamera()
@@ -534,11 +547,20 @@ int LocalCamera::Contrast( int p_contrast )
 	return( vid_pic.contrast );
 }
 
+int LocalCamera::PrimeCapture()
+{
+    if ( channel_count == 1 && channel_index == 0 )
+    {
+        return( PreCapture() );
+    }
+    return( 0 );
+}
+
 int LocalCamera::PreCapture()
 {
 	//Info(( "%s: Capturing image", id ));
 
-	if ( camera_count > 1 )
+	if ( channel_count > 1 )
 	{
 		//Info(( "Switching" ));
 		struct video_channel vid_src;
@@ -560,285 +582,296 @@ int LocalCamera::PreCapture()
 			return( -1 );
 		}
 	}
-	m_cap_frame_active = m_cap_frame;
-	if ( ioctl( m_videohandle, VIDIOCMCAPTURE, &m_vmm[m_cap_frame_active] ) < 0 )
-	{
-		Error(( "Capture failure for frame %d: %s", m_cap_frame_active, strerror(errno) ));
-		return( -1 );
-	}
-	m_cap_frame = (m_cap_frame+1)%m_vmb.frames;
+
+    if ( channel_count > 1 || channel_index == 0 )
+    {
+		//Info(( "Pre-Capture" ));
+	    m_cap_frame_active = m_cap_frame;
+	    if ( ioctl( m_videohandle, VIDIOCMCAPTURE, &m_vmm[m_cap_frame_active] ) < 0 )
+	    {
+		    Error(( "Capture failure for frame %d: %s", m_cap_frame_active, strerror(errno) ));
+		    return( -1 );
+	    }
+	    m_cap_frame = (m_cap_frame+1)%m_vmb.frames;
+    }
 	return( 0 );
 }
 
 int LocalCamera::PostCapture( Image &image )
 {
+    static unsigned char *buffer = 0;
+
 	//Info(( "%s: Capturing image", id ));
 	int captures_per_frame = 1;
-	if ( camera_count > 1 )
+	if ( channel_count > 1 )
 		captures_per_frame = config.captures_per_frame;
-	while ( captures_per_frame )
-	{
-		if ( ioctl( m_videohandle, VIDIOCSYNC, &m_sync_frame ) < 0 )
-		{
-			Error(( "Sync failure for frame %d buffer %d(%d): %s", m_sync_frame, m_cap_frame_active, captures_per_frame, strerror(errno) ));
-			return( -1 );
-		}
-		captures_per_frame--;
-		if ( captures_per_frame )
-		{
-			if ( ioctl( m_videohandle, VIDIOCMCAPTURE, &m_vmm[m_cap_frame_active] ) < 0 )
-			{
-				Error(( "Capture failure for buffer %d(%d): %s", m_cap_frame_active, captures_per_frame, strerror(errno) ));
-				return( -1 );
-			}
-		}
-	}
-	//Info(( "Captured %d for %d into %d", m_sync_frame, channel, m_cap_frame_active));
+    if ( channel_count > 1 || channel_index == 0 )
+    {
+		//Info(( "Post-Capture" ));
+        while ( captures_per_frame )
+        {
+            if ( ioctl( m_videohandle, VIDIOCSYNC, &m_sync_frame ) < 0 )
+            {
+                Error(( "Sync failure for frame %d buffer %d(%d): %s", m_sync_frame, m_cap_frame_active, captures_per_frame, strerror(errno) ));
+                return( -1 );
+            }
+            captures_per_frame--;
+            if ( captures_per_frame )
+            {
+                if ( ioctl( m_videohandle, VIDIOCMCAPTURE, &m_vmm[m_cap_frame_active] ) < 0 )
+                {
+                    Error(( "Capture failure for buffer %d(%d): %s", m_cap_frame_active, captures_per_frame, strerror(errno) ));
+                    return( -1 );
+                }
+            }
+        }
+        //Info(( "Captured %d for %d into %d", m_sync_frame, channel, m_cap_frame_active));
 
-	unsigned char *buffer = m_buffer+(m_sync_frame*m_vmb.size/m_vmb.frames);
-	m_sync_frame = (m_sync_frame+1)%m_vmb.frames;
+        buffer = m_buffer+(m_sync_frame*m_vmb.size/m_vmb.frames);
+        m_sync_frame = (m_sync_frame+1)%m_vmb.frames;
 
-	static unsigned char temp_buffer[ZM_MAX_IMAGE_SIZE];
-	switch( palette )
-	{
-		case VIDEO_PALETTE_YUV420P :
-		{
-			static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
-			static char u_plane[ZM_MAX_IMAGE_DIM];
-			static char v_plane[ZM_MAX_IMAGE_DIM];
+        static unsigned char temp_buffer[ZM_MAX_IMAGE_SIZE];
+        switch( palette )
+        {
+            case VIDEO_PALETTE_YUV420P :
+            {
+                static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
+                static char u_plane[ZM_MAX_IMAGE_DIM];
+                static char v_plane[ZM_MAX_IMAGE_DIM];
 
-			unsigned char *rgb_ptr = temp_buffer;
-			unsigned char *y_ptr = y_plane;
-			char *u1_ptr = u_plane;
-			char *u2_ptr = u_plane+width;
-			char *v1_ptr = v_plane;
-			char *v2_ptr = v_plane+width;
+                unsigned char *rgb_ptr = temp_buffer;
+                unsigned char *y_ptr = y_plane;
+                char *u1_ptr = u_plane;
+                char *u2_ptr = u_plane+width;
+                char *v1_ptr = v_plane;
+                char *v2_ptr = v_plane+width;
 
-			int Y_size = width*height;
-			int C_size = Y_size>>2; // Every little bit helps...
-			unsigned char *Y_ptr = buffer;
-			unsigned char *Cb_ptr = buffer + Y_size;
-			unsigned char *Cr_ptr = Cb_ptr + C_size;
-			
-			int y,u,v;
-			for ( int i = 0; i < Y_size; i++ )
-			{
-				*y_ptr++ = y_table[*Y_ptr++];
-			}
-			int half_width = width>>1; // We are the king of optimisations!
-			for ( int i = 0, j = 0; i < C_size; i++, j++ )
-			{
-				if ( j == half_width )
-				{
-					j = 0;
-					u1_ptr += width;
-					u2_ptr += width;
-					v1_ptr += width;
-					v2_ptr += width;
-				}
-				u = uv_table[*Cb_ptr++];
+                int Y_size = width*height;
+                int C_size = Y_size>>2; // Every little bit helps...
+                unsigned char *Y_ptr = buffer;
+                unsigned char *Cb_ptr = buffer + Y_size;
+                unsigned char *Cr_ptr = Cb_ptr + C_size;
+                
+                int y,u,v;
+                for ( int i = 0; i < Y_size; i++ )
+                {
+                    *y_ptr++ = y_table[*Y_ptr++];
+                }
+                int half_width = width>>1; // We are the king of optimisations!
+                for ( int i = 0, j = 0; i < C_size; i++, j++ )
+                {
+                    if ( j == half_width )
+                    {
+                        j = 0;
+                        u1_ptr += width;
+                        u2_ptr += width;
+                        v1_ptr += width;
+                        v2_ptr += width;
+                    }
+                    u = uv_table[*Cb_ptr++];
 
-				*u1_ptr++ = u;
-				*u1_ptr++ = u;
-				*u2_ptr++ = u;
-				*u2_ptr++ = u;
+                    *u1_ptr++ = u;
+                    *u1_ptr++ = u;
+                    *u2_ptr++ = u;
+                    *u2_ptr++ = u;
 
-				v = uv_table[*Cr_ptr++];
+                    v = uv_table[*Cr_ptr++];
 
-				*v1_ptr++ = v;
-				*v1_ptr++ = v;
-				*v2_ptr++ = v;
-				*v2_ptr++ = v;
-			}
+                    *v1_ptr++ = v;
+                    *v1_ptr++ = v;
+                    *v2_ptr++ = v;
+                    *v2_ptr++ = v;
+                }
 
-			y_ptr = y_plane;
-			u1_ptr = u_plane;
-			v1_ptr = v_plane;
-			int size = Y_size*3;
-			int r,g,b;
-			for ( int i = 0; i < size; i += 3 )
-			{
-				y = *y_ptr++;
-				u = *u1_ptr++;
-				v = *v1_ptr++;
+                y_ptr = y_plane;
+                u1_ptr = u_plane;
+                v1_ptr = v_plane;
+                int size = Y_size*3;
+                int r,g,b;
+                for ( int i = 0; i < size; i += 3 )
+                {
+                    y = *y_ptr++;
+                    u = *u1_ptr++;
+                    v = *v1_ptr++;
 
-				r = y + r_v_table[v];
-				g = y - (g_u_table[u]+g_v_table[v]);
-				b = y + b_u_table[u];
+                    r = y + r_v_table[v];
+                    g = y - (g_u_table[u]+g_v_table[v]);
+                    b = y + b_u_table[u];
 
-				*rgb_ptr++ = r<0?0:(r>255?255:r);
-				*rgb_ptr++ = g<0?0:(g>255?255:g);
-				*rgb_ptr++ = b<0?0:(b>255?255:b);
-			}
-			buffer = temp_buffer;
-			break;
-		}
-		case VIDEO_PALETTE_YUV422P :
-		{
-			static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
-			static char u_plane[ZM_MAX_IMAGE_DIM];
-			static char v_plane[ZM_MAX_IMAGE_DIM];
+                    *rgb_ptr++ = r<0?0:(r>255?255:r);
+                    *rgb_ptr++ = g<0?0:(g>255?255:g);
+                    *rgb_ptr++ = b<0?0:(b>255?255:b);
+                }
+                buffer = temp_buffer;
+                break;
+            }
+            case VIDEO_PALETTE_YUV422P :
+            {
+                static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
+                static char u_plane[ZM_MAX_IMAGE_DIM];
+                static char v_plane[ZM_MAX_IMAGE_DIM];
 
-			unsigned char *rgb_ptr = temp_buffer;
-			unsigned char *y_ptr = y_plane;
-			char *u1_ptr = u_plane;
-			char *v1_ptr = v_plane;
+                unsigned char *rgb_ptr = temp_buffer;
+                unsigned char *y_ptr = y_plane;
+                char *u1_ptr = u_plane;
+                char *v1_ptr = v_plane;
 
-			int Y_size = width*height;
-			int C_size = Y_size>>1; // Every little bit helps...
-			unsigned char *Y_ptr = buffer;
-			unsigned char *Cb_ptr = buffer + Y_size;
-			unsigned char *Cr_ptr = Cb_ptr + C_size;
-			
-			int y,u,v;
-			for ( int i = 0; i < Y_size; i++ )
-			{
-				*y_ptr++ = y_table[*Y_ptr++];
-			}
-			for ( int i = 0, j = 0; i < C_size; i++, j++ )
-			{
-				u = uv_table[*Cb_ptr++];
+                int Y_size = width*height;
+                int C_size = Y_size>>1; // Every little bit helps...
+                unsigned char *Y_ptr = buffer;
+                unsigned char *Cb_ptr = buffer + Y_size;
+                unsigned char *Cr_ptr = Cb_ptr + C_size;
+                
+                int y,u,v;
+                for ( int i = 0; i < Y_size; i++ )
+                {
+                    *y_ptr++ = y_table[*Y_ptr++];
+                }
+                for ( int i = 0, j = 0; i < C_size; i++, j++ )
+                {
+                    u = uv_table[*Cb_ptr++];
 
-				*u1_ptr++ = u;
-				*u1_ptr++ = u;
+                    *u1_ptr++ = u;
+                    *u1_ptr++ = u;
 
-				v = uv_table[*Cr_ptr++];
+                    v = uv_table[*Cr_ptr++];
 
-				*v1_ptr++ = v;
-				*v1_ptr++ = v;
-			}
+                    *v1_ptr++ = v;
+                    *v1_ptr++ = v;
+                }
 
-			y_ptr = y_plane;
-			u1_ptr = u_plane;
-			v1_ptr = v_plane;
-			int size = Y_size*3;
-			int r,g,b;
-			for ( int i = 0; i < size; i += 3 )
-			{
-				y = *y_ptr++;
-				u = *u1_ptr++;
-				v = *v1_ptr++;
+                y_ptr = y_plane;
+                u1_ptr = u_plane;
+                v1_ptr = v_plane;
+                int size = Y_size*3;
+                int r,g,b;
+                for ( int i = 0; i < size; i += 3 )
+                {
+                    y = *y_ptr++;
+                    u = *u1_ptr++;
+                    v = *v1_ptr++;
 
-				r = y + r_v_table[v];
-				g = y - (g_u_table[u]+g_v_table[v]);
-				b = y + b_u_table[u];
+                    r = y + r_v_table[v];
+                    g = y - (g_u_table[u]+g_v_table[v]);
+                    b = y + b_u_table[u];
 
-				*rgb_ptr++ = r<0?0:(r>255?255:r);
-				*rgb_ptr++ = g<0?0:(g>255?255:g);
-				*rgb_ptr++ = b<0?0:(b>255?255:b);
-			}
-			buffer = temp_buffer;
-			break;
-		}
-		case VIDEO_PALETTE_YUYV :
-		case VIDEO_PALETTE_YUV422 :
-		{
-			int size = width*height*2;
-			unsigned char *s_ptr = buffer;
-			unsigned char *d_ptr = temp_buffer;
+                    *rgb_ptr++ = r<0?0:(r>255?255:r);
+                    *rgb_ptr++ = g<0?0:(g>255?255:g);
+                    *rgb_ptr++ = b<0?0:(b>255?255:b);
+                }
+                buffer = temp_buffer;
+                break;
+            }
+            case VIDEO_PALETTE_YUYV :
+            case VIDEO_PALETTE_YUV422 :
+            {
+                int size = width*height*2;
+                unsigned char *s_ptr = buffer;
+                unsigned char *d_ptr = temp_buffer;
 
-			int y1,y2,u,v;
-			int r,g,b;
-			for ( int i = 0; i < size; i += 4 )
-			{
-				y1 = *s_ptr++;
-				u = *s_ptr++;
-				y2 = *s_ptr++;
-				v = *s_ptr++;
+                int y1,y2,u,v;
+                int r,g,b;
+                for ( int i = 0; i < size; i += 4 )
+                {
+                    y1 = *s_ptr++;
+                    u = *s_ptr++;
+                    y2 = *s_ptr++;
+                    v = *s_ptr++;
 
-				r = y1 + r_v_table[v];
-				g = y1 - (g_u_table[u]+g_v_table[v]);
-				b = y1 + b_u_table[u];
+                    r = y1 + r_v_table[v];
+                    g = y1 - (g_u_table[u]+g_v_table[v]);
+                    b = y1 + b_u_table[u];
 
-				*d_ptr++ = r<0?0:(r>255?255:r);
-				*d_ptr++ = g<0?0:(g>255?255:g);
-				*d_ptr++ = b<0?0:(b>255?255:b);
+                    *d_ptr++ = r<0?0:(r>255?255:r);
+                    *d_ptr++ = g<0?0:(g>255?255:g);
+                    *d_ptr++ = b<0?0:(b>255?255:b);
 
-				r = y2 + r_v_table[v];
-				g = y2 - (g_u_table[u]+g_v_table[v]);
-				b = y2 + b_u_table[u];
+                    r = y2 + r_v_table[v];
+                    g = y2 - (g_u_table[u]+g_v_table[v]);
+                    b = y2 + b_u_table[u];
 
-				*d_ptr++ = r<0?0:(r>255?255:r);
-				*d_ptr++ = g<0?0:(g>255?255:g);
-				*d_ptr++ = b<0?0:(b>255?255:b);
-			}
-			buffer = temp_buffer;
-			break;
-		}
-		case VIDEO_PALETTE_RGB555 :
-		{
-			int size = width*height*2;
-			unsigned char r,g,b;
-			unsigned char *s_ptr = buffer;
-			unsigned char *d_ptr = temp_buffer;
-			for ( int i = 0; i < size; i += 2 )
-			{
-				b = ((*s_ptr)<<3)&0xf8;
-				g = (((*(s_ptr+1))<<6)|((*s_ptr)>>2))&0xf8;
-				r = ((*(s_ptr+1))<<1)&0xf8;
+                    *d_ptr++ = r<0?0:(r>255?255:r);
+                    *d_ptr++ = g<0?0:(g>255?255:g);
+                    *d_ptr++ = b<0?0:(b>255?255:b);
+                }
+                buffer = temp_buffer;
+                break;
+            }
+            case VIDEO_PALETTE_RGB555 :
+            {
+                int size = width*height*2;
+                unsigned char r,g,b;
+                unsigned char *s_ptr = buffer;
+                unsigned char *d_ptr = temp_buffer;
+                for ( int i = 0; i < size; i += 2 )
+                {
+                    b = ((*s_ptr)<<3)&0xf8;
+                    g = (((*(s_ptr+1))<<6)|((*s_ptr)>>2))&0xf8;
+                    r = ((*(s_ptr+1))<<1)&0xf8;
 
-				*d_ptr++ = r;
-				*d_ptr++ = g;
-				*d_ptr++ = b;
-				s_ptr += 2;
-			}
-			buffer = temp_buffer;
-			break;
-		}
-		case VIDEO_PALETTE_RGB565 :
-		{
-			int size = width*height*2;
-			unsigned char r,g,b;
-			unsigned char *s_ptr = buffer;
-			unsigned char *d_ptr = temp_buffer;
-			for ( int i = 0; i < size; i += 2 )
-			{
-				b = ((*s_ptr)<<3)&0xf8;
-				g = (((*(s_ptr+1))<<5)|((*s_ptr)>>3))&0xfc;
-				r = (*(s_ptr+1))&0xf8;
+                    *d_ptr++ = r;
+                    *d_ptr++ = g;
+                    *d_ptr++ = b;
+                    s_ptr += 2;
+                }
+                buffer = temp_buffer;
+                break;
+            }
+            case VIDEO_PALETTE_RGB565 :
+            {
+                int size = width*height*2;
+                unsigned char r,g,b;
+                unsigned char *s_ptr = buffer;
+                unsigned char *d_ptr = temp_buffer;
+                for ( int i = 0; i < size; i += 2 )
+                {
+                    b = ((*s_ptr)<<3)&0xf8;
+                    g = (((*(s_ptr+1))<<5)|((*s_ptr)>>3))&0xfc;
+                    r = (*(s_ptr+1))&0xf8;
 
-				*d_ptr++ = r;
-				*d_ptr++ = g;
-				*d_ptr++ = b;
-				s_ptr += 2;
-			}
-			buffer = temp_buffer;
-			break;
-		}
-		case VIDEO_PALETTE_RGB24 :
-		{
-			if ( config.local_bgr_invert )
-			{
-				int size = width*height*3;
-				unsigned char *s_ptr = buffer;
-				unsigned char *d_ptr = temp_buffer;
-				for ( int i = 0; i < size; i += 3 )
-				{
-					*d_ptr++ = *(s_ptr+2);
-					*d_ptr++ = *(s_ptr+1);
-					*d_ptr++ = *s_ptr;
-					s_ptr += 3;
-				}
-				buffer = temp_buffer;
-			}
-			break;
-		}
-		case VIDEO_PALETTE_GREY :
-		{
-			//int size = width*height;
-			//for ( int i = 0; i < size; i++ )
-			//{
-				//if ( buffer[i] < 16 )
-					//Info(( "Lo grey %d", buffer[i] ));
-				//if ( buffer[i] > 235 )
-					//Info(( "Hi grey %d", buffer[i] ));
-			//}
-		}
-		default : // Everything else is straightforward, for now.
-		{
-			break;
-		}
-	}
+                    *d_ptr++ = r;
+                    *d_ptr++ = g;
+                    *d_ptr++ = b;
+                    s_ptr += 2;
+                }
+                buffer = temp_buffer;
+                break;
+            }
+            case VIDEO_PALETTE_RGB24 :
+            {
+                if ( config.local_bgr_invert )
+                {
+                    int size = width*height*3;
+                    unsigned char *s_ptr = buffer;
+                    unsigned char *d_ptr = temp_buffer;
+                    for ( int i = 0; i < size; i += 3 )
+                    {
+                        *d_ptr++ = *(s_ptr+2);
+                        *d_ptr++ = *(s_ptr+1);
+                        *d_ptr++ = *s_ptr;
+                        s_ptr += 3;
+                    }
+                    buffer = temp_buffer;
+                }
+                break;
+            }
+            case VIDEO_PALETTE_GREY :
+            {
+                //int size = width*height;
+                //for ( int i = 0; i < size; i++ )
+                //{
+                    //if ( buffer[i] < 16 )
+                        //Info(( "Lo grey %d", buffer[i] ));
+                    //if ( buffer[i] > 235 )
+                        //Info(( "Hi grey %d", buffer[i] ));
+                //}
+            }
+            default : // Everything else is straightforward, for now.
+            {
+                break;
+            }
+        }
+    }
 
 	image.Assign( width, height, colours, buffer );
 

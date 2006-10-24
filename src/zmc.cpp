@@ -191,12 +191,10 @@ int main( int argc, char *argv[] )
 
 	sigaddset( &block_set, SIGUSR1 );
 	sigaddset( &block_set, SIGUSR2 );
-	if ( device[0] && n_monitors == 1 )
+
+	if ( monitors[0]->PrimeCapture() < 0 )
 	{
-		if ( monitors[0]->PreCapture() < 0 )
-		{
-			exit( -1 );
-		}
+		exit( -1 );
 	}
 
 	long *capture_delays = new long[n_monitors];
@@ -214,7 +212,6 @@ int main( int argc, char *argv[] )
 	struct DeltaTimeval delta_time;
 	while( !zm_terminate )
 	{
-		/* grab a new one */
 		sigprocmask( SIG_BLOCK, &block_set, 0 );
 		for ( int i = 0; i < n_monitors; i++ )
 		{
@@ -231,9 +228,7 @@ int main( int argc, char *argv[] )
 					else
 						next_delays[j] = capture_delays[j]-delta_time.delta;
 					if ( next_delays[j] < 0 )
-					{
 						next_delays[j] = 0;
-					}
 				}
 				else
 				{

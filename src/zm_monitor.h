@@ -301,6 +301,10 @@ public:
 	int actionColour( int p_colour=-1 );
 	int actionContrast( int p_contrast=-1 );
 
+	inline int PrimeCapture()
+	{
+		return( camera->PrimeCapture() );
+	}
 	inline int PreCapture()
 	{
 		return( camera->PreCapture() );

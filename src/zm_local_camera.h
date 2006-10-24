@@ -37,7 +37,13 @@ protected:
 	int		channel;
 	int		format;
 
+    int     channel_index;
+
 protected:
+	static int				camera_count;
+	static int				channel_count;
+    static int              last_channel;
+
 	static int				m_cap_frame;
 	static int				m_cap_frame_active;
 	static int				m_sync_frame;
@@ -45,7 +51,6 @@ protected:
 	static video_mmap		*m_vmm;
 	static int				m_videohandle;
 	static unsigned char	*m_buffer;
-	static int				camera_count;
 	static unsigned char	*y_table;
 	static signed char		*uv_table;
 	static short			*r_v_table;
@@ -69,6 +74,7 @@ public:
 	int Colour( int p_colour=-1 );
 	int Contrast( int p_contrast=-1 );
 
+	int PrimeCapture();
 	int PreCapture();
 	int PostCapture( Image &image );
 

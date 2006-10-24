@@ -170,8 +170,11 @@ if ( !$server_up )
 	}
 	elsif ( defined($cpid) )
 	{
-		close( STDOUT );
-		close( STDERR );
+        my $fd = 0;
+        while( $fd < POSIX::sysconf( &POSIX::_SC_OPEN_MAX ) )
+        {
+            POSIX::close( $fd++ );
+        }
 
 		setpgrp();
 
@@ -375,8 +378,11 @@ if ( !$server_up )
 			}
 			elsif ( defined($cpid ) )
 			{
-				close( STDOUT );
-				close( STDERR );
+                my $fd = 0;
+                while( $fd < POSIX::sysconf( &POSIX::_SC_OPEN_MAX ) )
+                {
+                    POSIX::close( $fd++ );
+                }
 
 				# Child process
 				$SIG{CHLD} = 'DEFAULT';

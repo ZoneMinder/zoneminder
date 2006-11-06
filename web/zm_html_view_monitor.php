@@ -99,6 +99,7 @@ else
 	$monitor['AlarmMaxFPS'] = "";
 	$monitor['FPSReportInterval'] = 1000;
 	$monitor['RefBlendPerc'] = 7;
+	$monitor['DefaultView'] = 'Events';
 	$monitor['DefaultRate'] = '100';
 	$monitor['DefaultScale'] = '100';
 	$monitor['WebColour'] = 'red';
@@ -112,7 +113,7 @@ if ( !isset( $new_monitor ) )
 }
 if ( !empty($preset) )
 {
-	$result = mysql_query( "select Type, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '$preset'" );
+	$result = mysql_query( "select Type, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultView, DefaultRate, DefaultScale from MonitorPresets where Id = '$preset'" );
 	if ( !$result )
 		die( mysql_error() );
 	$preset = mysql_fetch_assoc( $result );
@@ -486,6 +487,7 @@ if ( $tab != 'misc' )
 <input type="hidden" name="new_monitor[SectionLength]" value="<?= $new_monitor['SectionLength'] ?>">
 <input type="hidden" name="new_monitor[FrameSkip]" value="<?= $new_monitor['FrameSkip'] ?>">
 <input type="hidden" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor['FPSReportInterval'] ?>">
+<input type="hidden" name="new_monitor[DefaultView]" value="<?= $new_monitor['DefaultView'] ?>">
 <input type="hidden" name="new_monitor[DefaultRate]" value="<?= $new_monitor['DefaultRate'] ?>">
 <input type="hidden" name="new_monitor[DefaultScale]" value="<?= $new_monitor['DefaultScale'] ?>">
 <input type="hidden" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>">
@@ -646,6 +648,18 @@ switch ( $tab )
 <tr><td align="left" class="text"><?= $zmSlangSectionlength ?></td><td align="left" class="text"><input type="text" name="new_monitor[SectionLength]" value="<?= $new_monitor['SectionLength'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangFrameSkip ?></td><td align="left" class="text"><input type="text" name="new_monitor[FrameSkip]" value="<?= $new_monitor['FrameSkip'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangFPSReportInterval ?></td><td align="left" class="text"><input type="text" name="new_monitor[FPSReportInterval]" value="<?= $new_monitor['FPSReportInterval'] ?>" size="6" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangDefaultView ?></td><td align="left" class="text"><select name="new_monitor[DefaultView]" class="form">
+<?php
+		foreach ( getEnumValues( 'Monitors', 'DefaultView' ) as $opt_view )
+		{
+          if ( $opt_view == 'Control' && ( !ZM_OPT_CONTROL || !$monitor['Controllable'] ) )
+            continue;
+?>
+<option value="<?= $opt_view ?>"<?php if ( $opt_view == $new_monitor['DefaultView'] ) { ?> selected<?php } ?>><?= $opt_view ?></option>
+<?php
+		}
+?>
+</select></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangDefaultRate ?></td><td align="left" class="text"><?= buildSelect( "new_monitor[DefaultRate]", $rates ); ?></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangDefaultScale ?></td><td align="left" class="text"><?= buildSelect( "new_monitor[DefaultScale]", $scales ); ?></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangWebColour ?></td><td align="left" class="text"><input type="text" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>" size="10" class="form" onChange="document.getElementById('Swatch').style.backgroundColor=this.value">&nbsp;&nbsp;<span id="Swatch" style="background-color: <?= $new_monitor['WebColour'] ?>; border: 1px solid black; width: 20px; height: 10px; padding: 0px;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>

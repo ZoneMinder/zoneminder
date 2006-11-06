@@ -29,6 +29,11 @@ if ( !$result )
 $monitor = mysql_fetch_assoc( $result );
 mysql_free_result( $result );
 
+if ( !isset($control) )
+{
+    $control = ($monitor['DefaultView'] == 'Control');
+}
+
 if ( !isset($scale) )
 	$scale = reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 

@@ -229,6 +229,7 @@ $zmSlangDay                  = 'Day';
 $zmSlangDebug                = 'Debug';
 $zmSlangDefaultRate          = 'Default Rate';
 $zmSlangDefaultScale         = 'Default Scale';
+$zmSlangDefaultView          = 'Default View';
 $zmSlangDeleteAndNext        = 'Delete &amp; Next';
 $zmSlangDeleteAndPrev        = 'Delete &amp; Prev';
 $zmSlangDelete               = 'Delete';

@@ -92,10 +92,6 @@ foreach my $connection ( @in_select_connections )
 	vec( $base_rin, $connection->fileno(), 1 ) = 1;
 }
 
-#my $sigset = POSIX::SigSet->new;
-#my $blockset = POSIX::SigSet->new( SIGCHLD );
-#sigprocmask( SIG_BLOCK, $blockset, $sigset ) or die( "Can't block SIGCHLD: $!" );
-
 my %spawned_connections;
 my %monitors;
 

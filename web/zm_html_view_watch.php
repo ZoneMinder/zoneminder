@@ -31,7 +31,7 @@ mysql_free_result( $result );
 
 if ( !isset($control) )
 {
-    $control = ($monitor['DefaultView'] == 'Control');
+    $control = (canView( 'Control' ) && ($monitor['DefaultView'] == 'Control'));
 }
 
 if ( !isset($scale) )

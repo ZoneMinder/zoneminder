@@ -239,7 +239,7 @@ if ( !empty($action) )
 	{
 		if ( $action == "control" )
 		{
-			$result = mysql_query( "select * from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'" );
+			$result = mysql_query( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'" );
 			if ( !$result )
 				die( mysql_error() );
 			$monitor = mysql_fetch_assoc( $result );
@@ -911,6 +911,26 @@ if ( !empty($action) )
 				}
 				elseif ( $control == "preset_set" )
 				{
+                    if ( canEdit( 'Control' ) )
+                    {
+                        $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
+                        $result = mysql_query( $sql );
+                        if ( !$result )
+                           die( mysql_error() );
+                        $row = mysql_fetch_assoc( $result );
+                        mysql_free_result( $result );
+                        if ( $new_label != $row['Label'] )
+                        {
+                            if ( $new_label )
+                                $sql = "replace into ControlPresets ( MonitorId, Preset, Label ) values ( '".$monitor['Id']."', '".$preset."', '".addslashes($new_label)."' )";
+                            else
+                                $sql = "delete from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
+                            $result = mysql_query( $sql );
+                            if ( !$result )
+                                die( mysql_error() );
+                            $refresh_parent = true;
+                        }
+                    }
 					$ctrl_command .= " --preset ".$preset;
 					$view = 'none';
 				}

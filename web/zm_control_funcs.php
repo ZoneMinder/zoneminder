@@ -428,11 +428,22 @@ function controlPreset( command )
 <tr>
 <td align="center">
 <?php
+    $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."'";
+    $result = mysql_query( $sql );
+    if ( !$result )
+        die( mysql_error() );
+    $labels = array();
+    while( $row = mysql_fetch_assoc( $result ) )
+    {
+        $labels[$row['Preset']] = $row['Label'];
+    }
+    mysql_free_result( $result );
+
 	$preset_break = (int)(($monitor['NumPresets']+1)/((int)(($monitor['NumPresets']-1)/MAX_PRESETS)+1));
 	for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )
 	{
 ?>
-<input type="button" class="numbutton" value="<?= $i ?>" onClick="controlPreset( '<?= $cmds['PresetGoto'] ?><?=$i?>' );"><?php (($i%$preset_break)==0)?"<br>":"&nbsp;&nbsp;" ?>
+<input type="button" class="numbutton" title="<?= $labels[$i]?$labels[$i]:"" ?>" value="<?= $i ?>" onClick="controlPreset( '<?= $cmds['PresetGoto'] ?><?=$i?>' );"><?php (($i%$preset_break)==0)?"<br>":"&nbsp;&nbsp;" ?>
 <?php
 		if ( $i && (($i%$preset_break) == 0) )
 		{

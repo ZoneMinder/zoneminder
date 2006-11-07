@@ -18,6 +18,16 @@ update Filters set Background = 1 where (AutoArchive = 1 or AutoVideo = 1 or Aut
 alter table Monitors add column DefaultView enum ('Events','Control') not null default 'Events' after ReturnDelay;
 
 --
+-- Create new preset labels table
+--
+CREATE TABLE `ControlPresets` (
+  `MonitorId` int(10) unsigned NOT NULL default '0',
+  `Preset` int(10) unsigned NOT NULL default '0',
+  `Label` varchar(64) NOT NULL default '',
+  PRIMARY KEY  (`MonitorId`,`Preset`) 
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
 -- These are optional, but we might as well do it now
 --
 optimize table Frames;

@@ -134,7 +134,6 @@ foreach ( $tabs as $name=>$value )
 <td class="nontab">&nbsp;</td>
 </tr>
 </table>
-<table border="0" cellspacing="0" cellpadding="2" width="100%">
 <form name="control_form" method="post" action="<?= $PHP_SELF ?>" onsubmit="return validateForm( document.control_form )">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="tab" value="<?= $tab ?>">
@@ -288,6 +287,7 @@ if ( $tab != 'presets' )
 <?php
 }
 ?>
+<table border="0" cellspacing="0" cellpadding="2" width="100%">
 <tr>
 <td align="left" class="smallhead" width="50%"><?= $zmSlangParameter ?></td><td align="left" class="smallhead" width="50%"><?= $zmSlangValue ?></td>
 </tr>
@@ -459,7 +459,7 @@ switch ( $tab )
 <tr>
 <td colspan="2" align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canEdit( 'Control' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
 </tr>
-</form>
 </table>
+</form>
 </body>
 </html>

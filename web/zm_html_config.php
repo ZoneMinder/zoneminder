@@ -132,7 +132,7 @@ $jws = array(
 	'montage' => array( 'w'=>10, 'h'=>20 ),
 	'optionhelp' => array( 'w'=>320, 'h'=>284 ),
 	'options' => array( 'w'=>780, 'h'=>540 ),
-	'preset' => array( 'w'=>240, 'h'=>90 ),
+	'preset' => array( 'w'=>400, 'h'=>90 ),
 	'restarting' => array( 'w'=>250, 'h'=>150 ),
 	'settings' => array( 'w'=>200, 'h'=>225 ),
 	'state' => array( 'w'=>300, 'h'=>120 ),

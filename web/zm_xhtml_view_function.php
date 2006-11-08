@@ -30,7 +30,7 @@ $monitor = mysql_fetch_assoc( $result );
 mysql_free_result( $result );
 
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangFunction ?> - <?= $monitor['Name'] ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
@@ -46,25 +46,25 @@ mysql_free_result( $result );
 </div>
 <table>
 <tr>
-<td align="center" class="smallhead"><?= sprintf( $zmClangMonitorFunction, $monitor['Name'] ) ?></td>
+<td align="center" class="head"><?= sprintf( $zmClangMonitorFunction, $monitor['Name'] ) ?></td>
 </tr>
 <tr>
-<td align="center"><select name="new_function" class="form">
+<td align="center"><select name="new_function">
 <?php
 foreach ( getEnumValues( 'Monitors', 'Function' ) as $opt_function )
 {
 ?>
-<option value="<?= $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected<?php } ?>><?= $opt_function ?></option>
+<option value="<?= $opt_function ?>"<?php if ( $opt_function == $monitor['Function'] ) { ?> selected="selected"<?php } ?>><?= $opt_function ?></option>
 <?php
 }
 ?>
 </select></td>
 </tr>
 <tr>
-<td align="center"><?= $zmSlangEnabled ?>&nbsp;<input type="checkbox" name="new_enabled" value="1" class="form-noborder"<?php if ( !empty($monitor['Enabled']) ) { ?> checked<?php } ?>></td>
+<td align="center"><?= $zmSlangEnabled ?>&nbsp;<input type="checkbox" name="new_enabled" value="1" class="noborder"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/></td>
 </tr>
 <tr>
-<td align="center"><input type="submit" value="<?= $zmSlangSave ?>" class="form"></td>
+<td align="center"><input type="submit" value="<?= $zmSlangSave ?>"/></td>
 </tr>
 </table>
 </form>

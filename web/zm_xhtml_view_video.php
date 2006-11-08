@@ -134,7 +134,7 @@ if ( isset($download) )
 }
 
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangVideo ?> - <?= $event['Name'] ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
@@ -151,10 +151,10 @@ if ( isset($download) )
 <table>
 <tr><td style="width: 12em"><?= $zmSlangVideoFormat ?></td><td><?= buildSelect( "video_format", $video_formats ) ?></td></tr>
 <tr><td><?= $zmSlangFrameRate ?></td><td><?= buildSelect( "rate", $rates ) ?></td></tr>
-<tr><td><?= $zmSlangOverwriteExisting ?></td><td><input type="checkbox" class="form-noborder" name="overwrite" value="1"<?php if ( isset($overwrite) ) { ?> checked<?php } ?>></td></tr>
+<tr><td><?= $zmSlangOverwriteExisting ?></td><td><input type="checkbox" class="noborder" name="overwrite" value="1"<?php if ( isset($overwrite) ) { ?> checked<?php } ?>/></td></tr>
 </table>
 <table>
-<tr><td align="center"><input type="submit" class="form" value="<?= $zmSlangGenerateVideo ?>"></td></tr>
+<tr><td align="center"><input type="submit" value="<?= $zmSlangGenerateVideo ?>"/></td></tr>
 </table>
 <table align="center" border="0" cellspacing="0" cellpadding="8" width="96%">
 <?php
@@ -184,11 +184,11 @@ if ( isset($download) )
 	{
 ?>
 <tr>
-  <td class="text" align="center" style="width: 5em"><?= $zmSlangFormat ?></td>
-  <td class="text" align="center" style="width: 6em"><?= $zmSlangSize ?></td>
-  <td class="text" align="center" style="width: 4em"><?= $zmSlangRate ?></td>
-  <td class="text" align="center" style="width: 6em"><?= $zmSlangScale ?></td>
-  <td class="text" align="center" style="width: 8em"><?= $zmSlangAction ?></td>
+  <td align="center" style="width: 5em"><?= $zmSlangFormat ?></td>
+  <td align="center" style="width: 6em"><?= $zmSlangSize ?></td>
+  <td align="center" style="width: 4em"><?= $zmSlangRate ?></td>
+  <td align="center" style="width: 6em"><?= $zmSlangScale ?></td>
+  <td align="center" style="width: 8em"><?= $zmSlangAction ?></td>
 </tr>
 <?php
 		if ( isset($delete) )
@@ -223,11 +223,11 @@ if ( isset($download) )
 				}
 ?>
 <tr>
-  <td class="text" align="center"><?= $matches[4] ?></td>
-  <td class="text" align="center"><?= filesize( $file ) ?></td>
-  <td class="text" align="center"><?= $rate_text ?></td>
-  <td class="text" align="center"><?= $scale_text ?></td>
-  <td class="text" align="center"><table><tr><td><a href="<?= $file ?>"><?= $zmSlangView ?></a></td><td>/</td><td><a href="<?= $PHP_FILE ?>?view=<?= $view ?>&eid=<?= $eid ?>&delete=<?= $index ?>"><?= $zmSlangDelete ?></a></td></tr></table></td>
+  <td align="center"><?= $matches[4] ?></td>
+  <td align="center"><?= filesize( $file ) ?></td>
+  <td align="center"><?= $rate_text ?></td>
+  <td align="center"><?= $scale_text ?></td>
+  <td align="center"><table><tr><td><a href="<?= $file ?>"><?= $zmSlangView ?></a></td><td>/</td><td><a href="<?= $PHP_FILE ?>?view=<?= $view ?>&amp;eid=<?= $eid ?>&amp;delete=<?= $index ?>"><?= $zmSlangDelete ?></a></td></tr></table></td>
 </tr>
 <?php
 				$index++;

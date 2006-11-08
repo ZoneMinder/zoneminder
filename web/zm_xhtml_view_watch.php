@@ -98,14 +98,14 @@ $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
 
 $image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $monitor['Name'] ?> - <?= $zmSlangWatch ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 </head>
 <body>
-<p class="<?= $class ?>" align="center"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=1&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;&sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</p>
-<p align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $image_src ?>" alt="<?= $monitor['Name'] ?>" style="border: 0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></a></p>
+<p class="<?= $class ?>" align="center"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=1&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</p>
+<p align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $image_src ?>" alt="<?= $monitor['Name'] ?>" style="border: 0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"/></a></p>
 <?php
 if ( $next_mod != $mid || $prev_mid != $mid )
 {

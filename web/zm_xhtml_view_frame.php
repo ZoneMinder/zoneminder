@@ -71,7 +71,7 @@ $image_path = $image_data['thumbPath'];
 $event_path = $image_data['eventPath'];
 
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangFrame ?> <?= $eid."-".$fid ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
@@ -79,31 +79,31 @@ $event_path = $image_data['eventPath'];
 <body>
 <table>
 <tr>
-<td class="smallhead"><?= $zmSlangFrame ?> <?= $eid."-".$fid." (".$frame['Score'].")" ?></td>
+<td class="head"><?= $zmSlangFrame ?> <?= $eid."-".$fid." (".$frame['Score'].")" ?></td>
 </tr>
 </table>
 <table>
-<tr><td><?php if ( $has_anal_image ) { ?><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $fid ?>&show=<?= $image_path==$anal_image?"capt":"anal" ?>"><?php } ?><img src="<?= $thumb_image_path ?>" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $img_class ?>"><?php if ( $has_anal_image ) { ?></a><?php } ?></td></tr>
-<tr><td><?php if ( $image_data['hasAnalImage'] ) { ?><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $fid ?>&show=<?= $image_data['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $image_data['imageClass'] ?>"><?php if ( $image_data['hasAnalImage'] ) { ?></a><?php } ?></td></tr>
+<tr><td><?php if ( $has_anal_image ) { ?><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $fid ?>&amp;show=<?= $image_path==$anal_image?"capt":"anal" ?>"><?php } ?><img src="<?= $thumb_image_path ?>" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $img_class ?>"/><?php if ( $has_anal_image ) { ?></a><?php } ?></td></tr>
+<tr><td><?php if ( $image_data['hasAnalImage'] ) { ?><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $fid ?>&amp;show=<?= $image_data['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $image_data['imageClass'] ?>"/><?php if ( $image_data['hasAnalImage'] ) { ?></a><?php } ?></td></tr>
 </table>
 <table>
 <tr>
 <?php if ( $fid > 1 ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $first_fid ?>">&lt;&lt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $first_fid ?>">&lt;&lt;</a></td>
 <?php } else { ?>
-<td align="center" class="text">&nbsp;</td>
+<td align="center">&nbsp;</td>
 <?php } if ( $fid > 1 ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $prev_fid ?>">&lt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $prev_fid ?>">&lt;</a></td>
 <?php } else { ?>
-<td align="center" class="text">&nbsp;</td>
+<td align="center">&nbsp;</td>
 <?php } if ( $fid < $max_fid ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $next_fid ?>">&gt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $next_fid ?>">&gt;</a></td>
 <?php } else { ?>
-<td align="center" class="text">&nbsp;</td>
+<td align="center">&nbsp;</td>
 <?php } if ( $fid < $max_fid ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $last_fid ?>">&gt;&gt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $last_fid ?>">&gt;&gt;</a></td>
 <?php } else { ?>
-<td align="center" class="text">&nbsp;</td>
+<td align="center">&nbsp;</td>
 <?php } ?>
 </tr>
 </table>

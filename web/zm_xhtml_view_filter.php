@@ -34,7 +34,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 mysql_free_result( $result );
 
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEventFilter ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
@@ -43,7 +43,7 @@ mysql_free_result( $result );
 <form method="post" action="<?= $PHP_SELF ?>">
 <div style="visibility: hidden">
 <fieldset>
-<input type="hidden" name="view" value="events">
+<input type="hidden" name="view" value="events"/>
 </fieldset>
 </div>
 <table>
@@ -52,10 +52,10 @@ if ( count($filter_names) > 0 )
 {
 ?>
 <tr>
-<td align="center" class="text"><?= $zmSlangUseFilter ?>:&nbsp;<?= buildSelect( "filter_name", $filter_names ); ?></select></td>
+<td align="center"><?= $zmSlangUseFilter ?>:&nbsp;<?= buildSelect( "filter_name", $filter_names ); ?></td>
 </tr>
 <tr>
-<td align="center"><input type="submit" value="<?= $zmSlangSubmit ?>" class="form"></td>
+<td align="center"><input type="submit" value="<?= $zmSlangSubmit ?>"/></td>
 </tr>
 <?php
 }
@@ -63,7 +63,7 @@ else
 {
 ?>
 <tr>
-<td align="center" class="text"><?= $zmSlangNoSavedFilters ?></td>
+<td align="center"><?= $zmSlangNoSavedFilters ?></td>
 </tr>
 <?php
 }

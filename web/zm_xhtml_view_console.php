@@ -65,7 +65,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 }
 mysql_free_result( $result );
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangConsole ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
@@ -130,8 +130,8 @@ foreach( $monitors as $monitor )
 <tr>
 <td align="left">&nbsp;</td>
 <td align="center"><?= makeLink( "$PHP_SELF?view=montage", count($monitors), ( $running && canView( 'Stream' ) && $cycle_count > 1 ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;op1=%3d&amp;val1=0&amp;cnj2=and&amp;attr2=DateTime&amp;op2=%3e%3d&amp;val2=-1%20hour", $hour_event_count, canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;op1=%3d&amp;val1=0&amp;cnj2=and&amp;attr2=Date&amp;op2=%3e%3d&amp;val2=today", $today_event_count, canView( 'Events' ) ) ?></td>
+<td align="right"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;op1=%3d&amp;val1=0&amp;cnj2=and&amp;attr2=DateTime&amp;op2=%3e%3d&amp;val2=-1%20hour", $hour_event_count, canView( 'Events' ) ) ?></td>
+<td align="right"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;op1=%3d&amp;val1=0&amp;cnj2=and&amp;attr2=Date&amp;op2=%3e%3d&amp;val2=today", $today_event_count, canView( 'Events' ) ) ?></td>
 </tr>
 </table>
 </body>

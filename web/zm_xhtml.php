@@ -76,23 +76,23 @@ elseif ( !isset($view) )
 
 switch( $view )
 {
-	case "login" :
-	case "postlogin" :
-	case "logout" :
 	case "console" :
-	case "state" :
 	case "cycle" :
-	case "watch" :
-	case "montage" :
-	case "settings" :
-	case "events" :
-	case "filter" :
 	case "event" :
 	case "eventdetails" :
+	case "events" :
+	case "filter" :
 	case "frame" :
-	case "monitor" :
-	case "video" :
 	case "function" :
+	case "login" :
+	case "logout" :
+	case "monitor" :
+	case "montage" :
+	case "postlogin" :
+	case "settings" :
+	case "state" :
+	case "video" :
+	case "watch" :
 	case "none" :
 	{
 		require_once( "zm_".$format."_view_".$view.".php" );

@@ -105,7 +105,7 @@ elseif ( !empty( $limit ) )
 }
 
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEvents ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
@@ -149,11 +149,11 @@ if ( !empty($limit) && $n_events > $limit )
 				if ( false && $page > 2 )
 				{
 ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=1">&lt;&lt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=1">&lt;&lt;</a></td>
 <?php
 				}
 ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $page-1 ?>">&lt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $page-1 ?>">&lt;</a></td>
 <?php
 				$new_pages = array();
 				$pages_used = array();
@@ -174,12 +174,12 @@ if ( !empty($limit) && $n_events > $limit )
 				foreach ( $new_pages as $new_page )
 				{
 ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
 <?php
 				}
 			}
 ?>
-<td align="center" class="text"><?= $page ?></td>
+<td align="center"><?= $page ?></td>
 <?php
 			if ( $page < $pages )
 			{
@@ -202,16 +202,16 @@ if ( !empty($limit) && $n_events > $limit )
 				foreach ( $new_pages as $new_page )
 				{
 ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
 <?php
 				}
 ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $page+1 ?>">&gt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $page+1 ?>">&gt;</a></td>
 <?php
 				if ( false && $page < ($pages-1) )
 				{
 ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $pages ?>">&gt;&gt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $pages ?>">&gt;&gt;</a></td>
 <?php
 				}
 			}
@@ -234,22 +234,22 @@ if ( !empty($limit) && $n_events > $limit )
 		{
 ?>
 <tr align="center" bgcolor="#FFFFFF">
-<td style="width:50px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&sort_field=Id&sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= substr( $zmSlangId, 0, 5 ) ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
-<td style="width:60px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&sort_field=StartTime&sort_asc=<?= $sort_field == 'StartTime'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= substr( $zmSlangTime, 0, 5 ) ?><?php if ( $sort_field == "StartTime" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
-<td style="width:35px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&sort_field=Secs&sort_asc=<?= $sort_field == 'Secs'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= substr( $zmSlangDuration, 0, 2 ) ?><?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
-<td style="width:30px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&sort_field=AlarmFrames&sort_asc=<?= $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= substr( $zmSlangFrames, 0, 2 ) ?><?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
-<td style="width:30px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1&sort_field=TotScore&sort_asc=<?= $sort_field == 'TotScore'?!$sort_asc:0 ?>&limit=<?= $limit ?>"><?= substr( $zmSlangScore, 0, 2 ) ?><?php if ( $sort_field == "TotScore" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
+<td style="width:50px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;page=1&amp;sort_field=Id&amp;sort_asc=<?= $sort_field == 'Id'?!$sort_asc:0 ?>&amp;limit=<?= $limit ?>"><?= substr( $zmSlangId, 0, 5 ) ?><?php if ( $sort_field == "Id" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
+<td style="width:60px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;page=1&amp;sort_field=StartTime&amp;sort_asc=<?= $sort_field == 'StartTime'?!$sort_asc:0 ?>&amp;limit=<?= $limit ?>"><?= substr( $zmSlangTime, 0, 5 ) ?><?php if ( $sort_field == "StartTime" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
+<td style="width:35px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;page=1&amp;sort_field=Secs&amp;sort_asc=<?= $sort_field == 'Secs'?!$sort_asc:0 ?>&amp;limit=<?= $limit ?>"><?= substr( $zmSlangDuration, 0, 2 ) ?><?php if ( $sort_field == "Secs" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
+<td style="width:30px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;page=1&amp;sort_field=AlarmFrames&amp;sort_asc=<?= $sort_field == 'AlarmFrames'?!$sort_asc:0 ?>&amp;limit=<?= $limit ?>"><?= substr( $zmSlangFrames, 0, 2 ) ?><?php if ( $sort_field == "AlarmFrames" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
+<td style="width:30px"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;page=1&amp;sort_field=TotScore&amp;sort_asc=<?= $sort_field == 'TotScore'?!$sort_asc:0 ?>&amp;limit=<?= $limit ?>"><?= substr( $zmSlangScore, 0, 2 ) ?><?php if ( $sort_field == "TotScore" ) if ( $sort_asc ) echo "<small><i>^</i></small>"; else echo "<small><i>v</i></small>"; ?></a></td>
 </tr>
 <?php
 		}
 		unset( $bgcolor );
 ?>
 <tr<?= ' bgcolor="'.(isset($bgcolor)?$bgcolor:"#FFFFFF").'"' ?> >
-<td align="center"><a href="<?= $PHP_SELF ?>?view=eventdetails&eid=<?= $event['Id'] ?>&page=1"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=eventdetails&amp;eid=<?= $event['Id'] ?>&amp;page=1"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
 <td align="center"><?= strftime( "%d/%H:%M", strtotime($event['StartTime']) ) ?></td>
 <td align="center"><?= sprintf( "%d", $event['Length'] ) ?></td>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&page=1"><?= $event['AlarmFrames'] ?></a></td>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=frame&eid=<?= $event['Id'] ?>&fid=0"><?= $event['MaxScore'] ?></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;eid=<?= $event['Id'] ?>&amp;page=1"><?= $event['AlarmFrames'] ?></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $event['Id'] ?>&amp;fid=0"><?= $event['MaxScore'] ?></a></td>
 </tr>
 <?php
 	}

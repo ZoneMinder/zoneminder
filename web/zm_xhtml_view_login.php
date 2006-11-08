@@ -19,7 +19,7 @@
 //
 
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangLogin ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
@@ -33,11 +33,11 @@
 </fieldset>
 </div>
 <table>
-<tr><td colspan="2" class="smallhead" align="center">ZoneMinder <?= $zmSlangLogin ?>
+<tr><td colspan="2" class="head" align="center">ZoneMinder <?= $zmSlangLogin ?>
 </td></tr>
-<tr><td class="text" align="right"><?= $zmSlangUsername ?></td><td align="left" class="text"><input type="text" class="form" name="username" value="<?= isset($username)?$username:"" ?>" size="12"/></td></tr>
-<tr><td class="text" align="right"><?= $zmSlangPassword ?></td><td align="left" class="text"><input type="password" class="form" name="password" value="" size="12"/></td></tr>
-<tr><td colspan="2" align="center"><input type="submit" value="<?= $zmSlangLogin ?>" class="form"/></td></tr>
+<tr><td align="right"><?= $zmSlangUsername ?></td><td align="left"><input type="text" name="username" value="<?= isset($username)?$username:"" ?>" size="12"/></td></tr>
+<tr><td align="right"><?= $zmSlangPassword ?></td><td align="left"><input type="password" name="password" value="" size="12"/></td></tr>
+<tr><td colspan="2" align="center"><input type="submit" value="<?= $zmSlangLogin ?>"/></td></tr>
 </table>
 </form>
 </body>

@@ -19,15 +19,15 @@
 //
 
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangError ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 <body>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
-<tr><td colspan="2" class="smallhead" align="center">ZoneMinder <?= $zmSlangError ?></td></tr>
-<tr><td colspan="2" class="text" align="center">&nbsp;</td></tr>
-<tr><td colspan="2" class="text" align="center"><strong><?= $zmSlangYouNoPerms ?><br/><?= $zmSlangContactAdmin ?></strong></td></tr>
+<tr><td class="head" align="center">ZoneMinder <?= $zmSlangError ?></td></tr>
+<tr><td align="center">&nbsp;</td></tr>
+<tr><td align="center"><strong><?= $zmSlangYouNoPerms ?><br/><?= $zmSlangContactAdmin ?></strong></td></tr>
 </table>
 </body>
 </html>

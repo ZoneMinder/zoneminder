@@ -47,7 +47,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 mysql_free_result( $result );
 
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangMontage ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>

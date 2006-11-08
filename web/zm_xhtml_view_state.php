@@ -35,7 +35,7 @@ while( $state = mysql_fetch_assoc( $result ) )
 mysql_free_result( $result );
 
 ?>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangState ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
@@ -53,7 +53,7 @@ mysql_free_result( $result );
 <td align="center" class="head">ZoneMinder - <?= $zmSlangRunState ?></td>
 </tr>
 <tr>
-<td align="center"><select name="run_state" class="form">
+<td align="center"><select name="run_state">
 <?php
 	if ( $running )
 	{
@@ -80,7 +80,7 @@ mysql_free_result( $result );
 </select></td>
 </tr>
 <tr>
-<td align="center"><input type="submit" value="<?= $zmSlangApply ?>" class="form"></td>
+<td align="center"><input type="submit" value="<?= $zmSlangApply ?>"></td>
 </tr>
 </table>
 </form>

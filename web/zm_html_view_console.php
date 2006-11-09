@@ -226,6 +226,8 @@ newWindow( '<?= $PHP_SELF ?>?view=donate', 'zmDonate', <?= $jws['donate']['w'] ?
 <td class="smallhead" align="right"><?= $zmSlangLoad ?>: <?= getLoad() ?> / <?= $zmSlangDisk ?>: <?= getDiskPercent() ?>%</td>
 </tr>
 <tr>
+<td class="smallhead" align="left"><table width="100%" border="0" cellpadding="0" cellspacing="0"><tr><td class="smallhead" align="left">
+<tr>
 <td class="smallhead" align="left">
 <?php
 if ( canView( 'System' ) )
@@ -241,6 +243,18 @@ else
 <?php
 }
 ?>
+</td>
+<?php
+if ( ZM_OPT_X10 && canView('Devices' ) )
+{
+?>
+<td class="smallhead" align="right"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=devices', 'zmDevices', <?= $jws['devices']['w'] ?>, <?= $jws['devices']['h'] ?> );"><?= $zmSlangDevices ?></a></td>
+<?php
+}
+?>
+</td>
+</tr>
+</table>
 </td>
 <?php
 if ( ZM_OPT_USE_AUTH )

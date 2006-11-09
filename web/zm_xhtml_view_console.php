@@ -128,7 +128,20 @@ foreach( $monitors as $monitor )
 }
 ?>
 <tr>
+<?php
+if ( ZM_OPT_X10 )
+{
+?>
+<td align="left"><?= makeLink( "$PHP_SELF?view=devices", $zmSlangDevices, canView('Devices' ) ) ?></td>
+<?php
+}
+else
+{
+?>
 <td align="left">&nbsp;</td>
+<?php
+}
+?>
 <td align="center"><?= makeLink( "$PHP_SELF?view=montage", count($monitors), ( $running && canView( 'Stream' ) && $cycle_count > 1 ) ) ?></td>
 <td align="right"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;op1=%3d&amp;val1=0&amp;cnj2=and&amp;attr2=DateTime&amp;op2=%3e%3d&amp;val2=-1%20hour", $hour_event_count, canView( 'Events' ) ) ?></td>
 <td align="right"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;op1=%3d&amp;val1=0&amp;cnj2=and&amp;attr2=Date&amp;op2=%3e%3d&amp;val2=today", $today_event_count, canView( 'Events' ) ) ?></td>

@@ -96,48 +96,48 @@
 }
 a:link {
 	color: #7F7FB2;
-	text-decoration: none
+	text-decoration: none;
 }
 a:visited {
 	color: #7F7FB2;
-	text-decoration: none
+	text-decoration: none;
 }
 a:hover {
 	color: #666699;
-	text-decoration: underline
+	text-decoration: underline;
 }
 .form {
 	border: 1px #7F7FB2 solid;
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size: 10px;
-	color: #333333
+	color: #333333;
 }
 .form-noborder {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size: 10px;
-	color: #333333
+	color: #333333;
 }
 input[disabled] {
-	color: #888888
+	color: #888888;
 }
 .textsmall {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size: 9px;
 	color: #333333;
-	font-weight: normal
+	font-weight: normal;
 }
 .closetext {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size: 10px;
 	color: #333333;
 	font-weight: normal;
-	line-height: 12px
+	line-height: 12px;
 }
 img.normal {
-	border: white solid 1px
+	border: white solid 1px;
 }
 img.alarm {
-	border: red solid 1px
+	border: red solid 1px;
 }
 td.activetab {
 	font-family: Verdana, Arial, Helvetica, sans-serif;

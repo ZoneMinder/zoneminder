@@ -96,6 +96,8 @@ switch( $view )
 	case "controlpanel" :
 	case "controlpreset" :
 	case "cycle" :
+	case "device" :
+	case "devices" :
 	case "donate" :
 	case "event" :
 	case "eventdetail" :

@@ -78,6 +78,7 @@ switch( $view )
 {
 	case "console" :
 	case "cycle" :
+	case "devices" :
 	case "event" :
 	case "eventdetails" :
 	case "events" :

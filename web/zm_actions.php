@@ -1412,6 +1412,42 @@ if ( !empty($action) )
 		}
 	}
 
+    // Device view actions
+	if ( canEdit( 'Devices' ) )
+	{
+		if ( $action == "device" )
+		{
+            if ( !empty($command) )
+            {
+			    setDeviceStatusX10( $key, $command );
+            }
+            elseif ( isset( $new_device ) )
+            {
+			    if ( $did )
+			    {
+				    simpleQuery( "update Devices set Name = '".addslashes($new_device['Name'])."', KeyString = '".addslashes($new_device['KeyString'])."' where Id = '$did'" );
+			    }
+			    else
+			    {
+				    simpleQuery( "insert into Devices set Name = '".addslashes($new_device['Name'])."', KeyString = '".addslashes($new_device['KeyString'])."'" );
+			    }
+			    $refresh_parent = true;
+			    $view = 'none';
+            }
+		}
+		elseif ( $action == "delete" )
+		{
+			if ( $mark_dids )
+			{
+				foreach( $mark_dids as $mark_did )
+				{
+					simpleQuery( "delete from Devices where Id = '$mark_did'" );
+					$refresh_parent = true;
+				}
+			}
+		}
+	}
+
 	// System view actions
 	if ( canView( 'System' ) )
 	{

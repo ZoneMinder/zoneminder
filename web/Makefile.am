@@ -32,6 +32,8 @@ web_DATA = \
 	zm_html_view_controlcaps.php \
 	zm_html_view_controlcap.php \
 	zm_html_view_cycle.php \
+	zm_html_view_device.php \
+	zm_html_view_devices.php \
 	zm_html_view_donate.php \
 	zm_html_view_error.php \
 	zm_html_view_event.php \
@@ -79,6 +81,7 @@ web_DATA = \
 	zm_xhtml_styles.css \
 	zm_xhtml_config.php \
 	zm_xhtml_view_console.php \
+	zm_xhtml_view_devices.php \
 	zm_xhtml_view_error.php \
 	zm_xhtml_view_eventdetails.php \
 	zm_xhtml_view_event.php \
@@ -137,6 +140,8 @@ EXTRA_DIST = \
 	zm_html_view_controlcaps.php \
 	zm_html_view_controlcap.php \
 	zm_html_view_cycle.php \
+	zm_html_view_devics.php \
+	zm_html_view_devices.php \
 	zm_html_view_donate.php \
 	zm_html_view_error.php \
 	zm_html_view_event.php \
@@ -184,6 +189,7 @@ EXTRA_DIST = \
 	zm_xhtml_styles.css \
 	zm_xhtml_config.php \
 	zm_xhtml_view_console.php \
+	zm_xhtml_view_devices.php \
 	zm_xhtml_view_error.php \
 	zm_xhtml_view_eventdetails.php \
 	zm_xhtml_view_event.php \

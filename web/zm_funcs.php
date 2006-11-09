@@ -164,7 +164,10 @@ function getStreamSrc( $args )
 
 	if ( count($args) )
 	{
-		$stream_src .= "?".join( "&", $args );
+        if ( $_SESSION['format'] == "html" )
+		    $stream_src .= "?".join( "&", $args );
+        else
+		    $stream_src .= "?".join( "&amp;", $args );
 	}
 
 	return( $stream_src );
@@ -481,6 +484,11 @@ function truncText( $text, $length, $deslash=1 )
 
 function buildSelect( $name, $contents, $behaviours=false )
 {
+    if ( version_compare( phpversion(), "4.1.0", "<") )
+    {   
+        global $_SESSION;
+    }   
+
 	if ( preg_match( "/^(\w+)\s*\[\s*['\"]?(\w+)[\"']?\s*]$/", $name, $matches ) )
 	{
 		$arr = $matches[1];
@@ -515,7 +523,7 @@ function buildSelect( $name, $contents, $behaviours=false )
 	foreach ( $contents as $content_value => $content_text )
 	{
 ?>
-<option value="<?= $content_value ?>"<?php if ( $value == $content_value ) { echo " selected"; } ?>><?= htmlentities($content_text) ?></option>
+<option value="<?= $content_value ?>"<?php if ( $value == $content_value ) { echo ($_SESSION['format']=="html")?' selected':' selected="selected"'; } ?>><?= htmlentities($content_text) ?></option>
 <?php
 	}
 ?>
@@ -1794,4 +1802,99 @@ function monitorIdsToNames( $ids )
 	$name_string = join( ', ', $names );
 	return( $name_string );
 }
+
+function initX10Status()
+{
+	global $x10_status;
+
+	if ( !isset($x10_status) )
+	{
+        $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
+        if ( $socket < 0 )
+        {
+            die( "socket_create() failed: ".socket_strerror($socket) );
+        }
+        $sock_file = ZM_PATH_SOCKS.'/zmx10.sock';
+        if ( @socket_connect( $socket, $sock_file ) )
+        {
+            $command = "status";
+            if ( !socket_write( $socket, $command ) )
+            {
+                die( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
+            }
+            socket_shutdown( $socket, 1 );
+            $x10_output = "";
+            while ( $x10_response = socket_read( $socket, 256 ) )
+            {
+                $x10_output .= $x10_response;
+            }
+            socket_close( $socket );
+        }
+        else
+        {
+            // Can't connect so use script
+    	    $command = ZM_PATH_BIN."/zmx10.pl --command status";
+	        //$command .= " 2>/dev/null >&- <&- >/dev/null";
+
+            $x10_output = exec( escapeshellcmd( $command ) );
+        }
+        foreach ( split( "\n", $x10_output ) as $x10_response )
+        {
+            if ( preg_match( "/^(\d+)\s+(.+)$/", $x10_response, $matches ) )
+            {
+                $x10_status[$matches[1]] = $matches[2];
+            }
+        }
+	}
+}
+
+function getDeviceStatusX10( $key )
+{
+    global $x10_status;
+
+    initX10Status();
+
+    if ( !($status = $x10_status[$key]) )
+		$status = "unknown";
+	return( $status );
+}
+
+function setDeviceStatusX10( $key, $status )
+{
+    $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
+    if ( $socket < 0 )
+    {
+        die( "socket_create() failed: ".socket_strerror($socket) );
+    }
+    $sock_file = ZM_PATH_SOCKS.'/zmx10.sock';
+    if ( @socket_connect( $socket, $sock_file ) )
+    {
+        $command = "$status;$key";
+        if ( !socket_write( $socket, $command ) )
+        {
+            die( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
+        }
+        socket_shutdown( $socket, 1 );
+        $x10_response = socket_read( $socket, 256 );
+        socket_close( $socket );
+    }
+    else
+    {
+        // Can't connect so use script
+    	$command = ZM_PATH_BIN."/zmx10.pl --command $status --key $key";
+	    //$command .= " 2>/dev/null >&- <&- >/dev/null";
+	    $result = exec( $string );
+	    if ( preg_match( '/^'.$key.'\s+(.*)/', $result, $matches ) )
+		    $status = $matches[1];
+	    else
+		    $status = "unknown";
+        $x10_response = exec( escapeshellcmd( $x10_command ) );
+    }
+	if ( preg_match( '/^'.$key.'\s+(.*)/', $x10_response, $matches ) )
+		$status = $matches[1];
+	else
+		$status = "unknown";
+	return( $status );
+}
+
 ?>

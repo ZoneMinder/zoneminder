@@ -89,8 +89,8 @@ $prev_mid = $mon_idx==0?$mon_index[(count($monitors)-1)]['Id']:$monitors[$mon_id
 $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
 $device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
 // Allow for margins etc
-$device_width -= 16;
-$device_height -= 16;
+$device_width -= 4;
+$device_height -= 4;
 
 $width_scale = ($device_width*SCALE_BASE)/$monitor['Width'];
 $height_scale = ($device_height*SCALE_BASE)/$monitor['Height'];
@@ -110,7 +110,7 @@ $image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "sca
 if ( $next_mod != $mid || $prev_mid != $mid )
 {
 ?>
-<table>
+<table style="width: 100%">
 <tr>
 <td align="left"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;mid=<?= $prev_mid ?>"><?= $zmSlangPrev ?></a></td>
 <td align="center"><a href="<?= $PHP_SELF ?>?view=console"><?= $zmSlangConsole ?></a></td>

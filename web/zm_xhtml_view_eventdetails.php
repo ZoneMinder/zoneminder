@@ -110,14 +110,17 @@ function getThumbnail( $event, $fid, $scale )
 <tr><td><?= $zmSlangFrames ?>&nbsp;</td><td><?= $event['Frames'] ?> (<?= $event['AlarmFrames'] ?>)</td></tr>
 <tr><td><?= $zmSlangScore ?>&nbsp;</td><td><?= $event['TotScore'] ?>/<?= $event['AvgScore'] ?>/<?= $event['MaxScore'] ?></td></tr>
 </table>
-<table>
+<table style="width:100%">
 <tr>
 <td><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=1"><img src="<?= $image1 ?>" style="border: 0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" alt="1"/></a></td>
 <td><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $fid ?>"><img src="<?= $image2 ?>" style="border: 0" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" alt="<?= $fid ?>"/></a></td>
 </tr>
 </table>
-<table>
-<tr><td><a href="<?= $PHP_SELF ?>?view=event&amp;eid=<?= $eid ?>&amp;page=1"><?= $zmSlangFrames ?></a></td><td><a href="<?= $PHP_SELF ?>?view=video&amp;eid=<?= $eid ?>"><?= $zmSlangVideo ?></a></td></tr>
+<table style="width:100%">
+<tr>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;eid=<?= $eid ?>&amp;page=1"><?= $zmSlangFrames ?></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=video&amp;eid=<?= $eid ?>"><?= $zmSlangVideo ?></a></td>
+</tr>
 </table>
 </body>
 </html>

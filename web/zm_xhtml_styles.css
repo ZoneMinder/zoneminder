@@ -17,142 +17,42 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */ 
 
-.text {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #333333;
-	font-weight: normal
+.head {
+	font-size: larger;
+	color: #000066;
+	font-weight: bold;
 }
 .redtext {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
 	color: #DC143C;
 }
 .ambtext {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
 	color: #FF8C00;
 }
 .gretext {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
 	color: #688E23;
-}
-.redtextem {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #DC143C;
-	text-transform: lowercase;
-}
-.ambtextem {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #FF8C00;
-	text-transform: lowercase;
-}
-.gretextem {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #688E23;
-	text-transform: lowercase;
-}
-.bighead {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 9px;
-	color: #000066;
-	font-weight: bold
-}
-.smallhead {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #016A9D;
-	font-weight: bold;
-}
-.head {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 11px;
-	color: #000066;
-	font-weight: bold
 }
 a:link {
 	color: #7F7FB2;
-	text-decoration: none
+	text-decoration: none;
 }
 a:visited {
 	color: #7F7FB2;
-	text-decoration: none
+	text-decoration: none;
 }
 a:hover {
 	color: #666699;
-	text-decoration: underline
+	text-decoration: underline;
 }
-.form {
+input, textarea, select {
 	border: 1px #7F7FB2 solid;
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #333333
-}
-.form-noborder {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #333333
-}
-.textsmall {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 7px;
 	color: #333333;
-	font-weight: normal
 }
-.closetext {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
+input.noborder {
 	color: #333333;
-	font-weight: normal;
-	line-height: 12px
 }
 img.normal {
-	border: white solid 1px
+	border: white solid 1px;
 }
 img.alarm {
-	border: red solid 1px
-}
-td.activetab {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #333333;
-	font-weight: bold;
-	border-left: #7F7FB2 solid 2px;
-	border-top: #7F7FB2 solid 2px;
-	border-right: #7F7FB2 solid 2px;
-	border-bottom: #7F7FB2 dotted 1px;
-	text-align: center;
-}
-td.passivetab {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #333333;
-	font-weight: normal;
-	border: #7F7FB2 solid 1px;
-	background: #DDDDDD;
-	text-align: center;
-}
-td.nontab {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #333333;
-	font-weight: normal;
-	border-bottom: #7F7FB2 solid 1px;
-}
-td.ruled {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 8px;
-	color: #333333;
-	font-weight: normal;
-	border-top: #7F7FB2 solid 1px;
-}
-tr.over {
-	background: #EEEEEE;
-}
-tr.out {
-	background: #FFFFFF;
+	border: red solid 1px;
 }

@@ -42,6 +42,10 @@ mysql_free_result( $result );
 $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
 $device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
 
+// Allow for margins etc
+$device_width -= 4;
+$device_height -= 4;
+
 if ( $device_width >= 352 && $device_height >= 288 )
 {
 	$video_size = "352x288";
@@ -54,10 +58,6 @@ else
 {
 	$video_size = "128x96";
 }
-
-// Allow for margins etc
-$device_width -= 16;
-$device_height -= 16;
 
 $event_width = $event['Width'];
 $event_height = $event['Height'];
@@ -82,17 +82,20 @@ foreach ( $ffmpeg_formats as $ffmpeg_format )
 		$default_phone_format = $matches[1];
 	}
 }
-if ( isset($default_phone_format) )
+if ( !isset($video_format) )
 {
-	$video_format = $default_phone_format;
-}
-elseif ( isset($default_video_format) )
-{
-	$video_format = $default_video_format;
-}
-else
-{
-	$video_format = $ffmpeg_formats[0];
+    if ( isset($default_phone_format) )
+    {
+        $video_format = $default_phone_format;
+    }
+    elseif ( isset($default_video_format) )
+    {
+        $video_format = $default_video_format;
+    }
+    else
+    {
+        $video_format = $ffmpeg_formats[0];
+    }
 }
 
 if ( !empty($generate) )
@@ -128,7 +131,7 @@ if ( $dir = opendir( $event_dir ) )
 
 if ( isset($download) )
 {
-	header( "Content-disposition: attachment; filename=".$video_files[$download]."; size=".filesize($video_files[$download]) );
+	header( "Content-disposition: attachment; filename=".preg_replace( "/^.*\//", "", $video_files[$download] )."; size=".filesize($video_files[$download]) );
 	readfile( $video_files[$download] );
 	exit;
 }
@@ -227,7 +230,7 @@ if ( isset($download) )
   <td align="center"><?= filesize( $file ) ?></td>
   <td align="center"><?= $rate_text ?></td>
   <td align="center"><?= $scale_text ?></td>
-  <td align="center"><table><tr><td><a href="<?= $file ?>"><?= $zmSlangView ?></a></td><td>/</td><td><a href="<?= $PHP_FILE ?>?view=<?= $view ?>&amp;eid=<?= $eid ?>&amp;delete=<?= $index ?>"><?= $zmSlangDelete ?></a></td></tr></table></td>
+  <td align="center"><table><tr><td><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;eid=<?= $eid ?>&amp;download=<?= $index ?>"><?= $zmSlangView ?></a></td><td>/</td><td><a href="<?= $PHP_FILE ?>?view=<?= $view ?>&amp;eid=<?= $eid ?>&amp;delete=<?= $index ?>"><?= $zmSlangDelete ?></a></td></tr></table></td>
 </tr>
 <?php
 				$index++;

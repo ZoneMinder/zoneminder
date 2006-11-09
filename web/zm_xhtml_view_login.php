@@ -32,7 +32,7 @@
 <input type="hidden" name="view" value="console"/>
 </fieldset>
 </div>
-<table>
+<table style="width: 100%">
 <tr><td colspan="2" class="head" align="center">ZoneMinder <?= $zmSlangLogin ?>
 </td></tr>
 <tr><td align="right"><?= $zmSlangUsername ?></td><td align="left"><input type="text" name="username" value="<?= isset($username)?$username:"" ?>" size="12"/></td></tr>

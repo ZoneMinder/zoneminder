@@ -18,6 +18,15 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+$device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
+$device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
+
+// Allow for margins etc
+$device_width -= 4;
+$device_height -= 4;
+
+$images_per_line = 1;
+
 $sql = "select * from Groups where Name = 'Mobile'";
 $result = mysql_query( $sql );
 if ( !$result )
@@ -54,24 +63,18 @@ mysql_free_result( $result );
 </head>
 <body>
 <table style="width: 100%">
+<tr>
+<td colspan="<?= $images_per_line ?>" align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>"><?= $zmSlangRefresh ?></a></td>
+</tr>
 <?php
-
-$device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
-$device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
-
-// Allow for margins etc
-$device_width -= 16;
-$device_height -= 16;
-
-$images_per_line = 2;
 
 $count = 0;
 foreach( $monitors as $monitor )
 {
-	$width_scale = ($device_width*SCALE_BASE)/$monitor['Width'];
-	$height_scale = ($device_height*SCALE_BASE)/$monitor['Height'];
-	$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
-	$scale /= $images_per_line; // Try and get several pics per line
+    $width_scale = ($device_width*SCALE_BASE)/$monitor['Width'];
+    $height_scale = ($device_height*SCALE_BASE)/$monitor['Height'];
+    $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
+    $scale = (int)($scale/$images_per_line);
 
 	if ( $count%$images_per_line == 0 )
 	{
@@ -84,7 +87,7 @@ foreach( $monitors as $monitor )
 	//$alarm_frame = $alarm_frames[$frame_id];
 	//$img_class = $alarm_frame?"alarm":"normal";
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=watch&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $image_path ?>" alt="<?= $monitor['Name'] ?>" style="border: 0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=watch&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $image_path ?>" alt="<?= $monitor['Name'] ?>" style="border: 0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"/></a></td>
 <?php
 
 	if ( $count%$images_per_line == ($images_per_line-1) )
@@ -108,9 +111,7 @@ if ( $count%$images_per_line != 0 )
 <?php
 }
 ?>
-<tr>
-<td colspan="<?= $images_per_line ?>" align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>"><?= $zmSlangRefresh ?></a></td>
-</tr>
 </table>
+<p align="center"><a href="<?= $PHP_SELF ?>?view=console"><?= $zmSlangConsole ?></a></p>
 </body>
 </html>

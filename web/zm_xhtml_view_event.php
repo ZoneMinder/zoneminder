@@ -235,7 +235,7 @@ while( $row = mysql_fetch_assoc( $result ) )
 }
 mysql_free_result( $result );
 ?>
-<table>
+<table style="width: 100%">
 <?php
 $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
 $device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;

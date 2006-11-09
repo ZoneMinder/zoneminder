@@ -45,7 +45,7 @@ mysql_free_result( $result );
 <div style="visibility: hidden">
 <fieldset>
 <input type="hidden" name="view" value="console"/>
-<input type="hidden" name="action" value="state">
+<input type="hidden" name="action" value="state"/>
 </fieldset>
 </div>
 <table>
@@ -58,14 +58,14 @@ mysql_free_result( $result );
 	if ( $running )
 	{
 ?>
-<option value="stop" selected><?= $zmSlangStop ?></option>
+<option value="stop" select="selected"><?= $zmSlangStop ?></option>
 <option value="restart"><?= $zmSlangRestart ?></option>
 <?php
 	}
 	else
 	{
 ?>
-<option value="start" selected><?= $zmSlangStart ?></option>
+<option value="start" select="selected"><?= $zmSlangStart ?></option>
 <?php
 	}
 ?>
@@ -80,7 +80,7 @@ mysql_free_result( $result );
 </select></td>
 </tr>
 <tr>
-<td align="center"><input type="submit" value="<?= $zmSlangApply ?>"></td>
+<td align="center"><input type="submit" value="<?= $zmSlangApply ?>"/></td>
 </tr>
 </table>
 </form>

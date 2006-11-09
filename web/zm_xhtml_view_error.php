@@ -23,6 +23,7 @@
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangError ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
+</head>
 <body>
 <table align="center" border="0" cellspacing="2" cellpadding="2" width="96%">
 <tr><td class="head" align="center">ZoneMinder <?= $zmSlangError ?></td></tr>

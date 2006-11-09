@@ -122,7 +122,7 @@ if ( !empty($limit) && $n_events > $limit )
 ?>
 </head>
 <body>
-<table>
+<table style="width: 100%">
 <tr>
 <td align="left"><?= sprintf( $zmClangEventCount, $n_events, zmVlang( $zmVlangEvent, $n_events ) ) ?></td>
 <td align="right"><?= makeLink( "$PHP_SELF?view=filter", empty($filter_data)?$zmSlangChooseFilter:$filter_name, canView( 'Events' ) ) ?></td>
@@ -136,6 +136,7 @@ if ( !empty($limit) && $n_events > $limit )
 ?>
 <table style="width:100%">
 <tr>
+<td>&nbsp;</td>
 <?php
 		if ( !empty($page) )
 		{
@@ -217,12 +218,13 @@ if ( !empty($limit) && $n_events > $limit )
 			}
 		}
 ?>
+<td>&nbsp;</td>
 </tr>
 </table>
 <?php
 	}
 ?>
-<table bgcolor="#7F7FB2">
+<table style="width: 100%; background-color: #7F7FB2">
 <?php
 	flush();
 	$count = 0;
@@ -256,5 +258,6 @@ if ( !empty($limit) && $n_events > $limit )
 	mysql_free_result( $result );
 ?>
 </table>
+<p align="center"><a href="<?= $PHP_SELF ?>?view=console"><?= $zmSlangConsole ?></a></p>
 </body>
 </html>

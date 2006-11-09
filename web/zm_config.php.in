@@ -58,8 +58,8 @@ define( "MAX_EVENTS", 10 );								// The maximum number of events to show in th
 define( "RATE_BASE", 100 );								// The additional scaling factor used to help get fractional rates in integer format
 define( "SCALE_BASE", 100 );							// The additional scaling factor used to help get fractional scales in integer format
 define( "LEARN_MODE", false );							// Currently unimplemented, do not change
-define( 'DEVICE_WIDTH', 150 );							// Default device width for phones and handhelds
-define( 'DEVICE_HEIGHT', 150 );							// Default device height for phones and handhelds
+define( 'DEVICE_WIDTH', 320 );							// Default device width for phones and handhelds
+define( 'DEVICE_HEIGHT', 240 );							// Default device height for phones and handhelds
 define( 'DEVICE_LINES', 10 );							// Default device lines for phones and handhelds
 
 //

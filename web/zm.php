@@ -59,6 +59,24 @@ else
 }
 define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
 
+if ( $_GET['format'] )
+{
+    $format = $_GET['format'];
+    $cookies = true;
+}
+if ( $_GET['cookies'] )
+{
+    $cookies = $_GET['cookies'];
+}
+if ( $_GET['devwidth'] )
+{
+    $device['width'] = $_GET['devwidth'];
+}
+if ( $_GET['devheight'] )
+{
+    $device['height'] = $_GET['devheight'];
+}
+
 if ( empty($format) )
 {
 	$wurfl_file = "./wurfl_class.php";
@@ -79,13 +97,14 @@ if ( empty($format) )
 				$device['width'] = $wurfl->getDeviceCapability( 'resolution_width' );
 				$device['height'] = $wurfl->getDeviceCapability( 'resolution_height' );
 			}
-			elseif ( $wurfl->getDeviceCapability( 'wml_1_3' ) )
-			{
-				$format = "wml";
-				$cookies = false;
-				$device['width'] = $wurfl->getDeviceCapability( 'resolution_width' );
-				$device['height'] = $wurfl->getDeviceCapability( 'resolution_height' );
-			}
+            // Deprecated
+			//elseif ( $wurfl->getDeviceCapability( 'wml_1_3' ) )
+			//{
+				//$format = "wml";
+				//$cookies = false;
+				//$device['width'] = $wurfl->getDeviceCapability( 'resolution_width' );
+				//$device['height'] = $wurfl->getDeviceCapability( 'resolution_height' );
+			//}
 		}
 		else
 		{
@@ -98,7 +117,6 @@ if ( empty($format) )
 		// This is an example of using fixed device strings to just match your phone etc
 		$devices = array(
 			array( 'name'=>"Motorola V600", 'ua_match'=>"MOT-V600", 'format'=>"xhtml", 'cookies'=>false, 'width'=>176, 'height'=>220 ),
-			array( 'name'=>"Motorola V600", 'ua_match'=>"MOT-A820", 'format'=>"xhtml", 'cookies'=>false, 'width'=>176, 'height'=>220 )
 		);
 
 		foreach ( $devices as $device )
@@ -158,7 +176,7 @@ else
 
 session_start();
 
-if ( !$_SESSION['format'] )
+if ( !$_SESSION['format'] || $_GET['format'] )
 {
 	$_SESSION['format'] = $format;
 	$_SESSION['cookies'] = $cookies;
@@ -168,14 +186,6 @@ if ( !$_SESSION['format'] )
 		setcookie( "format", $format );
 		setcookie( "cookies", $cookies );
 	}
-}
-elseif ( $_REQUEST['format'] )
-{
-	$_SESSION['format'] = $format;
-	if ( $cookies )
-	{
-	    setcookie( "format", $format );
-    }
 }
 
 require_once( "zm_$format.php" );

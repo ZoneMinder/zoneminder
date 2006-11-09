@@ -1461,13 +1461,14 @@ void Image::Scale( unsigned int factor )
 		unsigned int nwc = new_width*colours;
 		unsigned int h_count = ZM_SCALE_SCALE/2;
 		unsigned int last_h_index = 0;
+		unsigned int last_w_index = 0;
 		unsigned int h_index;
 		for ( int y = 0; y < height; y++ )
 		{
 			unsigned char *ps = &buffer[y*wc];
 			unsigned int w_count = ZM_SCALE_SCALE/2;
-			unsigned int last_w_index = 0;
 			unsigned int w_index;
+			last_w_index = 0;
 			for ( int x = 0; x < width; x++ )
 			{
 				w_count += factor;
@@ -1491,6 +1492,8 @@ void Image::Scale( unsigned int factor )
 			}
 			last_h_index = h_index;
 		}
+        new_width = last_w_index;
+        new_height = last_h_index;
 	}
 	else
 	{
@@ -1501,6 +1504,7 @@ void Image::Scale( unsigned int factor )
 		unsigned int ystart = factor/2;
 		unsigned int h_count = ystart;
 		unsigned int last_h_index = 0;
+		unsigned int last_w_index = 0;
 		unsigned int h_index;
 		for ( unsigned int y = 0; y < height; y++ )
 		{
@@ -1509,8 +1513,8 @@ void Image::Scale( unsigned int factor )
 			if ( h_index > last_h_index )
 			{
 				unsigned int w_count = xstart;
-				unsigned int last_w_index = 0;
 				unsigned int w_index;
+				last_w_index = 0;
 
 				unsigned char *ps = &buffer[y*wc];
 				for ( unsigned int x = 0; x < width; x++ )
@@ -1534,6 +1538,8 @@ void Image::Scale( unsigned int factor )
 			}
 			last_h_index = h_index;
 		}
+        new_width = last_w_index;
+        new_height = last_h_index;
 	}
 	width = new_width;
 	height = new_height;

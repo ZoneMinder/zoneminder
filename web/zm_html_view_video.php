@@ -81,7 +81,7 @@ if ( $dir = opendir( $event_dir ) )
 	closedir( $dir );
 }
 
-if ( isset($download) )
+if ( !empty($download) )
 {
 	header( "Content-disposition: attachment; filename=".$video_files[$download]."; size=".filesize($video_files[$download]) );
 	readfile( $video_files[$download] );

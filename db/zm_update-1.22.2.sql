@@ -18,6 +18,13 @@ update Filters set Background = 1 where (AutoArchive = 1 or AutoVideo = 1 or Aut
 alter table Monitors add column DefaultView enum ('Events','Control') not null default 'Events' after ReturnDelay;
 
 --
+-- Add device permissions column into Users, set the permissions  for existing users to
+-- be the same as for Monitors as a default
+--
+alter table Users add column Devices enum('None','View','Edit') NOT NULL default 'None' after Monitors;
+update Users set Devices = Monitors;
+
+--
 -- Create new preset labels table
 --
 CREATE TABLE `ControlPresets` (
@@ -25,6 +32,18 @@ CREATE TABLE `ControlPresets` (
   `Preset` int(10) unsigned NOT NULL default '0',
   `Label` varchar(64) NOT NULL default '',
   PRIMARY KEY  (`MonitorId`,`Preset`) 
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Create new devices table
+--
+CREATE TABLE `Devices` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` tinytext NOT NULL,
+  `Type` enum('X10') NOT NULL default 'X10',
+  `KeyString` varchar(32) NOT NULL default '',
+  PRIMARY KEY  (`Id`),
+  UNIQUE KEY `UC_Id` (`Id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --

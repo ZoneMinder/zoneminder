@@ -18,14 +18,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-$device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
-$device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
-
-// Allow for margins etc
-$device_width -= 4;
-$device_height -= 4;
-
-$images_per_line = 1;
+$images_per_line = 2;
 
 $sql = "select * from Groups where Name = 'Mobile'";
 $result = mysql_query( $sql );
@@ -71,10 +64,7 @@ mysql_free_result( $result );
 $count = 0;
 foreach( $monitors as $monitor )
 {
-    $width_scale = ($device_width*SCALE_BASE)/$monitor['Width'];
-    $height_scale = ($device_height*SCALE_BASE)/$monitor['Height'];
-    $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
-    $scale = (int)($scale/$images_per_line);
+    $scale = getDeviceScale( $monitor['Width'], $monitor['Height'], $images_per_line );
 
 	if ( $count%$images_per_line == 0 )
 	{

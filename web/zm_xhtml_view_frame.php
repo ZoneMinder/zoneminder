@@ -55,15 +55,7 @@ $prev_fid = $fid-1;
 $next_fid = $fid+1;
 $last_fid = $max_fid;
 
-$device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
-$device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
-// Allow for margins etc
-$device_width -= 16;
-$device_height -= 16;
-
-$width_scale = ($device_width*SCALE_BASE)/$event['Width'];
-$height_scale = ($device_height*SCALE_BASE)/$event['Height'];
-$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
+$scale = getDeviceScale( $event['Width'], $event['Height'] );
 
 $image_data = getImageSrc( $event, $frame, $scale, (isset($show)&&$show=="capt") );
 

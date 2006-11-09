@@ -36,16 +36,7 @@ $frame = mysql_fetch_assoc( $result );
 mysql_free_result( $result );
 $fid = $frame['FrameId'];
 
-$device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
-$device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
-// Allow for margins etc
-$device_width -= 16;
-$device_height -= 16;
-
-$width_scale = ($device_width*SCALE_BASE)/$event['Width'];
-$height_scale = ($device_height*SCALE_BASE)/$event['Height'];
-$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
-$scale /= 2;
+$scale = getDeviceScale( $event['Width'], $event['Height'], 2 );
 
 $image1 = getThumbnail( $event, 1, $scale );
 if ( $frame['Type'] == 'Alarm' )

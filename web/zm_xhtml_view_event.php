@@ -237,17 +237,7 @@ mysql_free_result( $result );
 ?>
 <table style="width: 100%">
 <?php
-$device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
-$device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
-
-// Allow for margins etc
-$device_width -= 16;
-$device_height -= 16;
-
-$width_scale = ($device_width*SCALE_BASE)/$event['Width'];
-$height_scale = ($device_height*SCALE_BASE)/$event['Height'];
-$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
-$scale /= $frames_per_line; // Try and get two pics per line
+$scale = getDeviceScale( $event['Width'], $event['Height'], $images_per_line );
 
 $count = 0;
 if ( version_compare( phpversion(), "4.3.10", ">=") )

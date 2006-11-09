@@ -42,10 +42,6 @@ mysql_free_result( $result );
 $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
 $device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
 
-// Allow for margins etc
-$device_width -= 4;
-$device_height -= 4;
-
 if ( $device_width >= 352 && $device_height >= 288 )
 {
 	$video_size = "352x288";

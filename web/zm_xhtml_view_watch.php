@@ -29,12 +29,6 @@ if ( !$result )
 $monitor = mysql_fetch_assoc( $result );
 mysql_free_result( $result );
 
-if ( !isset($scale) )
-	$scale = ZM_WEB_DEFAULT_SCALE;
-
-$width_scale = ($scale<SCALE_BASE)?SCALE_BASE:$scale;
-$height_scale = $scale;
-
 $zmu_command = getZmuCommand( " -m $mid -s -f" );
 $zmu_output = exec( escapeshellcmd( $zmu_command ) );
 list( $status, $fps ) = split( ' ', $zmu_output );
@@ -86,15 +80,7 @@ mysql_free_result( $result );
 $next_mid = $mon_idx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$mon_idx+1]['Id'];
 $prev_mid = $mon_idx==0?$mon_index[(count($monitors)-1)]['Id']:$monitors[$mon_idx-1]['Id'];
 
-$device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
-$device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
-// Allow for margins etc
-$device_width -= 4;
-$device_height -= 4;
-
-$width_scale = ($device_width*SCALE_BASE)/$monitor['Width'];
-$height_scale = ($device_height*SCALE_BASE)/$monitor['Height'];
-$scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
+$scale = getDeviceScale( $monitor['Width'], $monitor['Height'] );
 
 $image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
 ?>

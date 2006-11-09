@@ -18,8 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-define( 'DEVICE_WIDTH', 150 );							// Default device width for phones and handhelds
-define( 'DEVICE_HEIGHT', 150 );							// Default device height for phones and handhelds
+define( 'DEVICE_WIDTH', 320 );							// Default device width for phones and handhelds
+define( 'DEVICE_HEIGHT', 240 );							// Default device height for phones and handhelds
 define( 'DEVICE_LINES', 10 );							// Default device lines for phones and handhelds
 
 $rates = array(
@@ -53,4 +53,22 @@ switch ( $bandwidth )
 	}
 }
 
+function getDeviceScale( $width, $height, $divisor=1 )
+{
+    global $device;
+
+    $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
+    $device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;
+
+    // Allow for margins etc
+    $device_width -= 2;
+    $device_height -= 2;
+
+    $width_scale = ($device_width*SCALE_BASE)/$width;
+    $height_scale = ($device_height*SCALE_BASE)/$height;
+    $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
+    if ( divisor != 1 )
+        $scale = (int)($scale/$divisor);
+    return( $scale );
+}
 ?>

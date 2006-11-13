@@ -120,6 +120,9 @@ a:hover {
 input[disabled] {
 	color: #888888;
 }
+input[set] {
+	border: 1px #7F7FB2 dashed;
+}
 .textsmall {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size: 9px;

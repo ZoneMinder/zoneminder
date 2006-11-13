@@ -124,8 +124,8 @@ foreach( $devices as $device )
 ?>
 <tr bgcolor="#FFFFFF">
 <td align="left"><?= makeLink( "javascript:editDevice( ".$device['Id']." )", '<span class="'.$fclass.'">'.$device['Name'].' ('.$device['KeyString'].')</span>', canEdit( 'Devices' ) ) ?></td>
-<td align="center"><input type="button" class="form" value="<?= $zmSlangOn ?>" onClick="switchDeviceOn( '<?= $device['KeyString'] ?>' )"<?= ($device['Status'] != 'ON' && canEdit( 'Devices' ) )?"":" disabled" ?>></td>
-<td align="center"><input type="button" class="form" value="<?= $zmSlangOff ?>" onClick="switchDeviceOff( '<?= $device['KeyString'] ?>' )"<?= ($device['Status'] != 'OFF' && canEdit( 'Devices' ) )?"":" disabled" ?>></td>
+<td align="center"><input type="button" class="form" value="<?= $zmSlangOn ?>" onClick="switchDeviceOn( '<?= $device['KeyString'] ?>' )"<?= ($device['Status'] != 'ON' && canEdit( 'Devices' ) )?"":' set="set"' ?>></td>
+<td align="center"><input type="button" class="form" value="<?= $zmSlangOff ?>" onClick="switchDeviceOff( '<?= $device['KeyString'] ?>' )"<?= ($device['Status'] != 'OFF' && canEdit( 'Devices' ) )?"":' set="set"' ?>></td>
 <td align="center" class="text"><input type="checkbox" class="form" name="mark_dids[]" value="<?= $device['Id'] ?>" onClick="configureButtons( document.devices_form, 'mark_dids' );"<?php if ( !canEdit( 'Devices' ) ) {?> disabled<?php } ?>></td>
 </tr>
 <?php

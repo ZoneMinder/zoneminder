@@ -56,8 +56,8 @@ foreach( $devices as $device )
 ?>
 <tr>
 <td align="left" style="width: 60%"><span class="<?= $fclass ?>"><?= substr( $device['Name'], 0, 16 ) ?></span></td>
-<td align="center"><?= makeLink( $PHP_SELF."?view=".$view."&amp;action=device&amp;key=".$device['KeyString']."&amp;command=on", $zmSlangOn, $device['Status'] != 'ON' && canEdit( 'Devices' ) ) ?></td>
-<td align="center"><?= makeLink( $PHP_SELF."?view=".$view."&amp;action=device&amp;key=".$device['KeyString']."&amp;command=off", $zmSlangOff, $device['Status'] != 'OFF' && canEdit( 'Devices' ) ) ?></td>
+<td align="center"><?= makeLink( $PHP_SELF."?view=".$view."&amp;action=device&amp;key=".$device['KeyString']."&amp;command=on", $zmSlangOn, canEdit('Devices') ) ?></td>
+<td align="center"><?= makeLink( $PHP_SELF."?view=".$view."&amp;action=device&amp;key=".$device['KeyString']."&amp;command=off", $zmSlangOff, canEdit('Devices') ) ?></td>
 </tr>
 <?php
 }

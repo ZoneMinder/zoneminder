@@ -29,7 +29,7 @@ $group = mysql_fetch_assoc( $result );
 mysql_free_result( $result );
 
 $db_now = strftime( STRF_FMT_DATETIME_DB );
-$sql = "select M.*, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if((to_days(E.StartTime)=to_days('$db_now')) && E.Archived = 0,1,NULL)) as TodayEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Id";
+$sql = "select M.*, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if((to_days(E.StartTime)=to_days('$db_now')) && E.Archived = 0,1,NULL)) as TodayEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Sequence";
 $result = mysql_query( $sql );
 if ( !$result )
 	echo mysql_error();
@@ -76,7 +76,7 @@ mysql_free_result( $result );
 <td align="left"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>"><?= preg_match( '/%/', DATE_FMT_CONSOLE_SHORT )?strftime( DATE_FMT_CONSOLE_SHORT ):date( DATE_FMT_CONSOLE_SHORT ) ?></a></td><td align="center"><?= makeLink( "$PHP_SELF?view=state", $status, canEdit( 'System' ) ) ?></td><td align="right"><?= getLoad() ?>/<?= getDiskPercent() ?>%</td>
 </tr>
 </table>
-<table>
+<table style="width: 100%">
 <?php
 $hour_event_count = 0;
 $today_event_count = 0;

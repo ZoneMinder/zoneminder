@@ -61,6 +61,7 @@ use ZoneMinder;
 use DBI;
 #use Socket;
 use Data::Dumper;
+use POSIX qw( EINTR );
 use Time::HiRes qw( usleep );
 
 $| = 1;

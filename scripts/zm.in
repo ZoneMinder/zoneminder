@@ -1,15 +1,15 @@
 #!/bin/sh
-# description: Control ZoneMinder as a Service
+# description: ZoneMinder is the top Linux video camera security and surveillance solution. ZoneMinder is intended for use in single or multi-camera video security applications.Copyright: Philip Coombes, Corey DeLasaux 2003-2006
 # chkconfig: 2345 99 00
+# processname: zmpkg.pl
 
 # Source function library.
 . /etc/rc.d/init.d/functions
 
 prog=ZoneMinder
-ZM_VERSION="@VERSION@"
-ZM_PATH_BIN="@BINDIR@"
-ZM_CONFIG="@SYSCONFDIR@/zm.conf"
-command="$ZM_PATH_BIN/zmpkg.pl"
+ZM_CONFIG="@ZM_CONFIG@"
+pidfile="@ZM_RUNDIR@"
+LOCKFILE=/var/lock/subsys/zm
 
 loadconf()
 {
@@ -21,151 +21,64 @@ loadconf()
 	fi
 }
 
-# Check for old config and update if needed
-checkcfg()
-{
-	# Check config
-	if [ "$ZM_DB_HOST" = "" -o "$ZM_DB_NAME" = "" -o "$ZM_DB_USER" = "" -o "$ZM_DB_PASS" = "" ]; then
-		if [ "$ZM_DB_SERVER" != "" -a "$ZM_DB_NAME" != "" -a "$ZM_DB_USERA" != "" -a "$ZM_DB_PASSA" != "" ]; then
-			echo -n "Converting $ZM_CONFIG"
-			cp $ZM_CONFIG $ZM_CONFIG.old && \
-			cat $ZM_CONFIG.old | \
-				grep -v ZM_DB_USERB | \
-				grep -v ZM_DB_PASSB | \
-				sed -e 's/ZM_DB_USERA/ZM_DB_USER/' | \
-				sed -e 's/ZM_DB_PASSA/ZM_DB_PASS/' >$ZM_CONFIG && \
-			rm -f $ZM_CONFIG.old
-			RETVAL=$?
-			[ $RETVAL = 0 ] && echo_success
-			[ $RETVAL != 0 ] && echo_failure
-			echo
-		fi
-		if [ "$ZM_DB_SERVER" != "" -a "$ZM_DB_NAME" != "" -a "$ZM_DB_USER" != "" -a "$ZM_DB_PASS" != "" ]; then
-			echo -n "Converting $ZM_CONFIG to 1.22.0"
-			cp $ZM_CONFIG $ZM_CONFIG.old
-			rm -f $ZM_CONFIG
-			cat $ZM_CONFIG.old | \
-			sed -e 's/ZM_DB_SERVER/ZM_DB_HOST/' >/tmp/$$
-			. /tmp/$$
-			cp $ZM_CONFIG.rpmnew $ZM_CONFIG && chmod 644 $ZM_CONFIG
-			for n in ZM_DB_HOST ZM_DB_NAME ZM_DB_USER ZM_DB_PASS; do
-				eval "val=\$$n"
-				if [ "$val" != "" ]; then
-				cp $ZM_CONFIG /tmp/$$.rpmnew &&
-				sed 's/^'$n='.*$/'$n=$val'/g' /tmp/$$.rpmnew >$ZM_CONFIG
-				fi
-			done
-			rm /tmp/$$ 
-			RETVAL=$?
-			[ $RETVAL = 0 ] && echo_success
-			[ $RETVAL != 0 ] && echo_failure
-			echo
-		else
-			echo "In $ZM_CONFIG there should not be null values."
-			return 1
-		fi
-	loadconf
-	fi
-}
-
-checkdb()
-{
-	# Check database exisits and version
-	GetVer="select Value from Config where Name='ZM_DYN_DB_VERSION'"
-	OLD_VERSION=`echo $GetVer | mysql -B -h $ZM_DB_HOST -u $ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME | grep -v '^Value'`
-	if [ "$OLD_VERSION" = "" ]; then
-		GetVer="select Value from Config where Name='ZM_DYN_CURR_VERSION'"
-		OLD_VERSION=`echo $GetVer | mysql -B -h $ZM_DB_HOST -u $ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME | grep -v '^Value'`
-		if [ "$OLD_VERSION" = "" ]; then
-			echo -n "You must run zmupdate.pl manualy"
-			return 1
-		fi	
-	fi
-	RETVAL=$?
-	
-	if [ $RETVAL != 0 ]; then
-		tbls=`mysql -h $ZM_DB_HOST -u $ZM_DB_USER -p$ZM_DB_PASS -s -e 'show tables' $ZM_DB_NAME`
-		RETVAL=$?
-		if [ $RETVAL = 0 ]; then
-			echo -n "Initialize $prog database: "
-			echo tbls | grep Config >/dev/null 2>&1
-			RETVAL=$?
-			if [ $RETVAL != 0 ]; then
-				mysql -B -h $ZM_DB_HOST -u $ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME < $ZM_PATH_UPDATE/zm_create.sql 
-				RETVAL=$?
-				[ $RETVAL = 0 ] && echo_success
-				[ $RETVAL != 0 ] && echo_failure
-				echo
-				return $RETVAL
-			fi
-			( cd $ZM_PATH_UPDATE; perl $ZM_PATH_BIN/zmupdate.pl -f )
-			RETVAL=$?
-			[ $RETVAL = 0 ] && echo_success
-			[ $RETVAL != 0 ] && echo_failure
-			echo
-			return $RETVAL
-		else
-			echo "No access to ZoneMinder database. Run $ZM_PATH_BIN/zminit manually."
-			return $RETVAL
-		fi
-	else
-		[ "$ZM_VERSION" = "$OLD_VERSION" ] && return 0
-		echo -n "Upgrade $prog database: "
-		$ZM_PATH_BIN/zmupdate.pl --version=$OLD_VERSION --noi && ( cd $ZM_PATH_UPDATE; perl $ZM_PATH_BIN/zmupdate.pl -f )
-		RETVAL=$?
-		[ $RETVAL = 0 ] && echo_success
-		[ $RETVAL != 0 ] && echo_failure
-		echo
-		return $RETVAL
-	fi
-}
+loadconf
+command="$ZM_PATH_BIN/zmpkg.pl"
 
 start()
 {
+	zmupdate || return $?
 	loadconf || return $?
-	checkcfg || return $?
-	checkdb || return $?
-	/usr/local/sbin/motd.sh > /etc/motd
-	echo -n "Starting $prog: "
-	[ ! -d @ZM_RUNDIR@ ] \
-		&& mkdir -m 774 @ZM_RUNDIR@ \
-		&& chown $ZM_WEB_USER:$ZM_WEB_GROUP @ZM_RUNDIR@
+	#Make sure the directory for our PID folder exists or create one.
+	[ ! -d /var/run/zm ] \
+		&& mkdir -m 774 $pidfile \
+		&& chown $ZM_WEB_USER:$ZM_WEB_GROUP $pidfile
+	#Make sure the folder for the socks file exists or create one
 	GetPath="select Value from Config where Name='ZM_PATH_SOCKS'"
 	ZM_PATH_SOCK=`echo $GetPath | mysql -B -h $ZM_DB_HOST -u $ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME | grep -v '^Value'`
 	[ ! -d $ZM_PATH_SOCK ] \
 		&& mkdir -m 774 $ZM_PATH_SOCK \
-		&&chown $ZM_WEB_USER:$ZM_WEB_GROUP $ZM_PATH_SOCK
+		&& chown $ZM_WEB_USER:$ZM_WEB_GROUP $ZM_PATH_SOCK
+	echo -n $"Starting $prog: "
 	$command start
 	RETVAL=$?
-	[ $RETVAL = 0 ] && echo_success
-	[ $RETVAL != 0 ] && echo_failure
+	[ $RETVAL = 0 ] && success || failure
 	echo
-	[ $RETVAL = 0 ] && touch /var/lock/subsys/zm
+	[ $RETVAL = 0 ] && touch $LOCKFILE
 	return $RETVAL
 }
 
 stop()
 {
+	loadconf
 	echo -n $"Stopping $prog: "
 	$command stop
 	RETVAL=$?
-	[ $RETVAL = 0 ] && echo_success
-	[ $RETVAL != 0 ] && echo_failure
+	[ $RETVAL = 0 ] && success || failure
 	echo
-	[ $RETVAL = 0 ] && rm -f /var/lock/subsys/zm
+	[ $RETVAL = 0 ] && rm -f $LOCKFILE
 }
 
-status()
+zmstatus()
 {
+	loadconf
 	result=`$command status`
 	if [ "$result" = "running" ]; then
 		echo "ZoneMinder is running"
+		$ZM_PATH_BIN/zmu -l
 		RETVAL=0
 	else
 		echo "ZoneMinder is stopped"
 		RETVAL=1
 	fi
 }
+
+zmupdate()
+{
+	if [ -x $ZM_PATH_BIN/zm_update ]; then
+		$ZM_PATH_BIN/zm_update noi
+	fi
+}
+
 
 case "$1" in
 	'start')
@@ -180,15 +93,17 @@ case "$1" in
 		;;
 	'condrestart')
 		loadconf
-		checkcfg
 		result=`$ZM_PATH_BIN/zmdc.pl check`
 		if [ "$result" = "running" ]; then
 			$ZM_PATH_BIN/zmdc.pl shutdown > /dev/null
+			rm -f $LOCKFILE
 			start
 		fi
 		;;
 	'status')
-		status
+		status httpd
+		status mysqld
+		zmstatus
 		;;
 	*)
 		echo "Usage: $0 { start | stop | restart | condrestart | status }"

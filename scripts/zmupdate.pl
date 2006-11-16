@@ -320,7 +320,7 @@ if ( $version )
 				$command .= " -p".$db_pass;
 			}
 		}
-		$command .= " ".ZM_DB_NAME." < ".ZM_PATH_UPDATE."/zm_update-".$version.".sql";
+		$command .= " ".ZM_DB_NAME." < ".ZM_PATH_BUILD."/db/zm_update-".$version.".sql";
 
 		print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
 		my $output = qx($command);

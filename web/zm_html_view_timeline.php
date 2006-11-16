@@ -781,7 +781,7 @@ function getSlotLoadImageBehaviour( $slot )
 		"<br>".strftime( STRF_FMT_DATETIME_SHORT, strtotime($slot['event']['StartTime']) ).
 		" - ".$slot['event']['Length']."s".
 		"<br>".htmlentities($slot['event']['Cause']).
-		(!empty($slot['event']['Notes'])?("<br>".htmlentities($slot['event']['Notes'])):"").
+		(!empty($slot['event']['Notes'])?("<br>".preg_replace( "/\n/", "<br>", htmlentities($slot['event']['Notes']))):"").
 		(!empty($slot['event']['Archived'])?("<br>".$zmSlangArchived):"");
 	if ( $slot['event']['Archived'] )
 		$annotation .= "</em>";
@@ -941,14 +941,13 @@ function zoomTimeline( min_time, max_time )
 	top: 0px;
 	left: 50%;
 	width: 40%;
-	height: 60px;
+	height: 90px;
 	padding: 0px;
 	margin: auto;
-	line-height: 16px;
 	color: #016A9D;
 	font-size: 11px;
 	font-weight: bold;
-	line-height: 20px;
+	line-height: 14px;
 	background-color: #f8f8f8;
 }
 #ChartBox #TopPanel #Key {

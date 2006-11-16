@@ -781,142 +781,122 @@ Image *Image::Delta( const Image &image ) const
 	return( result );
 }
 
-void Image::Annotate( const char *p_text, const Coord &coord, const Rgb colour )
+void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colour, const Rgb bg_colour )
 {
 	strncpy( text, p_text, sizeof(text) );
 
+    int index = 0;
+    int line_no = 0;
 	int text_len = strlen( text );
-	int text_width = text_len * CHAR_WIDTH;
-	int text_height = CHAR_HEIGHT;
+    int line_len = 0;
+    const char *line = text;
+    int line_height = CHAR_HEIGHT;
 
-	int lo_text_x = coord.X();
-	int lo_text_y = coord.Y();
+    char fg_r_col = RGB_RED_VAL(fg_colour);
+    char fg_g_col = RGB_GREEN_VAL(fg_colour);
+    char fg_b_col = RGB_BLUE_VAL(fg_colour);
+    char fg_bw_col = (fg_r_col+fg_g_col+fg_b_col)/3;
+    bool fg_trans = (fg_colour == RGB_TRANSPARENT);
+    char bg_r_col = RGB_RED_VAL(bg_colour);
+    char bg_g_col = RGB_GREEN_VAL(bg_colour);
+    char bg_b_col = RGB_BLUE_VAL(bg_colour);
+    char bg_bw_col = (bg_r_col+bg_g_col+bg_b_col)/3;
+    bool bg_trans = (bg_colour == RGB_TRANSPARENT);
 
-	int min_text_x = 0;
-	int max_text_x = width - text_width;
-	int min_text_y = 0;
-	int max_text_y = height - text_height;
+    while ( (index < text_len) && (line_len = strcspn( line, "\n" )) )
+    {
+        int line_width = line_len * CHAR_WIDTH;
 
-	if ( lo_text_x > max_text_x )
-		lo_text_x = max_text_x;
-	if ( lo_text_x < min_text_x )
-		lo_text_x = min_text_x;
-	if ( lo_text_y > max_text_y )
-		lo_text_y = max_text_y;
-	if ( lo_text_y < min_text_y )
-		lo_text_y = min_text_y;
+        int lo_line_x = coord.X();
+        int lo_line_y = coord.Y() + (line_no * LINE_HEIGHT);
 
-	int hi_text_x = lo_text_x + text_width;
-	int hi_text_y = lo_text_y + text_height;
+        int min_line_x = 0;
+        int max_line_x = width - line_width;
+        int min_line_y = 0;
+        int max_line_y = height - line_height;
 
-	if ( hi_text_x > width )
-		hi_text_x = width;
-	if ( hi_text_y > height )
-		hi_text_y = height;
+        if ( lo_line_x > max_line_x )
+            lo_line_x = max_line_x;
+        if ( lo_line_x < min_line_x )
+            lo_line_x = min_line_x;
+        if ( lo_line_y > max_line_y )
+            lo_line_y = max_line_y;
+        if ( lo_line_y < min_line_y )
+            lo_line_y = min_line_y;
 
-	int wc = width * colours;
+        int hi_line_x = lo_line_x + line_width;
+        int hi_line_y = lo_line_y + line_height;
 
-	unsigned char *ptr = &buffer[((lo_text_y*width)+lo_text_x)*colours];
-	for ( int y = lo_text_y, r = 0; y < hi_text_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
-	{
-		unsigned char *temp_ptr = ptr;
-		for ( int x = lo_text_x, c = 0; x < hi_text_x && c < text_len; c++ )
-		{
-			int f = fontdata[(text[c] * CHAR_HEIGHT) + r];
-			for ( int i = 0; i < CHAR_WIDTH && x < hi_text_x; i++, x++, temp_ptr += colours )
-			{
-				if ( f & (0x80 >> i) )
-				{
-					RED(temp_ptr) = RGB_VAL(colour,0);
-					GREEN(temp_ptr) = RGB_VAL(colour,1);
-					BLUE(temp_ptr) = RGB_VAL(colour,2);
-				}
-			}
-		}
-	}
-}
+        // Clip anything that runs off the right of the screen
+        if ( hi_line_x > width )
+            hi_line_x = width;
+        if ( hi_line_y > height )
+            hi_line_y = height;
 
-void Image::Annotate( const char *p_text, const Coord &coord )
-{
-	strncpy( text, p_text, sizeof(text) );
+        if ( colours == 1 )
+        {
+            unsigned char *ptr = &buffer[(lo_line_y*width)+lo_line_x];
+            for ( int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += width )
+            {
+                unsigned char *temp_ptr = ptr;
+                for ( int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
+                {
+                    int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
+                    for ( int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
+                    {
+                        if ( f & (0x80 >> i) )
+                        {
+                            if ( !fg_trans )
+                                *temp_ptr = fg_bw_col;
+                        }
+                        else if ( !bg_trans )
+                        {
+                            *temp_ptr = bg_bw_col;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            int wc = width * colours;
 
-	int text_len = strlen( text );
-	int text_width = text_len * CHAR_WIDTH;
-	int text_height = CHAR_HEIGHT;
-
-	int lo_text_x = coord.X();
-	int lo_text_y = coord.Y();
-
-	int min_text_x = 0;
-	int max_text_x = width - text_width;
-	int min_text_y = 0;
-	int max_text_y = height - text_height;
-
-	if ( lo_text_x > max_text_x )
-		lo_text_x = max_text_x;
-	if ( lo_text_x < min_text_x )
-		lo_text_x = min_text_x;
-	if ( lo_text_y > max_text_y )
-		lo_text_y = max_text_y;
-	if ( lo_text_y < min_text_y )
-		lo_text_y = min_text_y;
-
-	int hi_text_x = lo_text_x + text_width;
-	int hi_text_y = lo_text_y + text_height;
-
-	if ( hi_text_x > width )
-		hi_text_x = width;
-	if ( hi_text_y > height )
-		hi_text_y = height;
-
-	if ( colours == 1 )
-	{
-		unsigned char *ptr = &buffer[(lo_text_y*width)+lo_text_x];
-		for ( int y = lo_text_y, r = 0; y < hi_text_y && r < CHAR_HEIGHT; y++, r++, ptr += width )
-		{
-			unsigned char *temp_ptr = ptr;
-			for ( int x = lo_text_x, c = 0; x < hi_text_x && c < text_len; c++ )
-			{
-				int f = fontdata[(text[c] * CHAR_HEIGHT) + r];
-				for ( int i = 0; i < CHAR_WIDTH && x < hi_text_x; i++, x++, temp_ptr++ )
-				{
-					if ( f & (0x80 >> i) )
-					{
-						*temp_ptr = WHITE;
-					}
-					else
-					{
-						*temp_ptr = BLACK;
-					}
-				}
-			}
-		}
-	}
-	else
-	{
-		int wc = width * colours;
-
-		unsigned char *ptr = &buffer[((lo_text_y*width)+lo_text_x)*colours];
-		for ( int y = lo_text_y, r = 0; y < hi_text_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
-		{
-			unsigned char *temp_ptr = ptr;
-			for ( int x = lo_text_x, c = 0; x < hi_text_x && c < text_len; c++ )
-			{
-				int f = fontdata[(text[c] * CHAR_HEIGHT) + r];
-				for ( int i = 0; i < CHAR_WIDTH && x < hi_text_x; i++, x++, temp_ptr += colours )
-				{
-					if ( f & (0x80 >> i) )
-					{
-						RED(temp_ptr) = GREEN(temp_ptr) = BLUE(temp_ptr) = WHITE;
-					}
-					else
-					{
-						RED(temp_ptr) = GREEN(temp_ptr) = BLUE(temp_ptr) = BLACK;
-					}
-				}
-			}
-		}
-	}
+            unsigned char *ptr = &buffer[((lo_line_y*width)+lo_line_x)*colours];
+            for ( int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
+            {
+                unsigned char *temp_ptr = ptr;
+                for ( int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
+                {
+                    int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
+                    for ( int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr += colours )
+                    {
+                        if ( f & (0x80 >> i) )
+                        {
+                            if ( !fg_trans )
+                            {
+					            RED(temp_ptr) = fg_r_col;
+					            GREEN(temp_ptr) = fg_g_col;
+					            BLUE(temp_ptr) = fg_b_col;
+                            }
+                        }
+                        else if ( !bg_trans )
+                        {
+					        RED(temp_ptr) = bg_r_col;
+					        GREEN(temp_ptr) = bg_g_col;
+					        BLUE(temp_ptr) = bg_b_col;
+                        }
+                    }
+                }
+            }
+        }
+        index += line_len;
+        while ( text[index] == '\n' )
+        {
+            index++;
+        }
+        line = text+index;
+        line_no++;
+    }
 }
 
 void Image::Timestamp( const char *label, const time_t when, const Coord &coord )

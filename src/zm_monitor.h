@@ -104,7 +104,7 @@ protected:
 		int trigger_score;
 		char trigger_cause[32];
 		char trigger_text[256];
-		char trigger_showtext[32];
+		char trigger_showtext[256];
 	} TriggerData;
 
 	typedef struct Snapshot

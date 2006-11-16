@@ -217,6 +217,24 @@ Monitor::Monitor(
 	strncpy( event_prefix, p_event_prefix, sizeof(event_prefix) );
 	strncpy( label_format, p_label_format, sizeof(label_format) );
 
+    // Change \n to actual line feeds
+    char *token_ptr = label_format;
+    const char *token_string = "\n";
+    while( token_ptr = strstr( token_ptr, token_string ) )
+    {
+        if ( *(token_ptr+1) )
+        {
+            *token_ptr = '\n';
+            token_ptr++;
+            strcpy( token_ptr, token_ptr+1 );
+        }
+        else
+        {
+            *token_ptr = '\0';
+            break;
+        }
+    }
+
 	fps = 0.0;
 	event_count = 0;
 	image_count = 0;
@@ -1279,6 +1297,16 @@ bool Monitor::Analyse()
 				}
 			}
 		}
+        else
+        {
+            if ( event )
+            {
+                Info(( "Closed event" ));
+                closeEvent();
+            }
+            shared_data->state = state = IDLE;
+            last_section_mod = 0;
+        }
 		if ( !signal_change && (function == MODECT || function == MOCORD) && (config.blend_alarmed_images || state != ALARM) )
 		{
 			ref_image.Blend( *snap_image, ref_blend_perc );

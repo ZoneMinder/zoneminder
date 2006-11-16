@@ -46,6 +46,7 @@ class Image
 {
 protected:
 	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 };
+    enum { LINE_HEIGHT=CHAR_HEIGHT+0 };
 	typedef unsigned char BlendTable[256][256];
 	typedef BlendTable *BlendTablePtr;
 
@@ -90,7 +91,7 @@ protected:
 	int size;
 	JSAMPLE *buffer;
 	bool our_buffer;
-	char text[256];
+	char text[1024];
 
 protected:
 	mutable unsigned int *blend_buffer;
@@ -257,8 +258,7 @@ public:
 	static Image *Highlight( int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
 	Image *Delta( const Image &image ) const;
 
-	void Annotate( const char *p_text, const Coord &coord, const Rgb colour );
-	void Annotate( const char *p_text, const Coord &coord );
+	void Annotate( const char *p_text, const Coord &coord,  const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
 	Image *HighlightEdges( Rgb colour, const Box *limits=0 );
 	//Image *HighlightEdges( Rgb colour, const Polygon &polygon );
 	void Timestamp( const char *label, const time_t when, const Coord &coord );

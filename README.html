@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=iso-8859-1">
 <meta name=Generator content="Microsoft Word 10 (filtered)">
-<title>ZoneMinder v1.22.2</title>
+<title>ZoneMinder v1.22.3</title>
 
 <style>
 <!--
@@ -260,7 +260,7 @@ ul
 uppercase'>ZoneMinder</span></u></p>
 
 <p class=MsoTitle><u><span style='font-size:36.0pt;color:#3366CC;text-transform:
-uppercase'>v1.22.2</span></u></p>
+uppercase'>v1.22.3</span></u></p>
 
 <p class=MsoNormal align=center style='text-align:center'>&nbsp;</p>
 
@@ -306,336 +306,341 @@ style='page-break-before:always'>
 
 <p class=ContentsHeading><u>Contents</u></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335135">1.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468562">1.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>     </span>Introduction<span
 style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>4</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335136">2.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468563">2.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>     </span>Requirements<span
 style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>5</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335137">3.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468564">3.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>     </span>Components<span
 style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>6</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335138">4.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468565">4.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>     </span>Building<span
 style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>9</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335139">5.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468566">5.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>     </span>Installation<span
 style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>10</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335140">6.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468567">6.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>     </span>Upgrading<span
 style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>12</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335141">7.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468568">7.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>     </span>Installing
 from RPM<span style='color:windowtext;display:none;text-decoration:none'>.. </span><span
 style='color:windowtext;display:none;text-decoration:none'>13</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335142">8.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468569">8.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>     </span>Tutorial<span
 style='color:windowtext;display:none;text-decoration:none'> </span><span
 style='color:windowtext;display:none;text-decoration:none'>14</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335143">8.1.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468570">8.1.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Defining Monitors<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>14</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335144">8.2.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468571">8.2.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Defining Zones<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>20</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335145">8.3.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468572">8.3.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Viewing Monitors<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>23</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335146">8.4.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468573">8.4.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Controlling Monitors<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>24</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335147">8.5.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468574">8.5.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Filtering Events<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>24</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335148">8.6.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468575">8.6.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Viewing Events<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>26</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335149">8.7.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468576">8.7.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Options and Users<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>27</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335150">9.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468577">9.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>     </span>Camera
 Control<span style='color:windowtext;display:none;text-decoration:none'> </span><span
 style='color:windowtext;display:none;text-decoration:none'>29</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335151">9.1.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468578">9.1.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Control Capabilities<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>29</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335152">9.2.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468579">9.2.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Control Scripts<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>31</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335153">10.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468580">10.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>Mobile
 Devices<span style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>33</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335154">11.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468581">11.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>Logging<span
 style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>34</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335155">12.<span
-style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>Troubleshooting<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468582">Troubleshooting<span
 style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>36</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335156">13.<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468583">12.<span
 style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>Change
 Log<span style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>39</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335157">13.1.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468584">12.1.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
-text-decoration:none'>       </span>Release 1.22.2<span style='color:windowtext;
+text-decoration:none'>       </span>Release 1.22.3<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>39</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335158">13.2.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468585">12.2.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
-text-decoration:none'>       </span>Release 1.22.1<span style='color:windowtext;
+text-decoration:none'>       </span>Release 1.22.2<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>40</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335159">13.3.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468586">12.3.<span
+style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
+text-decoration:none'>       </span>Release 1.22.1<span style='color:windowtext;
+display:none;text-decoration:none'>. </span><span
+style='color:windowtext;display:none;text-decoration:none'>41</span></a></span></p>
+
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468587">12.4.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>       </span>Release 1.22.0<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>42</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>43</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335160">13.4.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468588">12.5.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>       </span>Release 1.21.4<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>45</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>46</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335161">13.5.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468589">12.6.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>       </span>Release 1.21.3<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>47</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>48</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335162">13.6.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468590">12.7.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>       </span>Release 1.21.2<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>48</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>49</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335163">13.7.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468591">12.8.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>       </span>Release 1.21.1<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>48</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>49</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335164">13.8.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468592">12.9.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>       </span>Release 1.21.0<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>50</span></a></span></p>
-
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335165">13.9.<span
-style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
-text-decoration:none'>       </span>Release 1.20.1<span style='color:windowtext;
-display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>51</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335166">13.10.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468593">12.10.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
-text-decoration:none'>     </span>Release 1.20.0<span style='color:windowtext;
+text-decoration:none'>     </span>Release 1.20.1<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>52</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335167">13.11.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468594">12.11.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
-text-decoration:none'>     </span>Release 1.19.5<span style='color:windowtext;
+text-decoration:none'>     </span>Release 1.20.0<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>53</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335168">13.12.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468595">12.12.<span
+style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
+text-decoration:none'>     </span>Release 1.19.5<span style='color:windowtext;
+display:none;text-decoration:none'>. </span><span
+style='color:windowtext;display:none;text-decoration:none'>54</span></a></span></p>
+
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468596">12.13.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 1.19.4<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>54</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>55</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335169">13.13.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468597">12.14.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 1.19.3<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>54</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>55</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335170">13.14.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468598">12.15.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 1.19.2<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>55</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>56</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335171">13.15.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468599">12.16.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 1.19.1<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>56</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>57</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335172">13.16.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468600">12.17.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 1.19.0<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>57</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>58</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335173">13.17.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468601">12.18.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 1.18.1<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>58</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>59</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335174">13.18.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468602">12.19.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 1.18.0<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>58</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>60</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335175">13.19.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468603">12.20.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 1.17.2<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>60</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>61</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335176">13.20.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468604">12.21.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 1.17.1<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>61</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>62</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335177">13.21.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468605">12.22.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 1.17.0<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>61</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>62</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335178">13.22.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468606">12.23.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.9.16<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>62</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>63</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335179">13.23.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468607">12.24.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.9.15<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>63</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>64</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335180">13.24.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468608">12.25.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.9.14<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>64</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>65</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335181">13.25.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468609">12.26.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.9.13<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>64</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>66</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335182">13.26.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468610">12.27.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.9.12<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>65</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>66</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335183">13.27.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468611">12.28.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.9.11<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>66</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>67</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335184">13.28.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468612">12.29.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.9.10<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>67</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>68</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335185">13.29.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468613">12.30.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.9.9<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>68</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>69</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335186">13.30.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468614">12.31.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.9.8<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>69</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>70</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335187">13.31.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468615">12.32.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.9.7<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>70</span></a></span></p>
+style='color:windowtext;display:none;text-decoration:none'>71</span></a></span></p>
 
-<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc136335188">13.32.<span
+<p class=MsoToc2><span class=MsoHyperlink><a href="#_Toc151468616">12.33.<span
 style='font-size:12.0pt;font-family:"Times New Roman";color:windowtext;
 text-decoration:none'>     </span>Release 0.0.1<span style='color:windowtext;
 display:none;text-decoration:none'>. </span><span
-style='color:windowtext;display:none;text-decoration:none'>71</span></a></span></p>
-
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335189">14.<span
-style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>To
-Do<span style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>72</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335190">15.<span
-style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>Bugs<span
-style='color:windowtext;display:none;text-decoration:none'>. </span><span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468617">13.<span
+style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>To
+Do<span style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>73</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335191">16.<span
-style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>Non-Bugs<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468618">14.<span
+style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>Bugs<span
 style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>74</span></a></span></p>
 
-<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc136335192">17.<span
-style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>License<span
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468619">15.<span
+style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>Non-Bugs<span
 style='color:windowtext;display:none;text-decoration:none'>. </span><span
 style='color:windowtext;display:none;text-decoration:none'>75</span></a></span></p>
+
+<p class=MsoToc1><span class=MsoHyperlink><a href="#_Toc151468620">16.<span
+style='font-family:"Times New Roman";color:windowtext;text-decoration:none'>       </span>License<span
+style='color:windowtext;display:none;text-decoration:none'>. </span><span
+style='color:windowtext;display:none;text-decoration:none'>76</span></a></span></p>
 
 <p class=MsoNormal align=center style='text-align:center'>&nbsp;</p>
 
@@ -643,7 +648,7 @@ style='color:windowtext;display:none;text-decoration:none'>75</span></a></span><
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335135"><span style='text-decoration:none'>1.<span
+<h1><a name="_Toc151468562"><span style='text-decoration:none'>1.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Int</u></a><a
 name="_Toc124931625"><u>roduction</u></a></h1>
 
@@ -704,7 +709,7 @@ protect your property.</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335136"></a><a name="_Toc124931626"><span style='text-decoration:
+<h1><a name="_Toc151468563"></a><a name="_Toc124931626"><span style='text-decoration:
 none'>2.<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span><u>Requirements</u></a></h1>
 
@@ -751,20 +756,19 @@ if you have compatible plugins.</p>
 video and USB cameras with the V4L interface. It will also work with most
 Network or IP cameras. I don't have a lot of cameras myself so I've not had
 change to test it with a huge range personally however there is a list of
-devices that are definitely known to work on the web site. Please let me know
-if your camera works and is not listed. You do need to have Video4Linux
-installed. I've not got too many machines so I've only really used it on
-various RedHat/Fedora distributions, which seem to have everything there by
-default I think. SlackWare does need a bit more tinkering than other
-distributions; there is a document on the web site describing what users have
-had to do to get it working. Please give me feedback on other distributions not
-listed on the site.</p>
+devices that are definitely known to work on the web site. Please enter you
+camera on the Wiki list on zoneminder.com if your camera works and is not
+listed. You do need to have Video4Linux installed. In terms of computer
+hardware, there are no hard and fast requirements. You may get a system that
+works with one or two cameras going on an old P200 but you will be able to
+support more cameras, at a higher frame rate, with faster machines with more
+RAM. More guidance is available on the web forums. </p>
 
 <b><u><span style='font-size:14.0pt;font-family:Arial'><br clear=all
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="DDE_LINK2"></a><a name="_Toc136335137"><span style='text-decoration:
+<h1><a name="DDE_LINK2"></a><a name="_Toc151468564"><span style='text-decoration:
 none'>3.<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span><u>Components</u></a></h1>
 
@@ -807,14 +811,15 @@ configuration.</p>
 <p class=MsoPlainText><b>zmu</b> &#8211; This is the ZoneMinder Utility. It's
 basically a handy command line interface to several useful functions.
 It&#8217;s not really meant to be used by anyone except the web page (there's
-only limited 'help' in it so far) but can be if necessary, especially for
-debugging video problems.</p>
+only limited 'help' in it so far) but can be if necessary, especially for debugging
+video problems.</p>
 
 <p class=MsoPlainText><b>zmfix</b> &#8211; This is a small binary that exists
-only to ensure that the video device files can be read by the main capture daemons.
-It is often the case that these device files are set to be accessible by root
-only on boot. This binary runs setuid and ensures that they have appropriate
-permissions. This is not a daemon and runs only on system start and then exits.</p>
+only to ensure that the video device files can be read by the main capture
+daemons. It is often the case that these device files are set to be accessible
+by root only on boot. This binary runs setuid and ensures that they have
+appropriate permissions. This is not a daemon and runs only on system start and
+then exits.</p>
 
 <p class=MsoPlainText>As well as this there are the web PHP files in the web
 directory and some perl scripts in the scripts directory. These scripts all
@@ -838,8 +843,8 @@ party server.</p>
 
 <p class=MsoPlainText><b>zmaudit.pl</b> &#8211; This script is used to check
 the consistency of the event file system and database. It can delete orphaned
-events, i.e. ones that appear in one location and not the other as well as
-checking that all the various event related tables are in line. It can be run
+events, i.e. ones that appear in one location and not the other as well as checking
+that all the various event related tables are in line. It can be run
 interactively or in batch mode either from the command line or a cron job or
 similar. In the zmconfig.pl there is an option to specify fast event deletes
 where the web interface only deletes the event entry from the database itself.
@@ -867,8 +872,8 @@ interface with an alarm system either by the generation of X10 signals on
 ZoneMinder events or by initiating ZoneMinder monitoring and capture on receipt
 of X10 signals from elsewhere, for instance the triggering of an X10 PIR. For
 example I have several cameras that don&#8217;t do motion detection until I arm
-my alarm system whereupon they switch to active mode when an X10 signal is generated
-by the alarm system and received by ZoneMinder.</p>
+my alarm system whereupon they switch to active mode when an X10 signal is
+generated by the alarm system and received by ZoneMinder.</p>
 
 <p class=MsoPlainText><b>zmtrigger.pl</b> &#8211; This is an optional script
 that is a more generic solution to external triggering of alarms. It can handle
@@ -1000,7 +1005,7 @@ welcomed and included in future versions of ZoneMinder.</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335138"></a><a name="_Ref124947586"><span style='text-decoration:
+<h1><a name="_Toc151468565"></a><a name="_Ref124947586"><span style='text-decoration:
 none'>4.<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span><u>Building</u></a></h1>
 
@@ -1025,10 +1030,10 @@ database password of &#8216;zmnewpass&#8217; do</p>
 <p class=Command>./configure --with-webdir=&lt;your web directory&gt;
 --with-cgidir=&lt;your cgi directory&gt; ZM_DB_PASS=zmnewpass</p>
 
-<p class=MsoPlainText>and so on. The values you can use are ZM_DB_HOST, ZM_DB_NAME,
-ZM_DB_USER and ZM_DB_PASS. Other than the database name, which is substituted
-into the database creation script, these values can easily be changed after
-this step.</p>
+<p class=MsoPlainText>and so on. The values you can use are ZM_DB_HOST,
+ZM_DB_NAME, ZM_DB_USER and ZM_DB_PASS. Other than the database name, which is
+substituted into the database creation script, these values can easily be
+changed after this step.</p>
 
 <p class=MsoPlainText>If the script cannot find your MySQL installation, for
 instance if it is installed in an unusual location, then --<i>with-mysql</i>
@@ -1082,7 +1087,7 @@ rerun make to complete the build.</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335139"><span style='text-decoration:none'>5.<span
+<h1><a name="_Toc151468566"><span style='text-decoration:none'>5.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Installation</u></a></h1>
 
 <p class=MsoPlainText>For a new installation the next thing you will need to do
@@ -1100,10 +1105,10 @@ to '&lt;database user&gt;'@localhost identified by '&lt;database password&gt;';<
 <p class=Command>mysqladmin reload</p>
 
 <p class=MsoPlainText>You may need to supply a username and password to the
-mysql commands in the first place to give yourself sufficient privileges to
-perform the required commands. If you want to host your database on a different
-machine than that which ZoneMinder is running on then you will need to perform
-this step on the remote machine and reference the ZoneMinder machine instead of
+mysql commands in the first place to give yourself sufficient privileges to perform
+the required commands. If you want to host your database on a different machine
+than that which ZoneMinder is running on then you will need to perform this
+step on the remote machine and reference the ZoneMinder machine instead of
 localhost. If you are running remote databases you probably already know all
 this, if you are not then don&#8217;t worry about it!</p>
 
@@ -1152,10 +1157,9 @@ nasty messages on your console about the database having gone away first and
 also will give ZoneMinder chance to shutdown in a controlled manner without
 introducing any corruption into the database or filesystem.</p>
 
-<p class=MsoPlainText>As mentioned above, this script is for Redhat, and
-related, distributions only. I would be grateful for any similar scripts for
-other distributions so if you know of one, or create one, then please send it
-to me.</p>
+<p class=MsoPlainText>As mentioned above, this script is for Redhat, and related,
+distributions only. I would be grateful for any similar scripts for other
+distributions so if you know of one, or create one, then please send it to me.</p>
 
 <p class=MsoPlainText>If you are running a distribution which doesn&#8217;t
 support the zm script, or if you just prefer more direct control, you can now
@@ -1183,7 +1187,7 @@ you will need to manually remove any databases you have created.</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335140"><span style='text-decoration:none'>6.<span
+<h1><a name="_Toc151468567"><span style='text-decoration:none'>6.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Upgrading</u></a></h1>
 
 <p class=MsoPlainText>If you are upgrading from a previous version of
@@ -1212,16 +1216,16 @@ structure of the database. This is not necessarily the database user you use
 for ZoneMinder.</p>
 
 <p class=MsoPlainText>The update script will offer you the chance to make a
-database backup before making any changes. You can use this to restore your database
-if the upgrade fails or if you simply wish to roll back in the future. Be aware
-that if you have a lot of entries in your database and/or limited disk space
-doing a backup may not be feasible or even work. Also the backup only applies
-to the database and will not save any images or other event detail saved on
-disk. If successful the backup will be saved in the current directory and will
-be named <i>&lt;database name&gt;-&lt;from version&gt;.dump</i>. Any previous
-backups of the same name will be overwritten without warning. The backup file
-is in the form of a simple sql script and can be used to restore the database
-simply by typing</p>
+database backup before making any changes. You can use this to restore your
+database if the upgrade fails or if you simply wish to roll back in the future.
+Be aware that if you have a lot of entries in your database and/or limited disk
+space doing a backup may not be feasible or even work. Also the backup only
+applies to the database and will not save any images or other event detail
+saved on disk. If successful the backup will be saved in the current directory
+and will be named <i>&lt;database name&gt;-&lt;from version&gt;.dump</i>. Any
+previous backups of the same name will be overwritten without warning. The
+backup file is in the form of a simple sql script and can be used to restore
+the database simply by typing</p>
 
 <p class=Command>mysql &lt; zm-1.21.4.dump </p>
 
@@ -1240,7 +1244,7 @@ back up successfully.</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335141"><span style='text-decoration:none'>7.<span
+<h1><a name="_Toc151468568"><span style='text-decoration:none'>7.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Installing
 from RPM</u></a></h1>
 
@@ -1311,7 +1315,7 @@ style='color:windowtext;text-decoration:none'>http://localhost/zm</span></span><
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335142"><span style='text-decoration:none'>8.<span
+<h1><a name="_Toc151468569"><span style='text-decoration:none'>8.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Tutorial</u></a></h1>
 
 <p class=MsoPlainText>What you see now (and subsequently) is the initial view
@@ -1347,7 +1351,7 @@ the web pages are based on what you will see if you are running as a fully
 authenticated user. If you are running in un-authenticated mode or as a less
 privileged user then some elements may not be shown or will be disabled.</p>
 
-<h2><a name="_Toc136335143"><span style='text-decoration:none'>8.1.<span
+<h2><a name="_Toc151468570"><span style='text-decoration:none'>8.1.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Defining Monitors</a></h2>
 
@@ -1367,8 +1371,8 @@ tools just &#8216;map&#8217; the video image through onto screen memory
 transparently without intercepting it, whereas ZoneMinder needs to capture the
 image and, usually, inspect it. This is called frame grabbing and to check it
 you should use the facility in xawtv, or other tool, to capture either one or
-more still images or possibly a movie. If this works and the images or movie are
-not garbage then the chances are that ZoneMinder will work fine also.</p>
+more still images or possibly a movie. If this works and the images or movie
+are not garbage then the chances are that ZoneMinder will work fine also.</p>
 
 <p class=MsoPlainText>Once you have validated your camera run 'zmu -d
 &lt;device_path&gt; -q -v' to get a dump of the settings (note, you will have
@@ -1386,9 +1390,10 @@ appropriate values but you will still need to enter others and confirm the
 preset settings.</p>
 
 <p class=MsoPlainText>The options are divided into a set of tabs to make it
-easier to edit. You do not have to &#8216;save&#8217; to change to different tab
-so you can make all the changes you require and then click &#8216;Save&#8217;
-at the end. The individual option are explained in a little more detail below,</p>
+easier to edit. You do not have to &#8216;save&#8217; to change to different
+tab so you can make all the changes you require and then click
+&#8216;Save&#8217; at the end. The individual option are explained in a little
+more detail below,</p>
 
 <p class=MonitorTab>&#8216;Monitor&#8217; Tab</p>
 
@@ -1462,10 +1467,10 @@ have one or more cameras capable of high capture rates but find that you
 generally do not require this performance at all times and would prefer to
 lighten the load on your server. This option permits you to limit the maximum
 capture rate to a specified value. This may allow you to have more cameras
-supported on your system by reducing the CPU load or to allocate video bandwidth
-unevenly between cameras sharing the same video device. This value is only a
-rough guide and the lower the value you set the less close the actual FPS may
-approach it especially on shared devices where it can be difficult to
+supported on your system by reducing the CPU load or to allocate video
+bandwidth unevenly between cameras sharing the same video device. This value is
+only a rough guide and the lower the value you set the less close the actual
+FPS may approach it especially on shared devices where it can be difficult to
 synchronise two or more different capture rates precisely. This option controls
 the maximum FPS in the circumstance where no alarm is occurring only.</p>
 
@@ -1529,14 +1534,14 @@ using palettes other than grey or 24 bit colour as an internal conversion is
 involved. These other formats are intended to be supported natively in a future
 version but for now if you have the choice choose one of grey or 24 bit colour.</p>
 
-<p class=MonitorOption><b>Capture Width/Height</b> <b>&#8211; </b>The
-dimensions of the video stream your camera will supply. If your camera supports
-several just enter the one you'll want to use for this application, you can
-always change it later. However I would recommend starting with no larger than
-320x240 or 352x288 and then perhaps increasing and seeing how performance is
-affected. This size should be adequate in most cases. Some cameras are quite
-choosy about the sizes you can use here so unusual sizes such as 197x333 should
-be avoided initially.</p>
+<p class=MonitorOption><b>Capture Width/Height</b> <b>&#8211; </b>The dimensions
+of the video stream your camera will supply. If your camera supports several
+just enter the one you'll want to use for this application, you can always
+change it later. However I would recommend starting with no larger than 320x240
+or 352x288 and then perhaps increasing and seeing how performance is affected.
+This size should be adequate in most cases. Some cameras are quite choosy about
+the sizes you can use here so unusual sizes such as 197x333 should be avoided
+initially.</p>
 
 <p class=MonitorOption><b>Orientation</b> &#8211; If your camera is mounted
 upside down or at right angles you can use this field to specify a rotation
@@ -1604,15 +1609,15 @@ eight less than the image height.</p>
 
 <p class=MonitorOption><b>Image Buffer Size</b> <b>&#8211; </b>This option
 determines how many frames are held in the ring buffer at any one time. The
-ring buffer is the storage space where the last &#8216;n&#8217; images are
-kept, ready to be resurrected on an alarm or just kept waiting to be analysed.
-It can be any value you like with a couple of provisos, (see next options).
-However it is stored in shared memory and making it too large especially for
-large images with a high colour depth can use a lot of memory. A value of no
-more than 50  is usually ok. If you find that your system will not let you use
-the value you want it is probably because your system has an arbitrary limit on
-the size of shared memory that may be used even though you may have plenty of
-free memory available. This limit is usually fairly easy to change, see the Troubleshooting
+ring buffer is the storage space where the last &#8216;n&#8217; images are kept,
+ready to be resurrected on an alarm or just kept waiting to be analysed. It can
+be any value you like with a couple of provisos, (see next options). However it
+is stored in shared memory and making it too large especially for large images
+with a high colour depth can use a lot of memory. A value of no more than 50 
+is usually ok. If you find that your system will not let you use the value you
+want it is probably because your system has an arbitrary limit on the size of
+shared memory that may be used even though you may have plenty of free memory
+available. This limit is usually fairly easy to change, see the Troubleshooting
 section for details.</p>
 
 <p class=MonitorOption><b>Warm-up Frames &#8211; </b>This specifies how many
@@ -1632,8 +1637,8 @@ buffer is a true buffer and should not really exceed half the ring buffer size.
 However the post-event buffer is just a count that is applied to captured
 frames and so can be managed more flexibly. You should also bear in mind the
 frame rate of the camera when choosing these values. For instance a network
-camera capturing at 1FPS will give you 10 seconds before and after each event
-if you chose 10 here. This may well be too much and pad out events more than
+camera capturing at 1FPS will give you 10 seconds before and after each event if
+you chose 10 here. This may well be too much and pad out events more than
 necessary. However a fast video card may capture at 25FPS and you will want to
 ensure that this setting enables you to view a reasonable time frame pre and
 post event.</p>
@@ -1655,8 +1660,8 @@ statistics recorded.</p>
 <p class=MonitorOption><b>Note: This tab and its options will only appear if
 you have selected the ZM_OPT_CONTROL option to indicated that your system
 contains cameras which are able to be controlled via Pan/Tilt/Zoom or other
-mechanisms. See the Camera Control section elsewhere in this document for
-further details on camera control protocols and methods.</b></p>
+mechanisms. See the Camera Control section elsewhere in this document for further
+details on camera control protocols and methods.</b></p>
 
 <p class=MonitorOption><b>Controllable &#8211; </b>Check this box to indicate
 your camera can be controlled.</p>
@@ -1729,9 +1734,9 @@ follows,</p>
 a number then the monitor will be activated when an X10 ON signal for that unit
 code is detected and will be deactivated when an OFF signal is detected.</p>
 
-<p class=MsoPlainText style='margin-left:36.0pt'><b>!n</b> : This inverts the
-previous mode, e.g. !5 means that the monitor is activated when an OFF signal
-for unit code 5 is detected and deactivated by an ON.</p>
+<p class=MsoPlainText style='margin-left:36.0pt'><b>!n</b> : This inverts the previous
+mode, e.g. !5 means that the monitor is activated when an OFF signal for unit
+code 5 is detected and deactivated by an ON.</p>
 
 <p class=MsoPlainText style='margin-left:36.0pt'><b>n+</b> : Entering a unit
 code followed by + means that the monitor is activated on receipt of a ON
@@ -1774,11 +1779,11 @@ signal for that unit code to be sent when going into alarm state and the OFF
 signal when coming out of alarm state. Similarly 7+30 will send the unit code 7
 ON signal when going into alarm state and the OFF signal 30 seconds later
 regardless of state. The combination of the X10 instruction allows ZoneMinder
-to react intelligently to, and also assume control of, other devices when
-necessary. However the indiscriminate use of the Input Alarm and Output Alarm
-signals can cause some horrendous race conditions such as a light going on in
-response to an alarm which then causes an alarm itself and so on. Thus some
-circumspection is required here. Leave this blank for now anyway.</p>
+to react intelligently to, and also assume control of, other devices when necessary.
+However the indiscriminate use of the Input Alarm and Output Alarm signals can
+cause some horrendous race conditions such as a light going on in response to
+an alarm which then causes an alarm itself and so on. Thus some circumspection
+is required here. Leave this blank for now anyway.</p>
 
 <p class=MonitorTab>&#8216;Misc&#8217; Tab</p>
 
@@ -1853,8 +1858,8 @@ Function of None so no daemons are required.</p>
 the source listed in the Source column and edit the monitor properties or click
 on the Function listed and change it to &#8217;Monitor&#8217;, which will
 ensure that one or more appropriate daemons are started automatically. You need
-to ensure that you have started ZoneMinder before any of these settings
-actually has any effect.</p>
+to ensure that you have started ZoneMinder before any of these settings actually
+has any effect.</p>
 
 <p class=MsoPlainText>Having a device status of red or orange does not
 necessarily constitute an error if you have deliberately disabled a monitor or
@@ -1866,18 +1871,18 @@ if just one monitor is active then the daemon is active for both even if all
 the other monitors are switched off.</p>
 
 <p class=MsoPlainText>Once you have changed the function of your monitor, the
-main console window will be updated to reflect this change. If your device status
-does not go green then check your system and web server logs to see if it's
-something obvious.</p>
+main console window will be updated to reflect this change. If your device
+status does not go green then check your system and web server logs to see if
+it's something obvious.</p>
 
 <p class=MsoPlainText>You can now add further monitors if you have cameras set
 up to support them. Once you have one or more monitors you may notice the
 '&lt;n&gt; Monitors' title becomes a link. Clicking on this link will open up a
 window which allows you to assign your monitors to groups. These let you select
-certain monitors to view. For instance you may only wish to view outdoor
-monitors while indoors. You can also choose to view all of them. If you choose
-a group then your selection will be remembered via a cookie and will be used
-until you change it. You can call your groups anything you like, though
+certain monitors to view. For instance you may only wish to view outdoor monitors
+while indoors. You can also choose to view all of them. If you choose a group
+then your selection will be remembered via a cookie and will be used until you
+change it. You can call your groups anything you like, though
 &#8216;Mobile&#8217; has a special meaning (see Mobile Devices below).</p>
 
 <p class=MsoPlainText>There may also be a &#8216;Cycle&#8217; link which allows
@@ -1889,15 +1894,15 @@ simultaneously. Be aware however that this can consume large amounts of
 bandwidth and CPU so should not be used continuously unless you have resource
 to burn. </p>
 
-<h2><a name="_Toc136335144"><span style='text-decoration:none'>8.2.<span
+<h2><a name="_Toc151468571"><span style='text-decoration:none'>8.2.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Defining Zones</a></h2>
 
 <p class=MsoPlainText>The next important thing to do with a new monitor is set
 up Zones for it to use. By default you'll already have one generated for you
-when you created your monitor but you might want to modify it or add others.
-Click on the Zones column for your monitor and you should see a small popup
-window appear which contains an image from your camera overlain with a stippled
+when you created your monitor but you might want to modify it or add others. Click
+on the Zones column for your monitor and you should see a small popup window
+appear which contains an image from your camera overlain with a stippled
 pattern representing your zone. In the default case this will cover the whole
 image. The colour of the zones appearing here is determined by what type they
 are. The default zone is Active and so will be red, Inclusive zones are orange,
@@ -1907,8 +1912,8 @@ white.</p>
 <p class=MsoPlainText>Beneath the zones image will be a table containing a
 listing of your zones. Clicking on either the relevant bit of the image or on
 the Id or Name in the table will bring up another window where you can edit the
-particulars for your Zones. As you can see there are quite a few, so now is a
-good time to go through them.</p>
+particulars for your Zones. As you can see there are quite a few, so now is a good
+time to go through them.</p>
 
 <p class=MsoPlainText>The Zone view is split into two main areas, on the left
 is the options are area and on the right is the zone drawing area. A default or
@@ -1979,27 +1984,28 @@ not the noise in between.</p>
 <p class=MsoPlainText style='margin-left:49.65pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span><b>Preclusive</b> - This zone type is relatively recent. It is
-called a Preclusive zone because if it is triggered it actually precludes an alarm
-being generated for that image frame. So motion or other changes that occur in
-a Preclusive zone will have the effect of ensuring that no alarm occurs at all.
-The application for this zone type is primarily as a shortcut for detecting
-general large-scale lighting or other changes. Generally this may be achieved
-by limiting the maximum number of alarm pixels or other measure in an Active
-zone. However in some cases that zone may cover an area where the area of
-variable illumination occurs in different places as the sun and/or shadows move
-and it thus may be difficult to come up with general values. Additionally, if
-the sun comes out rapidly then although the initial change may be ignored in
-this way as the reference image catches up an alarm may ultimately be triggered
-as the image becomes less different. Using one or more Preclusive zones offers
-a different approach. Preclusive zones are designed to be fairly small, even
-just a few pixels across, with quite low alarm thresholds. They should be
-situated in areas of the image that are less likely to have motion occur such
-as high on a wall or in a corner. Should a general illumination change occur
-they would be triggered at least as early as any Active zones and prevent any
-other zones from generating an alarm. Obviously careful placement is required
-to ensure that they do not cancel any genuine alarms or that they are not so
-close together that any motion just hops from one Preclusive zone to another.
-As always, the best way is to experiment a little and see what works for you.</p>
+called a Preclusive zone because if it is triggered it actually precludes an
+alarm being generated for that image frame. So motion or other changes that
+occur in a Preclusive zone will have the effect of ensuring that no alarm
+occurs at all. The application for this zone type is primarily as a shortcut
+for detecting general large-scale lighting or other changes. Generally this may
+be achieved by limiting the maximum number of alarm pixels or other measure in
+an Active zone. However in some cases that zone may cover an area where the
+area of variable illumination occurs in different places as the sun and/or
+shadows move and it thus may be difficult to come up with general values.
+Additionally, if the sun comes out rapidly then although the initial change may
+be ignored in this way as the reference image catches up an alarm may
+ultimately be triggered as the image becomes less different. Using one or more
+Preclusive zones offers a different approach. Preclusive zones are designed to
+be fairly small, even just a few pixels across, with quite low alarm
+thresholds. They should be situated in areas of the image that are less likely
+to have motion occur such as high on a wall or in a corner. Should a general
+illumination change occur they would be triggered at least as early as any
+Active zones and prevent any other zones from generating an alarm. Obviously
+careful placement is required to ensure that they do not cancel any genuine
+alarms or that they are not so close together that any motion just hops from
+one Preclusive zone to another. As always, the best way is to experiment a
+little and see what works for you.</p>
 
 <p class=MsoPlainText style='margin-left:49.65pt;text-indent:-18.0pt'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -2035,9 +2041,9 @@ easier to use to start with or if you change image sizes frequently. If you
 change this setting all appropriate values below are redisplayed in the correct
 context. A good tip would be to initially enter the settings in Percent and
 then change to Pixels if you wish to be more precise. Be aware though that
-repeated flipping between the settings may cause rounding errors. Note, the sense
-of the percentage values refers to the area of the zone and not the image as a
-whole. This makes trying to work out necessary sizes rather easier.</p>
+repeated flipping between the settings may cause rounding errors. Note, the
+sense of the percentage values refers to the area of the zone and not the image
+as a whole. This makes trying to work out necessary sizes rather easier.</p>
 
 <p class=MsoPlainText style='margin-left:27.0pt'><b>Alarm Colour </b>- The
 option after that allows you to specify what colour you'd like any alarms this
@@ -2057,11 +2063,11 @@ individual alarmed pixels should be used to determine the state of a image, the
 second indicate that the pixels should be filtered to remove isolated pixels
 (see below) before being counted, and the third uses a more sophisticated
 analysis which is designed to aggregate alarmed pixels into continuous groups,
-or &#8216;blobs&#8217;. Blob analysis default, however this method takes
-slightly longer and so if you find that one of the other methods works just as
-well for you and you wish to maximise performance you can opt for that instead.
-Some of the more useful alarm related features such as highlighted analysis
-images are only available with the &#8216;Blob&#8217; setting.</p>
+or &#8216;blobs&#8217;. Blob analysis default, however this method takes slightly
+longer and so if you find that one of the other methods works just as well for
+you and you wish to maximise performance you can opt for that instead. Some of
+the more useful alarm related features such as highlighted analysis images are
+only available with the &#8216;Blob&#8217; setting.</p>
 
 <p class=MsoPlainText style='margin-left:27.0pt'><b>Min/Maximum Pixel Threshold</b>
 &#8211; These setting are used to define limits for the difference in value
@@ -2124,7 +2130,7 @@ Finally the Minimum and Maximum Blobs settings specify the limits of the actual
 number of blobs detected. If an image change satisfies all these requirements
 it starts or continues an alarm event.</p>
 
-<h2><a name="_Toc136335145"><span style='text-decoration:none'>8.3.<span
+<h2><a name="_Toc151468572"><span style='text-decoration:none'>8.3.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Viewing Monitors</a></h2>
 
@@ -2194,7 +2200,7 @@ zones are halved first and Exclusive zones are doubled. In reality values are
 likely to be much less than 100 but it does give a simple indication of how
 major the event was.</p>
 
-<h2><a name="_Toc136335146"><span style='text-decoration:none'>8.4.<span
+<h2><a name="_Toc151468573"><span style='text-decoration:none'>8.4.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Controlling Monitors</a></h2>
 
@@ -2202,13 +2208,13 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&
 monitors and you are looking at a monitor that is configured for control, then
 clicking on the &#8216;Control&#8217; link along the top of the window will
 change the short event listing area to a control area. The capabilities you
-have defined earlier determine exactly what is displayed in this window. Generally
-you will have a Pan/Tilt control area along with one or subsidiary areas such
-as zoom or focus control to the side. If you have preset support then these
-will be near the bottom of the window. The normal method of controlling the
-monitor is by clicking on the appropriate graphics which then send a command
-via the control script to the camera itself. This may sometimes take a
-noticeable delay before the camera responds.</p>
+have defined earlier determine exactly what is displayed in this window.
+Generally you will have a Pan/Tilt control area along with one or subsidiary
+areas such as zoom or focus control to the side. If you have preset support
+then these will be near the bottom of the window. The normal method of
+controlling the monitor is by clicking on the appropriate graphics which then
+send a command via the control script to the camera itself. This may sometimes
+take a noticeable delay before the camera responds.</p>
 
 <p class=MsoPlainText>It is usually the case that the control arrows are
 sensitive to where you click on them. If you have a camera that allows
@@ -2230,13 +2236,13 @@ direction near the centre of the image, the active area does not start until a
 short distance away from the centre, resulting in a &#8216;dead&#8217; zone in
 the middle of the image.</p>
 
-<h2><a name="_Toc136335147"><span style='text-decoration:none'>8.5.<span
+<h2><a name="_Toc151468574"><span style='text-decoration:none'>8.5.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Filtering Events</a></h2>
 
-<p class=MsoPlainText>The other columns on the main console window contain
-various event totals for your monitors over the last hour, day, week and month
-as well as a grand total and a total for events that you may have archived for
+<p class=MsoPlainText>The other columns on the main console window contain various
+event totals for your monitors over the last hour, day, week and month as well
+as a grand total and a total for events that you may have archived for
 safekeeping. Clicking on one of these totals or on the 'All' or 'Archive' links
 from the monitor window described above will present you with a new display.
 This is the full event window and contains a list of events selected according
@@ -2264,8 +2270,8 @@ to limit the amount of events displayed.</p>
 <p class=MsoPlainText>There are several different elements to an event that you
 can filter on, some of which require further explanation. These are as follows,
 'Date/Time' which must evaluate to a date and a time together, 'Date' and
-'Time' which are variants which may only contain the relevant subsets of this, 'Weekday'
-which as expected is a day of the week.</p>
+'Time' which are variants which may only contain the relevant subsets of this,
+'Weekday' which as expected is a day of the week.</p>
 
 <p class=MsoPlainText>All of the preceding elements take a very flexible free
 format of dates and time based on the PHP strtotime function
@@ -2300,13 +2306,13 @@ want to keep, you can name it and save it by clicking 'Save'.</p>
 you specify whether you want this filter automatically applied in order to
 delete events or upload events via ftp to another server and mail notifications
 of events to one or more email accounts. Emails and messages (essentially small
-emails intended for mobile phones or pagers) have a format defined in the Options
-screen, and may include a variety of tokens that can be substituted for various
-details of the event that caused them. This includes links to the event view or
-the filter as well as the option of attaching images or videos to the email
-itself. Be aware that tokens that represent links may require you to log in to
-access the actual page, and sometimes may function differently when viewed
-outside of the general ZoneMinder context. The tokens you can use are as
+emails intended for mobile phones or pagers) have a format defined in the
+Options screen, and may include a variety of tokens that can be substituted for
+various details of the event that caused them. This includes links to the event
+view or the filter as well as the option of attaching images or videos to the
+email itself. Be aware that tokens that represent links may require you to log
+in to access the actual page, and sometimes may function differently when
+viewed outside of the general ZoneMinder context. The tokens you can use are as
 follows.</p>
 
 <p class=MsoPlainText align=left style='text-align:left'>    %EI%           Id
@@ -2364,15 +2370,15 @@ full. Be warned however that if you use this strategy then you should limit the
 returned results to the amount of events you want deleted in each pass until
 the disk usage is at an acceptable level. If you do not do this then the first
 pass when the disk usage is high will match, and then delete, all events unless
-you have used other criteria inside of limits. ZoneMinder ships with a sample filter
-already installed, though disabled. The PurgeWhenFull filter can be used to
-delete the oldest events when your disk starts filling up. To use it you should
-select and load it in the filter interface, modify it to your requirements, and
-then save it making you sure you check the &#8216;Delete Matching Events&#8217;
-option. This will then run in the background and ensure that your disk does not
-fill up with events.</p>
+you have used other criteria inside of limits. ZoneMinder ships with a sample
+filter already installed, though disabled. The PurgeWhenFull filter can be used
+to delete the oldest events when your disk starts filling up. To use it you
+should select and load it in the filter interface, modify it to your
+requirements, and then save it making you sure you check the &#8216;Delete
+Matching Events&#8217; option. This will then run in the background and ensure
+that your disk does not fill up with events.</p>
 
-<h2><a name="_Toc136335148"><span style='text-decoration:none'>8.6.<span
+<h2><a name="_Toc151468575"><span style='text-decoration:none'>8.6.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Viewing Events</a></h2>
 
@@ -2383,18 +2389,18 @@ also see a progress bar. Depending on your configuration this will either be
 static or will be filled in to indicate how far through the event you are. By
 default this functionality is turned off for low bandwidth settings as the
 image delivery tends to not be able to keep up with real-time and the progress
-bar cannot take this into account. Regardless of whether the progress bar updates,
-you can click on it to navigate to particular points in the events.</p>
+bar cannot take this into account. Regardless of whether the progress bar
+updates, you can click on it to navigate to particular points in the events.</p>
 
 <p class=MsoPlainText>You will also see a link to allow you to view the still
 images themselves. If you don't have streaming then you will be taken directly
 to this page. The images themselves are thumbnail size and depending on the
 configuration and bandwidth you have chosen will either be the full images
 scaled in your browser of actual scaled images. If it is the latter, if you
-have low bandwidth for example, it may take a few seconds to generate the images.
-If thumbnail images are required to be generated, they will be kept and not
-re-generated in future. Once the images appear you can mouse over them to get
-the image sequence number and the image score.</p>
+have low bandwidth for example, it may take a few seconds to generate the
+images. If thumbnail images are required to be generated, they will be kept and
+not re-generated in future. Once the images appear you can mouse over them to
+get the image sequence number and the image score.</p>
 
 <p class=MsoPlainText>You will notice for the first time that alarm images now
 contain an overlay outlining the blobs that represent the alarmed area. This
@@ -2406,23 +2412,23 @@ ZM_RECORD_EVENT_STATS option on, you will be able to click the 'Stats' link
 here and get some analysis of the cause of the event. Should you determine that
 you don't wish to keep the event, clicking on Delete will erase it from the
 database and file system. Returning to the event window, other options here are
-renaming the event to something more meaningful, refreshing the window to replay
-the event stream, deleting the event, switching between streamed and still
-versions of the event (if supported) and generating an MPEG video of the event
-(if supported).</p>
+renaming the event to something more meaningful, refreshing the window to
+replay the event stream, deleting the event, switching between streamed and
+still versions of the event (if supported) and generating an MPEG video of the
+event (if supported).</p>
 
 <p class=MsoPlainText>These last two options require further explanation.
-Archiving an event means that it is kept to one side and not displayed in the
-normal event listings unless you specifically ask to view the archived events.
-This is useful for keeping events that you think may be important or just wish
-to protect. Once an event is archived it can be deleted or unarchived but you
+Archiving an event means that it is kept to one side and not displayed in the normal
+event listings unless you specifically ask to view the archived events. This is
+useful for keeping events that you think may be important or just wish to
+protect. Once an event is archived it can be deleted or unarchived but you
 cannot accidentally delete it when viewing normal unarchived events.</p>
 
 <p class=MsoPlainText>The final option of generating an MPEG video is still
 somewhat experimental and its usefulness may vary. It uses the open source
-ffmpeg encoder to generate short videos, which will be downloaded to your
-browsing machine or viewed in place. When using the ffmpeg encoder, ZoneMinder
-will attempt to match the duration of the video with the duration of the event.
+ffmpeg encoder to generate short videos, which will be downloaded to your browsing
+machine or viewed in place. When using the ffmpeg encoder, ZoneMinder will
+attempt to match the duration of the video with the duration of the event.
 Ffmpeg has a particularly rich set of options and you can specify during
 configuration which additional options you may wish to include to suit your
 preferences. In particular you may need to specify additional, or different,
@@ -2439,7 +2445,7 @@ the generation overhead. Videos can also be included in notification emails,
 however care should be taken when using this option as for many frequent events
 the penalty in CPU and disk space can quickly mount up.</p>
 
-<h2><a name="_Toc136335149"><span style='text-decoration:none'>8.7.<span
+<h2><a name="_Toc151468576"><span style='text-decoration:none'>8.7.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Options and Users</a></h2>
 
@@ -2483,7 +2489,8 @@ easier to determine language availability. On checking which languages are
 available it may be that your preferred language is not currently included and
 if this is the case please consider doing a translation and sending it back to
 it may be included in future releases. All the language elements are given in
-the zm_lang_en_gb.php file along with a few notes to help you understand the format.</p>
+the zm_lang_en_gb.php file along with a few notes to help you understand the
+format.</p>
 
 <p class=MsoPlainText>As mentioned above, you may also see a
 &#8216;users&#8217; tab in the Options area. In this section you will see a
@@ -2538,7 +2545,7 @@ requirements.</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335150"><span style='text-decoration:none'>9.<span
+<h1><a name="_Toc151468577"><span style='text-decoration:none'>9.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><u>Camera
 Control</u></a></h1>
 
@@ -2553,10 +2560,10 @@ two key approaches to get around this problem.</p>
 camera model you use, an entry in the camera capabilities table must be
 created. These indicate what functions the camera supports and ensure that the
 interface presents only those capabilities that the camera supports. There are
-a very large number of capabilities that may be supported and it is very important
-that the entries in this table reflect the actual abilities of the camera. A
-small number of example capabilities are included in ZoneMinder, these can be
-used &#8216;as is&#8217; or modified.</p>
+a very large number of capabilities that may be supported and it is very
+important that the entries in this table reflect the actual abilities of the
+camera. A small number of example capabilities are included in ZoneMinder,
+these can be used &#8216;as is&#8217; or modified.</p>
 
 <p class=MsoPlainText><b>2) Control Scripts &#8211;</b> ZoneMinder itself does
 not generally provide the ability to send commands to cameras or receive
@@ -2565,8 +2572,8 @@ a standard set of commands which are passed to a script defined in the control
 capability. Example scripts are provided in ZoneMinder which support a number
 of serial or network protocols but it is likely that for many cameras new
 scripts will have to be created. These can be modelled on the example ones, or
-if control commands already exist from other applications, then the script can just
-act as a &#8216;glue&#8217; layer between ZoneMinder and those commands.</p>
+if control commands already exist from other applications, then the script can
+just act as a &#8216;glue&#8217; layer between ZoneMinder and those commands.</p>
 
 <p class=MsoPlainText>It should be emphasised that the control and capability
 elements of ZoneMinder are not intended to be able to support every camera out
@@ -2581,7 +2588,7 @@ architecture that ZoneMinder uses. If you come across any cameras like this
 then please forward as much information to me as possible so that I may be able
 to extend the ZoneMinder model to encompass them.</p>
 
-<h2><a name="_Toc136335151"><span style='text-decoration:none'>9.1.<span
+<h2><a name="_Toc151468578"><span style='text-decoration:none'>9.1.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Control Capabilities</a></h2>
 
@@ -2592,11 +2599,11 @@ the Control tab of the Monitor configuration dialog and select
 &#8216;Edit&#8217; where it is listed by the Control Type selection box. This
 will bring up a new window which lists, with a brief summary, the existing
 capabilities. To edit an existing capability to modify select the Id or Name of
-the capability in question, or click on the Add button to add a new control capability.
-Either of these approaches will create a new window, in familiar style, with
-tabs along the top and forms fields below. In the case of the capabilities
-table there are a large number of settings and tabs, the mean and use of these
-are briefly explained below.</p>
+the capability in question, or click on the Add button to add a new control
+capability. Either of these approaches will create a new window, in familiar
+style, with tabs along the top and forms fields below. In the case of the
+capabilities table there are a large number of settings and tabs, the mean and
+use of these are briefly explained below.</p>
 
 <p class=MonitorTab>&#8216;Main&#8217; Tab</p>
 
@@ -2673,8 +2680,8 @@ relative motion, this is the minimum and maximum amount of movement that can be
 specified.</p>
 
 <p class=MsoPlainText style='margin-top:0cm;margin-right:0cm;margin-bottom:
-3.0pt;margin-left:1.0cm'><b>Has Pan Speed </b>&#8211; The camera supports specification
-of pan speeds.</p>
+3.0pt;margin-left:1.0cm'><b>Has Pan Speed </b>&#8211; The camera supports
+specification of pan speeds.</p>
 
 <p class=MsoPlainText style='margin-top:0cm;margin-right:0cm;margin-bottom:
 3.0pt;margin-left:1.0cm'><b>Min/Max Pan Speed </b>&#8211; The minimum and
@@ -2767,10 +2774,10 @@ to specify a more reasonable number here, 20 or less is recommended.</p>
 defined &#8216;home&#8217; position, usually in the mid point of its range.</p>
 
 <p class=MsoPlainText style='margin-top:0cm;margin-right:0cm;margin-bottom:
-3.0pt;margin-left:1.0cm'><b>Can Set Presets </b>&#8211; The camera supports
-setting preset locations via its control protocol.</p>
+3.0pt;margin-left:1.0cm'><b>Can Set Presets </b>&#8211; The camera supports setting
+preset locations via its control protocol.</p>
 
-<h2><a name="_Toc136335152"><span style='text-decoration:none'>9.2.<span
+<h2><a name="_Toc151468579"><span style='text-decoration:none'>9.2.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Control Scripts</a></h2>
 
@@ -2822,10 +2829,9 @@ commands are given below.</p>
 commands which require them. These will normally be absolute or mapped
 commands.</p>
 
-<p class=MsoPlainText style='margin-left:1.0cm'><b>--width=&lt;width&gt;,
---height=&lt;height&gt; &#8211; </b>This specifies the width and height of the
-current image, for mapped motion commands where the coordinates values passed
-must have a context.</p>
+<p class=MsoPlainText style='margin-left:1.0cm'><b>--width=&lt;width&gt;, --height=&lt;height&gt;
+&#8211; </b>This specifies the width and height of the current image, for
+mapped motion commands where the coordinates values passed must have a context.</p>
 
 <p class=MsoPlainText style='margin-left:1.0cm'><b>--speed=&lt;speed&gt;
 &#8211; </b>This specifies the speed that the command should use, if
@@ -2866,8 +2872,8 @@ mapped to a specified location on the image.</p>
 
 <p class=MsoPlainText style='margin-left:1.0cm'><b>move_pseudo_map</b> &#8211;
 As move_map above. Pseudo-mapped motion can be used when mapped motion is not
-supported but relative motion is in which case mapped motion can be roughly
-approximated by careful calibration.</p>
+supported but relative motion is in which case mapped motion can be roughly approximated
+by careful calibration.</p>
 
 <p class=MsoPlainText style='margin-left:1.0cm'><b>move_abs_&lt;direction&gt; </b>&#8211;
 Move to a specified absolute location. The direction element gives a hint to
@@ -2902,8 +2908,8 @@ any zooming which may be in progress.</p>
 <p class=MsoPlainText style='margin-left:1.0cm'><b>focus_auto </b>&#8211; Set
 focusing to be automatic.</p>
 
-<p class=MsoPlainText style='margin-left:1.0cm'><b>focus_man </b>&#8211; Set focusing
-to be manual.</p>
+<p class=MsoPlainText style='margin-left:1.0cm'><b>focus_man </b>&#8211; Set
+focusing to be manual.</p>
 
 <p class=MsoPlainText style='margin-left:1.0cm'><b>focus_abs_&lt;direction&gt; </b>&#8211;
 Focus to a specified absolute focus position. The direction element gives a
@@ -2946,7 +2952,7 @@ to the &#8216;home&#8217; preset.</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335153"><span style='text-decoration:none'>10.<span
+<h1><a name="_Toc151468580"><span style='text-decoration:none'>10.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><u>Mobile Devices</u></a></h1>
 
 <p class=MsoPlainText>ZoneMinder has always had a minimal WML (Wireless Markup
@@ -2968,12 +2974,12 @@ class=Internetlink><a href="http://www.zoneminder.com/">http://www.zoneminder.co
 
 <p class=MsoPlainText>As well as XHTML-MP, ideally I&#8217;d like to be able to
 offer a WML2.0 interface. WML2.0 is a blending of WML1.3, which is traditional
-WAP, and XHTML. As such it offers the scripting that WML has traditionally
-included plus the better control of mark-up that is the realm of XHTML.
-Unfortunately so far I&#8217;m unaware of any devices that support WML2.0 even
-if they say they are WAP2 compliant, certainly I&#8217;ve never had a phone that
-does. If you find out that a particular phone does support this then please let
-me know (or better still send me the phone!).</p>
+WAP, and XHTML. As such it offers the scripting that WML has traditionally included
+plus the better control of mark-up that is the realm of XHTML. Unfortunately so
+far I&#8217;m unaware of any devices that support WML2.0 even if they say they
+are WAP2 compliant; certainly I&#8217;ve never had a phone that does. If you
+find out that a particular phone does support this then please let me know (or
+better still send me the phone!).</p>
 
 <p class=MsoPlainText>If you wish to use the XHTML-MP interface to ZoneMinder
 there is no extra configuration required to enable it per se. However
@@ -2983,12 +2989,14 @@ definition that corresponds to your phone, describing a small number of basic
 capabilities, you will see a couple of examples already there, or you can use
 the comprehensive open source WURFL package available from <span
 class=Internetlink><a href="http://wurfl.sourceforge.net/">http://wurfl.sourceforge.net/</a></span>.
-You will need to download both the WURFL php files and the wurfl.xml file itself.
-WURFL is a resource containing information on the capabilities of a huge number
-of mobile phones, devices and browsers. Thus once it has matched your phone it
-can determine various capabilities it may possess. This means that ZoneMinder
-itself only has to deal with these capabilities and not the individual phone
-types.</p>
+You will need to download both the WURFL php files and the wurfl.xml file
+itself. WURFL is a resource containing information on the capabilities of a
+huge number of mobile phones, devices and browsers. Thus once it has matched
+your phone it can determine various capabilities it may possess. This means
+that ZoneMinder itself only has to deal with these capabilities and not the
+individual phone types. If you prefer you can also add the format=xHTML url
+parameter when you load ZoneMinder to force the xHTML format and skip the
+automatic determination altoghether.</p>
 
 <p class=MsoPlainText>To use WURFL you should install the php files in the same
 directory as ZoneMinder and then create a &#8216;wurfl&#8217; sub-directory and
@@ -3004,8 +3012,8 @@ reloading the whole XML file each time so check if a sensible looking cache
 file has been created in the &#8216;wurfl&#8217; sub-directory also check the
 wurfl.log in the same place.</p>
 
-<p class=MsoPlainText>The WURFL is a third party application and as such I am unable
-to offer support directly for it. If you feel your device is missing or
+<p class=MsoPlainText>The WURFL is a third party application and as such I am
+unable to offer support directly for it. If you feel your device is missing or
 incorrectly represented please contact the authors via their own channels. If
 on the other hand you have any comments on ZoneMinder on your device
 specifically please let me know and I would be pleased to hear about it.</p>
@@ -3022,7 +3030,7 @@ logged in user will be visible,</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335154"></a><a name="_Ref125898587"><span style='text-decoration:
+<h1><a name="_Toc151468581"></a><a name="_Ref125898587"><span style='text-decoration:
 none'>11.<span style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><u>Logging</u></a></h1>
 
 <p class=MsoPlainText>Most components of ZoneMinder can emit informational,
@@ -3073,12 +3081,12 @@ ZoneMinder messages that are written to this file. This most often occurs due
 to not wanting other system messages to be overwhelmed and obscured by the
 ZoneMinder produced ones (which can be quite frequent by default). In order to
 control syslog messages you need to locate and edit the syslog.conf file on
-your system. This will often be in the /etc directory. This file allows
-configuration of syslog so that certain classes and categories of messages are
-routed to different files or highlighted to a console, or just ignored. Full
-details of the format of this file is outside the scope of this document
-(typing &#8216;man syslog.conf&#8217; will give you more information) but the
-most often requested changes are easy to implement.</p>
+your system. This will often be in the /etc directory. This file allows configuration
+of syslog so that certain classes and categories of messages are routed to
+different files or highlighted to a console, or just ignored. Full details of
+the format of this file is outside the scope of this document (typing
+&#8216;man syslog.conf&#8217; will give you more information) but the most
+often requested changes are easy to implement.</p>
 
 <p class=MsoPlainText>The syslog service uses the concept of priorities and
 facilities where the former refers to the importance of the message and the
@@ -3088,8 +3096,8 @@ and &#8216;debug&#8217; and ZoneMinder uses these priorities when generating
 the corresponding class of message. Standard facilities include
 &#8216;mail&#8217;, &#8216;cron&#8217; and &#8216;security&#8217; etc but as
 well this, there are eight &#8216;local&#8217; facilities that can be used by
-machine specific message generators. ZoneMinder produces it&#8217;s messages via
-the &#8216;local1&#8217; facility.</p>
+machine specific message generators. ZoneMinder produces it&#8217;s messages
+via the &#8216;local1&#8217; facility.</p>
 
 <p class=MsoPlainText>So armed with the knowledge of the priority and facility
 of a message, the syslog.conf file can be amended to handle messages however
@@ -3157,9 +3165,9 @@ there are easier ways.</p>
 <p class=MsoPlainText>The simplest way of collecting debug output is to click
 on the Options link from the main ZoneMinder console view and then go to the
 Debug tab. There you will find a number of debug options. The first thing you
-should do is ensure that the ZM_EXTRA_DEBUG setting is switched on. This
-enables debug generally. The next thing you need to do is select the debug
-target, level and destination file using the relevant options. Click on the
+should do is ensure that the ZM_EXTRA_DEBUG setting is switched on. This enables
+debug generally. The next thing you need to do is select the debug target,
+level and destination file using the relevant options. Click on the
 &#8216;?&#8217; by each option for more information about valid settings. You
 will need to restart ZoneMinder as a whole or at least the component in
 question for logging to take effect. When you have finished debugging you
@@ -3172,18 +3180,39 @@ by sending USR1 and USR2 signals to the relevant binary (or binaries) to
 increase or decrease the level of debug being emitted with immediate effect.
 This modification will not persist if the binary gets restarted however.</p>
 
-<p class=MsoPlainText>Finally, if you wish to run a binary directly from the
-command line to test specific functionality or scenarios, you can set the
-ZM_DBG_LEVEL and ZM_DBG_LOG environment variables to set the level and log file
-of the debug you wish to see, and the ZM_DBG_PRINT environment variable to 1 to
-output the debug directly to your terminal.</p>
+<p class=MsoPlainText>If you wish to run a binary directly from the command
+line to test specific functionality or scenarios, you can set the ZM_DBG_LEVEL
+and ZM_DBG_LOG environment variables to set the level and log file of the debug
+you wish to see, and the ZM_DBG_PRINT environment variable to 1 to output the
+debug directly to your terminal.</p>
+
+<p class=MsoPlainText>All ZoneMinder logs can now be rotated by logrotate. A
+sample logrotate config file is shown below.</p>
+
+<p class=Command style='margin-bottom:0cm;margin-bottom:.0001pt'>/var/log/zm/*.log
+{</p>
+
+<p class=Command style='margin-bottom:0cm;margin-bottom:.0001pt'>    missingok</p>
+
+<p class=Command style='margin-bottom:0cm;margin-bottom:.0001pt'>    notifempty</p>
+
+<p class=Command style='margin-bottom:0cm;margin-bottom:.0001pt'>   
+sharedscripts</p>
+
+<p class=Command style='margin-bottom:0cm;margin-bottom:.0001pt'>    postrotate</p>
+
+<p class=Command style='margin-bottom:0cm;margin-bottom:.0001pt'>       
+/usr/local/bin/zmpkg.pl logrot 2&gt; /dev/null &gt; /dev/null || true</p>
+
+<p class=Command style='margin-bottom:0cm;margin-bottom:.0001pt'>    endscript</p>
+
+<p class=Command style='margin-bottom:0cm;margin-bottom:.0001pt'>}</p>
 
 <b><u><span style='font-size:14.0pt;font-family:Arial'><br clear=all
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335155"><span style='text-decoration:none'>12.<span
-style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><u>Troubleshooting</u></a></h1>
+<h1 style='margin-left:0cm;text-indent:0cm'><a name="_Toc151468582"><u>Troubleshooting</u></a></h1>
 
 <p class=MsoPlainText>If you are having problems with ZoneMinder here are some
 things to try. If these don't work then check the ZoneMinder FAQ at <span
@@ -3214,8 +3243,8 @@ something like that to check for settings that work and then run zmu -d
 &lt;device&gt; -q -v to get the settings. If you can't get them to work with
 that then the likelihood is they won't work with ZoneMinder. Also check the
 system logs (usually /var/log/messages) for any video configuration errors. If
-you get some and you're sure they're not a problem then switch off
-ZM_STRICT_VIDEO_CONFIG in zmconfig.pl or the &#8216;options&#8217; tab.</p>
+you get some and you're sure they're not a problem then switch off ZM_STRICT_VIDEO_CONFIG
+in zmconfig.pl or the &#8216;options&#8217; tab.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3240,10 +3269,10 @@ down then the daemons may disappear. In this version the daemons are run under
 the control of a script which should trap expected signals but it is possible
 this doesn't cover all circumstances. If everything else works but you
 can&#8217;t get images in your browser a likely cause is a mismatch between
-where your web server expects to execute CGI scripts and where you have installed
-the zms streaming server. Check your server configuration for the correct CGI
-location and ensure you have supplied the same directory to the ZoneMinder
-configure script via the &#8211;with-cgidir option. </p>
+where your web server expects to execute CGI scripts and where you have
+installed the zms streaming server. Check your server configuration for the
+correct CGI location and ensure you have supplied the same directory to the
+ZoneMinder configure script via the &#8211;with-cgidir option. </p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3362,9 +3391,9 @@ with RedHat 9 that the zms process fails to terminate correctly when the
 controlled window is killed and also that it, and it&#8217;s associated httpd
 process, continue to grow in memory size until they kill the system. This
 appears to be a bug in early versions of  apache 2. On other systems it may
-appear that zms is leaking and growing. However what grows is the total and shared
-memory size while the non-shared memory size stays constant. It's a little odd
-but I think what it happening is that as zms picks images out of the shared
+appear that zms is leaking and growing. However what grows is the total and
+shared memory size while the non-shared memory size stays constant. It's a little
+odd but I think what it happening is that as zms picks images out of the shared
 memory ring buffer to display, as each slot is read the size of that bit of
 memory is added to the shared memory total for the process. As streamed images
 are not read consecutively it's a semi-random process so initially most of the
@@ -3372,9 +3401,9 @@ buffer slots are new and the shared memory size grows then as time goes on the
 remaining unaccessed slots reduce until once all have been read the shared
 memory use caps out at the same size as the actual segment. This is what I
 would have expected it to be in the first place, but it seems to do it
-incrementally. Then once this total is hit it grows no further. As it's shared memory
-anyway and already in use this apparent leak is not consuming any more memory
-than when it started.</p>
+incrementally. Then once this total is hit it grows no further. As it's shared
+memory anyway and already in use this apparent leak is not consuming any more
+memory than when it started.</p>
 
 <p class=MsoPlainText>Also, if you are using IE under Windows and get lots of
 annoying clicks when various windows refresh then you'll need to edit your
@@ -3387,11 +3416,161 @@ http://www.zoneminder.com/downloads/noIEClick.reg</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335156"><span style='text-decoration:none'>13.<span
+<h1><a name="_Toc151468583"><span style='text-decoration:none'>12.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><u>Change Log</u></a><u>
 </u></h1>
 
-<h2><a name="_Toc136335157"><span style='text-decoration:none'>13.1.<span
+<h2><a name="_Toc151468584"><span style='text-decoration:none'>12.1.<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Release
+1.22.3</a></h2>
+
+<p class=MsoPlainText>Mostly bug fixes with a couple of minor feature additions.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE &#8211; Filters can now be used to execute actions such
+as emailing or deleting events directly without being saved as a background
+automatic filter.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE &#8211; New X.10 device control screens have been added
+to the HTML and xHTML pages. These screen allow manual on/off control of X.10
+devices.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE &#8211; The xHTML screen have been overhauled and
+simplified in terms of styling.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE &#8211; The selection of markup, between HTML and xHTML
+was previously automatic only. This has been amended to all an url parameter to
+be passed on the initial screen to select the format for that session. So
+zm.php?format=xHTML will force the xHTML markup to be used even if selected from
+a traditional browser.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE &#8211; You can now specify an http proxy to use for ZM
+update checking.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE &#8211; You can now specify more than one monitor to use
+the same video input without frame rate penalty.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE &#8211; You can now add labels to PTZ camera presets to
+aid in remembering what they are. These presets are displayed as a tool tip
+when mousing over the preset numbers.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE &#8211; The timestamp displayed on images can now contain
+newlines. Use the \n (a &#8216;slash&#8217; followed by an &#8216;n&#8217;) to
+represent that.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FEATURE &#8211; The perl scripts will not respond to HUP signals
+by closing and reopening their logs. This can be used by logrotate to ensure
+that the ZoneMinder do not keep growing forever. You can use zmpkg.pl logrot to
+send a HUP signal to all scripts.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; The stills event view now shows all frames, not just
+those stored in the database. Scrolling between frames is also now fixed.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed long outstanding but in zmaudit.pl causing the
+most recent event to sometimes get deleted erroneously.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed a bug in the scaling routines that sometimes
+resulted in garbled or slanted images.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed the format used in HTTP communications with
+network cameras to ensure that line endings use both CR and LF where
+appropriate.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Added some additional SQL finish calls to free up
+memory from long select statements.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; When ZM reloaded monitors live, the Linked Monitors
+field was omitted. This has been fixed.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed an issue causing devide by zero errors in
+zmpatch.pl</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed an issue with quotes in saved filters.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed an issue in zmfilter.pl where filters on
+Weekdays were not executed correctly.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed an issue with saved filters using the Cause or
+Notes events fields.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed a problem with zmfilter.pl where the flag
+indicating that an event had had a video created was not set.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed issue with user specific language selections
+not being effective.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed issue with compiling with latest ffmpeg
+distribution.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; All open file descriptors are now close when the perl
+scripts daemonise themselves. This means that ZM should not lock up open socket
+addresses or stop apache from restarting as occasionally happened before.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Hyphens are now allow in remote host names.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; The timeline view can now display events with
+newlines in the Notes field.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Some perl errors were not being reported to logs.
+These have been changed to use the debug library.</p>
+
+<p class=BullettedChar><span style='font-family:"Courier New"'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>FIX &#8211; Fixed an issue where some jpeg format errors were not
+caught by the debug library and so not reported in the appropriate logs.</p>
+
+<h2><a name="_Toc151468585"><span style='text-decoration:none'>12.2.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Release
 1.22.2</a></h2>
 
@@ -3453,8 +3632,8 @@ stack tracing was on.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FIX &#8211; Fixed a problem in zmpkg.pl where one of the &#8216;su&#8217;
-tests was missing a quote.</p>
+</span></span>FIX &#8211; Fixed a problem in zmpkg.pl where one of the
+&#8216;su&#8217; tests was missing a quote.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3501,8 +3680,8 @@ problem with some broken images.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FIX &#8211; Zones were not being correctly resized when a monitor
-had its dimensions amended. In some circumstances this could result in a zone outside
-of the legal range and thereafter crashes.</p>
+had its dimensions amended. In some circumstances this could result in a zone
+outside of the legal range and thereafter crashes.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3534,7 +3713,7 @@ errors when running saved filters that used the monitor name.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>LANGUAGE &#8211; Added initial Chinese Big5 language translation.</p>
 
-<h2><a name="_Toc136335158"><span style='text-decoration:none'>13.2.<span
+<h2><a name="_Toc151468586"><span style='text-decoration:none'>12.3.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Release
 1.22.1</a></h2>
 
@@ -3615,8 +3794,8 @@ devices.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; The zmpkg.pl control script now has the ability
-to use &#8216;sudo&#8217; to execute commands as the web user and will only
-fall back to &#8216;su&#8217; if this fails. This should allow it to be more
+to use &#8216;sudo&#8217; to execute commands as the web user and will only fall
+back to &#8216;su&#8217; if this fails. This should allow it to be more
 compatible across distributions.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
@@ -3827,7 +4006,7 @@ been merged into one and updated.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>LANGUAGE &#8211; A new Swedish translation has been added.</p>
 
-<h2><a name="_Toc136335159"><span style='text-decoration:none'>13.3.<span
+<h2><a name="_Toc151468587"><span style='text-decoration:none'>12.4.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Release
 1.22.0</a></h2>
 
@@ -3878,12 +4057,12 @@ lost no recording will take place in any mode.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FEATURE &#8211; The zmtrigger.pl script has been completed
-revamped to support both incoming and outgoing triggers. Certain example
-triggers and connections have been included in the trigger modules but this is
-intended to be an example only and to provide a basis for users to customise
-and add their own functionality. Users will also be able to contribute modules
-tailored to specific external systems.</p>
+</span></span>FEATURE &#8211; The zmtrigger.pl script has been completed revamped
+to support both incoming and outgoing triggers. Certain example triggers and
+connections have been included in the trigger modules but this is intended to
+be an example only and to provide a basis for users to customise and add their
+own functionality. Users will also be able to contribute modules tailored to
+specific external systems.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4177,9 +4356,9 @@ display by up to a factor of ten.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FIX &#8211; Scaling of stills event views has now been
-rationalised to not ever be smaller than 100% as the image is always sent at at
-least this resolution.</p>
+</span></span>FIX &#8211; Scaling of stills event views has now been rationalised
+to not ever be smaller than 100% as the image is always sent at at least this
+resolution.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4249,7 +4428,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>LANGUAGE &#8211; A Czech translation has been included. Thanks
 for user &#8216;&#8217; for this file.</p>
 
-<h2><a name="_Toc136335160"><span style='text-decoration:none'>13.4.<span
+<h2><a name="_Toc151468588"><span style='text-decoration:none'>12.5.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Release
 1.21.4</a></h2>
 
@@ -4260,9 +4439,9 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; The video generation interface has been
 redesigned and expanded. This allows you to see what videos have been generated
 previously and manage, view or download them. You can also specify more
-precisely what input and output options to pass to ffmpeg and what video
-formats you want to support. These options are available from the
-Options-&gt;Tools view.</p>
+precisely what input and output options to pass to ffmpeg and what video formats
+you want to support. These options are available from the Options-&gt;Tools
+view.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4336,12 +4515,12 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; Users now have a &#8216;control&#8217; permission
 which determines whether they are able to control PTZ style cameras. As with
 the other permissions there are three levels, None, View and Edit. Unlike some
-of the other options it may not be obvious what levels do what. The
-&#8216;None&#8217; level bars access to any control functionality, the
-&#8216;View&#8217; level permits users to actually control the positioning and
-settings of a camera (rather than just look at them which is what might be
-expected) and the &#8216;Edit&#8217; level allows users to modify the various
-control capabilities.</p>
+of the other options it may not be obvious what levels do what. The &#8216;None&#8217;
+level bars access to any control functionality, the &#8216;View&#8217; level
+permits users to actually control the positioning and settings of a camera
+(rather than just look at them which is what might be expected) and the
+&#8216;Edit&#8217; level allows users to modify the various control
+capabilities.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4416,9 +4595,9 @@ prefer there are now two more options in Options-&gt;System called
 ZM_EVENT_SORT_FIELD and ZM_EVENT_SORT_ORDER which allow you to choose your own
 sort type and order. The default for these is now date/time ascending meaning
 oldest first which is opposite to the previous default and you will need to
-update these options to retain the previous behaviour. Note also that this ordering
-applies only to event lists and not the &#8216;last x events&#8217; in the
-watch window which are still newest first.</p>
+update these options to retain the previous behaviour. Note also that this
+ordering applies only to event lists and not the &#8216;last x events&#8217; in
+the watch window which are still newest first.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4462,7 +4641,7 @@ anyone who is able to edit their zm_lang_xx_yy.php language files and translate
 these tokens could email them back to me so I can include them in future
 releases.</p>
 
-<h2><a name="_Toc136335161"><span style='text-decoration:none'>13.5.<span
+<h2><a name="_Toc151468589"><span style='text-decoration:none'>12.6.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Release
 1.21.3</a></h2>
 
@@ -4502,7 +4681,7 @@ make it easier to find the information you require. This includes the addition
 of an Upgrading section to clarify the process of upgrading from a previous
 version.</p>
 
-<h2><a name="_Toc136335162"><span style='text-decoration:none'>13.6.<span
+<h2><a name="_Toc151468590"><span style='text-decoration:none'>12.7.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Release
 1.21.2</a></h2>
 
@@ -4531,9 +4710,9 @@ older events sometimes didn&#8217;t get tidied up and deleted properly.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FIX &#8211; Fixed an issue with the multi-part jpeg streams
-having frame boundaries output at the end of each image and not the beginning.
-Apart from this not being ideal semantically it also meant that ZM had trouble
+</span></span>FIX &#8211; Fixed an issue with the multi-part jpeg streams having
+frame boundaries output at the end of each image and not the beginning. Apart
+from this not being ideal semantically it also meant that ZM had trouble
 parsing it&#8217;s own output!</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
@@ -4541,7 +4720,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; Some of the scripts have a new debug format that
 is more similar to the one used in the binaries.</p>
 
-<h2><a name="_Toc136335163"><span style='text-decoration:none'>13.7.<span
+<h2><a name="_Toc151468591"><span style='text-decoration:none'>12.8.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Release
 1.21.1</a></h2>
 
@@ -4600,9 +4779,9 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; Version 1.21.0 added support for events to be
 labelled with Cause and Notes fields. However these could not be modified
 directly from the web interface. This has been amended so that an
-&#8216;Edit&#8217; link is now present in the events listing. Clicking on this allows
-you to modify these fields for one or more events so they can be identified as
-belonging to a particular incident.</p>
+&#8216;Edit&#8217; link is now present in the events listing. Clicking on this
+allows you to modify these fields for one or more events so they can be
+identified as belonging to a particular incident.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4734,11 +4913,10 @@ montage window.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; A contributed patch by forum user
 &#8216;lazyleopard&#8217; has been included. This allows a specified number of
-frames to be discarded to alleviate problems with broken interlaced frames where
-multiple cameras share one bttv chip and produce a &#8216;comb edge&#8217; like
-image. To invoke this option go to Options-&gt;Config and set
-ZM_CAPTURES_PER_FRAME to greater than 1, a value of 3 is recommended in the
-first instance.</p>
+frames to be discarded to alleviate problems with broken interlaced frames
+where multiple cameras share one bttv chip and produce a &#8216;comb
+edge&#8217; like image. To invoke this option go to Options-&gt;Config and set ZM_CAPTURES_PER_FRAME
+to greater than 1, a value of 3 is recommended in the first instance.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4757,7 +4935,7 @@ method with your netcam then you should try switching to the regular expression
 based method, and report the issue via the forums, preferably with a snapshot
 of the output of your camera.</p>
 
-<h2><a name="_Toc136335164"><span style='text-decoration:none'>13.8.<span
+<h2><a name="_Toc151468592"><span style='text-decoration:none'>12.9.<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Release
 1.21.0</a></h2>
 
@@ -4773,8 +4951,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FIX &#8211; The montage view layout has been modified to allow
 better dynamic layout of windows. Views should now be laid out in a more
 logical arrangement. This is a relatively temporary change and the montage view
-will shortly be rewritten to use flowing &#8216;div&#8217; tags which should
-add more flexibility and be less complex. </p>
+will shortly be rewritten to use flowing &#8216;div&#8217; tags which should add
+more flexibility and be less complex. </p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -4848,9 +5026,8 @@ area of the Watch window normally containing the recent events list. Whilst
 this was technically correct it was unnecessary and untidy, and has now been
 changed just to be blank.</p>
 
-<h2><a name="_Toc136335165"><span style='text-decoration:none'>13.9.<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span>Release
-1.20.1</a></h2>
+<h2><a name="_Toc151468593"><span style='text-decoration:none'>12.10.<span
+style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.20.1</a></h2>
 
 <p class=MsoPlainText>Mostly bug fixes, large and small with a couple of minor
 features included.</p>
@@ -4954,7 +5131,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FIX &#8211; Corrected bug in zmfilter.pl.z which meant that
 images were not always correctly uploaded.</p>
 
-<h2><a name="_Toc136335166"><span style='text-decoration:none'>13.10.<span
+<h2><a name="_Toc151468594"><span style='text-decoration:none'>12.11.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.20.0</a></h2>
 
 <p class=MsoPlainText>Improved and added features, several minor bug fixes.</p>
@@ -5017,9 +5194,9 @@ rebuilding ZM.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FIX &#8211; The zmupdate.pl script previously held a database
-connection open for days at a time but only used to use it periodically. This
-has now been changed to be only open while in use.</p>
+</span></span>FIX &#8211; The zmupdate.pl script previously held a database connection
+open for days at a time but only used to use it periodically. This has now been
+changed to be only open while in use.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5070,9 +5247,9 @@ modified to allow these cameras (NC1000 etc) to function with ZoneMinder.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FIX &#8211; A bug in event streaming when events are of very
-short duration has been fixed. Thanks to forum user &#8216;reza&#8217; for
-spotting this one.</p>
+</span></span>FIX &#8211; A bug in event streaming when events are of very short
+duration has been fixed. Thanks to forum user &#8216;reza&#8217; for spotting
+this one.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5080,7 +5257,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 and has now been fixed. Thanks again to forum user &#8216;reza&#8217; 
 highlighting this problem also.</p>
 
-<h2><a name="_Toc136335167"><span style='text-decoration:none'>13.11.<span
+<h2><a name="_Toc151468595"><span style='text-decoration:none'>12.12.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.19.5</a></h2>
 
 <p class=MsoPlainText>Various miscellaneous fixes and features.</p>
@@ -5135,9 +5312,9 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 keyed by the monitor name. This has caused problems in the past with various
 characters appearing which are legal in names but not in filesystems. From this
 version all files related to monitors are keyed on the monitor id rather than
-the name. To help you navigate through these files the monitor name still exists
-but as a link only. Please ensure you run zmupdate.pl to update your events
-directory.</p>
+the name. To help you navigate through these files the monitor name still
+exists but as a link only. Please ensure you run zmupdate.pl to update your
+events directory.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5168,9 +5345,9 @@ by particular monitors. This will replace the default &#8216;Event-&#8216; one.<
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FEATURE &#8211; If you use filters to send event notification
-emails you can now have them sent in HTML format. This is done automatically if
-your mail body includes a &#8216;&lt;html&gt;&#8217; token,</p>
+</span></span>FEATURE &#8211; If you use filters to send event notification emails
+you can now have them sent in HTML format. This is done automatically if your
+mail body includes a &#8216;&lt;html&gt;&#8217; token,</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5205,7 +5382,7 @@ event. This is the &#8216;Alarm Frame Count&#8217; described above. Note that
 if an alarm is in progress single isolated alarmed frames will still prolong it
 and the count only applies to the initial frames that would cause the event.</p>
 
-<h2><a name="_Toc136335168"><span style='text-decoration:none'>13.12.<span
+<h2><a name="_Toc151468596"><span style='text-decoration:none'>12.13.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.19.4</a></h2>
 
 <p class=MsoPlainText>Language fixes and updates.</p>
@@ -5217,15 +5394,15 @@ including itself rather than the UK English file as the base language.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>LANGUAGE &#8211; The Brazilian Portuguese language file detailed
-in the previous release has actually been included in this one.</p>
+</span></span>LANGUAGE &#8211; The Brazilian Portuguese language file detailed in
+the previous release has actually been included in this one.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>LANGUAGE &#8211; The Argentinian Spanish, Polish and Italian
 translations have all been updated with tokens introduced in version 1.19.3.</p>
 
-<h2><a name="_Toc136335169"><span style='text-decoration:none'>13.13.<span
+<h2><a name="_Toc151468597"><span style='text-decoration:none'>12.14.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.19.3</a></h2>
 
 <p class=MsoPlainText>Minor tweaks, fixes and language updates.</p>
@@ -5234,8 +5411,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.19.3</a></h2
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>FEATURE &#8211; All stills views now use the single image mode of
 zms rather than spawning off a zmu process to write an image which is then
-read. This reduces complexity of double buffering significantly and also reduces
-the chance of errors caused by multiple simultaneous image generation.</p>
+read. This reduces complexity of double buffering significantly and also
+reduces the chance of errors caused by multiple simultaneous image generation.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5331,7 +5508,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>LANGUAGE &#8211; Updated versions of the Dutch and Argentinian
 Spanish translations have been included.</p>
 
-<h2><a name="_Toc136335170"><span style='text-decoration:none'>13.14.<span
+<h2><a name="_Toc151468598"><span style='text-decoration:none'>12.15.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.19.2</a></h2>
 
 <p class=MsoPlainText>Minor features, fixes and language updates.</p>
@@ -5444,8 +5621,8 @@ name CAN-2004-0227 to this issue.&quot;</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>LANGUAGE &#8211; An additional Italian language translation has been
-added. One, by Davide Morelli, was included in 1.19.1 but not announced.
+</span></span>LANGUAGE &#8211; An additional Italian language translation has
+been added. One, by Davide Morelli, was included in 1.19.1 but not announced.
 However like buses another one has come along, from Tolmino Muccitelli, and so
 they are both now present. The original translation is accessible by selecting <i>it_it</i>
 as the language whereas the new one is <i>it_it2</i>. I would prefer if they
@@ -5469,7 +5646,7 @@ in the language files in English. There will shortly be a point release which
 includes these language updates assuming I can get translations of them in a
 reasonable timescale.</p>
 
-<h2><a name="_Toc136335171"><span style='text-decoration:none'>13.15.<span
+<h2><a name="_Toc151468599"><span style='text-decoration:none'>12.16.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.19.1</a></h2>
 
 <p class=MsoPlainText>Minor bugfixes and enhancements.</p>
@@ -5515,7 +5692,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 pass in a username and password to zmu when just querying a device as this was
 slightly broken and was unnecessary anyway.</p>
 
-<h2><a name="_Toc136335172"><span style='text-decoration:none'>13.16.<span
+<h2><a name="_Toc151468600"><span style='text-decoration:none'>12.17.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.19.0</a></h2>
 
 <p class=MsoPlainText>Some major enhancements and bugfixes.</p>
@@ -5613,8 +5790,8 @@ number (e.g. 5 is greater than 123). This is now corrected.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Default Rate and Scales. You can now specify (in the options
-dialog) the default scale you would like to view live and event feeds at. You
-can also give a default rate for viewing event replays.</p>
+dialog) the default scale you would like to view live and event feeds at. You can
+also give a default rate for viewing event replays.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5627,8 +5804,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 sent from the analysis daemon to the frame server to exceed the defined maximum
 buffer size in which case the write would fail. It is now possible to define a
 larger size if necessary to prevent this. Note that you may have to adjust your
-system configuration to accommodate this. For further details check the help
-for the ZM_FRAME_SOCKET_SIZE option.</p>
+system configuration to accommodate this. For further details check the help for
+the ZM_FRAME_SOCKET_SIZE option.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5672,7 +5849,7 @@ deleted when monitor was.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>A translation for the Dutch (nl_nl) language has been included.</p>
 
-<h2><a name="_Toc136335173"><span style='text-decoration:none'>13.17.<span
+<h2><a name="_Toc151468601"><span style='text-decoration:none'>12.18.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.18.1</a></h2>
 
 <p class=MsoPlainText>Minor bugfixes.</p>
@@ -5695,7 +5872,7 @@ all of them. It is recommended that you review your list of saved filters and
 delete duplicates before adding any monitor specific terms and resetting the
 actions for any that remain.</p>
 
-<h2><a name="_Toc136335174"><span style='text-decoration:none'>13.18.<span
+<h2><a name="_Toc151468602"><span style='text-decoration:none'>12.19.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.18.0</a></h2>
 
 <p class=MsoPlainText>Major optimisations, important new features and some
@@ -5732,11 +5909,11 @@ of these resources so the gain will not be as much.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Remote Authentication. This document has previously indicated that
-basic authentication for network cameras could be used by entering a hostname
-of the form of &lt;user&gt;:&lt;pass&gt;@&lt;hostname&gt;. This was not
-actually the case as the relevant authentication header was never sent. This is
-now fixed and addresses of this form can now be used.</p>
+</span></span>Remote Authentication. This document has previously indicated
+that basic authentication for network cameras could be used by entering a
+hostname of the form of &lt;user&gt;:&lt;pass&gt;@&lt;hostname&gt;. This was
+not actually the case as the relevant authentication header was never sent.
+This is now fixed and addresses of this form can now be used.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5762,17 +5939,17 @@ any monitor specific terms and resetting the actions for any that remain.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>New Filter Operators. Two new filter operators and their inverse
-have been added. You can now indicate whether a value is in a set of other values,
-for example &#8216;cat&#8217; is in the set of &#8216;cat, dog, cow,
+have been added. You can now indicate whether a value is in a set of other
+values, for example &#8216;cat&#8217; is in the set of &#8216;cat, dog, cow,
 horse&#8217;. You can also use regular expressions so &#8216;cat&#8217; matches
 &#8216;^c.*&#8217;. The &#8216;not in set&#8217; and &#8216;not matches&#8217;
 operators are also available.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Additional Scales. Enhancements to the scaling algorithm mean that
-non binary scales are now just as easy to apply, thus new scales such as 0.75x
-have been added. Others can be easily included if necessary.</p>
+</span></span>Additional Scales. Enhancements to the scaling algorithm mean
+that non binary scales are now just as easy to apply, thus new scales such as
+0.75x have been added. Others can be easily included if necessary.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5830,8 +6007,8 @@ restructured to allow a double buffering approach. Thus a new image is loaded
 in the background and only written to screen when complete. This removes the
 refresh flicker that means that the screen blanks periodically however uses
 more JavaScript so may not be suitable for all platforms. Whether ZoneMinder
-uses double buffering or not is controlled by the ZM_WEB_DOUBLE_BUFFER
-configuration option.</p>
+uses double buffering or not is controlled by the ZM_WEB_DOUBLE_BUFFER configuration
+option.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5841,7 +6018,7 @@ sometimes result in events a multiple of that length. So events that were meant
 to be 15 minutes long could sometimes be 30 or even 45 minutes. This was
 especially the case with monitors that had low frame rates. This is now fixed.</p>
 
-<h2><a name="_Toc136335175"><span style='text-decoration:none'>13.19.<span
+<h2><a name="_Toc151468603"><span style='text-decoration:none'>12.20.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.17.2</a></h2>
 
 <p class=MsoPlainText>Minor features, bug fixes and additional languages.</p>
@@ -5889,10 +6066,9 @@ during an event have been renamed from capture-???.jpg to ???-capture, and from
 analyse-???.jpg to ???-analyse.jpg. This is to allow all images (including
 diagnostic ones) to be associated with the frame sequence number more easily.
 This means that old events will no longer be able to be viewed as the wrong
-image will be being searched for. To avoid this you can use the new
-&#8216;zmupdate.pl&#8217; utility to rename all your old images by doing
-&#8216;perl zmupdate.pl &#8211;r&#8217; as an appropriately privileged or root
-user.</p>
+image will be being searched for. To avoid this you can use the new &#8216;zmupdate.pl&#8217;
+utility to rename all your old images by doing &#8216;perl zmupdate.pl
+&#8211;r&#8217; as an appropriately privileged or root user.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -5925,7 +6101,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>New Languages. Translations for Japanese (ja_jp), French (fr_fr)
 and Russian (ru_ru) are now included.</p>
 
-<h2><a name="_Toc136335176"><span style='text-decoration:none'>13.20.<span
+<h2><a name="_Toc151468604"><span style='text-decoration:none'>12.21.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.17.1</a></h2>
 
 <p class=MsoPlainText>Bugfixes and additional languages.</p>
@@ -5957,7 +6133,7 @@ settings as this is a rarely accessed area and contains a great deal of text.
 The new format allows individual options to be translated piecemeal as the
 opportunity arises.</p>
 
-<h2><a name="_Toc136335177"><span style='text-decoration:none'>13.21.<span
+<h2><a name="_Toc151468605"><span style='text-decoration:none'>12.22.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 1.17.0</a></h2>
 
 <p class=MsoPlainText>Language changes and other enhancements.</p>
@@ -5982,10 +6158,10 @@ to avoid having any ambiguity in version numbers.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Language Support. ZoneMinder now allows specification of system
 and user specific languages other than UK English. These languages are given in
-language files named zm_lang_<i>nn_mm</i>.php which can be created from the
-default zm_lang_en_gb.php file. If your language is not included then please
-consider doing a translation by checking this file and submitting your changes
-back for inclusion in future releases.</p>
+language files named zm_lang_<i>nn_mm</i>.php which can be created from the default
+zm_lang_en_gb.php file. If your language is not included then please consider
+doing a translation by checking this file and submitting your changes back for
+inclusion in future releases.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6016,7 +6192,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Minor Bugs. A number of minor bugs and inconsistencies were
 corrected.</p>
 
-<h2><a name="_Toc136335178"><span style='text-decoration:none'>13.22.<span
+<h2><a name="_Toc151468606"><span style='text-decoration:none'>12.23.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.16</a></h2>
 
 <p class=MsoPlainText>Major usability enhancement and fixes.</p>
@@ -6081,8 +6257,8 @@ modes this will allow a faster review of the period the event covers.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Tabbed Monitor options. Specification and modification of
-monitors is now in a tabbed form for easier navigation.</p>
+</span></span>Tabbed Monitor options. Specification and modification of monitors
+is now in a tabbed form for easier navigation.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6213,7 +6389,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Event window width variable. Event windows now scale to fit the
 event image size.</p>
 
-<h2><a name="_Toc136335179"><span style='text-decoration:none'>13.23.<span
+<h2><a name="_Toc151468607"><span style='text-decoration:none'>12.24.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.15</a></h2>
 
 <p class=MsoPlainText>Various bug fixes from the last release and before.</p>
@@ -6267,7 +6443,7 @@ written by zma directly were colourised whereas those written by  zmf
 weren&#8217;t. A change has been made whereby if set all greyscale JPEG images
 are colourised in all circumstances.</p>
 
-<h2><a name="_Toc136335180"><span style='text-decoration:none'>13.24.<span
+<h2><a name="_Toc151468608"><span style='text-decoration:none'>12.25.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.14</a></h2>
 
 <p class=MsoPlainText>Major new feature and important bug-fixes.</p>
@@ -6328,7 +6504,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>All SQL buffers in the C++ code have been enlarged. There was
 previously an issue with a buffer overflow on certain occasions.</p>
 
-<h2><a name="_Toc136335181"><span style='text-decoration:none'>13.25.<span
+<h2><a name="_Toc151468609"><span style='text-decoration:none'>12.26.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.13</a></h2>
 
 <p class=MsoPlainText>Beta version of several features and fixes, never
@@ -6399,7 +6575,7 @@ from child windows to restart the refresh process. By using JS refresh timers
 which are not interrupted these extraneous refreshes have been mostly
 eliminated.</p>
 
-<h2><a name="_Toc136335182"><span style='text-decoration:none'>13.26.<span
+<h2><a name="_Toc151468610"><span style='text-decoration:none'>12.27.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.12</a></h2>
 
 <p class=MsoPlainText>Mostly bug-fixes with a couple of minor features.</p>
@@ -6507,7 +6683,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Detect linmysqlclient.a. Added better detection script into
 &#8216;configure&#8217; top spot when libmysqlclient.a is missing.</p>
 
-<h2><a name="_Toc136335183"><span style='text-decoration:none'>13.27.<span
+<h2><a name="_Toc151468611"><span style='text-decoration:none'>12.28.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.11</a></h2>
 
 <p class=MsoPlainText>Various new features and fixes.</p>
@@ -6538,8 +6714,8 @@ into RGB internally so if you have the choice RGB24 may be faster as it's the
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>Added preclusive zones &#8211; Added a new zone type, the
 preclusive zone. For full details see the relevant section above but in brief
-this is a zone type that if alarmed will actually prevent an alarm. This
-completes the pantheon of zone types I think.</p>
+this is a zone type that if alarmed will actually prevent an alarm. This completes
+the pantheon of zone types I think.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6607,11 +6783,11 @@ basically averaging the differences between each of the RGB components to get
 an overall difference. This is still the default but by setting
 ZM_FAST_RGB_DIFFS to 'no' you can now make it calculate the Y (or brightness
 value) of the pixels and use the difference between those instead. This will be
-more accurate and responsive to changes but is may be slower especially on old machines.
-There is a slight double whammy here if you have a YUV palette for capture and
-set this option off as the image will be converted to RGB and then partially
-converted back to get the Y value. This is currently very inefficient and needs
-to be optimised.</p>
+more accurate and responsive to changes but is may be slower especially on old
+machines. There is a slight double whammy here if you have a YUV palette for
+capture and set this option off as the image will be converted to RGB and then
+partially converted back to get the Y value. This is currently very inefficient
+and needs to be optimised.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6625,7 +6801,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 text colours were just a bit too gaudy so I've toned them down a bit. Hope you
 like them!</p>
 
-<h2><a name="_Toc136335184"><span style='text-decoration:none'>13.28.<span
+<h2><a name="_Toc151468612"><span style='text-decoration:none'>12.29.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.10</a></h2>
 
 <p class=MsoPlainText>Many bug-fixes and major feature enhancements.</p>
@@ -6741,8 +6917,8 @@ run when a monitor is active and so actually potentially generating alarms.</p>
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>zmdc short statuses &#8211; Removed the logging of the short
-status values that zmdc.pl returns to it&#8217;s clients which had been
-clogging up the log file.</p>
+status values that zmdc.pl returns to it&#8217;s clients which had been clogging
+up the log file.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -6750,7 +6926,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 that that I don't think had been reported or noticed so I don&#8217;t think we
 need to talk about them here do we.</p>
 
-<h2><a name="_Toc136335185"><span style='text-decoration:none'>13.29.<span
+<h2><a name="_Toc151468613"><span style='text-decoration:none'>12.30.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.9</a></h2>
 
 <p class=MsoPlainText>Mainly bug-fixes and minor feature enhancements.</p>
@@ -6825,7 +7001,7 @@ reload if a monitor window for example was clicked. Thsi was removed in the
 last version which meant that sometimes the console never go refreshed as it's
 timing loop was broken. This functionality has now been reinstated.</p>
 
-<h2><a name="_Toc136335186"><span style='text-decoration:none'>13.30.<span
+<h2><a name="_Toc151468614"><span style='text-decoration:none'>12.31.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.8</a></h2>
 
 <p class=MsoPlainText>Several new features and bug-fixes</p>
@@ -6947,7 +7123,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 active and an alarm has occurred the most recent alarms list is immediately
 refreshed to show it.</p>
 
-<h2><a name="_Toc136335187"><span style='text-decoration:none'>13.31.<span
+<h2><a name="_Toc151468615"><span style='text-decoration:none'>12.32.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.9.7</a></h2>
 
 <p class=MsoPlainText>Yes, a big jump in release number but a lot of changes
@@ -7045,8 +7221,8 @@ be specified in zmconfig.php</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Changed form methods to 'get' from 'post' to avoid resubmit warnings
-all the time.</p>
+</span></span>Changed form methods to 'get' from 'post' to avoid resubmit
+warnings all the time.</p>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -7065,7 +7241,7 @@ separate events view.</p>
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span></span>And much much more, probably...</p>
 
-<h2><a name="_Toc136335188"><span style='text-decoration:none'>13.32.<span
+<h2><a name="_Toc151468616"><span style='text-decoration:none'>12.33.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.0.1</a></h2>
 
 <p class=MsoPlainText>Initial release, therefore nothing new.</p>
@@ -7074,7 +7250,7 @@ style='font:7.0pt "Times New Roman"'>&nbsp; </span></span>Release 0.0.1</a></h2>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335189"><span style='text-decoration:none'>14.<span
+<h1><a name="_Toc151468617"><span style='text-decoration:none'>13.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><u>To Do</u></a></h1>
 
 <p class=MsoPlainText>Seeing as ZoneMinder is so young and has kind of evolved
@@ -7144,7 +7320,7 @@ even get this document.</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335190"><span style='text-decoration:none'>15.<span
+<h1><a name="_Toc151468618"><span style='text-decoration:none'>14.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><u>Bugs</u></a></h1>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
@@ -7167,7 +7343,7 @@ needs checking out.</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335191"><span style='text-decoration:none'>16.<span
+<h1><a name="_Toc151468619"><span style='text-decoration:none'>15.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><u>Non-Bugs</u></a></h1>
 
 <p class=BullettedChar><span style='font-family:"Courier New"'>o<span
@@ -7183,7 +7359,7 @@ deliberate, or was once anyway.</p>
 style='page-break-before:always'>
 </span></u></b>
 
-<h1><a name="_Toc136335192"><span style='text-decoration:none'>17.<span
+<h1><a name="_Toc151468620"><span style='text-decoration:none'>16.<span
 style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><u>License</u></a></h1>
 
 <p class=MsoPlainText>ZoneMinder is released under the GPL, see below.</p>

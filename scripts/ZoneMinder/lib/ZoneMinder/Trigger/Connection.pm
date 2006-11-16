@@ -151,6 +151,10 @@ sub putMessages
 	return( undef );
 }
 
+sub timedActions
+{
+}
+
 sub DESTROY
 {
 }

@@ -147,7 +147,7 @@ our $shm_data =
 		"trigger_score"    => { "type"=>"int", "seq"=>$shm_seq++ },
 		"trigger_cause"    => { "type"=>"char[32]", "seq"=>$shm_seq++ },
 		"trigger_text"     => { "type"=>"char[256]", "seq"=>$shm_seq++ },
-		"trigger_showtext" => { "type"=>"char[32]", "seq"=>$shm_seq++ },
+		"trigger_showtext" => { "type"=>"char[256]", "seq"=>$shm_seq++ },
 		}
 	},
 	"end" => { "seq"=>$shm_seq++, "size"=> 0 }

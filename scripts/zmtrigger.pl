@@ -59,9 +59,9 @@ push( @connections, ZoneMinder::Trigger::Connection->new( name=>"Chan4", channel
 
 use ZoneMinder;
 use DBI;
-use POSIX;
 #use Socket;
 use Data::Dumper;
+use Time::HiRes qw( usleep );
 
 $| = 1;
 
@@ -248,6 +248,30 @@ while( 1 )
 		delete( $actions{$action_time} );
 	}
 
+    # Allow connections to do their own timed actions
+	foreach my $connection ( @connections )
+	{
+		my $messages = $connection->timedActions();
+		if ( defined($messages) )
+		{
+			foreach my $message ( @$messages )
+			{
+				handleMessage( $connection, $message );
+			}
+		}
+	}
+	foreach my $connection ( values(%spawned_connections) )
+	{
+		my $messages = $connection->timedActions();
+		if ( defined($messages) )
+		{
+			foreach my $message ( @$messages )
+			{
+				handleMessage( $connection, $message );
+			}
+		}
+	}
+
 	# If necessary reload monitors
 	if ( (time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL )
 	{
@@ -351,13 +375,28 @@ sub handleMessage
 		if ( $trigger eq "on" )
 		{
 			zmTriggerEventOn( $monitor, $score, $cause, $text );
+		    zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
+		    Info( "Trigger '$trigger' '$cause'\n" );
+		}
+		elsif ( $trigger eq "off" )
+		{
+            my $last_event = zmGetLastEvent( $monitor );
+			zmTriggerEventOff( $monitor );
+		    zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
+		    Info( "Trigger '$trigger'\n" );
+            # Wait til it's finished
+            while( zmInAlarm( $monitor ) && ($last_event == zmGetLastEvent( $monitor )) )
+            {
+                # Tenth of a second
+                usleep( 100000 );
+            }
+			zmTriggerEventCancel( $monitor );
 		}
 		else
 		{
-			zmTriggerEventOff( $monitor );
+		    Info( "Trigger '$trigger'\n" );
+			zmTriggerEventCancel( $monitor );
 		}
-		zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
-		Info( "Triggered event '$trigger' '$cause'\n" );
 		if ( $delay )
 		{
 			my $action_time = time()+$delay;
@@ -376,7 +415,7 @@ sub handleMessage
 	{
 		zmTriggerEventCancel( $monitor );
 		zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
-		Info( "Cancelled event '$cause'\n" );
+		Info( "Cancelled event\n" );
 	}
 	elsif( $action eq "show" )
 	{

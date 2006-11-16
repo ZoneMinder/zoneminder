@@ -46,7 +46,7 @@ sub new
 {
 	my $class = shift;
 	my $path = shift;
-	my $self = (ZoneMinder::Trigger::Connection->new( @_ );
+	my $self = ZoneMinder::Trigger::Connection->new( @_ );
 	bless( $self, $class );
 	return $self;
 }

@@ -140,7 +140,7 @@ EXTRA_DIST = \
 	zm_html_view_controlcaps.php \
 	zm_html_view_controlcap.php \
 	zm_html_view_cycle.php \
-	zm_html_view_devics.php \
+	zm_html_view_device.php \
 	zm_html_view_devices.php \
 	zm_html_view_donate.php \
 	zm_html_view_error.php \

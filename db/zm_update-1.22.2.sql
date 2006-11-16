@@ -16,6 +16,7 @@ update Filters set Background = 1 where (AutoArchive = 1 or AutoVideo = 1 or Aut
 -- Add default view column into Monitors
 --
 alter table Monitors add column DefaultView enum ('Events','Control') not null default 'Events' after ReturnDelay;
+alter table Monitors modify LabelFormat varchar(64) NOT NULL default '%%s - %y/%m/%d %H:%M:%S';
 
 --
 -- Add device permissions column into Users, set the permissions  for existing users to

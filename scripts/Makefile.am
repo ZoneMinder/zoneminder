@@ -48,6 +48,7 @@ EXTRA_DIST = \
 	ZoneMinder/Makefile.PL \
 	ZoneMinder/README \
 	ZoneMinder/Changes \
+	ZoneMinder/META.yml \
 	ZoneMinder/MANIFEST \
 	ZoneMinder/t/ZoneMinder.t \
 	ZoneMinder/lib/ZoneMinder.pm \

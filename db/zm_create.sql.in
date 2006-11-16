@@ -1,436 +1,507 @@
+-- MySQL dump 10.9
 --
--- Current Database: @ZM_DB_NAME@
+-- Host: localhost    Database: @ZM_DB_NAME@
+-- ------------------------------------------------------
+-- Server version	4.1.16-log
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Current Database: `@ZM_DB_NAME@`
 --
 
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ @ZM_DB_NAME@;
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `@ZM_DB_NAME@` /*!40100 DEFAULT CHARACTER SET latin1 */;
 
-USE @ZM_DB_NAME@;
+USE `@ZM_DB_NAME@`;
 
 --
 -- Table structure for table `Config`
 --
 
-CREATE TABLE Config (
-  Id smallint(5) unsigned NOT NULL default '0',
-  Name varchar(32) NOT NULL default '',
-  Value text NOT NULL,
-  Type tinytext NOT NULL,
-  DefaultValue tinytext,
-  Hint tinytext,
-  Pattern tinytext,
-  Format tinytext,
-  Prompt tinytext,
-  Help text,
-  Category varchar(32) NOT NULL default '',
-  Readonly tinyint(3) unsigned NOT NULL default '0',
-  Requires text,
-  PRIMARY KEY  (Name),
-  UNIQUE KEY UC_Name (Name)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `Config`;
+CREATE TABLE `Config` (
+  `Id` smallint(5) unsigned NOT NULL default '0',
+  `Name` varchar(32) NOT NULL default '',
+  `Value` text NOT NULL,
+  `Type` tinytext NOT NULL,
+  `DefaultValue` tinytext,
+  `Hint` tinytext,
+  `Pattern` tinytext,
+  `Format` tinytext,
+  `Prompt` tinytext,
+  `Help` text,
+  `Category` varchar(32) NOT NULL default '',
+  `Readonly` tinyint(3) unsigned NOT NULL default '0',
+  `Requires` text,
+  PRIMARY KEY  (`Name`),
+  UNIQUE KEY `UC_Name` (`Name`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Table structure for table `ControlPresets`
+--
+
+DROP TABLE IF EXISTS `ControlPresets`;
+CREATE TABLE `ControlPresets` (
+  `MonitorId` int(10) unsigned NOT NULL default '0',
+  `Preset` int(10) unsigned NOT NULL default '0',
+  `Label` varchar(64) NOT NULL default '',
+  PRIMARY KEY  (`MonitorId`,`Preset`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `Controls`
 --
 
-CREATE TABLE Controls (
-  Id int(10) unsigned NOT NULL auto_increment,
-  Name varchar(64) NOT NULL default '',
-  Type enum('Local','Remote') NOT NULL default 'Local',
-  Command varchar(255) default NULL,
-  CanWake tinyint(3) unsigned NOT NULL default '0',
-  CanSleep tinyint(3) unsigned NOT NULL default '0',
-  CanReset tinyint(3) unsigned NOT NULL default '0',
-  CanZoom tinyint(3) unsigned NOT NULL default '0',
-  CanAutoZoom tinyint(3) unsigned NOT NULL default '0',
-  CanZoomAbs tinyint(3) unsigned NOT NULL default '0',
-  CanZoomRel tinyint(3) unsigned NOT NULL default '0',
-  CanZoomCon tinyint(3) unsigned NOT NULL default '0',
-  MinZoomRange int(10) unsigned default NULL,
-  MaxZoomRange int(10) unsigned default NULL,
-  MinZoomStep int(10) unsigned default NULL,
-  MaxZoomStep int(10) unsigned default NULL,
-  HasZoomSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinZoomSpeed int(10) unsigned default NULL,
-  MaxZoomSpeed int(10) unsigned default NULL,
-  CanFocus tinyint(3) unsigned NOT NULL default '0',
-  CanAutoFocus tinyint(3) unsigned NOT NULL default '0',
-  CanFocusAbs tinyint(3) unsigned NOT NULL default '0',
-  CanFocusRel tinyint(3) unsigned NOT NULL default '0',
-  CanFocusCon tinyint(3) unsigned NOT NULL default '0',
-  MinFocusRange int(10) unsigned default NULL,
-  MaxFocusRange int(10) unsigned default NULL,
-  MinFocusStep int(10) unsigned default NULL,
-  MaxFocusStep int(10) unsigned default NULL,
-  HasFocusSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinFocusSpeed int(10) unsigned default NULL,
-  MaxFocusSpeed int(10) unsigned default NULL,
-  CanIris tinyint(3) unsigned NOT NULL default '0',
-  CanAutoIris tinyint(3) unsigned NOT NULL default '0',
-  CanIrisAbs tinyint(3) unsigned NOT NULL default '0',
-  CanIrisRel tinyint(3) unsigned NOT NULL default '0',
-  CanIrisCon tinyint(3) unsigned NOT NULL default '0',
-  MinIrisRange int(10) unsigned default NULL,
-  MaxIrisRange int(10) unsigned default NULL,
-  MinIrisStep int(10) unsigned default NULL,
-  MaxIrisStep int(10) unsigned default NULL,
-  HasIrisSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinIrisSpeed int(10) unsigned default NULL,
-  MaxIrisSpeed int(10) unsigned default NULL,
-  CanGain tinyint(3) unsigned NOT NULL default '0',
-  CanAutoGain tinyint(3) unsigned NOT NULL default '0',
-  CanGainAbs tinyint(3) unsigned NOT NULL default '0',
-  CanGainRel tinyint(3) unsigned NOT NULL default '0',
-  CanGainCon tinyint(3) unsigned NOT NULL default '0',
-  MinGainRange int(10) unsigned default NULL,
-  MaxGainRange int(10) unsigned default NULL,
-  MinGainStep int(10) unsigned default NULL,
-  MaxGainStep int(10) unsigned default NULL,
-  HasGainSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinGainSpeed int(10) unsigned default NULL,
-  MaxGainSpeed int(10) unsigned default NULL,
-  CanWhite tinyint(3) unsigned NOT NULL default '0',
-  CanAutoWhite tinyint(3) unsigned NOT NULL default '0',
-  CanWhiteAbs tinyint(3) unsigned NOT NULL default '0',
-  CanWhiteRel tinyint(3) unsigned NOT NULL default '0',
-  CanWhiteCon tinyint(3) unsigned NOT NULL default '0',
-  MinWhiteRange int(10) unsigned default NULL,
-  MaxWhiteRange int(10) unsigned default NULL,
-  MinWhiteStep int(10) unsigned default NULL,
-  MaxWhiteStep int(10) unsigned default NULL,
-  HasWhiteSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinWhiteSpeed int(10) unsigned default NULL,
-  MaxWhiteSpeed int(10) unsigned default NULL,
-  HasPresets tinyint(3) unsigned NOT NULL default '0',
-  NumPresets tinyint(3) unsigned NOT NULL default '0',
-  HasHomePreset tinyint(3) unsigned NOT NULL default '0',
-  CanSetPresets tinyint(3) unsigned NOT NULL default '0',
-  CanMove tinyint(3) unsigned NOT NULL default '0',
-  CanMoveDiag tinyint(3) unsigned NOT NULL default '0',
-  CanMoveMap tinyint(3) unsigned NOT NULL default '0',
-  CanMoveAbs tinyint(3) unsigned NOT NULL default '0',
-  CanMoveRel tinyint(3) unsigned NOT NULL default '0',
-  CanMoveCon tinyint(3) unsigned NOT NULL default '0',
-  CanPan tinyint(3) unsigned NOT NULL default '0',
-  MinPanRange int(10) default NULL,
-  MaxPanRange int(10) default NULL,
-  MinPanStep int(10) default NULL,
-  MaxPanStep int(10) default NULL,
-  HasPanSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinPanSpeed int(10) default NULL,
-  MaxPanSpeed int(10) default NULL,
-  HasTurboPan tinyint(3) unsigned NOT NULL default '0',
-  TurboPanSpeed int(10) default NULL,
-  CanTilt tinyint(3) unsigned NOT NULL default '0',
-  MinTiltRange int(10) default NULL,
-  MaxTiltRange int(10) default NULL,
-  MinTiltStep int(10) default NULL,
-  MaxTiltStep int(10) default NULL,
-  HasTiltSpeed tinyint(3) unsigned NOT NULL default '0',
-  MinTiltSpeed int(10) default NULL,
-  MaxTiltSpeed int(10) default NULL,
-  HasTurboTilt tinyint(3) unsigned NOT NULL default '0',
-  TurboTiltSpeed int(10) default NULL,
-  CanAutoScan tinyint(3) unsigned NOT NULL default '0',
-  NumScanPaths tinyint(3) unsigned NOT NULL default '0',
-  PRIMARY KEY  (Id),
-  UNIQUE KEY UC_Id (Id)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `Controls`;
+CREATE TABLE `Controls` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `Type` enum('Local','Remote') NOT NULL default 'Local',
+  `Command` varchar(255) default NULL,
+  `Protocol` varchar(32) default NULL,
+  `CanWake` tinyint(3) unsigned NOT NULL default '0',
+  `CanSleep` tinyint(3) unsigned NOT NULL default '0',
+  `CanReset` tinyint(3) unsigned NOT NULL default '0',
+  `CanZoom` tinyint(3) unsigned NOT NULL default '0',
+  `CanAutoZoom` tinyint(3) unsigned NOT NULL default '0',
+  `CanZoomAbs` tinyint(3) unsigned NOT NULL default '0',
+  `CanZoomRel` tinyint(3) unsigned NOT NULL default '0',
+  `CanZoomCon` tinyint(3) unsigned NOT NULL default '0',
+  `MinZoomRange` int(10) unsigned default NULL,
+  `MaxZoomRange` int(10) unsigned default NULL,
+  `MinZoomStep` int(10) unsigned default NULL,
+  `MaxZoomStep` int(10) unsigned default NULL,
+  `HasZoomSpeed` tinyint(3) unsigned NOT NULL default '0',
+  `MinZoomSpeed` int(10) unsigned default NULL,
+  `MaxZoomSpeed` int(10) unsigned default NULL,
+  `CanFocus` tinyint(3) unsigned NOT NULL default '0',
+  `CanAutoFocus` tinyint(3) unsigned NOT NULL default '0',
+  `CanFocusAbs` tinyint(3) unsigned NOT NULL default '0',
+  `CanFocusRel` tinyint(3) unsigned NOT NULL default '0',
+  `CanFocusCon` tinyint(3) unsigned NOT NULL default '0',
+  `MinFocusRange` int(10) unsigned default NULL,
+  `MaxFocusRange` int(10) unsigned default NULL,
+  `MinFocusStep` int(10) unsigned default NULL,
+  `MaxFocusStep` int(10) unsigned default NULL,
+  `HasFocusSpeed` tinyint(3) unsigned NOT NULL default '0',
+  `MinFocusSpeed` int(10) unsigned default NULL,
+  `MaxFocusSpeed` int(10) unsigned default NULL,
+  `CanIris` tinyint(3) unsigned NOT NULL default '0',
+  `CanAutoIris` tinyint(3) unsigned NOT NULL default '0',
+  `CanIrisAbs` tinyint(3) unsigned NOT NULL default '0',
+  `CanIrisRel` tinyint(3) unsigned NOT NULL default '0',
+  `CanIrisCon` tinyint(3) unsigned NOT NULL default '0',
+  `MinIrisRange` int(10) unsigned default NULL,
+  `MaxIrisRange` int(10) unsigned default NULL,
+  `MinIrisStep` int(10) unsigned default NULL,
+  `MaxIrisStep` int(10) unsigned default NULL,
+  `HasIrisSpeed` tinyint(3) unsigned NOT NULL default '0',
+  `MinIrisSpeed` int(10) unsigned default NULL,
+  `MaxIrisSpeed` int(10) unsigned default NULL,
+  `CanGain` tinyint(3) unsigned NOT NULL default '0',
+  `CanAutoGain` tinyint(3) unsigned NOT NULL default '0',
+  `CanGainAbs` tinyint(3) unsigned NOT NULL default '0',
+  `CanGainRel` tinyint(3) unsigned NOT NULL default '0',
+  `CanGainCon` tinyint(3) unsigned NOT NULL default '0',
+  `MinGainRange` int(10) unsigned default NULL,
+  `MaxGainRange` int(10) unsigned default NULL,
+  `MinGainStep` int(10) unsigned default NULL,
+  `MaxGainStep` int(10) unsigned default NULL,
+  `HasGainSpeed` tinyint(3) unsigned NOT NULL default '0',
+  `MinGainSpeed` int(10) unsigned default NULL,
+  `MaxGainSpeed` int(10) unsigned default NULL,
+  `CanWhite` tinyint(3) unsigned NOT NULL default '0',
+  `CanAutoWhite` tinyint(3) unsigned NOT NULL default '0',
+  `CanWhiteAbs` tinyint(3) unsigned NOT NULL default '0',
+  `CanWhiteRel` tinyint(3) unsigned NOT NULL default '0',
+  `CanWhiteCon` tinyint(3) unsigned NOT NULL default '0',
+  `MinWhiteRange` int(10) unsigned default NULL,
+  `MaxWhiteRange` int(10) unsigned default NULL,
+  `MinWhiteStep` int(10) unsigned default NULL,
+  `MaxWhiteStep` int(10) unsigned default NULL,
+  `HasWhiteSpeed` tinyint(3) unsigned NOT NULL default '0',
+  `MinWhiteSpeed` int(10) unsigned default NULL,
+  `MaxWhiteSpeed` int(10) unsigned default NULL,
+  `HasPresets` tinyint(3) unsigned NOT NULL default '0',
+  `NumPresets` tinyint(3) unsigned NOT NULL default '0',
+  `HasHomePreset` tinyint(3) unsigned NOT NULL default '0',
+  `CanSetPresets` tinyint(3) unsigned NOT NULL default '0',
+  `CanMove` tinyint(3) unsigned NOT NULL default '0',
+  `CanMoveDiag` tinyint(3) unsigned NOT NULL default '0',
+  `CanMoveMap` tinyint(3) unsigned NOT NULL default '0',
+  `CanMoveAbs` tinyint(3) unsigned NOT NULL default '0',
+  `CanMoveRel` tinyint(3) unsigned NOT NULL default '0',
+  `CanMoveCon` tinyint(3) unsigned NOT NULL default '0',
+  `CanPan` tinyint(3) unsigned NOT NULL default '0',
+  `MinPanRange` int(10) default NULL,
+  `MaxPanRange` int(10) default NULL,
+  `MinPanStep` int(10) default NULL,
+  `MaxPanStep` int(10) default NULL,
+  `HasPanSpeed` tinyint(3) unsigned NOT NULL default '0',
+  `MinPanSpeed` int(10) default NULL,
+  `MaxPanSpeed` int(10) default NULL,
+  `HasTurboPan` tinyint(3) unsigned NOT NULL default '0',
+  `TurboPanSpeed` int(10) default NULL,
+  `CanTilt` tinyint(3) unsigned NOT NULL default '0',
+  `MinTiltRange` int(10) default NULL,
+  `MaxTiltRange` int(10) default NULL,
+  `MinTiltStep` int(10) default NULL,
+  `MaxTiltStep` int(10) default NULL,
+  `HasTiltSpeed` tinyint(3) unsigned NOT NULL default '0',
+  `MinTiltSpeed` int(10) default NULL,
+  `MaxTiltSpeed` int(10) default NULL,
+  `HasTurboTilt` tinyint(3) unsigned NOT NULL default '0',
+  `TurboTiltSpeed` int(10) default NULL,
+  `CanAutoScan` tinyint(3) unsigned NOT NULL default '0',
+  `NumScanPaths` tinyint(3) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`Id`),
+  UNIQUE KEY `UC_Id` (`Id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Table structure for table `Devices`
+--
+
+DROP TABLE IF EXISTS `Devices`;
+CREATE TABLE `Devices` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` tinytext NOT NULL,
+  `Type` enum('X10') NOT NULL default 'X10',
+  `KeyString` varchar(32) NOT NULL default '',
+  PRIMARY KEY  (`Id`),
+  UNIQUE KEY `UC_Id` (`Id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `Events`
 --
 
-CREATE TABLE Events (
-  Id int(10) unsigned NOT NULL auto_increment,
-  MonitorId int(10) unsigned NOT NULL default '0',
-  Name varchar(64) NOT NULL default '',
-  Cause varchar(32) NOT NULL default '',
-  StartTime datetime default NULL,
-  EndTime datetime default NULL,
-  Width smallint(5) unsigned NOT NULL default '0',
-  Height smallint(5) unsigned NOT NULL default '0',
-  Length decimal(10,2) NOT NULL default '0.00',
-  Frames int(10) unsigned default NULL,
-  AlarmFrames int(10) unsigned default NULL,
-  TotScore int(10) unsigned NOT NULL default '0',
-  AvgScore smallint(5) unsigned default '0',
-  MaxScore smallint(5) unsigned default '0',
-  Archived tinyint(3) unsigned NOT NULL default '0',
-  Videoed tinyint(3) unsigned NOT NULL default '0',
-  Uploaded tinyint(3) unsigned NOT NULL default '0',
-  Emailed tinyint(3) unsigned NOT NULL default '0',
-  Messaged tinyint(3) unsigned NOT NULL default '0',
-  Executed tinyint(3) unsigned NOT NULL default '0',
-  LearnState char(1) default '',
-  Notes text,
-  PRIMARY KEY  (Id),
-  UNIQUE KEY UC_Id (Id),
-  KEY Id (Id,MonitorId),
-  KEY MonitorId (MonitorId),
-  KEY StartTime (StartTime),
-  KEY Frames (Frames),
-  KEY Archived (Archived)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `Events`;
+CREATE TABLE `Events` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `MonitorId` int(10) unsigned NOT NULL default '0',
+  `Name` varchar(64) NOT NULL default '',
+  `Cause` varchar(32) NOT NULL default '',
+  `StartTime` datetime default NULL,
+  `EndTime` datetime default NULL,
+  `Width` smallint(5) unsigned NOT NULL default '0',
+  `Height` smallint(5) unsigned NOT NULL default '0',
+  `Length` decimal(10,2) NOT NULL default '0.00',
+  `Frames` int(10) unsigned default NULL,
+  `AlarmFrames` int(10) unsigned default NULL,
+  `TotScore` int(10) unsigned NOT NULL default '0',
+  `AvgScore` smallint(5) unsigned default '0',
+  `MaxScore` smallint(5) unsigned default '0',
+  `Archived` tinyint(3) unsigned NOT NULL default '0',
+  `Videoed` tinyint(3) unsigned NOT NULL default '0',
+  `Uploaded` tinyint(3) unsigned NOT NULL default '0',
+  `Emailed` tinyint(3) unsigned NOT NULL default '0',
+  `Messaged` tinyint(3) unsigned NOT NULL default '0',
+  `Executed` tinyint(3) unsigned NOT NULL default '0',
+  `LearnState` char(1) default '',
+  `Notes` text,
+  PRIMARY KEY  (`Id`),
+  UNIQUE KEY `UC_Id` (`Id`),
+  KEY `Id` (`Id`,`MonitorId`),
+  KEY `MonitorId` (`MonitorId`),
+  KEY `StartTime` (`StartTime`),
+  KEY `Frames` (`Frames`),
+  KEY `Archived` (`Archived`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `Filters`
 --
 
-CREATE TABLE Filters (
-  Name varchar(64) NOT NULL default '',
-  Query text NOT NULL,
-  AutoArchive tinyint(3) unsigned NOT NULL default '0',
-  AutoVideo tinyint(3) unsigned NOT NULL default '0',
-  AutoUpload tinyint(3) unsigned NOT NULL default '0',
-  AutoEmail tinyint(3) unsigned NOT NULL default '0',
-  AutoMessage tinyint(3) unsigned NOT NULL default '0',
-  AutoExecute tinyint(3) unsigned NOT NULL default '0',
-  AutoExecuteCmd tinytext,
-  AutoDelete tinyint(3) unsigned NOT NULL default '0',
-  PRIMARY KEY  (Name)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `Filters`;
+CREATE TABLE `Filters` (
+  `Name` varchar(64) NOT NULL default '',
+  `Query` text NOT NULL,
+  `AutoArchive` tinyint(3) unsigned NOT NULL default '0',
+  `AutoVideo` tinyint(3) unsigned NOT NULL default '0',
+  `AutoUpload` tinyint(3) unsigned NOT NULL default '0',
+  `AutoEmail` tinyint(3) unsigned NOT NULL default '0',
+  `AutoMessage` tinyint(3) unsigned NOT NULL default '0',
+  `AutoExecute` tinyint(3) unsigned NOT NULL default '0',
+  `AutoExecuteCmd` tinytext,
+  `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
+  `Background` tinyint(1) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`Name`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `Frames`
 --
 
-CREATE TABLE Frames (
-  Id int(10) unsigned NOT NULL auto_increment,
-  EventId int(10) unsigned NOT NULL default '0',
-  FrameId int(10) unsigned NOT NULL default '0',
-  Type enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
-  TimeStamp timestamp(14) NOT NULL,
-  Delta decimal(8,2) NOT NULL default '0.00',
-  Score smallint(5) unsigned NOT NULL default '0',
-  PRIMARY KEY  (Id),
-  UNIQUE KEY UC_Id (Id),
-  KEY EventId (EventId),
-  KEY Type (Type),
-  KEY TimeStamp (TimeStamp)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `Frames`;
+CREATE TABLE `Frames` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `EventId` int(10) unsigned NOT NULL default '0',
+  `FrameId` int(10) unsigned NOT NULL default '0',
+  `Type` enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
+  `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  `Delta` decimal(8,2) NOT NULL default '0.00',
+  `Score` smallint(5) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`Id`),
+  UNIQUE KEY `UC_Id` (`Id`),
+  KEY `EventId` (`EventId`),
+  KEY `Type` (`Type`),
+  KEY `TimeStamp` (`TimeStamp`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `Groups`
 --
 
-CREATE TABLE Groups (
-  Id int(10) unsigned NOT NULL auto_increment,
-  Name varchar(64) NOT NULL default '',
-  MonitorIds tinytext NOT NULL,
-  PRIMARY KEY  (Id)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `Groups`;
+CREATE TABLE `Groups` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `MonitorIds` tinytext NOT NULL,
+  PRIMARY KEY  (`Id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `MonitorPresets`
 --
 
+DROP TABLE IF EXISTS `MonitorPresets`;
 CREATE TABLE `MonitorPresets` (
-  Id int(10) unsigned NOT NULL auto_increment,
-  Name varchar(64) NOT NULL, 
-  Type enum('Local','Remote','File') NOT NULL default 'Local',
-  Device tinytext,
-  Channel varchar(32) default NULL,
-  Format varchar(32) default NULL,
-  Host varchar(64) default NULL,
-  Port varchar(8) default NULL,
-  Path varchar(255) default NULL,
-  Width smallint(5) unsigned default NULL,
-  Height smallint(5) unsigned default NULL,
-  Palette tinyint(3) unsigned default NULL,
-  MaxFPS decimal(5,2) default NULL,
-  Controllable tinyint(3) unsigned NOT NULL default '0',
-  ControlId varchar(16) default NULL,
-  ControlDevice varchar(255) default NULL,
-  ControlAddress varchar(255) default NULL,
-  DefaultRate smallint(5) unsigned NOT NULL default '100',
-  DefaultScale smallint(5) unsigned NOT NULL default '100',
-  PRIMARY KEY  (Id)
-) TYPE=MyISAM;
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `Type` enum('Local','Remote','File') NOT NULL default 'Local',
+  `Device` tinytext,
+  `Channel` varchar(32) default NULL,
+  `Format` varchar(32) default NULL,
+  `Host` varchar(64) default NULL,
+  `Port` varchar(8) default NULL,
+  `Path` varchar(255) default NULL,
+  `Width` smallint(5) unsigned default NULL,
+  `Height` smallint(5) unsigned default NULL,
+  `Palette` tinyint(3) unsigned default NULL,
+  `MaxFPS` decimal(5,2) default NULL,
+  `Controllable` tinyint(3) unsigned NOT NULL default '0',
+  `ControlId` varchar(16) default NULL,
+  `ControlDevice` varchar(255) default NULL,
+  `ControlAddress` varchar(255) default NULL,
+  `DefaultRate` smallint(5) unsigned NOT NULL default '100',
+  `DefaultScale` smallint(5) unsigned NOT NULL default '100',
+  PRIMARY KEY  (`Id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `Monitors`
 --
 
-CREATE TABLE Monitors (
-  Id int(10) unsigned NOT NULL auto_increment,
-  Name varchar(64) NOT NULL default '',
-  Type enum('Local','Remote','File') NOT NULL default 'Local',
-  Function enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
-  Enabled tinyint(3) unsigned NOT NULL default '1',
-  LinkedMonitors varchar(255) NOT NULL default '',
-  Triggers set('X10') NOT NULL default '',
-  Device varchar(64) NOT NULL default '',
-  Channel tinyint(3) unsigned NOT NULL default '0',
-  Format tinyint(3) unsigned NOT NULL default '0',
-  Host varchar(64) NOT NULL default '',
-  Port varchar(8) NOT NULL default '',
-  Path varchar(255) NOT NULL default '',
-  Width smallint(5) unsigned NOT NULL default '0',
-  Height smallint(5) unsigned NOT NULL default '0',
-  Palette tinyint(3) unsigned NOT NULL default '1',
-  Orientation enum('0','90','180','270','hori','vert') NOT NULL default '0',
-  Brightness mediumint(7) NOT NULL default '-1',
-  Contrast mediumint(7) NOT NULL default '-1',
-  Hue mediumint(7) NOT NULL default '-1',
-  Colour mediumint(7) NOT NULL default '-1',
-  EventPrefix varchar(32) NOT NULL default 'Event-',
-  LabelFormat varchar(64) NOT NULL default '%%s - %y/%m/%d %H:%M:%S',
-  LabelX smallint(5) unsigned NOT NULL default 0,
-  LabelY smallint(5) unsigned NOT NULL default 0,
-  ImageBufferCount smallint(5) unsigned NOT NULL default '100',
-  WarmupCount smallint(5) unsigned NOT NULL default '25',
-  PreEventCount smallint(5) unsigned NOT NULL default '10',
-  PostEventCount smallint(5) unsigned NOT NULL default '10',
-  AlarmFrameCount smallint(5) unsigned NOT NULL default '1',
-  SectionLength int(10) unsigned NOT NULL default '600',
-  FrameSkip smallint(5) unsigned NOT NULL default '0',
-  MaxFPS decimal(5,2) default NULL,
-  AlarmMaxFPS decimal(5,2) default NULL,
-  FPSReportInterval smallint(5) unsigned NOT NULL default '250',
-  RefBlendPerc tinyint(3) unsigned NOT NULL default '10',
-  Controllable tinyint(3) unsigned NOT NULL default '0',
-  ControlId int(10) unsigned NOT NULL default '0',
-  ControlDevice varchar(255) default NULL,
-  ControlAddress varchar(255) default NULL,
-  AutoStopTimeout decimal(5,2) default NULL,
-  TrackMotion tinyint(3) unsigned NOT NULL default '0',
-  TrackDelay smallint(5) unsigned NOT NULL default '0',
-  ReturnLocation tinyint(3) NOT NULL default '-1',
-  ReturnDelay smallint(5) unsigned NOT NULL default '0',
-  DefaultRate smallint(5) unsigned NOT NULL default '100',
-  DefaultScale smallint(5) unsigned NOT NULL default '100',
-  WebColour varchar(32) NOT NULL default 'red',
-  Sequence smallint(5) unsigned default NULL,
-  PRIMARY KEY  (Id)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `Monitors`;
+CREATE TABLE `Monitors` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `Type` enum('Local','Remote','File') NOT NULL default 'Local',
+  `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
+  `Enabled` tinyint(3) unsigned NOT NULL default '1',
+  `LinkedMonitors` varchar(255) NOT NULL default '',
+  `Triggers` set('X10') NOT NULL default '',
+  `Device` varchar(64) NOT NULL default '',
+  `Channel` tinyint(3) unsigned NOT NULL default '0',
+  `Format` tinyint(3) unsigned NOT NULL default '0',
+  `Host` varchar(64) NOT NULL default '',
+  `Port` varchar(8) NOT NULL default '',
+  `Path` varchar(255) NOT NULL default '',
+  `Width` smallint(5) unsigned NOT NULL default '0',
+  `Height` smallint(5) unsigned NOT NULL default '0',
+  `Palette` tinyint(3) unsigned NOT NULL default '1',
+  `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
+  `Brightness` mediumint(7) NOT NULL default '-1',
+  `Contrast` mediumint(7) NOT NULL default '-1',
+  `Hue` mediumint(7) NOT NULL default '-1',
+  `Colour` mediumint(7) NOT NULL default '-1',
+  `EventPrefix` varchar(32) NOT NULL default 'Event-',
+  `LabelFormat` varchar(64) NOT NULL default '%%s - %y/%m/%d %H:%M:%S',
+  `LabelX` smallint(5) unsigned NOT NULL default '0',
+  `LabelY` smallint(5) unsigned NOT NULL default '0',
+  `ImageBufferCount` smallint(5) unsigned NOT NULL default '100',
+  `WarmupCount` smallint(5) unsigned NOT NULL default '25',
+  `PreEventCount` smallint(5) unsigned NOT NULL default '10',
+  `PostEventCount` smallint(5) unsigned NOT NULL default '10',
+  `AlarmFrameCount` smallint(5) unsigned NOT NULL default '1',
+  `SectionLength` int(10) unsigned NOT NULL default '600',
+  `FrameSkip` smallint(5) unsigned NOT NULL default '0',
+  `MaxFPS` decimal(5,2) default NULL,
+  `AlarmMaxFPS` decimal(5,2) default NULL,
+  `FPSReportInterval` smallint(5) unsigned NOT NULL default '250',
+  `RefBlendPerc` tinyint(3) unsigned NOT NULL default '10',
+  `Controllable` tinyint(3) unsigned NOT NULL default '0',
+  `ControlId` int(10) unsigned NOT NULL default '0',
+  `ControlDevice` varchar(255) default NULL,
+  `ControlAddress` varchar(255) default NULL,
+  `AutoStopTimeout` decimal(5,2) default NULL,
+  `TrackMotion` tinyint(3) unsigned NOT NULL default '0',
+  `TrackDelay` smallint(5) unsigned NOT NULL default '0',
+  `ReturnLocation` tinyint(3) NOT NULL default '-1',
+  `ReturnDelay` smallint(5) unsigned NOT NULL default '0',
+  `DefaultView` enum('Events','Control') NOT NULL default 'Events',
+  `DefaultRate` smallint(5) unsigned NOT NULL default '100',
+  `DefaultScale` smallint(5) unsigned NOT NULL default '100',
+  `WebColour` varchar(32) NOT NULL default 'red',
+  `Sequence` smallint(5) unsigned default NULL,
+  PRIMARY KEY  (`Id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `States`
 --
 
-CREATE TABLE States (
-  Name varchar(64) NOT NULL default '',
-  Definition tinytext NOT NULL,
-  PRIMARY KEY  (Name)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `States`;
+CREATE TABLE `States` (
+  `Name` varchar(64) NOT NULL default '',
+  `Definition` tinytext NOT NULL,
+  PRIMARY KEY  (`Name`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `Stats`
 --
 
-CREATE TABLE Stats (
-  MonitorId int(10) unsigned NOT NULL default '0',
-  ZoneId int(10) unsigned NOT NULL default '0',
-  EventId int(10) unsigned NOT NULL default '0',
-  FrameId int(10) unsigned NOT NULL default '0',
-  PixelDiff tinyint(3) unsigned NOT NULL default '0',
-  AlarmPixels int(10) unsigned NOT NULL default '0',
-  FilterPixels int(10) unsigned NOT NULL default '0',
-  BlobPixels int(10) unsigned NOT NULL default '0',
-  Blobs smallint(5) unsigned NOT NULL default '0',
-  MinBlobSize int(10) unsigned NOT NULL default '0',
-  MaxBlobSize int(10) unsigned NOT NULL default '0',
-  MinX smallint(5) unsigned NOT NULL default '0',
-  MaxX smallint(5) unsigned NOT NULL default '0',
-  MinY smallint(5) unsigned NOT NULL default '0',
-  MaxY smallint(5) unsigned NOT NULL default '0',
-  Score smallint(5) unsigned NOT NULL default '0',
-  KEY EventId (EventId),
-  KEY MonitorId (MonitorId),
-  KEY ZoneId (ZoneId)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `Stats`;
+CREATE TABLE `Stats` (
+  `MonitorId` int(10) unsigned NOT NULL default '0',
+  `ZoneId` int(10) unsigned NOT NULL default '0',
+  `EventId` int(10) unsigned NOT NULL default '0',
+  `FrameId` int(10) unsigned NOT NULL default '0',
+  `PixelDiff` tinyint(3) unsigned NOT NULL default '0',
+  `AlarmPixels` int(10) unsigned NOT NULL default '0',
+  `FilterPixels` int(10) unsigned NOT NULL default '0',
+  `BlobPixels` int(10) unsigned NOT NULL default '0',
+  `Blobs` smallint(5) unsigned NOT NULL default '0',
+  `MinBlobSize` int(10) unsigned NOT NULL default '0',
+  `MaxBlobSize` int(10) unsigned NOT NULL default '0',
+  `MinX` smallint(5) unsigned NOT NULL default '0',
+  `MaxX` smallint(5) unsigned NOT NULL default '0',
+  `MinY` smallint(5) unsigned NOT NULL default '0',
+  `MaxY` smallint(5) unsigned NOT NULL default '0',
+  `Score` smallint(5) unsigned NOT NULL default '0',
+  KEY `EventId` (`EventId`),
+  KEY `MonitorId` (`MonitorId`),
+  KEY `ZoneId` (`ZoneId`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `TriggersX10`
 --
 
-CREATE TABLE TriggersX10 (
-  MonitorId int(10) unsigned NOT NULL default '0',
-  Activation varchar(32) default NULL,
-  AlarmInput varchar(32) default NULL,
-  AlarmOutput varchar(32) default NULL,
-  PRIMARY KEY  (MonitorId)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `TriggersX10`;
+CREATE TABLE `TriggersX10` (
+  `MonitorId` int(10) unsigned NOT NULL default '0',
+  `Activation` varchar(32) default NULL,
+  `AlarmInput` varchar(32) default NULL,
+  `AlarmOutput` varchar(32) default NULL,
+  PRIMARY KEY  (`MonitorId`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `Users`
 --
 
-CREATE TABLE Users (
-  Id int(10) unsigned NOT NULL auto_increment,
-  Username varchar(32) binary NOT NULL default '',
-  Password varchar(64) NOT NULL default '',
-  Language varchar(8) NOT NULL default '',
-  Enabled tinyint(3) unsigned NOT NULL default '1',
-  Stream enum('None','View') NOT NULL default 'None',
-  Events enum('None','View','Edit') NOT NULL default 'None',
-  Control enum('None','View','Edit') NOT NULL default 'None',
-  Monitors enum('None','View','Edit') NOT NULL default 'None',
-  System enum('None','View','Edit') NOT NULL default 'None',
-  MaxBandwidth varchar(16) NOT NULL default '',
-  MonitorIds tinytext NOT NULL,
-  PRIMARY KEY  (Id),
-  UNIQUE KEY UC_Id (Id),
-  UNIQUE KEY UC_Username (Username)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `Users`;
+CREATE TABLE `Users` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Username` varchar(32) character set latin1 collate latin1_bin NOT NULL default '',
+  `Password` varchar(64) NOT NULL default '',
+  `Language` varchar(8) NOT NULL default '',
+  `Enabled` tinyint(3) unsigned NOT NULL default '1',
+  `Stream` enum('None','View') NOT NULL default 'None',
+  `Events` enum('None','View','Edit') NOT NULL default 'None',
+  `Control` enum('None','View','Edit') NOT NULL default 'None',
+  `Monitors` enum('None','View','Edit') NOT NULL default 'None',
+  `Devices` enum('None','View','Edit') NOT NULL default 'None',
+  `System` enum('None','View','Edit') NOT NULL default 'None',
+  `MaxBandwidth` varchar(16) NOT NULL default '',
+  `MonitorIds` tinytext NOT NULL,
+  PRIMARY KEY  (`Id`),
+  UNIQUE KEY `UC_Id` (`Id`),
+  UNIQUE KEY `UC_Username` (`Username`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `ZonePresets`
 --
 
-CREATE TABLE ZonePresets (
-  Id int(10) unsigned NOT NULL auto_increment,
-  Name varchar(64) NOT NULL default '',
-  Type enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
-  Units enum('Pixels','Percent') NOT NULL default 'Pixels',
-  CheckMethod enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs',
-  MinPixelThreshold smallint(5) unsigned default NULL,
-  MaxPixelThreshold smallint(5) unsigned default NULL,
-  MinAlarmPixels int(10) unsigned default NULL,
-  MaxAlarmPixels int(10) unsigned default NULL,
-  FilterX tinyint(3) unsigned default NULL,
-  FilterY tinyint(3) unsigned default NULL,
-  MinFilterPixels int(10) unsigned default NULL,
-  MaxFilterPixels int(10) unsigned default NULL,
-  MinBlobPixels int(10) unsigned default NULL,
-  MaxBlobPixels int(10) unsigned default NULL,
-  MinBlobs smallint(5) unsigned default NULL,
-  MaxBlobs smallint(5) unsigned default NULL,
-  PRIMARY KEY  (Id),
-  UNIQUE KEY UC_Id (Id)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `ZonePresets`;
+CREATE TABLE `ZonePresets` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
+  `Units` enum('Pixels','Percent') NOT NULL default 'Pixels',
+  `CheckMethod` enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs',
+  `MinPixelThreshold` smallint(5) unsigned default NULL,
+  `MaxPixelThreshold` smallint(5) unsigned default NULL,
+  `MinAlarmPixels` int(10) unsigned default NULL,
+  `MaxAlarmPixels` int(10) unsigned default NULL,
+  `FilterX` tinyint(3) unsigned default NULL,
+  `FilterY` tinyint(3) unsigned default NULL,
+  `MinFilterPixels` int(10) unsigned default NULL,
+  `MaxFilterPixels` int(10) unsigned default NULL,
+  `MinBlobPixels` int(10) unsigned default NULL,
+  `MaxBlobPixels` int(10) unsigned default NULL,
+  `MinBlobs` smallint(5) unsigned default NULL,
+  `MaxBlobs` smallint(5) unsigned default NULL,
+  PRIMARY KEY  (`Id`),
+  UNIQUE KEY `UC_Id` (`Id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Table structure for table `Zones`
 --
 
-CREATE TABLE Zones (
-  Id int(10) unsigned NOT NULL auto_increment,
-  MonitorId int(10) unsigned NOT NULL default '0',
-  Name varchar(64) NOT NULL default '',
-  Type enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
-  Units enum('Pixels','Percent') NOT NULL default 'Pixels',
-  NumCoords tinyint(3) unsigned NOT NULL default '0',
-  Coords tinytext NOT NULL,
-  Area int(10) unsigned NOT NULL default '0',
-  AlarmRGB int(10) unsigned default '0',
-  CheckMethod enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs',
-  MinPixelThreshold smallint(5) unsigned default NULL,
-  MaxPixelThreshold smallint(5) unsigned default NULL,
-  MinAlarmPixels int(10) unsigned default NULL,
-  MaxAlarmPixels int(10) unsigned default NULL,
-  FilterX tinyint(3) unsigned default NULL,
-  FilterY tinyint(3) unsigned default NULL,
-  MinFilterPixels int(10) unsigned default NULL,
-  MaxFilterPixels int(10) unsigned default NULL,
-  MinBlobPixels int(10) unsigned default NULL,
-  MaxBlobPixels int(10) unsigned default NULL,
-  MinBlobs smallint(5) unsigned default NULL,
-  MaxBlobs smallint(5) unsigned default NULL,
-  PRIMARY KEY  (Id),
-  UNIQUE KEY UC_Id (Id),
-  KEY MonitorId (MonitorId)
-) TYPE=MyISAM;
+DROP TABLE IF EXISTS `Zones`;
+CREATE TABLE `Zones` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `MonitorId` int(10) unsigned NOT NULL default '0',
+  `Name` varchar(64) NOT NULL default '',
+  `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
+  `Units` enum('Pixels','Percent') NOT NULL default 'Pixels',
+  `NumCoords` tinyint(3) unsigned NOT NULL default '0',
+  `Coords` tinytext NOT NULL,
+  `Area` int(10) unsigned NOT NULL default '0',
+  `AlarmRGB` int(10) unsigned default '0',
+  `CheckMethod` enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs',
+  `MinPixelThreshold` smallint(5) unsigned default NULL,
+  `MaxPixelThreshold` smallint(5) unsigned default NULL,
+  `MinAlarmPixels` int(10) unsigned default NULL,
+  `MaxAlarmPixels` int(10) unsigned default NULL,
+  `FilterX` tinyint(3) unsigned default NULL,
+  `FilterY` tinyint(3) unsigned default NULL,
+  `MinFilterPixels` int(10) unsigned default NULL,
+  `MaxFilterPixels` int(10) unsigned default NULL,
+  `MinBlobPixels` int(10) unsigned default NULL,
+  `MaxBlobPixels` int(10) unsigned default NULL,
+  `MinBlobs` smallint(5) unsigned default NULL,
+  `MaxBlobs` smallint(5) unsigned default NULL,
+  PRIMARY KEY  (`Id`),
+  UNIQUE KEY `UC_Id` (`Id`),
+  KEY `MonitorId` (`MonitorId`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+--
+-- Initial data to be loaded into ZoneMinder database
+--
 
 --
 -- Create a default admin user.

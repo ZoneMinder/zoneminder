@@ -449,12 +449,12 @@ else
 {
     if ( $paged && !empty($page) )
     {
-        $lo_frame_id = (($page-1)*$frames_per_page);
+        $lo_frame_id = (($page-1)*$frames_per_page)+1;
         $hi_frame_id = min( $page*$frames_per_page, $event['Frames'] );
     }
     else
     {
-        $lo_frame_id = 0;
+        $lo_frame_id = 1;
         $hi_frame_id = $event['Frames'];
     }
     $sql = "select * from Frames where EventId = '$eid'";
@@ -467,7 +467,7 @@ else
     $frames = array();
     while( $frame = mysql_fetch_assoc( $result ) )
     {
-        $frames[] = $frame;
+        $frames[$frame['FrameId']] = $frame;
     }
     mysql_free_result( $result );
 ?>
@@ -479,9 +479,12 @@ else
     $thumb_height = (int)round($event['Height']/ZM_WEB_FRAMES_PER_LINE);
     $thumb_scale = (int)round( SCALE_BASE/ZM_WEB_FRAMES_PER_LINE );
 
-    for ( $i = 0; $i < count($frames); $i++ )
+    for ( $i = $lo_frame_id; $i <= $hi_frame_id; $i++ )
     {
-        $frame = $frames[$i];
+        if ( !($frame = $frames[$i]) )
+        {
+            $frame = array( 'FrameId'=>$i, 'Type'=>'Normal' );
+        }
         $image_data = getImageSrc( $event, $frame, $thumb_scale );
 ?>
 <a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frame&eid=<?= $eid ?>&fid=<?= $frame['FrameId'] ?>&scale=<?= $scale ?>', 'zmImage', <?= reScale( $event['Width'], $scale )+$jws['image']['w']  ?>, <?= reScale( $event['Height'], $scale )+$jws['image']['h'] ?> );"><img src="<?= $image_data['thumbPath'] ?>" width="<?= $thumb_width ?>" height="<?= $thumb_height ?>" class="<?= $image_data['imageClass'] ?>" alt="<?= $frame['FrameId'] ?>/<?= $frame['Type']=='alarm'?$frame['Score']:0 ?>"></a>

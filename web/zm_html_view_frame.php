@@ -18,7 +18,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-error_reporting( E_ALL );
 if ( !canView( 'Events' ) )
 {
 	$view = "error";
@@ -36,7 +35,10 @@ if ( $fid )
 	$result = mysql_query( "select * from Frames where EventId = '$eid' and FrameId = '$fid'" );
 	if ( !$result )
 		die( mysql_error() );
-	$frame = mysql_fetch_assoc( $result );
+	if ( !($frame = mysql_fetch_assoc( $result )) )
+    {
+        $frame = array( 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0 );
+    }
 	mysql_free_result( $result );
 }
 else

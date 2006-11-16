@@ -162,7 +162,7 @@ CREATE TABLE Events (
   Messaged tinyint(3) unsigned NOT NULL default '0',
   Executed tinyint(3) unsigned NOT NULL default '0',
   LearnState char(1) default '',
-  Notes tinytext,
+  Notes text,
   PRIMARY KEY  (Id),
   UNIQUE KEY UC_Id (Id),
   KEY Id (Id,MonitorId),
@@ -274,7 +274,7 @@ CREATE TABLE Monitors (
   Hue mediumint(7) NOT NULL default '-1',
   Colour mediumint(7) NOT NULL default '-1',
   EventPrefix varchar(32) NOT NULL default 'Event-',
-  LabelFormat varchar(32) NOT NULL default '%%s - %y/%m/%d %H:%M:%S',
+  LabelFormat varchar(64) NOT NULL default '%%s - %y/%m/%d %H:%M:%S',
   LabelX smallint(5) unsigned NOT NULL default 0,
   LabelY smallint(5) unsigned NOT NULL default 0,
   ImageBufferCount smallint(5) unsigned NOT NULL default '100',
@@ -754,4 +754,3 @@ insert into Config set Id = 169, Name = 'ZM_DYN_LAST_CHECK', Value = '', Type = 
 insert into Config set Id = 170, Name = 'ZM_DYN_NEXT_REMINDER', Value = '', Type = 'string', DefaultValue = '', Hint = 'string', Pattern = '(?-xism:^(.+)$)', Format = ' $1 ', Prompt = 'When the earliest time to remind about versions will be', Help = '', Category = 'dynamic', Readonly = '1', Requires = '';
 insert into Config set Id = 171, Name = 'ZM_DYN_DONATE_REMINDER_TIME', Value = '0', Type = 'integer', DefaultValue = '0', Hint = 'integer', Pattern = '(?-xism:^(\d+)$)', Format = ' $1 ', Prompt = 'When the earliest time to remind about donations will be', Help = '', Category = 'dynamic', Readonly = '1', Requires = '';
 insert into Config set Id = 172, Name = 'ZM_DYN_SHOW_DONATE_REMINDER', Value = '1', Type = 'boolean', DefaultValue = 'yes', Hint = 'yes|no', Pattern = '(?i-xsm:^([yn]))', Format = ' ($1 =~ /^y/) ? \"yes\" : \"no\" ', Prompt = 'Whether to remind about donations or not', Help = '', Category = 'dynamic', Readonly = '1', Requires = '';
-

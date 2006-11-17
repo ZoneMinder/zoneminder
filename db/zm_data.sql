@@ -5,12 +5,12 @@
 --
 -- Create a default admin user.
 --
-insert into Users values ('','admin',password('admin'),'',1,'View','Edit','Edit','Edit','Edit','','');
+insert into Users values ('','admin',password('admin'),'',1,'View','Edit','Edit','Edit','Edit','Edit','','');
 
 --
 -- Add a sample filter to purge the oldest 5 events when the disk is 95% full, delete is disabled though
 --
-insert into Filters values ('PurgeWhenFull','trms=2&obr1=&cbr1=&attr1=Archived&op1==&val1=0&cnj2=and&obr2=&cbr2=&attr2=DiskPercent&op2=>=&val2=95&sort_field=Id&sort_asc=1&limit=5',0,0,0,0,0,0,'',0);
+insert into Filters values ('PurgeWhenFull','trms=2&obr1=&cbr1=&attr1=Archived&op1==&val1=0&cnj2=and&obr2=&cbr2=&attr2=DiskPercent&op2=>=&val2=95&sort_field=Id&sort_asc=1&limit=5',0,0,0,0,0,0,'',0,0);
 
 --
 -- Add in some sample control protocol definitions

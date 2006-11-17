@@ -26,6 +26,11 @@ alter table Users add column Devices enum('None','View','Edit') NOT NULL default
 update Users set Devices = Monitors;
 
 --
+-- Increase size of Notes field in Events
+--
+alter table Events modify column Notes text;
+
+--
 -- Create new preset labels table
 --
 CREATE TABLE `ControlPresets` (

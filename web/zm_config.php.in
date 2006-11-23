@@ -86,6 +86,7 @@ $default_user = array(
 	"Events"=>'Edit',
 	"Control"=>'Edit',
 	"Monitors"=>'Edit',
+	"Devices"=>'Edit',
 	"System"=>'Edit',
 );
 

@@ -633,7 +633,7 @@ if ( $version )
 	if ( $cascade || $version eq "1.22.2" )
 	{
 		# Patch the database
-		patchDB( $dbh, "1.22.1" );
+		patchDB( $dbh, "1.22.2" );
 		$cascade = !undef;
 	}
 	if ( $cascade )

@@ -630,6 +630,12 @@ if ( $version )
 		patchDB( $dbh, "1.22.1" );
 		$cascade = !undef;
 	}
+	if ( $cascade || $version eq "1.22.2" )
+	{
+		# Patch the database
+		patchDB( $dbh, "1.22.1" );
+		$cascade = !undef;
+	}
 	if ( $cascade )
 	{
 		my $installed_version = ZM_VERSION;

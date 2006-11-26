@@ -119,7 +119,7 @@ $jws = array(
 	'events' => array( 'w'=>720, 'h'=>480 ),
 	'export' => array( 'w'=>400, 'h'=>340 ),
 	'filter' => array( 'w'=>620, 'h'=>360 ),
-	'filtersave' => array( 'w'=>560, 'h'=>220 ),
+	'filtersave' => array( 'w'=>560, 'h'=>120 ),
 	'frames' => array( 'w'=>500, 'h'=>300 ),
 	'function' => array( 'w'=>248, 'h'=>92 ),
 	'group' => array( 'w'=>360, 'h'=>150 ),

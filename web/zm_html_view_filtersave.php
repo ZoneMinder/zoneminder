@@ -73,6 +73,14 @@ for ( $i = 1; $i <= $trms; $i++ )
 <input type="hidden" name="sort_field" value="<?= $sort_field ?>">
 <input type="hidden" name="sort_asc" value="<?= $sort_asc ?>">
 <input type="hidden" name="limit" value="<?= $limit ?>">
+<input type="hidden" name="auto_archive" value="<?= $auto_archive ?>">
+<input type="hidden" name="auto_video" value="<?= $auto_video ?>">
+<input type="hidden" name="auto_upload" value="<?= $auto_upload ?>">
+<input type="hidden" name="auto_email" value="<?= $auto_email ?>">
+<input type="hidden" name="auto_message" value="<?= $auto_message ?>">
+<input type="hidden" name="auto_execute" value="<?= $auto_execute ?>">
+<input type="hidden" name="auto_execute_cmd" value="<?= $auto_execute_cmd ?>">
+<input type="hidden" name="auto_delete" value="<?= $auto_delete ?>">
 <center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
 <tr>
 <?php

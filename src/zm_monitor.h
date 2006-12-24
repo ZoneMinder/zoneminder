@@ -315,7 +315,7 @@ public:
 	bool CheckSignal( const Image *image );
 	bool Analyse();
 	void DumpImage( Image *dump_image ) const;
-	void TimestampImage( Image *ts_image, time_t ts_time ) const;
+	void TimestampImage( Image *ts_image, const struct timeval *ts_time ) const;
 	bool closeEvent();
 
 	void Reload();

@@ -254,7 +254,7 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
     else
     {
         Image ts_image( *image );
-        monitor->TimestampImage( &ts_image, timestamp.tv_sec );
+        monitor->TimestampImage( &ts_image, &timestamp );
         if ( !config.opt_frame_server || !SendFrameImage( &ts_image, alarm_frame) )
         {
             ts_image.WriteJpeg( event_file );

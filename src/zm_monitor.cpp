@@ -459,7 +459,7 @@ int Monitor::GetImage( int index, int scale ) const
 		snprintf( filename, sizeof(filename), "%s.jpg", name );
 		if ( !config.timestamp_on_capture )
 		{
-			TimestampImage( &snap_image, snap->timestamp->tv_sec );
+			TimestampImage( &snap_image, snap->timestamp );
 		}
 		snap_image.WriteJpeg( filename );
 	}
@@ -2107,7 +2107,7 @@ void Monitor::StreamImages( int scale, int maxfps, time_t ttl )
 				}
 				if ( !config.timestamp_on_capture )
 				{
-					TimestampImage( snap_image, snap->timestamp->tv_sec );
+					TimestampImage( snap_image, snap->timestamp );
 				}
 				snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
 
@@ -2191,7 +2191,7 @@ void Monitor::StreamImagesRaw( int scale, int maxfps, time_t ttl )
 				}
 				if ( !config.timestamp_on_capture )
 				{
-					TimestampImage( snap_image, snap->timestamp->tv_sec );
+					TimestampImage( snap_image, snap->timestamp );
 				}
 
 				fprintf( stdout, "--ZoneMinderFrame\r\n" );
@@ -2275,7 +2275,7 @@ void Monitor::StreamImagesZip( int scale, int maxfps, time_t ttl )
 				}
 				if ( !config.timestamp_on_capture )
 				{
-					TimestampImage( snap_image, snap->timestamp->tv_sec );
+					TimestampImage( snap_image, snap->timestamp );
 				}
 				snap_image->Zip( img_buffer, &img_buffer_size );
 
@@ -2318,7 +2318,7 @@ void Monitor::SingleImage( int scale)
 	}
 	if ( !config.timestamp_on_capture )
 	{
-		TimestampImage( snap_image, snap->timestamp->tv_sec );
+		TimestampImage( snap_image, snap->timestamp );
 	}
 	snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
 	
@@ -2343,7 +2343,7 @@ void Monitor::SingleImageRaw( int scale)
 	}
 	if ( !config.timestamp_on_capture )
 	{
-		TimestampImage( snap_image, snap->timestamp->tv_sec );
+		TimestampImage( snap_image, snap->timestamp );
 	}
 	
 	fprintf( stdout, "Content-Length: %d\r\n", snap_image->Size() );
@@ -2369,7 +2369,7 @@ void Monitor::SingleImageZip( int scale)
 	}
 	if ( !config.timestamp_on_capture )
 	{
-		TimestampImage( snap_image, snap->timestamp->tv_sec );
+		TimestampImage( snap_image, snap->timestamp );
 	}
 	snap_image->Zip( img_buffer, &img_buffer_size );
 	
@@ -2442,7 +2442,7 @@ void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate
 				}
 				if ( !config.timestamp_on_capture )
 				{
-					TimestampImage( snap_image, snap->timestamp->tv_sec );
+					TimestampImage( snap_image, snap->timestamp );
 				}
 
 				if ( !frame_count )
@@ -2500,7 +2500,7 @@ int Monitor::PostCapture()
 		gettimeofday( image_buffer[index].timestamp, &dummy_tz );
 		if ( config.timestamp_on_capture )
 		{
-			TimestampImage( &image, image_buffer[index].timestamp->tv_sec );
+			TimestampImage( &image, image_buffer[index].timestamp );
 		}
 		image_buffer[index].image->CopyBuffer( image );
 
@@ -2542,45 +2542,47 @@ int Monitor::PostCapture()
 	return( -1 );
 }
 
-void Monitor::TimestampImage( Image *ts_image, time_t ts_time ) const
+void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) const
 {
 	if ( label_format[0] )
 	{
-		static int token_count = -1;
-		static char label_time_text[256];
-		static char label_text[256];
+        // Expand the strftime macros first
+		char label_time_text[256];
+		strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time->tv_sec ) );
 
-		if ( token_count < 0 )
-		{
-			const char *token_ptr = label_format;
-			const char *token_string = "%%s";
-			token_count = 0;
-			while( token_ptr = strstr( token_ptr, token_string ) )
-			{
-				token_count++;
-				token_ptr += strlen(token_string);
-			}
-		}
-		strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time ) );
-		switch ( token_count )
-		{
-			case 0:
-			{
-				strncpy( label_text, label_time_text, sizeof(label_text) );
-				break;
-			}
-			case 1:
-			{
-				snprintf( label_text, sizeof(label_text), label_time_text, name );
-				break;
-			}
-			case 2:
-			{
-				snprintf( label_text, sizeof(label_text), label_time_text, name, trigger_data->trigger_showtext );
-				break;
-			}
-		}
-
+		char label_text[1024];
+        int label_tt_len = strlen( label_time_text );
+        const char *s_ptr = label_time_text;
+        char *d_ptr = label_text;
+        while ( *s_ptr && ((d_ptr-label_text) < sizeof(label_text)) )
+        {
+            if ( *s_ptr == '@' && *(s_ptr+2) == '@' )
+            {
+                bool found_macro = false;
+                switch ( *(s_ptr+1) )
+                {
+                    case 'N' :
+                        d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", name );
+                        found_macro = true;
+                        break;
+                    case 'T' :
+                        d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", trigger_data->trigger_showtext );
+                        found_macro = true;
+                        break;
+                    case 'D' :
+                        d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time->tv_usec/10000 );
+                        found_macro = true;
+                        break;
+                }
+                if ( found_macro )
+                {
+                    s_ptr += 3;
+                    continue;
+                }
+            }
+            *d_ptr++ = *s_ptr++;
+        }
+        *d_ptr = '\0';
 		ts_image->Annotate( label_text, label_coord );
 	}
 }

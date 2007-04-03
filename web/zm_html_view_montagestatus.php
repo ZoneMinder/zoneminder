@@ -49,8 +49,12 @@ elseif ( $status == STATE_TAPE )
 	$status_string = $zmSlangRecord;
 }
 $fps_string = sprintf( "%.2f", $fps );
-$new_alarm = ( $status > STATE_PREALARM && $last_status <= STATE_PREALARM );
-$old_alarm = ( $status <= STATE_PREALARM && $last_status > STATE_PREALARM );
+
+$is_alarmed = ( $status == STATE_ALARM || $status == STATE_ALERT );
+$was_alarmed = ( $last_status == STATE_ALARM || $last_status == STATE_ALERT );
+
+$new_alarm = ( $is_alarmed && !$was_alarmed );
+$old_alarm = ( !$is_alarmed && $was_alarmed );
 
 $refresh = (($status>=STATE_PREALARM)&&($status<=STATE_ALERT))?1:ZM_WEB_REFRESH_STATUS;
 $url = "$PHP_SELF?view=montagestatus&mid=$mid&last_status=$status";

@@ -54,8 +54,12 @@ elseif ( $status == STATE_TAPE )
 	$status_string = $zmSlangRecord;
 }
 $fps_string = sprintf( "%.2f", $fps );
-$new_alarm = ( $status > STATE_PREALARM && $last_status <= STATE_PREALARM );
-$old_alarm = ( $status <= STATE_PREALARM && $last_status > STATE_PREALARM );
+
+$is_alarmed = ( $status == STATE_ALARM || $status == STATE_ALERT );
+$was_alarmed = ( $last_status == STATE_ALARM || $last_status == STATE_ALERT );
+
+$new_alarm = ( $is_alarmed && !$was_alarmed );
+$old_alarm = ( !$is_alarmed && $was_alarmed );
 
 $result = mysql_query( "select * from Monitors where Function != 'None' order by Sequence" );
 $monitors = array();

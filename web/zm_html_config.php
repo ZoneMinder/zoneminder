@@ -43,9 +43,9 @@ $scales = array(
 );
 
 $bw_array = array(
-	"high"=>$zmSlangHigh,
-	"medium"=>$zmSlangMedium,
-	"low"=>$zmSlangLow
+	"high" => $zmSlangHigh,
+	"medium" => $zmSlangMedium,
+	"low" => $zmSlangLow
 );
 
 switch ( $bandwidth )

@@ -1654,6 +1654,7 @@ sub loadConfigFromDB
 		}
 		$option_count++;;
 	}
+	$sth->finish();
 	$dbh->disconnect();
 	return( $option_count );
 }

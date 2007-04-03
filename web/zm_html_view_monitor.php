@@ -113,7 +113,7 @@ if ( !isset( $new_monitor ) )
 }
 if ( !empty($preset) )
 {
-	$result = mysql_query( "select Type, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultView, DefaultRate, DefaultScale from MonitorPresets where Id = '$preset'" );
+	$result = mysql_query( "select Type, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '$preset'" );
 	if ( !$result )
 		die( mysql_error() );
 	$preset = mysql_fetch_assoc( $result );

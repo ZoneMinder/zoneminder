@@ -125,7 +125,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 
 		my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute( $curr_version ) or die( "Can't execute: ".$sth->errstr() );
+		my $res = $sth->execute( "$curr_version" ) or die( "Can't execute: ".$sth->errstr() );
 	}
 
 	$dbh->disconnect();
@@ -639,9 +639,10 @@ if ( $version )
 	if ( $cascade )
 	{
 		my $installed_version = ZM_VERSION;
-		my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
+		my $sql = "update Config set Value = ? where Name = ?";
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute( $installed_version ) or die( "Can't execute: ".$sth->errstr() );
+		my $res = $sth->execute( "$installed_version", "ZM_DYN_DB_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
+		$res = $sth->execute( "$installed_version", "ZM_DYN_CURR_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
 		$dbh->disconnect();
 		# We've done something so make sure the config is updated too
 		loadConfigFromDB();

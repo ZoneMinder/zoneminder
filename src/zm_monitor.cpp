@@ -617,7 +617,10 @@ int Monitor::actionBrightness( int p_brightness )
 				if ( wait_loops-- )
 					usleep( 100000 );
 				else
+                {
+                    Warning(( "Timed out waiting to set brightness" ));
 					return( -1 );
+                }
 			}
 		}
 		else
@@ -629,7 +632,10 @@ int Monitor::actionBrightness( int p_brightness )
 				if ( wait_loops-- )
 					usleep( 100000 );
 				else
+                {
+                    Warning(( "Timed out waiting to get brightness" ));
 					return( -1 );
+                }
 			}
 		}
 		return( shared_data->brightness );
@@ -651,7 +657,10 @@ int Monitor::actionContrast( int p_contrast )
 				if ( wait_loops-- )
 					usleep( 100000 );
 				else
+                {
+                    Warning(( "Timed out waiting to set contrast" ));
 					return( -1 );
+                }
 			}
 		}
 		else
@@ -663,7 +672,10 @@ int Monitor::actionContrast( int p_contrast )
 				if ( wait_loops-- )
 					usleep( 100000 );
 				else
+                {
+                    Warning(( "Timed out waiting to get contrast" ));
 					return( -1 );
+                }
 			}
 		}
 		return( shared_data->contrast );
@@ -685,7 +697,10 @@ int Monitor::actionHue( int p_hue )
 				if ( wait_loops-- )
 					usleep( 100000 );
 				else
+                {
+                    Warning(( "Timed out waiting to set hue" ));
 					return( -1 );
+                }
 			}
 		}
 		else
@@ -697,7 +712,10 @@ int Monitor::actionHue( int p_hue )
 				if ( wait_loops-- )
 					usleep( 100000 );
 				else
+                {
+                    Warning(( "Timed out waiting to get hue" ));
 					return( -1 );
+                }
 			}
 		}
 		return( shared_data->hue );
@@ -719,7 +737,10 @@ int Monitor::actionColour( int p_colour )
 				if ( wait_loops-- )
 					usleep( 100000 );
 				else
+                {
+                    Warning(( "Timed out waiting to set colour" ));
 					return( -1 );
+                }
 			}
 		}
 		else
@@ -731,7 +752,10 @@ int Monitor::actionColour( int p_colour )
 				if ( wait_loops-- )
 					usleep( 100000 );
 				else
+                {
+                    Warning(( "Timed out waiting to get colour" ));
 					return( -1 );
+                }
 			}
 		}
 		return( shared_data->colour );

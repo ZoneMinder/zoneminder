@@ -291,6 +291,7 @@ int RemoteCamera::GetResponse()
 					int buffer_len = ReadData( buffer );
 					if ( buffer_len < 0 )
 					{
+                        Error(( "Unable to read header data" ));
 						return( -1 );
 					}
 					if ( !header_expr )
@@ -473,6 +474,7 @@ int RemoteCamera::GetResponse()
 							int buffer_len = ReadData( buffer );
 							if ( buffer_len < 0 )
 							{
+                                Error(( "Unable to read content" ));
 								return( -1 );
 							}
 						}
@@ -485,6 +487,7 @@ int RemoteCamera::GetResponse()
 							int buffer_len = ReadData( buffer );
 							if ( buffer_len < 0 )
 							{
+                                Error(( "Unable to read content" ));
 								return( -1 );
 							}
 							static RegExpr *content_expr = 0;
@@ -619,6 +622,7 @@ int RemoteCamera::GetResponse()
 					int buffer_len = ReadData( buffer );
 					if ( buffer_len < 0 )
 					{
+                        Error(( "Unable to read header" ));
 						return( -1 );
 					}
 
@@ -930,6 +934,7 @@ int RemoteCamera::GetResponse()
 						int buffer_len = ReadData( buffer );
 						if ( buffer_len < 0 )
 						{
+                            Error(( "Unable to read subheader" ));
 							return( -1 );
 						}
 						state = SUBHEADERCONT;
@@ -973,6 +978,7 @@ int RemoteCamera::GetResponse()
 							int buffer_len = ReadData( buffer );
 							if ( buffer_len < 0 )
 							{
+                                Error(( "Unable to read content" ));
 								return( -1 );
 							}
 						}
@@ -987,6 +993,7 @@ int RemoteCamera::GetResponse()
 							int buffer_size = buffer.Size();
 							if ( buffer_len < 0 )
 							{
+                                Error(( "Unable to read content" ));
 								return( -1 );
 							}
 							if ( buffer_len )
@@ -1058,6 +1065,7 @@ int RemoteCamera::PreCapture()
 		Connect();
 		if ( sd < 0 )
 		{
+            Error(( "Unable to connect to camera" ));
 			return( -1 );
 		}
 		mode = SINGLE_IMAGE;
@@ -1067,6 +1075,7 @@ int RemoteCamera::PreCapture()
 	{
 		if ( SendRequest() < 0 )
 		{
+            Error(( "Unable to send request" ));
 			Disconnect();
 			return( -1 );
 		}
@@ -1079,6 +1088,7 @@ int RemoteCamera::PostCapture( Image &image )
 	int content_length = GetResponse();
 	if ( content_length < 0 )
 	{
+        Error(( "Unable to get response" ));
 		Disconnect();
 		return( -1 );
 	}
@@ -1088,6 +1098,7 @@ int RemoteCamera::PostCapture( Image &image )
 		{
 			if ( !image.DecodeJpeg( buffer.Extract( content_length ), content_length ) )
 			{
+                Error(( "Unable to decode jpeg" ));
 				Disconnect();
 				return( -1 );
 			}
@@ -1108,6 +1119,7 @@ int RemoteCamera::PostCapture( Image &image )
 		{
 			if ( !image.Unzip( buffer.Extract( content_length ), content_length ) )
 			{
+			    Error(( "Unable to unzip RGB image" ));
 				Disconnect();
 				return( -1 );
 			}

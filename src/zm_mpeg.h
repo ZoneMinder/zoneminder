@@ -24,7 +24,10 @@
 #ifndef ZM_MPEG_H
 #define ZM_MPEG_H
 
+extern "C" {
+#define __STDC_CONSTANT_MACROS
 #include <ffmpeg/avformat.h>
+}
 
 #if FFMPEG_VERSION_INT == 0x000408
 #define ZM_FFMPEG_048	1

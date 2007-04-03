@@ -362,7 +362,7 @@ CREATE TABLE `Monitors` (
 DROP TABLE IF EXISTS `States`;
 CREATE TABLE `States` (
   `Name` varchar(64) NOT NULL default '',
-  `Definition` tinytext NOT NULL,
+  `Definition` text NOT NULL,
   PRIMARY KEY  (`Name`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 

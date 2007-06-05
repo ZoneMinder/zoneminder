@@ -1097,11 +1097,11 @@ bool Monitor::Analyse()
 							{
 								if ( state == IDLE || state == TAPE )
 								{
-							        Info(( "Ended event" ));
+                                    Info(( "%s: %03d - Ending event %d", name, image_count, event->Id() ));
 								}
 								else
 								{
-									Info(( "Force closed event" ));
+                                    Info(( "%s: %03d - Force closing event %d", name, image_count, event->Id() ));
 								}
 								closeEvent();
 								last_section_mod = 0;
@@ -1161,6 +1161,8 @@ bool Monitor::Analyse()
 									pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
 								}
 								shared_data->last_event = event->Id();
+
+						        Info(( "%s: %03d - Creating new event %d", name, image_count, event->Id() ));
 
 								for ( int i = 0; i < pre_event_count; i++ )
 								{
@@ -1309,7 +1311,7 @@ bool Monitor::Analyse()
 						int section_mod = timestamp->tv_sec%section_length;
 						if ( section_mod < last_section_mod )
 						{
-							Info(( "Ended event" ));
+                            Info(( "%s: %03d - Ending event %d", name, image_count, event->Id() ));
 							closeEvent();
 							last_section_mod = 0;
 						}
@@ -1325,7 +1327,7 @@ bool Monitor::Analyse()
         {
             if ( event )
             {
-                Info(( "Closed event" ));
+                Info(( "%s: %03d - Closing event %d", name, image_count, event->Id() ));
                 closeEvent();
             }
             shared_data->state = state = IDLE;

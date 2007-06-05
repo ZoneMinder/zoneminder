@@ -8,6 +8,12 @@
 alter table States modify column Definition text;
 
 --
+-- Add overload shutout to zones and presets
+--
+alter table Zones add column OverloadFrames smallint(5) unsigned NOT NULL default '0' after MaxBlobs;
+alter table ZonePresets add column OverloadFrames smallint(5) unsigned NOT NULL default '0' after MaxBlobs;
+
+--
 -- These are optional, but we might as well do it now
 --
 optimize table Frames;

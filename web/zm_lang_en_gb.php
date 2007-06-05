@@ -642,6 +642,7 @@ $zmSlangZoneMinMaxBlobArea   = 'Min/Max Blob Area';
 $zmSlangZoneMinMaxBlobs      = 'Min/Max Blobs';
 $zmSlangZoneMinMaxFiltArea   = 'Min/Max Filtered Area';
 $zmSlangZoneMinMaxPixelThres = 'Min/Max Pixel Threshold (0-255)';
+$zmSlangZoneOverloadFrames   = 'Overload Frame Ignore Count';
 $zmSlangZones                = 'Zones';
 $zmSlangZone                 = 'Zone';
 $zmSlangZoomIn               = 'Zoom In';

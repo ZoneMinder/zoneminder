@@ -23,7 +23,7 @@
 #include "zm_image.h"
 #include "zm_monitor.h"
 
-void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs )
+void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs, int p_overload_frames )
 {
 	monitor = p_monitor;
 
@@ -45,8 +45,9 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	max_blob_pixels = p_max_blob_pixels;
 	min_blobs = p_min_blobs;
 	max_blobs = p_max_blobs;
+	overload_frames = p_overload_frames;
 
-	Debug( 1, ( "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d", id, label, type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
+	Debug( 1, ( "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d, OF: %d", id, label, type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs, overload_frames ));
 
 	alarmed = false;
 	pixel_diff = 0;
@@ -58,6 +59,8 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	max_blob_size = 0;
 	image = 0;
 	score = 0;
+
+    overload_count = 0;
 
 	pg_image = new Image( monitor->Width(), monitor->Height(), 1 );
 	pg_image->Fill( 0xff, polygon );
@@ -116,6 +119,14 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	ResetStats();
 
+    if ( overload_count )
+    {
+        Info(( "In overload mode, %d frames of %d remaining", overload_count, overload_frames ));
+        Debug( 4, ( "In overload mode, %d frames of %d remaining", overload_count, overload_frames ));
+        overload_count--;
+        return( false );
+    }
+
 	delete image;
 	// Get the difference image
 	Image *diff_image = image = new Image( *delta_image );
@@ -139,6 +150,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	int hi_x;
 
 	Debug( 4, ( "Checking alarms for zone %d/%s in lines %d -> %d", id, label, lo_y, hi_y ));
+
 	Debug( 5, ( "Checking for alarmed pixels" ));
 	unsigned char *pdiff, *ppoly;
 	// Create an upper margin
@@ -212,10 +224,19 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		diff_image->WriteJpeg( diag_path );
 	}
 
-	if ( !alarm_pixels ) return( false );
-	if ( min_alarm_pixels && alarm_pixels < min_alarm_pixels ) return( false );
-	if ( max_alarm_pixels && alarm_pixels > max_alarm_pixels ) return( false );
-
+	if ( !alarm_pixels )
+    {
+        return( false );
+    }
+	if ( min_alarm_pixels && (alarm_pixels < min_alarm_pixels) )
+    {
+        return( false );
+    }
+	if ( max_alarm_pixels && (alarm_pixels > max_alarm_pixels) )
+    {
+        overload_count = overload_frames;
+        return( false );
+    }
 	score = (100*alarm_pixels)/polygon.Area();
 	Debug( 5, ( "Current score is %d", score ));
 
@@ -294,9 +315,19 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		}
 		Debug( 5, ( "Got %d filtered pixels, need %d -> %d", alarm_filter_pixels, min_filter_pixels, max_filter_pixels ));
 
-		if ( !alarm_filter_pixels ) return( false );
-		if ( min_filter_pixels && alarm_filter_pixels < min_filter_pixels ) return( false );
-		if ( max_filter_pixels && alarm_filter_pixels > max_filter_pixels ) return( false );
+		if ( !alarm_filter_pixels )
+        {
+            return( false );
+        }
+		if ( min_filter_pixels && (alarm_filter_pixels < min_filter_pixels) )
+        {
+            return( false );
+        }
+		if ( max_filter_pixels && (alarm_filter_pixels > max_filter_pixels) )
+        {
+            overload_count = overload_frames;
+            return( false );
+        }
 
 		score = (100*alarm_filter_pixels)/(polygon.Area());
 		Debug( 5, ( "Current score is %d", score ));
@@ -505,7 +536,10 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				diff_image->WriteJpeg( diag_path );
 			}
 
-			if ( !alarm_blobs ) return( false );
+			if ( !alarm_blobs )
+            {
+                return( false );
+            }
 			alarm_blob_pixels = alarm_filter_pixels;
 			Debug( 5, ( "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
 
@@ -562,9 +596,19 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 			Debug( 5, ( "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
 
-			if ( !alarm_blobs ) return( false );
-			if ( min_blobs && alarm_blobs < min_blobs ) return( false );
-			if ( max_blobs && alarm_blobs > max_blobs ) return( false );
+			if ( !alarm_blobs )
+            {
+                return( false );
+            }
+			if ( min_blobs && (alarm_blobs < min_blobs) )
+            {
+                return( false );
+            }
+			if ( max_blobs && (alarm_blobs > max_blobs) )
+            {
+                overload_count = overload_frames;
+                return( false );
+            }
 
 			alarm_lo_x = polygon.HiX()+1;
 			alarm_hi_x = polygon.LoX()-1;
@@ -832,7 +876,7 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
 	static char sql[BUFSIZ];
-	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,NumCoords,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
+	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,NumCoords,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -873,6 +917,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		int MaxBlobPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int MinBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int MaxBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int OverloadFrames = dbrow[col]?atoi(dbrow[col]):0; col++;
 
 		Debug( 5, ( "Parsing polygon %s", Coords ));
 		Polygon polygon;
@@ -898,7 +943,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		}
 		else
 		{
-			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB, (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs );
+			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB, (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs, OverloadFrames );
 		}
 	}
 	if ( mysql_errno( &dbconn ) )

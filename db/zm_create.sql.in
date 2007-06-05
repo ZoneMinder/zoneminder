@@ -453,6 +453,7 @@ CREATE TABLE `ZonePresets` (
   `MaxBlobPixels` int(10) unsigned default NULL,
   `MinBlobs` smallint(5) unsigned default NULL,
   `MaxBlobs` smallint(5) unsigned default NULL,
+  `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY  (`Id`),
   UNIQUE KEY `UC_Id` (`Id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
@@ -485,6 +486,7 @@ CREATE TABLE `Zones` (
   `MaxBlobPixels` int(10) unsigned default NULL,
   `MinBlobs` smallint(5) unsigned default NULL,
   `MaxBlobs` smallint(5) unsigned default NULL,
+  `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY  (`Id`),
   UNIQUE KEY `UC_Id` (`Id`),
   KEY `MonitorId` (`MonitorId`)
@@ -571,12 +573,12 @@ INSERT INTO MonitorPresets VALUES ('','Gadspot IP, mpjpeg','Remote',NULL,NULL,NU
 --
 -- Add some zone preset values
 --
-INSERT INTO ZonePresets VALUES (1,'Fast, low sensitivity','Active','Percent','AlarmedPixels',60,NULL,20,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO ZonePresets VALUES (2,'Fast, medium sensitivity','Active','Percent','AlarmedPixels',40,NULL,10,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO ZonePresets VALUES (3,'Fast, high sensitivity','Active','Percent','AlarmedPixels',20,NULL,5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO ZonePresets VALUES (4,'Best, low sensitivity','Active','Percent','Blobs',60,NULL,36,NULL,7,7,24,NULL,20,NULL,1,NULL);
-INSERT INTO ZonePresets VALUES (5,'Best, medium sensitivity','Active','Percent','Blobs',40,NULL,16,NULL,5,5,12,NULL,10,NULL,1,NULL);
-INSERT INTO ZonePresets VALUES (6,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,8,NULL,3,3,6,NULL,5,NULL,1,NULL);
+INSERT INTO ZonePresets VALUES (1,'Fast, low sensitivity','Active','Percent','AlarmedPixels',60,NULL,20,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0);
+INSERT INTO ZonePresets VALUES (2,'Fast, medium sensitivity','Active','Percent','AlarmedPixels',40,NULL,10,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0);
+INSERT INTO ZonePresets VALUES (3,'Fast, high sensitivity','Active','Percent','AlarmedPixels',20,NULL,5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0);
+INSERT INTO ZonePresets VALUES (4,'Best, low sensitivity','Active','Percent','Blobs',60,NULL,36,NULL,7,7,24,NULL,20,NULL,1,NULL,0);
+INSERT INTO ZonePresets VALUES (5,'Best, medium sensitivity','Active','Percent','Blobs',40,NULL,16,NULL,5,5,12,NULL,10,NULL,1,NULL,0);
+INSERT INTO ZonePresets VALUES (6,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,8,NULL,3,3,6,NULL,5,NULL,1,NULL,0);
 
 --
 -- Apply the initial configuration

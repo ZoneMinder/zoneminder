@@ -277,6 +277,7 @@ function applyZoneType()
 		form.elements['new_zone[MaxBlobPixels]'].disabled = true;
 		form.elements['new_zone[MinBlobs]'].disabled = true;
 		form.elements['new_zone[MaxBlobs]'].disabled = true;
+		form.elements['new_zone[OverloadFrames]'].disabled = true;
 	}
 	else if ( form.elements['new_zone[Type]'].value == 'Preclusive' )
 	{
@@ -289,6 +290,7 @@ function applyZoneType()
 		form.elements['new_zone[MaxPixelThreshold]'].disabled = false;
 		form.elements['new_zone[MinAlarmPixels]'].disabled = false;
 		form.elements['new_zone[MaxAlarmPixels]'].disabled = false;
+		form.elements['new_zone[OverloadFrames]'].disabled = false;
 		applyCheckMethod();
 	}
 	else
@@ -302,6 +304,7 @@ function applyZoneType()
 		form.elements['new_zone[MaxPixelThreshold]'].disabled = false;
 		form.elements['new_zone[MinAlarmPixels]'].disabled = false;
 		form.elements['new_zone[MaxAlarmPixels]'].disabled = false;
+		form.elements['new_zone[OverloadFrames]'].disabled = false;
 		applyCheckMethod(); 
 	}
 }
@@ -371,6 +374,7 @@ foreach ( $presets as $preset )
 			form.elements['new_zone[MaxBlobPixels]'].value = '<?= $preset['MaxBlobPixels'] ?>';
 			form.elements['new_zone[MinBlobs]'].value = '<?= $preset['MinBlobs'] ?>';
 			form.elements['new_zone[MaxBlobs]'].value = '<?= $preset['MaxBlobs'] ?>';
+			form.elements['new_zone[OverloadFrames]'].value = '<?= $preset['OverloadFrames'] ?>';
 			break;
 		}
 <?php
@@ -683,6 +687,8 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $opt_check_method )
 <tr><td align="left" class="text"><?= $zmSlangZoneMinMaxBlobArea ?></td><td align="left" class="text"><input type="text" name="new_zone[MinBlobPixels]" value="<?= $new_zone['MinBlobPixels'] ?>" size="6" class="form"></td><td align="left" class="text"><input type="text" name="new_zone[MaxBlobPixels]" value="<?= $new_zone['MaxBlobPixels'] ?>" size="6" class="form"></td></tr>
 <tr><td colspan="3"><img src="graphics/spacer.gif" width="1" height="5"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangZoneMinMaxBlobs ?></td><td align="left" class="text"><input type="text" name="new_zone[MinBlobs]" value="<?= $new_zone['MinBlobs'] ?>" size="4" class="form"></td><td align="left" class="text"><input type="text" name="new_zone[MaxBlobs]" value="<?= $new_zone['MaxBlobs'] ?>" size="4" class="form"></td></tr>
+<tr><td colspan="3"><img src="graphics/spacer.gif" width="1" height="5"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangZoneOverloadFrames ?></td><td colspan="2" align="left" class="text"><input type="text" name="new_zone[OverloadFrames]" value="<?= $new_zone['OverloadFrames'] ?>" size="4" class="form"></td></tr>
 <tr><td colspan="3" align="left" class="text">&nbsp;</td></tr>
 </table>
 </td>

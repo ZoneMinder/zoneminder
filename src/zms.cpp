@@ -135,6 +135,8 @@ int main( int argc, const char *argv[] )
 				bitrate = atoi( value );
 			else if ( !strcmp( name, "ttl" ) )
 				ttl = atoi(value);
+			else if ( !strcmp( name, "connkey" ) )
+				connkey = atoi(value);
 			else if ( config.opt_use_auth )
 			{
 				if ( strcmp( config.auth_relay, "none" ) == 0 )
@@ -166,8 +168,6 @@ int main( int argc, const char *argv[] )
 					}
 				}
 			}
-			else if ( !strcmp( name, "connkey" ) )
-				connkey = atoi(value);
 		}
 	}
 

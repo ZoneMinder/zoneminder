@@ -112,7 +112,7 @@ void RemoteCamera::Initialise()
 
 	if ( !request[0] )
 	{
-		snprintf( request, sizeof(request), "GET %s HTTP/%s\n", path, config.http_version );
+		snprintf( request, sizeof(request), "GET %s HTTP/%s\r\n", path, config.http_version );
 		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
 		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Host: %s\r\n", host );
 		snprintf( &(request[strlen(request)]), sizeof(request)-strlen(request), "Connection: Keep-Alive\r\n" );

@@ -97,14 +97,6 @@ if ( empty($format) )
 				$device['width'] = $wurfl->getDeviceCapability( 'resolution_width' );
 				$device['height'] = $wurfl->getDeviceCapability( 'resolution_height' );
 			}
-            // Deprecated
-			//elseif ( $wurfl->getDeviceCapability( 'wml_1_3' ) )
-			//{
-				//$format = "wml";
-				//$cookies = false;
-				//$device['width'] = $wurfl->getDeviceCapability( 'resolution_width' );
-				//$device['height'] = $wurfl->getDeviceCapability( 'resolution_height' );
-			//}
 		}
 		else
 		{
@@ -132,19 +124,10 @@ if ( empty($format) )
 		if ( empty($format) )
 		{
 			unset( $device );
-			$accepts_wml = preg_match( '/text\/vnd.wap.wml/i', $_SERVER['HTTP_ACCEPT'] );
 			$accepts_html = preg_match( '/text\/html/i', $_SERVER['HTTP_ACCEPT'] );
 
-			if ( $accepts_wml && !$accepts_html )
-			{
-				$format = "wml";
-				$cookies = false;
-			}
-			else
-			{
-				$format = "html";
-				$cookies = true;
-			}
+		    $format = "html";
+			$cookies = true;
 		}
 	}
 }
@@ -166,11 +149,6 @@ else
 	{
 		ini_set( "arg_separator.output", "&amp;" );
 		ini_set( "url_rewriter.tags", "a=href,area=href,frame=src,input=src,fieldset=" );
-	}
-	elseif ( $format == "wml" )
-	{
-		ini_set( "arg_separator.output", "&amp;" );
-		ini_set( "url_rewriter.tags", "a=href,area=href,frame=src,input=src,go=href,card=ontimer" );
 	}
 }
 

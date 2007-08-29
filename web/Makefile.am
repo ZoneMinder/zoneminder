@@ -94,12 +94,6 @@ web_DATA = \
 	zm_xhtml_view_state.php \
 	zm_xhtml_view_video.php \
 	zm_xhtml_view_watch.php \
-	zm_wml.php \
-	zm_wml_view_login.php \
-	zm_wml_view_postlogin.php \
-	zm_wml_view_console.php \
-	zm_wml_view_feed.php \
-	zm_wml_view_error.php \
 	zm_lang.php \
 	zm_lang_big5_big5.php \
 	zm_lang_de_de.php \
@@ -203,12 +197,6 @@ EXTRA_DIST = \
 	zm_xhtml_view_state.php \
 	zm_xhtml_view_video.php \
 	zm_xhtml_view_watch.php \
-	zm_wml.php \
-	zm_wml_view_login.php \
-	zm_wml_view_postlogin.php \
-	zm_wml_view_console.php \
-	zm_wml_view_feed.php \
-	zm_wml_view_error.php \
 	zm_lang.php \
 	zm_lang_big5_big5.php \
 	zm_lang_de_de.php \

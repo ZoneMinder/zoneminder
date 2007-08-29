@@ -189,7 +189,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsEDurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;

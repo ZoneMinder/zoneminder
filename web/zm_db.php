@@ -19,6 +19,7 @@
 // 
 
 $db_debug = false;
+$db_log = false;
 
 $conn = mysql_pconnect( ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die("Could not connect to database: ".mysql_error());
 mysql_select_db( ZM_DB_NAME, $conn) or die("Could not select database: ".mysql_error());
@@ -28,25 +29,44 @@ function dbDebug( $sql )
     global $db_debug;
 
     if ( $db_debug )
-        error_log( "SQL: $sql" );
+        error_log( "SQL-DEBUG: $sql" );
     return( $db_debug );
+}
+
+function dbLog( $sql )
+{
+    global $db_log;
+
+    if ( $db_log )
+        error_log( "SQL-LOG:$sql" );
+    return( $db_log );
+}
+
+function dbError( $sql )
+{
+    $err_ref = sprintf( "%X", rand( 0x100000, 0xffffff ) );
+    error_log( "SQL-ERROR($err_ref): ".$sql );
+    error_log( "SQL-ERROR($err_ref): ".mysql_error() );
+    die( "An error has occurred and this operation cannot continue.<br>For full details check your web logs for the code '$err_ref'" );
 }
 
 function dbQuery( $sql )
 {
     if ( dbDebug( $sql ) )
         return;
+    dbLog( $sql );
     if (!($result = mysql_query( $sql )))
-        die( mysql_error() );
+        dbError( $sql );
     return( $result );
 }
 
 function dbFetchOne( $sql, $col=false )
 {
     dbDebug( $sql );
+    dbLog( $sql );
 
     if (!($result = mysql_query( $sql )))
-        die( mysql_error() );
+        dbError( $sql );
 
     $db_row = mysql_fetch_assoc( $result );
     return( $col?$db_row[$col]:$db_row );
@@ -55,9 +75,10 @@ function dbFetchOne( $sql, $col=false )
 function dbFetchAll( $sql, $col=false )
 {
     dbDebug( $sql );
+    dbLog( $sql );
 
     if (!($result = mysql_query( $sql )))
-        die( mysql_error() );
+        dbError( $sql );
 
     $db_rows = array();
     while( $db_row = mysql_fetch_assoc( $result ) )
@@ -70,9 +91,13 @@ function dbFetch( $sql, $col=false )
     return( dbFetchAll( $sql, $col ) );
 }
 
-function simpleQuery( $sql )
+function dbNumRows( $sql )
 {
-    return( dbQuery( $sql ) );
+    dbDebug( $sql );
+    dbLog( $sql );
+    if (!($result = mysql_query( $sql )))
+        dbError( $sql );
+    return( mysql_num_rows( $result ) );
 }
 
 function getEnumValues( $table, $column )

@@ -118,13 +118,13 @@ if ( !empty($action) )
 	{
 		if ( $action == "rename" && $event_name && $eid )
 		{
-			simpleQuery( "update Events set Name = '$event_name' where Id = '$eid'" );
+			dbQuery( "update Events set Name = '$event_name' where Id = '$eid'" );
 		}
 		else if ( $action == "eventdetail" )
 		{
 			if ( $eid )
 			{
-				simpleQuery( "update Events set Cause = '".addslashes($new_event['Cause'])."', Notes = '".addslashes($new_event['Notes'])."' where Id = '$eid'" );
+				dbQuery( "update Events set Cause = '".addslashes($new_event['Cause'])."', Notes = '".addslashes($new_event['Notes'])."' where Id = '$eid'" );
 				$refresh_parent = true;
 			}
 			elseif ( $mark_eids || $mark_eid )
@@ -137,7 +137,7 @@ if ( !empty($action) )
 				{
 					foreach( $mark_eids as $mark_eid )
 					{
-						simpleQuery( "update Events set Cause = '".addslashes($new_event['Cause'])."', Notes = '".addslashes($new_event['Notes'])."' where Id = '$mark_eid'" );
+						dbQuery( "update Events set Cause = '".addslashes($new_event['Cause'])."', Notes = '".addslashes($new_event['Notes'])."' where Id = '$mark_eid'" );
 					}
 					$refresh_parent = true;
 				}
@@ -149,7 +149,7 @@ if ( !empty($action) )
 
 			if ( $eid )
 			{
-				simpleQuery( "update Events set Archived = $archive_val where Id = '$eid'" );
+				dbQuery( "update Events set Archived = $archive_val where Id = '$eid'" );
 			}
 			elseif ( $mark_eids || $mark_eid )
 			{
@@ -161,7 +161,7 @@ if ( !empty($action) )
 				{
 					foreach( $mark_eids as $mark_eid )
 					{
-						simpleQuery( "update Events set Archived = $archive_val where Id = '$mark_eid'" );
+						dbQuery( "update Events set Archived = $archive_val where Id = '$mark_eid'" );
 					}
 					$refresh_parent = true;
 				}
@@ -208,7 +208,7 @@ if ( !empty($action) )
 				$filter_parms[] = "sort_asc=$sort_asc";
 				$filter_parms[] = "limit=$limit";
 				$filter_query_string = join( '&', $filter_parms );
-				simpleQuery( "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoVideo = '$auto_video', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute', AutoExecuteCmd = '".addslashes($auto_execute_cmd)."', AutoDelete = '$auto_delete', Background = '$background'" );
+				dbQuery( "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoVideo = '$auto_video', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute', AutoExecuteCmd = '".addslashes($auto_execute_cmd)."', AutoDelete = '$auto_delete', Background = '$background'" );
 				$refresh_parent = true;
 			}
 		}
@@ -228,7 +228,7 @@ if ( !empty($action) )
 			}
 			if ( $fid )
 			{
-				simpleQuery( "delete from Filters where Name = '$fid'" );
+				dbQuery( "delete from Filters where Name = '$fid'" );
 				//$refresh_parent = true;
 			}
 		}
@@ -1001,7 +1001,7 @@ if ( !empty($action) )
 			{
 				if ( !empty($cid) )
 				{
-					simpleQuery( "update Controls set ".implode( ", ", $changes )." where Id = '$cid'" );
+					dbQuery( "update Controls set ".implode( ", ", $changes )." where Id = '$cid'" );
 					$refresh_parent = true;
 				}
 				else
@@ -1021,8 +1021,8 @@ if ( !empty($action) )
 			{
 				foreach( $mark_cids as $mark_cid )
 				{
-					simpleQuery( "delete from Controls where Id = '$mark_cid'" );
-					simpleQuery( "update Monitors set Controllable = 0, ControlId = 0 where ControlId = '$mark_cid'" );
+					dbQuery( "delete from Controls where Id = '$mark_cid'" );
+					dbQuery( "update Monitors set Controllable = 0, ControlId = 0 where ControlId = '$mark_cid'" );
 					$refresh_parent = true;
 				}
 			}
@@ -1045,7 +1045,7 @@ if ( !empty($action) )
 			$old_enabled = $monitor['Enabled'];
 			if ( $new_function != $old_function || $new_enabled != $old_enabled )
 			{
-				simpleQuery( "update Monitors set Function = '$new_function', Enabled = '$new_enabled' where Id = '$mid'" );
+				dbQuery( "update Monitors set Function = '$new_function', Enabled = '$new_enabled' where Id = '$mid'" );
 
 				$monitor['Function'] = $new_function;
 				$monitor['Enabled'] = $new_enabled;
@@ -1111,7 +1111,7 @@ if ( !empty($action) )
 					$sql = "insert into Zones set MonitorId = '$mid', ".implode( ", ", $changes );
 				}
 				//echo "<html>$sql</html>";
-				simpleQuery( $sql );
+				dbQuery( $sql );
 				if ( $cookies ) session_write_close();
 				if ( daemonCheck() )
 				{
@@ -1219,7 +1219,7 @@ if ( !empty($action) )
 			{
 				if ( !empty($mid) )
 				{
-					simpleQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
+					dbQuery( "update Monitors set ".implode( ", ", $changes )." where Id = '$mid'" );
 					if ( $changes['Name'] )
 					{
 						exec( escapeshellcmd( "mv ".ZM_DIR_EVENTS."/".$monitor['Name']." ".ZM_DIR_EVENTS."/".$new_monitor['Name'] ) );
@@ -1266,7 +1266,7 @@ if ( !empty($action) )
 							{
 								$sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '$mid' and Id = '".$zone['Id']."'";
 								//echo "<html>$sql</html>";
-								simpleQuery( $sql );
+								dbQuery( $sql );
 							}
 						}
 					}
@@ -1425,11 +1425,11 @@ if ( !empty($action) )
             {
 			    if ( $did )
 			    {
-				    simpleQuery( "update Devices set Name = '".addslashes($new_device['Name'])."', KeyString = '".addslashes($new_device['KeyString'])."' where Id = '$did'" );
+				    dbQuery( "update Devices set Name = '".addslashes($new_device['Name'])."', KeyString = '".addslashes($new_device['KeyString'])."' where Id = '$did'" );
 			    }
 			    else
 			    {
-				    simpleQuery( "insert into Devices set Name = '".addslashes($new_device['Name'])."', KeyString = '".addslashes($new_device['KeyString'])."'" );
+				    dbQuery( "insert into Devices set Name = '".addslashes($new_device['Name'])."', KeyString = '".addslashes($new_device['KeyString'])."'" );
 			    }
 			    $refresh_parent = true;
 			    $view = 'none';
@@ -1441,7 +1441,7 @@ if ( !empty($action) )
 			{
 				foreach( $mark_dids as $mark_did )
 				{
-					simpleQuery( "delete from Devices where Id = '$mark_did'" );
+					dbQuery( "delete from Devices where Id = '$mark_did'" );
 					$refresh_parent = true;
 				}
 			}
@@ -1687,18 +1687,18 @@ if ( !empty($action) )
 				$definition = join( ',', $definitions );
 				if ( $new_state )
 					$run_state = $new_state;
-				simpleQuery( "replace into States set Name = '$run_state', Definition = '$definition'" );
+				dbQuery( "replace into States set Name = '$run_state', Definition = '$definition'" );
 			}
 		}
 		elseif ( $action == "group" )
 		{
 			if ( $gid )
 			{
-				simpleQuery( "update Groups set Name = '".addslashes($new_group['Name'])."', MonitorIds = '".addslashes($new_group['MonitorIds'])."' where Id = '$gid'" );
+				dbQuery( "update Groups set Name = '".addslashes($new_group['Name'])."', MonitorIds = '".addslashes($new_group['MonitorIds'])."' where Id = '$gid'" );
 			}
 			else
 			{
-				simpleQuery( "insert into Groups set Name = '".addslashes($new_group['Name'])."', MonitorIds = '".addslashes($new_group['MonitorIds'])."'" );
+				dbQuery( "insert into Groups set Name = '".addslashes($new_group['Name'])."', MonitorIds = '".addslashes($new_group['MonitorIds'])."'" );
 			}
 			$refresh_parent = true;
 			$view = 'none';
@@ -1707,13 +1707,13 @@ if ( !empty($action) )
 		{
 			if ( $run_state )
 			{
-				simpleQuery( "delete from States where Name = '$run_state'" );
+				dbQuery( "delete from States where Name = '$run_state'" );
 			}
 			if ( $mark_uids )
 			{
 				foreach( $mark_uids as $mark_uid )
 				{
-					simpleQuery( "delete from Users where Id = '$mark_uid'" );
+					dbQuery( "delete from Users where Id = '$mark_uid'" );
 				}
 				if ( $mark_uid == $user['Id'] )
 				{
@@ -1722,7 +1722,7 @@ if ( !empty($action) )
 			}
 			if ( !empty($gid) )
 			{
-				simpleQuery( "delete from Groups where Id = '$gid'" );
+				dbQuery( "delete from Groups where Id = '$gid'" );
 				if ( $gid == $cgroup )
 				{
 					unset( $cgroup );

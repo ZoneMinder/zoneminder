@@ -173,12 +173,12 @@ if ( !empty($action) )
             {
                 $temp_filter_name = "_TempFilter".time();
             }
+			if ( $temp_filter_name )
+				$filter_name = $temp_filter_name;
+			elseif ( $new_filter_name )
+				$filter_name = $new_filter_name;
 			if ( $filter_name || $new_filter_name )
 			{
-				if ( $temp_filter_name )
-					$filter_name = $temp_filter_name;
-				elseif ( $new_filter_name )
-					$filter_name = $new_filter_name;
 				$filter_query = array();
 				$filter_query['trms'] = $trms;
 				for ( $i = 1; $i <= $trms; $i++ )

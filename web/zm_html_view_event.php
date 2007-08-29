@@ -386,12 +386,12 @@ if ( $mode == "stream" )
 <?php
     if ( ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_REPLAY_FORMAT )
     {
-        $stream_src = getStreamSrc( array( "mode=mpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT ) );
+        $stream_src = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT ) );
         outputVideoStream( $stream_src, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), $event['Name'], ZM_MPEG_REPLAY_FORMAT );
     }
     else
     {
-        $stream_src = getStreamSrc( array( "mode=jpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
+        $stream_src = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
         if ( canStreamNative() )
         {
             outputImageStream( $stream_src, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), $event['Name'] );

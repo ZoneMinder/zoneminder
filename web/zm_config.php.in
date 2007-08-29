@@ -52,6 +52,31 @@ define( "STATE_ALERT", 3 );
 define( "STATE_TAPE", 4 );
 
 //
+// DVR Control Commands
+//
+
+define( "MSG_CMD", 1 );
+define( "MSG_DATA_WATCH", 2 );
+define( "MSG_DATA_EVENT", 3 );
+
+define( "CMD_NONE", 0 );
+define( "CMD_PAUSE", 1 );
+define( "CMD_PLAY", 2 );
+define( "CMD_STOP", 3 );
+define( "CMD_FASTFWD", 4 );
+define( "CMD_SLOWFWD", 5 );
+define( "CMD_SLOWREV", 6 );
+define( "CMD_FASTREV", 7 );
+define( "CMD_ZOOMIN", 8 );
+define( "CMD_ZOOMOUT", 9 );
+define( "CMD_PAN", 10 );
+define( "CMD_SCALE", 11 );
+define( "CMD_PREV", 12 );
+define( "CMD_NEXT", 13 );
+define( "CMD_SEEK", 14 );
+define( "CMD_QUERY", 99 );
+
+//
 // These are miscellaneous options you won't normally need to change
 //
 define( "MAX_EVENTS", 10 );								// The maximum number of events to show in the monitor event listing

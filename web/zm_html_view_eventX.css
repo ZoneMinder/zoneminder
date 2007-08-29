@@ -1,0 +1,145 @@
+@import url(zm_html_base.css);
+
+body {
+    text-align: center;
+}
+
+#container {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#dataBar {
+    width: 96%;
+    margin: 2px auto 2px auto;
+    padding: 2px 0px;
+    text-align: center;
+}
+
+#dataBar #dataTable {
+    width: 100%;
+    background-color: #006699;
+    border-spacing: 1px;
+}
+
+#dataBar #dataTable tr {
+}
+
+#dataBar #dataTable td {
+    background-color: #ffffff;
+    text-align: center;
+    padding: 2px;
+}
+
+#menuBar1 {
+    width: 100%;
+    padding: 3px 0 3px 0;
+    text-align: center;
+}
+
+#menuBar1 span {
+    padding: 0px 20px;
+}
+
+#menuBar2 {
+    width: 100%;
+    padding: 3px 0 3px 0;
+    margin-bottom: 4px;
+    text-align: left;
+}
+
+#menuBar2 span {
+    padding: 0px 20px;
+}
+
+#menuBar2 #closeWindow {
+    position: absolute;
+    right: 4px;
+}
+
+#imageFeed{
+    text-align: center;
+}
+
+#monitorStatus {
+    width: 100%;
+    margin-top: 3px;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+#monitorStatus #enableAlarms {
+    position: absolute;
+    left: 4px;
+}
+
+#monitorStatus #forceAlarm {
+    position: absolute;
+    right: 4px;
+}
+
+#monitorStatus #monitorState {
+}
+
+#dvrControls {
+    margin-top: 3px;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+#dvrControls input {
+    height: 20px;
+    width: 28px;
+    padding-bottom: 3px;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+
+#dvrControls input[disabled] {
+    color: #aaaaaa;
+}
+
+#dvrControls input.active {
+    border: 1px solid blue;
+}
+
+#dvrControls input.inactive {
+    border: 1px solid green;
+}
+
+#dvrControls input.unavail {
+    border: 1px solid red;
+}
+
+#replayStatus {
+    width: 100%;
+    padding: 4px 0;
+    margin-top: 3px;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+#progressBar {
+    position: relative;
+    border: 1px solid #666666;
+    height: 15px;
+    margin: 0 auto;
+}
+
+#progressBar .progressBox {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 15px;
+    background: #eeeeee;
+    border-left: 1px solid #999999;
+}
+
+#progressBar .complete {
+    background: #aaaaaa;
+}
+
+li {
+    display: inline;
+    list-style-type: none;
+}

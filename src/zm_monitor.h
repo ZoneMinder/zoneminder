@@ -35,6 +35,8 @@ static struct timezone dummy_tz; // To avoid declaring pointless one each time w
 //
 class Monitor
 {
+friend class MonitorStream;
+
 public:
 	typedef enum
 	{
@@ -166,36 +168,37 @@ protected:
 	// These are read from the DB and thereafter remain unchanged
 	int				id;
 	char			name[64];
-	Function		function;			// What the monitor is doing
-	bool			enabled;			// Whether the monitor is enabled or asleep
-	unsigned int    width;				// Normally the same as the camera, but not if partly rotated
-	unsigned int    height;				// Normally the same as the camera, but not if partly rotated
-	Orientation		orientation;		// Whether the image has to be rotated at all
-	int				brightness;			// The statically saved brightness of the camera
-	int				contrast;			// The statically saved contrast of the camera
-	int				hue;				// The statically saved hue of the camera
-	int				colour;				// The statically saved colour of the camera
-	char			event_prefix[64];	// The prefix applied to event names as they are created
-	char			label_format[64];	// The format of the timestamp on the images
-	Coord			label_coord;		// The coordinates of the timestamp on the images
-	int				image_buffer_count; // Size of circular image buffer, at least twice the size of the pre_event_count
-	int				warmup_count;		// How many images to process before looking for events
-	int				pre_event_count;	// How many images to hold and prepend to an alarm event
-	int				post_event_count;	// How many unalarmed images must occur before the alarm state is reset
-	int				section_length;		// How long events should last in continuous modes
-	int				frame_skip;			// How many frames to skip in continuous modes
-	int				capture_delay;		// How long we wait between capture frames
-	int				alarm_capture_delay;// How long we wait between capture frames when in alarm state
-	int				alarm_frame_count;	// How many alarm frames are required before an event is triggered
-	int				fps_report_interval;// How many images should be captured/processed between reporting the current FPS
-	int				ref_blend_perc;		// Percentage of new image going into reference image.
-	bool			track_motion;		// Whether this monitor tries to track detected motion 
+	Function		function;			    // What the monitor is doing
+	bool			enabled;			    // Whether the monitor is enabled or asleep
+	unsigned int    width;				    // Normally the same as the camera, but not if partly rotated
+	unsigned int    height;				    // Normally the same as the camera, but not if partly rotated
+	Orientation		orientation;		    // Whether the image has to be rotated at all
+	int				brightness;			    // The statically saved brightness of the camera
+	int				contrast;			    // The statically saved contrast of the camera
+	int				hue;				    // The statically saved hue of the camera
+	int				colour;				    // The statically saved colour of the camera
+	char			event_prefix[64];	    // The prefix applied to event names as they are created
+	char			label_format[64];	    // The format of the timestamp on the images
+	Coord			label_coord;		    // The coordinates of the timestamp on the images
+	int				image_buffer_count;     // Size of circular image buffer, at least twice the size of the pre_event_count
+	int				warmup_count;		    // How many images to process before looking for events
+	int				pre_event_count;	    // How many images to hold and prepend to an alarm event
+	int				post_event_count;	    // How many unalarmed images must occur before the alarm state is reset
+	int				stream_replay_buffer;   // How many frames to store to support DVR functions
+	int				section_length;		    // How long events should last in continuous modes
+	int				frame_skip;			    // How many frames to skip in continuous modes
+	int				capture_delay;		    // How long we wait between capture frames
+	int				alarm_capture_delay;    // How long we wait between capture frames when in alarm state
+	int				alarm_frame_count;	    // How many alarm frames are required before an event is triggered
+	int				fps_report_interval;    // How many images should be captured/processed between reporting the current FPS
+	int				ref_blend_perc;		    // Percentage of new image going into reference image.
+	bool			track_motion;		    // Whether this monitor tries to track detected motion 
 
 	double			fps;
 	Image			image;
 	Image			ref_image;
 
-	Purpose			purpose;			// What this monitor has been created to do
+	Purpose			purpose;			    // What this monitor has been created to do
 	int				event_count;
 	int				image_count;
 	int				ready_count;
@@ -228,7 +231,7 @@ protected:
 	MonitorLink		**linked_monitors;
 
 public:
-	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
@@ -275,6 +278,7 @@ public:
 
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
+    unsigned int Colours() const { return( camera->Colours() ); }
  
 	State GetState() const;
 	int GetImage( int index=-1, int scale=100 ) const;
@@ -329,15 +333,67 @@ public:
 	static int LoadRemoteMonitors( const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose=QUERY );
 	static int LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose=QUERY );
 	static Monitor *Load( int id, bool load_zones=false, Purpose purpose=QUERY );
-	void StreamImages( int scale=100, int maxfps=10, time_t ttl=0 );
-	void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );
-	void StreamImagesZip( int scale=100, int maxfps=10, time_t ttl=0 );
+    //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );
+	//void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );
+	//void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );
+	//void StreamImagesZip( int scale=100, int maxfps=10, time_t ttl=0 );
 	void SingleImage( int scale=100 );
 	void SingleImageRaw( int scale=100 );
 	void SingleImageZip( int scale=100 );
 #if HAVE_LIBAVCODEC
-	void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
+	//void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC
+};
+
+#define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))
+
+class MonitorStream : public StreamBase
+{
+protected:
+    typedef struct SwapImage {
+        bool            valid;
+        struct timeval  timestamp;
+        char            file_name[PATH_MAX];
+    } SwapImage;
+
+private:
+    SwapImage *temp_image_buffer;
+    int temp_image_buffer_count;
+    int temp_read_index;
+    int temp_write_index;
+
+protected:
+    time_t ttl;
+
+protected:
+    bool buffer_playback;
+    bool delayed;
+
+    int frame_count;
+
+protected:
+    bool checkSwapPath( const char *path, bool create_path );
+
+    void sendFrame( const char *filepath, struct timeval *timestamp );
+    void sendFrame( Image *image, struct timeval *timestamp );
+    void processCommand( const CmdMsg *msg );
+
+public:
+    MonitorStream()
+    {
+        buffer_playback = false;
+        delayed = false;
+        frame_count = 0;
+    }
+    void setStreamTTL( time_t p_ttl )
+    {
+        ttl = p_ttl;
+    }
+    void setStreamStart( int monitor_id )
+    {
+        loadMonitor( monitor_id );
+    }
+	void runStream();
 };
 
 #endif // ZM_MONITOR_H

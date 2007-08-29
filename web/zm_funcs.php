@@ -157,6 +157,10 @@ function getStreamSrc( $args )
 			$args[] = "user=".$_SESSION['username'];
 		}
 	}
+    if ( $GLOBALS['connkey'] )
+    {   
+        $args[] = "connkey=".$GLOBALS['connkey'];
+    }       
 	if ( ZM_RAND_STREAM )
 	{
 		$args[] = "rand=".time();
@@ -514,11 +518,11 @@ function buildSelect( $name, $contents, $behaviours=false )
 		}
 		else
 		{
-			$behaviour_text = ' onChange="'.$behaviours.'"';
+			$behaviour_text = ' onchange="'.$behaviours.'"';
 		}
 	}
 ?>
-<select name="<?= $name ?>" class="form"<?= $behaviour_text ?>>
+<select name="<?= $name ?>" id="<?= $name ?>" class="form"<?= $behaviour_text ?>>
 <?php
 	foreach ( $contents as $content_value => $content_text )
 	{
@@ -1897,4 +1901,55 @@ function setDeviceStatusX10( $key, $status )
 	return( $status );
 }
 
+function isVector ( &$array )
+{
+    $next_key = 0;
+    foreach ( array_keys($array) as $key )
+    {
+        if ( !is_int( $key ) )
+            return( false );
+        if ( $key != $next_key++ )
+            return( false );
+    }
+    return( true );
+}
+
+function jsValue( &$value )
+{
+    switch ( gettype($value) )
+    {
+        case 'double':
+        case 'integer':
+            return( $value );
+        case 'boolean':
+            return( $value?'true':'false' );
+        case 'string':
+            return( "'".addslashes($value)."'" );
+        case 'NULL':
+            return( 'null' );
+        case 'object':
+            return( "'Object ".addslashes(get_class($value))."'" );
+        case 'array':
+            if ( isVector( $value ) )
+                return( '['.join( ',', array_map( 'jsValue', $value) ).']' );
+            else
+            {
+                $result = '{';
+                foreach ($value as $subkey => $subvalue )
+                {
+                    if ( $result != '{' )
+                        $result .= ',';
+                    $result .= jsValue( $subkey ).':'.jsValue( $subvalue );
+                }
+                return( $result.'}' );
+            }
+        default:
+            return( "'".addslashes(gettype($value))."'" );
+    }
+}
+
+function generateConnKey()
+{
+    return( rand( 1, 999999 ) );
+}
 ?>

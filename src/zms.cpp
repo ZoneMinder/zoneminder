@@ -17,6 +17,9 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+#include <sys/ipc.h>
+#include <sys/msg.h>
+
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_user.h"
@@ -49,11 +52,13 @@ bool ValidateAccess( User *user, int mon_id )
 
 int main( int argc, const char *argv[] )
 {
-	enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } mode = ZMS_JPEG;
+	enum { ZMS_MONITOR, ZMS_EVENT } source = ZMS_MONITOR;
+	enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } type = ZMS_JPEG;
 	char format[32] = "";
-	int id = 0;
-	int event = 0;
-	int frame = 1;
+	int monitor_id = 0;
+	time_t event_time = 0;
+	int event_id = 0;
+	int frame_id = 1;
 	unsigned int scale = 100;
 	unsigned int rate = 100;
 	unsigned int maxfps = 10;
@@ -62,6 +67,7 @@ int main( int argc, const char *argv[] )
 	char username[64] = "";
 	char password[64] = "";
 	char auth[64] = "";
+    unsigned int connkey = 0;
 
 	bool nph = false;
 	const char *basename = strrchr( argv[0], '/' );
@@ -71,7 +77,7 @@ int main( int argc, const char *argv[] )
 		nph = true;
 	}
 	
-	zmDbgInit( "zms", "", -1 );
+	zmDbgInit( "zms", "", 0 );
 
 	zmLoadConfig();
 
@@ -98,21 +104,27 @@ int main( int argc, const char *argv[] )
 		{
 			char *name = strtok( parms[p], "=" );
 			char *value = strtok( NULL, "=" );
-			if ( !strcmp( name, "mode" ) )
+			if ( !strcmp( name, "source" ) )
 			{
-				mode = !strcmp( value, "jpeg" )?ZMS_JPEG:ZMS_MPEG;
-				mode = !strcmp( value, "raw" )?ZMS_RAW:mode;
-				mode = !strcmp( value, "zip" )?ZMS_ZIP:mode;
-				mode = !strcmp( value, "single" )?ZMS_SINGLE:mode;
+				source = !strcmp( value, "event" )?ZMS_EVENT:ZMS_MONITOR;
 			}
-			else if ( !strcmp( name, "monitor" ) )
-				id = atoi( value );
-			else if ( !strcmp( name, "event" ) )
-				event = strtoull( value, (char **)NULL, 10 );
-			else if ( !strcmp( name, "frame" ) )
-				frame = strtoull( value, (char **)NULL, 10 );
+			else if ( !strcmp( name, "type" ) )
+			{
+				type = !strcmp( value, "jpeg" )?ZMS_JPEG:ZMS_MPEG;
+				type = !strcmp( value, "raw" )?ZMS_RAW:type;
+				type = !strcmp( value, "zip" )?ZMS_ZIP:type;
+				type = !strcmp( value, "single" )?ZMS_SINGLE:type;
+			}
 			else if ( !strcmp( name, "format" ) )
 				strncpy( format, value, sizeof(format) );
+			else if ( !strcmp( name, "monitor" ) )
+				monitor_id = atoi( value );
+			else if ( !strcmp( name, "time" ) )
+				event_time = atoi( value );
+			else if ( !strcmp( name, "event" ) )
+				event_id = strtoull( value, (char **)NULL, 10 );
+			else if ( !strcmp( name, "frame" ) )
+				frame_id = strtoull( value, (char **)NULL, 10 );
 			else if ( !strcmp( name, "scale" ) )
 				scale = atoi( value );
 			else if ( !strcmp( name, "rate" ) )
@@ -154,6 +166,8 @@ int main( int argc, const char *argv[] )
 					}
 				}
 			}
+			else if ( !strcmp( name, "connkey" ) )
+				connkey = atoi(value);
 		}
 	}
 
@@ -190,7 +204,7 @@ int main( int argc, const char *argv[] )
 			Error(( "Unable to authenticate user" ));
 			return( -1 );
 		}
-		ValidateAccess( user, id );
+		ValidateAccess( user, monitor_id );
 	}
 
 	setbuf( stdout, 0 );
@@ -215,56 +229,79 @@ int main( int argc, const char *argv[] )
 		//fprintf( stdout, "Content-Length: 0\r\n");
 	//}
 
-	if ( !event )
+	if ( source == ZMS_MONITOR )
 	{
-		Monitor *monitor = Monitor::Load( id );
+        MonitorStream stream;
+        stream.setStreamScale( scale );
+        stream.setStreamReplayRate( rate );
+        stream.setStreamMaxFPS( maxfps );
+        stream.setStreamTTL( ttl );
+        stream.setStreamQueue( connkey );
+        stream.setStreamStart( monitor_id );
 
-		if ( monitor )
+        if ( type == ZMS_JPEG )
+        {
+            stream.setStreamType( MonitorStream::STREAM_JPEG );
+		}
+		else if ( type == ZMS_RAW )
 		{
-			if ( mode == ZMS_JPEG )
-			{
-				monitor->StreamImages( scale, maxfps, ttl );
-			}
-			else if ( mode == ZMS_RAW )
-			{
-				monitor->StreamImagesRaw( scale, maxfps, ttl );
-			}
-			else if ( mode == ZMS_ZIP )
-			{
-				monitor->StreamImagesZip( scale, maxfps, ttl );
-			}
-			else if ( mode == ZMS_SINGLE )
-			{
-				monitor->SingleImage( scale );
-			} 
-			else
-			{
+            stream.setStreamType( MonitorStream::STREAM_RAW );
+		}
+		else if ( type == ZMS_ZIP )
+		{
+            stream.setStreamType( MonitorStream::STREAM_ZIP );
+		}
+		else if ( type == ZMS_SINGLE )
+		{
+            stream.setStreamType( MonitorStream::STREAM_SINGLE );
+        }
+        else
+        {
 #if HAVE_LIBAVCODEC
-				 monitor->StreamMpeg( format, scale, maxfps, bitrate );
+            stream.setStreamFormat( format );
+            stream.setStreamBitrate( bitrate );
+            stream.setStreamType( MonitorStream::STREAM_MPEG );
 #else // HAVE_LIBAVCODEC
-				Error(( "MPEG streaming of '%s' attempted while disabled", query ));
-				fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
-				return( -1 );
+            Error(( "MPEG streaming of '%s' attempted while disabled", query ));
+            fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
+            return( -1 );
 #endif // HAVE_LIBAVCODEC
-			}
-		}
+        }
+        stream.runStream();
 	}
-	else
-	{
-		if ( mode == ZMS_JPEG )
-		{
-			Event::StreamEvent( event, frame, scale, rate, maxfps );
-		}
-		else
-		{
+    else if ( source == ZMS_EVENT )
+    {
+        EventStream stream;
+        stream.setStreamScale( scale );
+        stream.setStreamReplayRate( rate );
+        stream.setStreamMaxFPS( maxfps );
+        stream.setStreamMode( EventStream::MODE_ALL_GAPLESS );
+        stream.setStreamQueue( connkey );
+        if ( monitor_id && event_time )
+        {
+            stream.setStreamStart( monitor_id, event_time );
+        }
+        else
+        {
+            stream.setStreamStart( event_id, frame_id );
+        }
+        if ( type == ZMS_JPEG )
+        {
+            stream.setStreamType( EventStream::STREAM_JPEG );
+        }
+        else
+        {
 #if HAVE_LIBAVCODEC
-			Event::StreamMpeg( event, frame, format, scale, rate, maxfps, bitrate );
+            stream.setStreamFormat( format );
+            stream.setStreamBitrate( bitrate );
+            stream.setStreamType( EventStream::STREAM_MPEG );
 #else // HAVE_LIBAVCODEC
-			Error(( "MPEG streaming of '%s' attempted while disabled", query ));
-			fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
-			return( -1 );
+            Error(( "MPEG streaming of '%s' attempted while disabled", query ));
+            fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
+            return( -1 );
 #endif // HAVE_LIBAVCODEC
-		}
-	}
+        }
+        stream.runStream();
+    }
 	return( 0 );
 }

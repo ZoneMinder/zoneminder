@@ -222,7 +222,7 @@ sub zmShmGet( $ )
 	my $monitor = shift;
 	if ( !defined($monitor->{ShmId}) )
 	{
-		my $shm_key = hex(ZM_SHM_KEY)|$monitor->{Id};
+		my $shm_key = (hex(ZM_SHM_KEY)&0xffff0000)|$monitor->{Id};
 		my $shm_id = shmget( $shm_key, $shm_size, 0 );
 		if ( !defined($shm_id) )
 		{

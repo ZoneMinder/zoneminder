@@ -24,6 +24,7 @@ zm_SOURCES = \
 	zm_box.cpp \
 	zm_poly.cpp \
 	zm_image.cpp \
+	zm_stream.cpp \
 	zm_event.cpp \
 	zm_zone.cpp \
 	zm_camera.cpp \
@@ -59,6 +60,7 @@ noinst_HEADERS = \
 	zm_poly.h \
 	zm_image.h \
 	zm_event.h \
+	zm_stream.h \
 	zm_zone.h \
 	zm_camera.h \
 	zm_local_camera.h \

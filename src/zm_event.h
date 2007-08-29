@@ -33,6 +33,7 @@
 
 #include "zm.h"
 #include "zm_image.h"
+#include "zm_stream.h"
 
 class Monitor;
 
@@ -43,6 +44,8 @@ class Monitor;
 //
 class Event
 {
+friend class EventStream;
+
 protected:
 	static bool		initialised;
 	static char		capture_file_format[PATH_MAX];
@@ -85,11 +88,14 @@ protected:
 protected:
 	static void Initialise()
 	{
-		initialised = true;
+        if ( initialised )
+            return;
 
 		snprintf( capture_file_format, sizeof(capture_file_format), "%%s/%%0%dd-capture.jpg", config.event_image_digits );
 		snprintf( analyse_file_format, sizeof(analyse_file_format), "%%s/%%0%dd-analyse.jpg", config.event_image_digits );
 		snprintf( general_file_format, sizeof(general_file_format), "%%s/%%0%dd-%%s", config.event_image_digits );
+
+		initialised = true;
 	}
 
 public:
@@ -115,11 +121,6 @@ public:
 
 	void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
 	void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
-
-	static void StreamEvent( int event_id, int frame_id, int scale=100, int rate=100, int maxfps=10 );
-#if HAVE_LIBAVCODEC
-	static void StreamMpeg( int event_id, int frame_id, const char *format, int scale=100, int rate=100, int maxfps=10, int bitrate=100000 );
-#endif // HAVE_LIBAVCODEC
 
 public:
 	static int PreAlarmCount()
@@ -158,7 +159,82 @@ public:
 		}
 		EmptyPreAlarmFrames();
 	}
+};
 
+class EventStream : public StreamBase
+{
+public:
+    typedef enum { MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
+
+protected:
+    typedef struct FrameData {
+        //unsigned long   id;
+        time_t          timestamp;
+        time_t          offset;
+        double          delta;
+        bool            in_db;
+    };
+
+    typedef struct EventData
+    {
+        unsigned long   event_id;
+        unsigned long   monitor_id;
+        unsigned long   frame_count;
+        time_t          start_time;
+        double          duration;
+        char            path[PATH_MAX];
+        int             n_frames;
+        FrameData       *frames;
+    };
+
+protected:
+    static const int STREAM_PAUSE_WAIT = 250000; // Microseconds
+
+    static const StreamMode DEFAULT_MODE = MODE_SINGLE;
+
+protected:
+    StreamMode mode;
+
+protected:
+    int curr_frame_id;
+    double curr_stream_time;
+
+    EventData *event_data;
+
+protected:
+    bool loadEventData( int event_id );
+    bool loadInitialEventData( int init_event_id, int init_frame_id );
+    bool loadInitialEventData( int monitor_id, time_t event_time );
+
+    void checkEventLoaded();
+    void processCommand( const CmdMsg *msg );
+    void sendFrame( int delta_us );
+
+public:
+    EventStream()
+    {
+        mode = DEFAULT_MODE;
+
+        curr_frame_id = 0;
+        curr_stream_time = 0.0;
+
+        event_data = 0;
+    }
+	void setStreamStart( int init_event_id, int init_frame_id=0 )
+    {
+        loadInitialEventData( init_event_id, init_frame_id );
+        loadMonitor( event_data->monitor_id );
+    }
+	void setStreamStart( int monitor_id, time_t event_time )
+    {
+        loadInitialEventData( monitor_id, event_time );
+        loadMonitor( monitor_id );
+    }
+    void setStreamMode( StreamMode p_mode )
+    {
+        mode = p_mode;
+    }
+    void runStream();
 };
 
 #endif // ZM_EVENT_H

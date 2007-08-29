@@ -89,6 +89,7 @@ protected:
 	int pixels;
 	int colours;
 	int size;
+    int allocation;
 	JSAMPLE *buffer;
 	bool our_buffer;
 	char text[1024];
@@ -101,81 +102,11 @@ protected:
 	static BlendTablePtr GetBlendTable( int );
 
 public:
-	Image()
-	{
-		if ( !initialised )
-			Initialise();
-		width = 0;
-		height = 0;
-		pixels = 0;
-		colours = 0;
-		size = 0;
-		our_buffer = true;
-		buffer = 0;
-		blend_buffer = 0;
-		text[0] = '\0';
-	}
-	Image( const char *filename )
-	{
-		if ( !initialised )
-			Initialise();
-		width = 0;
-		height = 0;
-		pixels = 0;
-		colours = 0;
-		size = 0;
-		buffer = 0;
-		ReadJpeg( filename );
-		our_buffer = true;
-		blend_buffer = 0;
-		text[0] = '\0';
-	}
-	Image( int p_width, int p_height, int p_colours, JSAMPLE *p_buffer=0 )
-	{
-		if ( !initialised )
-			Initialise();
-		width = p_width;
-		height = p_height;
-		pixels = width*height;
-		colours = p_colours;
-		size = width*height*colours;
-		if ( p_buffer )
-		{
-			our_buffer = false;
-			buffer = p_buffer;
-		}
-		else
-		{
-			our_buffer = true;
-			buffer = new JSAMPLE[size];
-			memset( buffer, 0, size );
-		}
-		blend_buffer = 0;
-		text[0] = '\0';
-	}
-	Image( const Image &p_image )
-	{
-		if ( !initialised )
-			Initialise();
-		width = p_image.width;
-		height = p_image.height;
-		pixels = p_image.pixels;
-		colours = p_image.colours;
-		size = p_image.size;
-		buffer = new JSAMPLE[size];
-		memcpy( buffer, p_image.buffer, size );
-		our_buffer = true;
-		blend_buffer = 0;
-		strncpy( text, p_image.text, sizeof(text) );
-	}
-	~Image()
-	{
-		if ( our_buffer )
-		{
-			delete[] buffer;
-		}
-		delete[] blend_buffer;
-	}
+	Image();
+	Image( const char *filename );
+	Image( int p_width, int p_height, int p_colours, JSAMPLE *p_buffer=0 );
+	Image( const Image &p_image );
+	~Image();
 
 	inline int Width() const { return( width ); }
 	inline int Height() const { return( height ); }
@@ -185,44 +116,9 @@ public:
 	inline JSAMPLE *Buffer() const { return( buffer ); }
 	inline JSAMPLE *Buffer( unsigned int x, unsigned int y= 0 ) const { return( &buffer[colours*((y*width)+x)] ); }
 	
-	inline void Assign( int p_width, int p_height, int p_colours, unsigned char *new_buffer )
-	{
-		if ( p_width != width || p_height != height || p_colours != colours )
-		{
-			width = p_width;
-			height = p_height;
-			pixels = width*height;
-			colours = p_colours;
-			int new_size = width*height*colours;
-			if ( size < new_size )
-			{
-				size = new_size;
-				delete[] buffer;
-				buffer = new JSAMPLE[size];
-				memset( buffer, 0, size );
-			}
-		}
-		memcpy( buffer, new_buffer, size );
-	}
-	inline void Assign( const Image &image )
-	{
-		if ( image.width != width || image.height != height || image.colours != colours )
-		{
-			width = image.width;
-			height = image.height;
-			pixels = width*height;
-			colours = image.colours;
-			int new_size = width*height*colours;
-			if ( size < new_size )
-			{
-				size = new_size;
-				delete[] buffer;
-				buffer = new JSAMPLE[size];
-				memset( buffer, 0, size );
-			}
-		}
-		memcpy( buffer, image.buffer, size );
-	}
+    void Empty();
+	void Assign( int p_width, int p_height, int p_colours, unsigned char *new_buffer );
+	void Assign( const Image &image );
 
 	inline void CopyBuffer( const Image &image )
 	{
@@ -250,14 +146,17 @@ public:
 	bool Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compression_level=Z_BEST_SPEED ) const;
 
 	bool Crop( int lo_x, int lo_y, int hi_y, int hi_y );
+	bool Crop( const Box &limits );
 
 	void Overlay( const Image &image );
+	void Overlay( const Image &image, int x, int y );
 	void Blend( const Image &image, int transparency=10 ) const;
 	static Image *Merge( int n_images, Image *images[] );
 	static Image *Merge( int n_images, Image *images[], double weight );
 	static Image *Highlight( int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
 	Image *Delta( const Image &image ) const;
 
+    const Coord centreCoord( const char *text );
 	void Annotate( const char *p_text, const Coord &coord,  const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
 	Image *HighlightEdges( Rgb colour, const Box *limits=0 );
 	//Image *HighlightEdges( Rgb colour, const Polygon &polygon );

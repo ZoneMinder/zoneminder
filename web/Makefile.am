@@ -15,10 +15,19 @@ web_DATA = \
 	zm_actions.php \
 	zm_config.php \
 	zm_control_funcs.php \
+	zm_control_funcsX.php \
 	zm_db.php \
 	zm_export_funcs.php \
 	zm_funcs.php \
+	zm_request_status.php \
+	zm_request_command.php \
+	zm_request_control.php \
+	zm_request_event.php \
 	zm_html.php \
+	zm_html.js \
+	zm_html_js.php \
+	zm_html_reset.css \
+	zm_html_base.css \
 	zm_html_styles.css \
 	zm_html_config.php \
 	zm_html_view_bandwidth.php \
@@ -37,6 +46,8 @@ web_DATA = \
 	zm_html_view_donate.php \
 	zm_html_view_error.php \
 	zm_html_view_event.php \
+	zm_html_view_eventX.php \
+	zm_html_view_eventX.css \
 	zm_html_view_eventdetail.php \
 	zm_html_view_events.php \
 	zm_html_view_export.php \
@@ -75,6 +86,8 @@ web_DATA = \
 	zm_html_view_watchmenu.php \
 	zm_html_view_watch.php \
 	zm_html_view_watchstatus.php \
+	zm_html_view_watchX.php \
+	zm_html_view_watchX.css \
 	zm_html_view_zone.php \
 	zm_html_view_zones.php \
 	zm_xhtml.php \
@@ -119,10 +132,19 @@ EXTRA_DIST = \
 	zm_actions.php \
 	zm_config.php.in \
 	zm_control_funcs.php \
+	zm_control_funcsX.php \
 	zm_db.php \
 	zm_export_funcs.php \
 	zm_funcs.php \
+	zm_request_status.php \
+	zm_request_control.php \
+	zm_request_command.php \
+	zm_request_event.php \
 	zm_html.php \
+	zm_html.js \
+	zm_html_js.php \
+	zm_html_reset.css \
+	zm_html_base.css \
 	zm_html_styles.css \
 	zm_html_config.php \
 	zm_html_view_bandwidth.php \
@@ -140,6 +162,8 @@ EXTRA_DIST = \
 	zm_html_view_donate.php \
 	zm_html_view_error.php \
 	zm_html_view_event.php \
+	zm_html_view_eventX.php \
+	zm_html_view_eventX.css \
 	zm_html_view_eventdetail.php \
 	zm_html_view_events.php \
 	zm_html_view_export.php \
@@ -177,6 +201,8 @@ EXTRA_DIST = \
 	zm_html_view_watchfeed.php \
 	zm_html_view_watchmenu.php \
 	zm_html_view_watch.php \
+	zm_html_view_watchX.php \
+	zm_html_view_watchX.css \
 	zm_html_view_watchstatus.php \
 	zm_html_view_zone.php \
 	zm_html_view_zones.php \

@@ -82,6 +82,7 @@ else
 	$monitor['WarmupCount'] = 25;
 	$monitor['PreEventCount'] = 10;
 	$monitor['PostEventCount'] = 10;
+	$monitor['StreamReplayBuffer'] = 1000;
 	$monitor['AlarmFrameCount'] = 1;
 	$monitor['Controllable'] = 0;
 	$monitor['ControlType'] = 0;
@@ -239,6 +240,10 @@ function validateForm(form)
 	if ( !form.elements['new_monitor[PostEventCount]'].value || !(parseInt(form.elements['new_monitor[PostEventCount]'].value) >= 0 ) )
 	{
 		errors[errors.length] = "<?= $zmSlangBadPostEventCount ?>";
+	}
+	if ( !form.elements['new_monitor[StreamReplayBuffer]'].value || !(parseInt(form.elements['new_monitor[StreamReplayBuffer]'].value) >= 0 ) )
+	{
+		errors[errors.length] = "<?= $zmSlangBadStreamReplayBuffer ?>";
 	}
 	if ( !form.elements['new_monitor[AlarmFrameCount]'].value || !(parseInt(form.elements['new_monitor[AlarmFrameCount]'].value) > 0 ) )
 	{
@@ -455,6 +460,7 @@ if ( $tab != 'buffers' )
 <input type="hidden" name="new_monitor[WarmupCount]" value="<?= $new_monitor['WarmupCount'] ?>">
 <input type="hidden" name="new_monitor[PreEventCount]" value="<?= $new_monitor['PreEventCount'] ?>">
 <input type="hidden" name="new_monitor[PostEventCount]" value="<?= $new_monitor['PostEventCount'] ?>">
+<input type="hidden" name="new_monitor[StreamReplayBuffer]" value="<?= $new_monitor['StreamReplayBuffer'] ?>">
 <input type="hidden" name="new_monitor[AlarmFrameCount]" value="<?= $new_monitor['AlarmFrameCount'] ?>">
 <?php
 }
@@ -606,6 +612,7 @@ switch ( $tab )
 <tr><td align="left" class="text"><?= $zmSlangWarmupFrames ?></td><td align="left" class="text"><input type="text" name="new_monitor[WarmupCount]" value="<?= $new_monitor['WarmupCount'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangPreEventImageBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[PreEventCount]" value="<?= $new_monitor['PreEventCount'] ?>" size="4" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangPostEventImageBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[PostEventCount]" value="<?= $new_monitor['PostEventCount'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangStreamReplayBuffer ?></td><td align="left" class="text"><input type="text" name="new_monitor[StreamReplayBuffer]" value="<?= $new_monitor['StreamReplayBuffer'] ?>" size="6" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangAlarmFrameCount ?></td><td align="left" class="text"><input type="text" name="new_monitor[AlarmFrameCount]" value="<?= $new_monitor['AlarmFrameCount'] ?>" size="4" class="form"></td></tr>
 <?php
 		break;

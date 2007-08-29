@@ -19,10 +19,12 @@
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <glob.h>
 
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_mpeg.h"
+#include "zm_signal.h"
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
@@ -58,7 +60,7 @@ bool Monitor::MonitorLink::connect()
 				 + sizeof(TriggerData);
 
 		Debug( 1, ( "link.shm.size=%d", shm_size ));
-		shm_id = shmget( (config.shm_key&0xffffff00)|id, shm_size, 0700 );
+		shm_id = shmget( (config.shm_key&0xffff0000)|id, shm_size, 0700 );
 		if ( shm_id < 0 )
 		{
 			Debug( 3, ( "Can't shmget link memory: %s", strerror(errno)));
@@ -175,6 +177,7 @@ Monitor::Monitor(
 	int p_warmup_count,
 	int p_pre_event_count,
 	int p_post_event_count,
+	int p_stream_replay_buffer,
 	int p_alarm_frame_count,
 	int p_section_length,
 	int p_frame_skip,
@@ -198,6 +201,7 @@ Monitor::Monitor(
 	warmup_count( p_warmup_count ),
 	pre_event_count( p_pre_event_count ),
 	post_event_count( p_post_event_count ),
+	stream_replay_buffer( p_stream_replay_buffer ),
 	alarm_frame_count( p_alarm_frame_count ),
 	section_length( p_section_length ),
 	frame_skip( p_frame_skip ),
@@ -258,7 +262,7 @@ Monitor::Monitor(
 			 + (image_buffer_count*camera->ImageSize());
 
 	Debug( 1, ( "shm.size=%d", shm_size ));
-	shm_id = shmget( (config.shm_key&0xffffff00)|id, shm_size, IPC_CREAT|0700 );
+	shm_id = shmget( (config.shm_key&0xffff0000)|id, shm_size, IPC_CREAT|0700 );
 	if ( shm_id < 0 )
 	{
 		Error(( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno)));
@@ -301,6 +305,12 @@ Monitor::Monitor(
 		trigger_data->trigger_cause[0] = 0;
 		trigger_data->trigger_text[0] = 0;
 		trigger_data->trigger_showtext[0] = 0;
+	}
+	else if ( purpose == ANALYSIS )
+	{
+		shared_data->state = IDLE;
+		shared_data->alarm_x = -1;
+		shared_data->alarm_y = -1;
 	}
 
 	if ( !shared_data->valid )
@@ -450,7 +460,7 @@ int Monitor::GetImage( int index, int scale ) const
 		Snapshot *snap = &image_buffer[index];
 		Image snap_image( *(snap->image) );
 
-		if ( scale != 100 )
+		if ( scale != ZM_SCALE_BASE )
 		{
 			snap_image.Scale( scale );
 		}
@@ -1123,7 +1133,7 @@ bool Monitor::Analyse()
 						Info(( "%s: %03d - Starting new event %d", name, image_count, event->Id() ));
 
 						//if ( config.overlap_timed_events )
-						if ( true )
+						if ( false )
 						{
 							int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
 							for ( int i = 0; i < pre_event_count; i++ )
@@ -1533,11 +1543,11 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 	static char sql[BUFSIZ];
 	if ( !device[0] )
 	{
-		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
+		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
 	}
 	else
 	{
-		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1588,6 +1598,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 		int warmup_count = atoi(dbrow[col]); col++;
 		int pre_event_count = atoi(dbrow[col]); col++;
 		int post_event_count = atoi(dbrow[col]); col++;
+		int stream_replay_buffer = atoi(dbrow[col]); col++;
 		int alarm_frame_count = atoi(dbrow[col]); col++;
 		int section_length = atoi(dbrow[col]); col++;
 		int frame_skip = atoi(dbrow[col]); col++;
@@ -1629,6 +1640,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 			warmup_count,
 			pre_event_count,
 			post_event_count,
+			stream_replay_buffer,
 			alarm_frame_count,
 			section_length,
 			frame_skip,
@@ -1660,11 +1672,11 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 	static char sql[BUFSIZ];
 	if ( !host )
 	{
-		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
+		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
 	}
 	else
 	{
-		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1715,6 +1727,7 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 		int warmup_count = atoi(dbrow[col]); col++;
 		int pre_event_count = atoi(dbrow[col]); col++;
 		int post_event_count = atoi(dbrow[col]); col++;
+		int stream_replay_buffer = atoi(dbrow[col]); col++;
 		int alarm_frame_count = atoi(dbrow[col]); col++;
 		int section_length = atoi(dbrow[col]); col++;
 		int frame_skip = atoi(dbrow[col]); col++;
@@ -1756,6 +1769,7 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 			warmup_count,
 			pre_event_count,
 			post_event_count,
+			stream_replay_buffer,
 			alarm_frame_count,
 			section_length,
 			frame_skip,
@@ -1787,11 +1801,11 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 	static char sql[BUFSIZ];
 	if ( !file[0] )
 	{
-		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
+		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
 	}
 	else
 	{
-		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1840,6 +1854,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 		int warmup_count = atoi(dbrow[col]); col++;
 		int pre_event_count = atoi(dbrow[col]); col++;
 		int post_event_count = atoi(dbrow[col]); col++;
+		int stream_replay_buffer = atoi(dbrow[col]); col++;
 		int alarm_frame_count = atoi(dbrow[col]); col++;
 		int section_length = atoi(dbrow[col]); col++;
 		int frame_skip = atoi(dbrow[col]); col++;
@@ -1879,6 +1894,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 			warmup_count,
 			pre_event_count,
 			post_event_count,
+			stream_replay_buffer,
 			alarm_frame_count,
 			section_length,
 			frame_skip,
@@ -1908,7 +1924,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
 	static char sql[BUFSIZ];
-	snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Id = %d", id );
+	snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
@@ -1962,6 +1978,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 		int warmup_count = atoi(dbrow[col]); col++;
 		int pre_event_count = atoi(dbrow[col]); col++;
 		int post_event_count = atoi(dbrow[col]); col++;
+		int stream_replay_buffer = atoi(dbrow[col]); col++;
 		int alarm_frame_count = atoi(dbrow[col]); col++;
 		int section_length = atoi(dbrow[col]); col++;
 		int frame_skip = atoi(dbrow[col]); col++;
@@ -2041,6 +2058,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 			warmup_count,
 			pre_event_count,
 			post_event_count,
+			stream_replay_buffer,
 			alarm_frame_count,
 			section_length,
 			frame_skip,
@@ -2071,420 +2089,6 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 
 	return( monitor );
 }
-
-void Monitor::StreamImages( int scale, int maxfps, time_t ttl )
-{
-	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-
-	int fps = int(GetFPS());
-	if ( !fps )
-		fps = 5;
-
-	int min_fps = 1;
-	int max_fps = maxfps;
-	int base_fps = int(GetFPS());
-	int effective_fps = base_fps;
-
-	int frame_mod = 1;
-	// Min frame repeat?
-	while( effective_fps > max_fps )
-	{
-		effective_fps /= 2;
-		frame_mod *= 2;
-	}
-
-	Debug( 1, ( "BFPS:%d, EFPS:%d, FM:%d", base_fps, effective_fps, frame_mod ));
-
-	int last_read_index = image_buffer_count;
-
-	time_t stream_start_time;
-	time( &stream_start_time );
-
-	int frame_count = 0;
-	struct timeval base_time;
-	struct DeltaTimeval delta_time;
-	int img_buffer_size = 0;
-	static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
-	Image scaled_image;
-	while ( true )
-	{
-		if ( feof( stdout ) || ferror( stdout ) )
-		{
-			break;
-		}
-		if ( last_read_index != shared_data->last_write_index )
-		{
-			last_read_index = shared_data->last_write_index;
-			if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) )
-			{
-				// Send the next frame
-				int index = shared_data->last_write_index%image_buffer_count;
-				//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
-				Snapshot *snap = &image_buffer[index];
-				Image *snap_image = snap->image;
-
-				if ( scale != 100 )
-				{
-					scaled_image.Assign( *snap_image );
-
-					scaled_image.Scale( scale );
-
-					snap_image = &scaled_image;
-				}
-				if ( !config.timestamp_on_capture )
-				{
-					TimestampImage( snap_image, snap->timestamp );
-				}
-				snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
-
-				fprintf( stdout, "--ZoneMinderFrame\r\n" );
-				fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
-				fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
-				fwrite( img_buffer, img_buffer_size, 1, stdout );
-				fprintf( stdout, "\r\n\r\n" );
-
-				if ( ttl )
-				{
-					time_t now = time ( 0 );
-					if ( (now - stream_start_time) > ttl )
-					{
-						break;
-					}
-				}
-			}
-			frame_count++;
-		}
-		usleep( ZM_SAMPLE_RATE );
-	}
-}
-
-void Monitor::StreamImagesRaw( int scale, int maxfps, time_t ttl )
-{
-	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-
-	int fps = int(GetFPS());
-	if ( !fps )
-		fps = 5;
-
-	int min_fps = 1;
-	int max_fps = maxfps;
-	int base_fps = int(GetFPS());
-	int effective_fps = base_fps;
-
-	int frame_mod = 1;
-	// Min frame repeat?
-	while( effective_fps > max_fps )
-	{
-		effective_fps /= 2;
-		frame_mod *= 2;
-	}
-
-	Debug( 1, ( "BFPS:%d, EFPS:%d, FM:%d", base_fps, effective_fps, frame_mod ));
-
-	int last_read_index = image_buffer_count;
-
-	time_t stream_start_time;
-	time( &stream_start_time );
-
-	int frame_count = 0;
-	struct timeval base_time;
-	struct DeltaTimeval delta_time;
-	Image scaled_image;
-	while ( true )
-	{
-		if ( feof( stdout ) || ferror( stdout ) )
-		{
-			break;
-		}
-		if ( last_read_index != shared_data->last_write_index )
-		{
-			last_read_index = shared_data->last_write_index;
-			if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) )
-			{
-				// Send the next frame
-				int index = shared_data->last_write_index%image_buffer_count;
-				//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
-				Snapshot *snap = &image_buffer[index];
-				Image *snap_image = snap->image;
-
-				if ( scale != 100 )
-				{
-					scaled_image.Assign( *snap_image );
-
-					scaled_image.Scale( scale );
-
-					snap_image = &scaled_image;
-				}
-				if ( !config.timestamp_on_capture )
-				{
-					TimestampImage( snap_image, snap->timestamp );
-				}
-
-				fprintf( stdout, "--ZoneMinderFrame\r\n" );
-				fprintf( stdout, "Content-Length: %d\r\n", snap_image->Size() );
-				fprintf( stdout, "Content-Type: image/x-rgb\r\n\r\n" );
-				fwrite( snap_image->Buffer(), snap_image->Size(), 1, stdout );
-				fprintf( stdout, "\r\n\r\n" );
-
-				if ( ttl )
-				{
-					if ( (time(0) - stream_start_time) > ttl )
-					{
-						break;
-					}
-				}
-			}
-			frame_count++;
-		}
-		usleep( ZM_SAMPLE_RATE );
-	}
-}
-
-void Monitor::StreamImagesZip( int scale, int maxfps, time_t ttl )
-{
-	fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
-
-	int fps = int(GetFPS());
-	if ( !fps )
-		fps = 5;
-
-	int min_fps = 1;
-	int max_fps = maxfps;
-	int base_fps = int(GetFPS());
-	int effective_fps = base_fps;
-
-	int frame_mod = 1;
-	// Min frame repeat?
-	while( effective_fps > max_fps )
-	{
-		effective_fps /= 2;
-		frame_mod *= 2;
-	}
-
-	Debug( 1, ( "BFPS:%d, EFPS:%d, FM:%d", base_fps, effective_fps, frame_mod ));
-
-	int last_read_index = image_buffer_count;
-
-	time_t stream_start_time;
-	time( &stream_start_time );
-
-	int frame_count = 0;
-	struct timeval base_time;
-	struct DeltaTimeval delta_time;
-	unsigned long img_buffer_size = 0;
-	static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
-	Image scaled_image;
-	while ( true )
-	{
-		if ( feof( stdout ) || ferror( stdout ) )
-		{
-			break;
-		}
-		if ( last_read_index != shared_data->last_write_index )
-		{
-			last_read_index = shared_data->last_write_index;
-			if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) )
-			{
-				// Send the next frame
-				int index = shared_data->last_write_index%image_buffer_count;
-				//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
-				Snapshot *snap = &image_buffer[index];
-				Image *snap_image = snap->image;
-
-				if ( scale != 100 )
-				{
-					scaled_image.Assign( *snap_image );
-
-					scaled_image.Scale( scale );
-
-					snap_image = &scaled_image;
-				}
-				if ( !config.timestamp_on_capture )
-				{
-					TimestampImage( snap_image, snap->timestamp );
-				}
-				snap_image->Zip( img_buffer, &img_buffer_size );
-
-				fprintf( stdout, "--ZoneMinderFrame\r\n" );
-				fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
-				fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
-				fwrite( img_buffer, img_buffer_size, 1, stdout );
-				fprintf( stdout, "\r\n\r\n" );
-
-				if ( ttl )
-				{
-					time_t now = time ( 0 );
-					if ( (now - stream_start_time) > ttl )
-					{
-						break;
-					}
-				}
-			}
-			frame_count++;
-		}
-		usleep( ZM_SAMPLE_RATE );
-	}
-}
-
-void Monitor::SingleImage( int scale)
-{
-	int last_read_index = shared_data->last_write_index;
-	int img_buffer_size = 0;
-	static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
-	Image scaled_image;
-	int index = shared_data->last_write_index%image_buffer_count;
-	Snapshot *snap = &image_buffer[index];
-	Image *snap_image = snap->image;
-
-	if ( scale != 100 )
-	{
-		scaled_image.Assign( *snap_image );
-		scaled_image.Scale( scale );
-		snap_image = &scaled_image;
-	}
-	if ( !config.timestamp_on_capture )
-	{
-		TimestampImage( snap_image, snap->timestamp );
-	}
-	snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
-	
-	fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
-	fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
-	fwrite( img_buffer, img_buffer_size, 1, stdout );
-}
-
-void Monitor::SingleImageRaw( int scale)
-{
-	int last_read_index = shared_data->last_write_index;
-	Image scaled_image;
-	int index = shared_data->last_write_index%image_buffer_count;
-	Snapshot *snap = &image_buffer[index];
-	Image *snap_image = snap->image;
-
-	if ( scale != 100 )
-	{
-		scaled_image.Assign( *snap_image );
-		scaled_image.Scale( scale );
-		snap_image = &scaled_image;
-	}
-	if ( !config.timestamp_on_capture )
-	{
-		TimestampImage( snap_image, snap->timestamp );
-	}
-	
-	fprintf( stdout, "Content-Length: %d\r\n", snap_image->Size() );
-	fprintf( stdout, "Content-Type: image/x-rgb\r\n\r\n" );
-	fwrite( snap_image->Buffer(), snap_image->Size(), 1, stdout );
-}
-
-void Monitor::SingleImageZip( int scale)
-{
-	int last_read_index = shared_data->last_write_index;
-	unsigned long img_buffer_size = 0;
-	static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
-	Image scaled_image;
-	int index = shared_data->last_write_index%image_buffer_count;
-	Snapshot *snap = &image_buffer[index];
-	Image *snap_image = snap->image;
-
-	if ( scale != 100 )
-	{
-		scaled_image.Assign( *snap_image );
-		scaled_image.Scale( scale );
-		snap_image = &scaled_image;
-	}
-	if ( !config.timestamp_on_capture )
-	{
-		TimestampImage( snap_image, snap->timestamp );
-	}
-	snap_image->Zip( img_buffer, &img_buffer_size );
-	
-	fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
-	fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
-	fwrite( img_buffer, img_buffer_size, 1, stdout );
-}
-
-#if HAVE_LIBAVCODEC
-
-void Monitor::StreamMpeg( const char *format, int scale, int maxfps, int bitrate )
-{
-	int fps = int(GetFPS());
-	if ( !fps )
-		fps = 5;
-
-	int min_fps = 1;
-	int max_fps = maxfps;
-	int base_fps = int(GetFPS());
-	int effective_fps = base_fps;
-
-	int frame_mod = 1;
-	// Min frame repeat?
-	while( effective_fps > max_fps )
-	{
-		effective_fps /= 2;
-		frame_mod *= 2;
-	}
-
-	Debug( 1, ( "BFPS:%d, EFPS:%d, FM:%d", base_fps, effective_fps, frame_mod ));
-
-	VideoStream vid_stream( "pipe:", format, bitrate, effective_fps, camera->Colours(), (width*scale)/ZM_SCALE_SCALE, (height*scale)/ZM_SCALE_SCALE );
-
-	fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream.MimeType() );
-	vid_stream.OpenStream();
-
-	int last_read_index = image_buffer_count;
-
-	time_t stream_start_time;
-	time( &stream_start_time );
-
-	int frame_count = 0;
-	struct timeval base_time;
-	struct DeltaTimeval delta_time;
-	Image scaled_image;
-	while ( true )
-	{
-		if ( feof( stdout ) || ferror( stdout ) )
-		{
-			break;
-		}
-		if ( last_read_index != shared_data->last_write_index )
-		{
-			last_read_index = shared_data->last_write_index;
-			if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) )
-			{
-				// Send the next frame
-				int index = shared_data->last_write_index%image_buffer_count;
-				//Info(( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
-				Snapshot *snap = &image_buffer[index];
-				Image *snap_image = snap->image;
-
-				if ( scale != 100 )
-				{
-					scaled_image.Assign( *snap_image );
-
-					scaled_image.Scale( scale );
-
-					snap_image = &scaled_image;
-				}
-				if ( !config.timestamp_on_capture )
-				{
-					TimestampImage( snap_image, snap->timestamp );
-				}
-
-				if ( !frame_count )
-				{
-					base_time = *(snap->timestamp);
-				}
-				DELTA_TIMEVAL( delta_time, *(snap->timestamp), base_time, DT_PREC_3 );
-				double pts = vid_stream.EncodeFrame( snap_image->Buffer(), snap_image->Size(), config.mpeg_timed_frames, delta_time.delta );
-				//Info(( "FC:%d, DTD:%d, PTS:%lf", frame_count, delta_time.delta, pts ));
-			}
-			frame_count++;
-		}
-		usleep( ZM_SAMPLE_RATE );
-	}
-}
-#endif // HAVE_LIBAVCODEC
 
 int Monitor::PostCapture()
 {
@@ -2833,6 +2437,7 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	sprintf( output+strlen(output), "Warmup Count : %d\n", warmup_count );
 	sprintf( output+strlen(output), "Pre Event Count : %d\n", pre_event_count );
 	sprintf( output+strlen(output), "Post Event Count : %d\n", post_event_count );
+	sprintf( output+strlen(output), "Stream Replay Buffer : %d\n", stream_replay_buffer );
 	sprintf( output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
 	sprintf( output+strlen(output), "Section Length : %d\n", section_length );
 	sprintf( output+strlen(output), "Maximum FPS : %.2f\n", capture_delay?DT_PREC_3/capture_delay:0.0 );
@@ -2855,3 +2460,773 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	return( true );
 }
 
+bool MonitorStream::checkSwapPath( const char *path, bool create_path )
+{
+    uid_t uid = getuid();
+    gid_t gid = getgid();
+
+    struct stat stat_buf;
+    if ( stat( path, &stat_buf ) < 0 )
+    {
+        if ( create_path && errno == ENOENT )
+        {
+            Debug( 3, ( "Swap path '%s' missing, creating", path ));
+            if ( mkdir( path, 0755 ) )
+            {
+                Error(( "Can't mkdir %s: %s", path, strerror(errno)));
+                return( false );
+            }
+            if ( stat( path, &stat_buf ) < 0 )
+            {
+                Error(( "Can't stat '%s': %s", path, strerror(errno) ));
+                return( false );
+            }
+        }
+        else
+        {
+            Error(( "Can't stat '%s': %s", path, strerror(errno) ));
+            return( false );
+        }
+    }
+    if ( !S_ISDIR(stat_buf.st_mode) )
+    {
+        Error(( "Swap image path '%s' is not a directory", path ));
+        return( false );
+    }
+
+    mode_t mask = 0;
+    if ( uid == stat_buf.st_uid )
+    {
+        // If we are the owner
+        mask = 00700;
+    }
+    else if ( gid == stat_buf.st_gid )
+    {
+        // If we are in the owner group
+        mask = 00070;
+    }
+    else
+    {
+        // We are neither the owner nor in the group
+        mask = 00007;
+    }
+
+    if ( (stat_buf.st_mode & mask) != mask )
+    {
+        Error(( "Insufficient permissions on swap image path '%s'", path ));
+        return( false );
+    }
+    return( true );
+}
+
+void MonitorStream::processCommand( const CmdMsg *msg )
+{
+    Debug( 2, ( "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] ));
+    // Check for incoming command
+    switch( (MsgCommand)msg->msg_data[0] )
+    {
+        case CMD_PAUSE :
+        {
+            Debug( 1, ( "Got PAUSE command" ));
+
+            // Set paused flag
+            paused = true;
+            // Set delayed flag
+            delayed = true;
+            last_frame_sent = TV_2_FLOAT( now );
+            break;
+        }
+        case CMD_PLAY :
+        {
+            Debug( 1, ( "Got PLAY command" ));
+            if ( paused )
+            {
+                // Clear paused flag
+                paused = false;
+                // Set delayed_play flag
+                delayed = true;
+            }
+            replay_rate = ZM_RATE_BASE;
+            break;
+        }
+        case CMD_STOP :
+        {
+            Debug( 1, ( "Got STOP command" ));
+
+            // Clear paused flag
+            paused = false;
+            // Clear delayed_play flag
+            delayed = false;
+            break;
+        }
+        case CMD_FASTFWD :
+        {
+            Debug( 1, ( "Got FAST FWD command" ));
+            if ( paused )
+            {
+                // Clear paused flag
+                paused = false;
+                // Set delayed_play flag
+                delayed = true;
+            }
+            // Set play rate
+            switch ( replay_rate )
+            {
+                case 2 * ZM_RATE_BASE :
+                    replay_rate = 5 * ZM_RATE_BASE;
+                    break;
+                case 5 * ZM_RATE_BASE :
+                    replay_rate = 10 * ZM_RATE_BASE;
+                    break;
+                case 10 * ZM_RATE_BASE :
+                    replay_rate = 25 * ZM_RATE_BASE;
+                    break;
+                case 25 * ZM_RATE_BASE :
+                case 50 * ZM_RATE_BASE :
+                    replay_rate = 50 * ZM_RATE_BASE;
+                    break;
+                default :
+                    replay_rate = 2 * ZM_RATE_BASE;
+                    break;
+            }
+            break;
+        }
+        case CMD_SLOWFWD :
+        {
+            Debug( 1, ( "Got SLOW FWD command" ));
+            // Set paused flag
+            paused = true;
+            // Set delayed flag
+            delayed = true;
+            // Set play rate
+            replay_rate = ZM_RATE_BASE;
+            // Set step
+            step = 1;
+            break;
+        }
+        case CMD_SLOWREV :
+        {
+            Debug( 1, ( "Got SLOW REV command" ));
+            // Set paused flag
+            paused = true;
+            // Set delayed flag
+            delayed = true;
+            // Set play rate
+            replay_rate = ZM_RATE_BASE;
+            // Set step
+            step = -1;
+            break;
+        }
+        case CMD_FASTREV :
+        {
+            Debug( 1, ( "Got FAST REV command" ));
+            if ( paused )
+            {
+                // Clear paused flag
+                paused = false;
+                // Set delayed_play flag
+                delayed = true;
+            }
+            // Set play rate
+            switch ( replay_rate )
+            {
+                case -2 * ZM_RATE_BASE :
+                    replay_rate = -5 * ZM_RATE_BASE;
+                    break;
+                case -5 * ZM_RATE_BASE :
+                    replay_rate = -10 * ZM_RATE_BASE;
+                    break;
+                case -10 * ZM_RATE_BASE :
+                    replay_rate = -25 * ZM_RATE_BASE;
+                    break;
+                case -25 * ZM_RATE_BASE :
+                case -50 * ZM_RATE_BASE :
+                    replay_rate = -50 * ZM_RATE_BASE;
+                    break;
+                default :
+                    replay_rate = -2 * ZM_RATE_BASE;
+                    break;
+            }
+            break;
+        }
+        case CMD_ZOOMIN :
+        {
+            x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+            y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+            Debug( 1, ( "Got ZOOM IN command, to %d,%d", x, y ));
+            switch ( zoom )
+            {
+                case 100:
+                    zoom = 150;
+                    break;
+                case 150:
+                    zoom = 200;
+                    break;
+                case 200:
+                    zoom = 300;
+                    break;
+                case 300:
+                    zoom = 400;
+                    break;
+                case 400:
+                default :
+                    zoom = 500;
+                    break;
+            }
+            break;
+        }
+        case CMD_ZOOMOUT :
+        {
+            Debug( 1, ( "Got ZOOM OUT command" ));
+            switch ( zoom )
+            {
+                case 500:
+                    zoom = 400;
+                    break;
+                case 400:
+                    zoom = 300;
+                    break;
+                case 300:
+                    zoom = 200;
+                    break;
+                case 200:
+                    zoom = 150;
+                    break;
+                case 150:
+                default :
+                    zoom = 100;
+                    break;
+            }
+            break;
+        }
+        case CMD_PAN :
+        {
+            x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+            y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+            Debug( 1, ( "Got PAN command, to %d,%d", x, y ));
+            break;
+        }
+        case CMD_SCALE :
+        {
+            scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+            Debug( 1, ( "Got SCALE command, to %d", scale ));
+            break;
+        }
+        case CMD_QUERY :
+        {
+            Debug( 1, ( "Got QUERY command, sending STATUS" ));
+            break;
+        }
+        default :
+        {
+            Error(( "Got unexpected command %d", msg->msg_data[0] ));
+            break;
+        }
+    }
+
+    struct {
+        double fps;
+        int state;
+        int buffer_level;
+        bool delayed;
+        bool paused;
+        int rate;
+        double delay;
+        int zoom;
+    } status_data;
+
+    status_data.fps = monitor->GetFPS();
+    status_data.state = monitor->shared_data->state;
+    status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
+    status_data.delayed = delayed;
+    status_data.paused = paused;
+    status_data.rate = replay_rate;
+    status_data.delay = TV_2_FLOAT( now ) - TV_2_FLOAT( last_frame_timestamp );
+    status_data.zoom = zoom;
+    Debug( 2, ( "L:%d, D:%d, P:%d, R:%d, d:%.3f, Z:%d", 
+        status_data.buffer_level,
+        status_data.delayed,
+        status_data.paused,
+        status_data.rate,
+        status_data.delay,
+        status_data.zoom
+    ));
+
+    DataMsg status_msg;
+    status_msg.msg_type = MSG_DATA_WATCH;
+    memcpy( &status_msg.msg_data, &status_data, sizeof(status_msg.msg_data) );
+    int nbytes = 0;
+    if ( (nbytes = sendto( sd, &status_msg, sizeof(status_msg), 0, (sockaddr *)&rem_addr, sizeof(rem_addr) )) < 0 )
+    {
+        //if ( errno != EAGAIN )
+        {
+            Error(( "Can't sendto on sd %d: %s", sd, strerror(errno) ));
+            exit( -1 );
+        }
+    }
+
+    updateFrameRate( monitor->GetFPS() );
+}
+
+void MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
+{
+    bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
+
+    if ( type != STREAM_JPEG )
+        send_raw = false;
+    if ( !config.timestamp_on_capture && timestamp )
+        send_raw = false;
+
+    if ( !send_raw )
+    {
+        Image temp_image( filepath );
+
+        sendFrame( &temp_image, timestamp );
+    }
+    else
+    {
+        int img_buffer_size = 0;
+        static unsigned char img_buffer[ZM_MAX_IMAGE_SIZE];
+
+        FILE *fdj = NULL;
+        if ( (fdj = fopen( filepath, "r" )) )
+        {
+            img_buffer_size = fread( img_buffer, 1, sizeof(img_buffer), fdj );
+            fclose( fdj );
+        }
+        else
+        {
+            Error(( "Can't open %s: %s", filepath, strerror(errno) ));
+        }
+
+        fprintf( stdout, "--ZoneMinderFrame\r\n" );
+        fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
+        fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
+        fwrite( img_buffer, img_buffer_size, 1, stdout );
+        fprintf( stdout, "\r\n\r\n" );
+        fflush( stdout );
+
+        last_frame_sent = TV_2_FLOAT( now );
+    }
+}
+
+void MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
+{
+    if ( !config.timestamp_on_capture && timestamp )
+    {
+        monitor->TimestampImage( image, timestamp );
+    }
+
+    Image *send_image = prepareImage( image );
+
+#if HAVE_LIBAVCODEC
+    if ( type == STREAM_MPEG )
+    {
+        if ( !vid_stream )
+        {
+            vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->Width(), send_image->Height() );
+            fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType() );
+            vid_stream->OpenStream();
+        }
+        static struct timeval base_time;
+        struct DeltaTimeval delta_time;
+        if ( !frame_count )
+            base_time = *timestamp;
+        DELTA_TIMEVAL( delta_time, *timestamp, base_time, DT_PREC_3 );
+        double pts = vid_stream->EncodeFrame( send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.delta );
+    }
+    else
+#endif // HAVE_LIBAVCODEC
+    {
+	    static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
+
+	    int img_buffer_size = 0;
+        unsigned char *img_buffer = temp_img_buffer;
+
+        fprintf( stdout, "--ZoneMinderFrame\r\n" );
+        switch( type )
+        {
+            case STREAM_JPEG :
+                send_image->EncodeJpeg( img_buffer, &img_buffer_size );
+                fprintf( stdout, "Content-Type: image/jpeg\r\n" );
+                break;
+            case STREAM_RAW :
+                fprintf( stdout, "Content-Type: image/x-rgb\r\n" );
+                img_buffer = send_image->Buffer();
+                img_buffer_size = send_image->Size();
+                break;
+            case STREAM_ZIP :
+                fprintf( stdout, "Content-Type: image/x-rgbz\r\n" );
+                unsigned long zip_buffer_size;
+                send_image->Zip( img_buffer, &zip_buffer_size );
+                img_buffer_size = zip_buffer_size;
+                break;
+        }
+        fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
+        fwrite( img_buffer, img_buffer_size, 1, stdout );
+        fprintf( stdout, "\r\n\r\n" );
+        fflush( stdout );
+    }
+    last_frame_sent = TV_2_FLOAT( now );
+}
+
+void MonitorStream::runStream()
+{
+    openComms();
+
+    checkInitialised();
+
+    updateFrameRate( monitor->GetFPS() );
+
+    if ( type == STREAM_JPEG )
+	    fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
+
+	int last_read_index = monitor->image_buffer_count;
+
+	time_t stream_start_time;
+	time( &stream_start_time );
+
+	frame_count = 0;
+
+    temp_image_buffer = 0;
+    temp_image_buffer_count = monitor->stream_replay_buffer;
+    temp_read_index = temp_image_buffer_count;
+    temp_write_index = temp_image_buffer_count;
+
+    char swap_file_name[PATH_MAX];
+    char swap_path[PATH_MAX] = "";
+
+    if ( connkey )
+    {
+        Debug( 2, ( "Checking swap image location" ));
+        Debug( 3, ( "Checking swap image path" ));
+        strncpy( swap_path, config.path_swap, sizeof(swap_path) );
+        if ( checkSwapPath( swap_path, false ) )
+        {
+            snprintf( &(swap_path[strlen(swap_path)]), sizeof(swap_path)-strlen(swap_path), "/zmswap-m%d", monitor->Id() );
+            if ( checkSwapPath( swap_path, true ) )
+            {
+                snprintf( &(swap_path[strlen(swap_path)]), sizeof(swap_path)-strlen(swap_path), "/zmswap-q%06d", connkey );
+                if ( checkSwapPath( swap_path, true ) )
+                {
+                    buffer_playback = true;
+                }
+            }
+        }
+
+        if ( !buffer_playback )
+        {
+            Error(( "Unable to validate swap image path, disabling buffered playback" ));
+        }
+        else
+        {
+            Debug( 2, ( "Assigning temporary buffer" ));
+            temp_image_buffer = new SwapImage[temp_image_buffer_count];
+            memset( temp_image_buffer, 0, sizeof(*temp_image_buffer)*temp_image_buffer_count );
+            Debug( 2, ( "Assigned temporary buffer" ));
+        }
+    }
+
+	while ( !zm_terminate )
+	{
+        bool got_command = false;
+		if ( feof( stdout ) || ferror( stdout ) )
+		{
+			break;
+		}
+
+        gettimeofday( &now, &dummy_tz );
+
+        if ( buffer_playback )
+        {
+            got_command = checkCommandQueue();
+        }
+
+        bool frame_sent = false;
+        if ( delayed )
+        {
+		    if ( temp_read_index == temp_write_index )
+            {
+                // Go back to live viewing
+                Debug( 1, ( "Exceeded temporary streaming buffer" ));
+                // Clear paused flag
+                paused = false;
+                // Clear delayed_play flag
+                delayed = false;
+                replay_rate = ZM_RATE_BASE;
+            }
+		    else
+            {
+                if ( !paused )
+                {
+                    int temp_index = MOD_ADD( temp_read_index, 0, temp_image_buffer_count );
+                    //Debug( 3, ( "tri: %d, ti: %d", temp_read_index, temp_index ));
+                    SwapImage *swap_image = &temp_image_buffer[temp_index];
+
+                    if ( !swap_image->valid )
+                    {
+                        paused = true;
+                        delayed = true;
+                        temp_read_index = MOD_ADD( temp_read_index, (replay_rate>=0?-1:1), temp_image_buffer_count );
+                    }
+                    else
+                    {
+                        //Debug( 3, ( "siT: %f, lfT: %f", TV_2_FLOAT( swap_image->timestamp ), TV_2_FLOAT( last_frame_timestamp ) ));
+                        double expected_delta_time = ((TV_2_FLOAT( swap_image->timestamp ) - TV_2_FLOAT( last_frame_timestamp )) * ZM_RATE_BASE)/replay_rate;
+                        double actual_delta_time = TV_2_FLOAT( now ) - last_frame_sent;
+
+                        //Debug( 3, ( "eDT: %.3lf, aDT: %.3f, lFS:%.3f, NOW:%.3f", expected_delta_time, actual_delta_time, last_frame_sent, TV_2_FLOAT( now ) ));
+                        // If the next frame is due
+                        if ( actual_delta_time > expected_delta_time )
+                        {
+                            //Debug( 2, ( "eDT: %.3lf, aDT: %.3f", expected_delta_time, actual_delta_time ));
+                            if ( temp_index%frame_mod == 0 )
+                            {
+                                Debug( 2, ( "Sending delayed frame %d", temp_index ));
+                                // Send the next frame
+                                sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp );
+                                memcpy( &last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp) );
+                                frame_sent = true;
+                            }
+                            temp_read_index = MOD_ADD( temp_read_index, (replay_rate>0?1:-1), temp_image_buffer_count );
+                        }
+                    }
+                }
+                else if ( step != 0 )
+                {
+                    temp_read_index = MOD_ADD( temp_read_index, (step>0?1:-1), temp_image_buffer_count );
+
+                    SwapImage *swap_image = &temp_image_buffer[temp_read_index];
+
+                    // Send the next frame
+                    sendFrame( temp_image_buffer[temp_read_index].file_name, &temp_image_buffer[temp_read_index].timestamp );
+                    memcpy( &last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp) );
+                    frame_sent = true;
+                    step = 0;
+                }
+                else
+                {
+                    int temp_index = MOD_ADD( temp_read_index, 0, temp_image_buffer_count );
+
+                     double actual_delta_time = TV_2_FLOAT( now ) - last_frame_sent;
+                     if ( got_command || actual_delta_time > 5 )
+                     {
+                        // Send keepalive
+                        Debug( 2, ( "Sending keepalive frame %d", temp_index ));
+                        // Send the next frame
+                        sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp );
+                        frame_sent = true;
+                    }
+                }
+            }
+            if ( temp_read_index == temp_write_index )
+            {
+                // Go back to live viewing
+                Warning(( "Rewound over write index, resuming live play" ));
+                // Clear paused flag
+                paused = false;
+                // Clear delayed_play flag
+                delayed = false;
+                replay_rate = ZM_RATE_BASE;
+            }
+        }
+		if ( last_read_index != monitor->shared_data->last_write_index )
+		{
+			int index = monitor->shared_data->last_write_index%monitor->image_buffer_count;
+			last_read_index = monitor->shared_data->last_write_index;
+		    //Debug( 1, ( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
+			if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) )
+			{
+                if ( !paused && !delayed )
+                {
+				    // Send the next frame
+                    Monitor::Snapshot *snap = &monitor->image_buffer[index];
+
+                    sendFrame( snap->image, snap->timestamp );
+                    memcpy( &last_frame_timestamp, snap->timestamp, sizeof(last_frame_timestamp) );
+                    frame_sent = true;
+
+				    temp_read_index = temp_write_index;
+                }
+			}
+            if ( buffer_playback )
+            {
+		        if ( monitor->shared_data->valid )
+                {
+                    if ( monitor->image_buffer[index].timestamp->tv_sec )
+                    {
+                        int temp_index = temp_write_index%temp_image_buffer_count;
+                        Debug( 2, ( "Storing frame %d", temp_index ));
+                        if ( !temp_image_buffer[temp_index].valid )
+                        {
+                            snprintf( temp_image_buffer[temp_index].file_name, sizeof(temp_image_buffer[0].file_name), "%s/zmswap-i%05d.jpg", swap_path, temp_index );
+                            temp_image_buffer[temp_index].valid = true;
+                        }
+                        memcpy( &(temp_image_buffer[temp_index].timestamp), monitor->image_buffer[index].timestamp, sizeof(temp_image_buffer[0].timestamp) );
+                        monitor->image_buffer[index].image->WriteJpeg( temp_image_buffer[temp_index].file_name, config.jpeg_file_quality );
+                        temp_write_index = MOD_ADD( temp_write_index, 1, temp_image_buffer_count );
+                        if ( temp_write_index == temp_read_index )
+                        {
+                            // Go back to live viewing
+                            Warning(( "Exceeded temporary buffer, resuming live play" ));
+                            // Clear paused flag
+                            paused = false;
+                            // Clear delayed_play flag
+                            delayed = false;
+                            replay_rate = ZM_RATE_BASE;
+                        }
+                    }
+                    else
+                    {
+                        Warning(( "Unable to store frame as timestamp invalid" ));
+                    }
+                }
+                else
+                {
+                    Warning(( "Unable to store frame as shared memory invalid" ));
+                }
+            }
+			frame_count++;
+		}
+		usleep( (1000000 * ZM_RATE_BASE)/(base_fps*abs(replay_rate*2)) );
+        if ( ttl )
+        {
+            if ( (now.tv_sec - stream_start_time) > ttl )
+            {
+                break;
+            }
+        }
+	}
+    if ( buffer_playback )
+    {
+        char swap_path[PATH_MAX] = "";
+
+        snprintf( swap_path, sizeof(swap_path), "%s/zmswap-m%d/zmswap-q%06d", config.path_swap, monitor->Id(), connkey );
+        Debug( 1, ( "Cleanign swap files from %s", swap_path ));
+        struct stat stat_buf;
+        if ( stat( swap_path, &stat_buf ) < 0 )
+        {
+            if ( errno != ENOENT )
+            {
+                Error(( "Can't stat '%s': %s", swap_path, strerror(errno) ));
+            }
+        }
+        else if ( !S_ISDIR(stat_buf.st_mode) )
+        {
+            Error(( "Swap image path '%s' is not a directory", swap_path ));
+        }
+        else
+        {
+            char glob_pattern[PATH_MAX] = "";
+
+            snprintf( glob_pattern, sizeof(glob_pattern), "%s/*.*", swap_path );
+            glob_t pglob;
+            int glob_status = glob( glob_pattern, 0, 0, &pglob );
+            if ( glob_status != 0 )
+            {
+                if ( glob_status < 0 )
+                {
+                    Error(( "Can't glob '%s': %s", glob_pattern, strerror(errno) ));
+                }
+                else
+                {
+                    Debug( 1, ( "Can't glob '%s': %d", glob_pattern, glob_status ));
+                }
+            }
+            else
+            {
+                for ( int i = 0; i < pglob.gl_pathc; i++ )
+                {
+                    if ( unlink( pglob.gl_pathv[i] ) < 0 )
+                    {
+                        Error(( "Can't unlink '%s': %s", pglob.gl_pathv[i], strerror(errno) ));
+                    }
+                }
+            }
+            globfree( &pglob );
+            if ( rmdir( swap_path ) < 0 )
+            {
+                Error(( "Can't rmdir '%s': %s", swap_path, strerror(errno) ));
+            }
+        }
+    }
+    closeComms();
+}
+
+void Monitor::SingleImage( int scale)
+{
+	int last_read_index = shared_data->last_write_index;
+	int img_buffer_size = 0;
+	static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
+	Image scaled_image;
+	int index = shared_data->last_write_index%image_buffer_count;
+	Snapshot *snap = &image_buffer[index];
+	Image *snap_image = snap->image;
+
+	if ( scale != ZM_SCALE_BASE )
+	{
+		scaled_image.Assign( *snap_image );
+		scaled_image.Scale( scale );
+		snap_image = &scaled_image;
+	}
+	if ( !config.timestamp_on_capture )
+	{
+		TimestampImage( snap_image, snap->timestamp );
+	}
+	snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
+	
+	fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
+	fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
+	fwrite( img_buffer, img_buffer_size, 1, stdout );
+}
+
+void Monitor::SingleImageRaw( int scale)
+{
+	int last_read_index = shared_data->last_write_index;
+	Image scaled_image;
+	int index = shared_data->last_write_index%image_buffer_count;
+	Snapshot *snap = &image_buffer[index];
+	Image *snap_image = snap->image;
+
+	if ( scale != ZM_SCALE_BASE )
+	{
+		scaled_image.Assign( *snap_image );
+		scaled_image.Scale( scale );
+		snap_image = &scaled_image;
+	}
+	if ( !config.timestamp_on_capture )
+	{
+		TimestampImage( snap_image, snap->timestamp );
+	}
+	
+	fprintf( stdout, "Content-Length: %d\r\n", snap_image->Size() );
+	fprintf( stdout, "Content-Type: image/x-rgb\r\n\r\n" );
+	fwrite( snap_image->Buffer(), snap_image->Size(), 1, stdout );
+}
+
+void Monitor::SingleImageZip( int scale)
+{
+	int last_read_index = shared_data->last_write_index;
+	unsigned long img_buffer_size = 0;
+	static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
+	Image scaled_image;
+	int index = shared_data->last_write_index%image_buffer_count;
+	Snapshot *snap = &image_buffer[index];
+	Image *snap_image = snap->image;
+
+	if ( scale != ZM_SCALE_BASE )
+	{
+		scaled_image.Assign( *snap_image );
+		scaled_image.Scale( scale );
+		snap_image = &scaled_image;
+	}
+	if ( !config.timestamp_on_capture )
+	{
+		TimestampImage( snap_image, snap->timestamp );
+	}
+	snap_image->Zip( img_buffer, &img_buffer_size );
+	
+	fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
+	fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
+	fwrite( img_buffer, img_buffer_size, 1, stdout );
+}

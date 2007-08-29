@@ -85,6 +85,17 @@ if ( !isset($view) )
 	$view = "console";
 }
 
+if ( ZM_WEB_DVR_STREAMING )
+{
+    switch( $view )
+    {
+        case "event" :
+        case "watch" :
+            $view = $view."X";
+            break;
+    }
+}
+
 switch( $view )
 {
 	case "bandwidth" : 
@@ -100,6 +111,7 @@ switch( $view )
 	case "devices" :
 	case "donate" :
 	case "event" :
+	case "eventX" :
 	case "eventdetail" :
 	case "events" :
 	case "export" :
@@ -138,6 +150,7 @@ switch( $view )
 	case "watchfeed" :
 	case "watchmenu" :
 	case "watchstatus" :
+	case "watchX" :
 	case "zone" :
 	case "zones" :
 	case "blank" :
@@ -146,6 +159,25 @@ switch( $view )
 		require_once( "zm_".$format."_view_".$view.".php" );
 		break;
 	}
+	case "request" :
+    {
+        switch( $request )
+        {
+	        case "status" :
+	        case "command" : 
+	        case "control" :
+	        case "event" :
+	        {
+		        require_once( "zm_request_".$request.".php" );
+		        break;
+	        }
+            default :
+            {
+                $view = "error";
+            }
+        }
+        break;
+    }
 	default :
 	{
 		$view = "error";

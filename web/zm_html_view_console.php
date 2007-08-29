@@ -144,15 +144,15 @@ window.resizeTo( <?= $jws['console']['w'] ?>, <?= $jws['console']['h']+(25*(coun
 ?>
 function newWindow(Url,Name,Width,Height)
 {
-	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
+	var Win = window.open(Url,Name,"resizable,status=no,width="+Width+",height="+Height);
 }
 function scrollWindow(Url,Name,Width,Height)
 {
-	var Win = window.open(Url,Name,"resizable,scrollbars,width="+Width+",height="+Height);
+	var Win = window.open(Url,Name,"resizable,scrollbars,status=no,width="+Width+",height="+Height);
 }
 function filterWindow(Url,Name)
 {   
-	var Win = window.open(Url,Name,"resizable,scrollbars,width=<?= $jws['filter']['w'] ?>,height=<?= $jws['filter']['h'] ?>");
+	var Win = window.open(Url,Name,"resizable,scrollbars,status=no,width=<?= $jws['filter']['w'] ?>,height=<?= $jws['filter']['h'] ?>");
 }   
 function configureButton(form,name)
 {

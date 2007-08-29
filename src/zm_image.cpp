@@ -35,6 +35,85 @@ jpeg_compress_struct *Image::jpg_ccinfo[100] = { 0 };
 jpeg_decompress_struct *Image::jpg_dcinfo = 0;
 struct zm_error_mgr Image::jpg_err;
 
+Image::Image()
+{
+    if ( !initialised )
+        Initialise();
+    width = 0;
+    height = 0;
+    pixels = 0;
+    colours = 0;
+    size = 0;
+    allocation = 0;
+    buffer = 0;
+    blend_buffer = 0;
+    text[0] = '\0';
+}
+
+Image::Image( const char *filename )
+{
+    if ( !initialised )
+        Initialise();
+    width = 0;
+    height = 0;
+    pixels = 0;
+    colours = 0;
+    size = 0;
+    allocation = 0;
+    buffer = 0;
+    ReadJpeg( filename );
+    blend_buffer = 0;
+    text[0] = '\0';
+}
+
+Image::Image( int p_width, int p_height, int p_colours, JSAMPLE *p_buffer )
+{
+    if ( !initialised )
+        Initialise();
+    width = p_width;
+    height = p_height;
+    pixels = width*height;
+    colours = p_colours;
+    size = width*height*colours;
+    if ( p_buffer )
+    {
+        allocation = 0;
+        buffer = p_buffer;
+    }
+    else
+    {
+        allocation = size;
+        buffer = new JSAMPLE[allocation];
+        memset( buffer, 0, size );
+    }
+    blend_buffer = 0;
+    text[0] = '\0';
+}
+
+Image::Image( const Image &p_image )
+{
+    if ( !initialised )
+        Initialise();
+    width = p_image.width;
+    height = p_image.height;
+    pixels = p_image.pixels;
+    colours = p_image.colours;
+    size = allocation = p_image.size;
+    buffer = new JSAMPLE[allocation];
+    memcpy( buffer, p_image.buffer, size );
+    blend_buffer = 0;
+    strncpy( text, p_image.text, sizeof(text) );
+}
+
+Image::~Image()
+{
+    if ( allocation )
+    {
+        delete[] buffer;
+    }
+    delete[] blend_buffer;
+}
+
 void Image::Initialise()
 {
 	initialised = true;
@@ -84,6 +163,57 @@ Image::BlendTablePtr Image::GetBlendTable( int transparency )
 		}
 	}
 	return( blend_ptr );
+}
+
+void Image::Empty()
+{
+    if ( allocation )
+    {
+        delete[] buffer;
+        buffer = 0;
+        allocation = 0;
+    }
+    width = height = colours = size = 0;
+}
+
+void Image::Assign( int p_width, int p_height, int p_colours, unsigned char *new_buffer )
+{
+    if ( !buffer || p_width != width || p_height != height || p_colours != colours )
+    {
+        width = p_width;
+        height = p_height;
+        pixels = width*height;
+        colours = p_colours;
+        size = width*height*colours;
+        if ( allocation < size )
+        {
+            allocation = size;
+            delete[] buffer;
+            buffer = new JSAMPLE[allocation];
+            memset( buffer, 0, size );
+        }
+    }
+    memcpy( buffer, new_buffer, size );
+}
+
+void Image::Assign( const Image &image )
+{
+    if ( !buffer || image.width != width || image.height != height || image.colours != colours )
+    {
+        width = image.width;
+        height = image.height;
+        pixels = width*height;
+        colours = image.colours;
+        size = width*height*colours;
+        if ( allocation < size )
+        {
+            allocation = size;
+            delete[] buffer;
+            buffer = new JSAMPLE[allocation];
+            memset( buffer, 0, size );
+        }
+    }
+    memcpy( buffer, image.buffer, size );
 }
 
 Image *Image::HighlightEdges( Rgb colour, const Box *limits )
@@ -138,7 +268,7 @@ bool Image::ReadRaw( const char *filename )
 		return( false );
 	}
 
-	if ( statbuf.st_size  != size )
+	if ( statbuf.st_size != size )
 	{
 		Error(( "Raw file size mismatch, expected %d bytes, found %d", size, statbuf.st_size ));
 		return( false );
@@ -211,12 +341,12 @@ bool Image::ReadJpeg( const char *filename )
 		    fclose( infile );
             return( false );
         }
-		int new_size = width*height*colours;
-		if ( !buffer || size < new_size )
+		size = width*height*colours;
+		if ( !buffer || allocation < size )
 		{
-			size = new_size;
+			allocation = size;
 			delete[] buffer;
-			buffer = new JSAMPLE[size];
+			buffer = new JSAMPLE[allocation];
 		}
 	}
 
@@ -338,12 +468,12 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size )
 		    jpeg_abort_decompress( cinfo );
             return( false );
         }
-		int new_size = width*height*colours;
-		if ( !buffer || size < new_size )
+		size = width*height*colours;
+		if ( !buffer || allocation < size )
 		{
-			size = new_size;
+			allocation = size;
 			delete[] buffer;
-			buffer = new JSAMPLE[size];
+			buffer = new JSAMPLE[allocation];
 		}
 	}
 
@@ -446,8 +576,8 @@ bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compressio
 
 bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
 {
-	int new_width = (hi_x-lo_x)+1;;
-	int new_height = (hi_y-lo_y)+1;;
+	int new_width = (hi_x-lo_x)+1;
+	int new_height = (hi_y-lo_y)+1;
 
 	if ( lo_x > hi_x || lo_y > hi_y )
 	{
@@ -476,16 +606,15 @@ bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
 		memcpy( pnbuf, pbuf, new_stride );
 	}
 
-	if ( our_buffer )
+	if ( allocation )
 	{
 		delete[] buffer;
 	}
 	width = new_width;
 	height = new_height;
 	pixels = width*height;
-	size = new_size;
+	size = allocation = new_size;
 	buffer = new_buffer;
-	our_buffer = true;
 	if ( blend_buffer )
 	{
 		delete[] blend_buffer;
@@ -493,6 +622,11 @@ bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
 	}
 
 	return( true );
+}
+
+bool Image::Crop( const Box &limits )
+{
+    return( Crop( limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY() ) );
 }
 
 void Image::Overlay( const Image &image )
@@ -561,6 +695,55 @@ void Image::Overlay( const Image &image )
 				}
 				psrc += 3;
 				pdest += 3;
+			}
+		}
+	}
+}
+
+void Image::Overlay( const Image &image, int x, int y )
+{
+	if ( !(width < image.width || height < image.height) )
+    {
+        Fatal(( "Attempt to overlay image too big for destination, %dx%d > %dx%d", image.width, image.height, width, height ));
+    }
+
+	if ( !(width < (x+image.width) || height < (y+image.height)) )
+    {
+        Fatal(( "Attempt to overlay image outside of destination bounds, %dx%d @ %dx%d > %dx%d", image.width, image.height, x, y, width, height ));
+    }
+
+	if ( !(colours == image.colours) )
+    {
+        Fatal(( "Attempt to partial overlay differently coloured images, expected %d, got %d", colours, image.colours ));
+    }
+
+	int lo_x = x;
+	int lo_y = y;
+	int hi_x = (x+image.width)-1;
+	int hi_y = (y+image.height-1);
+	if ( colours == 1 )
+	{
+	    unsigned char *psrc = image.buffer;
+		for ( int y = lo_y; y <= hi_y; y++ )
+		{
+			unsigned char *pdest = &buffer[(y*width)+lo_x];
+			for ( int x = lo_x; x <= hi_x; x++ )
+			{
+				*pdest++ = *psrc++;
+			}
+		}
+	}
+	else if ( colours == 3 )
+	{
+	    unsigned char *psrc = image.buffer;
+		for ( int y = lo_y; y <= hi_y; y++ )
+		{
+			unsigned char *pdest = &buffer[colours*((y*width)+lo_x)];
+			for ( int x = lo_x; x <= hi_x; x++ )
+			{
+				*pdest++ = *psrc++;
+				*pdest++ = *psrc++;
+				*pdest++ = *psrc++;
 			}
 		}
 	}
@@ -781,6 +964,33 @@ Image *Image::Delta( const Image &image ) const
 	return( result );
 }
 
+const Coord Image::centreCoord( const char *text )
+{
+    int index = 0;
+    int line_no = 0;
+	int text_len = strlen( text );
+    int line_len = 0;
+    int max_line_len = 0;
+    const char *line = text;
+
+    while ( (index < text_len) && (line_len = strcspn( line, "\n" )) )
+    {
+        if ( line_len > max_line_len )
+            max_line_len = line_len;
+
+        index += line_len;
+        while ( text[index] == '\n' )
+        {
+            index++;
+        }
+        line = text+index;
+        line_no++;
+    }
+    int x = (width - (max_line_len * CHAR_WIDTH) ) / 2;
+    int y = (height - (line_no * LINE_HEIGHT) ) / 2;
+    return( Coord( x, y ) );
+}
+
 void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colour, const Rgb bg_colour )
 {
 	strncpy( text, p_text, sizeof(text) );
@@ -790,7 +1000,6 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
 	int text_len = strlen( text );
     int line_len = 0;
     const char *line = text;
-    int line_height = CHAR_HEIGHT;
 
     char fg_r_col = RGB_RED_VAL(fg_colour);
     char fg_g_col = RGB_GREEN_VAL(fg_colour);
@@ -813,7 +1022,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
         int min_line_x = 0;
         int max_line_x = width - line_width;
         int min_line_y = 0;
-        int max_line_y = height - line_height;
+        int max_line_y = height - LINE_HEIGHT;
 
         if ( lo_line_x > max_line_x )
             lo_line_x = max_line_x;
@@ -825,7 +1034,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
             lo_line_y = min_line_y;
 
         int hi_line_x = lo_line_x + line_width;
-        int hi_line_y = lo_line_y + line_height;
+        int hi_line_y = lo_line_y + LINE_HEIGHT;
 
         // Clip anything that runs off the right of the screen
         if ( hi_line_x > width )
@@ -1426,33 +1635,33 @@ void Image::Scale( unsigned int factor )
 		Error(( "Bogus scale factor %d found", factor ));
 		return;
 	}
-	if ( factor == ZM_SCALE_SCALE )
+	if ( factor == ZM_SCALE_BASE )
 	{
 		return;
 	}
 
 	static unsigned char scale_buffer[ZM_MAX_IMAGE_SIZE];
-	unsigned int new_width = (width*factor)/ZM_SCALE_SCALE;
-	unsigned int new_height = (height*factor)/ZM_SCALE_SCALE;
-	if ( factor > ZM_SCALE_SCALE )
+	unsigned int new_width = (width*factor)/ZM_SCALE_BASE;
+	unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
+	if ( factor > ZM_SCALE_BASE )
 	{
 		unsigned char *pd = scale_buffer;
 		unsigned int wc = width*colours;
 		unsigned int nwc = new_width*colours;
-		unsigned int h_count = ZM_SCALE_SCALE/2;
+		unsigned int h_count = ZM_SCALE_BASE/2;
 		unsigned int last_h_index = 0;
 		unsigned int last_w_index = 0;
 		unsigned int h_index;
 		for ( int y = 0; y < height; y++ )
 		{
 			unsigned char *ps = &buffer[y*wc];
-			unsigned int w_count = ZM_SCALE_SCALE/2;
+			unsigned int w_count = ZM_SCALE_BASE/2;
 			unsigned int w_index;
 			last_w_index = 0;
 			for ( int x = 0; x < width; x++ )
 			{
 				w_count += factor;
-				w_index = w_count/ZM_SCALE_SCALE;
+				w_index = w_count/ZM_SCALE_BASE;
 				for ( int f = last_w_index; f < w_index; f++ )
 				{
 					for ( int c = 0; c < colours; c++ )
@@ -1464,7 +1673,7 @@ void Image::Scale( unsigned int factor )
 				last_w_index = w_index;
 			}
 			h_count += factor;
-			h_index = h_count/ZM_SCALE_SCALE;
+			h_index = h_count/ZM_SCALE_BASE;
 			for ( int f = last_h_index+1; f < h_index; f++ )
 			{
 				memcpy( pd, pd-nwc, nwc );
@@ -1477,7 +1686,7 @@ void Image::Scale( unsigned int factor )
 	}
 	else
 	{
-		unsigned int inv_factor = (ZM_SCALE_SCALE*ZM_SCALE_SCALE)/factor;
+		unsigned int inv_factor = (ZM_SCALE_BASE*ZM_SCALE_BASE)/factor;
 		unsigned char *pd = scale_buffer;
 		unsigned int wc = width*colours;
 		unsigned int xstart = factor/2;
@@ -1489,7 +1698,7 @@ void Image::Scale( unsigned int factor )
 		for ( unsigned int y = 0; y < height; y++ )
 		{
 			h_count += factor;
-			h_index = h_count/ZM_SCALE_SCALE;
+			h_index = h_count/ZM_SCALE_BASE;
 			if ( h_index > last_h_index )
 			{
 				unsigned int w_count = xstart;
@@ -1500,7 +1709,7 @@ void Image::Scale( unsigned int factor )
 				for ( unsigned int x = 0; x < width; x++ )
 				{
 					w_count += factor;
-					w_index = w_count/ZM_SCALE_SCALE;
+					w_index = w_count/ZM_SCALE_BASE;
 					
 					if ( w_index > last_w_index )
 					{
@@ -1521,11 +1730,5 @@ void Image::Scale( unsigned int factor )
         new_width = last_w_index;
         new_height = last_h_index;
 	}
-	width = new_width;
-	height = new_height;
-	pixels = width*height;
-	size = width*height*colours;
-	delete[] buffer;
-	buffer = new JSAMPLE[size];
-	memcpy( buffer, scale_buffer, size );
+    Assign( new_width, new_height, colours, scale_buffer );
 }

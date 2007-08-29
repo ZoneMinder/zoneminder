@@ -55,6 +55,7 @@ use constant DBG_LEVEL => 1; # 0 is errors, warnings and info only, > 0 for debu
 use ZoneMinder;
 use DBI;
 use POSIX;
+use File::Find;
 use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
 
@@ -155,7 +156,9 @@ my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM
 chdir( EVENT_PATH );
 
 my $max_image_age = 6/24; # 6 hours
+my $max_swap_age = 24/24; # 24 hours
 my $image_path = IMAGE_PATH;
+my $swap_image_path = ZM_PATH_SWAP;
 do
 {
 	my $db_monitors;
@@ -326,6 +329,31 @@ do
 		( $untainted_old_files ) = ( $untainted_old_files =~ /^(.*)$/ );
 		unlink( split( ";", $untainted_old_files ) );
 	}
+
+	# Now delete any old swap files
+    sub deleteSwapImage
+    {
+        my $file = $_;
+
+        if ( $file !~ /^zmswap-/ )
+        {
+            return;
+        }
+
+        # Ignore directories
+        if ( -d $file )
+        {
+            return;
+        }
+
+        if ( -M $file > $max_swap_age )
+        {
+            Debug( "Deleting $file" );
+            #unlink( $file );
+        }
+    }
+	( my $swap_image_root ) = ( $swap_image_path =~ /^(.*)$/ ); # De-taint
+    File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
 
 	sleep( ZM_AUDIT_CHECK_INTERVAL ) if ( $continuous );
 } while( $continuous );

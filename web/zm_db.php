@@ -18,21 +18,61 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+$db_debug = false;
+
 $conn = mysql_pconnect( ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die("Could not connect to database: ".mysql_error());
 mysql_select_db( ZM_DB_NAME, $conn) or die("Could not select database: ".mysql_error());
 
+function dbDebug( $sql )
+{
+    global $db_debug;
+
+    if ( $db_debug )
+        error_log( "SQL: $sql" );
+    return( $db_debug );
+}
+
+function dbQuery( $sql )
+{
+    if ( dbDebug( $sql ) )
+        return;
+    if (!($result = mysql_query( $sql )))
+        die( mysql_error() );
+    return( $result );
+}
+
+function dbFetchOne( $sql, $col=false )
+{
+    dbDebug( $sql );
+
+    if (!($result = mysql_query( $sql )))
+        die( mysql_error() );
+
+    $db_row = mysql_fetch_assoc( $result );
+    return( $col?$db_row[$col]:$db_row );
+}
+
+function dbFetchAll( $sql, $col=false )
+{
+    dbDebug( $sql );
+
+    if (!($result = mysql_query( $sql )))
+        die( mysql_error() );
+
+    $db_rows = array();
+    while( $db_row = mysql_fetch_assoc( $result ) )
+        $db_rows[] = $col?$db_row[$col]:$db_row;
+    return( $db_rows );
+}
+
+function dbFetch( $sql, $col=false )
+{
+    return( dbFetchAll( $sql, $col ) );
+}
+
 function simpleQuery( $sql )
 {
-	global $debug;
-
-	if ( $debug )
-	{
-		echo "SQL:$sql<br>\n";
-	}
-	$result = mysql_query( $sql );
-	if ( !$result )
-		die( mysql_error() );
-	return( $result );
+    return( dbQuery( $sql ) );
 }
 
 function getEnumValues( $table, $column )

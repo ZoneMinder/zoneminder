@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Visca Control Protocol Module, $Date$, $Revision$
+# ZoneMinder Pelco-P Control Protocol Module, $Date$, $Revision$
 # Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -19,10 +19,10 @@
 #
 # ==========================================================================
 #
-# This module contains the implementation of the Visca camera control
+# This module contains the implementation of the Pelco-P camera control
 # protocol
 #
-package ZoneMinder::Control::Visca;
+package ZoneMinder::Control::PelcoD;
 
 use 5.006;
 use strict;
@@ -37,7 +37,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 
 # ==========================================================================
 #
-# Visca Control Protocol
+# Pelco-P Control Protocol
 #
 # ==========================================================================
 
@@ -45,7 +45,8 @@ use ZoneMinder::Debug qw(:all);
 
 use Time::HiRes qw( usleep );
 
-use constant SYNC => 0xff;
+use constant STX => 0xa0;
+use constant ETX => 0xaf;
 use constant COMMAND_GAP => 100000; # In ms
 
 sub new
@@ -81,15 +82,14 @@ sub open
 
     use Device::SerialPort;
     $self->{port} = new Device::SerialPort( $self->{Monitor}->{ControlDevice} );
-    $self->{port}->baudrate(9600);
+    $self->{port}->baudrate(4800);
     $self->{port}->databits(8);
     $self->{port}->parity('none');
     $self->{port}->stopbits(1);
-    $self->{port}->handshake('rts');
-    $self->{port}->stty_echo(0);
+    $self->{port}->handshake('none');
 
-    #$self->{port}->read_const_time(250);
-    $self->{port}->read_char_time(2);
+    $self->{port}->read_const_time(50);
+    $self->{port}->read_char_time(10);
 
     $self->{state} = 'open';
 }
@@ -132,9 +132,16 @@ sub sendCmd
     my $self = shift;
     my $cmd = shift;
     my $ack = shift || 0;
-    my $cmp = shift || 0;
 
     my $result = undef;
+
+    my $checksum = 0x00;
+    for ( my $i = 1; $i < int(@$cmd); $i++ )
+    {
+        $checksum ^= $cmd->[$i];
+    }
+    $checksum &= 0xff;
+    push( @$cmd, $checksum );
 
     $self->printMsg( $cmd, "Tx" );
     my $id = $cmd->[0] & 0xf;
@@ -165,7 +172,7 @@ sub sendCmd
             {
                 #print( "Rx1: ".$count." bytes\n" );
                 my @resp = unpack( "C*", $rx_msg );
-                $self->printMsg( \@resp, "Rx" );
+                printMsg( \@resp, "Rx" );
 
                 if ( $resp[0] = 0x80 + ($id<<4) )
                 {
@@ -188,75 +195,66 @@ sub sendCmd
             }
             if ( (time() - $now) > $max_wait )
             {
+                Warning( "Response timeout" );
                 last;
             }
         }
     }
+}
 
-    if ( $cmp )
-    {
-        Debug( "Waiting for command complete" );
-        my $max_wait = 10;
-        my $now = time();
-        while( 1 )
-        {
-            #print( "Waiting\n" );
-            my ( $count, $rx_msg ) = $self->{port}->read(16);
+sub remoteReset
+{
+    my $self = shift;
+    Debug( "Remote Reset" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x0f, 0x00, 0x00, ETX );
+    $self->sendCmd( \@msg );
+}
 
-            if ( $count )
-            {
-                #print( "Rx1: ".$count." bytes\n" );
-                my @resp = unpack( "C*", $rx_msg );
-                $self->printMsg( \@resp, "Rx" );
-
-                if ( $resp[0] = 0x80 + ($id<<4) )
-                {
-                    if ( ($resp[1] & 0xf0) == 0x50 )
-                    {
-                        Debug( "Got command complete" );
-                        $result = !undef;
-                    }
-                    else
-                    {
-                        Error( "Got bogus response" );
-                    }
-                    last;
-                }
-                else
-                {
-                    Error( "Got message for camera ".(($resp[0]-0x80)>>4) );
-                }
-            }
-            if ( (time() - $now) > $max_wait )
-            {
-                last;
-            }
-        }
-    }
-    return( $result );
+sub resetDefaults
+{
+    my $self = shift;
+    Debug( "Reset Defaults" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x29, 0x00, 0x00, ETX );
+    $self->sendCmd( \@msg );
 }
 
 sub cameraOff
 {
     my $self = shift;
-    Debug( "Camera Off\n" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x00, 0x0, SYNC );
+    Debug( "Camera Off" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x08, 0x00, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
 }
 
 sub cameraOn
 {
     my $self = shift;
-    Debug( "Camera On\n" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x00, 0x2, SYNC );
+    Debug( "Camera On" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x88, 0x00, 0x00, 0x00, ETX );
+    $self->sendCmd( \@msg );
+}
+
+sub autoScan
+{
+    my $self = shift;
+    Debug( "Auto Scan" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x90, 0x00, 0x00, 0x00, ETX );
+    $self->sendCmd( \@msg );
+}
+
+sub manScan
+{
+    my $self = shift;
+    Debug( "Manual Scan" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x10, 0x00, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
 }
 
 sub stop
 {
     my $self = shift;
-    Debug( "Stop\n" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, 0x00, 0x00, 0x03, 0x03, SYNC );
+    Debug( "Stop" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x00, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
 }
 
@@ -264,10 +262,10 @@ sub moveConUp
 {
     my $self = shift;
     my $params = shift;
-    my $speed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $speed = $self->getParam( $params, 'tiltspeed' );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Up" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, 0x00, $speed, 0x03, 0x01, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x08, 0x00, $speed, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
@@ -280,31 +278,31 @@ sub moveConDown
 {
     my $self = shift;
     my $params = shift;
-    my $speed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $speed = $self->getParam( $params, 'tiltspeed' );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Down" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, 0x00, $speed, 0x03, 0x02, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x10, 0x00, $speed, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->stop( $params );
+        $self->stop();
     }
 }
 
-sub movConLeft
+sub moveConLeft
 {
     my $self = shift;
     my $params = shift;
-    my $speed = $self->getParam( $params, 'panspeed', 0x40 );
+    my $speed = $self->getParam( $params, 'panspeed' );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Left" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $speed, 0x00, 0x01, 0x03, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x04, $speed, 0x00, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->stop( $params );
+        $self->stop();
     }
 }
 
@@ -312,192 +310,136 @@ sub moveConRight
 {
     my $self = shift;
     my $params = shift;
-    my $speed = $self->getParam( $params, 'panspeed', 0x40 );
+    my $speed = $self->getParam( $params, 'panspeed' );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Right" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $speed, 0x00, 0x02, 0x03, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x02, $speed, 0x00, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->stop( $params );
+        $self->stop();
     }
 }
 
-sub moveUpLeft
+sub moveConUpLeft
 {
     my $self = shift;
     my $params = shift;
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->getParam( $params, 'panspeed', 0x3f );
+    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x3f );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Up/Left" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x01, 0x01, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x0c, $panspeed, $tiltspeed, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->stop( $params );
+        $self->stop();
     }
 }
 
-sub moveUpRight
+sub moveConUpRight
 {
     my $self = shift;
     my $params = shift;
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->getParam( $params, 'panspeed', 0x3f );
+    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x3f );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Up/Right" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x02, 0x01, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x0a, $panspeed, $tiltspeed, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->stop( $params );
+        $self->stop();
     }
 }
 
-sub moveDownLeft
+sub moveConDownLeft
 {
     my $self = shift;
     my $params = shift;
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->getParam( $params, 'panspeed', 0x3f );
+    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x3f );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Down/Left" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x01, 0x02, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x14, $panspeed, $tiltspeed, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->stop( $params );
+        $self->stop();
     }
 }
 
-sub moveDownRight
+sub moveConDownRight
 {
     my $self = shift;
     my $params = shift;
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->getParam( $params, 'panspeed', 0x3f );
+    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x3f );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Down/Right" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x02, 0x02, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x12, $panspeed, $tiltspeed, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->stop( $params );
+        $self->stop();
     }
 }
 
-sub moveRelUp
+sub moveStop
 {
     my $self = shift;
-    my $params = shift;
-    my $step = $self->getParam( $params, 'tiltstep' );
-    my $speed = $self->getParam( $params, 'tiltspeed', 0x40 );
-    Debug( "Step Up" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, 0x00, $speed, 0x00, 0x00, 0x00, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, SYNC );
+    Debug( "Move Stop" );
+    $self->stop();
+}
 
+sub flip180
+{
+    my $self = shift;
+    Debug( "Flip 180" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x07, 0x00, 0x21, ETX );
     $self->sendCmd( \@msg );
 }
 
-sub moveRelDown
+sub zeroPan
 {
     my $self = shift;
-    my $params = shift;
-    my $step = -$self->getParam( $params, 'tiltstep' );
-    my $speed = $self->getParam( $params, 'tiltspeed', 0x40 );
-    Debug( "Step Down" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, 0x00, $speed, 0x00, 0x00, 0x00, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, SYNC );
+    Debug( "Zero Pan" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x07, 0x00, 0x22, ETX );
     $self->sendCmd( \@msg );
 }
 
-sub moveRelLeft
+sub _setZoomSpeed
 {
     my $self = shift;
-    my $params = shift;
-    my $step = -$self->getParam( $params, 'panstep' );
-    my $speed = $self->getParam( $params, 'panspeed', 0x40 );
-    Debug( "Step Left" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $speed, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, 0x00, 0x00, 0x00, 0x00, SYNC );
+    my $speed = shift;
+    Debug( "Set Zoom Speed $speed" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x25, 0x00, $speed, ETX );
     $self->sendCmd( \@msg );
 }
 
-sub moveRelRight
+sub zoomStop
 {
     my $self = shift;
-    my $params = shift;
-    my $step = $self->getParam( $params, 'panstep' );
-    my $speed = $self->getParam( $params, 'panspeed', 0x40 );
-    Debug( "Step Right" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $speed, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, 0x00, 0x00, 0x00, 0x00, SYNC );
-    $self->sendCmd( \@msg );
-}
-
-sub moveRelUpLeft
-{
-    my $self = shift;
-    my $params = shift;
-    my $panstep = -$self->getParam( $params, 'panstep' );
-    my $tiltstep = $self->getParam( $params, 'tiltstep' );
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
-    Debug( "Step Up/Left" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $panspeed, $tiltspeed, ($panstep&0xf000)>>12, ($panstep&0x0f00)>>8, ($panstep&0x00f0)>>4, ($panstep&0x000f)>>0, ($tiltstep&0xf000)>>12, ($tiltstep&0x0f00)>>8, ($tiltstep&0x00f0)>>4, ($tiltstep&0x000f)>>0, SYNC );
-    $self->sendCmd( \@msg );
-}
-
-sub moveRelUpRight
-{
-    my $self = shift;
-    my $params = shift;
-    my $panstep = $self->getParam( $params, 'panstep' );
-    my $tiltstep = $self->getParam( $params, 'tiltstep' );
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
-    Debug( "Step Up/Right" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $panspeed, $tiltspeed, ($panstep&0xf000)>>12, ($panstep&0x0f00)>>8, ($panstep&0x00f0)>>4, ($panstep&0x000f)>>0, ($tiltstep&0xf000)>>12, ($tiltstep&0x0f00)>>8, ($tiltstep&0x00f0)>>4, ($tiltstep&0x000f)>>0, SYNC );
-    $self->sendCmd( \@msg );
-}
-
-sub moveRelDownLeft
-{
-    my $self = shift;
-    my $params = shift;
-    my $panstep = -$self->getParam( $params, 'panstep' );
-    my $tiltstep = -$self->getParam( $params, 'tiltstep' );
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
-    Debug( "Step Down/Left" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $panspeed, $tiltspeed, ($panstep&0xf000)>>12, ($panstep&0x0f00)>>8, ($panstep&0x00f0)>>4, ($panstep&0x000f)>>0, ($tiltstep&0xf000)>>12, ($tiltstep&0x0f00)>>8, ($tiltstep&0x00f0)>>4, ($tiltstep&0x000f)>>0, SYNC );
-    $self->sendCmd( \@msg );
-}
-
-sub moveRelDownRight
-{
-    my $self = shift;
-    my $params = shift;
-    my $panstep = $self->getParam( $params, 'panstep' );
-    my $tiltstep = -$self->getParam( $params, 'tiltstep' );
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
-    Debug( "Step Down/Right" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $panspeed, $tiltspeed, ($panstep&0xf000)>>12, ($panstep&0x0f00)>>8, ($panstep&0x00f0)>>4, ($panstep&0x000f)>>0, ($tiltstep&0xf000)>>12, ($tiltstep&0x0f00)>>8, ($tiltstep&0x00f0)>>4, ($tiltstep&0x000f)>>0, SYNC );
-    $self->sendCmd( \@msg );
+    Debug( "Zoom Stop" );
+    $self->stop();
+    $self->_setZoomSpeed( 0 );
 }
 
 sub zoomConTele
 {
     my $self = shift;
     my $params = shift;
-    my $speed = $self->getParam( $params, 'speed', 0x06 );
+    my $speed = $self->getParam( $params, 'speed', 0x01 );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Zoom Tele" );
-    my $speed = shift || 0x06;
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x07, 0x20|$speed, SYNC );
+    $self->_setZoomSpeed( $speed );
+    usleep( COMMAND_GAP );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x20, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
@@ -506,14 +448,16 @@ sub zoomConTele
     }
 }
 
-sub zoomWide
+sub zoomConWide
 {
     my $self = shift;
     my $params = shift;
-    my $speed = $self->getParam( $params, 'speed', 0x06 );
+    my $speed = $self->getParam( $params, 'speed', 0x01 );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Zoom Wide" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x07, 0x30|$speed, SYNC );
+    $self->_setZoomSpeed( $speed );
+    usleep( COMMAND_GAP );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x40, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
@@ -522,12 +466,12 @@ sub zoomWide
     }
 }
 
-sub zoomStop
+sub _setFocusSpeed
 {
     my $self = shift;
-    my $params = shift;
-    Debug( "Zoom Stop" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x07, 0x00, SYNC );
+    my $speed = shift;
+    Debug( "Set Focus Speed $speed" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x27, 0x00, $speed, ETX );
     $self->sendCmd( \@msg );
 }
 
@@ -535,54 +479,156 @@ sub focusConNear
 {
     my $self = shift;
     my $params = shift;
+    my $speed = $self->getParam( $params, 'speed', 0x03 );
+    my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Focus Near" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x08, 0x03, SYNC );
+    $self->_setFocusSpeed( $speed );
+    usleep( COMMAND_GAP );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x01, 0x00, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
+    if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
+    {
+        usleep( $self->{Monitor}->{AutoStopTimeout} );
+        $self->_setFocusSpeed( 0 );
+    }
 }
 
 sub focusConFar
 {
     my $self = shift;
     my $params = shift;
+    my $speed = $self->getParam( $params, 'speed', 0x03 );
+    my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Focus Far" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x08, 0x02, SYNC );
+    $self->_setFocusSpeed( $speed );
+    usleep( COMMAND_GAP );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x80, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
+    if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
+    {
+        usleep( $self->{Monitor}->{AutoStopTimeout} );
+        $self->_setFocusSpeed( 0 );
+    }
 }
 
 sub focusStop
 {
     my $self = shift;
-    my $params = shift;
     Debug( "Focus Stop" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x08, 0x00, SYNC );
-    $self->sendCmd( \@msg );
+    $self->stop();
+    $self->_setFocusSpeed( 0 );
 }
 
 sub focusAuto
 {
     my $self = shift;
-    my $params = shift;
     Debug( "Focus Auto" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x38, 0x02, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x2b, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
 }
 
 sub focusMan
 {
     my $self = shift;
-    my $params = shift;
     Debug( "Focus Man" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x38, 0x03, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x2b, 0x00, 0x02, ETX );
     $self->sendCmd( \@msg );
 }
 
-sub presetClear
+sub _setIrisSpeed
 {
     my $self = shift;
-    my $preset = shift || 1;
+    my $speed = shift;
+    Debug( "Set Iris Speed $speed" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x27, 0x00, $speed, ETX );
+    $self->sendCmd( \@msg );
+}
+
+sub irisConClose
+{
+    my $self = shift;
+    my $params = shift;
+    my $autostop = $self->getParam( $params, 'autostop', 0 );
+    Debug( "Iris Close" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x04, 0x00, 0x00, 0x00, ETX );
+    $self->sendCmd( \@msg );
+    if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
+    {
+        usleep( $self->{Monitor}->{AutoStopTimeout} );
+        $self->_setIrisSpeed( 0 );
+    }
+}
+
+sub irisConOpen
+{
+    my $self = shift;
+    my $params = shift;
+    my $autostop = $self->getParam( $params, 'autostop', 0 );
+    Debug( "Iris Open" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x02, 0x80, 0x00, 0x00, ETX );
+    $self->sendCmd( \@msg );
+    if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
+    {
+        usleep( $self->{Monitor}->{AutoStopTimeout} );
+        $self->_setIrisSpeed( 0 );
+    }
+}
+
+sub irisStop
+{
+    my $self = shift;
+    Debug( "Iris Stop" );
+    $self->stop();
+    $self->_setIrisSpeed( 0 );
+}
+
+sub irisAuto
+{
+    my $self = shift;
+    Debug( "Iris Auto" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x2d, 0x00, 0x00, ETX );
+    $self->sendCmd( \@msg );
+}
+
+sub irisMan
+{
+    my $self = shift;
+    Debug( "Iris Man" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x2d, 0x00, 0x02, ETX );
+    $self->sendCmd( \@msg );
+}
+
+sub writeScreen
+{
+    my $self = shift;
+    my $params = shift;
+    my $string = $self->getParam( $params, 'string' );
+    Debug( "Writing '$string' to screen" );
+    
+    my @chars = unpack( "C*", $string );
+    for ( my $i = 0; $i < length($string); $i++ )
+    {
+        my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x15, $i, $chars[$i], ETX );
+        $self->sendCmd( \@msg );
+        usleep( COMMAND_GAP );
+    }
+}
+
+sub clearScreen
+{
+    my $self = shift;
+    Debug( "Clear Screen" );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x17, 0x00, 0x00, ETX );
+    $self->sendCmd( \@msg );
+}
+
+sub clearPreset
+{
+    my $self = shift;
+    my $params = shift;
     my $preset = $self->getParam( $params, 'preset', 1 );
     Debug( "Clear Preset $preset" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x3f, 0x00, $preset, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x05, 0x00, $preset, ETX );
     $self->sendCmd( \@msg );
 }
 
@@ -592,7 +638,7 @@ sub presetSet
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset', 1 );
     Debug( "Set Preset $preset" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x3f, 0x01, $preset, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x03, 0x00, $preset, ETX );
     $self->sendCmd( \@msg );
 }
 
@@ -602,17 +648,38 @@ sub presetGoto
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset', 1 );
     Debug( "Goto Preset $preset" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x3f, 0x02, $preset, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x07, 0x00, $preset, ETX );
     $self->sendCmd( \@msg );
 }
 
 sub presetHome
 {
     my $self = shift;
-    my $params = shift;
     Debug( "Home Preset" );
-    my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x04, SYNC );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x07, 0x00, 0x22, ETX );
     $self->sendCmd( \@msg );
+}
+
+sub reset
+{
+    my $self = shift;
+    Debug( "Reset" );
+    $self->remoteReset();
+    $self->resetDefaults();
+}
+
+sub wake
+{
+    my $self = shift;
+    Debug( "Wake" );
+    $self->cameraOn();
+}
+
+sub sleep
+{
+    my $self = shift;
+    Debug( "Sleep" );
+    $self->cameraOff();
 }
 
 1;

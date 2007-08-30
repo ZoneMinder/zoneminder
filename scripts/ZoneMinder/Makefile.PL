@@ -19,6 +19,7 @@ WriteMakefile(
 		'lib/ZoneMinder/Control/AxisV2.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/AxisV2.pm',
 		'lib/ZoneMinder/Control/PanasonicIP.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/PanasonicIP.pm',
 		'lib/ZoneMinder/Control/Visca.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/Visca.pm',
+		'lib/ZoneMinder/Control/Ncs370.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/Ncs370.pm',
 		'lib/ZoneMinder/Trigger/Channel.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel.pm',
 		'lib/ZoneMinder/Trigger/Channel/Handle.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel/Handle.pm',
 		'lib/ZoneMinder/Trigger/Channel/Spawning.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel/Spawning.pm',

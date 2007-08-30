@@ -159,8 +159,8 @@ if ( isset($xge) || isset($yge) )
             }
             case 'move' :
             {
-                $x_factor = $xge/100;
-                $y_factor = $yge/100;
+                $x_factor = empty($xge)?0:$xge/100;
+                $y_factor = empty($yge)?0:$yge/100;
 
                 if ( $monitor['Orientation'] != '0' )
                 {

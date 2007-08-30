@@ -46,6 +46,7 @@ our %EXPORT_TAGS = (
 		zmDbDisConnect
 		zmDbGetMonitors
 		zmDbGetMonitor
+		zmDbGetMonitorAndControl
 	) ]
 );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -152,6 +153,22 @@ sub zmDbGetMonitor( $ )
 	my $sql = "select * from Monitors where Id = ?";
 	my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute( $id ) or croak( "Can't execute '$sql': ".$sth->errstr() );
+    my $monitor = $sth->fetchrow_hashref();
+
+	return( $monitor );
+}
+
+sub zmDbGetMonitorAndControl( $ )
+{
+	zmDbConnect();
+
+	my $id = shift;
+
+	return( undef ) if ( !defined($id) );
+
+    my $sql = "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute( $id ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
     my $monitor = $sth->fetchrow_hashref();
 
 	return( $monitor );

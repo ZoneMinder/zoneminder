@@ -86,7 +86,7 @@ function changeScale()
     var scale = $('scale').getValue();
     var baseWidth = <?= $monitor['Width'] ?>;
     var baseHeight = <?= $monitor['Height'] ?>;
-    console.log( "Got new scale: "+scale );
+    //console.log( "Got new scale: "+scale );
     var newWidth = ( baseWidth * scale ) / <?= SCALE_BASE ?>;
     var newHeight = ( baseHeight * scale ) / <?= SCALE_BASE ?>;
 
@@ -545,7 +545,7 @@ function getControlResponse( resp_text, resp_xml )
 {
     if ( !resp_text )
         return;
-    console.log( resp_text );
+    //console.log( resp_text );
     var resp_func = new Function( "return "+resp_text );
     var resp_obj = resp_func();
     result = resp_obj.result;
@@ -555,9 +555,40 @@ function getControlResponse( resp_text, resp_xml )
     }
 }
 
-function controlCmd( control )
+function controlCmd( control, event, xtell, ytell )
 {
-    var controlReq = new Ajax( url, { method: 'post', postBody: controlParms+"&control="+control, onComplete: getControlResponse } );
+    var locParms = "";
+    if ( event && (xtell || ytell) )
+    {
+        var xEvent = new Event( event );
+        var target = xEvent.target;
+        var coords = $(target).getCoordinates();
+
+        var l = coords.left;
+        var t = coords.top;
+        var x = xEvent.page.x - l;
+        var y = xEvent.page.y - t;
+
+        if  ( xtell )
+        {
+            var xge = parseInt( (x*100)/coords.width );
+            if ( xtell == -1 )
+                xge = 100 - xge;
+            else if ( xtell == 2 )
+                xge = 2*(50 - xge);
+            locParms += "&xge="+xge;
+        }
+        if  ( ytell )
+        {
+            var yge = parseInt( (y*100)/coords.height );
+            if ( ytell == -1 )
+                yge = 100 - yge;
+            else if ( ytell == 2 )
+                yge = 2*(50 - yge);
+            locParms += "&yge="+yge;
+        }
+    }
+    var controlReq = new Ajax( url, { method: 'post', postBody: controlParms+"&control="+control+locParms, onComplete: getControlResponse } );
     controlReq.request();
 }
 
@@ -569,19 +600,19 @@ function controlCmdImage( x, y )
 if ( $monitor['CanMoveMap'] )
 {
 ?>
-    imageControlParms += "&control=move_map";
+    imageControlParms += "&control=moveMap";
 <?php
 }
 elseif ( $monitor['CanMoveRel'] )
 {
 ?>
-    imageControlParms += "&control=move_psuedo_map";
+    imageControlParms += "&control=movePseudoMap";
 <?php
 }
 elseif ( $monitor['CanMoveCon'] )
 {
 ?>
-    imageControlParms += "&control=move_con_map";
+    imageControlParms += "&control=moveConMap";
 <?php
 }
 ?>
@@ -821,8 +852,6 @@ if ( canStreamNative() )
 function handleClick( event )
 {
     var target = event.target;
-    //console.log( "Target = "+event.target );
-    //console.log( "Left = "+$(target).getLeft() );
     var x = event.page.x - $(target).getLeft();
     var y = event.page.y - $(target).getTop();
     var canMove = <?= ($monitor['CanMoveMap'] || $monitor['CanMoveRel'] || $monitor['CanMoveCon'])?'true':'false' ?>;
@@ -838,7 +867,6 @@ function handleClick( event )
     {
         controlCmdImage( x, y );
     }
-    //console.log(x+","+y)
 }
 
 var streamImg = $('imageFeed').getElement('img');

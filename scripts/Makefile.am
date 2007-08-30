@@ -16,12 +16,7 @@ bin_SCRIPTS = \
 	zmpkg.pl \
 	zmupdate.pl \
 	zmvideo.pl \
-	zmcontrol-pelco-d.pl \
-	zmcontrol-pelco-p.pl \
-	zmcontrol-visca.pl \
-	zmcontrol-panasonic-ip.pl \
-	zmcontrol-axis-v2.pl \
-	zmcontrol-ncs370.pl \
+	zmcontrol.pl \
 	zmtrack.pl
 
 SUBDIRS = \
@@ -38,12 +33,7 @@ EXTRA_DIST = \
 	zmpkg.pl \
 	zmupdate.pl \
 	zmvideo.pl \
-	zmcontrol-pelco-d.pl \
-	zmcontrol-pelco-p.pl \
-	zmcontrol-visca.pl \
-	zmcontrol-panasonic-ip.pl \
-	zmcontrol-axis-v2.pl \
-	zmcontrol-ncs370.pl \
+	zmcontrol.pl \
 	zmtrack.pl \
 	ZoneMinder/Makefile.PL \
 	ZoneMinder/README \
@@ -58,6 +48,11 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder/Database.pm \
 	ZoneMinder/lib/ZoneMinder/SharedMem.pm \
 	ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm \
+	ZoneMinder/lib/ZoneMinder/Control.pm \
+	ZoneMinder/lib/ZoneMinder/Control/PelcoD.pm \
+	ZoneMinder/lib/ZoneMinder/Control/AxisV2.pm \
+	ZoneMinder/lib/ZoneMinder/Control/PanasonicIP.pm \
+	ZoneMinder/lib/ZoneMinder/Control/Visca.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Handle.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Spawning.pm \

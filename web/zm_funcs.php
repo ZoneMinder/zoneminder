@@ -317,19 +317,19 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
 				if ( $monitor['CanMoveMap'] ) 
 				{
 ?>
-<input type="hidden" name="control" value="move_map">
+<input type="hidden" name="control" value="moveMap">
 <?php
 				}
 				elseif ( $monitor['CanMoveRel'] )
 				{
 ?>
-<input type="hidden" name="control" value="move_pseudo_map">
+<input type="hidden" name="control" value="movePseudoMap">
 <?php
 				}
 				elseif ( $monitor['CanMoveCon'] )
 				{
 ?>
-<input type="hidden" name="control" value="move_con_map">
+<input type="hidden" name="control" value="moveConMap">
 <?php
 				}
 ?>
@@ -371,19 +371,19 @@ function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
 				if ( $monitor['CanMoveMap'] ) 
 				{
 ?>
-<input type="hidden" name="control" value="move_map">
+<input type="hidden" name="control" value="moveMap">
 <?php
 				}
 				elseif ( $monitor['CanMoveRel'] )
 				{
 ?>
-<input type="hidden" name="control" value="move_pseudo_map">
+<input type="hidden" name="control" value="movePseudoMap">
 <?php
 				}
 				elseif ( $monitor['CanMoveCon'] )
 				{
 ?>
-<input type="hidden" name="control" value="move_con_map">
+<input type="hidden" name="control" value="moveConMap">
 <?php
 				}
 ?>

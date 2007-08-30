@@ -16,21 +16,289 @@ if ( !$_REQUEST['id'] )
 
 $monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '".$_REQUEST['id']."'" );
 
-$ctrl_command = $monitor['Command'];
+$ctrl_command = "zmcontrol.pl";
 if ( !preg_match( '/^\//', $ctrl_command ) )
     $ctrl_command = ZM_PATH_BIN.'/'.$ctrl_command;
-if ( $monitor['ControlDevice'] )
-    $ctrl_command .= " --device=".$monitor['ControlDevice'];
-if ( $monitor['ControlAddress'] )
-    $ctrl_command .= " --address=".$monitor['ControlAddress'];
 
-$control = $_REQUEST['control'];
-if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
+if ( isset($xge) || isset($yge) )
 {
-    $x = $_REQUEST['x'];
-    $y = $_REQUEST['y'];
-    $scale = $_REQUEST['scale'];
-    if ( $control == "move_map" )
+    $slow = 0.9; // Threshold for slow speed/timeouts
+    $turbo = 0.9; // Threshold for turbo speed
+
+    if ( preg_match( '/^([a-z]+)([A-Z][a-z]+)([A-Z][a-z]+)$/', $control, $matches ) )
+    {
+        $command = $matches[1];
+        $mode = $matches[2];
+        $dirn = $matches[3];
+
+        switch( $command )
+        {
+            case 'focus' :
+            {
+                $factor = $yge/100;
+                if ( $monitor['HasFocusSpeed'] )
+                {
+                    $speed = intval(round($monitor['MinFocusSpeed']+(($monitor['MaxFocusSpeed']-$monitor['MinFocusSpeed'])*$factor)));
+                    $ctrl_command .= " --speed=".$speed;
+                }
+                switch( $mode )
+                {
+                    case 'Abs' :
+                    case 'Rel' :
+                    {
+                        $step = intval(round($monitor['MinFocusStep']+(($monitor['MaxFocusStep']-$monitor['MinFocusStep'])*$factor)));
+                        $ctrl_command .= " --step=".$step;
+                        break;
+                    }
+                    case 'Con' :
+                    {
+                        if ( $monitor['AutoStopTimeout'] )
+                        {
+                            $slow_speed = intval(round($monitor['MinFocusSpeed']+(($monitor['MaxFocusSpeed']-$monitor['MinFocusSpeed'])*$slow)));
+                            if ( $speed < $slow_speed )
+                            {
+                                $ctrl_command .= " --autostop";
+                            }
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+            case 'zoom' :
+            {
+                $factor = $yge/100;
+                if ( $monitor['HasZoomSpeed'] )
+                {
+                    $speed = intval(round($monitor['MinZoomSpeed']+(($monitor['MaxZoomSpeed']-$monitor['MinZoomSpeed'])*$factor)));
+                    $ctrl_command .= " --speed=".$speed;
+                }
+                switch( $mode )
+                {
+                    case 'Abs' :
+                    case 'Rel' :
+                    {
+                        $step = intval(round($monitor['MinZoomStep']+(($monitor['MaxZoomStep']-$monitor['MinZoomStep'])*$factor)));
+                        $ctrl_command .= " --step=".$step;
+                        break;
+                    }
+                    case 'Con' :
+                    {
+                        if ( $monitor['AutoStopTimeout'] )
+                        {
+                            $slow_speed = intval(round($monitor['MinZoomSpeed']+(($monitor['MaxZoomSpeed']-$monitor['MinZoomSpeed'])*$slow)));
+                            if ( $speed < $slow_speed )
+                            {
+                                $ctrl_command .= " --autostop";
+                            }
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+            case 'iris' :
+            {
+                $factor = $yge/100;
+                if ( $monitor['HasIrisSpeed'] )
+                {
+                    $speed = intval(round($monitor['MinIrisSpeed']+(($monitor['MaxIrisSpeed']-$monitor['MinIrisSpeed'])*$factor)));
+                    $ctrl_command .= " --speed=".$speed;
+                }
+                switch( $mode )
+                {
+                    case 'Abs' :
+                    case 'Rel' :
+                    {
+                        $step = intval(round($monitor['MinIrisStep']+(($monitor['MaxIrisStep']-$monitor['MinIrisStep'])*$factor)));
+                        $ctrl_command .= " --step=".$step;
+                        break;
+                    }
+                }
+                break;
+            }
+            case 'white' :
+            {
+                $factor = $yge/100;
+                if ( $monitor['HasWhiteSpeed'] )
+                {
+                    $speed = intval(round($monitor['MinWhiteSpeed']+(($monitor['MaxWhiteSpeed']-$monitor['MinWhiteSpeed'])*$factor)));
+                    $ctrl_command .= " --speed=".$speed;
+                }
+                switch( $mode )
+                {
+                    case 'Abs' :
+                    case 'Rel' :
+                    {
+                        $step = intval(round($monitor['MinWhiteStep']+(($monitor['MaxWhiteStep']-$monitor['MinWhiteStep'])*$factor)));
+                        $ctrl_command .= " --step=".$step;
+                        break;
+                    }
+                }
+                break;
+            }
+            case 'gain' :
+            {
+                $factor = $yge/100;
+                if ( $monitor['HasGainSpeed'] )
+                {
+                    $speed = intval(round($monitor['MinGainSpeed']+(($monitor['MaxGainSpeed']-$monitor['MinGainSpeed'])*$factor)));
+                    $ctrl_command .= " --speed=".$speed;
+                }
+                switch( $mode )
+                {
+                    case 'Abs' :
+                    case 'Rel' :
+                    {
+                        $step = intval(round($monitor['MinGainStep']+(($monitor['MaxGainStep']-$monitor['MinGainStep'])*$factor)));
+                        $ctrl_command .= " --step=".$step;
+                        break;
+                    }
+                }
+                break;
+            }
+            case 'move' :
+            {
+                $x_factor = $xge/100;
+                $y_factor = $yge/100;
+
+                if ( $monitor['Orientation'] != '0' )
+                {
+                    $conversions = array(
+                        '90' => array(
+                            'Up' => 'Left',
+                            'Down' => 'Right',
+                            'Left' => 'Down',
+                            'Right' => 'Up',
+                            'UpLeft' => 'DownLeft',
+                            'UpRight' => 'UpLeft',
+                            'DownLeft' => 'DownRight',
+                            'DownRight' => 'UpRight',
+                        ),
+                        '180' => array(
+                            'Up' => 'Down',
+                            'Down' => 'Up',
+                            'Left' => 'Right',
+                            'Right' => 'Left',
+                            'UpLeft' => 'DownRight',
+                            'UpRight' => 'DownLeft',
+                            'DownLeft' => 'UpRight',
+                            'DownRight' => 'UpLeft',
+                        ),
+                        '270' => array(
+                            'Up' => 'Right',
+                            'Down' => 'Left',
+                            'Left' => 'Up',
+                            'Right' => 'Down',
+                            'UpLeft' => 'UpRight',
+                            'UpRight' => 'DownRight',
+                            'DownLeft' => 'UpLeft',
+                            'DownRight' => 'DownLeft',
+                        ),
+                        'hori' => array(
+                            'Up' => 'Up',
+                            'Down' => 'Down',
+                            'Left' => 'Right',
+                            'Right' => 'Left',
+                            'UpLeft' => 'UpRight',
+                            'UpRight' => 'UpLeft',
+                            'DownLeft' => 'DownRight',
+                            'DownRight' => 'DownLeft',
+                        ),
+                        'vert' => array(
+                            'Up' => 'Down',
+                            'Down' => 'Up',
+                            'Left' => 'Left',
+                            'Right' => 'Right',
+                            'UpLeft' => 'DownLeft',
+                            'UpRight' => 'DownRight',
+                            'DownLeft' => 'UpLeft',
+                            'DownRight' => 'UpRight',
+                        ),
+                    );
+                    $new_dirn = $conversions[$monitor['Orientation']][$dirn];
+                    $control = preg_replace( "/_$dirn\$/", "_$new_dirn", $control );
+                    $dirn = $new_dirn;
+                }
+
+                if ( $monitor['HasPanSpeed'] && $x_factor )
+                {
+                    if ( $monitor['HasTurboPan'] )
+                    {
+                        if ( $x_factor >= $turbo )
+                        {
+                            $pan_speed = $monitor['TurboPanSpeed'];
+                        }
+                        else
+                        {
+                            $x_factor = $x_factor/$turbo;
+                            $pan_speed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$x_factor)));
+                        }
+                    }
+                    else
+                    {
+                        $pan_speed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$x_factor)));
+                    }
+                    $ctrl_command .= " --panspeed=".$pan_speed;
+                }
+                if ( $monitor['HasTiltSpeed'] && $y_factor )
+                {
+                    if ( $monitor['HasTurboTilt'] )
+                    {
+                        if ( $y_factor >= $turbo )
+                        {
+                            $tilt_speed = $monitor['TurboTiltSpeed'];
+                        }
+                        else
+                        {
+                            $y_factor = $y_factor/$turbo;
+                            $tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$y_factor)));
+                        }
+                    }
+                    else
+                    {
+                        $tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$y_factor)));
+                    }
+                    $ctrl_command .= " --tiltspeed=".$tilt_speed;
+                }
+                switch( $mode )
+                {
+                    case 'Rel' :
+                    case 'Abs' :
+                    {
+                        if ( preg_match( '/(Left|Right)$/', $dirn ) )
+                        {
+                            $pan_step = intval(round($monitor['MinPanStep']+(($monitor['MaxPanStep']-$monitor['MinPanStep'])*$x_factor)));
+                            $ctrl_command .= " --panstep=".$pan_step;
+                        }
+                        if ( preg_match( '/^(Up|Down)/', $dirn ) )
+                        {
+                            $tilt_step = intval(round($monitor['MinTiltStep']+(($monitor['MaxTiltStep']-$monitor['MinTiltStep'])*$y_factor)));
+                            $ctrl_command .= " --tiltstep=".$tilt_step;
+                        }
+                        break;
+                    }
+                    case 'Con' :
+                    {
+                        if ( $monitor['AutoStopTimeout'] )
+                        {
+                            $slow_pan_speed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$slow)));
+                            $slow_tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$slow)));
+                            if ( (!isset($pan_speed) || ($pan_speed < $slow_pan_speed)) && (!isset($tilt_speed) || ($tilt_speed < $slow_tilt_speed)) )
+                            {
+                                $ctrl_command .= " --autostop";
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+elseif ( isset($x) && isset($y) )
+{
+    if ( $control == "moveMap" )
     {
         $x = deScale( $x, $scale );
         $y = deScale( $y, $scale );
@@ -72,9 +340,9 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                 $y = $height - $y;
                 break;
         }
-        $ctrl_command .= " -xcoord $x -ycoord $y -width $width -height $height";
+        $ctrl_command .= " --xcoord=$x --ycoord=$y --width=$width --height=$height";
     }
-    elseif ( $control == "move_pseudo_map" )
+    elseif ( $control == "movePseudoMap" )
     {
         $x = deScale( $x, $scale );
         $y = deScale( $y, $scale );
@@ -115,19 +383,19 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
         $tilt_control = '';
         if ( $x_factor > $blind )
         {
-            $pan_control = 'right';
+            $pan_control = 'Right';
         }
         elseif ( $x_factor < -$blind )
         {
-            $pan_control = 'left';
+            $pan_control = 'Left';
         }
         if ( $y_factor > $blind )
         {
-            $tilt_control = 'down';
+            $tilt_control = 'Down';
         }
         elseif ( $y_factor < -$blind )
         {
-            $tilt_control = 'up';
+            $tilt_control = 'Up';
         }
 
         $dirn = $tilt_control.$pan_control;
@@ -138,7 +406,7 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
         }
         else
         {
-            $control = 'move_rel_'.$dirn;
+            $control = 'moveRel'.$dirn;
             $x_factor = abs($x_factor);
             $y_factor = abs($y_factor);
 
@@ -180,19 +448,19 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                     $tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$y_factor)));
                 }
             }
-            if ( preg_match( '/(left|right)$/', $dirn ) )
+            if ( preg_match( '/(Left|Right)$/', $dirn ) )
             {
                 $pan_step = intval(round($monitor['MinPanStep']+(($monitor['MaxPanStep']-$monitor['MinPanStep'])*$x_factor)));
                 $ctrl_command .= " --panstep=".$pan_step." --panspeed=".$pan_speed;
             }
-            if ( preg_match( '/^(up|down)/', $dirn ) )
+            if ( preg_match( '/^(Up|Down)/', $dirn ) )
             {
                 $tilt_step = intval(round($monitor['MinTiltStep']+(($monitor['MaxTiltStep']-$monitor['MinTiltStep'])*$y_factor)));
                 $ctrl_command .= " --tiltstep=".$tilt_step." --tiltspeed=".$tilt_speed;
             }
         }
     }
-    elseif ( $control == "move_con_map" )
+    elseif ( $control == "moveConMap" )
     {
         $x = deScale( $x, $scale );
         $y = deScale( $y, $scale );
@@ -234,30 +502,30 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
         $tilt_control = '';
         if ( $x_factor > $blind )
         {
-            $pan_control = 'right';
+            $pan_control = 'Right';
         }
         elseif ( $x_factor < -$blind )
         {
-            $pan_control = 'left';
+            $pan_control = 'Left';
         }
         if ( $y_factor > $blind )
         {
-            $tilt_control = 'down';
+            $tilt_control = 'Down';
         }
         elseif ( $y_factor < -$blind )
         {
-            $tilt_control = 'up';
+            $tilt_control = 'Up';
         }
 
         $dirn = $tilt_control.$pan_control;
         if ( !$dirn )
         {
             // No command, probably in blind spot in middle
-            $control = 'move_stop';
+            $control = 'moveStop';
         }
         else
         {
-            $control = 'move_con_'.$dirn;
+            $control = 'moveCon'.$dirn;
             $x_factor = abs($x_factor);
             $y_factor = abs($y_factor);
 
@@ -299,11 +567,11 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                     $tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$y_factor)));
                 }
             }
-            if ( preg_match( '/(left|right)$/', $dirn ) )
+            if ( preg_match( '/(Left|Right)$/', $dirn ) )
             {
                 $ctrl_command .= " --panspeed=".$pan_speed;
             }
-            if ( preg_match( '/^(up|down)/', $dirn ) )
+            if ( preg_match( '/^(Up|Down)/', $dirn ) )
             {
                 $ctrl_command .= " --tiltspeed=".$tilt_speed;
             }
@@ -313,7 +581,7 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                 $slow_tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$slow)));
                 if ( (!isset($pan_speed) || ($pan_speed < $slow_pan_speed)) && (!isset($tilt_speed) || ($tilt_speed < $slow_tilt_speed)) )
                 {
-                    $ctrl_command .= " --autostop=".$monitor['AutoStopTimeout'];
+                    $ctrl_command .= " --autostop";
                 }
             }
         }
@@ -326,7 +594,7 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
         $short_x = 32;
         $short_y = 32;
 
-        if ( preg_match( '/^([^_]+)_([^_]+)_([^_]+)$/', $control, $matches ) )
+        if ( preg_match( '/^([a-z]+)([A-Z][a-z]+)([A-Z][a-z]+)$/', $control, $matches ) )
         {
             $command = $matches[1];
             $mode = $matches[2];
@@ -338,12 +606,12 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                 {
                     switch( $dirn )
                     {
-                        case 'near' :
+                        case 'Near' :
                         {
                             $factor = ($long_y-($y+1))/$long_y;
                             break;
                         }
-                        case 'far' :
+                        case 'Far' :
                         {
                             $factor = ($y+1)/$long_y;
                             break;
@@ -356,21 +624,21 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                     }
                     switch( $mode )
                     {
-                        case 'abs' :
-                        case 'rel' :
+                        case 'Abs' :
+                        case 'Rel' :
                         {
                             $step = intval(round($monitor['MinFocusStep']+(($monitor['MaxFocusStep']-$monitor['MinFocusStep'])*$factor)));
                             $ctrl_command .= " --step=".$step;
                             break;
                         }
-                        case 'con' :
+                        case 'Con' :
                         {
                             if ( $monitor['AutoStopTimeout'] )
                             {
                                 $slow_speed = intval(round($monitor['MinFocusSpeed']+(($monitor['MaxFocusSpeed']-$monitor['MinFocusSpeed'])*$slow)));
                                 if ( $speed < $slow_speed )
                                 {
-                                    $ctrl_command .= " --autostop=".$monitor['AutoStopTimeout'];
+                                    $ctrl_command .= " --autostop";
                                 }
                             }
                             break;
@@ -382,12 +650,12 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                 {
                     switch( $dirn )
                     {
-                        case 'tele' :
+                        case 'Tele' :
                         {
                             $factor = ($long_y-($y+1))/$long_y;
                             break;
                         }
-                        case 'wide' :
+                        case 'Wide' :
                         {
                             $factor = ($y+1)/$long_y;
                             break;
@@ -400,21 +668,21 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                     }
                     switch( $mode )
                     {
-                        case 'abs' :
-                        case 'rel' :
+                        case 'Abs' :
+                        case 'Rel' :
                         {
                             $step = intval(round($monitor['MinZoomStep']+(($monitor['MaxZoomStep']-$monitor['MinZoomStep'])*$factor)));
                             $ctrl_command .= " --step=".$step;
                             break;
                         }
-                        case 'con' :
+                        case 'Con' :
                         {
                             if ( $monitor['AutoStopTimeout'] )
                             {
                                 $slow_speed = intval(round($monitor['MinZoomSpeed']+(($monitor['MaxZoomSpeed']-$monitor['MinZoomSpeed'])*$slow)));
                                 if ( $speed < $slow_speed )
                                 {
-                                    $ctrl_command .= " --autostop=".$monitor['AutoStopTimeout'];
+                                    $ctrl_command .= " --autostop";
                                 }
                             }
                             break;
@@ -426,12 +694,12 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                 {
                     switch( $dirn )
                     {
-                        case 'open' :
+                        case 'Open' :
                         {
                             $factor = ($long_y-($y+1))/$long_y;
                             break;
                         }
-                        case 'close' :
+                        case 'Close' :
                         {
                             $factor = ($y+1)/$long_y;
                             break;
@@ -444,8 +712,8 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                     }
                     switch( $mode )
                     {
-                        case 'abs' :
-                        case 'rel' :
+                        case 'Abs' :
+                        case 'Rel' :
                         {
                             $step = intval(round($monitor['MinIrisStep']+(($monitor['MaxIrisStep']-$monitor['MinIrisStep'])*$factor)));
                             $ctrl_command .= " --step=".$step;
@@ -458,12 +726,12 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                 {
                     switch( $dirn )
                     {
-                        case 'in' :
+                        case 'In' :
                         {
                             $factor = ($long_y-($y+1))/$long_y;
                             break;
                         }
-                        case 'out' :
+                        case 'Out' :
                         {
                             $factor = ($y+1)/$long_y;
                             break;
@@ -476,8 +744,8 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                     }
                     switch( $mode )
                     {
-                        case 'abs' :
-                        case 'rel' :
+                        case 'Abs' :
+                        case 'Rel' :
                         {
                             $step = intval(round($monitor['MinWhiteStep']+(($monitor['MaxWhiteStep']-$monitor['MinWhiteStep'])*$factor)));
                             $ctrl_command .= " --step=".$step;
@@ -490,12 +758,12 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                 {
                     switch( $dirn )
                     {
-                        case 'up' :
+                        case 'Up' :
                         {
                             $factor = ($long_y-($y+1))/$long_y;
                             break;
                         }
-                        case 'down' :
+                        case 'Down' :
                         {
                             $factor = ($y+1)/$long_y;
                             break;
@@ -508,8 +776,8 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                     }
                     switch( $mode )
                     {
-                        case 'abs' :
-                        case 'rel' :
+                        case 'Abs' :
+                        case 'Rel' :
                         {
                             $step = intval(round($monitor['MinGainStep']+(($monitor['MaxGainStep']-$monitor['MinGainStep'])*$factor)));
                             $ctrl_command .= " --step=".$step;
@@ -523,19 +791,19 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                     $x_factor = 0;
                     $y_factor = 0;
 
-                    if ( preg_match( '/^up/', $dirn ) )
+                    if ( preg_match( '/^Up/', $dirn ) )
                     {
                         $y_factor = ($short_y-($y+1))/$short_y;
                     }
-                    elseif ( preg_match( '/^down/', $dirn ) )
+                    elseif ( preg_match( '/^Down/', $dirn ) )
                     {
                         $y_factor = ($y+1)/$short_y;
                     }
-                    if ( preg_match( '/left$/', $dirn ) )
+                    if ( preg_match( '/Left$/', $dirn ) )
                     {
                         $x_factor = ($short_x-($x+1))/$short_x;
                     }
-                    elseif ( preg_match( '/right$/', $dirn ) )
+                    elseif ( preg_match( '/Right$/', $dirn ) )
                     {
                         $x_factor = ($x+1)/$short_x;
                     }
@@ -544,54 +812,54 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                     {
                         $conversions = array(
                             '90' => array(
-                                'up' => 'left',
-                                'down' => 'right',
-                                'left' => 'down',
-                                'right' => 'up',
-                                'upleft' => 'downleft',
-                                'upright' => 'upleft',
-                                'downleft' => 'downright',
-                                'downright' => 'upright',
+                                'Up' => 'Left',
+                                'Down' => 'Right',
+                                'Left' => 'Down',
+                                'Right' => 'Up',
+                                'UpLeft' => 'DownLeft',
+                                'UpRight' => 'UpLeft',
+                                'DownLeft' => 'DownRight',
+                                'DownRight' => 'UpRight',
                             ),
                             '180' => array(
-                                'up' => 'down',
-                                'down' => 'up',
-                                'left' => 'right',
-                                'right' => 'left',
-                                'upleft' => 'downright',
-                                'upright' => 'downleft',
-                                'downleft' => 'upright',
-                                'downright' => 'upleft',
+                                'Up' => 'Down',
+                                'Down' => 'Up',
+                                'Left' => 'Right',
+                                'Right' => 'Left',
+                                'UpLeft' => 'DownRight',
+                                'UpRight' => 'DownLeft',
+                                'DownLeft' => 'UpRight',
+                                'DownRight' => 'UpLeft',
                             ),
                             '270' => array(
-                                'up' => 'right',
-                                'down' => 'left',
-                                'left' => 'up',
-                                'right' => 'down',
-                                'upleft' => 'upright',
-                                'upright' => 'downright',
-                                'downleft' => 'upleft',
-                                'downright' => 'downleft',
+                                'Up' => 'Right',
+                                'Down' => 'Left',
+                                'Left' => 'Up',
+                                'Right' => 'Down',
+                                'UpLeft' => 'UpRight',
+                                'UpRight' => 'DownRight',
+                                'DownLeft' => 'UpLeft',
+                                'DownRight' => 'DownLeft',
                             ),
                             'hori' => array(
-                                'up' => 'up',
-                                'down' => 'down',
-                                'left' => 'right',
-                                'right' => 'left',
-                                'upleft' => 'upright',
-                                'upright' => 'upleft',
-                                'downleft' => 'downright',
-                                'downright' => 'downleft',
+                                'Up' => 'Up',
+                                'Down' => 'Down',
+                                'Left' => 'Right',
+                                'Right' => 'Left',
+                                'UpLeft' => 'UpRight',
+                                'UpRight' => 'UpLeft',
+                                'DownLeft' => 'DownRight',
+                                'DownRight' => 'DownLeft',
                             ),
                             'vert' => array(
-                                'up' => 'down',
-                                'down' => 'up',
-                                'left' => 'left',
-                                'right' => 'right',
-                                'upleft' => 'downleft',
-                                'upright' => 'downright',
-                                'downleft' => 'upleft',
-                                'downright' => 'upright',
+                                'Up' => 'Down',
+                                'Down' => 'Up',
+                                'Left' => 'Left',
+                                'Right' => 'Right',
+                                'UpLeft' => 'DownLeft',
+                                'UpRight' => 'DownRight',
+                                'DownLeft' => 'UpLeft',
+                                'DownRight' => 'UpRight',
                             ),
                         );
                         $new_dirn = $conversions[$monitor['Orientation']][$dirn];
@@ -641,22 +909,22 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                     }
                     switch( $mode )
                     {
-                        case 'rel' :
-                        case 'abs' :
+                        case 'Rel' :
+                        case 'Abs' :
                         {
-                            if ( preg_match( '/(left|right)$/', $dirn ) )
+                            if ( preg_match( '/(Left|Right)$/', $dirn ) )
                             {
                                 $pan_step = intval(round($monitor['MinPanStep']+(($monitor['MaxPanStep']-$monitor['MinPanStep'])*$x_factor)));
                                 $ctrl_command .= " --panstep=".$pan_step;
                             }
-                            if ( preg_match( '/^(up|down)/', $dirn ) )
+                            if ( preg_match( '/^(Up|Down)/', $dirn ) )
                             {
                                 $tilt_step = intval(round($monitor['MinTiltStep']+(($monitor['MaxTiltStep']-$monitor['MinTiltStep'])*$y_factor)));
                                 $ctrl_command .= " --tiltstep=".$tilt_step;
                             }
                             break;
                         }
-                        case 'con' :
+                        case 'Con' :
                         {
                             if ( $monitor['AutoStopTimeout'] )
                             {
@@ -664,7 +932,7 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
                                 $slow_tilt_speed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$slow)));
                                 if ( (!isset($pan_speed) || ($pan_speed < $slow_pan_speed)) && (!isset($tilt_speed) || ($tilt_speed < $slow_tilt_speed)) )
                                 {
-                                    $ctrl_command .= " --autostop=".$monitor['AutoStopTimeout'];
+                                    $ctrl_command .= " --autostop";
                                 }
                             }
                             break;
@@ -677,45 +945,89 @@ if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
 }
 else
 {
-    if ( preg_match( '/^preset_goto_(\d+)$/', $control, $matches ) )
+    if ( preg_match( '/^presetGoto(\d+)$/', $control, $matches ) )
     {
-        $control = 'preset_goto';
-        $ctrl_command .= " --preset ".$matches[1];
+        $control = 'presetGoto';
+        $ctrl_command .= " --preset=".$matches[1];
     }
-    elseif ( $control == "preset_set" )
+    elseif ( $control == "presetSet" )
     {
-        $preset = $_REQUEST['preset'];
         if ( canEdit( 'Control' ) )
         {
-            $new_label = $_REQUEST['new_label'];
-            $row = dbFetchOne( "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'" );
+            $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
+            $result = mysql_query( $sql );
+            if ( !$result )
+               die( mysql_error() );
+            $row = mysql_fetch_assoc( $result );
+            mysql_free_result( $result );
             if ( $new_label != $row['Label'] )
             {
                 if ( $new_label )
                     $sql = "replace into ControlPresets ( MonitorId, Preset, Label ) values ( '".$monitor['Id']."', '".$preset."', '".addslashes($new_label)."' )";
                 else
                     $sql = "delete from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
-                dbQuery( $sql );
+                $result = mysql_query( $sql );
+                if ( !$result )
+                    die( mysql_error() );
                 $refresh_parent = true;
             }
         }
-        $ctrl_command .= " --preset ".$preset;
+        $ctrl_command .= " --preset=".$preset;
         $view = 'none';
+    }
+    elseif ( $control == "moveMap" )
+    {
+        $ctrl_command .= " --xcoord=$x --ycoord=$y";
     }
 }
 if ( $control != 'null' )
 {
     $ctrl_command .= " --command=".$control;
     error_log( "Command: $ctrl_command" );
-    $ctrl_status = '';
-    $ctrl_output = array();
-    exec( escapeshellcmd( $ctrl_command, $ctrl_output, $ctrl_status ) );
-    error_log( "Status: $ctrl_status" );
-    error_log( "Output: ".join( "\n", $ctrl_output ) );
-    if ( !$ctrl_status )
-        $response = array( 'result' => "Ok" );
+    $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
+    if ( $socket < 0 )
+    {
+        die( "socket_create() failed: ".socket_strerror($socket) );
+    }
+    $sock_file = ZM_PATH_SOCKS.'/zmcontrol-'.$monitor['Id'].'.sock';
+    if ( @socket_connect( $socket, $sock_file ) )
+    {
+        $options = array();
+        foreach ( split( " ", $ctrl_command ) as $option )
+        {
+            if ( preg_match( '/--([^=]+)(?:=(.+))?/', $option, $matches ) )
+            {
+                $options[$matches[1]] = !empty($matches[2])?$matches[2]:1;
+            }
+        }
+        $option_string = serialize( $options );
+        if ( socket_write( $socket, $option_string ) )
+        {
+            $response = array( 'result' => "Ok", 'message' => 'Used socket' );
+        }
+        else
+        {
+            $response = array( 'result' => "Error", 'status' => 0, 'message' => "Failed to write to control socket" );
+        }
+        socket_close( $socket );
+    }
     else
-        $response = array( 'result' => "Error", 'status' => $ctrl_status, 'message' => join( "\n", $ctrl_output ) );
+    {
+        $ctrl_command .= " --id=".$monitor['Id'];
+        $ctrl_command .= " --protocol=".$monitor['Protocol'];
+        #$ctrl_command .= " --protocol="."PelcoD";
+
+        // Can't connect so use script
+        $ctrl_status = '';
+        $ctrl_output = array();
+        exec( escapeshellcmd( $ctrl_command ), $ctrl_output, $ctrl_status );
+        error_log( "Status: $ctrl_status" );
+        error_log( "Output: ".join( "\n", $ctrl_output ) );
+        if ( !$ctrl_status )
+            $response = array( 'result' => "Ok", 'message' => 'Used script' );
+        else
+            $response = array( 'result' => "Error", 'status' => $ctrl_status, 'message' => join( "\n", $ctrl_output ) );
+    }
 }
 else
 {

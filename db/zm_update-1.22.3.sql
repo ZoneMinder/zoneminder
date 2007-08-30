@@ -19,6 +19,19 @@ alter table Zones add column OverloadFrames smallint(5) unsigned NOT NULL defaul
 alter table ZonePresets add column OverloadFrames smallint(5) unsigned NOT NULL default '0' after MaxBlobs;
 
 --
+-- Change control command to protocol module
+--
+alter table Controls add column Protocol varchar(32) after Command;
+update Controls set Protocol = "PelcoD" where Command like "%zmcontrol-pelco-d.pl";
+update Controls set Protocol = "PelcoP" where Command like "%zmcontrol-pelco-p.pl";
+update Controls set Protocol = "Visca" where Command like "%zmcontrol-visca.pl";
+update Controls set Protocol = "PanasonicIP" where Command like "%zmcontrol-panasonic-ip.pl";
+update Controls set Protocol = "AxisV2" where Command like "%zmcontrol-axis-v2.pl";
+update Controls set Protocol = "Ncs370" where Command like "%zmcontrol-ncs370.pl";
+update Controls set Protocol = "VclTP" where Command like "%zmcontrol-vcltp.pl";
+alter table Controls drop column Command;
+
+--
 -- These are optional, but we might as well do it now
 --
 optimize table Frames;

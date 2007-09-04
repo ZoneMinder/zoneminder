@@ -1,7 +1,6 @@
 <?php
 //
 // ZoneMinder web timeline view file, $Date$, $Revision$
-// Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -762,7 +761,7 @@ function getSlotLoadImageBehaviour( $slot )
 	global $monitors, $jws, $PHP_SELF;
 	global $zmSlangArchived;
 
-	$event_path = ZM_DIR_EVENTS.'/'.$slot['event']['MonitorId'].'/'.$slot['event']['Id'];
+    $event_path = getEventPath( $slot['event'] );
 	$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, isset($slot['frame'])?$slot['frame']['FrameId']:1 );
 	$anal_image = preg_replace( "/capture/", "analyse", $image_path );
 	if ( file_exists( $anal_image ) )

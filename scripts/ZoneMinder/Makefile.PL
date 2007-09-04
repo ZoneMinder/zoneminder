@@ -11,6 +11,7 @@ WriteMakefile(
 		'lib/ZoneMinder/Base.pm' => '$(INST_LIBDIR)/ZoneMinder/Base.pm',
 		'lib/ZoneMinder/Config.pm' => '$(INST_LIBDIR)/ZoneMinder/Config.pm',
 		'lib/ZoneMinder/Debug.pm' => '$(INST_LIBDIR)/ZoneMinder/Debug.pm',
+		'lib/ZoneMinder/General.pm' => '$(INST_LIBDIR)/ZoneMinder/General.pm',
 		'lib/ZoneMinder/Database.pm' => '$(INST_LIBDIR)/ZoneMinder/Database.pm',
 		'lib/ZoneMinder/SharedMem.pm' => '$(INST_LIBDIR)/ZoneMinder/SharedMem.pm',
 		'lib/ZoneMinder/ConfigAdmin.pm' => '$(INST_LIBDIR)/ZoneMinder/ConfigAdmin.pm',

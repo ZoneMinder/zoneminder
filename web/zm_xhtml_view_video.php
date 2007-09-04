@@ -61,7 +61,7 @@ $event_height = $event['Height'];
 if ( !isset( $rate ) )
 	$rate = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
 
-$event_dir = ZM_DIR_EVENTS."/".$event['MonitorId']."/".sprintf( "%d", $eid );
+$event_path = getEventPath( $event );
 
 $video_formats = array();
 $ffmpeg_formats = preg_split( '/\s+/', ZM_FFMPEG_FORMATS );
@@ -106,11 +106,11 @@ if ( !empty($generate) )
 }
 
 $video_files = array();
-if ( $dir = opendir( $event_dir ) )
+if ( $dir = opendir( $event_path ) )
 {
 	while ( ($file = readdir( $dir )) !== false )
 	{
-		$file = $event_dir.'/'.$file;
+		$file = $event_path.'/'.$file;
 		if ( is_file( $file ) )
 		{
 			if ( preg_match( '/-S([\da-z]+)\.(?:'.join( '|', $video_formats ).')$/', $file, $matches ) )

@@ -160,12 +160,20 @@ $size = $detaint_size;
 my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
 
 my @filters;
-my $sql = "select max(F.Delta)-min(F.Delta) as FullLength, E.*, M.Name as MonitorName, M.Width as MonitorWidth, M.Height as MonitorHeight, M.Palette from Frames as F inner join Events as E on F.EventId = E.Id inner join Monitors as M on E.MonitorId = M.Id where EventId = '$event_id' group by F.EventId";
+my $sql = "select max(F.Delta)-min(F.Delta) as FullLength, E.*, unix_timestamp(E.StartTime) as Time, M.Name as MonitorName, M.Width as MonitorWidth, M.Height as MonitorHeight, M.Palette from Frames as F inner join Events as E on F.EventId = E.Id inner join Monitors as M on E.MonitorId = M.Id where EventId = '$event_id' group by F.EventId";
 my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 my $event = $sth->fetchrow_hashref();
 $sth->finish();
-my $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id};
+my $event_path;
+if ( ZM_USE_DEEP_STORAGE )
+{
+    $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d/%H/%M/%S", $event->{Time} );
+}
+else
+{
+    $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id};
+}
 chdir( $event_path );
 ( my $video_name = $event->{Name} ) =~ s/\s/_/g; 
 

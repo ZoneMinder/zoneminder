@@ -601,14 +601,7 @@ sub checkFilter
                     $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
                     $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 
-                    my $command = "rm -rf ".ZM_DIR_EVENTS."/*/".sprintf( "%d", $event->{Id} );
-                    my $output = qx($command);
-                    my $status = $? >> 8;
-                    if ( $status || DBG_LEVEL > 0 )
-                    {
-                        chomp( $output );
-                        Debug( "Output: $output\n" );
-                    }
+                    deleteEventFiles( $event->{Id}, $event->{MonitorId} );
                 }
             }
             else

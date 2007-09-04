@@ -244,7 +244,7 @@ if ( version_compare( phpversion(), "4.3.10", ">=") )
 	$fraction = sprintf( "%.2F", $scale/100 );
 else
 	$fraction = sprintf( "%.2f", $scale/100 );
-$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorName'].'/'.$event['Id'];
+$event_path = getEventPath( $event );
 for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++, $count++ )
 {
 	if ( $count%$frames_per_line == 0 )

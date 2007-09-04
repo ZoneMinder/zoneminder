@@ -188,22 +188,53 @@ do
 		my $fs_events = $fs_monitors->{$monitor} = {};
 		( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
 
-		opendir( DIR, $monitor_dir ) or Fatal( "Can't open directory '$monitor_dir': $!" );
-		my @temp_events = sort { $b <=> $a } grep { $_ =~ /^\d+$/ } readdir( DIR );
-		closedir( DIR );
-		chdir( $monitor_dir );
-		my $count = 0;
-		foreach my $event ( @temp_events )
-		{
-			if ( $count++ > MAX_AGED_DIRS )
-			{
-				$fs_events->{$event} = -1;
-			}
-			else
-			{
-				$fs_events->{$event} = (time() - ($^T - ((-M $event) * 24*60*60)));
-			}
-		}
+        if ( ZM_USE_DEEP_STORAGE )
+        {
+            foreach my $day_dir ( <$monitor_dir/*/*/*> )
+            {
+                Debug( "Checking $day_dir" );
+		        ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
+                chdir( $day_dir );
+                opendir( DIR, "." ) or Fatal( "Can't open directory '$day_dir': $!" );
+                my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
+                closedir( DIR );
+                my $count = 0;
+                foreach my $event_link ( @event_links )
+                {
+                    Debug( "Checking link $event_link" );
+                    ( my $event = $event_link ) =~ s/^.*\.//;
+                    my $event_path = readlink( $event_link );
+                    if ( $count++ > MAX_AGED_DIRS )
+                    {
+                        $fs_events->{$event} = -1;
+                    }
+                    else
+                    {
+                        $fs_events->{$event} = (time() - ($^T - ((-M $event_path) * 24*60*60)));
+                    }
+                }
+		        chdir( EVENT_PATH );
+            }
+        }
+        else
+        {
+            opendir( DIR, $monitor_dir ) or Fatal( "Can't open directory '$monitor_dir': $!" );
+            my @temp_events = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
+            closedir( DIR );
+            chdir( $monitor_dir );
+            my $count = 0;
+            foreach my $event ( @temp_events )
+            {
+                if ( $count++ > MAX_AGED_DIRS )
+                {
+                    $fs_events->{$event} = -1;
+                }
+                else
+                {
+                    $fs_events->{$event} = (time() - ($^T - ((-M $event) * 24*60*60)));
+                }
+            }
+        }
 		chdir( EVENT_PATH );
 		Debug( "Got ".int(keys(%$fs_events))." events\n" );
 	}
@@ -221,8 +252,7 @@ do
 						aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
 						if ( confirm() )
 						{
-							my $command = "/bin/rm -rf ".EVENT_PATH."/$fs_monitor/$fs_event";
-							qx( $command );
+                            deleteEventFiles( $fs_event, $fs_monitor );
 						}
 					}
 				}
@@ -234,7 +264,7 @@ do
 			if ( confirm() )
 			{
 				my $command = "rm -rf ".EVENT_PATH."/$fs_monitor";
-				qx( $command );
+				executeShellCommand( $command );
 			}
 		}
 	}

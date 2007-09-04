@@ -123,6 +123,18 @@ public:
 	void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
 
 public:
+    static const char *getSubPath( struct tm *time )
+    {
+        static char subpath[PATH_MAX] = "";
+        snprintf( subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec );
+        return( subpath );
+    }
+    static const char *getSubPath( time_t *time )
+    {
+        return( Event::getSubPath( localtime( time ) ) );
+    }
+
+public:
 	static int PreAlarmCount()
 	{
 		return( pre_alarm_count );

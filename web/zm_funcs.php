@@ -444,10 +444,21 @@ function canEdit( $area, $mid=false )
 	return( $user[$area] == 'Edit' && ( !$mid || visibleMonitor( $mid ) ) );
 }
 
-function deleteEvent( $eid )
+function getEventPath( $event )
+{
+    if ( ZM_USE_DEEP_STORAGE )
+        $event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
+    else
+        $event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
+    return( $event_path );
+}
+
+function deleteEvent( $eid, $mid=false )
 {
 	global $user;
 
+    if ( !$mid )
+        $mid = '*';
 	if ( $user['Events'] == 'Edit' && $eid )
 	{
 		$result = mysql_query( "delete from Events where Id = '$eid'" );
@@ -461,7 +472,30 @@ function deleteEvent( $eid )
 			$result = mysql_query( "delete from Frames where EventId = '$eid'" );
 			if ( !$result )
 				die( mysql_error() );
-			system( escapeshellcmd( "rm -rf ".ZM_DIR_EVENTS."/*/".sprintf( "%d", $eid ) ) );
+            if ( ZM_USE_DEEP_STORAGE )
+            {
+                error_log( "Globbing ".ZM_DIR_EVENTS.'/'.$mid.'/*/*/*/.'.$eid );
+                if ( $id_files = glob( ZM_DIR_EVENTS.'/'.$mid.'/*/*/*/.'.$eid ) )
+                    $event_path = preg_replace( "/\.$eid$/", readlink($id_files[0]), $id_files[0] );
+                error_log( "Deleting $event_path, not really, id = ".$id_files[0] );
+			    system( escapeshellcmd( "rm -rf ".$event_path ) );
+                unlink( $id_files[0] );
+                $path_parts = explode(  '/', $event_path );
+                for ( $i = count($path_parts)-1; $i >= 2; $i-- )
+                {
+                    $delete_path = join( '/', array_slice( $path_parts, 0, $i ) );
+                    if ( !glob( $delete_path."/*" ) )
+                    {
+                        error_log( "Removing $delete_path, not really" );
+			            system( escapeshellcmd( "rm -rf ".$delete_path ) );
+                    }
+                }
+            }
+            else
+            {
+		        $event_path = ZM_DIR_EVENTS.'/'.$mid.'/'.$eid;
+			    system( escapeshellcmd( "rm -rf ".$event_path ) );
+            }
 		}
 	}
 }
@@ -937,7 +971,7 @@ function zmaCheck( $monitor )
 
 function getImageSrc( $event, $frame, $scale, $capture_only=false, $overwrite=false )
 {
-	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
+    $event_path = getEventPath( $event );
 
 	//echo "S:$scale, CO:$capture_only<br>";
 	$capt_image = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );

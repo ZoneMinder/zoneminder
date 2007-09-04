@@ -45,6 +45,7 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder/Base.pm.in \
 	ZoneMinder/lib/ZoneMinder/Config.pm.in \
 	ZoneMinder/lib/ZoneMinder/Debug.pm \
+	ZoneMinder/lib/ZoneMinder/General.pm \
 	ZoneMinder/lib/ZoneMinder/Database.pm \
 	ZoneMinder/lib/ZoneMinder/SharedMem.pm \
 	ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm \

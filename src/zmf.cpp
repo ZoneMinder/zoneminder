@@ -170,9 +170,8 @@ int main( int argc, char *argv[] )
 
 	char capt_path[PATH_MAX];
 	char anal_path[PATH_MAX];
-	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%d/%%0%dd-capture.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
-	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%d/%%0%dd-analyse.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
-
+	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%s/%%0%dd-capture.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
+	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%s/%%0%dd-analyse.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
 	zmSetDefaultTermHandler();
 	zmSetDefaultDieHandler();
 
@@ -249,8 +248,18 @@ int main( int argc, char *argv[] )
 			ReopenSocket( sd, monitor->Id() );
 			continue;
 		}
+		static char subpath[PATH_MAX] = "";
+        if ( config.use_deep_storage )
+        {
+            struct tm *time = localtime( &frame_header.event_time );
+            snprintf( subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec );
+        }
+        else
+        {
+            snprintf( subpath, sizeof(subpath), "%d", frame_header.event_id );
+        }
 		static char path[PATH_MAX] = "";
-		snprintf( path, sizeof(path), frame_header.alarm_frame?anal_path:capt_path, frame_header.event_id, frame_header.frame_id );
+		snprintf( path, sizeof(path), frame_header.alarm_frame?anal_path:capt_path, subpath, frame_header.frame_id );
 		Debug( 1, ( "Got image, writing to %s", path ));
 
 		FILE *fd = 0;

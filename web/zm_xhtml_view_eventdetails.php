@@ -50,7 +50,7 @@ else
 
 function getThumbnail( $event, $fid, $scale )
 {
-	$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
+	$event_path = getEventPath( $event );
 	$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $fid );
 	$anal_image = preg_replace( "/capture/", "analyse", $image_path );
 	if ( file_exists( $anal_image ) )

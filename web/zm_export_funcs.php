@@ -131,7 +131,7 @@ function exportEventFrames( $event )
 <?php
 	if ( count($frames) )
 	{
-		$event_path = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
+        $event_path = getEventPath( $event );
 		foreach ( $frames as $frame )
 		{
 			$image_file = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
@@ -193,7 +193,7 @@ function exportFileList( $eid )
 		$event = mysql_fetch_assoc( $result );
 		mysql_free_result( $result );
 
-		$event_path = sprintf( "%s/%s/%d", ZM_DIR_EVENTS, $event['MonitorName'], $event['Id'] );
+        $event_path = getEventPath( $event );
 		$files = array();
 		if ( $dir = opendir( $event_path ) )
 		{

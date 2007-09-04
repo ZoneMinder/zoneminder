@@ -55,7 +55,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cau
     static char sql[BUFSIZ];
     static char start_time_str[32];
 
-    strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", localtime( &start_time.tv_sec ) );
+    struct tm *stime = localtime( &start_time.tv_sec );
+    strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", stime );
     snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', '%s', %d, %d, '%s', '%s' )", monitor->Id(), start_time_str, monitor->Width(), monitor->Height(), cause, text );
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -68,19 +69,69 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cau
     alarm_frames = 0;
     tot_score = 0;
     max_score = 0;
-    snprintf( path, sizeof(path), "%s/%d/%d", config.dir_events, monitor->Id(), id );
 
-    struct stat statbuf;
-    errno = 0;
-    stat( path, &statbuf );
-    if ( errno == ENOENT || errno == ENOTDIR )
+    if ( config.use_deep_storage )
     {
-        if ( mkdir( path, 0755 ) )
+        char *path_ptr = path;
+        path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d", config.dir_events, monitor->Id() );
+
+        int dt_parts[6];
+        dt_parts[0] = stime->tm_year-100;
+        dt_parts[1] = stime->tm_mon+1;
+        dt_parts[2] = stime->tm_mday;
+        dt_parts[3] = stime->tm_hour;
+        dt_parts[4] = stime->tm_min;
+        dt_parts[5] = stime->tm_sec;
+
+        char date_path[PATH_MAX] = "";
+        char time_path[PATH_MAX] = "";
+        char *time_path_ptr = time_path;
+        for ( int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ )
         {
-            Error(( "Can't make %s: %s", path, strerror(errno)));
+            path_ptr += snprintf( path_ptr, sizeof(path)-(path_ptr-path), "/%02d", dt_parts[i] );
+
+            struct stat statbuf;
+            errno = 0;
+            stat( path, &statbuf );
+            if ( errno == ENOENT || errno == ENOTDIR )
+            {
+                if ( mkdir( path, 0755 ) )
+                {
+                    Fatal(( "Can't mkdir %s: %s", path, strerror(errno)));
+                }
+            }
+            if ( i == 2 )
+                strncpy( date_path, path, sizeof(date_path) );
+            else if ( i >= 3 )
+                time_path_ptr += snprintf( time_path_ptr, sizeof(time_path)-(time_path_ptr-time_path), "%s%02d", i>3?"/":"", dt_parts[i] );
+        }
+        char id_file[PATH_MAX];
+        // Create event id symlink
+        snprintf( id_file, sizeof(id_file), "%s/.%d", date_path, id );
+        if ( symlink( time_path, id_file ) < 0 )
+            Fatal(( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno)));
+        // Create empty id tag file
+        snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
+        if ( FILE *id_fp = fopen( id_file, "w" ) )
+            fclose( id_fp );
+        else
+            Fatal(( "Can't fopen %s: %s", id_file, strerror(errno)));
+    }
+    else
+    {
+        snprintf( path, sizeof(path), "%s/%d/%d", config.dir_events, monitor->Id(), id );
+        
+        struct stat statbuf;
+        errno = 0;
+        stat( path, &statbuf );
+        if ( errno == ENOENT || errno == ENOTDIR )
+        {
+            if ( mkdir( path, 0755 ) )
+            {
+                Error(( "Can't mkdir %s: %s", path, strerror(errno)));
+            }
         }
     }
-
     last_db_frame = 0;
 }
 
@@ -206,6 +257,8 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
     static FrameHeader frame_header;
 
     frame_header.event_id = id;
+    if ( config.use_deep_storage )
+        frame_header.event_time = start_time.tv_sec;
     frame_header.frame_id = frames;
     frame_header.alarm_frame = alarm_frame;
     frame_header.image_length = jpg_buffer_size;
@@ -510,9 +563,17 @@ bool EventStream::loadEventData( int event_id )
     event_data = new EventData;
     event_data->event_id = event_id;
     event_data->monitor_id = atoi( dbrow[0] );
-    snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%d/%d", ZM_PATH_WEB, config.dir_events, event_data->monitor_id, event_data->event_id );
-    event_data->frame_count = atoi(dbrow[2]);
     event_data->start_time = atoi(dbrow[3]);
+    if ( config.use_deep_storage )
+    {
+        struct tm *event_time = localtime( &event_data->start_time );
+        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%d/%02d/%02d/%02d/%02d/%02d/%02d", ZM_PATH_WEB, config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+    }
+    else
+    {
+        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%d/%d", ZM_PATH_WEB, config.dir_events, event_data->monitor_id, event_data->event_id );
+    }
+    event_data->frame_count = atoi(dbrow[2]);
     event_data->duration = atof(dbrow[4]);
 
     updateFrameRate( (double)event_data->frame_count/event_data->duration );

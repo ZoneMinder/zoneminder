@@ -16,13 +16,14 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
-#include <mysql/mysql.h>
+
 #ifndef ZMFILE_H
 #define ZMFILE_H
 
 struct FrameHeader
 {
 	unsigned long event_id;
+    time_t event_time;
 	unsigned long frame_id;
 	bool alarm_frame;
 	unsigned long image_length;

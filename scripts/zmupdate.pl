@@ -636,6 +636,85 @@ if ( $version )
 		patchDB( $dbh, "1.22.2" );
 		$cascade = !undef;
 	}
+	if ( $cascade || $version eq "1.22.3" )
+	{
+		# Patch the database
+		patchDB( $dbh, "1.22.3" );
+
+		# Convert filters to new format
+		my $sql = "select * from Filters";
+		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+		my @db_filters;
+		while( my $db_filter = $sth->fetchrow_hashref() )
+		{
+			push( @db_filters, $db_filter );
+		}
+		$sth->finish();
+        foreach my $db_filter ( @db_filters )
+        {
+            my %filter_terms;
+            foreach my $filter_parm ( split( '&', $db_filter->{Query} ) )
+            {
+                my( $key, $value ) = split( '=', $filter_parm, 2 );
+                if ( $key )
+                {
+                    $filter_terms{$key} = $value;
+                }
+            }
+            my $filter = { 'terms' => [] };
+            for ( my $i = 1; $i <= $filter_terms{trms}; $i++ )
+            {
+                my $term = {};
+                my $conjunction_name = "cnj$i";
+                my $obracket_name = "obr$i";
+                my $cbracket_name = "cbr$i";
+                my $attr_name = "attr$i";
+                my $op_name = "op$i";
+                my $value_name = "val$i";
+
+                $term->{cnj} = $filter_terms{$conjunction_name} if ( $filter_terms{$conjunction_name} );
+                $term->{obr} = $filter_terms{$obracket_name} if ( $filter_terms{$obracket_name} );
+                $term->{attr} = $filter_terms{$attr_name} if ( $filter_terms{$attr_name} );
+                $term->{val} = $filter_terms{$value_name} if ( defined($filter_terms{$value_name}) );
+                $term->{op} = $filter_terms{$op_name} if ( $filter_terms{$op_name} );
+                $term->{cbr} = $filter_terms{$cbracket_name} if ( $filter_terms{$cbracket_name} );
+                push( @{$filter->{terms}}, $term );
+            }
+            $filter->{sort_field} = $filter_terms{sort_field} if ( $filter_terms{sort_field} );
+            $filter->{sort_asc} = $filter_terms{sort_asc} if ( $filter_terms{sort_asc} );
+            $filter->{limit} = $filter_terms{limit} if ( $filter_terms{limit} );
+
+            my $new_query = 'a:'.int(keys(%$filter)).':{s:5:"terms";a:'.int(@{$filter->{terms}}).':{';
+            my $i = 0;
+            foreach my $term ( @{$filter->{terms}} )
+            {
+                $new_query .= 'i:'.$i.';a:'.int(keys(%$term)).':{';
+                while ( my ( $key, $val ) = each( %$term ) )
+                {
+                    $new_query .= 's:'.length($key).':"'.$key.'";';
+                    $new_query .= 's:'.length($val).':"'.$val.'";';
+                }
+                $new_query .= '}';
+                $i++;
+            }
+            $new_query .= '}';
+            foreach my $field ( "sort_field", "sort_asc", "limit" )
+            {
+                if ( defined($filter->{$field}) )
+                {
+                    $new_query .= 's:'.length($field).':"'.$field.'";';
+                    $new_query .= 's:'.length($filter->{$field}).':"'.$filter->{$field}.'";';
+                }
+            }
+            $new_query .= '}';
+
+		    my $sql = "update Filters set Query = ? where Name = ?";
+		    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+		    my $res = $sth->execute( $new_query, $db_filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+        }
+		$cascade = !undef;
+	}
 	if ( $cascade )
 	{
 		my $installed_version = ZM_VERSION;

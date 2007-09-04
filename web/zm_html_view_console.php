@@ -18,6 +18,60 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+$event_counts = array(
+    array(
+        "title" => $zmSlangEvents,
+        "filter" => array(
+            "terms" => array(
+            )
+        ),
+    ),
+    array(
+        "title" => $zmSlangHour,
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
+                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
+            )
+        ),
+    ),
+    array(
+        "title" => $zmSlangDay,
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
+                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
+            )
+        ),
+    ),
+    array(
+        "title" => $zmSlangWeek,
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
+                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
+            )
+        ),
+    ),
+    array(
+        "title" => $zmSlangMonth,
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
+                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
+            )
+        ),
+    ),
+    array(
+        "title" => $zmSlangArchive,
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "1" ),
+            )
+        ),
+    ),
+);
+
 $running = daemonCheck();
 $status = $running?$zmSlangRunning:$zmSlangStopped;
 
@@ -25,22 +79,14 @@ if ( !isset($cgroup) )
 {
 	$cgroup = 0;
 }
-$sql = "select * from Groups where Id = '$cgroup'";
-$result = mysql_query( $sql );
-if ( !$result )
-	echo mysql_error();
-$group = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+if ( $group = dbFetchOne( "select * from Groups where Id = '$cgroup'" ) )
+    $group_ids = array_flip(split( ',', $group['MonitorIds'] ));
 
 if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: ".ZM_WEB_REFRESH_MAIN."; URL=$PHP_SELF" );
 noCacheHeaders();
 
 $db_now = strftime( STRF_FMT_DATETIME_DB );
-$sql = "select * from Monitors order by Sequence asc";
-$result = mysql_query( $sql );
-if ( !$result )
-	echo mysql_error();
 $monitors = array();
 $max_width = 0;
 $max_height = 0;
@@ -48,50 +94,50 @@ $cycle_count = 0;
 $min_sequence = 0;
 $max_sequence = 1;
 $seq_id_list = array();
-while( $row = mysql_fetch_assoc( $result ) )
+$monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
+for ( $i = 0; $i < count($monitors); $i++ )
 {
-	if ( !visibleMonitor( $row['Id'] ) )
+	if ( !visibleMonitor( $monitors[$i]['Id'] ) )
 	{
 		continue;
 	}
-	if ( $group && $group['MonitorIds'] && !in_array( $row['Id'], split( ',', $group['MonitorIds'] ) ) )
+	if ( $group && !empty($group_ids) && !array_key_exists( $monitors[$i]['Id'], $group_ids ) )
 	{
 		continue;
 	}
-	if ( empty($min_sequence) || ($row['Sequence'] < $min_sequence) )
+	$monitors[$i]['Show'] = true;
+	if ( empty($min_sequence) || ($monitors[$i]['Sequence'] < $min_sequence) )
 	{
-		$min_sequence = $row['Sequence'];
+		$min_sequence = $monitors[$i]['Sequence'];
 	}
-	if ( $row['Sequence'] > $max_sequence )
+	if ( $monitors[$i]['Sequence'] > $max_sequence )
 	{
-		$max_sequence = $row['Sequence'];
+		$max_sequence = $monitors[$i]['Sequence'];
 	}
-	$row['zmc'] = zmcStatus( $row );
-	$row['zma'] = zmaStatus( $row );
-	$sql = "select count(Id) as ZoneCount from Zones where MonitorId = '".$row['Id']."'";
-	$result2 = mysql_query( $sql );
-	if ( !$result2 )
-		echo mysql_error();
-	$row2 = mysql_fetch_assoc( $result2 );
-	mysql_free_result( $result2 );
-	$sql = "select count(if(Archived=0,1,NULL)) as EventCount, count(if(Archived,1,NULL)) as ArchEventCount, count(if(StartTime>'$db_now' - INTERVAL 1 HOUR && Archived = 0,1,NULL)) as HourEventCount, count(if(StartTime>'$db_now' - INTERVAL 1 DAY && Archived = 0,1,NULL)) as DayEventCount, count(if(StartTime>'$db_now' - INTERVAL 7 DAY && Archived = 0,1,NULL)) as WeekEventCount, count(if(StartTime>'$db_now' - INTERVAL 1 MONTH && Archived = 0,1,NULL)) as MonthEventCount from Events as E where MonitorId = '".$row['Id']."'";
-	$result3 = mysql_query( $sql );
-	if ( !$result3 )
-		echo mysql_error();
-	$row3 = mysql_fetch_assoc( $result3 );
-	mysql_free_result( $result3 );
-	if ( $row['Function'] != 'None' )
+	$monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
+	$monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
+	$monitors[$i]['ZoneCount'] = dbFetchOne( "select count(Id) as ZoneCount from Zones where MonitorId = '".$monitors[$i]['Id']."'", "ZoneCount" );
+    $counts = array();
+    for ( $j = 0; $j < count($event_counts); $j++ )
+    {
+        $filter = addFilterTerm( $event_counts[$j]['filter'], count($event_counts[$j]['filter']['terms']), array( "cnj" => "and", "attr" => "MonitorId", "op" => "=", "val" => $monitors[$i]['Id'] ) );
+        parseFilter( $filter );
+        $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
+        $monitors[$i]['event_counts'][$j]['filter'] = $filter;
+    }
+	$sql = "select ".join($counts,", ")." from Events as E where MonitorId = '".$monitors[$i]['Id']."'";
+	$counts = dbFetchOne( $sql );
+	if ( $monitors[$i]['Function'] != 'None' )
 	{
 		$cycle_count++;
-		$scale_width = reScale( $row['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-		$scale_height = reScale( $row['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+		$scale_width = reScale( $monitors[$i]['Width'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+		$scale_height = reScale( $monitors[$i]['Height'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 		if ( $max_width < $scale_width ) $max_width = $scale_width;
 		if ( $max_height < $scale_height ) $max_height = $scale_height;
 	}
-	$monitors[] = $row = array_merge( $row, $row2, $row3 );
-	$seq_id_list[] = $row['Id'];
+	$monitors[$i] = array_merge( $monitors[$i], $counts );
+	$seq_id_list[] = $monitors[$i]['Id'];
 }
-mysql_free_result( $result );
 $last_id = 0;
 $seq_id_u_list = array();
 foreach ( $seq_id_list as $seq_id )
@@ -205,10 +251,7 @@ newWindow( '<?= $PHP_SELF ?>?view=donate', 'zmDonate', <?= $jws['donate']['w'] ?
 		else
 		{
 			$next_reminder = time() + 30*24*60*60;
-			$sql = "update Config set Value = '".$next_reminder."' where Name = 'ZM_DYN_DONATE_REMINDER_TIME'";
-			$result = mysql_query( $sql );
-			if ( !$result )
-				die( mysql_error() );
+			dbQuery( "update Config set Value = '".$next_reminder."' where Name = 'ZM_DYN_DONATE_REMINDER_TIME'" );
 		}
 	}
 }
@@ -252,7 +295,6 @@ if ( ZM_OPT_X10 && canView('Devices' ) )
 <?php
 }
 ?>
-</td>
 </tr>
 </table>
 </td>
@@ -294,12 +336,14 @@ else
 <td align="left" class="smallhead"><?= $zmSlangName ?></td>
 <td align="left" class="smallhead"><?= $zmSlangFunction ?></td>
 <td align="left" class="smallhead"><?= $zmSlangSource ?></td>
-<td align="right" class="smallhead"><?= $zmSlangEvents ?></td>
-<td align="right" class="smallhead"><?= $zmSlangHour ?></td>
-<td align="right" class="smallhead"><?= $zmSlangDay ?></td>
-<td align="right" class="smallhead"><?= $zmSlangWeek ?></td>
-<td align="right" class="smallhead"><?= $zmSlangMonth ?></td>
-<td align="right" class="smallhead"><?= $zmSlangArchive ?></td>
+<?php
+for ( $i = 0; $i < count($event_counts); $i++ )
+{
+?>
+<td align="right" class="smallhead"><?= $event_counts[$i]['title'] ?></td>
+<?php
+}
+?>
 <td align="right" class="smallhead"><?= $zmSlangZones ?></td>
 <?php
 if ( canEdit('Monitors') )
@@ -316,20 +360,19 @@ $events_view = ZM_WEB_EVENTS_VIEW;
 $events_window = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 
 $event_count = 0;
-$hour_event_count = 0;
-$day_event_count = 0;
-$week_event_count = 0;
-$month_event_count = 0;
-$arch_event_count = 0;
+for ( $i = 0; $i < count($event_counts); $i++ )
+{
+    $event_counts[$i]['total'] = 0;
+}
 $zone_count = 0;
 foreach( $monitors as $monitor )
 {
-	$event_count += $monitor['EventCount'];
-	$hour_event_count += $monitor['HourEventCount'];
-	$day_event_count += $monitor['DayEventCount'];
-	$week_event_count += $monitor['WeekEventCount'];
-	$month_event_count += $monitor['MonthEventCount'];
-	$arch_event_count += $monitor['ArchEventCount'];
+    if ( empty($monitor['Show']) )
+        continue;
+    for ( $i = 0; $i < count($event_counts); $i++ )
+    {
+	    $event_counts[$i]['total'] += $monitor['EventCount'.$i];
+    }
 	$zone_count += $monitor['ZoneCount'];
 ?>
 <tr>
@@ -379,12 +422,14 @@ foreach( $monitors as $monitor )
 <?php } else { ?>
 <td align="left" class="text">&nbsp;</td>
 <?php } ?>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=2&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&op2=%3d&val2=0', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['EventCount'], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=3&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&op2=%3d&val2=0&cnj3=and&attr3=DateTime&op3=%3e%3d&val3=-1+hour', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['HourEventCount'], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=3&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&op2=%3d&val2=0&cnj3=and&attr3=DateTime&op3=%3e%3d&val3=-1+day', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['DayEventCount'], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=3&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&op2=%3d&val2=0&cnj3=and&attr3=DateTime&op3=%3e%3d&val3=-1+week', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['WeekEventCount'], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=3&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&op2=%3d&val2=0&cnj3=and&attr3=DateTime&op3=%3e%3d&val3=-1+month', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['MonthEventCount'], canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=2&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&op2=%3d&val2=1', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['ArchEventCount'], canView( 'Events' ) ) ?></td>
+<?php
+for ( $i = 0; $i < count($event_counts); $i++ )
+{
+?>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1".$monitor['event_counts'][$i]['filter']['query']."', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
+<?php
+}
+?>
 <td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=zones&mid=".$monitor['Id']."', 'zmZones', ".($monitor['Width']+$jws['zones']['w']).", ".($monitor['Height']+$jws['zones']['h'])." );", $monitor['ZoneCount'], canView( 'Monitors' ) ) ?></td>
 <?php
 if ( canEdit('Monitors') )
@@ -405,16 +450,19 @@ if ( canEdit('Monitors') )
 <tr>
 <td align="center"><input type="button" value="<?= $zmSlangRefresh ?>" class="form" onClick="javascript: location.reload(true);"></td>
 <td align="center"><input type="button" value="<?= $zmSlangAddNewMonitor ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=monitor', 'zmMonitor0', <?= $jws['monitor']['w'] ?>, <?= $jws['monitor']['h'] ?>);"<?php if ( !canEdit( 'Monitors' ) || $user['MonitorIds'] ) {?> disabled<?php } ?>></td>
-<td align="center"><input type="button" value="<?= $zmSlangFilters ?>" class="form" onClick="javascript: scrollWindow( '<?= $PHP_SELF ?>?view=events&page=1&filter=1&trms=1&attr1=DateTime&op1=%3c&val1=now', 'zmEvents', <?= $jws['events']['w'] ?>, <?= $jws['events']['h'] ?> );"<?php if ( !canView( 'Events' ) ) {?> disabled<?php } ?>></td>
+<td align="center"><input type="button" value="<?= $zmSlangFilters ?>" class="form" onClick="javascript: scrollWindow( '<?= $PHP_SELF ?>?view=filter&filter[terms][0][attr]=DateTime&filter[terms][0][op]=%3c&filter[terms][0][val]=now', 'zmFilter', <?= $jws['filter']['w'] ?>, <?= $jws['filter']['h'] ?> );"<?php if ( !canView( 'Events' ) ) {?> disabled<?php } ?>></td>
 </tr>
 </table>
 </td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=1&attr1=Archived&op1=%3d&val1=0', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $event_count, canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=2&attr1=Archived&op1=%3d&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=-1+hour', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $hour_event_count, canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=2&attr1=Archived&op1=%3d&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=-1+day', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $day_event_count, canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=2&attr1=Archived&op1=%3d&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=-1+week', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $week_event_count, canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=2&attr1=Archived&op1=%3d&val1=0&cnj2=and&attr2=DateTime&op2=%3e%3d&val2=-1+month', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $month_event_count, canView( 'Events' ) ) ?></td>
-<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1&filter=1&trms=1&attr1=Archived&op1=%3d&val1=1', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $arch_event_count, canView( 'Events' ) ) ?></td>
+<?php
+for ( $i = 0; $i < count($event_counts); $i++ )
+{
+    parseFilter( $event_counts[$i]['filter'] );
+?>
+<td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1".$event_counts[$i]['filter']['query']."', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $event_counts[$i]['total'], canView( 'Events' ) ) ?></td>
+<?php
+}
+?>
 <td align="right" class="text"><?= $zone_count ?></td>
 <td align="center" colspan="<?= canEdit('Monitors')?2:1 ?>"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>
 </tr>

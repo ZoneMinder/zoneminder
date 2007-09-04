@@ -493,12 +493,20 @@ function buildSelect( $name, $contents, $behaviours=false )
         global $_SESSION;
     }   
 
-	if ( preg_match( "/^(\w+)\s*\[\s*['\"]?(\w+)[\"']?\s*]$/", $name, $matches ) )
+	if ( preg_match("/^\s*(\w+)\s*(\[.*\])?\s*$/", $name, $matches ) && count($matches) > 2 )
 	{
 		$arr = $matches[1];
-		$idx = $matches[2];
 		global $$arr;
-		$value = ${$arr}[$idx];
+		$value = ${$arr};
+	    if ( !preg_match_all("/\[\s*['\"]?(\w+)[\"']?\s*\]/", $matches[2], $matches ) )
+	    {
+            die( "Can't parse selector '$name'" );
+        }
+        for ( $i = 0; $i < count($matches[1]); $i++ )
+        {
+		    $idx = $matches[1][$i];
+		    $value = $value[$idx];
+        }
 	}
 	else
 	{
@@ -1154,8 +1162,9 @@ function parseSort( $save_to_session=false, $term_sep='&' )
 	}
 	$sort_order = $sort_asc?"asc":"desc";
 	if ( !$sort_asc ) $sort_asc = 0;
-	$sort_query = $term_sep."sort_field=".$sort_field.$term_sep."sort_asc=".$sort_asc;
-	if ( !isset($limit) ) $limit = "";
+	$sort_query = $term_sep."sort_field=".urlencode($sort_field).$term_sep."sort_asc=".urlencode($sort_asc);
+	if ( !isset($limit) )
+        $limit = "";
 	if ( $save_to_session )
 	{
 		$_SESSION['sort_field'] = $sort_field;
@@ -1163,79 +1172,53 @@ function parseSort( $save_to_session=false, $term_sep='&' )
 	}
 }
 
-function parseFilter( $save_to_session=false, $term_sep='&' )
+function parseFilter( &$filter, $save_to_session=false, $term_sep='&' )
 {
-	global $trms; // Inputs
-	global $filter_query, $filter_sql, $filter_fields; // Outputs
 	if ( version_compare( phpversion(), "4.1.0", "<") )
 	{
 		global $_SESSION;
 	}
 
-	$filter_query = ''; 
-	$filter_sql = '';
-	$filter_fields = '';
+	$filter['query'] = ''; 
+	$filter['sql'] = '';
+	$filter['fields'] = '';
 
-	if ( $trms )
+	if ( count($filter['terms']) )
 	{
-		if ( $save_to_session )
+		for ( $i = 0; $i < count($filter['terms']); $i++ )
 		{
-			$_SESSION['trms'] = $trms;
-		}
-		$filter_query .= $term_sep."trms=".$trms;
-		$filter_fields .= '<input type="hidden" name="trms" value="'.$trms.'"/>'."\n";
-
-		for ( $i = 1; $i <= $trms; $i++ )
-		{
-			$conjunction_name = "cnj$i";
-			$obracket_name = "obr$i";
-			$cbracket_name = "cbr$i";
-			$attr_name = "attr$i";
-			$op_name = "op$i";
-			$value_name = "val$i";
-
-			global $$conjunction_name, $$obracket_name, $$cbracket_name, $$attr_name, $$op_name, $$value_name;
-
-			if ( isset($$conjunction_name) )
+			if ( isset($filter['terms'][$i]['cnj']) )
 			{
-				$filter_query .= $term_sep.$conjunction_name."=".$$conjunction_name;
-				$filter_sql .= " ".$$conjunction_name." ";
-				$filter_fields .= '<input type="hidden" name="'.$conjunction_name.'" value="'.$$conjunction_name.'"/>'."\n";
-				if ( $save_to_session )
-				{
-					$_SESSION[$conjunction_name] = $$conjunction_name;
-				}
+				$filter['query'] .= $term_sep.urlencode("filter[terms][$i][cnj]=".$filter['terms'][$i]['cnj']);
+				$filter['sql'] .= " ".$filter['terms'][$i]['cnj']." ";
+				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".$filter['terms'][$i]['cnj']."\"/>\n";
 			}
-			if ( isset($$obracket_name) )
+			if ( isset($filter['terms'][$i]['obr']) )
 			{
-				$filter_query .= $term_sep.$obracket_name."=".$$obracket_name;
-				$filter_sql .= str_repeat( "(", $$obracket_name );
-				$filter_fields .= '<input type="hidden" name="'.$obracket_name.'" value="'.$$obracket_name.'"/>'."\n";
-				if ( $save_to_session )
-				{
-					$_SESSION[$obracket_name] = $$obracket_name;
-				}
+				$filter['query'] .= $term_sep.urlencode("filter[terms][$i][obr]=".$filter['terms'][$i]['obr']);
+				$filter['sql'] .= " ".str_repeat( "(", $filter['terms'][$i]['obr'] )." ";
+				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][obr]\" value=\"".$filter['terms'][$i]['obr']."\"/>\n";
 			}
-			if ( isset($$attr_name) )
+			if ( isset($filter['terms'][$i]['attr']) )
 			{
-				$filter_query .= $term_sep.$attr_name."=".$$attr_name;
-				$filter_fields .= '<input type="hidden" name="'.$attr_name.'" value="'.$$attr_name.'"/>'."\n";
-				switch ( $$attr_name )
+				$filter['query'] .= $term_sep.urlencode("filter[terms][$i][attr]=".$filter['terms'][$i]['attr']);
+				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][attr]\" value=\"".$filter['terms'][$i]['attr']."\"/>\n";
+				switch ( $filter['terms'][$i]['attr'] )
 				{
 					case 'MonitorName':
-						$filter_sql .= 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
+						$filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] );
 						break;
 					case 'DateTime':
-						$filter_sql .= "E.StartTime";
+						$filter['sql'] .= "E.StartTime";
 						break;
 					case 'Date':
-						$filter_sql .= "to_days( E.StartTime )";
+						$filter['sql'] .= "to_days( E.StartTime )";
 						break;
 					case 'Time':
-						$filter_sql .= "extract( hour_second from E.StartTime )";
+						$filter['sql'] .= "extract( hour_second from E.StartTime )";
 						break;
 					case 'Weekday':
-						$filter_sql .= "weekday( E.StartTime )";
+						$filter['sql'] .= "weekday( E.StartTime )";
 						break;
 					case 'Id':
 					case 'Name':
@@ -1249,19 +1232,19 @@ function parseFilter( $save_to_session=false, $term_sep='&' )
 					case 'Cause':
 					case 'Notes':
 					case 'Archived':
-						$filter_sql .= "E.".$$attr_name;
+						$filter['sql'] .= "E.".$filter['terms'][$i]['attr'];
 						break;
 					case 'DiskPercent':
-						$filter_sql .= getDiskPercent();
+						$filter['sql'] .= getDiskPercent();
 						break;
 					case 'DiskBlocks':
-						$filter_sql .= getDiskBlocks();
+						$filter['sql'] .= getDiskBlocks();
 						break;
 				}
 				$value_list = array();
-				foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $$value_name ) ) as $value )
+				foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $filter['terms'][$i]['val'] ) ) as $value )
 				{
-					switch ( $$attr_name )
+					switch ( $filter['terms'][$i]['attr'] )
 					{
 						case 'MonitorName':
 						case 'Name':
@@ -1282,7 +1265,7 @@ function parseFilter( $save_to_session=false, $term_sep='&' )
 					$value_list[] = $value;
 				}
 
-				switch ( $$op_name )
+				switch ( $filter['terms'][$i]['op'] )
 				{
 					case '=' :
 					case '!=' :
@@ -1290,46 +1273,65 @@ function parseFilter( $save_to_session=false, $term_sep='&' )
 					case '>' :
 					case '<' :
 					case '<=' :
-						$filter_sql .= " ".$$op_name." $value";
+						$filter['sql'] .= " ".$filter['terms'][$i]['op']." $value";
 						break;
 					case '=~' :
-						$filter_sql .= " regexp $value";
+						$filter['sql'] .= " regexp $value";
 						break;
 					case '!~' :
-						$filter_sql .= " not regexp $value";
+						$filter['sql'] .= " not regexp $value";
 						break;
 					case '=[]' :
-						$filter_sql .= " in (".join( ",", $value_list ).")";
+						$filter['sql'] .= " in (".join( ",", $value_list ).")";
 						break;
 					case '![]' :
-						$filter_sql .= " not in (".join( ",", $value_list ).")";
+						$filter['sql'] .= " not in (".join( ",", $value_list ).")";
 						break;
 				}
 
-				$filter_query .= $term_sep.$op_name."=".urlencode($$op_name);
-				$filter_fields .= '<input type="hidden" name="'.$op_name.'" value="'.$$op_name.'"/>'."\n";
-				$filter_query .= $term_sep.$value_name."=".urlencode($$value_name);
-				$filter_fields .= '<input type="hidden" name="'.$value_name.'" value="'.$$value_name.'"/>'."\n";
-				if ( $save_to_session )
-				{
-					$_SESSION[$attr_name] = $$attr_name;
-					$_SESSION[$op_name] = $$op_name;
-					$_SESSION[$value_name] = $$value_name;
-				}
+				$filter['query'] .= $term_sep.urlencode("filter[terms][$i][op]=".$filter['terms'][$i]['op']);
+				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][op]\" value=\"".$filter['terms'][$i]['op']."\"/>\n";
+				$filter['query'] .= $term_sep.urlencode("filter[terms][$i][val]=".$filter['terms'][$i]['val']);
+				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][val]\" value=\"".$filter['terms'][$i]['val']."\"/>\n";
 			}
-			if ( isset($$cbracket_name) )
+			if ( isset($filter['terms'][$i]['cbr']) )
 			{
-				$filter_query .= $term_sep.$cbracket_name."=".$$cbracket_name;
-				$filter_sql .= str_repeat( ")", $$cbracket_name );
-				$filter_fields .= '<input type="hidden" name="'.$cbracket_name.'" value="'.$$cbracket_name.'"/>'."\n";
-				if ( $save_to_session )
-				{
-					$_SESSION[$cbracket_name] = $$cbracket_name;
-				}
+				$filter['query'] .= $term_sep.urlencode("filter[terms][$i][cbr]=".$filter['terms'][$i]['cbr']);
+				$filter['sql'] .= " ".str_repeat( ")", $filter['terms'][$i]['cbr'] )." ";
+				$filter['fields'] .= "<input type=\"hidden\" \"name=filter[terms][$i][cbr]\" value=\"".$filter['terms'][$i]['cbr']."\"/>\n";
 			}
 		}
-		$filter_sql = " and ( $filter_sql )";
+        if ( $filter['sql'] )
+		    $filter['sql'] = " and ( ".$filter['sql']." )";
+		if ( $save_to_session )
+		{
+			$_SESSION['filter'] = $filter;
+		}
 	}
+}
+
+function addFilterTerm( $filter, $position, $term=false )
+{
+    if ( $position < 0 )
+        $position = 0;
+    elseif( $position > count($filter['terms']) )
+        $position = count($filter['terms']);
+    if ( $term && $position == 0 )
+        unset( $term['cnj'] );
+    array_splice( $filter['terms'], $position, 0, array( $term?$term:array() ) );
+    
+    return( $filter );
+}
+
+function delFilterTerm( $filter, $position )
+{
+    if ( $position < 0 )
+        $position = 0;
+    elseif( $position >= count($filter['terms']) )
+        $position = count($filter['terms']);
+    array_splice( $filter['terms'], $position, 1 );
+    
+    return( $filter );
 }
 
 function getLoad()

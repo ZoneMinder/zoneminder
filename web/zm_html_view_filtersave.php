@@ -18,11 +18,14 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+$db_debug = true;
 if ( !canEdit( 'Events' ) )
 {
 	$view = "error";
 	return;
 }
+
+parseFilter( $filter );
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
@@ -45,31 +48,7 @@ window.focus();
 <form name="filter_form" method="post" action="<?= $PHP_SELF ?>" onSubmit="validateForm( document.filter_form );">
 <input type="hidden" name="view" value="none">
 <input type="hidden" name="action" value="filter">
-<input type="hidden" name="trms" value="<?= $trms ?>">
-<?php
-for ( $i = 1; $i <= $trms; $i++ )
-{
-	$conjunction_name = "cnj$i";
-	$obracket_name = "obr$i";
-	$cbracket_name = "cbr$i";
-	$attr_name = "attr$i";
-	$op_name = "op$i";
-	$value_name = "val$i";
-	if ( $i > 1 )
-	{
-?>
-<input type="hidden" name="<?= $conjunction_name ?>" value="<?= $$conjunction_name ?>">
-<?php
-	}
-?>
-<input type="hidden" name="<?= $obracket_name ?>" value="<?= isset($$obracket_name)?$$obracket_name:'' ?>">
-<input type="hidden" name="<?= $cbracket_name ?>" value="<?= isset($$cbracket_name)?$$cbracket_name:'' ?>">
-<input type="hidden" name="<?= $attr_name ?>" value="<?= isset($$attr_name)?$$attr_name:'' ?>">
-<input type="hidden" name="<?= $op_name ?>" value="<?= isset($$op_name)?$$op_name:'' ?>">
-<input type="hidden" name="<?= $value_name ?>" value="<?= isset($$value_name)?$$value_name:'' ?>">
-<?php
-}
-?>
+<?= $filter['fields'] ?>
 <input type="hidden" name="sort_field" value="<?= $sort_field ?>">
 <input type="hidden" name="sort_asc" value="<?= $sort_asc ?>">
 <input type="hidden" name="limit" value="<?= $limit ?>">
@@ -85,10 +64,7 @@ for ( $i = 1; $i <= $trms; $i++ )
 <tr>
 <?php
 $select_name = "filter_name";
-$result = mysql_query( "select * from Filters order by Name" );
-if ( !$result )
-	die( mysql_error() );
-while ( $row = mysql_fetch_assoc( $result ) )
+foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row )
 {
 	$filter_names[$row['Name']] = $row['Name'];
 	if ( $filter_name == $row['Name'] )
@@ -96,10 +72,9 @@ while ( $row = mysql_fetch_assoc( $result ) )
 		$filter_data = $row;
 	}
 }
-mysql_free_result( $result );
 ?>
 <?php if ( count($filter_names) ) { ?>
-<td align="left" colspan="3" class="text"><?= $zmSlangSaveAs ?>:&nbsp;<?= buildSelect( $select_name, $filter_names, "submitToFilter( document.filter_form );" ); ?>&nbsp;<?= $zmSlangOrEnterNewName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="<?= $filter_name ?>" class="form"></td>
+<td align="left" colspan="3" class="text"><?= $zmSlangSaveAs ?>:&nbsp;<?= buildSelect( $select_name, $filter_names ); ?>&nbsp;<?= $zmSlangOrEnterNewName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="<?= $filter_name ?>" class="form"></td>
 <?php } else { ?>
 <td align="left" colspan="3" class="text"><?= $zmSlangEnterNewFilterName ?>:&nbsp;<input type="text" size="32" name="new_<?= $select_name ?>" value="" class="form"></td>
 <?php } ?>

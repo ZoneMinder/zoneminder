@@ -156,7 +156,7 @@ if ( !empty($user['MonitorIds']) )
 	$events_sql .= $mon_filter_sql;
 }
 
-$tree = parseFilterToTree();
+$tree = parseFilterToTree( $filter );
 
 if ( isset($range) )
 {
@@ -651,7 +651,6 @@ function getYScale( $range, $min_lines, $max_lines )
 
 function drawXGrid( $chart, $scale, $label_class, $tick_class, $grid_class, $zoom_class=0 )
 {
-	global $PHP_SELF, $view, $filter_query;
 	global $zmSlangZoomIn;
 
 	ob_start();
@@ -1363,11 +1362,9 @@ foreach( array_keys($mon_event_slots) as $monitor_id )
 </html>
 <?php
 
-function parseFilterToTree()
+function parseFilterToTree( $filter )
 {
-	global $trms;
-
-	if ( $trms > 0 )
+	if ( count($filter['terms']) > 0 )
 	{
 		$postfix_expr = array();
 		$postfix_stack = array();
@@ -1387,34 +1384,25 @@ function parseFilterToTree()
 			'or' => 4,
 		);
 
-		for ( $i = 1; $i <= $trms; $i++ )
+		for ( $i = 0; $i <= count($filter['terms']); $i++ )
 		{
-			$conjunction_name = "cnj$i";
-			$obracket_name = "obr$i";
-			$cbracket_name = "cbr$i";
-			$attr_name = "attr$i";
-			$op_name = "op$i";
-			$value_name = "val$i";
-
-			global $$conjunction_name, $$obracket_name, $$cbracket_name, $$attr_name, $$op_name, $$value_name;
-
-			if ( !empty($$conjunction_name) )
+			if ( !empty($filter['terms'][$i]['cnj']) )
 			{
 				while( true )
 				{
 					if ( !count($postfix_stack) )
 					{
-						$postfix_stack[] = array( 'type'=>"cnj", 'value'=>$$conjunction_name, 'sql_value'=>$$conjunction_name );
+						$postfix_stack[] = array( 'type'=>"cnj", 'value'=>$filter['terms'][$i]['cnj'], 'sql_value'=>$filter['terms'][$i]['cnj']);
 						break;
 					}
 					elseif ( $postfix_stack[count($postfix_stack)-1]['type'] == 'obr' )
 					{
-						$postfix_stack[] = array( 'type'=>"cnj", 'value'=>$$conjunction_name, 'sql_value'=>$$conjunction_name );
+						$postfix_stack[] = array( 'type'=>"cnj", 'value'=>$filter['terms'][$i]['cnj'], 'sql_value'=>$filter['terms'][$i]['cnj']);
 						break;
 					}
-					elseif ( $priorities[$$conjunction_name] < $priorities[$postfix_stack[count($postfix_stack)-1]['value']] )
+					elseif ( $priorities[$filter['terms'][$i]['cnj']] < $priorities[$postfix_stack[count($postfix_stack)-1]['value']] )
 					{
-						$postfix_stack[] = array( 'type'=>"cnj", 'value'=>$$conjunction_name, 'sql_value'=>$$conjunction_name );
+						$postfix_stack[] = array( 'type'=>"cnj", 'value'=>$filter['terms'][$i]['cnj'], 'sql_value'=>$filter['terms'][$i]['cnj']);
 						break;
 					}
 					else
@@ -1423,20 +1411,20 @@ function parseFilterToTree()
 					}
 				}
 			}
-			if ( !empty($$obracket_name) )
+			if ( !empty($filter['terms'][$i]['obr']) )
 			{
-				for ( $j = 0; $j < $$obracket_name; $j++ )
+				for ( $j = 0; $j < $filter['terms'][$i]['obr']; $j++ )
 				{
-					$postfix_stack[] = array( 'type'=>"obr", 'value'=>$$obracket_name );
+					$postfix_stack[] = array( 'type'=>"obr", 'value'=>$filter['terms'][$i]['obr']);
 				}
 			}
-			if ( !empty($$attr_name) )
+			if ( !empty($filter['terms'][$i]['attr']) )
 			{
 				$dt_attr = false;
-				switch ( $$attr_name )
+				switch ( $filter['terms'][$i]['attr'])
 				{
 					case 'MonitorName':
-						$sql_value = 'M.'.preg_replace( '/^Monitor/', '', $$attr_name );
+						$sql_value = 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr']);
 						break;
 					case 'Name':
 						$sql_value = "E.Name";
@@ -1468,7 +1456,7 @@ function parseFilterToTree()
 					case 'AvgScore':
 					case 'MaxScore':
 					case 'Archived':
-						$sql_value = "E.".$$attr_name;
+						$sql_value = "E.".$filter['terms'][$i]['attr'];
 						break;
 					case 'DiskPercent':
 						$sql_value = getDiskPercent();
@@ -1477,25 +1465,25 @@ function parseFilterToTree()
 						$sql_value = getDiskBlocks();
 						break;
 					default :
-						$sql_value = $$attr_name;
+						$sql_value = $filter['terms'][$i]['attr'];
 						break;
 				}
 				if ( $dt_attr )
 				{
-					$postfix_expr[] = array( 'type'=>"attr", 'value'=>$$attr_name, 'sql_value'=>$sql_value, 'dt_attr'=>true );
+					$postfix_expr[] = array( 'type'=>"attr", 'value'=>$filter['terms'][$i]['attr'], 'sql_value'=>$sql_value, 'dt_attr'=>true );
 				}
 				else
 				{
-					$postfix_expr[] = array( 'type'=>"attr", 'value'=>$$attr_name, 'sql_value'=>$sql_value );
+					$postfix_expr[] = array( 'type'=>"attr", 'value'=>$filter['terms'][$i]['attr'], 'sql_value'=>$sql_value );
 				}
 			}
-			if ( isset($$op_name) )
+			if ( isset($filter['terms'][$i]['op']) )
 			{
-				if ( empty($$op_name) )
+				if ( empty($filter['terms'][$i]['op']) )
 				{
-					$$op_name = '=';
+					$filter['terms'][$i]['op' ]= '=';
 				}
-				switch ( $$op_name )
+				switch ( $filter['terms'][$i]['op' ])
 				{
 					case '=' :
 					case '!=' :
@@ -1503,7 +1491,7 @@ function parseFilterToTree()
 					case '>' :
 					case '<' :
 					case '<=' :
-						$sql_value = $$op_name;
+						$sql_value = $filter['terms'][$i]['op'];
 						break;
 					case '=~' :
 						$sql_value = "regexp";
@@ -1522,17 +1510,17 @@ function parseFilterToTree()
 				{
 					if ( !count($postfix_stack) )
 					{
-						$postfix_stack[] = array( 'type'=>"op", 'value'=>$$op_name, 'sql_value'=>$sql_value );
+						$postfix_stack[] = array( 'type'=>"op", 'value'=>$filter['terms'][$i]['op'], 'sql_value'=>$sql_value );
 						break;
 					}
 					elseif ( $postfix_stack[count($postfix_stack)-1]['type'] == 'obr' )
 					{
-						$postfix_stack[] = array( 'type'=>"op", 'value'=>$$op_name, 'sql_value'=>$sql_value );
+						$postfix_stack[] = array( 'type'=>"op", 'value'=>$filter['terms'][$i]['op'], 'sql_value'=>$sql_value );
 						break;
 					}
-					elseif ( $priorities[$$op_name] < $priorities[$postfix_stack[count($postfix_stack)-1]['value']] )
+					elseif ( $priorities[$filter['terms'][$i]['op']] < $priorities[$postfix_stack[count($postfix_stack)-1]['value']] )
 					{
-						$postfix_stack[] = array( 'type'=>"op", 'value'=>$$op_name, 'sql_value'=>$sql_value );
+						$postfix_stack[] = array( 'type'=>"op", 'value'=>$filter['terms'][$i]['op'], 'sql_value'=>$sql_value );
 						break;
 					}
 					else
@@ -1541,12 +1529,12 @@ function parseFilterToTree()
 					}
 				}
 			}
-			if ( isset($$value_name) )
+			if ( isset($filter['terms'][$i]['val']) )
 			{
 				$value_list = array();
-				foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $$value_name ) ) as $value )
+				foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $filter['terms'][$i]['val' ]) ) as $value )
 				{
-					switch ( $$attr_name )
+					switch ( $filter['terms'][$i]['attr'])
 					{
 						case 'MonitorName':
 						case 'Name':
@@ -1568,11 +1556,11 @@ function parseFilterToTree()
 					}
 					$value_list[] = $value;
 				}
-				$postfix_expr[] = array( 'type'=>"val", 'value'=>$$value_name, 'sql_value'=>join( ',', $value_list ) );
+				$postfix_expr[] = array( 'type'=>"val", 'value'=>$filter['terms'][$i]['val'], 'sql_value'=>join( ',', $value_list ) );
 			}
-			if ( !empty($$cbracket_name) )
+			if ( !empty($filter['terms'][$i]['cbr']) )
 			{
-				for ( $j = 0; $j < $$cbracket_name; $j++ )
+				for ( $j = 0; $j < $filter['terms'][$i]['cbr']; $j++ )
 				{
 					while ( count($postfix_stack) )
 					{
@@ -1686,53 +1674,47 @@ function parseTreeToSQL( $tree )
 	return( _parseTreeToSQL( $tree ) );
 }
 
-function _parseTreeToQuery( $node, &$level )
+function _parseTreeToFilter( $node, &$terms, &$level )
 {
 	$elements = array();
 	if ( $node )
 	{
 		if ( isset($node['left']) )
 		{
-			$elements[] = array( 'name'=>'obr'.$level, 'value'=>!empty($node['data']['bracket'])?1:0 );
-			$elements = array_merge( $elements, _parseTreeToQuery( $node['left'], $level ) );
+            if ( !empty($node['data']['bracket']) )
+                $terms[$level]['obr'] = 1;
+			_parseTreeToFilter( $node['left'], $terms, $level );
 		}
 		if ( $node['data']['type'] == 'cnj' )
 		{
 			$level++;
 		}
-		$elements[] = array( 'name'=>$node['data']['type'].$level, 'value'=>urlencode($node['data']['value']) );
+		$terms[$level][$node['data']['type']] = $node['data']['value'];
 		if ( isset($node['right']) )
 		{
-			$elements = array_merge( $elements, _parseTreeToQuery( $node['right'], $level ) );
-			$elements[] = array( 'name'=>'cbr'.$level, 'value'=>!empty($node['data']['bracket'])?1:0 );
+			_parseTreeToFilter( $node['right'], $terms, $level );
+            if ( !empty($node['data']['bracket']) )
+                $terms[$level]['cbr'] = 1;
 		}
 	}
-	return( $elements );
+}
+
+function parseTreeToFilter( $tree )
+{
+    $terms = array();
+	if ( isset($tree) )
+	{
+		$level = 0;
+		_parseTreeToFilter( $tree, $terms, $level );
+	}
+	return( array( 'terms' => $terms ) );
 }
 
 function parseTreeToQuery( $tree )
 {
-	$query = '';
-	if ( isset($tree) )
-	{
-		$level = 1;
-		$elements = _parseTreeToQuery( $tree, $level );
-		// Merge duplicate bracketing elements
-		for ( $i = 0; $i < count($elements); $i++ )
-		{
-			if ( $i > 0 && $elements[$i]['name'] == $elements[$i-1]['name'] )
-			{
-				$elements[$i-1]['value'] += $elements[$i]['value'];
-				array_splice( $elements, $i--, 1 );
-			}
-		}
-		$query = "trms=".$level;
-		foreach ( $elements as $element )
-		{
-			$query .= '&'.$element['name'].'='.$element['value'];
-		}
-	}
-	return( $query );
+    $filter = parseTreeToFilter( $tree );
+    parseFilter( $filter );
+	return( $filter['Query'] );
 }
 
 function _drawTree( $node, $level )

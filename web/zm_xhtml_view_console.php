@@ -18,6 +18,27 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+$event_counts = array(
+    // Last Hour
+    array(
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
+                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
+            )
+        ),
+    ),
+    // Today
+    array(
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
+                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "today" ),
+            )
+        ),
+    ),
+);
+
 $running = daemonCheck();
 $status = $running?$zmSlangRunning:$zmSlangStopped;
 
@@ -25,43 +46,46 @@ $sql = "select * from Groups where Name = 'Mobile'";
 $result = mysql_query( $sql );
 if ( !$result )
 	echo mysql_error();
-$group = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+if ( $group = dbFetchOne( "select * from Groups where Id = '$cgroup'" ) )
+    $group_ids = array_flip(split( ',', $group['MonitorIds'] ));
 
 $db_now = strftime( STRF_FMT_DATETIME_DB );
-$sql = "select M.*, count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL)) as HourEventCount, count(if((to_days(E.StartTime)=to_days('$db_now')) && E.Archived = 0,1,NULL)) as TodayEventCount from Monitors as M left join Events as E on E.MonitorId = M.Id group by M.Id order by M.Sequence";
-$result = mysql_query( $sql );
-if ( !$result )
-	echo mysql_error();
 $monitors = array();
 $max_width = 0;
 $max_height = 0;
 $cycle_count = 0;
-while( $row = mysql_fetch_assoc( $result ) )
+$monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
+for ( $i = 0; $i < count($monitors); $i++ )
 {
-	if ( !visibleMonitor( $row['Id'] ) )
+	if ( !visibleMonitor( $monitors[$i]['Id'] ) )
 	{
 		continue;
 	}
-	if ( $group && $group['MonitorIds'] && !in_array( $row['Id'], split( ',', $group['MonitorIds'] ) ) )
+    if ( $group && !empty($group_ids) && !array_key_exists( $monitors[$i]['Id'], $group_ids ) )
 	{
 		continue;
 	}
-	$row['zmc'] = zmcStatus( $row );
-	$row['zma'] = zmaStatus( $row );
-	$sql = "select count(Id) as ZoneCount from Zones where MonitorId = '".$row['Id']."'";
-	$result2 = mysql_query( $sql );
-	if ( !$result2 )
-		echo mysql_error();
-	$row2 = mysql_fetch_assoc( $result2 );
-	mysql_free_result( $result2 );
-	$monitors[] = array_merge( $row, $row2 );
-	if ( $row['Function'] != 'None' )
+    $monitors[$i]['Show'] = true;
+	$monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
+	$monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
+    //$monitors[$i]['ZoneCount'] = dbFetchOne( "select count(Id) as ZoneCount from Zones where MonitorId = '".$monitors[$i]['Id']."'", "ZoneCount" );
+    $counts = array();
+    for ( $j = 0; $j < count($event_counts); $j++ )
+    {
+        $filter = addFilterTerm( $event_counts[$j]['filter'], count($event_counts[$j]['filter']['terms']), array( "cnj" => "and", "attr" => "MonitorId", "op" => "=", "val" => $monitors[$i]['Id'] ) );
+        parseFilter( $filter, false, '&amp;' );
+        $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
+        $monitors[$i]['event_counts'][$j]['filter'] = $filter;
+    }
+    $sql = "select ".join($counts,", ")." from Events as E where MonitorId = '".$monitors[$i]['Id']."'";
+    $counts = dbFetchOne( $sql );
+	if ( $monitors[$i]['Function'] != 'None' )
 	{
 		$cycle_count++;
-		if ( $max_width < $row['Width'] ) $max_width = $row['Width'];
-		if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
+		if ( $max_width < $monitors[$i]['Width'] ) $max_width = $monitors[$i]['Width'];
+		if ( $max_height < $monitors[$i]['Height'] ) $max_height = $monitors[$i]['Height'];
 	}
+    $monitors[$i] = array_merge( $monitors[$i], $counts );
 }
 mysql_free_result( $result );
 ?>
@@ -78,12 +102,20 @@ mysql_free_result( $result );
 </table>
 <table style="width: 100%">
 <?php
-$hour_event_count = 0;
-$today_event_count = 0;
+for ( $i = 0; $i < count($event_counts); $i++ )
+{
+    $event_counts[$i]['total'] = 0;
+}
+$zone_count = 0;
 foreach( $monitors as $monitor )
 {
-	$hour_event_count += $monitor['HourEventCount'];
-	$today_event_count += $monitor['TodayEventCount'];
+    if ( empty($monitor['Show']) )
+        continue;
+    for ( $i = 0; $i < count($event_counts); $i++ )
+    {
+	    $event_counts[$i]['total'] += $monitor['EventCount'.$i];
+    }
+	//$zone_count += $monitor['ZoneCount'];
 ?>
 <tr>
 <?php
@@ -121,8 +153,14 @@ foreach( $monitors as $monitor )
 ?>
 <td align="left" style="width: 6em"><?= makeLink( "$PHP_SELF?view=watch&amp;mid=".$monitor['Id'], substr( $monitor['Name'], 0, 8 ), $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
 <td align="left" style="width: 4em"><?= makeLink( "$PHP_SELF?view=function&amp;mid=".$monitor['Id'], "<span class=\"$fclass\">".substr( $monitor['Function'], 0, 4 )."</span>", canEdit( 'Monitors' ) ) ?></td>
-<td align="right" style="width: 3em"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=3&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;cnj2=and&amp;attr2=Archived&amp;op2=%3d&amp;val2=0&amp;cnj3=and&amp;attr3=DateTime&amp;op3=%3e%3d&amp;val3=-1%20hour", $monitor['HourEventCount'], canView( 'Events' ) ) ?></td>
-<td align="right" style="width: 3em"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=3&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;cnj2=and&amp;attr2=Archived&amp;op2=%3d&amp;val2=0&amp;cnj3=and&amp;attr3=Date&amp;op3=%3e%3d&amp;val3=today", $monitor['TodayEventCount'], canView( 'Events' ) ) ?></td>
+<?php
+for ( $i = 0; $i < count($event_counts); $i++ )
+{
+?>
+<td align="right" style="width: 3em"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;".$monitor['event_counts'][$i]['filter']['query'], $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
+<?php
+}
+?>
 </tr>
 <?php
 }
@@ -143,8 +181,15 @@ else
 }
 ?>
 <td align="center"><?= makeLink( "$PHP_SELF?view=montage", count($monitors), ( $running && canView( 'Stream' ) && $cycle_count > 1 ) ) ?></td>
-<td align="right"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;op1=%3d&amp;val1=0&amp;cnj2=and&amp;attr2=DateTime&amp;op2=%3e%3d&amp;val2=-1%20hour", $hour_event_count, canView( 'Events' ) ) ?></td>
-<td align="right"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=2&amp;attr1=Archived&amp;op1=%3d&amp;val1=0&amp;cnj2=and&amp;attr2=Date&amp;op2=%3e%3d&amp;val2=today", $today_event_count, canView( 'Events' ) ) ?></td>
+<?php
+for ( $i = 0; $i < count($event_counts); $i++ )
+{
+    parseFilter( $event_counts[$i]['filter'], false, '&amp;' );
+?>
+<td align="right"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;".$event_counts[$i]['filter']['query'], $event_counts[$i]['total', canView( 'Events' ) ) ?></td>
+<?php
+}
+?>
 </tr>
 </table>
 </body>

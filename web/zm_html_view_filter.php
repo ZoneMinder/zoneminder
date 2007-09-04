@@ -25,44 +25,38 @@ if ( !canView( 'Events' ) )
 }
 $select_name = "filter_name";
 $filter_names = array( ''=>$zmSlangChooseFilter );
-$result = mysql_query( "select * from Filters order by Name" );
-if ( !$result )
-	die( mysql_error() );
-while ( $row = mysql_fetch_assoc( $result ) )
+foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row )
 {
 	$filter_names[$row['Name']] = $row['Name'];
     if ( $row['Background'] )
 	    $filter_names[$row['Name']] .= "*";
 	if ( !empty($reload) && isset($filter_name) && $filter_name == $row['Name'] )
 	{
-		$filter_data = $row;
+		$db_filter = $row;
 	}
 }
-mysql_free_result( $result );
 
 $background_str = "";
-if ( isset($filter_data) )
+if ( isset($db_filter) )
 {
-	if ( $filter_data['Background'] ) 
+	if ( $db_filter['Background'] ) 
 		$background_str = '['.strtolower($zmSlangBackground).']';
-
-	foreach( split( '&', $filter_data['Query'] ) as $filter_parm )
-	{
-		list( $key, $value ) = split( '=', $filter_parm, 2 );
-		if ( $key )
-		{
-			$$key = $value;
-		}
-	}
+    $filter = unserialize( $db_filter['Query'] );
+    $sort_field = $filter['sort_field'];
+    $sort_asc = $filter['sort_asc'];
+    $limit = $filter['limit'];
+    unset( $filter['sort_field'] );
+    unset( $filter['sort_asc'] );
+    unset( $filter['limit'] );
 }
 
 $conjunction_types = array(
 	'and' => $zmSlangConjAnd,
 	'or'  => $zmSlangConjOr
 );
-$obracket_types = array( '0' => '' );
-$cbracket_types = array( '0' => '' );
-for ( $i = 1; $i <= ceil(($trms-1)/2); $i++ )
+$obracket_types = array(); 
+$cbracket_types = array();
+for ( $i = 0; $i <= count($filter['terms'])-2; $i++ )
 {
 	$obracket_types[$i] = str_repeat( "(", $i );
 	$cbracket_types[$i] = str_repeat( ")", $i );
@@ -149,19 +143,26 @@ function closeWindow()
 {
 	top.window.close();
 }
+function clearValue( form, line )
+{
+    var val = form.elements['filter[terms][<?= $i ?>][val]'];
+    val.value = '';
+}
 function validateForm( form )
 {
 <?php
-if ( $trms > 2 )
+if ( count($filter['terms']) > 2 )
 {
 ?>
 	var bracket_count = 0;
 <?php
-for ( $i = 1; $i <= $trms; $i++ )
+for ( $i = 0; $i < count($filter['terms']); $i++ )
 {
 ?>
-	bracket_count += parseInt(form.obr<?= $i ?>.options[form.obr<?= $i ?>.selectedIndex].value);
-	bracket_count -= parseInt(form.cbr<?= $i ?>.options[form.cbr<?= $i ?>.selectedIndex].value);
+    var obr = form.elements['filter[terms][<?= $i ?>][obr]'];
+    var cbr = form.elements['filter[terms][<?= $i ?>][cbr]'];
+	bracket_count += parseInt(obr.options[obr.selectedIndex].value);
+	bracket_count -= parseInt(cbr.options[cbr.selectedIndex].value);
 <?php
 }
 ?>
@@ -174,10 +175,11 @@ for ( $i = 1; $i <= $trms; $i++ )
 }
 ?>
 <?php
-for ( $i = 1; $i <= $trms; $i++ )
+for ( $i = 0; $i < count($filter['terms']); $i++ )
 {
 ?>
-	if ( form.val<?= $i?>.value == '' )
+    var val = form.elements['filter[terms][<?= $i ?>][val]'];
+	if ( val.value == '' )
 	{
 		alert( "<?= $zmSlangErrorValidValue ?>" );
 		return( false );
@@ -240,16 +242,18 @@ function addTerm( form, line )
 {
 	form.target = window.name;
 	form.view.value = '<?= $view ?>';
-	form.action.value = 'addterm';
-	form.subaction.value = line;
+	form.action.value = 'filter';
+	form.subaction.value = 'addterm';
+	form.line.value = line;
 	form.submit();
 }
 function delTerm( form, line )
 {
 	form.target = window.name;
 	form.view.value = '<?= $view ?>';
-	form.action.value = 'delterm';
-	form.subaction.value = line;
+	form.action.value = 'filter';
+	form.subaction.value = 'delterm';
+	form.line.value = line;
 	form.submit();
 }
 </script>
@@ -262,8 +266,8 @@ function delTerm( form, line )
 <input type="hidden" name="execute" value="0">
 <input type="hidden" name="action" value="">
 <input type="hidden" name="subaction" value="">
+<input type="hidden" name="line" value="">
 <input type="hidden" name="fid" value="">
-<input type="hidden" name="trms" value="<?= $trms ?>">
 <center><table width="96%" align="center" border="0" cellspacing="1" cellpadding="0">
 <tr>
 <td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
@@ -274,8 +278,8 @@ function delTerm( form, line )
 <?php } else { ?>
 <td align="right" class="text">&nbsp;</td>
 <?php } ?>
-<?php if ( canEdit( 'Events' ) && isset($filter_data) ) { ?>
-<td align="right" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $filter_data['Name'] ?>' );"><?= $zmSlangDelete ?></a></td>
+<?php if ( canEdit( 'Events' ) && isset($db_filter) ) { ?>
+<td align="right" class="text"><a href="javascript: deleteFilter( document.filter_form, '<?= $db_filter['Name'] ?>' );"><?= $zmSlangDelete ?></a></td>
 <?php } else { ?>
 <td align="right" class="text">&nbsp;</td>
 <?php } ?>
@@ -288,18 +292,12 @@ function delTerm( form, line )
 <td colspan="4">
 <table width="100%" border="0" cellspacing="1" cellpadding="0">
 <?php
-for ( $i = 1; $i <= $trms; $i++ )
+for ( $i = 0; $i < count($filter['terms']); $i++ )
 {
-$conjunction_name = "cnj$i";
-$obracket_name = "obr$i";
-$cbracket_name = "cbr$i";
-$attr_name = "attr$i";
-$op_name = "op$i";
-$value_name = "val$i";
 ?>
 <tr>
 <?php
-if ( $i == 1 )
+if ( $i == 0 )
 {
 ?>
 <td class="text">&nbsp;</td>
@@ -308,27 +306,27 @@ if ( $i == 1 )
 else
 {
 ?>
-<td class="text"><?= buildSelect( $conjunction_name, $conjunction_types ); ?></td>
+<td class="text"><?= buildSelect( "filter[terms][$i][cnj]", $conjunction_types ); ?></td>
 <?php
 }
 ?>
-<td class="text"><?php if ( $trms > 2 ) { echo buildSelect( $obracket_name, $obracket_types ); } else { ?>&nbsp;<?php } ?></td>
-<td class="text"><?= buildSelect( $attr_name, $attr_types, "$value_name.value = ''; submitToFilter( document.filter_form, 0 );" ); ?></td>
-<?php if ( $$attr_name == "Archived" ) { ?>
-<td class="text"><center><?= $zmSlangOpEq ?><input type="hidden" name="<?= $op_name ?>" value="="></center></td>
-<td class="text"><?= buildSelect( $value_name, $archive_types ); ?></td>
-<?php } elseif ( $$attr_name == "Weekday" ) { ?>
-<td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>
-<td class="text"><?= buildSelect( $value_name, $weekdays ); ?></td>
-<?php } elseif ( $$attr_name ) { ?>
-<td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>
-<td class="text"><input name="<?= $value_name ?>" value="<?= $$value_name ?>" class="form" size="24"></td>
+<td class="text"><?php if ( count($filter['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][obr]", $obracket_types ); } else { ?>&nbsp;<?php } ?></td>
+<td class="text"><?= buildSelect( "filter[terms][$i][attr]", $attr_types, "clearValue( document.filter_form, $i ); submitToFilter( document.filter_form, 0 );" ); ?></td>
+<?php if ( $filter['terms'][$i]['attr'] == "Archived" ) { ?>
+<td class="text"><center><?= $zmSlangOpEq ?><input type="hidden" name="filter[terms][<?= $i ?>][op]" value="="></center></td>
+<td class="text"><?= buildSelect( "filter[terms][$i][val]", $archive_types ); ?></td>
+<?php } elseif ( $filter['terms'][$i]['attr'] == "Weekday" ) { ?>
+<td class="text"><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
+<td class="text"><?= buildSelect( "filter[terms][$i][val]", $weekdays ); ?></td>
+<?php } elseif ( $filter['terms'][$i]['attr'] ) { ?>
+<td class="text"><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
+<td class="text"><input name="filter[terms][<?= $i ?>][val]" value="<?= $filter['terms'][$i]['val'] ?>" class="form" size="24"></td>
 <?php } else { ?>
-<td class="text"><?= buildSelect( $op_name, $op_types ); ?></td>
-<td class="text"><input name="<?= $value_name ?>" value="<?= isset($$value_name)?$$value_name:'' ?>" class="form" size="24"></td>
+<td class="text"><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
+<td class="text"><input name="filter[terms][<?= $i ?>][val]" value="<?= isset($filter['terms'][$i]['val'])?$filter['terms'][$i]['val']:'' ?>" class="form" size="24"></td>
 <?php } ?>
-<td class="text"><?php if ( $trms > 2 ) { echo buildSelect( $cbracket_name, $cbracket_types ); } else { ?>&nbsp;<?php } ?></td>
-<td class="text"><a href="javascript: addTerm(document.filter_form,<?= $i ?>)">+</a><?php if ( $trms > 1 ) { ?><a href="javascript: delTerm(document.filter_form,<?= $i ?>)">&ndash;</a><?php } ?></td>
+<td class="text"><?php if ( count($filter['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][cbr]", $cbracket_types ); } else { ?>&nbsp;<?php } ?></td>
+<td class="text"><a href="javascript: addTerm(document.filter_form,<?= $i+1 ?>)">+</a><?php if ( $filter['terms'] > 1 ) { ?><a href="javascript: delTerm(document.filter_form,<?= $i ?>)">&ndash;</a><?php } ?></td>
 </tr>
 <?php
 }
@@ -340,7 +338,7 @@ else
 <td colspan="4" class="text"><hr width="100%"></td>
 </tr>
 <tr>
-<td colspan="4" class="text"><table width="100%" cellpadding="0" cellspacing="0"><tr><td class="text" align="left"><?= $zmSlangSortBy ?>&nbsp;<?= buildSelect( "sort_field", $sort_fields ); ?>&nbsp;<?= buildSelect( "sort_asc", $sort_dirns ); ?></td><td class="text" align="right"><?= $zmSlangLimitResultsPre ?> <input type="input" size="6" name="limit" value="<?= $limit ?>" class="form"> <?= $zmSlangLimitResultsPost ?></td></tr></table></td>
+<td colspan="4" class="text"><table width="100%" cellpadding="0" cellspacing="0"><tr><td class="text" align="left"><?= $zmSlangSortBy ?>&nbsp;<?= buildSelect( "sort_field", $sort_fields ); ?>&nbsp;<?= buildSelect( "sort_asc", $sort_dirns ); ?></td><td class="text" align="right"><?= $zmSlangLimitResultsPre ?> <input type="text" size="6" name="limit" value="<?= $limit ?>" class="form"> <?= $zmSlangLimitResultsPost ?></td></tr></table></td>
 </tr>
 <tr>
 <td colspan="4" class="text"><hr width="100%"></td>
@@ -349,7 +347,7 @@ else
 <td colspan="4" class="text"><table width="100%" cellpadding="0" cellspacing="0">
 <tr>
 <td align="left" class="text"><?= $zmSlangFilterArchiveEvents ?>:&nbsp;</td>
-<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_archive" value="1"<?php if ( $filter_data['AutoArchive'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_archive" value="1"<?php if ( $db_filter['AutoArchive'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <?php
 if ( ZM_OPT_MPEG != "no" )
@@ -357,7 +355,7 @@ if ( ZM_OPT_MPEG != "no" )
 ?>
 <tr>
 <td align="left" class="text"><?= $zmSlangFilterVideoEvents ?>:&nbsp;</td>
-<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_video" value="1"<?php if ( $filter_data['AutoVideo'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_video" value="1"<?php if ( $db_filter['AutoVideo'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <?php
 }
@@ -366,7 +364,7 @@ if ( ZM_OPT_UPLOAD )
 ?>
 <tr>
 <td align="left" class="text"><?= $zmSlangFilterUploadEvents ?>:&nbsp;</td>
-<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_upload" value="1"<?php if ( $filter_data['AutoUpload'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_upload" value="1"<?php if ( $db_filter['AutoUpload'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <?php
 }
@@ -375,7 +373,7 @@ if ( ZM_OPT_EMAIL )
 ?>
 <tr>
 <td align="left" class="text"><?= $zmSlangFilterEmailEvents ?>:&nbsp;</td>
-<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_email" value="1"<?php if ( $filter_data['AutoEmail'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_email" value="1"<?php if ( $db_filter['AutoEmail'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <?php
 }
@@ -384,19 +382,19 @@ if ( ZM_OPT_MESSAGE )
 ?>
 <tr>
 <td align="left" class="text"><?= $zmSlangFilterMessageEvents ?>:&nbsp;</td>
-<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_message" value="1"<?php if ( $filter_data['AutoMessage'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_message" value="1"<?php if ( $db_filter['AutoMessage'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr>
 <?php
 }
 ?>
 <tr>
 <td align="left" class="text"><?= $zmSlangFilterExecuteEvents ?>:&nbsp;</td>
-<td align="left" class="text"><input type="checkbox" name="auto_execute" value="1"<?php if ( $filter_data['AutoExecute'] ) { echo " checked"; } ?> class="form-noborder"></td>
-<td align="left" class="text"><input type="text" name="auto_execute_cmd" value="<?= $filter_data['AutoExecuteCmd'] ?>" size="32" maxlength="255" class="form"></td>
+<td align="left" class="text"><input type="checkbox" name="auto_execute" value="1"<?php if ( $db_filter['AutoExecute'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text"><input type="text" name="auto_execute_cmd" value="<?= $db_filter['AutoExecuteCmd'] ?>" size="32" maxlength="255" class="form"></td>
 </tr>
 <tr>
 <td align="left" class="text"><?= $zmSlangFilterDeleteEvents ?>:&nbsp;</td>
-<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_delete" value="1"<?php if ( $filter_data['AutoDelete'] ) { echo " checked"; } ?> class="form-noborder"></td>
+<td align="left" class="text" colspan="2"><input type="checkbox" name="auto_delete" value="1"<?php if ( $db_filter['AutoDelete'] ) { echo " checked"; } ?> class="form-noborder"></td>
 </tr></table></td>
 <tr>
 <td colspan="4" class="text"><hr width="100%"></td>

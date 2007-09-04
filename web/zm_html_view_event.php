@@ -48,7 +48,7 @@ $event = mysql_fetch_assoc( $result );
 mysql_free_result( $result );
 
 parseSort();
-parseFilter();
+parseFilter( $filter );
 
 $sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[preg_replace( '/^.*\./', '', $sort_column )]."'$filter_sql$mid_sql order by $sort_column ".($sort_order=='asc'?'desc':'asc');
 $result = mysql_query( $sql );

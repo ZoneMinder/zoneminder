@@ -94,7 +94,7 @@ $image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "sca
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 </head>
 <body>
-<p class="<?= $class ?>" align="center"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;filter=1&amp;trms=1&amp;attr1=MonitorId&amp;op1=%3d&amp;val1=".$monitor['Id']."&amp;sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</p>
+<p class="<?= $class ?>" align="center"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;view=events&amp;page=1&amp;filter%5Bterms%5D%5B0%5D%5Battr%5D%3DMonitorId&amp;filter%5Bterms%5D%5B0%5D%5Bop%5D%3D%3D&amp;filter%5Bterms%5D%5B0%5D%5Bval%5D%3D".$monitor['Id']."&amp;sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?= $status_string ?>&nbsp;-&nbsp;<?= $fps_string ?>&nbsp;fps</p>
 <p align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $image_src ?>" alt="<?= $monitor['Name'] ?>" style="border: 0" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"/></a></p>
 <?php
 if ( $next_mod != $mid || $prev_mid != $mid )

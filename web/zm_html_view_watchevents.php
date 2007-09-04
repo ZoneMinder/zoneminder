@@ -126,8 +126,8 @@ $n_events = mysql_num_rows( $result );
 ?>
 <tr>
 <td width="30%"align="left" class="text"><b><?= sprintf( $zmClangLastEvents, $n_events, strtolower( zmVlang( $zmVlangEvent, $n_events ) ) ) ?></b></td>
-<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=1&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangAll, canView( 'Events' ) ) ?></td>
-<td width="30%"align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter=1&trms=2&attr1=MonitorId&op1=%3d&val1=".$monitor['Id']."&cnj2=and&attr2=Archived&val2=1', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangArchive, canView( 'Events' ) ) ?></td>
+<td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter%5Bterms%5D%5B0%5D%5Battr%5D%3DMonitorId&filter%5Bterms%5D%5B0%5D%5Bop%5D%3D%3D&filter%5Bterms%5D%5B0%5D%5Bval%5D%3D".$monitor['Id']."', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangAll, canView( 'Events' ) ) ?></td>
+<td width="30%"align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=events&page=1&filter%5Bterms%5D%5B0%5D%5Battr%5D%3DArchived&filter%5Bterms%5D%5B0%5D%5Bop%5D%3D%3D&filter%5Bterms%5D%5B0%5D%5Bval%5D%3D1&filter%5Bterms%5D%5B1%5D%5Bcnj%5D%3Dand&filter%5Bterms%5D%5B1%5D%5Battr%5D%3DMonitorId&filter%5Bterms%5D%5B1%5D%5Bop%5D%3D%3D&filter%5Bterms%5D%5B1%5D%5Bval%5D%3D".$monitor['Id']."', 'zmEvents', ".$jws['events']['w'].", ".$jws['events']['h']." );", $zmSlangArchive, canView( 'Events' ) ) ?></td>
 </tr>
 <tr><td colspan="3" class="text">&nbsp;</td></tr>
 <tr><td colspan="3"><table border="0" cellspacing="0" cellpadding="0" width="100%" bgcolor="#7F7FB2">
@@ -145,8 +145,8 @@ while( $event = mysql_fetch_assoc( $result ) )
 {
 ?>
 <tr bgcolor="#FFFFFF">
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&trms=1&attr1=MonitorId&op1=%3d&val1=<?= $mid ?><?= $sort_query ?>&page=1', 'zmEvent' );"><?= $event['Id'] ?></a></td>
-<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&trms=1&attr1=MonitorId&op1=%3d&val1=<?= $mid ?><?= $sort_query ?>&page=1', 'zmEvent' );"><?= $event['Name'] ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&filter%5Bterms%5D%5B0%5D%5Battr%5D%3DMonitorId&filter%5Bterms%5D%5B0%5D%5Bop%5D%3D%3D&filter%5Bterms%5D%5B0%5D%5Bval%5D%3D<?= $mid ?><?= $sort_query ?>&page=1', 'zmEvent' );"><?= $event['Id'] ?></a></td>
+<td align="center" class="text"><a href="javascript: eventWindow( '<?= $PHP_SELF ?>?view=event&eid=<?= $event['Id'] ?>&filter%5Bterms%5D%5B0%5D%5Battr%5D%3DMonitorId&filter%5Bterms%5D%5B0%5D%5Bop%5D%3D%3D&filter%5Bterms%5D%5B0%5D%5Bval%5D%3D<?= $mid ?><?= $sort_query ?>&page=1', 'zmEvent' );"><?= $event['Name'] ?></a></td>
 <td align="center" class="text"><?= strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td>
 <td align="center" class="text"><?= $event['Length'] ?></td>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=frames&eid=<?= $event['Id'] ?>', 'zmFrames', <?= $jws['frames']['w'] ?>, <?= $jws['frames']['h'] ?> );"><?= $event['Frames'] ?>/<?= $event['AlarmFrames'] ?></a></td>

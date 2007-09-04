@@ -44,73 +44,17 @@ if ( !empty($action) )
 	// Event scope actions, view permissions only required
 	if ( canView( 'Events' ) )
 	{
-		if ( $action == "addterm" )
-		{
-			for ( $i = $trms; $i > $subaction; $i-- )
-			{
-				$conjunction_name1 = "cnj".($i+1);
-				$obracket_name1 = "obr".($i+1);
-				$cbracket_name1 = "cbr".($i+1);
-				$attr_name1 = "attr".($i+1);
-				$op_name1 = "op".($i+1);
-				$value_name1 = "val".($i+1);
-
-				$conjunction_name2 = "cnj$i";
-				$obracket_name2 = "obr$i";
-				$cbracket_name2 = "cbr$i";
-				$attr_name2 = "attr$i";
-				$op_name2 = "op$i";
-				$value_name2 = "val$i";
-
-				$$conjunction_name1 = $$conjunction_name2;
-				$$obracket_name1 = $$obracket_name2;
-				$$cbracket_name1 = $$cbracket_name2;
-				$$attr_name1 = $$attr_name2;
-				$$op_name1 = $$op_name2;
-				$$value_name1 = $$value_name2;
-			}
-			$$conjunction_name2 = false;
-			$$obracket_name2 = false;
-			$$cbracket_name2 = false;
-			$$attr_name2 = false;
-			$$op_name2 = false;
-			$$value_name2 = false;
-
-			$trms++;
-		}
-		elseif ( $action == "delterm" )
-		{
-			$trms--;
-			for ( $i = $subaction; $i <= $trms; $i++ )
-			{
-				$conjunction_name1 = "cnj$i";
-				$obracket_name1 = "obr$i";
-				$cbracket_name1 = "cbr$i";
-				$attr_name1 = "attr$i";
-				$op_name1 = "op$i";
-				$value_name1 = "val$i";
-
-				$conjunction_name2 = "cnj".($i+1);
-				$obracket_name2 = "obr".($i+1);
-				$cbracket_name2 = "cbr".($i+1);
-				$attr_name2 = "attr".($i+1);
-				$op_name2 = "op".($i+1);
-				$value_name2 = "val".($i+1);
-
-				$$conjunction_name1 = $$conjunction_name2;
-				$$obracket_name1 = $$obracket_name2;
-				$$cbracket_name1 = $$cbracket_name2;
-				$$attr_name1 = $$attr_name2;
-				$$op_name1 = $$op_name2;
-				$$value_name1 = $$value_name2;
-			}
-			$$conjunction_name2 = false;
-			$$obracket_name2 = false;
-			$$cbracket_name2 = false;
-			$$attr_name2 = false;
-			$$op_name2 = false;
-			$$value_name2 = false;
-		}
+		if ( $action == "filter" )
+        {
+            if ( $subaction == "addterm" )
+            {
+                $filter = addFilterTerm( $filter, $line );
+            }
+            elseif ( $subaction == "delterm" )
+            {
+                $filter = delFilterTerm( $filter, $line );
+            }
+        }
 	}
 
 	// Event scope actions, edit permissions required
@@ -167,7 +111,7 @@ if ( !empty($action) )
 				}
 			}
 		}
-		elseif ( $action == "filter" )
+		elseif ( $action == "filter" && !$subaction )
 		{
             if ( $execute )
             {
@@ -177,38 +121,12 @@ if ( !empty($action) )
 				$filter_name = $temp_filter_name;
 			elseif ( $new_filter_name )
 				$filter_name = $new_filter_name;
-			if ( $filter_name || $new_filter_name )
+			if ( $filter_name )
 			{
-				$filter_query = array();
-				$filter_query['trms'] = $trms;
-				for ( $i = 1; $i <= $trms; $i++ )
-				{
-					$conjunction_name = "cnj$i";
-					$obracket_name = "obr$i";
-					$cbracket_name = "cbr$i";
-					$attr_name = "attr$i";
-					$op_name = "op$i";
-					$value_name = "val$i";
-					if ( $i > 1 )
-					{
-						$filter_query[$conjunction_name] = $$conjunction_name;
-					}
-					$filter_query[$obracket_name] = $$obracket_name;
-					$filter_query[$cbracket_name] = $$cbracket_name;
-					$filter_query[$attr_name] = $$attr_name;
-					$filter_query[$op_name] = $$op_name;
-					$filter_query[$value_name] = $$value_name;
-				}
-				$filter_parms = array();
-				while( list( $key, $value ) = each( $filter_query ) )
-				{
-					$filter_parms[] = "$key=$value";
-				}
-				$filter_parms[] = "sort_field=$sort_field";
-				$filter_parms[] = "sort_asc=$sort_asc";
-				$filter_parms[] = "limit=$limit";
-				$filter_query_string = join( '&', $filter_parms );
-				dbQuery( "replace into Filters set Name = '$filter_name', Query = '$filter_query_string', AutoArchive = '$auto_archive', AutoVideo = '$auto_video', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute', AutoExecuteCmd = '".addslashes($auto_execute_cmd)."', AutoDelete = '$auto_delete', Background = '$background'" );
+				$filter['sort_field'] = $sort_field;
+				$filter['sort_asc'] .= $sort_asc;
+				$filter['limit'] = $limit;
+				dbQuery( "replace into Filters set Name = '$filter_name', Query = '".serialize($filter)."', AutoArchive = '$auto_archive', AutoVideo = '$auto_video', AutoUpload = '$auto_upload', AutoEmail = '$auto_email', AutoMessage = '$auto_message', AutoExecute = '$auto_execute', AutoExecuteCmd = '".addslashes($auto_execute_cmd)."', AutoDelete = '$auto_delete', Background = '$background'" );
 				$refresh_parent = true;
 			}
 		}

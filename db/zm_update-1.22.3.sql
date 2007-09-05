@@ -8,6 +8,11 @@
 alter table Monitors add column `StreamReplayBuffer` int(10) unsigned NOT NULL default '1000' after PostEventCount;
 
 --
+-- Change the default timestamp format
+--
+alter table Monitors modify column `LabelFormat` varchar(64) NOT NULL default '%f - %y/%m/%d %H:%M:%S';
+
+--
 -- Add a column for signal check colour
 --
 alter table Monitors add column `SignalCheckColour` varchar(32) NOT NULL default '#0100BE' after DefaultScale;

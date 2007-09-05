@@ -2206,7 +2206,7 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
         char *d_ptr = label_text;
         while ( *s_ptr && ((d_ptr-label_text) < sizeof(label_text)) )
         {
-            if ( *s_ptr == '@' && *(s_ptr+2) == '@' )
+            if ( *s_ptr == '%' )
             {
                 bool found_macro = false;
                 switch ( *(s_ptr+1) )
@@ -2215,18 +2215,18 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
                         d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", name );
                         found_macro = true;
                         break;
-                    case 'T' :
+                    case 'Q' :
                         d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", trigger_data->trigger_showtext );
                         found_macro = true;
                         break;
-                    case 'D' :
+                    case 'v' :
                         d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time->tv_usec/10000 );
                         found_macro = true;
                         break;
                 }
                 if ( found_macro )
                 {
-                    s_ptr += 3;
+                    s_ptr += 2;
                     continue;
                 }
             }

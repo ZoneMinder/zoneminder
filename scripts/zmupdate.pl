@@ -641,77 +641,104 @@ if ( $version )
 		# Patch the database
 		patchDB( $dbh, "1.22.3" );
 
-		# Convert filters to new format
-		my $sql = "select * from Filters";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-		my @db_filters;
-		while( my $db_filter = $sth->fetchrow_hashref() )
-		{
-			push( @db_filters, $db_filter );
-		}
-		$sth->finish();
-        foreach my $db_filter ( @db_filters )
+        # Convert timestamp strings to new format
         {
-            my %filter_terms;
-            foreach my $filter_parm ( split( '&', $db_filter->{Query} ) )
+            my $sql = "select * from Monitors";
+            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            my @db_monitors;
+            while( my $db_monitor = $sth->fetchrow_hashref() )
             {
-                my( $key, $value ) = split( '=', $filter_parm, 2 );
-                if ( $key )
+                push( @db_monitors, $db_monitor );
+            }
+            $sth->finish();
+            foreach my $db_monitor ( @db_monitors )
+            {
+                if ( $db_monitor->{LabelFormat} =~ /\%\%s/ )
                 {
-                    $filter_terms{$key} = $value;
+                    $db_monitor->{LabelFormat} =~ s/\%\%s/%N/;
+                    $db_monitor->{LabelFormat} =~ s/\%\%s/%Q/;
+
+                    my $sql = "update Monitors set LabelFormat = ? where Id = ?";
+                    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                    my $res = $sth->execute( $db_monitor->{LabelFormat}, $db_monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
                 }
             }
-            my $filter = { 'terms' => [] };
-            for ( my $i = 1; $i <= $filter_terms{trms}; $i++ )
-            {
-                my $term = {};
-                my $conjunction_name = "cnj$i";
-                my $obracket_name = "obr$i";
-                my $cbracket_name = "cbr$i";
-                my $attr_name = "attr$i";
-                my $op_name = "op$i";
-                my $value_name = "val$i";
+        }
 
-                $term->{cnj} = $filter_terms{$conjunction_name} if ( $filter_terms{$conjunction_name} );
-                $term->{obr} = $filter_terms{$obracket_name} if ( $filter_terms{$obracket_name} );
-                $term->{attr} = $filter_terms{$attr_name} if ( $filter_terms{$attr_name} );
-                $term->{val} = $filter_terms{$value_name} if ( defined($filter_terms{$value_name}) );
-                $term->{op} = $filter_terms{$op_name} if ( $filter_terms{$op_name} );
-                $term->{cbr} = $filter_terms{$cbracket_name} if ( $filter_terms{$cbracket_name} );
-                push( @{$filter->{terms}}, $term );
+        # Convert filters to new format
+        {
+            my $sql = "select * from Filters";
+            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            my @db_filters;
+            while( my $db_filter = $sth->fetchrow_hashref() )
+            {
+                push( @db_filters, $db_filter );
             }
-            $filter->{sort_field} = $filter_terms{sort_field} if ( $filter_terms{sort_field} );
-            $filter->{sort_asc} = $filter_terms{sort_asc} if ( $filter_terms{sort_asc} );
-            $filter->{limit} = $filter_terms{limit} if ( $filter_terms{limit} );
-
-            my $new_query = 'a:'.int(keys(%$filter)).':{s:5:"terms";a:'.int(@{$filter->{terms}}).':{';
-            my $i = 0;
-            foreach my $term ( @{$filter->{terms}} )
+            $sth->finish();
+            foreach my $db_filter ( @db_filters )
             {
-                $new_query .= 'i:'.$i.';a:'.int(keys(%$term)).':{';
-                while ( my ( $key, $val ) = each( %$term ) )
+                my %filter_terms;
+                foreach my $filter_parm ( split( '&', $db_filter->{Query} ) )
                 {
-                    $new_query .= 's:'.length($key).':"'.$key.'";';
-                    $new_query .= 's:'.length($val).':"'.$val.'";';
+                    my( $key, $value ) = split( '=', $filter_parm, 2 );
+                    if ( $key )
+                    {
+                        $filter_terms{$key} = $value;
+                    }
+                }
+                my $filter = { 'terms' => [] };
+                for ( my $i = 1; $i <= $filter_terms{trms}; $i++ )
+                {
+                    my $term = {};
+                    my $conjunction_name = "cnj$i";
+                    my $obracket_name = "obr$i";
+                    my $cbracket_name = "cbr$i";
+                    my $attr_name = "attr$i";
+                    my $op_name = "op$i";
+                    my $value_name = "val$i";
+
+                    $term->{cnj} = $filter_terms{$conjunction_name} if ( $filter_terms{$conjunction_name} );
+                    $term->{obr} = $filter_terms{$obracket_name} if ( $filter_terms{$obracket_name} );
+                    $term->{attr} = $filter_terms{$attr_name} if ( $filter_terms{$attr_name} );
+                    $term->{val} = $filter_terms{$value_name} if ( defined($filter_terms{$value_name}) );
+                    $term->{op} = $filter_terms{$op_name} if ( $filter_terms{$op_name} );
+                    $term->{cbr} = $filter_terms{$cbracket_name} if ( $filter_terms{$cbracket_name} );
+                    push( @{$filter->{terms}}, $term );
+                }
+                $filter->{sort_field} = $filter_terms{sort_field} if ( $filter_terms{sort_field} );
+                $filter->{sort_asc} = $filter_terms{sort_asc} if ( $filter_terms{sort_asc} );
+                $filter->{limit} = $filter_terms{limit} if ( $filter_terms{limit} );
+
+                my $new_query = 'a:'.int(keys(%$filter)).':{s:5:"terms";a:'.int(@{$filter->{terms}}).':{';
+                my $i = 0;
+                foreach my $term ( @{$filter->{terms}} )
+                {
+                    $new_query .= 'i:'.$i.';a:'.int(keys(%$term)).':{';
+                    while ( my ( $key, $val ) = each( %$term ) )
+                    {
+                        $new_query .= 's:'.length($key).':"'.$key.'";';
+                        $new_query .= 's:'.length($val).':"'.$val.'";';
+                    }
+                    $new_query .= '}';
+                    $i++;
                 }
                 $new_query .= '}';
-                $i++;
-            }
-            $new_query .= '}';
-            foreach my $field ( "sort_field", "sort_asc", "limit" )
-            {
-                if ( defined($filter->{$field}) )
+                foreach my $field ( "sort_field", "sort_asc", "limit" )
                 {
-                    $new_query .= 's:'.length($field).':"'.$field.'";';
-                    $new_query .= 's:'.length($filter->{$field}).':"'.$filter->{$field}.'";';
+                    if ( defined($filter->{$field}) )
+                    {
+                        $new_query .= 's:'.length($field).':"'.$field.'";';
+                        $new_query .= 's:'.length($filter->{$field}).':"'.$filter->{$field}.'";';
+                    }
                 }
-            }
-            $new_query .= '}';
+                $new_query .= '}';
 
-		    my $sql = "update Filters set Query = ? where Name = ?";
-		    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		    my $res = $sth->execute( $new_query, $db_filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+                my $sql = "update Filters set Query = ? where Name = ?";
+                my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                my $res = $sth->execute( $new_query, $db_filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+            }
         }
 		$cascade = !undef;
 	}

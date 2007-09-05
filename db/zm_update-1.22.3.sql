@@ -8,6 +8,11 @@
 alter table Monitors add column `StreamReplayBuffer` int(10) unsigned NOT NULL default '1000' after PostEventCount;
 
 --
+-- Add a column for signal check colour
+--
+alter table Monitors add column `SignalCheckColour` varchar(32) NOT NULL default '#0100BE' after DefaultScale;
+
+--
 -- Increase the size of the run state definition column
 --
 alter table States modify column Definition text;

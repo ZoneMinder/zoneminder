@@ -351,6 +351,7 @@ CREATE TABLE `Monitors` (
   `DefaultView` enum('Events','Control') NOT NULL default 'Events',
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
+  `SignalCheckColour` varchar(32) NOT NULL default '#0100BE',
   `WebColour` varchar(32) NOT NULL default 'red',
   `Sequence` smallint(5) unsigned default NULL,
   PRIMARY KEY  (`Id`)

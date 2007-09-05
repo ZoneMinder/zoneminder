@@ -103,6 +103,7 @@ else
 	$monitor['DefaultView'] = 'Events';
 	$monitor['DefaultRate'] = '100';
 	$monitor['DefaultScale'] = '100';
+	$monitor['SignalCheckColour'] = '#0100BE';
 	$monitor['WebColour'] = 'red';
 	$monitor['Triggers'] = "";
 }
@@ -261,6 +262,13 @@ function validateForm(form)
 	{
 		errors[errors.length] = "<?= $zmSlangBadFrameSkip ?>";
 	}
+	if ( form.elements['new_monitor[Type]'].value == 'Local' )
+	{
+	    if ( !form.elements['new_monitor[SignalCheckColour]'].value || !form.elements['new_monitor[SignalCheckColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
+	    {
+		    errors[errors.length] = "<?= $zmSlangBadSignalCheckColour ?>";
+	    }
+    }
 	if ( !form.elements['new_monitor[WebColour]'].value || !form.elements['new_monitor[WebColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
 	{
 		errors[errors.length] = "<?= $zmSlangBadWebColour ?>";
@@ -499,6 +507,12 @@ if ( $tab != 'misc' )
 <input type="hidden" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>">
 <?php
 }
+if ( $tab != 'misc' || $new_monitor['Type'] != 'Local' )
+{
+?>
+<input type="hidden" name="new_monitor[SignalCheckColour]" value="<?= $new_monitor['SignalCheckColour'] ?>">
+<?php
+}
 ?>
 <tr>
 <td align="left" class="smallhead" width="50%"><?= $zmSlangParameter ?></td><td align="left" class="smallhead" width="50%"><?= $zmSlangValue ?></td>
@@ -669,7 +683,15 @@ switch ( $tab )
 </select></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangDefaultRate ?></td><td align="left" class="text"><?= buildSelect( "new_monitor[DefaultRate]", $rates ); ?></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangDefaultScale ?></td><td align="left" class="text"><?= buildSelect( "new_monitor[DefaultScale]", $scales ); ?></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangWebColour ?></td><td align="left" class="text"><input type="text" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>" size="10" class="form" onChange="document.getElementById('Swatch').style.backgroundColor=this.value">&nbsp;&nbsp;<span id="Swatch" style="background-color: <?= $new_monitor['WebColour'] ?>; border: 1px solid black; width: 20px; height: 10px; padding: 0px;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
+<?php
+		if ( $new_monitor['Type'] == "Local" )
+		{
+?>
+<tr><td align="left" class="text"><?= $zmSlangSignalCheckColour ?></td><td align="left" class="text"><input type="text" name="new_monitor[SignalCheckColour]" value="<?= $new_monitor['SignalCheckColour'] ?>" size="10" class="form" onChange="document.getElementById('SignalCheckSwatch').style.backgroundColor=this.value">&nbsp;&nbsp;<span id="SignalCheckSwatch" style="background-color: <?= $new_monitor['SignalCheckColour'] ?>; border: 1px solid black; width: 20px; height: 10px; padding: 0px;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
+<?php
+        }
+?>
+<tr><td align="left" class="text"><?= $zmSlangWebColour ?></td><td align="left" class="text"><input type="text" name="new_monitor[WebColour]" value="<?= $new_monitor['WebColour'] ?>" size="10" class="form" onChange="document.getElementById('WebSwatch').style.backgroundColor=this.value">&nbsp;&nbsp;<span id="WebSwatch" style="background-color: <?= $new_monitor['WebColour'] ?>; border: 1px solid black; width: 20px; height: 10px; padding: 0px;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
 <?php
 		break;
 	}

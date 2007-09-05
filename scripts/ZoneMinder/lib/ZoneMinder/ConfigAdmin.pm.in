@@ -664,14 +664,6 @@ our @options =
 		category => "config",
 	},
 	{
-		name => "ZM_SIGNAL_CHECK_COLOUR",
-		default => "0100BE",
-		description => "The colour to check when detecting signal loss",
-		help => "For locally attached video cameras ZoneMinder can check for signal loss by looking at a number of random points on each captured image. If all of these points are set to the same fixed colour then the camera is assumed to have lost signal. This option defines what that colour is, in hexadecimal RGB (red/green/blue) terms. The default, which is a shade of blue, is most common but other systems may differ.",
-		type => $types{hexadecimal},
-		category => "config",
-	},
-	{
 		name => "ZM_CAPTURES_PER_FRAME",
 		default => "1",
 		description => "How many images are captured per returned frame, for shared local cameras",

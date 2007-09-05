@@ -193,6 +193,7 @@ protected:
 	int				fps_report_interval;    // How many images should be captured/processed between reporting the current FPS
 	int				ref_blend_perc;		    // Percentage of new image going into reference image.
 	bool			track_motion;		    // Whether this monitor tries to track detected motion 
+    Rgb             signal_check_colour;    // The colour that the camera will emit when no video signal detected
 
 	double			fps;
 	Image			image;
@@ -231,7 +232,7 @@ protected:
 	MonitorLink		**linked_monitors;
 
 public:
-	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, Purpose p_purpose=QUERY, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );

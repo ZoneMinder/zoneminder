@@ -43,6 +43,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 our %EXPORT_TAGS = (
     'functions' => [ qw(
 		executeShellCommand
+		deleteEventFiles
 	) ]
 );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -62,14 +63,12 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Debug qw(:all);
 
-use Carp;
-
 sub executeShellCommand( $ )
 {
     my $command = shift;
     my $output = qx( $command );
     my $status = $? >> 8;
-    if ( $status || DBG_LEVEL > 0 )
+    if ( $status || zmDbgLevel() > 0 )
     {
         Debug( "Command: $command\n" );
         chomp( $output );
@@ -85,15 +84,15 @@ sub deleteEventFiles( $;$ )
 
     my $event_id = shift;
     my $monitor_id = shift;
-    if ( !defined($monitor_id) )
-        $monitor_id = '*';
+    $monitor_id = '*' if ( !defined($monitor_id) );
 
     if ( ZM_USE_DEEP_STORAGE )
     {
         my $link_path = $monitor_id."/*/*/*/.".$event_id;
-        if ( my @links = <$link_path> )
+        my $link = glob( $link_path );
+        if ( defined($link) )
         {
-            ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
+            ( $link_path ) = ( $link =~ /^(.*)$/ ); # De-taint
             Debug( "L:$link_path" );
 
             ( my $day_path = $link_path ) =~ s/\.\d+//;
@@ -107,11 +106,13 @@ sub deleteEventFiles( $;$ )
 
             unlink( $link_path );
             my @path_parts = split( /\//, $event_path );
-            for ( my $i = int(@path_parts)-1; $i >= 2; $i-- )
+            for ( my $i = int(@path_parts)-2; $i >= 2; $i-- )
             {
                 my $delete_path = join( '/', @path_parts[0..$i] );
                 Debug( "DP$i:$delete_path" );
-                if ( !<$delete_path/*> )
+                my $has_files = glob( $delete_path."/*" );
+                Debug( "HF:$has_files" );
+                if ( !defined($has_files) )
                 {
                     my $command = "/bin/rm -rf ".$delete_path;
                     executeShellCommand( $command );

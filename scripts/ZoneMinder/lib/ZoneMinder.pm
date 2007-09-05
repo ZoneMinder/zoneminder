@@ -32,10 +32,11 @@ require Exporter;
 use ZoneMinder::Base qw(:all);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Debug qw(:all);
+use ZoneMinder::General qw(:all);
 use ZoneMinder::Database qw(:all);
 use ZoneMinder::SharedMem qw(:all);
 
-our @ISA = qw(Exporter ZoneMinder::Base ZoneMinder::Config ZoneMinder::Debug ZoneMinder::Database ZoneMinder::SharedMem);
+our @ISA = qw(Exporter ZoneMinder::Base ZoneMinder::Config ZoneMinder::Debug ZoneMinder::General ZoneMinder::Database ZoneMinder::SharedMem);
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
@@ -48,11 +49,14 @@ our %EXPORT_TAGS = (
 	'base' => [ 
 		@ZoneMinder::Base::EXPORT_OK
 	],
+	'config' => [ 
+		@ZoneMinder::Config::EXPORT_OK
+	],
 	'debug' => [ 
 		@ZoneMinder::Debug::EXPORT_OK
 	],
-	'config' => [ 
-		@ZoneMinder::Config::EXPORT_OK
+	'general' => [ 
+		@ZoneMinder::General::EXPORT_OK
 	],
 	'database' => [ 
 		@ZoneMinder::Database::EXPORT_OK

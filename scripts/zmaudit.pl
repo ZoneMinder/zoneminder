@@ -218,10 +218,10 @@ do
         }
         else
         {
-            opendir( DIR, $monitor_dir ) or Fatal( "Can't open directory '$monitor_dir': $!" );
-            my @temp_events = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
-            closedir( DIR );
             chdir( $monitor_dir );
+            opendir( DIR, "." ) or Fatal( "Can't open directory '$monitor_dir': $!" );
+            my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
+            closedir( DIR );
             my $count = 0;
             foreach my $event ( @temp_events )
             {
@@ -234,8 +234,8 @@ do
                     $fs_events->{$event} = (time() - ($^T - ((-M $event) * 24*60*60)));
                 }
             }
+		    chdir( EVENT_PATH );
         }
-		chdir( EVENT_PATH );
 		Debug( "Got ".int(keys(%$fs_events))." events\n" );
 	}
 

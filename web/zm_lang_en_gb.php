@@ -570,6 +570,7 @@ $zmSlangStream               = 'Stream';
 $zmSlangStreamReplayBuffer   = 'Stream Replay Image Buffer';
 $zmSlangSubmit               = 'Submit';
 $zmSlangSystem               = 'System';
+$zmSlangAttrSystemLoad       = 'System Load';
 $zmSlangTele                 = 'Tele';
 $zmSlangThumbnail            = 'Thumbnail';
 $zmSlangTilt                 = 'Tilt';

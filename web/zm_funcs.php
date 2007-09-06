@@ -1274,6 +1274,9 @@ function parseFilter( &$filter, $save_to_session=false, $term_sep='&' )
 					case 'DiskBlocks':
 						$filter['sql'] .= getDiskBlocks();
 						break;
+					case 'SystemLoad':
+						$filter['sql'] .= getLoad();
+						break;
 				}
 				$value_list = array();
 				foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $filter['terms'][$i]['val'] ) ) as $value )

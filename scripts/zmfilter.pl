@@ -224,6 +224,19 @@ sub getDiskBlocks
     return( $space );
 }
 
+sub getLoad
+{
+    my $command = "uptime .";
+    my $uptime = qx( $command );
+    my $load = -1;
+    if ( $uptime =~ /load average:\s+([\d.]+)/ms )
+    {
+        $load = $1;
+        Info( "Load: $load" );
+    }
+    return( $load );
+}
+
 sub getFilters
 {
     my $filter_name = shift;
@@ -302,6 +315,11 @@ sub getFilters
                     {
                         $db_filter->{Sql} .= "zmDiskBlocks";
                         $db_filter->{HasDiskBlocks} = !undef;
+                    }
+                    elsif ( $filter_expr->{terms}[$i]->{attr} eq 'SystemLoad' )
+                    {
+                        $db_filter->{Sql} .= "zmSystemLoad";
+                        $db_filter->{HasSystemLoad} = !undef;
                     }
                     else
                     {
@@ -524,6 +542,11 @@ sub checkFilter
     {
         my $disk_blocks = getDiskBlocks();
         $sql =~ s/zmDiskBlocks/$disk_blocks/g;
+    }
+    if ( $filter->{HasSystemLoad} )
+    {
+        my $load = getLoad();
+        $sql =~ s/zmSystemLoad/$load/g;
     }
 
     my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );

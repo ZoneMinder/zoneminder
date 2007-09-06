@@ -81,6 +81,7 @@ $attr_types = array(
 	'Archived'    => $zmSlangAttrArchiveStatus,
 	'DiskPercent' => $zmSlangAttrDiskPercent,
 	'DiskBlocks'  => $zmSlangAttrDiskBlocks,
+	'SystemLoad'  => $zmSlangAttrSystemLoad,
 );
 $op_types = array(
 	'='   => $zmSlangOpEq,

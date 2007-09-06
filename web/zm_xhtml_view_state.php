@@ -25,14 +25,7 @@ if ( !canEdit( 'System' ) )
 }
 $running = daemonCheck();
 
-$result = mysql_query( "select * from States" );
-if ( !$result )
-	die( mysql_error() );
-while( $state = mysql_fetch_assoc( $result ) )
-{
-	$states[] = $state;
-}
-mysql_free_result( $result );
+$status = dbFetchAll( "select * from States" );
 
 ?>
 <html xmlns="http://www.w3.org/1999/xhtml">

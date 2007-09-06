@@ -33,11 +33,7 @@ else
 	$mid_sql = '';
 }
 $sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultRate from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$eid'$mid_sql";
-$result = mysql_query( $sql );
-if ( !$result )
-    die( mysql_error() );
-$event = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$event = dbFetchOne( $sql );
 
 $device_width = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;
 $device_height = (isset($device)&&!empty($device['height']))?$device['height']:DEVICE_HEIGHT;

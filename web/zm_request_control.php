@@ -955,20 +955,14 @@ else
         if ( canEdit( 'Control' ) )
         {
             $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
-            $result = mysql_query( $sql );
-            if ( !$result )
-               die( mysql_error() );
-            $row = mysql_fetch_assoc( $result );
-            mysql_free_result( $result );
+            $row = dbFetchOne( $sql );
             if ( $new_label != $row['Label'] )
             {
                 if ( $new_label )
                     $sql = "replace into ControlPresets ( MonitorId, Preset, Label ) values ( '".$monitor['Id']."', '".$preset."', '".addslashes($new_label)."' )";
                 else
                     $sql = "delete from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
-                $result = mysql_query( $sql );
-                if ( !$result )
-                    die( mysql_error() );
+                dbQuery( $sql );
                 $refresh_parent = true;
             }
         }

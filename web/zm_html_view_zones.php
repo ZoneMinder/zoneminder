@@ -27,17 +27,11 @@ chdir( ZM_DIR_IMAGES );
 $status = exec( escapeshellcmd( getZmuCommand( " -m $mid -z" ) ) );
 chdir( '..' );
 
-$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-if ( !$result )
-	die( mysql_error() );
-$monitor = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$monitor = dbFetchMonitor( $mid );
 
-$result = mysql_query( "select * from Zones where MonitorId = '$mid' order by Area desc" );
-if ( !$result )
-	die( mysql_error() );
+$sql = "select * from Zones where MonitorId = '$mid' order by Area desc";
 $zones = array();
-while( $row = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $row )
 {
 	if ( $row['Points'] = coordsToPoints( $row['Coords'] ) )
 	{
@@ -45,7 +39,6 @@ while( $row = mysql_fetch_assoc( $result ) )
 		$zones[] = $row;
 	}
 }
-mysql_free_result( $result );
 
 $image = $monitor['Name']."-Zones.jpg";
 

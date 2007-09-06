@@ -32,11 +32,7 @@ if ( empty($mode) )
 		$mode = "still";
 }
 
-$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-if ( !$result )
-	die( mysql_error() );
-$monitor = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$monitor = dbFetchMonitor( $mid );
 
 if ( !isset( $scale ) )
 	$scale = $monitor['DefaultScale'] * ZM_WEB_DEFAULT_SCALE;

@@ -19,16 +19,12 @@
 //
 
 $sql = "select * from Devices where Type = 'X10' order by Name";
-$result = mysql_query( $sql );
-if ( !$result )
-	echo mysql_error();
 $devices = array();
-while( $row = mysql_fetch_assoc( $result ) )
+foreach ( dbFetchAll( $sql ) as $row )
 {
 	$row['Status'] = getDeviceStatusX10( $row['KeyString'] );
 	$devices[] = $row;
 }
-mysql_free_result( $result );
 ?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>

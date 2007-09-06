@@ -38,24 +38,17 @@ $marker = array(
 	"height"=>7,
 );
 
-$result = mysql_query( "select *, Units-1 as UnitsIndex, CheckMethod-1 as CheckMethodIndex from ZonePresets order by Id asc" );
-if ( !$result )
-	die( mysql_error() );
+$sql( "select *, Units-1 as UnitsIndex, CheckMethod-1 as CheckMethodIndex from ZonePresets order by Id asc" );
 $presets = array();
 $preset_names = array();
 $preset_names[0] = $zmSlangChoosePreset;
-while ( $preset = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $preset )
 {
 	$preset_names[$preset['Id']] = $preset['Name'];
 	$presets[] = $preset;
 }
-mysql_free_result( $result );
 
-$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-if ( !$result )
-	die( mysql_error() );
-$monitor = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$monitor = dbFetchMonitor ( $mid );
 
 $min_x = 0;
 $max_x = $monitor['Width']-1;
@@ -66,11 +59,7 @@ if ( !isset($new_zone) )
 {
 	if ( $zid > 0 )
 	{
-		$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
-		if ( !$result )
-			die( mysql_error() );
-		$zone = mysql_fetch_assoc( $result );
-		mysql_free_result( $result );
+		$zone = dbFetchOne( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
 	}
 	else
 	{

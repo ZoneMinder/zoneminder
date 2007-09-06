@@ -27,19 +27,12 @@ if ( !canView( 'Control' ) )
 if ( $group )
 {
 	$sql = "select * from Groups where Id = '$group'";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		die( mysql_error() );
-	$row = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+    $row = dbFetchOne( $sql );
 	$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 $sql = "select * from Monitors where Function != 'None' and Controllable = 1 $group_sql order by Sequence";
-$result = mysql_query( $sql ); 
-if ( !$result )
-	die( mysql_error() );
 $mids = array();
-while( $row = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $row )
 {
 	if ( !visibleMonitor( $row['Id'] ) )
 	{
@@ -47,7 +40,6 @@ while( $row = mysql_fetch_assoc( $result ) )
 	}
 	$mids[$row['Id']] = $row['Name'];
 }
-mysql_free_result( $result );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

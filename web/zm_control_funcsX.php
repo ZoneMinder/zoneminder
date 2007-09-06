@@ -306,15 +306,11 @@ function controlPresets( $monitor )
 	define( "MAX_PRESETS", "12" );
 
     $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."'";
-    $result = mysql_query( $sql );
-    if ( !$result )
-        die( mysql_error() );
     $labels = array();
-    while( $row = mysql_fetch_assoc( $result ) )
+    foreach( dbFetchAll( $sql ) as $row )
     {
         $labels[$row['Preset']] = $row['Label'];
     }
-    mysql_free_result( $result );
 
 	$preset_break = (int)(($monitor['NumPresets']+1)/((int)(($monitor['NumPresets']-1)/MAX_PRESETS)+1));
 

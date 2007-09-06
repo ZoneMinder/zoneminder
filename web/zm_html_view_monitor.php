@@ -44,18 +44,10 @@ if ( !isset($tab) )
 
 if ( !empty($mid) )
 {
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+    $monitor = dbFetchMonitor( $mid );
 	if ( ZM_OPT_X10 )
 	{
-		$result = mysql_query( "select * from TriggersX10 where MonitorId = '$mid'" );
-		if ( !$result )
-			die( mysql_error() );
-		$x10_monitor = mysql_fetch_assoc( $result );
-		mysql_free_result( $result );
+		$x10_monitor = dbFetchOne( "select * from TriggersX10 where MonitorId = '$mid'" );
 	}
 }
 else
@@ -115,11 +107,7 @@ if ( !isset( $new_monitor ) )
 }
 if ( !empty($preset) )
 {
-	$result = mysql_query( "select Type, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '$preset'" );
-	if ( !$result )
-		die( mysql_error() );
-	$preset = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+	$preset = dbFetchOne( "select Type, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '$preset'" );
 	foreach ( $preset as $name=>$value )
 	{
 		if ( isset($value) )
@@ -318,11 +306,8 @@ function loadLocations( form )
 		var option_count = 1;
 <?php
 	$sql = "select * from Controls where Type = '".$monitor['Type']."'";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		die( mysql_error() );
 	$control_types = array( ''=>$zmSlangNone );
-	while( $row = mysql_fetch_assoc( $result ) )
+    foreach( dbFetchAll( $sql ) as $row )
 	{
 		$control_types[$row['Id']] = $row['Name'];
 ?>
@@ -349,7 +334,6 @@ function loadLocations( form )
 		returnLocationSelect.options.length = option_count;
 <?php
 	}
-	mysql_free_result( $result );
 ?>
 	}
 	else

@@ -24,12 +24,10 @@ if ( !canView( 'System' ) )
 	return;
 }
 
-$result = mysql_query( "select * from Groups order by Name" );
-if ( !$result )
-	die( mysql_error() );
+$sql = "select * from Groups order by Name";
 $groups = array();
 $selected = false;
-while ( $row = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $row )
 {
 	if ( $row['Id'] == $cgroup )
 	{
@@ -38,7 +36,7 @@ while ( $row = mysql_fetch_assoc( $result ) )
 	}
 	$groups[] = $row;
 }
-mysql_free_result( $result );
+
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>

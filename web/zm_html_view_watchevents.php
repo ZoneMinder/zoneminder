@@ -38,11 +38,7 @@ if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: ".ZM_WEB_REFRESH_EVENTS."; URL=$PHP_SELF?view=watchevents&mid=$mid&max_events=".MAX_EVENTS );
 noCacheHeaders();
 
-$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-if ( !$result )
-	die( mysql_error() );
-$monitor = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$monitor = dbFetchMonitor( $mid );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
@@ -117,12 +113,9 @@ window.setTimeout( "window.location.replace( '<?= "$PHP_SELF?view=watchevents&mi
 $sql = "select E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.AvgScore,E.MaxScore from Monitors as M left join Events as E on M.Id = E.MonitorId where M.Id = '$mid' and E.Archived = 0";
 $sql .= " order by $sort_column $sort_order";
 $sql .= " limit 0,$max_events";
-$result = mysql_query( $sql );
-if ( !$result )
-{
-	die( mysql_error() );
-}
-$n_events = mysql_num_rows( $result );
+
+$events = dbFetchAll( $sql );
+$n_events = count( $events );
 ?>
 <tr>
 <td width="30%"align="left" class="text"><b><?= sprintf( $zmClangLastEvents, $n_events, strtolower( zmVlang( $zmVlangEvent, $n_events ) ) ) ?></b></td>
@@ -141,7 +134,7 @@ $n_events = mysql_num_rows( $result );
 <td class="text"><input type="checkbox" name="toggle_check" value="1" onClick="toggleCheck( this, 'mark_eids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>></td>
 </tr>
 <?php
-while( $event = mysql_fetch_assoc( $result ) )
+foreach ( $events as $event )
 {
 ?>
 <tr bgcolor="#FFFFFF">
@@ -155,7 +148,6 @@ while( $event = mysql_fetch_assoc( $result ) )
 </tr>
 <?php
 }
-mysql_free_result( $result );
 ?>
 </table></td></tr>
 </table></td>

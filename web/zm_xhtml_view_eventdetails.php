@@ -23,17 +23,9 @@ if ( !canView( 'Events' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
-if ( !$result )
-	die( mysql_error() );
-$event = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$event = dbFetchOne( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '$eid' and E.MonitorId = M.Id" );
+$frame = dbFetchOne( "select * from Frames where EventID = '$eid' and Score = '".$event['MaxScore']."'" );
 
-$result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '".$event['MaxScore']."'" );
-if ( !$result )
-	die( mysql_error() );
-$frame = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
 $fid = $frame['FrameId'];
 
 $scale = getDeviceScale( $event['Width'], $event['Height'], 2 );

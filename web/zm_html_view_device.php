@@ -26,11 +26,7 @@ if ( !canEdit( 'Devices' ) )
 if ( $did )
 {
 	$sql = "select * from Devices where Id = '$did'";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		die( mysql_error() );
-	$new_device = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+    $new_device = dbFetchOne( $sql );
 }
 else
 {

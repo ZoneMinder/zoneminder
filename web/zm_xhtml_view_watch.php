@@ -23,11 +23,8 @@ if ( !canView( 'Stream' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-if ( !$result )
-	die( mysql_error() );
-$monitor = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+
+$monitor = dbFetchMonitor( $mid );
 
 $zmu_command = getZmuCommand( " -m $mid -s -f" );
 $zmu_output = exec( escapeshellcmd( $zmu_command ) );
@@ -61,12 +58,12 @@ $was_alarmed = ( $last_status == STATE_ALARM || $last_status == STATE_ALERT );
 $new_alarm = ( $is_alarmed && !$was_alarmed );
 $old_alarm = ( !$is_alarmed && $was_alarmed );
 
-$result = mysql_query( "select * from Monitors where Function != 'None' order by Sequence" );
+$sql = "select * from Monitors where Function != 'None' order by Sequence";
 $monitors = array();
 $mon_idx = 0;
 $max_width = 0;
 $max_height = 0;
-while( $row = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $row )
 {
 	if ( !visibleMonitor( $row['Id'] ) )
 	{
@@ -78,7 +75,6 @@ while( $row = mysql_fetch_assoc( $result ) )
 	if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
 	$monitors[] = $row;
 }
-mysql_free_result( $result );
 
 //$monitor = $monitors[$mon_idx];
 $next_mid = $mon_idx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$mon_idx+1]['Id'];

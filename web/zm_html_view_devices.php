@@ -25,16 +25,12 @@ if ( !canView( 'Devices' ) )
 }
 
 $sql = "select * from Devices where Type = 'X10' order by Name";
-$result = mysql_query( $sql );
-if ( !$result )
-	echo mysql_error();
 $devices = array();
-while( $row = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $row )
 {
 	$row['Status'] = getDeviceStatusX10( $row['KeyString'] );
 	$devices[] = $row;
 }
-mysql_free_result( $result );
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>

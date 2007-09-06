@@ -25,22 +25,14 @@ if ( !canView( 'Events' ) )
 }
 
 $sql = "select * from Monitors";
-if ( !($result = mysql_query( $sql )) )
-	die( mysql_error() );
-while( $row = mysql_fetch_assoc( $result ) )
+foreach ( dbFetchAll( $sql ) as $row )
 {
 	$monitors[$row[Id]] = $row;
 }
-mysql_free_result( $result );
 
 if ( $filter_name )
 {
-	$result = mysql_query( "select * from Filters where Name = '$filter_name'" );
-	if ( !$result )
-		die( mysql_error() );
-	$filter_data = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
-
+	$filter_data = dbFetchOne( "select * from Filters where Name = '$filter_name'" );
 	if ( !empty($filter_data) )
 	{
 		foreach( split( '&', $filter_data['Query'] ) as $filter_parm )
@@ -110,11 +102,7 @@ elseif ( !empty( $limit ) )
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEvents ?></title>
 <link rel="stylesheet" href="zm_xhtml_styles.css" type="text/css"/>
 <?php
-if ( !($result = mysql_query( $count_sql )) )
-	die( mysql_error() );
-$row = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
-$n_events = $row['EventCount'];
+$n_events = dbFetchOne( $count_sql, 'EventCount' );
 if ( !empty($limit) && $n_events > $limit )
 {
 	$n_events = $limit;
@@ -228,9 +216,7 @@ if ( !empty($limit) && $n_events > $limit )
 <?php
 	flush();
 	$count = 0;
-	if ( !($result = mysql_query( $events_sql )) )
-		die( mysql_error() );
-	while( $event = mysql_fetch_assoc( $result ) )
+    foreach ( dbFetchAll( $events_sql ) as $event )
 	{
 		if ( ($count++%$device_lines) == 0 )
 		{
@@ -255,7 +241,6 @@ if ( !empty($limit) && $n_events > $limit )
 </tr>
 <?php
 	}
-	mysql_free_result( $result );
 ?>
 </table>
 <p align="center"><a href="<?= $PHP_SELF ?>?view=console"><?= $zmSlangConsole ?></a></p>

@@ -41,42 +41,33 @@ else
 }
 
 $sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$eid'$mid_sql";
-$result = mysql_query( $sql );
-if ( !$result )
-    die( mysql_error() );
-$event = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$event = dbFetchOne( $sql );
 
 parseSort();
 parseFilter( $filter );
 
 $sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[preg_replace( '/^.*\./', '', $sort_column )]."'$filter_sql$mid_sql order by $sort_column ".($sort_order=='asc'?'desc':'asc');
-$result = mysql_query( $sql );
-if ( !$result )
-    die( mysql_error() );
-while ( $row = mysql_fetch_assoc( $result ) )
+$result = dbQuery( $sql );
+foreach( dbFetchAll( $sql ) as $row )
+while ( $row = dbFetchNext( $result ) )
 {
     if ( $row['Id'] == $eid )
     {
-        $prev_event = mysql_fetch_assoc( $result );
+        $prev_event = dbFetchNext( $result );
         break;
     }
 }
-mysql_free_result( $result );
 
 $sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[preg_replace( '/^.*\./', '', $sort_column )]."'$filter_sql$mid_sql order by $sort_column $sort_order";
-$result = mysql_query( $sql );
-if ( !$result )
-    die( mysql_error() );
-while ( $row = mysql_fetch_assoc( $result ) )
+$result = dbQuery( $sql );
+while ( $row = dbFetchNext( $result ) )
 {
     if ( $row['Id'] == $eid )
     {
-        $next_event = mysql_fetch_assoc( $result );
+        $next_event = dbFetchNext( $result );
         break;
     }
 }
-mysql_free_result( $result );
 
 if ( !isset( $rate ) )
     $rate = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
@@ -93,11 +84,7 @@ $paged = $event['Frames'] > $frames_per_page;
 if ( $mode == "stream" )
 {
     $sql = "select max(Delta)-min(Delta) as Duration from Frames where EventId = '$eid'";
-    $result = mysql_query( $sql );
-    if ( !$result )
-        die( mysql_error() );
-    $frame_data = mysql_fetch_assoc( $result );
-    mysql_free_result( $result );
+    $frame_data = dbFetchOne( $sql );
     $frame_data['RealDuration'] = ($frame_data['Duration']*RATE_BASE)/$rate;
 
     $panel_init_color = '#eeeeee';
@@ -461,15 +448,11 @@ else
     $sql .= " order by FrameId";
     if ( $paged && !empty($page) )
         $sql .= " limit $lo_frame_id, ".($hi_frame_id-$lo_frame_id);
-    $result = mysql_query( $sql );
-    if ( !$result )
-        die( mysql_error() );
     $frames = array();
-    while( $frame = mysql_fetch_assoc( $result ) )
+    foreach( dbFetchAll( $sql ) as $frame )
     {
         $frames[$frame['FrameId']] = $frame;
     }
-    mysql_free_result( $result );
 ?>
 <tr><td><div style="text-align: center">
 <?php

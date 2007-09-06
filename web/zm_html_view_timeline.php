@@ -131,10 +131,8 @@ $chart = array(
 
 $monitors = array();
 $monitors_sql = "select * from Monitors order by Sequence asc";
-if ( !($result = mysql_query( $monitors_sql )) )
-	die( mysql_error() );
 //srand( 97981 );
-while ( $row = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $monitors_sql ) as $row )
 {
 	//if ( empty($row['WebColour']) )
 	//{
@@ -142,7 +140,6 @@ while ( $row = mysql_fetch_assoc( $result ) )
 	//}
 	$monitors[$row['Id']] = $row;
 }
-mysql_free_result( $result );
 
 $range_sql = "select min(E.StartTime) as MinTime, max(E.EndTime) as MaxTime from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(E.StartTime) and not isnull(E.EndTime)";
 $events_sql = "select E.Id,E.Name,E.StartTime,E.EndTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(StartTime)";
@@ -232,10 +229,7 @@ else
 	if ( !isset($min_time) || !isset($max_time) )
 	{
 		// Dynamically determine range
-		if ( !($result = mysql_query( $range_sql )) )
-			die( mysql_error() );
-		$row = mysql_fetch_assoc( $result );
-		mysql_free_result( $result );
+        $row = dbFetchOne( $range_sql );
 
 		if ( !isset($min_time) )
 			$min_time = $row['MinTime'];
@@ -328,10 +322,8 @@ $chart['data']['x']['density'] = $chart['data']['x']['range']/$chart['graph']['w
 
 $mon_event_slots = array();
 $mon_frame_slots = array();
-if ( !($event_result = mysql_query( $events_sql )) )
-	die( mysql_error() );
 $monitor_ids = array();
-while( $event = mysql_fetch_assoc( $event_result ) )
+foreach( dbFetchAll( $events_sql ) as $event )
 {
 	if ( !isset($monitor_ids[$event['MonitorId']]) )
 		$monitor_ids[$event['MonitorId']] = true;
@@ -406,9 +398,7 @@ while( $event = mysql_fetch_assoc( $event_result ) )
 		else
 		{
 			$frames_sql = "select F.FrameId,F.Delta,unix_timestamp(F.TimeStamp) as TimeT,F.Score from Frames as F where F.EventId = '".$event['Id']."' and F.Score > 0";
-			if ( !($frame_result = mysql_query( $frames_sql )) )
-				die( mysql_error() );
-			while( $frame = mysql_fetch_assoc( $frame_result ) )
+            foreach( dbFetchAll( $frames_sql ) as $frame )
 			{
 				$frame_time_t = $frame['TimeT'];
 				$frame_time_t = $start_time_t + $frame['Delta'];
@@ -437,11 +427,9 @@ while( $event = mysql_fetch_assoc( $event_result ) )
 					$chart['data']['y']['hi'] = $frame['Score'];
 				}
 			}
-			mysql_free_result( $frame_result );
 		}
 	}
 }
-mysql_free_result( $event_result );
 
 ksort($monitor_ids,SORT_NUMERIC);
 ksort($mon_event_slots,SORT_NUMERIC);
@@ -461,10 +449,7 @@ foreach( array_keys($mon_frame_slots) as $monitor_id )
 			{
 				$xcount++;
 				$frames_sql = "select F.FrameId,F.Score from Frames as F where F.EventId = '".$curr_frame_slots[$i]['event']['Id']."' and F.Score > 0 order by F.FrameId limit 0,1";
-				if ( !($frame_result = mysql_query( $frames_sql )) )
-					die( mysql_error() );
-				$curr_frame_slots[$i]['frame'] = mysql_fetch_assoc( $frame_result );
-				mysql_free_result( $frame_result );
+				$curr_frame_slots[$i]['frame'] = dbFetchOne( $frame_sql );
 			}
 		}
 	}

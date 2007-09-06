@@ -24,15 +24,12 @@ if ( !canView( 'System' ) )
 	return;
 }
 
-$result = mysql_query( "select Id,Name from Monitors order by Sequence asc" );
-if ( !$result )
-	die( mysql_error() );
+$sql = "select Id,Name from Monitors order by Sequence asc";
 $monitors = array();
-while ( $monitor = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $monitor )
 {
 	$monitors[] = $monitor;
 }
-mysql_free_result( $result );
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>

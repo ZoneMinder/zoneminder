@@ -21,17 +21,13 @@
 $images_per_line = 2;
 
 $sql = "select * from Groups where Name = 'Mobile'";
-$result = mysql_query( $sql );
-if ( !$result )
-    echo mysql_error();
-$group = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$group = dbFetchOne( $sql );
 
-$result = mysql_query( "select * from Monitors where Function != 'None' order by Sequence" );
+$sql = "select * from Monitors where Function != 'None' order by Sequence";
 $monitors = array();
 $max_width = 0;
 $max_height = 0;
-while( $row = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $row )
 {
 	if ( !visibleMonitor( $row['Id'] ) )
 	{
@@ -46,7 +42,6 @@ while( $row = mysql_fetch_assoc( $result ) )
 	if ( $max_height < $row['Height'] ) $max_height = $row['Height'];
 	$monitors[] = $row;
 }
-mysql_free_result( $result );
 
 ?>
 <html xmlns="http://www.w3.org/1999/xhtml">

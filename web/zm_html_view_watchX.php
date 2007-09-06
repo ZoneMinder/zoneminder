@@ -25,11 +25,7 @@ if ( !canView( 'Stream' ) )
 }
 
 $sql = "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'";
-$result = mysql_query( $sql );
-if ( !$result )
-	die( mysql_error() );
-$monitor = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$monitor = dbFetchOne( $sql );
 
 $showControls = ( ZM_OPT_CONTROL && $monitor['Controllable'] && canView( 'Control' ) );
 

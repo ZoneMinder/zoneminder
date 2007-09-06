@@ -33,30 +33,19 @@ if ( empty($mode) )
 
 if ( $mid )
 {
-	$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$monitor = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+    $monitor = dbFetchMonitor( $mid );
 }
 elseif ( ZM_OPT_CONTROL )
 {
 	if ( $group )
 	{
 		$sql = "select * from Groups where Id = '$group'";
-		$result = mysql_query( $sql );
-		if ( !$result )
-			die( mysql_error() );
-		$row = mysql_fetch_assoc( $result );
-		mysql_free_result( $result );
+		$row = dbFetchOne( $sql );
 		$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
 	}
 	$sql = "select * from Monitors where Function != 'None' and Controllable = 1 $group_sql order by Sequence";
-	$result = mysql_query( $sql ); 
-	if ( !$result )
-		die( mysql_error() );
 	$control_mid = 0;
-	while( $row = mysql_fetch_assoc( $result ) )
+    foreach( dbFetchAl( $sql ) as $row )
 	{
 		if ( !visibleMonitor( $row['Id'] ) )
 		{
@@ -67,7 +56,6 @@ elseif ( ZM_OPT_CONTROL )
 			$control_mid = $row['Id'];
 		}
 	}
-	mysql_free_result( $result );
 }
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

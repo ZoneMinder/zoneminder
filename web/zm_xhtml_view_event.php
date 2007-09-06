@@ -39,27 +39,15 @@ else
 }
 
 $sql = "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$eid'$mid_sql";
-$result = mysql_query( $sql );
-if ( !$result )
-	die( mysql_error() );
-$event = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$event = dbFetchOne( $sql );
 
 if ( $fid )
 {
-	$result = mysql_query( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$frame = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+	$frame = dbFetchOne( "select * from Frames where EventID = '$eid' and FrameId = '$fid'" );
 }
 elseif ( isset( $fid ) )
 {
-	$result = mysql_query( "select * from Frames where EventID = '$eid' and Score = '".$event['MaxScore']."'" );
-	if ( !$result )
-		die( mysql_error() );
-	$frame = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+	$frame = dbFetchOne( "select * from Frames where EventID = '$eid' and Score = '".$event['MaxScore']."'" );
 	$fid = $frame['FrameId'];
 }
 
@@ -67,32 +55,26 @@ parseSort( true, '&amp;' );
 parseFilter( true, '&amp;' );
 
 $sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[$sort_field]."'$filter_sql$mid_sql order by $sort_column ".($sort_order=='asc'?'desc':'asc');
-$result = mysql_query( $sql );
-if ( !$result )
-	die( mysql_error() );
-while ( $row = mysql_fetch_assoc( $result ) )
+$result = dbQuery( $sql );
+while ( $row = dbFetchNext( $result ) )
 {
 	if ( $row[Id] == $eid )
 	{
-		$prev_event = mysql_fetch_assoc( $result );
+		$prev_event = dbFetchNext( $result );
 		break;
 	}
 }
-mysql_free_result( $result );
 
 $sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[$sort_field]."'$filter_sql$mid_sql order by $sort_column $sort_order";
-$result = mysql_query( $sql );
-if ( !$result )
-	die( mysql_error() );
-while ( $row = mysql_fetch_assoc( $result ) )
+$result = dbQuery( $sql );
+while ( $row = dbFetchNext( $result ) )
 {
 	if ( $row[Id] == $eid )
 	{
-		$next_event = mysql_fetch_assoc( $result );
+		$next_event = dbFetchNext( $result );
 		break;
 	}
 }
-mysql_free_result( $result );
 
 $frames_per_page = 15;
 $frames_per_line = 3;
@@ -222,18 +204,14 @@ $sql = "select * from Frames where EventID = '$eid'";
 if ( $paged && !empty($page) )
 	$sql .= " and FrameId between $lo_frame_id and $hi_frame_id";
 $sql .= " order by FrameId";
-$result = mysql_query( $sql );
-if ( !$result )
-	die( mysql_error() );
 $alarm_frames = array();
-while( $row = mysql_fetch_assoc( $result ) )
+foreach ( dbFetchAll( $sql ) as $row )
 {
 	if ( $row['Type'] == 'Alarm' )
 	{
 		$alarm_frames[$row['FrameId']] = $row;
 	}
 }
-mysql_free_result( $result );
 ?>
 <table style="width: 100%">
 <?php

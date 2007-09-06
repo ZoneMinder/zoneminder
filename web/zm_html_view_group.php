@@ -25,12 +25,7 @@ if ( !canEdit( 'System' ) )
 }
 if ( $gid )
 {
-	$sql = "select * from Groups where Id = '$gid'";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		die( mysql_error() );
-	$new_group = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+    $new_group = dbFetchGroup( $gid );
 }
 else
 {

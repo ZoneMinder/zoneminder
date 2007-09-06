@@ -19,13 +19,13 @@ $refresh_parent = false;
 // Event scope actions, edit permissions required
 if ( $_REQUEST['action'] == "rename" && $_REQUEST['id'] && $_REQUEST['eventName'] )
 {
-    dbQuery( "update Events set Name = '".mysql_real_escape_string($_REQUEST['eventName'])."' where Id = '".mysql_real_escape_string($_REQUEST['id'])."'" );
+    dbQuery( "update Events set Name = '".dbEscape($_REQUEST['eventName'])."' where Id = '".dbEscape($_REQUEST['id'])."'" );
 }
 else if ( $_REQUEST['action'] == "eventdetail" )
 {
     if ( $_REQUEST['id'] )
     {
-        dbQuery( "update Events set Cause = '".mysql_real_escape_string($_REQUEST['new_event']['Cause'])."', Notes = '".mysql_real_escape_string($_REQUEST['new_event']['Notes'])."' where Id = '".mysql_real_escape_string($_REQUEST['id'])."'" );
+        dbQuery( "update Events set Cause = '".dbEscape($_REQUEST['new_event']['Cause'])."', Notes = '".dbEscape($_REQUEST['new_event']['Notes'])."' where Id = '".dbEscape($_REQUEST['id'])."'" );
         $refresh_parent = true;
     }
 }
@@ -35,7 +35,7 @@ elseif ( $_REQUEST['action'] == "archive" || $_REQUEST['action'] == "unarchive" 
 
     if ( $_REQUEST['id'] )
     {
-        dbQuery( "update Events set Archived = ".$archive_val." where Id = '".mysql_real_escape_string($_REQUEST['id'])."'" );
+        dbQuery( "update Events set Archived = ".$archive_val." where Id = '".dbEscape($_REQUEST['id'])."'" );
     }
     elseif ( $mark_eids || $mark_eid )
     {

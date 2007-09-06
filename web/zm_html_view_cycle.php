@@ -34,21 +34,14 @@ if ( empty($mode) )
 if ( $group )
 {
 	$sql = "select * from Groups where Id = '$group'";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		die( mysql_error() );
-	$row = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+	$row = dbFetchOne( $sql );
 	$group_sql = "and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 
 $sql = "select * from Monitors where Function != 'None' $group_sql order by Sequence";
-$result = mysql_query( $sql );
-if ( !$result )
-	die( mysql_error() );
 $monitors = array();
 $mon_idx = 0;
-while( $row = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $row )
 {
 	if ( !visibleMonitor( $row['Id'] ) )
 	{
@@ -60,7 +53,6 @@ while( $row = mysql_fetch_assoc( $result ) )
 	$row['ScaledHeight'] = reScale( $monitor['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 	$monitors[] = $row;
 }
-mysql_free_result( $result );
 
 $monitor = $monitors[$mon_idx];
 $next_mid = $mon_idx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$mon_idx+1]['Id'];

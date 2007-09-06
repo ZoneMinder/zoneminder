@@ -24,22 +24,14 @@ if ( !canEdit( 'Monitors' ) )
 	return;
 }
 
-$result = mysql_query( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'" );
-if ( !$result )
-    die( mysql_error() );
-$monitor = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'" );
 
 $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."'";
-$result = mysql_query( $sql );
-if ( !$result )
-    die( mysql_error() );
 $labels = array();
-while( $row = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $row )
 {
     $labels[$row['Preset']] = $row['Label'];
 }
-mysql_free_result( $result );
 
 $presets = array();
 for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )

@@ -204,28 +204,21 @@ function collectData( $spec )
             $limit = $_REQUEST['count'];
         if ( !empty( $limit ) )
             $sql .= " limit ".$limit;
-        $result = mysql_query( $sql );
-        if ( !$result )
-        {
-            error_log( $sql );
-            error_log( mysql_error() );
-        }
         if ( isset($limit) && $limit == 1 )
         {
-            $sql_data = mysql_fetch_assoc( $result );
+            $sql_data = dbFetchOne( $sql );
             $data = array_merge( $data, $sql_data );
         }
         else
         {
             $count = 0;
-            while ( $sql_data = mysql_fetch_assoc( $result ) )
+            foreach( dbFetchAll( $sql ) as $sql_data )
             {
                 $data[] = $sql_data;
                 if ( ++$count >= $limit )
                     break;
             }
         }
-        mysql_free_result( $result );
     }
     #print_r( $data );
     return( $data );

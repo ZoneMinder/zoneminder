@@ -24,14 +24,11 @@ if ( !canView( 'Events' ) )
 	return;
 }
 $filter_names = array();
-$result = mysql_query( "select * from Filters order by Name" );
-if ( !$result )
-	die( mysql_error() );
-while ( $row = mysql_fetch_assoc( $result ) )
+$sql = "select * from Filters order by Name";
+foreach( dbFetchAll( $sql ) as $row )
 {
 	$filter_names[$row['Name']] = $row['Name'];
 }
-mysql_free_result( $result );
 
 ?>
 <html xmlns="http://www.w3.org/1999/xhtml">

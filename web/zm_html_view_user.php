@@ -23,16 +23,13 @@ if ( !canEdit( 'System' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select * from Users where Id = '$uid'" );
-if ( !$result )
-	die( mysql_error() );
-if ( !($db_user = mysql_fetch_assoc( $result )) )
+$sql = "select * from Users where Id = '$uid'";
+if ( !($db_user = dbFetchOne( $sql )) )
 {
 	$db_user = array();
 	$db_user['Username'] = $zmSlangNewUser;
 	$db_user['Enabled'] = 1;
 }
-mysql_free_result( $result );
 
 $new_user = $db_user;
 

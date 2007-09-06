@@ -176,10 +176,8 @@ if ( $tab == "users" )
 <td align="left" class="smallhead"><?= $zmSlangMark ?></td>
 </tr>
 <?php
-	$result = mysql_query( "select * from Users" );
-	if ( !$result )
-		die( mysql_error() );
-	while( $row = mysql_fetch_assoc( $result ) )
+	$sql = "select * from Users";
+    foreach( dbFetchAll( $sql ) as $row )
 	{
 ?>
 <tr onMouseOver="this.className='over'" onMouseOut="this.className='out'">
@@ -198,7 +196,6 @@ if ( $tab == "users" )
 </tr>
 <?php
 	}
-	mysql_free_result( $result );
 ?>
 <tr><td colspan="12" class="ruled">&nbsp;</td></tr>
 <tr><td colspan="12" align="right"><input type="button" value="<?= $zmSlangAddNewUser ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=user&uid=-1', 'zmUser', <?= $jws['user']['w'] ?>, <?= $jws['user']['h'] ?> );"<?php if ( !canEdit( 'System' ) ) { ?> disabled<?php } ?>>&nbsp;<input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled>&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td></tr>

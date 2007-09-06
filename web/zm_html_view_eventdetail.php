@@ -26,11 +26,7 @@ if ( !canEdit( 'Events' ) )
 if ( $eid )
 {
 	$sql = "select E.* from Events as E where E.Id = '$eid'";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		die( mysql_error() );
-	$new_event = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+	$new_event = dbFetchOne( $sql );
 }
 elseif ( $eids )
 {
@@ -42,10 +38,7 @@ elseif ( $eids )
 	}
 	unset( $eid );
 	$sql .= join( " or ", $sql_where );
-	$result = mysql_query( $sql );
-	if ( !$result )
-		die( mysql_error() );
-	while ( $row = mysql_fetch_assoc( $result ) )
+    foreach( dbFetchAll( $sql ) as $row )
 	{
 		if ( !isset($new_event) )
 		{
@@ -59,7 +52,6 @@ elseif ( $eids )
 				$new_event['Notes'] = "";
 		}
 	}
-	mysql_free_result( $result );
 }
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

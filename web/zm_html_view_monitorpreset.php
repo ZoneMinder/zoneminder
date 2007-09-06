@@ -23,16 +23,13 @@ if ( !canEdit( 'Monitors' ) )
 	$view = "error";
 	return;
 }
-$result = mysql_query( "select Id,Name from MonitorPresets" );
-if ( !$result )
-	die( mysql_error() );
+$sql( "select Id,Name from MonitorPresets" );
 $presets = array();
 $presets[0] = $zmSlangChoosePreset;
-while ( $preset = mysql_fetch_assoc( $result ) )
+foreach( dbFetchAll( $sql ) as $preset )
 {
 	$presets[$preset['Id']] = htmlentities( $preset['Name'] );
 }
-mysql_free_result( $result );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

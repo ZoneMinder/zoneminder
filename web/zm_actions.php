@@ -157,11 +157,7 @@ if ( !empty($action) )
 	{
 		if ( $action == "control" )
 		{
-			$result = mysql_query( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = '$mid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$monitor = mysql_fetch_assoc( $result );
-			mysql_free_result( $result );
+			$monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = '$mid'" );
 
 			$ctrl_command = "zmcontrol.pl";
 			if ( !preg_match( '/^\//', $ctrl_command ) )
@@ -825,21 +821,14 @@ if ( !empty($action) )
 				{
                     if ( canEdit( 'Control' ) )
                     {
-                        $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
-                        $result = mysql_query( $sql );
-                        if ( !$result )
-                           die( mysql_error() );
-                        $row = mysql_fetch_assoc( $result );
-                        mysql_free_result( $result );
+                        $row = dbFetchOne( "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'" );
                         if ( $new_label != $row['Label'] )
                         {
                             if ( $new_label )
                                 $sql = "replace into ControlPresets ( MonitorId, Preset, Label ) values ( '".$monitor['Id']."', '".$preset."', '".addslashes($new_label)."' )";
                             else
                                 $sql = "delete from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
-                            $result = mysql_query( $sql );
-                            if ( !$result )
-                                die( mysql_error() );
+                            dbQuery( $sql );
                             $refresh_parent = true;
                         }
                     }
@@ -893,10 +882,7 @@ if ( !empty($action) )
 			$zmu_command = getZmuCommand( " -m $mid -B$new_brightness -C$new_contrast -H$new_hue -O$new_colour" );
 			$zmu_output = exec( escapeshellcmd( $zmu_command ) );
 			list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmu_output );
-			$sql = "update Monitors set Brightness = '$brightness', Contrast = '$contrast', Hue = '$hue', Colour = '$colour' where Id = '$mid'";
-			$result = mysql_query( $sql );
-			if ( !$result )
-				die( mysql_error() );
+            dbQuery( "update Monitors set Brightness = '$brightness', Contrast = '$contrast', Hue = '$hue', Colour = '$colour' where Id = '$mid'" );
 		}
 	}
 
@@ -907,11 +893,7 @@ if ( !empty($action) )
 		{
 			if ( !empty($cid) )
 			{
-				$result = mysql_query( "select * from Controls where Id = '$cid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$control = mysql_fetch_assoc( $result );
-				mysql_free_result( $result );
+				$control = dbFetchOne( "select * from Controls where Id = '$cid'" );
 			}
 			else
 			{
@@ -942,11 +924,8 @@ if ( !empty($action) )
 				}
 				else
 				{
-					$sql = "insert into Controls set ".implode( ", ", $changes );
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
-					$cid = mysql_insert_id();
+					dbQuery( "insert into Controls set ".implode( ", ", $changes ) );
+					$cid = dbInsertId();
 				}
 				$refresh_parent = true;
 			}
@@ -970,12 +949,7 @@ if ( !empty($action) )
 	{
 		if ( $action == "function" )
 		{
-			$sql = "select * from Monitors where Id = '$mid'";
-			$result = mysql_query( $sql );
-			if ( !$result )
-				die( mysql_error() );
-			$monitor = mysql_fetch_assoc( $result );
-			mysql_free_result( $result );
+			dbQuery( "select * from Monitors where Id = '$mid'" );
 
 			$old_function = $monitor['Function'];
 			$old_enabled = $monitor['Enabled'];
@@ -997,19 +971,11 @@ if ( !empty($action) )
 		}
 		elseif ( $action == "zone" && isset( $zid ) )
 		{
-			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$monitor = mysql_fetch_assoc( $result );
-			mysql_free_result( $result );
+			$monitor = dbFetchOne( "select * from Monitors where Id = '$mid'" );
 
 			if ( $zid > 0 )
 			{
-				$result = mysql_query( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$zone = mysql_fetch_assoc( $result );
-				mysql_free_result( $result );
+				$zone = dbFetchOne( "select * from Zones where MonitorId = '$mid' and Id = '$zid'" );
 			}
 			else
 			{
@@ -1059,25 +1025,11 @@ if ( !empty($action) )
 		}
 		elseif ( $action == "sequence" && isset($smid) )
 		{
-			$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$monitor = mysql_fetch_assoc( $result );
-			mysql_free_result( $result );
-			$result = mysql_query( "select * from Monitors where Id = '$smid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$smonitor = mysql_fetch_assoc( $result );
-			mysql_free_result( $result );
+			$monitor = dbFetchOne( "select * from Monitors where Id = '$mid'" );
+			$smonitor = dbFetchOne( "select * from Monitors where Id = '$smid'" );
 
-			$sql = "update Monitors set Sequence = '".$smonitor['Sequence']."' where Id = '".$monitor['Id']."'";
-			$result = mysql_query( $sql );
-			if ( !$result )
-				die( mysql_error() );
-			$sql = "update Monitors set Sequence = '".$monitor['Sequence']."' where Id = '".$smonitor['Id']."'";
-			$result = mysql_query( $sql );
-			if ( !$result )
-				die( mysql_error() );
+			dbQuery( "update Monitors set Sequence = '".$smonitor['Sequence']."' where Id = '".$monitor['Id']."'" );
+			dbQuery( "update Monitors set Sequence = '".$monitor['Sequence']."' where Id = '".$smonitor['Id']."'" );
 
 			$refresh_parent = true;
 			fixSequences();
@@ -1089,14 +1041,13 @@ if ( !empty($action) )
 				$deleted_zid = 0;
 				foreach( $mark_zids as $mark_zid )
 				{
-					$result = mysql_query( "delete from Zones where MonitorId = '$mid' && Id = '$mark_zid'" );
-					if ( !$result )
-						die( mysql_error() );
+					dbQuery( "delete from Zones where MonitorId = '$mid' && Id = '$mark_zid'" );
 					$deleted_zid = 1;
 				}
 				if ( $deleted_zid )
 				{
-					if ( $cookies ) session_write_close();
+					if ( $cookies )
+                        session_write_close();
 					if ( daemonCheck() )
 					{
 						zmaControl( $mid, "restart" );
@@ -1114,22 +1065,13 @@ if ( !empty($action) )
 		{
 			if ( !empty($mid) )
 			{
-				$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$monitor = mysql_fetch_assoc( $result );
-				mysql_free_result( $result );
+				$monitor = dbFetchOne( "select * from Monitors where Id = '$mid'" );
 
 				if ( ZM_OPT_X10 )
 				{
-					$result = mysql_query( "select * from TriggersX10 where MonitorId = '$mid'" );
-					if ( !$result )
-						die( mysql_error() );
-					if ( !($x10_monitor = mysql_fetch_assoc( $result )) )
-					{
+					$x10_monitor = dbFetchOne( "select * from TriggersX10 where MonitorId = '$mid'" );
+					if ( !$x10_monitor )
 						$x10_monitor = array();
-					}
-					mysql_free_result( $result );
 				}
 			}
 			else
@@ -1169,15 +1111,7 @@ if ( !empty($action) )
 						$old_h = $monitor['Height'];
 						$old_a = $old_w * $old_h;
 
-						$result = mysql_query( "select * from Zones where MonitorId = '$mid'" );
-						if ( !$result )
-							die( mysql_error() );
-						$zones = array();
-						while ( $zone = mysql_fetch_assoc( $result ) )
-						{
-							$zones[] = $zone;
-						}
-						mysql_free_result( $result );
+						$zones = dbFetchAll( "select * from Zones where MonitorId = '$mid'" );
 						foreach ( $zones as $zone )
 						{
 							$new_zone = $zone;
@@ -1200,33 +1134,20 @@ if ( !empty($action) )
 
 							if ( count( $changes ) )
 							{
-								$sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '$mid' and Id = '".$zone['Id']."'";
-								//echo "<html>$sql</html>";
-								dbQuery( $sql );
+								dbQuery( "update Zones set ".implode( ", ", $changes )." where MonitorId = '$mid' and Id = '".$zone['Id']."'" );
 							}
 						}
 					}
 				}
 				elseif ( !$user['MonitorIds'] )
 				{
-					$sql = "select max(Sequence) as MaxSequence from Monitors";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
-					$row = mysql_fetch_assoc( $result );
-					mysql_free_result( $result );
-					$changes[] = "Sequence = ".($row['MaxSequence']+1);
+					$max_seq = dbFetchOne( "select max(Sequence) as MaxSequence from Monitors", "MaxSequence" );
+					$changes[] = "Sequence = ".($max_seq+1);
 
-					$sql = "insert into Monitors set ".implode( ", ", $changes );
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
-					$mid = mysql_insert_id();
+					dbQuery( "insert into Monitors set ".implode( ", ", $changes ) );
+					$mid = dbInsertId();
 					$zone_area = $new_monitor['Width'] * $new_monitor['Height'];
-					$sql = "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = '".sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $new_monitor['Width']-1, 0, $new_monitor['Width']-1, $new_monitor['Height']-1, 0, $new_monitor['Height']-1 )."', Area = ".$zone_area.", AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels = ".intval(($zone_area*3)/100).", MaxAlarmPixels = ".intval(($zone_area*75)/100).", FilterX = 3, FilterY = 3, MinFilterPixels = ".intval(($zone_area*3)/100).", MaxFilterPixels = ".intval(($zone_area*75)/100).", MinBlobPixels = ".intval(($zone_area*2)/100).", MinBlobs = 1";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
+					dbQuery( "insert into Zones set MonitorId = $mid, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = '".sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $new_monitor['Width']-1, 0, $new_monitor['Width']-1, $new_monitor['Height']-1, 0, $new_monitor['Height']-1 )."', Area = ".$zone_area.", AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels = ".intval(($zone_area*3)/100).", MaxAlarmPixels = ".intval(($zone_area*75)/100).", FilterX = 3, FilterY = 3, MinFilterPixels = ".intval(($zone_area*3)/100).", MaxFilterPixels = ".intval(($zone_area*75)/100).", MinBlobPixels = ".intval(($zone_area*2)/100).", MinBlobs = 1" );
 					//$view = 'none';
 					mkdir( ZM_DIR_EVENTS."/".$mid, 0755 );
 					chdir( ZM_DIR_EVENTS );
@@ -1244,26 +1165,17 @@ if ( !empty($action) )
 				{
 					if ( $x10_monitor && $new_x10_monitor )
 					{
-						$sql = "update TriggersX10 set ".implode( ", ", $x10_changes )." where MonitorId = '$mid'";
-						$result = mysql_query( $sql );
-						if ( !$result )
-							die( mysql_error() );
+						dbQuery( "update TriggersX10 set ".implode( ", ", $x10_changes )." where MonitorId = '$mid'" );
 					}
 					elseif ( !$user['MonitorIds'] )
 					{
 						if ( !$x10_monitor )
 						{
-							$sql = "insert into TriggersX10 set MonitorId = '$mid', ".implode( ", ", $x10_changes );
-							$result = mysql_query( $sql );
-							if ( !$result )
-								die( mysql_error() );
+							dbQuery( "insert into TriggersX10 set MonitorId = '$mid', ".implode( ", ", $x10_changes ) );
 						}
 						else
 						{
-							$sql = "delete from TriggersX10 where MonitorId = '$mid'";
-							$result = mysql_query( $sql );
-							if ( !$result )
-								die( mysql_error() );
+							dbQuery( "delete from TriggersX10 where MonitorId = '$mid'" );
 						}
 					}
 					$restart = true;
@@ -1272,13 +1184,10 @@ if ( !empty($action) )
 
 			if ( $restart )
 			{
-				$result = mysql_query( "select * from Monitors where Id = '$mid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$monitor = mysql_fetch_assoc( $result );
-				mysql_free_result( $result );
+				$monitor = dbFetchOne( "select * from Monitors where Id = '$mid'" );
 				fixDevices();
-				if ( $cookies ) session_write_close();
+				if ( $cookies )
+                    session_write_close();
 				if ( daemonCheck() )
 				{
 					zmcControl( $monitor, "restart" );
@@ -1301,26 +1210,13 @@ if ( !empty($action) )
 						zmcControl( $monitor, "stop" );
 
 						$sql = "select * from Monitors where Id = '$mark_mid'";
-						$result = mysql_query( $sql );
-						if ( !$result )
-							die( mysql_error() );
-						if ( !($monitor = mysql_fetch_assoc( $result )) )
+						if ( !($monitor = dbFetchOne( $sql )) )
 						{
 							continue;
 						}
-						mysql_free_result( $result );
 
 						$sql = "select Id from Events where MonitorId = '$mark_mid'";
-						$result = mysql_query( $sql );
-						if ( !$result )
-							die( mysql_error() );
-
-						$mark_eids = array();
-						while( $row = mysql_fetch_assoc( $result ) )
-						{
-							$mark_eids[] = $row['Id'];
-						}
-						mysql_free_result( $result );
+						$mark_eids = dbFetchAll( $sql, 'Id' );
 						foreach( $mark_eids as $mark_eid )
 						{
 							deleteEvent( $mark_eid );
@@ -1328,18 +1224,12 @@ if ( !empty($action) )
 						unlink( ZM_DIR_EVENTS."/".$monitor['Name'] );
 						system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Id'] );
 
-						$result = mysql_query( "delete from Zones where MonitorId = '$mark_mid'" );
-						if ( !$result )
-							die( mysql_error() );
+						dbQuery( "delete from Zones where MonitorId = '$mark_mid'" );
 						if ( ZM_OPT_X10 )
 						{
-							$result = mysql_query( "delete from TriggersX10 where MonitorId = '$mark_mid'" );
-							if ( !$result )
-								die( mysql_error() );
+							dbQuery( "delete from TriggersX10 where MonitorId = '$mark_mid'" );
 						}
-						$result = mysql_query( "delete from Monitors where Id = '$mark_mid'" );
-						if ( !$result )
-							die( mysql_error() );
+						dbQuery( "delete from Monitors where Id = '$mark_mid'" );
 
 						fixSequences();
 					}
@@ -1415,10 +1305,7 @@ if ( !empty($action) )
 				}
 				case 'ignore' :
 				{
-					$sql = "update Config set Value = '".ZM_DYN_LAST_VERSION."' where Name = 'ZM_DYN_CURR_VERSION'";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
+					dbQuery( "update Config set Value = '".ZM_DYN_LAST_VERSION."' where Name = 'ZM_DYN_CURR_VERSION'" );
 					break;
 				}
 				case 'hour' :
@@ -1438,18 +1325,12 @@ if ( !empty($action) )
 					{
 						$next_reminder += 7*24*60*60;
 					}
-					$sql = "update Config set Value = '".$next_reminder."' where Name = 'ZM_DYN_NEXT_REMINDER'";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
+					dbQuery( "update Config set Value = '".$next_reminder."' where Name = 'ZM_DYN_NEXT_REMINDER'" );
 					break;
 				}
 				case 'never' :
 				{
-					$sql = "update Config set Value = '0' where Name = 'ZM_CHECK_FOR_UPDATES'";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
+					dbQuery( "update Config set Value = '0' where Name = 'ZM_CHECK_FOR_UPDATES'" );
 					break;
 				}
 			}
@@ -1485,19 +1366,13 @@ if ( !empty($action) )
 					{
 						$next_reminder += 30*24*60*60;
 					}
-					$sql = "update Config set Value = '".$next_reminder."' where Name = 'ZM_DYN_DONATE_REMINDER_TIME'";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
+					dbQuery( "update Config set Value = '".$next_reminder."' where Name = 'ZM_DYN_DONATE_REMINDER_TIME'" );
 					break;
 				}
 				case 'never' :
 				case 'already' :
 				{
-					$sql = "update Config set Value = '0' where Name = 'ZM_DYN_SHOW_DONATE_REMINDER'";
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
+					dbQuery( "update Config set Value = '0' where Name = 'ZM_DYN_SHOW_DONATE_REMINDER'" );
 					break;
 				}
 			}
@@ -1518,11 +1393,7 @@ if ( !empty($action) )
 				}
 				if ( $value['Value'] != $new_config[$name] )
 				{
-					$sql = "update Config set Value = '".$new_config[$name]."' where Name = '".$name."'";
-					//echo $sql;
-					$result = mysql_query( $sql );
-					if ( !$result )
-						die( mysql_error() );
+					dbQuery( "update Config set Value = '".$new_config[$name]."' where Name = '".$name."'" );
 					$changed = true;
 				}
 			}
@@ -1557,11 +1428,7 @@ if ( !empty($action) )
 		{
 			if ( !empty($uid) )
 			{
-				$result = mysql_query( "select * from Users where Id = '$uid'" );
-				if ( !$result )
-					die( mysql_error() );
-				$db_user = mysql_fetch_assoc( $result );
-				mysql_free_result( $result );
+				$db_user = dbFetchOne( "select * from Users where Id = '$uid'" );
 			}
 			else
 			{
@@ -1585,9 +1452,7 @@ if ( !empty($action) )
 				{
 					$sql = "insert into Users set ".implode( ", ", $changes );
 				}
-				$result = mysql_query( $sql );
-				if ( !$result )
-					die( mysql_error() );
+				dbQuery( $sql );
 				$refresh_parent = true;
 				if ( $db_user['Username'] == $user['Username'] )
 				{
@@ -1610,16 +1475,11 @@ if ( !empty($action) )
 			if ( $run_state || $new_state )
 			{
 				$sql = "select Id,Function,Enabled from Monitors order by Id";
-				$result = mysql_query( $sql );
-				if ( !$result )
-					die( mysql_error() );
-
 				$definitions = array();
-				while( $monitor = mysql_fetch_assoc( $result ) )
+                foreach( dbFetchAll( $sql ) as $monitor )
 				{
 					$definitions[] = $monitor['Id'].":".$monitor['Function'].":".$monitor['Enabled'];
 				}
-				mysql_free_result( $result );
 				$definition = join( ',', $definitions );
 				if ( $new_state )
 					$run_state = $new_state;
@@ -1679,9 +1539,7 @@ if ( !empty($action) )
 		{
 			foreach( $mark_eids as $mark_eid )
 			{
-				$result = mysql_query( "update Events set LearnState = '$learn_state' where Id = '$mark_eid'" );
-				if ( !$result )
-					die( mysql_error() );
+				dbQuery( "update Events set LearnState = '$learn_state' where Id = '$mark_eid'" );
 			}
 		}
 	}

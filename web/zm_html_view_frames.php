@@ -24,21 +24,10 @@ if ( !canView( 'Events' ) )
 	return;
 }
 $sql = "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '$eid'";
-$result = mysql_query( $sql );
-if ( !$result )
-	die( mysql_error() );
-$event = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$event = dbFetchOne( $sql );
 
 $sql = "select *, unix_timestamp( TimeStamp ) as UnixTimeStamp from Frames where EventID = '$eid' order by FrameId";
-$result = mysql_query( $sql );
-if ( !$result )
-	die( mysql_error() );
-while ( $row = mysql_fetch_assoc( $result ) )
-{
-	$frames[] = $row;
-}
-mysql_free_result( $result );
+$frames = dbFetchAll( $sql );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

@@ -99,14 +99,7 @@ function exportEventFrames( $event )
 	global $zmSlangYes, $zmSlangNo, $zmSlangNoFramesRecorded;
 
 	$sql = "select *, unix_timestamp( TimeStamp ) as UnixTimeStamp from Frames where EventID = '".$event['Id']."' order by FrameId";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		die( mysql_error() );
-	while ( $row = mysql_fetch_assoc( $result ) )
-	{
-		$frames[] = $row;
-	}
-	mysql_free_result( $result );
+    $frames = dbFetchAll( $sql );
 
 	ob_start();
 	exportHeader( $zmSlangFrames." ".$event['Id'] );
@@ -188,10 +181,7 @@ function exportFileList( $eid )
 	if ( canView( 'Events' ) && $eid )
 	{
 		$sql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where E.Id = '$eid'";
-		if ( !($result = mysql_query( $sql )) )
-			die( mysql_error() );
-		$event = mysql_fetch_assoc( $result );
-		mysql_free_result( $result );
+        $event = dbFetchOne( $sql );
 
         $event_path = getEventPath( $event );
 		$files = array();

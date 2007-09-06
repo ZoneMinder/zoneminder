@@ -25,15 +25,7 @@ if ( !canView( 'Control' ) )
 }
 
 $sql = "select * from Controls order by Id";
-$result = mysql_query( $sql );
-if ( !$result )
-	echo mysql_error();
-$controls = array();
-while( $row = mysql_fetch_assoc( $result ) )
-{
-	$controls[] = $row;
-}
-mysql_free_result( $result );
+$controls = dbFetchAll( $sql );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

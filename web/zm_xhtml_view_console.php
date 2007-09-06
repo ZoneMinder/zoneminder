@@ -42,11 +42,7 @@ $event_counts = array(
 $running = daemonCheck();
 $status = $running?$zmSlangRunning:$zmSlangStopped;
 
-$sql = "select * from Groups where Name = 'Mobile'";
-$result = mysql_query( $sql );
-if ( !$result )
-	echo mysql_error();
-if ( $group = dbFetchOne( "select * from Groups where Id = '$cgroup'" ) )
+if ( $group = dbFetchOne( "select * from Groups where Name = 'Mobile'" ) )
     $group_ids = array_flip(split( ',', $group['MonitorIds'] ));
 
 $db_now = strftime( STRF_FMT_DATETIME_DB );
@@ -87,7 +83,6 @@ for ( $i = 0; $i < count($monitors); $i++ )
 	}
     $monitors[$i] = array_merge( $monitors[$i], $counts );
 }
-mysql_free_result( $result );
 ?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>

@@ -37,28 +37,17 @@ function userLogin( $username, $password="" )
 		global $_SESSION, $_SERVER;
 	}
 
-	if ( version_compare( phpversion(), "4.3.0", "<") )
-	{
-		$mysql_username = mysql_escape_string($username);
-		$mysql_password = mysql_escape_string($password);
-	}
-	else
-	{
-		$mysql_username = mysql_real_escape_string($username);
-		$mysql_password = mysql_real_escape_string($password);
-	}
+	$db_username = dbEscape($username);
+	$db_password = dbEscape($password);
 
 	if ( ZM_AUTH_TYPE == "builtin" )
 	{
-		$sql = "select * from Users where Username = '$mysql_username' and Password = password('$mysql_password') and Enabled = 1";
+		$sql = "select * from Users where Username = '$db_username' and Password = password('$db_password') and Enabled = 1";
 	}
 	else
 	{
-		$sql = "select * from Users where Username = '$mysql_username' and Enabled = 1";
+		$sql = "select * from Users where Username = '$db_username' and Enabled = 1";
 	}
-	$result = mysql_query( $sql );
-	if ( !$result )
-		echo mysql_error();
 	$_SESSION['username'] = $username;
 	if ( ZM_AUTH_RELAY == "plain" )
 	{
@@ -66,7 +55,7 @@ function userLogin( $username, $password="" )
 		$_SESSION['password'] = $password;
 	}
 	$_SESSION['remote_addr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-	if ( $db_user = mysql_fetch_assoc( $result ) )
+	if ( $db_user = dbFetchOne( $sql ) )
 	{
 		$_SESSION['user'] = $user = $db_user;
 		if ( ZM_AUTH_TYPE == "builtin" )
@@ -78,8 +67,8 @@ function userLogin( $username, $password="" )
 	{
 		unset( $user );
 	}
-	mysql_free_result( $result );
-	if ( $cookies ) session_write_close();
+	if ( $cookies )
+        session_write_close();
 }
 
 function userLogout()
@@ -461,17 +450,11 @@ function deleteEvent( $eid, $mid=false )
         $mid = '*';
 	if ( $user['Events'] == 'Edit' && $eid )
 	{
-		$result = mysql_query( "delete from Events where Id = '$eid'" );
-		if ( !$result )
-			die( mysql_error() );
+		dbQuery( "delete from Events where Id = '$eid'" );
 		if ( !ZM_OPT_FAST_DELETE )
 		{
-			$result = mysql_query( "delete from Stats where EventId = '$eid'" );
-			if ( !$result )
-				die( mysql_error() );
-			$result = mysql_query( "delete from Frames where EventId = '$eid'" );
-			if ( !$result )
-				die( mysql_error() );
+			dbQuery( "delete from Stats where EventId = '$eid'" );
+			dbQuery( "delete from Frames where EventId = '$eid'" );
             if ( ZM_USE_DEEP_STORAGE )
             {
                 error_log( "Globbing ".ZM_DIR_EVENTS.'/'.$mid.'/*/*/*/.'.$eid );
@@ -802,10 +785,7 @@ function zmcControl( $monitor, $mode=false )
 		$sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Id = '".$monitor['Id']."'";
 		$zmc_args = "-m ".$monitor['Id'];
 	}
-	$result = mysql_query( $sql );
-	if ( !$result )
-		echo mysql_error();
-	$row = mysql_fetch_assoc( $result );
+	$row = dbFetchOne( $sql );
 	$active_count = $row['ActiveCount'];
 
 	if ( !$active_count )
@@ -827,10 +807,7 @@ function zmaControl( $monitor, $mode=false )
 	if ( !is_array( $monitor ) )
 	{
 		$sql = "select Id,Function,Enabled from Monitors where Id = '$monitor'";
-		$result = mysql_query( $sql );
-		if ( !$result )
-			echo mysql_error();
-		$monitor = mysql_fetch_assoc( $result );
+		$monitor = dbFetchOne( $sql );
 	}
 	switch ( $monitor['Function'] )
 	{
@@ -1046,10 +1023,7 @@ function getImageSrc( $event, $frame, $scale, $capture_only=false, $overwrite=fa
 function createListThumbnail( $event, $overwrite=false )
 {
 	$sql = "select * from Frames where EventId = '".$event['Id']."' and Score = '".$event['MaxScore']."' order by FrameId limit 0,1";
-	if ( !($result = mysql_query( $sql )) )
-		die( mysql_error() );
-	$frame = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+    $frame = dbFetchOne( $frame );
 	$frame_id = $frame['FrameId'];
 
 	if ( ZM_WEB_LIST_THUMB_WIDTH )
@@ -1110,9 +1084,7 @@ function executeFilter( $filter )
 {
 	$command = ZM_PATH_BIN."/zmfilter.pl --filter ".$filter;
 	$result = exec( $command, $output, $status );
-	$result = mysql_query( "delete from Filters where Name like '_TempFilter%'" );
-	if ( !$result )
-	    die( mysql_error() );
+	dbQuery( "delete from Filters where Name like '_TempFilter%'" );
 	return( $status );
 }
 
@@ -1437,22 +1409,16 @@ function verNum( $version )
 function fixSequences()
 {
 	$sql = "select * from Monitors order by Sequence asc, Id asc";
-	$result = mysql_query( $sql );
-	if ( !$result )
-		echo mysql_error();
 	$sequence = 1;
-	while ( $monitor = mysql_fetch_assoc( $result ) )
+    foreach( dbFetchAll( $monitors ) as $monitor )
 	{
 		if ( $monitor['Sequence'] != $sequence )
 		{
 			$sql2 = "update Monitors set Sequence = '".$sequence."' where Id = '".$monitor['Id']."'";
-			$result2 = mysql_query( $sql2 );
-			if ( !$result2 )
-				echo mysql_error();
+            dbQuery( $sql2 );
 		}
 		$sequence++;
 	}
-	mysql_free_result( $result );
 }
 
 function firstSet()
@@ -1823,10 +1789,7 @@ function monitorIdsToNames( $ids )
 	if ( !$mITN_monitors )
 	{
 		$sql = "select Id, Name from Monitors";
-		$result = mysql_query( $sql );
-		if ( !$result )
-			echo mysql_error();
-		while ( $monitor = mysql_fetch_assoc( $result ) )
+        foreach( dbFetchAll( $sql ) as $monitor )
 		{
 			$mITN_monitors[$monitor['Id']] = $monitor;
 		}

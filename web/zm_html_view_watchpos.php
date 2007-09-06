@@ -30,11 +30,7 @@ if ( ZM_WEB_REFRESH_METHOD == "http" )
 	header("Refresh: ".ZM_POS_REFRESH."; URL=$PHP_SELF?view=watchpos&mid=$mid" );
 noCacheHeaders();
 
-$result = mysql_query( "select * from Events where MonitorId = '$mid' order by Id desc limit 1" );
-if ( !$result )
-	die( mysql_error() );
-$event = mysql_fetch_assoc( $result );
-mysql_free_result( $result );
+$event = dbFetchOne( "select * from Events where MonitorId = '$mid' order by Id desc limit 1" );
 
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">

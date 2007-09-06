@@ -40,11 +40,7 @@ if ( !isset($tab) )
 
 if ( !empty($cid) )
 {
-	$result = mysql_query( "select * from Controls where Id = '$cid'" );
-	if ( !$result )
-		die( mysql_error() );
-	$control = mysql_fetch_assoc( $result );
-	mysql_free_result( $result );
+	$control = dbFetchOne( "select * from Controls where Id = '$cid'" );
 }
 else
 {

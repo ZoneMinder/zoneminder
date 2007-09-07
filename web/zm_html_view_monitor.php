@@ -350,7 +350,7 @@ function loadLocations( form )
 <table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
 <td align="left" class="head"><?= $zmSlangMonitor ?> - <?= $monitor['Name'] ?></td>
-<td align="right" valign="bottom" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=monitorpreset&mid=$mid', 'zmMonitorPreset<?= $mid ?>', ".$jws['monitorpreset']['w'].", ".$jws['monitorpreset']['h']." );", $zmSlangPresets, canEdit( 'Monitors' ) ) ?></td>
+<td align="right" valign="bottom" class="text"><?= makeLink( "javascript:newWindow( '$PHP_SELF?view=monitorpreset&mid=$mid', 'zmMonitorPreset$mid', ".$jws['monitorpreset']['w'].", ".$jws['monitorpreset']['h']." );", $zmSlangPresets, canEdit( 'Monitors' ) ) ?></td>
 </tr>
 <tr>
 <td>&nbsp;</td>

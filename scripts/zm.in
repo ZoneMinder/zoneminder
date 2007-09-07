@@ -34,7 +34,14 @@ start()
 		&& chown $ZM_WEB_USER:$ZM_WEB_GROUP $pidfile
 	#Make sure the folder for the socks file exists or create one
 	GetPath="select Value from Config where Name='ZM_PATH_SOCKS'"
-	ZM_PATH_SOCK=`echo $GetPath | mysql -B -h $ZM_DB_HOST -u $ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME | grep -v '^Value'`
+    dbHost=`echo $ZM_DB_HOST | cut -d: -f1`
+    dbPort=`echo $ZM_DB_HOST | cut -d: -s -f2`
+    if [ "$dbPort" = "" ]
+    then
+	    ZM_PATH_SOCK=`echo $GetPath | mysql -B -h$ZM_DB_HOST -u$ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME | grep -v '^Value'`
+    else
+	    ZM_PATH_SOCK=`echo $GetPath | mysql -B -h$dbHost -P$dbPort -u$ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME | grep -v '^Value'`
+    fi 
 	[ ! -d $ZM_PATH_SOCK ] \
 		&& mkdir -m 774 $ZM_PATH_SOCK \
 		&& chown $ZM_WEB_USER:$ZM_WEB_GROUP $ZM_PATH_SOCK

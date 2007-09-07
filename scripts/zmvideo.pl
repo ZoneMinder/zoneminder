@@ -157,7 +157,7 @@ $scale = $detaint_scale;
 $fps = $detaint_fps;
 $size = $detaint_size;
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = zmDbConnect();
 
 my @filters;
 my $sql = "select max(F.Delta)-min(F.Delta) as FullLength, E.*, unix_timestamp(E.StartTime) as Time, M.Name as MonitorName, M.Width as MonitorWidth, M.Height as MonitorHeight, M.Palette from Frames as F inner join Events as E on F.EventId = E.Id inner join Monitors as M on E.MonitorId = M.Id where EventId = '$event_id' group by F.EventId";

@@ -71,7 +71,7 @@ Info( "Watchdog starting\n" );
 Info( "Watchdog pausing for ".START_DELAY." seconds\n" );
 sleep( START_DELAY );
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = zmDbConnect();
 
 my $sql = "select * from Monitors";
 my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );

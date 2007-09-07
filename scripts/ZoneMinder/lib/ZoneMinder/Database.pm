@@ -70,7 +70,7 @@ use Carp;
 
 our $dbh = undef;
 
-sub zmDbConnect
+sub zmDbConnect( ;$ )
 {
 	my $force = shift;
 	if ( $force )
@@ -79,12 +79,21 @@ sub zmDbConnect
 	}
 	if ( !defined( $dbh ) )
 	{
-		$dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+        my ( $host, $port ) = ( ZM_DB_HOST =~ /^([^:]+)(?::(.+))?$/ );
+
+        if ( defined($port) )
+        {
+		    $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".$host.";port=".$port, ZM_DB_USER, ZM_DB_PASS );
+        }
+        else
+        {
+		    $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+        }
 	}
 	return( $dbh );
 }
 
-sub zmDbDisconnect
+sub zmDbDisconnect()
 {
 	if ( defined( $dbh ) )
 	{
@@ -100,7 +109,7 @@ use constant DB_MON_MOTION => 3; # All monitors that are doing motion detection
 use constant DB_MON_RECORD => 4; # All monitors that are doing unconditional recording
 use constant DB_MON_PASSIVE => 5; # All monitors that are in nodect state
 
-sub zmDbGetMonitors
+sub zmDbGetMonitors( ;$ )
 {
 	zmDbConnect();
 

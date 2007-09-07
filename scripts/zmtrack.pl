@@ -82,7 +82,7 @@ $mid = $detaint_mid;
 
 print( "Tracker daemon $mid (experimental) starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = zmDbConnect();
 
 my $sql = "select C.*,M.* from Monitors as M left join Controls as C on M.ControlId = C.Id where M.Id = ?";
 my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );

@@ -161,7 +161,7 @@ if ( !GetOptions( 'filter=s'=>\$filter_parm ) )
 
 chdir( EVENT_PATH );
 
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+my $dbh = zmDbConnect();
 
 if ( $filter_parm )
 {

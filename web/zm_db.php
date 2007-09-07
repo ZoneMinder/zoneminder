@@ -21,8 +21,14 @@
 $db_debug = false;
 $db_log = false;
 
-$conn = mysql_pconnect( ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die("Could not connect to database: ".mysql_error());
-mysql_select_db( ZM_DB_NAME, $conn) or die("Could not select database: ".mysql_error());
+function dbConnect()
+{
+    global $db_conn;
+    $db_conn = mysql_pconnect( ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die("Could not connect to database: ".mysql_error());
+    mysql_select_db( ZM_DB_NAME, $db_conn) or die("Could not select database: ".mysql_error());
+}
+
+dbConnect();
 
 function dbDebug( $sql )
 {

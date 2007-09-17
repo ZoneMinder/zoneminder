@@ -1023,7 +1023,7 @@ function getImageSrc( $event, $frame, $scale, $capture_only=false, $overwrite=fa
 function createListThumbnail( $event, $overwrite=false )
 {
 	$sql = "select * from Frames where EventId = '".$event['Id']."' and Score = '".$event['MaxScore']."' order by FrameId limit 0,1";
-    $frame = dbFetchOne( $frame );
+    $frame = dbFetchOne( $sql );
 	$frame_id = $frame['FrameId'];
 
 	if ( ZM_WEB_LIST_THUMB_WIDTH )

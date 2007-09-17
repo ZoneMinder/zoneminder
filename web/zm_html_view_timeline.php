@@ -449,7 +449,7 @@ foreach( array_keys($mon_frame_slots) as $monitor_id )
 			{
 				$xcount++;
 				$frames_sql = "select F.FrameId,F.Score from Frames as F where F.EventId = '".$curr_frame_slots[$i]['event']['Id']."' and F.Score > 0 order by F.FrameId limit 0,1";
-				$curr_frame_slots[$i]['frame'] = dbFetchOne( $frame_sql );
+				$curr_frame_slots[$i]['frame'] = dbFetchOne( $frames_sql );
 			}
 		}
 	}
@@ -1698,7 +1698,7 @@ function parseTreeToQuery( $tree )
 {
     $filter = parseTreeToFilter( $tree );
     parseFilter( $filter );
-	return( $filter['Query'] );
+	return( $filter['query'] );
 }
 
 function _drawTree( $node, $level )

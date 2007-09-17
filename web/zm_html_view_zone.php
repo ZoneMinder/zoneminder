@@ -38,7 +38,7 @@ $marker = array(
 	"height"=>7,
 );
 
-$sql( "select *, Units-1 as UnitsIndex, CheckMethod-1 as CheckMethodIndex from ZonePresets order by Id asc" );
+$sql = "select *, Units-1 as UnitsIndex, CheckMethod-1 as CheckMethodIndex from ZonePresets order by Id asc";
 $presets = array();
 $preset_names = array();
 $preset_names[0] = $zmSlangChoosePreset;
@@ -151,6 +151,16 @@ var self_intersecting = <?= $self_intersecting?'true':'false' ?>;
 
 function validateForm()
 {
+<?php
+    if ( !canEdit( 'Monitors' ) )
+    {
+?>
+    return( false );
+<?php
+    }
+    else
+    {
+?>
 	var form = document.zone_form;
 	var errors = new Array();
 
@@ -233,6 +243,9 @@ function validateForm()
 		return( false );
 	}
 	return( true );
+<?php
+    }
+?>
 }
 
 function submitForm()
@@ -301,6 +314,10 @@ function applyZoneType()
 function applyCheckMethod()
 {
 	var form = document.zone_form;
+<?php
+    if ( canEdit('Monitors') )
+    {
+?>
 	if ( form.elements['new_zone[CheckMethod]'].value == 'AlarmedPixels' )
 	{
 		form.elements['new_zone[FilterX]'].disabled = true;
@@ -334,6 +351,35 @@ function applyCheckMethod()
 		form.elements['new_zone[MinBlobs]'].disabled = false;
 		form.elements['new_zone[MaxBlobs]'].disabled = false;
 	}
+<?php
+    }
+    else
+    {
+?>
+    form.elements['new_zone[Name]'].disabled = true;
+    form.elements['new_zone[Type]'].disabled = true;
+    form.presetSelector.disabled = true;
+    form.elements['new_zone[Units]'].disabled = true;
+    form.new_alarm_rgb_r.disabled = true;
+    form.new_alarm_rgb_g.disabled = true;
+    form.new_alarm_rgb_b.disabled = true;
+    form.elements['new_zone[CheckMethod]'].disabled = true;
+    form.elements['new_zone[MinPixelThreshold]'].disabled = true;
+    form.elements['new_zone[MaxPixelThreshold]'].disabled = true;
+    form.elements['new_zone[MinAlarmPixels]'].disabled = true;
+    form.elements['new_zone[MaxAlarmPixels]'].disabled = true;
+    form.elements['new_zone[FilterX]'].disabled = true;
+    form.elements['new_zone[FilterY]'].disabled = true;
+    form.elements['new_zone[MinFilterPixels]'].disabled = true;
+    form.elements['new_zone[MaxFilterPixels]'].disabled = true;
+    form.elements['new_zone[MinBlobPixels]'].disabled = true;
+    form.elements['new_zone[MaxBlobPixels]'].disabled = true;
+    form.elements['new_zone[MinBlobs]'].disabled = true;
+    form.elements['new_zone[MaxBlobs]'].disabled = true;
+    form.elements['new_zone[OverloadFrames]'].disabled = true;
+<?php
+	}
+?>
 }
 
 function applyPreset()
@@ -484,13 +530,19 @@ function highlightOff( index )
 
 function setActivePoint( index )
 {
+<?php
+    if ( canEdit( 'Monitors' ) )
+    {
+?>
+	var form = document.zone_form;
+	var errors = new Array();
 	if ( active >= 0 )
 	{
 		var last_active = active;
 		active = -1;
 		highlightOff( last_active );
 		if ( document.getElementById( 'delete'+last_active ) )
-			document.getElementById( 'delete'+last_active ).innerHTML="&ndash;";
+			document.getElementById( 'delete'+last_active ).innerHTML="";
 		document.getElementById( 'cancel'+last_active ).innerHTML="";
 	}
 	setBgColor( 'row'+index, '#FFA07A' );
@@ -503,10 +555,17 @@ function setActivePoint( index )
 	active = index;
 	document.getElementById( 'zoneImage' ).onclick = fixActivePoint;
 	document.getElementById( 'zoneImage' ).onmousemove = updateActivePoint;
+<?php
+    }
+?>
 }
 
 function unsetActivePoint( index )
 {
+<?php
+    if ( canEdit( 'Monitors' ) )
+    {
+?>
 	if ( active >= 0 )
 	{
 		var last_active = active;
@@ -524,19 +583,33 @@ function unsetActivePoint( index )
 			//document.getElementById( 'new_zone[Points]['+i+'][y]' ).disabled = true;
 		}
 	}
+<?php
+    }
+?>
 }
 
 function fixActivePoint( event )
 {
+<?php
+    if ( canEdit( 'Monitors' ) )
+    {
+?>
 	if ( active < 0 )
 		return;
 	
 	updateActivePoint( event );
 	submitForm();
+<?php
+    }
+?>
 }
 
 function updateActivePoint( event )
 {
+<?php
+    if ( canEdit( 'Monitors' ) )
+    {
+?>
 	var x, y;
 	var x_point, y_point;
 	if ( event )
@@ -555,30 +628,54 @@ function updateActivePoint( event )
 	y_point = document.getElementById( 'new_zone[Points]['+active+'][y]' );
 	x_point.value = x;
 	y_point.value = y;
+<?php
+    }
+?>
 }
 
 function addPoint( index )
 {
+<?php
+    if ( canEdit( 'Monitors' ) )
+    {
+?>
 	document.zone_form.action.value = "loc_addpoint";
 	document.zone_form.subaction.value = index;
 	submitForm();
+<?php
+    }
+?>
 }
 
 function delPoint( index )
 {
+<?php
+    if ( canEdit( 'Monitors' ) )
+    {
+?>
 	document.zone_form.action.value = "loc_delpoint";
 	document.zone_form.subaction.value = index;
 	submitForm();
+<?php
+    }
+?>
 }
 
 function updatePoint( point, lo_val, hi_val )
 {
+<?php
+    if ( canEdit( 'Monitors' ) )
+    {
+?>
 	if ( point.value < lo_val )
 		point.value = 0;
 	else if ( point.value > hi_val )
 		point.value = hi_val;
 	updateValues();
 	//document.zone_form.update_btn.disabled = false;
+<?php
+    }
+?>
 }
 
 function updateX( index )
@@ -593,18 +690,32 @@ function updateY( index )
 
 function updateValues()
 {
+<?php
+    if ( canEdit( 'Monitors' ) )
+    {
+?>
 	document.zone_form.action.value = '';
 	submitForm();
+<?php
+    }
+?>
 }
 
 function saveChanges()
 {
+<?php
+    if ( canEdit( 'Monitors' ) )
+    {
+?>
 	if ( validateForm() )
 	{
 		document.zone_form.action.value = 'zone';
 		submitForm();
 		return( true );
 	}
+<?php
+    }
+?>
 	return( false );
 }
 </script>
@@ -717,8 +828,8 @@ for ( $i = 0; $i < $point_cols; $i++ )
 ?>
 <tr id="row<?= $j ?>" onMouseOver="highlightOn( <?= $j ?> )" onMouseOut="highlightOff( <?= $j ?> )" onClick="setActivePoint( <?= $j ?> )">
 <td align="center" class="text"><?= $j+1 ?></td>
-<td align="center" class="text"><input name="new_zone[Points][<?= $j ?>][x]" id="new_zone[Points][<?= $j ?>][x]" size="5" value="<?= $new_zone['Points'][$j]['x'] ?>" onChange="updateX( <?= $j ?> )" class="form"></td>
-<td align="center" class="text"><input name="new_zone[Points][<?= $j ?>][y]" id="new_zone[Points][<?= $j ?>][y]" size="5" value="<?= $new_zone['Points'][$j]['y'] ?>" onChange="updateY( <?= $j ?> )" class="form"></td>
+<td align="center" class="text"><input name="new_zone[Points][<?= $j ?>][x]" id="new_zone[Points][<?= $j ?>][x]" size="5" value="<?= $new_zone['Points'][$j]['x'] ?>" onChange="updateX( <?= $j ?> )" class="form"<?= canEdit( 'Monitors' )?"":" disabled" ?>></td>
+<td align="center" class="text"><input name="new_zone[Points][<?= $j ?>][y]" id="new_zone[Points][<?= $j ?>][y]" size="5" value="<?= $new_zone['Points'][$j]['y'] ?>" onChange="updateY( <?= $j ?> )" class="form"<?= canEdit( 'Monitors' )?"":" disabled" ?>></td>
 <td align="center" class="text"><a href="javascript: addPoint( <?= $j ?> );">+</a><?php if ( count($new_zone['Points']) > 3 ) { ?>&nbsp;<a id="delete<?= $j ?>" href="javascript: delPoint( <?= $j ?> )"></a><?php } ?>&nbsp;<a id="cancel<?= $j ?>" href="javascript: unsetActivePoint( <?= $j ?> )"></a></td>
 </tr>
 <?php
@@ -743,7 +854,7 @@ for ( $i = 0; $i < $point_cols; $i++ )
 <tr>
 <td align="left" width="40%">&nbsp;</td>
 <td align="center" width="20%"><!--<input type="button" name="update_btn" value="<?= $zmSlangUpdate ?>" class="form" onClick="updateValues()" disabled>--></td>
-<td align="right" width="40%"><input type="submit" value="<?= $zmSlangSave ?>" onClick="return saveChanges()" class="form"<?= false && $self_intersecting?" disabled":"" ?>>&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
+<td align="right" width="40%"><input type="submit" value="<?= $zmSlangSave ?>" onClick="return saveChanges()" class="form"<?= (!canEdit( 'Monitors' ) || (false && $self_intersecting))?" disabled":"" ?>>&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>
 </body>

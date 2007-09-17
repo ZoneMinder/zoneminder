@@ -128,12 +128,25 @@ if ( empty($sort_field) )
 	$sort_asc = (ZM_WEB_EVENT_SORT_ORDER == "asc");
 }
 
+$has_cal = file_exists( 'calendar/calendar.js' );
+
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangEventFilter ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
+<?php
+if ( $has_cal )
+{
+?>
+<style type="text/css">@import url(calendar/calendar-win2k-1.css);</style>
+<script type="text/javascript" src="calendar/calendar.js"></script>
+<script type="text/javascript" src="calendar/lang/calendar-en.js"></script>
+<script type="text/javascript" src="calendar/calendar-setup.js"></script>
+<?php
+}
+?>
 <script type="text/javascript">
 window.focus();
 function newWindow(Url,Name,Width,Height)
@@ -146,7 +159,7 @@ function closeWindow()
 }
 function clearValue( form, line )
 {
-    var val = form.elements['filter[terms][<?= $i ?>][val]'];
+    var val = form.elements['filter[terms]['+line+'][val]'];
     val.value = '';
 }
 function validateForm( form )
@@ -316,6 +329,13 @@ else
 <?php if ( $filter['terms'][$i]['attr'] == "Archived" ) { ?>
 <td class="text"><center><?= $zmSlangOpEq ?><input type="hidden" name="filter[terms][<?= $i ?>][op]" value="="></center></td>
 <td class="text"><?= buildSelect( "filter[terms][$i][val]", $archive_types ); ?></td>
+<?php } elseif ( $filter['terms'][$i]['attr'] == "DateTime" ) { ?>
+<td class="text"><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
+<td class="text"><input name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($filter['terms'][$i]['val'])?$filter['terms'][$i]['val']:'' ?>" class="form" size="24"><?php if ( $has_cal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+<?php } elseif ( $filter['terms'][$i]['attr'] == "Date" ) { ?>
+<td class="text"><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
+<td class="text"><input name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($filter['terms'][$i]['val'])?$filter['terms'][$i]['val']:'' ?>" class="form" size="24"><?php if ( $has_cal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+<?php } elseif ( $filter['terms'][$i]['attr'] == "Weekday" ) { ?>
 <?php } elseif ( $filter['terms'][$i]['attr'] == "Weekday" ) { ?>
 <td class="text"><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
 <td class="text"><?= buildSelect( "filter[terms][$i][val]", $weekdays ); ?></td>

@@ -45,7 +45,10 @@ use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 #
 # ==========================================================================
 
-use ZoneMinder;
+use ZoneMinder::Base qw(:all);
+use ZoneMinder::Config qw(:all);
+use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Database qw(:all);
 use ZoneMinder::ConfigAdmin qw( :functions );
 use POSIX;
 use DBI;

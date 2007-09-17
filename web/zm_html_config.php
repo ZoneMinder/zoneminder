@@ -126,7 +126,7 @@ $jws = array(
 	'groups' => array( 'w'=>400, 'h'=>220 ),
 	'image' => array( 'w'=>48, 'h'=>80 ),
 	'login' => array( 'w'=>720, 'h'=>480 ),
-	'logout' => array( 'w'=>200, 'h'=>100 ),
+	'logout' => array( 'w'=>240, 'h'=>100 ),
 	'monitor' => array( 'w'=>360, 'h'=>324 ),
 	'monitorpreset' => array( 'w'=>400, 'h'=>200 ),
 	'monitorselect' => array( 'w'=>160, 'h'=>200 ),

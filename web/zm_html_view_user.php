@@ -18,7 +18,9 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canEdit( 'System' ) )
+$self_edit = ZM_USER_SELF_EDIT && $_REQUEST['id'] == $user['id'];
+
+if ( !canEdit( 'System' ) && !$self_edit )
 {
 	$view = "error";
 	return;
@@ -115,12 +117,23 @@ function closeWindow()
 <input type="hidden" name="uid" value="<?= $uid ?>">
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
-<td colspan="2" align="left" class="head"><?= $zmSlangUser ?> - &quot;<?= $new_user['Username'] ?>&quot;</td>
+<td colspan="2" align="left" class="head"><?= $zmSlangUser ?>: <?= $new_user['Username'] ?></td>
 </tr>
+<?php
+if ( canEdit( 'System' ) )
+{
+?>
 <tr><td align="right" class="text"><?= $zmSlangUsername ?></td><td align="left" class="text"><input type="text" name="new_user[Username]" value="<?= $new_user['Username'] ?>" size="16" class="form"></td></tr>
+<?php
+}
+?>
 <tr><td align="right" class="text"><?= $zmSlangNewPassword ?></td><td align="left" class="text"><input type="password" name="new_user[Password]" value="" size="16" class="form"></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangConfirmPassword ?></td><td align="left" class="text"><input type="password" name="conf_password" value="" size="16" class="form"></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangLanguage ?></td><td align="left" class="text"><?= buildSelect( "new_user[Language]", $langs ) ?></td></tr>
+<?php
+if ( canEdit( 'System' ) )
+{
+?>
 <tr><td align="right" class="text"><?= $zmSlangEnabled ?></td><td align="left" class="text"><?= buildSelect( "new_user[Enabled]", $yesno ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangStream ?></td><td align="left" class="text"><?= buildSelect( "new_user[Stream]", $nv ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangEvents ?></td><td align="left" class="text"><?= buildSelect( "new_user[Events]", $nve ) ?></td></tr>
@@ -130,6 +143,9 @@ function closeWindow()
 <tr><td align="right" class="text"><?= $zmSlangMaxBandwidth ?></td><td align="left" class="text"><?= buildSelect( "new_user[MaxBandwidth]", $bandwidths ) ?></td></tr>
 <tr><td align="right" class="text"><?= $zmSlangRestrictedMonitors ?></td><td align="left" class="text"><input type="text" name="new_user[MonitorIds]" value="<?= $new_user['MonitorIds'] ?>" size="16" class="form">&nbsp;<a href="#" onClick="selectRestrictedMonitors()"><?= $zmSlangSelect ?></a></td></tr>
 <tr>
+<?php
+}
+?>
 <td align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"></td><td align="left"><input type="button" value="<?= $zmSlangClose ?>" class="form" onClick="closeWindow()"></td>
 </tr>
 </table>

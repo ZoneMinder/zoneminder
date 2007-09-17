@@ -25,6 +25,17 @@
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangLogout ?></title>
 <link rel="stylesheet" href="zm_html_styles.css" type="text/css">
 <script type="text/javascript">
+<?php
+if ( ZM_USER_SELF_EDIT )
+{
+?>
+function userWindow()
+{
+    var Name = window.open( '<?= $PHP_SELF ?>?view=user&uid=<?= $user['Id'] ?>', 'zmUser', 'resizeable,width=<?= $jws['user']['w'] ?>,height=<?= $jws['user']['h'] ?>' );
+}
+<?php
+}
+?>
 function closeWindow()
 {
 	window.close();
@@ -32,15 +43,27 @@ function closeWindow()
 </script>
 </head>
 <body>
-<table align="center" border="0" cellspacing="0" cellpadding="5" width="96%">
 <form name="logout_form" method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="action" value="logout">
 <input type="hidden" name="view" value="login">
-<tr><td colspan="2" class="smallhead" align="center">ZoneMinder <?= $zmSlangLogout ?></td></tr>
-<tr><td colspan="2" class="text" align="center"><?= sprintf( $zmClangCurrentLogin, $user['Username'] ) ?></td></tr>
-<tr><td align="center"><input type="submit" value="<?= $zmSlangLogout ?>" class="form"></td>
-<td align="center"><input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td></tr>
-</form>
+<table align="center" border="0" cellspacing="0" cellpadding="5" width="96%">
+<tr><td class="smallhead" align="center">ZoneMinder <?= $zmSlangLogout ?></td></tr>
+<tr><td class="text" align="center"><?= sprintf( $zmClangCurrentLogin, $user['Username'] ) ?></td></tr>
 </table>
+<table align="center" border="0" cellspacing="0" cellpadding="5" width="96%">
+<tr>
+<td align="center"><input type="submit" value="<?= $zmSlangLogout ?>" class="form"></td>
+<?php
+if ( ZM_USER_SELF_EDIT )
+{
+?>
+<td align="center"><input type="button" value="<?= $zmSlangConfig ?>" class="form" onClick="userWindow();"></td>
+<?php
+}
+?>
+<td align="center"><input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow();"></td>
+</tr>
+</table>
+</form>
 </body>
 </html>

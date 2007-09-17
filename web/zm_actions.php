@@ -1528,6 +1528,31 @@ if ( !empty($action) )
 			}
 		}
 	}
+    else
+    {
+		if ( ZM_USER_SELF_EDIT && $action == "user" )
+		{
+            $uid = $user['Id'];
+
+			$db_user = dbFetchOne( "select Id, Password, Language from Users where Id = '$uid'" );
+
+			$types = array();
+			$changes = getFormChanges( $db_user, $new_user, $types );
+
+			if ( $new_user['Password'] )
+				$changes['Password'] = "Password = password('".$new_user['Password']."')";
+			else
+				unset( $changes['Password'] );
+			if ( count( $changes ) )
+			{
+				$sql = "update Users set ".implode( ", ", $changes )." where Id = '$uid'";
+			    dbQuery( $sql );
+				$refresh_parent = true;
+			}
+			$view = 'none';
+		}
+    }
+
 	if ( $action == "learn" )
 	{
 		if ( !$mark_eids && $mark_eid )

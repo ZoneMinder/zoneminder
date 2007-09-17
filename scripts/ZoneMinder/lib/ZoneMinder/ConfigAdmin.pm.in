@@ -1043,6 +1043,14 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		category => "config",
 	},
 	{
+		name => "ZM_USER_SELF_EDIT",
+		default => "no",
+		description => "Whether unprivileged users can change their details",
+		help => "Ordinarily only users with system edit privilege are able to change users details. Switching this option on allows ordinary users to change their passwords and their language settings",
+		type => $types{boolean},
+		category => "config",
+	},
+	{
 		name => "ZM_OPT_FRAME_SERVER",
 		default => "no",
 		description => "Should analysis farm out the writing of images to disk",

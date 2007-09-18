@@ -132,7 +132,7 @@ $jws = array(
 	'monitorselect' => array( 'w'=>160, 'h'=>200 ),
 	'montage' => array( 'w'=>10, 'h'=>20 ),
 	'optionhelp' => array( 'w'=>320, 'h'=>284 ),
-	'options' => array( 'w'=>780, 'h'=>540 ),
+	'options' => array( 'w'=>780, 'h'=>580 ),
 	'preset' => array( 'w'=>400, 'h'=>90 ),
 	'restarting' => array( 'w'=>250, 'h'=>150 ),
 	'settings' => array( 'w'=>200, 'h'=>225 ),

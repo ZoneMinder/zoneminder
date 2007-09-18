@@ -41,6 +41,18 @@
 setlocale( LC_ALL, 'ro_RO' ); 
 //
 // Simple String Replacements
+$zmSlangAttrSystemLoad       = 'System Load';
+$zmSlangBadSignalCheckColour = 'Signal check colour must be a valid RGB colour string';
+$zmSlangBadStreamReplayBuffer= 'Stream replay buffer must be an integer of zero or more';
+$zmSlangFastForward          = 'Fast Forward';
+$zmSlangPause                = 'Pause';
+$zmSlangPlay                 = 'Play';
+$zmSlangRewind               = 'Rewind';
+$zmSlangSignalCheckColour    = 'Signal Check Colour';
+$zmSlangStepBack             = 'Step Back';
+$zmSlangStepForward          = 'Step Forward';
+$zmSlangStreamReplayBuffer   = 'Stream Replay Image Buffer';
+$zmSlangZoneOverloadFrames   = 'Overload Frame Ignore Count';
 $zmSlang24BitColour          = 'Color &#226;n 24 bi&#355;i';
 $zmSlang8BitGrey             = 'Scal&#259 gri &#226;n 8 bi&#355;i';
 $zmSlangAction               = 'Action';
@@ -618,7 +630,6 @@ $zmSlangZone                 = 'Zone';
 $zmSlangZoomIn               = 'Zoom In';
 $zmSlangZoomOut              = 'Zoom Out';
 $zmSlangZoom                 = 'Zoom';
-
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $zmClangCurrentLogin         = 'E&#351;ti logat ca \'%1$s\'';

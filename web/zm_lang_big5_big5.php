@@ -74,6 +74,18 @@ setlocale( 'LC_CTYPE', 'Big5' ); //Character class settings 4.3.0 and after
 setlocale( 'LC_TIME', 'Big5' ); //Date and time formatting 4.3.0 and after
 
 // Simple String Replacements
+$zmSlangAttrSystemLoad       = 'System Load';
+$zmSlangBadSignalCheckColour = 'Signal check colour must be a valid RGB colour string';
+$zmSlangBadStreamReplayBuffer= 'Stream replay buffer must be an integer of zero or more';
+$zmSlangFastForward          = 'Fast Forward';
+$zmSlangPause                = 'Pause';
+$zmSlangPlay                 = 'Play';
+$zmSlangRewind               = 'Rewind';
+$zmSlangSignalCheckColour    = 'Signal Check Colour';
+$zmSlangStepBack             = 'Step Back';
+$zmSlangStepForward          = 'Step Forward';
+$zmSlangStreamReplayBuffer   = 'Stream Replay Image Buffer';
+$zmSlangZoneOverloadFrames   = 'Overload Frame Ignore Count';
 $zmSlang24BitColour          = '24 位元色彩';
 $zmSlang8BitGrey             = '8 位元灰階';
 $zmSlangAction               = 'Action';

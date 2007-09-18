@@ -71,6 +71,18 @@ header( "Content-Type: text/html; charset=windows-1252" );
 // setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
 
 // Simple String Replacements
+$zmSlangAttrSystemLoad       = 'System Load';
+$zmSlangBadSignalCheckColour = 'Signal check colour must be a valid RGB colour string';
+$zmSlangBadStreamReplayBuffer= 'Stream replay buffer must be an integer of zero or more';
+$zmSlangFastForward          = 'Fast Forward';
+$zmSlangPause                = 'Pause';
+$zmSlangPlay                 = 'Play';
+$zmSlangRewind               = 'Rewind';
+$zmSlangSignalCheckColour    = 'Signal Check Colour';
+$zmSlangStepBack             = 'Step Back';
+$zmSlangStepForward          = 'Step Forward';
+$zmSlangStreamReplayBuffer   = 'Stream Replay Image Buffer';
+$zmSlangZoneOverloadFrames   = 'Overload Frame Ignore Count';
 $zmSlang24BitColour          = '24 bit farve';
 $zmSlang8BitGrey             = '8 bit greyscale';
 $zmSlangAction               = 'Action';

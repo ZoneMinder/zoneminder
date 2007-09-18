@@ -21,6 +21,18 @@
 // ZoneMinder Spanish 'Argentina' Translation by Fernando Diaz.
 
 // Simple String Replacements
+$zmSlangAttrSystemLoad       = 'System Load';
+$zmSlangBadSignalCheckColour = 'Signal check colour must be a valid RGB colour string';
+$zmSlangBadStreamReplayBuffer= 'Stream replay buffer must be an integer of zero or more';
+$zmSlangFastForward          = 'Fast Forward';
+$zmSlangPause                = 'Pause';
+$zmSlangPlay                 = 'Play';
+$zmSlangRewind               = 'Rewind';
+$zmSlangSignalCheckColour    = 'Signal Check Colour';
+$zmSlangStepBack             = 'Step Back';
+$zmSlangStepForward          = 'Step Forward';
+$zmSlangStreamReplayBuffer   = 'Stream Replay Image Buffer';
+$zmSlangZoneOverloadFrames   = 'Overload Frame Ignore Count';
 $zmSlang24BitColour          = 'Color 24 bits';
 $zmSlang8BitGrey             = 'Grises 8 bits';
 $zmSlangAction               = 'Action';
@@ -601,7 +613,6 @@ $zmSlangZone                 = 'Zona';
 $zmSlangZoomIn               = 'Zoom In';
 $zmSlangZoomOut              = 'Zoom Out';
 $zmSlangZoom                 = 'Zoom';
-
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $zmClangCurrentLogin         = 'Usuario actual es \'%1$s\'';

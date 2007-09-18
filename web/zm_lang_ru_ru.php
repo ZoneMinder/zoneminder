@@ -70,6 +70,18 @@ header( "Content-Type: text/html; charset=koi8-r" );
 // setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
 
 // Simple String Replacements
+$zmSlangAttrSystemLoad       = 'System Load';
+$zmSlangBadSignalCheckColour = 'Signal check colour must be a valid RGB colour string';
+$zmSlangBadStreamReplayBuffer= 'Stream replay buffer must be an integer of zero or more';
+$zmSlangFastForward          = 'Fast Forward';
+$zmSlangPause                = 'Pause';
+$zmSlangPlay                 = 'Play';
+$zmSlangRewind               = 'Rewind';
+$zmSlangSignalCheckColour    = 'Signal Check Colour';
+$zmSlangStepBack             = 'Step Back';
+$zmSlangStepForward          = 'Step Forward';
+$zmSlangStreamReplayBuffer   = 'Stream Replay Image Buffer';
+$zmSlangZoneOverloadFrames   = 'Overload Frame Ignore Count';
 $zmSlang24BitColour          = '24 битный цвет';
 $zmSlang8BitGrey             = '256 оттенков серого';
 $zmSlangAction               = 'Action';
@@ -648,7 +660,6 @@ $zmSlangZones                = 'Зоны';
 $zmSlangZoomIn               = 'Zoom In';
 $zmSlangZoomOut              = 'Zoom Out';
 $zmSlangZoom                 = 'Zoom';
-
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $zmClangCurrentLogin         = 'Текущий пользователь: \'%1$s\'';

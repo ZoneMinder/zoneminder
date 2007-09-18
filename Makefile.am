@@ -14,11 +14,7 @@ SUBDIRS = \
 	db
 
 EXTRA_DIST = \
-	zm.conf.in \
-	README.txt \
-	README.html \
-	README.pdf \
-	README.rtf
+	zm.conf.in
 
 # Yes, you are correct. This is a HACK!
 install-data-hook:

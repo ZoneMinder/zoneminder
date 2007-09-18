@@ -286,7 +286,11 @@ VideoStream::~VideoStream()
 
 double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp )
 {
+#ifdef HAVE_LIBSWSCALE
+    static struct SwsContext *img_convert_ctx = 0;
+#endif // HAVE_LIBSWSCALE
 	double pts = 0.0;
+
 
 	if (ost)
 	{
@@ -302,12 +306,20 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 #else
 	AVCodecContext *c = &ost->codec;
 #endif
-	if (c->pix_fmt != pf)
+	if ( c->pix_fmt != pf )
 	{
 		memcpy( tmp_opicture->data[0], buffer, buffer_size );
-		img_convert((AVPicture *)opicture, c->pix_fmt, 
-					(AVPicture *)tmp_opicture, pf,
-					c->width, c->height);
+#ifdef HAVE_LIBSWSCALE
+        if ( !img_convert_ctx )
+        {
+            img_convert_ctx = sws_getContext( c->width, c->height, pf, c->width, c->height, c->pix_fmt, SWS_BICUBIC, NULL, NULL, NULL );
+            if ( !img_convert_ctx )
+                Fatal(( "Unable to initialise image scaling context" ));
+        }
+        sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, c->height, opicture->data, opicture->linesize );
+#else // HAVE_LIBSWSCALE
+		img_convert( (AVPicture *)opicture, c->pix_fmt, (AVPicture *)tmp_opicture, pf, c->width, c->height );
+#endif // HAVE_LIBSWSCALE
 	}
 	else
 	{
@@ -316,13 +328,13 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 	AVFrame *opicture_ptr = opicture;
 
 	int ret = 0;
-	if (ofc->oformat->flags & AVFMT_RAWPICTURE)
+	if ( ofc->oformat->flags & AVFMT_RAWPICTURE )
 	{
 #if ZM_FFMPEG_048
-		ret = av_write_frame(ofc, ost->index, (uint8_t *)opicture_ptr, sizeof(AVPicture));
+		ret = av_write_frame( ofc, ost->index, (uint8_t *)opicture_ptr, sizeof(AVPicture) );
 #else
 		AVPacket pkt;
-		av_init_packet(&pkt);
+		av_init_packet( &pkt );
 
 		pkt.flags |= PKT_FLAG_KEY;
 		pkt.stream_index = ost->index;
@@ -337,7 +349,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 		if ( add_timestamp )
 			ost->pts.val = timestamp;
 		int out_size = avcodec_encode_video(c, video_outbuf, video_outbuf_size, opicture_ptr);
-		if (out_size > 0)
+		if ( out_size > 0 )
 		{
 #if ZM_FFMPEG_048
 			ret = av_write_frame(ofc, ost->index, video_outbuf, out_size);
@@ -360,7 +372,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 #endif
 		}
 	}
-	if (ret != 0)
+	if ( ret != 0 )
 	{
 		Fatal(( "Error while writing video frame" ));
 	}

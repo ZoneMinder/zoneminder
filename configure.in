@@ -194,6 +194,7 @@ AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote
 AC_CHECK_LIB(avutil,ff_gcd,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
 AC_CHECK_LIB(avcodec,avcodec_init,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
 AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)
+AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
 
 AC_PROG_PERL_VERSION(5.6.0)
 

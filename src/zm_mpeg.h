@@ -27,6 +27,9 @@
 extern "C" {
 #define __STDC_CONSTANT_MACROS
 #include <ffmpeg/avformat.h>
+#if HAVE_LIBSWSCALE
+#include <ffmpeg/swscale.h>
+#endif // HAVE_LIBSWSCALE
 }
 
 #if FFMPEG_VERSION_INT == 0x000408

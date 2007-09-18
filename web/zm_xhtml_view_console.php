@@ -181,7 +181,7 @@ for ( $i = 0; $i < count($event_counts); $i++ )
 {
     parseFilter( $event_counts[$i]['filter'], false, '&amp;' );
 ?>
-<td align="right"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;".$event_counts[$i]['filter']['query'], $event_counts[$i]['total', canView( 'Events' ) ) ?></td>
+<td align="right"><?= makeLink( "$PHP_SELF?view=events&amp;page=1&amp;".$event_counts[$i]['filter']['query'], $event_counts[$i]['total'], canView( 'Events' ) ) ?></td>
 <?php
 }
 ?>

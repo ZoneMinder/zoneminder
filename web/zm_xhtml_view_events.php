@@ -32,22 +32,16 @@ foreach ( dbFetchAll( $sql ) as $row )
 
 if ( $filter_name )
 {
-	$filter_data = dbFetchOne( "select * from Filters where Name = '$filter_name'" );
-	if ( !empty($filter_data) )
-	{
-		foreach( split( '&', $filter_data['Query'] ) as $filter_parm )
-		{
-			list( $key, $value ) = split( '=', $filter_parm, 2 );
-			if ( $key )
-			{
-				$$key = $value;
-			}
-		}
-	}
-	if ( !$sort_field )
-	{
-		$sort_field = "DateTime";
-	}
+    $db_filter = dbFetchOne( "select * from Filters where Name = '$filter_name'" );
+    $filter = unserialize( $db_filter['Query'] );
+    $sort_field = $filter['sort_field'];
+    $sort_asc = $filter['sort_asc'];
+    $limit = $filter['limit'];
+}
+
+if ( !$sort_field )
+{
+    $sort_field = "DateTime";
 }
 
 $count_sql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
@@ -64,21 +58,21 @@ else
 }
 
 parseSort( true, '&amp;' );
-parseFilter( true, '&amp;' );
+parseFilter( $filter, true, '&amp;' );
 
-if ( $filter_sql )
+if ( $filter['sql'] )
 {
-	$count_sql .= $filter_sql;
-	$events_sql .= $filter_sql;
+    $count_sql .= $filter['sql'];
+    $events_sql .= $filter['sql'];
 }
 $events_sql .= " order by $sort_column $sort_order";
 
+$device_lines = (isset($device)&&!empty($device['lines']))?$device['lines']:DEVICE_LINES;
+// Allow for headers etc
+$device_lines -= 2;
+
 if ( $page )
 {
-	$device_lines = (isset($device)&&!empty($device['lines']))?$device['lines']:DEVICE_LINES;
-	// Allow for headers etc
-	$device_lines -= 2;
-
 	$limit_start = (($page-1)*$device_lines);
 	if ( empty( $limit ) )
 	{
@@ -113,7 +107,7 @@ if ( !empty($limit) && $n_events > $limit )
 <table style="width: 100%">
 <tr>
 <td align="left"><?= sprintf( $zmClangEventCount, $n_events, zmVlang( $zmVlangEvent, $n_events ) ) ?></td>
-<td align="right"><?= makeLink( "$PHP_SELF?view=filter", empty($filter_data)?$zmSlangChooseFilter:$filter_name, canView( 'Events' ) ) ?></td>
+<td align="right"><?= makeLink( "$PHP_SELF?view=filter", empty($filter_name)?$zmSlangChooseFilter:$filter_name, canView( 'Events' ) ) ?></td>
 </tr>
 </table>
 <?php

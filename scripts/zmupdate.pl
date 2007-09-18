@@ -756,9 +756,9 @@ if ( $version )
         {
             my $dbh = zmDbConnect();
 
-            my $sql = "update Config set Value = ? where Name = 'ZM_JPEG_IMAGE_QUALITY'";
+            my $sql = "update Config set Value = ? where Name = 'ZM_JPEG_STREAM_QUALITY'";
             my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-            my $res = $sth->execute( ZM_JPEG_STREAM_QUALITY ) or die( "Can't execute: ".$sth->errstr() );
+            my $res = $sth->execute( ZM_JPEG_IMAGE_QUALITY ) or die( "Can't execute: ".$sth->errstr() );
         }
 		$cascade = !undef;
 	}

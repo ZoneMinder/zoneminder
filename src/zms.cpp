@@ -53,7 +53,7 @@ bool ValidateAccess( User *user, int mon_id )
 int main( int argc, const char *argv[] )
 {
 	enum { ZMS_MONITOR, ZMS_EVENT } source = ZMS_MONITOR;
-	enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } type = ZMS_JPEG;
+	enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } mode = ZMS_JPEG;
 	char format[32] = "";
 	int monitor_id = 0;
 	time_t event_time = 0;
@@ -108,12 +108,12 @@ int main( int argc, const char *argv[] )
 			{
 				source = !strcmp( value, "event" )?ZMS_EVENT:ZMS_MONITOR;
 			}
-			else if ( !strcmp( name, "type" ) )
+			else if ( !strcmp( name, "mode" ) )
 			{
-				type = !strcmp( value, "jpeg" )?ZMS_JPEG:ZMS_MPEG;
-				type = !strcmp( value, "raw" )?ZMS_RAW:type;
-				type = !strcmp( value, "zip" )?ZMS_ZIP:type;
-				type = !strcmp( value, "single" )?ZMS_SINGLE:type;
+				mode = !strcmp( value, "jpeg" )?ZMS_JPEG:ZMS_MPEG;
+				mode = !strcmp( value, "raw" )?ZMS_RAW:mode;
+				mode = !strcmp( value, "zip" )?ZMS_ZIP:mode;
+				mode = !strcmp( value, "single" )?ZMS_SINGLE:mode;
 			}
 			else if ( !strcmp( name, "format" ) )
 				strncpy( format, value, sizeof(format) );
@@ -239,19 +239,19 @@ int main( int argc, const char *argv[] )
         stream.setStreamQueue( connkey );
         stream.setStreamStart( monitor_id );
 
-        if ( type == ZMS_JPEG )
+        if ( mode == ZMS_JPEG )
         {
             stream.setStreamType( MonitorStream::STREAM_JPEG );
 		}
-		else if ( type == ZMS_RAW )
+		else if ( mode == ZMS_RAW )
 		{
             stream.setStreamType( MonitorStream::STREAM_RAW );
 		}
-		else if ( type == ZMS_ZIP )
+		else if ( mode == ZMS_ZIP )
 		{
             stream.setStreamType( MonitorStream::STREAM_ZIP );
 		}
-		else if ( type == ZMS_SINGLE )
+		else if ( mode == ZMS_SINGLE )
 		{
             stream.setStreamType( MonitorStream::STREAM_SINGLE );
         }
@@ -285,7 +285,7 @@ int main( int argc, const char *argv[] )
         {
             stream.setStreamStart( event_id, frame_id );
         }
-        if ( type == ZMS_JPEG )
+        if ( mode == ZMS_JPEG )
         {
             stream.setStreamType( EventStream::STREAM_JPEG );
         }

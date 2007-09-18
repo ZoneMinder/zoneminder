@@ -89,7 +89,6 @@ our %types =
 	hostname => { db_type=>"string", hint=>"host.your.domain", pattern=>qr|^([a-zA-Z0-9_.-]+)$|, format=>q( $1 ) },
 	url => { db_type=>"string", hint=>"http://host.your.domain/", pattern=>qr|^(?:http://)?(.+)$|, format=>q( "http://".$1 ) },
 	email => { db_type=>"string", hint=>"your.name\@your.domain", pattern=>qr|^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$|, format=>q( $1\@$2 ) },
-	include => { db_type=>"include", hint=>"local/path/to/file", pattern=>qr|^(.*)?$|, check=>q( -e $1 ), format=>q( $1 ) },
 );
 
 our @options =
@@ -222,15 +221,32 @@ our @options =
 		name => "ZM_JPEG_FILE_QUALITY",
 		default => "70",
 		description => "Set the JPEG quality setting for the saved event files (1-100)",
-		help => "When ZoneMinder detects an event it will save the images associated with that event to files. These files are in the JPEG format and can be viewed or streamed later. This option specifies what image quality should be used to save these files. A higher number means better quality but less compression so will take up more disk space and take longer to view over a slow connection. By contrast a low number means smaller, quicker to view, files but at the price of lower quality images.",
+		help => "When ZoneMinder detects an event it will save the images associated with that event to files. These files are in the JPEG format and can be viewed or streamed later. This option specifies what image quality should be used to save these files. A higher number means better quality but less compression so will take up more disk space and take longer to view over a slow connection. By contrast a low number means smaller, quicker to view, files but at the price of lower quality images. This setting applies to all images written except if the capture image has caused an alarm and the alarm file quality option is set at a higher value when that is used instead.",
 		type => $types{integer},
 		category => "images",
 	},
 	{
+		name => "ZM_JPEG_ALARM_FILE_QUALITY",
+		default => "0",
+		description => "Set the JPEG quality setting for the saved event files during an alarm (1-100)",
+		help => "This value is equivalent to the regular jpeg file quality setting above except that it only applies to images saved while in an alarm state and then only if this value is set to a higher quality setting than the ordinary file setting. If set to a lower value then it is ignored. Thus leaving it at the default of 0 effectively means to use the regular file quality setting for all saved images. This is to prevent acccidentally saving important images at a worse quality setting.",
+		type => $types{integer},
+		category => "images",
+	},
+    # Deprecated, now stream quality
+	{
 		name => "ZM_JPEG_IMAGE_QUALITY",
 		default => "70",
 		description => "Set the JPEG quality setting for the streamed 'live' images (1-100)",
-		help => "When viewing a 'live' stream for a monitor ZoneMinder will grab an image from the buffer and encode it into JPEG format before sending it. This option specifies what image quality should be used to encode these images. A higher number means better quality but less compression so will take longer to view over a slow connection. By contrast a low number means quicker to view files but at the price of lower quality images. This option does not apply when viewing still images as these are just read from disk and so will be encoded at the quality specified by the previous option.",
+		help => "When viewing a 'live' stream for a monitor ZoneMinder will grab an image from the buffer and encode it into JPEG format before sending it. This option specifies what image quality should be used to encode these images. A higher number means better quality but less compression so will take longer to view over a slow connection. By contrast a low number means quicker to view images but at the price of lower quality images. This option does not apply when viewing events or still images as these are usually just read from disk and so will be encoded at the quality specified by the previous options.",
+		type => $types{integer},
+		category => "hidden",
+	},
+	{
+		name => "ZM_JPEG_STREAM_QUALITY",
+		default => "70",
+		description => "Set the JPEG quality setting for the streamed 'live' images (1-100)",
+		help => "When viewing a 'live' stream for a monitor ZoneMinder will grab an image from the buffer and encode it into JPEG format before sending it. This option specifies what image quality should be used to encode these images. A higher number means better quality but less compression so will take longer to view over a slow connection. By contrast a low number means quicker to view images but at the price of lower quality images. This option does not apply when viewing events or still images as these are usually just read from disk and so will be encoded at the quality specified by the previous options.",
 		type => $types{integer},
 		category => "images",
 	},
@@ -1612,6 +1628,8 @@ our %options_hash = map { ( $_->{name}, $_ ) } @options;
 sub INIT
 {
 	# Do some initial data munging to finish the data structures
+	# Create option ids
+	my $option_id = 0;
 	foreach my $option ( @options )
 	{
 		if ( defined($option->{default}) )
@@ -1622,15 +1640,7 @@ sub INIT
 		{
 			$option->{value} = '';
 		}
-	}
-
-	# Create option ids
-	my $option_id = 0;
-	foreach my $option ( @options )
-	{
-		#next if ( $option->{category} eq 'core' );
 		#next if ( $option->{category} eq 'hidden' );
-		#next if ( $option->{type} == $types{include} );
 		$option->{id} = $option_id++;
 	}
 }
@@ -1659,7 +1669,6 @@ sub loadConfigFromDB
 			warn( "No option '$name' found, removing" );
 			next;
 		}
-		#next if ( $option->{category} eq 'core' );
 		#next if ( $option->{category} eq 'hidden' );
 		if ( defined($value) )
 		{
@@ -1700,9 +1709,7 @@ sub saveConfigToDB
 	my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
 	foreach my $option ( @options )
 	{
-		#next if ( $option->{category} eq 'core' );
 		#next if ( $option->{category} eq 'hidden' );
-		#next if ( $option->{type} == $types{include} );
 		#print( $option->{name}."\n" ) if ( !$option->{category} );
 		$option->{db_type} = $option->{type}->{db_type};
 		$option->{db_hint} = $option->{type}->{hint};

@@ -357,6 +357,10 @@ if ( $version )
 
 	print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
+	# Update config first of all
+	loadConfigFromDB();
+	saveConfigToDB();
+
 	my $dbh = zmDbConnect();
 
 	my $cascade = undef;
@@ -747,6 +751,15 @@ if ( $version )
                 my $res = $sth->execute( $new_query, $db_filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
             }
         }
+
+        # Update the stream quaility setting to the old image quality ones
+        {
+            my $dbh = zmDbConnect();
+
+            my $sql = "update Config set Value = ? where Name = 'ZM_JPEG_IMAGE_QUALITY'";
+            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            my $res = $sth->execute( ZM_JPEG_STREAM_QUALITY ) or die( "Can't execute: ".$sth->errstr() );
+        }
 		$cascade = !undef;
 	}
 	if ( $cascade )
@@ -757,9 +770,6 @@ if ( $version )
 		my $res = $sth->execute( "$installed_version", "ZM_DYN_DB_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
 		$res = $sth->execute( "$installed_version", "ZM_DYN_CURR_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
 		$dbh->disconnect();
-		# We've done something so make sure the config is updated too
-		loadConfigFromDB();
-		saveConfigToDB();
 	}
 	else
 	{

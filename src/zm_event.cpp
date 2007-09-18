@@ -252,7 +252,7 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
     static int jpg_buffer_size = 0;
     static unsigned char jpg_buffer[ZM_MAX_IMAGE_SIZE];
 
-    image->EncodeJpeg( jpg_buffer, &jpg_buffer_size, config.jpeg_file_quality );
+    image->EncodeJpeg( jpg_buffer, &jpg_buffer_size, (alarm_frame&&(config.jpeg_alarm_file_quality>config.jpeg_file_quality))?config.jpeg_alarm_file_quality:config.jpeg_file_quality );
 
     static FrameHeader frame_header;
 
@@ -305,7 +305,10 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
     {
         if ( !config.opt_frame_server || !SendFrameImage( image, alarm_frame) )
         {
-            image->WriteJpeg( event_file );
+            if ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) )
+                image->WriteJpeg( event_file, config.jpeg_alarm_file_quality );
+            else
+                image->WriteJpeg( event_file );
         }
     }
     else
@@ -314,7 +317,10 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
         monitor->TimestampImage( &ts_image, &timestamp );
         if ( !config.opt_frame_server || !SendFrameImage( &ts_image, alarm_frame) )
         {
-            ts_image.WriteJpeg( event_file );
+            if ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) )
+                ts_image.WriteJpeg( event_file, config.jpeg_alarm_file_quality );
+            else
+                ts_image.WriteJpeg( event_file );
         }
     }
     return( true );

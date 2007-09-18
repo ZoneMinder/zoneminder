@@ -501,7 +501,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 		return( temp_image.EncodeJpeg( outbuffer, outbuffer_size, quality_override ) );
 	}
 
-	int quality = quality_override?quality_override:config.jpeg_image_quality;
+	int quality = quality_override?quality_override:config.jpeg_stream_quality;
 
 	struct jpeg_compress_struct *cinfo = jpg_ccinfo[quality];
 

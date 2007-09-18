@@ -132,8 +132,6 @@ sub generateConfigSQL
 	print( CFG_TEMP_SQL_FILE "delete from Config;\n\n" );
 	foreach my $option ( @options )
 	{
-		next if ( $option->{category} eq 'core' );
-		next if ( $option->{type} == $types{include} );
 		#print( $option->{name}."\n" ) if ( !$option->{category} );
 		$option->{db_type} = $option->{type}->{db_type};
 		$option->{db_hint} = $option->{type}->{hint};

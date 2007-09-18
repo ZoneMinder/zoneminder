@@ -715,14 +715,14 @@ if ( !($disable || $disabled) )
 ?>
     </div>
     <p id="dvrControls">
-      <input type="button" value="&lt;&lt;" id="fastRevBtn" class="unavail" disabled="disabled" onclick="cmdFastRev( true )"/>
-      <input type="button" value="&lt;" id="slowRevBtn" class="unavail" disabled="disabled" onclick="cmdSlowRev( true )"/>
-      <input type="button" value="||" id="pauseBtn" class="inactive" onclick="cmdPause( true )"/>
-      <input type="button" value="[]" id="stopBtn" class="unavail" disabled="disabled" onclick="cmdStop( true )"/>
-      <input type="button" value="|>" id="playBtn" class="active" disabled="disabled" onclick="cmdPlay( true )"/>
-      <input type="button" value="&gt;" id="slowFwdBtn" class="unavail" disabled="disabled" onclick="cmdSlowFwd( true )"/>
-      <input type="button" value="&gt;&gt;" id="fastFwdBtn" class="unavail" disabled="disabled" onclick="cmdFastFwd( true )"/>
-      <input type="button" value="&ndash;" id="zoomOutBtn" class="avail" onclick="cmdZoomOut()"/>
+      <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?= $zmSlangRewind ?>" class="unavail" disabled="disabled" onclick="cmdFastRev( true )"/>
+      <input type="button" value="&lt;" id="slowRevBtn" title="<?= $zmSlangStepBack ?>" class="unavail" disabled="disabled" onclick="cmdSlowRev( true )"/>
+      <input type="button" value="||" id="pauseBtn" title="<?= $zmSlangPause ?>" class="inactive" onclick="cmdPause( true )"/>
+      <input type="button" value="[]" id="stopBtn" title="<?= $zmSlangStop ?>" class="unavail" disabled="disabled" onclick="cmdStop( true )"/>
+      <input type="button" value="|>" id="playBtn" title="<?= $zmSlangPlay ?>" class="active" disabled="disabled" onclick="cmdPlay( true )"/>
+      <input type="button" value="&gt;" id="slowFwdBtn" title="<?= $zmSlangStepForward ?>" class="unavail" disabled="disabled" onclick="cmdSlowFwd( true )"/>
+      <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?= $zmSlangFastForward ?>" class="unavail" disabled="disabled" onclick="cmdFastFwd( true )"/>
+      <input type="button" value="&ndash;" id="zoomOutBtn" title="<?= $zmSlangZoomOut ?>" class="avail" onclick="cmdZoomOut()"/>
     </p>
     <div id="replayStatus"><span id="mode">Mode: <span id="modeValue">&nbsp;</span></span><span id="rate">&nbsp;&ndash;&nbsp;Rate: <span id="rateValue"></span>x</span><span id="delay">&nbsp;&ndash;&nbsp;Delay: <span id="delayValue"></span>s</span><span id="level">&nbsp;&ndash;&nbsp;Buffer: <span id="levelValue"></span>%</span><span id="zoom">&nbsp;&ndash;&nbsp;Zoom: <span id="zoomValue"></span>x</span>
     </div>

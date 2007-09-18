@@ -122,7 +122,9 @@ web_DATA = \
 	zm_lang_pt_br.php \
 	zm_lang_dk_dk.php \
 	zm_lang_cs_cz.php \
-	zm_lang_ro_ro.php
+	zm_lang_ro_ro.php \
+    zm_lang_he_il.php \
+    zm_lang_hu_hu.php
 
 EXTRA_DIST = \
 	favicon.ico \
@@ -238,7 +240,9 @@ EXTRA_DIST = \
 	zm_lang_pt_br.php \
 	zm_lang_dk_dk.php \
 	zm_lang_cs_cz.php \
-	zm_lang_ro_ro.php
+	zm_lang_ro_ro.php \
+    zm_lang_he_il.php \
+    zm_lang_hu_hu.php
 
 # Yes, you are correct. This is a HACK!
 install-data-hook:

@@ -2219,7 +2219,7 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
                         d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", trigger_data->trigger_showtext );
                         found_macro = true;
                         break;
-                    case 'v' :
+                    case 'f' :
                         d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time->tv_usec/10000 );
                         found_macro = true;
                         break;

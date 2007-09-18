@@ -89,6 +89,8 @@ function changeScale()
     cmdScale( scale );
 
     var streamImg = $('imageFeed').getElement('img');
+    if ( !streamImg )
+        streamImg = $('imageFeed').getElement('object');
     $(streamImg).setStyles( { width: newWidth, height: newHeight } );
 }
 
@@ -866,6 +868,8 @@ function handleClick( event )
 }
 
 var streamImg = $('imageFeed').getElement('img');
+if ( !streamImg )
+    streamImg = $('imageFeed').getElement('object');
 $(streamImg).addEvent( 'click', handleClick.bindWithEvent( $(streamImg) ) );
 <?php
 }

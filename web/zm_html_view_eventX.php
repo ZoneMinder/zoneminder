@@ -58,10 +58,10 @@ $connkey = generateConnKey();
 
 var url = "<?= ZM_BASE_URL.$PHP_SELF ?>";
 
-function setButtonState( element, class )
+function setButtonState( element, butclass )
 {
-    element.className = class;
-    element.disabled = (class != 'inactive');
+    element.className = butclass;
+    element.disabled = (butclass != 'inactive');
 }
 
 function secsToTime( secs )
@@ -102,7 +102,7 @@ function changeScale()
     var scale = $('scale').getValue();
     var baseWidth = event.Width;
     var baseHeight = event.Height;
-    console.log( "Got new scale: "+scale );
+    //console.log( "Got new scale: "+scale );
     var newWidth = ( baseWidth * scale ) / <?= SCALE_BASE ?>;
     var newHeight = ( baseHeight * scale ) / <?= SCALE_BASE ?>;
 
@@ -321,7 +321,7 @@ function getEvtResponse( resp_text, resp_xml )
         return;
     var resp_func = new Function( "return "+resp_text );
     var resp_obj = resp_func();
-    console.log( resp_obj );
+    //console.log( resp_obj );
 
     event = resp_obj.event;
 
@@ -368,7 +368,7 @@ function getActResponse( resp_text, resp_xml )
         return;
     var resp_func = new Function( "return "+resp_text );
     var resp_obj = resp_func();
-    console.log( resp_obj );
+    //console.log( resp_obj );
 
     if ( resp_obj.refreshParent )
     {
@@ -380,12 +380,12 @@ function getActResponse( resp_text, resp_xml )
 function actQuery( action, parms )
 {
     var actParms = "view=request&request=event&id="+event.Id+"&action="+action;
-    console.log( parms );
+    //console.log( parms );
     if ( parms != null )
     {
         actParms += "&"+Object.toQueryString( parms );
     }
-    console.log( actParms );
+    //console.log( actParms );
     var actReq = new Ajax( url, { method: 'post', postBody: actParms, onComplete: getActResponse } );
     actReq.request();
 }

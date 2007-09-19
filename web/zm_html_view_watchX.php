@@ -52,10 +52,10 @@ var STATE_TAPE = <?= STATE_TAPE ?>;
 
 var url = "<?= ZM_BASE_URL.$PHP_SELF ?>";
 
-function setButtonState( element, class )
+function setButtonState( element, butclass )
 {
-    element.className = class;
-    element.disabled = (class != 'inactive');
+    element.className = butclass;
+    element.disabled = (butclass != 'inactive');
 }
 
 var showMode = "<?= ($showControls && $control)?"control":"events" ?>";

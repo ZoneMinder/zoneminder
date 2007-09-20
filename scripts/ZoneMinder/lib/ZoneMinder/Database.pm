@@ -43,7 +43,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 our %EXPORT_TAGS = (
     'functions' => [ qw(
 		zmDbConnect
-		zmDbDisConnect
+		zmDbDisconnect
 		zmDbGetMonitors
 		zmDbGetMonitor
 		zmDbGetMonitorAndControl

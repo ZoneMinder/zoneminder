@@ -130,8 +130,8 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 		my $res = $sth->execute( "$curr_version" ) or die( "Can't execute: ".$sth->errstr() );
 	}
+	zmDbDisconnect();
 
-	$dbh->disconnect();
 	while( 1 )
 	{
 		my $now = time();
@@ -162,7 +162,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 
 				Info( "Got version: '".$last_version."'\n" );
 
-				my $dbh = zmDbConnect();
+				$dbh = zmDbConnect();
 
 				my $lv_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
 				my $lv_sth = $dbh->prepare_cached( $lv_sql ) or die( "Can't prepare '$lv_sql': ".$dbh->errstr() );
@@ -172,7 +172,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 				my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
 				my $lc_res = $lc_sth->execute( $last_check ) or die( "Can't execute: ".$lc_sth->errstr() );
 
-				$dbh->disconnect();
+                zmDbDisconnect();
 			}
 			else
 			{

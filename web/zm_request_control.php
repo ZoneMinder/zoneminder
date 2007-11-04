@@ -340,7 +340,8 @@ elseif ( isset($x) && isset($y) )
                 $y = $height - $y;
                 break;
         }
-        $ctrl_command .= " --xcoord=$x --ycoord=$y --width=$width --height=$height";
+        //$ctrl_command .= " --xcoord=$x --ycoord=$y --width=$width --height=$height";
+        $ctrl_command .= " --xcoord=$x --ycoord=$y";
     }
     elseif ( $control == "movePseudoMap" )
     {
@@ -977,7 +978,6 @@ else
 if ( $control != 'null' )
 {
     $ctrl_command .= " --command=".$control;
-    error_log( "Command: $ctrl_command" );
     $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
     if ( $socket < 0 )
     {
@@ -995,6 +995,7 @@ if ( $control != 'null' )
             }
         }
         $option_string = serialize( $options );
+        error_log( "Command: $option_string" );
         if ( socket_write( $socket, $option_string ) )
         {
             $response = array( 'result' => "Ok", 'message' => 'Used socket' );
@@ -1008,8 +1009,7 @@ if ( $control != 'null' )
     else
     {
         $ctrl_command .= " --id=".$monitor['Id'];
-        $ctrl_command .= " --protocol=".$monitor['Protocol'];
-        #$ctrl_command .= " --protocol="."PelcoD";
+        error_log( "Command: $ctrl_command" );
 
         // Can't connect so use script
         $ctrl_status = '';

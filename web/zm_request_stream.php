@@ -106,7 +106,7 @@ switch ( $data['type'] )
 {
     case MSG_DATA_WATCH :
     {
-        $data =  unpack( "ltype/dfps/istate/ilevel/Cdelayed/Cpaused/C/C/irate/ddelay/izoom", $msg );
+        $data =  unpack( "ltype/dfps/istate/ilevel/Cdelayed/Cpaused/C/C/irate/ddelay/izoom/Cenabled/Cforced", $msg );
         $data['fps'] = sprintf( "%.2f", $data['fps'] );
         $data['rate'] /= 100;
         $data['delay'] = sprintf( "%.2f", $data['delay'] );
@@ -123,12 +123,14 @@ switch ( $data['type'] )
     }
     default :
     {
-        error_log( "Unexpected received message type $type" );
+        error_log( "Unexpected received message type '$type'" );
+        $response = array( 'result'=>'Error', 'message' => "Unexpected received message type '$type'" );
+        echo jsValue( $response );
         return;
     }
 }
 
-$response = array( 'status' => $data );
+$response = array( 'result'=>'Ok', 'status' => $data );
 echo jsValue( $response );
 
 socket_close( $socket );

@@ -19,10 +19,11 @@ web_DATA = \
 	zm_db.php \
 	zm_export_funcs.php \
 	zm_funcs.php \
-	zm_request_status.php \
-	zm_request_command.php \
+	zm_request_alarm.php \
 	zm_request_control.php \
 	zm_request_event.php \
+	zm_request_status.php \
+	zm_request_stream.php \
 	zm_html.php \
 	zm_html.js \
 	zm_html_js.php \
@@ -138,10 +139,11 @@ EXTRA_DIST = \
 	zm_db.php \
 	zm_export_funcs.php \
 	zm_funcs.php \
-	zm_request_status.php \
+	zm_request_alarm.php \
 	zm_request_control.php \
-	zm_request_command.php \
 	zm_request_event.php \
+	zm_request_status.php \
+	zm_request_stream.php \
 	zm_html.php \
 	zm_html.js \
 	zm_html_js.php \

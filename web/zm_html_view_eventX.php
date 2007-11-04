@@ -106,14 +106,14 @@ function changeScale()
     var newWidth = ( baseWidth * scale ) / <?= SCALE_BASE ?>;
     var newHeight = ( baseHeight * scale ) / <?= SCALE_BASE ?>;
 
-    cmdScale( scale );
+    streamScale( scale );
 
     var streamImg = $('imageFeed').getElement('img');
     $(streamImg).setStyles( { width: newWidth, height: newHeight } );
 }
 
-var cmdParms = "view=request&request=command&connkey=<?= $connkey ?>";
-var cmdTimeoutId = 0;
+var streamParms = "view=request&request=stream&connkey=<?= $connkey ?>";
+var streamTimeoutId = 0;
 
 var status;
 var event;
@@ -122,10 +122,10 @@ var lastEventId = 0;
 
 function getCmdResponse( resp_text, resp_xml )
 {
-    if ( cmdTimeoutId )
+    if ( streamTimeoutId )
     {
-        window.clearTimeout( cmdTimeoutId );
-        cmdTimeoutId = 0;
+        window.clearTimeout( streamTimeoutId );
+        streamTimeoutId = 0;
     }
     if ( !resp_text )
         return;
@@ -143,14 +143,14 @@ function getCmdResponse( resp_text, resp_xml )
     {
         $('modeValue').setHTML( "Paused" );
         $('rate').addClass( 'hidden' );
-        cmdPause( false );
+        streamPause( false );
     }
     else 
     {
         $('modeValue').setHTML( "Replay" );
         $('rateValue').setHTML( status.rate );
         $('rate').removeClass( 'hidden' );
-        cmdPlay( false );
+        streamPlay( false );
     }
     $('progressValue').setHTML( secsToTime( parseInt(status.progress) ) );
     $('zoomValue').setHTML( status.zoom );
@@ -161,11 +161,11 @@ function getCmdResponse( resp_text, resp_xml )
 
     updateProgressBar();
 
-    var cmdTimeout = <?= ZM_WEB_REFRESH_STATUS ?>;
-    cmdTimeoutId = window.setTimeout( 'cmdQuery()', 1000 * cmdTimeout );
+    var streamTimeout = <?= ZM_WEB_REFRESH_STATUS ?>;
+    streamTimeoutId = window.setTimeout( 'streamQuery()', 1000 * streamTimeout );
 }
 
-function cmdPause( action )
+function streamPause( action )
 {
     setButtonState( $('pauseBtn'), 'active' );
     setButtonState( $('playBtn'), 'inactive' );
@@ -175,12 +175,12 @@ function cmdPause( action )
     setButtonState( $('fastRevBtn'), 'unavail' );
     if ( action )
     {
-        var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_PAUSE ?>", onComplete: getCmdResponse } );
-        cmdReq.request();
+        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_PAUSE ?>", onComplete: getCmdResponse } );
+        streamReq.request();
     }
 }
 
-function cmdPlay( action )
+function streamPlay( action )
 {
     setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('playBtn'), status.rate==1?'active':'inactive' );
@@ -190,12 +190,12 @@ function cmdPlay( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_PLAY ?>", onComplete: getCmdResponse } );
-        cmdReq.request();
+        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_PLAY ?>", onComplete: getCmdResponse } );
+        streamReq.request();
     }
 }
 
-function cmdFastFwd( action )
+function streamFastFwd( action )
 {
     setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('playBtn'), 'inactive' );
@@ -205,12 +205,12 @@ function cmdFastFwd( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_FASTFWD ?>", onComplete: getCmdResponse } );
-        cmdReq.request();
+        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_FASTFWD ?>", onComplete: getCmdResponse } );
+        streamReq.request();
     }
 }
 
-function cmdSlowFwd( action )
+function streamSlowFwd( action )
 {
     setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('playBtn'), 'inactive' );
@@ -220,14 +220,14 @@ function cmdSlowFwd( action )
     setButtonState( $('fastRevBtn'), 'unavail' );
     if ( action )
     {
-        var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_SLOWFWD ?>", onComplete: getCmdResponse } );
-        cmdReq.request();
+        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_SLOWFWD ?>", onComplete: getCmdResponse } );
+        streamReq.request();
     }
     setButtonState( $('pauseBtn'), 'active' );
     setButtonState( $('slowFwdBtn'), 'inactive' );
 }
 
-function cmdSlowRev( action )
+function streamSlowRev( action )
 {
     setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('playBtn'), 'inactive' );
@@ -237,14 +237,14 @@ function cmdSlowRev( action )
     setButtonState( $('fastRevBtn'), 'unavail' );
     if ( action )
     {
-        var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_SLOWREV ?>", onComplete: getCmdResponse } );
-        cmdReq.request();
+        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_SLOWREV ?>", onComplete: getCmdResponse } );
+        streamReq.request();
     }
     setButtonState( $('pauseBtn'), 'active' );
     setButtonState( $('slowRevBtn'), 'inactive' );
 }
 
-function cmdFastRev( action )
+function streamFastRev( action )
 {
     setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('playBtn'), 'inactive' );
@@ -254,65 +254,65 @@ function cmdFastRev( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_FASTREV ?>", onComplete: getCmdResponse } );
-        cmdReq.request();
+        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_FASTREV ?>", onComplete: getCmdResponse } );
+        streamReq.request();
     }
 }
 
-function cmdPrev( action )
+function streamPrev( action )
 {
-    cmdPlay( false );
+    streamPlay( false );
     if ( action )
     {
-        var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_PREV ?>", onComplete: getCmdResponse } );
-        cmdReq.request();
+        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_PREV ?>", onComplete: getCmdResponse } );
+        streamReq.request();
     }
 }
 
-function cmdNext( action )
+function streamNext( action )
 {
-    cmdPlay( false );
+    streamPlay( false );
     if ( action )
     {
-        var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_NEXT ?>", onComplete: getCmdResponse } );
-        cmdReq.request();
+        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_NEXT ?>", onComplete: getCmdResponse } );
+        streamReq.request();
     }
 }
 
-function cmdZoomIn( x, y )
+function streamZoomIn( x, y )
 {
-    var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_ZOOMIN ?>&x="+x+"&y="+y, onComplete: getCmdResponse } );
-    cmdReq.request();
+    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_ZOOMIN ?>&x="+x+"&y="+y, onComplete: getCmdResponse } );
+    streamReq.request();
 }
 
-function cmdZoomOut()
+function streamZoomOut()
 {
-    var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_ZOOMOUT ?>", onComplete: getCmdResponse } );
-    cmdReq.request();
+    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_ZOOMOUT ?>", onComplete: getCmdResponse } );
+    streamReq.request();
 }
 
-function cmdScale( scale )
+function streamScale( scale )
 {
-    var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_SCALE ?>&scale="+scale, onComplete: getCmdResponse } );
-    cmdReq.request();
+    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_SCALE ?>&scale="+scale, onComplete: getCmdResponse } );
+    streamReq.request();
 }
 
-function cmdPan( x, y )
+function streamPan( x, y )
 {
-    var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_PAN ?>&x="+x+"&y="+y, onComplete: getCmdResponse } );
-    cmdReq.request();
+    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_PAN ?>&x="+x+"&y="+y, onComplete: getCmdResponse } );
+    streamReq.request();
 }
 
-function cmdSeek( offset )
+function streamSeek( offset )
 {
-    var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_SEEK ?>&offset="+offset, onComplete: getCmdResponse } );
-    cmdReq.request();
+    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_SEEK ?>&offset="+offset, onComplete: getCmdResponse } );
+    streamReq.request();
 }
 
-function cmdQuery()
+function streamQuery()
 {       
-    var cmdReq = new Ajax( url, { method: 'post', postBody: cmdParms+"&command=<?= CMD_QUERY ?>", onComplete: getCmdResponse } );
-    cmdReq.request();
+    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_QUERY ?>", onComplete: getCmdResponse } );
+    streamReq.request();
 }       
 
 function getEvtResponse( resp_text, resp_xml )
@@ -392,13 +392,13 @@ function actQuery( action, parms )
 
 function startRequests()
 {
-    cmdTimeoutId = window.setTimeout( 'cmdQuery()', 1000 );
+    streamTimeoutId = window.setTimeout( 'streamQuery()', 1000 );
 }
 
 function deleteEvent()
 {
     actQuery( 'delete' );
-    cmdNext();
+    streamNext();
     opener.location.reload(true);
 }
 
@@ -445,7 +445,7 @@ function drawProgressBar()
             var offset = parseInt((index*event.Length)/$$(cells).length);
             $(cell).setProperty( 'title', '+'+secsToTime(offset)+'s' );
             $(cell).removeEvent( 'click' );
-            $(cell).addEvent( 'click', function(){ cmdSeek( offset ); } );
+            $(cell).addEvent( 'click', function(){ streamSeek( offset ); } );
             $(cell).setProperty( 'title', '+'+secsToTime(offset)+'s' );
             barWidth += $(cell).getCoordinates().width;
         }
@@ -546,15 +546,15 @@ else
 ?>
     </div>
     <p id="dvrControls">
-      <input type="button" value="&lt;+" id="prevBtn" title="<?= $zmSlangPrev ?>" class="inactive" onclick="cmdPrev( true )"/>
-      <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?= $zmSlangRewind ?>" class="inactive" disabled="disabled" onclick="cmdFastRev( true )"/>
-      <input type="button" value="&lt;" id="slowRevBtn" title="<?= $zmSlangStepBack ?>" class="unavail" disabled="disabled" onclick="cmdSlowRev( true )"/>
-      <input type="button" value="||" id="pauseBtn" title="<?= $zmSlangPause ?>" class="inactive" onclick="cmdPause( true )"/>
-      <input type="button" value="|>" id="playBtn" title="<?= $zmSlangPlay ?>" class="active" disabled="disabled" onclick="cmdPlay( true )"/>
-      <input type="button" value="&gt;" id="slowFwdBtn" title="<?= $zmSlangStepForward ?>" class="unavail" disabled="disabled" onclick="cmdSlowFwd( true )"/>
-      <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?= $zmSlangFastForward ?>" class="inactive" disabled="disabled" onclick="cmdFastFwd( true )"/>
-      <input type="button" value="&ndash;" id="zoomOutBtn" title="<?= $zmSlangZoomOut ?>" class="avail" onclick="cmdZoomOut()"/>
-      <input type="button" value="+&gt;" id="nextBtn" title="<?= $zmSlangNext ?>" class="inactive" onclick="cmdNext( true )"/>
+      <input type="button" value="&lt;+" id="prevBtn" title="<?= $zmSlangPrev ?>" class="inactive" onclick="streamPrev( true )"/>
+      <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?= $zmSlangRewind ?>" class="inactive" disabled="disabled" onclick="streamFastRev( true )"/>
+      <input type="button" value="&lt;" id="slowRevBtn" title="<?= $zmSlangStepBack ?>" class="unavail" disabled="disabled" onclick="streamSlowRev( true )"/>
+      <input type="button" value="||" id="pauseBtn" title="<?= $zmSlangPause ?>" class="inactive" onclick="streamPause( true )"/>
+      <input type="button" value="|>" id="playBtn" title="<?= $zmSlangPlay ?>" class="active" disabled="disabled" onclick="streamPlay( true )"/>
+      <input type="button" value="&gt;" id="slowFwdBtn" title="<?= $zmSlangStepForward ?>" class="unavail" disabled="disabled" onclick="streamSlowFwd( true )"/>
+      <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?= $zmSlangFastForward ?>" class="inactive" disabled="disabled" onclick="streamFastFwd( true )"/>
+      <input type="button" value="&ndash;" id="zoomOutBtn" title="<?= $zmSlangZoomOut ?>" class="avail" onclick="streamZoomOut()"/>
+      <input type="button" value="+&gt;" id="nextBtn" title="<?= $zmSlangNext ?>" class="inactive" onclick="streamNext( true )"/>
     </p>
     <div id="replayStatus"><span id="mode">Mode: <span id="modeValue">&nbsp;</span></span><span id="rate">&nbsp;&ndash;&nbsp;Rate: <span id="rateValue"></span>x</span><span id="progress">&nbsp;&ndash;&nbsp;Progress: <span id="progressValue"></span>s</span><span id="zoom">&nbsp;&ndash;&nbsp;Zoom: <span id="zoomValue"></span>x</span>
     </div>
@@ -584,9 +584,9 @@ function handleClick( event )
     var y = event.page.y - $(target).getTop();
     
     if ( event.shift )
-        cmdPan( x, y );
+        streamPan( x, y );
     else
-        cmdZoomIn( x, y );
+        streamZoomIn( x, y );
     //console.log(x+","+y)
 }
 

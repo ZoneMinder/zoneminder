@@ -163,10 +163,11 @@ switch( $view )
     {
         switch( $request )
         {
-	        case "status" :
-	        case "command" : 
+	        case "alarm" : 
 	        case "control" :
 	        case "event" :
+	        case "status" :
+	        case "stream" :
 	        {
 		        require_once( "zm_request_".$request.".php" );
 		        break;

@@ -94,7 +94,7 @@ function closeWindow()
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="mid" value="<?= $mid ?>">
 <input type="hidden" name="action" value="control">
-<input type="hidden" name="control" value="preset_set">
+<input type="hidden" name="control" value="presetSet">
 <table border="0" cellspacing="0" cellpadding="4" width="100%">
 <tr>
 <td colspan="4" align="center" class="head">ZoneMinder - <?= $zmSlangSetPreset ?></td>

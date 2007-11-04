@@ -69,7 +69,7 @@ elseif ( $_REQUEST['action'] == "delete" )
     }
 }
 
-$response['status'] = 'Ok';
+$response['result'] = 'Ok';
 $response['refreshParent'] = $refresh_parent;
 
 header("Content-type: text/plain" );

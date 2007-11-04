@@ -248,8 +248,8 @@ switch( $_REQUEST['layout'] )
     case 'json' :
     {
         header("Content-type: text/plain" );
-        $result = array( $_REQUEST['entity'] => $data );
-        echo jsValue( $result );
+        $response = array( 'result'=>'Ok', $_REQUEST['entity'] => $data );
+        echo jsValue( $response );
         break;
     }
     case 'text' :

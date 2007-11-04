@@ -2753,6 +2753,8 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         int rate;
         double delay;
         int zoom;
+        bool enabled;
+        bool forced;
     } status_data;
 
     status_data.fps = monitor->GetFPS();
@@ -2763,13 +2765,18 @@ void MonitorStream::processCommand( const CmdMsg *msg )
     status_data.rate = replay_rate;
     status_data.delay = TV_2_FLOAT( now ) - TV_2_FLOAT( last_frame_timestamp );
     status_data.zoom = zoom;
-    Debug( 2, ( "L:%d, D:%d, P:%d, R:%d, d:%.3f, Z:%d", 
+    //status_data.enabled = monitor->shared_data->active;
+    status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
+    status_data.forced = monitor->trigger_data->trigger_state==Monitor::TRIGGER_ON;
+    Debug( 2, ( "L:%d, D:%d, P:%d, R:%d, d:%.3f, Z:%d, E:%d F:%d", 
         status_data.buffer_level,
         status_data.delayed,
         status_data.paused,
         status_data.rate,
         status_data.delay,
-        status_data.zoom
+        status_data.zoom,
+        status_data.enabled,
+        status_data.forced
     ));
 
     DataMsg status_msg;

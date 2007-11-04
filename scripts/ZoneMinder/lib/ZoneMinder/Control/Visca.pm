@@ -496,7 +496,6 @@ sub zoomConTele
     my $speed = $self->getParam( $params, 'speed', 0x06 );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Zoom Tele" );
-    my $speed = shift || 0x06;
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x07, 0x20|$speed, SYNC );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -579,7 +578,7 @@ sub focusMan
 sub presetClear
 {
     my $self = shift;
-    my $preset = shift || 1;
+    my $params = shift;
     my $preset = $self->getParam( $params, 'preset', 1 );
     Debug( "Clear Preset $preset" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x04, 0x3f, 0x00, $preset, SYNC );

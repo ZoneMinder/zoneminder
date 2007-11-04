@@ -42,6 +42,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # ==========================================================================
 
 use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Config qw(:all);
 
 use Time::HiRes qw( usleep );
 
@@ -107,8 +108,8 @@ sub sendCmd
 
     printMsg( $cmd, "Tx" );
 
-    my $req = HTTP::Request->new( POST=>"http://$address/PANTILTCONTROL.CGI" );
-    my $res = $ua->request($req);
+    my $req = HTTP::Request->new( POST=>"http://".$self->{Monitor}->{ControlAddress}."/PANTILTCONTROL.CGI" );
+    my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
     {

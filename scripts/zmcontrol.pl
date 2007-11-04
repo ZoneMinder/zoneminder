@@ -58,7 +58,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 sub Usage
 {
     print( "
-Usage: zmcontrol.pl --protocol <protocol> <various options>
+Usage: zmcontrol.pl --id <monitor_id> --command=<command> <various options>
 ");
     exit( -1 );
 }
@@ -67,12 +67,10 @@ zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 
 my $arg_string = join( " ", @ARGV );
 
-my $protocol;
 my $id;
 my %options;
 
 if ( !GetOptions(
-    'protocol=s'=>\$protocol,
     'id=i'=>\$id,
     'command=s'=>\$options{command},
     'xcoord=i'=>\$options{xcoord},
@@ -91,7 +89,12 @@ if ( !GetOptions(
     Usage();
 }
 
-( $protocol ) = $protocol =~ /^(\w+)$/;
+if ( !$id || !$options{command} )
+{
+    print( STDERR "Please give a valid monitor id and command\n" );
+    Usage();
+}
+
 ( $id ) = $id =~ /^(\w+)$/;
 
 Debug( $arg_string );
@@ -105,6 +108,13 @@ my $server_up = connect( CLIENT, $saddr );
 if ( !$server_up )
 {
     # The server isn't there 
+    my $monitor = zmDbGetMonitorAndControl( $id );
+    if ( !$monitor )
+    {
+        Fatal( "Unable to load control data for monitor $id" );
+    }
+    my $protocol = $monitor->{Protocol};
+
     Info( "Starting control server $id/$protocol" );
     close( CLIENT );
 
@@ -133,7 +143,7 @@ if ( !$server_up )
 
         Info( "Control server $id/$protocol starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() ) );
 
-        $0 = $0." --id $id --protocol $protocol";
+        $0 = $0." --id $id";
 
         load "ZoneMinder::Control::$protocol";
 

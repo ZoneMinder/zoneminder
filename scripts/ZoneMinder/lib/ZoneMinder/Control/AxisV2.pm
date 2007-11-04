@@ -42,6 +42,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # ==========================================================================
 
 use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Config qw(:all);
 
 use Time::HiRes qw( usleep );
 
@@ -108,8 +109,8 @@ sub sendCmd
     printMsg( $cmd, "Tx" );
 
     #print( "http://$address/$cmd\n" );
-    my $req = HTTP::Request->new( GET=>"http://$address/$cmd" );
-    my $res = $ua->request($req);
+    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
+    my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
     {

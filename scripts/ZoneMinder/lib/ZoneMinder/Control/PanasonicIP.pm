@@ -42,6 +42,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # ==========================================================================
 
 use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Config qw(:all);
 
 use Time::HiRes qw( usleep );
 
@@ -107,8 +108,8 @@ sub sendCmd
 
     printMsg( $cmd, "Tx" );
 
-    my $req = HTTP::Request->new( GET=>"http://$address/$cmd" );
-    my $res = $ua->request($req);
+    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
+    my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
     {
@@ -179,7 +180,7 @@ sub zoomConTele
     my $params = shift;
     my $step = $self->getParam( $params, 'step' );
     Debug( "Zoom Tele" );
-    cmy $cmd = "nphControlCamera?Direction=ZoomTele";
+    my $cmd = "nphControlCamera?Direction=ZoomTele";
     $self->sendCmd( $cmd );
 }
 

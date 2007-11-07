@@ -949,7 +949,7 @@ if ( !empty($action) )
 	{
 		if ( $action == "function" )
 		{
-			dbQuery( "select * from Monitors where Id = '$mid'" );
+			$monitor = dbFetchOne( "select * from Monitors where Id = '$mid'" );
 
 			$old_function = $monitor['Function'];
 			$old_enabled = $monitor['Enabled'];

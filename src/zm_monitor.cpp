@@ -2899,6 +2899,13 @@ void MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
 
 void MonitorStream::runStream()
 {
+    if ( type == STREAM_SINGLE )
+    {
+        // Not yet migrated over to stream class
+        monitor->SingleImage( scale );
+        return;
+    }
+
     openComms();
 
     checkInitialised();

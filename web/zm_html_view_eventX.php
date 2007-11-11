@@ -175,7 +175,7 @@ function streamPause( action )
     setButtonState( $('fastRevBtn'), 'unavail' );
     if ( action )
     {
-        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_PAUSE ?>", onComplete: getCmdResponse } );
+        var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_PAUSE ?>", onComplete: getCmdResponse } );
         streamReq.request();
     }
 }
@@ -190,7 +190,7 @@ function streamPlay( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_PLAY ?>", onComplete: getCmdResponse } );
+        var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_PLAY ?>", onComplete: getCmdResponse } );
         streamReq.request();
     }
 }
@@ -205,7 +205,7 @@ function streamFastFwd( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_FASTFWD ?>", onComplete: getCmdResponse } );
+        var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_FASTFWD ?>", onComplete: getCmdResponse } );
         streamReq.request();
     }
 }
@@ -220,7 +220,7 @@ function streamSlowFwd( action )
     setButtonState( $('fastRevBtn'), 'unavail' );
     if ( action )
     {
-        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_SLOWFWD ?>", onComplete: getCmdResponse } );
+        var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_SLOWFWD ?>", onComplete: getCmdResponse } );
         streamReq.request();
     }
     setButtonState( $('pauseBtn'), 'active' );
@@ -237,7 +237,7 @@ function streamSlowRev( action )
     setButtonState( $('fastRevBtn'), 'unavail' );
     if ( action )
     {
-        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_SLOWREV ?>", onComplete: getCmdResponse } );
+        var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_SLOWREV ?>", onComplete: getCmdResponse } );
         streamReq.request();
     }
     setButtonState( $('pauseBtn'), 'active' );
@@ -254,7 +254,7 @@ function streamFastRev( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_FASTREV ?>", onComplete: getCmdResponse } );
+        var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_FASTREV ?>", onComplete: getCmdResponse } );
         streamReq.request();
     }
 }
@@ -264,7 +264,7 @@ function streamPrev( action )
     streamPlay( false );
     if ( action )
     {
-        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_PREV ?>", onComplete: getCmdResponse } );
+        var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_PREV ?>", onComplete: getCmdResponse } );
         streamReq.request();
     }
 }
@@ -274,44 +274,44 @@ function streamNext( action )
     streamPlay( false );
     if ( action )
     {
-        var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_NEXT ?>", onComplete: getCmdResponse } );
+        var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_NEXT ?>", onComplete: getCmdResponse } );
         streamReq.request();
     }
 }
 
 function streamZoomIn( x, y )
 {
-    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_ZOOMIN ?>&x="+x+"&y="+y, onComplete: getCmdResponse } );
+    var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_ZOOMIN ?>&x="+x+"&y="+y, onComplete: getCmdResponse } );
     streamReq.request();
 }
 
 function streamZoomOut()
 {
-    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_ZOOMOUT ?>", onComplete: getCmdResponse } );
+    var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_ZOOMOUT ?>", onComplete: getCmdResponse } );
     streamReq.request();
 }
 
 function streamScale( scale )
 {
-    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_SCALE ?>&scale="+scale, onComplete: getCmdResponse } );
+    var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_SCALE ?>&scale="+scale, onComplete: getCmdResponse } );
     streamReq.request();
 }
 
 function streamPan( x, y )
 {
-    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_PAN ?>&x="+x+"&y="+y, onComplete: getCmdResponse } );
+    var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_PAN ?>&x="+x+"&y="+y, onComplete: getCmdResponse } );
     streamReq.request();
 }
 
 function streamSeek( offset )
 {
-    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_SEEK ?>&offset="+offset, onComplete: getCmdResponse } );
+    var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_SEEK ?>&offset="+offset, onComplete: getCmdResponse } );
     streamReq.request();
 }
 
 function streamQuery()
 {       
-    var streamReq = new Ajax( url, { method: 'post', postBody: streamParms+"&command=<?= CMD_QUERY ?>", onComplete: getCmdResponse } );
+    var streamReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamParms+"&command=<?= CMD_QUERY ?>", onComplete: getCmdResponse } );
     streamReq.request();
 }       
 
@@ -358,7 +358,7 @@ function getEvtResponse( resp_text, resp_xml )
 function evtQuery()
 {
     var evtParms = "view=request&request=status&entity=event&id="+eventId;
-    var evtReq = new Ajax( url, { method: 'post', postBody: evtParms, onComplete: getEvtResponse } );
+    var evtReq = new Ajax( url, { method: 'post', timeout: 3000, data: evtParms, onComplete: getEvtResponse } );
     evtReq.request();
 }
 
@@ -386,7 +386,7 @@ function actQuery( action, parms )
         actParms += "&"+Object.toQueryString( parms );
     }
     //console.log( actParms );
-    var actReq = new Ajax( url, { method: 'post', postBody: actParms, onComplete: getActResponse } );
+    var actReq = new Ajax( url, { method: 'post', timeout: 3000, data: actParms, onComplete: getActResponse } );
     actReq.request();
 }
 

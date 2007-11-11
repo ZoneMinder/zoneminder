@@ -320,7 +320,7 @@ function streamCmdPause( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_PAUSE ?>", onComplete: getStreamCmdResponse } );
+        var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_PAUSE ?>", onComplete: getStreamCmdResponse } );
         streamCmdReq.request();
     }
 }
@@ -347,7 +347,7 @@ function streamCmdPlay( action )
     }
     if ( action )
     {
-        var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_PLAY ?>", onComplete: getStreamCmdResponse } );
+        var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_PLAY ?>", onComplete: getStreamCmdResponse } );
         streamCmdReq.request();
     }
 }
@@ -365,7 +365,7 @@ function streamCmdStop( action )
     //window.setTimeout('setButtonState( $('stopBtn'), 'unavail' ); setButtonState( $('playBtn'), 'active' );", 500 );
     if ( action )
     {
-        var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_STOP ?>", onComplete: getStreamCmdResponse } );
+        var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_STOP ?>", onComplete: getStreamCmdResponse } );
         streamCmdReq.request();
     }
     setButtonState( $('stopBtn'), 'unavail' );
@@ -383,7 +383,7 @@ function streamCmdFastFwd( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_FASTFWD ?>", onComplete: getStreamCmdResponse } );
+        var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_FASTFWD ?>", onComplete: getStreamCmdResponse } );
         streamCmdReq.request();
     }
 }
@@ -399,7 +399,7 @@ function streamCmdSlowFwd( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_SLOWFWD ?>", onComplete: getStreamCmdResponse } );
+        var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_SLOWFWD ?>", onComplete: getStreamCmdResponse } );
         streamCmdReq.request();
     }
     setButtonState( $('pauseBtn'), 'active' );
@@ -417,7 +417,7 @@ function streamCmdSlowRev( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_SLOWREV ?>", onComplete: getStreamCmdResponse } );
+        var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_SLOWREV ?>", onComplete: getStreamCmdResponse } );
         streamCmdReq.request();
     }
     setButtonState( $('pauseBtn'), 'active' );
@@ -435,38 +435,38 @@ function streamCmdFastRev( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_FASTREV ?>", onComplete: getStreamCmdResponse } );
+        var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_FASTREV ?>", onComplete: getStreamCmdResponse } );
         streamCmdReq.request();
     }
 }
 
 function streamCmdZoomIn( x, y )
 {
-    var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_ZOOMIN ?>&x="+x+"&y="+y, onComplete: getStreamCmdResponse } );
+    var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_ZOOMIN ?>&x="+x+"&y="+y, onComplete: getStreamCmdResponse } );
     streamCmdReq.request();
 }
 
 function streamCmdZoomOut()
 {
-    var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_ZOOMOUT ?>", onComplete: getStreamCmdResponse } );
+    var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_ZOOMOUT ?>", onComplete: getStreamCmdResponse } );
     streamCmdReq.request();
 }
 
 function streamCmdScale( scale )
 {
-    var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_SCALE ?>&scale="+scale, onComplete: getStreamCmdResponse } );
+    var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_SCALE ?>&scale="+scale, onComplete: getStreamCmdResponse } );
     streamCmdReq.request();
 }
 
 function streamCmdPan( x, y )
 {
-    var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_PAN ?>&x="+x+"&y="+y, onComplete: getStreamCmdResponse } );
+    var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_PAN ?>&x="+x+"&y="+y, onComplete: getStreamCmdResponse } );
     streamCmdReq.request();
 }
 
 function streamCmdQuery()
 {       
-    var streamCmdReq = new Ajax( url, { method: 'post', postBody: streamCmdParms+"&command=<?= CMD_QUERY ?>", onComplete: getStreamCmdResponse } );
+    var streamCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: streamCmdParms+"&command=<?= CMD_QUERY ?>", onComplete: getStreamCmdResponse } );
     streamCmdReq.request();
 }       
 
@@ -483,25 +483,25 @@ function getAlarmCmdResponse( resp_text )
 
 function cmdDisableAlarms()
 {
-    var alarmCmdReq = new Ajax( url, { method: 'post', postBody: alarmCmdParms+"&command=disableAlarms", onComplete: getAlarmCmdResponse } );
+    var alarmCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: alarmCmdParms+"&command=disableAlarms", onComplete: getAlarmCmdResponse } );
     alarmCmdReq.request();
 }
 
 function cmdEnableAlarms()
 {
-    var alarmCmdReq = new Ajax( url, { method: 'post', postBody: alarmCmdParms+"&command=enableAlarms", onComplete: getAlarmCmdResponse } );
+    var alarmCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: alarmCmdParms+"&command=enableAlarms", onComplete: getAlarmCmdResponse } );
     alarmCmdReq.request();
 }
 
 function cmdForceAlarm()
 {
-    var alarmCmdReq = new Ajax( url, { method: 'post', postBody: alarmCmdParms+"&command=forceAlarm", onComplete: getAlarmCmdResponse } );
+    var alarmCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: alarmCmdParms+"&command=forceAlarm", onComplete: getAlarmCmdResponse } );
     alarmCmdReq.request();
 }
 
 function cmdCancelForcedAlarm()
 {
-    var alarmCmdReq = new Ajax( url, { method: 'post', postBody: alarmCmdParms+"&command=cancelForcedAlarm", onComplete: getAlarmCmdResponse } );
+    var alarmCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: alarmCmdParms+"&command=cancelForcedAlarm", onComplete: getAlarmCmdResponse } );
     alarmCmdReq.request();
 }
 
@@ -600,7 +600,7 @@ function getEventCmdResponse( resp_text )
 
 function eventCmdQuery()
 {
-    var eventCmdReq = new Ajax( url, { method: 'post', postBody: eventCmdParms, onComplete: getEventCmdResponse } );
+    var eventCmdReq = new Ajax( url, { method: 'post', timeout: 3000, data: eventCmdParms, onComplete: getEventCmdResponse } );
     eventCmdReq.request();
 }
 
@@ -652,7 +652,7 @@ function controlCmd( control, event, xtell, ytell )
             locParms += "&yge="+yge;
         }
     }
-    var controlReq = new Ajax( url, { method: 'post', postBody: controlParms+"&control="+control+locParms, onComplete: getControlResponse } );
+    var controlReq = new Ajax( url, { method: 'post', timeout: 3000, data: controlParms+"&control="+control+locParms, onComplete: getControlResponse } );
     controlReq.request();
 }
 
@@ -680,7 +680,7 @@ elseif ( $monitor['CanMoveCon'] )
 <?php
 }
 ?>
-    var controlReq = new Ajax( url, { method: 'post', postBody: imageControlParms+"&x="+x+"&y="+y, onComplete: getControlResponse } );
+    var controlReq = new Ajax( url, { method: 'post', timeout: 3000, data: imageControlParms+"&x="+x+"&y="+y, onComplete: getControlResponse } );
     controlReq.request();
 }       
 function startRequests()

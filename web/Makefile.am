@@ -11,6 +11,7 @@ SUBDIRS = \
 
 web_DATA = \
 	favicon.ico \
+	mootools.ext.js \
 	zm.php \
 	zm_actions.php \
 	zm_config.php \
@@ -128,9 +129,10 @@ web_DATA = \
     zm_lang_hu_hu.php
 
 EXTRA_DIST = \
-	favicon.ico \
 	retag.sh \
 	swap.pl \
+	favicon.ico \
+	mootools.ext.js \
 	zm.php \
 	zm_actions.php \
 	zm_config.php.in \

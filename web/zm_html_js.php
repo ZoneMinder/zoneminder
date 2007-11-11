@@ -25,6 +25,7 @@
 
 ?>
 <script type="text/javascript" src="mootools.js"></script>
+<script type="text/javascript" src="mootools.ext.js"></script>
 <script type="text/javascript" src="zm_html.js"></script>
 <script type="text/javascript">
 function eventWindow( eventId, eventFilter )

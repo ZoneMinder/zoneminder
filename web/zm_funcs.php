@@ -457,10 +457,10 @@ function deleteEvent( $eid, $mid=false )
 			dbQuery( "delete from Frames where EventId = '$eid'" );
             if ( ZM_USE_DEEP_STORAGE )
             {
-                error_log( "Globbing ".ZM_DIR_EVENTS.'/'.$mid.'/*/*/*/.'.$eid );
+                //error_log( "Globbing ".ZM_DIR_EVENTS.'/'.$mid.'/*/*/*/.'.$eid );
                 if ( $id_files = glob( ZM_DIR_EVENTS.'/'.$mid.'/*/*/*/.'.$eid ) )
                     $event_path = preg_replace( "/\.$eid$/", readlink($id_files[0]), $id_files[0] );
-                error_log( "Deleting $event_path, not really, id = ".$id_files[0] );
+                //error_log( "Deleting $event_path, not really, id = ".$id_files[0] );
 			    system( escapeshellcmd( "rm -rf ".$event_path ) );
                 unlink( $id_files[0] );
                 $path_parts = explode(  '/', $event_path );
@@ -469,7 +469,7 @@ function deleteEvent( $eid, $mid=false )
                     $delete_path = join( '/', array_slice( $path_parts, 0, $i ) );
                     if ( !glob( $delete_path."/*" ) )
                     {
-                        error_log( "Removing $delete_path, not really" );
+                        //error_log( "Removing $delete_path, not really" );
 			            system( escapeshellcmd( "rm -rf ".$delete_path ) );
                     }
                 }

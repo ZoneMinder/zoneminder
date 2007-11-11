@@ -23,7 +23,7 @@ if ( !canEdit( 'Monitors' ) )
 	$view = "error";
 	return;
 }
-$sql( "select Id,Name from MonitorPresets" );
+$sql = "select Id,Name from MonitorPresets";
 $presets = array();
 $presets[0] = $zmSlangChoosePreset;
 foreach( dbFetchAll( $sql ) as $preset )

@@ -45,7 +45,7 @@ elseif ( ZM_OPT_CONTROL )
 	}
 	$sql = "select * from Monitors where Function != 'None' and Controllable = 1 $group_sql order by Sequence";
 	$control_mid = 0;
-    foreach( dbFetchAl( $sql ) as $row )
+    foreach( dbFetchAll( $sql ) as $row )
 	{
 		if ( !visibleMonitor( $row['Id'] ) )
 		{

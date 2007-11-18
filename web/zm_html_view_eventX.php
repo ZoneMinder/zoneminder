@@ -428,6 +428,11 @@ function unarchiveEvent()
     actQuery( 'unarchive' );
 }
 
+function videoEvent()
+{
+    newWindow( '<?= $PHP_SELF ?>?view=video&eid=<?= $eid ?>', 'zmVideo', <?= $jws['video']['w']+$event['Width'] ?>, <?= $jws['video']['h']+$event['Height'] ?> );
+}
+
 function drawProgressBar()
 {
     var barWidth = 0;

@@ -171,7 +171,7 @@ sub runServer
 
 	$dbh = zmDbConnect();
 
-	$x10 = new X10::ActiveHome( port=>ZM_X10_DEVICE, house_code=>ZM_X10_HOUSE_CODE, debug=>1 );
+	$x10 = new X10::ActiveHome( port=>ZM_X10_DEVICE, house_code=>ZM_X10_HOUSE_CODE, debug=>0 );
 
 	loadTasks();
 

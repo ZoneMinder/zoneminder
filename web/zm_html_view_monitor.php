@@ -67,7 +67,7 @@ else
 	$monitor['Width'] = "";
 	$monitor['Height'] = "";
 	$monitor['Orientation'] = "0";
-	$monitor['LabelFormat'] = '%%s - %y/%m/%d %H:%M:%S';
+	$monitor['LabelFormat'] = '%N - %y/%m/%d %H:%M:%S';
 	$monitor['LabelX'] = 0;
 	$monitor['LabelY'] = 0;
 	$monitor['ImageBufferCount'] = 40;

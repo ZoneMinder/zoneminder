@@ -49,7 +49,7 @@ if ( canEdit( 'Monitors' ) )
 }
 
 $response['result'] = 'Ok';
-error_log( $zmu_command );
+//error_log( $zmu_command );
 $response['message'] = exec( escapeshellcmd( $zmu_command ) );
 echo jsValue( $response );
 

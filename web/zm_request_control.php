@@ -995,7 +995,7 @@ if ( $control != 'null' )
             }
         }
         $option_string = serialize( $options );
-        error_log( "Command: $option_string" );
+        //error_log( "Command: $option_string" );
         if ( socket_write( $socket, $option_string ) )
         {
             $response = array( 'result' => "Ok", 'message' => 'Used socket' );
@@ -1009,14 +1009,14 @@ if ( $control != 'null' )
     else
     {
         $ctrl_command .= " --id=".$monitor['Id'];
-        error_log( "Command: $ctrl_command" );
+        //error_log( "Command: $ctrl_command" );
 
         // Can't connect so use script
         $ctrl_status = '';
         $ctrl_output = array();
         exec( escapeshellcmd( $ctrl_command ), $ctrl_output, $ctrl_status );
-        error_log( "Status: $ctrl_status" );
-        error_log( "Output: ".join( "\n", $ctrl_output ) );
+        //error_log( "Status: $ctrl_status" );
+        //error_log( "Output: ".join( "\n", $ctrl_output ) );
         if ( !$ctrl_status )
             $response = array( 'result' => "Ok", 'message' => 'Used script' );
         else

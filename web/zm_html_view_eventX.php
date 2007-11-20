@@ -41,6 +41,15 @@ if ( !isset( $rate ) )
 if ( !isset( $scale ) )
     $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
+$replayModes = array(
+    'single' => $zmSlangReplaySingle,
+    'all' => $zmSlangReplayAll,
+    'gapless' => $zmSlangReplayGapless,
+);
+
+if ( !isset( $replayMode ) )
+    $replayMode = array_shift( array_keys( $replayModes ) );
+
 $panel_sections = 40;
 $panel_section_width = (int)ceil(reScale($event['Width'],$scale)/$panel_sections);
 $panel_width = ($panel_sections*$panel_section_width-1);
@@ -110,6 +119,15 @@ function changeScale()
 
     var streamImg = $('imageFeed').getElement('img');
     $(streamImg).setStyles( { width: newWidth, height: newHeight } );
+}
+
+function changeReplayMode()
+{
+    var replayMode = $('replayMode').getValue();
+
+    Cookie.set( 'replayMode', replayMode, { duration: 10*365 })
+
+    window.location.reload();
 }
 
 var streamParms = "view=request&request=stream&connkey=<?= $connkey ?>";
@@ -505,9 +523,8 @@ function updateProgressBar()
     </div>
     <div id="menuBar1">
       <span><input size="16" id="eventName" name="eventName" value="<?= $event['Name'] ?>"/>&nbsp;&nbsp;<input type="button" value="<?= $zmSlangRename ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled<?php } ?>/></span>
-      <span id="menuControls">
-        <span><?= $zmSlangScale ?>: <?= buildSelect( "scale", $scales, "changeScale();" ); ?></span>
-      </span>
+      <span><?= $zmSlangReplay ?>: <?= buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></span>
+      <span><?= $zmSlangScale ?>: <?= buildSelect( "scale", $scales, "changeScale();" ); ?></span>
     </div>
     <div id="menuBar2">
 <?php
@@ -533,12 +550,12 @@ if ( ZM_OPT_MPEG != "no" )
 <?php
 if ( ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
-    $stream_src = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT ) );
+    $stream_src = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
     outputVideoStream( $stream_src, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), $event['Name'], ZM_MPEG_LIVE_FORMAT );
 }
 else
 {
-    $stream_src = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
+    $stream_src = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$eid, "frame=".(!empty($fid)?$fid:1), "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=".$replayMode ) );
     if ( canStreamNative() )
     {
         outputImageStream( $stream_src, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), $event['Name'] );

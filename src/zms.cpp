@@ -64,6 +64,7 @@ int main( int argc, const char *argv[] )
 	unsigned int maxfps = 10;
 	unsigned int bitrate = 100000;
 	unsigned int ttl = 0;
+    EventStream::StreamMode replay = EventStream::MODE_SINGLE;
 	char username[64] = "";
 	char password[64] = "";
 	char auth[64] = "";
@@ -104,6 +105,8 @@ int main( int argc, const char *argv[] )
 		{
 			char *name = strtok( parms[p], "=" );
 			char *value = strtok( NULL, "=" );
+            if ( !value )
+                value = "";
 			if ( !strcmp( name, "source" ) )
 			{
 				source = !strcmp( value, "event" )?ZMS_EVENT:ZMS_MONITOR;
@@ -135,6 +138,11 @@ int main( int argc, const char *argv[] )
 				bitrate = atoi( value );
 			else if ( !strcmp( name, "ttl" ) )
 				ttl = atoi(value);
+			else if ( !strcmp( name, "replay" ) )
+			{
+				replay = !strcmp( value, "gapless" )?EventStream::MODE_ALL_GAPLESS:EventStream::MODE_SINGLE;
+				replay = !strcmp( value, "all" )?EventStream::MODE_ALL:replay;
+			}
 			else if ( !strcmp( name, "connkey" ) )
 				connkey = atoi(value);
 			else if ( config.opt_use_auth )
@@ -275,7 +283,7 @@ int main( int argc, const char *argv[] )
         stream.setStreamScale( scale );
         stream.setStreamReplayRate( rate );
         stream.setStreamMaxFPS( maxfps );
-        stream.setStreamMode( EventStream::MODE_ALL_GAPLESS );
+        stream.setStreamMode( replay );
         stream.setStreamQueue( connkey );
         if ( monitor_id && event_time )
         {

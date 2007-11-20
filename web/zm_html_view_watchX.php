@@ -789,7 +789,7 @@ if ( canEdit( 'Monitors' ) )
 if ( $showControls )
 {
     require_once( 'zm_control_funcsX.php' );
-    $streamCmds = getControlCommands( $monitor );
+    $cmds = getControlCommands( $monitor );
 ?>
     <div id="ptzControls"<?= $control?'':' class="hidden"' ?>>
       <div id="controlsPanel">

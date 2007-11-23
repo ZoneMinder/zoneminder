@@ -27,6 +27,9 @@ if ( !canView( 'Stream' ) )
 $sql = "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '$mid'";
 $monitor = dbFetchOne( $sql );
 
+if ( !isset($control) )
+    $control = (canView( 'Control' ) && ($monitor['DefaultView'] == 'Control'));
+
 $showControls = ( ZM_OPT_CONTROL && $monitor['Controllable'] && canView( 'Control' ) );
 
 if ( !isset( $scale ) )

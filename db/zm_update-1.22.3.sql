@@ -42,6 +42,18 @@ update Controls set Protocol = "VclTP" where Command like "%zmcontrol-vcltp.pl";
 alter table Controls drop column Command;
 
 --
+-- Drop some duplicate/redundant indices
+--
+alter table Config drop index `UC_Name`;
+alter table Controls drop index `UC_Id`;
+alter table Devices drop index `UC_Id`;
+alter table Events drop index `UC_Id`;
+alter table Frames drop index `UC_Id`;
+alter table Users drop index `UC_Id`;
+alter table ZonePresets drop index `UC_Id`;
+alter table Zones drop index `UC_Id`;
+
+--
 -- These are optional, but we might as well do it now
 --
 optimize table Frames;

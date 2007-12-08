@@ -41,7 +41,6 @@ CREATE TABLE `Config` (
   `Readonly` tinyint(3) unsigned NOT NULL default '0',
   `Requires` text,
   PRIMARY KEY  (`Name`),
-  UNIQUE KEY `UC_Name` (`Name`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -162,7 +161,6 @@ CREATE TABLE `Controls` (
   `CanAutoScan` tinyint(3) unsigned NOT NULL default '0',
   `NumScanPaths` tinyint(3) unsigned NOT NULL default '0',
   PRIMARY KEY  (`Id`),
-  UNIQUE KEY `UC_Id` (`Id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -176,7 +174,6 @@ CREATE TABLE `Devices` (
   `Type` enum('X10') NOT NULL default 'X10',
   `KeyString` varchar(32) NOT NULL default '',
   PRIMARY KEY  (`Id`),
-  UNIQUE KEY `UC_Id` (`Id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -208,7 +205,6 @@ CREATE TABLE `Events` (
   `LearnState` char(1) default '',
   `Notes` text,
   PRIMARY KEY  (`Id`),
-  UNIQUE KEY `UC_Id` (`Id`),
   KEY `Id` (`Id`,`MonitorId`),
   KEY `MonitorId` (`MonitorId`),
   KEY `StartTime` (`StartTime`),
@@ -250,7 +246,6 @@ CREATE TABLE `Frames` (
   `Delta` decimal(8,2) NOT NULL default '0.00',
   `Score` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY  (`Id`),
-  UNIQUE KEY `UC_Id` (`Id`),
   KEY `EventId` (`EventId`),
   KEY `Type` (`Type`),
   KEY `TimeStamp` (`TimeStamp`)
@@ -428,7 +423,6 @@ CREATE TABLE `Users` (
   `MaxBandwidth` varchar(16) NOT NULL default '',
   `MonitorIds` tinytext NOT NULL,
   PRIMARY KEY  (`Id`),
-  UNIQUE KEY `UC_Id` (`Id`),
   UNIQUE KEY `UC_Username` (`Username`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
@@ -457,7 +451,6 @@ CREATE TABLE `ZonePresets` (
   `MaxBlobs` smallint(5) unsigned default NULL,
   `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY  (`Id`),
-  UNIQUE KEY `UC_Id` (`Id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -490,7 +483,6 @@ CREATE TABLE `Zones` (
   `MaxBlobs` smallint(5) unsigned default NULL,
   `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY  (`Id`),
-  UNIQUE KEY `UC_Id` (`Id`),
   KEY `MonitorId` (`MonitorId`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 

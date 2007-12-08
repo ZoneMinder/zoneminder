@@ -255,7 +255,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>"><?= $zmSlangDelete ?></a></td><?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=eventdetail&eid=<?= $eid ?>', 'zmEventDetail', <?= $jws['eventdetail']['w'] ?>, <?= $jws['eventdetail']['h'] ?> )"><?= $zmSlangEdit ?></a></td><?php } ?>
-<?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=export&eid=<?= $eid ?>', 'zmExport', <?= $jws['export']['w'] ?>, <?= $jws['export']['h'] ?> )"><?= $zmSlangExport ?></a></td><?php } ?>
+<?php if ( canView( 'Events' ) ) { ?><td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=export&eid=<?= $eid ?>', 'zmExport', <?= $jws['export']['w'] ?>, <?= $jws['export']['h'] ?> )"><?= $zmSlangExport ?></a></td><?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?>
 <?php if ( $event['Archived'] ) { ?>
 <td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangUnarchive ?></a></td>

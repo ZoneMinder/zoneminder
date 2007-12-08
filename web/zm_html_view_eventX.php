@@ -533,7 +533,17 @@ if ( canEdit( 'Events' ) )
 ?>
       <span id="deleteEvent"><a href="javascript: deleteEvent()"><?= $zmSlangDelete ?></a></span>
       <span id="editEvent"><a href="javascript: editEvent()"><?= $zmSlangEdit ?></a></span>
+<?php
+}
+if ( canView( 'Events' ) )
+{
+?>
       <span id="exportEvent"><a href="javascript: exportEvent()"><?= $zmSlangExport ?></a></span>
+<?php
+}
+if ( canEdit( 'Events' ) )
+{
+?>
       <span id="archiveEvent"><a href="javascript: void(0)">&nbsp;</a></span>
 <?php
 }

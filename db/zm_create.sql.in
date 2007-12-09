@@ -237,15 +237,13 @@ CREATE TABLE `Filters` (
 
 DROP TABLE IF EXISTS `Frames`;
 CREATE TABLE `Frames` (
-  `Id` int(10) unsigned NOT NULL auto_increment,
   `EventId` int(10) unsigned NOT NULL default '0',
   `FrameId` int(10) unsigned NOT NULL default '0',
   `Type` enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `Delta` decimal(8,2) NOT NULL default '0.00',
   `Score` smallint(5) unsigned NOT NULL default '0',
-  PRIMARY KEY  (`Id`),
-  KEY `EventId` (`EventId`),
+  PRIMARY KEY (`EventId`,`FrameId`),
   KEY `Type` (`Type`),
   KEY `TimeStamp` (`TimeStamp`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;

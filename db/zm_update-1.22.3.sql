@@ -55,6 +55,9 @@ alter table Zones drop index `UC_Id`;
 alter table Events drop primary key;
 alter table Events add primary key ( `Id`, `MonitorId` );
 alter table Events drop index `Id`;
+alter table Frames drop column `Id`;
+alter table Frames drop index `EventId`;
+alter table Frames add primary key ( `EventId`, `FrameId` );
 
 --
 -- These are optional, but we might as well do it now

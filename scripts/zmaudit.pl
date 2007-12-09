@@ -336,7 +336,7 @@ do
     $sth8->finish();
 
 	# New audit to close any events that were left open for longer than MIN_AGE seconds
-	my $sql9 = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, count(F.Id) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
+	my $sql9 = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, count(F.FrameId) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
 	my $sth9 = $dbh->prepare_cached( $sql9 ) or Fatal( "Can't prepare '$sql9': ".$dbh->errstr() );
 	my $sql10 = "update Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ?, Notes = concat_ws( ' ', Notes, ? ) where Id = ?";
 	my $sth10 = $dbh->prepare_cached( $sql10 ) or Fatal( "Can't prepare '$sql10': ".$dbh->errstr() );

@@ -289,9 +289,15 @@ controller="0">
 
 function outputImageStream( $src, $width, $height, $name="" )
 {
+   if (canStreamIframe()) {
+?>
+<iframe src="<?= $src ?>" alt="<?= $name ?>" border="0" width="<?= $width ?>" height="<?= $height ?>">
+<?php
+   } else {
 ?>
 <img src="<?= $src ?>" alt="<?= $name ?>" border="0" width="<?= $width ?>" height="<?= $height ?>">
 <?php
+   }
 }
 
 function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
@@ -688,6 +694,11 @@ function getBrowser( &$browser, &$version )
 		$version = $log_version[1];
 		$browser = 'safari';
 	}
+        elseif (ereg( 'Konqueror/([0-9.]+)',$_SERVER['HTTP_USER_AGENT'],$log_version))
+        {
+                $version = $log_version[1];
+                $browser = 'konqueror';
+        }
 	elseif (ereg( 'Opera ([0-9].[0-9]{1,2})',$_SERVER['HTTP_USER_AGENT'],$log_version))
 	{
 		$version = $log_version[1];
@@ -712,6 +723,13 @@ function isNetscape()
 	return( $browser == "mozilla" );
 }
 
+function isKonqueror()
+{
+   getBrowser( $browser, $version );
+
+   return( $browser == "konqueror" );
+}
+
 function isInternetExplorer()
 {
 	getBrowser( $browser, $version );
@@ -729,9 +747,14 @@ function isWindows()
 	return ( preg_match( '/Win/', $_SERVER['HTTP_USER_AGENT'] ) );
 }
 
+function canStreamIframe()
+{
+   return (isKonqueror());
+}
+
 function canStreamNative()
 {
-	return( ZM_CAN_STREAM == "yes" || ( ZM_CAN_STREAM == "auto" && isNetscape() ) );
+   return( ZM_CAN_STREAM == "yes" || ( ZM_CAN_STREAM == "auto" && (isNetscape() || isKonqueror()) ) );
 }
 
 function canStreamApplet()

@@ -38,10 +38,10 @@ extern "C" {
 #if LIBAVCODEC_VERSION_INT < ((50<<16)+(0<<8)+0)
 #define ZM_FFMPEG_049	1
 #else // LIBAVCODEC_VERSION_INT
-#define ZM_FFMPEG_CVS	1
+#define ZM_FFMPEG_SVN	1
 #endif // LIBAVCODEC_VERSION_INT
 #else // FFMPEG_VERSION_INT
-#define ZM_FFMPEG_CVS	1
+#define ZM_FFMPEG_SVN	1
 #endif // FFMPEG_VERSION_INT
 
 class VideoStream

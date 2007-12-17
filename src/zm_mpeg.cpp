@@ -82,7 +82,7 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, i
 			Fatal(( "Could not alloc stream" ));
 		}
 		
-#if ZM_FFMPEG_CVS
+#if ZM_FFMPEG_SVN
 		AVCodecContext *c = ost->codec;
 #else
 		AVCodecContext *c = &ost->codec;
@@ -97,7 +97,7 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, i
 		/* resolution must be a multiple of two */
 		c->width = width;
 		c->height = height;
-#if ZM_FFMPEG_CVS
+#if ZM_FFMPEG_SVN
 		/* time base: this is the fundamental unit of time (in seconds) in terms
 		   of which frame timestamps are represented. for fixed-fps content,
 		   timebase should be 1/framerate and timestamp increments should be
@@ -155,7 +155,7 @@ void VideoStream::OpenStream()
 	   video codecs and allocate the necessary encode buffers */
 	if ( ost )
 	{
-#if ZM_FFMPEG_CVS
+#if ZM_FFMPEG_SVN
 		AVCodecContext *c = ost->codec;
 #else
 		AVCodecContext *c = &ost->codec;
@@ -250,7 +250,7 @@ VideoStream::~VideoStream()
 	/* close each codec */
 	if (ost)
 	{
-#if ZM_FFMPEG_CVS
+#if ZM_FFMPEG_SVN
 		avcodec_close(ost->codec);
 #else
 		avcodec_close(&ost->codec);
@@ -277,7 +277,11 @@ VideoStream::~VideoStream()
 	if (!(of->flags & AVFMT_NOFILE))
 	{
 		/* close the output file */
+#if ZM_FFMPEG_SVN
+		url_fclose(ofc->pb);
+#else
 		url_fclose(&ofc->pb);
+#endif
 	}
 
 	/* free the stream */
@@ -301,7 +305,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 #endif
 	}
 
-#if ZM_FFMPEG_CVS
+#if ZM_FFMPEG_SVN
 	AVCodecContext *c = ost->codec;
 #else
 	AVCodecContext *c = &ost->codec;

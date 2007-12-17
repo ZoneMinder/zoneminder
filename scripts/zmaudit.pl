@@ -263,7 +263,7 @@ do
 			aud_print( "Filesystem monitor '$fs_monitor' does not exist in database" );
 			if ( confirm() )
 			{
-				my $command = "rm -rf ".EVENT_PATH."/$fs_monitor";
+				my $command = "rm -rf $fs_monitor";
 				executeShellCommand( $command );
 			}
 		}

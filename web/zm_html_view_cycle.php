@@ -49,8 +49,8 @@ foreach( dbFetchAll( $sql ) as $row )
 	}
 	if ( isset($mid) && $row['Id'] == $mid )
 		$mon_idx = count($monitors);
-	$row['ScaledWidth'] = reScale( $monitor['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-	$row['ScaledHeight'] = reScale( $monitor['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+	$row['ScaledWidth'] = reScale( $row['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+	$row['ScaledHeight'] = reScale( $row['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 	$monitors[] = $row;
 }
 

@@ -333,7 +333,7 @@ sub getFilters
                         {
                             $value = "'$temp_value'";
                         }
-                        elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Cause' || $filter_expr->{terms}[$i]->{attr} eq 'Notes' )
+                        elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Name' || $filter_expr->{terms}[$i]->{attr} eq 'Cause' || $filter_expr->{terms}[$i]->{attr} eq 'Notes' )
                         {
                             $value = "'$temp_value'";
                         }

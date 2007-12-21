@@ -152,7 +152,10 @@ if ( !empty($user['MonitorIds']) )
 	$events_sql .= $mon_filter_sql;
 }
 
-$tree = parseFilterToTree( $filter );
+if ( isset($filter) )
+    $tree = parseFilterToTree( $filter );
+else
+    $tree = false;
 
 if ( isset($range) )
 {

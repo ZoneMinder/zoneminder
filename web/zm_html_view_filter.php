@@ -336,7 +336,6 @@ else
 <td class="text"><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
 <td class="text"><input name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($filter['terms'][$i]['val'])?$filter['terms'][$i]['val']:'' ?>" class="form" size="24"><?php if ( $has_cal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php } elseif ( $filter['terms'][$i]['attr'] == "Weekday" ) { ?>
-<?php } elseif ( $filter['terms'][$i]['attr'] == "Weekday" ) { ?>
 <td class="text"><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
 <td class="text"><?= buildSelect( "filter[terms][$i][val]", $weekdays ); ?></td>
 <?php } elseif ( $filter['terms'][$i]['attr'] ) { ?>

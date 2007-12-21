@@ -256,15 +256,18 @@ else
 }
 
 //echo "MnT: $temp_min_time, MxT: $temp_max_time, ExP: $temp_expandable<br>";
-appendDatetimeRange( $tree, $min_time, $max_time );
-
-$filter_query = parseTreeToQuery( $tree );
-if ( $filter_query )
+if ( $tree )
 {
-	$filter_query = '&'.$filter_query;
+    appendDatetimeRange( $tree, $min_time, $max_time );
+
+    $filter_query = parseTreeToQuery( $tree );
+    if ( $filter_query )
+    {
+	    $filter_query = '&'.$filter_query;
+    }
+    //echo $filter_query;
+    //echo '<br>';
 }
-//echo $filter_query;
-//echo '<br>';
 
 $scales = array(
 	array( "name"=>"year",     "factor"=>60*60*24*365, "align"=>1,  "zoomout"=>2, "label"=>STRF_TL_AXIS_LABEL_YEAR ),

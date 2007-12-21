@@ -1431,9 +1431,9 @@ function verNum( $version )
 
 function fixSequences()
 {
-	$sql = "select * from Monitors order by Sequence asc, Id asc";
 	$sequence = 1;
-    foreach( dbFetchAll( $monitors ) as $monitor )
+	$sql = "select * from Monitors order by Sequence asc, Id asc";
+    foreach( dbFetchAll( $sql ) as $monitor )
 	{
 		if ( $monitor['Sequence'] != $sequence )
 		{

@@ -24,7 +24,7 @@
 #define ZM_USER_H
 
 #if HAVE_LIBCRYPTO
-#include <openssl/md5.h>
+#include <gnutls/openssl.h>
 #endif // HAVE_LIBCRYPTO
 
 class User

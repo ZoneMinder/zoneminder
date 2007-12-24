@@ -40,7 +40,7 @@ CREATE TABLE `Config` (
   `Category` varchar(32) NOT NULL default '',
   `Readonly` tinyint(3) unsigned NOT NULL default '0',
   `Requires` text,
-  PRIMARY KEY  (`Name`),
+  PRIMARY KEY  (`Name`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -160,7 +160,7 @@ CREATE TABLE `Controls` (
   `TurboTiltSpeed` int(10) default NULL,
   `CanAutoScan` tinyint(3) unsigned NOT NULL default '0',
   `NumScanPaths` tinyint(3) unsigned NOT NULL default '0',
-  PRIMARY KEY  (`Id`),
+  PRIMARY KEY  (`Id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -173,7 +173,7 @@ CREATE TABLE `Devices` (
   `Name` tinytext NOT NULL,
   `Type` enum('X10') NOT NULL default 'X10',
   `KeyString` varchar(32) NOT NULL default '',
-  PRIMARY KEY  (`Id`),
+  PRIMARY KEY  (`Id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
@@ -419,7 +419,7 @@ CREATE TABLE `Users` (
   `System` enum('None','View','Edit') NOT NULL default 'None',
   `MaxBandwidth` varchar(16) NOT NULL default '',
   `MonitorIds` tinytext NOT NULL,
-  PRIMARY KEY  (`Id`),
+  PRIMARY KEY  (`Id`)
   UNIQUE KEY `UC_Username` (`Username`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
@@ -447,7 +447,7 @@ CREATE TABLE `ZonePresets` (
   `MinBlobs` smallint(5) unsigned default NULL,
   `MaxBlobs` smallint(5) unsigned default NULL,
   `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
-  PRIMARY KEY  (`Id`),
+  PRIMARY KEY  (`Id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --

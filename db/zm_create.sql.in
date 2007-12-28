@@ -419,7 +419,7 @@ CREATE TABLE `Users` (
   `System` enum('None','View','Edit') NOT NULL default 'None',
   `MaxBandwidth` varchar(16) NOT NULL default '',
   `MonitorIds` tinytext NOT NULL,
-  PRIMARY KEY  (`Id`)
+  PRIMARY KEY  (`Id`),
   UNIQUE KEY `UC_Username` (`Username`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 

@@ -45,6 +45,7 @@ use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debu
 use ZoneMinder;
 use DBI;
 use Data::Dumper;
+use POSIX qw(strftime);
 use Getopt::Long qw(:config no_ignore_case );
 
 $| = 1;
@@ -168,7 +169,7 @@ $sth->finish();
 my $event_path;
 if ( ZM_USE_DEEP_STORAGE )
 {
-    $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d/%H/%M/%S", $event->{Time} );
+    $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) );
 }
 else
 {

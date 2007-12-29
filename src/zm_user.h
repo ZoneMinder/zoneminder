@@ -23,9 +23,9 @@
 #ifndef ZM_USER_H
 #define ZM_USER_H
 
-#if HAVE_LIBCRYPTO
+#if HAVE_LIBGNUTLS_OPENSSL
 #include <gnutls/openssl.h>
-#endif // HAVE_LIBCRYPTO
+#endif // HAVE_LIBGNUTLS_OPENSSL
 
 class User
 {

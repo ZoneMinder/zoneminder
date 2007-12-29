@@ -508,6 +508,7 @@ $zmSlangPostEventImageBuffer = 'Post Event Image Count';
 $zmSlangPreEventImageBuffer  = 'Esemény elötti képpuffer';
 $zmSlangPreEventImageBuffer  = 'Pre Event Image Count';
 $zmSlangPreserveAspect	     = 'Képarány megtartása';
+$zmSlangPreserveAspect       = 'Preserve Aspect Ratio';
 $zmSlangPreset               = 'Elõre beállított profil';
 $zmSlangPresets              = 'Elõre beállított profilok';
 $zmSlangPrev                 = 'Elõzõ';

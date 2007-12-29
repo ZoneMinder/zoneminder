@@ -473,6 +473,7 @@ $zmSlangPostEventImageBuffer = 'Post Event Image Count';
 $zmSlangPostEventImageBuffer = 'Zona tampon post eveniment';
 $zmSlangPreEventImageBuffer  = 'Pre Event Image Count';
 $zmSlangPreEventImageBuffer  = 'Zona tampon pre eveniment';
+$zmSlangPreserveAspect       = 'Preserve Aspect Ratio';
 $zmSlangPreset               = 'Presetare';
 $zmSlangPresets              = 'Preset&#259;ri';
 $zmSlangPrev                 = 'Prev';

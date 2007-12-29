@@ -500,6 +500,7 @@ $zmSlangPleaseWait           = 'Vänta...';
 $zmSlangPoint                = 'Punkt';
 $zmSlangPostEventImageBuffer = 'Post Event Image Count';
 $zmSlangPreEventImageBuffer  = 'Pre Event Image Count';
+$zmSlangPreserveAspect       = 'Preserve Aspect Ratio';
 $zmSlangPreset               = 'Förinställning';
 $zmSlangPresets              = 'Förinställningar';
 $zmSlangPrev                 = 'Föreg.';

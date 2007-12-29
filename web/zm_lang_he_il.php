@@ -500,6 +500,7 @@ $zmSlangPleaseWait           = 'המתן בבקשה';
 $zmSlangPoint                = 'נקודה';
 $zmSlangPostEventImageBuffer = 'Post Event Image Count';
 $zmSlangPreEventImageBuffer  = 'Pre Event Image Count';
+$zmSlangPreserveAspect       = 'Preserve Aspect Ratio';
 $zmSlangPreset               = 'Preset';
 $zmSlangPresets              = 'Presets';
 $zmSlangPrev                 = 'הקודם';

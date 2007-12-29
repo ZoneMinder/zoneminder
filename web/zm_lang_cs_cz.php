@@ -502,6 +502,7 @@ $zmSlangPostEventImageBuffer = 'Post Event Image Count';
 $zmSlangPostEventImageBuffer = 'Pozáznamový bufer';
 $zmSlangPreEventImageBuffer  = 'Pøedzáznamový bufer';
 $zmSlangPreEventImageBuffer  = 'Pre Event Image Count';
+$zmSlangPreserveAspect       = 'Preserve Aspect Ratio';
 $zmSlangPreset               = 'Pøedvolba';
 $zmSlangPresets              = 'Pøedvolby';
 $zmSlangPrev                 = 'Zpìt';

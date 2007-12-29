@@ -503,6 +503,7 @@ $zmSlangPostEventImageBuffer = 'Bufor obrazów po zdarzeniu';
 $zmSlangPostEventImageBuffer = 'Post Event Image Count';
 $zmSlangPreEventImageBuffer  = 'Bufor obrazów przed zdarzeniem';
 $zmSlangPreEventImageBuffer  = 'Pre Event Image Count';
+$zmSlangPreserveAspect       = 'Preserve Aspect Ratio';
 $zmSlangPreset               = 'Preset';
 $zmSlangPresets              = 'Presets';
 $zmSlangPrev                 = 'Poprzedni';

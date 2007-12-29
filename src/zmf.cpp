@@ -160,7 +160,7 @@ int main( int argc, char *argv[] )
 
 	zmLoadConfig();
 
-	Monitor *monitor = Monitor::Load( id, false );
+	Monitor *monitor = Monitor::Load( id, false, Monitor::QUERY );
 
 	if ( !monitor )
 	{

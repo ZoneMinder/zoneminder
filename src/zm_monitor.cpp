@@ -317,8 +317,15 @@ Monitor::Monitor(
 
 	if ( !shared_data->valid )
 	{
-		Error(( "Shared memory not initialised by capture daemon" ));
-		exit( -1 );
+        if ( purpose != QUERY )
+        {
+		    Error(( "Shared memory not initialised by capture daemon" ));
+		    exit( -1 );
+        }
+        else
+        {
+		    Warning(( "Shared memory not initialised by capture daemon, some query functions may not be available or produce invalid results" ));
+        }
 	}
 
 	image_buffer = new Snapshot[image_buffer_count];
@@ -1792,6 +1799,7 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 			fps_report_interval,
 			ref_blend_perc,
 			track_motion,
+            RGB_WHITE,
 			purpose
 		);
 		Zone **zones = 0;
@@ -1917,6 +1925,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 			fps_report_interval,
 			ref_blend_perc,
 			track_motion,
+            RGB_WHITE,
 			purpose
 		);
 		Zone **zones = 0;

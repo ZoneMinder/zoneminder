@@ -413,7 +413,7 @@ int main( int argc, char *argv[] )
 	}
 	else if ( mon_id > 0 )
 	{
-		Monitor *monitor = Monitor::Load( mon_id, function&(ZMU_QUERY|ZMU_ZONES) );
+		Monitor *monitor = Monitor::Load( mon_id, function&(ZMU_QUERY|ZMU_ZONES), Monitor::QUERY );
 		if ( monitor )
 		{
 			if ( verbose )
@@ -700,7 +700,7 @@ int main( int argc, char *argv[] )
 				{
 					if ( function > 1 )
 					{
-						Monitor *monitor = Monitor::Load( mon_id );
+						Monitor *monitor = Monitor::Load( mon_id, false, Monitor::QUERY );
 						if ( monitor )
 						{
 							struct timeval tv = monitor->GetTimestamp();

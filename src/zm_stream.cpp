@@ -32,7 +32,7 @@ StreamBase::~StreamBase()
 
 bool StreamBase::loadMonitor( int monitor_id )
 {
-    if ( !(monitor = Monitor::Load( monitor_id )) )
+    if ( !(monitor = Monitor::Load( monitor_id, false, Monitor::QUERY )) )
     {
         Fatal(( "Unable to load monitor id %d for streaming", monitor_id ));
         return( false );

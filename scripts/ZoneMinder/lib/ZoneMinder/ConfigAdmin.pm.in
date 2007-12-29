@@ -1059,6 +1059,14 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		category => "config",
 	},
 	{
+		name => "ZM_DEFAULT_ASPECT_RATIO",
+		default => "4:3",
+		description => "The default width:height aspect ratio used in monitors",
+		help => "When specifying the dimensions of monitors you can click a checkbox to ensure that the width stays in the correct ratio to the height, or vice versa. This setting allows you to indicate what the ratio of these settings should be. This should be specified in the format <width value>:<height value> and the default of 4:3 normally be acceptable but 11:9 is another common setting. If the checkbox is not clicked when specifying monitor dimensions this setting has no effect.",
+		type => $types{string},
+		category => "config",
+	},
+	{
 		name => "ZM_USER_SELF_EDIT",
 		default => "no",
 		description => "Whether unprivileged users can change their details",

@@ -281,6 +281,36 @@ function selectLinkedMonitors()
 	newWindow( "<?= $PHP_SELF ?>?view=monitorselect&callForm=<?= urlencode( 'monitor_form' ) ?>&callField=<?= urlencode( 'new_monitor[LinkedMonitors]' ) ?>", "zmLinkedMonitors", <?= $jws['monitorselect']['w'] ?>, <?= $jws['monitorselect']['h'] ?> );
 }
 
+function updateMonitorDimensions( element )
+{
+    var form = element.form;
+    var defaultAspectRatio = '<?= ZM_DEFAULT_ASPECT_RATIO ?>';
+    var widthFactor = parseInt( defaultAspectRatio.replace( /:.*$/, '' ) );
+    var heightFactor = parseInt( defaultAspectRatio.replace( /^.*:/, '' ) );
+
+    if ( form.elements['preserveAspectRatio'].checked )
+    {
+        var monitorWidth = parseInt(form.elements['new_monitor[Width]'].value);
+        var monitorHeight = parseInt(form.elements['new_monitor[Height]'].value);
+        switch( element.name )
+        {
+            case 'new_monitor[Width]':
+                if ( monitorWidth >= 0 )
+                    form.elements['new_monitor[Height]'].value = Math.round((monitorWidth * heightFactor) / widthFactor);
+                else
+                    form.elements['new_monitor[Height]'].value = '';
+                break;
+            case 'new_monitor[Height]':
+                if ( monitorHeight >= 0 )
+                    form.elements['new_monitor[Width]'].value = Math.round((monitorHeight * widthFactor) / heightFactor);
+                else
+                    form.elements['new_monitor[Width]'].value = '';
+                break;
+        }
+    }
+    return( false );
+}
+
 function newWindow(Url,Name,Width,Height)
 {
 	var Win = window.open(Url,Name,"resizable,width="+Width+",height="+Height);
@@ -588,8 +618,9 @@ switch ( $tab )
 <?php
 		}
 ?>
-<tr><td align="left" class="text"><?= $zmSlangCaptureWidth ?> (<?= $zmSlangPixels ?>)</td><td align="left" class="text"><input type="text" name="new_monitor[Width]" value="<?= $new_monitor['Width'] ?>" size="4" class="form"></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangCaptureHeight ?> (<?= $zmSlangPixels ?>)</td><td align="left" class="text"><input type="text" name="new_monitor[Height]" value="<?= $new_monitor['Height'] ?>" size="4" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangCaptureWidth ?> (<?= $zmSlangPixels ?>)</td><td align="left" class="text"><input type="text" name="new_monitor[Width]" value="<?= $new_monitor['Width'] ?>" size="4" class="form" onkeyup="updateMonitorDimensions(this);"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangCaptureHeight ?> (<?= $zmSlangPixels ?>)</td><td align="left" class="text"><input type="text" name="new_monitor[Height]" value="<?= $new_monitor['Height'] ?>" size="4" class="form" onkeyup="updateMonitorDimensions(this);"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangPreserveAspect ?></td><td align="left" class="text"><input type="checkbox" name="preserveAspectRatio" value="1" class="form"/></td></tr> 
 <tr><td align="left" class="text"><?= $zmSlangOrientation ?></td><td align="left" class="text"><select name="new_monitor[Orientation]" class="form"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $new_monitor['Orientation'] ) { ?> selected<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
 		break;

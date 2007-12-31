@@ -63,7 +63,7 @@ $event_counts = array(
         ),
     ),
     array(
-        "title" => $zmSlangArchive,
+        "title" => $zmSlangArchived,
         "filter" => array(
             "terms" => array(
                 array( "attr" => "Archived", "op" => "=", "val" => "1" ),

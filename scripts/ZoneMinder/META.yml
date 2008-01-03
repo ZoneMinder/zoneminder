@@ -1,7 +1,7 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         ZoneMinder
-version:      1.23.0
+version:      1.23.1
 version_from: lib/ZoneMinder/Base.pm
 installdirs:  site
 requires:

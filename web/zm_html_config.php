@@ -108,7 +108,7 @@ $jws = array(
 	'bandwidth' => array( 'w'=>200, 'h'=>90 ),
 	'console' => array( 'w'=>750, 'h'=>312 ),
 	'control' => array( 'w'=>380, 'h'=>480 ),
-	'controlcaps' => array( 'w'=>700, 'h'=>320 ),
+	'controlcaps' => array( 'w'=>780, 'h'=>320 ),
 	'controlcap' => array( 'w'=>360, 'h'=>440 ),
 	'cycle' => array( 'w'=>16, 'h'=>32 ),
 	'device' => array( 'w'=>260, 'h'=>120 ),

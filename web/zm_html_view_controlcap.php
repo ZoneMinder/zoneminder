@@ -47,7 +47,7 @@ else
 	$control = array();
 	$control['Name'] = $zmSlangNew;
 	$control['Type'] = "Local";
-	$control['Command'] = "";
+	$control['Protocol'] = "";
 }
 if ( !isset( $new_control ) )
 {
@@ -141,7 +141,7 @@ if ( $tab != 'main' )
 ?>
 <input type="hidden" name="new_control[Name]" value="<?= $new_control['Name'] ?>">
 <input type="hidden" name="new_control[Type]" value="<?= $new_control['Type'] ?>">
-<input type="hidden" name="new_control[Command]" value="<?= $new_control['Command'] ?>">
+<input type="hidden" name="new_control[Protocol]" value="<?= $new_control['Protocol'] ?>">
 <input type="hidden" name="new_control[CanWake]" value="<?= $new_control['CanWake'] ?>">
 <input type="hidden" name="new_control[CanSleep]" value="<?= $new_control['CanSleep'] ?>">
 <input type="hidden" name="new_control[CanReset]" value="<?= $new_control['CanReset'] ?>">
@@ -293,12 +293,12 @@ switch ( $tab )
 	case 'main' :
 	{
 ?>
-<tr><td align="left" class="text"><?= $zmSlangName ?></td><td align="left" class="text"><input type="text" name="new_control[Name]" value="<?= $new_control['Name'] ?>" size="16" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangName ?></td><td align="left" class="text"><input type="text" name="new_control[Name]" value="<?= $new_control['Name'] ?>" size="24" class="form"></td></tr>
 <?php
 		$types = array( 'Local'=>$zmSlangLocal, 'Remote'=>$zmSlangRemote );
 ?>
 <tr><td align="left" class="text"><?= $zmSlangType ?></td><td><?= buildSelect( "new_control[Type]", $types ); ?></td></tr>
-<tr><td align="left" class="text"><?= $zmSlangCommand ?></td><td align="left" class="text"><input type="text" name="new_control[Command]" value="<?= $new_control['Command'] ?>" size="40" class="form"></td></tr>
+<tr><td align="left" class="text"><?= $zmSlangProtocol ?></td><td align="left" class="text"><input type="text" name="new_control[Protocol]" value="<?= $new_control['Protocol'] ?>" size="24" class="form"></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangCanWake ?></td><td align="left" class="text"><input type="checkbox" name="new_control[CanWake]" value="1" class="form-noborder"<?php if ( !empty($new_control['CanWake']) ) { ?> checked<?php } ?>></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangCanSleep ?></td><td align="left" class="text"><input type="checkbox" name="new_control[CanSleep]" value="1" class="form-noborder"<?php if ( !empty($new_control['CanSleep']) ) { ?> checked<?php } ?>></td></tr>
 <tr><td align="left" class="text"><?= $zmSlangCanReset ?></td><td align="left" class="text"><input type="checkbox" name="new_control[CanReset]" value="1" class="form-noborder"<?php if ( !empty($new_control['CanReset']) ) { ?> checked<?php } ?>></td></tr>

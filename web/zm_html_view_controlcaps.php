@@ -79,6 +79,7 @@ function confirmDelete()
 <tr><td align="center" class="smallhead"><?= $zmSlangId ?></td>
 <td align="center" class="smallhead"><?= $zmSlangName ?></td>
 <td align="center" class="smallhead"><?= $zmSlangType ?></td>
+<td align="center" class="smallhead"><?= $zmSlangProtocol ?></td>
 <td align="center" class="smallhead"><?= $zmSlangCanMove ?></td>
 <td align="center" class="smallhead"><?= $zmSlangCanZoom ?></td>
 <td align="center" class="smallhead"><?= $zmSlangCanFocus ?></td>
@@ -95,6 +96,7 @@ foreach( $controls as $control )
 <td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=controlcap&cid=".$control['Id']."', 'zmControlCap', ".$jws['controlcap']['w'].", ".$jws['controlcap']['h']." );", $control['Id'].'.', canView( 'Control' ) ) ?></td>
 <td align="center" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=controlcap&cid=".$control['Id']."', 'zmControlCap', ".$jws['controlcap']['w'].", ".$jws['controlcap']['h']." );", $control['Name'], canView( 'Control' ) ) ?></td>
 <td align="center" class="text"><?= $control['Type'] ?></td>
+<td align="center" class="text"><?= $control['Protocol'] ?></td>
 <td align="center" class="text"><?= $control['CanMove']?$zmSlangYes:$zmSlangNo ?></td>
 <td align="center" class="text"><?= $control['CanZoom']?$zmSlangYes:$zmSlangNo ?></td>
 <td align="center" class="text"><?= $control['CanFocus']?$zmSlangYes:$zmSlangNo ?></td>
@@ -113,7 +115,7 @@ foreach( $controls as $control )
 <td colspan="2" align="center">
 <input type="button" value="<?= $zmSlangAddNewControl ?>" class="form" onClick="javascript: newWindow( '<?= $PHP_SELF ?>?view=controlcap', 'zmControlCap', <?= $jws['controlcap']['w'] ?>, <?= $jws['controlcap']['h'] ?>);"<?php if ( !canEdit( 'Control' ) ) {?> disabled<?php } ?>>
 </td>
-<td colspan="5" align="center">&nbsp;</td>
+<td colspan="6" align="center">&nbsp;</td>
 <td align="center"><input type="submit" name="delete_btn" value="<?= $zmSlangDelete ?>" class="form" disabled></td>
 </tr>
 </form>

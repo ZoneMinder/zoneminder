@@ -507,6 +507,7 @@ $zmSlangPreserveAspect       = 'Preserve Aspect Ratio';
 $zmSlangPreset               = 'Preset';
 $zmSlangPresets              = 'Presets';
 $zmSlangPrev                 = '上一事件';
+$zmSlangProtocol             = 'Protocol';
 $zmSlangRate                 = 'Rate';
 $zmSlangReal                 = 'Real';
 $zmSlangRecord               = '錄影';

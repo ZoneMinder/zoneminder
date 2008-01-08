@@ -504,6 +504,7 @@ $zmSlangPreserveAspect       = 'Preserve Aspect Ratio';
 $zmSlangPreset               = 'Pøedvolba';
 $zmSlangPresets              = 'Pøedvolby';
 $zmSlangPrev                 = 'Zpìt';
+$zmSlangProtocol             = 'Protocol';
 $zmSlangRate                 = 'Rychlost';
 $zmSlangReal                 = 'Skuteèná';
 $zmSlangRecord               = 'Nahrávat';

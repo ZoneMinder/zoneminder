@@ -115,6 +115,28 @@ if ( !$server_up )
     }
     my $protocol = $monitor->{Protocol};
 
+    if ( -x $protocol )
+    {
+        # Protocol is actually a script!
+        # Holdover from previous versions
+        my $command .= $protocol.' '.$arg_string;
+        Debug( $command."\n" );
+
+        my $output = qx($command);
+        my $status = $? >> 8;
+        if ( $status || DBG_LEVEL > 0 )
+        {
+            chomp( $output );
+            Debug( "Output: $output\n" );
+        }
+        if ( $status )
+        {
+            Error( "Command '$command' exited with status: $status\n" );
+            exit( $status );
+        }
+        exit( 0 );
+    }
+
     Info( "Starting control server $id/$protocol" );
     close( CLIENT );
 

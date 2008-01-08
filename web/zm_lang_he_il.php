@@ -504,6 +504,7 @@ $zmSlangPreserveAspect       = 'Preserve Aspect Ratio';
 $zmSlangPreset               = 'Preset';
 $zmSlangPresets              = 'Presets';
 $zmSlangPrev                 = 'הקודם';
+$zmSlangProtocol             = 'Protocol';
 $zmSlangRate                 = 'דירוג';
 $zmSlangReal                 = 'אמיתי';
 $zmSlangRecord               = 'הקלטה';

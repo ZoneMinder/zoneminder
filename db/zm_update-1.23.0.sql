@@ -1,7 +1,12 @@
 --
 -- This updates a 1.23.0 database to 1.23.1
 --
--- No changes required
+
+--
+-- Change protocol field slightly
+--
+alter table Controls modify Protocol varchar(64);
+
 --
 -- These are optional, but we might as well do it now
 --

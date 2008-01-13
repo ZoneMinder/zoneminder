@@ -92,4 +92,4 @@ install-exec-hook:
 
 uninstall-hook:
 	( cd $(DESTDIR)$(cgidir); rm -f zms nph-zms )
-	
+

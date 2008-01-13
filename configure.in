@@ -151,7 +151,7 @@ AC_ARG_ENABLE(crashtrace,
     dump of the stack trace when a ZoneMinder binary crashes or is killed by an unexpected signal.
     Although this should work on most systems it does rely on un(or loosely) documented features and
     so should be regarded as experimental. If you experience problems compiling zm_signal.cpp or 
-    ZoneMinder binaries fail to shut down corrected then you should probably disable this feature.
+    ZoneMinder binaries fail to shut down correctly then you should probably disable this feature.
     e.g. --enable-crashtrace=yes or --disable-crashtrace])
 )
 if test "$ENABLE_CRASHTRACE" != "yes"; then

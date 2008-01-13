@@ -44,7 +44,7 @@ use constant RECOVER_TAG => "(r)"; # Tag to append to event name when recovered
 use constant RECOVER_TEXT => "Recovered."; # Text to append to event notes when recovered
 
 use constant DBG_ID => "zmaudit"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 1; # 0 is errors, warnings and info only, > 0 for debug
+use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 # ==========================================================================
 #

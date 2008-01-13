@@ -34,7 +34,7 @@ use bytes;
 # ==========================================================================
 
 use constant DBG_ID => "zmtrack"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 1; # 0 is errors, warnings and info only, > 0 for debug
+use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
 
 use constant SLEEP_TIME => 10000; # In microseconds
 

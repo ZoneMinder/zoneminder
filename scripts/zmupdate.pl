@@ -752,7 +752,7 @@ if ( $version )
             }
         }
 
-        # Update the stream quaility setting to the old image quality ones
+        # Update the stream quality setting to the old image quality ones
         {
             my $dbh = zmDbConnect();
 
@@ -760,6 +760,12 @@ if ( $version )
             my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
             my $res = $sth->execute( ZM_JPEG_IMAGE_QUALITY ) or die( "Can't execute: ".$sth->errstr() );
         }
+		$cascade = !undef;
+	}
+	if ( $cascade || $version eq "1.23.0" )
+	{
+		# Patch the database
+		patchDB( $dbh, "1.23.0" );
 		$cascade = !undef;
 	}
 	if ( $cascade )

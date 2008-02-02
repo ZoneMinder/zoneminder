@@ -25,7 +25,7 @@ if ( isset($xge) || isset($yge) )
     $slow = 0.9; // Threshold for slow speed/timeouts
     $turbo = 0.9; // Threshold for turbo speed
 
-    if ( preg_match( '/^([a-z]+)([A-Z][a-z]+)([A-Z][a-z]+)$/', $control, $matches ) )
+    if ( preg_match( '/^([a-z]+)([A-Z][a-z]+)([A-Z][a-z]+)+$/', $control, $matches ) )
     {
         $command = $matches[1];
         $mode = $matches[2];

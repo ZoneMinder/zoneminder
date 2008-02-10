@@ -89,11 +89,13 @@ sub deleteEventFiles( $;$ )
     if ( ZM_USE_DEEP_STORAGE )
     {
         my $link_path = $monitor_id."/*/*/*/.".$event_id;
-        my $link = glob( $link_path );
-        if ( defined($link) )
+        Debug( "LP1:$link_path" );
+        my @links = glob($link_path);
+        Debug( "L:".$links[0].": $!" );
+        if ( @links )
         {
-            ( $link_path ) = ( $link =~ /^(.*)$/ ); # De-taint
-            Debug( "L:$link_path" );
+            ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
+            Debug( "LP2:$link_path" );
 
             ( my $day_path = $link_path ) =~ s/\.\d+//;
             Debug( "DP:$day_path" );
@@ -104,19 +106,20 @@ sub deleteEventFiles( $;$ )
             Debug( "C:$command" );
             executeShellCommand( $command );
 
-            unlink( $link_path );
+            unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
             my @path_parts = split( /\//, $event_path );
-            for ( my $i = int(@path_parts)-2; $i >= 2; $i-- )
+            for ( my $i = int(@path_parts)-2; $i >= 1; $i-- )
             {
                 my $delete_path = join( '/', @path_parts[0..$i] );
                 Debug( "DP$i:$delete_path" );
-                my $has_files = glob( $delete_path."/*" );
-                Debug( "HF:$has_files" );
-                if ( !defined($has_files) )
-                {
-                    my $command = "/bin/rm -rf ".$delete_path;
-                    executeShellCommand( $command );
-                }
+                my @has_files = glob( $delete_path."/*" );
+                Debug( "HF1:".$has_files[0] );
+                last if ( @has_files );
+                @has_files = glob( $delete_path."/.[0-9]*" );
+                Debug( "HF2:".$has_files[0] );
+                last if ( @has_files );
+                my $command = "/bin/rm -rf ".$delete_path;
+                executeShellCommand( $command );
             }
         }
     }

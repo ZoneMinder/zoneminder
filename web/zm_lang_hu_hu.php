@@ -19,7 +19,8 @@
 //
 
 // ZoneMinder Hungarian Translation by szimszon at oregpreshaz dot eu, robi
-// version: 0.4 - 2007.12.30. - frissítés 1.23.0-hoz
+// version: 0.5 - 2007.12.30. - frissítés 1.23.1-hez (robi)
+// version: 0.4 - 2007.12.30. - frissítés 1.23.0-hoz (robi)
 // version: 0.3 - 2006.04.27. - fordítás befejezése, elrendezése elféréshez (robi)
 // version: 0.2 - 2006.12.05. - par javitas
 // version: 0.1 - 2006.11.27. - sok typoval es par leforditatlan resszel
@@ -73,7 +74,7 @@ header( "Content-Type: text/html; charset=iso8859-2" );
 //setlocale( LC_CTYPE, 'hu_HU'); //Character class settings 4.3.0 and after
 //setlocale( LC_TIME, 'hu_HU'); //Date and time formatting 4.3.0 and after
 
-//setlocale(LC_TIME, 'hu_HU');
+setlocale( LC_TIME, 'hu_HU' );
 setlocale( LC_ALL, 'hu_HU' );
 
 // Simple String Replacements
@@ -666,7 +667,7 @@ $zmSlangZoneMinMaxBlobArea   = 'Min/Max Blob terület';
 $zmSlangZoneMinMaxBlobs      = 'Min/Max Blobok';
 $zmSlangZoneMinMaxFiltArea   = 'Min/Max szûrt terület';
 $zmSlangZoneMinMaxPixelThres = 'Min/Max képpont küszöb (0-255)';
-$zmSlangZoneOverloadFrames   = 'Overload Frame Ignore Count';
+$zmSlangZoneOverloadFrames   = 'Túlterhelés esetén ennyi képkocka hagyható ki';
 $zmSlangZones                = 'Zónák';
 $zmSlangZone                 = 'Zóna:';
 $zmSlangZoomIn               = 'Zoom be';

@@ -1338,6 +1338,14 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		category => "highband",
 	},
 	{
+		name => "ZM_WEB_H_AJAX_TIMEOUT",
+		default => "3000",
+		description => "How long to wait for Ajax request responses (ms)",
+		help => "The newer versions of the live feed and event views use Ajax to request information from the server and populate the views dynamically. This option allows you to specify a timeout if required after which requests are abandoned. A timeout may be necessary if requests would overwise hang such as on a slow connection. This would tend to consume a lot of browser memory and make the interface unresponsive. Ordinarily no requests should timeout so this setting should be set to a value greater than the slowest expected response. This value is in milliseconds but if set to zero then no timeout will be used.",
+		type => $types{integer},
+		category => "highband",
+	},
+	{
 		name => "ZM_WEB_M_REFRESH_MAIN",
 		default => "300",
 		description => "How often (in seconds) the main console window should refresh itself",
@@ -1441,6 +1449,14 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Whether to show the progress of replay in event view.",
 		help => "When viewing events an event navigation panel and progress bar is shown below the event itself. This allows you to jump to specific points in the event, but can can also dynamically update to display the current progress of the event replay itself. This progress is calculated from the actual event duration and is not directly linked to the replay itself, so on limited bandwidth connections may be out of step with the replay. This option allows you to turn off the progress display, whilst still keeping the navigation aspect, where bandwidth prevents it functioning effectively.",
 		type => $types{boolean},
+		category => "medband",
+	},
+	{
+		name => "ZM_WEB_M_AJAX_TIMEOUT",
+		default => "5000",
+		description => "How long to wait for Ajax request responses (ms)",
+		help => "The newer versions of the live feed and event views use Ajax to request information from the server and populate the views dynamically. This option allows you to specify a timeout if required after which requests are abandoned. A timeout may be necessary if requests would overwise hang such as on a slow connection. This would tend to consume a lot of browser memory and make the interface unresponsive. Ordinarily no requests should timeout so this setting should be set to a value greater than the slowest expected response. This value is in milliseconds but if set to zero then no timeout will be used.",
+		type => $types{integer},
 		category => "medband",
 	},
 	{
@@ -1550,6 +1566,14 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		category => "lowband",
 	},
 	{
+		name => "ZM_WEB_L_AJAX_TIMEOUT",
+		default => "10000",
+		description => "How long to wait for Ajax request responses (ms)",
+		help => "The newer versions of the live feed and event views use Ajax to request information from the server and populate the views dynamically. This option allows you to specify a timeout if required after which requests are abandoned. A timeout may be necessary if requests would overwise hang such as on a slow connection. This would tend to consume a lot of browser memory and make the interface unresponsive. Ordinarily no requests should timeout so this setting should be set to a value greater than the slowest expected response. This value is in milliseconds but if set to zero then no timeout will be used.",
+		type => $types{integer},
+		category => "lowband",
+	},
+	{
 		name => "ZM_WEB_P_DEFAULT_RATE",
 		default => "100",
 		description => "What the default replay rate factor applied to 'event' views is (%)",
@@ -1564,6 +1588,14 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		help => "If unset, this option sends the whole image to the browser which resizes it in the window. If set the image is scaled down on the server before sending a reduced size image to the browser to conserve bandwidth at the cost of cpu on the server",
 		type => $types{boolean},
 		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
+		category => "phoneband",
+	},
+	{
+		name => "ZM_WEB_P_AJAX_TIMEOUT",
+		default => "10000",
+		description => "How long to wait for Ajax request responses (ms)",
+		help => "The newer versions of the live feed and event views use Ajax to request information from the server and populate the views dynamically. This option allows you to specify a timeout if required after which requests are abandoned. A timeout may be necessary if requests would overwise hang such as on a slow connection. This would tend to consume a lot of browser memory and make the interface unresponsive. Ordinarily no requests should timeout so this setting should be set to a value greater than the slowest expected response. This value is in milliseconds but if set to zero then no timeout will be used.",
+		type => $types{integer},
 		category => "phoneband",
 	},
 	{

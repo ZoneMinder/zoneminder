@@ -49,6 +49,7 @@ switch ( $bandwidth )
 	{
 		define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_P_DEFAULT_RATE );			// What the default replay rate factor applied to 'event' views is (%)
 		define( "ZM_WEB_SCALE_THUMBS", ZM_WEB_P_SCALE_THUMBS );			// Image scaling for thumbnails, bandwidth versus cpu in rescaling
+        define( "ZM_WEB_AJAX_TIMEOUT", ZM_WEB_P_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
 		break;
 	}
 }

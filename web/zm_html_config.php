@@ -65,6 +65,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_USE_STREAMS", ZM_WEB_H_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_H_EVENTS_VIEW );			// What the default view of multiple events should be.
 		define( "ZM_WEB_SHOW_PROGRESS", ZM_WEB_H_SHOW_PROGRESS );		// Whether to show the progress of replay in event view.
+		define( "ZM_WEB_AJAX_TIMEOUT", ZM_WEB_H_AJAX_TIMEOUT );		    // Timeout to use for Ajax requests, no timeout used if unset
 		break;
 	}
 	case "medium" : 
@@ -82,6 +83,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_USE_STREAMS", ZM_WEB_M_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_M_EVENTS_VIEW );			// What the default view of multiple events should be.
 		define( "ZM_WEB_SHOW_PROGRESS", ZM_WEB_M_SHOW_PROGRESS );		// Whether to show the progress of replay in event view.
+		define( "ZM_WEB_AJAX_TIMEOUT", ZM_WEB_M_AJAX_TIMEOUT );		    // Timeout to use for Ajax requests, no timeout used if unset
 		break;
 	}
 	case "low" :
@@ -99,6 +101,7 @@ switch ( $bandwidth )
 		define( "ZM_WEB_USE_STREAMS", ZM_WEB_L_USE_STREAMS );			// Whether to use streaming or stills for live and events views
 		define( "ZM_WEB_EVENTS_VIEW", ZM_WEB_L_EVENTS_VIEW );			// What the default view of multiple events should be.
 		define( "ZM_WEB_SHOW_PROGRESS", ZM_WEB_L_SHOW_PROGRESS );		// Whether to show the progress of replay in event view.
+		define( "ZM_WEB_AJAX_TIMEOUT", ZM_WEB_L_AJAX_TIMEOUT );		    // Timeout to use for Ajax requests, no timeout used if unset
 		break;
 	}
 }

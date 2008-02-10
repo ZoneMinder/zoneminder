@@ -213,14 +213,9 @@ if ( isset($min_time) && isset($max_time) )
 }
 else
 {
-	//$filter_query = parseTreeToQuery( $tree );
-	//echo $filter_query;
-	//echo '<br>';
 	$filter_sql = parseTreeToSQL( $tree );
 	$temp_min_time = $temp_max_time = $temp_expandable = false;
 	extractDatetimeRange( $tree, $temp_min_time, $temp_max_time, $temp_expandable );
-	//echo $filter_sql;
-	//echo '<br>';
 
 	if ( $filter_sql )
 	{
@@ -265,8 +260,6 @@ if ( $tree )
     {
 	    $filter_query = '&'.$filter_query;
     }
-    //echo $filter_query;
-    //echo '<br>';
 }
 
 $scales = array(

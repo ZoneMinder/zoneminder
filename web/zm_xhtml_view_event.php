@@ -54,7 +54,7 @@ elseif ( isset( $fid ) )
 parseSort( true, '&amp;' );
 parseFilter( true, '&amp;' );
 
-$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[$sort_field]."'$filter_sql$mid_sql order by $sort_column ".($sort_order=='asc'?'desc':'asc');
+$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[$sort_field]."'".$filter['sql'].$mid_sql". order by $sort_column ".($sort_order=='asc'?'desc':'asc');
 $result = dbQuery( $sql );
 while ( $row = dbFetchNext( $result ) )
 {
@@ -65,7 +65,7 @@ while ( $row = dbFetchNext( $result ) )
 	}
 }
 
-$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[$sort_field]."'$filter_sql$mid_sql order by $sort_column $sort_order";
+$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[$sort_field]."'".$filter['sql'].$mid_sql." order by $sort_column $sort_order";
 $result = dbQuery( $sql );
 while ( $row = dbFetchNext( $result ) )
 {
@@ -91,7 +91,7 @@ $paged = $event['Frames'] > $frames_per_page;
 <table style="width: 100%">
 <tr>
 <td align="left"><?= makeLink( "$PHP_SELF?view=eventdetails&amp;eid=$eid", $event['Name'].($event['Archived']?'*':''), canEdit( 'Events' ) ) ?></td>
-<td align="right"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=events&amp;action=delete&amp;mark_eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;limit=<?= $limit ?>&amp;page=<?= $page ?>"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td align="right"><?php if ( canEdit( 'Events' ) ) { ?><a href="<?= $PHP_SELF ?>?view=events&amp;action=delete&amp;mark_eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>&amp;limit=<?= $limit ?>&amp;page=<?= $page ?>"><?= $zmSlangDelete ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr>
 </table>
 <?php
@@ -117,11 +117,11 @@ if ( $paged && !empty($page) )
 		if ( false && $page > 2 )
 		{
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=1">&lt;&lt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=1">&lt;&lt;</a></td>
 <?php
 		}
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $page-1 ?>">&lt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=<?= $page-1 ?>">&lt;</a></td>
 <?php
 		$new_pages = array();
 		$pages_used = array();
@@ -142,7 +142,7 @@ if ( $paged && !empty($page) )
 		foreach ( $new_pages as $new_page )
 		{
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
 <?php
 		}
 	}
@@ -170,16 +170,16 @@ if ( $paged && !empty($page) )
 		foreach ( $new_pages as $new_page )
 		{
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
 <?php
 		}
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $page+1 ?>">&gt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=<?= $page+1 ?>">&gt;</a></td>
 <?php
 		if ( false && $page < ($pages-1) )
 		{
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $pages ?>">&gt;&gt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=event&amp;mode=still&amp;eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=<?= $pages ?>">&gt;&gt;</a></td>
 <?php
 		}
 	}

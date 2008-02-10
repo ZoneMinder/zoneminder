@@ -46,7 +46,7 @@ $event = dbFetchOne( $sql );
 parseSort();
 parseFilter( $filter );
 
-$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[preg_replace( '/^.*\./', '', $sort_column )]."'$filter_sql$mid_sql order by $sort_column ".($sort_order=='asc'?'desc':'asc');
+$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[preg_replace( '/^.*\./', '', $sort_column )]."'".$filter['sql'].$mid_sql." order by $sort_column ".($sort_order=='asc'?'desc':'asc')." limit 100";
 $result = dbQuery( $sql );
 foreach( dbFetchAll( $sql ) as $row )
 while ( $row = dbFetchNext( $result ) )
@@ -58,7 +58,7 @@ while ( $row = dbFetchNext( $result ) )
     }
 }
 
-$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[preg_replace( '/^.*\./', '', $sort_column )]."'$filter_sql$mid_sql order by $sort_column $sort_order";
+$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[preg_replace( '/^.*\./', '', $sort_column )]."'".$filter['sql'].$mid_sql." order by $sort_column $sort_order limit 100";
 $result = dbQuery( $sql );
 while ( $row = dbFetchNext( $result ) )
 {
@@ -208,7 +208,7 @@ if ( $mode == "stream" )
 <input type="hidden" name="action" value="rename">
 <input type="hidden" name="mode" value="<?= $mode ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
-<?= $filter_fields ?>
+<?= $filter['fields'] ?>
 <input type="hidden" name="sort_field" value="<?= $sort_field ?>">
 <input type="hidden" name="sort_asc" value="<?= $sort_asc ?>">
 <input type="hidden" name="limit" value="<?= $limit ?>">
@@ -234,7 +234,7 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <input type="hidden" name="mode" value="<?= $mode ?>">
 <input type="hidden" name="page" value="<?= $page ?>">
 <input type="hidden" name="eid" value="<?= $eid ?>">
-<?= $filter_fields ?>
+<?= $filter['fields'] ?>
 <input type="hidden" name="sort_field" value="<?= $sort_field ?>">
 <input type="hidden" name="sort_asc" value="<?= $sort_asc ?>">
 <input type="hidden" name="limit" value="<?= $limit ?>">
@@ -249,24 +249,24 @@ Learn Pref:&nbsp;<select name="learn_state" class="form" onChange="learn_form.su
 <?php if ( $mode == "stream" ) { ?>
 <td align="center" class="text"><a href="javascript: refreshWindow();"><?= $zmSlangReplay ?></a></td>
 <?php } elseif ( $paged && !empty($page) ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=0"><?= $zmSlangAll ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter['query'] ?><?= $sort_query ?>&page=0"><?= $zmSlangAll ?></a></td>
 <?php } elseif ( $paged && empty($page) ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=1"><?= $zmSlangPaged ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter['query'] ?><?= $sort_query ?>&page=1"><?= $zmSlangPaged ?></a></td>
 <?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=none&action=delete&mark_eid=<?= $eid ?>"><?= $zmSlangDelete ?></a></td><?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?><td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=eventdetail&eid=<?= $eid ?>', 'zmEventDetail', <?= $jws['eventdetail']['w'] ?>, <?= $jws['eventdetail']['h'] ?> )"><?= $zmSlangEdit ?></a></td><?php } ?>
 <?php if ( canView( 'Events' ) ) { ?><td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=export&eid=<?= $eid ?>', 'zmExport', <?= $jws['export']['w'] ?>, <?= $jws['export']['h'] ?> )"><?= $zmSlangExport ?></a></td><?php } ?>
 <?php if ( canEdit( 'Events' ) ) { ?>
 <?php if ( $event['Archived'] ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangUnarchive ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=unarchive&eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>"><?= $zmSlangUnarchive ?></a></td>
 <?php } else { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=archive&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangArchive ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&action=archive&eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>"><?= $zmSlangArchive ?></a></td>
 <?php } ?>
 <?php } ?>
 <?php if ( $mode == "stream" ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=1"><?= $zmSlangStills ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter['query'] ?><?= $sort_query ?>&page=1"><?= $zmSlangStills ?></a></td>
 <?php } elseif ( canStream() ) { ?>
-<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=stream&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>"><?= $zmSlangStream ?></a></td>
+<td align="center" class="text"><a href="<?= $PHP_SELF ?>?view=event&mode=stream&eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>"><?= $zmSlangStream ?></a></td>
 <?php } ?>
 <?php if ( ZM_OPT_MPEG != "no" ) { ?>
 <td align="center" class="text"><a href="javascript: newWindow( '<?= $PHP_SELF ?>?view=video&eid=<?= $eid ?>', 'zmVideo', <?= $jws['video']['w']+$event['Width'] ?>, <?= $jws['video']['h']+$event['Height'] ?> );"><?= $zmSlangVideo ?></a></td>
@@ -294,11 +294,11 @@ if ( $mode == "still" && $paged && !empty($page) )
         if ( false && $page > 2 )
         {
 ?>
-<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=1">&lt;&lt;</a>&nbsp;
+<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter['query'] ?><?= $sort_query ?>&page=1">&lt;&lt;</a>&nbsp;
 <?php
         }
 ?>
-<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page - 1 ?>">&lt;</a>&nbsp;
+<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter['query'] ?><?= $sort_query ?>&page=<?= $page - 1 ?>">&lt;</a>&nbsp;
 <?php
         $new_pages = array();
         $pages_used = array();
@@ -319,7 +319,7 @@ if ( $mode == "still" && $paged && !empty($page) )
         foreach ( $new_pages as $new_page )
         {
 ?>
-<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>&nbsp;
+<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter['query'] ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>&nbsp;
 <?php
         }
     }
@@ -347,16 +347,16 @@ if ( $mode == "still" && $paged && !empty($page) )
         foreach ( $new_pages as $new_page )
         {
 ?>
-&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter['query'] ?><?= $sort_query ?>&page=<?= $new_page ?>"><?= $new_page ?></a>
 <?php
         }
 ?>
-&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $page + 1 ?>">&gt;</a>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter['query'] ?><?= $sort_query ?>&page=<?= $page + 1 ?>">&gt;</a>
 <?php
         if ( false && $page < ($pages-1) )
         {
 ?>
-&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter_query ?><?= $sort_query ?>&page=<?= $pages ?>">&gt;&gt;</a>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=event&mode=still&eid=<?= $eid ?>&scale=<?= $scale ?><?= $filter['query'] ?><?= $sort_query ?>&page=<?= $pages ?>">&gt;&gt;</a>
 <?php
         }
     }
@@ -423,7 +423,7 @@ if ( $mode == "stream" )
             }
             $title = "+".(int)round(($i * $frame_data['Duration'])/$panel_sections)."s";
 ?>
-<div class="Section" id="PanelSection<?= $i ?>" title="<?= $title ?>" style="width: <?= $section_width ?>px; left: <?= $section_offset ?>px; background-color: <?= $section_color ?>;<?= $divider ?>" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $event['Id'] ?>&fid=<?= $start_frame ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>'"></div>
+<div class="Section" id="PanelSection<?= $i ?>" title="<?= $title ?>" style="width: <?= $section_width ?>px; left: <?= $section_offset ?>px; background-color: <?= $section_color ?>;<?= $divider ?>" onClick="window.location='<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $event['Id'] ?>&fid=<?= $start_frame ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>'"></div>
 <?php
         }
 ?>
@@ -480,11 +480,11 @@ else
 ?>
 <tr>
 <td><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-<td width="20%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="20%" align="center" class="text"><?php if ( $mode == "stream" ) { if ( $play && $next_event ) { ?><a href="javascript: window.clearTimeout( timeout_id );"><?= $zmSlangStop ?></a><?php } elseif ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $eid ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1"><?= $zmSlangPlayAll ?></a><?php } else { ?>&nbsp;<?php } } else { ?>&nbsp;<?php } ?></td>
-<td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
-<td width="20%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="20%" align="center" class="text"><?php if ( $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $prev_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $prev_event['Id'] ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndPrev ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="20%" align="center" class="text"><?php if ( $mode == "stream" ) { if ( $play && $next_event ) { ?><a href="javascript: window.clearTimeout( timeout_id );"><?= $zmSlangStop ?></a><?php } elseif ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $eid ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1"><?= $zmSlangPlayAll ?></a><?php } else { ?>&nbsp;<?php } } else { ?>&nbsp;<?php } ?></td>
+<td width="20%" align="center" class="text"><?php if ( canEdit( 'Events' ) && $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>&action=delete&mark_eid=<?= $eid ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangDeleteAndNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
+<td width="20%" align="center" class="text"><?php if ( $next_event ) { ?><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>"><?= $zmSlangNext ?></a><?php } else { ?>&nbsp;<?php } ?></td>
 </tr></table></td>
 </tr>
 </table>
@@ -497,7 +497,7 @@ if ( $mode == "stream" )
     if ( $play && $next_event )
     {
 ?>
-var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter_query ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1' );", <?= ($frame_data['RealDuration']+1)*1000 ?> );
+var timeout_id = window.setTimeout( "window.location.replace( '<?= $PHP_SELF ?>?view=<?= $view ?>&mode=<?= $mode ?>&eid=<?= $next_event['Id'] ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>&page=<?= $page ?>&rate=<?= $rate ?>&scale=<?= $scale ?>&play=1' );", <?= ($frame_data['RealDuration']+1)*1000 ?> );
 <?php
     }
     $start_section = 0;

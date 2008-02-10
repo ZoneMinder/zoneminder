@@ -132,11 +132,11 @@ if ( !empty($limit) && $n_events > $limit )
 				if ( false && $page > 2 )
 				{
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=1">&lt;&lt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=1">&lt;&lt;</a></td>
 <?php
 				}
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $page-1 ?>">&lt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=<?= $page-1 ?>">&lt;</a></td>
 <?php
 				$new_pages = array();
 				$pages_used = array();
@@ -157,7 +157,7 @@ if ( !empty($limit) && $n_events > $limit )
 				foreach ( $new_pages as $new_page )
 				{
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
 <?php
 				}
 			}
@@ -185,16 +185,16 @@ if ( !empty($limit) && $n_events > $limit )
 				foreach ( $new_pages as $new_page )
 				{
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=<?= $new_page ?>"><?= $new_page ?></a></td>
 <?php
 				}
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $page+1 ?>">&gt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=<?= $page+1 ?>">&gt;</a></td>
 <?php
 				if ( false && $page < ($pages-1) )
 				{
 ?>
-<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter_query ?><?= $sort_query ?>&amp;page=<?= $pages ?>">&gt;&gt;</a></td>
+<td align="center"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&amp;limit=<?= $limit ?><?= $filter['query'] ?><?= $sort_query ?>&amp;page=<?= $pages ?>">&gt;&gt;</a></td>
 <?php
 				}
 			}

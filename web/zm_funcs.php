@@ -1218,20 +1218,20 @@ function parseFilter( &$filter, $save_to_session=false, $term_sep='&' )
 		{
 			if ( isset($filter['terms'][$i]['cnj']) )
 			{
-				$filter['query'] .= $term_sep."filter[terms][$i][cnj]=".$filter['terms'][$i]['cnj'];
+				$filter['query'] .= $term_sep."filter[terms][$i][cnj]=".urlencode($filter['terms'][$i]['cnj']);
 				$filter['sql'] .= " ".$filter['terms'][$i]['cnj']." ";
-				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".$filter['terms'][$i]['cnj']."\"/>\n";
+				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".htmlspecialchars($filter['terms'][$i]['cnj'])."\"/>\n";
 			}
 			if ( isset($filter['terms'][$i]['obr']) )
 			{
-				$filter['query'] .= $term_sep."filter[terms][$i][obr]=".$filter['terms'][$i]['obr'];
+				$filter['query'] .= $term_sep."filter[terms][$i][obr]=".urlencode($filter['terms'][$i]['obr']);
 				$filter['sql'] .= " ".str_repeat( "(", $filter['terms'][$i]['obr'] )." ";
-				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][obr]\" value=\"".$filter['terms'][$i]['obr']."\"/>\n";
+				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][obr]\" value=\"".htmlspecialchars($filter['terms'][$i]['obr'])."\"/>\n";
 			}
 			if ( isset($filter['terms'][$i]['attr']) )
 			{
-				$filter['query'] .= $term_sep."filter[terms][$i][attr]=".$filter['terms'][$i]['attr'];
-				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][attr]\" value=\"".$filter['terms'][$i]['attr']."\"/>\n";
+				$filter['query'] .= $term_sep."filter[terms][$i][attr]=".urlencode($filter['terms'][$i]['attr']);
+				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][attr]\" value=\"".htmlspecialchars($filter['terms'][$i]['attr'])."\"/>\n";
 				switch ( $filter['terms'][$i]['attr'] )
 				{
 					case 'MonitorName':
@@ -1282,7 +1282,7 @@ function parseFilter( &$filter, $save_to_session=false, $term_sep='&' )
 						case 'Name':
 						case 'Cause':
 						case 'Notes':
-							$value = "'$value'";
+							$value = "'".dbEscape($value)."'";
 							break;
 						case 'DateTime':
 							$value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
@@ -1321,16 +1321,16 @@ function parseFilter( &$filter, $save_to_session=false, $term_sep='&' )
 						break;
 				}
 
-				$filter['query'] .= $term_sep."filter[terms][$i][op]=".$filter['terms'][$i]['op'];
-				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][op]\" value=\"".$filter['terms'][$i]['op']."\"/>\n";
-				$filter['query'] .= $term_sep."filter[terms][$i][val]=".urlencode($filter['terms'][$i]['val']);
-				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][val]\" value=\"".$filter['terms'][$i]['val']."\"/>\n";
+				$filter['query'] .= $term_sep."filter[terms][$i][op]=".urlencode($filter['terms'][$i]['op']);
+				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][op]\" value=\"".htmlspecialchars($filter['terms'][$i]['op'])."\"/>\n";
+				$filter['query'] .= $term_sep."filter[terms][$i][val]=".urlencode(urlencode($filter['terms'][$i]['val']));
+				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][val]\" value=\"".htmlspecialchars($filter['terms'][$i]['val'])."\"/>\n";
 			}
 			if ( isset($filter['terms'][$i]['cbr']) )
 			{
-				$filter['query'] .= $term_sep."filter[terms][$i][cbr]=".$filter['terms'][$i]['cbr'];
+				$filter['query'] .= $term_sep."filter[terms][$i][cbr]=".urlencode($filter['terms'][$i]['cbr']);
 				$filter['sql'] .= " ".str_repeat( ")", $filter['terms'][$i]['cbr'] )." ";
-				$filter['fields'] .= "<input type=\"hidden\" \"name=filter[terms][$i][cbr]\" value=\"".$filter['terms'][$i]['cbr']."\"/>\n";
+				$filter['fields'] .= "<input type=\"hidden\" \"name=filter[terms][$i][cbr]\" value=\"".htmlspecialchars($filter['terms'][$i]['cbr'])."\"/>\n";
 			}
 		}
         if ( $filter['sql'] )

@@ -1454,7 +1454,7 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
 	Debug( 1, ( "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors ));
 	if ( n_linked_monitors )
 	{
-		for( int i = 0; i < n_zones; i++ )
+		for( int i = 0; i < n_linked_monitors; i++ )
 		{
 			delete linked_monitors[i];
 		}

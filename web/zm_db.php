@@ -59,9 +59,15 @@ function dbError( $sql )
 function dbEscape( $string )
 {
     if ( version_compare( phpversion(), "4.3.0", "<") )
-        return( mysql_escape_string( $string ) );
+        if ( get_magic_quotes_gpc() )
+            return( mysql_escape_string( stripslashes( $string ) ) );
+        else
+            return( mysql_escape_string( $string ) );
     else
-        return( mysql_real_escape_string( $string ) );
+        if ( get_magic_quotes_gpc() )
+            return( mysql_real_escape_string( stripslashes( $string ) ) );
+        else
+            return( mysql_real_escape_string( $string ) );
 }
 
 function dbQuery( $sql )

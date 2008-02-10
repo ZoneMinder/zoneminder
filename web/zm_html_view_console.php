@@ -312,7 +312,7 @@ else
 <?php
 }
 ?>
-&nbsp;<?= makeLink( "javascript: newWindow( '$PHP_SELF?view=bandwidth', 'zmBandwidth', ".$jws['bandwidth']['w'].", ".$jws['bandwidth']['h']." );", strtolower( $bw_array[$bandwidth] ), ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?= strtolower( $zmSlangBandwidth ) ?></td>
+&nbsp;<?= makeLink( "javascript: newWindow( '$PHP_SELF?view=bandwidth', 'zmBandwidth', ".$jws['bandwidth']['w'].", ".$jws['bandwidth']['h']." );", $bw_array[$bandwidth], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?= $zmSlangBandwidth ?></td>
 <td class="smallhead" align="right"><table width="100%" border="0" cellpadding="0" cellspacing="0"><tr><td class="smallhead" align="left">
 <?php
 if ( canView( 'Stream' ) && $cycle_count > 1 )
@@ -435,7 +435,7 @@ for ( $i = 0; $i < count($event_counts); $i++ )
 if ( canEdit('Monitors') )
 {
 ?>
-<td align="right" class="text"><?= makeLink( "$PHP_SELF?view=$view&action=sequence&mid=".$monitor['Id']."&smid=".$seq_id_u_list[$monitor['Id']], '<img src="graphics/seq-u.gif" alt="" width="12" height="11" border="0">', $monitor['Sequence']>$min_sequence ) ?><?= makeLink( "$PHP_SELF?view=$view&action=sequence&mid=".$monitor['Id']."&smid=".$seq_id_d_list[$monitor['Id']], '<img src="graphics/seq-d.gif" alt="" width="12" height="11" border="0">', $monitor['Sequence']<$max_sequence ) ?></td>
+<td align="center" class="text"><?= makeLink( "$PHP_SELF?view=$view&action=sequence&mid=".$monitor['Id']."&smid=".$seq_id_u_list[$monitor['Id']], '<img src="graphics/seq-u.gif" alt="" width="12" height="11" border="0">', $monitor['Sequence']>$min_sequence ) ?><?= makeLink( "$PHP_SELF?view=$view&action=sequence&mid=".$monitor['Id']."&smid=".$seq_id_d_list[$monitor['Id']], '<img src="graphics/seq-d.gif" alt="" width="12" height="11" border="0">', $monitor['Sequence']<$max_sequence ) ?></td>
 <?php
 }
 ?>

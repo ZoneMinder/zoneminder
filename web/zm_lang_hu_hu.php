@@ -73,7 +73,8 @@ header( "Content-Type: text/html; charset=iso8859-2" );
 //setlocale( LC_CTYPE, 'hu_HU'); //Character class settings 4.3.0 and after
 //setlocale( LC_TIME, 'hu_HU'); //Date and time formatting 4.3.0 and after
 
-setlocale(LC_TIME, 'hu_HU');
+//setlocale(LC_TIME, 'hu_HU');
+setlocale( LC_ALL, 'hu_HU' );
 
 // Simple String Replacements
 $zmSlang24BitColour          = '24 bites szín';
@@ -97,8 +98,8 @@ $zmSlangAll                  = 'Mind';
 $zmSlangApply                = 'Alkalmaz';
 $zmSlangApplyingStateChange  = 'Állapot váltás...';
 $zmSlangArchArchived         = 'Csak archivált';
-$zmSlangArchive              = 'Archívum';
-$zmSlangArchived             = 'Archivált';
+$zmSlangArchive              = 'Archiválás';
+$zmSlangArchived             = 'Archívum';
 $zmSlangArchUnarchived       = 'Csak archiválatlan';
 $zmSlangArea                 = 'Terület';
 $zmSlangAreaUnits            = 'Terület (px/%)';
@@ -118,7 +119,7 @@ $zmSlangAttrMonitorId        = 'Monitor azon.';
 $zmSlangAttrMonitorName      = 'Monitor név';
 $zmSlangAttrName             = 'Név';
 $zmSlangAttrNotes            = 'Megjegyzés';
-$zmSlangAttrSystemLoad       = 'System Load';
+$zmSlangAttrSystemLoad       = 'Rendszer terhelés';
 $zmSlangAttrTime             = 'Idõ';
 $zmSlangAttrTotalScore       = 'Össz. érték';
 $zmSlangAttrWeekday          = 'Hétköznap';

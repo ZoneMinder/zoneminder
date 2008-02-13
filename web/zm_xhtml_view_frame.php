@@ -63,7 +63,6 @@ $event_path = $image_data['eventPath'];
 </tr>
 </table>
 <table>
-<tr><td><?php if ( $has_anal_image ) { ?><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $fid ?>&amp;show=<?= $image_path==$anal_image?"capt":"anal" ?>"><?php } ?><img src="<?= $thumb_image_path ?>" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $img_class ?>"/><?php if ( $has_anal_image ) { ?></a><?php } ?></td></tr>
 <tr><td><?php if ( $image_data['hasAnalImage'] ) { ?><a href="<?= $PHP_SELF ?>?view=frame&amp;eid=<?= $eid ?>&amp;fid=<?= $fid ?>&amp;show=<?= $image_data['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $image_path ?>" width="<?= reScale( $event['Width'], $scale ) ?>" height="<?= reScale( $event['Height'], $scale ) ?>" class="<?= $image_data['imageClass'] ?>"/><?php if ( $image_data['hasAnalImage'] ) { ?></a><?php } ?></td></tr>
 </table>
 <table>

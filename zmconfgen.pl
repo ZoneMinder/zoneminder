@@ -145,6 +145,10 @@ sub generateConfigSQL
 		{
 			$option->{db_value} = $option->{value};
 		}
+        if ( $option->{name} eq "ZM_DYN_CURR_VERSION" || $option->{name} eq "ZM_DYN_DB_VERSION" )
+        {
+            $option->{db_value} = '@VERSION@';
+        }
 		if ( my $requires = $option->{requires} )
 		{
 			$option->{db_requires} = join( ";", map { my $value = $_->{value}; $value = ($value eq "yes")?1:0 if ( $options_hash{$_->{name}}->{db_type} eq "boolean" ); ( "$_->{name}=$value" ) } @$requires );

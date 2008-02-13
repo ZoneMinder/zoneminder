@@ -61,7 +61,7 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -c, --cancel                   : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n" );
 	fprintf( stderr, "  -L, --reload                   : Signal monitor to reload settings\n" );
 	fprintf( stderr, "  -E, --enable                   : Enable detection, wake monitor up\n" );
-	fprintf( stderr, "  -D, --disable                  : Disble detection, put monitor to sleep\n" );
+	fprintf( stderr, "  -D, --disable                  : Disable detection, put monitor to sleep\n" );
 	fprintf( stderr, "  -u, --suspend                  : Suspend detection, useful to prevent bogus alarms when panning etc\n" );
 	fprintf( stderr, "  -r, --resume                   : Resume detection after a suspend\n" );
 	fprintf( stderr, "  -U, --username <username>      : When running in authenticated mode the username and\n" );

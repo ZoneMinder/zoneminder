@@ -131,6 +131,13 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cau
                 Error(( "Can't mkdir %s: %s", path, strerror(errno)));
             }
         }
+        char id_file[PATH_MAX];
+        // Create empty id tag file
+        snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
+        if ( FILE *id_fp = fopen( id_file, "w" ) )
+            fclose( id_fp );
+        else
+            Fatal(( "Can't fopen %s: %s", id_file, strerror(errno)));
     }
     last_db_frame = 0;
 }

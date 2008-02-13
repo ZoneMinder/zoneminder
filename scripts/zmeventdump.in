@@ -1,0 +1,46 @@
+#!/bin/bash
+#===============================================================================
+#
+#         FILE:  zmeventdump
+#
+#        USAGE:  ./zmeventdump <MonitorName>/<EventId>
+#
+#  DESCRIPTION:  Uses mysqldump to create a .sql file for individual zm
+#                events to make Event table recovery possible by doing a
+#                'find' search in ZoneMinder the events directory
+#
+#      OPTIONS:  ---  None
+# REQUIREMENTS:  ---  mysqldump
+#         BUGS:  ---
+#        NOTES:  ---
+#       AUTHOR:   Ross Melin <rdmelin@yahoo.com>
+#      COMPANY:
+#      VERSION:  2.0
+#      CREATED:  05/26/2006 06:21:00 AM PDT
+#     REVISION:  ---
+#===============================================================================
+
+# Edit these to suit your configuration
+ZM_CONFIG=@ZM_CONFIG@
+EVENTS_DIR=events
+MYSQLDUMP=/usr/bin/mysqldump
+# The rest should not need editing
+
+# Get the mysql user and password
+source $ZM_CONFIG
+
+EVENT_PATH=$1
+EVENT_ID=$(echo $1 |cut -f 2 -d / )
+MYDUMPOPTS="--user=$ZM_DB_USER --password=$ZM_DB_PASS --skip-opt --compact --quick --no-create-info"
+
+
+# Dump the sql statements needed to reload the Events, Frames and Stats tables
+
+echo "--- ZM_DB_VERSION=$ZM_VERSION
+        " >  $ZM_PATH_WEB/$EVENTS_DIR/$EVENT_PATH/.sql
+
+$MYSQLDUMP $MYDUMPOPTS --where="Id=$EVENT_ID" zm Events >> $ZM_PATH_WEB/$EVENTS_DIR/$EVENT_PATH/.sql
+$MYSQLDUMP $MYDUMPOPTS --where="Eventid=$EVENT_ID" zm Frames >> $ZM_PATH_WEB/$EVENTS_DIR/$EVENT_PATH/.sql
+$MYSQLDUMP $MYDUMPOPTS --where="Eventid=$EVENT_ID" zm Stats >> $ZM_PATH_WEB/$EVENTS_DIR/$EVENT_PATH/.sql
+
+exit 0

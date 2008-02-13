@@ -1618,7 +1618,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_DYN_DB_VERSION",
-		default => "",
+		default => "@VERSION@",
 		description => "What the version of the database is, from zmupdate",
 		help => "",
 		type => $types{string},

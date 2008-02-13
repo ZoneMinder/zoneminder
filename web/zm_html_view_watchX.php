@@ -98,7 +98,7 @@ function changeScale()
 }
 
 var streamCmdParms = "view=request&request=stream&connkey=<?= $connkey ?>";
-var streamCmdReq = new Ajax( thisUrl, { method: 'post', timeout: <?= ZM_WEB_AJAX_TIMEOUT ??>, onComplete: getStreamCmdResponse } );
+var streamCmdReq = new Ajax( thisUrl, { method: 'post', timeout: <?= ZM_WEB_AJAX_TIMEOUT ?>, onComplete: getStreamCmdResponse } );
 var streamCmdTimer = null;
 
 var alarmState = STATE_IDLE;
@@ -569,7 +569,7 @@ function eventCmdQuery()
 }
 
 var controlParms = "view=request&request=control&id=<?= $mid ?>";
-var controlReq = new Ajax( thisUrl, { method: 'post', timeout: <?= ZM_WEB_TIMEOUT ?>, onComplete: getControlResponse } );
+var controlReq = new Ajax( thisUrl, { method: 'post', timeout: <?= ZM_WEB_AJAX_TIMEOUT ?>, onComplete: getControlResponse } );
 
 function getControlResponse( respText )
 {

@@ -145,7 +145,7 @@ public:
 	bool Unzip( const Bytef *inbuffer, unsigned long inbuffer_size );
 	bool Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compression_level=Z_BEST_SPEED ) const;
 
-	bool Crop( int lo_x, int lo_y, int hi_y, int hi_y );
+	bool Crop( int lo_x, int lo_y, int hi_x, int hi_y );
 	bool Crop( const Box &limits );
 
 	void Overlay( const Image &image );

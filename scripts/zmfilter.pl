@@ -710,7 +710,7 @@ sub uploadArchFile
     my $event = shift;
 
     my $arch_file = ZM_UPLOAD_FTP_LOC_DIR.'/'.$event->{MonitorName}.'-'.$event->{Id};
-    my $arch_image_path = "$event->{MonitorId}/$event->{Id}/".((ZM_UPLOAD_ARCH_ANALYSE)?'{*analyse,*capture}':'*capture').".jpg";
+    my $arch_image_path = getEventPath( $event )."/".((ZM_UPLOAD_ARCH_ANALYSE)?'{*analyse,*capture}':'*capture').".jpg";
     my $arch_error;
 
     if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
@@ -860,14 +860,14 @@ sub substituteTags
         $text =~ s/%EPIM%/$url?view=frame&mid=$event->{MonitorId}&eid=$event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
         if ( $attachments_ref && $text =~ s/%EI1%//g )
         {
-            push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%d/%d/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event->{MonitorId}, $event->{Id}, $first_alarm_frame->{FrameId} ) } );
+            push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", getEventPath( $event ), $first_alarm_frame->{FrameId} ) } );
         }
         if ( $attachments_ref && $text =~ s/%EIM%//g )
         {
             # Don't attach the same image twice
             if ( !@$attachments_ref || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} ) )
             {
-                push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%d/%d/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event->{MonitorId}, $event->{Id}, $max_alarm_frame->{FrameId} ) } );
+                push( @$attachments_ref, { type=>"image/jpeg", path=>sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", getEventPath( $event ), $max_alarm_frame->{FrameId} ) } );
             }
         }
     }
@@ -1092,7 +1092,7 @@ sub executeCommand
     my $filter = shift;
     my $event = shift;
 
-    my $event_path = "$event->{MonitorId}/$event->{Id}";
+    my $event_path = getEventPath( $event );
 
     my $command = $filter->{AutoExecuteCmd};
     $command .= " $event_path";

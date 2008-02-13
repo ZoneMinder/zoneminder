@@ -166,15 +166,7 @@ my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->
 my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 my $event = $sth->fetchrow_hashref();
 $sth->finish();
-my $event_path;
-if ( ZM_USE_DEEP_STORAGE )
-{
-    $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) );
-}
-else
-{
-    $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id};
-}
+my $event_path = getEventPath( $event );
 chdir( $event_path );
 ( my $video_name = $event->{Name} ) =~ s/\s/_/g; 
 

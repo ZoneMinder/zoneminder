@@ -43,6 +43,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 our %EXPORT_TAGS = (
     'functions' => [ qw(
 		executeShellCommand
+		getEventPath
 		deleteEventFiles
 	) ]
 );
@@ -74,6 +75,22 @@ sub executeShellCommand( $ )
         chomp( $output );
         Debug( "Output: $output\n" );
     }
+}
+
+sub getEventPath( $ )
+{
+    my $event = shift;
+
+    my $event_path = "";
+    if ( ZM_USE_DEEP_STORAGE )
+    {
+        $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) );
+    }
+    else
+    {
+        $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id};
+    }
+    return( $event_path );
 }
 
 sub deleteEventFiles( $;$ )

@@ -174,9 +174,18 @@ else
 <td align="left">&nbsp;</td>
 <?php
 }
+if ( $cycle_count > 1 )
+{
 ?>
-<td align="center"><?= makeLink( "$PHP_SELF?view=montage", count($monitors), ( $running && canView( 'Stream' ) && $cycle_count > 1 ) ) ?></td>
+<td align="left"><?= makeLink( "$PHP_SELF?view=montage", $zmSlangMontage, $running && canView( 'Stream' ) ) ?></td>
 <?php
+}
+else
+{
+?>
+<td align="left">&nbsp;</td>
+<?php
+}
 for ( $i = 0; $i < count($event_counts); $i++ )
 {
     parseFilter( $event_counts[$i]['filter'], false, '&amp;' );

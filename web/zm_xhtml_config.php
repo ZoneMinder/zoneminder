@@ -68,7 +68,7 @@ function getDeviceScale( $width, $height, $divisor=1 )
     $width_scale = ($device_width*SCALE_BASE)/$width;
     $height_scale = ($device_height*SCALE_BASE)/$height;
     $scale = (int)(($width_scale<$height_scale)?$width_scale:$height_scale);
-    if ( divisor != 1 )
+    if ( $divisor != 1 )
         $scale = (int)($scale/$divisor);
     return( $scale );
 }

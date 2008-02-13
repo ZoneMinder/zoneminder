@@ -119,7 +119,7 @@ else
 <td align="center" class="text"><?= $zmSlangUpdateAvailable ?></td>
 </tr>
 <tr>
-<td align="center" class="text"><?= sprintf( $zmClangLatestRelease, ZM_DYN_LAST_VERSION, ZM_VERSION  ) ?></td>
+<td align="center" class="text"><?= sprintf( $zmClangLatestRelease, ZM_DYN_LAST_VERSION, ZM_VERSION ) ?></td>
 </tr>
 <tr>
 <td align="center" class="text"><?= buildSelect( "option", $options ); ?></td>

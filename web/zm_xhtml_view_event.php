@@ -52,9 +52,9 @@ elseif ( isset( $fid ) )
 }
 
 parseSort( true, '&amp;' );
-parseFilter( true, '&amp;' );
+parseFilter( $filter, true, '&amp;' );
 
-$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[$sort_field]."'".$filter['sql'].$mid_sql". order by $sort_column ".($sort_order=='asc'?'desc':'asc');
+$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[$sort_field]."'".$filter['sql'].$mid_sql." order by $sort_column ".($sort_order=='asc'?'desc':'asc');
 $result = dbQuery( $sql );
 while ( $row = dbFetchNext( $result ) )
 {
@@ -215,7 +215,7 @@ foreach ( dbFetchAll( $sql ) as $row )
 ?>
 <table style="width: 100%">
 <?php
-$scale = getDeviceScale( $event['Width'], $event['Height'], $images_per_line );
+$scale = getDeviceScale( $event['Width'], $event['Height'], $frames_per_line );
 
 $count = 0;
 if ( version_compare( phpversion(), "4.3.10", ">=") )

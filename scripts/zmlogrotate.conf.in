@@ -15,6 +15,6 @@ rotate 3
 missingok
 compress
 postrotate
-/usr/lib/zm/bin/zm_db_backup
+@BINDIR@/zmdbbackup
 endscript
 }

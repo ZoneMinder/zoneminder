@@ -227,6 +227,7 @@ AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
 
 AC_OUTPUT(Makefile src/Makefile web/Makefile web/graphics/Makefile scripts/Makefile db/Makefile)
 AC_OUTPUT(zm.conf src/zm_config.h web/zm_config.php scripts/zm db/zm_create.sql)
-AC_OUTPUT(scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm )
+AC_OUTPUT(scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm)
+AC_OUTPUT(scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf)
 
 AC_CHECK_FILE(scripts/ZoneMinder/Makefile,,[cd scripts/ZoneMinder;perl Makefile.PL])

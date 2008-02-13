@@ -147,7 +147,7 @@ User *zmLoadUser( const char *username, const char *password )
 // Function to validate an authentication string
 User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 {
-#if HAVE_LIBGNUTLS_OPENSSL
+#if HAVE_DECL_MD5
 	const char *remote_addr = "";
 	if ( use_remote_addr )
 	{
@@ -227,8 +227,8 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 			}
 		}
 	}
-#else // HAVE_LIBGNUTLS_OPENSSL
-	Error(( "You need to build with openssl installed to use hash based authentication" ));
-#endif // HAVE_LIBGNUTLS_OPENSSL
+#else // HAVE_DECL_MD5
+	Error(( "You need to build with gnutls or openssl installed to use hash based authentication" ));
+#endif // HAVE_DECL_MD5
 	return( 0 );
 }

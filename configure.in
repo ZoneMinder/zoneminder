@@ -12,6 +12,7 @@ AC_ARG_VAR(ZM_DB_HOST,[Hostname where ZoneMinder database located])
 AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database])
 AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user])
 AC_ARG_VAR(ZM_DB_PASS,[Password of ZoneMinder database user])
+AC_ARG_VAR(ZM_SSL_LIB,[Library to use for ssl functions])
 
 if test "$ZM_DB_HOST" == ""; then
 	AC_SUBST(ZM_DB_HOST,[localhost])
@@ -24,6 +25,9 @@ if test "$ZM_DB_USER" == ""; then
 fi
 if test "$ZM_DB_PASS" == ""; then
 	AC_SUBST(ZM_DB_PASS,[zmpass])
+fi
+if test "$ZM_SSL_LIB" == ""; then
+	AC_SUBST(ZM_SSL_LIB,gnutls)
 fi
 
 LIB_ARCH=lib
@@ -129,7 +133,7 @@ AC_SUBST(WEB_GROUP)
 
 ENABLE_DEBUG=yes
 AC_ARG_ENABLE(debug,
-    [  --enable-debug=<yes|no>    enable or disabled debug, default enabled],
+    [  --enable-debug=<yes|no>    enable or disable debug, default enabled],
     [ENABLE_DEBUG=$enable_debug],
     AC_MSG_WARN([You can call configure with the --enable-debug=<yes|no> or --disable-debug option.
     This tells configure whether to compile ZoneMinder with debug included. Although debug is included
@@ -182,14 +186,23 @@ AC_CHECK_HEADERS(pcre/pcre.h,,,)
 AC_CHECK_HEADERS(pcre.h,,,)
 AC_CHECK_DECLS(round,,,[#include <math.h>])
 AC_CHECK_DECLS(strsignal,,,[#include <string.h>])
+if test "$ZM_SSL_LIB" == "openssl"; then
+AC_CHECK_DECLS(MD5,,AC_MSG_ERROR(zm requires openssl/md5.h),[#include <stdlib.h>
+#include <openssl/md5.h>])
+else
 AC_CHECK_DECLS(MD5,,AC_MSG_ERROR(zm requires gnutls/openssl.h),[#include <stdlib.h>
 #include <gnutls/openssl.h>])
+fi
 AC_CHECK_DECLS(backtrace,,,[#include <execinfo.h>])
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(z,compress,,AC_MSG_ERROR(zm requires libz.a))
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 AC_CHECK_LIB(mysqlclient,mysql_init,,AC_MSG_ERROR(zm requires libmysqlclient.a))
+if test "$ZM_SSL_LIB" == "openssl"; then
+AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN(libcrypto.a is required for authenticated streaming))
+else
 AC_CHECK_LIB(gnutls-openssl,MD5,,AC_MSG_WARN(gnutls-openssl.a is required for authenticated streaming))
+fi
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
 AC_CHECK_LIB(avutil,ff_gcd,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
 AC_CHECK_LIB(avcodec,avcodec_init,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))

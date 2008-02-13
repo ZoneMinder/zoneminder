@@ -25,7 +25,9 @@
 
 #if HAVE_LIBGNUTLS_OPENSSL
 #include <gnutls/openssl.h>
-#endif // HAVE_LIBGNUTLS_OPENSSL
+#elif HAVE_LIBCRYPTO
+#include <openssl/md5.h>
+#endif // HAVE_LIBGNUTLS_OPENSSL || HAVE_LIBCRYPTO
 
 class User
 {

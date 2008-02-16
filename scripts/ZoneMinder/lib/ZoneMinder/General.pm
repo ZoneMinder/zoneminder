@@ -64,6 +64,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Debug qw(:all);
 
+use POSIX;
+
 sub executeShellCommand( $ )
 {
     my $command = shift;

@@ -45,12 +45,6 @@ require_once( 'zm_lang.php' );
 require_once( 'zm_funcs.php' );
 require_once( 'zm_xhtml_config.php' );
 
-noCacheHeaders();
-header("Content-type: application/xhtml+xml" );
-
-echo( '<?xml version="1.0" encoding="iso-8859-1"?>'."\n" ); 
-echo( '<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">'."\n" );
-
 ob_start();
 
 if ( !isset($user) && ZM_OPT_USE_AUTH )

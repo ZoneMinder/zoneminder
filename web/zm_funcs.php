@@ -166,6 +166,22 @@ function getStreamSrc( $args )
 	return( $stream_src );
 }
 
+function getMimeType( $file )
+{
+    if ( function_exists('mime_content_type ') )
+    {
+        return( mime_content_type( $file ) );
+    }
+    elseif ( function_exists('finfo_file ') )
+    {
+        $finfo = finfo_open( FILEINFO_MIME );
+        $mimetype = finfo_file( $finfo, $file );
+        finfo_close($finfo);
+        return( $mimetype );
+    }
+    return( trim( exec( 'file -bi '.escapeshellarg( $file ) ) ) );
+}
+
 function outputVideoStream( $src, $width, $height, $name, $format )
 {
 	switch ( $format )

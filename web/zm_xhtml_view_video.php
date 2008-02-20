@@ -123,12 +123,18 @@ if ( $dir = opendir( $event_path ) )
 
 if ( isset($download) )
 {
+    header( "Content-type: ".getMimeType($video_files[$download]));
+    header( "Content-length: ".filesize($video_files[$download]));
 	header( "Content-disposition: attachment; filename=".preg_replace( "/^.*\//", "", $video_files[$download] )."; size=".filesize($video_files[$download]) );
 	readfile( $video_files[$download] );
 	exit;
 }
 
+noCacheHeaders();
+header("Content-type: application/xhtml+xml" );
+echo( '<?xml version="1.0" encoding="iso-8859-1"?>'."\n" );
 ?>
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $zmSlangVideo ?> - <?= $event['Name'] ?></title>

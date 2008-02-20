@@ -83,7 +83,12 @@ $prev_mid = $mon_idx==0?$mon_index[(count($monitors)-1)]['Id']:$monitors[$mon_id
 $scale = getDeviceScale( $monitor['Width'], $monitor['Height'] );
 
 $image_src = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
+
+noCacheHeaders();
+header("Content-type: application/xhtml+xml" );
+echo( '<?xml version="1.0" encoding="iso-8859-1"?>'."\n" );
 ?>
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $monitor['Name'] ?> - <?= $zmSlangWatch ?></title>

@@ -187,10 +187,10 @@ AC_CHECK_HEADERS(pcre.h,,,)
 AC_CHECK_DECLS(round,,,[#include <math.h>])
 AC_CHECK_DECLS(strsignal,,,[#include <string.h>])
 if test "$ZM_SSL_LIB" == "openssl"; then
-AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires openssl/md5.h, use ZM_SSL_LIB option to select gnutls instead]),[#include <stdlib.h>
+AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires openssl/md5.h - use ZM_SSL_LIB option to select gnutls instead]),[#include <stdlib.h>
 #include <openssl/md5.h>])
 else
-AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires gnutls/openssl.h, use ZM_SSL_LIB option to select openssl instead]),[#include <stdlib.h>
+AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires gnutls/openssl.h - use ZM_SSL_LIB option to select openssl instead]),[#include <stdlib.h>
 #include <gnutls/openssl.h>])
 fi
 AC_CHECK_DECLS(backtrace,,,[#include <execinfo.h>])
@@ -199,9 +199,9 @@ AC_CHECK_LIB(z,compress,,AC_MSG_ERROR(zm requires libz.a))
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 AC_CHECK_LIB(mysqlclient,mysql_init,,AC_MSG_ERROR(zm requires libmysqlclient.a))
 if test "$ZM_SSL_LIB" == "openssl"; then
-AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN([libcrypto.a is required for authenticated streaming, use ZM_SSL_LIB option to select gnutls instead]))
+AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN([libcrypto.a is required for authenticated streaming - use ZM_SSL_LIB option to select gnutls instead]))
 else
-AC_CHECK_LIB(gnutls-openssl,MD5,,AC_MSG_WARN([gnutls-openssl.a is required for authenticated streaming, use ZM_SSL_LIB option to select openssl instead]))
+AC_CHECK_LIB(gnutls-openssl,MD5,,AC_MSG_WARN([gnutls-openssl.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
 fi
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
 AC_CHECK_LIB(avutil,ff_gcd,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))

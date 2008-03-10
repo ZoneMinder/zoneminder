@@ -423,21 +423,21 @@ foreach( $monitors as $monitor )
 <td align="left" class="text">&nbsp;</td>
 <?php } ?>
 <?php
-for ( $i = 0; $i < count($event_counts); $i++ )
-{
+    for ( $i = 0; $i < count($event_counts); $i++ )
+    {
 ?>
 <td align="right" class="text"><?= makeLink( "javascript: scrollWindow( '$PHP_SELF?view=$events_view&page=1".$monitor['event_counts'][$i]['filter']['query']."', '$events_window', ".$jws[$events_view]['w'].", ".$jws[$events_view]['h']." );", $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
 <?php
-}
+    }
 ?>
 <td align="right" class="text"><?= makeLink( "javascript: newWindow( '$PHP_SELF?view=zones&mid=".$monitor['Id']."', 'zmZones', ".($monitor['Width']+$jws['zones']['w']).", ".($monitor['Height']+$jws['zones']['h'])." );", $monitor['ZoneCount'], canView( 'Monitors' ) ) ?></td>
 <?php
-if ( canEdit('Monitors') )
-{
+    if ( canEdit('Monitors') )
+    {
 ?>
 <td align="center" class="text"><?= makeLink( "$PHP_SELF?view=$view&action=sequence&mid=".$monitor['Id']."&smid=".$seq_id_u_list[$monitor['Id']], '<img src="graphics/seq-u.gif" alt="" width="12" height="11" border="0">', $monitor['Sequence']>$min_sequence ) ?><?= makeLink( "$PHP_SELF?view=$view&action=sequence&mid=".$monitor['Id']."&smid=".$seq_id_d_list[$monitor['Id']], '<img src="graphics/seq-d.gif" alt="" width="12" height="11" border="0">', $monitor['Sequence']<$max_sequence ) ?></td>
 <?php
-}
+    }
 ?>
 <td align="center" class="text"><input type="checkbox" name="mark_mids[]" value="<?= $monitor['Id'] ?>" onClick="configureButton( document.monitor_form, 'mark_mids' );"<?php if ( !canEdit( 'Monitors' ) || $user['MonitorIds'] ) {?> disabled<?php } ?>></td>
 </tr>

@@ -159,9 +159,7 @@ if ( !empty($action) )
 		{
 			$monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = '$mid'" );
 
-			$ctrl_command = "zmcontrol.pl";
-			if ( !preg_match( '/^\//', $ctrl_command ) )
-				$ctrl_command = ZM_PATH_BIN.'/'.$ctrl_command;
+            $ctrl_command = ZM_PATH_BIN."/zmcontrol.pl";
 
 			if ( isset($x) && isset($y) )
 			{

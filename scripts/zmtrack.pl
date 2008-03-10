@@ -142,31 +142,26 @@ sub Track
 	my ( $x, $y ) = @_;
 	my ( $detaint_x ) = $x =~ /^(\d+)$/; $x = $detaint_x;
 	my ( $detaint_y ) = $y =~ /^(\d+)$/; $y = $detaint_y;
-	my $move_cmd = $monitor->{Command};
-	$move_cmd = ZM_PATH_BIN.'/'.$move_cmd if ( $move_cmd !~ m|^/| );
-	$move_cmd .= " --device=".$monitor->{ControlDevice} if ( $monitor->{ControlDevice} );
-	$move_cmd .= " --address=".$monitor->{ControlAddress} if ( $monitor->{ControlAddress} );
-	$move_cmd .= " --command=".($monitor->{CanMoveMap}?"move_map":"move_pseudo_map")." --xcoord=$x --ycoord=$y --width=".$monitor->{Width}." --height=".$monitor->{Height};
-	qx( $move_cmd );
+
+    my $ctrlCommand = ZM_PATH_BIN."/zmcontrol.pl -i ".$monitor->{Id};
+	$ctrlCommand .= " --command=".($monitor->{CanMoveMap}?"moveMap":"movePseudoMap")." --xcoord=$x --ycoord=$y";
+	executeShellCommand( $ctrlCommand );
 }
 
 sub Return
 {
 	my $monitor = shift;
-	my $move_cmd = $monitor->{Command};
-	$move_cmd = ZM_PATH_BIN.'/'.$move_cmd if ( $move_cmd !~ m|^/| );
-	$move_cmd .= " --device=".$monitor->{ControlDevice} if ( $monitor->{ControlDevice} );
-	$move_cmd .= " --address=".$monitor->{ControlAddress} if ( $monitor->{ControlAddress} );
-	$move_cmd .= " --command=".($monitor->{ReturnLocation}?"preset_1":"preset_home");
+
+    my $ctrlCommand = ZM_PATH_BIN."/zmcontrol.pl -i ".$monitor->{Id};
 	if ( $monitor->{ReturnLocation} > 0 )
 	{
-		$move_cmd .= " --command=preset_goto --preset=".$monitor->{ReturnLocation};
+		$ctrlCommand .= " --command=presetGoto --preset=".$monitor->{ReturnLocation};
 	}
 	else
 	{
-		$move_cmd .= " --command=preset_home";
+		$ctrlCommand .= " --command=presetHome";
 	}
-	qx( $move_cmd );
+	executeShellCommand( $ctrlCommand );
 }
 
 my $last_alarm = 0;

@@ -1339,7 +1339,7 @@ function parseFilter( &$filter, $save_to_session=false, $term_sep='&' )
 
 				$filter['query'] .= $term_sep."filter[terms][$i][op]=".urlencode($filter['terms'][$i]['op']);
 				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][op]\" value=\"".htmlspecialchars($filter['terms'][$i]['op'])."\"/>\n";
-				$filter['query'] .= $term_sep."filter[terms][$i][val]=".urlencode(urlencode($filter['terms'][$i]['val']));
+				$filter['query'] .= $term_sep."filter[terms][$i][val]=".urlencode($filter['terms'][$i]['val']);
 				$filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][val]\" value=\"".htmlspecialchars($filter['terms'][$i]['val'])."\"/>\n";
 			}
 			if ( isset($filter['terms'][$i]['cbr']) )

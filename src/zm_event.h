@@ -70,7 +70,7 @@ protected:
 	static PreAlarmData pre_alarm_data[MAX_PRE_ALARM_FRAMES];
 
 protected:
-	int				id;
+	unsigned int	id;
 	Monitor			*monitor;
 	struct timeval	start_time;
 	struct timeval	end_time;

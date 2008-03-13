@@ -42,7 +42,7 @@ char Event::analyse_file_format[PATH_MAX];
 char Event::general_file_format[PATH_MAX];
 
 int Event::pre_alarm_count = 0;
-Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = { 0 };
+Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = { { 0 } };
 
 Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cause, const char *p_text ) : monitor( p_monitor ), start_time( p_start_time )
 {
@@ -151,7 +151,7 @@ Event::~Event()
 
         Debug( 1, ( "Adding closing frame %d to DB", frames ));
         static char sql[BUFSIZ];
-        snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %d ), %s%ld.%02ld )", id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+        snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )", id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
         if ( mysql_query( &dbconn, sql ) )
         {
             Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
@@ -351,7 +351,7 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
         DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time, DT_PREC_2 );
 
         int sql_len = strlen(sql);
-        snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %d, %d, from_unixtime(%d), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+        snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %d, %d, from_unixtime(%ld), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
     }
 
     Debug( 1, ( "Adding %d frames to DB", n_frames ));
@@ -386,7 +386,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
         Debug( 1, ( "Adding frame %d to DB", frames ));
         static char sql[BUFSIZ];
-        snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %d ), %s%ld.%02ld, %d )", id, frames, frame_type, timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
+        snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type, timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
         if ( mysql_query( &dbconn, sql ) )
         {
             Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
@@ -471,7 +471,7 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
 {
     static char sql[BUFSIZ];
 
-    snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %d and unix_timestamp( EndTime ) > %d order by Id asc limit 1", monitor_id, event_time );
+    snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %d and unix_timestamp( EndTime ) > %ld order by Id asc limit 1", monitor_id, event_time );
 
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -505,7 +505,6 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
         curr_frame_id = 1;
         if ( event_time >= event_data->start_time )
         {
-            double total_delta = 0.0;
             for ( int i = 0; i < event_data->frame_count; i++ )
             {
                 //Info(( "eft %d > et %d", event_data->frames[i].timestamp, event_time ));
@@ -517,7 +516,7 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
                     break;
                 }
             }
-            Debug( 3, ( "Skipping %d frames", event_data->frame_count ));
+            Debug( 3, ( "Skipping %ld frames", event_data->frame_count ));
         }
     }
     return( true );
@@ -580,11 +579,11 @@ bool EventStream::loadEventData( int event_id )
     if ( config.use_deep_storage )
     {
         struct tm *event_time = localtime( &event_data->start_time );
-        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%d/%02d/%02d/%02d/%02d/%02d/%02d", ZM_PATH_WEB, config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", ZM_PATH_WEB, config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
     }
     else
     {
-        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%d/%d", ZM_PATH_WEB, config.dir_events, event_data->monitor_id, event_data->event_id );
+        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", ZM_PATH_WEB, config.dir_events, event_data->monitor_id, event_data->event_id );
     }
     event_data->frame_count = atoi(dbrow[2]);
     event_data->duration = atof(dbrow[4]);
@@ -612,8 +611,8 @@ bool EventStream::loadEventData( int event_id )
     event_data->frames = new FrameData[event_data->frame_count];
     int id, last_id = 0;
     time_t timestamp, last_timestamp = event_data->start_time;
-    double delta, first_delta, last_delta = 0.0;
-    while ( dbrow = mysql_fetch_row( result ) )
+    double delta, last_delta = 0.0;
+    while ( ( dbrow = mysql_fetch_row( result ) ) )
     {
         id = atoi(dbrow[0]);
         timestamp = atoi(dbrow[1]);
@@ -658,14 +657,14 @@ bool EventStream::loadEventData( int event_id )
         else
             curr_stream_time = event_data->frames[event_data->frame_count-1].timestamp;
     }
-    Debug( 2, ( "Event:%d, Frames:%d, Duration: %.2f", event_data->event_id, event_data->frame_count, event_data->duration ));
+    Debug( 2, ( "Event:%ld, Frames:%ld, Duration: %.2f", event_data->event_id, event_data->frame_count, event_data->duration ));
 
     return( true );
 }
 
 void EventStream::processCommand( const CmdMsg *msg )
 {
-    Debug( 2, ( "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] ))
+    Debug( 2, ( "Got message, type %ld, msg %d", msg->msg_type, msg->msg_data[0] ))
     // Check for incoming command
     switch( (MsgCommand)msg->msg_data[0] )
     {
@@ -873,6 +872,10 @@ void EventStream::processCommand( const CmdMsg *msg )
             Debug( 1, ( "Got QUERY command, sending STATUS" ));
             break;
         }
+        default :
+        {
+            // Do nothing, for now
+        }
     }
     struct {
         int event;
@@ -887,7 +890,7 @@ void EventStream::processCommand( const CmdMsg *msg )
     status_data.progress = event_data->frames[curr_frame_id-1].offset;
     status_data.rate = replay_rate;
     status_data.zoom = zoom;
-    Debug( 2, ( "E:%d, P:%d, p:%d R:%d, Z:%d",
+    Debug( 2, ( "E:%d, P:%d, p:%ld R:%d, Z:%d",
         status_data.event,
         status_data.paused,
         status_data.progress,
@@ -957,12 +960,12 @@ mysql_free_result( $result );
 #endif
     if ( curr_frame_id <= 0 )
     {
-        snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %d and Id < %d order by Id desc limit 1", event_data->monitor_id, event_data->event_id );
+        snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %ld and Id < %ld order by Id desc limit 1", event_data->monitor_id, event_data->event_id );
         reload_event = true;
     }
     else if ( curr_frame_id > event_data->frame_count )
     {
-        snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %d and Id > %d order by Id asc limit 1", event_data->monitor_id, event_data->event_id );
+        snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %ld and Id > %ld order by Id asc limit 1", event_data->monitor_id, event_data->event_id );
         reload_event = true;
     }
 
@@ -1046,7 +1049,7 @@ void EventStream::sendFrame( int delta_us )
             fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType() );
             vid_stream->OpenStream();
         }
-        double pts = vid_stream->EncodeFrame( send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_us*1000 );
+        /* double pts = */ vid_stream->EncodeFrame( send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_us*1000 );
     }
     else
 #endif // HAVE_LIBAVCODEC
@@ -1096,6 +1099,9 @@ void EventStream::sendFrame( int delta_us )
                     send_image->Zip( img_buffer, &zip_buffer_size );
                     img_buffer_size = zip_buffer_size;
                     break;
+                default:
+                    Fatal(( "Unexpected frame type %d", type ));
+                    break;
             }
         }
 
@@ -1109,6 +1115,9 @@ void EventStream::sendFrame( int delta_us )
                 break;
             case STREAM_ZIP :
                 fprintf( stdout, "Content-Type: image/x-rgbz\r\n" );
+                break;
+            default :
+                Fatal(( "Unexpected frame type %d", type ));
                 break;
         }
         fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
@@ -1141,7 +1150,7 @@ void EventStream::runStream()
     unsigned int delta_us = 0;
     while( !zm_terminate )
     {
-        gettimeofday( &now, &dummy_tz );
+        gettimeofday( &now, NULL );
 
         checkCommandQueue();
 

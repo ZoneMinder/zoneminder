@@ -27,6 +27,7 @@
 #define MAX_JPEG_ERRS 25
 
 static int jpeg_err_count = 0;
+
 void zm_jpeg_error_exit( j_common_ptr cinfo )
 {
 	static char buffer[JMSG_LENGTH_MAX];
@@ -76,18 +77,18 @@ void zm_jpeg_emit_message( j_common_ptr cinfo, int msg_level )
 
 /* Expanded data destination object for memory */
 
-typedef struct {
-  struct jpeg_destination_mgr pub; /* public fields */
+typedef struct
+{
+    struct jpeg_destination_mgr pub; /* public fields */
 
-  JOCTET *outbuffer;		/* target buffer */
-  int    *outbuffer_size;
-  JOCTET *buffer;		/* start of buffer */
+    JOCTET *outbuffer;		/* target buffer */
+    int   *outbuffer_size;
+    JOCTET *buffer;		/* start of buffer */
 } mem_destination_mgr;
 
 typedef mem_destination_mgr * mem_dest_ptr;
 
 #define OUTPUT_BUF_SIZE  4096	/* choose an efficiently fwrite'able size */
-
 
 /*
  * Initialize destination --- called by jpeg_start_compress
@@ -96,17 +97,15 @@ typedef mem_destination_mgr * mem_dest_ptr;
 
 static void init_destination (j_compress_ptr cinfo)
 {
-  mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
+    mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
 
-  /* Allocate the output buffer --- it will be released when done with image */
-  dest->buffer = (JOCTET *)
-      (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				  OUTPUT_BUF_SIZE * SIZEOF(JOCTET));
+    /* Allocate the output buffer --- it will be released when done with image */
+    dest->buffer = (JOCTET *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE, OUTPUT_BUF_SIZE * SIZEOF(JOCTET));
 
-  dest->pub.next_output_byte = dest->buffer;
-  dest->pub.free_in_buffer = OUTPUT_BUF_SIZE;
+    dest->pub.next_output_byte = dest->buffer;
+    dest->pub.free_in_buffer = OUTPUT_BUF_SIZE;
 
-  *(dest->outbuffer_size) = 0;
+    *(dest->outbuffer_size) = 0;
 }
 
 
@@ -135,17 +134,16 @@ static void init_destination (j_compress_ptr cinfo)
 
 static boolean empty_output_buffer (j_compress_ptr cinfo)
 {
-  mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
+    mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
 
-  memcpy( dest->outbuffer+*(dest->outbuffer_size), dest->buffer, OUTPUT_BUF_SIZE );
-  *(dest->outbuffer_size) += OUTPUT_BUF_SIZE;
+    memcpy( dest->outbuffer+*(dest->outbuffer_size), dest->buffer, OUTPUT_BUF_SIZE );
+    *(dest->outbuffer_size) += OUTPUT_BUF_SIZE;
 
-  dest->pub.next_output_byte = dest->buffer;
-  dest->pub.free_in_buffer = OUTPUT_BUF_SIZE;
+    dest->pub.next_output_byte = dest->buffer;
+    dest->pub.free_in_buffer = OUTPUT_BUF_SIZE;
 
-  return TRUE;
+    return( TRUE );
 }
-
 
 /*
  * Terminate destination --- called by jpeg_finish_compress
@@ -158,13 +156,14 @@ static boolean empty_output_buffer (j_compress_ptr cinfo)
 
 static void term_destination (j_compress_ptr cinfo)
 {
-  mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
-  size_t datacount = OUTPUT_BUF_SIZE - dest->pub.free_in_buffer;
+    mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
+    size_t datacount = OUTPUT_BUF_SIZE - dest->pub.free_in_buffer;
 
-  if (datacount > 0) {
-    memcpy( dest->outbuffer+*(dest->outbuffer_size), dest->buffer, datacount );
-    *(dest->outbuffer_size) += datacount;
-  }
+    if ( datacount > 0 )
+    {
+        memcpy( dest->outbuffer+*(dest->outbuffer_size), dest->buffer, datacount );
+        *(dest->outbuffer_size) += datacount;
+    }
 }
 
 
@@ -176,45 +175,45 @@ static void term_destination (j_compress_ptr cinfo)
 
 void jpeg_mem_dest (j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_size )
 {
-  mem_dest_ptr dest;
+    mem_dest_ptr dest;
 
-  /* The destination object is made permanent so that multiple JPEG images
-   * can be written to the same file without re-executing jpeg_stdio_dest.
-   * This makes it dangerous to use this manager and a different destination
-   * manager serially with the same JPEG object, because their private object
-   * sizes may be different.  Caveat programmer.
-   */
-  if (cinfo->dest == NULL) {	/* first time for this JPEG object? */
-    cinfo->dest = (struct jpeg_destination_mgr *)
-      (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				  SIZEOF(mem_destination_mgr));
-  }
+    /* The destination object is made permanent so that multiple JPEG images
+     * can be written to the same file without re-executing jpeg_stdio_dest.
+     * This makes it dangerous to use this manager and a different destination
+     * manager serially with the same JPEG object, because their private object
+     * sizes may be different.  Caveat programmer.
+     */
+    if ( cinfo->dest == NULL )
+    {
+        /* first time for this JPEG object? */
+        cinfo->dest = (struct jpeg_destination_mgr *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, SIZEOF(mem_destination_mgr));
+    }
 
-  dest = (mem_dest_ptr) cinfo->dest;
-  dest->pub.init_destination = init_destination;
-  dest->pub.empty_output_buffer = empty_output_buffer;
-  dest->pub.term_destination = term_destination;
-  dest->outbuffer = outbuffer;
-  dest->outbuffer_size = outbuffer_size;
+    dest = (mem_dest_ptr) cinfo->dest;
+    dest->pub.init_destination = init_destination;
+    dest->pub.empty_output_buffer = empty_output_buffer;
+    dest->pub.term_destination = term_destination;
+    dest->outbuffer = outbuffer;
+    dest->outbuffer_size = outbuffer_size;
 }
 
 /* Expanded data source object for memory input */
 
-typedef struct {
-  struct jpeg_source_mgr pub;	/* public fields */
+typedef struct
+{
+    struct jpeg_source_mgr pub;	/* public fields */
 
-  JOCTET * inbuffer;		/* source stream */
-  int    inbuffer_size;
-  int    inbuffer_size_hwm; /* High water mark */
+    JOCTET * inbuffer;		/* source stream */
+    int    inbuffer_size;
+    int    inbuffer_size_hwm; /* High water mark */
 
-  JOCTET * buffer;		/* start of buffer */
-  boolean start_of_data;	/* have we gotten any data yet? */
+    JOCTET * buffer;		/* start of buffer */
+    boolean start_of_data;	/* have we gotten any data yet? */
 } mem_source_mgr;
 
 typedef mem_source_mgr * mem_src_ptr;
 
 #define INPUT_BUF_SIZE  4096	/* choose an efficiently fread'able size */
-
 
 /*
  * Initialize source --- called by jpeg_read_header
@@ -223,14 +222,14 @@ typedef mem_source_mgr * mem_src_ptr;
 
 static void init_source (j_decompress_ptr cinfo)
 {
-  mem_src_ptr src = (mem_src_ptr) cinfo->src;
+    mem_src_ptr src = (mem_src_ptr) cinfo->src;
 
-  /* We reset the empty-input-file flag for each image,
-   * but we don't clear the input buffer.
-   * This is correct behavior for reading a series of images from one source.
-   */
-  src->start_of_data = TRUE;
-  src->pub.bytes_in_buffer = 0;
+    /* We reset the empty-input-file flag for each image,
+     * but we don't clear the input buffer.
+     * This is correct behavior for reading a series of images from one source.
+     */
+    src->start_of_data = TRUE;
+    src->pub.bytes_in_buffer = 0;
 }
 
 
@@ -269,27 +268,28 @@ static void init_source (j_decompress_ptr cinfo)
 
 static boolean fill_input_buffer (j_decompress_ptr cinfo)
 {
-  mem_src_ptr src = (mem_src_ptr) cinfo->src;
-  size_t nbytes;
+    mem_src_ptr src = (mem_src_ptr) cinfo->src;
+    size_t nbytes;
 
-  memcpy( src->buffer, src->inbuffer, (size_t) src->inbuffer_size );
-  nbytes = src->inbuffer_size;
+    memcpy( src->buffer, src->inbuffer, (size_t) src->inbuffer_size );
+    nbytes = src->inbuffer_size;
 
-  if (nbytes <= 0) {
-    if (src->start_of_data)	/* Treat empty input file as fatal error */
-      ERREXIT(cinfo, JERR_INPUT_EMPTY);
-    WARNMS(cinfo, JWRN_JPEG_EOF);
-    /* Insert a fake EOI marker */
-    src->buffer[0] = (JOCTET) 0xFF;
-    src->buffer[1] = (JOCTET) JPEG_EOI;
-    nbytes = 2;
-  }
+    if ( nbytes <= 0 )
+    {
+        if ( src->start_of_data )	/* Treat empty input file as fatal error */
+            ERREXIT(cinfo, JERR_INPUT_EMPTY);
+        WARNMS(cinfo, JWRN_JPEG_EOF);
+        /* Insert a fake EOI marker */
+        src->buffer[0] = (JOCTET) 0xFF;
+        src->buffer[1] = (JOCTET) JPEG_EOI;
+        nbytes = 2;
+    }
 
-  src->pub.next_input_byte = src->buffer;
-  src->pub.bytes_in_buffer = nbytes;
-  src->start_of_data = FALSE;
+    src->pub.next_input_byte = src->buffer;
+    src->pub.bytes_in_buffer = nbytes;
+    src->start_of_data = FALSE;
 
-  return TRUE;
+  return( TRUE );
 }
 
 
@@ -307,23 +307,25 @@ static boolean fill_input_buffer (j_decompress_ptr cinfo)
 
 static void skip_input_data (j_decompress_ptr cinfo, long num_bytes)
 {
-  mem_src_ptr src = (mem_src_ptr) cinfo->src;
+    mem_src_ptr src = (mem_src_ptr) cinfo->src;
 
-  /* Just a dumb implementation for now.  Could use fseek() except
-   * it doesn't work on pipes.  Not clear that being smart is worth
-   * any trouble anyway --- large skips are infrequent.
-   */
-  if (num_bytes > 0) {
-    while (num_bytes > (long) src->pub.bytes_in_buffer) {
-      num_bytes -= (long) src->pub.bytes_in_buffer;
-      (void) fill_input_buffer(cinfo);
-      /* note we assume that fill_input_buffer will never return FALSE,
-       * so suspension need not be handled.
-       */
+    /* Just a dumb implementation for now.  Could use fseek() except
+     * it doesn't work on pipes.  Not clear that being smart is worth
+     * any trouble anyway --- large skips are infrequent.
+     */
+    if ( num_bytes > 0 )
+    {
+        while ( num_bytes > (long) src->pub.bytes_in_buffer )
+        {
+            num_bytes -= (long) src->pub.bytes_in_buffer;
+            (void) fill_input_buffer(cinfo);
+            /* note we assume that fill_input_buffer will never return FALSE,
+             * so suspension need not be handled.
+             */
+        }
+        src->pub.next_input_byte += (size_t) num_bytes;
+        src->pub.bytes_in_buffer -= (size_t) num_bytes;
     }
-    src->pub.next_input_byte += (size_t) num_bytes;
-    src->pub.bytes_in_buffer -= (size_t) num_bytes;
-  }
 }
 
 
@@ -338,7 +340,7 @@ static void skip_input_data (j_decompress_ptr cinfo, long num_bytes)
 
 static void term_source (j_decompress_ptr cinfo)
 {
-  /* no work necessary here */
+    /* no work necessary here */
 }
 
 
@@ -350,47 +352,41 @@ static void term_source (j_decompress_ptr cinfo)
 
 void jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuffer_size )
 {
-  mem_src_ptr src;
+    mem_src_ptr src;
 
-  /* The source object and input buffer are made permanent so that a series
-   * of JPEG images can be read from the same file by calling jpeg_mem_src
-   * only before the first one.  (If we discarded the buffer at the end of
-   * one image, we'd likely lose the start of the next one.)
-   * This makes it unsafe to use this manager and a different source
-   * manager serially with the same JPEG object.  Caveat programmer.
-   */
-  if (cinfo->src == NULL)
-  {
-  	/* first time for this JPEG object? */
-    cinfo->src = (struct jpeg_source_mgr *)
-      (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				  SIZEOF(mem_source_mgr));
-    src = (mem_src_ptr) cinfo->src;
-    src->buffer = (JOCTET *)
-      (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				  inbuffer_size * SIZEOF(JOCTET));
-	src->inbuffer_size_hwm = inbuffer_size;
-  }
-  else
-  {
-    src = (mem_src_ptr) cinfo->src;
-	if ( src->inbuffer_size_hwm < inbuffer_size )
-	{
-      src->buffer = (JOCTET *)
-        (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				    inbuffer_size * SIZEOF(JOCTET));
-	  src->inbuffer_size_hwm = inbuffer_size;
-	}
-  }
+    /* The source object and input buffer are made permanent so that a series
+     * of JPEG images can be read from the same file by calling jpeg_mem_src
+     * only before the first one.  (If we discarded the buffer at the end of
+     * one image, we'd likely lose the start of the next one.)
+     * This makes it unsafe to use this manager and a different source
+     * manager serially with the same JPEG object.  Caveat programmer.
+     */
+    if ( cinfo->src == NULL )
+    {
+  	    /* first time for this JPEG object? */
+        cinfo->src = (struct jpeg_source_mgr *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, SIZEOF(mem_source_mgr));
+        src = (mem_src_ptr) cinfo->src;
+        src->buffer = (JOCTET *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, inbuffer_size * SIZEOF(JOCTET));
+	    src->inbuffer_size_hwm = inbuffer_size;
+    }
+    else
+    {
+        src = (mem_src_ptr) cinfo->src;
+	    if ( src->inbuffer_size_hwm < inbuffer_size )
+	    {
+            src->buffer = (JOCTET *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, inbuffer_size * SIZEOF(JOCTET));
+	        src->inbuffer_size_hwm = inbuffer_size;
+	    }
+    }
 
-  src = (mem_src_ptr) cinfo->src;
-  src->pub.init_source = init_source;
-  src->pub.fill_input_buffer = fill_input_buffer;
-  src->pub.skip_input_data = skip_input_data;
-  src->pub.resync_to_restart = jpeg_resync_to_restart; /* use default method */
-  src->pub.term_source = term_source;
-  src->inbuffer = inbuffer;
-  src->inbuffer_size = inbuffer_size;
-  src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
-  src->pub.next_input_byte = NULL; /* until buffer loaded */
+    src = (mem_src_ptr) cinfo->src;
+    src->pub.init_source = init_source;
+    src->pub.fill_input_buffer = fill_input_buffer;
+    src->pub.skip_input_data = skip_input_data;
+    src->pub.resync_to_restart = jpeg_resync_to_restart; /* use default method */
+    src->pub.term_source = term_source;
+    src->inbuffer = (JOCTET *)inbuffer;
+    src->inbuffer_size = inbuffer_size;
+    src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
+    src->pub.next_input_byte = NULL; /* until buffer loaded */
 }

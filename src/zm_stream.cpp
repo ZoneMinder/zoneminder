@@ -94,9 +94,6 @@ bool StreamBase::checkCommandQueue()
 
 Image *StreamBase::prepareImage( Image *image )
 {
-	int img_buffer_size = 0;
-	static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
-
     static int last_scale = 0;
     static int last_zoom = 0;
     static int last_x = 0;
@@ -247,7 +244,7 @@ void StreamBase::sendTextFrame( const char *frame_text )
             fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType() );
             vid_stream->OpenStream();
         }
-        double pts = vid_stream->EncodeFrame( image.Buffer(), image.Size() );
+        /* double pts = */ vid_stream->EncodeFrame( image.Buffer(), image.Size() );
     }
     else
 #endif // HAVE_LIBAVCODEC

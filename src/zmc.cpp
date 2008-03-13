@@ -187,7 +187,6 @@ int main( int argc, char *argv[] )
 
 	sigset_t block_set;
 	sigemptyset( &block_set );
-	struct sigaction action, old_action;
 
 	sigaddset( &block_set, SIGUSR1 );
 	sigaddset( &block_set, SIGUSR2 );
@@ -218,7 +217,7 @@ int main( int argc, char *argv[] )
 		{
 			long min_delay = MAXINT;
 
-			gettimeofday( &now, &dummy_tz );
+			gettimeofday( &now, NULL );
 			for ( int j = 0; j < n_monitors; j++ )
 			{
 				if ( last_capture_times[j].tv_sec )
@@ -256,7 +255,7 @@ int main( int argc, char *argv[] )
 
 				if ( next_delays[i] > 0 )
 				{
-					gettimeofday( &now, &dummy_tz );
+					gettimeofday( &now, NULL );
 					DELTA_TIMEVAL( delta_time, now, last_capture_times[i], DT_PREC_3 );
 					long sleep_time = next_delays[i]-delta_time.delta;
 					if ( sleep_time > 0 )
@@ -264,7 +263,7 @@ int main( int argc, char *argv[] )
 						usleep( sleep_time*(DT_MAXGRAN/DT_PREC_3) );
 					}
 				}
-				gettimeofday( &(last_capture_times[i]), &dummy_tz );
+				gettimeofday( &(last_capture_times[i]), NULL );
 			}
 		}
 		sigprocmask( SIG_UNBLOCK, &block_set, 0 );

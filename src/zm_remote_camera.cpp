@@ -539,6 +539,11 @@ int RemoteCamera::GetResponse()
 					Debug( 3, ( "Returning %d (%d) bytes of captured content", content_length, buffer.Size() ));
 					return( content_length );
 				}
+                default :
+                {
+                    Error(( "Unexpected content parsing state %d", state ));
+                    break;
+                }
 			}
 		}
 	}
@@ -660,7 +665,7 @@ int RemoteCamera::GetResponse()
 						}
 
 						Debug( 6, ( header_ptr ));
-						if ( crlf = mempbrk( header_ptr, "\r\n", header_len ) )
+						if ( ( crlf = mempbrk( header_ptr, "\r\n", header_len ) ) )
 						{
 							headers[n_headers++] = header_ptr;
 
@@ -728,7 +733,7 @@ int RemoteCamera::GetResponse()
 
 						if ( status < 200 || status > 299 )
 						{
-							Error(( "Invalid response status %d: %s", status_code, status_mesg ));
+							Error(( "Invalid response status %s: %s", status_code, status_mesg ));
 							return( -1 );
 						}
 						Debug( 3, ( "Got status '%d' (%s), http version %s", status, status_mesg, http_version ));
@@ -750,7 +755,7 @@ int RemoteCamera::GetResponse()
 						{
 							memset( content_type, 0, sizeof(content_type) );
 							start_ptr = content_type_header + strspn( content_type_header, " " );
-							if ( end_ptr = strchr( start_ptr, ';' ) )
+							if ( ( end_ptr = strchr( start_ptr, ';' ) ) )
 							{
 								strncpy( content_type, start_ptr, end_ptr-start_ptr );
 								Debug( 3, ( "Got content type '%s'", content_type ));
@@ -872,7 +877,7 @@ int RemoteCamera::GetResponse()
 
 						Debug( 6, ( "%d: %s", subheader_len, subheader_ptr ));
 
-						if ( crlf = mempbrk( subheader_ptr, "\r\n", subheader_len ) )
+						if ( ( crlf = mempbrk( subheader_ptr, "\r\n", subheader_len ) ) )
 						{
 							subheaders[n_subheaders++] = subheader_ptr;
 
@@ -909,7 +914,7 @@ int RemoteCamera::GetResponse()
 					
 					if ( all_headers && boundary_header )
 					{
-						char *start_ptr, *end_ptr;
+						char *start_ptr;
 
 						Debug( 3, ( "Got boundary '%s'", boundary_header ));
 
@@ -1153,7 +1158,6 @@ void RemoteCamera::Base64Encode( const char *in_string, char *out_string )
 		base64_table[i++] = '/';
 	}
 
-	int in_len = strlen( in_string );
 	const char *in_ptr = in_string;
 	char *out_ptr = out_string;
 	while( *in_ptr )

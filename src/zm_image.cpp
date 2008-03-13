@@ -270,7 +270,7 @@ bool Image::ReadRaw( const char *filename )
 
 	if ( statbuf.st_size != size )
 	{
-		Error(( "Raw file size mismatch, expected %d bytes, found %d", size, statbuf.st_size ));
+		Error(( "Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size ));
 		return( false );
 	}
 
@@ -557,7 +557,7 @@ bool Image::Unzip( const Bytef *inbuffer, unsigned long inbuffer_size )
 	}
 	if ( zip_size != size )
 	{
-		Error(( "Unzip failed, size mismatch, expected %d bytes, got %d", size, zip_size ));
+		Error(( "Unzip failed, size mismatch, expected %d bytes, got %ld", size, zip_size ));
 		return( false );
 	}
 	return( true );
@@ -1686,7 +1686,6 @@ void Image::Scale( unsigned int factor )
 	}
 	else
 	{
-		unsigned int inv_factor = (ZM_SCALE_BASE*ZM_SCALE_BASE)/factor;
 		unsigned char *pd = scale_buffer;
 		unsigned int wc = width*colours;
 		unsigned int xstart = factor/2;

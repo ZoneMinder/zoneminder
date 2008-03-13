@@ -196,6 +196,7 @@ int zmDebugPrepareLog()
 	    Error(("fopen() for %s, error = %s",zm_dbg_log,strerror(errno)));
 		return( -1 );
 	}
+    return( 0 );
 }
 
 int zmDebugInitialise( const char *name, const char *id, int level )
@@ -236,7 +237,7 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 	Info(( "Debug Level = %d, Debug Log = %s", zm_dbg_level,zm_dbg_log[0]?zm_dbg_log:"<none>" ));
 
 	{
-	struct sigaction action, old_action;
+	struct sigaction action;
 	memset( &action, 0, sizeof(action) );
 	action.sa_handler = zmUsrHandler;
 	action.sa_flags = SA_RESTART;

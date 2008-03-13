@@ -22,8 +22,6 @@
 
 #include <sys/time.h>
 
-static struct timezone dummy_tz; // To avoid declaring pointless one each time we use gettimeofday
-
 #include "zm_coord.h"
 #include "zm_image.h"
 #include "zm_zone.h"
@@ -118,7 +116,7 @@ protected:
 	class MonitorLink
 	{
 	protected:
-		int				id;
+		unsigned int	id;
 		char			name[64];
 
 		bool			connected;
@@ -166,7 +164,7 @@ protected:
 
 protected:
 	// These are read from the DB and thereafter remain unchanged
-	int				id;
+	unsigned int	id;
 	char			name[64];
 	Function		function;			    // What the monitor is doing
 	bool			enabled;			    // Whether the monitor is enabled or asleep

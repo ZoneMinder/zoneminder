@@ -193,21 +193,20 @@ Monitor::Monitor(
 ) : id( p_id ),
 	function( (Function)p_function ),
 	enabled( p_enabled ),
-	camera( p_camera ),
-	orientation( (Orientation)p_orientation ),
 	width( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ),
 	height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
+	orientation( (Orientation)p_orientation ),
 	label_coord( p_label_coord ),
 	image_buffer_count( p_image_buffer_count ),
 	warmup_count( p_warmup_count ),
 	pre_event_count( p_pre_event_count ),
 	post_event_count( p_post_event_count ),
 	stream_replay_buffer( p_stream_replay_buffer ),
-	alarm_frame_count( p_alarm_frame_count ),
 	section_length( p_section_length ),
 	frame_skip( p_frame_skip ),
 	capture_delay( p_capture_delay ),
 	alarm_capture_delay( p_alarm_capture_delay ),
+	alarm_frame_count( p_alarm_frame_count ),
 	fps_report_interval( p_fps_report_interval ),
 	ref_blend_perc( p_ref_blend_perc ),
 	track_motion( p_track_motion ),
@@ -215,6 +214,7 @@ Monitor::Monitor(
 	image( width, height, p_camera->Colours() ),
 	ref_image( width, height, p_camera->Colours() ),
 	purpose( p_purpose ),
+	camera( p_camera ),
 	n_zones( p_n_zones ),
 	zones( p_zones )
 {
@@ -226,7 +226,7 @@ Monitor::Monitor(
     // Change \n to actual line feeds
     char *token_ptr = label_format;
     const char *token_string = "\n";
-    while( token_ptr = strstr( token_ptr, token_string ) )
+    while( ( token_ptr = strstr( token_ptr, token_string ) ) )
     {
         if ( *(token_ptr+1) )
         {
@@ -899,7 +899,7 @@ bool Monitor::Analyse()
 	}
 
 	struct timeval now;
-	gettimeofday( &now, &dummy_tz );
+	gettimeofday( &now, NULL );
 
 	if ( image_count && !(image_count%fps_report_interval) )
 	{
@@ -2127,6 +2127,11 @@ int Monitor::PostCapture()
 		{
 			switch ( orientation )
 			{
+				case ROTATE_0 :
+                {
+                    // No action required
+                    break;
+                }
 				case ROTATE_90 :
 				case ROTATE_180 :
 				case ROTATE_270 :
@@ -2156,7 +2161,7 @@ int Monitor::PostCapture()
 			Warning(( "Buffer overrun at index %d, slow down capture, speed up analysis or increase ring buffer size", index ));
 		}
 
-		gettimeofday( image_buffer[index].timestamp, &dummy_tz );
+		gettimeofday( image_buffer[index].timestamp, NULL );
 		if ( config.timestamp_on_capture )
 		{
 			TimestampImage( &image, image_buffer[index].timestamp );
@@ -2210,7 +2215,6 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
 		strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time->tv_sec ) );
 
 		char label_text[1024];
-        int label_tt_len = strlen( label_time_text );
         const char *s_ptr = label_time_text;
         char *d_ptr = label_text;
         while ( *s_ptr && ((d_ptr-label_text) < sizeof(label_text)) )
@@ -2252,7 +2256,7 @@ bool Monitor::closeEvent()
 	{
 		if ( function == RECORD || function == MOCORD )
 		{
-			gettimeofday( &(event->EndTime()), &dummy_tz );
+			gettimeofday( &(event->EndTime()), NULL );
 		}
 		delete event;
 		event = 0;
@@ -2550,7 +2554,7 @@ bool MonitorStream::checkSwapPath( const char *path, bool create_path )
 
 void MonitorStream::processCommand( const CmdMsg *msg )
 {
-    Debug( 2, ( "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] ));
+    Debug( 2, ( "Got message, type %ld, msg %d", msg->msg_type, msg->msg_data[0] ));
     // Check for incoming command
     switch( (MsgCommand)msg->msg_data[0] )
     {
@@ -2869,7 +2873,7 @@ void MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
         if ( !frame_count )
             base_time = *timestamp;
         DELTA_TIMEVAL( delta_time, *timestamp, base_time, DT_PREC_3 );
-        double pts = vid_stream->EncodeFrame( send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.delta );
+        /* double pts = */ vid_stream->EncodeFrame( send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.delta );
     }
     else
 #endif // HAVE_LIBAVCODEC
@@ -2896,6 +2900,9 @@ void MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
                 unsigned long zip_buffer_size;
                 send_image->Zip( img_buffer, &zip_buffer_size );
                 img_buffer_size = zip_buffer_size;
+                break;
+            default :
+                Fatal(( "Unexpected frame type %d", type ));
                 break;
         }
         fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
@@ -2936,7 +2943,6 @@ void MonitorStream::runStream()
     temp_read_index = temp_image_buffer_count;
     temp_write_index = temp_image_buffer_count;
 
-    char swap_file_name[PATH_MAX];
     char swap_path[PATH_MAX] = "";
 
     if ( connkey )
@@ -2978,7 +2984,7 @@ void MonitorStream::runStream()
 			break;
 		}
 
-        gettimeofday( &now, &dummy_tz );
+        gettimeofday( &now, NULL );
 
         if ( buffer_playback )
         {
@@ -3198,7 +3204,6 @@ void MonitorStream::runStream()
 
 void Monitor::SingleImage( int scale)
 {
-	int last_read_index = shared_data->last_write_index;
 	int img_buffer_size = 0;
 	static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
 	Image scaled_image;
@@ -3225,7 +3230,6 @@ void Monitor::SingleImage( int scale)
 
 void Monitor::SingleImageRaw( int scale)
 {
-	int last_read_index = shared_data->last_write_index;
 	Image scaled_image;
 	int index = shared_data->last_write_index%image_buffer_count;
 	Snapshot *snap = &image_buffer[index];
@@ -3249,7 +3253,6 @@ void Monitor::SingleImageRaw( int scale)
 
 void Monitor::SingleImageZip( int scale)
 {
-	int last_read_index = shared_data->last_write_index;
 	unsigned long img_buffer_size = 0;
 	static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
 	Image scaled_image;
@@ -3269,7 +3272,7 @@ void Monitor::SingleImageZip( int scale)
 	}
 	snap_image->Zip( img_buffer, &img_buffer_size );
 	
-	fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
+	fprintf( stdout, "Content-Length: %ld\r\n", img_buffer_size );
 	fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
 	fwrite( img_buffer, img_buffer_size, 1, stdout );
 }

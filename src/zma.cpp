@@ -109,7 +109,6 @@ int main( int argc, char *argv[] )
 
 		sigset_t block_set;
 		sigemptyset( &block_set );
-		struct sigaction action, old_action;
 
 		while( !zm_terminate )
 		{

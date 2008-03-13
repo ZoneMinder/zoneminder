@@ -131,8 +131,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	// Get the difference image
 	Image *diff_image = image = new Image( *delta_image );
 	int diff_width = diff_image->Width();
-	int diff_height = diff_image->Height();
-	int diff_stride = diff_width * diff_image->Colours();
 
 	unsigned long pixel_diff_count = 0;
 
@@ -346,15 +344,13 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			{
 				int lo_x = ranges[py].lo_x;
 				int hi_x = ranges[py].hi_x;
-				int last_lo_x = py>=0?ranges[py-1].lo_x:0;
-				int last_hi_x = py>=0?ranges[py-1].hi_x:0;
 
 				pdiff = diff_image->Buffer( lo_x, y );
 				for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
 				{
 					if ( *pdiff == WHITE )
 					{
-						Debug( 9, ( "Got white pixel at %d,%d (%x)", x, y, pdiff ));
+						Debug( 9, ( "Got white pixel at %d,%d (%p)", x, y, pdiff ));
 						//last_x = (x>lo_x)?*(pdiff-1):0;
 						//last_y = (y>lo_y&&x>=last_lo_x&&x<=last_hi_x)?*(pdiff-diff_width):0;
 						last_x = x>0?*(pdiff-1):0;
@@ -398,7 +394,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 										spdiff = diff_image->Buffer( lo_sx, sy );
 										for ( int sx = lo_sx; sx <= hi_sx; sx++, spdiff++ )
 										{
-											Debug( 9, ( "Pixel at %d,%d (%x) is %d", sx, sy, spdiff, *spdiff ));
+											Debug( 9, ( "Pixel at %d,%d (%p) is %d", sx, sy, spdiff, *spdiff ));
 											if ( *spdiff == bss->tag )
 											{
 												Debug( 9, ( "Setting pixel" ));
@@ -838,7 +834,7 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 	char *ws = strchr( str, ' ' );
 	if ( !ws )
 	{
-		Debug( 3, ( "No whitespace found in zone string, finishing", zone_string ));
+		Debug( 3, ( "No whitespace found in zone string '%s', finishing", zone_string ));
 	}
 	zone_id = strtol( str, 0, 10 );
 	Debug( 3, ( "Got zone %d from zone string", zone_id ));
@@ -901,7 +897,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		const char *Name = dbrow[col++];
 		int Type = atoi(dbrow[col++]);
 		const char *Units = dbrow[col++];
-		int NumCoords = atoi(dbrow[col++]);
+		/* int NumCoords = */ atoi(dbrow[col++]);
 		const char *Coords = dbrow[col++];
 		int AlarmRGB = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int CheckMethod = atoi(dbrow[col++]);

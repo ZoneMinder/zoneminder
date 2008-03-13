@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
-AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@
+AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -Wno-sign-compare
 
 # This should be set to your CGI directory
 cgidir = @CGI_PREFIX@

@@ -177,7 +177,6 @@ int main( int argc, char *argv[] )
 
 	sigset_t block_set;
 	sigemptyset( &block_set );
-	struct sigaction action, old_action;
 
 	int sd = OpenSocket( monitor->Id() );
 
@@ -223,7 +222,7 @@ int main( int argc, char *argv[] )
 			}
 			else
 			{
-				Warning(( "Socket closed at remote end", n_bytes ));
+				Warning(( "Socket closed at remote end" ));
 			}
 			ReopenSocket( sd, monitor->Id() );
 			continue;
@@ -243,7 +242,7 @@ int main( int argc, char *argv[] )
 			}
 			else
 			{
-				Warning(( "Socket closed at remote end", n_bytes ));
+				Warning(( "Socket closed at remote end" ));
 			}
 			ReopenSocket( sd, monitor->Id() );
 			continue;
@@ -256,7 +255,7 @@ int main( int argc, char *argv[] )
         }
         else
         {
-            snprintf( subpath, sizeof(subpath), "%d", frame_header.event_id );
+            snprintf( subpath, sizeof(subpath), "%ld", frame_header.event_id );
         }
 		static char path[PATH_MAX] = "";
 		snprintf( path, sizeof(path), frame_header.alarm_frame?anal_path:capt_path, subpath, frame_header.frame_id );

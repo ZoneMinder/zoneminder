@@ -31,7 +31,6 @@ void zmLoadConfig()
 	FILE *cfg;
 	char line[512];
 	char *val;
-	int r;
 	if ( (cfg = fopen( ZM_CONFIG, "r")) == NULL )
 	{
 		Fatal(("Can't open %s: %s", ZM_CONFIG, strerror(errno) ));

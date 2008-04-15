@@ -18,8 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-define( 'DEVICE_WIDTH', 320 );							// Default device width for phones and handhelds
-define( 'DEVICE_HEIGHT', 240 );							// Default device height for phones and handhelds
+define( 'DEVICE_WIDTH', 240 );							// Default device width for phones and handhelds
+define( 'DEVICE_HEIGHT', 320 );							// Default device height for phones and handhelds
 define( 'DEVICE_LINES', 10 );							// Default device lines for phones and handhelds
 
 $rates = array(

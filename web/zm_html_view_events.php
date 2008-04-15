@@ -51,6 +51,106 @@ if ( $filter['sql'] )
 	$events_sql .= $filter['sql'];
 }
 $events_sql .= " order by $sort_column $sort_order";
+
+function getPagination( $pages, $page )
+{
+    global $view, $filter, $sort_query, $limit;
+
+	$max_shortcuts = 5;
+
+    ob_start();
+	if ( $pages <= 1 )
+	{
+        // Nothing
+	}
+	else
+	{
+		if ( $page )
+		{
+			if ( $page < 0 )
+				$page = 1;
+			if ( $page > $pages )
+				$page = $pages;
+
+			if ( $page > 1 )
+			{
+				if ( false && $page > 2 )
+				{
+?>
+<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>">&lt;&lt;</a>
+<?php
+				}
+?>
+<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page - 1 ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>">&lt;</a>
+<?php
+				$new_pages = array();
+				$pages_used = array();
+				$lo_exp = max(2,log($page-1)/log($max_shortcuts));
+				for ( $i = 0; $i < $max_shortcuts; $i++ )
+				{
+					$new_page = round($page-pow($lo_exp,$i));
+					if ( isset($pages_used[$new_page]) )
+						continue;
+					if ( $new_page <= 1 )
+						break;
+					$pages_used[$new_page] = true;
+					array_unshift( $new_pages, $new_page );
+				}
+				if ( !isset($pages_used[1]) )
+					array_unshift( $new_pages, 1 );
+
+				foreach ( $new_pages as $new_page )
+				{
+?>
+<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $new_page ?></a>&nbsp;
+<?php
+				}
+
+			}
+?>
+-&nbsp;<?= $page ?>&nbsp;-
+<?php
+			if ( $page < $pages )
+			{
+				$new_pages = array();
+				$pages_used = array();
+				$hi_exp = max(2,log($pages-$page)/log($max_shortcuts));
+				for ( $i = 0; $i < $max_shortcuts; $i++ )
+				{
+					$new_page = round($page+pow($hi_exp,$i));
+					if ( isset($pages_used[$new_page]) )
+						continue;
+					if ( $new_page > $pages )
+						break;
+					$pages_used[$new_page] = true;
+					array_push( $new_pages, $new_page );
+				}
+				if ( !isset($pages_used[$pages]) )
+					array_push( $new_pages, $pages );
+
+				foreach ( $new_pages as $new_page )
+				{
+?>
+&nbsp;<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $new_page ?></a>
+<?php
+				}
+?>
+<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page + 1 ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>">&gt;</a>
+<?php
+				if ( false && $page < ($pages-1) )
+				{
+?>
+<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $pages ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>">&gt;&gt;</a>
+<?php
+				}
+			}
+		}
+		else
+		{
+		}
+    }
+    return( ob_get_clean() );
+}
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
@@ -286,11 +386,14 @@ function viewEvents( form, name )
 <tr>
 <td align="left" class="text" width="20%"><b><?= sprintf( $zmClangEventCount, $n_events, zmVlang( $zmVlangEvent, $n_events ) ) ?></b></td>
 <?php
-	$pages = (int)ceil($n_events/ZM_WEB_EVENTS_PER_PAGE);
+	//$pages = (int)ceil($n_events/ZM_WEB_EVENTS_PER_PAGE);
+    $pagination = getPagination( $pages, $page );
+?>
+<td align="center" class="text" width="40%"><?= $pagination?$pagination:'&nbsp;' ?></td>
+<?php
 	if ( $pages <= 1 )
 	{
 ?>
-<td align="center" class="text" width="40%">&nbsp;</td>
 <td align="center" class="text" width="25%">&nbsp;</td>
 <?php
 	}
@@ -298,96 +401,13 @@ function viewEvents( form, name )
 	{
 		if ( $page )
 		{
-			$max_shortcuts = 5;
 ?>
-<td align="center" class="text" width="40%">
-<?php
-			if ( $page < 0 )
-				$page = 1;
-			if ( $page > $pages )
-				$page = $pages;
-
-			if ( $page > 1 )
-			{
-				if ( false && $page > 2 )
-				{
-?>
-<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>">&lt;&lt;</a>
-<?php
-				}
-?>
-<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page - 1 ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>">&lt;</a>
-<?php
-				$new_pages = array();
-				$pages_used = array();
-				$lo_exp = max(2,log($page-1)/log($max_shortcuts));
-				for ( $i = 0; $i < $max_shortcuts; $i++ )
-				{
-					$new_page = round($page-pow($lo_exp,$i));
-					if ( isset($pages_used[$new_page]) )
-						continue;
-					if ( $new_page <= 1 )
-						break;
-					$pages_used[$new_page] = true;
-					array_unshift( $new_pages, $new_page );
-				}
-				if ( !isset($pages_used[1]) )
-					array_unshift( $new_pages, 1 );
-
-				foreach ( $new_pages as $new_page )
-				{
-?>
-<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $new_page ?></a>&nbsp;
-<?php
-				}
-
-			}
-?>
--&nbsp;<?= $page ?>&nbsp;-
-<?php
-			if ( $page < $pages )
-			{
-				$new_pages = array();
-				$pages_used = array();
-				$hi_exp = max(2,log($pages-$page)/log($max_shortcuts));
-				for ( $i = 0; $i < $max_shortcuts; $i++ )
-				{
-					$new_page = round($page+pow($hi_exp,$i));
-					if ( isset($pages_used[$new_page]) )
-						continue;
-					if ( $new_page > $pages )
-						break;
-					$pages_used[$new_page] = true;
-					array_push( $new_pages, $new_page );
-				}
-				if ( !isset($pages_used[$pages]) )
-					array_push( $new_pages, $pages );
-
-				foreach ( $new_pages as $new_page )
-				{
-?>
-&nbsp;<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $new_page ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $new_page ?></a>
-<?php
-				}
-?>
-<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $page + 1 ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>">&gt;</a>
-<?php
-				if ( false && $page < ($pages-1) )
-				{
-?>
-<a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=<?= $pages ?><?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>">&gt;&gt;</a>
-<?php
-				}
-			}
-?>
-</td>
 <td align="right" class="text" width="25%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=0<?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $zmSlangViewAll ?></a></td>
 <?php
 		}
 		else
 		{
 ?>
-<td align="center" class="text" width="40%">&nbsp;</td>
 <td align="center" class="text" width="25%"><a href="<?= $PHP_SELF ?>?view=<?= $view ?>&page=1<?= $filter['query'] ?><?= $sort_query ?>&limit=<?= $limit ?>"><?= $zmSlangViewPaged ?></a></td>
 <?php
 		}
@@ -395,14 +415,18 @@ function viewEvents( form, name )
 ?>
 <td align="right" class="text" width="15%"><a href="javascript: closeWindow();"><?= $zmSlangClose ?></a></td>
 </tr>
-<tr><td colspan="4" class="text">&nbsp;</td></tr>
+</table></td></tr>
+<tr><td class="text">&nbsp;</td></tr>
+<tr>
+<td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
 <tr>
 <td align="left" class="text"><a href="javascript: location.reload(true);"><?= $zmSlangRefresh ?></a></td>
-<td colspan="1" align="center" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&page=<?= $page ?><?= $filter['query'] ?>', 'zmFilter' );"><?= $zmSlangShowFilterWindow ?></a></td>
-<td colspan="2" align="right" class="text"><a href="javascript: timelineWindow( '<?= $PHP_SELF ?>?view=timeline<?= $filter['query'] ?>', 'zmTimeline' );"><?= $zmSlangShowTimeline ?></a></td>
+<td align="center" class="text"><a href="javascript: filterWindow( '<?= $PHP_SELF ?>?view=filter&page=<?= $page ?><?= $filter['query'] ?>', 'zmFilter' );"><?= $zmSlangShowFilterWindow ?></a></td>
+<td align="right" class="text"><a href="javascript: timelineWindow( '<?= $PHP_SELF ?>?view=timeline<?= $filter['query'] ?>', 'zmTimeline' );"><?= $zmSlangShowTimeline ?></a></td>
 </tr>
-<tr><td colspan="4" class="text">&nbsp;</td></tr>
-<tr><td colspan="4"><table border="0" cellspacing="1" cellpadding="0" width="100%" bgcolor="#7F7FB2">
+</table></td></tr>
+<tr><td class="text">&nbsp;</td></tr>
+<tr><td><table border="0" cellspacing="1" cellpadding="0" width="100%" bgcolor="#7F7FB2">
 <?php
 	flush();
 	$count = 0;
@@ -471,8 +495,25 @@ function viewEvents( form, name )
 	}
 ?>
 </table></td></tr>
+<tr><td class="text">&nbsp;</td></tr>
+<?php
+if ( !empty($pagination) )
+{
+?>
+<tr>
+<td valign="top"><table border="0" cellspacing="0" cellpadding="0" width="100%">
+<tr>
+<td align="left" class="text" width="20%">&nbsp;</td>
+<td align="center" class="text" width="40%"><?= $pagination?$pagination:'&nbsp;' ?></td>
+<td align="center" class="text" width="25%">&nbsp;</td>
+<td align="center" class="text" width="25%">&nbsp;</td>
+</tr>
 </table></td>
 </tr>
+<?php
+}
+?>
+<tr><td class="text">&nbsp;</td></tr>
 <?php if ( true || canEdit( 'Events' ) ) { ?>
 <tr><td align="right">
 <?php if ( LEARN_MODE ) { ?><select name="learn_state" class="form" disabled><option value=""><?= $zmSlangIgnore ?></option><option value="-"><?= $zmSlangExclude ?></option><option value="+"><?= $zmSlangInclude ?></option></select>&nbsp;&nbsp;<input type="button" name="learn_btn" value="<?= $zmSlangSetLearnPrefs ?>" class="form" onClick="document.event_form.action.value = 'learn'; document.event_form.submit();" disabled>&nbsp;&nbsp;<?php } ?>

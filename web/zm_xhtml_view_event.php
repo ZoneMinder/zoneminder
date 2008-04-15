@@ -223,9 +223,9 @@ $scale = getDeviceScale( $event['Width'], $event['Height'], $frames_per_line );
 
 $count = 0;
 if ( version_compare( phpversion(), "4.3.10", ">=") )
-	$fraction = sprintf( "%.2F", $scale/100 );
+	$fraction = sprintf( "%.2F", $scale/SCALE_BASE );
 else
-	$fraction = sprintf( "%.2f", $scale/100 );
+	$fraction = sprintf( "%.2f", $scale/SCALE_BASE );
 $event_path = getEventPath( $event );
 for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++, $count++ )
 {
@@ -239,7 +239,7 @@ for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++, $count++
 	$image_path = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $event_path, $frame_id );
 
 	$capt_image = $image_path;
-	if ( $scale == 1 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
+	if ( $scale == SCALE_BASE || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
 	{
 		$anal_image = preg_replace( "/capture/", "analyse", $image_path );
 
@@ -263,7 +263,6 @@ for ( $frame_id = $lo_frame_id; $frame_id <= $hi_frame_id; $frame_id++, $count++
 				$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $anal_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
 			else
 				$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $capt_image | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";
-			#exec( escapeshellcmd( $command ) );
 			exec( $command );
 		}
 	}

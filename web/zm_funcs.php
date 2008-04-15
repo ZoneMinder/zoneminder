@@ -1005,16 +1005,16 @@ function getImageSrc( $event, $frame, $scale, $capture_only=false, $overwrite=fa
 	$has_anal_image = $alarm_frame && file_exists( $anal_path ) && filesize( $anal_path );
 	$is_anal_image = $has_anal_image && !$capture_only;
 
-	if ( $scale >= 100 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
+	if ( $scale >= SCALE_BASE || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
 	{
 		$image_path = $thumb_path = $is_anal_image?$anal_path:$capt_path;
 	}
 	else
 	{
 		if ( version_compare( phpversion(), "4.3.10", ">=") )
-			$fraction = sprintf( "%.3F", $scale/100 );
+			$fraction = sprintf( "%.3F", $scale/SCALE_BASE );
 		else
-			$fraction = sprintf( "%.3f", $scale/100 );
+			$fraction = sprintf( "%.3f", $scale/SCALE_BASE );
 		$scale = (int)round( $scale );
 
 		$thumb_capt_path = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumb_capt_path );
@@ -1112,7 +1112,7 @@ function createImage( $monitor, $scale )
 	}
 	chdir( ZM_DIR_IMAGES );
 	$command = getZmuCommand( " -m $monitor -i" );
-	if ( !empty($scale) && $scale < 100 )
+	if ( !empty($scale) && $scale < SCALE_BASE )
 		$command .= " -S $scale";
 	$status = exec( escapeshellcmd( $command ) );
 	chdir( '..' );

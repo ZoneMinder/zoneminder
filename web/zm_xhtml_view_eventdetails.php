@@ -51,7 +51,7 @@ function getThumbnail( $event, $fid, $scale )
 	}
 	$alarm_frame = $frame['Type']=='Alarm';
 
-	if ( $scale == 100 || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
+	if ( $scale == SCALE_BASE || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
 	{
 		$thumb_image = $image_path;
 	}
@@ -62,9 +62,9 @@ function getThumbnail( $event, $fid, $scale )
 		if ( !file_exists($thumb_image) || !filesize( $thumb_image ) )
 		{
 			if ( version_compare( phpversion(), "4.3.10", ">=") )
-				$fraction = sprintf( "%.2F", $scale/100 );
+				$fraction = sprintf( "%.2F", $scale/SCALE_BASE );
 			else
-				$fraction = sprintf( "%.2f", $scale/100 );
+				$fraction = sprintf( "%.2f", $scale/SCALE_BASE );
 			if ( file_exists( $image_path ) )
 			{
 				$command = ZM_PATH_NETPBM."/jpegtopnm -dct fast $image_path | ".ZM_PATH_NETPBM."/pnmscalefixed $fraction | ".ZM_PATH_NETPBM."/ppmtojpeg --dct=fast > $thumb_image";

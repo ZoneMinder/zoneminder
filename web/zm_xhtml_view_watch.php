@@ -78,7 +78,7 @@ foreach( dbFetchAll( $sql ) as $row )
 
 //$monitor = $monitors[$mon_idx];
 $next_mid = $mon_idx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$mon_idx+1]['Id'];
-$prev_mid = $mon_idx==0?$mon_index[(count($monitors)-1)]['Id']:$monitors[$mon_idx-1]['Id'];
+$prev_mid = $mon_idx==0?$monitors[(count($monitors)-1)]['Id']:$monitors[$mon_idx-1]['Id'];
 
 $scale = getDeviceScale( $monitor['Width'], $monitor['Height'] );
 

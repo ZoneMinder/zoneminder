@@ -93,7 +93,8 @@ body {
 }
 
 #events {
-    width: 100%;
+    width: 96%;
+    margin: 0 auto;
 }
 
 #eventList {
@@ -123,8 +124,12 @@ span.alert {
     font-weight: bold;
 }
 
-#eventList tr.highlight {
+#eventList tr.recent {
     background-color: #B0E0E6;
+}
+
+#eventList tr.highlight {
+    background-color: #DCDCDC;
 }
 
 #ptzControls {

@@ -28,6 +28,8 @@
 <script type="text/javascript" src="mootools.ext.js"></script>
 <script type="text/javascript" src="zm_html.js"></script>
 <script type="text/javascript">
+var url = "<?= ZM_BASE_URL.$PHP_SELF ?>";
+
 function eventWindow( eventId, eventFilter )
 {
     var windowUrl = '<?= $PHP_SELF ?>?view=event&eid='+eventId;

@@ -206,6 +206,7 @@ protected:
 
 protected:
     StreamMode mode;
+    bool forceEventChange;
 
 protected:
     int curr_frame_id;
@@ -226,6 +227,8 @@ public:
     EventStream()
     {
         mode = DEFAULT_MODE;
+
+        forceEventChange = false;
 
         curr_frame_id = 0;
         curr_stream_time = 0.0;

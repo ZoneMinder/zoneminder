@@ -650,7 +650,7 @@ bool EventStream::loadEventData( int event_id )
 
     mysql_free_result( result );
 
-    if ( mode == MODE_ALL_GAPLESS )
+    if ( forceEventChange || mode == MODE_ALL_GAPLESS )
     {
         if ( replay_rate > 0 )
             curr_stream_time = event_data->frames[0].timestamp;
@@ -849,6 +849,8 @@ void EventStream::processCommand( const CmdMsg *msg )
                 curr_frame_id = 0;
             else
                 curr_frame_id = event_data->frame_count-1;
+            paused = false;
+            forceEventChange = true;
             break;
         }
         case CMD_NEXT :
@@ -858,6 +860,8 @@ void EventStream::processCommand( const CmdMsg *msg )
                 curr_frame_id = event_data->frame_count-1;
             else
                 curr_frame_id = 0;
+            paused = false;
+            forceEventChange = true;
             break;
         }
         case CMD_SEEK :
@@ -971,7 +975,7 @@ mysql_free_result( $result );
 
     if ( reload_event )
     {
-        if ( mode != MODE_SINGLE )
+        if ( forceEventChange || mode != MODE_SINGLE )
         {
             //Info(( "SQL:%s", sql ));
             if ( mysql_query( &dbconn, sql ) )
@@ -1017,6 +1021,7 @@ mysql_free_result( $result );
                 paused = true;
             }
             mysql_free_result( result );
+            forceEventChange = false;
         }
         else
         {

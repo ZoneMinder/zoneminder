@@ -473,10 +473,36 @@ function cmdCancelForcedAlarm()
     alarmCmdReq.request( alarmCmdParms+"&command=cancelForcedAlarm" );
 }
 
-var eventCmdParms = "view=request&request=status&entity=events&id=<?= $mid ?>&count=<?= MAX_EVENTS ?>&sort=Id%20desc";
+function getActResponse( respText )
+{
+    if ( respText == 'Ok' )
+        return;
+    var response = Json.evaluate( respText );
+
+    if ( response.refreshParent )
+    {
+        window.opener.location.reload();
+    }
+    eventCmdQuery();
+}
+
+function deleteEvent( event, eventId )
+{
+    var actParms = "view=request&request=event&action=delete&id="+eventId;
+    var actReq = new Ajax( url, { method: 'post', timeout: 3000, data: actParms, onComplete: getActResponse } );
+    actReq.request();
+    event.stop();
+}
+
+var eventCmdParms = "view=request&request=status&entity=events&id=<?= $mid ?>&count=<?= 2*MAX_EVENTS ?>&sort=Id%20desc";
 var eventCmdReq = new Ajax( thisUrl, { method: 'post', timeout: <?= ZM_WEB_AJAX_TIMEOUT ?>, data: eventCmdParms, onComplete: getEventCmdResponse } );
 var eventCmdTimer = null;
 var eventCmdFirst = true;
+
+function highlightRow( row )
+{
+    $(row).toggleClass( 'highlight' );
+}
 
 function getEventCmdResponse( respText )
 {
@@ -491,70 +517,94 @@ function getEventCmdResponse( respText )
     var eventList = $('eventList');
     var eventListBody = $(eventList).getElement( 'tbody' );
     var eventListRows = $(eventListBody).getElements( 'tr' );
+
+    eventListRows.each( function( row ) { row.removeClass( 'updated' ); } );
+
     for ( var i = 0; i < db_events.length; i++ )
     {
         var row = $('event'+db_events[i].Id);
-        if ( !$(row) )
+        var newEvent = (row == null ? true : false);
+        if ( newEvent )
         {
             row = new Element( 'tr', { 'id': 'event'+db_events[i].Id } );
-            if ( !eventCmdFirst )
-                $(row).addClass( 'highlight' );
             var cell = new Element( 'td' );
-            $(cell).injectInside( $(row) );
-            $(cell).clone().injectInside( $(row) );
-            $(cell).clone().injectInside( $(row) );
-            $(cell).clone().injectInside( $(row) );
-            $(cell).clone().injectInside( $(row) );
-            $(cell).clone().injectInside( $(row) );
-            $(row).injectTop( $(eventListBody) );
+            cell.injectInside( row );
+            cell.clone().injectInside( row );
+            cell.clone().injectInside( row );
+            cell.clone().injectInside( row );
+            cell.clone().injectInside( row );
+            cell.clone().injectInside( row );
+            cell.clone().injectInside( row );
+
+            var cells = row.getElements( 'td' );
+
+            var link = new Element( 'a', { 'href': '#', 'events': { 'click': eventWindow.pass( db_events[i].Id, '&trms=1&attr1=MonitorId&op1=%3d&val1=<?= $mid ?>&page=1' ) } });
+            link.setHTML( db_events[i].Id );
+            link.injectInside( cells[0] );
+
+            link = new Element( 'a', { 'href': '#', 'events': { 'click': eventWindow.pass( db_events[i].Id, '&trms=1&attr1=MonitorId&op1=%3d&val1=<?= $mid ?>&page=1' ) } });
+            link.setHTML( db_events[i].Name );
+            link.injectInside( cells[1] );
+
+            cells[2].setHTML( db_events[i].StartTime );
+            cells[3].setHTML( db_events[i].Length );
+
+            link = new Element( 'a', { 'href': '#', 'events': { 'click': framesWindow.pass( db_events[i].Id ) } });
+            link.setHTML( db_events[i].Frames+'/'+db_events[i].AlarmFrames );
+            link.injectInside( cells[4] );
+
+            link = new Element( 'a', { 'href': '#', 'events': { 'click': frameWindow.pass( [ db_events[i].Id, '0' ] ) } });
+            link.setHTML( db_events[i].AvgScore+'/'+db_events[i].MaxScore );
+            link.injectInside( cells[5] );
+
+            link = new Element( 'a', { 'href': '#', 'title': '<?= $zmSlangDelete ?>', 'events': { 'click': deleteEvent.bindWithEvent( link, db_events[i].Id ), 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
+            //link.setHTML( '&#10008;' );
+            link.setHTML( 'X' );
+            link.injectInside( cells[6] );
+
+            console.log( "Injecting "+db_events[i].Id );
+            if ( i == 0 )
+            {
+                row.injectInside( $(eventListBody) );
+            }
+            else
+            {
+                row.injectTop( $(eventListBody) );
+                if ( !eventCmdFirst )
+                    row.addClass( 'recent' );
+            }
         }
         else
         {
-            $(row).removeClass( 'highlight' );
+            var cells = row.getElements( 'td' );
+
+            cells[1].getElement( 'a' ).setHTML( db_events[i].Name );
+            cells[3].setHTML( db_events[i].Length );
+            cells[4].getElement( 'a' ).setHTML( db_events[i].Frames+'/'+db_events[i].AlarmFrames );
+            cells[5].getElement( 'a' ).setHTML( db_events[i].AvgScore+'/'+db_events[i].MaxScore );
+
+            row.removeClass( 'recent' );
         }
-        var cells = $(row).getElements( 'td' );
-        var id = cells[0];
-        var idLink = $(id).getElement( 'a' );
-        if ( !$(idLink) )
-        {
-            idLink = new Element( 'a', { 'href': '#', 'events': { 'click': eventWindow.pass( db_events[i].Id, '&trms=1&attr1=MonitorId&op1=%3d&val1=<?= $mid ?>&page=1' ) } });
-            $(idLink).injectInside( $(id) );
-        }
-        $(idLink).setHTML( db_events[i].Id );
-        var name = cells[1];
-        var nameLink = $(name).getElement( 'a' );
-        if ( !$(nameLink) )
-        {
-            nameLink = new Element( 'a', { 'href': '#', 'events': { 'click': eventWindow.pass( db_events[i].Id, '&trms=1&attr1=MonitorId&op1=%3d&val1=<?= $mid ?>&page=1' ) } });
-            $(nameLink).injectInside( $(name) );
-        }
-        $(nameLink).setHTML( db_events[i].Name );
-        var time = cells[2];
-        $(time).setHTML( db_events[i].StartTime );
-        var secs = cells[3];
-        $(secs).setHTML( db_events[i].Length );
-        var frames = cells[4];
-        var framesLink = $(frames).getElement( 'a' );
-        if ( !$(framesLink) )
-        {
-            framesLink = new Element( 'a', { 'href': '#', 'events': { 'click': framesWindow.pass( db_events[i].Id ) } });
-            $(framesLink).injectInside( $(frames) );
-        }
-        $(framesLink).setHTML( db_events[i].Frames+'/'+db_events[i].AlarmFrames );
-        var score = cells[5];
-        var scoreLink = $(score).getElement( 'a' );
-        if ( !$(scoreLink) )
-        {
-            scoreLink = new Element( 'a', { 'href': '#', 'events': { 'click': frameWindow.pass( [ db_events[i].Id, '0' ] ) } });
-            $(scoreLink).injectInside( $(score) );
-        }
-        $(scoreLink).setHTML( db_events[i].AvgScore+'/'+db_events[i].MaxScore );
+        row.addClass( 'updated' );
     }
+
     var rows = $(eventListBody).getElements( 'tr' );
-    while ( $$(rows).length > <?= MAX_EVENTS ?> )
+    for ( var i = 0; i < rows.length; i++ )
     {
-        $$(rows)[$$(rows).length-1].remove();
-        rows = $(eventListBody).getElements( 'tr' );
+        if ( !rows[i].hasClass( 'updated' ) )
+        {
+            console.log( "Removing row "+i );
+            rows[i].remove();
+            rows.splice( i, 1 );
+            //rows.length--;
+            i--;
+        }
+    }
+    while ( rows.length > <?= 2*MAX_EVENTS ?> )
+    {
+        console.log( "Trimming" );
+        rows[rows.length-1].remove();
+        rows.length--;
     }
     var eventCmdTimeout = <?= 1000*ZM_WEB_REFRESH_STATUS ?>;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
@@ -814,6 +864,7 @@ if ( canView( 'Events' ) )
             <td><?= $zmSlangSecs ?></td>
             <td><?= $zmSlangFrames ?></td>
             <td><?= $zmSlangScore ?></td>
+            <td>&nbsp;</td>
           </tr>
         </thead>
         <tbody>

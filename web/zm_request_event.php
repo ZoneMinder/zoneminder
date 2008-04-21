@@ -14,6 +14,7 @@ if ( !$_REQUEST['id'] )
     return;
 }
 
+$refresh_event = false;
 $refresh_parent = false;
 
 // Event scope actions, edit permissions required
@@ -26,6 +27,7 @@ else if ( $_REQUEST['action'] == "eventdetail" )
     if ( $_REQUEST['id'] )
     {
         dbQuery( "update Events set Cause = '".dbEscape($_REQUEST['new_event']['Cause'])."', Notes = '".dbEscape($_REQUEST['new_event']['Notes'])."' where Id = '".dbEscape($_REQUEST['id'])."'" );
+        $refresh_event = true;
         $refresh_parent = true;
     }
 }
@@ -36,6 +38,7 @@ elseif ( $_REQUEST['action'] == "archive" || $_REQUEST['action'] == "unarchive" 
     if ( $_REQUEST['id'] )
     {
         dbQuery( "update Events set Archived = ".$archive_val." where Id = '".dbEscape($_REQUEST['id'])."'" );
+        $refresh_event = true;
     }
     elseif ( $mark_eids || $mark_eid )
     {
@@ -55,22 +58,15 @@ elseif ( $_REQUEST['action'] == "archive" || $_REQUEST['action'] == "unarchive" 
 }
 elseif ( $_REQUEST['action'] == "delete" )
 {
-    if ( !$mark_eids && $mark_eid )
+    if ( !empty($_REQUEST['id']) )
     {
-        $mark_eids[] = $mark_eid;
-    }
-    if ( $mark_eids )
-    {
-        foreach( $mark_eids as $mark_eid )
-        {
-            deleteEvent( $mark_eid );
-        }
-        $refresh_parent = true;
+        deleteEvent( dbEscape($_REQUEST['id']) );
     }
 }
 
 $response['result'] = 'Ok';
 $response['refreshParent'] = $refresh_parent;
+$response['refreshEvent'] = $refresh_event;
 
 header("Content-type: text/plain" );
 echo jsValue( $response );

@@ -65,8 +65,6 @@ $connkey = generateConnKey();
 <?php require_once( 'zm_html_js.php' ) ?>
 <script type="text/javascript">
 
-var url = "<?= ZM_BASE_URL.$PHP_SELF ?>";
-
 function setButtonState( element, butclass )
 {
     element.className = butclass;
@@ -392,11 +390,15 @@ function getActResponse( resp_text, resp_xml )
     {
         window.opener.location.reload();
     }
-    evtQuery();
+    if ( resp_obj.refreshEvent )
+    {
+        evtQuery();
+    }
 }
 
 function actQuery( action, parms )
 {
+    console.log( event );
     var actParms = "view=request&request=event&id="+event.Id+"&action="+action;
     //console.log( parms );
     if ( parms != null )
@@ -416,8 +418,8 @@ function startRequests()
 function deleteEvent()
 {
     actQuery( 'delete' );
-    streamNext();
-    opener.location.reload(true);
+    streamNext( true );
+    //opener.location.reload(true);
 }
 
 function renameEvent()

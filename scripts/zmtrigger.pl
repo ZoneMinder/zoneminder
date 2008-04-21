@@ -207,7 +207,7 @@ while( 1 )
 				# Do nothing
 			}
 		}
-		elsif ( $state == STATE_IDLE && $monitor->{LastState} > STATE_IDLE ) # Out of alarm state
+		elsif ( ($state == STATE_IDLE && $monitor->{LastState} != STATE_IDLE) || ($state == STATE_TAPE && $monitor->{LastState} != STATE_TAPE) ) # Out of alarm state
 		{
 			push( @out_messages, $monitor->{Id}."|off|".time()."|".$last_event );
 		}

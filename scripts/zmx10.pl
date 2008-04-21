@@ -303,12 +303,12 @@ sub runServer
 				if ( defined( $monitor->{LastState} ) )
 				{
 					my $task_list;
-					if ( $state == STATE_ALARM && $monitor->{LastState} == STATE_IDLE ) # Gone into alarm state
+					if ( ($state == STATE_ALARM || $state == STATE_ALERT) && ($monitor->{LastState} == STATE_IDLE || $monitor->{LastState} == STATE_TAPE) ) # Gone into alarm state
 					{
 						Debug( "Applying ON_list for $monitor_id\n" );
 						$task_list = $monitor->{"ON_list"};
 					}
-					elsif ( $state == STATE_IDLE && $monitor->{LastState} > STATE_IDLE ) # Come out of alarm state
+					elsif ( ($state == STATE_IDLE && $monitor->{LastState} != STATE_IDLE) || ($state == STATE_TAPE && $monitor->{LastState} != STATE_TAPE) ) # Come out of alarm state
 					{
 						Debug( "Applying OFF_list for $monitor_id\n" );
 						$task_list = $monitor->{"OFF_list"};

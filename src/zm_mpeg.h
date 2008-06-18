@@ -26,9 +26,21 @@
 
 extern "C" {
 #define __STDC_CONSTANT_MACROS
+#if HAVE_LIBAVFORMAT_AVFORMAT_H
+#include <libavformat/avformat.h>
+#elif HAVE_FFMPEG_AVFORMAT_H
 #include <ffmpeg/avformat.h>
+#else
+#error "Unable to locate avformat.h"
+#endif
 #if HAVE_LIBSWSCALE
+#if HAVE_LIBSWSCALE_SWSCALE_H
+#include <libswscale/swscale.h>
+#elif HAVE_FFMPEG_SWSCALE_H
 #include <ffmpeg/swscale.h>
+#else
+#error "Unable to locate swscale.h"
+#endif
 #endif // HAVE_LIBSWSCALE
 }
 

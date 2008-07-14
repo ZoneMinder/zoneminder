@@ -559,7 +559,6 @@ $SLANG = array(
     'Select'               => 'Seleziona',
     'SelfIntersecting'     => 'I vertici del poligono non devono intersecarsi',
     'Set'                  => 'Imposta',
-    'SetLearnPrefs'        => 'Seleziona le preferenze di autoapprendimento', // This can be ignored for now
     'SetNewBandwidth'      => 'Imposta nuova Banda',
     'SetPreset'            => 'Imposta Preset',
     'Settings'             => 'Impostazioni',

@@ -81,7 +81,6 @@ define( "CMD_QUERY", 99 );
 define( "MAX_EVENTS", 10 );                             // The maximum number of events to show in the monitor event listing
 define( "RATE_BASE", 100 );                             // The additional scaling factor used to help get fractional rates in integer format
 define( "SCALE_BASE", 100 );                            // The additional scaling factor used to help get fractional scales in integer format
-define( "LEARN_MODE", false );                          // Currently unimplemented, do not change
 
 //
 // Date and time formats, eventually some of these may end up in the language files

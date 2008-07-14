@@ -555,7 +555,6 @@ $SLANG = array(
     'SelectMonitors'       => 'Monitorok kiválasztása',
     'SelfIntersecting'     => 'A sokszög szélei nem keresztezõdhetnek',
     'Set'                  => 'Beállít',
-    'SetLearnPrefs'        => 'Set Learn Prefs', // This can be ignored for now
     'SetNewBandwidth'      => 'Új sávszélesség beállítás',
     'SetPreset'            => 'Alapértelmezett beállítása',
     'Settings'             => 'Beállítások',

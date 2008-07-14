@@ -499,7 +499,6 @@ $SLANG = array(
     'Select'               => 'Select',
     'SelfIntersecting'     => 'Polygon edges must not intersect',
     'ServerLoad'           => 'Carga Servidor',
-    'SetLearnPrefs'        => 'Set Learn Prefs', // This can be ignored for now
     'SetNewBandwidth'      => 'Nuevo Ancho de Banda',
     'SetPreset'            => 'Set Preset',
     'Set'                  => 'Set',

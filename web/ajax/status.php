@@ -124,7 +124,6 @@ $statusData = array(
             "Emailed" => true,
             "Messaged" => true,
             "Executed" => true,
-            "LearnState" => true,
             "Notes" => true,
             "MinFrameId" => array( "sql" => "min(Frames.FrameId)", "table" => "Frames", "join" => "Events.Id = Frames.EventId", "group" => "Frames.EventId"  ),
             "MaxFrameId" => array( "sql" => "max(Frames.FrameId)", "table" => "Frames", "join" => "Events.Id = Frames.EventId", "group" => "Frames.EventId"  ),

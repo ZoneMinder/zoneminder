@@ -2,5 +2,4 @@ AUTOMAKE_OPTIONS = gnu
 
 SUBDIRS = \
 	classic \
-	mobile \
-	churchwatch
+	mobile

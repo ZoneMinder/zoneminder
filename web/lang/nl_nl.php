@@ -547,7 +547,6 @@ $SLANG = array(
     'SelectMonitors'       => 'Select Monitors',
     'Select'               => 'Select',
     'SelfIntersecting'     => 'Polygon edges must not intersect',
-    'SetLearnPrefs'        => 'Set Learn Prefs', // This can be ignored for now
     'SetNewBandwidth'      => 'Zet Nieuwe Bandbreedte',
     'SetPreset'            => 'Set Preset',
     'Set'                  => 'Set',

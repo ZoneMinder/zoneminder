@@ -547,7 +547,6 @@ $SLANG = array(
     'SelectMonitors'       => 'בחר מוניטורים',
     'SelfIntersecting'     => 'Polygon edges must not intersect',
     'Set'                  => 'קבע',
-    'SetLearnPrefs'        => 'Set Learn Prefs', // This can be ignored for now
     'SetNewBandwidth'      => 'Set New Bandwidth',
     'SetPreset'            => 'Set Preset',
     'Settings'             => 'הגדרות',

@@ -1,0 +1,98 @@
+<?php
+//
+// ZoneMinder web frame view file, $Date$, $Revision$
+// Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+if ( !canView( 'Events' ) )
+{
+    $_REQUEST['view'] = "error";
+    return;
+}
+$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'";
+$event = dbFetchOne( $sql );
+
+if ( !empty($_REQUEST['fid']) )
+{
+    $sql = "select * from Frames where EventId = '".dbEscape($_REQUEST['eid'])."' and FrameId = '".dbEscape($_REQUEST['fid'])."'";
+    if ( !($frame = dbFetchOne( $sql )) )
+    {
+        $frame = array( 'FrameId'=>$_REQUEST['fid'], 'Type'=>'Normal', 'Score'=>0 );
+    }
+}
+else
+{
+    $frame = dbFetchOne( "select * from Frames where EventId = '".dbEscape($_REQUEST['eid'])."' and Score = '".$event['MaxScore']."'" );
+}
+
+$maxFid = $event['Frames'];
+
+$firstFid = 1;
+$prevFid = $frame['FrameId']-1;
+$nextFid = $frame['FrameId']+1;
+$lastFid = $maxFid;
+
+$alarmFrame = $frame['Type']=='Alarm';
+
+if ( !isset( $_REQUEST['scale'] ) )
+    $_REQUEST['scale'] = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+
+$imageData = getImageSrc( $event, $frame, $_REQUEST['scale'], (isset($_REQUEST['show']) && $_REQUEST['show']=="capt") );
+
+$imagePath = $imageData['thumbPath'];
+$eventPath = $imageData['eventPath'];
+$dImagePath = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-d.jpg", $eventPath, $frame['FrameId'] );
+$rImagePath = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-r.jpg", $eventPath, $frame['FrameId'] );
+
+$focusWindow = true;
+
+xhtmlHeaders(__FILE__, $SLANG['Frame']." - ".$event['Id']." - ".$frame['FrameId'] );
+?>
+<body>
+  <div id="page">
+    <div id="header">
+      <div id="headerButtons">
+        <?php if ( ZM_RECORD_EVENT_STATS && $alarmFrame ) { echo makePopupLink( '?view=stats&eid='.$event['Id'].'&fid='.$frame['FrameId'], 'zmStats', 'stats', $SLANG['Stats'] ); } ?>
+        <?php if ( canEdit( 'Events' ) ) { ?><a href="?view=none&action=delete&markEid=<?= $event['Id'] ?>"><?= $SLANG['Delete'] ?></a><?php } ?>
+        <a href="#" onclick="closeWindow(); return( false );"><?= $SLANG['Close'] ?></a>
+      </div>
+      <h2><?= $SLANG['Frame'] ?> <?= $event['Id']."-".$frame['FrameId']." (".$frame['Score'].")" ?></h2>
+    </div>
+    <div id="content">
+      <p id="image"><?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $frame['FrameId'] ?>&scale=<?= $_REQUEST['scale'] ?>&show=<?= $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $imagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" class="<?= $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?></p>
+      <p id="controls">
+<?php if ( $frame['FrameId'] > 1 ) { ?>
+        <a id="firstLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $firstFid ?>&scale=<?= $_REQUEST['scale'] ?>"><?= $SLANG['First'] ?></a>
+<?php } if ( $frame['FrameId'] > 1 ) { ?>
+        <a id="prevLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $prevFid ?>&scale=<?= $_REQUEST['scale'] ?>"><?= $SLANG['Prev'] ?></a>
+<?php } if ( $frame['FrameId'] < $maxFid ) { ?>
+        <a id="nextLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $nextFid ?>&scale=<?= $_REQUEST['scale'] ?>"><?= $SLANG['Next'] ?></a>
+<?php } if ( $frame['FrameId'] < $maxFid ) { ?>
+        <a id="lastLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $lastFid ?>&scale=<?= $_REQUEST['scale'] ?>"><?= $SLANG['Last'] ?></a>
+<?php } ?>
+      </p>
+<?php if (file_exists ($dImagePath)) { ?>
+      <p id="diagImagePath"><?= $dImagePath ?></p>
+      <p id="diagImage"><img src="<?= $dImagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" class="<?= $imageData['imageClass'] ?>"/></p>
+<?php } if (file_exists ($rImagePath)) { ?>
+      <p id="refImagePath"><?= $rImagePath ?></p>
+      <p id="refImage"><img src="<?= $rImagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" class="<?= $imageData['imageClass'] ?>"/></p>
+<?php } ?>
+    </div>
+  </div>
+</body>
+</html>

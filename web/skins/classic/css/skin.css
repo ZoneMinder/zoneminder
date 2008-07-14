@@ -1,0 +1,458 @@
+/*
+ * ZoneMinder Base Stylesheet, $Date$, $Revision$
+ * Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) input[type=password], any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */ 
+
+/*
+ * Primary look and feel styles
+ */
+
+body {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    color: #333333;
+    font-weight: normal;
+    text-align: center;
+}
+
+h1 {
+    font-family: inherit;
+    font-size: 12px;
+    color: #000066;
+    font-weight: bold;
+    text-align: center;
+}
+
+h2 {
+    font-family: inherit;
+    font-size: 11px;
+    color: #000066;
+    font-weight: bold;
+}
+
+h3 {
+    font-family: inherit;
+    font-size: 10px;
+    color: #016A9D;
+    font-weight: bold;
+}
+
+p {
+    font-family: inherit;
+    font-size: 10px;
+    color: #333333;
+    font-weight: normal;
+}
+
+th {
+    font-weight: bold;
+    color: #016A9D;
+}
+
+a:link {
+    color: #7F7FB2;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #7F7FB2;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #666699;
+    text-decoration: underline;
+}
+
+label {
+    margin-right: 4px;
+}
+
+input,textarea,select {
+    border: 1px #7F7FB2 solid;
+    font-family: inherit;
+    font-size: 10px;
+    color: #333333;
+}
+
+input[type=text], input[type=password], textarea {
+    padding: 1px;
+}
+
+input.noborder {
+    border: 0;
+}
+
+input[disabled] {
+    color: #888888;
+}
+
+img.normal {
+    border: white solid 1px;
+}
+
+img.alarm {
+    border: red solid 1px;
+}
+
+hr {
+    height: 1px;
+    width: 100%;
+    border: 0;
+    color: #7f7fb2;
+    background-color: #7f7fb2;
+}
+
+/*
+ * Tabbed headings
+ */
+
+ul.tabList
+{
+    border-bottom: #7F7FB2 solid 1px;
+    margin-bottom: -4px;
+    height: 15px;
+    white-space: nowrap;
+    padding-bottom: 1px;
+    text-align: left;
+}
+
+ul.tabList li
+{
+    display: inline;
+    list-style: none;
+    font-family: inherit;
+    font-size: 10px;
+    color: #333333;
+    font-weight: normal;
+    border: #7F7FB2 solid 1px;
+    background: #dddddd;
+    text-align: center;
+    margin: -1px;
+    padding: 4px 0;
+}
+
+ul.tabList li.active {
+    font-weight: bold;
+    background-color: #ffffff;
+    border-left: #7F7FB2 solid 2px;
+    border-top: #7F7FB2 solid 2px;
+    border-right: #7F7FB2 solid 2px;
+    border-bottom: #7F7FB2 dotted 1px;
+    padding: 4px;
+}
+
+ul.tabList li a {
+    text-decoration: none;
+    padding: 4px;
+}
+
+ul.tabList li a:hover {
+    background: #eeeeee;
+}
+
+/*
+ * Major league table for multiple inputs or presentation
+ */
+
+#content table.major {
+    margin: 4px auto;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#content table.major tr.highlight {
+    background-color: #eeeeee;
+}
+
+#content table.major thead tr th {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    vertical-align: middle;
+}
+
+#content table.major tfoot td {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    vertical-align: middle;
+}
+
+#content table.major th, #content table.major td {
+    border: 1px solid #7f7fb2;
+    padding: 3px;
+    text-align: left;
+}
+
+#content table.major th {
+    vertical-align: bottom;
+}
+
+#content table.major td {
+    vertical-align: middle;
+}
+
+#content table.major th[scope=row] {
+    padding: 4px 3px 3px;
+    vertical-align: top;
+}
+
+#content table.major .colMark, #content table.major .colSelect {
+    text-align: center;
+}
+/*
+ * Lesser table for very simple forms
+ */
+
+#content table.minor {
+    width: 200px;
+    margin: 0 auto;
+}
+
+#content table.minor td {
+    padding: 4px;
+}
+
+#content table.minor .colLeft {
+    width: 50%;
+    text-align: right;
+}
+
+#content table.minor .colRight {
+    width: 50%;
+    text-align: left;
+}
+
+#content table.minor input[type=submit]
+{
+    margin-top: 8px;
+    padding: 0 2px;
+    font-size: 120%;
+}
+
+/*
+ * Misc
+ */
+
+tr.over {
+    background: #EEEEEE;
+}
+
+tr.out {
+    background: #FFFFFF;
+}
+
+.button {
+    border: 1px #000000 solid;
+    padding: 2px 5px;
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    color: #FFFFFF;
+    background-color: #016A9D;
+}
+
+.smallbutton {
+    padding: 1px 2px;
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    color: #FFFFFF;
+    text-align: center;
+    background-color: #016A9D;
+}
+
+.numbutton {
+    padding: 1px 2px;
+    width: 24px;
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    color: #FFFFFF;
+    text-align: center;
+    background-color: #016A9D;
+}
+
+.flatbutton {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    color: #333333;
+    font-weight: normal;
+    padding: 1px 2px;
+    text-align: center;
+    background-color: #FFFFFF;
+    border: 0px;
+}
+
+.smallhead {
+    font-size: 10px;
+    color: #016A9D;
+    font-weight: bold;
+}
+
+.head {
+    font-size: 11px;
+    color: #000066;
+    font-weight: bold;
+}
+
+.bighead {
+    font-size: 12px;
+    color: #000066;
+    font-weight: bold;
+}
+
+.small {
+    font-family: inherit;
+    font-size: 9px;
+    color: #333333;
+    font-weight: normal;
+}
+
+/*
+ * Behavior classes
+ */
+.error {
+    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
+    font-size: 10px;
+    color: #DC143C;
+    font-weight: bold;
+}
+
+.warn {
+    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
+    font-size: 10px;
+    color: #FF8C00;
+    font-weight: bold;
+}
+
+.info {
+    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
+    font-size: 10px;
+    color: #688E23;
+    font-weight: bold;
+}
+
+.errorText {
+    color: #DC143C;
+}
+
+.warnText {
+    color: #FF8C00;
+}
+
+.infoText {
+    color: #688E23;
+}
+
+.disabledText {
+    font-style: italic;
+}
+
+/*
+ * Generic useful classes, especially with mootools
+ */
+
+.hidden {
+    display: none;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+div.clear {
+    clear: both;
+}
+
+/*
+ * Primary layout styles
+ */
+
+#page {
+    width: 100%;
+}
+
+#header {
+    width: 96%;
+    line-height: 24px;
+    margin: 8px auto;
+    text-align: left;
+}
+
+#header h2 {
+    left: 0;
+}
+
+#headerControl {
+}
+
+#headerButtons {
+    float: right;
+}
+
+#headerButtons a {
+    margin-left: 8px;
+}
+
+#content {
+    width: 96%;
+    margin: 8px auto;
+    line-height: 130%;
+    text-align: center;
+}
+
+#content p {
+    margin-top: 4px;
+}
+
+#content p.textblock {
+    text-align: justify;
+    padding: 4px;
+}
+
+/*
+#contentDiv {
+    margin: 0 auto 8px;
+    line-height: 140%;
+    text-align: center;
+}
+*/
+
+#content > input[type=submit], #content > input[type=button] {
+    margin-top: 8px;
+}
+
+#content table input[type=submit], #content table input[type=button] {
+    margin-top: 0;
+}
+
+#contentButtons {
+    float: right;
+}
+
+#contentButtons input {
+    margin-left: 8px;
+    margin-bottom: 4px;
+}
+
+#footer {
+    width: 96%;
+    margin: 8px auto;
+}
+

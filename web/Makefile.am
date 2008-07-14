@@ -7,256 +7,28 @@ webuser = @WEB_USER@
 webgroup = @WEB_GROUP@
 
 SUBDIRS = \
-    graphics
+	ajax \
+	css \
+	graphics \
+	includes \
+	js \
+	lang \
+	skins \
+	views
 
-web_DATA = \
+dist_web_DATA = \
 	favicon.ico \
-	mootools.ext.js \
-	zm.php \
-	zm_actions.php \
-	zm_config.php \
-	zm_control_funcs.php \
-	zm_control_funcsX.php \
-	zm_db.php \
-	zm_export_funcs.php \
-	zm_funcs.php \
-	zm_request_alarm.php \
-	zm_request_control.php \
-	zm_request_event.php \
-	zm_request_status.php \
-	zm_request_stream.php \
-	zm_html.php \
-	zm_html.js \
-	zm_html_js.php \
-	zm_html_reset.css \
-	zm_html_base.css \
-	zm_html_styles.css \
-	zm_html_config.php \
-	zm_html_view_bandwidth.php \
-	zm_html_view_blank.php \
-	zm_html_view_console.php \
-	zm_html_view_control.php \
-	zm_html_view_controlcaps.php \
-	zm_html_view_controlmenu.php \
-	zm_html_view_controlpanel.php \
-	zm_html_view_controlpreset.php \
-	zm_html_view_controlcaps.php \
-	zm_html_view_controlcap.php \
-	zm_html_view_cycle.php \
-	zm_html_view_device.php \
-	zm_html_view_devices.php \
-	zm_html_view_donate.php \
-	zm_html_view_error.php \
-	zm_html_view_event.php \
-	zm_html_view_eventX.php \
-	zm_html_view_eventX.css \
-	zm_html_view_eventdetail.php \
-	zm_html_view_events.php \
-	zm_html_view_export.php \
-	zm_html_view_filter.php \
-	zm_html_view_filtersave.php \
-	zm_html_view_frame.php \
-	zm_html_view_frames.php \
-	zm_html_view_function.php \
-	zm_html_view_login.php \
-	zm_html_view_group.php \
-	zm_html_view_groups.php \
-	zm_html_view_logout.php \
-	zm_html_view_monitor.php \
-	zm_html_view_monitorpreset.php \
-	zm_html_view_monitorselect.php \
-	zm_html_view_montagefeed.php \
-	zm_html_view_montageframe.php \
-	zm_html_view_montagemenu.php \
-	zm_html_view_montage.php \
-	zm_html_view_montagestatus.php \
-	zm_html_view_none.php \
-	zm_html_view_optionhelp.php \
-	zm_html_view_options.php \
-	zm_html_view_postlogin.php \
-	zm_html_view_settings.php \
-	zm_html_view_siren.php \
-	zm_html_view_state.php \
-	zm_html_view_stats.php \
-	zm_html_view_status.php \
-	zm_html_view_timeline.php \
-	zm_html_view_user.php \
-	zm_html_view_version.php \
-	zm_html_view_video.php \
-	zm_html_view_watchevents.php \
-	zm_html_view_watchfeed.php \
-	zm_html_view_watchmenu.php \
-	zm_html_view_watch.php \
-	zm_html_view_watchstatus.php \
-	zm_html_view_watchX.php \
-	zm_html_view_watchX.css \
-	zm_html_view_zone.php \
-	zm_html_view_zones.php \
-	zm_xhtml.php \
-	zm_xhtml_styles.css \
-	zm_xhtml_config.php \
-	zm_xhtml_view_console.php \
-	zm_xhtml_view_devices.php \
-	zm_xhtml_view_error.php \
-	zm_xhtml_view_eventdetails.php \
-	zm_xhtml_view_event.php \
-	zm_xhtml_view_events.php \
-	zm_xhtml_view_filter.php \
-	zm_xhtml_view_frame.php \
-	zm_xhtml_view_function.php \
-	zm_xhtml_view_login.php \
-	zm_xhtml_view_montage.php \
-	zm_xhtml_view_state.php \
-	zm_xhtml_view_video.php \
-	zm_xhtml_view_watch.php \
-	zm_lang.php \
-	zm_lang_big5_big5.php \
-	zm_lang_de_de.php \
-	zm_lang_en_gb.php \
-	zm_lang_en_us.php \
-	zm_lang_fr_fr.php \
-	zm_lang_ja_jp.php \
-	zm_lang_pl_pl.php \
-	zm_lang_ru_ru.php \
-	zm_lang_nl_nl.php \
-	zm_lang_it_it.php \
-	zm_lang_es_ar.php \
-	zm_lang_pt_br.php \
-	zm_lang_dk_dk.php \
-	zm_lang_cs_cz.php \
-	zm_lang_ro_ro.php \
-    zm_lang_he_il.php \
-    zm_lang_hu_hu.php
-
-EXTRA_DIST = \
-	retag.sh \
-	swap.pl \
-	favicon.ico \
-	mootools.ext.js \
-	zm.php \
-	zm_actions.php \
-	zm_config.php.in \
-	zm_control_funcs.php \
-	zm_control_funcsX.php \
-	zm_db.php \
-	zm_export_funcs.php \
-	zm_funcs.php \
-	zm_request_alarm.php \
-	zm_request_control.php \
-	zm_request_event.php \
-	zm_request_status.php \
-	zm_request_stream.php \
-	zm_html.php \
-	zm_html.js \
-	zm_html_js.php \
-	zm_html_reset.css \
-	zm_html_base.css \
-	zm_html_styles.css \
-	zm_html_config.php \
-	zm_html_view_bandwidth.php \
-	zm_html_view_blank.php \
-	zm_html_view_console.php \
-	zm_html_view_control.php \
-	zm_html_view_controlmenu.php \
-	zm_html_view_controlpanel.php \
-	zm_html_view_controlpreset.php \
-	zm_html_view_controlcaps.php \
-	zm_html_view_controlcap.php \
-	zm_html_view_cycle.php \
-	zm_html_view_device.php \
-	zm_html_view_devices.php \
-	zm_html_view_donate.php \
-	zm_html_view_error.php \
-	zm_html_view_event.php \
-	zm_html_view_eventX.php \
-	zm_html_view_eventX.css \
-	zm_html_view_eventdetail.php \
-	zm_html_view_events.php \
-	zm_html_view_export.php \
-	zm_html_view_filter.php \
-	zm_html_view_filtersave.php \
-	zm_html_view_frame.php \
-	zm_html_view_frames.php \
-	zm_html_view_function.php \
-	zm_html_view_group.php \
-	zm_html_view_groups.php \
-	zm_html_view_login.php \
-	zm_html_view_logout.php \
-	zm_html_view_monitor.php \
-	zm_html_view_monitorpreset.php \
-	zm_html_view_monitorselect.php \
-	zm_html_view_montagefeed.php \
-	zm_html_view_montageframe.php \
-	zm_html_view_montage.php \
-	zm_html_view_montagemenu.php \
-	zm_html_view_montagestatus.php \
-	zm_html_view_none.php \
-	zm_html_view_optionhelp.php \
-	zm_html_view_options.php \
-	zm_html_view_postlogin.php \
-	zm_html_view_settings.php \
-	zm_html_view_siren.php \
-	zm_html_view_state.php \
-	zm_html_view_stats.php \
-	zm_html_view_status.php \
-	zm_html_view_timeline.php \
-	zm_html_view_user.php \
-	zm_html_view_version.php \
-	zm_html_view_video.php \
-	zm_html_view_watchevents.php \
-	zm_html_view_watchfeed.php \
-	zm_html_view_watchmenu.php \
-	zm_html_view_watch.php \
-	zm_html_view_watchX.php \
-	zm_html_view_watchX.css \
-	zm_html_view_watchstatus.php \
-	zm_html_view_zone.php \
-	zm_html_view_zones.php \
-	zm_xhtml.php \
-	zm_xhtml_styles.css \
-	zm_xhtml_config.php \
-	zm_xhtml_view_console.php \
-	zm_xhtml_view_devices.php \
-	zm_xhtml_view_error.php \
-	zm_xhtml_view_eventdetails.php \
-	zm_xhtml_view_event.php \
-	zm_xhtml_view_events.php \
-	zm_xhtml_view_filter.php \
-	zm_xhtml_view_frame.php \
-	zm_xhtml_view_function.php \
-	zm_xhtml_view_login.php \
-	zm_xhtml_view_montage.php \
-	zm_xhtml_view_state.php \
-	zm_xhtml_view_video.php \
-	zm_xhtml_view_watch.php \
-	zm_lang.php \
-	zm_lang_big5_big5.php \
-	zm_lang_de_de.php \
-	zm_lang_en_gb.php \
-	zm_lang_en_us.php \
-	zm_lang_fr_fr.php \
-	zm_lang_ja_jp.php \
-	zm_lang_pl_pl.php \
-	zm_lang_ru_ru.php \
-	zm_lang_nl_nl.php \
-	zm_lang_it_it.php \
-	zm_lang_es_ar.php \
-	zm_lang_pt_br.php \
-	zm_lang_dk_dk.php \
-	zm_lang_cs_cz.php \
-	zm_lang_ro_ro.php \
-    zm_lang_he_il.php \
-    zm_lang_hu_hu.php
+	index.php
 
 # Yes, you are correct. This is a HACK!
 install-data-hook:
-	( cd $(DESTDIR)$(webdir); chown $(webuser):$(webgroup) $(web_DATA) )
+	( cd $(DESTDIR)$(webdir); chown $(webuser):$(webgroup) $(dist_web_DATA) )
+	( cd $(DESTDIR)$(webdir); chown -R $(webuser):$(webgroup) $(SUBDIRS) )
 	@-( cd $(DESTDIR)$(webdir); if ! test -e events; then mkdir events; fi; chown $(webuser):$(webgroup) events; chmod u+w events )
-	@-( cd $(DESTDIR)$(webdir); if ! test -e graphics; then mkdir graphics; fi; chown $(webuser):$(webgroup) graphics; chmod u+w graphics )
 	@-( cd $(DESTDIR)$(webdir); if ! test -e images; then mkdir images; fi; chown $(webuser):$(webgroup) images; chmod u+w images )
 	@-( cd $(DESTDIR)$(webdir); if ! test -e sounds; then mkdir sounds; fi; chown $(webuser):$(webgroup) sounds; chmod u+w sounds )
 	@-( cd $(DESTDIR)$(webdir); if ! test -e temp; then mkdir temp; fi; chown $(webuser):$(webgroup) temp; chmod u+w temp )
-	-( cd $(DESTDIR)$(webdir); ln -s zm.php index.php )
 
 uninstall-hook:
-	@-( cd $(DESTDIR)$(webdir); rm -rf events graphics images sounds temp )
+	@-( cd $(DESTDIR)$(webdir); rm -rf $(SUBDIRS) )
+	@-( cd $(DESTDIR)$(webdir); rm -rf events images sounds temp )

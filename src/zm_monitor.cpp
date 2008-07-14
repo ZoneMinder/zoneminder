@@ -839,7 +839,7 @@ void Monitor::DumpZoneImage( const char *zone_string )
 	}
 
 	static char filename[PATH_MAX];
-	snprintf( filename, sizeof(filename), "%s-Zones.jpg", name );
+	snprintf( filename, sizeof(filename), "Zones%d.jpg", id );
 	zone_image.WriteJpeg( filename );
 }
 
@@ -2758,6 +2758,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
     }
 
     struct {
+        int id;
         double fps;
         int state;
         int buffer_level;
@@ -2770,6 +2771,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         bool forced;
     } status_data;
 
+    status_data.id = monitor->Id();
     status_data.fps = monitor->GetFPS();
     status_data.state = monitor->shared_data->state;
     status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;

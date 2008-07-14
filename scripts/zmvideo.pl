@@ -100,22 +100,10 @@ if ( !$event_id || $event_id < 0 )
 	Usage();
 }
 
-if ( ZM_OPT_MPEG eq "no" )
+if ( ZM_OPT_FFMPEG )
 {
 	print( STDERR "Mpeg encoding is not currently enabled\n" );
 	exit(-1);
-}
-
-if ( ZM_OPT_MPEG eq "mpeg_encode" && $rate != 1.0 )
-{
-	print( STDERR "Variable rate not supported with mpeg_encode\n" );
-	exit(-1);
-}
-
-if ( $format ne 'mpg' && ZM_OPT_MPEG eq "mpeg_encode" )
-{
-	print( STDERR "Format not supported for mpeg_encode\n" );
-	Usage();
 }
 
 if ( !$rate && !$fps )
@@ -210,132 +198,47 @@ if ( $overwrite || !-s $video_file )
 {
 	Info( "Creating video file $video_file for event $event->{Id}\n" );
 
-	if ( ZM_OPT_MPEG eq "mpeg_encode" )
-	{
-		my $param_file = "$video_name.mpe";
-		open( PARAMS, ">$param_file" ) or Fatal( "Can't open '$param_file': $!" );
+    my $frame_rate = sprintf( "%.2f", $event->{Frames}/$event->{FullLength} );
+    if ( $rate )
+    {
+        if ( $rate != 1.0 )
+        {
+            $frame_rate *= $rate;
+        }
+    }
+    elsif ( $fps )
+    {
+        $frame_rate = $fps;
+    }
 
-		print( PARAMS "PATTERN		IBBPBBPBBPBBPBB\n" );
-		print( PARAMS "FORCE_ENCODE_LAST_FRAME\n" );
-		print( PARAMS "OUTPUT		$video_file\n" );
+    my $width = $event->{MonitorWidth};
+    my $height = $event->{MonitorHeight};
+    my $video_size = " ${width}x${height}";
 
-		print( PARAMS "BASE_FILE_FORMAT	JPEG\n" );
-		print( PARAMS "GOP_SIZE	30\n" );
-		print( PARAMS "SLICES_PER_FRAME	1\n" );
+    if ( $scale )
+    {
+        if ( $scale != 1.0 )
+        {
+            $width = int($width*$scale);
+            $height = int($height*$scale);
+            $video_size = " ${width}x${height}";
+        }
+    }
+    elsif ( $size )
+    {
+        $video_size = $size;
+    }
 
-		print( PARAMS "PIXEL		HALF\n" );
-		print( PARAMS "RANGE		10\n" );
-		print( PARAMS "PSEARCH_ALG	LOGARITHMIC\n" );
-		print( PARAMS "BSEARCH_ALG	CROSS2\n" );
-		print( PARAMS "IQSCALE		8\n" );
-		print( PARAMS "PQSCALE		10\n" );
-		print( PARAMS "BQSCALE		25\n" );
+    my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s $video_size ".ZM_FFMPEG_OUTPUT_OPTIONS." '$video_file' >& ffmpeg.log";
+    Debug( $command."\n" );
+    my $output = qx($command);
 
-		print( PARAMS "REFERENCE_FRAME	ORIGINAL\n" );
-		print( PARAMS "FRAME_RATE 24\n" );
-
-		my $scale_conversion = "";
-		if ( $scale != 1 )
-		{
-			if ( $scale > 1 )
-			{
-				$scale_conversion = ZM_PATH_NETPBM."/pnmscale $scale";
-			}
-			else
-			{
-				$scale_conversion = ZM_PATH_NETPBM."/pnmscale ".(1/$scale);
-			}
-			if ( $event->{Palette} == 1 && !ZM_COLOUR_JPEG_FILES )
-			{
-				print( PARAMS "INPUT_CONVERT	".ZM_PATH_NETPBM."/jpegtopnm * | ".$scale_conversion." | ".ZM_PATH_NETPBM."/pgmtoppm white | ".ZM_PATH_NETPBM."/ppmtojpeg\n" );
-			}
-			else
-			{
-				print( PARAMS "INPUT_CONVERT	".ZM_PATH_NETPBM."/jpegtopnm * | ".$scale_conversion." | ".ZM_PATH_NETPBM."/ppmtojpeg\n" );
-			}
-		}
-		else
-		{
-			if ( $event->{Palette} == 1 && !ZM_COLOUR_JPEG_FILES )
-			{
-				print( PARAMS "INPUT_CONVERT	".ZM_PATH_NETPBM."/jpegtopnm * | ".ZM_PATH_NETPBM."/pgmtoppm white | ".ZM_PATH_NETPBM."/ppmtojpeg\n" );
-			}
-			else
-			{
-				print( PARAMS "INPUT_CONVERT	*\n" );
-			}
-		}
-		print( PARAMS "INPUT_DIR	.\n" );
-
-		print( PARAMS "INPUT\n" );
-		for ( my $i = 1; $i <= $event->{Frames}; $i++ )
-		{
-			printf( PARAMS "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg\n", $i );
-		}
-		print( PARAMS "END_INPUT\n" );
-		close( PARAMS );
-
-		my $command = ZM_PATH_MPEG_ENCODE." $param_file >mpeg_encode.log";
-		Debug( $command."\n" );
-		if ( my $output = qx($command) )
-		{
-			Debug( $output."\n" );
-		}
-		my $status = $? >> 8;
-		if ( $status )
-		{
-			Fatal( "Error: $status" );
-		}
-	}
-	elsif ( ZM_OPT_MPEG eq "ffmpeg" )
-	{
-		my $frame_rate = sprintf( "%.2f", $event->{Frames}/$event->{FullLength} );
-		if ( $rate )
-		{
-			if ( $rate != 1.0 )
-			{
-				$frame_rate *= $rate;
-			}
-		}
-		elsif ( $fps )
-		{
-			$frame_rate = $fps;
-		}
-
-		my $width = $event->{MonitorWidth};
-		my $height = $event->{MonitorHeight};
-		my $video_size = " ${width}x${height}";
-
-		if ( $scale )
-		{
-			if ( $scale != 1.0 )
-			{
-				$width = int($width*$scale);
-				$height = int($height*$scale);
-				$video_size = " ${width}x${height}";
-			}
-		}
-		elsif ( $size )
-		{
-			$video_size = $size;
-		}
-
-
-		my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s $video_size ".ZM_FFMPEG_OUTPUT_OPTIONS." '$video_file' >& ffmpeg.log";
-		Debug( $command."\n" );
-		my $output = qx($command);
-
-		my $status = $? >> 8;
-		if ( $status )
-		{
-			Error( "Unable to generate video, check ".$event_path."/ffmpeg.log for details" );
-			exit( -1 );
-		}
-	}
-	else
-	{
-		Fatal( "Bogus mpeg option ".ZM_OPT_MPEG."\n" );
-	}
+    my $status = $? >> 8;
+    if ( $status )
+    {
+        Error( "Unable to generate video, check ".$event_path."/ffmpeg.log for details" );
+        exit( -1 );
+    }
 	
 	Info( "Finished $video_file\n" );
 }

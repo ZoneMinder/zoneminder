@@ -1067,10 +1067,6 @@ $OLANG = array(
         'Prompt' => "Este instalat codor video mpeg (op&#355;ional)",
         'Help' => "ZoneMinder poate &#238;nregistra o serie de imagini &#238;n format MPEG. Aceast&#259; op&#355;iune v&#259; permite s&#259; specifica&#355;i dac&#259; ave&#355;i un codor mpeg instalat. Cele dou&#259; codoare suportate de ZoneMinder sunt mpeg_encode &#351;i ffmpeg, ultimul fiind cel mai rapid. Crearea de fi&#351;iere MPEG consum&#259; resursele procesorului &#351;i nu este necesar&#259; deoarece evenimentele pot fi vizualizare ca flux video."
     ),
-    'PATH_MPEG_ENCODE' => array(
-        'Prompt' => "Calea la codorul mpeg Berkeley (op&#355;ional)",
-        'Help' => "Aceasta este calea la codorul mpeg Berkeley (op&#355;ional)."
-    ),
     'PATH_FFMPEG' => array(
         'Prompt' => "Calea la codorul mpeg ffmpeg (op&#355;ional)",
         'Help' => "Aceasta este calea la codorul mpeg ffmpeg."

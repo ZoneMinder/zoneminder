@@ -569,7 +569,7 @@ sub checkFilter
             my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
             my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
         }
-        if ( ZM_OPT_MPEG ne "no" && $filter->{AutoVideo} )
+        if ( ZM_OPT_FFMPEG && $filter->{AutoVideo} )
         {
             if ( !$event->{Videoed} )
             {
@@ -871,7 +871,7 @@ sub substituteTags
             }
         }
     }
-    if ( $attachments_ref && ZM_OPT_MPEG ne "no" )
+    if ( $attachments_ref && ZM_OPT_FFMPEG )
     {
         if ( $text =~ s/%EV%//g )
         {

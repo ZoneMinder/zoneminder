@@ -205,7 +205,7 @@ our @options =
 		name => "ZM_COLOUR_JPEG_FILES",
 		default => "yes",
 		description => "Colourise greyscale JPEG files",
-		help => "Cameras that capture in greyscale can write their captured images to jpeg files with a corresponding greyscale colour space. This saves a small amount of disk space over colour ones. However some tools such as ffmpeg and mpeg_encode either fail to work with this colour space or have to convert it beforehand. Setting this option to yes uses up a little more space but makes creation of MPEG files much faster.",
+		help => "Cameras that capture in greyscale can write their captured images to jpeg files with a corresponding greyscale colour space. This saves a small amount of disk space over colour ones. However some tools such as ffmpeg either fail to work with this colour space or have to convert it beforehand. Setting this option to yes uses up a little more space but makes creation of MPEG files much faster.",
 		type => $types{boolean},
 		category => "images",
 	},
@@ -403,20 +403,11 @@ our @options =
 		category => "network",
 	},
 	{
-		name => "ZM_OPT_MPEG",
+		name => "ZM_OPT_FFMPEG",
 		default => "no",
-		description => "Is there an (optional) mpeg video encoder installed",
-		help => "ZoneMinder can optionally encode a series of video images into an MPEG encoded file. This option allows you to specifiy whether you have an mpeg encoder installed and if so which one. The two that ZoneMinder supports are mpeg_encode and ffmpeg, of which the latter is by far the fastest. However creating MPEG files can be fairly CPU and disk intensive and is not required as events can still be reviewed as video stream without it.",
-		type => { db_type=>"string", hint=>"no|mpeg_encode|ffmpeg", pattern=>qr|^([nmf])|i, format=>q( $1 =~ /^n/ ? "no" : ( $1 =~ /^m/ ? "mpeg_encode" : "ffmpeg") ) },
-		category => "images",
-	},
-	{
-		name => "ZM_PATH_MPEG_ENCODE",
-		default => "/usr/local/bin/mpeg_encode",
-		description => "Path to (optional) Berkeley mpeg encoder",
-		help => "This path should point to where the Berkeley mpeg_encode program has been installed.",
-		requires => [ { name=>"ZM_OPT_MPEG", value=>"mpeg_encode" } ],
-		type => $types{abs_path},
+		description => "Is the ffmpeg video encoder/decoder installed",
+		help => "ZoneMinder can optionally encode a series of video images into an MPEG encoded movie file for viewing, downloading or storage. This option allows you to specify whether you have the ffmpeg tools installed. Note that creating MPEG files can be fairly CPU and disk intensive and is not a required option as events can still be reviewed as video streams without it.",
+		type => $types{boolean},
 		category => "images",
 	},
 	{
@@ -424,7 +415,7 @@ our @options =
 		default => "/usr/local/bin/ffmpeg",
 		description => "Path to (optional) ffmpeg mpeg encoder",
 		help => "This path should point to where the ffmpeg has been installed.",
-		requires => [ { name=>"ZM_OPT_MPEG", value=>"ffmpeg" } ],
+		requires => [ { name=>"ZM_OPT_FFMPEG", value=>"yes" } ],
 		type => $types{abs_path},
 		category => "images",
 	},
@@ -433,7 +424,7 @@ our @options =
 		default => "",
 		description => "Additional input options to ffmpeg",
 		help => "Ffmpeg can take many options on the command line to control the quality of video produced. This option allows you to specify your own set that apply to the input to ffmpeg (options that are given before the -i option). Check the ffmpeg documentation for a full list of options which may be used here.",
-		requires => [ { name=>"ZM_OPT_MPEG", value=>"ffmpeg" } ],
+		requires => [ { name=>"ZM_OPT_FFMPEG", value=>"yes" } ],
 		type => $types{string},
 		category => "images",
 	},
@@ -442,7 +433,7 @@ our @options =
 		default => "-r 25",
 		description => "Additional output options to ffmpeg",
 		help => "Ffmpeg can take many options on the command line to control the quality of video produced. This option allows you to specify your own set that apply to the output from ffmpeg (options that are given after the -i option). Check the ffmpeg documentation for a full list of options which may be used here. The most common one will often be to force an output frame rate supported by the video encoder.",
-		requires => [ { name=>"ZM_OPT_MPEG", value=>"ffmpeg" } ],
+		requires => [ { name=>"ZM_OPT_FFMPEG", value=>"yes" } ],
 		type => $types{string},
 		category => "images",
 	},
@@ -451,7 +442,7 @@ our @options =
 		default => "mpg* mpeg wmv avi mov 3gp**",
 		description => "Formats to allow for ffmpeg video generation",
 		help => "Ffmpeg can generate video in many different formats. This option allows you to list the ones you want to be able to select. As new formats are supported by ffmpeg you can add them here and be able to use them immediately. Adding a '*' after a format indicates that this will be the default format used for web video, adding '**' defines the default format for phone video.",
-		requires => [ { name=>"ZM_OPT_MPEG", value=>"ffmpeg" } ],
+		requires => [ { name=>"ZM_OPT_FFMPEG", value=>"yes" } ],
 		type => $types{string},
 		category => "images",
 	},
@@ -1663,10 +1654,6 @@ sub loadConfigFromDB
 		#next if ( $option->{category} eq 'hidden' );
 		if ( defined($value) )
 		{
-			if ( $name eq "ZM_OPT_MPEG" && $value eq "yes" )
-			{
-				$value = "mpeg_encode";
-			}
 			if ( $option->{type} == $types{boolean} )
 			{
 				$option->{value} = $value?"yes":"no";

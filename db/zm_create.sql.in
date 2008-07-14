@@ -202,7 +202,6 @@ CREATE TABLE `Events` (
   `Emailed` tinyint(3) unsigned NOT NULL default '0',
   `Messaged` tinyint(3) unsigned NOT NULL default '0',
   `Executed` tinyint(3) unsigned NOT NULL default '0',
-  `LearnState` char(1) default '',
   `Notes` text,
   PRIMARY KEY  (`Id`,`MonitorId`),
   KEY `MonitorId` (`MonitorId`),

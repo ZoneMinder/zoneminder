@@ -34,7 +34,7 @@
 #include "zm.h"
 #include "zm_file_camera.h"
 
-FileCamera::FileCamera( const char *p_path, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : Camera( FILE, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture )
+FileCamera::FileCamera( const char *p_path, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : Camera( FILE_SRC, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture )
 {
 	strncpy( path, p_path, sizeof(path) );
 	if ( capture )
@@ -55,7 +55,7 @@ void FileCamera::Initialise()
 {
 	if ( !path[0] )
 	{
-		Error(( "No path specified for file image" ));
+		Error( "No path specified for file image" );
 		exit( -1 );
 	}
 }
@@ -69,7 +69,7 @@ int FileCamera::PreCapture()
 	struct stat statbuf;
 	if ( stat( path, &statbuf ) < 0 )
 	{
-		Error(( "Can't stat %s: %s", path, strerror(errno) ));
+		Error( "Can't stat %s: %s", path, strerror(errno) );
 		return( -1 );
 	}
 

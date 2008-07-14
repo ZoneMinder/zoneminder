@@ -37,7 +37,7 @@ bool fixDevice( const char *device_path )
 
 	if ( stat( device_path, &stat_buf ) < 0 )
 	{
-		Error(( "Can't stat %s: %s", device_path, strerror(errno)));
+		Error( "Can't stat %s: %s", device_path, strerror(errno));
 		return( false );
 	}
 
@@ -64,15 +64,15 @@ bool fixDevice( const char *device_path )
 	mode_t mode = stat_buf.st_mode;
 	if ( (mode & mask) == mask )
 	{
-		Debug( 1, ( "Permissions on %s are ok at %o", device_path, mode ));
+		Debug( 1, "Permissions on %s are ok at %o", device_path, mode );
 		return( true );
 	}
 	mode |= mask;
 
-	Info(( "Resetting permissions on %s to %o", device_path, mode ));
+	Info( "Resetting permissions on %s to %o", device_path, mode );
 	if ( chmod( device_path, mode ) < 0 )
 	{
-		Error(( "Can't chmod %s to %o: %s", device_path, mode, strerror(errno)));
+		Error( "Can't chmod %s to %o: %s", device_path, mode, strerror(errno));
 		return( false );
 	}
 	return( true );
@@ -89,14 +89,14 @@ int main( int argc, char *argv[] )
 	snprintf( sql, sizeof(sql), "select distinct Device from Monitors where not isnull(Device) and Type = 'Local'" );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
@@ -107,7 +107,7 @@ int main( int argc, char *argv[] )
 
 	if ( mysql_errno( &dbconn ) )
 	{
-		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	// Yadda yadda
@@ -116,14 +116,14 @@ int main( int argc, char *argv[] )
 	snprintf( sql, sizeof(sql), "select distinct ControlDevice from Monitors where not isnull(ControlDevice)" );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
@@ -134,7 +134,7 @@ int main( int argc, char *argv[] )
 
 	if ( mysql_errno( &dbconn ) )
 	{
-		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	// Yadda yadda

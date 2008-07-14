@@ -30,18 +30,10 @@
 
 #include "zm_debug.h"
 
-static char zm_temp_dbg_string[4096];
-static char zm_dbg_string[4096+512];
-static const char *zm_dbg_file;
-static int zm_dbg_line;
-static int zm_dbg_code;
-static char zm_dbg_class[4];
-
 char zm_dbg_syslog[64];
 char zm_dbg_name[64];
 char zm_dbg_id[64];
 int zm_dbg_level = 0;
-int zm_dbg_pid = -1;
 
 char zm_dbg_log[PATH_MAX] = "";
 FILE *zm_dbg_log_fd = (FILE *)NULL;
@@ -69,7 +61,7 @@ void zmUsrHandler( int sig )
 			zm_dbg_level--;
 		}
 	}
-	Info(( "Debug Level Changed to %d", zm_dbg_level ));
+	Info( "Debug Level Changed to %d", zm_dbg_level );
 }
 
 int zmGetDebugEnv()
@@ -171,7 +163,7 @@ int zmDebugPrepareLog()
 		fflush( zm_dbg_log_fd );
 		if ( fclose(zm_dbg_log_fd) == -1 )
 		{
-			Error(( "fclose(), error = %s",strerror(errno)) );
+			Error( "fclose(), error = %s",strerror(errno) );
 			return( -1 );
 		}
 		zm_dbg_log_fd = (FILE *)NULL;
@@ -193,7 +185,7 @@ int zmDebugPrepareLog()
 
 	if( zm_dbg_log[0] && (zm_dbg_log_fd = fopen(zm_dbg_log,"w")) == (FILE *)NULL )
 	{
-	    Error(("fopen() for %s, error = %s",zm_dbg_log,strerror(errno)));
+	    Error( "fopen() for %s, error = %s", zm_dbg_log, strerror(errno) );
 		return( -1 );
 	}
     return( 0 );
@@ -202,9 +194,8 @@ int zmDebugPrepareLog()
 int zmDebugInitialise( const char *name, const char *id, int level )
 {
 	int status;
-	struct timezone tzp;
 
-	gettimeofday( &zm_dbg_start, &tzp );
+	gettimeofday( &zm_dbg_start, NULL );
 
 	strncpy( zm_dbg_name, name, sizeof(zm_dbg_name) );
 	strncpy( zm_dbg_id, id, sizeof(zm_dbg_id) );
@@ -220,21 +211,17 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 
 	strncpy( zm_dbg_name, zm_dbg_syslog, sizeof(zm_dbg_name) );
 
-	zm_temp_dbg_string[0] = '\0';
-	zm_dbg_class[0] = '\0';
-
-	zm_dbg_pid = getpid();
 	zm_dbg_log_fd = (FILE *)NULL;
 
 	if( (status = zmGetDebugEnv() ) < 0)
 	{
-		Error(( "Debug Environment Error, status = %d", status ));
+		Error( "Debug Environment Error, status = %d", status );
 		return( -1 );
 	}
 
 	zmDebugPrepareLog();
 
-	Info(( "Debug Level = %d, Debug Log = %s", zm_dbg_level,zm_dbg_log[0]?zm_dbg_log:"<none>" ));
+	Info( "Debug Level = %d, Debug Log = %s", zm_dbg_level, zm_dbg_log[0]?zm_dbg_log:"<none>" );
 
 	{
 	struct sigaction action;
@@ -244,12 +231,12 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 
 	if ( sigaction( SIGUSR1, &action, 0 ) < 0 )
 	{
-		Error(("sigaction(), error = %s",strerror(errno)));
+		Error( "sigaction(), error = %s", strerror(errno) );
 		return( -1 );
 	}
 	if ( sigaction( SIGUSR2, &action, 0 ) < 0)
 	{
-		Error(("sigaction(), error = %s",strerror(errno)));
+		Error( "sigaction(), error = %s", strerror(errno) );
 		return( -1 );
 	}
 	}
@@ -296,13 +283,13 @@ int zmDebugReinitialise( const char *target )
 	{
 		if ( (status = zmGetDebugEnv() ) < 0 )
 		{
-			Error(( "Debug Environment Error, status = %d", status ));
+			Error( "Debug Environment Error, status = %d", status );
 			return( -1 );
 		}
 
 		zmDebugPrepareLog();
 
-		Info(( "New Debug Level = %d, New Debug Log = %s", zm_dbg_level, zm_dbg_log[0]?zm_dbg_log:"<none>" ));
+		Info( "New Debug Level = %d, New Debug Log = %s", zm_dbg_level, zm_dbg_log[0]?zm_dbg_log:"<none>" );
 	}
 
 	return( 0 );
@@ -315,11 +302,11 @@ int zmDbgReinit( const char *target )
 
 int zmDebugTerminate()
 {
-	Debug( 1,( "Terminating Debug" ));
+	Debug( 1, "Terminating Debug" );
 	fflush( zm_dbg_log_fd );
 	if ( fclose(zm_dbg_log_fd) == -1 )
 	{
-		Error(( "fclose(), error = %s",strerror(errno)) );
+		Error( "fclose(), error = %s", strerror(errno) );
 		return( -1 );
 	}
 	zm_dbg_log_fd = (FILE *)NULL;
@@ -348,52 +335,42 @@ void zmDbgSubtractTime( struct timeval * const tp1, struct timeval * const tp2 )
 	}
 }
 
-int zmDbgPrepare( const char * const file, const int line, const int level )
+void zmDbgOutput( const char * const file, const int line, const int level, const char *fstring, ... )
 {
-	zm_dbg_file = file;
-	zm_dbg_line = line;
-	zm_dbg_code = level;
-	switch(level)
-	{
-	case ZM_DBG_INF:
-		strcpy( zm_dbg_class,"INF" );
-		break;
-	case ZM_DBG_WAR:
-		strcpy( zm_dbg_class,"WAR" );
-		break;
-	case ZM_DBG_ERR:
-		strcpy( zm_dbg_class,"ERR" );
-		break;
-	case ZM_DBG_FAT:
-		strcpy( zm_dbg_class,"FAT" );
-		break;
-	default:
-		if ( level > 0 && level <= 9 )
-		{
-			sprintf( zm_dbg_class, "DB%d", level );
-		}
-		else
-		{
-			Error(( "Unknown Error Level %d", level ));
-		}
-		break;
-	}
-	return( level );
-}
-
-int zmDbgOutput( const char *fstring, ... )
-{
+    char            class_string[4];
 	char			time_string[64];
+    char            dbg_string[1024];
 	va_list			arg_ptr;
 	int				log_code;
 	struct timeval	tp;
-	struct timezone tzp;
 	
-	zm_temp_dbg_string[0] = '\0';
-	va_start(arg_ptr,fstring);
-	vsprintf(zm_temp_dbg_string,fstring,arg_ptr);
+	switch ( level )
+	{
+        case ZM_DBG_INF:
+            strncpy( class_string, "INF", sizeof(class_string) );
+            break;
+        case ZM_DBG_WAR:
+            strncpy( class_string, "WAR", sizeof(class_string) );
+            break;
+        case ZM_DBG_ERR:
+            strncpy( class_string, "ERR", sizeof(class_string) );
+            break;
+        case ZM_DBG_FAT:
+            strncpy( class_string, "FAT", sizeof(class_string) );
+            break;
+        default:
+            if ( level > 0 && level <= 9 )
+            {
+                snprintf( class_string, sizeof(class_string), "DB%d", level );
+            }
+            else
+            {
+                Error( "Unknown Error Level %d", level );
+            }
+            break;
+	}
 
-	gettimeofday( &tp, &tzp );
+	gettimeofday( &tp, NULL );
 
 	if ( zm_dbg_runtime )
 	{
@@ -403,41 +380,46 @@ int zmDbgOutput( const char *fstring, ... )
 	}
 	else
 	{
-		time_t the_time;
-
-		the_time = tp.tv_sec;
-
-        strftime(time_string,63,"%x %H:%M:%S",localtime(&the_time));
-		sprintf(&(time_string[strlen(time_string)]), ".%06ld", tp.tv_usec);
-
+        char *time_ptr = time_string;
+        time_ptr += strftime( time_ptr, sizeof(time_string), "%x %H:%M:%S", localtime(&tp.tv_sec) );
+		snprintf( time_ptr, sizeof(time_string)-(time_ptr-time_string), ".%06ld", tp.tv_usec );
 	}
-	sprintf(zm_dbg_string,"%s %s[%d].%s-%s/%d [%s]\n", 
+
+    char *dbg_ptr = dbg_string;
+	dbg_ptr += snprintf( dbg_ptr, sizeof(dbg_string), "%s %s[%ld].%s-%s/%d [", 
               	time_string,
 				zm_dbg_name,
-				zm_dbg_pid,
-               	zm_dbg_class,
-				zm_dbg_file,
-				zm_dbg_line,
-				zm_temp_dbg_string
+				syscall(224),
+               	class_string,
+				file,
+				line
 			);
+    char *dbg_log_start = dbg_ptr;
+
+	va_start( arg_ptr, fstring );
+	dbg_ptr += vsnprintf( dbg_ptr, sizeof(dbg_string)-(dbg_ptr-dbg_string), fstring, arg_ptr );
+	va_end(arg_ptr);
+    char *dbg_log_end = dbg_ptr;
+    strncpy( dbg_ptr, "]\n", sizeof(dbg_string)-(dbg_ptr-dbg_string) );   
+
 	if ( zm_dbg_print )
 	{
-		printf("%s", zm_dbg_string);
-		fflush(stdout);
+		printf( "%s", dbg_string );
+		fflush( stdout );
 	}
 	if ( zm_dbg_log_fd != (FILE *)NULL )
 	{
-		fprintf( zm_dbg_log_fd, "%s", zm_dbg_string );
+		fprintf( zm_dbg_log_fd, "%s", dbg_string );
 
 		if ( zm_dbg_flush )
 		{
-			fflush(zm_dbg_log_fd);
+			fflush( zm_dbg_log_fd );
 		}
 	}
 	/* For Info, Warning, Errors etc we want to log them */
-	if ( zm_dbg_code <= ZM_DBG_SYSLOG )
+	if ( level <= ZM_DBG_SYSLOG )
 	{
-		switch(zm_dbg_code)
+		switch( level )
 		{
 			case ZM_DBG_INF:
 				log_code = LOG_INFO;
@@ -456,13 +438,12 @@ int zmDbgOutput( const char *fstring, ... )
 				break;
 		}
 		//log_code |= LOG_DAEMON;
-		syslog( log_code, "%s [%s]", zm_dbg_class, zm_temp_dbg_string );
+        *dbg_log_end = '\0';
+		syslog( log_code, "%s [%s]", class_string, dbg_log_start );
 	}
-	va_end(arg_ptr);
-	if ( zm_dbg_code == ZM_DBG_FAT )
+	if ( level == ZM_DBG_FAT )
 	{
         abort();
 		exit( -1 );
 	}
-	return( strlen( zm_temp_dbg_string ) );
 }

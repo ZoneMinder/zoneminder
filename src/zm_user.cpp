@@ -116,28 +116,28 @@ User *zmLoadUser( const char *username, const char *password )
 
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_users = mysql_num_rows( result );
 
 	if ( n_users != 1 )
 	{
-		Warning(( "Unable to authenticate user %s", username ));
+		Warning( "Unable to authenticate user %s", username );
 		return( 0 );
 	}
 
 	MYSQL_ROW dbrow = mysql_fetch_row( result );
 
 	User *user = new User( dbrow );
-	Info(( "Authenticated user '%s'", user->getUsername() ));
+	Info( "Authenticated user '%s'", user->getUsername() );
 
 	mysql_free_result( result );
 
@@ -154,32 +154,32 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 		remote_addr = getenv( "REMOTE_ADDR" );
 		if ( !remote_addr )
 		{
-			Warning(( "Can't determine remote address, using null" ));
+			Warning( "Can't determine remote address, using null" );
 			remote_addr = "";
 		}
 	}
 
-	Debug( 1, ( "Attempting to authenticate user from auth string '%s'", auth ));
+	Debug( 1, "Attempting to authenticate user from auth string '%s'", auth );
 	char sql[BUFSIZ] = "";
 	snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1" );
 
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_users = mysql_num_rows( result );
 
 	if ( n_users < 1 )
 	{
-		Warning(( "Unable to authenticate user" ));
+		Warning( "Unable to authenticate user" );
 		return( 0 );
 	}
 
@@ -216,19 +216,19 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 			{
 				sprintf( &auth_md5[2*j], "%02x", md5sum[j] );
 			}
-			Debug( 1, ( "Checking auth_key '%s' -> auth_md5 '%s'", auth_key, auth_md5 ));
+			Debug( 1, "Checking auth_key '%s' -> auth_md5 '%s'", auth_key, auth_md5 );
 
 			if ( !strcmp( auth, auth_md5 ) )
 			{
 				// We have a match
 				User *user = new User( dbrow );
-				Info(( "Authenticated user '%s'", user->getUsername() ));
+				Info( "Authenticated user '%s'", user->getUsername() );
 				return( user );
 			}
 		}
 	}
 #else // HAVE_DECL_MD5
-	Error(( "You need to build with gnutls or openssl installed to use hash based authentication" ));
+	Error( "You need to build with gnutls or openssl installed to use hash based authentication" );
 #endif // HAVE_DECL_MD5
 	return( 0 );
 }

@@ -47,7 +47,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	max_blobs = p_max_blobs;
 	overload_frames = p_overload_frames;
 
-	Debug( 1, ( "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d, OF: %d", id, label, type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs, overload_frames ));
+	Debug( 1, "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d, OF: %d", id, label, type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs, overload_frames );
 
 	alarmed = false;
 	pixel_diff = 0;
@@ -108,7 +108,7 @@ void Zone::RecordStats( const Event *event )
 	snprintf( sql, sizeof(sql), "insert into Stats set MonitorId=%d, ZoneId=%d, EventId=%d, FrameId=%d, PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d", monitor->Id(), id, event->Id(), event->Frames()+1, pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't insert event stats: %s", mysql_error( &dbconn ) ));
+		Error( "Can't insert event stats: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 }
@@ -121,8 +121,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
     if ( overload_count )
     {
-        Info(( "In overload mode, %d frames of %d remaining", overload_count, overload_frames ));
-        Debug( 4, ( "In overload mode, %d frames of %d remaining", overload_count, overload_frames ));
+        Info( "In overload mode, %d frames of %d remaining", overload_count, overload_frames );
+        Debug( 4, "In overload mode, %d frames of %d remaining", overload_count, overload_frames );
         overload_count--;
         return( false );
     }
@@ -147,9 +147,9 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	int lo_x;
 	int hi_x;
 
-	Debug( 4, ( "Checking alarms for zone %d/%s in lines %d -> %d", id, label, lo_y, hi_y ));
+	Debug( 4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label, lo_y, hi_y );
 
-	Debug( 5, ( "Checking for alarmed pixels" ));
+	Debug( 5, "Checking for alarmed pixels" );
 	unsigned char *pdiff, *ppoly;
 	// Create an upper margin
 	if ( lo_y > 0 )
@@ -168,7 +168,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		lo_x = ranges[py].lo_x;
 		hi_x = ranges[py].hi_x;
 
-		Debug( 7, ( "Checking line %d from %d -> %d", y, lo_x, hi_x ));
+		Debug( 7, "Checking line %d from %d -> %d", y, lo_x, hi_x );
 		pdiff = diff_image->Buffer( lo_x, y );
 		ppoly = pg_image->Buffer( ranges[py].off_x, py );
 		// Left margin
@@ -211,7 +211,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	}
 	if ( pixel_diff_count && alarm_pixels )
 		pixel_diff = pixel_diff_count/alarm_pixels;
-	Debug( 5, ( "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d", alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff ));
+	Debug( 5, "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d", alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff );
 	if ( config.record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
@@ -236,7 +236,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
         return( false );
     }
 	score = (100*alarm_pixels)/polygon.Area();
-	Debug( 5, ( "Current score is %d", score ));
+	Debug( 5, "Current score is %d", score );
 
 	if ( check_method >= FILTERED_PIXELS )
 	{
@@ -245,7 +245,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		int bx1 = bx-1;
 		int by1 = by-1;
 
-		Debug( 5, ( "Checking for filtered pixels" ));
+		Debug( 5, "Checking for filtered pixels" );
 		if ( bx > 1 || by > 1 )
 		{
 			// Now remove any pixels smaller than our filter size
@@ -311,7 +311,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 			diff_image->WriteJpeg( diag_path );
 		}
-		Debug( 5, ( "Got %d filtered pixels, need %d -> %d", alarm_filter_pixels, min_filter_pixels, max_filter_pixels ));
+		Debug( 5, "Got %d filtered pixels, need %d -> %d", alarm_filter_pixels, min_filter_pixels, max_filter_pixels );
 
 		if ( !alarm_filter_pixels )
         {
@@ -328,11 +328,11 @@ bool Zone::CheckAlarms( const Image *delta_image )
         }
 
 		score = (100*alarm_filter_pixels)/(polygon.Area());
-		Debug( 5, ( "Current score is %d", score ));
+		Debug( 5, "Current score is %d", score );
 
 		if ( check_method >= BLOBS )
 		{
-			Debug( 5, ( "Checking for blob pixels" ));
+			Debug( 5, "Checking for blob pixels" );
 			typedef struct { unsigned char tag; int count; int lo_x; int hi_x; int lo_y; int hi_y; } BlobStats;
 			BlobStats blob_stats[256];
 			memset( blob_stats, 0, sizeof(BlobStats)*256 );
@@ -350,7 +350,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				{
 					if ( *pdiff == WHITE )
 					{
-						Debug( 9, ( "Got white pixel at %d,%d (%p)", x, y, pdiff ));
+						Debug( 9, "Got white pixel at %d,%d (%p)", x, y, pdiff );
 						//last_x = (x>lo_x)?*(pdiff-1):0;
 						//last_y = (y>lo_y&&x>=last_lo_x&&x<=last_hi_x)?*(pdiff-diff_width):0;
 						last_x = x>0?*(pdiff-1):0;
@@ -358,15 +358,15 @@ bool Zone::CheckAlarms( const Image *delta_image )
 						
 						if ( last_x )
 						{
-							Debug( 9, ( "Left neighbour is %d", last_x ));
+							Debug( 9, "Left neighbour is %d", last_x );
 							bsx = &blob_stats[last_x];
 							if ( last_y )
 							{
-								Debug( 9, ( "Top neighbour is %d", last_y ));
+								Debug( 9, "Top neighbour is %d", last_y );
 								bsy = &blob_stats[last_y];
 								if ( last_x == last_y )
 								{
-									Debug( 9, ( "Matching neighbours, setting to %d", last_x ));
+									Debug( 9, "Matching neighbours, setting to %d", last_x );
 									// Add to the blob from the x side (either side really)
 									*pdiff = last_x;
 									bsx->count++;
@@ -379,9 +379,9 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									bsm = bsx->count>=bsy->count?bsx:bsy;
 									bss = bsm==bsx?bsy:bsx;
 
-									Debug( 9, ( "Different neighbours, setting pixels of %d to %d", bss->tag, bsm->tag ));
-									Debug( 9, ( "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y ));
-									Debug( 9, ( "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y ));
+									Debug( 9, "Different neighbours, setting pixels of %d to %d", bss->tag, bsm->tag );
+									Debug( 9, "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y );
+									Debug( 9, "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y );
 									// Now change all those pixels to the other setting
 									int changed = 0;
 									for ( int sy = bss->lo_y, psy = bss->lo_y-lo_y; sy <= bss->hi_y; sy++, psy++ )
@@ -389,15 +389,15 @@ bool Zone::CheckAlarms( const Image *delta_image )
 										int lo_sx = bss->lo_x>=ranges[psy].lo_x?bss->lo_x:ranges[psy].lo_x;
 										int hi_sx = bss->hi_x<=ranges[psy].hi_x?bss->hi_x:ranges[psy].hi_x;
 
-										Debug( 9, ( "Changing %d(%d), %d->%d", sy, psy, lo_sx, hi_sx ));
-										Debug( 9, ( "Range %d(%d), %d->%d", sy, psy, ranges[psy].lo_x, ranges[psy].hi_x ));
+										Debug( 9, "Changing %d(%d), %d->%d", sy, psy, lo_sx, hi_sx );
+										Debug( 9, "Range %d(%d), %d->%d", sy, psy, ranges[psy].lo_x, ranges[psy].hi_x );
 										spdiff = diff_image->Buffer( lo_sx, sy );
 										for ( int sx = lo_sx; sx <= hi_sx; sx++, spdiff++ )
 										{
-											Debug( 9, ( "Pixel at %d,%d (%p) is %d", sx, sy, spdiff, *spdiff ));
+											Debug( 9, "Pixel at %d,%d (%p) is %d", sx, sy, spdiff, *spdiff );
 											if ( *spdiff == bss->tag )
 											{
-												Debug( 9, ( "Setting pixel" ));
+												Debug( 9, "Setting pixel" );
 												*spdiff = bsm->tag;
 												changed++;
 											}
@@ -406,9 +406,9 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									*pdiff = bsm->tag;
 									if ( !changed )
 									{
-										Info(( "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y ));
-										Info(( "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y ));
-										Error(( "No pixels changed, exiting" ));
+										Info( "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y );
+										Info( "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y );
+										Error( "No pixels changed, exiting" );
 										exit( -1 );
 									}
 
@@ -423,7 +423,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 									alarm_blobs--;
 
-									Debug( 6, ( "Merging blob %d with %d at %d,%d, %d current blobs", bss->tag, bsm->tag, x, y, alarm_blobs ));
+									Debug( 6, "Merging blob %d with %d at %d,%d, %d current blobs", bss->tag, bsm->tag, x, y, alarm_blobs );
 
 									// Clear out the old blob
 									bss->tag = 0;
@@ -436,7 +436,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 							}
 							else
 							{
-								Debug( 9, ( "Setting to left neighbour %d", last_x ));
+								Debug( 9, "Setting to left neighbour %d", last_x );
 								// Add to the blob from the x side 
 								*pdiff = last_x;
 								bsx->count++;
@@ -448,7 +448,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 						{
 							if ( last_y )
 							{
-								Debug( 9, ( "Setting to top neighbour %d", last_y ));
+								Debug( 9, "Setting to top neighbour %d", last_y );
 
 								// Add to the blob from the y side
 								BlobStats *bsy = &blob_stats[last_y];
@@ -487,7 +487,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 											alarm_blobs--;
 											alarm_blob_pixels -= bs->count;
 										
-											Debug( 6, ( "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs ));
+											Debug( 6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs );
 
 											bs->tag = 0;
 											bs->count = 0;
@@ -499,7 +499,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									}
 									if ( !bs->count )
 									{
-										Debug( 9, ( "Creating new blob %d", i ));
+										Debug( 9, "Creating new blob %d", i );
 										*pdiff = i;
 										bs->tag = i;
 										bs->count++;
@@ -507,13 +507,13 @@ bool Zone::CheckAlarms( const Image *delta_image )
 										bs->lo_y = bs->hi_y = y;
 										alarm_blobs++;
 
-										Debug( 6, ( "Created blob %d at %d,%d, %d current blobs", bs->tag, x, y, alarm_blobs ));
+										Debug( 6, "Created blob %d at %d,%d, %d current blobs", bs->tag, x, y, alarm_blobs );
 										break;
 									}
 								}
 								if ( i == 0 )
 								{
-									Warning(( "Max blob count reached. Unable to allocate new blobs so terminating. Zone settings may be too sensitive." ));
+									Warning( "Max blob count reached. Unable to allocate new blobs so terminating. Zone settings may be too sensitive." );
 									x = hi_x+1;
 									y = hi_y+1;
 								}
@@ -537,7 +537,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
                 return( false );
             }
 			alarm_blob_pixels = alarm_filter_pixels;
-			Debug( 5, ( "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
+			Debug( 5, "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs );
 
 			// Now eliminate blobs under the threshold
 			for ( int i = 1; i < WHITE; i++ )
@@ -564,7 +564,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 						alarm_blobs--;
 						alarm_blob_pixels -= bs->count;
 						
-						Debug( 6, ( "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs ));
+						Debug( 6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs );
 
 						bs->tag = 0;
 						bs->count = 0;
@@ -575,7 +575,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					}
 					else
 					{
-						Debug( 6, ( "Preserved blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs ));
+						Debug( 6, "Preserved blob %d, %d pixels (%d,%d - %d,%d), %d current blobs", i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs );
 						if ( !min_blob_size || bs->count < min_blob_size ) min_blob_size = bs->count;
 						if ( !max_blob_size || bs->count > max_blob_size ) max_blob_size = bs->count;
 					}
@@ -590,7 +590,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				}
 				diff_image->WriteJpeg( diag_path );
 			}
-			Debug( 5, ( "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs ));
+			Debug( 5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs );
 
 			if ( !alarm_blobs )
             {
@@ -651,7 +651,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				}
 			}
 			score = ((100*alarm_blob_pixels)/int(sqrt((double)alarm_blobs)))/(polygon.Area());
-			Debug( 5, ( "Current score is %d", score ));
+			Debug( 5, "Current score is %d", score );
 		}
 		else
 		{
@@ -669,7 +669,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		score *= 2;
 	}
 
-	Debug( 5, ( "Adjusted score is %d", score ));
+	Debug( 5, "Adjusted score is %d", score );
 
 	// Now outline the changed region
 	if ( score )
@@ -748,14 +748,14 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			image = 0;
 		}
 
-		Debug( 1, ( "%s: Pixel Diff: %d, Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score ));
+		Debug( 1, "%s: Pixel Diff: %d, Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score );
 	}
 	return( true );
 }
 
 bool Zone::ParsePolygonString( const char *poly_string, Polygon &polygon )
 {
-	Debug( 3, ( "Parsing polygon string '%s'", poly_string ));
+	Debug( 3, "Parsing polygon string '%s'", poly_string );
 
 	char *str_ptr = new char[strlen(poly_string)+1];
 	char *str = str_ptr;
@@ -779,7 +779,7 @@ bool Zone::ParsePolygonString( const char *poly_string, Polygon &polygon )
 		char *cp = strchr( str, ',' );
 		if ( !cp )
 		{
-			Error(( "Bogus coordinate %s found in polygon string", str ));
+			Error( "Bogus coordinate %s found in polygon string", str );
 			delete[] coords;
 			delete[] str_ptr;
 			return( false );
@@ -793,7 +793,7 @@ bool Zone::ParsePolygonString( const char *poly_string, Polygon &polygon )
 			int x = atoi(xp);
 			int y = atoi(yp);
 
-			Debug( 3, ( "Got coordinate %d,%d from polygon string", x, y ));
+			Debug( 3, "Got coordinate %d,%d from polygon string", x, y );
 #if 0
 			if ( x < 0 )
 				x = 0;
@@ -813,7 +813,7 @@ bool Zone::ParsePolygonString( const char *poly_string, Polygon &polygon )
 	}
 	polygon = Polygon( n_coords, coords );
 
-	Debug( 3, ( "Successfully parsed polygon string" ));
+	Debug( 3, "Successfully parsed polygon string" );
 	//printf( "Area: %d\n", pg.Area() );
 	//printf( "Centre: %d,%d\n", pg.Centre().X(), pg.Centre().Y() );
 
@@ -825,7 +825,7 @@ bool Zone::ParsePolygonString( const char *poly_string, Polygon &polygon )
 
 bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, Polygon &polygon )
 {
-	Debug( 3, ( "Parsing zone string '%s'", zone_string ));
+	Debug( 3, "Parsing zone string '%s'", zone_string );
 
 	char *str_ptr = new char[strlen(zone_string)+1];
 	char *str = str_ptr;
@@ -834,10 +834,10 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 	char *ws = strchr( str, ' ' );
 	if ( !ws )
 	{
-		Debug( 3, ( "No whitespace found in zone string '%s', finishing", zone_string ));
+		Debug( 3, "No whitespace found in zone string '%s', finishing", zone_string );
 	}
 	zone_id = strtol( str, 0, 10 );
-	Debug( 3, ( "Got zone %d from zone string", zone_id ));
+	Debug( 3, "Got zone %d from zone string", zone_id );
 	if ( !ws )
 	{
 		delete str_ptr;
@@ -850,13 +850,13 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 	ws = strchr( str, ' ' );
 	if ( !ws )
 	{
-		Error(( "No whitespace found in zone string '%s'", zone_string ));
+		Error( "No whitespace found in zone string '%s'", zone_string );
 		delete[] str_ptr;
 		return( false );
 	}
 	*ws = '\0';
 	colour = strtol( str, 0, 16 );
-	Debug( 3, ( "Got colour %06x from zone string", colour ));
+	Debug( 3, "Got colour %06x from zone string", colour );
 	str = ws+1;
 
 	bool result = ParsePolygonString( str, polygon );
@@ -875,18 +875,18 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,NumCoords,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_zones = mysql_num_rows( result );
-	Debug( 1, ( "Got %d zones for monitor %s", n_zones, monitor->Name() ));
+	Debug( 1, "Got %d zones for monitor %s", n_zones, monitor->Name() );
 	delete[] zones;
 	zones = new Zone *[n_zones];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
@@ -915,13 +915,13 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		int MaxBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int OverloadFrames = dbrow[col]?atoi(dbrow[col]):0; col++;
 
-		Debug( 5, ( "Parsing polygon %s", Coords ));
+		Debug( 5, "Parsing polygon %s", Coords );
 		Polygon polygon;
 		if ( !ParsePolygonString( Coords, polygon ) )
-			Fatal(( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s", Coords, Id, Name, monitor->Name() ));
+			Fatal( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s", Coords, Id, Name, monitor->Name() );
 
         if ( polygon.LoX() < 0 || polygon.HiX() >= monitor->Width() || polygon.LoY() < 0 || polygon.HiY() >= monitor->Height() )
-            Fatal(( "Zone %d/%s for monitor %s extends outside of image dimensions", Id, Name, monitor->Name() ));
+            Fatal( "Zone %d/%s for monitor %s extends outside of image dimensions", Id, Name, monitor->Name() );
 
 		if ( false && !strcmp( Units, "Percent" ) )
 		{
@@ -944,7 +944,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
-		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	// Yadda yadda

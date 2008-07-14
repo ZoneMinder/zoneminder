@@ -60,7 +60,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cau
     snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', '%s', %d, %d, '%s', '%s' )", monitor->Id(), start_time_str, monitor->Width(), monitor->Height(), cause, text );
     if ( mysql_query( &dbconn, sql ) )
     {
-        Error(( "Can't insert event: %s", mysql_error( &dbconn ) ));
+        Error( "Can't insert event: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
     id = mysql_insert_id( &dbconn );
@@ -97,7 +97,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cau
             {
                 if ( mkdir( path, 0755 ) )
                 {
-                    Fatal(( "Can't mkdir %s: %s", path, strerror(errno)));
+                    Fatal( "Can't mkdir %s: %s", path, strerror(errno));
                 }
             }
             if ( i == 2 )
@@ -109,13 +109,13 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cau
         // Create event id symlink
         snprintf( id_file, sizeof(id_file), "%s/.%d", date_path, id );
         if ( symlink( time_path, id_file ) < 0 )
-            Fatal(( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno)));
+            Fatal( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
         // Create empty id tag file
         snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
         if ( FILE *id_fp = fopen( id_file, "w" ) )
             fclose( id_fp );
         else
-            Fatal(( "Can't fopen %s: %s", id_file, strerror(errno)));
+            Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
     }
     else
     {
@@ -128,7 +128,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cau
         {
             if ( mkdir( path, 0755 ) )
             {
-                Error(( "Can't mkdir %s: %s", path, strerror(errno)));
+                Error( "Can't mkdir %s: %s", path, strerror(errno));
             }
         }
         char id_file[PATH_MAX];
@@ -137,7 +137,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cau
         if ( FILE *id_fp = fopen( id_file, "w" ) )
             fclose( id_fp );
         else
-            Fatal(( "Can't fopen %s: %s", id_file, strerror(errno)));
+            Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
     }
     last_db_frame = 0;
 }
@@ -149,12 +149,12 @@ Event::~Event()
         struct DeltaTimeval delta_time;
         DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
 
-        Debug( 1, ( "Adding closing frame %d to DB", frames ));
+        Debug( 1, "Adding closing frame %d to DB", frames );
         static char sql[BUFSIZ];
         snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )", id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
         if ( mysql_query( &dbconn, sql ) )
         {
-            Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
+            Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
             exit( mysql_errno( &dbconn ) );
         }
     }
@@ -170,7 +170,7 @@ Event::~Event()
     snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = '%s', Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", monitor->EventPrefix(), id, end_time_str, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
     if ( mysql_query( &dbconn, sql ) )
     {
-        Error(( "Can't update event: %s", mysql_error( &dbconn ) ));
+        Error( "Can't update event: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 }
@@ -187,7 +187,7 @@ bool Event::OpenFrameSocket( int monitor_id )
     sd = socket( AF_UNIX, SOCK_STREAM, 0);
     if ( sd < 0 )
     {
-        Error(( "Can't create socket: %s", strerror(errno) ));
+        Error( "Can't create socket: %s", strerror(errno) );
         return( false );
     }
 
@@ -196,7 +196,7 @@ bool Event::OpenFrameSocket( int monitor_id )
     {
         if ( setsockopt( sd, SOL_SOCKET, SO_SNDBUF, &socket_buffer_size, sizeof(socket_buffer_size) ) < 0 )
         {
-            Error(( "Can't get socket buffer size to %d, error = %s", socket_buffer_size, strerror(errno) ));
+            Error( "Can't get socket buffer size to %d, error = %s", socket_buffer_size, strerror(errno) );
             close( sd );
             sd = -1;
             return( false );
@@ -206,7 +206,7 @@ bool Event::OpenFrameSocket( int monitor_id )
     int flags;
     if ( (flags = fcntl( sd, F_GETFL )) < 0 )
     {
-        Error(( "Can't get socket flags, error = %s", strerror(errno) ));
+        Error( "Can't get socket flags, error = %s", strerror(errno) );
         close( sd );
         sd = -1;
         return( false );
@@ -214,7 +214,7 @@ bool Event::OpenFrameSocket( int monitor_id )
     flags |= O_NONBLOCK;
     if ( fcntl( sd, F_SETFL, flags ) < 0 )
     {
-        Error(( "Can't set socket flags, error = %s", strerror(errno) ));
+        Error( "Can't set socket flags, error = %s", strerror(errno) );
         close( sd );
         sd = -1;
         return( false );
@@ -230,13 +230,13 @@ bool Event::OpenFrameSocket( int monitor_id )
 
     if ( connect( sd, (struct sockaddr *)&addr, strlen(addr.sun_path)+sizeof(addr.sun_family)) < 0 )
     {
-        Warning(( "Can't connect to frame server: %s", strerror(errno) ));
+        Warning( "Can't connect to frame server: %s", strerror(errno) );
         close( sd );
         sd = -1;
         return( false );
     }
 
-    Debug( 1, ( "Opened connection to frame server" ));
+    Debug( 1, "Opened connection to frame server" );
     return( true );
 }
 
@@ -284,24 +284,24 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
         {
             if ( errno == EAGAIN )
             {
-                Warning(( "Blocking write detected" ));
+                Warning( "Blocking write detected" );
             }
             else
             {
-                Error(( "Can't write frame: %s", strerror(errno) ));
+                Error( "Can't write frame: %s", strerror(errno) );
                 close( sd );
                 sd = -1;
             }
         }
         else
         {
-            Error(( "Incomplete frame write: %d of %d bytes written", writev_result, writev_size ));
+            Error( "Incomplete frame write: %d of %d bytes written", writev_result, writev_size );
             close( sd );
             sd = -1;
         }
         return( false );
     }
-    Debug( 1, ( "Wrote frame image, %d bytes", jpg_buffer_size ));
+    Debug( 1, "Wrote frame image, %d bytes", jpg_buffer_size );
 
     return( true );
 }
@@ -344,7 +344,7 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
         static char event_file[PATH_MAX];
         snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
 
-        Debug( 1, ( "Writing pre-capture frame %d", frames ));
+        Debug( 1, "Writing pre-capture frame %d", frames );
         WriteFrameImage( images[i], *(timestamps[i]), event_file );
 
         struct DeltaTimeval delta_time;
@@ -354,11 +354,11 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
         snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %d, %d, from_unixtime(%ld), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
     }
 
-    Debug( 1, ( "Adding %d frames to DB", n_frames ));
+    Debug( 1, "Adding %d frames to DB", n_frames );
     *(sql+strlen(sql)-2) = '\0';
     if ( mysql_query( &dbconn, sql ) )
     {
-        Error(( "Can't insert frames: %s", mysql_error( &dbconn ) ));
+        Error( "Can't insert frames: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 
@@ -372,7 +372,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     static char event_file[PATH_MAX];
     snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
 
-    Debug( 1, ( "Writing capture frame %d", frames ));
+    Debug( 1, "Writing capture frame %d", frames );
     WriteFrameImage( image, timestamp, event_file );
 
     struct DeltaTimeval delta_time;
@@ -384,12 +384,12 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     {
         const char *frame_type = score>0?"Alarm":(score<0?"Bulk":"Normal");
 
-        Debug( 1, ( "Adding frame %d to DB", frames ));
+        Debug( 1, "Adding frame %d to DB", frames );
         static char sql[BUFSIZ];
         snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type, timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
         if ( mysql_query( &dbconn, sql ) )
         {
-            Error(( "Can't insert frame: %s", mysql_error( &dbconn ) ));
+            Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
             exit( mysql_errno( &dbconn ) );
         }
         last_db_frame = frames;
@@ -400,7 +400,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
             snprintf( sql, sizeof(sql), "update Events set Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
             if ( mysql_query( &dbconn, sql ) )
             {
-                Error(( "Can't update event: %s", mysql_error( &dbconn ) ));
+                Error( "Can't update event: %s", mysql_error( &dbconn ) );
                 exit( mysql_errno( &dbconn ) );
             }
         }
@@ -420,7 +420,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
         {
             snprintf( event_file, sizeof(event_file), analyse_file_format, path, frames );
 
-            Debug( 1, ( "Writing analysis frame %d", frames ));
+            Debug( 1, "Writing analysis frame %d", frames );
             WriteFrameImage( alarm_image, timestamp, event_file, true );
         }
     }
@@ -436,11 +436,11 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
         {
             if ( glob_status < 0 )
             {
-                Error(( "Can't glob '%s': %s", diag_glob, strerror(errno) ));
+                Error( "Can't glob '%s': %s", diag_glob, strerror(errno) );
             }
             else
             {
-                Debug( 1, ( "Can't glob '%s': %d", diag_glob, glob_status ));
+                Debug( 1, "Can't glob '%s': %d", diag_glob, glob_status );
             }
         }
         else
@@ -458,7 +458,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
                     if ( rename( diag_path, new_diag_path ) < 0 )
                     {
-                        Error(( "Can't rename '%s' to '%s': %s", diag_path, new_diag_path, strerror(errno) ));
+                        Error( "Can't rename '%s' to '%s': %s", diag_path, new_diag_path, strerror(errno) );
                     }
                 }
             }
@@ -475,21 +475,21 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
 
     if ( mysql_query( &dbconn, sql ) )
     {
-        Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+        Error( "Can't run query: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 
     MYSQL_RES *result = mysql_store_result( &dbconn );
     if ( !result )
     {
-        Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+        Error( "Can't use query result: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
     MYSQL_ROW dbrow = mysql_fetch_row( result );
 
     if ( mysql_errno( &dbconn ) )
     {
-        Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+        Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 
@@ -507,16 +507,16 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
         {
             for ( int i = 0; i < event_data->frame_count; i++ )
             {
-                //Info(( "eft %d > et %d", event_data->frames[i].timestamp, event_time ));
+                //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
                 if ( event_data->frames[i].timestamp >= event_time )
                 {
                     curr_frame_id = i+1;
-                    Debug( 3, ( "Set cst:%.2f", curr_stream_time ));
-                    Debug( 3, ( "Set cfid:%d", curr_frame_id ));
+                    Debug( 3, "Set cst:%.2f", curr_stream_time );
+                    Debug( 3, "Set cfid:%d", curr_frame_id );
                     break;
                 }
             }
-            Debug( 3, ( "Skipping %ld frames", event_data->frame_count ));
+            Debug( 3, "Skipping %ld frames", event_data->frame_count );
         }
     }
     return( true );
@@ -547,27 +547,27 @@ bool EventStream::loadEventData( int event_id )
 
     if ( mysql_query( &dbconn, sql ) )
     {
-        Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+        Error( "Can't run query: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 
     MYSQL_RES *result = mysql_store_result( &dbconn );
     if ( !result )
     {
-        Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+        Error( "Can't use query result: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 
     if ( !mysql_num_rows( result ) )
     {
-        Fatal(( "Unable to load event %d, not found in DB", event_id ));
+        Fatal( "Unable to load event %d, not found in DB", event_id );
     }
 
     MYSQL_ROW dbrow = mysql_fetch_row( result );
 
     if ( mysql_errno( &dbconn ) )
     {
-        Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+        Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 
@@ -595,14 +595,14 @@ bool EventStream::loadEventData( int event_id )
     snprintf( sql, sizeof(sql), "select FrameId, unix_timestamp( `TimeStamp` ), Delta from Frames where EventId = %d order by FrameId asc", event_id );
     if ( mysql_query( &dbconn, sql ) )
     {
-        Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+        Error( "Can't run query: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 
     result = mysql_store_result( &dbconn );
     if ( !result )
     {
-        Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+        Error( "Can't use query result: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 
@@ -639,13 +639,13 @@ bool EventStream::loadEventData( int event_id )
     }
     if ( mysql_errno( &dbconn ) )
     {
-        Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+        Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 
     //for ( int i = 0; i < 250; i++ )
     //{
-        //Info(( "%d -> %d @ %f (%d)", i+1, event_data->frames[i].timestamp, event_data->frames[i].delta, event_data->frames[i].in_db ));
+        //Info( "%d -> %d @ %f (%d)", i+1, event_data->frames[i].timestamp, event_data->frames[i].delta, event_data->frames[i].in_db );
     //}
 
     mysql_free_result( result );
@@ -657,20 +657,20 @@ bool EventStream::loadEventData( int event_id )
         else
             curr_stream_time = event_data->frames[event_data->frame_count-1].timestamp;
     }
-    Debug( 2, ( "Event:%ld, Frames:%ld, Duration: %.2f", event_data->event_id, event_data->frame_count, event_data->duration ));
+    Debug( 2, "Event:%ld, Frames:%ld, Duration: %.2f", event_data->event_id, event_data->frame_count, event_data->duration );
 
     return( true );
 }
 
 void EventStream::processCommand( const CmdMsg *msg )
 {
-    Debug( 2, ( "Got message, type %ld, msg %d", msg->msg_type, msg->msg_data[0] ))
+    Debug( 2, "Got message, type %ld, msg %d", msg->msg_type, msg->msg_data[0] )
     // Check for incoming command
     switch( (MsgCommand)msg->msg_data[0] )
     {
         case CMD_PAUSE :
         {
-            Debug( 1, ( "Got PAUSE command" ));
+            Debug( 1, "Got PAUSE command" );
 
             // Set paused flag
             paused = true;
@@ -680,7 +680,7 @@ void EventStream::processCommand( const CmdMsg *msg )
         }
         case CMD_PLAY :
         {
-            Debug( 1, ( "Got PLAY command" ));
+            Debug( 1, "Got PLAY command" );
             if ( paused )
             {
                 // Clear paused flag
@@ -691,7 +691,7 @@ void EventStream::processCommand( const CmdMsg *msg )
         }
         case CMD_STOP :
         {
-            Debug( 1, ( "Got STOP command" ));
+            Debug( 1, "Got STOP command" );
 
             // Clear paused flag
             paused = false;
@@ -699,7 +699,7 @@ void EventStream::processCommand( const CmdMsg *msg )
         }
         case CMD_FASTFWD :
         {
-            Debug( 1, ( "Got FAST FWD command" ));
+            Debug( 1, "Got FAST FWD command" );
             if ( paused )
             {
                 // Clear paused flag
@@ -729,7 +729,7 @@ void EventStream::processCommand( const CmdMsg *msg )
         }
         case CMD_SLOWFWD :
         {
-            Debug( 1, ( "Got SLOW FWD command" ));
+            Debug( 1, "Got SLOW FWD command" );
             // Set paused flag
             paused = true;
             // Set play rate
@@ -740,7 +740,7 @@ void EventStream::processCommand( const CmdMsg *msg )
         }
         case CMD_SLOWREV :
         {
-            Debug( 1, ( "Got SLOW REV command" ));
+            Debug( 1, "Got SLOW REV command" );
             // Set paused flag
             paused = true;
             // Set play rate
@@ -751,7 +751,7 @@ void EventStream::processCommand( const CmdMsg *msg )
         }
         case CMD_FASTREV :
         {
-            Debug( 1, ( "Got FAST REV command" ));
+            Debug( 1, "Got FAST REV command" );
             if ( paused )
             {
                 // Clear paused flag
@@ -783,7 +783,7 @@ void EventStream::processCommand( const CmdMsg *msg )
         {
             x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
             y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-            Debug( 1, ( "Got ZOOM IN command, to %d,%d", x, y ));
+            Debug( 1, "Got ZOOM IN command, to %d,%d", x, y );
             switch ( zoom )
             {
                 case 100:
@@ -807,7 +807,7 @@ void EventStream::processCommand( const CmdMsg *msg )
         }
         case CMD_ZOOMOUT :
         {
-            Debug( 1, ( "Got ZOOM OUT command" ));
+            Debug( 1, "Got ZOOM OUT command" );
             switch ( zoom )
             {
                 case 500:
@@ -833,18 +833,18 @@ void EventStream::processCommand( const CmdMsg *msg )
         {
             x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
             y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-            Debug( 1, ( "Got PAN command, to %d,%d", x, y ));
+            Debug( 1, "Got PAN command, to %d,%d", x, y );
             break;
         }
         case CMD_SCALE :
         {
             scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-            Debug( 1, ( "Got SCALE command, to %d", scale ));
+            Debug( 1, "Got SCALE command, to %d", scale );
             break;
         }
         case CMD_PREV :
         {
-            Debug( 1, ( "Got PREV command" ));
+            Debug( 1, "Got PREV command" );
             if ( replay_rate >= 0 )
                 curr_frame_id = 0;
             else
@@ -855,7 +855,7 @@ void EventStream::processCommand( const CmdMsg *msg )
         }
         case CMD_NEXT :
         {
-            Debug( 1, ( "Got NEXT command" ));
+            Debug( 1, "Got NEXT command" );
             if ( replay_rate >= 0 )
                 curr_frame_id = event_data->frame_count-1;
             else
@@ -868,12 +868,12 @@ void EventStream::processCommand( const CmdMsg *msg )
         {
             int offset = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
             curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration);
-            Debug( 1, ( "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id ));
+            Debug( 1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id );
             break;
         }
         case CMD_QUERY :
         {
-            Debug( 1, ( "Got QUERY command, sending STATUS" ));
+            Debug( 1, "Got QUERY command, sending STATUS" );
             break;
         }
         default :
@@ -894,13 +894,13 @@ void EventStream::processCommand( const CmdMsg *msg )
     status_data.progress = event_data->frames[curr_frame_id-1].offset;
     status_data.rate = replay_rate;
     status_data.zoom = zoom;
-    Debug( 2, ( "E:%d, P:%d, p:%ld R:%d, Z:%d",
+    Debug( 2, "E:%d, P:%d, p:%ld R:%d, Z:%d",
         status_data.event,
         status_data.paused,
         status_data.progress,
         status_data.rate,
         status_data.zoom
-    ));
+    );
 
     DataMsg status_msg;
     status_msg.msg_type = MSG_DATA_EVENT;
@@ -909,7 +909,7 @@ void EventStream::processCommand( const CmdMsg *msg )
     {
         //if ( errno != EAGAIN )
         {
-            Error(( "Can't sendto on sd %d: %s", sd, strerror(errno) ));
+            Error( "Can't sendto on sd %d: %s", sd, strerror(errno) );
             exit( -1 );
         }
     }
@@ -977,40 +977,40 @@ mysql_free_result( $result );
     {
         if ( forceEventChange || mode != MODE_SINGLE )
         {
-            //Info(( "SQL:%s", sql ));
+            //Info( "SQL:%s", sql );
             if ( mysql_query( &dbconn, sql ) )
             {
-                Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+                Error( "Can't run query: %s", mysql_error( &dbconn ) );
                 exit( mysql_errno( &dbconn ) );
             }
 
             MYSQL_RES *result = mysql_store_result( &dbconn );
             if ( !result )
             {
-                Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+                Error( "Can't use query result: %s", mysql_error( &dbconn ) );
                 exit( mysql_errno( &dbconn ) );
             }
             MYSQL_ROW dbrow = mysql_fetch_row( result );
 
             if ( mysql_errno( &dbconn ) )
             {
-                Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+                Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
                 exit( mysql_errno( &dbconn ) );
             }
 
             if ( dbrow )
             {
                 int event_id = atoi(dbrow[0]);
-                Debug( 1, ( "Loading new event %d", event_id ));
+                Debug( 1, "Loading new event %d", event_id );
 
                 loadEventData( event_id );
 
-                Debug( 2, ( "Current frame id = %d", curr_frame_id ));
+                Debug( 2, "Current frame id = %d", curr_frame_id );
                 if ( curr_frame_id <= 0 )
                     curr_frame_id = event_data->frame_count;
                 else
                     curr_frame_id = 1;
-                Debug( 2, ( "New frame id = %d", curr_frame_id ));
+                Debug( 2, "New frame id = %d", curr_frame_id );
             }
             else
             {
@@ -1036,7 +1036,7 @@ mysql_free_result( $result );
 
 void EventStream::sendFrame( int delta_us )
 {
-    Debug( 2, ( "Sending frame %d", curr_frame_id ));
+    Debug( 2, "Sending frame %d", curr_frame_id );
 
     static char filepath[PATH_MAX];
     snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
@@ -1081,7 +1081,7 @@ void EventStream::sendFrame( int delta_us )
             }
             else
             {
-                Error(( "Can't open %s: %s", filepath, strerror(errno) ));
+                Error( "Can't open %s: %s", filepath, strerror(errno) );
             }
         }
         else
@@ -1105,7 +1105,7 @@ void EventStream::sendFrame( int delta_us )
                     img_buffer_size = zip_buffer_size;
                     break;
                 default:
-                    Fatal(( "Unexpected frame type %d", type ));
+                    Fatal( "Unexpected frame type %d", type );
                     break;
             }
         }
@@ -1122,7 +1122,7 @@ void EventStream::sendFrame( int delta_us )
                 fprintf( stdout, "Content-Type: image/x-rgbz\r\n" );
                 break;
             default :
-                Fatal(( "Unexpected frame type %d", type ));
+                Fatal( "Unexpected frame type %d", type );
                 break;
         }
         fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
@@ -1167,9 +1167,9 @@ void EventStream::runStream()
         // Get current frame data
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
 
-        //Info(( "cst:%.2f", curr_stream_time ));
-        //Info(( "cfid:%d", curr_frame_id ));
-        //Info(( "fdt:%d", frame_data->timestamp ));
+        //Info( "cst:%.2f", curr_stream_time );
+        //Info( "cfid:%d", curr_frame_id );
+        //Info( "fdt:%d", frame_data->timestamp );
         if ( !paused )
         {
             bool in_event = true;
@@ -1231,7 +1231,7 @@ void EventStream::runStream()
             if ( actual_delta_time > MAX_STREAM_DELAY )
             {
                 // Send keepalive
-                Debug( 2, ( "Sending keepalive frame" ));
+                Debug( 2, "Sending keepalive frame" );
                 send_frame = true;
             }
         }
@@ -1248,7 +1248,7 @@ void EventStream::runStream()
             curr_frame_id += replay_rate>0?1:-1;
             if ( send_frame && type != STREAM_MPEG )
             {
-                Debug( 3, ( "dUs: %d", delta_us ));
+                Debug( 3, "dUs: %d", delta_us );
                 usleep( delta_us );
             }
         }

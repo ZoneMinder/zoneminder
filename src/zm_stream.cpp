@@ -34,7 +34,7 @@ bool StreamBase::loadMonitor( int monitor_id )
 {
     if ( !(monitor = Monitor::Load( monitor_id, false, Monitor::QUERY )) )
     {
-        Fatal(( "Unable to load monitor id %d for streaming", monitor_id ));
+        Fatal( "Unable to load monitor id %d for streaming", monitor_id );
         return( false );
     }
     return( true );
@@ -44,7 +44,7 @@ bool StreamBase::checkInitialised()
 {
     if ( !monitor )
     {
-        Fatal(( "Cannot stream, not initialised" ));
+        Fatal( "Cannot stream, not initialised" );
         return( false );
     }
     return( true );
@@ -55,14 +55,14 @@ void StreamBase::updateFrameRate( double fps )
     base_fps = (int)(fps);
     effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
     frame_mod = 1;
-    Debug( 3, ( "FPS:%.2f, MXFPS:%d, BFPS:%d, EFPS:%d, FM:%d", fps, maxfps, base_fps, effective_fps, frame_mod ));
+    Debug( 3, "FPS:%.2f, MXFPS:%d, BFPS:%d, EFPS:%d, FM:%d", fps, maxfps, base_fps, effective_fps, frame_mod );
     // Min frame repeat?
     while( effective_fps > maxfps )
     {
         effective_fps /= 2;
         frame_mod *= 2;
     }
-    Debug( 3, ( "aEFPS:%d, aFM:%d", effective_fps, frame_mod ));
+    Debug( 3, "aEFPS:%d, aFM:%d", effective_fps, frame_mod );
 }
 
 bool StreamBase::checkCommandQueue()
@@ -76,12 +76,12 @@ bool StreamBase::checkCommandQueue()
         {
             if ( errno != EAGAIN )
             {
-                Fatal(( "recvfrom(), errno = %d, error = %s", errno, strerror(errno) ));
+                Fatal( "recvfrom(), errno = %d, error = %s", errno, strerror(errno) );
             }
         }
         //else if ( (nbytes != sizeof(msg)) )
         //{
-            //Error(( "Partial message received, expected %d bytes, got %d", sizeof(msg), nbytes ));
+            //Error( "Partial message received, expected %d bytes, got %d", sizeof(msg), nbytes );
         //}
         else
         {
@@ -108,42 +108,42 @@ Image *StreamBase::prepareImage( Image *image )
 
     int mag = (scale * zoom) / ZM_SCALE_BASE;
     int act_mag = mag > ZM_SCALE_BASE?ZM_SCALE_BASE:mag;
-    Debug( 3, ( "Scaling by %d, zooming by %d = magnifying by %d(%d)", scale, zoom, mag, act_mag ));
+    Debug( 3, "Scaling by %d, zooming by %d = magnifying by %d(%d)", scale, zoom, mag, act_mag );
 
     int last_mag = (last_scale * last_zoom) / ZM_SCALE_BASE;
     int last_act_mag = last_mag > ZM_SCALE_BASE?ZM_SCALE_BASE:last_mag;
-    Debug( 3, ( "Last scaling by %d, zooming by %d = magnifying by %d(%d)", last_scale, last_zoom, last_mag, last_act_mag ));
+    Debug( 3, "Last scaling by %d, zooming by %d = magnifying by %d(%d)", last_scale, last_zoom, last_mag, last_act_mag );
 
     int base_image_width = image->Width(), base_image_height = image->Height();
-    Debug( 3, ( "Base image width = %d, height = %d", base_image_width, base_image_height ));
+    Debug( 3, "Base image width = %d, height = %d", base_image_width, base_image_height );
 
     int virt_image_width = (base_image_width * mag) / ZM_SCALE_BASE, virt_image_height = (base_image_height * mag) / ZM_SCALE_BASE;
-    Debug( 3, ( "Virtual image width = %d, height = %d", virt_image_width, virt_image_height ));
+    Debug( 3, "Virtual image width = %d, height = %d", virt_image_width, virt_image_height );
 
     int last_virt_image_width = (base_image_width * last_mag) / ZM_SCALE_BASE, last_virt_image_height = (base_image_height * last_mag) / ZM_SCALE_BASE;
-    Debug( 3, ( "Last virtual image width = %d, height = %d", last_virt_image_width, last_virt_image_height ));
+    Debug( 3, "Last virtual image width = %d, height = %d", last_virt_image_width, last_virt_image_height );
 
     int act_image_width = (base_image_width * act_mag ) / ZM_SCALE_BASE, act_image_height = (base_image_height * act_mag ) / ZM_SCALE_BASE;
-    Debug( 3, ( "Actual image width = %d, height = %d", act_image_width, act_image_height ));
+    Debug( 3, "Actual image width = %d, height = %d", act_image_width, act_image_height );
 
     int last_act_image_width = (base_image_width * last_act_mag ) / ZM_SCALE_BASE, last_act_image_height = (base_image_height * last_act_mag ) / ZM_SCALE_BASE;
-    Debug( 3, ( "Last actual image width = %d, height = %d", last_act_image_width, last_act_image_height ));
+    Debug( 3, "Last actual image width = %d, height = %d", last_act_image_width, last_act_image_height );
 
     int disp_image_width = (image->Width() * scale) / ZM_SCALE_BASE, disp_image_height = (image->Height() * scale) / ZM_SCALE_BASE;
-    Debug( 3, ( "Display image width = %d, height = %d", disp_image_width, disp_image_height ));
+    Debug( 3, "Display image width = %d, height = %d", disp_image_width, disp_image_height );
 
     int last_disp_image_width = (image->Width() * last_scale) / ZM_SCALE_BASE, last_disp_image_height = (image->Height() * last_scale) / ZM_SCALE_BASE;
-    Debug( 3, ( "Last display image width = %d, height = %d", last_disp_image_width, last_disp_image_height ));
+    Debug( 3, "Last display image width = %d, height = %d", last_disp_image_width, last_disp_image_height );
 
     int send_image_width = (disp_image_width * act_mag ) / mag, send_image_height = (disp_image_height * act_mag ) / mag;
-    Debug( 3, ( "Send image width = %d, height = %d", send_image_width, send_image_height ));
+    Debug( 3, "Send image width = %d, height = %d", send_image_width, send_image_height );
 
     int last_send_image_width = (last_disp_image_width * last_act_mag ) / last_mag, last_send_image_height = (last_disp_image_height * last_act_mag ) / last_mag;
-    Debug( 3, ( "Last send image width = %d, height = %d", last_send_image_width, last_send_image_height ));
+    Debug( 3, "Last send image width = %d, height = %d", last_send_image_width, last_send_image_height );
 
     if ( mag != ZM_SCALE_BASE )
     {
-        Debug( 3, ( "Magnifying by %d", mag ));
+        Debug( 3, "Magnifying by %d", mag );
         if ( act_mag < ZM_SCALE_BASE )
         {
             if ( !image_copied )
@@ -157,11 +157,11 @@ Image *StreamBase::prepareImage( Image *image )
         }
     }
 
-    Debug( 3, ( "Real image width = %d, height = %d", image->Width(), image->Height() ));
+    Debug( 3, "Real image width = %d, height = %d", image->Width(), image->Height() );
 
     if ( disp_image_width < virt_image_width || disp_image_height < virt_image_height )
     {
-        Debug( 3, ( "Got click at %d,%d", x, y ));
+        Debug( 3, "Got click at %d,%d", x, y );
         static Box last_crop;
 
         if ( mag != last_mag || x != last_x || y != last_y )
@@ -172,18 +172,18 @@ Image *StreamBase::prepareImage( Image *image )
             if ( !(last_disp_image_width < last_virt_image_width || last_disp_image_height < last_virt_image_height) )
                 last_crop = Box();
 
-            Debug( 3, ( "Recalculating crop" ));
+            Debug( 3, "Recalculating crop" );
             // Recalculate crop parameters, as %ges
             int click_x = (last_crop.LoX() * 100 ) / last_act_image_width; // Initial crop offset from last image
             click_x += ( x * 100 ) / last_virt_image_width;
             int click_y = (last_crop.LoY() * 100 ) / last_act_image_height; // Initial crop offset from last image
             click_y += ( y * 100 ) / last_virt_image_height;
-            Debug( 3, ( "Got adjusted click at %d%%,%d%%", click_x, click_y ));
+            Debug( 3, "Got adjusted click at %d%%,%d%%", click_x, click_y );
 
             // Convert the click locations to the current image pixels
             click_x = ( click_x * act_image_width ) / 100;
             click_y = ( click_y * act_image_height ) / 100;
-            Debug( 3, ( "Got readjusted click at %d,%d", click_x, click_y ));
+            Debug( 3, "Got readjusted click at %d,%d", click_x, click_y );
 
             int lo_x = click_x - (send_image_width/2);
             if ( lo_x < 0 )
@@ -206,7 +206,7 @@ Image *StreamBase::prepareImage( Image *image )
             }
             last_crop = Box( lo_x, lo_y, hi_x, hi_y );
         }
-        Debug( 3, ( "Cropping to %d,%d -> %d,%d", last_crop.LoX(), last_crop.LoY(), last_crop.HiX(), last_crop.HiY() ));
+        Debug( 3, "Cropping to %d,%d -> %d,%d", last_crop.LoX(), last_crop.LoY(), last_crop.HiX(), last_crop.HiY() );
         if ( !image_copied )
         {
 	        static Image copy_image;
@@ -226,7 +226,7 @@ Image *StreamBase::prepareImage( Image *image )
 
 void StreamBase::sendTextFrame( const char *frame_text )
 {
-    Debug( 2, ( "Sending text frame '%s'", frame_text ));
+    Debug( 2, "Sending text frame '%s'", frame_text );
 
     Image image( monitor->Width(), monitor->Height(), monitor->Colours() );
     image.Annotate( frame_text, image.centreCoord( frame_text ) );
@@ -271,7 +271,7 @@ void StreamBase::openComms()
         sd = socket( AF_UNIX, SOCK_DGRAM, 0 );
         if ( sd < 0 )
         {
-            Fatal(( "Can't create socket: %s", strerror(errno) ));
+            Fatal( "Can't create socket: %s", strerror(errno) );
         }
 
         snprintf( loc_sock_path, sizeof(loc_sock_path), "%s/zms-%06ds.sock", config.path_socks, connkey );
@@ -281,7 +281,7 @@ void StreamBase::openComms()
         loc_addr.sun_family = AF_UNIX;
         if ( bind( sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)) < 0 )
         {
-            Fatal(( "Can't bind: %s", strerror(errno) ));
+            Fatal( "Can't bind: %s", strerror(errno) );
         }
 
         snprintf( rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", config.path_socks, connkey );

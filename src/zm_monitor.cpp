@@ -59,18 +59,18 @@ bool Monitor::MonitorLink::connect()
 		shm_size = sizeof(SharedData)
 				 + sizeof(TriggerData);
 
-		Debug( 1, ( "link.shm.size=%d", shm_size ));
+		Debug( 1, "link.shm.size=%d", shm_size );
 		shm_id = shmget( (config.shm_key&0xffff0000)|id, shm_size, 0700 );
 		if ( shm_id < 0 )
 		{
-			Debug( 3, ( "Can't shmget link memory: %s", strerror(errno)));
+			Debug( 3, "Can't shmget link memory: %s", strerror(errno));
 			connected = false;
 			return( false );
 		}
 		shm_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
 		if ( shm_ptr < 0 )
 		{
-			Debug( 3, ( "Can't shmat link memory: %s", strerror(errno)));
+			Debug( 3, "Can't shmat link memory: %s", strerror(errno));
 			connected = false;
 			return( false );
 		}
@@ -80,7 +80,7 @@ bool Monitor::MonitorLink::connect()
 
 		if ( !shared_data->valid )
 		{
-			Debug( 3, ( "Linked memory not initialised by capture daemon" ));
+			Debug( 3, "Linked memory not initialised by capture daemon" );
 			disconnect();
 			return( false );
 		}
@@ -103,7 +103,7 @@ bool Monitor::MonitorLink::disconnect()
 		struct shmid_ds shm_data;
 		if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )
 		{
-			Debug( 3, ( "Can't shmctl: %s", strerror(errno)));
+			Debug( 3, "Can't shmctl: %s", strerror(errno));
 			return( false );
 		}
 
@@ -113,14 +113,14 @@ bool Monitor::MonitorLink::disconnect()
 		{
 			if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 )
 			{
-				Debug( 3, ( "Can't shmctl: %s", strerror(errno)));
+				Debug( 3, "Can't shmctl: %s", strerror(errno));
 				return( false );
 			}
 		}
 
 		if ( shmdt( shm_ptr ) < 0 )
 		{
-			Debug( 3, ( "Can't shmdt: %s", strerror(errno)));
+			Debug( 3, "Can't shmdt: %s", strerror(errno));
 			return( false );
 		}
 
@@ -256,24 +256,24 @@ Monitor::Monitor(
 
 	auto_resume_time = 0;
 
-	Debug( 1, ( "monitor purpose=%d", purpose ));
+	Debug( 1, "monitor purpose=%d", purpose );
 
 	shm_size = sizeof(SharedData)
 			 + sizeof(TriggerData)
 			 + (image_buffer_count*sizeof(struct timeval))
 			 + (image_buffer_count*camera->ImageSize());
 
-	Debug( 1, ( "shm.size=%d", shm_size ));
+	Debug( 1, "shm.size=%d", shm_size );
 	shm_id = shmget( (config.shm_key&0xffff0000)|id, shm_size, IPC_CREAT|0700 );
 	if ( shm_id < 0 )
 	{
-		Error(( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno)));
+		Error( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno));
 		exit( -1 );
 	}
 	shm_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
 	if ( shm_ptr < 0 )
 	{
-		Error(( "Can't shmat: %s", strerror(errno)));
+		Error( "Can't shmat: %s", strerror(errno));
 		exit( -1 );
 	}
 
@@ -319,12 +319,12 @@ Monitor::Monitor(
 	{
         if ( purpose != QUERY )
         {
-		    Error(( "Shared memory not initialised by capture daemon" ));
+		    Error( "Shared memory not initialised by capture daemon" );
 		    exit( -1 );
         }
         else
         {
-		    Warning(( "Shared memory not initialised by capture daemon, some query functions may not be available or produce invalid results" ));
+		    Warning( "Shared memory not initialised by capture daemon, some query functions may not be available or produce invalid results" );
         }
 	}
 
@@ -345,9 +345,9 @@ Monitor::Monitor(
 
 	event = 0;
 
-	Debug( 1, ( "Monitor %s has function %d", name, function ));
-	Debug( 1, ( "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() ));
-	Debug( 1, ( "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, track_motion ));
+	Debug( 1, "Monitor %s has function %d", name, function );
+	Debug( 1, "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() );
+	Debug( 1, "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, track_motion );
 
 	if ( purpose == ANALYSIS )
 	{
@@ -362,7 +362,7 @@ Monitor::Monitor(
 		{
 			if ( mkdir( path, 0755 ) )
 			{
-				Error(( "Can't make %s: %s", path, strerror(errno)));
+				Error( "Can't make %s: %s", path, strerror(errno));
 			}
 		}
 
@@ -374,7 +374,7 @@ Monitor::Monitor(
 		{
 			if ( mkdir( path, 0755 ) )
 			{
-				Error(( "Can't make %s: %s", path, strerror(errno)));
+				Error( "Can't make %s: %s", path, strerror(errno));
 			}
 			char temp_path[PATH_MAX];
 			snprintf( temp_path, sizeof(temp_path), "%d", id );
@@ -385,7 +385,7 @@ Monitor::Monitor(
 
 		while( shared_data->last_write_index == image_buffer_count )
 		{
-			Warning(( "Waiting for capture daemon" ));
+			Warning( "Waiting for capture daemon" );
 			sleep( 1 );
 		}
 		ref_image.Assign( width, height, camera->Colours(), image_buffer[shared_data->last_write_index].image->Buffer() );
@@ -429,7 +429,7 @@ Monitor::~Monitor()
 	struct shmid_ds shm_data;
 	if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )
 	{
-		Error(( "Can't shmctl: %s", strerror(errno)));
+		Error( "Can't shmctl: %s", strerror(errno));
 		exit( -1 );
 	}
 
@@ -437,7 +437,7 @@ Monitor::~Monitor()
 	{
 		if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 )
 		{
-			Error(( "Can't shmctl: %s", strerror(errno)));
+			Error( "Can't shmctl: %s", strerror(errno));
 			exit( -1 );
 		}
 	}
@@ -484,7 +484,7 @@ int Monitor::GetImage( int index, int scale ) const
 	}
 	else
 	{
-		Error(( "Unable to generate image, no images in buffer" ));
+		Error( "Unable to generate image, no images in buffer" );
 	}
 	return( 0 );
 }
@@ -594,7 +594,7 @@ void Monitor::actionEnable()
 	snprintf( sql, sizeof(sql), "update Monitors set Enabled = 1 where Id = '%d'", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 }
@@ -607,7 +607,7 @@ void Monitor::actionDisable()
 	snprintf( sql, sizeof(sql), "update Monitors set Enabled = 0 where Id = '%d'", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 }
@@ -637,7 +637,7 @@ int Monitor::actionBrightness( int p_brightness )
 					usleep( 100000 );
 				else
                 {
-                    Warning(( "Timed out waiting to set brightness" ));
+                    Warning( "Timed out waiting to set brightness" );
 					return( -1 );
                 }
 			}
@@ -652,7 +652,7 @@ int Monitor::actionBrightness( int p_brightness )
 					usleep( 100000 );
 				else
                 {
-                    Warning(( "Timed out waiting to get brightness" ));
+                    Warning( "Timed out waiting to get brightness" );
 					return( -1 );
                 }
 			}
@@ -677,7 +677,7 @@ int Monitor::actionContrast( int p_contrast )
 					usleep( 100000 );
 				else
                 {
-                    Warning(( "Timed out waiting to set contrast" ));
+                    Warning( "Timed out waiting to set contrast" );
 					return( -1 );
                 }
 			}
@@ -692,7 +692,7 @@ int Monitor::actionContrast( int p_contrast )
 					usleep( 100000 );
 				else
                 {
-                    Warning(( "Timed out waiting to get contrast" ));
+                    Warning( "Timed out waiting to get contrast" );
 					return( -1 );
                 }
 			}
@@ -717,7 +717,7 @@ int Monitor::actionHue( int p_hue )
 					usleep( 100000 );
 				else
                 {
-                    Warning(( "Timed out waiting to set hue" ));
+                    Warning( "Timed out waiting to set hue" );
 					return( -1 );
                 }
 			}
@@ -732,7 +732,7 @@ int Monitor::actionHue( int p_hue )
 					usleep( 100000 );
 				else
                 {
-                    Warning(( "Timed out waiting to get hue" ));
+                    Warning( "Timed out waiting to get hue" );
 					return( -1 );
                 }
 			}
@@ -757,7 +757,7 @@ int Monitor::actionColour( int p_colour )
 					usleep( 100000 );
 				else
                 {
-                    Warning(( "Timed out waiting to set colour" ));
+                    Warning( "Timed out waiting to set colour" );
 					return( -1 );
                 }
 			}
@@ -772,7 +772,7 @@ int Monitor::actionColour( int p_colour )
 					usleep( 100000 );
 				else
                 {
-                    Warning(( "Timed out waiting to get colour" ));
+                    Warning( "Timed out waiting to get colour" );
 					return( -1 );
                 }
 			}
@@ -792,7 +792,7 @@ void Monitor::DumpZoneImage( const char *zone_string )
 	{
 		if ( !Zone::ParseZoneString( zone_string, exclude_id, extra_colour, extra_zone ) )
 		{
-			Error(( "Failed to parse zone string, ignoring" ));
+			Error( "Failed to parse zone string, ignoring" );
 		}
 	}
 
@@ -904,7 +904,7 @@ bool Monitor::Analyse()
 	if ( image_count && !(image_count%fps_report_interval) )
 	{
 		fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
-		Info(( "%s: %d - Processing at %.2f fps", name, image_count, fps ));
+		Info( "%s: %d - Processing at %.2f fps", name, image_count, fps );
 		last_fps_time = now.tv_sec;
 	}
 
@@ -923,7 +923,7 @@ bool Monitor::Analyse()
 		int pending_frames = shared_data->last_write_index - shared_data->last_read_index;
 		if ( pending_frames < 0 ) pending_frames += image_buffer_count;
 
-		Debug( 4, ( "RI:%d, WI: %d, PF = %d, RM = %d, Step = %d", shared_data->last_read_index, shared_data->last_write_index, pending_frames, read_margin, step ));
+		Debug( 4, "RI:%d, WI: %d, PF = %d, RM = %d, Step = %d", shared_data->last_read_index, shared_data->last_write_index, pending_frames, read_margin, step );
 		if ( step <= pending_frames )
 		{
 			index = (shared_data->last_read_index+step)%image_buffer_count;
@@ -932,7 +932,7 @@ bool Monitor::Analyse()
 		{
 			if ( pending_frames )
 			{
-				Warning(( "Approaching buffer overrun, consider slowing capture, simplifying analysis or increasing ring buffer size" ));
+				Warning( "Approaching buffer overrun, consider slowing capture, simplifying analysis or increasing ring buffer size" );
 			}
 			index = shared_data->last_write_index%image_buffer_count;
 		}
@@ -950,7 +950,7 @@ bool Monitor::Analyse()
 	{
 		if ( shared_data->action & RELOAD )
 		{
-			Info(( "Received reload indication at count %d", image_count ));
+			Info( "Received reload indication at count %d", image_count );
 			shared_data->action &= ~RELOAD;
 			Reload();
 		}
@@ -958,7 +958,7 @@ bool Monitor::Analyse()
 		{
 			if ( Active() )
 			{
-				Info(( "Received suspend indication at count %d", image_count ));
+				Info( "Received suspend indication at count %d", image_count );
 				shared_data->active = false;
 				//closeEvent();
 			}
@@ -972,7 +972,7 @@ bool Monitor::Analyse()
 		{
 			if ( Enabled() && !Active() )
 			{
-				Info(( "Received resume indication at count %d", image_count ));
+				Info( "Received resume indication at count %d", image_count );
 				shared_data->active = true;
 				ref_image = *snap_image;
 				ready_count = image_count+(warmup_count/2);
@@ -983,7 +983,7 @@ bool Monitor::Analyse()
 	}
 	if ( auto_resume_time && (now.tv_sec >= auto_resume_time) )
 	{
-		Info(( "Auto resuming at count %d", image_count ));
+		Info( "Auto resuming at count %d", image_count );
 		shared_data->active = true;
 		ref_image = *snap_image;
 		ready_count = image_count+(warmup_count/2);
@@ -1022,7 +1022,7 @@ bool Monitor::Analyse()
 				*cause_ptr = '\0';
 				*text_ptr = '\0';
 
-				//Info(( "St:%d, Sc:%d, Ca:%s, Te:%s", trigger_data->trigger_state, trigger_data->trigger_score, trigger_data->trigger_cause, trigger_data->trigger_text ));
+				//Info( "St:%d, Sc:%d, Ca:%s, Te:%s", trigger_data->trigger_state, trigger_data->trigger_score, trigger_data->trigger_cause, trigger_data->trigger_text );
 				if ( trigger_data->trigger_state == TRIGGER_ON )
 				{
 					score += trigger_data->trigger_score;
@@ -1040,7 +1040,7 @@ bool Monitor::Analyse()
 						signal_text = "Signal: Lost";
 					else
 						signal_text = "Signal: Reacquired";
-					Warning(( signal_text ));
+					Warning( signal_text );
 					if ( event )
 					{
 						closeEvent();
@@ -1116,11 +1116,11 @@ bool Monitor::Analyse()
 							{
 								if ( state == IDLE || state == TAPE )
 								{
-                                    Info(( "%s: %03d - Ending event %d", name, image_count, event->Id() ));
+                                    Info( "%s: %03d - Ending event %d", name, image_count, event->Id() );
 								}
 								else
 								{
-                                    Info(( "%s: %03d - Force closing event %d", name, image_count, event->Id() ));
+                                    Info( "%s: %03d - Force closing event %d", name, image_count, event->Id() );
 								}
 								closeEvent();
 								last_section_mod = 0;
@@ -1139,7 +1139,7 @@ bool Monitor::Analyse()
 						event = new Event( this, *timestamp, "Continuous" );
 						shared_data->last_event = event->Id();
 
-						Info(( "%s: %03d - Starting new event %d", name, image_count, event->Id() ));
+						Info( "%s: %03d - Starting new event %d", name, image_count, event->Id() );
 
 						//if ( config.overlap_timed_events )
 						if ( false )
@@ -1162,7 +1162,7 @@ bool Monitor::Analyse()
 					{
 						if ( Event::PreAlarmCount() >= (alarm_frame_count-1) )
 						{
-							Info(( "%s: %03d - Gone into alarm state", name, image_count ));
+							Info( "%s: %03d - Gone into alarm state", name, image_count );
 							shared_data->state = state = ALARM;
 							if ( signal_change || (function != MOCORD && state != ALERT) )
 							{
@@ -1181,7 +1181,7 @@ bool Monitor::Analyse()
 								}
 								shared_data->last_event = event->Id();
 
-						        Info(( "%s: %03d - Creating new event %d", name, image_count, event->Id() ));
+						        Info( "%s: %03d - Creating new event %d", name, image_count, event->Id() );
 
 								for ( int i = 0; i < pre_event_count; i++ )
 								{
@@ -1199,13 +1199,13 @@ bool Monitor::Analyse()
 						}
 						else if ( state != PREALARM )
 						{
-							Info(( "%s: %03d - Gone into prealarm state", name, image_count ));
+							Info( "%s: %03d - Gone into prealarm state", name, image_count );
 							shared_data->state = state = PREALARM;
 						}
 					}
 					else if ( state == ALERT )
 					{
-						Info(( "%s: %03d - Gone back into alarm state", name, image_count ));
+						Info( "%s: %03d - Gone back into alarm state", name, image_count );
 						shared_data->state = state = ALARM;
 					}
 					last_alarm_count = image_count;
@@ -1214,14 +1214,14 @@ bool Monitor::Analyse()
 				{
 					if ( state == ALARM )
 					{
-						Info(( "%s: %03d - Gone into alert state", name, image_count ));
+						Info( "%s: %03d - Gone into alert state", name, image_count );
 						shared_data->state = state = ALERT;
 					}
 					else if ( state == ALERT )
 					{
 						if ( image_count-last_alarm_count > post_event_count )
 						{
-							Info(( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() ));
+							Info( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() );
 							if ( function != MOCORD || !strcmp( event->Cause(), "Signal" ) )
 							{
 								shared_data->state = state = IDLE;
@@ -1330,7 +1330,7 @@ bool Monitor::Analyse()
 						int section_mod = timestamp->tv_sec%section_length;
 						if ( section_mod < last_section_mod )
 						{
-                            Info(( "%s: %03d - Ending event %d", name, image_count, event->Id() ));
+                            Info( "%s: %03d - Ending event %d", name, image_count, event->Id() );
 							closeEvent();
 							last_section_mod = 0;
 						}
@@ -1346,7 +1346,7 @@ bool Monitor::Analyse()
         {
             if ( event )
             {
-                Info(( "%s: %03d - Closing event %d", name, image_count, event->Id() ));
+                Info( "%s: %03d - Closing event %d", name, image_count, event->Id() );
                 closeEvent();
             }
             shared_data->state = state = IDLE;
@@ -1367,7 +1367,7 @@ bool Monitor::Analyse()
 
 void Monitor::Reload()
 {
-	Debug( 1, ( "Reloading monitor %s", name ));
+	Debug( 1, "Reloading monitor %s", name );
 
 	closeEvent();
 
@@ -1375,20 +1375,20 @@ void Monitor::Reload()
 	snprintf( sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = '%d'", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_monitors = mysql_num_rows( result );
 	if ( n_monitors != 1 )
 	{
-		Error(( "Bogus number of monitors, %d, returned. Can't reload", n_monitors )); 
+		Error( "Bogus number of monitors, %d, returned. Can't reload", n_monitors ); 
 		return;
 	}
 
@@ -1428,7 +1428,7 @@ void Monitor::Reload()
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
-		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	mysql_free_result( result );
@@ -1438,7 +1438,7 @@ void Monitor::Reload()
 
 void Monitor::ReloadZones()
 {
-	Debug( 1, ( "Reloading zones for monitor %s", name ));
+	Debug( 1, "Reloading zones for monitor %s", name );
 	for( int i = 0; i < n_zones; i++ )
 	{
 		delete zones[i];
@@ -1451,7 +1451,7 @@ void Monitor::ReloadZones()
 
 void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
 {
-	Debug( 1, ( "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors ));
+	Debug( 1, "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors );
 	if ( n_linked_monitors )
 	{
 		for( int i = 0; i < n_linked_monitors; i++ )
@@ -1492,7 +1492,7 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
 				int link_id = atoi(link_id_str);
 				if ( link_id > 0 )
 				{
-					Debug( 3, ( "Found linked monitor id %d", link_id ));
+					Debug( 3, "Found linked monitor id %d", link_id );
 					int j;
 					for ( j = 0; j < n_link_ids; j++ )
 					{
@@ -1514,37 +1514,37 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
 		}
 		if ( n_link_ids > 0 )
 		{
-			Debug( 1, ( "Linking to %d monitors", n_link_ids ));
+			Debug( 1, "Linking to %d monitors", n_link_ids );
 			n_linked_monitors = n_link_ids;
 			linked_monitors = new MonitorLink *[n_linked_monitors];
 			for ( int i = 0; i < n_linked_monitors; i++ )
 			{
 				static char sql[BUFSIZ];
-				Debug( 1, ( "Checking linked monitor %d", link_ids[i] ));
+				Debug( 1, "Checking linked monitor %d", link_ids[i] );
 
 				snprintf( sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
 				if ( mysql_query( &dbconn, sql ) )
 				{
-					Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+					Error( "Can't run query: %s", mysql_error( &dbconn ) );
 					exit( mysql_errno( &dbconn ) );
 				}
 
 				MYSQL_RES *result = mysql_store_result( &dbconn );
 				if ( !result )
 				{
-					Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+					Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 					exit( mysql_errno( &dbconn ) );
 				}
 				int n_monitors = mysql_num_rows( result );
 				if ( n_monitors == 1 )
 				{
 					MYSQL_ROW dbrow = mysql_fetch_row( result );
-					Debug( 1, ( "Linking to monitor %d", link_ids[i] ));
+					Debug( 1, "Linking to monitor %d", link_ids[i] );
 					linked_monitors[i] = new MonitorLink( link_ids[i], dbrow[1] );
 				}
 				else
 				{
-					Debug( 1, ( "Can't link to monitor %d, invalid id, function or not enabled", link_ids[i] ));
+					Debug( 1, "Can't link to monitor %d, invalid id, function or not enabled", link_ids[i] );
 				}
 				mysql_free_result( result );
 			}
@@ -1565,18 +1565,18 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_monitors = mysql_num_rows( result );
-	Debug( 1, ( "Got %d monitors", n_monitors ));
+	Debug( 1, "Got %d monitors", n_monitors );
 	delete[] monitors;
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
@@ -1675,11 +1675,11 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
-		Debug( 1, ( "Loaded monitor %d(%s), %d zones", id, name, n_zones ));
+		Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
-		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	// Yadda yadda
@@ -1701,18 +1701,18 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_monitors = mysql_num_rows( result );
-	Debug( 1, ( "Got %d monitors", n_monitors ));
+	Debug( 1, "Got %d monitors", n_monitors );
 	delete[] monitors;
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
@@ -1805,11 +1805,11 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
-		Debug( 1, ( "Loaded monitor %d(%s), %d zones", id, name, n_zones ));
+		Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
-		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	// Yadda yadda
@@ -1831,18 +1831,18 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_monitors = mysql_num_rows( result );
-	Debug( 1, ( "Got %d monitors", n_monitors ));
+	Debug( 1, "Got %d monitors", n_monitors );
 	delete[] monitors;
 	monitors = new Monitor *[n_monitors];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
@@ -1931,11 +1931,11 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
-		Debug( 1, ( "Loaded monitor %d(%s), %d zones", id, name, n_zones ));
+		Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
-		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	// Yadda yadda
@@ -1950,18 +1950,18 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 	snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	int n_monitors = mysql_num_rows( result );
-	Debug( 1, ( "Got %d monitors", n_monitors ));
+	Debug( 1, "Got %d monitors", n_monitors );
 	Monitor *monitor = 0;
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
@@ -2068,7 +2068,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 		}
 		else
 		{
-			Error(( "Bogus monitor type '%s' for monitor %d", type, id ));
+			Error( "Bogus monitor type '%s' for monitor %d", type, id );
 			exit( -1 );
 		}
 		monitor = new Monitor(
@@ -2106,11 +2106,11 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 			n_zones = Zone::Load( monitor, zones );
 			monitor->AddZones( n_zones, zones );
 		}
-		Debug( 1, ( "Loaded monitor %d(%s), %d zones", id, name, n_zones ));
+		Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
-		Error(( "Can't fetch row: %s", mysql_error( &dbconn ) ));
+		Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	// Yadda yadda
@@ -2150,7 +2150,7 @@ int Monitor::PostCapture()
 
 		if ( image.Size() != camera->ImageSize() )
 		{
-			Error(( "Captured image does not match expected size, check width, height and colour depth" ));
+			Error( "Captured image does not match expected size, check width, height and colour depth" );
 			return( -1 );
 		}
 
@@ -2158,7 +2158,7 @@ int Monitor::PostCapture()
 
 		if ( index == shared_data->last_read_index && function > MONITOR )
 		{
-			Warning(( "Buffer overrun at index %d, slow down capture, speed up analysis or increase ring buffer size", index ));
+			Warning( "Buffer overrun at index %d, slow down capture, speed up analysis or increase ring buffer size", index );
 		}
 
 		gettimeofday( image_buffer[index].timestamp, NULL );
@@ -2178,9 +2178,9 @@ int Monitor::PostCapture()
 		{
 			time_t now = image_buffer[index].timestamp->tv_sec;
 			fps = double(fps_report_interval)/(now-last_fps_time);
-			//Info(( "%d -> %d -> %d", fps_report_interval, now, last_fps_time ));
-			//Info(( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps ));
-			Info(( "%s: %d - Capturing at %.2lf fps", name, image_count, fps ));
+			//Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
+			//Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
+			Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
 			last_fps_time = now;
 		}
 
@@ -2304,7 +2304,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, siz
 		{
 			continue;
 		}
-		Debug( 3, ( "Blanking inactive zone %s", zone->Label() ));
+		Debug( 3, "Blanking inactive zone %s", zone->Label() );
 		delta_image->Fill( RGB_BLACK, zone->GetPolygon() );
 	}
 
@@ -2316,12 +2316,12 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, siz
 		{
 			continue;
 		}
-		Debug( 3, ( "Checking preclusive zone %s", zone->Label() ));
+		Debug( 3, "Checking preclusive zone %s", zone->Label() );
 		if ( zone->CheckAlarms( delta_image ) )
 		{
 			alarm = true;
 			score += zone->Score();
-			Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+			Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
 			if ( text_ptr )
 				text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
 			//zone->ResetStats();
@@ -2346,13 +2346,13 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, siz
 			{
 				continue;
 			}
-			Debug( 3, ( "Checking active zone %s", zone->Label() ));
+			Debug( 3, "Checking active zone %s", zone->Label() );
 			if ( zone->CheckAlarms( delta_image ) )
 			{
 				alarm = true;
 				score += zone->Score();
 				zone->SetAlarm();
-				Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+				Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
 				if ( text_ptr )
 					text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
 				if ( config.opt_control && track_motion )
@@ -2375,13 +2375,13 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, siz
 				{
 					continue;
 				}
-				Debug( 3, ( "Checking inclusive zone %s", zone->Label() ));
+				Debug( 3, "Checking inclusive zone %s", zone->Label() );
 				if ( zone->CheckAlarms( delta_image ) )
 				{
 					alarm = true;
 					score += zone->Score();
 					zone->SetAlarm();
-					Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+					Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
 					if ( text_ptr )
 						text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
 					if ( config.opt_control && track_motion )
@@ -2405,13 +2405,13 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, siz
 				{
 					continue;
 				}
-				Debug( 3, ( "Checking exclusive zone %s", zone->Label() ));
+				Debug( 3, "Checking exclusive zone %s", zone->Label() );
 				if ( zone->CheckAlarms( delta_image ) )
 				{
 					alarm = true;
 					score += zone->Score();
 					zone->SetAlarm();
-					Debug( 3, ( "Zone is alarmed, zone score = %d", zone->Score() ));
+					Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
 					if ( text_ptr )
 						text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
 				}
@@ -2424,7 +2424,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, siz
 		shared_data->alarm_x = alarm_centre.X();
 		shared_data->alarm_y = alarm_centre.Y();
 
-		Info(( "Got alarm centre at %d,%d, at count %d", shared_data->alarm_x, shared_data->alarm_y, image_count ));
+		Info( "Got alarm centre at %d,%d, at count %d", shared_data->alarm_x, shared_data->alarm_y, image_count );
 	}
 	else
 	{
@@ -2503,27 +2503,27 @@ bool MonitorStream::checkSwapPath( const char *path, bool create_path )
     {
         if ( create_path && errno == ENOENT )
         {
-            Debug( 3, ( "Swap path '%s' missing, creating", path ));
+            Debug( 3, "Swap path '%s' missing, creating", path );
             if ( mkdir( path, 0755 ) )
             {
-                Error(( "Can't mkdir %s: %s", path, strerror(errno)));
+                Error( "Can't mkdir %s: %s", path, strerror(errno));
                 return( false );
             }
             if ( stat( path, &stat_buf ) < 0 )
             {
-                Error(( "Can't stat '%s': %s", path, strerror(errno) ));
+                Error( "Can't stat '%s': %s", path, strerror(errno) );
                 return( false );
             }
         }
         else
         {
-            Error(( "Can't stat '%s': %s", path, strerror(errno) ));
+            Error( "Can't stat '%s': %s", path, strerror(errno) );
             return( false );
         }
     }
     if ( !S_ISDIR(stat_buf.st_mode) )
     {
-        Error(( "Swap image path '%s' is not a directory", path ));
+        Error( "Swap image path '%s' is not a directory", path );
         return( false );
     }
 
@@ -2546,7 +2546,7 @@ bool MonitorStream::checkSwapPath( const char *path, bool create_path )
 
     if ( (stat_buf.st_mode & mask) != mask )
     {
-        Error(( "Insufficient permissions on swap image path '%s'", path ));
+        Error( "Insufficient permissions on swap image path '%s'", path );
         return( false );
     }
     return( true );
@@ -2554,13 +2554,13 @@ bool MonitorStream::checkSwapPath( const char *path, bool create_path )
 
 void MonitorStream::processCommand( const CmdMsg *msg )
 {
-    Debug( 2, ( "Got message, type %ld, msg %d", msg->msg_type, msg->msg_data[0] ));
+    Debug( 2, "Got message, type %ld, msg %d", msg->msg_type, msg->msg_data[0] );
     // Check for incoming command
     switch( (MsgCommand)msg->msg_data[0] )
     {
         case CMD_PAUSE :
         {
-            Debug( 1, ( "Got PAUSE command" ));
+            Debug( 1, "Got PAUSE command" );
 
             // Set paused flag
             paused = true;
@@ -2571,7 +2571,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         }
         case CMD_PLAY :
         {
-            Debug( 1, ( "Got PLAY command" ));
+            Debug( 1, "Got PLAY command" );
             if ( paused )
             {
                 // Clear paused flag
@@ -2584,7 +2584,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         }
         case CMD_STOP :
         {
-            Debug( 1, ( "Got STOP command" ));
+            Debug( 1, "Got STOP command" );
 
             // Clear paused flag
             paused = false;
@@ -2594,7 +2594,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         }
         case CMD_FASTFWD :
         {
-            Debug( 1, ( "Got FAST FWD command" ));
+            Debug( 1, "Got FAST FWD command" );
             if ( paused )
             {
                 // Clear paused flag
@@ -2626,7 +2626,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         }
         case CMD_SLOWFWD :
         {
-            Debug( 1, ( "Got SLOW FWD command" ));
+            Debug( 1, "Got SLOW FWD command" );
             // Set paused flag
             paused = true;
             // Set delayed flag
@@ -2639,7 +2639,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         }
         case CMD_SLOWREV :
         {
-            Debug( 1, ( "Got SLOW REV command" ));
+            Debug( 1, "Got SLOW REV command" );
             // Set paused flag
             paused = true;
             // Set delayed flag
@@ -2652,7 +2652,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         }
         case CMD_FASTREV :
         {
-            Debug( 1, ( "Got FAST REV command" ));
+            Debug( 1, "Got FAST REV command" );
             if ( paused )
             {
                 // Clear paused flag
@@ -2686,7 +2686,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         {
             x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
             y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-            Debug( 1, ( "Got ZOOM IN command, to %d,%d", x, y ));
+            Debug( 1, "Got ZOOM IN command, to %d,%d", x, y );
             switch ( zoom )
             {
                 case 100:
@@ -2710,7 +2710,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         }
         case CMD_ZOOMOUT :
         {
-            Debug( 1, ( "Got ZOOM OUT command" ));
+            Debug( 1, "Got ZOOM OUT command" );
             switch ( zoom )
             {
                 case 500:
@@ -2736,23 +2736,23 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         {
             x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
             y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-            Debug( 1, ( "Got PAN command, to %d,%d", x, y ));
+            Debug( 1, "Got PAN command, to %d,%d", x, y );
             break;
         }
         case CMD_SCALE :
         {
             scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-            Debug( 1, ( "Got SCALE command, to %d", scale ));
+            Debug( 1, "Got SCALE command, to %d", scale );
             break;
         }
         case CMD_QUERY :
         {
-            Debug( 1, ( "Got QUERY command, sending STATUS" ));
+            Debug( 1, "Got QUERY command, sending STATUS" );
             break;
         }
         default :
         {
-            Error(( "Got unexpected command %d", msg->msg_data[0] ));
+            Error( "Got unexpected command %d", msg->msg_data[0] );
             break;
         }
     }
@@ -2783,7 +2783,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
     //status_data.enabled = monitor->shared_data->active;
     status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
     status_data.forced = monitor->trigger_data->trigger_state==Monitor::TRIGGER_ON;
-    Debug( 2, ( "L:%d, D:%d, P:%d, R:%d, d:%.3f, Z:%d, E:%d F:%d", 
+    Debug( 2, "L:%d, D:%d, P:%d, R:%d, d:%.3f, Z:%d, E:%d F:%d", 
         status_data.buffer_level,
         status_data.delayed,
         status_data.paused,
@@ -2792,7 +2792,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
         status_data.zoom,
         status_data.enabled,
         status_data.forced
-    ));
+    );
 
     DataMsg status_msg;
     status_msg.msg_type = MSG_DATA_WATCH;
@@ -2802,7 +2802,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
     {
         //if ( errno != EAGAIN )
         {
-            Error(( "Can't sendto on sd %d: %s", sd, strerror(errno) ));
+            Error( "Can't sendto on sd %d: %s", sd, strerror(errno) );
             exit( -1 );
         }
     }
@@ -2838,7 +2838,7 @@ void MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
         }
         else
         {
-            Error(( "Can't open %s: %s", filepath, strerror(errno) ));
+            Error( "Can't open %s: %s", filepath, strerror(errno) );
         }
 
         fprintf( stdout, "--ZoneMinderFrame\r\n" );
@@ -2904,7 +2904,7 @@ void MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
                 img_buffer_size = zip_buffer_size;
                 break;
             default :
-                Fatal(( "Unexpected frame type %d", type ));
+                Fatal( "Unexpected frame type %d", type );
                 break;
         }
         fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
@@ -2949,8 +2949,8 @@ void MonitorStream::runStream()
 
     if ( connkey )
     {
-        Debug( 2, ( "Checking swap image location" ));
-        Debug( 3, ( "Checking swap image path" ));
+        Debug( 2, "Checking swap image location" );
+        Debug( 3, "Checking swap image path" );
         strncpy( swap_path, config.path_swap, sizeof(swap_path) );
         if ( checkSwapPath( swap_path, false ) )
         {
@@ -2967,14 +2967,14 @@ void MonitorStream::runStream()
 
         if ( !buffer_playback )
         {
-            Error(( "Unable to validate swap image path, disabling buffered playback" ));
+            Error( "Unable to validate swap image path, disabling buffered playback" );
         }
         else
         {
-            Debug( 2, ( "Assigning temporary buffer" ));
+            Debug( 2, "Assigning temporary buffer" );
             temp_image_buffer = new SwapImage[temp_image_buffer_count];
             memset( temp_image_buffer, 0, sizeof(*temp_image_buffer)*temp_image_buffer_count );
-            Debug( 2, ( "Assigned temporary buffer" ));
+            Debug( 2, "Assigned temporary buffer" );
         }
     }
 
@@ -2999,7 +2999,7 @@ void MonitorStream::runStream()
 		    if ( temp_read_index == temp_write_index )
             {
                 // Go back to live viewing
-                Debug( 1, ( "Exceeded temporary streaming buffer" ));
+                Debug( 1, "Exceeded temporary streaming buffer" );
                 // Clear paused flag
                 paused = false;
                 // Clear delayed_play flag
@@ -3011,7 +3011,7 @@ void MonitorStream::runStream()
                 if ( !paused )
                 {
                     int temp_index = MOD_ADD( temp_read_index, 0, temp_image_buffer_count );
-                    //Debug( 3, ( "tri: %d, ti: %d", temp_read_index, temp_index ));
+                    //Debug( 3, "tri: %d, ti: %d", temp_read_index, temp_index );
                     SwapImage *swap_image = &temp_image_buffer[temp_index];
 
                     if ( !swap_image->valid )
@@ -3022,18 +3022,18 @@ void MonitorStream::runStream()
                     }
                     else
                     {
-                        //Debug( 3, ( "siT: %f, lfT: %f", TV_2_FLOAT( swap_image->timestamp ), TV_2_FLOAT( last_frame_timestamp ) ));
+                        //Debug( 3, "siT: %f, lfT: %f", TV_2_FLOAT( swap_image->timestamp ), TV_2_FLOAT( last_frame_timestamp ) );
                         double expected_delta_time = ((TV_2_FLOAT( swap_image->timestamp ) - TV_2_FLOAT( last_frame_timestamp )) * ZM_RATE_BASE)/replay_rate;
                         double actual_delta_time = TV_2_FLOAT( now ) - last_frame_sent;
 
-                        //Debug( 3, ( "eDT: %.3lf, aDT: %.3f, lFS:%.3f, NOW:%.3f", expected_delta_time, actual_delta_time, last_frame_sent, TV_2_FLOAT( now ) ));
+                        //Debug( 3, "eDT: %.3lf, aDT: %.3f, lFS:%.3f, NOW:%.3f", expected_delta_time, actual_delta_time, last_frame_sent, TV_2_FLOAT( now ) );
                         // If the next frame is due
                         if ( actual_delta_time > expected_delta_time )
                         {
-                            //Debug( 2, ( "eDT: %.3lf, aDT: %.3f", expected_delta_time, actual_delta_time ));
+                            //Debug( 2, "eDT: %.3lf, aDT: %.3f", expected_delta_time, actual_delta_time );
                             if ( temp_index%frame_mod == 0 )
                             {
-                                Debug( 2, ( "Sending delayed frame %d", temp_index ));
+                                Debug( 2, "Sending delayed frame %d", temp_index );
                                 // Send the next frame
                                 sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp );
                                 memcpy( &last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp) );
@@ -3063,7 +3063,7 @@ void MonitorStream::runStream()
                      if ( got_command || actual_delta_time > 5 )
                      {
                         // Send keepalive
-                        Debug( 2, ( "Sending keepalive frame %d", temp_index ));
+                        Debug( 2, "Sending keepalive frame %d", temp_index );
                         // Send the next frame
                         sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp );
                         frame_sent = true;
@@ -3073,7 +3073,7 @@ void MonitorStream::runStream()
             if ( temp_read_index == temp_write_index )
             {
                 // Go back to live viewing
-                Warning(( "Rewound over write index, resuming live play" ));
+                Warning( "Rewound over write index, resuming live play" );
                 // Clear paused flag
                 paused = false;
                 // Clear delayed_play flag
@@ -3085,7 +3085,7 @@ void MonitorStream::runStream()
 		{
 			int index = monitor->shared_data->last_write_index%monitor->image_buffer_count;
 			last_read_index = monitor->shared_data->last_write_index;
-		    //Debug( 1, ( "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer ));
+		    //Debug( 1, "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer );
 			if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) )
 			{
                 if ( !paused && !delayed )
@@ -3107,7 +3107,7 @@ void MonitorStream::runStream()
                     if ( monitor->image_buffer[index].timestamp->tv_sec )
                     {
                         int temp_index = temp_write_index%temp_image_buffer_count;
-                        Debug( 2, ( "Storing frame %d", temp_index ));
+                        Debug( 2, "Storing frame %d", temp_index );
                         if ( !temp_image_buffer[temp_index].valid )
                         {
                             snprintf( temp_image_buffer[temp_index].file_name, sizeof(temp_image_buffer[0].file_name), "%s/zmswap-i%05d.jpg", swap_path, temp_index );
@@ -3119,7 +3119,7 @@ void MonitorStream::runStream()
                         if ( temp_write_index == temp_read_index )
                         {
                             // Go back to live viewing
-                            Warning(( "Exceeded temporary buffer, resuming live play" ));
+                            Warning( "Exceeded temporary buffer, resuming live play" );
                             // Clear paused flag
                             paused = false;
                             // Clear delayed_play flag
@@ -3129,12 +3129,12 @@ void MonitorStream::runStream()
                     }
                     else
                     {
-                        Warning(( "Unable to store frame as timestamp invalid" ));
+                        Warning( "Unable to store frame as timestamp invalid" );
                     }
                 }
                 else
                 {
-                    Warning(( "Unable to store frame as shared memory invalid" ));
+                    Warning( "Unable to store frame as shared memory invalid" );
                 }
             }
 			frame_count++;
@@ -3153,18 +3153,18 @@ void MonitorStream::runStream()
         char swap_path[PATH_MAX] = "";
 
         snprintf( swap_path, sizeof(swap_path), "%s/zmswap-m%d/zmswap-q%06d", config.path_swap, monitor->Id(), connkey );
-        Debug( 1, ( "Cleanign swap files from %s", swap_path ));
+        Debug( 1, "Cleanign swap files from %s", swap_path );
         struct stat stat_buf;
         if ( stat( swap_path, &stat_buf ) < 0 )
         {
             if ( errno != ENOENT )
             {
-                Error(( "Can't stat '%s': %s", swap_path, strerror(errno) ));
+                Error( "Can't stat '%s': %s", swap_path, strerror(errno) );
             }
         }
         else if ( !S_ISDIR(stat_buf.st_mode) )
         {
-            Error(( "Swap image path '%s' is not a directory", swap_path ));
+            Error( "Swap image path '%s' is not a directory", swap_path );
         }
         else
         {
@@ -3177,11 +3177,11 @@ void MonitorStream::runStream()
             {
                 if ( glob_status < 0 )
                 {
-                    Error(( "Can't glob '%s': %s", glob_pattern, strerror(errno) ));
+                    Error( "Can't glob '%s': %s", glob_pattern, strerror(errno) );
                 }
                 else
                 {
-                    Debug( 1, ( "Can't glob '%s': %d", glob_pattern, glob_status ));
+                    Debug( 1, "Can't glob '%s': %d", glob_pattern, glob_status );
                 }
             }
             else
@@ -3190,14 +3190,14 @@ void MonitorStream::runStream()
                 {
                     if ( unlink( pglob.gl_pathv[i] ) < 0 )
                     {
-                        Error(( "Can't unlink '%s': %s", pglob.gl_pathv[i], strerror(errno) ));
+                        Error( "Can't unlink '%s': %s", pglob.gl_pathv[i], strerror(errno) );
                     }
                 }
             }
             globfree( &pglob );
             if ( rmdir( swap_path ) < 0 )
             {
-                Error(( "Can't rmdir '%s': %s", swap_path, strerror(errno) ));
+                Error( "Can't rmdir '%s': %s", swap_path, strerror(errno) );
             }
         }
     }

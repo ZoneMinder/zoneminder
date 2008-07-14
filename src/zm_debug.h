@@ -37,29 +37,31 @@
 /* Define the level at which messages go through syslog */
 #define ZM_DBG_SYSLOG		ZM_DBG_INF 
 
-#define zmDbgPrintf(level,params)	{\
+#define zmDbgPrintf(level,params...)	{\
 					if (level <= zm_dbg_level)\
-					{\
-						(void) zmDbgPrepare(__FILE__,__LINE__,level);\
-						(void) zmDbgOutput params;\
-					}\
+						zmDbgOutput( __FILE__, __LINE__, level, ##params );\
+				}
+
+#define zmDbgHexdump(level,data,len)	{\
+					if (level <= zm_dbg_level)\
+						zmDbgOutput( __FILE__, __LINE__, level, ##params );\
 				}
 
 /* Turn off debug here */
 #ifndef ZM_DBG_OFF
-#define Debug(level,params)	zmDbgPrintf(level,params)
+#define Debug(level,params...)	zmDbgPrintf(level,##params)
+#define Hexdump(level,data,len)	zmDbgHexdump(level,data,len)
 #else
-#define Debug(level,params)
+#define Debug(level,params...)
+#define Hexdump(level,data,len)
 #endif
 
-#define Info(params)		zmDbgPrintf(0, params)
-#define Warning(params)		zmDbgPrintf(ZM_DBG_WAR,params)
-#define Error(params)		zmDbgPrintf(ZM_DBG_ERR,params)
-#define Fatal(params)		zmDbgPrintf(ZM_DBG_FAT,params)
-#define Entrypoint(params)	zmDbgPrintf(9,params);
-#define Exitpoint(params)	zmDbgPrintf(9,params);
-#define Mark()				Info(("Mark/%s/%d", __FILE__, __LINE__ ))
-#define Log()				Info(("Log"))
+#define Info(params...)		zmDbgPrintf(ZM_DBG_INF,##params)
+#define Warning(params...)	zmDbgPrintf(ZM_DBG_WAR,##params)
+#define Error(params...)	zmDbgPrintf(ZM_DBG_ERR,##params)
+#define Fatal(params...)	zmDbgPrintf(ZM_DBG_FAT,##params)
+#define Mark()				Info("Mark/%s/%d",__FILE__,__LINE__)
+#define Log()				Info("Log")
 #ifdef __GNUC__
 #define Enter(level)		zmDbgPrintf(level,("Entering %s",__PRETTY_FUNCTION__))
 #define Exit(level)			zmDbgPrintf(level,("Exiting %s",__PRETTY_FUNCTION__))
@@ -107,14 +109,13 @@ void zmDbgSubtractTime( struct timeval * const tp1, struct timeval * const tp2 )
 int zmDbgInit( const char *name, const char *id, int level );
 int zmDbgReinit( const char *target );
 int zmDbgTerm(void);
-int zmDbgPrepare( const char * const file, const int line, const int level );
-int zmDbgOutput( const char *fstring, ... ) __attribute__ ((format(printf, 1, 2)));
+void zmDbgOutput( const char * const file, const int line, const int level, const char *fstring, ... ) __attribute__ ((format(printf, 4, 5)));
+
 #else
 int zmDbgInit();
 int zmDbgReinit();
 int zmDbgTerm();
-int zmDbgPrepare();
-int zmDbgOutput();
+void zmDbgOutput();
 #endif
 
 extern int zm_dbg_level;

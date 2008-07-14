@@ -52,9 +52,9 @@ public:
 	virtual ~Camera();
 
 	SourceType Type() const { return( type ); }
-	bool IsLocal() const { return( type == LOCAL ); }
-	bool IsRemote() const { return( type == REMOTE ); }
-	bool IsFile() const { return( type == FILE ); }
+	bool IsLocal() const { return( type == LOCAL_SRC ); }
+	bool IsRemote() const { return( type == REMOTE_SRC ); }
+	bool IsFile() const { return( type == FILE_SRC ); }
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
 	unsigned int Palette() const { return( palette ); }

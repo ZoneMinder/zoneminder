@@ -85,7 +85,7 @@ public:
 	{
 		if ( count > size )
 		{
-			Warning(( "Attempt to consume %d bytes of buffer, size is only %d bytes", count, size ));
+			Warning( "Attempt to consume %d bytes of buffer, size is only %d bytes", count, size );
 			count = size;
 		}
 		head += count;
@@ -96,7 +96,7 @@ public:
 	{
 		if ( count > size )
 		{
-			Warning(( "Attempt to shrink buffer by %d bytes, size is only %d bytes", count, size ));
+			Warning( "Attempt to shrink buffer by %d bytes, size is only %d bytes", count, size );
 			count = size;
 		}
 		size -= count;
@@ -109,7 +109,7 @@ public:
 	{
 		if ( p_size > size )
 		{
-			Warning(( "Attempt to extract %d bytes of buffer, size is only %d bytes", p_size, size ));
+			Warning( "Attempt to extract %d bytes of buffer, size is only %d bytes", p_size, size );
 			p_size = size;
 		}
 		unsigned char *old_head = head;

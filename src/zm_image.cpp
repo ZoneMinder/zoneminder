@@ -135,7 +135,7 @@ void Image::Initialise()
 		y_r_table[i] = (2990*abs(i))/10000;
 		y_g_table[i] = (5670*abs(i))/10000;
 		y_b_table[i] = (1140*abs(i))/10000;
-		//Info(( "I:%d, R:%d, G:%d, B:%d", i, y_r_table[i], y_g_table[i], y_b_table[i] ));
+		//Info( "I:%d, R:%d, G:%d, B:%d", i, y_r_table[i], y_g_table[i], y_b_table[i] );
 	}
 	for ( int i = 0; i <= 100; i++ )
 	{
@@ -149,7 +149,7 @@ Image::BlendTablePtr Image::GetBlendTable( int transparency )
 	if ( !blend_ptr )
 	{
 		blend_ptr = blend_tables[transparency] = new BlendTable[1];
-		//Info(( "Generating blend table for transparency %d", transparency ));
+		//Info( "Generating blend table for transparency %d", transparency );
 		int opacity = 100-transparency;
 		//int round_up = 50/transparency;
 		for ( int i = 0; i < 256; i++ )
@@ -220,7 +220,7 @@ Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 {
     if ( colours != 1 )
     {
-        Fatal(( "Attempt to highlight image edges when colours = %d", colours ));
+        Fatal( "Attempt to highlight image edges when colours = %d", colours );
     }
 	Image *high_image = new Image( width, height, 3 );
 	int lo_x = limits?limits->Lo().X():0;
@@ -257,20 +257,20 @@ bool Image::ReadRaw( const char *filename )
 	FILE *infile;
 	if ( (infile = fopen( filename, "rb" )) == NULL )
 	{
-		Error(( "Can't open %s: %s", filename, strerror(errno) ));
+		Error( "Can't open %s: %s", filename, strerror(errno) );
 		return( false );
 	}
 
 	struct stat statbuf;
 	if ( fstat( fileno(infile), &statbuf ) < 0 )
 	{
-		Error(( "Can't fstat %s: %s", filename, strerror(errno) ));
+		Error( "Can't fstat %s: %s", filename, strerror(errno) );
 		return( false );
 	}
 
 	if ( statbuf.st_size != size )
 	{
-		Error(( "Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size ));
+		Error( "Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size );
 		return( false );
 	}
 
@@ -286,7 +286,7 @@ bool Image::WriteRaw( const char *filename ) const
 	FILE *outfile;
 	if ( (outfile = fopen( filename, "wb" )) == NULL )
 	{
-		Error(( "Can't open %s: %s", filename, strerror(errno) ));
+		Error( "Can't open %s: %s", filename, strerror(errno) );
 		return( false );
 	}
 
@@ -313,7 +313,7 @@ bool Image::ReadJpeg( const char *filename )
 	FILE *infile;
 	if ( (infile = fopen( filename, "rb" )) == NULL )
 	{
-		Error(( "Can't open %s: %s", filename, strerror(errno) ));
+		Error( "Can't open %s: %s", filename, strerror(errno) );
 		return( false );
 	}
 
@@ -336,7 +336,7 @@ bool Image::ReadJpeg( const char *filename )
 		colours = cinfo->num_components;
 		if ( !(colours == 1 || colours == 3) )
         {
-            Error(( "Unexpected colours (%d) when reading jpeg image", colours ));
+            Error( "Unexpected colours (%d) when reading jpeg image", colours );
 		    jpeg_abort_decompress( cinfo );
 		    fclose( infile );
             return( false );
@@ -392,7 +392,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	FILE *outfile;
 	if ( (outfile = fopen( filename, "wb" )) == NULL )
 	{
-		Error(( "Can't open %s: %s", filename, strerror(errno) ));
+		Error( "Can't open %s: %s", filename, strerror(errno) );
 		return( false );
 	}
 	jpeg_stdio_dest( cinfo, outfile );
@@ -464,7 +464,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size )
 		colours = cinfo->num_components;
 		if ( !(colours == 1 || colours == 3) )
         {
-            Error(( "Unexpected colours (%d) when decoding jpeg image", colours ));
+            Error( "Unexpected colours (%d) when decoding jpeg image", colours );
 		    jpeg_abort_decompress( cinfo );
             return( false );
         }
@@ -552,12 +552,12 @@ bool Image::Unzip( const Bytef *inbuffer, unsigned long inbuffer_size )
 	int result = uncompress( buffer, &zip_size, inbuffer, inbuffer_size );
 	if ( result != Z_OK )
 	{
-		Error(( "Unzip failed, result = %d", result ));
+		Error( "Unzip failed, result = %d", result );
 		return( false );
 	}
 	if ( zip_size != size )
 	{
-		Error(( "Unzip failed, size mismatch, expected %d bytes, got %ld", size, zip_size ));
+		Error( "Unzip failed, size mismatch, expected %d bytes, got %ld", size, zip_size );
 		return( false );
 	}
 	return( true );
@@ -568,7 +568,7 @@ bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compressio
 	int result = compress2( outbuffer, outbuffer_size, buffer, size, compression_level );
 	if ( result != Z_OK )
 	{
-		Error(( "Zip failed, result = %d", result ));
+		Error( "Zip failed, result = %d", result );
 		return( false );
 	}
 	return( true );
@@ -581,12 +581,12 @@ bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
 
 	if ( lo_x > hi_x || lo_y > hi_y )
 	{
-		Error(( "Invalid or reversed crop region %d,%d -> %d,%d", lo_x, lo_y, hi_x, hi_y ));
+		Error( "Invalid or reversed crop region %d,%d -> %d,%d", lo_x, lo_y, hi_x, hi_y );
 		return( false );
 	}
 	if ( lo_x < 0 || hi_x > (width-1) || ( lo_y < 0 || hi_y > (height-1) ) )
 	{
-		Error(( "Attempting to crop outside image, %d,%d -> %d,%d not in %d,%d", lo_x, lo_y, hi_x, hi_y, width-1, height-1 ));
+		Error( "Attempting to crop outside image, %d,%d -> %d,%d not in %d,%d", lo_x, lo_y, hi_x, hi_y, width-1, height-1 );
 		return( false );
 	}
 
@@ -633,7 +633,7 @@ void Image::Overlay( const Image &image )
 {
 	if ( !(width == image.width && height == image.height) )
     {
-        Fatal(( "Attempt to overlay different sized images, expected %dx%d, got %dx%d", width, height, image.width, image.height ));
+        Fatal( "Attempt to overlay different sized images, expected %dx%d, got %dx%d", width, height, image.width, image.height );
     }
 
 	unsigned char *pdest = buffer;
@@ -704,17 +704,17 @@ void Image::Overlay( const Image &image, int x, int y )
 {
 	if ( !(width < image.width || height < image.height) )
     {
-        Fatal(( "Attempt to overlay image too big for destination, %dx%d > %dx%d", image.width, image.height, width, height ));
+        Fatal( "Attempt to overlay image too big for destination, %dx%d > %dx%d", image.width, image.height, width, height );
     }
 
 	if ( !(width < (x+image.width) || height < (y+image.height)) )
     {
-        Fatal(( "Attempt to overlay image outside of destination bounds, %dx%d @ %dx%d > %dx%d", image.width, image.height, x, y, width, height ));
+        Fatal( "Attempt to overlay image outside of destination bounds, %dx%d @ %dx%d > %dx%d", image.width, image.height, x, y, width, height );
     }
 
 	if ( !(colours == image.colours) )
     {
-        Fatal(( "Attempt to partial overlay differently coloured images, expected %d, got %d", colours, image.colours ));
+        Fatal( "Attempt to partial overlay differently coloured images, expected %d, got %d", colours, image.colours );
     }
 
 	int lo_x = x;
@@ -753,7 +753,7 @@ void Image::Blend( const Image &image, int transparency ) const
 {
 	if ( !(width == image.width && height == image.height && colours == image.colours) )
     {
-        Fatal(( "Attempt to blend different sized images, expected %dx%dx%d, got %dx%dx%d", width, height, colours, image.width, image.height, image.colours ));
+        Fatal( "Attempt to blend different sized images, expected %dx%dx%d, got %dx%dx%d", width, height, colours, image.width, image.height, image.colours );
     }
 
 	if ( config.fast_image_blends )
@@ -808,7 +808,7 @@ Image *Image::Merge( int n_images, Image *images[] )
 	{
 	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
         {
-            Fatal(( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i ));
+            Fatal( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
         }
 	}
 
@@ -842,7 +842,7 @@ Image *Image::Merge( int n_images, Image *images[], double weight )
 	{
 	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
         {
-            Fatal(( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i ));
+            Fatal( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
         }
 	}
 
@@ -876,7 +876,7 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 	{
 	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
         {
-            Fatal(( "Attempt to highlight different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i ));
+            Fatal( "Attempt to highlight different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
         }
 	}
 
@@ -909,7 +909,7 @@ Image *Image::Delta( const Image &image ) const
 {
 	if ( !(width == image.width && height == image.height && colours == image.colours) )
     {
-        Fatal(( "Attempt to get delta of different sized images, expected %dx%dx%d, got %dx%dx%d", width, height, colours, image.width, image.height, image.colours ));
+        Fatal( "Attempt to get delta of different sized images, expected %dx%dx%d, got %dx%dx%d", width, height, colours, image.width, image.height, image.colours );
     }
 
 	Image *result = new Image( width, height, 1 );
@@ -936,14 +936,14 @@ Image *Image::Delta( const Image &image ) const
 		{
 			if ( config.y_image_deltas )
 			{
-				//Info(( "RS:%d, RR: %d", *psrc, *pref ));
+				//Info( "RS:%d, RR: %d", *psrc, *pref );
 				red = y_r_table[*psrc++ - *pref++];
-				//Info(( "GS:%d, GR: %d", *psrc, *pref ));
+				//Info( "GS:%d, GR: %d", *psrc, *pref );
 				green = y_g_table[*psrc++ - *pref++];
-				//Info(( "BS:%d, BR: %d", *psrc, *pref ));
+				//Info( "BS:%d, BR: %d", *psrc, *pref );
 				blue = y_b_table[*psrc++ - *pref++];
 
-				//Info(( "R:%d, G:%d, B:%d, D:%d", red, green, blue, abs_table[red + green + blue] ));
+				//Info( "R:%d, G:%d, B:%d, D:%d", red, green, blue, abs_table[red + green + blue] );
 				*pdiff++ = abs_table[red + green + blue];
 			}
 			else
@@ -1165,7 +1165,7 @@ void Image::Fill( Rgb colour, const Box *limits )
 {
 	if ( !(colours == 1 || colours == 3 ) )
     {
-        Fatal(( "Attempt to fill image with unexpected colours %d", colours ));
+        Fatal( "Attempt to fill image with unexpected colours %d", colours );
     }
 	int lo_x = limits?limits->Lo().X():0;
 	int lo_y = limits?limits->Lo().Y():0;
@@ -1202,7 +1202,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 {
 	if ( !(colours == 1 || colours == 3 ) )
     {
-        Fatal(( "Attempt to fill image with unexpected colours %d", colours ));
+        Fatal( "Attempt to fill image with unexpected colours %d", colours );
     }
 
 	int lo_x = limits?limits->Lo().X():0;
@@ -1235,7 +1235,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 {
 	if ( !(colours == 1 || colours == 3 ) )
     {
-        Fatal(( "Attempt to outline image with unexpected colours %d", colours ));
+        Fatal( "Attempt to outline image with unexpected colours %d", colours );
     }
 	int n_coords = polygon.getNumCoords();
 	for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ )
@@ -1253,10 +1253,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 
 		double grad;
 
-		Debug( 9, ( "dx: %.2lf, dy: %.2lf", dx, dy ));
+		Debug( 9, "dx: %.2lf, dy: %.2lf", dx, dy );
 		if ( fabs(dx) <= fabs(dy) )
 		{
-			Debug( 9, ( "dx <= dy" ));
+			Debug( 9, "dx <= dy" );
 			if ( y1 != y2 )
 				grad = dx/dy;
 			else
@@ -1267,10 +1267,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 			grad *= yinc;
 			if ( colours == 1 )
 			{
-				Debug( 9, ( "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f", x1, x2, y1, y2, grad ));
+				Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f", x1, x2, y1, y2, grad );
 				for ( x = x1, y = y1; y != y2; y += yinc, x += grad )
 				{
-					Debug( 9, ( "x:%.2f, y:%d", x, y ));
+					Debug( 9, "x:%.2f, y:%d", x, y );
 					buffer[(y*width)+int(round(x))] = colour;
 				}
 			}
@@ -1287,22 +1287,22 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 		}
 		else
 		{
-			Debug( 9, ( "dx > dy" ));
+			Debug( 9, "dx > dy" );
 			if ( x1 != x2 )
 				grad = dy/dx;
 			else
 				grad = height;
-			Debug( 9, ( "grad: %.2lf", grad ));
+			Debug( 9, "grad: %.2lf", grad );
 
 			double y;
 			int x, xinc = (x1<x2)?1:-1;
 			grad *= xinc;
 			if ( colours == 1 )
 			{
-				Debug( 9, ( "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad ));
+				Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
 				for ( y = y1, x = x1; x != x2; x += xinc, y += grad )
 				{
-					Debug( 9, ( "x:%d, y:%.2f", x, y ));
+					Debug( 9, "x:%d, y:%.2f", x, y );
 					buffer[(int(round(y))*width)+x] = colour;
 				}
 			}
@@ -1324,7 +1324,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 {
 	if ( !(colours == 1 || colours == 3 ) )
     {
-        Fatal(( "Attempt to fill image with unexpected colours %d", colours ));
+        Fatal( "Attempt to fill image with unexpected colours %d", colours );
     }
 
 	int n_coords = polygon.getNumCoords();
@@ -1340,7 +1340,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 		int y1 = p1.Y();
 		int y2 = p2.Y();
 
-		Debug( 9, ( "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 ));
+		Debug( 9, "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 );
 		if ( y1 == y2 )
 			continue;
 
@@ -1360,7 +1360,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 	{
 		for ( int i = 0; i < n_global_edges; i++ )
 		{
-			Debug( 9, ( "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f", i, global_edges[i].min_y, global_edges[i].max_y, global_edges[i].min_x, global_edges[i]._1_m ));
+			Debug( 9, "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f", i, global_edges[i].min_y, global_edges[i].max_y, global_edges[i].min_x, global_edges[i]._1_m );
 		}
 	}
 #endif
@@ -1374,7 +1374,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 		{
 			if ( global_edges[i].min_y == y )
 			{
-				Debug( 9, ( "Moving global edge" ));
+				Debug( 9, "Moving global edge" );
 				active_edges[n_active_edges++] = global_edges[i];
 				if ( i < (n_global_edges-1) )
 				{
@@ -1394,13 +1394,13 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 		{
 			for ( int i = 0; i < n_active_edges; i++ )
 			{
-				Debug( 9, ( "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f", y, i, active_edges[i].min_y, active_edges[i].max_y, active_edges[i].min_x, active_edges[i]._1_m ));
+				Debug( 9, "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f", y, i, active_edges[i].min_y, active_edges[i].max_y, active_edges[i].min_x, active_edges[i]._1_m );
 			}
 		}
 #endif
 		if ( !(y%density) )
 		{
-			//Debug( 9, ( "%d", y ));
+			//Debug( 9, "%d", y );
 			for ( int i = 0; i < n_active_edges; )
 			{
 				int lo_x = int(round(active_edges[i++].min_x));
@@ -1410,7 +1410,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 				{
 					if ( !(x%density) )
 					{
-						//Debug( 9, ( " %d", x ));
+						//Debug( 9, " %d", x );
 						if ( colours == 1 )
 						{
 							*p = colour;
@@ -1430,7 +1430,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 		{
 			if ( y >= active_edges[i].max_y ) // Or >= as per sheets
 			{
-				Debug( 9, ( "Deleting active_edge" ));
+				Debug( 9, "Deleting active_edge" );
 				if ( i < (n_active_edges-1) )
 				{
 					memcpy( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
@@ -1632,7 +1632,7 @@ void Image::Scale( unsigned int factor )
 {
 	if ( !factor )
 	{
-		Error(( "Bogus scale factor %d found", factor ));
+		Error( "Bogus scale factor %d found", factor );
 		return;
 	}
 	if ( factor == ZM_SCALE_BASE )

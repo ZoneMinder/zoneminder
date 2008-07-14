@@ -33,10 +33,10 @@ RETSIGTYPE zm_hup_handler( int signal )
 	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
 	(void) snprintf(errorString, errorStringSize, "Got signal (%s), reloading.", error);
 
-	Info(( (const char *)errorString ));
+	Info( (const char *)errorString );
 	free(errorString);
 #else // HAVE_DECL_STRSIGNAL
-	Info(( "Got HUP signal, reloading" ));
+	Info( "Got HUP signal, reloading" );
 #endif // HAVE_DECL_STRSIGNAL
 	zm_reload = true;
 }
@@ -51,10 +51,10 @@ RETSIGTYPE zm_term_handler( int signal )
 	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
 	(void) snprintf(errorString, errorStringSize, "Got signal (%s), exiting.", error);
 
-	Info(( (const char *)errorString ));
+	Info( (const char *)errorString );
 	free(errorString);
 #else // HAVE_DECL_STRSIGNAL
-	Info(( "Got TERM signal, exiting" ));
+	Info( "Got TERM signal, exiting" );
 #endif // HAVE_DECL_STRSIGNAL
 	zm_terminate = true;
 }
@@ -74,10 +74,10 @@ RETSIGTYPE zm_die_handler( int signal )
 	char* errorString =(char *)malloc(errorStringSize+1); // plus 1 for termination char.
 	snprintf(errorString, errorStringSize, "Got signal (%s), crashing.", error );
 
-	Error(( (const char *)errorString ));
+	Error( (const char *)errorString );
 	free(errorString);
 #else // HAVE_DECL_STRSIGNAL
-	Error(( "Got signal %d, crashing", signal ));
+	Error( "Got signal %d, crashing", signal );
 #endif // HAVE_DECL_STRSIGNAL
 
 #ifndef ZM_NO_CRASHTRACE
@@ -86,13 +86,13 @@ RETSIGTYPE zm_die_handler( int signal )
 	int trace_size = 0;
 
 #if HAVE_STRUCT_SIGCONTEXT_EIP
-	Error(( "Signal address is %p, from %p\n", (void *)context.cr2, (void *)context.eip ));
+	Error( "Signal address is %p, from %p\n", (void *)context.cr2, (void *)context.eip );
 
 	trace_size = backtrace( trace, 16 );
 	// overwrite sigaction with caller's address
 	trace[1] = (void *)context.eip;
 #elif HAVE_STRUCT_SIGCONTEXT
-	Error(( "Signal address is %p, no eip\n", context.cr2 ));
+	Error( "Signal address is %p, no eip\n", context.cr2 );
 
 	trace_size = backtrace( trace, 16 );
 #else // HAVE_STRUCT_SIGCONTEXT
@@ -100,7 +100,7 @@ RETSIGTYPE zm_die_handler( int signal )
 	{
 		ucontext_t *uc = (ucontext_t *)context;
 
-		Error(( "Signal address is %p, from %p\n", info->si_addr, uc->uc_mcontext.gregs[REG_EIP] ));
+		Error( "Signal address is %p, from %p\n", info->si_addr, uc->uc_mcontext.gregs[REG_EIP] );
 
 		trace_size = backtrace( trace, 16 );
 		// overwrite sigaction with caller's address
@@ -113,8 +113,8 @@ RETSIGTYPE zm_die_handler( int signal )
 	messages = backtrace_symbols( trace, trace_size );
 	// skip first stack frame (points here)
 	for ( int i=1; i < trace_size; ++i )
-		Error(( "Backtrace: %s", messages[i] ));
-	Info(( "Backtrace complete" ));
+		Error( "Backtrace: %s", messages[i] );
+	Info( "Backtrace complete" );
 #endif // HAVE_DECL_BACKTRACE
 #endif // ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) || HAVE_STRUCT_SIGCONTEXT
 #endif // ZM_NO_CRASHTRACE

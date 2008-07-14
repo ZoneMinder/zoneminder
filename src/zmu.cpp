@@ -678,18 +678,18 @@ int main( int argc, char *argv[] )
 
 			if ( mysql_query( &dbconn, sql ) )
 			{
-				Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+				Error( "Can't run query: %s", mysql_error( &dbconn ) );
 				exit( mysql_errno( &dbconn ) );
 			}
 
 			MYSQL_RES *result = mysql_store_result( &dbconn );
 			if ( !result )
 			{
-				Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+				Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 				exit( mysql_errno( &dbconn ) );
 			}
 			int n_monitors = mysql_num_rows( result );
-			Debug( 1, ( "Got %d monitors", n_monitors ));
+			Debug( 1, "Got %d monitors", n_monitors );
 
 			printf( "%4s%5s%6s%9s%14s%6s%6s%8s%8s\n", "Id", "Func", "State", "TrgState", "LastImgTim", "RdIdx", "WrIdx", "LastEvt", "FrmRate" );
 			for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )

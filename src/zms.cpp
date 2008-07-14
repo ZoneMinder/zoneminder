@@ -44,7 +44,7 @@ bool ValidateAccess( User *user, int mon_id )
 	}
 	if ( !allowed )
 	{
-		Error(( "Error, insufficient privileges for requested action" ));
+		Error( "Error, insufficient privileges for requested action" );
 		exit( -1 );
 	}
 	return( allowed );
@@ -88,7 +88,7 @@ int main( int argc, const char *argv[] )
 	const char *query = getenv( "QUERY_STRING" );
 	if ( query )
 	{
-		Debug( 1, ( "Query: %s", query ));
+		Debug( 1, "Query: %s", query );
 	
 		char temp_query[1024];
 		strncpy( temp_query, query, sizeof(temp_query) );
@@ -209,7 +209,7 @@ int main( int argc, const char *argv[] )
 		}
 		if ( !user )
 		{
-			Error(( "Unable to authenticate user" ));
+			Error( "Unable to authenticate user" );
 			return( -1 );
 		}
 		ValidateAccess( user, monitor_id );
@@ -270,7 +270,7 @@ int main( int argc, const char *argv[] )
             stream.setStreamBitrate( bitrate );
             stream.setStreamType( MonitorStream::STREAM_MPEG );
 #else // HAVE_LIBAVCODEC
-            Error(( "MPEG streaming of '%s' attempted while disabled", query ));
+            Error( "MPEG streaming of '%s' attempted while disabled", query );
             fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
             return( -1 );
 #endif // HAVE_LIBAVCODEC
@@ -304,7 +304,7 @@ int main( int argc, const char *argv[] )
             stream.setStreamBitrate( bitrate );
             stream.setStreamType( EventStream::STREAM_MPEG );
 #else // HAVE_LIBAVCODEC
-            Error(( "MPEG streaming of '%s' attempted while disabled", query ));
+            Error( "MPEG streaming of '%s' attempted while disabled", query );
             fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
             return( -1 );
 #endif // HAVE_LIBAVCODEC

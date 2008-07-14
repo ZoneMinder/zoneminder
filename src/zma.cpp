@@ -96,7 +96,7 @@ int main( int argc, char *argv[] )
 
 	if ( monitor )
 	{
-		Info(( "In mode %d/%d, warming up", monitor->GetFunction(), monitor->Enabled() ));
+		Info( "In mode %d/%d, warming up", monitor->GetFunction(), monitor->Enabled() );
 
 		if ( config.opt_frame_server )
 		{

@@ -35,10 +35,10 @@ void zm_jpeg_error_exit( j_common_ptr cinfo )
 
 	(zmerr->pub.format_message)( cinfo, buffer ); 
 
-	Error(( "%s", buffer ));
+	Error( "%s", buffer );
 	if ( ++jpeg_err_count == MAX_JPEG_ERRS )
 	{
-		Fatal(( "Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count ));
+		Fatal( "Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count );
 		exit( -1 );
 	}
 
@@ -59,7 +59,7 @@ void zm_jpeg_emit_message( j_common_ptr cinfo, int msg_level )
 		if ( zmerr->pub.num_warnings == 0 || zmerr->pub.trace_level >= 3 )
 		{
 			(zmerr->pub.format_message)( cinfo, buffer ); 
-			Warning(( "%s", buffer ));
+			Warning( "%s", buffer );
 		}
 		/* Always count warnings in num_warnings. */
 		zmerr->pub.num_warnings++;

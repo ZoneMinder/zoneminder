@@ -33,7 +33,7 @@ void zmLoadConfig()
 	char *val;
 	if ( (cfg = fopen( ZM_CONFIG, "r")) == NULL )
 	{
-		Fatal(("Can't open %s: %s", ZM_CONFIG, strerror(errno) ));
+		Fatal("Can't open %s: %s", ZM_CONFIG, strerror(errno) );
 	}
 	while ( fgets( line, sizeof(line), cfg ) != NULL )
 	{
@@ -63,7 +63,7 @@ void zmLoadConfig()
 		temp_ptr = strchr( line_ptr, '=' );
 		if ( !temp_ptr )
 		{
-			Warning(( "Invalid data in %s: '%s'", ZM_CONFIG, line ));
+			Warning( "Invalid data in %s: '%s'", ZM_CONFIG, line );
 			continue;
 		}
 
@@ -95,7 +95,7 @@ void zmLoadConfig()
 		{
 			// We ignore this now as there may be more parameters than the
 			// c/c++ binaries are bothered about
-			// Warning(( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG ));
+			// Warning( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG );
 		}
 	}
 	fclose( cfg);
@@ -113,7 +113,7 @@ ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *con
 	type = new char[strlen(p_type)+1];
 	strcpy( type, p_type );
 
-	//Info(( "Created new config item %s = %s (%s)\n", name, value, type ));
+	//Info( "Created new config item %s = %s (%s)\n", name, value, type );
 
 	accessed = false;
 }
@@ -162,7 +162,7 @@ bool ConfigItem::BooleanValue() const
 
 	if ( cfg_type != CFG_BOOLEAN )
 	{
-		Error(( "Attempt to fetch boolean value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type ));
+		Error( "Attempt to fetch boolean value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
 		exit( -1 );
 	}
 
@@ -176,7 +176,7 @@ int ConfigItem::IntegerValue() const
 
 	if ( cfg_type != CFG_INTEGER )
 	{
-		Error(( "Attempt to fetch integer value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type ));
+		Error( "Attempt to fetch integer value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
 		exit( -1 );
 	}
 
@@ -190,7 +190,7 @@ double ConfigItem::DecimalValue() const
 
 	if ( cfg_type != CFG_DECIMAL )
 	{
-		Error(( "Attempt to fetch decimal value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type ));
+		Error( "Attempt to fetch decimal value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
 		exit( -1 );
 	}
 
@@ -204,7 +204,7 @@ const char *ConfigItem::StringValue() const
 
 	if ( cfg_type != CFG_STRING )
 	{
-		Error(( "Attempt to fetch string value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type ));
+		Error( "Attempt to fetch string value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
 		exit( -1 );
 	}
 
@@ -236,21 +236,21 @@ void Config::Load()
 	strncpy( sql, "select Name, Value, Type from Config order by Id", sizeof(sql) );
 	if ( mysql_query( &dbconn, sql ) )
 	{
-		Error(( "Can't run query: %s", mysql_error( &dbconn ) ));
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
 	if ( !result )
 	{
-		Error(( "Can't use query result: %s", mysql_error( &dbconn ) ));
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 	n_items = mysql_num_rows( result );
 
 	if ( n_items <= ZM_MAX_CFG_ID )
 	{
-		Error(( "Config mismatch, expected %d items, read %d. Try running 'zmupdate.pl -f' to reload config.", ZM_MAX_CFG_ID+1, n_items ));
+		Error( "Config mismatch, expected %d items, read %d. Try running 'zmupdate.pl -f' to reload config.", ZM_MAX_CFG_ID+1, n_items );
 		exit( -1 );
 	}
 
@@ -274,13 +274,13 @@ ZM_CFG_ASSIGN_LIST
 		snprintf( extra_level_env, sizeof(extra_level_env), "ZM_DBG_LEVEL%s=%d", extra_debug_target, extra_debug_level );
 		if ( putenv( extra_level_env ) < 0 )
 		{
-			Error(("Can't putenv %s: %s", extra_level_env, strerror(errno) ));
+			Error("Can't putenv %s: %s", extra_level_env, strerror(errno) );
 		}
 
 		snprintf( extra_log_env, sizeof(extra_log_env), "ZM_DBG_LOG%s=%s", extra_debug_target, extra_debug_log );
 		if ( putenv( extra_log_env ) < 0 )
 		{
-			Error(("Can't putenv %s: %s", extra_log_env, strerror(errno) ));
+			Error("Can't putenv %s: %s", extra_log_env, strerror(errno) );
 		}
 
 		zmDbgReinit( extra_debug_target );
@@ -297,7 +297,7 @@ const ConfigItem &Config::Item( int id )
 
 	if ( id < 0 || id > ZM_MAX_CFG_ID )
 	{
-		Error(( "Attempt to access invalid config, id = %d. Try running 'zmupdate.pl -f' to reload config.", id ));
+		Error( "Attempt to access invalid config, id = %d. Try running 'zmupdate.pl -f' to reload config.", id );
 		exit( -1 );
 	}
 
@@ -305,7 +305,7 @@ const ConfigItem &Config::Item( int id )
 	
 	if ( !item )
 	{
-		Error(( "Can't find config item %d", id ));
+		Error( "Can't find config item %d", id );
 		exit( -1 );
 	}
 		

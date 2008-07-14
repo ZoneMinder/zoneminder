@@ -29,7 +29,7 @@ void zmDbConnect()
 {
 	if ( !mysql_init( &dbconn ) )
 	{
-		Error(( "Can't initialise structure: %s", mysql_error( &dbconn ) ));
+		Error( "Can't initialise structure: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
     char dbHost[256];
@@ -40,7 +40,7 @@ void zmDbConnect()
         char *dbPort = colon_ptr+1;
 	    if ( !mysql_real_connect( &dbconn, dbHost, ZM_DB_USER, ZM_DB_PASS, 0, atoi(dbPort), 0, 0 ) )
 	    {
-		    Error(( "Can't connect to server: %s", mysql_error( &dbconn ) ));
+		    Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
 		    exit( mysql_errno( &dbconn ) );
 	    }
     }
@@ -48,13 +48,13 @@ void zmDbConnect()
     {
 	    if ( !mysql_real_connect( &dbconn, ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS, 0, 0, 0, 0 ) )
 	    {
-		    Error(( "Can't connect to server: %s", mysql_error( &dbconn ) ));
+		    Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
 		    exit( mysql_errno( &dbconn ) );
 	    }
     }
 	if ( mysql_select_db( &dbconn, ZM_DB_NAME ) )
 	{
-		Error(( "Can't select database: %s", mysql_error( &dbconn ) ));
+		Error( "Can't select database: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 }

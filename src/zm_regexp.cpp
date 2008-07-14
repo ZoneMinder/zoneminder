@@ -30,13 +30,13 @@ RegExpr::RegExpr( const char *pattern, int flags, int p_max_matches ) : max_matc
 	int erroffset = 0;
 	if ( !(regex = pcre_compile( pattern, flags, &errstr, &erroffset, 0 )) )
 	{
-		Fatal(( "pcre_compile(%s): %s at %d", pattern, errstr, erroffset ));
+		Fatal( "pcre_compile(%s): %s at %d", pattern, errstr, erroffset );
 	}
 
 	regextra = pcre_study( regex, 0, &errstr );
 	if ( errstr )
 	{
-		Fatal(( "pcre_study(%s): %s", pattern, errstr ));
+		Fatal( "pcre_study(%s): %s", pattern, errstr );
 	}
 
 	if ( ok = (bool)regex )
@@ -78,7 +78,7 @@ int RegExpr::Match( const char *subject_string, int subject_length, int flags )
 	{
 		if ( n_matches < PCRE_ERROR_NOMATCH )
 		{
-			Error(( "Error %d executing regular expression", n_matches ));
+			Error( "Error %d executing regular expression", n_matches );
 		}
 		return( n_matches = 0 );
 	}

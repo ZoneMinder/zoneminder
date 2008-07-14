@@ -176,11 +176,11 @@ int main( int argc, char *argv[] )
 
 	if ( !n_monitors )
 	{
-		Error(( "No monitors found" ));
+		Error( "No monitors found" );
 		exit ( -1 );
 	}
 
-	Info(( "Starting Capture" ));
+	Info( "Starting Capture" );
 
 	zmSetDefaultTermHandler();
 	zmSetDefaultDieHandler();
@@ -193,7 +193,7 @@ int main( int argc, char *argv[] )
 
 	if ( monitors[0]->PrimeCapture() < 0 )
 	{
-        Error(( "Failed to prime capture of initial monitor" ));
+        Error( "Failed to prime capture of initial monitor" );
 		exit( -1 );
 	}
 
@@ -244,12 +244,12 @@ int main( int argc, char *argv[] )
 			{
 				if ( monitors[i]->PreCapture() < 0 )
 				{
-                    Error(( "Failed to pre-capture monitor %d", i ));
+                    Error( "Failed to pre-capture monitor %d", i );
 					exit( -1 );
 				}
 				if ( monitors[i]->PostCapture() < 0 )
 				{
-                    Error(( "Failed to post-capture monitor %d", i ));
+                    Error( "Failed to post-capture monitor %d", i );
 					exit( -1 );
 				}
 

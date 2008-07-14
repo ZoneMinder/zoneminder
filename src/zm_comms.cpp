@@ -90,7 +90,7 @@ bool Pipe::Open()
 {
 	if ( pipe( fd ) < 0 )
 	{
-		Error(( "pipe(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "pipe(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 
@@ -113,7 +113,7 @@ bool Pipe::SetBlocking( bool blocking )
 	/* Now set it for non-blocking I/O */
 	if ( (flags = fcntl( fd[1], F_GETFL )) < 0 )
 	{
-		Error(( "fcntl(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "fcntl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 	if ( blocking )
@@ -126,7 +126,7 @@ bool Pipe::SetBlocking( bool blocking )
 	}
 	if ( fcntl( fd[1], F_SETFL, flags ) < 0 )
 	{
-		Error(( "fcntl(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "fcntl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 
@@ -137,7 +137,7 @@ bool SocketBase::Socket()
 {
 	if ( (sd = ::socket( AF_INET, SOCK_STREAM, 0 ) ) < 0 )
 	{
-		Error(( "socket(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "socket(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 
@@ -162,7 +162,7 @@ int SocketBase::BytesToRead() const
 
 	if ( ioctl( sd, FIONREAD, &bytes_to_read ) < 0 )
 	{
-		Error(( "ioctl(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "ioctl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( -1 );
 	}
 	return( bytes_to_read );
@@ -174,7 +174,7 @@ bool SocketBase::GetBlocking( bool &blocking )
 
 	if ( (flags = fcntl( sd, F_GETFL )) < 0 )
 	{
-		Error(( "fcntl(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "fcntl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 	blocking = (flags & O_NONBLOCK);
@@ -188,7 +188,7 @@ bool SocketBase::SetBlocking( bool blocking )
 	int ioctl_arg = !blocking;
 	if ( ioctl( sd, FIONBIO, &ioctl_arg ) < 0 )
 	{
-		Error(( "ioctl(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "ioctl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 	return( true );
@@ -199,7 +199,7 @@ bool SocketBase::SetBlocking( bool blocking )
 	/* Now set it for non-blocking I/O */
 	if ( (flags = fcntl( sd, F_GETFL )) < 0 )
 	{
-		Error(( "fcntl(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "fcntl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 	if ( blocking )
@@ -212,7 +212,7 @@ bool SocketBase::SetBlocking( bool blocking )
 	}
 	if ( fcntl( sd, F_SETFL, flags ) < 0 )
 	{
-		Error(( "fcntl(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "fcntl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 
@@ -224,7 +224,7 @@ bool SocketBase::GetSendBufferSize( int &buffersize ) const
 	socklen_t optlen = sizeof(buffersize);
 	if ( getsockopt( sd, SOL_SOCKET, SO_SNDBUF, &buffersize, &optlen ) < 0 )
 	{
-		Error(( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( -1 );
 	}
 	return( buffersize );
@@ -235,7 +235,7 @@ bool SocketBase::GetRecvBufferSize( int &buffersize ) const
 	socklen_t optlen = sizeof(buffersize);
 	if ( getsockopt( sd, SOL_SOCKET, SO_RCVBUF, &buffersize, &optlen ) < 0 )
 	{
-		Error(( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( -1 );
 	}
 	return( buffersize );
@@ -245,7 +245,7 @@ bool SocketBase::SetSendBufferSize( int buffersize )
 {
 	if ( setsockopt( sd, SOL_SOCKET, SO_SNDBUF, (char *)&buffersize, sizeof(buffersize)) < 0 )
 	{
-		Error(( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 	return( true );
@@ -255,7 +255,7 @@ bool SocketBase::SetRecvBufferSize( int buffersize )
 {
 	if ( setsockopt( sd, SOL_SOCKET, SO_RCVBUF, (char *)&buffersize, sizeof(buffersize)) < 0 )
 	{
-		Error(( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 	return( true );
@@ -267,7 +267,7 @@ bool SocketBase::GetRouting( bool &route ) const
 	socklen_t optlen = sizeof(dontroute);
 	if ( getsockopt( sd, SOL_SOCKET, SO_DONTROUTE, &dontroute, &optlen ) < 0 )
 	{
-		Error(( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 	route = !dontroute;
@@ -279,7 +279,7 @@ bool SocketBase::SetRouting( bool route )
 	int dontroute = !route;
 	if ( setsockopt( sd, SOL_SOCKET, SO_DONTROUTE, (char *)&dontroute, sizeof(dontroute)) < 0 )
 	{
-		Error(( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 	return( true );
@@ -291,7 +291,7 @@ bool SocketBase::GetNoDelay( bool &nodelay ) const
 	socklen_t optlen = sizeof(int_nodelay);
 	if ( getsockopt( sd, IPPROTO_TCP, TCP_NODELAY, &int_nodelay, &optlen ) < 0 )
 	{
-		Error(( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 	nodelay = int_nodelay;
@@ -304,7 +304,7 @@ bool SocketBase::SetNoDelay( bool nodelay )
 
 	if ( setsockopt( sd, IPPROTO_TCP, TCP_NODELAY, (char *)&int_nodelay, sizeof(int_nodelay)) < 0 )
 	{
-		Error(( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 	return( true );
@@ -317,7 +317,7 @@ bool SocketClient::SetupRemoteHost( const char *host )
 
 	if ( !(p_rem_host = ::gethostbyname( host ) ) )
 	{
-		Error(( "gethostbyname( %s ), h_errno = %d", host, h_errno ));
+		Error( "gethostbyname( %s ), h_errno = %d", host, h_errno );
 		return( false );
 	}
 
@@ -332,7 +332,7 @@ bool SocketClient::SetupRemoteServ( const char *serv, const char *protocol )
 
 	if ( !(p_rem_serv = ::getservbyname( serv, protocol ) ) )
 	{
-		Error(( "getservbyname( %s ), errno = %d, error = %s", serv, errno, strerror(errno) ));
+		Error( "getservbyname( %s ), errno = %d, error = %s", serv, errno, strerror(errno) );
 		return( false );
 	}
 
@@ -362,7 +362,7 @@ bool SocketClient::Open()
 
 	if ( ::connect( sd, (struct sockaddr *)&rem_addr, sizeof(rem_addr) ) == -1 )
 	{
-		Error(( "connect(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "connect(), errno = %d, error = %s", errno, strerror(errno) );
 		Close();
 		return( false );
 	}
@@ -374,7 +374,7 @@ bool UDPSocket::Socket()
 {
 	if ( (sd = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 )
 	{
-		Error(( "socket(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "socket(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 
@@ -440,7 +440,7 @@ bool TCPServer::SetupLocalHost()
 
 	if ( ::gethostname( host, sizeof(host) ) == -1 )
 	{
-		Error(( "gethostname(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "gethostname(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
 
@@ -448,7 +448,7 @@ bool TCPServer::SetupLocalHost()
 
 	if ( !(p_loc_host = ::gethostbyname( host ) ) )
 	{
-		Error(( "gethostbyname( %s ), h_errno = %d", host, h_errno ));
+		Error( "gethostbyname( %s ), h_errno = %d", host, h_errno );
 		return( false );
 	}
 
@@ -463,7 +463,7 @@ bool TCPServer::SetupLocalServ( const char *serv )
 
 	if ( !(p_loc_serv = ::getservbyname( serv, "tcp" ) ) )
 	{
-		Error(( "getservbyname( %s ), errno = %d, error = %s", serv, errno, strerror(errno) ));
+		Error( "getservbyname( %s ), errno = %d, error = %s", serv, errno, strerror(errno) );
 		return( false );
 	}
 
@@ -520,14 +520,14 @@ bool TCPServer::Open()
 
 	if ( ::bind( sd, (struct sockaddr *)&loc_addr, sizeof(loc_addr) ) == -1 )
 	{
-		Error(( "bind(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "bind(), errno = %d, error = %s", errno, strerror(errno) );
 		Close();
 		return( false );
 	}
 
 	if ( ::listen( sd, SOMAXCONN ) == -1 )
 	{
-		Error(( "listen(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "listen(), errno = %d, error = %s", errno, strerror(errno) );
 		Close();
 		return( false );
 	}
@@ -548,7 +548,7 @@ bool TCPServer::Accept()
 
 	if ( (new_sd = accept( sd, (struct sockaddr *)&rem_addr, &rem_addr_size )) == -1 )
 	{
-		Error(( "accept(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "accept(), errno = %d, error = %s", errno, strerror(errno) );
 		Close();
 		return( false );
 	}
@@ -573,7 +573,7 @@ bool TCPServer::Accept( TCPServer *&server )
 
 	if ( (new_sd = accept( sd, (struct sockaddr *)&rem_addr, &rem_addr_size )) == -1 )
 	{
-		Error(( "connect(), errno = %d, error = %s", errno, strerror(errno) ));
+		Error( "connect(), errno = %d, error = %s", errno, strerror(errno) );
 		Close();
 		return( false );
 	}

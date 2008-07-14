@@ -124,7 +124,7 @@ public:
 	{
 		if ( image.size != size )
         {
-            Fatal(( "Attempt to copy different size image buffers, expected %d, got %d", size, image.size ));
+            Fatal( "Attempt to copy different size image buffers, expected %d, got %d", size, image.size );
         }
 		memcpy( buffer, image.buffer, size );
 	}

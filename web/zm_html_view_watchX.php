@@ -98,7 +98,7 @@ function changeScale()
 }
 
 var streamCmdParms = "view=request&request=stream&connkey=<?= $connkey ?>";
-var streamCmdReq = new Ajax( thisUrl, { method: 'post', timeout: <?= ZM_WEB_AJAX_TIMEOUT ?>, onComplete: getStreamCmdResponse } );
+var streamCmdReq = new Ajax( thisUrl, { method: 'post', timeout: <?= ZM_WEB_AJAX_TIMEOUT ?>, onComplete: getStreamCmdResponse, onTimeout: streamCmdQuery } );
 var streamCmdTimer = null;
 
 var alarmState = STATE_IDLE;
@@ -495,7 +495,7 @@ function deleteEvent( event, eventId )
 }
 
 var eventCmdParms = "view=request&request=status&entity=events&id=<?= $mid ?>&count=<?= 2*MAX_EVENTS ?>&sort=Id%20desc";
-var eventCmdReq = new Ajax( thisUrl, { method: 'post', timeout: <?= ZM_WEB_AJAX_TIMEOUT ?>, data: eventCmdParms, onComplete: getEventCmdResponse } );
+var eventCmdReq = new Ajax( thisUrl, { method: 'post', timeout: <?= ZM_WEB_AJAX_TIMEOUT ?>, data: eventCmdParms, onComplete: getEventCmdResponse, onTimeout: eventCmdQuery } );
 var eventCmdTimer = null;
 var eventCmdFirst = true;
 

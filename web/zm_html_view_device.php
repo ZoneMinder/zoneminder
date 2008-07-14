@@ -20,17 +20,17 @@
 
 if ( !canEdit( 'Devices' ) )
 {
-	$view = "error";
+	$_REQUEST['view'] = "error";
 	return;
 }
-if ( $did )
+if ( !empty($_REQUEST['did']) )
 {
-	$sql = "select * from Devices where Id = '$did'";
-    $new_device = dbFetchOne( $sql );
+	$sql = "select * from Devices where Id = '".$_REQUEST['did']."'";
+    $newDevice = dbFetchOne( $sql );
 }
 else
 {
-	$new_device = array(
+	$newDevice = array(
 		"Id" => "",
 		"Name" => "New Device",
 		"KeyString" => ""
@@ -62,14 +62,14 @@ function closeWindow()
 <form name="device_form" method="post" action="<?= $PHP_SELF ?>">
 <input type="hidden" name="view" value="<?= $view ?>">
 <input type="hidden" name="action" value="device">
-<input type="hidden" name="did" value="<?= $did ?>">
+<input type="hidden" name="did" value="<?= $newDevice['did'] ?>">
 <table width="100%" border="0">
 <tr><td class="head"><?= $zmSlangDevice ?></td></tr>
 <tr><td><img src="graphics/spacer.gif" width="1" height="5"></td></tr>
 </table>
 <table width="100%" border="0" cellpadding="3" cellspacing="1">
-<tr valign="top"><td align="left" class="text"><?= $zmSlangName ?></td><td align="left" class="text"><input type="text" name="new_device[Name]" value="<?= $new_device['Name'] ?>" size="24" class="form"></td></tr>
-<tr valign="top"><td align="left" class="text"><?= $zmSlangKeyString ?></td><td align="left" class="text"><input type="text" name="new_device[KeyString]" value="<?= $new_device['KeyString'] ?>" size="24" class="form"></td></tr>
+<tr valign="top"><td align="left" class="text"><?= $zmSlangName ?></td><td align="left" class="text"><input type="text" name="newDevice[Name]" value="<?= $newDevice['Name'] ?>" size="24" class="form"></td></tr>
+<tr valign="top"><td align="left" class="text"><?= $zmSlangKeyString ?></td><td align="left" class="text"><input type="text" name="newDevice[KeyString]" value="<?= $newDevice['KeyString'] ?>" size="24" class="form"></td></tr>
 <tr><td colspan="2" align="left" class="text">&nbsp;</td></tr>
 <tr>
 <td colspan="2" align="right"><input type="submit" value="<?= $zmSlangSave ?>" class="form"<?php if ( !canEdit( 'Devices' ) ) { ?> disabled<?php } ?>>&nbsp;&nbsp;<input type="button" value="<?= $zmSlangCancel ?>" class="form" onClick="closeWindow()"></td>

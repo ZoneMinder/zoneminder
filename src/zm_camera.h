@@ -33,7 +33,7 @@
 class Camera
 {
 protected:
-	typedef enum { LOCAL, REMOTE, FILE } SourceType;
+	typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC } SourceType;
 
 	SourceType		type;
 	unsigned int	width;

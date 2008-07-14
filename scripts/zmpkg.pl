@@ -142,7 +142,7 @@ if ( $command =~ /^(?:stop|restart)$/ )
 	if ( $status eq "running" )
 	{
 		runCommand( "zmdc.pl shutdown" );
-		removeShm();
+		zmMemTidy();
 	}
 	else
 	{
@@ -156,7 +156,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 
 	if ( $status eq "stopped" )
 	{
-		removeShm();
+		zmMemTidy();
 		runCommand( "zmfix" );
 		runCommand( "zmdc.pl startup" );
 
@@ -303,28 +303,6 @@ sub getCmdFormat
 	}
 	Error( "Unable to find valid 'su' syntax\n" );
 	exit( -1 );
-}
-
-sub removeShm
-{
-	Debug( "Removing shared memory\n" );
-	# Find ZoneMinder shared memory
-	my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", hex(ZM_SHM_KEY) ), 0, -2 )."'";
-	Debug( "Checking for shared memory with '$command'\n" );
-	open( CMD, "$command |" ) or Fatal( "Can't execute '$command': $!" );
-	while( <CMD> )
-	{
-		chomp;
-		my ( $key, $id ) = split( /\s+/ );
-		if ( $id =~ /^(\d+)/ )
-		{
-			$id = $1;
-			$command = "ipcrm shm $id";
-			Debug( "Removing shared memory with '$command'\n" );
-			qx( $command );
-		}
-	}
-	close( CMD );
 }
 
 sub runCommand

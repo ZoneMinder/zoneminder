@@ -163,6 +163,26 @@ if test "$ENABLE_CRASHTRACE" != "yes"; then
   AC_DEFINE(ZM_NO_CRASHTRACE,1,"Whether crash tracing is switched off and compiled out")
 fi
 
+ENABLE_MMAP=no
+AC_ARG_ENABLE(mmap,
+    [  --enable-mmap=<yes|no> enable or disabled mapped memory versus shared memory, default shared],
+    [ENABLE_MMAP=$enable_mmap],
+    AC_MSG_WARN([You can call configure with the --enable-mmap=<yes|no> or --disable-mmap option.
+    This tells configure whether to compile ZoneMinder with mmap support rather than IPC shared
+    memory. This is an experimental feature that uses memory mapped into files which all processes
+    can share. Memory mapping requires less configuration and is more flexible than shared memory
+    but may slow down your system unless the mapped files are configured to reside on a fast or 
+    RAM based filesystem.
+    e.g. --enable-mmap=yes or --disable-mmap])
+)
+if test "$ENABLE_MMAP" = "yes"; then
+  AC_DEFINE(ZM_MEM_MAPPED,1,"Whether to use mapped rather than shared memory")
+else
+  AC_DEFINE(ZM_MEM_MAPPED,0,"Whether to use mapped rather than shared memory")
+fi
+AC_SUBST(ENABLE_MMAP)
+
+
 # Compiler
 AC_LANG_CPLUSPLUS
 
@@ -201,6 +221,13 @@ AC_CHECK_HEADERS(ffmpeg/swscale.h,,,)
 AC_CHECK_HEADERS(libswscale/swscale.h,,,)
 AC_CHECK_HEADERS(pcre/pcre.h,,,)
 AC_CHECK_HEADERS(pcre.h,,,)
+if test "$ENABLE_MMAP" = "yes"; then
+AC_CHECK_HEADERS(sys/mman.h,,,)
+AC_CHECK_HEADERS(fcntl.h,,,)
+else
+AC_CHECK_HEADERS(sys/ipc.h,,,)
+AC_CHECK_HEADERS(sys/shm.h,,,)
+fi
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -246,6 +273,7 @@ AC_SUBST(LDFLAGS)
 
 AC_PROG_PERL_VERSION(5.6.0)
 
+# Compulsory perl modules
 AC_PROG_PERL_MODULES(Sys::Syslog,,AC_MSG_ERROR(zm requires SYS:Syslog))
 AC_PROG_PERL_MODULES(DBI,,AC_MSG_ERROR(zm requires DBI))
 AC_PROG_PERL_MODULES(DBD::mysql,,AC_MSG_ERROR(zm requires DBD::mysql))
@@ -254,7 +282,11 @@ AC_PROG_PERL_MODULES(Time::HiRes,,AC_MSG_ERROR(zm requires Time::HiRes))
 AC_PROG_PERL_MODULES(Date::Manip,,AC_MSG_ERROR(zm requires Date::Manip))
 AC_PROG_PERL_MODULES(LWP::UserAgent,,AC_MSG_ERROR(zm requires LWP::UserAgent))
 AC_PROG_PERL_MODULES(PHP::Serialization,,AC_MSG_ERROR(zm requires PHP::Serialization))
+if test "$ENABLE_MMAP" = "yes"; then
+AC_PROG_PERL_MODULES(Sys::Mmap,,AC_MSG_ERROR(zm requires Sys::Mmap for mapped memory))
+fi
 
+# Optional perl modules
 AC_PROG_PERL_MODULES(Module::Load,,AC_MSG_WARN(Module::Load is required for PTZ camera control))
 AC_PROG_PERL_MODULES(Device::SerialPort,,AC_MSG_WARN(Device::SerialPort is required for RS232/RS485 PTZ camera control))
 AC_PROG_PERL_MODULES(Net::FTP,,AC_MSG_WARN(Net::FTP is required for automatic event uploading))
@@ -285,6 +317,7 @@ AC_CONFIG_FILES([Makefile
                  scripts/zmlogrotate.conf
                  scripts/ZoneMinder/lib/ZoneMinder/Base.pm
                  scripts/ZoneMinder/lib/ZoneMinder/Config.pm
+                 scripts/ZoneMinder/lib/ZoneMinder/Memory.pm
                  scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm
                  src/Makefile
                  src/zm_config.h

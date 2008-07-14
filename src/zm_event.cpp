@@ -22,7 +22,6 @@
 #include <sys/un.h>
 #include <sys/uio.h>
 #include <sys/ipc.h>
-#include <sys/shm.h>
 #include <sys/msg.h>
 #include <getopt.h>
 #include <glob.h>

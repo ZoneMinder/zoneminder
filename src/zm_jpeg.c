@@ -70,7 +70,7 @@ void zm_jpeg_emit_message( j_common_ptr cinfo, int msg_level )
 		if ( zmerr->pub.trace_level >= msg_level )
 		{
 			(zmerr->pub.format_message)( cinfo, buffer ); 
-			Debug( msg_level, ( "%s", buffer ) );
+			Debug( msg_level, "%s", buffer );
 		}
 	}
 }

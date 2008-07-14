@@ -122,9 +122,13 @@ protected:
 		bool			connected;
 		time_t			last_connect_time;
 
-		int				shm_id;
-		int				shm_size;
-		unsigned char	*shm_ptr;
+#if ZM_MEM_MAPPED
+		int				map_fd;
+#else // ZM_MEM_MAPPED
+        int             shm_id;
+#endif // ZM_MEM_MAPPED
+		int				mem_size;
+		unsigned char	*mem_ptr;
 
 		SharedData		*shared_data;
 		TriggerData		*trigger_data;
@@ -210,9 +214,13 @@ protected:
 	time_t			last_fps_time;
 	time_t			auto_resume_time;
 
-	int				shm_id;
-	int				shm_size;
-	unsigned char	*shm_ptr;
+#if ZM_MEM_MAPPED
+	int				map_fd;
+#else // ZM_MEM_MAPPED
+    int             shm_id;
+#endif // ZM_MEM_MAPPED
+	int				mem_size;
+	unsigned char	*mem_ptr;
 
 	SharedData		*shared_data;
 	TriggerData		*trigger_data;

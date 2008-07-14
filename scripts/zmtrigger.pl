@@ -192,7 +192,7 @@ while( 1 )
 	my @out_messages;
 	foreach my $monitor ( values(%monitors) )
 	{
-		my ( $state, $last_event ) = zmShmRead( $monitor, [ "shared_data:state", "shared_data:last_event" ] );
+		my ( $state, $last_event ) = zmMemRead( $monitor, [ "shared_data:state", "shared_data:last_event" ] );
 
 		#print( "$monitor->{Id}: S:$state, LE:$last_event\n" );
 		#print( "$monitor->{Id}: mS:$monitor->{LastState}, mLE:$monitor->{LastEvent}\n" );
@@ -294,7 +294,7 @@ sub loadMonitors
 	my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
 	{
-		next if ( !zmShmVerify( $monitor ) ); # Check shared memory ok
+		next if ( !zmMemVerify( $monitor ) ); # Check shared memory ok
 
 		if ( defined($monitors{$monitor->{Id}}->{LastState}) )
 		{
@@ -335,7 +335,7 @@ sub handleMessage
 	}
 	Debug( "Found monitor for id '$id'\n" );
 
-	next if ( !zmShmVerify( $monitor ) );
+	next if ( !zmMemVerify( $monitor ) );
 
 	Debug( "Handling action '$action'\n" );
 	if ( $action =~ /^(enable|disable)(?:\+(\d+))?$/ )

@@ -121,7 +121,7 @@ if ( !$monitor->{CanMoveMap} )
 }
 
 Debug( "Found monitor for id '$monitor'\n" );
-exit( -1 ) if ( !zmShmVerify( $monitor ) );
+exit( -1 ) if ( !zmMemVerify( $monitor ) );
 
 sub Suspend
 {

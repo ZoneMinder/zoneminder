@@ -17,8 +17,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-#include <sys/ipc.h>
-#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <glob.h>
 
 #include "zm.h"
@@ -30,13 +30,25 @@
 #include "zm_remote_camera.h"
 #include "zm_file_camera.h"
 
+#if ZM_MEM_MAPPED
+#include <sys/mman.h>
+#include <fcntl.h>
+#else // ZM_MEM_MAPPED
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#endif // ZM_MEM_MAPPED
+
 Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id )
 {
 	strncpy( name, p_name, sizeof(name) );
 
-	shm_id = 0;
-	shm_size = 0;
-	shm_ptr = 0;
+#if ZM_MEM_MAPPED
+	map_fd = -1;
+#else // ZM_MEM_MAPPED
+    shm_id = 0;
+#endif // ZM_MEM_MAPPED
+	mem_size = 0;
+	mem_ptr = 0;
 
 	last_event = 0;
 	last_state = IDLE;
@@ -56,26 +68,66 @@ bool Monitor::MonitorLink::connect()
 	{
 		last_connect_time = time( 0 );
 
-		shm_size = sizeof(SharedData)
-				 + sizeof(TriggerData);
+		mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
-		Debug( 1, "link.shm.size=%d", shm_size );
-		shm_id = shmget( (config.shm_key&0xffff0000)|id, shm_size, 0700 );
+        Debug( 1, "link.mem.size=%d", mem_size );
+#if ZM_MEM_MAPPED
+        char mem_file[PATH_MAX];
+        snprintf( mem_file, sizeof(mem_file), "%s/.zm.mmap.%d", config.path_map, id );
+        map_fd = open( mem_file, O_RDWR, (mode_t)0600 );
+        if ( map_fd < 0 )
+        {
+            Debug( 3, ( "Can't open linked memory map file %s: %s", mem_file, strerror(errno)));
+            disconnect();
+            return( false );
+        }
+
+        struct stat map_stat;
+        if ( fstat( map_fd, &map_stat ) < 0 )
+        {
+            Error(( "Can't stat linked memory map file %s: %s", mem_file, strerror(errno)));
+            disconnect();
+            return( false );
+        }
+
+        if ( map_stat.st_size == 0 )
+        {
+            Error(( "Linked memory map file %s is empty: %s", mem_file, strerror(errno)));
+            disconnect();
+            return( false );
+        }
+        else if ( map_stat.st_size < mem_size )
+        {
+            Error(( "Got unexpected memory map file size %d, expected %d", map_stat.st_size, mem_size ));
+            disconnect();
+            return( false );
+        }
+
+        mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0 );
+        if ( mem_ptr == MAP_FAILED )
+        {
+            Error(( "Can't map file %s (%d bytes) to memory: %s", mem_file, mem_size, strerror(errno)));
+            disconnect();
+            return( false );
+        }
+#else // ZM_MEM_MAPPED
+		shm_id = shmget( (config.shm_key&0xffff0000)|id, mem_size, 0700 );
 		if ( shm_id < 0 )
 		{
 			Debug( 3, "Can't shmget link memory: %s", strerror(errno));
 			connected = false;
 			return( false );
 		}
-		shm_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
-		if ( shm_ptr < 0 )
+		mem_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
+		if ( mem_ptr < 0 )
 		{
 			Debug( 3, "Can't shmat link memory: %s", strerror(errno));
 			connected = false;
 			return( false );
 		}
+#endif // ZM_MEM_MAPPED
 
-		shared_data = (SharedData *)shm_ptr;
+		shared_data = (SharedData *)mem_ptr;
 		trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
 
 		if ( !shared_data->valid )
@@ -100,32 +152,44 @@ bool Monitor::MonitorLink::disconnect()
 	{
 		connected = false;
 
+#if ZM_MEM_MAPPED
+        if ( mem_ptr > 0 )
+        {
+            msync( mem_ptr, mem_size, MS_ASYNC );
+            munmap( mem_ptr, mem_size );
+        }
+        if ( map_fd >= 0 )
+            close( map_fd );
+
+        map_fd = -1;
+#else // ZM_MEM_MAPPED
 		struct shmid_ds shm_data;
 		if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )
 		{
-			Debug( 3, "Can't shmctl: %s", strerror(errno));
+			Debug( 3, "Can't shmctl: %s", strerror(errno) );
 			return( false );
 		}
 
-		shm_id = 0;
+        shm_id = 0;
 
-		if ( shm_data.shm_nattch <= 1 )
-		{
-			if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 )
-			{
-				Debug( 3, "Can't shmctl: %s", strerror(errno));
-				return( false );
-			}
-		}
+        if ( shm_data.shm_nattch <= 1 )
+        {
+            if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 )
+            {
+                Debug( 3, "Can't shmctl: %s", strerror(errno) );
+                return( false );
+            }
+        }
 
-		if ( shmdt( shm_ptr ) < 0 )
-		{
-			Debug( 3, "Can't shmdt: %s", strerror(errno));
-			return( false );
-		}
+        if ( shmdt( mem_ptr ) < 0 )
+        {
+            Debug( 3, "Can't shmdt: %s", strerror(errno) );
+            return( false );
+        }
 
-		shm_size = 0;
-		shm_ptr = 0;
+#endif // ZM_MEM_MAPPED
+		mem_size = 0;
+		mem_ptr = 0;
 	}
 	return( true );
 }
@@ -258,33 +322,64 @@ Monitor::Monitor(
 
 	Debug( 1, "monitor purpose=%d", purpose );
 
-	shm_size = sizeof(SharedData)
+	mem_size = sizeof(SharedData)
 			 + sizeof(TriggerData)
 			 + (image_buffer_count*sizeof(struct timeval))
 			 + (image_buffer_count*camera->ImageSize());
 
-	Debug( 1, "shm.size=%d", shm_size );
-	shm_id = shmget( (config.shm_key&0xffff0000)|id, shm_size, IPC_CREAT|0700 );
+	Debug( 1, "mem.size=%d", mem_size );
+#if ZM_MEM_MAPPED
+    char mem_file[PATH_MAX];
+    snprintf( mem_file, sizeof(mem_file), "%s/.zm.mmap.%d", config.path_map, id );
+    map_fd = open( mem_file, O_RDWR|O_CREAT, (mode_t)0600 );
+    if ( map_fd < 0 )
+		Fatal(( "Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno)));
+        struct stat map_stat;
+    if ( fstat( map_fd, &map_stat ) < 0 )
+		Fatal(( "Can't stat memory map file %s: %s", mem_file, strerror(errno)));
+    if ( map_stat.st_size == 0 )
+    {
+        // Allocate the size
+        if ( ftruncate( map_fd, mem_size ) < 0 )
+		    Fatal(( "Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno)));
+    }
+    else if ( map_stat.st_size != mem_size )
+    {
+        Error(( "Got unexpected memory map file size %d, expected %d", map_stat.st_size, mem_size ));
+    }
+
+    mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0 );
+    if ( mem_ptr == MAP_FAILED )
+        if ( errno == EAGAIN )
+        {
+		    Debug( 1, ( "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size, strerror(errno), errno ));
+            mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0 );
+        }
+    if ( mem_ptr == MAP_FAILED )
+		Fatal(( "Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno ));
+#else // ZM_MEM_MAPPED
+	shm_id = shmget( (config.shm_key&0xffff0000)|id, mem_size, IPC_CREAT|0700 );
 	if ( shm_id < 0 )
 	{
 		Error( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno));
 		exit( -1 );
 	}
-	shm_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
-	if ( shm_ptr < 0 )
+	mem_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
+	if ( mem_ptr < 0 )
 	{
 		Error( "Can't shmat: %s", strerror(errno));
 		exit( -1 );
 	}
+#endif // ZM_MEM_MAPPED
 
-	shared_data = (SharedData *)shm_ptr;
+	shared_data = (SharedData *)mem_ptr;
 	trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
 	struct timeval *shared_timestamps = (struct timeval *)((char *)trigger_data + sizeof(TriggerData));
 	unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
 	if ( purpose == CAPTURE )
 	{
-		memset( shm_ptr, 0, shm_size );
+		memset( mem_ptr, 0, mem_size );
 		shared_data->size = sizeof(SharedData);
 		shared_data->valid = true;
 		shared_data->active = enabled;
@@ -423,24 +518,32 @@ Monitor::~Monitor()
 	else if ( purpose == CAPTURE )
 	{
 		shared_data->valid = false;
-		memset( shm_ptr, 0, shm_size );
+		memset( mem_ptr, 0, mem_size );
 	}
 
-	struct shmid_ds shm_data;
-	if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )
-	{
-		Error( "Can't shmctl: %s", strerror(errno));
-		exit( -1 );
-	}
+#if ZM_MEM_MAPPED
+    if ( msync( mem_ptr, mem_size, MS_INVALIDATE ) < 0 )
+		Fatal( "Can't msync: %s", strerror(errno) );
+    if ( munmap( mem_ptr, mem_size ) < 0 )
+		Fatal( "Can't munmap: %s", strerror(errno) );
+    close( map_fd );
+#else // ZM_MEM_MAPPED
+    struct shmid_ds shm_data;
+    if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )
+    {
+        Error( "Can't shmctl: %s", strerror(errno) );
+        exit( -1 );
+    }
 
-	if ( shm_data.shm_nattch <= 1 )
-	{
-		if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 )
-		{
-			Error( "Can't shmctl: %s", strerror(errno));
-			exit( -1 );
-		}
-	}
+    if ( shm_data.shm_nattch <= 1 )
+    {
+        if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 )
+        {
+            Error( "Can't shmctl: %s", strerror(errno) );
+            exit( -1 );
+        }
+    }
+#endif // ZM_MEM_MAPPED
 }
 
 void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )

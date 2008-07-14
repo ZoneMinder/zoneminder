@@ -84,11 +84,11 @@ while( 1 )
 	{
 		if ( $monitor->{Function} ne 'None' )
 		{
-			if ( zmShmVerify( $monitor ) && zmShmRead( $monitor, "shared_data:valid" ) )
+			if ( zmMemVerify( $monitor ) && zmMemRead( $monitor, "shared_data:valid" ) )
 			{
 				# Check we have got an image recently
 				my $image_time = zmGetLastImageTime( $monitor );
-				next if ( !defined($image_time) ); # Can't read from shared memory
+				next if ( !defined($image_time) ); # Can't read from shared data
 				next if ( !$image_time ); # We can't get the last capture time so can't be sure it's died.
 
 				my $max_image_delay = ($monitor->{MaxFPS}&&($monitor->{MaxFPS}>0)&&($monitor->{MaxFPS}<1))?(3/$monitor->{MaxFPS}):ZM_WATCH_MAX_DELAY;
@@ -103,7 +103,7 @@ while( 1 )
 			}
 			else
 			{
-				Info( "Restarting capture daemon for ".$monitor->{Name}.", shared memory not valid\n" );
+				Info( "Restarting capture daemon for ".$monitor->{Name}.", shared data not valid\n" );
 			}
 
 			my $command;

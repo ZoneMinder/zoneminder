@@ -195,6 +195,10 @@ AC_FUNC_ALLOCA
 AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h limits.h memory.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h syslog.h unistd.h values.h])
 AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires mysql/mysql.h),)
+AC_CHECK_HEADERS(ffmpeg/avformat.h,,,)
+AC_CHECK_HEADERS(libavformat/avformat.h,,,)
+AC_CHECK_HEADERS(ffmpeg/swscale.h,,,)
+AC_CHECK_HEADERS(libswscale/swscale.h,,,)
 AC_CHECK_HEADERS(pcre/pcre.h,,,)
 AC_CHECK_HEADERS(pcre.h,,,)
 

@@ -55,8 +55,8 @@ foreach( dbFetchAll( $sql ) as $row )
 
 $monitor = $monitors[$monIdx];
 $nextMid = $monIdx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$monIdx+1]['Id'];
-$montageWidth = ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$monitor['ScaledWidth'];
-$montageHeight = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$monitor['ScaledHeight'];
+$montageWidth = $monitor['ScaledWidth'];
+$montageHeight = $monitor['ScaledHeight'];
 $widthScale = ($montageWidth*SCALE_BASE)/$monitor['Width'];
 $heightScale = ($montageHeight*SCALE_BASE)/$monitor['Height'];
 $scale = (int)(($widthScale<$heightScale)?$widthScale:$heightScale);

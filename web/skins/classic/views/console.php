@@ -152,8 +152,8 @@ foreach ( array_reverse($seqIdList) as $seqId )
     $lastId = $seqId;
 }
 
-$montageWidth = ZM_WEB_MONTAGE_WIDTH?ZM_WEB_MONTAGE_WIDTH:$maxWidth;
-$montageHeight = ZM_WEB_MONTAGE_HEIGHT?ZM_WEB_MONTAGE_HEIGHT:$maxHeight;
+$cycleWidth = $maxWidth;
+$cycleHeight = $maxHeight;
 
 $eventsView = ZM_WEB_EVENTS_VIEW;
 $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
@@ -202,7 +202,7 @@ if ( canView( 'Stream' ) && $cycleCount > 1 )
 {
     $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
 ?>
-      <div id="cycleMontage"><?= makePopupLink( '?view=cycle&group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $montageWidth, $montageHeight ), $SLANG['Cycle'], $running ) ?>&nbsp;/&nbsp;<?= makePopupLink( '?view=montage&group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', $SLANG['Montage'], $running ) ?></div>
+      <div id="cycleMontage"><?= makePopupLink( '?view=cycle&group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), $SLANG['Cycle'], $running ) ?>&nbsp;/&nbsp;<?= makePopupLink( '?view=montage&group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', $SLANG['Montage'], $running ) ?></div>
 <?php
 }
 else

@@ -186,9 +186,9 @@ function getTableColumns( $table, $asString=1 )
     foreach( dbFetchAll( $sql ) as $row )
     {
         if ( $asString )
-            $columns[$row[Field]] = $row[Type];
+            $columns[$row['Field']] = $row['Type'];
         else
-            $columns[] = $row[Type];
+            $columns[] = $row['Type'];
     }
     return( $columns );  
 }               

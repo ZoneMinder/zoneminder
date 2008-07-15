@@ -396,10 +396,13 @@ div.clear {
 }
 
 #header h2 {
-    left: 0;
+    float: left;
 }
 
 #headerControl {
+    width: 50%;
+    text-align: center;
+    margin: 0 auto;
 }
 
 #headerButtons {

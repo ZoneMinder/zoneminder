@@ -166,12 +166,12 @@ else
 
     foreach ( $configCat as $name=>$value )
     {
-        $optionPromptIndex = preg_replace( '/^ZM_/', '', $option );
-        $optionPromptText = !empty($OLANG[$optionPromptIndex])?$OLANG[$optionPromptIndex]:$config[$option]['Prompt'];
+        $optionPromptIndex = preg_replace( '/^ZM_/', '', $name );
+        $optionPromptText = !empty($OLANG[$optionPromptIndex])?$OLANG[$optionPromptIndex]:$config[$name]['Prompt'];
 ?>
             <tr>
               <td><?= $value['Name'] ?></td>
-              <td><?= htmlentities($option_prompt_text) ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&option='.$value['Name'], 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td><?= htmlentities($optionPromptText) ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&option='.$value['Name'], 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
 <?php   
         if ( $value['Type'] == "boolean" )
         {

@@ -337,7 +337,7 @@ public:
 	void DumpZoneImage( const char *zone_string=0 );
 
 	static int LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose );
-	static int LoadRemoteMonitors( const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose );
+	static int LoadRemoteMonitors( const char *protocol, const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose );
 	static int LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose );
 	static Monitor *Load( int id, bool load_zones, Purpose purpose );
     //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );

@@ -24,10 +24,15 @@
 
 unsigned int Buffer::Assign( const unsigned char *p_storage, unsigned int p_size )
 {
-	delete[] storage;
-	size = allocation = p_size;
-	head = storage = new unsigned char[size];
+    if ( allocation < p_size )
+    {
+	    delete[] storage;
+	    allocation = p_size;
+	    head = storage = new unsigned char[p_size];
+    }
+    size = p_size;
 	memcpy( storage, p_storage, size );
+    head = storage;
 	tail = head + size;
 	return( size );
 }

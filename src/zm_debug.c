@@ -335,11 +335,11 @@ void zmDbgSubtractTime( struct timeval * const tp1, struct timeval * const tp2 )
 	}
 }
 
-void zmDbgOutput( const char * const file, const int line, const int level, const char *fstring, ... )
+void zmDbgOutput( int hex, const char * const file, const int line, const int level, const char *fstring, ... )
 {
     char            class_string[4];
 	char			time_string[64];
-    char            dbg_string[1024];
+    char            dbg_string[8192];
 	va_list			arg_ptr;
 	int				log_code;
 	struct timeval	tp;
@@ -397,7 +397,21 @@ void zmDbgOutput( const char * const file, const int line, const int level, cons
     char *dbg_log_start = dbg_ptr;
 
 	va_start( arg_ptr, fstring );
-	dbg_ptr += vsnprintf( dbg_ptr, sizeof(dbg_string)-(dbg_ptr-dbg_string), fstring, arg_ptr );
+    if ( hex )
+    {
+        unsigned char *data = va_arg( arg_ptr, unsigned char * );
+        int len = va_arg( arg_ptr, int );
+        int i;
+        dbg_ptr += snprintf( dbg_ptr, sizeof(dbg_string)-(dbg_ptr-dbg_string), "%d:", len );
+        for ( i = 0; i < len; i++ )
+        {
+            dbg_ptr += snprintf( dbg_ptr, sizeof(dbg_string)-(dbg_ptr-dbg_string), " %02x", data[i] );
+        }
+    }
+    else
+    {
+	    dbg_ptr += vsnprintf( dbg_ptr, sizeof(dbg_string)-(dbg_ptr-dbg_string), fstring, arg_ptr );
+    }
 	va_end(arg_ptr);
     char *dbg_log_end = dbg_ptr;
     strncpy( dbg_ptr, "]\n", sizeof(dbg_string)-(dbg_ptr-dbg_string) );   

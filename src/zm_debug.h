@@ -39,12 +39,12 @@
 
 #define zmDbgPrintf(level,params...)	{\
 					if (level <= zm_dbg_level)\
-						zmDbgOutput( __FILE__, __LINE__, level, ##params );\
+						zmDbgOutput( 0, __FILE__, __LINE__, level, ##params );\
 				}
 
 #define zmDbgHexdump(level,data,len)	{\
 					if (level <= zm_dbg_level)\
-						zmDbgOutput( __FILE__, __LINE__, level, ##params );\
+						zmDbgOutput( 1, __FILE__, __LINE__, level, "%p (%d)", data, len );\
 				}
 
 /* Turn off debug here */
@@ -74,24 +74,6 @@
 #define Exit(level)			
 #endif
 
-#define HexDump(level,t,n)	{if(level<=zm_dbg_level)	\
-							{	\
-								int _i;	\
-								int _len;	\
-								char *_s;	\
-								_s = (t);	\
-								_len = (n);	\
-								for(_i = 0; _i < _len; _i++,_s++)	\
-								{	\
-									if(!(_i % 16))	\
-									{	\
-										fprintf(zm_dbg_log_fd,"\n");	\
-									}	\
-									fprintf(zm_dbg_log_fd,"0x%02x ",	\
-												((int)*_s)&0xff);	\
-								}	\
-								fprintf(zm_dbg_log_fd,"\n");	\
-							}}
 #ifdef __cplusplus
 extern "C" {
 #endif 
@@ -109,8 +91,7 @@ void zmDbgSubtractTime( struct timeval * const tp1, struct timeval * const tp2 )
 int zmDbgInit( const char *name, const char *id, int level );
 int zmDbgReinit( const char *target );
 int zmDbgTerm(void);
-void zmDbgOutput( const char * const file, const int line, const int level, const char *fstring, ... ) __attribute__ ((format(printf, 4, 5)));
-
+void zmDbgOutput( int hex, const char * const file, const int line, const int level, const char *fstring, ... ) __attribute__ ((format(printf, 5, 6)));
 #else
 int zmDbgInit();
 int zmDbgReinit();

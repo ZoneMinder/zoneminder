@@ -59,7 +59,7 @@ protected:
 	static short			*b_u_table;
 
 public:
-	LocalCamera( const char *p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
+	LocalCamera( int p_id, const char *p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
 	~LocalCamera();
 
 	void Initialise();

@@ -17,44 +17,12 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */  
 
-#include "zm.h"
-
 #if HAVE_LIBAVCODEC
 
 #ifndef ZM_MPEG_H
 #define ZM_MPEG_H
 
-extern "C" {
-#define __STDC_CONSTANT_MACROS
-#if HAVE_LIBAVFORMAT_AVFORMAT_H
-#include <libavformat/avformat.h>
-#elif HAVE_FFMPEG_AVFORMAT_H
-#include <ffmpeg/avformat.h>
-#else
-#error "Unable to locate avformat.h"
-#endif
-#if HAVE_LIBSWSCALE
-#if HAVE_LIBSWSCALE_SWSCALE_H
-#include <libswscale/swscale.h>
-#elif HAVE_FFMPEG_SWSCALE_H
-#include <ffmpeg/swscale.h>
-#else
-#error "Unable to locate swscale.h"
-#endif
-#endif // HAVE_LIBSWSCALE
-}
-
-#if FFMPEG_VERSION_INT == 0x000408
-#define ZM_FFMPEG_048	1
-#elif FFMPEG_VERSION_INT == 0x000409
-#if LIBAVCODEC_VERSION_INT < ((50<<16)+(0<<8)+0)
-#define ZM_FFMPEG_049	1
-#else // LIBAVCODEC_VERSION_INT
-#define ZM_FFMPEG_SVN	1
-#endif // LIBAVCODEC_VERSION_INT
-#else // FFMPEG_VERSION_INT
-#define ZM_FFMPEG_SVN	1
-#endif // FFMPEG_VERSION_INT
+#include "zm_ffmpeg.h"
 
 class VideoStream
 {

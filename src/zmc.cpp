@@ -23,25 +23,27 @@
 
 #include "zm.h"
 #include "zm_db.h"
+#include "zm_time.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
 
 void Usage()
 {
-	fprintf( stderr, "zmc -d <device_path> or -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n" );
+	fprintf( stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n" );
 
 	fprintf( stderr, "Options:\n" );
-	fprintf( stderr, "  -d, --device <device_path>    : For local cameras, device to access. E.g /dev/video0 etc\n" );
-	fprintf( stderr, "  -H <host> -P <port> -p <path> : For remote cameras\n" );
-	fprintf( stderr, "  -f, --file <file_path>        : For local images, jpg file to access.\n" );
-	fprintf( stderr, "  -m, --monitor <monitor_id>    : For sources associated with a single monitor\n" );
-	fprintf( stderr, "  -h, --help                    : This screen\n" );
+	fprintf( stderr, "  -d, --device <device_path>               : For local cameras, device to access. E.g /dev/video0 etc\n" );
+	fprintf( stderr, "  -r <proto> -H <host> -P <port> -p <path> : For remote cameras\n" );
+	fprintf( stderr, "  -f, --file <file_path>                   : For local images, jpg file to access.\n" );
+	fprintf( stderr, "  -m, --monitor <monitor_id>               : For sources associated with a single monitor\n" );
+	fprintf( stderr, "  -h, --help                               : This screen\n" );
 	exit( 0 );
 }
 
 int main( int argc, char *argv[] )
 {
 	const char *device = "";
+	const char *protocol = "";
 	const char *host = "";
 	const char *port = "";
 	const char *path = "";
@@ -50,6 +52,7 @@ int main( int argc, char *argv[] )
 
 	static struct option long_options[] = {
 		{"device", 1, 0, 'd'},
+		{"protocol", 1, 0, 'r'},
 		{"host", 1, 0, 'H'},
 		{"port", 1, 0, 'P'},
 	 	{"path", 1, 0, 'p'},
@@ -157,7 +160,7 @@ int main( int argc, char *argv[] )
 	{
 		if ( !port )
 			port = "80";
-		n_monitors = Monitor::LoadRemoteMonitors( host, port, path, monitors, Monitor::CAPTURE );
+		n_monitors = Monitor::LoadRemoteMonitors( protocol, host, port, path, monitors, Monitor::CAPTURE );
 	}
 	else if ( file[0] )
 	{
@@ -245,12 +248,14 @@ int main( int argc, char *argv[] )
 				if ( monitors[i]->PreCapture() < 0 )
 				{
                     Error( "Failed to pre-capture monitor %d", i );
-					exit( -1 );
+                    zm_terminate = true;
+                    break;
 				}
 				if ( monitors[i]->PostCapture() < 0 )
 				{
                     Error( "Failed to post-capture monitor %d", i );
-					exit( -1 );
+                    zm_terminate = true;
+                    break;
 				}
 
 				if ( next_delays[i] > 0 )

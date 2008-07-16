@@ -23,11 +23,14 @@
 
 #include "zm.h"
 #include "zm_db.h"
+#include "zm_time.h"
 #include "zm_mpeg.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
+#include "zm_remote_camera_http.h"
+#include "zm_remote_camera_rtsp.h"
 #include "zm_file_camera.h"
 
 #if ZM_MEM_MAPPED
@@ -489,7 +492,7 @@ Monitor::Monitor(
 		linked_monitors = 0;
 		ReloadLinkedMonitors( p_linked_monitors );
 	}
-	srand( time( 0 ) );
+	srand( getpid() * time( 0 ) );
 }
 
 Monitor::~Monitor()
@@ -640,7 +643,7 @@ double Monitor::GetFPS() const
 	{
 		return( 0.0 );
 	}
-	time_t time1 = snap1->timestamp->tv_sec;
+	struct timeval time1 = *snap1->timestamp;
 
 	int image_count = image_buffer_count;
 	int index2 = (index1+1)%image_buffer_count;
@@ -649,7 +652,7 @@ double Monitor::GetFPS() const
 		return( 0.0 );
 	}
 	Snapshot *snap2 = &image_buffer[index2];
-	while ( !snap2->timestamp || !snap2->timestamp->tv_sec || time1 == snap2->timestamp->tv_sec )
+	while ( !snap2->timestamp || !snap2->timestamp->tv_sec )
 	{
 		if ( index1 == index2 )
 		{
@@ -659,9 +662,11 @@ double Monitor::GetFPS() const
 		snap2 = &image_buffer[index2];
 		image_count--;
 	}
-	time_t time2 = snap2->timestamp->tv_sec;
+	struct timeval time2 = *snap2->timestamp;
 
-	double curr_fps = double(image_count)/(time1-time2);
+    double time_diff = tvDiffSec( time2, time1 );
+
+	double curr_fps = image_count/time_diff;
 
 	return( curr_fps );
 }
@@ -1735,6 +1740,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
 		Camera *camera = new LocalCamera(
+            id,
 			device, // Device
 			channel, // Channel
 			format, // Format
@@ -1791,16 +1797,16 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 	return( n_monitors );
 }
 
-int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *path, Monitor **&monitors, Purpose purpose )
+int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose )
 {
 	static char sql[BUFSIZ];
-	if ( !host )
+	if ( !protocol )
 	{
-		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
+		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, SubPath, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
 	}
 	else
 	{
-		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote' and Host = '%s' and Port = '%s' and Path = '%s'", host, port, path );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, SubPath, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote' and Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1823,14 +1829,17 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 		int col = 0;
 
 		int id = atoi(dbrow[col]); col++;
-		const char *name = dbrow[col]; col++;
+		std::string name = dbrow[col]; col++;
 		int function = atoi(dbrow[col]); col++;
 		int enabled = atoi(dbrow[col]); col++;
 		const char *linked_monitors = dbrow[col]; col++;
 
-		const char *host = dbrow[col]; col++;
-		const char *port = dbrow[col]; col++;
-		const char *path = dbrow[col]; col++;
+		std::string protocol = dbrow[col]; col++;
+		std::string method = dbrow[col]; col++;
+		std::string host = dbrow[col]; col++;
+		std::string port = dbrow[col]; col++;
+		std::string path = dbrow[col]; col++;
+		std::string subpath = dbrow[col]; col++;
 
 		int width = atoi(dbrow[col]); col++;
 		int height = atoi(dbrow[col]); col++;
@@ -1841,8 +1850,8 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 		int hue = atoi(dbrow[col]); col++;
 		int colour = atoi(dbrow[col]); col++;
 
-		const char *event_prefix = dbrow[col]; col++;
-		const char *label_format = dbrow[col]; col++;
+		std::string event_prefix = dbrow[col]; col++;
+		std::string label_format = dbrow[col]; col++;
 
 		int label_x = atoi(dbrow[col]); col++;
 		int label_y = atoi(dbrow[col]); col++;
@@ -1864,30 +1873,59 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
 		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
-		Camera *camera = new RemoteCamera(
-			host, // Host
-			port, // Port
-			path, // Path
-			cam_width,
-			cam_height,
-			palette,
-			brightness,
-			contrast,
-			hue,
-			colour,
-			purpose==CAPTURE
-		);
+		Camera *camera = 0;
+        if ( protocol == "http" )
+        {
+            camera = new RemoteCameraHttp(
+                id,
+                method,
+                host, // Host
+                port, // Port
+                path, // Path
+                cam_width,
+                cam_height,
+                palette,
+                brightness,
+                contrast,
+                hue,
+                colour,
+                purpose==CAPTURE
+            );
+        }
+        else if ( protocol == "rtsp" )
+        {
+            camera = new RemoteCameraRtsp(
+                id,
+                method,
+                host, // Host
+                port, // Port
+                path, // Path
+                subpath,
+                cam_width,
+                cam_height,
+                palette,
+                brightness,
+                contrast,
+                hue,
+                colour,
+                purpose==CAPTURE
+            );
+        }
+        else
+        {
+            Fatal( "Unexpected remote camera protocol '%s'", protocol.c_str() );
+        }
 
 		monitors[i] = new Monitor(
 			id,
-			name,
+			name.c_str(),
 			function,
 			enabled,
 			linked_monitors,
 			camera,
 			orientation,
-			event_prefix,
-			label_format,
+			event_prefix.c_str(),
+			label_format.c_str(),
 			Coord( label_x, label_y ),
 			image_buffer_count,
 			warmup_count,
@@ -1908,7 +1946,7 @@ int Monitor::LoadRemoteMonitors( const char *host, const char*port, const char *
 		Zone **zones = 0;
 		int n_zones = Zone::Load( monitors[i], zones );
 		monitors[i]->AddZones( n_zones, zones );
-		Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
+		Debug( 1, "Loaded monitor %d(%s), %d zones", id, name.c_str(), n_zones );
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -1993,6 +2031,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
 		Camera *camera = new FileCamera(
+            id,
 			path, // File
 			cam_width,
 			cam_height,
@@ -2050,7 +2089,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
 	static char sql[BUFSIZ];
-	snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
+	snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, SubPath, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -2071,19 +2110,22 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 		int col = 0;
 
 		int id = atoi(dbrow[col]); col++;
-		const char *name = dbrow[col]; col++;
-		const char *type = dbrow[col]; col++;
+		std::string name = dbrow[col]; col++;
+		std::string type = dbrow[col]; col++;
 		int function = atoi(dbrow[col]); col++;
 		int enabled = atoi(dbrow[col]); col++;
-		const char *linked_monitors = dbrow[col]; col++;
+		std::string linked_monitors = dbrow[col]; col++;
 
-		const char *device = dbrow[col]; col++;
+		std::string device = dbrow[col]; col++;
 		int channel = atoi(dbrow[col]); col++;
 		int format = atoi(dbrow[col]); col++;
 
-		const char *host = dbrow[col]; col++;
-		const char *port = dbrow[col]; col++;
-		const char *path = dbrow[col]; col++;
+		std::string protocol = dbrow[col]; col++;
+		std::string method = dbrow[col]; col++;
+		std::string host = dbrow[col]; col++;
+		std::string port = dbrow[col]; col++;
+		std::string path = dbrow[col]; col++;
+		std::string subpath = dbrow[col]; col++;
 
 		int width = atoi(dbrow[col]); col++;
 		int height = atoi(dbrow[col]); col++;
@@ -2094,8 +2136,8 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 		int hue = atoi(dbrow[col]); col++;
 		int colour = atoi(dbrow[col]); col++;
 
-		const char *event_prefix = dbrow[col]; col++;
-		const char *label_format = dbrow[col]; col++;
+		std::string event_prefix = dbrow[col]; col++;
+		std::string label_format = dbrow[col]; col++;
 
 		int label_x = atoi(dbrow[col]); col++;
 		int label_y = atoi(dbrow[col]); col++;
@@ -2123,12 +2165,13 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
 		Camera *camera = 0;
-		if ( !strcmp( type, "Local" ) )
+		if ( type == "Local" )
 		{
 			camera = new LocalCamera(
-				device, // Device
-				channel, // Channel
-				format, // Format
+                id,
+				device.c_str(),
+				channel,
+				format,
 				cam_width,
 				cam_height,
 				palette,
@@ -2139,26 +2182,55 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 				purpose==CAPTURE
 			);
 		}
-		else if ( !strcmp( type, "Remote" ) )
+		else if ( type == "Remote" )
 		{
-			camera = new RemoteCamera(
-				host, // Host
-				port, // Port
-				path, // Path
-				cam_width,
-				cam_height,
-				palette,
-				brightness,
-				contrast,
-				hue,
-				colour,
-				purpose==CAPTURE
-			);
+            if ( protocol == "http" )
+            {
+                camera = new RemoteCameraHttp(
+                    id,
+                    method.c_str(),
+                    host.c_str(),
+                    port.c_str(),
+                    path.c_str(),
+                    cam_width,
+                    cam_height,
+                    palette,
+                    brightness,
+                    contrast,
+                    hue,
+                    colour,
+                    purpose==CAPTURE
+                );
+            }
+            else if ( protocol == "rtsp" )
+            {
+                camera = new RemoteCameraRtsp(
+                    id,
+                    method.c_str(),
+                    host.c_str(),
+                    port.c_str(),
+                    path.c_str(),
+                    subpath.c_str(),
+                    cam_width,
+                    cam_height,
+                    palette,
+                    brightness,
+                    contrast,
+                    hue,
+                    colour,
+                    purpose==CAPTURE
+                );
+            }
+            else
+		    {
+			    Fatal( "Unexpected remote camera protocol '%s' for monitor %d", protocol.c_str(), id );
+		    }
 		}
-		else if ( !strcmp( type, "File" ) )
+		else if ( type == "File" )
 		{
 			camera = new FileCamera(
-				path, // Path
+                id,
+				path.c_str(),
 				cam_width,
 				cam_height,
 				palette,
@@ -2171,19 +2243,18 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 		}
 		else
 		{
-			Error( "Bogus monitor type '%s' for monitor %d", type, id );
-			exit( -1 );
+			Fatal( "Bogus monitor type '%s' for monitor %d", type.c_str(), id );
 		}
 		monitor = new Monitor(
 			id,
-			name,
+			name.c_str(),
 			function,
 			enabled,
-			linked_monitors,
+			linked_monitors.c_str(),
 			camera,
 			orientation,
-			event_prefix,
-			label_format,
+			event_prefix.c_str(),
+			label_format.c_str(),
 			Coord( label_x, label_y ),
 			image_buffer_count,
 			warmup_count,
@@ -2209,7 +2280,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 			n_zones = Zone::Load( monitor, zones );
 			monitor->AddZones( n_zones, zones );
 		}
-		Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
+		Debug( 1, "Loaded monitor %d(%s), %d zones", id, name.c_str(), n_zones );
 	}
 	if ( mysql_errno( &dbconn ) )
 	{
@@ -2554,9 +2625,10 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	}
 	else if ( camera->IsRemote() )
 	{
-		sprintf( output+strlen(output), "Host : %s\n", ((RemoteCamera *)camera)->Host() );
-		sprintf( output+strlen(output), "Port : %s\n", ((RemoteCamera *)camera)->Port() );
-		sprintf( output+strlen(output), "Path : %s\n", ((RemoteCamera *)camera)->Path() );
+		sprintf( output+strlen(output), "Protocol : %s\n", ((RemoteCamera *)camera)->Protocol().c_str() );
+		sprintf( output+strlen(output), "Host : %s\n", ((RemoteCamera *)camera)->Host().c_str() );
+		sprintf( output+strlen(output), "Port : %s\n", ((RemoteCamera *)camera)->Port().c_str() );
+		sprintf( output+strlen(output), "Path : %s\n", ((RemoteCamera *)camera)->Path().c_str() );
 	}
 	else if ( camera->IsFile() )
 	{
@@ -3242,7 +3314,7 @@ void MonitorStream::runStream()
             }
 			frame_count++;
 		}
-		usleep( (1000000 * ZM_RATE_BASE)/(base_fps*abs(replay_rate*2)) );
+		usleep( (1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)) );
         if ( ttl )
         {
             if ( (now.tv_sec - stream_start_time) > ttl )
@@ -3256,7 +3328,7 @@ void MonitorStream::runStream()
         char swap_path[PATH_MAX] = "";
 
         snprintf( swap_path, sizeof(swap_path), "%s/zmswap-m%d/zmswap-q%06d", config.path_swap, monitor->Id(), connkey );
-        Debug( 1, "Cleanign swap files from %s", swap_path );
+        Debug( 1, "Cleaning swap files from %s", swap_path );
         struct stat stat_buf;
         if ( stat( swap_path, &stat_buf ) < 0 )
         {

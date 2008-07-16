@@ -35,6 +35,7 @@ class Camera
 protected:
 	typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC } SourceType;
 
+    int             id;
 	SourceType		type;
 	unsigned int	width;
 	unsigned int	height;
@@ -48,9 +49,10 @@ protected:
 	bool			capture;
 
 public:
-	Camera( SourceType p_type, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
+	Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
 	virtual ~Camera();
 
+    int getId() const { return( id ); }
 	SourceType Type() const { return( type ); }
 	bool IsLocal() const { return( type == LOCAL_SRC ); }
 	bool IsRemote() const { return( type == REMOTE_SRC ); }

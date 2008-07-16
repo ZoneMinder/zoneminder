@@ -1,6 +1,6 @@
 //
-// ZoneMinder Core Interfaces, $Date$, $Revision$
-// Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
+// ZoneMinder General Utility Functions, $Date: 2007-08-29 18:34:33 +0100 (Wed, 29 Aug 2007) $, $Revision: 2168 $
+// Copyright (C) 2003-2008  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -17,31 +17,20 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-#ifndef ZM_H
-#define ZM_H
+#ifndef ZM_UTILS_H
+#define ZM_UTILS_H
 
-extern "C"
-{
-#include "zm_debug.h"
-}
+#include <string>
+#include <vector>
 
-#include "zm_config.h"
+typedef std::vector<std::string> StringVector;
 
-extern "C"
-{
-#if !HAVE_DECL_ROUND
-double round(double);
-#endif
-}
+const std::string stringtf( const char *format, ... );
+const std::string stringtf( const std::string &format, ... );
 
-typedef unsigned char       U8;
-typedef unsigned short      U16;
-typedef unsigned long       U32;
-typedef unsigned long long  U64;
+bool startsWith( const std::string &haystack, const std::string &needle );
+StringVector split( const std::string &string, const std::string chars );
 
-typedef signed char         S8;
-typedef signed short        S16;
-typedef signed long         S32;
-typedef signed long long    S64;
+const std::string base64Encode( const std::string &inString );
 
-#endif // ZM_H
+#endif // ZM_UTILS_H

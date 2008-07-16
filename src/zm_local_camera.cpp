@@ -45,7 +45,7 @@ short *LocalCamera::g_v_table;
 short *LocalCamera::g_u_table;
 short *LocalCamera::b_u_table;
 
-LocalCamera::LocalCamera( const char *p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : Camera( LOCAL_SRC, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture ), channel( p_channel ), format( p_format )
+LocalCamera::LocalCamera( int p_id, const char *p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) : Camera( p_id, LOCAL_SRC, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture ), channel( p_channel ), format( p_format )
 {
 	strncpy( device, p_device, sizeof(device) );
 	if ( !camera_count++ && capture )

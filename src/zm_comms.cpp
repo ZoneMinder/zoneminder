@@ -17,42 +17,24 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+#include "zm_comms.h"
+
+#include "zm_debug.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
-#include <memory.h>
+//#include <memory.h>
 #include <alloca.h>
-#include <unistd.h>
+#include <string.h>
+//#include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+//#include <sys/socket.h>
+//#include <netinet/in.h>
 #include <netinet/tcp.h>
 
-#include "zm.h"
-#include "zm_db.h"
-#include "zm_comms.h"
-
-bool CommsBase::Terminate()
-{
-	if ( IsOpen() )
-	{
-		Close();
-	}
-	return( true );
-}
-
-bool CommsBase::Reopen()
-{
-	if ( !Close() )
-		return( false );
-	if ( !Open() )
-		return( false );
-
-	return( true );
-}
-
-int CommsBase::ReadV( int iovcnt, /* const void *, int, */ ... )
+int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )
 {
 	va_list arg_ptr;
 	//struct iovec iov[iovcnt];
@@ -66,10 +48,13 @@ int CommsBase::ReadV( int iovcnt, /* const void *, int, */ ... )
 	}
 	va_end( arg_ptr );
 
-	return( ::readv( rd, iov, iovcnt ) );
+    int nBytes = ::readv( mRd, iov, iovcnt );
+    if ( nBytes < 0 )
+        Debug( 1, "Readv of %d buffers max on rd %d failed: %s", iovcnt, mRd, strerror(errno) );
+    return( nBytes );
 }
 
-int CommsBase::WriteV( int iovcnt, /* const void *, int, */ ... )
+int CommsBase::writeV( int iovcnt, /* const void *, int, */ ... )
 {
 	va_list arg_ptr;
 	//struct iovec iov[iovcnt];
@@ -83,12 +68,15 @@ int CommsBase::WriteV( int iovcnt, /* const void *, int, */ ... )
 	}
 	va_end( arg_ptr );
 
-	return( ::writev( wd, iov, iovcnt ) );
+    ssize_t nBytes = ::writev( mWd, iov, iovcnt );
+    if ( nBytes < 0 )
+        Debug( 1, "Writev of %d buffers on wd %d failed: %s", iovcnt, mWd, strerror(errno) );
+    return( nBytes );
 }
 
-bool Pipe::Open()
+bool Pipe::open()
 {
-	if ( pipe( fd ) < 0 )
+	if ( ::pipe( mFd ) < 0 )
 	{
 		Error( "pipe(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -97,21 +85,21 @@ bool Pipe::Open()
 	return( true );
 }
 
-bool Pipe::Close()
+bool Pipe::close()
 {
-	if ( fd[0] > -1 ) close( fd[0] );
-	fd[0] = -1;
-	if ( fd[1] > -1 ) close( fd[1] );
-	fd[1] = -1;
+	if ( mFd[0] > -1 ) ::close( mFd[0] );
+	mFd[0] = -1;
+	if ( mFd[1] > -1 ) ::close( mFd[1] );
+	mFd[1] = -1;
 	return( true );
 }
 
-bool Pipe::SetBlocking( bool blocking )
+bool Pipe::setBlocking( bool blocking )
 {
 	int flags;
 
 	/* Now set it for non-blocking I/O */
-	if ( (flags = fcntl( fd[1], F_GETFL )) < 0 )
+	if ( (flags = fcntl( mFd[1], F_GETFL )) < 0 )
 	{
 		Error( "fcntl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -124,7 +112,7 @@ bool Pipe::SetBlocking( bool blocking )
 	{
 		flags |= O_NONBLOCK;
 	}
-	if ( fcntl( fd[1], F_SETFL, flags ) < 0 )
+	if ( fcntl( mFd[1], F_SETFL, flags ) < 0 )
 	{
 		Error( "fcntl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -133,9 +121,136 @@ bool Pipe::SetBlocking( bool blocking )
 	return( true );
 }
 
-bool SocketBase::Socket()
+SockAddr::SockAddr( const struct sockaddr *addr ) : mAddr( addr )
 {
-	if ( (sd = ::socket( AF_INET, SOCK_STREAM, 0 ) ) < 0 )
+}
+
+SockAddr *SockAddr::newSockAddr( const struct sockaddr &addr, socklen_t len )
+{
+    if ( addr.sa_family == AF_INET && len == SockAddrInet::addrSize() )
+    {
+        return( new SockAddrInet( (const struct sockaddr_in *)&addr ) );
+    }
+    else if ( addr.sa_family == AF_UNIX && len == SockAddrUnix::addrSize() )
+    {
+        return( new SockAddrUnix( (const struct sockaddr_un *)&addr ) );
+    }
+    Error( "Unable to create new SockAddr from addr family %d with size %d", addr.sa_family, len );
+    return( 0 );
+}
+
+SockAddr *SockAddr::newSockAddr( const SockAddr *addr )
+{
+    if ( !addr )
+        return( 0 );
+
+    if ( addr->getDomain() == AF_INET )
+    {
+        return( new SockAddrInet( *(SockAddrInet *)addr ) );
+    }
+    else if ( addr->getDomain() == AF_UNIX )
+    {
+        return( new SockAddrUnix( *(SockAddrUnix *)addr ) );
+    }
+    Error( "Unable to create new SockAddr from addr family %d", addr->getDomain() );
+    return( 0 );
+}
+
+SockAddrInet::SockAddrInet() : SockAddr( (struct sockaddr *)&mAddrIn )
+{
+}
+
+bool SockAddrInet::resolve( const char *host, const char *serv, const char *proto )
+{
+    memset( &mAddrIn, 0, sizeof(mAddrIn) );
+
+    struct hostent *hostent=0;
+    if ( !(hostent = ::gethostbyname( host ) ) )
+    {
+        Error( "gethostbyname( %s ), h_errno = %d", host, h_errno );
+        return( false );
+    }
+
+    struct servent *servent=0;
+    if ( !(servent = ::getservbyname( serv, proto ) ) )
+    {
+        Error( "getservbyname( %s ), errno = %d, error = %s", serv, errno, strerror(errno) );
+        return( false );
+    }
+
+    mAddrIn.sin_port = servent->s_port;
+    mAddrIn.sin_family = AF_INET;
+    mAddrIn.sin_addr.s_addr = ((struct in_addr *)(hostent->h_addr))->s_addr;
+
+    return( true );
+}
+
+bool SockAddrInet::resolve( const char *host, int port, const char *proto )
+{
+    memset( &mAddrIn, 0, sizeof(mAddrIn) );
+
+    struct hostent *hostent=0;
+    if ( !(hostent = ::gethostbyname( host ) ) )
+    {
+        Error( "gethostbyname( %s ), h_errno = %d", host, h_errno );
+        return( false );
+    }
+
+    mAddrIn.sin_port = htons(port);
+    mAddrIn.sin_family = AF_INET;
+    mAddrIn.sin_addr.s_addr = ((struct in_addr *)(hostent->h_addr))->s_addr;
+    return( true );
+}
+
+bool SockAddrInet::resolve( const char *serv, const char *proto )
+{
+    memset( &mAddrIn, 0, sizeof(mAddrIn) );
+
+    struct servent *servent=0;
+    if ( !(servent = ::getservbyname( serv, proto ) ) )
+    {
+        Error( "getservbyname( %s ), errno = %d, error = %s", serv, errno, strerror(errno) );
+        return( false );
+    }
+
+    mAddrIn.sin_port = servent->s_port;
+    mAddrIn.sin_family = AF_INET;
+	mAddrIn.sin_addr.s_addr = INADDR_ANY;
+
+    return( true );
+}
+
+bool SockAddrInet::resolve( int port, const char *proto )
+{
+    memset( &mAddrIn, 0, sizeof(mAddrIn) );
+
+    mAddrIn.sin_port = htons(port);
+    mAddrIn.sin_family = AF_INET;
+	mAddrIn.sin_addr.s_addr = INADDR_ANY;
+
+    return( true );
+}
+
+SockAddrUnix::SockAddrUnix() : SockAddr( (struct sockaddr *)&mAddrUn )
+{
+}
+
+bool SockAddrUnix::resolve( const char *path, const char *proto )
+{
+    memset( &mAddrUn, 0, sizeof(mAddrUn) );
+
+    strncpy( mAddrUn.sun_path, path, sizeof(mAddrUn.sun_path) );
+    mAddrUn.sun_family = AF_UNIX;
+
+    return( true );
+}
+
+bool Socket::socket()
+{
+    if ( mSd >= 0 )
+        return( true );
+
+	if ( (mSd = ::socket( getDomain(), getType(), 0 ) ) < 0 )
 	{
 		Error( "socket(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -143,24 +258,109 @@ bool SocketBase::Socket()
 
 	int val = 1;
 
-	(void)::setsockopt( sd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val) );
-	(void)::setsockopt( sd, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val) );
+	(void)::setsockopt( mSd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val) );
+	(void)::setsockopt( mSd, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val) );
+
+    mState = DISCONNECTED;
 
 	return( true );
 }
 
-bool SocketBase::Close()
+bool Socket::connect()
 {
-	if ( sd > -1 ) close( sd );
-	sd = -1;
+	if ( !socket() ) 
+		return( false );
+
+	if ( ::connect( mSd, mRemoteAddr->getAddr(), getAddrSize() ) == -1 )
+	{
+		Error( "connect(), errno = %d, error = %s", errno, strerror(errno) );
+		close();
+		return( false );
+	}
+
+    mState = CONNECTED;
+
 	return( true );
 }
 
-int SocketBase::BytesToRead() const
+bool Socket::bind()
+{
+	if ( !socket() )
+		return( false );
+
+	if ( ::bind( mSd, mLocalAddr->getAddr(), getAddrSize() ) == -1 )
+	{
+		Error( "bind(), errno = %d, error = %s", errno, strerror(errno) );
+		close();
+		return( false );
+	}
+    return( true );
+}
+
+bool Socket::listen()
+{
+	if ( ::listen( mSd, SOMAXCONN ) == -1 )
+	{
+		Error( "listen(), errno = %d, error = %s", errno, strerror(errno) );
+		close();
+		return( false );
+	}
+
+    mState = LISTENING;
+
+	return( true );
+}
+
+bool Socket::accept()
+{
+    struct sockaddr *rem_addr = mLocalAddr->getTempAddr();
+    socklen_t rem_addr_size = getAddrSize();
+
+    int newSd = -1;
+    if ( (newSd = ::accept( mSd, rem_addr, &rem_addr_size )) == -1 )
+    {
+        Error( "accept(), errno = %d, error = %s", errno, strerror(errno) );
+        close();
+        return( false );
+    }
+
+	::close( mSd );
+	mSd = newSd;
+
+    mState = CONNECTED;
+
+	return( true );
+}
+
+bool Socket::accept( int &newSd )
+{
+    struct sockaddr *rem_addr = mLocalAddr->getTempAddr();
+    socklen_t rem_addr_size = getAddrSize();
+
+    newSd = -1;
+    if ( (newSd = ::accept( mSd, rem_addr, &rem_addr_size )) == -1 )
+    {
+        Error( "accept(), errno = %d, error = %s", errno, strerror(errno) );
+        close();
+        return( false );
+    }
+
+	return( true );
+}
+
+bool Socket::close()
+{
+	if ( mSd > -1 ) ::close( mSd );
+	mSd = -1;
+    mState = CLOSED;
+	return( true );
+}
+
+int Socket::bytesToRead() const
 {
 	int bytes_to_read = 0;
 
-	if ( ioctl( sd, FIONREAD, &bytes_to_read ) < 0 )
+	if ( ioctl( mSd, FIONREAD, &bytes_to_read ) < 0 )
 	{
 		Error( "ioctl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( -1 );
@@ -168,11 +368,11 @@ int SocketBase::BytesToRead() const
 	return( bytes_to_read );
 }
 
-bool SocketBase::GetBlocking( bool &blocking )
+bool Socket::getBlocking( bool &blocking )
 {
 	int flags;
 
-	if ( (flags = fcntl( sd, F_GETFL )) < 0 )
+	if ( (flags = fcntl( mSd, F_GETFL )) < 0 )
 	{
 		Error( "fcntl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -181,12 +381,12 @@ bool SocketBase::GetBlocking( bool &blocking )
 	return( true );
 }
 
-bool SocketBase::SetBlocking( bool blocking )
+bool Socket::setBlocking( bool blocking )
 {
 #if 0
 	// ioctl is apparently not recommended
 	int ioctl_arg = !blocking;
-	if ( ioctl( sd, FIONBIO, &ioctl_arg ) < 0 )
+	if ( ioctl( mSd, FIONBIO, &ioctl_arg ) < 0 )
 	{
 		Error( "ioctl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -197,7 +397,7 @@ bool SocketBase::SetBlocking( bool blocking )
 	int flags;
 
 	/* Now set it for non-blocking I/O */
-	if ( (flags = fcntl( sd, F_GETFL )) < 0 )
+	if ( (flags = fcntl( mSd, F_GETFL )) < 0 )
 	{
 		Error( "fcntl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -210,7 +410,7 @@ bool SocketBase::SetBlocking( bool blocking )
 	{
 		flags |= O_NONBLOCK;
 	}
-	if ( fcntl( sd, F_SETFL, flags ) < 0 )
+	if ( fcntl( mSd, F_SETFL, flags ) < 0 )
 	{
 		Error( "fcntl(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -219,10 +419,10 @@ bool SocketBase::SetBlocking( bool blocking )
 	return( true );
 }
 
-bool SocketBase::GetSendBufferSize( int &buffersize ) const
+bool Socket::getSendBufferSize( int &buffersize ) const
 {
 	socklen_t optlen = sizeof(buffersize);
-	if ( getsockopt( sd, SOL_SOCKET, SO_SNDBUF, &buffersize, &optlen ) < 0 )
+	if ( getsockopt( mSd, SOL_SOCKET, SO_SNDBUF, &buffersize, &optlen ) < 0 )
 	{
 		Error( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( -1 );
@@ -230,10 +430,10 @@ bool SocketBase::GetSendBufferSize( int &buffersize ) const
 	return( buffersize );
 }
 
-bool SocketBase::GetRecvBufferSize( int &buffersize ) const
+bool Socket::getRecvBufferSize( int &buffersize ) const
 {
 	socklen_t optlen = sizeof(buffersize);
-	if ( getsockopt( sd, SOL_SOCKET, SO_RCVBUF, &buffersize, &optlen ) < 0 )
+	if ( getsockopt( mSd, SOL_SOCKET, SO_RCVBUF, &buffersize, &optlen ) < 0 )
 	{
 		Error( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( -1 );
@@ -241,9 +441,9 @@ bool SocketBase::GetRecvBufferSize( int &buffersize ) const
 	return( buffersize );
 }
 
-bool SocketBase::SetSendBufferSize( int buffersize )
+bool Socket::setSendBufferSize( int buffersize )
 {
-	if ( setsockopt( sd, SOL_SOCKET, SO_SNDBUF, (char *)&buffersize, sizeof(buffersize)) < 0 )
+	if ( setsockopt( mSd, SOL_SOCKET, SO_SNDBUF, (char *)&buffersize, sizeof(buffersize)) < 0 )
 	{
 		Error( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -251,9 +451,9 @@ bool SocketBase::SetSendBufferSize( int buffersize )
 	return( true );
 }
 
-bool SocketBase::SetRecvBufferSize( int buffersize )
+bool Socket::setRecvBufferSize( int buffersize )
 {
-	if ( setsockopt( sd, SOL_SOCKET, SO_RCVBUF, (char *)&buffersize, sizeof(buffersize)) < 0 )
+	if ( setsockopt( mSd, SOL_SOCKET, SO_RCVBUF, (char *)&buffersize, sizeof(buffersize)) < 0 )
 	{
 		Error( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -261,23 +461,23 @@ bool SocketBase::SetRecvBufferSize( int buffersize )
 	return( true );
 }
 
-bool SocketBase::GetRouting( bool &route ) const
+bool Socket::getRouting( bool &route ) const
 {
-	int dontroute;
-	socklen_t optlen = sizeof(dontroute);
-	if ( getsockopt( sd, SOL_SOCKET, SO_DONTROUTE, &dontroute, &optlen ) < 0 )
+	int dontRoute;
+	socklen_t optlen = sizeof(dontRoute);
+	if ( getsockopt( mSd, SOL_SOCKET, SO_DONTROUTE, &dontRoute, &optlen ) < 0 )
 	{
 		Error( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
 	}
-	route = !dontroute;
+	route = !dontRoute;
 	return( true );
 }
 
-bool SocketBase::SetRouting( bool route )
+bool Socket::setRouting( bool route )
 {
-	int dontroute = !route;
-	if ( setsockopt( sd, SOL_SOCKET, SO_DONTROUTE, (char *)&dontroute, sizeof(dontroute)) < 0 )
+	int dontRoute = !route;
+	if ( setsockopt( mSd, SOL_SOCKET, SO_DONTROUTE, (char *)&dontRoute, sizeof(dontRoute)) < 0 )
 	{
 		Error( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -285,11 +485,11 @@ bool SocketBase::SetRouting( bool route )
 	return( true );
 }
 
-bool SocketBase::GetNoDelay( bool &nodelay ) const
+bool Socket::getNoDelay( bool &nodelay ) const
 {
 	int int_nodelay;
 	socklen_t optlen = sizeof(int_nodelay);
-	if ( getsockopt( sd, IPPROTO_TCP, TCP_NODELAY, &int_nodelay, &optlen ) < 0 )
+	if ( getsockopt( mSd, IPPROTO_TCP, TCP_NODELAY, &int_nodelay, &optlen ) < 0 )
 	{
 		Error( "getsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -298,11 +498,11 @@ bool SocketBase::GetNoDelay( bool &nodelay ) const
 	return( true );
 }
 
-bool SocketBase::SetNoDelay( bool nodelay )
+bool Socket::setNoDelay( bool nodelay )
 {
 	int int_nodelay = nodelay;
 
-	if ( setsockopt( sd, IPPROTO_TCP, TCP_NODELAY, (char *)&int_nodelay, sizeof(int_nodelay)) < 0 )
+	if ( setsockopt( mSd, IPPROTO_TCP, TCP_NODELAY, (char *)&int_nodelay, sizeof(int_nodelay)) < 0 )
 	{
 		Error( "setsockopt(), errno = %d, error = %s", errno, strerror(errno) );
 		return( false );
@@ -310,286 +510,202 @@ bool SocketBase::SetNoDelay( bool nodelay )
 	return( true );
 }
 
-bool SocketClient::SetupRemoteHost( const char *host )
+bool TcpInetServer::listen()
 {
-
-	struct hostent *p_rem_host=0;
-
-	if ( !(p_rem_host = ::gethostbyname( host ) ) )
-	{
-		Error( "gethostbyname( %s ), h_errno = %d", host, h_errno );
-		return( false );
-	}
-
-	memcpy( &rem_host, p_rem_host, sizeof(rem_host) );
-
-	return( true );
+    return( Socket::listen() );
 }
 
-bool SocketClient::SetupRemoteServ( const char *serv, const char *protocol )
+bool TcpInetServer::accept()
 {
-	struct servent *p_rem_serv=0;
-
-	if ( !(p_rem_serv = ::getservbyname( serv, protocol ) ) )
-	{
-		Error( "getservbyname( %s ), errno = %d, error = %s", serv, errno, strerror(errno) );
-		return( false );
-	}
-
-	memcpy( &rem_serv, p_rem_serv, sizeof(rem_serv) );
-
-	return( true );
+    return( Socket::accept() );
 }
 
-SocketClient::SocketClient()
+bool TcpInetServer::accept( TcpInetSocket *&newSocket )
 {
-	memset( &rem_host, 0, sizeof(rem_host) );
-	memset( &rem_serv, 0, sizeof(rem_serv) );
+    int newSd = -1;
+    newSocket = 0;
+
+    if ( !Socket::accept( newSd ) )
+        return( false );
+
+	newSocket = new TcpInetSocket( *this, newSd );
+
+    return( true );
 }
 
-bool SocketClient::Open()
+bool TcpUnixServer::accept( TcpUnixSocket *&newSocket )
 {
-	if ( !Socket() ) 
-		return( false );
+    int newSd = -1;
+    newSocket = 0;
 
-	struct sockaddr_in rem_addr;
+    if ( !Socket::accept( newSd ) )
+        return( false );
 
-	memset( &rem_addr, 0, sizeof(rem_addr) );
+	newSocket = new TcpUnixSocket( *this, newSd );
 
-	rem_addr.sin_port = rem_serv.s_port;
-	rem_addr.sin_family = AF_INET;
-	rem_addr.sin_addr.s_addr = ((struct in_addr *)(rem_host.h_addr))->s_addr;
-
-	if ( ::connect( sd, (struct sockaddr *)&rem_addr, sizeof(rem_addr) ) == -1 )
-	{
-		Error( "connect(), errno = %d, error = %s", errno, strerror(errno) );
-		Close();
-		return( false );
-	}
-
-	return( true );
+    return( true );
 }
 
-bool UDPSocket::Socket()
+Select::Select() : mHasTimeout( false ), mMaxFd( -1 )
 {
-	if ( (sd = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 )
-	{
-		Error( "socket(), errno = %d, error = %s", errno, strerror(errno) );
-		return( false );
-	}
-
-	return( true );
 }
 
-bool UDPSocket::Initialise( const char *host, const char *service )
+Select::Select( struct timeval timeout ) : mMaxFd( -1 )
 {
-	if ( !SetupRemoteHost( host ) ) 
-		return( false );
-	if ( !SetupRemoteServ( service, "udp" ) ) 
-		return( false );
-
-	if ( !Terminate() ) 
-		return( false );
-
-	return( true );
+    setTimeout( timeout );
 }
 
-TCPClient::TCPClient()
+Select::Select( int timeout ) : mMaxFd( -1 )
 {
-	state = DISCONNECTED;
+    setTimeout( timeout );
 }
 
-bool TCPClient::Initialise( const char *host, const char *service )
+Select::Select( double timeout ) : mMaxFd( -1 )
 {
-	state = DISCONNECTED;
-
-	if ( !SetupRemoteHost( host ) )
-		return( false );
-	if ( !SetupRemoteServ( service, "tcp" ) )
-		return( false );
-
-	if ( !Terminate() )
-		return( false );
-
-	return( true );
+    setTimeout( timeout );
 }
 
-bool TCPClient::Open()
+void Select::setTimeout( int timeout )
 {
-	if ( !SocketClient::Open() )
-		return( false );
-
-	state = CONNECTED;
-
-	return( true );
+    mTimeout.tv_sec = timeout;
+    mTimeout.tv_usec = 0;
+    mHasTimeout = true;
 }
 
-bool TCPClient::Close()
+void Select::setTimeout( double timeout )
 {
-	if ( !SocketClient::Close() )
-		return( false );
-
-	state = DISCONNECTED;
-
-	return( true );
+    mTimeout.tv_sec = int(timeout);
+    mTimeout.tv_usec = suseconds_t((timeout-mTimeout.tv_sec)*10000000.0);
+    mHasTimeout = true;
 }
 
-bool TCPServer::SetupLocalHost()
+void Select::setTimeout( struct timeval timeout )
 {
-	char host[MAXHOSTNAMELEN];
-
-	if ( ::gethostname( host, sizeof(host) ) == -1 )
-	{
-		Error( "gethostname(), errno = %d, error = %s", errno, strerror(errno) );
-		return( false );
-	}
-
-	struct hostent *p_loc_host=0;
-
-	if ( !(p_loc_host = ::gethostbyname( host ) ) )
-	{
-		Error( "gethostbyname( %s ), h_errno = %d", host, h_errno );
-		return( false );
-	}
-
-	memcpy( &loc_host, p_loc_host, sizeof(loc_host) );
-
-	return( true );
+    mTimeout = timeout;
+    mHasTimeout = true;
 }
 
-bool TCPServer::SetupLocalServ( const char *serv )
+void Select::clearTimeout()
 {
-	struct servent *p_loc_serv=0;
-
-	if ( !(p_loc_serv = ::getservbyname( serv, "tcp" ) ) )
-	{
-		Error( "getservbyname( %s ), errno = %d, error = %s", serv, errno, strerror(errno) );
-		return( false );
-	}
-
-	memcpy( &loc_serv, p_loc_serv, sizeof(loc_serv) );
-
-	return( true );
+    mHasTimeout = false;
 }
 
-TCPServer::TCPServer()
+void Select::calcMaxFd()
 {
-	state = DISCONNECTED;
-
-	memset( &loc_host, 0, sizeof(loc_host) );
-	memset( &loc_serv, 0, sizeof(loc_serv) );
+    mMaxFd = -1;
+    for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+        if ( (*iter)->getMaxDesc() > mMaxFd )
+            mMaxFd = (*iter)->getMaxDesc();
+    for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+        if ( (*iter)->getMaxDesc() > mMaxFd )
+            mMaxFd = (*iter)->getMaxDesc();
 }
 
-TCPServer::TCPServer( const TCPServer &server, int new_sd )
+bool Select::addReader( CommsBase *comms )
 {
-	state = server.state;
-
-	memcpy( &loc_host, &server.loc_host, sizeof(loc_host) );
-	memcpy( &loc_serv, &server.loc_serv, sizeof(loc_serv) );
-
-	sd = new_sd;
+    if ( !comms->isOpen() )
+    {
+        Error( "Unable to add closed reader" );
+        return( false );
+    }
+    std::pair<CommsSet::iterator,bool> result = mReaders.insert( comms );
+    if ( result.second )
+        if ( comms->getMaxDesc() > mMaxFd )
+            mMaxFd = comms->getMaxDesc();
+    return( result.second );
 }
 
-bool TCPServer::Initialise( const char *service )
+bool Select::deleteReader( CommsBase *comms )
 {
-	state = DISCONNECTED;
-
-	if ( !SetupLocalHost() )
-		return( false );
-	if ( !SetupLocalServ( service ) )
-		return( false );
-
-	if ( !Terminate() )
-		return( false );
-
-	return( true );
+    if ( !comms->isOpen() )
+    {
+        Error( "Unable to add closed reader" );
+        return( false );
+    }
+    if ( mReaders.erase( comms ) )
+    {
+        calcMaxFd();
+        return( true );
+    }
+    return( false );
 }
 
-bool TCPServer::Open()
+void Select::clearReaders()
 {
-	if ( !Socket() )
-		return( false );
-
-	struct sockaddr_in	loc_addr;
-
-	memset( &loc_addr, 0, sizeof(loc_addr) );
-
-	loc_addr.sin_port = loc_serv.s_port;
-	loc_addr.sin_family = AF_INET;
-	loc_addr.sin_addr.s_addr = INADDR_ANY;
-
-	if ( ::bind( sd, (struct sockaddr *)&loc_addr, sizeof(loc_addr) ) == -1 )
-	{
-		Error( "bind(), errno = %d, error = %s", errno, strerror(errno) );
-		Close();
-		return( false );
-	}
-
-	if ( ::listen( sd, SOMAXCONN ) == -1 )
-	{
-		Error( "listen(), errno = %d, error = %s", errno, strerror(errno) );
-		Close();
-		return( false );
-	}
-
-	state = LISTENING;
-
-	return( true );
+    mReaders.clear();
+    mMaxFd = -1;
 }
 
-bool TCPServer::Accept()
+bool Select::addWriter( CommsBase *comms )
 {
-	struct sockaddr_in rem_addr;
-	socklen_t rem_addr_size = sizeof(rem_addr);
-
-	memset( &rem_addr, 0, sizeof(rem_addr) );
-
-	int new_sd=-1;
-
-	if ( (new_sd = accept( sd, (struct sockaddr *)&rem_addr, &rem_addr_size )) == -1 )
-	{
-		Error( "accept(), errno = %d, error = %s", errno, strerror(errno) );
-		Close();
-		return( false );
-	}
-
-	close( sd );
-
-	sd = new_sd;
-
-	state = CONNECTED;
-
-	return( true );
+    std::pair<CommsSet::iterator,bool> result = mWriters.insert( comms );
+    if ( result.second )
+        if ( comms->getMaxDesc() > mMaxFd )
+            mMaxFd = comms->getMaxDesc();
+    return( result.second );
 }
 
-bool TCPServer::Accept( TCPServer *&server )
+bool Select::deleteWriter( CommsBase *comms )
 {
-	struct sockaddr_in rem_addr;
-	socklen_t rem_addr_size = sizeof(rem_addr);
-
-	memset( &rem_addr, 0, sizeof(rem_addr) );
-
-	int new_sd=-1;
-
-	if ( (new_sd = accept( sd, (struct sockaddr *)&rem_addr, &rem_addr_size )) == -1 )
-	{
-		Error( "connect(), errno = %d, error = %s", errno, strerror(errno) );
-		Close();
-		return( false );
-	}
-
-	server = new TCPServer( *this, new_sd );
-
-	return( true );
+    if ( mWriters.erase( comms ) )
+    {
+        calcMaxFd();
+        return( true );
+    }
+    return( false );
 }
 
-bool TCPServer::Close()
+void Select::clearWriters()
 {
-	if ( !SocketBase::Close() )
-		return( false );
-
-	state = DISCONNECTED;
-
-	return( true );
+    mWriters.clear();
+    mMaxFd = -1;
 }
 
+int Select::wait()
+{
+    struct timeval tempTimeout = mTimeout;
+    struct timeval *selectTimeout = mHasTimeout?&tempTimeout:NULL;
+
+    fd_set rfds;
+    fd_set wfds;
+
+    mReadable.clear();
+    FD_ZERO(&rfds);
+    for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+        FD_SET((*iter)->getReadDesc(),&rfds);
+
+    mWriteable.clear();
+    FD_ZERO(&wfds);
+    for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+        FD_SET((*iter)->getWriteDesc(),&wfds);
+
+    int nFound = select( mMaxFd+1, &rfds, &wfds, NULL, selectTimeout );
+    if( nFound == 0 )
+    {
+        Debug( 1, "Select timed out" );
+    }
+    else if ( nFound < 0)
+    {
+        Error( "Select error: %s", strerror(errno) );
+    }
+    else
+    {
+        for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+            if ( FD_ISSET((*iter)->getReadDesc(),&rfds) )
+                mReadable.push_back( *iter );
+        for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+            if ( FD_ISSET((*iter)->getWriteDesc(),&rfds) )
+                mWriteable.push_back( *iter );
+    }
+    return( nFound );
+}
+
+const Select::CommsList &Select::getReadable() const
+{
+    return( mReadable );
+}
+
+const Select::CommsList &Select::getWriteable() const
+{
+    return( mWriteable );
+}

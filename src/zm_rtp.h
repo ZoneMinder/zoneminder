@@ -1,6 +1,6 @@
 //
-// ZoneMinder Core Interfaces, $Date$, $Revision$
-// Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
+// ZoneMinder RTP/RTCP Class Interface, $Date: 2007-08-29 19:11:09 +0100 (Wed, 29 Aug 2007) $, $Revision: 2175 $
+// Copyright (C) 2003-2008  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -17,31 +17,11 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-#ifndef ZM_H
-#define ZM_H
+#ifndef ZM_RTP_H
+#define ZM_RTP_H
 
-extern "C"
-{
-#include "zm_debug.h"
-}
+#include "zm.h"
 
-#include "zm_config.h"
+#define RTP_VERSION  2
 
-extern "C"
-{
-#if !HAVE_DECL_ROUND
-double round(double);
-#endif
-}
-
-typedef unsigned char       U8;
-typedef unsigned short      U16;
-typedef unsigned long       U32;
-typedef unsigned long long  U64;
-
-typedef signed char         S8;
-typedef signed short        S16;
-typedef signed long         S32;
-typedef signed long long    S64;
-
-#endif // ZM_H
+#endif // ZM_RTP_H

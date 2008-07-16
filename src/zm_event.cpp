@@ -28,6 +28,7 @@
 
 #include "zm.h"
 #include "zm_db.h"
+#include "zm_time.h"
 #include "zm_mpeg.h"
 #include "zm_signal.h"
 #include "zm_event.h"

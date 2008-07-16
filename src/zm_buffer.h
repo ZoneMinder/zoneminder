@@ -17,10 +17,12 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */  
 
-#include "zm.h"
-
 #ifndef ZM_BUFFER_H
 #define ZM_BUFFER_H
+
+#include "zm.h"
+
+#include <string.h>
 
 class Buffer
 {
@@ -35,7 +37,7 @@ public:
 	Buffer() : storage( 0 ), allocation( 0 ), size( 0 ), head( 0 ), tail( 0 )
 	{
 	}
-	Buffer( unsigned int p_size ) : allocation( p_size ), size( p_size )
+	Buffer( unsigned int p_size ) : allocation( p_size ), size( 0 )
 	{
 		head = storage = new unsigned char[allocation];
 		tail = head;
@@ -63,7 +65,7 @@ public:
 	{
 		if ( size < p_size )
 		{
-			Expand( p_size );
+			Expand( p_size-size );
 		}
 		return( size );
 	}
@@ -72,13 +74,13 @@ public:
 	void Empty()
 	{
 		size = 0;
-		tail = head;
+		head = tail = storage;
 	}
 
 	unsigned int Assign( const unsigned char *p_storage, unsigned int p_size );
 	unsigned int Assign( const Buffer &buffer )
 	{
-		return( Assign( buffer.storage, buffer.size ) );
+		return( Assign( buffer.head, buffer.size ) );
 	}
 
 	unsigned int Consume( unsigned int count )
@@ -129,6 +131,11 @@ public:
 		return( Append( buffer.head, buffer.size ) );
 	}
 
+	Buffer &operator=( const Buffer &buffer )
+    {
+        Assign( buffer );
+        return( *this );
+    }
 	Buffer &operator+=( const Buffer &buffer )
 	{
 		Append( buffer );

@@ -1,6 +1,6 @@
 //
-// ZoneMinder Core Interfaces, $Date$, $Revision$
-// Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
+// ZoneMinder Explicit Thread Template Class Instantiations, $Date: 2006-01-17 10:56:30 +0000 (Tue, 17 Jan 2006) $, $Revision: 1829 $
+// Copyright (C) 2003-2008  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -17,31 +17,19 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-#ifndef ZM_H
-#define ZM_H
-
-extern "C"
+void neverCalled()
 {
-#include "zm_debug.h"
+    ThreadData<bool> dummy1;
+    dummy1.setValue( false );
+    dummy1.getUpdatedValue();
+    dummy1.getUpdatedValue( 1 );
+    dummy1.getUpdatedValue( 0.1 );
+    dummy1.updateValueSignal( true );
+    dummy1.updateValueBroadcast( true );
+
+    ThreadData<int> dummy2;
+    dummy2.getValue();
+    dummy2.setValue( 1 );
+    dummy2.getUpdatedValue( 1 );
+    dummy2.updateValueBroadcast( true );
 }
-
-#include "zm_config.h"
-
-extern "C"
-{
-#if !HAVE_DECL_ROUND
-double round(double);
-#endif
-}
-
-typedef unsigned char       U8;
-typedef unsigned short      U16;
-typedef unsigned long       U32;
-typedef unsigned long long  U64;
-
-typedef signed char         S8;
-typedef signed short        S16;
-typedef signed long         S32;
-typedef signed long long    S64;
-
-#endif // ZM_H

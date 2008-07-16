@@ -28,11 +28,11 @@
 #include <math.h>
 #include <zlib.h>
 
+#include "zm.h"
 extern "C"
 {
 #include "zm_jpeg.h"
 }
-
 #include "zm_rgb.h"
 #include "zm_coord.h"
 #include "zm_box.h"

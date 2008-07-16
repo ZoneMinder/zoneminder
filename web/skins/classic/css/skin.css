@@ -250,43 +250,6 @@ ul.tabList li a:hover {
 }
 
 /*
- * Misc
- */
-
-tr.over {
-    background: #EEEEEE;
-}
-
-tr.out {
-    background: #FFFFFF;
-}
-
-.smallhead {
-    font-size: 10px;
-    color: #016A9D;
-    font-weight: bold;
-}
-
-.head {
-    font-size: 11px;
-    color: #000066;
-    font-weight: bold;
-}
-
-.bighead {
-    font-size: 12px;
-    color: #000066;
-    font-weight: bold;
-}
-
-.small {
-    font-family: inherit;
-    font-size: 9px;
-    color: #333333;
-    font-weight: normal;
-}
-
-/*
  * Behavior classes
  */
 .error {

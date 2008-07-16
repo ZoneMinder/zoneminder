@@ -22,8 +22,8 @@ if ( !($socket = socket_create( AF_UNIX, SOCK_DGRAM, 0 )) )
     error_log( "socket_create() failed: ".socket_strerror(socket_last_error()) );
     return;
 }
-$loc_sock_file = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.sock';
-if ( !socket_bind( $socket, $loc_sock_file ) )
+$locSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.sock';
+if ( !socket_bind( $socket, $locSockFile ) )
 {
     error_log( "socket_bind() failed: ".socket_strerror(socket_last_error()) );
     return;
@@ -52,26 +52,27 @@ switch ( $_REQUEST['command'] )
         break;
 }
 
-$rem_sock_file = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'s.sock';
-if ( !socket_sendto( $socket, $msg, strlen($msg), 0, $rem_sock_file ) )
+$remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'s.sock';
+error_log( "rSFL ".$remSockFile );
+if ( !@socket_sendto( $socket, $msg, strlen($msg), 0, $remSockFile ) )
 {
     error_log( "socket_sendto() failed: ".socket_strerror(socket_last_error()) );
     return;
 }
 
-$r_sockets   = array( $socket );
-$w_sockets  = NULL;
-$e_sockets = NULL;
-$num_sockets = socket_select( $r_sockets, $w_sockets, $e_sockets, MSG_TIMEOUT );
+$rSockets   = array( $socket );
+$wSockets  = NULL;
+$eSockets = NULL;
+$numSockets = socket_select( $rSockets, $wSockets, $eSockets, MSG_TIMEOUT );
 
-if ( $num_sockets === false)
+if ( $numSockets === false)
 {
     error_log( "Timed out waiting for msg" );
     return;
 }
-else if ( $num_sockets > 0 )
+else if ( $numSockets > 0 )
 {
-    if ( count($r_sockets) != 1 )
+    if ( count($rSockets) != 1 )
     {
         error_log( "Bogus return from select" );
         return;
@@ -134,6 +135,6 @@ $response = array( 'result'=>'Ok', 'status' => $data );
 echo jsValue( $response );
 
 socket_close( $socket );
-unlink( $loc_sock_file );
+unlink( $locSockFile );
 
 ?>

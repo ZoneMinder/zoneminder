@@ -19,5 +19,4 @@ dist_web_DATA = \
 	point-g.gif \
 	point-o.gif \
 	point-r.gif \
-	spacer.gif \
 	transparent.gif

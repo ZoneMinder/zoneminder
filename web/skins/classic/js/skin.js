@@ -19,7 +19,7 @@
 
 //
 // This file should only contain static JavaScript and no php.
-// Use zm_html_js.php for JavaScript that need pre-processing
+// Use skin.js.php for JavaScript that need pre-processing
 //
 
 if ( !window.console )

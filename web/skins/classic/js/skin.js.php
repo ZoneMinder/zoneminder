@@ -20,7 +20,7 @@
 
 //
 // This file should only contain JavaScript that needs preprocessing by php.
-// Static JavaScript should go in zm_html.js
+// Static JavaScript should go in skin.js
 //
 
 ?>
@@ -28,6 +28,7 @@
 
   var currentView = '<?= $_REQUEST['view'] ?>';
   var thisUrl = "<?= ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
+  var skinPath = "<?= ZM_SKIN_PATH ?>";
 
   var canEditSystem = <?= canEdit('System' )?'true':'false' ?>;
   var canViewSystem = <?= canView('System' )?'true':'false' ?>;

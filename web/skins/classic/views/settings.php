@@ -51,19 +51,19 @@ xhtmlHeaders(__FILE__, $monitor['Name']." - ".$SLANG['Settings'] );
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <td><?= $SLANG['Brightness'] ?></td>
+              <th scope="row"><?= $SLANG['Brightness'] ?></th>
               <td><input type="text" name="newBrightness" value="<?= $monitor['Brightness'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
             <tr>
-              <td><?= $SLANG['Contrast'] ?></td>
+              <th scope="row"><?= $SLANG['Contrast'] ?></th>
               <td><input type="text" name="newContrast" value="<?= $monitor['Contrast'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
             <tr>
-              <td><?= $SLANG['Hue'] ?></td>
+              <th scope="row"><?= $SLANG['Hue'] ?></th>
               <td><input type="text" name="newHue" value="<?= $monitor['Hue'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
             <tr>
-              <td><?= $SLANG['Colour'] ?></td>
+              <th scope="row"><?= $SLANG['Colour'] ?></th>
               <td><input type="text" name="newColour" value="<?= $monitor['Colour'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
           </tbody>

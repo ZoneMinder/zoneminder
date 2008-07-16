@@ -1,4 +1,3 @@
-<script type="text/javascript">
 var optControl = <?= ZM_OPT_CONTROL ?>;
 var defaultAspectRatio = '<?= ZM_DEFAULT_ASPECT_RATIO ?>';
 
@@ -36,9 +35,6 @@ controlOptions[<?= $row['Id'] ?>][<?= $i ?>] = '<?= $SLANG['Preset'].' '.$i ?>';
 <?php
         }
     }
-?>
-console.log( controlOptions );
-<?php
 }
 ?>
 
@@ -69,8 +65,8 @@ function validateForm( form )
             errors[errors.length] = "<?= $SLANG['BadHost'] ?>";
         if ( form.elements['newMonitor[Port]'].value && !form.elements['newMonitor[Port]'].value.match( /^\d+$/ ) )
             errors[errors.length] = "<?= $SLANG['BadPort'] ?>";
-        if ( !form.elements['newMonitor[Path]'].value )
-            errors[errors.length] = "<?= $SLANG['BadPath'] ?>";
+        //if ( !form.elements['newMonitor[Path]'].value )
+            //errors[errors.length] = "<?= $SLANG['BadPath'] ?>";
     }
     else if ( form.elements['newMonitor[Type]'].value == 'File' )
     {
@@ -112,6 +108,43 @@ function validateForm( form )
     {
         alert( errors.join( "\n" ) );
         return( false );
+    }
+    return( true );
+}
+
+function updateMethods( element )
+{
+    var form = element.form;
+
+    form.elements['newMonitor[Method]'].length = 0;
+    switch ( form.elements['newMonitor[Protocol]'].value )
+    {
+        case 'http' :
+        {
+<?php
+foreach( $httpMethods as $label=>$value )
+{
+?>
+            form.elements['newMonitor[Method]'].options[form.elements['newMonitor[Method]'].length] = new Option( "<?= $value ?>", "<?= htmlspecialchars($label) ?>" );
+<?php
+}
+?>
+            form.elements['newMonitor[SubPath]'].parentNode.parentNode.style['display'] = 'none';
+            break;
+        }
+        case 'rtsp' :
+        {
+<?php
+foreach( $rtspMethods as $label=>$value )
+{
+?>
+            form.elements['newMonitor[Method]'].options[form.elements['newMonitor[Method]'].length] = new Option( "<?= $value ?>", "<?= htmlspecialchars($label) ?>" );
+<?php
+}
+?>
+            form.elements['newMonitor[SubPath]'].parentNode.parentNode.style['display'] = null;
+            break;
+        }
     }
     return( true );
 }

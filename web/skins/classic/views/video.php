@@ -136,7 +136,7 @@ else
             </tr>
           </tbody>
         </table>
-        <input type="button" value="<?= $SLANG['GenerateVideo'] ?>" onclick="generateVideo( this.form );"<?php if ( ZM_OPT_MPEG == "no" ) { ?> disabled="disabled"<?php } ?>/>
+        <input type="button" value="<?= $SLANG['GenerateVideo'] ?>" onclick="generateVideo( this.form );"<?php if ( ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>/>
       </form>
 <?php
     if ( isset($_REQUEST['generated']) )

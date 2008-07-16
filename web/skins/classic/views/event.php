@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web event view file, $Date: 2008-06-19 22:17:13 +0100 (Thu, 19 Jun 2008) $, $Revision: 2438 $
+// ZoneMinder web event view file, $Date$, $Revision$
 // Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -110,7 +110,7 @@ if ( canEdit( 'Events' ) )
         <div id="streamEvent"<?php if ( $_REQUEST['streamMode'] == 'stream' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStream()"><?= $SLANG['Stream'] ?></a></div>
         <div id="stillsEvent"<?php if ( $_REQUEST['streamMode'] == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?= $SLANG['Stills'] ?></a></div>
 <?php
-if ( ZM_OPT_MPEG != "no" )
+if ( ZM_OPT_FFMPEG )
 {
 ?>
         <div id="videoEvent"><a href="#" onclick="videoEvent()"><?= $SLANG['Video'] ?></a></div>

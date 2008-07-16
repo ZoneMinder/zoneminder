@@ -255,46 +255,6 @@ tr.out {
     background: #FFFFFF;
 }
 
-.button {
-    border: 1px #000000 solid;
-    padding: 2px 5px;
-    font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 12px;
-    font-weight: bold;
-    color: #FFFFFF;
-    background-color: #016A9D;
-}
-
-.smallbutton {
-    padding: 1px 2px;
-    font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 10px;
-    color: #FFFFFF;
-    text-align: center;
-    background-color: #016A9D;
-}
-
-.numbutton {
-    padding: 1px 2px;
-    width: 24px;
-    font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 10px;
-    color: #FFFFFF;
-    text-align: center;
-    background-color: #016A9D;
-}
-
-.flatbutton {
-    font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 10px;
-    color: #333333;
-    font-weight: normal;
-    padding: 1px 2px;
-    text-align: center;
-    background-color: #FFFFFF;
-    border: 0px;
-}
-
 .smallhead {
     font-size: 10px;
     color: #016A9D;

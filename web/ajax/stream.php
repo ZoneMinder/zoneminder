@@ -53,7 +53,6 @@ switch ( $_REQUEST['command'] )
 }
 
 $remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'s.sock';
-error_log( "rSFL ".$remSockFile );
 if ( !@socket_sendto( $socket, $msg, strlen($msg), 0, $remSockFile ) )
 {
     error_log( "socket_sendto() failed: ".socket_strerror(socket_last_error()) );

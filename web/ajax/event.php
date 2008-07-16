@@ -117,7 +117,7 @@ if ( $response['result'] != 'Error' )
             }
             case "export" :
             {
-                require_once( 'zm_export_funcs.php' );
+                require_once( ZM_SKIN_PATH.'/includes/export_functions.php' );
 
                 if ( !empty($_REQUEST['exportDetail']) )
                     $exportDetail = $_SESSION['export']['detail'] = $_REQUEST['exportDetail'];

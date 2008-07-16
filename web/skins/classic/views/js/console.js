@@ -30,7 +30,8 @@ function editMonitor( element )
                 var monitorId = form.elements[i].value;
                 createPopup( '?view=monitor&mid='+monitorId, 'zmMonitor'+monitorId, 'monitor' );
                 form.elements[i].checked = false;
-                $(form.elements[i]).getAncestor( 'tr' ).removeClass( 'highlight' );
+                setButtonStates( form.elements[i] );
+                //$(form.elements[i]).getAncestor( 'tr' ).removeClass( 'highlight' );
                 break;
             }
         }

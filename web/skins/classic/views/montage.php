@@ -61,12 +61,16 @@ foreach( dbFetchAll( $sql ) as $row )
 $focusWindow = true;
 
 $layouts = array(
-    'zm_html_view_montage_freeform.css' => 'Default',
-    'zm_html_view_montage_2wide.css' => '2-wide grid',
-    'zm_html_view_montage_3wide.css' => '3-wide grid',
-    'zm_html_view_montage_4wide.css' => '4-wide grid',
-    'zm_html_view_montage_3wide50enlarge.css' => '3-wide grid, scaled, enlarge on alarm',
+    'montage_freeform.css' => 'Default',
+    'montage_2wide.css' => '2-wide grid',
+    'montage_3wide.css' => '3-wide grid',
+    'montage_4wide.css' => '4-wide grid',
+    'montage_3wide50enlarge.css' => '3-wide grid, scaled, enlarge on alarm',
 );
+
+if ( isset($_COOKIE['zmMontageLayout']) )
+    $layout = $_COOKIE['zmMontageLayout'];
+
 xhtmlHeaders(__FILE__, $SLANG['Montage'] );
 ?>
 <body>

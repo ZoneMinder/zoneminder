@@ -16,8 +16,6 @@ function Monitor( index, id, connKey )
 
     this.getStreamCmdResponse = function( respText )
     {
-        //console.log( "Response" );
-        //console.log( this );
         if ( this.streamCmdTimer )
             this.streamCmdTimer = $clear( this.streamCmdTimer );
 
@@ -78,8 +76,6 @@ function Monitor( index, id, connKey )
 
     this.streamCmdQuery = function()
     {       
-        //console.log( "Query" );
-        //console.log( this );
         //this.streamCmdReq.cancel();
         this.streamCmdReq.request( this.streamCmdParms+"&command="+CMD_QUERY );
     }       
@@ -90,14 +86,11 @@ function Monitor( index, id, connKey )
 
 function selectLayout( element )
 {
-    var cssFile = $(element).getValue();
-    console.log( cssFile );
+    var cssFile = skinPath+'/views/css/'+$(element).getValue();
     if ( $('dynamicStyles') )
-    {
         $('dynamicStyles').remove();
-    }
     new Asset.css( cssFile, { id: 'dynamicStyles' } );
-    console.log( $('dynamicStyles') );
+    Cookie.set( 'zmMontageLayout', $(element).getValue(), { duration: 10*365 } );  
 }
 
 var monitors = new Array();
@@ -106,9 +99,7 @@ function initPage()
     for ( var i = 0; i < monitorData.length; i++ )
     {
         monitors[i] = new Monitor( i, monitorData[i].id, monitorData[i].connKey );
-        //console.log( monitors[i] );
         var delay = Math.round( Math.random()*statusRefreshTimeout );
-        console.log( "Delay: "+delay );
         monitors[i].start( delay );
     }
     selectLayout( $('layout') );

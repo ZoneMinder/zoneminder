@@ -175,7 +175,7 @@ sub zmDbGetMonitorAndControl( $ )
 
 	return( undef ) if ( !defined($id) );
 
-    my $sql = "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = ?";
+    my $sql = "select C.*,M.*,C.Protocol from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = ?";
 	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute( $id ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
     my $monitor = $sth->fetchrow_hashref();

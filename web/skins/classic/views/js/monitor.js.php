@@ -129,7 +129,7 @@ foreach( $httpMethods as $label=>$value )
 <?php
 }
 ?>
-            form.elements['newMonitor[SubPath]'].parentNode.parentNode.style['display'] = 'none';
+            $(form.elements['newMonitor[SubPath]']).getAncestor( 'tr' ).addClass( 'hidden' );
             break;
         }
         case 'rtsp' :
@@ -142,7 +142,7 @@ foreach( $rtspMethods as $label=>$value )
 <?php
 }
 ?>
-            form.elements['newMonitor[SubPath]'].parentNode.parentNode.style['display'] = null;
+            $(form.elements['newMonitor[SubPath]']).getAncestor( 'tr' ).removeClass( 'hidden' );
             break;
         }
     }

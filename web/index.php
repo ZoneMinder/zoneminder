@@ -63,6 +63,7 @@ elseif ( isset($_COOKIE['zmSkin']) )
 else
     $skin = "classic";
 
+define( "ZM_BASE_PATH", dirname( $_SERVER['REQUEST_URI'] ) );
 define( "ZM_SKIN_PATH", "skins/$skin" );
 
 $skinSeq = array(); // To allow for inheritance of skins

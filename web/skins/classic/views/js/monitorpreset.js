@@ -7,7 +7,7 @@ function submitPreset( element )
     closeWindow.delay( 250 );
 }
 
-function configureButtons( this )
+function configureButtons( element )
 {
     var form = element.form;
     form.saveBtn.disabled = (form.preset.selectedIndex==0);

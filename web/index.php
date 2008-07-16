@@ -89,7 +89,7 @@ if ( ZM_OPT_USE_AUTH )
     else
         unset( $user );
 else
-    $user = $default_user;
+    $user = $defaultUser;
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );

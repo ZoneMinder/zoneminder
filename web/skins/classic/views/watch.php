@@ -149,38 +149,9 @@ if ( canEdit( 'Monitors' ) )
 if ( $showControls )
 {
     require_once( ZM_SKIN_PATH.'/includes/control_functions.php' );
-    $cmds = getControlCommands( $monitor );
 ?>
-      <div id="ptzControls"<?= $_REQUEST['control']?'':' class="hidden"' ?>>
-        <div id="controlsPanel">
-<?php
-        if ( $monitor['CanFocus'] )
-            echo controlFocus( $monitor );
-        if ( $monitor['CanZoom'] )
-            echo controlZoom( $monitor );
-        if ( $monitor['CanMove'] || ( $monitor['CanWake'] || $monitor['CanSleep'] || $monitor['CanReset'] ) )
-        {
-?>
-          <div id="pantiltPanel">
-<?php
-            if ( $monitor['CanMove'] )
-                echo controlPanTilt( $monitor );
-            if ( $monitor['CanWake'] || $monitor['CanSleep'] || $monitor['CanReset'] )
-                echo controlPower( $monitor );
-?>
-          </div>
-<?php
-        }
-        if ( $monitor['CanIris'] )
-            echo controlIris( $monitor );
-        if ( $monitor['CanWhite'] )
-            echo controlWhite( $monitor );
-?>
-        </div>
-<?php
-        if ( $monitor['HasPresets'] )
-            echo controlPresets( $monitor );
-?>
+      <div id="ptzControls" class="ptzControls<?= $_REQUEST['control']?'':' hidden' ?>">
+<?= ptzControls( $monitor ) ?>
       </div>
 <?php
 }

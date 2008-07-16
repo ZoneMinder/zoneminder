@@ -50,8 +50,6 @@ require_once( ZM_SKIN_PATH.'/includes/control_functions.php' );
 $sql = "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '".$mid."'";
 $monitor = dbFetchOne( $sql );
 
-$cmds = getControlCommands( $monitor );
-
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, $SLANG['Control'] );
@@ -71,36 +69,8 @@ xhtmlHeaders(__FILE__, $SLANG['Control'] );
       </div>
     </div>
     <div id="content">
-      <div id="ptzControls">
-        <div id="controlsPanel">
-<?php
-        if ( $monitor['CanFocus'] )
-            echo controlFocus( $monitor );
-        if ( $monitor['CanZoom'] )
-            echo controlZoom( $monitor );
-        if ( $monitor['CanMove'] || ( $monitor['CanWake'] || $monitor['CanSleep'] || $monitor['CanReset'] ) )
-        {
-?>
-          <div id="pantiltPanel">
-<?php
-            if ( $monitor['CanMove'] )
-                echo controlPanTilt( $monitor );
-            if ( $monitor['CanWake'] || $monitor['CanSleep'] || $monitor['CanReset'] )
-                echo controlPower( $monitor );
-?>
-          </div>
-<?php
-        }
-        if ( $monitor['CanIris'] )
-            echo controlIris( $monitor );
-        if ( $monitor['CanWhite'] )
-            echo controlWhite( $monitor );
-?>
-        </div>
-<?php
-        if ( $monitor['HasPresets'] )
-            echo controlPresets( $monitor );
-?>
+      <div id="ptzControls" class="ptzControls">
+<?= ptzControls( $monitor ) ?>
       </div>
     </div>
   </div>

@@ -102,7 +102,7 @@ elseif ( $streamMode == "jpeg" )
 {
     if ( canStreamNative() )
         outputImageStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $_REQUEST['scale'] ), reScale( $monitor['Height'], $_REQUEST['scale'] ), $monitor['Name'] );
-    elseif ( canStreamApplet )
+    elseif ( canStreamApplet() )
         outputHelperStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $_REQUEST['scale'] ), reScale( $monitor['Height'], $_REQUEST['scale'] ), $monitor['Name'] );
 }
 else

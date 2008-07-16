@@ -942,7 +942,7 @@ if ( !empty($_REQUEST['action']) )
 
                 $monitor['Function'] = $_REQUEST['newFunction'];
                 $monitor['Enabled'] = $_REQUEST['newEnabled'];
-                if ( $cookies ) session_write_close();
+                //if ( $cookies ) session_write_close();
                 if ( daemonCheck() )
                 {
                     $GLOBALS['restart'] = ($oldFunction == 'None') || ($_REQUEST['newFunction'] == 'None') || ($_REQUEST['newEnabled'] != $oldEnabled);
@@ -993,9 +993,8 @@ if ( !empty($_REQUEST['action']) )
                 {
                     $sql = "insert into Zones set MonitorId = '".dbEscape($_REQUEST['mid'])."', ".implode( ", ", $changes );
                 }
-                //echo "<html>$sql</html>";
                 dbQuery( $sql );
-                if ( $cookies ) session_write_close();
+                //if ( $cookies ) session_write_close();
                 if ( daemonCheck() )
                 {
                     zmaControl( $_REQUEST['mid'], "restart" );
@@ -1027,8 +1026,8 @@ if ( !empty($_REQUEST['action']) )
                 }
                 if ( $deletedZid )
                 {
-                    if ( $cookies )
-                        session_write_close();
+                    //if ( $cookies )
+                        //session_write_close();
                     if ( daemonCheck() )
                         zmaControl( $_REQUEST['mid'], "restart" );
                     $GLOBALS['refreshParent'] = true;
@@ -1139,19 +1138,19 @@ if ( !empty($_REQUEST['action']) )
 
             if ( ZM_OPT_X10 )
             {
-                $x10_changes = getFormChanges( $x10Monitor, $newX10Monitor );
+                $x10Changes = getFormChanges( $x10Monitor, $_REQUEST['newX10Monitor'] );
 
-                if ( count( $x10_changes ) )
+                if ( count( $x10Changes ) )
                 {
-                    if ( $x10Monitor && $newX10Monitor )
+                    if ( $x10Monitor && isset($_REQUEST['newX10Monitor']) )
                     {
-                        dbQuery( "update TriggersX10 set ".implode( ", ", $x10_changes )." where MonitorId = '".dbEscape($_REQUEST['mid'])."'" );
+                        dbQuery( "update TriggersX10 set ".implode( ", ", $x10Changes )." where MonitorId = '".dbEscape($_REQUEST['mid'])."'" );
                     }
                     elseif ( !$user['MonitorIds'] )
                     {
                         if ( !$x10Monitor )
                         {
-                            dbQuery( "insert into TriggersX10 set MonitorId = '".dbEscape($_REQUEST['mid'])."', ".implode( ", ", $x10_changes ) );
+                            dbQuery( "insert into TriggersX10 set MonitorId = '".dbEscape($_REQUEST['mid'])."', ".implode( ", ", $x10Changes ) );
                         }
                         else
                         {
@@ -1166,8 +1165,8 @@ if ( !empty($_REQUEST['action']) )
             {
                 $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($_REQUEST['mid'])."'" );
                 fixDevices();
-                if ( $cookies )
-                    session_write_close();
+                //if ( $cookies )
+                    //session_write_close();
                 if ( daemonCheck() )
                 {
                     zmcControl( $monitor, "restart" );
@@ -1435,7 +1434,7 @@ if ( !empty($_REQUEST['action']) )
         {
             if ( !empty($_REQUEST['runState']) )
             {
-                if ( $cookies ) session_write_close();
+                //if ( $cookies ) session_write_close();
                 packageControl( $_REQUEST['runState'] );
                 $GLOBALS['refreshParent'] = true;
             }
@@ -1523,7 +1522,7 @@ if ( !empty($_REQUEST['action']) )
     {
         $_SESSION['zmEventResetTime'] = strftime( STRF_FMT_DATETIME_DB );
         setcookie( "zmEventResetTime", $_SESSION['zmEventResetTime'], time()+3600*24*30*12*10 );
-        if ( $cookies ) session_write_close();
+        //if ( $cookies ) session_write_close();
     }
 }
 

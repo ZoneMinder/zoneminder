@@ -2,7 +2,7 @@ function closeWindows()
 {
     window.close();
     // This is a hack. The only way to close an existing window is to try and open it!
-    var filterWindow = window.open( "<?= $_SERVER['PHP_SELF'] ?>?view=none", 'zmFilter', 'width=1,height=1' );
+    var filterWindow = window.open( thisUrl+'?view=none', 'zmFilter', 'width=1,height=1' );
     filterWindow.close();
 }
 

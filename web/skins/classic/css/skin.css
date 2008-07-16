@@ -51,6 +51,12 @@ h3 {
     font-weight: bold;
 }
 
+h4 {
+    font-family: inherit;
+    font-size: 10px;
+    color: #016A9D;
+}
+
 p {
     font-family: inherit;
     font-size: 10px;

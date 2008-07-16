@@ -183,20 +183,20 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
     <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
     <input type="hidden" name="action" value=""/>
     <div id="header">
-      <div id="systemTime" class="smallhead"><?= preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG ) ?></div>
-      <div id="systemStats" class="smallhead"><?= $SLANG['Load'] ?>: <?= getLoad() ?> / <?= $SLANG['Disk'] ?>: <?= getDiskPercent() ?>%</div>
-      <div id="title" class="bighead"><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?= $SLANG['Console'] ?> - <?= makePopupLink( '?view=state', 'zmState', 'state', $status, canEdit( 'System' ) ) ?> - <?= makePopupLink( '?view=version', 'zmVersion', 'version', "v".ZM_VERSION, canEdit( 'System' ) ) ?></div>
+      <h3 id="systemTime"><?= preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG ) ?></h3>
+      <h3 id="systemStats"><?= $SLANG['Load'] ?>: <?= getLoad() ?> / <?= $SLANG['Disk'] ?>: <?= getDiskPercent() ?>%</h3>
+      <h2 id="title"><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?= $SLANG['Console'] ?> - <?= makePopupLink( '?view=state', 'zmState', 'state', $status, canEdit( 'System' ) ) ?> - <?= makePopupLink( '?view=version', 'zmVersion', 'version', "v".ZM_VERSION, canEdit( 'System' ) ) ?></h2>
       <div class="clear"></div>
-      <div id="monitorSummary" class="smallhead"><?= makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($monitors), zmVlang( $VLANG['Monitor'], count($monitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'System' ) ); ?></div>
+      <div id="monitorSummary"><?= makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($monitors), zmVlang( $VLANG['Monitor'], count($monitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'System' ) ); ?></div>
 <?php
 if ( ZM_OPT_X10 && canView('Devices' ) )
 {
 ?>
-      <div id="devices" class="smallhead"><?= makePopupLink( '?view=devices', 'zmDevices', 'devices', $SLANG['Devices'] ) ?></div>
+      <div id="devices"><?= makePopupLink( '?view=devices', 'zmDevices', 'devices', $SLANG['Devices'] ) ?></div>
 <?php
 }
 ?>
-      <div id="options" class="smallhead"><?= makePopupLink( '?view=options', 'zmOptions', 'options', $SLANG['Options'] ) ?></div>
+      <div id="options"><?= makePopupLink( '?view=options', 'zmOptions', 'options', $SLANG['Options'] ) ?></div>
 <?php
 if ( canView( 'Stream' ) && $cycleCount > 1 )
 {
@@ -211,7 +211,7 @@ else
 <?php
 }
 ?>
-      <div id="loginBandwidth" class="smallhead"><?php
+      <h4 id="loginBandwidth"><?php
 if ( ZM_OPT_USE_AUTH )
 {
 ?><?= $SLANG['LoggedInAs'] ?> <?= makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>, <?= strtolower( $SLANG['ConfiguredFor'] ) ?><?php
@@ -220,7 +220,7 @@ else
 {
 ?><?= $SLANG['ConfiguredFor'] ?><?php
 }
-?>&nbsp;<?= makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?= $SLANG['Bandwidth'] ?></div>
+?>&nbsp;<?= makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?= $SLANG['Bandwidth'] ?></h4>
     </div>
     <div id="content">
       <table id="consoleTable" cellspacing="0">

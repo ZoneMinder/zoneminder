@@ -36,6 +36,11 @@ insert into MonitorPresets values ('','Axis IP, mpeg4, RTP/RTSP/HTTP','Remote',N
 insert into MonitorPresets values ('','ACTi IP, mpeg4, unicast','Remote',NULL,NULL,NULL,'rtsp','rtpUni','<ip-address>',7070,'','/track',NULL,NULL,4,NULL,0,NULL,NULL,NULL,100,100);
 
 --
+-- Get rid of never used columnn Learn State
+--
+alter table Events drop column LearnState;
+
+--
 -- These are optional, but we might as well do it now
 --
 optimize table Frames;

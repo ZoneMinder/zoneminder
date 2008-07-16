@@ -27,7 +27,7 @@ function exportHeader( $title )
   <title><?= $title ?></title>
   <style type="text/css">
   <!--
-<?php include( 'zm_export.css' ); ?>
+<?php include( ZM_SKIN_PATH.'css/export.css' ); ?>
   -->
   </style>
 </head>

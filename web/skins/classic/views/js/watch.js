@@ -40,25 +40,13 @@ function changeScale()
     streamImg.setStyles( { width: newWidth, height: newHeight } );
 }
 
-var streamCmdParms = "view=request&request=stream&connkey="+connKey;
-var streamCmdReq = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, onComplete: getStreamCmdResponse } );
-var streamCmdTimer = null;
-
 var alarmState = STATE_IDLE;
 var lastAlarmState = STATE_IDLE;
-var status;
 
-function getStreamCmdResponse( respText )
+function setAlarmState( currentAlarmState )
 {
-    if ( streamCmdTimer )
-        streamCmdTimer = $clear( streamCmdTimer );
+    alarmState = currentAlarmState;
 
-    if ( !respText )
-        return;
-    var response = Json.evaluate( respText );
-    status = response.status;
-    $('fpsValue').setText( status.fps );
-    alarmState = status.state;
     var stateString = "Unknown";
     var stateClass = "";
     if ( alarmState == STATE_ALARM )
@@ -70,97 +58,6 @@ function getStreamCmdResponse( respText )
         $('stateValue').setProperty( 'class', stateClass );
     else
         $('stateValue').removeProperty( 'class' );
-    $('levelValue').setText( status.level );
-
-    if ( status.level > 95 )
-        $('levelValue').className = "alarm";
-    else if ( status.level > 80 )
-        $('levelValue').className = "alert";
-    else
-        $('levelValue').className = "ok";
-
-    var delayString = secsToTime( status.delay );
-
-    if ( status.paused == true )
-    {
-        $('modeValue').setText( "Paused" );
-        $('rate').addClass( 'hidden' );
-        $('delayValue').setText( delayString );
-        $('delay').removeClass( 'hidden' );
-        $('level').removeClass( 'hidden' );
-        streamCmdPause( false );
-    }
-    else if ( status.delayed == true )
-    {
-        $('modeValue').setText( "Replay" );
-        $('rateValue').setText( status.rate );
-        $('rate').removeClass( 'hidden' );
-        $('delayValue').setText( delayString );
-        $('delay').removeClass( 'hidden' );
-        $('level').removeClass( 'hidden' );
-        if ( status.rate == 1 )
-        {
-            streamCmdPlay( false );
-        }
-        else if ( status.rate > 0 )
-        {
-            if ( status.rate < 1 )
-                streamCmdSlowFwd( false );
-            else
-                streamCmdFastFwd( false );
-        }
-        else
-        {
-            if ( status.rate > -1 )
-                streamCmdSlowRev( false );
-            else
-                streamCmdFastRev( false );
-        }
-    }
-    else 
-    {
-        $('modeValue').setText( "Live" );
-        $('rate').addClass( 'hidden' );
-        $('delay').addClass( 'hidden' );
-        $('level').addClass( 'hidden' );
-        streamCmdPlay( false );
-    }
-    $('zoomValue').setText( status.zoom );
-    if ( status.zoom == "1.0" )
-        setButtonState( $('zoomOutBtn'), 'unavail' );
-    else
-        setButtonState( $('zoomOutBtn'), 'inactive' );
-
-    if ( canEditMonitors )
-    {
-        if ( status.enabled )
-        {
-            $('enableAlarmsLink').addClass( 'hidden' );
-            $('disableAlarmsLink').removeClass( 'hidden' );
-            if ( status.forced )
-            {
-                $('forceAlarmLink').addClass( 'hidden' );
-                $('cancelAlarmLink').removeClass( 'hidden' );
-            }
-            else
-            {
-                $('forceAlarmLink').removeClass( 'hidden' );
-                $('cancelAlarmLink').addClass( 'hidden' );
-            }
-            $('forceCancelAlarm').removeClass( 'hidden' );
-        }
-        else
-        {
-            $('enableAlarmsLink').removeClass( 'hidden' );
-            $('disableAlarmsLink').addClass( 'hidden' );
-            $('forceCancelAlarm').addClass( 'hidden' );
-        }
-        $('enableDisableAlarms').removeClass( 'hidden' );
-    }
-    else
-    {
-        $('enableDisableAlarms').addClass( 'hidden' );
-    }
 
     var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
     var wasAlarmed = ( lastAlarmState == STATE_ALARM || lastAlarmState == STATE_ALERT );
@@ -188,12 +85,124 @@ function getStreamCmdResponse( respText )
             $('alarmSound').addClass( 'hidden' );
         }
     }
+    lastAlarmState = alarmState;
+}
+
+var streamCmdParms = "view=request&request=stream&connkey="+connKey;
+var streamCmdReq = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, onComplete: getStreamCmdResponse } );
+var streamCmdTimer = null;
+
+var streamStatus;
+
+function getStreamCmdResponse( respText )
+{
+    if ( streamCmdTimer )
+        streamCmdTimer = $clear( streamCmdTimer );
+
+    if ( !respText )
+        return;
+    var response = Json.evaluate( respText );
+    streamStatus = response.status;
+    $('fpsValue').setText( streamStatus.fps );
+
+    setAlarmState( streamStatus.state );
+
+    $('levelValue').setText( streamStatus.level );
+    if ( streamStatus.level > 95 )
+        $('levelValue').className = "alarm";
+    else if ( streamStatus.level > 80 )
+        $('levelValue').className = "alert";
+    else
+        $('levelValue').className = "ok";
+
+    var delayString = secsToTime( streamStatus.delay );
+
+    if ( streamStatus.paused == true )
+    {
+        $('modeValue').setText( "Paused" );
+        $('rate').addClass( 'hidden' );
+        $('delayValue').setText( delayString );
+        $('delay').removeClass( 'hidden' );
+        $('level').removeClass( 'hidden' );
+        streamCmdPause( false );
+    }
+    else if ( streamStatus.delayed == true )
+    {
+        $('modeValue').setText( "Replay" );
+        $('rateValue').setText( streamStatus.rate );
+        $('rate').removeClass( 'hidden' );
+        $('delayValue').setText( delayString );
+        $('delay').removeClass( 'hidden' );
+        $('level').removeClass( 'hidden' );
+        if ( streamStatus.rate == 1 )
+        {
+            streamCmdPlay( false );
+        }
+        else if ( streamStatus.rate > 0 )
+        {
+            if ( streamStatus.rate < 1 )
+                streamCmdSlowFwd( false );
+            else
+                streamCmdFastFwd( false );
+        }
+        else
+        {
+            if ( streamStatus.rate > -1 )
+                streamCmdSlowRev( false );
+            else
+                streamCmdFastRev( false );
+        }
+    }
+    else 
+    {
+        $('modeValue').setText( "Live" );
+        $('rate').addClass( 'hidden' );
+        $('delay').addClass( 'hidden' );
+        $('level').addClass( 'hidden' );
+        streamCmdPlay( false );
+    }
+    $('zoomValue').setText( streamStatus.zoom );
+    if ( streamStatus.zoom == "1.0" )
+        setButtonState( $('zoomOutBtn'), 'unavail' );
+    else
+        setButtonState( $('zoomOutBtn'), 'inactive' );
+
+    if ( canEditMonitors )
+    {
+        if ( streamStatus.enabled )
+        {
+            $('enableAlarmsLink').addClass( 'hidden' );
+            $('disableAlarmsLink').removeClass( 'hidden' );
+            if ( streamStatus.forced )
+            {
+                $('forceAlarmLink').addClass( 'hidden' );
+                $('cancelAlarmLink').removeClass( 'hidden' );
+            }
+            else
+            {
+                $('forceAlarmLink').removeClass( 'hidden' );
+                $('cancelAlarmLink').addClass( 'hidden' );
+            }
+            $('forceCancelAlarm').removeClass( 'hidden' );
+        }
+        else
+        {
+            $('enableAlarmsLink').removeClass( 'hidden' );
+            $('disableAlarmsLink').addClass( 'hidden' );
+            $('forceCancelAlarm').addClass( 'hidden' );
+        }
+        $('enableDisableAlarms').removeClass( 'hidden' );
+    }
+    else
+    {
+        $('enableDisableAlarms').addClass( 'hidden' );
+    }
+
     var streamCmdTimeout = statusRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
         streamCmdTimeout = streamCmdTimeout/5;
     streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
-    lastAlarmState = alarmState;
-}
+} 
 
 function streamCmdPause( action )
 {
@@ -212,7 +221,7 @@ function streamCmdPlay( action )
 {
     setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('playBtn'), 'active' );
-    if ( status.delayed == true )
+    if ( streamStatus.delayed == true )
     {
         setButtonState( $('stopBtn'), 'inactive' );
         setButtonState( $('fastFwdBtn'), 'inactive' );
@@ -324,8 +333,35 @@ function streamCmdPan( x, y )
 }
 
 function streamCmdQuery()
-{       
+{
     streamCmdReq.request( streamCmdParms+"&command="+CMD_QUERY );
+}       
+
+var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
+var statusCmdReq = new Ajax( thisUrl, { method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, onComplete: getStatusCmdResponse } );
+var statusCmdTimer = null;
+
+function getStatusCmdResponse( respText )
+{
+    if ( statusCmdTimer )
+        statusCmdTimer = $clear( statusCmdTimer );
+
+    if ( !respText )
+        return;
+    var response = Json.evaluate( respText );
+    $('fpsValue').setText( response.monitor.FrameRate );
+    
+    setAlarmState( response.monitor.Status );
+
+    var statusCmdTimeout = statusRefreshTimeout;
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+        statusCmdTimeout = statusCmdTimeout/5;
+    statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
+} 
+
+function statusCmdQuery()
+{
+    statusCmdReq.request();
 }       
 
 var alarmCmdParms = "view=request&request=alarm&id="+monitorId;
@@ -590,7 +626,11 @@ function handleClick( event )
 
 function initPage()
 {
-    streamCmdTimer = streamCmdQuery.delay( 1000 );
+    if ( streamMode == "single" )
+        statusCmdTimer = statusCmdQuery.delay( 1000 );
+    else
+        streamCmdTimer = streamCmdQuery.delay( 1000 );
+ 
     eventCmdTimer = eventCmdQuery.delay( 1500 );
 
     if ( canStreamNative || streamMode == "single" )
@@ -602,6 +642,7 @@ function initPage()
         if ( streamMode == "single" )
             fetchImage.pass( streamImg ).periodical( imageRefreshTimeout );
     }
+
 }
 
 // Kick everything off

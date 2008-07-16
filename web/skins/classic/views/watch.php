@@ -128,7 +128,7 @@ if ( canEdit( 'Monitors' ) )
 ?>
         <div id="monitorState"><?= $SLANG['State'] ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
       </div>
-      <div id="dvrControls">
+      <div id="dvrControls"<?= $streamMode=="single"?' class="hidden"':'' ?>>
         <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?= $SLANG['Rewind'] ?>" class="unavail" disabled="disabled" onclick="streamCmdFastRev( true )"/>
         <input type="button" value="&lt;" id="slowRevBtn" title="<?= $SLANG['StepBack'] ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowRev( true )"/>
         <input type="button" value="||" id="pauseBtn" title="<?= $SLANG['Pause'] ?>" class="inactive" onclick="streamCmdPause( true )"/>
@@ -138,7 +138,7 @@ if ( canEdit( 'Monitors' ) )
         <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?= $SLANG['FastForward'] ?>" class="unavail" disabled="disabled" onclick="streamCmdFastFwd( true )"/>
         <input type="button" value="&ndash;" id="zoomOutBtn" title="<?= $SLANG['ZoomOut'] ?>" class="avail" onclick="streamCmdZoomOut()"/>
       </div>
-      <div id="replayStatus">
+      <div id="replayStatus"<?= $streamMode=="single"?' class="hidden"':'' ?>>
         <span id="mode">Mode: <span id="modeValue"></span></span>
         <span id="rate">Rate: <span id="rateValue"></span>x</span>
         <span id="delay">Delay: <span id="delayValue"></span>s</span>

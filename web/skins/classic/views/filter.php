@@ -130,7 +130,7 @@ if ( empty($_REQUEST['sort_field']) )
     $_REQUEST['sort_asc'] = (ZM_WEB_EVENT_SORT_ORDER == "asc");
 }
 
-$hasCal = file_exists( 'calendar/calendar.js' );
+$hasCal = file_exists( 'tools/jscalendar/calendar.js' );
 
 $focusWindow = true;
 
@@ -252,7 +252,7 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
               <td><input type="checkbox" name="autoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
 <?php
-if ( ZM_OPT_MPEG != "no" )
+if ( ZM_OPT_FFMPEG )
 {
 ?>
             <tr>

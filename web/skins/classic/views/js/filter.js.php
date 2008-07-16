@@ -46,9 +46,9 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
 if ( !empty($hasCal) )
 {
 ?>
-<style type="text/css">@import url(calendar/calendar-win2k-1.css);</style>
-<script type="text/javascript" src="calendar/calendar.js"></script>
-<script type="text/javascript" src="calendar/lang/calendar-en.js"></script>
-<script type="text/javascript" src="calendar/calendar-setup.js"></script>
+<style type="text/css">@import url(tools/jscalendar/calendar-win2k-1.css);</style>
+<script type="text/javascript" src="tools/jscalendar/calendar.js"></script>
+<script type="text/javascript" src="tools/jscalendar/lang/calendar-en.js"></script>
+<script type="text/javascript" src="tools/jscalendar/calendar-setup.js"></script>
 <?php
 }

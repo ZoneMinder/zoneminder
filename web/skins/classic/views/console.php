@@ -321,7 +321,7 @@ foreach( $monitors as $monitor )
     if ( canEdit('Monitors') )
     {
 ?>
-            <td class="colOrder"><?= makeLink( '?view='.$_REQUEST['view'].'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdUpList[$monitor['Id']], '<img src="graphics/seq-u.gif" alt="Up" width="12" height="11"/>', $monitor['Sequence']>$minSequence ) ?><?= makeLink( 'view='.$_REQUEST['view'].'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdDownList[$monitor['Id']], '<img src="graphics/seq-d.gif" alt="Down" width="12" height="11"/>', $monitor['Sequence']<$maxSequence ) ?></td>
+            <td class="colOrder"><?= makeLink( '?view='.$_REQUEST['view'].'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdUpList[$monitor['Id']], '<img src="'.ZM_SKIN_PATH.'/graphics/seq-u.gif" alt="Up" width="12" height="11"/>', $monitor['Sequence']>$minSequence ) ?><?= makeLink( 'view='.$_REQUEST['view'].'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdDownList[$monitor['Id']], '<img src="'.ZM_SKIN_PATH.'/graphics/seq-d.gif" alt="Down" width="12" height="11"/>', $monitor['Sequence']<$maxSequence ) ?></td>
 <?php
     }
 ?>

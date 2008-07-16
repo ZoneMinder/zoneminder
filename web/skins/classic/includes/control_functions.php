@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web control function library, $Date: 2008-06-11 09:51:55 +0100 (Wed, 11 Jun 2008) $, $Revision: 2420 $
+// ZoneMinder web control function library, $Date$, $Revision$
 // Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
@@ -133,24 +133,24 @@ function getControlCommands( $monitor )
     return( $cmds );
 }
 
-function controlFocus( $monitor )
+function controlFocus( $monitor, $cmds )
 {
-    global $cmds, $SLANG;
+    global $SLANG;
 
     ob_start();
 ?>
-<div id="focusControls">
-  <div><?= $SLANG['Near'] ?></div>
+<div class="arrowControl focusControls">
+  <div class="arrowLabel"><?= $SLANG['Near'] ?></div>
   <div class="longArrowBtn upBtn" onclick="controlCmd('<?= $cmds['FocusNear'] ?>',event,0,-1)"></div>
-  <div<?php if ( $monitor['CanFocusCon'] ) { ?> onclick="controlCmd('<?= $cmds['FocusStop'] ?>')"<?php } ?>><?= $SLANG['Focus'] ?></div>
+  <div class="arrowCenter"<?php if ( $monitor['CanFocusCon'] ) { ?> onclick="controlCmd('<?= $cmds['FocusStop'] ?>')"<?php } ?>><?= $SLANG['Focus'] ?></div>
   <div class="longArrowBtn downBtn" onclick="controlCmd('<?= $cmds['FocusFar'] ?>',event,0,1)"></div>
-  <div><?= $SLANG['Far'] ?></div>
+  <div class="arrowLabel"><?= $SLANG['Far'] ?></div>
 <?php
     if ( $monitor['CanAutoFocus'] )
     {
 ?>
-  <div><input type="button" class="textbutton" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['FocusAuto'] ?>')"/></div>
-  <div><input type="button" class="textbutton" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['FocusMan'] ?>')"/></div>
+  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['FocusAuto'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['FocusMan'] ?>')"/>
 <?php
     }
 ?>
@@ -159,24 +159,24 @@ function controlFocus( $monitor )
     return( ob_get_clean() );
 }
 
-function controlZoom( $monitor )
+function controlZoom( $monitor, $cmds )
 {
-    global $cmds, $SLANG;
+    global $SLANG;
 
     ob_start();
 ?>
-<div id="zoomControls">
-  <div><?= $SLANG['Tele'] ?></div>
+<div class="arrowControl zoomControls">
+  <div class="arrowLabel"><?= $SLANG['Tele'] ?></div>
   <div class="longArrowBtn upBtn" onclick="controlCmd('<?= $cmds['ZoomTele'] ?>',event,0,-1)"></div>
-  <div<?php if ( $monitor['CanZoomCon'] ) { ?> onclick="controlCmd('<?= $cmds['ZoomStop'] ?>')"<?php } ?>><?= $SLANG['Zoom'] ?></div>
+  <div class="arrowCenter"<?php if ( $monitor['CanZoomCon'] ) { ?> onclick="controlCmd('<?= $cmds['ZoomStop'] ?>')"<?php } ?>><?= $SLANG['Zoom'] ?></div>
   <div class="longArrowBtn downBtn" onclick="controlCmd('<?= $cmds['ZoomWide'] ?>',event,0,1)"></div>
-  <div><?= $SLANG['Wide'] ?></div>
+  <div class="arrowLabel"><?= $SLANG['Wide'] ?></div>
 <?php
     if ( $monitor['CanAutoZoom'] )
     {
 ?>
-  <div><input type="button" class="textbutton" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['ZoomAuto'] ?>')"/></div>
-  <div><input type="button" class="textbutton" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['ZoomMan'] ?>')"/></div>
+  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['ZoomAuto'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['ZoomMan'] ?>')"/>
 <?php
     }
 ?>
@@ -184,24 +184,24 @@ function controlZoom( $monitor )
     return( ob_get_clean() );
 }
 
-function controlIris( $monitor )
+function controlIris( $monitor, $cmds )
 {
-    global $cmds, $SLANG;
+    global $SLANG;
 
     ob_start();
 ?>
-<div id="irisControls">
-  <div><?= $SLANG['Open'] ?></div>
+<div class="arrowControl irisControls">
+  <div class="arrowLabel"><?= $SLANG['Open'] ?></div>
   <div class="longArrowBtn upBtn" onclick="controlCmd('<?= $cmds['IrisOpen'] ?>',event,0,-1)"></div>
-  <div<?php if ( $monitor['CanIrisCon'] ) { ?> onclick="controlCmd('<?= $cmds['IrisStop'] ?>')"<?php } ?>><?= $SLANG['Iris'] ?></div>
+  <div class="arrowCenter"<?php if ( $monitor['CanIrisCon'] ) { ?> onclick="controlCmd('<?= $cmds['IrisStop'] ?>')"<?php } ?>><?= $SLANG['Iris'] ?></div>
   <div class="longArrowBtn downBtn" onclick="controlCmd('<?= $cmds['IrisClose'] ?>',event,0,1)"></div>
-  <div><?= $SLANG['Close'] ?></div>
+  <div class="arrowLabel"><?= $SLANG['Close'] ?></div>
 <?php
     if ( $monitor['CanAutoIris'] )
     {
 ?>
-  <div><input type="button" class="textbutton" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['IrisAuto'] ?>')"/></div>
-  <div><input type="button" class="textbutton" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['IrisMan'] ?>')"/></div>
+  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['IrisAuto'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['IrisMan'] ?>')"/>
 <?php
     }
 ?>
@@ -210,24 +210,24 @@ function controlIris( $monitor )
     return( ob_get_clean() );
 }
 
-function controlWhite( $monitor )
+function controlWhite( $monitor, $cmds )
 {
-    global $cmds, $SLANG;
+    global $SLANG;
 
     ob_start();
 ?>
-<div id="whiteControls">
-  <div><?= $SLANG['In'] ?></div>
+<div class="arrowControl whiteControls">
+  <div class="arrowLabel"><?= $SLANG['In'] ?></div>
   <div class="longArrowBtn upBtn" onclick="controlCmd('<?= $cmds['WhiteIn'] ?>',event,0,-1)"></div>
-  <div<?php if ( $monitor['CanWhiteCon'] ) { ?> onclick="controlCmd('<?= $cmds['WhiteStop'] ?>')"<?php } ?>><?= $SLANG['White'] ?></div>
+  <div class="arrowCenter"<?php if ( $monitor['CanWhiteCon'] ) { ?> onclick="controlCmd('<?= $cmds['WhiteStop'] ?>')"<?php } ?>><?= $SLANG['White'] ?></div>
   <div class="longArrowBtn downBtn" onclick="controlCmd('<?= $cmds['WhiteOut'] ?>',event,0,1)"></div>
-  <div><?= $SLANG['Out'] ?></div>
+  <div class="arrowLabel"><?= $SLANG['Out'] ?></div>
 <?php
     if ( $monitor['CanAutoWhite'] )
     {
 ?>
-  <div><input type="button" class="textbutton" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['WhiteAuto'] ?>')"/></div>
-  <div><input type="button" class="textbutton" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['WhiteMan'] ?>')"/></div>
+  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['WhiteAuto'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['WhiteMan'] ?>')"/>
 <?php
     }
 ?>
@@ -236,89 +236,38 @@ function controlWhite( $monitor )
     return( ob_get_clean() );
 }
 
-function controlPanTilt( $monitor )
+function controlPanTilt( $monitor, $cmds )
 {
-    global $cmds, $SLANG;
+    global $SLANG;
 
     ob_start();
 ?>
-<div id="pantiltControls">
-  <div><?= $SLANG['PanTilt'] ?></div>
-  <div id="pantiltButtons">
+<div class="pantiltControls">
+  <div class="pantilLabel"><?= $SLANG['PanTilt'] ?></div>
+  <div class="pantiltButtons">
 <?php
-    if ( $monitor['CanTilt'] )
-    {
-        if ( $monitor['CanPan'] )
-        {
-            if ( $monitor['CanMoveDiag'] )
-            {
+    $hasPan = $monitor['CanPan'];
+    $hasTilt = $monitor['CanTilt'];
+    $hasDiag = $hasPan && $hasTilt && $monitor['CanMoveDiag'];
 ?>
-      <div id="upLeftBtn" class="arrowBtn" onclick="controlCmd('<?= $cmds['MoveUpLeft'] ?>',event,-1,-1)"></div>
-<?php
-            }
-        }
-?>
-      <div id="upBtn" class="arrowBtn" onclick="controlCmd('<?= $cmds['MoveUp'] ?>',event,0,-1)"></div>
-<?php
-        if ( $monitor['CanPan'] )
-        {
-            if ( $monitor['CanMoveDiag'] )
-            {
-?>
-      <div id="upRightBtn" class="arrowBtn" onclick="controlCmd('<?= $cmds['MoveUpRight'] ?>',event,1,-1)"></div>
-<?php
-            }
-        }
-    }
-    if ( $monitor['CanPan'] )
-    {
-?>
-      <div id="leftBtn" class="arrowBtn" onclick="controlCmd('<?= $cmds['MoveLeft'] ?>',event,-1,0)"></div>
-<?php
-    }
-?>
-      <div id="centerBtn" class="arrowBtn" onclick="controlCmd('<?= $cmds['Center'] ?>')"></div>
-<?php
-    if ( $monitor['CanPan'] )
-    {
-?>
-      <div id="rightBtn" class="arrowBtn" onclick="controlCmd('<?= $cmds['MoveRight'] ?>',event,1,0)"></div>
-<?php
-    }
-    if ( $monitor['CanTilt'] )
-    {
-        if ( $monitor['CanPan'] )
-        {
-            if ( $monitor['CanMoveDiag'] )
-            {
-?>
-      <div id="downLeftBtn" class="arrowBtn" onclick="controlCmd('<?= $cmds['MoveDownLeft'] ?>',event,-1,1)"></div>
-<?php
-            }
-        }
-?>
-      <div id="downBtn" class="arrowBtn" onclick="controlCmd('<?= $cmds['MoveDown'] ?>',event,0,1)"></div>
-<?php
-        if ( $monitor['CanPan'] )
-        {
-            if ( $monitor['CanMoveDiag'] )
-            {
-?>
-      <div id="downRightBtn" class="arrowBtn" onclick="controlCmd('<?= $cmds['MoveDownRight'] ?>',event,1,1)"></div>
-<?php
-            }
-        }
-    }
-?>
+      <div class="arrowBtn upLeftBtn<?= $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveUpLeft'] ?>',event,-1,-1)"></div>
+      <div class="arrowBtn upBtn<?= $hasTilt?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveUp'] ?>',event,0,-1)"></div>
+      <div class="arrowBtn upRightBtn<?= $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveUpRight'] ?>',event,1,-1)"></div>
+      <div class="arrowBtn leftBtn<?= $hasPan?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveLeft'] ?>',event,1,0)"></div>
+      <div class="arrowBtn centerBtn" onclick="controlCmd('<?= $cmds['Center'] ?>')"></div>
+      <div class="arrowBtn rightBtn<?= $hasPan?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveRight'] ?>',event,1,0)"></div>
+      <div class="arrowBtn downLeftBtn<?= $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveDownLeft'] ?>',event,-1,1)"></div>
+      <div class="arrowBtn downBtn<?= $hasTilt?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveDown'] ?>',event,0,1)"></div>
+      <div class="arrowBtn downRightBtn<?= $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveDownRight'] ?>',event,1,1)"></div>
   </div>
 </div>
 <?php
     return( ob_get_clean() );
 }
 
-function controlPresets( $monitor )
+function controlPresets( $monitor, $cmds )
 {
-    global $cmds, $SLANG;
+    global $SLANG;
 
     define( "MAX_PRESETS", "12" );
 
@@ -329,18 +278,18 @@ function controlPresets( $monitor )
         $labels[$row['Preset']] = $row['Label'];
     }
 
-    $preset_break = (int)(($monitor['NumPresets']+1)/((int)(($monitor['NumPresets']-1)/MAX_PRESETS)+1));
+    $presetBreak = (int)(($monitor['NumPresets']+1)/((int)(($monitor['NumPresets']-1)/MAX_PRESETS)+1));
 
     ob_start();
 ?>
-<div id="presetControls">
-  <div><?= $SLANG['Presets'] ?></div>
+<div class="presetControls">
+  <!--<div><?= $SLANG['Presets'] ?></div>-->
   <div>
 <?php
     for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )
     {
-?><input type="button" class="numbutton" title="<?= isset($labels[$i])?$labels[$i]:"" ?>" value="<?= $i ?>" onclick="controlCmd('<?= $cmds['PresetGoto'] ?><?=$i?>');"/><?php (($i%$preset_break)==0)?"<br/>":"&nbsp;&nbsp;" ?><?php
-        if ( $i && (($i%$preset_break) == 0) )
+?><input type="button" class="ptzNumBtn" title="<?= isset($labels[$i])?$labels[$i]:"" ?>" value="<?= $i ?>" onclick="controlCmd('<?= $cmds['PresetGoto'] ?><?= $i ?>');"/><?php
+        if ( $i && (($i%$presetBreak) == 0) )
         {
 ?><br/><?php
         }
@@ -352,13 +301,13 @@ function controlPresets( $monitor )
     if ( $monitor['HasHomePreset'] )
     {
 ?>
-    <span><input type="button" class="textbutton" value="<?= $SLANG['Home'] ?>" onclick="controlCmd('<?= $cmds['PresetHome'] ?>');"/></span>
+    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Home'] ?>" onclick="controlCmd('<?= $cmds['PresetHome'] ?>');"/>
 <?php
     }
     if ( canEdit( 'Monitors') && $monitor['CanSetPresets'] )
     {
 ?>
-    <span><input type="button" class="textbutton" value="<?= $SLANG['Set'] ?>" onclick="createPopup( '?view=controlpreset&mid=<?= $monitor['Id'] ?>', 'zmPreset', 'preset' );"/></span>
+    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Set'] ?>" onclick="createPopup( '?view=controlpreset&mid=<?= $monitor['Id'] ?>', 'zmPreset', 'preset' );"/>
 <?php
     }
 ?>
@@ -368,32 +317,32 @@ function controlPresets( $monitor )
     return( ob_get_clean() );
 }
 
-function controlPower( $monitor )
+function controlPower( $monitor, $cmds )
 {
-    global $cmds, $SLANG;
+    global $SLANG;
 
     ob_start();
 ?>
-<div id="powerControls">
-  <div><?= $SLANG['Control'] ?></div>
+<div class="powerControls">
+  <div class="powerLabel"><?= $SLANG['Control'] ?></div>
   <div>
 <?php
     if ( $monitor['CanWake'] )
     {
 ?>
-    <span><input type="button" class="textbutton" value="<?= $SLANG['Wake'] ?>" onclick="controlCmd('<?= $cmds['Wake'] ?>')"/></span>
+    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Wake'] ?>" onclick="controlCmd('<?= $cmds['Wake'] ?>')"/>
 <?php
     }
     if ( $monitor['CanSleep'] )
     {
 ?>
-    <span><input type="button" class="textbutton" value="<?= $SLANG['Sleep'] ?>" onclick="controlCmd('<?= $cmds['Sleep'] ?>')"/></span>
+    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Sleep'] ?>" onclick="controlCmd('<?= $cmds['Sleep'] ?>')"/>
 <?php
     }
     if ( $monitor['CanReset'] )
     {
 ?>
-    <span><input type="button" class="textbutton" value="<?= $SLANG['Reset'] ?>" onclick="controlCmd('<?= $cmds['Reset'] ?>')"/></span>
+    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Reset'] ?>" onclick="controlCmd('<?= $cmds['Reset'] ?>')"/>
 <?php
     }
 ?>
@@ -403,3 +352,39 @@ function controlPower( $monitor )
     return( ob_get_clean() );
 }
 
+function ptzControls( $monitor )
+{
+    $cmds = getControlCommands( $monitor );
+    ob_start();
+?>
+        <div class="controlsPanel">
+<?php
+        if ( $monitor['CanFocus'] )
+            echo controlFocus( $monitor, $cmds );
+        if ( $monitor['CanZoom'] )
+            echo controlZoom( $monitor, $cmds );
+        if ( $monitor['CanIris'] )
+            echo controlIris( $monitor, $cmds );
+        if ( $monitor['CanWhite'] )
+            echo controlWhite( $monitor, $cmds );
+        if ( $monitor['CanMove'] || ( $monitor['CanWake'] || $monitor['CanSleep'] || $monitor['CanReset'] ) )
+        {
+?>
+          <div class="pantiltPanel">
+<?php
+            if ( $monitor['CanMove'] )
+                echo controlPanTilt( $monitor, $cmds );
+            if ( $monitor['CanWake'] || $monitor['CanSleep'] || $monitor['CanReset'] )
+                echo controlPower( $monitor, $cmds );
+?>
+          </div>
+<?php
+        }
+?>
+        </div>
+<?php
+        if ( $monitor['HasPresets'] )
+            echo controlPresets( $monitor, $cmds );
+    return( ob_get_clean() );
+}
+?>

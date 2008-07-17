@@ -161,9 +161,10 @@ else
               <th><?= $SLANG['Description'] ?></th>
               <th><?= $SLANG['Value'] ?></th>
             </tr>
+          </thead>
+          <tbody>
 <?php
     $configCat = $configCats[$_REQUEST['tab']];
-
     foreach ( $configCat as $name=>$value )
     {
         $optionPromptIndex = preg_replace( '/^ZM_/', '', $name );
@@ -205,7 +206,7 @@ else
                 foreach ( $options as $option )
                 {
 ?>
-                <span><input type="radio" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { ?> checked="checked"<?php } ?>>&nbsp;<?= $option ?></span>
+                <span><input type="radio" id="<?= $value['Name'].'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $option ) ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { ?> checked="checked"<?php } ?>/>&nbsp;<?= $option ?></span>
 <?php
                 }
             }

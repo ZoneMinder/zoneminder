@@ -1357,18 +1357,16 @@ if ( !empty($_REQUEST['action']) )
             $changed = false;
             foreach ( $configCat as $name=>$value )
             {
-                if ( isset($_REQUEST['newConfig'][$name]) )
-                {
-                    if ( $value['Type'] == "boolean" && !$_REQUEST['newConfig'][$name] )
-                         $newValue = 0;
-                    else
-                         $newValue = preg_replace( "/\r\n/", "\n", stripslashes( $_REQUEST['newConfig'][$name] ) );
+                unset( $newValue );
+                if ( $value['Type'] == "boolean" && empty($_REQUEST['newConfig'][$name]) )
+                     $newValue = 0;
+                elseif ( isset($_REQUEST['newConfig'][$name]) )
+                     $newValue = preg_replace( "/\r\n/", "\n", stripslashes( $_REQUEST['newConfig'][$name] ) );
 
-                    if ( $newValue != $value['Value'] )
-                    {
-                        dbQuery( "update Config set Value = '".$newValue."' where Name = '".$name."'" );
-                        $changed = true;
-                    }
+                if ( isset($newValue) && ($newValue != $value['Value']) )
+                {
+                    dbQuery( "update Config set Value = '".$newValue."' where Name = '".$name."'" );
+                    $changed = true;
                 }
             }
             if ( $changed )

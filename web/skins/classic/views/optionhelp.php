@@ -18,8 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-$optionHelpIndex = preg_replace( '/^ZM_/', '', $option );
-$optionHelpText = !empty($OLANG[$optionHelpIndex])?$OLANG[$optionHelpIndex]:$config[$option]['Help'];
+$optionHelpIndex = preg_replace( '/^ZM_/', '', $_REQUEST['option'] );
+$optionHelpText = !empty($OLANG[$optionHelpIndex])?$OLANG[$optionHelpIndex]:$config[$_REQUEST['option']]['Help'];
 
 $focusWindow = true;
 
@@ -34,7 +34,7 @@ xhtmlHeaders(__FILE__, $SLANG['OptionHelp'] );
       <h2><?= $SLANG['OptionHelp'] ?></h2>
     </div>
     <div id="content">
-      <h3><?= $option ?></h3>
+      <h3><?= $_REQUEST['option'] ?></h3>
       <p class="textblock"><?= htmlentities($optionHelpText) ?></p>
     </div>
   </div>

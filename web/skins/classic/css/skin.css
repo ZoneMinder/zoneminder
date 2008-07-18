@@ -47,14 +47,14 @@ h2 {
 h3 {
     font-family: inherit;
     font-size: 10px;
-    color: #016A9D;
+    color: #016A9d;
     font-weight: bold;
 }
 
 h4 {
     font-family: inherit;
     font-size: 10px;
-    color: #016A9D;
+    color: #016A9d;
 }
 
 p {
@@ -66,16 +66,16 @@ p {
 
 th {
     font-weight: bold;
-    color: #016A9D;
+    color: #016A9d;
 }
 
 a:link {
-    color: #7F7FB2;
+    color: #7f7fb2;
     text-decoration: none;
 }
 
 a:visited {
-    color: #7F7FB2;
+    color: #7f7fb2;
     text-decoration: none;
 }
 
@@ -89,7 +89,7 @@ label {
 }
 
 input,textarea,select {
-    border: 1px #7F7FB2 solid;
+    border: 1px #7f7fb2 solid;
     font-family: inherit;
     font-size: 10px;
     color: #333333;
@@ -126,49 +126,42 @@ hr {
 /*
  * Tabbed headings
  */
-
-ul.tabList
-{
-    border-bottom: #7F7FB2 solid 1px;
-    margin-bottom: -4px;
-    height: 15px;
+ul.tabList {
+    float: left;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 -4px 0;
     white-space: nowrap;
-    padding-bottom: 1px;
     text-align: left;
 }
 
-ul.tabList li
-{
-    display: inline;
-    list-style: none;
-    font-family: inherit;
-    font-size: 10px;
+ul.tabList li {
+    float: left;
+    border: 1px solid;
     color: #333333;
-    font-weight: normal;
-    border: #7F7FB2 solid 1px;
+    border: #7f7fb2 solid 1px;
+    border-bottom-width: 0;
+    margin: 0 2px 0 0;
     background: #dddddd;
     text-align: center;
-    margin: -1px;
-    padding: 4px 0;
-}
-
-ul.tabList li.active {
-    font-weight: bold;
-    background-color: #ffffff;
-    border-left: #7F7FB2 solid 2px;
-    border-top: #7F7FB2 solid 2px;
-    border-right: #7F7FB2 solid 2px;
-    border-bottom: #7F7FB2 dotted 1px;
-    padding: 4px;
+    padding: 3px 4px;
 }
 
 ul.tabList li a {
     text-decoration: none;
-    padding: 4px;
 }
 
-ul.tabList li a:hover {
-    background: #eeeeee;
+ul.tabList li:hover {
+    background-color: #eeeeee;
+}
+
+ul.tabList li.active {
+    background-color: #ffffff;
+    border-bottom: #7f7fb2 dotted 1px;
+}
+
+ul.tabList li.active a {
+    font-weight: bold;
 }
 
 /*
@@ -255,34 +248,34 @@ ul.tabList li a:hover {
 .error {
     /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
     font-size: 10px;
-    color: #DC143C;
+    color: #dc143c;
     font-weight: bold;
 }
 
 .warn {
     /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
     font-size: 10px;
-    color: #FF8C00;
+    color: #ff8c00;
     font-weight: bold;
 }
 
 .info {
     /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
     font-size: 10px;
-    color: #688E23;
+    color: #688e23;
     font-weight: bold;
 }
 
 .errorText {
-    color: #DC143C;
+    color: #dc143c;
 }
 
 .warnText {
-    color: #FF8C00;
+    color: #ff8c00;
 }
 
 .infoText {
-    color: #688E23;
+    color: #688e23;
 }
 
 .disabledText {

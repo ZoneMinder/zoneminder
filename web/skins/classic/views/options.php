@@ -74,6 +74,7 @@ foreach ( $tabs as $name=>$value )
 }
 ?>
       </ul>
+      <div class="clear"></div>
 <?php 
 if ( $_REQUEST['tab'] == "users" )
 {

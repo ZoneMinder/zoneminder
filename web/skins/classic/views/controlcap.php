@@ -83,6 +83,7 @@ foreach ( $tabs as $name=>$value )
 }
 ?>
       </ul>
+      <div class="clear"></div>
       <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
         <input type="hidden" name="tab" value="<?= $_REQUEST['tab'] ?>"/>

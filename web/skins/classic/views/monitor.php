@@ -290,7 +290,6 @@ if ( $_REQUEST['tab'] != 'source' || ($newMonitor['Type'] != 'Remote' && $newMon
     <input type="hidden" name="newMonitor[Method]" value="<?= $newMonitor['Method'] ?>"/>
     <input type="hidden" name="newMonitor[Path]" value="<?= $newMonitor['Path'] ?>"/>
     <input type="hidden" name="newMonitor[SubPath]" value="<?= $newMonitor['SubPath'] ?>"/>
-    <input type="hidden" name="newMonitor[Colours]" value="<?= $newMonitor['Colours'] ?>"/>
 <?php
 }
 if ( $_REQUEST['tab'] != 'source' )

@@ -215,7 +215,9 @@ AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h limits.h memory.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h syslog.h unistd.h values.h])
-AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires mysql/mysql.h),)
+AC_CHECK_HEADERS(linux/videodev.h,,AC_MSG_ERROR(zm requires Video4Linux to be installed),)
+AC_CHECK_HEADERS(linux/videodev2.h,,AC_MSG_WARN(zm requires Video4Linux2 to be installed for V4L2 support),)
+AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires MySQL headers - check that MySQL development packages are installed),)
 AC_CHECK_HEADERS(ffmpeg/avformat.h,,,)
 AC_CHECK_HEADERS(libavformat/avformat.h,,,)
 AC_CHECK_HEADERS(ffmpeg/swscale.h,,,)

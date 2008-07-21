@@ -190,14 +190,20 @@ int RemoteCameraRtsp::PostCapture( Image &image )
 
         if ( buffer.Size() )
         {
+            int initialFrameCount = frameCount;
             while ( buffer.Size() > 0 )
             {
                 int got_picture = false;
                 int len = avcodec_decode_video( codecContext, picture, &got_picture, buffer.Head(), buffer.Size() );
                 if ( len < 0 )
                 {
-                    Hexdump( 0, buffer.Head(), buffer.Size() );
+                    if ( frameCount > initialFrameCount )
+                    {
+                        // Decoded at least one frame
+                        return( 0 );
+                    }
                     Error( "Error while decoding frame %d", frameCount );
+                    Hexdump( 0, buffer.Head(), buffer.Size() );
                     return( -1 );
                 }
                 Debug( 2, "Frame: %d: %d/%d", frameCount, len, buffer.Size() );

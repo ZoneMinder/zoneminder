@@ -50,7 +50,7 @@ var popupSizes = {
     'eventdetail':  { 'width': 400, 'height': 220 },
     'events':       { 'width': 760, 'height': 480 },
     'export':       { 'width': 400, 'height': 340 },
-    'filter':       { 'width': 620, 'height': 360 },
+    'filter':       { 'width': 720, 'height': 360 },
     'filtersave':   { 'width': 560, 'height': 120 },
     'frames':       { 'width': 500, 'height': 300 },
     'function':     { 'width': 248, 'height': 92 },

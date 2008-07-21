@@ -26,45 +26,44 @@ unsigned int Buffer::Assign( const unsigned char *p_storage, unsigned int p_size
 {
     if ( allocation < p_size )
     {
-	    delete[] storage;
-	    allocation = p_size;
-	    head = storage = new unsigned char[p_size];
+        delete[] storage;
+        allocation = p_size;
+        head = storage = new unsigned char[p_size];
     }
     size = p_size;
-	memcpy( storage, p_storage, size );
+    memcpy( storage, p_storage, size );
     head = storage;
-	tail = head + size;
-	return( size );
+    tail = head + size;
+    return( size );
 }
 
 unsigned int Buffer::Expand( unsigned int count )
 {
-	int spare = allocation - size;
-	int head_space = head - storage;
-	int tail_space = spare - head_space;
-	int width = tail - head;
-	if ( spare > count )
-	{
-		if ( tail_space < count )
-		{
-			memmove( storage, head, size );
-			head = storage;
-			tail = head + width;
-		}
-	}
-	else
-	{
-		allocation += count;
-		unsigned char *new_storage = new unsigned char[allocation];
-		if ( storage )
-		{
-			memcpy( new_storage, storage, size );
-			delete[] storage;
-		}
-		storage = new_storage;
-		head = storage;
-		tail = head + width;
-	}
-	size += count;
-	return( size );
+    int spare = allocation - size;
+    int head_space = head - storage;
+    int tail_space = spare - head_space;
+    int width = tail - head;
+    if ( spare > count )
+    {
+        if ( tail_space < count )
+        {
+            memmove( storage, head, size );
+            head = storage;
+            tail = head + width;
+        }
+    }
+    else
+    {
+        allocation += count;
+        unsigned char *new_storage = new unsigned char[allocation];
+        if ( storage )
+        {
+            memcpy( new_storage, head, size );
+            delete[] storage;
+        }
+        storage = new_storage;
+        head = storage;
+        tail = head + width;
+    }
+    return( size );
 }

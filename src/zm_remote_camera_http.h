@@ -45,7 +45,7 @@ protected:
     enum { SIMPLE, REGEXP } method;
 
 public:
-	RemoteCameraHttp( int p_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
+	RemoteCameraHttp( int p_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	~RemoteCameraHttp();
 
 	void Initialise();

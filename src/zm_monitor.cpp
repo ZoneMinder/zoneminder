@@ -390,7 +390,7 @@ Monitor::Monitor(
 		shared_data->state = IDLE;
 		shared_data->last_write_index = image_buffer_count;
 		shared_data->last_read_index = image_buffer_count;
-		shared_data->last_image_time = 0;
+		shared_data->last_write_time = 0;
 		shared_data->last_event = 0;
 		shared_data->action = (Action)0;
 		shared_data->brightness = -1;
@@ -409,6 +409,7 @@ Monitor::Monitor(
 	else if ( purpose == ANALYSIS )
 	{
 		shared_data->state = IDLE;
+		shared_data->last_read_time = 0;
 		shared_data->alarm_x = -1;
 		shared_data->alarm_y = -1;
 	}
@@ -417,12 +418,12 @@ Monitor::Monitor(
 	{
         if ( purpose != QUERY )
         {
-		    Error( "Shared memory not initialised by capture daemon" );
+		    Error( "Shared data not initialised by capture daemon" );
 		    exit( -1 );
         }
         else
         {
-		    Warning( "Shared memory not initialised by capture daemon, some query functions may not be available or produce invalid results" );
+		    Warning( "Shared data not initialised by capture daemon, some query functions may not be available or produce invalid results" );
         }
 	}
 
@@ -517,6 +518,7 @@ Monitor::~Monitor()
 	{
 		shared_data->state = state = IDLE;
 		shared_data->last_read_index = image_buffer_count;
+		shared_data->last_read_time = 0;
 	}
 	else if ( purpose == CAPTURE )
 	{
@@ -1468,6 +1470,7 @@ bool Monitor::Analyse()
 	}
 
 	shared_data->last_read_index = index%image_buffer_count;
+	shared_data->last_read_time = image_buffer[index].timestamp->tv_sec;
 	image_count++;
 
 	return( true );
@@ -1665,11 +1668,11 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 	static char sql[BUFSIZ];
 	if ( !device[0] )
 	{
-		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
+		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
 	}
 	else
 	{
-		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
 	}
 	if ( mysql_query( &dbconn, sql ) )
 	{
@@ -1700,6 +1703,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 		const char *device = dbrow[col]; col++;
 		int channel = atoi(dbrow[col]); col++;
 		int format = atoi(dbrow[col]); col++;
+		const char *method = dbrow[col]; col++;
 
 		int width = atoi(dbrow[col]); col++;
 		int height = atoi(dbrow[col]); col++;
@@ -1741,9 +1745,10 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 
 		Camera *camera = new LocalCamera(
             id,
-			device, // Device
-			channel, // Channel
-			format, // Format
+			device,
+			channel,
+			format,
+			method,
 			cam_width,
 			cam_height,
 			palette,
@@ -2172,6 +2177,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 				device.c_str(),
 				channel,
 				format,
+				method,
 				cam_width,
 				cam_height,
 				palette,
@@ -2329,8 +2335,7 @@ int Monitor::PostCapture()
 		}
 
 		int index = image_count%image_buffer_count;
-
-		if ( index == shared_data->last_read_index && function > MONITOR )
+		if ( (index == shared_data->last_read_index) && (function > MONITOR) )
 		{
 			Warning( "Buffer overrun at index %d, slow down capture, speed up analysis or increase ring buffer size", index );
 		}
@@ -2344,7 +2349,7 @@ int Monitor::PostCapture()
 
 		shared_data->signal = CheckSignal( &image );
 		shared_data->last_write_index = index;
-		shared_data->last_image_time = image_buffer[index].timestamp->tv_sec;
+		shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
 
 		image_count++;
 
@@ -2619,7 +2624,7 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File") );
 	if ( camera->IsLocal() )
 	{
-		sprintf( output+strlen(output), "Device : %s\n", ((LocalCamera *)camera)->Device() );
+		sprintf( output+strlen(output), "Device : %s\n", ((LocalCamera *)camera)->Device().c_str() );
 		sprintf( output+strlen(output), "Channel : %d\n", ((LocalCamera *)camera)->Channel() );
 		sprintf( output+strlen(output), "Format : %d\n", ((LocalCamera *)camera)->Format() );
 	}
@@ -2636,7 +2641,10 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	}
 	sprintf( output+strlen(output), "Width : %d\n", camera->Width() );
 	sprintf( output+strlen(output), "Height : %d\n", camera->Height() );
-	sprintf( output+strlen(output), "Palette : %d\n", camera->Palette() );
+	if ( camera->IsLocal() )
+	{
+	    sprintf( output+strlen(output), "Palette : %d\n", ((LocalCamera *)camera)->Palette() );
+    }
 	sprintf( output+strlen(output), "Colours : %d\n", camera->Colours() );
 	sprintf( output+strlen(output), "Event Prefix : %s\n", event_prefix );
 	sprintf( output+strlen(output), "Label Format : %s\n", label_format );

@@ -84,7 +84,8 @@ protected:
 		State state;
 		int last_write_index;
 		int last_read_index;
-		time_t last_image_time;
+		time_t last_write_time;
+		time_t last_read_time;
 		int last_event;
 		int action;
 		int brightness;

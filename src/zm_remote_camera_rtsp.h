@@ -55,7 +55,7 @@ protected:
     int frameCount;
 
 public:
-	RemoteCameraRtsp( int p_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, const std::string &subpath, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
+	RemoteCameraRtsp( int p_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, const std::string &subpath, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	~RemoteCameraRtsp();
 
 	void Initialise();

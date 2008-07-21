@@ -23,7 +23,20 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 
+#include <string.h>
+
+#include <string>
+
+#include "zm.h"
 #include "zm_camera.h"
+
+#ifdef HAVE_LINUX_VIDEODEV2_H
+#include <linux/videodev2.h>
+#define ZM_V4L2
+#endif // HAVE_LINUX_VIDEODEV2_H
+#ifdef HAVE_LINUX_VIDEODEV_H
+#include <linux/videodev.h>
+#endif // HAVE_LINUX_VIDEODEV_H
 
 //
 // Class representing 'local' cameras, i.e. those which are
@@ -33,24 +46,58 @@
 class LocalCamera : public Camera
 {
 protected:
-	char 	device[PATH_MAX];
-	int		channel;
-	int		format;
+#ifdef ZM_V4L2
+    typedef struct
+    {
+        void    *start;
+        size_t  length;
+    } V4L2MappedBuffer;
 
-    int     channel_index;
+    struct V4L2Data
+    {
+        v4l2_cropcap        cropcap;
+        v4l2_crop           crop;
+        v4l2_format         fmt;
+        v4l2_requestbuffers reqbufs;
+        V4L2MappedBuffer    *buffers;
+        v4l2_buffer         *buffer;
+    };
+#endif // ZM_V4L2
+
+    struct V4L1Data
+    {
+	    int				    cap_frame;
+	    int				    cap_frame_active;
+	    int				    sync_frame;
+	    video_mbuf		    frames;
+	    video_mmap		    *buffers;
+	    unsigned char	    *buffer;
+    };
+
+protected:
+	std::string device;
+	int		    channel;
+	int		    format;
+
+    int         palette;
+
+    bool        device_prime;
+    bool        channel_prime;
+
+    bool        v4l2;
 
 protected:
 	static int				camera_count;
 	static int				channel_count;
     static int              last_channel;
 
-	static int				m_cap_frame;
-	static int				m_cap_frame_active;
-	static int				m_sync_frame;
-	static video_mbuf		m_vmb;
-	static video_mmap		*m_vmm;
-	static int				m_videohandle;
-	static unsigned char	*m_buffer;
+	static int				vid_fd;
+
+#ifdef ZM_V4L2
+    static V4L2Data         v4l2_data;
+#endif // ZM_V4L2
+    static V4L1Data         v4l1_data;
+
 	static unsigned char	*y_table;
 	static signed char		*uv_table;
 	static short			*r_v_table;
@@ -59,15 +106,17 @@ protected:
 	static short			*b_u_table;
 
 public:
-	LocalCamera( int p_id, const char *p_device, int p_channel, int p_format, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
+	LocalCamera( int p_id, const std::string &device, int p_channel, int p_format, const std::string &p_method, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	~LocalCamera();
 
 	void Initialise();
 	void Terminate();
 
-	const char *Device() const { return( device ); }
+	const std::string &Device() const { return( device ); }
 	unsigned int Channel() const { return( channel ); }
 	unsigned int Format() const { return( format ); }
+
+	int Palette() const { return( palette ); }
 
 	int Brightness( int p_brightness=-1 );
 	int Hue( int p_hue=-1 );

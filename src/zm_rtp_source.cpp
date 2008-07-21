@@ -84,6 +84,7 @@ bool RtpSource::updateSeq( U16 seq )
 
     // Source is not valid until MIN_SEQUENTIAL packets with
     // sequential sequence numbers have been received.
+    Debug( 5, "Seq: %d", seq );
 
     if ( mProbation)
     {

@@ -25,8 +25,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, const std::string &p_subpath, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
-    RemoteCamera( p_id, "rtsp", p_host, p_port, p_path, p_subpath, p_width, p_height, p_palette, p_brightness, p_contrast, p_hue, p_colour, p_capture ),
+RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, const std::string &p_subpath, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+    RemoteCamera( p_id, "rtsp", p_host, p_port, p_path, p_subpath, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture ),
     rtspThread( 0 )
 {
     if ( p_method == "rtpUni" )

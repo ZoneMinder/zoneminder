@@ -22,7 +22,6 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <linux/videodev.h>
 
 #include "zm_image.h"
 
@@ -39,17 +38,16 @@ protected:
 	SourceType		type;
 	unsigned int	width;
 	unsigned int	height;
-	unsigned int	palette;
 	unsigned int	colours;
 	unsigned int	size;
 	int				brightness;
 	int				hue;
 	int				colour;
 	int				contrast;
-	bool			capture;
+    bool            capture;
 
 public:
-	Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture=true );
+	Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	virtual ~Camera();
 
     int getId() const { return( id ); }
@@ -59,7 +57,6 @@ public:
 	bool IsFile() const { return( type == FILE_SRC ); }
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
-	unsigned int Palette() const { return( palette ); }
 	unsigned int Colours() const { return( colours ); }
 	unsigned int ImageSize() const { return( size ); }
 
@@ -68,8 +65,8 @@ public:
 	virtual int Colour( int/*p_colour*/=-1 ) { return( -1 ); }
 	virtual int Contrast( int/*p_contrast*/=-1 ) { return( -1 ); }
 
-	bool CanCapture() const { return( capture ); }
-
+    bool CanCapture() const { return( capture ); }
+    
 	virtual int PrimeCapture() { return( 0 ); }
 	virtual int PreCapture()=0;
 	virtual int PostCapture( Image &image )=0;

@@ -27,13 +27,24 @@ alter table Monitors add column `SubPath` varchar(64) not null default '' after 
 alter table MonitorPresets add column `SubPath` varchar(64) default NULL after `Path`;
 
 --
+-- Update Palette for new meaning as Colours for non-Local monitors
+--
+update Monitors set Palette = 3 where Type != 'Local' and Palette = 4;
+update MonitorPresets set Palette = 3 where Type != 'Local' and Palette = 4;
+
+--
+-- Update Method for Local monitors
+--
+update Monitors set Method = "v4l1" where Type = 'Local';
+
+--
 -- Add in new MPEG presets
 --
-insert into MonitorPresets values ('','Axis IP, mpeg4, unicast','Remote',NULL,NULL,NULL,'rtsp','rtpUni','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,4,NULL,0,NULL,NULL,NULL,100,100);
-insert into MonitorPresets values ('','Axis IP, mpeg4, multicast','Remote',NULL,NULL,NULL,'rtsp','rtpMulti','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,4,NULL,0,NULL,NULL,NULL,100,100);
-insert into MonitorPresets values ('','Axis IP, mpeg4, RTP/RTSP','Remote',NULL,NULL,NULL,'rtsp','rtpRtsp','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,4,NULL,0,NULL,NULL,NULL,100,100);
-insert into MonitorPresets values ('','Axis IP, mpeg4, RTP/RTSP/HTTP','Remote',NULL,NULL,NULL,'rtsp','rtpRtspHttp','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,4,NULL,0,NULL,NULL,NULL,100,100);
-insert into MonitorPresets values ('','ACTi IP, mpeg4, unicast','Remote',NULL,NULL,NULL,'rtsp','rtpUni','<ip-address>',7070,'','/track',NULL,NULL,4,NULL,0,NULL,NULL,NULL,100,100);
+insert into MonitorPresets values ('','Axis IP, mpeg4, unicast','Remote',NULL,NULL,NULL,'rtsp','rtpUni','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
+insert into MonitorPresets values ('','Axis IP, mpeg4, multicast','Remote',NULL,NULL,NULL,'rtsp','rtpMulti','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
+insert into MonitorPresets values ('','Axis IP, mpeg4, RTP/RTSP','Remote',NULL,NULL,NULL,'rtsp','rtpRtsp','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
+insert into MonitorPresets values ('','Axis IP, mpeg4, RTP/RTSP/HTTP','Remote',NULL,NULL,NULL,'rtsp','rtpRtspHttp','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
+insert into MonitorPresets values ('','ACTi IP, mpeg4, unicast','Remote',NULL,NULL,NULL,'rtsp','rtpUni','<ip-address>',7070,'','/track',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
 
 --
 -- Get rid of never used columnn Learn State

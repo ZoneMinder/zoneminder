@@ -124,6 +124,11 @@ else
         $newX10Monitor = $x10Monitor;
 }
 
+if ( $newMonitor['MaxFPS'] == '0.00' )
+    $newMonitor['MaxFPS'] = '';
+if ( $newMonitor['AlarmMaxFPS'] == '0.00' )
+    $newMonitor['AlarmMaxFPS'] = '';
+
 if ( !empty($_REQUEST['preset']) )
 {
     $preset = dbFetchOne( "select Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, SubPath, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '".dbEscape($_REQUEST['preset'])."'" );

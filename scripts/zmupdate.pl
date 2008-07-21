@@ -48,6 +48,7 @@ use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 use ZoneMinder::Base qw(:all);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Debug qw(:all);
+use ZoneMinder::General qw(:all);
 use ZoneMinder::Database qw(:all);
 use ZoneMinder::ConfigAdmin qw( :functions );
 use POSIX;
@@ -74,6 +75,7 @@ my $check = 0;
 my $freshen = 0;
 my $rename = 0;
 my $zone_fix = 0;
+my $migrate_events = 0;
 my $version = '';
 my $db_user = ZM_DB_USER;
 my $db_pass = ZM_DB_PASS;
@@ -91,21 +93,21 @@ Parameters are :-
     exit( -1 );
 }
 
-if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix, 'version=s'=>\$version, 'interactive!'=>\$interactive, 'user:s'=>\$db_user, 'pass:s'=>\$db_pass ) )
+if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix, 'migrate-events'=>\$migrate_events, 'version=s'=>\$version, 'interactive!'=>\$interactive, 'user:s'=>\$db_user, 'pass:s'=>\$db_pass ) )
 {
-	Usage();
+    Usage();
 }
 
-if ( ! ($check || $freshen || $rename || $zone_fix || $version) )
+if ( ! ($check || $freshen || $rename || $zone_fix || $migrate_events || $version) )
 {
-	print( STDERR "Please give a valid option\n" );
-	Usage();
+    print( STDERR "Please give a valid option\n" );
+    Usage();
 }
 
-if ( ($check + $freshen + $rename + $zone_fix + ($version?1:0)) > 1 )
+if ( ($check + $freshen + $rename + $zone_fix + $migrate_events + ($version?1:0)) > 1 )
 {
-	print( STDERR "Please give only one option\n" );
-	Usage();
+    print( STDERR "Please give only one option\n" );
+    Usage();
 }
 
 if ( $check )
@@ -116,32 +118,32 @@ print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() ).
 
 if ( $check && ZM_CHECK_FOR_UPDATES )
 {
-	my $dbh = zmDbConnect();
+    my $dbh = zmDbConnect();
 
-	my $curr_version = ZM_DYN_CURR_VERSION;
-	my $last_version = ZM_DYN_LAST_VERSION;
-	my $last_check = ZM_DYN_LAST_CHECK;
+    my $curr_version = ZM_DYN_CURR_VERSION;
+    my $last_version = ZM_DYN_LAST_VERSION;
+    my $last_check = ZM_DYN_LAST_CHECK;
 
-	if ( !$curr_version )
-	{
-		$curr_version = ZM_VERSION;
+    if ( !$curr_version )
+    {
+        $curr_version = ZM_VERSION;
 
-		my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute( "$curr_version" ) or die( "Can't execute: ".$sth->errstr() );
-	}
-	zmDbDisconnect();
+        my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
+        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute( "$curr_version" ) or die( "Can't execute: ".$sth->errstr() );
+    }
+    zmDbDisconnect();
 
-	while( 1 )
-	{
-		my $now = time();
-		if ( !$last_version || !$last_check || (($now-$last_check) > CHECK_INTERVAL) )
-		{
-			Info( "Checking for updates\n" );
+    while( 1 )
+    {
+        my $now = time();
+        if ( !$last_version || !$last_check || (($now-$last_check) > CHECK_INTERVAL) )
+        {
+            Info( "Checking for updates\n" );
 
-			use LWP::UserAgent;
-			my $ua = LWP::UserAgent->new;
-			$ua->agent( "ZoneMinder Update Agent/".ZM_VERSION );
+            use LWP::UserAgent;
+            my $ua = LWP::UserAgent->new;
+            $ua->agent( "ZoneMinder Update Agent/".ZM_VERSION );
             if ( eval('defined(ZM_UPDATE_CHECK_PROXY)') )
             {
                 no strict 'subs';
@@ -151,506 +153,579 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
                 }
                 use strict 'subs';
             }
-			my $req = HTTP::Request->new( GET=>'http://www.zoneminder.com/version' );
-			my $res = $ua->request($req);
+            my $req = HTTP::Request->new( GET=>'http://www.zoneminder.com/version' );
+            my $res = $ua->request($req);
 
-			if ( $res->is_success )
-			{
-				$last_version = $res->content;
-				chomp($last_version);
-				$last_check = $now;
+            if ( $res->is_success )
+            {
+                $last_version = $res->content;
+                chomp($last_version);
+                $last_check = $now;
 
-				Info( "Got version: '".$last_version."'\n" );
+                Info( "Got version: '".$last_version."'\n" );
 
-				$dbh = zmDbConnect();
+                $dbh = zmDbConnect();
 
-				my $lv_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
-				my $lv_sth = $dbh->prepare_cached( $lv_sql ) or die( "Can't prepare '$lv_sql': ".$dbh->errstr() );
-				my $lv_res = $lv_sth->execute( $last_version ) or die( "Can't execute: ".$lv_sth->errstr() );
+                my $lv_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
+                my $lv_sth = $dbh->prepare_cached( $lv_sql ) or die( "Can't prepare '$lv_sql': ".$dbh->errstr() );
+                my $lv_res = $lv_sth->execute( $last_version ) or die( "Can't execute: ".$lv_sth->errstr() );
 
-				my $lc_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
-				my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
-				my $lc_res = $lc_sth->execute( $last_check ) or die( "Can't execute: ".$lc_sth->errstr() );
+                my $lc_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
+                my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
+                my $lc_res = $lc_sth->execute( $last_check ) or die( "Can't execute: ".$lc_sth->errstr() );
 
                 zmDbDisconnect();
-			}
-			else
-			{
-				Error( "Error check failed: '".$res->status_line()."'\n" );
-			}
-		}
-		sleep( 3600 );
-	}
+            }
+            else
+            {
+                Error( "Error check failed: '".$res->status_line()."'\n" );
+            }
+        }
+        sleep( 3600 );
+    }
 }
 if ( $rename )
 {
-	require File::Find;
+    require File::Find;
 
-	chdir( EVENT_PATH );
+    chdir( EVENT_PATH );
 
-	sub renameImage
-	{
-		my $file = $_;
+    sub renameImage
+    {
+        my $file = $_;
 
-		# Ignore directories
-		if ( -d $file )
-		{
-			print( "Checking directory '$file'\n" );
-			return;
-		}
-		if ( $file !~ /(capture|analyse)-(\d+)(\.jpg)/ )
-		{
-			return;
-		}
-		my $new_file = "$2-$1$3";
+        # Ignore directories
+        if ( -d $file )
+        {
+            print( "Checking directory '$file'\n" );
+            return;
+        }
+        if ( $file !~ /(capture|analyse)-(\d+)(\.jpg)/ )
+        {
+            return;
+        }
+        my $new_file = "$2-$1$3";
 
-		print( "Renaming '$file' to '$new_file'\n" );
-		rename( $file, $new_file ) or warn( "Can't rename '$file' to '$new_file'" );
-	}
+        print( "Renaming '$file' to '$new_file'\n" );
+        rename( $file, $new_file ) or warn( "Can't rename '$file' to '$new_file'" );
+    }
 
-	File::Find::find( \&renameImage, '.' );
+    File::Find::find( \&renameImage, '.' );
 }
 if ( $zone_fix )
 {
-	require DBI;
+    require DBI;
 
-	my $dbh = zmDbConnect();
+    my $dbh = zmDbConnect();
 
-	my $sql = "select Z.*, M.Width as MonitorWidth, M.Height as MonitorHeight from Zones as Z inner join Monitors as M on Z.MonitorId = M.Id where Z.Units = 'Percent'";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-	my @zones;
-	while( my $zone = $sth->fetchrow_hashref() )
-	{
-		push( @zones, $zone );
-	}
-	$sth->finish();
+    my $sql = "select Z.*, M.Width as MonitorWidth, M.Height as MonitorHeight from Zones as Z inner join Monitors as M on Z.MonitorId = M.Id where Z.Units = 'Percent'";
+    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+    my @zones;
+    while( my $zone = $sth->fetchrow_hashref() )
+    {
+        push( @zones, $zone );
+    }
+    $sth->finish();
 
-	foreach my $zone ( @zones )
-	{
-		my $zone_width = (($zone->{HiX}*$zone->{MonitorWidth})-($zone->{LoX}*$zone->{MonitorWidth}))/100;
-		my $zone_height = (($zone->{HiY}*$zone->{MonitorHeight})-($zone->{LoY}*$zone->{MonitorHeight}))/100;
-		my $zone_area = $zone_width * $zone_height;
-		my $monitor_area = $zone->{MonitorWidth} * $zone->{MonitorHeight};
-		my $sql = "update Zones set MinAlarmPixels = ?, MaxAlarmPixels = ?, MinFilterPixels = ?, MaxFilterPixels = ?, MinBlobPixels = ?, MaxBlobPixels = ? where Id = ?";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute(
-			($zone->{MinAlarmPixels}*$monitor_area)/$zone_area,
-			($zone->{MaxAlarmPixels}*$monitor_area)/$zone_area,
-			($zone->{MinFilterPixels}*$monitor_area)/$zone_area,
-			($zone->{MaxFilterPixels}*$monitor_area)/$zone_area,
-			($zone->{MinBlobPixels}*$monitor_area)/$zone_area,
-			($zone->{MaxBlobPixels}*$monitor_area)/$zone_area,
-			$zone->{Id}
-		) or die( "Can't execute: ".$sth->errstr() );
-	}
+    foreach my $zone ( @zones )
+    {
+        my $zone_width = (($zone->{HiX}*$zone->{MonitorWidth})-($zone->{LoX}*$zone->{MonitorWidth}))/100;
+        my $zone_height = (($zone->{HiY}*$zone->{MonitorHeight})-($zone->{LoY}*$zone->{MonitorHeight}))/100;
+        my $zone_area = $zone_width * $zone_height;
+        my $monitor_area = $zone->{MonitorWidth} * $zone->{MonitorHeight};
+        my $sql = "update Zones set MinAlarmPixels = ?, MaxAlarmPixels = ?, MinFilterPixels = ?, MaxFilterPixels = ?, MinBlobPixels = ?, MaxBlobPixels = ? where Id = ?";
+        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute(
+            ($zone->{MinAlarmPixels}*$monitor_area)/$zone_area,
+            ($zone->{MaxAlarmPixels}*$monitor_area)/$zone_area,
+            ($zone->{MinFilterPixels}*$monitor_area)/$zone_area,
+            ($zone->{MaxFilterPixels}*$monitor_area)/$zone_area,
+            ($zone->{MinBlobPixels}*$monitor_area)/$zone_area,
+            ($zone->{MaxBlobPixels}*$monitor_area)/$zone_area,
+            $zone->{Id}
+        ) or die( "Can't execute: ".$sth->errstr() );
+    }
+}
+if ( $migrate_events )
+{
+    my $webUid = (getpwnam( ZM_WEB_USER ))[2];
+    my $webGid = (getgrnam( ZM_WEB_USER ))[2];
+
+    if ( !(($> == 0) || ($> == $webUid)) )
+    {
+        print( "Error, migrating events can only be done as user root or ".ZM_WEB_USER.".\n" );
+        exit( -1 );
+    }
+
+    # Run as web user/group
+    $( = $webGid;
+    $) = $webGid;
+    $< = $webUid;
+    $> = $webUid;
+
+    print( "\nAbout to convert saved events to deep storage, please ensure that ZoneMinder is fully stopped before proceeding.\nThis process is not easily reversible. Are you sure you wish to proceed?\n\nPress 'y' to continue or 'n' to abort : " );
+    my $response = <STDIN>;
+    chomp( $response );
+    while ( $response !~ /^[yYnN]$/ )
+    {
+        print( "Please press 'y' to continue or 'n' to abort only : " );
+        $response = <STDIN>;
+        chomp( $response );
+    }
+
+    if ( $response =~ /^[yY]$/ )
+    {
+        print( "Converting all events to deep storage.\n" );
+
+        chdir( ZM_PATH_WEB );
+        my $dbh = zmDbConnect();
+        my $sql = "select *, unix_timestamp(StartTime) as UnixStartTime from Events";
+        my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute();
+        if ( !$res )
+        {
+            Fatal( "Can't fetch Events: ".$sth->errstr() );
+        }
+
+        while( my $event = $sth->fetchrow_hashref() )
+        {
+            my $oldEventPath = ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id};
+
+            if ( !-d $oldEventPath )
+            {
+                print( "Warning, can't find old event path '$oldEventPath', already converted?\n" );
+                next;
+            }
+
+            print( "Converting event ".$event->{Id}."\n" );
+            my $newDatePath = ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d", localtime($event->{UnixStartTime}) );
+            my $newTimePath = strftime( "%H/%M/%S", localtime($event->{UnixStartTime}) );
+            my $newEventPath = $newDatePath.'/'.$newTimePath;
+            ( my $truncEventPath = $newEventPath ) =~ s|/\d+$||;
+            makePath( ZM_PATH_WEB, $truncEventPath );
+            my $idLink = $newDatePath.'/.'.$event->{Id};
+            symlink( $newTimePath, $idLink ) or die( "Can't symlink $newTimePath -> $idLink: $!" );
+            rename( $oldEventPath, $newEventPath ) or die( "Can't move $oldEventPath -> $newEventPath: $!" );
+        }
+
+        print( "Updating configuration.\n" );
+        $sql = "update Config set Value = ? where Name = 'ZM_USE_DEEP_STORAGE'";
+        $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+        $res = $sth->execute( 1 ) or die( "Can't execute: ".$sth->errstr() );
+
+        print( "All events converted.\n\n" );
+    }
+    else
+    {
+        print( "Aborting event conversion.\n\n" );
+    }
 }
 if ( $freshen )
 {
-	print( "\nFreshening configuration in database\n" );
-	loadConfigFromDB();
-	saveConfigToDB();
+    print( "\nFreshening configuration in database\n" );
+    loadConfigFromDB();
+    saveConfigToDB();
 }
 if ( $version )
 {
-	my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
-	$version = $detaint_version;
+    my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
+    $version = $detaint_version;
 
-	print( "\nInitiating database upgrade to version ".ZM_VERSION."\n" );
-	if ( $interactive )
-	{
-		print( "Please ensure that ZoneMinder is stopped on your system prior to upgrading the database.\nPress enter to continue or ctrl-C to stop : " );
-		my $response = <STDIN>;
+    print( "\nInitiating database upgrade to version ".ZM_VERSION."\n" );
+    if ( $interactive )
+    {
+        print( "Please ensure that ZoneMinder is stopped on your system prior to upgrading the database.\nPress enter to continue or ctrl-C to stop : " );
+        my $response = <STDIN>;
 
-		print( "\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : " );
+        print( "\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : " );
+        $response = <STDIN>;
+        chomp( $response );
+        while ( $response !~ /^[yYnN]$/ )
+        {
+            print( "Please press 'y' for a backup or 'n' to continue only : " );
+            $response = <STDIN>;
+            chomp( $response );
+        }
 
-		$response = <STDIN>;
-		chomp( $response );
-		while ( $response !~ /^[yYnN]$/ )
-		{
-			print( "Please press 'y' for a backup or 'n' to continue only : " );
-			$response = <STDIN>;
-			chomp( $response );
-		}
-
-		if ( $response =~ /^[yY]$/ )
-		{
+        if ( $response =~ /^[yY]$/ )
+        {
             my ( $host, $port ) = ( ZM_DB_HOST =~ /^([^:]+)(?::(.+))?$/ );
-			my $command = "mysqldump -h".$host;
+            my $command = "mysqldump -h".$host;
             $command .= " -P".$port if defined($port);
-			if ( $db_user )
-			{
-				$command .= " -u".$db_user;
-				if ( $db_pass )
-				{
-					$command .= " -p".$db_pass;
-				}
-			}
-			my $backup = ZM_DB_NAME."-".$version.".dump";
-			$command .= " --add-drop-table --databases ".ZM_DB_NAME." > ".$backup;
-			print( "Creating backup to $backup. This may take several minutes.\n" );
-			print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
-			my $output = qx($command);
-			my $status = $? >> 8;
-			if ( $status || DBG_LEVEL > 0 )
-			{
-					chomp( $output );
-					print( "Output: $output\n" );
-			}
-			if ( $status )
-			{
-				die( "Command '$command' exited with status: $status\n" );
-			}
-			else
-			{
-				print( "Database successfully backed up to $backup, proceeding to upgrade.\n" );
-			}
-		}
-		elsif ( $response !~ /^[nN]$/ )
-		{
-			die( "Unexpected response '$response'" );
-		}
-	}
-	sub patchDB
-	{
-		my $dbh = shift;
-		my $version = shift;
+            if ( $db_user )
+            {
+                $command .= " -u".$db_user;
+                if ( $db_pass )
+                {
+                    $command .= " -p".$db_pass;
+                }
+            }
+            my $backup = ZM_DB_NAME."-".$version.".dump";
+            $command .= " --add-drop-table --databases ".ZM_DB_NAME." > ".$backup;
+            print( "Creating backup to $backup. This may take several minutes.\n" );
+            print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
+            my $output = qx($command);
+            my $status = $? >> 8;
+            if ( $status || DBG_LEVEL > 0 )
+            {
+                    chomp( $output );
+                    print( "Output: $output\n" );
+            }
+            if ( $status )
+            {
+                die( "Command '$command' exited with status: $status\n" );
+            }
+            else
+            {
+                print( "Database successfully backed up to $backup, proceeding to upgrade.\n" );
+            }
+        }
+        elsif ( $response !~ /^[nN]$/ )
+        {
+            die( "Unexpected response '$response'" );
+        }
+    }
+    sub patchDB
+    {
+        my $dbh = shift;
+        my $version = shift;
 
         my ( $host, $port ) = ( ZM_DB_HOST =~ /^([^:]+)(?::(.+))?$/ );
-		my $command = "mysql -h".$host;
+        my $command = "mysql -h".$host;
         $command .= " -P".$port if defined($port);
-		if ( $db_user )
-		{
-			$command .= " -u".$db_user;
-			if ( $db_pass )
-			{
-				$command .= " -p".$db_pass;
-			}
-		}
-		$command .= " ".ZM_DB_NAME." < ".ZM_PATH_BUILD."/db/zm_update-".$version.".sql";
+        if ( $db_user )
+        {
+            $command .= " -u".$db_user;
+            if ( $db_pass )
+            {
+                $command .= " -p".$db_pass;
+            }
+        }
+        $command .= " ".ZM_DB_NAME." < ".ZM_PATH_BUILD."/db/zm_update-".$version.".sql";
 
-		print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
-		my $output = qx($command);
-		my $status = $? >> 8;
-		if ( $status || DBG_LEVEL > 0 )
-		{
-				chomp( $output );
-				print( "Output: $output\n" );
-		}
-		if ( $status )
-		{
-			die( "Command '$command' exited with status: $status\n" );
-		}
-		else
-		{
-			print( "\nDatabase successfully upgraded from version $version.\n" );
-			my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
-		}
-	}
+        print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
+        my $output = qx($command);
+        my $status = $? >> 8;
+        if ( $status || DBG_LEVEL > 0 )
+        {
+                chomp( $output );
+                print( "Output: $output\n" );
+        }
+        if ( $status )
+        {
+            die( "Command '$command' exited with status: $status\n" );
+        }
+        else
+        {
+            print( "\nDatabase successfully upgraded from version $version.\n" );
+            my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
+            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
+        }
+    }
 
-	if ( ZM_DYN_DB_VERSION && ZM_DYN_DB_VERSION ne $version )
-	{
-		# Nothing yet
-	}
+    if ( ZM_DYN_DB_VERSION && ZM_DYN_DB_VERSION ne $version )
+    {
+        # Nothing yet
+    }
 
-	print( "\nUpgrading database to version ".ZM_VERSION."\n" );
+    print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
-	# Update config first of all
-	loadConfigFromDB();
-	saveConfigToDB();
+    # Update config first of all
+    loadConfigFromDB();
+    saveConfigToDB();
 
-	my $dbh = zmDbConnect();
+    my $dbh = zmDbConnect();
 
-	my $cascade = undef;
-	if ( $cascade || $version eq "1.19.0" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.19.0" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.19.1" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.19.1");
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.19.2" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.19.2" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.19.3" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.19.3" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.19.4" )
-	{
-		require DBI;
+    my $cascade = undef;
+    if ( $cascade || $version eq "1.19.0" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.19.0" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.19.1" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.19.1");
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.19.2" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.19.2" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.19.3" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.19.3" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.19.4" )
+    {
+        require DBI;
 
-		# Rename the event directories and create a new symlink for the names
-		chdir( EVENT_PATH );
+        # Rename the event directories and create a new symlink for the names
+        chdir( EVENT_PATH );
 
-		my $sql = "select * from Monitors order by Id";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-		while( my $monitor = $sth->fetchrow_hashref() )
-		{
-			if ( -d $monitor->{Name} )
-			{
-				rename( $monitor->{Name}, $monitor->{Id} ) or warn( "Can't rename existing monitor directory '$monitor->{Name}' to '$monitor->{Id}': $!" );
-				symlink( $monitor->{Id}, $monitor->{Name} ) or warn( "Can't symlink monitor directory '$monitor->{Id}' to '$monitor->{Name}': $!" );
-			}
-		}
-		$sth->finish();
-		
-		# Patch the database
-		patchDB( $dbh, "1.19.4" );
+        my $sql = "select * from Monitors order by Id";
+        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+        while( my $monitor = $sth->fetchrow_hashref() )
+        {
+            if ( -d $monitor->{Name} )
+            {
+                rename( $monitor->{Name}, $monitor->{Id} ) or warn( "Can't rename existing monitor directory '$monitor->{Name}' to '$monitor->{Id}': $!" );
+                symlink( $monitor->{Id}, $monitor->{Name} ) or warn( "Can't symlink monitor directory '$monitor->{Id}' to '$monitor->{Name}': $!" );
+            }
+        }
+        $sth->finish();
+        
+        # Patch the database
+        patchDB( $dbh, "1.19.4" );
 
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.19.5" )
-	{
-		print( "\nThis version now only uses one database user.\nPlease ensure you have run zmconfig.pl and re-entered your database username and password prior to upgrading, or the upgrade will fail.\nPress enter to continue or ctrl-C to stop : " );
-		# Patch the database
-		my $dummy = <STDIN>;
-		patchDB( $dbh, "1.19.5" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.20.0" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.20.0" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.20.1" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.20.1" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.21.0" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.21.0" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.21.1" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.21.1" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.21.2" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.21.2" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.21.3" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.21.3" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.19.5" )
+    {
+        print( "\nThis version now only uses one database user.\nPlease ensure you have run zmconfig.pl and re-entered your database username and password prior to upgrading, or the upgrade will fail.\nPress enter to continue or ctrl-C to stop : " );
+        # Patch the database
+        my $dummy = <STDIN>;
+        patchDB( $dbh, "1.19.5" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.20.0" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.20.0" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.20.1" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.20.1" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.21.0" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.21.0" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.21.1" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.21.1" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.21.2" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.21.2" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.21.3" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.21.3" );
 
-		# Add appropriate widths and heights to events
-		{
-		print( "Updating events. This may take a few minutes. Please wait.\n" );
-		my $sql = "select * from Monitors order by Id";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-		while( my $monitor = $sth->fetchrow_hashref() )
-		{
-			my $sql = "update Events set Width = ?, Height = ? where MonitorId = ?";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute( $monitor->{Width}, $monitor->{Height}, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
-		}
-		$sth->finish();
-		}
+        # Add appropriate widths and heights to events
+        {
+        print( "Updating events. This may take a few minutes. Please wait.\n" );
+        my $sql = "select * from Monitors order by Id";
+        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+        while( my $monitor = $sth->fetchrow_hashref() )
+        {
+            my $sql = "update Events set Width = ?, Height = ? where MonitorId = ?";
+            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            my $res = $sth->execute( $monitor->{Width}, $monitor->{Height}, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+        }
+        $sth->finish();
+        }
 
-		# Add sequence numbers
-		{
-			print( "Updating monitor sequences. Please wait.\n" );
-			my $sql = "select * from Monitors order by Id";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			my $sequence = 1;
-			while( my $monitor = $sth->fetchrow_hashref() )
-			{
-				my $sql = "update Monitors set Sequence = ? where Id = ?";
-				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				my $res = $sth->execute( $sequence++, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
-			}
-			$sth->finish();
-		}
+        # Add sequence numbers
+        {
+            print( "Updating monitor sequences. Please wait.\n" );
+            my $sql = "select * from Monitors order by Id";
+            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            my $sequence = 1;
+            while( my $monitor = $sth->fetchrow_hashref() )
+            {
+                my $sql = "update Monitors set Sequence = ? where Id = ?";
+                my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                my $res = $sth->execute( $sequence++, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+            }
+            $sth->finish();
+        }
 
-		# Update saved filters
-		{
-			print( "Updating saved filters. Please wait.\n" );
-			my $sql = "select * from Filters";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			my @filters;
-			while( my $filter = $sth->fetchrow_hashref() )
-			{
-				push( @filters, $filter );
-			}
-			$sth->finish();
-			$sql = "update Filters set Query = ? where Name = ?";
-			$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			foreach my $filter ( @filters )
-			{
-				if ( $filter->{Query} =~ /op\d=&/ )
-				{
-					( my $new_query = $filter->{Query} ) =~ s/(op\d=)&/$1=&/g;
-					$res = $sth->execute( $new_query, $filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
-				}
-			}
-		}
+        # Update saved filters
+        {
+            print( "Updating saved filters. Please wait.\n" );
+            my $sql = "select * from Filters";
+            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            my @filters;
+            while( my $filter = $sth->fetchrow_hashref() )
+            {
+                push( @filters, $filter );
+            }
+            $sth->finish();
+            $sql = "update Filters set Query = ? where Name = ?";
+            $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            foreach my $filter ( @filters )
+            {
+                if ( $filter->{Query} =~ /op\d=&/ )
+                {
+                    ( my $new_query = $filter->{Query} ) =~ s/(op\d=)&/$1=&/g;
+                    $res = $sth->execute( $new_query, $filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+                }
+            }
+        }
 
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.21.4" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.21.4" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.21.4" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.21.4" );
 
-		# Convert zones to new format
-		{
-			print( "Updating zones. Please wait.\n" );
+        # Convert zones to new format
+        {
+            print( "Updating zones. Please wait.\n" );
 
-			# Get the existing zones from the DB
-			my $sql = "select Z.*,M.Width,M.Height from Zones as Z inner join Monitors as M on (Z.MonitorId = M.Id)";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			my @zones;
-			while( my $zone = $sth->fetchrow_hashref() )
-			{
-				push( @zones, $zone );
-			}
-			$sth->finish();
+            # Get the existing zones from the DB
+            my $sql = "select Z.*,M.Width,M.Height from Zones as Z inner join Monitors as M on (Z.MonitorId = M.Id)";
+            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            my @zones;
+            while( my $zone = $sth->fetchrow_hashref() )
+            {
+                push( @zones, $zone );
+            }
+            $sth->finish();
 
-			no strict 'refs';
-			foreach my $zone ( @zones )
-			{
-				# Create the coordinate strings
-				if ( $zone->{Units} eq "Pixels" )
-				{
-					my $sql = "update Zones set NumCoords = 4, Coords = concat( LoX,',',LoY,' ',HiX,',',LoY,' ',HiX,',',HiY,' ',LoX,',',HiY ), Area = round( ((HiX-LoX)+1)*((HiY-LoY)+1) ) where Id = ?"; 
-					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-					my $res = $sth->execute( $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
-				}
-				else
-				{
-					my $lo_x = ($zone->{LoX} * ($zone->{Width}-1) ) / 100;
-					my $hi_x = ($zone->{HiX} * ($zone->{Width}-1) ) / 100;
-					my $lo_y = ($zone->{LoY} * ($zone->{Height}-1) ) / 100;
-					my $hi_y = ($zone->{HiY} * ($zone->{Height}-1) ) / 100;
-					my $area = (($hi_x-$lo_x)+1)*(($hi_y-$lo_y)+1);
-					my $sql = "update Zones set NumCoords = 4, Coords = concat( round(?),',',round(?),' ',round(?),',',round(?),' ',round(?),',',round(?),' ',round(?),',',round(?) ), Area = round(?), MinAlarmPixels = round(?), MaxAlarmPixels = round(?), MinFilterPixels = round(?), MaxFilterPixels = round(?), MinBlobPixels = round(?), MaxBlobPixels = round(?) where Id = ?"; 
-					my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-					my $res = $sth->execute( $lo_x, $lo_y, $hi_x, $lo_y, $hi_x, $hi_y, $lo_x, $hi_y, $area, ($zone->{MinAlarmPixels}*$area)/100, ($zone->{MaxAlarmPixels}*$area)/100, ($zone->{MinFilterPixels}*$area)/100, ($zone->{MaxFilterPixels}*$area)/100, ($zone->{MinBlobPixels}*$area)/100, ($zone->{MaxBlobPixels}*$area)/100, $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
-				}
-			}
-		}
-		# Convert run states to new format
-		{
-			print( "Updating run states. Please wait.\n" );
+            no strict 'refs';
+            foreach my $zone ( @zones )
+            {
+                # Create the coordinate strings
+                if ( $zone->{Units} eq "Pixels" )
+                {
+                    my $sql = "update Zones set NumCoords = 4, Coords = concat( LoX,',',LoY,' ',HiX,',',LoY,' ',HiX,',',HiY,' ',LoX,',',HiY ), Area = round( ((HiX-LoX)+1)*((HiY-LoY)+1) ) where Id = ?"; 
+                    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                    my $res = $sth->execute( $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+                }
+                else
+                {
+                    my $lo_x = ($zone->{LoX} * ($zone->{Width}-1) ) / 100;
+                    my $hi_x = ($zone->{HiX} * ($zone->{Width}-1) ) / 100;
+                    my $lo_y = ($zone->{LoY} * ($zone->{Height}-1) ) / 100;
+                    my $hi_y = ($zone->{HiY} * ($zone->{Height}-1) ) / 100;
+                    my $area = (($hi_x-$lo_x)+1)*(($hi_y-$lo_y)+1);
+                    my $sql = "update Zones set NumCoords = 4, Coords = concat( round(?),',',round(?),' ',round(?),',',round(?),' ',round(?),',',round(?),' ',round(?),',',round(?) ), Area = round(?), MinAlarmPixels = round(?), MaxAlarmPixels = round(?), MinFilterPixels = round(?), MaxFilterPixels = round(?), MinBlobPixels = round(?), MaxBlobPixels = round(?) where Id = ?"; 
+                    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                    my $res = $sth->execute( $lo_x, $lo_y, $hi_x, $lo_y, $hi_x, $hi_y, $lo_x, $hi_y, $area, ($zone->{MinAlarmPixels}*$area)/100, ($zone->{MaxAlarmPixels}*$area)/100, ($zone->{MinFilterPixels}*$area)/100, ($zone->{MaxFilterPixels}*$area)/100, ($zone->{MinBlobPixels}*$area)/100, ($zone->{MaxBlobPixels}*$area)/100, $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+                }
+            }
+        }
+        # Convert run states to new format
+        {
+            print( "Updating run states. Please wait.\n" );
 
-			# Get the existing zones from the DB
-			my $sql = "select * from States";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			my @states;
-			while( my $state = $sth->fetchrow_hashref() )
-			{
-				push( @states, $state );
-			}
-			$sth->finish();
+            # Get the existing zones from the DB
+            my $sql = "select * from States";
+            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            my @states;
+            while( my $state = $sth->fetchrow_hashref() )
+            {
+                push( @states, $state );
+            }
+            $sth->finish();
 
-			foreach my $state ( @states )
-			{
-				my @new_defns;
-				foreach my $defn ( split( /,/, $state->{Definition} ) )
-				{
-					push( @new_defns, $defn.":1" );
-				}
-				my $sql = "update States set Definition = ? where Name = ?";
-				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				my $res = $sth->execute( join( ',', @new_defns ), $state->{Name} ) or die( "Can't execute: ".$sth->errstr() );
-			}
-		}
+            foreach my $state ( @states )
+            {
+                my @new_defns;
+                foreach my $defn ( split( /,/, $state->{Definition} ) )
+                {
+                    push( @new_defns, $defn.":1" );
+                }
+                my $sql = "update States set Definition = ? where Name = ?";
+                my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                my $res = $sth->execute( join( ',', @new_defns ), $state->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+            }
+        }
 
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.22.0" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.22.0" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.22.0" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.22.0" );
 
-		# Check for maximum FPS setting and update alarm max fps settings
-		{
-			print( "Updating monitors. Please wait.\n" );
-			if ( defined(&ZM_NO_MAX_FPS_ON_ALARM) && &ZM_NO_MAX_FPS_ON_ALARM )
-			{
-				# Update the individual monitor settings to match the previous global one
-				my $sql = "update Monitors set AlarmMaxFPS = NULL";
-				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			}
-			else
-			{
-				# Update the individual monitor settings to match the previous global one
-				my $sql = "update Monitors set AlarmMaxFPS = MaxFPS";
-				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			}
-		}
-		{
-			print( "Updating mail configuration. Please wait.\n" );
-			my ( $sql, $sth, $res );
-			if ( defined(&ZM_EMAIL_TEXT) && &ZM_EMAIL_TEXT )
-			{
-				my ( $email_subject, $email_body ) = ZM_EMAIL_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"?$/ms;
-				$sql = "replace into Config set Id = 0, Name = 'ZM_EMAIL_SUBJECT', Value = '".$email_subject."', Type = 'string', DefaultValue = 'ZoneMinder: Alarm - %MN%-%EI% (%ESM% - %ESA% %EFA%)', Hint = 'string', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The subject of the email used to send matching event details', Help = 'This option is used to define the subject of the email that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_EMAIL=1'";
-				$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-				$sql = "replace into Config set Id = 0, Name = 'ZM_EMAIL_BODY', Value = '".$email_body."', Hint = 'free text', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The body of the email used to send matching event details', Help = 'This option is used to define the content of the email that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_EMAIL=1'";
-				$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			}
-			if ( defined(&ZM_MESSAGE_TEXT) && &ZM_MESSAGE_TEXT )
-			{
-				my ( $message_subject, $message_body ) = ZM_MESSAGE_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"?$/ms;
-				$sql = "replace into Config set Id = 0, Name = 'ZM_MESSAGE_SUBJECT', Value = '".$message_subject."', Type = 'string', DefaultValue = 'ZoneMinder: Alarm - %MN%-%EI%', Hint = 'string', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The subject of the message used to send matching event details', Help = 'This option is used to define the subject of the message that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_MESSAGE=1'";
-				$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-				$sql = "replace into Config set Id = 0, Name = 'ZM_MESSAGE_BODY', Value = '".$message_body."', Type = 'text', DefaultValue = 'ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score.', Hint = 'free text', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The body of the message used to send matching event details', Help = 'This option is used to define the content of the message that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_MESSAGE=1'";
-				$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-				$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			}
-		}
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.22.1" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.22.1" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.22.2" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.22.2" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.22.3" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.22.3" );
+        # Check for maximum FPS setting and update alarm max fps settings
+        {
+            print( "Updating monitors. Please wait.\n" );
+            if ( defined(&ZM_NO_MAX_FPS_ON_ALARM) && &ZM_NO_MAX_FPS_ON_ALARM )
+            {
+                # Update the individual monitor settings to match the previous global one
+                my $sql = "update Monitors set AlarmMaxFPS = NULL";
+                my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            }
+            else
+            {
+                # Update the individual monitor settings to match the previous global one
+                my $sql = "update Monitors set AlarmMaxFPS = MaxFPS";
+                my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            }
+        }
+        {
+            print( "Updating mail configuration. Please wait.\n" );
+            my ( $sql, $sth, $res );
+            if ( defined(&ZM_EMAIL_TEXT) && &ZM_EMAIL_TEXT )
+            {
+                my ( $email_subject, $email_body ) = ZM_EMAIL_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"?$/ms;
+                $sql = "replace into Config set Id = 0, Name = 'ZM_EMAIL_SUBJECT', Value = '".$email_subject."', Type = 'string', DefaultValue = 'ZoneMinder: Alarm - %MN%-%EI% (%ESM% - %ESA% %EFA%)', Hint = 'string', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The subject of the email used to send matching event details', Help = 'This option is used to define the subject of the email that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_EMAIL=1'";
+                $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+                $sql = "replace into Config set Id = 0, Name = 'ZM_EMAIL_BODY', Value = '".$email_body."', Hint = 'free text', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The body of the email used to send matching event details', Help = 'This option is used to define the content of the email that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_EMAIL=1'";
+                $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            }
+            if ( defined(&ZM_MESSAGE_TEXT) && &ZM_MESSAGE_TEXT )
+            {
+                my ( $message_subject, $message_body ) = ZM_MESSAGE_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"?$/ms;
+                $sql = "replace into Config set Id = 0, Name = 'ZM_MESSAGE_SUBJECT', Value = '".$message_subject."', Type = 'string', DefaultValue = 'ZoneMinder: Alarm - %MN%-%EI%', Hint = 'string', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The subject of the message used to send matching event details', Help = 'This option is used to define the subject of the message that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_MESSAGE=1'";
+                $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+                $sql = "replace into Config set Id = 0, Name = 'ZM_MESSAGE_BODY', Value = '".$message_body."', Type = 'text', DefaultValue = 'ZM alarm detected - %ED% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score.', Hint = 'free text', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The body of the message used to send matching event details', Help = 'This option is used to define the content of the message that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_MESSAGE=1'";
+                $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            }
+        }
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.22.1" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.22.1" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.22.2" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.22.2" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.22.3" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.22.3" );
 
         # Convert timestamp strings to new format
         {
@@ -760,41 +835,41 @@ if ( $version )
             my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
             my $res = $sth->execute( ZM_JPEG_IMAGE_QUALITY ) or die( "Can't execute: ".$sth->errstr() );
         }
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.23.0" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.23.0" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.23.1" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.23.1" );
-		$cascade = !undef;
-	}
-	if ( $cascade || $version eq "1.23.2" )
-	{
-		# Patch the database
-		patchDB( $dbh, "1.23.2" );
-		$cascade = !undef;
-	}
-	if ( $cascade )
-	{
-		my $installed_version = ZM_VERSION;
-		my $sql = "update Config set Value = ? where Name = ?";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute( "$installed_version", "ZM_DYN_DB_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
-		$res = $sth->execute( "$installed_version", "ZM_DYN_CURR_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
-		$dbh->disconnect();
-	}
-	else
-	{
-		$dbh->disconnect();
-		die( "Can't find upgrade from version '$version'" );
-	}
-	print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.23.0" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.23.0" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.23.1" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.23.1" );
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.23.2" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.23.2" );
+        $cascade = !undef;
+    }
+    if ( $cascade )
+    {
+        my $installed_version = ZM_VERSION;
+        my $sql = "update Config set Value = ? where Name = ?";
+        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute( "$installed_version", "ZM_DYN_DB_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
+        $res = $sth->execute( "$installed_version", "ZM_DYN_CURR_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
+        $dbh->disconnect();
+    }
+    else
+    {
+        $dbh->disconnect();
+        die( "Can't find upgrade from version '$version'" );
+    }
+    print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n" );
 }
 print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 exit( 0 );

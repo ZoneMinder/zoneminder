@@ -45,6 +45,7 @@ our %EXPORT_TAGS = (
 		executeShellCommand
 		getEventPath
 		deleteEventFiles
+        makePath
 	) ]
 );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -146,6 +147,32 @@ sub deleteEventFiles( $;$ )
     {
         my $command = "/bin/rm -rf $monitor_id/$event_id";
         executeShellCommand( $command );
+    }
+}
+
+sub makePath( $$ )
+{
+    my $root = shift;
+    my $path = shift;
+
+    Debug( "Creating path '$path'\n" );
+    my @parts = split( '/', $path );
+    my $subpath = $root;
+    foreach my $dir ( @parts )
+    {
+        $subpath .= '/'.$dir;
+        if ( !-d $subpath )
+        {
+            if ( -e $subpath )
+            {
+                die( "Can't create '$subpath', already exists as non directory" );
+            }
+            else
+            {
+                Debug( "Creating '$subpath'\n" );
+                mkdir( $subpath ) or die( "Can't mkdir '$subpath': $!" );
+            }
+        }
     }
 }
 

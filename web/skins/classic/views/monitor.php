@@ -62,7 +62,7 @@ else
         'Path' => "",
         'SubPath' => "",
         'Port' => "80",
-        'Palette' => "4",
+        'Palette' => "",
         'Width' => "",
         'Height' => "",
         'Orientation' => "0",
@@ -137,39 +137,39 @@ if ( !empty($_REQUEST['preset']) )
 }
 
 $sourceTypes = array(
-    'Local'=>$SLANG['Local'],
-    'Remote'=>$SLANG['Remote'],
-    'File'=>$SLANG['File']
+    'Local'  => $SLANG['Local'],
+    'Remote' => $SLANG['Remote'],
+    'File'   => $SLANG['File']
 );
 
 $remoteProtocols = array(
-    "http"=>"HTTP",
-    "rtsp"=>"RTSP"
+    "http" => "HTTP",
+    "rtsp" => "RTSP"
 );
 
 $rtspMethods = array(
-    "rtpUni"=>"RTP/Unicast",
-    "rtpMulti"=>"RTP/Multicast",
-    "rtpRtsp"=>"RTP/RTSP",
-    "rtpRtspHttp"=>"RTP/RTSP/HTTP"
+    "rtpUni"      => "RTP/Unicast",
+    "rtpMulti"    => "RTP/Multicast",
+    "rtpRtsp"     => "RTP/RTSP",
+    "rtpRtspHttp" => "RTP/RTSP/HTTP"
 );
 
 $httpMethods = array(
-    "simple"=>"Simple",
-    "regexp"=>"Regexp",
-    "jpegTags"=>"JPEG Tags"
+    "simple"   => "Simple",
+    "regexp"   => "Regexp",
+    "jpegTags" => "JPEG Tags"
 );
 unset( $httpMethods['jpegTags'] );
 
 $deviceFormats = array(
-    "PAL"=>0,
-    "NTSC"=>1,
-    "SECAM"=>2,
-    "AUTO"=>3,
-    "FMT4"=>4,
-    "FMT5"=>5,
-    "FMT6"=>6,
-    "FMT7"=>7
+    "PAL"   => 0,
+    "NTSC"  => 1,
+    "SECAM" => 2,
+    "AUTO"  => 3,
+    "FMT4"  => 4,
+    "FMT5"  => 5,
+    "FMT6"  => 6,
+    "FMT7"  => 7
 );
 
 $deviceChannels = array();
@@ -177,28 +177,28 @@ for ( $i = 0; $i <= 15; $i++ )
     $deviceChannels["$i"] = $i;
 
 $localPalettes = array(
-    $SLANG['Grey']=>1,
-    "RGB24"=>4,
-    "RGB565"=>3,
-    "RGB555"=>6,
-    "YUV422"=>7,
-    "YUYV"=>8,
-    "YUV422P"=>13,
-    "YUV420P"=>15
+    $SLANG['Grey'] => 1,
+    "RGB24"        => 4,
+    "RGB565"       => 3,
+    "RGB555"       => 6,
+    "YUV422"       => 7,
+    "YUYV"         => 8,
+    "YUV422P"      => 13,
+    "YUV420P"      => 15
 );
 
-$remotePalettes = $filePalettes = array(
-    $SLANG['8BitGrey']=>1,
-    $SLANG['24BitColour']=>4
+$remoteColours = $fileColours = array(
+    $SLANG['8BitGrey']    => 1,
+    $SLANG['24BitColour'] => 3
 );
 
 $orientations = array(
-    $SLANG['Normal']=>'0',
-    $SLANG['RotateRight']=>'90',
-    $SLANG['Inverted']=>'180',
-    $SLANG['RotateLeft']=>'270',
-    $SLANG['FlippedHori']=>'hori',
-    $SLANG['FlippedVert']=>'vert'
+    $SLANG['Normal']      => '0',
+    $SLANG['RotateRight'] => '90',
+    $SLANG['Inverted']    => '180',
+    $SLANG['RotateLeft']  => '270',
+    $SLANG['FlippedHori'] => 'hori',
+    $SLANG['FlippedVert'] => 'vert'
 );
 
 xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".$monitor['Name'] );
@@ -273,6 +273,7 @@ if ( $_REQUEST['tab'] != 'source' || $newMonitor['Type'] != 'Local' )
     <input type="hidden" name="newMonitor[Device]" value="<?= $newMonitor['Device'] ?>"/>
     <input type="hidden" name="newMonitor[Channel]" value="<?= $newMonitor['Channel'] ?>"/>
     <input type="hidden" name="newMonitor[Format]" value="<?= $newMonitor['Format'] ?>"/>
+    <input type="hidden" name="newMonitor[Palette]" value="<?= $newMonitor['Palette'] ?>"/>
 <?php
 }
 if ( $_REQUEST['tab'] != 'source' || $newMonitor['Type'] != 'Remote' )
@@ -289,12 +290,12 @@ if ( $_REQUEST['tab'] != 'source' || ($newMonitor['Type'] != 'Remote' && $newMon
     <input type="hidden" name="newMonitor[Method]" value="<?= $newMonitor['Method'] ?>"/>
     <input type="hidden" name="newMonitor[Path]" value="<?= $newMonitor['Path'] ?>"/>
     <input type="hidden" name="newMonitor[SubPath]" value="<?= $newMonitor['SubPath'] ?>"/>
+    <input type="hidden" name="newMonitor[Colours]" value="<?= $newMonitor['Colours'] ?>"/>
 <?php
 }
 if ( $_REQUEST['tab'] != 'source' )
 {
 ?>
-    <input type="hidden" name="newMonitor[Palette]" value="<?= $newMonitor['Palette'] ?>"/>
     <input type="hidden" name="newMonitor[Width]" value="<?= $newMonitor['Width'] ?>"/>
     <input type="hidden" name="newMonitor[Height]" value="<?= $newMonitor['Height'] ?>"/>
     <input type="hidden" name="newMonitor[Orientation]" value="<?= $newMonitor['Orientation'] ?>"/>
@@ -438,6 +439,14 @@ switch ( $_REQUEST['tab'] )
     }
     case 'source' :
     {
+        // Set up initial palette value
+        if ( $newMonitor['Palette'] == '' )
+        {
+            if ( $newMonitor['Type'] == 'Local' )
+                $newMonitor['Palette'] = 4;
+            else
+                $newMonitor['Palette'] = 3;
+        }
         if ( $newMonitor['Type'] == "Local" )
         {
 ?>
@@ -456,14 +465,14 @@ switch ( $_REQUEST['tab'] )
             <tr><td><?= $SLANG['RemoteHostPort'] ?></td><td><input type="text" name="newMonitor[Port]" value="<?= $newMonitor['Port'] ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['RemoteHostPath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= $newMonitor['Path'] ?>" size="36"/></td></tr>
             <tr><td><?= $SLANG['RemoteHostSubPath'] ?></td><td><input type="text" name="newMonitor[SubPath]" value="<?= $newMonitor['SubPath'] ?>" size="36"/></td></tr>
-            <tr><td><?= $SLANG['RemoteImageColours'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $remotePalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?= $SLANG['RemoteImageColours'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $remoteColours as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
         }
         elseif ( $newMonitor['Type'] == "File" )
         {
 ?>
             <tr><td><?= $SLANG['FilePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= $newMonitor['Path'] ?>" size="36"/></td></tr>
-            <tr><td><?= $SLANG['FileColours'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $filePalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?= $SLANG['FileColours'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $fileColours as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
         }
 ?>

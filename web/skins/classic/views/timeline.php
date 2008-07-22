@@ -23,7 +23,8 @@ if ( !canView( 'Events' ) )
     return;
 }
 
-require_once( ZM_SKIN_PATH.'/includes/timeline_functions.php' );
+foreach ( getSkinIncludes( 'includes/timeline_functions.php' ) as $includeFile )
+    require_once $includeFile;
 
 //
 // Date/time formats used in charts 

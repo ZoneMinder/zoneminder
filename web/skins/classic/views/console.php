@@ -175,6 +175,9 @@ foreach( $monitors as $monitor )
     $zoneCount += $monitor['ZoneCount'];
 }
 
+$seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
+$seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
+
 xhtmlHeaders( __FILE__, $SLANG['Console'] );
 ?>
 <body>
@@ -321,7 +324,7 @@ foreach( $monitors as $monitor )
     if ( canEdit('Monitors') )
     {
 ?>
-            <td class="colOrder"><?= makeLink( '?view='.$_REQUEST['view'].'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdUpList[$monitor['Id']], '<img src="'.ZM_SKIN_PATH.'/graphics/seq-u.gif" alt="Up" width="12" height="11"/>', $monitor['Sequence']>$minSequence ) ?><?= makeLink( 'view='.$_REQUEST['view'].'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdDownList[$monitor['Id']], '<img src="'.ZM_SKIN_PATH.'/graphics/seq-d.gif" alt="Down" width="12" height="11"/>', $monitor['Sequence']<$maxSequence ) ?></td>
+            <td class="colOrder"><?= makeLink( '?view='.$_REQUEST['view'].'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?= makeLink( 'view='.$_REQUEST['view'].'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></td>
 <?php
     }
 ?>

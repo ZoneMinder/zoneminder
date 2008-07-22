@@ -45,7 +45,8 @@ foreach( dbFetchAll( $sql ) as $row )
     $mids[$row['Id']] = $row['Name'];
 }
 
-require_once( ZM_SKIN_PATH.'/includes/control_functions.php' );
+foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
+    require_once $includeFile;
 
 $sql = "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '".$mid."'";
 $monitor = dbFetchOne( $sql );

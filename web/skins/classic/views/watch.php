@@ -148,7 +148,8 @@ if ( canEdit( 'Monitors' ) )
 <?php
 if ( $showControls )
 {
-    require_once( ZM_SKIN_PATH.'/includes/control_functions.php' );
+    foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
+        require_once $includeFile;
 ?>
       <div id="ptzControls" class="ptzControls<?= $_REQUEST['control']?'':' hidden' ?>">
 <?= ptzControls( $monitor ) ?>

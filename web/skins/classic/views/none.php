@@ -18,15 +18,13 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+$skinJsFile = getSkinFile( 'js/skin.js' );
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <title><?= ZM_WEB_TITLE_PREFIX ?></title>
-  <script type="text/javascript">
-<?php require_once( ZM_SKIN_PATH.'/js/skin.js.php' ) ?>
-  </script>
-  <script type="text/javascript" src="<?= ZM_SKIN_PATH.'/js/skin.js' ?>"></script>
+  <script type="text/javascript" src="<?= $skinJsFile ?>"></script>
   <script type="text/javascript">
 <?php
 if ( !$debug )

@@ -27,17 +27,11 @@ bool zm_reload = false;
 
 RETSIGTYPE zm_hup_handler( int signal )
 {
-#if HAVE_DECL_STRSIGNAL
-	char * error = strsignal(signal);
-	size_t errorStringSize = strlen(error) + strlen("Got signal (), reloading.");
-	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
-	(void) snprintf(errorString, errorStringSize, "Got signal (%s), reloading.", error);
-
-	Info( (const char *)errorString );
-	free(errorString);
-#else // HAVE_DECL_STRSIGNAL
+#if HAVE_STRSIGNAL
+	Info( "Got signal %d (%s), reloading", signal, strsignal(signal) );
+#else // HAVE_STRSIGNAL
 	Info( "Got HUP signal, reloading" );
-#endif // HAVE_DECL_STRSIGNAL
+#endif // HAVE_STRSIGNAL
 	zm_reload = true;
 }
 
@@ -45,17 +39,11 @@ bool zm_terminate = false;
 
 RETSIGTYPE zm_term_handler( int signal )
 {
-#if HAVE_DECL_STRSIGNAL
-	char * error = strsignal(signal);
-	size_t errorStringSize = strlen(error) + strlen("Got signal (), exiting.");
-	char * errorString =(char *) malloc(errorStringSize + 1);  // plus 1 for termination char.
-	(void) snprintf(errorString, errorStringSize, "Got signal (%s), exiting.", error);
-
-	Info( (const char *)errorString );
-	free(errorString);
-#else // HAVE_DECL_STRSIGNAL
+#if HAVE_STRSIGNAL
+	Info( "Got signal %d (%s), exiting", signal, strsignal(signal) );
+#else // HAVE_STRSIGNAL
 	Info( "Got TERM signal, exiting" );
-#endif // HAVE_DECL_STRSIGNAL
+#endif // HAVE_STRSIGNAL
 	zm_terminate = true;
 }
 
@@ -68,17 +56,11 @@ RETSIGTYPE zm_die_handler( int signal, siginfo_t *info, void *context )
 RETSIGTYPE zm_die_handler( int signal )
 #endif
 {
-#if HAVE_DECL_STRSIGNAL
-	char* error = strsignal(signal);
-	size_t errorStringSize = strlen(error) + strlen("Got signal (), crashing.");
-	char* errorString =(char *)malloc(errorStringSize+1); // plus 1 for termination char.
-	snprintf(errorString, errorStringSize, "Got signal (%s), crashing.", error );
-
-	Error( (const char *)errorString );
-	free(errorString);
-#else // HAVE_DECL_STRSIGNAL
+#if HAVE_STRSIGNAL
+	Info( "Got signal %d (%s), crashing", signal, strsignal(signal) );
+#else // HAVE_STRSIGNAL
 	Error( "Got signal %d, crashing", signal );
-#endif // HAVE_DECL_STRSIGNAL
+#endif // HAVE_STRSIGNAL
 
 #ifndef ZM_NO_CRASHTRACE
 #if ( ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) || HAVE_STRUCT_SIGCONTEXT )

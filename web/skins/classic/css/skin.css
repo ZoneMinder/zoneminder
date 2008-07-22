@@ -31,7 +31,7 @@ body {
 
 h1 {
     font-family: inherit;
-    font-size: 12px;
+    font-size: 120%;
     color: #000066;
     font-weight: bold;
     text-align: center;
@@ -39,27 +39,27 @@ h1 {
 
 h2 {
     font-family: inherit;
-    font-size: 11px;
+    font-size: 110%;
     color: #000066;
     font-weight: bold;
 }
 
 h3 {
     font-family: inherit;
-    font-size: 10px;
+    font-size: 100%;
     color: #016A9d;
     font-weight: bold;
 }
 
 h4 {
     font-family: inherit;
-    font-size: 10px;
+    font-size: 100%;
     color: #016A9d;
 }
 
 p {
     font-family: inherit;
-    font-size: 10px;
+    font-size: 100%;
     color: #333333;
     font-weight: normal;
 }
@@ -91,7 +91,7 @@ label {
 input,textarea,select {
     border: 1px #7f7fb2 solid;
     font-family: inherit;
-    font-size: 10px;
+    font-size: 100%;
     color: #333333;
 }
 
@@ -245,27 +245,6 @@ ul.tabList li.active a {
 /*
  * Behavior classes
  */
-.error {
-    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
-    font-size: 10px;
-    color: #dc143c;
-    font-weight: bold;
-}
-
-.warn {
-    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
-    font-size: 10px;
-    color: #ff8c00;
-    font-weight: bold;
-}
-
-.info {
-    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
-    font-size: 10px;
-    color: #688e23;
-    font-weight: bold;
-}
-
 .errorText {
     color: #dc143c;
 }

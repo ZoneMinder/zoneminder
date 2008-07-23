@@ -47,12 +47,12 @@ protected:
 
 protected:
     typedef struct {
-        long msg_type;
+        int msg_type;
         char msg_data[16];
     } CmdMsg;
 
     typedef struct {
-        long msg_type;
+        int msg_type;
         char msg_data[256];
     } DataMsg;
 

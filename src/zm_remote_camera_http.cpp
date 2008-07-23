@@ -71,7 +71,7 @@ void RemoteCameraHttp::Initialise()
 	if ( !timeout.tv_sec )
 	{
 		timeout.tv_sec = config.http_timeout/1000; 
-		timeout.tv_usec = config.http_timeout%1000; 
+		timeout.tv_usec = (config.http_timeout%1000)*1000;
 	}
 
 	int max_size = width*height*colours;

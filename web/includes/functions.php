@@ -2122,9 +2122,9 @@ function generateConnKey()
 
 function getSkinFile( $file )
 {
-    global $skinSeq;
+    global $skinBase;
     $skinFile = false;
-    foreach ( $skinSeq as $skin )
+    foreach ( $skinBase as $skin )
     {
         $tempSkinFile = 'skins'.'/'.$skin.'/'.$file;
         if ( file_exists( $tempSkinFile ) )
@@ -2135,9 +2135,9 @@ function getSkinFile( $file )
 
 function getSkinIncludes( $file, $includeBase=false, $asOverride=false )
 {
-    global $skinSeq;
+    global $skinBase;
     $skinFile = false;
-    foreach ( $skinSeq as $skin )
+    foreach ( $skinBase as $skin )
     {
         $tempSkinFile = 'skins'.'/'.$skin.'/'.$file;
         if ( file_exists( $tempSkinFile ) )

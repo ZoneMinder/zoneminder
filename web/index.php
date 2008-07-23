@@ -66,11 +66,11 @@ else
 define( "ZM_BASE_PATH", dirname( $_SERVER['REQUEST_URI'] ) );
 define( "ZM_SKIN_PATH", "skins/$skin" );
 
-$skinSeq = array(); // To allow for inheritance of skins
+$skinBase = array(); // To allow for inheritance of skins
 if ( !file_exists( ZM_SKIN_PATH ) )
     die( "Invalid skin '$skin'" );
 require_once( ZM_SKIN_PATH.'/includes/init.php' );
-$skinSeq[] = $skin;
+$skinBase[] = $skin;
 
 ini_set( "session.name", "ZMSESSID" );
 

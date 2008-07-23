@@ -2737,7 +2737,7 @@ bool MonitorStream::checkSwapPath( const char *path, bool create_path )
 
 void MonitorStream::processCommand( const CmdMsg *msg )
 {
-    Debug( 2, "Got message, type %ld, msg %d", msg->msg_type, msg->msg_data[0] );
+    Debug( 2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] );
     // Check for incoming command
     switch( (MsgCommand)msg->msg_data[0] )
     {

@@ -864,13 +864,13 @@ int RemoteCameraHttp::GetResponse()
 
 						Debug( 3, "Got boundary '%s'", boundary_header );
 
-						if ( subcontent_length_header )
+						if ( subcontent_length_header[0] )
 						{
 							start_ptr = subcontent_length_header + strspn( subcontent_length_header, " " );
 							content_length = atoi( start_ptr );
 							Debug( 3, "Got subcontent length '%d'", content_length );
 						}
-						if ( subcontent_type_header )
+						if ( subcontent_type_header[0] )
 						{
 							memset( content_type, 0, sizeof(content_type) );
 							start_ptr = subcontent_type_header + strspn( subcontent_type_header, " " );

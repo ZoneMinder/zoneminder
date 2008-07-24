@@ -579,11 +579,11 @@ bool EventStream::loadEventData( int event_id )
     if ( config.use_deep_storage )
     {
         struct tm *event_time = localtime( &event_data->start_time );
-        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", ZM_PATH_WEB, config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
     }
     else
     {
-        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", ZM_PATH_WEB, config.dir_events, event_data->monitor_id, event_data->event_id );
+        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_data->event_id );
     }
     event_data->frame_count = atoi(dbrow[2]);
     event_data->duration = atof(dbrow[4]);

@@ -24,8 +24,6 @@
 #include "zm.h"
 #include "zm_db.h"
 
-char *ZM_DB_HOST="", *ZM_DB_NAME="", *ZM_DB_USER="", *ZM_DB_PASS="", *ZM_PATH_WEB="";
-
 void zmLoadConfig()
 {
 	FILE *cfg;
@@ -86,11 +84,16 @@ void zmLoadConfig()
 		val = (char *)malloc( strlen(val_ptr)+1 );
 		strncpy( val, val_ptr, strlen(val_ptr)+1 );
 
-		if ( strcasecmp( name_ptr, "ZM_DB_HOST" ) == 0 ) ZM_DB_HOST = val;
-		else if ( strcasecmp( name_ptr, "ZM_DB_NAME" ) == 0 ) ZM_DB_NAME = val;
-		else if ( strcasecmp( name_ptr, "ZM_DB_USER" ) == 0 ) ZM_DB_USER = val;
-		else if ( strcasecmp( name_ptr, "ZM_DB_PASS" ) == 0 ) ZM_DB_PASS = val;
-		else if ( strcasecmp( name_ptr, "ZM_PATH_WEB" ) == 0 ) ZM_PATH_WEB = val;
+		if ( strcasecmp( name_ptr, "ZM_DB_HOST" ) == 0 )
+            staticConfig.DB_HOST = val;
+		else if ( strcasecmp( name_ptr, "ZM_DB_NAME" ) == 0 )
+            staticConfig.DB_NAME = val;
+		else if ( strcasecmp( name_ptr, "ZM_DB_USER" ) == 0 )
+            staticConfig.DB_USER = val;
+		else if ( strcasecmp( name_ptr, "ZM_DB_PASS" ) == 0 )
+            staticConfig.DB_PASS = val;
+		else if ( strcasecmp( name_ptr, "ZM_PATH_WEB" ) == 0 )
+            staticConfig.PATH_WEB = val;
 		else
 		{
 			// We ignore this now as there may be more parameters than the

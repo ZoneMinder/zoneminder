@@ -32,13 +32,12 @@ void zmDbConnect()
 		Error( "Can't initialise structure: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
-    char dbHost[256];
-    strncpy( dbHost, ZM_DB_HOST, sizeof(dbHost) );
-    if ( char *colon_ptr = strchr( dbHost, '/' ) )
+    std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":/" );
+    if ( colonIndex != std::string::npos )
     {
-        *colon_ptr = '\0';
-        char *dbPort = colon_ptr+1;
-	    if ( !mysql_real_connect( &dbconn, dbHost, ZM_DB_USER, ZM_DB_PASS, 0, atoi(dbPort), 0, 0 ) )
+        std::string dbHost = staticConfig.DB_HOST.substr( 0, colonIndex );
+        std::string dbPort = staticConfig.DB_HOST.substr( colonIndex+1 );
+	    if ( !mysql_real_connect( &dbconn, dbHost.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), 0, atoi(dbPort.c_str()), 0, 0 ) )
 	    {
 		    Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
 		    exit( mysql_errno( &dbconn ) );
@@ -46,13 +45,13 @@ void zmDbConnect()
     }
     else
     {
-	    if ( !mysql_real_connect( &dbconn, ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS, 0, 0, 0, 0 ) )
+	    if ( !mysql_real_connect( &dbconn, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), 0, 0, 0, 0 ) )
 	    {
 		    Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
 		    exit( mysql_errno( &dbconn ) );
 	    }
     }
-	if ( mysql_select_db( &dbconn, ZM_DB_NAME ) )
+	if ( mysql_select_db( &dbconn, staticConfig.DB_NAME.c_str() ) )
 	{
 		Error( "Can't select database: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );

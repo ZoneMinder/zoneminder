@@ -20,6 +20,8 @@
 #include "config.h"
 #include "zm_config_defines.h"
 
+#include <string>
+
 #define ZM_CONFIG				"@ZM_CONFIG@"	// Path to config file
 #define ZM_VERSION				"@VERSION@"	// ZoneMinder Version
 
@@ -36,8 +38,18 @@
 #define ZM_SAMPLE_RATE          int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
 #define ZM_SUSPENDED_RATE       int(1000000/4) // A slower rate for when disabled etc
 
-extern char *ZM_DB_HOST, *ZM_DB_NAME, *ZM_DB_USER, *ZM_DB_PASS, *ZM_PATH_WEB;
 extern void zmLoadConfig();
+
+struct StaticConfig
+{
+    std::string DB_HOST;
+    std::string DB_NAME;
+    std::string DB_USER;
+    std::string DB_PASS;
+    std::string PATH_WEB;
+};
+
+extern StaticConfig staticConfig;
 
 class ConfigItem
 {

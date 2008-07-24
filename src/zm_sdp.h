@@ -1,23 +1,93 @@
 #ifndef ZM_SDP_H
 #define ZM_SDP_H
-#include <stdlib.h>
-#include <stdint.h>
 
-#include <assert.h>
-#include <string.h>
+#include "config.h"
+#include "zm_ffmpeg.h"
 
-#include <netinet/in.h>
+#if HAVE_LIBAVFORMAT_AVFORMAT_H
+#include <libavformat/rtsp.h>
+#elif HAVE_FFMPEG_AVFORMAT_H
+#include <ffmpeg/rtsp.h>
+#else
+#error "No location for rtsp.h found"
+#endif
 
-extern "C"
+//
+// This file contains chunks of ffmpeg code that are not currently exported.
+// The main thing we are after is the sdp parser
+//
+
+//
+// Part of libavformat/rtp.h
+//
+
+#define RTP_MIN_PACKET_LENGTH 12
+#define RTP_MAX_PACKET_LENGTH 1500 /* XXX: suppress this define */
+
+int rtp_get_codec_info(AVCodecContext *codec, int payload_type);
+
+/** return < 0 if unknown payload type */
+int rtp_get_payload_type(AVCodecContext *codec);
+
+typedef struct RTPDemuxContext RTPDemuxContext;
+typedef struct rtp_payload_data_s rtp_payload_data_s;
+RTPDemuxContext *rtp_parse_open(AVFormatContext *s1, AVStream *st, URLContext *rtpc, int payload_type, rtp_payload_data_s *rtp_payload_data);
+int rtp_parse_packet(RTPDemuxContext *s, AVPacket *pkt,
+                     const uint8_t *buf, int len);
+void rtp_parse_close(RTPDemuxContext *s);
+
+int rtp_get_local_port(URLContext *h);
+int rtp_set_remote_url(URLContext *h, const char *uri);
+void rtp_get_file_handles(URLContext *h, int *prtp_fd, int *prtcp_fd);
+
+/**
+ * some rtp servers assume client is dead if they don't hear from them...
+ * so we send a Receiver Report to the provided ByteIO context
+ * (we don't have access to the rtcp handle from here)
+ */
+int rtp_check_and_send_back_rr(RTPDemuxContext *s, int count);
+
+#define RTP_PT_PRIVATE 96
+#define RTP_VERSION 2
+#define RTP_MAX_SDES 256   /**< maximum text length for SDES */
+
+/* RTCP paquets use 0.5 % of the bandwidth */
+#define RTCP_TX_RATIO_NUM 5
+#define RTCP_TX_RATIO_DEN 1000
+
+/** Structure listing useful vars to parse RTP packet payload*/
+typedef struct rtp_payload_data_s
 {
-//#include "network.h"
-#include "ffmpeg/avstring.h"
-#include "ffmpeg/rtsp.h"
+    int sizelength;
+    int indexlength;
+    int indexdeltalength;
+    int profile_level_id;
+    int streamtype;
+    int objecttype;
+    char *mode;
 
-//#include <stdint.h>
-//#include "avcodec.h"
-#include "ffmpeg/rtp.h"
-}
+    /** mpeg 4 AU headers */
+    struct AUHeaders {
+        int size;
+        int index;
+        int cts_flag;
+        int cts;
+        int dts_flag;
+        int dts;
+        int rap_flag;
+        int streamstate;
+    } *au_headers;
+    int nb_au_headers;
+    int au_headers_length_bytes;
+    int cur_au_index;
+} rtp_payload_data_t;
+
+//
+// Part of libavformat/rtp_internal.h
+//
+
+#include <stdint.h>
+//#include "rtp.h"
 
 // these statistics are used for rtcp receiver reports...
 typedef struct {
@@ -111,6 +181,24 @@ struct RTPDemuxContext {
 
 extern RTPDynamicProtocolHandler *RTPFirstDynamicPayloadHandler;
 
+int rtsp_next_attr_and_value(const char **p, char *attr, int attr_size, char *value, int value_size); ///< from rtsp.c, but used by rtp dynamic protocol handlers.
+
+void ff_rtp_send_data(AVFormatContext *s1, const uint8_t *buf1, int len, int m);
+const char *ff_rtp_enc_name(int payload_type);
+enum CodecID ff_rtp_codec_id(const char *buf, enum CodecType codec_type);
+
+void av_register_rtp_dynamic_payload_handlers(void);
+
+// //
+// Part of libavformat/rtsp.c
+// //
+
+#include <sys/time.h>
+#include <unistd.h> /* for select() prototype */
+
+//#define DEBUG
+//#define DEBUG_RTP_TCP
+
 enum RTSPClientState {
     RTSP_STATE_IDLE,
     RTSP_STATE_PLAYING,
@@ -134,35 +222,10 @@ typedef struct RTSPState {
     RTPDemuxContext *cur_rtp;
 } RTSPState;
 
-typedef struct RTSPStream {
-    URLContext *rtp_handle; /* RTP stream handle */
-    RTPDemuxContext *rtp_ctx; /* RTP parse context */
-
-    int stream_index; /* corresponding stream index, if any. -1 if none (MPEG2TS case) */
-    int interleaved_min, interleaved_max;  /* interleave ids, if TCP transport */
-    char control_url[1024]; /* url for this stream (from SDP) */
-
-    int sdp_port; /* port (from SDP content - not used in RTSP) */
-    struct in_addr sdp_ip; /* IP address  (from SDP content - not used in RTSP) */
-    int sdp_ttl;  /* IP TTL (from SDP content - not used in RTSP) */
-    int sdp_payload_type; /* payload type - only used in SDP */
-    rtp_payload_data_t rtp_payload_data; /* rtp payload parsing infos from SDP */
-
-    RTPDynamicProtocolHandler *dynamic_handler; ///< Only valid if it's a dynamic protocol. (This is the handler structure)
-    void *dynamic_protocol_context; ///< Only valid if it's a dynamic protocol. (This is any private data associated with the dynamic protocol)
-} RTSPStream;
-
-extern "C"
-{
-int rtsp_next_attr_and_value(const char **p, char *attr, int attr_size, char *value, int value_size); ///< from rtsp.c, but used by rtp dynamic protocol handlers.
-
-void ff_rtp_send_data(AVFormatContext *s1, const uint8_t *buf1, int len, int m);
-const char *ff_rtp_enc_name(int payload_type);
-enum CodecID ff_rtp_codec_id(const char *buf, enum CodecType codec_type);
-
-void av_register_rtp_dynamic_payload_handlers(void);
-}
+//
+// Declaration from libavformat/rtsp.c
+//
 
 int sdp_parse(AVFormatContext *s, const char *content);
 
-#endif //ZM_SDP_H
+#endif // ZM_SDP_H

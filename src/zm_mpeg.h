@@ -17,12 +17,12 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */  
 
-#if HAVE_LIBAVCODEC
-
 #ifndef ZM_MPEG_H
 #define ZM_MPEG_H
 
 #include "zm_ffmpeg.h"
+
+#if HAVE_LIBAVCODEC
 
 class VideoStream
 {
@@ -65,6 +65,6 @@ public:
 	double EncodeFrame( uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 };
 
-#endif // ZM_MPEG_H
-                               
 #endif // HAVE_LIBAVCODEC
+
+#endif // ZM_MPEG_H

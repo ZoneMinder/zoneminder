@@ -24,6 +24,7 @@
 #include "zm_db.h"
 
 #include <sys/time.h>
+#include <stdlib.h>
 #include <errno.h>
 
 int RtspThread::mMinDataPort = 0;

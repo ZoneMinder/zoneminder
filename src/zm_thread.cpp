@@ -22,6 +22,7 @@
 #include "zm_debug.h"
 #include "zm_utils.h"
 
+#include <string.h>
 #include <errno.h>
 #include <sys/time.h>
 

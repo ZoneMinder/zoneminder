@@ -17,15 +17,19 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */  
 
-#include "zm.h"
-
-#if HAVE_LIBAVCODEC
-
 #ifndef ZM_FFMPEG_H
 #define ZM_FFMPEG_H
 
+#if HAVE_LIBAVCODEC
+
 extern "C" {
-#define __STDC_CONSTANT_MACROS
+#if HAVE_LIBAVUTIL_AVUTIL_H
+#include <libavutil/avutil.h>
+#elif HAVE_FFMPEG_AVUTIL_H
+#include <ffmpeg/avutil.h>
+#else
+#error "No location for avutils.h found"
+#endif
 #if HAVE_LIBAVCODEC_AVCODEC_H
 #include <libavcodec/avcodec.h>
 #elif HAVE_FFMPEG_AVCODEC_H
@@ -62,7 +66,7 @@ extern "C" {
 #else // FFMPEG_VERSION_INT
 #define ZM_FFMPEG_SVN	1
 #endif // FFMPEG_VERSION_INT
-
-#endif // ZM_FFMPEG_H
                                
 #endif // HAVE_LIBAVCODEC
+
+#endif // ZM_FFMPEG_H

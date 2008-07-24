@@ -210,6 +210,7 @@ AC_CHECK_LIB(avutil,ff_gcd,,AC_MSG_WARN(libavutil.a may be required for MPEG str
 AC_CHECK_LIB(avcodec,avcodec_init,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
 AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming),-lavcodec)
 AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
+AC_CHECK_LIB(bz2,BZ2_bzCompress,,AC_MSG_WARN(zm requires libbz2.a for recent versions of ffmpeg))
 
 # Checks for header files.
 AC_FUNC_ALLOCA
@@ -218,12 +219,14 @@ AC_CHECK_HEADERS([fcntl.h limits.h memory.h netdb.h netinet/in.h stddef.h stdlib
 AC_CHECK_HEADERS(linux/videodev.h,,AC_MSG_ERROR(zm requires Video4Linux to be installed),)
 AC_CHECK_HEADERS(linux/videodev2.h,,AC_MSG_WARN(zm requires Video4Linux2 to be installed for V4L2 support),)
 AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires MySQL headers - check that MySQL development packages are installed),)
-AC_CHECK_HEADERS(ffmpeg/avcodec.h,,,)
+AC_CHECK_HEADERS(libavutil/avutil.h,,,)
+AC_CHECK_HEADERS(ffmpeg/avutil.h,,,)
 AC_CHECK_HEADERS(libavcodec/avcodec.h,,,)
-AC_CHECK_HEADERS(ffmpeg/avformat.h,,,)
+AC_CHECK_HEADERS(ffmpeg/avcodec.h,,,)
 AC_CHECK_HEADERS(libavformat/avformat.h,,,)
-AC_CHECK_HEADERS(ffmpeg/swscale.h,,,)
+AC_CHECK_HEADERS(ffmpeg/avformat.h,,,)
 AC_CHECK_HEADERS(libswscale/swscale.h,,,)
+AC_CHECK_HEADERS(ffmpeg/swscale.h,,,)
 AC_CHECK_HEADERS(pcre/pcre.h,,,)
 AC_CHECK_HEADERS(pcre.h,,,)
 if test "$ENABLE_MMAP" = "yes"; then

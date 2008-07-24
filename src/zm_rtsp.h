@@ -17,10 +17,13 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-#ifndef ZM_RTP_RTSP_H
-#define ZM_RTP_RTSP_H
+#ifndef ZM_RTSP_H
+#define ZM_RTSP_H
 
+extern "C" {
 #include "zm_sdp.h"
+}
+
 #include "zm_mpeg.h"
 #include "zm_comms.h"
 #include "zm_thread.h"
@@ -122,4 +125,4 @@ public:
     }
 };
 
-#endif // ZM_RTP_RTSP_H
+#endif // ZM_RTSP_H

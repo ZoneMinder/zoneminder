@@ -106,7 +106,7 @@ int main( int argc, const char *argv[] )
 			char *name = strtok( parms[p], "=" );
 			char *value = strtok( NULL, "=" );
             if ( !value )
-                value = "";
+                value = (char *)"";
 			if ( !strcmp( name, "source" ) )
 			{
 				source = !strcmp( value, "event" )?ZMS_EVENT:ZMS_MONITOR;

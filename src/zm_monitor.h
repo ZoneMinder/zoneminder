@@ -108,7 +108,7 @@ protected:
 		char trigger_showtext[256];
 	} TriggerData;
 
-	typedef struct Snapshot
+	struct Snapshot
 	{
 		struct timeval	*timestamp;
 		Image	*image;

@@ -179,7 +179,7 @@ public:
     typedef enum { MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
 
 protected:
-    typedef struct FrameData {
+    struct FrameData {
         //unsigned long   id;
         time_t          timestamp;
         time_t          offset;
@@ -187,7 +187,7 @@ protected:
         bool            in_db;
     };
 
-    typedef struct EventData
+    struct EventData
     {
         unsigned long   event_id;
         unsigned long   monitor_id;

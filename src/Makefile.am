@@ -100,8 +100,8 @@ noinst_HEADERS = \
 	zm_rtp_data.h \
 	zm_rtp.h \
 	zm_rtp_source.h \
-	zm_rtsp.cpp \
-	zm_sdp.c \
+	zm_rtsp.h \
+	zm_sdp.h \
 	zm_signal.h \
 	zm_stream.h \
 	zm_thread.h \
@@ -113,7 +113,8 @@ noinst_HEADERS = \
 
 EXTRA_DIST = \
 	zm_config.h.in \
-	zm_config_defines.h
+	zm_config_defines.h \
+	zm_threaddata.cpp
 
 dist-hook:
 	@( rm $(distdir)/zm_config.h )

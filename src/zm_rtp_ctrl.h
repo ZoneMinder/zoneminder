@@ -1,6 +1,6 @@
 //
 // ZoneMinder RTCP Class Interface, $Date$, $Revision$
-// Copyright (C) 2003-2008  Philip Coombes
+// Copyright (C) 2001-2008 Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License

@@ -1,7 +1,7 @@
 # ==========================================================================
 #
 # ZoneMinder Base Control Module, $Date$, $Revision$
-# Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
+# Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -195,7 +195,7 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005 by Philip Coombes
+Copyright (C) 2001-2008  Philip Coombes
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.3 or,

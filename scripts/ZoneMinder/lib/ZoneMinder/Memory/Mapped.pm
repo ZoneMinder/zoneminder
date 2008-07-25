@@ -1,7 +1,7 @@
 # ==========================================================================
 #
 # ZoneMinder Mapped Memory Access Module, $Date: 2008-02-25 10:13:13 +0000 (Mon, 25 Feb 2008) $, $Revision: 2323 $
-# Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
+# Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License

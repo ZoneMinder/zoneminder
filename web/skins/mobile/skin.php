@@ -1,7 +1,7 @@
 <?php
 //
 // ZoneMinder HTML interface file, $Date: 2008-07-08 16:06:45 +0100 (Tue, 08 Jul 2008) $, $Revision: 2484 $
-// Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
+// Copyright (C) 2001-2008 Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License

@@ -22,7 +22,7 @@
 # This module contains the common definitions and functions used by the rest 
 # of the ZoneMinder scripts
 #
-package ZoneMinder::MemoryShared;
+package ZoneMinder::Memory::Shared;
 
 use 5.006;
 use strict;

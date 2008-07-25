@@ -21,7 +21,7 @@
 #
 # This module contains the definitions and functions used when accessing mapped memory
 #
-package ZoneMinder::MemoryMapped;
+package ZoneMinder::Memory::Mapped;
 
 use 5.006;
 use strict;

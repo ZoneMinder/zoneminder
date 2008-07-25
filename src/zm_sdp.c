@@ -1,3 +1,4 @@
+#include "config.h"
 #include "zm_ffmpeg.h"
 #include "zm_sdp.h"
 

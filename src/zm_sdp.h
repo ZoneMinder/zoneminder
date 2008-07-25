@@ -1,9 +1,6 @@
 #ifndef ZM_SDP_H
 #define ZM_SDP_H
 
-#include "config.h"
-#include "zm_ffmpeg.h"
-
 #if HAVE_LIBAVFORMAT_AVFORMAT_H
 #include <libavformat/rtsp.h>
 #elif HAVE_FFMPEG_AVFORMAT_H

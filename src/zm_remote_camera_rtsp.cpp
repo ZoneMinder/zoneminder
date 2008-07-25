@@ -18,7 +18,8 @@
 // 
 
 #include "zm_remote_camera_rtsp.h"
-
+#include "zm.h"
+#include "zm_ffmpeg.h"
 #include "zm_mem_utils.h"
 extern "C" {
 #include "zm_sdp.h"

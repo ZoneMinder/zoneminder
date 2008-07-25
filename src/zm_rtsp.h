@@ -20,14 +20,15 @@
 #ifndef ZM_RTSP_H
 #define ZM_RTSP_H
 
-extern "C" {
-#include "zm_sdp.h"
-}
-
-#include "zm_mpeg.h"
+#include "zm.h"
+#include "zm_ffmpeg.h"
 #include "zm_comms.h"
 #include "zm_thread.h"
 #include "zm_rtp_source.h"
+
+extern "C" {
+#include "zm_sdp.h"
+}
 
 #include <set>
 #include <map>

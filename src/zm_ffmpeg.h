@@ -22,7 +22,9 @@
 
 #if HAVE_LIBAVCODEC
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 #if HAVE_LIBAVUTIL_AVUTIL_H
 #include <libavutil/avutil.h>
 #elif HAVE_FFMPEG_AVUTIL_H
@@ -53,7 +55,9 @@ extern "C" {
 #error "No location for swscale.h found"
 #endif
 #endif // HAVE_LIBSWSCALE
+#ifdef __cplusplus
 }
+#endif
 
 #if FFMPEG_VERSION_INT == 0x000408
 #define ZM_FFMPEG_048	1

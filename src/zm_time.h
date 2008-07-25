@@ -1,5 +1,5 @@
 //
-// ZoneMinder Time Functions & Definitions, $Date: 2007-08-29 19:11:09 +0100 (Wed, 29 Aug 2007) $, $Revision: 2175 $
+// ZoneMinder Time Functions & Definitions, $Date$, $Revision$
 // Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

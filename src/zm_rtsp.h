@@ -1,5 +1,5 @@
 //
-// ZoneMinder RTSP Class Interface, $Date: 2007-08-29 19:11:09 +0100 (Wed, 29 Aug 2007) $, $Revision: 2175 $
+// ZoneMinder RTSP Class Interface, $Date$, $Revision$
 // Copyright (C) 2003-2008  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

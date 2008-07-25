@@ -1,5 +1,5 @@
 /*
- * ZoneMinder FFMPEG implementation, $Date: 2007-12-17 13:17:09 +0000 (Mon, 17 Dec 2007) $, $Revision: 2256 $
+ * ZoneMinder FFMPEG implementation, $Date$, $Revision$
  * Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
  * 
  * This program is free software; you can redistribute it and/or

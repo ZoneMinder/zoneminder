@@ -1,5 +1,5 @@
 //
-// ZoneMinder Explicit Thread Template Class Instantiations, $Date: 2006-01-17 10:56:30 +0000 (Tue, 17 Jan 2006) $, $Revision: 1829 $
+// ZoneMinder Explicit Thread Template Class Instantiations, $Date$, $Revision$
 // Copyright (C) 2003-2008  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

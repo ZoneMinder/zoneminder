@@ -1,5 +1,5 @@
 //
-// ZoneMinder Remote HTTP Camera Class Interface, $Date: 2006-01-21 17:58:46 +0000 (Sat, 21 Jan 2006) $, $Revision: 1849 $
+// ZoneMinder Remote HTTP Camera Class Interface, $Date$, $Revision$
 // Copyright (C) 2003, 2004, 2005, 2006  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

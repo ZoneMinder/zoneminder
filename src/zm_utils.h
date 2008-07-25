@@ -1,5 +1,5 @@
 //
-// ZoneMinder General Utility Functions, $Date: 2007-08-29 18:34:33 +0100 (Wed, 29 Aug 2007) $, $Revision: 2168 $
+// ZoneMinder General Utility Functions, $Date$, $Revision$
 // Copyright (C) 2003-2008  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

@@ -1,5 +1,5 @@
 //
-// ZoneMinder Timer Class Interface, $Date: 2008-02-13 22:44:19 +0000 (Wed, 13 Feb 2008) $, $Revision: 2305 $
+// ZoneMinder Timer Class Interface, $Date$, $Revision$
 // Copyright (C) 2003-2008  Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or

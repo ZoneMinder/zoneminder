@@ -269,7 +269,7 @@ function collectData()
                 $sql .= " order by ".dbEscape($_REQUEST['sort']);
             if ( !empty($entitySpec['limit']) )
                 $limit = $entitySpec['limit'];
-            elseif ( $_REQUEST['count'] )
+            elseif ( !empty($_REQUEST['count']) )
                 $limit = dbEscape($_REQUEST['count']);
             if ( !empty( $limit ) )
                 $sql .= " limit ".$limit;
@@ -290,7 +290,7 @@ function collectData()
                     foreach ( $postFuncs as $element=>$func )
                         $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
                     $data[] = $sqlData;
-                    if ( ++$count >= $limit )
+                    if ( isset($limi) && ++$count >= $limit )
                         break;
                 }
             }

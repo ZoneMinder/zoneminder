@@ -103,6 +103,7 @@ if ( isset( $_REQUEST['request'] ) )
 {
     foreach ( getSkinIncludes( 'ajax/'.$_REQUEST['request'].'.php', true, true ) as $includeFile )
         require_once $includeFile;
+    return;
 }
 else
 {
@@ -111,7 +112,7 @@ else
         foreach ( $includeFiles as $includeFile )
             require_once $includeFile;
     }
-    else
+    if ( !$includeFiles || $_REQUEST['view'] == 'error' )
     {
         foreach ( getSkinIncludes( 'views/error.php', true, true ) as $includeFile )
             require_once $includeFile;

@@ -38,7 +38,7 @@ RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const
         method = RtspThread::RTP_MULTICAST;
     else if ( p_method == "rtpRtsp" )
         method = RtspThread::RTP_RTSP;
-    else if ( p_method == "rtRtspHttp" )
+    else if ( p_method == "rtpRtspHttp" )
         method = RtspThread::RTP_RTSP_HTTP;
     else
         Fatal( "Unrecognised method '%s' when creating RTSP camera %d", p_method.c_str(), id );

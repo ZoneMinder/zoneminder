@@ -131,7 +131,7 @@ if ( $_REQUEST['tab'] == "users" )
               <td class="colSystem"><?= $row['System'] ?></td>
               <td class="colBandwidth"><?= $row['MaxBandwidth']?$bwArray[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?= $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
-              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?= $row['Id'] ?>" onclick="configureButton( this, 'markUids' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?= $row['Id'] ?>" onclick="configureButton( this );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
     }
@@ -139,7 +139,7 @@ if ( $_REQUEST['tab'] == "users" )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?= $SLANG['AddNewUser'] ?>" onclick="createPopup( '?view=user&uid=-1', 'zmUser', 'user' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled"/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+          <input type="button" value="<?= $SLANG['AddNewUser'] ?>" onclick="createPopup( '?view=user&uid=0', 'zmUser', 'user' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled"/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
         </div>
       </form>
 <?php

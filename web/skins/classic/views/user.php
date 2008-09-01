@@ -63,6 +63,7 @@ xhtmlHeaders(__FILE__, $SLANG['User']." - ".$newUser['Username'] );
         <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
         <input type="hidden" name="action" value="user"/>
         <input type="hidden" name="uid" value="<?= $_REQUEST['uid'] ?>"/>
+        <input type="hidden" name="newUser[MonitorIds]" value="<?= $newUser['MonitorIds'] ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
 <?php
@@ -123,7 +124,7 @@ if ( canEdit( 'System' ) )
             <tr>
               <th scope="row"><?= $SLANG['RestrictedMonitors'] ?></th>
               <td>
-                <select name="newUser[MonitorIds]" size="4" multiple="multiple">
+                <select name="monitorIds" size="4" multiple="multiple">
 <?php
     foreach ( $monitors as $monitor )
     {

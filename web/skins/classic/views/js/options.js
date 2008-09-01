@@ -1,5 +1,6 @@
 function configureButton( element )
 {
+    var form = element.form;
     var checked = element.checked;
     if ( !element.checked )
     {

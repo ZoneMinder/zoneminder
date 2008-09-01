@@ -48,9 +48,9 @@ function loadLocations( element )
 
 function initPage()
 {
-    var protocolSelector = $('contentForm').elements['newMonitor[Protocol]'];
-    if ( $(protocolSelector).getTag() == 'select' )
-        updateMethods( $(protocolSelector) );
+    //var protocolSelector = $('contentForm').elements['newMonitor[Protocol]'];
+    //if ( $(protocolSelector).getTag() == 'select' )
+        //updateMethods( $(protocolSelector) );
 }
 
 window.addEvent( 'domready', initPage );

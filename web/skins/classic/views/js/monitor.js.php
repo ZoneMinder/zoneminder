@@ -128,16 +128,20 @@ function updateMethods( element )
 {
     var form = element.form;
 
-    form.elements['newMonitor[Method]'].length = 0;
-    switch ( form.elements['newMonitor[Protocol]'].value )
+    var origMethod = form.elements['origMethod'];
+    var methodSelector = form.elements['newMonitor[Method]'];
+    methodSelector.options.length = 0;
+    switch ( element.value )
     {
         case 'http' :
         {
 <?php
-foreach( $httpMethods as $label=>$value )
+foreach( $httpMethods as $value=>$label )
 {
 ?>
-            form.elements['newMonitor[Method]'].options[form.elements['newMonitor[Method]'].length] = new Option( "<?= $value ?>", "<?= htmlspecialchars($label) ?>" );
+            methodSelector.options[methodSelector.options.length] = new Option( "<?= htmlspecialchars($label) ?>", "<?= $value ?>" );
+            if ( origMethod.value == "<?= $value ?>" )
+                methodSelector.selectedIndex = methodSelector.options.length-1;
 <?php
 }
 ?>
@@ -147,10 +151,12 @@ foreach( $httpMethods as $label=>$value )
         case 'rtsp' :
         {
 <?php
-foreach( $rtspMethods as $label=>$value )
+foreach( $rtspMethods as $value=>$label )
 {
 ?>
-            form.elements['newMonitor[Method]'].options[form.elements['newMonitor[Method]'].length] = new Option( "<?= $value ?>", "<?= htmlspecialchars($label) ?>" );
+            methodSelector.options[methodSelector.options.length] = new Option( "<?= htmlspecialchars($label) ?>", "<?= $value ?>" );
+            if ( origMethod.value == "<?= $value ?>" )
+                methodSelector.selectedIndex = form.elements['newMonitor[Method]'].options.length-1;
 <?php
 }
 ?>

@@ -250,12 +250,13 @@ foreach ( $tabs as $name=>$value )
         <input type="hidden" name="action" value="monitor"/>
         <input type="hidden" name="mid" value="<?= $monitor['Id'] ?>"/>
         <input type="hidden" name="newMonitor[LinkedMonitors]" value="<?= isset($newMonitor['LinkedMonitors'])?$newMonitor['LinkedMonitors']:'' ?>"/>
+        <input type="hidden" name="origMethod" value="<?= isset($newMonitor['Method'])?$newMonitor['Method']:'' ?>"/>
 <?php
 if ( $_REQUEST['tab'] != 'general' )
 {
 ?>
         <input type="hidden" name="newMonitor[Name]" value="<?= $newMonitor['Name'] ?>"/>
-        <input Type="hidden" name="newMonitor[Type]" value="<?= $newMonitor['Type'] ?>"/>
+        <input type="hidden" name="newMonitor[Type]" value="<?= $newMonitor['Type'] ?>"/>
         <input type="hidden" name="newMonitor[Function]" value="<?= $newMonitor['Function'] ?>"/>
         <input type="hidden" name="newMonitor[Enabled]" value="<?= $newMonitor['Enabled'] ?>"/>
         <input type="hidden" name="monitorIds" value="<?= isset($_REQUEST['monitorIds'])?$_REQUEST['monitorIds']:'' ?>"/>
@@ -465,7 +466,20 @@ switch ( $_REQUEST['tab'] )
         {
 ?>
             <tr><td><?= $SLANG['RemoteProtocol'] ?></td><td><?= buildSelect( "newMonitor[Protocol]", $remoteProtocols, "updateMethods( this )" ); ?></td></tr>
-            <tr><td><?= $SLANG['RemoteMethod'] ?></td><td><?= buildSelect( "newMonitor[Method]", array() ); ?></td></tr>
+<?php
+            if ( empty($newMonitor['Protocol']) || $newMonitor['Protocol'] == "http" )
+            {
+?>
+            <tr><td><?= $SLANG['RemoteMethod'] ?></td><td><?= buildSelect( "newMonitor[Method]", $httpMethods ); ?></td></tr>
+<?php
+            }
+            else
+            {
+?>
+            <tr><td><?= $SLANG['RemoteMethod'] ?></td><td><?= buildSelect( "newMonitor[Method]", $rtspMethods ); ?></td></tr>
+<?php
+            }
+?>
             <tr><td><?= $SLANG['RemoteHostName'] ?></td><td><input type="text" name="newMonitor[Host]" value="<?= $newMonitor['Host'] ?>" size="36"/></td></tr>
             <tr><td><?= $SLANG['RemoteHostPort'] ?></td><td><input type="text" name="newMonitor[Port]" value="<?= $newMonitor['Port'] ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['RemoteHostPath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= $newMonitor['Path'] ?>" size="36"/></td></tr>

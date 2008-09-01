@@ -259,7 +259,6 @@ if ( $_REQUEST['tab'] != 'general' )
         <input type="hidden" name="newMonitor[Type]" value="<?= $newMonitor['Type'] ?>"/>
         <input type="hidden" name="newMonitor[Function]" value="<?= $newMonitor['Function'] ?>"/>
         <input type="hidden" name="newMonitor[Enabled]" value="<?= $newMonitor['Enabled'] ?>"/>
-        <input type="hidden" name="monitorIds" value="<?= isset($_REQUEST['monitorIds'])?$_REQUEST['monitorIds']:'' ?>"/>
         <input type="hidden" name="newMonitor[RefBlendPerc]" value="<?= $newMonitor['RefBlendPerc'] ?>"/>
         <input type="hidden" name="newMonitor[MaxFPS]" value="<?= $newMonitor['MaxFPS'] ?>"/>
         <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?= $newMonitor['AlarmMaxFPS'] ?>"/>
@@ -392,7 +391,7 @@ switch ( $_REQUEST['tab'] )
             <tr>
               <td><?= $SLANG['LinkedMonitors'] ?></td>
               <td>
-                <select name="monitorIds" size="4" multiple="multiple">
+                <select name="monitorIds" size="4" multiple="multiple" onchange="updateLinkedMonitors( this )">
 <?php
     $monitors = dbFetchAll( "select Id,Name from Monitors order by Sequence asc" );
     if ( !empty($newMonitor['LinkedMonitors']) )
@@ -401,7 +400,7 @@ switch ( $_REQUEST['tab'] )
         $monitorIds = array();
     foreach ( $monitors as $monitor )
     {
-        if ( ($monitor['Id'] != $newMonitor['Id']) && visibleMonitor( $monitor['Id'] ) )
+        if ( (empty($newMonitor['Id']) || ($monitor['Id'] != $newMonitor['Id'])) && visibleMonitor( $monitor['Id'] ) )
         {
 ?>
                   <option value="<?= $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?= htmlentities($monitor['Name']) ?></option>

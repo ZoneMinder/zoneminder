@@ -1130,22 +1130,6 @@ function createVideo( $event, $format, $rate, $scale, $overwrite=false )
     return( $status?"":rtrim($result) );
 }
 
-// Now deprecated
-function createImage( $monitor, $scale )
-{
-    if ( is_array( $monitor ) )
-    {
-        $monitor = $monitor['Id'];
-    }
-    chdir( ZM_DIR_IMAGES );
-    $command = getZmuCommand( " -m $monitor -i" );
-    if ( !empty($scale) && $scale < SCALE_BASE )
-        $command .= " -S $scale";
-    $status = exec( escapeshellcmd( $command ) );
-    chdir( '..' );
-    return( $status );
-}
-
 function executeFilter( $filter )
 {
     $command = ZM_PATH_BIN."/zmfilter.pl --filter ".$filter;

@@ -42,6 +42,7 @@ if ( $response['result'] != 'Error' )
         {
             case "zoneImage" :
             {
+                $wd = getcwd();
                 chdir( ZM_DIR_IMAGES );
                 $hicolor = "0x00ff00";
                 $command = getZmuCommand( " -m ".$_REQUEST['mid']." -z" );
@@ -49,6 +50,7 @@ if ( $response['result'] != 'Error' )
                     $_REQUEST['zid'] = 0;
                 $command .= '"'.$_REQUEST['zid'].' '.$hicolor.' '.$_REQUEST['coords'].'"';
                 $status = exec( escapeshellcmd( $command ) );
+                chdir( $wd );
 
                 //$response['zoneImage'] = ZM_DIR_IMAGES.'/Zones'.$_REQUEST['mid'].'.jpg?'.time();
                 $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($_REQUEST['mid'])."'" );

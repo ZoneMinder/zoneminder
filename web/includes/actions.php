@@ -1128,10 +1128,8 @@ if ( !empty($_REQUEST['action']) )
                     $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
                     dbQuery( "insert into Zones set MonitorId = ".dbEscape($_REQUEST['mid']).", Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = '".sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 )."', Area = ".$zoneArea.", AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels = ".intval(($zoneArea*3)/100).", MaxAlarmPixels = ".intval(($zoneArea*75)/100).", FilterX = 3, FilterY = 3, MinFilterPixels = ".intval(($zoneArea*3)/100).", MaxFilterPixels = ".intval(($zoneArea*75)/100).", MinBlobPixels = ".intval(($zoneArea*2)/100).", MinBlobs = 1" );
                     //$_REQUEST['view'] = 'none';
-                    mkdir( ZM_DIR_EVENTS."/".$_REQUEST['mid'], 0755 );
-                    chdir( ZM_DIR_EVENTS );
-                    symlink( $_REQUEST['mid'], $_REQUEST['newMonitor']['Name'] );
-                    chdir( ".." );
+                    mkdir( ZM_DIR_EVENTS.'/'.$_REQUEST['mid'], 0755 );
+                    symlink( $_REQUEST['mid'], ZM_DIR_EVENTS.'/'.$_REQUEST['newMonitor']['Name'] );
                 }
                 $GLOBALS['restart'] = true;
             }
@@ -1185,12 +1183,12 @@ if ( !empty($_REQUEST['action']) )
                 {
                     if ( canEdit( 'Monitors', $markMid ) )
                     {
-                        zmaControl( $monitor, "stop" );
-                        zmcControl( $monitor, "stop" );
-
                         $sql = "select * from Monitors where Id = '".dbEscape($markMid)."'";
                         if ( !($monitor = dbFetchOne( $sql )) )
                             continue;
+
+                        zmaControl( $monitor, "stop" );
+                        zmcControl( $monitor, "stop" );
 
                         $sql = "select Id from Events where MonitorId = '".dbEscape($markMid)."'";
                         $markEids = dbFetchAll( $sql, 'Id' );

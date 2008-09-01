@@ -105,23 +105,22 @@ function validateForm( form )
     if ( !form.elements['newMonitor[WebColour]'].value || !form.elements['newMonitor[WebColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
         errors[errors.length] = "<?= $SLANG['BadWebColour'] ?>";
 
-    if ( form.elements['monitorIds'] )
-    {
-        var monitorIds = new Array();
-        for ( var i = 0; i < form.elements['monitorIds'].options.length; i++ )
-        {
-            if ( form.elements['monitorIds'].options[i].selected )
-                monitorIds[monitorIds.length] = form.elements['monitorIds'].options[i].value;
-        }
-        form.elements['newMonitor[LinkedMonitors]'].value = monitorIds.join( ',' );
-    }
-
     if ( errors.length )
     {
         alert( errors.join( "\n" ) );
         return( false );
     }
     return( true );
+}
+
+function updateLinkedMonitors( element )
+{
+    var form = element.form;
+    var monitorIds = new Array();
+    for ( var i = 0; i < element.options.length; i++ )
+        if ( element.options[i].selected )
+            monitorIds[monitorIds.length] = element.options[i].value;
+    form.elements['newMonitor[LinkedMonitors]'].value = monitorIds.join( ',' );
 }
 
 function updateMethods( element )

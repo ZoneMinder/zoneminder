@@ -24,9 +24,10 @@ if ( !canView( 'Monitors' ) )
     return;
 }
 
+$wd = getcwd();
 chdir( ZM_DIR_IMAGES );
 $status = exec( escapeshellcmd( getZmuCommand( " -m ".$_REQUEST['mid']." -z" ) ) );
-chdir( '..' );
+chdir( $wd );
 
 $monitor = dbFetchMonitor( $_REQUEST['mid'] );
 

@@ -81,7 +81,7 @@ foreach ( $groups as $group )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Apply'] ?>" onclick="selectGroup( this )"/>
+          <input type="submit" value="<?= $SLANG['Apply'] ?>"/>
           <input type="button" value="<?= $SLANG['New'] ?>" onclick="newGroup()"<?= canEdit('System')?'':' disabled="disabled"' ?>/>
           <input type="button" name="editBtn" value="<?= $SLANG['Edit'] ?>" onclick="editGroup( this )"<?= $selected&&canEdit('System')?'':' disabled="disabled"' ?>/>
           <input type="button" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" onclick="deleteGroup( this )"<?= $selected&&canEdit('System')?'':' disabled="disabled"' ?>/>

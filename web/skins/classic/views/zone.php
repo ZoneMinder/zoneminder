@@ -111,13 +111,14 @@ $newZone['Coords'] = pointsToCoords( $newZone['Points'] );
 $newZone['Area'] = getPolyArea( $newZone['Points'] );
 $selfIntersecting = isSelfIntersecting( $newZone['Points'] );
 
+$wd = getcwd();
 chdir( ZM_DIR_IMAGES );
 $command = getZmuCommand( " -m ".$_REQUEST['mid']." -z" );
 if ( !isset($_REQUEST['zid']) )
     $_REQUEST['zid'] = 0;
 $command .= '"'.$_REQUEST['zid'].' '.$hicolor.' '.$newZone['Coords'].'"';
 $status = exec( escapeshellcmd( $command ) );
-chdir( '..' );
+chdir( $wd );
 
 $zoneImage = ZM_DIR_IMAGES.'/Zones'.$monitor['Id'].'.jpg?'.time();
 

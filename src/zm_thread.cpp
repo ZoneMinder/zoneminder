@@ -259,13 +259,13 @@ void *Thread::mThreadFunc( void *arg )
         thisPtr->mThreadCondition.signal();
         thisPtr->mThreadMutex.unlock();
         status = (void *)(thisPtr->run());
-        Debug( 2, "Exiting thread, status %d", (int)status );
+        Debug( 2, "Exiting thread, status %p", status );
     }
     catch ( const ThreadException &e )
     {
         Error( "%s", e.getMessage().c_str() );
         status = (void *)-1;
-        Debug( 2, "Exiting thread after exception, status %d", (int)status );
+        Debug( 2, "Exiting thread after exception, status %p", status );
     }
     return( status );
 }
@@ -310,7 +310,7 @@ void Thread::join()
             if ( pthread_join( mThread, &threadStatus ) < 0 )
                 throw ThreadException( stringtf( "Can't join sender thread: %s", strerror(errno) ) );
             mRunning = false;
-            Debug( 1, "Thread %d exited, status %d", mPid, (int)threadStatus );
+            Debug( 1, "Thread %d exited, status %p", mPid, threadStatus );
         }
         else
         {

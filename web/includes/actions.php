@@ -1401,7 +1401,7 @@ if ( !empty($_REQUEST['action']) )
             if ( !empty($_REQUEST['uid']) )
                 $dbUser = dbFetchOne( "select * from Users where Id = '".dbEscape($_REQUEST['uid'])."'" );
             else
-                $zone = array();
+                $dbUser = array();
 
             $types = array();
             $changes = getFormChanges( $dbUser, $_REQUEST['newUser'], $types );

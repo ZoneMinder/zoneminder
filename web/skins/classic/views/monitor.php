@@ -249,6 +249,7 @@ foreach ( $tabs as $name=>$value )
         <input type="hidden" name="tab" value="<?= $_REQUEST['tab'] ?>"/>
         <input type="hidden" name="action" value="monitor"/>
         <input type="hidden" name="mid" value="<?= $monitor['Id'] ?>"/>
+        <input type="hidden" name="newMonitor[LinkedMonitors]" value="<?= isset($newMonitor['LinkedMonitors'])?$newMonitor['LinkedMonitors']:'' ?>"/>
 <?php
 if ( $_REQUEST['tab'] != 'general' )
 {
@@ -257,7 +258,7 @@ if ( $_REQUEST['tab'] != 'general' )
         <input Type="hidden" name="newMonitor[Type]" value="<?= $newMonitor['Type'] ?>"/>
         <input type="hidden" name="newMonitor[Function]" value="<?= $newMonitor['Function'] ?>"/>
         <input type="hidden" name="newMonitor[Enabled]" value="<?= $newMonitor['Enabled'] ?>"/>
-        <input type="hidden" name="newMonitor[LinkedMonitors]" value="<?= isset($newMonitor['LinkedMonitors'])?$newMonitor['LinkedMonitors']:'' ?>"/>
+        <input type="hidden" name="monitorIds" value="<?= isset($_REQUEST['monitorIds'])?$_REQUEST['monitorIds']:'' ?>"/>
         <input type="hidden" name="newMonitor[RefBlendPerc]" value="<?= $newMonitor['RefBlendPerc'] ?>"/>
         <input type="hidden" name="newMonitor[MaxFPS]" value="<?= $newMonitor['MaxFPS'] ?>"/>
         <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?= $newMonitor['AlarmMaxFPS'] ?>"/>
@@ -390,7 +391,7 @@ switch ( $_REQUEST['tab'] )
             <tr>
               <td><?= $SLANG['LinkedMonitors'] ?></td>
               <td>
-                <select name="newMonitor[LinkedMonitors]" size="4" multiple="multiple">
+                <select name="monitorIds" size="4" multiple="multiple">
 <?php
     $monitors = dbFetchAll( "select Id,Name from Monitors order by Sequence asc" );
     if ( !empty($newMonitor['LinkedMonitors']) )
@@ -399,7 +400,7 @@ switch ( $_REQUEST['tab'] )
         $monitorIds = array();
     foreach ( $monitors as $monitor )
     {
-        if ( visibleMonitor( $monitor['Id'] ) )
+        if ( ($monitor['Id'] != $newMonitor['Id']) && visibleMonitor( $monitor['Id'] ) )
         {
 ?>
                   <option value="<?= $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?= htmlentities($monitor['Name']) ?></option>

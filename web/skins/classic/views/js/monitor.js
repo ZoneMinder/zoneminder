@@ -1,4 +1,3 @@
-
 function updateMonitorDimensions( element )
 {
     var form = element.form;

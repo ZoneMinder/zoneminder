@@ -192,15 +192,18 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
       <div class="clear"></div>
       <div id="monitorSummary"><?= makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($monitors), zmVlang( $VLANG['Monitor'], count($monitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'System' ) ); ?></div>
 <?php
-if ( ZM_OPT_X10 && canView('Devices' ) )
+if ( ZM_OPT_X10 && canView( 'Devices' ) )
 {
 ?>
       <div id="devices"><?= makePopupLink( '?view=devices', 'zmDevices', 'devices', $SLANG['Devices'] ) ?></div>
 <?php
 }
+if ( canView( 'System' ) )
+{
 ?>
       <div id="options"><?= makePopupLink( '?view=options', 'zmOptions', 'options', $SLANG['Options'] ) ?></div>
 <?php
+}
 if ( canView( 'Stream' ) && $cycleCount > 1 )
 {
     $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;

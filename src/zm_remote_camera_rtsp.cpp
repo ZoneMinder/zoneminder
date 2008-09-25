@@ -66,7 +66,9 @@ void RemoteCameraRtsp::Initialise()
 	buffer.Size( max_size );
 
     if ( zm_dbg_level > ZM_DBG_INF )
-        av_log_set_level(99); 
+        av_log_set_level( AV_LOG_DEBUG ); 
+    else
+        av_log_set_level( AV_LOG_QUIET ); 
 
     /* must be called before using avcodec lib */
     avcodec_init();

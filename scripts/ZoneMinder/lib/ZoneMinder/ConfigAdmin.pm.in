@@ -1017,12 +1017,22 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		category => "config",
 	},
 	{
+		name => "ZM_EVENT_CLOSE_MODE",
+		default => "idle",
+		description => "When continuous events are closed.",
+		help => "When a monitor is running in a continuous recording mode (Record or Mocord) events are usually closed after a fixed period of time (the section length). However in Mocord mode it is possible that motion detection may occur near the end of a section. This option controls what happens when an alarm occurs in Mocord mode. The 'time' setting means that the event will be closed at the end of the section regardless of alarm activity. The 'idle' setting means that the event will be closed at the end of the section if there is no alarm activity occuring at the time otherwise it will be closed once the alarm is over meaning the event may end up being longer than the normal section length. The 'alarm' setting means that if an alarm occurs during the event, the event will be closed once the alarm is over regardless of when this occurs. This has the effect of limiting the number of alarms to one per event and the events will be shorter than the section length if an alarm has occurred.",
+		type => $types{boolean},
+		type => { db_type=>"string", hint=>"time|idle|alarm", pattern=>qr|^([tia])|i, format=>q( ($1 =~ /^t/) ? "time" : ($1 =~ /^i/ ? "idle" : "time" ) ) },
+		category => "config",
+	},
+    # Deprecated, superseded by event close mode
+	{
 		name => "ZM_FORCE_CLOSE_EVENTS",
 		default => "no",
 		description => "Whether events are closed at section ends.",
-		help => "When a monitor is running in a continuous recording moe (Record or Mocord) events are usually closed after a fixed period of time (the section length). However in Mocord mode it is possible that motion detection may occur near the end of a section and ordinarily this will prevent the event being closed until the motion has ceased. Switching this option on will force the event closed at the specified time regardless of any motion activity.",
+		help => "When a monitor is running in a continuous recording mode (Record or Mocord) events are usually closed after a fixed period of time (the section length). However in Mocord mode it is possible that motion detection may occur near the end of a section and ordinarily this will prevent the event being closed until the motion has ceased. Switching this option on will force the event closed at the specified time regardless of any motion activity.",
 		type => $types{boolean},
-		category => "config",
+		category => "hidden",
 	},
 	{
 		name => "ZM_CREATE_ANALYSIS_IMAGES",

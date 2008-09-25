@@ -75,6 +75,8 @@ public:
 protected:
 	typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, RELOAD=0x4, SUSPEND=0x10, RESUME=0x20 } Action;
 
+	typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
+
 	typedef struct
 	{
 		int size;
@@ -214,6 +216,8 @@ protected:
 	time_t			start_time;
 	time_t			last_fps_time;
 	time_t			auto_resume_time;
+
+    EventCloseMode  event_close_mode;
 
 #if ZM_MEM_MAPPED
 	int				map_fd;

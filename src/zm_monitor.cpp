@@ -323,6 +323,13 @@ Monitor::Monitor(
 
 	auto_resume_time = 0;
 
+    if ( strcmp( config.event_close_mode, "time" ) == 0 )
+        event_close_mode = CLOSE_TIME;
+    else if ( strcmp( config.event_close_mode, "alarm" ) == 0 )
+        event_close_mode = CLOSE_ALARM;
+    else
+        event_close_mode = CLOSE_IDLE;
+
 	Debug( 1, "monitor purpose=%d", purpose );
 
 	mem_size = sizeof(SharedData)
@@ -1222,7 +1229,7 @@ bool Monitor::Analyse()
 						int section_mod = timestamp->tv_sec%section_length;
 						if ( section_mod < last_section_mod )
 						{
-							if ( state == IDLE || state == TAPE || config.force_close_events )
+							if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME )
 							{
 								if ( state == IDLE || state == TAPE )
 								{
@@ -1332,7 +1339,7 @@ bool Monitor::Analyse()
 						if ( image_count-last_alarm_count > post_event_count )
 						{
 							Info( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() );
-							if ( function != MOCORD || !strcmp( event->Cause(), "Signal" ) )
+							if ( function != MOCORD || event_close_mode == CLOSE_ALARM || !strcmp( event->Cause(), "Signal" ) )
 							{
 								shared_data->state = state = IDLE;
 								delete event;

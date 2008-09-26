@@ -52,6 +52,12 @@ insert into MonitorPresets values ('','ACTi IP, mpeg4, unicast','Remote',NULL,NU
 alter table Events drop column LearnState;
 
 --
+-- Update for new event close mode
+--
+update Config set Value = "time" where Name = "ZM_EVENT_CLOSE_MODE" and ( select Value from Config where Name = "ZM_FORCE_CLOSE_EVENTS" ) = 1;
+update Config set Value = "idle" where Name = "ZM_EVENT_CLOSE_MODE" and ( select Value from Config where Name = "ZM_FORCE_CLOSE_EVENTS" ) = 0;
+
+--
 -- These are optional, but we might as well do it now
 --
 optimize table Frames;

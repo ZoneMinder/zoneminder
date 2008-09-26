@@ -25,9 +25,9 @@ presets[<?= $preset['Id'] ?>] = {
 ?>
 
 var zone = {
-    'Name': '<?= addslashes($zone['Name']) ?>',
-    'Id': <?= addslashes($zone['Id']) ?>,
-    'MonitorId': <?= addslashes($zone['MonitorId']) ?>,
+    'Name': '<?= validJsStr($zone['Name']) ?>',
+    'Id': <?= validJsStr($zone['Id']) ?>,
+    'MonitorId': <?= validJsStr($zone['MonitorId']) ?>,
     'CheckMethod': '<?= $zone['CheckMethod'] ?>',
     'AlarmRGB': '<?= $zone['AlarmRGB'] ?>',
     'NumCoords': <?= $zone['NumCoords'] ?>,

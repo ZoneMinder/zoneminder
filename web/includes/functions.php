@@ -37,16 +37,16 @@ function userLogin( $username, $password="" )
         global $_SESSION, $_SERVER;
     }
 
-    $db_username = dbEscape($username);
-    $db_password = dbEscape($password);
+    $dbUsername = dbEscape($username);
+    $dbPassword = dbEscape($password);
 
     if ( ZM_AUTH_TYPE == "builtin" )
     {
-        $sql = "select * from Users where Username = '$db_username' and Password = password('$db_password') and Enabled = 1";
+        $sql = "select * from Users where Username = '$dbUsername' and Password = password('$dbPassword') and Enabled = 1";
     }
     else
     {
-        $sql = "select * from Users where Username = '$db_username' and Enabled = 1";
+        $sql = "select * from Users where Username = '$dbUsername' and Enabled = 1";
     }
     $_SESSION['username'] = $username;
     if ( ZM_AUTH_RELAY == "plain" )
@@ -54,13 +54,13 @@ function userLogin( $username, $password="" )
         // Need to save this in session
         $_SESSION['password'] = $password;
     }
-    $_SESSION['remote_addr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-    if ( $db_user = dbFetchOne( $sql ) )
+    $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
+    if ( $dbUser = dbFetchOne( $sql ) )
     {
-        $_SESSION['user'] = $user = $db_user;
+        $_SESSION['user'] = $user = $dbUser;
         if ( ZM_AUTH_TYPE == "builtin" )
         {
-            $_SESSION['password_hash'] = $user['Password'];
+            $_SESSION['passwordHash'] = $user['Password'];
         }
     }
     else
@@ -94,7 +94,7 @@ function noCacheHeaders()
     header("Pragma: no-cache");         // HTTP/1.0
 }
 
-function authHash( $use_remote_addr )
+function authHash( $useRemoteAddr )
 {
     if ( version_compare( phpversion(), "4.1.0", "<") )
     {
@@ -104,15 +104,15 @@ function authHash( $use_remote_addr )
     if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" )
     {
         $time = localtime();
-        if ( $use_remote_addr )
+        if ( $useRemoteAddr )
         {
-            $auth_key = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['password_hash'].$_SESSION['remote_addr'].$time[2].$time[3].$time[4].$time[5];
+            $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
         }
         else
         {
-            $auth_key = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['password_hash'].$time[2].$time[3].$time[4].$time[5];
+            $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
         }
-        $auth = md5( $auth_key );
+        $auth = md5( $authKey );
     }
     else
     {
@@ -199,7 +199,7 @@ function outputVideoStream( $id, $src, $width, $height, $format, $title="" )
                 if ( isWindows() )
                 {
 ?>
-<object id="<?= $id ?>" width="<?= $width ?>" height="<?= $height ?>"
+<object id="<?= $id ?>" width="<?= validNum($width) ?>" height="<?= validNum($height) ?>"
 classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
 codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
 standby="Loading Microsoft Windows Media Player components..."
@@ -210,9 +210,9 @@ type="<?= $mimeType ?>">
 <embed type="<?= $mimeType ?>"
 pluginspage="http://www.microsoft.com/Windows/MediaPlayer/"
 src="<?= $src ?>"
-name="<?= $title ?>"
-width="<?= $width ?>"
-height="<?= $height ?>"
+name="<?= validHtmlStr($title) ?>"
+width="<?= validNum($width) ?>"
+height="<?= validInt($height) ?>"
 autostart="1"
 showcontrols="0">
 </embed>
@@ -235,9 +235,9 @@ type="<?= $mimeType ?>">
 <embed type="<?= $mimeType ?>"
 src="<?= $src ?>"
 pluginspage="http://www.apple.com/quicktime/download/"
-name="<?= $title ?>"
-width="<?= $width ?>"
-height="<?= $height ?>"
+name="<?= validhtmlStr($title) ?>"
+width="<?= validInt($width) ?>"
+height="<?= validInt($height) ?>"
 autoplay="true"
 controller="true"
 </embed>
@@ -259,9 +259,9 @@ type="<?= $mimeType ?>">
 <embed type="<?= $mimeType ?>"
 pluginspage="http://www.macromedia.com/go/getflashplayer"
 src="<?= $src ?>"
-width="<?= $width ?>"
-height="<?= $height ?>"
-name="<?= $title ?>"
+name="<?= validHtmlStr($title) ?>"
+width="<?= validInt($width) ?>"
+height="<?= validInt($height) ?>"
 quality="high"
 bgcolor="#ffffff"
 </embed>
@@ -277,9 +277,9 @@ bgcolor="#ffffff"
 ?>
 <embed<?= isset($mimeType)?(' type="'.$mimeType.'"'):"" ?> 
 src="<?= $src ?>"
-width="<?= $width ?>"
-height="<?= $height ?>"
-name="<?= $title ?>"
+name="<?= validHtmlStr($title) ?>"
+width="<?= validInt($width) ?>"
+height="<?= validInt($height) ?>"
 autostart="1"
 autoplay="1"
 showcontrols="0"
@@ -293,11 +293,11 @@ function outputImageStream( $id, $src, $width, $height, $title="" )
 {
    if ( canStreamIframe() ) {
 ?>
-<iframe id="<?= $id ?>" src="<?= $src ?>" alt="<?= $title ?>" width="<?= $width ?>" height="<?= $height ?>"/>
+<iframe id="<?= $id ?>" src="<?= $src ?>" alt="<?= validHtmlStr($title) ?>" width="<?= $width ?>" height="<?= $height ?>"/>
 <?php
    } else {
 ?>
-<img id="<?= $id ?>" src="<?= $src ?>" alt="<?= $title ?>" width="<?= $width ?>" height="<?= $height ?>"/>
+<img id="<?= $id ?>" src="<?= $src ?>" alt="<?= validHtmlStr($title) ?>" width="<?= $width ?>" height="<?= $height ?>"/>
 <?php
    }
 }
@@ -469,10 +469,10 @@ function deleteEvent( $eid, $mid=false )
                     $eventPath = preg_replace( "/\.$eid$/", readlink($id_files[0]), $id_files[0] );
                 system( escapeshellcmd( "rm -rf ".$eventPath ) );
                 unlink( $id_files[0] );
-                $path_parts = explode(  '/', $eventPath );
-                for ( $i = count($path_parts)-1; $i >= 2; $i-- )
+                $pathParts = explode(  '/', $eventPath );
+                for ( $i = count($pathParts)-1; $i >= 2; $i-- )
                 {
-                    $deletePath = join( '/', array_slice( $path_parts, 0, $i ) );
+                    $deletePath = join( '/', array_slice( $pathParts, 0, $i ) );
                     if ( !glob( $deletePath."/*" ) )
                     {
                         system( escapeshellcmd( "rm -rf ".$deletePath ) );
@@ -592,7 +592,7 @@ function buildSelect( $name, $contents, $behaviours=false )
     foreach ( $contents as $contentValue => $contentText )
     {
 ?>
-<option value="<?= $contentValue ?>"<?php if ( $value == $contentValue ) { ?> selected="selected"<? } ?>><?= htmlentities($contentText) ?></option>
+<option value="<?= $contentValue ?>"<?php if ( $value == $contentValue ) { ?> selected="selected"<? } ?>><?= validHtmlStr($contentText) ?></option>
 <?php
     }
 ?>
@@ -865,7 +865,7 @@ function zmaControl( $monitor, $mode=false )
 {
     if ( !is_array( $monitor ) )
     {
-        $sql = "select Id,Function,Enabled from Monitors where Id = '$monitor'";
+        $sql = "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '".dbEscape($monitor)."'";
         $monitor = dbFetchOne( $sql );
     }
     switch ( $monitor['Function'] )
@@ -1126,13 +1126,13 @@ function createVideo( $event, $format, $rate, $scale, $overwrite=false )
             $command .= " -s ".sprintf( "%.2f", ($scale/SCALE_BASE) );
     if ( $overwrite )
         $command .= " -o";
-    $result = exec( $command, $output, $status );
+    $result = exec( escapeshellcmd( $command ), $output, $status );
     return( $status?"":rtrim($result) );
 }
 
 function executeFilter( $filter )
 {
-    $command = ZM_PATH_BIN."/zmfilter.pl --filter ".$filter;
+    $command = ZM_PATH_BIN."/zmfilter.pl --filter ".escapeshellarg($filter);
     $result = exec( $command, $output, $status );
     dbQuery( "delete from Filters where Name like '_TempFilter%'" );
     return( $status );
@@ -1228,13 +1228,13 @@ function parseSort( $saveToSession=false, $querySep='&' )
     $sortOrder = $_REQUEST['sort_asc']?"asc":"desc";
     if ( !$_REQUEST['sort_asc'] )
         $_REQUEST['sort_asc'] = 0;
-    $sortQuery = $querySep."sort_field=".$_REQUEST['sort_field'].$querySep."sort_asc=".$_REQUEST['sort_asc'];
+    $sortQuery = $querySep."sort_field=".validHtmlStr($_REQUEST['sort_field']).$querySep."sort_asc=".validHtmlStr($_REQUEST['sort_asc']);
     if ( !isset($_REQUEST['limit']) )
         $_REQUEST['limit'] = "";
     if ( $saveToSession )
     {
-        $_SESSION['sort_field'] = $_REQUEST['sort_field'];
-        $_SESSION['sort_asc'] = $_REQUEST['sort_asc'];
+        $_SESSION['sort_field'] = validHtmlStr($_REQUEST['sort_field']);
+        $_SESSION['sort_asc'] = validHtmlStr($_REQUEST['sort_asc']);
     }
 }
 
@@ -1256,7 +1256,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&' )
             if ( isset($filter['terms'][$i]['cnj']) )
             {
                 $filter['query'] .= $querySep."filter[terms][$i][cnj]=".urlencode($filter['terms'][$i]['cnj']);
-                $filter['sql'] .= " ".$filter['terms'][$i]['cnj']." ";
+                $filter['sql'] .= " ".dbEscape($filter['terms'][$i]['cnj'])." ";
                 $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".htmlspecialchars($filter['terms'][$i]['cnj'])."\"/>\n";
             }
             if ( isset($filter['terms'][$i]['obr']) )
@@ -1272,7 +1272,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&' )
                 switch ( $filter['terms'][$i]['attr'] )
                 {
                     case 'MonitorName':
-                        $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] );
+                        $filter['sql'] .= 'M.'.dbEscape(preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] ));
                         break;
                     case 'DateTime':
                         $filter['sql'] .= "E.StartTime";
@@ -1298,7 +1298,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&' )
                     case 'Cause':
                     case 'Notes':
                     case 'Archived':
-                        $filter['sql'] .= "E.".$filter['terms'][$i]['attr'];
+                        $filter['sql'] .= "E.".dbEscape($filter['terms'][$i]['attr']);
                         break;
                     case 'DiskPercent':
                         $filter['sql'] .= getDiskPercent();
@@ -1310,7 +1310,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&' )
                         $filter['sql'] .= getLoad();
                         break;
                 }
-                $value_list = array();
+                $valueList = array();
                 foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $filter['terms'][$i]['val'] ) ) as $value )
                 {
                     switch ( $filter['terms'][$i]['attr'] )
@@ -1330,8 +1330,11 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&' )
                         case 'Time':
                             $value = "extract( hour_second from '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
                             break;
+                        default :
+                            $value = dbEscape($value);
+                            break;
                     }
-                    $value_list[] = $value;
+                    $valueList[] = $value;
                 }
 
                 switch ( $filter['terms'][$i]['op'] )
@@ -1342,19 +1345,19 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&' )
                     case '>' :
                     case '<' :
                     case '<=' :
-                        $filter['sql'] .= " ".$filter['terms'][$i]['op']." $value";
+                        $filter['sql'] .= " ".dbEscape($filter['terms'][$i]['op'])." $value";
                         break;
                     case '=~' :
-                        $filter['sql'] .= " regexp $value";
+                        $filter['sql'] .= " regexp ".$value;
                         break;
                     case '!~' :
-                        $filter['sql'] .= " not regexp $value";
+                        $filter['sql'] .= " not regexp ".$value;
                         break;
                     case '=[]' :
-                        $filter['sql'] .= " in (".join( ",", $value_list ).")";
+                        $filter['sql'] .= " in (".join( ",", $valueList ).")";
                         break;
                     case '![]' :
-                        $filter['sql'] .= " not in (".join( ",", $value_list ).")";
+                        $filter['sql'] .= " not in (".join( ",", $valueList ).")";
                         break;
                 }
 
@@ -1405,6 +1408,8 @@ function delFilterTerm( $filter, $position )
 
 function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&' )
 {
+    global $view;
+
     $pageText = "";
     if ( $pages > 1 )
     {
@@ -1419,29 +1424,29 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&' )
             {
                 if ( false && $page > 2 )
                 {
-                    $pageText .= '<a href="?view='.$_REQUEST['view'].$querySep.'page=1'.$query.'">&lt;&lt;</a>';
+                    $pageText .= '<a href="?view='.$view.$querySep.'page=1'.$query.'">&lt;&lt;</a>';
                 }
-                $pageText .= '<a href="?view='.$_REQUEST['view'].$querySep.'page='.($page-1).$query.'">&lt;</a>';
+                $pageText .= '<a href="?view='.$view.$querySep.'page='.($page-1).$query.'">&lt;</a>';
 
                 $newPages = array();
-                $pages_used = array();
+                $pagesUsed = array();
                 $lo_exp = max(2,log($page-1)/log($maxShortcuts));
                 for ( $i = 0; $i < $maxShortcuts; $i++ )
                 {
                     $newPage = round($page-pow($lo_exp,$i));
-                    if ( isset($pages_used[$newPage]) )
+                    if ( isset($pagesUsed[$newPage]) )
                         continue;
                     if ( $newPage <= 1 )
                         break;
-                    $pages_used[$newPage] = true;
+                    $pagesUsed[$newPage] = true;
                     array_unshift( $newPages, $newPage );
                 }
-                if ( !isset($pages_used[1]) )
+                if ( !isset($pagesUsed[1]) )
                     array_unshift( $newPages, 1 );
 
                 foreach ( $newPages as $newPage )
                 {
-                    $pageText .= '<a href="?view='.$_REQUEST['view'].$querySep.'page='.$newPage.$query.'">'.$newPage.'</a>&nbsp;';
+                    $pageText .= '<a href="?view='.$view.$querySep.'page='.$newPage.$query.'">'.$newPage.'</a>&nbsp;';
                 }
 
             }
@@ -1449,29 +1454,29 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&' )
             if ( $page < $pages )
             {
                 $newPages = array();
-                $pages_used = array();
+                $pagesUsed = array();
                 $hi_exp = max(2,log($pages-$page)/log($maxShortcuts));
                 for ( $i = 0; $i < $maxShortcuts; $i++ )
                 {
                     $newPage = round($page+pow($hi_exp,$i));
-                    if ( isset($pages_used[$newPage]) )
+                    if ( isset($pagesUsed[$newPage]) )
                         continue;
                     if ( $newPage > $pages )
                         break;
-                    $pages_used[$newPage] = true;
+                    $pagesUsed[$newPage] = true;
                     array_push( $newPages, $newPage );
                 }
-                if ( !isset($pages_used[$pages]) )
+                if ( !isset($pagesUsed[$pages]) )
                     array_push( $newPages, $pages );
 
                 foreach ( $newPages as $newPage )
                 {
-                    $pageText .= '&nbsp;<a href="?view='.$_REQUEST['view'].$querySep.'page='.$newPage.$query.'">'.$newPage.'</a>';
+                    $pageText .= '&nbsp;<a href="?view='.$view.$querySep.'page='.$newPage.$query.'">'.$newPage.'</a>';
                 }
-                $pageText .= '<a href="?view='.$_REQUEST['view'].$querySep.'page='.($page+1).$query.'">&gt;</a>';
+                $pageText .= '<a href="?view='.$view.$querySep.'page='.($page+1).$query.'">&gt;</a>';
                 if ( false && $page < ($pages-1) )
                 {
-                    $pageText .= '<a href="?view='.$_REQUEST['view'].$querySep.'page='.$pages.$query.'">&gt;&gt;</a>';
+                    $pageText .= '<a href="?view='.$view.$querySep.'page='.$pages.$query.'">&gt;&gt;</a>';
                 }
             }
         }
@@ -1481,7 +1486,8 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&' )
 
 function sortHeader( $field, $querySep='&' )
 {
-    return( '?view='.$_REQUEST['view'].$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.$_REQUEST['limit'] );
+    global $view;
+    return( '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.$_REQUEST['limit'] );
 }
 
 function sortTag( $field )
@@ -2054,12 +2060,12 @@ function setDeviceStatusX10( $key, $status )
 
 function isVector ( &$array )
 {
-    $next_key = 0;
+    $nextKey = 0;
     foreach ( array_keys($array) as $key )
     {
         if ( !is_int( $key ) )
             return( false );
-        if ( $key != $next_key++ )
+        if ( $key != $nextKey++ )
             return( false );
     }
     return( true );
@@ -2143,6 +2149,40 @@ function getSkinIncludes( $file, $includeBase=false, $asOverride=false )
             $includeFiles[] = $skinFile;
     }
     return( $includeFiles );
+}
+
+function requestVar( $name, $default="" )
+{
+    return( isset($_REQUEST[$name])?validHtmlStr($_REQUEST[$name]):$default );
+}
+
+// For numbers etc in javascript or tags etc
+function validInt( $input )
+{
+    return( preg_replace( '/\D/', '', $input ) );
+}
+
+function validNum( $input )
+{
+    return( preg_replace( '/[^\d.-]/', '', $input ) );
+}
+
+// For general strings
+function validStr( $input )
+{
+    return( strip_tags( $input ) );
+}
+
+// For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
+function validJsStr( $input )
+{
+    return( strip_tags( addslashes( $input ) ) );
+}
+
+// For general text in pages outside of tags or quotes so quotes converted to entities
+function validHtmlStr( $input )
+{
+    return( htmlspecialchars( $input, ENT_QUOTES ) );
 }
 
 ?>

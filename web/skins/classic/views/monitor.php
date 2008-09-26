@@ -20,7 +20,7 @@
 
 if ( !canView( 'Monitors' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -35,8 +35,10 @@ if ( ZM_OPT_X10 )
     $tabs["x10"] = $SLANG['X10'];
 $tabs["misc"] = $SLANG['Misc'];
 
-if ( !isset($_REQUEST['tab']) )
-    $_REQUEST['tab'] = "general";
+if ( isset($_REQUEST['tab']) )
+    $tab = validHtmlStr($_REQUEST['tab']);
+else
+    $tab = "general";
 
 if ( !empty($_REQUEST['mid']) )
 {
@@ -206,7 +208,7 @@ $orientations = array(
     $SLANG['FlippedVert'] => 'vert'
 );
 
-xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".$monitor['Name'] );
+xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
 ?>
 <body>
   <div id="page">
@@ -221,14 +223,14 @@ if ( canEdit( 'Monitors' ) )
 <?php
 }
 ?>
-      <h2><?= $SLANG['Monitor'] ?> - <?= $monitor['Name'] ?><?php if ( !empty($monitor['Id']) ) { ?> (<?= $monitor['Id'] ?>)<?php } ?></h2>
+      <h2><?= $SLANG['Monitor'] ?> - <?= validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?= $monitor['Id'] ?>)<?php } ?></h2>
     </div>
     <div id="content">
       <ul class="tabList">
 <?php
 foreach ( $tabs as $name=>$value )
 {
-    if ( $_REQUEST['tab'] == $name )
+    if ( $tab == $name )
     {
 ?>
         <li class="active"><?= $value ?></li>
@@ -245,137 +247,137 @@ foreach ( $tabs as $name=>$value )
       </ul>
       <div class="clear"></div>
       <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this )">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
-        <input type="hidden" name="tab" value="<?= $_REQUEST['tab'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
+        <input type="hidden" name="tab" value="<?= $tab ?>"/>
         <input type="hidden" name="action" value="monitor"/>
         <input type="hidden" name="mid" value="<?= $monitor['Id'] ?>"/>
         <input type="hidden" name="newMonitor[LinkedMonitors]" value="<?= isset($newMonitor['LinkedMonitors'])?$newMonitor['LinkedMonitors']:'' ?>"/>
         <input type="hidden" name="origMethod" value="<?= isset($newMonitor['Method'])?$newMonitor['Method']:'' ?>"/>
 <?php
-if ( $_REQUEST['tab'] != 'general' )
+if ( $tab != 'general' )
 {
 ?>
-        <input type="hidden" name="newMonitor[Name]" value="<?= $newMonitor['Name'] ?>"/>
-        <input type="hidden" name="newMonitor[Type]" value="<?= $newMonitor['Type'] ?>"/>
-        <input type="hidden" name="newMonitor[Function]" value="<?= $newMonitor['Function'] ?>"/>
-        <input type="hidden" name="newMonitor[Enabled]" value="<?= $newMonitor['Enabled'] ?>"/>
-        <input type="hidden" name="newMonitor[RefBlendPerc]" value="<?= $newMonitor['RefBlendPerc'] ?>"/>
-        <input type="hidden" name="newMonitor[MaxFPS]" value="<?= $newMonitor['MaxFPS'] ?>"/>
-        <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?= $newMonitor['AlarmMaxFPS'] ?>"/>
+        <input type="hidden" name="newMonitor[Name]" value="<?= validHtmlStr($newMonitor['Name']) ?>"/>
+        <input type="hidden" name="newMonitor[Type]" value="<?= validHtmlStr($newMonitor['Type']) ?>"/>
+        <input type="hidden" name="newMonitor[Function]" value="<?= validHtmlStr($newMonitor['Function']) ?>"/>
+        <input type="hidden" name="newMonitor[Enabled]" value="<?= validHtmlStr($newMonitor['Enabled']) ?>"/>
+        <input type="hidden" name="newMonitor[RefBlendPerc]" value="<?= validHtmlStr($newMonitor['RefBlendPerc']) ?>"/>
+        <input type="hidden" name="newMonitor[MaxFPS]" value="<?= validHtmlStr($newMonitor['MaxFPS']) ?>"/>
+        <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?= validHtmlStr($newMonitor['AlarmMaxFPS']) ?>"/>
 <?php
     if ( isset($newMonitor['Triggers']) )
     {
         foreach( $newMonitor['Triggers'] as $newTrigger )
         {
 ?>
-        <input type="hidden" name="newMonitor[Triggers][]" value="<?= $newTrigger ?>"/>
+        <input type="hidden" name="newMonitor[Triggers][]" value="<?= validHtmlStr($newTrigger ?>"/>
 <?php
         }
     }
 }
-if ( $_REQUEST['tab'] != 'source' || $newMonitor['Type'] != 'Local' )
+if ( $tab != 'source' || $newMonitor['Type'] != 'Local' )
 {
 ?>
-    <input type="hidden" name="newMonitor[Device]" value="<?= $newMonitor['Device'] ?>"/>
-    <input type="hidden" name="newMonitor[Channel]" value="<?= $newMonitor['Channel'] ?>"/>
-    <input type="hidden" name="newMonitor[Format]" value="<?= $newMonitor['Format'] ?>"/>
-    <input type="hidden" name="newMonitor[Palette]" value="<?= $newMonitor['Palette'] ?>"/>
+    <input type="hidden" name="newMonitor[Device]" value="<?= validHtmlStr($newMonitor['Device']) ?>"/>
+    <input type="hidden" name="newMonitor[Channel]" value="<?= validHtmlStr($newMonitor['Channel']) ?>"/>
+    <input type="hidden" name="newMonitor[Format]" value="<?= validHtmlStr($newMonitor['Format']) ?>"/>
+    <input type="hidden" name="newMonitor[Palette]" value="<?= validHtmlStr($newMonitor['Palette']) ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'source' || $newMonitor['Type'] != 'Remote' )
+if ( $tab != 'source' || $newMonitor['Type'] != 'Remote' )
 {
 ?>
-    <input type="hidden" name="newMonitor[Host]" value="<?= $newMonitor['Host'] ?>"/>
-    <input type="hidden" name="newMonitor[Port]" value="<?= $newMonitor['Port'] ?>"/>
+    <input type="hidden" name="newMonitor[Host]" value="<?= validHtmlStr($newMonitor['Host']) ?>"/>
+    <input type="hidden" name="newMonitor[Port]" value="<?= validHtmlStr($newMonitor['Port']) ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'File') )
+if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'File') )
 {
 ?>
-    <input type="hidden" name="newMonitor[Protocol]" value="<?= $newMonitor['Protocol'] ?>"/>
-    <input type="hidden" name="newMonitor[Method]" value="<?= $newMonitor['Method'] ?>"/>
-    <input type="hidden" name="newMonitor[Path]" value="<?= $newMonitor['Path'] ?>"/>
-    <input type="hidden" name="newMonitor[SubPath]" value="<?= $newMonitor['SubPath'] ?>"/>
+    <input type="hidden" name="newMonitor[Protocol]" value="<?= validHtmlStr($newMonitor['Protocol']) ?>"/>
+    <input type="hidden" name="newMonitor[Method]" value="<?= validHtmlStr($newMonitor['Method']) ?>"/>
+    <input type="hidden" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>"/>
+    <input type="hidden" name="newMonitor[SubPath]" value="<?= validHtmlStr($newMonitor['SubPath']) ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'source' )
+if ( $tab != 'source' )
 {
 ?>
-    <input type="hidden" name="newMonitor[Width]" value="<?= $newMonitor['Width'] ?>"/>
-    <input type="hidden" name="newMonitor[Height]" value="<?= $newMonitor['Height'] ?>"/>
-    <input type="hidden" name="newMonitor[Orientation]" value="<?= $newMonitor['Orientation'] ?>"/>
+    <input type="hidden" name="newMonitor[Width]" value="<?= validHtmlStr($newMonitor['Width']) ?>"/>
+    <input type="hidden" name="newMonitor[Height]" value="<?= validHtmlStr($newMonitor['Height']) ?>"/>
+    <input type="hidden" name="newMonitor[Orientation]" value="<?= validHtmlStr($newMonitor['Orientation']) ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'timestamp' )
+if ( $tab != 'timestamp' )
 {
 ?>
-    <input type="hidden" name="newMonitor[LabelFormat]" value="<?= $newMonitor['LabelFormat'] ?>"/>
-    <input type="hidden" name="newMonitor[LabelX]" value="<?= $newMonitor['LabelX'] ?>"/>
-    <input type="hidden" name="newMonitor[LabelY]" value="<?= $newMonitor['LabelY'] ?>"/>
+    <input type="hidden" name="newMonitor[LabelFormat]" value="<?= validHtmlStr($newMonitor['LabelFormat']) ?>"/>
+    <input type="hidden" name="newMonitor[LabelX]" value="<?= validHtmlStr($newMonitor['LabelX']) ?>"/>
+    <input type="hidden" name="newMonitor[LabelY]" value="<?= validHtmlStr($newMonitor['LabelY']) ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'buffers' )
+if ( $tab != 'buffers' )
 {
 ?>
-    <input type="hidden" name="newMonitor[ImageBufferCount]" value="<?= $newMonitor['ImageBufferCount'] ?>"/>
-    <input type="hidden" name="newMonitor[WarmupCount]" value="<?= $newMonitor['WarmupCount'] ?>"/>
-    <input type="hidden" name="newMonitor[PreEventCount]" value="<?= $newMonitor['PreEventCount'] ?>"/>
-    <input type="hidden" name="newMonitor[PostEventCount]" value="<?= $newMonitor['PostEventCount'] ?>"/>
-    <input type="hidden" name="newMonitor[StreamReplayBuffer]" value="<?= $newMonitor['StreamReplayBuffer'] ?>"/>
-    <input type="hidden" name="newMonitor[AlarmFrameCount]" value="<?= $newMonitor['AlarmFrameCount'] ?>"/>
+    <input type="hidden" name="newMonitor[ImageBufferCount]" value="<?= validHtmlStr($newMonitor['ImageBufferCount']) ?>"/>
+    <input type="hidden" name="newMonitor[WarmupCount]" value="<?= validHtmlStr($newMonitor['WarmupCount']) ?>"/>
+    <input type="hidden" name="newMonitor[PreEventCount]" value="<?= validHtmlStr($newMonitor['PreEventCount']) ?>"/>
+    <input type="hidden" name="newMonitor[PostEventCount]" value="<?= validHtmlStr($newMonitor['PostEventCount']) ?>"/>
+    <input type="hidden" name="newMonitor[StreamReplayBuffer]" value="<?= validHtmlStr($newMonitor['StreamReplayBuffer']) ?>"/>
+    <input type="hidden" name="newMonitor[AlarmFrameCount]" value="<?= validHtmlStr($newMonitor['AlarmFrameCount']) ?>"/>
 <?php
 }
-if ( ZM_OPT_CONTROL && $_REQUEST['tab'] != 'control' )
+if ( ZM_OPT_CONTROL && $tab != 'control' )
 {
 ?>
-    <input type="hidden" name="newMonitor[Controllable]" value="<?= $newMonitor['Controllable'] ?>"/>
-    <input type="hidden" name="newMonitor[ControlId]" value="<?= $newMonitor['ControlId'] ?>"/>
-    <input type="hidden" name="newMonitor[ControlDevice]" value="<?= $newMonitor['ControlDevice'] ?>"/>
-    <input type="hidden" name="newMonitor[ControlAddress]" value="<?= $newMonitor['ControlAddress'] ?>"/>
-    <input type="hidden" name="newMonitor[AutoStopTimeout]" value="<?= $newMonitor['AutoStopTimeout'] ?>"/>
-    <input type="hidden" name="newMonitor[TrackMotion]" value="<?= $newMonitor['TrackMotion'] ?>"/>
-    <input type="hidden" name="newMonitor[TrackDelay]" value="<?= $newMonitor['TrackDelay'] ?>"/>
-    <input type="hidden" name="newMonitor[ReturnLocation]" value="<?= $newMonitor['ReturnLocation'] ?>"/>
-    <input type="hidden" name="newMonitor[ReturnDelay]" value="<?= $newMonitor['ReturnDelay'] ?>"/>
+    <input type="hidden" name="newMonitor[Controllable]" value="<?= validHtmlStr($newMonitor['Controllable']) ?>"/>
+    <input type="hidden" name="newMonitor[ControlId]" value="<?= validHtmlStr($newMonitor['ControlId']) ?>"/>
+    <input type="hidden" name="newMonitor[ControlDevice]" value="<?= validHtmlStr($newMonitor['ControlDevice']) ?>"/>
+    <input type="hidden" name="newMonitor[ControlAddress]" value="<?= validHtmlStr($newMonitor['ControlAddress']) ?>"/>
+    <input type="hidden" name="newMonitor[AutoStopTimeout]" value="<?= validHtmlStr($newMonitor['AutoStopTimeout']) ?>"/>
+    <input type="hidden" name="newMonitor[TrackMotion]" value="<?= validHtmlStr($newMonitor['TrackMotion']) ?>"/>
+    <input type="hidden" name="newMonitor[TrackDelay]" value="<?= validHtmlStr($newMonitor['TrackDelay']) ?>"/>
+    <input type="hidden" name="newMonitor[ReturnLocation]" value="<?= validHtmlStr($newMonitor['ReturnLocation']) ?>"/>
+    <input type="hidden" name="newMonitor[ReturnDelay]" value="<?= validHtmlStr($newMonitor['ReturnDelay']) ?>"/>
 <?php
 }
-if ( ZM_OPT_X10 && $_REQUEST['tab'] != 'x10' )
+if ( ZM_OPT_X10 && $tab != 'x10' )
 {
 ?>
-    <input type="hidden" name="newX10Monitor[Activation]" value="<?= $newX10Monitor['Activation'] ?>"/>
-    <input type="hidden" name="newX10Monitor[AlarmInput]" value="<?= $newX10Monitor['AlarmInput'] ?>"/>
-    <input type="hidden" name="newX10Monitor[AlarmOutput]" value="<?= $newX10Monitor['AlarmOutput'] ?>"/>
+    <input type="hidden" name="newX10Monitor[Activation]" value="<?= validHtmlStr($newX10Monitor['Activation']) ?>"/>
+    <input type="hidden" name="newX10Monitor[AlarmInput]" value="<?= validHtmlStr($newX10Monitor['AlarmInput']) ?>"/>
+    <input type="hidden" name="newX10Monitor[AlarmOutput]" value="<?= validHtmlStr($newX10Monitor['AlarmOutput']) ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'misc' )
+if ( $tab != 'misc' )
 {
 ?>
-    <input type="hidden" name="newMonitor[EventPrefix]" value="<?= $newMonitor['EventPrefix'] ?>"/>
-    <input type="hidden" name="newMonitor[SectionLength]" value="<?= $newMonitor['SectionLength'] ?>"/>
-    <input type="hidden" name="newMonitor[FrameSkip]" value="<?= $newMonitor['FrameSkip'] ?>"/>
-    <input type="hidden" name="newMonitor[FPSReportInterval]" value="<?= $newMonitor['FPSReportInterval'] ?>"/>
-    <input type="hidden" name="newMonitor[DefaultView]" value="<?= $newMonitor['DefaultView'] ?>"/>
-    <input type="hidden" name="newMonitor[DefaultRate]" value="<?= $newMonitor['DefaultRate'] ?>"/>
-    <input type="hidden" name="newMonitor[DefaultScale]" value="<?= $newMonitor['DefaultScale'] ?>"/>
-    <input type="hidden" name="newMonitor[WebColour]" value="<?= $newMonitor['WebColour'] ?>"/>
+    <input type="hidden" name="newMonitor[EventPrefix]" value="<?= validHtmlStr($newMonitor['EventPrefix']) ?>"/>
+    <input type="hidden" name="newMonitor[SectionLength]" value="<?= validHtmlStr($newMonitor['SectionLength']) ?>"/>
+    <input type="hidden" name="newMonitor[FrameSkip]" value="<?= validHtmlStr($newMonitor['FrameSkip']) ?>"/>
+    <input type="hidden" name="newMonitor[FPSReportInterval]" value="<?= validHtmlStr($newMonitor['FPSReportInterval']) ?>"/>
+    <input type="hidden" name="newMonitor[DefaultView]" value="<?= validHtmlStr($newMonitor['DefaultView']) ?>"/>
+    <input type="hidden" name="newMonitor[DefaultRate]" value="<?= validHtmlStr($newMonitor['DefaultRate']) ?>"/>
+    <input type="hidden" name="newMonitor[DefaultScale]" value="<?= validHtmlStr($newMonitor['DefaultScale']) ?>"/>
+    <input type="hidden" name="newMonitor[WebColour]" value="<?= validHtmlStr($newMonitor['WebColour']) ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'misc' || $newMonitor['Type'] != 'Local' )
+if ( $tab != 'misc' || $newMonitor['Type'] != 'Local' )
 {
 ?>
-    <input type="hidden" name="newMonitor[SignalCheckColour]" value="<?= $newMonitor['SignalCheckColour'] ?>"/>
+    <input type="hidden" name="newMonitor[SignalCheckColour]" value="<?= validHtmlStr($newMonitor['SignalCheckColour']) ?>"/>
 <?php
 }
 ?>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
 <?php
-switch ( $_REQUEST['tab'] )
+switch ( $tab )
 {
     case 'general' :
     {
 ?>
-            <tr><td><?= $SLANG['Name'] ?></td><td><input type="text" name="newMonitor[Name]" value="<?= $newMonitor['Name'] ?>" size="16"/></td></tr>
+            <tr><td><?= $SLANG['Name'] ?></td><td><input type="text" name="newMonitor[Name]" value="<?= validHtmlStr($newMonitor['Name']) ?>" size="16"/></td></tr>
             <tr><td><?= $SLANG['SourceType'] ?></td><td><?= buildSelect( "newMonitor[Type]", $sourceTypes ); ?></td></tr>
             <tr><td><?= $SLANG['Function'] ?></td><td><select name="newMonitor[Function]">
 <?php
@@ -403,7 +405,7 @@ switch ( $_REQUEST['tab'] )
         if ( (empty($newMonitor['Id']) || ($monitor['Id'] != $newMonitor['Id'])) && visibleMonitor( $monitor['Id'] ) )
         {
 ?>
-                  <option value="<?= $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?= htmlentities($monitor['Name']) ?></option>
+                  <option value="<?= $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?= validHtmlStr($monitor['Name']) ?></option>
 <?php
         }
     }
@@ -411,9 +413,9 @@ switch ( $_REQUEST['tab'] )
                 </select>
               </td>
             </tr>
-            <tr><td><?= $SLANG['MaximumFPS'] ?></td><td><input type="text" name="newMonitor[MaxFPS]" value="<?= $newMonitor['MaxFPS'] ?>" size="6"/></td></tr>
-            <tr><td><?= $SLANG['AlarmMaximumFPS'] ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?= $newMonitor['AlarmMaxFPS'] ?>" size="6"/></td></tr>
-            <tr><td><?= $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?= $newMonitor['RefBlendPerc'] ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['MaximumFPS'] ?></td><td><input type="text" name="newMonitor[MaxFPS]" value="<?= validHtmlStr($newMonitor['MaxFPS']) ?>" size="6"/></td></tr>
+            <tr><td><?= $SLANG['AlarmMaximumFPS'] ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?= validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="6"/></td></tr>
+            <tr><td><?= $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?= validHtmlStr($newMonitor['RefBlendPerc']) ?>" size="4"/></td></tr>
             <tr><td><?= $SLANG['Triggers'] ?></td><td>
 <?php
         $optTriggers = getSetValues( 'Monitors', 'Triggers' );
@@ -455,7 +457,7 @@ switch ( $_REQUEST['tab'] )
         if ( $newMonitor['Type'] == "Local" )
         {
 ?>
-            <tr><td><?= $SLANG['DevicePath'] ?></td><td><input type="text" name="newMonitor[Device]" value="<?= $newMonitor['Device'] ?>" size="24"/></td></tr>
+            <tr><td><?= $SLANG['DevicePath'] ?></td><td><input type="text" name="newMonitor[Device]" value="<?= validHtmlStr($newMonitor['Device']) ?>" size="24"/></td></tr>
             <tr><td><?= $SLANG['DeviceChannel'] ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $deviceChannels as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
             <tr><td><?= $SLANG['DeviceFormat'] ?></td><td><select name="newMonitor[Format]"><?php foreach ( $deviceFormats as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Format'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
             <tr><td><?= $SLANG['CapturePalette'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $localPalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
@@ -479,23 +481,23 @@ switch ( $_REQUEST['tab'] )
 <?php
             }
 ?>
-            <tr><td><?= $SLANG['RemoteHostName'] ?></td><td><input type="text" name="newMonitor[Host]" value="<?= $newMonitor['Host'] ?>" size="36"/></td></tr>
-            <tr><td><?= $SLANG['RemoteHostPort'] ?></td><td><input type="text" name="newMonitor[Port]" value="<?= $newMonitor['Port'] ?>" size="6"/></td></tr>
-            <tr><td><?= $SLANG['RemoteHostPath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= $newMonitor['Path'] ?>" size="36"/></td></tr>
-            <tr><td><?= $SLANG['RemoteHostSubPath'] ?></td><td><input type="text" name="newMonitor[SubPath]" value="<?= $newMonitor['SubPath'] ?>" size="36"/></td></tr>
+            <tr><td><?= $SLANG['RemoteHostName'] ?></td><td><input type="text" name="newMonitor[Host]" value="<?= validHtmlStr($newMonitor['Host']) ?>" size="36"/></td></tr>
+            <tr><td><?= $SLANG['RemoteHostPort'] ?></td><td><input type="text" name="newMonitor[Port]" value="<?= validHtmlStr($newMonitor['Port']) ?>" size="6"/></td></tr>
+            <tr><td><?= $SLANG['RemoteHostPath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+            <tr><td><?= $SLANG['RemoteHostSubPath'] ?></td><td><input type="text" name="newMonitor[SubPath]" value="<?= validHtmlStr($newMonitor['SubPath']) ?>" size="36"/></td></tr>
             <tr><td><?= $SLANG['RemoteImageColours'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $remoteColours as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
         }
         elseif ( $newMonitor['Type'] == "File" )
         {
 ?>
-            <tr><td><?= $SLANG['FilePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= $newMonitor['Path'] ?>" size="36"/></td></tr>
+            <tr><td><?= $SLANG['FilePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
             <tr><td><?= $SLANG['FileColours'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $fileColours as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
         }
 ?>
-            <tr><td><?= $SLANG['CaptureWidth'] ?> (<?= $SLANG['Pixels'] ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?= $newMonitor['Width'] ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
-            <tr><td><?= $SLANG['CaptureHeight'] ?> (<?= $SLANG['Pixels'] ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?= $newMonitor['Height'] ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
+            <tr><td><?= $SLANG['CaptureWidth'] ?> (<?= $SLANG['Pixels'] ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?= validHtmlStr($newMonitor['Width']) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
+            <tr><td><?= $SLANG['CaptureHeight'] ?> (<?= $SLANG['Pixels'] ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?= validHtmlStr($newMonitor['Height']) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
             <tr><td><?= $SLANG['PreserveAspect'] ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
             <tr><td><?= $SLANG['Orientation'] ?></td><td><select name="newMonitor[Orientation]"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Orientation'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
@@ -504,21 +506,21 @@ switch ( $_REQUEST['tab'] )
     case 'timestamp' :
     {
 ?>
-            <tr><td><?= $SLANG['TimestampLabelFormat'] ?></td><td><input type="text" name="newMonitor[LabelFormat]" value="<?= $newMonitor['LabelFormat'] ?>" size="32"/></td></tr>
-            <tr><td><?= $SLANG['TimestampLabelX'] ?></td><td><input type="text" name="newMonitor[LabelX]" value="<?= $newMonitor['LabelX'] ?>" size="4"/></td></tr>
-            <tr><td><?= $SLANG['TimestampLabelY'] ?></td><td><input type="text" name="newMonitor[LabelY]" value="<?= $newMonitor['LabelY'] ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['TimestampLabelFormat'] ?></td><td><input type="text" name="newMonitor[LabelFormat]" value="<?= validHtmlStr($newMonitor['LabelFormat']) ?>" size="32"/></td></tr>
+            <tr><td><?= $SLANG['TimestampLabelX'] ?></td><td><input type="text" name="newMonitor[LabelX]" value="<?= validHtmlStr($newMonitor['LabelX']) ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['TimestampLabelY'] ?></td><td><input type="text" name="newMonitor[LabelY]" value="<?= validHtmlStr($newMonitor['LabelY']) ?>" size="4"/></td></tr>
 <?php
         break;
     }
     case 'buffers' :
     {
 ?>
-            <tr><td><?= $SLANG['ImageBufferSize'] ?></td><td><input type="text" name="newMonitor[ImageBufferCount]" value="<?= $newMonitor['ImageBufferCount'] ?>" size="6"/></td></tr>
-            <tr><td><?= $SLANG['WarmupFrames'] ?></td><td><input type="text" name="newMonitor[WarmupCount]" value="<?= $newMonitor['WarmupCount'] ?>" size="4"/></td></tr>
-            <tr><td><?= $SLANG['PreEventImageBuffer'] ?></td><td><input type="text" name="newMonitor[PreEventCount]" value="<?= $newMonitor['PreEventCount'] ?>" size="4"/></td></tr>
-            <tr><td><?= $SLANG['PostEventImageBuffer'] ?></td><td><input type="text" name="newMonitor[PostEventCount]" value="<?= $newMonitor['PostEventCount'] ?>" size="4"/></td></tr>
-            <tr><td><?= $SLANG['StreamReplayBuffer'] ?></td><td><input type="text" name="newMonitor[StreamReplayBuffer]" value="<?= $newMonitor['StreamReplayBuffer'] ?>" size="6"/></td></tr>
-<tr><td><?= $SLANG['AlarmFrameCount'] ?></td><td><input type="text" name="newMonitor[AlarmFrameCount]" value="<?= $newMonitor['AlarmFrameCount'] ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['ImageBufferSize'] ?></td><td><input type="text" name="newMonitor[ImageBufferCount]" value="<?= validHtmlStr($newMonitor['ImageBufferCount']) ?>" size="6"/></td></tr>
+            <tr><td><?= $SLANG['WarmupFrames'] ?></td><td><input type="text" name="newMonitor[WarmupCount]" value="<?= validHtmlStr($newMonitor['WarmupCount']) ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['PreEventImageBuffer'] ?></td><td><input type="text" name="newMonitor[PreEventCount]" value="<?= validHtmlStr($newMonitor['PreEventCount']) ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['PostEventImageBuffer'] ?></td><td><input type="text" name="newMonitor[PostEventCount]" value="<?= validHtmlStr($newMonitor['PostEventCount']) ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['StreamReplayBuffer'] ?></td><td><input type="text" name="newMonitor[StreamReplayBuffer]" value="<?= validHtmlStr($newMonitor['StreamReplayBuffer']) ?>" size="6"/></td></tr>
+<tr><td><?= $SLANG['AlarmFrameCount'] ?></td><td><input type="text" name="newMonitor[AlarmFrameCount]" value="<?= validHtmlStr($newMonitor['AlarmFrameCount']) ?>" size="4"/></td></tr>
 <?php
         break;
     }
@@ -527,9 +529,9 @@ switch ( $_REQUEST['tab'] )
 ?>
             <tr><td><?= $SLANG['Controllable'] ?></td><td><input type="checkbox" name="newMonitor[Controllable]" value="1"<?php if ( !empty($newMonitor['Controllable']) ) { ?> checked="checked"<?php } ?>/></td></tr>
             <tr><td><?= $SLANG['ControlType'] ?></td><td><?= buildSelect( "newMonitor[ControlId]", $controlTypes, 'loadLocations( this )' ); ?><?php if ( canEdit( 'Control' ) ) { ?>&nbsp;<a href="#" onlick="createPopup( '?view=controlcaps', 'zmControlCaps', 'controlcaps' );"><?= $SLANG['Edit'] ?></a><?php } ?></td></tr>
-            <tr><td><?= $SLANG['ControlDevice'] ?></td><td><input type="text" name="newMonitor[ControlDevice]" value="<?= $newMonitor['ControlDevice'] ?>" size="32"/></td></tr>
-            <tr><td><?= $SLANG['ControlAddress'] ?></td><td><input type="text" name="newMonitor[ControlAddress]" value="<?= $newMonitor['ControlAddress'] ?>" size="32"/></td></tr>
-            <tr><td><?= $SLANG['AutoStopTimeout'] ?></td><td><input type="text" name="newMonitor[AutoStopTimeout]" value="<?= $newMonitor['AutoStopTimeout'] ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['ControlDevice'] ?></td><td><input type="text" name="newMonitor[ControlDevice]" value="<?= validHtmlStr($newMonitor['ControlDevice']) ?>" size="32"/></td></tr>
+            <tr><td><?= $SLANG['ControlAddress'] ?></td><td><input type="text" name="newMonitor[ControlAddress]" value="<?= validHtmlStr($newMonitor['ControlAddress']) ?>" size="32"/></td></tr>
+            <tr><td><?= $SLANG['AutoStopTimeout'] ?></td><td><input type="text" name="newMonitor[AutoStopTimeout]" value="<?= validHtmlStr($newMonitor['AutoStopTimeout']) ?>" size="4"/></td></tr>
             <tr><td><?= $SLANG['TrackMotion'] ?></td><td><input type="checkbox" name="newMonitor[TrackMotion]" value="1"<?php if ( !empty($newMonitor['TrackMotion']) ) { ?> checked="checked"<?php } ?>/></td></tr>
 <?php
         $return_options = array(
@@ -538,28 +540,28 @@ switch ( $_REQUEST['tab'] )
             '1' => $SLANG['Preset']." 1",
         );
 ?>
-            <tr><td><?= $SLANG['TrackDelay'] ?></td><td><input type="text" name="newMonitor[TrackDelay]" value="<?= $newMonitor['TrackDelay'] ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['TrackDelay'] ?></td><td><input type="text" name="newMonitor[TrackDelay]" value="<?= validHtmlStr($newMonitor['TrackDelay']) ?>" size="4"/></td></tr>
             <tr><td><?= $SLANG['ReturnLocation'] ?></td><td><?= buildSelect( "newMonitor[ReturnLocation]", $return_options ); ?></td></tr>
-            <tr><td><?= $SLANG['ReturnDelay'] ?></td><td><input type="text" name="newMonitor[ReturnDelay]" value="<?= $newMonitor['ReturnDelay'] ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['ReturnDelay'] ?></td><td><input type="text" name="newMonitor[ReturnDelay]" value="<?= validHtmlStr($newMonitor['ReturnDelay']) ?>" size="4"/></td></tr>
 <?php
         break;
     }
     case 'x10' :
     {
 ?>
-            <tr><td><?= $SLANG['X10ActivationString'] ?></td><td><input type="text" name="newX10Monitor[Activation]" value="<?= $newX10Monitor['Activation'] ?>" size="20"/></td></tr>
-            <tr><td><?= $SLANG['X10InputAlarmString'] ?></td><td><input type="text" name="newX10Monitor[AlarmInput]" value="<?= $newX10Monitor['AlarmInput'] ?>" size="20"/></td></tr>
-            <tr><td><?= $SLANG['X10OutputAlarmString'] ?></td><td><input type="text" name="newX10Monitor[AlarmOutput]" value="<?= $newX10Monitor['AlarmOutput'] ?>" size="20"/></td></tr>
+            <tr><td><?= $SLANG['X10ActivationString'] ?></td><td><input type="text" name="newX10Monitor[Activation]" value="<?= validHtmlStr($newX10Monitor['Activation']) ?>" size="20"/></td></tr>
+            <tr><td><?= $SLANG['X10InputAlarmString'] ?></td><td><input type="text" name="newX10Monitor[AlarmInput]" value="<?= validHtmlStr($newX10Monitor['AlarmInput']) ?>" size="20"/></td></tr>
+            <tr><td><?= $SLANG['X10OutputAlarmString'] ?></td><td><input type="text" name="newX10Monitor[AlarmOutput]" value="<?= validHtmlStr($newX10Monitor['AlarmOutput']) ?>" size="20"/></td></tr>
 <?php
         break;
     }
     case 'misc' :
     {
 ?>
-            <tr><td><?= $SLANG['EventPrefix'] ?></td><td><input type="text" name="newMonitor[EventPrefix]" value="<?= $newMonitor['EventPrefix'] ?>" size="24"/></td></tr>
-            <tr><td><?= $SLANG['Sectionlength'] ?></td><td><input type="text" name="newMonitor[SectionLength]" value="<?= $newMonitor['SectionLength'] ?>" size="6"/></td></tr>
-            <tr><td><?= $SLANG['FrameSkip'] ?></td><td><input type="text" name="newMonitor[FrameSkip]" value="<?= $newMonitor['FrameSkip'] ?>" size="6"/></td></tr>
-            <tr><td><?= $SLANG['FPSReportInterval'] ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?= $newMonitor['FPSReportInterval'] ?>" size="6"/></td></tr>
+            <tr><td><?= $SLANG['EventPrefix'] ?></td><td><input type="text" name="newMonitor[EventPrefix]" value="<?= validHtmlStr($newMonitor['EventPrefix']) ?>" size="24"/></td></tr>
+            <tr><td><?= $SLANG['Sectionlength'] ?></td><td><input type="text" name="newMonitor[SectionLength]" value="<?= validHtmlStr($newMonitor['SectionLength']) ?>" size="6"/></td></tr>
+            <tr><td><?= $SLANG['FrameSkip'] ?></td><td><input type="text" name="newMonitor[FrameSkip]" value="<?= validHtmlStr($newMonitor['FrameSkip']) ?>" size="6"/></td></tr>
+            <tr><td><?= $SLANG['FPSReportInterval'] ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?= validHtmlStr($newMonitor['FPSReportInterval']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['DefaultView'] ?></td><td><select name="newMonitor[DefaultView]">
 <?php
         foreach ( getEnumValues( 'Monitors', 'DefaultView' ) as $opt_view )
@@ -578,11 +580,11 @@ switch ( $_REQUEST['tab'] )
         if ( $newMonitor['Type'] == "Local" )
         {
 ?>
-            <tr><td><?= $SLANG['SignalCheckColour'] ?></td><td><input type="text" name="newMonitor[SignalCheckColour]" value="<?= $newMonitor['SignalCheckColour'] ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?= $newMonitor['SignalCheckColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
+            <tr><td><?= $SLANG['SignalCheckColour'] ?></td><td><input type="text" name="newMonitor[SignalCheckColour]" value="<?= validHtmlStr($newMonitor['SignalCheckColour']) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?= $newMonitor['SignalCheckColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
 <?php
         }
 ?>
-            <tr><td><?= $SLANG['WebColour'] ?></td><td><input type="text" name="newMonitor[WebColour]" value="<?= $newMonitor['WebColour'] ?>" size="10" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/><span id="WebSwatch" class="swatch" style="background-color: <?= $newMonitor['WebColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
+            <tr><td><?= $SLANG['WebColour'] ?></td><td><input type="text" name="newMonitor[WebColour]" value="<?= validHtmlStr($newMonitor['WebColour']) ?>" size="10" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/><span id="WebSwatch" class="swatch" style="background-color: <?= validHtmlStr($newMonitor['WebColour']) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
 <?php
         break;
     }

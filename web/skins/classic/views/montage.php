@@ -20,7 +20,7 @@
 
 if ( !canView( 'Stream' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -122,7 +122,7 @@ else
     $streamSrc = getStreamSrc( array( "mode=jpeg", "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
     if ( canStreamNative() )
     {
-        outputImageStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
+        outputImageStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), validHtmlStr($monitor['Name']) );
     }
     else
     {

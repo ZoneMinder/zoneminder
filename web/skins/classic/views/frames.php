@@ -20,7 +20,7 @@
 
 if ( !canView( 'Events' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 $sql = "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'";
@@ -31,13 +31,13 @@ $frames = dbFetchAll( $sql );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Frames']." - ".$_REQUEST['eid'] );
+xhtmlHeaders(__FILE__, $SLANG['Frames']." - ".$event['Id'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons"><a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a></div>
-      <h2><?= $SLANG['Frames'] ?> - <?= $_REQUEST['eid'] ?></h2>
+      <h2><?= $SLANG['Frames'] ?> - <?= $event['Id'] ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
@@ -61,7 +61,7 @@ if ( count($frames) )
         $class = strtolower($frame['Type']);
 ?>
             <tr class="<?= $class ?>">
-              <td class="colId"><?= makePopupLink( '?view=frame&eid='.$_REQUEST['eid'].'&fid='.$frame['FrameId'], 'zmImage', array( 'image', $event['Width'], $event['Height'] ), $frame['FrameId'] ) ?></a></td>
+              <td class="colId"><?= makePopupLink( '?view=frame&eid='.$event['Id'].'&fid='.$frame['FrameId'], 'zmImage', array( 'image', $event['Width'], $event['Height'] ), $frame['FrameId'] ) ?></a></td>
               <td class="colType"><?= $frame['Type'] ?></td>
               <td class="colTimeStamp"><?= strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
               <td class="colTimeDelta"><?= number_format( $frame['Delta'], 2 ) ?></td>
@@ -69,7 +69,7 @@ if ( count($frames) )
         if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') )
         {
 ?>
-              <td class="colScore"><?= makePopupLink( '?view=stats&eid='.$_REQUEST['eid'].'&fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></a></td>
+              <td class="colScore"><?= makePopupLink( '?view=stats&eid='.$event['Id'].'&fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></a></td>
 <?php
         }
         else

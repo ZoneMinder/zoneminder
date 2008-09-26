@@ -3,7 +3,7 @@ var labels = new Array();
 foreach ( $labels as $index=>$label )
 {
 ?>
-labels[<?= $index ?>] = "<?= htmlentities(addslashes($label)) ?>";
+labels[<?= validInt($index) ?>] = "<?= validJsStr($label) ?>";
 <?php
 }
 ?>

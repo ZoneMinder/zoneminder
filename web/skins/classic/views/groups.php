@@ -20,7 +20,7 @@
 
 if ( !canView( 'System' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -71,7 +71,7 @@ foreach ( $groups as $group )
 {
 ?>
             <tr>
-              <td class="colName"><?= $group['Name'] ?></td>
+              <td class="colName"><?= validHtmlStr($group['Name']) ?></td>
               <td class="colIds"><?= monitorIdsToNames( $group['MonitorIds'], 30 ) ?></td>
               <td class="colSelect"><input type="radio" name="gid" value="<?= $group['Id'] ?>"<?= $group['selected']?' checked="checked"':'' ?> onclick="configureButtons( this );"/></td>
             </tr>

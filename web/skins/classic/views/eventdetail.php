@@ -20,22 +20,26 @@
 
 if ( !canEdit( 'Events' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 if ( isset($_REQUEST['eid']) )
 {
-    $sql = "select E.* from Events as E where E.Id = '".dbEscape($_REQUEST['eid'])."'";
+    $mode = 'single';
+    $eid = validInt($_REQUEST['eid']);
+    $sql = "select E.* from Events as E where E.Id = '".dbEscape($eid)."'";
     $newEvent = dbFetchOne( $sql );
 }
 elseif ( isset($_REQUEST['eids']) )
 {
+    $mode = 'multi';
     $sql = "select E.* from Events as E where ";
     $sqlWhere = array();
     foreach ( $_REQUEST['eids'] as $eid )
     {
         $sqlWhere[] = "E.Id = '".dbEscape($eid)."'";
     }
+    unset( $eid );
     $sql .= join( " or ", $sqlWhere );
     foreach( dbFetchAll( $sql ) as $row )
     {
@@ -52,11 +56,15 @@ elseif ( isset($_REQUEST['eids']) )
         }
     }
 }
+else
+{
+    $mode = '';
+}
 
 $focusWindow = true;
 
-if ( isset($_REQUEST['eid']) )
-    xhtmlHeaders(__FILE__, $SLANG['Event']." - ".$_REQUEST['eid'] );
+if ( $mode == 'single' )
+    xhtmlHeaders(__FILE__, $SLANG['Event']." - ".$eid );
 else
     xhtmlHeaders(__FILE__, $SLANG['Events'] );
 ?>
@@ -64,10 +72,10 @@ else
   <div id="page">
     <div id="header">
 <?php
-if ( isset($_REQUEST['eid']) )
+if ( $mode == 'single' )
 {
 ?>
-      <h2><?= $SLANG['Event'] ?> <?= $_REQUEST['eid'] ?></h2>
+      <h2><?= $SLANG['Event'] ?> <?= $eid ?></h2>
 <?php
 }
 else
@@ -82,15 +90,15 @@ else
       <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
 <?php
-if ( isset($_REQUEST['eid']) )
+if ( $mode == 'single' )
 {
 ?>
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value="eventdetail"/>
-        <input type="hidden" name="eid" value="<?= $_REQUEST['eid'] ?>"/>
+        <input type="hidden" name="eid" value="<?= $eid ?>"/>
 <?php
 }
-elseif ( isset($_REQUEST['eids']) )
+elseif ( $mode = 'multi' )
 {
 ?>
         <input type="hidden" name="view" value="none"/>
@@ -99,7 +107,7 @@ elseif ( isset($_REQUEST['eids']) )
     foreach ( $_REQUEST['eids'] as $eid )
     {
 ?>
-        <input type="hidden" name="markEids[]" value="<?= $eid ?>"/>
+        <input type="hidden" name="markEids[]" value="<?= validHtmlStr($eid) ?>"/>
 <?php
     }
 }
@@ -108,11 +116,11 @@ elseif ( isset($_REQUEST['eids']) )
           <tbody>
             <tr>
               <th scope="row"><?= $SLANG['Cause'] ?></td>
-              <td><input type="text" name="newEvent[Cause]" value="<?= $newEvent['Cause'] ?>" size="32"/></td>
+              <td><input type="text" name="newEvent[Cause]" value="<?= validHtmlStr($newEvent['Cause']) ?>" size="32"/></td>
             </tr>
             <tr>
               <th scope="row"><?= $SLANG['Notes'] ?></td>
-              <td><textarea name="newEvent[Notes]" rows="6" cols="50"><?= $newEvent['Notes'] ?></textarea></td>
+              <td><textarea name="newEvent[Notes]" rows="6" cols="50"><?= validHtmlStr($newEvent['Notes']) ?></textarea></td>
             </tr>
           </tbody>
         </table>

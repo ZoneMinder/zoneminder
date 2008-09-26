@@ -20,7 +20,7 @@
 
 if ( !canView( 'Devices' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
      return;
 }
 
@@ -64,9 +64,9 @@ foreach( $devices as $device )
     }
 ?>
             <tr>
-              <td><?= makePopupLink( '?view=device&did='.$device['Id'], 'zmDevice', 'device', '<span class="'.$fclass.'">'.$device['Name'].' ('.$device['KeyString'].')</span>', canEdit( 'Devices' ) ) ?></td>
-              <td><input type="button" value="<?= $SLANG['On'] ?>"<?= ($device['Status'] != 'ON')?' class="set"':'' ?> onclick="switchDeviceOn( this, '<?= $device['KeyString'] ?>' )"<?= canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
-              <td><input type="button" value="<?= $SLANG['Off'] ?>"<?= ($device['Status'] != 'OFF')?' class="set"':'' ?> onclick="switchDeviceOff( this, '<?= $device['KeyString'] ?>' )"<?= canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
+              <td><?= makePopupLink( '?view=device&did='.$device['Id'], 'zmDevice', 'device', '<span class="'.$fclass.'">'.validHtmlStr($device['Name']).' ('.validHtmlStr($device['KeyString']).')</span>', canEdit( 'Devices' ) ) ?></td>
+              <td><input type="button" value="<?= $SLANG['On'] ?>"<?= ($device['Status'] != 'ON')?' class="set"':'' ?> onclick="switchDeviceOn( this, '<?= validHtmlStr($device['KeyString']) ?>' )"<?= canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
+              <td><input type="button" value="<?= $SLANG['Off'] ?>"<?= ($device['Status'] != 'OFF')?' class="set"':'' ?> onclick="switchDeviceOff( this, '<?= validHtmlStr($device['KeyString']) ?>' )"<?= canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
               <td><input type="checkbox" name="markDids[]" value="<?= $device['Id'] ?>" onclick="configureButtons( this, 'markDids' );"<?php if ( !canEdit( 'Devices' ) ) {?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php

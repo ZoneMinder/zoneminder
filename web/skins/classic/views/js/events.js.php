@@ -4,8 +4,8 @@ var openFilterWindow = false;
 var archivedEvents = <?= !empty($archived)?'true':'false' ?>;
 var unarchivedEvents = <?= !empty($unarchived)?'true':'false' ?>;
 
-var filterQuery = '<?= isset($filterQuery)?addslashes($filterQuery):'' ?>';
-var sortQuery = '<?= isset($sortQuery)?addslashes($sortQuery):'' ?>';
+var filterQuery = '<?= isset($filterQuery)?validJsStr($filterQuery):'' ?>';
+var sortQuery = '<?= isset($sortQuery)?validJsStr($sortQuery):'' ?>';
 
 var maxWidth = <?= $maxWidth?$maxWidth:0 ?>;
 var maxHeight = <?= $maxHeight?$maxHeight:0 ?>;

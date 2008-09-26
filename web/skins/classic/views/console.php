@@ -183,7 +183,7 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
 <body>
   <div id="page">
     <form name="monitorForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
-    <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+    <input type="hidden" name="view" value="<?= $view ?>"/>
     <input type="hidden" name="action" value=""/>
     <div id="header">
       <h3 id="systemTime"><?= preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG ) ?></h3>
@@ -327,7 +327,7 @@ foreach( $monitors as $monitor )
     if ( canEdit('Monitors') )
     {
 ?>
-            <td class="colOrder"><?= makeLink( '?view='.$_REQUEST['view'].'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?= makeLink( 'view='.$_REQUEST['view'].'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></td>
+            <td class="colOrder"><?= makeLink( '?view='.$view.'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?= makeLink( 'view='.$view.'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></td>
 <?php
     }
 ?>

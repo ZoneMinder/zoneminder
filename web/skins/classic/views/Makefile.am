@@ -41,7 +41,6 @@ dist_web_DATA = \
 	options.php \
 	postlogin.php \
 	settings.php \
-	siren.php \
 	state.php \
 	stats.php \
 	status.php \

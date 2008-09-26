@@ -20,13 +20,13 @@
 
 if ( !canView( 'Control' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 $monitor = dbFetchMonitor( $_REQUEST['mid'] );
 
-$zmuCommand = getZmuCommand( " -m ".$_REQUEST['mid']." -B -C -H -O" );
-$zmuOutput = exec( escapeshellcmd( $zmuCommand ) );
+$zmuCommand = getZmuCommand( " -m ".escapeshellarg($_REQUEST['mid'])." -B -C -H -O" );
+$zmuOutput = exec( $zmuCommand );
 list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmuOutput );
 
 $monitor['Brightness'] = $brightness;
@@ -36,18 +36,18 @@ $monitor['Colour'] = $colour;
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $monitor['Name']." - ".$SLANG['Settings'] );
+xhtmlHeaders(__FILE__, validHtmlStr($monitor['Name'])." - ".$SLANG['Settings'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $monitor['Name'] ?> - <?= $SLANG['Settings'] ?></h2>
+      <h2><?= validHtmlStr($monitor['Name']) ?> - <?= $SLANG['Settings'] ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value="settings"/>
-        <input type="hidden" name="mid" value="<?= $_REQUEST['mid'] ?>"/>
+        <input type="hidden" name="mid" value="<?= validInt($_REQUEST['mid']) ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>

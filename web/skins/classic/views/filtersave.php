@@ -20,7 +20,7 @@
 
 if ( !canEdit( 'Events' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -30,7 +30,7 @@ foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row )
     $filterNames[$row['Name']] = $row['Name'];
     if ( $filterName == $row['Name'] )
     {
-        $filter_data = $row;
+        $filterData = $row;
     }
 }
 
@@ -50,17 +50,17 @@ xhtmlHeaders(__FILE__, $SLANG['SaveFilter'] );
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="filter"/>
         <?= $filter['fields'] ?>
-        <input type="hidden" name="sort_field" value="<?= $sort_field ?>"/>
-        <input type="hidden" name="sort_asc" value="<?= $sort_asc ?>"/>
-        <input type="hidden" name="limit" value="<?= $limit ?>"/>
-        <input type="hidden" name="auto_archive" value="<?= $auto_archive ?>"/>
-        <input type="hidden" name="auto_video" value="<?= $auto_video ?>"/>
-        <input type="hidden" name="auto_upload" value="<?= $auto_upload ?>"/>
-        <input type="hidden" name="auto_email" value="<?= $auto_email ?>"/>
-        <input type="hidden" name="auto_message" value="<?= $auto_message ?>"/>
-        <input type="hidden" name="auto_execute" value="<?= $auto_execute ?>"/>
-        <input type="hidden" name="auto_execute_cmd" value="<?= $auto_execute_cmd ?>"/>
-        <input type="hidden" name="auto_delete" value="<?= $auto_delete ?>"/>
+        <input type="hidden" name="sort_field" value="<?= requestVar( 'sort_field' ) ?>"/>
+        <input type="hidden" name="sort_asc" value="<?= requestVar( 'sort_asc' ) ?>"/>
+        <input type="hidden" name="limit" value="<?= requestVar( 'limit' ) ?>"/>
+        <input type="hidden" name="autoArchive" value="<?= requestVar( 'autoArchive' ) ?>"/>
+        <input type="hidden" name="autoVideo" value="<?= requestVar( 'autoVideo' ) ?>"/>
+        <input type="hidden" name="autoUpload" value="<?= requestVar( 'autoUpload' ) ?>"/>
+        <input type="hidden" name="autoEmail" value="<?= requestVar( 'autoEmail' ) ?>"/>
+        <input type="hidden" name="autoMessage" value="<?= requestVar( 'autoMessage' ) ?>"/>
+        <input type="hidden" name="autoExecute" value="<?= requestVar( 'autoExecute' ) ?>"/>
+        <input type="hidden" name="autoExecuteCmd" value="<?= requestVar( 'autoExecuteCmd' ) ?>"/>
+        <input type="hidden" name="autoDelete" value="<?= requestVar( 'autoDelete' ) ?>"/>
 <?php if ( count($filterNames) ) { ?>
         <p>
           <label for="<?= $selectName ?>"><?= $SLANG['SaveAs'] ?></label><?= buildSelect( $selectName, $filterNames ); ?><label for="new_<?= $selectName ?>"><?= $SLANG['OrEnterNewName'] ?></label><input type="text" size="32" name="new_<?= $selectName ?>" value="<?= $filterName ?>">
@@ -71,7 +71,7 @@ xhtmlHeaders(__FILE__, $SLANG['SaveFilter'] );
         </p>
 <?php } ?>
         <p>
-          <label for="background"><?= $SLANG['BackgroundFilter'] ?></label><input type="checkbox" name="background" value="1"<?php if ( $filter_data['Background'] ) { ?> checked="checked"<?php } ?>/>
+          <label for="background"><?= $SLANG['BackgroundFilter'] ?></label><input type="checkbox" name="background" value="1"<?php if ( $filterData['Background'] ) { ?> checked="checked"<?php } ?>/>
         </p>
         <div id="contentButtons">
           <input type="submit" value="<?= $SLANG['Save'] ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>

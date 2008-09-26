@@ -20,7 +20,7 @@
 
 if ( !canEdit( 'Monitors' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 $sql = "select Id,Name from MonitorPresets";
@@ -43,7 +43,7 @@ xhtmlHeaders(__FILE__, $SLANG['MonitorPreset'] );
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="mid" value="<?= $_REQUEST['mid'] ?>"/>
+        <input type="hidden" name="mid" value="<?= validNum($_REQUEST['mid']) ?>"/>
         <p>
           <?= $SLANG['MonitorPresetIntro'] ?>
         </p>

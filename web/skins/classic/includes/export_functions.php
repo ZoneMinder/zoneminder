@@ -44,13 +44,13 @@ function exportEventDetail( $event, $exportFrames )
 <body>
   <div id="page">
     <div id="content">
-      <h2><?= $SLANG['Event'] ?>: <?= $event['Name'] ?><?php if ( $exportFrames ) { ?> (<a href="zmEventFrames.html"><?= $SLANG['Frames'] ?></a>)<?php } ?></h2>
+      <h2><?= $SLANG['Event'] ?>: <?= validHtmlStr($event['Name']) ?><?php if ( $exportFrames ) { ?> (<a href="zmEventFrames.html"><?= $SLANG['Frames'] ?></a>)<?php } ?></h2>
       <table id="eventDetail">
         <tr><th scope="row"><?= $SLANG['Id'] ?></th><td><?= $event['Id'] ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['Name'] ?></th><td><?= $event['Name'] ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['Monitor'] ?></th><td><?= $event['MonitorName'] ?> (<?= $event['MonitorId'] ?>)</td></tr>
-        <tr><th scope="row"><?= $SLANG['Cause'] ?></th><td><?= $event['Cause'] ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['Notes'] ?></th><td><?= $event['Notes'] ?></td></tr>
+        <tr><th scope="row"><?= $SLANG['Name'] ?></th><td><?= validHtmlStr($event['Name']) ?></td></tr>
+        <tr><th scope="row"><?= $SLANG['Monitor'] ?></th><td><?= validHtmlStr($event['MonitorName']) ?> (<?= $event['MonitorId'] ?>)</td></tr>
+        <tr><th scope="row"><?= $SLANG['Cause'] ?></th><td><?= validHtmlStr($event['Cause']) ?></td></tr>
+        <tr><th scope="row"><?= $SLANG['Notes'] ?></th><td><?= validHtmlStr($event['Notes']) ?></td></tr>
         <tr><th scope="row"><?= $SLANG['Time'] ?></th><td><?= strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td></tr>
         <tr><th scope="row"><?= $SLANG['Duration'] ?></th><td><?= $event['Length'] ?></td></tr>
         <tr><th scope="row"><?= $SLANG['Frames'] ?></th><td><?= $event['Frames'] ?></td></tr>
@@ -72,7 +72,7 @@ function exportEventFrames( $event, $exportImages )
 {
     global $SLANG;
 
-    $sql = "select *, unix_timestamp( TimeStamp ) as UnixTimeStamp from Frames where EventID = '".$event['Id']."' order by FrameId";
+    $sql = "select *, unix_timestamp( TimeStamp ) as UnixTimeStamp from Frames where EventID = '".dbEscape($event['Id'])."' order by FrameId";
     $frames = dbFetchAll( $sql );
 
     ob_start();
@@ -81,7 +81,7 @@ function exportEventFrames( $event, $exportImages )
 <body>
   <div id="page">
     <div id="content">
-      <h2><?= $SLANG['Frames'] ?>: <?= $event['Name'] ?> (<a href="zmEventDetail.html"><?= $SLANG['Event'] ?></a>)</h2>
+      <h2><?= $SLANG['Frames'] ?>: <?= validHtmlStr($event['Name']) ?> (<a href="zmEventDetail.html"><?= $SLANG['Event'] ?></a>)</h2>
       <table id="eventFrames">
         <tr>
           <th><?= $SLANG['FrameId'] ?></th>
@@ -155,7 +155,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
 
     if ( canView( 'Events' ) && $eid )
     {
-        $sql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where E.Id = '$eid'";
+        $sql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where E.Id = '".dbEscape($eid)."'";
         $event = dbFetchOne( $sql );
 
         $eventPath = getEventPath( $event );
@@ -196,7 +196,6 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
             fclose( $fp );
             $exportFileList[$file] = $eventPath."/".$file;
         }
-
         if ( $exportImages )
         {
             $filesLeft = array();
@@ -278,7 +277,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
             $archive = "temp/".$export_root.".tar.gz";
             @unlink( $archive );
             $command = "tar --create --gzip --file=$archive --files-from=$listFile";
-            exec( $command, $output, $status );
+            exec( escapeshellcmd( $command ), $output, $status );
             if ( $status )
             {
                 error_log( "Command '$command' returned with status $status" );
@@ -293,7 +292,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
             $archive = "temp/".$export_root.".zip";
             @unlink( $archive );
             $command = "cat $listFile | zip -q $archive -@";
-            exec( $command, $output, $status );
+            exec( escapeshellcmd( $command ), $output, $status );
             if ( $status )
             {
                 error_log( "Command '$command' returned with status $status" );

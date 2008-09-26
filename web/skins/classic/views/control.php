@@ -20,14 +20,14 @@
 
 if ( !canView( 'Control' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
 $groupSql = "";
 if ( !empty($_REQUEST['group']) )
 {
-    $sql = "select * from Groups where Id = '".$group."'";
+    $sql = "select * from Groups where Id = '".dbEscape($_REQUEST['group'])."'";
     $row = dbFetchOne( $sql );
     $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
@@ -64,7 +64,7 @@ xhtmlHeaders(__FILE__, $SLANG['Control'] );
       <h2><?= $SLANG['Control'] ?></h2>
       <div id="headerControl">
         <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
-          <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+          <input type="hidden" name="view" value="<?= $view ?>"/>
           <?= buildSelect( "mid", $mids, "this.form.submit();" ); ?>
         </form>
       </div>

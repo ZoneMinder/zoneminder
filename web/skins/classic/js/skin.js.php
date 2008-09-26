@@ -26,7 +26,7 @@
 ?>
   var AJAX_TIMEOUT = <?= ZM_WEB_AJAX_TIMEOUT ?>;
 
-  var currentView = '<?= $_REQUEST['view'] ?>';
+  var currentView = '<?= $view ?>';
   var thisUrl = "<?= ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
   var skinPath = "<?= ZM_SKIN_PATH ?>";
 

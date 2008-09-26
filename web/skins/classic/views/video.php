@@ -20,7 +20,7 @@
 
 if ( !canView( 'Events' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -32,10 +32,14 @@ else
 $sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = ".dbEscape($_REQUEST['eid']).$midSql;
 $event = dbFetchOne( $sql );
 
-if ( !isset( $_REQUEST['rate'] ) )
-    $_REQUEST['rate'] = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
-if ( !isset( $_REQUEST['scale'] ) )
-    $_REQUEST['scale'] = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+if ( isset( $_REQUEST['rate'] ) )
+    $rate = validInt($_REQUEST['rate']);
+else
+    $rate = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
+if ( isset( $_REQUEST['scale'] ) )
+    $scale = validInt($_REQUEST['scale']);
+else
+    $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
 $eventPath = getEventPath( $event );
 
@@ -76,14 +80,16 @@ if ( $dir = opendir( $eventPath ) )
 
 if ( isset($_REQUEST['deleteIndex']) )
 {
-    unlink( $videoFiles[$_REQUEST['deleteIndex']] );
-    unset( $videoFiles[$_REQUEST['deleteIndex']] );
+    $deleteIndex = validInt($_REQUEST['deleteIndex']);
+    unlink( $videoFiles[$deleteIndex] );
+    unset( $videoFiles[$deleteIndex] );
 }
 
 if ( isset($_REQUEST['downloadIndex']) )
 {
-    header( "Content-disposition: attachment; filename=".$videoFiles[$_REQUEST['downloadIndex']]."; size=".filesize($videoFiles[$_REQUEST['downloadIndex']]) );
-    readfile( $videoFiles[$_REQUEST['downloadIndex']] );
+    $downloadIndex = validInt($_REQUEST['downloadIndex']);
+    header( "Content-disposition: attachment; filename=".$videoFiles[$downloadIndex]."; size=".filesize($videoFiles[$downloadIndex]) );
+    readfile( $videoFiles[$downloadIndex] );
     exit;
 }
 
@@ -103,12 +109,13 @@ xhtmlHeaders(__FILE__, $SLANG['Video'] );
 <?php
 if ( isset($_REQUEST['showIndex']) )
 {
-    preg_match( '/([^\/]+)\.([^.]+)$/', $videoFiles[$_REQUEST['showIndex']], $matches );
+    $showIndex = validInt($_REQUEST['showIndex']);
+    preg_match( '/([^\/]+)\.([^.]+)$/', $videoFiles[$showIndex], $matches );
     $name = $matches[1];
     $videoFormat = $matches[2];
 ?>
-      <h3 id="videoFile"><?= $videoFiles[$_REQUEST['showIndex']] ?></h3>
-      <div id="imageFeed"><?php outputVideoStream( 'videoStream', $videoFiles[$_REQUEST['showIndex']], $_REQUEST['width'], $_REQUEST['height'], $videoFormat, $name ) ?></div>
+      <h3 id="videoFile"><?= $videoFiles[$showIndex] ?></h3>
+      <div id="imageFeed"><?php outputVideoStream( 'videoStream', $videoFiles[$showIndex], validInt($_REQUEST['width']), validInt($_REQUEST['height']), $videoFormat, $name ) ?></div>
 <?php
 }
 else
@@ -207,7 +214,7 @@ else
           <td><?= filesize( $file ) ?></td>
           <td><?= $rateText ?></td>
           <td><?= $scaleText ?></td>
-          <td><?= makePopupLink( '?view='.$_REQUEST['view'].'&eid='.$event['Id'].'&width='.$width.'&height='.$height.'&showIndex='.$index, 'zmVideo'.$event['Id'].'-'.$scale, array( 'videoview', $width, $height ), $SLANG['View'] ); ?>&nbsp;/&nbsp;<a href="<?= $file ?>" onclick="downloadVideo( <?= $index ?> ); return( false );"><?= $SLANG['Download'] ?></a>&nbsp;/&nbsp;<a href="#" onclick="deleteVideo( <?= $index ?> ); return( false );"><?= $SLANG['Delete'] ?></a></td>
+          <td><?= makePopupLink( '?view='.$view.'&eid='.$event['Id'].'&width='.$width.'&height='.$height.'&showIndex='.$index, 'zmVideo'.$event['Id'].'-'.$scale, array( 'videoview', $width, $height ), $SLANG['View'] ); ?>&nbsp;/&nbsp;<a href="<?= $file ?>" onclick="downloadVideo( <?= $index ?> ); return( false );"><?= $SLANG['Download'] ?></a>&nbsp;/&nbsp;<a href="#" onclick="deleteVideo( <?= $index ?> ); return( false );"><?= $SLANG['Delete'] ?></a></td>
         </tr>
 <?php
                 $index++;

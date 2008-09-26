@@ -20,7 +20,7 @@
 
 if ( !canEdit( 'System' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -46,14 +46,14 @@ xhtmlHeaders( __FILE__, $SLANG['Group']." - ".$newGroup['Name'] );
     </div>
     <div id="content">
       <form name="groupForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value="group"/>
         <input type="hidden" name="gid" value="<?= $newGroup['Id'] ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
               <th scope="row"><?= $SLANG['Name'] ?></th>
-              <td><input type="text" name="newGroup[Name]" value="<?= $newGroup['Name'] ?>"/></td>
+              <td><input type="text" name="newGroup[Name]" value="<?= validHtmlStr($newGroup['Name']) ?>"/></td>
             </tr>
             <tr>
               <th scope="row"><?= $SLANG['MonitorIds'] ?></th>
@@ -67,7 +67,7 @@ xhtmlHeaders( __FILE__, $SLANG['Group']." - ".$newGroup['Name'] );
         if ( visibleMonitor( $monitor['Id'] ) )
         {
 ?>
-                  <option value="<?= $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?= htmlentities($monitor['Name']) ?></option>
+                  <option value="<?= $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?= validHtmlStr($monitor['Name']) ?></option>
 <?php
         }
     }

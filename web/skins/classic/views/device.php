@@ -20,12 +20,12 @@
 
 if ( !canEdit( 'Devices' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 if ( !empty($_REQUEST['did']) )
 {
-    $sql = "select * from Devices where Id = '".$_REQUEST['did']."'";
+    $sql = "select * from Devices where Id = '".dbEscape($_REQUEST['did'])."'";
     $newDevice = dbFetchOne( $sql );
 }
 else
@@ -42,22 +42,22 @@ xhtmlHeaders( __FILE__, $SLANG['Device']." - ".$newDevice['Name'] );
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['Device']." - ".$newDevice['Name'] ?></h2>
+      <h2><?= $SLANG['Device']." - ".validHtmlStr($newDevice['Name']) ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value="device"/>
         <input type="hidden" name="did" value="<?= $newDevice['Id'] ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
               <th scope="row"><?= $SLANG['Name'] ?></th>
-              <td><input type="text" name="newDevice[Name]" value="<?= $newDevice['Name'] ?>"/></td>
+              <td><input type="text" name="newDevice[Name]" value="<?= validHtmlStr($newDevice['Name']) ?>"/></td>
             </tr>
             <tr>
               <th scope="row"><?= $SLANG['KeyString'] ?></th>
-              <td><input type="text" name="newDevice[KeyString]" value="<?= $newDevice['KeyString'] ?>"/></td>
+              <td><input type="text" name="newDevice[KeyString]" value="<?= validHtmlStr($newDevice['KeyString']) ?>"/></td>
             </tr>
           </tbody>
         </table>

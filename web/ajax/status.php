@@ -72,8 +72,8 @@ $statusData = array(
             "MinEventId" => array( "sql" => "min(Events.Id)", "table" => "Events", "join" => "Events.MonitorId = Monitors.Id", "group" => "Events.MonitorId" ),
             "MaxEventId" => array( "sql" => "max(Events.Id)", "table" => "Events", "join" => "Events.MonitorId = Monitors.Id", "group" => "Events.MonitorId" ),
             "TotalEvents" => array( "sql" => "count(Events.Id)", "table" => "Events", "join" => "Events.MonitorId = Monitors.Id", "group" => "Events.MonitorId" ),
-            "Status" => array( "zmu" => "-m ".$_REQUEST['id'][0]." -s" ),
-            "FrameRate" => array( "zmu" => "-m ".$_REQUEST['id'][0]." -f" ),
+            "Status" => array( "zmu" => "-m ".escapeshellarg($_REQUEST['id'][0])." -s" ),
+            "FrameRate" => array( "zmu" => "-m ".escapeshellarg($_REQUEST['id'][0])." -f" ),
         ),
     ),
     "events" => array(
@@ -174,7 +174,7 @@ function collectData()
 {
     global $statusData;
 
-    $entitySpec = &$statusData[strtolower($_REQUEST['entity'])];
+    $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
     #print_r( $entitySpec );
     if ( !canView( $entitySpec['permission'] ) )
     {
@@ -201,12 +201,12 @@ function collectData()
         if ( !isset($_REQUEST['id']) )
             $_REQUEST['id'] = array_keys( $id );
         else if ( !is_array($_REQUEST['id']) )
-            $_REQUEST['id'] = array( $_REQUEST['id'] );
+            $_REQUEST['id'] = array( validJsStr($_REQUEST['id']) );
 
         if ( !isset($_REQUEST['element']) )
             $_REQUEST['element'] = array_keys( $elements );
         else if ( !is_array($_REQUEST['element']) )
-            $_REQUEST['element'] = array( $_REQUEST['element'] );
+            $_REQUEST['element'] = array( validJsStr($_REQUEST['element']) );
 
         if ( isset($entitySpec['selector']) )
         {
@@ -220,7 +220,7 @@ function collectData()
         foreach ( $_REQUEST['element'] as $element )
         {
             if ( !($elementData = $lc_elements[strtolower($element)]) )
-                throwError( "Bad ".$_REQUEST['entity']." element ".$element );
+                throwError( "Bad ".validJsStr($_REQUEST['entity'])." element ".$element );
             if ( isset($elementData['func']) )
                 $data[$element] = eval( "return( ".$elementData['func']." );" );
             else if ( isset($elementData['postFunc']) )
@@ -324,9 +324,9 @@ switch( $_REQUEST['layout'] )
     case 'json' :
     {
         header("Content-type: text/plain" );
-        $response = array( 'result'=>'Ok', strtolower($_REQUEST['entity']) => $data );
+        $response = array( 'result'=>'Ok', strtolower(validJsStr($_REQUEST['entity'])) => $data );
         if ( isset($_REQUEST['loopback']) )
-            $response['loopback'] = $_REQUEST['loopback'];
+            $response['loopback'] = validJsStr($_REQUEST['loopback']);
         echo jsValue( $response );
         break;
     }
@@ -390,7 +390,7 @@ function getNearEvents()
     else
         $midSql = '';
 
-    $sql = "select E.Id as Id from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn ".($sortOrder=='asc'?'desc':'asc');
+    $sql = "select E.Id as Id from Events as E inner join Monitors as M on E.MonitorId = M.Id where ".dbEscape($sortColumn)." ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn ".($sortOrder=='asc'?'desc':'asc');
     $result = dbQuery( $sql );
     while ( $id = dbFetchNext( $result, 'Id' ) )
     {

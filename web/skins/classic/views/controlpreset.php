@@ -20,7 +20,7 @@
 
 if ( !canEdit( 'Monitors' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -39,7 +39,7 @@ for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )
     $presets[$i] = "$SLANG['Preset'] $i";
     if ( !empty($labels[$i]) )
     {
-        $presets[$i] .= " (".htmlentities(addslashes($labels[$i])).")";
+        $presets[$i] .= " (".validHtmlStr($labels[$i]).")";
     }
 }
 
@@ -55,7 +55,7 @@ xhtmlHeaders(__FILE__, $SLANG['SetPreset'] );
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="mid" value="<?= $monitor['Id'] ?>"/>
         <input type="hidden" name="action" value="control"/>
         <input type="hidden" name="control" value="presetSet"/>

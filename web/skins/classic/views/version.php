@@ -20,7 +20,7 @@
 
 if ( !canEdit( 'System' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 $options = array(

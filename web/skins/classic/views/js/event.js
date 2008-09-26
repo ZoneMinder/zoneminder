@@ -378,6 +378,10 @@ function loadEventImage( event, frame )
             'width': event.Width,
             'height': event.Height
         } );
+        if ( frame.Type=='Alarm' )
+            $('eventImageStats').removeClass( 'hidden' );
+        else
+            $('eventImageStats').addClass( 'hidden' );
         thumbImg.addClass( 'selected' );
         thumbImg.setOpacity( 0.5 );
 
@@ -404,6 +408,7 @@ function hideEventImageComplete()
     $('prevImageBtn').disabled = true;
     $('nextImageBtn').disabled = true;
     $('eventImagePanel').setStyle( 'display', 'none' );
+    $('eventImageStats').addClass( 'hidden' );
 }
 
 function hideEventImage()
@@ -646,6 +651,11 @@ function unarchiveEvent()
     actQuery( 'unarchive' );
 }
 
+function showEventFrames()
+{
+    createPopup( '?view=frames&eid='+event.Id, 'zmFrames', 'frames' );
+}
+
 function showStream()
 {
     $('eventStills').addClass( 'hidden' );
@@ -675,6 +685,12 @@ function showStills()
     }
     resetEventStills();
     $(window).addEvent( 'resize', updateStillsSizes );
+}
+
+function showFrameStats()
+{
+    var fid = $('eventImageNo').getText();
+    createPopup( '?view=stats&eid='+event.Id+'&fid='+fid, 'zmStats', 'stats', event.Width, event.Height );
 }
 
 function videoEvent()

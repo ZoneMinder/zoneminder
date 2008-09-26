@@ -191,6 +191,11 @@
     position: relative;
 }
 
+#eventImageStats {
+    position: absolute;
+    left: 0;
+}
+
 #eventImageData {
     margin: 0 auto;
     padding-top: 2px;

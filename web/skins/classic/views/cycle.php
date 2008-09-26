@@ -20,23 +20,32 @@
 
 if ( !canView( 'Stream' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
 if ( empty($_REQUEST['mode']) )
 {
     if ( ZM_WEB_USE_STREAMS && canStream() )
-        $_REQUEST['mode'] = "stream";
+        $mode = "stream";
     else
-        $_REQUEST['mode'] = "still";
+        $mode = "still";
+}
+else
+{
+    $mode = validHtmlStr($_REQUEST['mode']);
 }
 
 if ( !empty($_REQUEST['group']) )
 {
-    $sql = "select * from Groups where Id = '".$_REQUEST['group']."'";
+    $group = validInt($_REQUEST['group']);
+    $sql = "select * from Groups where Id = '".dbEscape($group)."'";
     $row = dbFetchOne( $sql );
     $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
+}
+else
+{
+    $group = '';
 }
 
 $sql = "select * from Monitors where Function != 'None'$groupSql order by Sequence";
@@ -66,7 +75,7 @@ if ( false && (ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT) )
     $streamMode = "mpeg";
     $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
 }
-elseif ( $_REQUEST['mode'] == 'stream' && canStream() )
+elseif ( $mode == 'stream' && canStream() )
 {
     $streamMode = "jpeg";
     $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
@@ -87,32 +96,32 @@ xhtmlHeaders(__FILE__, $SLANG['CycleWatch'] );
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-<?php if ( $_REQUEST['mode'] == "stream" ) { ?>
-        <a href="?view=<?= $_REQUEST['view'] ?>&mode=still&group=<?= $_REQUEST['group'] ?>&mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stills'] ?></a>
+<?php if ( $mode == "stream" ) { ?>
+        <a href="?view=<?= $view ?>&mode=still&group=<?= $group ?>&mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stills'] ?></a>
 <?php } else { ?>
-        <a href="?view=<?= $_REQUEST['view'] ?>&mode=stream&group=<?= $_REQUEST['group'] ?>&mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stream'] ?></a>
+        <a href="?view=<?= $view ?>&mode=stream&group=<?= $group ?>&mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stream'] ?></a>
 <?php } ?>
         <a href="#" onclick="closeWindow(); return( false );"><?= $SLANG['Close'] ?></a>
       </div>
-      <h2><?= $SLANG['Cycle'] ?> - <?= $monitor['Name'] ?></h2>
+      <h2><?= $SLANG['Cycle'] ?> - <?= validHtmlStr($monitor['Name']) ?></h2>
     </div>
     <div id="content">
       <div id="imageFeed">
 <?php
 if ( $streamMode === "mpeg" )
 {
-    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT, $monitor['Name'] );
+    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT, validHtmlStr($monitor['Name']) );
 }
 elseif ( $streamMode == "jpeg" )
 {
     if ( canStreamNative() )
-        outputImageStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
+        outputImageStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), validHtmlStr($monitor['Name']) );
     elseif ( canStreamApplet() )
-        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
+        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), validHtmlStr($monitor['Name']) );
 }
 else
 {
-    outputImageStill( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
+    outputImageStill( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), validHtmlStr($monitor['Name']) );
 }
 ?>
       </div>

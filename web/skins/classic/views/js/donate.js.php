@@ -1,2 +1,2 @@
-var action = '<?= $_REQUEST['action'] ?>';
-var option = '<?= $_REQUEST['option'] ?>';
+var action = '<?= validJsStr($_REQUEST['action']) ?>';
+var option = '<?= validJsStr($_REQUEST['option']) ?>';

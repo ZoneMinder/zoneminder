@@ -20,7 +20,7 @@
 
 if ( !canEdit( 'Monitors' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -28,12 +28,12 @@ $monitor = dbFetchMonitor( $_REQUEST['mid'] );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Function']." - ".$monitor['Name'] );
+xhtmlHeaders(__FILE__, $SLANG['Function']." - ".validHtmlStr($monitor['Name']) );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['Function']." - ".$monitor['Name'] ?></h2>
+      <h2><?= $SLANG['Function']." - ".validHtmlStr($monitor['Name']) ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">

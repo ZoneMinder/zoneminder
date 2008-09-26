@@ -20,13 +20,13 @@
 
 if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
 if ( !empty($_REQUEST['execute']) )
 {
-    executeFilter( $tempFilterName );
+    executeFilter( $_REQUEST['filterName'] );
 }
 
 $countSql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
@@ -53,39 +53,48 @@ if ( $_REQUEST['filter']['sql'] )
 }
 $eventsSql .= " order by $sortColumn $sortOrder";
 
+if ( isset($_REQUEST['page']) )
+    $page = validInt($_REQUEST['page']);
+else
+    $page = 0;
+if ( isset($_REQUEST['limit']) )
+    $limit = validInt($_REQUEST['limit']);
+else
+    $limit = 0;
+
 $nEvents = dbFetchOne( $countSql, 'EventCount' );
-if ( !empty($_REQUEST['limit']) && $nEvents > $_REQUEST['limit'] )
+if ( !empty($limit) && $nEvents > $limit )
 {
-    $nEvents = $_REQUEST['limit'];
+    $nEvents = $limit;
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
 if ( $pages > 1 )
 {
-    if ( !empty($_REQUEST['page']) )
+    if ( !empty($page) )
     {
-        if ( $_REQUEST['page'] < 0 )
-            $_REQUEST['page'] = 1;
-        if ( $_REQUEST['page'] > $pages )
-            $_REQUEST['page'] = $pages;
+        if ( $page < 0 )
+            $page = 1;
+        if ( $page > $pages )
+            $page = $pages;
     }
 }
-if ( !empty($_REQUEST['page']) )
+if ( !empty($page) )
 {
-    $limit_start = (($_REQUEST['page']-1)*ZM_WEB_EVENTS_PER_PAGE);
-    if ( empty( $_REQUEST['limit'] ) )
+    $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
+    if ( empty( $limit ) )
     {
-        $limit_amount = ZM_WEB_EVENTS_PER_PAGE;
+        $limitAmount = ZM_WEB_EVENTS_PER_PAGE;
     }
     else
     {
-        $limit_left = $_REQUEST['limit'] - $limit_start;
-        $limit_amount = ($limit_left>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limit_left;
+        $limitLeft = $limit - $limitStart;
+        $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
     }
-    $eventsSql .= " limit $limit_start, $limit_amount";
+    $eventsSql .= " limit $limitStart, $limitAmount";
 }
-elseif ( !empty( $_REQUEST['limit'] ) )
+elseif ( !empty( $limit ) )
 {
-    $eventsSql .= " limit 0, ".$_REQUEST['limit'];
+    $eventsSql .= " limit 0, ".dbEscape($limit);
 }
 
 $maxWidth = 0;
@@ -108,7 +117,7 @@ foreach ( dbFetchAll( $eventsSql ) as $event )
 }
 
 $maxShortcuts = 5;
-$pagination = getPagination( $pages, $_REQUEST['page'], $maxShortcuts, $filterQuery.$sortQuery.'&limit='.$_REQUEST['limit'] );
+$pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQuery.'&limit='.$limit );
 
 $focusWindow = true;
 
@@ -122,16 +131,16 @@ xhtmlHeaders(__FILE__, $SLANG['Events'] );
 <?php
 if ( $pages > 1 )
 {
-    if ( !empty($_REQUEST['page']) )
+    if ( !empty($page) )
     {
 ?>
-        <a href="?view=<?= $_REQUEST['view'] ?>&page=0<?= $filterQuery ?><?= $sortQuery ?>&limit=<?= $_REQUEST['limit'] ?>"><?= $SLANG['ViewAll'] ?></a>
+        <a href="?view=<?= $view ?>&page=0<?= $filterQuery ?><?= $sortQuery ?>&limit=<?= $limit ?>"><?= $SLANG['ViewAll'] ?></a>
 <?php
     }
     else
     {
 ?>
-        <a href="?view=<?= $_REQUEST['view'] ?>&page=1<?= $filterQuery ?><?= $sortQuery ?>&limit=<?= $_REQUEST['limit'] ?>"><?= $SLANG['ViewPaged'] ?></a>
+        <a href="?view=<?= $view ?>&page=1<?= $filterQuery ?><?= $sortQuery ?>&limit=<?= $limit ?>"><?= $SLANG['ViewPaged'] ?></a>
 <?php
     }
 }
@@ -142,13 +151,13 @@ if ( $pages > 1 )
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value=""/>
-        <input type="hidden" name="page" value="<?= $_REQUEST['page'] ?>"/>
+        <input type="hidden" name="page" value="<?= $page ?>"/>
         <?= $_REQUEST['filter']['fields'] ?>
-        <input type="hidden" name="sort_field" value="<?= $_REQUEST['sort_field'] ?>"/>
-        <input type="hidden" name="sort_asc" value="<?= $_REQUEST['sort_asc'] ?>"/>
-        <input type="hidden" name="limit" value="<?= $_REQUEST['limit'] ?>"/>
+        <input type="hidden" name="sort_field" value="<?= validHtmlStr($_REQUEST['sort_field']) ?>"/>
+        <input type="hidden" name="sort_asc" value="<?= validHtmlStr($_REQUEST['sort_asc']) ?>"/>
+        <input type="hidden" name="limit" value="<?= $limit ?>"/>
 <?php
 if ( $pagination )
 {
@@ -159,7 +168,7 @@ if ( $pagination )
 ?>
         <p id="controls">
           <a id="refreshLink" href="#" onclick="location.reload(true);"><?= $SLANG['Refresh'] ?></a>
-          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&page=<?= $_REQUEST['page'] ?><?= $filterQuery ?>', 'zmFilter', 'filter' );"><?= $SLANG['ShowFilterWindow'] ?></a>
+          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&page=<?= $page ?><?= $filterQuery ?>', 'zmFilter', 'filter' );"><?= $SLANG['ShowFilterWindow'] ?></a>
           <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?= $filterQuery ?>', 'zmTimeline', 'timeline' );"><?= $SLANG['ShowTimeline'] ?></a>
         </p>
         <table id="contentTable" class="major" cellspacing="0"/>
@@ -199,9 +208,9 @@ foreach ( $events as $event )
 ?>
             <tr>
               <td class="colId"><?= makePopupLink( '?view=event&eid='.$event['Id'].$filterQuery.$sortQuery.'&page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), $event['Id'].($event['Archived']?'*':'') ) ?></td>
-              <td class="colName"><?= makePopupLink( '?view=event&eid='.$event['Id'].$filterQuery.$sortQuery.'&page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), reScale( $event['Height'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ), $event['Name'].($event['Archived']?'*':'' ) ) ?></td>
+              <td class="colName"><?= makePopupLink( '?view=event&eid='.$event['Id'].$filterQuery.$sortQuery.'&page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), reScale( $event['Height'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ), validHtmlStr($event['Name']).($event['Archived']?'*':'' ) ) ?></td>
               <td class="colMonitorName"><?= $event['MonitorName'] ?></td>
-              <td class="colCause"><?= makePopupLink( '?view=eventdetail&eid='.$event['Id'], 'zmEventDetail', 'eventdetail', $event['Cause'], canEdit( 'Events' ) ) ?></td>
+              <td class="colCause"><?= makePopupLink( '?view=eventdetail&eid='.$event['Id'], 'zmEventDetail', 'eventdetail', validHtmlStr($event['Cause']), canEdit( 'Events' ) ) ?></td>
               <td class="colTime"><?= strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td>
               <td class="colDuration"><?= $event['Length'] ?></td>
               <td class="colFrames"><?= makePopupLink( '?view=frames&eid='.$event['Id'], 'zmFrames', 'frames', $event['Frames'] ) ?></td>
@@ -212,9 +221,9 @@ foreach ( $events as $event )
 <?php
     if ( ZM_WEB_LIST_THUMBS )
     {
-        $thumb_data = createListThumbnail( $event );
+        $thumbData = createListThumbnail( $event );
 ?>
-              <td class="colThumbnail"><?= makePopupLink( '?view=frame&eid='.$event['Id'].'&fid='.$thumb_data['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="'.$thumb_data['Path'].'" width="'.$thumb_data['Width'].'" height="'.$thumb_data['Height'].'" alt="'.$thumb_data['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
+              <td class="colThumbnail"><?= makePopupLink( '?view=frame&eid='.$event['Id'].'&fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="'.$thumbData['Path'].'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
 <?php
     }
 ?>

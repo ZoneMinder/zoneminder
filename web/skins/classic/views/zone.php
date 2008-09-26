@@ -20,9 +20,12 @@
 
 if ( !canView( 'Monitors' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
+
+$mid = validInt($_REQUEST['mid']);
+$zid = !empty($_REQUEST['zid'])?validInt($_REQUEST['zid']):0;
 
 $scale = SCALE_BASE;
 
@@ -56,7 +59,7 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $optCheckMethod )
     $optCheckMethods[$optCheckMethod] = $optCheckMethod;
 }
 
-$monitor = dbFetchMonitor ( $_REQUEST['mid'] );
+$monitor = dbFetchMonitor ( $mid );
 
 $minX = 0;
 $maxX = $monitor['Width']-1;
@@ -65,16 +68,16 @@ $maxY = $monitor['Height']-1;
 
 if ( !isset($newZone) )
 {
-    if ( $_REQUEST['zid'] > 0 )
+    if ( $zid > 0 )
     {
-        $zone = dbFetchOne( "select * from Zones where MonitorId = '".dbEscape($_REQUEST['mid'])."' and Id = '".dbEscape($_REQUEST['zid'])."'" );
+        $zone = dbFetchOne( "select * from Zones where MonitorId = '".dbEscape($monitor['Id'])."' and Id = '".dbEscape($zid)."'" );
     }
     else
     {
         $zone = array(
             'Name' => $SLANG['New'],
             'Id' => 0,
-            'MonitorId' => $_REQUEST['mid'],
+            'MonitorId' => $monitor['Id'],
             'NumCoords' => 4,
             'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
             'Area' => $monitor['Width'] * $monitor['Height'],
@@ -113,10 +116,8 @@ $selfIntersecting = isSelfIntersecting( $newZone['Points'] );
 
 $wd = getcwd();
 chdir( ZM_DIR_IMAGES );
-$command = getZmuCommand( " -m ".$_REQUEST['mid']." -z" );
-if ( !isset($_REQUEST['zid']) )
-    $_REQUEST['zid'] = 0;
-$command .= '"'.$_REQUEST['zid'].' '.$hicolor.' '.$newZone['Coords'].'"';
+$command = getZmuCommand( " -m ".$mid." -z" );
+$command .= '"'.$zid.' '.$hicolor.' '.$newZone['Coords'].'"';
 $status = exec( escapeshellcmd( $command ) );
 chdir( $wd );
 
@@ -133,10 +134,10 @@ xhtmlHeaders(__FILE__, $SLANG['Zone'] );
     </div>
     <div id="content">
       <form name="zoneForm" id="zoneForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value="zone"/>
-        <input type="hidden" name="mid" value="<?= $_REQUEST['mid'] ?>"/>
-        <input type="hidden" name="zid" value="<?= $_REQUEST['zid'] ?>"/>
+        <input type="hidden" name="mid" value="<?= $mid ?>"/>
+        <input type="hidden" name="zid" value="<?= $zid ?>"/>
         <input type="hidden" name="newZone[NumCoords]" value="<?= count($newZone['Points']) ?>"/>
         <input type="hidden" name="newZone[Coords]" value="<?= $newZone['Coords'] ?>"/>
         <input type="hidden" name="newZone[Area]" value="<?= $newZone['Area'] ?>"/>

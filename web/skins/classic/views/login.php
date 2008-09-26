@@ -33,7 +33,7 @@ xhtmlHeaders(__FILE__, $SLANG['Login'] );
           <tbody>
             <tr>
               <td class="colLeft"><?= $SLANG['Username'] ?></td>
-              <td class="colRight"><input type="text" name="username" value="<?= isset($username)?$username:"" ?>" size="12"/></td>
+              <td class="colRight"><input type="text" name="username" value="<?= isset($_REQUEST['username'])?validHtmlStr($_REQUEST['username']):"" ?>" size="12"/></td>
             </tr>
             <tr>
               <td class="colLeft"><?= $SLANG['Password'] ?></td>

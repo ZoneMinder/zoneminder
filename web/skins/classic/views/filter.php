@@ -20,7 +20,7 @@
 
 if ( !canView( 'Events' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 $selectName = "filterName";
@@ -48,22 +48,22 @@ if ( isset($dbFilter) )
     unset( $_REQUEST['filter']['limit'] );
 }
 
-$conjunction_types = array(
+$conjunctionTypes = array(
     'and' => $SLANG['ConjAnd'],
     'or'  => $SLANG['ConjOr']
 );
-$obracket_types = array(); 
-$cbracket_types = array();
+$obracketTypes = array(); 
+$cbracketTypes = array();
 if ( isset($_REQUEST['filter']['terms']) )
 {
     for ( $i = 0; $i <= count($_REQUEST['filter']['terms'])-2; $i++ )
     {
-        $obracket_types[$i] = str_repeat( "(", $i );
-        $cbracket_types[$i] = str_repeat( ")", $i );
+        $obracketTypes[$i] = str_repeat( "(", $i );
+        $cbracketTypes[$i] = str_repeat( ")", $i );
     }
 }
 
-$attr_types = array(
+$attrTypes = array(
     'MonitorId'   => $SLANG['AttrMonitorId'],
     'MonitorName' => $SLANG['AttrMonitorName'],
     'Id'          => $SLANG['AttrId'],
@@ -85,7 +85,7 @@ $attr_types = array(
     'DiskBlocks'  => $SLANG['AttrDiskBlocks'],
     'SystemLoad'  => $SLANG['AttrSystemLoad'],
 );
-$op_types = array(
+$opTypes = array(
     '='   => $SLANG['OpEq'],
     '!='  => $SLANG['OpNe'],
     '>='  => $SLANG['OpGtEq'],
@@ -97,7 +97,7 @@ $op_types = array(
     '=[]' => $SLANG['OpIn'],
     '![]' => $SLANG['OpNotIn'],
 );
-$archive_types = array(
+$archiveTypes = array(
     '0' => $SLANG['ArchUnarchived'],
     '1' => $SLANG['ArchArchived']
 );
@@ -147,7 +147,7 @@ xhtmlHeaders(__FILE__, $SLANG['EventFilter'] );
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="filter"/>
-        <input type="hidden" name="page" value="<?= empty($_REQUEST['page'])?"":$_REQUEST['page'] ?>"/>
+        <input type="hidden" name="page" value="<?= requestVar( 'page' ) ?>"/>
         <input type="hidden" name="reload" value="0"/>
         <input type="hidden" name="execute" value="0"/>
         <input type="hidden" name="action" value=""/>
@@ -174,12 +174,12 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
     else
     {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][cnj]", $conjunction_types ); ?></td>
+              <td><?= buildSelect( "filter[terms][$i][cnj]", $conjunctionTypes ); ?></td>
 <?php
     }
 ?>
-              <td><?php if ( count($_REQUEST['filter']['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][obr]", $obracket_types ); } else { ?>&nbsp;<?php } ?></td>
-              <td><?= buildSelect( "filter[terms][$i][attr]", $attr_types, "clearValue( this, $i ); submitToFilter( this, 0 );" ); ?></td>
+              <td><?php if ( count($_REQUEST['filter']['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][obr]", $obracketTypes ); } else { ?>&nbsp;<?php } ?></td>
+              <td><?= buildSelect( "filter[terms][$i][attr]", $attrTypes, "clearValue( this, $i ); submitToFilter( this, 0 );" ); ?></td>
 <?php
     if ( isset($_REQUEST['filter']['terms'][$i]['attr']) )
     {
@@ -187,34 +187,34 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
         {
 ?>
               <td><?= $SLANG['OpEq'] ?><input type="hidden" name="filter[terms][<?= $i ?>][op]" value="="/></td>
-              <td><?= buildSelect( "filter[terms][$i][val]", $archive_types ); ?></td>
+              <td><?= buildSelect( "filter[terms][$i][val]", $archiveTypes ); ?></td>
 <?php
         }
         elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "DateTime" )
         {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
-              <td><input name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?$_REQUEST['filter']['terms'][$i]['val']:'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><input name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php
         }
         elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Date" )
         {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
-              <td><input name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?$_REQUEST['filter']['terms'][$i]['val']:'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><input name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php
         }
         elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Weekday" )
         {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
+              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><?= buildSelect( "filter[terms][$i][val]", $weekdays ); ?></td>
 <?php
         }
         else
         {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
+              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><input name="filter[terms][<?= $i ?>][val]" value="<?= $_REQUEST['filter']['terms'][$i]['val'] ?>"/></td>
 <?php
         }
@@ -222,12 +222,12 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
     else
     {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $op_types ); ?></td>
+              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><input name="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?$_REQUEST['filter']['terms'][$i]['val']:'' ?>"/></td>
 <?php
     }
 ?>
-              <td><?php if ( count($_REQUEST['filter']['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][cbr]", $cbracket_types ); } else { ?>&nbsp;<?php } ?></td>
+              <td><?php if ( count($_REQUEST['filter']['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][cbr]", $cbracketTypes ); } else { ?>&nbsp;<?php } ?></td>
               <td><input type="button" onclick="addTerm( this, <?= $i+1 ?> )" value="+"/><?php if ( $_REQUEST['filter']['terms'] > 1 ) { ?><input type="button" onclick="delTerm( this, <?= $i ?> )" value="-"/><?php } ?></td>
             </tr>
 <?php
@@ -240,7 +240,7 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
           <tbody>
             <tr>
               <td><label for="sort_field"><?= $SLANG['SortBy'] ?></label><?= buildSelect( "sort_field", $sort_fields ); ?><?= buildSelect( "sort_asc", $sort_dirns ); ?></td>
-              <td><label for="limit"><?= $SLANG['LimitResultsPre'] ?></label><input type="text" size="6" name="limit" value="<?= isset($_REQUEST['limit'])?$_REQUEST['limit']:"" ?>"/><?= $SLANG['LimitResultsPost'] ?></td>
+              <td><label for="limit"><?= $SLANG['LimitResultsPre'] ?></label><input type="text" size="6" name="limit" value="<?= isset($_REQUEST['limit'])?validInt($_REQUEST['limit']):"" ?>"/><?= $SLANG['LimitResultsPost'] ?></td>
             </tr>
           </tbody>
         </table>

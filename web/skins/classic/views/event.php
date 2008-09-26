@@ -20,22 +20,29 @@
 
 if ( !canView( 'Events' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
+
+$eid = validInt( $_REQUEST['eid'] );
+$fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
 if ( $user['MonitorIds'] )
     $midSql = " and MonitorId in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', dbEscape($user['MonitorIds']) ) ).")";
 else
     $midSql = '';
 
-$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'".$midSql;
+$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($eid)."'".$midSql;
 $event = dbFetchOne( $sql );
 
-if ( !isset( $_REQUEST['rate'] ) )
-    $_REQUEST['rate'] = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
-if ( !isset( $_REQUEST['scale'] ) )
-    $_REQUEST['scale'] = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+if ( isset( $_REQUEST['rate'] ) )
+    $rate = validInt($_REQUEST['rate']);
+else
+    $rate = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
+if ( isset( $_REQUEST['scale'] ) )
+    $scale = validInt($_REQUEST['scale']);
+else
+    $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
 $replayModes = array(
     'single' => $SLANG['ReplaySingle'],
@@ -43,18 +50,22 @@ $replayModes = array(
     'gapless' => $SLANG['ReplayGapless'],
 );
 
-if ( !isset( $_REQUEST['streamMode'] ) )
-    $_REQUEST['streamMode'] = canStream()?'stream':'stills';
+if ( isset( $_REQUEST['streamMode'] ) )
+    $streamMode = validHtmlStr($_REQUEST['streamMode']);
+else
+    $streamMode = canStream()?'stream':'stills';
 
-if ( !isset( $_REQUEST['replayMode'] ) )
-    $_REQUEST['replayMode'] = array_shift( array_keys( $replayModes ) );
+if ( isset( $_REQUEST['replayMode'] ) )
+    $replayMode = validHtmlStr($_REQUEST['replayMode']);
+else
+    $replayMode = array_shift( array_keys( $replayModes ) );
 
 parseSort();
 parseFilter( $_REQUEST['filter'] );
 $filterQuery = $_REQUEST['filter']['query'];
 
 $panelSections = 40;
-$panelSectionWidth = (int)ceil(reScale($event['Width'],$_REQUEST['scale'])/$panelSections);
+$panelSectionWidth = (int)ceil(reScale($event['Width'],$scale)/$panelSections);
 $panelWidth = ($panelSections*$panelSectionWidth-1);
 
 $connkey = generateConnKey();
@@ -70,7 +81,7 @@ xhtmlHeaders(__FILE__, $SLANG['Event'] );
         <table id="dataTable" class="major" cellspacing="0">
           <tr>
             <td><span id="dataId" title="<?= $SLANG['Id'] ?>"><?= $event['Id'] ?></span></td>
-            <td><span id="dataCause" title="<?= $event['Notes']?htmlentities($event['Notes']):$SLANG['AttrCause'] ?>"><?= htmlentities($event['Cause']) ?></span></td>
+            <td><span id="dataCause" title="<?= $event['Notes']?validHtmlStr($event['Notes']):$SLANG['AttrCause'] ?>"><?= validHtmlStr($event['Cause']) ?></span></td>
             <td><span id="dataTime" title="<?= $SLANG['Time'] ?>"><?= strftime( STRF_FMT_DATETIME_SHORT, strtotime($event['StartTime'] ) ) ?></span></td>
             <td><span id="dataDuration" title="<?= $SLANG['Duration'] ?>"><?= $event['Length'] ?></span>s</td>
             <td><span id="dataFrames" title="<?= $SLANG['AttrFrames']."/".$SLANG['AttrAlarmFrames'] ?>"><?= $event['Frames'] ?>/<?= $event['AlarmFrames'] ?></span></td>
@@ -81,7 +92,7 @@ xhtmlHeaders(__FILE__, $SLANG['Event'] );
       <div id="menuBar1">
         <div id="scaleControl"><label for="scale"><?= $SLANG['Scale'] ?></label><?= buildSelect( "scale", $scales, "changeScale();" ); ?></div>
         <div id="replayControl"><label for="replayMode"><?= $SLANG['Replay'] ?></label><?= buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
-        <div id="nameControl"><input type="text" id="eventName" name="eventName" value="<?= $event['Name'] ?>" size="16"/><input type="button" value="<?= $SLANG['Rename'] ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></div>
+        <div id="nameControl"><input type="text" id="eventName" name="eventName" value="<?= validHtmlStr($event['Name']) ?>" size="16"/><input type="button" value="<?= $SLANG['Rename'] ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></div>
       </div>
       <div id="menuBar2">
         <div id="closeWindow"><a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a></div>
@@ -107,8 +118,9 @@ if ( canEdit( 'Events' ) )
 <?php
 }
 ?>
-        <div id="streamEvent"<?php if ( $_REQUEST['streamMode'] == 'stream' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStream()"><?= $SLANG['Stream'] ?></a></div>
-        <div id="stillsEvent"<?php if ( $_REQUEST['streamMode'] == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?= $SLANG['Stills'] ?></a></div>
+        <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?= $SLANG['Frames'] ?></a></div>
+        <div id="streamEvent"<?php if ( $streamMode == 'stream' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStream()"><?= $SLANG['Stream'] ?></a></div>
+        <div id="stillsEvent"<?php if ( $streamMode == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?= $SLANG['Stills'] ?></a></div>
 <?php
 if ( ZM_OPT_FFMPEG )
 {
@@ -123,19 +135,19 @@ if ( ZM_OPT_FFMPEG )
 <?php
 if ( ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
-    $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$_REQUEST['eid'], "frame=".(!empty($fid)?$fid:1), "scale=".$_REQUEST['scale'], "rate=".$_REQUEST['rate'], "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$_REQUEST['replayMode'] ) );
-    outputVideoStream( "evtStream", $streamSrc, reScale( $event['Width'], $_REQUEST['scale'] ), reScale( $event['Height'], $_REQUEST['scale'] ), ZM_MPEG_LIVE_FORMAT );
+    $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
+    outputVideoStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );
 }
 else
 {
-    $streamSrc = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$_REQUEST['eid'], "frame=".(!empty($fid)?$fid:1), "scale=".$_REQUEST['scale'], "rate=".$_REQUEST['rate'], "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=".$_REQUEST['replayMode'] ) );
+    $streamSrc = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=".$replayMode) );
     if ( canStreamNative() )
     {
-        outputImageStream( "evtStream", $streamSrc, reScale( $event['Width'], $_REQUEST['scale'] ), reScale( $event['Height'], $_REQUEST['scale'] ), $event['Name'] );
+        outputImageStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), validHtmlStr($event['Name']) );
     }
     else
     {
-        outputHelperStream( "evtStream", $streamSrc, reScale( $event['Width'], $_REQUEST['scale'] ), reScale( $event['Height'], $_REQUEST['scale'] ) );
+        outputHelperStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) );
     }
 }
 ?>
@@ -177,7 +189,8 @@ else
           <div id="eventImageFrame">
             <img id="eventImage" src="graphics/transparent.gif" alt=""/>
             <div id="eventImageBar">
-              <div id="eventImageClose"><input type="button" value="Close" onclick="hideEventImage()"/></div>
+              <div id="eventImageClose"><input type="button" value="<?= $SLANG['Close'] ?>" onclick="hideEventImage()"/></div>
+              <div id="eventImageStats" class="hidden"><input type="button" value="<?= $SLANG['Stats'] ?>" onclick="showFrameStats()"/></div>
               <div id="eventImageData">Frame <span id="eventImageNo"></span></div>
             </div>
           </div>

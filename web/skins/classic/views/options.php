@@ -20,7 +20,7 @@
 
 if ( !canView( 'System' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -42,8 +42,10 @@ $tabs['phoneband'] = $SLANG['PhoneBW'];
 if ( ZM_OPT_USE_AUTH )
     $tabs['users'] = $SLANG['Users'];
 
-if ( !isset($_REQUEST['tab']) )
-    $_REQUEST['tab'] = "system";
+if ( isset($_REQUEST['tab']) )
+    $tab = validHtmlStr($_REQUEST['tab']);
+else
+    $tab = "system";
 
 $focusWindow = true;
 
@@ -59,7 +61,7 @@ xhtmlHeaders( __FILE__, $SLANG['Options'] );
 <?php
 foreach ( $tabs as $name=>$value )
 {
-    if ( $_REQUEST['tab'] == $name )
+    if ( $tab == $name )
     {
 ?>
         <li class="active"><?= $value ?></li>
@@ -68,7 +70,7 @@ foreach ( $tabs as $name=>$value )
     else
     {
 ?>
-        <li><a href="?view=<?= $_REQUEST['view'] ?>&tab=<?= $name ?>"><?= $value ?></a></li>
+        <li><a href="?view=<?= $view ?>&tab=<?= $name ?>"><?= $value ?></a></li>
 <?php
     }
 }
@@ -76,12 +78,12 @@ foreach ( $tabs as $name=>$value )
       </ul>
       <div class="clear"></div>
 <?php 
-if ( $_REQUEST['tab'] == "users" )
+if ( $tab == "users" )
 {
 ?>
       <form name="userForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
-        <input type="hidden" name="tab" value="<?= $_REQUEST['tab'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
+        <input type="hidden" name="tab" value="<?= $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
         <table id="contentTable" class="major userTable" cellspacing="0">
           <thead>
@@ -121,14 +123,14 @@ if ( $_REQUEST['tab'] == "users" )
         }
 ?>
             <tr>
-              <td class="colUsername"><?= makePopupLink( '?view=user&uid='.$row['Id'], 'zmUser', 'user', $row['Username'].($user['Username']==$row['Username']?"*":""), canEdit( 'System' ) ) ?></td>
-              <td class="colLanguage"><?= $row['Language']?$row['Language']:'default' ?></td>
+              <td class="colUsername"><?= makePopupLink( '?view=user&uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), canEdit( 'System' ) ) ?></td>
+              <td class="colLanguage"><?= $row['Language']?validHtmlStr($row['Language']):'default' ?></td>
               <td class="colEnabled"><?= $row['Enabled']?$SLANG['Yes']:$SLANG['No'] ?></td>
-              <td class="colStream"><?= $row['Stream'] ?></td>
-              <td class="colEvents"><?= $row['Events'] ?></td>
-              <td class="colControl"><?= $row['Control'] ?></td>
-              <td class="colMonitors"><?= $row['Monitors'] ?></td>
-              <td class="colSystem"><?= $row['System'] ?></td>
+              <td class="colStream"><?= validHtmlStr($row['Stream']) ?></td>
+              <td class="colEvents"><?= validHtmlStr($row['Events']) ?></td>
+              <td class="colControl"><?= validHtmlStr($row['Control']) ?></td>
+              <td class="colMonitors"><?= validHtmlStr($row['Monitors']) ?></td>
+              <td class="colSystem"><?= validHtmlStr($row['System']) ?></td>
               <td class="colBandwidth"><?= $row['MaxBandwidth']?$bwArray[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?= $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
               <td class="colMark"><input type="checkbox" name="markUids[]" value="<?= $row['Id'] ?>" onclick="configureButton( this );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/></td>
@@ -146,14 +148,14 @@ if ( $_REQUEST['tab'] == "users" )
 }
 else
 {
-    if ( $_REQUEST['tab'] == "system" )
+    if ( $tab == "system" )
     {
-        $configCats[$_REQUEST['tab']]['ZM_LANG_DEFAULT']['Hint'] = join( '|', getLanguages() );
+        $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join( '|', getLanguages() );
     }
 ?>
       <form name="optionsForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
-        <input type="hidden" name="tab" value="<?= $_REQUEST['tab'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
+        <input type="hidden" name="tab" value="<?= $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
         <table id="contentTable" class="major optionTable" cellspacing="0">
           <thead>
@@ -165,7 +167,7 @@ else
           </thead>
           <tbody>
 <?php
-    $configCat = $configCats[$_REQUEST['tab']];
+    $configCat = $configCats[$tab];
     foreach ( $configCat as $name=>$value )
     {
         $optionPromptIndex = preg_replace( '/^ZM_/', '', $name );
@@ -173,7 +175,7 @@ else
 ?>
             <tr>
               <td><?= $value['Name'] ?></td>
-              <td><?= htmlentities($optionPromptText) ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&option='.$value['Name'], 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td><?= validHtmlStr($optionPromptText) ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&option='.$value['Name'], 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
 <?php   
         if ( $value['Type'] == "boolean" )
         {
@@ -218,31 +220,31 @@ else
         elseif ( $value['Type'] == "text" )
         {
 ?>
-              <td><textarea id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" rows="5" cols="40"><?= htmlspecialchars($value['Value']) ?></textarea></td>
+              <td><textarea id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" rows="5" cols="40"><?= validHtmlStr($value['Value']) ?></textarea></td>
 <?php
         }
         elseif ( $value['Type'] == "integer" )
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" class="small"/></td>
+              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="small"/></td>
 <?php
         }
         elseif ( $value['Type'] == "hexadecimal" )
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" class="medium"/></td>
+              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="medium"/></td>
 <?php
         }
         elseif ( $value['Type'] == "decimal" )
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" class="small"/></td>
+              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="small"/></td>
 <?php
         }
         else
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= $value['Value'] ?>" class="large"/></td>
+              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="large"/></td>
 <?php
         }
 ?>

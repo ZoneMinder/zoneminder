@@ -25,45 +25,63 @@ function getAffectedIds( $name )
     if ( isset($_REQUEST[$names]) || isset($_REQUEST[$name]) )
     {
         if ( isset($_REQUEST[$names]) )
-            $ids = $_REQUEST[$names];
+            $ids = validInt($_REQUEST[$names]);
         else if ( isset($_REQUEST[$name]) )
-            $ids[] = $_REQUEST[$name];
+            $ids[] = validInt($_REQUEST[$name]);
     }
     return( $ids );
 }
 
-if ( !empty($_REQUEST['action']) )
+if ( !empty($action) )
 {
     // General scope actions
-    if ( $_REQUEST['action'] == "login" && $_REQUEST['username'] && ( ZM_AUTH_TYPE == "remote" || $_REQUEST['password'] ) )
+    if ( $action == "login" && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == "remote" || isset($_REQUEST['password']) ) )
     {
-        userLogin( $_REQUEST['username'], $_REQUEST['password'] );
+        $username = validStr( $_REQUEST['username'] );
+        $password = isset($_REQUEST['password'])?validStr($_REQUEST['password']):'';
+        userLogin( $username, $password );
     }
-    elseif ( $_REQUEST['action'] == "logout" )
+    elseif ( $action == "logout" )
     {
         userLogout();
-        $GLOBALS['refreshParent'] = true;
-        $_REQUEST['view'] = 'none';
+        $refreshParent = true;
+        $view = 'none';
     }
-    elseif ( $_REQUEST['action'] == "bandwidth" && $_REQUEST['newBandwidth'] )
+    elseif ( $action == "bandwidth" && isset($_REQUEST['newBandwidth']) )
     {
-        $_COOKIE['zmBandwidth'] = $_REQUEST['newBandwidth'];
-        setcookie( "zmBandwidth", $_REQUEST['newBandwidth'], time()+3600*24*30*12*10 );
-        $GLOBALS['refreshParent'] = true;
+        $_COOKIE['zmBandwidth'] = validStr($_REQUEST['newBandwidth']);
+        setcookie( "zmBandwidth", validStr($_REQUEST['newBandwidth']), time()+3600*24*30*12*10 );
+        $refreshParent = true;
     }
 
     // Event scope actions, view permissions only required
     if ( canView( 'Events' ) )
     {
-        if ( $_REQUEST['action'] == "filter" )
+        if ( $action == "filter" )
         {
-            if ( $_REQUEST['subaction'] == "addterm" )
+            if ( isset($_REQUEST['subaction']) )
             {
-                $_REQUEST['filter'] = addFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
+                if ( $_REQUEST['subaction'] == "addterm" )
+                    $_REQUEST['filter'] = addFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
+                elseif ( $_REQUEST['subaction'] == "delterm" )
+                    $_REQUEST['filter'] = delFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
             }
-            elseif ( $_REQUEST['subaction'] == "delterm" )
+            elseif ( canEdit( 'Events' ) )
             {
-                $_REQUEST['filter'] = delFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
+                if ( !empty($_REQUEST['execute']) )
+                    $tempFilterName = "_TempFilter".time();
+                if ( $tempFilterName )
+                    $filterName = $tempFilterName;
+                elseif ( $newFilterName )
+                    $filterName = $newFilterName;
+                if ( !empty($filterName) )
+                {
+                    $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['sort_field']);
+                    $_REQUEST['filter']['sort_asc'] .= validStr($_REQUEST['sort_asc']);
+                    $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
+                    dbQuery( "replace into Filters set Name = '".dbEscape($filterName)."', Query = '".dbEscape(serialize($_REQUEST['filter']))."', AutoArchive = '".dbEscape($_REQUEST['autoArchive'])."', AutoVideo = '".dbEscape($_REQUEST['autoVideo'])."', AutoUpload = '".dbEscape($_REQUEST['autoUpload'])."', AutoEmail = '".dbEscape($_REQUEST['autoEmail'])."', AutoMessage = '".dbEscape($_REQUEST['autoMessage'])."', AutoExecute = '".dbEscape($_REQUEST['autoExecute'])."', AutoExecuteCmd = '".dbEscape($_REQUEST['autoExecuteCmd'])."', AutoDelete = '".dbEscape($_REQUEST['autoDelete'])."', Background = '".dbEscape($_REQUEST['background'])."'" );
+                    $refreshParent = true;
+                }
             }
         }
     }
@@ -71,29 +89,29 @@ if ( !empty($_REQUEST['action']) )
     // Event scope actions, edit permissions required
     if ( canEdit( 'Events' ) )
     {
-        if ( $_REQUEST['action'] == "rename" && $_REQUEST['eventName'] && !empty($_REQUEST['eid']) )
+        if ( $action == "rename" && isset($_REQUEST['eventName']) && !empty($_REQUEST['eid']) )
         {
             dbQuery( "update Events set Name = '".dbEscape($_REQUEST['eventName'])."' where Id = '".dbEscape($_REQUEST['eid'])."'" );
         }
-        else if ( $_REQUEST['action'] == "eventdetail" )
+        else if ( $action == "eventdetail" )
         {
             if ( !empty($_REQUEST['eid']) )
             {
                 dbQuery( "update Events set Cause = '".dbEscape($_REQUEST['newEvent']['Cause'])."', Notes = '".dbEscape($_REQUEST['newEvent']['Notes'])."' where Id = '".dbEscape($_REQUEST['eid'])."'" );
-                $GLOBALS['refreshParent'] = true;
+                $refreshParent = true;
             }
             else
             {
                 foreach( getAffectedIds( 'markEid' ) as $markEid )
                 {
                     dbQuery( "update Events set Cause = '".dbEscape($_REQUEST['newEvent']['Cause'])."', Notes = '".dbEscape($_REQUEST['newEvent']['Notes'])."' where Id = '".dbEscape($markEid)."'" );
-                    $GLOBALS['refreshParent'] = true;
+                    $refreshParent = true;
                 }
             }
         }
-        elseif ( $_REQUEST['action'] == "archive" || $_REQUEST['action'] == "unarchive" )
+        elseif ( $action == "archive" || $action == "unarchive" )
         {
-            $archiveVal = ($_REQUEST['action'] == "archive")?1:0;
+            $archiveVal = ($action == "archive")?1:0;
             if ( !empty($_REQUEST['eid']) )
             {
                 dbQuery( "update Events set Archived = $archiveVal where Id = '".dbEscape($_REQUEST['eid'])."'" );
@@ -103,38 +121,21 @@ if ( !empty($_REQUEST['action']) )
                 foreach( getAffectedIds( 'markEid' ) as $markEid )
                 {
                     dbQuery( "update Events set Archived = $archiveVal where Id = '".dbEscape($markEid)."'" );
-                    $GLOBALS['refreshParent'] = true;
+                    $refreshParent = true;
                 }
             }
         }
-        elseif ( $_REQUEST['action'] == "filter" && empty($_REQUEST['subaction']) )
-        {
-            if ( !empty($_REQUEST['execute']) )
-                $tempFilterName = "_TempFilter".time();
-            if ( $tempFilterName )
-                $_REQUEST['filterName'] = $tempFilterName;
-            elseif ( $newFilterName )
-                $_REQUEST['filterName'] = $newFilterName;
-            if ( !empty($_REQUEST['filterName']) )
-            {
-                $_REQUEST['filter']['sort_field'] = $_REQUEST['sort_field'];
-                $_REQUEST['filter']['sort_asc'] .= $_REQUEST['sort_asc'];
-                $_REQUEST['filter']['limit'] = $_REQUEST['limit'];
-                dbQuery( "replace into Filters set Name = '".dbEscape($_REQUEST['filterName'])."', Query = '".dbEscape(serialize($_REQUEST['filter']))."', AutoArchive = '".dbEscape($_REQUEST['autoArchive'])."', AutoVideo = '".dbEscape($_REQUEST['autoVideo'])."', AutoUpload = '".dbEscape($_REQUEST['autoUpload'])."', AutoEmail = '".dbEscape($_REQUEST['autoEmail'])."', AutoMessage = '".dbEscape($_REQUEST['autoMessage'])."', AutoExecute = '".dbEscape($_REQUEST['autoExecute'])."', AutoExecuteCmd = '".dbEscape($_REQUEST['autoExecuteCmd'])."', AutoDelete = '".dbEscape($_REQUEST['autoDelete'])."', Background = '".dbEscape($_REQUEST['background'])."'" );
-                $GLOBALS['refreshParent'] = true;
-            }
-        }
-        elseif ( $_REQUEST['action'] == "delete" )
+        elseif ( $action == "delete" )
         {
             foreach( getAffectedIds( 'markEid' ) as $markEid )
             {
                 deleteEvent( $markEid );
-                $GLOBALS['refreshParent'] = true;
+                $refreshParent = true;
             }
             if ( !empty($_REQUEST['fid']) )
             {
-                dbQuery( "delete from Filters where Name = '".$_REQUEST['fid']."'" );
-                //$GLOBALS['refreshParent'] = true;
+                dbQuery( "delete from Filters where Name = '".dbEscape($_REQUEST['fid'])."'" );
+                //$refreshParent = true;
             }
         }
     }
@@ -142,18 +143,24 @@ if ( !empty($_REQUEST['action']) )
     // Monitor control actions, require a monitor id and control view permissions for that monitor
     if ( !empty($_REQUEST['mid']) && canView( 'Control', $_REQUEST['mid'] ) )
     {
-        if ( $_REQUEST['action'] == "control" )
+        $mid = validInt($_REQUEST['mid']);
+        if ( $action == "control" )
         {
-            $monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = '".$_REQUEST['mid']."'" );
+            $control = validStr($_REQUEST['control']);
+
+            $monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = '".dbEscape($mid)."'" );
 
             $ctrlCommand = ZM_PATH_BIN."/zmcontrol.pl";
 
             if ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
             {
-                if ( $_REQUEST['control'] == "moveMap" )
+                $x = validInt($_REQUEST['x']);
+                $y = validInt($_REQUEST['y']);
+                $scale = validInt($_REQUEST['scale']);
+                if ( $control == "moveMap" )
                 {
-                    $_REQUEST['x'] = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
-                    $_REQUEST['y'] = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
+                    $x = deScale( $x, $scale );
+                    $y = deScale( $y, $scale );
                     switch ( $monitor['Orientation'] )
                     {
                         case '0' :
@@ -172,42 +179,42 @@ if ( !empty($_REQUEST['action']) )
                     switch ( $monitor['Orientation'] )
                     {
                         case '90' :
-                            $tempY = $_REQUEST['y'];
-                            $_REQUEST['y'] = $height - $_REQUEST['x'];
-                            $_REQUEST['x'] = $tempY;
+                            $tempY = $y;
+                            $y = $height - $x;
+                            $x = $tempY;
                             break;
                         case '180' :
-                            $_REQUEST['x'] = $width - $_REQUEST['x'];
-                            $_REQUEST['y'] = $height - $_REQUEST['y'];
+                            $x = $width - $x;
+                            $y = $height - $y;
                             break;
                         case '270' :
-                            $tempX = $_REQUEST['x'];
-                            $_REQUEST['x'] = $width - $_REQUEST['y'];
-                            $_REQUEST['y'] = $tempX;
+                            $tempX = $x;
+                            $x = $width - $y;
+                            $y = $tempX;
                             break;
                         case 'hori' :
-                            $_REQUEST['x'] = $width - $_REQUEST['x'];
+                            $x = $width - $x;
                             break;
                         case 'vert' :
-                            $_REQUEST['y'] = $height - $_REQUEST['y'];
+                            $y = $height - $y;
                             break;
                     }
-                    $ctrlCommand .= " --xcoord=".$_REQUEST['x']." --ycoord=".$_REQUEST['y']." --width=".$width." --height=".$height;
+                    $ctrlCommand .= " --xcoord=".$x." --ycoord=".$y." --width=".$width." --height=".$height;
                 }
-                elseif ( $_REQUEST['control'] == "movePseudoMap" )
+                elseif ( $control == "movePseudoMap" )
                 {
-                    $_REQUEST['x'] = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
-                    $_REQUEST['y'] = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
+                    $x = deScale( $x, $scale );
+                    $y = deScale( $y, $scale );
                     
                     $halfWidth = $monitor['Width'] / 2;
                     $halfHeight = $monitor['Height'] / 2;
-                    $xFactor = ($_REQUEST['x'] - $halfWidth)/$halfWidth;
-                    $yFactor = ($_REQUEST['y'] - $halfHeight)/$halfHeight;
+                    $xFactor = ($x - $halfWidth)/$halfWidth;
+                    $yFactor = ($y - $halfHeight)/$halfHeight;
 
                     switch ( $monitor['Orientation'] )
                     {
                         case '90' :
-                            $tempYFactor = $_REQUEST['y'];
+                            $tempYFactor = $y;
                             $yFactor = -$xFactor;
                             $xFactor = $tempYFactor;
                             break;
@@ -216,7 +223,7 @@ if ( !empty($_REQUEST['action']) )
                             $yFactor = -$yFactor;
                             break;
                         case '270' :
-                            $tempXFactor = $_REQUEST['x'];
+                            $tempXFactor = $x;
                             $xFactor = -$yFactor;
                             $yFactor = $tempXFactor;
                             break;
@@ -254,11 +261,11 @@ if ( !empty($_REQUEST['action']) )
                     if ( !$dirn )
                     {
                         // No command, probably in blind spot in middle
-                        $_REQUEST['control'] = 'null';
+                        $control = 'null';
                     }
                     else
                     {
-                        $_REQUEST['control'] = 'moveRel'.$dirn;
+                        $control = 'moveRel'.$dirn;
                         $xFactor = abs($xFactor);
                         $yFactor = abs($yFactor);
 
@@ -312,20 +319,20 @@ if ( !empty($_REQUEST['action']) )
                         }
                     }
                 }
-                elseif ( $_REQUEST['control'] == "moveConMap" )
+                elseif ( $control == "moveConMap" )
                 {
-                    $_REQUEST['x'] = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
-                    $_REQUEST['y'] = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
+                    $x = deScale( $x, $scale );
+                    $y = deScale( $y, $scale );
                     
                     $halfWidth = $monitor['Width'] / 2;
                     $halfHeight = $monitor['Height'] / 2;
-                    $xFactor = ($_REQUEST['x'] - $halfWidth)/$halfWidth;
-                    $yFactor = ($_REQUEST['y'] - $halfHeight)/$halfHeight;
+                    $xFactor = ($x - $halfWidth)/$halfWidth;
+                    $yFactor = ($y - $halfHeight)/$halfHeight;
 
                     switch ( $monitor['Orientation'] )
                     {
                         case '90' :
-                            $tempYFactor = $_REQUEST['y'];
+                            $tempYFactor = $y;
                             $yFactor = -$xFactor;
                             $xFactor = $tempYFactor;
                             break;
@@ -334,7 +341,7 @@ if ( !empty($_REQUEST['action']) )
                             $yFactor = -$yFactor;
                             break;
                         case '270' :
-                            $tempXFactor = $_REQUEST['x'];
+                            $tempXFactor = $x;
                             $xFactor = -$yFactor;
                             $yFactor = $tempXFactor;
                             break;
@@ -373,11 +380,11 @@ if ( !empty($_REQUEST['action']) )
                     if ( !$dirn )
                     {
                         // No command, probably in blind spot in middle
-                        $_REQUEST['control'] = 'moveStop';
+                        $control = 'moveStop';
                     }
                     else
                     {
-                        $_REQUEST['control'] = 'moveCon'.$dirn;
+                        $control = 'moveCon'.$dirn;
                         $xFactor = abs($xFactor);
                         $yFactor = abs($yFactor);
 
@@ -446,7 +453,7 @@ if ( !empty($_REQUEST['action']) )
                     $shortX = 32;
                     $shortY = 32;
 
-                    if ( preg_match( '/^([a-z]+)([A-Z][a-z]+)([A-Z][a-z]+)$/', $_REQUEST['control'], $matches ) )
+                    if ( preg_match( '/^([a-z]+)([A-Z][a-z]+)([A-Z][a-z]+)$/', $control, $matches ) )
                     {
                         $command = $matches[1];
                         $mode = $matches[2];
@@ -460,12 +467,12 @@ if ( !empty($_REQUEST['action']) )
                                 {
                                     case 'Near' :
                                     {
-                                        $factor = ($longY-($_REQUEST['y']+1))/$longY;
+                                        $factor = ($longY-($y+1))/$longY;
                                         break;
                                     }
                                     case 'Far' :
                                     {
-                                        $factor = ($_REQUEST['y']+1)/$longY;
+                                        $factor = ($y+1)/$longY;
                                         break;
                                     }
                                 }
@@ -504,12 +511,12 @@ if ( !empty($_REQUEST['action']) )
                                 {
                                     case 'Tele' :
                                     {
-                                        $factor = ($longY-($_REQUEST['y']+1))/$longY;
+                                        $factor = ($longY-($y+1))/$longY;
                                         break;
                                     }
                                     case 'Wide' :
                                     {
-                                        $factor = ($_REQUEST['y']+1)/$longY;
+                                        $factor = ($y+1)/$longY;
                                         break;
                                     }
                                 }
@@ -548,12 +555,12 @@ if ( !empty($_REQUEST['action']) )
                                 {
                                     case 'Open' :
                                     {
-                                        $factor = ($longY-($_REQUEST['y']+1))/$longY;
+                                        $factor = ($longY-($y+1))/$longY;
                                         break;
                                     }
                                     case 'Close' :
                                     {
-                                        $factor = ($_REQUEST['y']+1)/$longY;
+                                        $factor = ($y+1)/$longY;
                                         break;
                                     }
                                 }
@@ -580,12 +587,12 @@ if ( !empty($_REQUEST['action']) )
                                 {
                                     case 'In' :
                                     {
-                                        $factor = ($longY-($_REQUEST['y']+1))/$longY;
+                                        $factor = ($longY-($y+1))/$longY;
                                         break;
                                     }
                                     case 'Out' :
                                     {
-                                        $factor = ($_REQUEST['y']+1)/$longY;
+                                        $factor = ($y+1)/$longY;
                                         break;
                                     }
                                 }
@@ -612,12 +619,12 @@ if ( !empty($_REQUEST['action']) )
                                 {
                                     case 'Up' :
                                     {
-                                        $factor = ($longY-($_REQUEST['y']+1))/$longY;
+                                        $factor = ($longY-($y+1))/$longY;
                                         break;
                                     }
                                     case 'Down' :
                                     {
-                                        $factor = ($_REQUEST['y']+1)/$longY;
+                                        $factor = ($y+1)/$longY;
                                         break;
                                     }
                                 }
@@ -645,19 +652,19 @@ if ( !empty($_REQUEST['action']) )
 
                                 if ( preg_match( '/^Up/', $dirn ) )
                                 {
-                                    $yFactor = ($shortY-($_REQUEST['y']+1))/$shortY;
+                                    $yFactor = ($shortY-($y+1))/$shortY;
                                 }
                                 elseif ( preg_match( '/^Down/', $dirn ) )
                                 {
-                                    $yFactor = ($_REQUEST['y']+1)/$shortY;
+                                    $yFactor = ($y+1)/$shortY;
                                 }
                                 if ( preg_match( '/Left$/', $dirn ) )
                                 {
-                                    $xFactor = ($shortX-($_REQUEST['x']+1))/$shortX;
+                                    $xFactor = ($shortX-($x+1))/$shortX;
                                 }
                                 elseif ( preg_match( '/Right$/', $dirn ) )
                                 {
-                                    $xFactor = ($_REQUEST['x']+1)/$shortX;
+                                    $xFactor = ($x+1)/$shortX;
                                 }
 
                                 if ( $monitor['Orientation'] != '0' )
@@ -715,7 +722,7 @@ if ( !empty($_REQUEST['action']) )
                                         ),
                                     );
                                     $newDirn = $conversions[$monitor['Orientation']][$dirn];
-                                    $_REQUEST['control'] = preg_replace( "/_$dirn\$/", "_$newDirn", $_REQUEST['control'] );
+                                    $control = preg_replace( "/_$dirn\$/", "_$newDirn", $control );
                                     $dirn = $newDirn;
                                 }
 
@@ -797,37 +804,35 @@ if ( !empty($_REQUEST['action']) )
             }
             else
             {
-                if ( preg_match( '/^presetGoto(\d+)$/', $_REQUEST['control'], $matches ) )
+                if ( preg_match( '/^presetGoto(\d+)$/', $control, $matches ) )
                 {
-                    $_REQUEST['control'] = 'presetGoto';
+                    $control = 'presetGoto';
                     $ctrlCommand .= " --preset=".$matches[1];
                 }
-                elseif ( $_REQUEST['control'] == "presetSet" )
+                elseif ( $control == "presetSet" )
                 {
                     if ( canEdit( 'Control' ) )
                     {
-                        $row = dbFetchOne( "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'" );
+                        $preset = validInt($_REQUEST['preset']);
+                        $newLabel = validJsStr($_REQUEST['newLabel']);
+                        $row = dbFetchOne( "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".dbEscape($preset)."'" );
                         if ( $newLabel != $row['Label'] )
                         {
                             if ( $newLabel )
-                                $sql = "replace into ControlPresets ( MonitorId, Preset, Label ) values ( '".$monitor['Id']."', '".$preset."', '".dbEscape($newLabel)."' )";
+                                $sql = "replace into ControlPresets ( MonitorId, Preset, Label ) values ( '".$monitor['Id']."', '".dbEscape($preset)."', '".dbEscape($newLabel)."' )";
                             else
-                                $sql = "delete from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
+                                $sql = "delete from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".dbEscape($preset)."'";
                             dbQuery( $sql );
-                            $GLOBALS['refreshParent'] = true;
+                            $refreshParent = true;
                         }
+                        $ctrlCommand .= " --preset=".$preset;
                     }
-                    $ctrlCommand .= " --preset=".$preset;
-                    $_REQUEST['view'] = 'none';
-                }
-                elseif ( $_REQUEST['control'] == "moveMap" )
-                {
-                    $ctrlCommand .= " --xcoord=".$_REQUEST['x']." --ycoord=".$_REQUEST['y'];
+                    $view = 'none';
                 }
             }
-            if ( $_REQUEST['control'] != 'null' )
+            if ( $control != 'null' )
             {
-                $ctrlCommand .= " --command=".$_REQUEST['control'];
+                $ctrlCommand .= " --command=".$control;
                 $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
                 if ( $socket < 0 )
                 {
@@ -860,19 +865,19 @@ if ( !empty($_REQUEST['action']) )
                 }
             }
         }
-        elseif ( $_REQUEST['action'] == "settings" )
+        elseif ( $action == "settings" )
         {
-            $zmuCommand = getZmuCommand( " -m ".$_REQUEST['mid']." -B".$_REQUEST['newBrightness']." -C".$_REQUEST['newContrast']." -H".$_REQUEST['newHue']." -O".$_REQUEST['newColour'] );
+            $zmuCommand = getZmuCommand( " -m ".$mid." -B".$_REQUEST['newBrightness']." -C".$_REQUEST['newContrast']." -H".$_REQUEST['newHue']." -O".$_REQUEST['newColour'] );
             $zmuOutput = exec( escapeshellcmd( $zmuCommand ) );
             list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmuOutput );
-            dbQuery( "update Monitors set Brightness = '".$brightness."', Contrast = '".$contrast."', Hue = '".$hue."', Colour = '".$colour."' where Id = '".$_REQUEST['mid']."'" );
+            dbQuery( "update Monitors set Brightness = '".$brightness."', Contrast = '".$contrast."', Hue = '".$hue."', Colour = '".$colour."' where Id = '".$mid."'" );
         }
     }
 
     // Control capability actions, require control edit permissions
     if ( canEdit( 'Control' ) )
     {
-        if ( $_REQUEST['action'] == "controlcap" )
+        if ( $action == "controlcap" )
         {
             if ( !empty($_REQUEST['cid']) )
             {
@@ -903,17 +908,17 @@ if ( !empty($_REQUEST['action']) )
                 if ( !empty($_REQUEST['cid']) )
                 {
                     dbQuery( "update Controls set ".implode( ", ", $changes )." where Id = '".dbEscape($_REQUEST['cid'])."'" );
-                    $GLOBALS['refreshParent'] = true;
+                    $refreshParent = true;
                 }
                 else
                 {
                     dbQuery( "insert into Controls set ".implode( ", ", $changes ) );
                     //$_REQUEST['cid'] = dbInsertId();
                 }
-                $GLOBALS['refreshParent'] = true;
+                $refreshParent = true;
             }
         }
-        elseif ( $_REQUEST['action'] == "delete" )
+        elseif ( $action == "delete" )
         {
             if ( isset($_REQUEST['markCids']) )
             {
@@ -921,7 +926,7 @@ if ( !empty($_REQUEST['action']) )
                 {
                     dbQuery( "delete from Controls where Id = '".dbEscape($markCid)."'" );
                     dbQuery( "update Monitors set Controllable = 0, ControlId = 0 where ControlId = '".dbEscape($markCid)."'" );
-                    $GLOBALS['refreshParent'] = true;
+                    $refreshParent = true;
                 }
             }
         }
@@ -930,35 +935,39 @@ if ( !empty($_REQUEST['action']) )
     // Monitor edit actions, require a monitor id and edit permissions for that monitor
     if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) )
     {
-        if ( $_REQUEST['action'] == "function" )
+        $mid = validInt($_REQUEST['mid']);
+        if ( $action == "function" )
         {
-            $monitor = dbFetchOne( "select * from Monitors where Id = '".$_REQUEST['mid']."'" );
+            $monitor = dbFetchOne( "select * from Monitors where Id = '".$mid."'" );
 
+            $newFunction = validStr($_REQUEST['newFunction']);
+            $newEnabled = validStr($_REQUEST['newEnabled']);
             $oldFunction = $monitor['Function'];
             $oldEnabled = $monitor['Enabled'];
-            if ( $_REQUEST['newFunction'] != $oldFunction || $_REQUEST['newEnabled'] != $oldEnabled )
+            if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled )
             {
-                dbQuery( "update Monitors set Function = '".dbEscape($_REQUEST['newFunction'])."', Enabled = '".$_REQUEST['newEnabled']."' where Id = '".dbEscape($_REQUEST['mid'])."'" );
+                dbQuery( "update Monitors set Function = '".dbEscape($newFunction)."', Enabled = '".$newEnabled."' where Id = '".$mid."'" );
 
-                $monitor['Function'] = $_REQUEST['newFunction'];
-                $monitor['Enabled'] = $_REQUEST['newEnabled'];
+                $monitor['Function'] = $newFunction;
+                $monitor['Enabled'] = $newEnabled;
                 //if ( $cookies ) session_write_close();
                 if ( daemonCheck() )
                 {
-                    $GLOBALS['restart'] = ($oldFunction == 'None') || ($_REQUEST['newFunction'] == 'None') || ($_REQUEST['newEnabled'] != $oldEnabled);
-                    zmcControl( $monitor, $GLOBALS['restart']?"restart":"" );
+                    $restart = ($oldFunction == 'None') || ($newFunction == 'None') || ($newEnabled != $oldEnabled);
+                    zmcControl( $monitor, $restart?"restart":"" );
                     zmaControl( $monitor, "reload" );
                 }
-                $GLOBALS['refreshParent'] = true;
+                $refreshParent = true;
             }
         }
-        elseif ( $_REQUEST['action'] == "zone" && isset( $_REQUEST['zid'] ) )
+        elseif ( $action == "zone" && isset( $_REQUEST['zid'] ) )
         {
-            $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($_REQUEST['mid'])."'" );
+            $zid = validInt($_REQUEST['zid']);
+            $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" );
 
-            if ( !empty($_REQUEST['zid']) )
+            if ( !empty($zid) )
             {
-                $zone = dbFetchOne( "select * from Zones where MonitorId = '".dbEscape($_REQUEST['mid'])."' and Id = '".dbEscape($_REQUEST['zid'])."'" );
+                $zone = dbFetchOne( "select * from Zones where MonitorId = '".dbEscape($mid)."' and Id = '".dbEscape($zid)."'" );
             }
             else
             {
@@ -985,43 +994,44 @@ if ( !empty($_REQUEST['action']) )
 
             if ( count( $changes ) )
             {
-                if ( $_REQUEST['zid'] > 0 )
+                if ( $zid > 0 )
                 {
-                    $sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '".dbEscape($_REQUEST['mid'])."' and Id = '".dbEscape($_REQUEST['zid'])."'";
+                    $sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '".dbEscape($mid)."' and Id = '".dbEscape($zid)."'";
                 }
                 else
                 {
-                    $sql = "insert into Zones set MonitorId = '".dbEscape($_REQUEST['mid'])."', ".implode( ", ", $changes );
+                    $sql = "insert into Zones set MonitorId = '".dbEscape($mid)."', ".implode( ", ", $changes );
                 }
                 dbQuery( $sql );
                 //if ( $cookies ) session_write_close();
                 if ( daemonCheck() )
                 {
-                    zmaControl( $_REQUEST['mid'], "restart" );
+                    zmaControl( $mid, "restart" );
                 }
-                $GLOBALS['refreshParent'] = true;
+                $refreshParent = true;
             }
-            $_REQUEST['view'] = 'none';
+            $view = 'none';
         }
-        elseif ( $_REQUEST['action'] == "sequence" && isset($_REQUEST['smid']) )
+        elseif ( $action == "sequence" && isset($_REQUEST['smid']) )
         {
-            $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($_REQUEST['mid'])."'" );
-            $smonitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($_REQUEST['smid'])."'" );
+            $smid = validInt($_REQUEST['smid']);
+            $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" );
+            $smonitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($smid)."'" );
 
             dbQuery( "update Monitors set Sequence = '".$smonitor['Sequence']."' where Id = '".$monitor['Id']."'" );
             dbQuery( "update Monitors set Sequence = '".$monitor['Sequence']."' where Id = '".$smonitor['Id']."'" );
 
-            $GLOBALS['refreshParent'] = true;
+            $refreshParent = true;
             fixSequences();
         }
-        if ( $_REQUEST['action'] == "delete" )
+        if ( $action == "delete" )
         {
             if ( isset($_REQUEST['markZids']) )
             {
                 $deletedZid = 0;
                 foreach( $_REQUEST['markZids'] as $markZid )
                 {
-                    dbQuery( "delete from Zones where MonitorId = '".dbEscape($_REQUEST['mid'])."' && Id = '".dbEscape($markZid)."'" );
+                    dbQuery( "delete from Zones where MonitorId = '".dbEscape($mid)."' && Id = '".dbEscape($markZid)."'" );
                     $deletedZid = 1;
                 }
                 if ( $deletedZid )
@@ -1029,8 +1039,8 @@ if ( !empty($_REQUEST['action']) )
                     //if ( $cookies )
                         //session_write_close();
                     if ( daemonCheck() )
-                        zmaControl( $_REQUEST['mid'], "restart" );
-                    $GLOBALS['refreshParent'] = true;
+                        zmaControl( $mid, "restart" );
+                    $refreshParent = true;
                 }
             }
         }
@@ -1039,15 +1049,16 @@ if ( !empty($_REQUEST['action']) )
     // Monitor edit actions, monitor id derived, require edit permissions for that monitor
     if ( canEdit( 'Monitors' ) )
     {
-        if ( $_REQUEST['action'] == "monitor" )
+        if ( $action == "monitor" )
         {
             if ( !empty($_REQUEST['mid']) )
             {
-                $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($_REQUEST['mid'])."'" );
+                $mid = validInt($_REQUEST['mid']);
+                $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" );
 
                 if ( ZM_OPT_X10 )
                 {
-                    $x10Monitor = dbFetchOne( "select * from TriggersX10 where MonitorId = '".dbEscape($_REQUEST['mid'])."'" );
+                    $x10Monitor = dbFetchOne( "select * from TriggersX10 where MonitorId = '".dbEscape($mid)."'" );
                     if ( !$x10Monitor )
                         $x10Monitor = array();
                 }
@@ -1075,7 +1086,8 @@ if ( !empty($_REQUEST['action']) )
             {
                 if ( !empty($_REQUEST['mid']) )
                 {
-                    $sql = "update Monitors set ".implode( ", ", $changes )." where Id = '".dbEscape($_REQUEST['mid'])."'";
+                    $mid = validInt($_REQUEST['mid']);
+                    $sql = "update Monitors set ".implode( ", ", $changes )." where Id = '".dbEscape($mid)."'";
                     dbQuery( $sql );
                     if ( $changes['Name'] )
                     {
@@ -1090,7 +1102,7 @@ if ( !empty($_REQUEST['action']) )
                         $oldH = $monitor['Height'];
                         $oldA = $oldW * $oldH;
 
-                        $zones = dbFetchAll( "select * from Zones where MonitorId = '".dbEscape($_REQUEST['mid'])."'" );
+                        $zones = dbFetchAll( "select * from Zones where MonitorId = '".dbEscape($mid)."'" );
                         foreach ( $zones as $zone )
                         {
                             $newZone = $zone;
@@ -1113,7 +1125,7 @@ if ( !empty($_REQUEST['action']) )
 
                             if ( count( $changes ) )
                             {
-                                dbQuery( "update Zones set ".implode( ", ", $changes )." where MonitorId = '".dbEscape($_REQUEST['mid'])."' and Id = '".$zone['Id']."'" );
+                                dbQuery( "update Zones set ".implode( ", ", $changes )." where MonitorId = '".dbEscape($mid)."' and Id = '".$zone['Id']."'" );
                             }
                         }
                     }
@@ -1124,14 +1136,14 @@ if ( !empty($_REQUEST['action']) )
                     $changes[] = "Sequence = ".($maxSeq+1);
 
                     dbQuery( "insert into Monitors set ".implode( ", ", $changes ) );
-                    $_REQUEST['mid'] = dbInsertId();
+                    $mid = dbInsertId();
                     $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
-                    dbQuery( "insert into Zones set MonitorId = ".dbEscape($_REQUEST['mid']).", Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = '".sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 )."', Area = ".$zoneArea.", AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels = ".intval(($zoneArea*3)/100).", MaxAlarmPixels = ".intval(($zoneArea*75)/100).", FilterX = 3, FilterY = 3, MinFilterPixels = ".intval(($zoneArea*3)/100).", MaxFilterPixels = ".intval(($zoneArea*75)/100).", MinBlobPixels = ".intval(($zoneArea*2)/100).", MinBlobs = 1" );
-                    //$_REQUEST['view'] = 'none';
-                    mkdir( ZM_DIR_EVENTS.'/'.$_REQUEST['mid'], 0755 );
-                    symlink( $_REQUEST['mid'], ZM_DIR_EVENTS.'/'.$_REQUEST['newMonitor']['Name'] );
+                    dbQuery( "insert into Zones set MonitorId = ".dbEscape($mid).", Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = '".sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 )."', Area = ".$zoneArea.", AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels = ".intval(($zoneArea*3)/100).", MaxAlarmPixels = ".intval(($zoneArea*75)/100).", FilterX = 3, FilterY = 3, MinFilterPixels = ".intval(($zoneArea*3)/100).", MaxFilterPixels = ".intval(($zoneArea*75)/100).", MinBlobPixels = ".intval(($zoneArea*2)/100).", MinBlobs = 1" );
+                    //$view = 'none';
+                    mkdir( ZM_DIR_EVENTS.'/'.$mid, 0755 );
+                    symlink( $mid, ZM_DIR_EVENTS.'/'.$_REQUEST['newMonitor']['Name'] );
                 }
-                $GLOBALS['restart'] = true;
+                $restart = true;
             }
 
             if ( ZM_OPT_X10 )
@@ -1155,11 +1167,11 @@ if ( !empty($_REQUEST['action']) )
                             dbQuery( "delete from TriggersX10 where MonitorId = '".dbEscape($_REQUEST['mid'])."'" );
                         }
                     }
-                    $GLOBALS['restart'] = true;
+                    $restart = true;
                 }
             }
 
-            if ( $GLOBALS['restart'] )
+            if ( $restart )
             {
                 $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($_REQUEST['mid'])."'" );
                 fixDevices();
@@ -1171,11 +1183,11 @@ if ( !empty($_REQUEST['action']) )
                     zmaControl( $monitor, "restart" );
                 }
                 //daemonControl( 'restart', 'zmwatch.pl' );
-                $GLOBALS['refreshParent'] = true;
+                $refreshParent = true;
             }
-            $_REQUEST['view'] = 'none';
+            $view = 'none';
         }
-        if ( $_REQUEST['action'] == "delete" )
+        if ( $action == "delete" )
         {
             if ( isset($_REQUEST['markMids']) && !$user['MonitorIds'] )
             {
@@ -1213,7 +1225,7 @@ if ( !empty($_REQUEST['action']) )
     // Device view actions
     if ( canEdit( 'Devices' ) )
     {
-        if ( $_REQUEST['action'] == "device" )
+        if ( $action == "device" )
         {
             if ( !empty($_REQUEST['command']) )
             {
@@ -1229,18 +1241,18 @@ if ( !empty($_REQUEST['action']) )
                 {
                     dbQuery( "insert into Devices set Name = '".dbEscape($_REQUEST['newDevice']['Name'])."', KeyString = '".dbEscape($_REQUEST['newDevice']['KeyString'])."'" );
                 }
-                $GLOBALS['refreshParent'] = true;
-                $_REQUEST['view'] = 'none';
+                $refreshParent = true;
+                $view = 'none';
             }
         }
-        elseif ( $_REQUEST['action'] == "delete" )
+        elseif ( $action == "delete" )
         {
             if ( isset($_REQUEST['markDids']) )
             {
                 foreach( $_REQUEST['markDids'] as $markDid )
                 {
                     dbQuery( "delete from Devices where Id = '".dbEscape($markDid)."'" );
-                    $GLOBALS['refreshParent'] = true;
+                    $refreshParent = true;
                 }
             }
         }
@@ -1249,24 +1261,24 @@ if ( !empty($_REQUEST['action']) )
     // System view actions
     if ( canView( 'System' ) )
     {
-        if ( $_REQUEST['action'] == "setgroup" )
+        if ( $action == "setgroup" )
         {
             if ( !empty($_REQUEST['gid']) )
             {
-                setcookie( "zmGroup", $_REQUEST['gid'], time()+3600*24*30*12*10 );
+                setcookie( "zmGroup", validInt($_REQUEST['gid']), time()+3600*24*30*12*10 );
             }
             else
             {
                 setcookie( "zmGroup", "", time()-3600*24*2 );
             }
-            $GLOBALS['refreshParent'] = true;
+            $refreshParent = true;
         }
     }
 
     // System edit actions
     if ( canEdit( 'System' ) )
     {
-        if ( $_REQUEST['action'] == "version" && isset($option) )
+        if ( $action == "version" && isset($option) )
         {
             switch( $option )
             {
@@ -1307,7 +1319,7 @@ if ( !empty($_REQUEST['action']) )
                 }
             }
         }
-        if ( $_REQUEST['action'] == "donate" && isset($option) )
+        if ( $action == "donate" && isset($option) )
         {
             switch( $option )
             {
@@ -1349,7 +1361,7 @@ if ( !empty($_REQUEST['action']) )
                 }
             }
         }
-        if ( $_REQUEST['action'] == "options" && isset( $_REQUEST['tab'] ) )
+        if ( $action == "options" && isset( $_REQUEST['tab'] ) )
         {
             $configCat = $configCats[$_REQUEST['tab']];
             $changed = false;
@@ -1374,7 +1386,7 @@ if ( !empty($_REQUEST['action']) )
                     case "system" :
                     case "config" :
                     case "paths" :
-                        $GLOBALS['restart'] = true;
+                        $restart = true;
                         break;
                     case "web" :
                     case "tools" :
@@ -1383,7 +1395,7 @@ if ( !empty($_REQUEST['action']) )
                     case "network" :
                     case "mail" :
                     case "ftp" :
-                        $GLOBALS['restart'] = true;
+                        $restart = true;
                         break;
                     case "highband" :
                     case "medband" :
@@ -1394,7 +1406,7 @@ if ( !empty($_REQUEST['action']) )
             }
             loadConfig( false );
         }
-        elseif ( $_REQUEST['action'] == "user" )
+        elseif ( $action == "user" )
         {
             if ( !empty($_REQUEST['uid']) )
                 $dbUser = dbFetchOne( "select * from Users where Id = '".dbEscape($_REQUEST['uid'])."'" );
@@ -1420,22 +1432,22 @@ if ( !empty($_REQUEST['action']) )
                     $sql = "insert into Users set ".implode( ", ", $changes );
                 }
                 dbQuery( $sql );
-                $GLOBALS['refreshParent'] = true;
+                $refreshParent = true;
                 if ( $dbUser['Username'] == $user['Username'] )
                     userLogin( $dbUser['Username'], $dbUser['Password'] );
             }
-            $_REQUEST['view'] = 'none';
+            $view = 'none';
         }
-        elseif ( $_REQUEST['action'] == "state" )
+        elseif ( $action == "state" )
         {
             if ( !empty($_REQUEST['runState']) )
             {
                 //if ( $cookies ) session_write_close();
                 packageControl( $_REQUEST['runState'] );
-                $GLOBALS['refreshParent'] = true;
+                $refreshParent = true;
             }
         }
-        elseif ( $_REQUEST['action'] == "save" )
+        elseif ( $action == "save" )
         {
             if ( !empty($_REQUEST['runState']) || !empty($_REQUEST['newState']) )
             {
@@ -1451,7 +1463,7 @@ if ( !empty($_REQUEST['action']) )
                 dbQuery( "replace into States set Name = '".dbEscape($_REQUEST['runState'])."', Definition = '".dbEscape($definition)."'" );
             }
         }
-        elseif ( $_REQUEST['action'] == "group" )
+        elseif ( $action == "group" )
         {
             if ( !empty($_REQUEST['gid']) )
             {
@@ -1462,10 +1474,10 @@ if ( !empty($_REQUEST['action']) )
                 $sql = "insert into Groups set Name = '".dbEscape($_REQUEST['newGroup']['Name'])."', MonitorIds = '".dbEscape(join(',',$_REQUEST['newGroup']['MonitorIds']))."'";
             }
             dbQuery( $sql );
-            $GLOBALS['refreshParent'] = true;
-            $_REQUEST['view'] = 'none';
+            $refreshParent = true;
+            $view = 'none';
         }
-        elseif ( $_REQUEST['action'] == "delete" )
+        elseif ( $action == "delete" )
         {
             if ( isset($_REQUEST['runState']) )
                 dbQuery( "delete from States where Name = '".dbEscape($_REQUEST['runState'])."'" );
@@ -1484,14 +1496,14 @@ if ( !empty($_REQUEST['action']) )
                 {
                     unset( $_COOKIE['zmGroup'] );
                     setcookie( "zmGroup", "", time()-3600*24*2 );
-                    $GLOBALS['refreshParent'] = true;
+                    $refreshParent = true;
                 }
             }
         }
     }
     else
     {
-        if ( ZM_USER_SELF_EDIT && $_REQUEST['action'] == "user" )
+        if ( ZM_USER_SELF_EDIT && $action == "user" )
         {
             $uid = $user['Id'];
 
@@ -1500,21 +1512,21 @@ if ( !empty($_REQUEST['action']) )
             $types = array();
             $changes = getFormChanges( $dbUser, $_REQUEST['newUser'], $types );
 
-            if ( $_REQUEST['newUser']['Password'] )
-                $changes['Password'] = "Password = password('".$_REQUEST['newUser']['Password']."')";
+            if ( !empty($_REQUEST['newUser']['Password']) )
+                $changes['Password'] = "Password = password('".dbEscape($_REQUEST['newUser']['Password'])."')";
             else
                 unset( $changes['Password'] );
             if ( count( $changes ) )
             {
                 $sql = "update Users set ".implode( ", ", $changes )." where Id = '".dbEscape($uid)."'";
                 dbQuery( $sql );
-                $GLOBALS['refreshParent'] = true;
+                $refreshParent = true;
             }
-            $_REQUEST['view'] = 'none';
+            $view = 'none';
         }
     }
 
-    if ( $_REQUEST['action'] == "reset" )
+    if ( $action == "reset" )
     {
         $_SESSION['zmEventResetTime'] = strftime( STRF_FMT_DATETIME_DB );
         setcookie( "zmEventResetTime", $_SESSION['zmEventResetTime'], time()+3600*24*30*12*10 );

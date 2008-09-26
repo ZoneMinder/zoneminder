@@ -34,8 +34,8 @@ xhtmlHeaders(__FILE__, $SLANG['OptionHelp'] );
       <h2><?= $SLANG['OptionHelp'] ?></h2>
     </div>
     <div id="content">
-      <h3><?= $_REQUEST['option'] ?></h3>
-      <p class="textblock"><?= htmlentities($optionHelpText) ?></p>
+      <h3><?= validHtmlStr($_REQUEST['option']) ?></h3>
+      <p class="textblock"><?= validHtmlStr($optionHelpText) ?></p>
     </div>
   </div>
 </body>

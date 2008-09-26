@@ -12,9 +12,9 @@ header("Content-type: text/plain" );
 
 if ( canEdit( 'Monitors' ) )
 {
-    $zmu_command = getZmuCommand( " -m ".$_REQUEST['id'] );
+    $zmu_command = getZmuCommand( " -m ".validInt($_REQUEST['id']) );
 
-    switch ( $_REQUEST['command'] )
+    switch ( validJsStr($_REQUEST['command']) )
     {
         case "disableAlarms" :
         {
@@ -39,7 +39,7 @@ if ( canEdit( 'Monitors' ) )
         default :
         {
             $response['result'] = 'Error';
-            $response['message'] = "Unexpected command '".$_REQUEST['command']."'";
+            $response['message'] = "Unexpected command '".validJsStr($_REQUEST['command'])."'";
             echo jsValue( $response );
             exit;
         }

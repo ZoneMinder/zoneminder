@@ -14,7 +14,7 @@ if ( !$_REQUEST['id'] )
     return;
 }
 
-$monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '".$_REQUEST['id']."'" );
+$monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '".dbEscape($_REQUEST['id'])."'" );
 
 $ctrlCommand = ZM_PATH_BIN."/zmcontrol.pl";
 
@@ -1010,15 +1010,15 @@ if ( $_REQUEST['control'] != 'null' )
         //error_log( "Command: $ctrlCommand" );
 
         // Can't connect so use script
-        $ctrl_status = '';
-        $ctrl_output = array();
-        exec( escapeshellcmd( $ctrlCommand ), $ctrl_output, $ctrl_status );
-        //error_log( "Status: $ctrl_status" );
-        //error_log( "Output: ".join( "\n", $ctrl_output ) );
-        if ( !$ctrl_status )
+        $ctrlStatus = '';
+        $ctrlOutput = array();
+        exec( escapeshellcmd( $ctrlCommand ), $ctrlOutput, $ctrlStatus );
+        //error_log( "Status: $ctrlStatus" );
+        //error_log( "Output: ".join( "\n", $ctrlOutput ) );
+        if ( !$ctrlStatus )
             $response = array( 'result' => "Ok", 'message' => 'Used script' );
         else
-            $response = array( 'result' => "Error", 'status' => $ctrl_status, 'message' => join( "\n", $ctrl_output ) );
+            $response = array( 'result' => "Error", 'status' => $ctrlStatus, 'message' => join( "\n", $ctrlOutput ) );
     }
 }
 else

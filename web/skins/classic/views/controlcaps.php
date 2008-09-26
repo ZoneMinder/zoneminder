@@ -20,7 +20,7 @@
 
 if ( !canView( 'Control' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -41,7 +41,7 @@ xhtmlHeaders(__FILE__, $SLANG['ControlCaps'] );
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>" onsubmit="return( confirmDelete( 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.\nAre you sure you wish to delete?' ) );">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>

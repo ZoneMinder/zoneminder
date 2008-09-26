@@ -20,7 +20,7 @@
 
 if ( !canView( 'Events' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -58,7 +58,7 @@ xhtmlHeaders(__FILE__, $SLANG['Export'] );
 if ( !empty($_REQUEST['eid']) )
 {
 ?>
-        <input type="hidden" name="id" value="<?= $_REQUEST['eid'] ?>"/>
+        <input type="hidden" name="id" value="<?= validInt($_REQUEST['eid']) ?>"/>
 <?php
 }
 elseif ( !empty($_REQUEST['eids']) )
@@ -66,7 +66,7 @@ elseif ( !empty($_REQUEST['eids']) )
     foreach ( $_REQUEST['eids'] as $eid )
     {
 ?>
-        <input type="hidden" name="eids[]" value="<?= $eid ?>"/>
+        <input type="hidden" name="eids[]" value="<?= validInt($eid) ?>"/>
 <?php
     }
     unset( $eid );
@@ -122,7 +122,7 @@ elseif ( !empty($_REQUEST['eids']) )
     if ( !empty($_REQUEST['generated']) )
     {
 ?>
-      <h3 id="downloadLink"><a href="<?= $_REQUEST['exportFile'] ?>"><?= $SLANG['Download'] ?></a></h3>
+      <h3 id="downloadLink"><a href="<?= validHtmlStr($_REQUEST['exportFile']) ?>"><?= $SLANG['Download'] ?></a></h3>
 <?php
     }
 ?>

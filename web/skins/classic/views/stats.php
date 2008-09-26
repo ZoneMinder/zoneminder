@@ -20,15 +20,19 @@
 
 if ( !canView( 'Events' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
-$sql = "select S.*,E.*,Z.Name as ZoneName,Z.Units,Z.Area,M.Name as MonitorName,M.Width,M.Height from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '".dbEscape($_REQUEST['eid'])."' and S.FrameId = '".$_REQUEST['fid']."' order by S.ZoneId";
+
+$eid = validInt($_REQUEST['eid']);
+$fid = validInt($_REQUEST['fid']);
+
+$sql = "select S.*,E.*,Z.Name as ZoneName,Z.Units,Z.Area,M.Name as MonitorName,M.Width,M.Height from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '".dbEscape($eid)."' and S.FrameId = '".dbEscape($fid)."' order by S.ZoneId";
 $stats = dbFetchAll( $sql );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Stats']." - ".$_REQUEST['eid']." - ".$_REQUEST['fid'] );
+xhtmlHeaders(__FILE__, $SLANG['Stats']." - ".$eid." - ".$fid );
 ?>
 <body>
   <div id="page">
@@ -36,7 +40,7 @@ xhtmlHeaders(__FILE__, $SLANG['Stats']." - ".$_REQUEST['eid']." - ".$_REQUEST['f
       <div id="headerButtons">
         <a href="#" onclick="closeWindow(); return( false );"><?= $SLANG['Close'] ?></a>
       </div>
-      <h2><?= $SLANG['Stats'] ?> - <?= $_REQUEST['eid'] ?> - <?= $_REQUEST['fid'] ?></h2>
+      <h2><?= $SLANG['Stats'] ?> - <?= $eid ?> - <?= $fid ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
@@ -63,12 +67,12 @@ if ( count($stats) )
     {
 ?>
             <tr>
-              <td class="colZone"><?= $stat['ZoneName'] ?></td>
-              <td class="colPixelDiff"><?= $stat['PixelDiff'] ?></td>
+              <td class="colZone"><?= validHtmlStr($stat['ZoneName']) ?></td>
+              <td class="colPixelDiff"><?= validHtmlStr($stat['PixelDiff']) ?></td>
               <td class="colAlarmPx"><?= sprintf( "%d (%d%%)", $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']) ) ?></td>
               <td class="colFilterPx"><?= sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']) ) ?></td>
               <td class="colBlobPx"><?= sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']) ) ?></td>
-              <td class="colBlobs"><?= $stat['Blobs'] ?></td>
+              <td class="colBlobs"><?= validHtmlStr($stat['Blobs']) ?></td>
 <?php
 if ( $stat['Blobs'] > 1 )
 {
@@ -83,7 +87,7 @@ else
 <?php
 }
 ?>
-              <td class="colAlarmLimits"><?= $stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY'] ?></td>
+              <td class="colAlarmLimits"><?= validHtmlStr($stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY']) ?></td>
               <td class="colScore"><?= $stat['Score'] ?></td>
             </tr>
 <?php

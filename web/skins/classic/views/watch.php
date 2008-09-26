@@ -20,37 +20,41 @@
 
 if ( !canView( 'Stream' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
-$sql = "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '".$_REQUEST['mid']."'";
+$sql = "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '".dbEscape($_REQUEST['mid'])."'";
 $monitor = dbFetchOne( $sql );
 
-if ( !isset($_REQUEST['control']) )
-    $_REQUEST['control'] = (canView( 'Control' ) && ($monitor['DefaultView'] == 'Control'));
+if ( isset($_REQUEST['control']) )
+    $control = validInt($_REQUEST['control']);
+else
+    $control = (canView( 'Control' ) && ($monitor['DefaultView'] == 'Control'));
 
 $showControls = ( ZM_OPT_CONTROL && $monitor['Controllable'] && canView( 'Control' ) );
 
-if ( !isset( $_REQUEST['scale'] ) )
-    $_REQUEST['scale'] = reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+if ( isset( $_REQUEST['scale'] ) )
+    $scale = validInt($_REQUEST['scale']);
+else
+    $scale = reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
 $connkey = generateConnKey();
 
 if ( ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
     $streamMode = "mpeg";
-    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$_REQUEST['scale'], "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
 }
 elseif ( canStream() )
 {
     $streamMode = "jpeg";
-    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$_REQUEST['scale'], "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
+    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
 }
 else
 {
     $streamMode = "single";
-    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$_REQUEST['scale'] ) );
+    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale ) );
 }
 
 noCacheHeaders();
@@ -70,13 +74,13 @@ if ( $showControls )
     if ( canView( 'Control' ) )
     {
 ?>
-          <div id="controlControl"<?= $_REQUEST['control']?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showControls(); return( false );"><?= $SLANG['Control'] ?></a></div>
+          <div id="controlControl"<?= $control?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showControls(); return( false );"><?= $SLANG['Control'] ?></a></div>
 <?php
     }
     if ( canView( 'Events' ) )
     {
 ?>
-          <div id="eventsControl"<?= $_REQUEST['control']?'':' class="hidden"' ?>><a id="eventsLink" href="#" onclick="showEvents(); return( false );"><?= $SLANG['Events'] ?></a></div>
+          <div id="eventsControl"<?= $control?'':' class="hidden"' ?>><a id="eventsLink" href="#" onclick="showEvents(); return( false );"><?= $SLANG['Events'] ?></a></div>
 <?php
     }
 }
@@ -96,18 +100,18 @@ if ( canView( 'Control' ) && $monitor['Type'] == "Local" )
 <?php
 if ( $streamMode === "mpeg" )
 {
-    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $_REQUEST['scale'] ), reScale( $monitor['Height'], $_REQUEST['scale'] ), ZM_MPEG_LIVE_FORMAT, $monitor['Name'] );
+    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT, $monitor['Name'] );
 }
 elseif ( $streamMode == "jpeg" )
 {
     if ( canStreamNative() )
-        outputImageStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $_REQUEST['scale'] ), reScale( $monitor['Height'], $_REQUEST['scale'] ), $monitor['Name'] );
+        outputImageStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
     elseif ( canStreamApplet() )
-        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $_REQUEST['scale'] ), reScale( $monitor['Height'], $_REQUEST['scale'] ), $monitor['Name'] );
+        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
 }
 else
 {
-    outputImageStill( "liveStream", $streamSrc, reScale( $monitor['Width'], $_REQUEST['scale'] ), reScale( $monitor['Height'], $_REQUEST['scale'] ), $monitor['Name'] );
+    outputImageStill( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
 }
 ?>
       </div>
@@ -151,7 +155,7 @@ if ( $showControls )
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
         require_once $includeFile;
 ?>
-      <div id="ptzControls" class="ptzControls<?= $_REQUEST['control']?'':' hidden' ?>">
+      <div id="ptzControls" class="ptzControls<?= $control?'':' hidden' ?>">
 <?= ptzControls( $monitor ) ?>
       </div>
 <?php
@@ -159,7 +163,7 @@ if ( $showControls )
 if ( canView( 'Events' ) )
 {
 ?>
-      <div id="events"<?= $_REQUEST['control']?' class="hidden"':'' ?>>
+      <div id="events"<?= $control?' class="hidden"':'' ?>>
         <table id="eventList" cellspacing="0">
           <thead>
             <tr>

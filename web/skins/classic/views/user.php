@@ -22,10 +22,10 @@ $selfEdit = ZM_USER_SELF_EDIT && $_REQUEST['uid'] == $user['Id'];
 
 if ( !canEdit( 'System' ) && !$selfEdit )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
-$sql = "select * from Users where Id = '".$_REQUEST['uid']."'";
+$sql = "select * from Users where Id = '".dbEscape($_REQUEST['uid'])."'";
 if ( !($newUser = dbFetchOne( $sql )) )
 {
     $newUser = array();
@@ -60,9 +60,9 @@ xhtmlHeaders(__FILE__, $SLANG['User']." - ".$newUser['Username'] );
     </div>
     <div id="content">
       <form name="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this, <?= empty($newUser['Password'])?'true':'false' ?> )">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value="user"/>
-        <input type="hidden" name="uid" value="<?= $_REQUEST['uid'] ?>"/>
+        <input type="hidden" name="uid" value="<?= validHtmlStr($_REQUEST['uid']) ?>"/>
         <input type="hidden" name="newUser[MonitorIds]" value="<?= $newUser['MonitorIds'] ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>

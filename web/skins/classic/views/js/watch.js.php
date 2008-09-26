@@ -48,7 +48,7 @@ var monitorId = <?= $monitor['Id'] ?>;
 var monitorWidth = <?= $monitor['Width'] ?>;
 var monitorHeight = <?= $monitor['Height'] ?>;
 
-var scale = <?= $_REQUEST['scale'] ?>;
+var scale = <?= $scale ?>;
 
 var streamSrc = "<?= $streamSrc ?>";
 

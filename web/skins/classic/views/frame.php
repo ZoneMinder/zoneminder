@@ -20,23 +20,26 @@
 
 if ( !canView( 'Events' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
-$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'";
+
+$eid = validInt($_REQUEST['eid']);
+if ( !empty($_REQUEST['fid']) )
+    $fid = validInt($_REQUEST['fid']);
+
+$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($eid)."'";
 $event = dbFetchOne( $sql );
 
-if ( !empty($_REQUEST['fid']) )
+if ( !empty($fid) )
 {
-    $sql = "select * from Frames where EventId = '".dbEscape($_REQUEST['eid'])."' and FrameId = '".dbEscape($_REQUEST['fid'])."'";
+    $sql = "select * from Frames where EventId = '".dbEscape($eid)."' and FrameId = '".dbEscape($fid)."'";
     if ( !($frame = dbFetchOne( $sql )) )
-    {
-        $frame = array( 'FrameId'=>$_REQUEST['fid'], 'Type'=>'Normal', 'Score'=>0 );
-    }
+        $frame = array( 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0 );
 }
 else
 {
-    $frame = dbFetchOne( "select * from Frames where EventId = '".dbEscape($_REQUEST['eid'])."' and Score = '".$event['MaxScore']."'" );
+    $frame = dbFetchOne( "select * from Frames where EventId = '".dbEscape($eid)."' and Score = '".$event['MaxScore']."'" );
 }
 
 $maxFid = $event['Frames'];
@@ -48,10 +51,12 @@ $lastFid = $maxFid;
 
 $alarmFrame = $frame['Type']=='Alarm';
 
-if ( !isset( $_REQUEST['scale'] ) )
-    $_REQUEST['scale'] = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+if ( isset( $_REQUEST['scale'] ) )
+    $scale = validInt($_REQUEST['scale']);
+else
+    $scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 
-$imageData = getImageSrc( $event, $frame, $_REQUEST['scale'], (isset($_REQUEST['show']) && $_REQUEST['show']=="capt") );
+$imageData = getImageSrc( $event, $frame, $scale, (isset($_REQUEST['show']) && $_REQUEST['show']=="capt") );
 
 $imagePath = $imageData['thumbPath'];
 $eventPath = $imageData['eventPath'];
@@ -73,24 +78,24 @@ xhtmlHeaders(__FILE__, $SLANG['Frame']." - ".$event['Id']." - ".$frame['FrameId'
       <h2><?= $SLANG['Frame'] ?> <?= $event['Id']."-".$frame['FrameId']." (".$frame['Score'].")" ?></h2>
     </div>
     <div id="content">
-      <p id="image"><?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $frame['FrameId'] ?>&scale=<?= $_REQUEST['scale'] ?>&show=<?= $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $imagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" class="<?= $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?></p>
+      <p id="image"><?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $frame['FrameId'] ?>&scale=<?= $scale ?>&show=<?= $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $imagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?></p>
       <p id="controls">
 <?php if ( $frame['FrameId'] > 1 ) { ?>
-        <a id="firstLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $firstFid ?>&scale=<?= $_REQUEST['scale'] ?>"><?= $SLANG['First'] ?></a>
+        <a id="firstLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $firstFid ?>&scale=<?= $scale ?>"><?= $SLANG['First'] ?></a>
 <?php } if ( $frame['FrameId'] > 1 ) { ?>
-        <a id="prevLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $prevFid ?>&scale=<?= $_REQUEST['scale'] ?>"><?= $SLANG['Prev'] ?></a>
+        <a id="prevLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $prevFid ?>&scale=<?= $scale ?>"><?= $SLANG['Prev'] ?></a>
 <?php } if ( $frame['FrameId'] < $maxFid ) { ?>
-        <a id="nextLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $nextFid ?>&scale=<?= $_REQUEST['scale'] ?>"><?= $SLANG['Next'] ?></a>
+        <a id="nextLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $nextFid ?>&scale=<?= $scale ?>"><?= $SLANG['Next'] ?></a>
 <?php } if ( $frame['FrameId'] < $maxFid ) { ?>
-        <a id="lastLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $lastFid ?>&scale=<?= $_REQUEST['scale'] ?>"><?= $SLANG['Last'] ?></a>
+        <a id="lastLink" href="?view=frame&eid=<?= $event['Id'] ?>&fid=<?= $lastFid ?>&scale=<?= $scale ?>"><?= $SLANG['Last'] ?></a>
 <?php } ?>
       </p>
 <?php if (file_exists ($dImagePath)) { ?>
       <p id="diagImagePath"><?= $dImagePath ?></p>
-      <p id="diagImage"><img src="<?= $dImagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" class="<?= $imageData['imageClass'] ?>"/></p>
+      <p id="diagImage"><img src="<?= $dImagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $imageData['imageClass'] ?>"/></p>
 <?php } if (file_exists ($rImagePath)) { ?>
       <p id="refImagePath"><?= $rImagePath ?></p>
-      <p id="refImage"><img src="<?= $rImagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $_REQUEST['scale'] ) ?>" class="<?= $imageData['imageClass'] ?>"/></p>
+      <p id="refImage"><img src="<?= $rImagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $imageData['imageClass'] ?>"/></p>
 <?php } ?>
     </div>
   </div>

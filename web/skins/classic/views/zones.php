@@ -20,18 +20,19 @@
 
 if ( !canView( 'Monitors' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
+$mid = validInt($_REQUEST['mid']);
 $wd = getcwd();
 chdir( ZM_DIR_IMAGES );
-$status = exec( escapeshellcmd( getZmuCommand( " -m ".$_REQUEST['mid']." -z" ) ) );
+$status = exec( escapeshellcmd( getZmuCommand( " -m ".$mid." -z" ) ) );
 chdir( $wd );
 
-$monitor = dbFetchMonitor( $_REQUEST['mid'] );
+$monitor = dbFetchMonitor( $mid );
 
-$sql = "select * from Zones where MonitorId = '".dbEscape($_REQUEST['mid'])."' order by Area desc";
+$sql = "select * from Zones where MonitorId = '".$mid."' order by Area desc";
 $zones = array();
 foreach( dbFetchAll( $sql ) as $row )
 {
@@ -58,7 +59,7 @@ xhtmlHeaders(__FILE__, $SLANG['Zones'] );
 foreach( array_reverse($zones) as $zone )
 {
 ?>
-        <area shape="poly" coords="<?= $zone['AreaCoords'] ?>" href="#" onclick="createPopup( '?view=zone&mid=<?= $_REQUEST['mid'] ?>&zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"/>
+        <area shape="poly" coords="<?= $zone['AreaCoords'] ?>" href="#" onclick="createPopup( '?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"/>
 <?php
 }
 ?>
@@ -66,9 +67,9 @@ foreach( array_reverse($zones) as $zone )
       </map>
       <img src="<?= ZM_DIR_IMAGES.'/'.$image ?>" alt="zones" usemap="#zoneMap" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>" border="0"/>
       <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
-        <input type="hidden" name="mid" value="<?= $_REQUEST['mid'] ?>"/>
+        <input type="hidden" name="mid" value="<?= $mid ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
@@ -84,7 +85,7 @@ foreach( $zones as $zone )
 {
 ?>
             <tr>
-              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&mid=<?= $_REQUEST['mid'] ?>&zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"><?= $zone['Name'] ?></a></td>
+              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"><?= $zone['Name'] ?></a></td>
               <td class="colType"><?= $zone['Type'] ?></td>
               <td class="colUnits"><?= $zone['Area'] ?>&nbsp;/&nbsp;<?= sprintf( "%.2f", ($zone['Area']*100)/($monitor['Width']*$monitor['Height']) ) ?></td>
               <td class="colMark"><input type="checkbox" name="markZids[]" value="<?= $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
@@ -95,7 +96,7 @@ foreach( $zones as $zone )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?= $SLANG['AddNewZone'] ?>" onclick="createPopup( '?view=zone&mid=<?= $_REQUEST['mid'] ?>&zid=0', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="button" value="<?= $SLANG['AddNewZone'] ?>" onclick="createPopup( '?view=zone&mid=<?= $mid ?>&zid=0', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
           <input type="submit" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled"/>
         </div>
       </form>

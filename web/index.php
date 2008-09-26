@@ -94,6 +94,13 @@ else
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+
+if ( isset($_REQUEST['view']) )
+    $view = validHtmlStr($_REQUEST['view']);
+
+if ( isset($_REQUEST['action']) )
+    $action = validHtmlStr($_REQUEST['action']);
+
 require_once( 'includes/actions.php' );
 
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
@@ -101,18 +108,27 @@ foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
 
 if ( isset( $_REQUEST['request'] ) )
 {
-    foreach ( getSkinIncludes( 'ajax/'.$_REQUEST['request'].'.php', true, true ) as $includeFile )
+    $request = validHtmlStr($_REQUEST['request']);
+    foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile )
+    {
+        if ( !file_exists( $includeFile ) )
+            die( "Request '$request' does not exist" );
         require_once $includeFile;
+    }
     return;
 }
 else
 {
-    if ( $includeFiles = getSkinIncludes( 'views/'.$_REQUEST['view'].'.php', true, true ) )
+    if ( $includeFiles = getSkinIncludes( 'views/'.$view.'.php', true, true ) )
     {
         foreach ( $includeFiles as $includeFile )
+        {
+            if ( !file_exists( $includeFile ) )
+                die( "View '$view' does not exist" );
             require_once $includeFile;
+        }
     }
-    if ( !$includeFiles || $_REQUEST['view'] == 'error' )
+    if ( !$includeFiles || $view == 'error' )
     {
         foreach ( getSkinIncludes( 'views/error.php', true, true ) as $includeFile )
             require_once $includeFile;

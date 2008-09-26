@@ -32,10 +32,10 @@ var event = {
     Length: <?= $event['Length'] ?>
 };
 
-var filterQuery = '<?= isset($filterQuery)?addslashes($filterQuery):'' ?>';
-var sortQuery = '<?= isset($sortQuery)?addslashes($sortQuery):'' ?>';
+var filterQuery = '<?= isset($filterQuery)?validJsStr($filterQuery):'' ?>';
+var sortQuery = '<?= isset($sortQuery)?validJsStr($sortQuery):'' ?>';
 
-var scale = <?= $_REQUEST['scale'] ?>;
+var scale = <?= $scale ?>;
 var canEditEvents = <?= canEdit( 'Events' )?'true':'false' ?>;
 var streamTimeout = <?= 1000*ZM_WEB_REFRESH_STATUS ?>;
 

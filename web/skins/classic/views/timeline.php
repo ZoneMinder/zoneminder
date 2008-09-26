@@ -19,7 +19,7 @@
 
 if ( !canView( 'Events' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -72,7 +72,7 @@ if ( !isset($mode) )
     $mode = "overlay";
 
 $minEventWidth = 5;
-$maxEventWidth = 20;
+$maxEventWidth = 5;
 
 $chart = array(
     "width"=>700,
@@ -159,13 +159,13 @@ else
     $tree = false;
 
 if ( isset($_REQUEST['range']) )
-    $range = $_REQUEST['range'];
+    $range = validHtmlStr($_REQUEST['range']);
 if ( isset($_REQUEST['minTime']) )
-    $minTime = $_REQUEST['minTime'];
+    $minTime = validHtmlStr($_REQUEST['minTime']);
 if ( isset($_REQUEST['midTime']) )
-    $midTime = $_REQUEST['midTime'];
+    $midTime = validHtmlStr($_REQUEST['midTime']);
 if ( isset($_REQUEST['maxTime']) )
-    $maxTime = $_REQUEST['maxTime'];
+    $maxTime = validHtmlStr($_REQUEST['maxTime']);
 
 if ( isset($range) )
 {
@@ -386,10 +386,13 @@ foreach( dbFetchAll( $eventsSql ) as $event )
     {
         if ( $startIndex == $endIndex )
         {
+            $framesSql = "select FrameId,Score from Frames where EventId = '".$event['Id']."' and Score > 0 order by Score desc limit 1";
+            $frame = dbFetchOne( $framesSql );
+
             $i = $startIndex;
             if ( !isset($currFrameSlots[$i]) )
             {
-                $currFrameSlots[$i] = array( "count"=>1, "value"=>$event['MaxScore'], "event"=>$event );
+                $currFrameSlots[$i] = array( "count"=>1, "value"=>$event['MaxScore'], "event"=>$event, "frame"=>$frame );
             }
             else
             {
@@ -398,6 +401,7 @@ foreach( dbFetchAll( $eventsSql ) as $event )
                 {
                     $currFrameSlots[$i]['value'] = $event['MaxScore'];
                     $currFrameSlots[$i]['event'] = $event;
+                    $currFrameSlots[$i]['frame'] = $frame;
                 }
             }
             if ( $event['MaxScore'] > $chart['data']['y']['hi'] )
@@ -407,7 +411,7 @@ foreach( dbFetchAll( $eventsSql ) as $event )
         }
         else
         {
-            $framesSql = "select F.FrameId,F.Delta,unix_timestamp(F.TimeStamp) as TimeT,F.Score from Frames as F where F.EventId = '".$event['Id']."' and F.Score > 0";
+            $framesSql = "select FrameId,Delta,unix_timestamp(TimeStamp) as TimeT,Score from Frames where EventId = '".$event['Id']."' and Score > 0";
             foreach( dbFetchAll( $framesSql ) as $frame )
             {
                 if ( $frame['Score'] == 0 )
@@ -447,21 +451,23 @@ ksort( $monitorIds, SORT_NUMERIC );
 ksort( $monEventSlots, SORT_NUMERIC );
 ksort( $monFrameSlots, SORT_NUMERIC );
 
-// Add on missing frames
-$xcount = 0;
-foreach( array_keys($monFrameSlots) as $monitorId )
+// No longer needed?
+if ( true )
 {
-    unset( $currFrameSlots );
-    $currFrameSlots = &$monFrameSlots[$monitorId];
-    for ( $i = 0; $i < $chart['graph']['width']; $i++ )
+    // Add on missing frames
+    foreach( array_keys($monFrameSlots) as $monitorId )
     {
-        if ( isset($currFrameSlots[$i]) )
+        unset( $currFrameSlots );
+        $currFrameSlots = &$monFrameSlots[$monitorId];
+        for ( $i = 0; $i < $chart['graph']['width']; $i++ )
         {
-            if ( !isset($currFrameSlots[$i]['frame']) )
+            if ( isset($currFrameSlots[$i]) )
             {
-                $xcount++;
-                $framesSql = "select F.FrameId,F.Score from Frames as F where F.EventId = '".$currFrameSlots[$i]['event']['Id']."' and F.Score > 0 order by F.FrameId limit 0,1";
-                $currFrameSlots[$i]['frame'] = dbFetchOne( $framesSql );
+                if ( !isset($currFrameSlots[$i]['frame']) )
+                {
+                    $framesSql = "select FrameId,Score from Frames where EventId = '".$currFrameSlots[$i]['event']['Id']."' and Score > 0 order by FrameId limit 1";
+                    $currFrameSlots[$i]['frame'] = dbFetchOne( $framesSql );
+                }
             }
         }
     }
@@ -815,7 +821,7 @@ xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
             <div id="instruction">
               <p>Pass your mouse over the graph to view a snapshot image and event details.</p>
               <p>Click on the coloured sections of the graph, or the image, to view the event.</p>
-              <p>Click on the background of the graph to zoom in to a smaller time period basd around your click.</p>
+              <p>Click on the background to zoom in to a smaller time period basd around your click.</p>
               <p>Use the controls below to zoom out or navigate back and forward through the time range.</p>
             </div>
             <div id="eventData">

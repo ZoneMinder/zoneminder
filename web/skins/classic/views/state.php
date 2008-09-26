@@ -20,7 +20,7 @@
 
 if ( !canEdit( 'System' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 $running = daemonCheck();
@@ -39,10 +39,10 @@ xhtmlHeaders(__FILE__, $SLANG['RunState'] );
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
 <?php
-if ( empty($apply) )
+if ( empty($_REQUEST['apply']) )
 {
 ?>
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="apply" value="1"/>
         <p>
@@ -93,7 +93,7 @@ else
 ?>
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="state"/>
-        <input type="hidden" name="runState" value="<?= $runState ?>"/>
+        <input type="hidden" name="runState" value="<?= validHtmlStr($_REQUEST['runState']) ?>"/>
         <p><?= $SLANG['ApplyingStateChange'] ?></p>
         <p><?= $SLANG['PleaseWait'] ?></p>
 <?php

@@ -20,7 +20,7 @@
 
 if ( !canView( 'System' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -28,7 +28,7 @@ $zmuCommand = getZmuCommand( " --list" );
 $result = exec( escapeshellcmd( $zmuCommand ), $output );
 
 $refresh = ZM_WEB_REFRESH_STATUS;
-$url = '?view='.$_REQUEST['view'];
+$url = '?view='.$view;
 noCacheHeaders();
 
 xhtmlHeaders(__FILE__, $SLANG['Status'] );

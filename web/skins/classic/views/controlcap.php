@@ -20,7 +20,7 @@
 
 if ( !canEdit( 'Control' ) )
 {
-    $_REQUEST['view'] = "error";
+    $view = "error";
     return;
 }
 
@@ -35,12 +35,14 @@ $tabs["white"] = $SLANG['White'];
 $tabs["iris"] = $SLANG['Iris'];
 $tabs["presets"] = $SLANG['Presets'];
 
-if ( !isset($_REQUEST['tab']) )
-    $_REQUEST['tab'] = "main";
+if ( isset($_REQUEST['tab']) )
+    $tab = validHtmlStr($_REQUEST['tab']);
+else
+    $tab = "main";
 
 if ( !empty($_REQUEST['cid']) )
 {
-    $control = dbFetchOne( "select * from Controls where Id = '".$_REQUEST['cid']."'" );
+    $control = dbFetchOne( "select * from Controls where Id = '".dbEscape($_REQUEST['cid'])."'" );
 }
 else
 {
@@ -68,7 +70,7 @@ xhtmlHeaders(__FILE__, $SLANG['ControlCap']." - ".$control['Name'] );
 <?php
 foreach ( $tabs as $name=>$value )
 {
-    if ( $_REQUEST['tab'] == $name )
+    if ( $tab == $name )
     {
 ?>
         <li class="active"><?= $value ?></li>
@@ -77,7 +79,7 @@ foreach ( $tabs as $name=>$value )
     else
     {
 ?>
-        <li><a href="?view=<?= $_REQUEST['view'] ?>&tab=<?= $name ?>"><?= $value ?></a></li>
+        <li><a href="?view=<?= $view ?>&tab=<?= $name ?>"><?= $value ?></a></li>
 <?php
     }
 }
@@ -85,23 +87,23 @@ foreach ( $tabs as $name=>$value )
       </ul>
       <div class="clear"></div>
       <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
-        <input type="hidden" name="tab" value="<?= $_REQUEST['tab'] ?>"/>
+        <input type="hidden" name="view" value="<?= $view ?>"/>
+        <input type="hidden" name="tab" value="<?= $tab ?>"/>
         <input type="hidden" name="action" value="controlcap"/>
-        <input type="hidden" name="cid" value="<?= $_REQUEST['cid'] ?>"/>
+        <input type="hidden" name="cid" value="<?= requestVar('cid') ?>"/>
 <?php
-if ( $_REQUEST['tab'] != 'main' )
+if ( $tab != 'main' )
 {
 ?>
-        <input type="hidden" name="newControl[Name]" value="<?= $newControl['Name'] ?>"/>
-        <input type="hidden" name="newControl[Type]" value="<?= $newControl['Type'] ?>"/>
-        <input type="hidden" name="newControl[Protocol]" value="<?= $newControl['Protocol'] ?>"/>
+        <input type="hidden" name="newControl[Name]" value="<?= validHtmlStr($newControl['Name']) ?>"/>
+        <input type="hidden" name="newControl[Type]" value="<?= validHtmlStr($newControl['Type']) ?>"/>
+        <input type="hidden" name="newControl[Protocol]" value="<?= validHtmlStr($newControl['Protocol']) ?>"/>
         <input type="hidden" name="newControl[CanWake]" value="<?= $newControl['CanWake'] ?>"/>
         <input type="hidden" name="newControl[CanSleep]" value="<?= $newControl['CanSleep'] ?>"/>
         <input type="hidden" name="newControl[CanReset]" value="<?= $newControl['CanReset'] ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'move' )
+if ( $tab != 'move' )
 {
 ?>
         <input type="hidden" name="newControl[CanMove]" value="<?= $newControl['CanMove'] ?>"/>
@@ -112,7 +114,7 @@ if ( $_REQUEST['tab'] != 'move' )
         <input type="hidden" name="newControl[CanMoveCon]" value="<?= $newControl['CanMoveCon'] ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'pan' )
+if ( $tab != 'pan' )
 {
 ?>
         <input type="hidden" name="newControl[CanPan]" value="<?= $newControl['CanPan'] ?>"/>
@@ -127,7 +129,7 @@ if ( $_REQUEST['tab'] != 'pan' )
         <input type="hidden" name="newControl[TurboPanSpeed]" value="<?= $newControl['TurboPanSpeed'] ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'tilt' )
+if ( $tab != 'tilt' )
 {
 ?>
         <input type="hidden" name="newControl[CanTilt]" value="<?= $newControl['CanTilt'] ?>"/>
@@ -142,7 +144,7 @@ if ( $_REQUEST['tab'] != 'tilt' )
         <input type="hidden" name="newControl[TurboTiltSpeed]" value="<?= $newControl['TurboTiltSpeed'] ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'zoom' )
+if ( $tab != 'zoom' )
 {
 ?>
         <input type="hidden" name="newControl[CanZoom]" value="<?= $newControl['CanZoom'] ?>"/>
@@ -158,7 +160,7 @@ if ( $_REQUEST['tab'] != 'zoom' )
         <input type="hidden" name="newControl[MaxZoomSpeed]" value="<?= $newControl['MaxZoomSpeed'] ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'focus' )
+if ( $tab != 'focus' )
 {
 ?>
         <input type="hidden" name="newControl[CanFocus]" value="<?= $newControl['CanFocus'] ?>"/>
@@ -175,7 +177,7 @@ if ( $_REQUEST['tab'] != 'focus' )
         <input type="hidden" name="newControl[MaxFocusSpeed]" value="<?= $newControl['MaxFocusSpeed'] ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'iris' )
+if ( $tab != 'iris' )
 {
 ?>
         <input type="hidden" name="newControl[CanIris]" value="<?= $newControl['CanIris'] ?>"/>
@@ -192,7 +194,7 @@ if ( $_REQUEST['tab'] != 'iris' )
         <input type="hidden" name="newControl[MaxIrisSpeed]" value="<?= $newControl['MaxIrisSpeed'] ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'gain' )
+if ( $tab != 'gain' )
 {
 ?>
         <input type="hidden" name="newControl[CanGain]" value="<?= $newControl['CanGain'] ?>"/>
@@ -209,7 +211,7 @@ if ( $_REQUEST['tab'] != 'gain' )
         <input type="hidden" name="newControl[MaxGainSpeed]" value="<?= $newControl['MaxGainSpeed'] ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'white' )
+if ( $tab != 'white' )
 {
 ?>
         <input type="hidden" name="newControl[CanWhite]" value="<?= $newControl['CanWhite'] ?>"/>
@@ -226,7 +228,7 @@ if ( $_REQUEST['tab'] != 'white' )
         <input type="hidden" name="newControl[MaxWhiteSpeed]" value="<?= $newControl['MaxWhiteSpeed'] ?>"/>
 <?php
 }
-if ( $_REQUEST['tab'] != 'presets' )
+if ( $tab != 'presets' )
 {
 ?>
         <input type="hidden" name="newControl[HasPresets]" value="<?= $newControl['HasPresets'] ?>"/>
@@ -239,17 +241,17 @@ if ( $_REQUEST['tab'] != 'presets' )
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
 <?php
-switch ( $_REQUEST['tab'] )
+switch ( $tab )
 {
     case 'main' :
     {
 ?>
-            <tr><th scope="row"><?= $SLANG['Name'] ?></th><td><input type="text" name="newControl[Name]" value="<?= $newControl['Name'] ?>" size="24"/></td></tr>
+            <tr><th scope="row"><?= $SLANG['Name'] ?></th><td><input type="text" name="newControl[Name]" value="<?= validHtmlStr($newControl['Name']) ?>" size="24"/></td></tr>
 <?php
         $types = array( 'Local'=>$SLANG['Local'], 'Remote'=>$SLANG['Remote'] );
 ?>
             <tr><th scope="row"><?= $SLANG['Type'] ?></td><td><?= buildSelect( "newControl[Type]", $types ); ?></td></tr>
-            <tr><th scope="row"><?= $SLANG['Protocol'] ?></th><td><input type="text" name="newControl[Protocol]" value="<?= $newControl['Protocol'] ?>" size="24"/></td></tr>
+            <tr><th scope="row"><?= $SLANG['Protocol'] ?></th><td><input type="text" name="newControl[Protocol]" value="<?= validHtmlStr($newControl['Protocol']) ?>" size="24"/></td></tr>
             <tr><th scope="row"><?= $SLANG['CanWake'] ?></th><td><input type="checkbox" name="newControl[CanWake]" value="1"<?php if ( !empty($newControl['CanWake']) ) { ?> checked="checked"<?php } ?>></td></tr>
             <tr><th scope="row"><?= $SLANG['CanSleep'] ?></th><td><input type="checkbox" name="newControl[CanSleep]" value="1"<?php if ( !empty($newControl['CanSleep']) ) { ?> checked="checked"<?php } ?>></td></tr>
             <tr><th scope="row"><?= $SLANG['CanReset'] ?></th><td><input type="checkbox" name="newControl[CanReset]" value="1"<?php if ( !empty($newControl['CanReset']) ) { ?> checked="checked"<?php } ?>></td></tr>

@@ -1284,18 +1284,12 @@ bool Monitor::Analyse()
 							if ( signal_change || (function != MOCORD && state != ALERT) )
 							{
 								int pre_index;
-
 								if ( alarm_frame_count > 1 )
-								{
-									int ts_index = ((index+image_buffer_count)-(alarm_frame_count-1))%image_buffer_count;
-									event = new Event( this, *(image_buffer[ts_index].timestamp), cause, text );
 									pre_index = ((index+image_buffer_count)-((alarm_frame_count-1)+pre_event_count))%image_buffer_count;
-								}
 								else
-								{
-									event = new Event( this, *timestamp, cause, text );
 									pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
-								}
+
+								event = new Event( this, *(image_buffer[pre_index].timestamp), cause, text );
 								shared_data->last_event = event->Id();
 
 						        Info( "%s: %03d - Creating new event %d", name, image_count, event->Id() );
@@ -1423,7 +1417,7 @@ bool Monitor::Analyse()
 					}
 					else if ( state == ALERT )
 					{
-							event->AddFrame( snap_image, *timestamp );
+						event->AddFrame( snap_image, *timestamp );
 					}
 					else if ( state == TAPE )
 					{

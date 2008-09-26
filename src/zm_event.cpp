@@ -53,11 +53,9 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cau
     strncpy( text, p_text, sizeof(text) );
 
     static char sql[BUFSIZ];
-    static char start_time_str[32];
 
     struct tm *stime = localtime( &start_time.tv_sec );
-    strftime( start_time_str, sizeof(start_time_str), "%Y-%m-%d %H:%M:%S", stime );
-    snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', '%s', %d, %d, '%s', '%s' )", monitor->Id(), start_time_str, monitor->Width(), monitor->Height(), cause, text );
+    snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause, text );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't insert event: %s", mysql_error( &dbconn ) );
@@ -160,14 +158,11 @@ Event::~Event()
     }
 
     static char sql[BUFSIZ];
-    static char end_time_str[32];
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
 
-    strftime( end_time_str, sizeof(end_time_str), "%Y-%m-%d %H:%M:%S", localtime( &end_time.tv_sec ) );
-
-    snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = '%s', Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", monitor->EventPrefix(), id, end_time_str, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
+    snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't update event: %s", mysql_error( &dbconn ) );
@@ -406,10 +401,10 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
         }
     }
 
+    end_time = timestamp;
+
     if ( score > 0 )
     {
-        end_time = timestamp;
-
         alarm_frames++;
 
         tot_score += score;

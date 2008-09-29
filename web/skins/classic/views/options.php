@@ -133,7 +133,7 @@ if ( $tab == "users" )
               <td class="colSystem"><?= validHtmlStr($row['System']) ?></td>
               <td class="colBandwidth"><?= $row['MaxBandwidth']?$bwArray[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?= $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
-              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?= $row['Id'] ?>" onclick="configureButton( this );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?= $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
     }

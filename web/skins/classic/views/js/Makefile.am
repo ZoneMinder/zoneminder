@@ -29,7 +29,7 @@ dist_web_DATA = \
 	monitorpreset.js \
 	montage.js \
 	montage.js.php \
-	options.js \
+	options.js.php \
 	postlogin.js \
 	state.js \
 	state.js.php \

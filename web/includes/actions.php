@@ -1386,7 +1386,7 @@ if ( !empty($action) )
                     case "system" :
                     case "config" :
                     case "paths" :
-                        $restart = true;
+                        $restartWarning = true;
                         break;
                     case "web" :
                     case "tools" :
@@ -1395,7 +1395,7 @@ if ( !empty($action) )
                     case "network" :
                     case "mail" :
                     case "ftp" :
-                        $restart = true;
+                        $restartWarning = true;
                         break;
                     case "highband" :
                     case "medband" :

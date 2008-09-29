@@ -113,6 +113,8 @@ $GLOBALS['defaultUser'] = array(
     "Monitors"  => 'Edit',
     "Devices"   => 'Edit',
     "System"    => 'Edit',
+    "MaxBandwidth" => "",
+    "MonitorIds"   => "",
 );
 
 function loadConfig( $defineConsts=true )

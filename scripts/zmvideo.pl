@@ -100,7 +100,7 @@ if ( !$event_id || $event_id < 0 )
 	Usage();
 }
 
-if ( ZM_OPT_FFMPEG )
+if ( !ZM_OPT_FFMPEG )
 {
 	print( STDERR "Mpeg encoding is not currently enabled\n" );
 	exit(-1);

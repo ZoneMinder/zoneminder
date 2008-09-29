@@ -270,7 +270,7 @@ if ( $tab != 'general' )
         foreach( $newMonitor['Triggers'] as $newTrigger )
         {
 ?>
-        <input type="hidden" name="newMonitor[Triggers][]" value="<?= validHtmlStr($newTrigger ?>"/>
+        <input type="hidden" name="newMonitor[Triggers][]" value="<?= validHtmlStr($newTrigger) ?>"/>
 <?php
         }
     }

@@ -157,6 +157,13 @@ void zmSetDefaultTermHandler()
 
 void zmSetDefaultDieHandler()
 {
-	zmSetDieHandler( (SigHandler *)zm_die_handler );
+    if ( config.dump_cores )
+    {
+        // Do nothing
+    }
+    else
+    {
+	    zmSetDieHandler( (SigHandler *)zm_die_handler );
+    }
 }
 

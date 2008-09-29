@@ -71,8 +71,8 @@ $mode = "overlay";
 if ( !isset($mode) )
     $mode = "overlay";
 
-$minEventWidth = 5;
-$maxEventWidth = 5;
+$minEventWidth = 3;
+$maxEventWidth = 6;
 
 $chart = array(
     "width"=>700,
@@ -452,7 +452,7 @@ ksort( $monEventSlots, SORT_NUMERIC );
 ksort( $monFrameSlots, SORT_NUMERIC );
 
 // No longer needed?
-if ( true )
+if ( false )
 {
     // Add on missing frames
     foreach( array_keys($monFrameSlots) as $monitorId )
@@ -489,6 +489,7 @@ foreach ( array_keys($monitorIds) as $monitorId )
         $maxHeight = $monitors[$monitorId]['Height'];
 }
 
+//print_r( $monEventSlots );
 // Optimise boxes
 foreach( array_keys($monEventSlots) as $monitorId )
 {
@@ -533,6 +534,7 @@ foreach( array_keys($monEventSlots) as $monitorId )
     if ( isset( $currSlot ) )
         unset( $currSlot );
 }
+//print_r( $monEventSlots );
 
 // Stack events
 $frameSlots = array();

@@ -68,13 +68,13 @@ RETSIGTYPE zm_die_handler( int signal )
 	int trace_size = 0;
 
 #if HAVE_STRUCT_SIGCONTEXT_EIP
-	Error( "Signal address is %p, from %p\n", (void *)context.cr2, (void *)context.eip );
+	Error( "Signal address is %p, from %p", (void *)context.cr2, (void *)context.eip );
 
 	trace_size = backtrace( trace, 16 );
 	// overwrite sigaction with caller's address
 	trace[1] = (void *)context.eip;
 #elif HAVE_STRUCT_SIGCONTEXT
-	Error( "Signal address is %p, no eip\n", context.cr2 );
+	Error( "Signal address is %p, no eip", context.cr2 );
 
 	trace_size = backtrace( trace, 16 );
 #else // HAVE_STRUCT_SIGCONTEXT
@@ -82,7 +82,7 @@ RETSIGTYPE zm_die_handler( int signal )
 	{
 		ucontext_t *uc = (ucontext_t *)context;
 
-		Error( "Signal address is %p, from %p\n", info->si_addr, uc->uc_mcontext.gregs[REG_EIP] );
+		Error( "Signal address is %p, from %p", info->si_addr, uc->uc_mcontext.gregs[REG_EIP] );
 
 		trace_size = backtrace( trace, 16 );
 		// overwrite sigaction with caller's address

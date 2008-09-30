@@ -30,7 +30,7 @@ if ( !empty($_REQUEST['execute']) )
 }
 
 $countSql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
-$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,M.DefaultScale,E.Name,E.Cause,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
+$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,M.DefaultScale,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
 if ( $user['MonitorIds'] )
 {
     $countSql .= " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
@@ -210,7 +210,7 @@ foreach ( $events as $event )
               <td class="colId"><?= makePopupLink( '?view=event&eid='.$event['Id'].$filterQuery.$sortQuery.'&page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), $event['Id'].($event['Archived']?'*':'') ) ?></td>
               <td class="colName"><?= makePopupLink( '?view=event&eid='.$event['Id'].$filterQuery.$sortQuery.'&page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), reScale( $event['Height'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ), validHtmlStr($event['Name']).($event['Archived']?'*':'' ) ) ?></td>
               <td class="colMonitorName"><?= $event['MonitorName'] ?></td>
-              <td class="colCause"><?= makePopupLink( '?view=eventdetail&eid='.$event['Id'], 'zmEventDetail', 'eventdetail', validHtmlStr($event['Cause']), canEdit( 'Events' ) ) ?></td>
+              <td class="colCause"><?= makePopupLink( '?view=eventdetail&eid='.$event['Id'], 'zmEventDetail', 'eventdetail', validHtmlStr($event['Cause']), canEdit( 'Events' ), 'title="'.htmlspecialchars($event['Notes']).'"' ) ?></td>
               <td class="colTime"><?= strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td>
               <td class="colDuration"><?= $event['Length'] ?></td>
               <td class="colFrames"><?= makePopupLink( '?view=frames&eid='.$event['Id'], 'zmFrames', 'frames', $event['Frames'] ) ?></td>
@@ -221,10 +221,18 @@ foreach ( $events as $event )
 <?php
     if ( ZM_WEB_LIST_THUMBS )
     {
-        $thumbData = createListThumbnail( $event );
+        if ( $thumbData = createListThumbnail( $event ) )
+        {
 ?>
               <td class="colThumbnail"><?= makePopupLink( '?view=frame&eid='.$event['Id'].'&fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="'.$thumbData['Path'].'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
 <?php
+        }
+        else
+        {
+?>
+              <td class="colThumbnail">&nbsp;</td>
+<?php
+        }
     }
 ?>
               <td class="colMark"><input type="checkbox" name="markEids[]" value="<?= $event['Id'] ?>" onclick="configureButton( this, 'markEids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></td>

@@ -39,7 +39,7 @@ var SOUND_ON_ALARM = <?= ZM_WEB_SOUND_ON_ALARM ?>;
 var POPUP_ON_ALARM = <?= ZM_WEB_POPUP_ON_ALARM ?>;
 
 var streamMode = "<?= $streamMode ?>";
-var showMode = "<?= ($showControls && $_REQUEST['control'])?"control":"events" ?>";
+var showMode = "<?= ($showControls && !empty($_REQUEST['control']))?"control":"events" ?>";
 
 var connKey = '<?= $connkey ?>';
 var maxDisplayEvents = <?= 2 * MAX_EVENTS ?>;

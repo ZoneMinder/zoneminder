@@ -523,14 +523,14 @@ insert into Controls values (6,'Neu-Fusion NCS370','Remote','Ncs370',0,0,0,0,0,0
 --
 -- Add some monitor preset values
 --
-INSERT INTO MonitorPresets VALUES ('','BTTV Video, PAL, 320x240','Local',NULL,NULL,'/dev/video<?>','<?>','0',NULL,NULL,NULL,NULL,320,240,4,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES ('','BTTV Video, PAL, 320x240, max 5 FPS','Local',NULL,NULL,'/dev/video<?>','<?>','0',NULL,NULL,NULL,NULL,320,240,4,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES ('','BTTV Video, PAL, 640x480','Local',NULL,NULL,'/dev/video<?>','<?>','0',NULL,NULL,NULL,NULL,640,480,4,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES ('','BTTV Video, PAL, 640x480, max 5 FPS','Local',NULL,NULL,'/dev/video<?>','<?>','0',NULL,NULL,NULL,NULL,640,480,4,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES ('','BTTV Video, NTSC, 320x240','Local',NULL,NULL,'/dev/video<?>','<?>','1',NULL,NULL,NULL,NULL,320,240,4,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES ('','BTTV Video, NTSC, 320x240, max 5 FPS','Local',NULL,NULL,'/dev/video<?>','<?>','1',NULL,NULL,NULL,NULL,320,240,4,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES ('','BTTV Video, NTSC, 640x480','Local',NULL,NULL,'/dev/video<?>','<?>','1',NULL,NULL,NULL,NULL,640,480,4,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES ('','BTTV Video, NTSC, 640x480, max 5 FPS','Local',NULL,NULL,'/dev/video<?>','<?>','1',NULL,NULL,NULL,NULL,640,480,4,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','BTTV Video, PAL, 320x240','Local','/dev/video<?>','<?>','0',NULL,NULL,NULL,NULL,NULL,NULL,320,240,4,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','BTTV Video, PAL, 320x240, max 5 FPS','Local','/dev/video<?>','<?>','0',NULL,NULL,NULL,NULL,NULL,NULL,320,240,4,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','BTTV Video, PAL, 640x480','Local','/dev/video<?>','<?>','0',NULL,NULL,NULL,NULL,NULL,NULL,640,480,4,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','BTTV Video, PAL, 640x480, max 5 FPS','Local','/dev/video<?>','<?>','0',NULL,NULL,NULL,NULL,NULL,NULL,640,480,4,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','BTTV Video, NTSC, 320x240','Local','/dev/video<?>','<?>','1',NULL,NULL,NULL,NULL,NULL,NULL,320,240,4,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','BTTV Video, NTSC, 320x240, max 5 FPS','Local','/dev/video<?>','<?>','1',NULL,NULL,NULL,NULL,NULL,NULL,320,240,4,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','BTTV Video, NTSC, 640x480','Local','/dev/video<?>','<?>','1',NULL,NULL,NULL,NULL,NULL,NULL,640,480,4,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','BTTV Video, NTSC, 640x480, max 5 FPS','Local','/dev/video<?>','<?>','1',NULL,NULL,NULL,NULL,NULL,NULL,640,480,4,5.0,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES ('','Axis IP, 320x240, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES ('','Axis IP, 320x240, mpjpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240&req_fps=5',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES ('','Axis IP, 320x240, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);

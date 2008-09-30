@@ -40,7 +40,7 @@ MYDUMPOPTS="--user=$ZM_DB_USER --password=$ZM_DB_PASS --skip-opt --compact --qui
 
 # Dump the sql statements needed to reload the Events, Frames and Stats tables
 
-echo "--- ZM_DB_VERSION=$ZM_VERSION
+echo "-- ZM_DB_VERSION=$ZM_VERSION
         " > $EVENT_PATH/.sql
 
 $MYSQLDUMP $MYDUMPOPTS --where="Id=$EVENT_ID" zm Events >> $EVENT_PATH/.sql

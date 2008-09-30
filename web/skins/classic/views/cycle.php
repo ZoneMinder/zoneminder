@@ -46,6 +46,7 @@ if ( !empty($_REQUEST['group']) )
 else
 {
     $group = '';
+    $groupSql = '';
 }
 
 $sql = "select * from Monitors where Function != 'None'$groupSql order by Sequence";

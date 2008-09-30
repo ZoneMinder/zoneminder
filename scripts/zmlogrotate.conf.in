@@ -7,7 +7,7 @@
     missingok
 }
 
-Now the weekly db backup
+# Now the weekly db backup
 
 /var/lib/zm/zm_backup.sql {
 weekly

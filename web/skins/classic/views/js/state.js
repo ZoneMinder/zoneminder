@@ -1,4 +1,4 @@
-function checkState( form )
+function checkState( element )
 {
     var form = element.form;
 

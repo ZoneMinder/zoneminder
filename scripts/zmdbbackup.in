@@ -29,7 +29,7 @@ TABLES="Config Filters Groups Monitors States TriggersX10 Users Zones"
 OUTFILE="$BACKUP_PATH/$BACKUP_FILE"
 
 echo "--
---- Created by zm_db_backup for ZoneMinder Version $ZM_VERSION
+-- Created by zm_db_backup for ZoneMinder Version $ZM_VERSION
 --" >  $OUTFILE
 
 $MYSQLDUMP $DUMPOPTS zm $TABLES >> $OUTFILE

@@ -45,7 +45,6 @@ $status = $running?$SLANG['Running']:$SLANG['Stopped'];
 if ( $group = dbFetchOne( "select * from Groups where Name = 'Mobile'" ) )
     $groupIds = array_flip(split( ',', $group['MonitorIds'] ));
 
-$monitors = array();
 $maxWidth = 0;
 $maxHeight = 0;
 $cycleCount = 0;

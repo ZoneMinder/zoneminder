@@ -25,11 +25,16 @@
 #include "zm_coord.h"
 #include "zm_image.h"
 #include "zm_zone.h"
+#include "zm_event.h"
 #include "zm_camera.h"
+
+#define SIGNAL_CAUSE "Signal"
+#define MOTION_CAUSE "Motion"
+#define LINKED_CAUSE "Linked"
 
 //
 // This is the main class for monitors. Each monitor is associated
-// with a camera and is effectivaly a collector for events.
+// with a camera and is effectively a collector for events.
 //
 class Monitor
 {
@@ -73,6 +78,8 @@ public:
 	} State;
 
 protected:
+    typedef std::set<Zone *> ZoneSet;
+
 	typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, RELOAD=0x4, SUSPEND=0x10, RESUME=0x20 } Action;
 
 	typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
@@ -327,7 +334,7 @@ public:
 	}
 	int PostCapture();
 
-	unsigned int DetectMotion( const Image &comp_image, char *text_ptr=0, size_t text_size=0 );
+	unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
 	bool CheckSignal( const Image *image );
 	bool Analyse();
 	void DumpImage( Image *dump_image ) const;

@@ -1130,34 +1130,31 @@ bool Monitor::Analyse()
 			unsigned int score = 0;
 			if ( Ready() )
 			{
-				static char cause[256];
-				static char text[1024];
+                std::string cause;
+                Event::StringSetMap noteSetMap;
 
-				char *cause_ptr = cause;
-				char *text_ptr = text;
-
-				*cause_ptr = '\0';
-				*text_ptr = '\0';
-
-				//Info( "St:%d, Sc:%d, Ca:%s, Te:%s", trigger_data->trigger_state, trigger_data->trigger_score, trigger_data->trigger_cause, trigger_data->trigger_text );
 				if ( trigger_data->trigger_state == TRIGGER_ON )
 				{
 					score += trigger_data->trigger_score;
 					if ( !event )
 					{
-						cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", trigger_data->trigger_cause );
-						text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%s%s", text[0]?"\n":"", trigger_data->trigger_text );
+                        if ( cause.length() )
+                            cause += ", ";
+                        cause += trigger_data->trigger_cause;
 					}
+                    Event::StringSet noteSet;
+                    noteSet.insert( trigger_data->trigger_text );
+                    noteSetMap[trigger_data->trigger_cause] = noteSet;
 				}
 				if ( signal_change )
 				{
 					score += 100;
-					const char *signal_text;
+					const char *signalText;
 					if ( !signal )
-						signal_text = "Signal: Lost";
+						signalText = "Lost";
 					else
-						signal_text = "Signal: Reacquired";
-					Warning( signal_text );
+						signalText = "Reacquired";
+					Warning( "%s: %s", SIGNAL_CAUSE, signalText );
 					if ( event )
 					{
 						closeEvent();
@@ -1166,34 +1163,41 @@ bool Monitor::Analyse()
 					}
 					if ( !event )
 					{
-						cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", "Signal" );
-						text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%s%s", text[0]?"\n":"", signal_text );
+                        if ( cause.length() )
+                            cause += ", ";
+                        cause += SIGNAL_CAUSE;
 					}
+                    Event::StringSet noteSet;
+                    noteSet.insert( signalText );
+                    noteSetMap[SIGNAL_CAUSE] = noteSet;
 					shared_data->active = signal;
 					ref_image = *snap_image;
 				}
 				else if ( Active() && function != RECORD && function != NODECT )
 				{
-					if ( !event )
+                    Event::StringSet zoneSet;
+					int motion_score = DetectMotion( *snap_image, zoneSet );
+					if ( motion_score )
 					{
-						char motion_text[256];
-						int motion_score = DetectMotion( *snap_image, motion_text, sizeof(motion_text) );
-						if ( motion_score )
-						{
+					    if ( !event )
+					    {
 							score += motion_score;
-							cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", "Motion" );
-							text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%sMotion: %s", text[0]?"\n":"", motion_text );
+                            if ( cause.length() )
+                                cause += ", ";
+                            cause += MOTION_CAUSE;
 						}
-					}
-					else
-					{
-						score += DetectMotion( *snap_image );
-					}
+					    else
+					    {
+						    score += motion_score;
+					    }
+                        noteSetMap[MOTION_CAUSE] = zoneSet;
+                    }
 					shared_data->active = signal;
 				}
 				if ( n_linked_monitors > 0 )
 				{
 					bool first_link = true;
+                    Event::StringSet noteSet;
 					for ( int i = 0; i < n_linked_monitors; i++ )
 					{
 						if ( linked_monitors[i]->isConnected() )
@@ -1204,15 +1208,13 @@ bool Monitor::Analyse()
 								{
 									if ( first_link )
 									{
-										cause_ptr += snprintf( cause_ptr, sizeof(cause)-(cause_ptr-cause), "%s%s", cause[0]?", ":"", "Linked" );
-										text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), "%sLinked: %s", text[0]?"\n":"", linked_monitors[i]->Name() );
+                                        if ( cause.length() )
+                                            cause += ", ";
+                                        cause += LINKED_CAUSE;
 										first_link = false;
 									}
-									else
-									{
-										text_ptr += snprintf( text_ptr, sizeof(text)-(text_ptr-text), ", %s", linked_monitors[i]->Name() );
-									}
 								}
+                                noteSet.insert( linked_monitors[i]->Name() );
 								score += 50;
 							}
 						}
@@ -1221,6 +1223,8 @@ bool Monitor::Analyse()
 							linked_monitors[i]->connect();
 						}
 					}
+                    if ( noteSet.size() > 0 )
+                        noteSetMap[LINKED_CAUSE] = noteSet;
 				}
 				if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) )
 				{
@@ -1253,7 +1257,7 @@ bool Monitor::Analyse()
 						shared_data->state = state = TAPE;
 
 						// Create event
-						event = new Event( this, *timestamp, "Continuous" );
+						event = new Event( this, *timestamp, "Continuous", noteSetMap );
 						shared_data->last_event = event->Id();
 
 						Info( "%s: %03d - Starting new event %d", name, image_count, event->Id() );
@@ -1289,7 +1293,7 @@ bool Monitor::Analyse()
 								else
 									pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
 
-								event = new Event( this, *(image_buffer[pre_index].timestamp), cause, text );
+								event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
 								shared_data->last_event = event->Id();
 
 						        Info( "%s: %03d - Creating new event %d", name, image_count, event->Id() );
@@ -1333,7 +1337,7 @@ bool Monitor::Analyse()
 						if ( image_count-last_alarm_count > post_event_count )
 						{
 							Info( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() );
-							if ( function != MOCORD || event_close_mode == CLOSE_ALARM || !strcmp( event->Cause(), "Signal" ) )
+							if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() != "Signal" )
 							{
 								shared_data->state = state = IDLE;
 								delete event;
@@ -1414,10 +1418,14 @@ bool Monitor::Analyse()
 							else
 								event->AddFrame( snap_image, *timestamp, score );
 						}
+                        if ( event && noteSetMap.size() > 0 )
+                            event->updateNotes( noteSetMap );
 					}
 					else if ( state == ALERT )
 					{
 						event->AddFrame( snap_image, *timestamp );
+                        if ( noteSetMap.size() > 0 )
+                            event->updateNotes( noteSetMap );
 					}
 					else if ( state == TAPE )
 					{
@@ -2445,11 +2453,10 @@ bool Monitor::closeEvent()
 	return( false );
 }
 
-unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, size_t text_size )
+unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet )
 {
 	bool alarm = false;
 	unsigned int score = 0;
-	char *orig_text_ptr = text_ptr;
 
 	if ( n_zones <= 0 ) return( alarm );
 
@@ -2502,8 +2509,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, siz
 			alarm = true;
 			score += zone->Score();
 			Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-			if ( text_ptr )
-				text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
+            zoneSet.insert( zone->Label() );
 			//zone->ResetStats();
 		}
 	}
@@ -2533,8 +2539,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, siz
 				score += zone->Score();
 				zone->SetAlarm();
 				Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-				if ( text_ptr )
-					text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
+                zoneSet.insert( zone->Label() );
 				if ( config.opt_control && track_motion )
 				{
 					if ( (int)zone->Score() > top_score )
@@ -2562,8 +2567,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, siz
 					score += zone->Score();
 					zone->SetAlarm();
 					Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-					if ( text_ptr )
-						text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
+                    zoneSet.insert( zone->Label() );
 					if ( config.opt_control && track_motion )
 					{
 						if ( zone->Score() > top_score )
@@ -2592,8 +2596,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, char *text_ptr, siz
 					score += zone->Score();
 					zone->SetAlarm();
 					Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-					if ( text_ptr )
-						text_ptr += snprintf( text_ptr, text_size-(text_ptr-orig_text_ptr), "%s%s", text_ptr!=orig_text_ptr?", ":"", zone->Label() );
+                    zoneSet.insert( zone->Label() );
 				}
 			}
 		}

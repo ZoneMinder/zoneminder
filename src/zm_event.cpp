@@ -36,6 +36,8 @@
 
 #include "zmf.h"
 
+//#define USE_PREPARED_SQL 1
+
 bool Event::initialised = false;
 char Event::capture_file_format[PATH_MAX];
 char Event::analyse_file_format[PATH_MAX];
@@ -44,18 +46,22 @@ char Event::general_file_format[PATH_MAX];
 int Event::pre_alarm_count = 0;
 Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = { { 0 } };
 
-Event::Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cause, const char *p_text ) : monitor( p_monitor ), start_time( p_start_time )
+Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap ) :
+    monitor( p_monitor ),
+    start_time( p_start_time ),
+    cause( p_cause ),
+    noteSetMap( p_noteSetMap )
 {
     if ( !initialised )
         Initialise();
 
-    strncpy( cause, p_cause, sizeof(cause) );
-    strncpy( text, p_text, sizeof(text) );
+    std::string notes;
+    createNotes( notes );
 
     static char sql[BUFSIZ];
 
     struct tm *stime = localtime( &start_time.tv_sec );
-    snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause, text );
+    snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str() );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't insert event: %s", mysql_error( &dbconn ) );
@@ -167,6 +173,23 @@ Event::~Event()
     {
         Error( "Can't update event: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
+    }
+}
+
+void Event::createNotes( std::string &notes )
+{
+    notes.clear();
+    for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); mapIter++ )
+    {
+        notes += mapIter->first;
+        notes += ": ";
+        const StringSet &stringSet = mapIter->second;
+        for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); setIter++ )
+        {
+            if ( setIter != stringSet.begin() )
+                notes += ", ";
+            notes += *setIter;
+        }
     }
 }
 
@@ -326,6 +349,126 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
         }
     }
     return( true );
+}
+
+void Event::updateNotes( const StringSetMap &newNoteSetMap )
+{
+    bool update = false;
+
+    //Info( "Checking notes, %d <> %d", noteSetMap.size(), newNoteSetMap.size() );
+    if ( newNoteSetMap.size() > 0 )
+    {
+        if ( noteSetMap.size() == 0 )
+        {
+            noteSetMap = newNoteSetMap;
+            update = true;
+        }
+        else
+        {
+            for ( StringSetMap::const_iterator newNoteSetMapIter = newNoteSetMap.begin(); newNoteSetMapIter != newNoteSetMap.end(); newNoteSetMapIter++ )
+            {
+                const std::string &newNoteGroup = newNoteSetMapIter->first;
+                const StringSet &newNoteSet = newNoteSetMapIter->second;
+                //Info( "Got %d new strings", newNoteSet.size() );
+                if ( newNoteSet.size() > 0 )
+                {
+                    StringSetMap::iterator noteSetMapIter = noteSetMap.find( newNoteGroup );
+                    if ( noteSetMapIter == noteSetMap.end() )
+                    {
+                        //Info( "Can't find note group %s, copying %d strings", newNoteGroup.c_str(), newNoteSet.size() );
+                        noteSetMap.insert( StringSetMap::value_type( newNoteGroup, newNoteSet ) );
+                        update = true;
+                    }
+                    else
+                    {
+                        StringSet &noteSet = noteSetMapIter->second;
+                        //Info( "Found note group %s, got %d strings", newNoteGroup.c_str(), newNoteSet.size() );
+                        for ( StringSet::const_iterator newNoteSetIter = newNoteSet.begin(); newNoteSetIter != newNoteSet.end(); newNoteSetIter++ )
+                        {
+                            const std::string &newNote = *newNoteSetIter;
+                            StringSet::iterator noteSetIter = noteSet.find( newNote );
+                            if ( noteSetIter == noteSet.end() )
+                            {
+                                noteSet.insert( newNote );
+                            }
+                            update = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if ( update )
+    {
+        std::string notes;
+        createNotes( notes );
+
+        Info( "Updating notes for event %d, '%s'", id, notes.c_str() );
+        static char sql[BUFSIZ];
+#if USE_PREPARED_SQL
+        static MYSQL_STMT *stmt = 0;
+
+        char notesStr[BUFSIZ] = "";
+        unsigned long notesLen = 0;
+
+        if ( !stmt )
+        {
+            const char *sql = "update Events set Notes = ? where Id = ?";
+
+            stmt = mysql_stmt_init( &dbconn );
+            if ( mysql_stmt_prepare( stmt, sql, strlen(sql) ) )
+            {
+                Fatal( "Unable to prepare sql '%s': %s", sql, mysql_stmt_error(stmt) );
+            }
+
+            /* Get the parameter count from the statement */
+            if ( mysql_stmt_param_count( stmt ) != 2 )
+            {
+                Fatal( "Unexpected parameter count %ld in sql '%s'", mysql_stmt_param_count( stmt ), sql );
+            }
+
+            MYSQL_BIND  bind[2];
+            memset(bind, 0, sizeof(bind));
+
+            /* STRING PARAM */
+            bind[0].buffer_type = MYSQL_TYPE_STRING;
+            bind[0].buffer = (char *)notesStr;
+            bind[0].buffer_length = sizeof(notesStr);
+            bind[0].is_null = 0;
+            bind[0].length = &notesLen;
+
+            bind[1].buffer_type= MYSQL_TYPE_LONG;
+            bind[1].buffer= (char *)&id;
+            bind[1].is_null= 0;
+            bind[1].length= 0;
+
+            /* Bind the buffers */
+            if ( mysql_stmt_bind_param( stmt, bind ) )
+            {
+                Fatal( "Unable to bind sql '%s': %s", sql, mysql_stmt_error(stmt) );
+            }
+        }
+
+        strncpy( notesStr, notes.c_str(), sizeof(notesStr) );
+        notesLen = notes.length();
+
+        if ( mysql_stmt_execute( stmt ) )
+        {
+            Fatal( "Unable to execute sql '%s': %s", sql, mysql_stmt_error(stmt) );
+        }
+#else
+        static char escapedNotes[BUFSIZ];
+
+        mysql_real_escape_string( &dbconn, escapedNotes, notes.c_str(), notes.length() );
+
+        snprintf( sql, sizeof(sql), "update Events set Notes = '%s' where Id = %d", escapedNotes, id );
+        if ( mysql_query( &dbconn, sql ) )
+        {
+            Error( "Can't insert event: %s", mysql_error( &dbconn ) );
+        }
+#endif
+    }
 }
 
 void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps )

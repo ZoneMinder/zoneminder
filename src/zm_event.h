@@ -31,10 +31,14 @@
 #include <sys/types.h>
 #include <mysql/mysql.h>
 
+#include <set>
+#include <map>
+
 #include "zm.h"
 #include "zm_image.h"
 #include "zm_stream.h"
 
+class Zone;
 class Monitor;
 
 #define MAX_PRE_ALARM_FRAMES	16 // Maximum number of prealarm frames that can be stored
@@ -55,6 +59,10 @@ protected:
 protected:
 	static int		sd;
 
+public:
+    typedef std::set<std::string> StringSet;
+    typedef std::map<std::string,StringSet> StringSetMap;
+
 protected:
     typedef enum { NORMAL, BULK, ALARM } FrameType;
 
@@ -74,8 +82,8 @@ protected:
 	Monitor			*monitor;
 	struct timeval	start_time;
 	struct timeval	end_time;
-	char			cause[32];
-	char			text[256];
+	std::string     cause;
+    StringSetMap    noteSetMap;
 	int				frames;
 	int				alarm_frames;
 	unsigned int	tot_score;
@@ -98,17 +106,18 @@ protected:
 		initialised = true;
 	}
 
+    void createNotes( std::string &notes );
+
 public:
 	static bool OpenFrameSocket( int );
 	static bool ValidateFrameSocket( int );
 
 public:
-	Event( Monitor *p_monitor, struct timeval p_start_time, const char *p_cause, const char *p_text="" );
+	Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap );
 	~Event();
 
 	int Id() const { return( id ); }
-	const char *Cause() { return( cause ); }
-	const char *Text() { return( text ); }
+	const std::string &Cause() { return( cause ); }
 	int Frames() const { return( frames ); }
 	int AlarmFrames() const { return( alarm_frames ); }
 
@@ -118,6 +127,8 @@ public:
 
 	bool SendFrameImage( const Image *image, bool alarm_frame=false );
 	bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false );
+
+    void updateNotes( const StringSetMap &stringSetMap );
 
 	void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
 	void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );

@@ -36,17 +36,14 @@ else
     $mode = validHtmlStr($_REQUEST['mode']);
 }
 
+$group = '';
+$groupSql = '';
 if ( !empty($_REQUEST['group']) )
 {
     $group = validInt($_REQUEST['group']);
     $sql = "select * from Groups where Id = '".dbEscape($group)."'";
     $row = dbFetchOne( $sql );
     $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
-}
-else
-{
-    $group = '';
-    $groupSql = '';
 }
 
 $sql = "select * from Monitors where Function != 'None'$groupSql order by Sequence";

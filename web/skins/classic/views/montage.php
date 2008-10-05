@@ -24,7 +24,8 @@ if ( !canView( 'Stream' ) )
     return;
 }
 
-if ( isset($_REQUEST['group']) )
+$groupSql = "";
+if ( !empty($_REQUEST['group']) )
 {
     $sql = "select * from Groups where Id = '".dbEscape($_REQUEST['group'])."'";
     $row = dbFetchOne( $sql );

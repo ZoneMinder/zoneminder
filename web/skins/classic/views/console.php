@@ -80,7 +80,6 @@ if ( $group = dbFetchOne( "select * from Groups where Id = '".(empty($_COOKIE['z
 
 noCacheHeaders();
 
-$monitors = array();
 $maxWidth = 0;
 $maxHeight = 0;
 $cycleCount = 0;
@@ -88,6 +87,7 @@ $minSequence = 0;
 $maxSequence = 1;
 $seqIdList = array();
 $monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
+$displayMonitors = array();
 for ( $i = 0; $i < count($monitors); $i++ )
 {
     if ( !visibleMonitor( $monitors[$i]['Id'] ) )
@@ -130,6 +130,7 @@ for ( $i = 0; $i < count($monitors); $i++ )
     }
     $monitors[$i] = array_merge( $monitors[$i], $counts );
     $seqIdList[] = $monitors[$i]['Id'];
+    $displayMonitors[] = $monitors[$i];
 }
 $lastId = 0;
 $seqIdUpList = array();
@@ -164,10 +165,8 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
     $eventCounts[$i]['total'] = 0;
 }
 $zoneCount = 0;
-foreach( $monitors as $monitor )
+foreach( $displayMonitors as $monitor )
 {
-    if ( empty($monitor['Show']) )
-        continue;
     for ( $i = 0; $i < count($eventCounts); $i++ )
     {
         $eventCounts[$i]['total'] += $monitor['EventCount'.$i];
@@ -190,7 +189,7 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
       <h3 id="systemStats"><?= $SLANG['Load'] ?>: <?= getLoad() ?> / <?= $SLANG['Disk'] ?>: <?= getDiskPercent() ?>%</h3>
       <h2 id="title"><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?= $SLANG['Console'] ?> - <?= makePopupLink( '?view=state', 'zmState', 'state', $status, canEdit( 'System' ) ) ?> - <?= makePopupLink( '?view=version', 'zmVersion', 'version', "v".ZM_VERSION, canEdit( 'System' ) ) ?></h2>
       <div class="clear"></div>
-      <div id="monitorSummary"><?= makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($monitors), zmVlang( $VLANG['Monitor'], count($monitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'System' ) ); ?></div>
+      <div id="monitorSummary"><?= makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'System' ) ); ?></div>
 <?php
 if ( ZM_OPT_X10 && canView( 'Devices' ) )
 {
@@ -277,10 +276,8 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
         </tfoot>
         <tbody>
 <?php
-foreach( $monitors as $monitor )
+foreach( $displayMonitors as $monitor )
 {
-    if ( empty($monitor['Show']) )
-        continue;
 ?>
           <tr>
 <?php

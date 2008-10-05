@@ -14,6 +14,7 @@ SUBDIRS = \
 	js \
 	lang \
 	skins \
+	tools \
 	views
 
 dist_web_DATA = \

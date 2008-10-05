@@ -355,6 +355,8 @@ AC_CONFIG_FILES([Makefile
                  web/skins/mobile/lang/Makefile
                  web/skins/mobile/views/Makefile
                  web/skins/mobile/views/css/Makefile
+                 web/tools/Makefile
+                 web/tools/mootools/Makefile
                  web/views/Makefile])
 AC_OUTPUT
 

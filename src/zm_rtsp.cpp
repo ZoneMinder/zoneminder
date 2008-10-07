@@ -458,7 +458,7 @@ int RtspThread::run()
             RtpDataThread rtpDataThread( *this, *source );
             RtpCtrlThread rtpCtrlThread( *this, *source );
 
-            Select select( 1 );
+            Select select( config.http_timeout );
             select.addReader( &mRtspSocket );
 
             unsigned char buffer[10*BUFSIZ];
@@ -485,24 +485,24 @@ int RtspThread::run()
                         unsigned char channel = bufferPtr[1];
                         unsigned short len = ntohs( *((unsigned short *)(bufferPtr+2)) );
 
+                        Debug( 4, "Got %d bytes left, expecting %d byte packet on channel %d", nBytes, len, channel );
                         while ( nBytes < (len+4) )
                         {
-                            Warning( "Missing %d bytes, rereading", (len+4)-nBytes );
+                            Debug( 4, "Missing %d bytes, rereading", (len+4)-nBytes );
                             ssize_t oldNbytes = nBytes;
-                            nBytes += mRtspSocket.recv( buffer+nBytes, sizeof(buffer)-nBytes );
-                            Debug( 4, "Read additional bytes on sd %d, total is %d", mRtspSocket.getReadDesc(), nBytes );
-                            Warning( "Read additional %d bytes on sd %d, new total is %d, len is %d", nBytes-oldNbytes, mRtspSocket.getReadDesc(), nBytes, len );
+                            nBytes += mRtspSocket.recv( bufferPtr+nBytes, sizeof(buffer)-((bufferPtr-buffer)+nBytes) );
+                            Debug( 4, "Read additional %d bytes on sd %d, new total is %d, len is %d", nBytes-oldNbytes, mRtspSocket.getReadDesc(), nBytes, len );
                         }
                         if ( channel == remoteChannels[0] )
                         {
-                            Debug( 4, "Got %d bytes on channel %d, %d", nBytes, bufferPtr[1], len );
+                            Debug( 4, "Got %d bytes on data channel %d, packet length is %d", nBytes, channel, len );
                             Hexdump( 4, bufferPtr, 16 );
                             rtpDataThread.recvPacket( bufferPtr+4, len );
                         }
                         else if ( channel == remoteChannels[1] )
                         {
                             len = ntohs( *((unsigned short *)(bufferPtr+2)) );
-                            Debug( 4, "Got %d bytes on channel %d", nBytes, bufferPtr[1] );
+                            Debug( 4, "Got %d bytes on control channel %d", nBytes, channel );
                             rtpCtrlThread.recvPackets( bufferPtr+4, len );
                         }
                         else

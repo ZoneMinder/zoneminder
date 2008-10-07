@@ -47,7 +47,7 @@ xhtmlHeaders(__FILE__, $SLANG['Donate'] );
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="action" value="donate/">
+        <input type="hidden" name="action" value="donate"/>
         <p>
           <?= $SLANG['DonateEnticement'] ?>
         </p>

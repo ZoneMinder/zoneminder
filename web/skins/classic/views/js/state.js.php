@@ -1,2 +1,2 @@
 var running = <?= $running?'true':'false' ?>;
-var applying = <?= !empty($apply)?'true':'false' ?>;
+var applying = <?= !empty($_REQUEST['apply'])?'true':'false' ?>;

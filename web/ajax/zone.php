@@ -45,11 +45,12 @@ if ( $response['result'] != 'Error' )
                 $wd = getcwd();
                 chdir( ZM_DIR_IMAGES );
                 $hicolor = "0x00ff00";
-                $command = getZmuCommand( " -m ".escapeshellcmd($_REQUEST['mid'])." -z" );
+
+                $command = getZmuCommand( " -m ".$_REQUEST['mid']." -z" );
                 if ( !isset($_REQUEST['zid']) )
                     $_REQUEST['zid'] = 0;
-                $command .= '"'.escapeshellarg($_REQUEST['zid']).' '.$hicolor.' '.escapeshellarg($_REQUEST['coords']).'"';
-                $status = exec( escapeshellcmd( $command ) );
+                $command .= "'".$_REQUEST['zid'].' '.$hicolor.' '.$_REQUEST['coords']."'";
+                $status = exec( escapeshellcmd($command) );
                 chdir( $wd );
 
                 //$response['zoneImage'] = ZM_DIR_IMAGES.'/Zones'.$_REQUEST['mid'].'.jpg?'.time();

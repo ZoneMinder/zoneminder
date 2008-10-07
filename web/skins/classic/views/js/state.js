@@ -3,7 +3,7 @@ function checkState( element )
     var form = element.form;
 
     var minIndex = running?2:1;
-    if ( form.runState.selectedIndex < running )
+    if ( form.runState.selectedIndex < minIndex )
     {
         form.saveBtn.disabled = true;
         form.deleteBtn.disabled = true;
@@ -13,10 +13,8 @@ function checkState( element )
         form.saveBtn.disabled = false;
         form.deleteBtn.disabled = false;
     }
-    if ( newState.value != '' )
-    {
+    if ( form.newState.value != '' )
         form.saveBtn.disabled = false;
-    }
 }
 
 function saveState( element )

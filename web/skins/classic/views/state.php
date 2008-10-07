@@ -76,7 +76,7 @@ if ( empty($_REQUEST['apply']) )
           <tbody>
             <tr>
               <th scope="row"><?= $SLANG['NewState'] ?></th>
-              <td><input type="text" name="newState" value="" size="16" onchange="checkState();"></td>
+              <td><input type="text" name="newState" value="" size="16" onchange="checkState( this );"></td>
             </tr>
           </tbody>
         </table>

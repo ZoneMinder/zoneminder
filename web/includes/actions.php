@@ -1278,8 +1278,9 @@ if ( !empty($action) )
     // System edit actions
     if ( canEdit( 'System' ) )
     {
-        if ( $action == "version" && isset($option) )
+        if ( $action == "version" && isset($_REQUEST['option']) )
         {
+            $option = $_REQUEST['option'];
             switch( $option )
             {
                 case 'go' :
@@ -1319,8 +1320,9 @@ if ( !empty($action) )
                 }
             }
         }
-        if ( $action == "donate" && isset($option) )
+        if ( $action == "donate" && isset($_REQUEST['option']) )
         {
+            $option = $_REQUEST['option'];
             switch( $option )
             {
                 case 'go' :
@@ -1361,7 +1363,7 @@ if ( !empty($action) )
                 }
             }
         }
-        if ( $action == "options" && isset( $_REQUEST['tab'] ) )
+        if ( $action == "options" && isset($_REQUEST['tab']) )
         {
             $configCat = $configCats[$_REQUEST['tab']];
             $changed = false;

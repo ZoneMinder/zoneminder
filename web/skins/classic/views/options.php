@@ -24,6 +24,8 @@ if ( !canView( 'System' ) )
     return;
 }
 
+$canEdit = canEdit( 'System' );
+
 $tabs = array();
 $tabs['system'] = $SLANG['System'];
 $tabs['config'] = $SLANG['Config'];
@@ -123,7 +125,7 @@ if ( $tab == "users" )
         }
 ?>
             <tr>
-              <td class="colUsername"><?= makePopupLink( '?view=user&uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), canEdit( 'System' ) ) ?></td>
+              <td class="colUsername"><?= makePopupLink( '?view=user&uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), $canEdit ) ?></td>
               <td class="colLanguage"><?= $row['Language']?validHtmlStr($row['Language']):'default' ?></td>
               <td class="colEnabled"><?= $row['Enabled']?$SLANG['Yes']:$SLANG['No'] ?></td>
               <td class="colStream"><?= validHtmlStr($row['Stream']) ?></td>
@@ -133,7 +135,7 @@ if ( $tab == "users" )
               <td class="colSystem"><?= validHtmlStr($row['System']) ?></td>
               <td class="colBandwidth"><?= $row['MaxBandwidth']?$bwArray[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?= $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
-              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?= $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?= $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
     }
@@ -180,7 +182,7 @@ else
         if ( $value['Type'] == "boolean" )
         {
 ?>
-              <td><input type="checkbox" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?>/></td>
+              <td><input type="checkbox" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?= $canEdit?'':' disabled="disabled"' ?>/></td>
 <?php
         }
         elseif ( preg_match( "/\|/", $value['Hint'] ) )
@@ -192,7 +194,7 @@ else
             if ( count( $options ) > 3 )
             {
 ?>
-                <select name="newConfig[<?= $value['Name'] ?>] ?>">
+                <select name="newConfig[<?= $value['Name'] ?>] ?>"<?= $canEdit?'':' disabled="disabled"' ?>>
 <?php
                 foreach ( $options as $option )
                 {
@@ -209,7 +211,7 @@ else
                 foreach ( $options as $option )
                 {
 ?>
-                <span><input type="radio" id="<?= $value['Name'].'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $option ) ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { ?> checked="checked"<?php } ?>/>&nbsp;<?= $option ?></span>
+                <span><input type="radio" id="<?= $value['Name'].'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $option ) ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { ?> checked="checked"<?php } ?><?= $canEdit?'':' disabled="disabled"' ?>/>&nbsp;<?= $option ?></span>
 <?php
                 }
             }
@@ -220,31 +222,31 @@ else
         elseif ( $value['Type'] == "text" )
         {
 ?>
-              <td><textarea id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" rows="5" cols="40"><?= validHtmlStr($value['Value']) ?></textarea></td>
+              <td><textarea id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" rows="5" cols="40"<?= $canEdit?'':' disabled="disabled"' ?>><?= validHtmlStr($value['Value']) ?></textarea></td>
 <?php
         }
         elseif ( $value['Type'] == "integer" )
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="small"/></td>
+              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="small"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
 <?php
         }
         elseif ( $value['Type'] == "hexadecimal" )
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="medium"/></td>
+              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="medium"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
 <?php
         }
         elseif ( $value['Type'] == "decimal" )
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="small"/></td>
+              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="small"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
 <?php
         }
         else
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="large"/></td>
+              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="large"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
 <?php
         }
 ?>
@@ -255,7 +257,7 @@ else
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Save'] ?>"/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+          <input type="submit" value="<?= $SLANG['Save'] ?>"<?= $canEdit?'':' disabled="disabled"' ?>/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
         </div>
       </form>
 <?php

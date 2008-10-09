@@ -390,8 +390,8 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap )
                             if ( noteSetIter == noteSet.end() )
                             {
                                 noteSet.insert( newNote );
+                                update = true;
                             }
-                            update = true;
                         }
                     }
                 }
@@ -404,7 +404,7 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap )
         std::string notes;
         createNotes( notes );
 
-        Info( "Updating notes for event %d, '%s'", id, notes.c_str() );
+        Debug( 2, "Updating notes for event %d, '%s'", id, notes.c_str() );
         static char sql[BUFSIZ];
 #if USE_PREPARED_SQL
         static MYSQL_STMT *stmt = 0;

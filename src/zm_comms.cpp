@@ -575,7 +575,7 @@ void Select::setTimeout( int timeout )
 void Select::setTimeout( double timeout )
 {
     mTimeout.tv_sec = int(timeout);
-    mTimeout.tv_usec = suseconds_t((timeout-mTimeout.tv_sec)*10000000.0);
+    mTimeout.tv_usec = suseconds_t((timeout-mTimeout.tv_sec)*1000000.0);
     mHasTimeout = true;
 }
 

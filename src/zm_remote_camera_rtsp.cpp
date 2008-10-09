@@ -63,7 +63,7 @@ void RemoteCameraRtsp::Initialise()
 
 	int max_size = width*height*colours;
 
-	buffer.Size( max_size );
+	buffer.size( max_size );
 
     if ( zm_dbg_level > ZM_DBG_INF )
         av_log_set_level( AV_LOG_DEBUG ); 
@@ -169,12 +169,12 @@ int RemoteCameraRtsp::PostCapture( Image &image )
 {
     while ( true )
     {
-        buffer.Empty();
+        buffer.clear();
         if ( rtspThread->getFrame( buffer ) )
         {
-            Debug( 3, "Read frame %d bytes", buffer.Size() );
-            Debug( 4, "Address %p", buffer.Head() );
-            Hexdump( 4, buffer.Head(), 16 );
+            Debug( 3, "Read frame %d bytes", buffer.size() );
+            Debug( 4, "Address %p", buffer.head() );
+            Hexdump( 4, buffer.head(), 16 );
 
             static AVFrame *tmp_picture = NULL;
 
@@ -198,14 +198,14 @@ int RemoteCameraRtsp::PostCapture( Image &image )
                 //}
             }
 
-            if ( !buffer.Size() )
+            if ( !buffer.size() )
                 return( -1 );
 
             int initialFrameCount = frameCount;
-            while ( buffer.Size() > 0 )
+            while ( buffer.size() > 0 )
             {
                 int got_picture = false;
-                int len = avcodec_decode_video( codecContext, picture, &got_picture, buffer.Head(), buffer.Size() );
+                int len = avcodec_decode_video( codecContext, picture, &got_picture, buffer.head(), buffer.size() );
                 if ( len < 0 )
                 {
                     if ( frameCount > initialFrameCount )
@@ -214,12 +214,12 @@ int RemoteCameraRtsp::PostCapture( Image &image )
                         return( 0 );
                     }
                     Error( "Error while decoding frame %d", frameCount );
-                    Hexdump( 0, buffer.Head(), buffer.Size() );
+                    Hexdump( 0, buffer.head(), buffer.size() );
                     return( -1 );
                 }
-                Debug( 2, "Frame: %d: %d/%d", frameCount, len, buffer.Size() );
-                //if ( buffer.Size() < 400 )
-                    //Hexdump( 0, buffer.Head(), buffer.Size() );
+                Debug( 2, "Frame: %d: %d/%d", frameCount, len, buffer.size() );
+                //if ( buffer.size() < 400 )
+                    //Hexdump( 0, buffer.head(), buffer.size() );
 
                 if ( got_picture )
                 {

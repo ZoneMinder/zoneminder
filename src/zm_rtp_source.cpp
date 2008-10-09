@@ -258,14 +258,14 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
     {
         Hexdump( 4, packet+sizeof(RtpDataHeader), 16 );
         if ( mFrameGood )
-            mFrame.Append( packet+sizeof(RtpDataHeader), packetLen-sizeof(RtpDataHeader) ); 
-        Hexdump( 4, mFrame.Head(), 16 );
+            mFrame.append( packet+sizeof(RtpDataHeader), packetLen-sizeof(RtpDataHeader) ); 
+        Hexdump( 4, mFrame.head(), 16 );
 
         if ( rtpHeader->m )
         {
             if ( mFrameGood )
             {
-                Debug( 2, "Got new frame %d, %d bytes", mFrameCount, mFrame.Size() );
+                Debug( 2, "Got new frame %d, %d bytes", mFrameCount, mFrame.size() );
 
                 mFrameProcessed.setValueImmediate( false );
                 mFrameReady.updateValueSignal( true );
@@ -279,23 +279,23 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
             }
             else
             {
-                Warning( "Discarding incomplete frame %d, %d bytes", mFrameCount, mFrame.Size() );
+                Warning( "Discarding incomplete frame %d, %d bytes", mFrameCount, mFrame.size() );
             }
-            mFrame.Empty();
+            mFrame.clear();
         }
     }
     else
     {
-        if ( mFrame.Size() )
+        if ( mFrame.size() )
         {
-            Warning( "Discarding partial frame %d, %d bytes", mFrameCount, mFrame.Size() );
+            Warning( "Discarding partial frame %d, %d bytes", mFrameCount, mFrame.size() );
         }
         else
         {
             Warning( "Discarding frame %d", mFrameCount );
         }
         mFrameGood = false;
-        mFrame.Empty();
+        mFrame.clear();
     }
     if ( rtpHeader->m )
     {
@@ -320,6 +320,6 @@ bool RtpSource::getFrame( Buffer &buffer )
     buffer = mFrame;
     mFrameReady.setValueImmediate( false );
     mFrameProcessed.updateValueSignal( true );
-    Debug( 3, "Copied %d bytes", buffer.Size() );
+    Debug( 3, "Copied %d bytes", buffer.size() );
     return( true );
 }

@@ -500,25 +500,25 @@ int RtspThread::run()
 
                 static char tempBuffer[10*BUFSIZ];
                 ssize_t nBytes = mRtspSocket.recv( tempBuffer, sizeof(tempBuffer) );
-                buffer.Append( tempBuffer, nBytes );
-                Debug( 4, "Read %d bytes on sd %d, %d total", nBytes, mRtspSocket.getReadDesc(), buffer.Size() );
+                buffer.append( tempBuffer, nBytes );
+                Debug( 4, "Read %d bytes on sd %d, %d total", nBytes, mRtspSocket.getReadDesc(), buffer.size() );
 
-                while( buffer.Size() > 0 )
+                while( buffer.size() > 0 )
                 {
                     if ( buffer[0] == '$' )
                     {
                         unsigned char channel = buffer[1];
                         unsigned short len = ntohs( *((unsigned short *)(buffer+2)) );
 
-                        Debug( 4, "Got %d bytes left, expecting %d byte packet on channel %d", buffer.Size(), len, channel );
-                        if ( buffer.Size() < (len+4) )
+                        Debug( 4, "Got %d bytes left, expecting %d byte packet on channel %d", buffer.size(), len, channel );
+                        if ( buffer.size() < (len+4) )
                         {
                             Debug( 4, "Missing %d bytes, rereading", (len+4)-nBytes );
                             break;
                         }
                         if ( channel == remoteChannels[0] )
                         {
-                            Debug( 4, "Got %d bytes on data channel %d, packet length is %d", buffer.Size(), channel, len );
+                            Debug( 4, "Got %d bytes on data channel %d, packet length is %d", buffer.size(), channel, len );
                             Hexdump( 4, (char *)buffer, 16 );
                             rtpDataThread.recvPacket( buffer+4, len );
                             Debug( 4, "Received" );
@@ -532,10 +532,10 @@ int RtspThread::run()
                         else
                         {
                             Error( "Unexpected channel selector %d in RTSP interleaved data", buffer[1] );
-                            buffer.Empty();
+                            buffer.clear();
                             break;
                         }
-                        buffer.Consume( len+4 );
+                        buffer.consume( len+4 );
                         nBytes -= len+4;
                     }
                     else
@@ -543,20 +543,20 @@ int RtspThread::run()
                         if ( keepaliveResponse.compare( 0, keepaliveResponse.size(), (char *)buffer, keepaliveResponse.size() ) == 0 )
                         {
                             Debug( 4, "Got keepalive response '%s'", (char *)buffer );
-                            //buffer.Consume( keepaliveResponse.size() );
-                            if ( char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.Size() ) )
+                            //buffer.consume( keepaliveResponse.size() );
+                            if ( char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) )
                             {
                                 int discardBytes = charPtr-(char *)buffer;
                                 buffer -= discardBytes;
                             }
                             else
                             {
-                                buffer.Empty();
+                                buffer.clear();
                             }
                         }
                         else
                         {
-                            if ( char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.Size() ) )
+                            if ( char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) )
                             {
                                 int discardBytes = charPtr-(char *)buffer;
                                 Warning( "Unexpected format RTSP interleaved data, resyncing by %d bytes", discardBytes );
@@ -565,9 +565,9 @@ int RtspThread::run()
                             }
                             else
                             {
-                                Warning( "Unexpected format RTSP interleaved data, dumping %d bytes", buffer.Size() );
+                                Warning( "Unexpected format RTSP interleaved data, dumping %d bytes", buffer.size() );
                                 Hexdump( -1, (char *)buffer, 32 );
-                                buffer.Empty();
+                                buffer.clear();
                             }
                         }
                     }
@@ -578,7 +578,7 @@ int RtspThread::run()
                         return( -1 );
                     lastKeepalive = time(NULL);
                 }
-                buffer.Tidy( 1 );
+                buffer.tidy( 1 );
             }
 
             message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";

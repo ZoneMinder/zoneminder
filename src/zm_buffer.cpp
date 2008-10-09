@@ -22,48 +22,48 @@
 #include "zm.h"
 #include "zm_buffer.h"
 
-unsigned int Buffer::Assign( const unsigned char *p_storage, unsigned int p_size )
+unsigned int Buffer::assign( const unsigned char *pStorage, unsigned int pSize )
 {
-    if ( allocation < p_size )
+    if ( mAllocation < pSize )
     {
-        delete[] storage;
-        allocation = p_size;
-        head = storage = new unsigned char[p_size];
+        delete[] mStorage;
+        mAllocation = pSize;
+        mHead = mStorage = new unsigned char[pSize];
     }
-    size = p_size;
-    memcpy( storage, p_storage, size );
-    head = storage;
-    tail = head + size;
-    return( size );
+    mSize = pSize;
+    memcpy( mStorage, pStorage, mSize );
+    mHead = mStorage;
+    mTail = mHead + mSize;
+    return( mSize );
 }
 
-unsigned int Buffer::Expand( unsigned int count )
+unsigned int Buffer::expand( unsigned int count )
 {
-    int spare = allocation - size;
-    int head_space = head - storage;
-    int tail_space = spare - head_space;
-    int width = tail - head;
+    int spare = mAllocation - mSize;
+    int headSpace = mHead - mStorage;
+    int tailSpace = spare - headSpace;
+    int width = mTail - mHead;
     if ( spare > count )
     {
-        if ( tail_space < count )
+        if ( tailSpace < count )
         {
-            memmove( storage, head, size );
-            head = storage;
-            tail = head + width;
+            memmove( mStorage, mHead, mSize );
+            mHead = mStorage;
+            mTail = mHead + width;
         }
     }
     else
     {
-        allocation += count;
-        unsigned char *new_storage = new unsigned char[allocation];
-        if ( storage )
+        mAllocation += count;
+        unsigned char *newStorage = new unsigned char[mAllocation];
+        if ( mStorage )
         {
-            memcpy( new_storage, head, size );
-            delete[] storage;
+            memcpy( newStorage, mHead, mSize );
+            delete[] mStorage;
         }
-        storage = new_storage;
-        head = storage;
-        tail = head + width;
+        mStorage = newStorage;
+        mHead = mStorage;
+        mTail = mHead + width;
     }
-    return( size );
+    return( mSize );
 }

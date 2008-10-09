@@ -76,7 +76,7 @@ void RemoteCameraHttp::Initialise()
 
 	int max_size = width*height*colours;
 
-	buffer.Size( max_size );
+	buffer.size( max_size );
 
 	mode = SINGLE_IMAGE;
 	format = UNDEF;
@@ -193,7 +193,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
 			return( -1 );
 		}
 		Debug( 3, "Read %d bytes", bytes_read );
-		buffer.Append( temp_buffer, bytes_read );
+		buffer.append( temp_buffer, bytes_read );
 		total_bytes_read += bytes_read;
 		total_bytes_to_read -= bytes_read;
 	}
@@ -241,7 +241,7 @@ int RemoteCameraHttp::GetResponse()
 					}
 					if ( !header_expr )
 						header_expr = new RegExpr( "^(.+?\r?\n\r?\n)", PCRE_DOTALL );
-					if ( header_expr->Match( (char*)buffer, buffer.Size() ) == 2 )
+					if ( header_expr->Match( (char*)buffer, buffer.size() ) == 2 )
 					{
 						header = header_expr->MatchString( 1 );
 						header_len = header_expr->MatchLength( 1 );
@@ -335,7 +335,7 @@ int RemoteCameraHttp::GetResponse()
 							Error( "Unrecognised content type '%s'", content_type );
 							return( -1 );
 						}
-						buffer.Consume( header_len );
+						buffer.consume( header_len );
 					}
 					else
 					{
@@ -378,7 +378,7 @@ int RemoteCameraHttp::GetResponse()
 							Debug( 3, "Got subcontent type '%s'", content_type );
 						}
 
-						buffer.Consume( subheader_len );
+						buffer.consume( subheader_len );
 						state = CONTENT;
 					}
 					else
@@ -414,7 +414,7 @@ int RemoteCameraHttp::GetResponse()
 
 					if ( content_length )
 					{
-						while ( buffer.Size() < content_length )
+						while ( buffer.size() < content_length )
 						{
 							int buffer_len = ReadData( buffer );
 							if ( buffer_len < 0 )
@@ -446,7 +446,7 @@ int RemoteCameraHttp::GetResponse()
 										snprintf( content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", content_boundary );
 										content_expr = new RegExpr( content_pattern, PCRE_DOTALL );
 									}
-									if ( content_expr->Match( buffer, buffer.Size() ) == 2 )
+									if ( content_expr->Match( buffer, buffer.size() ) == 2 )
 									{
 										content_length = content_expr->MatchLength( 1 );
 										Debug( 3, "Got end of image by pattern, content-length = %d", content_length );
@@ -455,7 +455,7 @@ int RemoteCameraHttp::GetResponse()
 							}
 							else
 							{
-								content_length = buffer.Size();
+								content_length = buffer.size();
 								Debug( 3, "Got end of image by closure, content-length = %d", content_length );
 								if ( mode == SINGLE_IMAGE )
 								{
@@ -463,7 +463,7 @@ int RemoteCameraHttp::GetResponse()
 									{
 										content_expr = new RegExpr( "^(.+?)(?:\r?\n){1,2}?$", PCRE_DOTALL );
 									}
-									if ( content_expr->Match( buffer, buffer.Size() ) == 2 )
+									if ( content_expr->Match( buffer, buffer.size() ) == 2 )
 									{
 										content_length = content_expr->MatchLength( 1 );
 										Debug( 3, "Trimmed end of image, new content-length = %d", content_length );
@@ -481,7 +481,7 @@ int RemoteCameraHttp::GetResponse()
 					{
 						state = SUBHEADER;
 					}
-					Debug( 3, "Returning %d (%d) bytes of captured content", content_length, buffer.Size() );
+					Debug( 3, "Returning %d (%d) bytes of captured content", content_length, buffer.size() );
 					return( content_length );
 				}
                 case HEADERCONT :
@@ -579,7 +579,7 @@ int RemoteCameraHttp::GetResponse()
 
 					char *crlf = 0;
 					char *header_ptr = (char *)buffer;
-					int header_len = buffer.Size();
+					int header_len = buffer.size();
 					bool all_headers = false;
 
 					while( true )
@@ -591,7 +591,7 @@ int RemoteCameraHttp::GetResponse()
 							{
 								*header_ptr = '\0';
 								header_ptr += crlf_len;
-								header_len -= buffer.Consume( header_ptr-(char *)buffer );
+								header_len -= buffer.consume( header_ptr-(char *)buffer );
 								all_headers = true;
 								break;
 							}
@@ -606,7 +606,7 @@ int RemoteCameraHttp::GetResponse()
 							{
 								*header_ptr = '\0';
 								header_ptr += crlf_len;
-								header_len -= buffer.Consume( header_ptr-(char *)buffer );
+								header_len -= buffer.consume( header_ptr-(char *)buffer );
 							}
 						}
 
@@ -640,7 +640,7 @@ int RemoteCameraHttp::GetResponse()
 								Debug( 6, "Got ignored header '%s'", header_ptr );
 							}
 							header_ptr = crlf;
-							header_len -= buffer.Consume( header_ptr-(char *)buffer );
+							header_len -= buffer.consume( header_ptr-(char *)buffer );
 						}
 						else
 						{
@@ -790,7 +790,7 @@ int RemoteCameraHttp::GetResponse()
 				{
 					char *crlf = 0;
 					char *subheader_ptr = (char *)buffer;
-					int subheader_len = buffer.Size();
+					int subheader_len = buffer.size();
 					bool all_headers = false;
 
 					while( true )
@@ -802,7 +802,7 @@ int RemoteCameraHttp::GetResponse()
 							{
 								*subheader_ptr = '\0';
 								subheader_ptr += crlf_len;
-								subheader_len -= buffer.Consume( subheader_ptr-(char *)buffer );
+								subheader_len -= buffer.consume( subheader_ptr-(char *)buffer );
 								all_headers = true;
 								break;
 							}
@@ -817,7 +817,7 @@ int RemoteCameraHttp::GetResponse()
 							{
 								*subheader_ptr = '\0';
 								subheader_ptr += crlf_len;
-								subheader_len -= buffer.Consume( subheader_ptr-(char *)buffer );
+								subheader_len -= buffer.consume( subheader_ptr-(char *)buffer );
 							}
 						}
 
@@ -849,7 +849,7 @@ int RemoteCameraHttp::GetResponse()
 								Debug( 6, "Got ignored subheader '%s' found", subheader_ptr );
 							}
 							subheader_ptr = crlf;
-							subheader_len -= buffer.Consume( subheader_ptr-(char *)buffer );
+							subheader_len -= buffer.consume( subheader_ptr-(char *)buffer );
 						}
 						else
 						{
@@ -912,7 +912,7 @@ int RemoteCameraHttp::GetResponse()
 						return( -1 );
 					}
 
-					if ( format == JPEG && buffer.Size() >= 2 )
+					if ( format == JPEG && buffer.size() >= 2 )
 					{
 						if ( buffer[0] != 0xff || buffer[1] != 0xd8 )
 						{
@@ -923,9 +923,9 @@ int RemoteCameraHttp::GetResponse()
 
 					if ( content_length )
 					{
-						while ( buffer.Size() < content_length )
+						while ( buffer.size() < content_length )
 						{
-							//int buffer_len = ReadData( buffer, content_length-buffer.Size() );
+							//int buffer_len = ReadData( buffer, content_length-buffer.size() );
 							int buffer_len = ReadData( buffer );
 							if ( buffer_len < 0 )
 							{
@@ -941,7 +941,7 @@ int RemoteCameraHttp::GetResponse()
 						while ( !content_length )
 						{
 							int buffer_len = ReadData( buffer );
-							int buffer_size = buffer.Size();
+							int buffer_size = buffer.size();
 							if ( buffer_len < 0 )
 							{
                                 Error( "Unable to read content" );
@@ -991,7 +991,7 @@ int RemoteCameraHttp::GetResponse()
 						state = SUBHEADER;
 					}
 
-					if ( format == JPEG && buffer.Size() >= 2 )
+					if ( format == JPEG && buffer.size() >= 2 )
 					{
 						if ( buffer[0] != 0xff || buffer[1] != 0xd8 )
 						{
@@ -1000,7 +1000,7 @@ int RemoteCameraHttp::GetResponse()
 						}
 					}
 
-					Debug( 3, "Returning %d (%d) bytes of captured content", content_length, buffer.Size() );
+					Debug( 3, "Returning %d (%d) bytes of captured content", content_length, buffer.size() );
 					return( content_length );
 				}
 			}
@@ -1020,7 +1020,7 @@ int RemoteCameraHttp::PreCapture()
 			return( -1 );
 		}
 		mode = SINGLE_IMAGE;
-		buffer.Empty();
+		buffer.clear();
 	}
 	if ( mode == SINGLE_IMAGE )
 	{
@@ -1047,7 +1047,7 @@ int RemoteCameraHttp::PostCapture( Image &image )
 	{
 		case JPEG :
 		{
-			if ( !image.DecodeJpeg( buffer.Extract( content_length ), content_length ) )
+			if ( !image.DecodeJpeg( buffer.extract( content_length ), content_length ) )
 			{
                 Error( "Unable to decode jpeg" );
 				Disconnect();
@@ -1068,7 +1068,7 @@ int RemoteCameraHttp::PostCapture( Image &image )
 		}
 		case X_RGBZ :
 		{
-			if ( !image.Unzip( buffer.Extract( content_length ), content_length ) )
+			if ( !image.Unzip( buffer.extract( content_length ), content_length ) )
 			{
 			    Error( "Unable to unzip RGB image" );
 				Disconnect();

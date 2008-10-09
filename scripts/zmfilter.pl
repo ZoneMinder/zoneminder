@@ -698,7 +698,7 @@ sub generateVideo
         my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
         if ( wantarray() )
         {
-            return( $format, sprintf( "%d/%d/%s", $event->{MonitorId}, $event->{Id}, $output ) );
+            return( $format, sprintf( "%s/%s", getEventPath( $event ), $output ) ); 
         }
     }
     return( 1 );

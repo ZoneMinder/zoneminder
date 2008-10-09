@@ -83,6 +83,7 @@ public:
         return( Assign( buffer.head, buffer.size ) );
     }
 
+    // Trim from the front of the buffer
     unsigned int Consume( unsigned int count )
     {
         if ( count > size )
@@ -94,6 +95,7 @@ public:
         size -= count;
         return( count );
     }
+    // Trim from the end of the buffer
     unsigned int Shrink( unsigned int count )
     {
         if ( count > size )
@@ -102,11 +104,13 @@ public:
             count = size;
         }
         size -= count;
-        if ( tail > head + size )
+        if ( tail > (head + size) )
             tail = head + size;
         return( count );
     }
+    // Add to the end of the buffer
     unsigned int Expand( unsigned int count );
+    // Return pointer to the first p_size bytes and advance the head
     unsigned char *Extract( unsigned int p_size )
     {
         if ( p_size > size )
@@ -119,6 +123,7 @@ public:
         size -= p_size;
         return( old_head );
     }
+    // Add bytes to the end of the buffer
     unsigned int Append( const unsigned char *p_storage, unsigned int p_size )
     {
         Expand( p_size );
@@ -127,9 +132,36 @@ public:
         size += p_size;
         return( size );
     }
+    unsigned int Append( const char *p_storage, unsigned int p_size )
+    {
+        return( Append( (const unsigned char *)p_storage, p_size ) );
+    }
     unsigned int Append( const Buffer &buffer )
     {
         return( Append( buffer.head, buffer.size ) );
+    }
+    void Tidy( bool level=0 )
+    {
+        if ( head != storage )
+        {
+            if ( size == 0 )
+                head = tail = storage;
+            else if ( level >= 1 )
+            {
+                if ( (head-storage) > size )
+                {
+                    memcpy( storage, head, size );
+                    head = storage;
+                    tail = head + size;
+                }
+                else if ( level >= 2 )
+                {
+                    memmove( storage, head, size );
+                    head = storage;
+                    tail = head + size;
+                }
+            }
+        }
     }
 
     Buffer &operator=( const Buffer &buffer )
@@ -159,6 +191,10 @@ public:
     operator char *() const
     {
         return( (char *)head );
+    }
+    unsigned char *operator+(int offset) const
+    {
+        return( (unsigned char *)(head+offset) );
     }
     unsigned char operator[](int index) const
     {

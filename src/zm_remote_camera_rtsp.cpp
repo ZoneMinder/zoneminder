@@ -116,10 +116,13 @@ int RemoteCameraRtsp::Disconnect()
 int RemoteCameraRtsp::PrimeCapture()
 {
     Debug( 2, "Waiting for sources" );
-    while( !rtspThread->hasSources() )
+    for ( int i = 0; i < 50 && !rtspThread->hasSources(); i++ )
     {
-        usleep( 10000 );
+        usleep( 100000 );
     }
+    if ( !rtspThread->hasSources() )
+        Fatal( "No RTSP sources" );
+
     Debug( 2, "Got sources" );
 
     formatContext = rtspThread->getFormatContext();
@@ -164,37 +167,40 @@ int RemoteCameraRtsp::PreCapture()
 
 int RemoteCameraRtsp::PostCapture( Image &image )
 {
-    buffer.Empty();
-    if ( rtspThread->getFrame( buffer ) )
+    while ( true )
     {
-        Debug( 3, "Read frame %d bytes", buffer.Size() );
-        Debug( 4, "Address %p", buffer.Head() );
-        Hexdump( 4, buffer.Head(), 16 );
-
-        static AVFrame *tmp_picture = NULL;
-
-        if ( !tmp_picture )
+        buffer.Empty();
+        if ( rtspThread->getFrame( buffer ) )
         {
-            //if ( c->pix_fmt != pf )
-            //{
-                tmp_picture = avcodec_alloc_frame();
-                if ( !tmp_picture )
-                {
-                    Fatal( "Could not allocate temporary opicture" );
-                }
-                int size = avpicture_get_size( PIX_FMT_RGB24, width, height);
-                uint8_t *tmp_picture_buf = (uint8_t *)malloc(size);
-                if (!tmp_picture_buf)
-                {
-                    av_free( tmp_picture );
-                    Fatal( "Could not allocate temporary opicture" );
-                }
-                avpicture_fill( (AVPicture *)tmp_picture, tmp_picture_buf, PIX_FMT_RGB24, width, height );
-            //}
-        }
+            Debug( 3, "Read frame %d bytes", buffer.Size() );
+            Debug( 4, "Address %p", buffer.Head() );
+            Hexdump( 4, buffer.Head(), 16 );
 
-        if ( buffer.Size() )
-        {
+            static AVFrame *tmp_picture = NULL;
+
+            if ( !tmp_picture )
+            {
+                //if ( c->pix_fmt != pf )
+                //{
+                    tmp_picture = avcodec_alloc_frame();
+                    if ( !tmp_picture )
+                    {
+                        Fatal( "Could not allocate temporary opicture" );
+                    }
+                    int size = avpicture_get_size( PIX_FMT_RGB24, width, height);
+                    uint8_t *tmp_picture_buf = (uint8_t *)malloc(size);
+                    if (!tmp_picture_buf)
+                    {
+                        av_free( tmp_picture );
+                        Fatal( "Could not allocate temporary opicture" );
+                    }
+                    avpicture_fill( (AVPicture *)tmp_picture, tmp_picture_buf, PIX_FMT_RGB24, width, height );
+                //}
+            }
+
+            if ( !buffer.Size() )
+                return( -1 );
+
             int initialFrameCount = frameCount;
             while ( buffer.Size() > 0 )
             {
@@ -231,9 +237,11 @@ int RemoteCameraRtsp::PostCapture( Image &image )
 
                     sws_scale( img_convert_ctx, picture->data, picture->linesize, 0, height, tmp_picture->data, tmp_picture->linesize );
 
-			        image.Assign( width, height, colours, tmp_picture->data[0] );
+                    image.Assign( width, height, colours, tmp_picture->data[0] );
 
                     frameCount++;
+
+                    return( 0 );
                 }
                 else
                 {
@@ -242,11 +250,7 @@ int RemoteCameraRtsp::PostCapture( Image &image )
                 buffer -= len;
             }
         }
-        else
-        {
-            return( -1 );
-        }
     }
-    return( 0 );
+    return( -1 );
 }
 

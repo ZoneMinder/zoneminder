@@ -194,6 +194,13 @@ AC_PROG_LN_S
 AC_PROG_RANLIB
 AC_PROG_MAKE_SET
 
+# Other programs
+AC_CHECK_PROG(OPT_FFMPEG,ffmpeg,yes,no)
+AC_PATH_PROG(PATH_FFMPEG,ffmpeg)
+AC_CHECK_PROG(OPT_NETPBM,pnmscale,yes,no)
+AC_PATH_PROG(PATH_NETPBM,pnmscale)
+PATH_NETPBM=`dirname $PATH_NETPBM`
+
 # Checks for libraries.
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(z,compress,,AC_MSG_ERROR(zm requires libz.a))

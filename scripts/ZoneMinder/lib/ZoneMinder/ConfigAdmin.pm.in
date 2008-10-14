@@ -419,7 +419,7 @@ our @options =
 	},
 	{
 		name => "ZM_OPT_FFMPEG",
-		default => "no",
+		default => "@OPT_FFMPEG@",
 		description => "Is the ffmpeg video encoder/decoder installed",
 		help => "ZoneMinder can optionally encode a series of video images into an MPEG encoded movie file for viewing, downloading or storage. This option allows you to specify whether you have the ffmpeg tools installed. Note that creating MPEG files can be fairly CPU and disk intensive and is not a required option as events can still be reviewed as video streams without it.",
 		type => $types{boolean},
@@ -427,9 +427,9 @@ our @options =
 	},
 	{
 		name => "ZM_PATH_FFMPEG",
-		default => "/usr/local/bin/ffmpeg",
+		default => "@PATH_FFMPEG@",
 		description => "Path to (optional) ffmpeg mpeg encoder",
-		help => "This path should point to where the ffmpeg has been installed.",
+		help => "This path should point to where ffmpeg has been installed.",
 		requires => [ { name=>"ZM_OPT_FFMPEG", value=>"yes" } ],
 		type => $types{abs_path},
 		category => "images",
@@ -463,7 +463,7 @@ our @options =
 	},
 	{
 		name => "ZM_OPT_NETPBM",
-		default => "no",
+		default => "@OPT_NETPBM@",
 		description => "Are the (optional) Netpbm utilities installed",
 		help => "For low bandwidth situations ZoneMinder will resize images into thumbnails on the fly before sending them to the browser to reduce the network traffic at the expense of CPU on the server. It uses the Netpbm package to do this and this option should be set to where the binaries from that package are installed. If you do not have it installed it means that the images will always be sent full size and rescaled on your browser which may or not be an issue for you.",
 		type => $types{boolean},
@@ -471,7 +471,7 @@ our @options =
 	},
 	{
 		name => "ZM_PATH_NETPBM",
-		default => "/usr/bin",
+		default => "@PATH_NETPBM@",
 		description => "Path to (optional) Netpbm utilities",
 		help => "For low bandwidth situations ZoneMinder will resize images into thumbnails on the fly before sending them to the browser to reduce the network traffic at the expense of CPU on the server. It uses the Netpbm package to do this and this option should be set to where the binaries from that package are installed. If you do not have it installed it means that the images will always be sent full size and rescaled on your browser which may or not be an issue for you.",
 		requires => [ { name=>"ZM_OPT_NETPBM", value=>"yes" } ],

@@ -27,7 +27,7 @@ function submitToEvents( element )
     }
 }
 
-function executeFilter( form )
+function executeFilter( element )
 {
     var form = element.form;
     if ( validateForm( form ) )

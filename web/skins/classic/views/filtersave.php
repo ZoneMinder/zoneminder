@@ -25,16 +25,19 @@ if ( !canEdit( 'Events' ) )
 }
 
 $selectName = "filterName";
+$newSelectName = "new".ucfirst($selectName);
 foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row )
 {
     $filterNames[$row['Name']] = $row['Name'];
-    if ( $filterName == $row['Name'] )
+    if ( $_REQUEST['filterName'] == $row['Name'] )
     {
         $filterData = $row;
     }
 }
 
 $focusWindow = true;
+
+$filter = $_REQUEST['filter'];
 
 parseFilter( $filter );
 
@@ -63,11 +66,11 @@ xhtmlHeaders(__FILE__, $SLANG['SaveFilter'] );
         <input type="hidden" name="autoDelete" value="<?= requestVar( 'autoDelete' ) ?>"/>
 <?php if ( count($filterNames) ) { ?>
         <p>
-          <label for="<?= $selectName ?>"><?= $SLANG['SaveAs'] ?></label><?= buildSelect( $selectName, $filterNames ); ?><label for="new_<?= $selectName ?>"><?= $SLANG['OrEnterNewName'] ?></label><input type="text" size="32" name="new_<?= $selectName ?>" value="<?= $filterName ?>">
+          <label for="<?= $selectName ?>"><?= $SLANG['SaveAs'] ?></label><?= buildSelect( $selectName, $filterNames ); ?><label for="<?= $newSelectName ?>"><?= $SLANG['OrEnterNewName'] ?></label><input type="text" size="32" name="<?= $newSelectName ?>" value="<?= requestVar('filterName') ?>">
         </p>
 <?php } else { ?>
         <p>
-          <label for="new_<?= $selectName ?>"><?= $SLANG['EnterNewFilterName'] ?></label><input type="text" size="32" name="new_<?= $selectName ?>" value="">
+          <label for="<?= $newSelectName ?>"><?= $SLANG['EnterNewFilterName'] ?></label><input type="text" size="32" name="<?= $newSelectName ?>" value="">
         </p>
 <?php } ?>
         <p>

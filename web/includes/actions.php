@@ -70,14 +70,14 @@ if ( !empty($action) )
             {
                 if ( !empty($_REQUEST['execute']) )
                     $tempFilterName = "_TempFilter".time();
-                if ( $tempFilterName )
+                if ( isset($tempFilterName) )
                     $filterName = $tempFilterName;
-                elseif ( $newFilterName )
-                    $filterName = $newFilterName;
+                elseif ( !empty($_REQUEST['newFilterName']) )
+                    $filterName = $_REQUEST['newFilterName'];
                 if ( !empty($filterName) )
                 {
                     $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['sort_field']);
-                    $_REQUEST['filter']['sort_asc'] .= validStr($_REQUEST['sort_asc']);
+                    $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['sort_asc']);
                     $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
                     dbQuery( "replace into Filters set Name = '".dbEscape($filterName)."', Query = '".dbEscape(serialize($_REQUEST['filter']))."', AutoArchive = '".dbEscape($_REQUEST['autoArchive'])."', AutoVideo = '".dbEscape($_REQUEST['autoVideo'])."', AutoUpload = '".dbEscape($_REQUEST['autoUpload'])."', AutoEmail = '".dbEscape($_REQUEST['autoEmail'])."', AutoMessage = '".dbEscape($_REQUEST['autoMessage'])."', AutoExecute = '".dbEscape($_REQUEST['autoExecute'])."', AutoExecuteCmd = '".dbEscape($_REQUEST['autoExecuteCmd'])."', AutoDelete = '".dbEscape($_REQUEST['autoDelete'])."', Background = '".dbEscape($_REQUEST['background'])."'" );
                     $refreshParent = true;

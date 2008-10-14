@@ -560,7 +560,7 @@ if ( !$server_up )
 
 				if ( $process->{keepalive} )
 				{
-					if ( !$process->{delay} || ($process->{runtime} > ZM_MAX_RESTART_DELAY)) )
+					if ( !$process->{delay} || ($process->{runtime} > ZM_MAX_RESTART_DELAY) )
 					{
 						#start( $process->{daemon}, @{$process->{args}} );
 						# Schedule for immediate restart

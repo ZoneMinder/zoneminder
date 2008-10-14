@@ -3,23 +3,20 @@
 header("Content-type: text/plain" );
 
 $response = array(
-    'result' => 'Ok',
+    'result' => 'Error',
 );
 
 if ( empty($_REQUEST['id']) )
 {
-    $response['result'] = 'Error';
     $response['message'] = 'No event id(s) supplied';
 }
-
-if ( $response['result'] != 'Error' )
+else
 {
     $refreshEvent = false;
     $refreshParent = false;
 
     if ( canEdit( 'Events' ) )
     {
-        $response['result'] = 'Ok';
         switch ( $_REQUEST['action'] )
         {
             case "rename" :
@@ -27,10 +24,10 @@ if ( $response['result'] != 'Error' )
                 if ( !empty($_REQUEST['eventName']) )
                 {
                     dbQuery( "update Events set Name = '".dbEscape($_REQUEST['eventName'])."' where Id = '".dbEscape($_REQUEST['id'])."'" );
+                    $response['result'] = 'Ok';
                 }
                 else
                 {
-                    $response['result'] = 'Error';
                     $response['message'] = 'No new event name supplied';
                 }
                 break;
@@ -38,6 +35,7 @@ if ( $response['result'] != 'Error' )
             case "eventdetail" :
             {
                 dbQuery( "update Events set Cause = '".dbEscape($_REQUEST['newEvent']['Cause'])."', Notes = '".dbEscape($_REQUEST['newEvent']['Notes'])."' where Id = '".dbEscape($_REQUEST['id'])."'" );
+                $response['result'] = 'Ok';
                 $refreshEvent = true;
                 $refreshParent = true;
                 break;
@@ -47,41 +45,34 @@ if ( $response['result'] != 'Error' )
             {
                 $archiveVal = ($_REQUEST['action'] == "archive")?1:0;
                 dbQuery( "update Events set Archived = ".$archiveVal." where Id = '".dbEscape($_REQUEST['id'])."'" );
+                $response['result'] = 'Ok';
                 $refreshEvent = true;
                 break;
             }
             case "delete" :
             {
                 deleteEvent( dbEscape($_REQUEST['id']) );
-                break;
-            }
-            default :
-            {
-                $response['result'] = 'Error';
+                $response['result'] = 'Ok';
                 break;
             }
         }
     }
     if ( canView( 'Events' ) )
     {
-        $response['result'] = 'Ok';
         switch ( $_REQUEST['action'] )
         {
             case "video" :
             {
                 if ( empty($_REQUEST['videoFormat']) )
                 {
-                    $response['result'] = 'Error';
                     $response['message'] = "Video Generation Failure, no format given";
                 }
                 elseif ( empty($_REQUEST['rate']) )
                 {
-                    $response['result'] = 'Error';
                     $response['message'] = "Video Generation Failure, no rate given";
                 }
                 elseif ( empty($_REQUEST['scale']) )
                 {
-                    $response['result'] = 'Error';
                     $response['message'] = "Video Generation Failure, no scale given";
                 }
                 else
@@ -89,7 +80,6 @@ if ( $response['result'] != 'Error' )
                     $sql = "select E.*,M.Name as MonitorName,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = ".dbEscape($_REQUEST['id']).monitorLimitSql();
                     if ( !($event = dbFetchOne( $sql )) )
                     {
-                        $response['result'] = 'Error';
                         $response['message'] = "Video Generation Failure, can't load event";
                     }
                     else
@@ -98,11 +88,11 @@ if ( $response['result'] != 'Error' )
                         {
                             //$eventPath = getEventPath( $event );
                             //$response['videoPath'] = $eventPath.'/'.$videoFile;
+                            $response['result'] = 'Ok';
                             $response['videoPath'] = $videoFile;
                         }
                         else
                         {
-                            $response['result'] = 'Error';
                             $response['message'] = "Video Generation Failed";
                         }
                     }
@@ -113,6 +103,7 @@ if ( $response['result'] != 'Error' )
             {
                 unlink( $videoFiles[$_REQUEST['id']] );
                 unset( $videoFiles[$_REQUEST['id']] );
+                $response['result'] = 'Ok';
                 break;
             }
             case "export" :
@@ -147,17 +138,12 @@ if ( $response['result'] != 'Error' )
                 if ( $exportFile = exportEvents( $_REQUEST['id'], $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat ) )
                 {
                     $response['exportFile'] = $exportFile;
+                    $response['result'] = 'Ok';
                 }
                 else
                 {
-                    $response['result'] = 'Error';
                     $response['message'] = 'Export Failed';
                 }
-                break;
-            }
-            default :
-            {
-                $response['result'] = 'Error';
                 break;
             }
         }
@@ -167,10 +153,9 @@ if ( $response['result'] != 'Error' )
         $response['refreshParent'] = $refreshParent;
         $response['refreshEvent'] = $refreshEvent;
     }
-    elseif ( !$response['message'] )
+    elseif ( empty($response['message']) )
         $response['message'] = 'Unrecognised action or insufficient permissions';
 }
-
 
 echo jsValue( $response );
 

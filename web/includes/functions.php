@@ -184,7 +184,34 @@ function outputVideoStream( $id, $src, $width, $height, $format, $title="" )
     if ( file_exists( $src ) )
         $mimeType = getMimeType( $src );
     else
-        $mimeType = getMimeType( 'zm.'.$format );
+    {
+        switch( $format )
+        {
+            case 'asf' :
+                $mimeType = "video/x-ms-asf";
+                break;
+            case 'avi' :
+            case 'wmv' :
+                $mimeType = "video/x-msvideo";
+                break;
+            case 'mov' :
+                $mimeType = "video/quicktime";
+                break;
+            case 'mpg' :
+            case 'mpeg' :
+                $mimeType = "video/mpeg";
+                break;
+            case 'swf' :
+                $mimeType = "application/x-shockwave-flash";
+                break;
+            case '3gp' :
+                $mimeType = "video/3gpp";
+                break;
+            default :
+                $mimeType = "video/$format";
+                break;
+        }
+    }
     if ( !$mimeType || ($mimeType == 'application/octet-stream') )
         $mimeType = 'video/'.$format;
     $objectTag = false;

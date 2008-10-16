@@ -21,22 +21,7 @@
 #define RTP_MIN_PACKET_LENGTH 12
 #define RTP_MAX_PACKET_LENGTH 1500 /* XXX: suppress this define */
 
-int rtp_get_codec_info(AVCodecContext *codec, int payload_type);
-
-/** return < 0 if unknown payload type */
-int rtp_get_payload_type(AVCodecContext *codec);
-
 typedef struct RTPDemuxContext RTPDemuxContext;
-typedef struct rtp_payload_data_s rtp_payload_data_s;
-RTPDemuxContext *rtp_parse_open(AVFormatContext *s1, AVStream *st, URLContext *rtpc, int payload_type, rtp_payload_data_s *rtp_payload_data);
-int rtp_parse_packet(RTPDemuxContext *s, AVPacket *pkt,
-                     const uint8_t *buf, int len);
-void rtp_parse_close(RTPDemuxContext *s);
-
-int rtp_get_local_port(URLContext *h);
-int rtp_set_remote_url(URLContext *h, const char *uri);
-void rtp_get_file_handles(URLContext *h, int *prtp_fd, int *prtcp_fd);
-
 /**
  * some rtp servers assume client is dead if they don't hear from them...
  * so we send a Receiver Report to the provided ByteIO context
@@ -84,7 +69,6 @@ typedef struct rtp_payload_data_s
 //
 
 #include <stdint.h>
-//#include "rtp.h"
 
 // these statistics are used for rtcp receiver reports...
 typedef struct {
@@ -178,7 +162,7 @@ struct RTPDemuxContext {
 
 extern RTPDynamicProtocolHandler *RTPFirstDynamicPayloadHandler;
 
-int rtsp_next_attr_and_value(const char **p, char *attr, int attr_size, char *value, int value_size); ///< from rtsp.c, but used by rtp dynamic protocol handlers.
+int rtsp_next_attr_and_value(const char **p, char *attr, int attr_size, char *value, int value_size); ///< from rtsp.c, but used by rtp dynamic protocol handlers
 
 void ff_rtp_send_data(AVFormatContext *s1, const uint8_t *buf1, int len, int m);
 const char *ff_rtp_enc_name(int payload_type);
@@ -186,9 +170,17 @@ enum CodecID ff_rtp_codec_id(const char *buf, enum CodecType codec_type);
 
 void av_register_rtp_dynamic_payload_handlers(void);
 
-// //
+//
+// Part of libavformat/rtp.h
+//
+
+typedef struct PayloadContext PayloadContext;
+
+int rtp_get_codec_info(AVCodecContext *codec, int payload_type);
+
+//
 // Part of libavformat/rtsp.c
-// //
+//
 
 #include <sys/time.h>
 #include <unistd.h> /* for select() prototype */
@@ -200,6 +192,18 @@ enum RTSPClientState {
     RTSP_STATE_IDLE,
     RTSP_STATE_PLAYING,
     RTSP_STATE_PAUSED,
+};
+
+enum RTSPServerType {
+    RTSP_SERVER_RTP,  /*< Standard-compliant RTP-server */
+    RTSP_SERVER_REAL, /*< Realmedia-style server */
+    RTSP_SERVER_LAST
+};
+
+enum RTSPTransport {
+    RTSP_TRANSPORT_RTP,
+    RTSP_TRANSPORT_RDT,
+    RTSP_TRANSPORT_LAST
 };
 
 typedef struct RTSPState {
@@ -214,9 +218,12 @@ typedef struct RTSPState {
     //    ByteIOContext rtsp_gb;
     int seq;        /* RTSP command sequence number */
     char session_id[512];
-    enum RTSPProtocol protocol;
+    enum RTSPTransport transport;
+    enum RTSPLowerTransport lower_transport;
+    enum RTSPServerType server_type;
     char last_reply[2048]; /* XXX: allocate ? */
-    RTPDemuxContext *cur_rtp;
+    void *cur_tx;
+    int need_subscription;
 } RTSPState;
 
 //

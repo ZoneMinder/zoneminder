@@ -30,7 +30,9 @@
 #include "zm_local_camera.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
+#if HAVE_LIBAVFORMAT
 #include "zm_remote_camera_rtsp.h"
+#endif // HAVE_LIBAVFORMAT
 #include "zm_file_camera.h"
 
 #if ZM_MEM_MAPPED
@@ -1906,6 +1908,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
                 purpose==CAPTURE
             );
         }
+#if HAVE_LIBAVFORMAT
         else if ( protocol == "rtsp" )
         {
             camera = new RemoteCameraRtsp(
@@ -1925,6 +1928,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
                 purpose==CAPTURE
             );
         }
+#endif // HAVE_LIBAVFORMAT
         else
         {
             Fatal( "Unexpected remote camera protocol '%s'", protocol.c_str() );
@@ -2217,6 +2221,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                     purpose==CAPTURE
                 );
             }
+#if HAVE_LIBAVFORMAT
             else if ( protocol == "rtsp" )
             {
                 camera = new RemoteCameraRtsp(
@@ -2236,6 +2241,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                     purpose==CAPTURE
                 );
             }
+#endif // HAVE_LIBAVFORMAT
             else
 		    {
 			    Fatal( "Unexpected remote camera protocol '%s' for monitor %d", protocol.c_str(), id );

@@ -17,6 +17,10 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+#include "zm.h"
+
+#if HAVE_LIBAVFORMAT
+
 #include "zm_rtsp.h"
 
 #include "zm_rtp_data.h"
@@ -646,3 +650,5 @@ int RtspThread::run()
 
     return( 0 );
 }
+
+#endif // HAVE_LIBAVFORMAT

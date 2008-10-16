@@ -17,8 +17,11 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-#include "zm_remote_camera_rtsp.h"
 #include "zm.h"
+
+#if HAVE_LIBAVFORMAT
+
+#include "zm_remote_camera_rtsp.h"
 #include "zm_ffmpeg.h"
 #include "zm_mem_utils.h"
 extern "C" {
@@ -254,3 +257,4 @@ int RemoteCameraRtsp::PostCapture( Image &image )
     return( -1 );
 }
 
+#endif // HAVE_LIBAVFORMAT

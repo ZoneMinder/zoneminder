@@ -1,32 +1,21 @@
 <?php
-if ( !canView( 'Stream' ) )
-{
-    $view = "error";
-    return;
-}
-
-error_reporting( E_ALL );
 
 define( "MSG_TIMEOUT", 2.0 );
 define( "MSG_DATA_SIZE", 4+256 );
 
-header("Content-type: text/plain" );
 if ( !($_REQUEST['connkey'] && $_REQUEST['command']) )
 {
-    error_log( "No connection key or command supplied" );
-    return;
+    ajaxError( "Unexpected received message type '$type'" );
 }
 
-if ( !($socket = socket_create( AF_UNIX, SOCK_DGRAM, 0 )) )
+if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) )
 {
-    error_log( "socket_create() failed: ".socket_strerror(socket_last_error()) );
-    return;
+    ajaxError( "socket_create() failed: ".socket_strerror(socket_last_error()) );
 }
 $locSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.sock';
-if ( !socket_bind( $socket, $locSockFile ) )
+if ( !@socket_bind( $socket, $locSockFile ) )
 {
-    error_log( "socket_bind() failed: ".socket_strerror(socket_last_error()) );
-    return;
+    ajaxError( "socket_bind() failed: ".socket_strerror(socket_last_error()) );
 }
 
 switch ( $_REQUEST['command'] )
@@ -55,48 +44,40 @@ switch ( $_REQUEST['command'] )
 $remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'s.sock';
 if ( !@socket_sendto( $socket, $msg, strlen($msg), 0, $remSockFile ) )
 {
-    error_log( "socket_sendto() failed: ".socket_strerror(socket_last_error()) );
-    return;
+    ajaxError( "socket_sendto() failed: ".socket_strerror(socket_last_error()) );
 }
 
 $rSockets = array( $socket );
 $wSockets = NULL;
 $eSockets = NULL;
-$numSockets = socket_select( $rSockets, $wSockets, $eSockets, MSG_TIMEOUT );
+$numSockets = @socket_select( $rSockets, $wSockets, $eSockets, MSG_TIMEOUT );
 
 if ( $numSockets === false)
 {
-    error_log( "Timed out waiting for msg" );
-    return;
+    ajaxError( "Timed out waiting for msg"  );
 }
 else if ( $numSockets > 0 )
 {
     if ( count($rSockets) != 1 )
-    {
-        error_log( "Bogus return from select" );
-        return;
-    }
+        ajaxError( "Bogus return from select" );
 }
 
-switch( $nbytes = socket_recvfrom( $socket, $msg, MSG_DATA_SIZE, 0, $rem_addr ) )
+switch( $nbytes = @socket_recvfrom( $socket, $msg, MSG_DATA_SIZE, 0, $rem_addr ) )
 {
     case -1 :
     {
-        error_log( "socket_recvfrom() failed: ".socket_strerror(socket_last_error()) );
-        return;
+        ajaxError( "socket_sendto() failed: ".socket_strerror(socket_last_error()) );
+        break;
     }
     case 0 :
     {
-        error_log( "No data to read from socket" );
-        return;
+        ajaxError( "No data to read from socket" );
+        break;
     }
     default :
     {
         if ( $nbytes != MSG_DATA_SIZE )
-        {
-            error_log( "Got unexpected message size, got $nbytes, expected ".MSG_DATA_SIZE );
-            return;
-        }
+            ajaxError( "Got unexpected message size, got $nbytes, expected ".MSG_DATA_SIZE );
         break;
     }
 }
@@ -111,6 +92,7 @@ switch ( $data['type'] )
         $data['rate'] /= 100;
         $data['delay'] = sprintf( "%.2f", $data['delay'] );
         $data['zoom'] = sprintf( "%.1f", $data['zoom']/100 );
+        ajaxResponse( array( 'status'=>$data ) );
         break;
     }
     case MSG_DATA_EVENT :
@@ -119,21 +101,23 @@ switch ( $data['type'] )
         //$data['progress'] = sprintf( "%.2f", $data['progress'] );
         $data['rate'] /= 100;
         $data['zoom'] = sprintf( "%.1f", $data['zoom']/100 );
+        ajaxResponse( array( 'status'=>$data ) );
         break;
     }
     default :
     {
-        error_log( "Unexpected received message type '$type'" );
-        $response = array( 'result'=>'Error', 'message' => "Unexpected received message type '$type'" );
-        echo jsValue( $response );
-        return;
+        ajaxError( "Unexpected received message type '$type'" );
     }
 }
 
-$response = array( 'result'=>'Ok', 'status' => $data );
-echo jsValue( $response );
+ajaxError( 'Unrecognised action or insufficient permissions' );
 
-socket_close( $socket );
-unlink( $locSockFile );
-
+function ajaxCleanup()
+{
+    global $socket, $locSockFile;
+    if ( !empty( $socket ) )
+        @socket_close( $socket );
+    if ( !empty( $locSockFile ) )
+        @unlink( $locSockFile );
+}
 ?>

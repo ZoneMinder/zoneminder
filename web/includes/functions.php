@@ -2134,6 +2134,41 @@ function jsValue( &$value )
     }
 }
 
+define( 'HTTP_STATUS_OK', 200 );
+define( 'HTTP_STATUS_BAD_REQUEST', 400 );
+define( 'HTTP_STATUS_FORBIDDEN', 403 );
+
+function ajaxError( $message, $code=HTTP_STATUS_OK )
+{
+    error_log( $message );
+    if ( function_exists( 'debug_backtrace' ) )
+        error_log( var_export( debug_backtrace(), true ) );
+    if ( function_exists( 'ajaxCleanup' ) )
+        ajaxCleanup();
+    if ( $code == HTTP_STATUS_OK )
+    {
+        $response = array( 'result'=>'Error', 'message'=>$message );
+        header( "Content-type: text/plain" );
+        exit( jsValue( $response ) );
+    }
+    header( "HTTP/1.0 $code $message" );
+    exit();
+}
+
+function ajaxResponse( $result=false )
+{
+    if ( function_exists( 'ajaxCleanup' ) )
+        ajaxCleanup();
+    $response = array( 'result'=>'Ok' );
+    if ( is_array( $result ) )
+        $response = array_merge( $response, $result );
+    elseif ( !empty($result) )
+        $response['message'] = $result;
+    //error_log( var_export( $response, true ) );
+    header( "Content-type: text/plain" );
+    exit( jsValue( $response ) );
+}
+
 function generateConnKey()
 {
     return( rand( 1, 999999 ) );

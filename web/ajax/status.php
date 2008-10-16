@@ -163,13 +163,6 @@ $statusData = array(
     )
 );
 
-function throwError( $message, $code=400 )
-{
-    error_log( $message );
-    header( "HTTP/1.0 $code $message" );
-    exit();
-}
-
 function collectData()
 {
     global $statusData;
@@ -177,10 +170,7 @@ function collectData()
     $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
     #print_r( $entitySpec );
     if ( !canView( $entitySpec['permission'] ) )
-    {
-        error_log( "Invalid permissions" );
-        return;
-    }
+        ajaxError( 'Unrecognised action or insufficient permissions' );
 
     if ( !empty($entitySpec['func']) )
     {
@@ -220,7 +210,7 @@ function collectData()
         foreach ( $_REQUEST['element'] as $element )
         {
             if ( !($elementData = $lc_elements[strtolower($element)]) )
-                throwError( "Bad ".validJsStr($_REQUEST['entity'])." element ".$element );
+                ajaxError( "Bad ".validJsStr($_REQUEST['entity'])." element ".$element );
             if ( isset($elementData['func']) )
                 $data[$element] = eval( "return( ".$elementData['func']." );" );
             else if ( isset($elementData['postFunc']) )
@@ -323,11 +313,10 @@ switch( $_REQUEST['layout'] )
     }
     case 'json' :
     {
-        header("Content-type: text/plain" );
-        $response = array( 'result'=>'Ok', strtolower(validJsStr($_REQUEST['entity'])) => $data );
+        $response = array( strtolower(validJsStr($_REQUEST['entity'])) => $data );
         if ( isset($_REQUEST['loopback']) )
             $response['loopback'] = validJsStr($_REQUEST['loopback']);
-        echo jsValue( $response );
+        ajaxResponse( $response );
         break;
     }
     case 'text' :

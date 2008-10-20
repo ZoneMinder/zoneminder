@@ -211,6 +211,21 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
               <td><?= buildSelect( "filter[terms][$i][val]", $weekdays ); ?></td>
 <?php
         }
+        elseif ( false && $_REQUEST['filter']['terms'][$i]['attr'] == "MonitorName" )
+        {
+            $monitors = array();
+            foreach ( dbFetchAll( "select Id,Name from Monitors order by Sequence asc" ) as $monitor )
+            {
+                if ( visibleMonitor( $monitor['Id'] ) )
+                {
+                    $monitors[$monitor['Name']] = $monitor['Name'];
+                }
+            }
+?>
+              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><?= buildSelect( "filter[terms][$i][val]", $monitors ); ?></td>
+<?php
+        }
         else
         {
 ?>
@@ -240,7 +255,7 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
           <tbody>
             <tr>
               <td><label for="sort_field"><?= $SLANG['SortBy'] ?></label><?= buildSelect( "sort_field", $sort_fields ); ?><?= buildSelect( "sort_asc", $sort_dirns ); ?></td>
-              <td><label for="limit"><?= $SLANG['LimitResultsPre'] ?></label><input type="text" size="6" name="limit" value="<?= isset($_REQUEST['limit'])?validInt($_REQUEST['limit']):"" ?>"/><?= $SLANG['LimitResultsPost'] ?></td>
+              <td><label for="limit"><?= $SLANG['LimitResultsPre'] ?></label><input type="text" size="6" id="limit" name="limit" value="<?= isset($_REQUEST['limit'])?validInt($_REQUEST['limit']):"" ?>"/><?= $SLANG['LimitResultsPost'] ?></td>
             </tr>
           </tbody>
         </table>

@@ -41,14 +41,16 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
 ?>
     return( true );
 }
-</script>
 <?php
 if ( !empty($hasCal) )
 {
 ?>
+</script>
 <style type="text/css">@import url(tools/jscalendar/calendar-win2k-1.css);</style>
 <script type="text/javascript" src="tools/jscalendar/calendar.js"></script>
 <script type="text/javascript" src="tools/jscalendar/lang/calendar-en.js"></script>
 <script type="text/javascript" src="tools/jscalendar/calendar-setup.js"></script>
+<script type="text/javascript">
+// Empty
 <?php
 }

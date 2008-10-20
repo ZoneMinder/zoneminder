@@ -59,7 +59,7 @@ if ( !empty($action) )
     {
         if ( $action == "filter" )
         {
-            if ( isset($_REQUEST['subaction']) )
+            if ( !empty($_REQUEST['subaction']) )
             {
                 if ( $_REQUEST['subaction'] == "addterm" )
                     $_REQUEST['filter'] = addFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
@@ -79,7 +79,24 @@ if ( !empty($action) )
                     $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['sort_field']);
                     $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['sort_asc']);
                     $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
-                    dbQuery( "replace into Filters set Name = '".dbEscape($filterName)."', Query = '".dbEscape(serialize($_REQUEST['filter']))."', AutoArchive = '".dbEscape($_REQUEST['autoArchive'])."', AutoVideo = '".dbEscape($_REQUEST['autoVideo'])."', AutoUpload = '".dbEscape($_REQUEST['autoUpload'])."', AutoEmail = '".dbEscape($_REQUEST['autoEmail'])."', AutoMessage = '".dbEscape($_REQUEST['autoMessage'])."', AutoExecute = '".dbEscape($_REQUEST['autoExecute'])."', AutoExecuteCmd = '".dbEscape($_REQUEST['autoExecuteCmd'])."', AutoDelete = '".dbEscape($_REQUEST['autoDelete'])."', Background = '".dbEscape($_REQUEST['background'])."'" );
+                    $sql = "replace into Filters set Name = '".dbEscape($filterName)."', Query = '".dbEscape(serialize($_REQUEST['filter']))."'";
+                    if ( !empty($_REQUEST['autoArchive']) )
+                        $sql .= ", AutoArchive = '".dbEscape($_REQUEST['autoArchive'])."'";
+                    if ( !empty($_REQUEST['autoVideo']) )
+                        $sql .= ", AutoVideo = '".dbEscape($_REQUEST['autoVideo'])."'";
+                    if ( !empty($_REQUEST['autoUpload']) )
+                        $sql .= ", AutoUpload = '".dbEscape($_REQUEST['autoUpload'])."'";
+                    if ( !empty($_REQUEST['autoEmail']) )
+                        $sql .= ", AutoEmail = '".dbEscape($_REQUEST['autoEmail'])."'";
+                    if ( !empty($_REQUEST['autoMessage']) )
+                        $sql .= ", AutoMessage = '".dbEscape($_REQUEST['autoMessage'])."'";
+                    if ( !empty($_REQUEST['autoExecute']) && !empty($_REQUEST['autoExecuteCmd']) )
+                        $sql .= ", AutoExecute = '".dbEscape($_REQUEST['autoExecute'])."', AutoExecuteCmd = '".dbEscape($_REQUEST['autoExecuteCmd'])."'";
+                    if ( !empty($_REQUEST['autoDelete']) )
+                        $sql .= ", AutoDelete = '".dbEscape($_REQUEST['autoDelete'])."'";
+                    if ( !empty($_REQUEST['background']) )
+                        $sql .= ", Background = '".dbEscape($_REQUEST['background'])."'";
+                    dbQuery( $sql );
                     $refreshParent = true;
                 }
             }

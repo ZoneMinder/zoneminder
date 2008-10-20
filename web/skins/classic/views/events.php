@@ -26,7 +26,7 @@ if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')
 
 if ( !empty($_REQUEST['execute']) )
 {
-    executeFilter( $_REQUEST['filterName'] );
+    executeFilter( $tempFilterName );
 }
 
 $countSql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";

@@ -213,6 +213,7 @@ public:
 
     void start();
     void join();
+    void kill( int signal );
     bool isThread()
     {
         return( mPid > -1 && pthread_equal( pthread_self(), mThread ) );

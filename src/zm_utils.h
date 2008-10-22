@@ -33,4 +33,14 @@ StringVector split( const std::string &string, const std::string chars );
 
 const std::string base64Encode( const std::string &inString );
 
+inline int max( int a, int b )
+{
+    return( a>=b?a:b );
+}
+
+inline int min( int a, int b )
+{
+    return( a<=b?a:b );
+}
+
 #endif // ZM_UTILS_H

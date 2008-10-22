@@ -81,6 +81,8 @@ int RtpDataThread::run()
     unsigned char buffer[BUFSIZ];
     while ( !mStop && select.wait() >= 0 )
     {
+         if ( mStop )
+            break;
          Select::CommsList readable = select.getReadable();
          if ( readable.size() == 0 )
          {

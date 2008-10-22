@@ -28,6 +28,7 @@
 #include "zm_db.h"
 
 #include <sys/time.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <errno.h>
 
@@ -40,11 +41,11 @@ bool RtspThread::sendCommand( std::string message )
     if ( !mAuth.empty() )
         message += stringtf( "Authorization: Basic %s\r\n", mAuth.c_str() );
     message += stringtf( "CSeq: %d\r\n\r\n", ++mSeq );
-    Debug( 4, "Sending RTSP message: %s", message.c_str() );
+    Debug( 2, "Sending RTSP message: %s", message.c_str() );
     if ( mMethod == RTP_RTSP_HTTP )
     {
         message = base64Encode( message );
-        Debug( 4, "Sending encoded RTSP message: %s", message.c_str() );
+        Debug( 2, "Sending encoded RTSP message: %s", message.c_str() );
         if ( mRtspSocket2.send( message.c_str(), message.size() ) != (int)message.length() )
         {
             Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
@@ -66,13 +67,22 @@ bool RtspThread::recvResponse( std::string &response )
 {
     if ( mRtspSocket.recv( response ) < 0 )
         Error( "Recv failed; %s", strerror(errno) );
-    Debug( 4, "Received RTSP response: %s (%d bytes)", response.c_str(), response.size() );
+    Debug( 2, "Received RTSP response: %s (%d bytes)", response.c_str(), response.size() );
     float respVer = 0;
     int respCode = -1;
     char respText[BUFSIZ];
     if ( sscanf( response.c_str(), "RTSP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 )
     {
-        Error( "Response parse failure in '%s'", response.c_str() );
+        if ( isalnum(response[0]) )
+        {
+            Error( "Response parse failure in '%s'", response.c_str() );
+        }
+        else
+        {
+            Error( "Response parse failure, %d bytes follow", response.size() );
+            if ( response.size() )
+                Hexdump( ZM_DBG_ERR, response.data(), min(response.size(),16) );
+        }
         return( false );
     }
     if ( respCode != 200 )
@@ -209,7 +219,7 @@ int RtspThread::run()
         if ( !mAuth.empty() )
             message += stringtf( "Authorization: Basic %s\r\n", mAuth.c_str() );
         message += "\r\n";
-        Debug( 4, "Sending HTTP message: %s", message.c_str() );
+        Debug( 2, "Sending HTTP message: %s", message.c_str() );
         if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() )
         {
             Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
@@ -221,13 +231,22 @@ int RtspThread::run()
             return( -1 );
         }
 
-        Debug( 4, "Received HTTP response: %s (%d bytes)", response.c_str(), response.size() );
+        Debug( 2, "Received HTTP response: %s (%d bytes)", response.c_str(), response.size() );
         float respVer = 0;
         int respCode = -1;
         char respText[256];
         if ( sscanf( response.c_str(), "HTTP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 )
         {
-            Error( "Response parse failure in '%s'", response.c_str() );
+            if ( isalnum(response[0]) )
+            {
+                Error( "Response parse failure in '%s'", response.c_str() );
+            }
+            else
+            {
+                Error( "Response parse failure, %d bytes follow", response.size() );
+                if ( response.size() )
+                    Hexdump( ZM_DBG_ERR, response.data(), min(response.size(),16) );
+            }
             return( -1 );
         }
         if ( respCode != 200 )
@@ -243,7 +262,7 @@ int RtspThread::run()
         message += "Content-Length: 32767\r\n";
         message += "Content-Type: application/x-rtsp-tunnelled\r\n";
         message += "\r\n";
-        Debug( 4, "Sending HTTP message: %s", message.c_str() );
+        Debug( 2, "Sending HTTP message: %s", message.c_str() );
         if ( mRtspSocket2.send( message.c_str(), message.size() ) != (int)message.length() )
         {
             Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
@@ -451,12 +470,13 @@ int RtspThread::run()
             {
                 usleep( 100000 );
             }
-
+#if 0
             message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
             if ( !sendCommand( message ) )
                 return( -1 );
             if ( !recvResponse( response ) )
                 return( -1 );
+#endif
 
             message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
             if ( !sendCommand( message ) )
@@ -466,6 +486,9 @@ int RtspThread::run()
 
             rtpDataThread.stop();
             rtpCtrlThread.stop();
+
+            rtpDataThread.kill( SIGTERM );
+            rtpCtrlThread.kill( SIGTERM );
 
             rtpDataThread.join();
             rtpCtrlThread.join();

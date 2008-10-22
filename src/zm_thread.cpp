@@ -23,6 +23,7 @@
 #include "zm_utils.h"
 
 #include <string.h>
+#include <signal.h>
 #include <errno.h>
 #include <sys/time.h>
 
@@ -323,6 +324,11 @@ void Thread::join()
     }
     mThreadMutex.unlock();
     Debug( 1, "Joined thread %d", mPid );
+}
+
+void Thread::kill( int signal )
+{
+    pthread_kill( mThread, signal );
 }
 
 // Some explicit template instantiations

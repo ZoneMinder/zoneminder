@@ -103,8 +103,8 @@ while( 1 )
 			}
 			else
 			{
-				Info( "Restarting capture daemon for ".$monitor->{Name}.", shared data not valid\n" );
-                $restart = 1;
+				#Info( "Restarting capture daemon for ".$monitor->{Name}.", shared data not valid\n" );
+                #$restart = 1;
 			}
 
             if ( $restart )

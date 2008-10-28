@@ -729,7 +729,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
     }
     foreach( $values as $key=>$value )
     {
-        if ( $columns[$key] && $types[$key] == 'toggle' )
+        if ( !empty($columns[$key]) && !empty($types[$key]) && $types[$key] == 'toggle' )
         {
             if ( isset($newValues[$key]) && !empty($value) )
             {

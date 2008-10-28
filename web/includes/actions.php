@@ -1106,11 +1106,11 @@ if ( !empty($action) )
                     $mid = validInt($_REQUEST['mid']);
                     $sql = "update Monitors set ".implode( ", ", $changes )." where Id = '".dbEscape($mid)."'";
                     dbQuery( $sql );
-                    if ( $changes['Name'] )
+                    if ( isset($changes['Name']) )
                     {
                         exec( escapeshellcmd( "mv ".ZM_DIR_EVENTS."/".$monitor['Name']." ".ZM_DIR_EVENTS."/".$_REQUEST['newMonitor']['Name'] ) );
                     }
-                    if ( $changes['Width'] || $changes['Height'] )
+                    if ( isset($changes['Width']) || isset($changes['Height']) )
                     {
                         $newW = $_REQUEST['newMonitor']['Width'];
                         $newH = $_REQUEST['newMonitor']['Height'];

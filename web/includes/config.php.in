@@ -42,6 +42,11 @@ fclose( $cfg );
 define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );               // Local path to the ZoneMinder Utility
 
 //
+// If setup supports Video 4 Linux v2
+//
+define( "ZM_V4L2", "@ZM_V4L2@" );                       // V4L2 support enabled
+
+//
 // Alarm states
 //
 define( "STATE_IDLE", 0 );

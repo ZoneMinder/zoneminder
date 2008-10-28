@@ -51,7 +51,7 @@ else
     $monitor = array(
         'Id' => 0,
         'Name' => $SLANG['New'],
-        'Function' => "None",
+        'Function' => "Monitor",
         'Enabled' => true,
         'LinkedMonitors' => "",
         'Type' => "Local",
@@ -148,6 +148,11 @@ $sourceTypes = array(
     'Remote' => $SLANG['Remote'],
     'File'   => $SLANG['File']
 );
+
+$localMethods = array();
+if ( ZM_V4L2 )
+    $localMethods['v4l2'] = "Video For Linux version 2";
+$localMethods['v4l1'] = "Video For Linux version 1";
 
 $remoteProtocols = array(
     "http" => "HTTP",
@@ -287,17 +292,22 @@ if ( $tab != 'source' || $newMonitor['Type'] != 'Local' )
 if ( $tab != 'source' || $newMonitor['Type'] != 'Remote' )
 {
 ?>
+    <input type="hidden" name="newMonitor[Protocol]" value="<?= validHtmlStr($newMonitor['Protocol']) ?>"/>
     <input type="hidden" name="newMonitor[Host]" value="<?= validHtmlStr($newMonitor['Host']) ?>"/>
     <input type="hidden" name="newMonitor[Port]" value="<?= validHtmlStr($newMonitor['Port']) ?>"/>
+    <input type="hidden" name="newMonitor[SubPath]" value="<?= validHtmlStr($newMonitor['SubPath']) ?>"/>
+<?php
+}
+if ( $tab != 'source' || ($newMonitor['Type'] != 'Local' && $newMonitor['Type'] != 'Remote') )
+{
+?>
+    <input type="hidden" name="newMonitor[Method]" value="<?= validHtmlStr($newMonitor['Method']) ?>"/>
 <?php
 }
 if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'File') )
 {
 ?>
-    <input type="hidden" name="newMonitor[Protocol]" value="<?= validHtmlStr($newMonitor['Protocol']) ?>"/>
-    <input type="hidden" name="newMonitor[Method]" value="<?= validHtmlStr($newMonitor['Method']) ?>"/>
     <input type="hidden" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>"/>
-    <input type="hidden" name="newMonitor[SubPath]" value="<?= validHtmlStr($newMonitor['SubPath']) ?>"/>
 <?php
 }
 if ( $tab != 'source' )
@@ -460,6 +470,7 @@ switch ( $tab )
             <tr><td><?= $SLANG['DevicePath'] ?></td><td><input type="text" name="newMonitor[Device]" value="<?= validHtmlStr($newMonitor['Device']) ?>" size="24"/></td></tr>
             <tr><td><?= $SLANG['DeviceChannel'] ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $deviceChannels as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
             <tr><td><?= $SLANG['DeviceFormat'] ?></td><td><select name="newMonitor[Format]"><?php foreach ( $deviceFormats as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Format'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?= $SLANG['CaptureMethod'] ?></td><td><?= buildSelect( "newMonitor[Method]", $localMethods ); ?></td></tr>
             <tr><td><?= $SLANG['CapturePalette'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $localPalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
         }

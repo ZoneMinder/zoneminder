@@ -194,6 +194,7 @@ $SLANG = array(
     'CanZoomCon'            => 'Can Zoom Continuous',
     'CanZoomRel'            => 'Can Zoom Relative',
     'CaptureHeight'         => 'Capture Height',
+    'CaptureMethod'         => 'Capture Method',
     'CapturePalette'        => 'Capture Palette',
     'CaptureWidth'          => 'Capture Width',
     'Cause'                 => 'Cause',

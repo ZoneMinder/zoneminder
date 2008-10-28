@@ -1032,7 +1032,7 @@ function zmaCheck( $monitor )
     return( daemonCheck( "zma", "-m $monitor" ) );
 }
 
-function getImageSrc( $event, $frame, $scale, $captureOnly=false, $overwrite=false )
+function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false )
 {
     $eventPath = getEventPath( $event );
 

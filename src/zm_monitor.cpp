@@ -1435,7 +1435,7 @@ bool Monitor::Analyse()
 						{
 							if ( config.bulk_frame_interval > 1 )
 							{
-								event->AddFrame( snap_image, *timestamp, -1 );
+								event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
 							}
 							else
 							{

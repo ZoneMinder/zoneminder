@@ -69,6 +69,7 @@ int main( int argc, const char *argv[] )
 	char password[64] = "";
 	char auth[64] = "";
     unsigned int connkey = 0;
+    unsigned int playback_buffer = 0;
 
 	bool nph = false;
 	const char *basename = strrchr( argv[0], '/' );
@@ -145,6 +146,8 @@ int main( int argc, const char *argv[] )
 			}
 			else if ( !strcmp( name, "connkey" ) )
 				connkey = atoi(value);
+			else if ( !strcmp( name, "buffer" ) )
+				playback_buffer = atoi(value);
 			else if ( config.opt_use_auth )
 			{
 				if ( strcmp( config.auth_relay, "none" ) == 0 )
@@ -245,6 +248,7 @@ int main( int argc, const char *argv[] )
         stream.setStreamMaxFPS( maxfps );
         stream.setStreamTTL( ttl );
         stream.setStreamQueue( connkey );
+        stream.setStreamBuffer( playback_buffer );
         stream.setStreamStart( monitor_id );
 
         if ( mode == ZMS_JPEG )
@@ -305,7 +309,7 @@ int main( int argc, const char *argv[] )
             stream.setStreamType( EventStream::STREAM_MPEG );
 #else // HAVE_LIBAVCODEC
             Error( "MPEG streaming of '%s' attempted while disabled", query );
-            fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
+            fprintf( stderr, "MPEG streaming is disabled.\nYou should ensure the ffmpeg libraries are installed and detected and rebuild to use this functionality.\n" );
             return( -1 );
 #endif // HAVE_LIBAVCODEC
         }

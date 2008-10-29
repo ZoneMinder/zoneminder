@@ -196,7 +196,7 @@ protected:
 	int				warmup_count;		    // How many images to process before looking for events
 	int				pre_event_count;	    // How many images to hold and prepend to an alarm event
 	int				post_event_count;	    // How many unalarmed images must occur before the alarm state is reset
-	int				stream_replay_buffer;   // How many frames to store to support DVR functions
+	int				stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
 	int				section_length;		    // How long events should last in continuous modes
 	int				frame_skip;			    // How many frames to skip in continuous modes
 	int				capture_delay;		    // How long we wait between capture frames
@@ -385,7 +385,7 @@ protected:
     time_t ttl;
 
 protected:
-    bool buffer_playback;
+    int playback_buffer;
     bool delayed;
 
     int frame_count;
@@ -400,9 +400,13 @@ protected:
 public:
     MonitorStream()
     {
-        buffer_playback = false;
+        playback_buffer = 0;
         delayed = false;
         frame_count = 0;
+    }
+    void setStreamBuffer( int p_playback_buffer )
+    {
+        playback_buffer = p_playback_buffer;
     }
     void setStreamTTL( time_t p_ttl )
     {

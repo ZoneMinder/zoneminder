@@ -15,7 +15,7 @@ if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) )
 $locSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.sock';
 if ( !@socket_bind( $socket, $locSockFile ) )
 {
-    ajaxError( "socket_bind() failed: ".socket_strerror(socket_last_error()) );
+    ajaxError( "socket_bind( $lockSockFile ) failed: ".socket_strerror(socket_last_error()) );
 }
 
 switch ( $_REQUEST['command'] )
@@ -44,7 +44,7 @@ switch ( $_REQUEST['command'] )
 $remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'s.sock';
 if ( !@socket_sendto( $socket, $msg, strlen($msg), 0, $remSockFile ) )
 {
-    ajaxError( "socket_sendto() failed: ".socket_strerror(socket_last_error()) );
+    ajaxError( "socket_sendto( $remSockFile ) failed: ".socket_strerror(socket_last_error()) );
 }
 
 $rSockets = array( $socket );
@@ -62,11 +62,11 @@ else if ( $numSockets > 0 )
         ajaxError( "Bogus return from select" );
 }
 
-switch( $nbytes = @socket_recvfrom( $socket, $msg, MSG_DATA_SIZE, 0, $rem_addr ) )
+switch( $nbytes = @socket_recvfrom( $socket, $msg, MSG_DATA_SIZE, 0, $remSockFile ) )
 {
     case -1 :
     {
-        ajaxError( "socket_sendto() failed: ".socket_strerror(socket_last_error()) );
+        ajaxError( "socket_recvfrom( $remSockFile ) failed: ".socket_strerror(socket_last_error()) );
         break;
     }
     case 0 :

@@ -8,7 +8,7 @@ function Monitor( index, id, connKey )
     this.lastAlarmState = STATE_IDLE;
     this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
     this.streamCmdTimer = null;
-    
+
     this.start = function( delay )
     {
         this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
@@ -22,50 +22,60 @@ function Monitor( index, id, connKey )
         if ( !respText )
             return;
         var response = Json.evaluate( respText );
-        this.status = response.status;
-        this.alarmState = this.status.state;
-        var stateClass = "";
-        if ( this.alarmState == STATE_ALARM )
-            stateClass = "alarm";
-        else if ( this.alarmState == STATE_ALERT )
-            stateClass = "alert";
-        else
-            stateClass = "idle";
-
-        if ( !COMPACT_MONTAGE )
+        if ( response.result == 'Ok' )
         {
-            $('fpsValue'+this.index).setText( this.status.fps );
-            $('stateValue'+this.index).setText( stateStrings[this.alarmState] );
-            $('monitorState'+this.index).setProperty( 'class', stateClass );
-        }
-        $('monitor'+this.index).setProperty( 'class', stateClass );
-        $('imageFeed'+this.index).getElement( 'img' ).setProperty( 'class', stateClass );
+            this.status = response.status;
+            this.alarmState = this.status.state;
+            var stateClass = "";
+            if ( this.alarmState == STATE_ALARM )
+                stateClass = "alarm";
+            else if ( this.alarmState == STATE_ALERT )
+                stateClass = "alert";
+            else
+                stateClass = "idle";
 
-        var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
-        var wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
+            if ( !COMPACT_MONTAGE )
+            {
+                $('fpsValue'+this.index).setText( this.status.fps );
+                $('stateValue'+this.index).setText( stateStrings[this.alarmState] );
+                $('monitorState'+this.index).setProperty( 'class', stateClass );
+            }
+            $('monitor'+this.index).setProperty( 'class', stateClass );
+            var stream = $('imageFeed'+this.index).getElement( 'img' );
+            if ( !stream )
+                stream = $('imageFeed'+this.index).getElement( 'object' );
+            stream.setProperty( 'class', stateClass );
 
-        var newAlarm = ( isAlarmed && !wasAlarmed );
-        var oldAlarm = ( !isAlarmed && wasAlarmed );
+            var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
+            var wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
 
-        if ( newAlarm )
-        {
+            var newAlarm = ( isAlarmed && !wasAlarmed );
+            var oldAlarm = ( !isAlarmed && wasAlarmed );
+
+            if ( newAlarm )
+            {
+                if ( false && SOUND_ON_ALARM )
+                {
+                    // Enable the alarm sound
+                    $('alarmSound').removeClass( 'hidden' );
+                }
+                if ( POPUP_ON_ALARM )
+                {
+                    windowToFront();
+                }
+            }
             if ( false && SOUND_ON_ALARM )
             {
-                // Enable the alarm sound
-                $('alarmSound').removeClass( 'hidden' );
-            }
-            if ( POPUP_ON_ALARM )
-            {
-                windowToFront();
+                if ( oldAlarm )
+                {
+                    // Disable alarm sound
+                    $('alarmSound').addClass( 'hidden' );
+                }
             }
         }
-        if ( false && SOUND_ON_ALARM )
+        else
         {
-            if ( oldAlarm )
-            {
-                // Disable alarm sound
-                $('alarmSound').addClass( 'hidden' );
-            }
+            console.error( response.message );
         }
         var streamCmdTimeout = statusRefreshTimeout;
         if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )
@@ -75,12 +85,12 @@ function Monitor( index, id, connKey )
     }
 
     this.streamCmdQuery = function()
-    {       
+    {
         //this.streamCmdReq.cancel();
         this.streamCmdReq.request( this.streamCmdParms+"&command="+CMD_QUERY );
-    }       
+    }
 
-    this.streamCmdReq = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, onComplete: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this ), 'autocancel': true } );
+    this.streamCmdReq = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, onComplete: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this ), 'autoCancel': true } );
 
 }
 
@@ -90,7 +100,7 @@ function selectLayout( element )
     if ( $('dynamicStyles') )
         $('dynamicStyles').remove();
     new Asset.css( cssFile, { id: 'dynamicStyles' } );
-    Cookie.set( 'zmMontageLayout', $(element).getValue(), { duration: 10*365 } );  
+    Cookie.set( 'zmMontageLayout', $(element).getValue(), { duration: 10*365 } );
 }
 
 var monitors = new Array();
@@ -99,7 +109,7 @@ function initPage()
     for ( var i = 0; i < monitorData.length; i++ )
     {
         monitors[i] = new Monitor( i, monitorData[i].id, monitorData[i].connKey );
-        var delay = Math.round( Math.random()*statusRefreshTimeout );
+        var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
         monitors[i].start( delay );
     }
     selectLayout( $('layout') );

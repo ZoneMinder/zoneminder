@@ -2967,7 +2967,10 @@ void MonitorStream::processCommand( const CmdMsg *msg )
     status_data.id = monitor->Id();
     status_data.fps = monitor->GetFPS();
     status_data.state = monitor->shared_data->state;
-    status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
+    if ( playback_buffer > 0 )
+        status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
+    else
+        status_data.buffer_level = 0;
     status_data.delayed = delayed;
     status_data.paused = paused;
     status_data.rate = replay_rate;
@@ -3134,13 +3137,14 @@ void MonitorStream::runStream()
 	frame_count = 0;
 
     temp_image_buffer = 0;
-    temp_image_buffer_count = monitor->stream_replay_buffer;
+    temp_image_buffer_count = playback_buffer;
     temp_read_index = temp_image_buffer_count;
     temp_write_index = temp_image_buffer_count;
 
     char swap_path[PATH_MAX] = "";
+    bool buffered_playback = false;
 
-    if ( connkey )
+    if ( connkey && playback_buffer > 0 )
     {
         Debug( 2, "Checking swap image location" );
         Debug( 3, "Checking swap image path" );
@@ -3153,12 +3157,12 @@ void MonitorStream::runStream()
                 snprintf( &(swap_path[strlen(swap_path)]), sizeof(swap_path)-strlen(swap_path), "/zmswap-q%06d", connkey );
                 if ( checkSwapPath( swap_path, true ) )
                 {
-                    buffer_playback = true;
+                    buffered_playback = true;
                 }
             }
         }
 
-        if ( !buffer_playback )
+        if ( !buffered_playback )
         {
             Error( "Unable to validate swap image path, disabling buffered playback" );
         }
@@ -3181,13 +3185,13 @@ void MonitorStream::runStream()
 
         gettimeofday( &now, NULL );
 
-        if ( buffer_playback )
+        if ( connkey )
         {
             got_command = checkCommandQueue();
         }
 
         bool frame_sent = false;
-        if ( delayed )
+        if ( buffered_playback && delayed )
         {
 		    if ( temp_read_index == temp_write_index )
             {
@@ -3293,7 +3297,7 @@ void MonitorStream::runStream()
 				    temp_read_index = temp_write_index;
                 }
 			}
-            if ( buffer_playback )
+            if ( buffered_playback )
             {
 		        if ( monitor->shared_data->valid )
                 {
@@ -3341,7 +3345,7 @@ void MonitorStream::runStream()
             }
         }
 	}
-    if ( buffer_playback )
+    if ( buffered_playback )
     {
         char swap_path[PATH_MAX] = "";
 

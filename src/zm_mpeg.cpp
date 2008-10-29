@@ -372,13 +372,13 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 			pkt.data = video_outbuf;
 			pkt.size = out_size;
 
-			ret = av_write_frame(ofc, &pkt);
+			ret = av_write_frame( ofc, &pkt );
 #endif
 		}
 	}
 	if ( ret != 0 )
 	{
-		Fatal( "Error while writing video frame" );
+		Fatal( "Error %d while writing video frame", ret );
 	}
 	return( pts );
 }

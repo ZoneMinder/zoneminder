@@ -2775,6 +2775,19 @@ void MonitorStream::processCommand( const CmdMsg *msg )
             replay_rate = ZM_RATE_BASE;
             break;
         }
+        case CMD_VARPLAY :
+        {
+            Debug( 1, "Got VARPLAY command" );
+            if ( paused )
+            {
+                // Clear paused flag
+                paused = false;
+                // Set delayed_play flag
+                delayed = true;
+            }
+            replay_rate = msg->msg_data[1];
+            break;
+        }
         case CMD_STOP :
         {
             Debug( 1, "Got STOP command" );

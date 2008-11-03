@@ -78,6 +78,7 @@ define( "CMD_SCALE", 11 );
 define( "CMD_PREV", 12 );
 define( "CMD_NEXT", 13 );
 define( "CMD_SEEK", 14 );
+define( "CMD_VARPLAY", 15 );
 define( "CMD_QUERY", 99 );
 
 //

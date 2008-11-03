@@ -20,6 +20,10 @@ if ( !@socket_bind( $socket, $locSockFile ) )
 
 switch ( $_REQUEST['command'] )
 {
+    case CMD_VARPLAY :
+        //error_log( "Varplaying to ".$_REQUEST['rate'] );
+        $msg =  pack( "lcc", MSG_CMD, $_REQUEST['command'], $_REQUEST['rate'] );
+        break;
     case CMD_ZOOMIN :
         //error_log( "Zooming to ".$_REQUEST['x'].",".$_REQUEST['y'] );
         $msg =  pack( "lcnn", MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y'] );

@@ -2130,7 +2130,7 @@ function jsValue( &$value )
                 return( $result.'}' );
             }
         default:
-            return( "'".addslashes(gettype($value))."'" );
+            return( "'".addslashes(preg_replace( "/\n\r?/",'\n',$value))."'" );
     }
 }
 

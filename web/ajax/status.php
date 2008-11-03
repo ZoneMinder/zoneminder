@@ -107,6 +107,7 @@ $statusData = array(
             "MonitorId" => true,
             "Name" => true,
             "Cause" => true,
+            "Notes" => true,
             "StartTime" => true,
             "StartTimeShort" => array( "sql" => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
             "EndTime" => true,

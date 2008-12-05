@@ -398,11 +398,8 @@ protected:
     void processCommand( const CmdMsg *msg );
 
 public:
-    MonitorStream()
+    MonitorStream() : playback_buffer( 0 ), delayed( false ), frame_count( 0 )
     {
-        playback_buffer = 0;
-        delayed = false;
-        frame_count = 0;
     }
     void setStreamBuffer( int p_playback_buffer )
     {

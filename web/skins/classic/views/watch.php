@@ -32,7 +32,7 @@ if ( isset($_REQUEST['control']) )
 else
     $control = (canView( 'Control' ) && ($monitor['DefaultView'] == 'Control'));
 
-$showControls = ( ZM_OPT_CONTROL && $monitor['Controllable'] && canView( 'Control' ) );
+$showPtzControls = ( ZM_OPT_CONTROL && $monitor['Controllable'] && canView( 'Control' ) );
 
 if ( isset( $_REQUEST['scale'] ) )
     $scale = validInt($_REQUEST['scale']);
@@ -57,6 +57,8 @@ else
     $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale ) );
 }
 
+$showDvrControls = ( $streamMode != 'signal' && $monitor['StreamReplayBuffer'] != 0 );
+
 noCacheHeaders();
 
 xhtmlHeaders( __FILE__, $monitor['Name']." - ".$SLANG['Feed'] );
@@ -69,12 +71,12 @@ xhtmlHeaders( __FILE__, $monitor['Name']." - ".$SLANG['Feed'] );
         <div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?= $SLANG['Close'] ?></a></div>
         <div id="menuControls">
 <?php
-if ( $showControls )
+if ( $showPtzControls )
 {
     if ( canView( 'Control' ) )
     {
 ?>
-          <div id="controlControl"<?= $control?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showControls(); return( false );"><?= $SLANG['Control'] ?></a></div>
+          <div id="controlControl"<?= $control?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showPtzControls(); return( false );"><?= $SLANG['Control'] ?></a></div>
 <?php
     }
     if ( canView( 'Events' ) )
@@ -132,7 +134,7 @@ if ( canEdit( 'Monitors' ) )
 ?>
         <div id="monitorState"><?= $SLANG['State'] ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
       </div>
-      <div id="dvrControls"<?= $streamMode=="single"?' class="hidden"':'' ?>>
+      <div id="dvrControls"<?= $showDvrControls?'':' class="hidden"' ?>>
         <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?= $SLANG['Rewind'] ?>" class="unavail" disabled="disabled" onclick="streamCmdFastRev( true )"/>
         <input type="button" value="&lt;" id="slowRevBtn" title="<?= $SLANG['StepBack'] ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowRev( true )"/>
         <input type="button" value="||" id="pauseBtn" title="<?= $SLANG['Pause'] ?>" class="inactive" onclick="streamCmdPause( true )"/>
@@ -150,7 +152,7 @@ if ( canEdit( 'Monitors' ) )
         <span id="zoom">Zoom: <span id="zoomValue"></span>x</span>
       </div>
 <?php
-if ( $showControls )
+if ( $showPtzControls )
 {
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
         require_once $includeFile;

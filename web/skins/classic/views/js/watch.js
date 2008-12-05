@@ -15,7 +15,7 @@ function showEvents()
     showMode = "events";
 }
 
-function showControls()
+function showPtzControls()
 {
     $('events').addClass( 'hidden' );
     $('ptzControls').removeClass( 'hidden' );

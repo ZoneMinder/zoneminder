@@ -22,7 +22,7 @@ switch ( $_REQUEST['command'] )
 {
     case CMD_VARPLAY :
         //error_log( "Varplaying to ".$_REQUEST['rate'] );
-        $msg = pack( "lcn", MSG_CMD, $_REQUEST['command'], $_REQUEST['rate']-32768 );
+        $msg = pack( "lcn", MSG_CMD, $_REQUEST['command'], $_REQUEST['rate']+32768 );
         break;
     case CMD_ZOOMIN :
         //error_log( "Zooming to ".$_REQUEST['x'].",".$_REQUEST['y'] );

@@ -25,6 +25,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <getopt.h>
+#include <arpa/inet.h>
 #include <glob.h>
 
 #include "zm.h"
@@ -836,7 +837,7 @@ void EventStream::processCommand( const CmdMsg *msg )
                 // Clear paused flag
                 paused = false;
             }
-            replay_rate = (signed short)ntohs(((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2]);
+            replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
             break;
         }
         case CMD_STOP :

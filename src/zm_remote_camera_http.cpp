@@ -205,7 +205,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
 int RemoteCameraHttp::GetResponse()
 {
 #if HAVE_LIBPCRE
-	if ( config.netcam_regexps )
+	if ( method == REGEXP )
 	{
 		const char *header = 0;
 		int header_len = 0;
@@ -496,7 +496,7 @@ int RemoteCameraHttp::GetResponse()
 	else
 #endif // HAVE_LIBPCRE
 	{
-		if ( config.netcam_regexps )
+		if ( method == REGEXP )
 		{
 			Warning( "Unable to use netcam regexps as not compiled with libpcre" );
 		}
@@ -610,7 +610,7 @@ int RemoteCameraHttp::GetResponse()
 							}
 						}
 
-						Debug( 6, header_ptr );
+						Debug( 6, "%s", header_ptr );
 						if ( (crlf = mempbrk( header_ptr, "\r\n", header_len )) )
 						{
 							headers[n_headers++] = header_ptr;

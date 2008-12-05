@@ -87,6 +87,7 @@ int RtpDataThread::run()
          if ( readable.size() == 0 )
          {
              Error( "RTP timed out" );
+             mStop = true;
              break;
          }
          for ( Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); iter++ )

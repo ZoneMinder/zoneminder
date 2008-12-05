@@ -173,6 +173,8 @@ int RemoteCameraRtsp::PostCapture( Image &image )
     while ( true )
     {
         buffer.clear();
+        if ( rtspThread->stopped() )
+            break;
         if ( rtspThread->getFrame( buffer ) )
         {
             Debug( 3, "Read frame %d bytes", buffer.size() );

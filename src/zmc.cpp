@@ -211,6 +211,7 @@ int main( int argc, char *argv[] )
 		alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
 	}
 
+    int result = 0;
 	struct timeval now;
 	struct DeltaTimeval delta_time;
 	while( !zm_terminate )
@@ -249,12 +250,14 @@ int main( int argc, char *argv[] )
 				{
                     Error( "Failed to pre-capture monitor %d", i );
                     zm_terminate = true;
+                    result = -1;
                     break;
 				}
 				if ( monitors[i]->PostCapture() < 0 )
 				{
                     Error( "Failed to post-capture monitor %d", i );
                     zm_terminate = true;
+                    result = -1;
                     break;
 				}
 
@@ -281,5 +284,5 @@ int main( int argc, char *argv[] )
 	delete [] next_delays;
 	delete [] last_capture_times;
 
-	return( 0 );
+	return( result );
 }

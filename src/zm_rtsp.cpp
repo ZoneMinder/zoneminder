@@ -487,8 +487,8 @@ int RtspThread::run()
             rtpDataThread.stop();
             rtpCtrlThread.stop();
 
-            rtpDataThread.kill( SIGTERM );
-            rtpCtrlThread.kill( SIGTERM );
+            //rtpDataThread.kill( SIGTERM );
+            //rtpCtrlThread.kill( SIGTERM );
 
             rtpDataThread.join();
             rtpCtrlThread.join();

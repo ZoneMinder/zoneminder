@@ -124,6 +124,10 @@ public:
     {
         mStop = true;
     }
+    bool stopped() const
+    {
+        return( mStop );
+    }
 };
 
 #endif // ZM_RTSP_H

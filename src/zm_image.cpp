@@ -274,7 +274,11 @@ bool Image::ReadRaw( const char *filename )
 		return( false );
 	}
 
-	fread( buffer, size, 1, infile );
+	if ( fread( buffer, size, 1, infile ) < 1 )
+    {
+        Fatal( "Unable to read from '%s': %s", filename, strerror(errno) );
+        return( false );
+    }
 
 	fclose( infile );
 
@@ -290,7 +294,11 @@ bool Image::WriteRaw( const char *filename ) const
 		return( false );
 	}
 
-	fwrite( buffer, size, 1, outfile );
+	if ( fwrite( buffer, size, 1, outfile ) < 1 )
+    {
+        Error( "Unable to write to '%s': %s", filename, strerror(errno) );
+        return( false );
+    }
 
 	fclose( outfile );
 

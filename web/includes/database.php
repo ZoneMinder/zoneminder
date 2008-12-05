@@ -127,6 +127,18 @@ function dbFetchAll( $sql, $col=false )
     return( $dbRows );
 }
 
+function dbFetchAssoc( $sql, $indexCol, $dataCol=false )
+{
+    dbLog( $sql );
+    if (!($result = mysql_query( $sql )))
+        dbError( $sql );
+
+    $dbRows = array();
+    while( $dbRow = mysql_fetch_assoc( $result ) )
+        $dbRows[$dbRow[$indexCol]] = $dataCol?$dbRow[$dataCol]:$dbRow;
+    return( $dbRows );
+}
+
 function dbFetch( $sql, $col=false )
 {
     return( dbFetchAll( $sql, $col ) );

@@ -217,7 +217,7 @@ int RemoteCameraRtsp::PostCapture( Image &image )
                         return( 0 );
                     }
                     Error( "Error while decoding frame %d", frameCount );
-                    Hexdump( 0, buffer.head(), buffer.size() );
+                    Hexdump( ZM_DBG_ERR, buffer.head(), buffer.size() );
                     return( -1 );
                 }
                 Debug( 2, "Frame: %d: %d/%d", frameCount, len, buffer.size() );

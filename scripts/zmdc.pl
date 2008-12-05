@@ -543,9 +543,30 @@ if ( !$server_up )
 				my $core_dumped = $status&0x01;
 
 				my $out_str = "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' ";
-				$out_str .= $exit_signal?"crashed":("exited ".(($exit_status==0)?"normally":"abnormally"));
-				$out_str .= ", exit status $exit_status" if ( $exit_status );
-				$out_str .= ", signal $exit_signal" if ( $exit_signal );
+                if ( $exit_signal )
+                {
+                    if ( $exit_signal == 15 || $exit_signal == 14 ) # TERM or ALRM
+                    {
+				        $out_str .= "exited";
+                    }
+                    else
+                    {
+				        $out_str .= "crashed";
+                    }
+				    $out_str .= ", signal $exit_signal";
+                }
+                else
+                {
+				    $out_str .= "exited ";
+                    if ( $exit_status )
+                    {
+				        $out_str .= "abnormally, exit status $exit_status";
+                    }
+                    else
+                    {
+                        $out_str .= "normally";
+                    }
+                }
 				#print( ", core dumped" ) if ( $core_dumped );
 				$out_str .= "\n";
 

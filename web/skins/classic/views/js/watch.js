@@ -102,100 +102,104 @@ function getStreamCmdResponse( respText )
     if ( !respText )
         return;
     var response = Json.evaluate( respText );
-    streamStatus = response.status;
-    $('fpsValue').setText( streamStatus.fps );
 
-    setAlarmState( streamStatus.state );
-
-    $('levelValue').setText( streamStatus.level );
-    if ( streamStatus.level > 95 )
-        $('levelValue').className = "alarm";
-    else if ( streamStatus.level > 80 )
-        $('levelValue').className = "alert";
-    else
-        $('levelValue').className = "ok";
-
-    var delayString = secsToTime( streamStatus.delay );
-
-    if ( streamStatus.paused == true )
+    if ( response.result == 'Ok' )
     {
-        $('modeValue').setText( "Paused" );
-        $('rate').addClass( 'hidden' );
-        $('delayValue').setText( delayString );
-        $('delay').removeClass( 'hidden' );
-        $('level').removeClass( 'hidden' );
-        streamCmdPause( false );
-    }
-    else if ( streamStatus.delayed == true )
-    {
-        $('modeValue').setText( "Replay" );
-        $('rateValue').setText( streamStatus.rate );
-        $('rate').removeClass( 'hidden' );
-        $('delayValue').setText( delayString );
-        $('delay').removeClass( 'hidden' );
-        $('level').removeClass( 'hidden' );
-        if ( streamStatus.rate == 1 )
+        streamStatus = response.status;
+        $('fpsValue').setText( streamStatus.fps );
+
+        setAlarmState( streamStatus.state );
+
+        $('levelValue').setText( streamStatus.level );
+        if ( streamStatus.level > 95 )
+            $('levelValue').className = "alarm";
+        else if ( streamStatus.level > 80 )
+            $('levelValue').className = "alert";
+        else
+            $('levelValue').className = "ok";
+
+        var delayString = secsToTime( streamStatus.delay );
+
+        if ( streamStatus.paused == true )
         {
+            $('modeValue').setText( "Paused" );
+            $('rate').addClass( 'hidden' );
+            $('delayValue').setText( delayString );
+            $('delay').removeClass( 'hidden' );
+            $('level').removeClass( 'hidden' );
+            streamCmdPause( false );
+        }
+        else if ( streamStatus.delayed == true )
+        {
+            $('modeValue').setText( "Replay" );
+            $('rateValue').setText( streamStatus.rate );
+            $('rate').removeClass( 'hidden' );
+            $('delayValue').setText( delayString );
+            $('delay').removeClass( 'hidden' );
+            $('level').removeClass( 'hidden' );
+            if ( streamStatus.rate == 1 )
+            {
+                streamCmdPlay( false );
+            }
+            else if ( streamStatus.rate > 0 )
+            {
+                if ( streamStatus.rate < 1 )
+                    streamCmdSlowFwd( false );
+                else
+                    streamCmdFastFwd( false );
+            }
+            else
+            {
+                if ( streamStatus.rate > -1 )
+                    streamCmdSlowRev( false );
+                else
+                    streamCmdFastRev( false );
+            }
+        }
+        else 
+        {
+            $('modeValue').setText( "Live" );
+            $('rate').addClass( 'hidden' );
+            $('delay').addClass( 'hidden' );
+            $('level').addClass( 'hidden' );
             streamCmdPlay( false );
         }
-        else if ( streamStatus.rate > 0 )
-        {
-            if ( streamStatus.rate < 1 )
-                streamCmdSlowFwd( false );
-            else
-                streamCmdFastFwd( false );
-        }
+        $('zoomValue').setText( streamStatus.zoom );
+        if ( streamStatus.zoom == "1.0" )
+            setButtonState( $('zoomOutBtn'), 'unavail' );
         else
-        {
-            if ( streamStatus.rate > -1 )
-                streamCmdSlowRev( false );
-            else
-                streamCmdFastRev( false );
-        }
-    }
-    else 
-    {
-        $('modeValue').setText( "Live" );
-        $('rate').addClass( 'hidden' );
-        $('delay').addClass( 'hidden' );
-        $('level').addClass( 'hidden' );
-        streamCmdPlay( false );
-    }
-    $('zoomValue').setText( streamStatus.zoom );
-    if ( streamStatus.zoom == "1.0" )
-        setButtonState( $('zoomOutBtn'), 'unavail' );
-    else
-        setButtonState( $('zoomOutBtn'), 'inactive' );
+            setButtonState( $('zoomOutBtn'), 'inactive' );
 
-    if ( canEditMonitors )
-    {
-        if ( streamStatus.enabled )
+        if ( canEditMonitors )
         {
-            $('enableAlarmsLink').addClass( 'hidden' );
-            $('disableAlarmsLink').removeClass( 'hidden' );
-            if ( streamStatus.forced )
+            if ( streamStatus.enabled )
             {
-                $('forceAlarmLink').addClass( 'hidden' );
-                $('cancelAlarmLink').removeClass( 'hidden' );
+                $('enableAlarmsLink').addClass( 'hidden' );
+                $('disableAlarmsLink').removeClass( 'hidden' );
+                if ( streamStatus.forced )
+                {
+                    $('forceAlarmLink').addClass( 'hidden' );
+                    $('cancelAlarmLink').removeClass( 'hidden' );
+                }
+                else
+                {
+                    $('forceAlarmLink').removeClass( 'hidden' );
+                    $('cancelAlarmLink').addClass( 'hidden' );
+                }
+                $('forceCancelAlarm').removeClass( 'hidden' );
             }
             else
             {
-                $('forceAlarmLink').removeClass( 'hidden' );
-                $('cancelAlarmLink').addClass( 'hidden' );
+                $('enableAlarmsLink').removeClass( 'hidden' );
+                $('disableAlarmsLink').addClass( 'hidden' );
+                $('forceCancelAlarm').addClass( 'hidden' );
             }
-            $('forceCancelAlarm').removeClass( 'hidden' );
+            $('enableDisableAlarms').removeClass( 'hidden' );
         }
         else
         {
-            $('enableAlarmsLink').removeClass( 'hidden' );
-            $('disableAlarmsLink').addClass( 'hidden' );
-            $('forceCancelAlarm').addClass( 'hidden' );
+            $('enableDisableAlarms').addClass( 'hidden' );
         }
-        $('enableDisableAlarms').removeClass( 'hidden' );
-    }
-    else
-    {
-        $('enableDisableAlarms').addClass( 'hidden' );
     }
 
     var streamCmdTimeout = statusRefreshTimeout;
@@ -349,9 +353,12 @@ function getStatusCmdResponse( respText )
     if ( !respText )
         return;
     var response = Json.evaluate( respText );
-    $('fpsValue').setText( response.monitor.FrameRate );
-    
-    setAlarmState( response.monitor.Status );
+
+    if ( response.result == 'Ok' )
+    {
+        $('fpsValue').setText( response.monitor.FrameRate );
+        setAlarmState( response.monitor.Status );
+    }
 
     var statusCmdTimeout = statusRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
@@ -401,9 +408,12 @@ function getActResponse( respText )
         return;
     var response = Json.evaluate( respText );
 
-    if ( response.refreshParent )
+    if ( response.result == 'Ok' )
     {
-        window.opener.location.reload();
+        if ( response.refreshParent )
+        {
+            window.opener.location.reload();
+        }
     }
     eventCmdQuery();
 }
@@ -435,89 +445,93 @@ function getEventCmdResponse( respText )
         return;
     var response = Json.evaluate( respText );
 
-    var dbEvents = response.events.reverse();
-    var eventList = $('eventList');
-    var eventListBody = $(eventList).getElement( 'tbody' );
-    var eventListRows = $(eventListBody).getElements( 'tr' );
-
-    eventListRows.each( function( row ) { row.removeClass( 'updated' ); } );
-
-    for ( var i = 0; i < dbEvents.length; i++ )
+    if ( response.result == 'Ok' )
     {
-        var event = dbEvents[i];
-        var row = $('event'+event.Id);
-        var newEvent = (row == null ? true : false);
-        if ( newEvent )
+        var dbEvents = response.events.reverse();
+        var eventList = $('eventList');
+        var eventListBody = $(eventList).getElement( 'tbody' );
+        var eventListRows = $(eventListBody).getElements( 'tr' );
+
+        eventListRows.each( function( row ) { row.removeClass( 'updated' ); } );
+
+        for ( var i = 0; i < dbEvents.length; i++ )
         {
-            row = new Element( 'tr', { 'id': 'event'+event.Id } );
-            new Element( 'td', { 'class': 'colId' } ).injectInside( row );
-            new Element( 'td', { 'class': 'colName' } ).injectInside( row );
-            new Element( 'td', { 'class': 'colTime' } ).injectInside( row );
-            new Element( 'td', { 'class': 'colSecs' } ).injectInside( row );
-            new Element( 'td', { 'class': 'colFrames' } ).injectInside( row );
-            new Element( 'td', { 'class': 'colScore' } ).injectInside( row );
-            new Element( 'td', { 'class': 'colDelete' } ).injectInside( row );
+            var event = dbEvents[i];
+            var row = $('event'+event.Id);
+            var newEvent = (row == null ? true : false);
+            if ( newEvent )
+            {
+                row = new Element( 'tr', { 'id': 'event'+event.Id } );
+                new Element( 'td', { 'class': 'colId' } ).injectInside( row );
+                new Element( 'td', { 'class': 'colName' } ).injectInside( row );
+                new Element( 'td', { 'class': 'colTime' } ).injectInside( row );
+                new Element( 'td', { 'class': 'colSecs' } ).injectInside( row );
+                new Element( 'td', { 'class': 'colFrames' } ).injectInside( row );
+                new Element( 'td', { 'class': 'colScore' } ).injectInside( row );
+                new Element( 'td', { 'class': 'colDelete' } ).injectInside( row );
 
-            var cells = row.getElements( 'td' );
+                var cells = row.getElements( 'td' );
 
-            var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height ] ) } });
-            link.setText( event.Id );
-            link.injectInside( row.getElement( 'td.colId' ) );
+                var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height ] ) } });
+                link.setText( event.Id );
+                link.injectInside( row.getElement( 'td.colId' ) );
 
-            link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height ] ) } });
-            link.setText( event.Name );
-            link.injectInside( row.getElement( 'td.colName' ) );
+                link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height ] ) } });
+                link.setText( event.Name );
+                link.injectInside( row.getElement( 'td.colName' ) );
 
-            row.getElement( 'td.colTime' ).setText( event.StartTime );
-            row.getElement( 'td.colSecs' ).setText( event.Length );
+                row.getElement( 'td.colTime' ).setText( event.StartTime );
+                row.getElement( 'td.colSecs' ).setText( event.Length );
 
-            link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramesPopup.pass( [ event.Id, event.Width, event.Height ] ) } });
-            link.setText( event.Frames+'/'+event.AlarmFrames );
-            link.injectInside( row.getElement( 'td.colFrames' ) );
+                link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramesPopup.pass( [ event.Id, event.Width, event.Height ] ) } });
+                link.setText( event.Frames+'/'+event.AlarmFrames );
+                link.injectInside( row.getElement( 'td.colFrames' ) );
 
-            link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramePopup.pass( [ event.Id, '0', event.Width, event.Height ] ) } });
-            link.setText( event.AvgScore+'/'+event.MaxScore );
-            link.injectInside( row.getElement( 'td.colScore' ) );
+                link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramePopup.pass( [ event.Id, '0', event.Width, event.Height ] ) } });
+                link.setText( event.AvgScore+'/'+event.MaxScore );
+                link.injectInside( row.getElement( 'td.colScore' ) );
 
-            link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': deleteEvent.bindWithEvent( link, event.Id ), 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
-            link.setText( 'X' );
-            link.injectInside( row.getElement( 'td.colDelete' ) );
+                link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': deleteEvent.bindWithEvent( link, event.Id ), 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
+                link.setText( 'X' );
+                link.injectInside( row.getElement( 'td.colDelete' ) );
 
-            if ( i == 0 )
-                row.injectInside( $(eventListBody) );
+                if ( i == 0 )
+                    row.injectInside( $(eventListBody) );
+                else
+                {
+                    row.injectTop( $(eventListBody) );
+                    if ( !eventCmdFirst )
+                        row.addClass( 'recent' );
+                }
+            }
             else
             {
-                row.injectTop( $(eventListBody) );
-                if ( !eventCmdFirst )
-                    row.addClass( 'recent' );
+                row.getElement( 'td.colName a' ).setText( event.Name );
+                row.getElement( 'td.colSecs' ).setText( event.Length );
+                row.getElement( 'td.colFrames a' ).setText( event.Frames+'/'+event.AlarmFrames );
+                row.getElement( 'td.colScore a' ).setText( event.AvgScore+'/'+event.MaxScore );
+                row.removeClass( 'recent' );
+            }
+            row.addClass( 'updated' );
+        }
+
+        var rows = $(eventListBody).getElements( 'tr' );
+        for ( var i = 0; i < rows.length; i++ )
+        {
+            if ( !rows[i].hasClass( 'updated' ) )
+            {
+                rows[i].remove();
+                rows.splice( i, 1 );
+                i--;
             }
         }
-        else
+        while ( rows.length > maxDisplayEvents )
         {
-            row.getElement( 'td.colName a' ).setText( event.Name );
-            row.getElement( 'td.colSecs' ).setText( event.Length );
-            row.getElement( 'td.colFrames a' ).setText( event.Frames+'/'+event.AlarmFrames );
-            row.getElement( 'td.colScore a' ).setText( event.AvgScore+'/'+event.MaxScore );
-            row.removeClass( 'recent' );
+            rows[rows.length-1].remove();
+            rows.length--;
         }
-        row.addClass( 'updated' );
     }
 
-    var rows = $(eventListBody).getElements( 'tr' );
-    for ( var i = 0; i < rows.length; i++ )
-    {
-        if ( !rows[i].hasClass( 'updated' ) )
-        {
-            rows[i].remove();
-            rows.splice( i, 1 );
-            i--;
-        }
-    }
-    while ( rows.length > maxDisplayEvents )
-    {
-        rows[rows.length-1].remove();
-        rows.length--;
-    }
     var eventCmdTimeout = eventsRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
         eventCmdTimeout = eventCmdTimeout/5;
@@ -539,8 +553,7 @@ function getControlResponse( respText )
         return;
     //console.log( respText );
     var response = Json.evaluate( respText );
-    result = response.result;
-    if ( result != 'Ok' )
+    if ( response.result != 'Ok' )
     {
         alert( "Control response was status = "+response.status+"\nmessage = "+response.message );
     }
@@ -627,11 +640,11 @@ function handleClick( event )
 function initPage()
 {
     if ( streamMode == "single" )
-        statusCmdTimer = statusCmdQuery.delay( 1000 );
+        statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.5)*statusRefreshTimeout );
     else
-        streamCmdTimer = streamCmdQuery.delay( 1000 );
+        streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.5)*statusRefreshTimeout );
  
-    eventCmdTimer = eventCmdQuery.delay( 1500 );
+    eventCmdTimer = eventCmdQuery.delay( (Math.random()+0.5)*eventsRefreshTimeout );
 
     if ( canStreamNative || streamMode == "single" )
     {

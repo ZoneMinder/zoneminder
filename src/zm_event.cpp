@@ -19,6 +19,7 @@
 
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <sys/un.h>
 #include <sys/uio.h>
 #include <sys/ipc.h>
@@ -835,7 +836,7 @@ void EventStream::processCommand( const CmdMsg *msg )
                 // Clear paused flag
                 paused = false;
             }
-            replay_rate = msg->msg_data[1];
+            replay_rate = (signed short)ntohs(((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2]);
             break;
         }
         case CMD_STOP :

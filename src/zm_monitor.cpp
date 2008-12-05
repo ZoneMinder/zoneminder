@@ -19,6 +19,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 #include <glob.h>
 
 #include "zm.h"
@@ -2787,7 +2788,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
                 // Set delayed_play flag
                 delayed = true;
             }
-            replay_rate = msg->msg_data[1];
+            replay_rate = (signed short)ntohs(((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2]);
             break;
         }
         case CMD_STOP :

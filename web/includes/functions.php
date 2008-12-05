@@ -371,7 +371,8 @@ align="middle"
 width="<?= $width ?>"
 height="<?= $height ?>"
 title="<?= $title ?>">
-<param name="url" value="<?= $src ?>">
+<param name="accessories" value="none"/>
+<param name="url" value="<?= $src ?>"/>
 </applet>
 <?php
 }
@@ -2110,7 +2111,7 @@ function jsValue( &$value )
         case 'boolean':
             return( $value?'true':'false' );
         case 'string':
-            return( "'".addslashes($value)."'" );
+            return( "'".addslashes(preg_replace( "/\n\r?/",'\n',$value))."'" );
         case 'NULL':
             return( 'null' );
         case 'object':

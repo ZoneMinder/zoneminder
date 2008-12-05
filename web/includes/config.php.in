@@ -47,6 +47,11 @@ define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );               // Local path to the Zon
 define( "ZM_V4L2", "@ZM_V4L2@" );                       // V4L2 support enabled
 
 //
+// If PCRE dev libraries are installed
+//
+define( "ZM_PCRE", "@ZM_PCRE@" );                       // PCRE support enabled
+
+//
 // Alarm states
 //
 define( "STATE_IDLE", 0 );

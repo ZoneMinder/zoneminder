@@ -149,10 +149,12 @@ $sourceTypes = array(
     'File'   => $SLANG['File']
 );
 
-$localMethods = array();
-if ( ZM_V4L2 )
-    $localMethods['v4l2'] = "Video For Linux version 2";
-$localMethods['v4l1'] = "Video For Linux version 1";
+$localMethods = array(
+    'v4l2' => "Video For Linux version 2",
+    'v4l1' => "Video For Linux version 1",
+);
+if ( !ZM_V4L2 )
+    unset($localMethods['v4l2']);
 
 $remoteProtocols = array(
     "http" => "HTTP",
@@ -171,7 +173,10 @@ $httpMethods = array(
     "regexp"   => "Regexp",
     "jpegTags" => "JPEG Tags"
 );
-unset( $httpMethods['jpegTags'] );
+if ( !ZM_PCRE )
+    unset($httpMethods['regexp']);
+// Currently unsupported
+unset($httpMethods['jpegTags']);
 
 $deviceFormats = array(
     "PAL"   => 0,

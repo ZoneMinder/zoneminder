@@ -139,7 +139,7 @@ our @options =
 	{
 		name => "ZM_AUTH_HASH_IPS",
 		default => "yes",
-		description => "Whether to include IP addresses in the authentication hash",
+		description => "Include IP addresses in the authentication hash",
 		help => "When ZoneMinder is running in hashed authenticated mode it can optionally include the requesting IP address in the resultant hash. This adds an extra level of security as only requests from that address may use that authentication key. However in some circumstances, such as access over mobile networks, the requesting address can change for each request which will cause most requests to fail. This option allows you to control whether IP addresses are included in the authentication hash on your system. If you experience intermitent problems with authentication, switching this option off may help.",
 		requires => [ { name=>"ZM_OPT_USE_AUTH", value=>"yes" }, { name=>"ZM_AUTH_RELAY", value=>"hashed" } ],
 		type => $types{boolean},
@@ -321,7 +321,7 @@ our @options =
 	{
 		name => "ZM_Y_IMAGE_DELTAS",
 		default => "yes",
-		description => "Whether we calculate images differences using Y channel",
+		description => "Calculate image differences using Y channel",
 		help => "When ZoneMinder tries to establish the differences between two colour images it generates a greyscale 'delta' image between the two sets of images. In order to do this it determines the differences found between the different RGB colour components and calculates a greyscale value representing this. If this option is set then a calculation will be made to convert each pixel of the image into a brightness value (Y from YUV) and then find the difference between the two. If this option is not set then the resulting difference is determined as the average of the differences of each colour which is a simple calculation. Using the Y value is likely to be more accurate and is up to 15% faster. Only switch this option off if Y based deltas do not work as well for you as RGB ones.",
 		type => $types{boolean},
 		category => "config",
@@ -329,7 +329,7 @@ our @options =
 	{
 		name => "ZM_FAST_IMAGE_BLENDS",
 		default => "yes",
-		description => "Whether we use a fast algorithm to blend the reference image",
+		description => "Use a fast algorithm to blend the reference image",
 		help => "In most modes of operation ZoneMinder needs to blend the captured image with the stored reference image to update it for the next image. The reference blend percentage specified for the monitor controls how much the new image affects the reference image. There are two methods that are available for this. If this option is set then a basic calculation is applied which though fast and fairly accurate can (due to rounding) mean that the actual range of pixel values in the reference image may be reduced from that in the captured image, e.g. a pixel may only be able to achieve a maximum of say 250 while the captured image is consistently at 255. If you also have a small minimum pixel difference threshold this can cause multiple bogus alarms. The alternative is to switch this option off which stores an additional set of temporary values which eliminate any significant rounding errors. This is more accurate though up to 6 times slower and should not really be necessary unless you find problems with the default method.",
 		type => $types{boolean},
 		category => "config",
@@ -345,7 +345,7 @@ our @options =
 	{
 		name => "ZM_BLEND_ALARMED_IMAGES",
 		default => "yes",
-		description => "Whether alarmed images are blended to update the reference image",
+		description => "Blend alarmed images to update the reference image",
 		help => "To detect alarms ZoneMinder compares an image with a reference image which is formed from a composite of the previous images. This option determines whether images that cause events are included in this process. Doing so may increase the precision of the alarmed region but can cause problems if wholescale lighting changes cause alarms as this would not get fed back into the image and an alarm may persist indefinately. A better way to achive the same effect in most cases is to lower substantially the reference blend persentage in specific monitors.",
 		type => $types{boolean},
 		category => "config",
@@ -371,7 +371,7 @@ our @options =
 	{
 		name => "ZM_NETCAM_REGEXPS",
 		default => "yes",
-		description => "Whether to use regular expression matching with network cameras",
+		description => "Use regular expression matching with network cameras",
 		help => "Traditionally ZoneMinder has used complex regular regular expressions to handle the multitude of formats that network cameras produce. In versions from 1.21.1 the default is to use a simpler and faster built in pattern matching methodology. This works well with most networks cameras but if you have problems you can try the older, but more flexible, regular expression based method by selecting this option. Note, to use this method you must have libpcre installed on your system.",
 		requires => [ { name => "ZM_OPT_REMOTE_CAMERAS", value => "yes" } ],
 		type => $types{boolean},
@@ -497,7 +497,7 @@ our @options =
 	{
 		name => "ZM_EXTRA_DEBUG",
 		default => "no",
-		description => "Whether to switch additional debugging on",
+		description => "Switch additional debugging on",
 		help => "ZoneMinder binary components usually have several levels of debug information they can output. Normally this is set to a fairly low level to avoid filling logs too quickly. This options lets you switch on other options that allow you to configure additional debug information to be output. Components will pick up this instruction when they are restarted.",
 		type => $types{boolean},
 		category => "debug",
@@ -588,7 +588,7 @@ our @options =
 	{
 		name => "ZM_OPT_X10",
 		default => "no",
-		description => "Whether we want to interface with X10 devices",
+		description => "Support interfacing with X10 devices",
 		help => "If you have an X10 Home Automation setup in your home you can use ZoneMinder to initiate or react to X10 signals if your computer has the appropriate interface controller. This option indicates whether X10 options will be available in the browser client.",
 		type => $types{boolean},
 		category => "x10",
@@ -640,7 +640,7 @@ our @options =
 	{
 		name => "ZM_WEB_COMPACT_MONTAGE",
 		default => "no",
-		description => "Whether to compact the montage view by removing extra detail",
+		description => "Compact the montage view by removing extra detail",
 		help => "The montage view shows the output of all of your active monitors in one window. This include a small menu and status information for each one. This can increase the web traffic and make the window larger than may be desired. Setting this option on removes all this extraneous information and just displays the images.",
 		type => $types{boolean},
 		category => "web",
@@ -656,7 +656,7 @@ our @options =
 	{
 		name => "ZM_STRICT_VIDEO_CONFIG",
 		default => "yes",
-		description => "Whether to allow errors in setting video config to be fatal",
+		description => "Allow errors in setting video config to be fatal",
 		help => "With some video devices errors can be reported in setting the various video attributes when in fact the operation was successful. Switching this option off will still allow these errors to be reported but will not cause them to kill the video capture daemon. Note however that doing this will cause all errors to be ignored including those which are genuine and which may cause the video capture to not function correctly. Use this option with caution.",
 		type => $types{boolean},
 		category => "config",
@@ -722,7 +722,7 @@ our @options =
 	{
 		name => "ZM_UPLOAD_ARCH_ANALYSE",
 		default => "no",
-		description => "Whether to include the analysis files in the archive",
+		description => "Include the analysis files in the archive",
 		help => "When the archive files are created they can contain either just the captured frames or both the captured frames and, for frames that caused an alarm, the analysed image with the changed area highlighted. This option controls files are included. Only include analysed frames if you have a high bandwidth connection to the remote server or if you need help in figuring out what caused an alarm in the first place as archives with these files in can be considerably larger.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{boolean},
@@ -777,8 +777,8 @@ our @options =
 	{
 		name => "ZM_UPLOAD_FTP_TIMEOUT",
 		default => "120",
-		description => "How long (in seconds) we allow the transfer to take for each file",
-		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the maximum ftp inactivity timeout that should be tolerated before ZoneMinder determiesn that the transfer has failed and closes down the connection.",
+		description => "How long to allow the transfer to take for each file",
+		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the maximum ftp inactivity timeout (in seconds) that should be tolerated before ZoneMinder determiesn that the transfer has failed and closes down the connection.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{integer},
 		category => "ftp",
@@ -786,7 +786,7 @@ our @options =
 	{
 		name => "ZM_UPLOAD_FTP_PASSIVE",
 		default => "yes",
-		description => "Whether to use passive ftp",
+		description => "Use passive ftp when uploading",
 		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates that ftp transfers should be done in passive mode. This uses a single connection for all ftp activity and, whilst slower than active transfers, is more robust and likely to work from behind filewalls.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		help => "If your computer is behind a firewall or proxy you may need to set FTP to passive mode. In fact for simple transfers it makes little sense to do otherwise anyway but you can set this to 'No' if you wish.",
@@ -796,7 +796,7 @@ our @options =
 	{
 		name => "ZM_UPLOAD_FTP_DEBUG",
 		default => "yes",
-		description => "Whether to switch ftp debugging on",
+		description => "Switch ftp debugging on",
 		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. If you are having (or expecting) troubles with uploading events then setting this to 'yes' permits additional information to be included in the zmfilter log file.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{boolean},
@@ -925,7 +925,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_NEW_MAIL_MODULES",
 		default => "no",
-		description => "Whether to use a newer perl method to send emails",
+		description => "Use a newer perl method to send emails",
 		requires => [ { name => "ZM_OPT_EMAIL", value => "yes" }, { name => "ZM_OPT_MESSAGE", value => "yes" } ],
 		help => "Traditionally ZoneMinder has used the MIME::Entity perl module to construct and send notification emails and messages. Some people have reported problems with this module not being present at all or flexible enough for their needs. If you are one of those people this option allows you to select a new mailing method using MIME::Lite and Net::SMTP instead. This method was contributed by Ross Melin and should work for everyone but has not been extensively tested so currently is not selected by default.",
 		type => $types{boolean},
@@ -978,7 +978,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		name => "ZM_WATCH_MAX_DELAY",
 		default => "5",
 		description => "The maximum delay allowed since the last captured image",
-		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines the maximum delay we will allow since the last captured frame. The daemon will be restarted if it has not captured any images after this period though the actual restart may take slightly longer in conjunction with the check interval value above.",
+		help => "The zmwatch daemon checks the image capture performance of the capture daemons to ensure that they have not locked up (rarely a sync error may occur which blocks indefinately). This option determines the maximum delay to allow since the last captured frame. The daemon will be restarted if it has not captured any images after this period though the actual restart may take slightly longer in conjunction with the check interval value above.",
 		type => $types{decimal},
 		category => "system",
 	},
@@ -986,7 +986,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 
 		name => "ZM_RUN_AUDIT",
 		default => "yes",
-		description => "Whether to run zmaudit to check data consistency",
+		description => "Run zmaudit to check data consistency",
 		help => "The zmaudit daemon exists to check that the saved information in the database and on the filesystem match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronise the two data stores. This option controls whether zmaudit is run in the background and performs these checks and fixes continuously. This is recommended for most systems however if you have a very large number of events the process of scanning the database and filesystem may take a long time and impact performance. In this case you may prefer to not have zmaudit running unconditionally and schedule occasional checks at other, more convenient, times.",
 		type => $types{boolean},
 		category => "system",
@@ -1029,7 +1029,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_FORCE_CLOSE_EVENTS",
 		default => "no",
-		description => "Whether events are closed at section ends.",
+		description => "Close events at section ends.",
 		help => "When a monitor is running in a continuous recording mode (Record or Mocord) events are usually closed after a fixed period of time (the section length). However in Mocord mode it is possible that motion detection may occur near the end of a section and ordinarily this will prevent the event being closed until the motion has ceased. Switching this option on will force the event closed at the specified time regardless of any motion activity.",
 		type => $types{boolean},
 		category => "hidden",
@@ -1037,7 +1037,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_CREATE_ANALYSIS_IMAGES",
 		default => "yes",
-		description => "Whether to create analysed alarm images with motion outlined",
+		description => "Create analysed alarm images with motion outlined",
 		help => "By default during an alarm ZoneMinder records both the raw captured image and one that has been analysed and had areas where motion was detected outlined. This can be very useful during zone configuration or in analysing why events occured. However it also incurs some overhead and in a stable system may no longer be necessary. This parameter allows you to switch the generation of these images off.",
 		type => $types{boolean},
 		category => "config",
@@ -1045,7 +1045,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEIGHTED_ALARM_CENTRES",
 		default => "no",
-		description => "Whether to use a weighted algorithm to calculate the centre of an alarm",
+		description => "Use a weighted algorithm to calculate the centre of an alarm",
 		help => "ZoneMinder will always calculate the centre point of an alarm in a zone to give some indication of where on the screen it is. This can be used by the experimental motion tracking feature or your own custom extensions. In the alarmed or filtered pixels mode this is a simple midpoint between the extents of the detected pxiesl. However in the blob method this can instead be calculated using weighted pixel locations to give more accurate positioning for irregularly shaped blobs. This method, while more precise is also slower and so is turned off by default.",
 		type => $types{boolean},
 		category => "config",
@@ -1069,7 +1069,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_USER_SELF_EDIT",
 		default => "no",
-		description => "Whether unprivileged users can change their details",
+		description => "Allow unprivileged users to change their details",
 		help => "Ordinarily only users with system edit privilege are able to change users details. Switching this option on allows ordinary users to change their passwords and their language settings",
 		type => $types{boolean},
 		category => "config",
@@ -1095,7 +1095,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_OPT_CONTROL",
 		default => "no",
-		description => "Whether to support controllable (e.g. PTZ) cameras",
+		description => "Support controllable (e.g. PTZ) cameras",
 		help => "ZoneMinder includes limited support for controllable cameras. A number of sample protocols are included and others can easily be added. If you wish to control your cameras via ZoneMinder then select this option otherwise if you only have static cameras or use other control methods then leave this option off.",
 		type => $types{boolean},
 		category => "system",
@@ -1103,7 +1103,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_OPT_TRIGGERS",
 		default => "no",
-		description => "Whether we want to interface external event triggers via socket or device files",
+		description => "Interface external event triggers via socket or device files",
 		help => "ZoneMinder can interact with external systems which prompt or cancel alarms. This is done via the zmtrigger.pl script. This option indicates whether you want to use these external triggers. Most people will say no here.",
 		type => $types{boolean},
 		category => "system",
@@ -1111,7 +1111,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_CHECK_FOR_UPDATES",
 		default => "yes",
-		description => "Whether to check with zoneminder.com for updated versions",
+		description => "Check with zoneminder.com for updated versions",
 		help => "From ZoneMinder version 1.17.0 onwards new versions are expected to be more frequent. To save checking manually for each new version ZoneMinder can check with the zoneminder.com website to determine the most recent release. These checks are infrequent, about once per week, and no personal or system information is transmitted other than your current version number. If you do not wish these checks to take place or your ZoneMinder system has no internet access you can switch these check off with this configuration variable",
 		type => $types{boolean},
 		category => "system",
@@ -1135,7 +1135,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_DUMP_CORES",
 		default => "no",
-		description => "Whether to create core files on unexpected process failure.",
+		description => "Create core files on unexpected process failure.",
 		help => "When an unrecoverable error occurs in a ZoneMinder binary process is has traditionally been trapped and the details written to logs to aid in remote analysis. However in some cases it is easier to diagnose the error if a core file, which is a memory dump of the process at the time of the error, is created. This can be interactively analysed in the debugger and may reveal more or better information than that available from the logs. This option is recommended for advanced users only otherwise leave at the default. Note using this option to trigger core files will mean that there will be no indication in the binary logs that a process has died, they will just stop, however the zmdc log will still contain an entry. Also note that you may have to explicitly enable core file creation on your system via the 'ulimit -c' command or other means otherwise no file will be created regardless of the value of this option.",
 		type => $types{boolean},
 		category => "system",
@@ -1175,7 +1175,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_LIST_THUMBS",
 		default => "no",
-		description => "Whether to display mini-thumbnails of event images in event lists",
+		description => "Display mini-thumbnails of event images in event lists",
 		help => "Ordinarily the event lists just display text details of the events to save space and time. By switching this option on you can also display small thumbnails to help you identify events of interest. The size of these thumbnails is controlled by the following two options.",
 		type => $types{boolean},
 		category => "web",
@@ -1201,7 +1201,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_USE_OBJECT_TAGS",
 		default => "yes",
-		description => "Whether to wrap embed in object tags for media content",
+		description => "Wrap embed in object tags for media content",
 		help => "There are two methods of including media content in web pages. The most common way is use the EMBED tag which is able to give some indication of the type of content. However this is not a standard part of HTML. The official method is to use OBJECT tags which are able to give more information allowing the correct media viewers etc to be loaded. However these are less widely supported and content may be specifically tailored to a particular platform or player. This option controls whether media content is enclosed in EMBED tags only or whether, where appropriate, it is additionally wrapped in OBJECT tags. Currently OBJECT tags are only used in a limited number of circumstances but they may become more widespread in the future. It is suggested that you leave this option on unless you encounter problems playing some content.",
 		type => $types{boolean},
 		category => "web",
@@ -1282,7 +1282,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_H_SCALE_THUMBS",
 		default => "no",
-		description => "Whether to scale thumbnails in events, bandwidth versus cpu in rescaling",
+		description => "Scale thumbnails in events, bandwidth versus cpu in rescaling",
 		help => "If unset, this option sends the whole image to the browser which resizes it in the window. If set the image is scaled down on the server before sending a reduced size image to the browser to conserve bandwidth at the cost of cpu on the server",
 		type => $types{boolean},
 		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
@@ -1291,7 +1291,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_H_USE_STREAMS",
 		default => "yes",
-		description => "Whether to use streaming or stills for live and events views",
+		description => "Use streaming or stills for live and events views",
 		help => "Both the live and events views can use streaming to deliver a smoother feed. However over slow connections or in some other circumstances you can prefer to view stills instead. You can configure this globally with ZM_CAN_STREAM but this option allows you to modify your preference based on the bandwidth setting. Note that this option does not prevent you switching to streaming mode but just selects what the initial default setting is.",
 		type => $types{boolean},
 		category => "highband",
@@ -1307,7 +1307,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_H_SHOW_PROGRESS",
 		default => "yes",
-		description => "Whether to show the progress of replay in event view.",
+		description => "Show the progress of replay in event view.",
 		help => "When viewing events an event navigation panel and progress bar is shown below the event itself. This allows you to jump to specific points in the event, but can can also dynamically update to display the current progress of the event replay itself. This progress is calculated from the actual event duration and is not directly linked to the replay itself, so on limited bandwidth connections may be out of step with the replay. This option allows you to turn off the progress display, whilst still keeping the navigation aspect, where bandwidth prevents it functioning effectively.",
 		type => $types{boolean},
 		category => "highband",
@@ -1396,7 +1396,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_M_SCALE_THUMBS",
 		default => "yes",
-		description => "Whether to scale thumbnails in events, bandwidth versus cpu in rescaling",
+		description => "Scale thumbnails in events, bandwidth versus cpu in rescaling",
 		help => "If unset, this option sends the whole image to the browser which resizes it in the window. If set the image is scaled down on the server before sending a reduced size image to the browser to conserve bandwidth at the cost of cpu on the server",
 		type => $types{boolean},
 		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
@@ -1405,7 +1405,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_M_USE_STREAMS",
 		default => "yes",
-		description => "Whether to use streaming or stills for live and events views",
+		description => "Use streaming or stills for live and events views",
 		help => "Both the live and events views can use streaming to deliver a smoother feed. However over slow connections or in some other circumstances you can prefer to view stills instead. You can configure this globally with ZM_CAN_STREAM but this option allows you to modify your preference based on the bandwidth setting. Note that this option does not prevent you switching to streaming mode but just selects what the initial default setting is.",
 		type => $types{boolean},
 		category => "medband",
@@ -1421,7 +1421,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_M_SHOW_PROGRESS",
 		default => "yes",
-		description => "Whether to show the progress of replay in event view.",
+		description => "Show the progress of replay in event view.",
 		help => "When viewing events an event navigation panel and progress bar is shown below the event itself. This allows you to jump to specific points in the event, but can can also dynamically update to display the current progress of the event replay itself. This progress is calculated from the actual event duration and is not directly linked to the replay itself, so on limited bandwidth connections may be out of step with the replay. This option allows you to turn off the progress display, whilst still keeping the navigation aspect, where bandwidth prevents it functioning effectively.",
 		type => $types{boolean},
 		category => "medband",
@@ -1510,7 +1510,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_L_SCALE_THUMBS",
 		default => "yes",
-		description => "Whether to scale thumbnails in events, bandwidth versus cpu in rescaling",
+		description => "Scale thumbnails in events, bandwidth versus cpu in rescaling",
 		help => "If unset, this option sends the whole image to the browser which resizes it in the window. If set the image is scaled down on the server before sending a reduced size image to the browser to conserve bandwidth at the cost of cpu on the server",
 		type => $types{boolean},
 		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
@@ -1519,7 +1519,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_L_USE_STREAMS",
 		default => "yes",
-		description => "Whether to use streaming or stills for live and events views",
+		description => "Use streaming or stills for live and events views",
 		help => "Both the live and events views can use streaming to deliver a smoother feed. However over slow connections or in some other circumstances you can prefer to view stills instead. You can configure this globally with ZM_CAN_STREAM but this option allows you to modify your preference based on the bandwidth setting. Note that this option does not prevent you switching to streaming mode but just selects what the initial default setting is.",
 		type => $types{boolean},
 		category => "lowband",
@@ -1535,7 +1535,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_L_SHOW_PROGRESS",
 		default => "no",
-		description => "Whether to show the progress of replay in event view.",
+		description => "Show the progress of replay in event view.",
 		help => "When viewing events an event navigation panel and progress bar is shown below the event itself. This allows you to jump to specific points in the event, but can can also dynamically update to display the current progress of the event replay itself. This progress is calculated from the actual event duration and is not directly linked to the replay itself, so on limited bandwidth connections may be out of step with the replay. This option allows you to turn off the progress display, whilst still keeping the navigation aspect, where bandwidth prevents it functioning effectively.",
 		type => $types{boolean},
 		category => "lowband",
@@ -1559,7 +1559,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_WEB_P_SCALE_THUMBS",
 		default => "yes",
-		description => "Whether to scale thumbnails in events, bandwidth versus cpu in rescaling",
+		description => "Scale thumbnails in events, bandwidth versus cpu in rescaling",
 		help => "If unset, this option sends the whole image to the browser which resizes it in the window. If set the image is scaled down on the server before sending a reduced size image to the browser to conserve bandwidth at the cost of cpu on the server",
 		type => $types{boolean},
 		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
@@ -1630,7 +1630,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	{
 		name => "ZM_DYN_SHOW_DONATE_REMINDER",
 		default => "yes",
-		description => "Whether to remind about donations or not",
+		description => "Remind about donations or not",
 		help => "",
 		type => $types{boolean},
 		readonly => 1,

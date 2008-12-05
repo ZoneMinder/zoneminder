@@ -121,7 +121,7 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen )
                             return( -1 );
                         }
                     }
-                    int paddedLen = 4+2+item->len;
+                    int paddedLen = 4+2+item->len+1; // Add null byte
                     paddedLen = (((paddedLen-1)/4)+1)*4;
                     Debug( 5, "RTCP PL:%d", paddedLen );
                     sdesPtr += paddedLen;

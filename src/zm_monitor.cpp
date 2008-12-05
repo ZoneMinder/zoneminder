@@ -486,8 +486,10 @@ Monitor::Monitor(
 			}
 			char temp_path[PATH_MAX];
 			snprintf( temp_path, sizeof(temp_path), "%d", id );
-			chdir( config.dir_events );
-			symlink( temp_path, name );
+			if ( chdir( config.dir_events ) < 0 )
+                Fatal( "Can't change directory to '%s': %s", config.dir_events, strerror(errno) );
+			if ( symlink( temp_path, name ) < 0 )
+                Fatal( "Can't symlink '%s' to '%s': %s", temp_path, name, strerror(errno) );
 			chdir( ".." );
 		}
 

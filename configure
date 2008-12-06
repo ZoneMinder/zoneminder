@@ -727,6 +727,7 @@ CXXCPP
 GREP
 EGREP
 ZM_V4L2
+ZM_PCRE
 LIBOBJS
 POW_LIB
 PERL
@@ -2390,6 +2391,8 @@ FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/include"
 
 
 LDFLAGS="${FFMPEG_LIBS} $LDFLAGS"
+CFLAGS="${FFMPEG_CFLAGS} $CFLAGS"
+CPPFLAGS="${FFMPEG_CFLAGS} $CPPFLAGS"
 
 EXTRA_LIBS=
 
@@ -8570,6 +8573,7 @@ if test `eval echo '${'$as_ac_Header'}'` = yes; then
   cat >>confdefs.h <<_ACEOF
 #define `echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
+ ZM_PCRE="1"
 
 fi
 
@@ -8715,6 +8719,7 @@ if test `eval echo '${'$as_ac_Header'}'` = yes; then
   cat >>confdefs.h <<_ACEOF
 #define `echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
+ ZM_PCRE="1"
 
 fi
 
@@ -14852,6 +14857,7 @@ CXXCPP!$CXXCPP$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
 ZM_V4L2!$ZM_V4L2$ac_delim
+ZM_PCRE!$ZM_PCRE$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 POW_LIB!$POW_LIB$ac_delim
 PERL!$PERL$ac_delim
@@ -14865,7 +14871,7 @@ ZM_CONFIG!$ZM_CONFIG$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 26; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 27; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

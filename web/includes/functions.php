@@ -2072,14 +2072,9 @@ function setDeviceStatusX10( $key, $status )
     else
     {
         // Can't connect so use script
-        $command = ZM_PATH_BIN."/zmx10.pl --command $status --key $key";
+        $command = ZM_PATH_BIN."/zmx10.pl --command $status --unit-code $key";
         //$command .= " 2>/dev/null >&- <&- >/dev/null";
-        $result = exec( $string );
-        if ( preg_match( '/^'.$key.'\s+(.*)/', $result, $matches ) )
-            $status = $matches[1];
-        else
-            $status = "unknown";
-        $x10Response = exec( escapeshellcmd( $x10Command ) );
+        $x10Response = exec( $command );
     }
     if ( preg_match( '/^'.$key.'\s+(.*)/', $x10Response, $matches ) )
         $status = $matches[1];

@@ -73,13 +73,7 @@ void RemoteCameraRtsp::Initialise()
     else
         av_log_set_level( AV_LOG_QUIET ); 
 
-    /* must be called before using avcodec lib */
-    avcodec_init();
-
-    /* register all the codecs */
-    avcodec_register_all();
-
-    av_register_rtp_dynamic_payload_handlers();
+    av_register_all();
 
     frameCount = 0;
 

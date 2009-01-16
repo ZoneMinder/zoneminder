@@ -48,7 +48,6 @@ zm_SOURCES = \
 	zm_rtp_data.cpp \
 	zm_rtp_source.cpp \
 	zm_rtsp.cpp \
-	zm_sdp.c \
 	zm_signal.cpp \
 	zm_stream.cpp \
 	zm_thread.cpp \
@@ -101,7 +100,6 @@ noinst_HEADERS = \
 	zm_rtp.h \
 	zm_rtp_source.h \
 	zm_rtsp.h \
-	zm_sdp.h \
 	zm_signal.h \
 	zm_stream.h \
 	zm_thread.h \

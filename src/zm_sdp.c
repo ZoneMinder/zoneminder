@@ -1,3 +1,5 @@
+#if 0
+
 #include "config.h"
 
 #if HAVE_LIBAVFORMAT
@@ -511,7 +513,7 @@ static void sdp_parse_line(AVFormatContext *s, SDPParseState *s1,
     }
 }
 
-int sdp_parse(AVFormatContext *s, const char *content)
+int sdp_parse( AVFormatContext *s, const char *content )
 {
     const char *p;
     int letter;
@@ -548,3 +550,4 @@ int sdp_parse(AVFormatContext *s, const char *content)
 }
 
 #endif // HAVE_LIBAVFORMAT
+#endif

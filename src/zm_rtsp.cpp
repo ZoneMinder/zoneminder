@@ -113,14 +113,23 @@ int RtspThread::requestPorts()
         }
         int nMonitors = mysql_num_rows( result );
         int position = 0;
-        for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
+        if ( nMonitors )
         {
-            int id = atoi(dbrow[0]);
-            if ( mId == id )
+            for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
             {
-                position = i;
-                break;
+                int id = atoi(dbrow[0]);
+                if ( mId == id )
+                {
+                    position = i;
+                    break;
+                }
             }
+        }
+        else
+        {
+            // Minor hack for testing when not strictly enabled
+            nMonitors = 1;
+            position = 0;
         }
         int portRange = int(((config.max_rtp_port-config.min_rtp_port)+1)/nMonitors);
         mMinDataPort = config.min_rtp_port + (position * portRange);
@@ -277,6 +286,9 @@ int RtspThread::run()
     //sendCommand( message );
     //recvResponse( response );
 
+#if 0
+
+    // Old method, now deprecated
     message = "DESCRIBE "+mUrl+" RTSP/1.0\r\n";
     if ( !sendCommand( message ) )
         return( -1 );
@@ -291,6 +303,26 @@ int RtspThread::run()
 
     // initialize our format context from the sdp description.
     sdp_parse( mFormatContext, response.c_str() );
+
+#else
+
+    // New method using ffmpeg native functions
+    std::string tempUrl = mUrl;
+    if ( !mAuth.empty() )
+    {
+        tempUrl = mProtocol+"://"+"Admin:123456"+"@"+mHost+":"+mPort;
+        if ( !mPath.empty() )
+        {
+            if ( mPath[0] == '/' )
+                mUrl += mPath;
+            else
+                mUrl += '/'+mPath;
+        }
+    }
+    if ( av_open_input_file( &mFormatContext, tempUrl.c_str(), NULL, 0, NULL ) != 0 )
+        return( -1 );
+
+#endif
 
     U32 rtpClock = 0;
     std::string trackUrl = mUrl;

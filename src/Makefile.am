@@ -32,6 +32,7 @@ zm_SOURCES = \
 	zm_event.cpp \
 	zm_exception.cpp \
 	zm_file_camera.cpp \
+	zm_ffmpeg_camera.cpp \
 	zm_image.cpp \
 	zm_jpeg.c \
 	zm_local_camera.cpp \
@@ -79,6 +80,7 @@ noinst_HEADERS = \
 	zm_exception.h \
 	zmf.h \
 	zm_file_camera.h \
+	zm_ffmpeg_camera.h \
 	zm_font.h \
 	zm_font.h \
 	zm.h \

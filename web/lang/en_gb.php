@@ -287,6 +287,7 @@ $SLANG = array(
     'Far'                   => 'Far',
     'FastForward'           => 'Fast Forward',
     'Feed'                  => 'Feed',
+    'Ffmpeg'                => 'Ffmpeg',
     'FileColours'           => 'File Colours',
     'File'                  => 'File',
     'FilePath'              => 'File Path',

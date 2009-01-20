@@ -146,7 +146,8 @@ if ( !empty($_REQUEST['preset']) )
 $sourceTypes = array(
     'Local'  => $SLANG['Local'],
     'Remote' => $SLANG['Remote'],
-    'File'   => $SLANG['File']
+    'File'   => $SLANG['File'],
+    'Ffmpeg' => $SLANG['Ffmpeg'],
 );
 
 $localMethods = array(
@@ -309,7 +310,7 @@ if ( $tab != 'source' || ($newMonitor['Type'] != 'Local' && $newMonitor['Type'] 
     <input type="hidden" name="newMonitor[Method]" value="<?= validHtmlStr($newMonitor['Method']) ?>"/>
 <?php
 }
-if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'File') )
+if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'File' && $newMonitor['Type'] != 'Ffmpeg') )
 {
 ?>
     <input type="hidden" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>"/>
@@ -504,7 +505,7 @@ switch ( $tab )
             <tr><td><?= $SLANG['RemoteImageColours'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $remoteColours as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
         }
-        elseif ( $newMonitor['Type'] == "File" )
+        elseif ( $newMonitor['Type'] == "File" || $newMonitor['Type'] == "Ffmpeg" )
         {
 ?>
             <tr><td><?= $SLANG['FilePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>

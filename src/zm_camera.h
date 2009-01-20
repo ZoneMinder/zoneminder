@@ -32,7 +32,7 @@
 class Camera
 {
 protected:
-	typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC } SourceType;
+	typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC } SourceType;
 
     int             id;
 	SourceType		type;
@@ -55,6 +55,7 @@ public:
 	bool IsLocal() const { return( type == LOCAL_SRC ); }
 	bool IsRemote() const { return( type == REMOTE_SRC ); }
 	bool IsFile() const { return( type == FILE_SRC ); }
+	bool IsFfmpeg() const { return( type == FFMPEG_SRC ); }
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
 	unsigned int Colours() const { return( colours ); }

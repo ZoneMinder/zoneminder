@@ -308,6 +308,8 @@ foreach( $displayMonitors as $monitor )
             <td class="colSource"><?= makePopupLink( '?view=monitor&mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*@/', '', $monitor['Host'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "File" ) { ?>
             <td class="colSource"><?= makePopupLink( '?view=monitor&mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
+<?php } elseif ( $monitor['Type'] == "Ffmpeg" ) { ?>
+            <td class="colSource"><?= makePopupLink( '?view=monitor&mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } else { ?>
             <td class="colSource">&nbsp;</td>
 <?php } ?>

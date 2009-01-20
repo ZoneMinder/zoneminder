@@ -35,6 +35,9 @@
 #include "zm_remote_camera_rtsp.h"
 #endif // HAVE_LIBAVFORMAT
 #include "zm_file_camera.h"
+#if HAVE_LIBAVFORMAT
+#include "zm_ffmpeg_camera.h"
+#endif // HAVE_LIBAVFORMAT
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
@@ -2107,6 +2110,133 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 	return( n_monitors );
 }
 
+int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose )
+{
+	static char sql[BUFSIZ];
+	if ( !file[0] )
+	{
+		strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
+	}
+	else
+	{
+		snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
+	}
+	if ( mysql_query( &dbconn, sql ) )
+	{
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
+		exit( mysql_errno( &dbconn ) );
+	}
+
+	MYSQL_RES *result = mysql_store_result( &dbconn );
+	if ( !result )
+	{
+		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
+		exit( mysql_errno( &dbconn ) );
+	}
+	int n_monitors = mysql_num_rows( result );
+	Debug( 1, "Got %d monitors", n_monitors );
+	delete[] monitors;
+	monitors = new Monitor *[n_monitors];
+	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
+	{
+		int col = 0;
+
+		int id = atoi(dbrow[col]); col++;
+		const char *name = dbrow[col]; col++;
+		int function = atoi(dbrow[col]); col++;
+		int enabled = atoi(dbrow[col]); col++;
+		const char *linked_monitors = dbrow[col]; col++;
+
+		const char *path = dbrow[col]; col++;
+
+		int width = atoi(dbrow[col]); col++;
+		int height = atoi(dbrow[col]); col++;
+		int palette = atoi(dbrow[col]); col++;
+		Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
+		int brightness = atoi(dbrow[col]); col++;
+		int contrast = atoi(dbrow[col]); col++;
+		int hue = atoi(dbrow[col]); col++;
+		int colour = atoi(dbrow[col]); col++;
+
+		const char *event_prefix = dbrow[col]; col++;
+		const char *label_format = dbrow[col]; col++;
+
+		int label_x = atoi(dbrow[col]); col++;
+		int label_y = atoi(dbrow[col]); col++;
+
+		int image_buffer_count = atoi(dbrow[col]); col++;
+		int warmup_count = atoi(dbrow[col]); col++;
+		int pre_event_count = atoi(dbrow[col]); col++;
+		int post_event_count = atoi(dbrow[col]); col++;
+		int stream_replay_buffer = atoi(dbrow[col]); col++;
+		int alarm_frame_count = atoi(dbrow[col]); col++;
+		int section_length = atoi(dbrow[col]); col++;
+		int frame_skip = atoi(dbrow[col]); col++;
+		int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+		int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+		int fps_report_interval = atoi(dbrow[col]); col++;
+		int ref_blend_perc = atoi(dbrow[col]); col++;
+		int track_motion = atoi(dbrow[col]); col++;
+
+		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
+		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
+
+		Camera *camera = new FfmpegCamera(
+            id,
+			path, // File
+			cam_width,
+			cam_height,
+			palette,
+			brightness,
+			contrast,
+			hue,
+			colour,
+			purpose==CAPTURE
+		);
+
+		monitors[i] = new Monitor(
+			id,
+			name,
+			function,
+			enabled,
+			linked_monitors,
+			camera,
+			orientation,
+			event_prefix,
+			label_format,
+			Coord( label_x, label_y ),
+			image_buffer_count,
+			warmup_count,
+			pre_event_count,
+			post_event_count,
+			stream_replay_buffer,
+			alarm_frame_count,
+			section_length,
+			frame_skip,
+			capture_delay,
+			alarm_capture_delay,
+			fps_report_interval,
+			ref_blend_perc,
+			track_motion,
+            RGB_WHITE,
+			purpose
+		);
+		Zone **zones = 0;
+		int n_zones = Zone::Load( monitors[i], zones );
+		monitors[i]->AddZones( n_zones, zones );
+		Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
+	}
+	if ( mysql_errno( &dbconn ) )
+	{
+		Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
+		exit( mysql_errno( &dbconn ) );
+	}
+	// Yadda yadda
+	mysql_free_result( result );
+
+	return( n_monitors );
+}
+
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
 	static char sql[BUFSIZ];
@@ -2265,6 +2395,21 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 				purpose==CAPTURE
 			);
 		}
+		else if ( type == "Ffmpeg" )
+		{
+			camera = new FfmpegCamera(
+                id,
+				path.c_str(),
+				cam_width,
+				cam_height,
+				palette,
+				brightness,
+				contrast,
+				hue,
+				colour,
+				purpose==CAPTURE
+			);
+		}
 		else
 		{
 			Fatal( "Bogus monitor type '%s' for monitor %d", type.c_str(), id );
@@ -2355,7 +2500,7 @@ int Monitor::PostCapture()
 		int index = image_count%image_buffer_count;
 		if ( (index == shared_data->last_read_index) && (function > MONITOR) )
 		{
-			Warning( "Buffer overrun at index %d, slow down capture, speed up analysis or increase ring buffer size", index );
+			Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
 		}
 
 		gettimeofday( image_buffer[index].timestamp, NULL );
@@ -2651,6 +2796,10 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	else if ( camera->IsFile() )
 	{
 		sprintf( output+strlen(output), "Path : %s\n", ((FileCamera *)camera)->Path() );
+	}
+	else if ( camera->IsFfmpeg() )
+	{
+		sprintf( output+strlen(output), "Path : %s\n", ((FfmpegCamera *)camera)->Path().c_str() );
 	}
 	sprintf( output+strlen(output), "Width : %d\n", camera->Width() );
 	sprintf( output+strlen(output), "Height : %d\n", camera->Height() );

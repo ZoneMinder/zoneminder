@@ -24,9 +24,6 @@
 #include "zm_remote_camera_rtsp.h"
 #include "zm_ffmpeg.h"
 #include "zm_mem_utils.h"
-extern "C" {
-#include "zm_sdp.h"
-}
 
 #include <sys/types.h>
 #include <sys/socket.h>

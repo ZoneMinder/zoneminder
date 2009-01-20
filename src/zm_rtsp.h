@@ -26,10 +26,6 @@
 #include "zm_thread.h"
 #include "zm_rtp_source.h"
 
-extern "C" {
-#include "zm_sdp.h"
-}
-
 #include <set>
 #include <map>
 

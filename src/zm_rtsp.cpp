@@ -282,30 +282,6 @@ int RtspThread::run()
     std::string localHost = "";
     int localPorts[2] = { 0, 0 };
 
-    //message = "OPTIONS * RTSP/1.0\r\n";
-    //sendCommand( message );
-    //recvResponse( response );
-
-#if 0
-
-    // Old method, now deprecated
-    message = "DESCRIBE "+mUrl+" RTSP/1.0\r\n";
-    if ( !sendCommand( message ) )
-        return( -1 );
-    sleep( 1 );
-    if ( !recvResponse( response ) )
-        return( -1 );
-
-    RTSPState *rtsp_st = new RTSPState;
-    rtsp_st->nb_rtsp_streams = 0;
-    rtsp_st->rtsp_streams = NULL;
-    mFormatContext->priv_data = rtsp_st;
-
-    // initialize our format context from the sdp description.
-    sdp_parse( mFormatContext, response.c_str() );
-
-#else
-
     // New method using ffmpeg native functions
     std::string tempUrl = mUrl;
     if ( !mAuth.empty() )
@@ -320,9 +296,10 @@ int RtspThread::run()
         }
     }
     if ( av_open_input_file( &mFormatContext, tempUrl.c_str(), NULL, 0, NULL ) != 0 )
+    {
+        Error( "Unable to open input '%s'", tempUrl.c_str() );
         return( -1 );
-
-#endif
+    }
 
     U32 rtpClock = 0;
     std::string trackUrl = mUrl;

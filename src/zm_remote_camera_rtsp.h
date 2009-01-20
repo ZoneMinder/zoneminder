@@ -41,10 +41,8 @@ protected:
 	int rtcp_sd;
 
 	Buffer buffer;
-    //enum { RTP_UNICAST, RTP_MULTICAST, RTP_RTSP, RTP_RTSP_HTTP } method;
-    RtspThread::RtspMethod method;
 
-	enum { UNDEF, JPEG, X_RGB, X_RGBZ } format;
+    RtspThread::RtspMethod method;
 
     RtspThread *rtspThread;
 

@@ -394,8 +394,8 @@ protected:
 protected:
     bool checkSwapPath( const char *path, bool create_path );
 
-    void sendFrame( const char *filepath, struct timeval *timestamp );
-    void sendFrame( Image *image, struct timeval *timestamp );
+    bool sendFrame( const char *filepath, struct timeval *timestamp );
+    bool sendFrame( Image *image, struct timeval *timestamp );
     void processCommand( const CmdMsg *msg );
 
 public:

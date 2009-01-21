@@ -103,8 +103,7 @@ protected:
     bool checkInitialised();
     void updateFrameRate( double fps );
     Image *prepareImage( Image *image );
-    void sendFrame( int delta_us );
-    void sendTextFrame( const char *text );
+    bool sendTextFrame( const char *text );
     bool checkCommandQueue();
     virtual void processCommand( const CmdMsg *msg )=0;
 

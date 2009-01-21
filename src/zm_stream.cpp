@@ -224,7 +224,7 @@ Image *StreamBase::prepareImage( Image *image )
     return( image );
 }
 
-void StreamBase::sendTextFrame( const char *frame_text )
+bool StreamBase::sendTextFrame( const char *frame_text )
 {
     Debug( 2, "Sending text frame '%s'", frame_text );
 
@@ -257,11 +257,16 @@ void StreamBase::sendTextFrame( const char *frame_text )
         fprintf( stdout, "--ZoneMinderFrame\r\n" );
         fprintf( stdout, "Content-Length: %d\r\n", n_bytes );
         fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
-        fwrite( buffer, n_bytes, 1, stdout );
+        if ( fwrite( buffer, n_bytes, 1, stdout ) )
+        {
+            Error( "Unable to send stream text frame: %s", strerror(errno) );
+            return( false );
+        }
         fprintf( stdout, "\r\n\r\n" );
         fflush( stdout );
     }
     last_frame_sent = TV_2_FLOAT( now );
+    return( true );
 }
 
 void StreamBase::openComms()

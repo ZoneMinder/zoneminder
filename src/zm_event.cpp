@@ -1072,47 +1072,7 @@ void EventStream::checkEventLoaded()
 {
     bool reload_event = false;
     static char sql[BUFSIZ];
-#if 0
-if ( $user['MonitorIds'] )
-{
-    $mid_sql = " and MonitorId in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
-}
-else
-{
-    $mid_sql = '';
-}
 
-parseSort();
-parseFilter();
-
-$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'<=':'>=')." '".$event[preg_replace( '/^.*\./', '', $sort_column )]."'$filter_sql$mid_sql order by $sort_column ".($sort_order=='asc'?'desc':'asc');
-$result = mysql_query( $sql );
-if ( !$result )
-    die( mysql_error() );
-while ( $row = mysql_fetch_assoc( $result ) )
-{
-    if ( $row['Id'] == $eid )
-    {
-        $prev_event = mysql_fetch_assoc( $result );
-        break;
-    }
-}
-mysql_free_result( $result );
-
-$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sort_column ".($sort_order=='asc'?'>=':'<=')." '".$event[preg_replace( '/^.*\./', '', $sort_column )]."'$filter_sql$mid_sql order by $sort_column $sort_order";
-$result = mysql_query( $sql );
-if ( !$result )
-    die( mysql_error() );
-while ( $row = mysql_fetch_assoc( $result ) )
-{
-    if ( $row['Id'] == $eid )
-    {
-        $next_event = mysql_fetch_assoc( $result );
-        break;
-    }
-}
-mysql_free_result( $result );
-#endif
     if ( curr_frame_id <= 0 )
     {
         snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %ld and Id < %ld order by Id desc limit 1", event_data->monitor_id, event_data->event_id );
@@ -1185,7 +1145,7 @@ mysql_free_result( $result );
     }
 }
 
-void EventStream::sendFrame( int delta_us )
+bool EventStream::sendFrame( int delta_us )
 {
     Debug( 2, "Sending frame %d", curr_frame_id );
 
@@ -1224,16 +1184,14 @@ void EventStream::sendFrame( int delta_us )
 
         if ( send_raw )
         {
-            FILE *fdj = NULL;
-            if ( (fdj = fopen( filepath, "r" )) )
-            {
-                img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
-                fclose( fdj );
-            }
-            else
+            FILE *fdj = fopen( filepath, "r" );
+            if ( !fdj )
             {
                 Error( "Can't open %s: %s", filepath, strerror(errno) );
+                return( false );
             }
+            img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
+            fclose( fdj );
         }
         else
         {
@@ -1277,11 +1235,16 @@ void EventStream::sendFrame( int delta_us )
                 break;
         }
         fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
-        fwrite( img_buffer, img_buffer_size, 1, stdout );
+        if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) < 0 )
+        {
+            Error( "Unable to send stream frame: %s", strerror(errno) );
+            return( false );
+        }
         fprintf( stdout, "\r\n\r\n" );
         fflush( stdout );
     }
     last_frame_sent = TV_2_FLOAT( now );
+    return( true );
 }
 
 void EventStream::runStream()
@@ -1344,7 +1307,8 @@ void EventStream::runStream()
                 {
                     static char frame_text[64];
                     snprintf( frame_text, sizeof(frame_text), "Time to next event = %d seconds", (int)time_to_event );
-                    sendTextFrame( frame_text );
+                    if ( !sendTextFrame( frame_text ) )
+                        zm_terminate = true;
                 }
                 //else
                 //{
@@ -1388,9 +1352,8 @@ void EventStream::runStream()
         }
 
         if ( send_frame )
-        {
-            sendFrame( delta_us );
-        }
+            if ( !sendFrame( delta_us ) )
+                zm_terminate = true;
 
         curr_stream_time = frame_data->timestamp;
 

@@ -232,7 +232,7 @@ protected:
 
     void checkEventLoaded();
     void processCommand( const CmdMsg *msg );
-    void sendFrame( int delta_us );
+    bool sendFrame( int delta_us );
 
 public:
     EventStream()

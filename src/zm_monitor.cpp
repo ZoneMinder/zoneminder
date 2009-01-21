@@ -494,7 +494,8 @@ Monitor::Monitor(
                 Fatal( "Can't change directory to '%s': %s", config.dir_events, strerror(errno) );
 			if ( symlink( temp_path, name ) < 0 )
                 Fatal( "Can't symlink '%s' to '%s': %s", temp_path, name, strerror(errno) );
-			chdir( ".." );
+			if ( chdir( ".." ) < 0 )
+                Fatal( "Can't change to parent directory: %s", strerror(errno) );
 		}
 
 		while( shared_data->last_write_index == image_buffer_count )
@@ -3171,7 +3172,7 @@ void MonitorStream::processCommand( const CmdMsg *msg )
     updateFrameRate( monitor->GetFPS() );
 }
 
-void MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
+bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
 {
     bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
@@ -3184,7 +3185,7 @@ void MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
     {
         Image temp_image( filepath );
 
-        sendFrame( &temp_image, timestamp );
+        return( sendFrame( &temp_image, timestamp ) );
     }
     else
     {
@@ -3200,20 +3201,28 @@ void MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
         else
         {
             Error( "Can't open %s: %s", filepath, strerror(errno) );
+            return( false );
         }
 
         fprintf( stdout, "--ZoneMinderFrame\r\n" );
         fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
         fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
-        fwrite( img_buffer, img_buffer_size, 1, stdout );
+        if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) < 0 )
+        {
+            Error( "Unable to send stream frame: %s", strerror(errno) );
+            return( false );
+        }
         fprintf( stdout, "\r\n\r\n" );
         fflush( stdout );
 
         last_frame_sent = TV_2_FLOAT( now );
+
+        return( true );
     }
+    return( false );
 }
 
-void MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
+bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
 {
     if ( !config.timestamp_on_capture && timestamp )
     {
@@ -3269,11 +3278,16 @@ void MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
                 break;
         }
         fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
-        fwrite( img_buffer, img_buffer_size, 1, stdout );
+        if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) < 0 )
+        {
+            Error( "Unable to send stream frame: %s", strerror(errno) );
+            return( false );
+        }
         fprintf( stdout, "\r\n\r\n" );
         fflush( stdout );
     }
     last_frame_sent = TV_2_FLOAT( now );
+    return( true );
 }
 
 void MonitorStream::runStream()
@@ -3397,7 +3411,8 @@ void MonitorStream::runStream()
                             {
                                 Debug( 2, "Sending delayed frame %d", temp_index );
                                 // Send the next frame
-                                sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp );
+                                if ( !sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp ) )
+                                    zm_terminate = true;
                                 memcpy( &last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp) );
                                 frame_sent = true;
                             }
@@ -3412,7 +3427,8 @@ void MonitorStream::runStream()
                     SwapImage *swap_image = &temp_image_buffer[temp_read_index];
 
                     // Send the next frame
-                    sendFrame( temp_image_buffer[temp_read_index].file_name, &temp_image_buffer[temp_read_index].timestamp );
+                    if ( !sendFrame( temp_image_buffer[temp_read_index].file_name, &temp_image_buffer[temp_read_index].timestamp ) )
+                        zm_terminate = true;
                     memcpy( &last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp) );
                     frame_sent = true;
                     step = 0;
@@ -3427,7 +3443,8 @@ void MonitorStream::runStream()
                         // Send keepalive
                         Debug( 2, "Sending keepalive frame %d", temp_index );
                         // Send the next frame
-                        sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp );
+                        if ( !sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp ) )
+                            zm_terminate = true;
                         frame_sent = true;
                     }
                 }
@@ -3455,7 +3472,8 @@ void MonitorStream::runStream()
 				    // Send the next frame
                     Monitor::Snapshot *snap = &monitor->image_buffer[index];
 
-                    sendFrame( snap->image, snap->timestamp );
+                    if ( !sendFrame( snap->image, snap->timestamp ) )
+                        zm_terminate = true;
                     memcpy( &last_frame_timestamp, snap->timestamp, sizeof(last_frame_timestamp) );
                     frame_sent = true;
 

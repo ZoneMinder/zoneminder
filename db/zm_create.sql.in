@@ -267,7 +267,7 @@ DROP TABLE IF EXISTS `MonitorPresets`;
 CREATE TABLE `MonitorPresets` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','File') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','File','Ffmpeg') NOT NULL default 'Local',
   `Device` tinytext,
   `Channel` varchar(32) default NULL,
   `Format` varchar(32) default NULL,

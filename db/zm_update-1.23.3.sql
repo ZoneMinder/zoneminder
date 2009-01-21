@@ -38,6 +38,11 @@ update MonitorPresets set Palette = 3 where Type != 'Local' and Palette = 4;
 update Monitors set Method = "v4l1" where Type = 'Local';
 
 --
+-- Add monitor type for FFMPEG cameras
+--
+alter table Monitors modify column `Type` enum('Local','Remote','File','Ffmpeg') NOT NULL default 'Local';
+
+--
 -- Add in new MPEG presets
 --
 insert into MonitorPresets values ('','Axis IP, mpeg4, unicast','Remote',NULL,NULL,NULL,'rtsp','rtpUni','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);

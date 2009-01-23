@@ -298,7 +298,7 @@ DROP TABLE IF EXISTS `Monitors`;
 CREATE TABLE `Monitors` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','File') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','File','Ffmpeg') NOT NULL default 'Local',
   `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `LinkedMonitors` varchar(255) NOT NULL default '',

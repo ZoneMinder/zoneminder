@@ -41,6 +41,7 @@ update Monitors set Method = "v4l1" where Type = 'Local';
 -- Add monitor type for FFMPEG cameras
 --
 alter table Monitors modify column `Type` enum('Local','Remote','File','Ffmpeg') NOT NULL default 'Local';
+alter table MonitorPresets modify column `Type` enum('Local','Remote','File','Ffmpeg') NOT NULL default 'Local';
 
 --
 -- Add in new MPEG presets

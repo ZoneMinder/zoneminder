@@ -44,6 +44,15 @@ alter table Monitors modify column `Type` enum('Local','Remote','File','Ffmpeg')
 alter table MonitorPresets modify column `Type` enum('Local','Remote','File','Ffmpeg') NOT NULL default 'Local';
 
 --
+-- Fix columns to fit V4L2 formats and palettes
+--
+alter table Monitors modify column `Format` int(10) unsigned NOT NULL default '0';
+alter table Monitors modify column `Palette` int(10) unsigned NOT NULL default '0';
+alter table MonitorPresets modify column `Channel` tinyint(3) unsigned default NULL;
+alter table MonitorPresets modify column `Format` int(10) unsigned default NULL;
+alter table MonitorPresets modify column `Palette` int(10) unsigned default NULL;
+
+--
 -- Add in new MPEG presets
 --
 insert into MonitorPresets values ('','Axis IP, mpeg4, unicast','Remote',NULL,NULL,NULL,'rtsp','rtpUni','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);

@@ -17,22 +17,24 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+#include "zm_local_camera.h"
+
+#include "zm_ffmpeg.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
 
-#include "zm_local_camera.h"
-
 static int vidioctl( int fd, int request, void *arg )
 {
-        int result;
-        do
-        {
-            result = ioctl( fd, request, arg );
-        } while ( result == -1 && errno == EINTR );
-        return( result );
+    int result = -1;
+    do
+    {
+        result = ioctl( fd, request, arg );
+    } while ( result == -1 && errno == EINTR );
+    return( result );
 }
 
 int LocalCamera::camera_count = 0;
@@ -146,58 +148,17 @@ void LocalCamera::Initialise()
 
         memset( &v4l2_data.fmt, 0, sizeof(v4l2_data.fmt) );
         v4l2_data.fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+        if ( vidioctl( vid_fd, VIDIOC_G_FMT, &v4l2_data.fmt ) < 0 )
+            Fatal( "Failed to get video format: %s", strerror(errno) );
+
+        v4l2_data.fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         v4l2_data.fmt.fmt.pix.width = width; 
         v4l2_data.fmt.fmt.pix.height = height;
-        switch( palette )
-        {
-            case VIDEO_PALETTE_GREY :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-                break;
-            case VIDEO_PALETTE_HI240 :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_HI240;
-                break;
-            case VIDEO_PALETTE_RGB565 :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB565;
-                break;
-            case VIDEO_PALETTE_RGB24 :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
-                break;
-            case VIDEO_PALETTE_RGB32 :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR32;
-                break;
-            case VIDEO_PALETTE_RGB555 :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB555;
-                break;
-            case VIDEO_PALETTE_YUV422 :
-            case VIDEO_PALETTE_YUYV :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-                break;
-            case VIDEO_PALETTE_UYVY :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
-                break;
-            case VIDEO_PALETTE_YUV420P :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
-                break;
-            case VIDEO_PALETTE_YUV422P :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV422P;
-                break;
-            case VIDEO_PALETTE_YUV411P :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV411P;
-                break;
-            case VIDEO_PALETTE_YUV411 :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_Y41P;
-                break;
-            case VIDEO_PALETTE_YUV410P :
-                v4l2_data.fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV410;
-                break;
-            // case VIDEO_PALETTE_YUV420 : // Defunct
-            // case VIDEO_PALETTE_RAW : // Defunct
-            default :
-                Fatal( "Unrecognised palette/format entry %d", palette );
-        }
+        v4l2_data.fmt.fmt.pix.pixelformat = palette;
         v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
 
-        if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) )
+        if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 )
             Fatal( "Failed to set video format: %s", strerror(errno) );
 
         /* Note VIDIOC_S_FMT may change width and height. */
@@ -248,7 +209,7 @@ void LocalCamera::Initialise()
             vid_buf.memory = v4l2_data.reqbufs.memory;
             vid_buf.index = i;
 
-            if ( vidioctl( vid_fd, VIDIOC_QUERYBUF, &vid_buf ) )
+            if ( vidioctl( vid_fd, VIDIOC_QUERYBUF, &vid_buf ) < 0 )
                 Fatal( "Unable to query video buffer: %s", strerror(errno) );
 
             v4l2_data.buffers[i].length = vid_buf.length;
@@ -256,6 +217,34 @@ void LocalCamera::Initialise()
 
             if ( v4l2_data.buffers[i].start == MAP_FAILED )
                 Fatal( "Can't map video buffer %d (%d bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
+        }
+
+        Debug( 3, "Configuring video source" );
+
+        if ( vidioctl( vid_fd, VIDIOC_S_INPUT, &channel ) < 0 )
+        {
+            Fatal( "Failed to set camera source %d: %s", channel, strerror(errno) );
+        }
+
+        struct v4l2_input input;
+        v4l2_std_id stdId;
+
+        memset( &input, 0, sizeof(input) );
+
+        if ( vidioctl( vid_fd, VIDIOC_ENUMINPUT, &input ) < 0 )
+        {
+            Fatal( "Failed to enumerate input %d: %s", channel, strerror(errno) );
+        }
+
+        if ( !(input.std & format) )
+        {
+            Fatal( "Device does not support video standard %d", format );
+        }
+
+        stdId = format;
+        if ( vidioctl( vid_fd, VIDIOC_S_STD, &stdId ) < 0 )
+        {
+            Fatal( "Failed to set video standard %d: %s", format, strerror(errno) );
         }
     }
     else
@@ -688,19 +677,22 @@ int LocalCamera::Brightness( int p_brightness )
                 Error( "Unable to query brightness: %s", strerror(errno) )
             else
                 Warning( "Brightness control is not suppported" )
+            Info( "Brightness 1 %d", vid_control.value );
         }
-        else
+        else if ( p_brightness >= 0 )
         {
             vid_control.value = p_brightness;
 
+            Info( "Brightness 2 %d", vid_control.value );
             /* The driver may clamp the value or return ERANGE, ignored here */
-            if ( vidioctl ( vid_fd, VIDIOC_S_CTRL, &vid_control ) < 0 )
+            if ( vidioctl ( vid_fd, VIDIOC_S_CTRL, &vid_control ) )
             {
                 if ( errno != ERANGE )
                     Error( "Unable to set brightness: %s", strerror(errno) )
                 else
                     Warning( "Given brightness value (%d) may be out-of-range", p_brightness )
             }
+            Info( "Brightness 3 %d", vid_control.value );
         }
         return( vid_control.value );
     }
@@ -744,7 +736,7 @@ int LocalCamera::Hue( int p_hue )
             else
                 Warning( "Hue control is not suppported" )
         }
-        else
+        else if ( p_hue >= 0 )
         {
             vid_control.value = p_hue;
 
@@ -799,7 +791,7 @@ int LocalCamera::Colour( int p_colour )
             else
                 Warning( "Saturation control is not suppported" )
         }
-        else
+        else if ( p_colour >= 0 )
         {
             vid_control.value = p_colour;
 
@@ -854,12 +846,12 @@ int LocalCamera::Contrast( int p_contrast )
             else
                 Warning( "Contrast control is not suppported" )
         }
-        else
+        else if ( p_contrast >= 0 )
         {
             vid_control.value = p_contrast;
 
             /* The driver may clamp the value or return ERANGE, ignored here */
-            if ( vidioctl ( vid_fd, VIDIOC_S_CTRL, &vid_control ) < 0 )
+            if ( vidioctl ( vid_fd, VIDIOC_S_CTRL, &vid_control ) )
             {
                 if ( errno != ERANGE )
                     Error( "Unable to set contrast: %s", strerror(errno) )
@@ -921,7 +913,7 @@ int LocalCamera::PrimeCapture()
                 vid_buf.memory = v4l2_data.reqbufs.memory;
                 vid_buf.index = i;
 
-                if ( vidioctl( vid_fd, VIDIOC_QBUF, &vid_buf ) )
+                if ( vidioctl( vid_fd, VIDIOC_QBUF, &vid_buf ) < 0 )
                     Fatal( "Failed to queue buffer %d: %s", i, strerror(errno) );
             }
         }
@@ -950,9 +942,16 @@ int LocalCamera::PreCapture()
         if ( channel_count > 1 )
         {
             Debug( 3, "Switching video source" );
-            if ( vidioctl( vid_fd, VIDIOC_S_INPUT, &channel ) )
+            if ( vidioctl( vid_fd, VIDIOC_S_INPUT, &channel ) < 0 )
             {
                 Error( "Failed to set camera source %d: %s", channel, strerror(errno) );
+                return( -1 );
+            }
+
+            v4l2_std_id stdId = format;
+            if ( vidioctl( vid_fd, VIDIOC_S_STD, &stdId ) < 0 )
+            {
+                Error( "Failed to set video format %d: %s", format, strerror(errno) );
                 return( -1 );
             }
         }
@@ -960,7 +959,10 @@ int LocalCamera::PreCapture()
         if ( v4l2_data.buffer )
         {
             if ( vidioctl( vid_fd, VIDIOC_QBUF, v4l2_data.buffer ) < 0 )
-                Fatal( "Unable to requeue buffer %d: %s", v4l2_data.buffer->index, strerror(errno) )
+            {
+                Error( "Unable to requeue buffer %d: %s", v4l2_data.buffer->index, strerror(errno) )
+                return( -1 );
+            }
         }
     }
     else
@@ -1087,10 +1089,173 @@ int LocalCamera::PostCapture( Image &image )
 
         Debug( 3, "Doing format conversion" );
 
+#if HAVE_LIBSWSCALE
+        static struct SwsContext *imgConversionContext = 0;
+        static AVFrame *picture = NULL;
+        static AVFrame *tmpPicture = NULL;
+
+        if ( !imgConversionContext )
+        {
+            int ffPixFormat = PIX_FMT_NONE;
+            switch( palette )
+            {
+                case V4L2_PIX_FMT_RGB444 :
+                    ffPixFormat = PIX_FMT_RGB32;
+                    break;
+                case VIDEO_PALETTE_RGB555 :
+                case V4L2_PIX_FMT_RGB555 :
+                    ffPixFormat = PIX_FMT_RGB555;
+                    break;
+                case VIDEO_PALETTE_RGB565 :
+                case V4L2_PIX_FMT_RGB565 :
+                    ffPixFormat = PIX_FMT_RGB565;
+                    break;
+                case V4L2_PIX_FMT_BGR24 :
+                    ffPixFormat = PIX_FMT_BGR24;
+                    break;
+                case VIDEO_PALETTE_RGB24 :
+                    if ( config.local_bgr_invert )
+                        ffPixFormat = PIX_FMT_BGR24;
+                    else
+                        ffPixFormat = PIX_FMT_RGB24;
+                    break;
+                case V4L2_PIX_FMT_RGB24 :
+                    ffPixFormat = PIX_FMT_RGB24;
+                    break;
+                case V4L2_PIX_FMT_BGR32 :
+                    ffPixFormat = PIX_FMT_BGR32;
+                    break;
+                case V4L2_PIX_FMT_RGB32 :
+                    ffPixFormat = PIX_FMT_RGB32;
+                    break;
+                case VIDEO_PALETTE_GREY :
+                case V4L2_PIX_FMT_GREY :
+                    ffPixFormat = PIX_FMT_GRAY8;
+                    break;
+                case VIDEO_PALETTE_YUYV :
+                case VIDEO_PALETTE_YUV422 :
+                case V4L2_PIX_FMT_YUYV :
+                    ffPixFormat = PIX_FMT_YUYV422;
+                    break;
+                case VIDEO_PALETTE_YUV422P :
+                case V4L2_PIX_FMT_YUV422P :
+                    ffPixFormat = PIX_FMT_YUV422P;
+                    break;
+                case V4L2_PIX_FMT_YUV411P :
+                    ffPixFormat = PIX_FMT_YUV411P;
+                    break;
+                case V4L2_PIX_FMT_YUV444 :
+                    ffPixFormat = PIX_FMT_YUV444P;
+                    break;
+                case V4L2_PIX_FMT_YUV410 :
+                    ffPixFormat = PIX_FMT_YUV410P;
+                    break;
+                case VIDEO_PALETTE_YUV420P :
+                case V4L2_PIX_FMT_YUV420 :
+                    ffPixFormat = PIX_FMT_YUV420P;
+                    break;
+                // These don't seem to have ffmpeg equivalents
+                // See if you can match any of the ones in the default clause below!?
+                case V4L2_PIX_FMT_UYVY :
+                case V4L2_PIX_FMT_RGB332 :
+                case V4L2_PIX_FMT_RGB555X :
+                case V4L2_PIX_FMT_RGB565X :
+                case V4L2_PIX_FMT_Y16 :
+                case V4L2_PIX_FMT_PAL8 :
+                case V4L2_PIX_FMT_YVU410 :
+                case V4L2_PIX_FMT_YVU420 :
+                case V4L2_PIX_FMT_Y41P :
+                case V4L2_PIX_FMT_YUV555 :
+                case V4L2_PIX_FMT_YUV565 :
+                case V4L2_PIX_FMT_YUV32 :
+                case V4L2_PIX_FMT_NV12 :
+                case V4L2_PIX_FMT_NV21 :
+                case V4L2_PIX_FMT_YYUV :
+                case V4L2_PIX_FMT_HI240 :
+                case V4L2_PIX_FMT_HM12 :
+                case V4L2_PIX_FMT_SBGGR8 :
+                case V4L2_PIX_FMT_SGBRG8 :
+                case V4L2_PIX_FMT_SBGGR16 :
+                case V4L2_PIX_FMT_MJPEG :
+                case V4L2_PIX_FMT_JPEG :
+                case V4L2_PIX_FMT_DV :
+                case V4L2_PIX_FMT_MPEG :
+                case V4L2_PIX_FMT_WNVA :
+                case V4L2_PIX_FMT_SN9C10X :
+                case V4L2_PIX_FMT_PWC1 :
+                case V4L2_PIX_FMT_PWC2 :
+                case V4L2_PIX_FMT_ET61X251 :
+                case V4L2_PIX_FMT_SPCA501 :
+                case V4L2_PIX_FMT_SPCA505 :
+                case V4L2_PIX_FMT_SPCA508 :
+                case V4L2_PIX_FMT_SPCA561 :
+                case V4L2_PIX_FMT_PAC207 :
+                case V4L2_PIX_FMT_PJPG :
+                case V4L2_PIX_FMT_YVYU :
+                default :
+                {
+                    Fatal( "Can't find swscale format for palette %d", palette );
+                    break;
+                    // These are all spare and may match some of the above
+                    ffPixFormat = PIX_FMT_YUVJ420P;
+                    ffPixFormat = PIX_FMT_YUVJ422P;
+                    ffPixFormat = PIX_FMT_YUVJ444P;
+                    ffPixFormat = PIX_FMT_XVMC_MPEG2_MC;
+                    ffPixFormat = PIX_FMT_XVMC_MPEG2_IDCT;
+                    ffPixFormat = PIX_FMT_UYVY422;
+                    ffPixFormat = PIX_FMT_UYYVYY411;
+                    ffPixFormat = PIX_FMT_BGR565;
+                    ffPixFormat = PIX_FMT_BGR555;
+                    ffPixFormat = PIX_FMT_BGR8;
+                    ffPixFormat = PIX_FMT_BGR4;
+                    ffPixFormat = PIX_FMT_BGR4_BYTE;
+                    ffPixFormat = PIX_FMT_RGB8;
+                    ffPixFormat = PIX_FMT_RGB4;
+                    ffPixFormat = PIX_FMT_RGB4_BYTE;
+                    ffPixFormat = PIX_FMT_NV12;
+                    ffPixFormat = PIX_FMT_NV21;
+                    ffPixFormat = PIX_FMT_RGB32_1;
+                    ffPixFormat = PIX_FMT_BGR32_1;
+                    ffPixFormat = PIX_FMT_GRAY16BE;
+                    ffPixFormat = PIX_FMT_GRAY16LE;
+                    ffPixFormat = PIX_FMT_YUV440P;
+                    ffPixFormat = PIX_FMT_YUVJ440P;
+                    ffPixFormat = PIX_FMT_YUVA420P;
+                    ffPixFormat = PIX_FMT_VDPAU_H264;
+                    ffPixFormat = PIX_FMT_VDPAU_MPEG1;
+                    ffPixFormat = PIX_FMT_VDPAU_MPEG2;
+                    ffPixFormat = PIX_FMT_NB;
+                }
+            }
+            imgConversionContext = sws_getContext( width, height, ffPixFormat, width, height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL );
+            if ( !imgConversionContext )
+                Fatal( "Unable to initialise image scaling context" );
+            Info( "Using swscaler" );
+
+            picture = avcodec_alloc_frame();
+            if ( !picture )
+                Fatal( "Could not allocate picture" );
+            int size = avpicture_get_size( ffPixFormat, width, height);
+            avpicture_fill( (AVPicture *)picture, buffer, ffPixFormat, width, height );
+
+            tmpPicture = avcodec_alloc_frame();
+            if ( !tmpPicture )
+                Fatal( "Could not allocate temporary picture" );
+            size = avpicture_get_size( PIX_FMT_RGB24, width, height);
+            uint8_t *tmpPictureBuf = (uint8_t *)av_malloc(size);
+            if (!tmpPictureBuf)
+                Fatal( "Could not allocate temporary picture buffer" );
+            avpicture_fill( (AVPicture *)tmpPicture, tmpPictureBuf, PIX_FMT_RGB24, width, height );
+        }
+
+        sws_scale( imgConversionContext, picture->data, picture->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
+        buffer = tmpPicture->data[0];
+#else // HAVE_LIBSWSCALE 
         static unsigned char temp_buffer[ZM_MAX_IMAGE_SIZE];
         switch( palette )
         {
             case VIDEO_PALETTE_YUV420P :
+            case V4L2_PIX_FMT_YUV420 :
             {
                 static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
                 static char u_plane[ZM_MAX_IMAGE_DIM];
@@ -1163,6 +1328,7 @@ int LocalCamera::PostCapture( Image &image )
                 break;
             }
             case VIDEO_PALETTE_YUV422P :
+            case V4L2_PIX_FMT_YUV422P :
             {
                 static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
                 static char u_plane[ZM_MAX_IMAGE_DIM];
@@ -1221,6 +1387,7 @@ int LocalCamera::PostCapture( Image &image )
             }
             case VIDEO_PALETTE_YUYV :
             case VIDEO_PALETTE_YUV422 :
+            case V4L2_PIX_FMT_YUYV :
             {
                 int size = width*height*2;
                 unsigned char *s_ptr = buffer;
@@ -1255,6 +1422,7 @@ int LocalCamera::PostCapture( Image &image )
                 break;
             }
             case VIDEO_PALETTE_RGB555 :
+            case V4L2_PIX_FMT_RGB555 :
             {
                 int size = width*height*2;
                 unsigned char r,g,b;
@@ -1275,6 +1443,7 @@ int LocalCamera::PostCapture( Image &image )
                 break;
             }
             case VIDEO_PALETTE_RGB565 :
+            case V4L2_PIX_FMT_RGB565 :
             {
                 int size = width*height*2;
                 unsigned char r,g,b;
@@ -1312,7 +1481,23 @@ int LocalCamera::PostCapture( Image &image )
                 }
                 break;
             }
+            case V4L2_PIX_FMT_BGR24 :
+            {
+                int size = width*height*3;
+                unsigned char *s_ptr = buffer;
+                unsigned char *d_ptr = temp_buffer;
+                for ( int i = 0; i < size; i += 3 )
+                {
+                    *d_ptr++ = *(s_ptr+2);
+                    *d_ptr++ = *(s_ptr+1);
+                    *d_ptr++ = *s_ptr;
+                    s_ptr += 3;
+                }
+                buffer = temp_buffer;
+                break;
+            }
             case VIDEO_PALETTE_GREY :
+            case V4L2_PIX_FMT_GREY :
             {
                 //int size = width*height;
                 //for ( int i = 0; i < size; i++ )
@@ -1328,6 +1513,7 @@ int LocalCamera::PostCapture( Image &image )
                 break;
             }
         }
+#endif // HAVE_LIBSWSCALE 
     }
 
     Debug( 3, "Assigning image" );

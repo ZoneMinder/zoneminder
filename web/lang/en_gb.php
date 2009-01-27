@@ -611,6 +611,7 @@ $SLANG = array(
     'TurboTiltSpeed'        => 'Turbo Tilt Speed',
     'Type'                  => 'Type',
     'Unarchive'             => 'Unarchive',
+    'Undefined'             => 'Undefined',
     'Units'                 => 'Units',
     'Unknown'               => 'Unknown',
     'UpdateAvailable'       => 'An update to ZoneMinder is available.',

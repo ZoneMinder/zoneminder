@@ -160,7 +160,7 @@ xhtmlHeaders(__FILE__, $SLANG['ControlCap']." - ".$newControl['Name'] );
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['ControlCap'] ?> - <?= $control['Name'] ?></h2>
+      <h2><?= $SLANG['ControlCap'] ?> - <?= $newControl['Name'] ?></h2>
     </div>
     <div id="content">
       <ul class="tabList">

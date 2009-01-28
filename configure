@@ -695,6 +695,7 @@ MYSQL_CFLAGS
 MYSQL_LIBS
 MYSQL_PREFIX
 LIB_ARCH
+ZM_MYSQL_ENGINE
 ZM_SSL_LIB
 ZM_DB_PASS
 ZM_DB_USER
@@ -786,6 +787,7 @@ ZM_DB_NAME
 ZM_DB_USER
 ZM_DB_PASS
 ZM_SSL_LIB
+ZM_MYSQL_ENGINE
 CXX
 CXXFLAGS
 LDFLAGS
@@ -1440,11 +1442,13 @@ Optional Packages:
   --with-webgroup=<group>    name of web group, default apache
 
 Some influential environment variables:
-  ZM_DB_HOST  Hostname where ZoneMinder database located
-  ZM_DB_NAME  Name of ZoneMinder database
-  ZM_DB_USER  Name of ZoneMinder database user
-  ZM_DB_PASS  Password of ZoneMinder database user
-  ZM_SSL_LIB  Library to use for ssl functions
+  ZM_DB_HOST  Hostname where ZoneMinder database located, default localhost
+  ZM_DB_NAME  Name of ZoneMinder database, default zm
+  ZM_DB_USER  Name of ZoneMinder database user, default zmuser
+  ZM_DB_PASS  Password of ZoneMinder database user, default zmpass
+  ZM_SSL_LIB  Library to use for ssl functions, default gnutls
+  ZM_MYSQL_ENGINE
+              MySQL engine to use with database, default MyISAM
   CXX         C++ compiler command
   CXXFLAGS    C++ compiler flags
   LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
@@ -2409,6 +2413,7 @@ TIME_BUILD=`date +'%s'`
 
 
 
+
 if test "$ZM_DB_HOST" == ""; then
 	ZM_DB_HOST=localhost
 
@@ -2427,6 +2432,10 @@ if test "$ZM_DB_PASS" == ""; then
 fi
 if test "$ZM_SSL_LIB" == ""; then
 	ZM_SSL_LIB=gnutls
+
+fi
+if test "$ZM_MYSQL_ENGINE" == ""; then
+	ZM_MYSQL_ENGINE=MyISAM
 
 fi
 
@@ -2693,7 +2702,6 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 fi
-
 
 
 # Compiler

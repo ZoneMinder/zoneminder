@@ -53,7 +53,11 @@ short *LocalCamera::g_u_table;
 short *LocalCamera::b_u_table;
 
 LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, int p_format, const std::string &p_method, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+#ifdef ZM_V4L2
+    Camera( p_id, LOCAL_SRC, p_width, p_height, ((palette==VIDEO_PALETTE_GREY||palette==V4L2_PIX_FMT_GREY)?1:3), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
+#else // ZM_V4L2
     Camera( p_id, LOCAL_SRC, p_width, p_height, (palette==VIDEO_PALETTE_GREY?1:3), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
+#endif // ZM_V4L2
     device( p_device ),
     channel( p_channel ),
     format( p_format ),
@@ -151,6 +155,9 @@ void LocalCamera::Initialise()
             case V4L2_PIX_FMT_YUV420 :
                 ffPixFormat = PIX_FMT_YUV420P;
                 break;
+            case V4L2_PIX_FMT_JPEG :
+                ffPixFormat = PIX_FMT_YUVJ444P;
+                break;
             // These don't seem to have ffmpeg equivalents
             // See if you can match any of the ones in the default clause below!?
             case V4L2_PIX_FMT_UYVY :
@@ -174,7 +181,6 @@ void LocalCamera::Initialise()
             case V4L2_PIX_FMT_SGBRG8 :
             case V4L2_PIX_FMT_SBGGR16 :
             case V4L2_PIX_FMT_MJPEG :
-            case V4L2_PIX_FMT_JPEG :
             case V4L2_PIX_FMT_DV :
             case V4L2_PIX_FMT_MPEG :
             case V4L2_PIX_FMT_WNVA :
@@ -196,7 +202,6 @@ void LocalCamera::Initialise()
                 // These are all spare and may match some of the above
                 ffPixFormat = PIX_FMT_YUVJ420P;
                 ffPixFormat = PIX_FMT_YUVJ422P;
-                ffPixFormat = PIX_FMT_YUVJ444P;
                 ffPixFormat = PIX_FMT_XVMC_MPEG2_MC;
                 ffPixFormat = PIX_FMT_XVMC_MPEG2_IDCT;
                 ffPixFormat = PIX_FMT_UYVY422;
@@ -288,7 +293,6 @@ void LocalCamera::Initialise()
 
         if ( v4l2_data.reqbufs.count < 2 )
             Fatal( "Insufficient buffer memory %d on video device", v4l2_data.reqbufs.count );
-
 
         Debug( 3, "Setting up %d data buffers", v4l2_data.reqbufs.count );
 
@@ -1053,7 +1057,7 @@ int LocalCamera::PrimeCapture()
 #ifdef ZM_V4L2
     if ( v4l2 )
     {
-        if ( channel_count == 1 && channel_prime )
+        if ( channel_count == 1 )
         {
             Debug( 3, "Queuing buffers" );
             for ( int frame = 0; frame < v4l2_data.reqbufs.count; frame++ )
@@ -1081,7 +1085,7 @@ int LocalCamera::PrimeCapture()
     else
 #endif // ZM_V4L2
     {
-        if ( channel_count == 1 && channel_prime )
+        if ( channel_count == 1 )
         {
             // If we don't have to switch source then queue as many as possible
             for ( int frame = 0; frame < v4l1_data.frames.frames; frame++ )
@@ -1102,6 +1106,7 @@ int LocalCamera::PrimeCapture()
 int LocalCamera::PreCapture()
 {
     Debug( 2, "Pre-capturing" );
+    // Switch channels if we have more than one and we are the first monitor on this channel
     if ( channel_count > 1 && channel_prime )
     {
 #ifdef ZM_V4L2
@@ -1176,7 +1181,8 @@ int LocalCamera::Capture( Image &image )
 	if ( channel_count > 1 )
 		captures_per_frame = config.captures_per_frame;
 
-    if ( channel_count > 1 || channel_prime )
+    // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer
+    if ( channel_prime )
     {
         int capture_frame = -1;
 #ifdef ZM_V4L2
@@ -1567,7 +1573,8 @@ int LocalCamera::Capture( Image &image )
 int LocalCamera::PostCapture()
 {
     Debug( 2, "Post-capturing" );
-    if ( channel_count == 1 )
+    // Reque the buffer unless we need to switch or are a duplicate camera on a channel
+    if ( channel_count == 1 || channel_prime )
     {
 #ifdef ZM_V4L2
         if ( v4l2 )

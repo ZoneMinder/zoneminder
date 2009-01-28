@@ -17,7 +17,7 @@
 -- Current Database: `@ZM_DB_NAME@`
 --
 
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `@ZM_DB_NAME@` /*!40100 DEFAULT CHARACTER SET latin1 */;
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `@ZM_DB_NAME@`;
 
 USE `@ZM_DB_NAME@`;
 
@@ -41,7 +41,7 @@ CREATE TABLE `Config` (
   `Readonly` tinyint(3) unsigned NOT NULL default '0',
   `Requires` text,
   PRIMARY KEY  (`Name`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `ControlPresets`
@@ -53,7 +53,7 @@ CREATE TABLE `ControlPresets` (
   `Preset` int(10) unsigned NOT NULL default '0',
   `Label` varchar(64) NOT NULL default '',
   PRIMARY KEY  (`MonitorId`,`Preset`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `Controls`
@@ -161,7 +161,7 @@ CREATE TABLE `Controls` (
   `CanAutoScan` tinyint(3) unsigned NOT NULL default '0',
   `NumScanPaths` tinyint(3) unsigned NOT NULL default '0',
   PRIMARY KEY  (`Id`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `Devices`
@@ -174,7 +174,7 @@ CREATE TABLE `Devices` (
   `Type` enum('X10') NOT NULL default 'X10',
   `KeyString` varchar(32) NOT NULL default '',
   PRIMARY KEY  (`Id`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `Events`
@@ -208,7 +208,7 @@ CREATE TABLE `Events` (
   KEY `StartTime` (`StartTime`),
   KEY `Frames` (`Frames`),
   KEY `Archived` (`Archived`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `Filters`
@@ -228,7 +228,7 @@ CREATE TABLE `Filters` (
   `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
   PRIMARY KEY  (`Name`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `Frames`
@@ -245,7 +245,7 @@ CREATE TABLE `Frames` (
   PRIMARY KEY (`EventId`,`FrameId`),
   KEY `Type` (`Type`),
   KEY `TimeStamp` (`TimeStamp`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `Groups`
@@ -257,7 +257,7 @@ CREATE TABLE `Groups` (
   `Name` varchar(64) NOT NULL default '',
   `MonitorIds` tinytext NOT NULL,
   PRIMARY KEY  (`Id`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `MonitorPresets`
@@ -288,7 +288,7 @@ CREATE TABLE `MonitorPresets` (
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
   PRIMARY KEY  (`Id`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `Monitors`
@@ -352,7 +352,7 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Sequence` smallint(5) unsigned default NULL,
   PRIMARY KEY  (`Id`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `States`
@@ -363,7 +363,7 @@ CREATE TABLE `States` (
   `Name` varchar(64) NOT NULL default '',
   `Definition` text NOT NULL,
   PRIMARY KEY  (`Name`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `Stats`
@@ -390,7 +390,7 @@ CREATE TABLE `Stats` (
   KEY `EventId` (`EventId`),
   KEY `MonitorId` (`MonitorId`),
   KEY `ZoneId` (`ZoneId`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `TriggersX10`
@@ -403,7 +403,7 @@ CREATE TABLE `TriggersX10` (
   `AlarmInput` varchar(32) default NULL,
   `AlarmOutput` varchar(32) default NULL,
   PRIMARY KEY  (`MonitorId`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `Users`
@@ -426,7 +426,7 @@ CREATE TABLE `Users` (
   `MonitorIds` tinytext NOT NULL,
   PRIMARY KEY  (`Id`),
   UNIQUE KEY `UC_Username` (`Username`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `ZonePresets`
@@ -453,7 +453,7 @@ CREATE TABLE `ZonePresets` (
   `MaxBlobs` smallint(5) unsigned default NULL,
   `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY  (`Id`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `Zones`
@@ -486,7 +486,7 @@ CREATE TABLE `Zones` (
   `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY  (`Id`),
   KEY `MonitorId` (`MonitorId`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

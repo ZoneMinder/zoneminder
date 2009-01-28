@@ -9,11 +9,12 @@ AC_SUBST(PATH_BUILD)
 TIME_BUILD=`date +'%s'`
 AC_SUBST(TIME_BUILD)
 
-AC_ARG_VAR(ZM_DB_HOST,[Hostname where ZoneMinder database located])
-AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database])
-AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user])
-AC_ARG_VAR(ZM_DB_PASS,[Password of ZoneMinder database user])
-AC_ARG_VAR(ZM_SSL_LIB,[Library to use for ssl functions])
+AC_ARG_VAR(ZM_DB_HOST,[Hostname where ZoneMinder database located, default localhost])
+AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database, default zm])
+AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user, default zmuser])
+AC_ARG_VAR(ZM_DB_PASS,[Password of ZoneMinder database user, default zmpass])
+AC_ARG_VAR(ZM_SSL_LIB,[Library to use for ssl functions, default gnutls])
+AC_ARG_VAR(ZM_MYSQL_ENGINE,[MySQL engine to use with database, default MyISAM])
 
 if test "$ZM_DB_HOST" == ""; then
 	AC_SUBST(ZM_DB_HOST,[localhost])
@@ -29,6 +30,9 @@ if test "$ZM_DB_PASS" == ""; then
 fi
 if test "$ZM_SSL_LIB" == ""; then
 	AC_SUBST(ZM_SSL_LIB,gnutls)
+fi
+if test "$ZM_MYSQL_ENGINE" == ""; then
+	AC_SUBST(ZM_MYSQL_ENGINE,MyISAM)
 fi
 
 LIB_ARCH=lib
@@ -183,7 +187,6 @@ else
   AC_DEFINE(ZM_MEM_MAPPED,0,"Whether to use mapped rather than shared memory")
 fi
 AC_SUBST(ENABLE_MMAP)
-
 
 # Compiler
 AC_LANG_CPLUSPLUS

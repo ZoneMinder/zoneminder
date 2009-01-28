@@ -22,6 +22,7 @@
 
 #include <sys/time.h>
 
+#include "zm.h"
 #include "zm_coord.h"
 #include "zm_image.h"
 #include "zm_zone.h"
@@ -355,7 +356,9 @@ public:
 	static int LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose );
 	static int LoadRemoteMonitors( const char *protocol, const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose );
 	static int LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose );
+#if HAVE_LIBAVFORMAT
 	static int LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose );
+#endif // HAVE_LIBAVFORMAT
 	static Monitor *Load( int id, bool load_zones, Purpose purpose );
     //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );
 	//void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );

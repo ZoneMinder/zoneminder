@@ -297,7 +297,9 @@ void LocalCamera::Initialise()
         Debug( 3, "Setting up %d data buffers", v4l2_data.reqbufs.count );
 
         v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count];
+#if HAVE_LIBSWSCALE
         ffPictures = new AVFrame *[v4l2_data.reqbufs.count];
+#endif // HAVE_LIBSWSCALE
         for ( int i = 0; i < v4l2_data.reqbufs.count; i++ )
         {
             struct v4l2_buffer vid_buf;
@@ -319,10 +321,12 @@ void LocalCamera::Initialise()
             if ( v4l2_data.buffers[i].start == MAP_FAILED )
                 Fatal( "Can't map video buffer %d (%d bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
 
+#if HAVE_LIBSWSCALE
             ffPictures[i] = avcodec_alloc_frame();
             if ( !ffPictures[i] )
                 Fatal( "Could not allocate picture" );
             avpicture_fill( (AVPicture *)ffPictures[i], (unsigned char *)v4l2_data.buffers[i].start, ffPixFormat, width, height );
+#endif // HAVE_LIBSWSCALE
         }
 
         Debug( 3, "Configuring video source" );
@@ -513,6 +517,7 @@ void LocalCamera::Initialise()
         if ( v4l1_data.buffer == MAP_FAILED )
             Fatal( "Could not mmap video: %s", strerror(errno) );
 
+#if HAVE_LIBSWSCALE
         ffPictures = new AVFrame *[v4l1_data.frames.frames];
         for ( int i = 0; i < v4l1_data.frames.frames; i++ )
         {
@@ -526,6 +531,7 @@ void LocalCamera::Initialise()
                 Fatal( "Could not allocate picture" );
             avpicture_fill( (AVPicture *)ffPictures[i], (unsigned char *)v4l1_data.buffer+(i*v4l1_data.frames.size/v4l1_data.frames.frames), ffPixFormat, width, height );
         }
+#endif // HAVE_LIBSWSCALE
 
         Debug( 3, "Configuring video source" );
 

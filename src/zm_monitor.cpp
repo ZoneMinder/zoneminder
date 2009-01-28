@@ -2111,6 +2111,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 	return( n_monitors );
 }
 
+#if HAVE_LIBAVFORMAT
 int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose )
 {
 	static char sql[BUFSIZ];
@@ -2237,6 +2238,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 
 	return( n_monitors );
 }
+#endif // HAVE_LIBAVFORMAT
 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
@@ -2396,6 +2398,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 				purpose==CAPTURE
 			);
 		}
+#if HAVE_LIBAVFORMAT
 		else if ( type == "Ffmpeg" )
 		{
 			camera = new FfmpegCamera(
@@ -2411,6 +2414,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 				purpose==CAPTURE
 			);
 		}
+#endif // HAVE_LIBAVFORMAT
 		else
 		{
 			Fatal( "Bogus monitor type '%s' for monitor %d", type.c_str(), id );
@@ -2798,10 +2802,12 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	{
 		sprintf( output+strlen(output), "Path : %s\n", ((FileCamera *)camera)->Path() );
 	}
+#if HAVE_LIBAVFORMAT
 	else if ( camera->IsFfmpeg() )
 	{
 		sprintf( output+strlen(output), "Path : %s\n", ((FfmpegCamera *)camera)->Path().c_str() );
 	}
+#endif // HAVE_LIBAVFORMAT
 	sprintf( output+strlen(output), "Width : %d\n", camera->Width() );
 	sprintf( output+strlen(output), "Height : %d\n", camera->Height() );
 	if ( camera->IsLocal() )

@@ -60,7 +60,8 @@ public:
 	virtual int Connect() = 0;
 	virtual int Disconnect() = 0;
 	virtual int PreCapture() = 0;
-	virtual int PostCapture( Image &image ) = 0;
+	virtual int Capture( Image &image ) = 0;
+	virtual int PostCapture() = 0;
 };
 
 #endif // ZM_REMOTE_CAMERA_H

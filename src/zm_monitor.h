@@ -332,7 +332,11 @@ public:
 	{
 		return( camera->PreCapture() );
 	}
-	int PostCapture();
+	int Capture();
+	int PostCapture()
+	{
+		return( camera->PostCapture() );
+	}
 
 	unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
 	bool CheckSignal( const Image *image );

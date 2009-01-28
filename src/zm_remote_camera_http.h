@@ -56,7 +56,8 @@ public:
 	int ReadData( Buffer &buffer, int bytes_expected=0 );
 	int GetResponse();
 	int PreCapture();
-	int PostCapture( Image &image );
+	int Capture( Image &image );
+	int PostCapture();
 };
 
 #endif // ZM_REMOTE_CAMERA_HTTP_H

@@ -70,7 +70,8 @@ public:
     
 	virtual int PrimeCapture() { return( 0 ); }
 	virtual int PreCapture()=0;
-	virtual int PostCapture( Image &image )=0;
+	virtual int Capture( Image &image )=0;
+	virtual int PostCapture()=0;
 };
 
 #endif // ZM_CAMERA_H

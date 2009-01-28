@@ -1034,7 +1034,7 @@ int RemoteCameraHttp::PreCapture()
 	return( 0 );
 }
 
-int RemoteCameraHttp::PostCapture( Image &image )
+int RemoteCameraHttp::Capture( Image &image )
 {
 	int content_length = GetResponse();
 	if ( content_length < 0 )
@@ -1085,4 +1085,9 @@ int RemoteCameraHttp::PostCapture( Image &image )
 		}
 	}
 	return( 0 );
+}
+
+int RemoteCameraHttp::PostCapture()
+{
+    return( 0 );
 }

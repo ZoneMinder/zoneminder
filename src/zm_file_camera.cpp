@@ -80,7 +80,12 @@ int FileCamera::PreCapture()
 	return( 0 );
 }
 
-int FileCamera::PostCapture( Image &image )
+int FileCamera::Capture( Image &image )
 {
 	return( image.ReadJpeg( path )?0:-1 );
+}
+
+int FileCamera::PostCapture()
+{
+    return( 0 );
 }

@@ -29,6 +29,7 @@
 
 #include "zm.h"
 #include "zm_camera.h"
+#include "zm_ffmpeg.h"
 
 #ifdef HAVE_LINUX_VIDEODEV2_H
 #include <linux/videodev2.h>
@@ -47,11 +48,11 @@ class LocalCamera : public Camera
 {
 protected:
 #ifdef ZM_V4L2
-    typedef struct
+    struct V4L2MappedBuffer
     {
         void    *start;
         size_t  length;
-    } V4L2MappedBuffer;
+    };
 
     struct V4L2Data
     {
@@ -66,13 +67,18 @@ protected:
 
     struct V4L1Data
     {
+	    int				    active_frame;
 	    int				    cap_frame;
-	    int				    cap_frame_active;
 	    int				    sync_frame;
 	    video_mbuf		    frames;
 	    video_mmap		    *buffers;
 	    unsigned char	    *buffer;
     };
+
+#if HAVE_LIBSWSCALE
+    int         ffPixFormat;
+    AVFrame     **ffPictures;
+#endif // HAVE_LIBSWSCALE
 
 protected:
 	std::string device;
@@ -125,7 +131,8 @@ public:
 
 	int PrimeCapture();
 	int PreCapture();
-	int PostCapture( Image &image );
+	int Capture( Image &image );
+	int PostCapture();
 
 	static bool GetCurrentSettings( const char *device, char *output, bool verbose );
 };

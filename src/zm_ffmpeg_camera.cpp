@@ -134,7 +134,7 @@ int FfmpegCamera::PreCapture()
     return( 0 );
 }
 
-int FfmpegCamera::PostCapture( Image &image )
+int FfmpegCamera::Capture( Image &image )
 {
     static int frameCount = 0;
     AVPacket packet;
@@ -164,6 +164,12 @@ int FfmpegCamera::PostCapture( Image &image )
         av_free_packet( &packet );
     }
     return (0);
+}
+
+int FfmpegCamera::PostCapture()
+{
+    // Nothing to do here
+    return( 0 );
 }
 
 #endif // HAVE_LIBAVFORMAT

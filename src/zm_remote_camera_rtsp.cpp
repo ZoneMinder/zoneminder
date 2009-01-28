@@ -159,7 +159,7 @@ int RemoteCameraRtsp::PreCapture()
     return( 0 );
 }
 
-int RemoteCameraRtsp::PostCapture( Image &image )
+int RemoteCameraRtsp::Capture( Image &image )
 {
     while ( true )
     {
@@ -250,4 +250,8 @@ int RemoteCameraRtsp::PostCapture( Image &image )
     return( -1 );
 }
 
+int RemoteCameraRtsp::PostCapture()
+{
+    return( 0 );
+}
 #endif // HAVE_LIBAVFORMAT

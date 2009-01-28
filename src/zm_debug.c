@@ -118,15 +118,15 @@ int zmGetDebugEnv()
 	}
 
 	env_ptr = NULL;
-	sprintf(buffer,"ZM_DBG_LOG_%s_%s",zm_dbg_name,zm_dbg_id);
+	sprintf( buffer, "ZM_DBG_LOG_%s_%s", zm_dbg_name, zm_dbg_id );
 	env_ptr = getenv(buffer);
 	if ( env_ptr == (char *)NULL )
 	{
-		sprintf(buffer,"ZM_DBG_LOG_%s",zm_dbg_name);
+		sprintf( buffer, "ZM_DBG_LOG_%s", zm_dbg_name );
 		env_ptr = getenv(buffer);
 		if ( env_ptr == (char *)NULL )
 		{
-			sprintf(buffer,"ZM_DBG_LOG");
+			sprintf( buffer, "ZM_DBG_LOG" );
 			env_ptr = getenv(buffer);
 		}
 	}

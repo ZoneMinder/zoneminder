@@ -2463,9 +2463,9 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 	return( monitor );
 }
 
-int Monitor::PostCapture()
+int Monitor::Capture()
 {
-	if ( camera->PostCapture( image ) == 0 )
+	if ( camera->Capture( image ) == 0 )
 	{
 		if ( orientation != ROTATE_0 )
 		{

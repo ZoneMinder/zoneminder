@@ -58,7 +58,8 @@ public:
 
 	int PrimeCapture();
 	int PreCapture();
-	int PostCapture( Image &image );
+	int Capture( Image &image );
+	int PostCapture();
 };
 
 #endif // ZM_FFMPEG_CAMERA_H

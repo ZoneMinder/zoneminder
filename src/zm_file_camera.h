@@ -42,7 +42,8 @@ public:
 	void Initialise();
 	void Terminate();
 	int PreCapture();
-	int PostCapture( Image &image );
+	int Capture( Image &image );
+	int PostCapture();
 };
 
 #endif // ZM_FILE_CAMERA_H

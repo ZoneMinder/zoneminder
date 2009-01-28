@@ -19,8 +19,6 @@
 
 #include "zm_local_camera.h"
 
-#include "zm_ffmpeg.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -46,10 +44,6 @@ int LocalCamera::vid_fd;
 LocalCamera::V4L2Data LocalCamera::v4l2_data;
 #endif // ZM_V4L2
 LocalCamera::V4L1Data LocalCamera::v4l1_data;
-//LocalCamera::v4l1_data.cap_frame = 0;
-//LocalCamera::v4l1_data.cap_frame_active = 0;
-//LocalCamera::v4l1_data.sync_frame = 0;
-//LocalCamera::v4l1_data.buffer=0;
 
 unsigned char *LocalCamera::y_table;
 signed char *LocalCamera::uv_table;
@@ -66,18 +60,22 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
     palette( p_palette ),
     v4l2( p_method == "v4l2" )
 {
+    // If we are the first, or only, input on this device then
+    // do the initial opening etc
     device_prime = (camera_count++ == 0);
 	if ( device_prime && capture )
 		Initialise();
 
     if ( channel != last_channel )
     {
+        // We are the first, or only, input that uses this channel
         channel_prime = true;
         channel_count++;
         last_channel = channel;
     }
     else
     {
+        // We are the second, or subsequent, input using this channel
         channel_prime = false;
     }
 }
@@ -107,6 +105,127 @@ void LocalCamera::Initialise()
     Debug( 2, "V4L2 support enabled, using %s api", v4l2?"V4L2":"V4L1" );
     if ( v4l2 )
     {
+#if HAVE_LIBSWSCALE
+        ffPixFormat = PIX_FMT_NONE;
+        switch( palette )
+        {
+            case V4L2_PIX_FMT_RGB444 :
+                ffPixFormat = PIX_FMT_RGB32;
+                break;
+            case V4L2_PIX_FMT_RGB555 :
+                ffPixFormat = PIX_FMT_RGB555;
+                break;
+            case V4L2_PIX_FMT_RGB565 :
+                ffPixFormat = PIX_FMT_RGB565;
+                break;
+            case V4L2_PIX_FMT_BGR24 :
+                ffPixFormat = PIX_FMT_BGR24;
+                break;
+            case V4L2_PIX_FMT_RGB24 :
+                ffPixFormat = PIX_FMT_RGB24;
+                break;
+            case V4L2_PIX_FMT_BGR32 :
+                ffPixFormat = PIX_FMT_BGR32;
+                break;
+            case V4L2_PIX_FMT_RGB32 :
+                ffPixFormat = PIX_FMT_RGB32;
+                break;
+            case V4L2_PIX_FMT_GREY :
+                ffPixFormat = PIX_FMT_GRAY8;
+                break;
+            case V4L2_PIX_FMT_YUYV :
+                ffPixFormat = PIX_FMT_YUYV422;
+                break;
+            case V4L2_PIX_FMT_YUV422P :
+                ffPixFormat = PIX_FMT_YUV422P;
+                break;
+            case V4L2_PIX_FMT_YUV411P :
+                ffPixFormat = PIX_FMT_YUV411P;
+                break;
+            case V4L2_PIX_FMT_YUV444 :
+                ffPixFormat = PIX_FMT_YUV444P;
+                break;
+            case V4L2_PIX_FMT_YUV410 :
+                ffPixFormat = PIX_FMT_YUV410P;
+                break;
+            case V4L2_PIX_FMT_YUV420 :
+                ffPixFormat = PIX_FMT_YUV420P;
+                break;
+            // These don't seem to have ffmpeg equivalents
+            // See if you can match any of the ones in the default clause below!?
+            case V4L2_PIX_FMT_UYVY :
+            case V4L2_PIX_FMT_RGB332 :
+            case V4L2_PIX_FMT_RGB555X :
+            case V4L2_PIX_FMT_RGB565X :
+            case V4L2_PIX_FMT_Y16 :
+            case V4L2_PIX_FMT_PAL8 :
+            case V4L2_PIX_FMT_YVU410 :
+            case V4L2_PIX_FMT_YVU420 :
+            case V4L2_PIX_FMT_Y41P :
+            case V4L2_PIX_FMT_YUV555 :
+            case V4L2_PIX_FMT_YUV565 :
+            case V4L2_PIX_FMT_YUV32 :
+            case V4L2_PIX_FMT_NV12 :
+            case V4L2_PIX_FMT_NV21 :
+            case V4L2_PIX_FMT_YYUV :
+            case V4L2_PIX_FMT_HI240 :
+            case V4L2_PIX_FMT_HM12 :
+            case V4L2_PIX_FMT_SBGGR8 :
+            case V4L2_PIX_FMT_SGBRG8 :
+            case V4L2_PIX_FMT_SBGGR16 :
+            case V4L2_PIX_FMT_MJPEG :
+            case V4L2_PIX_FMT_JPEG :
+            case V4L2_PIX_FMT_DV :
+            case V4L2_PIX_FMT_MPEG :
+            case V4L2_PIX_FMT_WNVA :
+            case V4L2_PIX_FMT_SN9C10X :
+            case V4L2_PIX_FMT_PWC1 :
+            case V4L2_PIX_FMT_PWC2 :
+            case V4L2_PIX_FMT_ET61X251 :
+            case V4L2_PIX_FMT_SPCA501 :
+            case V4L2_PIX_FMT_SPCA505 :
+            case V4L2_PIX_FMT_SPCA508 :
+            case V4L2_PIX_FMT_SPCA561 :
+            case V4L2_PIX_FMT_PAC207 :
+            case V4L2_PIX_FMT_PJPG :
+            case V4L2_PIX_FMT_YVYU :
+            default :
+            {
+                Fatal( "Can't find swscale format for palette %d", palette );
+                break;
+                // These are all spare and may match some of the above
+                ffPixFormat = PIX_FMT_YUVJ420P;
+                ffPixFormat = PIX_FMT_YUVJ422P;
+                ffPixFormat = PIX_FMT_YUVJ444P;
+                ffPixFormat = PIX_FMT_XVMC_MPEG2_MC;
+                ffPixFormat = PIX_FMT_XVMC_MPEG2_IDCT;
+                ffPixFormat = PIX_FMT_UYVY422;
+                ffPixFormat = PIX_FMT_UYYVYY411;
+                ffPixFormat = PIX_FMT_BGR565;
+                ffPixFormat = PIX_FMT_BGR555;
+                ffPixFormat = PIX_FMT_BGR8;
+                ffPixFormat = PIX_FMT_BGR4;
+                ffPixFormat = PIX_FMT_BGR4_BYTE;
+                ffPixFormat = PIX_FMT_RGB8;
+                ffPixFormat = PIX_FMT_RGB4;
+                ffPixFormat = PIX_FMT_RGB4_BYTE;
+                ffPixFormat = PIX_FMT_NV12;
+                ffPixFormat = PIX_FMT_NV21;
+                ffPixFormat = PIX_FMT_RGB32_1;
+                ffPixFormat = PIX_FMT_BGR32_1;
+                ffPixFormat = PIX_FMT_GRAY16BE;
+                ffPixFormat = PIX_FMT_GRAY16LE;
+                ffPixFormat = PIX_FMT_YUV440P;
+                ffPixFormat = PIX_FMT_YUVJ440P;
+                ffPixFormat = PIX_FMT_YUVA420P;
+                ffPixFormat = PIX_FMT_VDPAU_H264;
+                ffPixFormat = PIX_FMT_VDPAU_MPEG1;
+                ffPixFormat = PIX_FMT_VDPAU_MPEG2;
+                ffPixFormat = PIX_FMT_NB;
+            }
+        }
+#endif // HAVE_LIBSWSCALE
+
         struct v4l2_capability vid_cap;
 
         Debug( 3, "Checking video device capabilities" );
@@ -118,31 +237,6 @@ void LocalCamera::Initialise()
 
         if ( !(vid_cap.capabilities & V4L2_CAP_STREAMING) )
             Fatal( "Video device does not support streaming i/o" );
-
-#if 0
-        /* Select video input, video standard and tune here. */
-        memset( &v4l2_data.cropcap, 0, sizeof(v4l2_data.cropcap) );
-
-        v4l2_data.cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-        if ( 0 == xioctl (fd, VIDIOC_CROPCAP, &cropcap)) {
-                crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-                crop.c = cropcap.defrect; /* reset to default */
-
-                if (-1 == xioctl (fd, VIDIOC_S_CROP, &crop)) {
-                        switch (errno) {
-                        case EINVAL:
-                                /* Cropping not supported. */
-                                break;
-                        default:
-                                /* Errors ignored. */
-                                break;
-                        }
-                }
-        } else {        
-                /* Errors ignored. */
-        }
-#endif
 
         Debug( 3, "Setting up video format" );
 
@@ -156,7 +250,8 @@ void LocalCamera::Initialise()
         v4l2_data.fmt.fmt.pix.width = width; 
         v4l2_data.fmt.fmt.pix.height = height;
         v4l2_data.fmt.fmt.pix.pixelformat = palette;
-        v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
+        //v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
+        v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
 
         if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 )
             Fatal( "Failed to set video format: %s", strerror(errno) );
@@ -194,9 +289,11 @@ void LocalCamera::Initialise()
         if ( v4l2_data.reqbufs.count < 2 )
             Fatal( "Insufficient buffer memory %d on video device", v4l2_data.reqbufs.count );
 
+
         Debug( 3, "Setting up %d data buffers", v4l2_data.reqbufs.count );
 
         v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count];
+        ffPictures = new AVFrame *[v4l2_data.reqbufs.count];
         for ( int i = 0; i < v4l2_data.reqbufs.count; i++ )
         {
             struct v4l2_buffer vid_buf;
@@ -217,6 +314,11 @@ void LocalCamera::Initialise()
 
             if ( v4l2_data.buffers[i].start == MAP_FAILED )
                 Fatal( "Can't map video buffer %d (%d bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
+
+            ffPictures[i] = avcodec_alloc_frame();
+            if ( !ffPictures[i] )
+                Fatal( "Could not allocate picture" );
+            avpicture_fill( (AVPicture *)ffPictures[i], (unsigned char *)v4l2_data.buffers[i].start, ffPixFormat, width, height );
         }
 
         Debug( 3, "Configuring video source" );
@@ -250,6 +352,72 @@ void LocalCamera::Initialise()
     else
 #endif // ZM_V4L2
     {
+#if HAVE_LIBSWSCALE
+        ffPixFormat = PIX_FMT_NONE;
+        switch( palette )
+        {
+            case VIDEO_PALETTE_RGB555 :
+                ffPixFormat = PIX_FMT_RGB555;
+                break;
+            case VIDEO_PALETTE_RGB565 :
+                ffPixFormat = PIX_FMT_RGB565;
+                break;
+            case VIDEO_PALETTE_RGB24 :
+                if ( config.local_bgr_invert )
+                    ffPixFormat = PIX_FMT_BGR24;
+                else
+                    ffPixFormat = PIX_FMT_RGB24;
+                break;
+            case VIDEO_PALETTE_GREY :
+                ffPixFormat = PIX_FMT_GRAY8;
+                break;
+            case VIDEO_PALETTE_YUYV :
+            case VIDEO_PALETTE_YUV422 :
+                ffPixFormat = PIX_FMT_YUYV422;
+                break;
+            case VIDEO_PALETTE_YUV422P :
+                ffPixFormat = PIX_FMT_YUV422P;
+                break;
+            case VIDEO_PALETTE_YUV420P :
+                ffPixFormat = PIX_FMT_YUV420P;
+                break;
+            default :
+            {
+                Fatal( "Can't find swscale format for palette %d", palette );
+                break;
+                // These are all spare and may match some of the above
+                ffPixFormat = PIX_FMT_YUVJ420P;
+                ffPixFormat = PIX_FMT_YUVJ422P;
+                ffPixFormat = PIX_FMT_YUVJ444P;
+                ffPixFormat = PIX_FMT_XVMC_MPEG2_MC;
+                ffPixFormat = PIX_FMT_XVMC_MPEG2_IDCT;
+                ffPixFormat = PIX_FMT_UYVY422;
+                ffPixFormat = PIX_FMT_UYYVYY411;
+                ffPixFormat = PIX_FMT_BGR565;
+                ffPixFormat = PIX_FMT_BGR555;
+                ffPixFormat = PIX_FMT_BGR8;
+                ffPixFormat = PIX_FMT_BGR4;
+                ffPixFormat = PIX_FMT_BGR4_BYTE;
+                ffPixFormat = PIX_FMT_RGB8;
+                ffPixFormat = PIX_FMT_RGB4;
+                ffPixFormat = PIX_FMT_RGB4_BYTE;
+                ffPixFormat = PIX_FMT_NV12;
+                ffPixFormat = PIX_FMT_NV21;
+                ffPixFormat = PIX_FMT_RGB32_1;
+                ffPixFormat = PIX_FMT_BGR32_1;
+                ffPixFormat = PIX_FMT_GRAY16BE;
+                ffPixFormat = PIX_FMT_GRAY16LE;
+                ffPixFormat = PIX_FMT_YUV440P;
+                ffPixFormat = PIX_FMT_YUVJ440P;
+                ffPixFormat = PIX_FMT_YUVA420P;
+                ffPixFormat = PIX_FMT_VDPAU_H264;
+                ffPixFormat = PIX_FMT_VDPAU_MPEG1;
+                ffPixFormat = PIX_FMT_VDPAU_MPEG2;
+                ffPixFormat = PIX_FMT_NB;
+            }
+        }
+#endif // HAVE_LIBSWSCALE
+
         Debug( 3, "Configuring picture attributes" );
 
         struct video_picture vid_pic;
@@ -328,30 +496,31 @@ void LocalCamera::Initialise()
 
         Debug( 3, "Setting up request buffers" );
 
-        if ( ioctl(vid_fd, VIDIOCGMBUF, &v4l1_data.frames) < 0 )
-        {
-            Error( "Failed to setup memory: %s", strerror(errno) );
-            exit(-1);
-        }
+        if ( ioctl( vid_fd, VIDIOCGMBUF, &v4l1_data.frames ) < 0 )
+            Fatal( "Failed to setup memory: %s", strerror(errno) );
+ 
         v4l1_data.buffers = new video_mmap[v4l1_data.frames.frames];
         Debug( 4, "vmb.frames = %d", v4l1_data.frames.frames );
         Debug( 4, "vmb.size = %d", v4l1_data.frames.size );
-
-        for ( int i=0; i < v4l1_data.frames.frames; i++)
-        {
-            v4l1_data.buffers[i].frame = i;
-            v4l1_data.buffers[i].width = width;
-            v4l1_data.buffers[i].height = height;
-            v4l1_data.buffers[i].format = palette;
-        }
 
         Debug( 3, "Setting up %d frame buffers", v4l1_data.frames.frames );
 
         v4l1_data.buffer = (unsigned char *)mmap( 0, v4l1_data.frames.size, PROT_READ|PROT_WRITE, MAP_SHARED, vid_fd, 0 );
         if ( v4l1_data.buffer == MAP_FAILED )
+            Fatal( "Could not mmap video: %s", strerror(errno) );
+
+        ffPictures = new AVFrame *[v4l1_data.frames.frames];
+        for ( int i = 0; i < v4l1_data.frames.frames; i++ )
         {
-            Error( "Could not mmap video: %s", strerror(errno) );
-            exit(-1);
+            v4l1_data.buffers[i].frame = i;
+            v4l1_data.buffers[i].width = width;
+            v4l1_data.buffers[i].height = height;
+            v4l1_data.buffers[i].format = palette;
+
+            ffPictures[i] = avcodec_alloc_frame();
+            if ( !ffPictures[i] )
+                Fatal( "Could not allocate picture" );
+            avpicture_fill( (AVPicture *)ffPictures[i], (unsigned char *)v4l1_data.buffer+(i*v4l1_data.frames.size/v4l1_data.frames.frames), ffPixFormat, width, height );
         }
 
         Debug( 3, "Configuring video source" );
@@ -360,10 +529,8 @@ void LocalCamera::Initialise()
         memset( &vid_src, 0, sizeof(vid_src) );
         vid_src.channel = channel;
         if ( ioctl( vid_fd, VIDIOCGCHAN, &vid_src) < 0 )
-        {
-            Error( "Failed to get camera source: %s", strerror(errno) );
-            exit(-1);
-        }
+            Fatal( "Failed to get camera source: %s", strerror(errno) );
+
         Debug( 4, "Old C:%d", vid_src.channel );
         Debug( 4, "Old F:%d", vid_src.norm );
         Debug( 4, "Old Fl:%x", vid_src.flags );
@@ -380,20 +547,16 @@ void LocalCamera::Initialise()
         }
 
         if ( ioctl( vid_fd, VIDIOCGWIN, &vid_win) < 0 )
-        {
-            Error( "Failed to get window data: %s", strerror(errno) );
-            exit(-1);
-        }
+            Fatal( "Failed to get window data: %s", strerror(errno) );
+
         Debug( 4, "New X:%d", vid_win.x );
         Debug( 4, "New Y:%d", vid_win.y );
         Debug( 4, "New W:%d", vid_win.width );
         Debug( 4, "New H:%d", vid_win.height );
         
         if ( ioctl( vid_fd, VIDIOCGPICT, &vid_pic) < 0 )
-        {
-            Error( "Failed to get window data: %s", strerror(errno) );
-            exit(-1);
-        }
+            Fatal( "Failed to get window data: %s", strerror(errno) );
+
         Debug( 4, "New P:%d", vid_pic.palette );
         Debug( 4, "New D:%d", vid_pic.depth );
         Debug( 4, "New B:%d", vid_pic.brightness );
@@ -890,20 +1053,10 @@ int LocalCamera::PrimeCapture()
 #ifdef ZM_V4L2
     if ( v4l2 )
     {
-        // Queue buffers;
-        //int usableBuffers = v4l2_data.reqbufs.count;
-        //if ( channel_count > 1 )
-        //{
-            //// Round to a multiple of the channels / captures
-            //usableBuffers /= (channel_count * config.captures_per_frame);
-            //usableBuffers *= (channel_count * config.captures_per_frame);
-            //if ( !usableBuffers )
-                //Fatal( "No usable buffers, too many channels or captures per frame" );
-        //}
-        if ( channel_prime )
+        if ( channel_count == 1 && channel_prime )
         {
             Debug( 3, "Queuing buffers" );
-            for ( int i = 0; i < v4l2_data.reqbufs.count; i++ )
+            for ( int frame = 0; frame < v4l2_data.reqbufs.count; frame++ )
             {
                 struct v4l2_buffer vid_buf;
 
@@ -911,10 +1064,10 @@ int LocalCamera::PrimeCapture()
 
                 vid_buf.type = v4l2_data.fmt.type;
                 vid_buf.memory = v4l2_data.reqbufs.memory;
-                vid_buf.index = i;
+                vid_buf.index = frame;
 
                 if ( vidioctl( vid_fd, VIDIOC_QBUF, &vid_buf ) < 0 )
-                    Fatal( "Failed to queue buffer %d: %s", i, strerror(errno) );
+                    Fatal( "Failed to queue buffer %d: %s", frame, strerror(errno) );
             }
         }
         v4l2_data.buffer = NULL;
@@ -925,21 +1078,34 @@ int LocalCamera::PrimeCapture()
         if ( vidioctl( vid_fd, VIDIOC_STREAMON, &type ) < 0 )
             Fatal( "Failed to start capture stream: %s", strerror(errno) );
     }
+    else
 #endif // ZM_V4L2
-    if ( channel_count == 1 && channel_prime )
     {
-        return( PreCapture() );
+        if ( channel_count == 1 && channel_prime )
+        {
+            // If we don't have to switch source then queue as many as possible
+            for ( int frame = 0; frame < v4l1_data.frames.frames; frame++ )
+            {
+                Debug( 3, "Queuing frame %d", frame );
+                if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[frame] ) < 0 )
+                {
+                    Error( "Capture failure for frame %d: %s", frame, strerror(errno) );
+                    return( -1 );
+                }
+            }
+        }
     }
+
     return( 0 );
 }
 
 int LocalCamera::PreCapture()
 {
     Debug( 2, "Pre-capturing" );
-#ifdef ZM_V4L2
-    if ( v4l2 )
+    if ( channel_count > 1 && channel_prime )
     {
-        if ( channel_count > 1 )
+#ifdef ZM_V4L2
+        if ( v4l2 )
         {
             Debug( 3, "Switching video source" );
             if ( vidioctl( vid_fd, VIDIOC_S_INPUT, &channel ) < 0 )
@@ -954,21 +1120,18 @@ int LocalCamera::PreCapture()
                 Error( "Failed to set video format %d: %s", format, strerror(errno) );
                 return( -1 );
             }
-        }
-        Debug( 3, "Requeing buffer" );
-        if ( v4l2_data.buffer )
-        {
-            if ( vidioctl( vid_fd, VIDIOC_QBUF, v4l2_data.buffer ) < 0 )
+            if ( v4l2_data.buffer )
             {
-                Error( "Unable to requeue buffer %d: %s", v4l2_data.buffer->index, strerror(errno) )
-                return( -1 );
+                Debug( 3, "Queueing buffer %d", v4l2_data.buffer->index );
+                if ( vidioctl( vid_fd, VIDIOC_QBUF, v4l2_data.buffer ) < 0 )
+                {
+                    Error( "Unable to requeue buffer %d: %s", v4l2_data.buffer->index, strerror(errno) )
+                    return( -1 );
+                }
             }
         }
-    }
-    else
+        else
 #endif // ZM_V4L2
-    {
-        if ( channel_count > 1 )
         {
             Debug( 3, "Switching video source" );
             struct video_channel vid_src;
@@ -989,26 +1152,23 @@ int LocalCamera::PreCapture()
                 Error( "Failed to set camera source %d: %s", channel, strerror(errno) );
                 return( -1 );
             }
-        }
 
-        if ( channel_count > 1 || channel_prime )
-        {
-            Debug( 3, "Capturing frame" );
-            v4l1_data.cap_frame_active = v4l1_data.cap_frame;
-            if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.cap_frame_active] ) < 0 )
+            Debug( 3, "Queueing frame %d", v4l1_data.cap_frame );
+            if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.cap_frame] ) < 0 )
             {
-                Error( "Capture failure for frame %d: %s", v4l1_data.cap_frame_active, strerror(errno) );
+                Error( "Capture failure for frame %d: %s", v4l1_data.cap_frame, strerror(errno) );
                 return( -1 );
             }
+            v4l1_data.sync_frame = v4l1_data.cap_frame;
             v4l1_data.cap_frame = (v4l1_data.cap_frame+1)%v4l1_data.frames.frames;
         }
     }
 	return( 0 );
 }
 
-int LocalCamera::PostCapture( Image &image )
+int LocalCamera::Capture( Image &image )
 {
-    Debug( 3, "Post-capturing" );
+    Debug( 3, "Capturing" );
 
     static unsigned char *buffer = 0;
 
@@ -1018,6 +1178,7 @@ int LocalCamera::PostCapture( Image &image )
 
     if ( channel_count > 1 || channel_prime )
     {
+        int capture_frame = -1;
 #ifdef ZM_V4L2
         if ( v4l2 )
         {
@@ -1042,10 +1203,9 @@ int LocalCamera::PostCapture( Image &image )
                     return( -1 );
                 }
                 if ( vid_buf.input != channel )
-                {
                     Error( "Expected buffer for channel %d, video buffer input is %d", channel, vid_buf.input );
-                }
                 v4l2_data.buffer = &vid_buf;
+                capture_frame = v4l2_data.buffer->index;
                 captures_per_frame--;
                 if ( captures_per_frame )
                 {
@@ -1056,7 +1216,8 @@ int LocalCamera::PostCapture( Image &image )
                     }
                 }
             }
-            Debug( 3, "Captured from channel %d", channel );
+
+            Debug( 3, "Captured frame %d/%d from channel %d", v4l2_data.buffer->index, v4l2_data.buffer->sequence, channel );
 
             buffer = (unsigned char *)v4l2_data.buffers[v4l2_data.buffer->index].start;
         }
@@ -1066,177 +1227,43 @@ int LocalCamera::PostCapture( Image &image )
             Debug( 3, "Capturing %d frames", captures_per_frame );
             while ( captures_per_frame )
             {
+                Debug( 3, "Syncing frame %d", v4l1_data.sync_frame );
                 if ( ioctl( vid_fd, VIDIOCSYNC, &v4l1_data.sync_frame ) < 0 )
                 {
-                    Error( "Sync failure for frame %d buffer %d(%d): %s", v4l1_data.sync_frame, v4l1_data.cap_frame_active, captures_per_frame, strerror(errno) );
+                    Error( "Sync failure for frame %d buffer %d (%d): %s", v4l1_data.sync_frame, v4l1_data.cap_frame, captures_per_frame, strerror(errno) );
                     return( -1 );
                 }
+                capture_frame = v4l1_data.sync_frame;
+                v4l1_data.sync_frame = (v4l1_data.sync_frame+1)%v4l1_data.frames.frames;
                 captures_per_frame--;
                 if ( captures_per_frame )
                 {
-                    if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.cap_frame_active] ) < 0 )
+                    Debug( 3, "Capturing frame %d", v4l1_data.cap_frame );
+                    if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.cap_frame] ) < 0 )
                     {
-                        Error( "Capture failure for buffer %d(%d): %s", v4l1_data.cap_frame_active, captures_per_frame, strerror(errno) );
+                        Error( "Capture failure for buffer %d (%d): %s", v4l1_data.cap_frame, captures_per_frame, strerror(errno) );
                         return( -1 );
                     }
+                    v4l1_data.cap_frame = (v4l1_data.cap_frame+1)%v4l1_data.frames.frames;
                 }
             }
-            Debug( 3, "Captured %d for channel %d into %d", v4l1_data.sync_frame, channel, v4l1_data.cap_frame_active );
+            Debug( 3, "Captured %d for channel %d", capture_frame, channel );
 
-            buffer = v4l1_data.buffer+(v4l1_data.sync_frame*v4l1_data.frames.size/v4l1_data.frames.frames);
-            v4l1_data.sync_frame = (v4l1_data.sync_frame+1)%v4l1_data.frames.frames;
+            buffer = v4l1_data.buffer+(capture_frame*v4l1_data.frames.size/v4l1_data.frames.frames);
         }
 
         Debug( 3, "Doing format conversion" );
 
 #if HAVE_LIBSWSCALE
         static struct SwsContext *imgConversionContext = 0;
-        static AVFrame *picture = NULL;
         static AVFrame *tmpPicture = NULL;
 
         if ( !imgConversionContext )
         {
-            int ffPixFormat = PIX_FMT_NONE;
-            switch( palette )
-            {
-                case V4L2_PIX_FMT_RGB444 :
-                    ffPixFormat = PIX_FMT_RGB32;
-                    break;
-                case VIDEO_PALETTE_RGB555 :
-                case V4L2_PIX_FMT_RGB555 :
-                    ffPixFormat = PIX_FMT_RGB555;
-                    break;
-                case VIDEO_PALETTE_RGB565 :
-                case V4L2_PIX_FMT_RGB565 :
-                    ffPixFormat = PIX_FMT_RGB565;
-                    break;
-                case V4L2_PIX_FMT_BGR24 :
-                    ffPixFormat = PIX_FMT_BGR24;
-                    break;
-                case VIDEO_PALETTE_RGB24 :
-                    if ( config.local_bgr_invert )
-                        ffPixFormat = PIX_FMT_BGR24;
-                    else
-                        ffPixFormat = PIX_FMT_RGB24;
-                    break;
-                case V4L2_PIX_FMT_RGB24 :
-                    ffPixFormat = PIX_FMT_RGB24;
-                    break;
-                case V4L2_PIX_FMT_BGR32 :
-                    ffPixFormat = PIX_FMT_BGR32;
-                    break;
-                case V4L2_PIX_FMT_RGB32 :
-                    ffPixFormat = PIX_FMT_RGB32;
-                    break;
-                case VIDEO_PALETTE_GREY :
-                case V4L2_PIX_FMT_GREY :
-                    ffPixFormat = PIX_FMT_GRAY8;
-                    break;
-                case VIDEO_PALETTE_YUYV :
-                case VIDEO_PALETTE_YUV422 :
-                case V4L2_PIX_FMT_YUYV :
-                    ffPixFormat = PIX_FMT_YUYV422;
-                    break;
-                case VIDEO_PALETTE_YUV422P :
-                case V4L2_PIX_FMT_YUV422P :
-                    ffPixFormat = PIX_FMT_YUV422P;
-                    break;
-                case V4L2_PIX_FMT_YUV411P :
-                    ffPixFormat = PIX_FMT_YUV411P;
-                    break;
-                case V4L2_PIX_FMT_YUV444 :
-                    ffPixFormat = PIX_FMT_YUV444P;
-                    break;
-                case V4L2_PIX_FMT_YUV410 :
-                    ffPixFormat = PIX_FMT_YUV410P;
-                    break;
-                case VIDEO_PALETTE_YUV420P :
-                case V4L2_PIX_FMT_YUV420 :
-                    ffPixFormat = PIX_FMT_YUV420P;
-                    break;
-                // These don't seem to have ffmpeg equivalents
-                // See if you can match any of the ones in the default clause below!?
-                case V4L2_PIX_FMT_UYVY :
-                case V4L2_PIX_FMT_RGB332 :
-                case V4L2_PIX_FMT_RGB555X :
-                case V4L2_PIX_FMT_RGB565X :
-                case V4L2_PIX_FMT_Y16 :
-                case V4L2_PIX_FMT_PAL8 :
-                case V4L2_PIX_FMT_YVU410 :
-                case V4L2_PIX_FMT_YVU420 :
-                case V4L2_PIX_FMT_Y41P :
-                case V4L2_PIX_FMT_YUV555 :
-                case V4L2_PIX_FMT_YUV565 :
-                case V4L2_PIX_FMT_YUV32 :
-                case V4L2_PIX_FMT_NV12 :
-                case V4L2_PIX_FMT_NV21 :
-                case V4L2_PIX_FMT_YYUV :
-                case V4L2_PIX_FMT_HI240 :
-                case V4L2_PIX_FMT_HM12 :
-                case V4L2_PIX_FMT_SBGGR8 :
-                case V4L2_PIX_FMT_SGBRG8 :
-                case V4L2_PIX_FMT_SBGGR16 :
-                case V4L2_PIX_FMT_MJPEG :
-                case V4L2_PIX_FMT_JPEG :
-                case V4L2_PIX_FMT_DV :
-                case V4L2_PIX_FMT_MPEG :
-                case V4L2_PIX_FMT_WNVA :
-                case V4L2_PIX_FMT_SN9C10X :
-                case V4L2_PIX_FMT_PWC1 :
-                case V4L2_PIX_FMT_PWC2 :
-                case V4L2_PIX_FMT_ET61X251 :
-                case V4L2_PIX_FMT_SPCA501 :
-                case V4L2_PIX_FMT_SPCA505 :
-                case V4L2_PIX_FMT_SPCA508 :
-                case V4L2_PIX_FMT_SPCA561 :
-                case V4L2_PIX_FMT_PAC207 :
-                case V4L2_PIX_FMT_PJPG :
-                case V4L2_PIX_FMT_YVYU :
-                default :
-                {
-                    Fatal( "Can't find swscale format for palette %d", palette );
-                    break;
-                    // These are all spare and may match some of the above
-                    ffPixFormat = PIX_FMT_YUVJ420P;
-                    ffPixFormat = PIX_FMT_YUVJ422P;
-                    ffPixFormat = PIX_FMT_YUVJ444P;
-                    ffPixFormat = PIX_FMT_XVMC_MPEG2_MC;
-                    ffPixFormat = PIX_FMT_XVMC_MPEG2_IDCT;
-                    ffPixFormat = PIX_FMT_UYVY422;
-                    ffPixFormat = PIX_FMT_UYYVYY411;
-                    ffPixFormat = PIX_FMT_BGR565;
-                    ffPixFormat = PIX_FMT_BGR555;
-                    ffPixFormat = PIX_FMT_BGR8;
-                    ffPixFormat = PIX_FMT_BGR4;
-                    ffPixFormat = PIX_FMT_BGR4_BYTE;
-                    ffPixFormat = PIX_FMT_RGB8;
-                    ffPixFormat = PIX_FMT_RGB4;
-                    ffPixFormat = PIX_FMT_RGB4_BYTE;
-                    ffPixFormat = PIX_FMT_NV12;
-                    ffPixFormat = PIX_FMT_NV21;
-                    ffPixFormat = PIX_FMT_RGB32_1;
-                    ffPixFormat = PIX_FMT_BGR32_1;
-                    ffPixFormat = PIX_FMT_GRAY16BE;
-                    ffPixFormat = PIX_FMT_GRAY16LE;
-                    ffPixFormat = PIX_FMT_YUV440P;
-                    ffPixFormat = PIX_FMT_YUVJ440P;
-                    ffPixFormat = PIX_FMT_YUVA420P;
-                    ffPixFormat = PIX_FMT_VDPAU_H264;
-                    ffPixFormat = PIX_FMT_VDPAU_MPEG1;
-                    ffPixFormat = PIX_FMT_VDPAU_MPEG2;
-                    ffPixFormat = PIX_FMT_NB;
-                }
-            }
             imgConversionContext = sws_getContext( width, height, ffPixFormat, width, height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL );
             if ( !imgConversionContext )
                 Fatal( "Unable to initialise image scaling context" );
             Info( "Using swscaler" );
-
-            picture = avcodec_alloc_frame();
-            if ( !picture )
-                Fatal( "Could not allocate picture" );
-            int size = avpicture_get_size( ffPixFormat, width, height);
-            avpicture_fill( (AVPicture *)picture, buffer, ffPixFormat, width, height );
 
             tmpPicture = avcodec_alloc_frame();
             if ( !tmpPicture )
@@ -1248,8 +1275,9 @@ int LocalCamera::PostCapture( Image &image )
             avpicture_fill( (AVPicture *)tmpPicture, tmpPictureBuf, PIX_FMT_RGB24, width, height );
         }
 
-        sws_scale( imgConversionContext, picture->data, picture->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
+        sws_scale( imgConversionContext, ffPictures[capture_frame]->data, ffPictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
         buffer = tmpPicture->data[0];
+
 #else // HAVE_LIBSWSCALE 
         static unsigned char temp_buffer[ZM_MAX_IMAGE_SIZE];
         switch( palette )
@@ -1521,3 +1549,37 @@ int LocalCamera::PostCapture( Image &image )
 
 	return( 0 );
 }
+
+int LocalCamera::PostCapture()
+{
+    Debug( 2, "Post-capturing" );
+    if ( channel_count == 1 )
+    {
+#ifdef ZM_V4L2
+        if ( v4l2 )
+        {
+            Debug( 3, "Requeing buffer %d", v4l2_data.buffer->index );
+            if ( v4l2_data.buffer )
+            {
+                if ( vidioctl( vid_fd, VIDIOC_QBUF, v4l2_data.buffer ) < 0 )
+                {
+                    Error( "Unable to requeue buffer %d: %s", v4l2_data.buffer->index, strerror(errno) )
+                    return( -1 );
+                }
+            }
+        }
+        else
+#endif // ZM_V4L2
+        {
+            Debug( 3, "Requeueing frame %d", v4l1_data.cap_frame );
+            if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.cap_frame] ) < 0 )
+            {
+                Error( "Capture failure for frame %d: %s", v4l1_data.cap_frame, strerror(errno) );
+                return( -1 );
+            }
+            v4l1_data.cap_frame = (v4l1_data.cap_frame+1)%v4l1_data.frames.frames;
+        }
+    }
+	return( 0 );
+}
+

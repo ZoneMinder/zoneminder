@@ -253,6 +253,13 @@ int main( int argc, char *argv[] )
                     result = -1;
                     break;
 				}
+				if ( monitors[i]->Capture() < 0 )
+				{
+                    Error( "Failed to capture monitor %d image", i );
+                    zm_terminate = true;
+                    result = -1;
+                    break;
+				}
 				if ( monitors[i]->PostCapture() < 0 )
 				{
                     Error( "Failed to post-capture monitor %d", i );

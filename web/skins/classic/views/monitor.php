@@ -254,66 +254,66 @@ if ( ZM_V4L2 )
         $SLANG['Undefined'] => 0,
 
         /*      Pixel format         FOURCC                        depth  Description  */
-        "RGB332" =>   fourcc('R','G','B','1'), /*  8  RGB-3-3-2     */
+        //"RGB332" =>   fourcc('R','G','B','1'), /*  8  RGB-3-3-2     */
         "RGB444" =>   fourcc('R','4','4','4'), /* 16  xxxxrrrr ggggbbbb */
         "RGB555" =>   fourcc('R','G','B','O'), /* 16  RGB-5-5-5     */
         "RGB565" =>   fourcc('R','G','B','P'), /* 16  RGB-5-6-5     */
-        "RGB555X" =>  fourcc('R','G','B','Q'), /* 16  RGB-5-5-5 BE  */
-        "RGB565X" =>  fourcc('R','G','B','R'), /* 16  RGB-5-6-5 BE  */
+        //"RGB555X" =>  fourcc('R','G','B','Q'), /* 16  RGB-5-5-5 BE  */
+        //"RGB565X" =>  fourcc('R','G','B','R'), /* 16  RGB-5-6-5 BE  */
         "BGR24" =>    fourcc('B','G','R','3'), /* 24  BGR-8-8-8     */
         "RGB24" =>    fourcc('R','G','B','3'), /* 24  RGB-8-8-8     */
         "BGR32" =>    fourcc('B','G','R','4'), /* 32  BGR-8-8-8-8   */
         "RGB32" =>    fourcc('R','G','B','4'), /* 32  RGB-8-8-8-8   */
         "GREY" =>     fourcc('G','R','E','Y'), /*  8  Greyscale     */
-        "Y16" =>      fourcc('Y','1','6',''), /* 16  Greyscale     */
-        "PAL8" =>     fourcc('P','A','L','8'), /*  8  8-bit palette */
-        "YVU410" =>   fourcc('Y','V','U','9'), /*  9  YVU 4:1:0     */
-        "YVU420" =>   fourcc('Y','V','1','2'), /* 12  YVU 4:2:0     */
+        //"Y16" =>      fourcc('Y','1','6',''), /* 16  Greyscale     */
+        //"PAL8" =>     fourcc('P','A','L','8'), /*  8  8-bit palette */
+        //"YVU410" =>   fourcc('Y','V','U','9'), /*  9  YVU 4:1:0     */
+        //"YVU420" =>   fourcc('Y','V','1','2'), /* 12  YVU 4:2:0     */
         "YUYV" =>     fourcc('Y','U','Y','V'), /* 16  YUV 4:2:2     */
-        "UYVY" =>     fourcc('U','Y','V','Y'), /* 16  YUV 4:2:2     */
+        //"UYVY" =>     fourcc('U','Y','V','Y'), /* 16  YUV 4:2:2     */
         "YUV422P" =>  fourcc('4','2','2','P'), /* 16  YVU422 planar */
         "YUV411P" =>  fourcc('4','1','1','P'), /* 16  YVU411 planar */
-        "Y41P" =>     fourcc('Y','4','1','P'), /* 12  YUV 4:1:1     */
+        //"Y41P" =>     fourcc('Y','4','1','P'), /* 12  YUV 4:1:1     */
         "YUV444" =>   fourcc('Y','4','4','4'), /* 16  xxxxyyyy uuuuvvvv */
-        "YUV555" =>   fourcc('Y','U','V','O'), /* 16  YUV-5-5-5     */
-        "YUV565" =>   fourcc('Y','U','V','P'), /* 16  YUV-5-6-5     */
-        "YUV32" =>    fourcc('Y','U','V','4'), /* 32  YUV-8-8-8-8   */
+        //"YUV555" =>   fourcc('Y','U','V','O'), /* 16  YUV-5-5-5     */
+        //"YUV565" =>   fourcc('Y','U','V','P'), /* 16  YUV-5-6-5     */
+        //"YUV32" =>    fourcc('Y','U','V','4'), /* 32  YUV-8-8-8-8   */
 
         /* two planes -- one Y, one Cr + Cb interleaved  */
-        "NV12" =>     fourcc('N','V','1','2'), /* 12  Y/CbCr 4:2:0  */
-        "NV21" =>     fourcc('N','V','2','1'), /* 12  Y/CrCb 4:2:0  */
+        //"NV12" =>     fourcc('N','V','1','2'), /* 12  Y/CbCr 4:2:0  */
+        //"NV21" =>     fourcc('N','V','2','1'), /* 12  Y/CrCb 4:2:0  */
 
         /*  The following formats are not defined in the V4L2 specification */
         "YUV410" =>   fourcc('Y','U','V','9'), /*  9  YUV 4:1:0     */
         "YUV420" =>   fourcc('Y','U','1','2'), /* 12  YUV 4:2:0     */
-        "YYUV" =>     fourcc('Y','Y','U','V'), /* 16  YUV 4:2:2     */
-        "HI240" =>    fourcc('H','I','2','4'), /*  8  8-bit color   */
-        "HM12" =>     fourcc('H','M','1','2'), /*  8  YUV 4:2:0 16x16 macroblocks */
+        //"YYUV" =>     fourcc('Y','Y','U','V'), /* 16  YUV 4:2:2     */
+        //"HI240" =>    fourcc('H','I','2','4'), /*  8  8-bit color   */
+        //"HM12" =>     fourcc('H','M','1','2'), /*  8  YUV 4:2:0 16x16 macroblocks */
 
         /* see http://www.siliconimaging.com/RGB%20Bayer.htm */
-        "SBGGR8" =>   fourcc('B','A','8','1'), /*  8  BGBG.. GRGR.. */
-        "SGBRG8" =>   fourcc('G','B','R','G'), /*  8  GBGB.. RGRG.. */
-        "SBGGR16" =>  fourcc('B','Y','R','2'), /* 16  BGBG.. GRGR.. */
+        //"SBGGR8" =>   fourcc('B','A','8','1'), /*  8  BGBG.. GRGR.. */
+        //"SGBRG8" =>   fourcc('G','B','R','G'), /*  8  GBGB.. RGRG.. */
+        //"SBGGR16" =>  fourcc('B','Y','R','2'), /* 16  BGBG.. GRGR.. */
 
         /* compressed formats */
-        "MJPEG" =>    fourcc('M','J','P','G'), /* Motion-JPEG   */
+        //"MJPEG" =>    fourcc('M','J','P','G'), /* Motion-JPEG   */
         "JPEG" =>     fourcc('J','P','E','G'), /* JFIF JPEG     */
-        "DV" =>       fourcc('d','v','s','d'), /* 1394          */
-        "MPEG" =>     fourcc('M','P','E','G'), /* MPEG-1/2/4    */
+        //"DV" =>       fourcc('d','v','s','d'), /* 1394          */
+        //"MPEG" =>     fourcc('M','P','E','G'), /* MPEG-1/2/4    */
 
         /*  Vendor-specific formats   */
-        "WNVA" =>     fourcc('W','N','V','A'), /* Winnov hw compress */
-        "SN9C10X" =>  fourcc('S','9','1','0'), /* SN9C10x compression */
-        "PWC1" =>     fourcc('P','W','C','1'), /* pwc older webcam */
-        "PWC2" =>     fourcc('P','W','C','2'), /* pwc newer webcam */
-        "ET61X251" => fourcc('E','6','2','5'), /* ET61X251 compression */
-        "SPCA501" =>  fourcc('S','5','0','1'), /* YUYV per line */
-        "SPCA505" =>  fourcc('S','5','0','5'), /* YYUV per line */
-        "SPCA508" =>  fourcc('S','5','0','8'), /* YUVY per line */
-        "SPCA561" =>  fourcc('S','5','6','1'), /* compressed GBRG bayer */
-        "PAC207" =>   fourcc('P','2','0','7'), /* compressed BGGR bayer */
-        "PJPG" =>     fourcc('P','J','P','G'), /* Pixart 73xx JPEG */
-        "YVYU" =>     fourcc('Y','V','Y','U'), /* 16  YVU 4:2:2     */
+        //"WNVA" =>     fourcc('W','N','V','A'), /* Winnov hw compress */
+        //"SN9C10X" =>  fourcc('S','9','1','0'), /* SN9C10x compression */
+        //"PWC1" =>     fourcc('P','W','C','1'), /* pwc older webcam */
+        //"PWC2" =>     fourcc('P','W','C','2'), /* pwc newer webcam */
+        //"ET61X251" => fourcc('E','6','2','5'), /* ET61X251 compression */
+        //"SPCA501" =>  fourcc('S','5','0','1'), /* YUYV per line */
+        //"SPCA505" =>  fourcc('S','5','0','5'), /* YYUV per line */
+        //"SPCA508" =>  fourcc('S','5','0','8'), /* YUVY per line */
+        //"SPCA561" =>  fourcc('S','5','6','1'), /* compressed GBRG bayer */
+        //"PAC207" =>   fourcc('P','2','0','7'), /* compressed BGGR bayer */
+        //"PJPG" =>     fourcc('P','J','P','G'), /* Pixart 73xx JPEG */
+        //"YVYU" =>     fourcc('Y','V','Y','U'), /* 16  YVU 4:2:2     */
     );
 }
 

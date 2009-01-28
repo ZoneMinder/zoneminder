@@ -1283,7 +1283,9 @@ int LocalCamera::Capture( Image &image )
         switch( palette )
         {
             case VIDEO_PALETTE_YUV420P :
+#ifdef ZM_V4L2
             case V4L2_PIX_FMT_YUV420 :
+#endif // ZM_V4L2
             {
                 static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
                 static char u_plane[ZM_MAX_IMAGE_DIM];
@@ -1356,7 +1358,9 @@ int LocalCamera::Capture( Image &image )
                 break;
             }
             case VIDEO_PALETTE_YUV422P :
+#ifdef ZM_V4L2
             case V4L2_PIX_FMT_YUV422P :
+#endif // ZM_V4L2
             {
                 static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
                 static char u_plane[ZM_MAX_IMAGE_DIM];
@@ -1415,7 +1419,9 @@ int LocalCamera::Capture( Image &image )
             }
             case VIDEO_PALETTE_YUYV :
             case VIDEO_PALETTE_YUV422 :
+#ifdef ZM_V4L2
             case V4L2_PIX_FMT_YUYV :
+#endif // ZM_V4L2
             {
                 int size = width*height*2;
                 unsigned char *s_ptr = buffer;
@@ -1450,7 +1456,9 @@ int LocalCamera::Capture( Image &image )
                 break;
             }
             case VIDEO_PALETTE_RGB555 :
+#ifdef ZM_V4L2
             case V4L2_PIX_FMT_RGB555 :
+#endif // ZM_V4L2
             {
                 int size = width*height*2;
                 unsigned char r,g,b;
@@ -1471,7 +1479,9 @@ int LocalCamera::Capture( Image &image )
                 break;
             }
             case VIDEO_PALETTE_RGB565 :
+#ifdef ZM_V4L2
             case V4L2_PIX_FMT_RGB565 :
+#endif // ZM_V4L2
             {
                 int size = width*height*2;
                 unsigned char r,g,b;
@@ -1509,6 +1519,7 @@ int LocalCamera::Capture( Image &image )
                 }
                 break;
             }
+#ifdef ZM_V4L2
             case V4L2_PIX_FMT_BGR24 :
             {
                 int size = width*height*3;
@@ -1524,8 +1535,11 @@ int LocalCamera::Capture( Image &image )
                 buffer = temp_buffer;
                 break;
             }
+#endif // ZM_V4L2
             case VIDEO_PALETTE_GREY :
+#ifdef ZM_V4L2
             case V4L2_PIX_FMT_GREY :
+#endif // ZM_V4L2
             {
                 //int size = width*height;
                 //for ( int i = 0; i < size; i++ )

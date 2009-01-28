@@ -640,11 +640,11 @@ function handleClick( event )
 function initPage()
 {
     if ( streamMode == "single" )
-        statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.5)*statusRefreshTimeout );
+        statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
     else
-        streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.5)*statusRefreshTimeout );
+        streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
  
-    eventCmdTimer = eventCmdQuery.delay( (Math.random()+0.5)*eventsRefreshTimeout );
+    eventCmdTimer = eventCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
 
     if ( canStreamNative || streamMode == "single" )
     {

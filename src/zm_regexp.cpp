@@ -39,7 +39,7 @@ RegExpr::RegExpr( const char *pattern, int flags, int p_max_matches ) : max_matc
 		Fatal( "pcre_study(%s): %s", pattern, errstr );
 	}
 
-	if ( ok = (bool)regex )
+	if ( (ok = (bool)regex) )
 	{
 		match_vectors = new int[3*max_matches];
 		memset( match_vectors, 0, sizeof(*match_vectors)*3*max_matches );

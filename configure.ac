@@ -199,6 +199,35 @@ AC_PROG_LN_S
 AC_PROG_RANLIB
 AC_PROG_MAKE_SET
 
+# Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
+AC_C_CONST
+AC_TYPE_UID_T
+AC_C_INLINE
+AC_TYPE_MODE_T
+AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
+AC_HEADER_TIME
+AC_STRUCT_TM
+AC_TYPE_UINT8_T
+AC_TYPE_SIGNAL
+
+AC_CHECK_TYPES(siginfo_t,,,[#include <signal.h>])
+AC_CHECK_TYPES(struct sigcontext,,,[#include <signal.h>])
+AC_CHECK_MEMBERS([struct sigcontext.eip],,,[#include <signal.h>])
+AC_CHECK_TYPES(ucontext_t,,,[#include <signal.h>])
+
+# Checks for library functions.
+AC_PROG_GCC_TRADITIONAL
+AC_FUNC_MALLOC
+AC_FUNC_MMAP
+AC_FUNC_SELECT_ARGTYPES
+AC_FUNC_STAT
+AC_FUNC_STRFTIME
+AC_FUNC_STRTOD
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap putenv select socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strsignal strspn strstr strtol strtoull])
+
 # Other programs
 AC_CHECK_PROG(OPT_FFMPEG,ffmpeg,yes,no)
 AC_PATH_PROG(PATH_FFMPEG,ffmpeg)
@@ -248,35 +277,6 @@ else
 AC_CHECK_HEADERS(sys/ipc.h,,,)
 AC_CHECK_HEADERS(sys/shm.h,,,)
 fi
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_HEADER_STDBOOL
-AC_C_CONST
-AC_TYPE_UID_T
-AC_C_INLINE
-AC_TYPE_MODE_T
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
-AC_HEADER_TIME
-AC_STRUCT_TM
-AC_TYPE_UINT8_T
-AC_TYPE_SIGNAL
-
-AC_CHECK_TYPES(siginfo_t,,,[#include <signal.h>])
-AC_CHECK_TYPES(struct sigcontext,,,[#include <signal.h>])
-AC_CHECK_MEMBERS([struct sigcontext.eip],,,[#include <signal.h>])
-AC_CHECK_TYPES(ucontext_t,,,[#include <signal.h>])
-
-# Checks for library functions.
-AC_PROG_GCC_TRADITIONAL
-AC_FUNC_MALLOC
-AC_FUNC_MMAP
-AC_FUNC_SELECT_ARGTYPES
-AC_FUNC_STAT
-AC_FUNC_STRFTIME
-AC_FUNC_STRTOD
-AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap putenv select socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strsignal strspn strstr strtol strtoull])
 
 AC_CHECK_DECLS(round,,,[#include <math.h>])
 if test "$ZM_SSL_LIB" == "openssl"; then

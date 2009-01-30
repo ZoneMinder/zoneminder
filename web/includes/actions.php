@@ -925,7 +925,6 @@ if ( !empty($action) )
                 if ( !empty($_REQUEST['cid']) )
                 {
                     dbQuery( "update Controls set ".implode( ", ", $changes )." where Id = '".dbEscape($_REQUEST['cid'])."'" );
-                    $refreshParent = true;
                 }
                 else
                 {
@@ -934,6 +933,7 @@ if ( !empty($action) )
                 }
                 $refreshParent = true;
             }
+            $view = 'none';
         }
         elseif ( $action == "delete" )
         {

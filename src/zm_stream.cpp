@@ -104,10 +104,14 @@ Image *StreamBase::prepareImage( Image *image )
     if ( !last_zoom )
         last_zoom = zoom;
 
+    // Do not bother to scale zoomed in images, just crop them and let the browser scale
+    // Works in FF2 but breaks FF3 which doesn't like image sizes changing in mid stream.
+    bool optimisedScaling = false;
+
     bool image_copied = false;
 
     int mag = (scale * zoom) / ZM_SCALE_BASE;
-    int act_mag = mag > ZM_SCALE_BASE?ZM_SCALE_BASE:mag;
+    int act_mag = optimisedScaling?(mag > ZM_SCALE_BASE?ZM_SCALE_BASE:mag):mag;
     Debug( 3, "Scaling by %d, zooming by %d = magnifying by %d(%d)", scale, zoom, mag, act_mag );
 
     int last_mag = (last_scale * last_zoom) / ZM_SCALE_BASE;
@@ -143,9 +147,9 @@ Image *StreamBase::prepareImage( Image *image )
 
     if ( mag != ZM_SCALE_BASE )
     {
-        Debug( 3, "Magnifying by %d", mag );
-        if ( act_mag < ZM_SCALE_BASE )
+        if ( act_mag != ZM_SCALE_BASE )
         {
+            Debug( 3, "Magnifying by %d", mag );
             if ( !image_copied )
             {
 	            static Image copy_image;
@@ -161,11 +165,12 @@ Image *StreamBase::prepareImage( Image *image )
 
     if ( disp_image_width < virt_image_width || disp_image_height < virt_image_height )
     {
-        Debug( 3, "Got click at %d,%d", x, y );
         static Box last_crop;
 
         if ( mag != last_mag || x != last_x || y != last_y )
         {
+            Debug( 3, "Got click at %d,%d x %d", x, y, mag );
+
             //if ( !last_mag )
                 //last_mag = mag;
 

@@ -346,7 +346,7 @@ void LocalCamera::Initialise()
             Fatal( "Failed to enumerate input %d: %s", channel, strerror(errno) );
         }
 
-        if ( !(input.std & format) )
+        if ( (input.std != V4L2_STD_UNKNOWN) && ((input.std & format) == V4L2_STD_UNKNOWN) )
         {
             Fatal( "Device does not support video standard %d", format );
         }

@@ -113,9 +113,11 @@ void LocalCamera::Initialise()
         ffPixFormat = PIX_FMT_NONE;
         switch( palette )
         {
+#ifdef V4L2_PIX_FMT_RGB444
             case V4L2_PIX_FMT_RGB444 :
                 ffPixFormat = PIX_FMT_RGB32;
                 break;
+#endif // V4L2_PIX_FMT_RGB444
             case V4L2_PIX_FMT_RGB555 :
                 ffPixFormat = PIX_FMT_RGB555;
                 break;
@@ -146,9 +148,11 @@ void LocalCamera::Initialise()
             case V4L2_PIX_FMT_YUV411P :
                 ffPixFormat = PIX_FMT_YUV411P;
                 break;
+#ifdef V4L2_PIX_FMT_YUV444
             case V4L2_PIX_FMT_YUV444 :
                 ffPixFormat = PIX_FMT_YUV444P;
                 break;
+#endif // V4L2_PIX_FMT_YUV444
             case V4L2_PIX_FMT_YUV410 :
                 ffPixFormat = PIX_FMT_YUV410P;
                 break;
@@ -164,22 +168,22 @@ void LocalCamera::Initialise()
             case V4L2_PIX_FMT_RGB332 :
             case V4L2_PIX_FMT_RGB555X :
             case V4L2_PIX_FMT_RGB565X :
-            case V4L2_PIX_FMT_Y16 :
-            case V4L2_PIX_FMT_PAL8 :
+            //case V4L2_PIX_FMT_Y16 :
+            //case V4L2_PIX_FMT_PAL8 :
             case V4L2_PIX_FMT_YVU410 :
             case V4L2_PIX_FMT_YVU420 :
             case V4L2_PIX_FMT_Y41P :
-            case V4L2_PIX_FMT_YUV555 :
-            case V4L2_PIX_FMT_YUV565 :
-            case V4L2_PIX_FMT_YUV32 :
+            //case V4L2_PIX_FMT_YUV555 :
+            //case V4L2_PIX_FMT_YUV565 :
+            //case V4L2_PIX_FMT_YUV32 :
             case V4L2_PIX_FMT_NV12 :
             case V4L2_PIX_FMT_NV21 :
             case V4L2_PIX_FMT_YYUV :
             case V4L2_PIX_FMT_HI240 :
             case V4L2_PIX_FMT_HM12 :
-            case V4L2_PIX_FMT_SBGGR8 :
-            case V4L2_PIX_FMT_SGBRG8 :
-            case V4L2_PIX_FMT_SBGGR16 :
+            //case V4L2_PIX_FMT_SBGGR8 :
+            //case V4L2_PIX_FMT_SGBRG8 :
+            //case V4L2_PIX_FMT_SBGGR16 :
             case V4L2_PIX_FMT_MJPEG :
             case V4L2_PIX_FMT_DV :
             case V4L2_PIX_FMT_MPEG :
@@ -188,13 +192,13 @@ void LocalCamera::Initialise()
             case V4L2_PIX_FMT_PWC1 :
             case V4L2_PIX_FMT_PWC2 :
             case V4L2_PIX_FMT_ET61X251 :
-            case V4L2_PIX_FMT_SPCA501 :
-            case V4L2_PIX_FMT_SPCA505 :
-            case V4L2_PIX_FMT_SPCA508 :
-            case V4L2_PIX_FMT_SPCA561 :
-            case V4L2_PIX_FMT_PAC207 :
-            case V4L2_PIX_FMT_PJPG :
-            case V4L2_PIX_FMT_YVYU :
+            //case V4L2_PIX_FMT_SPCA501 :
+            //case V4L2_PIX_FMT_SPCA505 :
+            //case V4L2_PIX_FMT_SPCA508 :
+            //case V4L2_PIX_FMT_SPCA561 :
+            //case V4L2_PIX_FMT_PAC207 :
+            //case V4L2_PIX_FMT_PJPG :
+            //case V4L2_PIX_FMT_YVYU :
             default :
             {
                 Fatal( "Can't find swscale format for palette %d", palette );

@@ -1279,7 +1279,6 @@ int LocalCamera::Capture( Image &image )
             imgConversionContext = sws_getContext( width, height, ffPixFormat, width, height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL );
             if ( !imgConversionContext )
                 Fatal( "Unable to initialise image scaling context" );
-            Info( "Using swscaler" );
 
             tmpPicture = avcodec_alloc_frame();
             if ( !tmpPicture )

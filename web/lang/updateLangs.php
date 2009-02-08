@@ -63,7 +63,7 @@ foreach ( $files as $file )
     require_once( $tmpFile );
     unlink( $tmpFile );
 
-    $pattern = '/^(.+SLANG = array\(\n)(.+)(\);.+)$/sU';
+    $pattern = '/^(.+SLANG = array\(\n)(.+)(\);.+?)/sU';
     //echo "P:'$pattern'\n";
     if ( !preg_match( $pattern, $rawCode, $fileParts ) )
         die( "Can't find SLANG array\n" );
@@ -104,7 +104,7 @@ foreach ( $files as $file )
         fwrite( $fp, $newCode );
         fclose( $fp );
     }
-    //rename( $newFile, $file );
+    rename( $newFile, $file );
 }
 
 ?>

@@ -50,7 +50,7 @@
 // do this by default, uncomment this if required.
 //
 // Example
- header( "Content-Type: text/html; charset=iso-8859-8-i" );
+header( "Content-Type: text/html; charset=iso-8859-8-i" );
 
 // You may need to change your locale here if your default one is incorrect for the
 // language described in this file, or if you have multiple languages supported.
@@ -64,8 +64,8 @@
 // threaded environment, if you get funny errors it may be this.
 //
 // Examples
- // setlocale( 'LC_ALL', 'he_IL' ); All locale settings pre-4.3.0
- setlocale( LC_ALL, 'he_IL' ); //All locale settings 4.3.0 and after
+// setlocale( 'LC_ALL', 'he_IL' ); All locale settings pre-4.3.0
+setlocale( LC_ALL, 'he_IL' ); //All locale settings 4.3.0 and after
 // setlocale( LC_CTYPE, 'he_IL' ); Character class settings 4.3.0 and after
 // setlocale( LC_TIME, 'he_IL' ); Date and time formatting 4.3.0 and after
 

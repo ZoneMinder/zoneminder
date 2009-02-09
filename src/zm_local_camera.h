@@ -76,7 +76,7 @@ protected:
     };
 
 #if HAVE_LIBSWSCALE
-    int         ffPixFormat;
+    PixelFormat ffPixFormat;
     AVFrame     **ffPictures;
 #endif // HAVE_LIBSWSCALE
 

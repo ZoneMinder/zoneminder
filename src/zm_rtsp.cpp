@@ -180,7 +180,7 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
         else
             mUrl += '/'+mPath;
     }
-    mFormatContext = av_alloc_format_context();
+    mFormatContext = avformat_alloc_context();
 
     mSsrc = rand();
 

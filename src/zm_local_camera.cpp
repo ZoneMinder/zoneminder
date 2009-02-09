@@ -425,7 +425,6 @@ void LocalCamera::Initialise()
                 ffPixFormat = PIX_FMT_VDPAU_H264;
                 ffPixFormat = PIX_FMT_VDPAU_MPEG1;
                 ffPixFormat = PIX_FMT_VDPAU_MPEG2;
-                ffPixFormat = PIX_FMT_NB;
             }
         }
 #endif // HAVE_LIBSWSCALE

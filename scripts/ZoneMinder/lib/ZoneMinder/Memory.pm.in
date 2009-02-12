@@ -245,11 +245,11 @@ sub zmMemVerify( $ )
 		{
 			if ( $sd_size )
 			{
-				Error( "Shared data size conflict in shared_data, expected ".$mem_data->{shared_data}->{size}.", got ".$sd_size );
+				Error( "Shared data size conflict in shared_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{shared_data}->{size}.", got ".$sd_size );
 			}
 			else
 			{
-				Debug( "Shared data size conflict in shared_data, expected ".$mem_data->{shared_data}->{size}.", got ".$sd_size );
+				Debug( "Shared data size conflict in shared_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{shared_data}->{size}.", got ".$sd_size );
 			}
 			return( undef );
 		}
@@ -258,11 +258,11 @@ sub zmMemVerify( $ )
 		{
 			if ( $td_size )
 			{
-				Error( "Shared data size conflict in trigger_data, expected ".$mem_data->{triggger_data}->{size}.", got ".$td_size );
+				Error( "Shared data size conflict in trigger_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{triggger_data}->{size}.", got ".$td_size );
 			}
 			else
 			{
-				Debug( "Shared data size conflict in trigger_data, expected ".$mem_data->{triggger_data}->{size}.", got ".$td_size );
+				Debug( "Shared data size conflict in trigger_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{triggger_data}->{size}.", got ".$td_size );
 			}
 			return( undef );
 		}

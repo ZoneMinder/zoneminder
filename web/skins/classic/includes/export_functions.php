@@ -27,7 +27,7 @@ function exportHeader( $title )
   <title><?= $title ?></title>
   <style type="text/css">
   <!--
-<?php include( ZM_SKIN_PATH.'css/export.css' ); ?>
+<?php include( ZM_SKIN_PATH.'/css/export.css' ); ?>
   -->
   </style>
 </head>
@@ -291,8 +291,8 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
             $archive = "temp/zm_export.zip";
             $archive = "temp/".$export_root.".zip";
             @unlink( $archive );
-            $command = "cat $listFile | zip -q $archive -@";
-            exec( escapeshellcmd( $command ), $output, $status );
+            $command = "cat ".escapeshellarg($listFile)." | zip -q ".escapeshellarg($archive)." -@";
+            exec( $command, $output, $status );
             if ( $status )
             {
                 error_log( "Command '$command' returned with status $status" );

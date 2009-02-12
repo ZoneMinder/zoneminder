@@ -1,7 +1,7 @@
 <?php
 if ( isset($_REQUEST['eids']) )
 {
-    $eidParms = array()
+    $eidParms = array();
     foreach ( $_REQUEST['eids'] as $eid )
         $eidParms[] = "eids[]=".validInt($eid);
 ?>

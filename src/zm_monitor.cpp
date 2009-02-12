@@ -53,6 +53,7 @@ Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id )
 
 #if ZM_MEM_MAPPED
 	map_fd = -1;
+    snprintf( mem_file, sizeof(mem_file), "%s/.zm.mmap.%d", config.path_map, id );
 #else // ZM_MEM_MAPPED
     shm_id = 0;
 #endif // ZM_MEM_MAPPED
@@ -81,8 +82,6 @@ bool Monitor::MonitorLink::connect()
 
         Debug( 1, "link.mem.size=%d", mem_size );
 #if ZM_MEM_MAPPED
-        char mem_file[PATH_MAX];
-        snprintf( mem_file, sizeof(mem_file), "%s/.zm.mmap.%d", config.path_map, id );
         map_fd = open( mem_file, O_RDWR, (mode_t)0600 );
         if ( map_fd < 0 )
         {
@@ -345,7 +344,6 @@ Monitor::Monitor(
 
 	Debug( 1, "mem.size=%d", mem_size );
 #if ZM_MEM_MAPPED
-    char mem_file[PATH_MAX];
     snprintf( mem_file, sizeof(mem_file), "%s/.zm.mmap.%d", config.path_map, id );
     map_fd = open( mem_file, O_RDWR|O_CREAT, (mode_t)0600 );
     if ( map_fd < 0 )
@@ -548,6 +546,7 @@ Monitor::~Monitor()
     if ( munmap( mem_ptr, mem_size ) < 0 )
 		Fatal( "Can't munmap: %s", strerror(errno) );
     close( map_fd );
+    unlink( mem_file );
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
     if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )
@@ -555,7 +554,6 @@ Monitor::~Monitor()
         Error( "Can't shmctl: %s", strerror(errno) );
         exit( -1 );
     }
-
     if ( shm_data.shm_nattch <= 1 )
     {
         if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 )

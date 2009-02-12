@@ -237,6 +237,9 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
 
 int LocalCamera::camera_count = 0;
 int LocalCamera::channel_count = 0;
+int LocalCamera::channels[VIDEO_MAX_FRAME];
+int LocalCamera::standards[VIDEO_MAX_FRAME];
+
 
 int LocalCamera::vid_fd = -1;
 
@@ -268,7 +271,8 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
     device( p_device ),
     channel( p_channel ),
     standard( p_standard ),
-    palette( p_palette )
+    palette( p_palette ),
+    channel_index( 0 )
 {
     // If we are the first, or only, input on this device then
     // do the initial opening etc
@@ -289,7 +293,9 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
         {
             // We are the first, or only, input that uses this channel
             channel_prime = true;
-            channel_count++;
+            channel_index = channel_count++;
+            channels[channel_index] = channel;
+            standards[channel_index] = standard;
         }
         else
         {
@@ -408,7 +414,7 @@ void LocalCamera::Initialise()
             }
         }
 
-        if ( v4l2_data.reqbufs.count < 2*channel_count )
+        if ( v4l2_data.reqbufs.count < (2*channel_count) )
             Fatal( "Insufficient buffer memory %d on video device", v4l2_data.reqbufs.count );
 
         Debug( 3, "Setting up %d data buffers", v4l2_data.reqbufs.count );
@@ -1126,22 +1132,19 @@ int LocalCamera::PrimeCapture()
 #ifdef ZM_V4L2
     if ( v4l_version == 2 )
     {
-        if ( channel_count == 1 )
+        Debug( 3, "Queueing buffers" );
+        for ( int frame = 0; frame < v4l2_data.reqbufs.count; frame++ )
         {
-            Debug( 3, "Queueing buffers" );
-            for ( int frame = 0; frame < v4l2_data.reqbufs.count; frame++ )
-            {
-                struct v4l2_buffer vid_buf;
+            struct v4l2_buffer vid_buf;
 
-                memset( &vid_buf, 0, sizeof(vid_buf) );
+            memset( &vid_buf, 0, sizeof(vid_buf) );
 
-                vid_buf.type = v4l2_data.fmt.type;
-                vid_buf.memory = v4l2_data.reqbufs.memory;
-                vid_buf.index = frame;
+            vid_buf.type = v4l2_data.fmt.type;
+            vid_buf.memory = v4l2_data.reqbufs.memory;
+            vid_buf.index = frame;
 
-                if ( vidioctl( vid_fd, VIDIOC_QBUF, &vid_buf ) < 0 )
-                    Fatal( "Failed to queue buffer %d: %s", frame, strerror(errno) );
-            }
+            if ( vidioctl( vid_fd, VIDIOC_QBUF, &vid_buf ) < 0 )
+                Fatal( "Failed to queue buffer %d: %s", frame, strerror(errno) );
         }
         v4l2_data.bufptr = NULL;
 
@@ -1182,35 +1185,6 @@ int LocalCamera::PreCapture()
 #ifdef ZM_V4L2
         if ( v4l_version == 2 )
         {
-            Debug( 3, "Switching video source to %d", channel );
-            if ( vidioctl( vid_fd, VIDIOC_S_INPUT, &channel ) < 0 )
-            {
-                Error( "Failed to set camera source %d: %s", channel, strerror(errno) );
-                return( -1 );
-            }
-
-            v4l2_std_id stdId = standard;
-            if ( vidioctl( vid_fd, VIDIOC_S_STD, &stdId ) < 0 )
-            {
-                Error( "Failed to set video standard %d: %s", standard, strerror(errno) );
-                return( -1 );
-            }
-
-            struct v4l2_buffer vid_buf;
-
-            memset( &vid_buf, 0, sizeof(vid_buf) );
-
-            vid_buf.type = v4l2_data.fmt.type;
-            vid_buf.memory = v4l2_data.reqbufs.memory;
-            vid_buf.index = 0;
-            vid_buf.input = channel;
-
-            Debug( 3, "Queueing buffer %d", vid_buf.index );
-            if ( vidioctl( vid_fd, VIDIOC_QBUF, &vid_buf ) < 0 )
-            {
-                Error( "Unable to requeue buffer %d: %s", vid_buf.index, strerror(errno) )
-                return( -1 );
-            }
         }
         else
 #endif // ZM_V4L2
@@ -1288,8 +1262,7 @@ int LocalCamera::Capture( Image &image )
 
                 v4l2_data.bufptr = &vid_buf;
                 capture_frame = v4l2_data.bufptr->index;
-                captures_per_frame--;
-                if ( captures_per_frame )
+                if ( --captures_per_frame )
                 {
                     if ( vidioctl( vid_fd, VIDIOC_QBUF, &vid_buf ) < 0 )
                     {
@@ -1655,16 +1628,29 @@ int LocalCamera::PostCapture()
 #ifdef ZM_V4L2
         if ( v4l_version == 2 )
         {
-            Debug( 3, "Requeing buffer %d", v4l2_data.bufptr->index );
-            if ( v4l2_data.bufptr )
+
+            if ( channel_count > 1 )
             {
-                //if ( channel_count > 1 )
-                    //v4l2_data.bufptr->input = channel;
-                //if ( vidioctl( vid_fd, VIDIOC_QBUF, v4l2_data.bufptr ) < 0 )
-                //{
-                    //Error( "Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno) )
-                    //return( -1 );
-                //}
+                int next_channel = (channel_index+1)%channel_count;
+                Debug( 3, "Switching video source to %d", channels[next_channel] );
+                if ( vidioctl( vid_fd, VIDIOC_S_INPUT, &channels[next_channel] ) < 0 )
+                {
+                    Error( "Failed to set camera source %d: %s", channel, strerror(errno) );
+                    return( -1 );
+                }
+
+                v4l2_std_id stdId = standards[channel_index];
+                if ( vidioctl( vid_fd, VIDIOC_S_STD, &stdId ) < 0 )
+                {
+                    Error( "Failed to set video format %d: %s", standards[channel_index], strerror(errno) );
+                    return( -1 );
+                }
+            }
+            Debug( 3, "Requeing buffer %d", v4l2_data.bufptr->index );
+            if ( vidioctl( vid_fd, VIDIOC_QBUF, v4l2_data.bufptr ) < 0 )
+            {
+                Error( "Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno) )
+                return( -1 );
             }
         }
         else

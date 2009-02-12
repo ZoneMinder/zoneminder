@@ -83,10 +83,13 @@ protected:
 
     bool                    device_prime;
     bool                    channel_prime;
+    int                     channel_index;
 
 protected:
 	static int				camera_count;
 	static int				channel_count;
+    static int              channels[VIDEO_MAX_FRAME];
+    static int              standards[VIDEO_MAX_FRAME];
 
 	static int				vid_fd;
 

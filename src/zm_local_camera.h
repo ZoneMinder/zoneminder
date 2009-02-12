@@ -61,7 +61,7 @@ protected:
         v4l2_format         fmt;
         v4l2_requestbuffers reqbufs;
         V4L2MappedBuffer    *buffers;
-        v4l2_buffer         *buffer;
+        v4l2_buffer         *bufptr;
     };
 #endif // ZM_V4L2
 
@@ -72,37 +72,35 @@ protected:
 	    int				    sync_frame;
 	    video_mbuf		    frames;
 	    video_mmap		    *buffers;
-	    unsigned char	    *buffer;
+	    unsigned char	    *bufptr;
     };
 
-#if HAVE_LIBSWSCALE
-    PixelFormat ffPixFormat;
-    AVFrame     **ffPictures;
-#endif // HAVE_LIBSWSCALE
-
 protected:
-	std::string device;
-	int		    channel;
-	int		    format;
+	std::string             device;
+	int		                channel;
+	int	                    standard;
+    int                     palette;
 
-    int         palette;
-
-    bool        device_prime;
-    bool        channel_prime;
-
-    bool        v4l2;
+    bool                    device_prime;
+    bool                    channel_prime;
 
 protected:
 	static int				camera_count;
 	static int				channel_count;
-    static int              last_channel;
 
 	static int				vid_fd;
+
+    static int              v4l_version;
 
 #ifdef ZM_V4L2
     static V4L2Data         v4l2_data;
 #endif // ZM_V4L2
     static V4L1Data         v4l1_data;
+
+#if HAVE_LIBSWSCALE
+    PixelFormat             ffPixFormat;
+    static AVFrame          **ffPictures;
+#endif // HAVE_LIBSWSCALE
 
 	static unsigned char	*y_table;
 	static signed char		*uv_table;
@@ -110,6 +108,8 @@ protected:
 	static short			*g_v_table;
 	static short			*g_u_table;
 	static short			*b_u_table;
+
+    static LocalCamera      *last_camera;
 
 public:
 	LocalCamera( int p_id, const std::string &device, int p_channel, int p_format, const std::string &p_method, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
@@ -119,9 +119,9 @@ public:
 	void Terminate();
 
 	const std::string &Device() const { return( device ); }
-	unsigned int Channel() const { return( channel ); }
-	unsigned int Format() const { return( format ); }
 
+	int Channel() const { return( channel ); }
+	int Standard() const { return( standard ); }
 	int Palette() const { return( palette ); }
 
 	int Brightness( int p_brightness=-1 );

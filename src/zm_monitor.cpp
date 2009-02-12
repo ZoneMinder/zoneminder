@@ -2787,7 +2787,7 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 	{
 		sprintf( output+strlen(output), "Device : %s\n", ((LocalCamera *)camera)->Device().c_str() );
 		sprintf( output+strlen(output), "Channel : %d\n", ((LocalCamera *)camera)->Channel() );
-		sprintf( output+strlen(output), "Format : %d\n", ((LocalCamera *)camera)->Format() );
+		sprintf( output+strlen(output), "Standard : %d\n", ((LocalCamera *)camera)->Standard() );
 	}
 	else if ( camera->IsRemote() )
 	{

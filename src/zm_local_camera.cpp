@@ -663,6 +663,7 @@ void LocalCamera::Initialise()
 	g_v_table = new short[255];
 	g_u_table = new short[255];
 	b_u_table = new short[255];
+    /* RIS - removed & replaced
 	r_v_table += 127;
 	g_v_table += 127;
 	g_u_table += 127;
@@ -675,6 +676,14 @@ void LocalCamera::Initialise()
 		g_v_table[c] = (714*c)/1000;
 		b_u_table[c] = (1772*c)/1000;
 	}
+    */
+    for ( int i = 0; i < 255; i++ )
+    {
+        r_v_table[i] = (1402*(i-128))/1000;
+        g_u_table[i] = (344*(i-128))/1000;
+        g_v_table[i] = (714*(i-128))/1000;
+        b_u_table[i] = (1772*(i-128))/1000;
+    }
 }
 
 void LocalCamera::Terminate()

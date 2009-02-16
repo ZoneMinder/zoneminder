@@ -1386,7 +1386,8 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 				active_edges[n_active_edges++] = global_edges[i];
 				if ( i < (n_global_edges-1) )
 				{
-					memcpy( &global_edges[i], &global_edges[i+1], sizeof(*global_edges)*(n_global_edges-i) );
+					//memcpy( &global_edges[i], &global_edges[i+1], sizeof(*global_edges)*(n_global_edges-i) );
+					memmove( &global_edges[i], &global_edges[i+1], sizeof(*global_edges)*(n_global_edges-i) );
 					i--;
 				}
 				n_global_edges--;
@@ -1441,7 +1442,8 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 				Debug( 9, "Deleting active_edge" );
 				if ( i < (n_active_edges-1) )
 				{
-					memcpy( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
+					//memcpy( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
+					memmove( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
 				}
 				n_active_edges--;
 			}

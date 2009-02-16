@@ -88,7 +88,7 @@ void RemoteCameraRtsp::Terminate()
 
 int RemoteCameraRtsp::Connect()
 {
-    rtspThread = new RtspThread( id, method, protocol, host, port, path, subpath, auth64 );
+    rtspThread = new RtspThread( id, method, protocol, host, port, path, subpath, auth );
 
     rtspThread->start();
 

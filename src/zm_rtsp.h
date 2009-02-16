@@ -56,6 +56,7 @@ private:
     std::string mSubpath;
     std::string mUrl;
     std::string mAuth;
+    std::string mAuth64;
 
     std::string mHttpSession;           ///< Only for RTSP over HTTP sessions
 

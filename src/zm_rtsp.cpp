@@ -39,7 +39,7 @@ RtspThread::PortSet  RtspThread::mAssignedPorts;
 bool RtspThread::sendCommand( std::string message )
 {
     if ( !mAuth.empty() )
-        message += stringtf( "Authorization: Basic %s\r\n", mAuth.c_str() );
+        message += stringtf( "Authorization: Basic %s\r\n", mAuth64.c_str() );
     message += stringtf( "CSeq: %d\r\n\r\n", ++mSeq );
     Debug( 2, "Sending RTSP message: %s", message.c_str() );
     if ( mMethod == RTP_RTSP_HTTP )
@@ -188,6 +188,9 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
 
     if ( mMethod == RTP_RTSP_HTTP )
         mHttpSession = stringtf( "%d", rand() );
+
+    if ( !mAuth.empty() )
+        mAuth64 = base64Encode( mAuth );
 }
 
 RtspThread::~RtspThread()
@@ -226,7 +229,7 @@ int RtspThread::run()
         message = "GET "+mPath+" HTTP/1.0\r\n";
         message += "x-sessioncookie: "+mHttpSession+"\r\n";
         if ( !mAuth.empty() )
-            message += stringtf( "Authorization: Basic %s\r\n", mAuth.c_str() );
+            message += stringtf( "Authorization: Basic %s\r\n", mAuth64.c_str() );
         message += "\r\n";
         Debug( 2, "Sending HTTP message: %s", message.c_str() );
         if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() )
@@ -267,7 +270,7 @@ int RtspThread::run()
         message = "POST "+mPath+" HTTP/1.0\r\n";
         message += "x-sessioncookie: "+mHttpSession+"\r\n";
         if ( !mAuth.empty() )
-            message += stringtf( "Authorization: Basic %s\r\n", mAuth.c_str() );
+            message += stringtf( "Authorization: Basic %s\r\n", mAuth64.c_str() );
         message += "Content-Length: 32767\r\n";
         message += "Content-Type: application/x-rtsp-tunnelled\r\n";
         message += "\r\n";
@@ -286,7 +289,10 @@ int RtspThread::run()
     std::string tempUrl = mUrl;
     if ( !mAuth.empty() )
     {
-        tempUrl = mProtocol+"://"+"Admin:123456"+"@"+mHost+":"+mPort;
+        tempUrl = mProtocol+"://";
+        if ( !mAuth.empty() )
+            tempUrl += mAuth+"@";
+        tempUrl += mHost+":"+mPort;
         if ( !mPath.empty() )
         {
             if ( mPath[0] == '/' )

@@ -1622,13 +1622,12 @@ int LocalCamera::Capture( Image &image )
 int LocalCamera::PostCapture()
 {
     Debug( 2, "Post-capturing" );
-    // Reque the buffer unless we need to switch or are a duplicate camera on a channel
+    // Requeue the buffer unless we need to switch or are a duplicate camera on a channel
     if ( channel_count == 1 || channel_prime )
     {
 #ifdef ZM_V4L2
         if ( v4l_version == 2 )
         {
-
             if ( channel_count > 1 )
             {
                 int next_channel = (channel_index+1)%channel_count;

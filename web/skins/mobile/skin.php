@@ -80,16 +80,20 @@ foreach ( getSkinIncludes( 'includes/config.php' ) as $includeFile )
 foreach ( getSkinIncludes( 'includes/functions.php' ) as $includeFile )
     require_once $includeFile;
 
-if ( empty($_REQUEST['view']) )
-    $_REQUEST['view'] = isset($user)?'console':'login';
+if ( empty($view) )
+    $view = isset($user)?'console':'login';
 
 if ( !isset($user) && ZM_OPT_USE_AUTH )
 {
     if ( ZM_AUTH_TYPE == "remote" && !empty( $_SERVER['REMOTE_USER'] ) )
     {
-        $_REQUEST['view'] = "postlogin";
-        $_REQUEST['action'] = "login";
+        $view = "postlogin";
+        $action = "login";
         $_REQUEST['username'] = $_SERVER['REMOTE_USER'];
+    }
+    else
+    {
+        $view = "login";
     }
 }
 

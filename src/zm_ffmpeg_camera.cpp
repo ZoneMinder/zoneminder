@@ -122,8 +122,12 @@ int FfmpegCamera::PrimeCapture()
     
     avpicture_fill( (AVPicture *)mFrame, (unsigned char *)mBuffer, PIX_FMT_RGB24, mCodecContext->width, mCodecContext->height);
 
+#if HAVE_LIBSWSCALE
     if ( (mConvertContext = sws_getCachedContext( mConvertContext, mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL )) == NULL )
         Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+#else // HAVE_LIBSWSCALE
+    Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+#endif // HAVE_LIBSWSCALE
 
     return( 0 );
 }
@@ -153,8 +157,12 @@ int FfmpegCamera::Capture( Image &image )
             {
                 Debug( 1, "Got frame %d", frameCount );
 
+#if HAVE_LIBSWSCALE
                 if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
                     Fatal( "Unable to convert raw format %d to RGB at frame %d", mCodecContext->pix_fmt, frameCount );
+#else // HAVE_LIBSWSCALE
+    Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+#endif // HAVE_LIBSWSCALE
  
                 image.Assign( mCodecContext->width, mCodecContext->height, colours, (unsigned char *)mFrame->data[0] );
 

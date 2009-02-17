@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */  
 
+#ifndef ZM_DEBUG_H
+#define ZM_DEBUG_H
+
 #include <sys/types.h>	
 #include <limits.h>	
 
@@ -115,3 +118,5 @@ extern int zm_dbg_add_log_id;
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
+
+#endif // ZM_DEBUG_H

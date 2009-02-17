@@ -546,8 +546,6 @@ Monitor::~Monitor()
     if ( munmap( mem_ptr, mem_size ) < 0 )
 		Fatal( "Can't munmap: %s", strerror(errno) );
     close( map_fd );
-    if ( purpose == CAPTURE )
-        unlink( mem_file );
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
     if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )

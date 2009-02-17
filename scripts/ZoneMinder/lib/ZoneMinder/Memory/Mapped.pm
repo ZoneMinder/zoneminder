@@ -156,7 +156,7 @@ sub zmMemPut( $$$$ )
 sub zmMemClean
 {
 	Debug( "Removing memory map files\n" );
-    my $mapPath = ZM_PATH_MAP."/.zm.map.*";
+    my $mapPath = ZM_PATH_MAP."/.zm.mmap.*";
     foreach my $mapFile( glob( $mapPath ) )
     {
 	    Debug( "Removing memory map file '$mapFile'\n" );

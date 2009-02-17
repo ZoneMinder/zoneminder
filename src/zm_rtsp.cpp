@@ -330,18 +330,18 @@ int RtspThread::run()
             localPorts[0] = requestPorts();
             localPorts[1] = localPorts[0]+1;
 
-            message = "SETUP "+trackUrl+" RTSP/1.0\r\nBandwidth: 8000\r\nTransport: RTP/AVP;unicast;client_port="+stringtf( "%d", localPorts[0] )+"-"+stringtf( "%d", localPorts[1] )+"\r\n";
+            message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;unicast;client_port="+stringtf( "%d", localPorts[0] )+"-"+stringtf( "%d", localPorts[1] )+"\r\n";
             break;
         }
         case RTP_MULTICAST :
         {
-            message = "SETUP "+trackUrl+" RTSP/1.0\r\nBandwidth: 8000\r\nTransport: RTP/AVP;multicast\r\n";
+            message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;multicast\r\n";
             break;
         }
         case RTP_RTSP :
         case RTP_RTSP_HTTP :
         {
-            message = "SETUP "+trackUrl+" RTSP/1.0\r\nBandwidth: 8000\r\nTransport: RTP/AVP/TCP;unicast\r\n";
+            message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP/TCP;unicast\r\n";
             break;
         }
         default:

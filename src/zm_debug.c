@@ -209,7 +209,7 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 
 	(void) openlog( zm_dbg_syslog, LOG_PID|LOG_NDELAY, LOG_LOCAL1 );
 
-	strncpy( zm_dbg_name, zm_dbg_syslog, sizeof(zm_dbg_name) );
+	//strncpy( zm_dbg_name, zm_dbg_syslog, sizeof(zm_dbg_name) );
 
 	zm_dbg_log_fd = (FILE *)NULL;
 
@@ -388,7 +388,7 @@ void zmDbgOutput( int hex, const char * const file, const int line, const int le
     char *dbg_ptr = dbg_string;
 	dbg_ptr += snprintf( dbg_ptr, sizeof(dbg_string), "%s %s[%ld].%s-%s/%d [", 
               	time_string,
-				zm_dbg_name,
+				zm_dbg_syslog,
 				syscall(224),
                	class_string,
 				file,

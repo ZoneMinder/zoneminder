@@ -68,8 +68,6 @@ protected:
     struct V4L1Data
     {
 	    int				    active_frame;
-	    int				    cap_frame;
-	    int				    sync_frame;
 	    video_mbuf		    frames;
 	    video_mmap		    *buffers;
 	    unsigned char	    *bufptr;

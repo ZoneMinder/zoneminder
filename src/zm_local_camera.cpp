@@ -286,7 +286,6 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 #ifdef ZM_V4L2
             Debug( 2, "V4L2 support enabled, using V4L%d api", v4l_version );
 #endif // ZM_V4L2
-		    //Initialise();
         }
 
         if ( !last_camera || channel != last_camera->channel )
@@ -398,7 +397,13 @@ void LocalCamera::Initialise()
         Debug( 3, "Setting up request buffers" );
        
         memset( &v4l2_data.reqbufs, 0, sizeof(v4l2_data.reqbufs) );
-        v4l2_data.reqbufs.count = channel_count>1?(2*channel_count):8;
+        if ( channel_count > 1 )
+            if ( config.v4l_multi_buffer )
+                v4l2_data.reqbufs.count = 2*channel_count;
+            else
+                v4l2_data.reqbufs.count = 1;
+        else
+            v4l2_data.reqbufs.count = 8;
         v4l2_data.reqbufs.type = v4l2_data.fmt.type;
         v4l2_data.reqbufs.memory = V4L2_MEMORY_MMAP;
 
@@ -414,7 +419,7 @@ void LocalCamera::Initialise()
             }
         }
 
-        if ( v4l2_data.reqbufs.count < (2*channel_count) )
+        if ( v4l2_data.reqbufs.count < (config.v4l_multi_buffer?2:1) )
             Fatal( "Insufficient buffer memory %d on video device", v4l2_data.reqbufs.count );
 
         Debug( 3, "Setting up %d data buffers", v4l2_data.reqbufs.count );
@@ -561,10 +566,10 @@ void LocalCamera::Initialise()
         }
 
         Debug( 3, "Setting up request buffers" );
-
         if ( ioctl( vid_fd, VIDIOCGMBUF, &v4l1_data.frames ) < 0 )
             Fatal( "Failed to setup memory: %s", strerror(errno) );
- 
+        if ( channel_count > 1 && !config.v4l_multi_buffer )
+            v4l1_data.frames.frames = 1;
         v4l1_data.buffers = new video_mmap[v4l1_data.frames.frames];
         Debug( 4, "vmb.frames = %d", v4l1_data.frames.frames );
         Debug( 4, "vmb.size = %d", v4l1_data.frames.size );
@@ -587,7 +592,7 @@ void LocalCamera::Initialise()
             ffPictures[i] = avcodec_alloc_frame();
             if ( !ffPictures[i] )
                 Fatal( "Could not allocate picture" );
-            avpicture_fill( (AVPicture *)ffPictures[i], (unsigned char *)v4l1_data.bufptr+(i*v4l1_data.frames.size/v4l1_data.frames.frames), ffPixFormat, width, height );
+            avpicture_fill( (AVPicture *)ffPictures[i], (unsigned char *)v4l1_data.bufptr+v4l1_data.frames.offsets[i], ffPixFormat, width, height );
         }
 #endif // HAVE_LIBSWSCALE
 
@@ -663,20 +668,6 @@ void LocalCamera::Initialise()
 	g_v_table = new short[255];
 	g_u_table = new short[255];
 	b_u_table = new short[255];
-    /* RIS - removed & replaced
-	r_v_table += 127;
-	g_v_table += 127;
-	g_u_table += 127;
-	b_u_table += 127;
-	for ( int i = -127; i <= 127; i++ )
-	{
-		signed char c = i;
-		r_v_table[c] = (1402*c)/1000;
-		g_u_table[c] = (344*c)/1000;
-		g_v_table[c] = (714*c)/1000;
-		b_u_table[c] = (1772*c)/1000;
-	}
-    */
     for ( int i = 0; i < 255; i++ )
     {
         r_v_table[i] = (1402*(i-128))/1000;
@@ -1167,17 +1158,13 @@ int LocalCamera::PrimeCapture()
 #endif // ZM_V4L2
     if ( v4l_version == 1 )
     {
-        if ( channel_count == 1 )
+        for ( int frame = 0; frame < v4l1_data.frames.frames; frame++ )
         {
-            // If we don't have to switch source then queue as many as possible
-            for ( int frame = 0; frame < v4l1_data.frames.frames; frame++ )
+            Debug( 3, "Queueing frame %d", frame );
+            if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[frame] ) < 0 )
             {
-                Debug( 3, "Queueing frame %d", frame );
-                if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[frame] ) < 0 )
-                {
-                    Error( "Capture failure for frame %d: %s", frame, strerror(errno) );
-                    return( -1 );
-                }
+                Error( "Capture failure for frame %d: %s", frame, strerror(errno) );
+                return( -1 );
             }
         }
     }
@@ -1188,47 +1175,6 @@ int LocalCamera::PrimeCapture()
 int LocalCamera::PreCapture()
 {
     Debug( 2, "Pre-capturing" );
-    // Switch channels if we have more than one and we are the first monitor on this channel
-    if ( channel_count > 1 && channel_prime )
-    {
-#ifdef ZM_V4L2
-        if ( v4l_version == 2 )
-        {
-        }
-        else
-#endif // ZM_V4L2
-    if ( v4l_version == 1 )
-        {
-            Debug( 3, "Switching video source" );
-            struct video_channel vid_src;
-            memset( &vid_src, 0, sizeof(vid_src) );
-            vid_src.channel = channel;
-            if ( ioctl( vid_fd, VIDIOCGCHAN, &vid_src) < 0 )
-            {
-                Error( "Failed to get camera source %d: %s", channel, strerror(errno) );
-                return(-1);
-            }
-
-            vid_src.channel = channel;
-            vid_src.norm = standard;
-            vid_src.flags = 0;
-            vid_src.type = VIDEO_TYPE_CAMERA;
-            if ( ioctl( vid_fd, VIDIOCSCHAN, &vid_src ) < 0 )
-            {
-                Error( "Failed to set camera source %d: %s", channel, strerror(errno) );
-                return( -1 );
-            }
-
-            Debug( 3, "Queueing frame %d", v4l1_data.cap_frame );
-            if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.cap_frame] ) < 0 )
-            {
-                Error( "Capture failure for frame %d: %s", v4l1_data.cap_frame, strerror(errno) );
-                return( -1 );
-            }
-            v4l1_data.sync_frame = v4l1_data.cap_frame;
-            v4l1_data.cap_frame = (v4l1_data.cap_frame+1)%v4l1_data.frames.frames;
-        }
-    }
 	return( 0 );
 }
 
@@ -1292,29 +1238,27 @@ int LocalCamera::Capture( Image &image )
             Debug( 3, "Capturing %d frames", captures_per_frame );
             while ( captures_per_frame )
             {
-                Debug( 3, "Syncing frame %d", v4l1_data.sync_frame );
-                if ( ioctl( vid_fd, VIDIOCSYNC, &v4l1_data.sync_frame ) < 0 )
+                Debug( 3, "Syncing frame %d", v4l1_data.active_frame );
+                if ( ioctl( vid_fd, VIDIOCSYNC, &v4l1_data.active_frame ) < 0 )
                 {
-                    Error( "Sync failure for frame %d buffer %d (%d): %s", v4l1_data.sync_frame, v4l1_data.cap_frame, captures_per_frame, strerror(errno) );
+                    Error( "Sync failure for frame %d buffer %d: %s", v4l1_data.active_frame, captures_per_frame, strerror(errno) );
                     return( -1 );
                 }
-                capture_frame = v4l1_data.sync_frame;
-                v4l1_data.sync_frame = (v4l1_data.sync_frame+1)%v4l1_data.frames.frames;
                 captures_per_frame--;
                 if ( captures_per_frame )
                 {
-                    Debug( 3, "Capturing frame %d", v4l1_data.cap_frame );
-                    if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.cap_frame] ) < 0 )
+                    Debug( 3, "Capturing frame %d", v4l1_data.active_frame );
+                    if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.active_frame] ) < 0 )
                     {
-                        Error( "Capture failure for buffer %d (%d): %s", v4l1_data.cap_frame, captures_per_frame, strerror(errno) );
+                        Error( "Capture failure for buffer %d (%d): %s", v4l1_data.active_frame, captures_per_frame, strerror(errno) );
                         return( -1 );
                     }
-                    v4l1_data.cap_frame = (v4l1_data.cap_frame+1)%v4l1_data.frames.frames;
                 }
             }
+            capture_frame = v4l1_data.active_frame;
             Debug( 3, "Captured %d for channel %d", capture_frame, channel );
 
-            buffer = v4l1_data.bufptr+(capture_frame*v4l1_data.frames.size/v4l1_data.frames.frames);
+            buffer = v4l1_data.bufptr+v4l1_data.frames.offsets[capture_frame];
         }
 
         Debug( 3, "Doing format conversion" );
@@ -1647,14 +1591,14 @@ int LocalCamera::PostCapture()
                     return( -1 );
                 }
 
-                v4l2_std_id stdId = standards[channel_index];
+                v4l2_std_id stdId = standards[next_channel];
                 if ( vidioctl( vid_fd, VIDIOC_S_STD, &stdId ) < 0 )
                 {
-                    Error( "Failed to set video format %d: %s", standards[channel_index], strerror(errno) );
+                    Error( "Failed to set video format %d: %s", standards[next_channel], strerror(errno) );
                     return( -1 );
                 }
             }
-            Debug( 3, "Requeing buffer %d", v4l2_data.bufptr->index );
+            Debug( 3, "Requeueing buffer %d", v4l2_data.bufptr->index );
             if ( vidioctl( vid_fd, VIDIOC_QBUF, v4l2_data.bufptr ) < 0 )
             {
                 Error( "Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno) )
@@ -1665,13 +1609,36 @@ int LocalCamera::PostCapture()
 #endif // ZM_V4L2
         if ( v4l_version == 1 )
         {
-            Debug( 3, "Requeueing frame %d", v4l1_data.cap_frame );
-            if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.cap_frame] ) < 0 )
+            if ( channel_count > 1 )
             {
-                Error( "Capture failure for frame %d: %s", v4l1_data.cap_frame, strerror(errno) );
+                Debug( 3, "Switching video source" );
+                int next_channel = (channel_index+1)%channel_count;
+                struct video_channel vid_src;
+                memset( &vid_src, 0, sizeof(vid_src) );
+                vid_src.channel = channel;
+                if ( ioctl( vid_fd, VIDIOCGCHAN, &vid_src) < 0 )
+                {
+                    Error( "Failed to get camera source %d: %s", channel, strerror(errno) );
+                    return(-1);
+                }
+
+                vid_src.channel = channels[next_channel];
+                vid_src.norm = standards[next_channel];
+                vid_src.flags = 0;
+                vid_src.type = VIDEO_TYPE_CAMERA;
+                if ( ioctl( vid_fd, VIDIOCSCHAN, &vid_src ) < 0 )
+                {
+                    Error( "Failed to set camera source %d: %s", channel, strerror(errno) );
+                    return( -1 );
+                }
+            }
+            Debug( 3, "Requeueing frame %d", v4l1_data.active_frame );
+            if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.active_frame] ) < 0 )
+            {
+                Error( "Capture failure for frame %d: %s", v4l1_data.active_frame, strerror(errno) );
                 return( -1 );
             }
-            v4l1_data.cap_frame = (v4l1_data.cap_frame+1)%v4l1_data.frames.frames;
+            v4l1_data.active_frame = (v4l1_data.active_frame+1)%v4l1_data.frames.frames;
         }
     }
 	return( 0 );

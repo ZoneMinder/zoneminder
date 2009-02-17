@@ -159,6 +159,7 @@ sub zmMemClean
     my $mapPath = ZM_PATH_MAP."/.zm.mmap.*";
     foreach my $mapFile( glob( $mapPath ) )
     {
+        ( $mapFile ) = $mapFile =~ /^(.+)$/;
 	    Debug( "Removing memory map file '$mapFile'\n" );
         unlink( $mapFile );
     }

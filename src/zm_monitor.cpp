@@ -546,7 +546,8 @@ Monitor::~Monitor()
     if ( munmap( mem_ptr, mem_size ) < 0 )
 		Fatal( "Can't munmap: %s", strerror(errno) );
     close( map_fd );
-    unlink( mem_file );
+    if ( purpose == CAPTURE )
+        unlink( mem_file );
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
     if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )
@@ -1486,7 +1487,8 @@ bool Monitor::Analyse()
 	}
 
 	shared_data->last_read_index = index%image_buffer_count;
-	shared_data->last_read_time = image_buffer[index].timestamp->tv_sec;
+	//shared_data->last_read_time = image_buffer[index].timestamp->tv_sec;
+	shared_data->last_read_time = now.tv_sec;
 	image_count++;
 
 	return( true );
@@ -2504,6 +2506,14 @@ int Monitor::Capture()
 		if ( (index == shared_data->last_read_index) && (function > MONITOR) )
 		{
 			Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
+		    time_t now = time(0);
+			double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp->tv_sec);
+            time_t last_read_delta = now - shared_data->last_read_time;
+            if ( last_read_delta > (image_buffer_count/approxFps) )
+            {
+                Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
+                shared_data->last_read_index = image_buffer_count;
+            }
 		}
 
 		gettimeofday( image_buffer[index].timestamp, NULL );

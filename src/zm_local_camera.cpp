@@ -250,7 +250,7 @@ LocalCamera::V4L2Data LocalCamera::v4l2_data;
 LocalCamera::V4L1Data LocalCamera::v4l1_data;
 
 #if HAVE_LIBSWSCALE
-AVFrame **LocalCamera::ffPictures = 0;
+AVFrame **LocalCamera::capturePictures = 0;
 #endif // HAVE_LIBSWSCALE
 
 unsigned char *LocalCamera::y_table;
@@ -316,7 +316,10 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
             if ( width != last_camera->width || height != last_camera->height )
                 Warning( "Different capture sizes defined for monitors sharing same device, results may be unpredictable or completely wrong" );
         }
-        ffPixFormat = getFfPixFormatFromV4lPalette( v4l_version, palette );
+#if HAVE_LIBSWSCALE
+        imagePixFormat = (colours==1)?PIX_FMT_GRAY8:PIX_FMT_RGB24;
+        capturePixFormat = getFfPixFormatFromV4lPalette( v4l_version, palette );
+#endif // HAVE_LIBSWSCALE
     }
     last_camera = this;
 }
@@ -426,7 +429,7 @@ void LocalCamera::Initialise()
 
         v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count];
 #if HAVE_LIBSWSCALE
-        ffPictures = new AVFrame *[v4l2_data.reqbufs.count];
+        capturePictures = new AVFrame *[v4l2_data.reqbufs.count];
 #endif // HAVE_LIBSWSCALE
         for ( int i = 0; i < v4l2_data.reqbufs.count; i++ )
         {
@@ -450,10 +453,13 @@ void LocalCamera::Initialise()
                 Fatal( "Can't map video buffer %d (%d bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
 
 #if HAVE_LIBSWSCALE
-            ffPictures[i] = avcodec_alloc_frame();
-            if ( !ffPictures[i] )
-                Fatal( "Could not allocate picture" );
-            avpicture_fill( (AVPicture *)ffPictures[i], (unsigned char *)v4l2_data.buffers[i].start, ffPixFormat, width, height );
+            if ( imagePixFormat != capturePixFormat )
+            {
+                capturePictures[i] = avcodec_alloc_frame();
+                if ( !capturePictures[i] )
+                    Fatal( "Could not allocate picture" );
+                avpicture_fill( (AVPicture *)capturePictures[i], (unsigned char *)v4l2_data.buffers[i].start, capturePixFormat, width, height );
+            }
 #endif // HAVE_LIBSWSCALE
         }
 
@@ -581,7 +587,7 @@ void LocalCamera::Initialise()
             Fatal( "Could not mmap video: %s", strerror(errno) );
 
 #if HAVE_LIBSWSCALE
-        ffPictures = new AVFrame *[v4l1_data.frames.frames];
+        capturePictures = new AVFrame *[v4l1_data.frames.frames];
         for ( int i = 0; i < v4l1_data.frames.frames; i++ )
         {
             v4l1_data.buffers[i].frame = i;
@@ -589,10 +595,13 @@ void LocalCamera::Initialise()
             v4l1_data.buffers[i].height = height;
             v4l1_data.buffers[i].format = palette;
 
-            ffPictures[i] = avcodec_alloc_frame();
-            if ( !ffPictures[i] )
-                Fatal( "Could not allocate picture" );
-            avpicture_fill( (AVPicture *)ffPictures[i], (unsigned char *)v4l1_data.bufptr+v4l1_data.frames.offsets[i], ffPixFormat, width, height );
+            if ( imagePixFormat != capturePixFormat )
+            {
+                capturePictures[i] = avcodec_alloc_frame();
+                if ( !capturePictures[i] )
+                    Fatal( "Could not allocate picture" );
+                avpicture_fill( (AVPicture *)capturePictures[i], (unsigned char *)v4l1_data.bufptr+v4l1_data.frames.offsets[i], capturePixFormat, width, height );
+            }
         }
 #endif // HAVE_LIBSWSCALE
 
@@ -1267,25 +1276,26 @@ int LocalCamera::Capture( Image &image )
         static struct SwsContext *imgConversionContext = 0;
         static AVFrame *tmpPicture = NULL;
 
-        if ( !imgConversionContext )
+        if ( imagePixFormat != capturePixFormat )
         {
-            imgConversionContext = sws_getContext( width, height, ffPixFormat, width, height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL );
             if ( !imgConversionContext )
-                Fatal( "Unable to initialise image scaling context" );
+            {
+                imgConversionContext = sws_getContext( width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+                if ( !imgConversionContext )
+                    Fatal( "Unable to initialise image scaling context" );
 
-            tmpPicture = avcodec_alloc_frame();
-            if ( !tmpPicture )
-                Fatal( "Could not allocate temporary picture" );
-            size = avpicture_get_size( PIX_FMT_RGB24, width, height);
-            uint8_t *tmpPictureBuf = (uint8_t *)av_malloc(size);
-            if (!tmpPictureBuf)
-                Fatal( "Could not allocate temporary picture buffer" );
-            avpicture_fill( (AVPicture *)tmpPicture, tmpPictureBuf, PIX_FMT_RGB24, width, height );
+                tmpPicture = avcodec_alloc_frame();
+                if ( !tmpPicture )
+                    Fatal( "Could not allocate temporary picture" );
+                int pictureSize = avpicture_get_size( imagePixFormat, width, height );
+                uint8_t *tmpPictureBuf = (uint8_t *)av_malloc(pictureSize);
+                if (!tmpPictureBuf)
+                    Fatal( "Could not allocate temporary picture buffer" );
+                avpicture_fill( (AVPicture *)tmpPicture, tmpPictureBuf, imagePixFormat, width, height );
+            }
+            sws_scale( imgConversionContext, capturePictures[capture_frame]->data, capturePictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
+            buffer = tmpPicture->data[0];
         }
-
-        sws_scale( imgConversionContext, ffPictures[capture_frame]->data, ffPictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
-        buffer = tmpPicture->data[0];
-
 #else // HAVE_LIBSWSCALE 
         static unsigned char temp_buffer[ZM_MAX_IMAGE_SIZE];
         switch( palette )

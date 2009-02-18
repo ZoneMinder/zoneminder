@@ -39,7 +39,7 @@ protected:
 	unsigned int	width;
 	unsigned int	height;
 	unsigned int	colours;
-	unsigned int	size;
+	unsigned int	pixels;
 	int				brightness;
 	int				hue;
 	int				colour;
@@ -59,7 +59,7 @@ public:
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
 	unsigned int Colours() const { return( colours ); }
-	unsigned int ImageSize() const { return( size ); }
+	unsigned int ImageSize() const { return( pixels ); }
 
 	virtual int Brightness( int/*p_brightness*/=-1 ) { return( -1 ); }
 	virtual int Hue( int/*p_hue*/=-1 ) { return( -1 ); }

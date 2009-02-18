@@ -32,7 +32,7 @@ Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_co
     contrast( p_contrast ),
     capture( p_capture )
 {
-	size = width * height * colours;
+	pixels = width * height * colours;
 }
 
 Camera::~Camera()

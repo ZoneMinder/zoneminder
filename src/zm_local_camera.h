@@ -99,8 +99,9 @@ protected:
     static V4L1Data         v4l1_data;
 
 #if HAVE_LIBSWSCALE
-    PixelFormat             ffPixFormat;
-    static AVFrame          **ffPictures;
+    PixelFormat             imagePixFormat;
+    PixelFormat             capturePixFormat;
+    static AVFrame          **capturePictures;
 #endif // HAVE_LIBSWSCALE
 
 	static unsigned char	*y_table;

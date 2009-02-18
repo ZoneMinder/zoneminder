@@ -512,6 +512,8 @@ Monitor::Monitor(
 
 Monitor::~Monitor()
 {
+    if ( event )
+        Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
 	closeEvent();
 
 	for ( int i = 0; i < image_buffer_count; i++ )
@@ -1163,6 +1165,7 @@ bool Monitor::Analyse()
 					Warning( "%s: %s", SIGNAL_CAUSE, signalText );
 					if ( event )
 					{
+                        Info( "%s: %03d - Closing event %d, signal loss", name, image_count, event->Id() );
 						closeEvent();
 						shared_data->state = state = IDLE;
 						last_section_mod = 0;
@@ -1242,13 +1245,9 @@ bool Monitor::Analyse()
 							if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME )
 							{
 								if ( state == IDLE || state == TAPE )
-								{
-                                    Info( "%s: %03d - Ending event %d", name, image_count, event->Id() );
-								}
+                                    Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
 								else
-								{
-                                    Info( "%s: %03d - Force closing event %d", name, image_count, event->Id() );
-								}
+                                    Info( "%s: %03d - Closing event %d, section end forced ", name, image_count, event->Id() );
 								closeEvent();
 								last_section_mod = 0;
 							}
@@ -1266,7 +1265,7 @@ bool Monitor::Analyse()
 						event = new Event( this, *timestamp, "Continuous", noteSetMap );
 						shared_data->last_event = event->Id();
 
-						Info( "%s: %03d - Starting new event %d", name, image_count, event->Id() );
+						Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
 						//if ( config.overlap_timed_events )
 						if ( false )
@@ -1302,7 +1301,7 @@ bool Monitor::Analyse()
 								event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
 								shared_data->last_event = event->Id();
 
-						        Info( "%s: %03d - Creating new event %d", name, image_count, event->Id() );
+						        Info( "%s: %03d - Opening new event %d, alarm start", name, image_count, event->Id() );
 
 								for ( int i = 0; i < pre_event_count; i++ )
 								{
@@ -1343,11 +1342,11 @@ bool Monitor::Analyse()
 						if ( image_count-last_alarm_count > post_event_count )
 						{
 							Info( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() );
-							if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() != "Signal" )
+							if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == "Signal" )
 							{
 								shared_data->state = state = IDLE;
-								delete event;
-								event = 0;
+                                Info( "%s: %03d - Closing event %d, alarm end%s", name, image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
+                                closeEvent();
 							}
 							else
 							{
@@ -1455,7 +1454,7 @@ bool Monitor::Analyse()
 						int section_mod = timestamp->tv_sec%section_length;
 						if ( section_mod < last_section_mod )
 						{
-                            Info( "%s: %03d - Ending event %d", name, image_count, event->Id() );
+                            Info( "%s: %03d - Closing event %d, section end2", name, image_count, event->Id() );
 							closeEvent();
 							last_section_mod = 0;
 						}
@@ -1471,7 +1470,7 @@ bool Monitor::Analyse()
         {
             if ( event )
             {
-                Info( "%s: %03d - Closing event %d", name, image_count, event->Id() );
+                Info( "%s: %03d - Closing event %d, trigger off", name, image_count, event->Id() );
                 closeEvent();
             }
             shared_data->state = state = IDLE;
@@ -1495,6 +1494,9 @@ bool Monitor::Analyse()
 void Monitor::Reload()
 {
 	Debug( 1, "Reloading monitor %s", name );
+
+    if ( event )
+        Info( "%s: %03d - Closing event %d, reloading", name, image_count, event->Id() );
 
 	closeEvent();
 

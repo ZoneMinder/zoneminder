@@ -172,17 +172,17 @@ else
     $configCat = $configCats[$tab];
     foreach ( $configCat as $name=>$value )
     {
-        $optionPromptIndex = preg_replace( '/^ZM_/', '', $name );
-        $optionPromptText = !empty($OLANG[$optionPromptIndex])?$OLANG[$optionPromptIndex]:$config[$name]['Prompt'];
+        $shortName = preg_replace( '/^ZM_/', '', $name );
+        $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]:$value['Prompt'];
 ?>
             <tr>
-              <td><?= $value['Name'] ?></td>
-              <td><?= validHtmlStr($optionPromptText) ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&option='.$value['Name'], 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td><?= $shortName ?></td>
+              <td><?= validHtmlStr($optionPromptText) ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
 <?php   
         if ( $value['Type'] == "boolean" )
         {
 ?>
-              <td><input type="checkbox" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?= $canEdit?'':' disabled="disabled"' ?>/></td>
+              <td><input type="checkbox" id="<?= $name ?>" name="newConfig[<?= $name ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?= $canEdit?'':' disabled="disabled"' ?>/></td>
 <?php
         }
         elseif ( preg_match( "/\|/", $value['Hint'] ) )
@@ -194,7 +194,7 @@ else
             if ( count( $options ) > 3 )
             {
 ?>
-                <select name="newConfig[<?= $value['Name'] ?>] ?>"<?= $canEdit?'':' disabled="disabled"' ?>>
+                <select name="newConfig[<?= $name ?>] ?>"<?= $canEdit?'':' disabled="disabled"' ?>>
 <?php
                 foreach ( $options as $option )
                 {
@@ -211,7 +211,7 @@ else
                 foreach ( $options as $option )
                 {
 ?>
-                <span><input type="radio" id="<?= $value['Name'].'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $option ) ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { ?> checked="checked"<?php } ?><?= $canEdit?'':' disabled="disabled"' ?>/>&nbsp;<?= $option ?></span>
+                <span><input type="radio" id="<?= $name.'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $option ) ?>" name="newConfig[<?= $name ?>]" value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { ?> checked="checked"<?php } ?><?= $canEdit?'':' disabled="disabled"' ?>/>&nbsp;<?= $option ?></span>
 <?php
                 }
             }
@@ -222,31 +222,31 @@ else
         elseif ( $value['Type'] == "text" )
         {
 ?>
-              <td><textarea id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" rows="5" cols="40"<?= $canEdit?'':' disabled="disabled"' ?>><?= validHtmlStr($value['Value']) ?></textarea></td>
+              <td><textarea id="<?= $name ?>" name="newConfig[<?= $name ?>]" rows="5" cols="40"<?= $canEdit?'':' disabled="disabled"' ?>><?= validHtmlStr($value['Value']) ?></textarea></td>
 <?php
         }
         elseif ( $value['Type'] == "integer" )
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="small"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
+              <td><input type="text" id="<?= $name ?>" name="newConfig[<?= $name ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="small"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
 <?php
         }
         elseif ( $value['Type'] == "hexadecimal" )
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="medium"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
+              <td><input type="text" id="<?= $name ?>" name="newConfig[<?= $name ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="medium"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
 <?php
         }
         elseif ( $value['Type'] == "decimal" )
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="small"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
+              <td><input type="text" id="<?= $name ?>" name="newConfig[<?= $name ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="small"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
 <?php
         }
         else
         {
 ?>
-              <td><input type="text" id="<?= $value['Name'] ?>" name="newConfig[<?= $value['Name'] ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="large"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
+              <td><input type="text" id="<?= $name ?>" name="newConfig[<?= $name ?>]" value="<?= validHtmlStr($value['Value']) ?>" class="large"<?= $canEdit?'':' disabled="disabled"' ?>/></td>
 <?php
         }
 ?>

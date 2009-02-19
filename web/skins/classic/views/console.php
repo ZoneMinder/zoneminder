@@ -326,7 +326,7 @@ foreach( $displayMonitors as $monitor )
     if ( canEdit('Monitors') )
     {
 ?>
-            <td class="colOrder"><?= makeLink( '?view='.$view.'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?= makeLink( 'view='.$view.'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></td>
+            <td class="colOrder"><?= makeLink( '?view='.$view.'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?= makeLink( '?view='.$view.'&action=sequence&mid='.$monitor['Id'].'&smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></td>
 <?php
     }
 ?>

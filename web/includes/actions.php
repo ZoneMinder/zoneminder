@@ -32,6 +32,14 @@ function getAffectedIds( $name )
     return( $ids );
 }
 
+if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) )
+{
+    if ( $authUser = getAuthUser( $_REQUEST['auth'] ) )
+    {
+        userLogin( $authUser['Username'], $authUser['Password'], true );
+    }
+}
+
 if ( !empty($action) )
 {
     // General scope actions

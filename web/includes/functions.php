@@ -29,7 +29,7 @@ if ( version_compare( phpversion(), "4.3.0", "<") )
     }
 }
 
-function userLogin( $username, $password="" )
+function userLogin( $username, $password="", $passwordHashed=false )
 {
     global $user, $cookies;
     if ( version_compare( phpversion(), "4.1.0", "<") )
@@ -42,11 +42,18 @@ function userLogin( $username, $password="" )
 
     if ( ZM_AUTH_TYPE == "builtin" )
     {
-        $sql = "select * from Users where Username = '$dbUsername' and Password = password('$dbPassword') and Enabled = 1";
+        if ( $passwordHashed )
+        {
+            $sql = "select * from Users where Username = '".$dbUsername."' and Password = '".$dbPassword."' and Enabled = 1";
+        }
+        else
+        {
+            $sql = "select * from Users where Username = '".$dbUsername."' and Password = password('".$dbPassword."') and Enabled = 1";
+        }
     }
     else
     {
-        $sql = "select * from Users where Username = '$dbUsername' and Enabled = 1";
+        $sql = "select * from Users where Username = '".$dbUsername."' and Enabled = 1";
     }
     $_SESSION['username'] = $username;
     if ( ZM_AUTH_RELAY == "plain" )
@@ -94,7 +101,47 @@ function noCacheHeaders()
     header("Pragma: no-cache");         // HTTP/1.0
 }
 
-function authHash( $useRemoteAddr )
+function getAuthUser( $auth )
+{
+    if ( version_compare( phpversion(), "4.1.0", "<") )
+    {
+        global $_SERVER;
+    }
+    if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" && !empty($auth) )
+    {
+        $remoteAddr = "";
+        if ( ZM_AUTH_HASH_IPS )
+        {
+            $remoteAddr = $_SERVER['REMOTE_ADDR'];
+            if ( !$remoteAddr )
+            {
+                error_log( "Can't determine remote address for authentication, using empty string" );
+                $remoteAddr = "";
+            }
+        }
+
+        $sql = "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1";
+        foreach ( dbFetchAll( $sql ) as $user )
+        {
+            $now = time();
+            for ( $i = 0; $i < 2; $i++, $now -= (60*60) ) // Try for last two hours
+            {
+                $time = localtime( $now );
+                $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
+                $authHash = md5( $authKey );
+
+                if ( $auth == $authHash )
+                {
+                    return( $user );
+                }
+            }
+        }
+    }
+    error_log( "Unable to authenticate user from auth hash '$auth'" );
+    return( false );
+}
+
+function generateAuthHash( $useRemoteAddr )
 {
     if ( version_compare( phpversion(), "4.1.0", "<") )
     {
@@ -134,7 +181,7 @@ function getStreamSrc( $args, $querySep='&' )
     {
         if ( ZM_AUTH_RELAY == "hashed" )
         {
-            $args[] = "auth=".authHash( ZM_AUTH_HASH_IPS );
+            $args[] = "auth=".generateAuthHash( ZM_AUTH_HASH_IPS );
         }
         elseif ( ZM_AUTH_RELAY == "plain" )
         {
@@ -430,7 +477,7 @@ function getZmuCommand( $args )
     {
         if ( ZM_AUTH_RELAY == "hashed" )
         {
-            $zmuCommand .= " -A ".authHash( false );
+            $zmuCommand .= " -A ".generateAuthHash( false );
         }
         elseif ( ZM_AUTH_RELAY == "plain" )
         {

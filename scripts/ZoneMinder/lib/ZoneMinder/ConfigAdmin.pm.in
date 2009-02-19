@@ -129,7 +129,7 @@ our @options =
 	},
 	{
 		name => "ZM_AUTH_HASH_SECRET",
-		default => "",
+		default => "...Change me to something unique...",
 		description => "Secret for encoding hashed authentication information",
 		help => "When ZoneMinder is running in hashed authenticated mode it is necessary to generate hashed strings containing encrypted sensitive information such as usernames and password. Although these string are reasonably secure the addition of a random secret increases security substantially.",
 		requires => [ { name=>"ZM_OPT_USE_AUTH", value=>"yes" }, { name=>"ZM_AUTH_RELAY", value=>"hashed" } ],
@@ -141,6 +141,15 @@ our @options =
 		default => "yes",
 		description => "Include IP addresses in the authentication hash",
 		help => "When ZoneMinder is running in hashed authenticated mode it can optionally include the requesting IP address in the resultant hash. This adds an extra level of security as only requests from that address may use that authentication key. However in some circumstances, such as access over mobile networks, the requesting address can change for each request which will cause most requests to fail. This option allows you to control whether IP addresses are included in the authentication hash on your system. If you experience intermitent problems with authentication, switching this option off may help.",
+		requires => [ { name=>"ZM_OPT_USE_AUTH", value=>"yes" }, { name=>"ZM_AUTH_RELAY", value=>"hashed" } ],
+		type => $types{boolean},
+		category => "system",
+	},
+	{
+		name => "ZM_AUTH_HASH_LOGINS",
+		default => "no",
+		description => "Allow login by authentication hash",
+		help => "The normal process for logging into ZoneMinder is via the login screen with username and password. In some circumstances it may be desirable to allow access directly to one or more pages, for instance from a third party application. If this option is enabled then adding an 'auth' parameter to any request will include a shortcut login bypassing the login screen, if not already logged in. As authentication hashes are time and, optionally, IP limited this can allow short-term access to ZoneMinder screens from other web pages etc. In order to use this the calling application will hae to generate the authentication hash itself and ensure it is valid. If you use this option you should ensure that you have modified the ZM_AUTH_HASH_SECRET to somethign unique to your system.",
 		requires => [ { name=>"ZM_OPT_USE_AUTH", value=>"yes" }, { name=>"ZM_AUTH_RELAY", value=>"hashed" } ],
 		type => $types{boolean},
 		category => "system",
@@ -527,6 +536,14 @@ our @options =
 		help => "Depending on your system configuration you may find that only errors, warning and informational messages are logged to your system log. This option allows you to specify an additional target for these messages and debug. This also has the advantage of partitioning debug for the component you are tracing, from messages from other components. Be warned however that if this is a simple filename and you are debugging several components then they will all try and write to the same file with undesirable consequences. Appending a '+' to the filename will cause the file to be created with a '.<pid>' suffix containing your process id. In this way debug from each run of a component is kept separate. This is the recommended setting as it will also prevent subsequent runs from overwriting the same log.",
 		requires => [ { name => "ZM_EXTRA_DEBUG", value => "yes" } ],
 		type => $types{string},
+		category => "debug",
+	},
+	{
+		name => "ZM_DUMP_CORES",
+		default => "no",
+		description => "Create core files on unexpected process failure.",
+		help => "When an unrecoverable error occurs in a ZoneMinder binary process is has traditionally been trapped and the details written to logs to aid in remote analysis. However in some cases it is easier to diagnose the error if a core file, which is a memory dump of the process at the time of the error, is created. This can be interactively analysed in the debugger and may reveal more or better information than that available from the logs. This option is recommended for advanced users only otherwise leave at the default. Note using this option to trigger core files will mean that there will be no indication in the binary logs that a process has died, they will just stop, however the zmdc log will still contain an entry. Also note that you may have to explicitly enable core file creation on your system via the 'ulimit -c' command or other means otherwise no file will be created regardless of the value of this option.",
+		type => $types{boolean},
 		category => "debug",
 	},
 	{
@@ -1140,21 +1157,14 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		type => $types{hexadecimal},
 		category => "system",
 	},
-	{
-		name => "ZM_DUMP_CORES",
-		default => "no",
-		description => "Create core files on unexpected process failure.",
-		help => "When an unrecoverable error occurs in a ZoneMinder binary process is has traditionally been trapped and the details written to logs to aid in remote analysis. However in some cases it is easier to diagnose the error if a core file, which is a memory dump of the process at the time of the error, is created. This can be interactively analysed in the debugger and may reveal more or better information than that available from the logs. This option is recommended for advanced users only otherwise leave at the default. Note using this option to trigger core files will mean that there will be no indication in the binary logs that a process has died, they will just stop, however the zmdc log will still contain an entry. Also note that you may have to explicitly enable core file creation on your system via the 'ulimit -c' command or other means otherwise no file will be created regardless of the value of this option.",
-		type => $types{boolean},
-		category => "system",
-	},
+    # Deprecated, really no longer necessary
 	{
 		name => "ZM_WEB_REFRESH_METHOD",
 		default => "javascript",
 		description => "What method windows should use to refresh themselves",
 		help => "Many windows in Javascript need to refresh themselves to keep their information current. This option determines what method they should use to do this. Choosing 'javascript' means that each window will have a short JavaScript statement in with a timer to prompt the refresh. This is the most compatible method. Choosing 'http' means the refresh instruction is put in the HTTP header. This is a cleaner method but refreshes are interrupted or cancelled when a link in the window is clicked meaning that the window will no longer refresh and this would have to be done manually.",
 		type => { db_type=>"string", hint=>"javascript|http", pattern=>qr|^([jh])|i, format=>q( $1 =~ /^j/ ? "javascript" : "http" ) },
-		category => "web",
+		category => "hidden",
 	},
 	{
 		name => "ZM_WEB_EVENT_SORT_FIELD",

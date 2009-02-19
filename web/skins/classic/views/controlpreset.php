@@ -36,7 +36,7 @@ foreach( dbFetchAll( $sql ) as $row )
 $presets = array();
 for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )
 {
-    $presets[$i] = "$SLANG['Preset'] $i";
+    $presets[$i] = $SLANG['Preset']." ".$i;
     if ( !empty($labels[$i]) )
     {
         $presets[$i] .= " (".validHtmlStr($labels[$i]).")";

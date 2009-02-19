@@ -855,7 +855,7 @@ if ( !empty($action) )
                 {
                     die( "socket_create() failed: ".socket_strerror($socket) );
                 }
-                $sockFile = ZM_PATH_SOCKS.'/zmcontrol-'.$monitor[Id].'.sock';
+                $sockFile = ZM_PATH_SOCKS.'/zmcontrol-'.$monitor['Id'].'.sock';
                 if ( @socket_connect( $socket, $sockFile ) )
                 {
                     $options = array();

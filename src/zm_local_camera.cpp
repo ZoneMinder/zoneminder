@@ -486,7 +486,7 @@ void LocalCamera::Initialise()
         }
 
         stdId = standard;
-        if ( vidioctl( vid_fd, VIDIOC_S_STD, &stdId ) < 0 )
+        if ( (input.std != V4L2_STD_UNKNOWN) && vidioctl( vid_fd, VIDIOC_S_STD, &stdId ) < 0 )   
         {
             Fatal( "Failed to set video standard %d: %s", standard, strerror(errno) );
         }

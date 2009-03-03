@@ -709,18 +709,25 @@ sub uploadArchFile
     my $filter = shift;
     my $event = shift;
 
+    if ( !ZM_UPLOAD_FTP_HOST )
+    {
+        Error( "Cannot upload archive as no FTP host defined" );
+        return( 0 );
+    }
+
     my $arch_file = ZM_UPLOAD_FTP_LOC_DIR.'/'.$event->{MonitorName}.'-'.$event->{Id};
     my $arch_image_path = getEventPath( $event )."/".((ZM_UPLOAD_ARCH_ANALYSE)?'{*analyse,*capture}':'*capture').".jpg";
-    my $arch_error;
+    my @arch_image_files =  glob($arch_image_path);
 
+    my $arch_error;
     if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
     {
         $arch_file .= '.zip';
         my $zip = Archive::Zip->new();
-        Info( "Creating upload file '$arch_file'\n" );
+        Info( "Creating upload file '$arch_file', ".int(@arch_image_files)." files\n" );
 
         my $status = &AZ_OK;
-        foreach my $image_file ( <*$arch_image_path> )
+        foreach my $image_file ( @arch_image_files )
         {
             Info( "Adding $image_file\n" );
             my $member = $zip->addFile( $image_file );
@@ -744,9 +751,9 @@ sub uploadArchFile
         {
             $arch_file .= '.tar';
         }
-        Info( "Creating upload file '$arch_file'\n" );
+        Info( "Creating upload file '$arch_file', ".int(@arch_image_files)." files\n" );
 
-        if ( $arch_error = !Archive::Tar->create_archive( $arch_file, ZM_UPLOAD_ARCH_COMPRESS, <*$arch_image_path> ) )
+        if ( $arch_error = !Archive::Tar->create_archive( $arch_file, ZM_UPLOAD_ARCH_COMPRESS, @arch_image_files ) )
         {
             Error( "Tar error: ".Archive::Tar->error()."\n " );
         }

@@ -767,7 +767,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
             }
             default :
             {
-                if ( empty($values[$key]) || ($values[$key] != $value) )
+                if ( !isset($values[$key]) || ($values[$key] != $value) )
                 {
                     $changes[$key] = "$key = '".dbEscape($value)."'";
                 }
@@ -777,11 +777,21 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
     }
     foreach( $values as $key=>$value )
     {
-        if ( !empty($columns[$key]) && !empty($types[$key]) && $types[$key] == 'toggle' )
+        if ( !empty($columns[$key]) )
         {
-            if ( !isset($newValues[$key]) && !empty($value) )
+            if ( !empty($types[$key]) )
             {
-                $changes[$key] = "$key = 0";
+                if ( $types[$key] == 'toggle' )
+                {
+                    if ( !isset($newValues[$key]) && !empty($value) )
+                    {
+                        $changes[$key] = "$key = 0";
+                    }
+                }
+                else if ( $types[$key] == 'set' )
+                {
+                    $changes[$key] = "$key = ''";
+                }
             }
         }
     }

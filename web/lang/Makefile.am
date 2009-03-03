@@ -4,6 +4,7 @@ webdir = @WEB_PREFIX@/lang
 
 dist_web_DATA = \
 	big5_big5.php \
+	cn_zh.php \
 	cs_cz.php \
 	de_de.php \
 	dk_dk.php \

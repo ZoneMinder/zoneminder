@@ -68,10 +68,10 @@
  //setlocale( LC_ALL, 'en_GB' ); All locale settings 4.3.0 and after
 // setlocale( LC_CTYPE, 'en_GB' ); Character class settings 4.3.0 and after
 // setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
-setlocale( 'LC_ALL', 'Big5' ); //All locale settings pre-4.3.0
+setlocale( LC_ALL, 'Big5' ); //All locale settings pre-4.3.0
 //setlocale( LC_ALL, 'Big5' ); //All locale settings 4.3.0 and after
-setlocale( 'LC_CTYPE', 'Big5' ); //Character class settings 4.3.0 and after
-setlocale( 'LC_TIME', 'Big5' ); //Date and time formatting 4.3.0 and after
+setlocale( LC_CTYPE, 'Big5' ); //Character class settings 4.3.0 and after
+setlocale( LC_TIME, 'Big5' ); //Date and time formatting 4.3.0 and after
 
 // Simple String Replacements
 $SLANG = array(

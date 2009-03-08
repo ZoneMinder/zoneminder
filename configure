@@ -8636,7 +8636,9 @@ $as_echo "no" >&6; }
 fi
 
 
+if test "$OPT_NETPBM" = "yes"; then
 PATH_NETPBM=`dirname $PATH_NETPBM`
+fi
 
 # Checks for libraries.
 

@@ -1034,18 +1034,18 @@ void EventStream::processCommand( const CmdMsg *msg )
     }
     struct {
         int event;
-        bool paused;
-        time_t progress;
+        int progress;
         int rate;
         int zoom;
+        bool paused;
     } status_data;
 
     status_data.event = event_data->event_id;
-    status_data.paused = paused;
-    status_data.progress = event_data->frames[curr_frame_id-1].offset;
+    status_data.progress = (int)event_data->frames[curr_frame_id-1].offset;
     status_data.rate = replay_rate;
     status_data.zoom = zoom;
-    Debug( 2, "E:%d, P:%d, p:%ld R:%d, Z:%d",
+    status_data.paused = paused;
+    Debug( 2, "E:%d, P:%d, p:%d R:%d, Z:%d",
         status_data.event,
         status_data.paused,
         status_data.progress,

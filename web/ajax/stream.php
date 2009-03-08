@@ -91,7 +91,7 @@ switch ( $data['type'] )
 {
     case MSG_DATA_WATCH :
     {
-        $data =  unpack( "ltype/imonitor/dfps/istate/ilevel/Cdelayed/Cpaused/C/C/irate/ddelay/izoom/Cenabled/Cforced", $msg );
+        $data =  unpack( "ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced", $msg );
         $data['fps'] = sprintf( "%.2f", $data['fps'] );
         $data['rate'] /= RATE_BASE;
         $data['delay'] = sprintf( "%.2f", $data['delay'] );
@@ -101,7 +101,7 @@ switch ( $data['type'] )
     }
     case MSG_DATA_EVENT :
     {
-        $data =  unpack( "ltype/ievent/Cpaused/C/C/C/iprogress/irate/izoom", $msg );
+        $data =  unpack( "ltype/ievent/iprogress/irate/izoom/Cpaused", $msg );
         //$data['progress'] = sprintf( "%.2f", $data['progress'] );
         $data['rate'] /= RATE_BASE;
         $data['zoom'] = sprintf( "%.1f", $data['zoom']/SCALE_BASE );

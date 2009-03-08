@@ -3132,14 +3132,14 @@ void MonitorStream::processCommand( const CmdMsg *msg )
 
     struct {
         int id;
-        double fps;
         int state;
+        double fps;
         int buffer_level;
-        bool delayed;
-        bool paused;
         int rate;
         double delay;
         int zoom;
+        bool delayed;
+        bool paused;
         bool enabled;
         bool forced;
     } status_data;

@@ -1,3 +1,30 @@
+function updateButtons( element )
+{
+    var form = element.form;
+
+    if ( element.type == 'checkbox' && element.checked )
+        form.elements['executeButton'].disabled = false;
+    else
+    {
+        var canExecute = false;
+        if ( form.elements['autoArchive'].checked )
+            canExecute = true;
+        if ( form.elements['autoVideo'].checked )
+            canExecute = true;
+        if ( form.elements['autoUpload'].checked )
+            canExecute = true;
+        if ( form.elements['autoEmail'].checked )
+            canExecute = true;
+        if ( form.elements['autoMessage'].checked )
+            canExecute = true;
+        if ( form.elements['autoExecute'].checked && form.elements['autoExecuteCmd'].value != '' )
+            canExecute = true;
+        if ( form.elements['autoDelete'].checked )
+            canExecute = true;
+        form.elements['executeButton'].disabled = !canExecute;
+    }
+}
+
 function clearValue( element, line )
 {
     var form = element.form;
@@ -56,7 +83,7 @@ function deleteFilter( element, name )
 {
     if ( confirm( deleteSavedFilterString+" '"+name+"'" ) )
     {
-        var form = element.name;
+        var form = element.form;
         form.action.value = 'delete';
         form.fid.value = name;
         submitToFilter( element, 1 );
@@ -84,3 +111,10 @@ function delTerm( element, line )
     form.line.value = line;
     form.submit();
 }
+
+function init()
+{
+    updateButtons( $('executeButton') );
+}
+
+window.addEvent( 'domready', init );

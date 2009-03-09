@@ -264,7 +264,7 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
           <tbody>
             <tr>
               <td><?= $SLANG['FilterArchiveEvents'] ?></td>
-              <td><input type="checkbox" name="autoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?>/></td>
+              <td><input type="checkbox" name="autoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 if ( ZM_OPT_FFMPEG )
@@ -272,7 +272,7 @@ if ( ZM_OPT_FFMPEG )
 ?>
             <tr>
               <td><?= $SLANG['FilterVideoEvents'] ?></td>
-              <td><input type="checkbox" name="autoVideo" value="1"<?php if ( !empty($dbFilter['AutoVideo']) ) { ?> checked="checked"<?php } ?>/></td>
+              <td><input type="checkbox" name="autoVideo" value="1"<?php if ( !empty($dbFilter['AutoVideo']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
@@ -281,7 +281,7 @@ if ( ZM_OPT_UPLOAD )
 ?>
             <tr>
               <td><?= $SLANG['FilterUploadEvents'] ?></td>
-              <td><input type="checkbox" name="autoUpload" value="1"<?php if ( !empty($dbFilter['AutoUpload']) ) { ?> checked="checked"<?php } ?>/></td>
+              <td><input type="checkbox" name="autoUpload" value="1"<?php if ( !empty($dbFilter['AutoUpload']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
@@ -290,7 +290,7 @@ if ( ZM_OPT_EMAIL )
 ?>
             <tr>
               <td><?= $SLANG['FilterEmailEvents'] ?></td>
-              <td><input type="checkbox" name="autoEmail" value="1"<?php if ( !empty($dbFilter['AutoEmail']) ) { ?> checked="checked"<?php } ?>/></td>
+              <td><input type="checkbox" name="autoEmail" value="1"<?php if ( !empty($dbFilter['AutoEmail']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
@@ -299,25 +299,25 @@ if ( ZM_OPT_MESSAGE )
 ?>
             <tr>
               <td><?= $SLANG['FilterMessageEvents'] ?></td>
-              <td><input type="checkbox" name="autoMessage" value="1"<?php if ( !empty($dbFilter['AutoMessage']) ) { ?> checked="checked"<?php } ?>/></td>
+              <td><input type="checkbox" name="autoMessage" value="1"<?php if ( !empty($dbFilter['AutoMessage']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
 ?>
             <tr>
               <td><?= $SLANG['FilterExecuteEvents'] ?></td>
-              <td><input type="checkbox" name="autoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/><input type="text" name="autoExecuteCmd" value="<?= isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255"/></td>
+              <td><input type="checkbox" name="autoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/><input type="text" name="autoExecuteCmd" value="<?= isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255" onchange="updateButtons( this )"/></td>
             </tr>
             <tr>
               <td><?= $SLANG['FilterDeleteEvents'] ?></td>
-              <td colspan="2"><input type="checkbox" name="autoDelete" value="1"<?php if ( !empty($dbFilter['AutoDelete']) ) { ?> checked="checked"<?php } ?>/></td>
+              <td colspan="2"><input type="checkbox" name="autoDelete" value="1"<?php if ( !empty($dbFilter['AutoDelete']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
           </tbody>
         </table>
         <hr/>
         <div id="contentButtons">
           <input type="submit" value="<?= $SLANG['Submit'] ?>" onclick="submitToEvents( this );"/>
-          <input type="button" value="<?= $SLANG['Execute'] ?>" onclick="executeFilter( this );"/>
+          <input type="button" name="executeButton" id="executeButton" value="<?= $SLANG['Execute'] ?>" onclick="executeFilter( this );"/>
 <?php if ( canEdit( 'Events' ) ) { ?>
           <input type="button" value="<?= $SLANG['Save'] ?>" onclick="saveFilter( this );"/><?php } ?>
 <?php if ( canEdit( 'Events' ) && isset($dbFilter) ) { ?>

@@ -20,14 +20,6 @@
 #ifndef ZM_IMAGE_H
 #define ZM_IMAGE_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <time.h>
-#include <math.h>
-#include <zlib.h>
-
 #include "zm.h"
 extern "C"
 {
@@ -37,6 +29,10 @@ extern "C"
 #include "zm_coord.h"
 #include "zm_box.h"
 #include "zm_poly.h"
+
+#if HAVE_ZLIB_H
+#include <zlib.h>
+#endif // HAVE_ZLIB_H
 
 //
 // This is image class, and represents a frame captured from a 
@@ -142,8 +138,10 @@ public:
 	bool DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size );
 	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;
 
+#if HAVE_ZLIB_H
 	bool Unzip( const Bytef *inbuffer, unsigned long inbuffer_size );
 	bool Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compression_level=Z_BEST_SPEED ) const;
+#endif // HAVE_ZLIB_H
 
 	bool Crop( int lo_x, int lo_y, int hi_x, int hi_y );
 	bool Crop( const Box &limits );

@@ -238,11 +238,10 @@ PATH_NETPBM=`dirname $PATH_NETPBM`
 fi
 
 # Checks for libraries.
-AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
-AC_CHECK_LIB(z,compress,,AC_MSG_ERROR(zm requires libz.a))
-AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
-AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
 AC_CHECK_LIB(mysqlclient,mysql_init,,AC_MSG_ERROR(zm requires libmysqlclient.a))
+AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
+AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
+AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN([libcrypto.a is required for authenticated streaming - use ZM_SSL_LIB option to select gnutls instead]))
 else
@@ -254,6 +253,7 @@ AC_CHECK_LIB(avcodec,avcodec_init,,AC_MSG_WARN(libavcodec.a is required for MPEG
 AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming),[-lavcodec -lavutil])
 AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
 AC_CHECK_LIB(bz2,BZ2_bzCompress,,AC_MSG_WARN(zm requires libbz2.a for recent versions of ffmpeg))
+AC_CHECK_LIB(z,compress,,)
 
 # Checks for header files.
 AC_FUNC_ALLOCA
@@ -279,6 +279,7 @@ else
 AC_CHECK_HEADERS(sys/ipc.h,,,)
 AC_CHECK_HEADERS(sys/shm.h,,,)
 fi
+AC_CHECK_HEADERS(zlib.h,,,)
 
 AC_CHECK_DECLS(round,,,[#include <math.h>])
 if test "$ZM_SSL_LIB" == "openssl"; then

@@ -21,6 +21,7 @@
 #include "zm_image.h"
 
 #include <sys/stat.h>
+#include <errno.h>
 
 #define ABSDIFF(a,b) 	(((a)<(b))?((b)-(a)):((a)-(b)))
 
@@ -554,6 +555,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 	return( true );
 }
 
+#if HAVE_ZLIB_H
 bool Image::Unzip( const Bytef *inbuffer, unsigned long inbuffer_size )
 {
 	unsigned long zip_size = size;
@@ -581,6 +583,7 @@ bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compressio
 	}
 	return( true );
 }
+#endif // HAVE_ZLIB_H
 
 bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
 {

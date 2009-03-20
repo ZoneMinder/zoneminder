@@ -158,10 +158,9 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
                 pixFormat = PIX_FMT_YUV440P;
                 pixFormat = PIX_FMT_YUVJ440P;
                 pixFormat = PIX_FMT_YUVA420P;
-                pixFormat = PIX_FMT_VDPAU_H264;
-                pixFormat = PIX_FMT_VDPAU_MPEG1;
-                pixFormat = PIX_FMT_VDPAU_MPEG2;
-                pixFormat = PIX_FMT_NB;
+                //pixFormat = PIX_FMT_VDPAU_H264;
+                //pixFormat = PIX_FMT_VDPAU_MPEG1;
+                //pixFormat = PIX_FMT_VDPAU_MPEG2;
             }
         }
     }
@@ -225,9 +224,9 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
                 pixFormat = PIX_FMT_YUV440P;
                 pixFormat = PIX_FMT_YUVJ440P;
                 pixFormat = PIX_FMT_YUVA420P;
-                pixFormat = PIX_FMT_VDPAU_H264;
-                pixFormat = PIX_FMT_VDPAU_MPEG1;
-                pixFormat = PIX_FMT_VDPAU_MPEG2;
+                //pixFormat = PIX_FMT_VDPAU_H264;
+                //pixFormat = PIX_FMT_VDPAU_MPEG1;
+                //pixFormat = PIX_FMT_VDPAU_MPEG2;
             }
         }
     }

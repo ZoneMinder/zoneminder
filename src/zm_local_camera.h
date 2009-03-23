@@ -20,15 +20,9 @@
 #ifndef ZM_LOCAL_CAMERA_H
 #define ZM_LOCAL_CAMERA_H
 
-#include <sys/types.h>
-#include <sys/ioctl.h>
-
-#include <string.h>
-
-#include <string>
-
 #include "zm.h"
 #include "zm_camera.h"
+
 #include "zm_ffmpeg.h"
 
 #ifdef HAVE_LINUX_VIDEODEV2_H

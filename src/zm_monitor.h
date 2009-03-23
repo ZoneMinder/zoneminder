@@ -20,14 +20,14 @@
 #ifndef ZM_MONITOR_H
 #define ZM_MONITOR_H
 
-#include <sys/time.h>
-
 #include "zm.h"
 #include "zm_coord.h"
 #include "zm_image.h"
 #include "zm_zone.h"
 #include "zm_event.h"
 #include "zm_camera.h"
+
+#include <sys/time.h>
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"

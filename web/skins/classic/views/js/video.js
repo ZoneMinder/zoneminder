@@ -31,7 +31,7 @@ function generateVideoResponse( respText )
 function generateVideo( form )
 {
     var parms = 'view=request&request=event&action=video';
-    parms += '&'+form.toQueryString();
+    parms += '&'+$(form).toQueryString();
     var query = new Ajax( thisUrl, { method: 'post', data: parms, onComplete: generateVideoResponse } );
     query.request();
     $('videoProgress').removeClass( 'hidden' );

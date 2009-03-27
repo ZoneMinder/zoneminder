@@ -242,7 +242,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
 
 function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat )
 {
-    if ( canView( 'Events' ) && $eids )
+    if ( canView( 'Events' ) && !empty($eids) )
     {
         $export_root = "zmExport";
         $export_listFile = "zmFileList.txt";
@@ -252,7 +252,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         {
             foreach ( $eids as $eid )
             {
-                $exportFileList = array_merge( $exportFileList, exportFileList( $eid ) );
+                $exportFileList = array_merge( $exportFileList, exportFileList( $eid ), $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc  );
             }
         }
         else

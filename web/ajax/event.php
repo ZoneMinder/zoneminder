@@ -1,6 +1,6 @@
 <?php
 
-if ( empty($_REQUEST['id']) )
+if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) )
 {
     ajaxError( "No event id(s) supplied" );
 }
@@ -73,7 +73,8 @@ if ( canView( 'Events' ) )
             else
                 $exportFormat = '';
 
-            if ( $exportFile = exportEvents( $_REQUEST['id'], $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat ) )
+            $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
+            if ( $exportFile = exportEvents( $exportIds, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat ) )
                 ajaxResponse( array( 'exportFile'=>$exportFile ) );
             else
                 ajaxError( "Export Failed" );
@@ -81,6 +82,7 @@ if ( canView( 'Events' ) )
         }
     }
 }
+
 if ( canEdit( 'Events' ) )
 {
     switch ( $_REQUEST['action'] )

@@ -40,7 +40,7 @@ function exportResponse( respText )
 function exportEvent( form )
 {
     var parms = 'view=request&request=event&action=export';
-    parms += '&'+form.toQueryString();
+    parms += '&'+$(form).toQueryString();
     var query = new Ajax( thisUrl, { method: 'post', data: parms, onComplete: exportResponse } );
     query.request();
     $('exportProgress').removeClass( 'hidden' );

@@ -1,7 +1,7 @@
 /*
  * MooTools Extension script to support custom extensions to mootools
  */
-var zmMooToolsVersion = '1.00';
+var zmMooToolsVersion = '1.2.1';
 
 /*
  * Firstly, lets check that mootools has been included and thus is present
@@ -21,33 +21,9 @@ else
     }
 
     /*
-     * Element class extension to add getAncestor function to allow searches
-     * up the DOM tree for ancestor element of give type, and class optionally
-     */
-    Element.extend({
-            getAncestor: function( tagName, className )
-        {
-            if ( !tagName )
-                return( null );
-            tagName = tagName.toLowerCase();
-            var ancestor = this;
-            var ancestorTag = null;
-            while( (ancestor = $(ancestor).getParent()) && $(ancestor) != document )
-            {
-                if ( $(ancestor).getTag() != tagName )
-                    continue;
-                if ( className && !$(ancestor).hasClass( className ) )
-                    continue;
-                return( $(ancestor) );
-            }
-            return( null );
-            }
-    });
-
-    /*
      * Ajax class extenstion to allow for request timeouts
      */
-    Ajax = Ajax.extend({
+    Request = Request.extend({
         request: function( data )
         {
             if ( this.options.timeout )

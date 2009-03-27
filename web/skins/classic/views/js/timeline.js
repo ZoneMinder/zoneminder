@@ -14,14 +14,14 @@ function createEventHtml( event, frame )
     if ( event.Archived > 0 )
         eventHtml.addClass( 'archived' );
 
-    new Element( 'p' ).injectInside( eventHtml ).setText( monitorNames[event.MonitorId] );
-    new Element( 'p' ).injectInside( eventHtml ).setText( event.Name+(frame?("("+frame.FrameId+")"):"") );
-    new Element( 'p' ).injectInside( eventHtml ).setText( event.StartTime+" - "+event.Length+"s" );
-    new Element( 'p' ).injectInside( eventHtml ).setText( event.Cause );
+    new Element( 'p' ).injectInside( eventHtml ).set( 'text', monitorNames[event.MonitorId] );
+    new Element( 'p' ).injectInside( eventHtml ).set( 'text', event.Name+(frame?("("+frame.FrameId+")"):"") );
+    new Element( 'p' ).injectInside( eventHtml ).set( 'text', event.StartTime+" - "+event.Length+"s" );
+    new Element( 'p' ).injectInside( eventHtml ).set( 'text', event.Cause );
     if ( event.Notes )
-        new Element( 'p' ).injectInside( eventHtml ).setText( event.Notes );
+        new Element( 'p' ).injectInside( eventHtml ).set( 'text', event.Notes );
     if ( event.Archived > 0 )
-        new Element( 'p' ).injectInside( eventHtml ).setText( archivedString );
+        new Element( 'p' ).injectInside( eventHtml ).set( 'text', archivedString );
 
     return( eventHtml );
 }
@@ -34,13 +34,9 @@ function showEventDetail( eventHtml )
     $('eventData').removeClass( 'hidden' );
 }
 
-function eventDataResponse( respText )
+function eventDataResponse( respObj, respText )
 {
-    if ( respText == 'Ok' )
-        return;
-    var response = Json.evaluate( respText );
-
-    var event = response.event;
+    var event = respObj.event;
     if ( !event )
     {
         console.log( "Null event" );
@@ -48,19 +44,15 @@ function eventDataResponse( respText )
     }
     events[event.Id] = event;
 
-    if ( response.loopback )
+    if ( respObj.loopback )
     {
-        requestFrameData( event.Id, response.loopback );
+        requestFrameData( event.Id, respObj.loopback );
     }
 }
 
-function frameDataResponse( respText )
+function frameDataResponse( respObj, respText )
 {
-    if ( respText == 'Ok' )
-        return;
-    var response = Json.evaluate( respText );
-
-    var frame = response.frameimage;
+    var frame = respObj.frameimage;
     if ( !frame.FrameId )
     {
         console.log( "Null frame" );
@@ -83,20 +75,20 @@ function frameDataResponse( respText )
     loadEventImage( frame.Image.imagePath, event.Id, frame.FrameId, event.Width, event.Height );
 }
 
-var eventQuery = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, autoCancel: true, onComplete: eventDataResponse } );
-var frameQuery = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, autoCancel: true, onComplete: frameDataResponse } );
+var eventQuery = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, autoCancel: true, onComplete: eventDataResponse } );
+var frameQuery = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, autoCancel: true, onComplete: frameDataResponse } );
 
 function requestFrameData( eventId, frameId )
 {
     if ( !events[eventId] )
     {
         eventQuery.options.data = "view=request&request=status&entity=event&id="+eventId+"&loopback="+frameId;
-        eventQuery.request();
+        eventQuery.send();
     }
     else
     {
         frameQuery.options.data = "view=request&request=status&entity=frameimage&id[0]="+eventId+"&id[1]="+frameId;
-        frameQuery.request();
+        frameQuery.send();
     }
 }
 

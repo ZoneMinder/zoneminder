@@ -59,7 +59,8 @@ function xhtmlHeaders( $file, $title )
 <?php
     }
 ?>
-  <script type="text/javascript" src="tools/mootools/mootools.js"></script>
+  <script type="text/javascript" src="tools/mootools/mootools-1.2.1-core-nc.js"></script>
+  <script type="text/javascript" src="tools/mootools/mootools-1.2-more-nc.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>
 <?php
     if ( $skinJsPhpFile )

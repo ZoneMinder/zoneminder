@@ -2142,19 +2142,22 @@ function setDeviceStatusX10( $key, $status )
 
 function isVector ( &$array )
 {
-    $nextKey = 0;
+    $next_key = 0;
     foreach ( array_keys($array) as $key )
     {
         if ( !is_int( $key ) )
             return( false );
-        if ( $key != $nextKey++ )
+        if ( $key != $next_key++ )
             return( false );
     }
     return( true );
 }
 
-function jsValue( &$value )
+function jsonEncode( &$value )
 {
+    if ( function_exists('json_encode') )
+        return( json_encode( $value ) );
+
     switch ( gettype($value) )
     {
         case 'double':
@@ -2163,14 +2166,14 @@ function jsValue( &$value )
         case 'boolean':
             return( $value?'true':'false' );
         case 'string':
-            return( "'".addslashes(preg_replace( "/\n\r?/",'\n',$value))."'" );
+            return( '"'.preg_replace( "/\r?\n/", '\\n', addcslashes($value,'"\'\\/') ).'"' );
         case 'NULL':
             return( 'null' );
         case 'object':
-            return( "'Object ".addslashes(get_class($value))."'" );
+            return( '"Object '.addcslashes(get_class($value),'"\'\\/').'"' );
         case 'array':
             if ( isVector( $value ) )
-                return( '['.join( ',', array_map( 'jsValue', $value) ).']' );
+                return( '['.join( ',', array_map( 'jsonEncode', $value) ).']' );
             else
             {
                 $result = '{';
@@ -2178,12 +2181,12 @@ function jsValue( &$value )
                 {
                     if ( $result != '{' )
                         $result .= ',';
-                    $result .= jsValue( $subkey ).':'.jsValue( $subvalue );
+                    $result .= jsonEncode( $subkey ).':'.jsonEncode( $subvalue );
                 }
                 return( $result.'}' );
             }
         default:
-            return( "'".addslashes(preg_replace( "/\n\r?/",'\n',$value))."'" );
+            return( '"'.addcslashes(gettype($value),'"\'\\/').'"' );
     }
 }
 
@@ -2202,7 +2205,7 @@ function ajaxError( $message, $code=HTTP_STATUS_OK )
     {
         $response = array( 'result'=>'Error', 'message'=>$message );
         header( "Content-type: text/plain" );
-        exit( jsValue( $response ) );
+        exit( jsonEncode( $response ) );
     }
     header( "HTTP/1.0 $code $message" );
     exit();
@@ -2219,7 +2222,7 @@ function ajaxResponse( $result=false )
         $response['message'] = $result;
     //error_log( var_export( $response, true ) );
     header( "Content-type: text/plain" );
-    exit( jsValue( $response ) );
+    exit( jsonEncode( $response ) );
 }
 
 function generateConnKey()

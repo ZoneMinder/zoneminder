@@ -53,7 +53,7 @@ function setAlarmState( currentAlarmState )
         stateClass = "alarm";
     else if ( alarmState == STATE_ALERT )
         stateClass = "alert";
-    $('stateValue').setText( stateStrings[alarmState] );
+    $('stateValue').set( 'text', stateStrings[alarmState] );
     if ( stateClass )
         $('stateValue').setProperty( 'class', stateClass );
     else
@@ -89,28 +89,24 @@ function setAlarmState( currentAlarmState )
 }
 
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;
-var streamCmdReq = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, onComplete: getStreamCmdResponse } );
+var streamCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: getStreamCmdResponse } );
 var streamCmdTimer = null;
 
 var streamStatus;
 
-function getStreamCmdResponse( respText )
+function getStreamCmdResponse( respObj, respText )
 {
     if ( streamCmdTimer )
         streamCmdTimer = $clear( streamCmdTimer );
 
-    if ( !respText )
-        return;
-    var response = Json.evaluate( respText );
-
-    if ( response.result == 'Ok' )
+    if ( respObj.result == 'Ok' )
     {
-        streamStatus = response.status;
-        $('fpsValue').setText( streamStatus.fps );
+        streamStatus = respObj.status;
+        $('fpsValue').set( 'text', streamStatus.fps );
 
         setAlarmState( streamStatus.state );
 
-        $('levelValue').setText( streamStatus.level );
+        $('levelValue').set( 'text', streamStatus.level );
         if ( streamStatus.level > 95 )
             $('levelValue').className = "alarm";
         else if ( streamStatus.level > 80 )
@@ -122,19 +118,19 @@ function getStreamCmdResponse( respText )
 
         if ( streamStatus.paused == true )
         {
-            $('modeValue').setText( "Paused" );
+            $('modeValue').set( 'text', "Paused" );
             $('rate').addClass( 'hidden' );
-            $('delayValue').setText( delayString );
+            $('delayValue').set( 'text', delayString );
             $('delay').removeClass( 'hidden' );
             $('level').removeClass( 'hidden' );
             streamCmdPause( false );
         }
         else if ( streamStatus.delayed == true )
         {
-            $('modeValue').setText( "Replay" );
-            $('rateValue').setText( streamStatus.rate );
+            $('modeValue').set( 'text', "Replay" );
+            $('rateValue').set( 'text', streamStatus.rate );
             $('rate').removeClass( 'hidden' );
-            $('delayValue').setText( delayString );
+            $('delayValue').set( 'text', delayString );
             $('delay').removeClass( 'hidden' );
             $('level').removeClass( 'hidden' );
             if ( streamStatus.rate == 1 )
@@ -158,13 +154,13 @@ function getStreamCmdResponse( respText )
         }
         else 
         {
-            $('modeValue').setText( "Live" );
+            $('modeValue').set( 'text', "Live" );
             $('rate').addClass( 'hidden' );
             $('delay').addClass( 'hidden' );
             $('level').addClass( 'hidden' );
             streamCmdPlay( false );
         }
-        $('zoomValue').setText( streamStatus.zoom );
+        $('zoomValue').set( 'text', streamStatus.zoom );
         if ( streamStatus.zoom == "1.0" )
             setButtonState( $('zoomOutBtn'), 'unavail' );
         else
@@ -218,7 +214,7 @@ function streamCmdPause( action )
     setButtonState( $('slowRevBtn'), 'inactive' );
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
-        streamCmdReq.request( streamCmdParms+"&command="+CMD_PAUSE );
+        streamCmdReq.send( streamCmdParms+"&command="+CMD_PAUSE );
 }
 
 function streamCmdPlay( action )
@@ -242,7 +238,7 @@ function streamCmdPlay( action )
         setButtonState( $('fastRevBtn'), 'unavail' );
     }
     if ( action )
-        streamCmdReq.request( streamCmdParms+"&command="+CMD_PLAY );
+        streamCmdReq.send( streamCmdParms+"&command="+CMD_PLAY );
 }
 
 function streamCmdStop( action )
@@ -255,7 +251,7 @@ function streamCmdStop( action )
     setButtonState( $('slowRevBtn'), 'unavail' );
     setButtonState( $('fastRevBtn'), 'unavail' );
     if ( action )
-        streamCmdReq.request( streamCmdParms+"&command="+CMD_STOP );
+        streamCmdReq.send( streamCmdParms+"&command="+CMD_STOP );
     setButtonState( $('stopBtn'), 'unavail' );
     setButtonState( $('playBtn'), 'active' );
 }
@@ -270,7 +266,7 @@ function streamCmdFastFwd( action )
     setButtonState( $('slowRevBtn'), 'inactive' );
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
-        streamCmdReq.request( streamCmdParms+"&command="+CMD_FASTFWD );
+        streamCmdReq.send( streamCmdParms+"&command="+CMD_FASTFWD );
 }
 
 function streamCmdSlowFwd( action )
@@ -283,7 +279,7 @@ function streamCmdSlowFwd( action )
     setButtonState( $('slowRevBtn'), 'inactive' );
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
-        streamCmdReq.request( streamCmdParms+"&command="+CMD_SLOWFWD );
+        streamCmdReq.send( streamCmdParms+"&command="+CMD_SLOWFWD );
     setButtonState( $('pauseBtn'), 'active' );
     setButtonState( $('slowFwdBtn'), 'inactive' );
 }
@@ -298,7 +294,7 @@ function streamCmdSlowRev( action )
     setButtonState( $('slowRevBtn'), 'active' );
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
-        streamCmdReq.request( streamCmdParms+"&command="+CMD_SLOWREV );
+        streamCmdReq.send( streamCmdParms+"&command="+CMD_SLOWREV );
     setButtonState( $('pauseBtn'), 'active' );
     setButtonState( $('slowRevBtn'), 'inactive' );
 }
@@ -313,51 +309,47 @@ function streamCmdFastRev( action )
     setButtonState( $('slowRevBtn'), 'inactive' );
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
-        streamCmdReq.request( streamCmdParms+"&command="+CMD_FASTREV );
+        streamCmdReq.send( streamCmdParms+"&command="+CMD_FASTREV );
 }
 
 function streamCmdZoomIn( x, y )
 {
-    streamCmdReq.request( streamCmdParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y );
+    streamCmdReq.send( streamCmdParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y );
 }
 
 function streamCmdZoomOut()
 {
-    streamCmdReq.request( streamCmdParms+"&command="+CMD_ZOOMOUT );
+    streamCmdReq.send( streamCmdParms+"&command="+CMD_ZOOMOUT );
 }
 
 function streamCmdScale( scale )
 {
-    streamCmdReq.request( streamCmdParms+"&command="+CMD_SCALE+"&scale="+scale );
+    streamCmdReq.send( streamCmdParms+"&command="+CMD_SCALE+"&scale="+scale );
 }
 
 function streamCmdPan( x, y )
 {
-    streamCmdReq.request( streamCmdParms+"&command="+CMD_PAN+"&x="+x+"&y="+y );
+    streamCmdReq.send( streamCmdParms+"&command="+CMD_PAN+"&x="+x+"&y="+y );
 }
 
 function streamCmdQuery()
 {
-    streamCmdReq.request( streamCmdParms+"&command="+CMD_QUERY );
+    streamCmdReq.send( streamCmdParms+"&command="+CMD_QUERY );
 }       
 
 var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
-var statusCmdReq = new Ajax( thisUrl, { method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, onComplete: getStatusCmdResponse } );
+var statusCmdReq = new Request.JSON( { url: thisUrl, method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, onSuccess: getStatusCmdResponse } );
 var statusCmdTimer = null;
 
-function getStatusCmdResponse( respText )
+function getStatusCmdResponse( respObj, respText )
 {
     if ( statusCmdTimer )
         statusCmdTimer = $clear( statusCmdTimer );
 
-    if ( !respText )
-        return;
-    var response = Json.evaluate( respText );
-
-    if ( response.result == 'Ok' )
+    if ( respObj.result == 'Ok' )
     {
-        $('fpsValue').setText( response.monitor.FrameRate );
-        setAlarmState( response.monitor.Status );
+        $('fpsValue').set( 'text', respObj.monitor.FrameRate );
+        setAlarmState( respObj.monitor.Status );
     }
 
     var statusCmdTimeout = statusRefreshTimeout;
@@ -368,49 +360,42 @@ function getStatusCmdResponse( respText )
 
 function statusCmdQuery()
 {
-    statusCmdReq.request();
+    statusCmdReq.send();
 }       
 
 var alarmCmdParms = "view=request&request=alarm&id="+monitorId;
-var alarmCmdReq = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, onComplete: getAlarmCmdResponse, onTimeout: streamCmdQuery } );
+var alarmCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: getAlarmCmdResponse, onTimeout: streamCmdQuery } );
 var alarmCmdFirst = true;
 
-function getAlarmCmdResponse( respText )
+function getAlarmCmdResponse( respObj, respText )
 {
-    if ( respText == 'Ok' )
-        return;
-    var response = Json.evaluate( respText );
 }
 
 function cmdDisableAlarms()
 {
-    alarmCmdReq.request( alarmCmdParms+"&command=disableAlarms" );
+    alarmCmdReq.send( alarmCmdParms+"&command=disableAlarms" );
 }
 
 function cmdEnableAlarms()
 {
-    alarmCmdReq.request( alarmCmdParms+"&command=enableAlarms" );
+    alarmCmdReq.send( alarmCmdParms+"&command=enableAlarms" );
 }
 
 function cmdForceAlarm()
 {
-    alarmCmdReq.request( alarmCmdParms+"&command=forceAlarm" );
+    alarmCmdReq.send( alarmCmdParms+"&command=forceAlarm" );
 }
 
 function cmdCancelForcedAlarm()
 {
-    alarmCmdReq.request( alarmCmdParms+"&command=cancelForcedAlarm" );
+    alarmCmdReq.send( alarmCmdParms+"&command=cancelForcedAlarm" );
 }
 
-function getActResponse( respText )
+function getActResponse( respObj, respText )
 {
-    if ( respText == 'Ok' )
-        return;
-    var response = Json.evaluate( respText );
-
-    if ( response.result == 'Ok' )
+    if ( respObj.result == 'Ok' )
     {
-        if ( response.refreshParent )
+        if ( respObj.refreshParent )
         {
             window.opener.location.reload();
         }
@@ -421,13 +406,13 @@ function getActResponse( respText )
 function deleteEvent( event, eventId )
 {
     var actParms = "view=request&request=event&action=delete&id="+eventId;
-    var actReq = new Ajax( thisUrl, { method: 'post', timeout: 3000, data: actParms, onComplete: getActResponse } );
-    actReq.request();
+    var actReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: 3000, data: actParms, onSuccess: getActResponse } );
+    actReq.send();
     event.stop();
 }
 
 var eventCmdParms = "view=request&request=status&entity=events&id="+monitorId+"&count="+maxDisplayEvents+"&sort=Id%20desc";
-var eventCmdReq = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, data: eventCmdParms, onComplete: getEventCmdResponse, onTimeout: eventCmdQuery } );
+var eventCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: eventCmdParms, onSuccess: getEventCmdResponse, onTimeout: eventCmdQuery } );
 var eventCmdTimer = null;
 var eventCmdFirst = true;
 
@@ -436,18 +421,14 @@ function highlightRow( row )
     $(row).toggleClass( 'highlight' );
 }
 
-function getEventCmdResponse( respText )
+function getEventCmdResponse( respObj, respText )
 {
     if ( eventCmdTimer )
         eventCmdTimer = $clear( eventCmdTimer );
 
-    if ( respText == 'Ok' )
-        return;
-    var response = Json.evaluate( respText );
-
-    if ( response.result == 'Ok' )
+    if ( respObj.result == 'Ok' )
     {
-        var dbEvents = response.events.reverse();
+        var dbEvents = respObj.events.reverse();
         var eventList = $('eventList');
         var eventListBody = $(eventList).getElement( 'tbody' );
         var eventListRows = $(eventListBody).getElements( 'tr' );
@@ -473,26 +454,26 @@ function getEventCmdResponse( respText )
                 var cells = row.getElements( 'td' );
 
                 var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height ] ) } });
-                link.setText( event.Id );
+                link.set( 'text', event.Id );
                 link.injectInside( row.getElement( 'td.colId' ) );
 
                 link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height ] ) } });
-                link.setText( event.Name );
+                link.set( 'text', event.Name );
                 link.injectInside( row.getElement( 'td.colName' ) );
 
-                row.getElement( 'td.colTime' ).setText( event.StartTime );
-                row.getElement( 'td.colSecs' ).setText( event.Length );
+                row.getElement( 'td.colTime' ).set( 'text', event.StartTime );
+                row.getElement( 'td.colSecs' ).set( 'text', event.Length );
 
                 link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramesPopup.pass( [ event.Id, event.Width, event.Height ] ) } });
-                link.setText( event.Frames+'/'+event.AlarmFrames );
+                link.set( 'text', event.Frames+'/'+event.AlarmFrames );
                 link.injectInside( row.getElement( 'td.colFrames' ) );
 
                 link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramePopup.pass( [ event.Id, '0', event.Width, event.Height ] ) } });
-                link.setText( event.AvgScore+'/'+event.MaxScore );
+                link.set( 'text', event.AvgScore+'/'+event.MaxScore );
                 link.injectInside( row.getElement( 'td.colScore' ) );
 
                 link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': deleteEvent.bindWithEvent( link, event.Id ), 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
-                link.setText( 'X' );
+                link.set( 'text', 'X' );
                 link.injectInside( row.getElement( 'td.colDelete' ) );
 
                 if ( i == 0 )
@@ -506,10 +487,10 @@ function getEventCmdResponse( respText )
             }
             else
             {
-                row.getElement( 'td.colName a' ).setText( event.Name );
-                row.getElement( 'td.colSecs' ).setText( event.Length );
-                row.getElement( 'td.colFrames a' ).setText( event.Frames+'/'+event.AlarmFrames );
-                row.getElement( 'td.colScore a' ).setText( event.AvgScore+'/'+event.MaxScore );
+                row.getElement( 'td.colName a' ).set( 'text', event.Name );
+                row.getElement( 'td.colSecs' ).set( 'text', event.Length );
+                row.getElement( 'td.colFrames a' ).set( 'text', event.Frames+'/'+event.AlarmFrames );
+                row.getElement( 'td.colScore a' ).set( 'text', event.AvgScore+'/'+event.MaxScore );
                 row.removeClass( 'recent' );
             }
             row.addClass( 'updated' );
@@ -541,21 +522,20 @@ function getEventCmdResponse( respText )
 
 function eventCmdQuery()
 {
-    eventCmdReq.request();
+    eventCmdReq.send();
 }
 
 var controlParms = "view=request&request=control&id="+monitorId;
-var controlReq = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, onComplete: getControlResponse } );
+var controlReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: getControlResponse } );
 
-function getControlResponse( respText )
+function getControlResponse( respObj, respText )
 {
-    if ( !respText )
+    if ( !respObj )
         return;
     //console.log( respText );
-    var response = Json.evaluate( respText );
-    if ( response.result != 'Ok' )
+    if ( respObj.result != 'Ok' )
     {
-        alert( "Control response was status = "+response.status+"\nmessage = "+response.message );
+        alert( "Control response was status = "+respObj.status+"\nmessage = "+respObj.message );
     }
 }
 
@@ -592,7 +572,7 @@ function controlCmd( control, event, xtell, ytell )
             locParms += "&yge="+yge;
         }
     }
-    controlReq.request( controlParms+"&control="+control+locParms );
+    controlReq.send( controlParms+"&control="+control+locParms );
     if ( streamMode == "single" )
         fetchImage.pass( $('imageFeed').getElement('img') ).delay( 1000 );
 }
@@ -603,7 +583,7 @@ function controlCmdImage( x, y )
     imageControlParms += "&scale="+scale;
     imageControlParms += "&control="+imageControlMode;
 
-    controlReq.request( imageControlParms+"&x="+x+"&y="+y );
+    controlReq.send( imageControlParms+"&x="+x+"&y="+y );
     if ( streamMode == "single" )
         fetchImage.pass( $('imageFeed').getElement('img') ).delay( 1000 );
 }       

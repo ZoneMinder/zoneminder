@@ -14,17 +14,14 @@ function Monitor( index, id, connKey )
         this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
     }
 
-    this.getStreamCmdResponse = function( respText )
+    this.getStreamCmdResponse = function( respObj, respText )
     {
         if ( this.streamCmdTimer )
             this.streamCmdTimer = $clear( this.streamCmdTimer );
 
-        if ( !respText )
-            return;
-        var response = Json.evaluate( respText );
-        if ( response.result == 'Ok' )
+        if ( respObj.result == 'Ok' )
         {
-            this.status = response.status;
+            this.status = respObj.status;
             this.alarmState = this.status.state;
             var stateClass = "";
             if ( this.alarmState == STATE_ALARM )
@@ -36,8 +33,8 @@ function Monitor( index, id, connKey )
 
             if ( !COMPACT_MONTAGE )
             {
-                $('fpsValue'+this.index).setText( this.status.fps );
-                $('stateValue'+this.index).setText( stateStrings[this.alarmState] );
+                $('fpsValue'+this.index).set( 'text', this.status.fps );
+                $('stateValue'+this.index).set( 'text', stateStrings[this.alarmState] );
                 $('monitorState'+this.index).setProperty( 'class', stateClass );
             }
             $('monitor'+this.index).setProperty( 'class', stateClass );
@@ -75,7 +72,7 @@ function Monitor( index, id, connKey )
         }
         else
         {
-            console.error( response.message );
+            console.error( respObj.message );
         }
         var streamCmdTimeout = statusRefreshTimeout;
         if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )
@@ -87,10 +84,10 @@ function Monitor( index, id, connKey )
     this.streamCmdQuery = function()
     {
         //this.streamCmdReq.cancel();
-        this.streamCmdReq.request( this.streamCmdParms+"&command="+CMD_QUERY );
+        this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
     }
 
-    this.streamCmdReq = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, onComplete: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this ), 'autoCancel': true } );
+    this.streamCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onComplete: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this ), 'autoCancel': true } );
 
 }
 

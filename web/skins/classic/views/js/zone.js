@@ -317,20 +317,16 @@ function unsetActivePoint( index )
     $('point'+index).removeClass( 'active' );
 }
 
-function updateZoneImageResponse( respText )
+function updateZoneImageResponse( respObj, respText )
 {
-    if ( respText == 'Ok' )
-        return;
-    var response = Json.evaluate( respText );
-
-    if ( response.result == 'Ok' )
+    if ( respObj.result == 'Ok' )
     {
-        document.zoneForm.elements['submitBtn'].disabled = ( selfIntersecting = response.selfIntersecting );
-        document.zoneForm.elements['newZone[Area]'].value = zone.Area = response.area;
+        document.zoneForm.elements['submitBtn'].disabled = ( selfIntersecting = respObj.selfIntersecting );
+        document.zoneForm.elements['newZone[Area]'].value = zone.Area = respObj.area;
         if ( document.zoneForm.elements['newZone[Units]'].value == 'Pixels' )
             document.zoneForm.elements['newZone[TempArea]'].value = document.zoneForm.elements['newZone[Area]'].value;
         
-        var newImage = new Asset.image( response.zoneImage, { 'onload': function() { $('zoneImage').src = newImage.src; } } );
+        var newImage = new Asset.image( respObj.zoneImage, { 'onload': function() { $('zoneImage').src = newImage.src; } } );
     }
 }
 
@@ -345,8 +341,8 @@ function getCoordString()
 function updateZoneImage()
 {
     var parms = "view=request&request=zone&action=zoneImage&mid="+zone.MonitorId+"&zid="+zone.Id+"&coords="+getCoordString();
-    var query = new Ajax( thisUrl, { method: 'post', timeout: AJAX_TIMEOUT, data: parms, onComplete: updateZoneImageResponse } );
-    query.request();
+    var query = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: parms, onComplete: updateZoneImageResponse } );
+    query.send();
 }
 
 function fixActivePoint( index )
@@ -453,7 +449,7 @@ function drawZonePoints()
         var row = new Element( 'tr', { 'id': 'row'+i } );
         row.addEvents( { 'mouseover': highlightOn.pass( i ), 'mouseout': highlightOff.pass( i ) } );
         var cell = new Element( 'td' );
-        cell.setText( i+1 );
+        cell.set( 'text', i+1 );
         cell.injectInside( row );
 
         cell = new Element( 'td' );
@@ -469,9 +465,9 @@ function drawZonePoints()
         cell.injectInside( row );
 
         cell = new Element( 'td' );
-        new Element( 'a', { 'href': '#', 'events': { 'click': addPoint.pass( i ) } } ).setText( '+' ).injectInside( cell );
+        new Element( 'a', { 'href': '#', 'events': { 'click': addPoint.pass( i ) } } ).set( 'text', '+' ).injectInside( cell );
         if ( zone['Points'].length > 3 )
-            new Element( 'a', { 'id': 'delete'+i, 'href': '#', 'events': { 'click': delPoint.pass( i ) } } ).setText( '-' ).injectInside( cell );
+            new Element( 'a', { 'id': 'delete'+i, 'href': '#', 'events': { 'click': delPoint.pass( i ) } } ).set( 'text', '-' ).injectInside( cell );
         cell.injectInside( row );
 
         row.injectInside( tables[i%tables.length].getElement( 'tbody' ) );

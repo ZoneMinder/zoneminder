@@ -23,29 +23,25 @@ function exportProgress()
 {
     var tickerText = $('exportProgressTicker').getText();
     if ( tickerText.length < 1 || tickerText.length > 4 )
-        $('exportProgressTicker').setText( '.' );
+        $('exportProgressTicker').set( 'text', '.' );
     else
         $('exportProgressTicker').appendText( '.' );
 }
 
-function exportResponse( respText )
+function exportResponse( respObj, respText )
 {
-    if ( respText == 'Ok' )
-        return;
-    var response = Json.evaluate( respText );
-
-    window.location.replace( thisUrl+'?view='+currentView+'&'+eidParm+'&exportFile='+response.exportFile+'&generated='+((response.result=='Ok')?1:0) );
+    window.location.replace( thisUrl+'?view='+currentView+'&'+eidParm+'&exportFile='+respObj.exportFile+'&generated='+((respObj.result=='Ok')?1:0) );
 }
 
 function exportEvent( form )
 {
     var parms = 'view=request&request=event&action=export';
     parms += '&'+$(form).toQueryString();
-    var query = new Ajax( thisUrl, { method: 'post', data: parms, onComplete: exportResponse } );
-    query.request();
+    var query = new Request.JSON( { url: thisUrl, method: 'post', data: parms, onComplete: exportResponse } );
+    query.send();
     $('exportProgress').removeClass( 'hidden' );
     $('exportProgress').setProperty( 'class', 'warnText' );
-    $('exportProgressText').setText( exportProgressString );
+    $('exportProgressText').set( 'text', exportProgressString );
     exportProgress();
     exportTimer = exportProgress.periodical( 500 );
 }

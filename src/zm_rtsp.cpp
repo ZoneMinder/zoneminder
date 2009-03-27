@@ -286,24 +286,13 @@ int RtspThread::run()
     int localPorts[2] = { 0, 0 };
 
     // New method using ffmpeg native functions
-    std::string tempUrl = mUrl;
+    std::string authUrl = mUrl;
     if ( !mAuth.empty() )
+        authUrl.insert( authUrl.find( "://" )+3, mAuth+"@" );
+
+    if ( av_open_input_file( &mFormatContext, authUrl.c_str(), NULL, 0, NULL ) != 0 )
     {
-        tempUrl = mProtocol+"://";
-        if ( !mAuth.empty() )
-            tempUrl += mAuth+"@";
-        tempUrl += mHost+":"+mPort;
-        if ( !mPath.empty() )
-        {
-            if ( mPath[0] == '/' )
-                mUrl += mPath;
-            else
-                mUrl += '/'+mPath;
-        }
-    }
-    if ( av_open_input_file( &mFormatContext, tempUrl.c_str(), NULL, 0, NULL ) != 0 )
-    {
-        Error( "Unable to open input '%s'", tempUrl.c_str() );
+        Error( "Unable to open input '%s'", authUrl.c_str() );
         return( -1 );
     }
 
@@ -363,7 +352,7 @@ int RtspThread::run()
 
     for ( size_t i = 0; i < lines.size(); i++ )
     {
-        sscanf( lines[i].c_str(), "Session: %a[0-9]; timeout=%d", &session, &timeout );
+        sscanf( lines[i].c_str(), "Session: %a[0-9a-fA-F]; timeout=%d", &session, &timeout );
         sscanf( lines[i].c_str(), "Transport: %s", transport );
     }
 
@@ -431,7 +420,7 @@ int RtspThread::run()
     Debug( 2, "RTSP Remote Ports are %d/%d", remotePorts[0], remotePorts[1] );
     Debug( 2, "RTSP Remote Channels are %d/%d", remoteChannels[0], remoteChannels[1] );
 
-    message = "PLAY "+trackUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
+    message = "PLAY "+trackUrl+" RTSP/1.0\r\nSession: "+session+"\r\nRange: npt=0.000-\r\n";
     if ( !sendCommand( message ) )
         return( -1 );
     if ( !recvResponse( response ) )

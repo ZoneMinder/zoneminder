@@ -13,7 +13,7 @@ function setButtonStates( element )
             }
         }
     }
-    $(element).getAncestor( 'tr' ).toggleClass( 'highlight' );
+    $(element).getParent( 'tr' ).toggleClass( 'highlight' );
     form.editBtn.disabled = (checked!=1);
     form.deleteBtn.disabled = (checked==0);
 }
@@ -31,7 +31,7 @@ function editMonitor( element )
                 createPopup( '?view=monitor&mid='+monitorId, 'zmMonitor'+monitorId, 'monitor' );
                 form.elements[i].checked = false;
                 setButtonStates( form.elements[i] );
-                //$(form.elements[i]).getAncestor( 'tr' ).removeClass( 'highlight' );
+                //$(form.elements[i]).getParent( 'tr' ).removeClass( 'highlight' );
                 break;
             }
         }

@@ -212,6 +212,8 @@ if ( ZM_V4L2 )
 {
     $v4l2DeviceFormats = array(
         $SLANG['Undefined'] => 0,
+        "PAL"         => 0x000000ff,
+        "NTSC"        => 0x0000b000,
         "PAL B"       => 0x00000001,
         "PAL B1"      => 0x00000002,
         "PAL G"       => 0x00000004,

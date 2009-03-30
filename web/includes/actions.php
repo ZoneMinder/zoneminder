@@ -1179,17 +1179,17 @@ if ( !empty($action) )
                 {
                     if ( $x10Monitor && isset($_REQUEST['newX10Monitor']) )
                     {
-                        dbQuery( "update TriggersX10 set ".implode( ", ", $x10Changes )." where MonitorId = '".dbEscape($_REQUEST['mid'])."'" );
+                        dbQuery( "update TriggersX10 set ".implode( ", ", $x10Changes )." where MonitorId = '".dbEscape($mid)."'" );
                     }
                     elseif ( !$user['MonitorIds'] )
                     {
                         if ( !$x10Monitor )
                         {
-                            dbQuery( "insert into TriggersX10 set MonitorId = '".dbEscape($_REQUEST['mid'])."', ".implode( ", ", $x10Changes ) );
+                            dbQuery( "insert into TriggersX10 set MonitorId = '".dbEscape($mid)."', ".implode( ", ", $x10Changes ) );
                         }
                         else
                         {
-                            dbQuery( "delete from TriggersX10 where MonitorId = '".dbEscape($_REQUEST['mid'])."'" );
+                            dbQuery( "delete from TriggersX10 where MonitorId = '".dbEscape($mid)."'" );
                         }
                     }
                     $restart = true;
@@ -1198,7 +1198,7 @@ if ( !empty($action) )
 
             if ( $restart )
             {
-                $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($_REQUEST['mid'])."'" );
+                $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" );
                 fixDevices();
                 //if ( $cookies )
                     //session_write_close();

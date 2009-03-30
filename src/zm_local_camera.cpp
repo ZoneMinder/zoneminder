@@ -240,7 +240,6 @@ int LocalCamera::channel_count = 0;
 int LocalCamera::channels[VIDEO_MAX_FRAME];
 int LocalCamera::standards[VIDEO_MAX_FRAME];
 
-
 int LocalCamera::vid_fd = -1;
 
 int LocalCamera::v4l_version = 0;
@@ -721,7 +720,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, bool ver
 	output[0] = 0;
 	if ( verbose )
 		sprintf( output, output+strlen(output), "Checking Video Device: %s\n", device );
-	if ( (vid_fd=open(device, O_RDWR)) <=0 )
+	if ( (vid_fd = open(device, O_RDWR)) <= 0 )
 	{
 		Error( "Failed to open video device %s: %s", device, strerror(errno) );
 		if ( verbose )
@@ -731,174 +730,413 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, bool ver
 		return( false );
 	}
 
-	struct video_capability vid_cap;
-	if ( ioctl( vid_fd, VIDIOCGCAP, &vid_cap ) < 0 )
-	{
-		Error( "Failed to get video capabilities: %s", strerror(errno) );
-		if ( verbose )
-			sprintf( output, "Error, failed to get video capabilities %s: %s\n", device, strerror(errno) );
-		else
-			sprintf( output, "error%d\n", errno );
-		return( false );
-	}
-	if ( verbose )
-	{
-		sprintf( output+strlen(output), "Video Capabilities\n" );
-		sprintf( output+strlen(output), "  Name: %s\n", vid_cap.name );
-		sprintf( output+strlen(output), "  Type: %d\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s", vid_cap.type,
-			vid_cap.type&VID_TYPE_CAPTURE?"    Can capture\n":"",
-			vid_cap.type&VID_TYPE_TUNER?"    Can tune\n":"",
-			vid_cap.type&VID_TYPE_TELETEXT?"    Does teletext\n":"",
-			vid_cap.type&VID_TYPE_OVERLAY?"    Overlay onto frame buffer\n":"",
-			vid_cap.type&VID_TYPE_CHROMAKEY?"    Overlay by chromakey\n":"",
-			vid_cap.type&VID_TYPE_CLIPPING?"    Can clip\n":"",
-			vid_cap.type&VID_TYPE_FRAMERAM?"    Uses the frame buffer memory\n":"",
-			vid_cap.type&VID_TYPE_SCALES?"    Scalable\n":"",
-			vid_cap.type&VID_TYPE_MONOCHROME?"    Monochrome only\n":"",
-			vid_cap.type&VID_TYPE_SUBCAPTURE?"    Can capture subareas of the image\n":"",
-			vid_cap.type&VID_TYPE_MPEG_DECODER?"    Can decode MPEG streams\n":"",
-			vid_cap.type&VID_TYPE_MPEG_ENCODER?"    Can encode MPEG streams\n":"",
-			vid_cap.type&VID_TYPE_MJPEG_DECODER?"    Can decode MJPEG streams\n":"",
-			vid_cap.type&VID_TYPE_MJPEG_ENCODER?"    Can encode MJPEG streams\n":""
-		);
-		sprintf( output+strlen(output), "  Video Channels: %d\n", vid_cap.channels );
-		sprintf( output+strlen(output), "  Audio Channels: %d\n", vid_cap.audios );
-		sprintf( output+strlen(output), "  Maximum Width: %d\n", vid_cap.maxwidth );
-		sprintf( output+strlen(output), "  Maximum Height: %d\n", vid_cap.maxheight );
-		sprintf( output+strlen(output), "  Minimum Width: %d\n", vid_cap.minwidth );
-		sprintf( output+strlen(output), "  Minimum Height: %d\n", vid_cap.minheight );
-	}
-	else
-	{
-		sprintf( output+strlen(output), "N:%s,", vid_cap.name );
-		sprintf( output+strlen(output), "T:%d,", vid_cap.type );
-		sprintf( output+strlen(output), "nC:%d,", vid_cap.channels );
-		sprintf( output+strlen(output), "nA:%d,", vid_cap.audios );
-		sprintf( output+strlen(output), "mxW:%d,", vid_cap.maxwidth );
-		sprintf( output+strlen(output), "mxH:%d,", vid_cap.maxheight );
-		sprintf( output+strlen(output), "mnW:%d,", vid_cap.minwidth );
-		sprintf( output+strlen(output), "mnH:%d,", vid_cap.minheight );
-	}
+#ifdef ZM_V4L2
+    //if ( v4l_version == 2 )
+    if ( true )
+    {
+        struct v4l2_capability vid_cap;
+        if ( vidioctl( vid_fd, VIDIOC_QUERYCAP, &vid_cap ) < 0 )
+        {
+            Error( "Failed to query video device: %s", strerror(errno) );
+            if ( verbose )
+                sprintf( output, "Error, failed to query video capabilities %s: %s\n", device, strerror(errno) );
+            else
+                sprintf( output, "error%d\n", errno );
+            return( false );
+        }
+#define capString(test,prefix,yesString,noString,capability) \
+    (test) ? (prefix yesString " " capability "\n") : (prefix noString " " capability "\n")
 
-	struct video_window vid_win;
-	if ( ioctl( vid_fd, VIDIOCGWIN, &vid_win ) < 0 )
-	{
-		Error( "Failed to get window attributes: %s", strerror(errno) );
-		if ( verbose )
-			sprintf( output, "Error, failed to get window attributes: %s\n", strerror(errno) );
-		else
-			sprintf( output, "error%d\n", errno );
-		return( false );
-	}
-	if ( verbose )
-	{
-		sprintf( output+strlen(output), "Window Attributes\n" );
-		sprintf( output+strlen(output), "  X Offset: %d\n", vid_win.x );
-		sprintf( output+strlen(output), "  Y Offset: %d\n", vid_win.y );
-		sprintf( output+strlen(output), "  Width: %d\n", vid_win.width );
-		sprintf( output+strlen(output), "  Height: %d\n", vid_win.height );
-	}
-	else
-	{
-		sprintf( output+strlen(output), "X:%d,", vid_win.x );
-		sprintf( output+strlen(output), "Y:%d,", vid_win.y );
-		sprintf( output+strlen(output), "W:%d,", vid_win.width );
-		sprintf( output+strlen(output), "H:%d,", vid_win.height );
-	}
+        if ( verbose )
+        {
+            sprintf( output+strlen(output), "General Capabilities\n" );
+            sprintf( output+strlen(output), "  Driver: %s\n", vid_cap.driver );
+            sprintf( output+strlen(output), "  Card: %s\n", vid_cap.card );
+            sprintf( output+strlen(output), "  Bus: %s\n", vid_cap.bus_info );
+            sprintf( output+strlen(output), "  Version: %u.%u.%u\n", (vid_cap.version>>16)&0xff, (vid_cap.version>>8)&0xff, vid_cap.version&0xff  );
+            sprintf( output+strlen(output), "  Type: 0x%x\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s", vid_cap.capabilities,
+                capString( vid_cap.capabilities&V4L2_CAP_VIDEO_CAPTURE,         "    ", "Supports", "Does not support", "video capture (X)" ),
+                capString( vid_cap.capabilities&V4L2_CAP_VIDEO_OUTPUT,          "    ", "Supports", "Does not support", "video output" ),
+                capString( vid_cap.capabilities&V4L2_CAP_VIDEO_OVERLAY,         "    ", "Supports", "Does not support", "frame buffer overlay" ),
+                capString( vid_cap.capabilities&V4L2_CAP_VBI_CAPTURE,           "    ", "Supports", "Does not support", "VBI capture" ),
+                capString( vid_cap.capabilities&V4L2_CAP_VBI_OUTPUT,            "    ", "Supports", "Does not support", "VBI output" ),
+                capString( vid_cap.capabilities&V4L2_CAP_SLICED_VBI_CAPTURE,    "    ", "Supports", "Does not support", "sliced VBI capture" ),
+                capString( vid_cap.capabilities&V4L2_CAP_SLICED_VBI_OUTPUT,     "    ", "Supports", "Does not support", "sliced VBI output" ),
+                capString( vid_cap.capabilities&V4L2_CAP_VIDEO_OUTPUT_OVERLAY,  "    ", "Supports", "Does not support", "video output overlay" ),
+                capString( vid_cap.capabilities&V4L2_CAP_TUNER,                 "    ", "Has", "Does not have", "tuner" ),
+                capString( vid_cap.capabilities&V4L2_CAP_AUDIO,                 "    ", "Has", "Does not have", "audio in and/or out" ),
+                capString( vid_cap.capabilities&V4L2_CAP_RADIO,                 "    ", "Has", "Does not have", "radio" ),
+                capString( vid_cap.capabilities&V4L2_CAP_READWRITE,             "    ", "Supports", "Does not support", "read/write i/o (X)" ),
+                capString( vid_cap.capabilities&V4L2_CAP_ASYNCIO,               "    ", "Supports", "Does not support", "async i/o" ),
+                capString( vid_cap.capabilities&V4L2_CAP_STREAMING,             "    ", "Supports", "Does not support", "streaming i/o (X)" )
+            );
+        }
+        else
+        {
+            sprintf( output+strlen(output), "D:%s ", vid_cap.driver );
+            sprintf( output+strlen(output), "C:%s ", vid_cap.card );
+            sprintf( output+strlen(output), "B:%s ", vid_cap.bus_info );
+            sprintf( output+strlen(output), "V:%u.%u.%u ", (vid_cap.version>>16)&0xff, (vid_cap.version>>8)&0xff, vid_cap.version&0xff  );
+            sprintf( output+strlen(output), "T:0x%x ", vid_cap.capabilities );
+        }
 
-	struct video_picture vid_pic;
-	if ( ioctl( vid_fd, VIDIOCGPICT, &vid_pic ) < 0 )
-	{
-		Error( "Failed to get picture attributes: %s", strerror(errno) );
-		if ( verbose )
-			sprintf( output, "Error, failed to get picture attributes: %s\n", strerror(errno) );
-		else
-			sprintf( output, "error%d\n", errno );
-		return( false );
-	}
-	if ( verbose )
-	{
-		sprintf( output+strlen(output), "Picture Attributes\n" );
-		sprintf( output+strlen(output), "  Palette: %d - %s\n", vid_pic.palette, 
-			vid_pic.palette==VIDEO_PALETTE_GREY?"Linear greyscale":(
-			vid_pic.palette==VIDEO_PALETTE_HI240?"High 240 cube (BT848)":(
-			vid_pic.palette==VIDEO_PALETTE_RGB565?"565 16 bit RGB":(
-			vid_pic.palette==VIDEO_PALETTE_RGB24?"24bit RGB":(
-			vid_pic.palette==VIDEO_PALETTE_RGB32?"32bit RGB":(
-			vid_pic.palette==VIDEO_PALETTE_RGB555?"555 15bit RGB":(
-			vid_pic.palette==VIDEO_PALETTE_YUV422?"YUV422 capture":(
-			vid_pic.palette==VIDEO_PALETTE_YUYV?"YUYV":(
-			vid_pic.palette==VIDEO_PALETTE_UYVY?"UVYV":(
-			vid_pic.palette==VIDEO_PALETTE_YUV420?"YUV420":(
-			vid_pic.palette==VIDEO_PALETTE_YUV411?"YUV411 capture":(
-			vid_pic.palette==VIDEO_PALETTE_RAW?"RAW capture (BT848)":(
-			vid_pic.palette==VIDEO_PALETTE_YUYV?"YUYV":(
-			vid_pic.palette==VIDEO_PALETTE_YUV422?"YUV422":(
-			vid_pic.palette==VIDEO_PALETTE_YUV422P?"YUV 4:2:2 Planar":(
-			vid_pic.palette==VIDEO_PALETTE_YUV411P?"YUV 4:1:1 Planar":(
-			vid_pic.palette==VIDEO_PALETTE_YUV420P?"YUV 4:2:0 Planar":(
-			vid_pic.palette==VIDEO_PALETTE_YUV410P?"YUV 4:1:0 Planar":"Unknown"
-		))))))))))))))))));
-		sprintf( output+strlen(output), "  Colour Depth: %d\n", vid_pic.depth );
-		sprintf( output+strlen(output), "  Brightness: %d\n", vid_pic.brightness );
-		sprintf( output+strlen(output), "  Hue: %d\n", vid_pic.hue );
-		sprintf( output+strlen(output), "  Colour :%d\n", vid_pic.colour );
-		sprintf( output+strlen(output), "  Contrast: %d\n", vid_pic.contrast );
-		sprintf( output+strlen(output), "  Whiteness: %d\n", vid_pic.whiteness );
-	}
-	else
-	{
-		sprintf( output+strlen(output), "P:%d,", vid_pic.palette );
-		sprintf( output+strlen(output), "D:%d,", vid_pic.depth );
-		sprintf( output+strlen(output), "B:%d,", vid_pic.brightness );
-		sprintf( output+strlen(output), "h:%d,", vid_pic.hue );
-		sprintf( output+strlen(output), "Cl:%d,", vid_pic.colour );
-		sprintf( output+strlen(output), "Cn:%d,", vid_pic.contrast );
-		sprintf( output+strlen(output), "w:%d,", vid_pic.whiteness );
-	}
+        if ( verbose )
+            sprintf( output+strlen(output), "  Standards:\n" );
+        struct v4l2_standard standard;
+        int standardIndex = 0;
+        do
+        {
+            memset( &standard, 0, sizeof(standard) );
+            standard.index = standardIndex;
 
-	for ( int chan = 0; chan < vid_cap.channels; chan++ )
-	{
-		struct video_channel vid_src;
-		vid_src.channel = chan;
-		if ( ioctl( vid_fd, VIDIOCGCHAN, &vid_src ) < 0 )
-		{
-			Error( "Failed to get channel %d attributes: %s", chan, strerror(errno) );
-			if ( verbose )
-				sprintf( output, "Error, failed to get channel %d attributes: %s\n", chan, strerror(errno) );
-			else
-				sprintf( output, "error%d\n", errno );
-			return( false );
-		}
-		if ( verbose )
-		{
-			sprintf( output+strlen(output), "Channel %d Attributes\n", chan );
-			sprintf( output+strlen(output), "  Name: %s\n", vid_src.name );
-			sprintf( output+strlen(output), "  Channel: %d\n", vid_src.channel );
-			sprintf( output+strlen(output), "  Flags: %d\n%s%s", vid_src.flags,
-				vid_src.flags&VIDEO_VC_TUNER?"    Channel has a tuner\n":"",
-				vid_src.flags&VIDEO_VC_AUDIO?"    Channel has audio\n":""
-			);
-			sprintf( output+strlen(output), "  Type: %d - %s\n", vid_src.type,
-				vid_src.type==VIDEO_TYPE_TV?"TV":(
-				vid_src.type==VIDEO_TYPE_CAMERA?"Camera":"Unknown"
-			));
-			sprintf( output+strlen(output), "  Format: %d - %s\n", vid_src.norm,
-				vid_src.norm==VIDEO_MODE_PAL?"PAL":(
-				vid_src.norm==VIDEO_MODE_NTSC?"NTSC":(
-				vid_src.norm==VIDEO_MODE_SECAM?"SECAM":(
-				vid_src.norm==VIDEO_MODE_AUTO?"AUTO":"Unknown"
-			))));
-		}
-		else
-		{
-			sprintf( output+strlen(output), "n%d:%s,", chan, vid_src.name );
-			sprintf( output+strlen(output), "C%d:%d,", chan, vid_src.channel );
-			sprintf( output+strlen(output), "Fl%d:%x,", chan, vid_src.flags );
-			sprintf( output+strlen(output), "T%d:%d", chan, vid_src.type );
-			sprintf( output+strlen(output), "F%d:%d%s,", chan, vid_src.norm, chan==(vid_cap.channels-1)?"":"," );
-		}
-	}
+            if ( vidioctl( vid_fd, VIDIOC_ENUMSTD, &standard ) < 0 )
+            {
+                if ( errno == EINVAL )
+                {
+                    standardIndex = -1;
+                    break;
+                }
+                else
+                {
+                    Error( "Failed to enumerate standard %d: %s", standard.index, strerror(errno) );
+                    if ( verbose )
+                        sprintf( output, "Error, failed to enumerate standard %d: %s\n", standard.index, strerror(errno) );
+                    else
+                        sprintf( output, "error%d\n", errno );
+                    return( false );
+                }
+            }
+            if ( verbose )
+                sprintf( output+strlen(output), "    %s\n", standard.name );
+            else
+                sprintf( output+strlen(output), "S:%s ", standard.name );
+        }
+        while ( standardIndex++ >= 0 );
+  
+        if ( verbose )
+            sprintf( output+strlen(output), "  Formats:\n" );
+        struct v4l2_fmtdesc format;
+        int formatIndex = 0;
+        do
+        {
+            memset( &format, 0, sizeof(format) );
+            format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            format.index = formatIndex;
+
+            if ( vidioctl( vid_fd, VIDIOC_ENUM_FMT, &format ) < 0 )
+            {
+                if ( errno == EINVAL )
+                {
+                    formatIndex = -1;
+                    break;
+                }
+                else
+                {
+                    Error( "Failed to enumerate format %d: %s", format.index, strerror(errno) );
+                    if ( verbose )
+                        sprintf( output, "Error, failed to enumerate format %d: %s\n", format.index, strerror(errno) );
+                    else
+                        sprintf( output, "error%d\n", errno );
+                    return( false );
+                }
+            }
+            if ( verbose )
+                sprintf( output+strlen(output), "    %s (%c%c%c%c)\n", format.description, format.pixelformat&0xff, (format.pixelformat>>8)&0xff, (format.pixelformat>>16)&0xff, (format.pixelformat>>24)&0xff );
+            else
+                sprintf( output+strlen(output), "F:%c%c%c%c ", format.pixelformat&0xff, (format.pixelformat>>8)&0xff, (format.pixelformat>>16)&0xff, (format.pixelformat>>24)&0xff );
+        }
+        while ( formatIndex++ >= 0 );
+  
+        struct v4l2_cropcap cropcap;
+        memset( &cropcap, 0, sizeof(cropcap) );
+        cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if ( vidioctl( vid_fd, VIDIOC_CROPCAP, &cropcap ) < 0 )
+        {
+            Error( "Failed to query crop capabilities: %s", strerror(errno) );
+            if ( verbose )
+                sprintf( output, "Error, failed to query crop capabilities %s: %s\n", device, strerror(errno) );
+            else
+                sprintf( output, "error%d\n", errno );
+            return( false );
+        }
+        if ( verbose )
+        {
+            sprintf( output+strlen(output), "Crop Capabilities\n" );
+            sprintf( output+strlen(output), "  Bounds: %d x %d\n", cropcap.bounds.width, cropcap.bounds.height );
+            sprintf( output+strlen(output), "  Default: %d x %d\n", cropcap.defrect.width, cropcap.defrect.height );
+        }
+        else
+        {
+            sprintf( output+strlen(output), "B:%dx%d ", cropcap.bounds.width, cropcap.bounds.height );
+        }
+
+        struct v4l2_crop crop;
+        memset( &crop, 0, sizeof(crop) );
+        crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if ( vidioctl( vid_fd, VIDIOC_G_CROP, &crop ) < 0 )
+        {
+            Error( "Failed to query crop: %s", strerror(errno) );
+            if ( verbose )
+                sprintf( output, "Error, failed to query crop %s: %s\n", device, strerror(errno) );
+            else
+                sprintf( output, "error%d\n", errno );
+            return( false );
+        }
+        if ( verbose )
+        {
+            sprintf( output+strlen(output), "  Current: %d x %d\n", crop.c.width, crop.c.height );
+        }
+        else
+        {
+            //sprintf( output+strlen(output), "D:%s ", vid_cap.driver );
+            //sprintf( output+strlen(output), "C:%s ", vid_cap.card );
+            //sprintf( output+strlen(output), "B:%s ", vid_cap.bus_info );
+            //sprintf( output+strlen(output), "V:%u.%u.%u ", (vid_cap.version>>16)&0xff, (vid_cap.version>>8)&0xff, vid_cap.version&0xff  );
+            //sprintf( output+strlen(output), "T:0x%x ", vid_cap.capabilities );
+        }
+
+        struct v4l2_input input;
+        int inputIndex = 0;
+        do
+        {
+            memset( &input, 0, sizeof(input) );
+            input.index = inputIndex;
+
+            if ( vidioctl( vid_fd, VIDIOC_ENUMINPUT, &input ) < 0 )
+            {
+                if ( errno == EINVAL )
+                {
+                    inputIndex = -1;
+                    break;
+                }
+                else
+                {
+                    Error( "Failed to enumerate input %d: %s", input.index, strerror(errno) );
+                    if ( verbose )
+                        sprintf( output, "Error, failed to enumerate input %d: %s\n", input.index, strerror(errno) );
+                    else
+                        sprintf( output, "error%d\n", errno );
+                    return( false );
+                }
+            }
+
+            if ( false )
+            if ( vidioctl( vid_fd, VIDIOC_S_INPUT, &input.index ) < 0 )
+            {
+                Error( "Failed to set video input %d: %s", input.index, strerror(errno) );
+                if ( verbose )
+                    sprintf( output, "Error, failed to switch to input %d: %s\n", input.index, strerror(errno) );
+                else
+                    sprintf( output, "error%d\n", errno );
+                    return( false );
+            }
+
+            if ( verbose )
+            {
+                sprintf( output+strlen(output), "Input %d\n", input.index );
+                sprintf( output+strlen(output), "  Name: %s\n", input.name );
+                sprintf( output+strlen(output), "  Type: %s\n", input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown") );
+                sprintf( output+strlen(output), "  Audioset: %08x\n", input.audioset );
+                sprintf( output+strlen(output), "  Standards: 0x%llx\n", input.std );
+            }
+            else
+            {
+                sprintf( output+strlen(output), "i%d:%s ", input.index, input.name );
+                sprintf( output+strlen(output), "i%dT:%s ", input.index, input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown") );
+                sprintf( output+strlen(output), "i%dS:%llx ", input.index, input.std );
+            }
+
+            if ( verbose )
+            {
+                sprintf( output+strlen(output), "  %s", capString( input.status&V4L2_IN_ST_NO_POWER, "Power ", "off", "on", " (X)" ) );
+                sprintf( output+strlen(output), "  %s", capString( input.status&V4L2_IN_ST_NO_SIGNAL, "Signal ", "not detected", "detected", " (X)" ) );
+                sprintf( output+strlen(output), "  %s", capString( input.status&V4L2_IN_ST_NO_COLOR, "Colour Signal ", "not detected", "detected", "" ) );
+                sprintf( output+strlen(output), "  %s", capString( input.status&V4L2_IN_ST_NO_H_LOCK, "Horizontal Lock ", "not detected", "detected", "" ) );
+            }
+            else
+            {
+                sprintf( output+strlen(output), "i%dSP:%d ", input.index, input.status&V4L2_IN_ST_NO_POWER?0:1 );
+                sprintf( output+strlen(output), "i%dSS:%d ", input.index, input.status&V4L2_IN_ST_NO_SIGNAL?0:1 );
+                sprintf( output+strlen(output), "i%dSC:%d ", input.index, input.status&V4L2_IN_ST_NO_COLOR?0:1 );
+                sprintf( output+strlen(output), "i%dHP:%d ", input.index, input.status&V4L2_IN_ST_NO_H_LOCK?0:1 );
+            }
+        }
+        while ( inputIndex++ >= 0 );
+        if ( !verbose )
+            output[strlen(output)-1] = '\n';
+    }
+    else
+#endif // ZM_V4L2
+    {
+        struct video_capability vid_cap;
+        if ( ioctl( vid_fd, VIDIOCGCAP, &vid_cap ) < 0 )
+        {
+            Error( "Failed to get video capabilities: %s", strerror(errno) );
+            if ( verbose )
+                sprintf( output, "Error, failed to get video capabilities %s: %s\n", device, strerror(errno) );
+            else
+                sprintf( output, "error%d\n", errno );
+            return( false );
+        }
+        if ( verbose )
+        {
+            sprintf( output+strlen(output), "Video Capabilities\n" );
+            sprintf( output+strlen(output), "  Name: %s\n", vid_cap.name );
+            sprintf( output+strlen(output), "  Type: %d\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s", vid_cap.type,
+                vid_cap.type&VID_TYPE_CAPTURE?"    Can capture\n":"",
+                vid_cap.type&VID_TYPE_TUNER?"    Can tune\n":"",
+                vid_cap.type&VID_TYPE_TELETEXT?"    Does teletext\n":"",
+                vid_cap.type&VID_TYPE_OVERLAY?"    Overlay onto frame buffer\n":"",
+                vid_cap.type&VID_TYPE_CHROMAKEY?"    Overlay by chromakey\n":"",
+                vid_cap.type&VID_TYPE_CLIPPING?"    Can clip\n":"",
+                vid_cap.type&VID_TYPE_FRAMERAM?"    Uses the frame buffer memory\n":"",
+                vid_cap.type&VID_TYPE_SCALES?"    Scalable\n":"",
+                vid_cap.type&VID_TYPE_MONOCHROME?"    Monochrome only\n":"",
+                vid_cap.type&VID_TYPE_SUBCAPTURE?"    Can capture subareas of the image\n":"",
+                vid_cap.type&VID_TYPE_MPEG_DECODER?"    Can decode MPEG streams\n":"",
+                vid_cap.type&VID_TYPE_MPEG_ENCODER?"    Can encode MPEG streams\n":"",
+                vid_cap.type&VID_TYPE_MJPEG_DECODER?"    Can decode MJPEG streams\n":"",
+                vid_cap.type&VID_TYPE_MJPEG_ENCODER?"    Can encode MJPEG streams\n":""
+            );
+            sprintf( output+strlen(output), "  Video Channels: %d\n", vid_cap.channels );
+            sprintf( output+strlen(output), "  Audio Channels: %d\n", vid_cap.audios );
+            sprintf( output+strlen(output), "  Maximum Width: %d\n", vid_cap.maxwidth );
+            sprintf( output+strlen(output), "  Maximum Height: %d\n", vid_cap.maxheight );
+            sprintf( output+strlen(output), "  Minimum Width: %d\n", vid_cap.minwidth );
+            sprintf( output+strlen(output), "  Minimum Height: %d\n", vid_cap.minheight );
+        }
+        else
+        {
+            sprintf( output+strlen(output), "N:%s,", vid_cap.name );
+            sprintf( output+strlen(output), "T:%d,", vid_cap.type );
+            sprintf( output+strlen(output), "nC:%d,", vid_cap.channels );
+            sprintf( output+strlen(output), "nA:%d,", vid_cap.audios );
+            sprintf( output+strlen(output), "mxW:%d,", vid_cap.maxwidth );
+            sprintf( output+strlen(output), "mxH:%d,", vid_cap.maxheight );
+            sprintf( output+strlen(output), "mnW:%d,", vid_cap.minwidth );
+            sprintf( output+strlen(output), "mnH:%d,", vid_cap.minheight );
+        }
+
+        struct video_window vid_win;
+        if ( ioctl( vid_fd, VIDIOCGWIN, &vid_win ) < 0 )
+        {
+            Error( "Failed to get window attributes: %s", strerror(errno) );
+            if ( verbose )
+                sprintf( output, "Error, failed to get window attributes: %s\n", strerror(errno) );
+            else
+                sprintf( output, "error%d\n", errno );
+            return( false );
+        }
+        if ( verbose )
+        {
+            sprintf( output+strlen(output), "Window Attributes\n" );
+            sprintf( output+strlen(output), "  X Offset: %d\n", vid_win.x );
+            sprintf( output+strlen(output), "  Y Offset: %d\n", vid_win.y );
+            sprintf( output+strlen(output), "  Width: %d\n", vid_win.width );
+            sprintf( output+strlen(output), "  Height: %d\n", vid_win.height );
+        }
+        else
+        {
+            sprintf( output+strlen(output), "X:%d,", vid_win.x );
+            sprintf( output+strlen(output), "Y:%d,", vid_win.y );
+            sprintf( output+strlen(output), "W:%d,", vid_win.width );
+            sprintf( output+strlen(output), "H:%d,", vid_win.height );
+        }
+
+        struct video_picture vid_pic;
+        if ( ioctl( vid_fd, VIDIOCGPICT, &vid_pic ) < 0 )
+        {
+            Error( "Failed to get picture attributes: %s", strerror(errno) );
+            if ( verbose )
+                sprintf( output, "Error, failed to get picture attributes: %s\n", strerror(errno) );
+            else
+                sprintf( output, "error%d\n", errno );
+            return( false );
+        }
+        if ( verbose )
+        {
+            sprintf( output+strlen(output), "Picture Attributes\n" );
+            sprintf( output+strlen(output), "  Palette: %d - %s\n", vid_pic.palette, 
+                vid_pic.palette==VIDEO_PALETTE_GREY?"Linear greyscale":(
+                vid_pic.palette==VIDEO_PALETTE_HI240?"High 240 cube (BT848)":(
+                vid_pic.palette==VIDEO_PALETTE_RGB565?"565 16 bit RGB":(
+                vid_pic.palette==VIDEO_PALETTE_RGB24?"24bit RGB":(
+                vid_pic.palette==VIDEO_PALETTE_RGB32?"32bit RGB":(
+                vid_pic.palette==VIDEO_PALETTE_RGB555?"555 15bit RGB":(
+                vid_pic.palette==VIDEO_PALETTE_YUV422?"YUV422 capture":(
+                vid_pic.palette==VIDEO_PALETTE_YUYV?"YUYV":(
+                vid_pic.palette==VIDEO_PALETTE_UYVY?"UVYV":(
+                vid_pic.palette==VIDEO_PALETTE_YUV420?"YUV420":(
+                vid_pic.palette==VIDEO_PALETTE_YUV411?"YUV411 capture":(
+                vid_pic.palette==VIDEO_PALETTE_RAW?"RAW capture (BT848)":(
+                vid_pic.palette==VIDEO_PALETTE_YUYV?"YUYV":(
+                vid_pic.palette==VIDEO_PALETTE_YUV422?"YUV422":(
+                vid_pic.palette==VIDEO_PALETTE_YUV422P?"YUV 4:2:2 Planar":(
+                vid_pic.palette==VIDEO_PALETTE_YUV411P?"YUV 4:1:1 Planar":(
+                vid_pic.palette==VIDEO_PALETTE_YUV420P?"YUV 4:2:0 Planar":(
+                vid_pic.palette==VIDEO_PALETTE_YUV410P?"YUV 4:1:0 Planar":"Unknown"
+            ))))))))))))))))));
+            sprintf( output+strlen(output), "  Colour Depth: %d\n", vid_pic.depth );
+            sprintf( output+strlen(output), "  Brightness: %d\n", vid_pic.brightness );
+            sprintf( output+strlen(output), "  Hue: %d\n", vid_pic.hue );
+            sprintf( output+strlen(output), "  Colour :%d\n", vid_pic.colour );
+            sprintf( output+strlen(output), "  Contrast: %d\n", vid_pic.contrast );
+            sprintf( output+strlen(output), "  Whiteness: %d\n", vid_pic.whiteness );
+        }
+        else
+        {
+            sprintf( output+strlen(output), "P:%d,", vid_pic.palette );
+            sprintf( output+strlen(output), "D:%d,", vid_pic.depth );
+            sprintf( output+strlen(output), "B:%d,", vid_pic.brightness );
+            sprintf( output+strlen(output), "h:%d,", vid_pic.hue );
+            sprintf( output+strlen(output), "Cl:%d,", vid_pic.colour );
+            sprintf( output+strlen(output), "Cn:%d,", vid_pic.contrast );
+            sprintf( output+strlen(output), "w:%d,", vid_pic.whiteness );
+        }
+
+        for ( int chan = 0; chan < vid_cap.channels; chan++ )
+        {
+            struct video_channel vid_src;
+            vid_src.channel = chan;
+            if ( ioctl( vid_fd, VIDIOCGCHAN, &vid_src ) < 0 )
+            {
+                Error( "Failed to get channel %d attributes: %s", chan, strerror(errno) );
+                if ( verbose )
+                    sprintf( output, "Error, failed to get channel %d attributes: %s\n", chan, strerror(errno) );
+                else
+                    sprintf( output, "error%d\n", errno );
+                return( false );
+            }
+            if ( verbose )
+            {
+                sprintf( output+strlen(output), "Channel %d Attributes\n", chan );
+                sprintf( output+strlen(output), "  Name: %s\n", vid_src.name );
+                sprintf( output+strlen(output), "  Channel: %d\n", vid_src.channel );
+                sprintf( output+strlen(output), "  Flags: %d\n%s%s", vid_src.flags,
+                    vid_src.flags&VIDEO_VC_TUNER?"    Channel has a tuner\n":"",
+                    vid_src.flags&VIDEO_VC_AUDIO?"    Channel has audio\n":""
+                );
+                sprintf( output+strlen(output), "  Type: %d - %s\n", vid_src.type,
+                    vid_src.type==VIDEO_TYPE_TV?"TV":(
+                    vid_src.type==VIDEO_TYPE_CAMERA?"Camera":"Unknown"
+                ));
+                sprintf( output+strlen(output), "  Format: %d - %s\n", vid_src.norm,
+                    vid_src.norm==VIDEO_MODE_PAL?"PAL":(
+                    vid_src.norm==VIDEO_MODE_NTSC?"NTSC":(
+                    vid_src.norm==VIDEO_MODE_SECAM?"SECAM":(
+                    vid_src.norm==VIDEO_MODE_AUTO?"AUTO":"Unknown"
+                ))));
+            }
+            else
+            {
+                sprintf( output+strlen(output), "n%d:%s,", chan, vid_src.name );
+                sprintf( output+strlen(output), "C%d:%d,", chan, vid_src.channel );
+                sprintf( output+strlen(output), "Fl%d:%x,", chan, vid_src.flags );
+                sprintf( output+strlen(output), "T%d:%d", chan, vid_src.type );
+                sprintf( output+strlen(output), "F%d:%d%s,", chan, vid_src.norm, chan==(vid_cap.channels-1)?"":"," );
+            }
+        }
+    }
 	return( true );
 }
 
@@ -1597,7 +1835,7 @@ int LocalCamera::PostCapture()
                 Debug( 3, "Switching video source to %d", channels[next_channel] );
                 if ( vidioctl( vid_fd, VIDIOC_S_INPUT, &channels[next_channel] ) < 0 )
                 {
-                    Error( "Failed to set camera source %d: %s", channel, strerror(errno) );
+                    Error( "Failed to set camera source %d: %s", channels[next_channel], strerror(errno) );
                     return( -1 );
                 }
 

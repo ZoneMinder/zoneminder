@@ -205,6 +205,13 @@ function getTableColumns( $table, $asString=1 )
     return( $columns );  
 }               
 
+function getTableAutoInc( $table )
+{
+    $sql = "show table status where Name = '".dbEscape($table)."'";
+    $row = dbFetchOne( $sql );
+    return( $row['Auto_increment'] );
+}
+
 function dbFetchMonitor( $mid )
 {
     return( dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" ) );

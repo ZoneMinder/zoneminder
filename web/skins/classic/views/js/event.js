@@ -6,7 +6,7 @@ function setButtonState( element, butClass )
 
 function changeScale()
 {
-    var scale = $('scale').getValue();
+    var scale = $('scale').get('value');
     var baseWidth = event.Width;
     var baseHeight = event.Height;
     var newWidth = ( baseWidth * scale ) / SCALE_BASE;
@@ -20,9 +20,9 @@ function changeScale()
 
 function changeReplayMode()
 {
-    var replayMode = $('replayMode').getValue();
+    var replayMode = $('replayMode').get('value');
 
-    Cookie.set( 'replayMode', replayMode, { duration: 10*365 })
+    Cookie.write( 'replayMode', replayMode, { duration: 10*365 })
 
     refreshWindow();
 }
@@ -608,7 +608,7 @@ function deleteEvent()
 
 function renameEvent()
 {
-    var newName = $('eventName').getValue();
+    var newName = $('eventName').get('value');
     actQuery( 'rename', { eventName: newName } );
 }
 

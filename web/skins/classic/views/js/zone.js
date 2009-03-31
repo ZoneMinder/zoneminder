@@ -187,7 +187,7 @@ function applyCheckMethod()
 function applyPreset()
 {
     var form = document.zoneForm;
-    var presetId = $('presetSelector').getValue();
+    var presetId = $('presetSelector').get('value');
 
     if ( presets[presetId] )
     {
@@ -398,7 +398,7 @@ function updateX( index )
     limitPointValue( $('newZone[Points]['+index+'][x]'), 0, maxX );
 
     var point = $('point'+index);
-    var x = $('newZone[Points]['+index+'][x]').getValue();
+    var x = $('newZone[Points]['+index+'][x]').get('value');
 
     point.setStyle( 'left', x+'px' );
     zone['Points'][index].x = x;
@@ -411,7 +411,7 @@ function updateY( index )
     limitPointValue( $('newZone[Points]['+index+'][y]'), 0, maxY );
 
     var point = $('point'+index);
-    var y = $('newZone[Points]['+index+'][y]').getValue();
+    var y = $('newZone[Points]['+index+'][y]').get('value');
 
     point.setStyle( 'top', y+'px' );
     zone['Points'][index].y = y;
@@ -432,7 +432,7 @@ function saveChanges( element )
 
 function drawZonePoints()
 {
-    $('imageFrame').getElements( 'div.zonePoint' ).each( function( element ) { element.remove(); } );
+    $('imageFrame').getElements( 'div.zonePoint' ).each( function( element ) { element.destroy(); } );
     for ( var i = 0; i < zone['Points'].length; i++ )
     {
         var div = new Element( 'div', { 'id': 'point'+i, 'class': 'zonePoint', 'title': 'Point '+(i+1), 'styles': { 'left': zone['Points'][i].x, 'top': zone['Points'][i].y } } );

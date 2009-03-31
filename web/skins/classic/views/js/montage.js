@@ -93,11 +93,11 @@ function Monitor( index, id, connKey )
 
 function selectLayout( element )
 {
-    var cssFile = skinPath+'/views/css/'+$(element).getValue();
+    var cssFile = skinPath+'/views/css/'+$(element).get('value');
     if ( $('dynamicStyles') )
-        $('dynamicStyles').remove();
+        $('dynamicStyles').destroy();
     new Asset.css( cssFile, { id: 'dynamicStyles' } );
-    Cookie.set( 'zmMontageLayout', $(element).getValue(), { duration: 10*365 } );
+    Cookie.write( 'zmMontageLayout', $(element).get('value'), { duration: 10*365 } );
 }
 
 var monitors = new Array();

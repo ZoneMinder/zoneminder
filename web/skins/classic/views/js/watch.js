@@ -28,7 +28,7 @@ function showPtzControls()
 
 function changeScale()
 {
-    var scale = $('scale').getValue();
+    var scale = $('scale').get('value');
     var newWidth = ( monitorWidth * scale ) / SCALE_BASE;
     var newHeight = ( monitorHeight * scale ) / SCALE_BASE;
 
@@ -501,14 +501,14 @@ function getEventCmdResponse( respObj, respText )
         {
             if ( !rows[i].hasClass( 'updated' ) )
             {
-                rows[i].remove();
+                rows[i].destroy();
                 rows.splice( i, 1 );
                 i--;
             }
         }
         while ( rows.length > maxDisplayEvents )
         {
-            rows[rows.length-1].remove();
+            rows[rows.length-1].destroy();
             rows.length--;
         }
     }

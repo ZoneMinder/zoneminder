@@ -130,7 +130,7 @@ public:
 	int Capture( Image &image );
 	int PostCapture();
 
-	static bool GetCurrentSettings( const char *device, char *output, bool verbose );
+	static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
 };
 
 #endif // ZM_LOCAL_CAMERA_H

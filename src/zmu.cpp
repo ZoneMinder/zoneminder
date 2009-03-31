@@ -35,7 +35,8 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -v, --verbose                  : Produce more verbose output\n" );
 	fprintf( stderr, "  -l, --list                     : List the current status of active (or all with -v) monitors\n" );
 	fprintf( stderr, "Options for use with devices:\n" );
-	fprintf( stderr, "  -d, --device <device_path>     : Get the current video device settings for <device_path>\n" );
+	fprintf( stderr, "  -d, --device [device_path]     : Get the current video device settings for [device_path] or all devices\n" );
+	fprintf( stderr, "  -V, --version <V4L version>    : Set the Video 4 Linux API version to use for the query, use 1 or 2\n" );
 	fprintf( stderr, "  -q, --query                    : Query the current settings for the device\n" );
 	fprintf( stderr, "Options for use with monitors:\n" );
 	fprintf( stderr, "  -m, --monitor <monitor_id>     : Specify which monitor to address, default 1 if absent\n" );
@@ -138,7 +139,7 @@ bool ValidateAccess( User *user, int mon_id, int function )
 int main( int argc, char *argv[] )
 {
 	static struct option long_options[] = {
-		{"device", 1, 0, 'd'},
+		{"device", 2, 0, 'd'},
 		{"monitor", 1, 0, 'm'},
 		{"verbose", 0, 0, 'v'},
 		{"image", 2, 0, 'i'},
@@ -165,12 +166,14 @@ int main( int argc, char *argv[] )
 		{"query", 0, 0, 'q'},
 		{"username", 1, 0, 'U'},
 		{"password", 1, 0, 'P'},
+		{"auth", 1, 0, 'A'},
+		{"version", 1, 0, 'V'},
 		{"help", 0, 0, 'h'},
 		{"list", 0, 0, 'l'},
 		{0, 0, 0, 0}
 	};
 
-	const char *device = "";
+	const char *device = 0;
 	int mon_id = 0;
 	bool verbose = false;
 	int function = ZMU_BOGUS;
@@ -181,15 +184,20 @@ int main( int argc, char *argv[] )
 	int contrast = -1;
 	int hue = -1;
 	int colour = -1;
-	char *zone_string = 0;
+	char *zoneString = 0;
 	char *username = 0;
 	char *password = 0;
 	char *auth = 0;
+#ifdef ZM_V4L2
+    int v4lVersion = 2;
+#else // ZM_V4L2
+    int v4lVersion = 1;
+#endif // ZM_V4L2
 	while (1)
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:V:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -198,7 +206,8 @@ int main( int argc, char *argv[] )
 		switch (c)
 		{
 			case 'd':
-				device = optarg;
+                if ( optarg )
+				    device = optarg;
 				break;
 			case 'm':
 				mon_id = atoi(optarg);
@@ -212,9 +221,7 @@ int main( int argc, char *argv[] )
 			case 'i':
 				function |= ZMU_IMAGE;
 				if ( optarg )
-				{
 					image_idx = atoi( optarg );
-				}
 				break;
 			case 'S':
 				scale = atoi(optarg);
@@ -222,9 +229,7 @@ int main( int argc, char *argv[] )
 			case 't':
 				function |= ZMU_TIME;
 				if ( optarg )
-				{
 					image_idx = atoi( optarg );
-				}
 				break;
 			case 'R':
 				function |= ZMU_READ_IDX;
@@ -241,9 +246,7 @@ int main( int argc, char *argv[] )
 			case 'z':
 				function |= ZMU_ZONES;
 				if ( optarg )
-				{
-					zone_string = optarg;
-				}
+					zoneString = optarg;
 				break;
 			case 'a':
 				function |= ZMU_ALARM;
@@ -275,30 +278,22 @@ int main( int argc, char *argv[] )
 			case 'B':
 				function |= ZMU_BRIGHTNESS;
 				if ( optarg )
-				{
 					brightness = atoi( optarg );
-				}
 				break;
 			case 'C':
 				function |= ZMU_CONTRAST;
 				if ( optarg )
-				{
 					contrast = atoi( optarg );
-				}
 				break;
 			case 'H':
 				function |= ZMU_HUE;
 				if ( optarg )
-				{
 					hue = atoi( optarg );
-				}
 				break;
 			case 'O':
 				function |= ZMU_COLOUR;
 				if ( optarg )
-				{
 					colour = atoi( optarg );
-				}
 				break;
 			case 'U':
 				username = optarg;
@@ -308,6 +303,9 @@ int main( int argc, char *argv[] )
 				break;
 			case 'A':
 				auth = optarg;
+				break;
+			case 'V':
+				v4lVersion = (atoi(optarg)==1)?1:2;
 				break;
 			case 'h':
 				Usage( 0 );
@@ -333,7 +331,7 @@ int main( int argc, char *argv[] )
 		Usage();
 	}
 
-	if ( device[0] && !(function&ZMU_QUERY) )
+	if ( device && !(function&ZMU_QUERY) )
 	{
 		fprintf( stderr, "Error, -d option cannot be used with this option\n" );
 		Usage();
@@ -401,17 +399,7 @@ int main( int argc, char *argv[] )
 	}
 	
 
-	if ( device[0] )
-	{
-		if ( function & ZMU_QUERY )
-		{
-			char vid_string[BUFSIZ] = "";
-			bool ok = LocalCamera::GetCurrentSettings( device, vid_string, verbose );
-			printf( "%s", vid_string );
-			exit( ok?0:-1 );
-		}
-	}
-	else if ( mon_id > 0 )
+	if ( mon_id > 0 )
 	{
 		Monitor *monitor = Monitor::Load( mon_id, function&(ZMU_QUERY|ZMU_ZONES), Monitor::QUERY );
 		if ( monitor )
@@ -516,7 +504,7 @@ int main( int argc, char *argv[] )
 			{
 				if ( verbose )
 					printf( "Dumping zone image to %s-Zones.jpg\n", monitor->Name() );
-				monitor->DumpZoneImage( zone_string );
+				monitor->DumpZoneImage( zoneString );
 			}
 			if ( function & ZMU_ALARM )
 			{
@@ -568,9 +556,9 @@ int main( int argc, char *argv[] )
 			}
 			if ( function & ZMU_QUERY )
 			{
-				char mon_string[16382] = "";
-				monitor->DumpSettings( mon_string, verbose );
-				printf( "%s\n", mon_string );
+				char monString[16382] = "";
+				monitor->DumpSettings( monString, verbose );
+				printf( "%s\n", monString );
 			}
 			if ( function & ZMU_BRIGHTNESS )
 			{
@@ -666,6 +654,14 @@ int main( int argc, char *argv[] )
 	}
 	else
 	{
+		if ( function & ZMU_QUERY )
+		{
+			char vidString[0x10000] = "";
+			bool ok = LocalCamera::GetCurrentSettings( device, vidString, v4lVersion, verbose );
+			printf( "%s", vidString );
+			exit( ok?0:-1 );
+		}
+
 		if ( function & ZMU_LIST )
 		{
 			char sql[BUFSIZ];

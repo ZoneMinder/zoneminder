@@ -1,4 +1,4 @@
-var events = new Object();
+var events = new Hash();
 
 function showEvent( eid, fid, width, height )
 {
@@ -67,7 +67,7 @@ function frameDataResponse( respObj, respText )
     }
 
     if ( !event['frames'] )
-        event['frames'] = new Object();
+        event['frames'] = new Hash();
 
     event['frames'][frame.FrameId] = frame;
     event['frames'][frame.FrameId]['html'] = createEventHtml( event, frame );

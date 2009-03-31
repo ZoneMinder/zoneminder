@@ -445,7 +445,7 @@ function getFrameResponse( respObj, respText )
     }
 
     if ( !event['frames'] )
-        event['frames'] = new Object();
+        event['frames'] = new Hash();
 
     event['frames'][frame.FrameId] = frame;
     
@@ -470,7 +470,7 @@ function checkFrames( eventId, frameId, loadImage )
     }
 
     if ( !event['frames'] )
-        event['frames'] = new Object();
+        event['frames'] = new Hash();
 
     currFrameId = frameId;
 
@@ -594,7 +594,7 @@ function actQuery( action, parms )
     var actParms = "view=request&request=event&id="+event.Id+"&action="+action;
     if ( parms != null )
     {
-        actParms += "&"+Object.toQueryString( parms );
+        actParms += "&"+Hash.toQueryString( parms );
     }
     var actReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: actParms, onSuccess: getActResponse } );
     actReq.send();

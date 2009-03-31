@@ -5,7 +5,7 @@ var defaultAspectRatio = '<?= ZM_DEFAULT_ASPECT_RATIO ?>';
 if ( ZM_OPT_CONTROL )
 {
 ?>
-var controlOptions = new Object();
+var controlOptions = new Hash();
 <?php
     global $controlTypes;
     $controlTypes = array( ''=>$SLANG['None'] );

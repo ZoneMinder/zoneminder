@@ -780,7 +780,11 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
                     capString( vid_cap.capabilities&V4L2_CAP_VBI_OUTPUT,            "    ", "Supports", "Does not support", "VBI output" ),
                     capString( vid_cap.capabilities&V4L2_CAP_SLICED_VBI_CAPTURE,    "    ", "Supports", "Does not support", "sliced VBI capture" ),
                     capString( vid_cap.capabilities&V4L2_CAP_SLICED_VBI_OUTPUT,     "    ", "Supports", "Does not support", "sliced VBI output" ),
+#ifdef V4L2_CAP_VIDEO_OUTPUT_OVERLAY
                     capString( vid_cap.capabilities&V4L2_CAP_VIDEO_OUTPUT_OVERLAY,  "    ", "Supports", "Does not support", "video output overlay" ),
+#else // V4L2_CAP_VIDEO_OUTPUT_OVERLAY
+                    "",
+#endif // V4L2_CAP_VIDEO_OUTPUT_OVERLAY
                     capString( vid_cap.capabilities&V4L2_CAP_TUNER,                 "    ", "Has", "Does not have", "tuner" ),
                     capString( vid_cap.capabilities&V4L2_CAP_AUDIO,                 "    ", "Has", "Does not have", "audio in and/or out" ),
                     capString( vid_cap.capabilities&V4L2_CAP_RADIO,                 "    ", "Has", "Does not have", "radio" ),

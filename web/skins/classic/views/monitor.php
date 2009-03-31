@@ -48,16 +48,17 @@ if ( !empty($_REQUEST['mid']) )
 }
 else
 {
+    $nextId = getTableAutoInc( 'Monitors' );
     $monitor = array(
         'Id' => 0,
-        'Name' => $SLANG['New'],
+        'Name' => $SLANG['Monitor'].'-'.$nextId,
         'Function' => "Monitor",
         'Enabled' => true,
         'LinkedMonitors' => "",
         'Type' => "Local",
         'Device' => "/dev/video",
         'Channel' => "0",
-        'Format' => "0",
+        'Format' => "",
         'Protocol' => "",
         'Method' => "",
         'Host' => "",
@@ -180,7 +181,7 @@ if ( !ZM_PCRE )
 unset($httpMethods['jpegTags']);
 
 $v4l1DeviceFormats = array(
-    $SLANG['Undefined'] => -1,
+    $SLANG['Undefined'] => '',
     "PAL"   => 0,
     "NTSC"  => 1,
     "SECAM" => 2,
@@ -197,7 +198,7 @@ for ( $i = 0; $i <= $v4l1MaxChannels; $i++ )
     $v4l1DeviceChannels["$i"] = $i;
 
 $v4l1LocalPalettes = array(
-    $SLANG['Undefined'] => 0,
+    $SLANG['Undefined'] => '',
     $SLANG['Grey']      => 1,
     "RGB24"             => 4,
     "RGB565"            => 3,
@@ -211,7 +212,7 @@ $v4l1LocalPalettes = array(
 if ( ZM_V4L2 )
 {
     $v4l2DeviceFormats = array(
-        $SLANG['Undefined'] => 0,
+        $SLANG['Undefined'] => '',
         "PAL"         => 0x000000ff,
         "NTSC"        => 0x0000b000,
         "PAL B"       => 0x00000001,
@@ -253,7 +254,7 @@ if ( ZM_V4L2 )
     }
 
     $v4l2LocalPalettes = array(
-        $SLANG['Undefined'] => 0,
+        $SLANG['Undefined'] => '',
 
         /*      Pixel format         FOURCC                        depth  Description  */
         //"RGB332" =>   fourcc('R','G','B','1'), /*  8  RGB-3-3-2     */

@@ -38,12 +38,30 @@ controlOptions[<?= $row['Id'] ?>][<?= $i ?>] = '<?= $SLANG['Preset'].' '.$i ?>';
 }
 ?>
 
+<?php
+if ( empty($_REQUEST['mid']) )
+{
+?>
+var monitorNames = new Hash();
+<?php
+    foreach ( dbFetchAll( "select Name from Monitors order by Name asc", "Name" ) as $name )
+    {
+?>
+monitorNames['<?= validJsStr($name) ?>'] = true;
+<?php
+    }
+}
+?>
+
 function validateForm( form )
 {
     var errors = new Array();
 
     if ( form.elements['newMonitor[Name]'].value.search( /[^\w-]/ ) >= 0 )
         errors[errors.length] = "<?= $SLANG['BadNameChars'] ?>";
+    else if ( form.elements.mid.value == 0 && monitorNames[form.elements['newMonitor[Name]'].value] )
+        errors[errors.length] = "<?= $SLANG['DuplicateMonitorName'] ?>";
+        
     if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) > 0 ) )
         errors[errors.length] = "<?= $SLANG['BadMaxFPS'] ?>";
     if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) > 0 ) )
@@ -73,6 +91,8 @@ function validateForm( form )
         if ( !form.elements['newMonitor[Path]'].value )
             errors[errors.length] = "<?= $SLANG['BadPath'] ?>";
     }
+    if ( !form.elements['newMonitor[Palette]'].value || !form.elements['newMonitor[Palette]'].value.match( /^\d+$/ ) )
+        errors[errors.length] = "<?= $SLANG['BadPalette'] ?>";
     if ( !form.elements['newMonitor[Width]'].value || !(parseInt(form.elements['newMonitor[Width]'].value) > 0 ) )
         errors[errors.length] = "<?= $SLANG['BadWidth'] ?>";
     if ( !form.elements['newMonitor[Height]'].value || !(parseInt(form.elements['newMonitor[Height]'].value) > 0 ) )

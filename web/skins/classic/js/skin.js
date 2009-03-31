@@ -62,6 +62,7 @@ var popupSizes = {
     'logout':       { 'width': 240, 'height': 100 },
     'monitor':      { 'width': 380, 'height': 364 },
     'monitorpreset':{ 'width': 400, 'height': 200 },
+    'monitorprobe': { 'width': 500, 'height': 240 },
     'monitorselect':{ 'width': 160, 'height': 200 },
     'montage':      { 'width': -1, 'height': -1 },
     'optionhelp':   { 'width': 320, 'height': 330 },

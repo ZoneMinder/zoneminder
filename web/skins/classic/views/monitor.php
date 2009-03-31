@@ -113,6 +113,11 @@ if ( ZM_OPT_X10 && empty($x10Monitor) )
     );
 }
 
+function fourcc( $a, $b, $c, $d )
+{
+    return( ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24) );
+}
+
 if ( isset( $_REQUEST['newMonitor'] ) )
 {
     $newMonitor = $_REQUEST['newMonitor'];
@@ -141,6 +146,27 @@ if ( !empty($_REQUEST['preset']) )
         {
             $newMonitor[$name] = $value;
         }
+    }
+}
+if ( !empty($_REQUEST['probe']) )
+{
+    $probe = unserialize( $_REQUEST['probe'] );
+    foreach ( $probe as $name=>$value )
+    {
+        if ( isset($value) )
+        {
+            $newMonitor[$name] = $value;
+        }
+    }
+    if ( $newMonitor['Type'] == 'Local' )
+    {
+        $newMonitor['Palette'] = fourCC( substr($newMonitor['Palette'],0,1), substr($newMonitor['Palette'],1,1), substr($newMonitor['Palette'],2,1), substr($newMonitor['Palette'],3,1) );
+        if ( $newMonitor['Format'] == 'PAL' )
+            $newMonitor['Format'] = 0x000000ff;
+        elseif ( $newMonitor['Format'] == 'NTSC' )
+            $newMonitor['Format'] = 0x0000b000;
+        else
+            $newMonitor['Format'] = '';
     }
 }
 
@@ -248,11 +274,6 @@ if ( ZM_V4L2 )
     for ( $i = 0; $i <= $v4l2MaxChannels; $i++ )
         $v4l2DeviceChannels["$i"] = $i;
 
-    function fourcc( $a, $b, $c, $d )
-    {
-        return( ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24) );
-    }
-
     $v4l2LocalPalettes = array(
         $SLANG['Undefined'] => '',
 
@@ -344,6 +365,7 @@ if ( canEdit( 'Monitors' ) )
 {
 ?>
       <div id="headerButtons">
+        <a href="#" onclick="createPopup( '?view=monitorprobe&mid=<?= $monitor['Id'] ?>', 'zmMonitorProbe<?= $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?= $SLANG['Probe'] ?></a>
         <a href="#" onclick="createPopup( '?view=monitorpreset&mid=<?= $monitor['Id'] ?>', 'zmMonitorPreset<?= $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?= $SLANG['Presets'] ?></a>
       </div>
 <?php
@@ -407,7 +429,6 @@ if ( $tab != 'source' || $newMonitor['Type'] != 'Local' )
     <input type="hidden" name="newMonitor[Device]" value="<?= validHtmlStr($newMonitor['Device']) ?>"/>
     <input type="hidden" name="newMonitor[Channel]" value="<?= validHtmlStr($newMonitor['Channel']) ?>"/>
     <input type="hidden" name="newMonitor[Format]" value="<?= validHtmlStr($newMonitor['Format']) ?>"/>
-    <input type="hidden" name="newMonitor[Palette]" value="<?= validHtmlStr($newMonitor['Palette']) ?>"/>
 <?php
 }
 if ( $tab != 'source' || $newMonitor['Type'] != 'Remote' )
@@ -434,6 +455,7 @@ if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type']
 if ( $tab != 'source' )
 {
 ?>
+    <input type="hidden" name="newMonitor[Palette]" value="<?= validHtmlStr($newMonitor['Palette']) ?>"/>
     <input type="hidden" name="newMonitor[Width]" value="<?= validHtmlStr($newMonitor['Width']) ?>"/>
     <input type="hidden" name="newMonitor[Height]" value="<?= validHtmlStr($newMonitor['Height']) ?>"/>
     <input type="hidden" name="newMonitor[Orientation]" value="<?= validHtmlStr($newMonitor['Orientation']) ?>"/>

@@ -27,6 +27,7 @@ dist_web_DATA = \
 	monitor.js \
 	monitor.js.php \
 	monitorpreset.js \
+	monitorprobe.js \
 	montage.js \
 	montage.js.php \
 	options.js.php \

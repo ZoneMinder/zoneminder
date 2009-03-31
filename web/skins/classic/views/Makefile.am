@@ -35,6 +35,7 @@ dist_web_DATA = \
 	Makefile.am \
 	monitor.php \
 	monitorpreset.php \
+	monitorprobe.php \
 	montage.php \
 	none.php \
 	optionhelp.php \

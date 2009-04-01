@@ -179,6 +179,7 @@ webdir = @WEB_PREFIX@/skins/classic/views/js
 dist_web_DATA = \
 	console.js \
 	console.js.php \
+	control.js \
 	controlpreset.js \
 	controlpreset.js.php \
 	cycle.js \

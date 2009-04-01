@@ -46,7 +46,7 @@ var popupSizes = {
     'device':       { 'width': 260, 'height': 150 },
     'devices':      { 'width': 400, 'height': 240 },
     'donate':       { 'width': 500, 'height': 280 },
-    'event':        { 'addWidth': 96, 'minWidth': 480, 'addHeight': 200, minHeight: 540 },
+    'event':        { 'addWidth': 108, 'minWidth': 496, 'addHeight': 200, minHeight: 540 },
     'eventdetail':  { 'width': 400, 'height': 220 },
     'events':       { 'width': 760, 'height': 480 },
     'export':       { 'width': 400, 'height': 340 },

@@ -320,8 +320,6 @@ function updateStillsSizes()
 {
     var containerDim = $('eventThumbs').getStyles( 'width', 'height' );
     var popupDim = $('eventImageFrame').getStyles( 'width', 'height' );
-    console.log( containerDim );
-    console.log( popupDim );
 
     var containerWidth = containerDim.width.match( /^\d+/ );
     var containerHeight = containerDim.height.match( /^\d+/ );
@@ -335,8 +333,6 @@ function updateStillsSizes()
     var top = (containerHeight - popupHeight)/2;
     if ( top < 0 ) top = 0;
 
-    console.log( "Top: "+top+", Left: "+left );
-
     $('eventImagePanel').setStyles( {
         'left': left,
         'top': top
@@ -345,7 +341,7 @@ function updateStillsSizes()
 
 function loadEventImage( event, frame )
 {
-    console.log( "Loading "+event.Id+"/"+frame.FrameId );
+    console.debug( "Loading "+event.Id+"/"+frame.FrameId );
     var eventImg = $('eventImage');
     var thumbImg = $('eventThumb'+frame.FrameId);
     if ( eventImg.getProperty( 'src' ) != thumbImg.getProperty( 'src' ) )
@@ -379,7 +375,7 @@ function loadEventImage( event, frame )
             eventImagePanel.setOpacity( 0 );
             updateStillsSizes();
             eventImagePanel.setStyle( 'display', 'block' );
-            new Fx.Style( eventImagePanel, 'opacity',{ duration: 500, transition: Fx.Transitions.sineInOut } ).start( 0, 1 );
+            new Fx.Tween( eventImagePanel, { duration: 500, transition: Fx.Transitions.Sine } ).start( 'opacity', 0, 1 );
         }
 
         $('eventImageNo').set( 'text', frame.FrameId );
@@ -403,7 +399,7 @@ function hideEventImageComplete()
 function hideEventImage()
 {
     if ( $('eventImagePanel').getStyle( 'display' ) != 'none' )
-        new Fx.Style( $('eventImagePanel'), 'opacity',{ duration: 500, transition: Fx.Transitions.sineInOut, onSuccess: hideEventImageComplete } ).start( 1, 0 );
+        new Fx.Tween( $('eventImagePanel'), { duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete } ).start( 'opacity', 1, 0 );
 }
 
 function resetEventStills()
@@ -417,17 +413,13 @@ function resetEventStills()
             onChange: function( step )
             {
                 var fid = step + 1;
-                console.log( 'FID:'+step );
                 checkFrames( event.Id, fid );
                 scroll.toElement( 'eventThumb'+fid );
             }
         } ).set( 0 );
     }
-    console.log( "H1: "+$('eventThumbs').getStyle( 'height' ).match( /^\d+/ ) );
-    console.log( "H2 :"+(event.Height+80) );
     if ( $('eventThumbs').getStyle( 'height' ).match( /^\d+/ ) < (parseInt(event.Height)+80) )
     {
-        console.log( "Resizing" );
         $('eventThumbs').setStyle( 'height', (parseInt(event.Height)+80)+'px' );
     }
 }
@@ -435,8 +427,6 @@ function resetEventStills()
 function getFrameResponse( respObj, respText )
 {
     var frame = respObj.frameimage;
-
-    //console.log( 'Got response for frame '+frame.FrameId );
 
     if ( !event )
     {
@@ -483,10 +473,8 @@ function checkFrames( eventId, frameId, loadImage )
 
     for ( var fid = loFid; fid <= hiFid; fid++ )
     {
-        console.log( 'Checking frame '+fid );
         if ( !$('eventThumb'+fid) )
         {
-            console.log( 'Creating frame placeholder '+fid );
             var img = new Element( 'img', { 'id': 'eventThumb'+fid, 'src': 'graphics/transparent.gif', 'alt': fid, 'class': 'placeholder' } );
             img.addEvent( 'click', function () { event['frames'][fid] = null; checkFrames( eventId, frameId ) } );
             frameQuery( eventId, fid, loadImage && (fid == frameId) );
@@ -494,7 +482,6 @@ function checkFrames( eventId, frameId, loadImage )
             var injected = false;
             if ( fid < imgs.length )
             {
-                //console.log( "Injecting "+fid+" at "+(fid-1)+", length "+imgs.length );
                 img.injectBefore( imgs[fid-1] );
                 injected = true;
             }
@@ -505,7 +492,6 @@ function checkFrames( eventId, frameId, loadImage )
                     {
                         if ( parseInt(img.getProperty( 'alt' )) < parseInt(thumbImg.getProperty( 'alt' )) )
                         {
-                            //console.log( "Injecting "+fid+" at index "+index+", length "+imgs.length );
                             img.injectBefore( thumbImg );
                             return( true );
                         }
@@ -515,7 +501,6 @@ function checkFrames( eventId, frameId, loadImage )
             }
             if ( !injected )
             {
-                //console.log( "Injecting "+fid+", length "+imgs.length );
                 img.injectInside( $('eventThumbs') );
             }
         }

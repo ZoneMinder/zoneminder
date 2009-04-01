@@ -1,6 +1,6 @@
 <?php
 
-define( "MSG_TIMEOUT", 2.0 );
+define( "MSG_TIMEOUT", 5.0 );
 define( "MSG_DATA_SIZE", 4+256 );
 
 if ( !($_REQUEST['connkey'] && $_REQUEST['command']) )
@@ -58,12 +58,16 @@ $numSockets = @socket_select( $rSockets, $wSockets, $eSockets, MSG_TIMEOUT );
 
 if ( $numSockets === false)
 {
+    ajaxError( "socket_select failed: ".socket_strerror(socket_last_error()) );
+}
+else if ( $numSockets == 0 )
+{
     ajaxError( "Timed out waiting for msg"  );
 }
 else if ( $numSockets > 0 )
 {
     if ( count($rSockets) != 1 )
-        ajaxError( "Bogus return from select" );
+        ajaxError( "Bogus return from select, ".count($rSockets)." sockets available" );
 }
 
 switch( $nbytes = @socket_recvfrom( $socket, $msg, MSG_DATA_SIZE, 0, $remSockFile ) )

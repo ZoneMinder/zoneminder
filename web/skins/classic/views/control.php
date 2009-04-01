@@ -32,6 +32,8 @@ if ( !empty($_REQUEST['group']) )
     $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 
+$mid = validInt($_REQUEST['mid']);
+
 $sql = "select * from Monitors where Function != 'None' and Controllable = 1$groupSql order by Sequence";
 $mids = array();
 foreach( dbFetchAll( $sql ) as $row )

@@ -32,7 +32,8 @@ function changeScale()
     var newWidth = ( monitorWidth * scale ) / SCALE_BASE;
     var newHeight = ( monitorHeight * scale ) / SCALE_BASE;
 
-    streamCmdScale( scale );
+    // This causes FF3 to kill the stream now, ok with FF2
+    //streamCmdScale( scale );
 
     var streamImg = $('imageFeed').getElement('img');
     if ( !streamImg )

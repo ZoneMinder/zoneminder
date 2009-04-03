@@ -67,7 +67,7 @@ protected:
     int replay_rate;
     int scale;
     int zoom;
-    int maxfps;
+    double maxfps;
     int bitrate;
     unsigned short x, y;
 
@@ -85,8 +85,8 @@ protected:
 
     struct timeval now;
 
-    int base_fps;
-    int effective_fps;
+    double base_fps;
+    double effective_fps;
     int frame_mod;
 
     double last_frame_sent;
@@ -132,8 +132,8 @@ public:
         memset( &rem_sock_path, 0, sizeof(rem_sock_path) );
         memset( &rem_addr, 0, sizeof(rem_addr) );
 
-        base_fps = 0;
-        effective_fps = 0;
+        base_fps = 0.0;
+        effective_fps = 0.0;
         frame_mod = 1;
 
 #if HAVE_LIBAVCODEC     
@@ -158,7 +158,7 @@ public:
     {
         replay_rate = p_rate;
     }
-	void setStreamMaxFPS( int p_maxfps )
+	void setStreamMaxFPS( double p_maxfps )
     {
         maxfps = p_maxfps;
     }

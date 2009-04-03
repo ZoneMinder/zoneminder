@@ -61,7 +61,7 @@ int main( int argc, const char *argv[] )
 	int frame_id = 1;
 	unsigned int scale = 100;
 	unsigned int rate = 100;
-	unsigned int maxfps = 10;
+	double maxfps = 10.0;
 	unsigned int bitrate = 100000;
 	unsigned int ttl = 0;
     EventStream::StreamMode replay = EventStream::MODE_SINGLE;
@@ -134,7 +134,7 @@ int main( int argc, const char *argv[] )
 			else if ( !strcmp( name, "rate" ) )
 				rate = atoi( value );
 			else if ( !strcmp( name, "maxfps" ) )
-				maxfps = atoi( value );
+				maxfps = atof( value );
 			else if ( !strcmp( name, "bitrate" ) )
 				bitrate = atoi( value );
 			else if ( !strcmp( name, "ttl" ) )

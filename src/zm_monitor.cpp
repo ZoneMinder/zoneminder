@@ -3179,12 +3179,12 @@ void MonitorStream::processCommand( const CmdMsg *msg )
     status_msg.msg_type = MSG_DATA_WATCH;
     memcpy( &status_msg.msg_data, &status_data, sizeof(status_msg.msg_data) );
     int nbytes = 0;
-    if ( (nbytes = sendto( sd, &status_msg, sizeof(status_msg), 0, (sockaddr *)&rem_addr, sizeof(rem_addr) )) < 0 )
+    if ( (nbytes = sendto( sd, &status_msg, sizeof(status_msg), MSG_DONTWAIT, (sockaddr *)&rem_addr, sizeof(rem_addr) )) < 0 )
     {
         //if ( errno != EAGAIN )
         {
             Error( "Can't sendto on sd %d: %s", sd, strerror(errno) );
-            exit( -1 );
+            //exit( -1 );
         }
     }
 
@@ -3223,6 +3223,10 @@ bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
             return( false );
         }
 
+        // Calculate how long it takes to actually send the frame
+        struct timeval frameStartTime;
+        gettimeofday( &frameStartTime, NULL );
+        
         fprintf( stdout, "--ZoneMinderFrame\r\n" );
         fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
         fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
@@ -3233,6 +3237,16 @@ bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
         }
         fprintf( stdout, "\r\n\r\n" );
         fflush( stdout );
+
+        struct timeval frameEndTime;
+        gettimeofday( &frameEndTime, NULL );
+
+        int frameSendTime = tvDiffMsec( frameStartTime, frameEndTime );
+        if ( frameSendTime > 1000/maxfps )
+        {
+            maxfps /= 2;
+            Error( "Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps );
+        }
 
         last_frame_sent = TV_2_FLOAT( now );
 
@@ -3274,6 +3288,10 @@ bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
 	    int img_buffer_size = 0;
         unsigned char *img_buffer = temp_img_buffer;
 
+        // Calculate how long it takes to actually send the frame
+        struct timeval frameStartTime;
+        gettimeofday( &frameStartTime, NULL );
+        
         fprintf( stdout, "--ZoneMinderFrame\r\n" );
         switch( type )
         {
@@ -3304,6 +3322,16 @@ bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
         }
         fprintf( stdout, "\r\n\r\n" );
         fflush( stdout );
+
+        struct timeval frameEndTime;
+        gettimeofday( &frameEndTime, NULL );
+
+        int frameSendTime = tvDiffMsec( frameStartTime, frameEndTime );
+        if ( frameSendTime > 1000/maxfps )
+        {
+            maxfps /= 1.5;
+            Error( "Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps );
+        }
     }
     last_frame_sent = TV_2_FLOAT( now );
     return( true );

@@ -52,17 +52,17 @@ bool StreamBase::checkInitialised()
 
 void StreamBase::updateFrameRate( double fps )
 {
-    base_fps = (int)(fps);
+    base_fps = fps;
     effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
     frame_mod = 1;
-    Debug( 3, "FPS:%.2f, MXFPS:%d, BFPS:%d, EFPS:%d, FM:%d", fps, maxfps, base_fps, effective_fps, frame_mod );
+    Debug( 3, "FPS:%.2f, MXFPS:%.2f, BFPS:%.2f, EFPS:%.2f, FM:%d", fps, maxfps, base_fps, effective_fps, frame_mod );
     // Min frame repeat?
     while( effective_fps > maxfps )
     {
-        effective_fps /= 2;
-        frame_mod *= 2;
+        effective_fps /= 2.0;
+        frame_mod *= 2.0;
     }
-    Debug( 3, "aEFPS:%d, aFM:%d", effective_fps, frame_mod );
+    Debug( 3, "aEFPS:%.2f, aFM:%d", effective_fps, frame_mod );
 }
 
 bool StreamBase::checkCommandQueue()

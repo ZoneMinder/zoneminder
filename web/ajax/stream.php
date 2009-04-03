@@ -1,6 +1,6 @@
 <?php
 
-define( "MSG_TIMEOUT", 5.0 );
+define( "MSG_TIMEOUT", ZM_WEB_AJAX_TIMEOUT );
 define( "MSG_DATA_SIZE", 4+256 );
 
 if ( !($_REQUEST['connkey'] && $_REQUEST['command']) )

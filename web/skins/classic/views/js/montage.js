@@ -87,8 +87,7 @@ function Monitor( index, id, connKey )
         this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
     }
 
-    this.streamCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onComplete: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this ), 'autoCancel': true } );
-
+    this.streamCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onComplete: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this ), autoCancel: true } );
 }
 
 function selectLayout( element )

@@ -23,34 +23,29 @@ else
     /*
      * Ajax class extenstion to allow for request timeouts
      */
-    Request = Request.extend({
-        request: function( data )
+    Request.implement({
+        send: function( data )
         {
             if ( this.options.timeout )
             {
                 if ( this.timeoutTimer )
-                {
                     this.removeTimer();
-                }
-                this.timeoutTimer = window.setTimeout( this.callTimeout.bindAsEventListener(this), this.options.timeout );
+                this.timeoutTimer = this.timedOut.delay( this.options.timeout, this );
                 this.addEvent( 'onComplete', this.removeTimer );
             }
-            this.parent( data );
+            var sender = this.get('send');
+            sender.send( data );
+            return( this );
         },
-
-        callTimeout: function ()
+        timedOut: function ()
         {
-            this.transport.abort();
-            this.onFailure();
             if ( this.options.onTimeout )
-            {
                 this.options.onTimeout();
-            }
+            this.cancel();
         },
-
         removeTimer: function()
         {
-            window.clearTimeout( this.timeoutTimer );
+            $clear( this.timeoutTimer );
             this.timeoutTimer = 0;
         }
     });

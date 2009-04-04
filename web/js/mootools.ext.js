@@ -24,32 +24,30 @@ else
      * Ajax class extenstion to allow for request timeouts
      */
     Request.implement({
-        Xsend: function( data )
+        send: function( data )
         {
             if ( this.options.timeout )
             {
                 if ( this.timeoutTimer )
                     this.removeTimer();
                 this.timeoutTimer = this.timedOut.delay( this.options.timeout, this );
-                console.log( "Sending, timeout = "+time.timeoutTimer );
                 this.addEvent( 'onComplete', this.removeTimer );
             }
-            var sender = this.get('send');
-            sender.send( data );
+            this.parent( data );
             return( this );
         },
-        XtimedOut: function ()
+        timedOut: function ()
         {
-            console.log( "Timed out, "+this.timeoutTimer );
             this.cancel();
             if ( this.options.onTimeout )
                 this.options.onTimeout();
+            return( this );
         },
-        XremoveTimer: function()
+        removeTimer: function()
         {
-            console.log( "Removing timer, "+this.timeoutTimer );
             $clear( this.timeoutTimer );
             this.timeoutTimer = 0;
+            return( this );
         }
     });
 }

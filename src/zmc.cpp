@@ -42,6 +42,8 @@ void Usage()
 
 int main( int argc, char *argv[] )
 {
+	srand( getpid() * time( 0 ) );
+
 	const char *device = "";
 	const char *protocol = "";
 	const char *host = "";

@@ -52,6 +52,8 @@ bool ValidateAccess( User *user, int mon_id )
 
 int main( int argc, const char *argv[] )
 {
+    srand( getpid() * time( 0 ) );
+
 	enum { ZMS_MONITOR, ZMS_EVENT } source = ZMS_MONITOR;
 	enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } mode = ZMS_JPEG;
 	char format[32] = "";

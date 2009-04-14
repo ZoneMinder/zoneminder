@@ -104,6 +104,8 @@ void Usage()
 
 int main( int argc, char *argv[] )
 {
+    srand( getpid() * time( 0 ) );
+
 	int id = -1;
 
 	static struct option long_options[] = {

@@ -138,6 +138,8 @@ bool ValidateAccess( User *user, int mon_id, int function )
 
 int main( int argc, char *argv[] )
 {
+    srand( getpid() * time( 0 ) );
+
 	static struct option long_options[] = {
 		{"device", 2, 0, 'd'},
 		{"monitor", 1, 0, 'm'},

@@ -74,7 +74,7 @@ xhtmlHeaders(__FILE__, $SLANG['SaveFilter'] );
         </p>
 <?php } ?>
         <p>
-          <label for="background"><?= $SLANG['BackgroundFilter'] ?></label><input type="checkbox" name="background" value="1"<?php if ( $filterData['Background'] ) { ?> checked="checked"<?php } ?>/>
+          <label for="background"><?= $SLANG['BackgroundFilter'] ?></label><input type="checkbox" name="background" value="1"<?php if ( !empty($filterData['Background']) ) { ?> checked="checked"<?php } ?>/>
         </p>
         <div id="contentButtons">
           <input type="submit" value="<?= $SLANG['Save'] ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>

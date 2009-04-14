@@ -507,7 +507,6 @@ Monitor::Monitor(
 		linked_monitors = 0;
 		ReloadLinkedMonitors( p_linked_monitors );
 	}
-	srand( getpid() * time( 0 ) );
 }
 
 Monitor::~Monitor()
@@ -2362,9 +2361,9 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                     purpose==CAPTURE
                 );
             }
-#if HAVE_LIBAVFORMAT
             else if ( protocol == "rtsp" )
             {
+#if HAVE_LIBAVFORMAT
                 camera = new RemoteCameraRtsp(
                     id,
                     method.c_str(),
@@ -2381,8 +2380,10 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                     colour,
                     purpose==CAPTURE
                 );
-            }
+#else // HAVE_LIBAVFORMAT
+			    Fatal( "You must have ffmpeg libraries installed to use remote camera protocol '%s' for monitor %d", protocol.c_str(), id );
 #endif // HAVE_LIBAVFORMAT
+            }
             else
 		    {
 			    Fatal( "Unexpected remote camera protocol '%s' for monitor %d", protocol.c_str(), id );

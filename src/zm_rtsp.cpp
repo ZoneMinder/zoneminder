@@ -227,7 +227,7 @@ int RtspThread::run()
         //}
 
         message = "GET "+mPath+" HTTP/1.0\r\n";
-        message += "x-sessioncookie: "+mHttpSession+"\r\n";
+        message += "X-SessionCookie: "+mHttpSession+"\r\n";
         if ( !mAuth.empty() )
             message += stringtf( "Authorization: Basic %s\r\n", mAuth64.c_str() );
         message += "\r\n";
@@ -268,7 +268,7 @@ int RtspThread::run()
         }
 
         message = "POST "+mPath+" HTTP/1.0\r\n";
-        message += "x-sessioncookie: "+mHttpSession+"\r\n";
+        message += "X-SessionCookie: "+mHttpSession+"\r\n";
         if ( !mAuth.empty() )
             message += stringtf( "Authorization: Basic %s\r\n", mAuth64.c_str() );
         message += "Content-Length: 32767\r\n";

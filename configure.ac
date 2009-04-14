@@ -105,7 +105,7 @@ AC_ARG_WITH(webdir,
     [WEB_PREFIX=$with_webdir],
     AC_MSG_ERROR([You must call configure with the --with-webdir option.
     This tells configure where to install PHP and web files and scripts.
-    e.g. --with-webdir=/var/www/html or --with-mysql=/www/vhtdocs/<site>])
+    e.g. --with-webdir=/var/www/html or --with-webdir=/www/vhtdocs/<site>])
 )
 AC_SUBST(WEB_PREFIX)
 
@@ -114,7 +114,7 @@ AC_ARG_WITH(cgidir,
     [CGI_PREFIX=$with_cgidir],
     AC_MSG_ERROR([You must call configure with the --with-cgidir option.
     This tells configure where to install cgi files and scripts.
-    e.g. --with-cgidir=/var/www/cgi-bin or --with-mysql=/www/vhtdocs/<site>/cgi-bin])
+    e.g. --with-cgidir=/var/www/cgi-bin or --with-webdir=/www/vhtdocs/<site>/cgi-bin])
 )
 AC_SUBST(CGI_PREFIX)
 

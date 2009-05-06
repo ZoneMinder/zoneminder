@@ -373,7 +373,7 @@ foreach( dbFetchAll( $eventsSql ) as $event )
             }
             else
             {
-                $offset = 1 + ($event['Frames']?((int)($event['Frames']*(($i-$rawStartIndex)/($rawEndIndex-$rawStartIndex)))):0);
+                $offset = 1 + ($event['Frames']?((int)(($event['Frames']-1)*(($i-$rawStartIndex)/($rawEndIndex-$rawStartIndex)))):0);
             }
             $currEventSlots[$i] = array( "count"=>0, "width"=>1, "offset"=>$offset, "event"=>$event );
         }

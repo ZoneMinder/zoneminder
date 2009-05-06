@@ -221,7 +221,8 @@ if ( $status )
 foreach ( $output as $line )
 {
     if ( !preg_match( '/^(\S+) \(([\d.]+)\) at ([0-9a-f:]+)/', $line, $matches ) )
-        die( "Can't parse command output '$line'" );
+        next;
+        //die( "Can't parse command output '$line'" );
     $host = $matches[1];
     $ip = $matches[2];
     if ( !$host || $host == '?' )

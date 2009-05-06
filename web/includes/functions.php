@@ -1457,7 +1457,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&' )
             {
                 $filter['query'] .= $querySep."filter[terms][$i][cbr]=".urlencode($filter['terms'][$i]['cbr']);
                 $filter['sql'] .= " ".str_repeat( ")", $filter['terms'][$i]['cbr'] )." ";
-                $filter['fields'] .= "<input type=\"hidden\" \"name=filter[terms][$i][cbr]\" value=\"".htmlspecialchars($filter['terms'][$i]['cbr'])."\"/>\n";
+                $filter['fields'] .= "<input type=\"hidden\" name=filter[terms][$i][cbr]\" value=\"".htmlspecialchars($filter['terms'][$i]['cbr'])."\"/>\n";
             }
         }
         if ( $filter['sql'] )

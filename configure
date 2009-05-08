@@ -1954,10 +1954,10 @@ if test "${with_webdir+set}" = set; then
 else
   { { echo "$as_me:$LINENO: error: You must call configure with the --with-webdir option.
     This tells configure where to install PHP and web files and scripts.
-    e.g. --with-webdir=/var/www/html or --with-mysql=/www/vhtdocs/<site>" >&5
+    e.g. --with-webdir=/var/www/html or --with-webdir=/www/vhtdocs/<site>" >&5
 echo "$as_me: error: You must call configure with the --with-webdir option.
     This tells configure where to install PHP and web files and scripts.
-    e.g. --with-webdir=/var/www/html or --with-mysql=/www/vhtdocs/<site>" >&2;}
+    e.g. --with-webdir=/var/www/html or --with-webdir=/www/vhtdocs/<site>" >&2;}
    { (exit 1); exit 1; }; }
 
 fi;
@@ -1971,10 +1971,10 @@ if test "${with_cgidir+set}" = set; then
 else
   { { echo "$as_me:$LINENO: error: You must call configure with the --with-cgidir option.
     This tells configure where to install cgi files and scripts.
-    e.g. --with-cgidir=/var/www/cgi-bin or --with-mysql=/www/vhtdocs/<site>/cgi-bin" >&5
+    e.g. --with-cgidir=/var/www/cgi-bin or --with-webdir=/www/vhtdocs/<site>/cgi-bin" >&5
 echo "$as_me: error: You must call configure with the --with-cgidir option.
     This tells configure where to install cgi files and scripts.
-    e.g. --with-cgidir=/var/www/cgi-bin or --with-mysql=/www/vhtdocs/<site>/cgi-bin" >&2;}
+    e.g. --with-cgidir=/var/www/cgi-bin or --with-webdir=/www/vhtdocs/<site>/cgi-bin" >&2;}
    { (exit 1); exit 1; }; }
 
 fi;

@@ -206,8 +206,11 @@ else
               <input id="nextEventBtn" type="button" value="E&gt;" onclick="nextEvent()" disabled="disabled"/>
             </div>
           </div>
-          <div id="thumbsSlider">
-            <div id="thumbsKnob">
+          <div id="thumbsSliderPanel">
+            <div id="thumbsSlider">
+                <div id="thumbsKnob">
+                </div>
+              </div>
             </div>
           </div>
         </div>

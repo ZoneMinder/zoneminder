@@ -160,13 +160,13 @@
 }
 
 #eventThumbs img {
-    height: 80px;
+    height: 25px; /* HACK - Although this is pixels it will be interpreted as a scale %ge, so 25px = 25% scaling for thumbnails */
     margin: 2px;
     background-color: #dddddd;
 }
 
 #eventThumbs img.placeholder {
-    width: 100px;
+    /* width: 100px; */
 }
 
 #eventThumbs img.selected {
@@ -187,13 +187,11 @@
 }
 
 #eventImageBar {
-    width: 100%;
-    position: relative;
+    margin-top: 2px;
 }
 
 #eventImageStats {
-    position: absolute;
-    left: 0;
+    float: left;
 }
 
 #eventImageData {
@@ -202,8 +200,7 @@
 }
 
 #eventImageClose {
-    position: absolute;
-    right: 0;
+    float: right;
 }
 
 #eventImageNav {
@@ -215,12 +212,17 @@
     font-size: 16px;
 }
 
-#thumbsSlider {
+#thumbsSliderPanel {
+    width: 400px;
     margin: 4px auto 0;
+    background: #888888;
+    padding: 1px;
+}
+
+#thumbsSlider {
     width: 400px;
     height: 10px;
     background: #dddddd;
-    border: 1px solid #888888;
 }
 
 #thumbsKnob {

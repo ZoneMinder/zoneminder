@@ -318,7 +318,7 @@ function loadEventThumb( event, frame, loadImage )
                     thumbImg.removeClass( 'placeholder' );
                     thumbImg.setProperty( 'class', frame.Type=='Alarm'?'alarm':'normal' );
                     thumbImg.setProperty( 'title', frame.FrameId+' / '+((frame.Type=='Alarm')?frame.Score:0) );
-                    thumbImg.removeEvent( 'click' );
+                    thumbImg.removeEvents( 'click' );
                     thumbImg.addEvent( 'click', function() { locateImage( frame.FrameId, true ); } );
                     if ( loadImage )
                         loadEventImage( event, frame );
@@ -329,15 +329,12 @@ function loadEventThumb( event, frame, loadImage )
 
 function updateStillsSizes( noDelay )
 {
-    var containerDim = $('eventThumbs').getStyles( 'width', 'height' );
-    var popupDim = $('eventImageFrame').getStyles( 'width', 'height' );
+    var containerDim = $('eventThumbs').getSize();
 
-    var containerWidth = containerDim.width.match( /^\d+/ );
-    var containerHeight = containerDim.height.match( /^\d+/ );
-    //var popupWidth = popupDim.width.match( /^\d+/ );
-    //var popupHeight = popupDim.height.match( /^\d+/ );
-    var popupWidth = $('eventImage').width;
-    var popupHeight = $('eventImage').height;
+    var containerWidth = containerDim.x;
+    var containerHeight = containerDim.y;
+    var popupWidth = parseInt($('eventImage').getStyle( 'width' ));
+    var popupHeight = parseInt($('eventImage').getStyle( 'height' ));
 
     var left = (containerWidth - popupWidth)/2;
     if ( left < 0 ) left = 0;
@@ -378,6 +375,7 @@ function loadEventImage( event, frame )
             'width': event.Width,
             'height': event.Height
         } );
+        $('eventImageBar').setStyle( 'width', event.Width );
         if ( frame.Type=='Alarm' )
             $('eventImageStats').removeClass( 'hidden' );
         else
@@ -424,21 +422,23 @@ function resetEventStills()
     if ( true || !slider )
     {
         slider = new Slider( $('thumbsSlider'), $('thumbsKnob'), {
-            steps: event.Frames,
+            /*steps: event.Frames,*/
             onChange: function( step )
             {
                 if ( !step )
                     step = 0;
-                var fid = step + 1;
+                var fid = parseInt((step * event.Frames)/this.options.steps);
+                if ( fid < 1 )
+                    fid = 1;
+                else if ( fid > event.Frames )
+                    fid = event.Frames;
                 checkFrames( event.Id, fid );
                 scroll.toElement( 'eventThumb'+fid );
             }
         } ).set( 0 );
     }
     if ( $('eventThumbs').getStyle( 'height' ).match( /^\d+/ ) < (parseInt(event.Height)+80) )
-    {
         $('eventThumbs').setStyle( 'height', (parseInt(event.Height)+80)+'px' );
-    }
 }
 
 function getFrameResponse( respObj, respText )
@@ -496,7 +496,7 @@ function checkFrames( eventId, frameId, loadImage )
         if ( !$('eventThumb'+fid) )
         {
             var img = new Element( 'img', { 'id': 'eventThumb'+fid, 'src': 'graphics/transparent.gif', 'alt': fid, 'class': 'placeholder' } );
-            img.addEvent( 'click', function () { event['frames'][fid] = null; checkFrames( eventId, frameId ) } );
+            img.addEvent( 'click', function () { event['frames'][fid] = null; checkFrames( eventId, fid ) } );
             frameQuery( eventId, fid, loadImage && (fid == frameId) );
             var imgs = $('eventThumbs').getElements( 'img' );
             var injected = false;
@@ -523,6 +523,11 @@ function checkFrames( eventId, frameId, loadImage )
             {
                 img.injectInside( $('eventThumbs') );
             }
+            var scale = parseInt(img.getStyle('height'));
+            img.setStyles( {
+                'width': parseInt((event.Width*scale)/100),
+                'height': parseInt((event.Height*scale)/100)
+            } );
         }
         else if ( event['frames'][fid] )
         {
@@ -538,7 +543,8 @@ function checkFrames( eventId, frameId, loadImage )
 
 function locateImage( frameId, loadImage )
 {
-    slider.fireEvent( 'onTick', slider.toPosition( frameId-1 ));
+    if ( slider )
+        slider.fireEvent( 'tick', slider.toPosition( parseInt((frameId-1)*slider.options.steps/event.Frames) ));
     checkFrames( event.Id, frameId, loadImage );
     scroll.toElement( 'eventThumb'+frameId );
 }
@@ -558,13 +564,13 @@ function nextImage()
 function prevThumbs()
 {
     if ( currFrameId > 1 )
-        locateImage( currFrameId>10?(currFrameId-10):1, !$('eventImagePanel').hasClass( 'hidden' ) );
+        locateImage( parseInt(currFrameId)>10?(parseInt(currFrameId)-10):1, $('eventImagePanel').getStyle('display')!="none" );
 }
 
 function nextThumbs()
 {
     if ( currFrameId < event.Frames )
-        locateImage( currFrameId<(event.Frames-10)?(currFrameId+10):event.Frames, !$('eventImagePanel').hasClass( 'hidden' ) );
+        locateImage( parseInt(currFrameId)<(event.Frames-10)?(parseInt(currFrameId)+10):event.Frames, $('eventImagePanel').getStyle('display')!="none" );
 }
 
 function prevEvent()

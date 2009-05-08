@@ -309,7 +309,8 @@ do
 		}
 	}
 
-	my $sql7 = "select distinct EventId from Frames left join Events on Frames.EventId = Events.Id where isnull(Events.Id) group by EventId";
+	#my $sql7 = "select distinct EventId from Frames left join Events on Frames.EventId = Events.Id where isnull(Events.Id) group by EventId";
+	my $sql7 = "select distinct EventId from Frames where EventId not in (select Id from Events)";
 	my $sth7 = $dbh->prepare_cached( $sql7 ) or Fatal( "Can't prepare '$sql7': ".$dbh->errstr() );
 	$res = $sth7->execute() or Fatal( "Can't execute: ".$sth7->errstr() );
 	while( my $frame = $sth7->fetchrow_hashref() )
@@ -322,7 +323,8 @@ do
 	}
     $sth7->finish();
 
-	my $sql8 = "select distinct EventId from Stats left join Events on Stats.EventId = Events.Id where isnull(Events.Id) group by EventId";
+	#my $sql8 = "select distinct EventId from Stats left join Events on Stats.EventId = Events.Id where isnull(Events.Id) group by EventId";
+	my $sql8 = "select distinct EventId from Stats where EventId not in (select Id from Events)";
 	my $sth8 = $dbh->prepare_cached( $sql8 ) or Fatal( "Can't prepare '$sql8': ".$dbh->errstr() );
 	$res = $sth8->execute() or Fatal( "Can't execute: ".$sth8->errstr() );
 	while( my $stat = $sth8->fetchrow_hashref() )

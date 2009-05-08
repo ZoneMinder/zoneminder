@@ -270,7 +270,7 @@ our @options =
 	},
 	{
 		name => "ZM_MPEG_LIVE_FORMAT",
-		default => "asf",
+		default => "swf",
 		description => "What format 'live' video streams are played in",
 		help => "When using MPEG mode ZoneMinder can output live video. However what formats are handled by the browser varies greatly between machines. This option allows you to specify a video format using a file extension format, so you would just enter the extension of the file type you would like and the rest is determined from that. The default of 'asf' works well under Windows with Windows Media Player but I'm currently not sure what, if anything, works on a Linux platform. If you find out please let me know! If this option is left blank then live streams will revert to being in motion jpeg format",
 		requires => [ { name=>"ZM_STREAM_METHOD", value=>"mpeg" } ],
@@ -279,7 +279,7 @@ our @options =
 	},
 	{
 		name => "ZM_MPEG_REPLAY_FORMAT",
-		default => "asf",
+		default => "swf",
 		description => "What format 'replay' video streams are played in",
 		help => "When using MPEG mode ZoneMinder can replay events in encoded video format. However what formats are handled by the browser varies greatly between machines. This option allows you to specify a video format using a file extension format, so you would just enter the extension of the file type you would like and the rest is determined from that. The default of 'asf' works well under Windows with Windows Media Player and 'mpg', or 'avi' etc should work under Linux. If you knwo any more then please let me know! If this option is left blank then live streams will revert to being in motion jpeg format",
 		requires => [ { name=>"ZM_STREAM_METHOD", value=>"mpeg" } ],
@@ -463,7 +463,7 @@ our @options =
 	},
 	{
 		name => "ZM_FFMPEG_FORMATS",
-		default => "mpg* mpeg wmv avi mov swf 3gp**",
+		default => "mpg mpeg wmv asf avi* mov swf 3gp**",
 		description => "Formats to allow for ffmpeg video generation",
 		help => "Ffmpeg can generate video in many different formats. This option allows you to list the ones you want to be able to select. As new formats are supported by ffmpeg you can add them here and be able to use them immediately. Adding a '*' after a format indicates that this will be the default format used for web video, adding '**' defines the default format for phone video.",
 		requires => [ { name=>"ZM_OPT_FFMPEG", value=>"yes" } ],

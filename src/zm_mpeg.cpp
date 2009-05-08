@@ -49,7 +49,7 @@ void VideoStream::SetupFormat( const char *p_filename, const char *p_format )
 	of = guess_format( format, NULL, NULL);
 	if ( !of )
 	{
-		Warning( "Could not deduce output format from file extension: using MPEG." );
+		Warning( "Could not deduce output format from file extension: using mpeg" );
 		of = guess_format("mpeg", NULL, NULL);
 	}
 	if ( !of )

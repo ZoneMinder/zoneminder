@@ -3568,7 +3568,7 @@ void MonitorStream::runStream()
             }
             frame_count++;
         }
-        usleep( (1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)) );
+        usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
         if ( ttl )
         {
             if ( (now.tv_sec - stream_start_time) > ttl )

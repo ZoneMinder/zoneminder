@@ -67,7 +67,7 @@ void VideoStream::SetupFormat( const char *p_filename, const char *p_format )
 	snprintf( ofc->filename, sizeof(ofc->filename), "%s", filename );
 }
 
-void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, int frame_rate )
+void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, double frame_rate )
 {
 	pf = (colours==1?PIX_FMT_GRAY8:PIX_FMT_RGB24);
 
@@ -102,14 +102,14 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, i
 		   of which frame timestamps are represented. for fixed-fps content,
 		   timebase should be 1/framerate and timestamp increments should be
 		   identically 1. */
-		c->time_base.den = frame_rate;
-		c->time_base.num = 1;
+		c->time_base.den = (int)(frame_rate*100);
+		c->time_base.num = 100;
 #else
 		/* frames per second */
 		c->frame_rate = frame_rate;
 		c->frame_rate_base = 1;
 #endif
-		c->gop_size = frame_rate/2; /* emit one intra frame every half second or so */
+		//c->gop_size = frame_rate/2; /* emit one intra frame every half second or so */
 		c->gop_size = 12;
 		if ( c->gop_size < 3 )
 			c->gop_size = 3;
@@ -233,7 +233,7 @@ void VideoStream::OpenStream()
 	av_write_header(ofc);
 }
 
-VideoStream::VideoStream( const char *filename, const char *format, int bitrate, int frame_rate, int colours, int width, int height )
+VideoStream::VideoStream( const char *filename, const char *format, int bitrate, double frame_rate, int colours, int width, int height )
 {
 	if ( !initialised )
 	{

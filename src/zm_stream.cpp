@@ -60,7 +60,7 @@ void StreamBase::updateFrameRate( double fps )
     while( effective_fps > maxfps )
     {
         effective_fps /= 2.0;
-        frame_mod *= 2.0;
+        frame_mod *= 2;
     }
     Debug( 3, "aEFPS:%.2f, aFM:%d", effective_fps, frame_mod );
 }

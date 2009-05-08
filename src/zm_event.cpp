@@ -1329,7 +1329,7 @@ void EventStream::runStream()
             {
                 delta_us = (unsigned int)(frame_data->delta * 1000000);
                 if ( effective_fps < base_fps )
-                    delta_us = (delta_us * base_fps)/effective_fps;
+                    delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
                 send_frame = true;
             }
         }

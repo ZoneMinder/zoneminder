@@ -38,10 +38,9 @@ function Monitor( index, id, connKey )
                 $('monitorState'+this.index).setProperty( 'class', stateClass );
             }
             $('monitor'+this.index).setProperty( 'class', stateClass );
-            var stream = $('imageFeed'+this.index).getElement( 'img' );
-            if ( !stream )
-                stream = $('imageFeed'+this.index).getElement( 'object' );
-            stream.setProperty( 'class', stateClass );
+            /*Stream could be an applet so can't use moo tools*/ 
+            var stream = document.getElementById( "liveStream"+this.id );
+            stream.className=stateClass;
 
             var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
             var wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
@@ -97,6 +96,22 @@ function selectLayout( element )
         $('dynamicStyles').destroy();
     new Asset.css( cssFile, { id: 'dynamicStyles' } );
     Cookie.write( 'zmMontageLayout', $(element).get('value'), { duration: 10*365 } );
+}
+
+function changeScale()
+{
+    var scale = $('scale').get('value');
+
+    for ( var x = 0; x < monitors.length; x++ )
+    {
+        var monitor = monitors[x];
+        var newWidth = ( monitorData[x].width * scale ) / SCALE_BASE;
+        var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
+        /*Stream could be an applet so can't use moo tools*/ 
+        var streamImg = document.getElementById( 'liveStream'+monitor.id );
+        streamImg.style.width = newWidth + "px";
+        streamImg.style.height = newHeight + "px";
+    }
 }
 
 var monitors = new Array();

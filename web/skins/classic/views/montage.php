@@ -44,8 +44,13 @@ foreach( dbFetchAll( $sql ) as $row )
     {
         continue;
     }
-    $scaleWidth = reScale( $row['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-    $scaleHeight = reScale( $row['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+    if ( isset( $_REQUEST['scale'] ) )
+        $scale = validInt($_REQUEST['scale']);
+    else
+        $scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+
+    $scaleWidth = reScale( $row['Width'], $scale );
+    $scaleHeight = reScale( $row['Height'], $scale );
     if ( $maxWidth < $scaleWidth )
         $maxWidth = $scaleWidth;
     if ( $maxHeight < $scaleHeight )
@@ -90,7 +95,8 @@ if ( $showControl )
       </div>
       <h2><?= $SLANG['Montage'] ?></h2>
       <div id="headerControl">
-        <label for="layout"><?= $SLANG['Layout'] ?></label><?= buildSelect( "layout", $layouts, 'selectLayout( this )' )?>
+        <span id="scaleControl"><?= $SLANG['Scale'] ?>: <?= buildSelect( "scale", $scales, "changeScale( this );" ); ?></span> 
+        <label for="layout"><?= $SLANG['Layout'] ?>:</label><?= buildSelect( "layout", $layouts, 'selectLayout( this )' )?>
       </div>
     </div>
     <div id="content">

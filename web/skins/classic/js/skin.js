@@ -24,7 +24,7 @@
 
 if ( !window.console )
 {
-    var console =
+    window.console =
     {
         init:function() {},
         log:function() {},
@@ -34,6 +34,8 @@ if ( !window.console )
         error:function() {}
     };
 }
+if ( !console.debug )//IE8 has console but doesn't have console.debug so lets alias it.
+    console.debug = console.log;
 
 // Javascript window sizes
 var popupSizes = {
@@ -218,6 +220,22 @@ function refreshParentWindow()
 {
     if ( window.opener )
         window.opener.location.reload( true );
+}
+
+//Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
+function checkStreamForErrors( funcName, streamObj )
+{
+    if ( !streamObj )
+    {
+        console.error( funcName+": stream object was null" );
+        return true;
+    }
+    if ( streamObj.result == "Error" )
+    {
+        console.error( funcName+" stream error: "+streamObj.message );
+        return true;
+    }
+    return false;
 }
 
 function secsToTime( seconds )

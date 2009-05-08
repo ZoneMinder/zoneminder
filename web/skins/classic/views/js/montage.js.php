@@ -31,7 +31,7 @@ var monitorData = new Array();
 foreach ( $monitors as $monitor )
 {
 ?>
-monitorData[monitorData.length] = { 'id': <?= $monitor['Id'] ?>, 'connKey': <?= $monitor['connKey'] ?> };
+monitorData[monitorData.length] = { 'id': <?= $monitor['Id'] ?>, 'connKey': <?= $monitor['connKey'] ?>, 'width': <?= $monitor['Width'] ?>,'height':<?= $monitor['Height'] ?> };
 <?php
 }
 ?>

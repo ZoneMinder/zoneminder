@@ -35,10 +35,11 @@ function changeScale()
     // This causes FF3 to kill the stream now, ok with FF2
     //streamCmdScale( scale );
 
-    var streamImg = $('imageFeed').getElement('img');
-    if ( !streamImg )
-        streamImg = $('imageFeed').getElement('object');
-    streamImg.setStyles( { width: newWidth, height: newHeight } );
+	/*Stream could be an applet so can't use moo tools*/ 
+    var streamImg = document.getElementById('liveStream');
+	streamImg.style.width = newWidth + "px";
+	streamImg.style.height = newHeight + "px";
+
 }
 
 var alarmState = STATE_IDLE;

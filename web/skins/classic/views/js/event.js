@@ -14,8 +14,10 @@ function changeScale()
 
     streamScale( scale );
 
-    var streamImg = $('imageFeed').getElement('img');
-    $(streamImg).setStyles( { 'width': newWidth, 'height': newHeight } );
+    /*Stream could be an applet so can't use moo tools*/ 
+    var streamImg = document.getElementById('evtStream');
+    streamImg.style.width = newWidth + "px";
+    streamImg.style.height = newHeight + "px";
 }
 
 function changeReplayMode()
@@ -35,6 +37,9 @@ var lastEventId = 0;
 
 function getCmdResponse( respObj, respText )
 {
+    if ( checkStreamForErrors( "getCmdResponse" ,respObj ) )
+        return;
+
     if ( streamCmdTimer )
         streamCmdTimer = $clear( streamCmdTimer );
 
@@ -89,7 +94,8 @@ function streamPause( action )
 function streamPlay( action )
 {
     setButtonState( $('pauseBtn'), 'inactive' );
-    setButtonState( $('playBtn'), streamStatus.rate==1?'active':'inactive' );
+    if (streamStatus)
+        setButtonState( $('playBtn'), streamStatus.rate==1?'active':'inactive' );
     setButtonState( $('fastFwdBtn'), 'inactive' );
     setButtonState( $('slowFwdBtn'), 'unavail' );
     setButtonState( $('slowRevBtn'), 'unavail' );
@@ -226,6 +232,9 @@ var scroll = null;
 
 function getEventResponse( respObj, respText )
 {
+    if ( checkStreamForErrors( "getEventResponse", respObj ) )
+        return;
+
     event = respObj.event;
     if ( !$('eventStills').hasClass( 'hidden' ) && currEventId != event.Id )
         resetEventStills();
@@ -275,6 +284,8 @@ var nextEventId = 0;
 
 function getNearEventsResponse( respObj, respText )
 {
+    if ( checkStreamForErrors( "getNearEventsResponse", respObj ) )
+        return;
     prevEventId = respObj.nearevents.PrevEventId;
     nextEventId = respObj.nearevents.NextEventId;
 
@@ -316,7 +327,7 @@ function loadEventThumb( event, frame, loadImage )
     );
 }
 
-function updateStillsSizes()
+function updateStillsSizes( noDelay )
 {
     var containerDim = $('eventThumbs').getStyles( 'width', 'height' );
     var popupDim = $('eventImageFrame').getStyles( 'width', 'height' );
@@ -332,7 +343,11 @@ function updateStillsSizes()
     if ( left < 0 ) left = 0;
     var top = (containerHeight - popupHeight)/2;
     if ( top < 0 ) top = 0;
-
+    if ( popupHeight == 0 && !noDelay ) // image not yet loaded lets give it another second
+    {
+        updateStillsSizes.pass( true ).delay( 50 );
+        return;
+    }
     $('eventImagePanel').setStyles( {
         'left': left,
         'top': top
@@ -412,6 +427,8 @@ function resetEventStills()
             steps: event.Frames,
             onChange: function( step )
             {
+                if ( !step )
+                    step = 0;
                 var fid = step + 1;
                 checkFrames( event.Id, fid );
                 scroll.toElement( 'eventThumb'+fid );
@@ -426,6 +443,9 @@ function resetEventStills()
 
 function getFrameResponse( respObj, respText )
 {
+    if ( checkStreamForErrors( "getFrameResponse", respObj ) )
+        return;
+
     var frame = respObj.frameimage;
 
     if ( !event )
@@ -508,7 +528,7 @@ function checkFrames( eventId, frameId, loadImage )
         {
             if ( loadImage && (fid == frameId) )
             {
-                loadEventImage( event, event['frames'][fid] );
+                loadEventImage( event, event['frames'][fid], loadImage );
             }
         }
     }
@@ -567,6 +587,9 @@ function nextEvent()
 
 function getActResponse( respObj, respText )
 {
+    if ( checkStreamForErrors( "getActResponse", respObj ) )
+        return;
+
     if ( respObj.refreshParent )
         refreshParentWindow();
 

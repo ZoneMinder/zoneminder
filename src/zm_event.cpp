@@ -1235,7 +1235,7 @@ bool EventStream::sendFrame( int delta_us )
                 break;
         }
         fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
-        if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) < 0 )
+        if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 )
         {
             Error( "Unable to send stream frame: %s", strerror(errno) );
             return( false );

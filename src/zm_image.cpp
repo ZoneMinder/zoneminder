@@ -295,7 +295,7 @@ bool Image::WriteRaw( const char *filename ) const
 		return( false );
 	}
 
-	if ( fwrite( buffer, size, 1, outfile ) < 1 )
+	if ( fwrite( buffer, size, 1, outfile ) != 1 )
     {
         Error( "Unable to write to '%s': %s", filename, strerror(errno) );
         return( false );

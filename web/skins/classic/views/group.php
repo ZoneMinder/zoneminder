@@ -57,7 +57,7 @@ xhtmlHeaders( __FILE__, $SLANG['Group']." - ".$newGroup['Name'] );
             </tr>
             <tr>
               <th scope="row"><?= $SLANG['MonitorIds'] ?></th>
-              <td
+              <td>
                 <select name="newGroup[MonitorIds][]" size="4" multiple="multiple">
 <?php
     $monitors = dbFetchAll( "select Id,Name from Monitors order by Sequence asc" );

@@ -489,6 +489,11 @@ void LocalCamera::Initialise()
         {
             Fatal( "Failed to set video standard %d: %s", standard, strerror(errno) );
         }
+
+        Contrast(contrast);
+        Brightness(brightness);
+        Hue(hue);
+        Colour(colour);
     }
     else
 #endif // ZM_V4L2

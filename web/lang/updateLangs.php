@@ -98,7 +98,7 @@ foreach ( $files as $file )
         }
     }
     ksort( $assocTerms, SORT_STRING );
-    $newCode = $fileParts[1].join( "\n", array_values($assocTerms) )."\n".$fileParts[3]."\n";
+    $newCode = $fileParts[1].join( "\n", array_values($assocTerms) )."\n".rtrim($fileParts[3])."\n";
     if ( $fp = fopen( $newFile, "w" ) )
     {
         fwrite( $fp, $newCode );

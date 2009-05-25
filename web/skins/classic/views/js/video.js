@@ -12,7 +12,7 @@ var generateVideoTimer = null;
 
 function generateVideoProgress()
 {
-    var tickerText = $('videoProgressTicker').getText();
+    var tickerText = $('videoProgressTicker').get('text');
     if ( tickerText.length < 1 || tickerText.length > 4 )
         $('videoProgressTicker').set( 'text', '.' );
     else

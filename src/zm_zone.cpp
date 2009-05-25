@@ -85,7 +85,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 					ranges[py].lo_x = x;
 					ranges[py].off_x = px;
 				}
-				else if ( ranges[py].hi_x < x )
+				if ( ranges[py].hi_x < x )
 				{
 					ranges[py].hi_x = x;
 				}

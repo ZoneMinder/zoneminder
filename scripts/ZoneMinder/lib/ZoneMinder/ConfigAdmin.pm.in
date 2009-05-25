@@ -312,6 +312,14 @@ our @options =
 		category => "images",
 	},
 	{
+		name => "ZM_RELOAD_CAMBOZOLA",
+		default => "0",
+		description => "After how many seconds should Cambozola be reloaded in live view",
+		help => "Cambozola allows for the viewing of streaming MJPEG however it caches the entire stream into cache space on the computer, setting this to a number > 0 will cause it to automatically reload after that many seconds to avoid filling up a hard drive.",
+		type => $types{integer},
+		category => "images",
+	},
+	{
 		name => "ZM_TIMESTAMP_ON_CAPTURE",
 		default => "yes",
 		description => "Timestamp images as soon as they are captured",

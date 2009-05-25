@@ -684,7 +684,7 @@ function showStills()
 
 function showFrameStats()
 {
-    var fid = $('eventImageNo').getText();
+    var fid = $('eventImageNo').get('text');
     createPopup( '?view=stats&eid='+event.Id+'&fid='+fid, 'zmStats', 'stats', event.Width, event.Height );
 }
 

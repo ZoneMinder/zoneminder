@@ -59,6 +59,8 @@ var imageRefreshTimeout = <?= 1000*ZM_WEB_REFRESH_IMAGE ?>;
 var canEditMonitors = <?= canEdit( 'Monitors' )?'true':'false' ?>;
 var canStreamNative = <?= canStreamNative()?'true':'false' ?>;
 
+var canPlayPauseAudio = Browser.Engine.trident;
+
 <?php if ( $monitor['CanMoveMap'] ) { ?>
 var imageControlMode = "moveMap";
 <?php } elseif ( $monitor['CanMoveRel'] ) { ?>
@@ -68,3 +70,6 @@ var imageControlMode = "moveConMap";
 <?php } else { ?>
 var imageControlMode = null;
 <?php } ?>
+
+var refreshApplet = <?= (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
+var appletRefreshTime = <?= ZM_RELOAD_CAMBOZOLA ?>;

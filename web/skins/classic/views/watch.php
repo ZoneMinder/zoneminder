@@ -197,7 +197,7 @@ if ( ZM_WEB_SOUND_ON_ALARM )
           classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
           codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902">
           <param name="FileName" value="<?= $soundSrc ?>"/>
-          <param name="autoStart" value="1"/>
+          <param name="autoStart" value="0"/>
           <param name="loop" value="1"/>
           <param name=hidden value="1"/>
           <param name="showControls" value="0"/>

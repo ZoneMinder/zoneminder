@@ -81,11 +81,11 @@ int FfmpegCamera::PrimeCapture()
 
     // Open the input, not necessarily a file
     if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) !=0 )
-        Fatal( "Unable to open input %s", mPath.c_str() );
+        Fatal( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
 
     // Locate stream info from input
     if ( av_find_stream_info( mFormatContext ) < 0 )
-        Fatal( "Unable to find stream info from %s", mPath.c_str() );
+        Fatal( "Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno) );
     
     // Find first video stream present
     mVideoStreamId = -1;

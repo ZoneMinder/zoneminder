@@ -378,7 +378,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 	}
 	if ( ret != 0 )
 	{
-		Fatal( "Error %d while writing video frame", ret );
+		Fatal( "Error %d while writing video frame: %s", ret, strerror( errno ) );
 	}
 	return( pts );
 }

@@ -35,10 +35,10 @@ function changeScale()
     // This causes FF3 to kill the stream now, ok with FF2
     //streamCmdScale( scale );
 
-	/*Stream could be an applet so can't use moo tools*/ 
+    /*Stream could be an applet so can't use moo tools*/ 
     var streamImg = document.getElementById('liveStream');
-	streamImg.style.width = newWidth + "px";
-	streamImg.style.height = newHeight + "px";
+    streamImg.style.width = newWidth + "px";
+    streamImg.style.height = newHeight + "px";
 
 }
 
@@ -72,7 +72,10 @@ function setAlarmState( currentAlarmState )
         if ( SOUND_ON_ALARM )
         {
             // Enable the alarm sound
-            $('alarmSound').removeClass( 'hidden' );
+            if ( !canPlayPauseAudio )
+                $('alarmSound').removeClass( 'hidden' );
+            else
+                $('MediaPlayer').Play();
         }
         if ( POPUP_ON_ALARM )
         {
@@ -84,9 +87,15 @@ function setAlarmState( currentAlarmState )
         if ( oldAlarm )
         {
             // Disable alarm sound
-            $('alarmSound').addClass( 'hidden' );
+            if ( !canPlayPauseAudio )
+                $('alarmSound').addClass( 'hidden' );
+            else
+                $('MediaPlayer').Stop();
         }
     }
+    if ( oldAlarm) //done with an event do a refresh
+        eventCmdQuery();
+
     lastAlarmState = alarmState;
 }
 
@@ -98,6 +107,7 @@ var streamStatus;
 
 function getStreamCmdResponse( respObj, respText )
 {
+    watchdogOk("stream");
     if ( streamCmdTimer )
         streamCmdTimer = $clear( streamCmdTimer );
 
@@ -199,6 +209,8 @@ function getStreamCmdResponse( respObj, respText )
             $('enableDisableAlarms').addClass( 'hidden' );
         }
     }
+    else
+        checkStreamForErrors("getStreamCmdResponse",respObj);//log them
 
     var streamCmdTimeout = statusRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
@@ -345,6 +357,7 @@ var statusCmdTimer = null;
 
 function getStatusCmdResponse( respObj, respText )
 {
+    watchdogOk("status");
     if ( statusCmdTimer )
         statusCmdTimer = $clear( statusCmdTimer );
 
@@ -353,6 +366,8 @@ function getStatusCmdResponse( respObj, respText )
         $('fpsValue').set( 'text', respObj.monitor.FrameRate );
         setAlarmState( respObj.monitor.Status );
     }
+    else
+        checkStreamForErrors("getStatusCmdResponse",respObj);
 
     var statusCmdTimeout = statusRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
@@ -371,6 +386,7 @@ var alarmCmdFirst = true;
 
 function getAlarmCmdResponse( respObj, respText )
 {
+    checkStreamForErrors("getAlarmCmdResponse",respObj);
 }
 
 function cmdDisableAlarms()
@@ -425,6 +441,7 @@ function highlightRow( row )
 
 function getEventCmdResponse( respObj, respText )
 {
+    watchdogOk("event");
     if ( eventCmdTimer )
         eventCmdTimer = $clear( eventCmdTimer );
 
@@ -514,6 +531,8 @@ function getEventCmdResponse( respObj, respText )
             rows.length--;
         }
     }
+    else
+        checkStreamForErrors("getEventCmdResponse",respObj);
 
     var eventCmdTimeout = eventsRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
@@ -524,6 +543,8 @@ function getEventCmdResponse( respObj, respText )
 
 function eventCmdQuery()
 {
+    if ( eventCmdTimer ) //avoid firing another if we are firing one
+        eventCmdTimer = $clear( eventCmdTimer );
     eventCmdReq.send();
 }
 
@@ -619,14 +640,70 @@ function handleClick( event )
     }
 }
 
+function appletRefresh()
+{
+    if ( streamStatus && (!streamStatus.paused && !streamStatus.delayed) )
+    {
+        var streamImg = $('liveStream');
+        var parent = streamImg.getParent();
+        streamImg.dispose();
+        streamImg.inject( parent );
+        if ( appletRefreshTime )
+            appletRefresh.delay( appletRefreshTime*1000 );
+    }
+    else
+    {
+        appletRefresh.delay( 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
+    }
+}
+
+var watchdogInactive = {
+    'stream': false,
+    'status': false,
+    'event': false
+};
+
+var watchdogFunctions = {
+    'stream': streamCmdQuery,
+    'status': statusCmdQuery,
+    'event': eventCmdQuery
+};
+
+//Make sure the various refreshes are still taking effect
+function watchdogCheck( type )
+{
+    if ( watchdogInactive[type] )
+{
+        console.log( "Detected streamWatch of type: " + type + " stopped, restarting" );
+        watchdogFunctions[type]();
+        watchdogInactive[type] = false;
+    }
+    else
+    {
+        watchdogInactive[type] = true;
+    }
+}
+
+function watchdogOk( type )
+{
+    watchdogInactive[type] = false;
+}
+
 function initPage()
 {
     if ( streamMode == "single" )
+    {
         statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+        watchdogCheck.pass('status').periodical(statusRefreshTimeout*2);
+    }
     else
+    {
         streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+        watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
+    }
  
     eventCmdTimer = eventCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+    watchdogCheck.pass('event').periodical(eventsRefreshTimeout*2);
 
     if ( canStreamNative || streamMode == "single" )
     {
@@ -638,6 +715,8 @@ function initPage()
             fetchImage.pass( streamImg ).periodical( imageRefreshTimeout );
     }
 
+    if ( refreshApplet && appletRefreshTime )
+        appletRefresh.delay( appletRefreshTime*1000 );
 }
 
 // Kick everything off

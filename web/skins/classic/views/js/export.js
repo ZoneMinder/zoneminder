@@ -21,7 +21,7 @@ var exportTimer = null;
 
 function exportProgress()
 {
-    var tickerText = $('exportProgressTicker').getText();
+    var tickerText = $('exportProgressTicker').get('text');
     if ( tickerText.length < 1 || tickerText.length > 4 )
         $('exportProgressTicker').set( 'text', '.' );
     else

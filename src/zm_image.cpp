@@ -382,7 +382,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	{
 		Image temp_image( *this );
 		temp_image.Colourise();
-		return( temp_image.WriteJpeg( filename ) );
+		return( temp_image.WriteJpeg( filename, quality_override ) );
 	}
 
 	int quality = quality_override?quality_override:config.jpeg_file_quality;

@@ -75,8 +75,12 @@ int main( int argc, const char *argv[] )
 
 	bool nph = false;
 	const char *basename = strrchr( argv[0], '/' );
+	if (basename) //if we found a / lets skip past it
+		basename++;
+	else //argv[0] will not always contain the full path, but rather just the script name
+		basename = argv[0];
 	const char *nph_prefix = "nph-";
-	if ( basename && !strncmp( basename+1, nph_prefix, strlen(nph_prefix) ) )
+	if ( basename && !strncmp( basename, nph_prefix, strlen(nph_prefix) ) )
 	{
 		nph = true;
 	}

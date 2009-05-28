@@ -120,7 +120,6 @@ function probeAxis( $ip )
             'Host'     => $ip,
             'Port'     => 80,
             'Path'     => '/axis-cgi/mjpg/video.cgi?resolution=320x240',
-            'SubPath'  => '',
             'Palette'  => 3,
             'Width'    => 320,
             'Height'   => 240,
@@ -155,7 +154,6 @@ function probePana( $ip )
             'Host'     => $ip,
             'Port'     => 80,
             'Path'     => '/nphMotionJpeg?Resolution=320x240&Quality=Standard',
-            'SubPath'  => '',
             'Palette'  => 3,
             'Width'    => 320,
             'Height'   => 240,
@@ -176,7 +174,6 @@ function probeActi( $ip )
             'Host'     => 'Admin:123456@'.$ip,
             'Port'     => 7070,
             'Path'     => '',
-            'SubPath'  => '/track',
             'Palette'  => 3,
             'Width'    => 320,
             'Height'   => 240,
@@ -200,17 +197,67 @@ function probeActi( $ip )
     return( $camera );
 }
 
-$monitors = array();
-foreach ( dbFetchAll( "select Id, Name, Host from Monitors where Type = 'Remote' or Type = 'Ffmpeg' order by Host" ) as $monitor )
-    if ( preg_match( '/^(.+)@(.+)$/', $monitor['Host'], $matches ) )
-        $monitors[gethostbyname($matches[2])] = $monitor;
-    else
-        $monitors[gethostbyname($monitor['Host'])] = $monitor;
+function probeVivotek( $ip )
+{
+    $url = 'http://'.$ip.'/cgi-bin/viewer/getparam.cgi';
+    $camera = array(
+        'model'   => "Unknown Vivotek Camera",
+        'monitor' => array(
+            'Type'     => 'Remote',
+            'Protocol' => 'rtsp',
+            'Method'   => 'rtpUni',
+            'Host'     => $ip,
+            'Port'     => 554,
+            'Path'     => '',
+            'Palette'  => 3,
+            'Width'    => 352,
+            'Height'   => 240,
+        ),
+    );
+    if ( $lines = @file( $url ) )
+    {
+        foreach ( $lines as $line )
+        {
+            $line = rtrim( $line );
+            if ( preg_match( '/^(.+?)\s*=\'(.+)\'$/', $line, $matches ) )
+            {
+                if ( $matches[1] == 'system_info_modelname' )
+                {
+                    $camera['model'] = "Vivotek ".$matches[2];
+                }
+                elseif ( $matches[1] == 'network_rtsp_port' )
+                {
+                    $camera['monitor']['Port'] = $matches[2];
+                }
+                elseif ( $matches[1] == 'network_rtsp_s0_accessname' )
+                {
+                    $camera['monitor']['Path'] = $matches[2];
+                }
+            }
+        }
+    }
+    return( $camera );
+}
 
+$monitors = array();
+foreach ( dbFetchAll( "select Id, Name, Host from Monitors where Type = 'Remote' order by Host" ) as $monitor )
+{
+    if ( preg_match( '/^(.+)@(.+)$/', $monitor['Host'], $matches ) )
+    {
+        //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
+        $monitors[gethostbyname($matches[2])] = $monitor;
+    }
+    else
+    {
+        //echo "2: ".$monitor['Host']." = ".gethostbyname($monitor['Host'])."<br/>";
+        $monitors[gethostbyname($monitor['Host'])] = $monitor;
+    }
+}
 $macBases = array(
     '00:40:8c' => array( 'type'=>'Axis', 'probeFunc'=>'probeAxis' ),
     '00:80:f0' => array( 'type'=>'Panasonic','probeFunc'=>'probePana' ),
     '00:0f:7c' => array( 'type'=>'ACTi','probeFunc'=>'probeACTi' ),
+    '00:02:d1' => array( 'type'=>'Vivotek','probeFunc'=>'probeVivotek' ),
 );
 
 unset($output);

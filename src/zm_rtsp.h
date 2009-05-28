@@ -41,10 +41,10 @@ private:
     typedef std::map<U32,RtpSource *>    SourceMap;
 
 private:
-    static int  mMinDataPort;
-    static int  mMaxDataPort;
-    static PortSet  mLocalSsrcs;
-    static PortSet  mAssignedPorts;
+    static int  smMinDataPort;
+    static int  smMaxDataPort;
+    static PortSet  smLocalSsrcs;
+    static PortSet  smAssignedPorts;
 
 private:
     int mId;
@@ -53,7 +53,6 @@ private:
     std::string mHost;
     std::string mPort;
     std::string mPath;
-    std::string mSubpath;
     std::string mUrl;
     std::string mAuth;
     std::string mAuth64;
@@ -84,7 +83,7 @@ private:
     bool recvResponse( std::string &response );
 
 public:
-    RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &subpath, const std::string &auth );
+    RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth );
     ~RtspThread();
 
 public:

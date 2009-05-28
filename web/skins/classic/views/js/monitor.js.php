@@ -164,7 +164,6 @@ foreach( $httpMethods as $value=>$label )
 <?php
 }
 ?>
-            $(form.elements['newMonitor[SubPath]']).getParent( 'tr' ).addClass( 'hidden' );
             break;
         }
         case 'rtsp' :
@@ -179,7 +178,6 @@ foreach( $rtspMethods as $value=>$label )
 <?php
 }
 ?>
-            $(form.elements['newMonitor[SubPath]']).getParent( 'tr' ).removeClass( 'hidden' );
             break;
         }
     }

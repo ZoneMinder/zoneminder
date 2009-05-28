@@ -102,6 +102,10 @@ public:
     {
         return( mSsrc );
     }
+    void setSsrc( U32 ssrc )
+    {
+        mSsrc = ssrc;
+    }
 
     bool getFrame( Buffer &buffer );
 

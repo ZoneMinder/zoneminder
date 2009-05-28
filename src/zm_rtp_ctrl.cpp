@@ -60,10 +60,17 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen )
             U32 ssrc = ntohl(rtcpPacket->body.sr.ssrcN);
 
             Debug( 5, "RTCP Got SR (%lx)", ssrc );
-            if ( mRtpSource.getSsrc() && (ssrc != mRtpSource.getSsrc()) )
+            if ( mRtpSource.getSsrc() )
             {
-                Warning( "Discarding packet for unrecognised ssrc %lx", ssrc );
-                return( -1 );
+                if ( ssrc != mRtpSource.getSsrc() )
+                {
+                    Warning( "Discarding packet for unrecognised ssrc %lx", ssrc );
+                    return( -1 );
+                }
+            }
+            else if ( ssrc )
+            {
+                mRtpSource.setSsrc( ssrc );
             }
 
             if ( len > 1 )
@@ -162,6 +169,12 @@ int RtpCtrlThread::generateRr( const unsigned char *packet, ssize_t packetLen )
     rtcpPacket->header.lenN = htons(wordLen-1);
 
     mRtpSource.updateRtcpStats();
+
+    Debug( 5, "Ssrc = %ld", mRtspThread.getSsrc() );
+    Debug( 5, "Ssrc_1 = %ld", mRtpSource.getSsrc() );
+    Debug( 5, "Last Seq = %ld", mRtpSource.getMaxSeq() );
+    Debug( 5, "Jitter = %ld", mRtpSource.getJitter() );
+    Debug( 5, "Last SR = %ld", mRtpSource.getLastSrTimestamp() );
 
     rtcpPacket->body.rr.ssrcN = htonl(mRtspThread.getSsrc());
     rtcpPacket->body.rr.rr[0].ssrcN = htonl(mRtpSource.getSsrc());

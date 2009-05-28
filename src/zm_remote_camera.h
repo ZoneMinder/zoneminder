@@ -36,7 +36,6 @@ protected:
 	std::string	host;
 	std::string	port;
 	std::string	path;
-	std::string	subpath;
 	std::string	auth;
 	std::string	auth64;
 
@@ -45,14 +44,13 @@ protected:
     struct sockaddr_in sa;
 
 public:
-	RemoteCamera( int p_id, const std::string &p_proto, const std::string &p_host, const std::string &p_port, const std::string &p_path, const std::string &p_subpath, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	RemoteCamera( int p_id, const std::string &p_proto, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	virtual ~RemoteCamera();
 
 	const std::string &Protocol() const { return( protocol ); }
 	const std::string &Host() const { return( host ); }
 	const std::string &Port() const { return( port ); }
 	const std::string &Path() const { return( path ); }
-	const std::string &Subpath() const { return( subpath ); }
 	const std::string &Auth() const { return( auth ); }
 
 	virtual void Initialise();

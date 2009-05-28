@@ -62,10 +62,10 @@ am__objects_1 = zm_box.$(OBJEXT) zm_buffer.$(OBJEXT) \
 	zm_remote_camera.$(OBJEXT) zm_remote_camera_http.$(OBJEXT) \
 	zm_remote_camera_rtsp.$(OBJEXT) zm_rtp.$(OBJEXT) \
 	zm_rtp_ctrl.$(OBJEXT) zm_rtp_data.$(OBJEXT) \
-	zm_rtp_source.$(OBJEXT) zm_rtsp.$(OBJEXT) zm_signal.$(OBJEXT) \
-	zm_stream.$(OBJEXT) zm_thread.$(OBJEXT) zm_time.$(OBJEXT) \
-	zm_timer.$(OBJEXT) zm_user.$(OBJEXT) zm_utils.$(OBJEXT) \
-	zm_zone.$(OBJEXT)
+	zm_rtp_source.$(OBJEXT) zm_rtsp.$(OBJEXT) zm_sdp.$(OBJEXT) \
+	zm_signal.$(OBJEXT) zm_stream.$(OBJEXT) zm_thread.$(OBJEXT) \
+	zm_time.$(OBJEXT) zm_timer.$(OBJEXT) zm_user.$(OBJEXT) \
+	zm_utils.$(OBJEXT) zm_zone.$(OBJEXT)
 am_zma_OBJECTS = zma.$(OBJEXT) $(am__objects_1)
 zma_OBJECTS = $(am_zma_OBJECTS)
 zma_LDADD = $(LDADD)
@@ -263,6 +263,7 @@ zm_SOURCES = \
 	zm_rtp_data.cpp \
 	zm_rtp_source.cpp \
 	zm_rtsp.cpp \
+	zm_sdp.cpp \
 	zm_signal.cpp \
 	zm_stream.cpp \
 	zm_thread.cpp \
@@ -315,6 +316,7 @@ noinst_HEADERS = \
 	zm_rtp.h \
 	zm_rtp_source.h \
 	zm_rtsp.h \
+	zm_sdp.h \
 	zm_signal.h \
 	zm_stream.h \
 	zm_thread.h \
@@ -441,6 +443,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_rtp_data.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_rtp_source.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_rtsp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_sdp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_signal.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_stream.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_thread.Po@am__quote@

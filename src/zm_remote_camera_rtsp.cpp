@@ -28,8 +28,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, const std::string &p_subpath, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
-    RemoteCamera( p_id, "rtsp", p_host, p_port, p_path, p_subpath, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture ),
+RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+    RemoteCamera( p_id, "rtsp", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture ),
     rtspThread( 0 )
 {
     if ( p_method == "rtpUni" )
@@ -88,7 +88,7 @@ void RemoteCameraRtsp::Terminate()
 
 int RemoteCameraRtsp::Connect()
 {
-    rtspThread = new RtspThread( id, method, protocol, host, port, path, subpath, auth );
+    rtspThread = new RtspThread( id, method, protocol, host, port, path, auth );
 
     rtspThread->start();
 
@@ -210,10 +210,12 @@ int RemoteCameraRtsp::Capture( Image &image )
                         return( 0 );
                     }
                     Error( "Error while decoding frame %d", frameCount );
-                    Hexdump( ZM_DBG_ERR, buffer.head(), buffer.size() );
-                    return( -1 );
+                    Hexdump( ZM_DBG_ERR, buffer.head(), buffer.size()>256?256:buffer.size() );
+                    buffer.clear();
+                    continue;
+                    //return( -1 );
                 }
-                Debug( 2, "Frame: %d: %d/%d", frameCount, len, buffer.size() );
+                Debug( 2, "Frame: %d - %d/%d", frameCount, len, buffer.size() );
                 //if ( buffer.size() < 400 )
                     //Hexdump( 0, buffer.head(), buffer.size() );
 

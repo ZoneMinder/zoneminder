@@ -26,20 +26,22 @@
 #include "zm_rtp_data.h"
 #include "zm_rtp_ctrl.h"
 #include "zm_db.h"
+#include "zm_sdp.h"
 
 #include <sys/time.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <errno.h>
 
-int RtspThread::mMinDataPort = 0;
-int RtspThread::mMaxDataPort = 0;
-RtspThread::PortSet  RtspThread::mAssignedPorts;
+int RtspThread::smMinDataPort = 0;
+int RtspThread::smMaxDataPort = 0;
+RtspThread::PortSet  RtspThread::smAssignedPorts;
 
 bool RtspThread::sendCommand( std::string message )
 {
     if ( !mAuth.empty() )
         message += stringtf( "Authorization: Basic %s\r\n", mAuth64.c_str() );
+    message += stringtf( "User-Agent: ZoneMinder/%s\r\n", ZM_VERSION );
     message += stringtf( "CSeq: %d\r\n\r\n", ++mSeq );
     Debug( 2, "Sending RTSP message: %s", message.c_str() );
     if ( mMethod == RTP_RTSP_HTTP )
@@ -95,7 +97,7 @@ bool RtspThread::recvResponse( std::string &response )
 
 int RtspThread::requestPorts()
 {
-    if ( !mMinDataPort )
+    if ( !smMinDataPort )
     {
         char sql[BUFSIZ];
         strncpy( sql, "select Id from Monitors where Function != 'None' and Type = 'Remote' and Protocol = 'rtsp' and Method = 'rtpUni' order by Id asc", sizeof(sql) );
@@ -132,16 +134,16 @@ int RtspThread::requestPorts()
             position = 0;
         }
         int portRange = int(((config.max_rtp_port-config.min_rtp_port)+1)/nMonitors);
-        mMinDataPort = config.min_rtp_port + (position * portRange);
-        mMaxDataPort = mMinDataPort + portRange - 1;
-        Debug( 2, "Assigned RTP port range is %d-%d", mMinDataPort, mMaxDataPort );
+        smMinDataPort = config.min_rtp_port + (position * portRange);
+        smMaxDataPort = smMinDataPort + portRange - 1;
+        Debug( 2, "Assigned RTP port range is %d-%d", smMinDataPort, smMaxDataPort );
     }
-    for ( int i = mMinDataPort; i <= mMaxDataPort; i++ )
+    for ( int i = smMinDataPort; i <= smMaxDataPort; i++ )
     {
-        PortSet::const_iterator iter = mAssignedPorts.find( i );
-        if ( iter == mAssignedPorts.end() )
+        PortSet::const_iterator iter = smAssignedPorts.find( i );
+        if ( iter == smAssignedPorts.end() )
         {
-            mAssignedPorts.insert( i );
+            smAssignedPorts.insert( i );
             return( i );
         }
     }
@@ -152,17 +154,16 @@ int RtspThread::requestPorts()
 void RtspThread::releasePorts( int port )
 {
     if ( port > 0 )
-        mAssignedPorts.erase( port );
+        smAssignedPorts.erase( port );
 }
 
-RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &subpath, const std::string &auth ) :
+RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth ) :
     mId( id ),
     mMethod( method ),
     mProtocol( protocol ),
     mHost( host ),
     mPort( port ),
     mPath( path ),
-    mSubpath( subpath ),
     mAuth( auth ),
     mFormatContext( 0 ),
     mSeq( 0 ),
@@ -180,7 +181,6 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
         else
             mUrl += '/'+mPath;
     }
-    mFormatContext = avformat_alloc_context();
 
     mSsrc = rand();
 
@@ -285,6 +285,37 @@ int RtspThread::run()
     std::string localHost = "";
     int localPorts[2] = { 0, 0 };
 
+    //message = "OPTIONS * RTSP/1.0\r\n";
+    //sendCommand( message );
+    //recvResponse( response );
+
+    message = "DESCRIBE "+mUrl+" RTSP/1.0\r\n";
+    sendCommand( message );
+    sleep( 1 );
+    recvResponse( response );
+
+    const std::string endOfHeaders = "\r\n\r\n";
+    size_t sdpStart = response.find( endOfHeaders );
+    if( sdpStart == std::string::npos )
+        return( -1 );
+    sdpStart += endOfHeaders.length();
+
+    std::string sdp = response.substr( sdpStart );
+    Debug( 1, "Processing SDP '%s'", sdp.c_str() );
+
+    SessionDescriptor *sessDesc = 0;
+    try
+    {
+        sessDesc = new SessionDescriptor( mUrl, sdp );
+        mFormatContext = sessDesc->generateFormatContext();
+    }
+    catch( const Exception &e )
+    {
+        Error( e.getMessage().c_str() );
+        return( -1 );
+    }
+
+#if 0
     // New method using ffmpeg native functions
     std::string authUrl = mUrl;
     if ( !mAuth.empty() )
@@ -295,6 +326,7 @@ int RtspThread::run()
         Error( "Unable to open input '%s'", authUrl.c_str() );
         return( -1 );
     }
+#endif
 
     U32 rtpClock = 0;
     std::string trackUrl = mUrl;
@@ -302,11 +334,13 @@ int RtspThread::run()
     {
         for ( int i = 0; i < mFormatContext->nb_streams; i++ )
         {
+            SessionDescriptor::MediaDescriptor *mediaDesc = sessDesc->getStream( i );
             if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
             {
-                trackUrl += mSubpath+stringtf( "%d", i+1 );
+                trackUrl += "/"+mediaDesc->getControlUrl();
+                rtpClock = mediaDesc->getClock();
                 // Hackery pokery
-                rtpClock = mFormatContext->streams[i]->codec->sample_rate;
+                //rtpClock = mFormatContext->streams[i]->codec->sample_rate;
                 break;
             }
         }
@@ -408,7 +442,7 @@ int RtspThread::run()
         else if ( startsWith( parts[i], "ssrc=" ) )
         {
             StringVector subparts = split( parts[i], "=" );
-            ssrc = strtol( subparts[1].c_str(), NULL, 16 );
+            ssrc = strtoll( subparts[1].c_str(), NULL, 16 );
         }
     }
 
@@ -420,7 +454,7 @@ int RtspThread::run()
     Debug( 2, "RTSP Remote Ports are %d/%d", remotePorts[0], remotePorts[1] );
     Debug( 2, "RTSP Remote Channels are %d/%d", remoteChannels[0], remoteChannels[1] );
 
-    message = "PLAY "+trackUrl+" RTSP/1.0\r\nSession: "+session+"\r\nRange: npt=0.000-\r\n";
+    message = "PLAY "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\nRange: npt=0.000-\r\n";
     if ( !sendCommand( message ) )
         return( -1 );
     if ( !recvResponse( response ) )
@@ -438,7 +472,7 @@ int RtspThread::run()
 
     Debug( 2, "Got RTP Info %s", rtpInfo );
 
-    unsigned short seq = 0;
+    int seq = 0;
     unsigned long rtpTime = 0;
     parts = split( rtpInfo, ";" );
     for ( size_t i = 0; i < parts.size(); i++ )
@@ -611,13 +645,13 @@ int RtspThread::run()
                 }
                 buffer.tidy( 1 );
             }
-
+#if 0
             message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
             if ( !sendCommand( message ) )
                 return( -1 );
             if ( !recvResponse( response ) )
                 return( -1 );
-
+#endif
             message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
             if ( !sendCommand( message ) )
                 return( -1 );
@@ -643,13 +677,13 @@ int RtspThread::run()
             {
                 usleep( 100000 );
             }
-
+#if 0
             message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
             if ( !sendCommand( message ) )
                 return( -1 );
             if ( !recvResponse( response ) )
                 return( -1 );
-
+#endif
             message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
             if ( !sendCommand( message ) )
                 return( -1 );

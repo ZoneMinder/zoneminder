@@ -235,6 +235,7 @@ template <class T> void ThreadData<T>::updateValueBroadcast( const T value )
 Thread::Thread() :
     mThreadCondition( mThreadMutex ),
     mPid( -1 ),
+    mStarted( false ),
     mRunning( false )
 {
     Debug( 1, "Creating thread" );
@@ -243,7 +244,7 @@ Thread::Thread() :
 Thread::~Thread()
 {
     Debug( 1, "Destroying thread %d", mPid );
-    if ( mRunning )
+    if ( mStarted )
         join();
 }
 
@@ -251,20 +252,23 @@ void *Thread::mThreadFunc( void *arg )
 {
     Debug( 2, "Invoking thread" );
 
+    Thread *thisPtr = (Thread *)arg;
     void *status = 0;
     try
     {
-        Thread *thisPtr = (Thread *)arg;
         thisPtr->mThreadMutex.lock();
         thisPtr->mPid = thisPtr->id();
         thisPtr->mThreadCondition.signal();
         thisPtr->mThreadMutex.unlock();
+        thisPtr->mRunning = true;
         status = (void *)(thisPtr->run());
+        thisPtr->mRunning = false;
         Debug( 2, "Exiting thread, status %p", status );
     }
     catch ( const ThreadException &e )
     {
         Error( "%s", e.getMessage().c_str() );
+        thisPtr->mRunning = false;
         status = (void *)-1;
         Debug( 2, "Exiting thread after exception, status %p", status );
     }
@@ -277,13 +281,13 @@ void Thread::start()
     if ( isThread() )
         throw ThreadException( "Can't self start thread" );
     mThreadMutex.lock();
-    if ( !mRunning )
+    if ( !mStarted )
     {
         pthread_attr_t threadAttrs;
         pthread_attr_init( &threadAttrs );
         pthread_attr_setscope( &threadAttrs, PTHREAD_SCOPE_SYSTEM );
 
-        mRunning = true;
+        mStarted = true;
         if ( pthread_create( &mThread, &threadAttrs, mThreadFunc, this ) < 0 )
             throw ThreadException( stringtf( "Can't create thread: %s", strerror(errno) ) );
         pthread_attr_destroy( &threadAttrs );
@@ -305,12 +309,12 @@ void Thread::join()
     mThreadMutex.lock();
     if ( mPid >= 0 )
     {
-        if ( mRunning )
+        if ( mStarted )
         {
             void *threadStatus = 0;
             if ( pthread_join( mThread, &threadStatus ) < 0 )
                 throw ThreadException( stringtf( "Can't join sender thread: %s", strerror(errno) ) );
-            mRunning = false;
+            mStarted = false;
             Debug( 1, "Thread %d exited, status %p", mPid, threadStatus );
         }
         else

@@ -191,6 +191,7 @@ protected:
     Mutex mThreadMutex;
     Condition mThreadCondition;
     pid_t mPid;
+    bool  mStarted;
     bool  mRunning;
 
 protected:
@@ -218,6 +219,8 @@ public:
     {
         return( mPid > -1 && pthread_equal( pthread_self(), mThread ) );
     }
+    bool isStarted() const { return( mStarted ); }
+    bool isRunning() const { return( mRunning ); }
 };
 
 #endif // ZM_THREAD_H

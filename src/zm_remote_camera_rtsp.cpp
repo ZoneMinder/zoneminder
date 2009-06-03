@@ -110,7 +110,7 @@ int RemoteCameraRtsp::Disconnect()
 int RemoteCameraRtsp::PrimeCapture()
 {
     Debug( 2, "Waiting for sources" );
-    for ( int i = 0; i < 50 && !rtspThread->hasSources(); i++ )
+    for ( int i = 0; i < 100 && !rtspThread->hasSources(); i++ )
     {
         usleep( 100000 );
     }
@@ -151,6 +151,8 @@ int RemoteCameraRtsp::PrimeCapture()
 
 int RemoteCameraRtsp::PreCapture()
 {
+    if ( !rtspThread->isRunning() )
+        return( -1 );
     if ( !rtspThread->hasSources() )
     {
         Error( "Cannot precapture, no RTP sources" );
@@ -164,8 +166,10 @@ int RemoteCameraRtsp::Capture( Image &image )
     while ( true )
     {
         buffer.clear();
-        if ( rtspThread->stopped() )
+        if ( !rtspThread->isRunning() )
             break;
+        //if ( rtspThread->stopped() )
+            //break;
         if ( rtspThread->getFrame( buffer ) )
         {
             Debug( 3, "Read frame %d bytes", buffer.size() );

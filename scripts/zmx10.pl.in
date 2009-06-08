@@ -44,6 +44,7 @@ use constant CAUSE_STRING => "X10"; # What gets written as the cause of any even
 #
 # ==========================================================================
 
+@EXTRA_PERL_LIB@
 use ZoneMinder;
 use POSIX;
 use Socket;

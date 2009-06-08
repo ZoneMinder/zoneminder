@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar PATH_BUILD TIME_BUILD ZM_DB_HOST ZM_DB_NAME ZM_DB_USER ZM_DB_PASS ZM_SSL_LIB ZM_MYSQL_ENGINE LIB_ARCH MYSQL_PREFIX MYSQL_LIBS MYSQL_CFLAGS FFMPEG_PREFIX FFMPEG_LIBS FFMPEG_CFLAGS EXTRA_LIBS WEB_PREFIX CGI_PREFIX WEB_USER WEB_GROUP ENABLE_MMAP CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CC CFLAGS ac_ct_CC CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE LN_S RANLIB ac_ct_RANLIB CXXCPP EGREP LIBOBJS POW_LIB OPT_FFMPEG PATH_FFMPEG OPT_NETPBM PATH_NETPBM ALLOCA ZM_V4L2 ZM_PCRE PERL BINDIR LIBDIR RUNDIR ZM_RUNDIR ZM_PID SYSCONFDIR ZM_CONFIG LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar PATH_BUILD TIME_BUILD ZM_DB_HOST ZM_DB_NAME ZM_DB_USER ZM_DB_PASS ZM_SSL_LIB ZM_MYSQL_ENGINE LIB_ARCH MYSQL_PREFIX MYSQL_LIBS MYSQL_CFLAGS FFMPEG_PREFIX FFMPEG_LIBS FFMPEG_CFLAGS EXTRA_LIBS WEB_PREFIX CGI_PREFIX WEB_USER WEB_GROUP ENABLE_MMAP CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CC CFLAGS ac_ct_CC CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE LN_S RANLIB ac_ct_RANLIB CXXCPP EGREP LIBOBJS POW_LIB OPT_FFMPEG PATH_FFMPEG OPT_NETPBM PATH_NETPBM ALLOCA ZM_V4L2 ZM_PCRE PERL BINDIR LIBDIR RUNDIR ZM_RUNDIR ZM_PID SYSCONFDIR ZM_CONFIG EXTRA_PERL_LIB LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -13517,7 +13517,18 @@ _ACEOF
 ZM_CONFIG="$SYSCONFDIR/zm.conf"
 
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ac_config_files="$ac_config_files Makefile zm.conf db/Makefile db/zm_create.sql scripts/Makefile scripts/zm scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile"
+# Slight hack for non-standard perl install paths
+if test "$prefix" != "NONE"; then
+    PERL_PREFIX=`perl -V:installprefix | sed -e "s/.*='\(.*\)';/\1/"`
+    PERL_SITE_LIB=`perl -V:installsitelib | sed -e "s/.*='\(.*\)';/\1/"`
+    PERL_LIB_PATH=`echo $PERL_SITE_LIB | sed -e "s|^$PERL_PREFIX||"`
+    EXTRA_PERL_LIB="use lib '$prefix$PERL_LIB_PATH'; # Include custom perl install path"
+else
+    EXTRA_PERL_LIB="# Include from system perl paths only"
+fi
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ac_config_files="$ac_config_files Makefile zm.conf db/Makefile db/zm_create.sql scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -14081,6 +14092,17 @@ do
   "db/zm_create.sql" ) CONFIG_FILES="$CONFIG_FILES db/zm_create.sql" ;;
   "scripts/Makefile" ) CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
   "scripts/zm" ) CONFIG_FILES="$CONFIG_FILES scripts/zm" ;;
+  "scripts/zmaudit.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmaudit.pl" ;;
+  "scripts/zmcontrol.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmcontrol.pl" ;;
+  "scripts/zmdc.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmdc.pl" ;;
+  "scripts/zmfilter.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmfilter.pl" ;;
+  "scripts/zmpkg.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmpkg.pl" ;;
+  "scripts/zmtrack.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmtrack.pl" ;;
+  "scripts/zmtrigger.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmtrigger.pl" ;;
+  "scripts/zmupdate.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmupdate.pl" ;;
+  "scripts/zmvideo.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmvideo.pl" ;;
+  "scripts/zmwatch.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmwatch.pl" ;;
+  "scripts/zmx10.pl" ) CONFIG_FILES="$CONFIG_FILES scripts/zmx10.pl" ;;
   "scripts/zmdbbackup" ) CONFIG_FILES="$CONFIG_FILES scripts/zmdbbackup" ;;
   "scripts/zmdbrestore" ) CONFIG_FILES="$CONFIG_FILES scripts/zmdbrestore" ;;
   "scripts/zmeventdump" ) CONFIG_FILES="$CONFIG_FILES scripts/zmeventdump" ;;
@@ -14295,6 +14317,7 @@ s,@ZM_RUNDIR@,$ZM_RUNDIR,;t t
 s,@ZM_PID@,$ZM_PID,;t t
 s,@SYSCONFDIR@,$SYSCONFDIR,;t t
 s,@ZM_CONFIG@,$ZM_CONFIG,;t t
+s,@EXTRA_PERL_LIB@,$EXTRA_PERL_LIB,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF
 
@@ -15012,26 +15035,6 @@ if test "$no_create" != yes; then
 fi
 
 
-echo "$as_me:$LINENO: checking for scripts/ZoneMinder/Makefile" >&5
-echo $ECHO_N "checking for scripts/ZoneMinder/Makefile... $ECHO_C" >&6
-if test "${ac_cv_file_scripts_ZoneMinder_Makefile+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  test "$cross_compiling" = yes &&
-  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
-echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
-   { (exit 1); exit 1; }; }
-if test -r "scripts/ZoneMinder/Makefile"; then
-  ac_cv_file_scripts_ZoneMinder_Makefile=yes
-else
-  ac_cv_file_scripts_ZoneMinder_Makefile=no
-fi
-fi
-echo "$as_me:$LINENO: result: $ac_cv_file_scripts_ZoneMinder_Makefile" >&5
-echo "${ECHO_T}$ac_cv_file_scripts_ZoneMinder_Makefile" >&6
-if test $ac_cv_file_scripts_ZoneMinder_Makefile = yes; then
-  :
-else
-  cd scripts/ZoneMinder;perl Makefile.PL
-fi
-
+#AC_CHECK_FILE(scripts/ZoneMinder/Makefile,,[cd scripts/ZoneMinder;perl Makefile.PL PREFIX=$PREFIX])
+cd scripts/ZoneMinder
+perl Makefile.PL PREFIX=$prefix

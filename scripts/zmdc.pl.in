@@ -47,6 +47,7 @@ use constant MAX_CONNECT_DELAY => 10;
 #
 # ==========================================================================
 
+@EXTRA_PERL_LIB@
 use ZoneMinder;
 use POSIX;
 use Socket;

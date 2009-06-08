@@ -45,6 +45,7 @@ use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 #
 # ==========================================================================
 
+@EXTRA_PERL_LIB@
 use ZoneMinder::Base qw(:all);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Debug qw(:all);

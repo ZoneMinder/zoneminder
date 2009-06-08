@@ -24,6 +24,7 @@
 # This script is used to trigger and cancel alarms from external connections
 # using an arbitrary text based format
 #
+# ==========================================================================
 use strict;
 use bytes;
 
@@ -40,6 +41,13 @@ use constant MAX_CONNECT_DELAY => 10;
 use constant MONITOR_RELOAD_INTERVAL => 300;
 use constant SELECT_TIMEOUT => 0.25;
 
+# ==========================================================================
+#
+# Channel/Connection Modules
+#
+# ==========================================================================
+
+@EXTRA_PERL_LIB@
 use ZoneMinder::Trigger::Channel::Inet;
 use ZoneMinder::Trigger::Channel::Unix;
 use ZoneMinder::Trigger::Channel::Serial;

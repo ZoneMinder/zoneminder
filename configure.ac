@@ -325,12 +325,34 @@ AC_SUBST(ZM_PID,"$ZM_RUNDIR/zm.pid")
 AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
 AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
 
+# Slight hack for non-standard perl install paths
+if test "$prefix" != "NONE"; then
+    PERL_PREFIX=`perl -V:installprefix | sed -e "s/.*='\(.*\)';/\1/"`
+    PERL_SITE_LIB=`perl -V:installsitelib | sed -e "s/.*='\(.*\)';/\1/"`
+    PERL_LIB_PATH=`echo $PERL_SITE_LIB | sed -e "s|^$PERL_PREFIX||"`
+    EXTRA_PERL_LIB="use lib '$prefix$PERL_LIB_PATH'; # Include custom perl install path"
+else
+    EXTRA_PERL_LIB="# Include from system perl paths only"
+fi
+AC_SUBST(EXTRA_PERL_LIB)
+
 AC_CONFIG_FILES([Makefile
                  zm.conf
                  db/Makefile
                  db/zm_create.sql
                  scripts/Makefile
                  scripts/zm
+                 scripts/zmaudit.pl
+                 scripts/zmcontrol.pl
+                 scripts/zmdc.pl
+                 scripts/zmfilter.pl
+                 scripts/zmpkg.pl
+                 scripts/zmtrack.pl
+                 scripts/zmtrigger.pl
+                 scripts/zmupdate.pl
+                 scripts/zmvideo.pl
+                 scripts/zmwatch.pl
+                 scripts/zmx10.pl
                  scripts/zmdbbackup
                  scripts/zmdbrestore
                  scripts/zmeventdump
@@ -373,4 +395,6 @@ AC_CONFIG_FILES([Makefile
                  web/views/Makefile])
 AC_OUTPUT
 
-AC_CHECK_FILE(scripts/ZoneMinder/Makefile,,[cd scripts/ZoneMinder;perl Makefile.PL])
+#AC_CHECK_FILE(scripts/ZoneMinder/Makefile,,[cd scripts/ZoneMinder;perl Makefile.PL PREFIX=$PREFIX])
+cd scripts/ZoneMinder
+perl Makefile.PL PREFIX=$prefix

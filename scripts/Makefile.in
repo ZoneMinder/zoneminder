@@ -36,9 +36,14 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = scripts
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/zm.in $(srcdir)/zmdbbackup.in \
-	$(srcdir)/zmdbrestore.in $(srcdir)/zmeventdump.in \
-	$(srcdir)/zmlogrotate.conf.in
+	$(srcdir)/zm.in $(srcdir)/zmaudit.pl.in \
+	$(srcdir)/zmcontrol.pl.in $(srcdir)/zmdbbackup.in \
+	$(srcdir)/zmdbrestore.in $(srcdir)/zmdc.pl.in \
+	$(srcdir)/zmeventdump.in $(srcdir)/zmfilter.pl.in \
+	$(srcdir)/zmlogrotate.conf.in $(srcdir)/zmpkg.pl.in \
+	$(srcdir)/zmtrack.pl.in $(srcdir)/zmtrigger.pl.in \
+	$(srcdir)/zmupdate.pl.in $(srcdir)/zmvideo.pl.in \
+	$(srcdir)/zmwatch.pl.in $(srcdir)/zmx10.pl.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/configure.ac
@@ -46,7 +51,9 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = zm zmdbbackup zmdbrestore zmeventdump \
+CONFIG_CLEAN_FILES = zm zmaudit.pl zmcontrol.pl zmdc.pl zmfilter.pl \
+	zmpkg.pl zmtrack.pl zmtrigger.pl zmupdate.pl zmvideo.pl \
+	zmwatch.pl zmx10.pl zmdbbackup zmdbrestore zmeventdump \
 	zmlogrotate.conf
 am__installdirs = "$(DESTDIR)$(bindir)"
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
@@ -92,6 +99,7 @@ EGREP = @EGREP@
 ENABLE_MMAP = @ENABLE_MMAP@
 EXEEXT = @EXEEXT@
 EXTRA_LIBS = @EXTRA_LIBS@
+EXTRA_PERL_LIB = @EXTRA_PERL_LIB@
 FFMPEG_CFLAGS = @FFMPEG_CFLAGS@
 FFMPEG_LIBS = @FFMPEG_LIBS@
 FFMPEG_PREFIX = @FFMPEG_PREFIX@
@@ -281,6 +289,28 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 zm: $(top_builddir)/config.status $(srcdir)/zm.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmaudit.pl: $(top_builddir)/config.status $(srcdir)/zmaudit.pl.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmcontrol.pl: $(top_builddir)/config.status $(srcdir)/zmcontrol.pl.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmdc.pl: $(top_builddir)/config.status $(srcdir)/zmdc.pl.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmfilter.pl: $(top_builddir)/config.status $(srcdir)/zmfilter.pl.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmpkg.pl: $(top_builddir)/config.status $(srcdir)/zmpkg.pl.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmtrack.pl: $(top_builddir)/config.status $(srcdir)/zmtrack.pl.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmtrigger.pl: $(top_builddir)/config.status $(srcdir)/zmtrigger.pl.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmupdate.pl: $(top_builddir)/config.status $(srcdir)/zmupdate.pl.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmvideo.pl: $(top_builddir)/config.status $(srcdir)/zmvideo.pl.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmwatch.pl: $(top_builddir)/config.status $(srcdir)/zmwatch.pl.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zmx10.pl: $(top_builddir)/config.status $(srcdir)/zmx10.pl.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 zmdbbackup: $(top_builddir)/config.status $(srcdir)/zmdbbackup.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@

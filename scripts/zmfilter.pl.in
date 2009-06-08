@@ -45,6 +45,7 @@ use constant START_DELAY => 5; # How long to wait before starting
 #
 # ==========================================================================
 
+@EXTRA_PERL_LIB@
 use ZoneMinder;
 use DBI;
 use POSIX;

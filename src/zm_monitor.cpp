@@ -3229,7 +3229,8 @@ bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
         fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
         if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 )
         {
-            Error( "Unable to send stream frame: %s", strerror(errno) );
+            if ( !zm_terminate )
+                Error( "Unable to send stream frame: %s", strerror(errno) );
             return( false );
         }
         fprintf( stdout, "\r\n\r\n" );
@@ -3314,7 +3315,8 @@ bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
         fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
         if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 )
         {
-            Error( "Unable to send stream frame: %s", strerror(errno) );
+            if ( !zm_terminate )
+                Error( "Unable to send stream frame: %s", strerror(errno) );
             return( false );
         }
         fprintf( stdout, "\r\n\r\n" );

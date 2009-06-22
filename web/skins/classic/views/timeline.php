@@ -823,7 +823,7 @@ xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
             <div id="instruction">
               <p>Pass your mouse over the graph to view a snapshot image and event details.</p>
               <p>Click on the coloured sections of the graph, or the image, to view the event.</p>
-              <p>Click on the background to zoom in to a smaller time period basd around your click.</p>
+              <p>Click on the background to zoom in to a smaller time period based around your click.</p>
               <p>Use the controls below to zoom out or navigate back and forward through the time range.</p>
             </div>
             <div id="eventData">

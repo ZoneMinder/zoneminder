@@ -331,9 +331,12 @@ if test "$prefix" != "NONE"; then
     PERL_SITE_LIB=`perl -V:installsitelib | sed -e "s/.*='\(.*\)';/\1/"`
     PERL_LIB_PATH=`echo $PERL_SITE_LIB | sed -e "s|^$PERL_PREFIX||"`
     EXTRA_PERL_LIB="use lib '$prefix$PERL_LIB_PATH'; # Include custom perl install path"
+    PERL_MM_PARMS="PREFIX=$prefix"
 else
     EXTRA_PERL_LIB="# Include from system perl paths only"
+    PERL_MM_PARMS=
 fi
+AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
 AC_CONFIG_FILES([Makefile
@@ -397,4 +400,5 @@ AC_OUTPUT
 
 #AC_CHECK_FILE(scripts/ZoneMinder/Makefile,,[cd scripts/ZoneMinder;perl Makefile.PL PREFIX=$PREFIX])
 cd scripts/ZoneMinder
-perl Makefile.PL PREFIX=$prefix
+echo "perl Makefile.PL $PERL_MM_PARMS"
+perl Makefile.PL $PERL_MM_PARMS

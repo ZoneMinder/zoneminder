@@ -123,7 +123,7 @@ if ( $command eq "state" )
 		}
 		#next if ( !$monitor->{NewFunction} );
 		$monitor->{NewFunction} = 'None' if ( !$monitor->{NewFunction} );
-		$monitor->{NewEnabled} = 0 if ( !$monitor->{Enabled} );
+		$monitor->{NewEnabled} = 0 if ( !$monitor->{NewEnabled} );
 		if ( $monitor->{Function} ne $monitor->{NewFunction} || $monitor->{Enabled} ne $monitor->{NewEnabled} )
 		{
 			my $sql = "update Monitors set Function = ?, Enabled = ? where Id = ?";

@@ -69,7 +69,7 @@ bool RtspThread::recvResponse( std::string &response )
 {
     if ( mRtspSocket.recv( response ) < 0 )
         Error( "Recv failed; %s", strerror(errno) );
-    Debug( 2, "Received RTSP response: %s (%d bytes)", response.c_str(), response.size() );
+    Debug( 2, "Received RTSP response: %s (%zd bytes)", response.c_str(), response.size() );
     float respVer = 0;
     int respCode = -1;
     char respText[BUFSIZ];

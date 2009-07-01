@@ -87,7 +87,7 @@ RETSIGTYPE zm_die_handler( int signal )
 	// overwrite sigaction with caller's address
 	trace[1] = (void *)context.eip;
 #elif HAVE_STRUCT_SIGCONTEXT
-	Error( "Signal address is %p, no eip", context.cr2 );
+	Error( "Signal address is %p, no eip", (void *)context.cr2 );
 
 	trace_size = backtrace( trace, TRACE_SIZE );
 #else // HAVE_STRUCT_SIGCONTEXT

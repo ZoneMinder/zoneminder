@@ -315,7 +315,7 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
         }
         else
         {
-            Error( "Incomplete frame write: %d of %d bytes written", writev_result, writev_size );
+            Error( "Incomplete frame write: %zd of %zd bytes written", writev_result, writev_size );
             close( sd );
             sd = -1;
         }

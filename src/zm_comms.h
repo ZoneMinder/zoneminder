@@ -320,7 +320,7 @@ public:
 	{
 		ssize_t nBytes = ::send( mSd, msg.data(), msg.size(), 0 );
         if ( nBytes < 0 )
-            Debug( 1, "Send of string '%s' (%d bytes) on sd %d failed: %s", msg.c_str(), msg.size(), mSd, strerror(errno) );
+            Debug( 1, "Send of string '%s' (%zd bytes) on sd %d failed: %s", msg.c_str(), msg.size(), mSd, strerror(errno) );
 		return( nBytes );
 	}
 	virtual int recv( std::string &msg ) const
@@ -329,7 +329,7 @@ public:
         int nBytes = 0;
 		if ( (nBytes = ::recv( mSd, buffer, sizeof(buffer), 0 )) < 0 )
         {
-            Debug( 1, "Recv of %d bytes max to string on sd %d failed: %s", sizeof(buffer), mSd, strerror(errno) );
+            Debug( 1, "Recv of %zd bytes max to string on sd %d failed: %s", sizeof(buffer), mSd, strerror(errno) );
             return( nBytes );
         }
         buffer[nBytes] = '\0';
@@ -342,7 +342,7 @@ public:
         int nBytes = 0;
 		if ( (nBytes = ::recv( mSd, buffer, sizeof(buffer), 0 )) < 0 )
         {
-            Debug( 1, "Recv of %d bytes max to string on sd %d failed: %s", maxLen, mSd, strerror(errno) );
+            Debug( 1, "Recv of %zd bytes max to string on sd %d failed: %s", maxLen, mSd, strerror(errno) );
             return( nBytes );
         }
         buffer[nBytes] = '\0';

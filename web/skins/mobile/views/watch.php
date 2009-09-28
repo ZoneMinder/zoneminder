@@ -24,7 +24,10 @@ if ( !canView( 'Stream' ) )
     return;
 }
 
-$monitor = dbFetchMonitor( $_REQUEST['mid'] );
+$sql = "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '".dbEscape($_REQUEST['mid'])."'";
+$monitor = dbFetchOne( $sql );
+
+$showPtzControls = ( ZM_OPT_CONTROL && $monitor['Controllable'] && canView( 'Control' ) );
 
 $zmuCommand = getZmuCommand( " -m ".$_REQUEST['mid']." -s -f" );
 $zmuOutput = exec( escapeshellcmd( $zmuCommand ) );
@@ -85,6 +88,16 @@ xhtmlHeaders( __FILE__, $monitor['Name'].' - '.$SLANG['Watch'] );
       <p class="<?= $class ?>"><?= makeLink( "?view=events&amp;page=1&amp;view=events&amp;page=1&amp;filter%5Bterms%5D%5B0%5D%5Battr%5D%3DMonitorId&amp;filter%5Bterms%5D%5B0%5D%5Bop%5D%3D%3D&amp;filter%5Bterms%5D%5B0%5D%5Bval%5D%3D".$monitor['Id']."&amp;sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?= $statusString ?>&nbsp;-&nbsp;<?= $fpsString ?>&nbsp;fps</p>
       <p><a href="?view=<?= $_REQUEST['view'] ?>&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $imageSrc ?>" alt="<?= $monitor['Name'] ?>" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"/></a></p>
 <?php
+if ( $showPtzControls )
+{
+    foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
+        require_once $includeFile;
+?>
+      <div id="ptzControls">
+        <?= ptzControls( $monitor ) ?>
+      </div>
+<?php
+}
 if ( $nextMid != $monitor['Id'] || $prevMid != $monitor['Id'] )
 {
 ?>

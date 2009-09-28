@@ -27,10 +27,10 @@ if ( !canView( 'Stream' ) )
 $sql = "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '".dbEscape($_REQUEST['mid'])."'";
 $monitor = dbFetchOne( $sql );
 
-if ( isset($_REQUEST['control']) )
-    $control = validInt($_REQUEST['control']);
+if ( isset($_REQUEST['showControls']) )
+    $showControls = validInt($_REQUEST['showControls']);
 else
-    $control = (canView( 'Control' ) && ($monitor['DefaultView'] == 'Control'));
+    $showControls = (canView( 'Control' ) && ($monitor['DefaultView'] == 'Control'));
 
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor['Controllable'] && canView( 'Control' ) );
 
@@ -76,13 +76,13 @@ if ( $showPtzControls )
     if ( canView( 'Control' ) )
     {
 ?>
-          <div id="controlControl"<?= $control?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showPtzControls(); return( false );"><?= $SLANG['Control'] ?></a></div>
+          <div id="controlControl"<?= $showControls?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showPtzControls(); return( false );"><?= $SLANG['Control'] ?></a></div>
 <?php
     }
     if ( canView( 'Events' ) )
     {
 ?>
-          <div id="eventsControl"<?= $control?'':' class="hidden"' ?>><a id="eventsLink" href="#" onclick="showEvents(); return( false );"><?= $SLANG['Events'] ?></a></div>
+          <div id="eventsControl"<?= $showControls?'':' class="hidden"' ?>><a id="eventsLink" href="#" onclick="showEvents(); return( false );"><?= $SLANG['Events'] ?></a></div>
 <?php
     }
 }
@@ -157,7 +157,7 @@ if ( $showPtzControls )
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
         require_once $includeFile;
 ?>
-      <div id="ptzControls" class="ptzControls<?= $control?'':' hidden' ?>">
+      <div id="ptzControls" class="ptzControls<?= $showControls?'':' hidden' ?>">
 <?= ptzControls( $monitor ) ?>
       </div>
 <?php
@@ -165,7 +165,7 @@ if ( $showPtzControls )
 if ( canView( 'Events' ) )
 {
 ?>
-      <div id="events"<?= $control?' class="hidden"':'' ?>>
+      <div id="events"<?= $showControls?' class="hidden"':'' ?>>
         <table id="eventList" cellspacing="0">
           <thead>
             <tr>

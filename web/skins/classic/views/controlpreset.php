@@ -59,10 +59,11 @@ xhtmlHeaders(__FILE__, $SLANG['SetPreset'] );
         <input type="hidden" name="mid" value="<?= $monitor['Id'] ?>"/>
         <input type="hidden" name="action" value="control"/>
         <input type="hidden" name="control" value="presetSet"/>
+        <input type="hidden" name="showControls" value="1"/>
         <p><?= buildSelect( "preset", $presets, "updateLabel()" ) ?></p>
-        <p><label for="newLabel"><?= $SLANG['NewLabel'] ?></label><input type="text" name="newLabel" value="" size="16"></p>
+        <p><label for="newLabel"><?= $SLANG['NewLabel'] ?></label><input type="text" name="newLabel" id="newLabel" value="" size="16"/></p>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Save'] ?>"><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()">
+          <input type="submit" value="<?= $SLANG['Save'] ?>"/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

@@ -7,4 +7,5 @@ dist_web_DATA = \
 	config.php \
 	database.php \
 	functions.php \
+	control_functions.php \
 	lang.php

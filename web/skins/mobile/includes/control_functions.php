@@ -150,7 +150,7 @@ function controlPresets( $monitor, $cmds )
 ?>
 <div class="presetControls">
   <div>
-    <form method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
+    <form method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
       <div class="hidden">
         <fieldset>
           <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
@@ -164,7 +164,7 @@ function controlPresets( $monitor, $cmds )
     for ( $i = 1; $i <= min($monitor['NumPresets'],MAX_PRESETS); $i++ )
     {
 ?>
-        <input type="submit" class="ptzNumBtn" title="<?= isset($labels[$i])?$labels[$i]:"" ?>" name="controlParm" value="<?= $i ?>"/>
+        <input type="submit" class="ptzNumBtn" title="<?= isset($labels[$i])?$labels[$i]:"" ?>" name="preset" value="<?= $i ?>"/>
 <?php
     }
 ?>

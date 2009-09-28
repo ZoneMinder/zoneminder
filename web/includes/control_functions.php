@@ -388,6 +388,7 @@ function buildControlCommand( $monitor )
             {
                 // No command, probably in blind spot in middle
                 $_REQUEST['control'] = 'null';
+                return( false );
             }
             else
             {
@@ -935,24 +936,26 @@ function buildControlCommand( $monitor )
             $_REQUEST['control'] = 'presetGoto';
             $ctrlCommand .= " --preset=".$matches[1];
         }
-        elseif ( $_REQUEST['control'] == "presetGoto" && !empty($_REQUEST['controlParm']) )
+        elseif ( $_REQUEST['control'] == "presetGoto" && !empty($_REQUEST['preset']) )
         {
-            $ctrlCommand .= " --preset=".$_REQUEST['controlParm'];
+            $ctrlCommand .= " --preset=".$_REQUEST['preset'];
         }
         elseif ( $_REQUEST['control'] == "presetSet" )
         {
             if ( canEdit( 'Control' ) )
             {
-                $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
-                $row = dbFetchOne( $sql );
-                if ( $new_label != $row['Label'] )
+                $preset = validInt($_REQUEST['preset']);
+                $newLabel = validJsStr($_REQUEST['newLabel']);
+                $row = dbFetchOne( "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".dbEscape($preset)."'" );
+                if ( $newLabel != $row['Label'] )
                 {
-                    if ( $new_label )
-                        $sql = "replace into ControlPresets ( MonitorId, Preset, Label ) values ( '".$monitor['Id']."', '".$preset."', '".addslashes($new_label)."' )";
+                    if ( $newLabel )
+                        $sql = "replace into ControlPresets ( MonitorId, Preset, Label ) values ( '".$monitor['Id']."', '".dbEscape($preset)."', '".dbEscape($newLabel)."' )";
                     else
-                        $sql = "delete from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".$preset."'";
+                        $sql = "delete from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".dbEscape($preset)."'";
                     dbQuery( $sql );
                 }
+                $ctrlCommand .= " --preset=".$preset;
             }
             $ctrlCommand .= " --preset=".$preset;
         }
@@ -961,5 +964,6 @@ function buildControlCommand( $monitor )
             $ctrlCommand .= " --xcoord=$x --ycoord=$y";
         }
     }
+    $ctrlCommand .= " --command=".$_REQUEST['control'];
     return( $ctrlCommand );
 }

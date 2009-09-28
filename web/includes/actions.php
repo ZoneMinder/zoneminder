@@ -172,17 +172,12 @@ if ( !empty($action) )
         $mid = validInt($_REQUEST['mid']);
         if ( $action == "control" )
         {
-            $control = validStr($_REQUEST['control']);
-            if ( !empty( $_REQUEST['controlParms'] ) )
-                $control .= $_REQUEST['controlParms'];
-
             $monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = '".dbEscape($mid)."'" );
 
             $ctrlCommand = buildControlCommand( $monitor );
 
-            if ( $control != 'null' )
+            if ( $ctrlCommand )
             {
-                $ctrlCommand .= " --command=".$control;
                 $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
                 if ( $socket < 0 )
                 {

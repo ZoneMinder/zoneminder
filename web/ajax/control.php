@@ -11,9 +11,8 @@ if ( canView( 'Control', $_REQUEST['id'] ) )
 
     $ctrlCommand = buildControlCommand( $monitor );
 
-    if ( $_REQUEST['control'] != 'null' )
+    if ( $ctrlCommand )
     {
-        $ctrlCommand .= " --command=".$_REQUEST['control'];
         $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
         if ( !$socket )
             ajaxError( "socket_create() failed: ".socket_strerror(socket_last_error()) );

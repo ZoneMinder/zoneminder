@@ -808,7 +808,7 @@ xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <?= makePopupLink( '?view=events&page=1&filter=1'.$filterQuery, 'zmEvents', 'events', $SLANG['List'], canView( 'Events' ) ) ?>
+        <?= makePopupLink( '?view=events&page=1'.$filterQuery, 'zmEvents', 'events', $SLANG['List'], canView( 'Events' ) ) ?>
         <a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a>
       </div>
       <h2><?= $SLANG['Timeline'] ?></h2>

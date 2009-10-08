@@ -78,6 +78,7 @@ sub executeShellCommand( $ )
         chomp( $output );
         Debug( "Output: $output\n" );
     }
+    return( $status );
 }
 
 sub getEventPath( $ )

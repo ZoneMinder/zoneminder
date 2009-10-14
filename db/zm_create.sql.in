@@ -348,7 +348,7 @@ CREATE TABLE `Monitors` (
   `DefaultView` enum('Events','Control') NOT NULL default 'Events',
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
-  `SignalCheckColour` varchar(32) NOT NULL default '#0100BE',
+  `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',
   `Sequence` smallint(5) unsigned default NULL,
   PRIMARY KEY  (`Id`)
@@ -580,6 +580,7 @@ INSERT INTO MonitorPresets VALUES ('','BTTV Video (V4L1), NTSC, 320x240','Local'
 INSERT INTO MonitorPresets VALUES ('','BTTV Video (V4L1), NTSC, 320x240, max 5 FPS','Local','/dev/video<?>','<?>',1,NULL,'v4l1',NULL,NULL,NULL,NULL,320,240,13,5.0,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES ('','BTTV Video (V4L1), NTSC, 640x480','Local','/dev/video<?>','<?>',1,NULL,'v4l1',NULL,NULL,NULL,NULL,640,480,13,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES ('','BTTV Video (V4L1), NTSC, 640x480, max 5 FPS','Local','/dev/video<?>','<?>',1,NULL,'v4l1',NULL,NULL,NULL,NULL,640,480,13,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES ('','Remote ZoneMinder','Remote',NULL,NULL,NULL,'http','simple','<ip-address>',80,'/cgi-bin/nph-zms?mode=jpeg&monitor=<monitor-id>&scale=100&maxfps=5&buffer=0',NULL,NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
 
 --
 -- Add some zone preset values

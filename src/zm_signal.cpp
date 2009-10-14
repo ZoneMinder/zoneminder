@@ -114,7 +114,7 @@ RETSIGTYPE zm_die_handler( int signal )
     }
     else
     {
-        cmd_ptr += snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), "/path/to/%s", zm_dbg_name );
+        cmd_ptr += snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), "/path/to/%s", zmDbgName() );
     }
 	// skip first stack frame (points here)
 	for ( int i=1; i < trace_size; i++ )

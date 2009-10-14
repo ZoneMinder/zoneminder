@@ -42,12 +42,12 @@
 #define ZM_DBG_SYSLOG		ZM_DBG_INF 
 
 #define zmDbgPrintf(level,params...)	{\
-					if (level <= zm_dbg_level)\
+					if (level <= zmDbgLevel)\
 						zmDbgOutput( 0, __FILE__, __LINE__, level, ##params );\
 				}
 
 #define zmDbgHexdump(level,data,len)	{\
-					if (level <= zm_dbg_level)\
+					if (level <= zmDbgLevel)\
 						zmDbgOutput( 1, __FILE__, __LINE__, level, "%p (%d)", data, len );\
 				}
 
@@ -84,6 +84,7 @@ extern "C" {
 #endif 
 
 /* function declarations */
+const char *zmDbgName();
 void zmUsrHandler( int sig );
 int zmGetDebugEnv( void );
 int zmDebugPrepareLog( void );
@@ -104,18 +105,11 @@ int zmDbgTerm();
 void zmDbgOutput();
 #endif
 
-extern int zm_dbg_level;
-extern int zm_dbg_pid;
-extern char zm_dbg_log[];
+extern int zmDbgLevel;
+
 #ifndef _STDIO_INCLUDED
 #include <stdio.h>
 #endif
-extern FILE *zm_dbg_log_fd;
-extern char zm_dbg_name[];
-extern char zm_dbg_id[];
-extern int zm_dbg_print;
-extern int zm_dbg_flush;
-extern int zm_dbg_add_log_id;
 
 #ifdef __cplusplus
 } /* extern "C" */

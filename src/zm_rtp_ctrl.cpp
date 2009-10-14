@@ -332,7 +332,7 @@ int RtpCtrlThread::run()
             }
             else
             {
-                Fatal( "Barfed" );
+                Panic( "Barfed" );
             }
         }
     }

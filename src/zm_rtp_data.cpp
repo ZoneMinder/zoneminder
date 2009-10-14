@@ -108,7 +108,7 @@ int RtpDataThread::run()
              }
              else
              {
-                 Fatal( "Barfed" );
+                 Panic( "Barfed" );
              }
          }
     }

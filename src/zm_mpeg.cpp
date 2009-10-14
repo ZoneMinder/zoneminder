@@ -61,7 +61,7 @@ void VideoStream::SetupFormat( const char *p_filename, const char *p_format )
 	ofc = (AVFormatContext *)av_mallocz(sizeof(AVFormatContext));
 	if ( !ofc )
 	{
-		Fatal( "Memory error" );
+		Panic( "Memory error" );
 	}
 	ofc->oformat = of;
 	snprintf( ofc->filename, sizeof(ofc->filename), "%s", filename );
@@ -79,7 +79,7 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, d
 		ost = av_new_stream(ofc, 0);
 		if (!ost)
 		{
-			Fatal( "Could not alloc stream" );
+			Panic( "Could not alloc stream" );
 		}
 		
 #if ZM_FFMPEG_SVN
@@ -125,7 +125,7 @@ void VideoStream::SetParameters()
 	   parameters). */
 	if ( av_set_parameters(ofc, NULL) < 0 )
 	{
-		Fatal( "Invalid output format parameters" );
+		Panic( "Invalid output format parameters" );
 	}
 	//dump_format(ofc, 0, filename, 1);
 }
@@ -165,27 +165,27 @@ void VideoStream::OpenStream()
 		AVCodec *codec = avcodec_find_encoder(c->codec_id);
 		if ( !codec )
 		{
-			Fatal( "codec not found" );
+			Panic( "codec not found" );
 		}
 
 		/* open the codec */
 		if ( avcodec_open(c, codec) < 0 )
 		{
-			Fatal( "Could not open codec" );
+			Panic( "Could not open codec" );
 		}
 
 		/* allocate the encoded raw picture */
 		opicture = avcodec_alloc_frame();
 		if ( !opicture )
 		{
-			Fatal( "Could not allocate opicture" );
+			Panic( "Could not allocate opicture" );
 		}
 		int size = avpicture_get_size( c->pix_fmt, c->width, c->height);
 		uint8_t *opicture_buf = (uint8_t *)malloc(size);
 		if ( !opicture_buf )
 		{
 			av_free(opicture);
-			Fatal( "Could not allocate opicture" );
+			Panic( "Could not allocate opicture" );
 		}
 		avpicture_fill( (AVPicture *)opicture, opicture_buf, c->pix_fmt, c->width, c->height );
 
@@ -198,14 +198,14 @@ void VideoStream::OpenStream()
 			tmp_opicture = avcodec_alloc_frame();
 			if ( !tmp_opicture )
 			{
-				Fatal( "Could not allocate temporary opicture" );
+				Panic( "Could not allocate temporary opicture" );
 			}
 			int size = avpicture_get_size( pf, c->width, c->height);
 			uint8_t *tmp_opicture_buf = (uint8_t *)malloc(size);
 			if (!tmp_opicture_buf)
 			{
 				av_free( tmp_opicture );
-				Fatal( "Could not allocate temporary opicture" );
+				Panic( "Could not allocate temporary opicture" );
 			}
 			avpicture_fill( (AVPicture *)tmp_opicture, tmp_opicture_buf, pf, c->width, c->height );
 		}
@@ -318,7 +318,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
         {
             img_convert_ctx = sws_getContext( c->width, c->height, pf, c->width, c->height, c->pix_fmt, SWS_BICUBIC, NULL, NULL, NULL );
             if ( !img_convert_ctx )
-                Fatal( "Unable to initialise image scaling context" );
+                Panic( "Unable to initialise image scaling context" );
         }
         sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, c->height, opicture->data, opicture->linesize );
 #else // HAVE_LIBSWSCALE

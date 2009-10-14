@@ -138,11 +138,11 @@ int RemoteCameraRtsp::PrimeCapture()
     // Find the decoder for the video stream
     codec = avcodec_find_decoder( codecContext->codec_id );
     if ( codec == NULL )
-        Fatal( "Unable to locate codec %d decoder", codecContext->codec_id );
+        Panic( "Unable to locate codec %d decoder", codecContext->codec_id );
 
     // Open codec
     if ( avcodec_open( codecContext, codec ) < 0 )
-        Fatal( "Can't open codec" );
+        Panic( "Can't open codec" );
 
     picture = avcodec_alloc_frame();
 
@@ -185,14 +185,14 @@ int RemoteCameraRtsp::Capture( Image &image )
                     tmp_picture = avcodec_alloc_frame();
                     if ( !tmp_picture )
                     {
-                        Fatal( "Could not allocate temporary opicture" );
+                        Panic( "Could not allocate temporary opicture" );
                     }
                     int size = avpicture_get_size( PIX_FMT_RGB24, width, height);
                     uint8_t *tmp_picture_buf = (uint8_t *)malloc(size);
                     if (!tmp_picture_buf)
                     {
                         av_free( tmp_picture );
-                        Fatal( "Could not allocate temporary opicture" );
+                        Panic( "Could not allocate temporary opicture" );
                     }
                     avpicture_fill( (AVPicture *)tmp_picture, tmp_picture_buf, PIX_FMT_RGB24, width, height );
                 //}
@@ -234,7 +234,7 @@ int RemoteCameraRtsp::Capture( Image &image )
                     {
                         img_convert_ctx = sws_getContext( codecContext->width, codecContext->height, codecContext->pix_fmt, width, height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL );
                         if ( !img_convert_ctx )
-                            Fatal( "Unable to initialise image scaling context" );
+                            Panic( "Unable to initialise image scaling context" );
                     }
 
                     sws_scale( img_convert_ctx, picture->data, picture->linesize, 0, height, tmp_picture->data, tmp_picture->linesize );

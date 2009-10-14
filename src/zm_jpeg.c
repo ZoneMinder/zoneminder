@@ -39,7 +39,6 @@ void zm_jpeg_error_exit( j_common_ptr cinfo )
 	if ( ++jpeg_err_count == MAX_JPEG_ERRS )
 	{
 		Fatal( "Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count );
-		exit( -1 );
 	}
 
 	longjmp( zmerr->setjmp_buffer, 1 );

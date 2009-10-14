@@ -147,7 +147,7 @@ int RtspThread::requestPorts()
             return( i );
         }
     }
-    Fatal( "Can assign RTP port, no ports left in pool" );
+    Panic( "Can assign RTP port, no ports left in pool" );
     return( -1 );
 }
 
@@ -369,7 +369,7 @@ int RtspThread::run()
         }
         default:
         {
-            Fatal( "Got unexpected method %d", mMethod );
+            Panic( "Got unexpected method %d", mMethod );
             break;
         }
     }
@@ -704,7 +704,7 @@ int RtspThread::run()
         }
         default:
         {
-            Fatal( "Got unexpected method %d", mMethod );
+            Panic( "Got unexpected method %d", mMethod );
             break;
         }
     }

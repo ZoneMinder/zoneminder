@@ -36,6 +36,7 @@
 #define	ZM_DBG_WAR			-1
 #define ZM_DBG_ERR			-2
 #define ZM_DBG_FAT			-3
+#define ZM_DBG_PNC			-4
 
 /* Define the level at which messages go through syslog */
 #define ZM_DBG_SYSLOG		ZM_DBG_INF 
@@ -63,6 +64,7 @@
 #define Warning(params...)	zmDbgPrintf(ZM_DBG_WAR,##params)
 #define Error(params...)	zmDbgPrintf(ZM_DBG_ERR,##params)
 #define Fatal(params...)	zmDbgPrintf(ZM_DBG_FAT,##params)
+#define Panic(params...)	zmDbgPrintf(ZM_DBG_PNC,##params)
 #define Mark()				Info("Mark/%s/%d",__FILE__,__LINE__)
 #define Log()				Info("Log")
 #ifdef __GNUC__

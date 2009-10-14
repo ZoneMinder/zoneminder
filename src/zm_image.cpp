@@ -221,7 +221,7 @@ Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 {
     if ( colours != 1 )
     {
-        Fatal( "Attempt to highlight image edges when colours = %d", colours );
+        Panic( "Attempt to highlight image edges when colours = %d", colours );
     }
 	Image *high_image = new Image( width, height, 3 );
 	int lo_x = limits?limits->Lo().X():0;
@@ -644,7 +644,7 @@ void Image::Overlay( const Image &image )
 {
 	if ( !(width == image.width && height == image.height) )
     {
-        Fatal( "Attempt to overlay different sized images, expected %dx%d, got %dx%d", width, height, image.width, image.height );
+        Panic( "Attempt to overlay different sized images, expected %dx%d, got %dx%d", width, height, image.width, image.height );
     }
 
 	unsigned char *pdest = buffer;
@@ -715,17 +715,17 @@ void Image::Overlay( const Image &image, int x, int y )
 {
 	if ( !(width < image.width || height < image.height) )
     {
-        Fatal( "Attempt to overlay image too big for destination, %dx%d > %dx%d", image.width, image.height, width, height );
+        Panic( "Attempt to overlay image too big for destination, %dx%d > %dx%d", image.width, image.height, width, height );
     }
 
 	if ( !(width < (x+image.width) || height < (y+image.height)) )
     {
-        Fatal( "Attempt to overlay image outside of destination bounds, %dx%d @ %dx%d > %dx%d", image.width, image.height, x, y, width, height );
+        Panic( "Attempt to overlay image outside of destination bounds, %dx%d @ %dx%d > %dx%d", image.width, image.height, x, y, width, height );
     }
 
 	if ( !(colours == image.colours) )
     {
-        Fatal( "Attempt to partial overlay differently coloured images, expected %d, got %d", colours, image.colours );
+        Panic( "Attempt to partial overlay differently coloured images, expected %d, got %d", colours, image.colours );
     }
 
 	int lo_x = x;
@@ -764,7 +764,7 @@ void Image::Blend( const Image &image, int transparency ) const
 {
 	if ( !(width == image.width && height == image.height && colours == image.colours) )
     {
-        Fatal( "Attempt to blend different sized images, expected %dx%dx%d, got %dx%dx%d", width, height, colours, image.width, image.height, image.colours );
+        Panic( "Attempt to blend different sized images, expected %dx%dx%d, got %dx%dx%d", width, height, colours, image.width, image.height, image.colours );
     }
 
 	if ( config.fast_image_blends )
@@ -819,7 +819,7 @@ Image *Image::Merge( int n_images, Image *images[] )
 	{
 	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
         {
-            Fatal( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
+            Panic( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
         }
 	}
 
@@ -853,7 +853,7 @@ Image *Image::Merge( int n_images, Image *images[], double weight )
 	{
 	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
         {
-            Fatal( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
+            Panic( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
         }
 	}
 
@@ -887,7 +887,7 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 	{
 	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
         {
-            Fatal( "Attempt to highlight different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
+            Panic( "Attempt to highlight different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
         }
 	}
 
@@ -920,7 +920,7 @@ Image *Image::Delta( const Image &image ) const
 {
 	if ( !(width == image.width && height == image.height && colours == image.colours) )
     {
-        Fatal( "Attempt to get delta of different sized images, expected %dx%dx%d, got %dx%dx%d", width, height, colours, image.width, image.height, image.colours );
+        Panic( "Attempt to get delta of different sized images, expected %dx%dx%d, got %dx%dx%d", width, height, colours, image.width, image.height, image.colours );
     }
 
 	Image *result = new Image( width, height, 1 );
@@ -1176,7 +1176,7 @@ void Image::Fill( Rgb colour, const Box *limits )
 {
 	if ( !(colours == 1 || colours == 3 ) )
     {
-        Fatal( "Attempt to fill image with unexpected colours %d", colours );
+        Panic( "Attempt to fill image with unexpected colours %d", colours );
     }
 	int lo_x = limits?limits->Lo().X():0;
 	int lo_y = limits?limits->Lo().Y():0;
@@ -1213,7 +1213,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 {
 	if ( !(colours == 1 || colours == 3 ) )
     {
-        Fatal( "Attempt to fill image with unexpected colours %d", colours );
+        Panic( "Attempt to fill image with unexpected colours %d", colours );
     }
 
 	int lo_x = limits?limits->Lo().X():0;
@@ -1246,7 +1246,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 {
 	if ( !(colours == 1 || colours == 3 ) )
     {
-        Fatal( "Attempt to outline image with unexpected colours %d", colours );
+        Panic( "Attempt to outline image with unexpected colours %d", colours );
     }
 	int n_coords = polygon.getNumCoords();
 	for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ )
@@ -1335,7 +1335,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 {
 	if ( !(colours == 1 || colours == 3 ) )
     {
-        Fatal( "Attempt to fill image with unexpected colours %d", colours );
+        Panic( "Attempt to fill image with unexpected colours %d", colours );
     }
 
 	int n_coords = polygon.getNumCoords();

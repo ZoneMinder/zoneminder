@@ -358,6 +358,9 @@ void zmDbgOutput( int hex, const char * const file, const int line, const int le
         case ZM_DBG_FAT:
             strncpy( class_string, "FAT", sizeof(class_string) );
             break;
+        case ZM_DBG_PNC:
+            strncpy( class_string, "PNC", sizeof(class_string) );
+            break;
         default:
             if ( level > 0 && level <= 9 )
             {
@@ -442,9 +445,8 @@ void zmDbgOutput( int hex, const char * const file, const int line, const int le
 				log_code = LOG_WARNING;
 				break;
 			case ZM_DBG_ERR:
-				log_code = LOG_ERR;
-				break;
 			case ZM_DBG_FAT:
+			case ZM_DBG_PNC:
 				log_code = LOG_ERR;
 				break;
 			default:
@@ -455,9 +457,10 @@ void zmDbgOutput( int hex, const char * const file, const int line, const int le
         *dbg_log_end = '\0';
 		syslog( log_code, "%s [%s]", class_string, dbg_log_start );
 	}
-	if ( level == ZM_DBG_FAT )
+	if ( level >= ZM_DBG_FAT )
 	{
-        abort();
+	    if ( level >= ZM_DBG_PNC )
+            abort();
 		exit( -1 );
 	}
 }

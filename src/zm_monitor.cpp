@@ -1004,11 +1004,22 @@ bool Monitor::CheckSignal( const Image *image )
 
         const unsigned char *buffer = image->Buffer();
         int pixels = image->Pixels();
+        int width = image->Width();
         int colours = image->Colours();
 
+        int index = 0;
         for ( int i = 0; i < config.signal_check_points; i++ )
         {
-            int index = (rand()*pixels)/RAND_MAX;
+            while( true )
+            {
+                index = (int)(((long long)rand()*(long long)(pixels-1))/RAND_MAX);
+                if ( !config.timestamp_on_capture || !label_format[0] )
+                    break;
+                // Avoid sampling the rows with timestamp in
+                int y = index / (width * colours);
+                if ( y < label_coord.Y() || y > label_coord.Y()+Image::LINE_HEIGHT )
+                    break;
+            }
             const unsigned char *ptr = buffer+(index*colours);
             if ( (RED(ptr) != red_val) || (GREEN(ptr) != green_val) || (BLUE(ptr) != blue_val) )
             {

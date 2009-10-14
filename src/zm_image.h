@@ -41,8 +41,6 @@ extern "C"
 class Image
 {
 protected:
-	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 };
-    enum { LINE_HEIGHT=CHAR_HEIGHT+0 };
 	typedef unsigned char BlendTable[256][256];
 	typedef BlendTable *BlendTablePtr;
 
@@ -67,6 +65,10 @@ protected:
 			return( int(e1->min_x - e2->min_x) );
 		}
 	};
+
+public:
+	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 };
+    enum { LINE_HEIGHT=CHAR_HEIGHT+0 };
 
 protected:
 	static bool initialised;
@@ -120,7 +122,7 @@ public:
 	{
 		if ( image.size != size )
         {
-            Fatal( "Attempt to copy different size image buffers, expected %d, got %d", size, image.size );
+            Panic( "Attempt to copy different size image buffers, expected %d, got %d", size, image.size );
         }
 		memcpy( buffer, image.buffer, size );
 	}

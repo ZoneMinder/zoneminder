@@ -38,11 +38,11 @@ xhtmlHeaders(__FILE__, $SLANG['Logout'] );
 if ( ZM_USER_SELF_EDIT )
 {
 ?>
-          <input type="button" value="<?= $SLANG['Config'] ?>" onclick="createPopup( '?view=user&uid=<?= $user['Id'] ?>', 'zmUser', 'user' );"/>
+          <input type="button" value="<?= $SLANG['Config'] ?>" onclick="createPopup( '?view=user&amp;uid=<?= $user['Id'] ?>', 'zmUser', 'user' );"/>
 <?php
 }
 ?>
-          <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"></p>
+          <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
         </p>
       </form>
     </div>

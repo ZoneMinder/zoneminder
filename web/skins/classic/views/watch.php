@@ -91,7 +91,7 @@ if ( $showPtzControls )
 if ( canView( 'Control' ) && $monitor['Type'] == "Local" )
 {
 ?>
-          <div id="settingsControl"><?= makePopupLink( '?view=settings&mid='.$monitor['Id'], 'zmSettings'.$monitor['Id'], 'settings', $SLANG['Settings'], true, 'id="settingsLink"' ) ?></div>
+          <div id="settingsControl"><?= makePopupLink( '?view=settings&amp;mid='.$monitor['Id'], 'zmSettings'.$monitor['Id'], 'settings', $SLANG['Settings'], true, 'id="settingsLink"' ) ?></div>
 <?php
 }
 ?>
@@ -199,7 +199,7 @@ if ( ZM_WEB_SOUND_ON_ALARM )
           <param name="FileName" value="<?= $soundSrc ?>"/>
           <param name="autoStart" value="0"/>
           <param name="loop" value="1"/>
-          <param name=hidden value="1"/>
+          <param name="hidden" value="1"/>
           <param name="showControls" value="0"/>
           <embed src="<?= $soundSrc ?>"
             autostart="true"

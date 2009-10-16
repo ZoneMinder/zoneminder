@@ -268,7 +268,7 @@ if ( $tree )
     $filterQuery = parseTreeToQuery( $tree );
     if ( $filterQuery )
     {
-        $filterQuery = '&'.$filterQuery;
+        $filterQuery = '&amp;'.$filterQuery;
     }
 }
 else
@@ -808,7 +808,7 @@ xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <?= makePopupLink( '?view=events&page=1'.$filterQuery, 'zmEvents', 'events', $SLANG['List'], canView( 'Events' ) ) ?>
+        <?= makePopupLink( '?view=events&amp;page=1'.$filterQuery, 'zmEvents', 'events', $SLANG['List'], canView( 'Events' ) ) ?>
         <a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a>
       </div>
       <h2><?= $SLANG['Timeline'] ?></h2>
@@ -816,7 +816,7 @@ xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
     <div id="content" class="chartSize">
       <div id="topPanel" class="graphWidth">
         <div id="imagePanel">
-          <div id="image" class="imageHeight"><img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" title="<?= $SLANG['ViewEvent'] ?>"/></div>
+          <div id="image" class="imageHeight"><img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?= $SLANG['ViewEvent'] ?>" title="<?= $SLANG['ViewEvent'] ?>"/></div>
         </div>
         <div id="dataPanel">
           <div id="textPanel">

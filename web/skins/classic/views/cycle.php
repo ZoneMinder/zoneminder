@@ -95,9 +95,9 @@ xhtmlHeaders(__FILE__, $SLANG['CycleWatch'] );
     <div id="header">
       <div id="headerButtons">
 <?php if ( $mode == "stream" ) { ?>
-        <a href="?view=<?= $view ?>&mode=still&group=<?= $group ?>&mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stills'] ?></a>
+        <a href="?view=<?= $view ?>&amp;mode=still&amp;group=<?= $group ?>&amp;mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stills'] ?></a>
 <?php } else { ?>
-        <a href="?view=<?= $view ?>&mode=stream&group=<?= $group ?>&mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stream'] ?></a>
+        <a href="?view=<?= $view ?>&amp;mode=stream&amp;group=<?= $group ?>&amp;mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stream'] ?></a>
 <?php } ?>
         <a href="#" onclick="closeWindow(); return( false );"><?= $SLANG['Close'] ?></a>
       </div>

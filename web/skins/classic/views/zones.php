@@ -59,7 +59,7 @@ xhtmlHeaders(__FILE__, $SLANG['Zones'] );
 foreach( array_reverse($zones) as $zone )
 {
 ?>
-        <area shape="poly" coords="<?= $zone['AreaCoords'] ?>" href="#" onclick="createPopup( '?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"/>
+        <area shape="poly" alt="<?= htmlspecialchars($zone['Name']) ?>" coords="<?= $zone['AreaCoords'] ?>" href="#" onclick="createPopup( '?view=zone&amp;mid=<?= $mid ?>&amp;zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"/>
 <?php
 }
 ?>
@@ -85,7 +85,7 @@ foreach( $zones as $zone )
 {
 ?>
             <tr>
-              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&mid=<?= $mid ?>&zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"><?= $zone['Name'] ?></a></td>
+              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&amp;mid=<?= $mid ?>&amp;zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"><?= $zone['Name'] ?></a></td>
               <td class="colType"><?= $zone['Type'] ?></td>
               <td class="colUnits"><?= $zone['Area'] ?>&nbsp;/&nbsp;<?= sprintf( "%.2f", ($zone['Area']*100)/($monitor['Width']*$monitor['Height']) ) ?></td>
               <td class="colMark"><input type="checkbox" name="markZids[]" value="<?= $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
@@ -96,7 +96,7 @@ foreach( $zones as $zone )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?= $SLANG['AddNewZone'] ?>" onclick="createPopup( '?view=zone&mid=<?= $mid ?>&zid=0', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="button" value="<?= $SLANG['AddNewZone'] ?>" onclick="createPopup( '?view=zone&amp;mid=<?= $mid ?>&amp;zid=0', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
           <input type="submit" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled"/>
         </div>
       </form>

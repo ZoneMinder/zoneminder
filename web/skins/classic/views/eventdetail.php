@@ -115,11 +115,11 @@ elseif ( $mode = 'multi' )
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?= $SLANG['Cause'] ?></td>
+              <th scope="row"><?= $SLANG['Cause'] ?></th>
               <td><input type="text" name="newEvent[Cause]" value="<?= validHtmlStr($newEvent['Cause']) ?>" size="32"/></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['Notes'] ?></td>
+              <th scope="row"><?= $SLANG['Notes'] ?></th>
               <td><textarea name="newEvent[Notes]" rows="6" cols="50"><?= validHtmlStr($newEvent['Notes']) ?></textarea></td>
             </tr>
           </tbody>

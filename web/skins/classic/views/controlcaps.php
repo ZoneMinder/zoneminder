@@ -64,7 +64,7 @@ foreach( $controls as $control )
 {
 ?>
             <tr>
-              <td class="colName"><?= makePopupLink( '?view=controlcap&cid='.$control['Id'], 'zmControlCap', 'controlcap', $control['Name'], canView( 'Control' ) ) ?></td>
+              <td class="colName"><?= makePopupLink( '?view=controlcap&amp;cid='.$control['Id'], 'zmControlCap', 'controlcap', $control['Name'], canView( 'Control' ) ) ?></td>
               <td class="colType"><?= $control['Type'] ?></td>
               <td class="colProtocol"><?= $control['Protocol'] ?></td>
               <td class="colCanMove"><?= $control['CanMove']?$SLANG['Yes']:$SLANG['No'] ?></td>

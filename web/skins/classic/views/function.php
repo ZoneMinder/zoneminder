@@ -51,7 +51,7 @@ foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
 }
 ?>
           </select>
-          <label for="newEnabled"><?= $SLANG['Enabled'] ?></label><input type="checkbox" name="newEnabled" value="1"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
+          <label for="newEnabled"><?= $SLANG['Enabled'] ?></label><input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
         </p>
         <div id="contentButtons">
           <input type="submit" value="<?= $SLANG['Save'] ?>"/>

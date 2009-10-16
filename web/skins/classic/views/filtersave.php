@@ -66,15 +66,15 @@ xhtmlHeaders(__FILE__, $SLANG['SaveFilter'] );
         <input type="hidden" name="autoDelete" value="<?= requestVar( 'autoDelete' ) ?>"/>
 <?php if ( count($filterNames) ) { ?>
         <p>
-          <label for="<?= $selectName ?>"><?= $SLANG['SaveAs'] ?></label><?= buildSelect( $selectName, $filterNames ); ?><label for="<?= $newSelectName ?>"><?= $SLANG['OrEnterNewName'] ?></label><input type="text" size="32" name="<?= $newSelectName ?>" value="<?= requestVar('filterName') ?>">
+          <label for="<?= $selectName ?>"><?= $SLANG['SaveAs'] ?></label><?= buildSelect( $selectName, $filterNames ); ?><label for="<?= $newSelectName ?>"><?= $SLANG['OrEnterNewName'] ?></label><input type="text" size="32" id="<?= $newSelectName ?>" name="<?= $newSelectName ?>" value="<?= requestVar('filterName') ?>"/>
         </p>
 <?php } else { ?>
         <p>
-          <label for="<?= $newSelectName ?>"><?= $SLANG['EnterNewFilterName'] ?></label><input type="text" size="32" name="<?= $newSelectName ?>" value="">
+          <label for="<?= $newSelectName ?>"><?= $SLANG['EnterNewFilterName'] ?></label><input type="text" size="32" id="<?= $newSelectName ?>" name="<?= $newSelectName ?>" value="">
         </p>
 <?php } ?>
         <p>
-          <label for="background"><?= $SLANG['BackgroundFilter'] ?></label><input type="checkbox" name="background" value="1"<?php if ( !empty($filterData['Background']) ) { ?> checked="checked"<?php } ?>/>
+          <label for="background"><?= $SLANG['BackgroundFilter'] ?></label><input type="checkbox" id="background" name="background" value="1"<?php if ( !empty($filterData['Background']) ) { ?> checked="checked"<?php } ?>/>
         </p>
         <div id="contentButtons">
           <input type="submit" value="<?= $SLANG['Save'] ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>

@@ -208,8 +208,7 @@ else
           </div>
           <div id="thumbsSliderPanel">
             <div id="thumbsSlider">
-                <div id="thumbsKnob">
-                </div>
+              <div id="thumbsKnob">
               </div>
             </div>
           </div>

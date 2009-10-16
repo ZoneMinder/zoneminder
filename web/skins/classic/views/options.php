@@ -72,7 +72,7 @@ foreach ( $tabs as $name=>$value )
     else
     {
 ?>
-        <li><a href="?view=<?= $view ?>&tab=<?= $name ?>"><?= $value ?></a></li>
+        <li><a href="?view=<?= $view ?>&amp;tab=<?= $name ?>"><?= $value ?></a></li>
 <?php
     }
 }
@@ -125,7 +125,7 @@ if ( $tab == "users" )
         }
 ?>
             <tr>
-              <td class="colUsername"><?= makePopupLink( '?view=user&uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), $canEdit ) ?></td>
+              <td class="colUsername"><?= makePopupLink( '?view=user&amp;uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), $canEdit ) ?></td>
               <td class="colLanguage"><?= $row['Language']?validHtmlStr($row['Language']):'default' ?></td>
               <td class="colEnabled"><?= $row['Enabled']?$SLANG['Yes']:$SLANG['No'] ?></td>
               <td class="colStream"><?= validHtmlStr($row['Stream']) ?></td>
@@ -143,7 +143,7 @@ if ( $tab == "users" )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?= $SLANG['AddNewUser'] ?>" onclick="createPopup( '?view=user&uid=0', 'zmUser', 'user' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled"/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+          <input type="button" value="<?= $SLANG['AddNewUser'] ?>" onclick="createPopup( '?view=user&amp;uid=0', 'zmUser', 'user' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled"/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
         </div>
       </form>
 <?php
@@ -177,7 +177,7 @@ else
 ?>
             <tr>
               <td><?= $shortName ?></td>
-              <td><?= validHtmlStr($optionPromptText) ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td><?= validHtmlStr($optionPromptText) ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&amp;option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
 <?php   
         if ( $value['Type'] == "boolean" )
         {

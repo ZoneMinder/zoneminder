@@ -214,7 +214,7 @@ else
           <td><?= filesize( $file ) ?></td>
           <td><?= $rateText ?></td>
           <td><?= $scaleText ?></td>
-          <td><?= makePopupLink( '?view='.$view.'&eid='.$event['Id'].'&width='.$width.'&height='.$height.'&showIndex='.$index, 'zmVideo'.$event['Id'].'-'.$scale, array( 'videoview', $width, $height ), $SLANG['View'] ); ?>&nbsp;/&nbsp;<a href="<?= $file ?>" onclick="downloadVideo( <?= $index ?> ); return( false );"><?= $SLANG['Download'] ?></a>&nbsp;/&nbsp;<a href="#" onclick="deleteVideo( <?= $index ?> ); return( false );"><?= $SLANG['Delete'] ?></a></td>
+          <td><?= makePopupLink( '?view='.$view.'&amp;eid='.$event['Id'].'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, 'zmVideo'.$event['Id'].'-'.$scale, array( 'videoview', $width, $height ), $SLANG['View'] ); ?>&nbsp;/&nbsp;<a href="<?= $file ?>" onclick="downloadVideo( <?= $index ?> ); return( false );"><?= $SLANG['Download'] ?></a>&nbsp;/&nbsp;<a href="#" onclick="deleteVideo( <?= $index ?> ); return( false );"><?= $SLANG['Delete'] ?></a></td>
         </tr>
 <?php
                 $index++;

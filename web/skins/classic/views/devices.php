@@ -64,7 +64,7 @@ foreach( $devices as $device )
     }
 ?>
             <tr>
-              <td><?= makePopupLink( '?view=device&did='.$device['Id'], 'zmDevice', 'device', '<span class="'.$fclass.'">'.validHtmlStr($device['Name']).' ('.validHtmlStr($device['KeyString']).')</span>', canEdit( 'Devices' ) ) ?></td>
+              <td><?= makePopupLink( '?view=device&amp;did='.$device['Id'], 'zmDevice', 'device', '<span class="'.$fclass.'">'.validHtmlStr($device['Name']).' ('.validHtmlStr($device['KeyString']).')</span>', canEdit( 'Devices' ) ) ?></td>
               <td><input type="button" value="<?= $SLANG['On'] ?>"<?= ($device['Status'] != 'ON')?' class="set"':'' ?> onclick="switchDeviceOn( this, '<?= validHtmlStr($device['KeyString']) ?>' )"<?= canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
               <td><input type="button" value="<?= $SLANG['Off'] ?>"<?= ($device['Status'] != 'OFF')?' class="set"':'' ?> onclick="switchDeviceOff( this, '<?= validHtmlStr($device['KeyString']) ?>' )"<?= canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
               <td><input type="checkbox" name="markDids[]" value="<?= $device['Id'] ?>" onclick="configureButtons( this, 'markDids' );"<?php if ( !canEdit( 'Devices' ) ) {?> disabled="disabled"<?php } ?>/></td>
@@ -75,9 +75,10 @@ foreach( $devices as $device )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?= $SLANG['New'] ?>" onclick="createPopup( '?view=device&did=0', 'zmDevice', 'device' )"<?= canEdit('Devices')?'':' disabled="disabled"' ?>/>
+          <input type="button" value="<?= $SLANG['New'] ?>" onclick="createPopup( '?view=device&amp;did=0', 'zmDevice', 'device' )"<?= canEdit('Devices')?'':' disabled="disabled"' ?>/>
           <input type="button" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" onclick="deleteDevice( this )" disabled="disabled"/>
           <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+        </div>
       </form>
     </div>
   </div>

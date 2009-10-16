@@ -117,7 +117,7 @@ foreach ( dbFetchAll( $eventsSql ) as $event )
 }
 
 $maxShortcuts = 5;
-$pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQuery.'&limit='.$limit );
+$pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQuery.'&amp;limit='.$limit );
 
 $focusWindow = true;
 
@@ -134,13 +134,13 @@ if ( $pages > 1 )
     if ( !empty($page) )
     {
 ?>
-        <a href="?view=<?= $view ?>&page=0<?= $filterQuery ?><?= $sortQuery ?>&limit=<?= $limit ?>"><?= $SLANG['ViewAll'] ?></a>
+        <a href="?view=<?= $view ?>&amp;page=0<?= $filterQuery ?><?= $sortQuery ?>&amp;limit=<?= $limit ?>"><?= $SLANG['ViewAll'] ?></a>
 <?php
     }
     else
     {
 ?>
-        <a href="?view=<?= $view ?>&page=1<?= $filterQuery ?><?= $sortQuery ?>&limit=<?= $limit ?>"><?= $SLANG['ViewPaged'] ?></a>
+        <a href="?view=<?= $view ?>&amp;page=1<?= $filterQuery ?><?= $sortQuery ?>&amp;limit=<?= $limit ?>"><?= $SLANG['ViewPaged'] ?></a>
 <?php
     }
 }
@@ -168,10 +168,10 @@ if ( $pagination )
 ?>
         <p id="controls">
           <a id="refreshLink" href="#" onclick="location.reload(true);"><?= $SLANG['Refresh'] ?></a>
-          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&page=<?= $page ?><?= $filterQuery ?>', 'zmFilter', 'filter' );"><?= $SLANG['ShowFilterWindow'] ?></a>
+          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?= $page ?><?= $filterQuery ?>', 'zmFilter', 'filter' );"><?= $SLANG['ShowFilterWindow'] ?></a>
           <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?= $filterQuery ?>', 'zmTimeline', 'timeline' );"><?= $SLANG['ShowTimeline'] ?></a>
         </p>
-        <table id="contentTable" class="major" cellspacing="0"/>
+        <table id="contentTable" class="major" cellspacing="0">
           <tbody>
 <?php
 $count = 0;
@@ -207,24 +207,24 @@ foreach ( $events as $event )
         $scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
             <tr>
-              <td class="colId"><?= makePopupLink( '?view=event&eid='.$event['Id'].$filterQuery.$sortQuery.'&page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), $event['Id'].($event['Archived']?'*':'') ) ?></td>
-              <td class="colName"><?= makePopupLink( '?view=event&eid='.$event['Id'].$filterQuery.$sortQuery.'&page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), reScale( $event['Height'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ), validHtmlStr($event['Name']).($event['Archived']?'*':'' ) ) ?></td>
+              <td class="colId"><?= makePopupLink( '?view=event&amp;eid='.$event['Id'].$filterQuery.$sortQuery.'&amp;page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), $event['Id'].($event['Archived']?'*':'') ) ?></td>
+              <td class="colName"><?= makePopupLink( '?view=event&amp;eid='.$event['Id'].$filterQuery.$sortQuery.'&amp;page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), reScale( $event['Height'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ), validHtmlStr($event['Name']).($event['Archived']?'*':'' ) ) ?></td>
               <td class="colMonitorName"><?= $event['MonitorName'] ?></td>
-              <td class="colCause"><?= makePopupLink( '?view=eventdetail&eid='.$event['Id'], 'zmEventDetail', 'eventdetail', validHtmlStr($event['Cause']), canEdit( 'Events' ), 'title="'.htmlspecialchars($event['Notes']).'"' ) ?></td>
+              <td class="colCause"><?= makePopupLink( '?view=eventdetail&amp;eid='.$event['Id'], 'zmEventDetail', 'eventdetail', validHtmlStr($event['Cause']), canEdit( 'Events' ), 'title="'.htmlspecialchars($event['Notes']).'"' ) ?></td>
               <td class="colTime"><?= strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td>
               <td class="colDuration"><?= $event['Length'] ?></td>
-              <td class="colFrames"><?= makePopupLink( '?view=frames&eid='.$event['Id'], 'zmFrames', 'frames', $event['Frames'] ) ?></td>
-              <td class="colAlarmFrames"><?= makePopupLink( '?view=frames&eid='.$event['Id'], 'zmFrames', 'frames', $event['AlarmFrames'] ) ?></a></td>
+              <td class="colFrames"><?= makePopupLink( '?view=frames&amp;eid='.$event['Id'], 'zmFrames', 'frames', $event['Frames'] ) ?></td>
+              <td class="colAlarmFrames"><?= makePopupLink( '?view=frames&amp;eid='.$event['Id'], 'zmFrames', 'frames', $event['AlarmFrames'] ) ?></td>
               <td class="colTotScore"><?= $event['TotScore'] ?></td>
               <td class="colAvgScore"><?= $event['AvgScore'] ?></td>
-              <td class="colMaxScore"><?= makePopupLink( '?view=frame&eid='.$event['Id'].'&fid=0', 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), $event['MaxScore'] ) ?></td>
+              <td class="colMaxScore"><?= makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid=0', 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), $event['MaxScore'] ) ?></td>
 <?php
     if ( ZM_WEB_LIST_THUMBS )
     {
         if ( $thumbData = createListThumbnail( $event ) )
         {
 ?>
-              <td class="colThumbnail"><?= makePopupLink( '?view=frame&eid='.$event['Id'].'&fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="'.$thumbData['Path'].'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
+              <td class="colThumbnail"><?= makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="'.$thumbData['Path'].'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
 <?php
         }
         else

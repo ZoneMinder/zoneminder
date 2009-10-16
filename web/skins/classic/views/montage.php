@@ -110,7 +110,7 @@ foreach ( $monitors as $monitor )
 ?>
         <div id="monitorFrame<?= $monitor['index'] ?>" class="monitorFrame">
           <div id="monitor<?= $monitor['index'] ?>" class="monitor idle">
-            <div id="imageFeed<?= $monitor['index'] ?>" class="imageFeed" onclick="createPopup( '?view=watch&mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', 'watch', <?= $monitor['scaleWidth'] ?>, <?= $monitor['scaleHeight'] ?> );">
+            <div id="imageFeed<?= $monitor['index'] ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', 'watch', <?= $monitor['scaleWidth'] ?>, <?= $monitor['scaleHeight'] ?> );">
 <?php
 if ( ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {

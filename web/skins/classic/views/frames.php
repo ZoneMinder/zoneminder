@@ -61,7 +61,7 @@ if ( count($frames) )
         $class = strtolower($frame['Type']);
 ?>
             <tr class="<?= $class ?>">
-              <td class="colId"><?= makePopupLink( '?view=frame&eid='.$event['Id'].'&fid='.$frame['FrameId'], 'zmImage', array( 'image', $event['Width'], $event['Height'] ), $frame['FrameId'] ) ?></a></td>
+              <td class="colId"><?= makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'image', $event['Width'], $event['Height'] ), $frame['FrameId'] ) ?></td>
               <td class="colType"><?= $frame['Type'] ?></td>
               <td class="colTimeStamp"><?= strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
               <td class="colTimeDelta"><?= number_format( $frame['Delta'], 2 ) ?></td>
@@ -69,7 +69,7 @@ if ( count($frames) )
         if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') )
         {
 ?>
-              <td class="colScore"><?= makePopupLink( '?view=stats&eid='.$event['Id'].'&fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></a></td>
+              <td class="colScore"><?= makePopupLink( '?view=stats&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></td>
 <?php
         }
         else

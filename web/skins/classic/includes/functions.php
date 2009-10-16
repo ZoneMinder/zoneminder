@@ -52,9 +52,11 @@ function xhtmlHeaders( $file, $title )
     {
 ?>
   <style type="text/css">
+  /*<![CDATA[*/
 <?php
         require_once( $viewCssPhpFile );
 ?>
+  /*]]>*/
   </style>
 <?php
     }
@@ -67,9 +69,13 @@ function xhtmlHeaders( $file, $title )
     {
 ?>
   <script type="text/javascript">
+  //<![CDATA[
+  <!--
 <?php
     require_once( $skinJsPhpFile );
 ?>
+  //-->
+  //]]>
   </script>
 <?php
     }
@@ -77,9 +83,13 @@ function xhtmlHeaders( $file, $title )
     {
 ?>
   <script type="text/javascript">
+  //<![CDATA[
+  <!--
 <?php
         require_once( $viewJsPhpFile );
 ?>
+  //-->
+  //]]>
   </script>
 <?php
     }

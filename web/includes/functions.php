@@ -168,7 +168,7 @@ function generateAuthHash( $useRemoteAddr )
     return( $auth );
 }
 
-function getStreamSrc( $args, $querySep='&' )
+function getStreamSrc( $args, $querySep='&amp;' )
 {
     if ( version_compare( phpversion(), "4.1.0", "<") )
     {
@@ -1257,7 +1257,7 @@ function monitorLimitSql()
     return( $midSql );
 }
 
-function parseSort( $saveToSession=false, $querySep='&' )
+function parseSort( $saveToSession=false, $querySep='&amp;' )
 {
     global $sortQuery, $sortColumn, $sortOrder; // Outputs
 
@@ -1325,7 +1325,7 @@ function parseSort( $saveToSession=false, $querySep='&' )
     }
 }
 
-function parseFilter( &$filter, $saveToSession=false, $querySep='&' )
+function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
 {
     if ( version_compare( phpversion(), "4.1.0", "<") )
     {
@@ -1493,7 +1493,7 @@ function delFilterTerm( $filter, $position )
     return( $filter );
 }
 
-function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&' )
+function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' )
 {
     global $view;
 
@@ -1571,7 +1571,7 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&' )
     return( $pageText );
 }
 
-function sortHeader( $field, $querySep='&' )
+function sortHeader( $field, $querySep='&amp;' )
 {
     global $view;
     return( '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.$_REQUEST['limit'] );

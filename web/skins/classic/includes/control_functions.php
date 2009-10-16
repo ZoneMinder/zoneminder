@@ -307,7 +307,7 @@ function controlPresets( $monitor, $cmds )
     if ( canEdit( 'Monitors') && $monitor['CanSetPresets'] )
     {
 ?>
-    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Set'] ?>" onclick="createPopup( '?view=controlpreset&mid=<?= $monitor['Id'] ?>', 'zmPreset', 'preset' );"/>
+    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Set'] ?>" onclick="createPopup( '?view=controlpreset&amp;mid=<?= $monitor['Id'] ?>', 'zmPreset', 'preset' );"/>
 <?php
     }
 ?>

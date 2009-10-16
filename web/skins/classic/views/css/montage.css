@@ -11,11 +11,11 @@
 }
 
 #monitors .alarm {
-    color: red;
+    color: #ff0000;
 }
 
 #monitors .alert {
-    color: orange;
+    color: #ffa500;
 }
 
 #monitors .imageFeed {
@@ -23,16 +23,16 @@
     vertical-align: middle;
 }
 
-#monitors .imageFeed img, #monitors .imageFeed img.idle {
-    border: 1px solid white;
+#monitors .imageFeed img.idle {
+    border: 2px solid #ffffff;
 }
 
 #monitors .imageFeed img.alarm {
-    border: 1px solid red;
+    border: 2px solid #ff0000;
 }
 
 #monitors .imageFeed img.alert {
-    border: 1px solid orange;
+    border: 2px solid #ffa500;
 }
 
 #monitors .monitorState {

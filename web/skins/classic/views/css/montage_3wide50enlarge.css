@@ -44,23 +44,31 @@
     margin-right: auto;
 }
 
-#monitors .imageFeed img.idle, #monitors .imageFeed img.alert {
+#monitors .imageFeed img {
     width: 100%;
     height: 100%;
 }
 
-#monitors .imageFeed img.alarm {
-}
-
-#monitors .monitorFrame > div.alarm {
-    z-index: 100;
+#monitors .monitorFrame > div.alarm, #monitors .monitorFrame > div.alert {
     position: absolute;
     width: 96%;
     left: 2%;
-    top: 15%;
+    top: 72px;
 }
 
-#monitors .monitorFrame > div.alarm .monitorState {
-    font-weight: bold;
-    font-size: 150%;
+#monitors .monitorFrame > div.alert {
+    z-index: 100;
+}
+
+#monitors .monitorFrame > div.alarm {
+    z-index: 200;
+}
+
+#monitors .monitorFrame div.alarm, #monitors .monitorFrame div.alert {
+    font-size: 140%;
+    line-height: 160%;
+}
+
+#monitors .monitorFrame div.monitorState {
+    text-align: center;
 }

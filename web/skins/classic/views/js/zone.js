@@ -341,7 +341,7 @@ function getCoordString()
 function updateZoneImage()
 {
     var parms = "view=request&request=zone&action=zoneImage&mid="+zone.MonitorId+"&zid="+zone.Id+"&coords="+getCoordString();
-    var query = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: parms, onComplete: updateZoneImageResponse } );
+    var query = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: parms, onSuccess: updateZoneImageResponse } );
     query.send();
 }
 
@@ -439,7 +439,7 @@ function drawZonePoints()
         div.addEvent( 'mouseover', highlightOn.pass( i ) );
         div.addEvent( 'mouseout', highlightOff.pass( i ) );
         div.injectInside( $('imageFrame') );
-        div.makeDraggable( { 'container': $('imageFrame'), 'onStart': setActivePoint.pass( i ), 'onComplete': fixActivePoint.pass( i ), 'onDrag': updateActivePoint.pass( i ) } );
+        div.makeDraggable( { 'container': $('imageFrame'), 'onStart': setActivePoint.pass( i ), 'onSuccess': fixActivePoint.pass( i ), 'onDrag': updateActivePoint.pass( i ) } );
     }
 
     var tables = $('zonePoints').getElements( 'table' );

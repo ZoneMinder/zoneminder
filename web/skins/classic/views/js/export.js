@@ -37,7 +37,7 @@ function exportEvent( form )
 {
     var parms = 'view=request&request=event&action=export';
     parms += '&'+$(form).toQueryString();
-    var query = new Request.JSON( { url: thisUrl, method: 'post', data: parms, onComplete: exportResponse } );
+    var query = new Request.JSON( { url: thisUrl, method: 'post', data: parms, onSuccess: exportResponse } );
     query.send();
     $('exportProgress').removeClass( 'hidden' );
     $('exportProgress').setProperty( 'class', 'warnText' );

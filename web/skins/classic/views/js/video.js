@@ -28,7 +28,7 @@ function generateVideo( form )
 {
     var parms = 'view=request&request=event&action=video';
     parms += '&'+$(form).toQueryString();
-    var query = new Request.JSON( { url: thisUrl, method: 'post', data: parms, onComplete: generateVideoResponse } );
+    var query = new Request.JSON( { url: thisUrl, method: 'post', data: parms, onSuccess: generateVideoResponse } );
     query.send();
     $('videoProgress').removeClass( 'hidden' );
     $('videoProgress').setProperty( 'class', 'warnText' );

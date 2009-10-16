@@ -14,6 +14,20 @@ function Monitor( index, id, connKey )
         this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
     }
 
+    this.setStateClass = function( element, stateClass )
+    {
+        if ( !element.hasClass( stateClass ) )
+        {
+            if ( stateClass != 'alarm' )
+                element.removeClass( 'alarm' );
+            if ( stateClass != 'alert' )
+                element.removeClass( 'alert' );
+            if ( stateClass != 'idle' )
+                element.removeClass( 'idle' );
+            element.addClass( stateClass );
+        }
+    }
+
     this.getStreamCmdResponse = function( respObj, respText )
     {
         if ( this.streamCmdTimer )
@@ -23,6 +37,7 @@ function Monitor( index, id, connKey )
         {
             this.status = respObj.status;
             this.alarmState = this.status.state;
+
             var stateClass = "";
             if ( this.alarmState == STATE_ALARM )
                 stateClass = "alarm";
@@ -35,12 +50,13 @@ function Monitor( index, id, connKey )
             {
                 $('fpsValue'+this.index).set( 'text', this.status.fps );
                 $('stateValue'+this.index).set( 'text', stateStrings[this.alarmState] );
-                $('monitorState'+this.index).setProperty( 'class', stateClass );
+                this.setStateClass( $('monitorState'+this.index), stateClass );
             }
-            $('monitor'+this.index).setProperty( 'class', stateClass );
+            this.setStateClass( $('monitor'+this.index), stateClass );
+
             /*Stream could be an applet so can't use moo tools*/ 
             var stream = document.getElementById( "liveStream"+this.id );
-            stream.className=stateClass;
+            stream.className = stateClass;
 
             var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
             var wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
@@ -80,13 +96,15 @@ function Monitor( index, id, connKey )
         this.lastAlarmState = this.alarmState;
     }
 
-    this.streamCmdQuery = function()
+    this.streamCmdQuery = function( resent )
     {
+        //if ( resent )
+            //console.log( this.connKey+": Resending" );
         //this.streamCmdReq.cancel();
         this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
     }
 
-    this.streamCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onComplete: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this ), autoCancel: true } );
+    this.streamCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
 }
 
 function selectLayout( element )

@@ -39,8 +39,8 @@ function xhtmlHeaders( $file, $title )
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= $title ?></title>
-  <link rel="icon" type="image/ico" href="favicon.ico"/>
-  <link rel="shortcut icon" href="favicon.ico"/>
+  <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
+  <link rel="shortcut icon" href="graphics/favicon.ico"/>
   <link rel="stylesheet" href="css/reset.css" type="text/css" media="screen"/>
   <link rel="stylesheet" href="<?= $skinCssFile ?>" type="text/css" media="screen"/>
 <?php

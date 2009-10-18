@@ -86,7 +86,7 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
 <body>
   <div id="page">
     <div id="header">
-      <div id="systemTime"><a href="?view=<?= $_REQUEST['view'] ?>"><?= preg_match( '/%/', DATE_FMT_CONSOLE_SHORT )?strftime( DATE_FMT_CONSOLE_SHORT ):date( DATE_FMT_CONSOLE_SHORT ) ?></a></div>
+      <div id="systemTime"><a href="?view=<?= $view ?>"><?= preg_match( '/%/', DATE_FMT_CONSOLE_SHORT )?strftime( DATE_FMT_CONSOLE_SHORT ):date( DATE_FMT_CONSOLE_SHORT ) ?></a></div>
       <div id="systemStats"><?= getLoad() ?>/<?= getDiskPercent() ?>%</div>
       <div id="systemState"><?= makeLink( "?view=state", $status, canEdit( 'System' ) ) ?></div>
     </div>

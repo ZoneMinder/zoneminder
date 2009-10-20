@@ -30,8 +30,7 @@ $eventCounts = array(
         "title" => $SLANG['Hour'],
         "filter" => array(
             "terms" => array(
-                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
-                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
             )
         ),
     ),
@@ -39,8 +38,7 @@ $eventCounts = array(
         "title" => $SLANG['Day'],
         "filter" => array(
             "terms" => array(
-                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
-                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
             )
         ),
     ),
@@ -48,8 +46,7 @@ $eventCounts = array(
         "title" => $SLANG['Week'],
         "filter" => array(
             "terms" => array(
-                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
-                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
             )
         ),
     ),
@@ -57,8 +54,7 @@ $eventCounts = array(
         "title" => $SLANG['Month'],
         "filter" => array(
             "terms" => array(
-                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
-                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
             )
         ),
     ),

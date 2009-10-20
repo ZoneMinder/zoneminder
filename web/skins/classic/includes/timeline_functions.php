@@ -402,7 +402,7 @@ function parseTreeToFilter( $tree )
 function parseTreeToQuery( $tree )
 {
     $filter = parseTreeToFilter( $tree );
-    parseFilter( $filter );
+    parseFilter( $filter, false, '&' );
     return( $filter['query'] );
 }
 

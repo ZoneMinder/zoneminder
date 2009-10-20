@@ -266,10 +266,6 @@ if ( $tree )
     appendDatetimeRange( $tree, $minTime, $maxTime );
 
     $filterQuery = parseTreeToQuery( $tree );
-    if ( $filterQuery )
-    {
-        $filterQuery = '&amp;'.$filterQuery;
-    }
 }
 else
 {
@@ -808,7 +804,7 @@ xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <?= makePopupLink( '?view=events&amp;page=1'.$filterQuery, 'zmEvents', 'events', $SLANG['List'], canView( 'Events' ) ) ?>
+        <?= makePopupLink( '?view=events&amp;page=1'.htmlspecialchars($filterQuery), 'zmEvents', 'events', $SLANG['List'], canView( 'Events' ) ) ?>
         <a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a>
       </div>
       <h2><?= $SLANG['Timeline'] ?></h2>

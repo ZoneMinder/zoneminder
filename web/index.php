@@ -112,7 +112,10 @@ if ( isset( $_REQUEST['request'] ) )
     foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile )
     {
         if ( !file_exists( $includeFile ) )
+        {
+            error_log( "Request '$request' does not exist" );
             die( "Request '$request' does not exist" );
+        }
         require_once $includeFile;
     }
     return;
@@ -124,7 +127,10 @@ else
         foreach ( $includeFiles as $includeFile )
         {
             if ( !file_exists( $includeFile ) )
+            {
+                error_log( "View '$view' does not exist" );
                 die( "View '$view' does not exist" );
+            }
             require_once $includeFile;
         }
     }

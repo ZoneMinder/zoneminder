@@ -20,6 +20,7 @@
 //#include "zm_debug.h"
 #include "zm_utils.h"
 
+#include <stdio.h>
 #include <stdarg.h>
 
 const std::string stringtf( const char *format, ... )

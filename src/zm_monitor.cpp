@@ -542,8 +542,8 @@ Monitor::~Monitor()
     }
 
 #if ZM_MEM_MAPPED
-    if ( msync( mem_ptr, mem_size, MS_INVALIDATE ) < 0 )
-        Fatal( "Can't msync: %s", strerror(errno) );
+    if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
+        Error( "Can't msync: %s", strerror(errno) );
     if ( munmap( mem_ptr, mem_size ) < 0 )
         Fatal( "Can't munmap: %s", strerror(errno) );
     close( map_fd );

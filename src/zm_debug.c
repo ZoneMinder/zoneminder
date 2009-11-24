@@ -215,8 +215,6 @@ int zmDebugInitialise( const char *name, const char *id, int level )
 
 	(void) openlog( dbgSyslog, LOG_PID|LOG_NDELAY, LOG_LOCAL1 );
 
-	//strncpy( dbgName, dbgSyslog, sizeof(dbgName) );
-
 	dbgLogFP = (FILE *)NULL;
 
 	if( (status = zmGetDebugEnv() ) < 0)

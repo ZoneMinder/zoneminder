@@ -53,7 +53,7 @@ Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id )
 
 #if ZM_MEM_MAPPED
     map_fd = -1;
-    snprintf( mem_file, sizeof(mem_file), "%s/.zm.mmap.%d", config.path_map, id );
+    snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", config.path_map, id );
 #else // ZM_MEM_MAPPED
     shm_id = 0;
 #endif // ZM_MEM_MAPPED
@@ -344,7 +344,7 @@ Monitor::Monitor(
 
     Debug( 1, "mem.size=%d", mem_size );
 #if ZM_MEM_MAPPED
-    snprintf( mem_file, sizeof(mem_file), "%s/.zm.mmap.%d", config.path_map, id );
+    snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", config.path_map, id );
     map_fd = open( mem_file, O_RDWR|O_CREAT, (mode_t)0600 );
     if ( map_fd < 0 )
         Fatal( "Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno) );

@@ -80,7 +80,7 @@ sub zmMemAttach( $$ )
 	my $size = shift;
 	if ( !defined($monitor->{MMapAddr}) )
 	{
-        my $mmap_file = ZM_PATH_MAP."/.zm.mmap.".$monitor->{Id};
+        my $mmap_file = ZM_PATH_MAP."/zm.mmap.".$monitor->{Id};
         if ( !open( MMAP, "+<".$mmap_file ) )
         {
     		Error( sprintf( "Can't open memory map file '%s': $!\n", $mmap_file ) );
@@ -156,7 +156,7 @@ sub zmMemPut( $$$$ )
 sub zmMemClean
 {
 	Debug( "Removing memory map files\n" );
-    my $mapPath = ZM_PATH_MAP."/.zm.mmap.*";
+    my $mapPath = ZM_PATH_MAP."/zm.mmap.*";
     foreach my $mapFile( glob( $mapPath ) )
     {
         ( $mapFile ) = $mapFile =~ /^(.+)$/;

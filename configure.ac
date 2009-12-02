@@ -169,16 +169,16 @@ if test "$ENABLE_CRASHTRACE" != "yes"; then
   AC_DEFINE(ZM_NO_CRASHTRACE,1,"Whether crash tracing is switched off and compiled out")
 fi
 
-ENABLE_MMAP=no
+ENABLE_MMAP=yes
 AC_ARG_ENABLE(mmap,
     [  --enable-mmap=<yes|no> enable or disabled mapped memory versus shared memory, default shared],
     [ENABLE_MMAP=$enable_mmap],
     AC_MSG_WARN([You can call configure with the --enable-mmap=<yes|no> or --disable-mmap option.
     This tells configure whether to compile ZoneMinder with mmap support rather than IPC shared
-    memory. This is an experimental feature that uses memory mapped into files which all processes
-    can share. Memory mapping requires less configuration and is more flexible than shared memory
-    but may slow down your system unless the mapped files are configured to reside on a fast or 
-    RAM based filesystem.
+    memory. This is a new feature that uses memory mapped into files which all processes can share.
+    Memory mapping requires less configuration and is more flexible than shared memory but may
+    slow down your system unless the mapped files are configured to reside on a fast or RAM based
+    filesystem however this will not normally be the case.
     e.g. --enable-mmap=yes or --disable-mmap])
 )
 if test "$ENABLE_MMAP" = "yes"; then

@@ -341,6 +341,7 @@ AC_SUBST(EXTRA_PERL_LIB)
 
 AC_CONFIG_FILES([Makefile
                  zm.conf
+                 zmconfgen.pl
                  db/Makefile
                  db/zm_create.sql
                  scripts/Makefile

@@ -91,7 +91,7 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen )
             ssize_t contentLen = packetLen - sizeof(rtcpPacket->header);
             while ( contentLen )
             {
-                Debug( 5, "RTCP CL: %ld", contentLen );
+                Debug( 5, "RTCP CL: %zd", contentLen );
                 U32 ssrc = ntohl(rtcpPacket->body.sdes.srcN);
 
                 Debug( 5, "RTCP Got SDES (%lx), %d items", ssrc, count );
@@ -307,7 +307,7 @@ int RtpCtrlThread::run()
             if ( UdpInetSocket *socket = dynamic_cast<UdpInetSocket *>(*iter) )
             {
                 ssize_t nBytes = socket->recv( buffer, sizeof(buffer) );
-                Debug( 4, "Read %ld bytes on sd %d", nBytes, socket->getReadDesc() );
+                Debug( 4, "Read %zd bytes on sd %d", nBytes, socket->getReadDesc() );
 
                 if ( nBytes )
                 {
@@ -318,7 +318,7 @@ int RtpCtrlThread::run()
                         unsigned char *bufferPtr = buffer;
                         bufferPtr += generateRr( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
                         bufferPtr += generateSdes( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
-                        Debug( 4, "Sending %ld bytes on sd %d", bufferPtr-buffer, rtpCtrlServer.getWriteDesc() );
+                        Debug( 4, "Sending %zd bytes on sd %d", bufferPtr-buffer, rtpCtrlServer.getWriteDesc() );
                         if ( (nBytes = rtpCtrlServer.send( buffer, bufferPtr-buffer )) < 0 )
                             Error( "Unable to send: %s", strerror( errno ) );
                         //Debug( 4, "Sent %d bytes on sd %d", nBytes, rtpCtrlServer.getWriteDesc() );

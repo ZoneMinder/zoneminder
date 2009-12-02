@@ -327,9 +327,9 @@ AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
 
 # Slight hack for non-standard perl install paths
 if test "$prefix" != "NONE"; then
-    PERL_PREFIX=`perl -V:installprefix | sed -e "s/.*='\(.*\)';/\1/"`
+    PERL_SITE_PREFIX=`perl -V:siteprefix | sed -e "s/.*='\(.*\)';/\1/"`
     PERL_SITE_LIB=`perl -V:installsitelib | sed -e "s/.*='\(.*\)';/\1/"`
-    PERL_LIB_PATH=`echo $PERL_SITE_LIB | sed -e "s|^$PERL_PREFIX||"`
+    PERL_LIB_PATH=`echo $PERL_SITE_LIB | sed -e "s|^$PERL_SITE_PREFIX||"`
     EXTRA_PERL_LIB="use lib '$prefix$PERL_LIB_PATH'; # Include custom perl install path"
     PERL_MM_PARMS="PREFIX=$prefix"
 else

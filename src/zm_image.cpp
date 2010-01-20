@@ -461,7 +461,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size )
 		return( false );
 	}
 
-	jpeg_mem_src( cinfo, inbuffer, inbuffer_size );
+	zm_jpeg_mem_src( cinfo, inbuffer, inbuffer_size );
 
 	jpeg_read_header( cinfo, TRUE );
 
@@ -523,7 +523,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 		jpeg_create_compress( cinfo );
 	}
 
-	jpeg_mem_dest( cinfo, outbuffer, outbuffer_size );
+	zm_jpeg_mem_dest( cinfo, outbuffer, outbuffer_size );
 
 	cinfo->image_width = width; 	/* image width and height, in pixels */
 	cinfo->image_height = height;

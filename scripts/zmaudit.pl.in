@@ -357,7 +357,7 @@ do
 	my $selectUnclosedEventsSql = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, max(F.FrameId) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) or isnull(E.EndTime) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
 	my $selectUnclosedEventsSth = $dbh->prepare_cached( $selectUnclosedEventsSql ) or Fatal( "Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr() );
 	my $updateUnclosedEventsSql = "update Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ?, Notes = concat_ws( ' ', Notes, ? ) where Id = ?";
-	my $updateUnclosedEventsSql = $dbh->prepare_cached( $updateUnclosedEventsSql ) or Fatal( "Can't prepare '$updateUnclosedEventsSql': ".$dbh->errstr() );
+	my $updateUnclosedEventsSth = $dbh->prepare_cached( $updateUnclosedEventsSql ) or Fatal( "Can't prepare '$updateUnclosedEventsSql': ".$dbh->errstr() );
 	$res = $selectUnclosedEventsSth->execute() or Fatal( "Can't execute: ".$selectUnclosedEventsSth->errstr() );
 	while( my $event = $selectUnclosedEventsSth->fetchrow_hashref() )
 	{

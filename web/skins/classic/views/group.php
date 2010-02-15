@@ -61,7 +61,7 @@ xhtmlHeaders( __FILE__, $SLANG['Group']." - ".$newGroup['Name'] );
                 <select name="newGroup[MonitorIds][]" size="4" multiple="multiple">
 <?php
     $monitors = dbFetchAll( "select Id,Name from Monitors order by Sequence asc" );
-    $monitorIds = array_flip( split( ',', $newGroup['MonitorIds'] ) );
+    $monitorIds = array_flip( explode( ',', $newGroup['MonitorIds'] ) );
     foreach ( $monitors as $monitor )
     {
         if ( visibleMonitor( $monitor['Id'] ) )

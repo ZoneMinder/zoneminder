@@ -187,7 +187,7 @@ if ( !empty($action) )
                 if ( @socket_connect( $socket, $sockFile ) )
                 {
                     $options = array();
-                    foreach ( split( " ", $ctrlCommand ) as $option )
+                    foreach ( explode( " ", $ctrlCommand ) as $option )
                     {
                         if ( preg_match( '/--([^=]+)(?:=(.+))?/', $option, $matches ) )
                         {
@@ -214,7 +214,7 @@ if ( !empty($action) )
         {
             $zmuCommand = getZmuCommand( " -m ".$mid." -B".$_REQUEST['newBrightness']." -C".$_REQUEST['newContrast']." -H".$_REQUEST['newHue']." -O".$_REQUEST['newColour'] );
             $zmuOutput = exec( escapeshellcmd( $zmuCommand ) );
-            list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmuOutput );
+            list( $brightness, $contrast, $hue, $colour ) = explode( ' ', $zmuOutput );
             dbQuery( "update Monitors set Brightness = '".$brightness."', Contrast = '".$contrast."', Hue = '".$hue."', Colour = '".$colour."' where Id = '".$mid."'" );
         }
     }

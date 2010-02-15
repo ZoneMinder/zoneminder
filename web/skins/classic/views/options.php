@@ -118,7 +118,7 @@ if ( $tab == "users" )
         $userMonitors = array();
         if ( !empty($row['MonitorIds']) )
         {
-            foreach ( split( ",", $row['MonitorIds'] ) as $monitorId )
+            foreach ( explode( ",", $row['MonitorIds'] ) as $monitorId )
             {
                 $userMonitors[] = $monitors[$monitorId]['Name'];
             }
@@ -190,7 +190,7 @@ else
 ?>
               <td class="nowrap">
 <?php
-            $options = split( "\|", $value['Hint'] );
+            $options = explode( '|', $value['Hint'] );
             if ( count( $options ) > 3 )
             {
 ?>

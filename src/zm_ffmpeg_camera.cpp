@@ -148,7 +148,7 @@ int FfmpegCamera::Capture( Image &image )
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId )
         {
-            if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size) < 0 )
+            if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
                 Fatal( "Unable to decode frame at frame %d", frameCount );
 
             Debug( 3, "Decoded video packet at frame %d", frameCount );

@@ -46,11 +46,11 @@ void VideoStream::SetupFormat( const char *p_filename, const char *p_format )
 	format = p_format;
 
 	/* auto detect the output format from the name. default is mpeg. */
-	of = guess_format( format, NULL, NULL);
+	of = av_guess_format( format, NULL, NULL);
 	if ( !of )
 	{
 		Warning( "Could not deduce output format from file extension: using mpeg" );
-		of = guess_format("mpeg", NULL, NULL);
+		of = av_guess_format("mpeg", NULL, NULL);
 	}
 	if ( !of )
 	{
@@ -102,8 +102,10 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, d
 		   of which frame timestamps are represented. for fixed-fps content,
 		   timebase should be 1/framerate and timestamp increments should be
 		   identically 1. */
-		c->time_base.den = (int)(frame_rate*100);
-		c->time_base.num = 100;
+		//c->time_base.den = (int)(frame_rate*100);
+		//c->time_base.num = 100;
+		c->time_base.den = frame_rate;
+		c->time_base.num = 1;
 #else
 		/* frames per second */
 		c->frame_rate = frame_rate;

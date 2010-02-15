@@ -201,11 +201,15 @@ int RemoteCameraRtsp::Capture( Image &image )
             if ( !buffer.size() )
                 return( -1 );
 
+            AVPacket packet;
+            av_init_packet( &packet );
             int initialFrameCount = frameCount;
             while ( buffer.size() > 0 )
             {
                 int got_picture = false;
-                int len = avcodec_decode_video( codecContext, picture, &got_picture, buffer.head(), buffer.size() );
+                packet.data = buffer.head();
+                packet.size = buffer.size();
+                int len = avcodec_decode_video2( codecContext, picture, &got_picture, &packet );
                 if ( len < 0 )
                 {
                     if ( frameCount > initialFrameCount )

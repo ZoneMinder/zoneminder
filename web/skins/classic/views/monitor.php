@@ -126,7 +126,7 @@ if ( isset( $_REQUEST['newMonitor'] ) )
 else
 {
     $newMonitor = $monitor;
-    $newMonitor['Triggers'] = split( ',', isset($monitor['Triggers'])?$monitor['Triggers']:"" );
+    $newMonitor['Triggers'] = explode( ',', isset($monitor['Triggers'])?$monitor['Triggers']:"" );
     if ( ZM_OPT_X10 )
         $newX10Monitor = $x10Monitor;
 }
@@ -548,7 +548,7 @@ switch ( $tab )
 <?php
     $monitors = dbFetchAll( "select Id,Name from Monitors order by Sequence asc" );
     if ( !empty($newMonitor['LinkedMonitors']) )
-        $monitorIds = array_flip( split( ',', $newMonitor['LinkedMonitors'] ) );
+        $monitorIds = array_flip( explode( ',', $newMonitor['LinkedMonitors'] ) );
     else
         $monitorIds = array();
     foreach ( $monitors as $monitor )

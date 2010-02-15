@@ -27,7 +27,7 @@ $monitor = dbFetchMonitor( $_REQUEST['mid'] );
 
 $zmuCommand = getZmuCommand( " -m ".escapeshellarg($_REQUEST['mid'])." -B -C -H -O" );
 $zmuOutput = exec( $zmuCommand );
-list( $brightness, $contrast, $hue, $colour ) = split( ' ', $zmuOutput );
+list( $brightness, $contrast, $hue, $colour ) = explode( ' ', $zmuOutput );
 
 $monitor['Brightness'] = $brightness;
 $monitor['Contrast'] = $contrast;

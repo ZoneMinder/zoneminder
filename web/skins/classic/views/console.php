@@ -72,7 +72,7 @@ $running = daemonCheck();
 $status = $running?$SLANG['Running']:$SLANG['Stopped'];
 
 if ( $group = dbFetchOne( "select * from Groups where Id = '".(empty($_COOKIE['zmGroup'])?0:dbEscape($_COOKIE['zmGroup']))."'" ) )
-    $groupIds = array_flip(split( ',', $group['MonitorIds'] ));
+    $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
 
 noCacheHeaders();
 

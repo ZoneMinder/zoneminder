@@ -252,7 +252,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         {
             foreach ( $eids as $eid )
             {
-                $exportFileList = array_merge( $exportFileList, exportFileList( $eid ), $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc  );
+                $exportFileList = array_merge( $exportFileList, exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc ) );
             }
         }
         else

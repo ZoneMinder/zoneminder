@@ -50,7 +50,7 @@ if ( ZM_V4L2 )
     {
         if ( !preg_match( '/^d:([^|]+).*S:([^|]+).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches ) )
             die( "Can't parse command output '$line'" );
-        $standards = split('/',$deviceMatches[2]);
+        $standards = explode('/',$deviceMatches[2]);
         $preferredStandard = false;
         foreach ( $preferredStandards as $standard )
         {
@@ -60,7 +60,7 @@ if ( ZM_V4L2 )
                 break;
             }
         }
-        $formats = split('/',$deviceMatches[3]);
+        $formats = explode('/',$deviceMatches[3]);
         $preferredFormat = false;
         foreach ( $preferredFormats as $format )
         {

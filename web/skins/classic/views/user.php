@@ -34,7 +34,7 @@ if ( !($newUser = dbFetchOne( $sql )) )
     $newUser['MonitorIds'] = '';
 }
 
-$monitorIds = array_flip(split( ',', $newUser['MonitorIds'] ));
+$monitorIds = array_flip(explode( ',', $newUser['MonitorIds'] ));
 
 $yesno = array( 0=>$SLANG['No'], 1=>$SLANG['Yes'] );
 $nv = array( 'None'=>$SLANG['None'], 'View'=>$SLANG['View'] );

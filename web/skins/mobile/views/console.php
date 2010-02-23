@@ -43,7 +43,7 @@ $running = daemonCheck();
 $status = $running?$SLANG['Running']:$SLANG['Stopped'];
 
 if ( $group = dbFetchOne( "select * from Groups where Name = 'Mobile'" ) )
-    $groupIds = array_flip(split( ',', $group['MonitorIds'] ));
+    $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
 
 $maxWidth = 0;
 $maxHeight = 0;

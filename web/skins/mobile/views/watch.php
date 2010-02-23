@@ -31,7 +31,7 @@ $showPtzControls = ( ZM_OPT_CONTROL && $monitor['Controllable'] && canView( 'Con
 
 $zmuCommand = getZmuCommand( " -m ".$_REQUEST['mid']." -s -f" );
 $zmuOutput = exec( escapeshellcmd( $zmuCommand ) );
-list( $status, $fps ) = split( ' ', $zmuOutput );
+list( $status, $fps ) = explode( ' ', $zmuOutput );
 $statusString = $SLANG['Unknown'];
 $fpsString = "--.--";
 $class = "infoText";

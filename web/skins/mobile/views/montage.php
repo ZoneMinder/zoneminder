@@ -38,7 +38,7 @@ foreach( dbFetchAll( $sql ) as $row )
     if ( !visibleMonitor( $row['Id'] ) )
         continue;
 
-    if ( $group && $group['MonitorIds'] && !in_array( $row['Id'], split( ',', $group['MonitorIds'] ) ) )
+    if ( $group && $group['MonitorIds'] && !in_array( $row['Id'], explode( ',', $group['MonitorIds'] ) ) )
         continue;
 
     if ( $maxWidth < $row['Width'] ) $maxWidth = $row['Width'];

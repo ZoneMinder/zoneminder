@@ -132,7 +132,7 @@ foreach ( $frames as $frame )
 {
     $imageData = getImageSrc( $event, $frame, $scale );
 ?>
-       <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $frame['FrameId'] ?>"><img src="<?= $imageData['thumbPath'] ?>" class="<?= $imageData['imageClass'] ?>" alt="<?= $frame['Type'] ?>/<?= $frame['Type']=='Alarm'?$frame['Score']:0 ?>"/></a>
+       <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $frame['FrameId'] ?>"><img src="<?= viewImagePath( $imageData['thumbPath'] ) ?>" class="<?= $imageData['imageClass'] ?>" alt="<?= $frame['Type'] ?>/<?= $frame['Type']=='Alarm'?$frame['Score']:0 ?>"/></a>
 <?php
 }
 ?>

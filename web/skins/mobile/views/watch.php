@@ -86,7 +86,7 @@ xhtmlHeaders( __FILE__, $monitor['Name'].' - '.$SLANG['Watch'] );
   <div id="page">
     <div id="content">
       <p class="<?= $class ?>"><?= makeLink( "?view=events&amp;page=1&amp;view=events&amp;page=1&amp;filter%5Bterms%5D%5B0%5D%5Battr%5D%3DMonitorId&amp;filter%5Bterms%5D%5B0%5D%5Bop%5D%3D%3D&amp;filter%5Bterms%5D%5B0%5D%5Bval%5D%3D".$monitor['Id']."&amp;sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?= $statusString ?>&nbsp;-&nbsp;<?= $fpsString ?>&nbsp;fps</p>
-      <p><a href="?view=<?= $_REQUEST['view'] ?>&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= $imageSrc ?>" alt="<?= $monitor['Name'] ?>" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"/></a></p>
+      <p><a href="?view=<?= $_REQUEST['view'] ?>&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= viewImagePath( $imageSrc ) ?>" alt="<?= $monitor['Name'] ?>" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"/></a></p>
 <?php
 if ( $showPtzControls )
 {

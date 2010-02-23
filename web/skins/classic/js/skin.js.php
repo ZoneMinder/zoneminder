@@ -36,3 +36,5 @@
   var refreshParent = <?= !empty($refreshParent)?'true':'false' ?>;
 
   var focusWindow = <?= !empty($focusWindow)?'true':'false' ?>;
+
+  var imagePrefix = "<?= viewImagePath( "", '&' ) ?>";

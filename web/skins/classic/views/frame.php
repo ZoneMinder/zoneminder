@@ -78,7 +78,7 @@ xhtmlHeaders(__FILE__, $SLANG['Frame']." - ".$event['Id']." - ".$frame['FrameId'
       <h2><?= $SLANG['Frame'] ?> <?= $event['Id']."-".$frame['FrameId']." (".$frame['Score'].")" ?></h2>
     </div>
     <div id="content">
-      <p id="image"><?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&amp;eid=<?= $event['Id'] ?>&amp;fid=<?= $frame['FrameId'] ?>&amp;scale=<?= $scale ?>&amp;show=<?= $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $imagePath ?>" alt="Frame <?= $frame['FrameId'] ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?></p>
+      <p id="image"><?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&amp;eid=<?= $event['Id'] ?>&amp;fid=<?= $frame['FrameId'] ?>&amp;scale=<?= $scale ?>&amp;show=<?= $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= viewImagePath( $imagePath ) ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" alt="<?= $frame['EventId']."-".$frame['FrameId'] ?>" class="<?= $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?></p>
       <p id="controls">
 <?php if ( $frame['FrameId'] > 1 ) { ?>
         <a id="firstLink" href="?view=frame&amp;eid=<?= $event['Id'] ?>&amp;fid=<?= $firstFid ?>&amp;scale=<?= $scale ?>"><?= $SLANG['First'] ?></a>
@@ -92,10 +92,10 @@ xhtmlHeaders(__FILE__, $SLANG['Frame']." - ".$event['Id']." - ".$frame['FrameId'
       </p>
 <?php if (file_exists ($dImagePath)) { ?>
       <p id="diagImagePath"><?= $dImagePath ?></p>
-      <p id="diagImage"><img src="<?= $dImagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $imageData['imageClass'] ?>"/></p>
+      <p id="diagImage"><img src=?"<?= viewImagePath( $dImagePath ) ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $imageData['imageClass'] ?>"/></p>
 <?php } if (file_exists ($rImagePath)) { ?>
       <p id="refImagePath"><?= $rImagePath ?></p>
-      <p id="refImage"><img src="<?= $rImagePath ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $imageData['imageClass'] ?>"/></p>
+      <p id="refImage"><img src="<?= viewImagePath( $rImagePath ) ?>" width="<?= reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?= reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?= $imageData['imageClass'] ?>"/></p>
 <?php } ?>
     </div>
   </div>

@@ -518,9 +518,9 @@ function canEdit( $area, $mid=false )
 function getEventPath( $event )
 {
     if ( ZM_USE_DEEP_STORAGE )
-        $eventPath = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
+        $eventPath = $event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
     else
-        $eventPath = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
+        $eventPath = $event['MonitorId'].'/'.$event['Id'];
     return( $eventPath );
 }
 
@@ -805,27 +805,27 @@ function getBrowser( &$browser, &$version )
         global $_SERVER;
     }
 
-    if ( preg_match( '/MSIE ([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion ) )
+    if (preg_match( '/MSIE ([0-9].[0-9]{1,2})/',$_SERVER['HTTP_USER_AGENT'],$logVersion))
     {
         $version = $logVersion[1];
         $browser = 'ie';
     }
-    elseif ( preg_match( '/Safari\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion ) )
+    elseif (preg_match( '/Safari\/([0-9.]+)/',$_SERVER['HTTP_USER_AGENT'],$logVersion))
     {
         $version = $logVersion[1];
         $browser = 'safari';
     }
-    elseif ( preg_match( '/Konqueror\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion ) )
-    {
-        $version = $logVersion[1];
-        $browser = 'konqueror';
-    }
-    elseif ( preg_match( '/Opera ([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion ) )
+        elseif (preg_match( '/Konqueror\/([0-9.]+)/',$_SERVER['HTTP_USER_AGENT'],$logVersion))
+        {
+                $version = $logVersion[1];
+                $browser = 'konqueror';
+        }
+    elseif (preg_match( '/Opera ([0-9].[0-9]{1,2})/',$_SERVER['HTTP_USER_AGENT'],$logVersion))
     {
         $version = $logVersion[1];
         $browser = 'opera';
     }
-    elseif ( preg_match( '/Mozilla\/([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion ) )
+    elseif (preg_match( '/Mozilla\/([0-9].[0-9]{1,2})/',$_SERVER['HTTP_USER_AGENT'],$logVersion))
     {
         $version = $logVersion[1];
         $browser = 'mozilla';
@@ -1113,9 +1113,11 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
     $hasAnalImage = $alarmFrame && file_exists( $analPath ) && filesize( $analPath );
     $isAnalImage = $hasAnalImage && !$captureOnly;
 
-    if ( $scale >= SCALE_BASE || !file_exists( ZM_PATH_NETPBM."/jpegtopnm" ) )
+    if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) )
     {
         $imagePath = $thumbPath = $isAnalImage?$analPath:$captPath;
+        $imageFile = ZM_DIR_EVENTS."/".$imagePath;
+        $thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
     }
     else
     {
@@ -1139,17 +1141,23 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
             $thumbPath = $thumbCaptPath;
         }
 
-        if ( !file_exists( $thumbPath ) || !filesize( $thumbPath ) )
+        $imageFile = ZM_DIR_EVENTS."/".$imagePath;
+        //$thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
+        $thumbFile = $thumbPath;
+        if ( !file_exists( $thumbFile ) || !filesize( $thumbFile ) )
         {
-            if ( ZM_WEB_SCALE_THUMBS )
-            {
-                $command = ZM_PATH_NETPBM."/jpegtopnm -quiet -dct fast $imagePath | ".ZM_PATH_NETPBM."/pnmscalefixed -quiet $fraction | ".ZM_PATH_NETPBM."/pnmtojpeg -quiet -dct=fast > $thumbPath";
-                exec( $command );
-            }
-            else
-            {
-                $imagePath = $thumbPath = $isAnalImage?$analPath:$captPath;
-            }
+            // Get new dimensions
+            list( $imageWidth, $imageHeight ) = getimagesize( $imageFile );
+            $thumbWidth = $imageWidth * $fraction;
+            $thumbHeight = $imageHeight * $fraction;
+
+            // Resample
+            $thumbImage = imagecreatetruecolor( $thumbWidth, $thumbHeight );
+            $image = imagecreatefromjpeg( $imageFile );
+            imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
+
+            if ( !imagejpeg( $thumbImage, $thumbFile ) )
+                error_log( "Can't create thumbnail '$thumbPath'" );
         }
     }
 
@@ -1157,6 +1165,8 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
         'eventPath' => $eventPath,
         'imagePath' => $imagePath,
         'thumbPath' => $thumbPath,
+        'imageFile' => $imageFile,
+        'thumbFile' => $thumbFile,
         'imageClass' => $alarmFrame?"alarm":"normal",
         'isAnalImage' => $isAnalImage,
         'hasAnalImage' => $hasAnalImage,
@@ -1167,9 +1177,23 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
     return( $imageData );
 }
 
+function viewImagePath( $path, $querySep='&amp;' )
+{
+    if ( strncmp( $path, ZM_DIR_IMAGES, strlen(ZM_DIR_IMAGES) ) == 0 )
+    {
+        // Thumbnails
+        return( $path );
+    }
+    elseif ( strpos( ZM_DIR_EVENTS, '/' ) === 0 )
+    {
+        return( '?view=image'.$querySep.'path='.$path );
+    }
+    return( ZM_DIR_EVENTS.'/'.$path );
+}
+
 function createListThumbnail( $event, $overwrite=false )
 {
-    $sql = "select * from Frames where EventId = '".$event['Id']."' and Score = '".$event['MaxScore']."' order by FrameId limit 0,1";
+    $sql = "select * from Frames where EventId = '".$event['Id']."' and Score = '".$event['MaxScore']."' order by FrameId limit 1";
     if ( !($frame = dbFetchOne( $sql )) )
         return( false );
 
@@ -1457,7 +1481,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
             {
                 $filter['query'] .= $querySep."filter[terms][$i][cbr]=".urlencode($filter['terms'][$i]['cbr']);
                 $filter['sql'] .= " ".str_repeat( ")", $filter['terms'][$i]['cbr'] )." ";
-                $filter['fields'] .= "<input type=\"hidden\" name=filter[terms][$i][cbr]\" value=\"".htmlspecialchars($filter['terms'][$i]['cbr'])."\"/>\n";
+                $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cbr]\" value=\"".htmlspecialchars($filter['terms'][$i]['cbr'])."\"/>\n";
             }
         }
         if ( $filter['sql'] )

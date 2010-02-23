@@ -158,19 +158,18 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
         $sql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where E.Id = '".dbEscape($eid)."'";
         $event = dbFetchOne( $sql );
 
-        $eventPath = getEventPath( $event );
+        $eventPath = ZM_DIR_EVENTS.'/'.getEventPath( $event );
         $files = array();
-        if ( $dir = opendir( $eventPath ) )
+        if ( !($dir = opendir( $eventPath )) )
+            die( "Can't open event path '$eventPath'" );
+        while ( ($file = readdir( $dir )) !== false )
         {
-            while ( ($file = readdir( $dir )) !== false )
+            if ( is_file( $eventPath."/".$file ) )
             {
-                if ( is_file( $eventPath."/".$file ) )
-                {
-                    $files[$file] = $file;
-                }
+                $files[$file] = $file;
             }
-            closedir( $dir );
         }
+        closedir( $dir );
 
         $exportFileList = array();
 
@@ -178,9 +177,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
         {
             $file = "zmEventDetail.html";
             if ( !($fp = fopen( $eventPath."/".$file, "w" )) )
-            {
                 die( "Can't open event detail export file '$file'" );
-            }
             fwrite( $fp, exportEventDetail( $event, $exportFrames ) );
             fclose( $fp );
             $exportFileList[$file] = $eventPath."/".$file;

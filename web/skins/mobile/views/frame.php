@@ -55,7 +55,7 @@ xhtmlHeaders( __FILE__, $SLANG['Frame'].' - '.$_REQUEST['eid'].'-'.$frame['Frame
       <h2><?= $SLANG['Frame'] ?> <?= $_REQUEST['eid']."-".$frame['FrameId']." (".$frame['Score'].")" ?></h2>
     </div>
     <div id="content">
-      <?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $frame['FrameId'] ?>&amp;show=<?= $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= $imageData['thumbPath'] ?>" class="<?= $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
+      <?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $frame['FrameId'] ?>&amp;show=<?= $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= viewImagePath( $imageData['thumbPath'] ) ?>" class="<?= $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
       <div id="contentButtons">
 <?php if ( $frame['FrameId'] > 1 ) { ?>
         <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $firstFid ?>">&lt;&lt;</a>

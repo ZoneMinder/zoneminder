@@ -48,7 +48,7 @@ $eventHeight = $event['Height'];
 if ( !isset( $rate ) )
     $_REQUEST['rate'] = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
 
-$eventPath = getEventPath( $event );
+$eventPath = ZM_DIR_EVENTS.'/'.getEventPath( $event );
 
 $videoFormats = array();
 $ffmpegFormats = preg_split( '/\s+/', ZM_FFMPEG_FORMATS );

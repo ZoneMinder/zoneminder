@@ -73,8 +73,8 @@ xhtmlHeaders( __FILE__, $SLANG['Event'].' - '.$_REQUEST['eid'] );
         </tr>
       </table>
       <div id="eventImages">
-        <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=1"><img src="<?= $image1['thumbPath'] ?>" alt="1"/></a>
-        <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $frame['FrameId'] ?>"><img src="<?= $image2['thumbPath'] ?>" alt="<?= $frame['FrameId'] ?>"/></a>
+        <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=1"><img src="<?= viewImagePath( $image1['thumbPath'] ) ?>" alt="1"/></a>
+        <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $frame['FrameId'] ?>"><img src="<?= viewImagePath( $image2['thumbPath'] ) ?>" alt="<?= $frame['FrameId'] ?>"/></a>
       </div>
       <div id="contenButtons">
         <a href="?view=event&amp;eid=<?= $_REQUEST['eid'] ?>&amp;page=1"><?= $SLANG['Frames'] ?></a>

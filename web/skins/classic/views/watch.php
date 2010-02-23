@@ -57,7 +57,7 @@ else
     $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale ) );
 }
 
-$showDvrControls = ( $streamMode != 'signal' && $monitor['StreamReplayBuffer'] != 0 );
+$showDvrControls = ( $streamMode == 'jpeg' && $monitor['StreamReplayBuffer'] != 0 );
 
 noCacheHeaders();
 

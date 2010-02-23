@@ -41,7 +41,7 @@ if ( isset( $_REQUEST['scale'] ) )
 else
     $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
-$eventPath = getEventPath( $event );
+$eventPath = ZM_DIR_EVENTS.'/'.getEventPath( $event );
 
 $videoFormats = array();
 $ffmpegFormats = preg_split( '/\s+/', ZM_FFMPEG_FORMATS );
@@ -114,7 +114,7 @@ if ( isset($_REQUEST['showIndex']) )
     $name = $matches[1];
     $videoFormat = $matches[2];
 ?>
-      <h3 id="videoFile"><?= $videoFiles[$showIndex] ?></h3>
+      <h3 id="videoFile"><?= substr( $videoFiles[$showIndex], strlen(ZM_DIR_EVENTS)+1 ) ?></h3>
       <div id="imageFeed"><?php outputVideoStream( 'videoStream', $videoFiles[$showIndex], validInt($_REQUEST['width']), validInt($_REQUEST['height']), $videoFormat, $name ) ?></div>
 <?php
 }
@@ -214,7 +214,7 @@ else
           <td><?= filesize( $file ) ?></td>
           <td><?= $rateText ?></td>
           <td><?= $scaleText ?></td>
-          <td><?= makePopupLink( '?view='.$view.'&amp;eid='.$event['Id'].'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, 'zmVideo'.$event['Id'].'-'.$scale, array( 'videoview', $width, $height ), $SLANG['View'] ); ?>&nbsp;/&nbsp;<a href="<?= $file ?>" onclick="downloadVideo( <?= $index ?> ); return( false );"><?= $SLANG['Download'] ?></a>&nbsp;/&nbsp;<a href="#" onclick="deleteVideo( <?= $index ?> ); return( false );"><?= $SLANG['Delete'] ?></a></td>
+          <td><?= makePopupLink( '?view='.$view.'&amp;eid='.$event['Id'].'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, 'zmVideo'.$event['Id'].'-'.$scale, array( 'videoview', $width, $height ), $SLANG['View'] ); ?>&nbsp;/&nbsp;<a href="<?= substr( $file, strlen(ZM_DIR_EVENTS)+1 ) ?>" onclick="downloadVideo( <?= $index ?> ); return( false );"><?= $SLANG['Download'] ?></a>&nbsp;/&nbsp;<a href="#" onclick="deleteVideo( <?= $index ?> ); return( false );"><?= $SLANG['Delete'] ?></a></td>
         </tr>
 <?php
                 $index++;

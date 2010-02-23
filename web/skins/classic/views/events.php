@@ -224,7 +224,7 @@ foreach ( $events as $event )
         if ( $thumbData = createListThumbnail( $event ) )
         {
 ?>
-              <td class="colThumbnail"><?= makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="'.$thumbData['Path'].'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
+              <td class="colThumbnail"><?= makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="'.viewImagePath( $thumbData['Path'] ).'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
 <?php
         }
         else

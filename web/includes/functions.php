@@ -309,7 +309,7 @@ type="<?= $mimeType ?>">
 <embed type="<?= $mimeType ?>"
 src="<?= $src ?>"
 pluginspage="http://www.apple.com/quicktime/download/"
-name="<?= validhtmlStr($title) ?>"
+name="<?= validHtmlStr($title) ?>"
 width="<?= validInt($width) ?>"
 height="<?= validInt($height) ?>"
 autoplay="true"

@@ -498,7 +498,7 @@ function visibleMonitor( $mid )
 {
     global $user;
 
-    return( empty($user['MonitorIds']) || in_array( $mid, split( ',', $user['MonitorIds'] ) ) );
+    return( empty($user['MonitorIds']) || in_array( $mid, explode( ',', $user['MonitorIds'] ) ) );
 }
 
 function canView( $area, $mid=false )
@@ -805,27 +805,27 @@ function getBrowser( &$browser, &$version )
         global $_SERVER;
     }
 
-    if (ereg( 'MSIE ([0-9].[0-9]{1,2})',$_SERVER['HTTP_USER_AGENT'],$logVersion))
+    if ( preg_match( '/MSIE ([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion ) )
     {
         $version = $logVersion[1];
         $browser = 'ie';
     }
-    elseif (ereg( 'Safari/([0-9.]+)',$_SERVER['HTTP_USER_AGENT'],$logVersion))
+    elseif ( preg_match( '/Safari\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion ) )
     {
         $version = $logVersion[1];
         $browser = 'safari';
     }
-        elseif (ereg( 'Konqueror/([0-9.]+)',$_SERVER['HTTP_USER_AGENT'],$logVersion))
-        {
-                $version = $logVersion[1];
-                $browser = 'konqueror';
-        }
-    elseif (ereg( 'Opera ([0-9].[0-9]{1,2})',$_SERVER['HTTP_USER_AGENT'],$logVersion))
+    elseif ( preg_match( '/Konqueror\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion ) )
+    {
+        $version = $logVersion[1];
+        $browser = 'konqueror';
+    }
+    elseif ( preg_match( '/Opera ([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion ) )
     {
         $version = $logVersion[1];
         $browser = 'opera';
     }
-    elseif (ereg( 'Mozilla/([0-9].[0-9]{1,2})',$_SERVER['HTTP_USER_AGENT'],$logVersion))
+    elseif ( preg_match( '/Mozilla\/([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion ) )
     {
         $version = $logVersion[1];
         $browser = 'mozilla';
@@ -1620,7 +1620,7 @@ function sidField()
 {
     if ( SID )
     {
-        list( $sessname, $sessid ) = split( "=", SID );
+        list( $sessname, $sessid ) = explode( "=", SID );
 ?>
 <input type="hidden" name="<?= $sessname ?>" value="<?= $sessid ?>"/>
 <?php
@@ -2086,7 +2086,7 @@ function initX10Status()
 
             $x10Output = exec( escapeshellcmd( $command ) );
         }
-        foreach ( split( "\n", $x10Output ) as $x10Response )
+        foreach ( explode( "\n", $x10Output ) as $x10Response )
         {
             if ( preg_match( "/^(\d+)\s+(.+)$/", $x10Response, $matches ) )
             {

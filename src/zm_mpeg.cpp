@@ -30,6 +30,7 @@ bool VideoStream::initialised = false;
 VideoStream::MimeData VideoStream::mime_data[] = {
 	{ "asf", "video/x-ms-asf" },
 	{ "swf", "application/x-shockwave-flash" },
+	{ "flv", "video/x-flv" },
 	{ "mp4", "video/mp4" },
 	{ "move", "video/quicktime" }
 };

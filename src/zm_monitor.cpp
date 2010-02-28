@@ -992,7 +992,7 @@ bool Monitor::CheckSignal( const Image *image )
     static unsigned char green_val;
     static unsigned char blue_val;
 
-    if ( camera->IsLocal() && config.signal_check_points > 0 )
+    if ( config.signal_check_points > 0 )
     {
         if ( static_undef )
         {
@@ -2482,7 +2482,15 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 
 int Monitor::Capture()
 {
-    if ( camera->Capture( image ) == 0 )
+    int captureResult = camera->Capture( image );
+    if ( captureResult == 1 )
+    {
+        // Unable to capture image for temporary reason
+        // Fake a signal loss image
+        image.Fill( signal_check_colour );
+        captureResult = 0;
+    }
+    if ( captureResult == 0 )
     {
         if ( orientation != ROTATE_0 )
         {

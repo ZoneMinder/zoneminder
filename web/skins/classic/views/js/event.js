@@ -76,6 +76,8 @@ function getCmdResponse( respObj, respText )
     streamCmdTimer = streamQuery.delay( streamTimeout );
 }
 
+var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
+
 function streamPause( action )
 {
     setButtonState( $('pauseBtn'), 'active' );
@@ -85,10 +87,7 @@ function streamPause( action )
     setButtonState( $('slowRevBtn'), 'inactive' );
     setButtonState( $('fastRevBtn'), 'unavail' );
     if ( action )
-    {
-        var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_PAUSE, onSuccess: getCmdResponse } );
-        streamReq.send();
-    }
+        streamReq.send( streamParms+"&command="+CMD_PAUSE );
 }
 
 function streamPlay( action )
@@ -102,8 +101,7 @@ function streamPlay( action )
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
     {
-        var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_PLAY, onSuccess: getCmdResponse } );
-        streamReq.send();
+        streamReq.send( streamParms+"&command="+CMD_PLAY );
     }
 }
 
@@ -116,10 +114,7 @@ function streamFastFwd( action )
     setButtonState( $('slowRevBtn'), 'unavail' );
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
-    {
-        var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_FASTFWD, onSuccess: getCmdResponse } );
-        streamReq.send();
-    }
+        streamReq.send( streamParms+"&command="+CMD_FASTFWD );
 }
 
 function streamSlowFwd( action )
@@ -131,10 +126,7 @@ function streamSlowFwd( action )
     setButtonState( $('slowRevBtn'), 'inactive' );
     setButtonState( $('fastRevBtn'), 'unavail' );
     if ( action )
-    {
-        var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_SLOWFWD, onSuccess: getCmdResponse } );
-        streamReq.send();
-    }
+        streamReq.send( streamParms+"&command="+CMD_SLOWFWD );
     setButtonState( $('pauseBtn'), 'active' );
     setButtonState( $('slowFwdBtn'), 'inactive' );
 }
@@ -148,10 +140,7 @@ function streamSlowRev( action )
     setButtonState( $('slowRevBtn'), 'active' );
     setButtonState( $('fastRevBtn'), 'unavail' );
     if ( action )
-    {
-        var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_SLOWREV, onSuccess: getCmdResponse } );
-        streamReq.send();
-    }
+        streamReq.send( streamParms+"&command="+CMD_SLOWREV );
     setButtonState( $('pauseBtn'), 'active' );
     setButtonState( $('slowRevBtn'), 'inactive' );
 }
@@ -165,66 +154,51 @@ function streamFastRev( action )
     setButtonState( $('slowRevBtn'), 'unavail' );
     setButtonState( $('fastRevBtn'), 'inactive' );
     if ( action )
-    {
-        var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_FASTREV, onSuccess: getCmdResponse } );
-        streamReq.send();
-    }
+        streamReq.send( streamParms+"&command="+CMD_FASTREV );
 }
 
 function streamPrev( action )
 {
     streamPlay( false );
     if ( action )
-    {
-        var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_PREV, onSuccess: getCmdResponse } );
-        streamReq.send();
-    }
+        streamReq.send( streamParms+"&command="+CMD_PREV );
 }
 
 function streamNext( action )
 {
     streamPlay( false );
     if ( action )
-    {
-        var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_NEXT, onSuccess: getCmdResponse } );
-        streamReq.send();
-    }
+        streamReq.send( streamParms+"&command="+CMD_NEXT );
 }
 
 function streamZoomIn( x, y )
 {
-    var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y, onSuccess: getCmdResponse } );
-    streamReq.send();
+    streamReq.send( streamParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y );
 }
 
 function streamZoomOut()
 {
-    var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_ZOOMOUT, onSuccess: getCmdResponse } );
-    streamReq.send();
+    streamReq.send( streamParms+"&command="+CMD_ZOOMOUT );
 }
 
 function streamScale( scale )
 {
-    var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_SCALE+"&scale="+scale, onSuccess: getCmdResponse } );
-    streamReq.send();
+    streamReq.send( streamParms+"&command="+CMD_SCALE+"&scale="+scale );
 }
 
 function streamPan( x, y )
 {
-    var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_PAN+"&x="+x+"&y="+y, onSuccess: getCmdResponse } );
-    streamReq.send();
+    streamReq.send( streamParms+"&command="+CMD_PAN+"&x="+x+"&y="+y );
 }
 
 function streamSeek( offset )
 {
-    var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_SEEK+"&offset="+offset, onSuccess: getCmdResponse } );
-    streamReq.send();
+    streamReq.send( streamParms+"&command="+CMD_SEEK+"&offset="+offset );
 }
 
 function streamQuery()
 {       
-    var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: streamParms+"&command="+CMD_QUERY, onSuccess: getCmdResponse } );
-    streamReq.send();
+    streamReq.send( streamParms+"&command="+CMD_QUERY );
 }       
 
 var slider = null;
@@ -272,11 +246,12 @@ function getEventResponse( respObj, respText )
     nearEventsQuery( event.Id );
 }
 
+var eventReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
+
 function eventQuery( eventId )
 {
     var eventParms = "view=request&request=status&entity=event&id="+eventId;
-    var eventReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: eventParms, onSuccess: getEventResponse } );
-    eventReq.send();
+    eventReq.send( eventParms );
 }
 
 var prevEventId = 0;
@@ -293,11 +268,12 @@ function getNearEventsResponse( respObj, respText )
     $('nextEventBtn').disabled = !nextEventId;
 }
 
+var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
+
 function nearEventsQuery( eventId )
 {
     var parms = "view=request&request=status&entity=nearevents&id="+eventId;
-    var query = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: parms, onSuccess: getNearEventsResponse } );
-    query.send();
+    nearEventsReq.send( parms );
 }
 
 var frameBatch = 40;
@@ -462,11 +438,12 @@ function getFrameResponse( respObj, respText )
     loadEventThumb( event, frame, respObj.loopback=="true" );
 }
 
+var frameReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse } );
+
 function frameQuery( eventId, frameId, loadImage )
 {
     var parms = "view=request&request=status&entity=frameimage&id[0]="+eventId+"&id[1]="+frameId+"&loopback="+loadImage;
-    var req = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: parms, onSuccess: getFrameResponse } );
-    req.send();
+    frameReq.send( parms );
 }
 
 var currFrameId = null;
@@ -603,15 +580,14 @@ function getActResponse( respObj, respText )
         eventQuery( event.Id );
 }
 
+var actReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse } );
+
 function actQuery( action, parms )
 {
     var actParms = "view=request&request=event&id="+event.Id+"&action="+action;
     if ( parms != null )
-    {
         actParms += "&"+Hash.toQueryString( parms );
-    }
-    var actReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: actParms, onSuccess: getActResponse } );
-    actReq.send();
+    actReq.send( actParms );
 }
 
 function deleteEvent()

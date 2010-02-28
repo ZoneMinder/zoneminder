@@ -723,7 +723,10 @@ bool EventStream::loadEventData( int event_id )
     }
     else
     {
-        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_data->event_id );
+        if ( config.dir_events[0] == '/' )
+            snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%ld", config.dir_events, event_data->monitor_id, event_data->event_id );
+        else
+            snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_data->event_id );
     }
     event_data->frame_count = atoi(dbrow[2]);
     event_data->duration = atof(dbrow[4]);

@@ -268,7 +268,7 @@ sub getFilters
         Debug( "Found filter '$db_filter->{Name}'\n" );
         my $filter_expr = unserialize( $db_filter->{Query} );
         my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,M.DefaultRate,M.DefaultScale,E.Name,E.Cause,E.Notes,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Videoed,E.Uploaded,E.Emailed,E.Messaged,E.Executed from Events as E inner join Monitors as M on M.Id = E.MonitorId where not isnull(E.EndTime)";
-	    $db_filter->{Sql} = '';
+        $db_filter->{Sql} = '';
 
         if ( @{$filter_expr->{terms}} )
         {
@@ -720,7 +720,7 @@ sub uploadArchFile
     my $arch_image_path = getEventPath( $event )."/".((ZM_UPLOAD_ARCH_ANALYSE)?'{*analyse,*capture}':'*capture').".jpg";
     my @arch_image_files =  glob($arch_image_path);
 
-    my $arch_error;
+    my $arch_error = 0;
     if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
     {
         $arch_file .= '.zip';
@@ -730,16 +730,28 @@ sub uploadArchFile
         my $status = &AZ_OK;
         foreach my $image_file ( @arch_image_files )
         {
-            Info( "Adding $image_file\n" );
+            Debug( "Adding $image_file\n" );
             my $member = $zip->addFile( $image_file );
-            last unless ( $member );
+            if ( !$member )
+            {
+                Error( "Unable to add image file $image_file to zip archive $arch_file" );
+                $arch_error = 1;
+                last;
+            }
             $member->desiredCompressionMethod( (ZM_UPLOAD_ARCH_COMPRESS)?&COMPRESSION_DEFLATED:&COMPRESSION_STORED );
         }
-        $status = $zip->writeToFileNamed( $arch_file );
-
-        if ( $arch_error = ($status != &AZ_OK) )
+        if ( !$arch_error )
         {
-            Error( "Zip error: $status\n " );
+            $status = $zip->writeToFileNamed( $arch_file );
+
+            if ( $arch_error = ($status != &AZ_OK) )
+            {
+                Error( "Zip error: $status\n " );
+            }
+        }
+        else
+        {
+            Error( "Error adding images to zip archive $arch_file, not writing" );
         }
     }
     elsif ( ZM_UPLOAD_ARCH_FORMAT eq "tar" )

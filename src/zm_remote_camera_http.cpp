@@ -111,6 +111,7 @@ int RemoteCameraHttp::Disconnect()
 {
 	close( sd );
 	sd = -1;
+    Debug( 3, "Disconnected from host" );
 	return( 0 );
 }
 
@@ -139,8 +140,9 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
 	int n_found = select( sd+1, &rfds, NULL, NULL, &temp_timeout );
 	if( n_found == 0 )
 	{
-		Error( "Select timed out" );
-		return( -1 );
+		Warning( "Select timed out" );
+		Disconnect();
+		return( 0 );
 	}
 	else if ( n_found < 0)
 	{
@@ -236,7 +238,12 @@ int RemoteCameraHttp::GetResponse()
 					static RegExpr *content_type_expr = 0;
 
 					int buffer_len = ReadData( buffer );
-					if ( buffer_len < 0 )
+					if ( buffer_len == 0 )
+                    {
+                        Error( "Connection dropped by remote end" );
+                        return( 0 );
+                    }
+					else if ( buffer_len < 0 )
 					{
                         Error( "Unable to read header data" );
 						return( -1 );
@@ -387,7 +394,12 @@ int RemoteCameraHttp::GetResponse()
 					{
 						Debug( 3, "Unable to extract subheader from stream, retrying" );
 						int buffer_len = ReadData( buffer );
-						if ( buffer_len < 0 )
+					    if ( buffer_len == 0 )
+                        {
+                            Error( "Connection dropped by remote end" );
+                            return( 0 );
+                        }
+					    else if ( buffer_len < 0 )
 						{
 							return( -1 );
 						}
@@ -419,7 +431,12 @@ int RemoteCameraHttp::GetResponse()
 						while ( buffer.size() < content_length )
 						{
 							int buffer_len = ReadData( buffer );
-							if ( buffer_len < 0 )
+					        if ( buffer_len == 0 )
+                            {
+                                Error( "Connection dropped by remote end" );
+                                return( 0 );
+                            }
+					        else if ( buffer_len < 0 )
 							{
                                 Error( "Unable to read content" );
 								return( -1 );
@@ -432,7 +449,12 @@ int RemoteCameraHttp::GetResponse()
 						while ( !content_length )
 						{
 							int buffer_len = ReadData( buffer );
-							if ( buffer_len < 0 )
+					        if ( buffer_len == 0 )
+                            {
+                                Error( "Connection dropped by remote end" );
+                                return( 0 );
+                            }
+					        else if ( buffer_len < 0 )
 							{
                                 Error( "Unable to read content" );
 								return( -1 );
@@ -573,7 +595,12 @@ int RemoteCameraHttp::GetResponse()
 				case HEADERCONT :
 				{
 					int buffer_len = ReadData( buffer );
-					if ( buffer_len < 0 )
+                    if ( buffer_len == 0 )
+                    {
+                        Error( "Connection dropped by remote end" );
+                        return( 0 );
+                    }
+                    else if ( buffer_len < 0 )
 					{
                         Error( "Unable to read header" );
 						return( -1 );
@@ -885,7 +912,12 @@ int RemoteCameraHttp::GetResponse()
 					{
 						Debug( 3, "Unable to extract subheader from stream, retrying" );
 						int buffer_len = ReadData( buffer );
-						if ( buffer_len < 0 )
+                        if ( buffer_len == 0 )
+                        {
+                            Error( "Connection dropped by remote end" );
+                            return( 0 );
+                        }
+                        else if ( buffer_len < 0 )
 						{
                             Error( "Unable to read subheader" );
 							return( -1 );
@@ -929,7 +961,12 @@ int RemoteCameraHttp::GetResponse()
 						{
 							//int buffer_len = ReadData( buffer, content_length-buffer.size() );
 							int buffer_len = ReadData( buffer );
-							if ( buffer_len < 0 )
+                            if ( buffer_len == 0 )
+                            {
+                                Error( "Connection dropped by remote end" );
+                                return( 0 );
+                            }
+                            else if ( buffer_len < 0 )
 							{
                                 Error( "Unable to read content" );
 								return( -1 );
@@ -943,12 +980,17 @@ int RemoteCameraHttp::GetResponse()
 						while ( !content_length )
 						{
 							int buffer_len = ReadData( buffer );
-							int buffer_size = buffer.size();
-							if ( buffer_len < 0 )
+                            if ( buffer_len == 0 )
+                            {
+                                Error( "Connection dropped by remote end" );
+                                return( 0 );
+                            }
+                            else if ( buffer_len < 0 )
 							{
                                 Error( "Unable to read content" );
 								return( -1 );
 							}
+							int buffer_size = buffer.size();
 							if ( buffer_len )
 							{
 								if ( mode == MULTI_IMAGE )
@@ -1039,6 +1081,11 @@ int RemoteCameraHttp::PreCapture()
 int RemoteCameraHttp::Capture( Image &image )
 {
 	int content_length = GetResponse();
+    if ( content_length == 0 )
+    {
+        Warning( "Unable to capture image, retrying" );
+        return( 1 );
+    }
 	if ( content_length < 0 )
 	{
         Error( "Unable to get response" );

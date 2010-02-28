@@ -37,7 +37,8 @@ POST_UNINSTALL = :
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
-	$(srcdir)/zm.conf.in $(top_srcdir)/configure \
+	$(srcdir)/zm.conf.in $(srcdir)/zmconfgen.pl.in \
+	$(top_srcdir)/configure \
 	$(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/Base.pm.in \
 	$(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/Config.pm.in \
 	$(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm.in \
@@ -53,7 +54,8 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = zm.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm \
+CONFIG_CLEAN_FILES = zm.conf zmconfgen.pl \
+	scripts/ZoneMinder/lib/ZoneMinder/Base.pm \
 	scripts/ZoneMinder/lib/ZoneMinder/Config.pm \
 	scripts/ZoneMinder/lib/ZoneMinder/Memory.pm \
 	scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm
@@ -279,6 +281,8 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 distclean-hdr:
 	-rm -f config.h stamp-h1
 zm.conf: $(top_builddir)/config.status $(srcdir)/zm.conf.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+zmconfgen.pl: $(top_builddir)/config.status $(srcdir)/zmconfgen.pl.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 scripts/ZoneMinder/lib/ZoneMinder/Base.pm: $(top_builddir)/config.status $(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/Base.pm.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@

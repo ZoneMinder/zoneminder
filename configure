@@ -7932,6 +7932,80 @@ echo "$as_me: WARNING: libpcre.a may be required for remote/network camera suppo
 fi
 
 
+echo "$as_me:$LINENO: checking for x264_predict_16x16_init in -lx264" >&5
+echo $ECHO_N "checking for x264_predict_16x16_init in -lx264... $ECHO_C" >&6
+if test "${ac_cv_lib_x264_x264_predict_16x16_init+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lx264  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char x264_predict_16x16_init ();
+int
+main ()
+{
+x264_predict_16x16_init ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_x264_x264_predict_16x16_init=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_x264_x264_predict_16x16_init=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_x264_x264_predict_16x16_init" >&5
+echo "${ECHO_T}$ac_cv_lib_x264_x264_predict_16x16_init" >&6
+if test $ac_cv_lib_x264_x264_predict_16x16_init = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBX264 1
+_ACEOF
+
+  LIBS="-lx264 $LIBS"
+
+fi
+
+
 echo "$as_me:$LINENO: checking for av_malloc in -lavutil" >&5
 echo $ECHO_N "checking for av_malloc in -lavutil... $ECHO_C" >&6
 if test "${ac_cv_lib_avutil_av_malloc+set}" = set; then
@@ -8092,7 +8166,7 @@ if test "${ac_cv_lib_avformat_av_new_stream+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lavformat -lavcodec -lavutil $LIBS"
+LIBS="-lavformat  $LIBS"
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -8160,6 +8234,83 @@ _ACEOF
 else
   { echo "$as_me:$LINENO: WARNING: libavformat.a is required for MPEG streaming" >&5
 echo "$as_me: WARNING: libavformat.a is required for MPEG streaming" >&2;}
+fi
+
+
+echo "$as_me:$LINENO: checking for avdevice_register_all in -lavdevice" >&5
+echo $ECHO_N "checking for avdevice_register_all in -lavdevice... $ECHO_C" >&6
+if test "${ac_cv_lib_avdevice_avdevice_register_all+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavdevice  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char avdevice_register_all ();
+int
+main ()
+{
+avdevice_register_all ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_avdevice_avdevice_register_all=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_avdevice_avdevice_register_all=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_avdevice_avdevice_register_all" >&5
+echo "${ECHO_T}$ac_cv_lib_avdevice_avdevice_register_all" >&6
+if test $ac_cv_lib_avdevice_avdevice_register_all = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVDEVICE 1
+_ACEOF
+
+  LIBS="-lavdevice $LIBS"
+
+else
+  { echo "$as_me:$LINENO: WARNING: libavdevice.a may be required for MPEG streaming" >&5
+echo "$as_me: WARNING: libavdevice.a may be required for MPEG streaming" >&2;}
 fi
 
 
@@ -13531,7 +13682,7 @@ fi
 
 
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ac_config_files="$ac_config_files Makefile zm.conf db/Makefile db/zm_create.sql scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ac_config_files="$ac_config_files Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -14091,6 +14242,7 @@ do
   # Handling of arguments.
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "zm.conf" ) CONFIG_FILES="$CONFIG_FILES zm.conf" ;;
+  "zmconfgen.pl" ) CONFIG_FILES="$CONFIG_FILES zmconfgen.pl" ;;
   "db/Makefile" ) CONFIG_FILES="$CONFIG_FILES db/Makefile" ;;
   "db/zm_create.sql" ) CONFIG_FILES="$CONFIG_FILES db/zm_create.sql" ;;
   "scripts/Makefile" ) CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;

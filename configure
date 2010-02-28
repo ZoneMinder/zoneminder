@@ -2072,7 +2072,7 @@ _ACEOF
 
 fi
 
-ENABLE_MMAP=no
+ENABLE_MMAP=yes
 # Check whether --enable-mmap or --disable-mmap was given.
 if test "${enable_mmap+set}" = set; then
   enableval="$enable_mmap"
@@ -2080,17 +2080,17 @@ if test "${enable_mmap+set}" = set; then
 else
   { echo "$as_me:$LINENO: WARNING: You can call configure with the --enable-mmap=<yes|no> or --disable-mmap option.
     This tells configure whether to compile ZoneMinder with mmap support rather than IPC shared
-    memory. This is an experimental feature that uses memory mapped into files which all processes
-    can share. Memory mapping requires less configuration and is more flexible than shared memory
-    but may slow down your system unless the mapped files are configured to reside on a fast or
-    RAM based filesystem.
+    memory. This is a new feature that uses memory mapped into files which all processes can share.
+    Memory mapping requires less configuration and is more flexible than shared memory but may
+    slow down your system unless the mapped files are configured to reside on a fast or RAM based
+    filesystem however this will not normally be the case.
     e.g. --enable-mmap=yes or --disable-mmap" >&5
 echo "$as_me: WARNING: You can call configure with the --enable-mmap=<yes|no> or --disable-mmap option.
     This tells configure whether to compile ZoneMinder with mmap support rather than IPC shared
-    memory. This is an experimental feature that uses memory mapped into files which all processes
-    can share. Memory mapping requires less configuration and is more flexible than shared memory
-    but may slow down your system unless the mapped files are configured to reside on a fast or
-    RAM based filesystem.
+    memory. This is a new feature that uses memory mapped into files which all processes can share.
+    Memory mapping requires less configuration and is more flexible than shared memory but may
+    slow down your system unless the mapped files are configured to reside on a fast or RAM based
+    filesystem however this will not normally be the case.
     e.g. --enable-mmap=yes or --disable-mmap" >&2;}
 
 fi;

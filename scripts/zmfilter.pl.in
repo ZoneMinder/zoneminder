@@ -55,7 +55,7 @@ use Getopt::Long;
 use PHP::Serialization qw(serialize unserialize);
 use Data::Dumper;
 
-use constant EVENT_PATH => ZM_PATH_WEB.'/'.ZM_DIR_EVENTS;
+use constant EVENT_PATH => (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 zmDbgSetSignal();

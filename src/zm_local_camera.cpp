@@ -380,7 +380,7 @@ void LocalCamera::Initialise()
         v4l2_data.fmt.fmt.pix.height = height;
         v4l2_data.fmt.fmt.pix.pixelformat = palette;
         //v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
-        v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
+        //v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
 
         if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 )
             Fatal( "Failed to set video format: %s", strerror(errno) );
@@ -841,7 +841,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
                     sprintf( output+strlen(output), "%s/", standard.name );
             }
             while ( standardIndex++ >= 0 );
-            if ( !verbose )
+            if ( !verbose && output[strlen(output)-1] == '/')
                 output[strlen(output)-1] = '|';
       
             if ( verbose )
@@ -910,15 +910,26 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
             crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             if ( vidioctl( vid_fd, VIDIOC_G_CROP, &crop ) < 0 )
             {
-                Error( "Failed to query crop: %s", strerror(errno) );
-                if ( verbose )
-                    sprintf( output, "Error, failed to query crop %s: %s\n", queryDevice, strerror(errno) );
-                else
-                    sprintf( output, "error%d\n", errno );
-                return( false );
+               if ( errno != EINVAL )
+               {
+                    Error( "Failed to query crop: %s", strerror(errno) );
+                    if ( verbose )
+                        sprintf( output, "Error, failed to query crop %s: %s\n", queryDevice, strerror(errno) );
+                    else
+                        sprintf( output, "error%d\n", errno );
+
+                    return( false );
+               }
+               else if ( verbose )
+               {
+                    Info( "Does not support VIDIOC_G_CROP");
+               }
             }
-            if ( verbose )
-                sprintf( output+strlen(output), "  Current: %d x %d\n", crop.c.width, crop.c.height );
+           else
+           {
+               if ( verbose )
+                   sprintf( output+strlen(output), "  Current: %d x %d\n", crop.c.width, crop.c.height );
+           }
 
             struct v4l2_input input;
             int inputIndex = 0;

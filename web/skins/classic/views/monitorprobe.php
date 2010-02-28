@@ -48,7 +48,7 @@ if ( ZM_V4L2 )
     $preferredFormats = array( '422P', 'YUYV', 'BGR3' );
     foreach ( $output as $line )
     {
-        if ( !preg_match( '/^d:([^|]+).*S:([^|]+).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches ) )
+        if ( !preg_match( '/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches ) )
             die( "Can't parse command output '$line'" );
         $standards = explode('/',$deviceMatches[2]);
         $preferredStandard = false;

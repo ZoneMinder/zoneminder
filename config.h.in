@@ -68,6 +68,9 @@
 /* Define to 1 if you have the <libavcodec/avcodec.h> header file. */
 #undef HAVE_LIBAVCODEC_AVCODEC_H
 
+/* Define to 1 if you have the `avdevice' library (-lavdevice). */
+#undef HAVE_LIBAVDEVICE
+
 /* Define to 1 if you have the `avformat' library (-lavformat). */
 #undef HAVE_LIBAVFORMAT
 
@@ -109,6 +112,9 @@
 
 /* Define to 1 if you have the <libswscale/swscale.h> header file. */
 #undef HAVE_LIBSWSCALE_SWSCALE_H
+
+/* Define to 1 if you have the `x264' library (-lx264). */
+#undef HAVE_LIBX264
 
 /* Define to 1 if you have the `z' library (-lz). */
 #undef HAVE_LIBZ
@@ -328,7 +334,7 @@
 
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
-   automatically deduced at run-time.
+   automatically deduced at runtime.
 	STACK_DIRECTION > 0 => grows toward higher addresses
 	STACK_DIRECTION < 0 => grows toward lower addresses
 	STACK_DIRECTION = 0 => direction of growth unknown */
@@ -376,7 +382,7 @@
 /* Define to `int' if <sys/types.h> does not define. */
 #undef mode_t
 
-/* Define to `unsigned' if <sys/types.h> does not define. */
+/* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
 
 /* Define to `int' if <sys/types.h> doesn't define. */

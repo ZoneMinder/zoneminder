@@ -834,7 +834,7 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 	char *ws = strchr( str, ' ' );
 	if ( !ws )
 	{
-		Debug( 3, "No whitespace found in zone string '%s', finishing", zone_string );
+		Debug( 3, "No initial whitespace found in zone string '%s', finishing", str );
 	}
 	zone_id = strtol( str, 0, 10 );
 	Debug( 3, "Got zone %d from zone string", zone_id );
@@ -850,13 +850,16 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 	ws = strchr( str, ' ' );
 	if ( !ws )
 	{
-		Error( "No whitespace found in zone string '%s'", zone_string );
-		delete[] str_ptr;
-		return( false );
+		Debug( 3, "No secondary whitespace found in zone string '%s', finishing", zone_string );
 	}
-	*ws = '\0';
 	colour = strtol( str, 0, 16 );
 	Debug( 3, "Got colour %06x from zone string", colour );
+	if ( !ws )
+	{
+		delete str_ptr;
+		return( true );
+	}
+	*ws = '\0';
 	str = ws+1;
 
 	bool result = ParsePolygonString( str, polygon );

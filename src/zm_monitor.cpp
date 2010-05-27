@@ -597,7 +597,7 @@ int Monitor::GetImage( int index, int scale ) const
         }
 
         static char filename[PATH_MAX];
-        snprintf( filename, sizeof(filename), "%s.jpg", name );
+        snprintf( filename, sizeof(filename), "Monitor%d.jpg", id );
         if ( !config.timestamp_on_capture )
         {
             TimestampImage( &snap_image, snap->timestamp );
@@ -933,29 +933,36 @@ void Monitor::DumpZoneImage( const char *zone_string )
     zone_image.Colourise();
     for( int i = 0; i < n_zones; i++ )
     {
-        if ( exclude_id && zones[i]->Id() == exclude_id )
+        if ( exclude_id && (!extra_colour || extra_zone.getNumCoords()) && zones[i]->Id() == exclude_id )
             continue;
 
         Rgb colour;
-        if ( zones[i]->IsActive() )
+        if ( exclude_id && !extra_zone.getNumCoords() && zones[i]->Id() == exclude_id )
         {
-            colour = RGB_RED;
-        }
-        else if ( zones[i]->IsInclusive() )
-        {
-            colour = RGB_ORANGE;
-        }
-        else if ( zones[i]->IsExclusive() )
-        {
-            colour = RGB_PURPLE;
-        }
-        else if ( zones[i]->IsPreclusive() )
-        {
-            colour = RGB_BLUE;
+            colour = extra_colour;
         }
         else
         {
-            colour = RGB_WHITE;
+            if ( zones[i]->IsActive() )
+            {
+                colour = RGB_RED;
+            }
+            else if ( zones[i]->IsInclusive() )
+            {
+                colour = RGB_ORANGE;
+            }
+            else if ( zones[i]->IsExclusive() )
+            {
+                colour = RGB_PURPLE;
+            }
+            else if ( zones[i]->IsPreclusive() )
+            {
+                colour = RGB_BLUE;
+            }
+            else
+            {
+                colour = RGB_WHITE;
+            }
         }
         zone_image.Fill( colour, 2, zones[i]->GetPolygon() );
         zone_image.Outline( colour, zones[i]->GetPolygon() );
@@ -978,8 +985,8 @@ void Monitor::DumpImage( Image *dump_image ) const
     {
         static char filename[PATH_MAX];
         static char new_filename[PATH_MAX];
-        snprintf( filename, sizeof(filename), "%s.jpg", name );
-        snprintf( new_filename, sizeof(new_filename), "%s-new.jpg", name );
+        snprintf( filename, sizeof(filename), "Monitor%d.jpg", id );
+        snprintf( new_filename, sizeof(new_filename), "Monitor%d-new.jpg", id );
         dump_image->WriteJpeg( new_filename );
         rename( new_filename, filename );
     }

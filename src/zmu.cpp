@@ -493,9 +493,9 @@ int main( int argc, char *argv[] )
 				if ( verbose )
 				{
 					if ( image_idx == -1 )
-						printf( "Dumping last image captured to %s.jpg", monitor->Name() );
+						printf( "Dumping last image captured to Monitor%d.jpg", monitor->Id() );
 					else
-						printf( "Dumping buffer image %d to %s.jpg", image_idx, monitor->Name() );
+						printf( "Dumping buffer image %d to Monitor%d.jpg", image_idx, monitor->Id() );
 					if ( scale != -1 )
 						printf( ", scaling by %d%%", scale );
 					printf( "\n" );
@@ -505,7 +505,7 @@ int main( int argc, char *argv[] )
 			if ( function & ZMU_ZONES )
 			{
 				if ( verbose )
-					printf( "Dumping zone image to %s-Zones.jpg\n", monitor->Name() );
+					printf( "Dumping zone image to Zones%d.jpg\n", monitor->Id() );
 				monitor->DumpZoneImage( zoneString );
 			}
 			if ( function & ZMU_ALARM )

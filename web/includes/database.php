@@ -212,6 +212,134 @@ function getTableAutoInc( $table )
     return( $row['Auto_increment'] );
 }
 
+function getTableDescription( $table, $asString=1 )
+{
+    $columns = array();
+    $table = dbEscape($table);
+    $sql = "describe $table";
+    foreach( dbFetchAll( $sql ) as $row )
+    {
+        $desc = array(
+            'name' => $row['Field'],
+            'required' => ($row['Null']=='NO')?true:false,
+            'default' => $row['Default'],
+            'db' => $row,
+        );
+        if ( preg_match( "/^varchar\((\d+)\)$/", $row['Type'], $matches ) )
+        {
+            $desc['type'] = 'text';
+            $desc['typeAttrib'] = 'varchar';
+            $desc['maxLength'] = $matches[1];
+        }
+        elseif ( preg_match( "/^(\w+)?text$/", $row['Type'], $matches ) )
+        {
+            $desc['type'] = 'text';
+            if (!empty($matches[1]) )
+                $desc['typeAttrib'] = $matches[1];
+            switch ( $matches[1] )
+            {
+                case 'tiny' :
+                    $desc['maxLength'] = 255;
+                    break;
+                case 'medium' :
+                    $desc['maxLength'] = 32768;
+                    break;
+                case '' :
+                case 'big' :
+                    //$desc['minLength'] = -128;
+                    break;
+                default :
+                    error_log( "Unexpected text qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
+                    break;
+            }
+        }
+        elseif ( preg_match( "/^(enum|set)\((.*)\)$/", $row['Type'], $matches ) )
+        {
+            $desc['type'] = 'text';
+            $desc['typeAttrib'] = $matches[1];
+            preg_match_all( "/'([^']+)'/", $matches[2], $matches );
+            $desc['values'] = $matches[1];
+        }
+        elseif ( preg_match( "/^(\w+)?int\(\d+\)(?:\s+(unsigned))?$/", $row['Type'], $matches ) )
+        {
+            $desc['type'] = 'integer';
+            switch ( $matches[1] )
+            {
+                case 'tiny' :
+                    $desc['minValue'] = -128;
+                    $desc['maxValue'] = 127;
+                    break;
+                case 'small' :
+                    $desc['minValue'] = -32768;
+                    $desc['maxValue'] = 32767;
+                    break;
+                case 'medium' :
+                    $desc['minValue'] = -8388608;
+                    $desc['maxValue'] = 8388607;
+                    break;
+                case '' :
+                    $desc['minValue'] = -2147483648;
+                    $desc['maxValue'] = 2147483647;
+                    break;
+                case 'big' :
+                    //$desc['minValue'] = -128;
+                    //$desc['maxValue'] = 127;
+                    break;
+                default :
+                    error_log( "Unexpected integer qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
+                    break;
+            }
+            if ( !empty($matches[1]) )
+                $desc['typeAttrib'] = $matches[1];
+            if ( $desc['unsigned'] = ( isset($matches[2]) && $matches[2] == 'unsigned' ) )
+            {
+                $desc['maxValue'] += (-$desc['minValue']);
+                $desc['minValue'] = 0;
+            }
+        }
+        elseif ( preg_match( "/^(?:decimal|numeric)\((\d+)(?:,(\d+))?\)(?:\s+(unsigned))?$/", $row['Type'], $matches ) )
+        {
+            $desc['type'] = 'fixed';
+            $desc['range'] = $matches[1];
+            if ( isset($matches[2]) )
+                $desc['precision'] = $matches[2];
+            else
+                $desc['precision'] = 0;
+            $desc['unsigned'] = ( isset($matches[3]) && $matches[3] == 'unsigned' );
+        }
+        elseif ( preg_match( "/^(datetime|timestamp|date|time)$/", $row['Type'], $matches ) )
+        {
+            $desc['type'] = 'datetime';
+            switch ( $desc['typeAttrib'] = $matches[1] )
+            {
+                case 'datetime' :
+                case 'timestamp' :
+                    $desc['hasDate'] = true;
+                    $desc['hasTime'] = true;
+                    break;
+                case 'date' :
+                    $desc['hasDate'] = true;
+                    $desc['hasTime'] = false;
+                    break;
+                case 'time' :
+                    $desc['hasDate'] = false;
+                    $desc['hasTime'] = true;
+                    break;
+            }
+        }
+        else
+        {
+            error_log( "Can't parse database type '".$row['Type']."' found for field '".$row['Field']."' in table '".$table."'" );
+        }
+
+        if ( $asString )
+            $columns[$row['Field']] = $desc;
+        else
+            $columns[] = $desc;
+    }
+    return( $columns );  
+}               
+
 function dbFetchMonitor( $mid )
 {
     return( dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" ) );

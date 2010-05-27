@@ -364,7 +364,7 @@ do
 		aud_print( "Found open event '$event->{Id}'" );
 		if ( confirm( 'close', 'closing' ) )
 		{
-			$res = $updateUnclosedEventsSql->execute( sprintf( "%s%d%s", $event->{Prefix}, $event->{Id}, RECOVER_TAG ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, RECOVER_TEXT, $event->{Id} ) or Fatal( "Can't execute: ".$updateUnclosedEventsSql->errstr() );
+			$res = $updateUnclosedEventsSth->execute( sprintf( "%s%d%s", $event->{Prefix}, $event->{Id}, RECOVER_TAG ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, RECOVER_TEXT, $event->{Id} ) or Fatal( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
 		}
 	}
     $selectUnclosedEventsSth->finish();

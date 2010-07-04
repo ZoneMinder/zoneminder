@@ -23,6 +23,8 @@
 #include "zm_thread.h"
 #include "zm_buffer.h"
 
+#include <stdint.h>
+
 class RtspThread;
 class RtpSource;
 

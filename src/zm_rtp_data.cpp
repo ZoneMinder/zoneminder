@@ -63,7 +63,7 @@ bool RtpDataThread::recvPacket( const unsigned char *packet, size_t packetLen )
 
 int RtpDataThread::run()
 {
-    Debug( 2, "Starting data thread %ld on port %d", mRtpSource.getSsrc(), mRtpSource.getLocalDataPort() );
+    Debug( 2, "Starting data thread %d on port %d", mRtpSource.getSsrc(), mRtpSource.getLocalDataPort() );
 
     SockAddrInet localAddr;
     UdpInetServer rtpDataSocket;

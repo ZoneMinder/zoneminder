@@ -37,8 +37,8 @@ public:
 
 private:
     typedef std::set<int>    PortSet;
-    typedef std::set<U32>    SsrcSet;
-    typedef std::map<U32,RtpSource *>    SourceMap;
+    typedef std::set<uint32_t>    SsrcSet;
+    typedef std::map<uint32_t,RtpSource *>    SourceMap;
 
 private:
     static int  smMinDataPort;
@@ -66,9 +66,9 @@ private:
 
     AVFormatContext *mFormatContext;
 
-    U16 mSeq;
-    U32 mSession;
-    U32 mSsrc;
+    uint16_t mSeq;
+    uint32_t mSession;
+    uint32_t mSsrc;
 
     int mRemotePorts[2];
     int mRemoteChannels[2];
@@ -90,10 +90,10 @@ public:
     int requestPorts();
     void releasePorts( int port );
 
-    bool isValidSsrc( U32 ssrc );
-    bool updateSsrc( U32 ssrc, const RtpDataHeader *header );
+    bool isValidSsrc( uint32_t ssrc );
+    bool updateSsrc( uint32_t ssrc, const RtpDataHeader *header );
 
-    U32 getSsrc() const
+    uint32_t getSsrc() const
     {
         return( mSsrc );
     }

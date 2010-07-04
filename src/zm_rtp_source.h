@@ -44,17 +44,17 @@ private:
     std::string mCname;      // Canonical name, for SDES
 
     // RTP/RTCP fields
-    U32 mSsrc;
-    U16 mMaxSeq;             // highest seq. number seen
-    U32 mCycles;             // shifted count of seq. number cycles
-    U32 mBaseSeq;            // base seq number
-    U32 mBadSeq;             // last 'bad' seq number + 1
-    U32 mProbation;          // sequ. packets till source is valid
-    U32 mReceivedPackets;    // packets received
-    U32 mExpectedPrior;      // packet expected at last interval
-    U32 mReceivedPrior;      // packet received at last interval
-    U32 mTransit;            // relative trans time for prev pkt
-    U32 mJitter;             // estimated jitter
+    uint32_t mSsrc;
+    uint16_t mMaxSeq;             // highest seq. number seen
+    uint32_t mCycles;             // shifted count of seq. number cycles
+    uint32_t mBaseSeq;            // base seq number
+    uint32_t mBadSeq;             // last 'bad' seq number + 1
+    uint32_t mProbation;          // sequ. packets till source is valid
+    uint32_t mReceivedPackets;    // packets received
+    uint32_t mExpectedPrior;      // packet expected at last interval
+    uint32_t mReceivedPrior;      // packet received at last interval
+    uint32_t mTransit;            // relative trans time for prev pkt
+    uint32_t mJitter;             // estimated jitter
     
     // Ports/Channels
     std::string mLocalHost;
@@ -63,22 +63,22 @@ private:
     int mRemotePortChans[2]; 
 
     // Time keys
-    U32 mRtpClock;
-    U32 mRtpFactor;
+    uint32_t mRtpClock;
+    uint32_t mRtpFactor;
     struct timeval mBaseTimeReal;
     struct timeval mBaseTimeNtp;
-    U32 mBaseTimeRtp;
+    uint32_t mBaseTimeRtp;
 
     struct timeval mLastSrTimeReal;
-    U32 mLastSrTimeNtpSecs;
-    U32 mLastSrTimeNtpFrac;
+    uint32_t mLastSrTimeNtpSecs;
+    uint32_t mLastSrTimeNtpFrac;
     struct timeval mLastSrTimeNtp;
-    U32 mLastSrTimeRtp;
+    uint32_t mLastSrTimeRtp;
 
     // Stats, intermittently updated
-    U32 mExpectedPackets;
-    U32 mLostPackets;
-    U8  mLostFraction;
+    uint32_t mExpectedPackets;
+    uint32_t mLostPackets;
+    uint8_t  mLostFraction;
 
     Buffer mFrame;
     int mFrameCount;
@@ -87,22 +87,22 @@ private:
     ThreadData<bool> mFrameProcessed;
 
 private:
-    void init( U16 seq );
+    void init( uint16_t seq );
 
 public:
-    RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, U32 ssrc, U16 seq, U32 rtpClock, U32 rtpTime );
-    bool updateSeq( U16 seq );
+    RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime );
+    bool updateSeq( uint16_t seq );
     void updateJitter( const RtpDataHeader *header );
-    void updateRtcpData( U32 ntpTimeSecs, U32 ntpTimeFrac, U32 rtpTime );
+    void updateRtcpData( uint32_t ntpTimeSecs, uint32_t ntpTimeFrac, uint32_t rtpTime );
     void updateRtcpStats();
 
     bool handlePacket( const unsigned char *packet, size_t packetLen );
 
-    U32 getSsrc() const
+    uint32_t getSsrc() const
     {
         return( mSsrc );
     }
-    void setSsrc( U32 ssrc )
+    void setSsrc( uint32_t ssrc )
     {
         mSsrc = ssrc;
     }
@@ -144,32 +144,32 @@ public:
         return( mRemotePortChans[1] );
     }
 
-    U32 getMaxSeq() const
+    uint32_t getMaxSeq() const
     {
         return( mCycles + mMaxSeq );
     }
 
-    U32 getExpectedPackets() const
+    uint32_t getExpectedPackets() const
     {
         return( mExpectedPackets );
     }
     
-    U32 getLostPackets() const
+    uint32_t getLostPackets() const
     {
         return( mLostPackets );
     }
 
-    U8 getLostFraction() const
+    uint8_t getLostFraction() const
     {
         return( mLostFraction );
     }
 
-    U32 getJitter() const
+    uint32_t getJitter() const
     {
         return( mJitter >> 4 );
     }
 
-    U32 getLastSrTimestamp() const
+    uint32_t getLastSrTimestamp() const
     {
         return( ((mLastSrTimeNtpSecs&0xffff)<<16)|(mLastSrTimeNtpFrac>>16) );
     }

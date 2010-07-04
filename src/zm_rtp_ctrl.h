@@ -63,30 +63,30 @@ private:
 
     struct RtcpCommonHeader
     {
-        U8 count:5;      // varies by packet type
-        U8 p:1;          // padding flag
-        U8 version:2;    // protocol version
-        U8 pt;           // RTCP packet type
-        U16 lenN;        // pkt len in words, w/o this word, network order 
+        uint8_t count:5;      // varies by packet type
+        uint8_t p:1;          // padding flag
+        uint8_t version:2;    // protocol version
+        uint8_t pt;           // RTCP packet type
+        uint16_t lenN;        // pkt len in words, w/o this word, network order 
     };
 
     // Reception report block
     struct RtcpRr
     {
-        U32 ssrcN;       // data source being reported
-        S32 lost:24;     // cumul. no. pkts lost (signed!)
-        U32 fraction:8;  // fraction lost since last SR/RR
-        U32 lastSeqN;    // extended last seq. no. received, network order
-        U32 jitterN;     // interarrival jitter, network order
-        U32 lsrN;        // last SR packet from this source, network order
-        U32 dlsrN;       // delay since last SR packet, network order
+        uint32_t ssrcN;       // data source being reported
+        int32_t lost:24;     // cumul. no. pkts lost (signed!)
+        uint32_t fraction:8;  // fraction lost since last SR/RR
+        uint32_t lastSeqN;    // extended last seq. no. received, network order
+        uint32_t jitterN;     // interarrival jitter, network order
+        uint32_t lsrN;        // last SR packet from this source, network order
+        uint32_t dlsrN;       // delay since last SR packet, network order
     };
 
     // SDES item
     struct RtcpSdesItem
     {
-        U8 type;         // type of item (rtcp_sdes_type_t)
-        U8 len;          // length of item (in octets)
+        uint8_t type;         // type of item (rtcp_sdes_type_t)
+        uint8_t len;          // length of item (in octets)
         char data[];     // text, not null-terminated
     };
 
@@ -99,33 +99,33 @@ private:
             // Sender Report (SR)
             struct Sr
             {
-                U32    ssrcN;    // sender generating this report, network order
-                U32    ntpSecN;  // NTP timestamp, network order
-                U32    ntpFracN;
-                U32    rtpTsN;   // RTP timestamp, network order
-                U32    pSentN;   // packets sent, network order
-                U32    oSentN;   // octets sent, network order
+                uint32_t    ssrcN;    // sender generating this report, network order
+                uint32_t    ntpSecN;  // NTP timestamp, network order
+                uint32_t    ntpFracN;
+                uint32_t    rtpTsN;   // RTP timestamp, network order
+                uint32_t    pSentN;   // packets sent, network order
+                uint32_t    oSentN;   // octets sent, network order
                 RtcpRr rr[];     // variable-length list
             } sr;
 
             // Reception Report (RR)
             struct Rr
             {
-                U32 ssrcN;        // receiver generating this report
+                uint32_t ssrcN;        // receiver generating this report
                 RtcpRr rr[];     // variable-length list
             } rr;
 
             // source description (SDES)
             struct Sdes
             {
-                U32 srcN;        // first SSRC/CSRC
+                uint32_t srcN;        // first SSRC/CSRC
                 RtcpSdesItem item[]; // list of SDES items
             } sdes;
 
             // BYE
             struct Bye
             {
-                U32 srcN[];     // list of sources
+                uint32_t srcN[];     // list of sources
                 // can't express trailing text for reason (what does this mean? it's not even english!)
             } bye;
          } body;

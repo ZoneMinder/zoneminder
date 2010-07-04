@@ -28,16 +28,16 @@ class RtpSource;
 
 struct RtpDataHeader
 {
-    U8 cc:4;         // CSRC count
-    U8 x:1;          // header extension flag
-    U8 p:1;          // padding flag
-    U8 version:2;    // protocol version
-    U8 pt:7;         // payload type
-    U8 m:1;          // marker bit
-    U16 seqN;        // sequence number, network order
-    U32 timestampN;  // timestamp, network order
-    U32 ssrcN;       // synchronization source, network order
-    U32 csrc[];      // optional CSRC list
+    uint8_t cc:4;         // CSRC count
+    uint8_t x:1;          // header extension flag
+    uint8_t p:1;          // padding flag
+    uint8_t version:2;    // protocol version
+    uint8_t pt:7;         // payload type
+    uint8_t m:1;          // marker bit
+    uint16_t seqN;        // sequence number, network order
+    uint32_t timestampN;  // timestamp, network order
+    uint32_t ssrcN;       // synchronization source, network order
+    uint32_t csrc[];      // optional CSRC list
 };
 
 class RtpDataThread : public Thread

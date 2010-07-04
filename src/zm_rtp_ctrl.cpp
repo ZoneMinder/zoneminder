@@ -57,14 +57,14 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen )
     {
         case RTCP_SR :
         {
-            U32 ssrc = ntohl(rtcpPacket->body.sr.ssrcN);
+            uint32_t ssrc = ntohl(rtcpPacket->body.sr.ssrcN);
 
-            Debug( 5, "RTCP Got SR (%lx)", ssrc );
+            Debug( 5, "RTCP Got SR (%x)", ssrc );
             if ( mRtpSource.getSsrc() )
             {
                 if ( ssrc != mRtpSource.getSsrc() )
                 {
-                    Warning( "Discarding packet for unrecognised ssrc %lx", ssrc );
+                    Warning( "Discarding packet for unrecognised ssrc %x", ssrc );
                     return( -1 );
                 }
             }
@@ -76,11 +76,11 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen )
             if ( len > 1 )
             {
                 //printf( "NTPts:%d.%d, RTPts:%d\n", $ntptsmsb, $ntptslsb, $rtpts );
-                U16 ntptsmsb = ntohl(rtcpPacket->body.sr.ntpSecN);
-                U16 ntptslsb = ntohl(rtcpPacket->body.sr.ntpFracN);
+                uint16_t ntptsmsb = ntohl(rtcpPacket->body.sr.ntpSecN);
+                uint16_t ntptslsb = ntohl(rtcpPacket->body.sr.ntpFracN);
                 //printf( "NTPts:%x.%04x, RTPts:%x\n", $ntptsmsb, $ntptslsb, $rtpts );
                 //printf( "Pkts:$sendpkts, Octs:$sendocts\n" );
-                U32 rtpTime = ntohl(rtcpPacket->body.sr.rtpTsN);
+                uint32_t rtpTime = ntohl(rtcpPacket->body.sr.rtpTsN);
 
                 mRtpSource.updateRtcpData( ntptsmsb, ntptslsb, rtpTime );
             }
@@ -92,12 +92,12 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen )
             while ( contentLen )
             {
                 Debug( 5, "RTCP CL: %zd", contentLen );
-                U32 ssrc = ntohl(rtcpPacket->body.sdes.srcN);
+                uint32_t ssrc = ntohl(rtcpPacket->body.sdes.srcN);
 
-                Debug( 5, "RTCP Got SDES (%lx), %d items", ssrc, count );
+                Debug( 5, "RTCP Got SDES (%x), %d items", ssrc, count );
                 if ( mRtpSource.getSsrc() && (ssrc != mRtpSource.getSsrc()) )
                 {
-                    Warning( "Discarding packet for unrecognised ssrc %lx", ssrc );
+                    Warning( "Discarding packet for unrecognised ssrc %x", ssrc );
                     return( -1 );
                 }
 
@@ -151,7 +151,7 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen )
             return( -1 );
         }
     }
-    consumed = sizeof(U32)*(len+1);
+    consumed = sizeof(uint32_t)*(len+1);
     return( consumed );
 }
 
@@ -160,7 +160,7 @@ int RtpCtrlThread::generateRr( const unsigned char *packet, ssize_t packetLen )
     RtcpPacket *rtcpPacket = (RtcpPacket *)packet;
 
     int byteLen = sizeof(rtcpPacket->header)+sizeof(rtcpPacket->body.rr)+sizeof(rtcpPacket->body.rr.rr[0]);
-    int wordLen = ((byteLen-1)/sizeof(U32))+1;
+    int wordLen = ((byteLen-1)/sizeof(uint32_t))+1;
 
     rtcpPacket->header.version = RTP_VERSION;
     rtcpPacket->header.p = 0;
@@ -170,11 +170,11 @@ int RtpCtrlThread::generateRr( const unsigned char *packet, ssize_t packetLen )
 
     mRtpSource.updateRtcpStats();
 
-    Debug( 5, "Ssrc = %ld", mRtspThread.getSsrc() );
-    Debug( 5, "Ssrc_1 = %ld", mRtpSource.getSsrc() );
-    Debug( 5, "Last Seq = %ld", mRtpSource.getMaxSeq() );
-    Debug( 5, "Jitter = %ld", mRtpSource.getJitter() );
-    Debug( 5, "Last SR = %ld", mRtpSource.getLastSrTimestamp() );
+    Debug( 5, "Ssrc = %d", mRtspThread.getSsrc() );
+    Debug( 5, "Ssrc_1 = %d", mRtpSource.getSsrc() );
+    Debug( 5, "Last Seq = %d", mRtpSource.getMaxSeq() );
+    Debug( 5, "Jitter = %d", mRtpSource.getJitter() );
+    Debug( 5, "Last SR = %d", mRtpSource.getLastSrTimestamp() );
 
     rtcpPacket->body.rr.ssrcN = htonl(mRtspThread.getSsrc());
     rtcpPacket->body.rr.rr[0].ssrcN = htonl(mRtpSource.getSsrc());
@@ -185,7 +185,7 @@ int RtpCtrlThread::generateRr( const unsigned char *packet, ssize_t packetLen )
     rtcpPacket->body.rr.rr[0].lsrN = htonl(mRtpSource.getLastSrTimestamp());
     rtcpPacket->body.rr.rr[0].dlsrN = 0;
 
-    return( wordLen*sizeof(U32) );
+    return( wordLen*sizeof(uint32_t) );
 }
 
 int RtpCtrlThread::generateSdes( const unsigned char *packet, ssize_t packetLen )
@@ -195,7 +195,7 @@ int RtpCtrlThread::generateSdes( const unsigned char *packet, ssize_t packetLen 
     const std::string &cname = mRtpSource.getCname();
 
     int byteLen = sizeof(rtcpPacket->header)+sizeof(rtcpPacket->body.sdes)+sizeof(rtcpPacket->body.sdes.item[0])+cname.size();
-    int wordLen = ((byteLen-1)/sizeof(U32))+1;
+    int wordLen = ((byteLen-1)/sizeof(uint32_t))+1;
 
     rtcpPacket->header.version = RTP_VERSION;
     rtcpPacket->header.p = 0;
@@ -208,7 +208,7 @@ int RtpCtrlThread::generateSdes( const unsigned char *packet, ssize_t packetLen 
     rtcpPacket->body.sdes.item[0].len = cname.size();
     memcpy( rtcpPacket->body.sdes.item[0].data, cname.data(), cname.size() );
 
-    return( wordLen*sizeof(U32) );
+    return( wordLen*sizeof(uint32_t) );
 }
 
 int RtpCtrlThread::generateBye( const unsigned char *packet, ssize_t packetLen )
@@ -216,7 +216,7 @@ int RtpCtrlThread::generateBye( const unsigned char *packet, ssize_t packetLen )
     RtcpPacket *rtcpPacket = (RtcpPacket *)packet;
 
     int byteLen = sizeof(rtcpPacket->header)+sizeof(rtcpPacket->body.bye)+sizeof(rtcpPacket->body.bye.srcN[0]);
-    int wordLen = ((byteLen-1)/sizeof(U32))+1;
+    int wordLen = ((byteLen-1)/sizeof(uint32_t))+1;
 
     rtcpPacket->header.version = RTP_VERSION;
     rtcpPacket->header.p = 0;
@@ -226,7 +226,7 @@ int RtpCtrlThread::generateBye( const unsigned char *packet, ssize_t packetLen )
 
     rtcpPacket->body.bye.srcN[0] = htonl(mRtpSource.getSsrc());
 
-    return( wordLen*sizeof(U32) );
+    return( wordLen*sizeof(uint32_t) );
 }
 
 int RtpCtrlThread::recvPackets( unsigned char *buffer, ssize_t nBytes )
@@ -262,7 +262,7 @@ int RtpCtrlThread::recvPackets( unsigned char *buffer, ssize_t nBytes )
 
 int RtpCtrlThread::run()
 {
-    Debug( 2, "Starting control thread %lx on port %d", mRtpSource.getSsrc(), mRtpSource.getLocalCtrlPort() );
+    Debug( 2, "Starting control thread %x on port %d", mRtpSource.getSsrc(), mRtpSource.getLocalCtrlPort() );
     SockAddrInet localAddr, remoteAddr;
 
     bool sendReports;

@@ -24,7 +24,7 @@
 
 #include <arpa/inet.h>
 
-RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, U32 ssrc, U16 seq, U32 rtpClock, U32 rtpTime ) :
+RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime ) :
     mId( id ),
     mSsrc( ssrc ),
     mLocalHost( localHost ),
@@ -63,7 +63,7 @@ RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, c
     mLastSrTimeRtp = 0;
 }
 
-void RtpSource::init( U16 seq )
+void RtpSource::init( uint16_t seq )
 {
     Debug( 3, "Initialising sequence" );
     mBaseSeq = seq;
@@ -78,9 +78,9 @@ void RtpSource::init( U16 seq )
     mTransit = 0;
 }
 
-bool RtpSource::updateSeq( U16 seq )
+bool RtpSource::updateSeq( uint16_t seq )
 {
-    U16 uDelta = seq - mMaxSeq;
+    uint16_t uDelta = seq - mMaxSeq;
 
     // Source is not valid until MIN_SEQUENTIAL packets with
     // sequential sequence numbers have been received.
@@ -91,7 +91,7 @@ bool RtpSource::updateSeq( U16 seq )
         // packet is in sequence
         if ( seq == mMaxSeq + 1)
         {
-            Debug( 3, "Sequence in probation %ld, in sequence", mProbation );
+            Debug( 3, "Sequence in probation %d, in sequence", mProbation );
             mProbation--;
             mMaxSeq = seq;
             if ( mProbation == 0 )
@@ -103,7 +103,7 @@ bool RtpSource::updateSeq( U16 seq )
         }
         else
         {
-            Warning( "Sequence in probation %ld, out of sequence", mProbation );
+            Warning( "Sequence in probation %d, out of sequence", mProbation );
             mProbation = MIN_SEQUENTIAL - 1;
             mMaxSeq = seq;
             return( false );
@@ -162,11 +162,11 @@ void RtpSource::updateJitter( const RtpDataHeader *header )
     if ( mRtpFactor > 0 )
     {
         Debug( 5, "Delta rtp = %.6f", tvDiffSec( mBaseTimeReal ) );
-        U32 localTimeRtp = mBaseTimeRtp + U32( tvDiffSec( mBaseTimeReal ) * mRtpFactor );
-        Debug( 5, "Local RTP time = %lx", localTimeRtp );
+        uint32_t localTimeRtp = mBaseTimeRtp + uint32_t( tvDiffSec( mBaseTimeReal ) * mRtpFactor );
+        Debug( 5, "Local RTP time = %x", localTimeRtp );
         Debug( 5, "Packet RTP time = %x", ntohl(header->timestampN) );
-        U32 packetTransit = localTimeRtp - ntohl(header->timestampN);
-        Debug( 5, "Packet transit RTP time = %lx", packetTransit );
+        uint32_t packetTransit = localTimeRtp - ntohl(header->timestampN);
+        Debug( 5, "Packet transit RTP time = %x", packetTransit );
 
         if ( mTransit > 0 )
         {
@@ -184,14 +184,14 @@ void RtpSource::updateJitter( const RtpDataHeader *header )
     {
         mJitter = 0;
     }
-    Debug( 5, "RTP Jitter: %ld", mJitter );
+    Debug( 5, "RTP Jitter: %d", mJitter );
 }
 
-void RtpSource::updateRtcpData( U32 ntpTimeSecs, U32 ntpTimeFrac, U32 rtpTime )
+void RtpSource::updateRtcpData( uint32_t ntpTimeSecs, uint32_t ntpTimeFrac, uint32_t rtpTime )
 {
     struct timeval ntpTime = tvMake( ntpTimeSecs, suseconds_t((USEC_PER_SEC*(ntpTimeFrac>>16))/(1<<16)) );
 
-    Debug( 5, "ntpTime: %ld.%06ld, rtpTime: %lx", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime );
+    Debug( 5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime );
                                                      
     if ( mBaseTimeNtp.tv_sec == 0 )
     {
@@ -201,19 +201,19 @@ void RtpSource::updateRtcpData( U32 ntpTimeSecs, U32 ntpTimeFrac, U32 rtpTime )
     }
     else if ( !mRtpClock )
     {
-        Debug( 5, "lastSrNtpTime: %ld.%06ld, rtpTime: %lx", mLastSrTimeNtp.tv_sec, mLastSrTimeNtp.tv_usec, rtpTime );
-        Debug( 5, "ntpTime: %ld.%06ld, rtpTime: %lx", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime );
+        Debug( 5, "lastSrNtpTime: %ld.%06ld, rtpTime: %x", mLastSrTimeNtp.tv_sec, mLastSrTimeNtp.tv_usec, rtpTime );
+        Debug( 5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime );
 
         double diffNtpTime = tvDiffSec( mBaseTimeNtp, ntpTime );
-        U32 diffRtpTime = rtpTime - mBaseTimeRtp;
+        uint32_t diffRtpTime = rtpTime - mBaseTimeRtp;
 
         //Debug( 5, "Real-diff: %.6f", diffRealTime );
         Debug( 5, "NTP-diff: %.6f", diffNtpTime );
-        Debug( 5, "RTP-diff: %ld", diffRtpTime );
+        Debug( 5, "RTP-diff: %d", diffRtpTime );
 
-        mRtpFactor = (U32)(diffRtpTime / diffNtpTime);
+        mRtpFactor = (uint32_t)(diffRtpTime / diffNtpTime);
 
-        Debug( 5, "RTPfactor: %ld", mRtpFactor );
+        Debug( 5, "RTPfactor: %d", mRtpFactor );
     }
     mLastSrTimeNtpSecs = ntpTimeSecs;
     mLastSrTimeNtpFrac = ntpTimeFrac;
@@ -223,24 +223,24 @@ void RtpSource::updateRtcpData( U32 ntpTimeSecs, U32 ntpTimeFrac, U32 rtpTime )
 
 void RtpSource::updateRtcpStats()
 {
-    U32 extendedMax = mCycles + mMaxSeq;
+    uint32_t extendedMax = mCycles + mMaxSeq;
     mExpectedPackets = extendedMax - mBaseSeq + 1;
 
-    Debug( 5, "Expected packets = %ld", mExpectedPackets );
+    Debug( 5, "Expected packets = %d", mExpectedPackets );
 
     // The number of packets lost is defined to be the number of packets
     // expected less the number of packets actually received:
     mLostPackets = mExpectedPackets - mReceivedPackets;
-    Debug( 5, "Lost packets = %ld", mLostPackets );
+    Debug( 5, "Lost packets = %d", mLostPackets );
 
-    U32 expectedInterval = mExpectedPackets - mExpectedPrior;
-    Debug( 5, "Expected interval = %ld", expectedInterval );
+    uint32_t expectedInterval = mExpectedPackets - mExpectedPrior;
+    Debug( 5, "Expected interval = %d", expectedInterval );
     mExpectedPrior = mExpectedPackets;
-    U32 receivedInterval = mReceivedPackets - mReceivedPrior;
-    Debug( 5, "Received interval = %ld", receivedInterval );
+    uint32_t receivedInterval = mReceivedPackets - mReceivedPrior;
+    Debug( 5, "Received interval = %d", receivedInterval );
     mReceivedPrior = mReceivedPackets;
-    U32 lostInterval = expectedInterval - receivedInterval;
-    Debug( 5, "Lost interval = %ld", lostInterval );
+    uint32_t lostInterval = expectedInterval - receivedInterval;
+    Debug( 5, "Lost interval = %d", lostInterval );
 
     if ( expectedInterval == 0 || lostInterval <= 0 )
         mLostFraction = 0;

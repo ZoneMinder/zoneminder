@@ -184,7 +184,7 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
 
     mSsrc = rand();
 
-    Debug( 2, "RTSP Local SSRC is %lx", mSsrc );
+    Debug( 2, "RTSP Local SSRC is %x", mSsrc );
 
     if ( mMethod == RTP_RTSP_HTTP )
         mHttpSession = stringtf( "%d", rand() );
@@ -328,7 +328,7 @@ int RtspThread::run()
     }
 #endif
 
-    U32 rtpClock = 0;
+    uint32_t rtpClock = 0;
     std::string trackUrl = mUrl;
     if ( mFormatContext->nb_streams >= 1 )
     {

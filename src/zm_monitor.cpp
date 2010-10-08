@@ -1024,7 +1024,7 @@ bool Monitor::CheckSignal( const Image *image )
                     break;
                 // Avoid sampling the rows with timestamp in
                 int y = index / (width * colours);
-                if ( y < label_coord.Y() || y > label_coord.Y()+Image::LINE_HEIGHT )
+                if ( y < label_coord.Y() || y <= label_coord.Y()+Image::LINE_HEIGHT )
                     break;
             }
             const unsigned char *ptr = buffer+(index*colours);

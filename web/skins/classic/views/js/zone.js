@@ -439,7 +439,7 @@ function drawZonePoints()
         div.addEvent( 'mouseover', highlightOn.pass( i ) );
         div.addEvent( 'mouseout', highlightOff.pass( i ) );
         div.injectInside( $('imageFrame') );
-        div.makeDraggable( { 'container': $('imageFrame'), 'onStart': setActivePoint.pass( i ), 'onSuccess': fixActivePoint.pass( i ), 'onDrag': updateActivePoint.pass( i ) } );
+        div.makeDraggable( { 'container': $('imageFrame'), 'onStart': setActivePoint.pass( i ), 'onComplete': fixActivePoint.pass( i ), 'onDrag': updateActivePoint.pass( i ) } );
     }
 
     var tables = $('zonePoints').getElements( 'table' );

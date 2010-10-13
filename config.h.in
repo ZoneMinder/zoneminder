@@ -68,6 +68,9 @@
 /* Define to 1 if you have the <libavcodec/avcodec.h> header file. */
 #undef HAVE_LIBAVCODEC_AVCODEC_H
 
+/* Define to 1 if you have the `avcore' library (-lavcore). */
+#undef HAVE_LIBAVCORE
+
 /* Define to 1 if you have the `avdevice' library (-lavdevice). */
 #undef HAVE_LIBAVDEVICE
 

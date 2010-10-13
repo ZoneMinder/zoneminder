@@ -81,7 +81,7 @@ bool RtspThread::recvResponse( std::string &response )
         }
         else
         {
-            Error( "Response parse failure, %d bytes follow", response.size() );
+            Error( "Response parse failure, %zd bytes follow", response.size() );
             if ( response.size() )
                 Hexdump( ZM_DBG_ERR, response.data(), min(response.size(),16) );
         }
@@ -243,7 +243,7 @@ int RtspThread::run()
             return( -1 );
         }
 
-        Debug( 2, "Received HTTP response: %s (%d bytes)", response.c_str(), response.size() );
+        Debug( 2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size() );
         float respVer = 0;
         int respCode = -1;
         char respText[256];
@@ -255,7 +255,7 @@ int RtspThread::run()
             }
             else
             {
-                Error( "Response parse failure, %d bytes follow", response.size() );
+                Error( "Response parse failure, %zd bytes follow", response.size() );
                 if ( response.size() )
                     Hexdump( ZM_DBG_ERR, response.data(), min(response.size(),16) );
             }
@@ -566,7 +566,7 @@ int RtspThread::run()
                 static char tempBuffer[10*BUFSIZ];
                 ssize_t nBytes = mRtspSocket.recv( tempBuffer, sizeof(tempBuffer) );
                 buffer.append( tempBuffer, nBytes );
-                Debug( 4, "Read %d bytes on sd %d, %d total", nBytes, mRtspSocket.getReadDesc(), buffer.size() );
+                Debug( 4, "Read %zd bytes on sd %d, %d total", nBytes, mRtspSocket.getReadDesc(), buffer.size() );
 
                 while( buffer.size() > 0 )
                 {
@@ -578,7 +578,7 @@ int RtspThread::run()
                         Debug( 4, "Got %d bytes left, expecting %d byte packet on channel %d", buffer.size(), len, channel );
                         if ( buffer.size() < (len+4) )
                         {
-                            Debug( 4, "Missing %d bytes, rereading", (len+4)-nBytes );
+                            Debug( 4, "Missing %zd bytes, rereading", (len+4)-nBytes );
                             break;
                         }
                         if ( channel == remoteChannels[0] )
@@ -591,7 +591,7 @@ int RtspThread::run()
                         else if ( channel == remoteChannels[1] )
                         {
                             len = ntohs( *((unsigned short *)(buffer+2)) );
-                            Debug( 4, "Got %d bytes on control channel %d", nBytes, channel );
+                            Debug( 4, "Got %zd bytes on control channel %d", nBytes, channel );
                             rtpCtrlThread.recvPackets( buffer+4, len );
                         }
                         else

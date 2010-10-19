@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 //
 // ZoneMinder web export function library, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
@@ -1046,6 +1046,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         $export_root = "zmExport";
         $export_listFile = "zmFileList.txt";
         $exportFileList = array();
+		$html_eventMaster = '';
         
 
         if ( is_array( $eids ) )
@@ -1070,11 +1071,11 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 				$eids = array($eids);
 			}
 			$monitorPath = 'events/';
-			$file = "zmEventImagesMaster" . time() . ".html";
-			if ( !($fp = fopen( $monitorPath."/".$file, "w" )) ) die( "Can't open event images export file '$file'" );
+			$html_eventMaster = 'zmEventImagesMaster_'.date('Ymd_H:i:s'). '.html';
+			if ( !($fp = fopen( $monitorPath."/".$html_eventMaster, "w" )) ) die( "Can't open event images export file '$html_eventMaster'" );
 			fwrite( $fp, exportEventImagesMaster( $eids ) );
 			fclose( $fp );
-			$exportFileList[] = $monitorPath."/".$file;
+			$exportFileList[] = $monitorPath."/".$html_eventMaster;
 		}
 
         $listFile = "temp/".$export_listFile;
@@ -1120,6 +1121,12 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
                 return( false );
             }
         }
+		
+		//clean up temporary files
+		if(!empty($html_eventMaster)) {
+			unlink($monitorPath.'/'.$html_eventMaster);
+		}
+
     }
     return( $archive );
 }

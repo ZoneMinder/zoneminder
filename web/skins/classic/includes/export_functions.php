@@ -1071,7 +1071,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 				$eids = array($eids);
 			}
 			$monitorPath = 'events/';
-			$html_eventMaster = 'zmEventImagesMaster_'.date('Ymd_H:i:s'). '.html';
+			$html_eventMaster = 'zmEventImagesMaster_'.date('Ymd_His'). '.html';
 			if ( !($fp = fopen( $monitorPath."/".$html_eventMaster, "w" )) ) die( "Can't open event images export file '$html_eventMaster'" );
 			fwrite( $fp, exportEventImagesMaster( $eids ) );
 			fclose( $fp );

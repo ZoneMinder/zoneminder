@@ -875,7 +875,7 @@ function canStreamIframe()
 
 function canStreamNative()
 {
-   return( ZM_CAN_STREAM == "yes" || ( ZM_CAN_STREAM == "auto" && (isNetscape() || isKonqueror()) ) );
+   return( ZM_WEB_CAN_STREAM == "yes" || ( ZM_WEB_CAN_STREAM == "auto" && (isNetscape() || isKonqueror()) ) );
 }
 
 function canStreamApplet()
@@ -2205,7 +2205,7 @@ function jsonEncode( &$value )
                 {
                     if ( $result != '{' )
                         $result .= ',';
-                    $result .= jsonEncode( $subkey ).':'.jsonEncode( $subvalue );
+                    $result .= '"'.jsonEncode( $subkey ).'":'.jsonEncode( $subvalue );
                 }
                 return( $result.'}' );
             }

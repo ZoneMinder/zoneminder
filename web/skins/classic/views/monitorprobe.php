@@ -268,7 +268,7 @@ if ( $status )
 foreach ( $output as $line )
 {
     if ( !preg_match( '/^(\S+) \(([\d.]+)\) at ([0-9a-f:]+)/', $line, $matches ) )
-        next;
+        continue;
         //die( "Can't parse command output '$line'" );
     $host = $matches[1];
     $ip = $matches[2];

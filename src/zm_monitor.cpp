@@ -1178,14 +1178,16 @@ bool Monitor::Analyse()
                 }
                 if ( signal_change )
                 {
-                    score += 100;
                     const char *signalText;
                     if ( !signal )
                         signalText = "Lost";
                     else
+                    {
                         signalText = "Reacquired";
+                        score += 100;
+                    }
                     Warning( "%s: %s", SIGNAL_CAUSE, signalText );
-                    if ( event )
+                    if ( event && !signal )
                     {
                         Info( "%s: %03d - Closing event %d, signal loss", name, image_count, event->Id() );
                         closeEvent();
@@ -1204,7 +1206,7 @@ bool Monitor::Analyse()
                     shared_data->active = signal;
                     ref_image = *snap_image;
                 }
-                else if ( Active() && function != RECORD && function != NODECT )
+                else if ( signal && Active() && function != RECORD && function != NODECT )
                 {
                     Event::StringSet zoneSet;
                     int motion_score = DetectMotion( *snap_image, zoneSet );
@@ -1293,14 +1295,24 @@ bool Monitor::Analyse()
                         if ( false )
                         {
                             int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
-                            for ( int i = 0; i < pre_event_count; i++ )
+                            int pre_event_images = pre_event_count;
+                            while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec )
                             {
-                                timestamps[i] = image_buffer[pre_index].timestamp;
-                                images[i] = image_buffer[pre_index].image;
-
                                 pre_index = (pre_index+1)%image_buffer_count;
+                                pre_event_images--;
                             }
-                            event->AddFrames( pre_event_count, images, timestamps );
+
+                            if ( pre_event_images )
+                            {
+                                for ( int i = 0; i < pre_event_images; i++ )
+                                {
+                                    timestamps[i] = image_buffer[pre_index].timestamp;
+                                    images[i] = image_buffer[pre_index].image;
+
+                                    pre_index = (pre_index+1)%image_buffer_count;
+                                }
+                                event->AddFrames( pre_event_images, images, timestamps );
+                            }
                         }
                     }
                 }
@@ -1320,19 +1332,29 @@ bool Monitor::Analyse()
                                 else
                                     pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
 
+                                int pre_event_images = pre_event_count;
+                                while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec )
+                                {
+                                    pre_index = (pre_index+1)%image_buffer_count;
+                                    pre_event_images--;
+                                }
+
                                 event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
                                 shared_data->last_event = event->Id();
 
                                 Info( "%s: %03d - Opening new event %d, alarm start", name, image_count, event->Id() );
 
-                                for ( int i = 0; i < pre_event_count; i++ )
+                                if ( pre_event_images )
                                 {
-                                    timestamps[i] = image_buffer[pre_index].timestamp;
-                                    images[i] = image_buffer[pre_index].image;
+                                    for ( int i = 0; i < pre_event_images; i++ )
+                                    {
+                                        timestamps[i] = image_buffer[pre_index].timestamp;
+                                        images[i] = image_buffer[pre_index].image;
 
-                                    pre_index = (pre_index+1)%image_buffer_count;
+                                        pre_index = (pre_index+1)%image_buffer_count;
+                                    }
+                                    event->AddFrames( pre_event_images, images, timestamps );
                                 }
-                                event->AddFrames( pre_event_count, images, timestamps );
                                 if ( alarm_frame_count )
                                 {
                                     event->SavePreAlarmFrames();
@@ -1364,7 +1386,8 @@ bool Monitor::Analyse()
                         if ( image_count-last_alarm_count > post_event_count )
                         {
                             Info( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() );
-                            if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == "Signal" )
+                            //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
+                            if ( function != MOCORD || event_close_mode == CLOSE_ALARM )
                             {
                                 shared_data->state = state = IDLE;
                                 Info( "%s: %03d - Closing event %d, alarm end%s", name, image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
@@ -1498,7 +1521,7 @@ bool Monitor::Analyse()
             shared_data->state = state = IDLE;
             last_section_mod = 0;
         }
-        if ( !signal_change && (function == MODECT || function == MOCORD) && (config.blend_alarmed_images || state != ALARM) )
+        if ( signal && (function == MODECT || function == MOCORD) && (config.blend_alarmed_images || state != ALARM) )
         {
             ref_image.Blend( *snap_image, ref_blend_perc );
         }

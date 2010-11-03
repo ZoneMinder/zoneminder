@@ -60,6 +60,13 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     std::string notes;
     createNotes( notes );
 
+    bool untimedEvent = false;
+    if ( !start_time.tv_sec )
+    {
+        untimedEvent = true;
+        gettimeofday( &start_time, 0 );
+    }
+
     static char sql[BUFSIZ];
 
     struct tm *stime = localtime( &start_time.tv_sec );
@@ -70,6 +77,10 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         exit( mysql_errno( &dbconn ) );
     }
     id = mysql_insert_id( &dbconn );
+    if ( untimedEvent )
+    {
+        Warning( "Event %d has zero time, setting to current", id );
+    }
     end_time.tv_sec = 0;
     frames = 0;
     alarm_frames = 0;
@@ -477,8 +488,15 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
 {
     static char sql[BUFSIZ];
     strncpy( sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", BUFSIZ );
+    int frameCount = 0;
     for ( int i = 0; i < n_frames; i++ )
     {
+        if ( !timestamps[i]->tv_sec )
+        {
+            Debug( 1, "Not adding pre-capture frame %d, zero timestamp", i );
+            continue;
+        }
+
         frames++;
 
         static char event_file[PATH_MAX];
@@ -492,21 +510,35 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
 
         int sql_len = strlen(sql);
         snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %d, %d, from_unixtime(%ld), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+
+        frameCount++;
     }
 
-    Debug( 1, "Adding %d frames to DB", n_frames );
-    *(sql+strlen(sql)-2) = '\0';
-    if ( mysql_query( &dbconn, sql ) )
+    if ( frameCount )
     {
-        Error( "Can't insert frames: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
+        Debug( 1, "Adding %d/%d frames to DB", frameCount, n_frames );
+        *(sql+strlen(sql)-2) = '\0';
+        if ( mysql_query( &dbconn, sql ) )
+        {
+            Error( "Can't insert frames: %s", mysql_error( &dbconn ) );
+            exit( mysql_errno( &dbconn ) );
+        }
+        last_db_frame = frames;
     }
-
-    last_db_frame = frames;
+    else
+    {
+        Debug( 1, "No valid pre-capture frames to add" );
+    }
 }
 
 void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *alarm_image )
 {
+    if ( !timestamp.tv_sec )
+    {
+        Debug( 1, "Not adding new frame, zero timestamp" );
+        return;
+    }
+
     frames++;
 
     static char event_file[PATH_MAX];

@@ -26,7 +26,7 @@ if ( !canView( 'Stream' ) )
 
 if ( empty($_REQUEST['mode']) )
 {
-    if ( ZM_WEB_USE_STREAMS && canStream() )
+    if ( canStream() )
         $mode = "stream";
     else
         $mode = "still";
@@ -68,7 +68,7 @@ $widthScale = ($montageWidth*SCALE_BASE)/$monitor['Width'];
 $heightScale = ($montageHeight*SCALE_BASE)/$monitor['Height'];
 $scale = (int)(($widthScale<$heightScale)?$widthScale:$heightScale);
 
-if ( false && (ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT) )
+if ( false && (ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT) )
 {
     $streamMode = "mpeg";
     $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
@@ -106,7 +106,7 @@ xhtmlHeaders(__FILE__, $SLANG['CycleWatch'] );
     <div id="content">
       <div id="imageFeed">
 <?php
-if ( $streamMode === "mpeg" )
+if ( $streamMode == "mpeg" )
 {
     outputVideoStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT, validHtmlStr($monitor['Name']) );
 }

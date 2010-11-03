@@ -60,7 +60,7 @@ $wSockets = NULL;
 $eSockets = NULL;
 $numSockets = @socket_select( $rSockets, $wSockets, $eSockets, MSG_TIMEOUT );
 
-if ( $numSockets === false)
+if ( $numSockets === false )
 {
     ajaxError( "socket_select failed: ".socket_strerror(socket_last_error()) );
 }

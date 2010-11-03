@@ -57,8 +57,10 @@ else
 
 if ( isset( $_REQUEST['replayMode'] ) )
     $replayMode = validHtmlStr($_REQUEST['replayMode']);
-else
-    $replayMode = array_shift( array_keys( $replayModes ) );
+if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )
+    $replayMode = validHtmlStr($_COOKIE['replayMode']);
+ else
+     $replayMode = array_shift( array_keys( $replayModes ) );
 
 parseSort();
 parseFilter( $_REQUEST['filter'] );
@@ -133,7 +135,7 @@ if ( ZM_OPT_FFMPEG )
       <div id="eventStream">
         <div id="imageFeed">
 <?php
-if ( ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
+if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
     $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
     outputVideoStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );

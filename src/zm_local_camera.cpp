@@ -1228,13 +1228,13 @@ int LocalCamera::Brightness( int p_brightness )
                 Error( "Unable to query brightness: %s", strerror(errno) )
             else
                 Warning( "Brightness control is not suppported" )
-            Info( "Brightness 1 %d", vid_control.value );
+            //Info( "Brightness 1 %d", vid_control.value );
         }
         else if ( p_brightness >= 0 )
         {
             vid_control.value = p_brightness;
 
-            Info( "Brightness 2 %d", vid_control.value );
+            //Info( "Brightness 2 %d", vid_control.value );
             /* The driver may clamp the value or return ERANGE, ignored here */
             if ( vidioctl ( vid_fd, VIDIOC_S_CTRL, &vid_control ) )
             {
@@ -1243,7 +1243,7 @@ int LocalCamera::Brightness( int p_brightness )
                 else
                     Warning( "Given brightness value (%d) may be out-of-range", p_brightness )
             }
-            Info( "Brightness 3 %d", vid_control.value );
+            //Info( "Brightness 3 %d", vid_control.value );
         }
         return( vid_control.value );
     }

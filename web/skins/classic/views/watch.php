@@ -41,7 +41,7 @@ else
 
 $connkey = generateConnKey();
 
-if ( ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
+if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
     $streamMode = "mpeg";
     //$streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT, "buffer=".$monitor['StreamReplayBuffer'] ) );
@@ -101,7 +101,7 @@ if ( canView( 'Control' ) && $monitor['Type'] == "Local" )
       </div>
       <div id="imageFeed">
 <?php
-if ( $streamMode === "mpeg" )
+if ( $streamMode == "mpeg" )
 {
     outputVideoStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT, $monitor['Name'] );
 }

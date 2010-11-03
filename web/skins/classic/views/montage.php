@@ -112,7 +112,7 @@ foreach ( $monitors as $monitor )
           <div id="monitor<?= $monitor['index'] ?>" class="monitor idle">
             <div id="imageFeed<?= $monitor['index'] ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', 'watch', <?= $monitor['scaleWidth'] ?>, <?= $monitor['scaleHeight'] ?> );">
 <?php
-if ( ZM_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
+if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
     $streamSrc = getStreamSrc( array( "mode=mpeg", "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
     outputVideoStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );

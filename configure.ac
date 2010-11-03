@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(zm,1.24.3,support@zoneminder.com,ZoneMinder)
+AC_INIT(zm,1.24.3,support@zoneminder.com,ZoneMinder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AM_CONFIG_HEADER(config.h)
@@ -343,64 +343,7 @@ fi
 AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
-AC_CONFIG_FILES([Makefile
-                 zm.conf
-                 zmconfgen.pl
-                 db/Makefile
-                 db/zm_create.sql
-                 scripts/Makefile
-                 scripts/zm
-                 scripts/zmaudit.pl
-                 scripts/zmcontrol.pl
-                 scripts/zmdc.pl
-                 scripts/zmfilter.pl
-                 scripts/zmpkg.pl
-                 scripts/zmtrack.pl
-                 scripts/zmtrigger.pl
-                 scripts/zmupdate.pl
-                 scripts/zmvideo.pl
-                 scripts/zmwatch.pl
-                 scripts/zmx10.pl
-                 scripts/zmdbbackup
-                 scripts/zmdbrestore
-                 scripts/zmeventdump
-                 scripts/zmlogrotate.conf
-                 scripts/ZoneMinder/lib/ZoneMinder/Base.pm
-                 scripts/ZoneMinder/lib/ZoneMinder/Config.pm
-                 scripts/ZoneMinder/lib/ZoneMinder/Memory.pm
-                 scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm
-                 src/Makefile
-                 src/zm_config.h
-                 web/Makefile
-                 web/ajax/Makefile
-                 web/css/Makefile
-                 web/graphics/Makefile
-                 web/includes/Makefile
-                 web/includes/config.php
-                 web/js/Makefile
-                 web/lang/Makefile
-                 web/skins/Makefile
-                 web/skins/classic/Makefile
-                 web/skins/classic/ajax/Makefile
-                 web/skins/classic/css/Makefile
-                 web/skins/classic/graphics/Makefile
-                 web/skins/classic/includes/Makefile
-                 web/skins/classic/js/Makefile
-                 web/skins/classic/lang/Makefile
-                 web/skins/classic/views/Makefile
-                 web/skins/classic/views/css/Makefile
-                 web/skins/classic/views/js/Makefile
-                 web/skins/mobile/Makefile
-                 web/skins/mobile/ajax/Makefile
-                 web/skins/mobile/css/Makefile
-                 web/skins/mobile/graphics/Makefile
-                 web/skins/mobile/includes/Makefile
-                 web/skins/mobile/lang/Makefile
-                 web/skins/mobile/views/Makefile
-                 web/skins/mobile/views/css/Makefile
-                 web/tools/Makefile
-                 web/tools/mootools/Makefile
-                 web/views/Makefile])
+AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile])
 AC_OUTPUT
 
 #AC_CHECK_FILE(scripts/ZoneMinder/Makefile,,[cd scripts/ZoneMinder;perl Makefile.PL PREFIX=$PREFIX])

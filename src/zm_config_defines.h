@@ -13,150 +13,150 @@
 #define ZM_DIR_IMAGES 9
 #define ZM_DIR_SOUNDS 10
 #define ZM_PATH_ZMS 11
-#define ZM_CAN_STREAM 12
-#define ZM_STREAM_METHOD 13
-#define ZM_COLOUR_JPEG_FILES 14
-#define ZM_ADD_JPEG_COMMENTS 15
-#define ZM_JPEG_FILE_QUALITY 16
-#define ZM_JPEG_ALARM_FILE_QUALITY 17
-#define ZM_JPEG_IMAGE_QUALITY 18
-#define ZM_JPEG_STREAM_QUALITY 19
-#define ZM_MPEG_TIMED_FRAMES 20
-#define ZM_MPEG_LIVE_FORMAT 21
-#define ZM_MPEG_REPLAY_FORMAT 22
-#define ZM_RAND_STREAM 23
-#define ZM_OPT_CAMBOZOLA 24
-#define ZM_PATH_CAMBOZOLA 25
-#define ZM_RELOAD_CAMBOZOLA 26
-#define ZM_TIMESTAMP_ON_CAPTURE 27
-#define ZM_LOCAL_BGR_INVERT 28
-#define ZM_Y_IMAGE_DELTAS 29
-#define ZM_FAST_IMAGE_BLENDS 30
-#define ZM_OPT_ADAPTIVE_SKIP 31
-#define ZM_BLEND_ALARMED_IMAGES 32
-#define ZM_MAX_SUSPEND_TIME 33
-#define ZM_OPT_REMOTE_CAMERAS 34
-#define ZM_NETCAM_REGEXPS 35
-#define ZM_HTTP_VERSION 36
-#define ZM_HTTP_UA 37
-#define ZM_HTTP_TIMEOUT 38
-#define ZM_MIN_RTP_PORT 39
-#define ZM_MAX_RTP_PORT 40
-#define ZM_OPT_FFMPEG 41
-#define ZM_PATH_FFMPEG 42
-#define ZM_FFMPEG_INPUT_OPTIONS 43
-#define ZM_FFMPEG_OUTPUT_OPTIONS 44
-#define ZM_FFMPEG_FORMATS 45
-#define ZM_OPT_NETPBM 46
-#define ZM_PATH_NETPBM 47
-#define ZM_RECORD_EVENT_STATS 48
-#define ZM_RECORD_DIAG_IMAGES 49
-#define ZM_EXTRA_DEBUG 50
-#define ZM_EXTRA_DEBUG_TARGET 51
-#define ZM_EXTRA_DEBUG_LEVEL 52
-#define ZM_EXTRA_DEBUG_LOG 53
-#define ZM_DUMP_CORES 54
-#define ZM_PATH_MAP 55
-#define ZM_PATH_SOCKS 56
-#define ZM_PATH_LOGS 57
-#define ZM_PATH_SWAP 58
-#define ZM_WEB_TITLE_PREFIX 59
-#define ZM_WEB_RESIZE_CONSOLE 60
-#define ZM_WEB_POPUP_ON_ALARM 61
-#define ZM_OPT_X10 62
-#define ZM_X10_DEVICE 63
-#define ZM_X10_HOUSE_CODE 64
-#define ZM_X10_DB_RELOAD_INTERVAL 65
-#define ZM_WEB_SOUND_ON_ALARM 66
-#define ZM_WEB_ALARM_SOUND 67
-#define ZM_WEB_COMPACT_MONTAGE 68
-#define ZM_OPT_FAST_DELETE 69
-#define ZM_STRICT_VIDEO_CONFIG 70
-#define ZM_SIGNAL_CHECK_POINTS 71
-#define ZM_V4L_MULTI_BUFFER 72
-#define ZM_CAPTURES_PER_FRAME 73
-#define ZM_FILTER_RELOAD_DELAY 74
-#define ZM_FILTER_EXECUTE_INTERVAL 75
-#define ZM_OPT_UPLOAD 76
-#define ZM_UPLOAD_ARCH_FORMAT 77
-#define ZM_UPLOAD_ARCH_COMPRESS 78
-#define ZM_UPLOAD_ARCH_ANALYSE 79
-#define ZM_UPLOAD_FTP_HOST 80
-#define ZM_UPLOAD_FTP_USER 81
-#define ZM_UPLOAD_FTP_PASS 82
-#define ZM_UPLOAD_FTP_LOC_DIR 83
-#define ZM_UPLOAD_FTP_REM_DIR 84
-#define ZM_UPLOAD_FTP_TIMEOUT 85
-#define ZM_UPLOAD_FTP_PASSIVE 86
-#define ZM_UPLOAD_FTP_DEBUG 87
-#define ZM_OPT_EMAIL 88
-#define ZM_EMAIL_ADDRESS 89
-#define ZM_EMAIL_TEXT 90
-#define ZM_EMAIL_SUBJECT 91
-#define ZM_EMAIL_BODY 92
-#define ZM_OPT_MESSAGE 93
-#define ZM_MESSAGE_ADDRESS 94
-#define ZM_MESSAGE_TEXT 95
-#define ZM_MESSAGE_SUBJECT 96
-#define ZM_MESSAGE_BODY 97
-#define ZM_NEW_MAIL_MODULES 98
-#define ZM_EMAIL_HOST 99
-#define ZM_FROM_EMAIL 100
-#define ZM_URL 101
-#define ZM_MAX_RESTART_DELAY 102
-#define ZM_WATCH_CHECK_INTERVAL 103
-#define ZM_WATCH_MAX_DELAY 104
-#define ZM_RUN_AUDIT 105
-#define ZM_AUDIT_CHECK_INTERVAL 106
-#define ZM_FORCED_ALARM_SCORE 107
-#define ZM_BULK_FRAME_INTERVAL 108
-#define ZM_EVENT_CLOSE_MODE 109
-#define ZM_FORCE_CLOSE_EVENTS 110
-#define ZM_CREATE_ANALYSIS_IMAGES 111
-#define ZM_WEIGHTED_ALARM_CENTRES 112
-#define ZM_EVENT_IMAGE_DIGITS 113
-#define ZM_DEFAULT_ASPECT_RATIO 114
-#define ZM_USER_SELF_EDIT 115
-#define ZM_OPT_FRAME_SERVER 116
-#define ZM_FRAME_SOCKET_SIZE 117
-#define ZM_OPT_CONTROL 118
-#define ZM_OPT_TRIGGERS 119
-#define ZM_CHECK_FOR_UPDATES 120
-#define ZM_UPDATE_CHECK_PROXY 121
-#define ZM_SHM_KEY 122
-#define ZM_WEB_REFRESH_METHOD 123
-#define ZM_WEB_EVENT_SORT_FIELD 124
-#define ZM_WEB_EVENT_SORT_ORDER 125
-#define ZM_WEB_EVENTS_PER_PAGE 126
-#define ZM_WEB_LIST_THUMBS 127
-#define ZM_WEB_LIST_THUMB_WIDTH 128
-#define ZM_WEB_LIST_THUMB_HEIGHT 129
-#define ZM_WEB_USE_OBJECT_TAGS 130
-#define ZM_WEB_H_REFRESH_MAIN 131
-#define ZM_WEB_H_REFRESH_CYCLE 132
-#define ZM_WEB_H_REFRESH_IMAGE 133
-#define ZM_WEB_H_REFRESH_STATUS 134
-#define ZM_WEB_H_REFRESH_EVENTS 135
+#define ZM_COLOUR_JPEG_FILES 12
+#define ZM_ADD_JPEG_COMMENTS 13
+#define ZM_JPEG_FILE_QUALITY 14
+#define ZM_JPEG_ALARM_FILE_QUALITY 15
+#define ZM_JPEG_IMAGE_QUALITY 16
+#define ZM_JPEG_STREAM_QUALITY 17
+#define ZM_MPEG_TIMED_FRAMES 18
+#define ZM_MPEG_LIVE_FORMAT 19
+#define ZM_MPEG_REPLAY_FORMAT 20
+#define ZM_RAND_STREAM 21
+#define ZM_OPT_CAMBOZOLA 22
+#define ZM_PATH_CAMBOZOLA 23
+#define ZM_RELOAD_CAMBOZOLA 24
+#define ZM_TIMESTAMP_ON_CAPTURE 25
+#define ZM_LOCAL_BGR_INVERT 26
+#define ZM_Y_IMAGE_DELTAS 27
+#define ZM_FAST_IMAGE_BLENDS 28
+#define ZM_OPT_ADAPTIVE_SKIP 29
+#define ZM_BLEND_ALARMED_IMAGES 30
+#define ZM_MAX_SUSPEND_TIME 31
+#define ZM_OPT_REMOTE_CAMERAS 32
+#define ZM_NETCAM_REGEXPS 33
+#define ZM_HTTP_VERSION 34
+#define ZM_HTTP_UA 35
+#define ZM_HTTP_TIMEOUT 36
+#define ZM_MIN_RTP_PORT 37
+#define ZM_MAX_RTP_PORT 38
+#define ZM_OPT_FFMPEG 39
+#define ZM_PATH_FFMPEG 40
+#define ZM_FFMPEG_INPUT_OPTIONS 41
+#define ZM_FFMPEG_OUTPUT_OPTIONS 42
+#define ZM_FFMPEG_FORMATS 43
+#define ZM_OPT_NETPBM 44
+#define ZM_PATH_NETPBM 45
+#define ZM_RECORD_EVENT_STATS 46
+#define ZM_RECORD_DIAG_IMAGES 47
+#define ZM_EXTRA_DEBUG 48
+#define ZM_EXTRA_DEBUG_TARGET 49
+#define ZM_EXTRA_DEBUG_LEVEL 50
+#define ZM_EXTRA_DEBUG_LOG 51
+#define ZM_DUMP_CORES 52
+#define ZM_PATH_MAP 53
+#define ZM_PATH_SOCKS 54
+#define ZM_PATH_LOGS 55
+#define ZM_PATH_SWAP 56
+#define ZM_WEB_TITLE_PREFIX 57
+#define ZM_WEB_RESIZE_CONSOLE 58
+#define ZM_WEB_POPUP_ON_ALARM 59
+#define ZM_OPT_X10 60
+#define ZM_X10_DEVICE 61
+#define ZM_X10_HOUSE_CODE 62
+#define ZM_X10_DB_RELOAD_INTERVAL 63
+#define ZM_WEB_SOUND_ON_ALARM 64
+#define ZM_WEB_ALARM_SOUND 65
+#define ZM_WEB_COMPACT_MONTAGE 66
+#define ZM_OPT_FAST_DELETE 67
+#define ZM_STRICT_VIDEO_CONFIG 68
+#define ZM_SIGNAL_CHECK_POINTS 69
+#define ZM_V4L_MULTI_BUFFER 70
+#define ZM_CAPTURES_PER_FRAME 71
+#define ZM_FILTER_RELOAD_DELAY 72
+#define ZM_FILTER_EXECUTE_INTERVAL 73
+#define ZM_OPT_UPLOAD 74
+#define ZM_UPLOAD_ARCH_FORMAT 75
+#define ZM_UPLOAD_ARCH_COMPRESS 76
+#define ZM_UPLOAD_ARCH_ANALYSE 77
+#define ZM_UPLOAD_FTP_HOST 78
+#define ZM_UPLOAD_FTP_USER 79
+#define ZM_UPLOAD_FTP_PASS 80
+#define ZM_UPLOAD_FTP_LOC_DIR 81
+#define ZM_UPLOAD_FTP_REM_DIR 82
+#define ZM_UPLOAD_FTP_TIMEOUT 83
+#define ZM_UPLOAD_FTP_PASSIVE 84
+#define ZM_UPLOAD_FTP_DEBUG 85
+#define ZM_OPT_EMAIL 86
+#define ZM_EMAIL_ADDRESS 87
+#define ZM_EMAIL_TEXT 88
+#define ZM_EMAIL_SUBJECT 89
+#define ZM_EMAIL_BODY 90
+#define ZM_OPT_MESSAGE 91
+#define ZM_MESSAGE_ADDRESS 92
+#define ZM_MESSAGE_TEXT 93
+#define ZM_MESSAGE_SUBJECT 94
+#define ZM_MESSAGE_BODY 95
+#define ZM_NEW_MAIL_MODULES 96
+#define ZM_EMAIL_HOST 97
+#define ZM_FROM_EMAIL 98
+#define ZM_URL 99
+#define ZM_MAX_RESTART_DELAY 100
+#define ZM_WATCH_CHECK_INTERVAL 101
+#define ZM_WATCH_MAX_DELAY 102
+#define ZM_RUN_AUDIT 103
+#define ZM_AUDIT_CHECK_INTERVAL 104
+#define ZM_FORCED_ALARM_SCORE 105
+#define ZM_BULK_FRAME_INTERVAL 106
+#define ZM_EVENT_CLOSE_MODE 107
+#define ZM_FORCE_CLOSE_EVENTS 108
+#define ZM_CREATE_ANALYSIS_IMAGES 109
+#define ZM_WEIGHTED_ALARM_CENTRES 110
+#define ZM_EVENT_IMAGE_DIGITS 111
+#define ZM_DEFAULT_ASPECT_RATIO 112
+#define ZM_USER_SELF_EDIT 113
+#define ZM_OPT_FRAME_SERVER 114
+#define ZM_FRAME_SOCKET_SIZE 115
+#define ZM_OPT_CONTROL 116
+#define ZM_OPT_TRIGGERS 117
+#define ZM_CHECK_FOR_UPDATES 118
+#define ZM_UPDATE_CHECK_PROXY 119
+#define ZM_SHM_KEY 120
+#define ZM_WEB_REFRESH_METHOD 121
+#define ZM_WEB_EVENT_SORT_FIELD 122
+#define ZM_WEB_EVENT_SORT_ORDER 123
+#define ZM_WEB_EVENTS_PER_PAGE 124
+#define ZM_WEB_LIST_THUMBS 125
+#define ZM_WEB_LIST_THUMB_WIDTH 126
+#define ZM_WEB_LIST_THUMB_HEIGHT 127
+#define ZM_WEB_USE_OBJECT_TAGS 128
+#define ZM_WEB_H_REFRESH_MAIN 129
+#define ZM_WEB_H_REFRESH_CYCLE 130
+#define ZM_WEB_H_REFRESH_IMAGE 131
+#define ZM_WEB_H_REFRESH_STATUS 132
+#define ZM_WEB_H_REFRESH_EVENTS 133
+#define ZM_WEB_H_CAN_STREAM 134
+#define ZM_WEB_H_STREAM_METHOD 135
 #define ZM_WEB_H_DEFAULT_SCALE 136
 #define ZM_WEB_H_DEFAULT_RATE 137
 #define ZM_WEB_H_VIDEO_BITRATE 138
 #define ZM_WEB_H_VIDEO_MAXFPS 139
 #define ZM_WEB_H_SCALE_THUMBS 140
-#define ZM_WEB_H_USE_STREAMS 141
-#define ZM_WEB_H_EVENTS_VIEW 142
-#define ZM_WEB_H_SHOW_PROGRESS 143
-#define ZM_WEB_H_AJAX_TIMEOUT 144
-#define ZM_WEB_M_REFRESH_MAIN 145
-#define ZM_WEB_M_REFRESH_CYCLE 146
-#define ZM_WEB_M_REFRESH_IMAGE 147
-#define ZM_WEB_M_REFRESH_STATUS 148
-#define ZM_WEB_M_REFRESH_EVENTS 149
-#define ZM_WEB_M_DEFAULT_SCALE 150
-#define ZM_WEB_M_DEFAULT_RATE 151
-#define ZM_WEB_M_VIDEO_BITRATE 152
-#define ZM_WEB_M_VIDEO_MAXFPS 153
-#define ZM_WEB_M_SCALE_THUMBS 154
-#define ZM_WEB_M_USE_STREAMS 155
+#define ZM_WEB_H_EVENTS_VIEW 141
+#define ZM_WEB_H_SHOW_PROGRESS 142
+#define ZM_WEB_H_AJAX_TIMEOUT 143
+#define ZM_WEB_M_REFRESH_MAIN 144
+#define ZM_WEB_M_REFRESH_CYCLE 145
+#define ZM_WEB_M_REFRESH_IMAGE 146
+#define ZM_WEB_M_REFRESH_STATUS 147
+#define ZM_WEB_M_REFRESH_EVENTS 148
+#define ZM_WEB_M_CAN_STREAM 149
+#define ZM_WEB_M_STREAM_METHOD 150
+#define ZM_WEB_M_DEFAULT_SCALE 151
+#define ZM_WEB_M_DEFAULT_RATE 152
+#define ZM_WEB_M_VIDEO_BITRATE 153
+#define ZM_WEB_M_VIDEO_MAXFPS 154
+#define ZM_WEB_M_SCALE_THUMBS 155
 #define ZM_WEB_M_EVENTS_VIEW 156
 #define ZM_WEB_M_SHOW_PROGRESS 157
 #define ZM_WEB_M_AJAX_TIMEOUT 158
@@ -165,28 +165,34 @@
 #define ZM_WEB_L_REFRESH_IMAGE 161
 #define ZM_WEB_L_REFRESH_STATUS 162
 #define ZM_WEB_L_REFRESH_EVENTS 163
-#define ZM_WEB_L_DEFAULT_SCALE 164
-#define ZM_WEB_L_DEFAULT_RATE 165
-#define ZM_WEB_L_VIDEO_BITRATE 166
-#define ZM_WEB_L_VIDEO_MAXFPS 167
-#define ZM_WEB_L_SCALE_THUMBS 168
-#define ZM_WEB_L_USE_STREAMS 169
-#define ZM_WEB_L_EVENTS_VIEW 170
-#define ZM_WEB_L_SHOW_PROGRESS 171
-#define ZM_WEB_L_AJAX_TIMEOUT 172
-#define ZM_WEB_P_DEFAULT_RATE 173
-#define ZM_WEB_P_SCALE_THUMBS 174
-#define ZM_WEB_P_AJAX_TIMEOUT 175
-#define ZM_DYN_LAST_VERSION 176
-#define ZM_DYN_CURR_VERSION 177
-#define ZM_DYN_DB_VERSION 178
-#define ZM_DYN_LAST_CHECK 179
-#define ZM_DYN_NEXT_REMINDER 180
-#define ZM_DYN_DONATE_REMINDER_TIME 181
-#define ZM_DYN_SHOW_DONATE_REMINDER 182
+#define ZM_WEB_L_CAN_STREAM 164
+#define ZM_WEB_L_STREAM_METHOD 165
+#define ZM_WEB_L_DEFAULT_SCALE 166
+#define ZM_WEB_L_DEFAULT_RATE 167
+#define ZM_WEB_L_VIDEO_BITRATE 168
+#define ZM_WEB_L_VIDEO_MAXFPS 169
+#define ZM_WEB_L_SCALE_THUMBS 170
+#define ZM_WEB_L_EVENTS_VIEW 171
+#define ZM_WEB_L_SHOW_PROGRESS 172
+#define ZM_WEB_L_AJAX_TIMEOUT 173
+#define ZM_WEB_P_CAN_STREAM 174
+#define ZM_WEB_P_STREAM_METHOD 175
+#define ZM_WEB_P_DEFAULT_SCALE 176
+#define ZM_WEB_P_DEFAULT_RATE 177
+#define ZM_WEB_P_VIDEO_BITRATE 178
+#define ZM_WEB_P_VIDEO_MAXFPS 179
+#define ZM_WEB_P_SCALE_THUMBS 180
+#define ZM_WEB_P_AJAX_TIMEOUT 181
+#define ZM_DYN_LAST_VERSION 182
+#define ZM_DYN_CURR_VERSION 183
+#define ZM_DYN_DB_VERSION 184
+#define ZM_DYN_LAST_CHECK 185
+#define ZM_DYN_NEXT_REMINDER 186
+#define ZM_DYN_DONATE_REMINDER_TIME 187
+#define ZM_DYN_SHOW_DONATE_REMINDER 188
 
 
-#define ZM_MAX_CFG_ID 182
+#define ZM_MAX_CFG_ID 188
 
 #define ZM_CFG_DECLARE_LIST \
 	const char *lang_default;\
@@ -201,8 +207,6 @@
 	const char *dir_images;\
 	const char *dir_sounds;\
 	const char *path_zms;\
-	const char *can_stream;\
-	const char *stream_method;\
 	bool colour_jpeg_files;\
 	bool add_jpeg_comments;\
 	int jpeg_file_quality;\
@@ -325,12 +329,13 @@
 	int web_h_refresh_image;\
 	int web_h_refresh_status;\
 	int web_h_refresh_events;\
+	const char *web_h_can_stream;\
+	const char *web_h_stream_method;\
 	int web_h_default_scale;\
 	int web_h_default_rate;\
 	int web_h_video_bitrate;\
 	int web_h_video_maxfps;\
 	bool web_h_scale_thumbs;\
-	bool web_h_use_streams;\
 	const char *web_h_events_view;\
 	bool web_h_show_progress;\
 	int web_h_ajax_timeout;\
@@ -339,12 +344,13 @@
 	int web_m_refresh_image;\
 	int web_m_refresh_status;\
 	int web_m_refresh_events;\
+	const char *web_m_can_stream;\
+	const char *web_m_stream_method;\
 	int web_m_default_scale;\
 	int web_m_default_rate;\
 	int web_m_video_bitrate;\
 	int web_m_video_maxfps;\
 	bool web_m_scale_thumbs;\
-	bool web_m_use_streams;\
 	const char *web_m_events_view;\
 	bool web_m_show_progress;\
 	int web_m_ajax_timeout;\
@@ -353,16 +359,22 @@
 	int web_l_refresh_image;\
 	int web_l_refresh_status;\
 	int web_l_refresh_events;\
+	const char *web_l_can_stream;\
+	const char *web_l_stream_method;\
 	int web_l_default_scale;\
 	int web_l_default_rate;\
 	int web_l_video_bitrate;\
 	int web_l_video_maxfps;\
 	bool web_l_scale_thumbs;\
-	bool web_l_use_streams;\
 	const char *web_l_events_view;\
 	bool web_l_show_progress;\
 	int web_l_ajax_timeout;\
+	const char *web_p_can_stream;\
+	const char *web_p_stream_method;\
+	int web_p_default_scale;\
 	int web_p_default_rate;\
+	int web_p_video_bitrate;\
+	int web_p_video_maxfps;\
 	bool web_p_scale_thumbs;\
 	int web_p_ajax_timeout;\
 	const char *dyn_last_version;\
@@ -387,8 +399,6 @@
 	dir_images = (const char *)config.Item( ZM_DIR_IMAGES );\
 	dir_sounds = (const char *)config.Item( ZM_DIR_SOUNDS );\
 	path_zms = (const char *)config.Item( ZM_PATH_ZMS );\
-	can_stream = (const char *)config.Item( ZM_CAN_STREAM );\
-	stream_method = (const char *)config.Item( ZM_STREAM_METHOD );\
 	colour_jpeg_files = (bool)config.Item( ZM_COLOUR_JPEG_FILES );\
 	add_jpeg_comments = (bool)config.Item( ZM_ADD_JPEG_COMMENTS );\
 	jpeg_file_quality = (int)config.Item( ZM_JPEG_FILE_QUALITY );\
@@ -511,12 +521,13 @@
 	web_h_refresh_image = (int)config.Item( ZM_WEB_H_REFRESH_IMAGE );\
 	web_h_refresh_status = (int)config.Item( ZM_WEB_H_REFRESH_STATUS );\
 	web_h_refresh_events = (int)config.Item( ZM_WEB_H_REFRESH_EVENTS );\
+	web_h_can_stream = (const char *)config.Item( ZM_WEB_H_CAN_STREAM );\
+	web_h_stream_method = (const char *)config.Item( ZM_WEB_H_STREAM_METHOD );\
 	web_h_default_scale = (int)config.Item( ZM_WEB_H_DEFAULT_SCALE );\
 	web_h_default_rate = (int)config.Item( ZM_WEB_H_DEFAULT_RATE );\
 	web_h_video_bitrate = (int)config.Item( ZM_WEB_H_VIDEO_BITRATE );\
 	web_h_video_maxfps = (int)config.Item( ZM_WEB_H_VIDEO_MAXFPS );\
 	web_h_scale_thumbs = (bool)config.Item( ZM_WEB_H_SCALE_THUMBS );\
-	web_h_use_streams = (bool)config.Item( ZM_WEB_H_USE_STREAMS );\
 	web_h_events_view = (const char *)config.Item( ZM_WEB_H_EVENTS_VIEW );\
 	web_h_show_progress = (bool)config.Item( ZM_WEB_H_SHOW_PROGRESS );\
 	web_h_ajax_timeout = (int)config.Item( ZM_WEB_H_AJAX_TIMEOUT );\
@@ -525,12 +536,13 @@
 	web_m_refresh_image = (int)config.Item( ZM_WEB_M_REFRESH_IMAGE );\
 	web_m_refresh_status = (int)config.Item( ZM_WEB_M_REFRESH_STATUS );\
 	web_m_refresh_events = (int)config.Item( ZM_WEB_M_REFRESH_EVENTS );\
+	web_m_can_stream = (const char *)config.Item( ZM_WEB_M_CAN_STREAM );\
+	web_m_stream_method = (const char *)config.Item( ZM_WEB_M_STREAM_METHOD );\
 	web_m_default_scale = (int)config.Item( ZM_WEB_M_DEFAULT_SCALE );\
 	web_m_default_rate = (int)config.Item( ZM_WEB_M_DEFAULT_RATE );\
 	web_m_video_bitrate = (int)config.Item( ZM_WEB_M_VIDEO_BITRATE );\
 	web_m_video_maxfps = (int)config.Item( ZM_WEB_M_VIDEO_MAXFPS );\
 	web_m_scale_thumbs = (bool)config.Item( ZM_WEB_M_SCALE_THUMBS );\
-	web_m_use_streams = (bool)config.Item( ZM_WEB_M_USE_STREAMS );\
 	web_m_events_view = (const char *)config.Item( ZM_WEB_M_EVENTS_VIEW );\
 	web_m_show_progress = (bool)config.Item( ZM_WEB_M_SHOW_PROGRESS );\
 	web_m_ajax_timeout = (int)config.Item( ZM_WEB_M_AJAX_TIMEOUT );\
@@ -539,16 +551,22 @@
 	web_l_refresh_image = (int)config.Item( ZM_WEB_L_REFRESH_IMAGE );\
 	web_l_refresh_status = (int)config.Item( ZM_WEB_L_REFRESH_STATUS );\
 	web_l_refresh_events = (int)config.Item( ZM_WEB_L_REFRESH_EVENTS );\
+	web_l_can_stream = (const char *)config.Item( ZM_WEB_L_CAN_STREAM );\
+	web_l_stream_method = (const char *)config.Item( ZM_WEB_L_STREAM_METHOD );\
 	web_l_default_scale = (int)config.Item( ZM_WEB_L_DEFAULT_SCALE );\
 	web_l_default_rate = (int)config.Item( ZM_WEB_L_DEFAULT_RATE );\
 	web_l_video_bitrate = (int)config.Item( ZM_WEB_L_VIDEO_BITRATE );\
 	web_l_video_maxfps = (int)config.Item( ZM_WEB_L_VIDEO_MAXFPS );\
 	web_l_scale_thumbs = (bool)config.Item( ZM_WEB_L_SCALE_THUMBS );\
-	web_l_use_streams = (bool)config.Item( ZM_WEB_L_USE_STREAMS );\
 	web_l_events_view = (const char *)config.Item( ZM_WEB_L_EVENTS_VIEW );\
 	web_l_show_progress = (bool)config.Item( ZM_WEB_L_SHOW_PROGRESS );\
 	web_l_ajax_timeout = (int)config.Item( ZM_WEB_L_AJAX_TIMEOUT );\
+	web_p_can_stream = (const char *)config.Item( ZM_WEB_P_CAN_STREAM );\
+	web_p_stream_method = (const char *)config.Item( ZM_WEB_P_STREAM_METHOD );\
+	web_p_default_scale = (int)config.Item( ZM_WEB_P_DEFAULT_SCALE );\
 	web_p_default_rate = (int)config.Item( ZM_WEB_P_DEFAULT_RATE );\
+	web_p_video_bitrate = (int)config.Item( ZM_WEB_P_VIDEO_BITRATE );\
+	web_p_video_maxfps = (int)config.Item( ZM_WEB_P_VIDEO_MAXFPS );\
 	web_p_scale_thumbs = (bool)config.Item( ZM_WEB_P_SCALE_THUMBS );\
 	web_p_ajax_timeout = (int)config.Item( ZM_WEB_P_AJAX_TIMEOUT );\
 	dyn_last_version = (const char *)config.Item( ZM_DYN_LAST_VERSION );\

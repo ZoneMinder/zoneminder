@@ -77,8 +77,27 @@ foreach( dbFetchAll( $sql ) as $row )
 $nextMid = $monIdx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$monIdx+1]['Id'];
 $prevMid = $monIdx==0?$monitors[(count($monitors)-1)]['Id']:$monitors[$monIdx-1]['Id'];
 
-$scale = getDeviceScale( $monitor['Width'], $monitor['Height'] );
+if ( isset( $_REQUEST['scale'] ) )
+    $scale = validInt($_REQUEST['scale']);
+else
+    $scale = getDeviceScale( $monitor['Width'], $monitor['Height'] );
 $imageSrc = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ), '&amp;' );
+
+if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
+{
+    $streamMode = "mpeg";
+    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+}
+elseif ( canStream() )
+{
+    $streamMode = "jpeg";
+    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
+}
+else
+{
+    $streamMode = "single";
+    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale ) );
+}
 
 xhtmlHeaders( __FILE__, $monitor['Name'].' - '.$SLANG['Watch'] );
 ?>
@@ -86,7 +105,27 @@ xhtmlHeaders( __FILE__, $monitor['Name'].' - '.$SLANG['Watch'] );
   <div id="page">
     <div id="content">
       <p class="<?= $class ?>"><?= makeLink( "?view=events&amp;page=1&amp;view=events&amp;page=1&amp;filter%5Bterms%5D%5B0%5D%5Battr%5D%3DMonitorId&amp;filter%5Bterms%5D%5B0%5D%5Bop%5D%3D%3D&amp;filter%5Bterms%5D%5B0%5D%5Bval%5D%3D".$monitor['Id']."&amp;sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?= $statusString ?>&nbsp;-&nbsp;<?= $fpsString ?>&nbsp;fps</p>
-      <p><a href="?view=<?= $_REQUEST['view'] ?>&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= viewImagePath( $imageSrc ) ?>" alt="<?= $monitor['Name'] ?>" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>"/></a></p>
+      <p>
+<?php
+if ( $streamMode == "mpeg" )
+{
+    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT, $monitor['Name'] );
+}
+elseif ( $streamMode == "jpeg" )
+{
+    if ( canStreamNative() )
+        outputImageStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
+    elseif ( canStreamApplet() )
+        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
+}
+else
+{
+?>
+        <a href="?view=<?= $_REQUEST['view'] ?>&amp;mid=<?= $monitor['Id'] ?>"><?= outputImageStill( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] ); ?></a>
+<?php
+}
+?>
+      </p>
 <?php
 if ( $showPtzControls )
 {

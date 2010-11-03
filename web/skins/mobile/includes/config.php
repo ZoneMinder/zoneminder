@@ -47,9 +47,15 @@ switch ( $_COOKIE['zmBandwidth'] )
 {
     case "phone" : // Very incomplete at present
     {
+        define( "ZM_WEB_CAN_STREAM", ZM_WEB_P_CAN_STREAM );             // Override the automatic detection of browser streaming capability
+        define( "ZM_WEB_STREAM_METHOD", ZM_WEB_P_STREAM_METHOD );       // Which method should be used to send video streams to your brow
+        define( "ZM_WEB_DEFAULT_SCALE", ZM_WEB_P_DEFAULT_SCALE );       // What the default scaling factor applied to 'live' or 'event' views is (%)
         define( "ZM_WEB_DEFAULT_RATE", ZM_WEB_P_DEFAULT_RATE );         // What the default replay rate factor applied to 'event' views is (%)
+        define( "ZM_WEB_VIDEO_BITRATE", ZM_WEB_P_VIDEO_BITRATE );       // What the bitrate of any streamed video should be
+        define( "ZM_WEB_VIDEO_MAXFPS", ZM_WEB_P_VIDEO_MAXFPS );         // What the maximum frame rate of any streamed video should be
         define( "ZM_WEB_SCALE_THUMBS", ZM_WEB_P_SCALE_THUMBS );         // Image scaling for thumbnails, bandwidth versus cpu in rescaling
         define( "ZM_WEB_AJAX_TIMEOUT", ZM_WEB_P_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
+
         break;
     }
 }

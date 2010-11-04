@@ -2,4 +2,5 @@ AUTOMAKE_OPTIONS = gnu
 
 SUBDIRS = \
 	classic \
-	mobile
+	mobile \
+	xml

@@ -1,0 +1,298 @@
+<?php
+//
+// ZoneMinder web console file, $Date: 2009-02-19 10:05:31 +0000 (Thu, 19 Feb 2009) $, $Revision: 2780 $
+// Copyright (C) 2001-2008 Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+/* console_xml.php is updated by Jai Dhar, FPS-Tech, for use with eyeZm
+ * iPhone application. This is not intended for use with any other applications,
+ * although source-code is provided under GPL.
+ *
+ * For questions, please email jdhar@eyezm.com (http://www.eyezm.com)
+ *
+ * Protocol Version 1, Updated 10/25/10
+ */
+require_once('xml_include.php');
+$eventCounts = array(
+    array(
+        "title" => $SLANG['Events'],
+        "filter" => array(
+            "terms" => array(
+            )
+        ),
+    ),
+    array(
+        "title" => $SLANG['Hour'],
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
+                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
+            )
+        ),
+    ),
+    array(
+        "title" => $SLANG['Day'],
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
+                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
+            )
+        ),
+    ),
+    array(
+        "title" => $SLANG['Week'],
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
+                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
+            )
+        ),
+    ),
+    array(
+        "title" => $SLANG['Month'],
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "0" ),
+                array( "cnj" => "and", "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
+            )
+        ),
+    ),
+    array(
+        "title" => $SLANG['Archived'],
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "1" ),
+            )
+        ),
+    ),
+);
+
+$running = daemonCheck();
+$status = $running?$SLANG['Running']:$SLANG['Stopped'];
+
+if ( $group = dbFetchOne( "select * from Groups where Id = '".(empty($_COOKIE['zmGroup'])?0:dbEscape($_COOKIE['zmGroup']))."'" ) )
+    $groupIds = array_flip(split( ',', $group['MonitorIds'] ));
+
+$maxWidth = 0;
+$maxHeight = 0;
+$cycleCount = 0;
+$minSequence = 0;
+$maxSequence = 1;
+$seqIdList = array();
+$monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
+$displayMonitors = array();
+for ( $i = 0; $i < count($monitors); $i++ )
+{
+    if ( !visibleMonitor( $monitors[$i]['Id'] ) )
+    {
+        continue;
+    }
+    if ( $group && !empty($groupIds) && !array_key_exists( $monitors[$i]['Id'], $groupIds ) )
+    {
+        continue;
+    }
+    $monitors[$i]['Show'] = true;
+    if ( empty($minSequence) || ($monitors[$i]['Sequence'] < $minSequence) )
+    {
+        $minSequence = $monitors[$i]['Sequence'];
+    }
+    if ( $monitors[$i]['Sequence'] > $maxSequence )
+    {
+        $maxSequence = $monitors[$i]['Sequence'];
+    }
+    $monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
+    $monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
+    $monitors[$i]['ZoneCount'] = dbFetchOne( "select count(Id) as ZoneCount from Zones where MonitorId = '".$monitors[$i]['Id']."'", "ZoneCount" );
+    $counts = array();
+    for ( $j = 0; $j < count($eventCounts); $j++ )
+    {
+        $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['terms']), array( "cnj" => "and", "attr" => "MonitorId", "op" => "=", "val" => $monitors[$i]['Id'] ) );
+        parseFilter( $filter );
+        $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
+        $monitors[$i]['eventCounts'][$j]['filter'] = $filter;
+    }
+    $sql = "select ".join($counts,", ")." from Events as E where MonitorId = '".$monitors[$i]['Id']."'";
+    $counts = dbFetchOne( $sql );
+    if ( $monitors[$i]['Function'] != 'None' )
+    {
+        $cycleCount++;
+        $scaleWidth = reScale( $monitors[$i]['Width'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+        $scaleHeight = reScale( $monitors[$i]['Height'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+        if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
+        if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
+    }
+    $monitors[$i] = array_merge( $monitors[$i], $counts );
+    $seqIdList[] = $monitors[$i]['Id'];
+    $displayMonitors[] = $monitors[$i];
+}
+
+/* Parse any specific actions here */
+if (isset($_GET['action']) && (strcmp($_GET['action'],"login") != 0)) {
+	$action = $_GET['action'];
+	if (strcmp($action, "devent") == 0) {
+		if (!canEdit('Events')) {
+			error_log("User ".$user['Username']. " doesn't have edit Events perms");
+			exit;
+		}
+		$eid = validInt($_REQUEST['eid']);
+		$url = "./index.php?view=request&request=event&id=".$eid."&action=delete";
+		header("Location: ".$url);
+		exit;
+	} else if (strcmp($action, "feed") == 0) {
+		if (!canView('Stream')) {
+			error_log("User ".$user['Username']. " doesn't have view Stream perms");
+			exit;
+		}
+		$monitor = validInt($_REQUEST['monitor']);
+		if (isset($_GET['fps'])) $fps = $_GET['fps'];
+		else $fps = ZM_WEB_VIDEO_MAXFPS;
+		if (isset($_GET['scale'])) $scale = $_GET['scale'];
+		else $scale = 100;
+		$streamSrc = 
+			getStreamSrc( array( 
+				"mode=jpeg", 
+				"monitor=".$monitor, 
+				"bitrate=".ZM_WEB_VIDEO_BITRATE, 
+				"maxfps=".$fps,
+			        "scale=".$scale,	
+				"format=".ZM_MPEG_LIVE_FORMAT, 
+				"buffer=1000" 
+			) );
+		header("Location: ".$streamSrc);
+		exit;
+	} else if (strcmp($action, "vevent") == 0) {
+		if (!canView('Events')) {
+			error_log("User ".$user['Username']. " doesn't have view Events perms");
+			exit;
+		}
+		$baseURL = trim(shell_exec('pwd'))."/events/".$_REQUEST['mid']."/".$_REQUEST['eid']."/";
+		$relativeURL = "./events/".$_REQUEST['mid']."/".$_REQUEST['eid']."/";
+		$shellCmd = "ffmpeg -y -r ".$_REQUEST['fps']." -i ".$baseURL."%03d-capture.jpg ".$baseURL."capture.mov 2> /dev/null";
+		shell_exec("rm -f ".$baseURL."capture.mov");
+		$shellOutput = shell_exec($shellCmd);
+		header("Location: ".$relativeURL."capture.mov");
+	} else if (strcmp($action, "state") == 0) {
+		if (!canEdit('System')) {
+			error_log("User ".$user['Username']. " doesn't have edit System perms");
+			exit;
+		}
+		$url = "./index.php?view=none&action=state&runState=".$_GET['state'];
+		header("Location: ".$url);
+		exit;
+	} else if (strcmp($action, "func") == 0) {
+		if (!canEdit('Monitors')) {
+			error_log("User ".$user['Username']. " doesn't have monitors Edit perms");
+			exit;
+		}
+		$url = "./index.php?view=none&action=function&mid=".$_GET['mid']."&newFunction=".$_GET['func']."&newEnabled=".$_GET['en'];
+		header("Location: ".$url);
+		exit;
+	}
+}
+$states = dbFetchAll("select * from States");
+/* XML Dump Starts here */
+xml_header();
+/* Print out the general section */
+xml_tag_sec("ZM_XML", 1);
+xml_tag_sec("GENERAL", 1);
+xml_tag_val("RUNNING", $running);
+xml_tag_val("PROTOVER", "1");
+xml_tag_val("FEATURESET", "1");
+xml_tag_val("VERSION", ZM_VERSION);
+xml_tag_val("USER", $user['Username']);
+xml_tag_val("UID", $user['Id']);
+xml_tag_sec("PERMS", 1);
+xml_tag_val("STREAM", $user['Stream']);
+xml_tag_val("EVENTS", $user['Events']);
+xml_tag_val("CONTROL", $user['Control']);
+xml_tag_val("MONITORS", $user['Monitors']);
+xml_tag_val("DEVICES", $user['Devices']);
+xml_tag_val("SYSTEM", $user['System']);
+xml_tag_sec("PERMS", 0);
+if (canEdit('System')) {
+	if ($running) {
+		xml_tag_val("STATE", "stop");
+		xml_tag_val("STATE", "restart");
+	} else {
+		xml_tag_val("STATE", "start");
+	}
+	foreach ($states as $state) {
+		xml_tag_val("STATE", $state['Name']);
+	}
+}
+/* End general section */
+xml_tag_sec("GENERAL", 0);
+/* Print out the monitors section */
+xml_tag_sec("MONITOR_LIST", 1);
+foreach( $displayMonitors as $monitor )
+{
+	if (!canView('Monitors')) continue;
+	xml_tag_sec("MONITOR", 1);
+	xml_tag_val("ID", $monitor['Id']);
+	xml_tag_val("NAME", $monitor['Name']);
+	xml_tag_val("FUNCTION", $monitor['Function']);
+	xml_tag_val("NUMEVENTS", $monitor['EventCount0']);
+	xml_tag_val("ENABLED", $monitor['Enabled']);
+	xml_tag_val("ZMC", $monitor['zmc']);
+	xml_tag_val("ZMA", $monitor['zma']);
+	xml_tag_val("STATE", ($monitor['zmc']!=1)?"ERROR":(
+		($monitor['zma']==1)?"OK":"WARN"));
+	xml_tag_val("WIDTH", $monitor['Width']);
+	xml_tag_val("HEIGHT", $monitor['Height']);
+
+	/* Form the data-base query for this monitor */
+	$pageOffset = 0;
+	$offset = 0;
+	if (isset($_GET['numEvents'])) {
+		$numEvents = $_GET['numEvents'];
+		$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where 1 and ( E.MonitorId = ".$monitor['Id']." ) order by E.StartTime desc";
+		$eventsSql .= " limit ".$numEvents;
+		/* If there is an pageOff<x> tag for this monitor, then retrieve the offset. Otherwise, don't specify offset */
+		if (isset($_GET['pageOff'.$monitor['Id']])) {
+			/* If pageOffset is greater than we actually have,
+			 * we need to adjust it */
+			$pageOffset = $_GET['pageOff'.$monitor['Id']]; 
+			if ($pageOffset >= ceil($monitor['EventCount0']/$numEvents)) {
+				$pageOffset = 0;
+			}
+			$offset = $pageOffset * $numEvents;
+		}
+		$eventsSql .= " offset ".$offset;
+	} else {
+		unset($eventsSql);
+	}
+	xml_tag_val("PAGEOFF", $pageOffset);
+	xml_tag_sec("EVENTS",1);
+	if (canView('Events') && isset($eventsSql)) {
+		foreach ( dbFetchAll( $eventsSql ) as $event )
+		{
+			xml_tag_sec("EVENT",1);
+			xml_tag_val("ID",$event['Id']);
+			xml_tag_val("NAME",$event['Name']);
+			xml_tag_val("TIME", strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime'])));
+			xml_tag_val("DURATION", $event['Length']);
+			xml_tag_val("FRAMES", $event['Frames']);
+			xml_tag_val("FPS", ($event['Length'] > 0)?ceil($event['Frames']/$event['Length']):0);
+			xml_tag_sec("EVENT",0);
+		}
+	}
+	xml_tag_sec("EVENTS",0);
+	xml_tag_sec("MONITOR", 0);
+}
+xml_tag_sec("MONITOR_LIST", 0);
+xml_tag_sec("ZM_XML", 0);
+?>

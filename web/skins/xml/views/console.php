@@ -26,7 +26,6 @@
  *
  * Protocol Version 1, Updated 10/25/10
  */
-require_once('xml_include.php');
 $eventCounts = array(
     array(
         "title" => $SLANG['Events'],
@@ -166,13 +165,16 @@ if (isset($_GET['action']) && (strcmp($_GET['action'],"login") != 0)) {
 			getStreamSrc( array( 
 				"mode=jpeg", 
 				"monitor=".$monitor, 
-				"bitrate=".ZM_WEB_VIDEO_BITRATE, 
-				"maxfps=".$fps,
 			        "scale=".$scale,	
-				"format=".ZM_MPEG_LIVE_FORMAT, 
+				"maxfps=".$fps,
 				"buffer=1000" 
 			) );
-		header("Location: ".$streamSrc);
+		noCacheHeaders();
+		xhtmlHeaders( __FILE__, "Stream" );
+		echo "<body>\n";
+		echo "<div style=\"border: 0px solid; padding: 0px; background-color: black; position: absolute; top: 0px; left; 0px; margin: 0px; width: ".$_GET['width']."px; height: ".$_GET['height']."px;\">\n";
+		outputImageStream("liveStream", $streamSrc, $_GET['width'], $_GET['height'], "stream");
+		echo "</div></body></html>";
 		exit;
 	} else if (strcmp($action, "vevent") == 0) {
 		if (!canView('Events')) {
@@ -181,7 +183,7 @@ if (isset($_GET['action']) && (strcmp($_GET['action'],"login") != 0)) {
 		}
 		$baseURL = trim(shell_exec('pwd'))."/events/".$_REQUEST['mid']."/".$_REQUEST['eid']."/";
 		$relativeURL = "./events/".$_REQUEST['mid']."/".$_REQUEST['eid']."/";
-		$shellCmd = "ffmpeg -y -r ".$_REQUEST['fps']." -i ".$baseURL."%03d-capture.jpg ".$baseURL."capture.mov 2> /dev/null";
+		$shellCmd = "ffmpeg -y -r ".$_REQUEST['fps']." -i ".$baseURL."%03d-capture.jpg -r 10 ".$baseURL."capture.mov 2> /dev/null";
 		shell_exec("rm -f ".$baseURL."capture.mov");
 		$shellOutput = shell_exec($shellCmd);
 		header("Location: ".$relativeURL."capture.mov");
@@ -210,8 +212,8 @@ xml_header();
 xml_tag_sec("ZM_XML", 1);
 xml_tag_sec("GENERAL", 1);
 xml_tag_val("RUNNING", $running);
-xml_tag_val("PROTOVER", "1");
-xml_tag_val("FEATURESET", "1");
+xml_tag_val("PROTOVER", XML_PROTOCOL_VERSION);
+xml_tag_val("FEATURESET", XML_FEATURE_SET);
 xml_tag_val("VERSION", ZM_VERSION);
 xml_tag_val("USER", $user['Username']);
 xml_tag_val("UID", $user['Id']);

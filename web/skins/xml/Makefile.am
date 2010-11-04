@@ -6,4 +6,5 @@ SUBDIRS = \
 	includes \
 	views
 
-dist_web_DATA = 
+dist_web_DATA = \
+	skin.php

@@ -1,5 +1,9 @@
 <?php
-
+function getset($varname, $defval)
+{
+	if (isset($_GET[$varname])) return $_GET[$varname];
+	return $defval;
+}
 function xml_header()
 {
 	header ("content-type: text/xml");

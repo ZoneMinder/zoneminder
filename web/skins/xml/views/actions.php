@@ -3,7 +3,7 @@
 if (isset($_GET['action'])) {
 	$action = $_GET['action'];
 	if (strcmp($action, "devent") == 0) {
-		/* ACTION: Delete an Event */
+		/* ACTION: Delete an Event. Parms: <eid> */
 		if (!canEdit('Events')) {
 			error_log("User ".$user['Username']. " doesn't have edit Events perms");
 			exit;
@@ -16,8 +16,9 @@ if (isset($_GET['action'])) {
 		$url = "./index.php?view=request&request=event&id=".$eid."&action=delete";
 		header("Location: ".$url);
 		exit;
+
 	} else if (strcmp($action, "feed") == 0) {
-		/* ACTION: View a feed */
+		/* ACTION: View a feed. Parms: <monitor><img. width><img. height> [fps|scale] */
 		if (!canView('Stream')) {
 			error_log("User ".$user['Username']. " doesn't have view Stream perms");
 			exit;
@@ -49,24 +50,50 @@ if (isset($_GET['action'])) {
 		outputImageStream("liveStream", $streamSrc, $width, $height, "stream");
 		echo "</div></body></html>";
 		exit;
+
 	} else if (strcmp($action, "vevent") == 0) {
-		/* ACTION: View an event */
+		/* ACTION: View an event. Parms: <eid> [fps|vcodec] */
 		if (!canView('Events')) {
 			error_log("User ".$user['Username']. " doesn't have view Events perms");
 			exit;
 		}
-		if (!isset($_GET['mid']) || !isset($_GET['eid']) || !isset($_GET['fps'])) {
+		if (!isset($_GET['eid'])) {
 			error_log("Not all parameters set for Action View-event");
 			exit;
 		}
-		$baseURL = trim(shell_exec('pwd'))."/events/".$_REQUEST['mid']."/".$_REQUEST['eid']."/";
-		$relativeURL = "./events/".$_REQUEST['mid']."/".$_REQUEST['eid']."/";
-		$shellCmd = "ffmpeg -y -r ".$_REQUEST['fps']." -i ".$baseURL."%03d-capture.jpg -vcodec mpeg4 -r 10 ".$baseURL."capture.mov 2> /dev/null";
-		shell_exec("rm -f ".$baseURL."capture.mov");
+		/* Grab event from the database */
+		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$_GET['eid'].")";
+		foreach (dbFetchAll($eventsSql) as $event) {
+		}
+		/* Calculate FPS */
+		$fps = getset('fps',ceil($event['Frames'] / $event['Length']));
+		$vcodec = getset('vcodec', XML_EVENT_VCODEC);
+		$relativeURL = getEventPath($event);
+		$baseURL = ZM_PATH_WEB."/".ZM_DIR_EVENTS."/".getEventPath($event);
+		$shellCmd = "ffmpeg -y -r ".$fps." -i ".$baseURL."/%03d-capture.jpg -vcodec ".$vcodec." -r ".XML_EVENT_FPS." ".$baseURL."/capture.mov 2> /dev/null";
 		$shellOutput = shell_exec($shellCmd);
-		header("Location: ".$relativeURL."capture.mov");
+		$url = "./".ZM_DIR_EVENTS."/".getEventPath($event)."/capture.mov";
+		header("Location: ".$url);
+		exit;
+
+	} else if (strcmp($action, "vframe") == 0) {
+		/* ACTION: View a frame given by an event and frame-id. Parms: <eid><frame> */
+		if (!isset($_GET['eid']) || !isset($_GET['frame'])) {
+			error_log("Not all parameters set for action view-frame");
+			exit;
+		}
+		$eid = $_GET['eid'];
+		$frame = $_GET['frame'];
+		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$_GET['eid'].")";
+		foreach (dbFetchAll($eventsSql) as $event) {
+		}
+		$fname = sprintf("%03d-capture.jpg", $frame);
+		$url = "./".ZM_DIR_EVENTS."/".getEventPath($event)."/".$fname;
+		header("Location: ".$url);
+		exit;
+
 	} else if (strcmp($action, "state") == 0) {
-		/* ACTION: Change the state of the system */
+		/* ACTION: Change the state of the system. Parms: <state> */
 		if (!canEdit('System')) {
 			error_log("User ".$user['Username']. " doesn't have edit System perms");
 			exit;
@@ -78,8 +105,9 @@ if (isset($_GET['action'])) {
 		$url = "./index.php?view=none&action=state&runState=".$_GET['state'];
 		header("Location: ".$url);
 		exit;
+
 	} else if (strcmp($action, "func") == 0) {
-		/* ACTION: Change state of the monitor */
+		/* ACTION: Change state of the monitor. Parms: <mid><func><en> */
 		if (!canEdit('Monitors')) {
 			error_log("User ".$user['Username']. " doesn't have monitors Edit perms");
 			exit;

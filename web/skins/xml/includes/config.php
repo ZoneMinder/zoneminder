@@ -20,6 +20,8 @@
 
 define ( "XML_PROTOCOL_VERSION", "2");
 define ( "XML_FEATURE_SET", "1");
+define ( "XML_EVENT_FPS", "10");
+define ( "XML_EVENT_VCODEC", "mpeg4");
 
 $rates = array(
     "10000" => "100x",

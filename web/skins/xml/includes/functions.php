@@ -29,6 +29,29 @@ body {
 	padding: 0px;
 }
 </style>
+	<script type="text/javascript">
+	function ajax(str) {
+		var xmlhttp;
+		if (window.XMLHttpRequest) {
+			xmlhttp = new XMLHttpRequest();
+		} else if (window.ActiveXObject) {
+			xmlhttp = new ActiveXObject("Microsoft.XMLHttp");
+		} else {
+		}
+		if (xmlhttp == null) {
+			return;
+		}
+		var url = str;
+		xmlhttp.onreadystatechange=function() {
+			if (xmlhttp.readyState == 4 || xmlhttp.readyState == "complete") {
+				alert('done');
+			}
+		}
+		alert('sending url ' + str);
+		xmlhttp.open("GET", str, true);
+		xmlhttp.send(null);
+	}
+	</script>
 </head>
 <?php
 }

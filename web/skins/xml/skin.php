@@ -27,4 +27,12 @@ foreach ( getSkinIncludes( 'includes/config.php' ) as $includeFile )
 foreach ( getSkinIncludes( 'includes/functions.php' ) as $includeFile )
     require_once $includeFile;
 
+if ( empty($view) )
+	$view = 'console';
+
+if ( !isset($user) && ZM_OPT_USE_AUTH )
+{
+	echo "Invalid Login";
+	exit;
+}
 ?>

@@ -24,7 +24,6 @@
  *
  * For questions, please email jdhar@eyezm.com (http://www.eyezm.com)
  *
- * Protocol Version 1, Updated 10/25/10
  */
 $eventCounts = array(
     array(
@@ -139,72 +138,6 @@ for ( $i = 0; $i < count($monitors); $i++ )
     $displayMonitors[] = $monitors[$i];
 }
 
-/* Parse any specific actions here */
-if (isset($_GET['action']) && (strcmp($_GET['action'],"login") != 0)) {
-	$action = $_GET['action'];
-	if (strcmp($action, "devent") == 0) {
-		if (!canEdit('Events')) {
-			error_log("User ".$user['Username']. " doesn't have edit Events perms");
-			exit;
-		}
-		$eid = validInt($_REQUEST['eid']);
-		$url = "./index.php?view=request&request=event&id=".$eid."&action=delete";
-		header("Location: ".$url);
-		exit;
-	} else if (strcmp($action, "feed") == 0) {
-		if (!canView('Stream')) {
-			error_log("User ".$user['Username']. " doesn't have view Stream perms");
-			exit;
-		}
-		$monitor = validInt($_REQUEST['monitor']);
-		if (isset($_GET['fps'])) $fps = $_GET['fps'];
-		else $fps = ZM_WEB_VIDEO_MAXFPS;
-		if (isset($_GET['scale'])) $scale = $_GET['scale'];
-		else $scale = 100;
-		$streamSrc = 
-			getStreamSrc( array( 
-				"mode=jpeg", 
-				"monitor=".$monitor, 
-			        "scale=".$scale,	
-				"maxfps=".$fps,
-				"buffer=1000" 
-			) );
-		noCacheHeaders();
-		xhtmlHeaders( __FILE__, "Stream" );
-		echo "<body>\n";
-		echo "<div style=\"border: 0px solid; padding: 0px; background-color: black; position: absolute; top: 0px; left; 0px; margin: 0px; width: ".$_GET['width']."px; height: ".$_GET['height']."px;\">\n";
-		outputImageStream("liveStream", $streamSrc, $_GET['width'], $_GET['height'], "stream");
-		echo "</div></body></html>";
-		exit;
-	} else if (strcmp($action, "vevent") == 0) {
-		if (!canView('Events')) {
-			error_log("User ".$user['Username']. " doesn't have view Events perms");
-			exit;
-		}
-		$baseURL = trim(shell_exec('pwd'))."/events/".$_REQUEST['mid']."/".$_REQUEST['eid']."/";
-		$relativeURL = "./events/".$_REQUEST['mid']."/".$_REQUEST['eid']."/";
-		$shellCmd = "ffmpeg -y -r ".$_REQUEST['fps']." -i ".$baseURL."%03d-capture.jpg -r 10 ".$baseURL."capture.mov 2> /dev/null";
-		shell_exec("rm -f ".$baseURL."capture.mov");
-		$shellOutput = shell_exec($shellCmd);
-		header("Location: ".$relativeURL."capture.mov");
-	} else if (strcmp($action, "state") == 0) {
-		if (!canEdit('System')) {
-			error_log("User ".$user['Username']. " doesn't have edit System perms");
-			exit;
-		}
-		$url = "./index.php?view=none&action=state&runState=".$_GET['state'];
-		header("Location: ".$url);
-		exit;
-	} else if (strcmp($action, "func") == 0) {
-		if (!canEdit('Monitors')) {
-			error_log("User ".$user['Username']. " doesn't have monitors Edit perms");
-			exit;
-		}
-		$url = "./index.php?view=none&action=function&mid=".$_GET['mid']."&newFunction=".$_GET['func']."&newEnabled=".$_GET['en'];
-		header("Location: ".$url);
-		exit;
-	}
-}
 $states = dbFetchAll("select * from States");
 /* XML Dump Starts here */
 xml_header();

@@ -63,8 +63,7 @@ if (isset($_GET['action'])) {
 		}
 		/* Grab event from the database */
 		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$_GET['eid'].")";
-		foreach (dbFetchAll($eventsSql) as $event) {
-		}
+		$event = dbFetchOne($eventsSql);
 		/* Calculate FPS */
 		$fps = getset('fps',ceil($event['Frames'] / $event['Length']));
 		$vcodec = getset('vcodec', XML_EVENT_VCODEC);
@@ -77,17 +76,40 @@ if (isset($_GET['action'])) {
 		exit;
 
 	} else if (strcmp($action, "vframe") == 0) {
-		/* ACTION: View a frame given by an event and frame-id. Parms: <eid><frame> */
+		/* ACTION: View a frame given by an event and frame-id. Parms: <eid> <frame> [alarm | analyze]
+		 * If 'alarm' is set, the returned frame will be the <frame>-th alarm frame. If 'analyze' is set,
+		 * the returned frame will be the %03d-analyse frame instead of %03d-capture, if ZM_CREATE_ANALYSIS_IMAGES
+		 * is set. Otherwise it just returns the captured frame */
 		if (!isset($_GET['eid']) || !isset($_GET['frame'])) {
 			error_log("Not all parameters set for action view-frame");
 			exit;
 		}
 		$eid = $_GET['eid'];
-		$frame = $_GET['frame'];
 		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$_GET['eid'].")";
-		foreach (dbFetchAll($eventsSql) as $event) {
+		$event = dbFetchOne($eventsSql);
+		/* Figure out the frame number. If 'alarm' is not set, this is just equal to the <frame> parameter.
+		 * If 'alarm' is set, need to query DB and grab the <frame>-th item */
+		if (isset($_GET['alarm'])) {
+			$frameSql = "select * from Frames as F where (F.EventId = ".$eid.") and (F.Type = 'Alarm') order by F.FrameId";
+			$i=0;
+			$frame = 0;
+			foreach (dbFetchAll($frameSql) as $dbframe) {
+				if ($i == $_GET['frame']) {
+					$frame = $dbframe['FrameId'];
+					break;
+				}
+				$i++;
+			}
+		} else {
+			$frame = $_GET['frame'];
 		}
-		$fname = sprintf("%03d-capture.jpg", $frame);
+		if (isset($_GET['analyze']) && ZM_CREATE_ANALYSIS_IMAGES) {
+			$suffix = "analyse";
+		} else {
+			$suffix = "capture";
+		}
+		/* Suffix based on 'analyze' */
+		$fname = sprintf("%03d-%s.jpg", $frame, $suffix);
 		$url = "./".ZM_DIR_EVENTS."/".getEventPath($event)."/".$fname;
 		header("Location: ".$url);
 		exit;

@@ -112,8 +112,13 @@ for ( $i = 0; $i < count($monitors); $i++ )
     {
         $maxSequence = $monitors[$i]['Sequence'];
     }
-    $monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
-    $monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
+    if (isset($_GET['nostatus'])) {
+	    $monitors[$i]['zmc'] = 1;
+	    $monitors[$i]['zma'] = 1;
+    } else {
+	    $monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
+	    $monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
+    }
     $monitors[$i]['ZoneCount'] = dbFetchOne( "select count(Id) as ZoneCount from Zones where MonitorId = '".$monitors[$i]['Id']."'", "ZoneCount" );
     $counts = array();
     for ( $j = 0; $j < count($eventCounts); $j++ )
@@ -137,7 +142,6 @@ for ( $i = 0; $i < count($monitors); $i++ )
     $seqIdList[] = $monitors[$i]['Id'];
     $displayMonitors[] = $monitors[$i];
 }
-
 $states = dbFetchAll("select * from States");
 /* XML Dump Starts here */
 xml_header();

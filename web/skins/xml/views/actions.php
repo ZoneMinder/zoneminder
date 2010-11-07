@@ -111,6 +111,9 @@ if (isset($_GET['action'])) {
 		/* Suffix based on 'analyze' */
 		$fname = sprintf("%03d-%s.jpg", $frame, $suffix);
 		$url = "./".ZM_DIR_EVENTS."/".getEventPath($event)."/".$fname;
+		if (!file_exists($url)) {
+			$url = "./skins/xml/views/notfound.png";
+		}
 		header("Location: ".$url);
 		exit;
 

@@ -68,10 +68,10 @@ if (isset($_GET['action'])) {
 		$fps = getset('fps',ceil($event['Frames'] / $event['Length']));
 		$vcodec = getset('vcodec', XML_EVENT_VCODEC);
 		$relativeURL = getEventPath($event);
-		$baseURL = ZM_PATH_WEB."/".ZM_DIR_EVENTS."/".getEventPath($event);
+		$baseURL = ZM_PATH_WEB."/".getEventPathSafe($event);
 		$shellCmd = "ffmpeg -y -r ".$fps." -i ".$baseURL."/%03d-capture.jpg -vcodec ".$vcodec." -r ".XML_EVENT_FPS." ".$baseURL."/capture.mov 2> /dev/null";
 		$shellOutput = shell_exec($shellCmd);
-		$url = "./".ZM_DIR_EVENTS."/".getEventPath($event)."/capture.mov";
+		$url = "./".getEventPathSafe($event)."/capture.mov";
 		header("Location: ".$url);
 		exit;
 
@@ -110,7 +110,7 @@ if (isset($_GET['action'])) {
 		}
 		/* Suffix based on 'analyze' */
 		$fname = sprintf("%03d-%s.jpg", $frame, $suffix);
-		$url = "./".ZM_DIR_EVENTS."/".getEventPath($event)."/".$fname;
+		$url = "./".getEventPathSafe($event)."/".$fname;
 		if (!file_exists($url)) {
 			$url = "./skins/xml/views/notfound.png";
 		}

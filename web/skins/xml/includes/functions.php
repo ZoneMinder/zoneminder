@@ -1,4 +1,13 @@
 <?php
+function getEventPathSafe($event)
+{
+	if (strcmp(ZM_VERSION, "1.24.3") == 0) {
+		$ret = ZM_DIR_EVENTS."/".getEventPath($event);
+	} else {
+		$ret = getEventPath($event);
+	}
+	return $ret;
+}
 function getset($varname, $defval)
 {
 	if (isset($_GET[$varname])) return $_GET[$varname];

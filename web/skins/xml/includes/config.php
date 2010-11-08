@@ -53,6 +53,18 @@ $bwArray = array(
     "low" => $SLANG['Low']
 );
 
+/* Check if ZM_WEB_L_CAN_STREAM and ZM_WEB_L_STREAM_METHOD are defined */
+if (!defined("ZM_WEB_L_CAN_STREAM")) {
+	define ("ZM_WEB_L_CAN_STREAM", 1);
+	define ("ZM_WEB_M_CAN_STREAM", 1);
+	define ("ZM_WEB_H_CAN_STREAM", 1);
+}
+if (!defined("ZM_WEB_L_STREAM_METHOD")) {
+	define ("ZM_WEB_L_STREAM_METHOD", "jpeg");
+	define ("ZM_WEB_M_STREAM_METHOD", "jpeg");
+	define ("ZM_WEB_H_STREAM_METHOD", "jpeg");
+}
+
 switch ( $_COOKIE['zmBandwidth'] )
 {
     case "high" :
@@ -99,7 +111,7 @@ switch ( $_COOKIE['zmBandwidth'] )
         define( "ZM_WEB_REFRESH_CYCLE", ZM_WEB_L_REFRESH_CYCLE );       // How often the cycle watch windows swaps to the next monitor
         define( "ZM_WEB_REFRESH_IMAGE", ZM_WEB_L_REFRESH_IMAGE );       // How often the watched image is refreshed (if not streaming)
         define( "ZM_WEB_REFRESH_STATUS", ZM_WEB_L_REFRESH_STATUS );     // How often the little status frame refreshes itself in the watch window
-        define( "ZM_WEB_REFRESH_EVENTS", ZM_WEB_L_REFRESH_EVENTS );     // How often the event listing is refreshed in the watch window, only for recent events
+	define( "ZM_WEB_REFRESH_EVENTS", ZM_WEB_L_REFRESH_EVENTS );     // How often the event listing is refreshed in the watch window, only for recent events
         define( "ZM_WEB_CAN_STREAM", ZM_WEB_L_CAN_STREAM );             // Override the automatic detection of browser streaming capability
         define( "ZM_WEB_STREAM_METHOD", ZM_WEB_L_STREAM_METHOD );       // Which method should be used to send video streams to your browser
         define( "ZM_WEB_DEFAULT_SCALE", ZM_WEB_L_DEFAULT_SCALE );       // What the default scaling factor applied to 'live' or 'event' views is (%)

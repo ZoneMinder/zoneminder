@@ -17,6 +17,7 @@ bin_PROGRAMS = \
 	zmu \
 	zms \
 	zmf \
+	zmstreamer \
 	zmfix
 
 zm_SOURCES = \
@@ -64,6 +65,7 @@ zma_SOURCES = zma.cpp $(zm_SOURCES)
 zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
 zmf_SOURCES = zmf.cpp $(zm_SOURCES)
+zmstreamer_SOURCES = zmstreamer.cpp $(zm_SOURCES)
 zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_regexp.cpp zm_debug.c zm_db.cpp zm.cpp
 
 noinst_HEADERS = \

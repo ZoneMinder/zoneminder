@@ -34,7 +34,7 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = zmc$(EXEEXT) zma$(EXEEXT) zmu$(EXEEXT) zms$(EXEEXT) \
-	zmf$(EXEEXT) zmfix$(EXEEXT)
+	zmf$(EXEEXT) zmstreamer$(EXEEXT) zmfix$(EXEEXT)
 subdir = src
 DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/zm_config.h.in
@@ -81,6 +81,9 @@ zmfix_LDADD = $(LDADD)
 am_zms_OBJECTS = zms.$(OBJEXT) $(am__objects_1)
 zms_OBJECTS = $(am_zms_OBJECTS)
 zms_LDADD = $(LDADD)
+am_zmstreamer_OBJECTS = zmstreamer.$(OBJEXT) $(am__objects_1)
+zmstreamer_OBJECTS = $(am_zmstreamer_OBJECTS)
+zmstreamer_LDADD = $(LDADD)
 am_zmu_OBJECTS = zmu.$(OBJEXT) $(am__objects_1)
 zmu_OBJECTS = $(am_zmu_OBJECTS)
 zmu_LDADD = $(LDADD)
@@ -98,9 +101,11 @@ CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
 SOURCES = $(zma_SOURCES) $(zmc_SOURCES) $(zmf_SOURCES) \
-	$(zmfix_SOURCES) $(zms_SOURCES) $(zmu_SOURCES)
+	$(zmfix_SOURCES) $(zms_SOURCES) $(zmstreamer_SOURCES) \
+	$(zmu_SOURCES)
 DIST_SOURCES = $(zma_SOURCES) $(zmc_SOURCES) $(zmf_SOURCES) \
-	$(zmfix_SOURCES) $(zms_SOURCES) $(zmu_SOURCES)
+	$(zmfix_SOURCES) $(zms_SOURCES) $(zmstreamer_SOURCES) \
+	$(zmu_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -291,6 +296,7 @@ zma_SOURCES = zma.cpp $(zm_SOURCES)
 zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
 zmf_SOURCES = zmf.cpp $(zm_SOURCES)
+zmstreamer_SOURCES = zmstreamer.cpp $(zm_SOURCES)
 zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_regexp.cpp zm_debug.c zm_db.cpp zm.cpp
 noinst_HEADERS = \
 	jinclude.h \
@@ -432,6 +438,9 @@ zmfix$(EXEEXT): $(zmfix_OBJECTS) $(zmfix_DEPENDENCIES)
 zms$(EXEEXT): $(zms_OBJECTS) $(zms_DEPENDENCIES) 
 	@rm -f zms$(EXEEXT)
 	$(CXXLINK) $(zms_OBJECTS) $(zms_LDADD) $(LIBS)
+zmstreamer$(EXEEXT): $(zmstreamer_OBJECTS) $(zmstreamer_DEPENDENCIES) 
+	@rm -f zmstreamer$(EXEEXT)
+	$(CXXLINK) $(zmstreamer_OBJECTS) $(zmstreamer_LDADD) $(LIBS)
 zmu$(EXEEXT): $(zmu_OBJECTS) $(zmu_DEPENDENCIES) 
 	@rm -f zmu$(EXEEXT)
 	$(CXXLINK) $(zmu_OBJECTS) $(zmu_LDADD) $(LIBS)
@@ -485,6 +494,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmfix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zms.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmstreamer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmu.Po@am__quote@
 
 .c.o:

@@ -198,7 +198,7 @@ foreach( $displayMonitors as $monitor )
 	$offset = 0;
 	if (isset($_GET['numEvents'])) {
 		$numEvents = $_GET['numEvents'];
-		$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,F.FrameId as MaxFrameId from Monitors as M inner join Events as E on (M.Id = E.MonitorId) and ( E.MonitorId = ".$monitor['Id']." ) inner join Frames as F on (E.Id = F.EventId) and (E.MaxScore = F.Score) and (F.Type = \"Alarm\") group by (E.Id) order by E.StartTime desc";
+		$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) and ( E.MonitorId = ".$monitor['Id']." ) order by E.StartTime desc";
 		$eventsSql .= " limit ".$numEvents;
 		/* If there is an pageOff<x> tag for this monitor, then retrieve the offset. Otherwise, don't specify offset */
 		if (isset($_GET['pageOff'.$monitor['Id']])) {
@@ -230,7 +230,10 @@ foreach( $displayMonitors as $monitor )
 			xml_tag_val("TOTSCORE", $event['TotScore']);
 			xml_tag_val("AVGSCORE", $event['AvgScore']);
 			xml_tag_val("MAXSCORE", $event['MaxScore']);
-			xml_tag_val("MAXFRAMEID", $event['MaxFrameId']);
+			/* Grab the max frame-id from Frames table */
+			$framesSql = "select FrameId from Frames where (Type = \"Alarm\") and (EventId = ".$event['Id'].") order by Score desc limit 1";
+			$fr = dbFetchOne($framesSql);
+			xml_tag_val("MAXFRAMEID", $fr['FrameId']);
 			xml_tag_sec("EVENT",0);
 		}
 	}

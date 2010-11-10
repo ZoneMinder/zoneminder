@@ -18,10 +18,19 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+/* Static defines, these shouldn't change */
 define ( "XML_PROTOCOL_VERSION", "2");
 define ( "XML_FEATURE_SET", "1");
-define ( "XML_EVENT_FPS", "10");
-define ( "XML_EVENT_VCODEC", "mpeg4");
+
+/* Dynamic defines, check if they are already defined */
+if (!defined("XML_EVENT_FPS")) define ( "XML_EVENT_FPS", "10");
+if (!defined("XML_EVENT_CODEC")) define ( "XML_EVENT_VCODEC", "mpeg4");
+if (!defined("XML_SEG_DURATION")) define ( "XML_SEG_DURATION", "3");
+if (!defined("XML_H264_DEBUG")) define ( "XML_H264_DEBUG", "0" );
+if (!defined("XML_H264_MAX_DURATION")) define ( "XML_H264_MAX_DURATION", "120" );
+if (!defined("XML_H264_DEFAULT_BR")) define ( "XML_H264_DEFAULT_BR", "96k" );
+if (!defined("XML_H264_DEFAULT_ON")) define ( "XML_H264_DEFAULT_ON", "0" );
+if (!defined("XML_H264_AUTOPLAY")) define ( "XML_H264_AUTOPLAY", "0" );
 
 $rates = array(
     "10000" => "100x",

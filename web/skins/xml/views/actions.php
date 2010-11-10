@@ -1,4 +1,12 @@
 <?php
+/* 
+ * actions.php is created by Jai Dhar, FPS-Tech, for use with eyeZm
+ * iPhone application. This is not intended for use with any other applications,
+ * although source-code is provided under GPL.
+ *
+ * For questions, please email jdhar@eyezm.com (http://www.eyezm.com)
+ *
+ */
 /* Parse any specific actions here */
 if (isset($_GET['action'])) {
 	$action = $_GET['action'];
@@ -17,8 +25,66 @@ if (isset($_GET['action'])) {
 		header("Location: ".$url);
 		exit;
 
+	} else if (strcmp($action, "spawn264") == 0) {
+		/* ACTION: Spawn 264 streaming process.
+		 * Parms: <monitor><width><height>[br] */
+		if (!isset($_GET['monitor']) || !isset($_GET['width']) || !isset($_GET['height'])) {
+			error_log("Not all parameters specified for spawn264");
+			exit;
+		}
+		$width = validInt($_GET['width']);
+		$height = validInt($_GET['height']);
+		$monitor = validInt($_REQUEST['monitor']);
+		$br = getset('br', XML_H264_DEFAULT_BR);
+		$streamUrl = stream264fn($monitor, $width, $height, $br);
+		//trigger_error("Stream URL is ".$streamUrl, E_USER_NOTICE);
+		$pid = shell_exec($streamUrl);
+		trigger_error("Streaming Process for monitor ".$monitor." ended, cleaning up files", E_USER_NOTICE);
+		eraseH264Files($monitor);
+		exit;
+
+	} else if (strcmp($action, "kill264") == 0) {
+		/* ACTION: Kill existing H264 stream process and cleanup files.
+		 * Parms: <monitor>.
+		 * NOTE: This will be called directly by path, so include files
+		 * may not be available */
+		require_once(dirname(__FILE__)."/../includes/functions.php");
+		if (!isset($_GET['monitor'])) {
+			error_log("Not all parameters specified for kill264");
+			exit;
+		}
+		$monitor = $_GET['monitor'];
+		kill264proc($monitor);
+		trigger_error("Killed Segmenter process for monitor ".$monitor, E_USER_NOTICE);
+		exit;
+
+	} else if (strcmp($action, "chk264") == 0) {
+		/* ACTION: Simply stalls while checking for 264 file.
+		 * Parms: <monitor> 
+		 * NOTE: This will be called directly by path, so include files
+		 * may not be available */
+		if (!isset($_GET['monitor'])) {
+			error_log("Monitor not specified for chk264");
+			exit;
+		}
+		$monitor = $_GET['monitor'];
+		require_once(dirname(__FILE__)."/../includes/functions.php");
+		$path = getTempDir()."/".m3u8fname($monitor);
+		/* Setup timeout */
+		$startTime = time();
+		$timeout = 10;
+		while (!file_exists($path)) {
+			if (time() > $startTime + $timeout) {
+				error_log("Timed out waiting for stream to start, exiting...");
+				kill264proc($monitor);
+				exit;
+			}
+		}
+		trigger_error("File exists, stream created after ".(time()-$startTime)." sec", E_USER_NOTICE);
+		exit;
+
 	} else if (strcmp($action, "feed") == 0) {
-		/* ACTION: View a feed. Parms: <monitor><img. width><img. height> [fps|scale] */
+		/* ACTION: View a feed. Parms: <monitor><img. width><img. height> [fps|scale|h264|br] */
 		if (!canView('Stream')) {
 			error_log("User ".$user['Username']. " doesn't have view Stream perms");
 			exit;
@@ -35,20 +101,33 @@ if (isset($_GET['action'])) {
 		else $fps = ZM_WEB_VIDEO_MAXFPS;
 		if (isset($_GET['scale'])) $scale = $_GET['scale'];
 		else $scale = 100;
-		$streamSrc = 
-			getStreamSrc( array( 
-				"mode=jpeg", 
-				"monitor=".$monitor, 
-			        "scale=".$scale,	
-				"maxfps=".$fps,
-				"buffer=1000" 
-			) );
-		noCacheHeaders();
-		xhtmlHeaders( __FILE__, "Stream" );
-		echo "<body>\n";
-		echo "<div style=\"border: 0px solid; padding: 0px; background-color: black; position: absolute; top: 0px; left; 0px; margin: 0px; width: ".$width."px; height: ".$height."px;\">\n";
-		outputImageStream("liveStream", $streamSrc, $width, $height, "stream");
-		echo "</div></body></html>";
+		$h264 = getset('h264', XML_H264_DEFAULT_ON);
+		if (($h264 == "1") && canStream264()) {
+			$br = getset('br', "XML_H264_DEFAULT_BR");
+			/* H264 processing */
+			noCacheHeaders();
+			/* Kill any existing processes and files */
+			kill264proc($monitor);
+			eraseH264Files($monitor);
+			/* Generate H264 Web-page */
+			h264vidHtml($width, $height, $monitor, $br);
+		} else {
+			/* MJPEG streaming */
+			$streamSrc = 
+				getStreamSrc( array( 
+					"mode=jpeg", 
+					"monitor=".$monitor, 
+					"scale=".$scale,	
+					"maxfps=".$fps,
+					"buffer=1000" 
+				) );
+			noCacheHeaders();
+			xhtmlHeaders( __FILE__, "Stream" );
+			echo "<body>\n";
+			echo "<div style=\"border: 0px solid; padding: 0px; background-color: black; position: absolute; top: 0px; left; 0px; margin: 0px; width: ".$width."px; height: ".$height."px;\">\n";
+			outputImageStream("liveStream", $streamSrc, $width, $height, "stream");
+			echo "</div></body></html>";
+		}
 		exit;
 
 	} else if (strcmp($action, "vevent") == 0) {

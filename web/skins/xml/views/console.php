@@ -18,7 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-/* console_xml.php is updated by Jai Dhar, FPS-Tech, for use with eyeZm
+/* 
+ * console_xml.php is updated by Jai Dhar, FPS-Tech, for use with eyeZm
  * iPhone application. This is not intended for use with any other applications,
  * although source-code is provided under GPL.
  *

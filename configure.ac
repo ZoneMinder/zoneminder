@@ -325,7 +325,9 @@ AC_PROG_PERL_MODULES(X10::ActiveHome,,AC_MSG_WARN(X10::ActiveHome is required fo
 
 AC_DEFINE_DIR([BINDIR],[bindir],[Expanded binary directory])
 AC_DEFINE_DIR([LIBDIR],[libdir],[Expanded library directory])
+if test "$RUNDIR" == ""; then
 AC_SUBST(RUNDIR,"/var/run")
+fi
 AC_SUBST(ZM_RUNDIR,"$RUNDIR/zm")
 AC_SUBST(ZM_PID,"$ZM_RUNDIR/zm.pid")
 AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])

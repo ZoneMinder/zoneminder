@@ -9235,8 +9235,10 @@ _ACEOF
   test "$prefix_NONE" && prefix=NONE
   test "$exec_prefix_NONE" && exec_prefix=NONE
 
+if test "$RUNDIR" == ""; then
 RUNDIR="/var/run"
 
+fi
 ZM_RUNDIR="$RUNDIR/zm"
 
 ZM_PID="$ZM_RUNDIR/zm.pid"

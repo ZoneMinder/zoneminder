@@ -103,7 +103,7 @@ bool User::canAccess( int monitor_id )
 // Function to load a user from username and password
 User *zmLoadUser( const char *username, const char *password )
 {
-	char sql[BUFSIZ] = "";
+    char sql[ZM_SQL_SML_BUFSIZ] = "";
 
 	if ( password )
 	{
@@ -170,7 +170,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 	}
 
 	Debug( 1, "Attempting to authenticate user from auth string '%s'", auth );
-	char sql[BUFSIZ] = "";
+    char sql[ZM_SQL_SML_BUFSIZ] = "";
 	snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1" );
 
 	if ( mysql_query( &dbconn, sql ) )

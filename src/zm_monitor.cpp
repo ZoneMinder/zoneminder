@@ -719,7 +719,7 @@ void Monitor::actionEnable()
 {
     shared_data->action |= RELOAD;
 
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf( sql, sizeof(sql), "update Monitors set Enabled = 1 where Id = '%d'", id );
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -732,7 +732,7 @@ void Monitor::actionDisable()
 {
     shared_data->action |= RELOAD;
 
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf( sql, sizeof(sql), "update Monitors set Enabled = 0 where Id = '%d'", id );
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1545,7 +1545,7 @@ void Monitor::Reload()
 
     closeEvent();
 
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_MED_BUFSIZ];
     snprintf( sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = '%d'", id );
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1693,9 +1693,9 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
             linked_monitors = new MonitorLink *[n_linked_monitors];
             for ( int i = 0; i < n_linked_monitors; i++ )
             {
-                static char sql[BUFSIZ];
                 Debug( 1, "Checking linked monitor %d", link_ids[i] );
 
+                static char sql[ZM_SQL_SML_BUFSIZ];
                 snprintf( sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
                 if ( mysql_query( &dbconn, sql ) )
                 {
@@ -1728,7 +1728,7 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
 
 int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose )
 {
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !device[0] )
     {
         strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
@@ -1867,7 +1867,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 
 int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose )
 {
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !protocol )
     {
         strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
@@ -2029,7 +2029,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 
 int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose )
 {
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !file[0] )
     {
         strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
@@ -2157,7 +2157,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 #if HAVE_LIBAVFORMAT
 int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose )
 {
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !file[0] )
     {
         strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
@@ -2285,7 +2285,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_MED_BUFSIZ];
     snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
     if ( mysql_query( &dbconn, sql ) )
     {

@@ -34,6 +34,12 @@
 #define ZM_SCALE_BASE			100					// The factor by which we bump up 'scale' to simulate FP
 #define ZM_RATE_BASE			100					// The factor by which we bump up 'rate' to simulate FP
 
+#define ZM_SQL_SML_BUFSIZ       256                 // Size of SQL buffer
+#define ZM_SQL_MED_BUFSIZ       1024                // Size of SQL buffer
+#define ZM_SQL_LGE_BUFSIZ       8192                // Size of SQL buffer
+
+#define ZM_NETWORK_BUFSIZ       32768               // Size of network buffer
+
 #define ZM_MAX_FPS              30                  // The maximum frame rate we expect to handle
 #define ZM_SAMPLE_RATE          int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
 #define ZM_SUSPENDED_RATE       int(1000000/4) // A slower rate for when disabled etc

@@ -176,7 +176,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
 	int total_bytes_read = 0;
 	do
 	{
-		static unsigned char temp_buffer[5*BUFSIZ];
+		static unsigned char temp_buffer[ZM_NETWORK_BUFSIZ];
 		int bytes_to_read = total_bytes_to_read>sizeof(temp_buffer)?sizeof(temp_buffer):total_bytes_to_read;
 		int bytes_read = read( sd, temp_buffer, bytes_to_read );
 

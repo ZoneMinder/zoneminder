@@ -67,7 +67,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         gettimeofday( &start_time, 0 );
     }
 
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_MED_BUFSIZ];
 
     struct tm *stime = localtime( &start_time.tv_sec );
     snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str() );
@@ -167,7 +167,7 @@ Event::~Event()
         DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
 
         Debug( 1, "Adding closing frame %d to DB", frames );
-        static char sql[BUFSIZ];
+        static char sql[ZM_SQL_SML_BUFSIZ];
         snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )", id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
         if ( mysql_query( &dbconn, sql ) )
         {
@@ -176,7 +176,7 @@ Event::~Event()
         }
     }
 
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_MED_BUFSIZ];
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
@@ -418,11 +418,11 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap )
         createNotes( notes );
 
         Debug( 2, "Updating notes for event %d, '%s'", id, notes.c_str() );
-        static char sql[BUFSIZ];
+        static char sql[ZM_SQL_MED_BUFSIZ];
 #if USE_PREPARED_SQL
         static MYSQL_STMT *stmt = 0;
 
-        char notesStr[BUFSIZ] = "";
+        char notesStr[ZM_SQL_MED_BUFSIZ] = "";
         unsigned long notesLen = 0;
 
         if ( !stmt )
@@ -471,7 +471,7 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap )
             Fatal( "Unable to execute sql '%s': %s", sql, mysql_stmt_error(stmt) );
         }
 #else
-        static char escapedNotes[BUFSIZ];
+        static char escapedNotes[ZM_SQL_MED_BUFSIZ];
 
         mysql_real_escape_string( &dbconn, escapedNotes, notes.c_str(), notes.length() );
 
@@ -486,8 +486,8 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap )
 
 void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps )
 {
-    static char sql[BUFSIZ];
-    strncpy( sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", BUFSIZ );
+    static char sql[ZM_SQL_LGE_BUFSIZ];
+    strncpy( sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", sizeof(sql) );
     int frameCount = 0;
     for ( int i = 0; i < n_frames; i++ )
     {
@@ -557,7 +557,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
         const char *frame_type = score>0?"Alarm":(score<0?"Bulk":"Normal");
 
         Debug( 1, "Adding frame %d to DB", frames );
-        static char sql[BUFSIZ];
+        static char sql[ZM_SQL_MED_BUFSIZ];
         snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type, timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
         if ( mysql_query( &dbconn, sql ) )
         {
@@ -641,7 +641,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
 bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
 {
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_SML_BUFSIZ];
 
     snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %d and unix_timestamp( EndTime ) > %ld order by Id asc limit 1", monitor_id, event_time );
 
@@ -713,7 +713,7 @@ bool EventStream::loadInitialEventData( int init_event_id, int init_frame_id )
 
 bool EventStream::loadEventData( int event_id )
 {
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_MED_BUFSIZ];
 
     snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.Frames, unix_timestamp( StartTime ) as StartTimestamp, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
 
@@ -1106,7 +1106,7 @@ void EventStream::processCommand( const CmdMsg *msg )
 void EventStream::checkEventLoaded()
 {
     bool reload_event = false;
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_SML_BUFSIZ];
 
     if ( curr_frame_id <= 0 )
     {

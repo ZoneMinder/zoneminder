@@ -291,7 +291,7 @@ int RtpCtrlThread::run()
     Select select( 10 );
     select.addReader( &rtpCtrlServer );
 
-    unsigned char buffer[BUFSIZ];
+    unsigned char buffer[ZM_NETWORK_BUFSIZ];
     while ( !mStop && select.wait() >= 0 )
     {
         if ( mStop )

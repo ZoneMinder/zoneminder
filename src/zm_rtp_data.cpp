@@ -78,7 +78,7 @@ int RtpDataThread::run()
     Select select( 3 );
     select.addReader( &rtpDataSocket );
 
-    unsigned char buffer[BUFSIZ];
+    unsigned char buffer[ZM_NETWORK_BUFSIZ];
     while ( !mStop && select.wait() >= 0 )
     {
          if ( mStop )

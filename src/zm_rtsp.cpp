@@ -72,7 +72,7 @@ bool RtspThread::recvResponse( std::string &response )
     Debug( 2, "Received RTSP response: %s (%zd bytes)", response.c_str(), response.size() );
     float respVer = 0;
     int respCode = -1;
-    char respText[BUFSIZ];
+    char respText[ZM_NETWORK_BUFSIZ];
     if ( sscanf( response.c_str(), "RTSP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 )
     {
         if ( isalnum(response[0]) )
@@ -99,7 +99,7 @@ int RtspThread::requestPorts()
 {
     if ( !smMinDataPort )
     {
-        char sql[BUFSIZ];
+        char sql[ZM_SQL_SML_BUFSIZ];
         strncpy( sql, "select Id from Monitors where Function != 'None' and Type = 'Remote' and Protocol = 'rtsp' and Method = 'rtpUni' order by Id asc", sizeof(sql) );
         if ( mysql_query( &dbconn, sql ) )
         {
@@ -202,7 +202,7 @@ int RtspThread::run()
     std::string message;
     std::string response;
 
-    response.reserve( BUFSIZ );
+    response.reserve( ZM_NETWORK_BUFSIZ );
 
     if ( !mRtspSocket.connect( mHost.c_str(), strtol( mPort.c_str(), NULL, 10 ) ) )
         Fatal( "Unable to connect RTSP socket" );
@@ -550,7 +550,7 @@ int RtspThread::run()
             Select select( double(config.http_timeout)/1000.0 );
             select.addReader( &mRtspSocket );
 
-            Buffer buffer( 10*BUFSIZ );
+            Buffer buffer( ZM_NETWORK_BUFSIZ );
             time_t lastKeepalive = time(NULL);
             std::string keepaliveMessage = "OPTIONS * RTSP/1.0\r\n";
             std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
@@ -563,7 +563,7 @@ int RtspThread::run()
                     break;
                 }
 
-                static char tempBuffer[10*BUFSIZ];
+                static char tempBuffer[ZM_NETWORK_BUFSIZ];
                 ssize_t nBytes = mRtspSocket.recv( tempBuffer, sizeof(tempBuffer) );
                 buffer.append( tempBuffer, nBytes );
                 Debug( 4, "Read %zd bytes on sd %d, %d total", nBytes, mRtspSocket.getReadDesc(), buffer.size() );

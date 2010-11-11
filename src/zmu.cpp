@@ -666,7 +666,7 @@ int main( int argc, char *argv[] )
 
 		if ( function & ZMU_LIST )
 		{
-			char sql[BUFSIZ];
+           char sql[ZM_SQL_SML_BUFSIZ];
 			strncpy( sql, "select Id, Function+0 from Monitors", sizeof(sql) );
 			if ( !verbose )
 			{

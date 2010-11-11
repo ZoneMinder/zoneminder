@@ -137,7 +137,7 @@ int main( int argc, char *argv[] )
     zmLoadConfig();
 
     // Only do registered devices
-    static char sql[BUFSIZ];
+    static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf( sql, sizeof(sql), "select distinct Device from Monitors where not isnull(Device) and Type = 'Local'" );
     if ( mysql_query( &dbconn, sql ) )
     {

@@ -1710,6 +1710,30 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		readonly => 1,
 		category => "dynamic",
 	},
+	{
+		name => "ZM_XML_H264_DEFAULT_BR",
+		default => "96k",
+		description => "Default bit-rate to use with FFMPEG for H264 streaming",
+		help => "When using the XML Plugin to stream H264 data, FFMPEG requires a bitrate to control the quality and bandwidth of the video. This should be specified in a format acceptable to FFMPEG. The default value is sufficient for most installations",
+		type => $types{string},
+		category => "XML",
+	},
+	{
+		name => "ZM_XML_DEBUG",
+		default => "no",
+		description => "Switch additional debugging on for XML Plugin",
+		help => "Enable or Disable extra debugging from the XML Plugin. Extra debugging information will be displayed in your Apache error log, or whichever location PHP errors are logged to",
+		type => $types{boolean},
+		category => "XML",
+	},
+	{
+		name => "ZM_XML_EVENT_VCODEC",
+		default => "mpeg4",
+		description => "Default video-codec to use for encoding events",
+		help => "The XML Plug calls FFMPEG externally to encode the captured images, and uses MPEG-4 has a default codec. If your FFMPEG is not built with support for MPEG-4, change this to MJPEG or something else FFMPEG supports.",
+		type => $types{string},
+		category => "XML",
+	},
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;

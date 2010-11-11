@@ -18,6 +18,11 @@ function getEventPathSafe($event)
 	}
 	return $ret;
 }
+function logXml($str)
+{
+	if (!defined("ZM_XML_DEBUG")) define ( "ZM_XML_DEBUG", "0" );
+	if (ZM_XML_DEBUG == 1) trigger_error("XML_LOG: ".$str, E_USER_NOTICE);
+}
 /* Returns defval if varname is not set, otherwise return varname */
 function getset($varname, $defval)
 {
@@ -85,7 +90,7 @@ function canStream264() {
 		error_log("FFMPEG doesn't support libx264");
 		return 0;
 	}
-	trigger_error("Determined can stream for H264", E_USER_NOTICE);
+	logXml("Determined can stream for H264");
 	return 1;
 }
 /** Returns the temp directory for H264 encoding */
@@ -107,19 +112,19 @@ function eraseH264Files($monitor) {
 function kill264proc($monitor) {
 	$pid = trim(shell_exec("pgrep -f -x \"zmstreamer -m ".$monitor."\""));
 	if ($pid == "") {
-		trigger_error("No PID found for ZMStreamer to kill", E_USER_NOTICE);
+		logXml("No PID found for ZMStreamer to kill");
 	} else {
 		shell_exec("kill -9 ".$pid);
-		trigger_error("Killed process ".$pid." for Monitor ".$monitor);
+		logXml("Killed process ".$pid." for Monitor ".$monitor);
 	}
 }
 /** Return the command-line shell function to setup H264 stream */
 function stream264fn ($mid, $width, $height, $br) {
 	$cdir = "./temp";
-	$zmstrm = "zmstreamer -m ".$mid.(XML_H264_DEBUG?"":" 2> /dev/null");
-	$seg = "segmenter - ".XML_SEG_DURATION." ".$cdir."/sample_".$mid." ".$cdir."/".m3u8fname($mid)." ../".(XML_H264_DEBUG?"":" 2> /dev/null");
-	$ffparms = "-f mpegts -analyzeduration 0 -acodec copy -s ".$width."x".$height." -vcodec libx264 -b ".$br." -flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -trellis 1 -refs 1 -coder 0 -me_range 16 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 -bt 200k -maxrate ".$br." -bufsize ".$br." -rc_eq 'blurCplx^(1-qComp)' -qcomp 0.6 -qmin 10 -qmax 51 -qdiff 4 -level 30 -aspect ".$width.":".$height." -g 30 -analyzeduration 0 -async 2 -".(XML_H264_DEBUG?"":" 2> /dev/null");
-	$url = $zmstrm . " | ffmpeg -t ".XML_H264_MAX_DURATION." -analyzeduration 0 -i - ". $ffparms . " | " . $seg;
+	$zmstrm = "zmstreamer -m ".$mid.(ZM_XML_DEBUG?"":" 2> /dev/null");
+	$seg = "segmenter - ".ZM_XML_SEG_DURATION." ".$cdir."/sample_".$mid." ".$cdir."/".m3u8fname($mid)." ../".(ZM_XML_DEBUG?"":" 2> /dev/null");
+	$ffparms = "-f mpegts -analyzeduration 0 -acodec copy -s ".$width."x".$height." -vcodec libx264 -b ".$br." -flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -trellis 1 -refs 1 -coder 0 -me_range 16 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 -bt 200k -maxrate ".$br." -bufsize ".$br." -rc_eq 'blurCplx^(1-qComp)' -qcomp 0.6 -qmin 10 -qmax 51 -qdiff 4 -level 30 -aspect ".$width.":".$height." -g 30 -analyzeduration 0 -async 2 -".(ZM_XML_DEBUG?"":" 2> /dev/null");
+	$url = $zmstrm . " | ffmpeg -t ".ZM_XML_H264_MAX_DURATION." -analyzeduration 0 -i - ". $ffparms . " | " . $seg;
 	return "nohup ".$url." & echo $!";
 }
 
@@ -141,6 +146,7 @@ function h264vidHtml($width, $height, $monitor, $br) {
 		var ajaxKill = new AjaxConnection("<?php echo $ajax3Url;?>");
 		ajaxKill.connect("cbKilled");
 		pElement.stop();
+		pElement.src="";
 		
 	}
 	/* Callback when spawn264 process is ended */
@@ -173,8 +179,11 @@ function h264vidHtml($width, $height, $monitor, $br) {
 		document.getElementById("viddiv").style.display = "block";
 		document.getElementById("loaddiv").style.display = "none";
 		var pElement = document.getElementById("vidcontainer");
+<?php
+		echo "pElement.src=\"./temp/".m3u8fname($monitor)."\"\n";
+?>
 		pElement.load();
-<?php if (XML_H264_AUTOPLAY == 1) { ?>
+<?php if (ZM_XML_H264_AUTOPLAY == 1) { ?>
 		window.setTimeout("startVid()", 1000);
 <?php } ?>
 	}
@@ -224,7 +233,7 @@ body {
 <body>
 <div id="viddiv" style="display: none;">
 <?php
-		echo "<video id=\"vidcontainer\" width='".$width."' height='".$height."' src=\"./temp/".m3u8fname($monitor)."\" />\n";
+		echo "<video id=\"vidcontainer\" width='".$width."' height='".$height."' />\n";
 ?>
 </div>
 <div id="loaddiv" class="textcl">

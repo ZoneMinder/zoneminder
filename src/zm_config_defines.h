@@ -190,9 +190,12 @@
 #define ZM_DYN_NEXT_REMINDER 186
 #define ZM_DYN_DONATE_REMINDER_TIME 187
 #define ZM_DYN_SHOW_DONATE_REMINDER 188
+#define ZM_XML_H264_DEFAULT_BR 189
+#define ZM_XML_DEBUG 190
+#define ZM_XML_EVENT_VCODEC 191
 
 
-#define ZM_MAX_CFG_ID 188
+#define ZM_MAX_CFG_ID 191
 
 #define ZM_CFG_DECLARE_LIST \
 	const char *lang_default;\
@@ -384,6 +387,9 @@
 	const char *dyn_next_reminder;\
 	int dyn_donate_reminder_time;\
 	bool dyn_show_donate_reminder;\
+	const char *xml_h264_default_br;\
+	bool xml_debug;\
+	const char *xml_event_vcodec;\
 
 
 #define ZM_CFG_ASSIGN_LIST \
@@ -576,5 +582,8 @@
 	dyn_next_reminder = (const char *)config.Item( ZM_DYN_NEXT_REMINDER );\
 	dyn_donate_reminder_time = (int)config.Item( ZM_DYN_DONATE_REMINDER_TIME );\
 	dyn_show_donate_reminder = (bool)config.Item( ZM_DYN_SHOW_DONATE_REMINDER );\
+	xml_h264_default_br = (const char *)config.Item( ZM_XML_H264_DEFAULT_BR );\
+	xml_debug = (bool)config.Item( ZM_XML_DEBUG );\
+	xml_event_vcodec = (const char *)config.Item( ZM_XML_EVENT_VCODEC );\
 
 

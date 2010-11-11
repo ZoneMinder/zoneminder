@@ -35,11 +35,11 @@ if (isset($_GET['action'])) {
 		$width = validInt($_GET['width']);
 		$height = validInt($_GET['height']);
 		$monitor = validInt($_REQUEST['monitor']);
-		$br = getset('br', XML_H264_DEFAULT_BR);
+		$br = getset('br', ZM_XML_H264_DEFAULT_BR);
 		$streamUrl = stream264fn($monitor, $width, $height, $br);
-		//trigger_error("Stream URL is ".$streamUrl, E_USER_NOTICE);
+		logXml("Using H264 Pipe Function: ".$streamUrl);
 		$pid = shell_exec($streamUrl);
-		trigger_error("Streaming Process for monitor ".$monitor." ended, cleaning up files", E_USER_NOTICE);
+		logXml("Streaming Process for monitor ".$monitor." ended, cleaning up files");
 		eraseH264Files($monitor);
 		exit;
 
@@ -55,7 +55,7 @@ if (isset($_GET['action'])) {
 		}
 		$monitor = $_GET['monitor'];
 		kill264proc($monitor);
-		trigger_error("Killed Segmenter process for monitor ".$monitor, E_USER_NOTICE);
+		logXml("Killed Segmenter process for monitor ".$monitor);
 		exit;
 
 	} else if (strcmp($action, "chk264") == 0) {
@@ -80,7 +80,7 @@ if (isset($_GET['action'])) {
 				exit;
 			}
 		}
-		trigger_error("File exists, stream created after ".(time()-$startTime)." sec", E_USER_NOTICE);
+		logXml("File exists, stream created after ".(time()-$startTime)." sec");
 		exit;
 
 	} else if (strcmp($action, "feed") == 0) {
@@ -101,9 +101,9 @@ if (isset($_GET['action'])) {
 		else $fps = ZM_WEB_VIDEO_MAXFPS;
 		if (isset($_GET['scale'])) $scale = $_GET['scale'];
 		else $scale = 100;
-		$h264 = getset('h264', XML_H264_DEFAULT_ON);
+		$h264 = getset('h264', ZM_XML_H264_DEFAULT_ON);
 		if (($h264 == "1") && canStream264()) {
-			$br = getset('br', "XML_H264_DEFAULT_BR");
+			$br = getset('br', ZM_XML_H264_DEFAULT_BR);
 			/* H264 processing */
 			noCacheHeaders();
 			/* Kill any existing processes and files */
@@ -145,10 +145,10 @@ if (isset($_GET['action'])) {
 		$event = dbFetchOne($eventsSql);
 		/* Calculate FPS */
 		$fps = getset('fps',ceil($event['Frames'] / $event['Length']));
-		$vcodec = getset('vcodec', XML_EVENT_VCODEC);
+		$vcodec = getset('vcodec', ZM_XML_EVENT_VCODEC);
 		$relativeURL = getEventPath($event);
 		$baseURL = ZM_PATH_WEB."/".getEventPathSafe($event);
-		$shellCmd = "ffmpeg -y -r ".$fps." -i ".$baseURL."/%03d-capture.jpg -vcodec ".$vcodec." -r ".XML_EVENT_FPS." ".$baseURL."/capture.mov 2> /dev/null";
+		$shellCmd = "ffmpeg -y -r ".$fps." -i ".$baseURL."/%03d-capture.jpg -vcodec ".$vcodec." -r ".ZM_XML_EVENT_FPS." ".$baseURL."/capture.mov 2> /dev/null";
 		$shellOutput = shell_exec($shellCmd);
 		$url = "./".getEventPathSafe($event)."/capture.mov";
 		header("Location: ".$url);

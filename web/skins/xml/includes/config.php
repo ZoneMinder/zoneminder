@@ -19,18 +19,18 @@
 //
 
 /* Static defines, these shouldn't change */
-define ( "XML_PROTOCOL_VERSION", "2");
-define ( "XML_FEATURE_SET", "1");
+define ( "ZM_XML_PROTOCOL_VERSION", "2");
+define ( "ZM_XML_FEATURE_SET", "1");
 
 /* Dynamic defines, check if they are already defined */
-if (!defined("XML_EVENT_FPS")) define ( "XML_EVENT_FPS", "10");
-if (!defined("XML_EVENT_CODEC")) define ( "XML_EVENT_VCODEC", "mpeg4");
-if (!defined("XML_SEG_DURATION")) define ( "XML_SEG_DURATION", "3");
-if (!defined("XML_H264_DEBUG")) define ( "XML_H264_DEBUG", "0" );
-if (!defined("XML_H264_MAX_DURATION")) define ( "XML_H264_MAX_DURATION", "120" );
-if (!defined("XML_H264_DEFAULT_BR")) define ( "XML_H264_DEFAULT_BR", "96k" );
-if (!defined("XML_H264_DEFAULT_ON")) define ( "XML_H264_DEFAULT_ON", "0" );
-if (!defined("XML_H264_AUTOPLAY")) define ( "XML_H264_AUTOPLAY", "0" );
+if (!defined("ZM_XML_EVENT_FPS")) define ( "ZM_XML_EVENT_FPS", "10");
+if (!defined("ZM_XML_EVENT_VCODEC")) define ( "ZM_XML_EVENT_VCODEC", "mpeg4");
+if (!defined("ZM_XML_SEG_DURATION")) define ( "ZM_XML_SEG_DURATION", "3");
+if (!defined("ZM_XML_DEBUG")) define ( "ZM_XML_DEBUG", "0" );
+if (!defined("ZM_XML_H264_MAX_DURATION")) define ( "ZM_XML_H264_MAX_DURATION", "120" );
+if (!defined("ZM_XML_H264_DEFAULT_BR")) define ( "ZM_XML_H264_DEFAULT_BR", "96k" );
+if (!defined("ZM_XML_H264_DEFAULT_ON")) define ( "ZM_XML_H264_DEFAULT_ON", "0" );
+if (!defined("ZM_XML_H264_AUTOPLAY")) define ( "ZM_XML_H264_AUTOPLAY", "0" );
 
 $rates = array(
     "10000" => "100x",

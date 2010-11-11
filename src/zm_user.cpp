@@ -148,6 +148,16 @@ User *zmLoadUser( const char *username, const char *password )
 User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 {
 #if HAVE_DECL_MD5
+#ifdef HAVE_GCRYPT_H
+    // Special initialisation for libgcrypt
+    if ( !gcry_check_version( GCRYPT_VERSION ) )
+    {
+        Fatal( "Unable to initialise libgcrypt" );
+    }
+    gcry_control( GCRYCTL_DISABLE_SECMEM, 0 );
+    gcry_control( GCRYCTL_INITIALIZATION_FINISHED, 0 );
+#endif // HAVE_GCRYPT_H
+
 	const char *remote_addr = "";
 	if ( use_remote_addr )
 	{

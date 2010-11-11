@@ -47,6 +47,9 @@
 /* Define to 1 if you have the <ffmpeg/swscale.h> header file. */
 #undef HAVE_FFMPEG_SWSCALE_H
 
+/* Define to 1 if you have the <gcrypt.h> header file. */
+#undef HAVE_GCRYPT_H
+
 /* Define to 1 if you have the `gethostbyname' function. */
 #undef HAVE_GETHOSTBYNAME
 
@@ -97,6 +100,9 @@
 
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
+
+/* Define to 1 if you have the `gcrypt' library (-lgcrypt). */
+#undef HAVE_LIBGCRYPT
 
 /* Define to 1 if you have the `gnutls-openssl' library (-lgnutls-openssl). */
 #undef HAVE_LIBGNUTLS_OPENSSL

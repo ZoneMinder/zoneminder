@@ -153,6 +153,7 @@ xml_tag_val("RUNNING", $running);
 xml_tag_val("PROTOVER", ZM_XML_PROTOCOL_VERSION);
 xml_tag_val("FEATURESET", ZM_XML_FEATURE_SET);
 xml_tag_val("VERSION", ZM_VERSION);
+xml_tag_val("CANSTR264", canStream264());
 xml_tag_val("USER", $user['Username']);
 xml_tag_val("UID", $user['Id']);
 xml_tag_sec("PERMS", 1);

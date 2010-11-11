@@ -227,6 +227,7 @@ body {
 	font-size: larger;
 	width: 100%;
 	color: white;
+<?php echo "margin-top: ".($height/2)."px;"; ?>
 }
 </style>
 </head>

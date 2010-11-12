@@ -27,14 +27,19 @@ if (isset($_GET['action'])) {
 
 	} else if (strcmp($action, "spawn264") == 0) {
 		/* ACTION: Spawn 264 streaming process.
-		 * Parms: <monitor><width><height>[br] */
-		if (!isset($_GET['monitor']) || !isset($_GET['width']) || !isset($_GET['height'])) {
+		 * Parms: <monitor>[br|width|height] */
+		if (!canView('Stream')) {
+			error_log("User ".$user['Username']. " doesn't have view Stream perms");
+			exit;
+		}
+		if (!isset($_GET['monitor'])) {
 			error_log("Not all parameters specified for spawn264");
 			exit;
 		}
-		$width = validInt($_GET['width']);
-		$height = validInt($_GET['height']);
 		$monitor = validInt($_REQUEST['monitor']);
+		$dims = getMonitorDims($monitor);
+		$width = getset('width', $dims['Width']);
+		$height = getset('height', $dims['Height']);
 		$br = getset('br', ZM_XML_H264_DEFAULT_BR);
 		$streamUrl = stream264fn($monitor, $width, $height, $br);
 		logXml("Using H264 Pipe Function: ".$streamUrl);
@@ -60,25 +65,28 @@ if (isset($_GET['action'])) {
 
 	} else if (strcmp($action, "chk264") == 0) {
 		/* ACTION: Simply stalls while checking for 264 file.
-		 * Parms: <monitor> 
+		 * Parms: <monitor><timeout> 
 		 * NOTE: This will be called directly by path, so include files
 		 * may not be available */
-		if (!isset($_GET['monitor'])) {
+		if (!isset($_GET['monitor']) || !isset($_GET['timeout'])) {
 			error_log("Monitor not specified for chk264");
 			exit;
 		}
 		$monitor = $_GET['monitor'];
 		require_once(dirname(__FILE__)."/../includes/functions.php");
 		$path = getTempDir()."/".m3u8fname($monitor);
+		/* Wait for the second sample to become available */
+		$tsfile = getTempDir()."/sample_".$monitor."-2.ts";
 		/* Setup timeout */
 		$startTime = time();
-		$timeout = 10;
-		while (!file_exists($path)) {
+		$timeout = $_GET['timeout'];
+		while (!file_exists($path) || !file_exists($tsfile)) {
 			if (time() > $startTime + $timeout) {
 				error_log("Timed out waiting for stream to start, exiting...");
 				kill264proc($monitor);
 				exit;
 			}
+			usleep(10000);
 		}
 		logXml("File exists, stream created after ".(time()-$startTime)." sec");
 		exit;
@@ -94,9 +102,10 @@ if (isset($_GET['action'])) {
 			error_log("Not all parameters set for action view-feed");
 			exit;
 		}
-		$width = validInt($_GET['width']);
-		$height = validInt($_GET['height']);
 		$monitor = validInt($_REQUEST['monitor']);
+		$dims = getMonitorDims($monitor);
+		$width = getset('width', $dims['Width']);
+		$height = getset('height', $dims['Height']);
 		$fps = getset('fps', ZM_WEB_VIDEO_MAXFPS);
 		$scale = getset('scale', 100);
 		$vcodec = getset('vcodec', ZM_XML_FEED_VCODEC);
@@ -133,6 +142,7 @@ if (isset($_GET['action'])) {
 			echo "</div></body></html>";
 		} else {
 			error_log("Unsupported codec ".$vcodec." selected for streaming");
+			echo("Unsupported codec ".$vcodec." selected for streaming");
 		}
 		exit;
 

@@ -122,6 +122,28 @@ function canStream264() {
 	logXml("Determined can stream for H264");
 	return 1;
 }
+/** Return FFMPEG parameters for H264 encoding */
+function getFfmpeg264Str($width, $height, $br, $fin, $fout)
+{
+	$ffparms = "-f mpegts -analyzeduration 0 -acodec copy -s 320x240";
+	$ffparms .= " -vcodec libx264 -b ".$br;
+	$ffparms .= " -flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8";
+        $ffparms .= " -subq 5 -trellis 1 -refs 1 -coder 0 -me_range 16 -keyint_min 25";
+        $ffparms .= " -sc_threshold 40 -i_qfactor 0.71 -bt 200k -maxrate ";
+	$ffparms .= $br." -bufsize ".$br." -rc_eq 'blurCplx^(1-qComp)' -qcomp 0.6";
+	$ffparms .= " -qmin 10 -qmax 51 -qdiff 4 -level 30";
+	$ffparms .= " -g 30 -analyzeduration 0 -async 2 ".$fout.(ZM_XML_DEBUG?"":" 2> /dev/null");
+	$ffstr = "ffmpeg -t ".ZM_XML_H264_MAX_DURATION." -analyzeduration 0 -i ";
+	$ffstr .= $fin." ".$ffparms;
+	return $ffstr;
+}
+/** Returns the width and height of a monitor */
+function getMonitorDims($monitor)
+{
+	$query = "select Width,Height from Monitors where Id = ".$monitor;
+	$res = dbFetchOne($query);
+	return $res;
+}
 /** Returns the temp directory for H264 encoding */
 function getTempDir()
 {
@@ -151,17 +173,18 @@ function kill264proc($monitor) {
 function stream264fn ($mid, $width, $height, $br) {
 	$cdir = "./temp";
 	$zmstrm = "zmstreamer -m ".$mid.(ZM_XML_DEBUG?"":" 2> /dev/null");
+	$ffstr = getFfmpeg264Str($width, $height, $br, "-", "-");
 	$seg = "segmenter - ".ZM_XML_SEG_DURATION." ".$cdir."/sample_".$mid." ".$cdir."/".m3u8fname($mid)." ../".(ZM_XML_DEBUG?"":" 2> /dev/null");
-	$ffparms = "-f mpegts -analyzeduration 0 -acodec copy -s ".$width."x".$height." -vcodec libx264 -b ".$br." -flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -trellis 1 -refs 1 -coder 0 -me_range 16 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 -bt 200k -maxrate ".$br." -bufsize ".$br." -rc_eq 'blurCplx^(1-qComp)' -qcomp 0.6 -qmin 10 -qmax 51 -qdiff 4 -level 30 -aspect ".$width.":".$height." -g 30 -analyzeduration 0 -async 2 -".(ZM_XML_DEBUG?"":" 2> /dev/null");
-	$url = $zmstrm . " | ffmpeg -t ".ZM_XML_H264_MAX_DURATION." -analyzeduration 0 -i - ". $ffparms . " | " . $seg;
+	$url = $zmstrm . " | ".$ffstr." | " . $seg;
 	return "nohup ".$url." & echo $!";
 }
 
 /** Generate the web-page presented to the viewer when using H264 */
 function h264vidHtml($width, $height, $monitor, $br) {
-	$ajaxUrl = "?view=actions&action=spawn264&width=".$width."&height=".$height."&monitor=".$monitor."&br=".$br;
+	$ajaxUrl = "?view=actions&action=spawn264&&monitor=".$monitor."&br=".$br;
 	/* Call these two directly to bypass server blocking issues */
 	$ajax2Url = "./skins/xml/views/actions.php?action=chk264&monitor=".$monitor;
+	$ajax2Url .= "&timeout=".ZM_XML_H264_TIMEOUT;
 	$ajax3Url = "./skins/xml/views/actions.php?action=kill264&monitor=".$monitor;
 ?>
 <html>
@@ -183,6 +206,11 @@ function h264vidHtml($width, $height, $monitor, $br) {
 	{
 		document.getElementById("loaddiv").innerHTML = "H264 Stream Terminated";
 	}
+	function vidLoaded() {
+<?php if (ZM_XML_H264_AUTOPLAY==1) { ?>
+		window.setTimeout("startVid()", 500);
+<?php } ?>
+	}
 	function bindListeners()
 	{
 		var pElement = document.getElementsByTagName('video')[0];
@@ -191,30 +219,37 @@ function h264vidHtml($width, $height, $monitor, $br) {
 		pElement.addEventListener('done', vidAbort, false);
 		pElement.addEventListener('ended', vidAbort, false);
 		pElement.addEventListener('pause', vidAbort, false);
+		pElement.addEventListener('loadstart', vidLoaded, false);
 	}
 	/* Callback when kill264 process is ended */
 	function cbKilled()
 	{
 		document.getElementById("loaddiv").innerHTML = "H264 Stream Terminated";
 	}
-	function startVid()
+	function loadVid()
 	{
-		var pElement = document.getElementById("vidcontainer");
-		pElement.play();
-	}
-	/* Callback when stream is active and ready to be played */
-	function cbFileExists()
-	{
-		document.getElementById("viddiv").style.display = "block";
-		document.getElementById("loaddiv").style.display = "none";
 		var pElement = document.getElementById("vidcontainer");
 <?php
 		echo "pElement.src=\"./temp/".m3u8fname($monitor)."\"\n";
 ?>
 		pElement.load();
 <?php if (ZM_XML_H264_AUTOPLAY == 1) { ?>
-		window.setTimeout("startVid()", 1000);
+<?php } else { ?>
+		document.getElementById("viddiv").style.display = "block";
+		document.getElementById("loaddiv").style.display = "none";
 <?php } ?>
+	}
+	function startVid()
+	{
+		var pElement = document.getElementById("vidcontainer");
+		document.getElementById("viddiv").style.display = "block";
+		document.getElementById("loaddiv").style.display = "none";
+		pElement.play();
+	}
+	/* Callback when stream is active and ready to be played */
+	function cbFileExists()
+	{
+		window.setTimeout("loadVid()", 500);
 	}
 	/* On-load triggers two requests immediately: spawn264 and chk264 */
 	window.onload = function() {
@@ -267,7 +302,7 @@ body {
 ?>
 </div>
 <div id="loaddiv" class="textcl">
-Initializing H264 Stream...
+Initializing H264 Stream (<?php echo($br); ?>)...
 </div>
 </body>
 </html>

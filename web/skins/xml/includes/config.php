@@ -31,7 +31,8 @@ if (!defined("ZM_XML_DEBUG")) define ( "ZM_XML_DEBUG", "0" );
 if (!defined("ZM_XML_H264_MAX_DURATION")) define ( "ZM_XML_H264_MAX_DURATION", "120" );
 if (!defined("ZM_XML_H264_DEFAULT_BR")) define ( "ZM_XML_H264_DEFAULT_BR", "96k" );
 if (!defined("ZM_XML_H264_DEFAULT_ON")) define ( "ZM_XML_H264_DEFAULT_ON", "0" );
-if (!defined("ZM_XML_H264_AUTOPLAY")) define ( "ZM_XML_H264_AUTOPLAY", "0" );
+if (!defined("ZM_XML_H264_AUTOPLAY")) define ( "ZM_XML_H264_AUTOPLAY", "1" );
+if (!defined("ZM_XML_H264_TIMEOUT")) define ( "ZM_XML_H264_TIMEOUT", "20" );
 
 $rates = array(
     "10000" => "100x",

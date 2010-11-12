@@ -11,12 +11,41 @@
 /* There appears to be some discrepancy btw. 1.24.1/2 and .3 for EventPaths, to escape them here */
 function getEventPathSafe($event)
 {
-	if (strcmp(ZM_VERSION, "1.24.3") == 0) {
-		$ret = ZM_DIR_EVENTS."/".getEventPath($event);
-	} else {
+	if (!strcmp(ZM_VERSION, "1.24.1") || !strcmp(ZM_VERSION, "1.24.2")) {
 		$ret = getEventPath($event);
+	} else {
+		$ret = ZM_DIR_EVENTS."/".getEventPath($event);
 	}
 	return $ret;
+}
+function updateClientVer()
+{
+	$str = $_SERVER['HTTP_USER_AGENT'];
+	/* Check if it starts with eyeZm */
+	if (!strcmp(substr($str, 0, 5),"eyeZm")) {
+		/* Found eyeZm */
+		$ver = substr($str, 6);
+		$verarray = explode(".", $ver);
+		$_SESSION['vermaj']=$verarray[0];
+		$_SESSION['vermin']=$verarray[1];
+		$_SESSION['verbuild']=$verarray[2];
+	}
+}
+function getClientVerMaj()
+{
+	if (isset($_SESSION['vermaj'])) return $_SESSION['vermaj'];
+	return "0";
+}
+function getClientVerMin()
+{
+	if (isset($_SESSION['vermin'])) return $_SESSION['vermin'];
+	return "0";
+}
+function requireVer($maj, $min)
+{
+	if (getClientVerMaj() > $maj) return 1;
+	if ((getClientVerMaj() == $maj) && (getClientVerMin() >= $min)) return 1;
+	return 0;
 }
 function logXml($str)
 {

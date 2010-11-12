@@ -156,6 +156,7 @@ xml_tag_val("VERSION", ZM_VERSION);
 xml_tag_val("CANSTR264", canStream264());
 xml_tag_val("USER", $user['Username']);
 xml_tag_val("UID", $user['Id']);
+/* Permissions block */
 xml_tag_sec("PERMS", 1);
 xml_tag_val("STREAM", $user['Stream']);
 xml_tag_val("EVENTS", $user['Events']);
@@ -164,6 +165,7 @@ xml_tag_val("MONITORS", $user['Monitors']);
 xml_tag_val("DEVICES", $user['Devices']);
 xml_tag_val("SYSTEM", $user['System']);
 xml_tag_sec("PERMS", 0);
+/* End permissions block */
 if (canEdit('System')) {
 	if ($running) {
 		xml_tag_val("STATE", "stop");

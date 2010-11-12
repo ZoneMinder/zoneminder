@@ -84,34 +84,37 @@ if (isset($_GET['action'])) {
 		exit;
 
 	} else if (strcmp($action, "feed") == 0) {
-		/* ACTION: View a feed. Parms: <monitor><img. width><img. height> [fps|scale|h264|br] */
+		/* ACTION: View a feed. Parms: <monitor>> [height|width|fps|scale|vcodec|br] */
 		if (!canView('Stream')) {
 			error_log("User ".$user['Username']. " doesn't have view Stream perms");
 			exit;
 		}
 		/* Check that required variables are set */
-		if (!isset($_REQUEST['monitor']) || !isset($_GET['width']) || !isset($_GET['height'])) {
+		if (!isset($_REQUEST['monitor'])) {
 			error_log("Not all parameters set for action view-feed");
 			exit;
 		}
 		$width = validInt($_GET['width']);
 		$height = validInt($_GET['height']);
 		$monitor = validInt($_REQUEST['monitor']);
-		if (isset($_GET['fps'])) $fps = $_GET['fps'];
-		else $fps = ZM_WEB_VIDEO_MAXFPS;
-		if (isset($_GET['scale'])) $scale = $_GET['scale'];
-		else $scale = 100;
-		$h264 = getset('h264', ZM_XML_H264_DEFAULT_ON);
-		if (($h264 == "1") && canStream264()) {
+		$fps = getset('fps', ZM_WEB_VIDEO_MAXFPS);
+		$scale = getset('scale', 100);
+		$vcodec = getset('vcodec', ZM_XML_FEED_VCODEC);
+		/* Only allow H264 as of v1.2 and greater */
+		if (!requireVer("1","2") && !strcmp($vcodec,"h264")) {
+			logXml("Version 1.2 required for H264 Streaming");
+		}
+		if (!strcmp($vcodec, "h264") && canStream264() && requireVer("1","2")) {
 			$br = getset('br', ZM_XML_H264_DEFAULT_BR);
 			/* H264 processing */
 			noCacheHeaders();
 			/* Kill any existing processes and files */
 			kill264proc($monitor);
 			eraseH264Files($monitor);
+			logXml("Streaming H264 on Monitor ".$monitor.", ".$width."x".$height." @".$br);
 			/* Generate H264 Web-page */
 			h264vidHtml($width, $height, $monitor, $br);
-		} else {
+		} else if (!strcmp($vcodec, "mjpeg")) {
 			/* MJPEG streaming */
 			$streamSrc = 
 				getStreamSrc( array( 
@@ -123,10 +126,13 @@ if (isset($_GET['action'])) {
 				) );
 			noCacheHeaders();
 			xhtmlHeaders( __FILE__, "Stream" );
+			logXml("Streaming MJPEG on Monitor ".$monitor.", ".$width."x".$height." @".$fps."fps");
 			echo "<body>\n";
 			echo "<div style=\"border: 0px solid; padding: 0px; background-color: black; position: absolute; top: 0px; left; 0px; margin: 0px; width: ".$width."px; height: ".$height."px;\">\n";
 			outputImageStream("liveStream", $streamSrc, $width, $height, "stream");
 			echo "</div></body></html>";
+		} else {
+			error_log("Unsupported codec ".$vcodec." selected for streaming");
 		}
 		exit;
 
@@ -149,6 +155,7 @@ if (isset($_GET['action'])) {
 		$relativeURL = getEventPath($event);
 		$baseURL = ZM_PATH_WEB."/".getEventPathSafe($event);
 		$shellCmd = "ffmpeg -y -r ".$fps." -i ".$baseURL."/%03d-capture.jpg -vcodec ".$vcodec." -r ".ZM_XML_EVENT_FPS." ".$baseURL."/capture.mov 2> /dev/null";
+		logXml("Encoding event with command: ".$shellCmd);
 		$shellOutput = shell_exec($shellCmd);
 		$url = "./".getEventPathSafe($event)."/capture.mov";
 		header("Location: ".$url);

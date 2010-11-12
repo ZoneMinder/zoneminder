@@ -25,6 +25,7 @@ define ( "ZM_XML_FEATURE_SET", "1");
 /* Dynamic defines, check if they are already defined */
 if (!defined("ZM_XML_EVENT_FPS")) define ( "ZM_XML_EVENT_FPS", "10");
 if (!defined("ZM_XML_EVENT_VCODEC")) define ( "ZM_XML_EVENT_VCODEC", "mpeg4");
+if (!defined("ZM_XML_FEED_VCODEC")) define ( "ZM_XML_FEED_VCODEC", "mjpeg");
 if (!defined("ZM_XML_SEG_DURATION")) define ( "ZM_XML_SEG_DURATION", "3");
 if (!defined("ZM_XML_DEBUG")) define ( "ZM_XML_DEBUG", "0" );
 if (!defined("ZM_XML_H264_MAX_DURATION")) define ( "ZM_XML_H264_MAX_DURATION", "120" );

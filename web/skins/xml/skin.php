@@ -35,4 +35,6 @@ if ( !isset($user) && ZM_OPT_USE_AUTH )
 	echo "Invalid Login";
 	exit;
 }
+/* Get version info from client */
+updateClientVer();
 ?>

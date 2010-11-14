@@ -16,6 +16,11 @@ function getEventPathSafe($event)
 	} else {
 		$ret = ZM_DIR_EVENTS."/".getEventPath($event);
 	}
+	/* Make sure ZM_DIR_EVENTS is defined, otherwise need to fudge the path */
+	if (!defined("ZM_DIR_EVENTS")) {
+		$ret = "events/".$event['MonitorId']."/".$event['Id'];
+		error_log("ZM_DIR_EVENTS not defined, guessing path to be ".$ret);
+	}
 	return $ret;
 }
 function updateClientVer()
@@ -98,25 +103,25 @@ function canStream264() {
 	/* Make sure segmenter exists */
 	$res = shell_exec("which segmenter");
 	if ($res == "") {
-		error_log("H264 Requested, but segmenter not installed.");
+		logXml("H264 Requested, but segmenter not installed.");
 		return 0;
 	}
 	/* Check for zmstreamer */
 	$res = shell_exec("which zmstreamer");
 	if ($res == "") {
-		error_log("ZMSTREAMER not installed, cannot stream H264");
+		logXml("ZMSTREAMER not installed, cannot stream H264");
 		return 0;
 	}
 	/* Check for ffmpeg */
 	$res = shell_exec("which ffmpeg");
 	if ($res == "") {
-		error_log("ZMSTREAMER not installed, cannot stream H264");
+		logXml("ZMSTREAMER not installed, cannot stream H264");
 		return 0;
 	}
 	/* Check for libx264 support */
 	$res = shell_exec("ffmpeg -codecs 2> /dev/null | grep libx264");
 	if ($res == "") {
-		error_log("FFMPEG doesn't support libx264");
+		logXml("FFMPEG doesn't support libx264");
 		return 0;
 	}
 	logXml("Determined can stream for H264");

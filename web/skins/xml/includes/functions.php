@@ -211,9 +211,7 @@ function h264vidHtml($width, $height, $monitor, $br) {
 		<?php printTermLink(); ?>
 	}
 	function vidLoaded() {
-<?php if (ZM_XML_H264_AUTOPLAY==1) { ?>
 		window.setTimeout("startVid()", 500);
-<?php } ?>
 	}
 	function bindListeners()
 	{
@@ -256,7 +254,8 @@ function h264vidHtml($width, $height, $monitor, $br) {
 		var ajax1 = new AjaxConnection("<?php echo "$ajaxUrl";?>");
 		var ajax2 = new AjaxConnection("<?php echo "$ajax2Url";?>");
 		ajax1.connect("cbVidLoad");
-		ajax2.connect("cbFileExists");
+		/* Don't initiate file-exists since eyeZm will */
+		/*ajax2.connect("cbFileExists");*/
 	}
 	function AjaxConnection(url) {
 		this.connect = connect;
@@ -301,7 +300,8 @@ body {
 ?>
 </div>
 <div id="loaddiv" class="textcl">
-Initializing H264 Stream (<?php echo($br); ?>)...
+Initializing H264 Stream (<?php echo($br); ?>)...<br>
+<span style="font-size: small;"><i>This may take a few seconds</i></span>
 </div>
 </body>
 </html>

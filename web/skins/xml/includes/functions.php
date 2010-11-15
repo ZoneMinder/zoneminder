@@ -11,16 +11,11 @@
 /* There appears to be some discrepancy btw. 1.24.1/2 and .3 for EventPaths, to escape them here */
 function getEventPathSafe($event)
 {
-	if (!strcmp(ZM_VERSION, "1.24.1") || !strcmp(ZM_VERSION, "1.24.2")) {
-		$ret = getEventPath($event);
-	} else {
-		$ret = ZM_DIR_EVENTS."/".getEventPath($event);
+	/* We don't support deep storage yet */
+	if (ZM_USE_DEEP_STORAGE) {
+		error_log("XML Plugin does not support Deep storage yet, contact support@eyezm.com for this bug");
 	}
-	/* Make sure ZM_DIR_EVENTS is defined, otherwise need to fudge the path */
-	if (!defined("ZM_DIR_EVENTS")) {
-		$ret = "events/".$event['MonitorId']."/".$event['Id'];
-		error_log("ZM_DIR_EVENTS not defined, guessing path to be ".$ret);
-	}
+	$ret = ZM_DIR_EVENTS."/".$event['MonitorId']."/".$event['Id'];
 	return $ret;
 }
 function updateClientVer()
@@ -186,6 +181,11 @@ function stream264fn ($mid, $width, $height, $br) {
 
 /** Generate the web-page presented to the viewer when using H264 */
 function h264vidHtml($width, $height, $monitor, $br) {
+	function printTermLink() {
+		$str = "H264 Stream Terminated<br>Click to Reload";
+		$str2 = "document.getElementById(\"loaddiv\").innerHTML = \"".$str."\";";
+		echo $str2;
+	}
 	$ajaxUrl = "?view=actions&action=spawn264&&monitor=".$monitor."&br=".$br;
 	/* Call these two directly to bypass server blocking issues */
 	$ajax2Url = "./skins/xml/views/actions.php?action=chk264&monitor=".$monitor;
@@ -197,8 +197,7 @@ function h264vidHtml($width, $height, $monitor, $br) {
 	<script type="text/javascript">
 	/* Called when paused or done is pressed */
 	function vidAbort() {
-		document.getElementById("viddiv").style.display = "none";
-		document.getElementById("loaddiv").style.display = "block";
+		document.getElementById('viddiv').style.display = 'none';
 		var pElement = document.getElementsByTagName('video')[0];
 		var ajaxKill = new AjaxConnection("<?php echo $ajax3Url;?>");
 		ajaxKill.connect("cbKilled");
@@ -209,7 +208,7 @@ function h264vidHtml($width, $height, $monitor, $br) {
 	/* Callback when spawn264 process is ended */
 	function cbVidLoad()
 	{
-		document.getElementById("loaddiv").innerHTML = "H264 Stream Terminated";
+		<?php printTermLink(); ?>
 	}
 	function vidLoaded() {
 <?php if (ZM_XML_H264_AUTOPLAY==1) { ?>
@@ -229,8 +228,9 @@ function h264vidHtml($width, $height, $monitor, $br) {
 	/* Callback when kill264 process is ended */
 	function cbKilled()
 	{
-		document.getElementById("loaddiv").innerHTML = "H264 Stream Terminated";
+		<?php printTermLink(); ?>
 	}
+	/* Called after an interval from cbFileExists() */
 	function loadVid()
 	{
 		var pElement = document.getElementById("vidcontainer");
@@ -238,17 +238,11 @@ function h264vidHtml($width, $height, $monitor, $br) {
 		echo "pElement.src=\"./temp/".m3u8fname($monitor)."\"\n";
 ?>
 		pElement.load();
-<?php if (ZM_XML_H264_AUTOPLAY == 1) { ?>
-<?php } else { ?>
-		document.getElementById("viddiv").style.display = "block";
-		document.getElementById("loaddiv").style.display = "none";
-<?php } ?>
 	}
 	function startVid()
 	{
+		document.getElementById('viddiv').style.display = 'block';
 		var pElement = document.getElementById("vidcontainer");
-		document.getElementById("viddiv").style.display = "block";
-		document.getElementById("loaddiv").style.display = "none";
 		pElement.play();
 	}
 	/* Callback when stream is active and ready to be played */

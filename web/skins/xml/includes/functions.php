@@ -13,7 +13,7 @@ function getEventPathSafe($event)
 {
 	/* We don't support deep storage yet */
 	if (ZM_USE_DEEP_STORAGE) {
-		error_log("XML Plugin does not support Deep storage yet, contact support@eyezm.com for this bug");
+		logXmlErr("XML Plugin does not support Deep storage yet, contact support@eyezm.com for this bug");
 	}
 	$ret = ZM_DIR_EVENTS."/".$event['MonitorId']."/".$event['Id'];
 	return $ret;
@@ -46,6 +46,10 @@ function requireVer($maj, $min)
 	if (getClientVerMaj() > $maj) return 1;
 	if ((getClientVerMaj() == $maj) && (getClientVerMin() >= $min)) return 1;
 	return 0;
+}
+function logXmlErr($str)
+{
+	error_log("XML_LOG (ERR): ".$str);
 }
 function logXml($str)
 {
@@ -92,6 +96,38 @@ body {
 </head>
 <?php
 }
+/** Returns whether necessary components for MPEG-4 event-generation are present */
+function canGenerateMpeg4() {
+	/* Check for ffmpeg */
+	$res = shell_exec("which ffmpeg");
+	if ($res == "") {
+		logXml("ZMSTREAMER not installed, cannot generate MPEG-4");
+		return 0;
+	}
+	/* Check for libx264 support */
+	$res = shell_exec("ffmpeg -codecs 2> /dev/null | grep mpeg4");
+	if ($res == "") {
+		logXml("FFMPEG doesn't support MPEG-4");
+		return 0;
+	}
+	return 1;
+}
+/** Returns whether necessary components for H264 event-generation are present */
+function canGenerateH264() {
+	/* Check for ffmpeg */
+	$res = shell_exec("which ffmpeg");
+	if ($res == "") {
+		logXml("ZMSTREAMER not installed, cannot stream H264");
+		return 0;
+	}
+	/* Check for libx264 support */
+	$res = shell_exec("ffmpeg -codecs 2> /dev/null | grep libx264");
+	if ($res == "") {
+		logXml("FFMPEG doesn't support libx264");
+		return 0;
+	}
+	return 1;
+}
 /** Returns whether necessary components for H264 streaming
  * are present */
 function canStream264() {
@@ -107,25 +143,15 @@ function canStream264() {
 		logXml("ZMSTREAMER not installed, cannot stream H264");
 		return 0;
 	}
-	/* Check for ffmpeg */
-	$res = shell_exec("which ffmpeg");
-	if ($res == "") {
-		logXml("ZMSTREAMER not installed, cannot stream H264");
-		return 0;
-	}
-	/* Check for libx264 support */
-	$res = shell_exec("ffmpeg -codecs 2> /dev/null | grep libx264");
-	if ($res == "") {
-		logXml("FFMPEG doesn't support libx264");
+	if (!canGenerateH264()) {
 		return 0;
 	}
 	logXml("Determined can stream for H264");
 	return 1;
 }
-/** Return FFMPEG parameters for H264 encoding */
-function getFfmpeg264Str($width, $height, $br, $fin, $fout)
+function getFfmpeg264FoutParms($br, $fout)
 {
-	$ffparms = "-f mpegts -analyzeduration 0 -acodec copy -s 320x240";
+	$ffparms = "-analyzeduration 0 -acodec copy -s 320x240";
 	$ffparms .= " -vcodec libx264 -b ".$br;
 	$ffparms .= " -flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8";
         $ffparms .= " -subq 5 -trellis 1 -refs 1 -coder 0 -me_range 16 -keyint_min 25";
@@ -133,8 +159,14 @@ function getFfmpeg264Str($width, $height, $br, $fin, $fout)
 	$ffparms .= $br." -bufsize ".$br." -rc_eq 'blurCplx^(1-qComp)' -qcomp 0.6";
 	$ffparms .= " -qmin 10 -qmax 51 -qdiff 4 -level 30";
 	$ffparms .= " -g 30 -analyzeduration 0 -async 2 ".$fout.(ZM_XML_DEBUG?"":" 2> /dev/null");
+	return $ffparms;
+}
+/** Return FFMPEG parameters for H264 streaming */
+function getFfmpeg264Str($width, $height, $br, $fin, $fout)
+{
+	$ffparms = getFfmpeg264FoutParms($br, $fout);
 	$ffstr = "ffmpeg -t ".ZM_XML_H264_MAX_DURATION." -analyzeduration 0 -i ";
-	$ffstr .= $fin." ".$ffparms;
+	$ffstr .= $fin." -f mpegts ".$ffparms;
 	return $ffstr;
 }
 /** Returns the width and height of a monitor */
@@ -180,11 +212,12 @@ function stream264fn ($mid, $width, $height, $br) {
 }
 
 /** Generate the web-page presented to the viewer when using H264 */
-function h264vidHtml($width, $height, $monitor, $br) {
+function h264vidHtml($width, $height, $monitor, $br, $thumbsrc) {
 	function printTermLink() {
 		$str = "H264 Stream Terminated<br>Click to Reload";
 		$str2 = "document.getElementById(\"loaddiv\").innerHTML = \"".$str."\";";
 		echo $str2;
+
 	}
 	$ajaxUrl = "?view=actions&action=spawn264&&monitor=".$monitor."&br=".$br;
 	/* Call these two directly to bypass server blocking issues */
@@ -205,10 +238,20 @@ function h264vidHtml($width, $height, $monitor, $br) {
 		pElement.src="";
 		
 	}
+	function reloadStreamImage() {
+		var obj = document.getElementById('liveStream');
+		var src = obj.src;
+		var date = new Date();
+		obj.src = src + '&vrand=' + date.getTime();
+		return false;
+	}
 	/* Callback when spawn264 process is ended */
 	function cbVidLoad()
 	{
-		<?php printTermLink(); ?>
+		reloadStreamImage();
+<?php 
+		printTermLink(); 
+?>
 	}
 	function vidLoaded() {
 		window.setTimeout("startVid()", 500);
@@ -289,8 +332,27 @@ body {
 	font-size: larger;
 	width: 100%;
 	color: white;
-<?php echo "margin-top: ".($height/2)."px;"; ?>
+<?php echo "padding-top: ".($height/2)."px;"; ?>
+	z-index: 2;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	background-color: black;
+	height: 100%;
+	opacity: 0.5;
 }
+.imgdiv {
+	position: absolute;
+	padding: 0px;
+	background-color: black;
+	top: 0px;
+	left: 0px;
+	margin: 0px;
+	width: <?php echo $width ?>px;
+	height: <?php echo $height ?>px;
+	z-index: 1;
+}
+
 </style>
 </head>
 <body>
@@ -302,6 +364,9 @@ body {
 <div id="loaddiv" class="textcl">
 Initializing H264 Stream (<?php echo($br); ?>)...<br>
 <span style="font-size: small;"><i>This may take a few seconds</i></span>
+</div>
+<div class="imgdiv" id="imagediv">
+<?php outputImageStream("liveStream", $thumbsrc, $width, $height, "stream"); ?>
 </div>
 </body>
 </html>

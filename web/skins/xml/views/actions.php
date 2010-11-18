@@ -13,11 +13,11 @@ if (isset($_GET['action'])) {
 	if (strcmp($action, "devent") == 0) {
 		/* ACTION: Delete an Event. Parms: <eid> */
 		if (!canEdit('Events')) {
-			error_log("User ".$user['Username']. " doesn't have edit Events perms");
+			logXmlErr("User ".$user['Username']. " doesn't have edit Events perms");
 			exit;
 		}
 		if (!isset($_REQUEST['eid'])) {
-			error_log("EID not set for action delete-event");
+			logXmlErr("EID not set for action delete-event");
 			exit;
 		}
 		$eid = validInt($_REQUEST['eid']);
@@ -29,11 +29,11 @@ if (isset($_GET['action'])) {
 		/* ACTION: Spawn 264 streaming process.
 		 * Parms: <monitor>[br|width|height] */
 		if (!canView('Stream')) {
-			error_log("User ".$user['Username']. " doesn't have view Stream perms");
+			logXmlErr("User ".$user['Username']. " doesn't have view Stream perms");
 			exit;
 		}
 		if (!isset($_GET['monitor'])) {
-			error_log("Not all parameters specified for spawn264");
+			logXmlErr("Not all parameters specified for spawn264");
 			exit;
 		}
 		$monitor = validInt($_REQUEST['monitor']);
@@ -55,7 +55,7 @@ if (isset($_GET['action'])) {
 		 * may not be available */
 		require_once(dirname(__FILE__)."/../includes/functions.php");
 		if (!isset($_GET['monitor'])) {
-			error_log("Not all parameters specified for kill264");
+			logXmlErr("Not all parameters specified for kill264");
 			exit;
 		}
 		$monitor = $_GET['monitor'];
@@ -68,12 +68,12 @@ if (isset($_GET['action'])) {
 		 * Parms: <monitor><timeout> 
 		 * NOTE: This will be called directly by path, so include files
 		 * may not be available */
+		require_once(dirname(__FILE__)."/../includes/functions.php");
 		if (!isset($_GET['monitor']) || !isset($_GET['timeout'])) {
-			error_log("Monitor not specified for chk264");
+			logXmlErr("Monitor not specified for chk264");
 			exit;
 		}
 		$monitor = $_GET['monitor'];
-		require_once(dirname(__FILE__)."/../includes/functions.php");
 		$path = getTempDir()."/".m3u8fname($monitor);
 		/* Wait for the second sample to become available */
 		$tsfile = getTempDir()."/sample_".$monitor."-2.ts";
@@ -82,7 +82,7 @@ if (isset($_GET['action'])) {
 		$timeout = $_GET['timeout'];
 		while (!file_exists($path) || !file_exists($tsfile)) {
 			if (time() > $startTime + $timeout) {
-				error_log("Timed out waiting for stream to start, exiting...");
+				logXmlErr("Timed out waiting for stream to start, exiting...");
 				kill264proc($monitor);
 				exit;
 			}
@@ -94,12 +94,12 @@ if (isset($_GET['action'])) {
 	} else if (strcmp($action, "feed") == 0) {
 		/* ACTION: View a feed. Parms: <monitor>> [height|width|fps|scale|vcodec|br] */
 		if (!canView('Stream')) {
-			error_log("User ".$user['Username']. " doesn't have view Stream perms");
+			logXmlErr("User ".$user['Username']. " doesn't have view Stream perms");
 			exit;
 		}
 		/* Check that required variables are set */
 		if (!isset($_REQUEST['monitor'])) {
-			error_log("Not all parameters set for action view-feed");
+			logXmlErr("Not all parameters set for action view-feed");
 			exit;
 		}
 		$monitor = validInt($_REQUEST['monitor']);
@@ -121,8 +121,18 @@ if (isset($_GET['action'])) {
 			kill264proc($monitor);
 			eraseH264Files($monitor);
 			logXml("Streaming H264 on Monitor ".$monitor.", ".$width."x".$height." @".$br);
+			/* Get thumbnail source */
+			$thumbsrc = 
+				getStreamSrc( array( 
+					"mode=single", 
+					"monitor=".$monitor, 
+					"scale=".$scale,	
+					"maxfps=".$fps,
+					"buffer=1000" 
+				) );
+			logXml("Using thumbnail image from ".$thumbsrc);
 			/* Generate H264 Web-page */
-			h264vidHtml($width, $height, $monitor, $br);
+			h264vidHtml($width, $height, $monitor, $br, $thumbsrc);
 		} else if (!strcmp($vcodec, "mjpeg")) {
 			/* MJPEG streaming */
 			$streamSrc = 
@@ -141,19 +151,19 @@ if (isset($_GET['action'])) {
 			outputImageStream("liveStream", $streamSrc, $width, $height, "stream");
 			echo "</div></body></html>";
 		} else {
-			error_log("Unsupported codec ".$vcodec." selected for streaming");
+			logXmlErr("Unsupported codec ".$vcodec." selected for streaming");
 			echo("Unsupported codec ".$vcodec." selected for streaming");
 		}
 		exit;
 
 	} else if (strcmp($action, "vevent") == 0) {
-		/* ACTION: View an event. Parms: <eid> [fps|vcodec] */
+		/* ACTION: View an event. Parms: <eid> [fps|vcodec|br] */
 		if (!canView('Events')) {
-			error_log("User ".$user['Username']. " doesn't have view Events perms");
+			logXmlErr("User ".$user['Username']. " doesn't have view Events perms");
 			exit;
 		}
 		if (!isset($_GET['eid'])) {
-			error_log("Not all parameters set for Action View-event");
+			logXmlErr("Not all parameters set for Action View-event");
 			exit;
 		}
 		/* Grab event from the database */
@@ -162,12 +172,57 @@ if (isset($_GET['action'])) {
 		/* Calculate FPS */
 		$fps = getset('fps',ceil($event['Frames'] / $event['Length']));
 		$vcodec = getset('vcodec', ZM_XML_EVENT_VCODEC);
-		$relativeURL = getEventPath($event);
 		$baseURL = ZM_PATH_WEB."/".getEventPathSafe($event);
-		$shellCmd = "ffmpeg -y -r ".$fps." -i ".$baseURL."/%03d-capture.jpg -vcodec ".$vcodec." -r ".ZM_XML_EVENT_FPS." ".$baseURL."/capture.mov 2> /dev/null";
+		/* Here we validate the codec.
+		 * MJPEG doesn't require any validation.
+		 * MPEG-4 requires canGenerateMpeg4 and v1.1
+		 * H264 requires canGenerateH264 and v1.2  */
+		if (!strcmp($vcodec, "mpeg4")) {
+			if (!canGenerateMpeg4()) {
+				logXmlErr("Selected MPEG-4 for event, but determined system cannot generate MPEG-4 with FFMPEG");
+				exit;
+			}
+			/* Can generate, we are good to go */
+			logXml("Selected MPEG-4 for viewing event ".$event['Id']);
+			$fname = "capture.mov";
+			$ffparms = "-vcodec mpeg4 -r ".ZM_XML_EVENT_FPS." ".$baseURL."/".$fname.(ZM_XML_DEBUG?"":" 2> /dev/null");
+
+		} else if (!strcmp($vcodec, "h264")) {
+			if (!canGenerateH264()) {
+				logXmlErr("Selected H264 for event, but determined system cannot generate H-264 with FFMPEG");
+				exit;
+			}
+			if (!requireVer("1","2")) {
+				logXmlErr("H264 Event viewing requires eyeZm v1.2 or greater");
+				exit;
+			}
+			/* Good to go */
+			logXml("Selected H264 for viewing event ".$event['Id']);
+			$fname = "capture.mp4";
+			$ffparms = getFfmpeg264FoutParms(
+				getset('br',ZM_XML_H264_DEFAULT_EVBR),
+				$baseURL."/".$fname);
+
+		} else if (!strcmp($vcodec, "mjpeg")) {
+			logXml("Selected MJPEG for viewing event ".$event['Id']);
+			$fname = "capture.mov";
+			$ffparms = "-vcodec mjpeg -r ".ZM_XML_EVENT_FPS." ".$baseURL."/".$fname.(ZM_XML_DEBUG?"":" 2> /dev/null");
+		} else {
+			logXmlErr("Unknown codec ".$vcodec." selected for event viewing");
+			exit;
+		}
+		$fnameOut = $baseURL."/".$fname;
+		$shellCmd = "ffmpeg -y -r ".$fps." -i ".$baseURL."/%03d-capture.jpg";
+		$shellCmd .= " ".$ffparms;
 		logXml("Encoding event with command: ".$shellCmd);
 		$shellOutput = shell_exec($shellCmd);
-		$url = "./".getEventPathSafe($event)."/capture.mov";
+		/* Check that file exists */
+		if (!file_exists(trim($fnameOut))) {
+			logXmlErr("Generate Event ".$event['Id']." file ".$fnameOut." does not exist");
+			exit;
+		}
+		$url = "./".getEventPathSafe($event)."/".$fname;
+		logXml("Loading Event URL ".$url);
 		header("Location: ".$url);
 		exit;
 
@@ -177,7 +232,7 @@ if (isset($_GET['action'])) {
 		 * the returned frame will be the %03d-analyse frame instead of %03d-capture, if ZM_CREATE_ANALYSIS_IMAGES
 		 * is set. Otherwise it just returns the captured frame */
 		if (!isset($_GET['eid']) || !isset($_GET['frame'])) {
-			error_log("Not all parameters set for action view-frame");
+			logXmlErr("Not all parameters set for action view-frame");
 			exit;
 		}
 		$eid = $_GET['eid'];
@@ -216,11 +271,11 @@ if (isset($_GET['action'])) {
 	} else if (strcmp($action, "state") == 0) {
 		/* ACTION: Change the state of the system. Parms: <state> */
 		if (!canEdit('System')) {
-			error_log("User ".$user['Username']. " doesn't have edit System perms");
+			logXmlErr("User ".$user['Username']. " doesn't have edit System perms");
 			exit;
 		}
 		if (!isset($_GET['state'])) {
-			error_log("Server state not specified for action");
+			logXmlErr("Server state not specified for action");
 			exit;
 		}
 		$url = "./index.php?view=none&action=state&runState=".$_GET['state'];
@@ -230,11 +285,11 @@ if (isset($_GET['action'])) {
 	} else if (strcmp($action, "func") == 0) {
 		/* ACTION: Change state of the monitor. Parms: <mid><func><en> */
 		if (!canEdit('Monitors')) {
-			error_log("User ".$user['Username']. " doesn't have monitors Edit perms");
+			logXmlErr("User ".$user['Username']. " doesn't have monitors Edit perms");
 			exit;
 		}
 		if (!isset($_GET['mid']) || !isset($_GET['func']) || !isset($_GET['en'])) {
-			error_log("Not all parameters specified for action Monitor state");
+			logXmlErr("Not all parameters specified for action Monitor state");
 			exit;
 		}
 		$url = "./index.php?view=none&action=function&mid=".$_GET['mid']."&newFunction=".$_GET['func']."&newEnabled=".$_GET['en'];

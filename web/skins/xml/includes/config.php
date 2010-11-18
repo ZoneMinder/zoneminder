@@ -20,7 +20,7 @@
 
 /* Static defines, these shouldn't change */
 define ( "ZM_XML_PROTOCOL_VERSION", "2");
-define ( "ZM_XML_FEATURE_SET", "1");
+define ( "ZM_XML_FEATURE_SET", "2");
 
 /* Dynamic defines, check if they are already defined */
 if (!defined("ZM_XML_EVENT_FPS")) define ( "ZM_XML_EVENT_FPS", "10");
@@ -32,7 +32,7 @@ if (!defined("ZM_XML_H264_MAX_DURATION")) define ( "ZM_XML_H264_MAX_DURATION", "
 if (!defined("ZM_XML_H264_DEFAULT_BR")) define ( "ZM_XML_H264_DEFAULT_BR", "96k" );
 if (!defined("ZM_XML_H264_DEFAULT_ON")) define ( "ZM_XML_H264_DEFAULT_ON", "0" );
 if (!defined("ZM_XML_H264_TIMEOUT")) define ( "ZM_XML_H264_TIMEOUT", "20" );
-
+if (!defined("ZM_XML_H264_DEFAULT_EVBR")) define ( "ZM_XML_H264_DEFAULT_EVBR", "392k" );
 $rates = array(
     "10000" => "100x",
     "5000" => "50x",

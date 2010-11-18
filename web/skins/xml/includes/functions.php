@@ -155,8 +155,8 @@ function getFfmpeg264FoutParms($br, $fout)
 	$ffparms .= " -vcodec libx264 -b ".$br;
 	$ffparms .= " -flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8";
         $ffparms .= " -subq 5 -trellis 1 -refs 1 -coder 0 -me_range 16 -keyint_min 25";
-        $ffparms .= " -sc_threshold 40 -i_qfactor 0.71 -bt 200k -maxrate ";
-	$ffparms .= $br." -bufsize ".$br." -rc_eq 'blurCplx^(1-qComp)' -qcomp 0.6";
+        $ffparms .= " -sc_threshold 40 -i_qfactor 0.71 -bt 16k";
+	$ffparms .= " -rc_eq 'blurCplx^(1-qComp)' -qcomp 0.6";
 	$ffparms .= " -qmin 10 -qmax 51 -qdiff 4 -level 30";
 	$ffparms .= " -g 30 -analyzeduration 0 -async 2 ".$fout.(ZM_XML_DEBUG?"":" 2> /dev/null");
 	return $ffparms;
@@ -331,15 +331,29 @@ body {
 	font-family: Arial;
 	font-size: larger;
 	width: 100%;
-	color: white;
-<?php echo "padding-top: ".($height/2)."px;"; ?>
+<?php echo "padding-top: ".(($height/2)-100)."px;"; ?>
+<?php echo "padding-bottom: ".(($height/2)-100)."px;"; ?>
 	z-index: 2;
 	position: absolute;
 	top: 0px;
 	left: 0px;
-	background-color: black;
 	height: 100%;
-	opacity: 0.5;
+}
+.textcl2 {
+	width: auto;
+	height: auto;
+	background-color: black;
+	padding: 5px 5px;
+	margin-left: 10px;
+	margin-right: 10px;
+	opacity: 0.7;
+}
+.textcl3 {
+	width: auto;
+	height: auto;
+	padding: 2px 2px;
+	margin: auto;
+	color: white;
 }
 .imgdiv {
 	position: absolute;
@@ -351,6 +365,7 @@ body {
 	width: <?php echo $width ?>px;
 	height: <?php echo $height ?>px;
 	z-index: 1;
+	opacity: 0.7;
 }
 
 </style>
@@ -361,10 +376,13 @@ body {
 		echo "<video id=\"vidcontainer\" width='".$width."' height='".$height."' />\n";
 ?>
 </div>
-<div id="loaddiv" class="textcl">
+<div id="loaddiv2" class="textcl"><div id="loaddiv3" class="textcl2">
+<div id="loaddiv" class="textcl3">
 Initializing H264 Stream (<?php echo($br); ?>)...<br>
 <span style="font-size: small;"><i>This may take a few seconds</i></span>
 </div>
+</div></div>
+
 <div class="imgdiv" id="imagediv">
 <?php outputImageStream("liveStream", $thumbsrc, $width, $height, "stream"); ?>
 </div>

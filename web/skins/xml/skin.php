@@ -37,4 +37,10 @@ if ( !isset($user) && ZM_OPT_USE_AUTH )
 }
 /* Get version info from client */
 updateClientVer();
+/* Store some logging information in session variables
+ * so other processes can access them */
+if (defined("ZM_XML_LOG_TO_FILE")) $_SESSION['xml_log_to_file'] = ZM_XML_LOG_TO_FILE;
+if (defined("ZM_XML_LOG_FILE")) $_SESSION['xml_log_file'] = ZM_XML_LOG_FILE;
+if (defined("ZM_XML_DEBUG")) $_SESSION['xml_debug'] = ZM_XML_DEBUG;
+
 ?>

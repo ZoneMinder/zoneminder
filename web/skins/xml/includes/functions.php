@@ -30,6 +30,7 @@ function updateClientVer()
 		$_SESSION['vermin']=$verarray[1];
 		$_SESSION['verbuild']=$verarray[2];
 	}
+	logXml("Load: ".$_SERVER['REQUEST_URI']." - eyeZm ".getClientVerMaj().".".getClientVerMin());
 }
 function getClientVerMaj()
 {
@@ -49,12 +50,34 @@ function requireVer($maj, $min)
 }
 function logXmlErr($str)
 {
-	error_log("XML_LOG (ERR): ".$str);
+	logXml($str, 1);
 }
-function logXml($str)
+function logXml($str, $err = 0)
 {
-	if (!defined("ZM_XML_DEBUG")) define ( "ZM_XML_DEBUG", "0" );
-	if (ZM_XML_DEBUG == 1) trigger_error("XML_LOG: ".$str, E_USER_NOTICE);
+	if (!defined("ZM_XML_DEBUG")) {
+		/* Check session variable */
+		if (isset($_SESSION['xml_debug'])) define("ZM_XML_DEBUG", $_SESSION['xml_debug']);
+		else define ("ZM_XML_DEBUG", "0");
+	}
+	if (!defined("ZM_XML_LOG_TO_FILE")) {
+		/* Check session variable */
+		if (isset($_SESSION['xml_log_to_file'])) define("ZM_XML_LOG_TO_FILE", $_SESSION['xml_log_to_file']);
+		else define ("ZM_XML_LOG_TO_FILE", "1");
+	}
+	if (!defined("ZM_XML_LOG_FILE")) {
+		/* Check session variable */
+		if (isset($_SESSION['xml_log_file'])) define("ZM_XML_LOG_FILE", $_SESSION['xml_log_file']);
+		else define ("ZM_XML_LOG_FILE", "/tmp/zm_xml.log");
+	}
+	/* Only log if debug is enabled */
+	if (ZM_XML_DEBUG == 0) return;
+	/* Logging is enabled, set log string */
+	$logstr = "XML_LOG (".($err?"ERROR":"NOTICE")."): ".$str.(ZM_XML_LOG_TO_FILE?"\n":"");
+	if (ZM_XML_LOG_TO_FILE) {
+		error_log("[".date("r")."] ".$logstr, 3, ZM_XML_LOG_FILE);
+	} else {
+		error_log($logstr);
+	}
 }
 /* Returns defval if varname is not set, otherwise return varname */
 function getset($varname, $defval)
@@ -146,7 +169,6 @@ function canStream264() {
 	if (!canGenerateH264()) {
 		return 0;
 	}
-	logXml("Determined can stream for H264");
 	return 1;
 }
 function getFfmpeg264FoutParms($br, $fout)
@@ -158,7 +180,7 @@ function getFfmpeg264FoutParms($br, $fout)
         $ffparms .= " -sc_threshold 40 -i_qfactor 0.71 -bt 16k";
 	$ffparms .= " -rc_eq 'blurCplx^(1-qComp)' -qcomp 0.6";
 	$ffparms .= " -qmin 10 -qmax 51 -qdiff 4 -level 30";
-	$ffparms .= " -g 30 -analyzeduration 0 -async 2 ".$fout.(ZM_XML_DEBUG?"":" 2> /dev/null");
+	$ffparms .= " -g 30 -analyzeduration 0 -async 2 ".$fout." 2> /dev/null";
 	return $ffparms;
 }
 /** Return FFMPEG parameters for H264 streaming */
@@ -204,9 +226,9 @@ function kill264proc($monitor) {
 /** Return the command-line shell function to setup H264 stream */
 function stream264fn ($mid, $width, $height, $br) {
 	$cdir = "./temp";
-	$zmstrm = "zmstreamer -m ".$mid.(ZM_XML_DEBUG?"":" 2> /dev/null");
+	$zmstrm = "zmstreamer -m ".$mid." 2> /dev/null";
 	$ffstr = getFfmpeg264Str($width, $height, $br, "-", "-");
-	$seg = "segmenter - ".ZM_XML_SEG_DURATION." ".$cdir."/sample_".$mid." ".$cdir."/".m3u8fname($mid)." ../".(ZM_XML_DEBUG?"":" 2> /dev/null");
+	$seg = "segmenter - ".ZM_XML_SEG_DURATION." ".$cdir."/sample_".$mid." ".$cdir."/".m3u8fname($mid)." ../ 2> /dev/null";
 	$url = $zmstrm . " | ".$ffstr." | " . $seg;
 	return "nohup ".$url." & echo $!";
 }

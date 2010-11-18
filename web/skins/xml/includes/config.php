@@ -30,9 +30,13 @@ if (!defined("ZM_XML_SEG_DURATION")) define ( "ZM_XML_SEG_DURATION", "3");
 if (!defined("ZM_XML_DEBUG")) define ( "ZM_XML_DEBUG", "0" );
 if (!defined("ZM_XML_H264_MAX_DURATION")) define ( "ZM_XML_H264_MAX_DURATION", "120" );
 if (!defined("ZM_XML_H264_DEFAULT_BR")) define ( "ZM_XML_H264_DEFAULT_BR", "96k" );
-if (!defined("ZM_XML_H264_DEFAULT_ON")) define ( "ZM_XML_H264_DEFAULT_ON", "0" );
 if (!defined("ZM_XML_H264_TIMEOUT")) define ( "ZM_XML_H264_TIMEOUT", "20" );
 if (!defined("ZM_XML_H264_DEFAULT_EVBR")) define ( "ZM_XML_H264_DEFAULT_EVBR", "128k" );
+/* Logging defines */
+if (!defined("ZM_XML_LOG_TO_FILE")) define ( "ZM_XML_LOG_TO_FILE", "1" );
+if (!defined("ZM_XML_LOG_FILE")) define ( "ZM_XML_LOG_FILE", "/tmp/zm_xml.log" );
+if (!defined("ZM_XML_LOG_LINES")) define ( "ZM_XML_LOG_LINES", "50" );
+
 $rates = array(
     "10000" => "100x",
     "5000" => "50x",

@@ -53,6 +53,7 @@ if (isset($_GET['action'])) {
 		 * Parms: <monitor>.
 		 * NOTE: This will be called directly by path, so include files
 		 * may not be available */
+		session_start();
 		require_once(dirname(__FILE__)."/../includes/functions.php");
 		if (!isset($_GET['monitor'])) {
 			logXmlErr("Not all parameters specified for kill264");
@@ -68,6 +69,7 @@ if (isset($_GET['action'])) {
 		 * Parms: <monitor><timeout> 
 		 * NOTE: This will be called directly by path, so include files
 		 * may not be available */
+		session_start();
 		require_once(dirname(__FILE__)."/../includes/functions.php");
 		if (!isset($_GET['monitor']) || !isset($_GET['timeout'])) {
 			logXmlErr("Monitor not specified for chk264");
@@ -184,7 +186,7 @@ if (isset($_GET['action'])) {
 			/* Can generate, we are good to go */
 			logXml("Selected MPEG-4 for viewing event ".$event['Id']);
 			$fname = "capture.mov";
-			$ffparms = "-vcodec mpeg4 -r ".ZM_XML_EVENT_FPS." ".$baseURL."/".$fname.(ZM_XML_DEBUG?"":" 2> /dev/null");
+			$ffparms = "-vcodec mpeg4 -r ".ZM_XML_EVENT_FPS." ".$baseURL."/".$fname." 2> /dev/null";
 
 		} else if (!strcmp($vcodec, "h264")) {
 			if (!canGenerateH264()) {
@@ -290,6 +292,27 @@ if (isset($_GET['action'])) {
 		$url = "./index.php?view=none&action=function&mid=".$_GET['mid']."&newFunction=".$_GET['func']."&newEnabled=".$_GET['en'];
 		header("Location: ".$url);
 		exit;
+	} else if (strcmp($action, "vlog") == 0) {
+		/* ACTION: View log file. Must have debug and log to file enabled, and sufficient perms 
+		 * Parms: [lines] */
+		if (!canEdit('System')) {
+			logXmlErr("Insufficient permissions to view log file");
+			echo "Insufficient permissions to view log file";
+			exit;
+		}
+		if (!ZM_XML_DEBUG || !ZM_XML_LOG_TO_FILE) {
+			echo "XML Debug (XML_DEBUG) or log-to-file (XML_LOG_TO_FILE) not enabled. Please enable first";
+			exit;
+		}
+		if (!file_exists(ZM_XML_LOG_FILE)) {
+			echo "Log file ".ZM_XML_LOG_FILE." doesn't exist";
+			exit;
+		}
+		$lines = getset('lines',ZM_XML_LOG_LINES);
+		logXml("Returning last ".$lines." lines of XML Log from ".ZM_XML_LOG_FILE);
+		echo shell_exec("tail -n ".$lines." ".ZM_XML_LOG_FILE);
+		echo "\n\n--- Showing last ".$lines." lines ---\n";
+		echo "--- End of Log ---\n\n";
 	}
 }
 ?>

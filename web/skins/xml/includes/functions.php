@@ -30,7 +30,7 @@ function updateClientVer()
 		$_SESSION['vermin']=$verarray[1];
 		$_SESSION['verbuild']=$verarray[2];
 	}
-	logXml("Load: ".$_SERVER['REQUEST_URI']." - eyeZm ".getClientVerMaj().".".getClientVerMin());
+	logXml("(".$_SERVER['REMOTE_ADDR'].") GET: ".$_SERVER['REQUEST_URI']." - eyeZm ".getClientVerMaj().".".getClientVerMin());
 }
 function getClientVerMaj()
 {

@@ -194,11 +194,12 @@
 #define ZM_XML_EVENT_VCODEC 190
 #define ZM_XML_FEED_VCODEC 191
 #define ZM_XML_H264_DEFAULT_BR 192
-#define ZM_XML_H264_TIMEOUT 193
-#define ZM_XML_SEG_DURATION 194
+#define ZM_XML_H264_DEFAULT_EVBR 193
+#define ZM_XML_H264_TIMEOUT 194
+#define ZM_XML_SEG_DURATION 195
 
 
-#define ZM_MAX_CFG_ID 194
+#define ZM_MAX_CFG_ID 195
 
 #define ZM_CFG_DECLARE_LIST \
 	const char *lang_default;\
@@ -394,6 +395,7 @@
 	const char *xml_event_vcodec;\
 	const char *xml_feed_vcodec;\
 	const char *xml_h264_default_br;\
+	const char *xml_h264_default_evbr;\
 	const char *xml_h264_timeout;\
 	const char *xml_seg_duration;\
 
@@ -592,6 +594,7 @@
 	xml_event_vcodec = (const char *)config.Item( ZM_XML_EVENT_VCODEC );\
 	xml_feed_vcodec = (const char *)config.Item( ZM_XML_FEED_VCODEC );\
 	xml_h264_default_br = (const char *)config.Item( ZM_XML_H264_DEFAULT_BR );\
+	xml_h264_default_evbr = (const char *)config.Item( ZM_XML_H264_DEFAULT_EVBR );\
 	xml_h264_timeout = (const char *)config.Item( ZM_XML_H264_TIMEOUT );\
 	xml_seg_duration = (const char *)config.Item( ZM_XML_SEG_DURATION );\
 

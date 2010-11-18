@@ -174,7 +174,6 @@ if (isset($_GET['action'])) {
 		$vcodec = getset('vcodec', ZM_XML_EVENT_VCODEC);
 		$baseURL = ZM_PATH_WEB."/".getEventPathSafe($event);
 		/* Here we validate the codec.
-		 * MJPEG doesn't require any validation.
 		 * MPEG-4 requires canGenerateMpeg4 and v1.1
 		 * H264 requires canGenerateH264 and v1.2  */
 		if (!strcmp($vcodec, "mpeg4")) {
@@ -203,10 +202,6 @@ if (isset($_GET['action'])) {
 				getset('br',ZM_XML_H264_DEFAULT_EVBR),
 				$baseURL."/".$fname);
 
-		} else if (!strcmp($vcodec, "mjpeg")) {
-			logXml("Selected MJPEG for viewing event ".$event['Id']);
-			$fname = "capture.mov";
-			$ffparms = "-vcodec mjpeg -r ".ZM_XML_EVENT_FPS." ".$baseURL."/".$fname.(ZM_XML_DEBUG?"":" 2> /dev/null");
 		} else {
 			logXmlErr("Unknown codec ".$vcodec." selected for event viewing");
 			exit;

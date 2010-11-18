@@ -41,6 +41,11 @@ if (isset($_GET['action'])) {
 		$width = getset('width', $dims['Width']);
 		$height = getset('height', $dims['Height']);
 		$br = getset('br', ZM_XML_H264_DEFAULT_BR);
+		/* Check that we can stream first */
+		if (!canStream264()) {
+			/* canStream264 will print out error */
+			exit;
+		}
 		$streamUrl = stream264fn($monitor, $width, $height, $br);
 		logXml("Using H264 Pipe Function: ".$streamUrl);
 		$pid = shell_exec($streamUrl);
@@ -111,11 +116,20 @@ if (isset($_GET['action'])) {
 		$fps = getset('fps', ZM_WEB_VIDEO_MAXFPS);
 		$scale = getset('scale', 100);
 		$vcodec = getset('vcodec', ZM_XML_FEED_VCODEC);
-		/* Only allow H264 as of v1.2 and greater */
-		if (!requireVer("1","2") && !strcmp($vcodec,"h264")) {
-			logXml("Version 1.2 required for H264 Streaming");
-		}
-		if (!strcmp($vcodec, "h264") && canStream264() && requireVer("1","2")) {
+		/* Select which codec we want */
+		if (!strcmp($vcodec, "h264")) {
+			/* Validate that we can in fact stream H264 */
+			if (!canStream264()) {
+				/* canStream264 will print out error if
+				 * there is one */
+				echo "Server cannot stream H264. Check XML log for details";
+				exit;
+			}
+			if (!requireVer("1", "2")) {
+				echo "H264 Streaming requires eyeZm v1.2 or above";
+				logXmlErr("H264 Streaming requires eyeZm v1.2 or above");
+				exit;
+			}
 			$br = getset('br', ZM_XML_H264_DEFAULT_BR);
 			/* H264 processing */
 			noCacheHeaders();
@@ -150,6 +164,7 @@ if (isset($_GET['action'])) {
 			logXml("Streaming MJPEG on Monitor ".$monitor.", ".$width."x".$height." @".$fps."fps");
 			echo "<body>\n";
 			echo "<div style=\"border: 0px solid; padding: 0px; background-color: black; position: absolute; top: 0px; left; 0px; margin: 0px; width: ".$width."px; height: ".$height."px;\">\n";
+			logXml("Using stream source: ".$streamSrc);
 			outputImageStream("liveStream", $streamSrc, $width, $height, "stream");
 			echo "</div></body></html>";
 		} else {
@@ -176,21 +191,19 @@ if (isset($_GET['action'])) {
 		$vcodec = getset('vcodec', ZM_XML_EVENT_VCODEC);
 		$baseURL = ZM_PATH_WEB."/".getEventPathSafe($event);
 		/* Here we validate the codec.
-		 * MPEG-4 requires canGenerateMpeg4 and v1.1
-		 * H264 requires canGenerateH264 and v1.2  */
+		 * Check that FFMPEG exists and supports codecs */
 		if (!strcmp($vcodec, "mpeg4")) {
-			if (!canGenerateMpeg4()) {
-				logXmlErr("Selected MPEG-4 for event, but determined system cannot generate MPEG-4 with FFMPEG");
+			if (!ffmpegSupportsCodec("mpeg4")) {
+				logXmlErr("FFMPEG not installed, accessible in path/ZM_PATH_FFMPEG, or doesn't support mpeg4");
 				exit;
 			}
 			/* Can generate, we are good to go */
-			logXml("Selected MPEG-4 for viewing event ".$event['Id']);
 			$fname = "capture.mov";
 			$ffparms = "-vcodec mpeg4 -r ".ZM_XML_EVENT_FPS." ".$baseURL."/".$fname." 2> /dev/null";
 
 		} else if (!strcmp($vcodec, "h264")) {
-			if (!canGenerateH264()) {
-				logXmlErr("Selected H264 for event, but determined system cannot generate H-264 with FFMPEG");
+			if (!ffmpegSupportsCodec("libx264")) {
+				logXmlErr("FFMPEG not installed, accessible in path/ZM_PATH_FFMPEG, or doesn't support H264");
 				exit;
 			}
 			if (!requireVer("1","2")) {
@@ -198,7 +211,6 @@ if (isset($_GET['action'])) {
 				exit;
 			}
 			/* Good to go */
-			logXml("Selected H264 for viewing event ".$event['Id']);
 			$fname = "capture.mp4";
 			$ffparms = getFfmpeg264FoutParms(
 				getset('br',ZM_XML_H264_DEFAULT_EVBR),
@@ -208,8 +220,9 @@ if (isset($_GET['action'])) {
 			logXmlErr("Unknown codec ".$vcodec." selected for event viewing");
 			exit;
 		}
+		logXml("Selected ".$vcodec." for viewing event ".$event['Id']);
 		$fnameOut = $baseURL."/".$fname;
-		$shellCmd = "ffmpeg -y -r ".$fps." -i ".$baseURL."/%03d-capture.jpg";
+		$shellCmd = getFfmpegPath()." -y -r ".$fps." -i ".$baseURL."/%03d-capture.jpg";
 		$shellCmd .= " ".$ffparms;
 		logXml("Encoding event with command: ".$shellCmd);
 		$shellOutput = shell_exec($shellCmd);

@@ -119,58 +119,59 @@ body {
 </head>
 <?php
 }
-/** Returns whether necessary components for MPEG-4 event-generation are present */
-function canGenerateMpeg4() {
-	/* Check for ffmpeg */
-	$res = shell_exec("which ffmpeg");
-	if ($res == "") {
-		logXml("ZMSTREAMER not installed, cannot generate MPEG-4");
-		return 0;
-	}
-	/* Check for libx264 support */
-	$res = shell_exec("ffmpeg -codecs 2> /dev/null | grep mpeg4");
-	if ($res == "") {
-		logXml("FFMPEG doesn't support MPEG-4");
-		return 0;
-	}
-	return 1;
-}
-/** Returns whether necessary components for H264 event-generation are present */
-function canGenerateH264() {
-	/* Check for ffmpeg */
-	$res = shell_exec("which ffmpeg");
-	if ($res == "") {
-		logXml("ZMSTREAMER not installed, cannot stream H264");
-		return 0;
-	}
-	/* Check for libx264 support */
-	$res = shell_exec("ffmpeg -codecs 2> /dev/null | grep libx264");
-	if ($res == "") {
-		logXml("FFMPEG doesn't support libx264");
-		return 0;
-	}
-	return 1;
-}
 /** Returns whether necessary components for H264 streaming
  * are present */
-function canStream264() {
+function canStream264($sup = 0) {
+	if (!ffmpegSupportsCodec("libx264")) {
+		if (!$sup) logXmlErr("FFMPEG not installed, accessible in path/ZM_PATH_FFMPEG, or doesn't support libx264");
+		return FALSE;
+	}
 	/* Make sure segmenter exists */
-	$res = shell_exec("which segmenter");
-	if ($res == "") {
-		logXml("H264 Requested, but segmenter not installed.");
-		return 0;
+	if (!exeExists(shell_exec("which segmenter"))) {
+		if (!$sup) logXmlErr("HTTP segmenter not installed or not accessible in path");
+		return FALSE;
 	}
 	/* Check for zmstreamer */
-	$res = shell_exec("which zmstreamer");
-	if ($res == "") {
-		logXml("ZMSTREAMER not installed, cannot stream H264");
-		return 0;
+	if (!exeExists(shell_exec("which zmstreamer"))) {
+		if (!$sup) logXmlErr("ZMSTREAMER not installed or not accessible in path");
+		return FALSE;
 	}
-	if (!canGenerateH264()) {
-		return 0;
-	}
-	return 1;
+	return TRUE;
 }
+/* Returns the path of ffmpeg by using define */
+function getFfmpegPath()
+{
+	if (defined("ZM_PATH_FFMPEG")) {
+		return ZM_PATH_FFMPEG;
+	} else {
+		/* Not defined, get it from using 'which' */
+		return shell_exec("which ffmpeg");
+	}
+}
+/* Returns whether ffmpeg supports a given codec. Takes into account
+ * whether FFMPEG exists or not */
+function ffmpegSupportsCodec($codec)
+{
+	if (!ffmpegExists()) return FALSE;
+	/* FFMPEG exists */
+	if (preg_match("/\b".$codec."\b/", shell_exec(getFfmpegPath()." -codecs 2> /dev/null")) > 0) {
+		/* More than one match */
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+function exeExists($exepath)
+{
+	$path = trim($exepath);
+	return (file_exists($path) && is_readable($path) && ($path != ""));
+}
+/* Returns whether ffmpeg exists or not */
+function ffmpegExists()
+{
+	return exeExists(getFfmpegPath());
+}
+	
 function getFfmpeg264FoutParms($br, $fout)
 {
 	$ffparms = "-analyzeduration 0 -acodec copy -s 320x240";
@@ -187,7 +188,7 @@ function getFfmpeg264FoutParms($br, $fout)
 function getFfmpeg264Str($width, $height, $br, $fin, $fout)
 {
 	$ffparms = getFfmpeg264FoutParms($br, $fout);
-	$ffstr = "ffmpeg -t ".ZM_XML_H264_MAX_DURATION." -analyzeduration 0 -i ";
+	$ffstr = getFfmpegPath()." -t ".ZM_XML_H264_MAX_DURATION." -analyzeduration 0 -i ";
 	$ffstr .= $fin." -f mpegts ".$ffparms;
 	return $ffstr;
 }

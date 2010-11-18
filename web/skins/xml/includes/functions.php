@@ -11,11 +11,11 @@
 /* There appears to be some discrepancy btw. 1.24.1/2 and .3 for EventPaths, to escape them here */
 function getEventPathSafe($event)
 {
-	/* We don't support deep storage yet */
 	if (ZM_USE_DEEP_STORAGE) {
-		logXmlErr("XML Plugin does not support Deep storage yet, contact support@eyezm.com for this bug");
+		$ret = ZM_DIR_EVENTS."/".$event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
+	} else {
+		$ret = ZM_DIR_EVENTS."/".$event['MonitorId']."/".$event['Id'];
 	}
-	$ret = ZM_DIR_EVENTS."/".$event['MonitorId']."/".$event['Id'];
 	return $ret;
 }
 function updateClientVer()

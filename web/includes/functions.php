@@ -1105,12 +1105,13 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
 
     $analImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
     $analPath = $eventPath.'/'.$analImage;
+    $analFile =  ZM_DIR_EVENTS."/".$analPath;
     $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
     //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
 
     $alarmFrame = $frame['Type']=='Alarm';
 
-    $hasAnalImage = $alarmFrame && file_exists( $analPath ) && filesize( $analPath );
+    $hasAnalImage = $alarmFrame && file_exists( $analFile ) && filesize( $analFile );
     $isAnalImage = $hasAnalImage && !$captureOnly;
 
     if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) )
@@ -1144,7 +1145,7 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
         $imageFile = ZM_DIR_EVENTS."/".$imagePath;
         //$thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
         $thumbFile = $thumbPath;
-        if ( !file_exists( $thumbFile ) || !filesize( $thumbFile ) )
+        if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) )
         {
             // Get new dimensions
             list( $imageWidth, $imageHeight ) = getimagesize( $imageFile );
@@ -1216,7 +1217,7 @@ function createListThumbnail( $event, $overwrite=false )
         die( "No thumbnail width or height specified, please check in Options->Web" );
     }
 
-    $imageData = getImageSrc( $event, $frame, $scale );
+    $imageData = getImageSrc( $event, $frame, $scale, false, $overwrite );
     $thumbData = $frame;
     $thumbData['Path'] = $imageData['thumbPath'];
     $thumbData['Width'] = (int)$thumbWidth;

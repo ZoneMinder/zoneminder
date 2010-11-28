@@ -189,10 +189,12 @@ function collectData()
         $elements = &$entitySpec['elements'];
         $lc_elements = array_change_key_case( $elements );
 
-        if ( !isset($_REQUEST['id']) )
-            $_REQUEST['id'] = array_keys( $id );
-        else if ( !is_array($_REQUEST['id']) )
-            $_REQUEST['id'] = array( validJsStr($_REQUEST['id']) );
+        $id = false;
+        if ( isset($_REQUEST['id']) )
+            if ( !is_array($_REQUEST['id']) )
+               $id = array( validJsStr($_REQUEST['id']) );
+            else
+               $id = array_values( $_REQUEST['id'] );
 
         if ( !isset($_REQUEST['element']) )
             $_REQUEST['element'] = array_keys( $elements );
@@ -240,16 +242,16 @@ function collectData()
             $sql = "select ".join( ", ", $fieldSql )." from ".$entitySpec['table'];
             if ( $joinSql )
                 $sql .= " ".join( " ", array_unique( $joinSql ) );
-            if ( $entitySpec['selector'] )
+            if ( $id && !empty($entitySpec['selector']) )
             {
                 $index = 0;
                 $where = array();
                 foreach( $entitySpec['selector'] as $selector )
                 {
                     if ( is_array( $selector ) )
-                        $where[] = $selector['selector']." = ".dbEscape($_REQUEST['id'][$index]);
+                        $where[] = $selector['selector']." = ".dbEscape($id[$index]);
                     else
-                        $where[] = $selector." = ".dbEscape($_REQUEST['id'][$index]);
+                        $where[] = $selector." = ".dbEscape($id[$index]);
                     $index++;
                 }
                 $sql .= " where ".join( " and ", $where );

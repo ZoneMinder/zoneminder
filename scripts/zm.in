@@ -29,7 +29,7 @@ start()
 	zmupdate || return $?
 	loadconf || return $?
 	#Make sure the directory for our PID folder exists or create one.
-	[ ! -d /var/run/zm ] \
+	[ ! -d $pidfile ] \
 		&& mkdir -m 774 $pidfile \
 		&& chown $ZM_WEB_USER:$ZM_WEB_GROUP $pidfile
 	#Make sure the folder for the socks file exists or create one
@@ -82,7 +82,7 @@ zmstatus()
 zmupdate()
 {
 	if [ -x $ZM_PATH_BIN/zm_update ]; then
-		$ZM_PATH_BIN/zm_update noi
+		$ZM_PATH_BIN/zm_update -f
 	fi
 }
 

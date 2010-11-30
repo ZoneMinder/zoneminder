@@ -19,7 +19,7 @@
 //
 
 /* 
- * console_xml.php is updated by Jai Dhar, FPS-Tech, for use with eyeZm
+ * console.php is updated by Jai Dhar, FPS-Tech, for use with eyeZm
  * iPhone application. This is not intended for use with any other applications,
  * although source-code is provided under GPL.
  *

@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web HU Hungarian language file, $Date$, $Revision$
+// ZoneMinder web HU Hungarian language file, $Date: 2009-06-29 11:52:48 +0200 (h, 29 jÃºn 2009) $, $Revision: 2934 $
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -255,6 +255,7 @@ $SLANG = array(
     'Dimensions'           => 'Dimenziók',
     'DisableAlarms'        => 'Riasztás tiltása',
     'Disk'                 => 'Tárhely',
+    'Display'               => 'Megjelenés',
     'Donate'               => 'Kérem támogasson',
     'DonateAlready'        => 'Nem, én már támogattam',
     'DonateEnticement'     => 'Ön már jó ideje használja a ZoneMindert remélhetõleg hasznos kiegészítésnek tartja háza vagy munkahelye biztosításában. Bár ZoneMinder szabad, nyílt forráskódú, és az is marad; a fejlesztése pénzbe kerül. Ha támogatni szeretné a jövõbeni fejlesztéseket és az új funkciókat kérem támogasson. A támogatás teljesen önkéntes, de nagyon megbecsült és annyival tud támogatni amennyivel kíván.<br><br>Ha támogatni szertne kérem válasszon az alábbi lehetõségekbõl vagy látogassa meg a http://www.zoneminder.com/donate.html oldalt.<br><br>Köszönöm, hogy használja a ZoneMinder-t és ne felejtse el meglátogatni a fórumokat a ZoneMinder.com oldalon támogatásért és ötletekért, hogy tudja még jobban használni a ZoneMinder-t.',

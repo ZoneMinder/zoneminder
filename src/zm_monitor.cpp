@@ -3304,12 +3304,9 @@ bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
 
 bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
 {
-    if ( !config.timestamp_on_capture && timestamp )
-    {
-        monitor->TimestampImage( image, timestamp );
-    }
-
     Image *send_image = prepareImage( image );
+    if ( !config.timestamp_on_capture && timestamp )
+        monitor->TimestampImage( send_image, timestamp );
 
 #if HAVE_LIBAVCODEC
     if ( type == STREAM_MPEG )

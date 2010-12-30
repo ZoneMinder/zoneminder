@@ -222,7 +222,7 @@ if (isset($_GET['action'])) {
 		}
 		logXml("Selected ".$vcodec." for viewing event ".$event['Id']);
 		$fnameOut = $baseURL."/".$fname;
-		$shellCmd = getFfmpegPath()." -y -r ".$fps." -i ".$baseURL."/%03d-capture.jpg";
+		$shellCmd = getFfmpegPath()." -y -r ".$fps." -i ".$baseURL."/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg";
 		$shellCmd .= " ".$ffparms;
 		logXml("Encoding event with command: ".$shellCmd);
 		$shellOutput = shell_exec($shellCmd);
@@ -270,7 +270,7 @@ if (isset($_GET['action'])) {
 			$suffix = "capture";
 		}
 		/* Suffix based on 'analyze' */
-		$fname = sprintf("%03d-%s.jpg", $frame, $suffix);
+		$fname = sprintf("%0".ZM_EVENT_IMAGE_DIGITS."d-%s.jpg", $frame, $suffix);
 		$url = "./".getEventPathSafe($event)."/".$fname;
 		if (!file_exists($url)) {
 			$url = "./skins/xml/views/notfound.png";

@@ -20,6 +20,9 @@ SUBDIRS = \
 dist_web_DATA = \
 	index.php
 
+EXTRA_DIST = \
+	zmHttpd.conf.in
+
 # Yes, you are correct. This is a HACK!
 install-data-hook:
 	( cd $(DESTDIR)$(webdir); chown $(webuser):$(webgroup) $(dist_web_DATA) )

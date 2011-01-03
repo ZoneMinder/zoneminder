@@ -24,17 +24,17 @@ SUBDIRS = \
     ZoneMinder
 
 EXTRA_DIST = \
-	zmdc.pl \
-	zmaudit.pl \
-	zmfilter.pl \
-	zmtrigger.pl \
-	zmx10.pl \
-	zmwatch.pl \
-	zmpkg.pl \
-	zmupdate.pl \
-	zmvideo.pl \
-	zmcontrol.pl \
-	zmtrack.pl \
+	zmdc.pl.in \
+	zmaudit.pl.in \
+	zmfilter.pl.in \
+	zmtrigger.pl.in \
+	zmx10.pl.in \
+	zmwatch.pl.in \
+	zmpkg.pl.in \
+	zmupdate.pl.in \
+	zmvideo.pl.in \
+	zmcontrol.pl.in \
+	zmtrack.pl.in \
 	ZoneMinder/Makefile.PL \
 	ZoneMinder/README \
 	ZoneMinder/Changes \

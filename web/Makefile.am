@@ -21,7 +21,7 @@ dist_web_DATA = \
 	index.php
 
 EXTRA_DIST = \
-	zmHttpd.conf.in
+	zmApache.conf.in
 
 # Yes, you are correct. This is a HACK!
 install-data-hook:

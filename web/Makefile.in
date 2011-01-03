@@ -34,7 +34,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = web
 DIST_COMMON = $(dist_web_DATA) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(srcdir)/zmHttpd.conf.in
+	$(srcdir)/Makefile.in $(srcdir)/zmApache.conf.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/configure.ac
@@ -42,7 +42,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = zmHttpd.conf
+CONFIG_CLEAN_FILES = zmApache.conf
 CONFIG_CLEAN_VPATH_FILES =
 SOURCES =
 DIST_SOURCES =
@@ -264,7 +264,7 @@ dist_web_DATA = \
 	index.php
 
 EXTRA_DIST = \
-	zmHttpd.conf.in
+	zmApache.conf.in
 
 all: all-recursive
 
@@ -299,7 +299,7 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-zmHttpd.conf: $(top_builddir)/config.status $(srcdir)/zmHttpd.conf.in
+zmApache.conf: $(top_builddir)/config.status $(srcdir)/zmApache.conf.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-dist_webDATA: $(dist_web_DATA)
 	@$(NORMAL_INSTALL)

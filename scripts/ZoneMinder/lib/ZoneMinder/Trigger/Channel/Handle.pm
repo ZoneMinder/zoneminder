@@ -54,6 +54,11 @@ sub new
 	return $self;
 }
 
+sub spawns
+{
+    return( undef );
+}
+
 sub close()
 {
 	my $self = shift;

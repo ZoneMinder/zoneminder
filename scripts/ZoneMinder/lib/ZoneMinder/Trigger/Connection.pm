@@ -65,6 +65,12 @@ sub clone
 	return( $clone );
 }
 
+sub spawns
+{
+	my $self = shift;
+    return( $self->{channel}->spawns() );
+}
+
 sub _spawn( $ )
 {
 	my $self = shift;

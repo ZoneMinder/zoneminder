@@ -69,6 +69,24 @@ sub open()
 	$self->{handle} = *sfh;
 }
 
+sub _spawn( $ )
+{
+    my $self = shift;
+    my $new_handle = shift;
+    my $clone = $self->clone();
+    $clone->{handle} = $new_handle;
+    $clone->{state} = 'connected';
+    return( $clone );
+}
+
+sub accept()
+{
+    my $self = shift;
+    local *cfh;
+    my $paddr = accept( *cfh, $self->{handle} );
+    return( $self->_spawn( *cfh ) );
+}
+
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!

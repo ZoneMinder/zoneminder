@@ -48,6 +48,7 @@ use constant SELECT_TIMEOUT => 0.25;
 # ==========================================================================
 
 @EXTRA_PERL_LIB@
+use ZoneMinder;
 use ZoneMinder::Trigger::Channel::Inet;
 use ZoneMinder::Trigger::Channel::Unix;
 use ZoneMinder::Trigger::Channel::Serial;
@@ -55,7 +56,7 @@ use ZoneMinder::Trigger::Connection;
 
 my @connections;
 push( @connections, ZoneMinder::Trigger::Connection->new( name=>"Chan1", channel=>ZoneMinder::Trigger::Channel::Inet->new( port=>6802 ), mode=>"rw" ) );
-push( @connections, ZoneMinder::Trigger::Connection->new( name=>"Chan2", channel=>ZoneMinder::Trigger::Channel::Unix->new( path=>'/tmp/test.sock' ), mode=>"rw" ) );
+push( @connections, ZoneMinder::Trigger::Connection->new( name=>"Chan2", channel=>ZoneMinder::Trigger::Channel::Unix->new( path=>ZM_PATH_SOCKS.'/zmtrigger.sock' ), mode=>"rw" ) );
 #push( @connections, ZoneMinder::Trigger::Connection->new( name=>"Chan3", channel=>ZoneMinder::Trigger::Channel::File->new( path=>'/tmp/zmtrigger.out' ), mode=>"w" ) );
 push( @connections, ZoneMinder::Trigger::Connection->new( name=>"Chan4", channel=>ZoneMinder::Trigger::Channel::Serial->new( path=>'/dev/ttyS0' ), mode=>"rw" ) );
 
@@ -65,7 +66,6 @@ push( @connections, ZoneMinder::Trigger::Connection->new( name=>"Chan4", channel
 #
 # ==========================================================================
 
-use ZoneMinder;
 use DBI;
 #use Socket;
 use Data::Dumper;

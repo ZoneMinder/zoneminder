@@ -117,7 +117,6 @@ noinst_HEADERS = \
 
 EXTRA_DIST = \
 	zm_config.h.in \
-	zm_config_defines.h \
 	zm_threaddata.cpp
 
 dist-hook:

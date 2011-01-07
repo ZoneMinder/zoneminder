@@ -603,8 +603,6 @@ PERL_MM_PARMS
 ZM_CONFIG
 SYSCONFDIR
 ZM_PID
-ZM_RUNDIR
-RUNDIR
 LIBDIR
 BINDIR
 PERL
@@ -658,6 +656,9 @@ MYSQL_CFLAGS
 MYSQL_LIBS
 MYSQL_PREFIX
 LIB_ARCH
+ZM_LOGDIR
+ZM_TMPDIR
+ZM_RUNDIR
 ZM_MYSQL_ENGINE
 ZM_SSL_LIB
 ZM_DB_PASS
@@ -753,6 +754,9 @@ ZM_DB_USER
 ZM_DB_PASS
 ZM_SSL_LIB
 ZM_MYSQL_ENGINE
+ZM_RUNDIR
+ZM_TMPDIR
+ZM_LOGDIR
 CXX
 CXXFLAGS
 LDFLAGS
@@ -1404,6 +1408,9 @@ Some influential environment variables:
   ZM_SSL_LIB  Library to use for ssl functions, default gnutls
   ZM_MYSQL_ENGINE
               MySQL engine to use with database, default MyISAM
+  ZM_RUNDIR   Location of transient process files, default /var/run/zm
+  ZM_TMPDIR   Location of temporary files, default /tmp/zm
+  ZM_LOGDIR   Location of generated log files, default /var/log/zm
   CXX         C++ compiler command
   CXXFLAGS    C++ compiler flags
   LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
@@ -2908,6 +2915,9 @@ TIME_BUILD=`date +'%s'`
 
 
 
+
+
+
 if test "$ZM_DB_HOST" == ""; then
 	ZM_DB_HOST=localhost
 
@@ -2930,6 +2940,18 @@ if test "$ZM_SSL_LIB" == ""; then
 fi
 if test "$ZM_MYSQL_ENGINE" == ""; then
 	ZM_MYSQL_ENGINE=MyISAM
+
+fi
+if test "$ZM_RUNDIR" == ""; then
+	ZM_RUNDIR=/var/run/zm
+
+fi
+if test "$ZM_TMPDIR" == ""; then
+	ZM_TMPDIR=/tmp/zm
+
+fi
+if test "$ZM_LOGDIR" == ""; then
+	ZM_LOGDIR=/var/log/zm
 
 fi
 
@@ -9255,12 +9277,6 @@ _ACEOF
   test "$prefix_NONE" && prefix=NONE
   test "$exec_prefix_NONE" && exec_prefix=NONE
 
-if test "$RUNDIR" == ""; then
-RUNDIR="/var/run"
-
-fi
-ZM_RUNDIR="$RUNDIR/zm"
-
 ZM_PID="$ZM_RUNDIR/zm.pid"
 
 
@@ -9298,6 +9314,14 @@ fi
 
 
 ac_config_files="$ac_config_files Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile web/zmApache.conf"
+
+
+# Create the definitions for compilation and defaults for the database
+ac_config_commands="$ac_config_commands src/zm_config_defines.h"
+
+# Manually generate the perl Makefile maker
+ac_config_commands="$ac_config_commands scripts/ZoneMinder/Makefile"
+
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -10078,6 +10102,8 @@ do
     "web/skins/xml/views/Makefile") CONFIG_FILES="$CONFIG_FILES web/skins/xml/views/Makefile" ;;
     "web/skins/xml/includes/Makefile") CONFIG_FILES="$CONFIG_FILES web/skins/xml/includes/Makefile" ;;
     "web/zmApache.conf") CONFIG_FILES="$CONFIG_FILES web/zmApache.conf" ;;
+    "src/zm_config_defines.h") CONFIG_COMMANDS="$CONFIG_COMMANDS src/zm_config_defines.h" ;;
+    "scripts/ZoneMinder/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS scripts/ZoneMinder/Makefile" ;;
 
   *) as_fn_error "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
@@ -10757,6 +10783,8 @@ $as_echo X"$file" |
   done
 }
  ;;
+    "src/zm_config_defines.h":C) perl ./zmconfgen.pl ;;
+    "scripts/ZoneMinder/Makefile":C) cd scripts/ZoneMinder; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS ;;
 
   esac
 done # for ac_tag
@@ -10795,8 +10823,3 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
-
-#AC_CHECK_FILE(scripts/ZoneMinder/Makefile,,[cd scripts/ZoneMinder;perl Makefile.PL PREFIX=$PREFIX])
-cd scripts/ZoneMinder
-echo "perl Makefile.PL $PERL_MM_PARMS"
-perl Makefile.PL $PERL_MM_PARMS

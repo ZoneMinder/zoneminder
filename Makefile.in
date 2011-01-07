@@ -201,7 +201,6 @@ PERL = @PERL@
 PERL_MM_PARMS = @PERL_MM_PARMS@
 POW_LIB = @POW_LIB@
 RANLIB = @RANLIB@
-RUNDIR = @RUNDIR@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -217,11 +216,13 @@ ZM_DB_HOST = @ZM_DB_HOST@
 ZM_DB_NAME = @ZM_DB_NAME@
 ZM_DB_PASS = @ZM_DB_PASS@
 ZM_DB_USER = @ZM_DB_USER@
+ZM_LOGDIR = @ZM_LOGDIR@
 ZM_MYSQL_ENGINE = @ZM_MYSQL_ENGINE@
 ZM_PCRE = @ZM_PCRE@
 ZM_PID = @ZM_PID@
 ZM_RUNDIR = @ZM_RUNDIR@
 ZM_SSL_LIB = @ZM_SSL_LIB@
+ZM_TMPDIR = @ZM_TMPDIR@
 ZM_V4L2 = @ZM_V4L2@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -281,7 +282,8 @@ SUBDIRS = \
 	db
 
 EXTRA_DIST = \
-	zm.conf.in
+	zm.conf.in \
+	zmconfgen.pl.in
 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -811,10 +813,12 @@ uninstall-am: uninstall-sysconfDATA
 install-data-hook:
 	( cd $(DESTDIR)$(sysconfdir); chown $(webuser):$(webgroup) $(sysconf_DATA); chmod 600 $(sysconf_DATA) )
 	( if ! test -e $(ZM_RUNDIR); then mkdir -p $(ZM_RUNDIR); fi; chown $(webuser):$(webgroup) $(ZM_RUNDIR); chmod u+w $(ZM_RUNDIR) )
+	( if ! test -e $(ZM_TMPDIR); then mkdir -p $(ZM_TMPDIR); fi; chown $(webuser):$(webgroup) $(ZM_TMPDIR); chmod u+w $(ZM_TMPDIR) )
+	( if ! test -e $(ZM_LOGDIR); then mkdir -p $(ZM_LOGDIR); fi; chown $(webuser):$(webgroup) $(ZM_LOGDIR); chmod u+w $(ZM_LOGDIR) )
 
 uninstall-hook:
 	@-( cd $(DESTDIR)$(webdir); rm -rf events graphics images sounds temp )
-	@-( rm -rf $(ZM_RUNDIR) )
+	@-( rm -rf $(ZM_RUNDIR) $(ZM_TMPDIR) $(ZM_LOGDIR) )
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

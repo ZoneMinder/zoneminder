@@ -248,7 +248,6 @@ our @options =
 		default => "yes",
 		description => "Tag video frames with a timestamp for more realistic streaming",
 		help => "When using streamed MPEG based video, either for live monitor streams or events, ZoneMinder can send the streams in two ways. If this option is selected then the timestamp for each frame, taken from it's capture time, is included in the stream. This means that where the frame rate varies, for instance around an alarm, the stream will still maintain it's 'real' timing. If this option is not selected then an approximate frame rate is calculated and that is used to schedule frames instead. This option should be selected unless you encounter problems with your preferred streaming method.",
-		requires => [ { name=>"ZM_STREAM_METHOD", value=>"mpeg" } ],
 		type => $types{boolean},
 		category => "images",
 	},
@@ -257,7 +256,6 @@ our @options =
 		default => "swf",
 		description => "What format 'live' video streams are played in",
 		help => "When using MPEG mode ZoneMinder can output live video. However what formats are handled by the browser varies greatly between machines. This option allows you to specify a video format using a file extension format, so you would just enter the extension of the file type you would like and the rest is determined from that. The default of 'asf' works well under Windows with Windows Media Player but I'm currently not sure what, if anything, works on a Linux platform. If you find out please let me know! If this option is left blank then live streams will revert to being in motion jpeg format",
-		requires => [ { name=>"ZM_STREAM_METHOD", value=>"mpeg" } ],
 		type => $types{string},
 		category => "images",
 	},
@@ -265,8 +263,7 @@ our @options =
 		name => "ZM_MPEG_REPLAY_FORMAT",
 		default => "swf",
 		description => "What format 'replay' video streams are played in",
-		help => "When using MPEG mode ZoneMinder can replay events in encoded video format. However what formats are handled by the browser varies greatly between machines. This option allows you to specify a video format using a file extension format, so you would just enter the extension of the file type you would like and the rest is determined from that. The default of 'asf' works well under Windows with Windows Media Player and 'mpg', or 'avi' etc should work under Linux. If you knwo any more then please let me know! If this option is left blank then live streams will revert to being in motion jpeg format",
-		requires => [ { name=>"ZM_STREAM_METHOD", value=>"mpeg" } ],
+		help => "When using MPEG mode ZoneMinder can replay events in encoded video format. However what formats are handled by the browser varies greatly between machines. This option allows you to specify a video format using a file extension format, so you would just enter the extension of the file type you would like and the rest is determined from that. The default of 'asf' works well under Windows with Windows Media Player and 'mpg', or 'avi' etc should work under Linux. If you know any more then please let me know! If this option is left blank then live streams will revert to being in motion jpeg format",
 		type => $types{string},
 		category => "images",
 	},
@@ -523,7 +520,7 @@ our @options =
 	},
 	{
 		name => "ZM_EXTRA_DEBUG_LOG",
-		default => "/tmp/zm_debug.log+",
+		default => "@ZM_LOGDIR@/zm_debug.log+",
 		description => "Where extra debug is output to",
 		help => "Depending on your system configuration you may find that only errors, warning and informational messages are logged to your system log. This option allows you to specify an additional target for these messages and debug. This also has the advantage of partitioning debug for the component you are tracing, from messages from other components. Be warned however that if this is a simple filename and you are debugging several components then they will all try and write to the same file with undesirable consequences. Appending a '+' to the filename will cause the file to be created with a '.<pid>' suffix containing your process id. In this way debug from each run of a component is kept separate. This is the recommended setting as it will also prevent subsequent runs from overwriting the same log.",
 		requires => [ { name => "ZM_EXTRA_DEBUG", value => "yes" } ],
@@ -548,7 +545,7 @@ our @options =
 	},
 	{
 		name => "ZM_PATH_SOCKS",
-		default => "/tmp",
+		default => "@ZM_TMPDIR@",
 		description => "Path to the various Unix domain socket files that ZoneMinder uses",
 		help => "ZoneMinder generally uses Unix domain sockets where possible. This reduces the need for port assignments and prevents external applications from possibly compromising the daemons. However each Unix socket requires a .sock file to be created. This option indicates where those socket files go.",
 		type => $types{abs_path},
@@ -556,7 +553,7 @@ our @options =
 	},
 	{
 		name => "ZM_PATH_LOGS",
-		default => "/tmp",
+		default => "@ZM_LOGDIR@",
 		description => "Path to the various logs that the ZoneMinder daemons generate",
 		help => "There are various daemons that are used by ZoneMinder to perform various tasks. Most generate helpful log files and this is where they go. They can be deleted if not required for debugging.",
 		type => $types{abs_path},
@@ -564,7 +561,7 @@ our @options =
 	},
 	{
 		name => "ZM_PATH_SWAP",
-		default => "/tmp",
+		default => "@ZM_TMPDIR@",
 		description => "Path to location for temporary swap images used in streaming",
 		help => "Buffered playback requires temporary swap images to be stored for each instance of the streaming daemons. This option determines where these images will be stored. The images will actually be stored in sub directories beneath this location and will be automatically cleaned up after a period of time.",
 		type => $types{abs_path},
@@ -775,7 +772,7 @@ our @options =
 	},
 	{
 		name => "ZM_UPLOAD_FTP_LOC_DIR",
-		default => "/tmp",
+		default => "@ZM_TMPDIR@",
 		description => "The local directory in which to create upload files",
 		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the local directory that ZoneMinder should use for temporary upload files. These are files that are created from events, uploaded and then deleted.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
@@ -1728,7 +1725,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_XML_LOG_FILE",
-		default => "/tmp/zm_xml.log",
+		default => "@ZM_LOGDIR@/zm_xml.log",
 		description => "Default filename to use when logging XML Output and XML_LOG_TO_FILE is enabled", 
 		help => "This file will contain it's own output from the XML Plugin when XML_LOG_TO_FILE and XML_DEBUG are both enabled",
 		type => $types{string},
@@ -1786,8 +1783,19 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;
 
+our $configInitialised = 0;
+
 sub INIT
 {
+    initialiseConfig();
+}
+
+# This function should never need to be called explicitly, except if 
+# this module is 'require'd rather than 'use'd. See zmconfgen.pl.
+sub initialiseConfig
+{
+    return if ( $configInitialised );
+
 	# Do some initial data munging to finish the data structures
 	# Create option ids
 	my $option_id = 0;
@@ -1804,6 +1812,7 @@ sub INIT
 		#next if ( $option->{category} eq 'hidden' );
 		$option->{id} = $option_id++;
 	}
+    $configInitialised = 1;
 }
 
 sub loadConfigFromDB

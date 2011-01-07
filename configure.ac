@@ -15,6 +15,9 @@ AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user, default zmuser])
 AC_ARG_VAR(ZM_DB_PASS,[Password of ZoneMinder database user, default zmpass])
 AC_ARG_VAR(ZM_SSL_LIB,[Library to use for ssl functions, default gnutls])
 AC_ARG_VAR(ZM_MYSQL_ENGINE,[MySQL engine to use with database, default MyISAM])
+AC_ARG_VAR(ZM_RUNDIR,[Location of transient process files, default /var/run/zm])
+AC_ARG_VAR(ZM_TMPDIR,[Location of temporary files, default /tmp/zm])
+AC_ARG_VAR(ZM_LOGDIR,[Location of generated log files, default /var/log/zm])
 
 if test "$ZM_DB_HOST" == ""; then
 	AC_SUBST(ZM_DB_HOST,[localhost])
@@ -33,6 +36,15 @@ if test "$ZM_SSL_LIB" == ""; then
 fi
 if test "$ZM_MYSQL_ENGINE" == ""; then
 	AC_SUBST(ZM_MYSQL_ENGINE,MyISAM)
+fi
+if test "$ZM_RUNDIR" == ""; then
+	AC_SUBST(ZM_RUNDIR,[/var/run/zm])
+fi
+if test "$ZM_TMPDIR" == ""; then
+	AC_SUBST(ZM_TMPDIR,[/tmp/zm])
+fi
+if test "$ZM_LOGDIR" == ""; then
+	AC_SUBST(ZM_LOGDIR,[/var/log/zm])
 fi
 
 LIB_ARCH=lib
@@ -335,10 +347,6 @@ AC_PROG_PERL_MODULES(X10::ActiveHome,,AC_MSG_WARN(X10::ActiveHome is required fo
 
 AC_DEFINE_DIR([BINDIR],[bindir],[Expanded binary directory])
 AC_DEFINE_DIR([LIBDIR],[libdir],[Expanded library directory])
-if test "$RUNDIR" == ""; then
-AC_SUBST(RUNDIR,"/var/run")
-fi
-AC_SUBST(ZM_RUNDIR,"$RUNDIR/zm")
 AC_SUBST(ZM_PID,"$ZM_RUNDIR/zm.pid")
 AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
 AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
@@ -358,9 +366,10 @@ AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
 AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile web/zmApache.conf])
-AC_OUTPUT
 
-#AC_CHECK_FILE(scripts/ZoneMinder/Makefile,,[cd scripts/ZoneMinder;perl Makefile.PL PREFIX=$PREFIX])
-cd scripts/ZoneMinder
-echo "perl Makefile.PL $PERL_MM_PARMS"
-perl Makefile.PL $PERL_MM_PARMS
+# Create the definitions for compilation and defaults for the database
+AC_CONFIG_COMMANDS([src/zm_config_defines.h],[perl ./zmconfgen.pl])
+# Manually generate the perl Makefile maker
+AC_CONFIG_COMMANDS([scripts/ZoneMinder/Makefile],[cd scripts/ZoneMinder; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS])
+
+AC_OUTPUT

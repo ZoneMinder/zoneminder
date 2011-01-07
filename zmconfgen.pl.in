@@ -25,13 +25,13 @@
 #
 
 use strict;
-@EXTRA_PERL_LIB@
-use ZoneMinder::ConfigAdmin qw( :data );
+use lib './scripts/ZoneMinder/lib';
+use ZoneMinder::ConfigAdmin qw/:data/;
 
 $| = 1;
 
 my $config_header = "src/zm_config_defines.h";
-my $config_sql = "db/zm_create.sql.in";
+my $config_sql = "db/zm_create.sql";
 
 generateConfigFiles();
 

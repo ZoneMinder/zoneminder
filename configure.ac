@@ -370,6 +370,6 @@ AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql scri
 # Create the definitions for compilation and defaults for the database
 AC_CONFIG_COMMANDS([src/zm_config_defines.h],[perl ./zmconfgen.pl])
 # Manually generate the perl Makefile maker
-AC_CONFIG_COMMANDS([scripts/ZoneMinder/Makefile],[cd scripts/ZoneMinder; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS])
+AC_CONFIG_COMMANDS([scripts/ZoneMinder/Makefile],[(cd scripts/ZoneMinder; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS)],[PERL_MM_PARMS=$PERL_MM_PARMS])
 
 AC_OUTPUT

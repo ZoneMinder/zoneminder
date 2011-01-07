@@ -10029,6 +10029,7 @@ cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
 # INIT-COMMANDS
 #
 AMDEP_TRUE="$AMDEP_TRUE" ac_aux_dir="$ac_aux_dir"
+PERL_MM_PARMS=$PERL_MM_PARMS
 
 _ACEOF
 
@@ -10784,7 +10785,7 @@ $as_echo X"$file" |
 }
  ;;
     "src/zm_config_defines.h":C) perl ./zmconfgen.pl ;;
-    "scripts/ZoneMinder/Makefile":C) cd scripts/ZoneMinder; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS ;;
+    "scripts/ZoneMinder/Makefile":C) (cd scripts/ZoneMinder; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS) ;;
 
   esac
 done # for ac_tag

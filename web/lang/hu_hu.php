@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web HU Hungarian language file, $Date: 2009-06-29 11:52:48 +0200 (h, 29 jún 2009) $, $Revision: 2934 $
+// ZoneMinder web HU Hungarian language file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or

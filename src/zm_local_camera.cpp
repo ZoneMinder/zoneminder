@@ -375,17 +375,45 @@ void LocalCamera::Initialise()
         if ( vidioctl( vid_fd, VIDIOC_G_FMT, &v4l2_data.fmt ) < 0 )
             Fatal( "Failed to get video format: %s", strerror(errno) );
 
+        Debug( 4, " v4l2_data.fmt.type = %08x",  v4l2_data.fmt.type );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.width = %08x",  v4l2_data.fmt.fmt.pix.width );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.height = %08x",  v4l2_data.fmt.fmt.pix.height );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.pixelformat = %08x",  v4l2_data.fmt.fmt.pix.pixelformat );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.field = %08x",  v4l2_data.fmt.fmt.pix.field );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.bytesperline = %08x",  v4l2_data.fmt.fmt.pix.bytesperline );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.sizeimage = %08x",  v4l2_data.fmt.fmt.pix.sizeimage );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.colorspace = %08x",  v4l2_data.fmt.fmt.pix.colorspace );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.priv = %08x",  v4l2_data.fmt.fmt.pix.priv );
+
         v4l2_data.fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         v4l2_data.fmt.fmt.pix.width = width; 
         v4l2_data.fmt.fmt.pix.height = height;
         v4l2_data.fmt.fmt.pix.pixelformat = palette;
-        //v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
-        //v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
 
+        if ( config.v4l2_capture_fields )
+        {
+            v4l2_data.fmt.fmt.pix.field = (v4l2_field)config.v4l2_capture_fields;
+            if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 )
+            {
+                Warning( "Failed to set V4L2 field to %d, falling back to auto", config.v4l2_capture_fields );
+                v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
+                if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 )
+                    Fatal( "Failed to set video format: %s", strerror(errno) );
+            }
+        }
         if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 )
             Fatal( "Failed to set video format: %s", strerror(errno) );
 
         /* Note VIDIOC_S_FMT may change width and height. */
+        Debug( 4, " v4l2_data.fmt.type = %08x",  v4l2_data.fmt.type );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.width = %08x",  v4l2_data.fmt.fmt.pix.width );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.height = %08x",  v4l2_data.fmt.fmt.pix.height );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.pixelformat = %08x",  v4l2_data.fmt.fmt.pix.pixelformat );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.field = %08x",  v4l2_data.fmt.fmt.pix.field );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.bytesperline = %08x",  v4l2_data.fmt.fmt.pix.bytesperline );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.sizeimage = %08x",  v4l2_data.fmt.fmt.pix.sizeimage );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.colorspace = %08x",  v4l2_data.fmt.fmt.pix.colorspace );
+        Debug( 4, " v4l2_data.fmt.fmt.pix.priv = %08x",  v4l2_data.fmt.fmt.pix.priv );
 
         /* Buggy driver paranoia. */
         unsigned int min;
@@ -452,12 +480,12 @@ void LocalCamera::Initialise()
                 Fatal( "Can't map video buffer %d (%d bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
 
 #if HAVE_LIBSWSCALE
-            if ( imagePixFormat != capturePixFormat )
+            if ( imagePixFormat != capturePixFormat || v4l2_data.fmt.fmt.pix.width != width || v4l2_data.fmt.fmt.pix.height != height )
             {
                 capturePictures[i] = avcodec_alloc_frame();
                 if ( !capturePictures[i] )
                     Fatal( "Could not allocate picture" );
-                avpicture_fill( (AVPicture *)capturePictures[i], (unsigned char *)v4l2_data.buffers[i].start, capturePixFormat, width, height );
+                avpicture_fill( (AVPicture *)capturePictures[i], (unsigned char *)v4l2_data.buffers[i].start, capturePixFormat, v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height );
             }
 #endif // HAVE_LIBSWSCALE
         }
@@ -575,6 +603,10 @@ void LocalCamera::Initialise()
                 exit(-1);
         }
 
+        Info( "vid_win.width = %08x", vid_win.width );
+        Info( "vid_win.height = %08x", vid_win.height );
+        Info( "vid_win.flags = %08x", vid_win.flags );
+
         Debug( 3, "Setting up request buffers" );
         if ( ioctl( vid_fd, VIDIOCGMBUF, &v4l1_data.frames ) < 0 )
             Fatal( "Failed to setup memory: %s", strerror(errno) );
@@ -634,6 +666,10 @@ void LocalCamera::Initialise()
 
         if ( ioctl( vid_fd, VIDIOCGWIN, &vid_win) < 0 )
             Fatal( "Failed to get window data: %s", strerror(errno) );
+
+        Info( "vid_win.width = %08x", vid_win.width );
+        Info( "vid_win.height = %08x", vid_win.height );
+        Info( "vid_win.flags = %08x", vid_win.flags );
 
         Debug( 4, "New X:%d", vid_win.x );
         Debug( 4, "New Y:%d", vid_win.y );
@@ -910,8 +946,8 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
             crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             if ( vidioctl( vid_fd, VIDIOC_G_CROP, &crop ) < 0 )
             {
-               if ( errno != EINVAL )
-               {
+                if ( errno != EINVAL )
+                {
                     Error( "Failed to query crop: %s", strerror(errno) );
                     if ( verbose )
                         sprintf( output, "Error, failed to query crop %s: %s\n", queryDevice, strerror(errno) );
@@ -919,17 +955,17 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
                         sprintf( output, "error%d\n", errno );
 
                     return( false );
-               }
-               else if ( verbose )
-               {
+                }
+                else if ( verbose )
+                {
                     Info( "Does not support VIDIOC_G_CROP");
-               }
+                }
             }
-           else
-           {
-               if ( verbose )
-                   sprintf( output+strlen(output), "  Current: %d x %d\n", crop.c.width, crop.c.height );
-           }
+            else
+            {
+                if ( verbose )
+                sprintf( output+strlen(output), "  Current: %d x %d\n", crop.c.width, crop.c.height );
+            }
 
             struct v4l2_input input;
             int inputIndex = 0;
@@ -1506,6 +1542,8 @@ int LocalCamera::Capture( Image &image )
 	int captures_per_frame = 1;
 	if ( channel_count > 1 )
 		captures_per_frame = config.captures_per_frame;
+    int captureWidth = width;
+    int captureHeight = height;
 
     // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer
     if ( channel_prime )
@@ -1549,6 +1587,9 @@ int LocalCamera::Capture( Image &image )
             Debug( 3, "Captured frame %d/%d from channel %d", capture_frame, v4l2_data.bufptr->sequence, channel );
 
             buffer = (unsigned char *)v4l2_data.buffers[v4l2_data.bufptr->index].start;
+
+            captureWidth = v4l2_data.fmt.fmt.pix.width;
+            captureHeight = v4l2_data.fmt.fmt.pix.height;
         }
         else
 #endif // ZM_V4L2
@@ -1579,18 +1620,17 @@ int LocalCamera::Capture( Image &image )
 
             buffer = v4l1_data.bufptr+v4l1_data.frames.offsets[capture_frame];
         }
-
+#if HAVE_LIBSWSCALE
         Debug( 3, "Doing format conversion" );
 
-#if HAVE_LIBSWSCALE
         static struct SwsContext *imgConversionContext = 0;
         static AVFrame *tmpPicture = NULL;
 
-        if ( imagePixFormat != capturePixFormat )
+        if ( imagePixFormat != capturePixFormat || captureWidth != width || captureHeight != height )
         {
             if ( !imgConversionContext )
             {
-                imgConversionContext = sws_getContext( width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+                imgConversionContext = sws_getContext( captureWidth, captureHeight, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
                 if ( !imgConversionContext )
                     Fatal( "Unable to initialise image scaling context" );
 

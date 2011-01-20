@@ -668,6 +668,14 @@ our @options =
 		category => "config",
 	},
 	{
+		name => "ZM_V4L2_CAPTURE_FIELDS",
+		default => "0",
+		description => "Control interlacing and field handling in V4L2",
+		help => "The Video4Linux2 standard allows finer control of interlacing than the previous version. This option allows finer control over how the system handle interlacing in general for V4L2 devices. The possible values are described at http://v4l2spec.bytesex.org/spec/x6386.htm#V4L2-FIELD and the default value of 0 allows the driver to decide for itself. This will often result in interlaced images.~~The most useful other values are 2 (top, or 3 for bottom) which prevent interlacing by only capturing one field (or set of scanlines), or 7 which captures both fields but in separate images. This latter option can increase frame rates but with the possibility that alternate frames are one scanline offset from each other so may appear to move up and down slightly.~~Note that preventing interlacing when capturing large image sizes may not actually increase the information content as often the maximum size of single field, non-interlaced, images may be fairly small and the image is just enlarged in the application.",
+		type => $types{integer},
+		category => "config",
+	},
+	{
 		name => "ZM_SIGNAL_CHECK_POINTS",
 		default => "10",
 		description => "How many points in a captured image to check for signal loss",

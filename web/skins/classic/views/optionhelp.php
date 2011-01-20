@@ -20,6 +20,8 @@
 
 $optionHelpIndex = preg_replace( '/^ZM_/', '', $_REQUEST['option'] );
 $optionHelpText = !empty($OLANG[$optionHelpIndex])?$OLANG[$optionHelpIndex]:$config[$_REQUEST['option']]['Help'];
+$optionHelpText = validHtmlStr($optionHelpText);
+$optionHelpText = preg_replace( "/~~/", "<br/>", $optionHelpText );
 
 $focusWindow = true;
 
@@ -35,7 +37,7 @@ xhtmlHeaders(__FILE__, $SLANG['OptionHelp'] );
     </div>
     <div id="content">
       <h3><?= validHtmlStr($_REQUEST['option']) ?></h3>
-      <p class="textblock"><?= validHtmlStr($optionHelpText) ?></p>
+      <p class="textblock"><?= $optionHelpText ?></p>
     </div>
   </div>
 </body>

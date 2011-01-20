@@ -330,6 +330,10 @@ div.clear {
     padding: 4px;
 }
 
+#content p.textblock br {
+    margin-bottom: 8px;
+}
+
 /*
 #contentDiv {
     margin: 0 auto 8px;

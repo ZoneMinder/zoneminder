@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS = gnu
 
 AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -Wno-sign-compare -fno-inline
-AM_CXXFLAGS = -frepo
+#AM_CXXFLAGS = -frepo
 
 CLEANFILES = *.rpo
 

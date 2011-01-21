@@ -39,7 +39,7 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(top_srcdir)/configure \
 	$(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/Base.pm.in \
 	$(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/Config.pm.in \
-	$(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm.in \
+	$(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm.in \
 	$(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/Memory.pm.in \
 	AUTHORS COPYING ChangeLog INSTALL NEWS TODO depcomp install-sh \
 	missing mkinstalldirs
@@ -56,7 +56,7 @@ CONFIG_CLEAN_FILES = zm.conf zmconfgen.pl \
 	scripts/ZoneMinder/lib/ZoneMinder/Base.pm \
 	scripts/ZoneMinder/lib/ZoneMinder/Config.pm \
 	scripts/ZoneMinder/lib/ZoneMinder/Memory.pm \
-	scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm
+	scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm
 CONFIG_CLEAN_VPATH_FILES =
 SOURCES =
 DIST_SOURCES =
@@ -350,7 +350,7 @@ scripts/ZoneMinder/lib/ZoneMinder/Config.pm: $(top_builddir)/config.status $(top
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 scripts/ZoneMinder/lib/ZoneMinder/Memory.pm: $(top_builddir)/config.status $(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/Memory.pm.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm: $(top_builddir)/config.status $(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm.in
+scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm: $(top_builddir)/config.status $(top_srcdir)/scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-sysconfDATA: $(sysconf_DATA)
 	@$(NORMAL_INSTALL)

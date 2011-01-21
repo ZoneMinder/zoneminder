@@ -51,6 +51,7 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder/Memory/Shared.pm \
 	ZoneMinder/lib/ZoneMinder/Memory/Mapped.pm \
 	ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm \
+	ZoneMinder/lib/ZoneMinder/ConfigData.pm.in \
 	ZoneMinder/lib/ZoneMinder/Control.pm \
 	ZoneMinder/lib/ZoneMinder/Control/PelcoD.pm \
 	ZoneMinder/lib/ZoneMinder/Control/AxisV2.pm \

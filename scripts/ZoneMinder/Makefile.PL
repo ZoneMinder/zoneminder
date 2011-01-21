@@ -17,6 +17,7 @@ WriteMakefile(
 		'lib/ZoneMinder/Memory/Shared.pm' => '$(INST_LIBDIR)/ZoneMinder/Memory/Shared.pm',
 		'lib/ZoneMinder/Memory/Mapped.pm' => '$(INST_LIBDIR)/ZoneMinder/Memory/Mapped.pm',
 		'lib/ZoneMinder/ConfigAdmin.pm' => '$(INST_LIBDIR)/ZoneMinder/ConfigAdmin.pm',
+		'lib/ZoneMinder/ConfigData.pm' => '$(INST_LIBDIR)/ZoneMinder/ConfigData.pm',
 		'lib/ZoneMinder/Control.pm' => '$(INST_LIBDIR)/ZoneMinder/Control.pm',
 		'lib/ZoneMinder/Control/PelcoD.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/PelcoD.pm',
 		'lib/ZoneMinder/Control/AxisV2.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/AxisV2.pm',

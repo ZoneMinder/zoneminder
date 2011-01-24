@@ -1314,7 +1314,6 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Scale thumbnails in events, bandwidth versus cpu in rescaling",
 		help => "If unset, this option sends the whole image to the browser which resizes it in the window. If set the image is scaled down on the server before sending a reduced size image to the browser to conserve bandwidth at the cost of cpu on the server",
 		type => $types{boolean},
-		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
 		category => "highband",
 	},
 	{
@@ -1436,7 +1435,6 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Scale thumbnails in events, bandwidth versus cpu in rescaling",
 		help => "If unset, this option sends the whole image to the browser which resizes it in the window. If set the image is scaled down on the server before sending a reduced size image to the browser to conserve bandwidth at the cost of cpu on the server",
 		type => $types{boolean},
-		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
 		category => "medband",
 	},
 	{
@@ -1558,7 +1556,6 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Scale thumbnails in events, bandwidth versus cpu in rescaling",
 		help => "If unset, this option sends the whole image to the browser which resizes it in the window. If set the image is scaled down on the server before sending a reduced size image to the browser to conserve bandwidth at the cost of cpu on the server",
 		type => $types{boolean},
-		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
 		category => "lowband",
 	},
 	{
@@ -1639,7 +1636,6 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 		description => "Scale thumbnails in events, bandwidth versus cpu in rescaling",
 		help => "If unset, this option sends the whole image to the browser which resizes it in the window. If set the image is scaled down on the server before sending a reduced size image to the browser to conserve bandwidth at the cost of cpu on the server",
 		type => $types{boolean},
-		requires => [ { name=>"ZM_PATH_NETPBM", value=>"/" } ],
 		category => "phoneband",
 	},
 	{

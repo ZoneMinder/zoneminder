@@ -578,6 +578,7 @@ $SLANG = array(
     'ShowTimeline'         => 'Idõvonal megjelenítés',
     'SignalCheckColour'    => 'Szín a jel kimaradásakor',
     'Size'                 => 'Fájlméret',
+    'SkinDescription'      => 'Change the default skin for this computer', // Added - 2011-01-30
     'Sleep'                => 'Alvás',
     'SortAsc'              => 'Növekvõ',
     'SortBy'               => 'Sorbarendezés:',

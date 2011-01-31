@@ -1,7 +1,7 @@
 /*
  * MooTools Extension script to support custom extensions to mootools
  */
-var zmMooToolsVersion = '1.2.3';
+var zmMooToolsVersion = '1.2.5';
 
 /*
  * Firstly, lets check that mootools has been included and thus is present

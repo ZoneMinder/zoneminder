@@ -163,9 +163,9 @@ our @options =
 	},
 	{
 		name => "ZM_USE_DEEP_STORAGE",
-		default => "no",
+		default => "yes",
 		description => "Use a deep filesystem hierarchy for events",
-		help => "Traditionally ZoneMinder stores all event sfor a monitor in one directory for that monitor. This is simple and efficient except when you have very large amounts of events. Some filesystems are unable to store more than 32k files in one directory and even without this limitation, large numbers of files in a directory can slow creation and deletion of files. This option allows you to select a new method of storing events by year/month/day/hour/min/second which has the effect of separating events out into more directories, resulting in less per directory, and also making it easier to manually navigate to any events that may have happened at a particular time or date. Be warned: deep storage should be considered in beta for now, if you value your data do not select it.",
+		help => "Traditionally ZoneMinder stores all event sfor a monitor in one directory for that monitor. This is simple and efficient except when you have very large amounts of events. Some filesystems are unable to store more than 32k files in one directory and even without this limitation, large numbers of files in a directory can slow creation and deletion of files. This option allows you to select an alternate method of storing events by year/month/day/hour/min/second which has the effect of separating events out into more directories, resulting in less per directory, and also making it easier to manually navigate to any events that may have happened at a particular time or date.",
 		type => $types{boolean},
 		category => "paths",
 	},

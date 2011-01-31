@@ -46,6 +46,7 @@ our %EXPORT_TAGS = (
 		saveConfigToDB
 	) ]
 );
+push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'functions'} } );
 

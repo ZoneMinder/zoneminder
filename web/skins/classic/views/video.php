@@ -88,7 +88,15 @@ if ( isset($_REQUEST['deleteIndex']) )
 if ( isset($_REQUEST['downloadIndex']) )
 {
     $downloadIndex = validInt($_REQUEST['downloadIndex']);
-    header( "Content-disposition: attachment; filename=".$videoFiles[$downloadIndex]."; size=".filesize($videoFiles[$downloadIndex]) );
+    header( "Pragma: public" );
+    header( "Expires: 0" );
+    header( "Cache-Control: must-revalidate, post-check=0, pre-check=0" );
+    header( "Cache-Control: private", false ); // required by certain browsers
+    header( "Content-Description: File Transfer" );
+    header( 'Content-disposition: attachment; filename="'.basename($videoFiles[$downloadIndex]).'"' ); // basename is required because the video index contains the path and firefox doesn't strip the path but simply replaces the slashes with an underscore.
+    header( "Content-Transfer-Encoding: binary" );
+    header( "Content-Type: application/force-download" );
+    header( "Content-Length: ".filesize($videoFiles[$downloadIndex]) ); 
     readfile( $videoFiles[$downloadIndex] );
     exit;
 }

@@ -1023,8 +1023,7 @@ bool Monitor::CheckSignal( const Image *image )
                 if ( !config.timestamp_on_capture || !label_format[0] )
                     break;
                 // Avoid sampling the rows with timestamp in
-                int y = index / (width * colours);
-                if ( y < label_coord.Y() || y <= label_coord.Y()+Image::LINE_HEIGHT )
+                if ( index < (label_coord.Y()*width) || index >= (label_coord.Y()+Image::LINE_HEIGHT)*width )
                     break;
             }
             const unsigned char *ptr = buffer+(index*colours);

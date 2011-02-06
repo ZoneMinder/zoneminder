@@ -326,7 +326,7 @@ foreach( $displayMonitors as $monitor )
 <?php
     }
 ?>
-            <td class="colMark"><input type="checkbox" name="markMids[]" value="<?= $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) || $user['MonitorIds'] ) {?> disabled="disabled"<?php } ?>/></td>
+            <td class="colMark"><input type="checkbox" name="markMids[]" value="<?= $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
           </tr>
 <?php
 }

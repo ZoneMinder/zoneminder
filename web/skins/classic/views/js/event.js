@@ -230,15 +230,18 @@ function getEventResponse( respObj, respText )
     $('dataScore').set( 'text', event.TotScore+"/"+event.AvgScore+"/"+event.MaxScore );
     $('eventName').setProperty( 'value', event.Name );
 
-    if ( parseInt(event.Archived) )
+    if ( canEditEvents )
     {
-        $('archiveEvent').addClass( 'hidden' );
-        $('unarchiveEvent').removeClass( 'hidden' );
-    }
-    else
-    {
-        $('archiveEvent').removeClass( 'hidden' );
-        $('unarchiveEvent').addClass( 'hidden' );
+        if ( parseInt(event.Archived) )
+        {
+            $('archiveEvent').addClass( 'hidden' );
+            $('unarchiveEvent').removeClass( 'hidden' );
+        }
+        else
+        {
+            $('archiveEvent').removeClass( 'hidden' );
+            $('unarchiveEvent').addClass( 'hidden' );
+        }
     }
     //var eventImg = $('eventImage');
     //eventImg.setStyles( { 'width': event.width, 'height': event.height } );

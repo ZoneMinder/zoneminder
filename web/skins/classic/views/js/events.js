@@ -135,7 +135,7 @@ function archiveEvents( element, name )
     form.submit();
 }
 
-function unArchiveEvents( element, name )
+function unarchiveEvents( element, name )
 {
     var form = element.form;
     form.action.value = 'unarchive';

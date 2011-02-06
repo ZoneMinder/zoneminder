@@ -770,13 +770,11 @@ function getBrowser( &$browser, &$version )
 {
     if ( isset($_SESSION['browser']) )
     {
-        error_log( "Cached" );
         $browser = $_SESSION['browser'];
         $version = $_SESSION['version'];
     }
     else
     {
-        error_log( "Uncached" );
         if ( preg_match( '/MSIE ([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
         {
             $version = $logVersion[1];
@@ -841,8 +839,6 @@ function isInternetExplorer()
 function isChrome()
 {
     getBrowser( $browser, $version );
-    error_log( "B:".$browser );
-    error_log( "V:".$version );
 
     return( $browser == "chrome" );
 }

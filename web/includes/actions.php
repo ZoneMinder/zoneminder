@@ -422,6 +422,7 @@ if ( !empty($action) )
                 'Triggers' => 'set',
                 'Controllable' => 'toggle',
                 'TrackMotion' => 'toggle',
+                'Enabled' => 'toggle'
             );
 
             $columns = getTableColumns( 'Monitors' );

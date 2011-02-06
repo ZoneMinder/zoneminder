@@ -21,7 +21,7 @@ if ( canView( 'Control', $_REQUEST['id'] ) )
         if ( @socket_connect( $socket, $sock_file ) )
         {
             $options = array();
-            foreach ( split( " ", $ctrlCommand ) as $option )
+            foreach ( explode( " ", $ctrlCommand ) as $option )
             {
                 if ( preg_match( '/--([^=]+)(?:=(.+))?/', $option, $matches ) )
                 {

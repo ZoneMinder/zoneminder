@@ -710,9 +710,13 @@ function initPage()
         var streamImg = $('imageFeed').getElement('img');
         if ( !streamImg )
             streamImg = $('imageFeed').getElement('object');
-        $(streamImg).addEvent( 'click', handleClick.bindWithEvent( $(streamImg) ) );
         if ( streamMode == "single" )
+        {
+            streamImg.addEvent( 'click', fetchImage.pass( streamImg ) );
             fetchImage.pass( streamImg ).periodical( imageRefreshTimeout );
+        }
+        else
+            streamImg.addEvent( 'click', handleClick.bindWithEvent( streamImg ) );
     }
 
     if ( refreshApplet && appletRefreshTime )

@@ -171,7 +171,7 @@ function getStreamSrc( $args, $querySep='&amp;' )
             $args[] = "user=".$_SESSION['username'];
         }
     }
-    if ( !empty($GLOBALS['connkey']) )
+    if ( !in_array( "mode=single", $args ) && !empty($GLOBALS['connkey']) )
     {   
         $args[] = "connkey=".$GLOBALS['connkey'];
     }       

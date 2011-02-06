@@ -50,7 +50,7 @@ var monitorHeight = <?= $monitor['Height'] ?>;
 
 var scale = <?= $scale ?>;
 
-var streamSrc = "<?= $streamSrc ?>";
+var streamSrc = "<?= preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
 
 var statusRefreshTimeout = <?= 1000*ZM_WEB_REFRESH_STATUS ?>;
 var eventsRefreshTimeout = <?= 1000*ZM_WEB_REFRESH_EVENTS ?>;

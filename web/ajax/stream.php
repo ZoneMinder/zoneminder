@@ -15,7 +15,7 @@ if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) )
 $locSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.sock';
 if ( !@socket_bind( $socket, $locSockFile ) )
 {
-    ajaxError( "socket_bind( $lockSockFile ) failed: ".socket_strerror(socket_last_error()) );
+    ajaxError( "socket_bind( $locSockFile ) failed: ".socket_strerror(socket_last_error()) );
 }
 
 switch ( $_REQUEST['command'] )

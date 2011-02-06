@@ -802,42 +802,59 @@ function getBrowser( &$browser, &$version )
 {
     if ( version_compare( phpversion(), "4.1.0", "<") )
     {
-        global $_SERVER;
+        global $_SERVER, $_SESSION;
     }
 
-    if (preg_match( '/MSIE ([0-9].[0-9]{1,2})/',$_SERVER['HTTP_USER_AGENT'],$logVersion))
+    if ( isset($_SESSION['browser']) )
     {
-        $version = $logVersion[1];
-        $browser = 'ie';
-    }
-    elseif (preg_match( '/Safari\/([0-9.]+)/',$_SERVER['HTTP_USER_AGENT'],$logVersion))
-    {
-        $version = $logVersion[1];
-        $browser = 'safari';
-    }
-        elseif (preg_match( '/Konqueror\/([0-9.]+)/',$_SERVER['HTTP_USER_AGENT'],$logVersion))
-        {
-                $version = $logVersion[1];
-                $browser = 'konqueror';
-        }
-    elseif (preg_match( '/Opera ([0-9].[0-9]{1,2})/',$_SERVER['HTTP_USER_AGENT'],$logVersion))
-    {
-        $version = $logVersion[1];
-        $browser = 'opera';
-    }
-    elseif (preg_match( '/Mozilla\/([0-9].[0-9]{1,2})/',$_SERVER['HTTP_USER_AGENT'],$logVersion))
-    {
-        $version = $logVersion[1];
-        $browser = 'mozilla';
+        error_log( "Cached" );
+        $browser = $_SESSION['browser'];
+        $version = $_SESSION['version'];
     }
     else
     {
-        $version = 0;
-        $browser = 'unknown';
+        error_log( "Uncached" );
+        if ( preg_match( '/MSIE ([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
+        {
+            $version = $logVersion[1];
+            $browser = 'ie';
+        }
+        elseif ( preg_match( '/Chrome\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
+        {
+            $version = $logVersion[1];
+            $browser = 'chrome';
+        }
+        elseif ( preg_match( '/Safari\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
+        {
+            $version = $logVersion[1];
+            $browser = 'safari';
+        }
+        elseif ( preg_match( '/Opera[ \/]([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
+        {
+            $version = $logVersion[1];
+            $browser = 'opera';
+        }
+        elseif ( preg_match( '/Konqueror\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
+        {
+            $version = $logVersion[1];
+            $browser = 'konqueror';
+        }
+        elseif ( preg_match( '/Mozilla\/([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
+        {
+            $version = $logVersion[1];
+            $browser = 'mozilla';
+        }
+        else
+        {
+            $version = 0;
+            $browser = 'unknown';
+        }
+        $_SESSION['browser'] = $browser;
+        $_SESSION['version'] = $version;
     }
 }
 
-function isNetscape()
+function isMozilla()
 {
     getBrowser( $browser, $version );
 
@@ -858,6 +875,29 @@ function isInternetExplorer()
     return( $browser == "ie" );
 }
 
+function isChrome()
+{
+    getBrowser( $browser, $version );
+    error_log( "B:".$browser );
+    error_log( "V:".$version );
+
+    return( $browser == "chrome" );
+}
+
+function isOpera()
+{
+    getBrowser( $browser, $version );
+
+    return( $browser == "opera" );
+}
+
+function isSafari()
+{
+    getBrowser( $browser, $version );
+
+    return( $browser == "safari" );
+}
+
 function isWindows()
 {
     if ( version_compare( phpversion(), "4.1.0", "<") )
@@ -870,12 +910,13 @@ function isWindows()
 
 function canStreamIframe()
 {
-   return (isKonqueror());
+   return( isKonqueror() );
 }
 
 function canStreamNative()
 {
-   return( ZM_WEB_CAN_STREAM == "yes" || ( ZM_WEB_CAN_STREAM == "auto" && (isNetscape() || isKonqueror()) ) );
+   // Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
+   return( ZM_WEB_CAN_STREAM == "yes" || ( ZM_WEB_CAN_STREAM == "auto" && (!isInternetExplorer() && !isChrome()) ) );
 }
 
 function canStreamApplet()

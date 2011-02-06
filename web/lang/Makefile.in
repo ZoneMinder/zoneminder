@@ -211,6 +211,7 @@ dist_web_DATA = \
 	cs_cz.php \
 	de_de.php \
 	dk_dk.php \
+	et_ee.php \
 	en_gb.php \
 	en_us.php \
 	es_ar.php \

@@ -32,10 +32,6 @@ if ( version_compare( phpversion(), "4.3.0", "<") )
 function userLogin( $username, $password="", $passwordHashed=false )
 {
     global $user, $cookies;
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {
-        global $_SESSION, $_SERVER;
-    }
 
     $dbUsername = dbEscape($username);
     $dbPassword = dbEscape($password);
@@ -81,10 +77,6 @@ function userLogin( $username, $password="", $passwordHashed=false )
 function userLogout()
 {
     global $user;
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {
-        global $_SESSION;
-    }
 
     unset( $_SESSION['user'] );
     unset( $user );
@@ -103,10 +95,6 @@ function noCacheHeaders()
 
 function getAuthUser( $auth )
 {
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {
-        global $_SERVER;
-    }
     if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" && !empty($auth) )
     {
         $remoteAddr = "";
@@ -143,11 +131,6 @@ function getAuthUser( $auth )
 
 function generateAuthHash( $useRemoteAddr )
 {
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {
-        global $_SESSION;
-    }
-
     if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" )
     {
         $time = localtime();
@@ -170,11 +153,6 @@ function generateAuthHash( $useRemoteAddr )
 
 function getStreamSrc( $args, $querySep='&amp;' )
 {
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {
-        global $_SESSION, $_SERVER;
-    }
-
     $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
 
     if ( ZM_OPT_USE_AUTH )
@@ -466,11 +444,6 @@ function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
 
 function getZmuCommand( $args )
 {
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {
-        global $_SESSION;
-    }
-
     $zmuCommand = ZMU_PATH;
 
     if ( ZM_OPT_USE_AUTH )
@@ -615,11 +588,6 @@ function truncText( $text, $length, $deslash=1 )
 
 function buildSelect( $name, $contents, $behaviours=false )
 {
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {   
-        global $_SESSION;
-    }   
-
     $value = "";
     if ( preg_match( "/^\s*(\w+)\s*(\[.*\])?\s*$/", $name, $matches ) && count($matches) > 2 )
     {
@@ -800,11 +768,6 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
 
 function getBrowser( &$browser, &$version )
 {
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {
-        global $_SERVER, $_SESSION;
-    }
-
     if ( isset($_SESSION['browser']) )
     {
         error_log( "Cached" );
@@ -900,11 +863,6 @@ function isSafari()
 
 function isWindows()
 {
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {
-        global $_SERVER;
-    }
-
     return ( preg_match( '/Win/', $_SERVER['HTTP_USER_AGENT'] ) );
 }
 
@@ -1327,11 +1285,6 @@ function parseSort( $saveToSession=false, $querySep='&amp;' )
 {
     global $sortQuery, $sortColumn, $sortOrder; // Outputs
 
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {
-        global $_SESSION;
-    }
-
     if ( empty($_REQUEST['sort_field']) )
     {
         $_REQUEST['sort_field'] = ZM_WEB_EVENT_SORT_FIELD;
@@ -1393,11 +1346,6 @@ function parseSort( $saveToSession=false, $querySep='&amp;' )
 
 function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
 {
-    if ( version_compare( phpversion(), "4.1.0", "<") )
-    {
-        global $_SESSION;
-    }
-
     $filter['query'] = ''; 
     $filter['sql'] = '';
     $filter['fields'] = '';

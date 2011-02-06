@@ -1630,7 +1630,7 @@ int LocalCamera::Capture( Image &image )
         {
             if ( !imgConversionContext )
             {
-                imgConversionContext = sws_getContext( captureWidth, captureHeight, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+                imgConversionContext = sws_getCachedContext( NULL, captureWidth, captureHeight, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
                 if ( !imgConversionContext )
                     Fatal( "Unable to initialise image scaling context" );
 

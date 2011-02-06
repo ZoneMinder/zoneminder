@@ -236,7 +236,7 @@ int RemoteCameraRtsp::Capture( Image &image )
 
                     if ( !img_convert_ctx )
                     {
-                        img_convert_ctx = sws_getContext( codecContext->width, codecContext->height, codecContext->pix_fmt, width, height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL );
+                        img_convert_ctx = sws_getCachedContext( NULL, codecContext->width, codecContext->height, codecContext->pix_fmt, width, height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL );
                         if ( !img_convert_ctx )
                             Panic( "Unable to initialise image scaling context" );
                     }

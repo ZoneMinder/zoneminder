@@ -319,7 +319,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 #ifdef HAVE_LIBSWSCALE
         if ( !img_convert_ctx )
         {
-            img_convert_ctx = sws_getContext( c->width, c->height, pf, c->width, c->height, c->pix_fmt, SWS_BICUBIC, NULL, NULL, NULL );
+            img_convert_ctx = sws_getCachedContext( NULL, c->width, c->height, pf, c->width, c->height, c->pix_fmt, SWS_BICUBIC, NULL, NULL, NULL );
             if ( !img_convert_ctx )
                 Panic( "Unable to initialise image scaling context" );
         }

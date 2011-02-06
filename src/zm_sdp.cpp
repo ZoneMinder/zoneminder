@@ -291,11 +291,6 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
 
     strncpy( formatContext->filename, mUrl.c_str(), sizeof(formatContext->filename) );
 
-    if ( mName.length() )
-        strncpy( formatContext->title, mName.c_str(), sizeof(formatContext->title) );
-    if ( mInfo.length() )
-        strncpy( formatContext->comment, mInfo.c_str(), sizeof(formatContext->comment) );
-
     //formatContext->nb_streams = mMediaList.size();
     for ( int i = 0; i < mMediaList.size(); i++ )
     {

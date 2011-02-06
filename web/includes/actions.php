@@ -840,11 +840,14 @@ if ( !empty($action) )
             if ( !empty($_REQUEST['gid']) )
             {
                 dbQuery( "delete from Groups where Id = '".dbEscape($_REQUEST['gid'])."'" );
-                if ( $_REQUEST['gid'] == $_COOKIE['zmGroup'] )
+                if ( isset($_COOKIE['zmGroup']) )
                 {
-                    unset( $_COOKIE['zmGroup'] );
-                    setcookie( "zmGroup", "", time()-3600*24*2 );
-                    $refreshParent = true;
+                    if ( $_REQUEST['gid'] == $_COOKIE['zmGroup'] )
+                    {
+                        unset( $_COOKIE['zmGroup'] );
+                        setcookie( "zmGroup", "", time()-3600*24*2 );
+                        $refreshParent = true;
+                    }
                 }
             }
         }

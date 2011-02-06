@@ -408,7 +408,8 @@ foreach( dbFetchAll( $eventsSql ) as $event )
         else
         {
             $framesSql = "select FrameId,Delta,unix_timestamp(TimeStamp) as TimeT,Score from Frames where EventId = '".$event['Id']."' and Score > 0";
-            foreach( dbFetchAll( $framesSql ) as $frame )
+            $result = dbQuery( $framesSql );
+            while( $frame = dbFetchNext( $result ) )
             {
                 if ( $frame['Score'] == 0 )
                     continue;

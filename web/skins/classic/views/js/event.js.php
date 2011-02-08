@@ -25,7 +25,7 @@ var SCALE_BASE = <?= SCALE_BASE ?>;
 //
 var connKey = '<?= $connkey ?>';
 
-var event = {
+var eventData = {
     Id: <?= $event['Id'] ?>,
     Width: <?= $event['Width'] ?>,
     Height: <?= $event['Height'] ?>,

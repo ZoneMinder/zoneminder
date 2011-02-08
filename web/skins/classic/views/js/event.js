@@ -7,8 +7,8 @@ function setButtonState( element, butClass )
 function changeScale()
 {
     var scale = $('scale').get('value');
-    var baseWidth = event.Width;
-    var baseHeight = event.Height;
+    var baseWidth = eventData.Width;
+    var baseHeight = eventData.Height;
     var newWidth = ( baseWidth * scale ) / SCALE_BASE;
     var newHeight = ( baseHeight * scale ) / SCALE_BASE;
 
@@ -209,30 +209,30 @@ function getEventResponse( respObj, respText )
     if ( checkStreamForErrors( "getEventResponse", respObj ) )
         return;
 
-    event = respObj.event;
-    if ( !$('eventStills').hasClass( 'hidden' ) && currEventId != event.Id )
+    eventData = respObj.event;
+    if ( !$('eventStills').hasClass( 'hidden' ) && currEventId != eventData.Id )
         resetEventStills();
-    currEventId = event.Id;
+    currEventId = eventData.Id;
 
-    $('dataId').set( 'text', event.Id );
-    if ( event.Notes )
+    $('dataId').set( 'text', eventData.Id );
+    if ( eventData.Notes )
     {
-        $('dataCause').setProperty( 'title', event.Notes );
+        $('dataCause').setProperty( 'title', eventData.Notes );
     }
     else
     {
         $('dataCause').setProperty( 'title', causeString );
     }
-    $('dataCause').set( 'text', event.Cause );
-    $('dataTime').set( 'text', event.StartTime );
-    $('dataDuration').set( 'text', event.Length );
-    $('dataFrames').set( 'text', event.Frames+"/"+event.AlarmFrames );
-    $('dataScore').set( 'text', event.TotScore+"/"+event.AvgScore+"/"+event.MaxScore );
-    $('eventName').setProperty( 'value', event.Name );
+    $('dataCause').set( 'text', eventData.Cause );
+    $('dataTime').set( 'text', eventData.StartTime );
+    $('dataDuration').set( 'text', eventData.Length );
+    $('dataFrames').set( 'text', eventData.Frames+"/"+eventData.AlarmFrames );
+    $('dataScore').set( 'text', eventData.TotScore+"/"+eventData.AvgScore+"/"+eventData.MaxScore );
+    $('eventName').setProperty( 'value', eventData.Name );
 
     if ( canEditEvents )
     {
-        if ( parseInt(event.Archived) )
+        if ( parseInt(eventData.Archived) )
         {
             $('archiveEvent').addClass( 'hidden' );
             $('unarchiveEvent').removeClass( 'hidden' );
@@ -244,9 +244,9 @@ function getEventResponse( respObj, respText )
         }
     }
     //var eventImg = $('eventImage');
-    //eventImg.setStyles( { 'width': event.width, 'height': event.height } );
+    //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
     drawProgressBar();
-    nearEventsQuery( event.Id );
+    nearEventsQuery( eventData.Id );
 }
 
 var eventReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
@@ -401,23 +401,23 @@ function resetEventStills()
     if ( true || !slider )
     {
         slider = new Slider( $('thumbsSlider'), $('thumbsKnob'), {
-            /*steps: event.Frames,*/
+            /*steps: eventData.Frames,*/
             onChange: function( step )
             {
                 if ( !step )
                     step = 0;
-                var fid = parseInt((step * event.Frames)/this.options.steps);
+                var fid = parseInt((step * eventData.Frames)/this.options.steps);
                 if ( fid < 1 )
                     fid = 1;
-                else if ( fid > event.Frames )
-                    fid = event.Frames;
-                checkFrames( event.Id, fid );
+                else if ( fid > eventData.Frames )
+                    fid = eventData.Frames;
+                checkFrames( eventData.Id, fid );
                 scroll.toElement( 'eventThumb'+fid );
             }
         } ).set( 0 );
     }
-    if ( $('eventThumbs').getStyle( 'height' ).match( /^\d+/ ) < (parseInt(event.Height)+80) )
-        $('eventThumbs').setStyle( 'height', (parseInt(event.Height)+80)+'px' );
+    if ( $('eventThumbs').getStyle( 'height' ).match( /^\d+/ ) < (parseInt(eventData.Height)+80) )
+        $('eventThumbs').setStyle( 'height', (parseInt(eventData.Height)+80)+'px' );
 }
 
 function getFrameResponse( respObj, respText )
@@ -427,18 +427,18 @@ function getFrameResponse( respObj, respText )
 
     var frame = respObj.frameimage;
 
-    if ( !event )
+    if ( !eventData )
     {
         console.error( "No event "+frame.EventId+" found" );
         return;
     }
 
-    if ( !event['frames'] )
-        event['frames'] = new Hash();
+    if ( !eventData['frames'] )
+        eventData['frames'] = new Hash();
 
-    event['frames'][frame.FrameId] = frame;
+    eventData['frames'][frame.FrameId] = frame;
     
-    loadEventThumb( event, frame, respObj.loopback=="true" );
+    loadEventThumb( eventData, frame, respObj.loopback=="true" );
 }
 
 var frameReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse } );
@@ -453,14 +453,14 @@ var currFrameId = null;
 
 function checkFrames( eventId, frameId, loadImage )
 {
-    if ( !event )
+    if ( !eventData )
     {
         console.error( "No event "+eventId+" found" );
         return;
     }
 
-    if ( !event['frames'] )
-        event['frames'] = new Hash();
+    if ( !eventData['frames'] )
+        eventData['frames'] = new Hash();
 
     currFrameId = frameId;
 
@@ -468,15 +468,15 @@ function checkFrames( eventId, frameId, loadImage )
     if ( loFid < 1 )
         loFid = 1;
     var hiFid = loFid + (frameBatch-1);
-    if ( hiFid > event.Frames )
-        hiFid = event.Frames;
+    if ( hiFid > eventData.Frames )
+        hiFid = eventData.Frames;
 
     for ( var fid = loFid; fid <= hiFid; fid++ )
     {
         if ( !$('eventThumb'+fid) )
         {
             var img = new Element( 'img', { 'id': 'eventThumb'+fid, 'src': 'graphics/transparent.gif', 'alt': fid, 'class': 'placeholder' } );
-            img.addEvent( 'click', function () { event['frames'][fid] = null; checkFrames( eventId, fid ) } );
+            img.addEvent( 'click', function () { eventData['frames'][fid] = null; checkFrames( eventId, fid ) } );
             frameQuery( eventId, fid, loadImage && (fid == frameId) );
             var imgs = $('eventThumbs').getElements( 'img' );
             var injected = false;
@@ -505,27 +505,27 @@ function checkFrames( eventId, frameId, loadImage )
             }
             var scale = parseInt(img.getStyle('height'));
             img.setStyles( {
-                'width': parseInt((event.Width*scale)/100),
-                'height': parseInt((event.Height*scale)/100)
+                'width': parseInt((eventData.Width*scale)/100),
+                'height': parseInt((eventData.Height*scale)/100)
             } );
         }
-        else if ( event['frames'][fid] )
+        else if ( eventData['frames'][fid] )
         {
             if ( loadImage && (fid == frameId) )
             {
-                loadEventImage( event, event['frames'][fid], loadImage );
+                loadEventImage( eventData, eventData['frames'][fid], loadImage );
             }
         }
     }
     $('prevThumbsBtn').disabled = (frameId==1);
-    $('nextThumbsBtn').disabled = (frameId==event.Frames);
+    $('nextThumbsBtn').disabled = (frameId==eventData.Frames);
 }
 
 function locateImage( frameId, loadImage )
 {
     if ( slider )
-        slider.fireEvent( 'tick', slider.toPosition( parseInt((frameId-1)*slider.options.steps/event.Frames) ));
-    checkFrames( event.Id, frameId, loadImage );
+        slider.fireEvent( 'tick', slider.toPosition( parseInt((frameId-1)*slider.options.steps/eventData.Frames) ));
+    checkFrames( eventData.Id, frameId, loadImage );
     scroll.toElement( 'eventThumb'+frameId );
 }
 
@@ -537,7 +537,7 @@ function prevImage()
 
 function nextImage()
 {
-    if ( currFrameId < event.Frames )
+    if ( currFrameId < eventData.Frames )
         locateImage( parseInt(currFrameId)+1, true );
 }
 
@@ -549,8 +549,8 @@ function prevThumbs()
 
 function nextThumbs()
 {
-    if ( currFrameId < event.Frames )
-        locateImage( parseInt(currFrameId)<(event.Frames-10)?(parseInt(currFrameId)+10):event.Frames, $('eventImagePanel').getStyle('display')!="none" );
+    if ( currFrameId < eventData.Frames )
+        locateImage( parseInt(currFrameId)<(eventData.Frames-10)?(parseInt(currFrameId)+10):eventData.Frames, $('eventImagePanel').getStyle('display')!="none" );
 }
 
 function prevEvent()
@@ -580,14 +580,14 @@ function getActResponse( respObj, respText )
         refreshParentWindow();
 
     if ( respObj.refreshEvent )
-        eventQuery( event.Id );
+        eventQuery( eventData.Id );
 }
 
 var actReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse } );
 
 function actQuery( action, parms )
 {
-    var actParms = "view=request&request=event&id="+event.Id+"&action="+action;
+    var actParms = "view=request&request=event&id="+eventData.Id+"&action="+action;
     if ( parms != null )
         actParms += "&"+Hash.toQueryString( parms );
     actReq.send( actParms );
@@ -607,12 +607,12 @@ function renameEvent()
 
 function editEvent()
 {
-    createPopup( '?view=eventdetail&eid='+event.Id, 'zmEventDetail', 'eventdetail' );
+    createPopup( '?view=eventdetail&eid='+eventData.Id, 'zmEventDetail', 'eventdetail' );
 }
 
 function exportEvent()
 {
-    createPopup( '?view=export&eid='+event.Id, 'zmExport', 'export' );
+    createPopup( '?view=export&eid='+eventData.Id, 'zmExport', 'export' );
 }
 
 function archiveEvent()
@@ -627,7 +627,7 @@ function unarchiveEvent()
 
 function showEventFrames()
 {
-    createPopup( '?view=frames&eid='+event.Id, 'zmFrames', 'frames' );
+    createPopup( '?view=frames&eid='+eventData.Id, 'zmFrames', 'frames' );
 }
 
 function showStream()
@@ -664,12 +664,12 @@ function showStills()
 function showFrameStats()
 {
     var fid = $('eventImageNo').get('text');
-    createPopup( '?view=stats&eid='+event.Id+'&fid='+fid, 'zmStats', 'stats', event.Width, event.Height );
+    createPopup( '?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height );
 }
 
 function videoEvent()
 {
-    createPopup( '?view=video&eid='+event.Id, 'zmVideo', 'video', event.Width, event.Height );
+    createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
 }
 
 function drawProgressBar()
@@ -677,7 +677,7 @@ function drawProgressBar()
     var barWidth = 0;
     $('progressBar').addClass( 'invisible' );
     var cells = $('progressBar').getElements( 'div' );
-    var cellWidth = parseInt( event.Width/$$(cells).length );
+    var cellWidth = parseInt( eventData.Width/$$(cells).length );
     $$(cells).forEach(
         function( cell, index )
         {
@@ -685,7 +685,7 @@ function drawProgressBar()
                 $(cell).setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
             else
                 $(cell).setStyles( { 'left': barWidth, 'width': cellWidth } );
-            var offset = parseInt((index*event.Length)/$$(cells).length);
+            var offset = parseInt((index*eventData.Length)/$$(cells).length);
             $(cell).setProperty( 'title', '+'+secsToTime(offset)+'s' );
             $(cell).removeEvent( 'click' );
             $(cell).addEvent( 'click', function(){ streamSeek( offset ); } );
@@ -698,10 +698,10 @@ function drawProgressBar()
 
 function updateProgressBar()
 {
-    if ( event && streamStatus )
+    if ( eventData && streamStatus )
     {
         var cells = $('progressBar').getElements( 'div' );
-        var completeIndex = parseInt((($$(cells).length+1)*streamStatus.progress)/event.Length);
+        var completeIndex = parseInt((($$(cells).length+1)*streamStatus.progress)/eventData.Length);
         $$(cells).forEach(
             function( cell, index )
             {
@@ -739,7 +739,7 @@ function handleClick( event )
 function initPage()
 {
     streamCmdTimer = streamQuery.delay( 250 );
-    eventQuery.pass( event.Id ).delay( 500 );
+    eventQuery.pass( eventData.Id ).delay( 500 );
 
     if ( canStreamNative )
     {

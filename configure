@@ -6909,6 +6909,7 @@ else
 $as_echo "$as_me: WARNING: libavutil.a may be required for MPEG streaming" >&2;}
 fi
 
+# Don't bother to warn about this one
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for av_image_copy in -lavcore" >&5
 $as_echo_n "checking for av_image_copy in -lavcore... " >&6; }
 if test "${ac_cv_lib_avcore_av_image_copy+set}" = set; then :
@@ -6952,9 +6953,6 @@ _ACEOF
 
   LIBS="-lavcore $LIBS"
 
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: libavcore.a may be required for MPEG streaming" >&5
-$as_echo "$as_me: WARNING: libavcore.a may be required for MPEG streaming" >&2;}
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for avcodec_init in -lavcodec" >&5

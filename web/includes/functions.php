@@ -2191,7 +2191,7 @@ function jsonEncode( &$value )
                 {
                     if ( $result != '{' )
                         $result .= ',';
-                    $result .= '"'.jsonEncode( $subkey ).'":'.jsonEncode( $subvalue );
+                    $result .= '"'.$subkey.'":'.jsonEncode( $subvalue );
                 }
                 return( $result.'}' );
             }

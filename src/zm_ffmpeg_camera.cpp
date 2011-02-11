@@ -43,13 +43,24 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, in
 
 FfmpegCamera::~FfmpegCamera()
 {
-    av_free( mFrame );
-    av_free( mRawFrame );
+    av_freep( &mFrame );
+    av_freep( &mRawFrame );
     
-    avcodec_close( mCodecContext );
-    av_free( mCodecContext );
-    av_close_input_file( mFormatContext );
-    av_free( mFormatContext );
+    if ( mConvertContext )
+    {
+        sws_freeContext( mConvertContext );
+        mConvertContext = NULL;
+    }
+    if ( mCodecContext )
+    {
+       avcodec_close( mCodecContext );
+       mCodecContext = NULL; // Freed by av_close_input_file
+    }
+    if ( mFormatContext )
+    {
+        av_close_input_file( mFormatContext );
+        mFormatContext = NULL;
+    }
 
 	if ( capture )
 	{

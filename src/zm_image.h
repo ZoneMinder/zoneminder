@@ -88,12 +88,12 @@ protected:
 	int colours;
 	int size;
     int allocation;
-	JSAMPLE *buffer;
+	uint8_t *buffer;
 	bool our_buffer;
 	char text[1024];
 
 protected:
-	mutable unsigned int *blend_buffer;
+	mutable uint16_t *blend_buffer;
 
 protected:
 	static void Initialise();
@@ -102,7 +102,7 @@ protected:
 public:
 	Image();
 	Image( const char *filename );
-	Image( int p_width, int p_height, int p_colours, JSAMPLE *p_buffer=0 );
+	Image( int p_width, int p_height, int p_colours, uint8_t *p_buffer=0 );
 	Image( const Image &p_image );
 	~Image();
 
@@ -111,8 +111,8 @@ public:
 	inline int Pixels() const { return( pixels ); }
 	inline int Colours() const { return( colours ); }
 	inline int Size() const { return( size ); }
-	inline JSAMPLE *Buffer() const { return( buffer ); }
-	inline JSAMPLE *Buffer( unsigned int x, unsigned int y= 0 ) const { return( &buffer[colours*((y*width)+x)] ); }
+	inline uint8_t *Buffer() const { return( buffer ); }
+	inline uint8_t *Buffer( unsigned int x, unsigned int y= 0 ) const { return( &buffer[colours*((y*width)+x)] ); }
 	
     void Empty();
 	void Assign( int p_width, int p_height, int p_colours, unsigned char *new_buffer );

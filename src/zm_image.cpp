@@ -67,7 +67,7 @@ Image::Image( const char *filename )
     text[0] = '\0';
 }
 
-Image::Image( int p_width, int p_height, int p_colours, JSAMPLE *p_buffer )
+Image::Image( int p_width, int p_height, int p_colours, uint8_t *p_buffer )
 {
     if ( !initialised )
         Initialise();
@@ -84,7 +84,7 @@ Image::Image( int p_width, int p_height, int p_colours, JSAMPLE *p_buffer )
     else
     {
         allocation = size;
-        buffer = new JSAMPLE[allocation];
+        buffer = new uint8_t[allocation];
         memset( buffer, 0, size );
     }
     blend_buffer = 0;
@@ -100,7 +100,7 @@ Image::Image( const Image &p_image )
     pixels = p_image.pixels;
     colours = p_image.colours;
     size = allocation = p_image.size;
-    buffer = new JSAMPLE[allocation];
+    buffer = new uint8_t[allocation];
     memcpy( buffer, p_image.buffer, size );
     blend_buffer = 0;
     strncpy( text, p_image.text, sizeof(text) );
@@ -152,13 +152,11 @@ Image::BlendTablePtr Image::GetBlendTable( int transparency )
 		blend_ptr = blend_tables[transparency] = new BlendTable[1];
 		//Info( "Generating blend table for transparency %d", transparency );
 		int opacity = 100-transparency;
-		//int round_up = 50/transparency;
 		for ( int i = 0; i < 256; i++ )
 		{
 			for ( int j = 0; j < 256; j++ )
 			{
-				//(*blend_ptr)[i][j] = (JSAMPLE)((((i + round_up) * opacity)+((j + round_up) * transparency))/100);
-				(*blend_ptr)[i][j] = (JSAMPLE)(((i * opacity)+(j * transparency))/100);
+				(*blend_ptr)[i][j] = (uint8_t)round(((i * opacity)+(j * transparency))/100.0L);
 				//printf( "I:%d, J:%d, B:%d\n", i, j, (*blend_ptr)[i][j] );
 			}
 		}
@@ -190,7 +188,7 @@ void Image::Assign( int p_width, int p_height, int p_colours, unsigned char *new
         {
             allocation = size;
             delete[] buffer;
-            buffer = new JSAMPLE[allocation];
+            buffer = new uint8_t[allocation];
             memset( buffer, 0, size );
         }
     }
@@ -210,7 +208,7 @@ void Image::Assign( const Image &image )
         {
             allocation = size;
             delete[] buffer;
-            buffer = new JSAMPLE[allocation];
+            buffer = new uint8_t[allocation];
             memset( buffer, 0, size );
         }
     }
@@ -355,7 +353,7 @@ bool Image::ReadJpeg( const char *filename )
 		{
 			allocation = size;
 			delete[] buffer;
-			buffer = new JSAMPLE[allocation];
+			buffer = new uint8_t[allocation];
 		}
 	}
 
@@ -482,7 +480,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size )
 		{
 			allocation = size;
 			delete[] buffer;
-			buffer = new JSAMPLE[allocation];
+			buffer = new uint8_t[allocation];
 		}
 	}
 
@@ -607,7 +605,7 @@ bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
 	}
 
 	int new_size = new_width*new_height*colours;
-	JSAMPLE *new_buffer = new JSAMPLE[new_size];
+	uint8_t *new_buffer = new uint8_t[new_size];
 
 	int new_stride = new_width*colours;
 	for ( int y = lo_y, ny = 0; y <= hi_y; y++, ny++ )
@@ -771,8 +769,8 @@ void Image::Blend( const Image &image, int transparency ) const
 	{
 		BlendTablePtr blend_ptr = GetBlendTable( transparency );
 
-		JSAMPLE *psrc = image.buffer;
-		JSAMPLE *pdest = buffer;
+		uint8_t *psrc = image.buffer;
+		uint8_t *pdest = buffer;
 
 		while( pdest < (buffer+size) )
 		{
@@ -783,26 +781,26 @@ void Image::Blend( const Image &image, int transparency ) const
 	{
 		if ( !blend_buffer )
 		{
-			blend_buffer = new unsigned int[size];
+			blend_buffer = new uint16_t[size];
 
-			unsigned int *pb = blend_buffer;
-			JSAMPLE *p = buffer;
+			uint16_t *pb = blend_buffer;
+			uint8_t *p = buffer;
 			
 			while( p < (buffer+size) )
 			{
-				*pb++ = (unsigned int)((*p++)<<8);
+				*pb++ = (uint16_t)((*p++)<<8);
 			}
 		}
 
-		JSAMPLE *psrc = image.buffer;
-		JSAMPLE *pdest = buffer;
-		unsigned int *pblend = blend_buffer;
+		uint8_t *psrc = image.buffer;
+		uint8_t *pdest = buffer;
+		uint16_t *pblend = blend_buffer;
 		int opacity = 100-transparency;
 
 		while( pdest < (buffer+size) )
 		{
-			*pblend = (unsigned int)(((*pblend * opacity)+(((*psrc++)<<8) * transparency))/100);
-			*pdest++ = (JSAMPLE)((*pblend++)>>8);
+			*pblend = (uint16_t)(((*pblend * opacity)+(((*psrc++)<<8) * transparency))/100);
+			*pdest++ = (uint8_t)((*pblend++)>>8);
 		}
 	}
 }
@@ -828,10 +826,10 @@ Image *Image::Merge( int n_images, Image *images[] )
 	for ( int i = 0; i < size; i++ )
 	{
 		int total = 0;
-		JSAMPLE *pdest = result->buffer;
+		uint8_t *pdest = result->buffer;
 		for ( int j = 0; j < n_images; j++ )
 		{
-			JSAMPLE *psrc = images[j]->buffer;
+			uint8_t *psrc = images[j]->buffer;
 			total += *psrc;
 			psrc++;
 		}
@@ -862,11 +860,11 @@ Image *Image::Merge( int n_images, Image *images[], double weight )
 	double factor = 1.0*weight;
 	for ( int i = 1; i < n_images; i++ )
 	{
-		JSAMPLE *pdest = result->buffer;
-		JSAMPLE *psrc = images[i]->buffer;
+		uint8_t *pdest = result->buffer;
+		uint8_t *psrc = images[i]->buffer;
 		for ( int j = 0; j < size; j++ )
 		{
-			*pdest = (JSAMPLE)(((*pdest)*(1.0-factor))+((*psrc)*factor));
+			*pdest = (uint8_t)(((*pdest)*(1.0-factor))+((*psrc)*factor));
 			pdest++;
 			psrc++;
 		}
@@ -898,10 +896,10 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 		for ( int i = 0; i < size; i++ )
 		{
 			int count = 0;
-			JSAMPLE *pdest = result->buffer+c;
+			uint8_t *pdest = result->buffer+c;
 			for ( int j = 0; j < n_images; j++ )
 			{
-				JSAMPLE *psrc = images[j]->buffer+c;
+				uint8_t *psrc = images[j]->buffer+c;
 
 				if ( (unsigned)abs((*psrc)-RGB_VAL(ref_colour,c)) >= RGB_VAL(threshold,c) )
 				{
@@ -965,10 +963,10 @@ Image *Image::Delta( const Image &image ) const
 
 				// This is uses an RMS function, all floating point and 
 				// rather too slow
-				//*pdiff++ = (JSAMPLE)sqrt((red*red + green*green + blue*blue)/3);
+				//*pdiff++ = (uint8_t)sqrt((red*red + green*green + blue*blue)/3);
 
 				// This just uses the average difference, much faster
-				*pdiff++ = (JSAMPLE)((red + green + blue)/3);
+				*pdiff++ = (uint8_t)((red + green + blue)/3);
 			}
 		}
 	}
@@ -1141,10 +1139,10 @@ void Image::Colourise()
 	{
 		colours = 3;
 		size = width * height * 3;
-		JSAMPLE *new_buffer = new JSAMPLE[size];
+		uint8_t *new_buffer = new uint8_t[size];
 
-		JSAMPLE *psrc = buffer;
-		JSAMPLE *pdest = new_buffer;
+		uint8_t *psrc = buffer;
+		uint8_t *pdest = new_buffer;
 		while( pdest < (new_buffer+size) )
 		{
 			RED(pdest) = GREEN(pdest) = BLUE(pdest) = *psrc++;
@@ -1162,11 +1160,11 @@ void Image::DeColourise()
 		colours = 1;
 		size = width * height;
 
-		JSAMPLE *psrc = buffer;
-		JSAMPLE *pdest = buffer;
+		uint8_t *psrc = buffer;
+		uint8_t *pdest = buffer;
 		while( pdest < (buffer+size) )
 		{
-			*pdest++ = (JSAMPLE)sqrt((RED(psrc) + GREEN(psrc) + BLUE(psrc))/3);
+			*pdest++ = (uint8_t)sqrt((RED(psrc) + GREEN(psrc) + BLUE(psrc))/3);
 			psrc += 3;
 		}
 	}

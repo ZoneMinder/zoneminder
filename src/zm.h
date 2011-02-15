@@ -34,4 +34,6 @@ double round(double);
 #endif
 }
 
+#include <stdint.h>
+
 #endif // ZM_H

@@ -154,11 +154,14 @@ int main( int argc, char *argv[] )
 
 	Monitor **monitors = 0;
 	int n_monitors = 0;
+#if ZM_HAS_V4L
 	if ( device[0] )
 	{
 		n_monitors = Monitor::LoadLocalMonitors( device, monitors, Monitor::CAPTURE );
 	}
-	else if ( host[0] )
+	else
+#endif // ZM_HAS_V4L
+    if ( host[0] )
 	{
 		if ( !port )
 			port = "80";

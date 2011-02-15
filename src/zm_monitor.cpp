@@ -28,7 +28,9 @@
 #include "zm_mpeg.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
+#if ZM_HAS_V4L
 #include "zm_local_camera.h"
+#endif // ZM_HAS_V4L
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #if HAVE_LIBAVFORMAT
@@ -1725,6 +1727,7 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
     }
 }
 
+#if ZM_HAS_V4L
 int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
@@ -1863,6 +1866,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 
     return( n_monitors );
 }
+#endif // ZM_HAS_V4L
 
 int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose )
 {
@@ -2362,6 +2366,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         Camera *camera = 0;
         if ( type == "Local" )
         {
+#if ZM_HAS_V4L
             camera = new LocalCamera(
                 id,
                 device.c_str(),
@@ -2377,6 +2382,9 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                 colour,
                 purpose==CAPTURE
             );
+#else // ZM_HAS_V4L
+            Fatal( "You must have video4linux libraries and headers installed to use local analog or USB cameras for monitor %d", id );
+#endif // ZM_HAS_V4L
         }
         else if ( type == "Remote" )
         {
@@ -2440,9 +2448,9 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                 purpose==CAPTURE
             );
         }
-#if HAVE_LIBAVFORMAT
         else if ( type == "Ffmpeg" )
         {
+#if HAVE_LIBAVFORMAT
             camera = new FfmpegCamera(
                 id,
                 path.c_str(),
@@ -2455,8 +2463,10 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                 colour,
                 purpose==CAPTURE
             );
-        }
+#else // HAVE_LIBAVFORMAT
+            Fatal( "You must have ffmpeg libraries installed to use ffmpeg cameras for monitor %d", id );
 #endif // HAVE_LIBAVFORMAT
+        }
         else
         {
             Fatal( "Bogus monitor type '%s' for monitor %d", type.c_str(), id );
@@ -2843,13 +2853,16 @@ bool Monitor::DumpSettings( char *output, bool verbose )
     sprintf( output+strlen(output), "Id : %d\n", id );
     sprintf( output+strlen(output), "Name : %s\n", name );
     sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File") );
+#if ZM_HAS_V4L
     if ( camera->IsLocal() )
     {
         sprintf( output+strlen(output), "Device : %s\n", ((LocalCamera *)camera)->Device().c_str() );
         sprintf( output+strlen(output), "Channel : %d\n", ((LocalCamera *)camera)->Channel() );
         sprintf( output+strlen(output), "Standard : %d\n", ((LocalCamera *)camera)->Standard() );
     }
-    else if ( camera->IsRemote() )
+    else
+#endif // ZM_HAS_V4L
+    if ( camera->IsRemote() )
     {
         sprintf( output+strlen(output), "Protocol : %s\n", ((RemoteCamera *)camera)->Protocol().c_str() );
         sprintf( output+strlen(output), "Host : %s\n", ((RemoteCamera *)camera)->Host().c_str() );
@@ -2868,10 +2881,12 @@ bool Monitor::DumpSettings( char *output, bool verbose )
 #endif // HAVE_LIBAVFORMAT
     sprintf( output+strlen(output), "Width : %d\n", camera->Width() );
     sprintf( output+strlen(output), "Height : %d\n", camera->Height() );
+#if ZM_HAS_V4L
     if ( camera->IsLocal() )
     {
         sprintf( output+strlen(output), "Palette : %d\n", ((LocalCamera *)camera)->Palette() );
     }
+#endif // ZM_HAS_V4L
     sprintf( output+strlen(output), "Colours : %d\n", camera->Colours() );
     sprintf( output+strlen(output), "Event Prefix : %s\n", event_prefix );
     sprintf( output+strlen(output), "Label Format : %s\n", label_format );

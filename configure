@@ -607,7 +607,9 @@ LIBDIR
 BINDIR
 PERL
 ZM_PCRE
-ZM_V4L2
+ZM_HAS_V4L
+ZM_HAS_V4L2
+ZM_HAS_V4L1
 ALLOCA
 PATH_NETPBM
 OPT_NETPBM
@@ -3210,7 +3212,7 @@ $as_echo "$as_me: WARNING: You can call configure with the --enable-mmap=<yes|no
 
 fi
 
-if test "$ENABLE_MMAP" = "yes"; then
+if test "$ENABLE_MMAP" == "yes"; then
 
 $as_echo "#define ZM_MEM_MAPPED 1" >>confdefs.h
 
@@ -6413,7 +6415,7 @@ $as_echo "no" >&6; }
 fi
 
 
-if test "$OPT_NETPBM" = "yes"; then
+if test "$OPT_NETPBM" == "yes"; then
 PATH_NETPBM=`dirname $PATH_NETPBM`
 fi
 
@@ -7562,9 +7564,11 @@ if test "x$ac_cv_header_linux_videodev_h" = x""yes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_LINUX_VIDEODEV_H 1
 _ACEOF
+ ZM_HAS_V4L1=1
 
 else
-  as_fn_error "zm requires Video4Linux to be installed" "$LINENO" 5
+  ZM_HAS_V4L1=0
+
 fi
 
 done
@@ -7576,15 +7580,24 @@ if test "x$ac_cv_header_linux_videodev2_h" = x""yes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_LINUX_VIDEODEV2_H 1
 _ACEOF
- ZM_V4L2="1"
+ ZM_HAS_V4L2=1
 
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: zm requires Video4Linux2 to be installed for V4L2 support" >&5
-$as_echo "$as_me: WARNING: zm requires Video4Linux2 to be installed for V4L2 support" >&2;}
+  ZM_HAS_V4L2=0
+
 fi
 
 done
 
+if test "$ZM_HAS_V4L1" == "1" || test "$ZM_HAS_V4L2" == "1"; then
+ZM_HAS_V4L=1
+
+else
+ZM_HAS_V4L=0
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: zm requires Video4Linux or Video4Linux2 to be installed for analog or USB camera support" >&5
+$as_echo "$as_me: WARNING: zm requires Video4Linux or Video4Linux2 to be installed for analog or USB camera support" >&2;}
+fi
 for ac_header in jpeglib.h
 do :
   ac_fn_cxx_check_header_mongrel "$LINENO" "jpeglib.h" "ac_cv_header_jpeglib_h" "$ac_includes_default"
@@ -7735,7 +7748,7 @@ fi
 
 done
 
-if test "$ENABLE_MMAP" = "yes"; then
+if test "$ENABLE_MMAP" == "yes"; then
 for ac_header in sys/mman.h
 do :
   ac_fn_cxx_check_header_mongrel "$LINENO" "sys/mman.h" "ac_cv_header_sys_mman_h" "$ac_includes_default"
@@ -8507,7 +8520,7 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: could not find perl" >&5
 $as_echo "$as_me: WARNING: could not find perl" >&2;}
 fi
-if test "$ENABLE_MMAP" = "yes"; then
+if test "$ENABLE_MMAP" == "yes"; then
 ac_perl_modules="Sys::Mmap"
 # Make sure we have perl
 if test -z "$PERL"; then

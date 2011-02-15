@@ -134,11 +134,11 @@
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
 
-/* Define to 1 if you have the <linux/videodev2.h> header file. */
-#undef HAVE_LINUX_VIDEODEV2_H
+/* Define to 1 if you have the <linux/videodevX2.h> header file. */
+#undef HAVE_LINUX_VIDEODEVX2_H
 
-/* Define to 1 if you have the <linux/videodev.h> header file. */
-#undef HAVE_LINUX_VIDEODEV_H
+/* Define to 1 if you have the <linux/videodevX.h> header file. */
+#undef HAVE_LINUX_VIDEODEVX_H
 
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */

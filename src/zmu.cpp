@@ -190,11 +190,13 @@ int main( int argc, char *argv[] )
 	char *username = 0;
 	char *password = 0;
 	char *auth = 0;
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
     int v4lVersion = 2;
-#else // ZM_V4L2
+#elif ZM_HAS_V4L1
     int v4lVersion = 1;
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2/1
+#endif // ZM_HAS_V4L
 	while (1)
 	{
 		int option_index = 0;
@@ -306,9 +308,11 @@ int main( int argc, char *argv[] )
 			case 'A':
 				auth = optarg;
 				break;
+#if ZM_HAS_V4L
 			case 'V':
 				v4lVersion = (atoi(optarg)==1)?1:2;
 				break;
+#endif // ZM_HAS_V4L
 			case 'h':
 				Usage( 0 );
 				break;
@@ -658,10 +662,15 @@ int main( int argc, char *argv[] )
 	{
 		if ( function & ZMU_QUERY )
 		{
+#if ZM_HAS_V4L
 			char vidString[0x10000] = "";
 			bool ok = LocalCamera::GetCurrentSettings( device, vidString, v4lVersion, verbose );
 			printf( "%s", vidString );
 			exit( ok?0:-1 );
+#else // ZM_HAS_V4L
+			fprintf( stderr, "Error, video4linux is required for device querying\n" );
+            exit( -1 );
+#endif // ZM_HAS_V4L
 		}
 
 		if ( function & ZMU_LIST )

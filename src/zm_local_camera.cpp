@@ -17,6 +17,10 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+#include "zm.h"
+
+#if ZM_HAS_V4L
+
 #include "zm_local_camera.h"
 
 #include <sys/types.h>
@@ -40,7 +44,7 @@ static int vidioctl( int fd, int request, void *arg )
 static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
 {
     PixelFormat pixFormat = PIX_FMT_NONE;
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
     if ( v4l_version == 2 )
     {
         switch( palette )
@@ -165,8 +169,8 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
             }
         }
     }
-    else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
     if ( v4l_version == 1 )
     {
         switch( palette )
@@ -231,6 +235,7 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
             }
         }
     }
+#endif // ZM_HAS_V4L1
     return( pixFormat );
 }
 #endif // HAVE_LIBSWSCALE
@@ -243,10 +248,12 @@ int LocalCamera::standards[VIDEO_MAX_FRAME];
 int LocalCamera::vid_fd = -1;
 
 int LocalCamera::v4l_version = 0;
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
 LocalCamera::V4L2Data LocalCamera::v4l2_data;
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
 LocalCamera::V4L1Data LocalCamera::v4l1_data;
+#endif // ZM_HAS_V4L1
 
 #if HAVE_LIBSWSCALE
 AVFrame **LocalCamera::capturePictures = 0;
@@ -262,11 +269,11 @@ short *LocalCamera::b_u_table;
 LocalCamera *LocalCamera::last_camera = NULL;
 
 LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, int p_standard, const std::string &p_method, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
-#ifdef ZM_V4L2
-    Camera( p_id, LOCAL_SRC, p_width, p_height, ((p_palette==VIDEO_PALETTE_GREY||p_palette==V4L2_PIX_FMT_GREY)?1:3), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
-#else // ZM_V4L2
+#if ZM_HAS_V4L2
+    Camera( p_id, LOCAL_SRC, p_width, p_height, (p_palette==V4L2_PIX_FMT_GREY?1:3), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
+#elif ZM_HAS_V4L1
     Camera( p_id, LOCAL_SRC, p_width, p_height, (p_palette==VIDEO_PALETTE_GREY?1:3), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
     device( p_device ),
     channel( p_channel ),
     standard( p_standard ),
@@ -282,9 +289,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 	    if ( device_prime )
         {
             v4l_version = (p_method=="v4l2"?2:1);
-#ifdef ZM_V4L2
-            Debug( 2, "V4L2 support enabled, using V4L%d api", v4l_version );
-#endif // ZM_V4L2
+            Debug( 2, "V4L support enabled, using V4L%d api", v4l_version );
         }
 
         if ( !last_camera || channel != last_camera->channel )
@@ -351,7 +356,7 @@ void LocalCamera::Initialise()
     if ( (vid_fd = open( device.c_str(), O_RDWR, 0 )) < 0 )
 		Fatal( "Failed to open video device %s: %s", device.c_str(), strerror(errno) );
 
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
     Debug( 2, "V4L2 support enabled, using V4L%d api", v4l_version );
     if ( v4l_version == 2 )
     {
@@ -523,8 +528,8 @@ void LocalCamera::Initialise()
         Hue(hue);
         Colour(colour);
     }
-    else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
     if ( v4l_version == 1 )
     {
         Debug( 3, "Configuring picture attributes" );
@@ -686,6 +691,7 @@ void LocalCamera::Initialise()
         Debug( 4, "New Cl:%d", vid_pic.colour );
         Debug( 4, "New Cn:%d", vid_pic.contrast );
     }
+#endif // ZM_HAS_V4L1
 
     Debug( 3, "Setting up static colour tables" );
 
@@ -728,7 +734,7 @@ void LocalCamera::Initialise()
 
 void LocalCamera::Terminate()
 {
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
     if ( v4l_version == 2 )
     {
         Debug( 3, "Terminating video stream" );
@@ -743,7 +749,8 @@ void LocalCamera::Terminate()
                 Error( "Failed to munmap buffer %d: %s", i, strerror(errno) );
     }
     else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
     if ( v4l_version == 1 )
     {
         Debug( 3, "Unmapping video buffers" );
@@ -752,6 +759,7 @@ void LocalCamera::Terminate()
 
 	    delete[] v4l1_data.buffers;
     }
+#endif // ZM_HAS_V4L1
 
 	close( vid_fd );
 }
@@ -792,7 +800,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
         else
             sprintf( output+strlen(output), "d:%s|", queryDevice );
 
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
         if ( version == 2 )
         {
             struct v4l2_capability vid_cap;
@@ -1066,8 +1074,9 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
             if ( !verbose )
                 output[strlen(output)-1] = '\n';
         }
-        else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
+        if ( version == 1 )
         {
             struct video_capability vid_cap;
             if ( ioctl( vid_fd, VIDIOCGCAP, &vid_cap ) < 0 )
@@ -1240,6 +1249,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
             if ( !verbose )
                 output[strlen(output)-1] = '\n';
         }
+#endif // ZM_HAS_V4L1
         close( vid_fd );
         if ( device )
             break;
@@ -1250,7 +1260,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
 
 int LocalCamera::Brightness( int p_brightness )
 {
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
     if ( v4l_version == 2 )
     {
         struct v4l2_control vid_control;
@@ -1283,8 +1293,8 @@ int LocalCamera::Brightness( int p_brightness )
         }
         return( vid_control.value );
     }
-    else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
     if ( v4l_version == 1 )
     {
         struct video_picture vid_pic;
@@ -1305,12 +1315,13 @@ int LocalCamera::Brightness( int p_brightness )
         }
         return( vid_pic.brightness );
     }
+#endif // ZM_HAS_V4L1
     return( -1 );
 }
 
 int LocalCamera::Hue( int p_hue )
 {
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
     if ( v4l_version == 2 )
     {
         struct v4l2_control vid_control;
@@ -1340,8 +1351,8 @@ int LocalCamera::Hue( int p_hue )
         }
         return( vid_control.value );
     }
-    else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
     if ( v4l_version == 1 )
     {
         struct video_picture vid_pic;
@@ -1362,12 +1373,13 @@ int LocalCamera::Hue( int p_hue )
         }
         return( vid_pic.hue );
     }
+#endif // ZM_HAS_V4L1
     return( -1 );
 }
 
 int LocalCamera::Colour( int p_colour )
 {
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
     if ( v4l_version == 2 )
     {
         struct v4l2_control vid_control;
@@ -1397,8 +1409,8 @@ int LocalCamera::Colour( int p_colour )
         }
         return( vid_control.value );
     }
-    else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
     if ( v4l_version == 1 )
     {
         struct video_picture vid_pic;
@@ -1419,12 +1431,13 @@ int LocalCamera::Colour( int p_colour )
         }
         return( vid_pic.colour );
     }
+#endif // ZM_HAS_V4L1
     return( -1 );
 }
 
 int LocalCamera::Contrast( int p_contrast )
 {
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
     if ( v4l_version == 2 )
     {
         struct v4l2_control vid_control;
@@ -1454,8 +1467,8 @@ int LocalCamera::Contrast( int p_contrast )
         }
         return( vid_control.value );
     }
-    else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
     if ( v4l_version == 1 )
     {
         struct video_picture vid_pic;
@@ -1476,6 +1489,7 @@ int LocalCamera::Contrast( int p_contrast )
         }
         return( vid_pic.contrast );
     }
+#endif // ZM_HAS_V4L1
     return( -1 );
 }
 
@@ -1484,7 +1498,7 @@ int LocalCamera::PrimeCapture()
     Initialise();
 
     Debug( 2, "Priming capture" );
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
     if ( v4l_version == 2 )
     {
         Debug( 3, "Queueing buffers" );
@@ -1509,8 +1523,8 @@ int LocalCamera::PrimeCapture()
         if ( vidioctl( vid_fd, VIDIOC_STREAMON, &type ) < 0 )
             Fatal( "Failed to start capture stream: %s", strerror(errno) );
     }
-    else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
     if ( v4l_version == 1 )
     {
         for ( int frame = 0; frame < v4l1_data.frames.frames; frame++ )
@@ -1523,6 +1537,7 @@ int LocalCamera::PrimeCapture()
             }
         }
     }
+#endif // ZM_HAS_V4L1
 
     return( 0 );
 }
@@ -1549,7 +1564,7 @@ int LocalCamera::Capture( Image &image )
     if ( channel_prime )
     {
         int capture_frame = -1;
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
         if ( v4l_version == 2 )
         {
             static struct v4l2_buffer vid_buf;
@@ -1591,8 +1606,8 @@ int LocalCamera::Capture( Image &image )
             captureWidth = v4l2_data.fmt.fmt.pix.width;
             captureHeight = v4l2_data.fmt.fmt.pix.height;
         }
-        else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
         if ( v4l_version == 1 )
         {
             Debug( 3, "Capturing %d frames", captures_per_frame );
@@ -1620,6 +1635,7 @@ int LocalCamera::Capture( Image &image )
 
             buffer = v4l1_data.bufptr+v4l1_data.frames.offsets[capture_frame];
         }
+#endif // ZM_HAS_V4L1
 #if HAVE_LIBSWSCALE
         Debug( 3, "Doing format conversion" );
 
@@ -1650,10 +1666,12 @@ int LocalCamera::Capture( Image &image )
         static unsigned char temp_buffer[ZM_MAX_IMAGE_SIZE];
         switch( palette )
         {
+#if ZM_HAS_V4L1
             case VIDEO_PALETTE_YUV420P :
-#ifdef ZM_V4L2
+#endif // ZM_HAS_V4L1
+#if ZM_HAS_V4L2
             case V4L2_PIX_FMT_YUV420 :
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
             {
                 static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
                 static char u_plane[ZM_MAX_IMAGE_DIM];
@@ -1725,10 +1743,12 @@ int LocalCamera::Capture( Image &image )
                 buffer = temp_buffer;
                 break;
             }
+#if ZM_HAS_V4L1
             case VIDEO_PALETTE_YUV422P :
-#ifdef ZM_V4L2
+#endif // ZM_HAS_V4L1
+#if ZM_HAS_V4L2
             case V4L2_PIX_FMT_YUV422P :
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
             {
                 static unsigned char y_plane[ZM_MAX_IMAGE_DIM];
                 static char u_plane[ZM_MAX_IMAGE_DIM];
@@ -1785,11 +1805,13 @@ int LocalCamera::Capture( Image &image )
                 buffer = temp_buffer;
                 break;
             }
+#if ZM_HAS_V4L1
             case VIDEO_PALETTE_YUYV :
             case VIDEO_PALETTE_YUV422 :
-#ifdef ZM_V4L2
+#endif // ZM_HAS_V4L1
+#if ZM_HAS_V4L2
             case V4L2_PIX_FMT_YUYV :
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
             {
                 int size = width*height*2;
                 unsigned char *s_ptr = buffer;
@@ -1823,10 +1845,12 @@ int LocalCamera::Capture( Image &image )
                 buffer = temp_buffer;
                 break;
             }
+#if ZM_HAS_V4L1
             case VIDEO_PALETTE_RGB555 :
-#ifdef ZM_V4L2
+#endif // ZM_HAS_V4L1
+#if ZM_HAS_V4L2
             case V4L2_PIX_FMT_RGB555 :
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
             {
                 int size = width*height*2;
                 unsigned char r,g,b;
@@ -1846,10 +1870,12 @@ int LocalCamera::Capture( Image &image )
                 buffer = temp_buffer;
                 break;
             }
+#if ZM_HAS_V4L1
             case VIDEO_PALETTE_RGB565 :
-#ifdef ZM_V4L2
+#endif // ZM_HAS_V4L1
+#if ZM_HAS_V4L2
             case V4L2_PIX_FMT_RGB565 :
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
             {
                 int size = width*height*2;
                 unsigned char r,g,b;
@@ -1887,7 +1913,7 @@ int LocalCamera::Capture( Image &image )
                 }
                 break;
             }
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
             case V4L2_PIX_FMT_BGR24 :
             {
                 int size = width*height*3;
@@ -1903,11 +1929,13 @@ int LocalCamera::Capture( Image &image )
                 buffer = temp_buffer;
                 break;
             }
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
             case VIDEO_PALETTE_GREY :
-#ifdef ZM_V4L2
+#endif // ZM_HAS_V4L1
+#if ZM_HAS_V4L2
             case V4L2_PIX_FMT_GREY :
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
             {
                 //int size = width*height;
                 //for ( int i = 0; i < size; i++ )
@@ -1938,7 +1966,7 @@ int LocalCamera::PostCapture()
     // Requeue the buffer unless we need to switch or are a duplicate camera on a channel
     if ( channel_count == 1 || channel_prime )
     {
-#ifdef ZM_V4L2
+#if ZM_HAS_V4L2
         if ( v4l_version == 2 )
         {
             if ( channel_count > 1 )
@@ -1965,8 +1993,8 @@ int LocalCamera::PostCapture()
                 return( -1 );
             }
         }
-        else
-#endif // ZM_V4L2
+#endif // ZM_HAS_V4L2
+#if ZM_HAS_V4L1
         if ( v4l_version == 1 )
         {
             if ( channel_count > 1 )
@@ -2000,7 +2028,9 @@ int LocalCamera::PostCapture()
             }
             v4l1_data.active_frame = (v4l1_data.active_frame+1)%v4l1_data.frames.frames;
         }
+#endif // ZM_HAS_V4L1
     }
 	return( 0 );
 }
 
+#endif // ZM_HAS_V4L

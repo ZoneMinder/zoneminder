@@ -203,7 +203,7 @@ AC_ARG_ENABLE(mmap,
     filesystem however this will not normally be the case.
     e.g. --enable-mmap=yes or --disable-mmap])
 )
-if test "$ENABLE_MMAP" = "yes"; then
+if test "$ENABLE_MMAP" == "yes"; then
   AC_DEFINE(ZM_MEM_MAPPED,1,"Whether to use mapped rather than shared memory")
 else
   AC_DEFINE(ZM_MEM_MAPPED,0,"Whether to use mapped rather than shared memory")
@@ -253,7 +253,7 @@ AC_CHECK_PROG(OPT_FFMPEG,ffmpeg,yes,no)
 AC_PATH_PROG(PATH_FFMPEG,ffmpeg)
 AC_CHECK_PROG(OPT_NETPBM,pnmscale,yes,no)
 AC_PATH_PROG(PATH_NETPBM,pnmscale)
-if test "$OPT_NETPBM" = "yes"; then
+if test "$OPT_NETPBM" == "yes"; then
 PATH_NETPBM=`dirname $PATH_NETPBM`
 fi
 
@@ -285,8 +285,14 @@ AC_CHECK_LIB(z,compress,,)
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h limits.h memory.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h syslog.h unistd.h values.h])
-AC_CHECK_HEADERS(linux/videodev.h,,AC_MSG_ERROR(zm requires Video4Linux to be installed),)
-AC_CHECK_HEADERS(linux/videodev2.h,AC_SUBST(ZM_V4L2,"1"),AC_MSG_WARN(zm requires Video4Linux2 to be installed for V4L2 support),)
+AC_CHECK_HEADERS(linux/videodev.h,AC_SUBST(ZM_HAS_V4L1,1),AC_SUBST(ZM_HAS_V4L1,0),)
+AC_CHECK_HEADERS(linux/videodev2.h,AC_SUBST(ZM_HAS_V4L2,1),AC_SUBST(ZM_HAS_V4L2,0),)
+if test "$ZM_HAS_V4L1" == "1" || test "$ZM_HAS_V4L2" == "1"; then
+AC_SUBST(ZM_HAS_V4L,1)
+else
+AC_SUBST(ZM_HAS_V4L,0)
+AC_MSG_WARN(zm requires Video4Linux or Video4Linux2 to be installed for analog or USB camera support)
+fi
 AC_CHECK_HEADERS(jpeglib.h,,AC_MSG_ERROR(zm requires libjpeg headers to be installed),)
 AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires MySQL headers - check that MySQL development packages are installed),)
 AC_CHECK_HEADERS(libavutil/avutil.h,,,)
@@ -299,7 +305,7 @@ AC_CHECK_HEADERS(libswscale/swscale.h,,,)
 AC_CHECK_HEADERS(ffmpeg/swscale.h,,,)
 AC_CHECK_HEADERS(pcre/pcre.h,AC_SUBST(ZM_PCRE,"1"),,)
 AC_CHECK_HEADERS(pcre.h,AC_SUBST(ZM_PCRE,"1"),,)
-if test "$ENABLE_MMAP" = "yes"; then
+if test "$ENABLE_MMAP" == "yes"; then
 AC_CHECK_HEADERS(sys/mman.h,,,)
 AC_CHECK_HEADERS(fcntl.h,,,)
 else
@@ -331,7 +337,7 @@ AC_PROG_PERL_MODULES(Time::HiRes,,AC_MSG_ERROR(zm requires Time::HiRes))
 AC_PROG_PERL_MODULES(Date::Manip,,AC_MSG_ERROR(zm requires Date::Manip))
 AC_PROG_PERL_MODULES(LWP::UserAgent,,AC_MSG_ERROR(zm requires LWP::UserAgent))
 AC_PROG_PERL_MODULES(PHP::Serialization,,AC_MSG_ERROR(zm requires PHP::Serialization))
-if test "$ENABLE_MMAP" = "yes"; then
+if test "$ENABLE_MMAP" == "yes"; then
 AC_PROG_PERL_MODULES(Sys::Mmap,,AC_MSG_ERROR(zm requires Sys::Mmap for mapped memory))
 fi
 

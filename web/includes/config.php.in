@@ -42,9 +42,11 @@ fclose( $cfg );
 define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );               // Local path to the ZoneMinder Utility
 
 //
-// If setup supports Video 4 Linux v2
+// If setup supports Video 4 Linux v2 and/or v1
 //
-define( "ZM_V4L2", "@ZM_V4L2@" );                       // V4L2 support enabled
+define( "ZM_HAS_V4L2", "@ZM_HAS_V4L2@" );               // V4L2 support enabled
+define( "ZM_HAS_V4L1", "@ZM_HAS_V4L1@" );               // V4L1 support enabled
+define( "ZM_HAS_V4L", "@ZM_HAS_V4L@" );                 // V4L support enabled
 
 //
 // If PCRE dev libraries are installed

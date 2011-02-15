@@ -355,7 +355,9 @@ public:
 	bool DumpSettings( char *output, bool verbose );
 	void DumpZoneImage( const char *zone_string=0 );
 
+#if ZM_HAS_V4L
 	static int LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose );
+#endif // ZM_HAS_V4L
 	static int LoadRemoteMonitors( const char *protocol, const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose );
 	static int LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose );
 #if HAVE_LIBAVFORMAT

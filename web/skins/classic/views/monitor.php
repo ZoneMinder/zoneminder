@@ -55,7 +55,7 @@ else
         'Function' => "Monitor",
         'Enabled' => true,
         'LinkedMonitors' => "",
-        'Type' => "Local",
+        'Type' => "",
         'Device' => "/dev/video",
         'Channel' => "0",
         'Format' => "",
@@ -157,7 +157,7 @@ if ( !empty($_REQUEST['probe']) )
             $newMonitor[$name] = $value;
         }
     }
-    if ( $newMonitor['Type'] == 'Local' )
+    if ( ZM_HAS_V4L && $newMonitor['Type'] == 'Local' )
     {
         $newMonitor['Palette'] = fourCC( substr($newMonitor['Palette'],0,1), substr($newMonitor['Palette'],1,1), substr($newMonitor['Palette'],2,1), substr($newMonitor['Palette'],3,1) );
         if ( $newMonitor['Format'] == 'PAL' )
@@ -175,13 +175,17 @@ $sourceTypes = array(
     'File'   => $SLANG['File'],
     'Ffmpeg' => $SLANG['Ffmpeg'],
 );
+if ( !ZM_HAS_V4L )
+    unset($sourceTypes['Local']);
 
 $localMethods = array(
     'v4l2' => "Video For Linux version 2",
     'v4l1' => "Video For Linux version 1",
 );
-if ( !ZM_V4L2 )
+if ( !ZM_HAS_V4L2 )
     unset($localMethods['v4l2']);
+if ( !ZM_HAS_V4L1 )
+    unset($localMethods['v4l1']);
 
 $remoteProtocols = array(
     "http" => "HTTP",
@@ -205,36 +209,39 @@ if ( !ZM_PCRE )
 // Currently unsupported
 unset($httpMethods['jpegTags']);
 
-$v4l1DeviceFormats = array(
-    $SLANG['Undefined'] => '',
-    "PAL"   => 0,
-    "NTSC"  => 1,
-    "SECAM" => 2,
-    "AUTO"  => 3,
-    "FMT4"  => 4,
-    "FMT5"  => 5,
-    "FMT6"  => 6,
-    "FMT7"  => 7
-);
+if ( ZM_HAS_V4L1 )
+{
+    $v4l1DeviceFormats = array(
+        $SLANG['Undefined'] => '',
+        "PAL"   => 0,
+        "NTSC"  => 1,
+        "SECAM" => 2,
+        "AUTO"  => 3,
+        "FMT4"  => 4,
+        "FMT5"  => 5,
+        "FMT6"  => 6,
+        "FMT7"  => 7
+    );
 
-$v4l1MaxChannels = 15;
-$v4l1DeviceChannels = array();
-for ( $i = 0; $i <= $v4l1MaxChannels; $i++ )
-    $v4l1DeviceChannels["$i"] = $i;
+    $v4l1MaxChannels = 15;
+    $v4l1DeviceChannels = array();
+    for ( $i = 0; $i <= $v4l1MaxChannels; $i++ )
+        $v4l1DeviceChannels["$i"] = $i;
 
-$v4l1LocalPalettes = array(
-    $SLANG['Undefined'] => '',
-    $SLANG['Grey']      => 1,
-    "RGB24"             => 4,
-    "RGB565"            => 3,
-    "RGB555"            => 6,
-    "YUV422"            => 7,
-    "YUYV"              => 8,
-    "YUV422P"           => 13,
-    "YUV420P"           => 15
-);
+    $v4l1LocalPalettes = array(
+        $SLANG['Undefined'] => '',
+        $SLANG['Grey']      => 1,
+        "RGB24"             => 4,
+        "RGB565"            => 3,
+        "RGB555"            => 6,
+        "YUV422"            => 7,
+        "YUYV"              => 8,
+        "YUV422P"           => 13,
+        "YUV420P"           => 15
+    );
+}
 
-if ( ZM_V4L2 )
+if ( ZM_HAS_V4L2 )
 {
     $v4l2DeviceFormats = array(
         $SLANG['Undefined'] => '',
@@ -422,7 +429,7 @@ if ( $tab != 'general' )
         }
     }
 }
-if ( $tab != 'source' || $newMonitor['Type'] != 'Local' )
+if ( ZM_HAS_V4L && ($tab != 'source' || $newMonitor['Type'] != 'Local') )
 {
 ?>
     <input type="hidden" name="newMonitor[Device]" value="<?= validHtmlStr($newMonitor['Device']) ?>"/>
@@ -513,7 +520,7 @@ if ( $tab != 'misc' )
     <input type="hidden" name="newMonitor[WebColour]" value="<?= validHtmlStr($newMonitor['WebColour']) ?>"/>
 <?php
 }
-if ( $tab != 'misc' || $newMonitor['Type'] != 'Local' )
+if ( ZM_HAS_V4L && ($tab != 'misc' || $newMonitor['Type'] != 'Local') )
 {
 ?>
     <input type="hidden" name="newMonitor[SignalCheckColour]" value="<?= validHtmlStr($newMonitor['SignalCheckColour']) ?>"/>
@@ -600,18 +607,18 @@ switch ( $tab )
         // Set up initial palette value
         if ( $newMonitor['Palette'] == '' )
         {
-            if ( $newMonitor['Type'] == 'Local' )
+            if ( ZM_HAS_V4L && $newMonitor['Type'] == 'Local' )
                 $newMonitor['Palette'] = 4;
             else
                 $newMonitor['Palette'] = 3;
         }
-        if ( $newMonitor['Type'] == "Local" )
+        if ( ZM_HAS_V4L && $newMonitor['Type'] == "Local" )
         {
 ?>
             <tr><td><?= $SLANG['DevicePath'] ?></td><td><input type="text" name="newMonitor[Device]" value="<?= validHtmlStr($newMonitor['Device']) ?>" size="24"/></td></tr>
             <tr><td><?= $SLANG['CaptureMethod'] ?></td><td><?= buildSelect( "newMonitor[Method]", $localMethods, "submitTab( '$tab' )" ); ?></td></tr>
 <?php
-            if ( !ZM_V4L2 || $newMonitor['Method'] == 'v4l1' )
+            if ( ZM_HAS_V4L1 || $newMonitor['Method'] == 'v4l1' )
             {
 ?>
             <tr><td><?= $SLANG['DeviceChannel'] ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l1DeviceChannels as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
@@ -619,7 +626,7 @@ switch ( $tab )
             <tr><td><?= $SLANG['CapturePalette'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l1LocalPalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
             }
-            else
+            else if ( ZM_HAS_V4L2 || $newMonitor['Method'] == 'v4l2' )
             {
 ?>
             <tr><td><?= $SLANG['DeviceChannel'] ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l2DeviceChannels as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
@@ -741,7 +748,7 @@ switch ( $tab )
             <tr><td><?= $SLANG['DefaultRate'] ?></td><td><?= buildSelect( "newMonitor[DefaultRate]", $rates ); ?></td></tr>
             <tr><td><?= $SLANG['DefaultScale'] ?></td><td><?= buildSelect( "newMonitor[DefaultScale]", $scales ); ?></td></tr>
 <?php
-        if ( $newMonitor['Type'] == "Local" )
+        if ( ZM_HAS_V4L && $newMonitor['Type'] == "Local" )
         {
 ?>
             <tr><td><?= $SLANG['SignalCheckColour'] ?></td><td><input type="text" name="newMonitor[SignalCheckColour]" value="<?= validHtmlStr($newMonitor['SignalCheckColour']) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?= $newMonitor['SignalCheckColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>

@@ -108,7 +108,7 @@ function Monitor( index, id, connKey )
 
     this.streamCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
 
-    requestQueue.addRequest( this.streamCmdReq );
+    requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
 }
 
 function selectLayout( element )

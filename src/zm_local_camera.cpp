@@ -1895,6 +1895,7 @@ int LocalCamera::Capture( Image &image )
                 buffer = temp_buffer;
                 break;
             }
+#if ZM_HAS_V4L1
             case VIDEO_PALETTE_RGB24 :
             {
                 if ( config.local_bgr_invert )
@@ -1913,6 +1914,7 @@ int LocalCamera::Capture( Image &image )
                 }
                 break;
             }
+#endif // ZM_HAS_V4L1
 #if ZM_HAS_V4L2
             case V4L2_PIX_FMT_BGR24 :
             {

@@ -9,45 +9,45 @@
  */
 
 /* Static defines, these shouldn't change */
-define ( "ZM_XML_PROTOCOL_VERSION", "2");
-define ( "ZM_XML_FEATURE_SET", "2");
+define ( "ZM_EYEZM_PROTOCOL_VERSION", "2");
+define ( "ZM_EYEZM_FEATURE_SET", "2");
 
 /* Dynamic defines, check if they are already defined.
  * To change a particular parameter default value, without using the
  * Options Console, change the 2nd parameter of the define() block. */
 
-/* Parm: ZM_XML_EVENT_FPS: Sets the default FPS of the output videos for events */
-if (!defined("ZM_XML_EVENT_FPS")) define ( "ZM_XML_EVENT_FPS", "10");
-/* Parm: ZM_XML_EVENT_VCODEC: Default video codec for generating event video. Can be mpeg4 or h264 */
-if (!defined("ZM_XML_EVENT_VCODEC")) define ( "ZM_XML_EVENT_VCODEC", "mpeg4");
-/* Parm: ZM_XML_FEED_VCODEC: Default video codec of live feeds. Can be mjpeg or h264 */
-if (!defined("ZM_XML_FEED_VCODEC")) define ( "ZM_XML_FEED_VCODEC", "mjpeg");
-/* Parm: ZM_XML_SEG_DURATION: H264 Live-streaming segment duration in seconds.
+/* Parm: ZM_EYEZM_EVENT_FPS: Sets the default FPS of the output videos for events */
+if (!defined("ZM_EYEZM_EVENT_FPS")) define ( "ZM_EYEZM_EVENT_FPS", "10");
+/* Parm: ZM_EYEZM_EVENT_VCODEC: Default video codec for generating event video. Can be mpeg4 or h264 */
+if (!defined("ZM_EYEZM_EVENT_VCODEC")) define ( "ZM_EYEZM_EVENT_VCODEC", "mpeg4");
+/* Parm: ZM_EYEZM_FEED_VCODEC: Default video codec of live feeds. Can be mjpeg or h264 */
+if (!defined("ZM_EYEZM_FEED_VCODEC")) define ( "ZM_EYEZM_FEED_VCODEC", "mjpeg");
+/* Parm: ZM_EYEZM_SEG_DURATION: H264 Live-streaming segment duration in seconds.
  * Increase to improve feed smooth-ness, but will increase feed latency */
-if (!defined("ZM_XML_SEG_DURATION")) define ( "ZM_XML_SEG_DURATION", "3");
-/* Parm: ZM_XML_DEBUG: Set to 1 to enable XML Debugging */
-if (!defined("ZM_XML_DEBUG")) define ( "ZM_XML_DEBUG", "0" );
-/* Parm: ZM_XML_H264_MAX_DURATION: Maximum duration in seconds allowed for viewing H264 Streams.
+if (!defined("ZM_EYEZM_SEG_DURATION")) define ( "ZM_EYEZM_SEG_DURATION", "3");
+/* Parm: ZM_EYEZM_DEBUG: Set to 1 to enable XML Debugging */
+if (!defined("ZM_EYEZM_DEBUG")) define ( "ZM_EYEZM_DEBUG", "0" );
+/* Parm: ZM_EYEZM_H264_MAX_DURATION: Maximum duration in seconds allowed for viewing H264 Streams.
  * This is useful for systems that crash or stall when viewing H264 streams. After the timeout
  * expires, the H264 stream will be killed if it has not by the user already */
-if (!defined("ZM_XML_H264_MAX_DURATION")) define ( "ZM_XML_H264_MAX_DURATION", "120" );
-/* Parm: ZM_XML_DEFAULT_BR: Default bitrate of H264 live-feed (when selected).
+if (!defined("ZM_EYEZM_H264_MAX_DURATION")) define ( "ZM_EYEZM_H264_MAX_DURATION", "120" );
+/* Parm: ZM_EYEZM_DEFAULT_BR: Default bitrate of H264 live-feed (when selected).
  * This parameter can be changed to anything FFMPEG supports. 64k is a good lower bound, and 392k
  * a good upper */
-if (!defined("ZM_XML_H264_DEFAULT_BR")) define ( "ZM_XML_H264_DEFAULT_BR", "96k" );
-/* Parm: ZM_XML_H264_TIMEOUT: How long to wait for H264 stream to be created. Increase
+if (!defined("ZM_EYEZM_H264_DEFAULT_BR")) define ( "ZM_EYEZM_H264_DEFAULT_BR", "96k" );
+/* Parm: ZM_EYEZM_H264_TIMEOUT: How long to wait for H264 stream to be created. Increase
  * this value for streams that take a while to create, or for slow systems that time-out frequently */
-if (!defined("ZM_XML_H264_TIMEOUT")) define ( "ZM_XML_H264_TIMEOUT", "20" );
-/* Parm: ZM_XML_H264_DEFAULT_EVBR: Default bit-rate when creasing H264 Event videos */
-if (!defined("ZM_XML_H264_DEFAULT_EVBR")) define ( "ZM_XML_H264_DEFAULT_EVBR", "128k" );
+if (!defined("ZM_EYEZM_H264_TIMEOUT")) define ( "ZM_EYEZM_H264_TIMEOUT", "20" );
+/* Parm: ZM_EYEZM_H264_DEFAULT_EVBR: Default bit-rate when creasing H264 Event videos */
+if (!defined("ZM_EYEZM_H264_DEFAULT_EVBR")) define ( "ZM_EYEZM_H264_DEFAULT_EVBR", "128k" );
 /* Logging defines */
-/* Parm: ZM_XML_LOG_TO_FILE: Set to 1 to log XML Debug output to a separate file, when
- * ZM_XML_DEBUG is set to 1. If set to 0, XML Logging will be directed to Apache error log */
-if (!defined("ZM_XML_LOG_TO_FILE")) define ( "ZM_XML_LOG_TO_FILE", "1" );
-/* Parm: ZM_XML_LOG_FILE: Path to filename when LOG_TO_FILE is enabled */
-if (!defined("ZM_XML_LOG_FILE")) define ( "ZM_XML_LOG_FILE", "/tmp/zm_xml.log" );
+/* Parm: ZM_EYEZM_LOG_TO_FILE: Set to 1 to log XML Debug output to a separate file, when
+ * ZM_EYEZM_DEBUG is set to 1. If set to 0, XML Logging will be directed to Apache error log */
+if (!defined("ZM_EYEZM_LOG_TO_FILE")) define ( "ZM_EYEZM_LOG_TO_FILE", "1" );
+/* Parm: ZM_EYEZM_LOG_FILE: Path to filename when LOG_TO_FILE is enabled */
+if (!defined("ZM_EYEZM_LOG_FILE")) define ( "ZM_EYEZM_LOG_FILE", "/tmp/zm_xml.log" );
 /* Parm: How many lines to display when viewing log from eyeZm */
-if (!defined("ZM_XML_LOG_LINES")) define ( "ZM_XML_LOG_LINES", "50" );
+if (!defined("ZM_EYEZM_LOG_LINES")) define ( "ZM_EYEZM_LOG_LINES", "50" );
 
 $rates = array(
     "10000" => "100x",

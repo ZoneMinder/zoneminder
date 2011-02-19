@@ -42,7 +42,7 @@ $tabs['highband'] = $SLANG['HighBW'];
 $tabs['medband'] = $SLANG['MediumBW'];
 $tabs['lowband'] = $SLANG['LowBW'];
 $tabs['phoneband'] = $SLANG['PhoneBW'];
-$tabs['XML'] = "XML";
+$tabs['eyeZm'] = "eyeZm";
 if ( ZM_OPT_USE_AUTH )
     $tabs['users'] = $SLANG['Users'];
 

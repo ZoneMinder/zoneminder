@@ -41,7 +41,7 @@ if (isset($_GET['action'])) {
 		$dims = getMonitorDims($monitor);
 		$width = validInteger(getset('width', $dims['Width']));
 		$height = validInteger(getset('height', $dims['Height']));
-		$br = validString(getset('br', ZM_XML_H264_DEFAULT_BR));
+		$br = validString(getset('br', ZM_EYEZM_H264_DEFAULT_BR));
 		/* Check that we can stream first */
 		if (!canStream264()) {
 			/* canStream264 will print out error */
@@ -117,14 +117,14 @@ if (isset($_GET['action'])) {
 		$height = validInteger(getset('height', $dims['Height']));
 		$fps = validInteger(getset('fps', ZM_WEB_VIDEO_MAXFPS));
 		$scale = validInteger(getset('scale', 100));
-		$vcodec = validString(getset('vcodec', ZM_XML_FEED_VCODEC));
+		$vcodec = validString(getset('vcodec', ZM_EYEZM_FEED_VCODEC));
 		/* Select which codec we want */
 		if (!strcmp($vcodec, "h264")) {
 			/* Validate that we can in fact stream H264 */
 			if (!canStream264()) {
 				/* canStream264 will print out error if
 				 * there is one */
-				echo "Server cannot stream H264. Check XML log for details";
+				echo "Server cannot stream H264. Check eyeZm log for details";
 				exit;
 			}
 			if (!requireVer("1", "2")) {
@@ -132,7 +132,7 @@ if (isset($_GET['action'])) {
 				logXmlErr("H264 Streaming requires eyeZm v1.2 or above");
 				exit;
 			}
-			$br = validString(getset('br', ZM_XML_H264_DEFAULT_BR));
+			$br = validString(getset('br', ZM_EYEZM_H264_DEFAULT_BR));
 			/* H264 processing */
 			noCacheHeaders();
 			/* Kill any existing processes and files */
@@ -196,7 +196,7 @@ if (isset($_GET['action'])) {
 		}
 		/* Calculate FPS */
 		$fps = validInteger(getset('fps',ceil($event['Frames'] / $event['Length'])));
-		$vcodec = validString(getset('vcodec', ZM_XML_EVENT_VCODEC));
+		$vcodec = validString(getset('vcodec', ZM_EYEZM_EVENT_VCODEC));
 		$baseURL = ZM_PATH_WEB."/".getEventPathSafe($event);
 		/* Here we validate the codec.
 		 * Check that FFMPEG exists and supports codecs */
@@ -207,7 +207,7 @@ if (isset($_GET['action'])) {
 			}
 			/* Can generate, we are good to go */
 			$fname = "capture.mov";
-			$ffparms = "-vcodec mpeg4 -r ".ZM_XML_EVENT_FPS." ".$baseURL."/".$fname." 2> /dev/null";
+			$ffparms = "-vcodec mpeg4 -r ".ZM_EYEZM_EVENT_FPS." ".$baseURL."/".$fname." 2> /dev/null";
 
 		} else if (!strcmp($vcodec, "h264")) {
 			if (!ffmpegSupportsCodec("libx264")) {
@@ -221,7 +221,7 @@ if (isset($_GET['action'])) {
 			/* Good to go */
 			$fname = "capture.mp4";
 			$ffparms = getFfmpeg264FoutParms(
-				validString(getset('br',ZM_XML_H264_DEFAULT_EVBR)),
+				validString(getset('br',ZM_EYEZM_H264_DEFAULT_EVBR)),
 				$baseURL."/".$fname);
 
 		} else {
@@ -329,17 +329,17 @@ if (isset($_GET['action'])) {
 			echo "Insufficient permissions to view log file";
 			exit;
 		}
-		if (!ZM_XML_DEBUG || !ZM_XML_LOG_TO_FILE) {
-			echo "XML Debug (XML_DEBUG) or log-to-file (XML_LOG_TO_FILE) not enabled. Please enable first";
+		if (!ZM_EYEZM_DEBUG || !ZM_EYEZM_LOG_TO_FILE) {
+			echo "eyeZm Debug (EYEZM_DEBUG) or log-to-file (EYEZM_LOG_TO_FILE) not enabled. Please enable first";
 			exit;
 		}
-		if (!file_exists(ZM_XML_LOG_FILE)) {
-			echo "Log file ".ZM_XML_LOG_FILE." doesn't exist";
+		if (!file_exists(ZM_EYEZM_LOG_FILE)) {
+			echo "Log file ".ZM_EYEZM_LOG_FILE." doesn't exist";
 			exit;
 		}
-		$lines = validInteger(getset('lines',ZM_XML_LOG_LINES));
-		logXml("Returning last ".$lines." lines of XML Log from ".ZM_XML_LOG_FILE);
-		echo shell_exec("tail -n ".$lines." ".ZM_XML_LOG_FILE);
+		$lines = validInteger(getset('lines',ZM_EYEZM_LOG_LINES));
+		logXml("Returning last ".$lines." lines of eyeZm Log from ".ZM_EYEZM_LOG_FILE);
+		echo shell_exec("tail -n ".$lines." ".ZM_EYEZM_LOG_FILE);
 		echo "\n\n--- Showing last ".$lines." lines ---\n";
 		echo "--- End of Log ---\n\n";
 	}

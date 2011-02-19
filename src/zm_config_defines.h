@@ -189,15 +189,15 @@
 #define ZM_DYN_NEXT_REMINDER 185
 #define ZM_DYN_DONATE_REMINDER_TIME 186
 #define ZM_DYN_SHOW_DONATE_REMINDER 187
-#define ZM_XML_DEBUG 188
-#define ZM_XML_LOG_TO_FILE 189
-#define ZM_XML_LOG_FILE 190
-#define ZM_XML_EVENT_VCODEC 191
-#define ZM_XML_FEED_VCODEC 192
-#define ZM_XML_H264_DEFAULT_BR 193
-#define ZM_XML_H264_DEFAULT_EVBR 194
-#define ZM_XML_H264_TIMEOUT 195
-#define ZM_XML_SEG_DURATION 196
+#define ZM_EYEZM_DEBUG 188
+#define ZM_EYEZM_LOG_TO_FILE 189
+#define ZM_EYEZM_LOG_FILE 190
+#define ZM_EYEZM_EVENT_VCODEC 191
+#define ZM_EYEZM_FEED_VCODEC 192
+#define ZM_EYEZM_H264_DEFAULT_BR 193
+#define ZM_EYEZM_H264_DEFAULT_EVBR 194
+#define ZM_EYEZM_H264_TIMEOUT 195
+#define ZM_EYEZM_SEG_DURATION 196
 
 
 #define ZM_MAX_CFG_ID 196
@@ -391,15 +391,15 @@
 	const char *dyn_next_reminder;\
 	int dyn_donate_reminder_time;\
 	bool dyn_show_donate_reminder;\
-	bool xml_debug;\
-	bool xml_log_to_file;\
-	const char *xml_log_file;\
-	const char *xml_event_vcodec;\
-	const char *xml_feed_vcodec;\
-	const char *xml_h264_default_br;\
-	const char *xml_h264_default_evbr;\
-	const char *xml_h264_timeout;\
-	const char *xml_seg_duration;\
+	bool eyezm_debug;\
+	bool eyezm_log_to_file;\
+	const char *eyezm_log_file;\
+	const char *eyezm_event_vcodec;\
+	const char *eyezm_feed_vcodec;\
+	const char *eyezm_h264_default_br;\
+	const char *eyezm_h264_default_evbr;\
+	const char *eyezm_h264_timeout;\
+	const char *eyezm_seg_duration;\
 
 
 #define ZM_CFG_ASSIGN_LIST \
@@ -591,14 +591,14 @@
 	dyn_next_reminder = (const char *)config.Item( ZM_DYN_NEXT_REMINDER );\
 	dyn_donate_reminder_time = (int)config.Item( ZM_DYN_DONATE_REMINDER_TIME );\
 	dyn_show_donate_reminder = (bool)config.Item( ZM_DYN_SHOW_DONATE_REMINDER );\
-	xml_debug = (bool)config.Item( ZM_XML_DEBUG );\
-	xml_log_to_file = (bool)config.Item( ZM_XML_LOG_TO_FILE );\
-	xml_log_file = (const char *)config.Item( ZM_XML_LOG_FILE );\
-	xml_event_vcodec = (const char *)config.Item( ZM_XML_EVENT_VCODEC );\
-	xml_feed_vcodec = (const char *)config.Item( ZM_XML_FEED_VCODEC );\
-	xml_h264_default_br = (const char *)config.Item( ZM_XML_H264_DEFAULT_BR );\
-	xml_h264_default_evbr = (const char *)config.Item( ZM_XML_H264_DEFAULT_EVBR );\
-	xml_h264_timeout = (const char *)config.Item( ZM_XML_H264_TIMEOUT );\
-	xml_seg_duration = (const char *)config.Item( ZM_XML_SEG_DURATION );\
+	eyezm_debug = (bool)config.Item( ZM_EYEZM_DEBUG );\
+	eyezm_log_to_file = (bool)config.Item( ZM_EYEZM_LOG_TO_FILE );\
+	eyezm_log_file = (const char *)config.Item( ZM_EYEZM_LOG_FILE );\
+	eyezm_event_vcodec = (const char *)config.Item( ZM_EYEZM_EVENT_VCODEC );\
+	eyezm_feed_vcodec = (const char *)config.Item( ZM_EYEZM_FEED_VCODEC );\
+	eyezm_h264_default_br = (const char *)config.Item( ZM_EYEZM_H264_DEFAULT_BR );\
+	eyezm_h264_default_evbr = (const char *)config.Item( ZM_EYEZM_H264_DEFAULT_EVBR );\
+	eyezm_h264_timeout = (const char *)config.Item( ZM_EYEZM_H264_TIMEOUT );\
+	eyezm_seg_duration = (const char *)config.Item( ZM_EYEZM_SEG_DURATION );\
 
 

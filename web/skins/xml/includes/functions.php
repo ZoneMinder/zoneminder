@@ -71,27 +71,27 @@ function logXmlErr($str)
 }
 function logXml($str, $err = 0)
 {
-	if (!defined("ZM_XML_DEBUG")) {
+	if (!defined("ZM_EYEZM_DEBUG")) {
 		/* Check session variable */
-		if (isset($_SESSION['xml_debug'])) define("ZM_XML_DEBUG", $_SESSION['xml_debug']);
-		else define ("ZM_XML_DEBUG", "0");
+		if (isset($_SESSION['xml_debug'])) define("ZM_EYEZM_DEBUG", $_SESSION['xml_debug']);
+		else define ("ZM_EYEZM_DEBUG", "0");
 	}
-	if (!defined("ZM_XML_LOG_TO_FILE")) {
+	if (!defined("ZM_EYEZM_LOG_TO_FILE")) {
 		/* Check session variable */
-		if (isset($_SESSION['xml_log_to_file'])) define("ZM_XML_LOG_TO_FILE", $_SESSION['xml_log_to_file']);
-		else define ("ZM_XML_LOG_TO_FILE", "1");
+		if (isset($_SESSION['xml_log_to_file'])) define("ZM_EYEZM_LOG_TO_FILE", $_SESSION['xml_log_to_file']);
+		else define ("ZM_EYEZM_LOG_TO_FILE", "1");
 	}
-	if (!defined("ZM_XML_LOG_FILE")) {
+	if (!defined("ZM_EYEZM_LOG_FILE")) {
 		/* Check session variable */
-		if (isset($_SESSION['xml_log_file'])) define("ZM_XML_LOG_FILE", $_SESSION['xml_log_file']);
-		else define ("ZM_XML_LOG_FILE", "/tmp/zm_xml.log");
+		if (isset($_SESSION['xml_log_file'])) define("ZM_EYEZM_LOG_FILE", $_SESSION['xml_log_file']);
+		else define ("ZM_EYEZM_LOG_FILE", "/tmp/zm_xml.log");
 	}
 	/* Only log if debug is enabled */
-	if (ZM_XML_DEBUG == 0) return;
+	if (ZM_EYEZM_DEBUG == 0) return;
 	/* Logging is enabled, set log string */
-	$logstr = "XML_LOG (".($err?"ERROR":"NOTICE")."): ".$str.(ZM_XML_LOG_TO_FILE?"\n":"");
-	if (ZM_XML_LOG_TO_FILE) {
-		error_log("[".date("r")."] ".$logstr, 3, ZM_XML_LOG_FILE);
+	$logstr = "XML_LOG (".($err?"ERROR":"NOTICE")."): ".$str.(ZM_EYEZM_LOG_TO_FILE?"\n":"");
+	if (ZM_EYEZM_LOG_TO_FILE) {
+		error_log("[".date("r")."] ".$logstr, 3, ZM_EYEZM_LOG_FILE);
 	} else {
 		error_log($logstr);
 	}
@@ -206,7 +206,7 @@ function getFfmpeg264FoutParms($br, $fout)
 function getFfmpeg264Str($width, $height, $br, $fin, $fout)
 {
 	$ffparms = getFfmpeg264FoutParms($br, $fout);
-	$ffstr = getFfmpegPath()." -t ".ZM_XML_H264_MAX_DURATION." -analyzeduration 0 -i ";
+	$ffstr = getFfmpegPath()." -t ".ZM_EYEZM_H264_MAX_DURATION." -analyzeduration 0 -i ";
 	$ffstr .= $fin." -f mpegts ".$ffparms;
 	return $ffstr;
 }
@@ -260,7 +260,7 @@ function stream264fn ($mid, $width, $height, $br) {
 	$cdir = "./temp";
 	$zmstrm = "zmstreamer -m ".$mid." 2> /dev/null";
 	$ffstr = getFfmpeg264Str($width, $height, $br, "-", "-");
-	$seg = "segmenter - ".ZM_XML_SEG_DURATION." ".$cdir."/sample_".$mid." ".$cdir."/".m3u8fname($mid)." ../ 2> /dev/null";
+	$seg = "segmenter - ".ZM_EYEZM_SEG_DURATION." ".$cdir."/sample_".$mid." ".$cdir."/".m3u8fname($mid)." ../ 2> /dev/null";
 	$url = $zmstrm . " | ".$ffstr." | " . $seg;
 	return "nohup ".$url." & echo $!";
 }
@@ -276,7 +276,7 @@ function h264vidHtml($width, $height, $monitor, $br, $thumbsrc) {
 	$ajaxUrl = "?view=actions&action=spawn264&&monitor=".$monitor."&br=".$br;
 	/* Call these two directly to bypass server blocking issues */
 	$ajax2Url = "./skins/xml/views/actions.php?action=chk264&monitor=".$monitor;
-	$ajax2Url .= "&timeout=".ZM_XML_H264_TIMEOUT;
+	$ajax2Url .= "&timeout=".ZM_EYEZM_H264_TIMEOUT;
 	$ajax3Url = "./skins/xml/views/actions.php?action=kill264&monitor=".$monitor;
 ?>
 <html>

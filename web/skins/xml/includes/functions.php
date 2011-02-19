@@ -4,10 +4,27 @@
  * iPhone application. This is not intended for use with any other applications,
  * although source-code is provided under GPL.
  *
- * For questions, please email jdhar@eyezm.com (http://www.eyezm.com)
+ * For questions, please email support@eyezm.com (http://www.eyezm.com)
  *
  */
+/* These functions are taken from functions.php */
+function validInteger( $input )
+{
+    return( preg_replace( '/\D/', '', $input ) );
+}
 
+function validString( $input )
+{
+    return( strip_tags( $input ) );
+}
+/*
+ * Escape an SQL string, with optional parameters for max. length 
+ */
+function escapeSql($str, $maxlen = 0) {
+	if (!$maxlen) $maxlen = 512;
+	$string = substr($str, 0, $maxlen);
+	return (get_magic_quotes_gpc())?mysql_real_escape_string(stripslashes($string)):mysql_real_escape_string($string);
+}
 /* There appears to be some discrepancy btw. 1.24.1/2 and .3 for EventPaths, to escape them here */
 function getEventPathSafe($event)
 {
@@ -93,7 +110,6 @@ function xml_header()
 function xml_tag_val($tag, $val)
 {
 	echo "<".$tag.">".$val."</".$tag.">";
-	//echo "&lt;".$tag."&gt;".$val."&lt;/".$tag."&gt<br>";
 }
 function xml_tag_sec($tag, $open)
 {
@@ -158,6 +174,8 @@ function ffmpegSupportsCodec($codec)
 		/* More than one match */
 		return TRUE;
 	} else {
+		/* Check -formats tag also if we fail -codecs */
+		if (preg_match("/\b".$codec."\b/", shell_exec(getFfmpegPath()." -codecs 2> /dev/null")) > 0) return TRUE;
 		return FALSE;
 	}
 }
@@ -192,11 +210,20 @@ function getFfmpeg264Str($width, $height, $br, $fin, $fout)
 	$ffstr .= $fin." -f mpegts ".$ffparms;
 	return $ffstr;
 }
+/** Returns true when monitor exists */
+function isMonitor($monitor)
+{
+	$query = "select Id from Monitors where Id = ".$monitor;
+	$res = dbFetchOne(escapeSql($query));
+	if ($res) return TRUE;
+	logXml("Monitor ID ".$monitor." does not exist");	
+	return FALSE;
+}
 /** Returns the width and height of a monitor */
 function getMonitorDims($monitor)
 {
 	$query = "select Width,Height from Monitors where Id = ".$monitor;
-	$res = dbFetchOne($query);
+	$res = dbFetchOne(escapeSql($query));
 	return $res;
 }
 /** Returns the temp directory for H264 encoding */
@@ -212,10 +239,14 @@ function m3u8fname($monitor) {
 
 /** Erases the M3u8 and TS file names for a given monitor */
 function eraseH264Files($monitor) {
+	/** NOTE: This command executes an 'rm' command, so $monitor parameter
+	 * should be properly validated before executing */
 	/* Remove wdir/.m3u8 and wdir/sample_<mon>*.ts */
 	shell_exec("rm -f ".getTempDir()."/".m3u8fname($monitor)." ".getTempDir()."/sample_".$monitor."*.ts");
 }
 function kill264proc($monitor) {
+	/** NOTE: This command executes an 'kill' command, so $monitor parameter
+	 * should be properly validated before executing */
 	$pid = trim(shell_exec("pgrep -f -x \"zmstreamer -m ".$monitor."\""));
 	if ($pid == "") {
 		logXml("No PID found for ZMStreamer to kill");

@@ -10,7 +10,7 @@
 /* Parse any specific actions here */
 if (isset($_GET['action'])) {
 	$action = $_GET['action'];
-	if (strcmp($action, "devent") == 0) {
+	if (!strcmp($action, "devent")) {
 		/* ACTION: Delete an Event. Parms: <eid> */
 		if (!canEdit('Events')) {
 			logXmlErr("User ".$user['Username']. " doesn't have edit Events perms");
@@ -20,12 +20,12 @@ if (isset($_GET['action'])) {
 			logXmlErr("EID not set for action delete-event");
 			exit;
 		}
-		$eid = validInt($_REQUEST['eid']);
+		$eid = validInteger($_REQUEST['eid']);
 		$url = "./index.php?view=request&request=event&id=".$eid."&action=delete";
 		header("Location: ".$url);
 		exit;
 
-	} else if (strcmp($action, "spawn264") == 0) {
+	} else if (!strcmp($action, "spawn264")) {
 		/* ACTION: Spawn 264 streaming process.
 		 * Parms: <monitor>[br|width|height] */
 		if (!canView('Stream')) {
@@ -36,11 +36,12 @@ if (isset($_GET['action'])) {
 			logXmlErr("Not all parameters specified for spawn264");
 			exit;
 		}
-		$monitor = validInt($_REQUEST['monitor']);
+		$monitor = validInteger($_REQUEST['monitor']);
+		if (!isMonitor($monitor)) exit;
 		$dims = getMonitorDims($monitor);
-		$width = getset('width', $dims['Width']);
-		$height = getset('height', $dims['Height']);
-		$br = getset('br', ZM_XML_H264_DEFAULT_BR);
+		$width = validInteger(getset('width', $dims['Width']));
+		$height = validInteger(getset('height', $dims['Height']));
+		$br = validString(getset('br', ZM_XML_H264_DEFAULT_BR));
 		/* Check that we can stream first */
 		if (!canStream264()) {
 			/* canStream264 will print out error */
@@ -53,7 +54,7 @@ if (isset($_GET['action'])) {
 		eraseH264Files($monitor);
 		exit;
 
-	} else if (strcmp($action, "kill264") == 0) {
+	} else if (!strcmp($action, "kill264")) {
 		/* ACTION: Kill existing H264 stream process and cleanup files.
 		 * Parms: <monitor>.
 		 * NOTE: This will be called directly by path, so include files
@@ -64,12 +65,12 @@ if (isset($_GET['action'])) {
 			logXmlErr("Not all parameters specified for kill264");
 			exit;
 		}
-		$monitor = $_GET['monitor'];
+		$monitor = validInteger($_GET['monitor']);
 		kill264proc($monitor);
 		logXml("Killed Segmenter process for monitor ".$monitor);
 		exit;
 
-	} else if (strcmp($action, "chk264") == 0) {
+	} else if (!strcmp($action, "chk264")) {
 		/* ACTION: Simply stalls while checking for 264 file.
 		 * Parms: <monitor><timeout> 
 		 * NOTE: This will be called directly by path, so include files
@@ -80,13 +81,13 @@ if (isset($_GET['action'])) {
 			logXmlErr("Monitor not specified for chk264");
 			exit;
 		}
-		$monitor = $_GET['monitor'];
+		$monitor = validInteger($_GET['monitor']);
 		$path = getTempDir()."/".m3u8fname($monitor);
 		/* Wait for the second sample to become available */
 		$tsfile = getTempDir()."/sample_".$monitor."-2.ts";
 		/* Setup timeout */
 		$startTime = time();
-		$timeout = $_GET['timeout'];
+		$timeout = validInteger($_GET['timeout']);
 		while (!file_exists($path) || !file_exists($tsfile)) {
 			if (time() > $startTime + $timeout) {
 				logXmlErr("Timed out waiting for stream to start, exiting...");
@@ -98,7 +99,7 @@ if (isset($_GET['action'])) {
 		logXml("File exists, stream created after ".(time()-$startTime)." sec");
 		exit;
 
-	} else if (strcmp($action, "feed") == 0) {
+	} else if (!strcmp($action, "feed")) {
 		/* ACTION: View a feed. Parms: <monitor>> [height|width|fps|scale|vcodec|br] */
 		if (!canView('Stream')) {
 			logXmlErr("User ".$user['Username']. " doesn't have view Stream perms");
@@ -109,13 +110,14 @@ if (isset($_GET['action'])) {
 			logXmlErr("Not all parameters set for action view-feed");
 			exit;
 		}
-		$monitor = validInt($_REQUEST['monitor']);
+		$monitor = validInteger($_REQUEST['monitor']);
+		if (!isMonitor($monitor)) exit;
 		$dims = getMonitorDims($monitor);
-		$width = getset('width', $dims['Width']);
-		$height = getset('height', $dims['Height']);
-		$fps = getset('fps', ZM_WEB_VIDEO_MAXFPS);
-		$scale = getset('scale', 100);
-		$vcodec = getset('vcodec', ZM_XML_FEED_VCODEC);
+		$width = validInteger(getset('width', $dims['Width']));
+		$height = validInteger(getset('height', $dims['Height']));
+		$fps = validInteger(getset('fps', ZM_WEB_VIDEO_MAXFPS));
+		$scale = validInteger(getset('scale', 100));
+		$vcodec = validString(getset('vcodec', ZM_XML_FEED_VCODEC));
 		/* Select which codec we want */
 		if (!strcmp($vcodec, "h264")) {
 			/* Validate that we can in fact stream H264 */
@@ -130,7 +132,7 @@ if (isset($_GET['action'])) {
 				logXmlErr("H264 Streaming requires eyeZm v1.2 or above");
 				exit;
 			}
-			$br = getset('br', ZM_XML_H264_DEFAULT_BR);
+			$br = validString(getset('br', ZM_XML_H264_DEFAULT_BR));
 			/* H264 processing */
 			noCacheHeaders();
 			/* Kill any existing processes and files */
@@ -173,7 +175,7 @@ if (isset($_GET['action'])) {
 		}
 		exit;
 
-	} else if (strcmp($action, "vevent") == 0) {
+	} else if (!strcmp($action, "vevent")) {
 		/* ACTION: View an event. Parms: <eid> [fps|vcodec|br] */
 		if (!canView('Events')) {
 			logXmlErr("User ".$user['Username']. " doesn't have view Events perms");
@@ -184,11 +186,17 @@ if (isset($_GET['action'])) {
 			exit;
 		}
 		/* Grab event from the database */
-		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$_GET['eid'].")";
-		$event = dbFetchOne($eventsSql);
+		$eid = validInteger($_GET['eid']);
+		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$eid.")";
+		$event = dbFetchOne(escapeSql($eventsSql));
+		/* Check if exists */
+		if (!$event) {
+			logxmlErr("Requested event ID ".$eid." does not exist");
+			exit;
+		}
 		/* Calculate FPS */
-		$fps = getset('fps',ceil($event['Frames'] / $event['Length']));
-		$vcodec = getset('vcodec', ZM_XML_EVENT_VCODEC);
+		$fps = validInteger(getset('fps',ceil($event['Frames'] / $event['Length'])));
+		$vcodec = validString(getset('vcodec', ZM_XML_EVENT_VCODEC));
 		$baseURL = ZM_PATH_WEB."/".getEventPathSafe($event);
 		/* Here we validate the codec.
 		 * Check that FFMPEG exists and supports codecs */
@@ -213,7 +221,7 @@ if (isset($_GET['action'])) {
 			/* Good to go */
 			$fname = "capture.mp4";
 			$ffparms = getFfmpeg264FoutParms(
-				getset('br',ZM_XML_H264_DEFAULT_EVBR),
+				validString(getset('br',ZM_XML_H264_DEFAULT_EVBR)),
 				$baseURL."/".$fname);
 
 		} else {
@@ -236,7 +244,7 @@ if (isset($_GET['action'])) {
 		header("Location: ".$url);
 		exit;
 
-	} else if (strcmp($action, "vframe") == 0) {
+	} else if (!strcmp($action, "vframe")) {
 		/* ACTION: View a frame given by an event and frame-id. Parms: <eid> <frame> [alarm | analyze]
 		 * If 'alarm' is set, the returned frame will be the <frame>-th alarm frame. If 'analyze' is set,
 		 * the returned frame will be the %03d-analyse frame instead of %03d-capture, if ZM_CREATE_ANALYSIS_IMAGES
@@ -245,30 +253,35 @@ if (isset($_GET['action'])) {
 			logXmlErr("Not all parameters set for action view-frame");
 			exit;
 		}
-		$eid = $_GET['eid'];
-		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$_GET['eid'].")";
-		$event = dbFetchOne($eventsSql);
+		$eid = validInteger($_GET['eid']);
+		$frame = validInteger($_GET['frame']);
+		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$eid.")";
+		$event = dbFetchOne(escapeSql($eventsSql));
+		if (!$event) {
+			logxmlErr("Requested event ID ".$eid." does not exist");
+			exit;
+		}
 		/* Figure out the frame number. If 'alarm' is not set, this is just equal to the <frame> parameter.
 		 * If 'alarm' is set, need to query DB and grab the <frame>-th item */
 		if (isset($_GET['alarm'])) {
-			$frameSql = "select * from Frames as F where (F.EventId = ".$eid.") and (F.Type = 'Alarm') order by F.FrameId";
+			$frameSql = escapeSql("select * from Frames as F where (F.EventId = ".$eid.") ");
+			$frameSql .= " and (F.Type = 'Alarm') order by F.FrameId";
 			$i=0;
-			$frame = 0;
 			foreach (dbFetchAll($frameSql) as $dbframe) {
-				if ($i == $_GET['frame']) {
+				if ($i == $frame) {
 					$frame = $dbframe['FrameId'];
 					break;
 				}
 				$i++;
 			}
-		} else {
-			$frame = $_GET['frame'];
 		}
 		if (isset($_GET['analyze']) && ZM_CREATE_ANALYSIS_IMAGES) {
 			$suffix = "analyse";
 		} else {
 			$suffix = "capture";
 		}
+		/* A frame index of 0 is invalid, so if we see this, just use frame 1 */
+		if (!$frame) $frame = 1;
 		/* Suffix based on 'analyze' */
 		$fname = sprintf("%0".ZM_EVENT_IMAGE_DIGITS."d-%s.jpg", $frame, $suffix);
 		$url = "./".getEventPathSafe($event)."/".$fname;
@@ -278,7 +291,7 @@ if (isset($_GET['action'])) {
 		header("Location: ".$url);
 		exit;
 
-	} else if (strcmp($action, "state") == 0) {
+	} else if (!strcmp($action, "state")) {
 		/* ACTION: Change the state of the system. Parms: <state> */
 		if (!canEdit('System')) {
 			logXmlErr("User ".$user['Username']. " doesn't have edit System perms");
@@ -288,11 +301,11 @@ if (isset($_GET['action'])) {
 			logXmlErr("Server state not specified for action");
 			exit;
 		}
-		$url = "./index.php?view=none&action=state&runState=".$_GET['state'];
+		$url = "./index.php?view=none&action=state&runState=".validString($_GET['state']);
 		header("Location: ".$url);
 		exit;
 
-	} else if (strcmp($action, "func") == 0) {
+	} else if (!strcmp($action, "func")) {
 		/* ACTION: Change state of the monitor. Parms: <mid><func><en> */
 		if (!canEdit('Monitors')) {
 			logXmlErr("User ".$user['Username']. " doesn't have monitors Edit perms");
@@ -302,10 +315,13 @@ if (isset($_GET['action'])) {
 			logXmlErr("Not all parameters specified for action Monitor state");
 			exit;
 		}
-		$url = "./index.php?view=none&action=function&mid=".$_GET['mid']."&newFunction=".$_GET['func']."&newEnabled=".$_GET['en'];
+		$mid = validInteger($_GET['mid']);
+		if (!isMonitor($mid)) exit;
+		$url = "./index.php?view=none&action=function&mid=".$mid."&newFunction=".validString($_GET['func'])."&newEnabled=".validString($_GET['en']);
 		header("Location: ".$url);
 		exit;
-	} else if (strcmp($action, "vlog") == 0) {
+
+	} else if (!strcmp($action, "vlog")) {
 		/* ACTION: View log file. Must have debug and log to file enabled, and sufficient perms 
 		 * Parms: [lines] */
 		if (!canEdit('System')) {
@@ -321,7 +337,7 @@ if (isset($_GET['action'])) {
 			echo "Log file ".ZM_XML_LOG_FILE." doesn't exist";
 			exit;
 		}
-		$lines = getset('lines',ZM_XML_LOG_LINES);
+		$lines = validInteger(getset('lines',ZM_XML_LOG_LINES));
 		logXml("Returning last ".$lines." lines of XML Log from ".ZM_XML_LOG_FILE);
 		echo shell_exec("tail -n ".$lines." ".ZM_XML_LOG_FILE);
 		echo "\n\n--- Showing last ".$lines." lines ---\n";

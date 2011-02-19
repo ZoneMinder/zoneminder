@@ -23,7 +23,7 @@
  * iPhone application. This is not intended for use with any other applications,
  * although source-code is provided under GPL.
  *
- * For questions, please email jdhar@eyezm.com (http://www.eyezm.com)
+ * For questions, please email support@eyezm.com (http://www.eyezm.com)
  *
  */
 $eventCounts = array(
@@ -203,14 +203,14 @@ foreach( $displayMonitors as $monitor )
 	$pageOffset = 0;
 	$offset = 0;
 	if (isset($_GET['numEvents'])) {
-		$numEvents = $_GET['numEvents'];
-		$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) and ( E.MonitorId = ".$monitor['Id']." ) order by E.StartTime desc";
+		$numEvents = validInteger($_GET['numEvents']);
+		$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,E.Cause,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) and ( E.MonitorId = ".$monitor['Id']." ) order by E.StartTime desc";
 		$eventsSql .= " limit ".$numEvents;
 		/* If there is an pageOff<x> tag for this monitor, then retrieve the offset. Otherwise, don't specify offset */
 		if (isset($_GET['pageOff'.$monitor['Id']])) {
 			/* If pageOffset is greater than we actually have,
 			 * we need to adjust it */
-			$pageOffset = $_GET['pageOff'.$monitor['Id']]; 
+			$pageOffset = validInteger($_GET['pageOff'.$monitor['Id']]); 
 			if ($pageOffset >= ceil($monitor['EventCount0']/$numEvents)) {
 				$pageOffset = 0;
 			}
@@ -223,7 +223,7 @@ foreach( $displayMonitors as $monitor )
 	xml_tag_val("PAGEOFF", $pageOffset);
 	xml_tag_sec("EVENTS",1);
 	if (canView('Events') && isset($eventsSql)) {
-		foreach ( dbFetchAll( $eventsSql ) as $event )
+		foreach ( dbFetchAll( escapeSql($eventsSql) ) as $event )
 		{
 			xml_tag_sec("EVENT",1);
 			xml_tag_val("ID",$event['Id']);
@@ -232,14 +232,21 @@ foreach( $displayMonitors as $monitor )
 			xml_tag_val("DURATION", $event['Length']);
 			xml_tag_val("FRAMES", $event['Frames']);
 			xml_tag_val("FPS", ($event['Length'] > 0)?ceil($event['Frames']/$event['Length']):0);
-			xml_tag_val("ALARMFRAMES", $event['AlarmFrames']);
 			xml_tag_val("TOTSCORE", $event['TotScore']);
 			xml_tag_val("AVGSCORE", $event['AvgScore']);
 			xml_tag_val("MAXSCORE", $event['MaxScore']);
-			/* Grab the max frame-id from Frames table */
-			$framesSql = "select FrameId from Frames where (Type = \"Alarm\") and (EventId = ".$event['Id'].") order by Score desc limit 1";
-			$fr = dbFetchOne($framesSql);
-			xml_tag_val("MAXFRAMEID", $fr['FrameId']);
+			/* Grab the max frame-id from Frames table. If AlarmFrames = 0, don't try
+			 * to grab any frames, and just signal the max frame index as index 0 */
+			$fridx = 1;
+			$alarmFrames = 1;
+			if ($event['AlarmFrames']) {
+				$framesSql = "select FrameId from Frames where (Type = 'Alarm') and (EventId = ".$event['Id'].") order by Score desc limit 1";
+				$fr = dbFetchOne($framesSql);
+				$fridx = $fr['FrameId'];
+				$alarmFrames = $event['AlarmFrames'];
+			}
+			xml_tag_val("ALARMFRAMES", $alarmFrames);
+			xml_tag_val("MAXFRAMEID", $fridx);
 			xml_tag_sec("EVENT",0);
 		}
 	}

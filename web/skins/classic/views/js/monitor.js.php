@@ -115,7 +115,7 @@ function validateForm( form )
         errors[errors.length] = "<?= $SLANG['BadAlarmFrameCount'] ?>";
     if ( !form.elements['newMonitor[SectionLength]'].value || !(parseInt(form.elements['newMonitor[SectionLength]'].value) >= 30 ) )
         errors[errors.length] = "<?= $SLANG['BadSectionLength'] ?>";
-    if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 100 ) )
+    if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 0 ) )
         errors[errors.length] = "<?= $SLANG['BadFPSReportInterval'] ?>";
     if ( !form.elements['newMonitor[FrameSkip]'].value || !(parseInt(form.elements['newMonitor[FrameSkip]'].value) >= 0 ) )
         errors[errors.length] = "<?= $SLANG['BadFrameSkip'] ?>";

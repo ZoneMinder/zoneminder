@@ -1049,7 +1049,7 @@ bool Monitor::Analyse()
     struct timeval now;
     gettimeofday( &now, NULL );
 
-    if ( image_count && !(image_count%fps_report_interval) )
+    if ( image_count && fps_report_interval && !(image_count%fps_report_interval) )
     {
         fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
         Info( "%s: %d - Processing at %.2f fps", name, image_count, fps );
@@ -2589,7 +2589,7 @@ int Monitor::Capture()
 
         image_count++;
 
-        if ( image_count && !(image_count%fps_report_interval) )
+        if ( image_count && fps_report_interval && !(image_count%fps_report_interval) )
         {
             time_t now = image_buffer[index].timestamp->tv_sec;
             fps = double(fps_report_interval)/(now-last_fps_time);

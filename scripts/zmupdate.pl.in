@@ -339,7 +339,7 @@ if ( $version )
         print( "Please ensure that ZoneMinder is stopped on your system prior to upgrading the database.\nPress enter to continue or ctrl-C to stop : " );
         my $response = <STDIN>;
 
-        print( "\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file in /tmp if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : " );
+        print( "\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file in @ZM_TMPDIR@ if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : " );
         $response = <STDIN>;
         chomp( $response );
         while ( $response !~ /^[yYnN]$/ )
@@ -362,7 +362,7 @@ if ( $version )
                     $command .= " -p".$db_pass;
                 }
             }
-            my $backup = "/tmp/".ZM_DB_NAME."-".$version.".dump";
+            my $backup = "@ZM_TMPDIR@/".ZM_DB_NAME."-".$version.".dump";
             $command .= " --add-drop-table --databases ".ZM_DB_NAME." > ".$backup;
             print( "Creating backup to $backup. This may take several minutes.\n" );
             print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );

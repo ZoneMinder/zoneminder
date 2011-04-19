@@ -506,7 +506,7 @@ function deletePath( $path )
     }
     else
     {
-        @unlink( $path );
+        unlink( $path );
     }
 }
 

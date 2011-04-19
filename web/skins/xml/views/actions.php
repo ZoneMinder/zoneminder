@@ -100,7 +100,7 @@ if (isset($_GET['action'])) {
 		exit;
 
 	} else if (!strcmp($action, "feed")) {
-		/* ACTION: View a feed. Parms: <monitor>> [height|width|fps|scale|vcodec|br] */
+		/* ACTION: View a feed. Parms: <monitor> [height|width|fps|scale|vcodec|br] */
 		if (!canView('Stream')) {
 			logXmlErr("User ".$user['Username']. " doesn't have view Stream perms");
 			exit;
@@ -153,14 +153,27 @@ if (isset($_GET['action'])) {
 			h264vidHtml($width, $height, $monitor, $br, $thumbsrc);
 		} else if (!strcmp($vcodec, "mjpeg")) {
 			/* MJPEG streaming */
-			$streamSrc = 
-				getStreamSrc( array( 
-					"mode=jpeg", 
-					"monitor=".$monitor, 
-					"scale=".$scale,	
-					"maxfps=".$fps,
-					"buffer=1000" 
-				) );
+			/* If $fps=0, get a single-shot */
+			if (!$fps) {
+				/* single-shot */
+				$streamSrc = 
+					getStreamSrc( array( 
+						"mode=single", 
+						"monitor=".$monitor, 
+						"scale=".$scale,	
+						"maxfps=0",
+						"buffer=1000" 
+					) );
+			} else {
+				$streamSrc = 
+					getStreamSrc( array( 
+						"mode=jpeg", 
+						"monitor=".$monitor, 
+						"scale=".$scale,	
+						"maxfps=".$fps,
+						"buffer=1000" 
+					) );
+			}
 			noCacheHeaders();
 			xhtmlHeaders( __FILE__, "Stream" );
 			logXml("Streaming MJPEG on Monitor ".$monitor.", ".$width."x".$height." @".$fps."fps");

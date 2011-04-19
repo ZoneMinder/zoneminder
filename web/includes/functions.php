@@ -927,7 +927,7 @@ function zmcControl( $monitor, $mode=false )
     $row = dbFetchOne( $sql );
     $activeCount = $row['ActiveCount'];
 
-    if ( !$activeCount )
+    if ( !$activeCount || $mode == "stop" )
     {
         daemonControl( "stop", "zmc", $zmcArgs );
     }
@@ -948,41 +948,21 @@ function zmaControl( $monitor, $mode=false )
         $sql = "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '".dbEscape($monitor)."'";
         $monitor = dbFetchOne( $sql );
     }
-    switch ( $monitor['Function'] )
+    if ( !$monitor || $monitor['Function'] == 'None' || $monitor['Function'] == 'Monitor' || $mode == "stop" )
     {
-        case 'Modect' :
-        case 'Record' :
-        case 'Mocord' :
-        case 'Nodect' :
+        if ( ZM_OPT_CONTROL )
         {
-            if ( $mode == "restart" )
-            {
-                if ( ZM_OPT_CONTROL )
-                {
-                    daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
-                }
-                daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
-                if ( ZM_OPT_FRAME_SERVER )
-                {
-                    daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
-                }
-            }
-            if ( ZM_OPT_FRAME_SERVER )
-            {
-                daemonControl( "start", "zmf", "-m ".$monitor['Id'] );
-            }
-            daemonControl( "start", "zma", "-m ".$monitor['Id'] );
-            if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) )
-            {
-                daemonControl( "start", "zmtrack.pl", "-m ".$monitor['Id'] );
-            }
-            if ( $mode == "reload" )
-            {
-                daemonControl( "reload", "zma", "-m ".$monitor['Id'] );
-            }
-            break;
+            daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
         }
-        default :
+        daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
+        if ( ZM_OPT_FRAME_SERVER )
+        {
+            daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
+        }
+    }
+    else
+    {
+        if ( $mode == "restart" )
         {
             if ( ZM_OPT_CONTROL )
             {
@@ -993,7 +973,19 @@ function zmaControl( $monitor, $mode=false )
             {
                 daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
             }
-            break;
+        }
+        if ( ZM_OPT_FRAME_SERVER )
+        {
+            daemonControl( "start", "zmf", "-m ".$monitor['Id'] );
+        }
+        daemonControl( "start", "zma", "-m ".$monitor['Id'] );
+        if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) )
+        {
+            daemonControl( "start", "zmtrack.pl", "-m ".$monitor['Id'] );
+        }
+        if ( $mode == "reload" )
+        {
+            daemonControl( "reload", "zma", "-m ".$monitor['Id'] );
         }
     }
 }

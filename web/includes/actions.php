@@ -555,15 +555,8 @@ if ( !empty($action) )
                             foreach( $markEids as $markEid )
                                 deleteEvent( $markEid );
 
-                            if ( PHP_OS == "WINNT" )
-                            {
-                                system( "rmdir /s /q ".ZM_DIR_EVENTS."\\".$monitor['Id'] );
-                            }
-                            else
-                            {
-                                @unlink( ZM_DIR_EVENTS."/".$monitor['Name'] );
-                                system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Id'] );
-                            }
+                            @unlink( ZM_DIR_EVENTS."/".$monitor['Name'] );
+                            system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Id'] );
 
                             dbQuery( "delete from Zones where MonitorId = '".dbEscape($markMid)."'" );
                             if ( ZM_OPT_X10 )

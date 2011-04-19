@@ -113,13 +113,13 @@ while( 1 )
                 my $command;
                 if ( $monitor->{Type} eq 'Local' )
                 {
-                    $command = ZM_PATH_BIN."/zmdc.pl restart zmc -d $monitor->{Device}";
+                    $command = "zmdc.pl restart zmc -d $monitor->{Device}";
                 }
                 else
                 {
-                    $command = ZM_PATH_BIN."/zmdc.pl restart zmc -m $monitor->{Id}";
+                    $command = "zmdc.pl restart zmc -m $monitor->{Id}";
                 }
-                Info( qx( $command ) );
+                runCommand( $command );
             }
             elsif ( $monitor->{Function} ne 'Monitor' )
             {
@@ -136,8 +136,8 @@ while( 1 )
                     if ( $image_delay > $max_image_delay )
                     {
                         Info( "Restarting analysis daemon for ".$monitor->{Name}.", time since last analysis $image_delay seconds ($now-$image_time)\n" );
-                        my $command = ZM_PATH_BIN."/zmdc.pl restart zma -m ".$monitor->{Id};
-                        Info( qx( $command ) );
+                        my $command = "zmdc.pl restart zma -m ".$monitor->{Id};
+                        runCommand( $command );
                     }
                 }
             }

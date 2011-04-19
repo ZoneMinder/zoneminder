@@ -151,6 +151,8 @@ if ( $command =~ /^(?:stop|restart)$/ )
 	}
 }
 
+runCommand( "zmupdate.pl -f" );
+
 if ( $command =~ /^(?:start|restart)$/ )
 {
 	my $status = runCommand( "zmdc.pl check" );

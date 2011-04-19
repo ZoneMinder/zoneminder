@@ -154,6 +154,7 @@ xml_tag_val("PROTOVER", ZM_EYEZM_PROTOCOL_VERSION);
 xml_tag_val("FEATURESET", ZM_EYEZM_FEATURE_SET);
 xml_tag_val("VERSION", ZM_VERSION);
 xml_tag_val("CANSTR264", canStream264(1));
+xml_tag_val("GD", gdExists());
 xml_tag_val("FVCODEC", ZM_EYEZM_FEED_VCODEC);
 xml_tag_val("FVTMT", ZM_EYEZM_H264_TIMEOUT);
 xml_tag_val("USER", $user['Username']);

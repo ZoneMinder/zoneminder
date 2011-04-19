@@ -10,7 +10,7 @@
 
 /* Static defines, these shouldn't change */
 define ( "ZM_EYEZM_PROTOCOL_VERSION", "2");
-define ( "ZM_EYEZM_FEATURE_SET", "2");
+define ( "ZM_EYEZM_FEATURE_SET", "3");
 
 /* Dynamic defines, check if they are already defined.
  * To change a particular parameter default value, without using the

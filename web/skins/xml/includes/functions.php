@@ -189,6 +189,14 @@ function ffmpegExists()
 {
 	return exeExists(getFfmpegPath());
 }
+/* Returns with PHP-GD exists */
+function gdExists()
+{
+	if (extension_loaded('gd') && function_exists('gd_info')) {
+		return TRUE;
+	}
+	return FALSE;
+}
 	
 function getFfmpeg264FoutParms($br, $fout)
 {

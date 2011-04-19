@@ -164,6 +164,7 @@ if (isset($_GET['action'])) {
 			noCacheHeaders();
 			xhtmlHeaders( __FILE__, "Stream" );
 			logXml("Streaming MJPEG on Monitor ".$monitor.", ".$width."x".$height." @".$fps."fps");
+			echo "<meta name=\"viewport\" content=\"width=".$width."\" />\n";
 			echo "<body>\n";
 			echo "<div style=\"border: 0px solid; padding: 0px; background-color: black; position: absolute; top: 0px; left; 0px; margin: 0px; width: ".$width."px; height: ".$height."px;\">\n";
 			logXml("Using stream source: ".$streamSrc);
@@ -245,10 +246,12 @@ if (isset($_GET['action'])) {
 		exit;
 
 	} else if (!strcmp($action, "vframe")) {
-		/* ACTION: View a frame given by an event and frame-id. Parms: <eid> <frame> [alarm | analyze]
+		/* ACTION: View a frame given by an event and frame-id. Parms: <eid> <frame> [alarm | analyze | qty | scale]
 		 * If 'alarm' is set, the returned frame will be the <frame>-th alarm frame. If 'analyze' is set,
 		 * the returned frame will be the %03d-analyse frame instead of %03d-capture, if ZM_CREATE_ANALYSIS_IMAGES
-		 * is set. Otherwise it just returns the captured frame */
+		 * is set. Otherwise it just returns the captured frame.
+		 * If qty is set, it will apply a quality factor from 0-100, and if width is set, it will scale the jpeg accordingly
+		 */
 		if (!isset($_GET['eid']) || !isset($_GET['frame'])) {
 			logXmlErr("Not all parameters set for action view-frame");
 			exit;
@@ -257,6 +260,9 @@ if (isset($_GET['action'])) {
 		$frame = validInteger($_GET['frame']);
 		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$eid.")";
 		$event = dbFetchOne(escapeSql($eventsSql));
+		$qty = validInteger(getset('qty', 100));
+		if ($qty > 100) $qty = 100;
+		$scale = validInteger(getset('scale', 100));
 		if (!$event) {
 			logxmlErr("Requested event ID ".$eid." does not exist");
 			exit;
@@ -286,8 +292,34 @@ if (isset($_GET['action'])) {
 		$fname = sprintf("%0".ZM_EVENT_IMAGE_DIGITS."d-%s.jpg", $frame, $suffix);
 		$url = "./".getEventPathSafe($event)."/".$fname;
 		if (!file_exists($url)) {
+			logXmlErr("Invalid frame image requested: ".$url);
 			$url = "./skins/xml/views/notfound.png";
 		}
+		/* Check if the image needs any processing - check for GD if requested */
+		if (($scale != 100) || ($qty < 100)) {
+			if (!gdExists()) {
+				logXmlErr("Lib GD is not loaded, but required for image scaling functions");
+				$url = "./skins/xml/views/notfound.png";
+			} else if (!$img = imagecreatefromjpeg($url)) {
+				logXmlErr("Could not load JPEG from ".$url);
+				$url = "./skins/xml/views/notfound.png";
+			} else {
+				/* GD exists and we read the file ok */
+				header('Content-type: image/jpeg');
+				/* Check if resizing is needed */
+				if ($scale != 100) {
+					list($width_orig, $height_orig) = getimagesize($url);
+					$width_new = $width_orig * ($scale/100);
+					$height_new = $height_orig * ($scale/100);
+					$img_new = imagecreatetruecolor($width_new, $height_new);
+					imagecopyresampled($img_new, $img, 0, 0, 0, 0, $width_new, $height_new, $width_orig, $height_orig);
+					imagejpeg($img_new, NULL, $qty);
+				} else {
+					imagejpeg($img, NULL, $qty);
+				}
+				exit;
+			}
+		} 
 		header("Location: ".$url);
 		exit;
 

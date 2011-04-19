@@ -497,6 +497,19 @@ function getEventPath( $event )
     return( $eventPath );
 }
 
+
+function deletePath( $path )
+{
+    if ( is_dir( $path ) )
+    {
+        system( escapeshellcmd( "rm -rf ".$path ) );
+    }
+    else
+    {
+        @unlink( $path );
+    }
+}
+
 function deleteEvent( $eid, $mid=false )
 {
     global $user;
@@ -515,22 +528,22 @@ function deleteEvent( $eid, $mid=false )
             {
                 if ( $id_files = glob( ZM_DIR_EVENTS.'/'.$mid.'/*/*/*/.'.$eid ) )
                     $eventPath = preg_replace( "/\.$eid$/", readlink($id_files[0]), $id_files[0] );
-                system( escapeshellcmd( "rm -rf ".$eventPath ) );
-                unlink( $id_files[0] );
+                deletePath( $eventPath );
+                deletePath( $id_files[0] );
                 $pathParts = explode(  '/', $eventPath );
                 for ( $i = count($pathParts)-1; $i >= 2; $i-- )
                 {
                     $deletePath = join( '/', array_slice( $pathParts, 0, $i ) );
                     if ( !glob( $deletePath."/*" ) )
                     {
-                        system( escapeshellcmd( "rm -rf ".$deletePath ) );
+                        deletePath( $deletePath );
                     }
                 }
             }
             else
             {
                 $eventPath = ZM_DIR_EVENTS.'/'.$mid.'/'.$eid;
-                system( escapeshellcmd( "rm -rf ".$eventPath ) );
+                deletePath( $eventPath );
             }
         }
     }

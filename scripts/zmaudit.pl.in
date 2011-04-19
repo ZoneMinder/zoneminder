@@ -85,58 +85,9 @@ Parameters are :-
 	exit( -1 );
 }
 
-sub aud_print
-{
-	my $string = shift;
-	if ( !$continuous )
-	{
-		print( $string );
-	}
-	else
-	{
-		Info( $string );
-	}
-}
-
-sub confirm
-{
-	my $prompt = shift || "delete";
-	my $action = shift || "deleting";
-
-	my $yesno = 0;
-	if ( $report )
-	{
-		print( "\n" );
-	}
-	elsif ( $interactive )
-	{
-		print( ", $prompt y/n: " );
-		my $char = <>;
-		chomp( $char );
-		if ( $char eq 'q' )
-		{
-			exit( 0 );
-		}
-		if ( !$char )
-		{
-			$char = 'y';
-		}
-		$yesno = ( $char =~ /[yY]/ );
-	}
-	else
-	{
-		if ( !$continuous )
-		{
-			print( ", $action\n" );
-		}
-		else
-		{
-			Info( $action );
-		}
-		$yesno = 1;
-	}
-	return( $yesno );
-}
+sub aud_print( $ );
+sub confirm( ;$$ );
+sub deleteSwapImage();
 
 zmDbgInit( DBG_ID, level=>DBG_LEVEL );
 zmDbgSetSignal();
@@ -160,7 +111,10 @@ my $max_image_age = 6/24; # 6 hours
 my $max_swap_age = 24/24; # 24 hours
 my $image_path = IMAGE_PATH;
 my $swap_image_path = ZM_PATH_SWAP;
-do
+
+my $loop = 1;
+my $cleaned = 0;
+MAIN: while( $loop )
 {
 	my $db_monitors;
 	my $monitorSelectSql = "select Id from Monitors order by Id";
@@ -241,6 +195,7 @@ do
 		Debug( "Got ".int(keys(%$fs_events))." events\n" );
 	}
 
+    $cleaned = 0;
 	while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
 	{
 		if ( my $db_events = $db_monitors->{$fs_monitor} )
@@ -255,6 +210,7 @@ do
 						if ( confirm() )
 						{
                             deleteEventFiles( $fs_event, $fs_monitor );
+                            $cleaned = 1;
 						}
 					}
 				}
@@ -267,10 +223,29 @@ do
 			{
 				my $command = "rm -rf $fs_monitor";
 				executeShellCommand( $command );
+                $cleaned = 1;
 			}
 		}
 	}
 
+	my $monitor_links;
+	foreach my $link ( <*> )
+	{
+        next if ( !-l $link );
+        next if ( -e $link );
+
+        aud_print( "Filesystem monitor link '$link' does not point to valid monitor directory" );
+        if ( confirm() )
+        {
+		    ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
+            my $command = "rm $link";
+            executeShellCommand( $command );
+            $cleaned = 1;
+        }
+    }
+    redo MAIN if ( $cleaned );
+
+    $cleaned = 0;
 	my $deleteMonitorSql = "delete from Monitors where Id = ?";
 	my $deleteMonitorSth = $dbh->prepare_cached( $deleteMonitorSql ) or Fatal( "Can't prepare '$deleteMonitorSql': ".$dbh->errstr() );
 	my $deleteEventSql = "delete from Events where Id = ?";
@@ -295,6 +270,7 @@ do
 							my $res = $deleteEventSth->execute( $db_event ) or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
 							$res = $deleteFramesSth->execute( $db_event ) or Fatal( "Can't execute: ".$deleteFramesSth->errstr() );
 							$res = $deleteStatsSth->execute( $db_event ) or Fatal( "Can't execute: ".$deleteStatsSth->errstr() );
+                            $cleaned = 1;
 						}
 					}
 				}
@@ -307,25 +283,48 @@ do
 			#{
 				# We don't actually do this in case it's new
 				#my $res = $deleteMonitorSth->execute( $db_monitor ) or Fatal( "Can't execute: ".$deleteMonitorSth->errstr() );
+                #$cleaned = 1;
 			#}
 		}
 	}
+    redo MAIN if ( $cleaned );
 
-    # Remove orphaned events (with no frames)
-	my $selectOrphanedEventsSql = "select * from Events as E left join Frames as F on (E.Id = F.EventId) where isnull(F.EventId) and now() - interval ".MIN_AGE." second > E.StartTime";
+    # Remove orphaned events (with no monitor)
+    $cleaned = 0;
+	my $selectOrphanedEventsSql = "select Events.Id, Events.Name from Events left join Monitors on (Events.MonitorId = Monitors.Id) where isnull(Monitors.Id)";
 	my $selectOrphanedEventsSth = $dbh->prepare_cached( $selectOrphanedEventsSql ) or Fatal( "Can't prepare '$selectOrphanedEventsSql': ".$dbh->errstr() );
 	$res = $selectOrphanedEventsSth->execute() or Fatal( "Can't execute: ".$selectOrphanedEventsSth->errstr() );
 	while( my $event = $selectOrphanedEventsSth->fetchrow_hashref() )
 	{
-		aud_print( "Found orphaned event with no frame records '$event->{Id}'" );
+		aud_print( "Found orphaned event with no monitor '$event->{Id}'" );
 		if ( confirm() )
 		{
 			$res = $deleteEventSth->execute( $event->{Id} ) or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
+            $cleaned = 1;
 		}
 	}
     $selectOrphanedEventsSth->finish();
+    redo MAIN if ( $cleaned );
+
+    # Remove empty events (with no frames)
+    $cleaned = 0;
+	my $selectEmptyEventsSql = "select * from Events as E left join Frames as F on (E.Id = F.EventId) where isnull(F.EventId) and now() - interval ".MIN_AGE." second > E.StartTime";
+	my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql ) or Fatal( "Can't prepare '$selectEmptyEventsSql': ".$dbh->errstr() );
+	$res = $selectEmptyEventsSth->execute() or Fatal( "Can't execute: ".$selectEmptyEventsSth->errstr() );
+	while( my $event = $selectEmptyEventsSth->fetchrow_hashref() )
+	{
+		aud_print( "Found empty event with no frame records '$event->{Id}'" );
+		if ( confirm() )
+		{
+			$res = $deleteEventSth->execute( $event->{Id} ) or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
+            $cleaned = 1;
+		}
+	}
+    $selectEmptyEventsSth->finish();
+    redo MAIN if ( $cleaned );
 
     # Remove orphaned frame records
+    $cleaned = 0;
 	my $selectOrphanedFramesSql = "select distinct EventId from Frames where EventId not in (select Id from Events)";
 	my $selectOrphanedFramesSth = $dbh->prepare_cached( $selectOrphanedFramesSql ) or Fatal( "Can't prepare '$selectOrphanedFramesSql': ".$dbh->errstr() );
 	$res = $selectOrphanedFramesSth->execute() or Fatal( "Can't execute: ".$selectOrphanedFramesSth->errstr() );
@@ -335,11 +334,14 @@ do
 		if ( confirm() )
 		{
 			$res = $deleteFramesSth->execute( $frame->{EventId} ) or Fatal( "Can't execute: ".$deleteFramesSth->errstr() );
+            $cleaned = 1;
 		}
 	}
     $selectOrphanedFramesSth->finish();
+    redo MAIN if ( $cleaned );
 
     # Remove orphaned stats records
+    $cleaned = 0;
 	my $selectOrphanedStatsSql = "select distinct EventId from Stats where EventId not in (select Id from Events)";
 	my $selectOrphanedStatsSth = $dbh->prepare_cached( $selectOrphanedStatsSql ) or Fatal( "Can't prepare '$selectOrphanedStatsSql': ".$dbh->errstr() );
 	$res = $selectOrphanedStatsSth->execute() or Fatal( "Can't execute: ".$selectOrphanedStatsSth->errstr() );
@@ -349,9 +351,11 @@ do
 		if ( confirm() )
 		{
 			$res = $deleteStatsSth->execute( $stat->{EventId} ) or Fatal( "Can't execute: ".$deleteStatsSth->errstr() );
+            $cleaned = 1;
 		}
 	}
     $selectOrphanedStatsSth->finish();
+    redo MAIN if ( $cleaned );
 
 	# New audit to close any events that were left open for longer than MIN_AGE seconds
 	my $selectUnclosedEventsSql = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, max(F.FrameId) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) or isnull(E.EndTime) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
@@ -379,29 +383,87 @@ do
 	}
 
 	# Now delete any old swap files
-    sub deleteSwapImage
-    {
-        my $file = $_;
-
-        if ( $file !~ /^zmswap-/ )
-        {
-            return;
-        }
-
-        # Ignore directories
-        if ( -d $file )
-        {
-            return;
-        }
-
-        if ( -M $file > $max_swap_age )
-        {
-            Debug( "Deleting $file" );
-            #unlink( $file );
-        }
-    }
 	( my $swap_image_root ) = ( $swap_image_path =~ /^(.*)$/ ); # De-taint
     File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
 
+    $loop = $continuous;
+
 	sleep( ZM_AUDIT_CHECK_INTERVAL ) if ( $continuous );
-} while( $continuous );
+};
+
+exit( 0 );
+
+sub aud_print( $ )
+{
+	my $string = shift;
+	if ( !$continuous )
+	{
+		print( $string );
+	}
+	else
+	{
+		Info( $string );
+	}
+}
+
+sub confirm( ;$$ )
+{
+	my $prompt = shift || "delete";
+	my $action = shift || "deleting";
+
+	my $yesno = 0;
+	if ( $report )
+	{
+		print( "\n" );
+	}
+	elsif ( $interactive )
+	{
+		print( ", $prompt y/n: " );
+		my $char = <>;
+		chomp( $char );
+		if ( $char eq 'q' )
+		{
+			exit( 0 );
+		}
+		if ( !$char )
+		{
+			$char = 'y';
+		}
+		$yesno = ( $char =~ /[yY]/ );
+	}
+	else
+	{
+		if ( !$continuous )
+		{
+			print( ", $action\n" );
+		}
+		else
+		{
+			Info( $action );
+		}
+		$yesno = 1;
+	}
+	return( $yesno );
+}
+
+sub deleteSwapImage()
+{
+    my $file = $_;
+
+    if ( $file !~ /^zmswap-/ )
+    {
+        return;
+    }
+
+    # Ignore directories
+    if ( -d $file )
+    {
+        return;
+    }
+
+    if ( -M $file > $max_swap_age )
+    {
+        Debug( "Deleting $file" );
+        #unlink( $file );
+    }
+}

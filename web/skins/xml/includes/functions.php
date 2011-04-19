@@ -276,7 +276,7 @@ function stream264fn ($mid, $width, $height, $br) {
 /** Generate the web-page presented to the viewer when using H264 */
 function h264vidHtml($width, $height, $monitor, $br, $thumbsrc) {
 	function printTermLink() {
-		$str = "H264 Stream Terminated<br>Click to Reload";
+		$str = "H264 Streaming Launching...<br>";
 		$str2 = "document.getElementById(\"loaddiv\").innerHTML = \"".$str."\";";
 		echo $str2;
 

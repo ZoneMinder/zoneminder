@@ -550,20 +550,27 @@ if ( !empty($action) )
                                 zmcControl( $monitor, "stop" );
                             }
 
-                            $sql = "select Id from Events where MonitorId = '".dbEscape($markMid)."'";
-                            $markEids = dbFetchAll( $sql, 'Id' );
-                            foreach( $markEids as $markEid )
-                                deleteEvent( $markEid );
-
-                            @unlink( ZM_DIR_EVENTS."/".$monitor['Name'] );
-                            system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Id'] );
-
+                            // This is the important stuff
+                            dbQuery( "delete from Monitors where Id = '".dbEscape($markMid)."'" );
                             dbQuery( "delete from Zones where MonitorId = '".dbEscape($markMid)."'" );
                             if ( ZM_OPT_X10 )
                                 dbQuery( "delete from TriggersX10 where MonitorId = '".dbEscape($markMid)."'" );
-                            dbQuery( "delete from Monitors where Id = '".dbEscape($markMid)."'" );
 
                             fixSequences();
+
+                            // If fast deletes are on, then zmaudit will clean everything else up later
+                            // If fast deletes are off and there are lots of events then this step may
+                            // well time out before completing, in which case zmaudit will still tidy up
+                            if ( !ZM_OPT_FAST_DELETE )
+                            {
+                                $sql = "select Id from Events where MonitorId = '".dbEscape($markMid)."'";
+                                $markEids = dbFetchAll( $sql, 'Id' );
+                                foreach( $markEids as $markEid )
+                                    deleteEvent( $markEid );
+
+                                deletePath( ZM_DIR_EVENTS."/".$monitor['Name'] );
+                                deletePath( ZM_DIR_EVENTS."/".$monitor['Id'] );
+                            }
                         }
                     }
                 }

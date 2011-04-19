@@ -542,26 +542,36 @@ if ( !empty($action) )
                     if ( canEdit( 'Monitors', $markMid ) )
                     {
                         $sql = "select * from Monitors where Id = '".dbEscape($markMid)."'";
-                        if ( !($monitor = dbFetchOne( $sql )) )
-                            continue;
+                        if ( $monitor = dbFetchOne( $sql ) )
+                        {
+                            if ( daemonCheck() )
+                            {
+                                zmaControl( $monitor, "stop" );
+                                zmcControl( $monitor, "stop" );
+                            }
 
-                        zmaControl( $monitor, "stop" );
-                        zmcControl( $monitor, "stop" );
+                            $sql = "select Id from Events where MonitorId = '".dbEscape($markMid)."'";
+                            $markEids = dbFetchAll( $sql, 'Id' );
+                            foreach( $markEids as $markEid )
+                                deleteEvent( $markEid );
 
-                        $sql = "select Id from Events where MonitorId = '".dbEscape($markMid)."'";
-                        $markEids = dbFetchAll( $sql, 'Id' );
-                        foreach( $markEids as $markEid )
-                            deleteEvent( $markEid );
+                            if ( PHP_OS == "WINNT" )
+                            {
+                                system( "rmdir /s /q ".ZM_DIR_EVENTS."\\".$monitor['Id'] );
+                            }
+                            else
+                            {
+                                @unlink( ZM_DIR_EVENTS."/".$monitor['Name'] );
+                                system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Id'] );
+                            }
 
-                        unlink( ZM_DIR_EVENTS."/".$monitor['Name'] );
-                        system( "rm -rf ".ZM_DIR_EVENTS."/".$monitor['Id'] );
+                            dbQuery( "delete from Zones where MonitorId = '".dbEscape($markMid)."'" );
+                            if ( ZM_OPT_X10 )
+                                dbQuery( "delete from TriggersX10 where MonitorId = '".dbEscape($markMid)."'" );
+                            dbQuery( "delete from Monitors where Id = '".dbEscape($markMid)."'" );
 
-                        dbQuery( "delete from Zones where MonitorId = '".dbEscape($markMid)."'" );
-                        if ( ZM_OPT_X10 )
-                            dbQuery( "delete from TriggersX10 where MonitorId = '".dbEscape($markMid)."'" );
-                        dbQuery( "delete from Monitors where Id = '".dbEscape($markMid)."'" );
-
-                        fixSequences();
+                            fixSequences();
+                        }
                     }
                 }
             }

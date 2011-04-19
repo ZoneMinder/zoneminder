@@ -488,6 +488,11 @@ if ( !empty($action) )
                     //$view = 'none';
                     mkdir( ZM_DIR_EVENTS.'/'.$mid, 0755 );
                     symlink( $mid, ZM_DIR_EVENTS.'/'.$_REQUEST['newMonitor']['Name'] );
+                    if ( isset($_COOKIE['zmGroup']) )
+                    {
+                        $sql = "update Groups set MonitorIds = concat(MonitorIds,',".$mid."') where Id = '".dbEscape($_COOKIE['zmGroup'])."'";
+                        dbQuery( $sql );
+                    }
                 }
                 $restart = true;
             }

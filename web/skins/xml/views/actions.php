@@ -150,6 +150,7 @@ if (isset($_GET['action'])) {
 				) );
 			logXml("Using thumbnail image from ".$thumbsrc);
 			/* Generate H264 Web-page */
+			echo "<meta name=\"viewport\" content=\"width=".$width."\" />\n";
 			h264vidHtml($width, $height, $monitor, $br, $thumbsrc);
 		} else if (!strcmp($vcodec, "mjpeg")) {
 			/* MJPEG streaming */

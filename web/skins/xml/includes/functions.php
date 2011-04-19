@@ -200,7 +200,7 @@ function gdExists()
 	
 function getFfmpeg264FoutParms($br, $fout)
 {
-	$ffparms = "-analyzeduration 0 -acodec copy -s 320x240";
+	$ffparms = "-analyzeduration 0 -acodec copy";
 	$ffparms .= " -vcodec libx264 -b ".$br;
 	$ffparms .= " -flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8";
         $ffparms .= " -subq 5 -trellis 1 -refs 1 -coder 0 -me_range 16 -keyint_min 25";

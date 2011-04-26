@@ -502,7 +502,7 @@ our @options =
 	},
 	{
 		name => "ZM_EXTRA_DEBUG_LOG",
-		default => "@ZM_LOGDIR@/zm_debug.log+",
+		default => "@ZM_TMPDIR@/zm_debug.log+",
 		description => "Where extra debug is output to",
 		help => "Depending on your system configuration you may find that only errors, warning and informational messages are logged to your system log. This option allows you to specify an additional target for these messages and debug. This also has the advantage of partitioning debug for the component you are tracing, from messages from other components. Be warned however that if this is a simple filename and you are debugging several components then they will all try and write to the same file with undesirable consequences. Appending a '+' to the filename will cause the file to be created with a '.<pid>' suffix containing your process id. In this way debug from each run of a component is kept separate. This is the recommended setting as it will also prevent subsequent runs from overwriting the same log.",
 		requires => [ { name => "ZM_EXTRA_DEBUG", value => "yes" } ],

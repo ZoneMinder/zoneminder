@@ -924,7 +924,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 			Panic( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s", Coords, Id, Name, monitor->Name() );
 
         if ( polygon.LoX() < 0 || polygon.HiX() >= monitor->Width() || polygon.LoY() < 0 || polygon.HiY() >= monitor->Height() )
-            Panic( "Zone %d/%s for monitor %s extends outside of image dimensions", Id, Name, monitor->Name() );
+            Panic( "Zone %d/%s for monitor %s extends outside of image dimensions, %d, %d, %d, %d", Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
 
 		if ( false && !strcmp( Units, "Percent" ) )
 		{

@@ -33,7 +33,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = misc
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/logrotate.conf.in $(srcdir)/syslog.conf.in
+	$(srcdir)/apache.conf.in $(srcdir)/logrotate.conf.in \
+	$(srcdir)/syslog.conf.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/configure.ac
@@ -41,7 +42,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = logrotate.conf syslog.conf
+CONFIG_CLEAN_FILES = apache.conf logrotate.conf syslog.conf
 CONFIG_CLEAN_VPATH_FILES =
 SOURCES =
 DIST_SOURCES =
@@ -183,6 +184,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = gnu
 EXTRA_DIST = \
+	apache.conf.in \
 	logrotate.conf.in \
 	syslog.conf.in
 
@@ -219,6 +221,8 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+apache.conf: $(top_builddir)/config.status $(srcdir)/apache.conf.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 logrotate.conf: $(top_builddir)/config.status $(srcdir)/logrotate.conf.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 syslog.conf: $(top_builddir)/config.status $(srcdir)/syslog.conf.in

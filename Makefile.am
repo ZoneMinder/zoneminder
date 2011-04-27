@@ -11,7 +11,8 @@ SUBDIRS = \
 	src \
 	web \
 	scripts \
-	db
+	db \
+	misc
 
 EXTRA_DIST = \
 	zm.conf.in \

@@ -7,11 +7,11 @@
 #
 
 # Save ZoneMinder messages to zm.log, this uses the local1 facility, 
-local1.*                                                @ZM_LOGDIR@/zm.log
+local1.*    @ZM_LOGDIR@/zm.log
 
 # You will need to edit the existing config line that directs to /var/log/messages
 # or /var/log/syslog and insert the 'local1.!*;local1.warning' directives. This 
 # first excludes all local1 messages, and then re-enables local1 messages of warning
 # level or above. Remove the second part if you want no ZoneMinder messages to go 
 # to your system logs at all.
-*.info;local1.!*;local1.warning;mail.none;news.none;authpriv.none;cron.none     /var/log/messages
+*.info;local1.!*;local1.warning;mail.none;news.none;authpriv.none;cron.none    /var/log/messages

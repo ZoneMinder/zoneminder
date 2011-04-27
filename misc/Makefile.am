@@ -1,4 +1,5 @@
 AUTOMAKE_OPTIONS = gnu
 
 EXTRA_DIST = \
-	logrotate.conf.in
+	logrotate.conf.in \
+	syslog.conf.in

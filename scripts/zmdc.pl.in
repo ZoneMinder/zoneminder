@@ -171,546 +171,7 @@ if ( !$server_up )
 	}
 	elsif ( defined($cpid) )
 	{
-        my $fd = 0;
-        while( $fd < POSIX::sysconf( &POSIX::_SC_OPEN_MAX ) )
-        {
-            POSIX::close( $fd++ );
-        }
-
-		setpgrp();
-
-		zmDbgInit( DBG_ID, level=>DBG_LEVEL );
-
-		dPrint( DBG_INFO, "Server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-
-		if ( open( PID, ">".ZM_PID ) )
-		{
-			print( PID $$ );
-			close( PID );
-		}
-
-		killAll( 1 );
-
-		socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-		unlink( SOCK_FILE );
-		bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
-		listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
-
-		$SIG{CHLD} = \&reaper;
-		$SIG{INT} = \&shutdownAll;
-		$SIG{TERM} = \&shutdownAll;
-		$SIG{ABRT} = \&shutdownAll;
-		$SIG{HUP} = \&logrot;
-
-		my %cmd_hash;
-		my %pid_hash;
-
-		my $rin = '';
-		vec( $rin, fileno(SERVER), 1 ) = 1;
-		my $win = $rin;
-		my $ein = $win;
-		my $timeout = 0.1;
-		while( 1 )
-		{
-			my $nfound = select( my $rout = $rin, undef, undef, $timeout );
-			if ( $nfound > 0 )
-			{
-				if ( vec( $rout, fileno(SERVER), 1 ) )
-				{
-					my $paddr = accept( CLIENT, SERVER );
-					my $message = <CLIENT>;
-
-					next if ( !$message );
-
-					my ( $command, $daemon, @args ) = split( ';', $message );
-
-					if ( $command eq 'start' )
-					{
-						start( $daemon, @args );
-					}
-					elsif ( $command eq 'stop' )
-					{
-						stop( $daemon, @args );
-					}
-					elsif ( $command eq 'restart' )
-					{
-						restart( $daemon, @args );
-					}
-					elsif ( $command eq 'reload' )
-					{
-						reload( $daemon, @args );
-					}
-					elsif ( $command eq 'startup' )
-					{
-						# Do nothing, this is all we're here for
-						dPrint( DBG_WARNING, "Already running, ignoring command '$command'\n" );
-					}
-					elsif ( $command eq 'shutdown' )
-					{
-						shutdownAll();
-					}
-					elsif ( $command eq 'check' )
-					{
-						check( $daemon, @args );
-					}
-					elsif ( $command eq 'status' )
-					{
-						if ( $daemon )
-						{
-							status( $daemon, @args );
-						}
-						else
-						{
-							status();
-						}
-					}
-					elsif ( $command eq 'logrot' )
-					{
-						logrot();
-					}
-					else
-					{
-						dPrint( DBG_ERROR, "Invalid command '$command'\n" );
-					}
-					close( CLIENT );
-				}
-				else
-				{
-					Fatal( "Bogus descriptor" );
-				}
-			}
-			elsif ( $nfound < 0 )
-			{
-				if ( $! == EINTR )
-				{
-					# Dead child, will be reaped
-					#print( "Probable dead child\n" );
-					# See if it needs to start up again
-					restartPending();
-				}
-				elsif ( $! == EPIPE )
-				{
-					Error( "Can't select: $!" );
-				}
-				else
-				{
-					Fatal( "Can't select: $!" );
-				}
-			}
-			else
-			{
-				#print( "Select timed out\n" );
-				restartPending();
-			}
-		}
-		dPrint( DBG_INFO, "Server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-		unlink( SOCK_FILE );
-		unlink( ZM_PID );
-		exit();
-
-		sub cPrint
-		{
-			if ( fileno(CLIENT) )
-			{
-				print CLIENT @_
-			}
-		}
-		sub dPrint
-		{
-			my $dbg_level = shift;
-			if ( fileno(CLIENT) )
-			{
-				print CLIENT @_
-			}
-			if ( $dbg_level == DBG_DEBUG )
-			{
-				Debug( @_ );
-			}
-			elsif ( $dbg_level == DBG_INFO )
-			{
-				Info( @_ );
-			}
-			elsif ( $dbg_level == DBG_WARNING )
-			{
-				Warning( @_ );
-			}
-			elsif ( $dbg_level == DBG_ERROR )
-			{
-				Error( @_ );
-			}
-			elsif ( $dbg_level == DBG_FATAL )
-			{
-				Fatal( @_ );
-			}
-		}
-		sub start
-		{
-			my $daemon = shift;
-			my @args = @_;
-
-			my $command = $daemon;
-			$command .= ' '.join( ' ', ( @args ) ) if ( @args );
-			my $process = $cmd_hash{$command};
-
-			if ( !$process )
-			{
-				# It's not running, or at least it's not been started by us
-				$process = { daemon=>$daemon, args=>\@args, command=>$command, keepalive=>!undef };
-			}
-			elsif ( $process->{pid} && $pid_hash{$process->{pid}} )
-			{
-				dPrint( DBG_INFO, "'$process->{command}' already running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
-				return();
-			}
-
-			if ( my $cpid = fork() )
-			{
-				my $sigset = POSIX::SigSet->new;
-				my $blockset = POSIX::SigSet->new( SIGCHLD );
-				sigprocmask( SIG_BLOCK, $blockset, $sigset ) or Fatal( "Can't block SIGCHLD: $!" );
-				$process->{pid} = $cpid;
-				$process->{started} = time();
-				delete( $process->{pending} );
-
-				dPrint( DBG_INFO, "'$command' starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
-
-				$cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
-				sigprocmask( SIG_SETMASK, $sigset ) or Fatal( "Can't restore SIGCHLD: $!" );
-			}
-			elsif ( defined($cpid ) )
-			{
-                my $fd = 0;
-                while( $fd < POSIX::sysconf( &POSIX::_SC_OPEN_MAX ) )
-                {
-                    POSIX::close( $fd++ );
-                }
-
-				# Child process
-				$SIG{CHLD} = 'DEFAULT';
-				$SIG{INT} = 'DEFAULT';
-				$SIG{TERM} = 'DEFAULT';
-				$SIG{ABRT} = 'DEFAULT';
-				dPrint( DBG_INFO, "'".join( ' ', ( $daemon, @args ) )."' started at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-	
-				if ( $daemon =~ /^${daemon_patt}$/ )
-				{
-					$daemon = ZM_PATH_BIN.'/'.$1;
-				}
-				else
-				{
-					Fatal( "Invalid daemon '$daemon' specified" );
-				}
-
-				my @good_args;
-				foreach my $arg ( @args )
-				{
-					# Detaint arguments, if they look ok
-					if ( $arg =~ /^(-{0,2}[\w\/?&=.-]+)$/ )
-					{
-						push( @good_args, $1 );
-					}
-					else
-					{
-						Fatal( "Bogus argument '$arg' found" );
-					}
-				}
-
-				exec( $daemon, @good_args ) or Fatal( "Can't exec: $!" );
-			}
-			else
-			{
-				Fatal( "Can't fork: $!" );
-			}
-		}
-		sub _stop
-		{
-			my $final = shift;
-			my $daemon = shift;
-			my @args = @_;
-
-			my $command = $daemon;
-			$command .= ' '.join( ' ', ( @args ) ) if ( @args );
-			my $process = $cmd_hash{$command};
-			if ( !$process )
-			{
-				dPrint( DBG_WARNING, "Can't find process with command of '$command'\n" );
-				return();
-			}
-			elsif ( $process->{pending} )
-			{
-				delete( $cmd_hash{$command} );
-				dPrint( DBG_INFO, "Command '$command' removed from pending list at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-				return();
-			}
-
-			my $cpid = $process->{pid};
-			if ( !$pid_hash{$cpid} )
-			{
-				dPrint( DBG_ERROR, "No process with command of '$command' is running\n" );
-				return();
-			}
-
-			dPrint( DBG_INFO, "'$daemon ".join( ' ', @args )."' stopping at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-			$process->{keepalive} = !$final;
-			kill( 'TERM', $cpid );
-			delete( $cmd_hash{$command} );
-
-			# Now check it has actually gone away, if not kill -9 it
-			my $count = 0;
-			while( $cpid && kill( 0, $cpid ) )
-			{
-				if ( $count++ > 5 )
-				{
-					kill( 'KILL', $cpid );
-				}
-				sleep( 1 );
-			}
-		}
-		sub stop
-		{
-			_stop( 1, @_ );
-		}
-		sub restart
-		{
-			my $daemon = shift;
-			my @args = @_;
-
-			my $command = $daemon;
-			$command .= ' '.join( ' ', ( @args ) ) if ( @args );
-			my $process = $cmd_hash{$command};
-			if ( $process )
-			{
-				if ( $process->{pid} )
-				{
-					my $cpid = $process->{pid};
-					if ( defined($pid_hash{$cpid}) )
-					{
-						_stop( 0, $daemon, @args );
-						return;
-					}
-				}
-			}
-			start( $daemon, @args );
-		}
-		sub reload
-		{
-			my $daemon = shift;
-			my @args = @_;
-
-			my $command = $daemon;
-			$command .= ' '.join( ' ', ( @args ) ) if ( @args );
-			my $process = $cmd_hash{$command};
-			if ( $process )
-			{
-				if ( $process->{pid} )
-				{
-					kill( 'HUP', $process->{pid} );
-				}
-			}
-		}
-		sub logrot
-		{
-            zmDbgReinit();
-			foreach my $process ( values( %pid_hash ) )
-			{
-                if ( $process->{pid} && $process->{command} =~ /^zm.*\.pl/ )
-                {
-					kill( 'HUP', $process->{pid} );
-                }
-			}
-		}
-		sub reaper
-		{
-			my $saved_status = $!;
-			while ( (my $cpid = waitpid( -1, WNOHANG )) > 0 )
-			{
-				my $status = $?;
-
-				my $process = $pid_hash{$cpid};
-				delete( $pid_hash{$cpid} );
-
-				if ( !$process )
-				{
-					dPrint( DBG_INFO, "Can't find child with pid of '$cpid'\n" );
-					next;
-				}
-
-				$process->{stopped} = time();
-				$process->{runtime} = ($process->{stopped}-$process->{started});
-				delete( $process->{pid} );
-
-				my $exit_status = $status>>8;
-				my $exit_signal = $status&0xfe;
-				my $core_dumped = $status&0x01;
-
-				my $out_str = "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' ";
-                if ( $exit_signal )
-                {
-                    if ( $exit_signal == 15 || $exit_signal == 14 ) # TERM or ALRM
-                    {
-				        $out_str .= "exited";
-                    }
-                    else
-                    {
-				        $out_str .= "crashed";
-                    }
-				    $out_str .= ", signal $exit_signal";
-                }
-                else
-                {
-				    $out_str .= "exited ";
-                    if ( $exit_status )
-                    {
-				        $out_str .= "abnormally, exit status $exit_status";
-                    }
-                    else
-                    {
-                        $out_str .= "normally";
-                    }
-                }
-				#print( ", core dumped" ) if ( $core_dumped );
-				$out_str .= "\n";
-
-				if ( $exit_status == 0 )
-				{
-					Info( $out_str );
-				}
-				else
-				{
-					Error( $out_str );
-				}
-
-				if ( $process->{keepalive} )
-				{
-					if ( !$process->{delay} || ($process->{runtime} > ZM_MAX_RESTART_DELAY) )
-					{
-						#start( $process->{daemon}, @{$process->{args}} );
-						# Schedule for immediate restart
-						$cmd_hash{$process->{command}} = $process;
-						$process->{pending} = $process->{stopped};
-						$process->{delay} = 5;
-					}
-					else
-					{
-						$cmd_hash{$process->{command}} = $process;
-						$process->{pending} = $process->{stopped}+$process->{delay};
-						$process->{delay} *= 2;
-						# Limit the start delay to 15 minutes max
-						if ( $process->{delay} > ZM_MAX_RESTART_DELAY )
-						{
-							$process->{delay} = ZM_MAX_RESTART_DELAY;
-						}
-					}
-				}
-			}
-			$SIG{CHLD} = \&reaper;
-			$! = $saved_status;
-		}
-		sub restartPending
-		{
-			# Restart any pending processes
-			foreach my $process ( values( %cmd_hash ) )
-			{
-				if ( $process->{pending} && $process->{pending} <= time() )
-				{
-					dPrint( DBG_INFO, "Starting pending process, $process->{command}\n" );
-					start( $process->{daemon}, @{$process->{args}} );
-				}
-			}
-		}
-		sub shutdownAll
-		{
-			foreach my $process ( values( %pid_hash ) )
-			{
-				stop( $process->{daemon}, @{$process->{args}} );
-			}
-			killAll( 5 );
-			dPrint( DBG_INFO, "Server shutdown at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-			unlink( SOCK_FILE );
-			unlink( ZM_PID );
-			close( CLIENT );
-			close( SERVER );
-			exit();
-		}
-		sub check
-		{
-			my $daemon = shift;
-			my @args = @_;
-
-			my $command = $daemon;
-			$command .= ' '.join( ' ', ( @args ) ) if ( @args );
-			my $process = $cmd_hash{$command};
-			if ( !$process )
-			{
-				cPrint( "unknown\n" );
-			}
-			elsif ( $process->{pending} )
-			{
-				cPrint( "pending\n" );
-			}
-			else
-			{
-				my $cpid = $process->{pid};
-				if ( !$pid_hash{$cpid} )
-				{
-					cPrint( "stopped\n" );
-				}
-				else
-				{
-					cPrint( "running\n" );
-				}
-			}
-		}
-		sub status
-		{
-			my $daemon = shift;
-			my @args = @_;
-
-			if ( defined($daemon) )
-			{
-				my $command = $daemon;
-				$command .= ' '.join( ' ', ( @args ) ) if ( @args );
-				my $process = $cmd_hash{$command};
-				if ( !$process )
-				{
-					dPrint( DBG_DEBUG, "'$command' not running\n" );
-					return();
-				}
-
-				if ( $process->{pending} )
-				{
-					dPrint( DBG_DEBUG, "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
-				}
-				else
-				{
-					my $cpid = $process->{pid};
-					if ( !$pid_hash{$cpid} )
-					{
-						dPrint( DBG_DEBUG, "'$command' not running\n" );
-						return();
-					}
-				}
-				dPrint( DBG_DEBUG, "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
-			}
-			else
-			{
-				foreach my $process ( values(%pid_hash) )
-				{
-					my $out_str = "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}";
-					$out_str .= ", valid" if ( kill( 0, $process->{pid} ) );
-					$out_str .= "\n";
-					dPrint( DBG_DEBUG, $out_str );
-				}
-				foreach my $process ( values( %cmd_hash ) )
-				{
-					if ( $process->{pending} )
-					{
-						dPrint( DBG_DEBUG, "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
-					}
-				}
-			}
-		}
-
+        ZMServer::run();
 	}
 	else
 	{
@@ -744,6 +205,573 @@ close( CLIENT );
 #print( "Finished writing, bye\n" );
 
 exit;
+
+package ZMServer;
+
+use strict;
+use bytes;
+
+@EXTRA_PERL_LIB@
+use ZoneMinder;
+use POSIX;
+use Socket;
+use IO::Handle;
+use Data::Dumper;
+
+our %cmd_hash;
+our %pid_hash;
+
+sub run
+{
+    my $fd = 0;
+    while( $fd < POSIX::sysconf( &POSIX::_SC_OPEN_MAX ) )
+    {
+        POSIX::close( $fd++ );
+    }
+
+    setpgrp();
+
+    zmDbgInit( main::DBG_ID, level=>main::DBG_LEVEL );
+
+    dPrint( DBG_INFO, "Server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+
+    if ( open( PID, ">".ZM_PID ) )
+    {
+        print( PID $$ );
+        close( PID );
+    }
+
+    killAll( 1 );
+
+    socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
+    unlink( main::SOCK_FILE );
+    bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
+    listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
+
+    $SIG{CHLD} = \&reaper;
+    $SIG{INT} = \&shutdownAll;
+    $SIG{TERM} = \&shutdownAll;
+    $SIG{ABRT} = \&shutdownAll;
+    $SIG{HUP} = \&logrot;
+
+    my $rin = '';
+    vec( $rin, fileno(SERVER), 1 ) = 1;
+    my $win = $rin;
+    my $ein = $win;
+    my $timeout = 0.1;
+    while( 1 )
+    {
+        my $nfound = select( my $rout = $rin, undef, undef, $timeout );
+        if ( $nfound > 0 )
+        {
+            if ( vec( $rout, fileno(SERVER), 1 ) )
+            {
+                my $paddr = accept( CLIENT, SERVER );
+                my $message = <CLIENT>;
+
+                next if ( !$message );
+
+                my ( $command, $daemon, @args ) = split( ';', $message );
+
+                if ( $command eq 'start' )
+                {
+                    start( $daemon, @args );
+                }
+                elsif ( $command eq 'stop' )
+                {
+                    stop( $daemon, @args );
+                }
+                elsif ( $command eq 'restart' )
+                {
+                    restart( $daemon, @args );
+                }
+                elsif ( $command eq 'reload' )
+                {
+                    reload( $daemon, @args );
+                }
+                elsif ( $command eq 'startup' )
+                {
+                    # Do nothing, this is all we're here for
+                    dPrint( DBG_WARNING, "Already running, ignoring command '$command'\n" );
+                }
+                elsif ( $command eq 'shutdown' )
+                {
+                    shutdownAll();
+                }
+                elsif ( $command eq 'check' )
+                {
+                    check( $daemon, @args );
+                }
+                elsif ( $command eq 'status' )
+                {
+                    if ( $daemon )
+                    {
+                        status( $daemon, @args );
+                    }
+                    else
+                    {
+                        status();
+                    }
+                }
+                elsif ( $command eq 'logrot' )
+                {
+                    logrot();
+                }
+                else
+                {
+                    dPrint( DBG_ERROR, "Invalid command '$command'\n" );
+                }
+                close( CLIENT );
+            }
+            else
+            {
+                Fatal( "Bogus descriptor" );
+            }
+        }
+        elsif ( $nfound < 0 )
+        {
+            if ( $! == EINTR )
+            {
+                # Dead child, will be reaped
+                #print( "Probable dead child\n" );
+                # See if it needs to start up again
+                restartPending();
+            }
+            elsif ( $! == EPIPE )
+            {
+                Error( "Can't select: $!" );
+            }
+            else
+            {
+                Fatal( "Can't select: $!" );
+            }
+        }
+        else
+        {
+            #print( "Select timed out\n" );
+            restartPending();
+        }
+    }
+    dPrint( DBG_INFO, "Server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+    unlink( main::SOCK_FILE );
+    unlink( ZM_PID );
+    exit();
+}
+
+sub cPrint
+{
+    if ( fileno(CLIENT) )
+    {
+        print CLIENT @_
+    }
+}
+
+sub dPrint
+{
+    my $dbg_level = shift;
+    if ( fileno(CLIENT) )
+    {
+        print CLIENT @_
+    }
+    if ( $dbg_level == DBG_DEBUG )
+    {
+        Debug( @_ );
+    }
+    elsif ( $dbg_level == DBG_INFO )
+    {
+        Info( @_ );
+    }
+    elsif ( $dbg_level == DBG_WARNING )
+    {
+        Warning( @_ );
+    }
+    elsif ( $dbg_level == DBG_ERROR )
+    {
+        Error( @_ );
+    }
+    elsif ( $dbg_level == DBG_FATAL )
+    {
+        Fatal( @_ );
+    }
+}
+
+sub start
+{
+    my $daemon = shift;
+    my @args = @_;
+
+    my $command = $daemon;
+    $command .= ' '.join( ' ', ( @args ) ) if ( @args );
+    my $process = $cmd_hash{$command};
+
+    if ( !$process )
+    {
+        # It's not running, or at least it's not been started by us
+        $process = { daemon=>$daemon, args=>\@args, command=>$command, keepalive=>!undef };
+    }
+    elsif ( $process->{pid} && $pid_hash{$process->{pid}} )
+    {
+        dPrint( DBG_INFO, "'$process->{command}' already running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
+        return();
+    }
+
+    if ( my $cpid = fork() )
+    {
+        my $sigset = POSIX::SigSet->new;
+        my $blockset = POSIX::SigSet->new( SIGCHLD );
+        sigprocmask( SIG_BLOCK, $blockset, $sigset ) or Fatal( "Can't block SIGCHLD: $!" );
+        $process->{pid} = $cpid;
+        $process->{started} = time();
+        delete( $process->{pending} );
+
+        dPrint( DBG_INFO, "'$command' starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
+
+        $cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
+        sigprocmask( SIG_SETMASK, $sigset ) or Fatal( "Can't restore SIGCHLD: $!" );
+    }
+    elsif ( defined($cpid ) )
+    {
+        my $fd = 0;
+        while( $fd < POSIX::sysconf( &POSIX::_SC_OPEN_MAX ) )
+        {
+            POSIX::close( $fd++ );
+        }
+
+        # Child process
+        $SIG{CHLD} = 'DEFAULT';
+        $SIG{INT} = 'DEFAULT';
+        $SIG{TERM} = 'DEFAULT';
+        $SIG{ABRT} = 'DEFAULT';
+        dPrint( DBG_INFO, "'".join( ' ', ( $daemon, @args ) )."' started at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+
+        if ( $daemon =~ /^${daemon_patt}$/ )
+        {
+            $daemon = ZM_PATH_BIN.'/'.$1;
+        }
+        else
+        {
+            Fatal( "Invalid daemon '$daemon' specified" );
+        }
+
+        my @good_args;
+        foreach my $arg ( @args )
+        {
+            # Detaint arguments, if they look ok
+            if ( $arg =~ /^(-{0,2}[\w\/?&=.-]+)$/ )
+            {
+                push( @good_args, $1 );
+            }
+            else
+            {
+                Fatal( "Bogus argument '$arg' found" );
+            }
+        }
+
+        exec( $daemon, @good_args ) or Fatal( "Can't exec: $!" );
+    }
+    else
+    {
+        Fatal( "Can't fork: $!" );
+    }
+}
+
+sub _stop
+{
+    my $final = shift;
+    my $daemon = shift;
+    my @args = @_;
+
+    my $command = $daemon;
+    $command .= ' '.join( ' ', ( @args ) ) if ( @args );
+    my $process = $cmd_hash{$command};
+    if ( !$process )
+    {
+        dPrint( DBG_WARNING, "Can't find process with command of '$command'\n" );
+        return();
+    }
+    elsif ( $process->{pending} )
+    {
+        delete( $cmd_hash{$command} );
+        dPrint( DBG_INFO, "Command '$command' removed from pending list at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+        return();
+    }
+
+    my $cpid = $process->{pid};
+    if ( !$pid_hash{$cpid} )
+    {
+        dPrint( DBG_ERROR, "No process with command of '$command' is running\n" );
+        return();
+    }
+
+    dPrint( DBG_INFO, "'$daemon ".join( ' ', @args )."' stopping at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+    $process->{keepalive} = !$final;
+    kill( 'TERM', $cpid );
+    delete( $cmd_hash{$command} );
+
+    # Now check it has actually gone away, if not kill -9 it
+    my $count = 0;
+    while( $cpid && kill( 0, $cpid ) )
+    {
+        if ( $count++ > 5 )
+        {
+            kill( 'KILL', $cpid );
+        }
+        sleep( 1 );
+    }
+}
+
+sub stop
+{
+    _stop( 1, @_ );
+}
+
+sub restart
+{
+    my $daemon = shift;
+    my @args = @_;
+
+    my $command = $daemon;
+    $command .= ' '.join( ' ', ( @args ) ) if ( @args );
+    my $process = $cmd_hash{$command};
+    if ( $process )
+    {
+        if ( $process->{pid} )
+        {
+            my $cpid = $process->{pid};
+            if ( defined($pid_hash{$cpid}) )
+            {
+                _stop( 0, $daemon, @args );
+                return;
+            }
+        }
+    }
+    start( $daemon, @args );
+}
+
+sub reload
+{
+    my $daemon = shift;
+    my @args = @_;
+
+    my $command = $daemon;
+    $command .= ' '.join( ' ', ( @args ) ) if ( @args );
+    my $process = $cmd_hash{$command};
+    if ( $process )
+    {
+        if ( $process->{pid} )
+        {
+            kill( 'HUP', $process->{pid} );
+        }
+    }
+}
+
+sub logrot
+{
+    zmDbgReinit();
+    foreach my $process ( values( %pid_hash ) )
+    {
+        if ( $process->{pid} && $process->{command} =~ /^zm.*\.pl/ )
+        {
+            kill( 'HUP', $process->{pid} );
+        }
+    }
+}
+
+sub reaper
+{
+    my $saved_status = $!;
+    while ( (my $cpid = waitpid( -1, WNOHANG )) > 0 )
+    {
+        my $status = $?;
+
+        my $process = $pid_hash{$cpid};
+        delete( $pid_hash{$cpid} );
+
+        if ( !$process )
+        {
+            dPrint( DBG_INFO, "Can't find child with pid of '$cpid'\n" );
+            next;
+        }
+
+        $process->{stopped} = time();
+        $process->{runtime} = ($process->{stopped}-$process->{started});
+        delete( $process->{pid} );
+
+        my $exit_status = $status>>8;
+        my $exit_signal = $status&0xfe;
+        my $core_dumped = $status&0x01;
+
+        my $out_str = "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' ";
+        if ( $exit_signal )
+        {
+            if ( $exit_signal == 15 || $exit_signal == 14 ) # TERM or ALRM
+            {
+                $out_str .= "exited";
+            }
+            else
+            {
+                $out_str .= "crashed";
+            }
+            $out_str .= ", signal $exit_signal";
+        }
+        else
+        {
+            $out_str .= "exited ";
+            if ( $exit_status )
+            {
+                $out_str .= "abnormally, exit status $exit_status";
+            }
+            else
+            {
+                $out_str .= "normally";
+            }
+        }
+        #print( ", core dumped" ) if ( $core_dumped );
+        $out_str .= "\n";
+
+        if ( $exit_status == 0 )
+        {
+            Info( $out_str );
+        }
+        else
+        {
+            Error( $out_str );
+        }
+
+        if ( $process->{keepalive} )
+        {
+            if ( !$process->{delay} || ($process->{runtime} > ZM_MAX_RESTART_DELAY) )
+            {
+                #start( $process->{daemon}, @{$process->{args}} );
+                # Schedule for immediate restart
+                $cmd_hash{$process->{command}} = $process;
+                $process->{pending} = $process->{stopped};
+                $process->{delay} = 5;
+            }
+            else
+            {
+                $cmd_hash{$process->{command}} = $process;
+                $process->{pending} = $process->{stopped}+$process->{delay};
+                $process->{delay} *= 2;
+                # Limit the start delay to 15 minutes max
+                if ( $process->{delay} > ZM_MAX_RESTART_DELAY )
+                {
+                    $process->{delay} = ZM_MAX_RESTART_DELAY;
+                }
+            }
+        }
+    }
+    $SIG{CHLD} = \&reaper;
+    $! = $saved_status;
+}
+
+sub restartPending
+{
+    # Restart any pending processes
+    foreach my $process ( values( %cmd_hash ) )
+    {
+        if ( $process->{pending} && $process->{pending} <= time() )
+        {
+            dPrint( DBG_INFO, "Starting pending process, $process->{command}\n" );
+            start( $process->{daemon}, @{$process->{args}} );
+        }
+    }
+}
+
+sub shutdownAll
+{
+    foreach my $process ( values( %pid_hash ) )
+    {
+        stop( $process->{daemon}, @{$process->{args}} );
+    }
+    killAll( 5 );
+    dPrint( DBG_INFO, "Server shutdown at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+    unlink( main::SOCK_FILE );
+    unlink( ZM_PID );
+    close( CLIENT );
+    close( SERVER );
+    exit();
+}
+
+sub check
+{
+    my $daemon = shift;
+    my @args = @_;
+
+    my $command = $daemon;
+    $command .= ' '.join( ' ', ( @args ) ) if ( @args );
+    my $process = $cmd_hash{$command};
+    if ( !$process )
+    {
+        cPrint( "unknown\n" );
+    }
+    elsif ( $process->{pending} )
+    {
+        cPrint( "pending\n" );
+    }
+    else
+    {
+        my $cpid = $process->{pid};
+        if ( !$pid_hash{$cpid} )
+        {
+            cPrint( "stopped\n" );
+        }
+        else
+        {
+            cPrint( "running\n" );
+        }
+    }
+}
+
+sub status
+{
+    my $daemon = shift;
+    my @args = @_;
+
+    if ( defined($daemon) )
+    {
+        my $command = $daemon;
+        $command .= ' '.join( ' ', ( @args ) ) if ( @args );
+        my $process = $cmd_hash{$command};
+        if ( !$process )
+        {
+            dPrint( DBG_DEBUG, "'$command' not running\n" );
+            return();
+        }
+
+        if ( $process->{pending} )
+        {
+            dPrint( DBG_DEBUG, "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
+        }
+        else
+        {
+            my $cpid = $process->{pid};
+            if ( !$pid_hash{$cpid} )
+            {
+                dPrint( DBG_DEBUG, "'$command' not running\n" );
+                return();
+            }
+        }
+        dPrint( DBG_DEBUG, "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
+    }
+    else
+    {
+        foreach my $process ( values(%pid_hash) )
+        {
+            my $out_str = "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}";
+            $out_str .= ", valid" if ( kill( 0, $process->{pid} ) );
+            $out_str .= "\n";
+            dPrint( DBG_DEBUG, $out_str );
+        }
+        foreach my $process ( values( %cmd_hash ) )
+        {
+            if ( $process->{pending} )
+            {
+                dPrint( DBG_DEBUG, "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
+            }
+        }
+    }
+}
 
 sub killAll
 {

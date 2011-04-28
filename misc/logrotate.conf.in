@@ -1,3 +1,6 @@
+#
+# PLEASE NOTE THAT THIS FILE IS INTENDED FOR GUIDANCE ONLY AND MAY NOT BE APPROPRIATE FOR YOUR DISTRIBUTION
+#
 # Sample logrotate file for ZoneMinder. Copy this to /etc/logrotate.d/zm or similar
 # if you wish your system to prevent your log files from growing too large.
 # You can remove the 'kill' of syslogd if you have another logrotate file that does

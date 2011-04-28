@@ -1,4 +1,6 @@
 #
+# PLEASE NOTE THAT THIS FILE IS INTENDED FOR GUIDANCE ONLY AND MAY NOT BE APPROPRIATE FOR YOUR DISTRIBUTION
+#
 # Sample instruction to put in /etc/syslog.conf (or rsyslog.conf) to redirect
 # ZoneMinder syslog message to a separate file, apart from warnings and errors.
 # This is done by assigning ZoneMinder messages to one of the user logging facilities

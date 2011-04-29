@@ -43,4 +43,9 @@ inline int min( int a, int b )
     return( a<=b?a:b );
 }
 
+void ssedetect();
+void sse2memcpy(unsigned char* dest, const unsigned char* src, const size_t bytes);
+
+extern unsigned int sseversion;
+
 #endif // ZM_UTILS_H

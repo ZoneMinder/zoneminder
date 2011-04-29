@@ -2,6 +2,9 @@
 -- This updates a 1.24.2 database to the next version
 --
 
+--Add Colours colum. This is a harmless change for ZM 1.24.2 or ZM 1.24.3 without the patch, but is required to use the patch
+ALTER TABLE `Monitors` ADD `Colours` TINYINT UNSIGNED NOT NULL DEFAULT '1' AFTER `Height`;
+
 --
 -- Add in remote ZoneMinder preset.
 --

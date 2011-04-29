@@ -28,6 +28,10 @@
 #include <arpa/inet.h>
 #include <glob.h>
 
+#if defined(HAVE_SYS_SENDFILE_H) && defined(HAVE_SENDFILE)
+#include <sys/sendfile.h>
+#endif
+
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_time.h"
@@ -751,7 +755,10 @@ bool EventStream::loadEventData( int event_id )
     if ( config.use_deep_storage )
     {
         struct tm *event_time = localtime( &event_data->start_time );
-        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+        if ( config.dir_events[0] == '/' )
+            snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+        else
+            snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
     }
     else
     {
@@ -1185,6 +1192,9 @@ bool EventStream::sendFrame( int delta_us )
     Debug( 2, "Sending frame %d", curr_frame_id );
 
     static char filepath[PATH_MAX];
+    static struct stat filestat;
+    FILE *fdj = NULL;
+    
     snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
 
 #if HAVE_LIBAVCODEC
@@ -1219,14 +1229,20 @@ bool EventStream::sendFrame( int delta_us )
 
         if ( send_raw )
         {
-            FILE *fdj = fopen( filepath, "r" );
+            fdj = fopen( filepath, "rb" );
             if ( !fdj )
             {
                 Error( "Can't open %s: %s", filepath, strerror(errno) );
                 return( false );
             }
-            img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
-            fclose( fdj );
+#if HAVE_SENDFILE            
+            if( fstat(fileno(fdj),&filestat) < 0 ) {
+		Error( "Failed getting information about file %s: %s", filepath, strerror(errno) );
+		return( false );
+	    }
+#else
+	    img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
+#endif
         }
         else
         {
@@ -1269,12 +1285,31 @@ bool EventStream::sendFrame( int delta_us )
                 Fatal( "Unexpected frame type %d", type );
                 break;
         }
-        fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
-        if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 )
-        {
-            Error( "Unable to send stream frame: %s", strerror(errno) );
-            return( false );
-        }
+
+
+	if(send_raw) {
+#if HAVE_SENDFILE  
+		fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
+		if(sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size) {
+			Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
+			return( false );
+		}
+#else
+		if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
+			Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
+			return( false );
+		}
+#endif		
+		fclose(fdj); /* Close the file handle */
+	} else {
+		fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );	  
+		if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 )
+		{
+			Error( "Unable to send stream frame: %s", strerror(errno) );
+			return( false );
+		}
+	}
+	
         fprintf( stdout, "\r\n\r\n" );
         fflush( stdout );
     }
@@ -1413,3 +1448,4 @@ void EventStream::runStream()
 
     closeComms();
 }
+

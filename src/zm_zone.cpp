@@ -62,7 +62,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 
     overload_count = 0;
 
-	pg_image = new Image( monitor->Width(), monitor->Height(), 1 );
+	pg_image = new Image( monitor->Width(), monitor->Height(), 1, ZM_SUBPIX_ORDER_NONE);
 	pg_image->Fill( 0xff, polygon );
 	pg_image->Outline( 0xff, polygon );
 	pg_image->Crop( polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
@@ -662,11 +662,11 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	if ( type == INCLUSIVE )
 	{
-		score /= 2;
+		score <<= 1;
 	}
 	else if ( type == EXCLUSIVE )
 	{
-		score *= 2;
+		score >>= 1;
 	}
 
 	Debug( 5, "Adjusted score is %d", score );

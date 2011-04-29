@@ -97,7 +97,7 @@ protected:
 		time_t last_write_time;
 		time_t last_read_time;
 		int last_event;
-		int action;
+		unsigned int action;
 		int brightness;
 		int hue;
 		int colour;
@@ -210,7 +210,7 @@ protected:
     Rgb             signal_check_colour;    // The colour that the camera will emit when no video signal detected
 
 	double			fps;
-	Image			image;
+	Image			delta_image;
 	Image			ref_image;
 
 	Purpose			purpose;			    // What this monitor has been created to do
@@ -300,7 +300,9 @@ public:
 
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
-    unsigned int Colours() const { return( camera->Colours() ); }
+	unsigned int Colours() const { return( camera->Colours() ); }
+	unsigned int SubpixelOrder const { return( camera->SubpixelOrder() ); }
+      
  
 	State GetState() const;
 	int GetImage( int index=-1, int scale=100 ) const;

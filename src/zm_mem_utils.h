@@ -20,6 +20,37 @@
 #ifndef ZM_MEM_UTILS_H
 #define ZM_MEM_UTILS_H
 
+
+inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {
+	uint8_t* alloc;
+	uint8_t* retptr;
+#if HAVE_POSIX_MEMALIGN
+	if(posix_memalign(&alloc,reqalignment,reqsize) != 0)
+		return NULL;
+#else
+	retptr = (uint8_t*)malloc(reqsize+reqalignment+sizeof(void*));
+	
+	if(retptr == NULL)
+		return NULL;
+	
+	if((retptr % reqalignment) != 0)
+		alloc = retptr + (reqalignment - (retptr % reqalignment));
+	
+	/* Store a pointer before to the start of the block, just before returned aligned memory */
+	*(alloc - sizeof(void*)) = retptr;
+#endif
+	return alloc;  
+}
+
+inline void zm_freealigned(void* ptr) {
+#if HAVE_POSIX_MEMALIGN
+	free(ptr);
+#else
+	/* Start of block is stored before the block if it was allocated by zm_mallocaligned */
+	free((void*)*((uint8_t*)ptr - sizeof(void*)));
+#endif
+}
+
 inline char *mempbrk( register const char *s, const char *accept, size_t limit )
 {
     if ( limit <= 0 || !s || !accept || !*accept )

@@ -28,7 +28,7 @@
 #define ZM_RELOAD_CAMBOZOLA 24
 #define ZM_TIMESTAMP_ON_CAPTURE 25
 #define ZM_LOCAL_BGR_INVERT 26
-#define ZM_Y_IMAGE_DELTAS 27
+#define ZM_CPU_EXTENSIONS 27
 #define ZM_FAST_IMAGE_BLENDS 28
 #define ZM_OPT_ADAPTIVE_SKIP 29
 #define ZM_BLEND_ALARMED_IMAGES 30
@@ -251,7 +251,7 @@
 	int reload_cambozola;\
 	bool timestamp_on_capture;\
 	bool local_bgr_invert;\
-	bool y_image_deltas;\
+	bool cpu_extensions;\
 	bool fast_image_blends;\
 	bool opt_adaptive_skip;\
 	bool blend_alarmed_images;\

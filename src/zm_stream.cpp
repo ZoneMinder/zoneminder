@@ -233,7 +233,7 @@ bool StreamBase::sendTextFrame( const char *frame_text )
 {
     Debug( 2, "Sending text frame '%s'", frame_text );
 
-    Image image( monitor->Width(), monitor->Height(), monitor->Colours() );
+    Image image( monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder() );
     image.Annotate( frame_text, image.centreCoord( frame_text ) );
 
     if ( scale != 100 )

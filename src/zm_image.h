@@ -29,6 +29,10 @@ extern "C"
 #include "zm_coord.h"
 #include "zm_box.h"
 #include "zm_poly.h"
+#include "zm_mem_utils.h"
+#include "zm_utils.h"
+
+#include <errno.h>
 
 #if HAVE_ZLIB_H
 #include <zlib.h>
@@ -78,8 +82,9 @@ protected:
 				free(buffer);
 			else if(buffertype == ZM_BUFTYPE_NEW)
 				delete buffer;
-			else if(buffertype == ZM_BUFTYPE_AVMALLOC)
+			/*else if(buffertype == ZM_BUFTYPE_AVMALLOC)
 				av_free(buffer);
+			*/
 		}
 		buffer = NULL;
 		allocation = 0;
@@ -138,7 +143,7 @@ public:
 	inline int Height() const { return( height ); }
 	inline int Pixels() const { return( pixels ); }
 	inline int Colours() const { return( colours ); }
-	inline int SubpixelOrder const { return( subpixelorder ); }
+	inline int SubpixelOrder() const { return( subpixelorder ); }
 	inline int Size() const { return( size ); }
 	
 	/* Internal buffer should not be modified from functions outside of this class */
@@ -162,9 +167,9 @@ public:
 	width = height = colours = size = pixels = subpixelorder = 0;
 	}
 	
-	void Assign( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t* new_buffer );
+	void Assign( int p_width, int p_height, int p_colours, int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size);
 	void Assign( const Image &image );
-	void AssignDirect( const int p_width, const int p_height, const int p_colours, const int p_subpixelorder, const uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype);
+	void AssignDirect( const int p_width, const int p_height, const int p_colours, const int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype);
 
 	inline void CopyBuffer( const Image &image )
 	{
@@ -172,7 +177,7 @@ public:
         {
             Panic( "Attempt to copy different size image buffers, expected %d, got %d", size, image.size );
         }
-		sse2_aligned_memcpy( buffer, image->Buffer(), size );
+		sse2_aligned_memcpy( buffer, image.buffer, size );
 	}
 	inline Image &operator=( const unsigned char *new_buffer )
 	{
@@ -203,14 +208,14 @@ public:
 	static Image *Merge( int n_images, Image *images[], double weight );
 	static Image *Highlight( int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
 	//Image *Delta( const Image &image ) const;
-	void Image::Delta( const Image &image, Image* targetimage) const;
+	void Delta( const Image &image, Image* targetimage) const;
 
 	const Coord centreCoord( const char *text ) const;
 	void Annotate( const char *p_text, const Coord &coord,  const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
 	Image *HighlightEdges( Rgb colour, const Box *limits=0 );
 	//Image *HighlightEdges( Rgb colour, const Polygon &polygon );
 	void Timestamp( const char *label, const time_t when, const Coord &coord );
-	void Colourise();
+	void Colourise(const int p_reqcolours, const int p_reqsubpixelorder);
 	void DeColourise();
 
 	void Clear() { memset( buffer, 0, size ); }
@@ -231,3 +236,21 @@ public:
 typedef void (*blend_fptr_t)(uint8_t*, uint8_t*, uint8_t*, unsigned long, double);
 typedef void (*delta_fptr_t)(uint8_t*, uint8_t*, uint8_t*, unsigned long);
 
+/* Blend functions */
+void sse2_fastblend(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
+void std_fastblend(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
+void std_blend(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
+
+/* Delta functions */
+void std_delta8_gray8(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_rgb(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_bgr(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_rgba(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_bgra(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_argb(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_abgr(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void sse2_delta8_gray8(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void ssse3_delta8_rgba(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void ssse3_delta8_bgra(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void ssse3_delta8_argb(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void ssse3_delta8_abgr(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);

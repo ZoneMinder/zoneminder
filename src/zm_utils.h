@@ -44,7 +44,7 @@ inline int min( int a, int b )
 }
 
 void ssedetect();
-void sse2memcpy(unsigned char* dest, const unsigned char* src, const size_t bytes);
+void sse2_aligned_memcpy(unsigned char* dest, const unsigned char* src, const size_t bytes);
 
 extern unsigned int sseversion;
 

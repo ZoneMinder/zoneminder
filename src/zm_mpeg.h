@@ -62,7 +62,7 @@ public:
 	~VideoStream();
 	const char *MimeType() const;
 	void OpenStream();
-	double EncodeFrame( uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
+	double EncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 };
 
 #endif // HAVE_LIBAVCODEC

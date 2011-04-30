@@ -23,6 +23,7 @@
 #include "zm.h"
 #include "zm_coord.h"
 #include "zm_image.h"
+#include "zm_rgb.h"
 #include "zm_zone.h"
 #include "zm_event.h"
 #include "zm_camera.h"
@@ -301,7 +302,7 @@ public:
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
 	unsigned int Colours() const { return( camera->Colours() ); }
-	unsigned int SubpixelOrder const { return( camera->SubpixelOrder() ); }
+	unsigned int SubpixelOrder() const { return( camera->SubpixelOrder() ); }
       
  
 	State GetState() const;

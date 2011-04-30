@@ -247,7 +247,7 @@ int RemoteCameraRtsp::Capture( Image &image )
 
                     sws_scale( img_convert_ctx, picture->data, picture->linesize, 0, height, tmp_picture->data, tmp_picture->linesize );
 
-                    image.Assign( width, height, colours, tmp_picture->data[0] );
+                    image.Assign( width, height, colours, subpixelorder, tmp_picture->data[0], imagesize);
 
                     frameCount++;
 

@@ -394,9 +394,9 @@ Monitor::Monitor(
     struct timeval *shared_timestamps = (struct timeval *)((char *)trigger_data + sizeof(TriggerData));
     unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
     
-    if((shared_images % 16) != 0) {
+    if(((unsigned long)shared_images % 16) != 0) {
 	/* Align images buffer to nearest 16 byte boundary */
-	shared_images += (16 - (shared_images % 16));
+	shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
     }
 
     if ( purpose == CAPTURE )
@@ -510,7 +510,7 @@ Monitor::Monitor(
             Warning( "Waiting for capture daemon" );
             sleep( 1 );
         }
-        ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer());
+        ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
 
         n_linked_monitors = 0;
         linked_monitors = 0;
@@ -939,7 +939,7 @@ void Monitor::DumpZoneImage( const char *zone_string )
     Image *snap_image = snap->image;
 
     Image zone_image( *snap_image );
-    zone_image.Colourise();
+    zone_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
     for( int i = 0; i < n_zones; i++ )
     {
         if ( exclude_id && (!extra_colour || extra_zone.getNumCoords()) && zones[i]->Id() == exclude_id )
@@ -1017,11 +1017,11 @@ bool Monitor::CheckSignal( const Image *image )
         if ( static_undef )
         {
             static_undef = false;
-            red_val = RGB_RED_VAL(signal_check_colour);
-            green_val = RGB_GREEN_VAL(signal_check_colour);
-            blue_val = RGB_BLUE_VAL(signal_check_colour);
-	    color_val = RGB_ZEROALPHA(signal_check_colour); 	/* Clear alpha byte */
-	    grayscale_val = 0x000000ffu & signal_check_colour; 	/* Clear all bytes but lowest byte */    
+            red_val = RED_VAL_RGBA(signal_check_colour);
+            green_val = GREEN_VAL_RGBA(signal_check_colour);
+            blue_val = BLUE_VAL_RGBA(signal_check_colour);
+	    color_val = RGBA_BGRA_ZEROALPHA(signal_check_colour); 	/* Clear alpha byte */
+	    grayscale_val = 0xff & signal_check_colour; 	/* Clear all bytes but lowest byte */    
         }
 
         const uint8_t *buffer = image->Buffer();
@@ -1048,11 +1048,11 @@ bool Monitor::CheckSignal( const Image *image )
 	    
 	    } else if(colours == 3) {
 	      const uint8_t *ptr = buffer+(index*colours);
-	      if ( (RED(ptr) != red_val) || (GREEN(ptr) != green_val) || (BLUE(ptr) != blue_val) )
+	      if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
 		return true;
 	    
 	    } else if(colours == 4) {
-	      if ( RGB_ZEROALPHA(*(((const Rgb*)buffer)+index)) != color_val )
+	      if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != color_val )
 		return true;
 	    }
 	    
@@ -2730,7 +2730,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         ref_image.WriteJpeg( diag_path );
     }
 
-    Image *delta_image = ref_image.Delta( comp_image );
+    ref_image.Delta( comp_image, &delta_image);
 
     if ( config.record_diag_images )
     {
@@ -3391,7 +3391,7 @@ bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
                 break;
             case STREAM_RAW :
                 fprintf( stdout, "Content-Type: image/x-rgb\r\n" );
-                img_buffer = send_image->Buffer();
+                img_buffer = (uint8_t*)send_image->Buffer();
                 img_buffer_size = send_image->Size();
                 break;
             case STREAM_ZIP :

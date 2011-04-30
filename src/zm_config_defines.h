@@ -472,7 +472,7 @@
 	reload_cambozola = (int)config.Item( ZM_RELOAD_CAMBOZOLA );\
 	timestamp_on_capture = (bool)config.Item( ZM_TIMESTAMP_ON_CAPTURE );\
 	local_bgr_invert = (bool)config.Item( ZM_LOCAL_BGR_INVERT );\
-	y_image_deltas = (bool)config.Item( ZM_Y_IMAGE_DELTAS );\
+	cpu_extensions = (bool)config.Item( ZM_CPU_EXTENSIONS );\
 	fast_image_blends = (bool)config.Item( ZM_FAST_IMAGE_BLENDS );\
 	opt_adaptive_skip = (bool)config.Item( ZM_OPT_ADAPTIVE_SKIP );\
 	blend_alarmed_images = (bool)config.Item( ZM_BLEND_ALARMED_IMAGES );\

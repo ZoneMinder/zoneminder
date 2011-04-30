@@ -5,6 +5,11 @@
 --Add Colours colum. This is a harmless change for ZM 1.24.2 or ZM 1.24.3 without the patch, but is required to use the patch
 ALTER TABLE `Monitors` ADD `Colours` TINYINT UNSIGNED NOT NULL DEFAULT '1' AFTER `Height`;
 
+-- Replace now unused ZM_Y_IMAGE_DELTAS option with ZM_CPU_EXTENSIONS.
+UPDATE `zm`.`Config` SET `Name` = 'ZM_CPU_EXTENSIONS',
+`Prompt` = 'Use advanced CPU extensions to increase performance',
+`Help` = 'When advanced processor extensions such as SSE2 or SSSE3 are available, ZoneMinder can use them, which should increase performance and reduce system load. Enabling this option on processors that do not support the advanced processors extensions used by ZoneMinder is harmless and will have no effect.' WHERE `Config`.`Id` = '27';
+
 --
 -- Add in remote ZoneMinder preset.
 --

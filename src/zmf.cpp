@@ -159,6 +159,8 @@ int main( int argc, char *argv[] )
 	snprintf( log_id_string, sizeof(log_id_string), "m%d", id );
 
 	zmLoadConfig();
+	
+	ssedetect();
 
 	logInit( "zmf" );
 

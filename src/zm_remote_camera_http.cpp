@@ -1102,7 +1102,7 @@ int RemoteCameraHttp::Capture( Image &image )
     {
         case JPEG :
         {
-            if ( !image.DecodeJpeg( buffer.extract( content_length ), content_length ) )
+            if ( !image.DecodeJpeg( buffer.extract( content_length ), content_length, colours, subpixelorder ) )
             {
                 Error( "Unable to decode jpeg" );
                 Disconnect();
@@ -1118,7 +1118,7 @@ int RemoteCameraHttp::Capture( Image &image )
                 Disconnect();
                 return( -1 );
             }
-            image.Assign( width, height, colours, buffer );
+            image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
             break;
         }
         case X_RGBZ :
@@ -1129,7 +1129,7 @@ int RemoteCameraHttp::Capture( Image &image )
                 Disconnect();
                 return( -1 );
             }
-            image.Assign( width, height, colours, buffer );
+            image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
             break;
         }
         default :

@@ -149,6 +149,8 @@ int main( int argc, char *argv[] )
 	}
 
 	zmLoadConfig();
+	
+	ssedetect();
 
 	logInit( log_id_string );
 

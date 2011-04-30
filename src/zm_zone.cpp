@@ -75,7 +75,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 		ranges[py].lo_x = -1;
 		ranges[py].hi_x = -1;
 		ranges[py].off_x = 0;
-		unsigned char *ppoly = pg_image->Buffer( 0, py );
+		const uint8_t *ppoly = pg_image->Buffer( 0, py );
 		for ( int px = 0; px < polygon.Width(); px++, x++, ppoly++ )
 		{
 			if ( *ppoly )
@@ -131,6 +131,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	// Get the difference image
 	Image *diff_image = image = new Image( *delta_image );
 	int diff_width = diff_image->Width();
+	uint8_t* diff_buff = (uint8_t*)diff_image->Buffer();
 
 	unsigned long pixel_diff_count = 0;
 
@@ -150,7 +151,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	Debug( 4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label, lo_y, hi_y );
 
 	Debug( 5, "Checking for alarmed pixels" );
-	unsigned char *pdiff, *ppoly;
+	uint8_t *pdiff;
+	const uint8_t *ppoly;
 	// Create an upper margin
 	if ( lo_y > 0 )
 	{
@@ -160,7 +162,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		hi_x = ranges[0].hi_x;
 		if ( hi_x < (diff_width-1) )
 			hi_x++;
-		pdiff = diff_image->Buffer( lo_x, lo_y-1 );
+		pdiff = diff_buff + ( lo_x * (lo_y-1) );
 		memset( pdiff, BLACK, (hi_x-lo_x)+1 );
 	}
 	for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
@@ -169,7 +171,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		hi_x = ranges[py].hi_x;
 
 		Debug( 7, "Checking line %d from %d -> %d", y, lo_x, hi_x );
-		pdiff = diff_image->Buffer( lo_x, y );
+		pdiff = diff_buff + (lo_x * y);
 		ppoly = pg_image->Buffer( ranges[py].off_x, py );
 		// Left margin
 		if ( y < hi_y )
@@ -258,7 +260,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				int lo_x = ranges[py].lo_x;
 				int hi_x = ranges[py].hi_x;
 
-				pdiff = diff_image->Buffer( lo_x, y );
+				pdiff = diff_buff + (lo_x * y);
 
 				for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
 				{
@@ -279,7 +281,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 								{
 									for ( int dx2 = 0; block && dx2 < bx; dx2++ )
 									{
-										cpdiff = diff_image->Buffer( x+dx+dx2, y+dy+dy2 );
+										cpdiff = diff_buff + ( (x+dx+dx2) * (y+dy+dy2) );
 										if ( !*cpdiff )
 										{
 											block = false;
@@ -345,7 +347,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				int lo_x = ranges[py].lo_x;
 				int hi_x = ranges[py].hi_x;
 
-				pdiff = diff_image->Buffer( lo_x, y );
+				pdiff = diff_buff + ( lo_x * y );
 				for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
 				{
 					if ( *pdiff == WHITE )
@@ -391,7 +393,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 										Debug( 9, "Changing %d(%d), %d->%d", sy, psy, lo_sx, hi_sx );
 										Debug( 9, "Range %d(%d), %d->%d", sy, psy, ranges[psy].lo_x, ranges[psy].hi_x );
-										spdiff = diff_image->Buffer( lo_sx, sy );
+										spdiff = diff_buff + ( lo_sx * sy );
 										for ( int sx = lo_sx; sx <= hi_sx; sx++, spdiff++ )
 										{
 											Debug( 9, "Pixel at %d,%d (%p) is %d", sx, sy, spdiff, *spdiff );
@@ -474,7 +476,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 											{
 												for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
 												{
-													unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
+													unsigned char *spdiff = diff_buff + ( bs->lo_x * sy );
 													for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ )
 													{
 														if ( *spdiff == bs->tag )
@@ -551,7 +553,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 						{
 							for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
 							{
-								unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
+								unsigned char *spdiff = diff_buff + ( bs->lo_x * sy );
 								for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ )
 								{
 									if ( *spdiff == bs->tag )
@@ -624,7 +626,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 							for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ )
 							{
-								unsigned char *spdiff = diff_image->Buffer( bs->lo_x, sy );
+								unsigned char *spdiff = diff_buff + ( bs->lo_x * sy );
 								for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ )
 								{
 									if ( *spdiff == bs->tag )
@@ -697,7 +699,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			// First mask out anything we don't want
 			for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
 			{
-				pdiff = diff_image->Buffer( lo_x, y );
+				pdiff = diff_buff + ( lo_x * y );
 
 				int lo_x2 = ranges[py].lo_x;
 				int hi_x2 = ranges[py].hi_x;

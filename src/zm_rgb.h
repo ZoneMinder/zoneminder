@@ -84,8 +84,8 @@ typedef uint32_t Rgb;	// RGB colour type
 #define ALPHA_PTR_ABGR(ptr)	(*((uint8_t*)ptr))
 
 
-#define RGBA_BGRA_ZEROALPHA(v)	((v)&0x00ffffff))
-#define ARGB_ABGR_ZEROALPHA(v)	((v)&0xffffff00))
+#define RGBA_BGRA_ZEROALPHA(v)	((v)&0x00ffffff)
+#define ARGB_ABGR_ZEROALPHA(v)	((v)&0xffffff00)
 
 /* ITU-R BT.709: Y = (0.2126 * R) + (0.7152 * G) + (0.0722 * B) */
 /* ITU-R BT.601: Y = (0.299  * R) + (0.587  * G) + (0.114  * B) */
@@ -119,29 +119,29 @@ inline Rgb rgb_convert(Rgb p_col, int p_subpixorder) {
 	Rgb result;
 	
 	switch(p_subpixorder) {
-
+	  
 	  case ZM_SUBPIX_ORDER_BGR:
 	  case ZM_SUBPIX_ORDER_BGRA:
 	  {
 	    BLUE_PTR_BGRA(&result) = BLUE_VAL_RGBA(p_col);
 	    GREEN_PTR_BGRA(&result) = GREEN_VAL_RGBA(p_col);
 	    RED_PTR_BGRA(&result) = RED_VAL_RGBA(p_col);
-	    return result;
 	  }
+	  break;
 	  case ZM_SUBPIX_ORDER_ARGB:
 	  {
 	    BLUE_PTR_ARGB(&result) = BLUE_VAL_RGBA(p_col);
 	    GREEN_PTR_ARGB(&result) = GREEN_VAL_RGBA(p_col);
 	    RED_PTR_ARGB(&result) = RED_VAL_RGBA(p_col);
-	    return result;
 	  }
+	  break;
 	  case ZM_SUBPIX_ORDER_ABGR:
 	  {
 	    BLUE_PTR_ABGR(&result) = BLUE_VAL_RGBA(p_col);
 	    GREEN_PTR_ABGR(&result) = GREEN_VAL_RGBA(p_col);
 	    RED_PTR_ABGR(&result) = RED_VAL_RGBA(p_col);
-	    return result;
 	  }
+	  break;
 	  /* Grayscale */
 	  case ZM_SUBPIX_ORDER_NONE:
 	  {
@@ -149,8 +149,10 @@ inline Rgb rgb_convert(Rgb p_col, int p_subpixorder) {
 	  }
 	  default:
 	    return p_col;
-	    
+	    break;
 	}
+	
+	return result;
 }
 
 #endif // ZM_RGB_H

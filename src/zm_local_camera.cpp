@@ -82,10 +82,10 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
                 pixFormat = PIX_FMT_RGB24;
                 break;
             case V4L2_PIX_FMT_BGR32 :
-                pixFormat = PIX_FMT_BGR32;
+                pixFormat = PIX_FMT_BGRA;
                 break;
             case V4L2_PIX_FMT_RGB32 :
-                pixFormat = PIX_FMT_RGB32;
+                pixFormat = PIX_FMT_ARGB;
                 break;
             case V4L2_PIX_FMT_GREY :
                 pixFormat = PIX_FMT_GRAY8;
@@ -192,9 +192,9 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
         {
             case VIDEO_PALETTE_RGB32 :
 		if(BigEndian)
-			pixFormat = PIX_FMT_RGBA;
+			pixFormat = PIX_FMT_ARGB;
 		else
-			pixFormat = PIX_FMT_BGRA; // Or should it be ABGR?
+			pixFormat = PIX_FMT_BGRA;
 		break;
             case VIDEO_PALETTE_RGB24 :
 		if(BigEndian)
@@ -357,36 +357,30 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		switch( palette )
 		{
 			case V4L2_PIX_FMT_RGB32 :
-				colours = 4;
-				/* Not sure whats the correct format here, Some say ARGB, some say RGBA. */
 				subpixelorder = ZM_SUBPIX_ORDER_ARGB;
 #if HAVE_LIBSWSCALE
 				imagePixFormat = PIX_FMT_ARGB;
 #endif
 				break;  
 			case V4L2_PIX_FMT_BGR32 :
-				colours = 4;
 				subpixelorder = ZM_SUBPIX_ORDER_BGRA;
 #if HAVE_LIBSWSCALE
 				imagePixFormat = PIX_FMT_BGRA;
 #endif
 				break;
 			case V4L2_PIX_FMT_RGB24 :
-				colours = 3;
 				subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #if HAVE_LIBSWSCALE
 				imagePixFormat = PIX_FMT_RGB24;
 #endif
 				break;
 			case V4L2_PIX_FMT_BGR24 :
-				colours = 3;
 				subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #if HAVE_LIBSWSCALE
 				imagePixFormat = PIX_FMT_BGR24;
 #endif
 				break;
 			case V4L2_PIX_FMT_GREY :
-				colours = 1;
 				subpixelorder = ZM_SUBPIX_ORDER_NONE; /* Not needed but just in case */
 #if HAVE_LIBSWSCALE
 				imagePixFormat = PIX_FMT_GRAY8;
@@ -394,7 +388,6 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 				break;
 			default :
 				/* Use RGB24 for formas other than grayscale and RGB32\BGR32 and use RGB subpixel order */
-				colours = 3;
 				subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #if HAVE_LIBSWSCALE
 				imagePixFormat = PIX_FMT_RGB24;
@@ -408,22 +401,19 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		switch( palette )
 		{
 			case VIDEO_PALETTE_RGB32 :
-				colours = 4;
 				if(BigEndian) {
-					subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+					subpixelorder = ZM_SUBPIX_ORDER_ARGB;
 #if HAVE_LIBSWSCALE
-					imagePixFormat = PIX_FMT_RGBA;
+					imagePixFormat = PIX_FMT_ARGB;
 #endif
 				} else {
-					/* TODO: Verify that RGB32 in V4L1 on little-endian is BGRA and not ABGR */
 					subpixelorder = ZM_SUBPIX_ORDER_BGRA;
 #if HAVE_LIBSWSCALE
-					imagePixFormat = PIX_FMT_BGRA; // Or should it be ABGR?
+					imagePixFormat = PIX_FMT_BGRA;
 #endif
 				}
 				break;
 			case VIDEO_PALETTE_RGB24 :
-				colours = 3;
 				if(BigEndian) {
 					subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #if HAVE_LIBSWSCALE
@@ -437,15 +427,12 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 				}
 				break; 
 			case VIDEO_PALETTE_GREY :
-				colours = 3;
 				subpixelorder = ZM_SUBPIX_ORDER_NONE;
 #if HAVE_LIBSWSCALE
 				imagePixFormat = PIX_FMT_GRAY8;
 #endif
 				break;  
 			default :
-				/* Use RGB24 for formas other than grayscale and RGB32\BGR32 and use RGB subpixel order */
-				colours = 3;
 				subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #if HAVE_LIBSWSCALE
 				imagePixFormat = PIX_FMT_RGB24;
@@ -454,9 +441,6 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		}
 	}
 #endif // ZM_HAS_V4L1
-
-	/* Fix the image size to be correct, based on the colours */
-	imagesize = pixels * colours;
         
 #if HAVE_LIBSWSCALE
         capturePixFormat = getFfPixFormatFromV4lPalette( v4l_version, palette );
@@ -1703,6 +1687,7 @@ int LocalCamera::Capture( Image &image )
     Debug( 3, "Capturing" );
 
     uint8_t* buffer = NULL;
+    uint8_t* swscale_buffer = NULL;
 
 	int captures_per_frame = 1;
 	if ( channel_count > 1 )
@@ -1792,7 +1777,7 @@ int LocalCamera::Capture( Image &image )
         static struct SwsContext *imgConversionContext = NULL;
         static AVFrame *tmpPicture = NULL;
 	static int pSize = ZM_MAX_IMAGE_SIZE;
-	uint8_t* swscale_buffer = NULL;
+	swscale_buffer = NULL;
         if ( imagePixFormat != capturePixFormat || captureWidth != width || captureHeight != height )
         {
             if ( !imgConversionContext )

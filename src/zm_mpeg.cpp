@@ -303,7 +303,7 @@ VideoStream::~VideoStream()
 	av_free(ofc);
 }
 
-double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp )
+double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp )
 {
 #ifdef HAVE_LIBSWSCALE
     static struct SwsContext *img_convert_ctx = 0;

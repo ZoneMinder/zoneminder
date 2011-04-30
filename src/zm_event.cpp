@@ -28,9 +28,7 @@
 #include <arpa/inet.h>
 #include <glob.h>
 
-#if defined(HAVE_SYS_SENDFILE_H) && defined(HAVE_SENDFILE)
 #include <sys/sendfile.h>
-#endif
 
 #include "zm.h"
 #include "zm_db.h"
@@ -1218,7 +1216,7 @@ bool EventStream::sendFrame( int delta_us )
         static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
 
         int img_buffer_size = 0;
-        unsigned char *img_buffer = temp_img_buffer;
+        uint8_t *img_buffer = temp_img_buffer;
 
         bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
@@ -1256,7 +1254,7 @@ bool EventStream::sendFrame( int delta_us )
                     send_image->EncodeJpeg( img_buffer, &img_buffer_size );
                     break;
                 case STREAM_RAW :
-                    img_buffer = send_image->Buffer();
+                    img_buffer = (uint8_t*)(send_image->Buffer());
                     img_buffer_size = send_image->Size();
                     break;
                 case STREAM_ZIP :

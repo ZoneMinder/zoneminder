@@ -35,6 +35,8 @@ Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_co
 {
 	pixels = width * height;
 	imagesize = pixels * colours;
+	
+	Debug(2,"New camera id: %d width: %d height: %d colours: %d subpixelorder: %d capture: %d",id,width,height,colours,subpixelorder,capture);
 
 }
 

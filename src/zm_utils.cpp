@@ -18,8 +18,10 @@
 // 
 
 //#include "zm_logger.h"
+#include "zm.h"
 #include "zm_utils.h"
 
+#include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -166,31 +168,31 @@ void ssedetect() {
 	
 	if (r_ecx & 0x00000100) {
 		sseversion = 35; /* SSSE3 */
-		Debug(1,"Detected a x86\\x86-64 processor with SSSE3.");
+		Debug(1,"Detected a x86\\x86-64 processor with SSSE3");
 	} else if (r_ecx & 0x00000001) {
 		sseversion = 30; /* SSE3 */
-		Debug(1,"Detected a x86\\x86-64 processor with SSE3.");
+		Debug(1,"Detected a x86\\x86-64 processor with SSE3");
 	} else if (r_edx & 0x04000000) {
 		sseversion = 20; /* SSE2 */
-		Debug(1,"Detected a x86\\x86-64 processor with SSE2.");
+		Debug(1,"Detected a x86\\x86-64 processor with SSE2");
 	} else if (r_edx & 0x02000000) {
 		sseversion = 10; /* SSE */
-		Debug(1,"Detected a x86\\x86-64 processor with SSE.");
+		Debug(1,"Detected a x86\\x86-64 processor with SSE");
 	} else {
 		sseversion = 0;
-		Debug(1,"Detected a x86\\x86-64 processor.");
+		Debug(1,"Detected a x86\\x86-64 processor");
 	}
 	
 #else
 	/* Non x86 or x86-64 processor, SSE2 is not available */
-	Debug(1,"Detected a non x86\\x86-64 processor.");
+	Debug(1,"Detected a non x86\\x86-64 processor");
 	sseversion = 0;
 #endif
 }
 
 /* Aligned SSE2 memory copy. Useful for copying big things like image buffers in ZM */
 /* This requires source and target memory to be aligned on 16byte boundary, or a general protection fault will occur, therefore we check for unaligned memory */
-void sse2memcpy(unsigned char* dest, const unsigned char* src, const size_t bytes) {
+void sse2_aligned_memcpy(unsigned char* dest, const unsigned char* src, const size_t bytes) {
 	memcpy(dest,src,bytes);
 }
 

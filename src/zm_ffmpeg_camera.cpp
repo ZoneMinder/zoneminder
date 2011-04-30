@@ -185,7 +185,7 @@ int FfmpegCamera::Capture( Image &image )
     Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
  
-                image.Assign( mCodecContext->width, mCodecContext->height, colours, (unsigned char *)mFrame->data[0] );
+                image.Assign( mCodecContext->width, mCodecContext->height, colours, subpixelorder, (unsigned char *)mFrame->data[0], imagesize);
 
                 frameCount++;
             }

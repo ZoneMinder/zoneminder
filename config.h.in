@@ -183,6 +183,9 @@
 /* Define to 1 if you have the <pthread.h> header file. */
 #undef HAVE_PTHREAD_H
 
+/* Define to 1 if you have the `posix_memalign' function. */
+#undef HAVE_POSIX_MEMALIGN
+
 /* Define to 1 if you have the `putenv' function. */
 #undef HAVE_PUTENV
 

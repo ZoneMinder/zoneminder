@@ -316,10 +316,10 @@ our @options =
 		category => "config",
 	},
 	{
-		name => "ZM_Y_IMAGE_DELTAS",
+		name => "ZM_CPU_EXTENSIONS",
 		default => "yes",
-		description => "Calculate image differences using Y channel",
-		help => "When ZoneMinder tries to establish the differences between two colour images it generates a greyscale 'delta' image between the two sets of images. In order to do this it determines the differences found between the different RGB colour components and calculates a greyscale value representing this. If this option is set then a calculation will be made to convert each pixel of the image into a brightness value (Y from YUV) and then find the difference between the two. If this option is not set then the resulting difference is determined as the average of the differences of each colour which is a simple calculation. Using the Y value is likely to be more accurate and is up to 15% faster. Only switch this option off if Y based deltas do not work as well for you as RGB ones.",
+		description => "Use advanced CPU extensions to increase performance",
+		help => "When advanced processor extensions such as SSE2 or SSSE3 are available, ZoneMinder can use them, which should increase performance and reduce system load. Enabling this option on processors that do not support the advanced processors extensions used by ZoneMinder is harmless and will have no effect.",
 		type => $types{boolean},
 		category => "config",
 	},

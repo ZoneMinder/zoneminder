@@ -80,6 +80,7 @@ my $migrate_events = 0;
 my $version = '';
 my $db_user = ZM_DB_USER;
 my $db_pass = ZM_DB_PASS;
+my $update_dir = '';
 sub Usage
 {
     print( "
@@ -90,11 +91,12 @@ Parameters are :-
 -v<version>, --version=<version> - Upgrade to the current version from <version>
 -u<dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
 -p<dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
+-d<dir>,--dir=<dir>              - Directory containing update files if not in default build location
 ");
     exit( -1 );
 }
 
-if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix, 'migrate-events'=>\$migrate_events, 'version=s'=>\$version, 'interactive!'=>\$interactive, 'user:s'=>\$db_user, 'pass:s'=>\$db_pass ) )
+if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix, 'migrate-events'=>\$migrate_events, 'version=s'=>\$version, 'interactive!'=>\$interactive, 'user:s'=>\$db_user, 'pass:s'=>\$db_pass, 'dir:s'=>\$update_dir ) )
 {
     Usage();
 }
@@ -403,7 +405,16 @@ if ( $version )
                 $command .= " -p".$db_pass;
             }
         }
-        $command .= " ".ZM_DB_NAME." < ".ZM_PATH_BUILD."/db/zm_update-".$version.".sql";
+        $command .= " ".ZM_DB_NAME." < ";
+        if ( $update_dir )
+        {
+            $command -= $update_dir;
+        }
+        else
+        {
+            $command .= ZM_PATH_BUILD."/db";
+        }
+        $command .= "/zm_update-".$version.".sql";
 
         print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
         my $output = qx($command);

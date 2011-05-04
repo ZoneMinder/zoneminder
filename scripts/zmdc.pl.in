@@ -201,6 +201,7 @@ while ( my $line = <CLIENT> )
 	chomp( $line );
 	print( "$line\n" );
 }
+# And we're done!
 close( CLIENT );
 #print( "Finished writing, bye\n" );
 

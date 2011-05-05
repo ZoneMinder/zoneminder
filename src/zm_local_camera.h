@@ -22,6 +22,7 @@
 
 #include "zm.h"
 #include "zm_camera.h"
+#include "zm_image.h"
 
 #if ZM_HAS_V4L
 
@@ -101,16 +102,19 @@ protected:
     PixelFormat             imagePixFormat;
     PixelFormat             capturePixFormat;
     static AVFrame          **capturePictures;
+    struct SwsContext *imgConversionContext;
+    AVFrame *tmpPicture;    
 #endif // HAVE_LIBSWSCALE
 
-	static unsigned char	*y_table;
-	static signed char		*uv_table;
-	static short			*r_v_table;
-	static short			*g_v_table;
-	static short			*g_u_table;
-	static short			*b_u_table;
+	static LocalCamera      *last_camera;
 
-    static LocalCamera      *last_camera;
+	/* 0 = no conversion needed, 1 = use libswscale, 2 = zm internal conversion */
+	unsigned int conversion_type;
+	/* Pointer to conversion function used */
+	convert_fptr_t conversion_fptr;
+	
+
+	
 
 public:
 	LocalCamera( int p_id, const std::string &device, int p_channel, int p_format, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );

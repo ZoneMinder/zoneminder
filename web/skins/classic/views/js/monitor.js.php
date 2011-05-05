@@ -70,6 +70,8 @@ function validateForm( form )
         errors[errors.length] = "<?= $SLANG['BadRefBlendPerc'] ?>";
     if ( form.elements['newMonitor[Type]'].value == 'Local' )
     {
+        if ( !form.elements['newMonitor[Palette]'].value || !form.elements['newMonitor[Palette]'].value.match( /^\d+$/ ) )
+            errors[errors.length] = "<?= $SLANG['BadPalette'] ?>";
         if ( !form.elements['newMonitor[Device]'].value )
             errors[errors.length] = "<?= $SLANG['BadDevice'] ?>";
         if ( !form.elements['newMonitor[Channel]'].value || !form.elements['newMonitor[Channel]'].value.match( /^\d+$/ ) )
@@ -91,8 +93,8 @@ function validateForm( form )
         if ( !form.elements['newMonitor[Path]'].value )
             errors[errors.length] = "<?= $SLANG['BadPath'] ?>";
     }
-    if ( !form.elements['newMonitor[Palette]'].value || !form.elements['newMonitor[Palette]'].value.match( /^\d+$/ ) )
-        errors[errors.length] = "<?= $SLANG['BadPalette'] ?>";
+    if ( !form.elements['newMonitor[Colours]'].value || (parseInt(form.elements['newMonitor[Colours]'].value) != 1 && parseInt(form.elements['newMonitor[Colours]'].value) != 3 && parseInt(form.elements['newMonitor[Colours]'].value) != 4 ) )
+        errors[errors.length] = "<?= $SLANG['BadColours'] ?>";
     if ( !form.elements['newMonitor[Width]'].value || !(parseInt(form.elements['newMonitor[Width]'].value) > 0 ) )
         errors[errors.length] = "<?= $SLANG['BadWidth'] ?>";
     if ( !form.elements['newMonitor[Height]'].value || !(parseInt(form.elements['newMonitor[Height]'].value) > 0 ) )
@@ -115,7 +117,7 @@ function validateForm( form )
         errors[errors.length] = "<?= $SLANG['BadAlarmFrameCount'] ?>";
     if ( !form.elements['newMonitor[SectionLength]'].value || !(parseInt(form.elements['newMonitor[SectionLength]'].value) >= 30 ) )
         errors[errors.length] = "<?= $SLANG['BadSectionLength'] ?>";
-    if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 0 ) )
+    if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 100 ) )
         errors[errors.length] = "<?= $SLANG['BadFPSReportInterval'] ?>";
     if ( !form.elements['newMonitor[FrameSkip]'].value || !(parseInt(form.elements['newMonitor[FrameSkip]'].value) >= 0 ) )
         errors[errors.length] = "<?= $SLANG['BadFrameSkip'] ?>";

@@ -74,30 +74,17 @@ protected:
 		}
 	};
 	
-	inline void DumpBuffer() {
-		if (buffer && buffertype != ZM_BUFTYPE_DONTFREE) {
-			if(buffertype == ZM_BUFTYPE_ZM)
-				zm_freealigned(buffer);
-			else if(buffertype == ZM_BUFTYPE_MALLOC)
-				free(buffer);
-			else if(buffertype == ZM_BUFTYPE_NEW)
-				delete buffer;
-			/*else if(buffertype == ZM_BUFTYPE_AVMALLOC)
-				av_free(buffer);
-			*/
-		}
+	inline void DumpImgBuffer() {
+		DumpBuffer(buffer,buffertype);
 		buffer = NULL;
 		allocation = 0;
 	}
 	
-	inline void AllocBuffer(size_t p_bufsize) {
+	inline void AllocImgBuffer(size_t p_bufsize) {
 		if(buffer)
-			DumpBuffer();
+			DumpImgBuffer();
 		
-		buffer = (uint8_t*)zm_mallocaligned(16,p_bufsize);
-		if(buffer == NULL)
-			Panic("Memory allocation failed: %s",strerror(errno));
-		
+		buffer = AllocBuffer(p_bufsize);
 		buffertype = ZM_BUFTYPE_ZM;
 		allocation = p_bufsize;
 	}
@@ -152,17 +139,12 @@ public:
 	/* Request writeable buffer */
 	uint8_t* WriteBuffer(const int p_width, const int p_height, const int p_colours, const int p_subpixelorder);
 	
-	inline int IsBufferHeld() const {
-		return holdbuffer;
-	}
-	
-	inline void HoldBuffer(int tohold) {
-		holdbuffer = tohold;
-	}
+	inline int IsBufferHeld() const { return holdbuffer; }
+	inline void HoldBuffer(int tohold) { holdbuffer = tohold; }
 	
 	inline void Empty() {
 	if(!holdbuffer)
-		DumpBuffer();
+		DumpImgBuffer();
 	
 	width = height = colours = size = pixels = subpixelorder = 0;
 	}
@@ -230,27 +212,70 @@ public:
 	void Scale( unsigned int factor );
 };
 
+inline static uint8_t* AllocBuffer(size_t p_bufsize) {
+	uint8_t* buffer = (uint8_t*)zm_mallocaligned(16,p_bufsize);
+	if(buffer == NULL)
+		Fatal("Memory allocation failed: %s",strerror(errno));
+	
+	return buffer;
+}
+
+inline static void DumpBuffer(void* buffer, int buffertype) {
+	if (buffer && buffertype != ZM_BUFTYPE_DONTFREE) {
+		if(buffertype == ZM_BUFTYPE_ZM)
+			zm_freealigned(buffer);
+		else if(buffertype == ZM_BUFTYPE_MALLOC)
+			free(buffer);
+		else if(buffertype == ZM_BUFTYPE_NEW)
+			delete buffer;
+		/*else if(buffertype == ZM_BUFTYPE_AVMALLOC)
+			av_free(buffer);
+		*/
+	}
+}
+
+
+
 #endif // ZM_IMAGE_H
 
 
-typedef void (*blend_fptr_t)(uint8_t*, uint8_t*, uint8_t*, unsigned long, double);
-typedef void (*delta_fptr_t)(uint8_t*, uint8_t*, uint8_t*, unsigned long);
+typedef void (*blend_fptr_t)(const uint8_t*, const uint8_t*, uint8_t*, unsigned long, double);
+typedef void (*delta_fptr_t)(const uint8_t*, const uint8_t*, uint8_t*, unsigned long);
+typedef void (*convert_fptr_t)(const uint8_t*, uint8_t*, unsigned long);
+typedef void* (*imgbufcpy_fptr_t)(void*, const void*, size_t);
 
 /* Blend functions */
-void sse2_fastblend(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
-void std_fastblend(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
-void std_blend(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
+void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
+void std_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
+void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
 
 /* Delta functions */
-void std_delta8_gray8(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void std_delta8_rgb(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void std_delta8_bgr(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void std_delta8_rgba(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void std_delta8_bgra(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void std_delta8_argb(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void std_delta8_abgr(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void sse2_delta8_gray8(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void ssse3_delta8_rgba(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void ssse3_delta8_bgra(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void ssse3_delta8_argb(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
-void ssse3_delta8_abgr(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void ssse3_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+
+/* Convert functions */
+void std_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void zm_convert_yuyv_rgb(const uint8_t* col1, uint8_t* result, unsigned long count);
+void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_t* result, unsigned long count);
+void zm_convert_rgb555_rgb(const uint8_t* col1, uint8_t* result, unsigned long count);
+void zm_convert_rgb555_rgba(const uint8_t* col1, uint8_t* result, unsigned long count);
+void zm_convert_rgb565_rgb(const uint8_t* col1, uint8_t* result, unsigned long count);
+void zm_convert_rgb565_rgba(const uint8_t* col1, uint8_t* result, unsigned long count);
+
+

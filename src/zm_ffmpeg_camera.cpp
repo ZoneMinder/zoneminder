@@ -31,14 +31,31 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, in
 	{
 		Initialise();
 	}
-
-    mFormatContext = NULL;
-    mVideoStreamId = -1;
-    mCodecContext = NULL;
-    mCodec = NULL;
-    mConvertContext = NULL;
-    mRawFrame = NULL;
-    mFrame = NULL;
+	
+	mFormatContext = NULL;
+	mVideoStreamId = -1;
+	mCodecContext = NULL;
+	mCodec = NULL;
+	mRawFrame = NULL;
+	mFrame = NULL;
+	
+#if HAVE_LIBSWSCALE    
+	mConvertContext = NULL;
+#endif
+	/* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
+	if(colours == ZM_COLOUR_RGB32) {
+		subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+		imagePixFormat = PIX_FMT_RGBA;
+	} else if(colours == ZM_COLOUR_RGB24) {
+		subpixelorder = ZM_SUBPIX_ORDER_RGB;
+		imagePixFormat = PIX_FMT_RGB24;
+	} else if(colours == ZM_COLOUR_GRAY8) {
+		subpixelorder = ZM_SUBPIX_ORDER_NONE;
+		imagePixFormat = PIX_FMT_GRAY8;
+	} else {
+		Panic("Unexpected colours: %d",colours);
+	}
+	
 }
 
 FfmpegCamera::~FfmpegCamera()
@@ -46,11 +63,14 @@ FfmpegCamera::~FfmpegCamera()
     av_freep( &mFrame );
     av_freep( &mRawFrame );
     
+#if HAVE_LIBSWSCALE
     if ( mConvertContext )
     {
         sws_freeContext( mConvertContext );
         mConvertContext = NULL;
     }
+#endif
+
     if ( mCodecContext )
     {
        avcodec_close( mCodecContext );
@@ -70,10 +90,6 @@ FfmpegCamera::~FfmpegCamera()
 
 void FfmpegCamera::Initialise()
 {
-	int max_size = width*height*colours;
-
-	mBuffer.size( max_size );
-
     if ( logDebugging() )
         av_log_set_level( AV_LOG_DEBUG ); 
     else
@@ -130,16 +146,28 @@ int FfmpegCamera::PrimeCapture()
 
     // Allocate space for the converted video frame
     mFrame = avcodec_alloc_frame();
-
-    // Determine required buffer size and allocate buffer
-    int pictureSize = avpicture_get_size( PIX_FMT_RGB24, mCodecContext->width, mCodecContext->height );
-    mBuffer.size( pictureSize );
     
-    avpicture_fill( (AVPicture *)mFrame, (unsigned char *)mBuffer, PIX_FMT_RGB24, mCodecContext->width, mCodecContext->height);
-
+	if(mRawFrame == NULL || mFrame == NULL)
+		Fatal( "Unable to allocate frame for %s", mPath.c_str() );
+	
+	int pSize = avpicture_get_size( imagePixFormat, width, height );
+	if( pSize != imagesize) {
+		Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
+	}
+	
 #if HAVE_LIBSWSCALE
-    if ( (mConvertContext = sws_getCachedContext( mConvertContext, mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL )) == NULL )
-        Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+	if(!sws_isSupportedOutput(imagePixFormat)) {
+		Fatal("swscale does not support the target format");
+	}
+	
+	if(config.cpu_extensions && sseversion >= 20) {
+		mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
+	} else {
+		mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+	}
+	
+	if(mConvertContext == NULL)
+		Fatal( "Unable to create conversion context for %s", mPath.c_str() );
 #else // HAVE_LIBSWSCALE
     Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
@@ -157,6 +185,15 @@ int FfmpegCamera::Capture( Image &image )
 {
     static int frameCount = 0;
     AVPacket packet;
+	uint8_t* directbuffer;
+   
+	/* Request a writeable buffer of the target image */
+	directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+	if(directbuffer == NULL) {
+		Error("Failed requesting writeable buffer for the captured image.");
+		return (-1);
+	}
+    
     int frameComplete = false;
     while ( !frameComplete )
     {
@@ -172,21 +209,21 @@ int FfmpegCamera::Capture( Image &image )
             if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
                 Fatal( "Unable to decode frame at frame %d", frameCount );
 
-            Debug( 3, "Decoded video packet at frame %d", frameCount );
+            Debug( 4, "Decoded video packet at frame %d", frameCount );
 
             if ( frameComplete )
             {
-                Debug( 1, "Got frame %d", frameCount );
+                Debug( 3, "Got frame %d", frameCount );
 
+		avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+		
 #if HAVE_LIBSWSCALE
-                if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
-                    Fatal( "Unable to convert raw format %d to RGB at frame %d", mCodecContext->pix_fmt, frameCount );
+		if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
+			Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
 #else // HAVE_LIBSWSCALE
-    Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+		Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
  
-                image.Assign( mCodecContext->width, mCodecContext->height, colours, subpixelorder, (unsigned char *)mFrame->data[0], imagesize);
-
                 frameCount++;
             }
         }

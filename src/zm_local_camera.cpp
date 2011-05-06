@@ -482,7 +482,8 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			subpixelorder = ZM_SUBPIX_ORDER_NONE;
 		/* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
 		} else {
-			Warning("Unable to find a match for the selected palette and target colourspace. Conversion required, performance penalty expected");  
+			if( capture )
+				Warning("Unable to find a match for the selected palette and target colourspace. Conversion required, performance penalty expected");  
 #if HAVE_LIBSWSCALE
 			/* Try using swscale for the conversion */
 			conversion_type = 1; 
@@ -939,6 +940,11 @@ void LocalCamera::Initialise()
 		tmpPicture = avcodec_alloc_frame();
 		if ( !tmpPicture )
 			Fatal( "Could not allocate temporary picture" );
+		
+		int pSize = avpicture_get_size( imagePixFormat, width, height );
+		if( pSize != imagesize) {
+			Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
+		}
 		
 		if(config.cpu_extensions && sseversion >= 20) {
 			imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
@@ -1912,10 +1918,7 @@ int LocalCamera::Capture( Image &image )
 		if(conversion_type == 1) {
 			/* Use swscale to convert the image directly into the shared memory */
 			
-			unsigned int pSize = avpicture_fill( (AVPicture *)tmpPicture, directbuffer, imagePixFormat, width, height );
-			//if( pSize != imagesize) {
-			//	Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
-			//}
+			avpicture_fill( (AVPicture *)tmpPicture, directbuffer, imagePixFormat, width, height );
 			
 			sws_scale( imgConversionContext, capturePictures[capture_frame]->data, capturePictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
 		

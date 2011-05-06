@@ -40,12 +40,14 @@ protected:
     int                 mVideoStreamId;
     AVCodecContext      *mCodecContext;
     AVCodec             *mCodec;
-    struct SwsContext   *mConvertContext;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
+    PixelFormat         imagePixFormat;
 #endif // HAVE_LIBAVFORMAT
 
-	Buffer              mBuffer;
+#if HAVE_LIBSWSCALE
+	struct SwsContext   *mConvertContext;
+#endif
 
 public:
 	FfmpegCamera( int p_id, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );

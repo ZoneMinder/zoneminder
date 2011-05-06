@@ -373,26 +373,11 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		} else if(palette == V4L2_PIX_FMT_GREY && colours == ZM_COLOUR_GRAY8) {
 			conversion_type = 0;
 			subpixelorder = ZM_SUBPIX_ORDER_NONE;
-			
-		/* Special case: allow extremely fast conversion of YUYV to grayscale by extracting the Y channel */
-		/* YUYV->Grayscale conversion is not available in swscale */
-		/* Added especially for my friend jzaw */
-		} else if(palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_GRAY8) {
-			conversion_type = 2;
-			if(config.cpu_extensions && sseversion >= 35) {
-				conversion_fptr = &ssse3_convert_yuyv_gray8;
-				Debug(2,"Using SSSE3 YUYV->grayscale fast conversion");
-			} else {
-				conversion_fptr = &std_convert_yuyv_gray8;
-				Debug(2,"Using standard YUYV->grayscale fast conversion");
-			}
-			subpixelorder = ZM_SUBPIX_ORDER_NONE;
-			
-		/* Unable to find a solution for the selected palette and target colourspace. Conversion required */
+		/* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
 		} else {
 			Warning("Unable to find a match for the selected palette and target colourspace. Conversion required, performance penalty expected");  
 #if HAVE_LIBSWSCALE
-			/* Use swscale for the conversion */
+			/* Try using swscale for the conversion */
 			conversion_type = 1; 
 			Debug(2,"Using swscale for image conversion");
 			if(colours == ZM_COLOUR_RGB32) {
@@ -408,43 +393,62 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 				Panic("Unexpected colours: %d",colours);
 			}
 			if(!sws_isSupportedInput(capturePixFormat)) {
-				Fatal("swscale does not support the used capture format");
+				Error("swscale does not support the used capture format");
+				conversion_type = 2; /* Try ZM format conversions */
 			}
 			if(!sws_isSupportedOutput(imagePixFormat)) {
-				Fatal("swscale does not support the target format");
+				Error("swscale does not support the target format");
+				conversion_type = 2; /* Try ZM format conversions */
 			}
 #else
 			/* Don't have swscale, see what we can do */
 			conversion_type = 2;
-			Debug(2,"Using ZM for image conversion");
-			if(palette == V4L2_PIX_FMT_RGB32 && colours == ZM_COLOUR_GRAY8) {
-				conversion_fptr = &std_convert_argb_gray8;
-				subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-			} else if(palette == V4L2_PIX_FMT_BGR32 && colours == ZM_COLOUR_GRAY8) {
-				conversion_fptr = &std_convert_bgra_gray8;
-				subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-			} else if(palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_RGB24) {
-				conversion_fptr = &zm_convert_yuyv_rgb;
-				subpixelorder = ZM_SUBPIX_ORDER_RGB;
-			} else if(palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_RGB32) {
-				conversion_fptr = &zm_convert_yuyv_rgba;
-				subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-			} else if(palette == V4L2_PIX_FMT_RGB555 && colours == ZM_COLOUR_RGB24) {
-				conversion_fptr = &zm_convert_rgb555_rgb;
-				subpixelorder = ZM_SUBPIX_ORDER_RGB;
-			} else if(palette == V4L2_PIX_FMT_RGB555 && colours == ZM_COLOUR_RGB32) {
-				conversion_fptr = &zm_convert_rgb555_rgba;
-				subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-			} else if(palette == V4L2_PIX_FMT_RGB565 && colours == ZM_COLOUR_RGB24) {
-				conversion_fptr = &zm_convert_rgb565_rgb;
-				subpixelorder = ZM_SUBPIX_ORDER_RGB;
-			} else if(palette == V4L2_PIX_FMT_RGB565 && colours == ZM_COLOUR_RGB32) {
-				conversion_fptr = &zm_convert_rgb565_rgba;
-				subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-			} else {
-				Panic("Unable to find suitable conversion for selected palette and target colourspace.");
-			}
 #endif
+			/* Our YUYV->Grayscale conversion is a lot faster than swscale's */
+			if(conversion_type == 1 && colours == ZM_COLOUR_GRAY8 && palette == V4L2_PIX_FMT_YUYV) {
+				conversion_type = 2;
+			}
+			
+			if(conversion_type == 2) {
+				Debug(2,"Using ZM for image conversion");
+				if(palette == V4L2_PIX_FMT_RGB32 && colours == ZM_COLOUR_GRAY8) {
+					conversion_fptr = &std_convert_argb_gray8;
+					subpixelorder = ZM_SUBPIX_ORDER_ARGB;
+				} else if(palette == V4L2_PIX_FMT_BGR32 && colours == ZM_COLOUR_GRAY8) {
+					conversion_fptr = &std_convert_bgra_gray8;
+					subpixelorder = ZM_SUBPIX_ORDER_BGRA;
+				} else if(palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_GRAY8) {
+					/* Fast YUYV->Grayscale conversion by extracting the Y channel */
+					if(config.cpu_extensions && sseversion >= 35) {
+						conversion_fptr = &ssse3_convert_yuyv_gray8;
+						Debug(2,"Using SSSE3 YUYV->grayscale fast conversion");
+					} else {
+						conversion_fptr = &std_convert_yuyv_gray8;
+						Debug(2,"Using standard YUYV->grayscale fast conversion");
+					}
+					subpixelorder = ZM_SUBPIX_ORDER_NONE;
+				} else if(palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_RGB24) {
+					conversion_fptr = &zm_convert_yuyv_rgb;
+					subpixelorder = ZM_SUBPIX_ORDER_RGB;
+				} else if(palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_RGB32) {
+					conversion_fptr = &zm_convert_yuyv_rgba;
+					subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+				} else if(palette == V4L2_PIX_FMT_RGB555 && colours == ZM_COLOUR_RGB24) {
+					conversion_fptr = &zm_convert_rgb555_rgb;
+					subpixelorder = ZM_SUBPIX_ORDER_RGB;
+				} else if(palette == V4L2_PIX_FMT_RGB555 && colours == ZM_COLOUR_RGB32) {
+					conversion_fptr = &zm_convert_rgb555_rgba;
+					subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+				} else if(palette == V4L2_PIX_FMT_RGB565 && colours == ZM_COLOUR_RGB24) {
+					conversion_fptr = &zm_convert_rgb565_rgb;
+					subpixelorder = ZM_SUBPIX_ORDER_RGB;
+				} else if(palette == V4L2_PIX_FMT_RGB565 && colours == ZM_COLOUR_RGB32) {
+					conversion_fptr = &zm_convert_rgb565_rgba;
+					subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+				} else {
+					Panic("Unable to find suitable conversion for selected palette and target colourspace.");
+				}
+			}
 		}
 	}
 #endif // ZM_HAS_V4L2
@@ -476,26 +480,11 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		} else if(palette == VIDEO_PALETTE_GREY && colours == ZM_COLOUR_GRAY8) {
 			conversion_type = 0;
 			subpixelorder = ZM_SUBPIX_ORDER_NONE;
-			
-		/* Special case: allow extremely fast conversion of YUYV to grayscale by extracting the Y channel */
-		/* YUYV->Grayscale conversion is not available in swscale */
-		/* Added especially for my friend jzaw */
-		} else if((palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422) && colours == ZM_COLOUR_GRAY8) {
-			conversion_type = 2;
-			if(config.cpu_extensions && sseversion >= 35) {
-				conversion_fptr = &ssse3_convert_yuyv_gray8;
-				Debug(2,"Using SSSE3 YUYV->grayscale fast conversion");
-			} else {
-				conversion_fptr = &std_convert_yuyv_gray8;
-				Debug(2,"Using standard YUYV->grayscale fast conversion");
-			}
-			subpixelorder = ZM_SUBPIX_ORDER_NONE;
-			
 		/* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
 		} else {
 			Warning("Unable to find a match for the selected palette and target colourspace. Conversion required, performance penalty expected");  
 #if HAVE_LIBSWSCALE
-			/* Use swscale for the conversion */
+			/* Try using swscale for the conversion */
 			conversion_type = 1; 
 			Debug(2,"Using swscale for image conversion");
 			if(colours == ZM_COLOUR_RGB32) {
@@ -511,45 +500,64 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 				Panic("Unexpected colours: %d",colours);
 			}
 			if(!sws_isSupportedInput(capturePixFormat)) {
-				Fatal("swscale does not support the used capture format");
+				Error("swscale does not support the used capture format");
+				conversion_type = 2; /* Try ZM format conversions */
 			}
 			if(!sws_isSupportedOutput(imagePixFormat)) {
-				Fatal("swscale does not support the target format");
+				Error("swscale does not support the target format");
+				conversion_type = 2; /* Try ZM format conversions */
 			}
 #else
 			/* Don't have swscale, see what we can do */
 			conversion_type = 2;
-			Debug(2,"Using ZM for image conversion");
-			if(palette == VIDEO_PALETTE_RGB32 && colours == ZM_COLOUR_GRAY8) {
-				if(BigEndian) {
-					conversion_fptr = &std_convert_argb_gray8;
-					subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-				} else {
-					conversion_fptr = &std_convert_bgra_gray8;
-					subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-				}
-			} else if((palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422) && colours == ZM_COLOUR_RGB24) {
-				conversion_fptr = &zm_convert_yuyv_rgb;
-				subpixelorder = ZM_SUBPIX_ORDER_RGB;
-			} else if((palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422) && colours == ZM_COLOUR_RGB32) {
-				conversion_fptr = &zm_convert_yuyv_rgba;
-				subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-			} else if(palette == VIDEO_PALETTE_RGB555 && colours == ZM_COLOUR_RGB24) {
-				conversion_fptr = &zm_convert_rgb555_rgb;
-				subpixelorder = ZM_SUBPIX_ORDER_RGB;
-			} else if(palette == VIDEO_PALETTE_RGB555 && colours == ZM_COLOUR_RGB32) {
-				conversion_fptr = &zm_convert_rgb555_rgba;
-				subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-			} else if(palette == VIDEO_PALETTE_RGB565 && colours == ZM_COLOUR_RGB24) {
-				conversion_fptr = &zm_convert_rgb565_rgb;
-				subpixelorder = ZM_SUBPIX_ORDER_RGB;
-			} else if(palette == VIDEO_PALETTE_RGB565 && colours == ZM_COLOUR_RGB32) {
-				conversion_fptr = &zm_convert_rgb565_rgba;
-				subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-			} else {
-				Panic("Unable to find suitable conversion for selected palette and target colourspace.");
-			}
 #endif
+			/* Our YUYV->Grayscale conversion is a lot faster than swscale's */
+			if(conversion_type == 1 && colours == ZM_COLOUR_GRAY8 && (palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422)) {
+				conversion_type = 2;
+			}
+			
+			if(conversion_type == 2) {
+				Debug(2,"Using ZM for image conversion");
+				if(palette == VIDEO_PALETTE_RGB32 && colours == ZM_COLOUR_GRAY8) {
+					if(BigEndian) {
+						conversion_fptr = &std_convert_argb_gray8;
+						subpixelorder = ZM_SUBPIX_ORDER_ARGB;
+					} else {
+						conversion_fptr = &std_convert_bgra_gray8;
+						subpixelorder = ZM_SUBPIX_ORDER_BGRA;
+					}
+				} else if((palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422) && colours == ZM_COLOUR_GRAY8) {
+					/* Fast YUYV->Grayscale conversion by extracting the Y channel */
+					if(config.cpu_extensions && sseversion >= 35) {
+						conversion_fptr = &ssse3_convert_yuyv_gray8;
+						Debug(2,"Using SSSE3 YUYV->grayscale fast conversion");
+					} else {
+						conversion_fptr = &std_convert_yuyv_gray8;
+						Debug(2,"Using standard YUYV->grayscale fast conversion");
+					}
+					subpixelorder = ZM_SUBPIX_ORDER_NONE;
+				} else if((palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422) && colours == ZM_COLOUR_RGB24) {
+					conversion_fptr = &zm_convert_yuyv_rgb;
+					subpixelorder = ZM_SUBPIX_ORDER_RGB;
+				} else if((palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422) && colours == ZM_COLOUR_RGB32) {
+					conversion_fptr = &zm_convert_yuyv_rgba;
+					subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+				} else if(palette == VIDEO_PALETTE_RGB555 && colours == ZM_COLOUR_RGB24) {
+					conversion_fptr = &zm_convert_rgb555_rgb;
+					subpixelorder = ZM_SUBPIX_ORDER_RGB;
+				} else if(palette == VIDEO_PALETTE_RGB555 && colours == ZM_COLOUR_RGB32) {
+					conversion_fptr = &zm_convert_rgb555_rgba;
+					subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+				} else if(palette == VIDEO_PALETTE_RGB565 && colours == ZM_COLOUR_RGB24) {
+					conversion_fptr = &zm_convert_rgb565_rgb;
+					subpixelorder = ZM_SUBPIX_ORDER_RGB;
+				} else if(palette == VIDEO_PALETTE_RGB565 && colours == ZM_COLOUR_RGB32) {
+					conversion_fptr = &zm_convert_rgb565_rgba;
+					subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+				} else {
+					Panic("Unable to find suitable conversion for selected palette and target colourspace.");
+				}
+			}
 		}
 	}
 #endif // ZM_HAS_V4L1    
@@ -1905,9 +1913,9 @@ int LocalCamera::Capture( Image &image )
 			/* Use swscale to convert the image directly into the shared memory */
 			
 			unsigned int pSize = avpicture_fill( (AVPicture *)tmpPicture, directbuffer, imagePixFormat, width, height );
-			if( pSize != imagesize) {
-				Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
-			}
+			//if( pSize != imagesize) {
+			//	Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
+			//}
 			
 			sws_scale( imgConversionContext, capturePictures[capture_frame]->data, capturePictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
 		

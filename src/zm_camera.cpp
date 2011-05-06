@@ -37,7 +37,13 @@ Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_co
 	imagesize = pixels * colours;
 	
 	Debug(2,"New camera id: %d width: %d height: %d colours: %d subpixelorder: %d capture: %d",id,width,height,colours,subpixelorder,capture);
-
+	
+	/* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements */
+	if((colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB32) && (imagesize % 16) != 0) {
+		Fatal("Image size is not multiples of 16");
+	} else if(colours == ZM_COLOUR_RGB24 && ((imagesize % 16) != 0 || (imagesize % 12) != 0)) {
+		Fatal("Image size is not multiples of 12 and 16");
+	}
 }
 
 Camera::~Camera()

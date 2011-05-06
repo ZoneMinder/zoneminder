@@ -44,6 +44,30 @@ extern "C"
 #define ZM_BUFTYPE_AVMALLOC 3
 #define ZM_BUFTYPE_ZM 4
 
+
+/* Should be called from Image class functions */
+inline static uint8_t* AllocBuffer(size_t p_bufsize) {
+	uint8_t* buffer = (uint8_t*)zm_mallocaligned(16,p_bufsize);
+	if(buffer == NULL)
+		Fatal("Memory allocation failed: %s",strerror(errno));
+	
+	return buffer;
+}
+
+inline static void DumpBuffer(uint8_t* buffer, int buffertype) {
+	if (buffer && buffertype != ZM_BUFTYPE_DONTFREE) {
+		if(buffertype == ZM_BUFTYPE_ZM)
+			zm_freealigned(buffer);
+		else if(buffertype == ZM_BUFTYPE_MALLOC)
+			free(buffer);
+		else if(buffertype == ZM_BUFTYPE_NEW)
+			delete buffer;
+		/*else if(buffertype == ZM_BUFTYPE_AVMALLOC)
+			av_free(buffer);
+		*/
+	}
+}
+
 //
 // This is image class, and represents a frame captured from a 
 // camera in raw form.
@@ -211,30 +235,6 @@ public:
 	void Flip( bool leftright );
 	void Scale( unsigned int factor );
 };
-
-inline static uint8_t* AllocBuffer(size_t p_bufsize) {
-	uint8_t* buffer = (uint8_t*)zm_mallocaligned(16,p_bufsize);
-	if(buffer == NULL)
-		Fatal("Memory allocation failed: %s",strerror(errno));
-	
-	return buffer;
-}
-
-inline static void DumpBuffer(void* buffer, int buffertype) {
-	if (buffer && buffertype != ZM_BUFTYPE_DONTFREE) {
-		if(buffertype == ZM_BUFTYPE_ZM)
-			zm_freealigned(buffer);
-		else if(buffertype == ZM_BUFTYPE_MALLOC)
-			free(buffer);
-		else if(buffertype == ZM_BUFTYPE_NEW)
-			delete buffer;
-		/*else if(buffertype == ZM_BUFTYPE_AVMALLOC)
-			av_free(buffer);
-		*/
-	}
-}
-
-
 
 #endif // ZM_IMAGE_H
 

@@ -128,6 +128,9 @@ foreach my $arg ( @ARGV )
     }
 }
 
+# Create the directory first if it doesn't exist
+mkdir(ZM_PATH_SOCKS);
+
 socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
 
 my $saddr = sockaddr_un( SOCK_FILE );

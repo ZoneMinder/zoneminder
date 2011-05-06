@@ -299,8 +299,9 @@ if ( !empty($action) )
                 if ( daemonCheck() )
                 {
                     $restart = ($oldFunction == 'None') || ($newFunction == 'None') || ($newEnabled != $oldEnabled);
+                    zmaControl( $monitor, "stop" );
                     zmcControl( $monitor, $restart?"restart":"" );
-                    zmaControl( $monitor, "reload" );
+                    zmaControl( $monitor, "start" );
                 }
                 $refreshParent = true;
             }
@@ -530,8 +531,9 @@ if ( !empty($action) )
                     //session_write_close();
                 if ( daemonCheck() )
                 {
+                    zmaControl( $monitor, "stop" );
                     zmcControl( $monitor, "restart" );
-                    zmaControl( $monitor, "restart" );
+                    zmaControl( $monitor, "start" );
                 }
                 //daemonControl( 'restart', 'zmwatch.pl' );
                 $refreshParent = true;

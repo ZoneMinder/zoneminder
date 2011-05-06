@@ -133,7 +133,7 @@ Image::Image( const Image &p_image )
 
 Image::~Image()
 {
-	DumpBuffer();
+	DumpImgBuffer();
 }
 
 void Image::Initialise()
@@ -344,7 +344,7 @@ void Image::AssignDirect( const int p_width, const int p_height, const int p_col
 		}
 	} else {
 		/* Free an existing buffer if any */
-		DumpBuffer();  
+		DumpImgBuffer();
 	  
 		width = p_width;
 		height = p_height;

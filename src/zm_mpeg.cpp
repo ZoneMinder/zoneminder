@@ -337,7 +337,7 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool ad
         }
         sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, c->height, opicture->data, opicture->linesize );
 #else // HAVE_LIBSWSCALE
-		img_convert( (AVPicture *)opicture, c->pix_fmt, (AVPicture *)tmp_opicture, pf, c->width, c->height );
+		Fatal("swscale is required for MPEG mode");
 #endif // HAVE_LIBSWSCALE
 	}
 	else

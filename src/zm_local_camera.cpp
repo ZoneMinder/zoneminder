@@ -375,7 +375,8 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			subpixelorder = ZM_SUBPIX_ORDER_NONE;
 		/* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
 		} else {
-			Warning("Unable to find a match for the selected palette and target colourspace. Conversion required, performance penalty expected");  
+			if( capture )
+				Warning("Unable to find a match for the selected palette and target colourspace. Conversion required, performance penalty expected");  
 #if HAVE_LIBSWSCALE
 			/* Try using swscale for the conversion */
 			conversion_type = 1; 
@@ -1011,6 +1012,7 @@ void LocalCamera::Terminate()
 
 	close( vid_fd );
 	
+#if HAVE_LIBSWSCALE
 	/* Clean up swscale stuff */
 	if(conversion_type == 1) {
 		sws_freeContext(imgConversionContext);
@@ -1019,7 +1021,8 @@ void LocalCamera::Terminate()
 		av_free(tmpPicture);
 		tmpPicture = NULL;
 	}
-	
+#endif
+
 }
 
 #define capString(test,prefix,yesString,noString,capability) \
@@ -1914,15 +1917,16 @@ int LocalCamera::Capture( Image &image )
 			Error("Failed requesting writeable buffer for the captured image.");
 			return (-1);
 		}
-		
+#if HAVE_LIBSWSCALE
 		if(conversion_type == 1) {
 			/* Use swscale to convert the image directly into the shared memory */
 			
 			avpicture_fill( (AVPicture *)tmpPicture, directbuffer, imagePixFormat, width, height );
 			
 			sws_scale( imgConversionContext, capturePictures[capture_frame]->data, capturePictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
-		
-		} else if(conversion_type == 2) {
+		}
+#endif	
+		if(conversion_type == 2) {
 			
 			/* Call the image conversion function and convert directly into the shared memory */
 			(*conversion_fptr)(buffer, directbuffer, pixels);

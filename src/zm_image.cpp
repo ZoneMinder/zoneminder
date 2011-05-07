@@ -451,19 +451,22 @@ void Image::Assign( const Image &image ) {
 
 Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 {
-    if ( colours != 1 )
-    {
-        Panic( "Attempt to highlight image edges when colours = %d", colours );
-    }
-	Image *high_image = new Image( width, height, 3, ZM_SUBPIX_ORDER_RGB);
+	if ( colours != 1 )
+	{
+		Panic( "Attempt to highlight image edges when colours = %d", colours );
+	}
+	
+	Image *high_image = new Image( width, height, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+	uint8_t* high_buff = high_image->WriteBuffer(width, height, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+
 	int lo_x = limits?limits->Lo().X():0;
 	int lo_y = limits?limits->Lo().Y():0;
 	int hi_x = limits?limits->Hi().X():width-1;
 	int hi_y = limits?limits->Hi().Y():height-1;
 	for ( int y = lo_y; y <= hi_y; y++ )
 	{
-		unsigned char *p = &buffer[(y*width)+lo_x];
-		unsigned char *phigh = (uint8_t*)high_image->Buffer( lo_x, y );
+		uint8_t *p = &buffer[(y*width)+lo_x];
+		uint8_t *phigh = high_buff + ( lo_x * y );
 		for ( int x = lo_x; x <= hi_x; x++, p++, phigh += 3 )
 		{
 			bool edge = false;
@@ -1209,10 +1212,6 @@ void Image::Blend( const Image &image, int transparency ) const
         Panic( "Attempt to blend different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder );
 	}
 	
-	if((size % 16) != 0) {
-		Warning("Image size is not multiples of 16");
-	}
-	
 	/* Do the blending */
 	(*fptr_blend)(buffer, image.buffer, buffer, size, transparency);
 }
@@ -1678,6 +1677,10 @@ void Image::Fill( Rgb colour, const Box *limits )
 	{
 		Panic( "Attempt to fill image with unexpected colours %d", colours );
 	}
+	
+	/* Convert the colour's RGBA subpixel order into the image's subpixel order */
+	colour = rgb_convert(colour,subpixelorder);
+	
 	int lo_x = limits?limits->Lo().X():0;
 	int lo_y = limits?limits->Lo().Y():0;
 	int hi_x = limits?limits->Hi().X():width-1;
@@ -1733,6 +1736,9 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 	{
 		Panic( "Attempt to fill image with unexpected colours %d", colours );
 	}
+	
+	/* Convert the colour's RGBA subpixel order into the image's subpixel order */
+	colour = rgb_convert(colour,subpixelorder);
 
 	int lo_x = limits?limits->Lo().X():0;
 	int lo_y = limits?limits->Lo().Y():0;
@@ -1786,9 +1792,13 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 void Image::Outline( Rgb colour, const Polygon &polygon )
 {
 	if ( !(colours == 1 || colours == 3 || colours == 4 ) )
-    {
-        Panic( "Attempt to outline image with unexpected colours %d", colours );
-    }
+	{
+		Panic( "Attempt to outline image with unexpected colours %d", colours );
+	}
+    
+	/* Convert the colour's RGBA subpixel order into the image's subpixel order */
+	colour = rgb_convert(colour,subpixelorder);
+	
 	int n_coords = polygon.getNumCoords();
 	for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ )
 	{
@@ -1894,6 +1904,9 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 	{
 		Panic( "Attempt to fill image with unexpected colours %d", colours );
 	}
+	
+	/* Convert the colour's RGBA subpixel order into the image's subpixel order */
+	colour = rgb_convert(colour,subpixelorder);
 
 	int n_coords = polygon.getNumCoords();
 	int n_global_edges = 0;
@@ -2336,35 +2349,39 @@ void Image::Scale( unsigned int factor )
 
 __attribute__ ((noinline)) void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 #if (defined(__i386__) || defined(__x86_64__))  
-	int divider = 0;
-	uint32_t clearmask = 0;
+	static uint32_t divider = 0;
+	static uint32_t clearmask = 0;
+	static double current_blendpercent = 0.0;
 	unsigned long i = 0;
-
-	/* Attempt to match the blending percent to one of the possible values */
-	if(blendpercent < 2.34375) {
-		// 1.5625% blending
-		divider = 6;
-		clearmask = 0x03030303;
-	} else if(blendpercent >= 2.34375 && blendpercent < 4.6875) {
-		// 3.125% blending
-		divider = 5;
-		clearmask = 0x07070707;
-	} else if(blendpercent >= 4.6875 && blendpercent < 9.375) {
-		// 6.25% blending
-		divider = 4;
-		clearmask = 0x0F0F0F0F;
-	} else if(blendpercent >= 9.375 && blendpercent < 18.75) {
-		// 12.5% blending
-		divider = 3;
-		clearmask = 0x1F1F1F1F;
-	} else if(blendpercent >= 18.75 && blendpercent < 37.5) {
-		// 25% blending
-		divider = 2;
-		clearmask = 0x3F3F3F3F;
-	} else if(blendpercent >= 37.5) {
-		// 50% blending
-		divider = 1;
-		clearmask = 0x7F7F7F7F;
+	
+	if(current_blendpercent != blendpercent) {
+		/* Attempt to match the blending percent to one of the possible values */
+		if(blendpercent < 2.34375) {
+			// 1.5625% blending
+			divider = 6;
+			clearmask = 0x03030303;
+		} else if(blendpercent >= 2.34375 && blendpercent < 4.6875) {
+			// 3.125% blending
+			divider = 5;
+			clearmask = 0x07070707;
+		} else if(blendpercent >= 4.6875 && blendpercent < 9.375) {
+			// 6.25% blending
+			divider = 4;
+			clearmask = 0x0F0F0F0F;
+		} else if(blendpercent >= 9.375 && blendpercent < 18.75) {
+			// 12.5% blending
+			divider = 3;
+			clearmask = 0x1F1F1F1F;
+		} else if(blendpercent >= 18.75 && blendpercent < 37.5) {
+			// 25% blending
+			divider = 2;
+			clearmask = 0x3F3F3F3F;
+		} else if(blendpercent >= 37.5) {
+			// 50% blending
+			divider = 1;
+			clearmask = 0x7F7F7F7F;
+		}
+		current_blendpercent = blendpercent;
 	}
 
 	__asm__ __volatile__(
@@ -2395,28 +2412,33 @@ __attribute__ ((noinline)) void sse2_fastblend(const uint8_t* col1, const uint8_
 }
 
 __attribute__ ((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
-	int divider = 0;
-
-	/* Attempt to match the blending percent to one of the possible values */
-	if(blendpercent < 2.34375) {
-		// 1.5625% blending
-		divider = 6;
-	} else if(blendpercent >= 2.34375 && blendpercent < 4.6875) {
-		// 3.125% blending
-		divider = 5;
-	} else if(blendpercent >= 4.6875 && blendpercent < 9.375) {
-		// 6.25% blending
-		divider = 4;
-	} else if(blendpercent >= 9.375 && blendpercent < 18.75) {
-		// 12.5% blending
-		divider = 3;
-	} else if(blendpercent >= 18.75 && blendpercent < 37.5) {
-		// 25% blending
-		divider = 2;
-	} else if(blendpercent >= 37.5) {
-		// 50% blending
-		divider = 1;
+	static int divider = 0;
+	static double current_blendpercent = 0.0;
+	
+	if(current_blendpercent != blendpercent) {
+		/* Attempt to match the blending percent to one of the possible values */
+		if(blendpercent < 2.34375) {
+			// 1.5625% blending
+			divider = 6;
+		} else if(blendpercent >= 2.34375 && blendpercent < 4.6875) {
+			// 3.125% blending
+			divider = 5;
+		} else if(blendpercent >= 4.6875 && blendpercent < 9.375) {
+			// 6.25% blending
+			divider = 4;
+		} else if(blendpercent >= 9.375 && blendpercent < 18.75) {
+			// 12.5% blending
+			divider = 3;
+		} else if(blendpercent >= 18.75 && blendpercent < 37.5) {
+			// 25% blending
+			divider = 2;
+		} else if(blendpercent >= 37.5) {
+			// 50% blending
+			divider = 1;
+		}
+		current_blendpercent = blendpercent;
 	}
+	
 
 	for(register unsigned long i=0; i < count; i += 16, col1 += 16, col2 += 16, result += 16) {  
 		result[0] = ((col2[0] - col1[0])>>divider) + col1[0];

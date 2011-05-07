@@ -34,11 +34,11 @@ typedef uint32_t Rgb;	// RGB colour type
 
 #define RGB_WHITE   	(0x00ffffff)
 #define RGB_BLACK   	(0x00000000)
-#define RGB_RED	    	(0x00ff0000)
+#define RGB_RED     	(0x000000ff)
 #define RGB_GREEN   	(0x0000ff00)
-#define RGB_BLUE    	(0x000000ff)
-#define RGB_ORANGE  	(0x00ffa500)
-#define RGB_PURPLE	    (0x00800080)
+#define RGB_BLUE    	(0x00ff0000)
+#define RGB_ORANGE  	(0x0000a5ff)
+#define RGB_PURPLE  	(0x00800080)
 #define RGB_TRANSPARENT	(0x01000000)
 
 #define RGB_VAL(v,c)    	(((v)>>(16-((c)*8)))&0xff)
@@ -46,7 +46,7 @@ typedef uint32_t Rgb;	// RGB colour type
 /* RGB or RGBA macros */
 #define BLUE_VAL_RGBA(v)	(((v)>>16)&0xff)
 #define GREEN_VAL_RGBA(v)	(((v)>>8)&0xff)
-#define RED_VAL_RGBA(v)		((v)&0xff)
+#define RED_VAL_RGBA(v) 	((v)&0xff)
 #define ALPHA_VAL_RGBA(v)	((v)>>24)&0xff)
 #define RED_PTR_RGBA(ptr)	(*((uint8_t*)ptr))
 #define GREEN_PTR_RGBA(ptr)	(*((uint8_t*)ptr+1))
@@ -54,7 +54,7 @@ typedef uint32_t Rgb;	// RGB colour type
 #define ALPHA_PTR_RGBA(ptr)	(*((uint8_t*)ptr+3))
 
 /* BGR or BGRA */
-#define RED_VAL_BGRA(v)		(((v)>>16)&0xff)
+#define RED_VAL_BGRA(v) 	(((v)>>16)&0xff)
 #define GREEN_VAL_BGRA(v)	(((v)>>8)&0xff)
 #define BLUE_VAL_BGRA(v)	((v)&0xff)
 #define ALPHA_VAL_BGRA(v)	((v)>>24)&0xff)
@@ -66,7 +66,7 @@ typedef uint32_t Rgb;	// RGB colour type
 /* ARGB */
 #define BLUE_VAL_ARGB(v)	(((v)>>24)&0xff)
 #define GREEN_VAL_ARGB(v)	(((v)>>16)&0xff)
-#define RED_VAL_ARGB(v)		(((v)>>8)&0xff)
+#define RED_VAL_ARGB(v) 	(((v)>>8)&0xff)
 #define ALPHA_VAL_ARGB(v)	((v)&0xff)
 #define RED_PTR_ARGB(ptr)	(*((uint8_t*)ptr+1))
 #define GREEN_PTR_ARGB(ptr)	(*((uint8_t*)ptr+2))
@@ -76,7 +76,7 @@ typedef uint32_t Rgb;	// RGB colour type
 /* ABGR */
 #define BLUE_VAL_ABGR(v)	(((v)>>8)&0xff)
 #define GREEN_VAL_ABGR(v)	(((v)>>16)&0xff)
-#define RED_VAL_ABGR(v)		(((v)>>24)&0xff)
+#define RED_VAL_ABGR(v) 	(((v)>>24)&0xff)
 #define ALPHA_VAL_ABGR(v)	((v)&0xff)
 #define RED_PTR_ABGR(ptr)	(*((uint8_t*)ptr+3))
 #define GREEN_PTR_ABGR(ptr)	(*((uint8_t*)ptr+2))

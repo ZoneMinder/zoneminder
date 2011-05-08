@@ -99,11 +99,11 @@ protected:
 #endif // ZM_HAS_V4L1
 
 #if HAVE_LIBSWSCALE
-    PixelFormat             imagePixFormat;
-    PixelFormat             capturePixFormat;
-    static AVFrame          **capturePictures;
-    struct SwsContext *imgConversionContext;
-    AVFrame *tmpPicture;    
+	static AVFrame    	**capturePictures;
+	PixelFormat       	imagePixFormat;
+	PixelFormat       	capturePixFormat;
+	struct SwsContext 	*imgConversionContext;
+	AVFrame           	*tmpPicture;    
 #endif // HAVE_LIBSWSCALE
 
 	static LocalCamera      *last_camera;

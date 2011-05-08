@@ -235,7 +235,7 @@ int RemoteCameraRtsp::Capture( Image &image )
                 {
                     /* the picture is allocated by the decoder. no need to free it */
                     Debug( 1, "Got picture %d", frameCount );
-
+#if HAVE_LIBSWSCALE
                     static struct SwsContext *img_convert_ctx = 0;
 
                     if ( !img_convert_ctx )
@@ -246,7 +246,7 @@ int RemoteCameraRtsp::Capture( Image &image )
                     }
 
                     sws_scale( img_convert_ctx, picture->data, picture->linesize, 0, height, tmp_picture->data, tmp_picture->linesize );
-
+#endif
                     image.Assign( width, height, colours, subpixelorder, tmp_picture->data[0], imagesize);
 
                     frameCount++;

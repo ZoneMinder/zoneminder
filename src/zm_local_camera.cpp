@@ -338,9 +338,11 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 	
 	
 #if HAVE_LIBSWSCALE
-	/* Get ffmpeg pixel format based on capture palette and endianness */
-	capturePixFormat = getFfPixFormatFromV4lPalette( v4l_version, palette );
-	imagePixFormat = PIX_FMT_NONE;
+	if( capture ) {
+		/* Get ffmpeg pixel format based on capture palette and endianness */
+		capturePixFormat = getFfPixFormatFromV4lPalette( v4l_version, palette );
+		imagePixFormat = PIX_FMT_NONE;
+	}
 #endif // HAVE_LIBSWSCALE
         
 
@@ -393,13 +395,15 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			} else {
 				Panic("Unexpected colours: %d",colours);
 			}
-			if(!sws_isSupportedInput(capturePixFormat)) {
-				Error("swscale does not support the used capture format");
-				conversion_type = 2; /* Try ZM format conversions */
-			}
-			if(!sws_isSupportedOutput(imagePixFormat)) {
-				Error("swscale does not support the target format");
-				conversion_type = 2; /* Try ZM format conversions */
+			if( capture ) {
+				if(!sws_isSupportedInput(capturePixFormat)) {
+					Error("swscale does not support the used capture format");
+					conversion_type = 2; /* Try ZM format conversions */
+				}
+				if(!sws_isSupportedOutput(imagePixFormat)) {
+					Error("swscale does not support the target format");
+					conversion_type = 2; /* Try ZM format conversions */
+				}
 			}
 #else
 			/* Don't have swscale, see what we can do */
@@ -447,7 +451,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 					conversion_fptr = &zm_convert_rgb565_rgba;
 					subpixelorder = ZM_SUBPIX_ORDER_RGBA;
 				} else {
-					Panic("Unable to find suitable conversion for selected palette and target colourspace.");
+					Fatal("Unable to find suitable conversion for selected palette and target colourspace.");
 				}
 			}
 		}
@@ -501,13 +505,15 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			} else {
 				Panic("Unexpected colours: %d",colours);
 			}
-			if(!sws_isSupportedInput(capturePixFormat)) {
-				Error("swscale does not support the used capture format");
-				conversion_type = 2; /* Try ZM format conversions */
-			}
-			if(!sws_isSupportedOutput(imagePixFormat)) {
-				Error("swscale does not support the target format");
-				conversion_type = 2; /* Try ZM format conversions */
+			if( capture ) {
+				if(!sws_isSupportedInput(capturePixFormat)) {
+					Error("swscale does not support the used capture format");
+					conversion_type = 2; /* Try ZM format conversions */
+				}
+				if(!sws_isSupportedOutput(imagePixFormat)) {
+					Error("swscale does not support the target format");
+					conversion_type = 2; /* Try ZM format conversions */
+				}
 			}
 #else
 			/* Don't have swscale, see what we can do */
@@ -566,12 +572,47 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 
 	last_camera = this;
 	Debug(3,"Selected subpixelorder: %d",subpixelorder);
+
+#if HAVE_LIBSWSCALE
+	/* Initialize swscale stuff */
+	if(capture && conversion_type == 1) {
+		tmpPicture = avcodec_alloc_frame();
+		if ( !tmpPicture )
+			Fatal( "Could not allocate temporary picture" );
+		
+		int pSize = avpicture_get_size( imagePixFormat, width, height );
+		if( pSize != imagesize) {
+			Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
+		}
+		
+		if(config.cpu_extensions && sseversion >= 20) {
+			imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
+		} else {
+			imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+		}
+		
+		if ( !imgConversionContext )
+			Fatal( "Unable to initialise image scaling context" );
+		
+	}
+#endif
 }
 
 LocalCamera::~LocalCamera()
 {
 	if ( device_prime && capture )
 		Terminate();
+	
+#if HAVE_LIBSWSCALE
+	/* Clean up swscale stuff */
+	if(capture && conversion_type == 1) {
+		sws_freeContext(imgConversionContext);
+		imgConversionContext = NULL;
+		
+		av_free(tmpPicture);
+		tmpPicture = NULL;
+	}
+#endif
 }
 
 void LocalCamera::Initialise()
@@ -723,12 +764,10 @@ void LocalCamera::Initialise()
                 Fatal( "Can't map video buffer %d (%d bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
 
 #if HAVE_LIBSWSCALE
-		if (conversion_type == 1) {
-			capturePictures[i] = avcodec_alloc_frame();
-			if ( !capturePictures[i] )
-				Fatal( "Could not allocate picture" );
-			avpicture_fill( (AVPicture *)capturePictures[i], (uint8_t*)v4l2_data.buffers[i].start, capturePixFormat, v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height );
-		}
+		capturePictures[i] = avcodec_alloc_frame();
+		if ( !capturePictures[i] )
+			Fatal( "Could not allocate picture" );
+		avpicture_fill( (AVPicture *)capturePictures[i], (uint8_t*)v4l2_data.buffers[i].start, capturePixFormat, v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height );
 #endif // HAVE_LIBSWSCALE
         }
 
@@ -879,13 +918,10 @@ void LocalCamera::Initialise()
             v4l1_data.buffers[i].height = height;
             v4l1_data.buffers[i].format = palette;
 
-            if (conversion_type == 1)
-            {
-                capturePictures[i] = avcodec_alloc_frame();
-                if ( !capturePictures[i] )
-                    Fatal( "Could not allocate picture" );
-                avpicture_fill( (AVPicture *)capturePictures[i], (unsigned char *)v4l1_data.bufptr+v4l1_data.frames.offsets[i], capturePixFormat, width, height );
-            }
+            capturePictures[i] = avcodec_alloc_frame();
+            if ( !capturePictures[i] )
+                Fatal( "Could not allocate picture" );
+            avpicture_fill( (AVPicture *)capturePictures[i], (unsigned char *)v4l1_data.bufptr+v4l1_data.frames.offsets[i], capturePixFormat, width, height );
         }
 #endif // HAVE_LIBSWSCALE
 
@@ -935,29 +971,6 @@ void LocalCamera::Initialise()
         Debug( 4, "New Cn:%d", vid_pic.contrast );
     }
 #endif // ZM_HAS_V4L1
-
-#if HAVE_LIBSWSCALE
-	if(conversion_type == 1) {
-		tmpPicture = avcodec_alloc_frame();
-		if ( !tmpPicture )
-			Fatal( "Could not allocate temporary picture" );
-		
-		int pSize = avpicture_get_size( imagePixFormat, width, height );
-		if( pSize != imagesize) {
-			Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
-		}
-		
-		if(config.cpu_extensions && sseversion >= 20) {
-			imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
-		} else {
-			imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-		}
-		
-		if ( !imgConversionContext )
-			Fatal( "Unable to initialise image scaling context" );
-		
-	}
-#endif
 }
 
 void LocalCamera::Terminate()
@@ -974,11 +987,9 @@ void LocalCamera::Terminate()
         Debug( 3, "Unmapping video buffers" );
         for ( int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
 #if HAVE_LIBSWSCALE
-		if(conversion_type == 1) {
 			/* Free capture pictures */
 			av_free(capturePictures[i]);
 			capturePictures[i] = NULL;
-		}
 #endif
             if ( munmap( v4l2_data.buffers[i].start, v4l2_data.buffers[i].length ) < 0 )
                 Error( "Failed to munmap buffer %d: %s", i, strerror(errno) );
@@ -993,13 +1004,11 @@ void LocalCamera::Terminate()
     if ( v4l_version == 1 )
     {
 #if HAVE_LIBSWSCALE
-	if(conversion_type == 1) {
 		for(unsigned int i=0; i < v4l1_data.frames.frames; i++) {    
 			/* Free capture pictures */
 			av_free(capturePictures[i]);
 			capturePictures[i] = NULL;
 		}
-	}
 #endif
 	
         Debug( 3, "Unmapping video buffers" );
@@ -1012,17 +1021,6 @@ void LocalCamera::Terminate()
 
 	close( vid_fd );
 	
-#if HAVE_LIBSWSCALE
-	/* Clean up swscale stuff */
-	if(conversion_type == 1) {
-		sws_freeContext(imgConversionContext);
-		imgConversionContext = NULL;
-		
-		av_free(tmpPicture);
-		tmpPicture = NULL;
-	}
-#endif
-
 }
 
 #define capString(test,prefix,yesString,noString,capability) \
@@ -1821,8 +1819,9 @@ int LocalCamera::PreCapture()
 int LocalCamera::Capture( Image &image )
 {
 	Debug( 3, "Capturing" );
-	uint8_t* buffer = NULL;
-	uint8_t* directbuffer = NULL;
+	static uint8_t* buffer = NULL;
+	static uint8_t* directbuffer = NULL;
+	static int capture_frame = -1;
 	
 	int captures_per_frame = 1;
 	if ( channel_count > 1 )
@@ -1832,7 +1831,6 @@ int LocalCamera::Capture( Image &image )
     // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer
     if ( channel_prime )
     {
-        int capture_frame = -1;
 #if ZM_HAS_V4L2
         if ( v4l_version == 2 )
         {
@@ -1906,7 +1904,9 @@ int LocalCamera::Capture( Image &image )
 
             buffer = v4l1_data.bufptr+v4l1_data.frames.offsets[capture_frame];
 #endif // ZM_HAS_V4L1
-    }
+        }
+    } /* prime capture */    
+    
 	if(conversion_type != 0) {
 		
 		Debug( 3, "Performing format conversion" );
@@ -1939,7 +1939,6 @@ int LocalCamera::Capture( Image &image )
 		image.Assign( width, height, colours, subpixelorder, buffer, imagesize);
 		
 	}
-    } /* prime capture */
 	
 	return( 0 );
 }
@@ -1948,7 +1947,7 @@ int LocalCamera::PostCapture()
 {
     Debug( 2, "Post-capturing" );
     // Requeue the buffer unless we need to switch or are a duplicate camera on a channel
-    if ( channel_count == 1 || channel_prime )
+    if ( channel_count > 1 || channel_prime )
     {
 #if ZM_HAS_V4L2
         if ( v4l_version == 2 )

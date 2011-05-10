@@ -29,6 +29,7 @@
 #include "zm_camera.h"
 
 #include <sys/time.h>
+#include <stdint.h>
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
@@ -86,43 +87,64 @@ protected:
 
 	typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
+	/* sizeof(SharedData) expected to be 336 bytes on 32bit and 64bit */
 	typedef struct
 	{
-		int size;
-		bool valid;
-		bool active;
-		bool signal;
-		State state;
-		int last_write_index;
-		int last_read_index;
-		time_t last_write_time;
-		time_t last_read_time;
-		int last_event;
-		unsigned int action;
-		int brightness;
-		int hue;
-		int colour;
-		int contrast;
-		int alarm_x;
-		int alarm_y;
-		char control_state[256];
+		uint32_t size;             	/* +0    */
+		uint32_t last_write_index; 	/* +4    */ 
+		uint32_t last_read_index;  	/* +8    */
+		uint32_t state;            	/* +12   */
+		uint32_t last_event;       	/* +16   */
+		uint32_t action;           	/* +20   */
+		int32_t brightness;        	/* +24   */
+		int32_t hue;               	/* +28   */
+		int32_t colour;            	/* +32   */
+		int32_t contrast;          	/* +36   */
+		int32_t alarm_x;           	/* +40   */
+		int32_t alarm_y;           	/* +44   */
+		uint8_t valid;             	/* +48   */
+		uint8_t active;            	/* +49   */
+		uint8_t signal;            	/* +50   */
+		uint8_t bpadding;          	/* +51   */
+		uint32_t epadding1;        	/* +52   */
+		uint32_t epadding2;        	/* +56   */
+		uint32_t epadding3;        	/* +60   */
+		/* 
+		** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
+		** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
+		*/	
+		union {                    	/* +64    */
+		      time_t last_write_time;
+		      uint64_t extrapad1;
+		};
+		union {                    	/* +72   */
+		      time_t last_read_time;
+		      uint64_t extrapad2;
+		};
+		uint8_t control_state[256];	/* +80   */
+		
 	} SharedData;
 
 	typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
+	
+	/* sizeof(TriggerData) expected to be 560 on 32bit & and 64bit */
 	typedef struct
 	{
-		int size;
-		TriggerState trigger_state;
-		int trigger_score;
+		uint32_t size;
+		uint32_t trigger_state;
+		uint32_t trigger_score;
+		uint32_t padding;
 		char trigger_cause[32];
 		char trigger_text[256];
 		char trigger_showtext[256];
 	} TriggerData;
 
+	/* sizeof(Snapshot) expected to be 16 bytes on 32bit and 32 bytes on 64bit */
 	struct Snapshot
 	{
 		struct timeval	*timestamp;
 		Image	*image;
+		void* padding;
 	};
 
 	class MonitorLink
@@ -317,7 +339,7 @@ public:
 	void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
 	void ForceAlarmOff();
 	void CancelForced();
-	TriggerState GetTriggerState() const { return( trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL ); }
+	TriggerState GetTriggerState() const { return( (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL )); }
 
 	void actionReload();
 	void actionEnable();

@@ -394,8 +394,10 @@ Monitor::Monitor(
     struct timeval *shared_timestamps = (struct timeval *)((char *)trigger_data + sizeof(TriggerData));
     unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
     
+    /* This shouldn't be needed if the shared memory start address is multiple of 16, but just in case */
     if(((unsigned long)shared_images % 16) != 0) {
 	/* Align images buffer to nearest 16 byte boundary */
+	Debug(3,"Aligning shared memory images to the next 16 byte boundary");
 	shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
     }
 
@@ -585,7 +587,7 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
 
 Monitor::State Monitor::GetState() const
 {
-    return( shared_data->state );
+    return( (State)shared_data->state );
 }
 
 int Monitor::GetImage( int index, int scale ) const

@@ -56,26 +56,26 @@ else
         'Enabled' => true,
         'LinkedMonitors' => "",
         'Type' => "",
-        'Device' => "/dev/video",
+        'Device' => "/dev/video0",
         'Channel' => "0",
-        'Format' => "",
+        'Format' => 0x000000ff,
         'Protocol' => "",
         'Method' => "",
         'Host' => "",
         'Path' => "",
         'Port' => "80",
-        'Colours' => "",
-        'Palette' => "",
-        'Width' => "",
-        'Height' => "",
+        'Colours' => 4,
+        'Palette' => fourcc('B','G','R','4'),
+        'Width' => "320",
+        'Height' => "240",
         'Orientation' => "0",
-        'LabelFormat' => '%N - %y/%m/%d %H:%M:%S',
+        'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
         'LabelX' => 0,
         'LabelY' => 0,
-        'ImageBufferCount' => 40,
+        'ImageBufferCount' => 60,
         'WarmupCount' => 25,
-        'PreEventCount' => 10,
-        'PostEventCount' => 10,
+        'PreEventCount' => 25,
+        'PostEventCount' => 25,
         'StreamReplayBuffer' => 1000,
         'AlarmFrameCount' => 1,
         'Controllable' => 0,
@@ -91,14 +91,14 @@ else
         'SectionLength' => 600,
         'FrameSkip' => 0,
         'EventPrefix' => 'Event-',
-        'MaxFPS' => "",
-        'AlarmMaxFPS' => "",
+        'MaxFPS' => "5",
+        'AlarmMaxFPS' => "5",
         'FPSReportInterval' => 1000,
         'RefBlendPerc' => 7,
         'DefaultView' => 'Events',
         'DefaultRate' => '100',
         'DefaultScale' => '100',
-        'SignalCheckColour' => '#0100BE',
+        'SignalCheckColour' => '#0000C0',
         'WebColour' => 'red',
         'Triggers' => "",
     );
@@ -328,8 +328,8 @@ if ( ZM_HAS_V4L2 )
         //"SBGGR16" =>  fourcc('B','Y','R','2'), /* 16  BGBG.. GRGR.. */
 
         /* compressed formats */
-        //"MJPEG" =>    fourcc('M','J','P','G'), /* Motion-JPEG   */
-        "JPEG" =>     fourcc('J','P','E','G'), /* JFIF JPEG     */
+        "*JPEG" =>     fourcc('J','P','E','G'), /* JFIF JPEG     */
+        "*MJPEG" =>    fourcc('M','J','P','G'), /* Motion-JPEG   */
         //"DV" =>       fourcc('d','v','s','d'), /* 1394          */
         //"MPEG" =>     fourcc('M','P','E','G'), /* MPEG-1/2/4    */
 
@@ -608,14 +608,6 @@ switch ( $tab )
     }
     case 'source' :
     {
-        // Set up initial palette value
-        if ( $newMonitor['Palette'] == '' )
-        {
-            if ( ZM_HAS_V4L && $newMonitor['Type'] == 'Local' )
-                $newMonitor['Palette'] = 4;
-            else
-                $newMonitor['Palette'] = 3;
-        }
         if ( ZM_HAS_V4L && $newMonitor['Type'] == "Local" )
         {
 ?>
@@ -630,7 +622,7 @@ switch ( $tab )
             <tr><td><?= $SLANG['CapturePalette'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l1LocalPalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
             }
-            else if ( ZM_HAS_V4L2 && $newMonitor['Method'] == 'v4l2' )
+            else
             {
 ?>
             <tr><td><?= $SLANG['DeviceChannel'] ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l2DeviceChannels as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>

@@ -87,6 +87,7 @@ while( 1 )
 			{
 				# Check we have got an image recently
 				my $image_time = zmGetLastWriteTime( $monitor );
+				zmMemInvalidate( $monitor );
 				next if ( !defined($image_time) ); # Can't read from shared data
 				next if ( !$image_time ); # We can't get the last capture time so can't be sure it's died.
 
@@ -95,9 +96,9 @@ while( 1 )
 				Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
 				if ( $image_delay > $max_image_delay )
 				{
-				    Info( "Restarting capture daemon for ".$monitor->{Name}.", time since last capture $image_delay seconds ($now-$image_time)\n" );
-                    $restart = 1;
-                }
+					Info( "Restarting capture daemon for ".$monitor->{Name}.", time since last capture $image_delay seconds ($now-$image_time)\n" );
+					$restart = 1;
+				}
 			}
 			else
 			{
@@ -124,6 +125,7 @@ while( 1 )
                 {
                     # Check we have got an image recently
                     my $image_time = zmGetLastReadTime( $monitor );
+                    zmMemInvalidate( $monitor );
                     next if ( !defined($image_time) ); # Can't read from shared data
                     next if ( !$image_time ); # We can't get the last capture time so can't be sure it's died.
 

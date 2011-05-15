@@ -90,7 +90,11 @@ void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, d
 #endif
 
 		c->codec_id = of->video_codec;
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+		c->codec_type = AVMEDIA_TYPE_VIDEO;
+#else
 		c->codec_type = CODEC_TYPE_VIDEO;
+#endif
 
 		/* put sample parameters */
 		c->bit_rate = bitrate;
@@ -217,7 +221,11 @@ void VideoStream::OpenStream()
 	/* open the output file, if needed */
 	if ( !(of->flags & AVFMT_NOFILE) )
 	{
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+		if ( avio_open(&ofc->pb, filename, URL_WRONLY) < 0 )
+#else
 		if ( url_fopen(&ofc->pb, filename, URL_WRONLY) < 0 )
+#endif
 		{
 			Fatal( "Could not open '%s'", filename );
 		}
@@ -281,7 +289,11 @@ VideoStream::~VideoStream()
 	{
 		/* close the output file */
 #if ZM_FFMPEG_SVN
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+		avio_close(ofc->pb);
+#else
 		url_fclose(ofc->pb);
+#endif
 #else
 		url_fclose(&ofc->pb);
 #endif
@@ -343,7 +355,11 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 		AVPacket pkt;
 		av_init_packet( &pkt );
 
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+		pkt.flags |= AV_PKT_FLAG_KEY;
+#else
 		pkt.flags |= PKT_FLAG_KEY;
+#endif
 		pkt.stream_index = ost->index;
 		pkt.data = (uint8_t *)opicture_ptr;
 		pkt.size = sizeof(AVPicture);
@@ -370,7 +386,11 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
 			pkt.pts= av_rescale_q( c->coded_frame->pts, c->time_base, ost->time_base );
 #endif
 			if(c->coded_frame->key_frame)
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+				pkt.flags |= AV_PKT_FLAG_KEY;
+#else
 				pkt.flags |= PKT_FLAG_KEY;
+#endif
 			pkt.stream_index = ost->index;
 			pkt.data = video_outbuf;
 			pkt.size = out_size;

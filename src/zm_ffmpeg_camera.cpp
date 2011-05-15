@@ -102,7 +102,11 @@ int FfmpegCamera::PrimeCapture()
     mVideoStreamId = -1;
     for ( int i=0; i < mFormatContext->nb_streams; i++ )
     {
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+        if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
+#else
         if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
+#endif
         {
             mVideoStreamId = i;
             break;

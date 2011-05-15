@@ -124,7 +124,11 @@ int RemoteCameraRtsp::PrimeCapture()
     // Find the first video stream
     int videoStream=-1;
     for ( int i = 0; i < formatContext->nb_streams; i++ )
-        if ( formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+	if ( formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
+#else
+	if ( formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
+#endif
         {
             videoStream = i;
             break;

@@ -40,7 +40,7 @@ protected:
     {
         int payloadType;
         const char payloadName[6];
-        enum CodecType codecType;
+        enum AVMediaType codecType;
         enum CodecID codecId;
         int clockRate;
         int autoChannels;
@@ -49,7 +49,7 @@ protected:
     struct DynamicPayloadDesc
     {
         const char payloadName[32];
-        enum CodecType codecType;
+        enum AVMediaType codecType;
         enum CodecID codecId;
         //int clockRate;
         //int autoChannels;

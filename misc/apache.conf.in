@@ -1,22 +1,22 @@
 #
 # PLEASE NOTE THAT THIS FILE IS INTENDED FOR GUIDANCE ONLY AND MAY NOT BE APPROPRIATE FOR YOUR DISTRIBUTION
 #
-# Sample Apache config file to use ZoneMinder in a virtual hosting 
-# environment.
+# Sample configuration file for running ZoneMinder as name based virtual host
+# Some values may need to manually adjusted to suit your setup
 #
 <VirtualHost *:80>
-    ServerName zm.local
+    ServerName @WEB_HOST@
     ServerAdmin webmaster@localhost
 
-    DocumentRoot @WEB_PREFIX@
-    <Directory @WEB_PREFIX@>
+    DocumentRoot "@WEB_PREFIX@"
+    <Directory "@WEB_PREFIX@">
         Options FollowSymLinks
         AllowOverride All
     </Directory>
 
     ScriptAlias /cgi-bin/ "@CGI_PREFIX@"
-    <Directory @CGI_PREFIX@>
-        Options FollowSymLinks
+    <Directory "@CGI_PREFIX@">
+        Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
         AllowOverride All
     </Directory>
 

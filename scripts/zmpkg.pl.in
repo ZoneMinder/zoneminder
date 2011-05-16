@@ -101,10 +101,6 @@ Info( "Command: $command\n" );
 
 my $retval = 0;
 
-# Determine the appropriate syntax for the su command
-
-my ( $cmd_prefix, $cmd_suffix ) = getCmdFormat();
-
 if ( $command eq "state" )
 {
 	Info( "Updating DB: $state->{Name}\n" );
@@ -239,98 +235,3 @@ if ( $command eq "logrot" )
 }
 
 exit( $retval );
-
-sub getCmdFormat
-{
-	Debug( "Testing valid shell syntax\n" );
-
-	my ( $name ) = getpwuid( $> );
-	if ( $name eq ZM_WEB_USER )
-	{
-		Debug( "Running as '$name', su commands not needed\n" );
-		return( "" );
-	}
-
-	my $null_command = "true";
-
-	my $prefix = "sudo -u ".ZM_WEB_USER." ";
-	my $suffix = "";
-	my $command = $prefix.$null_command.$suffix;
-	Debug( "Testing \"$command\"\n" );
-    $command .= " > /dev/null 2>&1"; 
-	my $output = qx($command);
-	my $status = $? >> 8;
-	if ( !$status )
-	{
-		Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
-		return( $prefix, $suffix );
-	}
-	else
-	{
-		chomp( $output );
-		Debug( "Test failed, '$output'\n" );
-
-		$prefix = "su ".ZM_WEB_USER." --shell=/bin/sh --command='";
-		$suffix = "'";
-		$command = $prefix.$null_command.$suffix;
-		Debug( "Testing \"$command\"\n" );
-		my $output = qx($command);
-		my $status = $? >> 8;
-		if ( !$status )
-		{
-			Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
-			return( $prefix, $suffix );
-		}
-		else
-		{
-			chomp( $output );
-			Debug( "Test failed, '$output'\n" );
-
-			$prefix = "su ".ZM_WEB_USER." -c '";
-			$suffix = "'";
-			$command = $prefix.$null_command.$suffix;
-			Debug( "Testing \"$command\"\n" );
-			$output = qx($command);
-			$status = $? >> 8;
-			if ( !$status )
-			{
-				Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
-				return( $prefix, $suffix );
-			}
-			else
-			{
-				chomp( $output );
-				Debug( "Test failed, '$output'\n" );
-			}
-		}
-	}
-	Error( "Unable to find valid 'su' syntax\n" );
-	exit( -1 );
-}
-
-sub runCommand
-{
-	my $command = shift;
-	$command = ZM_PATH_BIN."/".$command;
-	if ( $cmd_prefix )
-	{
-		$command = $cmd_prefix.$command.$cmd_suffix;
-	}
-	Debug( "Command: $command\n" );
-	my $output = qx($command);
-	my $status = $? >> 8;
-	chomp( $output );
-	if ( $status || DBG_LEVEL > 0 )
-	{
-		if ( $status )
-		{
-			Error( "Unable to run \"$command\", output is \"$output\"\n" );
-			exit( -1 );
-		}
-		else
-		{
-			Debug( "Output: $output\n" );
-		}
-	}
-	return( $output );
-}

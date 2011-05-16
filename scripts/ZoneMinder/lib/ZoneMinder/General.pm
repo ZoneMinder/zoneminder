@@ -43,6 +43,8 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 our %EXPORT_TAGS = (
     'functions' => [ qw(
 		executeShellCommand
+		getCmdFormat
+		runCommand
 		getEventPath
 		deleteEventFiles
         makePath
@@ -67,6 +69,7 @@ use ZoneMinder::Debug qw(:all);
 
 use POSIX;
 
+# For running general shell commands
 sub executeShellCommand( $ )
 {
     my $command = shift;
@@ -79,6 +82,112 @@ sub executeShellCommand( $ )
         Debug( "Output: $output\n" );
     }
     return( $status );
+}
+
+sub getCmdFormat()
+{
+	Debug( "Testing valid shell syntax\n" );
+
+	my ( $name ) = getpwuid( $> );
+	if ( $name eq ZM_WEB_USER )
+	{
+		Debug( "Running as '$name', su commands not needed\n" );
+		return( "" );
+	}
+
+	my $null_command = "true";
+
+	my $prefix = "sudo -u ".ZM_WEB_USER." ";
+	my $suffix = "";
+	my $command = $prefix.$null_command.$suffix;
+	Debug( "Testing \"$command\"\n" );
+    $command .= " > /dev/null 2>&1"; 
+	my $output = qx($command);
+	my $status = $? >> 8;
+	if ( !$status )
+	{
+		Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+		return( $prefix, $suffix );
+	}
+	else
+	{
+		chomp( $output );
+		Debug( "Test failed, '$output'\n" );
+
+		$prefix = "su ".ZM_WEB_USER." --shell=/bin/sh --command='";
+		$suffix = "'";
+		$command = $prefix.$null_command.$suffix;
+		Debug( "Testing \"$command\"\n" );
+		my $output = qx($command);
+		my $status = $? >> 8;
+		if ( !$status )
+		{
+			Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+			return( $prefix, $suffix );
+		}
+		else
+		{
+			chomp( $output );
+			Debug( "Test failed, '$output'\n" );
+
+			$prefix = "su ".ZM_WEB_USER." -c '";
+			$suffix = "'";
+			$command = $prefix.$null_command.$suffix;
+			Debug( "Testing \"$command\"\n" );
+			$output = qx($command);
+			$status = $? >> 8;
+			if ( !$status )
+			{
+				Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+				return( $prefix, $suffix );
+			}
+			else
+			{
+				chomp( $output );
+				Debug( "Test failed, '$output'\n" );
+			}
+		}
+	}
+	Error( "Unable to find valid 'su' syntax\n" );
+	exit( -1 );
+}
+
+our $testedShellSyntax = 0;
+our ( $cmdPrefix, $cmdSuffix );
+
+# For running ZM daemons etc
+sub runCommand( $ )
+{
+    if ( !$testedShellSyntax )
+    {
+        # Determine the appropriate syntax for the su command
+        ( $cmdPrefix, $cmdSuffix ) = getCmdFormat();
+        $testedShellSyntax = !undef;
+    }
+
+	my $command = shift;
+	$command = ZM_PATH_BIN."/".$command;
+	if ( $cmdPrefix )
+	{
+		$command = $cmdPrefix.$command.$cmdSuffix;
+	}
+	Debug( "Command: $command\n" );
+	my $output = qx($command);
+	my $status = $? >> 8;
+	chomp( $output );
+	if ( $status || zmDbgLevel() > 0 )
+	{
+		if ( $status )
+		{
+			Error( "Unable to run \"$command\", output is \"$output\"\n" );
+			exit( -1 );
+		}
+		else
+		{
+			Debug( "Output: $output\n" );
+		}
+	}
+	return( $output );
 }
 
 sub getEventPath( $ )

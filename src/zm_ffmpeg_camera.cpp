@@ -158,8 +158,14 @@ int FfmpegCamera::Capture( Image &image )
     static int frameCount = 0;
     AVPacket packet;
     int frameComplete = false;
-    while ( !frameComplete && (av_read_frame( mFormatContext, &packet ) >= 0) )
+    while ( !frameComplete )
     {
+        int avResult = av_read_frame( mFormatContext, &packet );
+        if ( avResult < 0 )
+        {
+            Error( "Unable to read packet from stream %d: error %d", packet.stream_index, avResult );
+            return( -1 );
+        }
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId )
         {

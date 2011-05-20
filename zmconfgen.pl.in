@@ -184,7 +184,7 @@ sub generateConfigSQL
 sub addSlashes
 {
 	my $string = shift;
-    return( "" ) unless $string;
+    return( "" ) if ( !defined($string) );
 	$string =~ s|(['"])|\\$1|g;
 	return( $string );
 }

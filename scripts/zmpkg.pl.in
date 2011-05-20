@@ -155,6 +155,19 @@ if ( $command =~ /^(?:start|restart)$/ )
 
 	if ( $status eq "stopped" )
 	{
+        # Recreate the temporary directory if it's been wiped
+        if ( !-e "@ZM_TMPDIR@" )
+        {
+            Debug( "Recreating temporary dirrectory '@ZM_TMPDIR@'" );
+            mkdir( "@ZM_TMPDIR@", 0700 ) or Fatal( "Can't create missing temporary directory '@ZM_TMPDIR@': $!" );
+            my ( $runName ) = getpwuid( $> );
+            if ( $runName ne ZM_WEB_USER )
+            {
+                # Not running as web user, so should be root in whch case chown the temporary directory
+                my ( $webName, $webPass, $webUid, $webGid ) = getpwnam( ZM_WEB_USER ) or Fatal( "Can't get user details for web user '".ZM_WEB_USER."': $!" );
+                chown( $webUid, $webGid, "@ZM_TMPDIR@" ) or Fatal( "Can't change ownership of temporary directory '@ZM_TMPDIR@' to '".ZM_WEB_USER.":".ZM_WEB_GROUP."': $!" );
+            }
+        }
 		zmMemTidy();
 		runCommand( "zmfix" );
 		runCommand( "zmdc.pl startup" );

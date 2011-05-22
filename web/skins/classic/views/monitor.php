@@ -72,7 +72,7 @@ else
         'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
         'LabelX' => 0,
         'LabelY' => 0,
-        'ImageBufferCount' => 60,
+        'ImageBufferCount' => 50,
         'WarmupCount' => 25,
         'PreEventCount' => 25,
         'PostEventCount' => 25,
@@ -91,14 +91,14 @@ else
         'SectionLength' => 600,
         'FrameSkip' => 0,
         'EventPrefix' => 'Event-',
-        'MaxFPS' => "5",
-        'AlarmMaxFPS' => "5",
+        'MaxFPS' => "",
+        'AlarmMaxFPS' => "",
         'FPSReportInterval' => 1000,
         'RefBlendPerc' => 7,
         'DefaultView' => 'Events',
         'DefaultRate' => '100',
         'DefaultScale' => '100',
-        'SignalCheckColour' => '#0000C0',
+        'SignalCheckColour' => '#0000c0',
         'WebColour' => 'red',
         'Triggers' => "",
     );
@@ -139,7 +139,7 @@ if ( $newMonitor['AlarmMaxFPS'] == '0.00' )
 
 if ( !empty($_REQUEST['preset']) )
 {
-    $preset = dbFetchOne( "select Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '".dbEscape($_REQUEST['preset'])."'" );
+    $preset = dbFetchOne( "select Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '".dbEscape($_REQUEST['preset'])."'" );
     foreach ( $preset as $name=>$value )
     {
         if ( isset($value) )
@@ -150,7 +150,7 @@ if ( !empty($_REQUEST['preset']) )
 }
 if ( !empty($_REQUEST['probe']) )
 {
-    $probe = unserialize( $_REQUEST['probe'] );
+    $probe = unserialize(base64_decode($_REQUEST['probe']));
     foreach ( $probe as $name=>$value )
     {
         if ( isset($value) )

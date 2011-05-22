@@ -354,7 +354,7 @@ Monitor::Monitor(
         struct stat map_stat;
     if ( fstat( map_fd, &map_stat ) < 0 )
         Fatal( "Can't stat memory map file %s: %s", mem_file, strerror(errno) );
-    if ( map_stat.st_size == 0 )
+    if ( map_stat.st_size != mem_size && purpose == CAPTURE )
     {
         // Allocate the size
         if ( ftruncate( map_fd, mem_size ) < 0 )
@@ -1007,23 +1007,25 @@ bool Monitor::CheckSignal( const Image *image )
 {
     static bool static_undef = true;
     /* RGB24 colors */
-    static unsigned char red_val;
-    static unsigned char green_val;
-    static unsigned char blue_val;
-    
-    static Rgb color_val; 		/* RGB32 color */
-    static uint8_t grayscale_val; 	/* 8bit grayscale color */
+    static uint8_t red_val;
+    static uint8_t green_val;
+    static uint8_t blue_val;
+    static uint8_t grayscale_val; /* 8bit grayscale color */  
+    static Rgb colour_val; /* RGB32 color */
+    static int usedsubpixorder;
 
     if ( config.signal_check_points > 0 )
     {
         if ( static_undef )
         {
             static_undef = false;
-            red_val = RED_VAL_RGBA(signal_check_colour);
-            green_val = GREEN_VAL_RGBA(signal_check_colour);
-            blue_val = BLUE_VAL_RGBA(signal_check_colour);
-	    color_val = RGBA_BGRA_ZEROALPHA(signal_check_colour); 	/* Clear alpha byte */
-	    grayscale_val = 0xff & signal_check_colour; 	/* Clear all bytes but lowest byte */    
+            usedsubpixorder = camera->SubpixelOrder();
+            colour_val = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
+            colour_val = rgb_convert(colour_val, usedsubpixorder);
+            red_val = RED_VAL_BGRA(signal_check_colour);
+            green_val = GREEN_VAL_BGRA(signal_check_colour);
+            blue_val = BLUE_VAL_BGRA(signal_check_colour);
+            grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
         }
 
         const uint8_t *buffer = image->Buffer();
@@ -1044,20 +1046,33 @@ bool Monitor::CheckSignal( const Image *image )
                     break;
             }
             
-            if(colours == 1) {
-	      if ( *(buffer+index) != grayscale_val )
-		return true;
-	    
-	    } else if(colours == 3) {
-	      const uint8_t *ptr = buffer+(index*colours);
-	      if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
-		return true;
-	    
-	    } else if(colours == 4) {
-	      if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != color_val )
-		return true;
-	    }
-	    
+		if(colours == ZM_COLOUR_GRAY8) {
+			if ( *(buffer+index) != grayscale_val )
+				return true;
+			
+		} else if(colours == ZM_COLOUR_RGB24) {
+			const uint8_t *ptr = buffer+(index*colours);
+			
+			if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR) {
+				if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
+					return true;
+			} else {
+				/* Assume RGB */
+				if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
+					return true;
+			}
+			
+		} else if(colours == ZM_COLOUR_RGB32) {
+			if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
+				if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
+					return true;
+			} else {
+				/* Assume RGBA or BGRA */
+				if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val) )
+					return true;
+			}
+		}
+        
         }
         return( false );
     }
@@ -3498,7 +3513,7 @@ void MonitorStream::runStream()
     while ( !zm_terminate )
     {
         bool got_command = false;
-        if ( feof( stdout ) || ferror( stdout ) )
+        if ( feof( stdout ) || ferror( stdout ) || !monitor->ShmValid() )
         {
             break;
         }

@@ -664,11 +664,11 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	if ( type == INCLUSIVE )
 	{
-		score <<= 1;
+		score /= 2;
 	}
 	else if ( type == EXCLUSIVE )
 	{
-		score >>= 1;
+		score *= 2;
 	}
 
 	Debug( 5, "Adjusted score is %d", score );

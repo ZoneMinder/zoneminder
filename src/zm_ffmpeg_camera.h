@@ -35,6 +35,8 @@ class FfmpegCamera : public Camera
 protected:
     std::string         mPath;
 
+    int frameCount;    
+
 #if HAVE_LIBAVFORMAT
     AVFormatContext     *mFormatContext;
     int                 mVideoStreamId;

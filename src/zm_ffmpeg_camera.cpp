@@ -38,6 +38,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, in
 	mCodec = NULL;
 	mRawFrame = NULL;
 	mFrame = NULL;
+	frameCount = 0;
 	
 #if HAVE_LIBSWSCALE    
 	mConvertContext = NULL;
@@ -183,8 +184,7 @@ int FfmpegCamera::PreCapture()
 
 int FfmpegCamera::Capture( Image &image )
 {
-    static int frameCount = 0;
-    AVPacket packet;
+	AVPacket packet;
 	uint8_t* directbuffer;
    
 	/* Request a writeable buffer of the target image */

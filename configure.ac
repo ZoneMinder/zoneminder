@@ -193,14 +193,14 @@ fi
 
 ENABLE_MMAP=yes
 AC_ARG_ENABLE(mmap,
-    [  --enable-mmap=<yes|no> enable or disabled mapped memory versus shared memory, default shared],
+    [  --enable-mmap=<yes|no> enable or disabled mapped memory versus shared memory, default mapped],
     [ENABLE_MMAP=$enable_mmap],
     AC_MSG_WARN([You can call configure with the --enable-mmap=<yes|no> or --disable-mmap option.
     This tells configure whether to compile ZoneMinder with mmap support rather than IPC shared
-    memory. This is a new feature that uses memory mapped into files which all processes can share.
+    memory. This is a feature that uses memory mapped into files which all processes can share.
     Memory mapping requires less configuration and is more flexible than shared memory but may
     slow down your system unless the mapped files are configured to reside on a fast or RAM based
-    filesystem however this will not normally be the case.
+    filesystem which will normally be the case by default.
     e.g. --enable-mmap=yes or --disable-mmap])
 )
 if test "$ENABLE_MMAP" == "yes"; then
@@ -338,7 +338,7 @@ AC_PROG_PERL_MODULES(Date::Manip,,AC_MSG_ERROR(zm requires Date::Manip))
 AC_PROG_PERL_MODULES(LWP::UserAgent,,AC_MSG_ERROR(zm requires LWP::UserAgent))
 AC_PROG_PERL_MODULES(PHP::Serialization,,AC_MSG_ERROR(zm requires PHP::Serialization))
 if test "$ENABLE_MMAP" == "yes"; then
-AC_PROG_PERL_MODULES(Sys::Mmap,,AC_MSG_ERROR(zm requires Sys::Mmap for mapped memory))
+AC_PROG_PERL_MODULES(Sys::Mmap,,AC_MSG_ERROR(zm requires Sys::Mmap for mapped memory, set --enable-mmap=no to use IPC shared memory instead))
 fi
 
 # Optional perl modules

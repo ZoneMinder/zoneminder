@@ -277,12 +277,12 @@ sub makePath( $$ )
         {
             if ( -e $subpath )
             {
-                die( "Can't create '$subpath', already exists as non directory" );
+                Fatal( "Can't create '$subpath', already exists as non directory" );
             }
             else
             {
                 Debug( "Creating '$subpath'\n" );
-                mkdir( $subpath ) or die( "Can't mkdir '$subpath': $!" );
+                mkdir( $subpath ) or Fatal( "Can't mkdir '$subpath': $!" );
             }
         }
     }
@@ -300,7 +300,7 @@ sub _testJSON
         JSON::Any->import();
     };
     $testedJSON = 1;
-    $hasJSONAny = 1 if( $result );
+    $hasJSONAny = 1 if ( $result );
 
 }
 
@@ -322,7 +322,13 @@ sub jsonEncode( $ )
     my $value = shift;
 
     _testJSON();
-    return( JSON::Any->objToJson( $value ) ) if ( $hasJSONAny );
+    if ( $hasJSONAny )
+    {
+        my $string = eval { JSON::Any->objToJson( $value ) };
+        Fatal( "Unable to encode object to JSON: $@" ) unless( $string );
+        return( $string );
+    }
+
 
     my $type = _getJSONType($value);
     if ( $type eq 'integer' || $type eq 'double' )
@@ -359,7 +365,7 @@ sub jsonEncode( $ )
     }
     else
     {
-        die( "Unexpected type '$type'" );
+        Fatal( "Unexpected type '$type'" );
     }
 }
 
@@ -368,7 +374,12 @@ sub jsonDecode( $ )
     my $value = shift;
 
     _testJSON();
-    return( JSON::Any->jsonToObj( $value ) ) if ( $hasJSONAny );
+    if ( $hasJSONAny )
+    {
+        my $object = eval { JSON::Any->jsonToObj( $value ) };
+        Fatal( "Unable to decode JSON string '$value': $@" ) unless( $object );
+        return( $object );
+    }
 
     my $comment = 0;
     my $unescape = 0;
@@ -416,7 +427,7 @@ sub jsonDecode( $ )
     $out =~ s/=>false/=>0/g;
     $out =~ s/=>null/=>undef/g;
     my $result = eval $out;
-    die( $@ ) if ( $@ );
+    Fatal( $@ ) if ( $@ );
     return( $result );
 }
 

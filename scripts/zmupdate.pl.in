@@ -901,6 +901,41 @@ if ( $version )
         patchDB( $dbh, "1.24.2" );
         $cascade = !undef;
     }
+    if ( $cascade || $version eq "1.24.3" )
+    {
+        my $result = eval
+        {
+            require PHP::Serialization;
+            PHP::Serialization->import();
+        };
+        die( "Unable to perform upgrade from 1.24.3, PHP::Serialization module not found" ) if ( $result );
+
+        # Patch the database
+        patchDB( $dbh, "1.24.3" );
+
+        # Convert filters to JSON from PHP format serialisation
+        {
+            my $sql = "select * from Filters";
+            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+            my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+            my @dbFilters;
+            while( my $dbFilter = $sth->fetchrow_hashref() )
+            {
+                push( @dbFilters, $dbFilter );
+            }
+            $sth->finish();
+            foreach my $dbFilter ( @dbFilters )
+            {
+                my $phpQuery = $dbFilter->{Query};
+                my $query = PHP::Serialization::unserialize( $phpQuery );
+                my $jsonQuery = jsonEncode( $query );
+                my $sql = "update Filters set Query = ? where Name = ?";
+                my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                my $res = $sth->execute( $jsonQuery, $dbFilter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+            }
+        }
+        $cascade = !undef;
+    }
     if ( $cascade )
     {
         my $installed_version = ZM_VERSION;

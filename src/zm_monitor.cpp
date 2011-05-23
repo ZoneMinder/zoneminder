@@ -2937,6 +2937,7 @@ bool Monitor::DumpSettings( char *output, bool verbose )
     }
 #endif // ZM_HAS_V4L
     sprintf( output+strlen(output), "Colours : %d\n", camera->Colours() );
+    sprintf( output+strlen(output), "Subpixel Order : %d\n", camera->SubpixelOrder() );
     sprintf( output+strlen(output), "Event Prefix : %s\n", event_prefix );
     sprintf( output+strlen(output), "Label Format : %s\n", label_format );
     sprintf( output+strlen(output), "Label Coord : %d,%d\n", label_coord.X(), label_coord.Y() );

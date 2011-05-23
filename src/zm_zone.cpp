@@ -171,43 +171,20 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		hi_x = ranges[py].hi_x;
 
 		Debug( 7, "Checking line %d from %d -> %d", y, lo_x, hi_x );
-		pdiff = diff_buff + (lo_x * y);
+		pdiff = diff_buff + (diff_width * y);
 		ppoly = pg_image->Buffer( ranges[py].off_x, py );
-		// Left margin
-		if ( y < hi_y )
-		{
-			int next_lo_x = ranges[py+1].lo_x;
-			if ( next_lo_x < lo_x )
-			{
-				int lo_x_diff = lo_x-next_lo_x;
-				memset( pdiff-lo_x_diff, BLACK, lo_x_diff  );
-			}
-			else  if ( lo_x > 0 )
-				*(pdiff-1) = BLACK;
-		}
-		else  if ( lo_x > 0 )
-			*(pdiff-1) = BLACK;
+		pdiff += lo_x;
 		for ( int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ )
 		{
 			if ( *ppoly && (*pdiff > min_pixel_threshold) && (!max_pixel_threshold || (*pdiff < max_pixel_threshold)) )
 			{
 				alarm_pixels++;
-				pixel_diff_count += abs(*pdiff);
+				pixel_diff_count += *pdiff;
 				*pdiff = WHITE;
 			}
 			else
 			{
 				*pdiff = BLACK;
-			}
-		}
-		// Right margin
-		if ( y < hi_y )
-		{
-			int next_hi_x = ranges[py+1].hi_x;
-			if ( next_hi_x > hi_x )
-			{
-				//printf( "%d: Setting %d-%d = %d\n", y, hi_x, next_hi_x, next_hi_x-hi_x );
-				memset( pdiff, BLACK, next_hi_x-hi_x );
 			}
 		}
 	}

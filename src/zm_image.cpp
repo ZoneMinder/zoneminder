@@ -181,12 +181,20 @@ void Image::Initialise()
 			Debug(2,"Delta: Using SSSE3 delta functions");
 		} else if(sseversion >= 20) {
 			/* SSE2 available */
-			fptr_delta8_rgba = &std_delta8_rgba;
-			fptr_delta8_bgra = &std_delta8_bgra;
-			fptr_delta8_argb = &std_delta8_argb;
-			fptr_delta8_abgr = &std_delta8_abgr;
+			fptr_delta8_rgba = &sse2_delta8_rgba;
+			fptr_delta8_bgra = &sse2_delta8_bgra;
+			fptr_delta8_argb = &sse2_delta8_argb;
+			fptr_delta8_abgr = &sse2_delta8_abgr;
+			/* On some systems, the 4 SSE2 algorithms above might be slower than
+			** the standard algorithms, especially on early Pentium 4 processors
+			** In that case, comment out the 4 lines above and uncomment the 4 lines below
+			*/
+			// fptr_delta8_rgba = &std_delta8_rgba;
+			// fptr_delta8_bgra = &std_delta8_bgra;
+			// fptr_delta8_argb = &std_delta8_argb;
+			// fptr_delta8_abgr = &std_delta8_abgr;
 			fptr_delta8_gray8 = &sse2_delta8_gray8;
-			Debug(2,"Delta: Using standard and SSE2 delta functions");
+			Debug(2,"Delta: Using SSE2 delta functions");
 		} else {
 			/* No SSE available */
 			fptr_delta8_rgba = &std_delta8_rgba;
@@ -2403,7 +2411,7 @@ __attribute__ ((noinline)) void sse2_fastblend(const uint8_t* col1, const uint8_
 	"cmp %3, %4\n\t"
 	"jb algo_sse2_blend\n\t"
 	:
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (clearmask), "m" (divider)
+	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (clearmask), "m" (divider)
 	: "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
 	);
 #else
@@ -2666,8 +2674,310 @@ __attribute__ ((noinline)) void sse2_delta8_gray8(const uint8_t* col1, const uin
 	"cmp %3, %4\n\t"
 	"jb algo_sse2_delta8_gray8\n\t"
 	:
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
+	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
 	: "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
+	);
+#else
+	Panic("SSE function called on a non x86\\x86-64 platform");
+#endif
+}
+
+/* RGB32: RGBA SSE2 */
+__attribute__ ((noinline)) void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if (defined(__i386__) || defined(__x86_64__))  
+	unsigned long i = 0;
+
+	/* XMM0 - clear mask - kept */
+	/* XMM1,2,3 - General purpose */
+	/* XMM4 - divide mask - kept */
+	/* XMM5 - temp */
+	/* XMM6 - temp */
+	/* XMM7 - unused */  
+  
+	__asm__ __volatile__ (
+	"mov $0x1F1F1F1F, %%eax\n\t"
+	"movd %%eax, %%xmm4\n\t"
+	"pshufd $0x0, %%xmm4, %%xmm4\n\t"
+	"mov $0xff, %%eax\n\t"
+	"movd %%eax, %%xmm0\n\t"
+	"pshufd $0x0, %%xmm0, %%xmm0\n\t"
+	"mov $0x80000000, %%eax\n\t"
+	"movd %%eax, %%xmm5\n\t"
+	"pshufd $0x0, %%xmm5, %%xmm5\n\t"
+	"algo_sse2_delta8_rgba:\n\t"
+	"movdqa (%0,%4,4), %%xmm1\n\t"
+	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t"
+	"movdqa %%xmm2, %%xmm6\n\t"
+	"pmaxub %%xmm1, %%xmm2\n\t"
+	"pminub %%xmm5, %%xmm6\n\t"
+	"psubb %%xmm6, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm3\n\t"
+	"psrld $0x8, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"pslld $0x2, %%xmm2\n\t"
+	"paddd %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm3, %%xmm1\n\t"
+	"pand %%xmm0, %%xmm1\n\t"
+	"paddd %%xmm1, %%xmm1\n\t"
+	"paddd %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm3, %%xmm2\n\t"
+	"psrld $0x10, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"paddd %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm3\n\t"
+	"movdqa %%xmm1, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm3\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"psrldq $0x9, %%xmm2\n\t"
+	"por %%xmm2, %%xmm3\n\t"
+	"movdqa %%xmm1, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"psrldq $0x6, %%xmm2\n\t"
+	"por %%xmm2, %%xmm3\n\t"
+	"pand %%xmm0, %%xmm1\n\t"
+	"psrldq $0x3, %%xmm1\n\t"
+	"por %%xmm1, %%xmm3\n\t"
+	"movd %%xmm3, %%eax\n\t"
+	"movnti %%eax, (%2,%4)\n\t"
+	"add $0x4, %4\n\t"
+	"cmp %3, %4\n\t"
+	"jb algo_sse2_delta8_rgba\n\t"
+	:
+	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
+	);
+#else
+	Panic("SSE function called on a non x86\\x86-64 platform");
+#endif
+}
+
+/* RGB32: BGRA SSE2 */
+__attribute__ ((noinline)) void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if (defined(__i386__) || defined(__x86_64__))  
+	unsigned long i = 0;
+
+	/* XMM0 - clear mask - kept */
+	/* XMM1,2,3 - General purpose */
+	/* XMM4 - divide mask - kept */
+	/* XMM5 - temp */
+	/* XMM6 - temp */
+	/* XMM7 - unused */  
+  
+	__asm__ __volatile__ (
+	"mov $0x1F1F1F1F, %%eax\n\t"
+	"movd %%eax, %%xmm4\n\t"
+	"pshufd $0x0, %%xmm4, %%xmm4\n\t"
+	"mov $0xff, %%eax\n\t"
+	"movd %%eax, %%xmm0\n\t"
+	"pshufd $0x0, %%xmm0, %%xmm0\n\t"
+	"mov $0x80000000, %%eax\n\t"
+	"movd %%eax, %%xmm5\n\t"
+	"pshufd $0x0, %%xmm5, %%xmm5\n\t"
+	"algo_sse2_delta8_bgra:\n\t"
+	"movdqa (%0,%4,4), %%xmm1\n\t"
+	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t"
+	"movdqa %%xmm2, %%xmm6\n\t"
+	"pmaxub %%xmm1, %%xmm2\n\t"
+	"pminub %%xmm5, %%xmm6\n\t"
+	"psubb %%xmm6, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm3\n\t"
+	"psrld $0x8, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"pslld $0x2, %%xmm2\n\t"
+	"paddd %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm3, %%xmm1\n\t"
+	"pand %%xmm0, %%xmm1\n\t"
+	"paddd %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm3, %%xmm2\n\t"
+	"psrld $0x10, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"paddd %%xmm2, %%xmm2\n\t"
+	"paddd %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm3\n\t"
+	"movdqa %%xmm1, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm3\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"psrldq $0x9, %%xmm2\n\t"
+	"por %%xmm2, %%xmm3\n\t"
+	"movdqa %%xmm1, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"psrldq $0x6, %%xmm2\n\t"
+	"por %%xmm2, %%xmm3\n\t"
+	"pand %%xmm0, %%xmm1\n\t"
+	"psrldq $0x3, %%xmm1\n\t"
+	"por %%xmm1, %%xmm3\n\t"
+	"movd %%xmm3, %%eax\n\t"
+	"movnti %%eax, (%2,%4)\n\t"
+	"add $0x4, %4\n\t"
+	"cmp %3, %4\n\t"
+	"jb algo_sse2_delta8_bgra\n\t"
+	:
+	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
+	);
+#else
+	Panic("SSE function called on a non x86\\x86-64 platform");
+#endif
+}
+
+/* RGB32: ARGB SSE2 */
+__attribute__ ((noinline)) void sse2_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if (defined(__i386__) || defined(__x86_64__))  
+	unsigned long i = 0;
+
+	/* XMM0 - clear mask - kept */
+	/* XMM1,2,3 - General purpose */
+	/* XMM4 - divide mask - kept */
+	/* XMM5 - temp */
+	/* XMM6 - temp */
+	/* XMM7 - unused */  
+  
+	__asm__ __volatile__ (
+	"mov $0x1F1F1F1F, %%eax\n\t"
+	"movd %%eax, %%xmm4\n\t"
+	"pshufd $0x0, %%xmm4, %%xmm4\n\t"
+	"mov $0xff, %%eax\n\t"
+	"movd %%eax, %%xmm0\n\t"
+	"pshufd $0x0, %%xmm0, %%xmm0\n\t"
+	"mov $0x80000000, %%eax\n\t"
+	"movd %%eax, %%xmm5\n\t"
+	"pshufd $0x0, %%xmm5, %%xmm5\n\t"
+	"algo_sse2_delta8_argb:\n\t"
+	"movdqa (%0,%4,4), %%xmm1\n\t"
+	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t"
+	"movdqa %%xmm2, %%xmm6\n\t"
+	"pmaxub %%xmm1, %%xmm2\n\t"
+	"pminub %%xmm5, %%xmm6\n\t"
+	"psubb %%xmm6, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm3\n\t"
+	"psrld $0x10, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"pslld $0x2, %%xmm2\n\t"
+	"paddd %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm3, %%xmm1\n\t"
+	"psrld $0x8, %%xmm1\n\t"
+	"pand %%xmm0, %%xmm1\n\t"
+	"paddd %%xmm1, %%xmm1\n\t"
+	"paddd %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm3, %%xmm2\n\t"
+	"psrld $0x18, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"paddd %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm3\n\t"
+	"movdqa %%xmm1, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm3\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"psrldq $0x9, %%xmm2\n\t"
+	"por %%xmm2, %%xmm3\n\t"
+	"movdqa %%xmm1, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"psrldq $0x6, %%xmm2\n\t"
+	"por %%xmm2, %%xmm3\n\t"
+	"pand %%xmm0, %%xmm1\n\t"
+	"psrldq $0x3, %%xmm1\n\t"
+	"por %%xmm1, %%xmm3\n\t"
+	"movd %%xmm3, %%eax\n\t"
+	"movnti %%eax, (%2,%4)\n\t"
+	"add $0x4, %4\n\t"
+	"cmp %3, %4\n\t"
+	"jb algo_sse2_delta8_argb\n\t"
+	:
+	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
+	);
+#else
+	Panic("SSE function called on a non x86\\x86-64 platform");
+#endif
+}
+
+/* RGB32: ABGR SSE2 */
+__attribute__ ((noinline)) void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if (defined(__i386__) || defined(__x86_64__))  
+	unsigned long i = 0;
+
+	/* XMM0 - clear mask - kept */
+	/* XMM1,2,3 - General purpose */
+	/* XMM4 - divide mask - kept */
+	/* XMM5 - temp */
+	/* XMM6 - temp */
+	/* XMM7 - unused */  
+  
+	__asm__ __volatile__ (
+	"mov $0x1F1F1F1F, %%eax\n\t"
+	"movd %%eax, %%xmm4\n\t"
+	"pshufd $0x0, %%xmm4, %%xmm4\n\t"
+	"mov $0xff, %%eax\n\t"
+	"movd %%eax, %%xmm0\n\t"
+	"pshufd $0x0, %%xmm0, %%xmm0\n\t"
+	"mov $0x80000000, %%eax\n\t"
+	"movd %%eax, %%xmm5\n\t"
+	"pshufd $0x0, %%xmm5, %%xmm5\n\t"
+	"algo_sse2_delta8_abgr:\n\t"
+	"movdqa (%0,%4,4), %%xmm1\n\t"
+	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t"
+	"movdqa %%xmm2, %%xmm6\n\t"
+	"pmaxub %%xmm1, %%xmm2\n\t"
+	"pminub %%xmm5, %%xmm6\n\t"
+	"psubb %%xmm6, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm3\n\t"
+	"psrld $0x10, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"pslld $0x2, %%xmm2\n\t"
+	"paddd %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm3, %%xmm1\n\t"
+	"psrld $0x8, %%xmm1\n\t"
+	"pand %%xmm0, %%xmm1\n\t"
+	"paddd %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm3, %%xmm2\n\t"
+	"psrld $0x18, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"paddd %%xmm2, %%xmm2\n\t"
+	"paddd %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm3\n\t"
+	"movdqa %%xmm1, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm3\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"psrldq $0x9, %%xmm2\n\t"
+	"por %%xmm2, %%xmm3\n\t"
+	"movdqa %%xmm1, %%xmm2\n\t"
+	"pand %%xmm0, %%xmm2\n\t"
+	"psrldq $0x6, %%xmm2\n\t"
+	"por %%xmm2, %%xmm3\n\t"
+	"pand %%xmm0, %%xmm1\n\t"
+	"psrldq $0x3, %%xmm1\n\t"
+	"por %%xmm1, %%xmm3\n\t"
+	"movd %%xmm3, %%eax\n\t"
+	"movnti %%eax, (%2,%4)\n\t"
+	"add $0x4, %4\n\t"
+	"cmp %3, %4\n\t"
+	"jb algo_sse2_delta8_abgr\n\t"
+	:
+	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
 	);
 #else
 	Panic("SSE function called on a non x86\\x86-64 platform");
@@ -2724,7 +3034,7 @@ __attribute__ ((noinline)) void ssse3_delta8_rgba(const uint8_t* col1, const uin
 	"cmp %3, %4\n\t"
 	"jb algo_ssse3_delta8_rgba\n\t"
 	:
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
+	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -2782,7 +3092,7 @@ __attribute__ ((noinline)) void ssse3_delta8_bgra(const uint8_t* col1, const uin
 	"cmp %3, %4\n\t"
 	"jb algo_ssse3_delta8_bgra\n\t"
 	:
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
+	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -2841,7 +3151,7 @@ __attribute__ ((noinline)) void ssse3_delta8_argb(const uint8_t* col1, const uin
 	"cmp %3, %4\n\t"
 	"jb algo_ssse3_delta8_argb\n\t"
 	:
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
+	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -2900,7 +3210,7 @@ __attribute__ ((noinline)) void ssse3_delta8_abgr(const uint8_t* col1, const uin
 	"cmp %3, %4\n\t"
 	"jb algo_ssse3_delta8_abgr\n\t"
 	:
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
+	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3072,7 +3382,7 @@ __attribute__ ((noinline)) void ssse3_convert_rgba_gray8(const uint8_t* col1, ui
 	"cmp %2, %3\n\t"
 	"jb algo_ssse3_convert_rgba_gray8\n\t"
 	:
-	: "r" (col1), "r" (result), "r" (count), "r" (i), "m" (*movemask)
+	: "r" (col1), "r" (result), "m" (count), "r" (i), "m" (*movemask)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3113,7 +3423,7 @@ __attribute__ ((noinline)) void ssse3_convert_yuyv_gray8(const uint8_t* col1, ui
 	"cmp %2, %3\n\t"
 	"jb algo_ssse3_convert_yuyv_gray8\n\t"
 	:
-	: "r" (col1), "r" (result), "r" (count), "r" (i), "m" (*movemask1), "m" (*movemask2)
+	: "r" (col1), "r" (result), "m" (count), "r" (i), "m" (*movemask1), "m" (*movemask2)
 	: "%xmm3", "%xmm4", "cc", "memory"
 	);
 #else

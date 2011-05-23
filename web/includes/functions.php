@@ -2181,11 +2181,11 @@ function jsonEncode( &$value )
         case 'boolean':
             return( $value?'true':'false' );
         case 'string':
-            return( '"'.preg_replace( "/\r?\n/", '\\n', addcslashes($value,'"\'\\/') ).'"' );
+            return( '"'.preg_replace( "/\r?\n/", '\\n', addcslashes($value,'"\\/') ).'"' );
         case 'NULL':
             return( 'null' );
         case 'object':
-            return( '"Object '.addcslashes(get_class($value),'"\'\\/').'"' );
+            return( '"Object '.addcslashes(get_class($value),'"\\/').'"' );
         case 'array':
             if ( isVector( $value ) )
                 return( '['.join( ',', array_map( 'jsonEncode', $value) ).']' );
@@ -2201,8 +2201,50 @@ function jsonEncode( &$value )
                 return( $result.'}' );
             }
         default:
-            return( '"'.addcslashes(gettype($value),'"\'\\/').'"' );
+            return( '"'.addcslashes(gettype($value),'"\\/').'"' );
     }
+}
+
+function jsonDecode( $value )
+{
+    if ( function_exists('json_decode') )
+        return( json_decode( $value, true ) );
+
+    $comment = false;
+    $unescape = false;
+    $out = '$result=';
+    for ( $i = 0; $i < strlen($value); $i++ )
+    {
+        if ( !$comment )
+        {
+            if ( ($value[$i] == '{') || ($value[$i] == '[') )
+                $out .= ' array(';
+            else if ( ($value[$i] == '}') || ($value[$i] == ']') )
+                $out .= ')';
+            else if ( $value[$i] == ':' )
+                $out .= '=>';
+            else
+                $out .= $value[$i];         
+        }
+        else if ( !$unescape )
+        {
+            if ( $value[$i] == '\\' )
+                $unescape = true;
+            else
+                $out .= $value[$i];
+        }
+        else
+        {
+            if ( $value[$i] != '/' )
+                $out .= '\\';
+            $out .= $value[$i];
+            $unescape = false;
+        }
+        if ( $value[$i] == '"' )
+            $comment = !$comment;
+    }
+    eval( $out.';' );
+    return( $result );
 }
 
 define( 'HTTP_STATUS_OK', 200 );

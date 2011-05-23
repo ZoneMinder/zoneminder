@@ -88,7 +88,7 @@ Usage: zmupdate.pl <-c,--check|-f,--freshen|-v<version>,--version=<version>> [-u
 Parameters are :-
 -c, --check                      - Check for updated versions of ZoneMinder
 -f, --freshen                    - Freshen the configuration in the database. Equivalent of old zmconfig.pl -noi
--v<version>, --version=<version> - Upgrade to the current version from <version>
+-v<version>, --version=<version> - Force upgrade to the current version from <version>
 -u<dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
 -p<dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
 -d<dir>,--dir=<dir>              - Directory containing update files if not in default build location
@@ -103,18 +103,21 @@ if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'z
 
 if ( ! ($check || $freshen || $rename || $zone_fix || $migrate_events || $version) )
 {
-    print( STDERR "Please give a valid option\n" );
-    Usage();
+    if ( ZM_DYN_DB_VERSION )
+    {
+        $version = ZM_DYN_DB_VERSION;
+    }
+    else
+    {
+        print( STDERR "Please give a valid option\n" );
+        Usage();
+    }
 }
 
 if ( ($check + $freshen + $rename + $zone_fix + $migrate_events + ($version?1:0)) > 1 )
 {
     print( STDERR "Please give only one option\n" );
     Usage();
-}
-
-if ( $check )
-{
 }
 
 print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
@@ -335,10 +338,22 @@ if ( $version )
     my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
     $version = $detaint_version;
 
-    print( "\nInitiating database upgrade to version ".ZM_VERSION."\n" );
+    if ( ZM_VERSION eq $version )
+    {
+        print( "\nERROR - Database already at version $version, aborting upgrade.\n\n" );
+        exit( -1 );
+    }
+
+    print( "\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n" );
     if ( $interactive )
     {
-        print( "Please ensure that ZoneMinder is stopped on your system prior to upgrading the database.\nPress enter to continue or ctrl-C to stop : " );
+        if ( ZM_DYN_DB_VERSION && ZM_DYN_DB_VERSION ne $version )
+        {
+            print( "\nWARNING - You have specified an upgrade from version $version but the database version found is ".ZM_DYN_DB_VERSION.". Is this correct?\nPress enter to continue or ctrl-C to abort : " );
+            my $response = <STDIN>;
+        }
+
+        print( "\nPlease ensure that ZoneMinder is stopped on your system prior to upgrading the database.\nPress enter to continue or ctrl-C to stop : " );
         my $response = <STDIN>;
 
         print( "\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file in @ZM_TMPDIR@ if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : " );
@@ -435,11 +450,6 @@ if ( $version )
             my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
             my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
         }
-    }
-
-    if ( ZM_DYN_DB_VERSION && ZM_DYN_DB_VERSION ne $version )
-    {
-        # Nothing yet
     }
 
     print( "\nUpgrading database to version ".ZM_VERSION."\n" );
@@ -905,7 +915,7 @@ if ( $version )
         $dbh->disconnect();
         die( "Can't find upgrade from version '$version'" );
     }
-    print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n" );
+    print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n" );
 }
 print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 exit( 0 );

@@ -48,6 +48,8 @@ our %EXPORT_TAGS = (
 		getEventPath
 		deleteEventFiles
         makePath
+        jsonEncode
+        jsonDecode
 	) ]
 );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -284,6 +286,138 @@ sub makePath( $$ )
             }
         }
     }
+}
+
+our $testedJSON = 0;
+our $hasJSONAny = 0;
+
+sub _testJSON
+{
+    return if ( $testedJSON );
+    my $result = eval
+    {
+        require JSON::Any;
+        JSON::Any->import();
+    };
+    $testedJSON = 1;
+    $hasJSONAny = 1 if( $result );
+
+}
+
+sub _getJSONType( $ )
+{
+    my $value = shift;
+    return( 'null' ) unless( defined($value) );
+    return( 'integer' ) if ( $value =~ /^\d+$/ );
+    return( 'double' ) if ( $value =~ /^\d+$/ );
+    return( 'hash' ) if ( ref($value) eq 'HASH' );
+    return( 'array' ) if ( ref($value) eq 'ARRAY' );
+    return( 'string' );
+}
+
+sub jsonEncode( $ );
+
+sub jsonEncode( $ )
+{
+    my $value = shift;
+
+    _testJSON();
+    return( JSON::Any->objToJson( $value ) ) if ( $hasJSONAny );
+
+    my $type = _getJSONType($value);
+    if ( $type eq 'integer' || $type eq 'double' )
+    {
+        return( $value );
+    }
+    elsif ( $type eq 'boolean' )
+    {
+        return( $value?'true':'false' );
+    }
+    elsif ( $type eq 'string' )
+    {
+        $value =~ s|(["\\/])|\\$1|g;
+        $value =~ s|\r?\n|\n|g;
+        return( '"'.$value.'"' );
+    }
+    elsif ( $type eq 'null' )
+    {
+        return( 'null' );
+    }
+    elsif ( $type eq 'array' )
+    {
+        return( '['.join( ',', map { jsonEncode( $_ ) } @$value ).']' );
+    }
+    elsif ( $type eq 'hash' )
+    {
+        my $result = '{';
+        while ( my ( $subKey=>$subValue ) = each( %$value ) )
+        {
+            $result .= ',' if ( $result ne '{' );
+            $result .= '"'.$subKey.'":'.jsonEncode( $subValue );
+        }
+        return( $result.'}' );
+    }
+    else
+    {
+        die( "Unexpected type '$type'" );
+    }
+}
+
+sub jsonDecode( $ )
+{
+    my $value = shift;
+
+    _testJSON();
+    return( JSON::Any->jsonToObj( $value ) ) if ( $hasJSONAny );
+
+    my $comment = 0;
+    my $unescape = 0;
+    my $out = '';
+    my @chars = split( //, $value );
+    for ( my $i = 0; $i < @chars; $i++ )
+    {
+        if ( !$comment )
+        {
+            if ( $chars[$i] eq ':' )
+            {
+                $out .= '=>';
+            }
+            else
+            {
+                $out .= $chars[$i];         
+            }
+        }
+        elsif ( !$unescape )
+        {
+            if ( $chars[$i] eq '\\' )
+            {
+                $unescape = 1;
+            }
+            else
+            {
+                $out .= $chars[$i];
+            }
+        }
+        else
+        {
+            if ( $chars[$i] ne '/' )
+            {
+                $out .= '\\';
+            }
+            $out .= $chars[$i];
+            $unescape = 0;
+        }
+        if ( $chars[$i] eq '"' )
+        {
+            $comment = !$comment;
+        }
+    }
+    $out =~ s/=>true/=>1/g;
+    $out =~ s/=>false/=>0/g;
+    $out =~ s/=>null/=>undef/g;
+    my $result = eval $out;
+    die( $@ ) if ( $@ );
+    return( $result );
 }
 
 1;

@@ -2168,10 +2168,33 @@ function isVector ( &$array )
     return( true );
 }
 
+function checkJsonError()
+{
+    switch( json_last_error() )
+    {
+        case JSON_ERROR_DEPTH :
+            die( "Unable to decode JSON string '$value', maximum stack depth exceeded" );
+        case JSON_ERROR_CTRL_CHAR :
+            die( "Unable to decode JSON string '$value', unexpected control character found" );
+        case JSON_ERROR_STATE_MISMATCH :
+            die( "Unable to decode JSON string '$value', invalid or malformed JSON" );
+        case JSON_ERROR_SYNTAX :
+            die( "Unable to decode JSON string '$value', syntax error" );
+        default :
+            die( "Unable to decode JSON string '$value', unexpected error ".json_last_error() );
+        case JSON_ERROR_NONE:
+            break;
+    }
+}
+
 function jsonEncode( &$value )
 {
     if ( function_exists('json_encode') )
-        return( json_encode( $value ) );
+    {
+        $string = json_encode( $value );
+        checkJsonError();
+        return( $string );
+    }
 
     switch ( gettype($value) )
     {
@@ -2208,7 +2231,11 @@ function jsonEncode( &$value )
 function jsonDecode( $value )
 {
     if ( function_exists('json_decode') )
-        return( json_decode( $value, true ) );
+    {
+        $object = json_decode( $value, true );
+        checkJsonError();
+        return( $object );
+    }
 
     $comment = false;
     $unescape = false;

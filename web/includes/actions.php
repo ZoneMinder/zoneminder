@@ -87,7 +87,7 @@ if ( !empty($action) )
                     $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['sort_field']);
                     $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['sort_asc']);
                     $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
-                    $sql = "replace into Filters set Name = '".dbEscape($filterName)."', Query = '".dbEscape(serialize($_REQUEST['filter']))."'";
+                    $sql = "replace into Filters set Name = '".dbEscape($filterName)."', Query = '".dbEscape(jsonEncode($_REQUEST['filter']))."'";
                     if ( !empty($_REQUEST['autoArchive']) )
                         $sql .= ", AutoArchive = '".dbEscape($_REQUEST['autoArchive'])."'";
                     if ( !empty($_REQUEST['autoVideo']) )
@@ -194,7 +194,7 @@ if ( !empty($action) )
                             $options[$matches[1]] = $matches[2]?$matches[2]:1;
                         }
                     }
-                    $optionString = serialize( $options );
+                    $optionString = jsonEncode( $options );
                     if ( !socket_write( $socket, $optionString ) )
                     {
                         die( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );

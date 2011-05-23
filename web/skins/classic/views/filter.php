@@ -39,7 +39,7 @@ if ( isset($dbFilter) )
 {
     if ( $dbFilter['Background'] ) 
         $backgroundStr = '['.strtolower($SLANG['Background']).']';
-    $_REQUEST['filter'] = unserialize( $dbFilter['Query'] );
+    $_REQUEST['filter'] = jsonDecode( $dbFilter['Query'] );
     $_REQUEST['sort_field'] = isset($_REQUEST['filter']['sort_field'])?$_REQUEST['filter']['sort_field']:"DateTime";
     $_REQUEST['sort_asc'] = isset($_REQUEST['filter']['sort_asc'])?$_REQUEST['filter']['sort_asc']:"1";
     $_REQUEST['limit'] = isset($_REQUEST['filter']['limit'])?$_REQUEST['filter']['limit']:"";

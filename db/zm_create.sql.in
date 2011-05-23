@@ -508,7 +508,7 @@ insert into Users values ('','admin',password('admin'),'',1,'View','Edit','Edit'
 --
 -- Add a sample filter to purge the oldest 5 events when the disk is 95% full, delete is disabled though
 --
-insert into Filters values ('PurgeWhenFull','a:4:{s:5:"terms";a:2:{i:0;a:3:{s:3:"val";s:1:"0";s:4:"attr";s:8:"Archived";s:2:"op";s:1:"=";}i:1;a:4:{s:3:"cnj";s:3:"and";s:3:"val";s:2:"95";s:4:"attr";s:11:"DiskPercent";s:2:"op";s:2:">=";}}s:10:"sort_field";s:2:"Id";s:8:"sort_asc";s:1:"1";s:5:"limit";s:1:"5";}',0,0,0,0,0,0,'',1,0);
+insert into Filters values ('PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":5,"sort_asc":1}',0,0,0,0,0,0,'',1,0);
 
 --
 -- Add in some sample control protocol definitions

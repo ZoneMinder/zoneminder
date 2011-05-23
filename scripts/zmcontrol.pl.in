@@ -45,7 +45,6 @@ use POSIX qw/strftime EPIPE/;
 use Socket;
 use Data::Dumper;
 use Module::Load;
-use PHP::Serialization qw(serialize unserialize);
 
 use constant MAX_CONNECT_DELAY => 10;
 use constant MAX_COMMAND_WAIT => 1800;
@@ -198,7 +197,7 @@ if ( !$server_up )
 
                     next if ( !$message );
 
-                    my $params = unserialize( $message );
+                    my $params = jsonDecode( $message );
                     #Debug( Dumper( $params ) );
 
                     my $command = $params->{command};
@@ -242,7 +241,7 @@ if ( !$server_up )
 #print( "Writing commands\n" );
 CLIENT->autoflush();
 
-my $message = serialize( \%options );
+my $message = jsonEncode( \%options );
 print( CLIENT $message );
 shutdown( CLIENT, 1 );
 

@@ -52,7 +52,6 @@ use POSIX;
 use Time::HiRes qw/gettimeofday/;
 use Date::Manip;
 use Getopt::Long;
-use PHP::Serialization qw(serialize unserialize);
 use Data::Dumper;
 
 use constant EVENT_PATH => (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
@@ -266,7 +265,7 @@ sub getFilters
     FILTER: while( my $db_filter = $sth->fetchrow_hashref() )
     {
         Debug( "Found filter '$db_filter->{Name}'\n" );
-        my $filter_expr = unserialize( $db_filter->{Query} );
+        my $filter_expr = jsonDecode( $db_filter->{Query} );
         my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,M.DefaultRate,M.DefaultScale,E.Name,E.Cause,E.Notes,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Videoed,E.Uploaded,E.Emailed,E.Messaged,E.Executed from Events as E inner join Monitors as M on M.Id = E.MonitorId where not isnull(E.EndTime)";
         $db_filter->{Sql} = '';
 

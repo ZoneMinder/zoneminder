@@ -28,7 +28,7 @@ if ( canView( 'Control', $_REQUEST['id'] ) )
                     $options[$matches[1]] = !empty($matches[2])?$matches[2]:1;
                 }
             }
-            $option_string = serialize( $options );
+            $option_string = jsonEncode( $options );
             if ( !socket_write( $socket, $option_string ) )
                 ajaxError( "socket_write() failed: ".socket_strerror(socket_last_error()) );
             ajaxResponse( 'Used socket' );

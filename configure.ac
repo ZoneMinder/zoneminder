@@ -337,7 +337,7 @@ AC_PROG_PERL_MODULES(Time::HiRes,,AC_MSG_ERROR(zm requires Time::HiRes))
 AC_PROG_PERL_MODULES(Date::Manip,,AC_MSG_ERROR(zm requires Date::Manip))
 AC_PROG_PERL_MODULES(LWP::UserAgent,,AC_MSG_ERROR(zm requires LWP::UserAgent))
 if test "$ENABLE_MMAP" == "yes"; then
-AC_PROG_PERL_MODULES(Sys::Mmap,,AC_MSG_ERROR(zm requires Sys::Mmap for mapped memory, set --enable-mmap=no to use IPC shared memory instead))
+AC_PROG_PERL_MODULES(Sys::Mmap,,AC_MSG_ERROR(zm requires Sys::Mmap for mapped memory - set --enable-mmap=no to use IPC shared memory instead))
 fi
 
 # Optional perl modules

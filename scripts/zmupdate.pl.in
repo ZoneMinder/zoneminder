@@ -120,10 +120,10 @@ if ( ($check + $freshen + $rename + $zone_fix + $migrate_events + ($version?1:0)
     Usage();
 }
 
-print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-
 if ( $check && ZM_CHECK_FOR_UPDATES )
 {
+    print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+
     my $dbh = zmDbConnect();
 
     my $curr_version = ZM_DYN_CURR_VERSION;
@@ -189,6 +189,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
         }
         sleep( 3600 );
     }
+    print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 }
 if ( $rename )
 {
@@ -340,7 +341,7 @@ if ( $version )
 
     if ( ZM_VERSION eq $version )
     {
-        print( "\nERROR - Database already at version $version, aborting upgrade.\n\n" );
+        print( "\nDatabase already at version $version, update aborted.\n\n" );
         exit( -1 );
     }
 
@@ -915,6 +916,7 @@ if ( $version )
 
         # Convert filters to JSON from PHP format serialisation
         {
+            print( "\nConverting filters from PHP to JSON format\n" );
             my $sql = "select * from Filters";
             my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
             my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
@@ -926,13 +928,26 @@ if ( $version )
             $sth->finish();
             foreach my $dbFilter ( @dbFilters )
             {
-                my $phpQuery = $dbFilter->{Query};
-                my $query = PHP::Serialization::unserialize( $phpQuery );
-                my $jsonQuery = jsonEncode( $query );
-                my $sql = "update Filters set Query = ? where Name = ?";
-                my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-                my $res = $sth->execute( $jsonQuery, $dbFilter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+                print( "  ".$dbFilter->{Name} );
+                eval {
+                    my $phpQuery = $dbFilter->{Query};
+                    my $query = PHP::Serialization::unserialize( $phpQuery );
+                    my $jsonQuery = jsonEncode( $query );
+                    my $sql = "update Filters set Query = ? where Name = ?";
+                    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                    my $res = $sth->execute( $jsonQuery, $dbFilter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+                };
+                if ( $@ )
+                {
+                    print( " - failed, please check or report. Query is '".$dbFilter->{Query}."'\n" );
+                    print( $@ );
+                }
+                else
+                {
+                    print( " - complete\n" );
+                }
             }
+            print( "Conversion complete\n" );
         }
         $cascade = !undef;
     }
@@ -952,5 +967,4 @@ if ( $version )
     }
     print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n" );
 }
-print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 exit( 0 );

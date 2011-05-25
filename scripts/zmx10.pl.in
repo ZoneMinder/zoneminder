@@ -493,6 +493,7 @@ sub loadTasks
 				}
 			}
 		}
+        zmMemInvalidate( $monitor );
 	}
 }
 

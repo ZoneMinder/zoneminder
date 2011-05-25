@@ -348,8 +348,12 @@ sub zmMemRead( $$;$ )
 sub zmMemInvalidate( $ )
 {
 	my $monitor = shift;
-    delete $mem_verified->{zmMemKey($monitor)};
-    zmMemDetach( $monitor );
+    my $mem_key = zmMemKey($monitor);
+    if ( $mem_key )
+    {
+        delete $mem_verified->{$mem_key};
+        zmMemDetach( $monitor );
+    }
 }
 
 sub zmMemTidy()

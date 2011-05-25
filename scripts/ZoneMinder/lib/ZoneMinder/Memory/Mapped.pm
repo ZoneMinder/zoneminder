@@ -71,7 +71,7 @@ use Sys::Mmap;
 sub zmMemKey( $ )
 {
 	my $monitor = shift;
-    return( $monitor->{MMapAddr} );
+    return( defined($monitor->{MMapAddr})?$monitor->{MMapAddr}:undef );
 }
 
 sub zmMemAttach( $$ )

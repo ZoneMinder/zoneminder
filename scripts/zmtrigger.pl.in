@@ -284,6 +284,11 @@ while( 1 )
 	# If necessary reload monitors
 	if ( (time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL )
 	{
+	    foreach my $monitor ( values(%monitors) )
+        {
+            # Free up any used memory handle
+            zmMemInvalidate( $monitor );
+        }
 		loadMonitors();
 	}
 }

@@ -70,7 +70,7 @@ use ZoneMinder::Debug qw(:all);
 sub zmMemKey( $ )
 {
 	my $monitor = shift;
-	return( $monitor->{ShmKey} );
+	return( defined($monitor->{ShmKey})?$monitor->{ShmKey}:undef );
 }
 
 sub zmMemAttach( $$ )

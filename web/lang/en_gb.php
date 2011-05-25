@@ -548,6 +548,7 @@ $SLANG = array(
     'Rewind'                => 'Rewind',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
+    'RunLocalUpdate'        => 'Please run zmupdate.pl to update',
     'RunMode'               => 'Run Mode',
     'Running'               => 'Running',
     'RunState'              => 'Run State',
@@ -695,6 +696,7 @@ $CLANG = array(
     'MonitorCount'          => '%1$s %2$s', // For example '4 Monitors' (from Vlang below)
     'MonitorFunction'       => 'Monitor %1$s Function',
     'RunningRecentVer'      => 'You are running the most recent version of ZoneMinder, v%s.',
+    'VersionMismatch'       => 'Version mismatch, system is version %1$s, database is %2$s.',
 );
 
 // The next section allows you to describe a series of word ending and counts used to 

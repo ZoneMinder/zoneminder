@@ -499,6 +499,7 @@ $SLANG = array(
     'Rewind'               => 'Rewind',
     'RotateLeft'           => 'Rotar a la derecha',
     'RotateRight'          => 'Rotar a la izquierda',
+    'RunLocalUpdate'       => 'Please run zmupdate.pl to update', // Added - 2011-05-25
     'RunMode'              => 'Metodo Ejecucion',
     'RunState'             => 'Estado de Ejecución',
     'Running'              => 'Ejecutando',
@@ -646,6 +647,7 @@ $CLANG = array(
     'MonitorCount'         => '%1$s %2$s',
     'MonitorFunction'      => 'Monitor %1$s Funcion',
     'RunningRecentVer'     => 'You are running the most recent version of Zoneminder, v%s.',
+    'VersionMismatch'      => 'Version mismatch, system is version %1$s, database is %2$s.', // Added - 2011-05-25
 );
 
 // Variable arrays expressing plurality, see the zmVlang description above

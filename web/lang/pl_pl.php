@@ -548,6 +548,7 @@ $SLANG = array(
     'Rewind'               => 'Rewind',
     'RotateLeft'           => 'Obróæ w lewo',
     'RotateRight'          => 'Obróæ w prawo',
+    'RunLocalUpdate'       => 'Please run zmupdate.pl to update', // Added - 2011-05-25
     'RunMode'              => 'Tryb pracy',
     'RunState'             => 'Stan pracy',
     'Running'              => 'Pracuje',
@@ -695,6 +696,7 @@ $CLANG = array(
     'MonitorCount'         => '%1$s %2$s',
     'MonitorFunction'      => 'Monitor %1$s Funkcja',
     'RunningRecentVer'     => 'Uruchomi³e¶ najnowsz± wersjê ZoneMinder, v%s.',
+    'VersionMismatch'      => 'Version mismatch, system is version %1$s, database is %2$s.', // Added - 2011-05-25
 );
 
 // The next section allows you to describe a series of word ending and counts used to

@@ -75,7 +75,7 @@ var popupSizes = {
     'stats':        { 'width': 740, 'height': 200 },
     'timeline':     { 'width': 760, 'height': 540 },
     'user':         { 'width': 320, 'height': 420 },
-    'version':      { 'width': 320, 'height': 140 },
+    'version':      { 'width': 360, 'height': 140 },
     'video':        { 'width': 420, 'height': 360 },
     'videoview':    { 'addWidth': 48, 'addHeight': 80 },
     'watch':        { 'addWidth': 96, 'minWidth': 420, 'addHeight': 384 },

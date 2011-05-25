@@ -49,7 +49,17 @@ xhtmlHeaders(__FILE__, $SLANG['Version'] );
     </div>
     <div id="content">
 <?php
-if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) )
+if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) )
+{
+?>
+      <p class="errorText"><?= sprintf( $CLANG['VersionMismatch'], ZM_VERSION, ZM_DYN_DB_VERSION ) ?></p>
+      <p><?= $SLANG['RunLocalUpdate'] ?></p>
+      <div id="contentButtons">
+        <input type="button" value="<?= $SLANG['Close'] ?>" onclick="closeWindow()"/>
+      </div>
+<?php
+}
+elseif ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) )
 {
 ?>
       <p><?= sprintf( $CLANG['RunningRecentVer'], ZM_VERSION ) ?></p>

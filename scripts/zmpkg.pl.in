@@ -155,6 +155,12 @@ if ( $command =~ /^(?:start|restart)$/ )
 
 	if ( $status eq "stopped" )
 	{
+        if ( ZM_DYN_DB_VERSION && ZM_DYN_DB_VERSION ne ZM_VERSION )
+        {
+            Fatal( "Version mismatch, system is version ".ZM_VERSION.", database is ".ZM_DYN_DB_VERSION.", please run zmupdate.pl to update." );
+            exit( -1 );
+        }
+
         # Recreate the temporary directory if it's been wiped
         if ( !-e "@ZM_TMPDIR@" )
         {

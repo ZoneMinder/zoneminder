@@ -557,6 +557,7 @@ $SLANG = array(
     'Rewind'               => 'Visszatekerés',
     'RotateLeft'           => 'Balra forgatás',
     'RotateRight'          => 'Jobbra forgatás',
+    'RunLocalUpdate'       => 'Please run zmupdate.pl to update', // Added - 2011-05-25
     'RunMode'              => 'Futási mód',
     'RunState'             => 'A ZoneMinder állapota',
     'Running'              => 'Éles',
@@ -704,6 +705,7 @@ $CLANG = array(
     'MonitorCount'         => '%1$s %2$s', // For example '4 Monitors' (from Vlang below)
     'MonitorFunction'      => 'Megfigyelés funkció: %1$s',
     'RunningRecentVer'     => 'A legfrissebb ZoneMinder verziót használod, v%s.',
+    'VersionMismatch'      => 'Version mismatch, system is version %1$s, database is %2$s.', // Added - 2011-05-25
 );
 
 // The next section allows you to describe a series of word ending and counts used to 

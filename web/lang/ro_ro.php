@@ -519,6 +519,7 @@ $SLANG = array(
     'Rewind'               => 'Rewind',
     'RotateLeft'           => 'Rotire st&#226;nga',
     'RotateRight'          => 'Rotire dreapta',
+    'RunLocalUpdate'       => 'Please run zmupdate.pl to update', // Added - 2011-05-25
     'RunMode'              => 'Mod rulare',
     'RunState'             => 'Stare de rulare',
     'Running'              => 'Ruleaz&#259;',
@@ -666,6 +667,7 @@ $CLANG = array(
     'MonitorCount'         => '%1$s %2$s', // For example '4 Monitors' (from Vlang below)
     'MonitorFunction'      => 'Func&#355;iile monitorului %1$s ',
     'RunningRecentVer'     => 'Rula&#355;i ultima versiune de ZoneMinder, v%s.',
+    'VersionMismatch'      => 'Version mismatch, system is version %1$s, database is %2$s.', // Added - 2011-05-25
 );
 
 // Variable arrays expressing plurality

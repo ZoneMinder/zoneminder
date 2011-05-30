@@ -164,7 +164,7 @@ if ( $command =~ /^(?:start|restart)$/ )
         # Recreate the temporary directory if it's been wiped
         if ( !-e "@ZM_TMPDIR@" )
         {
-            Debug( "Recreating temporary dirrectory '@ZM_TMPDIR@'" );
+            Debug( "Recreating temporary directory '@ZM_TMPDIR@'" );
             mkdir( "@ZM_TMPDIR@", 0700 ) or Fatal( "Can't create missing temporary directory '@ZM_TMPDIR@': $!" );
             my ( $runName ) = getpwuid( $> );
             if ( $runName ne ZM_WEB_USER )

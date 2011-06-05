@@ -270,6 +270,7 @@ AC_CHECK_LIB(gcrypt,gcry_check_version,,AC_MSG_WARN([libgcrypt.a is required for
 AC_CHECK_LIB(gnutls-openssl,MD5,,AC_MSG_WARN([gnutls-openssl.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
 fi
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
+AC_CHECK_LIB(z,zlibVersion)
 AC_CHECK_LIB(x264,x264_predict_16x16_init)
 AC_CHECK_LIB(avutil,av_malloc,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
 # Don't bother to warn about this one
@@ -336,6 +337,7 @@ AC_PROG_PERL_MODULES(Getopt::Long,,AC_MSG_ERROR(zm requires Getopt::Long))
 AC_PROG_PERL_MODULES(Time::HiRes,,AC_MSG_ERROR(zm requires Time::HiRes))
 AC_PROG_PERL_MODULES(Date::Manip,,AC_MSG_ERROR(zm requires Date::Manip))
 AC_PROG_PERL_MODULES(LWP::UserAgent,,AC_MSG_ERROR(zm requires LWP::UserAgent))
+AC_PROG_PERL_MODULES(ExtUtils::MakeMaker,,AC_MSG_ERROR(zm requires ExtUtils::MakeMaker))
 if test "$ENABLE_MMAP" == "yes"; then
 AC_PROG_PERL_MODULES(Sys::Mmap,,AC_MSG_ERROR(zm requires Sys::Mmap for mapped memory - set --enable-mmap=no to use IPC shared memory instead))
 fi

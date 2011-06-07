@@ -201,18 +201,14 @@ int RemoteCameraRtsp::PrimeCapture()
 	}
 	
 #if HAVE_LIBSWSCALE
+	if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
+		Fatal("swscale does not support the codec format");
+	}
+
 	if(!sws_isSupportedOutput(imagePixFormat)) {
 		Fatal("swscale does not support the target format");
 	}
 	
-	if(config.cpu_extensions && sseversion >= 20) {
-		mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
-	} else {
-		mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-	}
-	
-	if(mConvertContext == NULL)
-		Fatal( "Unable to create conversion context");
 #else // HAVE_LIBSWSCALE
     Fatal( "You must compile ffmpeg with the --enable-swscale option to use RTSP cameras" );
 #endif // HAVE_LIBSWSCALE
@@ -237,6 +233,7 @@ int RemoteCameraRtsp::Capture( Image &image )
 {
 	AVPacket packet;
 	uint8_t* directbuffer;
+	int frameComplete = false;
 	
 	/* Request a writeable buffer of the target image */
 	directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
@@ -261,8 +258,8 @@ int RemoteCameraRtsp::Capture( Image &image )
                 return( -1 );
 
             av_init_packet( &packet );
-            int frameComplete = false;
             
+<<<<<<< HEAD
             while ( !frameComplete )
             {
                 packet.data = buffer.head();
@@ -282,22 +279,60 @@ int RemoteCameraRtsp::Capture( Image &image )
                 if ( frameComplete )
                 {
 			Debug( 3, "Got frame %d", frameCount );
+=======
+	    while ( !frameComplete && buffer.size() > 0 )
+	    {
+		packet.data = buffer.head();
+		packet.size = buffer.size();
+		int len = avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet );
+		if ( len < 0 )
+		{
+			Error( "Error while decoding frame %d", frameCount );
+			Hexdump( ZM_DBG_ERR, buffer.head(), buffer.size()>256?256:buffer.size() );
+			buffer.clear();
+			continue;
+		}
+		Debug( 2, "Frame: %d - %d/%d", frameCount, len, buffer.size() );
+		//if ( buffer.size() < 400 )
+		   //Hexdump( 0, buffer.head(), buffer.size() );
+		   
+		buffer -= len;
+
+	    }
+            if ( frameComplete ) {
+	       
+		Debug( 3, "Got frame %d", frameCount );
+>>>>>>> Some small changes
 			    
-			avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+		avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 			
 #if HAVE_LIBSWSCALE
-			if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
-				Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+		if(mConvertContext == NULL) {
+			if(config.cpu_extensions && sseversion >= 20) {
+				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
+			} else {
+				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+			}
+			if(mConvertContext == NULL)
+				Fatal( "Unable to create conversion context");
+		}
+	
+		if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
+			Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
 #else // HAVE_LIBSWSCALE
-			Fatal( "You must compile ffmpeg with the --enable-swscale option to use RTSP cameras" );
+		Fatal( "You must compile ffmpeg with the --enable-swscale option to use RTSP cameras" );
 #endif // HAVE_LIBSWSCALE
 	
-			frameCount++;
-                }
-                buffer -= len;
-            }
-            av_free_packet( &packet );
-        }
+		frameCount++;
+
+	     } /* frame complete */
+	     
+	     av_free_packet( &packet );
+	} /* getFrame() */
+ 
+	if(frameComplete)
+		return (0);
+	
     }
     return (0) ;
 }

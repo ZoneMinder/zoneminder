@@ -39,19 +39,19 @@ jpeg_decompress_struct *Image::jpg_dcinfo = 0;
 struct zm_error_mgr Image::jpg_err;
 
 /* Pointer to blend function. */
-blend_fptr_t fptr_blend;
+static blend_fptr_t fptr_blend;
 
 /* Pointer to delta8 functions */
-delta_fptr_t fptr_delta8_rgb;
-delta_fptr_t fptr_delta8_bgr;
-delta_fptr_t fptr_delta8_rgba;
-delta_fptr_t fptr_delta8_bgra;
-delta_fptr_t fptr_delta8_argb;
-delta_fptr_t fptr_delta8_abgr;
-delta_fptr_t fptr_delta8_gray8;
+static delta_fptr_t fptr_delta8_rgb;
+static delta_fptr_t fptr_delta8_bgr;
+static delta_fptr_t fptr_delta8_rgba;
+static delta_fptr_t fptr_delta8_bgra;
+static delta_fptr_t fptr_delta8_argb;
+static delta_fptr_t fptr_delta8_abgr;
+static delta_fptr_t fptr_delta8_gray8;
 
-/* Pointer to big memory copy function */
-imgbufcpy_fptr_t fptr_imgbufcpy;
+/* Pointer to image buffer memory copy function */
+static imgbufcpy_fptr_t fptr_imgbufcpy;
 
 Image::Image()
 {
@@ -97,12 +97,11 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
     pixels = width*height;
     colours = p_colours;
     subpixelorder = p_subpixelorder;
-    size = width*height*colours;
+    size = (width*height)*colours;
     buffer = 0;
     holdbuffer = 0;
     if ( p_buffer )
     {
-	/* Don't free the supplied buffer, but don't hold it either */
 	allocation = size;
 	buffertype = ZM_BUFTYPE_DONTFREE;
         buffer = p_buffer;
@@ -185,8 +184,9 @@ void Image::Initialise()
 			fptr_delta8_bgra = &sse2_delta8_bgra;
 			fptr_delta8_argb = &sse2_delta8_argb;
 			fptr_delta8_abgr = &sse2_delta8_abgr;
-			/* On some systems, the 4 SSE2 algorithms above might be slower than
-			** the standard algorithms, especially on early Pentium 4 processors
+			/*
+			** On some systems, the 4 SSE2 algorithms above might be a little slower than
+			** the standard algorithms, especially on early Pentium 4 processors.
 			** In that case, comment out the 4 lines above and uncomment the 4 lines below
 			*/
 			// fptr_delta8_rgba = &std_delta8_rgba;
@@ -196,7 +196,7 @@ void Image::Initialise()
 			fptr_delta8_gray8 = &sse2_delta8_gray8;
 			Debug(2,"Delta: Using SSE2 delta functions");
 		} else {
-			/* No SSE available */
+			/* No suitable SSE version available */
 			fptr_delta8_rgba = &std_delta8_rgba;
 			fptr_delta8_bgra = &std_delta8_bgra;
 			fptr_delta8_argb = &std_delta8_argb;
@@ -269,7 +269,7 @@ void Image::Initialise()
 uint8_t* Image::WriteBuffer(const int p_width, const int p_height, const int p_colours, const int p_subpixelorder) {
 	unsigned int newsize;
   
-	if(p_colours != 1 && p_colours != 3 && p_colours != 4) {
+	if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
 		Error("WriteBuffer called with unexpected colours: %d",p_colours);
 		return NULL;
 	}
@@ -280,7 +280,7 @@ uint8_t* Image::WriteBuffer(const int p_width, const int p_height, const int p_c
 	}
 	
 	if(p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder) {
-		newsize = p_width * p_height * p_colours;
+		newsize = (p_width * p_height) * p_colours;
 		
 		if(buffer == NULL) {
 			AllocImgBuffer(newsize);
@@ -316,7 +316,7 @@ void Image::AssignDirect( const int p_width, const int p_height, const int p_col
 		return;
 	}
 	
-	if(buffer_size < (p_width*p_height*p_colours)) {
+	if(buffer_size < ((p_width*p_height)*p_colours)) {
 		Error("Attempt to directly assign buffer from an undersized buffer of size: %u",buffer_size);
 		return;
 	}
@@ -326,13 +326,13 @@ void Image::AssignDirect( const int p_width, const int p_height, const int p_col
 		return;
 	}
 	
-	if(p_colours != 1 && p_colours != 3 && p_colours != 4) {
+	if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
 		Error("Attempt to directly assign buffer with unexpected colours per pixel: %d",p_colours);
 		return;
 	}
 	
 	if(holdbuffer && buffer) {
-		if((p_height * p_height * p_colours) > allocation) {
+		if(((p_height*p_width)*p_colours) > allocation) {
 			Error("Held buffer is undersized for assigned buffer");
 			return;
 		} else {
@@ -369,7 +369,7 @@ void Image::AssignDirect( const int p_width, const int p_height, const int p_col
 }
 
 void Image::Assign(const int p_width, const int p_height, const int p_colours, const int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size) {
-	unsigned int new_size = p_width * p_height * p_colours;
+	unsigned int new_size = (p_width * p_height) * p_colours;
   
 	if(new_buffer == NULL) {
 		Error("Attempt to assign buffer from a NULL pointer");
@@ -386,7 +386,7 @@ void Image::Assign(const int p_width, const int p_height, const int p_colours, c
 		return;
 	}
 	
-	if(p_colours != 1 && p_colours != 3 && p_colours != 4) {
+	if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
 		Error("Attempt to assign buffer with unexpected colours per pixel: %d",p_colours);
 		return;
 	}
@@ -419,14 +419,14 @@ void Image::Assign(const int p_width, const int p_height, const int p_colours, c
 }
 
 void Image::Assign( const Image &image ) {
-	unsigned int new_size = image.width * image.height * image.colours;
+	unsigned int new_size = (image.width * image.height) * image.colours;
 	
 	if(image.buffer == NULL) {
 		Error("Attempt to assign image with an empty buffer");
 		return;
 	}
   
-	if(image.colours != 1 && image.colours != 3 && image.colours != 4) {
+	if(image.colours != ZM_COLOUR_GRAY8 && image.colours != ZM_COLOUR_RGB24 && image.colours != ZM_COLOUR_RGB32) {
 		Error("Attempt to assign image with unexpected colours per pixel: %d",image.colours);
 		return;
 	}
@@ -457,9 +457,10 @@ void Image::Assign( const Image &image ) {
 		(*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
 
+/* RGB24 only */
 Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 {
-	if ( colours != 1 )
+	if ( colours != ZM_COLOUR_GRAY8 )
 	{
 		Panic( "Attempt to highlight image edges when colours = %d", colours );
 	}
@@ -636,12 +637,16 @@ bool Image::ReadJpeg( const char *filename, int p_colours, int p_subpixelorder)
 	      subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
 	      Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");      
-	      cinfo->out_color_space = JCS_EXT_RGB;    
+	      cinfo->out_color_space = JCS_RGB;    
 	      subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
 	    } else {
 	      /* Assume RGB */
-	      cinfo->out_color_space = JCS_RGB;    
+#ifdef JCS_EXTENSIONS
+	      cinfo->out_color_space = JCS_EXT_RGB;
+#else
+	      cinfo->out_color_space = JCS_RGB;
+#endif
 	      subpixelorder = ZM_SUBPIX_ORDER_RGB;
 	    }
 	    break;
@@ -683,7 +688,7 @@ bool Image::ReadJpeg( const char *filename, int p_colours, int p_subpixelorder)
 
 bool Image::WriteJpeg( const char *filename, int quality_override ) const
 {
-	if ( config.colour_jpeg_files && colours == 1 )
+	if ( config.colour_jpeg_files && colours == ZM_COLOUR_GRAY8 )
 	{
 		Image temp_image( *this );
 		temp_image.Colourise( ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
@@ -758,7 +763,11 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 #endif
 	    } else {
 	      /* Assume RGB */
+#ifdef JCS_EXTENSIONS
+	      cinfo->in_color_space = JCS_EXT_RGB;
+#else
 	      cinfo->in_color_space = JCS_RGB;
+#endif      
 	    }
 	    break;
 	  }
@@ -867,12 +876,16 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, int p_colours
 	      subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
 	      Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");      
-	      cinfo->out_color_space = JCS_EXT_RGB;    
+	      cinfo->out_color_space = JCS_RGB;    
 	      subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
 	    } else {
 	      /* Assume RGB */
-	      cinfo->out_color_space = JCS_RGB;    
+#ifdef JCS_EXTENSIONS
+	      cinfo->out_color_space = JCS_EXT_RGB;
+#else
+	      cinfo->out_color_space = JCS_RGB;
+#endif      
 	      subpixelorder = ZM_SUBPIX_ORDER_RGB;
 	    }
 	    break;
@@ -912,7 +925,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, int p_colours
 
 bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override ) const
 {
-	if ( config.colour_jpeg_files && colours == 1 )
+	if ( config.colour_jpeg_files && colours == ZM_COLOUR_GRAY8 )
 	{
 		Image temp_image( *this );
 		temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
@@ -979,7 +992,11 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 #endif
 	    } else {
 	      /* Assume RGB */
+#ifdef JCS_EXTENSIONS
+	      cinfo->in_color_space = JCS_EXT_RGB;
+#else
 	      cinfo->in_color_space = JCS_RGB;
+#endif      
 	    }
 	    break;
 	  }
@@ -1087,9 +1104,9 @@ void Image::Overlay( const Image &image )
 	unsigned char *pdest = buffer;
 	unsigned char *psrc = image.buffer;
 
-	if ( colours == 1 )
+	if ( colours == ZM_COLOUR_GRAY8 )
 	{
-		if ( image.colours == 1 )
+		if ( image.colours == ZM_COLOUR_GRAY8 )
 		{
 			while( pdest < (buffer+size) )
 			{
@@ -1103,24 +1120,52 @@ void Image::Overlay( const Image &image )
 		}
 		else
 		{
-			Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
-			pdest = buffer;
-			while( pdest < (buffer+size) )
-			{
-				if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) )
-				{
-					RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
-					GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
-					BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+			Colourise(image.colours, image.subpixelorder);
+			
+			if(colours == ZM_COLOUR_RGB32) {
+				Rgb* prdest = (Rgb*)buffer;
+				const Rgb* prsrc = (Rgb*)image.buffer; 
+				const Rgb* const max_ptr = (Rgb*)(buffer+size);
+				if(subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+					/* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
+					while (prdest < max_ptr) {
+						if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) )
+						{
+							*prdest = *prsrc;
+						}
+						prdest++;
+						prsrc++;
+					}
+				} else {
+					/* ABGR\ARGB subpixel order - Alpha byte is first */
+					while (prdest < max_ptr) {
+						if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) )
+						{
+							*prdest = *prsrc;
+						}
+						prdest++;
+						prsrc++;
+					}
 				}
-				psrc += 3;
-				pdest += 3;
+			} else {
+				/* Assume RGB24\BGR24 */
+				while( pdest < (buffer+size) )
+				{
+					if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) )
+					{
+						RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
+						GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
+						BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+					}
+					psrc += 3;
+					pdest += 3;
+				}
 			}
 		}
 	}
 	else
 	{
-		if ( image.colours == 1 )
+		if ( image.colours == ZM_COLOUR_GRAY8 )
 		{
 			while( pdest < (buffer+size) )
 			{
@@ -1128,11 +1173,14 @@ void Image::Overlay( const Image &image )
 				{
 					RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc++;
 				}
-				pdest += 3;
+				pdest += colours;
 			}
 		}
 		else
 		{
+		  
+		  
+		  
 			while( pdest < (buffer+size) )
 			{
 				if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) )
@@ -1141,8 +1189,8 @@ void Image::Overlay( const Image &image )
 					GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
 					BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
 				}
-				psrc += 3;
-				pdest += 3;
+				psrc += colours;
+				pdest += colours;
 			}
 		}
 	}
@@ -1468,7 +1516,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
         if ( hi_line_y > height )
             hi_line_y = height;
 
-        if ( colours == 1 )
+        if ( colours == ZM_COLOUR_GRAY8 )
         {
             unsigned char *ptr = &buffer[(lo_line_y*width)+lo_line_x];
             for ( int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += width )
@@ -1492,7 +1540,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
                 }
             }
         }
-        else if ( colours == 3 )
+        else if ( colours == ZM_COLOUR_RGB24 )
         {
             int wc = width * colours;
 
@@ -1524,7 +1572,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
                 }
             }
         } 
-        else if ( colours == 4)
+        else if ( colours == ZM_COLOUR_RGB32 )
 	{
             int wc = width * colours;
 
@@ -1583,6 +1631,7 @@ void Image::Timestamp( const char *label, const time_t when, const Coord &coord 
 	}
 }
 
+/* RGB32 compatible: complete */
 void Image::Colourise(const int p_reqcolours, const int p_reqsubpixelorder)
 {
 	Debug(9, "Colourise: Req colours: %u Req subpixel order: %u Current colours: %u Current subpixel order: %u",p_reqcolours,p_reqsubpixelorder,colours,subpixelorder);
@@ -1643,45 +1692,49 @@ void Image::Colourise(const int p_reqcolours, const int p_reqsubpixelorder)
 	
 }
 
-
+/* RGB32 compatible: complete */
 void Image::DeColourise()
 {
-	colours = 1;
+	colours = ZM_COLOUR_GRAY8;
+	subpixelorder = ZM_SUBPIX_ORDER_NONE;
 	size = width * height;
 	
-	uint8_t *pdest = buffer;
-	unsigned int r,g,b;
-	
-	if ( colours == 3 )
+	if ( colours == ZM_COLOUR_RGB32 )
 	{
-		const uint8_t *psrc = buffer;
-		while( pdest < (buffer+size) )
-		{
-			//*pdest++ = (uint8_t)sqrt((RED(psrc) + GREEN(psrc) + BLUE(psrc))/3);
-			
-			/* Use fast algorithm for almost identical ITU-R BT.709 weighting */
-			if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-				/* BGR subpixel order */
-				r = RED_PTR_BGRA(psrc);
-				g = GREEN_PTR_BGRA(psrc);
-				b = BLUE_PTR_BGRA(psrc);
-				*pdest++ = (r + r + b + g + g + g + g + g)>>3;
-			} else {
-				/* RGB subpixel order */
-				r = RED_PTR_RGBA(psrc);
-				g = GREEN_PTR_RGBA(psrc);
-				b = BLUE_PTR_RGBA(psrc);
-				*pdest++ = (r + r + b + g + g + g + g + g)>>3;
-			}
-			psrc += 3;
+		switch(subpixelorder) {
+		  case ZM_SUBPIX_ORDER_BGRA:
+		    std_convert_bgra_gray8(buffer,buffer,pixels);
+		    break;
+		  case ZM_SUBPIX_ORDER_ARGB:
+		    std_convert_argb_gray8(buffer,buffer,pixels);
+		    break;
+		  case ZM_SUBPIX_ORDER_ABGR:
+		    std_convert_abgr_gray8(buffer,buffer,pixels);
+		    break;
+		  case ZM_SUBPIX_ORDER_RGBA:
+		  default:
+		    std_convert_rgba_gray8(buffer,buffer,pixels);
+		    break;
 		}
+	} else {
+		/* Assume RGB24 */
+		switch(subpixelorder) {
+		  case ZM_SUBPIX_ORDER_BGR:
+		    std_convert_bgr_gray8(buffer,buffer,pixels);
+		    break;
+		  case ZM_SUBPIX_ORDER_RGB:
+		  default:
+		    std_convert_rgb_gray8(buffer,buffer,pixels);
+		    break;
+		}
+		
 	}
 }
 
 /* RGB32 compatible: complete */
 void Image::Fill( Rgb colour, const Box *limits )
 {
-	if ( !(colours == 1 || colours == 3 || colours == 4 ) )
+	if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) )
 	{
 		Panic( "Attempt to fill image with unexpected colours %d", colours );
 	}
@@ -1693,7 +1746,7 @@ void Image::Fill( Rgb colour, const Box *limits )
 	int lo_y = limits?limits->Lo().Y():0;
 	int hi_x = limits?limits->Hi().X():width-1;
 	int hi_y = limits?limits->Hi().Y():height-1;
-	if ( colours == 1 )
+	if ( colours == ZM_COLOUR_GRAY8 )
 	{
 		for ( int y = lo_y; y <= hi_y; y++ )
 		{
@@ -1704,7 +1757,7 @@ void Image::Fill( Rgb colour, const Box *limits )
 			}
 		}
 	}
-	else if ( colours == 3 )
+	else if ( colours == ZM_COLOUR_RGB24 )
 	{
 		for ( int y = lo_y; y <= hi_y; y++ )
 		{
@@ -1717,12 +1770,11 @@ void Image::Fill( Rgb colour, const Box *limits )
 			}
 		}
 	}
-	else if ( colours == 4 ) /* RGB32 [R,G,B,A] */
+	else if ( colours == ZM_COLOUR_RGB32 ) /* RGB32 */
 	{
 		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
-			// unsigned int count = (hi_x+1) - lo_x;
 			
 			for ( unsigned int x = lo_x; x <= hi_x; x++, p++)
 			{
@@ -1740,7 +1792,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 	if(density <= 1)
 		return Fill(colour,limits);
 	
-	if ( !(colours == 1 || colours == 3 || colours == 4 ) )
+	if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32  ) )
 	{
 		Panic( "Attempt to fill image with unexpected colours %d", colours );
 	}
@@ -1752,7 +1804,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 	int lo_y = limits?limits->Lo().Y():0;
 	int hi_x = limits?limits->Hi().X():width-1;
 	int hi_y = limits?limits->Hi().Y():height-1;
-	if ( colours == 1 )
+	if ( colours == ZM_COLOUR_GRAY8 )
 	{
 		for ( int y = lo_y; y <= hi_y; y++ )
 		{
@@ -1764,7 +1816,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 			}
 		}
 	}
-	else if ( colours == 3 )
+	else if ( colours == ZM_COLOUR_RGB24 )
 	{
 		for ( int y = lo_y; y <= hi_y; y++ )
 		{
@@ -1779,7 +1831,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 			}
 		}
 	}
-	else if ( colours == 4 ) /* RGB32 [R,G,B,A] */
+	else if ( colours == ZM_COLOUR_RGB32 ) /* RGB32 */
 	{
 		for ( int y = lo_y; y <= hi_y; y++ )
 		{
@@ -1799,7 +1851,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 /* RGB32 compatible: complete */
 void Image::Outline( Rgb colour, const Polygon &polygon )
 {
-	if ( !(colours == 1 || colours == 3 || colours == 4 ) )
+	if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) )
 	{
 		Panic( "Attempt to outline image with unexpected colours %d", colours );
 	}
@@ -1835,7 +1887,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 			double x;
 			int y, yinc = (y1<y2)?1:-1;
 			grad *= yinc;
-			if ( colours == 1 )
+			if ( colours == ZM_COLOUR_GRAY8 )
 			{
 				Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f", x1, x2, y1, y2, grad );
 				for ( x = x1, y = y1; y != y2; y += yinc, x += grad )
@@ -1844,7 +1896,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 					buffer[(y*width)+int(round(x))] = colour;
 				}
 			}
-			else if ( colours == 3 )
+			else if ( colours == ZM_COLOUR_RGB24 )
 			{
 				for ( x = x1, y = y1; y != y2; y += yinc, x += grad )
 				{
@@ -1854,7 +1906,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 					BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
 				}
 			}
-			else if ( colours == 4 )
+			else if ( colours == ZM_COLOUR_RGB32 )
 			{
 				for ( x = x1, y = y1; y != y2; y += yinc, x += grad )
 				{
@@ -1874,7 +1926,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 			double y;
 			int x, xinc = (x1<x2)?1:-1;
 			grad *= xinc;
-			if ( colours == 1 )
+			if ( colours == ZM_COLOUR_GRAY8 )
 			{
 				Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
 				for ( y = y1, x = x1; x != x2; x += xinc, y += grad )
@@ -1883,7 +1935,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 					buffer[(int(round(y))*width)+x] = colour;
 				}
 			}
-			else if ( colours == 3 )
+			else if ( colours == ZM_COLOUR_RGB24 )
 			{
 				for ( y = y1, x = x1; x != x2; x += xinc, y += grad )
 				{
@@ -1893,7 +1945,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 					BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
 				}
 			}
-			else if ( colours == 4 )
+			else if ( colours == ZM_COLOUR_RGB32 )
 			{
 				for ( y = y1, x = x1; x != x2; x += xinc, y += grad )
 				{
@@ -1908,7 +1960,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 /* RGB32 compatible: complete */
 void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 {
-	if ( !(colours == 1 || colours == 3 || colours == 4 ) )
+	if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) )
 	{
 		Panic( "Attempt to fill image with unexpected colours %d", colours );
 	}
@@ -1995,7 +2047,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 			{
 				int lo_x = int(round(active_edges[i++].min_x));
 				int hi_x = int(round(active_edges[i++].min_x));
-				if( colours == 1) {
+				if( colours == ZM_COLOUR_GRAY8 ) {
 					unsigned char *p = &buffer[(y*width)+lo_x];
 					for ( int x = lo_x; x <= hi_x; x++, p++)
 					{
@@ -2005,7 +2057,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 							*p = colour;
 						}
 					}
-				} else if( colours == 3) {
+				} else if( colours == ZM_COLOUR_RGB24 ) {
 					unsigned char *p = &buffer[colours*((y*width)+lo_x)];
 					for ( int x = lo_x; x <= hi_x; x++, p += 3)
 					{
@@ -2016,7 +2068,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 							BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
 						}
 					}
-				} else if( colours == 4) {
+				} else if( colours == ZM_COLOUR_RGB32 ) {
 					Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
 					for ( int x = lo_x; x <= hi_x; x++, p++)
 					{
@@ -2055,8 +2107,10 @@ void Image::Fill( Rgb colour, const Polygon &polygon )
 	Fill( colour, 1, polygon );
 }
 
+/* RGB32 compatible: complete */
 void Image::Rotate( int angle )
 {
+	
 	angle %= 360;
 
 	if ( !angle )
@@ -2068,39 +2122,54 @@ void Image::Rotate( int angle )
 		return;
 	}
 	
+	unsigned int new_height = height;
+	unsigned int new_width = width;
 	uint8_t* rotate_buffer = AllocBuffer(size);
 
 	switch( angle )
 	{
 		case 90 :
 		{
-			int temp = width;
-			width = height;
-			height = temp;
+			new_height = width;
+			new_width = height;
 
-			int line_bytes = width*colours;
+			int line_bytes = new_width*colours;
 			unsigned char *s_ptr = buffer;
 
-			if ( colours == 1 )
+			if ( colours == ZM_COLOUR_GRAY8 )
 			{
 				unsigned char *d_ptr;
-				for ( int i = width-1; i >= 0; i-- )
+				for ( int i = new_width-1; i >= 0; i-- )
 				{
 					d_ptr = rotate_buffer+i;
-					for ( int j = height-1; j >= 0; j-- )
+					for ( int j = new_height-1; j >= 0; j-- )
 					{
 						*d_ptr = *s_ptr++;
 						d_ptr += line_bytes;
 					}
 				}
 			}
-			else
+			else if ( colours == ZM_COLOUR_RGB32 )
+			{
+				Rgb* s_rptr = (Rgb*)s_ptr;
+				Rgb* d_rptr;
+				for ( int i = new_width-1; i >= 0; i-- )
+				{
+					d_rptr = (Rgb*)(rotate_buffer+(i<<2));
+					for ( int j = new_height-1; j >= 0; j-- )
+					{
+						*d_rptr = *s_rptr++;
+						d_rptr += new_width;
+					}
+				}
+			}
+			else /* Assume RGB24 */
 			{
 				unsigned char *d_ptr;
-				for ( int i = width-1; i >= 0; i-- )
+				for ( int i = new_width-1; i >= 0; i-- )
 				{
 					d_ptr = rotate_buffer+(3*i);
-					for ( int j = height-1; j >= 0; j-- )
+					for ( int j = new_height-1; j >= 0; j-- )
 					{
 						*d_ptr = *s_ptr++;
 						*(d_ptr+1) = *s_ptr++;
@@ -2116,7 +2185,7 @@ void Image::Rotate( int angle )
 			unsigned char *s_ptr = buffer+size;
 			unsigned char *d_ptr = rotate_buffer;
 
-			if ( colours == 1 )
+			if ( colours == ZM_COLOUR_GRAY8 )
 			{
 				while( s_ptr > buffer )
 				{
@@ -2124,7 +2193,17 @@ void Image::Rotate( int angle )
 					*d_ptr++ = *s_ptr;
 				}
 			}
-			else
+			else if ( colours == ZM_COLOUR_RGB32 )
+			{
+				Rgb* s_rptr = (Rgb*)s_ptr;
+				Rgb* d_rptr = (Rgb*)d_ptr;
+				while( s_rptr > (Rgb*)buffer )
+				{
+					s_rptr--;
+					*d_rptr++ = *s_rptr;
+				}
+			}
+			else /* Assume RGB24 */
 			{
 				while( s_ptr > buffer )
 				{
@@ -2138,20 +2217,19 @@ void Image::Rotate( int angle )
 		}
 		case 270 :
 		{
-			int temp = width;
-			width = height;
-			height = temp;
+			new_height = width;
+			new_width = height;
 
-			int line_bytes = width*colours;
+			int line_bytes = new_width*colours;
 			unsigned char *s_ptr = buffer+size;
 
-			if ( colours == 1 )
+			if ( colours == ZM_COLOUR_GRAY8 )
 			{
 				unsigned char *d_ptr;
-				for ( int i = width-1; i >= 0; i-- )
+				for ( int i = new_width-1; i >= 0; i-- )
 				{
 					d_ptr = rotate_buffer+i;
-					for ( int j = height-1; j >= 0; j-- )
+					for ( int j = new_height-1; j >= 0; j-- )
 					{
 						s_ptr--;
 						*d_ptr = *s_ptr;
@@ -2159,13 +2237,28 @@ void Image::Rotate( int angle )
 					}
 				}
 			}
-			else
+			else if ( colours == ZM_COLOUR_RGB32 )
+			{
+				Rgb* s_rptr = (Rgb*)s_ptr;
+				Rgb* d_rptr;
+				for ( int i = new_width-1; i >= 0; i-- )
+				{
+					d_rptr = (Rgb*)(rotate_buffer+(i<<2));
+					for ( int j = new_height-1; j >= 0; j-- )
+					{
+						s_rptr--;
+						*d_rptr = *s_rptr;
+						d_rptr += new_width;
+					}
+				}
+			}
+			else /* Assume RGB24 */
 			{
 				unsigned char *d_ptr;
-				for ( int i = width-1; i >= 0; i-- )
+				for ( int i = new_width-1; i >= 0; i-- )
 				{
 					d_ptr = rotate_buffer+(3*i);
-					for ( int j = height-1; j >= 0; j-- )
+					for ( int j = new_height-1; j >= 0; j-- )
 					{
 						*(d_ptr+2) = *(--s_ptr);
 						*(d_ptr+1) = *(--s_ptr);
@@ -2178,13 +2271,13 @@ void Image::Rotate( int angle )
 		}
 	}
  
-	AssignDirect( width, height, colours, subpixelorder, rotate_buffer, size, ZM_BUFTYPE_ZM);
+	AssignDirect( new_width, new_height, colours, subpixelorder, rotate_buffer, size, ZM_BUFTYPE_ZM);
 	
 }
 
+/* RGB32 compatible: complete */
 void Image::Flip( bool leftright )
 {
-
 	uint8_t* flip_buffer = AllocBuffer(size);
 	
 	int line_bytes = width*colours;
@@ -2196,7 +2289,7 @@ void Image::Flip( bool leftright )
 		unsigned char *d_ptr = flip_buffer;
 		unsigned char *max_d_ptr = flip_buffer + size;
 
-		if ( colours == 1 )
+		if ( colours == ZM_COLOUR_GRAY8 )
 		{
 			while( d_ptr < max_d_ptr )
 			{
@@ -2208,7 +2301,22 @@ void Image::Flip( bool leftright )
 				s_ptr += line_bytes2;
 			}
 		}
-		else
+		else if ( colours == ZM_COLOUR_RGB32 )
+		{
+			Rgb* s_rptr = (Rgb*)s_ptr;
+			Rgb* d_rptr = (Rgb*)flip_buffer;
+			Rgb* max_d_rptr = (Rgb*)max_d_ptr;
+			while( d_rptr < max_d_rptr )
+			{
+				for ( int j = 0; j < width; j++ )
+				{
+					s_rptr--;
+					*d_rptr++ = *s_rptr;
+				}
+				s_rptr += width * 2;
+			}
+		}
+		else /* Assume RGB24 */
 		{
 			while( d_ptr < max_d_ptr )
 			{
@@ -2221,7 +2329,7 @@ void Image::Flip( bool leftright )
 				}
 				s_ptr += line_bytes2;
 			}
-		}
+		}		
 	}
 	else
 	{
@@ -2411,7 +2519,11 @@ __attribute__ ((noinline)) void sse2_fastblend(const uint8_t* col1, const uint8_
 	"cmp %3, %4\n\t"
 	"jb algo_sse2_blend\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (clearmask), "m" (divider)
+#else
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (clearmask), "m" (divider)
+#endif
 	: "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
 	);
 #else
@@ -2422,6 +2534,7 @@ __attribute__ ((noinline)) void sse2_fastblend(const uint8_t* col1, const uint8_
 __attribute__ ((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 	static int divider = 0;
 	static double current_blendpercent = 0.0;
+	const uint8_t* const max_ptr = result + count;
 	
 	if(current_blendpercent != blendpercent) {
 		/* Attempt to match the blending percent to one of the possible values */
@@ -2448,7 +2561,7 @@ __attribute__ ((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t
 	}
 	
 
-	for(register unsigned long i=0; i < count; i += 16, col1 += 16, col2 += 16, result += 16) {  
+	while(result < max_ptr) {
 		result[0] = ((col2[0] - col1[0])>>divider) + col1[0];
 		result[1] = ((col2[1] - col1[1])>>divider) + col1[1];
 		result[2] = ((col2[2] - col1[2])>>divider) + col1[2];
@@ -2465,26 +2578,32 @@ __attribute__ ((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t
 		result[13] = ((col2[13] - col1[13])>>divider) + col1[13];
 		result[14] = ((col2[14] - col1[14])>>divider) + col1[14];
 		result[15] = ((col2[15] - col1[15])>>divider) + col1[15];
+		
+		col1 += 16;
+		col2 += 16;
+		result += 16;
 	}
 }
 
 __attribute__ ((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 	double divide = blendpercent / 100.0;
 	double opacity = 1.0 - divide;
-	for(register unsigned long i=0; i < count; i++) {
-		result[i] = (col1[i] * opacity) + (col2[i] * divide);
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
+		*result++ = (*col1++ * opacity) + (*col2++ * divide);
+		
 	} 
 }
-
-
-
 
 /************************************************* DELTA FUNCTIONS *************************************************/
 
 /* Grayscale */
 __attribute__ ((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 16 bytes (16 grayscale pixels) at a time */  
-	for(unsigned int i=0;i<count; i+=16, col1 += 16, col2 += 16, result += 16) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		result[0] = abs(col1[0] - col2[0]);
 		result[1] = abs(col1[1] - col2[1]);
 		result[2] = abs(col1[2] - col2[2]);
@@ -2501,6 +2620,10 @@ __attribute__ ((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint
 		result[13] = abs(col1[13] - col2[13]);
 		result[14] = abs(col1[14] - col2[14]);
 		result[15] = abs(col1[15] - col2[15]);
+		
+		col1 += 16;
+		col2 += 16;
+		result += 16;
 	}  
 }
 
@@ -2508,7 +2631,9 @@ __attribute__ ((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint
 __attribute__ ((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
 	int r,g,b;  
-	for(unsigned int i=0; i<count; i +=4 , col1 += 12, col2 += 12, result += 4) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		r = abs(col1[0] - col2[0]);
 		g = abs(col1[1] - col2[1]);
 		b = abs(col1[2] - col2[2]);
@@ -2525,6 +2650,10 @@ __attribute__ ((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_
 		g = abs(col1[10] - col2[10]);
 		b = abs(col1[11] - col2[11]);
 		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 12;
+		col2 += 12;
+		result += 4;
 	}
 }
 
@@ -2532,7 +2661,9 @@ __attribute__ ((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_
 __attribute__ ((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
 	int r,g,b;  
-	for(unsigned int i=0; i<count; i +=4 , col1 += 12, col2 += 12, result += 4) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		b = abs(col1[0] - col2[0]);
 		g = abs(col1[1] - col2[1]);
 		r = abs(col1[2] - col2[2]);
@@ -2549,6 +2680,10 @@ __attribute__ ((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_
 		g = abs(col1[10] - col2[10]);
 		r = abs(col1[11] - col2[11]);
 		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 12;
+		col2 += 12;
+		result += 4;
 	}
 }
 
@@ -2556,7 +2691,9 @@ __attribute__ ((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_
 __attribute__ ((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
 	int r,g,b;  
-	for(unsigned int i=0; i<count; i +=4 , col1 += 16, col2 += 16, result += 4) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		r = abs(col1[0] - col2[0]);
 		g = abs(col1[1] - col2[1]);
 		b = abs(col1[2] - col2[2]);
@@ -2573,6 +2710,10 @@ __attribute__ ((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8
 		g = abs(col1[13] - col2[13]);
 		b = abs(col1[14] - col2[14]);
 		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 16;
+		col2 += 16;
+		result += 4;
 	}
 }
 
@@ -2580,7 +2721,9 @@ __attribute__ ((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8
 __attribute__ ((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
 	int r,g,b;  
-	for(unsigned int i=0; i<count; i +=4 , col1 += 16, col2 += 16, result += 4) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		b = abs(col1[0] - col2[0]);
 		g = abs(col1[1] - col2[1]);
 		r = abs(col1[2] - col2[2]);
@@ -2597,6 +2740,10 @@ __attribute__ ((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8
 		g = abs(col1[13] - col2[13]);
 		r = abs(col1[14] - col2[14]);
 		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 16;
+		col2 += 16;
+		result += 4;
 	}
 }
 
@@ -2604,7 +2751,9 @@ __attribute__ ((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8
 __attribute__ ((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
 	int r,g,b;  
-	for(unsigned int i=0; i<count; i +=4 , col1 += 16, col2 += 16, result += 4) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		r = abs(col1[1] - col2[1]);
 		g = abs(col1[2] - col2[2]);
 		b = abs(col1[3] - col2[3]);
@@ -2621,6 +2770,10 @@ __attribute__ ((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8
 		g = abs(col1[14] - col2[14]);
 		b = abs(col1[15] - col2[15]);
 		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 16;
+		col2 += 16;
+		result += 4;
 	}
 }
 
@@ -2628,7 +2781,9 @@ __attribute__ ((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8
 __attribute__ ((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
 	int r,g,b;  
-	for(unsigned int i=0; i<count; i +=4 , col1 += 16, col2 += 16, result += 4) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		b = abs(col1[1] - col2[1]);
 		g = abs(col1[2] - col2[2]);
 		r = abs(col1[3] - col2[3]);
@@ -2645,6 +2800,10 @@ __attribute__ ((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8
 		g = abs(col1[14] - col2[14]);
 		r = abs(col1[15] - col2[15]);
 		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 16;
+		col2 += 16;
+		result += 4;
 	}
 }
 
@@ -2674,7 +2833,11 @@ __attribute__ ((noinline)) void sse2_delta8_gray8(const uint8_t* col1, const uin
 	"cmp %3, %4\n\t"
 	"jb algo_sse2_delta8_gray8\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
+#else
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
+#endif
 	: "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
 	);
 #else
@@ -2749,7 +2912,11 @@ __attribute__ ((noinline)) void sse2_delta8_rgba(const uint8_t* col1, const uint
 	"cmp %3, %4\n\t"
 	"jb algo_sse2_delta8_rgba\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
+#else
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
+#endif
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
 	);
 #else
@@ -2824,7 +2991,11 @@ __attribute__ ((noinline)) void sse2_delta8_bgra(const uint8_t* col1, const uint
 	"cmp %3, %4\n\t"
 	"jb algo_sse2_delta8_bgra\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
+#else
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
+#endif
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
 	);
 #else
@@ -2900,7 +3071,11 @@ __attribute__ ((noinline)) void sse2_delta8_argb(const uint8_t* col1, const uint
 	"cmp %3, %4\n\t"
 	"jb algo_sse2_delta8_argb\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
+#else
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
+#endif
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
 	);
 #else
@@ -2976,7 +3151,11 @@ __attribute__ ((noinline)) void sse2_delta8_abgr(const uint8_t* col1, const uint
 	"cmp %3, %4\n\t"
 	"jb algo_sse2_delta8_abgr\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
+#else
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
+#endif
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
 	);
 #else
@@ -3034,7 +3213,11 @@ __attribute__ ((noinline)) void ssse3_delta8_rgba(const uint8_t* col1, const uin
 	"cmp %3, %4\n\t"
 	"jb algo_ssse3_delta8_rgba\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
+#else
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
+#endif
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3092,7 +3275,11 @@ __attribute__ ((noinline)) void ssse3_delta8_bgra(const uint8_t* col1, const uin
 	"cmp %3, %4\n\t"
 	"jb algo_ssse3_delta8_bgra\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
+#else
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
+#endif
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3151,7 +3338,11 @@ __attribute__ ((noinline)) void ssse3_delta8_argb(const uint8_t* col1, const uin
 	"cmp %3, %4\n\t"
 	"jb algo_ssse3_delta8_argb\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
+#else
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
+#endif
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3210,7 +3401,11 @@ __attribute__ ((noinline)) void ssse3_delta8_abgr(const uint8_t* col1, const uin
 	"cmp %3, %4\n\t"
 	"jb algo_ssse3_delta8_abgr\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
+#else
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
+#endif
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3221,10 +3416,68 @@ __attribute__ ((noinline)) void ssse3_delta8_abgr(const uint8_t* col1, const uin
 
 /************************************************* CONVERT FUNCTIONS *************************************************/
 
+/* RGB24 to grayscale */
+__attribute__ ((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+	unsigned int r,g,b;  
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
+		r = col1[0];
+		g = col1[1];
+		b = col1[2];
+		result[0] = (r + r + b + g + g + g + g + g)>>3;
+		r = col1[3];
+		g = col1[4];
+		b = col1[5];
+		result[1] = (r + r + b + g + g + g + g + g)>>3;
+		r = col1[6];
+		g = col1[7];
+		b = col1[8];
+		result[2] = (r + r + b + g + g + g + g + g)>>3;
+		r = col1[9];
+		g = col1[10];
+		b = col1[11];
+		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 12;
+		result += 4;
+	}
+}
+
+/* BGR24 to grayscale */
+__attribute__ ((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+	unsigned int r,g,b;  
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
+		b = col1[0];
+		g = col1[1];
+		r = col1[2];
+		result[0] = (r + r + b + g + g + g + g + g)>>3;
+		b = col1[3];
+		g = col1[4];
+		r = col1[5];
+		result[1] = (r + r + b + g + g + g + g + g)>>3;
+		b = col1[6];
+		g = col1[7];
+		r = col1[8];
+		result[2] = (r + r + b + g + g + g + g + g)>>3;
+		b = col1[9];
+		g = col1[10];
+		r = col1[11];
+		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 12;
+		result += 4;
+	}
+}
+
 /* RGBA to grayscale */
 __attribute__ ((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
-	for(unsigned int i=0; i<count; i += 4, col1 += 16, result += 4) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		r = col1[0];
 		g = col1[1];
 		b = col1[2];
@@ -3241,13 +3494,18 @@ __attribute__ ((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint
 		g = col1[13];
 		b = col1[14];
 		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 16;
+		result += 4;
 	}
 }
 
 /* BGRA to grayscale */
 __attribute__ ((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
-	for(unsigned int i=0; i<count; i += 4, col1 += 16, result += 4) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		b = col1[0];
 		g = col1[1];
 		r = col1[2];
@@ -3264,13 +3522,18 @@ __attribute__ ((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint
 		g = col1[13];
 		r = col1[14];
 		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 16;
+		result += 4;
 	}
 }
 
 /* ARGB to grayscale */
 __attribute__ ((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
-	for(unsigned int i=0; i<count; i += 4, col1 += 16, result += 4) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		r = col1[1];
 		g = col1[2];
 		b = col1[3];
@@ -3287,13 +3550,18 @@ __attribute__ ((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint
 		g = col1[14];
 		b = col1[15];
 		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 16;
+		result += 4;
 	}
 }
 
 /* ABGR to grayscale */
 __attribute__ ((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
-	for(unsigned int i=0; i<count; i += 4, col1 += 16, result += 4) {
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		b = col1[1];
 		g = col1[2];
 		r = col1[3];
@@ -3310,6 +3578,9 @@ __attribute__ ((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint
 		g = col1[14];
 		r = col1[15];
 		result[3] = (r + r + b + g + g + g + g + g)>>3;
+		
+		col1 += 16;
+		result += 4;
 	}
 }
 
@@ -3317,7 +3588,9 @@ __attribute__ ((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint
 __attribute__ ((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	const uint16_t* yuvbuf = (const uint16_t*)col1;
 	
-	for(register unsigned long i=0; i < count; i += 16, yuvbuf += 16, result += 16) {  
+	const uint8_t* const max_ptr = result + count;
+	
+	while(result < max_ptr) {
 		result[0] = (uint8_t)yuvbuf[0];
 		result[1] = (uint8_t)yuvbuf[1];
 		result[2] = (uint8_t)yuvbuf[2];
@@ -3334,7 +3607,10 @@ __attribute__ ((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint
 		result[13] = (uint8_t)yuvbuf[13];
 		result[14] = (uint8_t)yuvbuf[14];
 		result[15] = (uint8_t)yuvbuf[15];
-	}  
+		
+		yuvbuf += 16;
+		result += 16;
+	}
 }
 
 /* RGBA to grayscale SSSE3 */
@@ -3382,7 +3658,11 @@ __attribute__ ((noinline)) void ssse3_convert_rgba_gray8(const uint8_t* col1, ui
 	"cmp %2, %3\n\t"
 	"jb algo_ssse3_convert_rgba_gray8\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (result), "m" (count), "r" (i), "m" (*movemask)
+#else
+	: "r" (col1), "r" (result), "r" (count), "r" (i), "m" (*movemask)
+#endif
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3423,7 +3703,11 @@ __attribute__ ((noinline)) void ssse3_convert_yuyv_gray8(const uint8_t* col1, ui
 	"cmp %2, %3\n\t"
 	"jb algo_ssse3_convert_yuyv_gray8\n\t"
 	:
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
 	: "r" (col1), "r" (result), "m" (count), "r" (i), "m" (*movemask1), "m" (*movemask2)
+#else
+	: "r" (col1), "r" (result), "r" (count), "r" (i), "m" (*movemask1), "m" (*movemask2)
+#endif
 	: "%xmm3", "%xmm4", "cc", "memory"
 	);
 #else

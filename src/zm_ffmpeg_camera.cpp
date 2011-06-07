@@ -157,18 +157,14 @@ int FfmpegCamera::PrimeCapture()
 	}
 	
 #if HAVE_LIBSWSCALE
+	if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
+		Fatal("swscale does not support the codec format");
+	}
+	
 	if(!sws_isSupportedOutput(imagePixFormat)) {
 		Fatal("swscale does not support the target format");
 	}
 	
-	if(config.cpu_extensions && sseversion >= 20) {
-		mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
-	} else {
-		mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-	}
-	
-	if(mConvertContext == NULL)
-		Fatal( "Unable to create conversion context for %s", mPath.c_str() );
 #else // HAVE_LIBSWSCALE
     Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
@@ -218,6 +214,16 @@ int FfmpegCamera::Capture( Image &image )
 		avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 		
 #if HAVE_LIBSWSCALE
+		if(mConvertContext == NULL) {
+			if(config.cpu_extensions && sseversion >= 20) {
+				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
+			} else {
+				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+			}
+			if(mConvertContext == NULL)
+				Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+		}
+	
 		if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
 			Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
 #else // HAVE_LIBSWSCALE

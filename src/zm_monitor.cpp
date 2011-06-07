@@ -394,7 +394,6 @@ Monitor::Monitor(
     struct timeval *shared_timestamps = (struct timeval *)((char *)trigger_data + sizeof(TriggerData));
     unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
     
-    /* This shouldn't be needed if the shared memory start address is multiple of 16, but just in case */
     if(((unsigned long)shared_images % 16) != 0) {
 	/* Align images buffer to nearest 16 byte boundary */
 	Debug(3,"Aligning shared memory images to the next 16 byte boundary");
@@ -405,7 +404,6 @@ Monitor::Monitor(
     {
         memset( mem_ptr, 0, mem_size );
         shared_data->size = sizeof(SharedData);
-        shared_data->valid = true;
         shared_data->active = enabled;
         shared_data->signal = false;
         shared_data->state = IDLE;
@@ -426,6 +424,7 @@ Monitor::Monitor(
         trigger_data->trigger_cause[0] = 0;
         trigger_data->trigger_text[0] = 0;
         trigger_data->trigger_showtext[0] = 0;
+        shared_data->valid = true;
     }
     else if ( purpose == ANALYSIS )
     {
@@ -507,7 +506,7 @@ Monitor::Monitor(
                 Fatal( "Can't change to parent directory: %s", strerror(errno) );
         }
 
-        while( shared_data->last_write_index == image_buffer_count )
+        while( shared_data->last_write_index == image_buffer_count && shared_data->last_write_time == 0)
         {
             Warning( "Waiting for capture daemon" );
             sleep( 1 );
@@ -941,7 +940,10 @@ void Monitor::DumpZoneImage( const char *zone_string )
     Image *snap_image = snap->image;
 
     Image zone_image( *snap_image );
-    zone_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
+    if(zone_image.Colours() == ZM_COLOUR_GRAY8) {
+        zone_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
+    }
+    
     for( int i = 0; i < n_zones; i++ )
     {
         if ( exclude_id && (!extra_colour || extra_zone.getNumCoords()) && zones[i]->Id() == exclude_id )

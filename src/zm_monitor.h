@@ -165,8 +165,8 @@ protected:
 		int				mem_size;
 		unsigned char	*mem_ptr;
 
-		SharedData		*shared_data;
-		TriggerData		*trigger_data;
+		volatile SharedData	*shared_data;
+		volatile TriggerData	*trigger_data;
 
 		int				last_state;
 		int				last_event;

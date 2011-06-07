@@ -268,6 +268,8 @@ void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result
 void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 
 /* Convert functions */
+void std_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void std_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);

@@ -418,10 +418,10 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 				Debug(2,"Using ZM for image conversion");
 				if(palette == V4L2_PIX_FMT_RGB32 && colours == ZM_COLOUR_GRAY8) {
 					conversion_fptr = &std_convert_argb_gray8;
-					subpixelorder = ZM_SUBPIX_ORDER_ARGB;
+					subpixelorder = ZM_SUBPIX_ORDER_NONE;
 				} else if(palette == V4L2_PIX_FMT_BGR32 && colours == ZM_COLOUR_GRAY8) {
 					conversion_fptr = &std_convert_bgra_gray8;
-					subpixelorder = ZM_SUBPIX_ORDER_BGRA;
+					subpixelorder = ZM_SUBPIX_ORDER_NONE;
 				} else if(palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_GRAY8) {
 					/* Fast YUYV->Grayscale conversion by extracting the Y channel */
 					if(config.cpu_extensions && sseversion >= 35) {
@@ -529,10 +529,10 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 				if(palette == VIDEO_PALETTE_RGB32 && colours == ZM_COLOUR_GRAY8) {
 					if(BigEndian) {
 						conversion_fptr = &std_convert_argb_gray8;
-						subpixelorder = ZM_SUBPIX_ORDER_ARGB;
+						subpixelorder = ZM_SUBPIX_ORDER_NONE;
 					} else {
 						conversion_fptr = &std_convert_bgra_gray8;
-						subpixelorder = ZM_SUBPIX_ORDER_BGRA;
+						subpixelorder = ZM_SUBPIX_ORDER_NONE;
 					}
 				} else if((palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422) && colours == ZM_COLOUR_GRAY8) {
 					/* Fast YUYV->Grayscale conversion by extracting the Y channel */
@@ -1185,55 +1185,53 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
             if ( !verbose )
                 output[strlen(output)-1] = '|';
       
-            struct v4l2_cropcap cropcap;
-            memset( &cropcap, 0, sizeof(cropcap) );
-            cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            if ( vidioctl( vid_fd, VIDIOC_CROPCAP, &cropcap ) < 0 )
-            {
-                Error( "Failed to query crop capabilities: %s", strerror(errno) );
-                if ( verbose )
-                    sprintf( output, "Error, failed to query crop capabilities %s: %s\n", queryDevice, strerror(errno) );
-                else
-                    sprintf( output, "error%d\n", errno );
-                return( false );
-            }
-            if ( verbose )
-            {
-                sprintf( output+strlen(output), "Crop Capabilities\n" );
-                sprintf( output+strlen(output), "  Bounds: %d x %d\n", cropcap.bounds.width, cropcap.bounds.height );
-                sprintf( output+strlen(output), "  Default: %d x %d\n", cropcap.defrect.width, cropcap.defrect.height );
-            }
-            else
-            {
-                sprintf( output+strlen(output), "B:%dx%d|", cropcap.bounds.width, cropcap.bounds.height );
-            }
-
-            struct v4l2_crop crop;
-            memset( &crop, 0, sizeof(crop) );
-            crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            if ( vidioctl( vid_fd, VIDIOC_G_CROP, &crop ) < 0 )
-            {
-                if ( errno != EINVAL )
-                {
-                    Error( "Failed to query crop: %s", strerror(errno) );
-                    if ( verbose )
-                        sprintf( output, "Error, failed to query crop %s: %s\n", queryDevice, strerror(errno) );
-                    else
-                        sprintf( output, "error%d\n", errno );
-
-		    /* Crop detection failure is not fatal and cropping is not used anyway, so no reason not to continue */
-		    /* return( false ); */
-                }
-                else if ( verbose )
-                {
-                    Info( "Does not support VIDIOC_G_CROP");
-                }
-            }
-            else
-            {
-                if ( verbose )
-                sprintf( output+strlen(output), "  Current: %d x %d\n", crop.c.width, crop.c.height );
-            }
+	struct v4l2_cropcap cropcap;
+	memset( &cropcap, 0, sizeof(cropcap) );
+	cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	if ( vidioctl( vid_fd, VIDIOC_CROPCAP, &cropcap ) < 0 )
+	{
+		if(errno != EINVAL) {
+			/* Failed querying crop capability, write error to the log and continue as if crop is not supported */
+			Error( "Failed to query crop capabilities: %s", strerror(errno) );
+		}
+			
+		if(verbose) {
+			sprintf( output+strlen(output), "Cropping is not supported");
+		} else {
+			/* Send fake crop bounds to not confuse things parsing this, such as monitor probe */
+			sprintf( output+strlen(output), "B:%dx%d|",0,0); 
+		}
+	} else {
+		struct v4l2_crop crop;
+		memset( &crop, 0, sizeof(crop) );
+		crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;  
+		
+		if ( vidioctl( vid_fd, VIDIOC_G_CROP, &crop ) < 0 )
+		{
+			if ( errno != EINVAL )
+			{
+				/* Failed querying crop sizes, write error to the log and continue as if crop is not supported */
+				Error( "Failed to query crop: %s", strerror(errno) );
+			}
+			
+			if ( verbose ) {
+				sprintf( output+strlen(output), "Cropping is not supported");
+			} else {
+				/* Send fake crop bounds to not confuse things parsing this, such as monitor probe */
+				sprintf( output+strlen(output), "B:%dx%d|",0,0); 
+			}
+		} else {
+			/* Cropping supported */
+			if ( verbose ) {
+				sprintf( output+strlen(output), "Crop Capabilities\n" );
+				sprintf( output+strlen(output), "  Bounds: %d x %d\n", cropcap.bounds.width, cropcap.bounds.height );
+				sprintf( output+strlen(output), "  Default: %d x %d\n", cropcap.defrect.width, cropcap.defrect.height );
+				sprintf( output+strlen(output), "  Current: %d x %d\n", crop.c.width, crop.c.height );
+			} else {
+				sprintf( output+strlen(output), "B:%dx%d|", cropcap.bounds.width, cropcap.bounds.height );
+			}
+		}
+	} /* Crop code */
 
             struct v4l2_input input;
             int inputIndex = 0;

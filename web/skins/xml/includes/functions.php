@@ -175,7 +175,7 @@ function ffmpegSupportsCodec($codec)
 		return TRUE;
 	} else {
 		/* Check -formats tag also if we fail -codecs */
-		if (preg_match("/\b".$codec."\b/", shell_exec(getFfmpegPath()." -codecs 2> /dev/null")) > 0) return TRUE;
+		if (preg_match("/\b".$codec."\b/", shell_exec(getFfmpegPath()." -formats 2> /dev/null")) > 0) return TRUE;
 		return FALSE;
 	}
 }

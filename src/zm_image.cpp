@@ -317,7 +317,7 @@ void Image::AssignDirect( const int p_width, const int p_height, const int p_col
 	}
 	
 	if(buffer_size < ((p_width*p_height)*p_colours)) {
-		Error("Attempt to directly assign buffer from an undersized buffer of size: %u",buffer_size);
+		Error("Attempt to directly assign buffer from an undersized buffer of size: %zu",buffer_size);
 		return;
 	}
 	
@@ -377,7 +377,7 @@ void Image::Assign(const int p_width, const int p_height, const int p_colours, c
 	}
 	
 	if(buffer_size < new_size) {
-		Error("Attempt to assign buffer from an undersized buffer of size: %u",buffer_size);
+		Error("Attempt to assign buffer from an undersized buffer of size: %zu",buffer_size);
 		return;
 	}
 	
@@ -1094,6 +1094,7 @@ bool Image::Crop( const Box &limits )
 }
 
 
+/* At the moment only supports 8bit overlay for 24bit and 32bit images. */
 void Image::Overlay( const Image &image )
 {
 	if ( !(width == image.width && height == image.height) )
@@ -1122,11 +1123,11 @@ void Image::Overlay( const Image &image )
 		{
 			Colourise(image.colours, image.subpixelorder);
 			
-			if(colours == ZM_COLOUR_RGB32) {
+			if(image.colours == ZM_COLOUR_RGB32) {
 				Rgb* prdest = (Rgb*)buffer;
 				const Rgb* prsrc = (Rgb*)image.buffer; 
 				const Rgb* const max_ptr = (Rgb*)(buffer+size);
-				if(subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+				if(image.subpixelorder == ZM_SUBPIX_ORDER_RGBA || image.subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
 					/* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
 					while (prdest < max_ptr) {
 						if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) )
@@ -1167,20 +1168,46 @@ void Image::Overlay( const Image &image )
 	{
 		if ( image.colours == ZM_COLOUR_GRAY8 )
 		{
-			while( pdest < (buffer+size) )
-			{
-				if ( *psrc )
-				{
-					RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc++;
+			if(colours == ZM_COLOUR_RGB32) {
+				Rgb* prdest = (Rgb*)buffer;
+				const Rgb* const max_ptr = (Rgb*)(buffer+size);
+				if(subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+					/* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
+					while (prdest < max_ptr) {
+						if ( *psrc )
+						{
+							RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc++;
+						}
+						prdest++;
+					}
+				} else {
+					/* ABGR\ARGB subpixel order - Alpha byte is first */
+					while (prdest < max_ptr) {
+						if ( *psrc )
+						{
+							RED_PTR_ABGR(prdest) = GREEN_PTR_ABGR(prdest) = BLUE_PTR_ABGR(prdest) = *psrc++;
+						}
+						prdest++;
+					}
 				}
-				pdest += colours;
+			} else {
+				/* Assume RGB24\BGR24 */
+				while( pdest < (buffer+size) )
+				{
+					if ( *psrc )
+					{
+						RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc++;
+					}
+					pdest += 3;
+				}
 			}
 		}
 		else
 		{
-		  
-		  
-		  
+
+			/* At the moment this function only supports 8bit overlay for 24bit and 32bit images.
+			** The code below is old and was not updated yet to support the new formats. this code assumes RGB24
+			*/
 			while( pdest < (buffer+size) )
 			{
 				if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) )

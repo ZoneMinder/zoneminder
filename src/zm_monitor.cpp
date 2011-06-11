@@ -1958,7 +1958,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         int width = atoi(dbrow[col]); col++;
         int height = atoi(dbrow[col]); col++;
         int colours = atoi(dbrow[col]); col++;
-        int palette = atoi(dbrow[col]); col++;
+        /* int palette = atoi(dbrow[col]); */ col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
@@ -2117,7 +2117,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
         int width = atoi(dbrow[col]); col++;
         int height = atoi(dbrow[col]); col++;
         int colours = atoi(dbrow[col]); col++;
-        int palette = atoi(dbrow[col]); col++;
+        /* int palette = atoi(dbrow[col]); */ col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
@@ -2246,7 +2246,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
         int width = atoi(dbrow[col]); col++;
         int height = atoi(dbrow[col]); col++;
         int colours = atoi(dbrow[col]); col++;
-        int palette = atoi(dbrow[col]); col++;
+        /* int palette = atoi(dbrow[col]); */ col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;

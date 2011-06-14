@@ -1901,8 +1901,8 @@ int LocalCamera::Capture( Image &image )
             Debug( 3, "Captured %d for channel %d", capture_frame, channel );
 
             buffer = v4l1_data.bufptr+v4l1_data.frames.offsets[capture_frame];
-#endif // ZM_HAS_V4L1
         }
+#endif // ZM_HAS_V4L1
     } /* prime capture */    
     
 	if(conversion_type != 0) {

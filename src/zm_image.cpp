@@ -51,7 +51,7 @@ static delta_fptr_t fptr_delta8_abgr;
 static delta_fptr_t fptr_delta8_gray8;
 
 /* Pointer to image buffer memory copy function */
-static imgbufcpy_fptr_t fptr_imgbufcpy;
+imgbufcpy_fptr_t fptr_imgbufcpy;
 
 Image::Image()
 {

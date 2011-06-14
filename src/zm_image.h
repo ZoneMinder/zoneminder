@@ -44,6 +44,13 @@ extern "C"
 #define ZM_BUFTYPE_AVMALLOC 3
 #define ZM_BUFTYPE_ZM 4
 
+typedef void (*blend_fptr_t)(const uint8_t*, const uint8_t*, uint8_t*, unsigned long, double);
+typedef void (*delta_fptr_t)(const uint8_t*, const uint8_t*, uint8_t*, unsigned long);
+typedef void (*convert_fptr_t)(const uint8_t*, uint8_t*, unsigned long);
+typedef void* (*imgbufcpy_fptr_t)(void*, const void*, size_t);
+
+
+extern imgbufcpy_fptr_t fptr_imgbufcpy;
 
 /* Should be called from Image class functions */
 inline static uint8_t* AllocBuffer(size_t p_bufsize) {
@@ -67,6 +74,7 @@ inline static void DumpBuffer(uint8_t* buffer, int buffertype) {
 		*/
 	}
 }
+
 
 //
 // This is image class, and represents a frame captured from a 
@@ -181,13 +189,13 @@ public:
 	{
 		if ( image.size != size )
         {
-            Panic( "Attempt to copy different size image buffers, expected %d, got %d", size, image.size );
+		Panic( "Attempt to copy different size image buffers, expected %d, got %d", size, image.size );
         }
-		sse2_aligned_memcpy( buffer, image.buffer, size );
+		(*fptr_imgbufcpy)(buffer, image.buffer, size);
 	}
 	inline Image &operator=( const unsigned char *new_buffer )
 	{
-		sse2_aligned_memcpy( buffer, new_buffer, size );
+		(*fptr_imgbufcpy)(buffer, new_buffer, size);
 		return( *this );
 	}
 
@@ -237,12 +245,6 @@ public:
 };
 
 #endif // ZM_IMAGE_H
-
-
-typedef void (*blend_fptr_t)(const uint8_t*, const uint8_t*, uint8_t*, unsigned long, double);
-typedef void (*delta_fptr_t)(const uint8_t*, const uint8_t*, uint8_t*, unsigned long);
-typedef void (*convert_fptr_t)(const uint8_t*, uint8_t*, unsigned long);
-typedef void* (*imgbufcpy_fptr_t)(void*, const void*, size_t);
 
 /* Blend functions */
 void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);

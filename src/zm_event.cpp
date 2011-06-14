@@ -1,5 +1,5 @@
 //
-// ZoneMinder Event Class Implementation, $Date$, $Revision$
+// ZoneMinder Event Class Implementation, $Date: 2010-11-11 12:22:35 +0000 (Thu, 11 Nov 2010) $, $Revision: 3189 $
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -28,8 +28,6 @@
 #include <arpa/inet.h>
 #include <glob.h>
 
-#include <sys/sendfile.h>
-
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_time.h"
@@ -39,6 +37,10 @@
 #include "zm_monitor.h"
 
 #include "zmf.h"
+
+#if HAVE_SYS_SENDFILE_H
+#include <sys/sendfile.h>
+#endif
 
 //#define USE_PREPARED_SQL 1
 
@@ -1446,4 +1448,3 @@ void EventStream::runStream()
 
     closeComms();
 }
-

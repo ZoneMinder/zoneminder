@@ -72,7 +72,6 @@ header ('Content-type: text/html; charset=utf-8');
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'           => 'Color 24 bits',
-    '32BitColour'           => 'Color 32 bits',
     '8BitGrey'              => 'Grises 8 bits',
     'Action'                => 'Acción',
     'Actual'                => 'Actual',

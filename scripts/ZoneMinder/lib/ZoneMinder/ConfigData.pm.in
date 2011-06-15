@@ -308,14 +308,6 @@ our @options =
 		category => "config",
 	},
 	{
-		name => "ZM_LOCAL_BGR_INVERT",
-		default => "yes",
-		description => "Invert BGR colours to RGB",
-		help => "Some cameras or video cards capture images in BGR (Blue-Green-Red) order even when the palette says RGB. If you see strange colours casts on your images then it may be worth trying this option to see if that corrects the issue. Note this option will apply only to local cameras and not those over a network.",
-		type => $types{boolean},
-		category => "config",
-	},
-	{
 		name => "ZM_CPU_EXTENSIONS",
 		default => "yes",
 		description => "Use advanced CPU extensions to increase performance",
@@ -327,7 +319,7 @@ our @options =
 		name => "ZM_FAST_IMAGE_BLENDS",
 		default => "yes",
 		description => "Use a fast algorithm to blend the reference image",
-		help => "In most modes of operation ZoneMinder needs to blend the captured image with the stored reference image to update it for the next image. The reference blend percentage specified for the monitor controls how much the new image affects the reference image. There are two methods that are available for this. If this option is set then a basic calculation is applied which though fast and fairly accurate can (due to rounding) mean that the actual range of pixel values in the reference image may be reduced from that in the captured image, e.g. a pixel may only be able to achieve a maximum of 250 for example while the captured image is consistently at 255. If you also have a small minimum pixel difference threshold this can cause multiple bogus alarms. The alternative is to switch this option off which stores an additional set of temporary values which eliminate any significant rounding errors. This is more accurate though is somewhat slower and should not really be necessary unless you find problems with the default method.",
+		help => "To detect alarms ZoneMinder needs to blend the captured image with the stored reference image to update it for comparison with the next image. The reference blend percentage specified for the monitor controls how much the new image affects the reference image. There are two methods that are available for this. If this option is set then fast calculation which does not use any multiplication or division is used. This calculation is extremely fast, however it limits the possible blend percentages to 50%, 25%, 12.5%, 6.25%, 3.25% and 1.5%. Any other blend percentage will be rounded to the nearest possible one. The alternative is to switch this option off and use standard blending instead, which is slower.",
 		type => $types{boolean},
 		category => "config",
 	},

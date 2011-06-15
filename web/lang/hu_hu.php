@@ -81,6 +81,7 @@ setlocale( LC_ALL, 'hu_HU' );
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => '24 bites szín',
+    '32BitColour'          => '32 bites szín',          // Added - 2011-06-15
     '8BitGrey'             => '8 bit szürkeárnyalat',
     'Action'               => 'Mûvelet',
     'Actual'               => 'Valós',
@@ -135,6 +136,7 @@ $SLANG = array(
     'BadAlarmFrameCount'   => 'Riadó képek száma 1 vagy nagyobb egész szám legyen',
     'BadAlarmMaxFPS'       => 'A riadó maximális FPS száma pozitív szám legyen',
     'BadChannel'           => 'A csatorna száma 0 vagy nagyobb egész szám legyen',
+    'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
     'BadDevice'            => 'Az eszköz érték valós legyen',
     'BadFPSReportInterval' => 'FPS információs idõköz puffer számlálója 0 vagy nagyobb egész legyen',
     'BadFormat'            => 'A típus 0 vagy nagyobb egész szám legyen',

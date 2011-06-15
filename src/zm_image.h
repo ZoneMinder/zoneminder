@@ -217,7 +217,7 @@ public:
 
 	void Overlay( const Image &image );
 	void Overlay( const Image &image, int x, int y );
-	void Blend( const Image &image, int transparency=10 ) const;
+	void Blend( const Image &image, int transparency=12 );
 	static Image *Merge( int n_images, Image *images[] );
 	static Image *Merge( int n_images, Image *images[], double weight );
 	static Image *Highlight( int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );

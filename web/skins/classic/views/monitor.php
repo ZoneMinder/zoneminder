@@ -352,7 +352,7 @@ if ( ZM_HAS_V4L2 )
 $Colours = array(
     $SLANG['8BitGrey']    => 1,
     $SLANG['24BitColour'] => 3,
-    "32 bit colour" => 4
+    $SLANG['32BitColour'] => 4
 );
 
 $orientations = array(

@@ -1288,11 +1288,11 @@ void Image::Overlay( const Image &image, int x, int y )
 	
 }
 
-void Image::Blend( const Image &image, int transparency ) const
+void Image::Blend( const Image &image, int transparency )
 {
 	if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) )
 	{
-        Panic( "Attempt to blend different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder );
+		Panic( "Attempt to blend different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder );
 	}
 	
 	/* Do the blending */

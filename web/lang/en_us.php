@@ -71,6 +71,7 @@ require_once( 'lang/en_gb.php' );
 
 // Simple String Replacements
 $SLANG['24BitColour']          = '24 bit color';
+$SLANG['32BitColour']          = '32 bit color';
 $SLANG['8BitGrey']             = '8 bit grayscale';
 $SLANG['Colour']               = 'Color';
 $SLANG['Grey']                 = 'Gray';

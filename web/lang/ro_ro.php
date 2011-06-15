@@ -43,6 +43,7 @@ setlocale( LC_ALL, 'ro_RO' );
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => 'Color &#226;n 24 bi&#355;i',
+    '32BitColour'          => 'Color &#226;n 32 bi&#355;i',          // Added - 2011-06-15
     '8BitGrey'             => 'Scal&#259 gri &#226;n 8 bi&#355;i',
     'Action'               => 'Action',
     'Actual'               => 'Real',
@@ -97,6 +98,7 @@ $SLANG = array(
     'BadAlarmFrameCount'   => 'Alarm frame count must be an integer of one or more',
     'BadAlarmMaxFPS'       => 'Alarm Maximum FPS must be a positive integer or floating point value',
     'BadChannel'           => 'Channel must be set to an integer of zero or more',
+    'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
     'BadDevice'            => 'Device must be set to a valid value',
     'BadFPSReportInterval' => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadFormat'            => 'Format must be set to an integer of zero or more',

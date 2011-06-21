@@ -15,8 +15,6 @@ function getDeviceScale( $width, $height, $divisor=1 )
     $scale = ($widthScale<$heightScale)?$widthScale:$heightScale;
     if ( $divisor != 1.0 )
         $scale = $scale/$divisor;
-    //error_log( "Div:$divisor" );
-    //error_log( "Scale:$scale" );
     return( intval($scale) );
 }
 

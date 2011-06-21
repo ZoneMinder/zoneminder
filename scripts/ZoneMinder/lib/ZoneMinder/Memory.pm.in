@@ -95,7 +95,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # ==========================================================================
 
 use ZoneMinder::Config qw(:all);
-use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Logger qw(:all);
 
 use constant STATE_IDLE     => 0;
 use constant STATE_PREALARM => 1;

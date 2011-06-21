@@ -349,9 +349,9 @@ int main( int argc, char *argv[] )
 	}
 	//printf( "Monitor %d, Function %d\n", mon_id, function );
 
-	zmDbgInit( "zmu", "", -1 );
-
 	zmLoadConfig();
+
+	logInit( "zmu" );
 
 	zmSetDefaultTermHandler();
 	zmSetDefaultDieHandler();

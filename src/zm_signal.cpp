@@ -17,11 +17,12 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-#include <string.h>
-#include <stdlib.h>
-
 #include "zm.h"
 #include "zm_signal.h"
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 bool zm_reload = false;
 
@@ -114,7 +115,7 @@ RETSIGTYPE zm_die_handler( int signal )
     }
     else
     {
-        cmd_ptr += snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), "/path/to/%s", zmDbgName() );
+        cmd_ptr += snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), "/path/to/%s", logId().c_str() );
     }
 	// skip first stack frame (points here)
 	for ( int i=1; i < trace_size; i++ )

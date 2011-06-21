@@ -103,7 +103,7 @@ function getAuthUser( $auth )
             $remoteAddr = $_SERVER['REMOTE_ADDR'];
             if ( !$remoteAddr )
             {
-                error_log( "Can't determine remote address for authentication, using empty string" );
+                Error( "Can't determine remote address for authentication, using empty string" );
                 $remoteAddr = "";
             }
         }
@@ -125,7 +125,7 @@ function getAuthUser( $auth )
             }
         }
     }
-    error_log( "Unable to authenticate user from auth hash '$auth'" );
+    Error( "Unable to authenticate user from auth hash '$auth'" );
     return( false );
 }
 
@@ -611,7 +611,7 @@ function buildSelect( $name, $contents, $behaviours=false )
             $value = $_REQUEST[$arr];
         if ( !preg_match_all( "/\[\s*['\"]?(\w+)[\"']?\s*\]/", $matches[2], $matches ) )
         {
-            die( "Can't parse selector '$name'" );
+            Fatal( "Can't parse selector '$name'" );
         }
         for ( $i = 0; $i < count($matches[1]); $i++ )
         {
@@ -1158,7 +1158,7 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
             imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
 
             if ( !imagejpeg( $thumbImage, $thumbFile ) )
-                error_log( "Can't create thumbnail '$thumbPath'" );
+                Error( "Can't create thumbnail '$thumbPath'" );
         }
     }
 
@@ -1214,7 +1214,7 @@ function createListThumbnail( $event, $overwrite=false )
     }
     else
     {
-        die( "No thumbnail width or height specified, please check in Options->Web" );
+        Fatal( "No thumbnail width or height specified, please check in Options->Web" );
     }
 
     $imageData = getImageSrc( $event, $frame, $scale, false, $overwrite );
@@ -1601,6 +1601,7 @@ function sortTag( $field )
             return( "(v)" );
     return( false );
 }
+
 function getLoad()
 {
     $uptime = shell_exec( 'uptime' );
@@ -2075,7 +2076,7 @@ function initX10Status()
         $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
         if ( $socket < 0 )
         {
-            die( "socket_create() failed: ".socket_strerror($socket) );
+            Fatal( "socket_create() failed: ".socket_strerror($socket) );
         }
         $sock_file = ZM_PATH_SOCKS.'/zmx10.sock';
         if ( @socket_connect( $socket, $sock_file ) )
@@ -2083,7 +2084,7 @@ function initX10Status()
             $command = "status";
             if ( !socket_write( $socket, $command ) )
             {
-                die( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
+                Fatal( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
             }
             socket_shutdown( $socket, 1 );
             $x10Output = "";
@@ -2127,7 +2128,7 @@ function setDeviceStatusX10( $key, $status )
     $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
     if ( $socket < 0 )
     {
-        die( "socket_create() failed: ".socket_strerror($socket) );
+        Fatal( "socket_create() failed: ".socket_strerror($socket) );
     }
     $sock_file = ZM_PATH_SOCKS.'/zmx10.sock';
     if ( @socket_connect( $socket, $sock_file ) )
@@ -2135,7 +2136,7 @@ function setDeviceStatusX10( $key, $status )
         $command = "$status;$key";
         if ( !socket_write( $socket, $command ) )
         {
-            die( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
+            Fatal( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
         }
         socket_shutdown( $socket, 1 );
         $x10Response = socket_read( $socket, 256 );
@@ -2153,6 +2154,41 @@ function setDeviceStatusX10( $key, $status )
     else
         $status = "unknown";
     return( $status );
+}
+
+function logState()
+{
+    $state = 'ok';
+
+    $levelCounts = array(
+        Logger::FATAL => array( ZM_LOG_ALERT_FAT_COUNT, ZM_LOG_ALARM_FAT_COUNT ),
+        Logger::ERROR => array( ZM_LOG_ALERT_ERR_COUNT, ZM_LOG_ALARM_ERR_COUNT ),
+        Logger::WARNING => array( ZM_LOG_ALERT_WAR_COUNT, ZM_LOG_ALARM_WAR_COUNT ),
+    );
+
+    $sql = "select Level, count(Level) as LevelCount from Logs where Level < ".Logger::INFO." and from_unixtime(TimeKey) + interval ".ZM_LOG_CHECK_PERIOD." second > now() group by Level order by Level asc";
+    $counts = dbFetchAll( $sql );
+
+    foreach ( $counts as $count )
+    {
+        if ( $count['Level'] <= Logger::PANIC )
+            $count['Level'] = Logger::FATAL;
+        if ( !($levelCount = $levelCounts[$count['Level']]) )
+        {
+            Error( "Unexpected Log level ".$count['Level'] );
+            next;
+        }
+        if ( $levelCount[1] && $count['LevelCount'] >= $levelCount[1] )
+        {
+            $state = 'alarm';
+            break;
+        }
+        elseif ( $levelCount[0] && $count['LevelCount'] >= $levelCount[0] )
+        {
+            $state = 'alert';
+        }
+    }
+    return( $state );
 }
 
 function isVector ( &$array )
@@ -2173,15 +2209,15 @@ function checkJsonError()
     switch( json_last_error() )
     {
         case JSON_ERROR_DEPTH :
-            die( "Unable to decode JSON string '$value', maximum stack depth exceeded" );
+            Fatal( "Unable to decode JSON string '$value', maximum stack depth exceeded" );
         case JSON_ERROR_CTRL_CHAR :
-            die( "Unable to decode JSON string '$value', unexpected control character found" );
+            Fatal( "Unable to decode JSON string '$value', unexpected control character found" );
         case JSON_ERROR_STATE_MISMATCH :
-            die( "Unable to decode JSON string '$value', invalid or malformed JSON" );
+            Fatal( "Unable to decode JSON string '$value', invalid or malformed JSON" );
         case JSON_ERROR_SYNTAX :
-            die( "Unable to decode JSON string '$value', syntax error" );
+            Fatal( "Unable to decode JSON string '$value', syntax error" );
         default :
-            die( "Unable to decode JSON string '$value', unexpected error ".json_last_error() );
+            Fatal( "Unable to decode JSON string '$value', unexpected error ".json_last_error() );
         case JSON_ERROR_NONE:
             break;
     }
@@ -2280,9 +2316,7 @@ define( 'HTTP_STATUS_FORBIDDEN', 403 );
 
 function ajaxError( $message, $code=HTTP_STATUS_OK )
 {
-    error_log( $message );
-    if ( function_exists( 'debug_backtrace' ) )
-        error_log( var_export( debug_backtrace(), true ) );
+    Error( $message );
     if ( function_exists( 'ajaxCleanup' ) )
         ajaxCleanup();
     if ( $code == HTTP_STATUS_OK )
@@ -2304,7 +2338,6 @@ function ajaxResponse( $result=false )
         $response = array_merge( $response, $result );
     elseif ( !empty($result) )
         $response['message'] = $result;
-    //error_log( var_export( $response, true ) );
     header( "Content-type: text/plain" );
     exit( jsonEncode( $response ) );
 }

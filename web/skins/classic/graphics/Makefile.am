@@ -10,6 +10,8 @@ dist_web_DATA =  \
 	arrow-l.gif \
 	arrow-l-u.gif \
 	arrow-r.gif \
+	arrow-s-d.gif \
+	arrow-s-u.gif \
 	arrow-u.gif \
 	arrow-ul.gif \
 	arrow-ur.gif \

@@ -65,7 +65,7 @@ void RemoteCameraRtsp::Initialise()
 
 	buffer.size( max_size );
 
-    if ( zmDbgLevel > ZM_DBG_INF )
+    if ( logDebugging() )
         av_log_set_level( AV_LOG_DEBUG ); 
     else
         av_log_set_level( AV_LOG_QUIET ); 
@@ -222,7 +222,7 @@ int RemoteCameraRtsp::Capture( Image &image )
                         return( 0 );
                     }
                     Error( "Error while decoding frame %d", frameCount );
-                    Hexdump( ZM_DBG_ERR, buffer.head(), buffer.size()>256?256:buffer.size() );
+                    Hexdump( Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size() );
                     buffer.clear();
                     continue;
                     //return( -1 );

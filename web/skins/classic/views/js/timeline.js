@@ -1,4 +1,4 @@
-var events = new Hash();
+var events = new Object();
 
 function showEvent( eid, fid, width, height )
 {
@@ -14,14 +14,14 @@ function createEventHtml( event, frame )
     if ( event.Archived > 0 )
         eventHtml.addClass( 'archived' );
 
-    new Element( 'p' ).injectInside( eventHtml ).set( 'text', monitorNames[event.MonitorId] );
-    new Element( 'p' ).injectInside( eventHtml ).set( 'text', event.Name+(frame?("("+frame.FrameId+")"):"") );
-    new Element( 'p' ).injectInside( eventHtml ).set( 'text', event.StartTime+" - "+event.Length+"s" );
-    new Element( 'p' ).injectInside( eventHtml ).set( 'text', event.Cause );
+    new Element( 'p' ).inject( eventHtml ).set( 'text', monitorNames[event.MonitorId] );
+    new Element( 'p' ).inject( eventHtml ).set( 'text', event.Name+(frame?("("+frame.FrameId+")"):"") );
+    new Element( 'p' ).inject( eventHtml ).set( 'text', event.StartTime+" - "+event.Length+"s" );
+    new Element( 'p' ).inject( eventHtml ).set( 'text', event.Cause );
     if ( event.Notes )
-        new Element( 'p' ).injectInside( eventHtml ).set( 'text', event.Notes );
+        new Element( 'p' ).inject( eventHtml ).set( 'text', event.Notes );
     if ( event.Archived > 0 )
-        new Element( 'p' ).injectInside( eventHtml ).set( 'text', archivedString );
+        new Element( 'p' ).inject( eventHtml ).set( 'text', archivedString );
 
     return( eventHtml );
 }
@@ -67,7 +67,7 @@ function frameDataResponse( respObj, respText )
     }
 
     if ( !event['frames'] )
-        event['frames'] = new Hash();
+        event['frames'] = new Object();
 
     event['frames'][frame.FrameId] = frame;
     event['frames'][frame.FrameId]['html'] = createEventHtml( event, frame );

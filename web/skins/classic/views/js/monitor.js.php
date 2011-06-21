@@ -5,7 +5,7 @@ var defaultAspectRatio = '<?= ZM_DEFAULT_ASPECT_RATIO ?>';
 if ( ZM_OPT_CONTROL )
 {
 ?>
-var controlOptions = new Hash();
+var controlOptions = new Object();
 <?php
     global $controlTypes;
     $controlTypes = array( ''=>$SLANG['None'] );
@@ -42,7 +42,7 @@ controlOptions[<?= $row['Id'] ?>][<?= $i ?>] = '<?= $SLANG['Preset'].' '.$i ?>';
 if ( empty($_REQUEST['mid']) )
 {
 ?>
-var monitorNames = new Hash();
+var monitorNames = new Object();
 <?php
     foreach ( dbFetchAll( "select Name from Monitors order by Name asc", "Name" ) as $name )
     {

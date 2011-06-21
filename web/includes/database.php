@@ -69,16 +69,13 @@ function dbLog( $sql, $update=false )
     global $dbLogLevel;
     $noExecute = $update && ($dbLogLevel >= DB_LOG_DEBUG);
     if ( $dbLogLevel > DB_LOG_OFF )
-        error_log( "SQL-LOG: $sql".($noExecute?" (not executed)":"") );
+        Debug( "SQL-LOG: $sql".($noExecute?" (not executed)":"") );
     return( $noExecute );
 }
 
 function dbError( $sql )
 {
-    $err_ref = sprintf( "%X", rand( 0x100000, 0xffffff ) );
-    error_log( "SQL-ERROR($err_ref): ".$sql );
-    error_log( "SQL-ERROR($err_ref): ".mysql_error() );
-    die( "An error has occurred and this operation cannot continue.<br/>For full details check your web logs for the code '$err_ref'" );
+    Fatal( "SQL-ERR '".mysql_error()."', statement was '".$sql."'" );
 }
 
 function dbEscape( $string )
@@ -249,7 +246,7 @@ function getTableDescription( $table, $asString=1 )
                     //$desc['minLength'] = -128;
                     break;
                 default :
-                    error_log( "Unexpected text qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
+                    Error( "Unexpected text qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
                     break;
             }
         }
@@ -286,7 +283,7 @@ function getTableDescription( $table, $asString=1 )
                     //$desc['maxValue'] = 127;
                     break;
                 default :
-                    error_log( "Unexpected integer qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
+                    Error( "Unexpected integer qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
                     break;
             }
             if ( !empty($matches[1]) )
@@ -329,7 +326,7 @@ function getTableDescription( $table, $asString=1 )
         }
         else
         {
-            error_log( "Can't parse database type '".$row['Type']."' found for field '".$row['Field']."' in table '".$table."'" );
+            Error( "Can't parse database type '".$row['Type']."' found for field '".$row['Field']."' in table '".$table."'" );
         }
 
         if ( $asString )

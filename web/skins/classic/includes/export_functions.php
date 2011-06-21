@@ -961,7 +961,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
             $file = "zmEventDetail.html";
             if ( !($fp = fopen( $eventPath."/".$file, "w" )) )
             {
-                die( "Can't open event detail export file '$file'" );
+                Fatal( "Can't open event detail export file '$file'" );
             }
             fwrite( $fp, exportEventDetail( $event, $exportFrames, $exportImages ) );
             fclose( $fp );
@@ -972,7 +972,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
             $file = "zmEventFrames.html";
             if ( !($fp = fopen( $eventPath."/".$file, "w" )) )
             {
-                die( "Can't open event frames export file '$file'" );
+                Fatal( "Can't open event frames export file '$file'" );
             }
             fwrite( $fp, exportEventFrames( $event, $exportDetail, $exportImages ) );
             fclose( $fp );
@@ -1001,7 +1001,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
 			// create an image slider
 			if(!empty($myfilelist)) {
 				$file = "zmEventImages.html";
-				if ( !($fp = fopen( $eventPath."/".$file, "w" )) ) die( "Can't open event images export file '$file'" );
+				if ( !($fp = fopen( $eventPath."/".$file, "w" )) ) Fatal( "Can't open event images export file '$file'" );
 				fwrite( $fp, exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist ) );
 				fclose( $fp );
 				$exportFileList[$file] = $eventPath."/".$file;
@@ -1072,7 +1072,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 			}
 			$monitorPath = 'events/';
 			$html_eventMaster = 'zmEventImagesMaster_'.date('Ymd_His'). '.html';
-			if ( !($fp = fopen( $monitorPath."/".$html_eventMaster, "w" )) ) die( "Can't open event images export file '$html_eventMaster'" );
+			if ( !($fp = fopen( $monitorPath."/".$html_eventMaster, "w" )) ) Fatal( "Can't open event images export file '$html_eventMaster'" );
 			fwrite( $fp, exportEventImagesMaster( $eids ) );
 			fclose( $fp );
 			$exportFileList[] = $monitorPath."/".$html_eventMaster;
@@ -1081,7 +1081,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         $listFile = "temp/".$export_listFile;
         if ( !($fp = fopen( $listFile, "w" )) )
         {
-            die( "Can't open event export list file '$listFile'" );
+            Fatal( "Can't open event export list file '$listFile'" );
         }
         foreach ( $exportFileList as $exportFile )
         {
@@ -1097,9 +1097,9 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
             exec( escapeshellcmd( $command ), $output, $status );
             if ( $status )
             {
-                error_log( "Command '$command' returned with status $status" );
+                Error( "Command '$command' returned with status $status" );
                 if ( $output[0] )
-                    error_log( "First line of output is '".$output[0]."'" );
+                    Error( "First line of output is '".$output[0]."'" );
                 return( false );
             }
         }
@@ -1115,9 +1115,9 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
             exec( $command, $output, $status );
             if ( $status )
             {
-                error_log( "Command '$command' returned with status $status" );
+                Error( "Command '$command' returned with status $status" );
                 if ( $output[0] )
-                    error_log( "First line of output is '".$output[0]."'" );
+                    Error( "First line of output is '".$output[0]."'" );
                 return( false );
             }
         }

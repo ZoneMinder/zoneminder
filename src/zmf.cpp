@@ -155,12 +155,12 @@ int main( int argc, char *argv[] )
 		exit( 0 );
 	}
 
-	char dbg_id_string[16];
-	snprintf( dbg_id_string, sizeof(dbg_id_string), "m%d", id );
-
-	zmDbgInit( "zmf", dbg_id_string, 0 );
+	char log_id_string[16];
+	snprintf( log_id_string, sizeof(log_id_string), "m%d", id );
 
 	zmLoadConfig();
+
+	logInit( "zmf" );
 
 	Monitor *monitor = Monitor::Load( id, false, Monitor::QUERY );
 

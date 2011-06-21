@@ -31,12 +31,12 @@ use warnings;
 require Exporter;
 use ZoneMinder::Base qw(:all);
 use ZoneMinder::Config qw(:all);
-use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Logger qw(:all);
 use ZoneMinder::General qw(:all);
 use ZoneMinder::Database qw(:all);
 use ZoneMinder::Memory qw(:all);
 
-our @ISA = qw(Exporter ZoneMinder::Base ZoneMinder::Config ZoneMinder::Debug ZoneMinder::General ZoneMinder::Database ZoneMinder::Memory);
+our @ISA = qw(Exporter ZoneMinder::Base ZoneMinder::Config ZoneMinder::Logger ZoneMinder::General ZoneMinder::Database ZoneMinder::Memory);
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
@@ -53,7 +53,7 @@ our %EXPORT_TAGS = (
 		@ZoneMinder::Config::EXPORT_OK
 	],
 	'debug' => [ 
-		@ZoneMinder::Debug::EXPORT_OK
+		@ZoneMinder::Logger::EXPORT_OK
 	],
 	'general' => [ 
 		@ZoneMinder::General::EXPORT_OK
@@ -87,7 +87,7 @@ ZoneMinder - Container module for common ZoneMinder modules
 =head1 DESCRIPTION
 
 This module is a convenience container module that uses the
-ZoneMinder::Base, ZoneMinder::Common, ZoneMinder::Debug,
+ZoneMinder::Base, ZoneMinder::Common, ZoneMinder::Logger,
 ZoneMinder::Database and ZoneMinder::Memory modules. It also
 exports by default all symbols provided by the 'all' tag of 
 each of the modules.
@@ -96,7 +96,7 @@ Thus 'use'ing this module is equivalent to the following
 
   use ZoneMinder::Base qw(:all);
   use ZoneMinder::Config qw(:all);
-  use ZoneMinder::Debug qw(:all);
+  use ZoneMinder::Logger qw(:all);
   use ZoneMinder::Database qw(:all);
   use ZoneMinder::Memory qw(:all);
 
@@ -109,7 +109,7 @@ modules.
 
 =head1 SEE ALSO
 
-ZoneMinder::Base, ZoneMinder::Common, ZoneMinder::Debug,
+ZoneMinder::Base, ZoneMinder::Common, ZoneMinder::Logger,
 ZoneMinder::Database, ZoneMinder::Memory
 
 http://www.zoneminder.com

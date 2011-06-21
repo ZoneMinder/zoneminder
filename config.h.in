@@ -18,6 +18,9 @@
    */
 #undef HAVE_ALLOCA_H
 
+/* Define to 1 if you have the <arpa/inet.h> header file. */
+#undef HAVE_ARPA_INET_H
+
 /* Define to 1 if you have the declaration of `backtrace', and to 0 if you
    don't. */
 #undef HAVE_DECL_BACKTRACE
@@ -31,6 +34,9 @@
 
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 #undef HAVE_DOPRNT
+
+/* Define to 1 if you have the <execinfo.h> header file. */
+#undef HAVE_EXECINFO_H
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
@@ -62,8 +68,17 @@
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
+/* Define to 1 if you have the <glob.h> header file. */
+#undef HAVE_GLOB_H
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `ioctl' function. */
+#undef HAVE_IOCTL
+
+/* Define to 1 if you have the `ioctlsocket' function. */
+#undef HAVE_IOCTLSOCKET
 
 /* Define to 1 if you have the <jpeglib.h> header file. */
 #undef HAVE_JPEGLIB_H
@@ -177,14 +192,23 @@
 /* Define to 1 if you have the <pcre/pcre.h> header file. */
 #undef HAVE_PCRE_PCRE_H
 
+/* Define to 1 if you have the <pthread.h> header file. */
+#undef HAVE_PTHREAD_H
+
 /* Define to 1 if you have the `putenv' function. */
 #undef HAVE_PUTENV
 
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT
 
+/* Define to 1 if you have the `sigaction' function. */
+#undef HAVE_SIGACTION
+
 /* Define to 1 if the system has the type `siginfo_t'. */
 #undef HAVE_SIGINFO_T
+
+/* Define to 1 if you have the `sleep' function. */
+#undef HAVE_SLEEP
 
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
@@ -256,6 +280,12 @@
 /* Define to 1 if `eip' is a member of `struct sigcontext'. */
 #undef HAVE_STRUCT_SIGCONTEXT_EIP
 
+/* Define to 1 if you have the `syscall' function. */
+#undef HAVE_SYSCALL
+
+/* Define to 1 if you have the <syscall.h> header file. */
+#undef HAVE_SYSCALL_H
+
 /* Define to 1 if you have the <syslog.h> header file. */
 #undef HAVE_SYSLOG_H
 
@@ -289,11 +319,17 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
+/* Define to 1 if you have the <sys/un.h> header file. */
+#undef HAVE_SYS_UN_H
+
 /* Define to 1 if the system has the type `ucontext_t'. */
 #undef HAVE_UCONTEXT_T
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `usleep' function. */
+#undef HAVE_USLEEP
 
 /* Define to 1 if you have the <values.h> header file. */
 #undef HAVE_VALUES_H

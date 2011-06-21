@@ -41,7 +41,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 #
 # ==========================================================================
 
-use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
 use Time::HiRes qw( usleep );

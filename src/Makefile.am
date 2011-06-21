@@ -29,13 +29,13 @@ zm_SOURCES = \
 	zm_coord.cpp \
 	zm.cpp \
 	zm_db.cpp \
-	zm_debug.c \
+	zm_logger.cpp \
 	zm_event.cpp \
 	zm_exception.cpp \
 	zm_file_camera.cpp \
 	zm_ffmpeg_camera.cpp \
 	zm_image.cpp \
-	zm_jpeg.c \
+	zm_jpeg.cpp \
 	zm_local_camera.cpp \
 	zm_monitor.cpp \
 	zm_ffmpeg.cpp \
@@ -66,7 +66,7 @@ zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
 zmf_SOURCES = zmf.cpp $(zm_SOURCES)
 zmstreamer_SOURCES = zmstreamer.cpp $(zm_SOURCES)
-zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_regexp.cpp zm_debug.c zm_db.cpp zm.cpp
+zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_regexp.cpp zm_logger.cpp zm_utils.cpp zm_db.cpp zm.cpp
 
 noinst_HEADERS = \
 	jinclude.h \
@@ -78,7 +78,7 @@ noinst_HEADERS = \
 	zm_config.h \
 	zm_coord.h \
 	zm_db.h \
-	zm_debug.h \
+	zm_logger.h \
 	zm_event.h \
 	zm_exception.h \
 	zmf.h \

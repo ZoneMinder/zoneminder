@@ -128,29 +128,29 @@ int main( int argc, char *argv[] )
 		exit( 0 );
 	}
 
-	char dbg_id_string[16];
+	char log_id_string[32] = "";
 	if ( device[0] )
 	{
 		const char *slash_ptr = strrchr( device, '/' );
-		snprintf( dbg_id_string, sizeof(dbg_id_string), "d%s", slash_ptr?slash_ptr+1:device );
+		snprintf( log_id_string, sizeof(log_id_string), "zmc_d%s", slash_ptr?slash_ptr+1:device );
 	}
 	else if ( host[0] )
 	{
-		snprintf( dbg_id_string, sizeof(dbg_id_string), "h%s", host );
+		snprintf( log_id_string, sizeof(log_id_string), "zmc_h%s", host );
 	}
 	else if ( file[0] )
 	{
 		const char *slash_ptr = strrchr( file, '/' );
-		snprintf( dbg_id_string, sizeof(dbg_id_string), "f%s", slash_ptr?slash_ptr+1:file );
+		snprintf( log_id_string, sizeof(log_id_string), "zmc_f%s", slash_ptr?slash_ptr+1:file );
 	}
 	else
 	{
-		snprintf( dbg_id_string, sizeof(dbg_id_string), "m%d", monitor_id );
+		snprintf( log_id_string, sizeof(log_id_string), "zmc_m%d", monitor_id );
 	}
 
-	zmDbgInit( "zmc", dbg_id_string, 0 );
-
 	zmLoadConfig();
+
+	logInit( log_id_string );
 
 	Monitor **monitors = 0;
 	int n_monitors = 0;

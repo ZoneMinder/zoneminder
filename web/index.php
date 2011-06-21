@@ -68,7 +68,7 @@ define( "ZM_SKIN_PATH", "skins/$skin" );
 
 $skinBase = array(); // To allow for inheritance of skins
 if ( !file_exists( ZM_SKIN_PATH ) )
-    die( "Invalid skin '$skin'" );
+    Fatal( "Invalid skin '$skin'" );
 require_once( ZM_SKIN_PATH.'/includes/init.php' );
 $skinBase[] = $skin;
 
@@ -83,6 +83,7 @@ if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) )
 }
 
 require_once( 'includes/config.php' );
+require_once( 'includes/logger.php' );
 
 if ( ZM_OPT_USE_AUTH )
     if ( isset( $_SESSION['user'] ) )
@@ -113,8 +114,7 @@ if ( isset( $_REQUEST['request'] ) )
     {
         if ( !file_exists( $includeFile ) )
         {
-            error_log( "Request '$request' does not exist" );
-            die( "Request '$request' does not exist" );
+            Fatal( "Request '$request' does not exist" );
         }
         require_once $includeFile;
     }
@@ -128,8 +128,7 @@ else
         {
             if ( !file_exists( $includeFile ) )
             {
-                error_log( "View '$view' does not exist" );
-                die( "View '$view' does not exist" );
+                Fatal( "View '$view' does not exist" );
             }
             require_once $includeFile;
         }

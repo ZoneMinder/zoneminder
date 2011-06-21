@@ -30,6 +30,7 @@ dist_web_DATA = \
 	function.php \
 	group.php \
 	groups.php \
+	log.php \
 	login.php \
 	logout.php \
 	Makefile.am \

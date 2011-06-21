@@ -438,7 +438,7 @@ function drawZonePoints()
         var div = new Element( 'div', { 'id': 'point'+i, 'class': 'zonePoint', 'title': 'Point '+(i+1), 'styles': { 'left': zone['Points'][i].x, 'top': zone['Points'][i].y } } );
         div.addEvent( 'mouseover', highlightOn.pass( i ) );
         div.addEvent( 'mouseout', highlightOff.pass( i ) );
-        div.injectInside( $('imageFrame') );
+        div.inject( $('imageFrame') );
         div.makeDraggable( { 'container': $('imageFrame'), 'onStart': setActivePoint.pass( i ), 'onComplete': fixActivePoint.pass( i ), 'onDrag': updateActivePoint.pass( i ) } );
     }
 
@@ -450,27 +450,27 @@ function drawZonePoints()
         row.addEvents( { 'mouseover': highlightOn.pass( i ), 'mouseout': highlightOff.pass( i ) } );
         var cell = new Element( 'td' );
         cell.set( 'text', i+1 );
-        cell.injectInside( row );
+        cell.inject( row );
 
         cell = new Element( 'td' );
         var input = new Element( 'input', { 'id': 'newZone[Points]['+i+'][x]', 'name': 'newZone[Points]['+i+'][x]', 'value': zone['Points'][i].x, 'size': 5 } );
         input.addEvent( 'change', updateX.pass( i ) );
-        input.injectInside( cell );
-        cell.injectInside( row );
+        input.inject( cell );
+        cell.inject( row );
 
         cell = new Element( 'td' );
         input = new Element( 'input', { 'id': 'newZone[Points]['+i+'][y]', 'name': 'newZone[Points]['+i+'][y]', 'value': zone['Points'][i].y, 'size': 5 } );
         input.addEvent( 'change', updateY.pass( i ) );
-        input.injectInside( cell );
-        cell.injectInside( row );
+        input.inject( cell );
+        cell.inject( row );
 
         cell = new Element( 'td' );
-        new Element( 'a', { 'href': '#', 'events': { 'click': addPoint.pass( i ) } } ).set( 'text', '+' ).injectInside( cell );
+        new Element( 'a', { 'href': '#', 'events': { 'click': addPoint.pass( i ) } } ).set( 'text', '+' ).inject( cell );
         if ( zone['Points'].length > 3 )
-            new Element( 'a', { 'id': 'delete'+i, 'href': '#', 'events': { 'click': delPoint.pass( i ) } } ).set( 'text', '-' ).injectInside( cell );
-        cell.injectInside( row );
+            new Element( 'a', { 'id': 'delete'+i, 'href': '#', 'events': { 'click': delPoint.pass( i ) } } ).set( 'text', '-' ).inject( cell );
+        cell.inject( row );
 
-        row.injectInside( tables[i%tables.length].getElement( 'tbody' ) );
+        row.inject( tables[i%tables.length].getElement( 'tbody' ) );
     }
 }
 

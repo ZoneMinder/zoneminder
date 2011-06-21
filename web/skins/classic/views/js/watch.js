@@ -109,7 +109,7 @@ function getStreamCmdResponse( respObj, respText )
 {
     watchdogOk("stream");
     if ( streamCmdTimer )
-        streamCmdTimer = $clear( streamCmdTimer );
+        streamCmdTimer = clearTimeout( streamCmdTimer );
 
     if ( respObj.result == 'Ok' )
     {
@@ -359,7 +359,7 @@ function getStatusCmdResponse( respObj, respText )
 {
     watchdogOk("status");
     if ( statusCmdTimer )
-        statusCmdTimer = $clear( statusCmdTimer );
+        statusCmdTimer = clearTimeout( statusCmdTimer );
 
     if ( respObj.result == 'Ok' )
     {
@@ -443,7 +443,7 @@ function getEventCmdResponse( respObj, respText )
 {
     watchdogOk("event");
     if ( eventCmdTimer )
-        eventCmdTimer = $clear( eventCmdTimer );
+        eventCmdTimer = clearTimeout( eventCmdTimer );
 
     if ( respObj.result == 'Ok' )
     {
@@ -462,44 +462,44 @@ function getEventCmdResponse( respObj, respText )
             if ( newEvent )
             {
                 row = new Element( 'tr', { 'id': 'event'+event.Id } );
-                new Element( 'td', { 'class': 'colId' } ).injectInside( row );
-                new Element( 'td', { 'class': 'colName' } ).injectInside( row );
-                new Element( 'td', { 'class': 'colTime' } ).injectInside( row );
-                new Element( 'td', { 'class': 'colSecs' } ).injectInside( row );
-                new Element( 'td', { 'class': 'colFrames' } ).injectInside( row );
-                new Element( 'td', { 'class': 'colScore' } ).injectInside( row );
-                new Element( 'td', { 'class': 'colDelete' } ).injectInside( row );
+                new Element( 'td', { 'class': 'colId' } ).inject( row );
+                new Element( 'td', { 'class': 'colName' } ).inject( row );
+                new Element( 'td', { 'class': 'colTime' } ).inject( row );
+                new Element( 'td', { 'class': 'colSecs' } ).inject( row );
+                new Element( 'td', { 'class': 'colFrames' } ).inject( row );
+                new Element( 'td', { 'class': 'colScore' } ).inject( row );
+                new Element( 'td', { 'class': 'colDelete' } ).inject( row );
 
                 var cells = row.getElements( 'td' );
 
                 var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height ] ) } });
                 link.set( 'text', event.Id );
-                link.injectInside( row.getElement( 'td.colId' ) );
+                link.inject( row.getElement( 'td.colId' ) );
 
                 link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height ] ) } });
                 link.set( 'text', event.Name );
-                link.injectInside( row.getElement( 'td.colName' ) );
+                link.inject( row.getElement( 'td.colName' ) );
 
                 row.getElement( 'td.colTime' ).set( 'text', event.StartTime );
                 row.getElement( 'td.colSecs' ).set( 'text', event.Length );
 
                 link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramesPopup.pass( [ event.Id, event.Width, event.Height ] ) } });
                 link.set( 'text', event.Frames+'/'+event.AlarmFrames );
-                link.injectInside( row.getElement( 'td.colFrames' ) );
+                link.inject( row.getElement( 'td.colFrames' ) );
 
                 link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramePopup.pass( [ event.Id, '0', event.Width, event.Height ] ) } });
                 link.set( 'text', event.AvgScore+'/'+event.MaxScore );
-                link.injectInside( row.getElement( 'td.colScore' ) );
+                link.inject( row.getElement( 'td.colScore' ) );
 
-                link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': deleteEvent.bindWithEvent( link, event.Id ), 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
+                link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': function( event ) { deleteEvent( event, event.Id ); }.bind( link ), 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
                 link.set( 'text', 'X' );
-                link.injectInside( row.getElement( 'td.colDelete' ) );
+                link.inject( row.getElement( 'td.colDelete' ) );
 
                 if ( i == 0 )
-                    row.injectInside( $(eventListBody) );
+                    row.inject( $(eventListBody) );
                 else
                 {
-                    row.injectTop( $(eventListBody) );
+                    row.inject( $(eventListBody), 'top' );
                     if ( !eventCmdFirst )
                         row.addClass( 'recent' );
                 }
@@ -544,7 +544,7 @@ function getEventCmdResponse( respObj, respText )
 function eventCmdQuery()
 {
     if ( eventCmdTimer ) //avoid firing another if we are firing one
-        eventCmdTimer = $clear( eventCmdTimer );
+        eventCmdTimer = clearTimeout( eventCmdTimer );
     eventCmdReq.send();
 }
 
@@ -716,7 +716,7 @@ function initPage()
             fetchImage.pass( streamImg ).periodical( imageRefreshTimeout );
         }
         else
-            streamImg.addEvent( 'click', handleClick.bindWithEvent( streamImg ) );
+            streamImg.addEvent( 'click', function( event ) { handleClick( event ); } );
     }
 
     if ( refreshApplet && appletRefreshTime )

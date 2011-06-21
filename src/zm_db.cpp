@@ -25,6 +25,8 @@
 
 MYSQL dbconn;
 
+int zmDbConnected = false;
+
 void zmDbConnect()
 {
 	if ( !mysql_init( &dbconn ) )
@@ -56,5 +58,6 @@ void zmDbConnect()
 		Error( "Can't select database: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
+    zmDbConnected = true;
 }
 

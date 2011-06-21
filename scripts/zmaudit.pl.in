@@ -43,9 +43,6 @@ use constant MAX_AGED_DIRS => 10; # Number of event dirs to check age on
 use constant RECOVER_TAG => "(r)"; # Tag to append to event name when recovered
 use constant RECOVER_TEXT => "Recovered."; # Text to append to event notes when recovered
 
-use constant DBG_ID => "zmaudit"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
-
 # ==========================================================================
 #
 # You shouldn't need to change anything from here downwards
@@ -75,32 +72,32 @@ my $continuous = 0;
 
 sub usage
 {
-	print( "
+    print( "
 Usage: zmaudit.pl [-r,-report|-i,-interactive]
 Parameters are :-
 -r, --report                    - Just report don't actually do anything
 -i, --interactive               - Ask before applying any changes
 -c, --continuous                - Run continuously
 ");
-	exit( -1 );
+    exit( -1 );
 }
 
 sub aud_print( $ );
 sub confirm( ;$$ );
 sub deleteSwapImage();
 
-zmDbgInit( DBG_ID, level=>DBG_LEVEL );
-zmDbgSetSignal();
+logInit();
+logSetSignal();
 
 if ( !GetOptions( 'report'=>\$report, 'interactive'=>\$interactive, 'continuous'=>\$continuous ) )
 {
-	usage();
+    usage();
 }
 
 if ( ($report + $interactive + $continuous) > 1 )
 {
-	print( STDERR "Error, only option may be specified\n" );
-	usage();
+    print( STDERR "Error, only option may be specified\n" );
+    usage();
 }
 
 my $dbh = zmDbConnect();
@@ -116,40 +113,40 @@ my $loop = 1;
 my $cleaned = 0;
 MAIN: while( $loop )
 {
-	my $db_monitors;
-	my $monitorSelectSql = "select Id from Monitors order by Id";
-	my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql ) or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
-	my $eventSelectSql = "select Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age from Events where MonitorId = ? order by Id";
-	my $eventSelectSth = $dbh->prepare_cached( $eventSelectSql ) or Fatal( "Can't prepare '$eventSelectSql': ".$dbh->errstr() );
+    my $db_monitors;
+    my $monitorSelectSql = "select Id from Monitors order by Id";
+    my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql ) or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
+    my $eventSelectSql = "select Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age from Events where MonitorId = ? order by Id";
+    my $eventSelectSth = $dbh->prepare_cached( $eventSelectSql ) or Fatal( "Can't prepare '$eventSelectSql': ".$dbh->errstr() );
 
-	my $res = $monitorSelectSth->execute() or Fatal( "Can't execute: ".$monitorSelectSth->errstr() );
-	while( my $monitor = $monitorSelectSth->fetchrow_hashref() )
-	{
-		Debug( "Found database monitor '$monitor->{Id}'" );
-		my $db_events = $db_monitors->{$monitor->{Id}} = {};
-		my $res = $eventSelectSth->execute( $monitor->{Id} ) or Fatal( "Can't execute: ".$eventSelectSth->errstr() );
-		while ( my $event = $eventSelectSth->fetchrow_hashref() )
-		{
-			$db_events->{$event->{Id}} = $event->{Age};
-		}
-		Debug( "Got ".int(keys(%$db_events))." events\n" );
-		$eventSelectSth->finish();
-	}
-	$monitorSelectSth->finish();
+    my $res = $monitorSelectSth->execute() or Fatal( "Can't execute: ".$monitorSelectSth->errstr() );
+    while( my $monitor = $monitorSelectSth->fetchrow_hashref() )
+    {
+        Debug( "Found database monitor '$monitor->{Id}'" );
+        my $db_events = $db_monitors->{$monitor->{Id}} = {};
+        my $res = $eventSelectSth->execute( $monitor->{Id} ) or Fatal( "Can't execute: ".$eventSelectSth->errstr() );
+        while ( my $event = $eventSelectSth->fetchrow_hashref() )
+        {
+            $db_events->{$event->{Id}} = $event->{Age};
+        }
+        Debug( "Got ".int(keys(%$db_events))." events\n" );
+        $eventSelectSth->finish();
+    }
+    $monitorSelectSth->finish();
 
-	my $fs_monitors;
-	foreach my $monitor ( <[0-9]*> )
-	{
-		Debug( "Found filesystem monitor '$monitor'" );
-		my $fs_events = $fs_monitors->{$monitor} = {};
-		( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
+    my $fs_monitors;
+    foreach my $monitor ( <[0-9]*> )
+    {
+        Debug( "Found filesystem monitor '$monitor'" );
+        my $fs_events = $fs_monitors->{$monitor} = {};
+        ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
 
         if ( ZM_USE_DEEP_STORAGE )
         {
             foreach my $day_dir ( <$monitor_dir/*/*/*> )
             {
                 Debug( "Checking $day_dir" );
-		        ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
+                ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
                 chdir( $day_dir );
                 opendir( DIR, "." ) or Fatal( "Can't open directory '$day_dir': $!" );
                 my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
@@ -169,7 +166,7 @@ MAIN: while( $loop )
                         $fs_events->{$event} = (time() - ($^T - ((-M $event_path) * 24*60*60)));
                     }
                 }
-		        chdir( EVENT_PATH );
+                chdir( EVENT_PATH );
             }
         }
         else
@@ -190,54 +187,54 @@ MAIN: while( $loop )
                     $fs_events->{$event} = (time() - ($^T - ((-M $event) * 24*60*60)));
                 }
             }
-		    chdir( EVENT_PATH );
+            chdir( EVENT_PATH );
         }
-		Debug( "Got ".int(keys(%$fs_events))." events\n" );
-	}
+        Debug( "Got ".int(keys(%$fs_events))." events\n" );
+    }
 
     $cleaned = 0;
-	while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
-	{
-		if ( my $db_events = $db_monitors->{$fs_monitor} )
-		{
-			if ( $fs_events )
-			{
-				while ( my ( $fs_event, $age ) = each(%$fs_events ) )
-				{
-					if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > MIN_AGE)) )
-					{
-						aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
-						if ( confirm() )
-						{
+    while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
+    {
+        if ( my $db_events = $db_monitors->{$fs_monitor} )
+        {
+            if ( $fs_events )
+            {
+                while ( my ( $fs_event, $age ) = each(%$fs_events ) )
+                {
+                    if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > MIN_AGE)) )
+                    {
+                        aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
+                        if ( confirm() )
+                        {
                             deleteEventFiles( $fs_event, $fs_monitor );
                             $cleaned = 1;
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			aud_print( "Filesystem monitor '$fs_monitor' does not exist in database" );
-			if ( confirm() )
-			{
-				my $command = "rm -rf $fs_monitor";
-				executeShellCommand( $command );
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            aud_print( "Filesystem monitor '$fs_monitor' does not exist in database" );
+            if ( confirm() )
+            {
+                my $command = "rm -rf $fs_monitor";
+                executeShellCommand( $command );
                 $cleaned = 1;
-			}
-		}
-	}
+            }
+        }
+    }
 
-	my $monitor_links;
-	foreach my $link ( <*> )
-	{
+    my $monitor_links;
+    foreach my $link ( <*> )
+    {
         next if ( !-l $link );
         next if ( -e $link );
 
         aud_print( "Filesystem monitor link '$link' does not point to valid monitor directory" );
         if ( confirm() )
         {
-		    ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
+            ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
             my $command = "rm $link";
             executeShellCommand( $command );
             $cleaned = 1;
@@ -246,204 +243,233 @@ MAIN: while( $loop )
     redo MAIN if ( $cleaned );
 
     $cleaned = 0;
-	my $deleteMonitorSql = "delete from Monitors where Id = ?";
-	my $deleteMonitorSth = $dbh->prepare_cached( $deleteMonitorSql ) or Fatal( "Can't prepare '$deleteMonitorSql': ".$dbh->errstr() );
-	my $deleteEventSql = "delete from Events where Id = ?";
-	my $deleteEventSth = $dbh->prepare_cached( $deleteEventSql ) or Fatal( "Can't prepare '$deleteEventSql': ".$dbh->errstr() );
-	my $deleteFramesSql = "delete from Frames where EventId = ?";
-	my $deleteFramesSth = $dbh->prepare_cached( $deleteFramesSql ) or Fatal( "Can't prepare '$deleteFramesSql': ".$dbh->errstr() );
-	my $deleteStatsSql = "delete from Stats where EventId = ?";
-	my $deleteStatsSth = $dbh->prepare_cached( $deleteStatsSql ) or Fatal( "Can't prepare '$deleteStatsSql': ".$dbh->errstr() );
-	while ( my ( $db_monitor, $db_events ) = each(%$db_monitors) )
-	{
-		if ( my $fs_events = $fs_monitors->{$db_monitor} )
-		{
-			if ( $db_events )
-			{
-				while ( my ( $db_event, $age ) = each(%$db_events ) )
-				{
-					if ( !defined($fs_events->{$db_event}) && ($age > MIN_AGE) )
-					{
-						aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem" );
-						if ( confirm() )
-						{
-							my $res = $deleteEventSth->execute( $db_event ) or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
-							$res = $deleteFramesSth->execute( $db_event ) or Fatal( "Can't execute: ".$deleteFramesSth->errstr() );
-							$res = $deleteStatsSth->execute( $db_event ) or Fatal( "Can't execute: ".$deleteStatsSth->errstr() );
+    my $deleteMonitorSql = "delete from Monitors where Id = ?";
+    my $deleteMonitorSth = $dbh->prepare_cached( $deleteMonitorSql ) or Fatal( "Can't prepare '$deleteMonitorSql': ".$dbh->errstr() );
+    my $deleteEventSql = "delete from Events where Id = ?";
+    my $deleteEventSth = $dbh->prepare_cached( $deleteEventSql ) or Fatal( "Can't prepare '$deleteEventSql': ".$dbh->errstr() );
+    my $deleteFramesSql = "delete from Frames where EventId = ?";
+    my $deleteFramesSth = $dbh->prepare_cached( $deleteFramesSql ) or Fatal( "Can't prepare '$deleteFramesSql': ".$dbh->errstr() );
+    my $deleteStatsSql = "delete from Stats where EventId = ?";
+    my $deleteStatsSth = $dbh->prepare_cached( $deleteStatsSql ) or Fatal( "Can't prepare '$deleteStatsSql': ".$dbh->errstr() );
+    while ( my ( $db_monitor, $db_events ) = each(%$db_monitors) )
+    {
+        if ( my $fs_events = $fs_monitors->{$db_monitor} )
+        {
+            if ( $db_events )
+            {
+                while ( my ( $db_event, $age ) = each(%$db_events ) )
+                {
+                    if ( !defined($fs_events->{$db_event}) && ($age > MIN_AGE) )
+                    {
+                        aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem" );
+                        if ( confirm() )
+                        {
+                            my $res = $deleteEventSth->execute( $db_event ) or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
+                            $res = $deleteFramesSth->execute( $db_event ) or Fatal( "Can't execute: ".$deleteFramesSth->errstr() );
+                            $res = $deleteStatsSth->execute( $db_event ) or Fatal( "Can't execute: ".$deleteStatsSth->errstr() );
                             $cleaned = 1;
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			#aud_print( "Database monitor '$db_monitor' does not exist in filesystem" );
-			#if ( confirm() )
-			#{
-				# We don't actually do this in case it's new
-				#my $res = $deleteMonitorSth->execute( $db_monitor ) or Fatal( "Can't execute: ".$deleteMonitorSth->errstr() );
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            #aud_print( "Database monitor '$db_monitor' does not exist in filesystem" );
+            #if ( confirm() )
+            #{
+                # We don't actually do this in case it's new
+                #my $res = $deleteMonitorSth->execute( $db_monitor ) or Fatal( "Can't execute: ".$deleteMonitorSth->errstr() );
                 #$cleaned = 1;
-			#}
-		}
-	}
+            #}
+        }
+    }
     redo MAIN if ( $cleaned );
 
     # Remove orphaned events (with no monitor)
     $cleaned = 0;
-	my $selectOrphanedEventsSql = "select Events.Id, Events.Name from Events left join Monitors on (Events.MonitorId = Monitors.Id) where isnull(Monitors.Id)";
-	my $selectOrphanedEventsSth = $dbh->prepare_cached( $selectOrphanedEventsSql ) or Fatal( "Can't prepare '$selectOrphanedEventsSql': ".$dbh->errstr() );
-	$res = $selectOrphanedEventsSth->execute() or Fatal( "Can't execute: ".$selectOrphanedEventsSth->errstr() );
-	while( my $event = $selectOrphanedEventsSth->fetchrow_hashref() )
-	{
-		aud_print( "Found orphaned event with no monitor '$event->{Id}'" );
-		if ( confirm() )
-		{
-			$res = $deleteEventSth->execute( $event->{Id} ) or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
+    my $selectOrphanedEventsSql = "select Events.Id, Events.Name from Events left join Monitors on (Events.MonitorId = Monitors.Id) where isnull(Monitors.Id)";
+    my $selectOrphanedEventsSth = $dbh->prepare_cached( $selectOrphanedEventsSql ) or Fatal( "Can't prepare '$selectOrphanedEventsSql': ".$dbh->errstr() );
+    $res = $selectOrphanedEventsSth->execute() or Fatal( "Can't execute: ".$selectOrphanedEventsSth->errstr() );
+    while( my $event = $selectOrphanedEventsSth->fetchrow_hashref() )
+    {
+        aud_print( "Found orphaned event with no monitor '$event->{Id}'" );
+        if ( confirm() )
+        {
+            $res = $deleteEventSth->execute( $event->{Id} ) or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
             $cleaned = 1;
-		}
-	}
+        }
+    }
     $selectOrphanedEventsSth->finish();
     redo MAIN if ( $cleaned );
 
     # Remove empty events (with no frames)
     $cleaned = 0;
-	my $selectEmptyEventsSql = "select * from Events as E left join Frames as F on (E.Id = F.EventId) where isnull(F.EventId) and now() - interval ".MIN_AGE." second > E.StartTime";
-	my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql ) or Fatal( "Can't prepare '$selectEmptyEventsSql': ".$dbh->errstr() );
-	$res = $selectEmptyEventsSth->execute() or Fatal( "Can't execute: ".$selectEmptyEventsSth->errstr() );
-	while( my $event = $selectEmptyEventsSth->fetchrow_hashref() )
-	{
-		aud_print( "Found empty event with no frame records '$event->{Id}'" );
-		if ( confirm() )
-		{
-			$res = $deleteEventSth->execute( $event->{Id} ) or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
+    my $selectEmptyEventsSql = "select * from Events as E left join Frames as F on (E.Id = F.EventId) where isnull(F.EventId) and now() - interval ".MIN_AGE." second > E.StartTime";
+    my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql ) or Fatal( "Can't prepare '$selectEmptyEventsSql': ".$dbh->errstr() );
+    $res = $selectEmptyEventsSth->execute() or Fatal( "Can't execute: ".$selectEmptyEventsSth->errstr() );
+    while( my $event = $selectEmptyEventsSth->fetchrow_hashref() )
+    {
+        aud_print( "Found empty event with no frame records '$event->{Id}'" );
+        if ( confirm() )
+        {
+            $res = $deleteEventSth->execute( $event->{Id} ) or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
             $cleaned = 1;
-		}
-	}
+        }
+    }
     $selectEmptyEventsSth->finish();
     redo MAIN if ( $cleaned );
 
     # Remove orphaned frame records
     $cleaned = 0;
-	my $selectOrphanedFramesSql = "select distinct EventId from Frames where EventId not in (select Id from Events)";
-	my $selectOrphanedFramesSth = $dbh->prepare_cached( $selectOrphanedFramesSql ) or Fatal( "Can't prepare '$selectOrphanedFramesSql': ".$dbh->errstr() );
-	$res = $selectOrphanedFramesSth->execute() or Fatal( "Can't execute: ".$selectOrphanedFramesSth->errstr() );
-	while( my $frame = $selectOrphanedFramesSth->fetchrow_hashref() )
-	{
-		aud_print( "Found orphaned frame records for event '$frame->{EventId}'" );
-		if ( confirm() )
-		{
-			$res = $deleteFramesSth->execute( $frame->{EventId} ) or Fatal( "Can't execute: ".$deleteFramesSth->errstr() );
+    my $selectOrphanedFramesSql = "select distinct EventId from Frames where EventId not in (select Id from Events)";
+    my $selectOrphanedFramesSth = $dbh->prepare_cached( $selectOrphanedFramesSql ) or Fatal( "Can't prepare '$selectOrphanedFramesSql': ".$dbh->errstr() );
+    $res = $selectOrphanedFramesSth->execute() or Fatal( "Can't execute: ".$selectOrphanedFramesSth->errstr() );
+    while( my $frame = $selectOrphanedFramesSth->fetchrow_hashref() )
+    {
+        aud_print( "Found orphaned frame records for event '$frame->{EventId}'" );
+        if ( confirm() )
+        {
+            $res = $deleteFramesSth->execute( $frame->{EventId} ) or Fatal( "Can't execute: ".$deleteFramesSth->errstr() );
             $cleaned = 1;
-		}
-	}
+        }
+    }
     $selectOrphanedFramesSth->finish();
     redo MAIN if ( $cleaned );
 
     # Remove orphaned stats records
     $cleaned = 0;
-	my $selectOrphanedStatsSql = "select distinct EventId from Stats where EventId not in (select Id from Events)";
-	my $selectOrphanedStatsSth = $dbh->prepare_cached( $selectOrphanedStatsSql ) or Fatal( "Can't prepare '$selectOrphanedStatsSql': ".$dbh->errstr() );
-	$res = $selectOrphanedStatsSth->execute() or Fatal( "Can't execute: ".$selectOrphanedStatsSth->errstr() );
-	while( my $stat = $selectOrphanedStatsSth->fetchrow_hashref() )
-	{
-		aud_print( "Found orphaned statistic records for event '$stat->{EventId}'" );
-		if ( confirm() )
-		{
-			$res = $deleteStatsSth->execute( $stat->{EventId} ) or Fatal( "Can't execute: ".$deleteStatsSth->errstr() );
+    my $selectOrphanedStatsSql = "select distinct EventId from Stats where EventId not in (select Id from Events)";
+    my $selectOrphanedStatsSth = $dbh->prepare_cached( $selectOrphanedStatsSql ) or Fatal( "Can't prepare '$selectOrphanedStatsSql': ".$dbh->errstr() );
+    $res = $selectOrphanedStatsSth->execute() or Fatal( "Can't execute: ".$selectOrphanedStatsSth->errstr() );
+    while( my $stat = $selectOrphanedStatsSth->fetchrow_hashref() )
+    {
+        aud_print( "Found orphaned statistic records for event '$stat->{EventId}'" );
+        if ( confirm() )
+        {
+            $res = $deleteStatsSth->execute( $stat->{EventId} ) or Fatal( "Can't execute: ".$deleteStatsSth->errstr() );
             $cleaned = 1;
-		}
-	}
+        }
+    }
     $selectOrphanedStatsSth->finish();
     redo MAIN if ( $cleaned );
 
-	# New audit to close any events that were left open for longer than MIN_AGE seconds
-	my $selectUnclosedEventsSql = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, max(F.FrameId) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) or isnull(E.EndTime) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
-	my $selectUnclosedEventsSth = $dbh->prepare_cached( $selectUnclosedEventsSql ) or Fatal( "Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr() );
-	my $updateUnclosedEventsSql = "update Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ?, Notes = concat_ws( ' ', Notes, ? ) where Id = ?";
-	my $updateUnclosedEventsSth = $dbh->prepare_cached( $updateUnclosedEventsSql ) or Fatal( "Can't prepare '$updateUnclosedEventsSql': ".$dbh->errstr() );
-	$res = $selectUnclosedEventsSth->execute() or Fatal( "Can't execute: ".$selectUnclosedEventsSth->errstr() );
-	while( my $event = $selectUnclosedEventsSth->fetchrow_hashref() )
-	{
-		aud_print( "Found open event '$event->{Id}'" );
-		if ( confirm( 'close', 'closing' ) )
-		{
-			$res = $updateUnclosedEventsSth->execute( sprintf( "%s%d%s", $event->{Prefix}, $event->{Id}, RECOVER_TAG ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, RECOVER_TEXT, $event->{Id} ) or Fatal( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
-		}
-	}
+    # New audit to close any events that were left open for longer than MIN_AGE seconds
+    my $selectUnclosedEventsSql = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, max(F.FrameId) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) or isnull(E.EndTime) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
+    my $selectUnclosedEventsSth = $dbh->prepare_cached( $selectUnclosedEventsSql ) or Fatal( "Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr() );
+    my $updateUnclosedEventsSql = "update Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ?, Notes = concat_ws( ' ', Notes, ? ) where Id = ?";
+    my $updateUnclosedEventsSth = $dbh->prepare_cached( $updateUnclosedEventsSql ) or Fatal( "Can't prepare '$updateUnclosedEventsSql': ".$dbh->errstr() );
+    $res = $selectUnclosedEventsSth->execute() or Fatal( "Can't execute: ".$selectUnclosedEventsSth->errstr() );
+    while( my $event = $selectUnclosedEventsSth->fetchrow_hashref() )
+    {
+        aud_print( "Found open event '$event->{Id}'" );
+        if ( confirm( 'close', 'closing' ) )
+        {
+            $res = $updateUnclosedEventsSth->execute( sprintf( "%s%d%s", $event->{Prefix}, $event->{Id}, RECOVER_TAG ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, RECOVER_TEXT, $event->{Id} ) or Fatal( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
+        }
+    }
     $selectUnclosedEventsSth->finish();
 
-	# Now delete any old image files
-	if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> )
-	{
-		aud_print( "Deleting ".int(@old_files)." old images\n" );
-		my $untainted_old_files = join( ";", @old_files );
-		( $untainted_old_files ) = ( $untainted_old_files =~ /^(.*)$/ );
-		unlink( split( ";", $untainted_old_files ) );
-	}
+    # Now delete any old image files
+    if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> )
+    {
+        aud_print( "Deleting ".int(@old_files)." old images\n" );
+        my $untainted_old_files = join( ";", @old_files );
+        ( $untainted_old_files ) = ( $untainted_old_files =~ /^(.*)$/ );
+        unlink( split( ";", $untainted_old_files ) );
+    }
 
-	# Now delete any old swap files
-	( my $swap_image_root ) = ( $swap_image_path =~ /^(.*)$/ ); # De-taint
+    # Now delete any old swap files
+    ( my $swap_image_root ) = ( $swap_image_path =~ /^(.*)$/ ); # De-taint
     File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
 
+    # Prune the Logs table if required
+    if ( ZM_LOG_DATABASE_LIMIT )
+    {
+        if ( ZM_LOG_DATABASE_LIMIT =~ /^\d+$/ )
+        {
+            # Number of rows
+            my $selectLogRowCountSql = "select count(*) as Rows from Logs";
+            my $selectLogRowCountSth = $dbh->prepare_cached( $selectLogRowCountSql ) or Fatal( "Can't prepare '$selectLogRowCountSql': ".$dbh->errstr() );
+            $res = $selectLogRowCountSth->execute() or Fatal( "Can't execute: ".$selectLogRowCountSth->errstr() );
+            my $row = $selectLogRowCountSth->fetchrow_hashref();
+            my $logRows = $row->{Rows};
+            $selectLogRowCountSth->finish();
+            if ( $logRows > ZM_LOG_DATABASE_LIMIT )
+            {
+                my $deleteLogByRowsSql = "delete from Logs order by TimeKey asc limit ?";
+                my $deleteLogByRowsSth = $dbh->prepare_cached( $deleteLogByRowsSql ) or Fatal( "Can't prepare '$deleteLogByRowsSql': ".$dbh->errstr() );
+                $res = $deleteLogByRowsSth->execute( $logRows - ZM_LOG_DATABASE_LIMIT ) or Fatal( "Can't execute: ".$deleteLogByRowsSth->errstr() );
+                aud_print( "Deleted ".$deleteLogByRowsSth->rows()." log table entries by count\n" ) if ( $deleteLogByRowsSth->rows() );
+            }
+        }
+        else
+        {
+            # Time of record
+            my $deleteLogByTimeSql = "delete from Logs where TimeKey < unix_timestamp(now() - interval ".ZM_LOG_DATABASE_LIMIT.")";
+            my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql ) or Fatal( "Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr() );
+            $res = $deleteLogByTimeSth->execute() or Fatal( "Can't execute: ".$deleteLogByTimeSth->errstr() );
+            aud_print( "Deleted ".$deleteLogByTimeSth->rows()." log table entries by time\n" ) if ( $deleteLogByTimeSth->rows() );
+        }
+    }
     $loop = $continuous;
 
-	sleep( ZM_AUDIT_CHECK_INTERVAL ) if ( $continuous );
+    sleep( ZM_AUDIT_CHECK_INTERVAL ) if ( $continuous );
 };
 
 exit( 0 );
 
 sub aud_print( $ )
 {
-	my $string = shift;
-	if ( !$continuous )
-	{
-		print( $string );
-	}
-	else
-	{
-		Info( $string );
-	}
+    my $string = shift;
+    if ( !$continuous )
+    {
+        print( $string );
+    }
+    else
+    {
+        Info( $string );
+    }
 }
 
 sub confirm( ;$$ )
 {
-	my $prompt = shift || "delete";
-	my $action = shift || "deleting";
+    my $prompt = shift || "delete";
+    my $action = shift || "deleting";
 
-	my $yesno = 0;
-	if ( $report )
-	{
-		print( "\n" );
-	}
-	elsif ( $interactive )
-	{
-		print( ", $prompt y/n: " );
-		my $char = <>;
-		chomp( $char );
-		if ( $char eq 'q' )
-		{
-			exit( 0 );
-		}
-		if ( !$char )
-		{
-			$char = 'y';
-		}
-		$yesno = ( $char =~ /[yY]/ );
-	}
-	else
-	{
-		if ( !$continuous )
-		{
-			print( ", $action\n" );
-		}
-		else
-		{
-			Info( $action );
-		}
-		$yesno = 1;
-	}
-	return( $yesno );
+    my $yesno = 0;
+    if ( $report )
+    {
+        print( "\n" );
+    }
+    elsif ( $interactive )
+    {
+        print( ", $prompt y/n: " );
+        my $char = <>;
+        chomp( $char );
+        if ( $char eq 'q' )
+        {
+            exit( 0 );
+        }
+        if ( !$char )
+        {
+            $char = 'y';
+        }
+        $yesno = ( $char =~ /[yY]/ );
+    }
+    else
+    {
+        if ( !$continuous )
+        {
+            print( ", $action\n" );
+        }
+        else
+        {
+            Info( $action );
+        }
+        $yesno = 1;
+    }
+    return( $yesno );
 }
 
 sub deleteSwapImage()

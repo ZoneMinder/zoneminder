@@ -34,9 +34,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant DBG_ID => "zmupdate"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
-
 use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 
 # ==========================================================================
@@ -48,7 +45,7 @@ use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 @EXTRA_PERL_LIB@
 use ZoneMinder::Base qw(:all);
 use ZoneMinder::Config qw(:all);
-use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Logger qw(:all);
 use ZoneMinder::General qw(:all);
 use ZoneMinder::Database qw(:all);
 use ZoneMinder::ConfigAdmin qw( :functions );
@@ -68,19 +65,19 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $web_uid = (getpwnam( ZM_WEB_USER ))[2];
 my $use_log = (($> == 0) || ($> == $web_uid));
 
-zmDbgInit( DBG_ID, level=>DBG_LEVEL, to_log=>$use_log );
-zmDbgSetSignal();
+logInit( toFile=>$use_log?DEBUG:NOLOG );
+logSetSignal();
 
 my $interactive = 1;
 my $check = 0;
 my $freshen = 0;
 my $rename = 0;
-my $zone_fix = 0;
-my $migrate_events = 0;
+my $zoneFix = 0;
+my $migrateEvents = 0;
 my $version = '';
-my $db_user = ZM_DB_USER;
-my $db_pass = ZM_DB_PASS;
-my $update_dir = '';
+my $dbUser = ZM_DB_USER;
+my $dbPass = ZM_DB_PASS;
+my $updateDir = '';
 sub Usage
 {
     print( "
@@ -96,12 +93,12 @@ Parameters are :-
     exit( -1 );
 }
 
-if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'zone-fix'=>\$zone_fix, 'migrate-events'=>\$migrate_events, 'version=s'=>\$version, 'interactive!'=>\$interactive, 'user:s'=>\$db_user, 'pass:s'=>\$db_pass, 'dir:s'=>\$update_dir ) )
+if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'zone-fix'=>\$zoneFix, 'migrate-events'=>\$migrateEvents, 'version=s'=>\$version, 'interactive!'=>\$interactive, 'user:s'=>\$dbUser, 'pass:s'=>\$dbPass, 'dir:s'=>\$updateDir ) )
 {
     Usage();
 }
 
-if ( ! ($check || $freshen || $rename || $zone_fix || $migrate_events || $version) )
+if ( ! ($check || $freshen || $rename || $zoneFix || $migrateEvents || $version) )
 {
     if ( ZM_DYN_DB_VERSION )
     {
@@ -114,7 +111,7 @@ if ( ! ($check || $freshen || $rename || $zone_fix || $migrate_events || $versio
     }
 }
 
-if ( ($check + $freshen + $rename + $zone_fix + $migrate_events + ($version?1:0)) > 1 )
+if ( ($check + $freshen + $rename + $zoneFix + $migrateEvents + ($version?1:0)) > 1 )
 {
     print( STDERR "Please give only one option\n" );
     Usage();
@@ -126,25 +123,27 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 
     my $dbh = zmDbConnect();
 
-    my $curr_version = ZM_DYN_CURR_VERSION;
-    my $last_version = ZM_DYN_LAST_VERSION;
-    my $last_check = ZM_DYN_LAST_CHECK;
+    my $currVersion = ZM_DYN_CURR_VERSION;
+    my $lastVersion = ZM_DYN_LAST_VERSION;
+    my $lastCheck = ZM_DYN_LAST_CHECK;
 
-    if ( !$curr_version )
+    if ( !$currVersion )
     {
-        $curr_version = ZM_VERSION;
+        $currVersion = ZM_VERSION;
 
         my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute( "$curr_version" ) or die( "Can't execute: ".$sth->errstr() );
+        my $res = $sth->execute( "$currVersion" ) or die( "Can't execute: ".$sth->errstr() );
     }
     zmDbDisconnect();
 
     while( 1 )
     {
         my $now = time();
-        if ( !$last_version || !$last_check || (($now-$last_check) > CHECK_INTERVAL) )
+        if ( !$lastVersion || !$lastCheck || (($now-$lastCheck) > CHECK_INTERVAL) )
         {
+            $dbh = zmDbConnect();
+
             Info( "Checking for updates\n" );
 
             use LWP::UserAgent;
@@ -164,28 +163,25 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 
             if ( $res->is_success )
             {
-                $last_version = $res->content;
-                chomp($last_version);
-                $last_check = $now;
+                $lastVersion = $res->content;
+                chomp($lastVersion);
+                $lastCheck = $now;
 
-                Info( "Got version: '".$last_version."'\n" );
-
-                $dbh = zmDbConnect();
+                Info( "Got version: '".$lastVersion."'\n" );
 
                 my $lv_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
                 my $lv_sth = $dbh->prepare_cached( $lv_sql ) or die( "Can't prepare '$lv_sql': ".$dbh->errstr() );
-                my $lv_res = $lv_sth->execute( $last_version ) or die( "Can't execute: ".$lv_sth->errstr() );
+                my $lv_res = $lv_sth->execute( $lastVersion ) or die( "Can't execute: ".$lv_sth->errstr() );
 
                 my $lc_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
                 my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
-                my $lc_res = $lc_sth->execute( $last_check ) or die( "Can't execute: ".$lc_sth->errstr() );
-
-                zmDbDisconnect();
+                my $lc_res = $lc_sth->execute( $lastCheck ) or die( "Can't execute: ".$lc_sth->errstr() );
             }
             else
             {
                 Error( "Error check failed: '".$res->status_line()."'\n" );
             }
+            zmDbDisconnect();
         }
         sleep( 3600 );
     }
@@ -211,15 +207,15 @@ if ( $rename )
         {
             return;
         }
-        my $new_file = "$2-$1$3";
+        my $newFile = "$2-$1$3";
 
-        print( "Renaming '$file' to '$new_file'\n" );
-        rename( $file, $new_file ) or warn( "Can't rename '$file' to '$new_file'" );
+        print( "Renaming '$file' to '$newFile'\n" );
+        rename( $file, $newFile ) or warn( "Can't rename '$file' to '$newFile'" );
     }
 
     File::Find::find( \&renameImage, '.' );
 }
-if ( $zone_fix )
+if ( $zoneFix )
 {
     require DBI;
 
@@ -254,7 +250,7 @@ if ( $zone_fix )
         ) or die( "Can't execute: ".$sth->errstr() );
     }
 }
-if ( $migrate_events )
+if ( $migrateEvents )
 {
     my $webUid = (getpwnam( ZM_WEB_USER ))[2];
     my $webGid = (getgrnam( ZM_WEB_USER ))[2];
@@ -372,21 +368,21 @@ if ( $version )
             my ( $host, $port ) = ( ZM_DB_HOST =~ /^([^:]+)(?::(.+))?$/ );
             my $command = "mysqldump -h".$host;
             $command .= " -P".$port if defined($port);
-            if ( $db_user )
+            if ( $dbUser )
             {
-                $command .= " -u".$db_user;
-                if ( $db_pass )
+                $command .= " -u".$dbUser;
+                if ( $dbPass )
                 {
-                    $command .= " -p".$db_pass;
+                    $command .= " -p".$dbPass;
                 }
             }
             my $backup = "@ZM_TMPDIR@/".ZM_DB_NAME."-".$version.".dump";
             $command .= " --add-drop-table --databases ".ZM_DB_NAME." > ".$backup;
             print( "Creating backup to $backup. This may take several minutes.\n" );
-            print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
+            print( "Executing '$command'\n" ) if ( logDebugging() );
             my $output = qx($command);
             my $status = $? >> 8;
-            if ( $status || DBG_LEVEL > 0 )
+            if ( $status || logDebugging() )
             {
                     chomp( $output );
                     print( "Output: $output\n" );
@@ -413,18 +409,18 @@ if ( $version )
         my ( $host, $port ) = ( ZM_DB_HOST =~ /^([^:]+)(?::(.+))?$/ );
         my $command = "mysql -h".$host;
         $command .= " -P".$port if defined($port);
-        if ( $db_user )
+        if ( $dbUser )
         {
-            $command .= " -u".$db_user;
-            if ( $db_pass )
+            $command .= " -u".$dbUser;
+            if ( $dbPass )
             {
-                $command .= " -p".$db_pass;
+                $command .= " -p".$dbPass;
             }
         }
         $command .= " ".ZM_DB_NAME." < ";
-        if ( $update_dir )
+        if ( $updateDir )
         {
-            $command -= $update_dir;
+            $command -= $updateDir;
         }
         else
         {
@@ -432,10 +428,10 @@ if ( $version )
         }
         $command .= "/zm_update-".$version.".sql";
 
-        print( "Executing '$command'\n" ) if ( DBG_LEVEL > 0 );
+        print( "Executing '$command'\n" ) if ( logDebugging() );
         my $output = qx($command);
         my $status = $? >> 8;
-        if ( $status || DBG_LEVEL > 0 )
+        if ( $status || logDebugging() )
         {
                 chomp( $output );
                 print( "Output: $output\n" );
@@ -603,8 +599,8 @@ if ( $version )
             {
                 if ( $filter->{Query} =~ /op\d=&/ )
                 {
-                    ( my $new_query = $filter->{Query} ) =~ s/(op\d=)&/$1=&/g;
-                    $res = $sth->execute( $new_query, $filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+                    ( my $newQuery = $filter->{Query} ) =~ s/(op\d=)&/$1=&/g;
+                    $res = $sth->execute( $newQuery, $filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
                 }
             }
         }
@@ -643,14 +639,14 @@ if ( $version )
                 }
                 else
                 {
-                    my $lo_x = ($zone->{LoX} * ($zone->{Width}-1) ) / 100;
-                    my $hi_x = ($zone->{HiX} * ($zone->{Width}-1) ) / 100;
-                    my $lo_y = ($zone->{LoY} * ($zone->{Height}-1) ) / 100;
-                    my $hi_y = ($zone->{HiY} * ($zone->{Height}-1) ) / 100;
-                    my $area = (($hi_x-$lo_x)+1)*(($hi_y-$lo_y)+1);
+                    my $loX = ($zone->{LoX} * ($zone->{Width}-1) ) / 100;
+                    my $hiX = ($zone->{HiX} * ($zone->{Width}-1) ) / 100;
+                    my $loY = ($zone->{LoY} * ($zone->{Height}-1) ) / 100;
+                    my $hiY = ($zone->{HiY} * ($zone->{Height}-1) ) / 100;
+                    my $area = (($hiX-$loX)+1)*(($hiY-$loY)+1);
                     my $sql = "update Zones set NumCoords = 4, Coords = concat( round(?),',',round(?),' ',round(?),',',round(?),' ',round(?),',',round(?),' ',round(?),',',round(?) ), Area = round(?), MinAlarmPixels = round(?), MaxAlarmPixels = round(?), MinFilterPixels = round(?), MaxFilterPixels = round(?), MinBlobPixels = round(?), MaxBlobPixels = round(?) where Id = ?"; 
                     my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-                    my $res = $sth->execute( $lo_x, $lo_y, $hi_x, $lo_y, $hi_x, $hi_y, $lo_x, $hi_y, $area, ($zone->{MinAlarmPixels}*$area)/100, ($zone->{MaxAlarmPixels}*$area)/100, ($zone->{MinFilterPixels}*$area)/100, ($zone->{MaxFilterPixels}*$area)/100, ($zone->{MinBlobPixels}*$area)/100, ($zone->{MaxBlobPixels}*$area)/100, $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
+                    my $res = $sth->execute( $loX, $loY, $hiX, $loY, $hiX, $hiY, $loX, $hiY, $area, ($zone->{MinAlarmPixels}*$area)/100, ($zone->{MaxAlarmPixels}*$area)/100, ($zone->{MinFilterPixels}*$area)/100, ($zone->{MaxFilterPixels}*$area)/100, ($zone->{MinBlobPixels}*$area)/100, ($zone->{MaxBlobPixels}*$area)/100, $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
                 }
             }
         }
@@ -780,16 +776,16 @@ if ( $version )
             my $sql = "select * from Filters";
             my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
             my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-            my @db_filters;
-            while( my $db_filter = $sth->fetchrow_hashref() )
+            my @dbFilters;
+            while( my $dbFilter = $sth->fetchrow_hashref() )
             {
-                push( @db_filters, $db_filter );
+                push( @dbFilters, $dbFilter );
             }
             $sth->finish();
-            foreach my $db_filter ( @db_filters )
+            foreach my $dbFilter ( @dbFilters )
             {
                 my %filter_terms;
-                foreach my $filter_parm ( split( '&', $db_filter->{Query} ) )
+                foreach my $filter_parm ( split( '&', $dbFilter->{Query} ) )
                 {
                     my( $key, $value ) = split( '=', $filter_parm, 2 );
                     if ( $key )
@@ -820,33 +816,33 @@ if ( $version )
                 $filter->{sort_asc} = $filter_terms{sort_asc} if ( $filter_terms{sort_asc} );
                 $filter->{limit} = $filter_terms{limit} if ( $filter_terms{limit} );
 
-                my $new_query = 'a:'.int(keys(%$filter)).':{s:5:"terms";a:'.int(@{$filter->{terms}}).':{';
+                my $newQuery = 'a:'.int(keys(%$filter)).':{s:5:"terms";a:'.int(@{$filter->{terms}}).':{';
                 my $i = 0;
                 foreach my $term ( @{$filter->{terms}} )
                 {
-                    $new_query .= 'i:'.$i.';a:'.int(keys(%$term)).':{';
+                    $newQuery .= 'i:'.$i.';a:'.int(keys(%$term)).':{';
                     while ( my ( $key, $val ) = each( %$term ) )
                     {
-                        $new_query .= 's:'.length($key).':"'.$key.'";';
-                        $new_query .= 's:'.length($val).':"'.$val.'";';
+                        $newQuery .= 's:'.length($key).':"'.$key.'";';
+                        $newQuery .= 's:'.length($val).':"'.$val.'";';
                     }
-                    $new_query .= '}';
+                    $newQuery .= '}';
                     $i++;
                 }
-                $new_query .= '}';
+                $newQuery .= '}';
                 foreach my $field ( "sort_field", "sort_asc", "limit" )
                 {
                     if ( defined($filter->{$field}) )
                     {
-                        $new_query .= 's:'.length($field).':"'.$field.'";';
-                        $new_query .= 's:'.length($filter->{$field}).':"'.$filter->{$field}.'";';
+                        $newQuery .= 's:'.length($field).':"'.$field.'";';
+                        $newQuery .= 's:'.length($filter->{$field}).':"'.$filter->{$field}.'";';
                     }
                 }
-                $new_query .= '}';
+                $newQuery .= '}';
 
                 my $sql = "update Filters set Query = ? where Name = ?";
                 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-                my $res = $sth->execute( $new_query, $db_filter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
+                my $res = $sth->execute( $newQuery, $dbFilter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
             }
         }
 
@@ -949,6 +945,12 @@ if ( $version )
             }
             print( "Conversion complete\n" );
         }
+        $cascade = !undef;
+    }
+    if ( $cascade || $version eq "1.24.4" )
+    {
+        # Patch the database
+        patchDB( $dbh, "1.24.4" );
         $cascade = !undef;
     }
     if ( $cascade )

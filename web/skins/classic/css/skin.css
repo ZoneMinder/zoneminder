@@ -88,7 +88,7 @@ label {
     margin-right: 4px;
 }
 
-input,textarea,select {
+input,textarea,select,button {
     border: 1px #7f7fb2 solid;
     font-family: inherit;
     font-size: 100%;
@@ -242,23 +242,55 @@ ul.tabList li.active a {
     font-size: 120%;
 }
 
-/*
- * Behavior classes
- */
-.errorText {
+.overlay {
+    font-size: 11px;
+}
+
+.overlay fieldset {
+    background-color: #f8f8f8;
+}
+
+.validation-advice {
+    padding: 4px;
     color: #dc143c;
 }
 
-.warnText {
+fieldset {
+    border: 1px solid black;
+    padding: 4px;
+    margin-bottom: 8px;
+    border-radius: 2px;
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+}
+
+fieldset > legend {
+    padding: 0 2px;
+}
+
+/*
+ * Behavior classes
+ */
+.alarm, .errorText {
+    color: #dc143c;
+}
+
+.alert, .warnText {
     color: #ff8c00;
 }
 
-.infoText {
+.ok, .infoText {
     color: #688e23;
 }
 
-.disabledText {
-    font-style: italic;
+.fakelink {
+    color: #7f7fb2;
+    cursor: pointer;
+}
+
+.fakelink:hover {
+    color: #336699;
+    text-decoration: none;
 }
 
 /*
@@ -281,6 +313,36 @@ div.clear {
     clear: both;
 }
 
+.table-th-sort {
+    font-style:italic;
+}
+
+td.table-td-sort {
+    font-style:italic;
+}
+
+th.table-th-sort {
+    margin-right: 12px;
+}
+
+th.table-th-sort span.table-th-sort-span {
+    float: right;
+    width: 12px;
+    height: 12px;
+    background: url("../graphics/arrow-s-u.gif") no-repeat 0 0;
+}
+
+th.table-th-sort-rev span.table-th-sort-span {
+    float: right;
+    width: 12px;
+    height: 12px;
+    background: url("../graphics/arrow-s-d.gif") no-repeat 0 0;
+}
+
+.table-tr-odd {
+    background-color: #f8f8f8;
+}
+
 /*
  * Primary layout styles
  */
@@ -300,6 +362,10 @@ div.clear {
     left: 0;
 }
 
+#header h2.floating {
+    float: left;
+}
+
 #headerControl {
     width: 50%;
     text-align: center;
@@ -312,6 +378,10 @@ div.clear {
 
 #headerButtons a {
     margin-left: 8px;
+}
+
+#headerButtons input {
+    margin-left: 4px;
 }
 
 #content {
@@ -342,11 +412,11 @@ div.clear {
 }
 */
 
-#content > input[type=submit], #content > input[type=button] {
+#content > input[type=submit], #content > input[type=button], #content > button {
     margin-top: 8px;
 }
 
-#content table input[type=submit], #content table input[type=button] {
+#content table input[type=submit], #content table input[type=button], #content table button {
     margin-top: 0;
 }
 

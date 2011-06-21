@@ -37,7 +37,7 @@ if ( ZM_V4L2 )
 
     $result = exec( escapeshellcmd($command), $output, $status );
     if ( $status )
-        die( "Unable to probe local cameras, status is '$status'" );
+        Fatal( "Unable to probe local cameras, status is '$status'" );
 
     $monitors = array();
     foreach ( dbFetchAll( "select Id, Name, Device,Channel from Monitors where Type = 'Local' order by Device, Channel" ) as $monitor )
@@ -49,7 +49,7 @@ if ( ZM_V4L2 )
     foreach ( $output as $line )
     {
         if ( !preg_match( '/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches ) )
-            die( "Can't parse command output '$line'" );
+            Fatal( "Can't parse command output '$line'" );
         $standards = explode('/',$deviceMatches[2]);
         $preferredStandard = false;
         foreach ( $preferredStandards as $standard )
@@ -75,7 +75,7 @@ if ( ZM_V4L2 )
         for ( $i = 0; $i < $deviceMatches[4]; $i++ )
         {
             if ( !preg_match( '/i'.$i.':([^|]+)\|i'.$i.'T:([^|]+)\|/', $deviceMatches[5], $inputMatches ) )
-                die( "Can't parse input '".$deviceMatches[5]."'" );
+                Fatal( "Can't parse input '".$deviceMatches[5]."'" );
             if ( $inputMatches[2] == 'Camera' )
             {
                 $input = array( 'index'=>$i, 'id'=>$deviceMatches[1].':'.$i, 'name'=>$inputMatches[1], 'free'=>empty($monitors[$deviceMatches[1].':'.$i]) );
@@ -264,12 +264,11 @@ unset($output);
 $command = "arp -a";
 $result = exec( escapeshellcmd($command), $output, $status );
 if ( $status )
-    die( "Unable to probe network cameras, status is '$status'" );
+    Fatal( "Unable to probe network cameras, status is '$status'" );
 foreach ( $output as $line )
 {
     if ( !preg_match( '/^(\S+) \(([\d.]+)\) at ([0-9a-f:]+)/', $line, $matches ) )
         continue;
-        //die( "Can't parse command output '$line'" );
     $host = $matches[1];
     $ip = $matches[2];
     if ( !$host || $host == '?' )

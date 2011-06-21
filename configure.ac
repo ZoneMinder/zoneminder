@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(zm,1.24.4,support@zoneminder.com,ZoneMinder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.25.0,support@zoneminder.com,ZoneMinder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AM_CONFIG_HEADER(config.h)
@@ -247,6 +247,7 @@ AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap putenv select socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strsignal strspn strstr strtol strtoull])
+AC_CHECK_FUNCS([syscall sleep usleep ioctl ioctlsocket sigaction])
 
 # Other programs
 AC_CHECK_PROG(OPT_FFMPEG,ffmpeg,yes,no)
@@ -285,7 +286,11 @@ AC_CHECK_LIB(z,compress,,)
 # Checks for header files.
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
-AC_CHECK_HEADERS([fcntl.h limits.h memory.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h syslog.h unistd.h values.h])
+AC_CHECK_HEADERS([fcntl.h limits.h memory.h stddef.h stdlib.h string.h strings.h sys/param.h sys/time.h syslog.h unistd.h values.h])
+AC_CHECK_HEADERS([netdb.h netinet/in.h arpa/inet.h sys/ioctl.h sys/socket.h sys/un.h glob.h])
+AC_CHECK_HEADERS(execinfo.h,,,)
+AC_CHECK_HEADERS(syscall.h,,,)
+AC_CHECK_HEADERS(pthread.h,,,)
 AC_CHECK_HEADERS(linux/videodev.h,AC_SUBST(ZM_HAS_V4L1,1),AC_SUBST(ZM_HAS_V4L1,0),)
 AC_CHECK_HEADERS(linux/videodev2.h,AC_SUBST(ZM_HAS_V4L2,1),AC_SUBST(ZM_HAS_V4L2,0),)
 if test "$ZM_HAS_V4L1" == "1" || test "$ZM_HAS_V4L2" == "1"; then

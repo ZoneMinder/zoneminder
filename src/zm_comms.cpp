@@ -19,7 +19,7 @@
 
 #include "zm_comms.h"
 
-#include "zm_debug.h"
+#include "zm_logger.h"
 
 #include <errno.h>
 #include <fcntl.h>

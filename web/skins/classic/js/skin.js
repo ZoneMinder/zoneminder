@@ -22,21 +22,6 @@
 // Use skin.js.php for JavaScript that need pre-processing
 //
 
-if ( !window.console )
-{
-    window.console =
-    {
-        init:function() {},
-        log:function() {},
-        debug:function() {},
-        info:function() {},
-        warn:function() {},
-        error:function() {}
-    };
-}
-if ( !console.debug )//IE8 has console but doesn't have console.debug so lets alias it.
-    console.debug = console.log;
-
 // Javascript window sizes
 var popupSizes = {
     'bandwidth':    { 'width': 200, 'height': 120 },
@@ -60,6 +45,7 @@ var popupSizes = {
     'group':        { 'width': 360, 'height': 180 },
     'groups':       { 'width': 400, 'height': 220 },
     'image':        { 'addWidth': 48, 'addHeight': 80 },
+    'log':          { 'width': 980, 'height': 720 },
     'login':        { 'width': 720, 'height': 480 },
     'logout':       { 'width': 240, 'height': 100 },
     'monitor':      { 'width': 380, 'height': 364 },
@@ -91,22 +77,9 @@ function newWindow( url, name, width, height )
     var windowId = window.open( url, name, popupOptions+",width="+width+",height="+height );
 }
 
-function clone( obj )
-{
-    if ( typeof(obj) != 'object' )
-        return( obj );
-    if ( obj == null )
-        return( obj );
-
-    var newObj = new Object();
-    for ( var i in obj )
-        newObj[i] = clone( obj[i] );
-    return( newObj );
-}
-
 function getPopupSize( tag, width, height )
 {
-    var popupSize = clone( popupSizes[tag] );
+    var popupSize = Object.clone( popupSizes[tag] );
     if ( !popupSize )
     {
         console.error( "Can't find window size for tag '"+tag+"'" );

@@ -24,6 +24,8 @@
 #include "zm_buffer.h"
 #include "zm_regexp.h"
 
+#include <sys/param.h>
+
 //
 // Class representing 'file' cameras, i.e. those which are
 // accessed over a network connection.

@@ -19,7 +19,7 @@
 
 #include "zm_thread.h"
 
-#include "zm_debug.h"
+#include "zm_logger.h"
 #include "zm_utils.h"
 
 #include <string.h>

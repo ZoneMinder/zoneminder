@@ -50,7 +50,7 @@ else
 
 // Simple version
 if ( $errorText )
-    error_log( $errorText );
+    Error( $errorText );
 else
     readfile( ZM_DIR_EVENTS.'/'.$path );
 ?>

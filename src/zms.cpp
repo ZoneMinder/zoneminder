@@ -85,9 +85,9 @@ int main( int argc, const char *argv[] )
 		nph = true;
 	}
 	
-	zmDbgInit( "zms", "", 0 );
-
 	zmLoadConfig();
+
+	logInit( "zms" );
 
 	zmSetDefaultTermHandler();
 	zmSetDefaultDieHandler();

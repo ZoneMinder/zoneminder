@@ -38,7 +38,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 #
 # ==========================================================================
 
-use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Logger qw(:all);
 
 use Carp;
 

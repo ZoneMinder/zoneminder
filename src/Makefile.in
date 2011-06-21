@@ -52,7 +52,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am__objects_1 = zm_box.$(OBJEXT) zm_buffer.$(OBJEXT) \
 	zm_camera.$(OBJEXT) zm_comms.$(OBJEXT) zm_config.$(OBJEXT) \
 	zm_coord.$(OBJEXT) zm.$(OBJEXT) zm_db.$(OBJEXT) \
-	zm_debug.$(OBJEXT) zm_event.$(OBJEXT) zm_exception.$(OBJEXT) \
+	zm_logger.$(OBJEXT) zm_event.$(OBJEXT) zm_exception.$(OBJEXT) \
 	zm_file_camera.$(OBJEXT) zm_ffmpeg_camera.$(OBJEXT) \
 	zm_image.$(OBJEXT) zm_jpeg.$(OBJEXT) zm_local_camera.$(OBJEXT) \
 	zm_monitor.$(OBJEXT) zm_ffmpeg.$(OBJEXT) zm_mpeg.$(OBJEXT) \
@@ -74,8 +74,8 @@ am_zmf_OBJECTS = zmf.$(OBJEXT) $(am__objects_1)
 zmf_OBJECTS = $(am_zmf_OBJECTS)
 zmf_LDADD = $(LDADD)
 am_zmfix_OBJECTS = zmfix.$(OBJEXT) zm_config.$(OBJEXT) \
-	zm_regexp.$(OBJEXT) zm_debug.$(OBJEXT) zm_db.$(OBJEXT) \
-	zm.$(OBJEXT)
+	zm_regexp.$(OBJEXT) zm_logger.$(OBJEXT) zm_utils.$(OBJEXT) \
+	zm_db.$(OBJEXT) zm.$(OBJEXT)
 zmfix_OBJECTS = $(am_zmfix_OBJECTS)
 zmfix_LDADD = $(LDADD)
 am_zms_OBJECTS = zms.$(OBJEXT) $(am__objects_1)
@@ -91,10 +91,6 @@ DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
-COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-CCLD = $(CC)
-LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
@@ -264,13 +260,13 @@ zm_SOURCES = \
 	zm_coord.cpp \
 	zm.cpp \
 	zm_db.cpp \
-	zm_debug.c \
+	zm_logger.cpp \
 	zm_event.cpp \
 	zm_exception.cpp \
 	zm_file_camera.cpp \
 	zm_ffmpeg_camera.cpp \
 	zm_image.cpp \
-	zm_jpeg.c \
+	zm_jpeg.cpp \
 	zm_local_camera.cpp \
 	zm_monitor.cpp \
 	zm_ffmpeg.cpp \
@@ -301,7 +297,7 @@ zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
 zmf_SOURCES = zmf.cpp $(zm_SOURCES)
 zmstreamer_SOURCES = zmstreamer.cpp $(zm_SOURCES)
-zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_regexp.cpp zm_debug.c zm_db.cpp zm.cpp
+zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_regexp.cpp zm_logger.cpp zm_utils.cpp zm_db.cpp zm.cpp
 noinst_HEADERS = \
 	jinclude.h \
 	zm_box.h \
@@ -312,7 +308,7 @@ noinst_HEADERS = \
 	zm_config.h \
 	zm_coord.h \
 	zm_db.h \
-	zm_debug.h \
+	zm_logger.h \
 	zm_event.h \
 	zm_exception.h \
 	zmf.h \
@@ -356,7 +352,7 @@ EXTRA_DIST = \
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .cpp .o .obj
+.SUFFIXES: .cpp .o .obj
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -462,7 +458,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_coord.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_db.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_debug.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_event.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_exception.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_ffmpeg.Po@am__quote@
@@ -471,6 +466,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_image.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_jpeg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_local_camera.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_logger.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_monitor.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_mpeg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_poly.Po@am__quote@
@@ -499,20 +495,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zms.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmstreamer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmu.Po@am__quote@
-
-.c.o:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(COMPILE) -c $<
-
-.c.obj:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

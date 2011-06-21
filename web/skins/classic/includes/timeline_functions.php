@@ -291,12 +291,12 @@ function parseFilterToTree( $filter )
             }
             else
             {
-                die( "Unexpected element type '".$element['type']."', value '".$element['value']."'" );
+                Fatal( "Unexpected element type '".$element['type']."', value '".$element['value']."'" );
             }
         }
         if ( count($exprStack) != 1 )
         {
-            die( "Expression stack has ".count($exprStack)." elements" );
+            Fatal( "Expression stack has ".count($exprStack)." elements" );
         }
         $exprTree = array_pop( $exprStack );
         return( $exprTree );
@@ -462,7 +462,7 @@ function _extractDatetimeRange( &$node, &$minTime, &$maxTime, &$expandable, $sub
                 }
                 else
                 {
-                    die( "Unexpected node type '".$node['data']['type']."'" );
+                    Fatal( "Unexpected node type '".$node['data']['type']."'" );
                 }
                 return( false );
             }

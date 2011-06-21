@@ -33,7 +33,7 @@ $tabs['config'] = $SLANG['Config'];
 $tabs['paths'] = $SLANG['Paths'];
 $tabs['web'] = $SLANG['Web'];
 $tabs['images'] = $SLANG['Images'];
-$tabs['debug'] = $SLANG['Debug'];
+$tabs['logging'] = $SLANG['Logging'];
 $tabs['network'] = $SLANG['Network'];
 $tabs['mail'] = $SLANG['Email'];
 $tabs['ftp'] = $SLANG['FTP'];
@@ -231,12 +231,21 @@ else
             if ( count( $options ) > 3 )
             {
 ?>
-                <select name="newConfig[<?= $name ?>] ?>"<?= $canEdit?'':' disabled="disabled"' ?>>
+                <select name="newConfig[<?= $name ?>]"<?= $canEdit?'':' disabled="disabled"' ?>>
 <?php
                 foreach ( $options as $option )
                 {
+                    if ( preg_match( '/^([^=]+)=(.+)$/', $option, $matches ) )
+                    {
+                        $optionLabel = $matches[1];
+                        $optionValue = $matches[2];
+                    }
+                    else
+                    {
+                        $optionLabel = $optionValue = $option;
+                    }
 ?>
-                  <option value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { echo ' selected="selected"'; } ?>><?= htmlentities($option) ?></option>
+                  <option value="<?= $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { echo ' selected="selected"'; } ?>><?= htmlspecialchars($optionLabel) ?></option>
 <?php
                 }
 ?>
@@ -247,8 +256,17 @@ else
             {
                 foreach ( $options as $option )
                 {
+                    if ( preg_match( '/^([^=]+)=(.+)$/', $option ) )
+                    {
+                        $optionLabel = $matches[1];
+                        $optionValue = $matches[2];
+                    }
+                    else
+                    {
+                        $optionLabel = $optionValue = $option;
+                    }
 ?>
-                <span><input type="radio" id="<?= $name.'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $option ) ?>" name="newConfig[<?= $name ?>]" value="<?= $option ?>"<?php if ( $value['Value'] == $option ) { ?> checked="checked"<?php } ?><?= $canEdit?'':' disabled="disabled"' ?>/>&nbsp;<?= $option ?></span>
+                <span><input type="radio" id="<?= $name.'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $optionValue ) ?>" name="newConfig[<?= $name ?>]" value="<?= $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?= $canEdit?'':' disabled="disabled"' ?>/>&nbsp;<?= htmlspecialchars($optionLabel) ?></span>
 <?php
                 }
             }

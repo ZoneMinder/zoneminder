@@ -59,7 +59,7 @@ var imageRefreshTimeout = <?= 1000*ZM_WEB_REFRESH_IMAGE ?>;
 var canEditMonitors = <?= canEdit( 'Monitors' )?'true':'false' ?>;
 var canStreamNative = <?= canStreamNative()?'true':'false' ?>;
 
-var canPlayPauseAudio = Browser.Engine.trident;
+var canPlayPauseAudio = Browser.ie;
 
 <?php if ( $monitor['CanMoveMap'] ) { ?>
 var imageControlMode = "moveMap";

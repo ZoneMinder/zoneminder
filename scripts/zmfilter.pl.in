@@ -34,9 +34,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant DBG_ID => "zmfilter"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
-
 use constant START_DELAY => 5; # How long to wait before starting
 
 # ==========================================================================
@@ -56,8 +53,8 @@ use Data::Dumper;
 
 use constant EVENT_PATH => (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
 
-zmDbgInit( DBG_ID, level=>DBG_LEVEL );
-zmDbgSetSignal();
+logInit();
+logSetSignal();
 
 if ( ZM_OPT_UPLOAD )
 {
@@ -678,7 +675,7 @@ sub generateVideo
     my $output = qx($command);
     chomp( $output );
     my $status = $? >> 8;
-    if ( $status || DBG_LEVEL > 0 )
+    if ( $status || logDebugging() )
     {
         Debug( "Output: $output\n" );
     }
@@ -1119,7 +1116,7 @@ sub executeCommand
     Info( "Executing '$command'\n" );
     my $output = qx($command);
     my $status = $? >> 8;
-    if ( $status || DBG_LEVEL > 0 )
+    if ( $status || logDebugging() )
     {
         chomp( $output );
         Debug( "Output: $output\n" );

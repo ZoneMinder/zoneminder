@@ -21,23 +21,23 @@ if ( !@socket_bind( $socket, $locSockFile ) )
 switch ( $_REQUEST['command'] )
 {
     case CMD_VARPLAY :
-        //error_log( "Varplaying to ".$_REQUEST['rate'] );
+        Debug( "Varplaying to ".$_REQUEST['rate'] );
         $msg = pack( "lcn", MSG_CMD, $_REQUEST['command'], $_REQUEST['rate']+32768 );
         break;
     case CMD_ZOOMIN :
-        //error_log( "Zooming to ".$_REQUEST['x'].",".$_REQUEST['y'] );
+        Debug( "Zooming to ".$_REQUEST['x'].",".$_REQUEST['y'] );
         $msg = pack( "lcnn", MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y'] );
         break;
     case CMD_PAN :
-        //error_log( "Panning to ".$_REQUEST['x'].",".$_REQUEST['y'] );
+        Debug( "Panning to ".$_REQUEST['x'].",".$_REQUEST['y'] );
         $msg = pack( "lcnn", MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y'] );
         break;
     case CMD_SCALE :
-        //error_log( "Scaling to ".$_REQUEST['scale'] );
+        Debug( "Scaling to ".$_REQUEST['scale'] );
         $msg = pack( "lcn", MSG_CMD, $_REQUEST['command'], $_REQUEST['scale'] );
         break;
     case CMD_SEEK :
-        //error_log( "Seeking to ".$_REQUEST['offset'] );
+        Debug( "Seeking to ".$_REQUEST['offset'] );
         $msg = pack( "lcN", MSG_CMD, $_REQUEST['command'], $_REQUEST['offset'] );
         break;
     default :

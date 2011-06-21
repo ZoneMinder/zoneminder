@@ -132,9 +132,10 @@ bool fixDevice( const char *device_path )
 
 int main( int argc, char *argv[] )
 {
-    zmDbgInit( "zmfix", "", -1 );
-
     zmLoadConfig();
+
+    logInit( "zmfix" );
+    logCapLevel( Logger::ERROR );
 
     // Only do registered devices
     static char sql[ZM_SQL_SML_BUFSIZ];

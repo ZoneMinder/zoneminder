@@ -17,12 +17,13 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-
 #include "zm.h"
 #include "zm_db.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 void zmLoadConfig()
 {
@@ -31,7 +32,7 @@ void zmLoadConfig()
 	char *val;
 	if ( (cfg = fopen( ZM_CONFIG, "r")) == NULL )
 	{
-		Fatal("Can't open %s: %s", ZM_CONFIG, strerror(errno) );
+		Fatal( "Can't open %s: %s", ZM_CONFIG, strerror(errno) );
 	}
 	while ( fgets( line, sizeof(line), cfg ) != NULL )
 	{
@@ -270,26 +271,6 @@ void Config::Load()
 void Config::Assign()
 {
 ZM_CFG_ASSIGN_LIST
-
-	if ( extra_debug )
-	{
-		static char extra_level_env[PATH_MAX] = "";
-		static char extra_log_env[PATH_MAX] = "";
-
-		snprintf( extra_level_env, sizeof(extra_level_env), "ZM_DBG_LEVEL%s=%d", extra_debug_target, extra_debug_level );
-		if ( putenv( extra_level_env ) < 0 )
-		{
-			Error("Can't putenv %s: %s", extra_level_env, strerror(errno) );
-		}
-
-		snprintf( extra_log_env, sizeof(extra_log_env), "ZM_DBG_LOG%s=%s", extra_debug_target, extra_debug_log );
-		if ( putenv( extra_log_env ) < 0 )
-		{
-			Error("Can't putenv %s: %s", extra_log_env, strerror(errno) );
-		}
-
-		zmDbgReinit( extra_debug_target );
-	}
 }
 
 const ConfigItem &Config::Item( int id )

@@ -27,17 +27,6 @@
 #
 use strict;
 
-# ==========================================================================
-#
-# These are the elements you can edit to suit your installation
-#
-# ==========================================================================
-
-use constant DBG_ID => "zmcontrol"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
-
-# ==========================================================================
-
 @EXTRA_PERL_LIB@
 use ZoneMinder;
 use Getopt::Long;
@@ -63,7 +52,7 @@ Usage: zmcontrol.pl --id <monitor_id> --command=<command> <various options>
     exit( -1 );
 }
 
-zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+logInit();
 
 my $arg_string = join( " ", @ARGV );
 
@@ -124,7 +113,7 @@ if ( !$server_up )
 
         my $output = qx($command);
         my $status = $? >> 8;
-        if ( $status || DBG_LEVEL > 0 )
+        if ( $status || logDebugging() )
         {
             chomp( $output );
             Debug( "Output: $output\n" );
@@ -142,7 +131,7 @@ if ( !$server_up )
 
     if ( my $cpid = fork() )
     {
-        zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+        logInit();
 
         # Parent process just sleep and fall through
         socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
@@ -161,7 +150,7 @@ if ( !$server_up )
 
         setpgrp();
 
-        zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+        logInit();
 
         Info( "Control server $id/$protocol starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() ) );
 

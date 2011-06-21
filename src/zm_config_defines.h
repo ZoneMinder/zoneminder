@@ -45,162 +45,174 @@
 #define ZM_FFMPEG_INPUT_OPTIONS 41
 #define ZM_FFMPEG_OUTPUT_OPTIONS 42
 #define ZM_FFMPEG_FORMATS 43
-#define ZM_RECORD_EVENT_STATS 44
-#define ZM_RECORD_DIAG_IMAGES 45
-#define ZM_EXTRA_DEBUG 46
-#define ZM_EXTRA_DEBUG_TARGET 47
-#define ZM_EXTRA_DEBUG_LEVEL 48
-#define ZM_EXTRA_DEBUG_LOG 49
-#define ZM_DUMP_CORES 50
-#define ZM_PATH_MAP 51
-#define ZM_PATH_SOCKS 52
-#define ZM_PATH_LOGS 53
-#define ZM_PATH_SWAP 54
-#define ZM_WEB_TITLE_PREFIX 55
-#define ZM_WEB_RESIZE_CONSOLE 56
-#define ZM_WEB_POPUP_ON_ALARM 57
-#define ZM_OPT_X10 58
-#define ZM_X10_DEVICE 59
-#define ZM_X10_HOUSE_CODE 60
-#define ZM_X10_DB_RELOAD_INTERVAL 61
-#define ZM_WEB_SOUND_ON_ALARM 62
-#define ZM_WEB_ALARM_SOUND 63
-#define ZM_WEB_COMPACT_MONTAGE 64
-#define ZM_OPT_FAST_DELETE 65
-#define ZM_STRICT_VIDEO_CONFIG 66
-#define ZM_V4L2_CAPTURE_FIELDS 67
-#define ZM_SIGNAL_CHECK_POINTS 68
-#define ZM_V4L_MULTI_BUFFER 69
-#define ZM_CAPTURES_PER_FRAME 70
-#define ZM_FILTER_RELOAD_DELAY 71
-#define ZM_FILTER_EXECUTE_INTERVAL 72
-#define ZM_OPT_UPLOAD 73
-#define ZM_UPLOAD_ARCH_FORMAT 74
-#define ZM_UPLOAD_ARCH_COMPRESS 75
-#define ZM_UPLOAD_ARCH_ANALYSE 76
-#define ZM_UPLOAD_FTP_HOST 77
-#define ZM_UPLOAD_FTP_USER 78
-#define ZM_UPLOAD_FTP_PASS 79
-#define ZM_UPLOAD_FTP_LOC_DIR 80
-#define ZM_UPLOAD_FTP_REM_DIR 81
-#define ZM_UPLOAD_FTP_TIMEOUT 82
-#define ZM_UPLOAD_FTP_PASSIVE 83
-#define ZM_UPLOAD_FTP_DEBUG 84
-#define ZM_OPT_EMAIL 85
-#define ZM_EMAIL_ADDRESS 86
-#define ZM_EMAIL_TEXT 87
-#define ZM_EMAIL_SUBJECT 88
-#define ZM_EMAIL_BODY 89
-#define ZM_OPT_MESSAGE 90
-#define ZM_MESSAGE_ADDRESS 91
-#define ZM_MESSAGE_TEXT 92
-#define ZM_MESSAGE_SUBJECT 93
-#define ZM_MESSAGE_BODY 94
-#define ZM_NEW_MAIL_MODULES 95
-#define ZM_EMAIL_HOST 96
-#define ZM_FROM_EMAIL 97
-#define ZM_URL 98
-#define ZM_MAX_RESTART_DELAY 99
-#define ZM_WATCH_CHECK_INTERVAL 100
-#define ZM_WATCH_MAX_DELAY 101
-#define ZM_RUN_AUDIT 102
-#define ZM_AUDIT_CHECK_INTERVAL 103
-#define ZM_FORCED_ALARM_SCORE 104
-#define ZM_BULK_FRAME_INTERVAL 105
-#define ZM_EVENT_CLOSE_MODE 106
-#define ZM_FORCE_CLOSE_EVENTS 107
-#define ZM_CREATE_ANALYSIS_IMAGES 108
-#define ZM_WEIGHTED_ALARM_CENTRES 109
-#define ZM_EVENT_IMAGE_DIGITS 110
-#define ZM_DEFAULT_ASPECT_RATIO 111
-#define ZM_USER_SELF_EDIT 112
-#define ZM_OPT_FRAME_SERVER 113
-#define ZM_FRAME_SOCKET_SIZE 114
-#define ZM_OPT_CONTROL 115
-#define ZM_OPT_TRIGGERS 116
-#define ZM_CHECK_FOR_UPDATES 117
-#define ZM_UPDATE_CHECK_PROXY 118
-#define ZM_SHM_KEY 119
-#define ZM_WEB_REFRESH_METHOD 120
-#define ZM_WEB_EVENT_SORT_FIELD 121
-#define ZM_WEB_EVENT_SORT_ORDER 122
-#define ZM_WEB_EVENTS_PER_PAGE 123
-#define ZM_WEB_LIST_THUMBS 124
-#define ZM_WEB_LIST_THUMB_WIDTH 125
-#define ZM_WEB_LIST_THUMB_HEIGHT 126
-#define ZM_WEB_USE_OBJECT_TAGS 127
-#define ZM_WEB_H_REFRESH_MAIN 128
-#define ZM_WEB_H_REFRESH_CYCLE 129
-#define ZM_WEB_H_REFRESH_IMAGE 130
-#define ZM_WEB_H_REFRESH_STATUS 131
-#define ZM_WEB_H_REFRESH_EVENTS 132
-#define ZM_WEB_H_CAN_STREAM 133
-#define ZM_WEB_H_STREAM_METHOD 134
-#define ZM_WEB_H_DEFAULT_SCALE 135
-#define ZM_WEB_H_DEFAULT_RATE 136
-#define ZM_WEB_H_VIDEO_BITRATE 137
-#define ZM_WEB_H_VIDEO_MAXFPS 138
-#define ZM_WEB_H_SCALE_THUMBS 139
-#define ZM_WEB_H_EVENTS_VIEW 140
-#define ZM_WEB_H_SHOW_PROGRESS 141
-#define ZM_WEB_H_AJAX_TIMEOUT 142
-#define ZM_WEB_M_REFRESH_MAIN 143
-#define ZM_WEB_M_REFRESH_CYCLE 144
-#define ZM_WEB_M_REFRESH_IMAGE 145
-#define ZM_WEB_M_REFRESH_STATUS 146
-#define ZM_WEB_M_REFRESH_EVENTS 147
-#define ZM_WEB_M_CAN_STREAM 148
-#define ZM_WEB_M_STREAM_METHOD 149
-#define ZM_WEB_M_DEFAULT_SCALE 150
-#define ZM_WEB_M_DEFAULT_RATE 151
-#define ZM_WEB_M_VIDEO_BITRATE 152
-#define ZM_WEB_M_VIDEO_MAXFPS 153
-#define ZM_WEB_M_SCALE_THUMBS 154
-#define ZM_WEB_M_EVENTS_VIEW 155
-#define ZM_WEB_M_SHOW_PROGRESS 156
-#define ZM_WEB_M_AJAX_TIMEOUT 157
-#define ZM_WEB_L_REFRESH_MAIN 158
-#define ZM_WEB_L_REFRESH_CYCLE 159
-#define ZM_WEB_L_REFRESH_IMAGE 160
-#define ZM_WEB_L_REFRESH_STATUS 161
-#define ZM_WEB_L_REFRESH_EVENTS 162
-#define ZM_WEB_L_CAN_STREAM 163
-#define ZM_WEB_L_STREAM_METHOD 164
-#define ZM_WEB_L_DEFAULT_SCALE 165
-#define ZM_WEB_L_DEFAULT_RATE 166
-#define ZM_WEB_L_VIDEO_BITRATE 167
-#define ZM_WEB_L_VIDEO_MAXFPS 168
-#define ZM_WEB_L_SCALE_THUMBS 169
-#define ZM_WEB_L_EVENTS_VIEW 170
-#define ZM_WEB_L_SHOW_PROGRESS 171
-#define ZM_WEB_L_AJAX_TIMEOUT 172
-#define ZM_WEB_P_CAN_STREAM 173
-#define ZM_WEB_P_STREAM_METHOD 174
-#define ZM_WEB_P_DEFAULT_SCALE 175
-#define ZM_WEB_P_DEFAULT_RATE 176
-#define ZM_WEB_P_VIDEO_BITRATE 177
-#define ZM_WEB_P_VIDEO_MAXFPS 178
-#define ZM_WEB_P_SCALE_THUMBS 179
-#define ZM_WEB_P_AJAX_TIMEOUT 180
-#define ZM_DYN_LAST_VERSION 181
-#define ZM_DYN_CURR_VERSION 182
-#define ZM_DYN_DB_VERSION 183
-#define ZM_DYN_LAST_CHECK 184
-#define ZM_DYN_NEXT_REMINDER 185
-#define ZM_DYN_DONATE_REMINDER_TIME 186
-#define ZM_DYN_SHOW_DONATE_REMINDER 187
-#define ZM_EYEZM_DEBUG 188
-#define ZM_EYEZM_LOG_TO_FILE 189
-#define ZM_EYEZM_LOG_FILE 190
-#define ZM_EYEZM_EVENT_VCODEC 191
-#define ZM_EYEZM_FEED_VCODEC 192
-#define ZM_EYEZM_H264_DEFAULT_BR 193
-#define ZM_EYEZM_H264_DEFAULT_EVBR 194
-#define ZM_EYEZM_H264_TIMEOUT 195
-#define ZM_EYEZM_SEG_DURATION 196
+#define ZM_LOG_LEVEL_SYSLOG 44
+#define ZM_LOG_LEVEL_FILE 45
+#define ZM_LOG_LEVEL_WEBLOG 46
+#define ZM_LOG_LEVEL_DATABASE 47
+#define ZM_LOG_DATABASE_LIMIT 48
+#define ZM_LOG_DEBUG 49
+#define ZM_LOG_DEBUG_TARGET 50
+#define ZM_LOG_DEBUG_LEVEL 51
+#define ZM_LOG_DEBUG_FILE 52
+#define ZM_LOG_CHECK_PERIOD 53
+#define ZM_LOG_ALERT_WAR_COUNT 54
+#define ZM_LOG_ALERT_ERR_COUNT 55
+#define ZM_LOG_ALERT_FAT_COUNT 56
+#define ZM_LOG_ALARM_WAR_COUNT 57
+#define ZM_LOG_ALARM_ERR_COUNT 58
+#define ZM_LOG_ALARM_FAT_COUNT 59
+#define ZM_RECORD_EVENT_STATS 60
+#define ZM_RECORD_DIAG_IMAGES 61
+#define ZM_DUMP_CORES 62
+#define ZM_PATH_MAP 63
+#define ZM_PATH_SOCKS 64
+#define ZM_PATH_LOGS 65
+#define ZM_PATH_SWAP 66
+#define ZM_WEB_TITLE_PREFIX 67
+#define ZM_WEB_RESIZE_CONSOLE 68
+#define ZM_WEB_POPUP_ON_ALARM 69
+#define ZM_OPT_X10 70
+#define ZM_X10_DEVICE 71
+#define ZM_X10_HOUSE_CODE 72
+#define ZM_X10_DB_RELOAD_INTERVAL 73
+#define ZM_WEB_SOUND_ON_ALARM 74
+#define ZM_WEB_ALARM_SOUND 75
+#define ZM_WEB_COMPACT_MONTAGE 76
+#define ZM_OPT_FAST_DELETE 77
+#define ZM_STRICT_VIDEO_CONFIG 78
+#define ZM_V4L2_CAPTURE_FIELDS 79
+#define ZM_SIGNAL_CHECK_POINTS 80
+#define ZM_V4L_MULTI_BUFFER 81
+#define ZM_CAPTURES_PER_FRAME 82
+#define ZM_FILTER_RELOAD_DELAY 83
+#define ZM_FILTER_EXECUTE_INTERVAL 84
+#define ZM_OPT_UPLOAD 85
+#define ZM_UPLOAD_ARCH_FORMAT 86
+#define ZM_UPLOAD_ARCH_COMPRESS 87
+#define ZM_UPLOAD_ARCH_ANALYSE 88
+#define ZM_UPLOAD_FTP_HOST 89
+#define ZM_UPLOAD_FTP_USER 90
+#define ZM_UPLOAD_FTP_PASS 91
+#define ZM_UPLOAD_FTP_LOC_DIR 92
+#define ZM_UPLOAD_FTP_REM_DIR 93
+#define ZM_UPLOAD_FTP_TIMEOUT 94
+#define ZM_UPLOAD_FTP_PASSIVE 95
+#define ZM_UPLOAD_FTP_DEBUG 96
+#define ZM_OPT_EMAIL 97
+#define ZM_EMAIL_ADDRESS 98
+#define ZM_EMAIL_TEXT 99
+#define ZM_EMAIL_SUBJECT 100
+#define ZM_EMAIL_BODY 101
+#define ZM_OPT_MESSAGE 102
+#define ZM_MESSAGE_ADDRESS 103
+#define ZM_MESSAGE_TEXT 104
+#define ZM_MESSAGE_SUBJECT 105
+#define ZM_MESSAGE_BODY 106
+#define ZM_NEW_MAIL_MODULES 107
+#define ZM_EMAIL_HOST 108
+#define ZM_FROM_EMAIL 109
+#define ZM_URL 110
+#define ZM_MAX_RESTART_DELAY 111
+#define ZM_WATCH_CHECK_INTERVAL 112
+#define ZM_WATCH_MAX_DELAY 113
+#define ZM_RUN_AUDIT 114
+#define ZM_AUDIT_CHECK_INTERVAL 115
+#define ZM_FORCED_ALARM_SCORE 116
+#define ZM_BULK_FRAME_INTERVAL 117
+#define ZM_EVENT_CLOSE_MODE 118
+#define ZM_FORCE_CLOSE_EVENTS 119
+#define ZM_CREATE_ANALYSIS_IMAGES 120
+#define ZM_WEIGHTED_ALARM_CENTRES 121
+#define ZM_EVENT_IMAGE_DIGITS 122
+#define ZM_DEFAULT_ASPECT_RATIO 123
+#define ZM_USER_SELF_EDIT 124
+#define ZM_OPT_FRAME_SERVER 125
+#define ZM_FRAME_SOCKET_SIZE 126
+#define ZM_OPT_CONTROL 127
+#define ZM_OPT_TRIGGERS 128
+#define ZM_CHECK_FOR_UPDATES 129
+#define ZM_UPDATE_CHECK_PROXY 130
+#define ZM_SHM_KEY 131
+#define ZM_WEB_REFRESH_METHOD 132
+#define ZM_WEB_EVENT_SORT_FIELD 133
+#define ZM_WEB_EVENT_SORT_ORDER 134
+#define ZM_WEB_EVENTS_PER_PAGE 135
+#define ZM_WEB_LIST_THUMBS 136
+#define ZM_WEB_LIST_THUMB_WIDTH 137
+#define ZM_WEB_LIST_THUMB_HEIGHT 138
+#define ZM_WEB_USE_OBJECT_TAGS 139
+#define ZM_WEB_H_REFRESH_MAIN 140
+#define ZM_WEB_H_REFRESH_CYCLE 141
+#define ZM_WEB_H_REFRESH_IMAGE 142
+#define ZM_WEB_H_REFRESH_STATUS 143
+#define ZM_WEB_H_REFRESH_EVENTS 144
+#define ZM_WEB_H_CAN_STREAM 145
+#define ZM_WEB_H_STREAM_METHOD 146
+#define ZM_WEB_H_DEFAULT_SCALE 147
+#define ZM_WEB_H_DEFAULT_RATE 148
+#define ZM_WEB_H_VIDEO_BITRATE 149
+#define ZM_WEB_H_VIDEO_MAXFPS 150
+#define ZM_WEB_H_SCALE_THUMBS 151
+#define ZM_WEB_H_EVENTS_VIEW 152
+#define ZM_WEB_H_SHOW_PROGRESS 153
+#define ZM_WEB_H_AJAX_TIMEOUT 154
+#define ZM_WEB_M_REFRESH_MAIN 155
+#define ZM_WEB_M_REFRESH_CYCLE 156
+#define ZM_WEB_M_REFRESH_IMAGE 157
+#define ZM_WEB_M_REFRESH_STATUS 158
+#define ZM_WEB_M_REFRESH_EVENTS 159
+#define ZM_WEB_M_CAN_STREAM 160
+#define ZM_WEB_M_STREAM_METHOD 161
+#define ZM_WEB_M_DEFAULT_SCALE 162
+#define ZM_WEB_M_DEFAULT_RATE 163
+#define ZM_WEB_M_VIDEO_BITRATE 164
+#define ZM_WEB_M_VIDEO_MAXFPS 165
+#define ZM_WEB_M_SCALE_THUMBS 166
+#define ZM_WEB_M_EVENTS_VIEW 167
+#define ZM_WEB_M_SHOW_PROGRESS 168
+#define ZM_WEB_M_AJAX_TIMEOUT 169
+#define ZM_WEB_L_REFRESH_MAIN 170
+#define ZM_WEB_L_REFRESH_CYCLE 171
+#define ZM_WEB_L_REFRESH_IMAGE 172
+#define ZM_WEB_L_REFRESH_STATUS 173
+#define ZM_WEB_L_REFRESH_EVENTS 174
+#define ZM_WEB_L_CAN_STREAM 175
+#define ZM_WEB_L_STREAM_METHOD 176
+#define ZM_WEB_L_DEFAULT_SCALE 177
+#define ZM_WEB_L_DEFAULT_RATE 178
+#define ZM_WEB_L_VIDEO_BITRATE 179
+#define ZM_WEB_L_VIDEO_MAXFPS 180
+#define ZM_WEB_L_SCALE_THUMBS 181
+#define ZM_WEB_L_EVENTS_VIEW 182
+#define ZM_WEB_L_SHOW_PROGRESS 183
+#define ZM_WEB_L_AJAX_TIMEOUT 184
+#define ZM_WEB_P_CAN_STREAM 185
+#define ZM_WEB_P_STREAM_METHOD 186
+#define ZM_WEB_P_DEFAULT_SCALE 187
+#define ZM_WEB_P_DEFAULT_RATE 188
+#define ZM_WEB_P_VIDEO_BITRATE 189
+#define ZM_WEB_P_VIDEO_MAXFPS 190
+#define ZM_WEB_P_SCALE_THUMBS 191
+#define ZM_WEB_P_AJAX_TIMEOUT 192
+#define ZM_DYN_LAST_VERSION 193
+#define ZM_DYN_CURR_VERSION 194
+#define ZM_DYN_DB_VERSION 195
+#define ZM_DYN_LAST_CHECK 196
+#define ZM_DYN_NEXT_REMINDER 197
+#define ZM_DYN_DONATE_REMINDER_TIME 198
+#define ZM_DYN_SHOW_DONATE_REMINDER 199
+#define ZM_EYEZM_DEBUG 200
+#define ZM_EYEZM_LOG_TO_FILE 201
+#define ZM_EYEZM_LOG_FILE 202
+#define ZM_EYEZM_EVENT_VCODEC 203
+#define ZM_EYEZM_FEED_VCODEC 204
+#define ZM_EYEZM_H264_DEFAULT_BR 205
+#define ZM_EYEZM_H264_DEFAULT_EVBR 206
+#define ZM_EYEZM_H264_TIMEOUT 207
+#define ZM_EYEZM_SEG_DURATION 208
 
 
-#define ZM_MAX_CFG_ID 196
+#define ZM_MAX_CFG_ID 208
 
 #define ZM_CFG_DECLARE_LIST \
 	const char *lang_default;\
@@ -247,12 +259,24 @@
 	const char *ffmpeg_input_options;\
 	const char *ffmpeg_output_options;\
 	const char *ffmpeg_formats;\
+	int log_level_syslog;\
+	int log_level_file;\
+	int log_level_weblog;\
+	int log_level_database;\
+	const char *log_database_limit;\
+	bool log_debug;\
+	const char *log_debug_target;\
+	int log_debug_level;\
+	const char *log_debug_file;\
+	int log_check_period;\
+	int log_alert_war_count;\
+	int log_alert_err_count;\
+	int log_alert_fat_count;\
+	int log_alarm_war_count;\
+	int log_alarm_err_count;\
+	int log_alarm_fat_count;\
 	bool record_event_stats;\
 	bool record_diag_images;\
-	bool extra_debug;\
-	const char *extra_debug_target;\
-	int extra_debug_level;\
-	const char *extra_debug_log;\
 	bool dump_cores;\
 	const char *path_map;\
 	const char *path_socks;\
@@ -447,12 +471,24 @@
 	ffmpeg_input_options = (const char *)config.Item( ZM_FFMPEG_INPUT_OPTIONS );\
 	ffmpeg_output_options = (const char *)config.Item( ZM_FFMPEG_OUTPUT_OPTIONS );\
 	ffmpeg_formats = (const char *)config.Item( ZM_FFMPEG_FORMATS );\
+	log_level_syslog = (int)config.Item( ZM_LOG_LEVEL_SYSLOG );\
+	log_level_file = (int)config.Item( ZM_LOG_LEVEL_FILE );\
+	log_level_weblog = (int)config.Item( ZM_LOG_LEVEL_WEBLOG );\
+	log_level_database = (int)config.Item( ZM_LOG_LEVEL_DATABASE );\
+	log_database_limit = (const char *)config.Item( ZM_LOG_DATABASE_LIMIT );\
+	log_debug = (bool)config.Item( ZM_LOG_DEBUG );\
+	log_debug_target = (const char *)config.Item( ZM_LOG_DEBUG_TARGET );\
+	log_debug_level = (int)config.Item( ZM_LOG_DEBUG_LEVEL );\
+	log_debug_file = (const char *)config.Item( ZM_LOG_DEBUG_FILE );\
+	log_check_period = (int)config.Item( ZM_LOG_CHECK_PERIOD );\
+	log_alert_war_count = (int)config.Item( ZM_LOG_ALERT_WAR_COUNT );\
+	log_alert_err_count = (int)config.Item( ZM_LOG_ALERT_ERR_COUNT );\
+	log_alert_fat_count = (int)config.Item( ZM_LOG_ALERT_FAT_COUNT );\
+	log_alarm_war_count = (int)config.Item( ZM_LOG_ALARM_WAR_COUNT );\
+	log_alarm_err_count = (int)config.Item( ZM_LOG_ALARM_ERR_COUNT );\
+	log_alarm_fat_count = (int)config.Item( ZM_LOG_ALARM_FAT_COUNT );\
 	record_event_stats = (bool)config.Item( ZM_RECORD_EVENT_STATS );\
 	record_diag_images = (bool)config.Item( ZM_RECORD_DIAG_IMAGES );\
-	extra_debug = (bool)config.Item( ZM_EXTRA_DEBUG );\
-	extra_debug_target = (const char *)config.Item( ZM_EXTRA_DEBUG_TARGET );\
-	extra_debug_level = (int)config.Item( ZM_EXTRA_DEBUG_LEVEL );\
-	extra_debug_log = (const char *)config.Item( ZM_EXTRA_DEBUG_LOG );\
 	dump_cores = (bool)config.Item( ZM_DUMP_CORES );\
 	path_map = (const char *)config.Item( ZM_PATH_MAP );\
 	path_socks = (const char *)config.Item( ZM_PATH_SOCKS );\

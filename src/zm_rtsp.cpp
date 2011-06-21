@@ -83,7 +83,7 @@ bool RtspThread::recvResponse( std::string &response )
         {
             Error( "Response parse failure, %zd bytes follow", response.size() );
             if ( response.size() )
-                Hexdump( ZM_DBG_ERR, response.data(), min(response.size(),16) );
+                Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
         }
         return( false );
     }
@@ -257,7 +257,7 @@ int RtspThread::run()
             {
                 Error( "Response parse failure, %zd bytes follow", response.size() );
                 if ( response.size() )
-                    Hexdump( ZM_DBG_ERR, response.data(), min(response.size(),16) );
+                    Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
             }
             return( -1 );
         }

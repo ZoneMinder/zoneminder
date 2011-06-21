@@ -24,17 +24,17 @@
 //
 
 ?>
-  var AJAX_TIMEOUT = <?= ZM_WEB_AJAX_TIMEOUT ?>;
+var AJAX_TIMEOUT = <?= ZM_WEB_AJAX_TIMEOUT ?>;
 
-  var currentView = '<?= $view ?>';
-  var thisUrl = "<?= ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
-  var skinPath = "<?= ZM_SKIN_PATH ?>";
+var currentView = '<?= $view ?>';
+var thisUrl = "<?= ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
+var skinPath = "<?= ZM_SKIN_PATH ?>";
 
-  var canEditSystem = <?= canEdit('System' )?'true':'false' ?>;
-  var canViewSystem = <?= canView('System' )?'true':'false' ?>;
+var canEditSystem = <?= canEdit('System' )?'true':'false' ?>;
+var canViewSystem = <?= canView('System' )?'true':'false' ?>;
 
-  var refreshParent = <?= !empty($refreshParent)?'true':'false' ?>;
+var refreshParent = <?= !empty($refreshParent)?'true':'false' ?>;
 
-  var focusWindow = <?= !empty($focusWindow)?'true':'false' ?>;
+var focusWindow = <?= !empty($focusWindow)?'true':'false' ?>;
 
-  var imagePrefix = "<?= viewImagePath( "", '&' ) ?>";
+var imagePrefix = "<?= viewImagePath( "", '&' ) ?>";

@@ -1,4 +1,4 @@
-var presets = new Hash();
+var presets = new Object();
 <?php
 foreach ( $presets as $preset )
 {

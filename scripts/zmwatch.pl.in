@@ -34,9 +34,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant DBG_ID => "zmwatch"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
-
 use constant START_DELAY => 30; # To give everything else time to start
 
 # ==========================================================================
@@ -65,8 +62,8 @@ Usage: zmwatch.pl
 	exit( -1 );
 }
 
-zmDbgInit( DBG_ID, level=>DBG_LEVEL );
-zmDbgSetSignal();
+logInit();
+logSetSignal();
 
 Info( "Watchdog starting\n" );
 Info( "Watchdog pausing for ".START_DELAY." seconds\n" );

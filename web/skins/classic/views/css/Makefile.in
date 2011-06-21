@@ -219,6 +219,7 @@ dist_web_DATA = \
 	frame.css \
 	frames.css \
 	groups.css \
+	log.css \
 	monitor.css \
 	montage_2wide.css \
 	montage_3wide50enlarge.css \

@@ -41,7 +41,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 #
 # ==========================================================================
 
-use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Logger qw(:all);
 
 use Time::HiRes qw( usleep );
 
@@ -103,7 +103,7 @@ sub close
 
 sub printMsg
 {
-    if ( zmDbgLevel() > 0 )
+    if ( logDebugging() )
     {
         my $self = shift;
         my $msg = shift;

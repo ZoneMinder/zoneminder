@@ -55,7 +55,7 @@ if ( true )
 {
     // Simple version
     if ( $errorText )
-        error_log( $errorText );
+        Error( $errorText );
     else
         readfile( ZM_DIR_EVENTS.'/'.$path );
 }
@@ -63,7 +63,7 @@ else
 {
     // Not so simple version
     if ( !function_exists( "imagecreatefromjpeg" ) )
-        error_log( "No function" );
+        Warning( "The imagecreatefromjpeg function is not present, php-gd not installed?" );
 
     if ( !$errorText )
     {
@@ -71,7 +71,7 @@ else
         {
             $errorText = "Can't load image";
             $error = error_get_last();
-            error_log( $error['message'] );
+            Error( $error['message'] );
         }
     }
 
@@ -80,19 +80,19 @@ else
         if ( !($image = imagecreatetruecolor( 160, 120 )) )
         {
             $error = error_get_last();
-            error_log( $error['message'] );
+            Error( $error['message'] );
         }
         if ( !($textColor = imagecolorallocate( $image, 255, 0, 0 )) )
         {
             $error = error_get_last();
-            error_log( $error['message'] );
+            Error( $error['message'] );
         }
         if ( !imagestring( $image, 1, 20, 60, $errorText, $textColor ) )
         {
             $error = error_get_last();
-            error_log( $error['message'] );
+            Error( $error['message'] );
         }
-        error_log( $errorText." - ".$path );
+        Fatal( $errorText." - ".$path );
     }
 
     imagejpeg( $image );

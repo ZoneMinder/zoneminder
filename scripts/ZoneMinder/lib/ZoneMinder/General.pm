@@ -67,7 +67,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # ==========================================================================
 
 use ZoneMinder::Config qw(:all);
-use ZoneMinder::Debug qw(:all);
+use ZoneMinder::Logger qw(:all);
 
 use POSIX;
 
@@ -77,7 +77,7 @@ sub executeShellCommand( $ )
     my $command = shift;
     my $output = qx( $command );
     my $status = $? >> 8;
-    if ( $status || zmDbgLevel() > 0 )
+    if ( $status || logDebugging() )
     {
         Debug( "Command: $command\n" );
         chomp( $output );
@@ -177,7 +177,7 @@ sub runCommand( $ )
 	my $output = qx($command);
 	my $status = $? >> 8;
 	chomp( $output );
-	if ( $status || zmDbgLevel() > 0 )
+	if ( $status || logDebugging() )
 	{
 		if ( $status )
 		{

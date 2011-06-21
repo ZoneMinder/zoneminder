@@ -33,9 +33,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant DBG_ID => "zmx10"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
-
 use constant CAUSE_STRING => "X10"; # What gets written as the cause of any events
 
 # ==========================================================================
@@ -70,8 +67,8 @@ Parameters are :-
 	exit( -1 );
 }
 
-zmDbgInit( DBG_ID, level=>DBG_LEVEL );
-zmDbgSetSignal();
+logInit();
+logSetSignal();
 
 my $command;
 my $unit_code;
@@ -206,7 +203,7 @@ sub runServer
 				{
 					if ( $unit_code < 1 || $unit_code > 16 )
 					{
-						dPrint( DBG_ERROR, "Invalid unit code '$unit_code'\n" );
+						dPrint( ZoneMinder::Logger::ERROR, "Invalid unit code '$unit_code'\n" );
 						next;
 					}
 
@@ -238,14 +235,14 @@ sub runServer
 				{
 					if ( $device )
 					{
-						dPrint( DBG_DEBUG, $unit_code." ".$device->{status}."\n" );
+						dPrint( ZoneMinder::Logger::DEBUG, $unit_code." ".$device->{status}."\n" );
 					}
 					else
 					{
 						foreach my $unit_code ( sort( keys(%device_hash) ) )
 						{
 							my $device = $device_hash{$unit_code};
-							dPrint( DBG_DEBUG, $unit_code." ".$device->{status}."\n" );
+							dPrint( ZoneMinder::Logger::DEBUG, $unit_code." ".$device->{status}."\n" );
 						}
 					}
 				}
@@ -255,19 +252,19 @@ sub runServer
 				}
 				else
 				{
-					dPrint( DBG_ERROR, "Invalid command '$command'\n" );
+					dPrint( ZoneMinder::Logger::ERROR, "Invalid command '$command'\n" );
 				}
 				if ( defined($result) )
 				{
 					if ( 1 || $result )
 					{
 						$device->{status} = uc($command);
-						dPrint( DBG_DEBUG, $device->{appliance}->address()." $command, ok\n" );
+						dPrint( ZoneMinder::Logger::DEBUG, $device->{appliance}->address()." $command, ok\n" );
 						#x10listen( new X10::Event( sprintf("%s %s", $device->{appliance}->address, uc($command) ) ) );
 					}
 					else
 					{
-						dPrint( DBG_ERROR, $device->{appliance}->address()." $command, failed\n" );
+						dPrint( ZoneMinder::Logger::ERROR, $device->{appliance}->address()." $command, failed\n" );
 					}
 				}
 				close( CLIENT );
@@ -623,23 +620,23 @@ sub dPrint
 	{
 		print CLIENT @_
 	}
-	if ( $dbg_level == DBG_DEBUG )
+	if ( $dbg_level == ZoneMinder::Logger::DEBUG )
 	{
 		Debug( @_ );
 	}
-	elsif ( $dbg_level == DBG_INFO )
+	elsif ( $dbg_level == ZoneMinder::Logger::INFO )
 	{
 		Info( @_ );
 	}
-	elsif ( $dbg_level == DBG_WARNING )
+	elsif ( $dbg_level == ZoneMinder::Logger::WARNING )
 	{
 		Warning( @_ );
 	}
-	elsif ( $dbg_level == DBG_ERROR )
+	elsif ( $dbg_level == ZoneMinder::Logger::ERROR )
 	{
 		Error( @_ );
 	}
-	elsif ( $dbg_level == DBG_FATAL )
+	elsif ( $dbg_level == ZoneMinder::Logger::FATAL )
 	{
 		Fatal( @_ );
 	}

@@ -260,6 +260,21 @@ CREATE TABLE `Groups` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
+-- Table structure for table `Logs`
+--
+CREATE TABLE `Logs` (
+  `TimeKey` decimal(16,6) NOT NULL,
+  `Component` varchar(32) NOT NULL,
+  `Pid` smallint(6) DEFAULT NULL,
+  `Level` tinyint(3) NOT NULL,
+  `Code` char(3) NOT NULL,
+  `Message` varchar(255) NOT NULL,
+  `File` varchar(255) DEFAULT NULL,
+  `Line` smallint(5) unsigned DEFAULT NULL,
+  KEY `TimeKey` (`TimeKey`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+--
 -- Table structure for table `MonitorPresets`
 --
 

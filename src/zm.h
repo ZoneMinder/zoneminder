@@ -20,12 +20,8 @@
 #ifndef ZM_H
 #define ZM_H
 
-extern "C"
-{
-#include "zm_debug.h"
-}
-
 #include "zm_config.h"
+#include "zm_logger.h"
 
 extern "C"
 {

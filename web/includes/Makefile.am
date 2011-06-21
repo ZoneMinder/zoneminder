@@ -8,4 +8,5 @@ dist_web_DATA = \
 	database.php \
 	functions.php \
 	control_functions.php \
-	lang.php
+	lang.php \
+	logger.php

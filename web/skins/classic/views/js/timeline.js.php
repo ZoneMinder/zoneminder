@@ -1,6 +1,6 @@
 var filterQuery = '<?= validJsStr($filterQuery) ?>';
 
-var monitorNames = new Hash();
+var monitorNames = new Object();
 <?php
 foreach ( $monitors as $monitor )
 {

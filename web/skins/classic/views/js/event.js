@@ -41,7 +41,7 @@ function getCmdResponse( respObj, respText )
         return;
 
     if ( streamCmdTimer )
-        streamCmdTimer = $clear( streamCmdTimer );
+        streamCmdTimer = clearTimeout( streamCmdTimer );
 
     streamStatus = respObj.status;
 
@@ -434,7 +434,7 @@ function getFrameResponse( respObj, respText )
     }
 
     if ( !eventData['frames'] )
-        eventData['frames'] = new Hash();
+        eventData['frames'] = new Object();
 
     eventData['frames'][frame.FrameId] = frame;
     
@@ -460,7 +460,7 @@ function checkFrames( eventId, frameId, loadImage )
     }
 
     if ( !eventData['frames'] )
-        eventData['frames'] = new Hash();
+        eventData['frames'] = new Object();
 
     currFrameId = frameId;
 
@@ -482,7 +482,7 @@ function checkFrames( eventId, frameId, loadImage )
             var injected = false;
             if ( fid < imgs.length )
             {
-                img.injectBefore( imgs[fid-1] );
+                img.inject( imgs[fid-1], 'before' );
                 injected = true;
             }
             else
@@ -492,7 +492,7 @@ function checkFrames( eventId, frameId, loadImage )
                     {
                         if ( parseInt(img.getProperty( 'alt' )) < parseInt(thumbImg.getProperty( 'alt' )) )
                         {
-                            img.injectBefore( thumbImg );
+                            img.inject( thumbImg, 'before' );
                             return( true );
                         }
                         return( false );
@@ -501,7 +501,7 @@ function checkFrames( eventId, frameId, loadImage )
             }
             if ( !injected )
             {
-                img.injectInside( $('eventThumbs') );
+                img.inject( $('eventThumbs') );
             }
             var scale = parseInt(img.getStyle('height'));
             img.setStyles( {
@@ -589,7 +589,7 @@ function actQuery( action, parms )
 {
     var actParms = "view=request&request=event&id="+eventData.Id+"&action="+action;
     if ( parms != null )
-        actParms += "&"+Hash.toQueryString( parms );
+        actParms += "&"+Object.toQueryString( parms );
     actReq.send( actParms );
 }
 
@@ -746,7 +746,7 @@ function initPage()
         var streamImg = $('imageFeed').getElement('img');
         if ( !streamImg )
             streamImg = $('imageFeed').getElement('object');
-        $(streamImg).addEvent( 'click', handleClick.bindWithEvent( $(streamImg) ) );
+        $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
     }
 }
 

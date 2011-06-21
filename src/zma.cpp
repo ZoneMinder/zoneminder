@@ -87,12 +87,12 @@ int main( int argc, char *argv[] )
 		exit( 0 );
 	}
 
-	char dbg_id_string[16];
-	snprintf( dbg_id_string, sizeof(dbg_id_string), "m%d", id );
-
-	zmDbgInit( "zma", dbg_id_string, 0 );
+	char log_id_string[16];
+	snprintf( log_id_string, sizeof(log_id_string), "zma_m%d", id );
 
 	zmLoadConfig();
+
+	logInit( log_id_string );
 
 	Monitor *monitor = Monitor::Load( id, true, Monitor::ANALYSIS );
 

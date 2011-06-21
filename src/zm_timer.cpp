@@ -19,7 +19,7 @@
 
 #include "zm_timer.h"
 
-#include "zm_debug.h"
+#include "zm_logger.h"
 
 int Timer::TimerThread::mNextTimerId = 0;
 

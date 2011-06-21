@@ -34,9 +34,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant DBG_ID => "zmtrigger"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
-
 use constant MAX_CONNECT_DELAY => 10;
 use constant MONITOR_RELOAD_INTERVAL => 300;
 use constant SELECT_TIMEOUT => 0.25;
@@ -78,8 +75,8 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-zmDbgInit( DBG_ID, level=>DBG_LEVEL );
-zmDbgSetSignal();
+logInit();
+logSetSignal();
 
 Info( "Trigger daemon starting\n" );
 

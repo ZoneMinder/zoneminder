@@ -22,10 +22,16 @@
 
 #include <mysql/mysql.h>
 
-#include "zm.h"
-
+#ifdef __cplusplus 
+extern "C" {
+#endif 
 extern MYSQL dbconn;
 
+extern int zmDbConnected;
+
 void zmDbConnect();
+#ifdef __cplusplus 
+} /* extern "C" */
+#endif 
 
 #endif // ZM_DB_H

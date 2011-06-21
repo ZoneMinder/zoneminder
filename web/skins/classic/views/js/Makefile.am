@@ -23,6 +23,7 @@ dist_web_DATA = \
 	filter.js.php \
 	group.js \
 	groups.js \
+	log.js \
 	login.js \
 	Makefile.am \
 	monitor.js \

@@ -29,15 +29,6 @@ use bytes;
 
 # ==========================================================================
 #
-# These are the elements you can edit to suit your installation
-#
-# ==========================================================================
-
-use constant DBG_ID => "zmpkg"; # Tag that appears in debug to identify source
-use constant DBG_LEVEL => 0; # 0 is errors, warnings and info only, > 0 for debug
-
-# ==========================================================================
-#
 # Don't change anything below here
 #
 # ==========================================================================
@@ -53,7 +44,7 @@ $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-zmDbgInit( DBG_ID, level=>DBG_LEVEL );
+logInit();
 
 my $command = $ARGV[0];
 

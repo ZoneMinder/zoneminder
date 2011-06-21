@@ -140,12 +140,12 @@ int main(int argc, char** argv) {
         setenv("ZM_DBG_PRINT", "1", 1);
         printf("Done.\n");
     }
-    zmDbgInit("zmstreamer", "", 0);
 
     // Loading ZM configurations
     printf("Loading ZoneMinder configurations...");
     zmLoadConfig();
     printf("Done.\n");
+    logInit("zmstreamer");
 
     // Setting stream parameters
     MonitorStream stream;

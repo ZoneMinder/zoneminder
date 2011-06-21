@@ -181,7 +181,7 @@ if ( !empty($action) )
                 $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
                 if ( $socket < 0 )
                 {
-                    die( "socket_create() failed: ".socket_strerror($socket) );
+                    Fatal( "socket_create() failed: ".socket_strerror($socket) );
                 }
                 $sockFile = ZM_PATH_SOCKS.'/zmcontrol-'.$monitor['Id'].'.sock';
                 if ( @socket_connect( $socket, $sockFile ) )
@@ -197,7 +197,7 @@ if ( !empty($action) )
                     $optionString = jsonEncode( $options );
                     if ( !socket_write( $socket, $optionString ) )
                     {
-                        die( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
+                        Fatal( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
                     }
                     socket_close( $socket );
                 }
@@ -754,7 +754,7 @@ if ( !empty($action) )
                     case "web" :
                     case "tools" :
                         break;
-                    case "debug" :
+                    case "logging" :
                     case "network" :
                     case "mail" :
                     case "ftp" :

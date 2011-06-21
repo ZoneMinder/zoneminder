@@ -33,7 +33,7 @@ function Monitor( index, id, connKey )
     this.getStreamCmdResponse = function( respObj, respText )
     {
         if ( this.streamCmdTimer )
-            this.streamCmdTimer = $clear( this.streamCmdTimer );
+            this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
 
         if ( respObj.result == 'Ok' )
         {

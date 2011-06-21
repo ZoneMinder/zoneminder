@@ -17,12 +17,14 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */ 
 
+#include "zm_jpeg.h"
+#include "zm_logger.h"
+
 #include <unistd.h>
 
-#include "zm_jpeg.h"
-#include "zm_debug.h"
-
 /* Overridden error handlers, mostly for decompression */
+extern "C"
+{
 
 #define MAX_JPEG_ERRS 25
 
@@ -388,4 +390,6 @@ void zm_jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuff
     src->inbuffer_size = inbuffer_size;
     src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
     src->pub.next_input_byte = NULL; /* until buffer loaded */
+}
+
 }

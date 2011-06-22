@@ -245,7 +245,7 @@ bool StreamBase::sendTextFrame( const char *frame_text )
     {
         if ( !vid_stream )
         {
-            vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, image.Colours(), image.Width(), image.Height() );
+            vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height() );
             fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType() );
             vid_stream->OpenStream();
         }

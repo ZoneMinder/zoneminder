@@ -39,12 +39,12 @@ inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {
 	
 	alloc = retptr + sizeof(void*);
 	
-        if(((long)alloc % reqalignment) != 0)
-                alloc = alloc + (reqalignment - ((long)alloc % reqalignment));
-
-        /* Store a pointer before to the start of the block, just before returned aligned memory */
-        *(void**)(alloc - sizeof(void*)) = retptr;
-
+	if(((long)alloc % reqalignment) != 0)
+		alloc = alloc + (reqalignment - ((long)alloc % reqalignment));
+	
+	/* Store a pointer before to the start of the block, just before returned aligned memory */
+	*(void**)(alloc - sizeof(void*)) = retptr;
+	
 	return alloc;
 #endif
 }

@@ -146,16 +146,16 @@ our $mem_data =
 		"contrast"         => { "type"=>"int32", "seq"=>$mem_seq++ },
 		"alarm_x"          => { "type"=>"int32", "seq"=>$mem_seq++ },
 		"alarm_y"          => { "type"=>"int32", "seq"=>$mem_seq++ },
-		"valid"            => { "type"=>"uchar", "seq"=>$mem_seq++ },
-		"active"           => { "type"=>"uchar", "seq"=>$mem_seq++ },
-		"signal"           => { "type"=>"uchar", "seq"=>$mem_seq++ },
-		"bpadding"         => { "type"=>"uchar", "seq"=>$mem_seq++ },
+		"valid"            => { "type"=>"uint8", "seq"=>$mem_seq++ },
+		"active"           => { "type"=>"uint8", "seq"=>$mem_seq++ },
+		"signal"           => { "type"=>"uint8", "seq"=>$mem_seq++ },
+		"bpadding"         => { "type"=>"uint8", "seq"=>$mem_seq++ },
 		"epadding1"        => { "type"=>"uint32", "seq"=>$mem_seq++ },
 		"epadding2"        => { "type"=>"uint32", "seq"=>$mem_seq++ },
 		"epadding3"        => { "type"=>"uint32", "seq"=>$mem_seq++ },
 		"last_write_time"  => { "type"=>"time_t64", "seq"=>$mem_seq++ },
 		"last_read_time"   => { "type"=>"time_t64", "seq"=>$mem_seq++ },
-		"control_state"    => { "type"=>"uchar[256]", "seq"=>$mem_seq++ },
+		"control_state"    => { "type"=>"uint8[256]", "seq"=>$mem_seq++ },
 		}
 	},
 	"trigger_data" => { "type"=>"TriggerData", "seq"=>$mem_seq++, "contents"=> {
@@ -163,9 +163,9 @@ our $mem_data =
 		"trigger_state"    => { "type"=>"uint32", "seq"=>$mem_seq++ },
 		"trigger_score"    => { "type"=>"uint32", "seq"=>$mem_seq++ },
 		"padding"          => { "type"=>"uint32", "seq"=>$mem_seq++ },
-		"trigger_cause"    => { "type"=>"char[32]", "seq"=>$mem_seq++ },
-		"trigger_text"     => { "type"=>"char[256]", "seq"=>$mem_seq++ },
-		"trigger_showtext" => { "type"=>"char[256]", "seq"=>$mem_seq++ },
+		"trigger_cause"    => { "type"=>"int8[32]", "seq"=>$mem_seq++ },
+		"trigger_text"     => { "type"=>"int8[256]", "seq"=>$mem_seq++ },
+		"trigger_showtext" => { "type"=>"int8[256]", "seq"=>$mem_seq++ },
 		}
 	},
 	"end" => { "seq"=>$mem_seq++, "size"=> 0 }
@@ -205,15 +205,15 @@ sub zmMemInit
 			{
 				$member_data->{size} = $member_data->{align} = 4;
 			}
-			elsif ( $member_data->{type} eq "short" )
+			elsif ($member_data->{type} eq "int16" || $member_data->{type} eq "uint16")
 			{
 				$member_data->{size} = $member_data->{align} = 2;
 			}
-			elsif ( $member_data->{type} eq "char" || $member_data->{type} eq "uchar" || $member_data->{type} eq "bool1" )
+			elsif ( $member_data->{type} eq "int8" || $member_data->{type} eq "uint8" || $member_data->{type} eq "bool1" )
 			{
 				$member_data->{size} = $member_data->{align} = 1;
 			}
-			elsif ( $member_data->{type} =~ /^u?char\[(\d+)\]$/ )
+			elsif ( $member_data->{type} =~ /^u?int8\[(\d+)\]$/ )
 			{
 				$member_data->{size} = $1;
 				$member_data->{align} = 1;
@@ -313,36 +313,53 @@ sub zmMemRead( $$;$ )
             return( undef );
         }
 		my $value;
-		if ( $type eq "long" || $type eq "ulong" || $type eq "size_t")
+		if ( $type eq "long" )
 		{
 			( $value ) = unpack( "l!", $data );
 		}
-		elsif ( $type eq "int64" || $type eq "uint64" || $type eq "time_t64" )
+		elsif ( $type eq "ulong" || $type eq "size_t" )
 		{
-		# The "q" type is only available on 64bit platforms.
+			( $value ) = unpack( "L!", $data );
+		}
+		elsif ( $type eq "int64" || $type eq "time_t64" )
+		{
+			# The "q" type is only available on 64bit platforms, so use native.
 			( $value ) = unpack( "l!", $data );
 		}
-		elsif ( $type eq "int32" || $type eq "uint32" || $type eq "bool4" )
+		elsif ( $type eq "uint64" )
+		{
+			# The "q" type is only available on 64bit platforms, so use native.
+			( $value ) = unpack( "L!", $data );
+		}
+		elsif ( $type eq "int32" )
 		{
 			( $value ) = unpack( "l", $data );
 		}
-		elsif ( $type eq "short" )
+		elsif ( $type eq "uint32" || $type eq "bool4" )
+		{
+			( $value ) = unpack( "L", $data );
+		}
+		elsif ( $type eq "int16" )
 		{
 			( $value ) = unpack( "s", $data );
 		}
-		elsif ( $type eq "char" || $type eq "bool1" )
+		elsif ( $type eq "uint16" )
+		{
+			( $value ) = unpack( "S", $data );
+		}
+		elsif ( $type eq "int8" )
 		{
 			( $value ) = unpack( "c", $data );
 		}
-		elsif ( $type eq "uchar" )
+		elsif ( $type eq "uint8" || $type eq "bool1" )
 		{
 			( $value ) = unpack( "C", $data );
 		}
-		elsif ( $type =~ /^char\[\d+\]$/ )
+		elsif ( $type =~ /^int8\[\d+\]$/ )
 		{
 			( $value ) = unpack( "Z".$size, $data );
 		} 
-		elsif ( $type =~ /^uchar\[\d+\]$/ )
+		elsif ( $type =~ /^uint8\[\d+\]$/ )
 		{
 			( $value ) = unpack( "C".$size, $data );
 		} 
@@ -396,39 +413,56 @@ sub zmMemWrite( $$;$ )
 		my $size = $mem_data->{$section}->{contents}->{$element}->{size};
 
 		my $data;
-		if ( $type eq "long" || $type eq "ulong" || $type eq "size_t")
+		if ( $type eq "long" )
 		{
-			$data = pack( "l!", $value );
+			$data = pack( "l!", $data );
 		}
-		elsif ( $type eq "int64" || $type eq "uint64" || $type eq "time_t64" )
+		elsif ( $type eq "ulong" || $type eq "size_t" )
 		{
-		# The "q" type is only available on 64bit platforms.
-			$data = pack( "l!", $value );
+			$data = pack( "L!", $data );
 		}
-		elsif ( $type eq "int32" || $type eq "uint32" || $type eq "bool4" )
+		elsif ( $type eq "int64" || $type eq "time_t64" )
 		{
-			$data = pack( "l", $value );
+			# The "q" type is only available on 64bit platforms, so use native.
+			$data = pack( "l!", $data );
 		}
-		elsif ( $type eq "short" )
+		elsif ( $type eq "uint64" )
 		{
-			$data = pack( "s", $value );
+			# The "q" type is only available on 64bit platforms, so use native.
+			$data = pack( "L!", $data );
 		}
-		elsif ( $type eq "char" || $type eq "bool1" )
+		elsif ( $type eq "int32" )
 		{
-			$data = pack( "c", $value );
+			$data = pack( "l", $data );
 		}
-		elsif ( $type eq "uchar" )
+		elsif ( $type eq "uint32" || $type eq "bool4" )
 		{
-			$data = pack( "C", $value );
+			$data = pack( "L", $data );
 		}
-		elsif ( $type =~ /^char\[\d+\]$/ )
+		elsif ( $type eq "int16" )
 		{
-			$data = pack( "Z".$size, $value );
+			$data = pack( "s", $data );
 		}
-		elsif ( $type =~ /^uchar\[\d+\]$/ )
+		elsif ( $type eq "uint16" )
 		{
-			$data = pack( "C".$size, $value );
+			$data = pack( "S", $data );
 		}
+		elsif ( $type eq "int8" )
+		{
+			$data = pack( "c", $data );
+		}
+		elsif ( $type eq "uint8" || $type eq "bool1" )
+		{
+			$data = pack( "C", $data );
+		}
+		elsif ( $type =~ /^int8\[\d+\]$/ )
+		{
+			$data = pack( "Z".$size, $data );
+		} 
+		elsif ( $type =~ /^uint8\[\d+\]$/ )
+		{
+			$data = pack( "C".$size, $data );
+		} 
 		else
 		{
 			Fatal( "Unexpected type '".$type."' found for '".$field."'" );

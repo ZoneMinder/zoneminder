@@ -676,17 +676,23 @@ void LocalCamera::Initialise()
         v4l2_data.fmt.fmt.pix.height = height;
         v4l2_data.fmt.fmt.pix.pixelformat = palette;
 
-        if ( config.v4l2_capture_fields )
-        {
-            v4l2_data.fmt.fmt.pix.field = (v4l2_field)config.v4l2_capture_fields;
-            if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 )
-            {
-                Warning( "Failed to set V4L2 field to %d, falling back to auto", config.v4l2_capture_fields );
-                v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
-            }
-        }
-        if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 )
-            Fatal( "Failed to set video format: %s", strerror(errno) );
+	if ( config.v4l2_capture_fields )
+	{
+		v4l2_data.fmt.fmt.pix.field = (v4l2_field)config.v4l2_capture_fields;
+		
+		if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 )
+		{
+			Warning( "Failed to set V4L2 field to %d, falling back to auto", config.v4l2_capture_fields );
+			v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
+			if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 ) {
+				Fatal( "Failed to set video format: %s", strerror(errno) );
+			}
+		}
+	} else {        
+		if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 ) {
+			Fatal( "Failed to set video format: %s", strerror(errno) );
+		}
+	}
 
         /* Note VIDIOC_S_FMT may change width and height. */
         Debug( 4, " v4l2_data.fmt.type = %08x",  v4l2_data.fmt.type );

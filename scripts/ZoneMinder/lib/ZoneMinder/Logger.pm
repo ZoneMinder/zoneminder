@@ -246,12 +246,12 @@ sub initialise( @ )
     }
 
     my $level;
-    $tempLevel = $level if ( $level = $this->getTargettedEnv('LOG_LEVEL') );
+    $tempLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL')) );
 
-    $tempTermLevel = $level if ( $level = $this->getTargettedEnv('LOG_LEVEL_TERM') );
-    $tempDatabaseLevel = $level if ( $level = $this->getTargettedEnv('LOG_LEVEL_DATABASE') );
-    $tempFileLevel = $level if ( $level = $this->getTargettedEnv('LOG_LEVEL_FILE') );
-    $tempSyslogLevel = $level if ( $level = $this->getTargettedEnv('LOG_LEVEL_SYSLOG') );
+    $tempTermLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_TERM')) );
+    $tempDatabaseLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_DATABASE')) );
+    $tempFileLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_FILE')) );
+    $tempSyslogLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_SYSLOG')) );
 
     if ( ZM_LOG_DEBUG )
     {
@@ -336,7 +336,8 @@ sub getTargettedEnv( $ )
     my $this = shift;
     my $name = shift;
     my $envName = $name."_".$this->{id};
-    my $value = $ENV{$envName} if ( defined($ENV{$envName}) );
+    my $value;
+    $value = $ENV{$envName} if ( defined($ENV{$envName}) );
     if ( !defined($value) && $this->{id} ne $this->{idRoot} )
     {
         $envName = $name."_".$this->{idRoot};
@@ -345,6 +346,10 @@ sub getTargettedEnv( $ )
     if ( !defined($value) )
     {
         $value = $ENV{$name} if ( defined($ENV{$name}) );
+    }
+    if ( defined($value) )
+    {
+        ( $value ) = $value =~ m/(.*)/;
     }
     return( $value );
 }

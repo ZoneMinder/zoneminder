@@ -102,7 +102,8 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
             <label for="formatXML">HTML</label><input type="radio" id="formatHTML" name="format" value="html"/>
             <label for="formatXML">XML</label><input type="radio" id="formatXML" name="format" value="xml" title="<?= $SLANG['ChooseLogFormat'] ?>" class="validate-one-required"/>
           </fieldset>
-          <div id="exportResult" class="hidden">
+          <div id="exportError">
+            <?= $SLANG['ExportFailed'] ?>: <span id="exportErrorText"></span>
           </div>
           <input type="button" id="exportButton" value="<?= $SLANG['Export'] ?>" onclick="exportRequest()"/>
           <input type="button" value="<?= $SLANG['Cancel'] ?>" class="overlayCloser"/>

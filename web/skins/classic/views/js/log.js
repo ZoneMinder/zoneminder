@@ -191,13 +191,23 @@ function exportResponse( response )
     }
 }
 
+function exportFail( request )
+{
+    $('exportLog').unspin();
+    $('exportErrorText').set('text', request.status+" / "+request.statusText );
+    $('exportError').show();
+    Error( "Export request failed: "+request.status+" / "+request.statusText );
+}
+
 function exportRequest()
 {
     var form = $('exportForm');
+    $('exportErrorText').set('text', "" );
+    $('exportError').hide();
     if ( form.validate() )
     {
         var exportParms = "view=request&request=log&task=export";
-        var exportReq = new Request.JSON( { url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse } );
+        var exportReq = new Request.JSON( { url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail } );
         var selection = form.getElement('input[name=selector]:checked').get('value');
         if ( selection == 'filter' || selection == 'current' )
         {

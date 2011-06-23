@@ -42,3 +42,12 @@ tr.log-dbg td {
     margin-right: 4px;
     vertical-align: middle;
 }
+
+#exportError {
+    display: none;
+    color: #dc143c;
+    margin-bottom: 8px;
+}
+
+#exportErrorText {
+}

@@ -245,10 +245,10 @@ sub deleteEventFiles( $;$ )
                 my $delete_path = join( '/', @path_parts[0..$i] );
                 Debug( "DP$i:$delete_path" );
                 my @has_files = glob( $delete_path."/*" );
-                Debug( "HF1:".$has_files[0] );
+                Debug( "HF1:".$has_files[0] ) if ( @has_files );
                 last if ( @has_files );
                 @has_files = glob( $delete_path."/.[0-9]*" );
-                Debug( "HF2:".$has_files[0] );
+                Debug( "HF2:".$has_files[0] ) if ( @has_files );
                 last if ( @has_files );
                 my $command = "/bin/rm -rf ".$delete_path;
                 executeShellCommand( $command );

@@ -261,7 +261,7 @@ function initPage()
     displayLimit = initialDisplayLimit;
     for ( var i = 1; i <= 9; i++ )
         logCodes[''+i] = 'DB'+i;
-    logTable = new HtmlTable( $('contentTable'),
+    logTable = new HtmlTable( $('logTable'),
         {
             zebra: true,
             sortable: true,

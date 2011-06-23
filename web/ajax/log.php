@@ -64,12 +64,13 @@ switch ( $_REQUEST['task'] )
         $options = array();
         $where = array();
         foreach( $filter as $field=>$value )
-            $where[] = "$field = '".dbEscape($value)."'";
+            $where[$field] = "$field = '".dbEscape($value)."'";
         foreach( $filterFields as $field )
         {
             $sql = "select distinct $field from Logs where not isnull($field)";
-            if ( count($where) )
-                $sql.= " and ".join( " and ", $where );
+            $fieldWhere = array_diff_key( $where, array( $field=>true ) );
+            if ( count($fieldWhere) )
+                $sql.= " and ".join( " and ", $fieldWhere );
             $sql.= " order by $field asc";
             if ( $field == 'Level' )
             {
@@ -220,7 +221,7 @@ th, td {
 tr.log-fat td {
     background-color:#ffcccc;
     font-weight: bold;
-    font-style: italics;
+    font-style: italic;
 }
 tr.log-err td {
     background-color:#ffcccc;
@@ -229,7 +230,8 @@ tr.log-war td {
     background-color: #ffe4b5;
 }
 tr.log-dbg td {
-    font-style: italics;
+    color: #666666;
+    font-style: italic;
 }
     </style>
   </head>

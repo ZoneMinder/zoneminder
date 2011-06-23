@@ -60,9 +60,9 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
         Line <select id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select>
         <input type="reset" value="<?= $SLANG['Reset'] ?>" onclick="resetLog()"/>
       </div>
-      <form name="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="logForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?= $view ?>"/>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table id="logTable" class="major" cellspacing="0">
           <thead>
             <tr>
               <th><?= $SLANG['DateTime'] ?></th>

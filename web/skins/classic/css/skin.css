@@ -313,6 +313,7 @@ div.clear {
     clear: both;
 }
 
+/*
 .table-th-sort {
     font-style:italic;
 }
@@ -320,6 +321,7 @@ div.clear {
 td.table-td-sort {
     font-style:italic;
 }
+*/
 
 th.table-th-sort {
     margin-right: 12px;

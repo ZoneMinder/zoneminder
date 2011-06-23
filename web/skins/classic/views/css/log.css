@@ -19,7 +19,6 @@
 tr.log-fat td {
     background-color:#ffcccc;
     font-weight: bold;
-    font-style: italics;
 }
 
 tr.log-err td {
@@ -31,7 +30,8 @@ tr.log-war td {
 }
 
 tr.log-dbg td {
-    font-style: italics;
+    color: #666666;
+    font-style: italic;
 }
 
 #exportLog label {

@@ -131,7 +131,7 @@ if ( !$server_up )
 
     if ( my $cpid = fork() )
     {
-        logInit();
+        logReinit();
 
         # Parent process just sleep and fall through
         socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
@@ -150,7 +150,7 @@ if ( !$server_up )
 
         setpgrp();
 
-        logInit();
+        logReinit();
 
         Info( "Control server $id/$protocol starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() ) );
 

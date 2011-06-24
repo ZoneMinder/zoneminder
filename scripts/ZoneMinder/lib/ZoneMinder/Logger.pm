@@ -359,7 +359,7 @@ sub fetch()
     if ( !$logger )
     {
         $logger = ZoneMinder::Logger->new();
-        $logger->initialise( undef, 'syslogLevel'=>INFO, 'fileLevel'=>INFO );
+        $logger->initialise( 'syslogLevel'=>INFO, 'databaseLevel'=>INFO );
     }
     return( $logger );
 }

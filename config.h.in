@@ -41,18 +41,6 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
-/* Define to 1 if you have the <ffmpeg/avcodec.h> header file. */
-#undef HAVE_FFMPEG_AVCODEC_H
-
-/* Define to 1 if you have the <ffmpeg/avformat.h> header file. */
-#undef HAVE_FFMPEG_AVFORMAT_H
-
-/* Define to 1 if you have the <ffmpeg/avutil.h> header file. */
-#undef HAVE_FFMPEG_AVUTIL_H
-
-/* Define to 1 if you have the <ffmpeg/swscale.h> header file. */
-#undef HAVE_FFMPEG_SWSCALE_H
-
 /* Define to 1 if you have the <gcrypt.h> header file. */
 #undef HAVE_GCRYPT_H
 

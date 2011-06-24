@@ -302,13 +302,9 @@ fi
 AC_CHECK_HEADERS(jpeglib.h,,AC_MSG_ERROR(zm requires libjpeg headers to be installed),)
 AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires MySQL headers - check that MySQL development packages are installed),)
 AC_CHECK_HEADERS(libavutil/avutil.h,,,)
-AC_CHECK_HEADERS(ffmpeg/avutil.h,,,)
 AC_CHECK_HEADERS(libavcodec/avcodec.h,,,)
-AC_CHECK_HEADERS(ffmpeg/avcodec.h,,,)
 AC_CHECK_HEADERS(libavformat/avformat.h,,,)
-AC_CHECK_HEADERS(ffmpeg/avformat.h,,,)
 AC_CHECK_HEADERS(libswscale/swscale.h,,,)
-AC_CHECK_HEADERS(ffmpeg/swscale.h,,,)
 AC_CHECK_HEADERS(pcre/pcre.h,AC_SUBST(ZM_PCRE,"1"),,)
 AC_CHECK_HEADERS(pcre.h,AC_SUBST(ZM_PCRE,"1"),,)
 if test "$ENABLE_MMAP" == "yes"; then

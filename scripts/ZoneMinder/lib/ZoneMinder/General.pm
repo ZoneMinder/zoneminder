@@ -301,7 +301,6 @@ sub _testJSON
     };
     $testedJSON = 1;
     $hasJSONAny = 1 if ( $result );
-
 }
 
 sub _getJSONType( $ )
@@ -328,7 +327,6 @@ sub jsonEncode( $ )
         Fatal( "Unable to encode object to JSON: $@" ) unless( $string );
         return( $string );
     }
-
 
     my $type = _getJSONType($value);
     if ( $type eq 'integer' || $type eq 'double' )
@@ -426,6 +424,9 @@ sub jsonDecode( $ )
     $out =~ s/=>true/=>1/g;
     $out =~ s/=>false/=>0/g;
     $out =~ s/=>null/=>undef/g;
+    $out =~ s/`/'/g;
+    $out =~ s/qx/qq/g;
+    ( $out ) = $out =~ m/^({.+})$/; # Detaint and check it's a valid object syntax
     my $result = eval $out;
     Fatal( $@ ) if ( $@ );
     return( $result );

@@ -117,8 +117,8 @@ class Logger
         else
             $tempSyslogLevel = ZM_LOG_LEVEL_SYSLOG;
 
-        if ( isset($_ENV['LOG_PRINT']) )
-            $tempTermLevel = $_ENV['LOG_PRINT']? self::DEBUG : self::NOLOG;
+        if ( $value = getenv('LOG_PRINT') )
+            $tempTermLevel = $value ? self::DEBUG : self::NOLOG;
 
         if ( !is_null($level = $this->getTargettedEnv('LOG_LEVEL')) )
             $tempLevel = $level;
@@ -192,20 +192,12 @@ class Logger
     private function getTargettedEnv( $name )
     {
         $envName = $name."_".$this->id;
-        if ( isset($ENV[$envName]) )
-            $value = $ENV[$envName];
-        if ( empty($value) && $this->id != $this->idRoot )
-        {
-            $envName = $name."_".$this->idRoot;
-            if ( isset($ENV[$envName]) )
-                $value = $ENV[$envName];
-        }
-        if ( empty($value) )
-        {
-            if ( isset($ENV[$name]) )
-                $value = $ENV[$name];
-        }
-        return( isset($value)?$value:NULL );
+        $value = getenv( $envName );
+        if ( $value === false && $this->id != $this->idRoot )
+            $value = getenv( $name."_".$this->idRoot );
+        if ( $value === false )
+            $value = getenv( $name );
+        return( $value !== false ? $value : NULL );
     }
 
     public static function fetch( $initialise=true )
@@ -451,10 +443,10 @@ class Logger
                 {
                     if ( !error_log( $message."\n", 3, $this->logFile ) )
                     {
-                        if ( strnatcmp(phpversion(),'5.2.0') >= 0 )
+                        if ( strnatcmp( phpversion(), '5.2.0' ) >= 0 )
                         {
                             $error = error_get_last();
-                            trigger_error( "Can't write to log file '$logFile': ".$error['message']." @ ".$error['file']."/".$error['line'], E_USER_ERROR );
+                            trigger_error( "Can't write to log file '".$this->logFile."': ".$error['message']." @ ".$error['file']."/".$error['line'], E_USER_ERROR );
                         }
                     }
                 }

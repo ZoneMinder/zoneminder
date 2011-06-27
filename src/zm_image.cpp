@@ -2495,7 +2495,6 @@ __attribute__ ((noinline)) void sse2_fastblend(const uint8_t* col1, const uint8_
 	static uint32_t divider = 0;
 	static uint32_t clearmask = 0;
 	static double current_blendpercent = 0.0;
-	unsigned long i = 0;
 	
 	if(current_blendpercent != blendpercent) {
 		/* Attempt to match the blending percent to one of the possible values */
@@ -2528,29 +2527,27 @@ __attribute__ ((noinline)) void sse2_fastblend(const uint8_t* col1, const uint8_
 	}
 
 	__asm__ __volatile__(
-	"movd %5, %%xmm3\n\t"
-	"movd %6, %%xmm4\n\t"
+	"movd %4, %%xmm3\n\t"
+	"movd %5, %%xmm4\n\t"
 	"pshufd $0x0, %%xmm3, %%xmm3\n\t"
-	"algo_sse2_blend:\n\t"
-	"movdqa (%0,%4),%%xmm0\n\t"
-	"movdqa (%1,%4),%%xmm1\n\t"
-	"movdqa %%xmm0,%%xmm2\n\t"    
+	"sub $0x10, %0\n\t"
+	"sub $0x10, %1\n\t"
+	"sub $0x10, %2\n\t"
+	"sse2_fastblend_iter:\n\t"
+	"movdqa (%0,%3),%%xmm0\n\t"
+	"movdqa %%xmm0,%%xmm2\n\t"
+	"movdqa (%1,%3),%%xmm1\n\t"
 	"psrlq  %%xmm4,%%xmm0\n\t"
 	"psrlq  %%xmm4,%%xmm1\n\t"
 	"pand   %%xmm3,%%xmm1\n\t"
 	"pand   %%xmm3,%%xmm0\n\t"
 	"psubb  %%xmm0,%%xmm1\n\t"
 	"paddb  %%xmm2,%%xmm1\n\t"
-	"movntdq %%xmm1,(%2,%4)\n\t"
-	"add $0x10,%4\n\t"
-	"cmp %3, %4\n\t"
-	"jb algo_sse2_blend\n\t"
+	"movntdq %%xmm1,(%2,%3)\n\t"
+	"sub $0x10, %3\n\t"
+	"jnz sse2_fastblend_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (clearmask), "m" (divider)
-#else
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (clearmask), "m" (divider)
-#endif
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (clearmask), "m" (divider)
 	: "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
 	);
 #else
@@ -2837,34 +2834,24 @@ __attribute__ ((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8
 /* Grayscale SSE2 */
 __attribute__ ((noinline)) void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if (defined(__i386__) || defined(__x86_64__))  
-	unsigned long i = 0;
 
-	/* Works on 16 grayscale pixels per iteration, similar to the non-SSE version above */
-	/* XMM0 - unused */
-	/* XMM1,2,3,4 - General purpose */
-	/* XMM5 - unused */
-	/* XMM6 - unused */
-	/* XMM7 - unused */  
-  
 	__asm__ __volatile__ (
-	"algo_sse2_delta8_gray8:\n\t"
-	"movdqa (%0,%4), %%xmm1\n\t"
-	"movdqa (%1,%4), %%xmm2\n\t"
+	"sub $0x10, %0\n\t"
+	"sub $0x10, %1\n\t"
+	"sub $0x10, %2\n\t"
+	"sse2_delta8_gray8_iter:\n\t"
+	"movdqa (%0,%3), %%xmm1\n\t"
+	"movdqa (%1,%3), %%xmm2\n\t"
 	"movdqa %%xmm1, %%xmm3\n\t"
 	"movdqa %%xmm2, %%xmm4\n\t"
 	"pmaxub %%xmm1, %%xmm2\n\t"
 	"pminub %%xmm3, %%xmm4\n\t"
-	"psubb %%xmm4, %%xmm2\n\t"
-	"movntdq %%xmm2, (%2,%4)\n\t"
-	"add $0x10, %4\n\t"
-	"cmp %3, %4\n\t"
-	"jb algo_sse2_delta8_gray8\n\t"
+	"psubb  %%xmm4, %%xmm2\n\t"
+	"movntdq %%xmm2, (%2,%3)\n\t"
+	"sub $0x10, %3\n\t"
+	"jnz sse2_delta8_gray8_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
-#else
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
-#endif
+	: "r" (col1), "r" (col2), "r" (result), "r" (count)
 	: "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
 	);
 #else
@@ -2875,14 +2862,6 @@ __attribute__ ((noinline)) void sse2_delta8_gray8(const uint8_t* col1, const uin
 /* RGB32: RGBA SSE2 */
 __attribute__ ((noinline)) void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if (defined(__i386__) || defined(__x86_64__))  
-	unsigned long i = 0;
-
-	/* XMM0 - clear mask - kept */
-	/* XMM1,2,3 - General purpose */
-	/* XMM4 - divide mask - kept */
-	/* XMM5 - temp */
-	/* XMM6 - temp */
-	/* XMM7 - unused */  
   
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -2894,9 +2873,12 @@ __attribute__ ((noinline)) void sse2_delta8_rgba(const uint8_t* col1, const uint
 	"mov $0x80000000, %%eax\n\t"
 	"movd %%eax, %%xmm5\n\t"
 	"pshufd $0x0, %%xmm5, %%xmm5\n\t"
-	"algo_sse2_delta8_rgba:\n\t"
-	"movdqa (%0,%4,4), %%xmm1\n\t"
-	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"sub $0x10, %0\n\t"
+	"sub $0x10, %1\n\t"
+	"sub $0x4, %2\n\t"
+	"sse2_delta8_rgba_iter:\n\t"
+	"movdqa (%0,%3,4), %%xmm1\n\t"
+	"movdqa (%1,%3,4), %%xmm2\n\t"
 	"psrlq $0x3, %%xmm1\n\t"
 	"psrlq $0x3, %%xmm2\n\t"
 	"pand %%xmm4, %%xmm1\n\t"
@@ -2934,16 +2916,11 @@ __attribute__ ((noinline)) void sse2_delta8_rgba(const uint8_t* col1, const uint
 	"psrldq $0x3, %%xmm1\n\t"
 	"por %%xmm1, %%xmm3\n\t"
 	"movd %%xmm3, %%eax\n\t"
-	"movnti %%eax, (%2,%4)\n\t"
-	"add $0x4, %4\n\t"
-	"cmp %3, %4\n\t"
-	"jb algo_sse2_delta8_rgba\n\t"
+	"movnti %%eax, (%2,%3)\n\t"
+	"sub $0x4, %3\n\t"
+	"jnz sse2_delta8_rgba_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
-#else
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
-#endif
+	: "r" (col1), "r" (col2), "r" (result), "r" (count)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
 	);
 #else
@@ -2954,14 +2931,6 @@ __attribute__ ((noinline)) void sse2_delta8_rgba(const uint8_t* col1, const uint
 /* RGB32: BGRA SSE2 */
 __attribute__ ((noinline)) void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if (defined(__i386__) || defined(__x86_64__))  
-	unsigned long i = 0;
-
-	/* XMM0 - clear mask - kept */
-	/* XMM1,2,3 - General purpose */
-	/* XMM4 - divide mask - kept */
-	/* XMM5 - temp */
-	/* XMM6 - temp */
-	/* XMM7 - unused */  
   
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -2973,9 +2942,12 @@ __attribute__ ((noinline)) void sse2_delta8_bgra(const uint8_t* col1, const uint
 	"mov $0x80000000, %%eax\n\t"
 	"movd %%eax, %%xmm5\n\t"
 	"pshufd $0x0, %%xmm5, %%xmm5\n\t"
-	"algo_sse2_delta8_bgra:\n\t"
-	"movdqa (%0,%4,4), %%xmm1\n\t"
-	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"sub $0x10, %0\n\t"
+	"sub $0x10, %1\n\t"
+	"sub $0x4, %2\n\t"
+	"sse2_delta8_bgra_iter:\n\t"
+	"movdqa (%0,%3,4), %%xmm1\n\t"
+	"movdqa (%1,%3,4), %%xmm2\n\t"
 	"psrlq $0x3, %%xmm1\n\t"
 	"psrlq $0x3, %%xmm2\n\t"
 	"pand %%xmm4, %%xmm1\n\t"
@@ -3013,16 +2985,11 @@ __attribute__ ((noinline)) void sse2_delta8_bgra(const uint8_t* col1, const uint
 	"psrldq $0x3, %%xmm1\n\t"
 	"por %%xmm1, %%xmm3\n\t"
 	"movd %%xmm3, %%eax\n\t"
-	"movnti %%eax, (%2,%4)\n\t"
-	"add $0x4, %4\n\t"
-	"cmp %3, %4\n\t"
-	"jb algo_sse2_delta8_bgra\n\t"
+	"movnti %%eax, (%2,%3)\n\t"
+	"sub $0x4, %3\n\t"
+	"jnz sse2_delta8_bgra_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
-#else
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
-#endif
+	: "r" (col1), "r" (col2), "r" (result), "r" (count)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
 	);
 #else
@@ -3033,14 +3000,6 @@ __attribute__ ((noinline)) void sse2_delta8_bgra(const uint8_t* col1, const uint
 /* RGB32: ARGB SSE2 */
 __attribute__ ((noinline)) void sse2_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if (defined(__i386__) || defined(__x86_64__))  
-	unsigned long i = 0;
-
-	/* XMM0 - clear mask - kept */
-	/* XMM1,2,3 - General purpose */
-	/* XMM4 - divide mask - kept */
-	/* XMM5 - temp */
-	/* XMM6 - temp */
-	/* XMM7 - unused */  
   
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3052,9 +3011,12 @@ __attribute__ ((noinline)) void sse2_delta8_argb(const uint8_t* col1, const uint
 	"mov $0x80000000, %%eax\n\t"
 	"movd %%eax, %%xmm5\n\t"
 	"pshufd $0x0, %%xmm5, %%xmm5\n\t"
-	"algo_sse2_delta8_argb:\n\t"
-	"movdqa (%0,%4,4), %%xmm1\n\t"
-	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"sub $0x10, %0\n\t"
+	"sub $0x10, %1\n\t"
+	"sub $0x4, %2\n\t"
+	"sse2_delta8_argb_iter:\n\t"
+	"movdqa (%0,%3,4), %%xmm1\n\t"
+	"movdqa (%1,%3,4), %%xmm2\n\t"
 	"psrlq $0x3, %%xmm1\n\t"
 	"psrlq $0x3, %%xmm2\n\t"
 	"pand %%xmm4, %%xmm1\n\t"
@@ -3093,16 +3055,11 @@ __attribute__ ((noinline)) void sse2_delta8_argb(const uint8_t* col1, const uint
 	"psrldq $0x3, %%xmm1\n\t"
 	"por %%xmm1, %%xmm3\n\t"
 	"movd %%xmm3, %%eax\n\t"
-	"movnti %%eax, (%2,%4)\n\t"
-	"add $0x4, %4\n\t"
-	"cmp %3, %4\n\t"
-	"jb algo_sse2_delta8_argb\n\t"
+	"movnti %%eax, (%2,%3)\n\t"
+	"sub $0x4, %3\n\t"
+	"jnz sse2_delta8_argb_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
-#else
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
-#endif
+	: "r" (col1), "r" (col2), "r" (result), "r" (count)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
 	);
 #else
@@ -3113,14 +3070,6 @@ __attribute__ ((noinline)) void sse2_delta8_argb(const uint8_t* col1, const uint
 /* RGB32: ABGR SSE2 */
 __attribute__ ((noinline)) void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if (defined(__i386__) || defined(__x86_64__))  
-	unsigned long i = 0;
-
-	/* XMM0 - clear mask - kept */
-	/* XMM1,2,3 - General purpose */
-	/* XMM4 - divide mask - kept */
-	/* XMM5 - temp */
-	/* XMM6 - temp */
-	/* XMM7 - unused */  
   
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3132,9 +3081,12 @@ __attribute__ ((noinline)) void sse2_delta8_abgr(const uint8_t* col1, const uint
 	"mov $0x80000000, %%eax\n\t"
 	"movd %%eax, %%xmm5\n\t"
 	"pshufd $0x0, %%xmm5, %%xmm5\n\t"
-	"algo_sse2_delta8_abgr:\n\t"
-	"movdqa (%0,%4,4), %%xmm1\n\t"
-	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"sub $0x10, %0\n\t"
+	"sub $0x10, %1\n\t"
+	"sub $0x4, %2\n\t"
+	"sse2_delta8_abgr_iter:\n\t"
+	"movdqa (%0,%3,4), %%xmm1\n\t"
+	"movdqa (%1,%3,4), %%xmm2\n\t"
 	"psrlq $0x3, %%xmm1\n\t"
 	"psrlq $0x3, %%xmm2\n\t"
 	"pand %%xmm4, %%xmm1\n\t"
@@ -3173,16 +3125,11 @@ __attribute__ ((noinline)) void sse2_delta8_abgr(const uint8_t* col1, const uint
 	"psrldq $0x3, %%xmm1\n\t"
 	"por %%xmm1, %%xmm3\n\t"
 	"movd %%xmm3, %%eax\n\t"
-	"movnti %%eax, (%2,%4)\n\t"
-	"add $0x4, %4\n\t"
-	"cmp %3, %4\n\t"
-	"jb algo_sse2_delta8_abgr\n\t"
+	"movnti %%eax, (%2,%3)\n\t"
+	"sub $0x4, %3\n\t"
+	"jnz sse2_delta8_abgr_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i)
-#else
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i)
-#endif
+	: "r" (col1), "r" (col2), "r" (result), "r" (count)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
 	);
 #else
@@ -3193,14 +3140,6 @@ __attribute__ ((noinline)) void sse2_delta8_abgr(const uint8_t* col1, const uint
 /* RGB32: RGBA SSSE3 */
 __attribute__ ((noinline)) void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if (defined(__i386__) || defined(__x86_64__))
-	unsigned long i = 0;
-	
-	/* XMM0 - clear mask - kept */
-	/* XMM1,2,3 - General purpose */
-	/* XMM4 - divide mask - kept */
-	/* XMM5 - shuffle mask - kept */
-	/* XMM6 - unused */
-	/* XMM7 - unused */
 	
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3209,10 +3148,13 @@ __attribute__ ((noinline)) void ssse3_delta8_rgba(const uint8_t* col1, const uin
 	"mov $0xff, %%eax\n\t"
 	"movd %%eax, %%xmm0\n\t"
 	"pshufd $0x0, %%xmm0, %%xmm0\n\t"
-	"movdqa %5, %%xmm5\n\t"
-	"algo_ssse3_delta8_rgba:\n\t"
-	"movdqa (%0,%4,4), %%xmm1\n\t"
-	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"movdqa %4, %%xmm5\n\t"
+	"sub $0x10, %0\n\t"
+	"sub $0x10, %1\n\t"
+	"sub $0x4, %2\n\t"
+	"ssse3_delta8_rgba_iter:\n\t"
+	"movdqa (%0,%3,4), %%xmm1\n\t"
+	"movdqa (%1,%3,4), %%xmm2\n\t"
 	"psrlq $0x3, %%xmm1\n\t"
 	"psrlq $0x3, %%xmm2\n\t"
 	"pand %%xmm4, %%xmm1\n\t"
@@ -3235,16 +3177,11 @@ __attribute__ ((noinline)) void ssse3_delta8_rgba(const uint8_t* col1, const uin
 	"paddd %%xmm2, %%xmm1\n\t"
 	"pshufb %%xmm5, %%xmm1\n\t"
 	"movd %%xmm1, %%eax\n\t"
-	"movnti %%eax, (%2,%4)\n\t"
-	"add $0x4, %4\n\t"
-	"cmp %3, %4\n\t"
-	"jb algo_ssse3_delta8_rgba\n\t"
+	"movnti %%eax, (%2,%3)\n\t"
+	"sub $0x4, %3\n\t"
+	"jnz ssse3_delta8_rgba_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
-#else
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
-#endif
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (*movemask)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3255,14 +3192,6 @@ __attribute__ ((noinline)) void ssse3_delta8_rgba(const uint8_t* col1, const uin
 /* RGB32: BGRA SSSE3 */
 __attribute__ ((noinline)) void ssse3_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if (defined(__i386__) || defined(__x86_64__))  
-	unsigned long i = 0;
-	
-	/* XMM0 - clear mask - kept */
-	/* XMM1,2,3 - General purpose */
-	/* XMM4 - divide mask - kept */
-	/* XMM5 - shuffle mask - kept */
-	/* XMM6 - unused */
-	/* XMM7 - unused */
 	
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3271,10 +3200,13 @@ __attribute__ ((noinline)) void ssse3_delta8_bgra(const uint8_t* col1, const uin
 	"mov $0xff, %%eax\n\t"
 	"movd %%eax, %%xmm0\n\t"
 	"pshufd $0x0, %%xmm0, %%xmm0\n\t"
-	"movdqa %5, %%xmm5\n\t"
-	"algo_ssse3_delta8_bgra:\n\t"
-	"movdqa (%0,%4,4), %%xmm1\n\t"
-	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"movdqa %4, %%xmm5\n\t"
+	"sub $0x10, %0\n\t"
+	"sub $0x10, %1\n\t"
+	"sub $0x4, %2\n\t"
+	"ssse3_delta8_bgra_iter:\n\t"
+	"movdqa (%0,%3,4), %%xmm1\n\t"
+	"movdqa (%1,%3,4), %%xmm2\n\t"
 	"psrlq $0x3, %%xmm1\n\t"
 	"psrlq $0x3, %%xmm2\n\t"
 	"pand %%xmm4, %%xmm1\n\t"
@@ -3297,16 +3229,11 @@ __attribute__ ((noinline)) void ssse3_delta8_bgra(const uint8_t* col1, const uin
 	"paddd %%xmm2, %%xmm1\n\t"
 	"pshufb %%xmm5, %%xmm1\n\t"
 	"movd %%xmm1, %%eax\n\t"
-	"movnti %%eax, (%2,%4)\n\t"
-	"add $0x4, %4\n\t"
-	"cmp %3, %4\n\t"
-	"jb algo_ssse3_delta8_bgra\n\t"
+	"movnti %%eax, (%2,%3)\n\t"
+	"sub $0x4, %3\n\t"
+	"jnz ssse3_delta8_bgra_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
-#else
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
-#endif
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (*movemask)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3317,14 +3244,6 @@ __attribute__ ((noinline)) void ssse3_delta8_bgra(const uint8_t* col1, const uin
 /* RGB32: ARGB SSSE3 */
 __attribute__ ((noinline)) void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if (defined(__i386__) || defined(__x86_64__))  
-	unsigned long i = 0;
-	
-	/* XMM0 - clear mask - kept */
-	/* XMM1,2,3 - General purpose */
-	/* XMM4 - divide mask - kept */
-	/* XMM5 - shuffle mask - kept */
-	/* XMM6 - unused */
-	/* XMM7 - unused */
 	
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3333,10 +3252,13 @@ __attribute__ ((noinline)) void ssse3_delta8_argb(const uint8_t* col1, const uin
 	"mov $0xff, %%eax\n\t"
 	"movd %%eax, %%xmm0\n\t"
 	"pshufd $0x0, %%xmm0, %%xmm0\n\t"
-	"movdqa %5, %%xmm5\n\t"
-	"algo_ssse3_delta8_argb:\n\t"
-	"movdqa (%0,%4,4), %%xmm1\n\t"
-	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"movdqa %4, %%xmm5\n\t"
+	"sub $0x10, %0\n\t"
+	"sub $0x10, %1\n\t"
+	"sub $0x4, %2\n\t"
+	"ssse3_delta8_argb_iter:\n\t"
+	"movdqa (%0,%3,4), %%xmm1\n\t"
+	"movdqa (%1,%3,4), %%xmm2\n\t"
 	"psrlq $0x3, %%xmm1\n\t"
 	"psrlq $0x3, %%xmm2\n\t"
 	"pand %%xmm4, %%xmm1\n\t"
@@ -3360,16 +3282,11 @@ __attribute__ ((noinline)) void ssse3_delta8_argb(const uint8_t* col1, const uin
 	"paddd %%xmm2, %%xmm1\n\t"
 	"pshufb %%xmm5, %%xmm1\n\t"
 	"movd %%xmm1, %%eax\n\t"
-	"movnti %%eax, (%2,%4)\n\t"
-	"add $0x4, %4\n\t"
-	"cmp %3, %4\n\t"
-	"jb algo_ssse3_delta8_argb\n\t"
+	"movnti %%eax, (%2,%3)\n\t"
+	"sub $0x4, %3\n\t"
+	"jnz ssse3_delta8_argb_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
-#else
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
-#endif
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (*movemask)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3380,14 +3297,6 @@ __attribute__ ((noinline)) void ssse3_delta8_argb(const uint8_t* col1, const uin
 /* RGB32: ABGR SSSE3 */
 __attribute__ ((noinline)) void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if (defined(__i386__) || defined(__x86_64__))  
-	unsigned long i = 0;
-	
-	/* XMM0 - clear mask - kept */
-	/* XMM1,2,3 - General purpose */
-	/* XMM4 - divide mask - kept */
-	/* XMM5 - shuffle mask - kept */
-	/* XMM6 - unused */
-	/* XMM7 - unused */
 	
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3396,10 +3305,13 @@ __attribute__ ((noinline)) void ssse3_delta8_abgr(const uint8_t* col1, const uin
 	"mov $0xff, %%eax\n\t"
 	"movd %%eax, %%xmm0\n\t"
 	"pshufd $0x0, %%xmm0, %%xmm0\n\t"
-	"movdqa %5, %%xmm5\n\t"
-	"algo_ssse3_delta8_abgr:\n\t"
-	"movdqa (%0,%4,4), %%xmm1\n\t"
-	"movdqa (%1,%4,4), %%xmm2\n\t"
+	"movdqa %4, %%xmm5\n\t"
+	"sub $0x10, %0\n\t"
+	"sub $0x10, %1\n\t"
+	"sub $0x4, %2\n\t"
+	"ssse3_delta8_abgr_iter:\n\t"
+	"movdqa (%0,%3,4), %%xmm1\n\t"
+	"movdqa (%1,%3,4), %%xmm2\n\t"
 	"psrlq $0x3, %%xmm1\n\t"
 	"psrlq $0x3, %%xmm2\n\t"
 	"pand %%xmm4, %%xmm1\n\t"
@@ -3423,16 +3335,11 @@ __attribute__ ((noinline)) void ssse3_delta8_abgr(const uint8_t* col1, const uin
 	"paddd %%xmm2, %%xmm1\n\t"
 	"pshufb %%xmm5, %%xmm1\n\t"
 	"movd %%xmm1, %%eax\n\t"
-	"movnti %%eax, (%2,%4)\n\t"
-	"add $0x4, %4\n\t"
-	"cmp %3, %4\n\t"
-	"jb algo_ssse3_delta8_abgr\n\t"
+	"movnti %%eax, (%2,%3)\n\t"
+	"sub $0x4, %3\n\t"
+	"jnz ssse3_delta8_abgr_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (col2), "r" (result), "m" (count), "r" (i), "m" (*movemask)
-#else
-	: "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (i), "m" (*movemask)
-#endif
+	: "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (*movemask)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else
@@ -3643,14 +3550,6 @@ __attribute__ ((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint
 /* RGBA to grayscale SSSE3 */
 __attribute__ ((noinline)) void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 #if (defined(__i386__) || defined(__x86_64__))  
-	unsigned long i = 0;
-	
-	/* XMM0 - clear mask - kept */
-	/* XMM1,2,3 - General purpose */
-	/* XMM4 - divide mask - kept */
-	/* XMM5 - shuffle mask - kept */
-	/* XMM6 - unused */
-	/* XMM7 - unused */
 
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3659,9 +3558,11 @@ __attribute__ ((noinline)) void ssse3_convert_rgba_gray8(const uint8_t* col1, ui
 	"mov $0xff, %%eax\n\t"
 	"movd %%eax, %%xmm0\n\t"
 	"pshufd $0x0, %%xmm0, %%xmm0\n\t"
-	"movdqa %4, %%xmm5\n\t"
-	"algo_ssse3_convert_rgba_gray8:\n\t"
-	"movdqa (%0,%3,4), %%xmm3\n\t"
+	"movdqa %3, %%xmm5\n\t"
+	"sub $0x10, %0\n\t"
+	"sub $0x4, %1\n\t"
+	"ssse3_convert_rgba_gray8_iter:\n\t"
+	"movdqa (%0,%2,4), %%xmm3\n\t"
 	"psrlq $0x3, %%xmm3\n\t"
 	"pand %%xmm4, %%xmm3\n\t"
 	"movdqa %%xmm3, %%xmm2\n\t"
@@ -3680,16 +3581,11 @@ __attribute__ ((noinline)) void ssse3_convert_rgba_gray8(const uint8_t* col1, ui
 	"paddd %%xmm2, %%xmm1\n\t"
 	"pshufb %%xmm5, %%xmm1\n\t"
 	"movd %%xmm1, %%eax\n\t"
-	"movnti %%eax, (%1,%3)\n\t"
-	"add $0x4, %3\n\t"
-	"cmp %2, %3\n\t"
-	"jb algo_ssse3_convert_rgba_gray8\n\t"
+	"movnti %%eax, (%1,%2)\n\t"
+	"sub $0x4, %2\n\t"
+	"jnz ssse3_delta8_abgr_iter\n\t"
 	:
-#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-	: "r" (col1), "r" (result), "m" (count), "r" (i), "m" (*movemask)
-#else
-	: "r" (col1), "r" (result), "r" (count), "r" (i), "m" (*movemask)
-#endif
+	: "r" (col1), "r" (result), "r" (count), "m" (*movemask)
 	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
 	);
 #else

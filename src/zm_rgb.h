@@ -144,9 +144,8 @@ inline Rgb rgb_convert(Rgb p_col, int p_subpixorder) {
 	  break;
 	  /* Grayscale */
 	  case ZM_SUBPIX_ORDER_NONE:
-	  {
 	    result = p_col & 0xff;
-	  }
+	    break;
 	  default:
 	    return p_col;
 	    break;

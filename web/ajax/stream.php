@@ -58,7 +58,7 @@ if ( !@socket_sendto( $socket, $msg, strlen($msg), 0, $remSockFile ) )
 $rSockets = array( $socket );
 $wSockets = NULL;
 $eSockets = NULL;
-$numSockets = @socket_select( $rSockets, $wSockets, $eSockets, MSG_TIMEOUT );
+$numSockets = @socket_select( $rSockets, $wSockets, $eSockets, intval(MSG_TIMEOUT/1000), (MSG_TIMEOUT%1000)*1000 );
 
 if ( $numSockets === false )
 {

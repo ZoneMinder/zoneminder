@@ -20,10 +20,9 @@
 #ifndef ZM_LOGGER_H
 #define ZM_LOGGER_H
 
-#include "zm_db.h"
-
 #include <string>
 #include <map>
+#include <mysql/mysql.h>
 
 class Logger
 {
@@ -96,6 +95,8 @@ private:
     Level mSyslogLevel;     // Maximum level output via syslog
     Level mEffectiveLevel;  // Level optimised to take account of maxima
 
+    bool mDbConnected;
+    MYSQL mDbConnection;
     std::string mLogPath;
     std::string mLogFile;
     FILE *mLogFileFP;

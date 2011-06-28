@@ -119,6 +119,7 @@ MAIN: while( $loop )
     my $eventSelectSql = "select Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age from Events where MonitorId = ? order by Id";
     my $eventSelectSth = $dbh->prepare_cached( $eventSelectSql ) or Fatal( "Can't prepare '$eventSelectSql': ".$dbh->errstr() );
 
+    $cleaned = 0;
     my $res = $monitorSelectSth->execute() or Fatal( "Can't execute: ".$monitorSelectSth->errstr() );
     while( my $monitor = $monitorSelectSth->fetchrow_hashref() )
     {
@@ -163,7 +164,20 @@ MAIN: while( $loop )
                     }
                     else
                     {
-                        $fs_events->{$event} = (time() - ($^T - ((-M $event_path) * 24*60*60)));
+                        if ( !-e $event_path )
+                        {
+                            aud_print( "Event link $day_dir/$event_link does not point to valid target" );
+                            if ( confirm() )
+                            {
+                                ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
+                                unlink( $event_link );
+                                $cleaned = 1;
+                            }
+                        }
+                        else
+                        {
+                            $fs_events->{$event} = (time() - ($^T - ((-M $event_path) * 24*60*60)));
+                        }
                     }
                 }
                 chdir( EVENT_PATH );
@@ -191,6 +205,7 @@ MAIN: while( $loop )
         }
         Debug( "Got ".int(keys(%$fs_events))." events\n" );
     }
+    redo MAIN if ( $cleaned );
 
     $cleaned = 0;
     while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )

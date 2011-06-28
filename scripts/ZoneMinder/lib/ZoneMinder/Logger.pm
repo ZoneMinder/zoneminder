@@ -464,6 +464,10 @@ sub databaseLevel( ;$ )
                     }
                     else
                     {
+                        $this->{dbh}->{AutoCommit} = 1;
+                        Fatal( "Can't set AutoCommit on in database connection" ) unless( $this->{dbh}->{AutoCommit} );
+                        $this->{dbh}->{mysql_auto_reconnect} = 1;
+                        Fatal( "Can't set mysql_auto_reconnect on in database connection" ) unless( $this->{dbh}->{mysql_auto_reconnect} );
                         $this->{dbh}->trace( 0 );
                     }
                 }

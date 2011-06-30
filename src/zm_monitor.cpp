@@ -1732,9 +1732,9 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
         if ( n_link_ids > 0 )
         {
             Debug( 1, "Linking to %d monitors", n_link_ids );
-            n_linked_monitors = n_link_ids;
-            linked_monitors = new MonitorLink *[n_linked_monitors];
-            for ( int i = 0; i < n_linked_monitors; i++ )
+            linked_monitors = new MonitorLink *[n_link_ids];
+            int count = 0;
+            for ( int i = 0; i < n_link_ids; i++ )
             {
                 Debug( 1, "Checking linked monitor %d", link_ids[i] );
 
@@ -1757,14 +1757,15 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
                 {
                     MYSQL_ROW dbrow = mysql_fetch_row( result );
                     Debug( 1, "Linking to monitor %d", link_ids[i] );
-                    linked_monitors[i] = new MonitorLink( link_ids[i], dbrow[1] );
+                    linked_monitors[count++] = new MonitorLink( link_ids[i], dbrow[1] );
                 }
                 else
                 {
-                    Debug( 1, "Can't link to monitor %d, invalid id, function or not enabled", link_ids[i] );
+                    Warning( "Can't link to monitor %d, invalid id, function or not enabled", link_ids[i] );
                 }
                 mysql_free_result( result );
             }
+            n_linked_monitors = count;
         }
     }
 }

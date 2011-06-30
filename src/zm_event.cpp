@@ -1,5 +1,5 @@
 //
-// ZoneMinder Event Class Implementation, $Date: 2010-11-11 12:22:35 +0000 (Thu, 11 Nov 2010) $, $Revision: 3189 $
+// ZoneMinder Event Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -1291,10 +1291,15 @@ bool EventStream::sendFrame( int delta_us )
 #if HAVE_SENDFILE  
 		fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
 		if(sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size) {
-			Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
-			return( false );
+			/* sendfile() failed, use standard way instead */
+			img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
+			if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
+				Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
+				return( false );
+			}
 		}
 #else
+		fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
 		if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
 			Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
 			return( false );

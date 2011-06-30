@@ -1707,7 +1707,7 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
             {
                 *dest_ptr = '\0';
                 int link_id = atoi(link_id_str);
-                if ( link_id > 0 )
+                if ( link_id > 0 && link_id != id)
                 {
                     Debug( 3, "Found linked monitor id %d", link_id );
                     int j;

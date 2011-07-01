@@ -45,7 +45,7 @@ if ( ZM_HAS_V4L2 )
 
     $devices = array();
     $preferredStandards = array( 'PAL', 'NTSC' );
-    $preferredFormats = array( 'BGR4', 'RGB4', 'BGR3', 'RGB3', 'YUYV', '422P', 'GREY');
+    $preferredFormats = array( 'BGR4', 'RGB4', 'BGR3', 'RGB3', 'YUYV', 'JPEG', 'MJPG', '422P', 'GREY');
     foreach ( $output as $line )
     {
         if ( !preg_match( '/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches ) )

@@ -234,10 +234,10 @@ if ( ZM_HAS_V4L1 )
         $SLANG['Grey']      => 1,
         "BGR32"             => 5,
         "BGR24"             => 4,
+        "*YUYV"              => 8,
         "*RGB565"            => 3,
         "*RGB555"            => 6,
         "*YUV422"            => 7,
-        "*YUYV"              => 8,
         "*YUV422P"           => 13,
         "*YUV420P"           => 15
     );
@@ -291,6 +291,14 @@ if ( ZM_HAS_V4L2 )
         "RGB32" =>    fourcc('R','G','B','4'), /* 32  RGB-8-8-8-8   */
         "BGR24" =>    fourcc('B','G','R','3'), /* 24  BGR-8-8-8     */
         "RGB24" =>    fourcc('R','G','B','3'), /* 24  RGB-8-8-8     */
+        "*YUYV" =>     fourcc('Y','U','Y','V'), /* 16  YUV 4:2:2     */
+
+        /* compressed formats */
+        "*JPEG" =>     fourcc('J','P','E','G'), /* JFIF JPEG     */
+        "*MJPEG" =>    fourcc('M','J','P','G'), /* Motion-JPEG   */
+        //"DV" =>       fourcc('d','v','s','d'), /* 1394          */
+        //"MPEG" =>     fourcc('M','P','E','G'), /* MPEG-1/2/4    */
+
         //"RGB332" =>   fourcc('R','G','B','1'), /*  8  RGB-3-3-2     */
         "*RGB444" =>   fourcc('R','4','4','4'), /* 16  xxxxrrrr ggggbbbb */
         "*RGB555" =>   fourcc('R','G','B','O'), /* 16  RGB-5-5-5     */
@@ -301,7 +309,7 @@ if ( ZM_HAS_V4L2 )
         //"PAL8" =>     fourcc('P','A','L','8'), /*  8  8-bit palette */
         //"YVU410" =>   fourcc('Y','V','U','9'), /*  9  YVU 4:1:0     */
         //"YVU420" =>   fourcc('Y','V','1','2'), /* 12  YVU 4:2:0     */
-        "*YUYV" =>     fourcc('Y','U','Y','V'), /* 16  YUV 4:2:2     */
+
         //"UYVY" =>     fourcc('U','Y','V','Y'), /* 16  YUV 4:2:2     */
         "*YUV422P" =>  fourcc('4','2','2','P'), /* 16  YVU422 planar */
         "*YUV411P" =>  fourcc('4','1','1','P'), /* 16  YVU411 planar */
@@ -326,12 +334,6 @@ if ( ZM_HAS_V4L2 )
         //"SBGGR8" =>   fourcc('B','A','8','1'), /*  8  BGBG.. GRGR.. */
         //"SGBRG8" =>   fourcc('G','B','R','G'), /*  8  GBGB.. RGRG.. */
         //"SBGGR16" =>  fourcc('B','Y','R','2'), /* 16  BGBG.. GRGR.. */
-
-        /* compressed formats */
-        "*JPEG" =>     fourcc('J','P','E','G'), /* JFIF JPEG     */
-        "*MJPEG" =>    fourcc('M','J','P','G'), /* Motion-JPEG   */
-        //"DV" =>       fourcc('d','v','s','d'), /* 1394          */
-        //"MPEG" =>     fourcc('M','P','E','G'), /* MPEG-1/2/4    */
 
         /*  Vendor-specific formats   */
         //"WNVA" =>     fourcc('W','N','V','A'), /* Winnov hw compress */

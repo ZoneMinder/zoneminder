@@ -66,7 +66,7 @@ function validateForm( form )
         errors[errors.length] = "<?= $SLANG['BadMaxFPS'] ?>";
     if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) > 0 ) )
         errors[errors.length] = "<?= $SLANG['BadAlarmMaxFPS'] ?>";
-    if ( !form.elements['newMonitor[RefBlendPerc]'].value || !(parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 0 ) )
+    if ( !form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) )
         errors[errors.length] = "<?= $SLANG['BadRefBlendPerc'] ?>";
     if ( form.elements['newMonitor[Type]'].value == 'Local' )
     {

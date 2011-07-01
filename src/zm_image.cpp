@@ -1295,8 +1295,10 @@ void Image::Blend( const Image &image, int transparency )
 		Panic( "Attempt to blend different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder );
 	}
 	
-	/* Do the blending */
-	(*fptr_blend)(buffer, image.buffer, buffer, size, transparency);
+	if(transparency > 0) {
+		/* Do the blending */
+		(*fptr_blend)(buffer, image.buffer, buffer, size, transparency);
+	}
 }
 
 Image *Image::Merge( int n_images, Image *images[] )

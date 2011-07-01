@@ -101,6 +101,7 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
                 pixFormat = PIX_FMT_YUV420P;
                 break;
             case V4L2_PIX_FMT_JPEG :
+            case V4L2_PIX_FMT_MJPEG :
                 pixFormat = PIX_FMT_YUVJ444P;
                 break;
             // These don't seem to have ffmpeg equivalents
@@ -125,7 +126,6 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
             //case V4L2_PIX_FMT_SBGGR8 :
             //case V4L2_PIX_FMT_SGBRG8 :
             //case V4L2_PIX_FMT_SBGGR16 :
-            case V4L2_PIX_FMT_MJPEG :
             case V4L2_PIX_FMT_DV :
             case V4L2_PIX_FMT_MPEG :
             case V4L2_PIX_FMT_WNVA :
@@ -410,8 +410,13 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			conversion_type = 2;
 #endif
 			/* Our YUYV->Grayscale conversion is a lot faster than swscale's */
-			if(conversion_type == 1 && colours == ZM_COLOUR_GRAY8 && palette == V4L2_PIX_FMT_YUYV) {
+			if(colours == ZM_COLOUR_GRAY8 && palette == V4L2_PIX_FMT_YUYV) {
 				conversion_type = 2;
+			}
+			
+			/* JPEG */
+			if(palette == V4L2_PIX_FMT_JPEG || palette == V4L2_PIX_FMT_MJPEG) {
+				conversion_type = 3;
 			}
 			
 			if(conversion_type == 2) {
@@ -520,7 +525,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			conversion_type = 2;
 #endif
 			/* Our YUYV->Grayscale conversion is a lot faster than swscale's */
-			if(conversion_type == 1 && colours == ZM_COLOUR_GRAY8 && (palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422)) {
+			if(colours == ZM_COLOUR_GRAY8 && (palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422)) {
 				conversion_type = 2;
 			}
 			
@@ -713,6 +718,26 @@ void LocalCamera::Initialise()
         min = v4l2_data.fmt.fmt.pix.bytesperline * v4l2_data.fmt.fmt.pix.height;
         if (v4l2_data.fmt.fmt.pix.sizeimage < min)
             v4l2_data.fmt.fmt.pix.sizeimage = min;
+
+	v4l2_jpegcompression jpeg_comp;
+	if(palette == V4L2_PIX_FMT_JPEG || palette == V4L2_PIX_FMT_MJPEG) {
+		if( vidioctl( vid_fd, VIDIOC_G_JPEGCOMP, &jpeg_comp ) < 0 ) {
+			Warning("Failed to get JPEG compression options");
+			
+		} else {
+			/* Set JPEG flags and quality */
+			jpeg_comp.jpeg_markers |= V4L2_JPEG_MARKER_DHT | V4L2_JPEG_MARKER_DQT | V4L2_JPEG_MARKER_DRI;
+			jpeg_comp.quality = 85;
+			
+			/* Update the JPEG options */
+			if( vidioctl( vid_fd, VIDIOC_S_JPEGCOMP, &jpeg_comp ) < 0 ) {
+				Warning("Failed to set JPEG compression options");
+			} else {
+				Debug(4, "JPEG quality: %d",jpeg_comp.quality);
+				Debug(4, "JPEG markers: %#x",jpeg_comp.jpeg_markers);
+			}
+		}
+	}
 
         Debug( 3, "Setting up request buffers" );
        
@@ -1826,6 +1851,7 @@ int LocalCamera::Capture( Image &image )
 	static uint8_t* buffer = NULL;
 	static uint8_t* directbuffer = NULL;
 	static int capture_frame = -1;
+	int buffer_bytesused = 0;
 	
 	int captures_per_frame = 1;
 	if ( channel_count > 1 )
@@ -1873,6 +1899,7 @@ int LocalCamera::Capture( Image &image )
             Debug( 3, "Captured frame %d/%d from channel %d", capture_frame, v4l2_data.bufptr->sequence, channel );
 
             buffer = (unsigned char *)v4l2_data.buffers[v4l2_data.bufptr->index].start;
+            buffer_bytesused = v4l2_data.bufptr->bytesused;
 
             if(v4l2_data.fmt.fmt.pix.width != width && v4l2_data.fmt.fmt.pix.height != height) {
                     Fatal("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",v4l2_data.fmt.fmt.pix.width,v4l2_data.fmt.fmt.pix.height,width,height);
@@ -1934,6 +1961,11 @@ int LocalCamera::Capture( Image &image )
 			
 			/* Call the image conversion function and convert directly into the shared memory */
 			(*conversion_fptr)(buffer, directbuffer, pixels);
+		}
+		else if(conversion_type == 3) {
+			
+			/* JPEG decoding */
+			image.DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
 		}
 		
 	} else {

@@ -600,7 +600,8 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
             WriteFrameImage( alarm_image, timestamp, event_file, true );
         }
     }
-
+    
+    /* This makes viewing the diagnostic images impossible because it keeps deleting them
     if ( config.record_diag_images )
     {
         char diag_glob[PATH_MAX] = "";
@@ -641,6 +642,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
         }
         globfree( &pglob );
     }
+    */
 }
 
 bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )

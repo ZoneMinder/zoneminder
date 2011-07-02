@@ -65,7 +65,7 @@ else
         'Path' => "",
         'Port' => "80",
         'Colours' => 4,
-        'Palette' => fourcc('B','G','R','4'),
+        'Palette' => 0,
         'Width' => "320",
         'Height' => "240",
         'Orientation' => "0",
@@ -165,8 +165,6 @@ if ( !empty($_REQUEST['probe']) )
             $newMonitor['Format'] = 0x000000ff;
         elseif ( $newMonitor['Format'] == 'NTSC' )
             $newMonitor['Format'] = 0x0000b000;
-        else
-            $newMonitor['Format'] = '';
     }
 }
 
@@ -213,7 +211,6 @@ unset($httpMethods['jpegTags']);
 if ( ZM_HAS_V4L1 )
 {
     $v4l1DeviceFormats = array(
-        $SLANG['Undefined'] => '',
         "PAL"   => 0,
         "NTSC"  => 1,
         "SECAM" => 2,
@@ -230,7 +227,6 @@ if ( ZM_HAS_V4L1 )
         $v4l1DeviceChannels["$i"] = $i;
 
     $v4l1LocalPalettes = array(
-        $SLANG['Undefined'] => '',
         $SLANG['Grey']      => 1,
         "BGR32"             => 5,
         "BGR24"             => 4,
@@ -246,7 +242,6 @@ if ( ZM_HAS_V4L1 )
 if ( ZM_HAS_V4L2 )
 {
     $v4l2DeviceFormats = array(
-        $SLANG['Undefined'] => '',
         "PAL"         => 0x000000ff,
         "NTSC"        => 0x0000b000,
         "PAL B"       => 0x00000001,
@@ -283,7 +278,7 @@ if ( ZM_HAS_V4L2 )
         $v4l2DeviceChannels["$i"] = $i;
 
     $v4l2LocalPalettes = array(
-        $SLANG['Undefined'] => '',
+        "Auto" => 0, /* Automatic palette selection */
 
         /*      Pixel format         FOURCC                        depth  Description  */
         $SLANG['Grey'] =>     fourcc('G','R','E','Y'), /*  8  Greyscale     */

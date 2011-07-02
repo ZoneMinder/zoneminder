@@ -251,6 +251,15 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
 }
 #endif // HAVE_LIBSWSCALE
 
+#if ZM_HAS_V4L2
+static char palette_desc[32];
+/* Automatic format selection prefered formats */
+static const uint32_t prefered_rgb32_formats[] = {V4L2_PIX_FMT_BGR32, V4L2_PIX_FMT_RGB32, V4L2_PIX_FMT_BGR24, V4L2_PIX_FMT_RGB24, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY, V4L2_PIX_FMT_JPEG, V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV422P, V4L2_PIX_FMT_YUV420};
+static const uint32_t prefered_rgb24_formats[] = {V4L2_PIX_FMT_BGR24, V4L2_PIX_FMT_RGB24, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY, V4L2_PIX_FMT_JPEG, V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV422P, V4L2_PIX_FMT_YUV420};
+static const uint32_t prefered_gray8_formats[] = {V4L2_PIX_FMT_GREY, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY, V4L2_PIX_FMT_JPEG, V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV422P, V4L2_PIX_FMT_YUV420};
+#endif
+
+
 int LocalCamera::camera_count = 0;
 int LocalCamera::channel_count = 0;
 int LocalCamera::channels[VIDEO_MAX_FRAME];
@@ -336,6 +345,19 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		BigEndian = 0;
 	}   
 	
+#if ZM_HAS_V4L2
+	if( v4l_version == 2 && palette == 0 ) {
+		/* Use automatic format selection */
+		Debug(2,"Using automatic format selection");
+		palette = AutoSelectFormat(colours);
+		if(palette == 0) {
+			Error("Automatic format selection failed. Falling back to YUYV");
+			palette = V4L2_PIX_FMT_YUYV;
+		} else {
+			Debug(2,"Selected capture palette: %s (%c%c%c%c)",palette_desc,palette&0xff, (palette>>8)&0xff, (palette>>16)&0xff, (palette>>24)&0xff );
+		}
+	}
+#endif
 	
 #if HAVE_LIBSWSCALE
 	if( capture ) {
@@ -343,8 +365,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		capturePixFormat = getFfPixFormatFromV4lPalette( v4l_version, palette );
 		imagePixFormat = PIX_FMT_NONE;
 	}
-#endif // HAVE_LIBSWSCALE
-        
+#endif // HAVE_LIBSWSCALE   
 
 	/* V4L2 format matching */
 #if ZM_HAS_V4L2
@@ -1053,6 +1074,82 @@ void LocalCamera::Terminate()
 	close( vid_fd );
 	
 }
+
+uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
+	/* Automatic format selection */
+	uint32_t selected_palette = 0;
+#if ZM_HAS_V4L2
+	char fmt_desc[64][32];
+	uint32_t fmt_fcc[64];
+	v4l2_fmtdesc fmtinfo;
+	unsigned int nIndex = 0;
+	int nRet = 0;
+	int enum_fd;
+	
+	/* Open the device */
+	if ((enum_fd = open( device.c_str(), O_RDWR, 0 )) < 0) {
+		Error( "Failed to open video device %s: %s", device.c_str(), strerror(errno) );
+		return selected_palette;
+	}
+	
+	/* Enumerate available formats */
+	memset(&fmtinfo, 0, sizeof(fmtinfo));
+	fmtinfo.index = nIndex;
+	fmtinfo.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	while(vidioctl( enum_fd, VIDIOC_ENUM_FMT, &fmtinfo ) >= 0) {
+		/* Got a format. Copy it to the array */
+		strcpy(fmt_desc[nIndex], (const char*)(fmtinfo.description));
+		fmt_fcc[nIndex] = fmtinfo.pixelformat;
+		
+		Debug(6, "Got format: %s (%c%c%c%c) at index %d",fmt_desc[nIndex],fmt_fcc[nIndex]&0xff, (fmt_fcc[nIndex]>>8)&0xff, (fmt_fcc[nIndex]>>16)&0xff, (fmt_fcc[nIndex]>>24)&0xff ,nIndex);
+		
+		/* Proceed to the next index */
+		memset(&fmtinfo, 0, sizeof(fmtinfo));
+		fmtinfo.index = ++nIndex;
+		fmtinfo.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	}
+	
+	/* Select format */
+	int nIndexUsed = -1;
+	int n_preferedformats = 0;
+	const uint32_t* preferedformats;
+	if(p_colours == ZM_COLOUR_RGB32) {
+		/* 32bit */
+		preferedformats = prefered_rgb32_formats;
+		n_preferedformats = sizeof(prefered_rgb32_formats) / sizeof(uint32_t);
+	} else if(p_colours == ZM_COLOUR_GRAY8) {
+		/* Grayscale */
+		preferedformats = prefered_gray8_formats;
+		n_preferedformats = sizeof(prefered_gray8_formats) / sizeof(uint32_t);
+	} else {
+		/* Assume 24bit */
+		preferedformats = prefered_rgb24_formats;
+		n_preferedformats = sizeof(prefered_rgb24_formats) / sizeof(uint32_t);
+	}
+	for( unsigned int i=0; i < n_preferedformats && nIndexUsed < 0; i++ ) {
+		for( unsigned int j=0; j < nIndex; j++ ) {
+			if( preferedformats[i] == fmt_fcc[j] ) {
+				/* Found a format! */
+				nIndexUsed = j;
+				break;
+			}
+		}
+	}
+	
+	/* Have we found a match? */
+	if(nIndexUsed >= 0) {
+		/* Found a match */
+		selected_palette = fmt_fcc[nIndexUsed];
+		strcpy(palette_desc,fmt_desc[nIndexUsed]);
+	}
+	
+	/* Close the device */
+	close(enum_fd);
+	
+#endif /* ZM_HAS_V4L2 */
+	return selected_palette;
+}
+
 
 #define capString(test,prefix,yesString,noString,capability) \
     (test) ? (prefix yesString " " capability "\n") : (prefix noString " " capability "\n")

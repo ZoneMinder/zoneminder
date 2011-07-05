@@ -580,7 +580,12 @@ bool Image::ReadJpeg( const char *filename, int p_colours, int p_subpixelorder)
 	jpeg_stdio_src( cinfo, infile );
 
 	jpeg_read_header( cinfo, TRUE );
-
+	
+	/* Check if the image has huffman tables defined. If not, add the standard ones */
+	if(cinfo->dc_huff_tbl_ptrs[0] == NULL || cinfo->ac_huff_tbl_ptrs[0] == NULL) {
+		zm_add_std_huff_tables(cinfo);
+	}
+	
 	if ( cinfo->image_width != width || cinfo->image_height != height)
 	{
 		width = cinfo->image_width;
@@ -642,11 +647,14 @@ bool Image::ReadJpeg( const char *filename, int p_colours, int p_subpixelorder)
 #endif
 	    } else {
 	      /* Assume RGB */
+/*
 #ifdef JCS_EXTENSIONS
 	      cinfo->out_color_space = JCS_EXT_RGB;
 #else
 	      cinfo->out_color_space = JCS_RGB;
 #endif
+*/
+	      cinfo->out_color_space = JCS_RGB;
 	      subpixelorder = ZM_SUBPIX_ORDER_RGB;
 	    }
 	    break;
@@ -763,11 +771,14 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 #endif
 	    } else {
 	      /* Assume RGB */
+/*
 #ifdef JCS_EXTENSIONS
-	      cinfo->in_color_space = JCS_EXT_RGB;
+	      cinfo->out_color_space = JCS_EXT_RGB;
 #else
+	      cinfo->out_color_space = JCS_RGB;
+#endif
+*/
 	      cinfo->in_color_space = JCS_RGB;
-#endif      
 	    }
 	    break;
 	  }
@@ -820,6 +831,11 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, int p_colours
 	zm_jpeg_mem_src( cinfo, inbuffer, inbuffer_size );
 
 	jpeg_read_header( cinfo, TRUE );
+	
+	/* Check if the image has huffman tables defined. If not, add the standard ones */
+	if(cinfo->dc_huff_tbl_ptrs[0] == NULL || cinfo->ac_huff_tbl_ptrs[0] == NULL) {
+		zm_add_std_huff_tables(cinfo);
+	}
 
 	if ( cinfo->image_width != width || cinfo->image_height != height)
 	{
@@ -881,11 +897,14 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, int p_colours
 #endif
 	    } else {
 	      /* Assume RGB */
+/*
 #ifdef JCS_EXTENSIONS
 	      cinfo->out_color_space = JCS_EXT_RGB;
 #else
 	      cinfo->out_color_space = JCS_RGB;
-#endif      
+#endif
+*/
+	      cinfo->out_color_space = JCS_RGB;
 	      subpixelorder = ZM_SUBPIX_ORDER_RGB;
 	    }
 	    break;
@@ -992,11 +1011,14 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 #endif
 	    } else {
 	      /* Assume RGB */
+/*
 #ifdef JCS_EXTENSIONS
-	      cinfo->in_color_space = JCS_EXT_RGB;
+	      cinfo->out_color_space = JCS_EXT_RGB;
 #else
+	      cinfo->out_color_space = JCS_RGB;
+#endif
+*/
 	      cinfo->in_color_space = JCS_RGB;
-#endif      
 	    }
 	    break;
 	  }

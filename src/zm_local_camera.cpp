@@ -399,7 +399,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		/* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
 		} else {
 			if( capture )
-				Warning("Unable to find a match for the selected palette and target colourspace. Conversion required, performance penalty expected");  
+				Warning("No match for the selected palette and colourspace. Conversion required, performance penalty expected");
 #if HAVE_LIBSWSCALE
 			/* Try using swscale for the conversion */
 			conversion_type = 1; 
@@ -437,6 +437,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			
 			/* JPEG */
 			if(palette == V4L2_PIX_FMT_JPEG || palette == V4L2_PIX_FMT_MJPEG) {
+				Debug(2,"Using JPEG image decoding");
 				conversion_type = 3;
 			}
 			
@@ -514,7 +515,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		/* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
 		} else {
 			if( capture )
-				Warning("Unable to find a match for the selected palette and target colourspace. Conversion required, performance penalty expected");  
+				Warning("No match for the selected palette and colourspace. Conversion required, performance penalty expected");  
 #if HAVE_LIBSWSCALE
 			/* Try using swscale for the conversion */
 			conversion_type = 1; 
@@ -743,19 +744,27 @@ void LocalCamera::Initialise()
 	v4l2_jpegcompression jpeg_comp;
 	if(palette == V4L2_PIX_FMT_JPEG || palette == V4L2_PIX_FMT_MJPEG) {
 		if( vidioctl( vid_fd, VIDIOC_G_JPEGCOMP, &jpeg_comp ) < 0 ) {
-			Warning("Failed to get JPEG compression options");
+			Warning("Failed to get JPEG compression options: %s", strerror(errno) );
 			
 		} else {
-			/* Set JPEG flags and quality */
-			jpeg_comp.jpeg_markers |= V4L2_JPEG_MARKER_DHT | V4L2_JPEG_MARKER_DQT | V4L2_JPEG_MARKER_DRI;
+			/* Set flags and quality. MJPEG should not have the huffman tables defined */
+			if(palette == V4L2_PIX_FMT_MJPEG) {
+				jpeg_comp.jpeg_markers |= V4L2_JPEG_MARKER_DQT | V4L2_JPEG_MARKER_DRI;
+			} else {
+				jpeg_comp.jpeg_markers |= V4L2_JPEG_MARKER_DQT | V4L2_JPEG_MARKER_DRI | V4L2_JPEG_MARKER_DHT;
+			}
 			jpeg_comp.quality = 85;
 			
 			/* Update the JPEG options */
 			if( vidioctl( vid_fd, VIDIOC_S_JPEGCOMP, &jpeg_comp ) < 0 ) {
-				Warning("Failed to set JPEG compression options");
+				Warning("Failed to set JPEG compression options: %s", strerror(errno) );
 			} else {
-				Debug(4, "JPEG quality: %d",jpeg_comp.quality);
-				Debug(4, "JPEG markers: %#x",jpeg_comp.jpeg_markers);
+				if(vidioctl( vid_fd, VIDIOC_G_JPEGCOMP, &jpeg_comp ) < 0) {
+					Debug(3,"Failed to get updated JPEG compression options: %s", strerror(errno) );
+				} else {
+					Debug(4, "JPEG quality: %d",jpeg_comp.quality);
+					Debug(4, "JPEG markers: %#x",jpeg_comp.jpeg_markers);
+				}
 			}
 		}
 	}
@@ -1088,7 +1097,7 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
 	
 	/* Open the device */
 	if ((enum_fd = open( device.c_str(), O_RDWR, 0 )) < 0) {
-		Error( "Failed to open video device %s: %s", device.c_str(), strerror(errno) );
+		Error( "Automatic format selection failed to open video device %s: %s", device.c_str(), strerror(errno) );
 		return selected_palette;
 	}
 	
@@ -2047,20 +2056,22 @@ int LocalCamera::Capture( Image &image )
 		}
 #if HAVE_LIBSWSCALE
 		if(conversion_type == 1) {
+			
+			Debug( 9, "Calling sws_scale to perform the conversion" );
 			/* Use swscale to convert the image directly into the shared memory */
-			
 			avpicture_fill( (AVPicture *)tmpPicture, directbuffer, imagePixFormat, width, height );
-			
 			sws_scale( imgConversionContext, capturePictures[capture_frame]->data, capturePictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
 		}
 #endif	
 		if(conversion_type == 2) {
 			
+			Debug( 9, "Calling the conversion function" );
 			/* Call the image conversion function and convert directly into the shared memory */
 			(*conversion_fptr)(buffer, directbuffer, pixels);
 		}
 		else if(conversion_type == 3) {
 			
+			Debug( 9, "Decoding the JPEG image" );
 			/* JPEG decoding */
 			image.DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
 		}

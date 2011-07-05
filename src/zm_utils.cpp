@@ -199,7 +199,7 @@ __attribute__((noinline)) void* sse2_aligned_memcpy(void* dest, const void* src,
 		const uint8_t* lastsrc = (uint8_t*)src + (bytes - remainder);
 
 		__asm__ __volatile__(
-		"sse2copy_begin:\n\t"
+		"sse2_copy_iter:\n\t"
 		"movdqa (%0),%%xmm0\n\t"
 		"movdqa 0x10(%0),%%xmm1\n\t"
 		"movdqa 0x20(%0),%%xmm2\n\t"    
@@ -219,12 +219,12 @@ __attribute__((noinline)) void* sse2_aligned_memcpy(void* dest, const void* src,
 		"add $0x80, %0\n\t"
 		"add $0x80, %1\n\t"
 		"cmp %2, %0\n\t"
-		"jb sse2copy_begin\n\t"
+		"jb sse2_copy_iter\n\t"
 		"test %3, %3\n\t"
-		"jz sse2copy_finish\n\t"
+		"jz sse2_copy_finish\n\t"
 		"cld\n\t"
 		"rep movsb\n\t"
-		"sse2copy_finish:\n\t"
+		"sse2_copy_finish:\n\t"
 		:
 		: "S" (src), "D" (dest), "r" (lastsrc), "c" (remainder)
 		: "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"

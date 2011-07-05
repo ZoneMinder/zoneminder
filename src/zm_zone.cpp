@@ -60,37 +60,44 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	image = 0;
 	score = 0;
 
-    overload_count = 0;
+	overload_count = 0;
 
 	pg_image = new Image( monitor->Width(), monitor->Height(), 1, ZM_SUBPIX_ORDER_NONE);
+	pg_image->Clear();
 	pg_image->Fill( 0xff, polygon );
 	pg_image->Outline( 0xff, polygon );
-	pg_image->Crop( polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
 
-	ranges = new Range[polygon.Height()];
-	int y = polygon.LoY();
-	for ( int py = 0; py < polygon.Height(); py++, y++ )
+	ranges = new Range[monitor->Height()];
+	for ( int y = polygon.LoY(); y <= polygon.HiY(); y++)
 	{
-		int x = polygon.LoX();
-		ranges[py].lo_x = -1;
-		ranges[py].hi_x = -1;
-		ranges[py].off_x = 0;
-		const uint8_t *ppoly = pg_image->Buffer( 0, py );
-		for ( int px = 0; px < polygon.Width(); px++, x++, ppoly++ )
+		ranges[y].lo_x = -1;
+		ranges[y].hi_x = -1;
+		ranges[y].off_x = 0;
+		const uint8_t *ppoly = pg_image->Buffer( polygon.LoX(), y );
+		for ( int x = polygon.LoX(); x <= polygon.HiX(); x++, ppoly++ )
 		{
 			if ( *ppoly )
 			{
-				if ( ranges[py].lo_x == -1 )
+				if ( ranges[y].lo_x == -1 )
 				{
-					ranges[py].lo_x = x;
-					ranges[py].off_x = px;
+					ranges[y].lo_x = x;
 				}
-				if ( ranges[py].hi_x < x )
+				if ( ranges[y].hi_x < x )
 				{
-					ranges[py].hi_x = x;
+					ranges[y].hi_x = x;
 				}
 			}
 		}
+	}
+	
+	if ( config.record_diag_images )
+	{
+		static char diag_path[PATH_MAX] = "";
+		if ( !diag_path[0] )
+		{
+			snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-poly.jpg", config.dir_events, monitor->Name(), id);
+		}
+		pg_image->WriteJpeg( diag_path );
 	}
 }
 
@@ -119,21 +126,23 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	ResetStats();
 
-    if ( overload_count )
-    {
-        Info( "In overload mode, %d frames of %d remaining", overload_count, overload_frames );
-        Debug( 4, "In overload mode, %d frames of %d remaining", overload_count, overload_frames );
-        overload_count--;
-        return( false );
-    }
+	if ( overload_count )
+	{
+		Info( "In overload mode, %d frames of %d remaining", overload_count, overload_frames );
+		Debug( 4, "In overload mode, %d frames of %d remaining", overload_count, overload_frames );
+		overload_count--;
+		return( false );
+	}
 
 	delete image;
 	// Get the difference image
 	Image *diff_image = image = new Image( *delta_image );
 	int diff_width = diff_image->Width();
 	uint8_t* diff_buff = (uint8_t*)diff_image->Buffer();
+	uint8_t* pdiff;
+	const uint8_t* ppoly;
 
-	unsigned long pixel_diff_count = 0;
+	unsigned int pixel_diff_count = 0;
 
 	int alarm_lo_x = 0;
 	int alarm_hi_x = 0;
@@ -142,47 +151,27 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	int alarm_mid_x = -1;
 	int alarm_mid_y = -1;
-
-	int lo_y = polygon.LoY();
-	int hi_y = polygon.HiY();
-	int lo_x;
-	int hi_x;
+	
+	unsigned int lo_y = polygon.LoY();
+	unsigned int lo_x = polygon.LoX();
+	unsigned int hi_x = polygon.HiX()+1;
+	unsigned int hi_y = polygon.HiY()+1;
 
 	Debug( 4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label, lo_y, hi_y );
-
-	Debug( 5, "Checking for alarmed pixels" );
-	uint8_t *pdiff;
-	const uint8_t *ppoly;
-	uint8_t calc_max_pixel_threshold = 255; /* To be able to remove one check from the loop below */
-	if(max_pixel_threshold)
-		calc_max_pixel_threshold = max_pixel_threshold;
 	
-	for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
-	{
-		lo_x = ranges[py].lo_x;
-		hi_x = ranges[py].hi_x;
-
-		Debug( 7, "Checking line %d from %d -> %d", y, lo_x, hi_x );
-		pdiff = diff_buff + ((diff_width * y) + lo_x);
-		ppoly = pg_image->Buffer( ranges[py].off_x, py );
-		
-		for ( int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ )
-		{
-			if ( *ppoly && (*pdiff > min_pixel_threshold) && (*pdiff <= calc_max_pixel_threshold) )
-			{
-				alarm_pixels++;
-				pixel_diff_count += *pdiff;
-				*pdiff = WHITE;
-			}
-			else
-			{
-				*pdiff = BLACK;
-			}
-		}
-	}
+	
+	Debug( 5, "Checking for alarmed pixels" );
+	/* if(config.cpu_extensions && sseversion >= 20) {
+		sse2_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
+	} else {
+		std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
+	} */
+	std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
+	
 	if ( pixel_diff_count && alarm_pixels )
 		pixel_diff = pixel_diff_count/alarm_pixels;
 	Debug( 5, "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d", alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff );
+	
 	if ( config.record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
@@ -193,22 +182,26 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		diff_image->WriteJpeg( diag_path );
 	}
 
-	if ( !alarm_pixels )
-    {
-        return( false );
-    }
-	if ( min_alarm_pixels && (alarm_pixels < min_alarm_pixels) )
-    {
-        return( false );
-    }
-	if ( max_alarm_pixels && (alarm_pixels > max_alarm_pixels) )
-    {
-        overload_count = overload_frames;
-        return( false );
-    }
+	if( alarm_pixels ) {
+		if( min_alarm_pixels && (alarm_pixels < min_alarm_pixels) ) {
+			/* Not enough pixels alarmed */
+			return (false);
+		} else if( max_alarm_pixels && (alarm_pixels > max_alarm_pixels) ) {
+			/* Too many pixels alarmed */
+			overload_count = overload_frames;
+			return (false);
+		}
+	} else {
+		/* No alarmed pixels */
+		return (false);
+	}
+	
+	
 	score = (100*alarm_pixels)/polygon.Area();
+	if(score < 1)
+		score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
 	Debug( 5, "Current score is %d", score );
-
+	
 	if ( check_method >= FILTERED_PIXELS )
 	{
 		int bx = filter_box.X();
@@ -223,12 +216,12 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			unsigned char *cpdiff;
 			int ldx, hdx, ldy, hdy;
 			bool block;
-			for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
+			for ( int y = lo_y; y <= hi_y; y++ )
 			{
-				lo_x = ranges[py].lo_x;
-				hi_x = ranges[py].hi_x;
+				lo_x = ranges[y].lo_x;
+				hi_x = ranges[y].hi_x;
 
-				pdiff = diff_buff + ((diff_width * y) + lo_x);
+				pdiff = (uint8_t*)diff_image->Buffer( lo_x, y );
 
 				for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
 				{
@@ -310,12 +303,12 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			int last_x, last_y;
 			BlobStats *bsx, *bsy;
 			BlobStats *bsm, *bss;
-			for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
+			for ( int y = lo_y; y <= hi_y; y++ )
 			{
-				int lo_x = ranges[py].lo_x;
-				int hi_x = ranges[py].hi_x;
+				int lo_x = ranges[y].lo_x;
+				int hi_x = ranges[y].hi_x;
 
-				pdiff = diff_buff + ((diff_width * y) + lo_x);
+				pdiff = (uint8_t*)diff_image->Buffer( lo_x, y );
 				for ( int x = lo_x; x <= hi_x; x++, pdiff++ )
 				{
 					if ( *pdiff == WHITE )
@@ -632,11 +625,14 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 	if ( type == INCLUSIVE )
 	{
+		// score >>= 1;
 		score /= 2;
 	}
 	else if ( type == EXCLUSIVE )
 	{
+		// score <<= 1;
 		score *= 2;
+		
 	}
 
 	Debug( 5, "Adjusted score is %d", score );
@@ -665,12 +661,12 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			int lo_y = polygon.LoY();
 			int hi_y = polygon.HiY();
 			// First mask out anything we don't want
-			for ( int y = lo_y, py = 0; y <= hi_y; y++, py++ )
+			for ( int y = lo_y; y <= hi_y; y++ )
 			{
 				pdiff = diff_buff + ((diff_width * y) + lo_x);
 
-				int lo_x2 = ranges[py].lo_x;
-				int hi_x2 = ranges[py].hi_x;
+				int lo_x2 = ranges[y].lo_x;
+				int hi_x2 = ranges[y].hi_x;
 
 				int lo_gap = lo_x2-lo_x;
 				if ( lo_gap > 0 )
@@ -686,7 +682,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					}
 				}
 
-				ppoly = pg_image->Buffer( lo_gap, py );
+				ppoly = pg_image->Buffer( lo_gap, y );
 				for ( int x = lo_x2; x <= hi_x2; x++, pdiff++, ppoly++ )
 				{
 					if ( !*ppoly )
@@ -963,3 +959,261 @@ bool Zone::DumpSettings( char *output, bool /*verbose*/ )
 	return( true );
 }
 
+void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum) {
+	uint32_t pixelsalarmed = 0;
+	uint32_t pixelsdifference = 0;
+	uint8_t *pdiff;
+	const uint8_t *ppoly;
+	uint8_t calc_max_pixel_threshold = 255;
+	unsigned int lo_y;
+	unsigned int hi_y;
+	unsigned int lo_x;
+	unsigned int hi_x;
+	
+	if(max_pixel_threshold)
+		calc_max_pixel_threshold = max_pixel_threshold;
+	
+	lo_y = polygon.LoY();
+	hi_y = polygon.HiY();
+	for ( int y = lo_y; y <= hi_y; y++ )
+	{
+		lo_x = ranges[y].lo_x;
+		hi_x = ranges[y].hi_x;
+		
+		Debug( 7, "Checking line %d from %d -> %d", y, lo_x, hi_x );
+		pdiff = (uint8_t*)pdiff_image->Buffer( lo_x, y );
+		ppoly = ppoly_image->Buffer( lo_x, y );
+		
+		for ( int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ )
+		{
+			if ( *ppoly && (*pdiff > min_pixel_threshold) && (*pdiff <= calc_max_pixel_threshold) )
+			{
+				pixelsalarmed++;
+				pixelsdifference += *pdiff;
+				*pdiff = WHITE;
+			}
+			else
+			{
+				*pdiff = BLACK;
+			}
+		}
+	}
+	
+	/* Store the results */
+	*pixel_count = pixelsalarmed;
+	*pixel_sum = pixelsdifference;
+}
+
+void Zone::sse2_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum) {
+#if (defined(__i386__) || defined(__x86_64__))  
+	__attribute__((aligned(16))) static uint8_t calc_maxpthreshold[16] = {127,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127};
+	__attribute__((aligned(16))) static uint8_t calc_minpthreshold[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static uint8_t current_minpthreshold = 0;
+	static uint8_t current_maxpthreshold = 255;
+	unsigned int minpthreshold = min_pixel_threshold;
+	unsigned int maxpthreshold = max_pixel_threshold;
+	uint32_t pixelsalarmed = 0;
+	uint32_t pixelsdifference = 0;
+	unsigned int lo_y = polygon.LoY();
+	unsigned int hi_y = polygon.HiY()+1;
+	unsigned int lo_x = polygon.LoX();
+	unsigned int hi_x = polygon.HiX()+1;
+	
+	if(maxpthreshold == 0) 
+		maxpthreshold = 255;
+	
+	if(minpthreshold != current_minpthreshold) {
+		for(unsigned int i=0;i<sizeof(calc_minpthreshold);i++)
+			calc_minpthreshold[i] = minpthreshold>>1;
+		current_minpthreshold = minpthreshold;
+	}
+	
+	if(maxpthreshold != current_maxpthreshold) {
+		for(unsigned int i=0;i<sizeof(calc_maxpthreshold);i++)
+			calc_maxpthreshold[i] = maxpthreshold>>1;
+		current_maxpthreshold = maxpthreshold;
+	}
+
+	/*
+	 * We have to work on 16 byte aligned addresses.
+	 * Assume width is multiples of 16 and align the lo_x and hi_x to be on a 16 byte boundary
+	 */
+	if((lo_x % 16) != 0) {
+		lo_x = lo_x - (lo_x % 16);
+	}
+	if((hi_x % 16) != 0) {
+		hi_x = hi_x + (16 - (hi_x % 16));
+		if( hi_x > pdiff_image->Width() )
+			/* Clamp hi_x to width */
+			hi_x = pdiff_image->Width();
+	}
+	if( hi_y > pdiff_image->Height() ) {
+		/* Clamp hi y to height */
+		hi_y = pdiff_image->Height();
+	}
+	
+	unsigned int x = lo_x;
+	unsigned int y = lo_y;
+	unsigned long xgap = hi_x - lo_x;
+	unsigned long width = pdiff_image->Width();
+	uint8_t* pdiff = (uint8_t*)pdiff_image->Buffer(lo_x, lo_y);
+	const uint8_t* ppoly = ppoly_image->Buffer(lo_x, lo_y);
+	
+	/* Some sanity checks */
+	if((width % 16) != 0) {
+		Fatal("Image width is not multiples of 16!");
+	}
+	if((xgap % 16) != 0) {
+		/* Shouldn't happen but just in case */
+		Fatal("Difference between calculated hi_x and lo_x is not multiples of 16");
+	}
+	if(lo_x == hi_x) {
+		Error("lo_x and hi_x are identical, nothing to scan. Scanning the whole line instead");
+		lo_x = 0;
+		hi_x = width;
+	}
+
+
+	/* XMM0,1,2,3 - General purpose */
+	/* XMM4 - alarmed pixels count */
+	/* XMM5 - difference accumulator */
+	/* XMM6 - min pixel threshold mask */
+	/* XMM7 - max pixel threshold mask */
+	/* XMM8 - divide mask */
+	/* XMM9 - 0x01 mask */
+	/*
+	Register map:
+	%0 - pixelsalarmed
+	%1 - pixelsdifference
+	%2 - pdiff
+	%3 - ppoly
+	%4 - X
+	%5 - Y
+	%6 - min pixel mask
+	%7 - max pixel mask
+	%8 - lo_y
+	%9 - lo_x
+	%10 - hi_x
+	%11 - hi_y
+	%12 - width
+	%13 - xgap
+	*/
+	
+	/* Initial setup
+	 * set X to lo_x
+	 * set Y to lo_y
+	 * set pdiff to pdiff start + (width * lo_y) + lo_x
+	 * set ppoly to ppoly start + (width * lo_y) + lo_x
+	 * set xgap to hi_x - lo_x
+	 */
+
+	__asm__ __volatile__ (
+	"pxor %%xmm4, %%xmm4\n\t" // Zero out the alarmed pixels count
+	"pxor %%xmm5, %%xmm5\n\t" // Zero out the difference accumulator
+	"movdqa %6, %%xmm6\n\t"   // Load the min pixel threshold (divided by 2)
+	"movdqa %7, %%xmm7\n\t"   // Load the max pixel threshold (divided by 2)
+#if defined(__x86_64__)
+	"mov $0x7F7F7F7F, %%eax\n\t" /* Divide mask */
+	"movd %%eax, %%xmm8\n\t"
+	"pshufd $0x0, %%xmm8, %%xmm8\n\t"
+	"mov $0x01010101, %%eax\n\t" /* 0x1 mask */
+	"movd %%eax, %%xmm9\n\t"
+	"pshufd $0x0, %%xmm9, %%xmm9\n\t"
+#endif
+	/* Iteration start */
+	"sse2_ap_iter:\n\t"
+	"movdqa (%2), %%xmm0\n\t" // Load the pdiff
+	"movdqa (%3), %%xmm1\n\t" // Load the ppoly
+	
+	"pand %%xmm0, %%xmm1\n\t" // Filter out pixels not inside polygon. Result stored on XMM1
+	"movdqa %%xmm1, %%xmm2\n\t" // Move the result into XMM2
+	"psrlq $0x1, %%xmm2\n\t" // Divide the result by 2 (part 1)
+#if defined(__x86_64__)
+	"pand %%xmm8, %%xmm2\n\t" // Divide the result by 2 (part 2)
+#else
+	"mov $0x7F7F7F7F, %%eax\n\t"
+	"movd %%eax, %%xmm0\n\t"
+	"pshufd $0x0, %%xmm0, %%xmm0\n\t"
+	"pand %%xmm0, %%xmm2\n\t" // Divide the result by 2 (part 2)
+#endif
+	
+	/* Filter out pixels bigger than max threshold and update XMM0 */
+	"movdqa %%xmm7, %%xmm0\n\t" // Copy max threshold to XMM0
+	"pcmpgtb %%xmm2, %%xmm0\n\t" // Filter out pixels bigger than max threshold, result stored on XMM0
+	"pand %%xmm2, %%xmm0\n\t" // XMM0 = Dividied pixels that are in poly and meet maximum threshold
+	
+	/* Filter out pixels smaller than min threshold */
+	"pcmpgtb %%xmm6, %%xmm0\n\t" // Filter out pixels smaller than min threshold, result stored on XMM0
+	
+	/* Write white or black depending if pixel is alarmed or not */
+	"movntdq %%xmm0, (%2)\n\t" // Set the pixel to white or black depending on the result
+	
+	/* Update the alarmed pixels count */
+#if defined(__x86_64__)
+	"movdqa %%xmm9, %%xmm3\n\t" // Move 0x01 mask to XMM3
+#else
+	"mov $0x01010101, %%eax\n\t"
+	"movd %%eax, %%xmm3\n\t"
+	"pshufd $0x0, %%xmm3, %%xmm3\n\t"
+#endif
+	"pxor %%xmm2, %%xmm2\n\t" // Set XMM2 to zeros
+	
+	"pand %%xmm0, %%xmm3\n\t" // Set alarmed pixels to 1 in XMM3
+	"psadbw %%xmm2, %%xmm3\n\t" // DEST[0-15] and DEST[64-79] contain the results
+	"paddd %%xmm3, %%xmm4\n\t" // Update the alarmed pixels count
+	
+	/* Update XMM0 to contain pixels in poly that meet min and max thresholds */
+	"pand %%xmm1, %%xmm0\n\t" // XMM0 = Pixels in poly that meet min and max thresholds
+
+	/* Update the difference accumulator */
+	"psadbw %%xmm0, %%xmm2\n\t" // DEST[0-15] and DEST[64-79] contain the results
+	"paddd %%xmm2, %%xmm5\n\t" // Update the difference accumulator
+	
+	/* Move to the next pixels in the row */
+	"add $0x10, %2\n\t"            // Add 16 to pdiff
+	"add $0x10, %3\n\t"            // Add 16 to ppoly
+	"add $0x10, %4\n\t"            // Add 16 to X
+	"cmp %10, %4\n\t"              // Check if we reached max X
+	"jb sse2_ap_iter\n\t"          // Go for another iteration
+	
+	"sub %13, %2\n\t"              // Reset pdiff to low X
+	"sub %13, %3\n\t"              // Reset ppoly to low X
+	"sub %13, %4\n\t"              // Reset X to low x
+	
+	"add $0x1, %5\n\t"             // Increment Y to advance to the next line
+	"add %12, %2\n\t"              // Move pdiff to the next row
+	"add %12, %3\n\t"              // Move ppoly to the next row
+	
+	"cmp %11, %5\n\t"              // Check if we reached max Y
+	"jb sse2_ap_iter\n\t"          // Go for another iteration
+	
+	/* Calculate the alarmed pixels */
+	"pshufd $0x56, %%xmm4, %%xmm0\n\t"
+	"paddd %%xmm4, %%xmm0\n\t"
+	"movd %%xmm0, %0\n\t"
+	
+	/* Calculate the pixels difference */
+	"pshufd $0x56, %%xmm5, %%xmm1\n\t"
+	"paddd %%xmm5, %%xmm1\n\t"
+	"movd %%xmm1, %1\n\t"
+	
+	: "=m" (pixelsalarmed), "=m" (pixelsdifference)
+#if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
+	: "r" (pdiff), "r" (ppoly), "r" (x), "r" (y), "m" (*calc_minpthreshold), "m" (*calc_maxpthreshold), "m" (lo_y), "m" (lo_x), "m" (hi_x), "m" (hi_y), "m" (width), "m" (xgap)
+#else
+	: "r" (pdiff), "r" (ppoly), "r" (x), "r" (y), "m" (*calc_minpthreshold), "m" (*calc_maxpthreshold), "m" (lo_y), "m" (lo_x), "r" (hi_x), "m" (hi_y), "m" (width), "m" (xgap)
+#endif
+#if defined(__x86_64__)
+	: "%rax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "cc", "memory"
+#else
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"
+#endif
+	);
+	
+	/* Store the results */
+	*pixel_count = pixelsalarmed;
+	*pixel_sum = pixelsdifference;
+#else
+	Panic("SSE function called on a non x86\\x86-64 platform");
+#endif
+}

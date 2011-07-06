@@ -392,9 +392,9 @@ void zm_jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuff
     src->pub.next_input_byte = NULL; /* until buffer loaded */
 }
 
-void zm_add_std_huff_tables( j_decompress_ptr cinfo ) {
-/* JPEG standard Huffman tables (cf. JPEG standard section K.3) */
-/* IMPORTANT: these are only valid for 8-bit data precision! */
+void zm_use_std_huff_tables( j_decompress_ptr cinfo ) {
+	/* JPEG standard Huffman tables (cf. JPEG standard section K.3) */
+	/* IMPORTANT: these are only valid for 8-bit data precision! */
 	static const JHUFF_TBL dclumin = {
 	  { /* 0-base */ 0, 0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0 },
 	  { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 },

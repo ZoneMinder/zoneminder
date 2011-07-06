@@ -581,9 +581,10 @@ bool Image::ReadJpeg( const char *filename, int p_colours, int p_subpixelorder)
 
 	jpeg_read_header( cinfo, TRUE );
 	
-	/* Check if the image has huffman tables defined. If not, add the standard ones */
-	if(cinfo->dc_huff_tbl_ptrs[0] == NULL || cinfo->ac_huff_tbl_ptrs[0] == NULL) {
-		zm_add_std_huff_tables(cinfo);
+	/* Check if the image has at least one huffman table defined. If not, use the standard ones */
+	/* This is required for the MJPEG capture palette of USB devices */
+	if(cinfo->dc_huff_tbl_ptrs[0] == NULL) {
+		zm_use_std_huff_tables(cinfo);
 	}
 	
 	if ( cinfo->image_width != width || cinfo->image_height != height)
@@ -832,9 +833,10 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, int p_colours
 
 	jpeg_read_header( cinfo, TRUE );
 	
-	/* Check if the image has huffman tables defined. If not, add the standard ones */
-	if(cinfo->dc_huff_tbl_ptrs[0] == NULL || cinfo->ac_huff_tbl_ptrs[0] == NULL) {
-		zm_add_std_huff_tables(cinfo);
+	/* Check if the image has at least one huffman table defined. If not, use the standard ones */
+	/* This is required for the MJPEG capture palette of USB devices */
+	if(cinfo->dc_huff_tbl_ptrs[0] == NULL) {
+		zm_use_std_huff_tables(cinfo);
 	}
 
 	if ( cinfo->image_width != width || cinfo->image_height != height)

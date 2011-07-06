@@ -1333,7 +1333,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
 		}
 			
 		if(verbose) {
-			sprintf( output+strlen(output), "Cropping is not supported");
+			sprintf( output+strlen(output), "  Cropping is not supported\n");
 		} else {
 			/* Send fake crop bounds to not confuse things parsing this, such as monitor probe */
 			sprintf( output+strlen(output), "B:%dx%d|",0,0); 
@@ -1352,7 +1352,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
 			}
 			
 			if ( verbose ) {
-				sprintf( output+strlen(output), "Cropping is not supported");
+				sprintf( output+strlen(output), "  Cropping is not supported\n");
 			} else {
 				/* Send fake crop bounds to not confuse things parsing this, such as monitor probe */
 				sprintf( output+strlen(output), "B:%dx%d|",0,0); 
@@ -1360,10 +1360,10 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
 		} else {
 			/* Cropping supported */
 			if ( verbose ) {
-				sprintf( output+strlen(output), "Crop Capabilities\n" );
-				sprintf( output+strlen(output), "  Bounds: %d x %d\n", cropcap.bounds.width, cropcap.bounds.height );
-				sprintf( output+strlen(output), "  Default: %d x %d\n", cropcap.defrect.width, cropcap.defrect.height );
-				sprintf( output+strlen(output), "  Current: %d x %d\n", crop.c.width, crop.c.height );
+				sprintf( output+strlen(output), "  Crop Capabilities\n" );
+				sprintf( output+strlen(output), "    Bounds: %d x %d\n", cropcap.bounds.width, cropcap.bounds.height );
+				sprintf( output+strlen(output), "    Default: %d x %d\n", cropcap.defrect.width, cropcap.defrect.height );
+				sprintf( output+strlen(output), "    Current: %d x %d\n", crop.c.width, crop.c.height );
 			} else {
 				sprintf( output+strlen(output), "B:%dx%d|", cropcap.bounds.width, cropcap.bounds.height );
 			}

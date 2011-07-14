@@ -1005,7 +1005,7 @@ void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsig
 }
 
 void Zone::sse2_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 	__attribute__((aligned(16))) static uint8_t calc_maxpthreshold[16] = {127,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127};
 	__attribute__((aligned(16))) static uint8_t calc_minpthreshold[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	static uint8_t current_minpthreshold = 0;

@@ -193,7 +193,7 @@ void ssedetect() {
 /* SSE2 aligned memory copy. Useful for big copying of aligned memory like image buffers in ZM */
 /* For platforms without SSE2 we will use standard x86 asm memcpy or glibc's memcpy() */
 __attribute__((noinline)) void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 	if(bytes > 128) {
 		unsigned int remainder = bytes % 128;
 		const uint8_t* lastsrc = (uint8_t*)src + (bytes - remainder);

@@ -2517,7 +2517,7 @@ void Image::Scale( unsigned int factor )
 
 
 __attribute__ ((noinline)) void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	static uint32_t divider = 0;
 	static uint32_t clearmask = 0;
 	static double current_blendpercent = 0.0;
@@ -2859,7 +2859,7 @@ __attribute__ ((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8
 
 /* Grayscale SSE2 */
 __attribute__ ((noinline)) void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 
 	__asm__ __volatile__ (
 	"sub $0x10, %0\n\t"
@@ -2887,7 +2887,7 @@ __attribute__ ((noinline)) void sse2_delta8_gray8(const uint8_t* col1, const uin
 
 /* RGB32: RGBA SSE2 */
 __attribute__ ((noinline)) void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -2956,7 +2956,7 @@ __attribute__ ((noinline)) void sse2_delta8_rgba(const uint8_t* col1, const uint
 
 /* RGB32: BGRA SSE2 */
 __attribute__ ((noinline)) void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3025,7 +3025,7 @@ __attribute__ ((noinline)) void sse2_delta8_bgra(const uint8_t* col1, const uint
 
 /* RGB32: ARGB SSE2 */
 __attribute__ ((noinline)) void sse2_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3095,7 +3095,7 @@ __attribute__ ((noinline)) void sse2_delta8_argb(const uint8_t* col1, const uint
 
 /* RGB32: ABGR SSE2 */
 __attribute__ ((noinline)) void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3165,7 +3165,7 @@ __attribute__ ((noinline)) void sse2_delta8_abgr(const uint8_t* col1, const uint
 
 /* RGB32: RGBA SSSE3 */
 __attribute__ ((noinline)) void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3217,7 +3217,7 @@ __attribute__ ((noinline)) void ssse3_delta8_rgba(const uint8_t* col1, const uin
 
 /* RGB32: BGRA SSSE3 */
 __attribute__ ((noinline)) void ssse3_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3269,7 +3269,7 @@ __attribute__ ((noinline)) void ssse3_delta8_bgra(const uint8_t* col1, const uin
 
 /* RGB32: ARGB SSSE3 */
 __attribute__ ((noinline)) void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3322,7 +3322,7 @@ __attribute__ ((noinline)) void ssse3_delta8_argb(const uint8_t* col1, const uin
 
 /* RGB32: ABGR SSSE3 */
 __attribute__ ((noinline)) void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3575,7 +3575,7 @@ __attribute__ ((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint
 
 /* RGBA to grayscale SSSE3 */
 __attribute__ ((noinline)) void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 
 	__asm__ __volatile__ (
 	"mov $0x1F1F1F1F, %%eax\n\t"
@@ -3621,7 +3621,7 @@ __attribute__ ((noinline)) void ssse3_convert_rgba_gray8(const uint8_t* col1, ui
 
 /* Converts a YUYV image into grayscale by extracting the Y channel */
 __attribute__ ((noinline)) void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-#if (defined(__i386__) || defined(__x86_64__))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	unsigned long i = 0;
   
 	__attribute__((aligned(16))) static const uint8_t movemask1[16] = {0,2,4,6,8,10,12,14,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};

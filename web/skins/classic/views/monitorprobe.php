@@ -45,7 +45,7 @@ if ( ZM_HAS_V4L2 )
 
     $devices = array();
     $preferredStandards = array( 'PAL', 'NTSC' );
-    $preferredFormats = array( 'BGR4', 'RGB4', 'BGR3', 'RGB3', 'YUYV', 'UYVY', 'JPEG', 'MJPG', '422P', 'YU12', 'GREY');
+    $preferredFormats = array( 'BGR3', 'RGB3', 'YUYV', 'UYVY', 'JPEG', 'MJPG', '422P', 'YU12', 'GREY' );
     foreach ( $output as $line )
     {
         if ( !preg_match( '/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches ) )
@@ -126,7 +126,7 @@ function probeAxis( $ip )
             'Host'     => $ip,
             'Port'     => 80,
             'Path'     => '/axis-cgi/mjpg/video.cgi?resolution=320x240',
-            'Colours'  => 3,
+            'Palette'  => 3,
             'Width'    => 320,
             'Height'   => 240,
         ),
@@ -160,7 +160,7 @@ function probePana( $ip )
             'Host'     => $ip,
             'Port'     => 80,
             'Path'     => '/nphMotionJpeg?Resolution=320x240&Quality=Standard',
-            'Colours'  => 3,
+            'Palette'  => 3,
             'Width'    => 320,
             'Height'   => 240,
         ),
@@ -180,7 +180,7 @@ function probeActi( $ip )
             'Host'     => 'Admin:123456@'.$ip,
             'Port'     => 7070,
             'Path'     => '',
-            'Colours'  => 3,
+            'Palette'  => 3,
             'Width'    => 320,
             'Height'   => 240,
         ),
@@ -215,7 +215,7 @@ function probeVivotek( $ip )
             'Host'     => $ip,
             'Port'     => 554,
             'Path'     => '',
-            'Colours'  => 3,
+            'Palette'  => 3,
             'Width'    => 352,
             'Height'   => 240,
         ),

@@ -1321,7 +1321,10 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
             while ( formatIndex++ >= 0 );
             if ( !verbose )
                 output[strlen(output)-1] = '|';
-      
+
+	if(verbose)
+		sprintf( output+strlen(output), "Crop Capabilities\n" );
+	
 	struct v4l2_cropcap cropcap;
 	memset( &cropcap, 0, sizeof(cropcap) );
 	cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1360,10 +1363,9 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
 		} else {
 			/* Cropping supported */
 			if ( verbose ) {
-				sprintf( output+strlen(output), "  Crop Capabilities\n" );
-				sprintf( output+strlen(output), "    Bounds: %d x %d\n", cropcap.bounds.width, cropcap.bounds.height );
-				sprintf( output+strlen(output), "    Default: %d x %d\n", cropcap.defrect.width, cropcap.defrect.height );
-				sprintf( output+strlen(output), "    Current: %d x %d\n", crop.c.width, crop.c.height );
+				sprintf( output+strlen(output), "  Bounds: %d x %d\n", cropcap.bounds.width, cropcap.bounds.height );
+				sprintf( output+strlen(output), "  Default: %d x %d\n", cropcap.defrect.width, cropcap.defrect.height );
+				sprintf( output+strlen(output), "  Current: %d x %d\n", crop.c.width, crop.c.height );
 			} else {
 				sprintf( output+strlen(output), "B:%dx%d|", cropcap.bounds.width, cropcap.bounds.height );
 			}

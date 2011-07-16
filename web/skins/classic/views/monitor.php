@@ -64,7 +64,7 @@ else
         'Host' => "",
         'Path' => "",
         'Port' => "80",
-        'Colours' => 4,
+        'Colours' => 3,
         'Palette' => 0,
         'Width' => "320",
         'Height' => "240",

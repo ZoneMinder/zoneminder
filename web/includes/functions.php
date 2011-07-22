@@ -2206,20 +2206,23 @@ function isVector ( &$array )
 
 function checkJsonError()
 {
-    switch( json_last_error() )
+    if ( function_exists('json_last_error') )
     {
-        case JSON_ERROR_DEPTH :
-            Fatal( "Unable to decode JSON string '$value', maximum stack depth exceeded" );
-        case JSON_ERROR_CTRL_CHAR :
-            Fatal( "Unable to decode JSON string '$value', unexpected control character found" );
-        case JSON_ERROR_STATE_MISMATCH :
-            Fatal( "Unable to decode JSON string '$value', invalid or malformed JSON" );
-        case JSON_ERROR_SYNTAX :
-            Fatal( "Unable to decode JSON string '$value', syntax error" );
-        default :
-            Fatal( "Unable to decode JSON string '$value', unexpected error ".json_last_error() );
-        case JSON_ERROR_NONE:
-            break;
+        switch( json_last_error() )
+        {
+            case JSON_ERROR_DEPTH :
+                Fatal( "Unable to decode JSON string '$value', maximum stack depth exceeded" );
+            case JSON_ERROR_CTRL_CHAR :
+                Fatal( "Unable to decode JSON string '$value', unexpected control character found" );
+            case JSON_ERROR_STATE_MISMATCH :
+                Fatal( "Unable to decode JSON string '$value', invalid or malformed JSON" );
+            case JSON_ERROR_SYNTAX :
+                Fatal( "Unable to decode JSON string '$value', syntax error" );
+            default :
+                Fatal( "Unable to decode JSON string '$value', unexpected error ".json_last_error() );
+            case JSON_ERROR_NONE:
+                break;
+        }
     }
 }
 

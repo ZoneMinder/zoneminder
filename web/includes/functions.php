@@ -2350,13 +2350,21 @@ function generateConnKey()
     return( rand( 1, 999999 ) );
 }
 
+function detaintPath( $path )
+{
+    // Remove any absolute paths, or relative ones that want to go up
+    $path = preg_replace( '/\.\.\//', '', $path );
+    $path = preg_replace( '/^\//', '', $path );
+    return( $path );
+}
+
 function getSkinFile( $file )
 {
     global $skinBase;
     $skinFile = false;
     foreach ( $skinBase as $skin )
     {
-        $tempSkinFile = 'skins'.'/'.$skin.'/'.$file;
+        $tempSkinFile = detaintPath( 'skins'.'/'.$skin.'/'.$file );
         if ( file_exists( $tempSkinFile ) )
             $skinFile = $tempSkinFile;
     }
@@ -2369,7 +2377,7 @@ function getSkinIncludes( $file, $includeBase=false, $asOverride=false )
     $skinFile = false;
     foreach ( $skinBase as $skin )
     {
-        $tempSkinFile = 'skins'.'/'.$skin.'/'.$file;
+        $tempSkinFile = detaintPath( 'skins'.'/'.$skin.'/'.$file );
         if ( file_exists( $tempSkinFile ) )
             $skinFile = $tempSkinFile;
     }

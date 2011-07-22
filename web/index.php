@@ -97,10 +97,13 @@ require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
 
 if ( isset($_REQUEST['view']) )
-    $view = validHtmlStr($_REQUEST['view']);
+    $view = detaintPath($_REQUEST['view']);
+
+if ( isset($_REQUEST['request']) )
+    $request = detaintPath($_REQUEST['request']);
 
 if ( isset($_REQUEST['action']) )
-    $action = validHtmlStr($_REQUEST['action']);
+    $action = detaintPath($_REQUEST['action']);
 
 require_once( 'includes/actions.php' );
 
@@ -109,13 +112,10 @@ foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
 
 if ( isset( $_REQUEST['request'] ) )
 {
-    $request = validHtmlStr($_REQUEST['request']);
     foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile )
     {
         if ( !file_exists( $includeFile ) )
-        {
             Fatal( "Request '$request' does not exist" );
-        }
         require_once $includeFile;
     }
     return;
@@ -127,9 +127,7 @@ else
         foreach ( $includeFiles as $includeFile )
         {
             if ( !file_exists( $includeFile ) )
-            {
                 Fatal( "View '$view' does not exist" );
-            }
             require_once $includeFile;
         }
     }

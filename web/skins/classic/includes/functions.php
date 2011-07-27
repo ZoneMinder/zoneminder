@@ -40,6 +40,7 @@ function xhtmlHeaders( $file, $title )
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
+  <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="<?= $skinCssFile ?>" type="text/css" media="screen"/>
 <?php
     if ( $viewCssFile )

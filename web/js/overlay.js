@@ -4,14 +4,6 @@ var Overlay = new Class({
     {
         this.setOptions( options );
 
-        this.loadingImagePath = '/images/loading.gif';
-        this.loadingImageSize = { width: 208 , height: 13 };
-
-        //this.loadingImage = new Asset.image( this.loadingImagePath );
-        //this.loadingImage.setStyles( { 'height': this.loadingImageSize.height, 'width': this.loadingImageSize.width } );
-
-        this.styles = new Asset.css( "/css/overlay.css" );
-
         this.mask = new Mask( document.body, { 'maskMargins': false, 'class': 'overlayMask' } );
 
         this.id = id?id:'overlay';

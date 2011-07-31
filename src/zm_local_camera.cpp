@@ -296,7 +296,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
     
     if ( capture )
     {
-	    if ( device_prime )
+        if ( device_prime )
         {
             Debug( 2, "V4L support enabled, using V4L%d api", v4l_version );
         }
@@ -313,21 +313,6 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
         {
             // We are the second, or subsequent, input using this channel
             channel_prime = false;
-        }
-
-        if ( last_camera )
-        {
-            if ( (p_method == "v4l2" && v4l_version != 2) || (p_method == "v4l1" && v4l_version != 1) ) 
-                Fatal( "Different Video For Linux version used for monitors sharing same device" );
-
-            if ( standard != last_camera->standard )
-                Warning( "Different video standards defined for monitors sharing same device, results may be unpredictable or completely wrong" );
-
-            if ( palette != last_camera->palette )
-                Warning( "Different video palettes defined for monitors sharing same device, results may be unpredictable or completely wrong" );
-
-            if ( width != last_camera->width || height != last_camera->height )
-                Warning( "Different capture sizes defined for monitors sharing same device, results may be unpredictable or completely wrong" );
         }
         
     }
@@ -358,6 +343,22 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		}
 	}
 #endif
+	
+	if( capture ) {
+		if ( last_camera ) {
+			if ( (p_method == "v4l2" && v4l_version != 2) || (p_method == "v4l1" && v4l_version != 1) ) 
+				Fatal( "Different Video For Linux version used for monitors sharing same device" );
+			
+			if ( standard != last_camera->standard )
+				Warning( "Different video standards defined for monitors sharing same device, results may be unpredictable or completely wrong" );
+			
+			if ( palette != last_camera->palette )
+				Warning( "Different video palettes defined for monitors sharing same device, results may be unpredictable or completely wrong" );
+			
+			if ( width != last_camera->width || height != last_camera->height )
+				Warning( "Different capture sizes defined for monitors sharing same device, results may be unpredictable or completely wrong" );
+		}
+	}
 	
 #if HAVE_LIBSWSCALE
 	if( capture ) {

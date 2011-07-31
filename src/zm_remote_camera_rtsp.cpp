@@ -259,27 +259,6 @@ int RemoteCameraRtsp::Capture( Image &image )
 
             av_init_packet( &packet );
             
-<<<<<<< HEAD
-            while ( !frameComplete )
-            {
-                packet.data = buffer.head();
-                packet.size = buffer.size();
-                int len = avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet );
-                if ( len < 0 )
-                {
-                    Error( "Error while decoding frame %d", frameCount );
-                    Hexdump( Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size() );
-                    buffer.clear();
-                    continue;
-                }
-                Debug( 2, "Frame: %d - %d/%d", frameCount, len, buffer.size() );
-                //if ( buffer.size() < 400 )
-                    //Hexdump( 0, buffer.head(), buffer.size() );
-
-                if ( frameComplete )
-                {
-			Debug( 3, "Got frame %d", frameCount );
-=======
 	    while ( !frameComplete && buffer.size() > 0 )
 	    {
 		packet.data = buffer.head();
@@ -288,7 +267,7 @@ int RemoteCameraRtsp::Capture( Image &image )
 		if ( len < 0 )
 		{
 			Error( "Error while decoding frame %d", frameCount );
-			Hexdump( ZM_DBG_ERR, buffer.head(), buffer.size()>256?256:buffer.size() );
+			Hexdump( Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size() );
 			buffer.clear();
 			continue;
 		}
@@ -302,7 +281,6 @@ int RemoteCameraRtsp::Capture( Image &image )
             if ( frameComplete ) {
 	       
 		Debug( 3, "Got frame %d", frameCount );
->>>>>>> Some small changes
 			    
 		avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 			

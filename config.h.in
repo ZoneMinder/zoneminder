@@ -180,11 +180,11 @@
 /* Define to 1 if you have the <pcre/pcre.h> header file. */
 #undef HAVE_PCRE_PCRE_H
 
-/* Define to 1 if you have the <pthread.h> header file. */
-#undef HAVE_PTHREAD_H
-
 /* Define to 1 if you have the `posix_memalign' function. */
 #undef HAVE_POSIX_MEMALIGN
+
+/* Define to 1 if you have the <pthread.h> header file. */
+#undef HAVE_PTHREAD_H
 
 /* Define to 1 if you have the `putenv' function. */
 #undef HAVE_PUTENV
@@ -192,11 +192,11 @@
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT
 
-/* Define to 1 if you have the `sigaction' function. */
-#undef HAVE_SIGACTION
-
 /* Define to 1 if you have the `sendfile' function. */
 #undef HAVE_SENDFILE
+
+/* Define to 1 if you have the `sigaction' function. */
+#undef HAVE_SIGACTION
 
 /* Define to 1 if the system has the type `siginfo_t'. */
 #undef HAVE_SIGINFO_T

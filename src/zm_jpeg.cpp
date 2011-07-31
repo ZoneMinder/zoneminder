@@ -456,10 +456,10 @@ void zm_use_std_huff_tables( j_decompress_ptr cinfo ) {
 	  0
 	};
 	
-	cinfo->dc_huff_tbl_ptrs[0] = &dclumin;
-	cinfo->dc_huff_tbl_ptrs[1] = &dcchrome;
-	cinfo->ac_huff_tbl_ptrs[0] = &aclumin;
-	cinfo->ac_huff_tbl_ptrs[1] = &acchrome;
+	cinfo->dc_huff_tbl_ptrs[0] = (JHUFF_TBL*)&dclumin;
+	cinfo->dc_huff_tbl_ptrs[1] = (JHUFF_TBL*)&dcchrome;
+	cinfo->ac_huff_tbl_ptrs[0] = (JHUFF_TBL*)&aclumin;
+	cinfo->ac_huff_tbl_ptrs[1] = (JHUFF_TBL*)&acchrome;
 	
 }
 

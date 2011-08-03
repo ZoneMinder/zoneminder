@@ -199,12 +199,13 @@ sub getEventPath( $ )
     my $event_path = "";
     if ( ZM_USE_DEEP_STORAGE )
     {
-        $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) );
+        $event_path = ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) );
     }
     else
     {
-        $event_path = ZM_PATH_WEB.'/'.ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id};
+        $event_path = ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id};
     }
+    $event_path = ZM_PATH_WEB.'/'.$event_path if ( index(ZM_DIR_EVENTS,'/') != 0 );
     return( $event_path );
 }
 

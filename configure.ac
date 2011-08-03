@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(zm,1.25.0,http://www.zoneminder.com/forums/ (Please check FAQ first),ZoneMinder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.25.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],ZoneMinder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AM_CONFIG_HEADER(config.h)

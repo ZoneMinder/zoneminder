@@ -2353,8 +2353,8 @@ function generateConnKey()
 function detaintPath( $path )
 {
     // Remove any absolute paths, or relative ones that want to go up
-    $path = preg_replace( '/\.\.\//', '', $path );
-    $path = preg_replace( '/^\//', '', $path );
+    $path = preg_replace( '/\.\.+\/\/*/', '', $path );
+    $path = preg_replace( '/^\/\/*/', '', $path );
     return( $path );
 }
 

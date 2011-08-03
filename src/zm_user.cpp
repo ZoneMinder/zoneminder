@@ -23,6 +23,9 @@
 #include "zm_user.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 User::User()
 {
@@ -63,14 +66,10 @@ User::User( MYSQL_ROW &dbrow )
 			{
 				monitor_ids[n_monitor_ids++] = id;
 				if ( !*ptr )
-				{
 					break;
-				}
 			}
 			while ( !isdigit( *ptr ) )
-			{
 				ptr++;
-			}
 		} while( *ptr );
 		monitor_ids[n_monitor_ids] = 0;
 	}

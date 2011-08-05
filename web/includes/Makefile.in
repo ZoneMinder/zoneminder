@@ -67,8 +67,8 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(webdir)"
-DATA = $(dist_web_DATA)
+am__installdirs = "$(DESTDIR)$(webdir)" "$(DESTDIR)$(webdir)"
+DATA = $(dist_web_DATA) $(web_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
@@ -207,14 +207,19 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = gnu
 webdir = @WEB_PREFIX@/includes
+web_DATA = \
+	config.php
+
 dist_web_DATA = \
 	actions.php \
-	config.php.in \
 	database.php \
 	functions.php \
 	control_functions.php \
 	lang.php \
 	logger.php
+
+EXTRA_DIST = \
+	config.php.in
 
 all: all-am
 
@@ -271,6 +276,26 @@ uninstall-dist_webDATA:
 	test -n "$$files" || exit 0; \
 	echo " ( cd '$(DESTDIR)$(webdir)' && rm -f" $$files ")"; \
 	cd "$(DESTDIR)$(webdir)" && rm -f $$files
+install-webDATA: $(web_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(webdir)" || $(MKDIR_P) "$(DESTDIR)$(webdir)"
+	@list='$(web_DATA)'; test -n "$(webdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(webdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(webdir)" || exit $$?; \
+	done
+
+uninstall-webDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(web_DATA)'; test -n "$(webdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(webdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(webdir)" && rm -f $$files
 tags: TAGS
 TAGS:
 
@@ -312,7 +337,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(webdir)"; do \
+	for dir in "$(DESTDIR)$(webdir)" "$(DESTDIR)$(webdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -360,7 +385,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_webDATA
+install-data-am: install-dist_webDATA install-webDATA
 
 install-dvi: install-dvi-am
 
@@ -404,7 +429,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-dist_webDATA
+uninstall-am: uninstall-dist_webDATA uninstall-webDATA
 
 .MAKE: install-am install-strip
 
@@ -414,10 +439,11 @@ uninstall-am: uninstall-dist_webDATA
 	install-dist_webDATA install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
 	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	install-ps install-ps-am install-strip install-webDATA \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-generic pdf \
-	pdf-am ps ps-am uninstall uninstall-am uninstall-dist_webDATA
+	pdf-am ps ps-am uninstall uninstall-am uninstall-dist_webDATA \
+	uninstall-webDATA
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

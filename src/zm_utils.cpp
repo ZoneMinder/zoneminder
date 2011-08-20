@@ -166,7 +166,7 @@ void ssedetect() {
 	: "%eax", "%ebx"
 	);
 	
-	if (r_ecx & 0x00000100) {
+	if (r_ecx & 0x00000200) {
 		sseversion = 35; /* SSSE3 */
 		Debug(1,"Detected a x86\\x86-64 processor with SSSE3");
 	} else if (r_ecx & 0x00000001) {

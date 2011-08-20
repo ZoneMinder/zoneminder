@@ -141,14 +141,14 @@ void Image::Initialise()
 	if(config.fast_image_blends) {
 		if(config.cpu_extensions && sseversion >= 20) {
 			fptr_blend = &sse2_fastblend; /* SSE2 fast blend */
-			Debug(2,"Blend: using SSE2 fast blending");
+			Debug(2,"Blend: Using SSE2 fast blend function");
 		} else {
 			fptr_blend = &std_fastblend;  /* standard fast blend */
-			Debug(2,"Blend: using standard fast blending");
+			Debug(2,"Blend: Using fast blend function");
 		}
 	} else {
 		fptr_blend = &std_blend;
-		Debug(2,"Blend: using standard blending");
+		Debug(2,"Blend: Using standard blend function");
 	}
 	
 	__attribute__((aligned(16))) uint8_t blend1[16] = {142,255,159,91,88,227,0,52,37,80,152,97,104,252,90,82};
@@ -3547,7 +3547,6 @@ __attribute__ ((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint
 /* Converts a YUYV image into grayscale by extracting the Y channel */
 __attribute__ ((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	const uint16_t* yuvbuf = (const uint16_t*)col1;
-	
 	const uint8_t* const max_ptr = result + count;
 	
 	while(result < max_ptr) {

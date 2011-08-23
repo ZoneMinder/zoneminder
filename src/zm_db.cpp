@@ -31,9 +31,12 @@ void zmDbConnect()
 {
 	if ( !mysql_init( &dbconn ) )
 	{
-		Error( "Can't initialise structure: %s", mysql_error( &dbconn ) );
+		Error( "Can't initialise database connection: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
+    my_bool reconnect = 1;
+    if ( mysql_options( &dbconn, MYSQL_OPT_RECONNECT, &reconnect ) )
+        Fatal( "Can't set database auto reconnect option: %s", mysql_error( &dbconn ) );
     std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":/" );
     if ( colonIndex != std::string::npos )
     {

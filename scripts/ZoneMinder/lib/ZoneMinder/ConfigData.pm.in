@@ -878,7 +878,7 @@ our @options =
 		name => "ZM_UPLOAD_FTP_TIMEOUT",
 		default => "120",
 		description => "How long to allow the transfer to take for each file",
-		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the maximum ftp inactivity timeout (in seconds) that should be tolerated before ZoneMinder determiesn that the transfer has failed and closes down the connection.",
+		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the maximum ftp inactivity timeout (in seconds) that should be tolerated before ZoneMinder determines that the transfer has failed and closes down the connection.",
 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
 		type => $types{integer},
 		category => "ftp",

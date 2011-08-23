@@ -757,7 +757,7 @@ if ( !empty($action) )
                     case "logging" :
                     case "network" :
                     case "mail" :
-                    case "ftp" :
+                    case "upload" :
                         $restartWarning = true;
                         break;
                     case "highband" :

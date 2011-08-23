@@ -650,6 +650,7 @@ $SLANG = array(
     'UpdateAvailable'      => 'En updatering til ZoneMinder er tilstede.',
     'UpdateNotNecessary'   => 'Ingen updatering er nødvendig.',
     'Updated'              => 'Updated',                // Added - 2011-06-16
+    'Upload'               => 'Upload',                 // Added - 2011-08-23
     'UseFilter'            => 'Brug Filter',
     'UseFilterExprsPost'   => '&nbsp;filter&nbsp;expressions', // This is used at the end of the phrase 'use N filter expressions'
     'UseFilterExprsPre'    => 'Brug&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'

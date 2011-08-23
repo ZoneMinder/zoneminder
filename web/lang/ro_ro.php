@@ -620,6 +620,7 @@ $SLANG = array(
     'UpdateAvailable'      => 'Sunt disponibile actualiz&#259;ri ZoneMinder.',
     'UpdateNotNecessary'   => 'Actulizarea nu este necesar&#259;.',
     'Updated'              => 'Updated',                // Added - 2011-06-16
+    'Upload'               => 'Upload',                 // Added - 2011-08-23
     'UseFilter'            => 'Folose&#351;te filtru',
     'UseFilterExprsPost'   => '&nbsp;expresii&nbsp;de&nbsp;filtrare ', 
     'UseFilterExprsPre'    => 'Folose&#351;te&nbsp;', 

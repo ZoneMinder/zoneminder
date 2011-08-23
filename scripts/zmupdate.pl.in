@@ -951,6 +951,18 @@ if ( $version )
     {
         # Patch the database
         patchDB( $dbh, "1.24.4" );
+
+        # Copy the FTP specific values to the new general config
+        my $fetchSql = "select * from Config where Name like 'ZM_UPLOAD_FTP_%'";
+        my $fetchSth = $dbh->prepare_cached( $fetchSql ) or die( "Can't prepare '$fetchSql': ".$dbh->errstr() );
+        my $updateSql = "update Config set Value = ? where Name = ?";
+        my $updateSth = $dbh->prepare_cached( $updateSql ) or die( "Can't prepare '$updateSql': ".$dbh->errstr() );
+        my $fetchRes = $fetchSth->execute() or die( "Can't execute: ".$fetchSth->errstr() );
+        while( my $config = $fetchSth->fetchrow_hashref() )
+        {
+            ( my $name = $config->{Name} ) =~ s/_FTP_/_/;
+            my $updateRes = $updateSth->execute( $config->{Value}, $name ) or die( "Can't execute: ".$updateSth->errstr() );
+        }
         $cascade = !undef;
     }
     if ( $cascade )

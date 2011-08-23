@@ -90,129 +90,138 @@
 #define ZM_UPLOAD_ARCH_FORMAT 86
 #define ZM_UPLOAD_ARCH_COMPRESS 87
 #define ZM_UPLOAD_ARCH_ANALYSE 88
-#define ZM_UPLOAD_FTP_HOST 89
-#define ZM_UPLOAD_FTP_USER 90
-#define ZM_UPLOAD_FTP_PASS 91
-#define ZM_UPLOAD_FTP_LOC_DIR 92
-#define ZM_UPLOAD_FTP_REM_DIR 93
-#define ZM_UPLOAD_FTP_TIMEOUT 94
-#define ZM_UPLOAD_FTP_PASSIVE 95
-#define ZM_UPLOAD_FTP_DEBUG 96
-#define ZM_OPT_EMAIL 97
-#define ZM_EMAIL_ADDRESS 98
-#define ZM_EMAIL_TEXT 99
-#define ZM_EMAIL_SUBJECT 100
-#define ZM_EMAIL_BODY 101
-#define ZM_OPT_MESSAGE 102
-#define ZM_MESSAGE_ADDRESS 103
-#define ZM_MESSAGE_TEXT 104
-#define ZM_MESSAGE_SUBJECT 105
-#define ZM_MESSAGE_BODY 106
-#define ZM_NEW_MAIL_MODULES 107
-#define ZM_EMAIL_HOST 108
-#define ZM_FROM_EMAIL 109
-#define ZM_URL 110
-#define ZM_MAX_RESTART_DELAY 111
-#define ZM_WATCH_CHECK_INTERVAL 112
-#define ZM_WATCH_MAX_DELAY 113
-#define ZM_RUN_AUDIT 114
-#define ZM_AUDIT_CHECK_INTERVAL 115
-#define ZM_FORCED_ALARM_SCORE 116
-#define ZM_BULK_FRAME_INTERVAL 117
-#define ZM_EVENT_CLOSE_MODE 118
-#define ZM_FORCE_CLOSE_EVENTS 119
-#define ZM_CREATE_ANALYSIS_IMAGES 120
-#define ZM_WEIGHTED_ALARM_CENTRES 121
-#define ZM_EVENT_IMAGE_DIGITS 122
-#define ZM_DEFAULT_ASPECT_RATIO 123
-#define ZM_USER_SELF_EDIT 124
-#define ZM_OPT_FRAME_SERVER 125
-#define ZM_FRAME_SOCKET_SIZE 126
-#define ZM_OPT_CONTROL 127
-#define ZM_OPT_TRIGGERS 128
-#define ZM_CHECK_FOR_UPDATES 129
-#define ZM_UPDATE_CHECK_PROXY 130
-#define ZM_SHM_KEY 131
-#define ZM_WEB_REFRESH_METHOD 132
-#define ZM_WEB_EVENT_SORT_FIELD 133
-#define ZM_WEB_EVENT_SORT_ORDER 134
-#define ZM_WEB_EVENTS_PER_PAGE 135
-#define ZM_WEB_LIST_THUMBS 136
-#define ZM_WEB_LIST_THUMB_WIDTH 137
-#define ZM_WEB_LIST_THUMB_HEIGHT 138
-#define ZM_WEB_USE_OBJECT_TAGS 139
-#define ZM_WEB_H_REFRESH_MAIN 140
-#define ZM_WEB_H_REFRESH_CYCLE 141
-#define ZM_WEB_H_REFRESH_IMAGE 142
-#define ZM_WEB_H_REFRESH_STATUS 143
-#define ZM_WEB_H_REFRESH_EVENTS 144
-#define ZM_WEB_H_CAN_STREAM 145
-#define ZM_WEB_H_STREAM_METHOD 146
-#define ZM_WEB_H_DEFAULT_SCALE 147
-#define ZM_WEB_H_DEFAULT_RATE 148
-#define ZM_WEB_H_VIDEO_BITRATE 149
-#define ZM_WEB_H_VIDEO_MAXFPS 150
-#define ZM_WEB_H_SCALE_THUMBS 151
-#define ZM_WEB_H_EVENTS_VIEW 152
-#define ZM_WEB_H_SHOW_PROGRESS 153
-#define ZM_WEB_H_AJAX_TIMEOUT 154
-#define ZM_WEB_M_REFRESH_MAIN 155
-#define ZM_WEB_M_REFRESH_CYCLE 156
-#define ZM_WEB_M_REFRESH_IMAGE 157
-#define ZM_WEB_M_REFRESH_STATUS 158
-#define ZM_WEB_M_REFRESH_EVENTS 159
-#define ZM_WEB_M_CAN_STREAM 160
-#define ZM_WEB_M_STREAM_METHOD 161
-#define ZM_WEB_M_DEFAULT_SCALE 162
-#define ZM_WEB_M_DEFAULT_RATE 163
-#define ZM_WEB_M_VIDEO_BITRATE 164
-#define ZM_WEB_M_VIDEO_MAXFPS 165
-#define ZM_WEB_M_SCALE_THUMBS 166
-#define ZM_WEB_M_EVENTS_VIEW 167
-#define ZM_WEB_M_SHOW_PROGRESS 168
-#define ZM_WEB_M_AJAX_TIMEOUT 169
-#define ZM_WEB_L_REFRESH_MAIN 170
-#define ZM_WEB_L_REFRESH_CYCLE 171
-#define ZM_WEB_L_REFRESH_IMAGE 172
-#define ZM_WEB_L_REFRESH_STATUS 173
-#define ZM_WEB_L_REFRESH_EVENTS 174
-#define ZM_WEB_L_CAN_STREAM 175
-#define ZM_WEB_L_STREAM_METHOD 176
-#define ZM_WEB_L_DEFAULT_SCALE 177
-#define ZM_WEB_L_DEFAULT_RATE 178
-#define ZM_WEB_L_VIDEO_BITRATE 179
-#define ZM_WEB_L_VIDEO_MAXFPS 180
-#define ZM_WEB_L_SCALE_THUMBS 181
-#define ZM_WEB_L_EVENTS_VIEW 182
-#define ZM_WEB_L_SHOW_PROGRESS 183
-#define ZM_WEB_L_AJAX_TIMEOUT 184
-#define ZM_WEB_P_CAN_STREAM 185
-#define ZM_WEB_P_STREAM_METHOD 186
-#define ZM_WEB_P_DEFAULT_SCALE 187
-#define ZM_WEB_P_DEFAULT_RATE 188
-#define ZM_WEB_P_VIDEO_BITRATE 189
-#define ZM_WEB_P_VIDEO_MAXFPS 190
-#define ZM_WEB_P_SCALE_THUMBS 191
-#define ZM_WEB_P_AJAX_TIMEOUT 192
-#define ZM_DYN_LAST_VERSION 193
-#define ZM_DYN_CURR_VERSION 194
-#define ZM_DYN_DB_VERSION 195
-#define ZM_DYN_LAST_CHECK 196
-#define ZM_DYN_NEXT_REMINDER 197
-#define ZM_DYN_DONATE_REMINDER_TIME 198
-#define ZM_DYN_SHOW_DONATE_REMINDER 199
-#define ZM_EYEZM_DEBUG 200
-#define ZM_EYEZM_LOG_TO_FILE 201
-#define ZM_EYEZM_LOG_FILE 202
-#define ZM_EYEZM_EVENT_VCODEC 203
-#define ZM_EYEZM_FEED_VCODEC 204
-#define ZM_EYEZM_H264_DEFAULT_BR 205
-#define ZM_EYEZM_H264_DEFAULT_EVBR 206
-#define ZM_EYEZM_H264_TIMEOUT 207
-#define ZM_EYEZM_SEG_DURATION 208
+#define ZM_UPLOAD_PROTOCOL 89
+#define ZM_UPLOAD_FTP_HOST 90
+#define ZM_UPLOAD_HOST 91
+#define ZM_UPLOAD_PORT 92
+#define ZM_UPLOAD_FTP_USER 93
+#define ZM_UPLOAD_USER 94
+#define ZM_UPLOAD_FTP_PASS 95
+#define ZM_UPLOAD_PASS 96
+#define ZM_UPLOAD_FTP_LOC_DIR 97
+#define ZM_UPLOAD_LOC_DIR 98
+#define ZM_UPLOAD_FTP_REM_DIR 99
+#define ZM_UPLOAD_REM_DIR 100
+#define ZM_UPLOAD_FTP_TIMEOUT 101
+#define ZM_UPLOAD_TIMEOUT 102
+#define ZM_UPLOAD_FTP_PASSIVE 103
+#define ZM_UPLOAD_FTP_DEBUG 104
+#define ZM_UPLOAD_DEBUG 105
+#define ZM_OPT_EMAIL 106
+#define ZM_EMAIL_ADDRESS 107
+#define ZM_EMAIL_TEXT 108
+#define ZM_EMAIL_SUBJECT 109
+#define ZM_EMAIL_BODY 110
+#define ZM_OPT_MESSAGE 111
+#define ZM_MESSAGE_ADDRESS 112
+#define ZM_MESSAGE_TEXT 113
+#define ZM_MESSAGE_SUBJECT 114
+#define ZM_MESSAGE_BODY 115
+#define ZM_NEW_MAIL_MODULES 116
+#define ZM_EMAIL_HOST 117
+#define ZM_FROM_EMAIL 118
+#define ZM_URL 119
+#define ZM_MAX_RESTART_DELAY 120
+#define ZM_WATCH_CHECK_INTERVAL 121
+#define ZM_WATCH_MAX_DELAY 122
+#define ZM_RUN_AUDIT 123
+#define ZM_AUDIT_CHECK_INTERVAL 124
+#define ZM_FORCED_ALARM_SCORE 125
+#define ZM_BULK_FRAME_INTERVAL 126
+#define ZM_EVENT_CLOSE_MODE 127
+#define ZM_FORCE_CLOSE_EVENTS 128
+#define ZM_CREATE_ANALYSIS_IMAGES 129
+#define ZM_WEIGHTED_ALARM_CENTRES 130
+#define ZM_EVENT_IMAGE_DIGITS 131
+#define ZM_DEFAULT_ASPECT_RATIO 132
+#define ZM_USER_SELF_EDIT 133
+#define ZM_OPT_FRAME_SERVER 134
+#define ZM_FRAME_SOCKET_SIZE 135
+#define ZM_OPT_CONTROL 136
+#define ZM_OPT_TRIGGERS 137
+#define ZM_CHECK_FOR_UPDATES 138
+#define ZM_UPDATE_CHECK_PROXY 139
+#define ZM_SHM_KEY 140
+#define ZM_WEB_REFRESH_METHOD 141
+#define ZM_WEB_EVENT_SORT_FIELD 142
+#define ZM_WEB_EVENT_SORT_ORDER 143
+#define ZM_WEB_EVENTS_PER_PAGE 144
+#define ZM_WEB_LIST_THUMBS 145
+#define ZM_WEB_LIST_THUMB_WIDTH 146
+#define ZM_WEB_LIST_THUMB_HEIGHT 147
+#define ZM_WEB_USE_OBJECT_TAGS 148
+#define ZM_WEB_H_REFRESH_MAIN 149
+#define ZM_WEB_H_REFRESH_CYCLE 150
+#define ZM_WEB_H_REFRESH_IMAGE 151
+#define ZM_WEB_H_REFRESH_STATUS 152
+#define ZM_WEB_H_REFRESH_EVENTS 153
+#define ZM_WEB_H_CAN_STREAM 154
+#define ZM_WEB_H_STREAM_METHOD 155
+#define ZM_WEB_H_DEFAULT_SCALE 156
+#define ZM_WEB_H_DEFAULT_RATE 157
+#define ZM_WEB_H_VIDEO_BITRATE 158
+#define ZM_WEB_H_VIDEO_MAXFPS 159
+#define ZM_WEB_H_SCALE_THUMBS 160
+#define ZM_WEB_H_EVENTS_VIEW 161
+#define ZM_WEB_H_SHOW_PROGRESS 162
+#define ZM_WEB_H_AJAX_TIMEOUT 163
+#define ZM_WEB_M_REFRESH_MAIN 164
+#define ZM_WEB_M_REFRESH_CYCLE 165
+#define ZM_WEB_M_REFRESH_IMAGE 166
+#define ZM_WEB_M_REFRESH_STATUS 167
+#define ZM_WEB_M_REFRESH_EVENTS 168
+#define ZM_WEB_M_CAN_STREAM 169
+#define ZM_WEB_M_STREAM_METHOD 170
+#define ZM_WEB_M_DEFAULT_SCALE 171
+#define ZM_WEB_M_DEFAULT_RATE 172
+#define ZM_WEB_M_VIDEO_BITRATE 173
+#define ZM_WEB_M_VIDEO_MAXFPS 174
+#define ZM_WEB_M_SCALE_THUMBS 175
+#define ZM_WEB_M_EVENTS_VIEW 176
+#define ZM_WEB_M_SHOW_PROGRESS 177
+#define ZM_WEB_M_AJAX_TIMEOUT 178
+#define ZM_WEB_L_REFRESH_MAIN 179
+#define ZM_WEB_L_REFRESH_CYCLE 180
+#define ZM_WEB_L_REFRESH_IMAGE 181
+#define ZM_WEB_L_REFRESH_STATUS 182
+#define ZM_WEB_L_REFRESH_EVENTS 183
+#define ZM_WEB_L_CAN_STREAM 184
+#define ZM_WEB_L_STREAM_METHOD 185
+#define ZM_WEB_L_DEFAULT_SCALE 186
+#define ZM_WEB_L_DEFAULT_RATE 187
+#define ZM_WEB_L_VIDEO_BITRATE 188
+#define ZM_WEB_L_VIDEO_MAXFPS 189
+#define ZM_WEB_L_SCALE_THUMBS 190
+#define ZM_WEB_L_EVENTS_VIEW 191
+#define ZM_WEB_L_SHOW_PROGRESS 192
+#define ZM_WEB_L_AJAX_TIMEOUT 193
+#define ZM_WEB_P_CAN_STREAM 194
+#define ZM_WEB_P_STREAM_METHOD 195
+#define ZM_WEB_P_DEFAULT_SCALE 196
+#define ZM_WEB_P_DEFAULT_RATE 197
+#define ZM_WEB_P_VIDEO_BITRATE 198
+#define ZM_WEB_P_VIDEO_MAXFPS 199
+#define ZM_WEB_P_SCALE_THUMBS 200
+#define ZM_WEB_P_AJAX_TIMEOUT 201
+#define ZM_DYN_LAST_VERSION 202
+#define ZM_DYN_CURR_VERSION 203
+#define ZM_DYN_DB_VERSION 204
+#define ZM_DYN_LAST_CHECK 205
+#define ZM_DYN_NEXT_REMINDER 206
+#define ZM_DYN_DONATE_REMINDER_TIME 207
+#define ZM_DYN_SHOW_DONATE_REMINDER 208
+#define ZM_EYEZM_DEBUG 209
+#define ZM_EYEZM_LOG_TO_FILE 210
+#define ZM_EYEZM_LOG_FILE 211
+#define ZM_EYEZM_EVENT_VCODEC 212
+#define ZM_EYEZM_FEED_VCODEC 213
+#define ZM_EYEZM_H264_DEFAULT_BR 214
+#define ZM_EYEZM_H264_DEFAULT_EVBR 215
+#define ZM_EYEZM_H264_TIMEOUT 216
+#define ZM_EYEZM_SEG_DURATION 217
 
 
-#define ZM_MAX_CFG_ID 208
+#define ZM_MAX_CFG_ID 217
 
 #define ZM_CFG_DECLARE_LIST \
 	const char *lang_default;\
@@ -304,14 +313,23 @@
 	const char *upload_arch_format;\
 	bool upload_arch_compress;\
 	bool upload_arch_analyse;\
+	const char *upload_protocol;\
 	const char *upload_ftp_host;\
+	const char *upload_host;\
+	int upload_port;\
 	const char *upload_ftp_user;\
+	const char *upload_user;\
 	const char *upload_ftp_pass;\
+	const char *upload_pass;\
 	const char *upload_ftp_loc_dir;\
+	const char *upload_loc_dir;\
 	const char *upload_ftp_rem_dir;\
+	const char *upload_rem_dir;\
 	int upload_ftp_timeout;\
+	int upload_timeout;\
 	bool upload_ftp_passive;\
 	bool upload_ftp_debug;\
+	bool upload_debug;\
 	bool opt_email;\
 	const char *email_address;\
 	const char *email_text;\
@@ -516,14 +534,23 @@
 	upload_arch_format = (const char *)config.Item( ZM_UPLOAD_ARCH_FORMAT );\
 	upload_arch_compress = (bool)config.Item( ZM_UPLOAD_ARCH_COMPRESS );\
 	upload_arch_analyse = (bool)config.Item( ZM_UPLOAD_ARCH_ANALYSE );\
+	upload_protocol = (const char *)config.Item( ZM_UPLOAD_PROTOCOL );\
 	upload_ftp_host = (const char *)config.Item( ZM_UPLOAD_FTP_HOST );\
+	upload_host = (const char *)config.Item( ZM_UPLOAD_HOST );\
+	upload_port = (int)config.Item( ZM_UPLOAD_PORT );\
 	upload_ftp_user = (const char *)config.Item( ZM_UPLOAD_FTP_USER );\
+	upload_user = (const char *)config.Item( ZM_UPLOAD_USER );\
 	upload_ftp_pass = (const char *)config.Item( ZM_UPLOAD_FTP_PASS );\
+	upload_pass = (const char *)config.Item( ZM_UPLOAD_PASS );\
 	upload_ftp_loc_dir = (const char *)config.Item( ZM_UPLOAD_FTP_LOC_DIR );\
+	upload_loc_dir = (const char *)config.Item( ZM_UPLOAD_LOC_DIR );\
 	upload_ftp_rem_dir = (const char *)config.Item( ZM_UPLOAD_FTP_REM_DIR );\
+	upload_rem_dir = (const char *)config.Item( ZM_UPLOAD_REM_DIR );\
 	upload_ftp_timeout = (int)config.Item( ZM_UPLOAD_FTP_TIMEOUT );\
+	upload_timeout = (int)config.Item( ZM_UPLOAD_TIMEOUT );\
 	upload_ftp_passive = (bool)config.Item( ZM_UPLOAD_FTP_PASSIVE );\
 	upload_ftp_debug = (bool)config.Item( ZM_UPLOAD_FTP_DEBUG );\
+	upload_debug = (bool)config.Item( ZM_UPLOAD_DEBUG );\
 	opt_email = (bool)config.Item( ZM_OPT_EMAIL );\
 	email_address = (const char *)config.Item( ZM_EMAIL_ADDRESS );\
 	email_text = (const char *)config.Item( ZM_EMAIL_TEXT );\

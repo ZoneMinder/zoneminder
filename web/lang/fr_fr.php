@@ -649,6 +649,7 @@ $SLANG = array(
     'UpdateAvailable'      => 'Mise à jour de ZM dispo.',
     'UpdateNotNecessary'   => 'Pas de mise à jour dispo.',
     'Updated'              => 'Updated',                // Added - 2011-06-16
+    'Upload'               => 'Upload',                 // Added - 2011-08-23
     'UseFilter'            => 'Util. Filtre',
     'UseFilterExprsPost'   => '&nbsp;filter&nbsp;expressions', // This is used at the end of the phrase 'use N filter expressions'
     'UseFilterExprsPre'    => 'Util.&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'

@@ -50,6 +50,7 @@ use Time::HiRes qw/gettimeofday/;
 use Date::Manip;
 use Getopt::Long;
 use Data::Dumper;
+use Scalar::Util qw/tainted/;
 
 use constant EVENT_PATH => (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
 
@@ -69,7 +70,14 @@ if ( ZM_OPT_UPLOAD )
     {
         require Archive::Tar;
     }
-    require Net::FTP;
+    if ( ZM_UPLOAD_PROTOCOL eq "ftp" )
+    {
+        require Net::FTP;
+    }
+    else
+    {
+        require Net::SFTP::Foreign;
+    }
 }
 
 if ( ZM_OPT_EMAIL )
@@ -706,88 +714,113 @@ sub uploadArchFile
     my $filter = shift;
     my $event = shift;
 
-    if ( !ZM_UPLOAD_FTP_HOST )
+    if ( !ZM_UPLOAD_HOST )
     {
-        Error( "Cannot upload archive as no FTP host defined" );
+        Error( "Cannot upload archive as no upload host defined" );
         return( 0 );
     }
 
-    my $arch_file = ZM_UPLOAD_FTP_LOC_DIR.'/'.$event->{MonitorName}.'-'.$event->{Id};
-    my $arch_image_path = getEventPath( $event )."/".((ZM_UPLOAD_ARCH_ANALYSE)?'{*analyse,*capture}':'*capture').".jpg";
-    my @arch_image_files =  glob($arch_image_path);
+    my $archFile = $event->{MonitorName}.'-'.$event->{Id};
+    my $archImagePath = getEventPath( $event )."/".((ZM_UPLOAD_ARCH_ANALYSE)?'{*analyse,*capture}':'*capture').".jpg";
+    my @archImageFiles = glob($archImagePath);
+    my $archLocPath;
 
-    my $arch_error = 0;
+    my $archError = 0;
     if ( ZM_UPLOAD_ARCH_FORMAT eq "zip" )
     {
-        $arch_file .= '.zip';
+        $archFile .= '.zip';
+        $archLocPath = ZM_UPLOAD_LOC_DIR.'/'.$archFile;
         my $zip = Archive::Zip->new();
-        Info( "Creating upload file '$arch_file', ".int(@arch_image_files)." files\n" );
+        Info( "Creating upload file '$archLocPath', ".int(@archImageFiles)." files\n" );
 
         my $status = &AZ_OK;
-        foreach my $image_file ( @arch_image_files )
+        foreach my $imageFile ( @archImageFiles )
         {
-            Debug( "Adding $image_file\n" );
-            my $member = $zip->addFile( $image_file );
+            Debug( "Adding $imageFile\n" );
+            my $member = $zip->addFile( $imageFile );
             if ( !$member )
             {
-                Error( "Unable to add image file $image_file to zip archive $arch_file" );
-                $arch_error = 1;
+                Error( "Unable to add image file $imageFile to zip archive $archLocPath" );
+                $archError = 1;
                 last;
             }
             $member->desiredCompressionMethod( (ZM_UPLOAD_ARCH_COMPRESS)?&COMPRESSION_DEFLATED:&COMPRESSION_STORED );
         }
-        if ( !$arch_error )
+        if ( !$archError )
         {
-            $status = $zip->writeToFileNamed( $arch_file );
+            $status = $zip->writeToFileNamed( $archLocPath );
 
-            if ( $arch_error = ($status != &AZ_OK) )
+            if ( $archError = ($status != &AZ_OK) )
             {
                 Error( "Zip error: $status\n " );
             }
         }
         else
         {
-            Error( "Error adding images to zip archive $arch_file, not writing" );
+            Error( "Error adding images to zip archive $archLocPath, not writing" );
         }
     }
     elsif ( ZM_UPLOAD_ARCH_FORMAT eq "tar" )
     {
         if ( ZM_UPLOAD_ARCH_COMPRESS )
         {
-            $arch_file .= '.tar.gz';
+            $archFile .= '.tar.gz';
         }
         else
         {
-            $arch_file .= '.tar';
+            $archFile .= '.tar';
         }
-        Info( "Creating upload file '$arch_file', ".int(@arch_image_files)." files\n" );
+        $archLocPath = ZM_UPLOAD_LOC_DIR.'/'.$archFile;
+        Info( "Creating upload file '$archLocPath', ".int(@archImageFiles)." files\n" );
 
-        if ( $arch_error = !Archive::Tar->create_archive( $arch_file, ZM_UPLOAD_ARCH_COMPRESS, @arch_image_files ) )
+        if ( $archError = !Archive::Tar->create_archive( $archLocPath, ZM_UPLOAD_ARCH_COMPRESS, @archImageFiles ) )
         {
             Error( "Tar error: ".Archive::Tar->error()."\n " );
         }
     }
 
-    if ( $arch_error )
+    if ( $archError )
     {
         return( 0 );
     }
     else
     {
-        Info( "Uploading to ".ZM_UPLOAD_FTP_HOST."\n" );
-        my $ftp = Net::FTP->new( ZM_UPLOAD_FTP_HOST, Timeout=>ZM_UPLOAD_FTP_TIMEOUT, Passive=>ZM_UPLOAD_FTP_PASSIVE, Debug=>ZM_UPLOAD_FTP_DEBUG );
-        if ( !$ftp )
+        if ( ZM_UPLOAD_PROTOCOL eq "ftp" )
         {
-            warn( "Can't create ftp connection: $@" );
-            return( 0 );
+            Info( "Uploading to ".ZM_UPLOAD_HOST." using FTP\n" );
+            my $ftp = Net::FTP->new( ZM_UPLOAD_HOST, Timeout=>ZM_UPLOAD_TIMEOUT, Passive=>ZM_UPLOAD_FTP_PASSIVE, Debug=>ZM_UPLOAD_DEBUG );
+            if ( !$ftp )
+            {
+                Error( "Can't create FTP connection: $@" );
+                return( 0 );
+            }
+            $ftp->login( ZM_UPLOAD_USER, ZM_UPLOAD_PASS ) or Error( "FTP - Can't login" );
+            $ftp->binary() or Error( "FTP - Can't go binary" );
+            $ftp->cwd( ZM_UPLOAD_REM_DIR ) or Error( "FTP - Can't cwd" ) if ( ZM_UPLOAD_REM_DIR );
+            $ftp->put( $archLocPath ) or Error( "FTP - Can't upload '$archLocPath'" );
+            $ftp->quit() or Error( "FTP - Can't quit" );
         }
-
-        $ftp->login( ZM_UPLOAD_FTP_USER, ZM_UPLOAD_FTP_PASS ) or warn( "FTP - Can't login" );
-        $ftp->binary() or warn( "FTP - Can't go binary" );
-        $ftp->cwd( ZM_UPLOAD_FTP_REM_DIR ) or warn( "FTP - Can't cwd" );
-        $ftp->put( $arch_file ) or warn( "FTP - Can't upload '$arch_file'" );
-        $ftp->quit() or warn( "FTP - Can't quit" );
-        unlink( $arch_file );
+        else
+        {
+            my $host = ZM_UPLOAD_HOST;
+            $host .= ":".ZM_UPLOAD_PORT if ( ZM_UPLOAD_PORT );
+            Info( "Uploading to ".$host." using SFTP\n" );
+            my %sftpOptions = ( host=>ZM_UPLOAD_HOST, user=>ZM_UPLOAD_USER );
+            $sftpOptions{password} = ZM_UPLOAD_PASS if ( ZM_UPLOAD_PASS );
+            $sftpOptions{port} = ZM_UPLOAD_PORT if ( ZM_UPLOAD_PORT );
+            $sftpOptions{timeout} = ZM_UPLOAD_TIMEOUT if ( ZM_UPLOAD_TIMEOUT );
+            $sftpOptions{more} = [ '-o'=>'StrictHostKeyChecking=no' ];
+            $Net::SFTP::Foreign::debug = -1 if ( ZM_UPLOAD_DEBUG );
+            my $sftp = Net::SFTP::Foreign->new( ZM_UPLOAD_HOST, %sftpOptions );
+            if ( $sftp->error )
+            {
+                Error( "Can't create SFTP connection: ".$sftp->error );
+                return( 0 );
+            }
+            $sftp->setcwd( ZM_UPLOAD_REM_DIR ) or Error( "SFTP - Can't setcwd: ".$sftp->error ) if ( ZM_UPLOAD_REM_DIR );
+            $sftp->put( $archLocPath, $archFile ) or Error( "SFTP - Can't upload '$archLocPath': ".$sftp->error );
+        }
+        unlink( $archLocPath );
         my $sql = "update Events set Uploaded = 1 where Id = ?";
         my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( $event->{Id} ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
@@ -922,12 +955,12 @@ sub sendEmail
 
     if ( !ZM_FROM_EMAIL )
     {
-        warn( "No 'from' email address defined, not sending email" );
+        Error( "No 'from' email address defined, not sending email" );
         return( 0 );
     }
     if ( !ZM_EMAIL_ADDRESS )
     {
-        warn( "No email address defined, not sending email" );
+        Error( "No email address defined, not sending email" );
         return( 0 );
     }
 
@@ -995,7 +1028,7 @@ sub sendEmail
     };
     if ( $@ )
     {
-        warn( "Can't send email: $@" );
+        Error( "Can't send email: $@" );
         return( 0 );
     }
     else
@@ -1016,12 +1049,12 @@ sub sendMessage
 
     if ( !ZM_FROM_EMAIL )
     {
-        warn( "No 'from' email address defined, not sending message" );
+        Error( "No 'from' email address defined, not sending message" );
         return( 0 );
     }
     if ( !ZM_MESSAGE_ADDRESS )
     {
-        warn( "No message address defined, not sending message" );
+        Error( "No message address defined, not sending message" );
         return( 0 );
     }
 
@@ -1089,7 +1122,7 @@ sub sendMessage
     };
     if ( $@ )
     {
-        warn( "Can't send email: $@" );
+        Error( "Can't send email: $@" );
         return( 0 );
     }
     else

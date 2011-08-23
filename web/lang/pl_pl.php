@@ -649,6 +649,7 @@ $SLANG = array(
     'UpdateAvailable'      => 'Jest dostêpne uaktualnienie ZoneMinder ',
     'UpdateNotNecessary'   => 'Nie jest wymagane uaktualnienie',
     'Updated'              => 'Updated',                // Added - 2011-06-16
+    'Upload'               => 'Upload',                 // Added - 2011-08-23
     'UseFilter'            => 'U¿yj filtru',
     'UseFilterExprsPost'   => '&nbsp;wyra¿enie&nbsp;filtru', // This is used at the end of the phrase 'use N filter expressions'
     'UseFilterExprsPre'    => 'U¿yj&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'

@@ -649,6 +649,7 @@ $SLANG = array(
     'UpdateAvailable'      => 'ZoneMinderのｱｯﾌﾟﾃﾞｰﾄがあります',
     'UpdateNotNecessary'   => 'ｱｯﾌﾟﾃﾞｰﾄの必要はありません',
     'Updated'              => 'Updated',                // Added - 2011-06-16
+    'Upload'               => 'Upload',                 // Added - 2011-08-23
     'UseFilter'            => 'ﾌｨﾙﾀｰを使用してください',
     'UseFilterExprsPost'   => '&nbsp;ﾌｨﾙﾀｰ個数', // This is used at the end of the phrase 'use N filter expressions'
     'UseFilterExprsPre'    => '指定してください:&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'

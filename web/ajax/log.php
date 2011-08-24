@@ -64,7 +64,10 @@ switch ( $_REQUEST['task'] )
         $options = array();
         $where = array();
         foreach( $filter as $field=>$value )
-            $where[$field] = "$field = '".dbEscape($value)."'";
+            if ( $field == 'Level' )
+                $where[$field] = dbEscape($field)." <= ".dbEscape($value);
+            else
+                $where[$field] = dbEscape($field)." = '".dbEscape($value)."'";
         foreach( $filterFields as $field )
         {
             $sql = "select distinct $field from Logs where not isnull($field)";

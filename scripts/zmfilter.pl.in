@@ -332,7 +332,7 @@ sub getFilters
                     }
 
                     ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
-                    foreach my $temp_value ( split( '/["\'\s]*?,["\'\s]*?/', $stripped_value ) )
+                    foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) )
                     {
                         if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ )
                         {

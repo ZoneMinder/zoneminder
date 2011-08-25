@@ -56,7 +56,7 @@ my $fps = '';
 my $size = '';
 my $overwrite = 0;
 
-my @formats = split( '/\s+/', ZM_FFMPEG_FORMATS );
+my @formats = split( /\s+/, ZM_FFMPEG_FORMATS );
 for ( my $i = 0; $i < @formats; $i++ )
 {
 	if ( $i =~ /^(.+)\*$/ )

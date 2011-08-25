@@ -348,6 +348,7 @@ AC_PROG_PERL_MODULES(Module::Load,,AC_MSG_WARN(Module::Load is required for PTZ 
 AC_PROG_PERL_MODULES(Device::SerialPort,,AC_MSG_WARN(Device::SerialPort is required for RS232/RS485 PTZ camera control))
 AC_PROG_PERL_MODULES(Net::FTP,,AC_MSG_WARN(Net::FTP is required for automatic event uploading using ftp))
 AC_PROG_PERL_MODULES(Net::SFTP::Foreign,,AC_MSG_WARN(Net::SFTP::Foreign is required for automatic event uploading using sftp))
+AC_PROG_PERL_MODULES(Expect,,AC_MSG_WARN(Expect is required for automatic event uploading using sftp))
 AC_PROG_PERL_MODULES(Archive::Tar,,AC_MSG_WARN(Archive::Tar may be required for automatic event uploading))
 AC_PROG_PERL_MODULES(Archive::Zip,,AC_MSG_WARN(Archive::Zip may be required for automatic event uploading))
 AC_PROG_PERL_MODULES(Net::SMTP,,AC_MSG_WARN(Net::SMTP may be required for automatic event email notification))

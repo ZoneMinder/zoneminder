@@ -258,13 +258,13 @@ MAIN: while( $loop )
     redo MAIN if ( $cleaned );
 
     $cleaned = 0;
-    my $deleteMonitorSql = "delete from Monitors where Id = ?";
+    my $deleteMonitorSql = "delete low_priority from Monitors where Id = ?";
     my $deleteMonitorSth = $dbh->prepare_cached( $deleteMonitorSql ) or Fatal( "Can't prepare '$deleteMonitorSql': ".$dbh->errstr() );
-    my $deleteEventSql = "delete from Events where Id = ?";
+    my $deleteEventSql = "delete low_priority from Events where Id = ?";
     my $deleteEventSth = $dbh->prepare_cached( $deleteEventSql ) or Fatal( "Can't prepare '$deleteEventSql': ".$dbh->errstr() );
-    my $deleteFramesSql = "delete from Frames where EventId = ?";
+    my $deleteFramesSql = "delete low_priority from Frames where EventId = ?";
     my $deleteFramesSth = $dbh->prepare_cached( $deleteFramesSql ) or Fatal( "Can't prepare '$deleteFramesSql': ".$dbh->errstr() );
-    my $deleteStatsSql = "delete from Stats where EventId = ?";
+    my $deleteStatsSql = "delete low_priority from Stats where EventId = ?";
     my $deleteStatsSth = $dbh->prepare_cached( $deleteStatsSql ) or Fatal( "Can't prepare '$deleteStatsSql': ".$dbh->errstr() );
     while ( my ( $db_monitor, $db_events ) = each(%$db_monitors) )
     {
@@ -372,7 +372,7 @@ MAIN: while( $loop )
     # New audit to close any events that were left open for longer than MIN_AGE seconds
     my $selectUnclosedEventsSql = "select E.Id, max(F.TimeStamp) as EndTime, unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length, max(F.FrameId) as Frames, count(if(F.Score>0,1,NULL)) as AlarmFrames, sum(F.Score) as TotScore, max(F.Score) as MaxScore, M.EventPrefix as Prefix from Events as E left join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where isnull(E.Frames) or isnull(E.EndTime) group by E.Id having EndTime < (now() - interval ".MIN_AGE." second)"; 
     my $selectUnclosedEventsSth = $dbh->prepare_cached( $selectUnclosedEventsSql ) or Fatal( "Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr() );
-    my $updateUnclosedEventsSql = "update Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ?, Notes = concat_ws( ' ', Notes, ? ) where Id = ?";
+    my $updateUnclosedEventsSql = "update low_priority Events set Name = ?, EndTime = ?, Length = ?, Frames = ?, AlarmFrames = ?, TotScore = ?, AvgScore = ?, MaxScore = ?, Notes = concat_ws( ' ', Notes, ? ) where Id = ?";
     my $updateUnclosedEventsSth = $dbh->prepare_cached( $updateUnclosedEventsSql ) or Fatal( "Can't prepare '$updateUnclosedEventsSql': ".$dbh->errstr() );
     $res = $selectUnclosedEventsSth->execute() or Fatal( "Can't execute: ".$selectUnclosedEventsSth->errstr() );
     while( my $event = $selectUnclosedEventsSth->fetchrow_hashref() )
@@ -412,7 +412,7 @@ MAIN: while( $loop )
             $selectLogRowCountSth->finish();
             if ( $logRows > ZM_LOG_DATABASE_LIMIT )
             {
-                my $deleteLogByRowsSql = "delete from Logs order by TimeKey asc limit ?";
+                my $deleteLogByRowsSql = "delete low_priority from Logs order by TimeKey asc limit ?";
                 my $deleteLogByRowsSth = $dbh->prepare_cached( $deleteLogByRowsSql ) or Fatal( "Can't prepare '$deleteLogByRowsSql': ".$dbh->errstr() );
                 $res = $deleteLogByRowsSth->execute( $logRows - ZM_LOG_DATABASE_LIMIT ) or Fatal( "Can't execute: ".$deleteLogByRowsSth->errstr() );
                 aud_print( "Deleted ".$deleteLogByRowsSth->rows()." log table entries by count\n" ) if ( $deleteLogByRowsSth->rows() );
@@ -421,7 +421,7 @@ MAIN: while( $loop )
         else
         {
             # Time of record
-            my $deleteLogByTimeSql = "delete from Logs where TimeKey < unix_timestamp(now() - interval ".ZM_LOG_DATABASE_LIMIT.")";
+            my $deleteLogByTimeSql = "delete low_priority from Logs where TimeKey < unix_timestamp(now() - interval ".ZM_LOG_DATABASE_LIMIT.")";
             my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql ) or Fatal( "Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr() );
             $res = $deleteLogByTimeSth->execute() or Fatal( "Can't execute: ".$deleteLogByTimeSth->errstr() );
             aud_print( "Deleted ".$deleteLogByTimeSth->rows()." log table entries by time\n" ) if ( $deleteLogByTimeSth->rows() );

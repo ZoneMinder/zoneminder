@@ -50,7 +50,6 @@ use Time::HiRes qw/gettimeofday/;
 use Date::Manip;
 use Getopt::Long;
 use Data::Dumper;
-use Scalar::Util qw/tainted/;
 
 use constant EVENT_PATH => (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
 

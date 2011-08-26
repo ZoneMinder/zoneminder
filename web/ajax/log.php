@@ -4,23 +4,24 @@ switch ( $_REQUEST['task'] )
 {
     case 'create' :
     {
-        if ( !canEdit( 'System' ) )
-            ajaxError( 'Insufficient permissions to create new log entry' );
+        // Silently ignore bogus requests
+        if ( !empty($_POST['level']) && !empty($_POST['message']) )
+        {
+            logInit( array( 'id' => "web_js" ) );
 
-        logInit( array( 'id' => "web_js" ) );
+            $string = $_POST['message'];
+            $file = preg_replace( '/\w+:\/\/\w+\//', '', $_POST['file'] );
+            if ( !empty( $_POST['line'] ) )
+                $line = $_POST['line'];
+            else
+                $line = NULL;
 
-        $string = $_REQUEST['message'];
-        $file = preg_replace( '/\w+:\/\/\w+\//', '', $_REQUEST['file'] );
-        if ( !empty( $_REQUEST['line'] ) )
-            $line = $_REQUEST['line'];
-        else
-            $line = NULL;
-
-        $levels = array_flip(Logger::$codes);
-        if ( !isset($levels[$_REQUEST['level']]) )
-            Panic( "Unexpected logger level '".$_REQUEST['level']."'" );
-        $level = $levels[$_REQUEST['level']];
-        Logger::fetch()->logPrint( $level, $string, $file, $line );
+            $levels = array_flip(Logger::$codes);
+            if ( !isset($levels[$_POST['level']]) )
+                Panic( "Unexpected logger level '".$_POST['level']."'" );
+            $level = $levels[$_POST['level']];
+            Logger::fetch()->logPrint( $level, $string, $file, $line );
+        }
         ajaxResponse();
         break;
     }
@@ -29,12 +30,12 @@ switch ( $_REQUEST['task'] )
         if ( !canView( 'System' ) )
             ajaxError( 'Insufficient permissions to view log entries' );
 
-        $minTime = isset($_REQUEST['minTime'])?$_REQUEST['minTime']:NULL;
-        $maxTime = isset($_REQUEST['maxTime'])?$_REQUEST['maxTime']:NULL;
-        $limit = isset($_REQUEST['limit'])?$_REQUEST['limit']:1000;
-        $filter = isset($_REQUEST['filter'])?$_REQUEST['filter']:array();
-        $sortField = isset($_REQUEST['sortField'])?$_REQUEST['sortField']:'TimeKey';
-        $sortOrder = isset($_REQUEST['sortOrder'])?$_REQUEST['sortOrder']:'desc';
+        $minTime = isset($_POST['minTime'])?$_POST['minTime']:NULL;
+        $maxTime = isset($_POST['maxTime'])?$_POST['maxTime']:NULL;
+        $limit = isset($_POST['limit'])?$_POST['limit']:1000;
+        $filter = isset($_POST['filter'])?$_POST['filter']:array();
+        $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
+        $sortOrder = isset($_POST['sortOrder'])?$_POST['sortOrder']:'desc';
 
         $filterFields = array( 'Component', 'Pid', 'Level', 'File', 'Line' );
 
@@ -110,18 +111,18 @@ switch ( $_REQUEST['task'] )
         if ( !canView( 'System' ) )
             ajaxError( 'Insufficient permissions to export logs' );
 
-        $minTime = isset($_REQUEST['minTime'])?$_REQUEST['minTime']:NULL;
-        $maxTime = isset($_REQUEST['maxTime'])?$_REQUEST['maxTime']:NULL;
+        $minTime = isset($_POST['minTime'])?$_POST['minTime']:NULL;
+        $maxTime = isset($_POST['maxTime'])?$_POST['maxTime']:NULL;
         if ( !is_null($minTime) && !is_null($maxTime) && $minTime > $maxTime )
         {
             $tempTime = $minTime;
             $minTime = $maxTime;
             $maxTime = $tempTime;
         }
-        //$limit = isset($_REQUEST['limit'])?$_REQUEST['limit']:1000;
-        $filter = isset($_REQUEST['filter'])?$_REQUEST['filter']:array();
-        $sortField = isset($_REQUEST['sortField'])?$_REQUEST['sortField']:'TimeKey';
-        $sortOrder = isset($_REQUEST['sortOrder'])?$_REQUEST['sortOrder']:'asc';
+        //$limit = isset($_POST['limit'])?$_POST['limit']:1000;
+        $filter = isset($_POST['filter'])?$_POST['filter']:array();
+        $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
+        $sortOrder = isset($_POST['sortOrder'])?$_POST['sortOrder']:'asc';
 
         $sql = "select * from Logs";
         $where = array();
@@ -147,7 +148,7 @@ switch ( $_REQUEST['task'] )
             $sql.= " where ".join( " and ", $where );
         $sql .= " order by ".dbEscape($sortField)." ".dbEscape($sortOrder);
         //$sql .= " limit ".dbEscape($limit);
-        $format = isset($_REQUEST['format'])?$_REQUEST['format']:'text';
+        $format = isset($_POST['format'])?$_POST['format']:'text';
         switch( $format )
         {
             case 'text' :

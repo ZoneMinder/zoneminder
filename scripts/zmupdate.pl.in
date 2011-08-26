@@ -785,9 +785,9 @@ if ( $version )
             foreach my $dbFilter ( @dbFilters )
             {
                 my %filter_terms;
-                foreach my $filter_parm ( split( '&', $dbFilter->{Query} ) )
+                foreach my $filter_parm ( split( /&/, $dbFilter->{Query} ) )
                 {
-                    my( $key, $value ) = split( '=', $filter_parm, 2 );
+                    my( $key, $value ) = split( /=/, $filter_parm, 2 );
                     if ( $key )
                     {
                         $filter_terms{$key} = $value;

@@ -391,7 +391,7 @@ MAIN: while( $loop )
         aud_print( "Deleting ".int(@old_files)." old images\n" );
         my $untainted_old_files = join( ";", @old_files );
         ( $untainted_old_files ) = ( $untainted_old_files =~ /^(.*)$/ );
-        unlink( split( ";", $untainted_old_files ) );
+        unlink( split( /;/, $untainted_old_files ) );
     }
 
     # Now delete any old swap files

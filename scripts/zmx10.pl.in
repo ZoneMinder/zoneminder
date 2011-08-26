@@ -198,7 +198,7 @@ sub runServer
 				my $paddr = accept( CLIENT, SERVER );
 				my $message = <CLIENT>;
 
-				my ( $command, $unit_code ) = split( ';', $message );
+				my ( $command, $unit_code ) = split( /;/, $message );
 
 				my $device;
 				if ( defined($unit_code) )
@@ -432,7 +432,7 @@ sub loadTasks
 		if ( $monitor->{Activation} )
 		{
 			Debug( "$monitor->{Name} has active string '$monitor->{Activation}'\n" );
-			foreach my $code_string ( split( ',', $monitor->{Activation} ) )
+			foreach my $code_string ( split( /,/, $monitor->{Activation} ) )
 			{
 				#Debug( "Code string: $code_string\n" );
 				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -453,7 +453,7 @@ sub loadTasks
 		if ( $monitor->{AlarmInput} )
 		{
 			Debug( "$monitor->{Name} has alarm input string '$monitor->{AlarmInput}'\n" );
-			foreach my $code_string ( split( ',', $monitor->{AlarmInput} ) )
+			foreach my $code_string ( split( /,/, $monitor->{AlarmInput} ) )
 			{
 				#Debug( "Code string: $code_string\n" );
 				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -474,7 +474,7 @@ sub loadTasks
 		if ( $monitor->{AlarmOutput} )
 		{
 			Debug( "$monitor->{Name} has alarm output string '$monitor->{AlarmOutput}'\n" );
-			foreach my $code_string ( split( ',', $monitor->{AlarmOutput} ) )
+			foreach my $code_string ( split( /,/, $monitor->{AlarmOutput} ) )
 			{
 				#Debug( "Code string: $code_string\n" );
 				my ( $invert, $unit_code, $modifier, $limit ) = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );

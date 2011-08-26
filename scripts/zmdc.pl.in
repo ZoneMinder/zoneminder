@@ -269,7 +269,7 @@ sub run
 
                 next if ( !$message );
 
-                my ( $command, $daemon, @args ) = split( ';', $message );
+                my ( $command, $daemon, @args ) = split( /;/, $message );
 
                 if ( $command eq 'start' )
                 {

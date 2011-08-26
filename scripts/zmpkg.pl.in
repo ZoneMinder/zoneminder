@@ -64,9 +64,9 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot)$/ )
 		{
 			$state->{Name} = $command;
 			$state->{Definitions} = [];
-			foreach( split( ',', $state->{Definition} ) )
+			foreach( split( /,/, $state->{Definition} ) )
 			{
-				my ( $id, $function, $enabled ) = split( ':', $_ );
+				my ( $id, $function, $enabled ) = split( /:/, $_ );
 				push( @{$state->{Definitions}}, { Id=>$id, Function=>$function, Enabled=>$enabled } );
 			}
 			$command = 'state';

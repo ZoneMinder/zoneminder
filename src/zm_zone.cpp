@@ -68,13 +68,13 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	pg_image->Outline( 0xff, polygon );
 
 	ranges = new Range[monitor->Height()];
-	for ( int y = polygon.LoY(); y <= polygon.HiY(); y++)
+	for ( int y = 0; y < monitor->Height(); y++)
 	{
 		ranges[y].lo_x = -1;
 		ranges[y].hi_x = -1;
 		ranges[y].off_x = 0;
-		const uint8_t *ppoly = pg_image->Buffer( polygon.LoX(), y );
-		for ( int x = polygon.LoX(); x <= polygon.HiX(); x++, ppoly++ )
+		const uint8_t *ppoly = pg_image->Buffer( 0, y );
+		for ( int x = 0; x < monitor->Width(); x++, ppoly++ )
 		{
 			if ( *ppoly )
 			{
@@ -154,8 +154,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	
 	unsigned int lo_y = polygon.LoY();
 	unsigned int lo_x = polygon.LoX();
-	unsigned int hi_x = polygon.HiX()+1;
-	unsigned int hi_y = polygon.HiY()+1;
+	unsigned int hi_x = polygon.HiX();
+	unsigned int hi_y = polygon.HiY();
 
 	Debug( 4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label, lo_y, hi_y );
 	
@@ -168,10 +168,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	} */
 	std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
 	
-	if ( pixel_diff_count && alarm_pixels )
-		pixel_diff = pixel_diff_count/alarm_pixels;
-	Debug( 5, "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d", alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff );
-	
 	if ( config.record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
@@ -181,6 +177,10 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		}
 		diff_image->WriteJpeg( diag_path );
 	}
+	
+	if ( pixel_diff_count && alarm_pixels )
+		pixel_diff = pixel_diff_count/alarm_pixels;
+	Debug( 5, "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d", alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff );
 
 	if( alarm_pixels ) {
 		if( min_alarm_pixels && (alarm_pixels < min_alarm_pixels) ) {
@@ -195,7 +195,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		/* No alarmed pixels */
 		return (false);
 	}
-	
 	
 	score = (100*alarm_pixels)/polygon.Area();
 	if(score < 1)
@@ -265,6 +264,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		{
 			alarm_filter_pixels = alarm_pixels;
 		}
+		
 		if ( config.record_diag_images )
 		{
 			static char diag_path[PATH_MAX] = "";
@@ -274,23 +274,26 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 			diff_image->WriteJpeg( diag_path );
 		}
+		
 		Debug( 5, "Got %d filtered pixels, need %d -> %d", alarm_filter_pixels, min_filter_pixels, max_filter_pixels );
-
-		if ( !alarm_filter_pixels )
-        {
-            return( false );
-        }
-		if ( min_filter_pixels && (alarm_filter_pixels < min_filter_pixels) )
-        {
-            return( false );
-        }
-		if ( max_filter_pixels && (alarm_filter_pixels > max_filter_pixels) )
-        {
-            overload_count = overload_frames;
-            return( false );
-        }
-
+		
+		if( alarm_filter_pixels ) {
+			if( min_filter_pixels && (alarm_filter_pixels < min_filter_pixels) ) {
+				/* Not enough pixels alarmed */
+				return (false);
+			} else if( max_filter_pixels && (alarm_filter_pixels > max_filter_pixels) ) {
+				/* Too many pixels alarmed */
+				overload_count = overload_frames;
+				return (false);
+			}
+		} else {
+			/* No filtered pixels */
+			return (false);
+		}
+		
 		score = (100*alarm_filter_pixels)/(polygon.Area());
+		if(score < 1)
+			score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
 		Debug( 5, "Current score is %d", score );
 
 		if ( check_method >= BLOBS )
@@ -300,7 +303,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			BlobStats blob_stats[256];
 			memset( blob_stats, 0, sizeof(BlobStats)*256 );
 			uint8_t *spdiff;
-			int last_x, last_y;
+			uint8_t last_x, last_y;
 			BlobStats *bsx, *bsy;
 			BlobStats *bsm, *bss;
 			for ( int y = lo_y; y <= hi_y; y++ )
@@ -316,8 +319,20 @@ bool Zone::CheckAlarms( const Image *delta_image )
 						Debug( 9, "Got white pixel at %d,%d (%p)", x, y, pdiff );
 						//last_x = (x>lo_x)?*(pdiff-1):0;
 						//last_y = (y>lo_y&&x>=last_lo_x&&x<=last_hi_x)?*(pdiff-diff_width):0;
-						last_x = x>0?*(pdiff-1):0;
-						last_y = y>0?*(pdiff-diff_width):0;
+						
+						last_x = 0;
+						if(x > 0) {
+							if((x-1) >= lo_x) {
+								last_x = *(pdiff-1);
+							}
+						}
+						
+						last_y = 0;
+						if(y > 0) {
+							if((y-1) >= lo_y && ranges[(y-1)].lo_x <= x && ranges[(y-1)].hi_x >= x) {
+								last_y = *(pdiff-diff_width);
+							}
+						}
 						
 						if ( last_x )
 						{
@@ -332,6 +347,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									Debug( 9, "Matching neighbours, setting to %d", last_x );
 									// Add to the blob from the x side (either side really)
 									*pdiff = last_x;
+									alarm_blob_pixels++;
 									bsx->count++;
 									if ( x > bsx->hi_x ) bsx->hi_x = x;
 									if ( y > bsx->hi_y ) bsx->hi_y = y;
@@ -347,13 +363,13 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									Debug( 9, "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y );
 									// Now change all those pixels to the other setting
 									int changed = 0;
-									for ( int sy = bss->lo_y, psy = bss->lo_y-lo_y; sy <= bss->hi_y; sy++, psy++ )
+									for ( int sy = bss->lo_y; sy <= bss->hi_y; sy++)
 									{
-										int lo_sx = bss->lo_x>=ranges[psy].lo_x?bss->lo_x:ranges[psy].lo_x;
-										int hi_sx = bss->hi_x<=ranges[psy].hi_x?bss->hi_x:ranges[psy].hi_x;
+										int lo_sx = bss->lo_x>=ranges[sy].lo_x?bss->lo_x:ranges[sy].lo_x;
+										int hi_sx = bss->hi_x<=ranges[sy].hi_x?bss->hi_x:ranges[sy].hi_x;
 
-										Debug( 9, "Changing %d(%d), %d->%d", sy, psy, lo_sx, hi_sx );
-										Debug( 9, "Range %d(%d), %d->%d", sy, psy, ranges[psy].lo_x, ranges[psy].hi_x );
+										Debug( 9, "Changing %d, %d->%d", sy, lo_sx, hi_sx );
+										Debug( 9, "Range %d, %d->%d", sy, ranges[sy].lo_x, ranges[sy].hi_x );
 										spdiff = diff_buff + ((diff_width * sy) + lo_sx);
 										for ( int sx = lo_sx; sx <= hi_sx; sx++, spdiff++ )
 										{
@@ -367,6 +383,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 										}
 									}
 									*pdiff = bsm->tag;
+									alarm_blob_pixels++;
 									if ( !changed )
 									{
 										Info( "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d", bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y );
@@ -402,6 +419,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 								Debug( 9, "Setting to left neighbour %d", last_x );
 								// Add to the blob from the x side 
 								*pdiff = last_x;
+								alarm_blob_pixels++;
 								bsx->count++;
 								if ( x > bsx->hi_x ) bsx->hi_x = x;
 								if ( y > bsx->hi_y ) bsx->hi_y = y;
@@ -411,12 +429,14 @@ bool Zone::CheckAlarms( const Image *delta_image )
 						{
 							if ( last_y )
 							{
+								Debug( 9, "Top neighbour is %d", last_y );
 								Debug( 9, "Setting to top neighbour %d", last_y );
-
+								
 								// Add to the blob from the y side
 								BlobStats *bsy = &blob_stats[last_y];
 
 								*pdiff = last_y;
+								alarm_blob_pixels++;
 								bsy->count++;
 								if ( x > bsy->hi_x ) bsy->hi_x = x;
 								if ( y > bsy->hi_y ) bsy->hi_y = y;
@@ -464,6 +484,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									{
 										Debug( 9, "Creating new blob %d", i );
 										*pdiff = i;
+										alarm_blob_pixels++;
 										bs->tag = i;
 										bs->count++;
 										bs->lo_x = bs->hi_x = x;
@@ -496,10 +517,10 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			}
 
 			if ( !alarm_blobs )
-            {
-                return( false );
-            }
-			alarm_blob_pixels = alarm_filter_pixels;
+			{
+				return( false );
+			}
+			
 			Debug( 5, "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs );
 
 			// Now eliminate blobs under the threshold
@@ -553,21 +574,26 @@ bool Zone::CheckAlarms( const Image *delta_image )
 				}
 				diff_image->WriteJpeg( diag_path );
 			}
-			Debug( 5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs );
-
-			if ( !alarm_blobs )
-            {
-                return( false );
-            }
-			if ( min_blobs && (alarm_blobs < min_blobs) )
-            {
-                return( false );
-            }
-			if ( max_blobs && (alarm_blobs > max_blobs) )
-            {
-                overload_count = overload_frames;
-                return( false );
-            }
+			Debug( 5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs );           
+            
+			if( alarm_blobs ) {
+				if( min_blobs && (alarm_blobs < min_blobs) ) {
+					/* Not enough pixels alarmed */
+					return (false);
+				} else if(max_blobs && (alarm_blobs > max_blobs) ) {
+					/* Too many pixels alarmed */
+					overload_count = overload_frames;
+					return (false);
+				}
+			} else {
+				/* No blobs */
+				return (false);
+			}
+			
+			score = (100*alarm_blob_pixels)/(polygon.Area());
+			if(score < 1)
+				score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
+			Debug( 5, "Current score is %d", score );
 
 			alarm_lo_x = polygon.HiX()+1;
 			alarm_hi_x = polygon.LoX()-1;
@@ -613,8 +639,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					if ( alarm_hi_y < bs->hi_y ) alarm_hi_y = bs->hi_y;
 				}
 			}
-			score = ((100*alarm_blob_pixels)/int(sqrt((double)alarm_blobs)))/(polygon.Area());
-			Debug( 5, "Current score is %d", score );
 		}
 		else
 		{
@@ -656,10 +680,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 
 		if ( (type < PRECLUSIVE) && check_method >= BLOBS && config.create_analysis_images )
 		{
-			int lo_x = polygon.LoX();
-			int hi_x = polygon.HiX();
-			int lo_y = polygon.LoY();
-			int hi_y = polygon.HiY();
+
 			// First mask out anything we don't want
 			for ( int y = lo_y; y <= hi_y; y++ )
 			{
@@ -682,7 +703,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					}
 				}
 
-				ppoly = pg_image->Buffer( lo_gap, y );
+				ppoly = pg_image->Buffer( lo_x2, y );
 				for ( int x = lo_x2; x <= hi_x2; x++, pdiff++, ppoly++ )
 				{
 					if ( !*ppoly )

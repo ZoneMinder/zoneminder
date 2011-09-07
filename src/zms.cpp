@@ -86,10 +86,10 @@ int main( int argc, const char *argv[] )
 	}
 	
 	zmLoadConfig();
-	
-	ssedetect();
 
 	logInit( "zms" );
+	
+	ssedetect();
 
 	zmSetDefaultTermHandler();
 	zmSetDefaultDieHandler();

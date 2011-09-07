@@ -149,10 +149,10 @@ int main( int argc, char *argv[] )
 	}
 
 	zmLoadConfig();
-	
-	ssedetect();
 
 	logInit( log_id_string );
+	
+	ssedetect();
 
 	Monitor **monitors = 0;
 	int n_monitors = 0;

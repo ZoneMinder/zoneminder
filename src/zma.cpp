@@ -91,10 +91,10 @@ int main( int argc, char *argv[] )
 	snprintf( log_id_string, sizeof(log_id_string), "zma_m%d", id );
 
 	zmLoadConfig();
-	
-	ssedetect();
 
 	logInit( log_id_string );
+	
+	ssedetect();
 
 	Monitor *monitor = Monitor::Load( id, true, Monitor::ANALYSIS );
 

@@ -475,7 +475,7 @@ Image *Image::HighlightEdges( Rgb colour, const Box *limits )
 	for ( int y = lo_y; y <= hi_y; y++ )
 	{
 		uint8_t *p = &buffer[(y*width)+lo_x];
-		uint8_t *phigh = high_buff + ( lo_x * y );
+		uint8_t *phigh = high_buff + (((y * width) + lo_x) * 3);
 		for ( int x = lo_x; x <= hi_x; x++, p++, phigh += 3 )
 		{
 			bool edge = false;
@@ -1117,134 +1117,184 @@ bool Image::Crop( const Box &limits )
     return( Crop( limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY() ) );
 }
 
-
-/* At the moment only supports 8bit overlay for 24bit and 32bit images. */
+/* Not fully complete */
 void Image::Overlay( const Image &image )
 {
 	if ( !(width == image.width && height == image.height) )
-    {
-        Panic( "Attempt to overlay different sized images, expected %dx%d, got %dx%d", width, height, image.width, image.height );
-    }
-
-	unsigned char *pdest = buffer;
-	unsigned char *psrc = image.buffer;
-
-	if ( colours == ZM_COLOUR_GRAY8 )
 	{
-		if ( image.colours == ZM_COLOUR_GRAY8 )
+		Panic( "Attempt to overlay different sized images, expected %dx%d, got %dx%d", width, height, image.width, image.height );
+	}
+	
+	if( colours == image.colours && subpixelorder != image.subpixelorder ) {
+		Warning("Attempt to overlay images of same format but with different subpixel order.");
+	}
+	
+	/* Grayscale ontop of grayscale */
+	if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
+		const uint8_t* const max_ptr = buffer+size;
+		const uint8_t* psrc = image.buffer;
+		uint8_t* pdest = buffer;
+		
+		while( pdest < max_ptr )
 		{
-			while( pdest < (buffer+size) )
+			if ( *psrc )
 			{
+				*pdest = *psrc;
+			}
+			pdest++;
+			psrc++;
+		}
+	
+	/* RGB24 ontop of grayscale - convert to same format first */
+	} else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB24 ) {
+		Colourise(image.colours, image.subpixelorder);
+		
+		const uint8_t* const max_ptr = buffer+size;
+		const uint8_t* psrc = image.buffer;
+		uint8_t* pdest = buffer;
+		
+		while( pdest < max_ptr )
+		{
+			if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) )
+			{
+				RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
+				GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
+				BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+			}
+			pdest += 3;
+			psrc += 3;
+		}
+	
+	/* RGB32 ontop of grayscale - convert to same format first */
+	} else if( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB32 ) {
+		Colourise(image.colours, image.subpixelorder);
+		
+		const Rgb* const max_ptr = (Rgb*)(buffer+size);
+		const Rgb* prsrc = (Rgb*)image.buffer; 
+		Rgb* prdest = (Rgb*)buffer;
+		
+		if(subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+			/* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
+			while (prdest < max_ptr) {
+				if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) )
+				{
+					*prdest = *prsrc;
+				}
+				prdest++;
+				prsrc++;
+			}
+		} else {
+			/* ABGR\ARGB subpixel order - Alpha byte is first */
+			while (prdest < max_ptr) {
+				if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) )
+				{
+					*prdest = *prsrc;
+				}
+				prdest++;
+				prsrc++;
+			}
+		}
+	
+	/* Grayscale ontop of RGB24 */
+	} else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_GRAY8 ) {
+		const uint8_t* const max_ptr = buffer+size;
+		const uint8_t* psrc = image.buffer;
+		uint8_t* pdest = buffer;
+		
+		while( pdest < max_ptr )
+		{
+			if ( *psrc )
+			{
+				RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc;
+			}
+			pdest += 3;
+			psrc++;
+		}
+	
+	/* RGB24 ontop of RGB24 */
+	} else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB24 ) {
+		const uint8_t* const max_ptr = buffer+size;
+		const uint8_t* psrc = image.buffer;
+		uint8_t* pdest = buffer;
+		
+		while( pdest < max_ptr )
+		{
+			if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) )
+			{
+				RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
+				GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
+				BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
+			}
+			pdest += 3;
+			psrc += 3;
+		} 
+	
+	/* RGB32 ontop of RGB24 - TO BE DONE */
+	} else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB32 ) {
+		Error("Overlay of RGB32 ontop of RGB24 is not supported.");
+	
+	/* Grayscale ontop of RGB32 */
+	} else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_GRAY8 ) {
+		const Rgb* const max_ptr = (Rgb*)(buffer+size);
+		Rgb* prdest = (Rgb*)buffer;
+		const uint8_t* psrc = image.buffer;
+		
+		if(subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+			/* RGBA\BGRA subpixel order - Alpha byte is last */
+			while (prdest < max_ptr) {
 				if ( *psrc )
 				{
-					*pdest = *psrc;
+					RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc;
 				}
-				pdest++;
+				prdest++;
+				psrc++;
+			}
+		} else {
+			/* ABGR\ARGB subpixel order - Alpha byte is first */
+			while (prdest < max_ptr) {
+				if ( *psrc )
+				{
+					RED_PTR_ABGR(prdest) = GREEN_PTR_ABGR(prdest) = BLUE_PTR_ABGR(prdest) = *psrc;
+				}
+				prdest++;
 				psrc++;
 			}
 		}
-		else
-		{
-			Colourise(image.colours, image.subpixelorder);
-			
-			if(image.colours == ZM_COLOUR_RGB32) {
-				Rgb* prdest = (Rgb*)buffer;
-				const Rgb* prsrc = (Rgb*)image.buffer; 
-				const Rgb* const max_ptr = (Rgb*)(buffer+size);
-				if(image.subpixelorder == ZM_SUBPIX_ORDER_RGBA || image.subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-					/* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
-					while (prdest < max_ptr) {
-						if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) )
-						{
-							*prdest = *prsrc;
-						}
-						prdest++;
-						prsrc++;
-					}
-				} else {
-					/* ABGR\ARGB subpixel order - Alpha byte is first */
-					while (prdest < max_ptr) {
-						if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) )
-						{
-							*prdest = *prsrc;
-						}
-						prdest++;
-						prsrc++;
-					}
-				}
-			} else {
-				/* Assume RGB24\BGR24 */
-				while( pdest < (buffer+size) )
+	
+	/* RGB24 ontop of RGB32 - TO BE DONE */
+	} else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB24 ) {
+		Error("Overlay of RGB24 ontop of RGB32 is not supported.");
+	
+	/* RGB32 ontop of RGB32 */
+	} else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB32 ) {
+		const Rgb* const max_ptr = (Rgb*)(buffer+size);
+		Rgb* prdest = (Rgb*)buffer;
+		const Rgb* prsrc = (Rgb*)image.buffer; 
+		
+		if(image.subpixelorder == ZM_SUBPIX_ORDER_RGBA || image.subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+			/* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
+			while (prdest < max_ptr) {
+				if ( RED_PTR_RGBA(prsrc) || GREEN_PTR_RGBA(prsrc) || BLUE_PTR_RGBA(prsrc) )
 				{
-					if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) )
-					{
-						RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
-						GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
-						BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
-					}
-					psrc += 3;
-					pdest += 3;
+					*prdest = *prsrc;
 				}
+				prdest++;
+				prsrc++;
+			}
+		} else {
+			/* ABGR\ARGB subpixel order - Alpha byte is first */
+			while (prdest < max_ptr) {
+				if ( RED_PTR_ABGR(prsrc) || GREEN_PTR_ABGR(prsrc) || BLUE_PTR_ABGR(prsrc) )
+				{
+					*prdest = *prsrc;
+				}
+				prdest++;
+				prsrc++;
 			}
 		}
+	
 	}
-	else
-	{
-		if ( image.colours == ZM_COLOUR_GRAY8 )
-		{
-			if(colours == ZM_COLOUR_RGB32) {
-				Rgb* prdest = (Rgb*)buffer;
-				const Rgb* const max_ptr = (Rgb*)(buffer+size);
-				if(subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-					/* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
-					while (prdest < max_ptr) {
-						if ( *psrc )
-						{
-							RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc++;
-						}
-						prdest++;
-					}
-				} else {
-					/* ABGR\ARGB subpixel order - Alpha byte is first */
-					while (prdest < max_ptr) {
-						if ( *psrc )
-						{
-							RED_PTR_ABGR(prdest) = GREEN_PTR_ABGR(prdest) = BLUE_PTR_ABGR(prdest) = *psrc++;
-						}
-						prdest++;
-					}
-				}
-			} else {
-				/* Assume RGB24\BGR24 */
-				while( pdest < (buffer+size) )
-				{
-					if ( *psrc )
-					{
-						RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = *psrc++;
-					}
-					pdest += 3;
-				}
-			}
-		}
-		else
-		{
-
-			/* At the moment this function only supports 8bit overlay for 24bit and 32bit images.
-			** The code below is old and was not updated yet to support the new formats. this code assumes RGB24
-			*/
-			while( pdest < (buffer+size) )
-			{
-				if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) )
-				{
-					RED_PTR_RGBA(pdest) = RED_PTR_RGBA(psrc);
-					GREEN_PTR_RGBA(pdest) = GREEN_PTR_RGBA(psrc);
-					BLUE_PTR_RGBA(pdest) = BLUE_PTR_RGBA(psrc);
-				}
-				psrc += colours;
-				pdest += colours;
-			}
-		}
-	}
+	
 }
 
 /* RGB32 compatible: complete */

@@ -2566,7 +2566,7 @@ void Image::Scale( unsigned int factor )
 /************************************************* BLEND FUNCTIONS *************************************************/
 
 
-__attribute__ ((noinline)) void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
+__attribute__((noinline,__target__("sse2"))) void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	static uint32_t divider = 0;
 	static uint32_t clearmask = 0;
@@ -2631,7 +2631,7 @@ __attribute__ ((noinline)) void sse2_fastblend(const uint8_t* col1, const uint8_
 #endif
 }
 
-__attribute__ ((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
+__attribute__((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 	static int divider = 0;
 	static double current_blendpercent = 0.0;
 	const uint8_t* const max_ptr = result + count;
@@ -2685,7 +2685,7 @@ __attribute__ ((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t
 	}
 }
 
-__attribute__ ((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
+__attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 	double divide = blendpercent / 100.0;
 	double opacity = 1.0 - divide;
 	const uint8_t* const max_ptr = result + count;
@@ -2699,7 +2699,7 @@ __attribute__ ((noinline)) void std_blend(const uint8_t* col1, const uint8_t* co
 /************************************************* DELTA FUNCTIONS *************************************************/
 
 /* Grayscale */
-__attribute__ ((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 16 bytes (16 grayscale pixels) at a time */  
 	const uint8_t* const max_ptr = result + count;
 	
@@ -2728,7 +2728,7 @@ __attribute__ ((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint
 }
 
 /* RGB24: RGB */
-__attribute__ ((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
 	int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
@@ -2758,7 +2758,7 @@ __attribute__ ((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_
 }
 
 /* RGB24: BGR */
-__attribute__ ((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
 	int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
@@ -2788,7 +2788,7 @@ __attribute__ ((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_
 }
 
 /* RGB32: RGBA */
-__attribute__ ((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
 	int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
@@ -2818,7 +2818,7 @@ __attribute__ ((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8
 }
 
 /* RGB32: BGRA */
-__attribute__ ((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
 	int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
@@ -2848,7 +2848,7 @@ __attribute__ ((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8
 }
 
 /* RGB32: ARGB */
-__attribute__ ((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
 	int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
@@ -2878,7 +2878,7 @@ __attribute__ ((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8
 }
 
 /* RGB32: ABGR */
-__attribute__ ((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 	/* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
 	int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
@@ -2908,7 +2908,7 @@ __attribute__ ((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8
 }
 
 /* Grayscale SSE2 */
-__attribute__ ((noinline)) void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("sse2"))) void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 
 	__asm__ __volatile__ (
@@ -2936,7 +2936,7 @@ __attribute__ ((noinline)) void sse2_delta8_gray8(const uint8_t* col1, const uin
 }
 
 /* RGB32: RGBA SSE2 */
-__attribute__ ((noinline)) void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("sse2"))) void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
@@ -3005,7 +3005,7 @@ __attribute__ ((noinline)) void sse2_delta8_rgba(const uint8_t* col1, const uint
 }
 
 /* RGB32: BGRA SSE2 */
-__attribute__ ((noinline)) void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("sse2"))) void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
@@ -3074,7 +3074,7 @@ __attribute__ ((noinline)) void sse2_delta8_bgra(const uint8_t* col1, const uint
 }
 
 /* RGB32: ARGB SSE2 */
-__attribute__ ((noinline)) void sse2_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("sse2"))) void sse2_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
@@ -3144,7 +3144,7 @@ __attribute__ ((noinline)) void sse2_delta8_argb(const uint8_t* col1, const uint
 }
 
 /* RGB32: ABGR SSE2 */
-__attribute__ ((noinline)) void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("sse2"))) void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
@@ -3214,7 +3214,7 @@ __attribute__ ((noinline)) void sse2_delta8_abgr(const uint8_t* col1, const uint
 }
 
 /* RGB32: RGBA SSSE3 */
-__attribute__ ((noinline)) void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
@@ -3266,7 +3266,7 @@ __attribute__ ((noinline)) void ssse3_delta8_rgba(const uint8_t* col1, const uin
 }
 
 /* RGB32: BGRA SSSE3 */
-__attribute__ ((noinline)) void ssse3_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
@@ -3318,7 +3318,7 @@ __attribute__ ((noinline)) void ssse3_delta8_bgra(const uint8_t* col1, const uin
 }
 
 /* RGB32: ARGB SSSE3 */
-__attribute__ ((noinline)) void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
@@ -3371,7 +3371,7 @@ __attribute__ ((noinline)) void ssse3_delta8_argb(const uint8_t* col1, const uin
 }
 
 /* RGB32: ABGR SSSE3 */
-__attribute__ ((noinline)) void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
@@ -3427,7 +3427,7 @@ __attribute__ ((noinline)) void ssse3_delta8_abgr(const uint8_t* col1, const uin
 /************************************************* CONVERT FUNCTIONS *************************************************/
 
 /* RGB24 to grayscale */
-__attribute__ ((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
 	
@@ -3455,7 +3455,7 @@ __attribute__ ((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8
 }
 
 /* BGR24 to grayscale */
-__attribute__ ((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
 	
@@ -3483,7 +3483,7 @@ __attribute__ ((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8
 }
 
 /* RGBA to grayscale */
-__attribute__ ((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
 	
@@ -3511,7 +3511,7 @@ __attribute__ ((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint
 }
 
 /* BGRA to grayscale */
-__attribute__ ((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
 	
@@ -3539,7 +3539,7 @@ __attribute__ ((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint
 }
 
 /* ARGB to grayscale */
-__attribute__ ((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
 	
@@ -3567,7 +3567,7 @@ __attribute__ ((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint
 }
 
 /* ABGR to grayscale */
-__attribute__ ((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
 	const uint8_t* const max_ptr = result + count;
 	
@@ -3595,7 +3595,7 @@ __attribute__ ((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint
 }
 
 /* Converts a YUYV image into grayscale by extracting the Y channel */
-__attribute__ ((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	const uint16_t* yuvbuf = (const uint16_t*)col1;
 	const uint8_t* const max_ptr = result + count;
 	
@@ -3623,7 +3623,7 @@ __attribute__ ((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint
 }
 
 /* RGBA to grayscale SSSE3 */
-__attribute__ ((noinline)) void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 
 	__asm__ __volatile__ (
@@ -3669,7 +3669,7 @@ __attribute__ ((noinline)) void ssse3_convert_rgba_gray8(const uint8_t* col1, ui
 }
 
 /* Converts a YUYV image into grayscale by extracting the Y channel */
-__attribute__ ((noinline)) void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	unsigned long i = 0;
   
@@ -3714,7 +3714,7 @@ __attribute__ ((noinline)) void ssse3_convert_yuyv_gray8(const uint8_t* col1, ui
 }
 
 /* YUYV to RGB24 - relocated from zm_local_camera.cpp */
-__attribute__ ((noinline)) void zm_convert_yuyv_rgb(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void zm_convert_yuyv_rgb(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;
 	unsigned int y1,y2,u,v;
 	for(unsigned int i=0; i < count; i += 2, col1 += 4, result += 6) {
@@ -3743,7 +3743,7 @@ __attribute__ ((noinline)) void zm_convert_yuyv_rgb(const uint8_t* col1, uint8_t
 }
 
 /* YUYV to RGBA - modified the one above */
-__attribute__ ((noinline)) void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;
 	unsigned int y1,y2,u,v;
 	for(unsigned int i=0; i < count; i += 2, col1 += 4, result += 8) {
@@ -3772,7 +3772,7 @@ __attribute__ ((noinline)) void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_
 }
 
 /* RGB555 to RGB24 - relocated from zm_local_camera.cpp */
-__attribute__ ((noinline)) void zm_convert_rgb555_rgb(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void zm_convert_rgb555_rgb(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
 	for(unsigned int i=0; i < count; i++, col1 += 2, result += 3) {  
 		b = ((*col1)<<3)&0xf8;
@@ -3785,7 +3785,7 @@ __attribute__ ((noinline)) void zm_convert_rgb555_rgb(const uint8_t* col1, uint8
 }
 
 /* RGB555 to RGBA - modified the one above */
-__attribute__ ((noinline)) void zm_convert_rgb555_rgba(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void zm_convert_rgb555_rgba(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
 	for(unsigned int i=0; i < count; i++, col1 += 2, result += 4) {  
 		b = ((*col1)<<3)&0xf8;
@@ -3798,7 +3798,7 @@ __attribute__ ((noinline)) void zm_convert_rgb555_rgba(const uint8_t* col1, uint
 }
 
 /* RGB565 to RGB24 - relocated from zm_local_camera.cpp */
-__attribute__ ((noinline)) void zm_convert_rgb565_rgb(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void zm_convert_rgb565_rgb(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
 	for(unsigned int i=0; i < count; i++, col1 += 2, result += 3) {  
 		b = ((*col1)<<3)&0xf8;
@@ -3811,7 +3811,7 @@ __attribute__ ((noinline)) void zm_convert_rgb565_rgb(const uint8_t* col1, uint8
 }
 
 /* RGB565 to RGBA - modified the one above */
-__attribute__ ((noinline)) void zm_convert_rgb565_rgba(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void zm_convert_rgb565_rgba(const uint8_t* col1, uint8_t* result, unsigned long count) {
 	unsigned int r,g,b;  
 	for(unsigned int i=0; i < count; i++, col1 += 2, result += 4) {  
 		b = ((*col1)<<3)&0xf8;

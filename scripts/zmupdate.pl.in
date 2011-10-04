@@ -420,7 +420,7 @@ if ( $version )
         $command .= " ".ZM_DB_NAME." < ";
         if ( $updateDir )
         {
-            $command -= $updateDir;
+            $command .= $updateDir;
         }
         else
         {

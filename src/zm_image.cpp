@@ -1117,7 +1117,8 @@ bool Image::Crop( const Box &limits )
     return( Crop( limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY() ) );
 }
 
-/* Not fully complete */
+/* Far from complete */
+/* Need to implement all possible of overlays possible */
 void Image::Overlay( const Image &image )
 {
 	if ( !(width == image.width && height == image.height) )
@@ -1125,11 +1126,7 @@ void Image::Overlay( const Image &image )
 		Panic( "Attempt to overlay different sized images, expected %dx%d, got %dx%d", width, height, image.width, image.height );
 	}
 	
-	if( colours == image.colours && subpixelorder != image.subpixelorder ) {
-		Warning("Attempt to overlay images of same format but with different subpixel order.");
-	}
-	
-	/* Grayscale ontop of grayscale */
+	/* Grayscale ontop of grayscale - complete */
 	if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
 		const uint8_t* const max_ptr = buffer+size;
 		const uint8_t* psrc = image.buffer;
@@ -1145,7 +1142,7 @@ void Image::Overlay( const Image &image )
 			psrc++;
 		}
 	
-	/* RGB24 ontop of grayscale - convert to same format first */
+	/* RGB24 ontop of grayscale - convert to same format first - complete */
 	} else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB24 ) {
 		Colourise(image.colours, image.subpixelorder);
 		
@@ -1165,7 +1162,7 @@ void Image::Overlay( const Image &image )
 			psrc += 3;
 		}
 	
-	/* RGB32 ontop of grayscale - convert to same format first */
+	/* RGB32 ontop of grayscale - convert to same format first - complete */
 	} else if( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB32 ) {
 		Colourise(image.colours, image.subpixelorder);
 		
@@ -1195,7 +1192,7 @@ void Image::Overlay( const Image &image )
 			}
 		}
 	
-	/* Grayscale ontop of RGB24 */
+	/* Grayscale ontop of RGB24 - complete */
 	} else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_GRAY8 ) {
 		const uint8_t* const max_ptr = buffer+size;
 		const uint8_t* psrc = image.buffer;
@@ -1211,7 +1208,7 @@ void Image::Overlay( const Image &image )
 			psrc++;
 		}
 	
-	/* RGB24 ontop of RGB24 */
+	/* RGB24 ontop of RGB24 - not complete. need to take care of different subpixel orders */
 	} else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB24 ) {
 		const uint8_t* const max_ptr = buffer+size;
 		const uint8_t* psrc = image.buffer;
@@ -1233,7 +1230,7 @@ void Image::Overlay( const Image &image )
 	} else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB32 ) {
 		Error("Overlay of RGB32 ontop of RGB24 is not supported.");
 	
-	/* Grayscale ontop of RGB32 */
+	/* Grayscale ontop of RGB32 - complete */
 	} else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_GRAY8 ) {
 		const Rgb* const max_ptr = (Rgb*)(buffer+size);
 		Rgb* prdest = (Rgb*)buffer;
@@ -1265,7 +1262,7 @@ void Image::Overlay( const Image &image )
 	} else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB24 ) {
 		Error("Overlay of RGB24 ontop of RGB32 is not supported.");
 	
-	/* RGB32 ontop of RGB32 */
+	/* RGB32 ontop of RGB32 - not complete. need to take care of different subpixel orders */
 	} else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB32 ) {
 		const Rgb* const max_ptr = (Rgb*)(buffer+size);
 		Rgb* prdest = (Rgb*)buffer;

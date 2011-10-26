@@ -400,7 +400,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		/* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
 		} else {
 			if( capture )
-				Warning("No match for the selected palette and colourspace. Conversion required, performance penalty expected");
+				Info("No direct match for the selected palette and target colorspace. Format conversion is required, performance penalty expected");
 #if HAVE_LIBSWSCALE
 			/* Try using swscale for the conversion */
 			conversion_type = 1; 
@@ -479,7 +479,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 					conversion_fptr = &zm_convert_rgb565_rgba;
 					subpixelorder = ZM_SUBPIX_ORDER_RGBA;
 				} else {
-					Fatal("Unable to find suitable conversion for selected palette and target colourspace.");
+					Fatal("Unable to find a suitable format conversion for the selected palette and target colorspace.");
 				}
 			}
 		}
@@ -516,7 +516,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		/* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
 		} else {
 			if( capture )
-				Warning("No match for the selected palette and colourspace. Conversion required, performance penalty expected");  
+				Info("No direct match for the selected palette and target colorspace. Format conversion is required, performance penalty expected");
 #if HAVE_LIBSWSCALE
 			/* Try using swscale for the conversion */
 			conversion_type = 1; 
@@ -591,7 +591,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 					conversion_fptr = &zm_convert_rgb565_rgba;
 					subpixelorder = ZM_SUBPIX_ORDER_RGBA;
 				} else {
-					Panic("Unable to find suitable conversion for selected palette and target colourspace.");
+					Fatal("Unable to find a suitable format conversion for the selected palette and target colorspace.");
 				}
 			}
 		}
@@ -745,8 +745,11 @@ void LocalCamera::Initialise()
 	v4l2_jpegcompression jpeg_comp;
 	if(palette == V4L2_PIX_FMT_JPEG || palette == V4L2_PIX_FMT_MJPEG) {
 		if( vidioctl( vid_fd, VIDIOC_G_JPEGCOMP, &jpeg_comp ) < 0 ) {
-			Warning("Failed to get JPEG compression options: %s", strerror(errno) );
-			
+			if(errno == EINVAL) {
+				Debug(2,"JPEG compression options are not available", strerror(errno) );
+			} else {
+				Warning("Failed to get JPEG compression options: %s", strerror(errno) );
+			}
 		} else {
 			/* Set flags and quality. MJPEG should not have the huffman tables defined */
 			if(palette == V4L2_PIX_FMT_MJPEG) {

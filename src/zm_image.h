@@ -226,7 +226,7 @@ public:
 
 	const Coord centreCoord( const char *text ) const;
 	void Annotate( const char *p_text, const Coord &coord,  const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
-	Image *HighlightEdges( Rgb colour, const Box *limits=0 );
+	Image *HighlightEdges( Rgb colour, int p_colours, int p_subpixelorder, const Box *limits=0 );
 	//Image *HighlightEdges( Rgb colour, const Polygon &polygon );
 	void Timestamp( const char *label, const time_t when, const Coord &coord );
 	void Colourise(const int p_reqcolours, const int p_reqsubpixelorder);

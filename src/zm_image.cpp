@@ -457,43 +457,100 @@ void Image::Assign( const Image &image ) {
 		(*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
 
-/* RGB24 only */
-Image *Image::HighlightEdges( Rgb colour, const Box *limits )
+Image *Image::HighlightEdges( Rgb colour, int p_colours, int p_subpixelorder, const Box *limits )
 {
 	if ( colours != ZM_COLOUR_GRAY8 )
 	{
 		Panic( "Attempt to highlight image edges when colours = %d", colours );
 	}
 	
-	Image *high_image = new Image( width, height, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-	uint8_t* high_buff = high_image->WriteBuffer(width, height, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+	/* Convert the colour's RGBA subpixel order into the image's subpixel order */
+	colour = rgb_convert(colour,p_subpixelorder);
+	
+	/* Create a new image of the target format */
+	Image *high_image = new Image( width, height, p_colours, p_subpixelorder );
+	uint8_t* high_buff = high_image->WriteBuffer(width, height, p_colours, p_subpixelorder);
+	
+	/* Set image to all black */
+	high_image->Clear();
 
 	int lo_x = limits?limits->Lo().X():0;
 	int lo_y = limits?limits->Lo().Y():0;
 	int hi_x = limits?limits->Hi().X():width-1;
 	int hi_y = limits?limits->Hi().Y():height-1;
-	for ( int y = lo_y; y <= hi_y; y++ )
+	
+	if ( p_colours == ZM_COLOUR_GRAY8 )
 	{
-		uint8_t *p = &buffer[(y*width)+lo_x];
-		uint8_t *phigh = high_buff + (((y * width) + lo_x) * 3);
-		for ( int x = lo_x; x <= hi_x; x++, p++, phigh += 3 )
+		for ( int y = lo_y; y <= hi_y; y++ )
 		{
-			bool edge = false;
-			if ( *p )
+			const uint8_t* p = buffer + (y * width) + lo_x;
+			uint8_t* phigh = high_buff + (y * width) + lo_x;
+			for ( int x = lo_x; x <= hi_x; x++, p++, phigh++ )
 			{
-				if ( !edge && x > 0 && !*(p-1) ) edge = true;
-				if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-				if ( !edge && y > 0 && !*(p-width) ) edge = true;
-				if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
-			}
-			if ( edge )
-			{
-				RED_PTR_RGBA(phigh) = RED_VAL_RGBA(colour);
-				GREEN_PTR_RGBA(phigh) = GREEN_VAL_RGBA(colour);
-				BLUE_PTR_RGBA(phigh) = BLUE_VAL_RGBA(colour);
+				bool edge = false;
+				if ( *p )
+				{
+					if ( !edge && x > 0 && !*(p-1) ) edge = true;
+					if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
+					if ( !edge && y > 0 && !*(p-width) ) edge = true;
+					if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
+				}
+				if ( edge )
+				{
+					*phigh = colour;
+				}
 			}
 		}
 	}
+	else if ( p_colours == ZM_COLOUR_RGB24 )
+	{
+		for ( int y = lo_y; y <= hi_y; y++ )
+		{
+			const uint8_t* p = buffer + (y * width) + lo_x;
+			uint8_t* phigh = high_buff + (((y * width) + lo_x) * 3);
+			for ( int x = lo_x; x <= hi_x; x++, p++, phigh += 3 )
+			{
+				bool edge = false;
+				if ( *p )
+				{
+					if ( !edge && x > 0 && !*(p-1) ) edge = true;
+					if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
+					if ( !edge && y > 0 && !*(p-width) ) edge = true;
+					if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
+				}
+				if ( edge )
+				{
+					RED_PTR_RGBA(phigh) = RED_VAL_RGBA(colour);
+					GREEN_PTR_RGBA(phigh) = GREEN_VAL_RGBA(colour);
+					BLUE_PTR_RGBA(phigh) = BLUE_VAL_RGBA(colour);
+				}
+			}
+		}
+	}
+	else if ( p_colours == ZM_COLOUR_RGB32 )
+	{
+		for ( int y = lo_y; y <= hi_y; y++ )
+		{
+			const uint8_t* p = buffer + (y * width) + lo_x;
+			Rgb* phigh = (Rgb*)(high_buff + (((y * width) + lo_x) * 4));
+			for ( int x = lo_x; x <= hi_x; x++, p++, phigh++ )
+			{
+				bool edge = false;
+				if ( *p )
+				{
+					if ( !edge && x > 0 && !*(p-1) ) edge = true;
+					if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
+					if ( !edge && y > 0 && !*(p-width) ) edge = true;
+					if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
+				}
+				if ( edge )
+				{
+					*phigh = colour;
+				}
+			}
+		}
+	}
+	
 	return( high_image );
 }
 
@@ -1126,6 +1183,10 @@ void Image::Overlay( const Image &image )
 		Panic( "Attempt to overlay different sized images, expected %dx%d, got %dx%d", width, height, image.width, image.height );
 	}
 	
+	if( colours == image.colours && subpixelorder != image.subpixelorder ) {
+		Warning("Attempt to overlay images of same format but with different subpixel order.");
+	}
+	
 	/* Grayscale ontop of grayscale - complete */
 	if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
 		const uint8_t* const max_ptr = buffer+size;
@@ -1289,7 +1350,6 @@ void Image::Overlay( const Image &image )
 				prsrc++;
 			}
 		}
-	
 	}
 	
 }

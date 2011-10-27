@@ -725,7 +725,13 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					}
 				}
 			}
-			image = diff_image->HighlightEdges( alarm_rgb, &polygon.Extent() );
+			
+			if( monitor->Colours() == ZM_COLOUR_GRAY8 ) {
+				image = diff_image->HighlightEdges( alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent() );
+			} else {
+				image = diff_image->HighlightEdges( alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent() );
+			}
+			
 			// Only need to delete this when 'image' becomes detached and points somewhere else
 			delete diff_image;
 		}

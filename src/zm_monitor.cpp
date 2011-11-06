@@ -1234,7 +1234,6 @@ bool Monitor::Analyse()
                     {
                         Info( "%s: %03d - Closing event %d, signal loss", name, image_count, event->Id() );
                         closeEvent();
-                        shared_data->state = state = IDLE;
                         last_section_mod = 0;
                     }
                     if ( !event )
@@ -1246,6 +1245,7 @@ bool Monitor::Analyse()
                     Event::StringSet noteSet;
                     noteSet.insert( signalText );
                     noteSetMap[SIGNAL_CAUSE] = noteSet;
+                    shared_data->state = state = IDLE;
                     shared_data->active = signal;
                     ref_image = *snap_image;
                 }
@@ -1311,8 +1311,11 @@ bool Monitor::Analyse()
                         {
                             if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME )
                             {
-                                if ( state == IDLE || state == TAPE )
+                                if ( state == TAPE )
+                                {
+                                    shared_data->state = state = IDLE;
                                     Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
+                                }
                                 else
                                     Info( "%s: %03d - Closing event %d, section end forced ", name, image_count, event->Id() );
                                 closeEvent();
@@ -1326,13 +1329,18 @@ bool Monitor::Analyse()
                     }
                     if ( !event )
                     {
-                        shared_data->state = state = TAPE;
 
                         // Create event
                         event = new Event( this, *timestamp, "Continuous", noteSetMap );
                         shared_data->last_event = event->Id();
 
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
+
+                        /* To prevent cancelling out the prealarm or alarm state caused from signal reacquired or from a linked monitor */
+                        if ( state == IDLE )
+                        {
+                            shared_data->state = state = TAPE;
+                        }
 
                         //if ( config.overlap_timed_events )
                         if ( false )
@@ -1532,23 +1540,6 @@ bool Monitor::Analyse()
                             {
                                 event->AddFrame( snap_image, *timestamp );
                             }
-                        }
-                    }
-                }
-                if ( function == RECORD || function == MOCORD )
-                {
-                    if ( state == IDLE || state == TAPE )
-                    {
-                        int section_mod = timestamp->tv_sec%section_length;
-                        if ( section_mod < last_section_mod )
-                        {
-                            Info( "%s: %03d - Closing event %d, section end2", name, image_count, event->Id() );
-                            closeEvent();
-                            last_section_mod = 0;
-                        }
-                        else
-                        {
-                            last_section_mod = section_mod;
                         }
                     }
                 }

@@ -29,7 +29,7 @@ if ( $user['MonitorIds'] )
 else
     $midSql = '';
 
-$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultRate from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'".$midSql;
+$sql = "select E.*,M.Name as MonitorName,M.DefaultRate from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'".$midSql;
 $event = dbFetchOne( $sql );
 
 $deviceWidth = (isset($device)&&!empty($device['width']))?$device['width']:DEVICE_WIDTH;

@@ -24,7 +24,7 @@ if ( !canView( 'Events' ) )
     return;
 }
 
-$event = dbFetchOne( "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E, Monitors as M where E.Id = '".dbEscape($_REQUEST['eid'])."' and E.MonitorId = M.Id" );
+$event = dbFetchOne( "select E.*,M.Name as MonitorName from Events as E, Monitors as M where E.Id = '".dbEscape($_REQUEST['eid'])."' and E.MonitorId = M.Id" );
 $frame = dbFetchOne( "select * from Frames where EventID = '".dbEscape($_REQUEST['eid'])."' and Score = '".$event['MaxScore']."'" );
 
 $scale = getDeviceScale( $event['Width'], $event['Height'], 2.2 );

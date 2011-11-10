@@ -24,7 +24,7 @@ if ( !canView( 'Events' ) )
     return;
 }
 
-$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'";
+$sql = "select E.*,M.Name as MonitorName,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'";
 $event = dbFetchOne( $sql );
 
 if ( !empty($_REQUEST['fid']) )

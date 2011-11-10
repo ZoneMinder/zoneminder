@@ -30,7 +30,7 @@ if ( $user['MonitorIds'] )
     $midSql = " and MonitorId in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
 }
 
-$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'".$midSql;
+$sql = "select E.*,M.Name as MonitorName from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'".$midSql;
 $event = dbFetchOne( $sql );
 
 if ( !empty($_REQUEST['fid']) )

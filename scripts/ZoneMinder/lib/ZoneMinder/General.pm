@@ -37,20 +37,23 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 
-# This allows declaration	use ZoneMinder ':all';
+# This allows declaration   use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
     'functions' => [ qw(
-		executeShellCommand
-		getCmdFormat
-		runCommand
-		getEventPath
-		deleteEventFiles
+        executeShellCommand
+        getCmdFormat
+        runCommand
+        setFileOwner
+        getEventPath
+        createEventPath
+        createEvent
+        deleteEventFiles
         makePath
         jsonEncode
         jsonDecode
-	) ]
+    ) ]
 );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
@@ -68,6 +71,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
+use ZoneMinder::Database qw(:all);
 
 use POSIX;
 
@@ -88,70 +92,70 @@ sub executeShellCommand( $ )
 
 sub getCmdFormat()
 {
-	Debug( "Testing valid shell syntax\n" );
+    Debug( "Testing valid shell syntax\n" );
 
-	my ( $name ) = getpwuid( $> );
-	if ( $name eq ZM_WEB_USER )
-	{
-		Debug( "Running as '$name', su commands not needed\n" );
-		return( "" );
-	}
+    my ( $name ) = getpwuid( $> );
+    if ( $name eq ZM_WEB_USER )
+    {
+        Debug( "Running as '$name', su commands not needed\n" );
+        return( "" );
+    }
 
-	my $null_command = "true";
+    my $null_command = "true";
 
-	my $prefix = "sudo -u ".ZM_WEB_USER." ";
-	my $suffix = "";
-	my $command = $prefix.$null_command.$suffix;
-	Debug( "Testing \"$command\"\n" );
+    my $prefix = "sudo -u ".ZM_WEB_USER." ";
+    my $suffix = "";
+    my $command = $prefix.$null_command.$suffix;
+    Debug( "Testing \"$command\"\n" );
     $command .= " > /dev/null 2>&1"; 
-	my $output = qx($command);
-	my $status = $? >> 8;
-	if ( !$status )
-	{
-		Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
-		return( $prefix, $suffix );
-	}
-	else
-	{
-		chomp( $output );
-		Debug( "Test failed, '$output'\n" );
+    my $output = qx($command);
+    my $status = $? >> 8;
+    if ( !$status )
+    {
+        Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+        return( $prefix, $suffix );
+    }
+    else
+    {
+        chomp( $output );
+        Debug( "Test failed, '$output'\n" );
 
-		$prefix = "su ".ZM_WEB_USER." --shell=/bin/sh --command='";
-		$suffix = "'";
-		$command = $prefix.$null_command.$suffix;
-		Debug( "Testing \"$command\"\n" );
-		my $output = qx($command);
-		my $status = $? >> 8;
-		if ( !$status )
-		{
-			Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
-			return( $prefix, $suffix );
-		}
-		else
-		{
-			chomp( $output );
-			Debug( "Test failed, '$output'\n" );
+        $prefix = "su ".ZM_WEB_USER." --shell=/bin/sh --command='";
+        $suffix = "'";
+        $command = $prefix.$null_command.$suffix;
+        Debug( "Testing \"$command\"\n" );
+        my $output = qx($command);
+        my $status = $? >> 8;
+        if ( !$status )
+        {
+            Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+            return( $prefix, $suffix );
+        }
+        else
+        {
+            chomp( $output );
+            Debug( "Test failed, '$output'\n" );
 
-			$prefix = "su ".ZM_WEB_USER." -c '";
-			$suffix = "'";
-			$command = $prefix.$null_command.$suffix;
-			Debug( "Testing \"$command\"\n" );
-			$output = qx($command);
-			$status = $? >> 8;
-			if ( !$status )
-			{
-				Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
-				return( $prefix, $suffix );
-			}
-			else
-			{
-				chomp( $output );
-				Debug( "Test failed, '$output'\n" );
-			}
-		}
-	}
-	Error( "Unable to find valid 'su' syntax\n" );
-	exit( -1 );
+            $prefix = "su ".ZM_WEB_USER." -c '";
+            $suffix = "'";
+            $command = $prefix.$null_command.$suffix;
+            Debug( "Testing \"$command\"\n" );
+            $output = qx($command);
+            $status = $? >> 8;
+            if ( !$status )
+            {
+                Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+                return( $prefix, $suffix );
+            }
+            else
+            {
+                chomp( $output );
+                Debug( "Test failed, '$output'\n" );
+            }
+        }
+    }
+    Error( "Unable to find valid 'su' syntax\n" );
+    exit( -1 );
 }
 
 our $testedShellSyntax = 0;
@@ -167,29 +171,29 @@ sub runCommand( $ )
         $testedShellSyntax = !undef;
     }
 
-	my $command = shift;
-	$command = ZM_PATH_BIN."/".$command;
-	if ( $cmdPrefix )
-	{
-		$command = $cmdPrefix.$command.$cmdSuffix;
-	}
-	Debug( "Command: $command\n" );
-	my $output = qx($command);
-	my $status = $? >> 8;
-	chomp( $output );
-	if ( $status || logDebugging() )
-	{
-		if ( $status )
-		{
-			Error( "Unable to run \"$command\", output is \"$output\"\n" );
-			exit( -1 );
-		}
-		else
-		{
-			Debug( "Output: $output\n" );
-		}
-	}
-	return( $output );
+    my $command = shift;
+    $command = ZM_PATH_BIN."/".$command;
+    if ( $cmdPrefix )
+    {
+        $command = $cmdPrefix.$command.$cmdSuffix;
+    }
+    Debug( "Command: $command\n" );
+    my $output = qx($command);
+    my $status = $? >> 8;
+    chomp( $output );
+    if ( $status || logDebugging() )
+    {
+        if ( $status )
+        {
+            Error( "Unable to run \"$command\", output is \"$output\"\n" );
+            exit( -1 );
+        }
+        else
+        {
+            Debug( "Output: $output\n" );
+        }
+    }
+    return( $output );
 }
 
 sub getEventPath( $ )
@@ -209,12 +213,302 @@ sub getEventPath( $ )
     return( $event_path );
 }
 
+sub createEventPath( $ )
+{
+    #
+    # WARNING assumes running from events directory
+    #
+    my $event = shift;
+    my $eventPath = (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
+
+    if ( ZM_USE_DEEP_STORAGE )
+    {
+        $eventPath .= '/'.$event->{MonitorId};
+
+        my @startTime = localtime( $event->{StartTime} );
+
+        my @datetimeParts = ();
+        $datetimeParts[0] = $startTime[5]-100;
+        $datetimeParts[1] = $startTime[4]+1;
+        $datetimeParts[2] = $startTime[3];
+        $datetimeParts[3] = $startTime[2];
+        $datetimeParts[4] = $startTime[1];
+        $datetimeParts[5] = $startTime[0];
+
+        my $datePath = "";
+        my $timePath = "";
+        for ( my $i = 0; $i < @datetimeParts; $i++ )
+        {
+            $eventPath .= sprintf( "/%02d", $datetimeParts[$i] );
+
+            if ( !-e $eventPath || !-d $eventPath )
+            {
+                print( "Creating $eventPath\n" );
+                mkdir( $eventPath, 0755 ) or Fatal( "Can't mkdir $eventPath: $!" );
+                setFileOwner( $eventPath );
+            }
+            if ( $i == 2 )
+            {
+                $datePath = $eventPath;
+            }
+            elsif ( $i >= 3 )
+            {
+                $timePath .= sprintf( "%s%02d", $i>3?"/":"", $datetimeParts[$i] );
+            }
+        }
+        # Create event id symlink
+        my $idFile = sprintf( "%s/.%d", $datePath, $event->{Id} );
+        symlink( $timePath, $idFile ) or Fatal( "Can't symlink $idFile -> $eventPath: $!" );
+        setFileOwner( $idFile );
+
+        # Create empty id tag file
+        $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
+        open( ID_FP, ">$idFile" ) or Fatal( "Can't open $idFile: $!" );
+        close( ID_FP );
+        setFileOwner( $idFile );
+    }
+    else
+    {
+        $eventPath .= '/'.$event->{MonitorId}.'/'.$event->{Id};
+
+        if ( !-e $eventPath || !-d $eventPath )
+        {
+            mkdir( $eventPath, 0755 ) or Fatal( "Can't mkdir $eventPath: $!" );
+            setFileOwner( $eventPath );
+        }
+        my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
+        open( ID_FP, ">$idFile" ) or Fatal( "Can't open $idFile: $!" );
+        close( ID_FP );
+        setFileOwner( $idFile );
+    }
+    return( $eventPath );
+}
+
+use Data::Dumper;
+
+our $_setFileOwner = undef;
+our ( $_ownerUid, $_ownerGid );
+
+sub _checkProcessOwner()
+{
+    if ( !defined($_setFileOwner) )
+    {
+        my ( $processOwner ) = getpwuid( $> );
+        if ( $processOwner ne ZM_WEB_USER )
+        {
+            # Not running as web user, so should be root in whch case chown the temporary directory
+            ( my $ownerName, my $ownerPass, $_ownerUid, $_ownerGid ) = getpwnam( ZM_WEB_USER ) or Fatal( "Can't get user details for web user '".ZM_WEB_USER."': $!" );
+            $_setFileOwner = 1;
+        }
+        else
+        {
+            $_setFileOwner = 0;
+        }
+    }
+    return( $_setFileOwner );
+}
+
+sub setFileOwner( $ )
+{
+    my $file = shift;
+
+    if ( _checkProcessOwner() )
+    {
+        chown( $_ownerUid, $_ownerGid, $file ) or Fatal( "Can't change ownership of file '$file' to '".ZM_WEB_USER.":".ZM_WEB_GROUP."': $!" );
+    }
+}
+
+our $_hasImageInfo = undef;
+
+sub _checkForImageInfo()
+{
+    if ( !defined($_hasImageInfo) )
+    {
+        my $result = eval
+        {
+            require Image::Info;
+            Image::Info->import();
+        };
+        $_hasImageInfo = $@?0:1;
+    }
+    return( $_hasImageInfo );
+}
+
+sub createEvent( $;$ )
+{
+    my $event = shift;
+
+    print( "Creating event\n" );
+    #print( Dumper( $event )."\n" );
+
+    _checkForImageInfo();
+
+    my $dbh = zmDbConnect();
+
+    if ( $event->{monitor} )
+    {
+        $event->{MonitorId} = $event->{monitor}->{Id};
+    }
+    elsif ( $event->{MonitorId} )
+    {
+        my $sql = "select * from Monitors where Id = ?";
+        my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute( $event->{MonitorId} ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
+        $event->{monitor} = $sth->fetchrow_hashref() or Fatal( "Unable to create event, can't load monitor with id '".$event->{MonitorId}."'" );
+        $sth->finish();
+    }
+    else
+    {
+        Fatal( "Unable to create event, no monitor or monitor id supplied" );
+    }
+    $event->{Name} = "New Event" unless( $event->{Name} );
+    $event->{Frames} = int(@{$event->{frames}});
+    $event->{TotScore} = $event->{MaxScore} = 0;
+
+    my $lastTimestamp = 0.0;
+    foreach my $frame ( @{$event->{frames}} )
+    {
+        if ( !$event->{Width} )
+        {
+            if ( $_hasImageInfo )
+            {
+                my $imageInfo = Image::Info::image_info( $frame->{imagePath} );
+                if ( $imageInfo->{error} )
+                {
+                    Error( "Unable to extract image info from '".$frame->{imagePath}."': ".$imageInfo->{error} );
+                }
+                else
+                {
+                    ( $event->{Width}, $event->{Height} ) = Image::Info::dim( $imageInfo );
+                }
+            }
+        }
+        $frame->{Type} = $frame->{Score}>0?'Alarm':'Normal' unless( $frame->{Type} );
+        $frame->{Delta} = $lastTimestamp?($frame->{TimeStamp}-$lastTimestamp):0.0;
+        $event->{StartTime} = $frame->{TimeStamp} unless ( $event->{StartTime} );
+        $event->{TotScore} += $frame->{Score};
+        $event->{MaxScore} = $frame->{Score} if ( $frame->{Score} > $event->{MaxScore} );
+        $event->{AlarmFrames}++ if ( $frame->{Type} eq 'Alarm' );
+        $event->{EndTime} = $frame->{TimeStamp};
+        $lastTimestamp = $frame->{TimeStamp};
+    }
+    $event->{Width} = $event->{monitor}->{Width} unless( $event->{Width} );
+    $event->{Height} = $event->{monitor}->{Height} unless( $event->{Height} );
+    $event->{AvgScore} = $event->{TotScore}/int($event->{AlarmFrames});
+    $event->{Length} = $event->{EndTime} - $event->{StartTime};
+
+    my %formats = (
+        StartTime => 'from_unixtime(?)',
+        EndTime => 'from_unixtime(?)',
+    );
+
+    my ( @fields, @formats, @values );
+    while ( my ( $field, $value ) = each( %$event ) )
+    {
+        next unless $field =~ /^[A-Z]/;
+        push( @fields, $field );
+        push( @formats, ($formats{$field} or '?') );
+        push( @values, $event->{$field} );
+    }
+
+    my $sql = "insert into Events (".join(',',@fields).") values (".join(',',@formats).")";
+    my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute( @values ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
+    $event->{Id} = $dbh->{mysql_insertid};
+
+    if ( $event->{EndTime} )
+    {
+        $event->{Name} = $event->{monitor}->{EventPrefix}.$event->{Id} if ( $event->{Name} eq 'New Event' );
+        my $sql = "update Events set Name = ? where Id = ?";
+        my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute( $event->{Name}, $event->{Id} ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
+    }
+
+    my $eventPath = createEventPath( $event );
+
+    my %frameFormats = (
+        TimeStamp => 'from_unixtime(?)',
+    );
+    my $frameId = 1;
+    foreach my $frame ( @{$event->{frames}} )
+    {
+        $frame->{EventId} = $event->{Id};
+        $frame->{FrameId} = $frameId++;
+
+        my ( @fields, @formats, @values );
+        while ( my ( $field, $value ) = each( %$frame ) )
+        {
+            next unless $field =~ /^[A-Z]/;
+            push( @fields, $field );
+            push( @formats, ($frameFormats{$field} or '?') );
+            push( @values, $frame->{$field} );
+        }
+
+        my $sql = "insert into Frames (".join(',',@fields).") values (".join(',',@formats).")";
+        my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute( @values ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
+        #$frame->{FrameId} = $dbh->{mysql_insertid};
+        if ( $frame->{imagePath} )
+        {
+            $frame->{capturePath} = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $eventPath, $frame->{FrameId} );
+            rename( $frame->{imagePath}, $frame->{capturePath} ) or Fatal( "Can't copy ".$frame->{imagePath}." to ".$frame->{capturePath}.": $!" );
+            setFileOwner( $frame->{capturePath} );
+            if ( 0 && ZM_CREATE_ANALYSIS_IMAGES )
+            {
+                $frame->{analysePath} = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $eventPath, $frame->{FrameId} );
+                link( $frame->{capturePath}, $frame->{analysePath} ) or Fatal( "Can't link ".$frame->{capturePath}." to ".$frame->{analysePath}.": $!" );
+                setFileOwner( $frame->{analysePath} );
+            }
+        }
+    }
+}
+
+sub addEventImage( $$ )
+{
+    my $event = shift;
+    my $frame = shift;
+
+    # TBD
+}
+
+sub updateEvent( $ )
+{
+    my $event = shift;
+
+    if ( !$event->{EventId} )
+    {
+        Error( "Unable to update event, no event id supplied" );
+        return( 0 );
+    }
+
+    my $dbh = zmDbConnect();
+
+    $event->{Name} = $event->{monitor}->{EventPrefix}.$event->{Id} if ( $event->{Name} eq 'New Event' );
+
+    my %formats = (
+        StartTime => 'from_unixtime(?)',
+        EndTime => 'from_unixtime(?)',
+    );
+
+    my ( @values, @sets );
+    while ( my ( $field, $value ) = each( %$event ) )
+    {
+        next if ( $field eq 'Id' );
+        push( @values, $event->{$field} );
+        push( @sets, $field." = ".($formats{$field} or '?') );
+    }
+    my $sql = "update Events set ".join(',',@sets)." where Id = ?";
+    push( @values, $event->{Id} );
+
+    my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute( @values ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
+}
+
 sub deleteEventFiles( $;$ )
 {
     #
     # WARNING assumes running from events directory
     #
-
     my $event_id = shift;
     my $monitor_id = shift;
     $monitor_id = '*' if ( !defined($monitor_id) );
@@ -222,21 +516,21 @@ sub deleteEventFiles( $;$ )
     if ( ZM_USE_DEEP_STORAGE )
     {
         my $link_path = $monitor_id."/*/*/*/.".$event_id;
-        Debug( "LP1:$link_path" );
+        #Debug( "LP1:$link_path" );
         my @links = glob($link_path);
-        Debug( "L:".$links[0].": $!" );
+        #Debug( "L:".$links[0].": $!" );
         if ( @links )
         {
             ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
-            Debug( "LP2:$link_path" );
+            #Debug( "LP2:$link_path" );
 
             ( my $day_path = $link_path ) =~ s/\.\d+//;
-            Debug( "DP:$day_path" );
+            #Debug( "DP:$day_path" );
             my $event_path = $day_path.readlink( $link_path );
             ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-            Debug( "EP:$event_path" );
+            #Debug( "EP:$event_path" );
             my $command = "/bin/rm -rf ".$event_path;
-            Debug( "C:$command" );
+            #Debug( "C:$command" );
             executeShellCommand( $command );
 
             unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
@@ -244,12 +538,12 @@ sub deleteEventFiles( $;$ )
             for ( my $i = int(@path_parts)-2; $i >= 1; $i-- )
             {
                 my $delete_path = join( '/', @path_parts[0..$i] );
-                Debug( "DP$i:$delete_path" );
+                #Debug( "DP$i:$delete_path" );
                 my @has_files = glob( $delete_path."/*" );
-                Debug( "HF1:".$has_files[0] ) if ( @has_files );
+                #Debug( "HF1:".$has_files[0] ) if ( @has_files );
                 last if ( @has_files );
                 @has_files = glob( $delete_path."/.[0-9]*" );
-                Debug( "HF2:".$has_files[0] ) if ( @has_files );
+                #Debug( "HF2:".$has_files[0] ) if ( @has_files );
                 last if ( @has_files );
                 my $command = "/bin/rm -rf ".$delete_path;
                 executeShellCommand( $command );

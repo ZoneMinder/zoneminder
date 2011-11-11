@@ -219,47 +219,34 @@ sub createEventPath( $ )
     # WARNING assumes running from events directory
     #
     my $event = shift;
-    my $eventPath = (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
+    my $eventRootPath = (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
+    my $eventPath = $eventRootPath.'/'.$event->{MonitorId};
 
     if ( ZM_USE_DEEP_STORAGE )
     {
-        $eventPath .= '/'.$event->{MonitorId};
-
         my @startTime = localtime( $event->{StartTime} );
 
         my @datetimeParts = ();
-        $datetimeParts[0] = $startTime[5]-100;
-        $datetimeParts[1] = $startTime[4]+1;
-        $datetimeParts[2] = $startTime[3];
-        $datetimeParts[3] = $startTime[2];
-        $datetimeParts[4] = $startTime[1];
-        $datetimeParts[5] = $startTime[0];
+        $datetimeParts[0] = sprintf( "%02d", $startTime[5]-100 );
+        $datetimeParts[1] = sprintf( "%02d", $startTime[4]+1 );
+        $datetimeParts[2] = sprintf( "%02d", $startTime[3] );
+        $datetimeParts[3] = sprintf( "%02d", $startTime[2] );
+        $datetimeParts[4] = sprintf( "%02d", $startTime[1] );
+        $datetimeParts[5] = sprintf( "%02d", $startTime[0] );
 
-        my $datePath = "";
-        my $timePath = "";
-        for ( my $i = 0; $i < @datetimeParts; $i++ )
-        {
-            $eventPath .= sprintf( "/%02d", $datetimeParts[$i] );
+        my $datePath = join('/',@datetimeParts[0..2]);
+        my $timePath = join('/',@datetimeParts[3..5]);
 
-            if ( !-e $eventPath || !-d $eventPath )
-            {
-                print( "Creating $eventPath\n" );
-                mkdir( $eventPath, 0755 ) or Fatal( "Can't mkdir $eventPath: $!" );
-                setFileOwner( $eventPath );
-            }
-            if ( $i == 2 )
-            {
-                $datePath = $eventPath;
-            }
-            elsif ( $i >= 3 )
-            {
-                $timePath .= sprintf( "%s%02d", $i>3?"/":"", $datetimeParts[$i] );
-            }
-        }
+        makePath( $datePath, $eventPath );
+        $eventPath .= '/'.$datePath;
+
         # Create event id symlink
-        my $idFile = sprintf( "%s/.%d", $datePath, $event->{Id} );
+        my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
         symlink( $timePath, $idFile ) or Fatal( "Can't symlink $idFile -> $eventPath: $!" );
-        setFileOwner( $idFile );
+
+        makePath( $timePath, $eventPath );
+        $eventPath .= '/'.$timePath;
+        setFileOwner( $idFile ); # Must come after directory has been created
 
         # Create empty id tag file
         $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
@@ -269,13 +256,9 @@ sub createEventPath( $ )
     }
     else
     {
-        $eventPath .= '/'.$event->{MonitorId}.'/'.$event->{Id};
+        makePath( $event->{Id}, $eventPath );
+        $eventPath .= '/'.$event->{Id};
 
-        if ( !-e $eventPath || !-d $eventPath )
-        {
-            mkdir( $eventPath, 0755 ) or Fatal( "Can't mkdir $eventPath: $!" );
-            setFileOwner( $eventPath );
-        }
         my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
         open( ID_FP, ">$idFile" ) or Fatal( "Can't open $idFile: $!" );
         close( ID_FP );
@@ -338,7 +321,7 @@ sub createEvent( $;$ )
 {
     my $event = shift;
 
-    print( "Creating event\n" );
+    Debug( "Creating event" );
     #print( Dumper( $event )."\n" );
 
     _checkForImageInfo();
@@ -415,6 +398,7 @@ sub createEvent( $;$ )
     my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
     my $res = $sth->execute( @values ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
     $event->{Id} = $dbh->{mysql_insertid};
+    Info( "Created event ".$event->{Id} );
 
     if ( $event->{EndTime} )
     {
@@ -557,30 +541,33 @@ sub deleteEventFiles( $;$ )
     }
 }
 
-sub makePath( $$ )
+sub makePath( $;$ )
 {
-    my $root = shift;
     my $path = shift;
+    my $root = shift;
+    $root = (( $path =~ m|^/| )?'':'.' ) unless( $root );
 
-    Debug( "Creating path '$path'\n" );
+    Debug( "Creating path '$path' in $root'\n" );
     my @parts = split( '/', $path );
-    my $subpath = $root;
+    my $fullPath = $root;
     foreach my $dir ( @parts )
     {
-        $subpath .= '/'.$dir;
-        if ( !-d $subpath )
+        $fullPath .= '/'.$dir;
+        if ( !-d $fullPath )
         {
-            if ( -e $subpath )
+            if ( -e $fullPath )
             {
-                Fatal( "Can't create '$subpath', already exists as non directory" );
+                Fatal( "Can't create '$fullPath', already exists as non directory" );
             }
             else
             {
-                Debug( "Creating '$subpath'\n" );
-                mkdir( $subpath ) or Fatal( "Can't mkdir '$subpath': $!" );
+                Debug( "Creating '$fullPath'\n" );
+                mkdir( $fullPath, 0755 ) or Fatal( "Can't mkdir '$fullPath': $!" );
+                setFileOwner( $fullPath );
             }
         }
     }
+    return( $fullPath );
 }
 
 our $testedJSON = 0;

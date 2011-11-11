@@ -306,7 +306,7 @@ if ( $migrateEvents )
             my $newTimePath = strftime( "%H/%M/%S", localtime($event->{UnixStartTime}) );
             my $newEventPath = $newDatePath.'/'.$newTimePath;
             ( my $truncEventPath = $newEventPath ) =~ s|/\d+$||;
-            makePath( ZM_PATH_WEB, $truncEventPath );
+            makePath( $truncEventPath, ZM_PATH_WEB );
             my $idLink = $newDatePath.'/.'.$event->{Id};
             symlink( $newTimePath, $idLink ) or die( "Can't symlink $newTimePath -> $idLink: $!" );
             rename( $oldEventPath, $newEventPath ) or die( "Can't move $oldEventPath -> $newEventPath: $!" );

@@ -1249,7 +1249,7 @@ bool Monitor::Analyse()
                     shared_data->active = signal;
                     ref_image = *snap_image;
                 }
-                else if ( signal && Active() && function != RECORD && function != NODECT )
+                else if ( signal && Active() && (function == MODECT || function == MOCORD) )
                 {
                     Event::StringSet zoneSet;
                     int motion_score = DetectMotion( *snap_image, zoneSet );
@@ -1270,7 +1270,7 @@ bool Monitor::Analyse()
                     }
                     shared_data->active = signal;
                 }
-                if ( n_linked_monitors > 0 )
+                if ( (!signal_change && signal) && n_linked_monitors > 0 )
                 {
                     bool first_link = true;
                     Event::StringSet noteSet;
@@ -1278,7 +1278,7 @@ bool Monitor::Analyse()
                     {
                         if ( linked_monitors[i]->isConnected() )
                         {
-                            if ( linked_monitors[i]->hasAlarmed() )
+                            if ( linked_monitors[i]->isAlarmed() )
                             {
                                 if ( !event )
                                 {
@@ -1336,7 +1336,7 @@ bool Monitor::Analyse()
 
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
-                        /* To prevent cancelling out the prealarm or alarm state caused from signal reacquired or from a linked monitor */
+                        /* To prevent cancelling out an existing alert\prealarm\alarm state */
                         if ( state == IDLE )
                         {
                             shared_data->state = state = TAPE;
@@ -1555,7 +1555,7 @@ bool Monitor::Analyse()
             shared_data->state = state = IDLE;
             last_section_mod = 0;
         }
-        if ( signal && (function == MODECT || function == MOCORD) && (config.blend_alarmed_images || state != ALARM) )
+        if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) && (config.blend_alarmed_images || state != ALARM) )
         {
             ref_image.Blend( *snap_image, ref_blend_perc );
         }

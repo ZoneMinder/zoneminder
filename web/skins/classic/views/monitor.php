@@ -69,6 +69,7 @@ else
         'Width' => "320",
         'Height' => "240",
         'Orientation' => "0",
+        'Deinterlacing' => 0,
         'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
         'LabelX' => 0,
         'LabelY' => 0,
@@ -361,6 +362,12 @@ $orientations = array(
     $SLANG['FlippedVert'] => 'vert'
 );
 
+$deinterlaceopts = array(
+    "Disabled"    => 0,
+    "Discard"     => 1,
+    "Linear"      => 2
+);
+
 xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
 ?>
 <body>
@@ -465,6 +472,7 @@ if ( $tab != 'source' )
     <input type="hidden" name="newMonitor[Width]" value="<?= validHtmlStr($newMonitor['Width']) ?>"/>
     <input type="hidden" name="newMonitor[Height]" value="<?= validHtmlStr($newMonitor['Height']) ?>"/>
     <input type="hidden" name="newMonitor[Orientation]" value="<?= validHtmlStr($newMonitor['Orientation']) ?>"/>
+    <input type="hidden" name="newMonitor[Deinterlacing]" value="<?= validHtmlStr($newMonitor['Deinterlacing']) ?>"/>
 <?php
 }
 if ( $tab != 'timestamp' )
@@ -663,6 +671,7 @@ switch ( $tab )
             <tr><td><?= $SLANG['CaptureHeight'] ?> (<?= $SLANG['Pixels'] ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?= validHtmlStr($newMonitor['Height']) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
             <tr><td><?= $SLANG['PreserveAspect'] ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
             <tr><td><?= $SLANG['Orientation'] ?></td><td><select name="newMonitor[Orientation]"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Orientation'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?= "Deinterlacing" ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
         break;
     }

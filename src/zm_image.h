@@ -242,6 +242,9 @@ public:
 	void Rotate( int angle );
 	void Flip( bool leftright );
 	void Scale( unsigned int factor );
+	void Deinterlace_Discard();
+	void Deinterlace_Linear();
+	
 };
 
 #endif // ZM_IMAGE_H

@@ -2663,6 +2663,145 @@ void Image::Scale( unsigned int factor )
 	
 }
 
+void Image::Deinterlace_Discard()
+{
+	/* Simple deinterlacing. Copy the even lines into the odd lines */
+	
+	if ( colours == ZM_COLOUR_GRAY8 )
+	{
+		const uint8_t *psrc;
+		uint8_t *pdest;
+		for (unsigned int y = 0; y < height; y += 2)
+		{
+			psrc = buffer + (y * width);
+			pdest = buffer + ((y+1) * width);
+			for (unsigned int x = 0; x < width; x++) {
+				*pdest++ = *psrc++;
+			}
+		}
+	}
+	else if ( colours == ZM_COLOUR_RGB24 )
+	{
+		const uint8_t *psrc;
+		uint8_t *pdest;
+		for (unsigned int y = 0; y < height; y += 2)
+		{
+			psrc = buffer + ((y * width) * 3);
+			pdest = buffer + (((y+1) * width) * 3);
+			for (unsigned int x = 0; x < width; x++) {
+				*pdest++ = *psrc++;
+				*pdest++ = *psrc++;
+				*pdest++ = *psrc++;
+			}
+		}
+	}
+	else if ( colours == ZM_COLOUR_RGB32 )
+	{
+		const Rgb *psrc;
+		Rgb *pdest;
+		for (unsigned int y = 0; y < height; y += 2)
+		{
+			psrc = (Rgb*)(buffer + ((y * width) << 2));
+			pdest = (Rgb*)(buffer + (((y+1) * width) << 2));
+			for (unsigned int x = 0; x < width; x++) {
+				*pdest++ = *psrc++;
+			}
+		}
+	} else {
+		Error("Deinterlace called with unexpected colours: %d", colours);
+	}
+	
+}
+
+void Image::Deinterlace_Linear()
+{
+	/* Simple deinterlacing. The odd lines are average of the line above and line below */
+	
+	if ( colours == ZM_COLOUR_GRAY8 )
+	{
+		const uint8_t *pbelow, *pabove;
+		uint8_t *pcurrent;
+		for (unsigned int y = 1; y < (height-1); y += 2)
+		{
+			pabove = buffer + ((y-1) * width);
+			pbelow = buffer + ((y+1) * width);
+			pcurrent = buffer + (y * width);
+			for (unsigned int x = 0; x < width; x++) {
+				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
+			}
+		}
+		/* Special case for the last line */
+		pcurrent = buffer + ((height-1) * width);
+		pabove = buffer + ((height-2) * width);
+		for (unsigned int x = 0; x < width; x++) {
+			*pcurrent++ = *pabove++;
+		}
+	}
+	else if ( colours == ZM_COLOUR_RGB24 )
+	{
+		const uint8_t *pbelow, *pabove;
+		uint8_t *pcurrent;
+		for (unsigned int y = 1; y < (height-1); y += 2)
+		{
+			pabove = buffer + (((y-1) * width) * 3);
+			pbelow = buffer + (((y+1) * width) * 3);
+			pcurrent = buffer + ((y * width) * 3);
+			for (unsigned int x = 0; x < width; x++) {
+				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
+				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
+				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
+			}
+		}
+		/* Special case for the last line */
+		pcurrent = buffer + (((height-1) * width) * 3);
+		pabove = buffer + (((height-2) * width) * 3);
+		for (unsigned int x = 0; x < width; x++) {
+			*pcurrent++ = *pabove++;
+			*pcurrent++ = *pabove++;
+			*pcurrent++ = *pabove++;
+		}
+	}
+	else if ( colours == ZM_COLOUR_RGB32 )
+	{
+		const Rgb *pbelow, *pabove;
+		Rgb *pcurrent;
+		for (unsigned int y = 1; y < (height-1); y += 2)
+		{
+			pabove = (Rgb*)(buffer + (((y-1) * width) << 2));
+			pbelow = (Rgb*)(buffer + (((y+1) * width) << 2));
+			pcurrent = (Rgb*)(buffer + ((y * width) << 2));
+			for (unsigned int x = 0; x < width; x++) {
+				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
+			}
+		}
+		/* Special case for the last line */
+		pcurrent = (Rgb*)(buffer + (((height-1) * width) << 2));
+		pabove = (Rgb*)(buffer + (((height-2) * width) << 2));
+		for (unsigned int x = 0; x < width; x++) {
+			*pcurrent++ = *pabove++;
+		}
+	} else {
+		Error("Deinterlace called with unexpected colours: %d", colours);
+	}
+	
+}
+
+/*
+void Image::Deinterlace_4field_linear_weave(const image* next_image, image* dest_image)
+{
+	if ( !(width == next_image.width && height == next_image.height && colours == next_image.colours && subpixelorder == next_image.subpixelorder) )
+	{
+		Panic( "Attempt to deinterlace different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, next_image.width, next_image.height, next_image.colours, next_image.subpixelorder);
+	}
+	
+	uint8_t *pdest = dest_image->WriteBuffer(width, height, colours, subpixelorder);
+	
+	
+	
+	
+	
+}
+*/
 
 /************************************************* BLEND FUNCTIONS *************************************************/
 

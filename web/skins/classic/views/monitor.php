@@ -363,9 +363,30 @@ $orientations = array(
 );
 
 $deinterlaceopts = array(
-    "Disabled"    => 0,
-    "Discard"     => 1,
-    "Linear"      => 2
+    "Disabled"                                            => 0x00000000,
+    "Four field motion adaptive - Soft"                   => 0x00003204, /* 50 change */
+    "Four field motion adaptive - Medium"                 => 0x00001E04, /* 30 change */
+    "Four field motion adaptive - Hard"                   => 0x00000A04, /* 10 change */
+    "Discard"                                             => 0x00000001,
+    "Linear"                                              => 0x00000002,
+    "Blend"                                               => 0x00000003,
+    "Blend (25%)"                                         => 0x00000205
+);
+
+$deinterlaceopts_v4l2 = array(
+    "Disabled"                                            => 0x00000000,
+    "Four field motion adaptive - Soft"                   => 0x00003204, /* 50 change */
+    "Four field motion adaptive - Medium"                 => 0x00001E04, /* 30 change */
+    "Four field motion adaptive - Hard"                   => 0x00000A04, /* 10 change */
+    "Discard"                                             => 0x00000001,
+    "Linear"                                              => 0x00000002,
+    "Blend"                                               => 0x00000003,
+    "Blend (25%)"                                         => 0x00000205,
+    "V4L2: Top field only"                                => 0x02000000,
+    "V4L2: Bottom field only"                             => 0x03000000,
+    "V4L2: Alternate fields"                              => 0x07000000,
+    "V4L2: Progressive"                                   => 0x01000000,
+    "V4L2: Interlaced"                                    => 0x04000000,
 );
 
 xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
@@ -671,7 +692,18 @@ switch ( $tab )
             <tr><td><?= $SLANG['CaptureHeight'] ?> (<?= $SLANG['Pixels'] ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?= validHtmlStr($newMonitor['Height']) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
             <tr><td><?= $SLANG['PreserveAspect'] ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
             <tr><td><?= $SLANG['Orientation'] ?></td><td><select name="newMonitor[Orientation]"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Orientation'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<?php
+        if ( $newMonitor['Type'] == "Local" )
+        {
+?>
+            <tr><td><?= "Deinterlacing" ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<?php
+        } else {
+?>
             <tr><td><?= "Deinterlacing" ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<?php
+        }
+?>
 <?php
         break;
     }

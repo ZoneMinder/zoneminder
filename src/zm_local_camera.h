@@ -79,6 +79,7 @@ protected:
 	bool device_prime;
 	bool channel_prime;
 	int channel_index;
+	unsigned int extras;
 	
 	unsigned int conversion_type; /* 0 = no conversion needed, 1 = use libswscale, 2 = zm internal conversion, 3 = jpeg decoding */
 	convert_fptr_t conversion_fptr; /* Pointer to conversion function used */
@@ -111,7 +112,7 @@ protected:
 	static LocalCamera      *last_camera;
 
 public:
-	LocalCamera( int p_id, const std::string &device, int p_channel, int p_format, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	LocalCamera( int p_id, const std::string &device, int p_channel, int p_format, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, unsigned int p_extras = 0);
 	~LocalCamera();
 
 	void Initialise();
@@ -122,6 +123,7 @@ public:
 	int Channel() const { return( channel ); }
 	int Standard() const { return( standard ); }
 	int Palette() const { return( palette ); }
+	int Extras() const { return( extras ); }
 
 	int Brightness( int p_brightness=-1 );
 	int Hue( int p_hue=-1 );

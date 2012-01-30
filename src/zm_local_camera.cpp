@@ -281,13 +281,14 @@ AVFrame **LocalCamera::capturePictures = 0;
 
 LocalCamera *LocalCamera::last_camera = NULL;
 
-LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, int p_standard, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, int p_standard, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, unsigned int p_extras) :
     Camera( p_id, LOCAL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
     device( p_device ),
     channel( p_channel ),
     standard( p_standard ),
     palette( p_palette ),
-    channel_index( 0 )
+    channel_index( 0 ),
+    extras ( p_extras )
 {
     // If we are the first, or only, input on this device then
     // do the initial opening etc
@@ -706,13 +707,13 @@ void LocalCamera::Initialise()
         v4l2_data.fmt.fmt.pix.height = height;
         v4l2_data.fmt.fmt.pix.pixelformat = palette;
 
-	if ( config.v4l2_capture_fields )
+	if ( (extras & 0xff) != 0 )
 	{
-		v4l2_data.fmt.fmt.pix.field = (v4l2_field)config.v4l2_capture_fields;
+		v4l2_data.fmt.fmt.pix.field = (v4l2_field)(extras & 0xff);
 		
 		if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 )
 		{
-			Warning( "Failed to set V4L2 field to %d, falling back to auto", config.v4l2_capture_fields );
+			Warning( "Failed to set V4L2 field to %d, falling back to auto", (extras & 0xff) );
 			v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
 			if ( vidioctl( vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt ) < 0 ) {
 				Fatal( "Failed to set video format: %s", strerror(errno) );

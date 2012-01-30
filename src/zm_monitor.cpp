@@ -458,6 +458,13 @@ Monitor::Monitor(
         image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
         image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
     }
+    if ( (deinterlacing & 0xff) == 4)
+    {
+        /* Four field motion adaptive deinterlacing in use */
+        /* Allocate a buffer for the next image */
+        next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+        next_buffer.timestamp = new struct timeval;
+    }
     if ( !n_zones )
     {
         n_zones = 1;
@@ -1848,6 +1855,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
         int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
+        int extras = (deinterlacing>>24)&0xff;
+
         Camera *camera = new LocalCamera(
             id,
             device,
@@ -1862,7 +1871,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
             contrast,
             hue,
             colour,
-            purpose==CAPTURE
+            purpose==CAPTURE,
+            extras
         );
 
         monitors[i] = new Monitor(
@@ -2416,6 +2426,8 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
         int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
+        int extras = (deinterlacing>>24)&0xff;
+
         Camera *camera = 0;
         if ( type == "Local" )
         {
@@ -2434,7 +2446,8 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                 contrast,
                 hue,
                 colour,
-                purpose==CAPTURE
+                purpose==CAPTURE,
+                extras
             );
 #else // ZM_HAS_V4L
             Fatal( "You must have video4linux libraries and headers installed to use local analog or USB cameras for monitor %d", id );
@@ -2576,11 +2589,30 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 
 int Monitor::Capture()
 {
-    int index = image_count%image_buffer_count;
-    Image* capture_image = image_buffer[index].image;
-    
-    /* Capture directly into image buffer, avoiding the need to memcpy() */
-    int captureResult = camera->Capture(*capture_image);
+	static int FirstCapture = 1;
+	int captureResult;
+	
+	int index = image_count%image_buffer_count;
+	Image* capture_image = image_buffer[index].image;
+	
+	if ( (deinterlacing & 0xff) == 4) {
+		if ( FirstCapture != 1 ) {
+			/* Copy the next image into the shared memory */
+			capture_image->CopyBuffer(*(next_buffer.image)); 
+		}
+		
+		/* Capture a new next image */
+		captureResult = camera->Capture(*(next_buffer.image));
+		
+		if ( FirstCapture ) {
+			FirstCapture = 0;
+			return 0;
+		}
+		
+	} else {
+		/* Capture directly into image buffer, avoiding the need to memcpy() */
+		captureResult = camera->Capture(*capture_image);
+	}
     
     if ( captureResult != 0 )
     {
@@ -2588,8 +2620,11 @@ int Monitor::Capture()
         // Fake a signal loss image
         capture_image->Fill( signal_check_colour );
         captureResult = 0;
+    } else { 
+        captureResult = 1;
     }
-    if ( captureResult == 0 )
+    
+    if ( captureResult == 1 )
     {
         if ( orientation != ROTATE_0 )
         {
@@ -2615,13 +2650,28 @@ int Monitor::Capture()
                 }
             }
         }
+        
+	/* Deinterlacing */
+	if ( (deinterlacing & 0xff) == 1 ) {
+		capture_image->Deinterlace_Discard();
+	} else if ( (deinterlacing & 0xff) == 2 ) {
+		capture_image->Deinterlace_Linear();
+	} else if ( (deinterlacing & 0xff) == 3 ) {
+		capture_image->Deinterlace_Blend();
+	} else if ( (deinterlacing & 0xff) == 4 ) {
+		capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
+	} else if ( (deinterlacing & 0xff) == 5 ) {
+		capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
+	}
+
+    }
+    if ( true ) {
 
         if ( capture_image->Size() != camera->ImageSize() )
         {
             Error( "Captured image does not match expected size, check width, height and colour depth" );
             return( -1 );
         }
-
 
         if ( (index == shared_data->last_read_index) && (function > MONITOR) )
         {

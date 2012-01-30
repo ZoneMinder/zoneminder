@@ -2717,10 +2717,11 @@ void Image::Deinterlace_Linear()
 {
 	/* Simple deinterlacing. The odd lines are average of the line above and line below */
 	
+	const uint8_t *pbelow, *pabove;
+	uint8_t *pcurrent;
+	
 	if ( colours == ZM_COLOUR_GRAY8 )
 	{
-		const uint8_t *pbelow, *pabove;
-		uint8_t *pcurrent;
 		for (unsigned int y = 1; y < (height-1); y += 2)
 		{
 			pabove = buffer + ((y-1) * width);
@@ -2739,8 +2740,6 @@ void Image::Deinterlace_Linear()
 	}
 	else if ( colours == ZM_COLOUR_RGB24 )
 	{
-		const uint8_t *pbelow, *pabove;
-		uint8_t *pcurrent;
 		for (unsigned int y = 1; y < (height-1); y += 2)
 		{
 			pabove = buffer + (((y-1) * width) * 3);
@@ -2763,21 +2762,25 @@ void Image::Deinterlace_Linear()
 	}
 	else if ( colours == ZM_COLOUR_RGB32 )
 	{
-		const Rgb *pbelow, *pabove;
-		Rgb *pcurrent;
 		for (unsigned int y = 1; y < (height-1); y += 2)
 		{
-			pabove = (Rgb*)(buffer + (((y-1) * width) << 2));
-			pbelow = (Rgb*)(buffer + (((y+1) * width) << 2));
-			pcurrent = (Rgb*)(buffer + ((y * width) << 2));
+			pabove = buffer + (((y-1) * width) << 2);
+			pbelow = buffer + (((y+1) * width) << 2);
+			pcurrent = buffer + ((y * width) << 2);
 			for (unsigned int x = 0; x < width; x++) {
+				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
+				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
+				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
 				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
 			}
 		}
 		/* Special case for the last line */
-		pcurrent = (Rgb*)(buffer + (((height-1) * width) << 2));
-		pabove = (Rgb*)(buffer + (((height-2) * width) << 2));
+		pcurrent = buffer + (((height-1) * width) << 2);
+		pabove = buffer + (((height-2) * width) << 2);
 		for (unsigned int x = 0; x < width; x++) {
+			*pcurrent++ = *pabove++;
+			*pcurrent++ = *pabove++;
+			*pcurrent++ = *pabove++;  
 			*pcurrent++ = *pabove++;
 		}
 	} else {
@@ -2786,22 +2789,202 @@ void Image::Deinterlace_Linear()
 	
 }
 
-/*
-void Image::Deinterlace_4field_linear_weave(const image* next_image, image* dest_image)
+void Image::Deinterlace_Blend()
 {
-	if ( !(width == next_image.width && height == next_image.height && colours == next_image.colours && subpixelorder == next_image.subpixelorder) )
+	/* Simple deinterlacing. Blend the fields together. 50% blend */
+	
+	uint8_t *pabove, *pcurrent;
+	
+	if ( colours == ZM_COLOUR_GRAY8 )
 	{
-		Panic( "Attempt to deinterlace different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, next_image.width, next_image.height, next_image.colours, next_image.subpixelorder);
+		for (unsigned int y = 1; y < height; y += 2)
+		{
+			pabove = buffer + ((y-1) * width);
+			pcurrent = buffer + (y * width);
+			for (unsigned int x = 0; x < width; x++) {
+				*pabove = (*pabove + *pcurrent) >> 1;
+				*pcurrent++ = *pabove++;
+			}
+		}
+	}
+	else if ( colours == ZM_COLOUR_RGB24 )
+	{
+		for (unsigned int y = 1; y < height; y += 2)
+		{
+			pabove = buffer + (((y-1) * width) * 3);
+			pcurrent = buffer + ((y * width) * 3);
+			for (unsigned int x = 0; x < width; x++) {
+				*pabove = (*pabove + *pcurrent) >> 1;
+				*pcurrent++ = *pabove++;
+				*pabove = (*pabove + *pcurrent) >> 1;
+				*pcurrent++ = *pabove++;
+				*pabove = (*pabove + *pcurrent) >> 1;
+				*pcurrent++ = *pabove++;
+			}
+		}
+	}
+	else if ( colours == ZM_COLOUR_RGB32 )
+	{
+		for (unsigned int y = 1; y < height; y += 2)
+		{
+			pabove = buffer + (((y-1) * width) << 2);
+			pcurrent = buffer + ((y * width) << 2);
+			for (unsigned int x = 0; x < width; x++) {
+				*pabove = (*pabove + *pcurrent) >> 1;
+				*pcurrent++ = *pabove++;
+				*pabove = (*pabove + *pcurrent) >> 1;
+				*pcurrent++ = *pabove++;
+				*pabove = (*pabove + *pcurrent) >> 1;
+				*pcurrent++ = *pabove++;
+				*pabove = (*pabove + *pcurrent) >> 1;
+				*pcurrent++ = *pabove++;
+			}
+		}
+	} else {
+		Error("Deinterlace called with unexpected colours: %d", colours);
 	}
 	
-	uint8_t *pdest = dest_image->WriteBuffer(width, height, colours, subpixelorder);
+}
+
+void Image::Deinterlace_Blend_CustomRatio(int divider)
+{
+	/* Simple deinterlacing. Blend the fields together at a custom ratio. */
+	/* 1 = 50% blending   */
+	/* 2 = 25% blending   */
+	/* 3 = 12.% blending  */
+	/* 4 = 6.25% blending */
 	
+	uint8_t *pabove, *pcurrent;
+	uint8_t subpix1, subpix2;
 	
+	if ( divider < 1 || divider > 4 ) {
+		Error("Deinterlace called with invalid blend ratio");
+	}
 	
-	
+	if ( colours == ZM_COLOUR_GRAY8 )
+	{
+		for (unsigned int y = 1; y < height; y += 2)
+		{
+			pabove = buffer + ((y-1) * width);
+			pcurrent = buffer + (y * width);
+			for (unsigned int x = 0; x < width; x++) {
+				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
+				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
+				*pcurrent++ = subpix1;
+				*pabove++ = subpix2;
+			}
+		}
+	}
+	else if ( colours == ZM_COLOUR_RGB24 )
+	{
+		for (unsigned int y = 1; y < height; y += 2)
+		{
+			pabove = buffer + (((y-1) * width) * 3);
+			pcurrent = buffer + ((y * width) * 3);
+			for (unsigned int x = 0; x < width; x++) {
+				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
+				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
+				*pcurrent++ = subpix1;
+				*pabove++ = subpix2;
+				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
+				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
+				*pcurrent++ = subpix1;
+				*pabove++ = subpix2;
+				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
+				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
+				*pcurrent++ = subpix1;
+				*pabove++ = subpix2;
+			}
+		}
+	}
+	else if ( colours == ZM_COLOUR_RGB32 )
+	{
+		for (unsigned int y = 1; y < height; y += 2)
+		{
+			pabove = buffer + (((y-1) * width) << 2);
+			pcurrent = buffer + ((y * width) << 2);
+			for (unsigned int x = 0; x < width; x++) {
+				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
+				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
+				*pcurrent++ = subpix1;
+				*pabove++ = subpix2;
+				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
+				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
+				*pcurrent++ = subpix1;
+				*pabove++ = subpix2;
+				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
+				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
+				*pcurrent++ = subpix1;
+				*pabove++ = subpix2;
+				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
+				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
+				*pcurrent++ = subpix1;
+				*pabove++ = subpix2;
+			}
+		}
+	} else {
+		Error("Deinterlace called with unexpected colours: %d", colours);
+	}
 	
 }
-*/
+
+
+void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold)
+{
+	if ( !(width == next_image->width && height == next_image->height && colours == next_image->colours && subpixelorder == next_image->subpixelorder) )
+	{
+		Panic( "Attempt to deinterlace different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, next_image->width, next_image->height, next_image->colours, next_image->subpixelorder);
+	}
+	
+	uint8_t *delta_buffer = AllocBuffer(width * (height>>1));
+	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow, *pdelta;
+	
+	if ( colours == ZM_COLOUR_GRAY8 )
+	{
+		/* Motion detection */
+		for (unsigned int y = 1; y < height; y += 2) {
+			pcurrent = buffer + ((y * width));
+			pncurrent = next_image->buffer + ((y * width));
+			pabove = buffer + (((y-1) * width));
+			pnabove = next_image->buffer + (((y-1) * width));
+			pdelta = delta_buffer + (((y>>1) * width));
+			for (unsigned int x = 0; x < width; x++) {
+				*pdelta = abs(*pnabove++ - *pabove++);
+				*pdelta |= abs(*pncurrent++ - *pcurrent++);
+				pdelta++;
+			}
+		}
+		
+		/* Check if pixels meet threshold */
+		for (unsigned int y = 1; y < (height-1); y += 2) {
+			pcurrent = buffer + ((y * width));
+			pabove = buffer + (((y-1) * width));
+			pbelow = buffer + (((y+1) * width));
+			pdelta = delta_buffer + (((y>>1) * width));
+			for (unsigned int x = 0; x < width; x++) {
+				if(*pdelta++ >= threshold) {
+					pcurrent[x] = (pabove[x] + pbelow[x]) >> 1;
+				}
+			}
+		}
+		/* Special case for the last line */
+		pcurrent = buffer + ((height-1) * width);
+		pabove = buffer + ((height-2) * width);
+		pdelta = delta_buffer + ((((height>>1)-1) * width));
+		for (unsigned int x = 0; x < width; x++) {
+			if(*pdelta++ >= threshold) {
+				pcurrent[x] = pabove[x];
+			}
+		}
+	} else {
+		Error("Unimplemented yet");
+	}
+	
+	/* Free the delta buffer */
+	DumpBuffer(delta_buffer, ZM_BUFTYPE_ZM);
+	
+}
+
 
 /************************************************* BLEND FUNCTIONS *************************************************/
 

@@ -244,6 +244,9 @@ public:
 	void Scale( unsigned int factor );
 	void Deinterlace_Discard();
 	void Deinterlace_Linear();
+	void Deinterlace_Blend();
+	void Deinterlace_Blend_CustomRatio(int divider);
+	void Deinterlace_4Field(const Image* next_image, unsigned int threshold);
 	
 };
 

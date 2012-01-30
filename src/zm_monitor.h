@@ -265,6 +265,7 @@ protected:
 	TriggerData		*trigger_data;
 
 	Snapshot		*image_buffer;
+	Snapshot		next_buffer; /* Used by four field deinterlacing */
 
 	Camera			*camera;
 

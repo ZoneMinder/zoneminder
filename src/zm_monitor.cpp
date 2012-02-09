@@ -536,6 +536,11 @@ Monitor::~Monitor()
         Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
     closeEvent();
 
+    if ( (deinterlacing & 0xff) == 4)
+    {
+        delete next_buffer.image;
+        delete next_buffer.timestamp;
+    }
     for ( int i = 0; i < image_buffer_count; i++ )
     {
         delete image_buffer[i].image;

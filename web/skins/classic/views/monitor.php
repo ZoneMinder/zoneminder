@@ -364,9 +364,11 @@ $orientations = array(
 
 $deinterlaceopts = array(
     "Disabled"                                            => 0x00000000,
-    "Four field motion adaptive - Soft"                   => 0x00003204, /* 50 change */
+    "Four field motion adaptive - Very Soft"              => 0x00003204, /* 50 change */
+    "Four field motion adaptive - Soft"                   => 0x00002804, /* 40 change */
     "Four field motion adaptive - Medium"                 => 0x00001E04, /* 30 change */
-    "Four field motion adaptive - Hard"                   => 0x00000A04, /* 10 change */
+    "Four field motion adaptive - Hard"                   => 0x00001404, /* 20 change */
+    "Four field motion adaptive - Very Hard"              => 0x00000A04, /* 10 change */
     "Discard"                                             => 0x00000001,
     "Linear"                                              => 0x00000002,
     "Blend"                                               => 0x00000003,
@@ -375,16 +377,18 @@ $deinterlaceopts = array(
 
 $deinterlaceopts_v4l2 = array(
     "Disabled"                                            => 0x00000000,
-    "Four field motion adaptive - Soft"                   => 0x00003204, /* 50 change */
+    "Four field motion adaptive - Very Soft"              => 0x00003204, /* 50 change */
+    "Four field motion adaptive - Soft"                   => 0x00002804, /* 40 change */
     "Four field motion adaptive - Medium"                 => 0x00001E04, /* 30 change */
-    "Four field motion adaptive - Hard"                   => 0x00000A04, /* 10 change */
+    "Four field motion adaptive - Hard"                   => 0x00001404, /* 20 change */
+    "Four field motion adaptive - Very Hard"              => 0x00000A04, /* 10 change */
     "Discard"                                             => 0x00000001,
     "Linear"                                              => 0x00000002,
     "Blend"                                               => 0x00000003,
     "Blend (25%)"                                         => 0x00000205,
-    "V4L2: Top field only"                                => 0x02000000,
-    "V4L2: Bottom field only"                             => 0x03000000,
-    "V4L2: Alternate fields"                              => 0x07000000,
+    "V4L2: Capture top field only"                        => 0x02000000,
+    "V4L2: Capture bottom field only"                     => 0x03000000,
+    "V4L2: Alternate fields (Bob)"                        => 0x07000000,
     "V4L2: Progressive"                                   => 0x01000000,
     "V4L2: Interlaced"                                    => 0x04000000,
 );

@@ -2943,11 +2943,11 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold)
 	{
 		/* Motion detection */
 		for (unsigned int y = 1; y < height; y += 2) {
-			pcurrent = buffer + ((y * width));
-			pncurrent = next_image->buffer + ((y * width));
-			pabove = buffer + (((y-1) * width));
-			pnabove = next_image->buffer + (((y-1) * width));
-			pdelta = delta_buffer + (((y>>1) * width));
+			pcurrent = buffer + (y * width);
+			pncurrent = next_image->buffer + (y * width);
+			pabove = buffer + ((y-1) * width);
+			pnabove = next_image->buffer + ((y-1) * width);
+			pdelta = delta_buffer + ((y>>1) * width);
 			for (unsigned int x = 0; x < width; x++) {
 				*pdelta = abs(*pnabove++ - *pabove++);
 				*pdelta |= abs(*pncurrent++ - *pcurrent++);
@@ -2957,10 +2957,10 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold)
 		
 		/* Check if pixels meet threshold */
 		for (unsigned int y = 1; y < (height-1); y += 2) {
-			pcurrent = buffer + ((y * width));
-			pabove = buffer + (((y-1) * width));
-			pbelow = buffer + (((y+1) * width));
-			pdelta = delta_buffer + (((y>>1) * width));
+			pcurrent = buffer + (y * width);
+			pabove = buffer + ((y-1) * width);
+			pbelow = buffer + ((y+1) * width);
+			pdelta = delta_buffer + ((y>>1) * width);
 			for (unsigned int x = 0; x < width; x++) {
 				if(*pdelta++ >= threshold) {
 					pcurrent[x] = (pabove[x] + pbelow[x]) >> 1;
@@ -2970,14 +2970,212 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold)
 		/* Special case for the last line */
 		pcurrent = buffer + ((height-1) * width);
 		pabove = buffer + ((height-2) * width);
-		pdelta = delta_buffer + ((((height>>1)-1) * width));
+		pdelta = delta_buffer + (((height>>1)-1) * width);
 		for (unsigned int x = 0; x < width; x++) {
 			if(*pdelta++ >= threshold) {
 				pcurrent[x] = pabove[x];
 			}
 		}
+	} 
+	else if ( colours == ZM_COLOUR_RGB24 )
+	{
+		/* Motion detection */
+		if ( subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
+			unsigned int b, g, r;
+			for (unsigned int y = 1; y < height; y += 2) {
+				pcurrent = buffer + ((y * width) * 3);
+				pncurrent = next_image->buffer + ((y * width) * 3);
+				pabove = buffer + (((y-1) * width) * 3);
+				pnabove = next_image->buffer + (((y-1) * width) * 3);
+				pdelta = delta_buffer + ((y>>1) * width);
+				for (unsigned int x = 0; x < width; x++) {
+					b = abs(*pnabove++ - *pabove++);
+					g = abs(*pnabove++ - *pabove++);
+					r = abs(*pnabove++ - *pabove++);
+					*pdelta = (r + r + b + g + g + g + g + g)>>3;
+					b = abs(*pncurrent++ - *pcurrent++);
+					g = abs(*pncurrent++ - *pcurrent++);
+					r = abs(*pncurrent++ - *pcurrent++);
+					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
+					pdelta++;
+				}
+			}
+		} else {
+			unsigned int r, g, b;
+			for (unsigned int y = 1; y < height; y += 2) {
+				pcurrent = buffer + ((y * width) * 3);
+				pncurrent = next_image->buffer + ((y * width) * 3);
+				pabove = buffer + (((y-1) * width) * 3);
+				pnabove = next_image->buffer + (((y-1) * width) * 3);
+				pdelta = delta_buffer + ((y>>1) * width);
+				for (unsigned int x = 0; x < width; x++) {
+					r = abs(*pnabove++ - *pabove++);
+					g = abs(*pnabove++ - *pabove++);
+					b = abs(*pnabove++ - *pabove++);
+					*pdelta = (r + r + b + g + g + g + g + g)>>3;
+					r = abs(*pncurrent++ - *pcurrent++);
+					g = abs(*pncurrent++ - *pcurrent++);
+					b = abs(*pncurrent++ - *pcurrent++);
+					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
+					pdelta++;
+				}
+			}
+		}
+		
+		/* Check if pixels meet threshold */
+		for (unsigned int y = 1; y < (height-1); y += 2) {
+			pcurrent = buffer + ((y * width) * 3);
+			pabove = buffer + (((y-1) * width) * 3);
+			pbelow = buffer + (((y+1) * width) * 3);
+			pdelta = delta_buffer + ((y>>1) * width);
+			for (unsigned int x = 0; x < width; x++) {
+				if(*pdelta++ >= threshold) {
+					pcurrent[(x*3)+0] = (pabove[(x*3)+0] + pbelow[(x*3)+0]) >> 1;
+					pcurrent[(x*3)+1] = (pabove[(x*3)+1] + pbelow[(x*3)+1]) >> 1;
+					pcurrent[(x*3)+2] = (pabove[(x*3)+2] + pbelow[(x*3)+2]) >> 1;
+				}
+			}
+		}
+		/* Special case for the last line */
+		pcurrent = buffer + (((height-1) * width) * 3);
+		pabove = buffer + (((height-2) * width) * 3);
+		pdelta = delta_buffer + (((height>>1)-1) * width);
+		for (unsigned int x = 0; x < width; x++) {
+			if(*pdelta++ >= threshold) {
+				pcurrent[(x*3)+0] = pabove[(x*3)+0];
+				pcurrent[(x*3)+1] = pabove[(x*3)+1];
+				pcurrent[(x*3)+2] = pabove[(x*3)+2];
+			}
+		}
+	}
+	else if ( colours == ZM_COLOUR_RGB32 )
+	{
+		/* Motion detection */
+		if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
+			unsigned int b, g, r;
+			for (unsigned int y = 1; y < height; y += 2) {
+				pcurrent = buffer + ((y * width) << 2);
+				pncurrent = next_image->buffer + ((y * width) << 2);
+				pabove = buffer + (((y-1) * width) << 2);
+				pnabove = next_image->buffer + (((y-1) * width) << 2);
+				pdelta = delta_buffer + ((y>>1) * width);
+				for (unsigned int x = 0; x < width; x++) {
+					b = abs(pnabove[0] - pabove[0]);
+					g = abs(pnabove[1] - pabove[1]);
+					r = abs(pnabove[2] - pabove[2]);
+					*pdelta = (r + r + b + g + g + g + g + g)>>3;
+					b = abs(pncurrent[0] - pcurrent[0]);
+					g = abs(pncurrent[1] - pcurrent[1]);
+					r = abs(pncurrent[2] - pcurrent[2]);
+					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
+					pnabove += 4;
+					pabove += 4;
+					pncurrent += 4;
+					pcurrent += 4;
+					pdelta++;
+				}
+			}
+		} else if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
+			/*unsigned int r, g, b;
+			for (unsigned int y = 1; y < height; y += 2) {
+				pcurrent = buffer + ((y * width) * 3);
+				pncurrent = next_image->buffer + ((y * width) * 3);
+				pabove = buffer + (((y-1) * width) * 3);
+				pnabove = next_image->buffer + (((y-1) * width) * 3);
+				pdelta = delta_buffer + ((y>>1) * width);
+				for (unsigned int x = 0; x < width; x++) {
+					r = abs(*pnabove++ - *pabove++);
+					g = abs(*pnabove++ - *pabove++);
+					b = abs(*pnabove++ - *pabove++);
+					*pdelta = (r + r + b + g + g + g + g + g)>>3;
+					r = abs(*pncurrent++ - *pcurrent++);
+					g = abs(*pncurrent++ - *pcurrent++);
+					b = abs(*pncurrent++ - *pcurrent++);
+					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
+					pdelta++;
+				}
+			}*/
+			Error("This type of deinterlacing is not implemented yet");
+		} else if ( subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
+			/*unsigned int r, g, b;
+			for (unsigned int y = 1; y < height; y += 2) {
+				pcurrent = buffer + ((y * width) * 3);
+				pncurrent = next_image->buffer + ((y * width) * 3);
+				pabove = buffer + (((y-1) * width) * 3);
+				pnabove = next_image->buffer + (((y-1) * width) * 3);
+				pdelta = delta_buffer + ((y>>1) * width);
+				for (unsigned int x = 0; x < width; x++) {
+					r = abs(*pnabove++ - *pabove++);
+					g = abs(*pnabove++ - *pabove++);
+					b = abs(*pnabove - *pabove);
+					pnabove += 2;
+					pabove += 2;
+					*pdelta = (r + r + b + g + g + g + g + g)>>3;
+					r = abs(*pncurrent++ - *pcurrent++);
+					g = abs(*pncurrent++ - *pcurrent++);
+					b = abs(*pncurrent - *pcurrent);
+					pncurrent += 2;
+					pcurrent += 2;
+					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
+					pdelta++;
+				}
+			}*/
+			Error("This type of deinterlacing is not implemented yet");
+		} else {
+			unsigned int r, g, b;
+			for (unsigned int y = 1; y < height; y += 2) {
+				pcurrent = buffer + ((y * width) << 2);
+				pncurrent = next_image->buffer + ((y * width) << 2);
+				pabove = buffer + (((y-1) * width) << 2);
+				pnabove = next_image->buffer + (((y-1) * width) << 2);
+				pdelta = delta_buffer + ((y>>1) * width);
+				for (unsigned int x = 0; x < width; x++) {
+					r = abs(pnabove[0] - pabove[0]);
+					g = abs(pnabove[1] - pabove[1]);
+					b = abs(pnabove[2] - pabove[2]);
+					*pdelta = (r + r + b + g + g + g + g + g)>>3;
+					r = abs(pncurrent[0] - pcurrent[0]);
+					g = abs(pncurrent[1] - pcurrent[1]);
+					b = abs(pncurrent[2] - pcurrent[2]);
+					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
+					pnabove += 4;
+					pabove += 4;
+					pncurrent += 4;
+					pcurrent += 4;
+					pdelta++;
+				}
+			}
+		}
+		
+		/* Check if pixels meet threshold */
+		for (unsigned int y = 1; y < (height-1); y += 2) {
+			pcurrent = buffer + ((y * width) << 2);
+			pabove = buffer + (((y-1) * width) << 2);
+			pbelow = buffer + (((y+1) * width) << 2);
+			pdelta = delta_buffer + ((y>>1) * width);
+			for (unsigned int x = 0; x < width; x++) {
+				if(*pdelta++ >= threshold) {
+					pcurrent[(x<<2)+0] = (pabove[(x<<2)+0] + pbelow[(x<<2)+0]) >> 1;
+					pcurrent[(x<<2)+1] = (pabove[(x<<2)+1] + pbelow[(x<<2)+1]) >> 1;
+					pcurrent[(x<<2)+2] = (pabove[(x<<2)+2] + pbelow[(x<<2)+2]) >> 1;
+					pcurrent[(x<<2)+3] = (pabove[(x<<2)+3] + pbelow[(x<<2)+3]) >> 1;
+				}
+			}
+		}
+		/* Special case for the last line */
+		pcurrent = buffer + (((height-1) * width) << 2);
+		pabove = buffer + (((height-2) * width) << 2);
+		pdelta = delta_buffer + (((height>>1)-1) * width);
+		for (unsigned int x = 0; x < width; x++) {
+			if(*pdelta++ >= threshold) {
+				pcurrent[(x<<2)+0] = pabove[(x<<2)+0];
+				pcurrent[(x<<2)+1] = pabove[(x<<2)+1];
+				pcurrent[(x<<2)+2] = pabove[(x<<2)+2];
+				pcurrent[(x<<2)+3] = pabove[(x<<2)+3];
+			}
+		}
 	} else {
-		Error("Unimplemented yet");
+		Error("Not implemented yet");
 	}
 	
 	/* Free the delta buffer */

@@ -34,7 +34,7 @@ static short *g_u_table;
 static short *b_u_table;
 __attribute__((aligned(16))) static const uint8_t movemask[16] = {0,4,8,12,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
-jpeg_compress_struct *Image::jpg_ccinfo[100] = { 0 };
+jpeg_compress_struct *Image::jpg_ccinfo[101] = { 0 };
 jpeg_decompress_struct *Image::jpg_dcinfo = 0;
 struct zm_error_mgr Image::jpg_err;
 
@@ -1421,15 +1421,40 @@ void Image::Overlay( const Image &image, int x, int y )
 
 void Image::Blend( const Image &image, int transparency )
 {
+#ifdef ZM_IMAGE_PROFILING
+	struct timespec start,end,diff;
+	unsigned long long executetime;
+	unsigned long milpixels;
+#endif
+	uint8_t* new_buffer;
+	
 	if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) )
 	{
 		Panic( "Attempt to blend different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder );
 	}
 	
-	if(transparency > 0) {
-		/* Do the blending */
-		(*fptr_blend)(buffer, image.buffer, buffer, size, transparency);
-	}
+	if(transparency <= 0)
+		return;
+	
+	new_buffer = AllocBuffer(size);
+	
+#ifdef ZM_IMAGE_PROFILING
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID,&start);
+#endif
+	
+	/* Do the blending */
+	(*fptr_blend)(buffer, image.buffer, new_buffer, size, transparency);
+	
+#ifdef ZM_IMAGE_PROFILING
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
+	timespec_diff(&start,&end,&diff);
+	
+	executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
+	milpixels = (unsigned long)((long double)size)/((((long double)executetime)/1000));
+	Debug(5, "Blend: %u colours blended in %llu nanoseconds, %lu million colours/s\n",size,executetime,milpixels);
+#endif
+	
+	AssignDirect( width, height, colours, subpixelorder, new_buffer, size, ZM_BUFTYPE_ZM);
 }
 
 Image *Image::Merge( int n_images, Image *images[] )
@@ -1544,6 +1569,12 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 /* New function to allow buffer re-using instead of allocationg memory for the delta image everytime */
 void Image::Delta( const Image &image, Image* targetimage) const
 {
+#ifdef ZM_IMAGE_PROFILING
+	struct timespec start,end,diff;
+	unsigned long long executetime;
+	unsigned long milpixels;
+#endif
+	
 	if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) )
 	{
 		Panic( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder);
@@ -1554,7 +1585,11 @@ void Image::Delta( const Image &image, Image* targetimage) const
 	if(pdiff == NULL) {
 		Panic("Failed requesting writeable buffer for storing the delta image");
 	}
-
+	
+#ifdef ZM_IMAGE_PROFILING
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID,&start);
+#endif
+	
 	switch(colours) {
 	  case ZM_COLOUR_RGB24:
 	  {
@@ -1591,6 +1626,15 @@ void Image::Delta( const Image &image, Image* targetimage) const
 	    Panic("Delta called with unexpected colours: %d",colours);
 	    break;
 	}
+	
+#ifdef ZM_IMAGE_PROFILING
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
+	timespec_diff(&start,&end,&diff);
+	
+	executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
+	milpixels = (unsigned long)((long double)pixels)/((((long double)executetime)/1000));
+	Debug(5, "Delta: %u delta pixels generated in %llu nanoseconds, %lu million pixels/s\n",pixels,executetime,milpixels);
+#endif
 }
 
 const Coord Image::centreCoord( const char *text ) const

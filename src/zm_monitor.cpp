@@ -224,7 +224,7 @@ bool Monitor::MonitorLink::inAlarm()
 
 bool Monitor::MonitorLink::hasAlarmed()
 {
-    if ( shared_data->state == ALARM || shared_data->state == ALERT )
+    if ( shared_data->state == ALARM )
     {
         return( true );
     }
@@ -1278,7 +1278,7 @@ bool Monitor::Analyse()
                     {
                         if ( linked_monitors[i]->isConnected() )
                         {
-                            if ( linked_monitors[i]->isAlarmed() )
+                            if ( linked_monitors[i]->hasAlarmed() )
                             {
                                 if ( !event )
                                 {

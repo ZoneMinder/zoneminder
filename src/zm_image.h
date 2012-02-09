@@ -131,7 +131,7 @@ protected:
 	static unsigned char *y_r_table;
 	static unsigned char *y_g_table;
 	static unsigned char *y_b_table;
-	static jpeg_compress_struct *jpg_ccinfo[100];
+	static jpeg_compress_struct *jpg_ccinfo[101];
 	static jpeg_decompress_struct *jpg_dcinfo;
 	static struct zm_error_mgr jpg_err;
 

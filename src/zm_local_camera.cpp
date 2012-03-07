@@ -339,7 +339,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			Error("Automatic format selection failed. Falling back to YUYV");
 			palette = V4L2_PIX_FMT_YUYV;
 		} else {
-			Debug(2,"Selected capture palette: %s (%c%c%c%c)",palette_desc,palette&0xff, (palette>>8)&0xff, (palette>>16)&0xff, (palette>>24)&0xff );
+			Info("Selected capture palette: %s (%c%c%c%c)", palette_desc, palette&0xff, (palette>>8)&0xff, (palette>>16)&0xff, (palette>>24)&0xff);
 		}
 	}
 #endif
@@ -419,11 +419,11 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			}
 			if( capture ) {
 				if(!sws_isSupportedInput(capturePixFormat)) {
-					Error("swscale does not support the used capture format");
+					Error("swscale does not support the used capture format: %c%c%c%c",(capturePixFormat)&0xff,((capturePixFormat>>8)&0xff),((capturePixFormat>>16)&0xff),((capturePixFormat>>24)&0xff));
 					conversion_type = 2; /* Try ZM format conversions */
 				}
 				if(!sws_isSupportedOutput(imagePixFormat)) {
-					Error("swscale does not support the target format");
+					Error("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
 					conversion_type = 2; /* Try ZM format conversions */
 				}
 			}
@@ -2013,7 +2013,7 @@ int LocalCamera::Capture( Image &image )
             buffer = (unsigned char *)v4l2_data.buffers[v4l2_data.bufptr->index].start;
             buffer_bytesused = v4l2_data.bufptr->bytesused;
 
-            if(v4l2_data.fmt.fmt.pix.width != width && v4l2_data.fmt.fmt.pix.height != height) {
+            if((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) !=  (width * height)) {
                     Fatal("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",v4l2_data.fmt.fmt.pix.width,v4l2_data.fmt.fmt.pix.height,width,height);
             }
             

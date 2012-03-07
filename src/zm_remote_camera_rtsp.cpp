@@ -202,11 +202,11 @@ int RemoteCameraRtsp::PrimeCapture()
 	
 #if HAVE_LIBSWSCALE
 	if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
-		Fatal("swscale does not support the codec format");
+		Fatal("swscale does not support the codec format: %c%c%c%c",(mCodecContext->pix_fmt)&0xff,((mCodecContext->pix_fmt>>8)&0xff),((mCodecContext->pix_fmt>>16)&0xff),((mCodecContext->pix_fmt>>24)&0xff));
 	}
 
 	if(!sws_isSupportedOutput(imagePixFormat)) {
-		Fatal("swscale does not support the target format");
+		Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
 	}
 	
 #else // HAVE_LIBSWSCALE

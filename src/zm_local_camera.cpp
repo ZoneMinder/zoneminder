@@ -339,7 +339,9 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			Error("Automatic format selection failed. Falling back to YUYV");
 			palette = V4L2_PIX_FMT_YUYV;
 		} else {
-			Info("Selected capture palette: %s (%c%c%c%c)", palette_desc, palette&0xff, (palette>>8)&0xff, (palette>>16)&0xff, (palette>>24)&0xff);
+			if(capture) {
+				Info("Selected capture palette: %s (%c%c%c%c)", palette_desc, palette&0xff, (palette>>8)&0xff, (palette>>16)&0xff, (palette>>24)&0xff);
+			}
 		}
 	}
 #endif

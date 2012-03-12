@@ -415,53 +415,53 @@ sub zmMemWrite( $$;$ )
 		my $data;
 		if ( $type eq "long" )
 		{
-			$data = pack( "l!", $data );
+			$data = pack( "l!", $value );
 		}
 		elsif ( $type eq "ulong" || $type eq "size_t" )
 		{
-			$data = pack( "L!", $data );
+			$data = pack( "L!", $value );
 		}
 		elsif ( $type eq "int64" || $type eq "time_t64" )
 		{
 			# The "q" type is only available on 64bit platforms, so use native.
-			$data = pack( "l!", $data );
+			$data = pack( "l!", $value );
 		}
 		elsif ( $type eq "uint64" )
 		{
 			# The "q" type is only available on 64bit platforms, so use native.
-			$data = pack( "L!", $data );
+			$data = pack( "L!", $value );
 		}
 		elsif ( $type eq "int32" )
 		{
-			$data = pack( "l", $data );
+			$data = pack( "l", $value );
 		}
 		elsif ( $type eq "uint32" || $type eq "bool4" )
 		{
-			$data = pack( "L", $data );
+			$data = pack( "L", $value );
 		}
 		elsif ( $type eq "int16" )
 		{
-			$data = pack( "s", $data );
+			$data = pack( "s", $value );
 		}
 		elsif ( $type eq "uint16" )
 		{
-			$data = pack( "S", $data );
+			$data = pack( "S", $value );
 		}
 		elsif ( $type eq "int8" )
 		{
-			$data = pack( "c", $data );
+			$data = pack( "c", $value );
 		}
 		elsif ( $type eq "uint8" || $type eq "bool1" )
 		{
-			$data = pack( "C", $data );
+			$data = pack( "C", $value );
 		}
 		elsif ( $type =~ /^int8\[\d+\]$/ )
 		{
-			$data = pack( "Z".$size, $data );
+			$data = pack( "Z".$size, $value );
 		} 
 		elsif ( $type =~ /^uint8\[\d+\]$/ )
 		{
-			$data = pack( "C".$size, $data );
+			$data = pack( "C".$size, $value );
 		} 
 		else
 		{

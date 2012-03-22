@@ -418,6 +418,8 @@ Monitor::Monitor(
         shared_data->contrast = -1;
         shared_data->alarm_x = -1;
         shared_data->alarm_y = -1;
+        shared_data->format = camera->SubpixelOrder();
+        shared_data->imagesize = camera->ImageSize();
         trigger_data->size = sizeof(TriggerData);
         trigger_data->trigger_state = TRIGGER_CANCEL;
         trigger_data->trigger_score = 0;
@@ -3517,7 +3519,9 @@ void MonitorStream::runStream()
 
         if ( connkey )
         {
-            got_command = checkCommandQueue();
+            while(checkCommandQueue()) {
+                got_command = true;
+            }
         }
 
         bool frame_sent = false;

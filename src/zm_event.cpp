@@ -1348,7 +1348,7 @@ void EventStream::runStream()
     {
         gettimeofday( &now, NULL );
 
-        checkCommandQueue();
+        while(checkCommandQueue());
 
         if ( step != 0 )
             curr_frame_id += step;
@@ -1445,7 +1445,7 @@ void EventStream::runStream()
         }
         else
         {
-            usleep( STREAM_PAUSE_WAIT );
+            usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
         }
     }
 #if HAVE_LIBAVCODEC

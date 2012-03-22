@@ -105,10 +105,10 @@ protected:
 		uint8_t valid;             	/* +48   */
 		uint8_t active;            	/* +49   */
 		uint8_t signal;            	/* +50   */
-		uint8_t bpadding;          	/* +51   */
-		uint32_t epadding1;        	/* +52   */
-		uint32_t epadding2;        	/* +56   */
-		uint32_t epadding3;        	/* +60   */
+		uint8_t format;            	/* +51   */
+		uint32_t imagesize;        	/* +52   */
+		uint32_t epadding1;        	/* +56   */
+		uint32_t epadding2;        	/* +60   */
 		/* 
 		** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
 		** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.

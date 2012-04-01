@@ -217,8 +217,8 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			bool block;
 			for ( int y = lo_y; y <= hi_y; y++ )
 			{
-				lo_x = ranges[y].lo_x;
-				hi_x = ranges[y].hi_x;
+				int lo_x = ranges[y].lo_x;
+				int hi_x = ranges[y].hi_x;
 
 				pdiff = (uint8_t*)diff_image->Buffer( lo_x, y );
 

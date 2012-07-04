@@ -264,11 +264,17 @@ AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 if test "$ZM_SSL_LIB" == "openssl"; then
+AC_CHECK_HEADERS(openssl/md5.h,,AC_MSG_WARN(zm requires openssl/md5.h header to be installed for openssl),)
 AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN([libcrypto.a is required for authenticated streaming - use ZM_SSL_LIB option to select gnutls instead]))
 else
-AC_CHECK_HEADERS(gcrypt.h,,AC_MSG_WARN(zm requires libgcrypt headers to be installed for gnutls),)
+AC_CHECK_HEADERS(gnutls/openssl.h,AC_SUBST(ZM_HAS_GNUTLS_OPENSSL,1),AC_SUBST(ZM_HAS_GNUTLS_OPENSSL,0),)
+AC_CHECK_HEADERS(gnutls/gnutls.h,AC_SUBST(ZM_HAS_GNUTLS,1),AC_SUBST(ZM_HAS_GNUTLS,0),)
+if test "$ZM_HAS_GNUTLS_OPENSSL" == "0" && test "$ZM_HAS_GNUTLS" == "0"; then
+AC_MSG_WARN(gnutls is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead)
+fi
+AC_CHECK_HEADERS(gcrypt.h,,AC_MSG_WARN(zm requires libgcrypt header to be installed for gnutls),)
 AC_CHECK_LIB(gcrypt,gcry_check_version,,AC_MSG_WARN([libgcrypt.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
-AC_CHECK_LIB(gnutls-openssl,MD5,,AC_MSG_WARN([gnutls-openssl.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
+AC_CHECK_LIB(gnutls,gnutls_fingerprint,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
 fi
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
 AC_CHECK_LIB(z,zlibVersion)
@@ -321,8 +327,13 @@ if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires openssl/md5.h - use ZM_SSL_LIB option to select gnutls instead]),[#include <stdlib.h>
 #include <openssl/md5.h>])
 else
+if test "$ZM_HAS_GNUTLS_OPENSSL" == "1"; then
 AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires gnutls/openssl.h - use ZM_SSL_LIB option to select openssl instead]),[#include <stdlib.h>
 #include <gnutls/openssl.h>])
+else
+AC_CHECK_DECLS(gnutls_fingerprint,,AC_MSG_ERROR([zm requires gnutls/gnutls.h - use ZM_SSL_LIB option to select openssl instead]),[#include <stdlib.h>
+#include <gnutls/gnutls.h>])
+fi
 fi
 AC_CHECK_DECLS(backtrace,,,[#include <execinfo.h>])
 

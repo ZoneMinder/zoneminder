@@ -188,6 +188,8 @@ ZM_DB_HOST = @ZM_DB_HOST@
 ZM_DB_NAME = @ZM_DB_NAME@
 ZM_DB_PASS = @ZM_DB_PASS@
 ZM_DB_USER = @ZM_DB_USER@
+ZM_HAS_GNUTLS = @ZM_HAS_GNUTLS@
+ZM_HAS_GNUTLS_OPENSSL = @ZM_HAS_GNUTLS_OPENSSL@
 ZM_HAS_V4L = @ZM_HAS_V4L@
 ZM_HAS_V4L1 = @ZM_HAS_V4L1@
 ZM_HAS_V4L2 = @ZM_HAS_V4L2@
@@ -242,7 +244,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = gnu
-AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -Wno-sign-compare -fno-inline
+AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -Wno-sign-compare
 #AM_CXXFLAGS = -frepo
 CLEANFILES = *.rpo
 

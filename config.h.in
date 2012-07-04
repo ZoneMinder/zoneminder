@@ -25,6 +25,10 @@
    don't. */
 #undef HAVE_DECL_BACKTRACE
 
+/* Define to 1 if you have the declaration of `gnutls_fingerprint', and to 0
+   if you don't. */
+#undef HAVE_DECL_GNUTLS_FINGERPRINT
+
 /* Define to 1 if you have the declaration of `MD5', and to 0 if you don't. */
 #undef HAVE_DECL_MD5
 
@@ -58,6 +62,12 @@
 
 /* Define to 1 if you have the <glob.h> header file. */
 #undef HAVE_GLOB_H
+
+/* Define to 1 if you have the <gnutls/gnutls.h> header file. */
+#undef HAVE_GNUTLS_GNUTLS_H
+
+/* Define to 1 if you have the <gnutls/openssl.h> header file. */
+#undef HAVE_GNUTLS_OPENSSL_H
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -107,8 +117,8 @@
 /* Define to 1 if you have the `gcrypt' library (-lgcrypt). */
 #undef HAVE_LIBGCRYPT
 
-/* Define to 1 if you have the `gnutls-openssl' library (-lgnutls-openssl). */
-#undef HAVE_LIBGNUTLS_OPENSSL
+/* Define to 1 if you have the `gnutls' library (-lgnutls). */
+#undef HAVE_LIBGNUTLS
 
 /* Define to 1 if you have the `jpeg' library (-ljpeg). */
 #undef HAVE_LIBJPEG
@@ -173,6 +183,9 @@
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
+
+/* Define to 1 if you have the <openssl/md5.h> header file. */
+#undef HAVE_OPENSSL_MD5_H
 
 /* Define to 1 if you have the <pcre.h> header file. */
 #undef HAVE_PCRE_H

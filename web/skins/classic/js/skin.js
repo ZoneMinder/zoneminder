@@ -54,7 +54,7 @@ var popupSizes = {
     'monitorselect':{ 'width': 160, 'height': 200 },
     'montage':      { 'width': -1, 'height': -1 },
     'optionhelp':   { 'width': 400, 'height': 320 },
-    'options':      { 'width': 920, 'height': 620 },
+    'options':      { 'width': 960, 'height': 620 },
     'preset':       { 'width': 300, 'height': 120 },
     'settings':     { 'width': 200, 'height': 225 },
     'state':        { 'width': 240, 'height': 124 },
@@ -82,52 +82,52 @@ function getPopupSize( tag, width, height )
     var popupSize = Object.clone( popupSizes[tag] );
     if ( !popupSize )
     {
-        console.error( "Can't find window size for tag '"+tag+"'" );
+        Error( "Can't find window size for tag '"+tag+"'" );
         return( { 'width': 0, 'height': 0 } );
     }
     if ( popupSize.width && popupSize.height )
     {
         if ( width || height )
-            console.warn( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'"  );
+            Warning( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'"  );
         return( popupSize );
     }
     if ( popupSize.addWidth )
     {
         popupSize.width = popupSize.addWidth;
         if ( !width )
-            console.error( "Got addWidth but no passed width when getting popup size for tag '"+tag+"'" );
+            Error( "Got addWidth but no passed width when getting popup size for tag '"+tag+"'" );
         else
             popupSize.width += parseInt(width);
     }
     else if ( width )
     {
         popupSize.width = width;
-        console.error( "Got passed width but no addWidth when getting popup size for tag '"+tag+"'" );
+        Error( "Got passed width but no addWidth when getting popup size for tag '"+tag+"'" );
     }
     if ( popupSize.minWidth && popupSize.width < popupSize.minWidth )
     {
-        console.warn( "Adjusting to minimum width when getting popup size for tag '"+tag+"'" );
+        Warning( "Adjusting to minimum width when getting popup size for tag '"+tag+"'" );
         popupSize.width = popupSize.minWidth;
     }
     if ( popupSize.addHeight )
     {
         popupSize.height = popupSize.addHeight;
         if ( !height )
-            console.error( "Got addHeight but no passed height when getting popup size for tag '"+tag+"'" );
+            Error( "Got addHeight but no passed height when getting popup size for tag '"+tag+"'" );
         else
             popupSize.height += parseInt(height);
     }
     else if ( height )
     {
         popupSize.height = height;
-        console.error( "Got passed height but no addHeight when getting popup size for tag '"+tag+"'" );
+        Error( "Got passed height but no addHeight when getting popup size for tag '"+tag+"'" );
     }
     if ( popupSize.minHeight && popupSize.height < popupSize.minHeight )
     {
-        console.warn( "Adjusting to minimum height when getting popup size for tag '"+tag+"'" );
+        Warning( "Adjusting to minimum height when getting popup size for tag '"+tag+"'" );
         popupSize.height = popupSize.minHeight;
     }
-    console.debug( popupSize );
+    Debug( popupSize );
     return( popupSize );
 }
 

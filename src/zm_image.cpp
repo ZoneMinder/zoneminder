@@ -50,6 +50,13 @@ static delta_fptr_t fptr_delta8_argb;
 static delta_fptr_t fptr_delta8_abgr;
 static delta_fptr_t fptr_delta8_gray8;
 
+/* Pointers to deinterlace_4field functions */
+static deinterlace_4field_fptr_t fptr_deinterlace_4field_rgba;
+static deinterlace_4field_fptr_t fptr_deinterlace_4field_bgra;
+static deinterlace_4field_fptr_t fptr_deinterlace_4field_argb;
+static deinterlace_4field_fptr_t fptr_deinterlace_4field_abgr;
+static deinterlace_4field_fptr_t fptr_deinterlace_4field_gray8;
+
 /* Pointer to image buffer memory copy function */
 imgbufcpy_fptr_t fptr_imgbufcpy;
 
@@ -212,6 +219,23 @@ void Image::Initialise()
 		fptr_delta8_abgr = &std_delta8_abgr;
 		fptr_delta8_gray8 = &std_delta8_gray8;
 		Debug(2,"Delta: CPU extensions disabled, using standard delta functions");
+	}
+	
+	/* Use SSSE3 deinterlace functions? */
+	if(config.cpu_extensions && sseversion >= 35) {
+		fptr_deinterlace_4field_rgba = &ssse3_deinterlace_4field_rgba;
+		fptr_deinterlace_4field_bgra = &ssse3_deinterlace_4field_bgra;
+		fptr_deinterlace_4field_argb = &ssse3_deinterlace_4field_argb;
+		fptr_deinterlace_4field_abgr = &ssse3_deinterlace_4field_abgr;
+		fptr_deinterlace_4field_gray8 = &ssse3_deinterlace_4field_gray8;
+		Debug(2,"Deinterlace: Using SSSE3 delta functions");
+	} else {
+		fptr_deinterlace_4field_rgba = &std_deinterlace_4field_rgba;
+		fptr_deinterlace_4field_bgra = &std_deinterlace_4field_bgra;
+		fptr_deinterlace_4field_argb = &std_deinterlace_4field_argb;
+		fptr_deinterlace_4field_abgr = &std_deinterlace_4field_abgr;
+		fptr_deinterlace_4field_gray8 = &std_deinterlace_4field_gray8;
+		Debug(2,"Deinterlace: Using standard delta functions");
 	}
 	
 	/* Use SSE2 aligned memory copy? */
@@ -2936,250 +2960,42 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold)
 		Panic( "Attempt to deinterlace different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, next_image->width, next_image->height, next_image->colours, next_image->subpixelorder);
 	}
 	
-	uint8_t *delta_buffer = AllocBuffer(width * (height>>1));
-	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow, *pdelta;
-	
-	if ( colours == ZM_COLOUR_GRAY8 )
-	{
-		/* Motion detection */
-		for (unsigned int y = 1; y < height; y += 2) {
-			pcurrent = buffer + (y * width);
-			pncurrent = next_image->buffer + (y * width);
-			pabove = buffer + ((y-1) * width);
-			pnabove = next_image->buffer + ((y-1) * width);
-			pdelta = delta_buffer + ((y>>1) * width);
-			for (unsigned int x = 0; x < width; x++) {
-				*pdelta = abs(*pnabove++ - *pabove++);
-				*pdelta |= abs(*pncurrent++ - *pcurrent++);
-				pdelta++;
-			}
-		}
-		
-		/* Check if pixels meet threshold */
-		for (unsigned int y = 1; y < (height-1); y += 2) {
-			pcurrent = buffer + (y * width);
-			pabove = buffer + ((y-1) * width);
-			pbelow = buffer + ((y+1) * width);
-			pdelta = delta_buffer + ((y>>1) * width);
-			for (unsigned int x = 0; x < width; x++) {
-				if(*pdelta++ >= threshold) {
-					pcurrent[x] = (pabove[x] + pbelow[x]) >> 1;
-				}
-			}
-		}
-		/* Special case for the last line */
-		pcurrent = buffer + ((height-1) * width);
-		pabove = buffer + ((height-2) * width);
-		pdelta = delta_buffer + (((height>>1)-1) * width);
-		for (unsigned int x = 0; x < width; x++) {
-			if(*pdelta++ >= threshold) {
-				pcurrent[x] = pabove[x];
-			}
-		}
-	} 
-	else if ( colours == ZM_COLOUR_RGB24 )
-	{
-		/* Motion detection */
-		if ( subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
-			unsigned int b, g, r;
-			for (unsigned int y = 1; y < height; y += 2) {
-				pcurrent = buffer + ((y * width) * 3);
-				pncurrent = next_image->buffer + ((y * width) * 3);
-				pabove = buffer + (((y-1) * width) * 3);
-				pnabove = next_image->buffer + (((y-1) * width) * 3);
-				pdelta = delta_buffer + ((y>>1) * width);
-				for (unsigned int x = 0; x < width; x++) {
-					b = abs(*pnabove++ - *pabove++);
-					g = abs(*pnabove++ - *pabove++);
-					r = abs(*pnabove++ - *pabove++);
-					*pdelta = (r + r + b + g + g + g + g + g)>>3;
-					b = abs(*pncurrent++ - *pcurrent++);
-					g = abs(*pncurrent++ - *pcurrent++);
-					r = abs(*pncurrent++ - *pcurrent++);
-					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
-					pdelta++;
-				}
-			}
-		} else {
-			unsigned int r, g, b;
-			for (unsigned int y = 1; y < height; y += 2) {
-				pcurrent = buffer + ((y * width) * 3);
-				pncurrent = next_image->buffer + ((y * width) * 3);
-				pabove = buffer + (((y-1) * width) * 3);
-				pnabove = next_image->buffer + (((y-1) * width) * 3);
-				pdelta = delta_buffer + ((y>>1) * width);
-				for (unsigned int x = 0; x < width; x++) {
-					r = abs(*pnabove++ - *pabove++);
-					g = abs(*pnabove++ - *pabove++);
-					b = abs(*pnabove++ - *pabove++);
-					*pdelta = (r + r + b + g + g + g + g + g)>>3;
-					r = abs(*pncurrent++ - *pcurrent++);
-					g = abs(*pncurrent++ - *pcurrent++);
-					b = abs(*pncurrent++ - *pcurrent++);
-					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
-					pdelta++;
-				}
-			}
-		}
-		
-		/* Check if pixels meet threshold */
-		for (unsigned int y = 1; y < (height-1); y += 2) {
-			pcurrent = buffer + ((y * width) * 3);
-			pabove = buffer + (((y-1) * width) * 3);
-			pbelow = buffer + (((y+1) * width) * 3);
-			pdelta = delta_buffer + ((y>>1) * width);
-			for (unsigned int x = 0; x < width; x++) {
-				if(*pdelta++ >= threshold) {
-					pcurrent[(x*3)+0] = (pabove[(x*3)+0] + pbelow[(x*3)+0]) >> 1;
-					pcurrent[(x*3)+1] = (pabove[(x*3)+1] + pbelow[(x*3)+1]) >> 1;
-					pcurrent[(x*3)+2] = (pabove[(x*3)+2] + pbelow[(x*3)+2]) >> 1;
-				}
-			}
-		}
-		/* Special case for the last line */
-		pcurrent = buffer + (((height-1) * width) * 3);
-		pabove = buffer + (((height-2) * width) * 3);
-		pdelta = delta_buffer + (((height>>1)-1) * width);
-		for (unsigned int x = 0; x < width; x++) {
-			if(*pdelta++ >= threshold) {
-				pcurrent[(x*3)+0] = pabove[(x*3)+0];
-				pcurrent[(x*3)+1] = pabove[(x*3)+1];
-				pcurrent[(x*3)+2] = pabove[(x*3)+2];
-			}
-		}
+	switch(colours) {
+	  case ZM_COLOUR_RGB24:
+	  {
+	    if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+	      /* BGR subpixel order */
+	      std_deinterlace_4field_bgr(buffer, next_image->buffer, threshold, width, height);
+	    } else {
+	      /* Assume RGB subpixel order */
+	      std_deinterlace_4field_rgb(buffer, next_image->buffer, threshold, width, height);
+	    }
+	    break;
+	  }
+	  case ZM_COLOUR_RGB32:
+	  {
+	    if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+	      /* ARGB subpixel order */
+	      (*fptr_deinterlace_4field_argb)(buffer, next_image->buffer, threshold, width, height);
+	    } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+	      /* ABGR subpixel order */
+	      (*fptr_deinterlace_4field_abgr)(buffer, next_image->buffer, threshold, width, height);
+	    } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+	      /* BGRA subpixel order */
+	      (*fptr_deinterlace_4field_bgra)(buffer, next_image->buffer, threshold, width, height);
+	    } else {
+	      /* Assume RGBA subpixel order */
+	      (*fptr_deinterlace_4field_rgba)(buffer, next_image->buffer, threshold, width, height);
+	    }
+	    break;
+	  }
+	  case ZM_COLOUR_GRAY8:
+	    (*fptr_deinterlace_4field_gray8)(buffer, next_image->buffer, threshold, width, height);
+	    break;
+	  default:
+	    Panic("Deinterlace_4Field called with unexpected colours: %d",colours);
+	    break;
 	}
-	else if ( colours == ZM_COLOUR_RGB32 )
-	{
-		/* Motion detection */
-		if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
-			unsigned int b, g, r;
-			for (unsigned int y = 1; y < height; y += 2) {
-				pcurrent = buffer + ((y * width) << 2);
-				pncurrent = next_image->buffer + ((y * width) << 2);
-				pabove = buffer + (((y-1) * width) << 2);
-				pnabove = next_image->buffer + (((y-1) * width) << 2);
-				pdelta = delta_buffer + ((y>>1) * width);
-				for (unsigned int x = 0; x < width; x++) {
-					b = abs(pnabove[0] - pabove[0]);
-					g = abs(pnabove[1] - pabove[1]);
-					r = abs(pnabove[2] - pabove[2]);
-					*pdelta = (r + r + b + g + g + g + g + g)>>3;
-					b = abs(pncurrent[0] - pcurrent[0]);
-					g = abs(pncurrent[1] - pcurrent[1]);
-					r = abs(pncurrent[2] - pcurrent[2]);
-					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
-					pnabove += 4;
-					pabove += 4;
-					pncurrent += 4;
-					pcurrent += 4;
-					pdelta++;
-				}
-			}
-		} else if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
-			/*unsigned int r, g, b;
-			for (unsigned int y = 1; y < height; y += 2) {
-				pcurrent = buffer + ((y * width) * 3);
-				pncurrent = next_image->buffer + ((y * width) * 3);
-				pabove = buffer + (((y-1) * width) * 3);
-				pnabove = next_image->buffer + (((y-1) * width) * 3);
-				pdelta = delta_buffer + ((y>>1) * width);
-				for (unsigned int x = 0; x < width; x++) {
-					r = abs(*pnabove++ - *pabove++);
-					g = abs(*pnabove++ - *pabove++);
-					b = abs(*pnabove++ - *pabove++);
-					*pdelta = (r + r + b + g + g + g + g + g)>>3;
-					r = abs(*pncurrent++ - *pcurrent++);
-					g = abs(*pncurrent++ - *pcurrent++);
-					b = abs(*pncurrent++ - *pcurrent++);
-					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
-					pdelta++;
-				}
-			}*/
-			Error("This type of deinterlacing is not implemented yet");
-		} else if ( subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
-			/*unsigned int r, g, b;
-			for (unsigned int y = 1; y < height; y += 2) {
-				pcurrent = buffer + ((y * width) * 3);
-				pncurrent = next_image->buffer + ((y * width) * 3);
-				pabove = buffer + (((y-1) * width) * 3);
-				pnabove = next_image->buffer + (((y-1) * width) * 3);
-				pdelta = delta_buffer + ((y>>1) * width);
-				for (unsigned int x = 0; x < width; x++) {
-					r = abs(*pnabove++ - *pabove++);
-					g = abs(*pnabove++ - *pabove++);
-					b = abs(*pnabove - *pabove);
-					pnabove += 2;
-					pabove += 2;
-					*pdelta = (r + r + b + g + g + g + g + g)>>3;
-					r = abs(*pncurrent++ - *pcurrent++);
-					g = abs(*pncurrent++ - *pcurrent++);
-					b = abs(*pncurrent - *pcurrent);
-					pncurrent += 2;
-					pcurrent += 2;
-					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
-					pdelta++;
-				}
-			}*/
-			Error("This type of deinterlacing is not implemented yet");
-		} else {
-			unsigned int r, g, b;
-			for (unsigned int y = 1; y < height; y += 2) {
-				pcurrent = buffer + ((y * width) << 2);
-				pncurrent = next_image->buffer + ((y * width) << 2);
-				pabove = buffer + (((y-1) * width) << 2);
-				pnabove = next_image->buffer + (((y-1) * width) << 2);
-				pdelta = delta_buffer + ((y>>1) * width);
-				for (unsigned int x = 0; x < width; x++) {
-					r = abs(pnabove[0] - pabove[0]);
-					g = abs(pnabove[1] - pabove[1]);
-					b = abs(pnabove[2] - pabove[2]);
-					*pdelta = (r + r + b + g + g + g + g + g)>>3;
-					r = abs(pncurrent[0] - pcurrent[0]);
-					g = abs(pncurrent[1] - pcurrent[1]);
-					b = abs(pncurrent[2] - pcurrent[2]);
-					*pdelta |= (r + r + b + g + g + g + g + g)>>3;
-					pnabove += 4;
-					pabove += 4;
-					pncurrent += 4;
-					pcurrent += 4;
-					pdelta++;
-				}
-			}
-		}
-		
-		/* Check if pixels meet threshold */
-		for (unsigned int y = 1; y < (height-1); y += 2) {
-			pcurrent = buffer + ((y * width) << 2);
-			pabove = buffer + (((y-1) * width) << 2);
-			pbelow = buffer + (((y+1) * width) << 2);
-			pdelta = delta_buffer + ((y>>1) * width);
-			for (unsigned int x = 0; x < width; x++) {
-				if(*pdelta++ >= threshold) {
-					pcurrent[(x<<2)+0] = (pabove[(x<<2)+0] + pbelow[(x<<2)+0]) >> 1;
-					pcurrent[(x<<2)+1] = (pabove[(x<<2)+1] + pbelow[(x<<2)+1]) >> 1;
-					pcurrent[(x<<2)+2] = (pabove[(x<<2)+2] + pbelow[(x<<2)+2]) >> 1;
-					pcurrent[(x<<2)+3] = (pabove[(x<<2)+3] + pbelow[(x<<2)+3]) >> 1;
-				}
-			}
-		}
-		/* Special case for the last line */
-		pcurrent = buffer + (((height-1) * width) << 2);
-		pabove = buffer + (((height-2) * width) << 2);
-		pdelta = delta_buffer + (((height>>1)-1) * width);
-		for (unsigned int x = 0; x < width; x++) {
-			if(*pdelta++ >= threshold) {
-				pcurrent[(x<<2)+0] = pabove[(x<<2)+0];
-				pcurrent[(x<<2)+1] = pabove[(x<<2)+1];
-				pcurrent[(x<<2)+2] = pabove[(x<<2)+2];
-				pcurrent[(x<<2)+3] = pabove[(x<<2)+3];
-			}
-		}
-	} else {
-		Error("Not implemented yet");
-	}
-	
-	/* Free the delta buffer */
-	DumpBuffer(delta_buffer, ZM_BUFTYPE_ZM);
 	
 }
 
@@ -4386,5 +4202,1262 @@ __attribute__((noinline)) void zm_convert_rgb565_rgba(const uint8_t* col1, uint8
 		result[1] = g;
 		result[2] = b;
 	}
+}
+
+/************************************************* DEINTERLACE FUNCTIONS *************************************************/
+
+/* Grayscale */
+void std_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+{
+	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
+	const uint8_t* const max_ptr = col1 + (width*(height-1));
+	const uint8_t *max_ptr2;
+
+	pcurrent = col1 + width;
+	pncurrent = col2 + width;
+	pabove = col1;
+	pnabove = col2;
+	pbelow = col1 + (width*2);
+	while(pcurrent < max_ptr)
+	{
+		max_ptr2 = pcurrent + width;
+		while(pcurrent < max_ptr2) {
+			if(((abs(*pnabove - *pabove) + abs(*pncurrent - *pcurrent)) >> 1) >= threshold) {
+				*pcurrent = (*pabove + *pbelow) >> 1;
+			}
+			pabove++;
+			pnabove++;
+			pcurrent++;
+			pncurrent++;
+			pbelow++;
+		}
+		pcurrent += width;
+		pncurrent += width;
+		pabove += width;
+		pnabove += width;
+		pbelow += width;
+		
+	}
+	
+	/* Special case for the last line */
+	max_ptr2 = pcurrent + width;
+	while(pcurrent < max_ptr2) {
+		if(((abs(*pnabove - *pabove) + abs(*pncurrent - *pcurrent)) >> 1) >= threshold) {
+			*pcurrent = *pabove;
+		}
+		pabove++;
+		pnabove++;
+		pcurrent++;
+		pncurrent++;
+	}
+}
+
+/* RGB */
+void std_deinterlace_4field_rgb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+{
+	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
+	const unsigned int row_width = width*3;
+	const uint8_t* const max_ptr = col1 + (row_width * (height-1));
+	const uint8_t *max_ptr2;
+	unsigned int b, g, r;
+	unsigned int delta1, delta2;
+
+	pcurrent = col1 + (width*3);
+	pncurrent = col2 + (width*3);
+	pabove = col1;
+	pnabove = col2;
+	pbelow = col1 + ((width*2)*3);
+	while(pcurrent < max_ptr)
+	{
+		max_ptr2 = pcurrent + row_width;
+		while(pcurrent < max_ptr2) {
+			r = abs(pnabove[0] - pabove[0]);
+			g = abs(pnabove[1] - pabove[1]);
+			b = abs(pnabove[2] - pabove[2]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			r = abs(pncurrent[0] - pcurrent[0]);
+			g = abs(pncurrent[1] - pcurrent[1]);
+			b = abs(pncurrent[2] - pcurrent[2]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[0] = (pabove[0] + pbelow[0]) >> 1;
+				pcurrent[1] = (pabove[1] + pbelow[1]) >> 1;
+				pcurrent[2] = (pabove[2] + pbelow[2]) >> 1;
+			}
+			pabove += 3;
+			pnabove += 3;
+			pcurrent += 3;
+			pncurrent += 3;
+			pbelow += 3;
+		}
+		pcurrent += row_width;
+		pncurrent += row_width;
+		pabove += row_width;
+		pnabove += row_width;
+		pbelow += row_width;
+		
+	}
+	
+	/* Special case for the last line */
+	max_ptr2 = pcurrent + row_width;
+	while(pcurrent < max_ptr2) {
+			r = abs(pnabove[0] - pabove[0]);
+			g = abs(pnabove[1] - pabove[1]);
+			b = abs(pnabove[2] - pabove[2]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			r = abs(pncurrent[0] - pcurrent[0]);
+			g = abs(pncurrent[1] - pcurrent[1]);
+			b = abs(pncurrent[2] - pcurrent[2]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[0] = pabove[0];
+				pcurrent[1] = pabove[1];
+				pcurrent[2] = pabove[2];
+			}
+			pabove += 3;
+			pnabove += 3;
+			pcurrent += 3;
+			pncurrent += 3;
+	}
+}
+
+/* BGR */
+void std_deinterlace_4field_bgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+{
+	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
+	const unsigned int row_width = width*3;
+	const uint8_t* const max_ptr = col1 + (row_width * (height-1));
+	const uint8_t *max_ptr2;
+	unsigned int b, g, r;
+	unsigned int delta1, delta2;
+
+	pcurrent = col1 + (width*3);
+	pncurrent = col2 + (width*3);
+	pabove = col1;
+	pnabove = col2;
+	pbelow = col1 + ((width*2)*3);
+	while(pcurrent < max_ptr)
+	{
+		max_ptr2 = pcurrent + row_width;
+		while(pcurrent < max_ptr2) {
+			b = abs(pnabove[0] - pabove[0]);
+			g = abs(pnabove[1] - pabove[1]);
+			r = abs(pnabove[2] - pabove[2]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			b = abs(pncurrent[0] - pcurrent[0]);
+			g = abs(pncurrent[1] - pcurrent[1]);
+			r = abs(pncurrent[2] - pcurrent[2]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[0] = (pabove[0] + pbelow[0]) >> 1;
+				pcurrent[1] = (pabove[1] + pbelow[1]) >> 1;
+				pcurrent[2] = (pabove[2] + pbelow[2]) >> 1;
+			}
+			pabove += 3;
+			pnabove += 3;
+			pcurrent += 3;
+			pncurrent += 3;
+			pbelow += 3;
+		}
+		pcurrent += row_width;
+		pncurrent += row_width;
+		pabove += row_width;
+		pnabove += row_width;
+		pbelow += row_width;
+		
+	}
+	
+	/* Special case for the last line */
+	max_ptr2 = pcurrent + row_width;
+	while(pcurrent < max_ptr2) {
+			b = abs(pnabove[0] - pabove[0]);
+			g = abs(pnabove[1] - pabove[1]);
+			r = abs(pnabove[2] - pabove[2]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			b = abs(pncurrent[0] - pcurrent[0]);
+			g = abs(pncurrent[1] - pcurrent[1]);
+			r = abs(pncurrent[2] - pcurrent[2]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[0] = pabove[0];
+				pcurrent[1] = pabove[1];
+				pcurrent[2] = pabove[2];
+			}
+			pabove += 3;
+			pnabove += 3;
+			pcurrent += 3;
+			pncurrent += 3;
+	}
+}
+
+/* RGBA */
+void std_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+{
+	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
+	const unsigned int row_width = width*4;
+	const uint8_t* const max_ptr = col1 + (row_width * (height-1));
+	const uint8_t *max_ptr2;
+	unsigned int b, g, r;
+	unsigned int delta1, delta2;
+
+	pcurrent = col1 + row_width;
+	pncurrent = col2 + row_width;
+	pabove = col1;
+	pnabove = col2;
+	pbelow = col1 + (row_width*2);
+	while(pcurrent < max_ptr)
+	{
+		max_ptr2 = pcurrent + row_width;
+		while(pcurrent < max_ptr2) {
+			r = abs(pnabove[0] - pabove[0]);
+			g = abs(pnabove[1] - pabove[1]);
+			b = abs(pnabove[2] - pabove[2]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			r = abs(pncurrent[0] - pcurrent[0]);
+			g = abs(pncurrent[1] - pcurrent[1]);
+			b = abs(pncurrent[2] - pcurrent[2]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[0] = (pabove[0] + pbelow[0]) >> 1;
+				pcurrent[1] = (pabove[1] + pbelow[1]) >> 1;
+				pcurrent[2] = (pabove[2] + pbelow[2]) >> 1;
+			}
+			pabove += 4;
+			pnabove += 4;
+			pcurrent += 4;
+			pncurrent += 4;
+			pbelow += 4;
+		}
+		pcurrent += row_width;
+		pncurrent += row_width;
+		pabove += row_width;
+		pnabove += row_width;
+		pbelow += row_width;
+		
+	}
+	
+	/* Special case for the last line */
+	max_ptr2 = pcurrent + row_width;
+	while(pcurrent < max_ptr2) {
+			r = abs(pnabove[0] - pabove[0]);
+			g = abs(pnabove[1] - pabove[1]);
+			b = abs(pnabove[2] - pabove[2]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			r = abs(pncurrent[0] - pcurrent[0]);
+			g = abs(pncurrent[1] - pcurrent[1]);
+			b = abs(pncurrent[2] - pcurrent[2]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[0] = pabove[0];
+				pcurrent[1] = pabove[1];
+				pcurrent[2] = pabove[2];
+			}
+			pabove += 4;
+			pnabove += 4;
+			pcurrent += 4;
+			pncurrent += 4;
+	}
+}
+
+/* BGRA */
+void std_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+{
+	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
+	const unsigned int row_width = width*4;
+	const uint8_t* const max_ptr = col1 + (row_width * (height-1));
+	const uint8_t *max_ptr2;
+	unsigned int b, g, r;
+	unsigned int delta1, delta2;
+
+	pcurrent = col1 + row_width;
+	pncurrent = col2 + row_width;
+	pabove = col1;
+	pnabove = col2;
+	pbelow = col1 + (row_width*2);
+	while(pcurrent < max_ptr)
+	{
+		max_ptr2 = pcurrent + row_width;
+		while(pcurrent < max_ptr2) {
+			b = abs(pnabove[0] - pabove[0]);
+			g = abs(pnabove[1] - pabove[1]);
+			r = abs(pnabove[2] - pabove[2]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			b = abs(pncurrent[0] - pcurrent[0]);
+			g = abs(pncurrent[1] - pcurrent[1]);
+			r = abs(pncurrent[2] - pcurrent[2]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[0] = (pabove[0] + pbelow[0]) >> 1;
+				pcurrent[1] = (pabove[1] + pbelow[1]) >> 1;
+				pcurrent[2] = (pabove[2] + pbelow[2]) >> 1;
+			}
+			pabove += 4;
+			pnabove += 4;
+			pcurrent += 4;
+			pncurrent += 4;
+			pbelow += 4;
+		}
+		pcurrent += row_width;
+		pncurrent += row_width;
+		pabove += row_width;
+		pnabove += row_width;
+		pbelow += row_width;
+		
+	}
+	
+	/* Special case for the last line */
+	max_ptr2 = pcurrent + row_width;
+	while(pcurrent < max_ptr2) {
+			b = abs(pnabove[0] - pabove[0]);
+			g = abs(pnabove[1] - pabove[1]);
+			r = abs(pnabove[2] - pabove[2]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			b = abs(pncurrent[0] - pcurrent[0]);
+			g = abs(pncurrent[1] - pcurrent[1]);
+			r = abs(pncurrent[2] - pcurrent[2]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[0] = pabove[0];
+				pcurrent[1] = pabove[1];
+				pcurrent[2] = pabove[2];
+			}
+			pabove += 4;
+			pnabove += 4;
+			pcurrent += 4;
+			pncurrent += 4;
+	}
+}
+
+/* ARGB */
+void std_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+{
+	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
+	const unsigned int row_width = width*4;
+	const uint8_t* const max_ptr = col1 + (row_width * (height-1));
+	const uint8_t *max_ptr2;
+	unsigned int b, g, r;
+	unsigned int delta1, delta2;
+
+	pcurrent = col1 + row_width;
+	pncurrent = col2 + row_width;
+	pabove = col1;
+	pnabove = col2;
+	pbelow = col1 + (row_width*2);
+	while(pcurrent < max_ptr)
+	{
+		max_ptr2 = pcurrent + row_width;
+		while(pcurrent < max_ptr2) {
+			r = abs(pnabove[1] - pabove[1]);
+			g = abs(pnabove[2] - pabove[2]);
+			b = abs(pnabove[3] - pabove[3]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			r = abs(pncurrent[1] - pcurrent[1]);
+			g = abs(pncurrent[2] - pcurrent[2]);
+			b = abs(pncurrent[3] - pcurrent[3]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[1] = (pabove[1] + pbelow[1]) >> 1;
+				pcurrent[2] = (pabove[2] + pbelow[2]) >> 1;
+				pcurrent[3] = (pabove[3] + pbelow[3]) >> 1;
+			}
+			pabove += 4;
+			pnabove += 4;
+			pcurrent += 4;
+			pncurrent += 4;
+			pbelow += 4;
+		}
+		pcurrent += row_width;
+		pncurrent += row_width;
+		pabove += row_width;
+		pnabove += row_width;
+		pbelow += row_width;
+		
+	}
+	
+	/* Special case for the last line */
+	max_ptr2 = pcurrent + row_width;
+	while(pcurrent < max_ptr2) {
+			r = abs(pnabove[1] - pabove[1]);
+			g = abs(pnabove[2] - pabove[2]);
+			b = abs(pnabove[3] - pabove[3]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			r = abs(pncurrent[1] - pcurrent[1]);
+			g = abs(pncurrent[2] - pcurrent[2]);
+			b = abs(pncurrent[3] - pcurrent[3]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[1] = pabove[1];
+				pcurrent[2] = pabove[2];
+				pcurrent[3] = pabove[3];
+			}
+			pabove += 4;
+			pnabove += 4;
+			pcurrent += 4;
+			pncurrent += 4;
+	}
+}
+
+/* ABGR */
+void std_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+{
+	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
+	const unsigned int row_width = width*4;
+	const uint8_t* const max_ptr = col1 + (row_width * (height-1));
+	const uint8_t *max_ptr2;
+	unsigned int b, g, r;
+	unsigned int delta1, delta2;
+
+	pcurrent = col1 + row_width;
+	pncurrent = col2 + row_width;
+	pabove = col1;
+	pnabove = col2;
+	pbelow = col1 + (row_width*2);
+	while(pcurrent < max_ptr)
+	{
+		max_ptr2 = pcurrent + row_width;
+		while(pcurrent < max_ptr2) {
+			b = abs(pnabove[1] - pabove[1]);
+			g = abs(pnabove[2] - pabove[2]);
+			r = abs(pnabove[3] - pabove[3]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			b = abs(pncurrent[1] - pcurrent[1]);
+			g = abs(pncurrent[2] - pcurrent[2]);
+			r = abs(pncurrent[3] - pcurrent[3]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[1] = (pabove[1] + pbelow[1]) >> 1;
+				pcurrent[2] = (pabove[2] + pbelow[2]) >> 1;
+				pcurrent[3] = (pabove[3] + pbelow[3]) >> 1;
+			}
+			pabove += 4;
+			pnabove += 4;
+			pcurrent += 4;
+			pncurrent += 4;
+			pbelow += 4;
+		}
+		pcurrent += row_width;
+		pncurrent += row_width;
+		pabove += row_width;
+		pnabove += row_width;
+		pbelow += row_width;
+		
+	}
+	
+	/* Special case for the last line */
+	max_ptr2 = pcurrent + row_width;
+	while(pcurrent < max_ptr2) {
+			b = abs(pnabove[1] - pabove[1]);
+			g = abs(pnabove[2] - pabove[2]);
+			r = abs(pnabove[3] - pabove[3]);
+			delta1 = (r + r + b + g + g + g + g + g)>>3;
+			b = abs(pncurrent[1] - pcurrent[1]);
+			g = abs(pncurrent[2] - pcurrent[2]);
+			r = abs(pncurrent[3] - pcurrent[3]);
+			delta2 = (r + r + b + g + g + g + g + g)>>3;
+			if(((delta1 + delta2) >> 1) >= threshold) {
+				pcurrent[1] = pabove[1];
+				pcurrent[2] = pabove[2];
+				pcurrent[3] = pabove[3];
+			}
+			pabove += 4;
+			pnabove += 4;
+			pcurrent += 4;
+			pncurrent += 4;
+	}
+}
+
+/* Grayscale SSSE3 */
+__attribute__ ((noinline)) void ssse3_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+	
+	union {
+		uint32_t int32;
+		uint8_t int8a[4];
+	} threshold_mask;
+	threshold_mask.int8a[0] = threshold;
+	threshold_mask.int8a[1] = 0;
+	threshold_mask.int8a[2] = threshold;
+	threshold_mask.int8a[3] = 0;
+	
+	unsigned long row_width = width;
+	uint8_t* max_ptr = col1 + (row_width * (height-2));
+	uint8_t* max_ptr2 = col1 + row_width;
+	
+	__asm__ __volatile__ (
+	/* Load the threshold */
+	"mov %5, %%eax\n\t"
+	"movd %%eax, %%xmm4\n\t"
+	"pshufd $0x0, %%xmm4, %%xmm4\n\t"
+	/* Zero the temporary register */
+	"pxor %%xmm0, %%xmm0\n\t"
+	
+	"algo_ssse3_deinterlace_4field_gray8:\n\t"
+	
+	/* Load pabove into xmm1 and pnabove into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t" /* Keep backup of pabove in xmm5 */
+	"pmaxub %%xmm2, %%xmm1\n\t"
+	"pminub %%xmm5, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm7\n\t" /* Backup of delta2 in xmm7 for now */
+	
+	/* Next row */
+	"add %4, %0\n\t"
+	"add %4, %1\n\t"
+	
+	/* Load pcurrent into xmm1 and pncurrent into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm6\n\t" /* Keep backup of pcurrent in xmm6 */
+	"pmaxub %%xmm2, %%xmm1\n\t"
+	"pminub %%xmm6, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	
+	"pavgb %%xmm7, %%xmm1\n\t"                         // Average the two deltas together
+	"movdqa %%xmm1, %%xmm2\n\t"
+	
+	/* Do the comparison on words instead of bytes because we don't have unsigned comparison */
+	"punpcklbw %%xmm0, %%xmm1\n\t"                     // Expand pixels 0-7 into words into xmm1
+	"punpckhbw %%xmm0, %%xmm2\n\t"                     // Expand pixels 8-15 into words into xmm2
+	"pcmpgtw %%xmm4, %%xmm1\n\t"                       // Compare average delta with threshold for pixels 0-7
+	"pcmpgtw %%xmm4, %%xmm2\n\t"                       // Compare average delta with threshold for pixels 8-15
+	"packsswb %%xmm2, %%xmm1\n\t"                      // Pack the comparison results into xmm1
+	
+	"movdqa (%0,%4), %%xmm2\n\t"                       // Load pbelow
+	"pavgb %%xmm5, %%xmm2\n\t"                         // Average pabove and pbelow
+	"pand %%xmm1, %%xmm2\n\t"                          // Filter out pixels in avg that shouldn't be copied
+	"pandn %%xmm6, %%xmm1\n\t"                         // Filter out pixels in pcurrent that should be replaced
+
+	"por %%xmm2, %%xmm1\n\t"                           // Put the new values in pcurrent
+	"movntdq %%xmm1, (%0)\n\t"                         // Write pcurrent
+	
+	"sub %4, %0\n\t"                                   // Restore pcurrent to pabove
+	"sub %4, %1\n\t"                                   // Restore pncurrent to pnabove
+	
+	/* Next pixels */
+	"add $0x10, %0\n\t"                                // Add 16 to pcurrent
+	"add $0x10, %1\n\t"                                // Add 16 to pncurrent
+	
+	/* Check if we reached the row end */
+	"cmp %2, %0\n\t"
+	"jb algo_ssse3_deinterlace_4field_gray8\n\t"       // Go for another iteration
+	
+	/* Next row */
+	"add %4, %0\n\t"                                   // Add width to pcurrent
+	"add %4, %1\n\t"                                   // Add width to pncurrent
+	"mov %0, %2\n\t"
+	"add %4, %2\n\t"                                   // Add width to max_ptr2
+	
+	/* Check if we reached the end */
+	"cmp %3, %0\n\t"
+	"jb algo_ssse3_deinterlace_4field_gray8\n\t"       // Go for another iteration
+	:
+	: "r" (col1), "r" (col2), "r" (max_ptr2), "r" (max_ptr), "r" (row_width), "m" (threshold_mask.int32)
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"
+	);
+}
+
+/* RGBA SSSE3 */
+__attribute__ ((noinline)) void ssse3_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {1,1,1,1,1,0,0,2,9,9,9,9,9,8,8,10};
+	
+	const uint32_t threshold_val = threshold;
+	
+	unsigned long row_width = width*4;
+	uint8_t* max_ptr = col1 + (row_width * (height-2));
+	uint8_t* max_ptr2 = col1 + row_width;
+	
+	__asm__ __volatile__ (
+	"mov $0x1F1F1F1F, %%eax\n\t"
+	"movd %%eax, %%xmm4\n\t"
+	"pshufd $0x0, %%xmm4, %%xmm4\n\t"
+	"movdqa %6, %%xmm3\n\t"
+	"mov %5, %%eax\n\t"
+#if defined(__x86_64__)
+	"movd %%eax, %%xmm8\n\t"
+	"pshufd $0x0, %%xmm8, %%xmm8\n\t"
+#endif
+	/* Zero the temporary register */
+	"pxor %%xmm0, %%xmm0\n\t"
+	
+	"algo_ssse3_deinterlace_4field_rgba:\n\t"
+	
+	/* Load pabove into xmm1 and pnabove into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t" /* Keep backup of pabove in xmm5 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm7\n\t" /* Backup of delta2 in xmm7 for now */
+	
+	/* Next row */
+	"add %4, %0\n\t"
+	"add %4, %1\n\t"
+	
+	/* Load pcurrent into xmm1 and pncurrent into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm6\n\t" /* Keep backup of pcurrent in xmm6 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	
+	"pavgb %%xmm7, %%xmm1\n\t"                         // Average the two deltas together
+
+#if defined(__x86_64__)
+	"pcmpgtd %%xmm8, %%xmm1\n\t"                       // Compare average delta with the threshold
+#else
+	"movd %%eax, %%xmm7\n\t"                           // Setup the threshold
+	"pshufd $0x0, %%xmm7, %%xmm7\n\t"
+	
+	"pcmpgtd %%xmm7, %%xmm1\n\t"                       // Compare average delta with the threshold
+#endif
+	"movdqa (%0,%4), %%xmm2\n\t"                       // Load pbelow
+	"pavgb %%xmm5, %%xmm2\n\t"                         // Average pabove and pbelow
+	"pand %%xmm1, %%xmm2\n\t"                          // Filter out pixels in avg that shouldn't be copied
+	"pandn %%xmm6, %%xmm1\n\t"                         // Filter out pixels in pcurrent that should be replaced
+
+	"por %%xmm2, %%xmm1\n\t"                           // Put the new values in pcurrent
+	"movntdq %%xmm1, (%0)\n\t"                         // Write pcurrent
+	
+	"sub %4, %0\n\t"                                   // Restore pcurrent to pabove
+	"sub %4, %1\n\t"                                   // Restore pncurrent to pnabove
+	
+	/* Next pixels */
+	"add $0x10, %0\n\t"                                // Add 16 to pcurrent
+	"add $0x10, %1\n\t"                                // Add 16 to pncurrent
+	
+	/* Check if we reached the row end */
+	"cmp %2, %0\n\t"
+	"jb algo_ssse3_deinterlace_4field_rgba\n\t"        // Go for another iteration
+	
+	/* Next row */
+	"add %4, %0\n\t"                                   // Add width to pcurrent
+	"add %4, %1\n\t"                                   // Add width to pncurrent
+	"mov %0, %2\n\t"
+	"add %4, %2\n\t"                                   // Add width to max_ptr2
+	
+	/* Check if we reached the end */
+	"cmp %3, %0\n\t"
+	"jb algo_ssse3_deinterlace_4field_rgba\n\t"        // Go for another iteration
+	
+	/* Special case for the last line */
+	/* Load pabove into xmm1 and pnabove into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t" /* Keep backup of pabove in xmm5 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm7\n\t" /* Backup of delta2 in xmm7 for now */
+	
+	/* Next row */
+	"add %4, %0\n\t"
+	"add %4, %1\n\t"
+	
+	/* Load pcurrent into xmm1 and pncurrent into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm6\n\t" /* Keep backup of pcurrent in xmm6 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	
+	"pavgb %%xmm7, %%xmm1\n\t"                         // Average the two deltas together
+
+#if defined(__x86_64__)
+	"pcmpgtd %%xmm8, %%xmm1\n\t"                       // Compare average delta with the threshold
+#else
+	"movd %%eax, %%xmm7\n\t"                           // Setup the threshold
+	"pshufd $0x0, %%xmm7, %%xmm7\n\t"
+	
+	"pcmpgtd %%xmm7, %%xmm1\n\t"                       // Compare average delta with the threshold
+#endif
+	"pand %%xmm1, %%xmm5\n\t"                          // Filter out pixels in pabove that shouldn't be copied
+	"pandn %%xmm6, %%xmm1\n\t"                         // Filter out pixels in pcurrent that should be replaced
+
+	"por %%xmm5, %%xmm1\n\t"                           // Put the new values in pcurrent
+	"movntdq %%xmm1, (%0)\n\t"                         // Write pcurrent
+	:
+	: "r" (col1), "r" (col2), "r" (max_ptr2), "r" (max_ptr), "r" (row_width), "m" (threshold_val), "m" (*movemask2)
+#if defined(__x86_64__)
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "cc", "memory"
+#else
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"
+#endif
+	);
+}
+
+/* BGRA SSSE3 */
+__attribute__ ((noinline)) void ssse3_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {1,1,1,1,1,2,2,0,9,9,9,9,9,10,10,8};
+	
+	const uint32_t threshold_val = threshold;
+	
+	unsigned long row_width = width*4;
+	uint8_t* max_ptr = col1 + (row_width * (height-2));
+	uint8_t* max_ptr2 = col1 + row_width;
+	
+	__asm__ __volatile__ (
+	"mov $0x1F1F1F1F, %%eax\n\t"
+	"movd %%eax, %%xmm4\n\t"
+	"pshufd $0x0, %%xmm4, %%xmm4\n\t"
+	"movdqa %6, %%xmm3\n\t"
+	"mov %5, %%eax\n\t"
+#if defined(__x86_64__)
+	"movd %%eax, %%xmm8\n\t"
+	"pshufd $0x0, %%xmm8, %%xmm8\n\t"
+#endif
+	/* Zero the temporary register */
+	"pxor %%xmm0, %%xmm0\n\t"
+	
+	"algo_ssse3_deinterlace_4field_bgra:\n\t"
+	
+	/* Load pabove into xmm1 and pnabove into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t" /* Keep backup of pabove in xmm5 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm7\n\t" /* Backup of delta2 in xmm7 for now */
+	
+	/* Next row */
+	"add %4, %0\n\t"
+	"add %4, %1\n\t"
+	
+	/* Load pcurrent into xmm1 and pncurrent into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm6\n\t" /* Keep backup of pcurrent in xmm6 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	
+	"pavgb %%xmm7, %%xmm1\n\t"                         // Average the two deltas together
+
+#if defined(__x86_64__)
+	"pcmpgtd %%xmm8, %%xmm1\n\t"                       // Compare average delta with the threshold
+#else
+	"movd %%eax, %%xmm7\n\t"                           // Setup the threshold
+	"pshufd $0x0, %%xmm7, %%xmm7\n\t"
+	
+	"pcmpgtd %%xmm7, %%xmm1\n\t"                       // Compare average delta with the threshold
+#endif
+	"movdqa (%0,%4), %%xmm2\n\t"                       // Load pbelow
+	"pavgb %%xmm5, %%xmm2\n\t"                         // Average pabove and pbelow
+	"pand %%xmm1, %%xmm2\n\t"                          // Filter out pixels in avg that shouldn't be copied
+	"pandn %%xmm6, %%xmm1\n\t"                         // Filter out pixels in pcurrent that should be replaced
+
+	"por %%xmm2, %%xmm1\n\t"                           // Put the new values in pcurrent
+	"movntdq %%xmm1, (%0)\n\t"                         // Write pcurrent
+	
+	"sub %4, %0\n\t"                                   // Restore pcurrent to pabove
+	"sub %4, %1\n\t"                                   // Restore pncurrent to pnabove
+	
+	/* Next pixels */
+	"add $0x10, %0\n\t"                                // Add 16 to pcurrent
+	"add $0x10, %1\n\t"                                // Add 16 to pncurrent
+	
+	/* Check if we reached the row end */
+	"cmp %2, %0\n\t"
+	"jb algo_ssse3_deinterlace_4field_bgra\n\t"        // Go for another iteration
+	
+	/* Next row */
+	"add %4, %0\n\t"                                   // Add width to pcurrent
+	"add %4, %1\n\t"                                   // Add width to pncurrent
+	"mov %0, %2\n\t"
+	"add %4, %2\n\t"                                   // Add width to max_ptr2
+	
+	/* Check if we reached the end */
+	"cmp %3, %0\n\t"
+	"jb algo_ssse3_deinterlace_4field_bgra\n\t"        // Go for another iteration
+	
+	/* Special case for the last line */
+	/* Load pabove into xmm1 and pnabove into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t" /* Keep backup of pabove in xmm5 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm7\n\t" /* Backup of delta2 in xmm7 for now */
+	
+	/* Next row */
+	"add %4, %0\n\t"
+	"add %4, %1\n\t"
+	
+	/* Load pcurrent into xmm1 and pncurrent into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm6\n\t" /* Keep backup of pcurrent in xmm6 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	
+	"pavgb %%xmm7, %%xmm1\n\t"                         // Average the two deltas together
+
+#if defined(__x86_64__)
+	"pcmpgtd %%xmm8, %%xmm1\n\t"                       // Compare average delta with the threshold
+#else
+	"movd %%eax, %%xmm7\n\t"                           // Setup the threshold
+	"pshufd $0x0, %%xmm7, %%xmm7\n\t"
+	
+	"pcmpgtd %%xmm7, %%xmm1\n\t"                       // Compare average delta with the threshold
+#endif
+	"pand %%xmm1, %%xmm5\n\t"                          // Filter out pixels in pabove that shouldn't be copied
+	"pandn %%xmm6, %%xmm1\n\t"                         // Filter out pixels in pcurrent that should be replaced
+
+	"por %%xmm5, %%xmm1\n\t"                           // Put the new values in pcurrent
+	"movntdq %%xmm1, (%0)\n\t"                         // Write pcurrent
+	:
+	: "r" (col1), "r" (col2), "r" (max_ptr2), "r" (max_ptr), "r" (row_width), "m" (threshold_val), "m" (*movemask2)
+#if defined(__x86_64__)
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "cc", "memory"
+#else
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"
+#endif
+	);
+}
+
+/* ARGB SSSE3 */
+__attribute__ ((noinline)) void ssse3_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {2,2,2,2,2,1,1,3,10,10,10,10,10,9,9,11};
+	
+	const uint32_t threshold_val = threshold;
+	
+	unsigned long row_width = width*4;
+	uint8_t* max_ptr = col1 + (row_width * (height-2));
+	uint8_t* max_ptr2 = col1 + row_width;
+	
+	__asm__ __volatile__ (
+	"mov $0x1F1F1F1F, %%eax\n\t"
+	"movd %%eax, %%xmm4\n\t"
+	"pshufd $0x0, %%xmm4, %%xmm4\n\t"
+	"movdqa %6, %%xmm3\n\t"
+	"mov %5, %%eax\n\t"
+#if defined(__x86_64__)
+	"movd %%eax, %%xmm8\n\t"
+	"pshufd $0x0, %%xmm8, %%xmm8\n\t"
+#endif
+	/* Zero the temporary register */
+	"pxor %%xmm0, %%xmm0\n\t"
+	
+	"algo_ssse3_deinterlace_4field_argb:\n\t"
+	
+	/* Load pabove into xmm1 and pnabove into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t" /* Keep backup of pabove in xmm5 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm7\n\t" /* Backup of delta2 in xmm7 for now */
+	
+	/* Next row */
+	"add %4, %0\n\t"
+	"add %4, %1\n\t"
+	
+	/* Load pcurrent into xmm1 and pncurrent into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm6\n\t" /* Keep backup of pcurrent in xmm6 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	
+	"pavgb %%xmm7, %%xmm1\n\t"                         // Average the two deltas together
+
+#if defined(__x86_64__)
+	"pcmpgtd %%xmm8, %%xmm1\n\t"                       // Compare average delta with the threshold
+#else
+	"movd %%eax, %%xmm7\n\t"                           // Setup the threshold
+	"pshufd $0x0, %%xmm7, %%xmm7\n\t"
+	
+	"pcmpgtd %%xmm7, %%xmm1\n\t"                       // Compare average delta with the threshold
+#endif
+	"movdqa (%0,%4), %%xmm2\n\t"                       // Load pbelow
+	"pavgb %%xmm5, %%xmm2\n\t"                         // Average pabove and pbelow
+	"pand %%xmm1, %%xmm2\n\t"                          // Filter out pixels in avg that shouldn't be copied
+	"pandn %%xmm6, %%xmm1\n\t"                         // Filter out pixels in pcurrent that should be replaced
+
+	"por %%xmm2, %%xmm1\n\t"                           // Put the new values in pcurrent
+	"movntdq %%xmm1, (%0)\n\t"                         // Write pcurrent
+	
+	"sub %4, %0\n\t"                                   // Restore pcurrent to pabove
+	"sub %4, %1\n\t"                                   // Restore pncurrent to pnabove
+	
+	/* Next pixels */
+	"add $0x10, %0\n\t"                                // Add 16 to pcurrent
+	"add $0x10, %1\n\t"                                // Add 16 to pncurrent
+	
+	/* Check if we reached the row end */
+	"cmp %2, %0\n\t"
+	"jb algo_ssse3_deinterlace_4field_argb\n\t"        // Go for another iteration
+	
+	/* Next row */
+	"add %4, %0\n\t"                                   // Add width to pcurrent
+	"add %4, %1\n\t"                                   // Add width to pncurrent
+	"mov %0, %2\n\t"
+	"add %4, %2\n\t"                                   // Add width to max_ptr2
+	
+	/* Check if we reached the end */
+	"cmp %3, %0\n\t"
+	"jb algo_ssse3_deinterlace_4field_argb\n\t"        // Go for another iteration
+	
+	/* Special case for the last line */
+	/* Load pabove into xmm1 and pnabove into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t" /* Keep backup of pabove in xmm5 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm7\n\t" /* Backup of delta2 in xmm7 for now */
+	
+	/* Next row */
+	"add %4, %0\n\t"
+	"add %4, %1\n\t"
+	
+	/* Load pcurrent into xmm1 and pncurrent into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm6\n\t" /* Keep backup of pcurrent in xmm6 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	
+	"pavgb %%xmm7, %%xmm1\n\t"                         // Average the two deltas together
+
+#if defined(__x86_64__)
+	"pcmpgtd %%xmm8, %%xmm1\n\t"                       // Compare average delta with the threshold
+#else
+	"movd %%eax, %%xmm7\n\t"                           // Setup the threshold
+	"pshufd $0x0, %%xmm7, %%xmm7\n\t"
+	
+	"pcmpgtd %%xmm7, %%xmm1\n\t"                       // Compare average delta with the threshold
+#endif
+	"pand %%xmm1, %%xmm5\n\t"                          // Filter out pixels in pabove that shouldn't be copied
+	"pandn %%xmm6, %%xmm1\n\t"                         // Filter out pixels in pcurrent that should be replaced
+
+	"por %%xmm5, %%xmm1\n\t"                           // Put the new values in pcurrent
+	"movntdq %%xmm1, (%0)\n\t"                         // Write pcurrent
+	:
+	: "r" (col1), "r" (col2), "r" (max_ptr2), "r" (max_ptr), "r" (row_width), "m" (threshold_val), "m" (*movemask2)
+#if defined(__x86_64__)
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "cc", "memory"
+#else
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"
+#endif
+	);
+}
+
+/* ABGR SSSE3 */
+__attribute__ ((noinline)) void ssse3_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {2,2,2,2,2,3,3,1,10,10,10,10,10,11,11,9};
+	
+	const uint32_t threshold_val = threshold;
+	
+	unsigned long row_width = width*4;
+	uint8_t* max_ptr = col1 + (row_width * (height-2));
+	uint8_t* max_ptr2 = col1 + row_width;
+	
+	__asm__ __volatile__ (
+	"mov $0x1F1F1F1F, %%eax\n\t"
+	"movd %%eax, %%xmm4\n\t"
+	"pshufd $0x0, %%xmm4, %%xmm4\n\t"
+	"movdqa %6, %%xmm3\n\t"
+	"mov %5, %%eax\n\t"
+#if defined(__x86_64__)
+	"movd %%eax, %%xmm8\n\t"
+	"pshufd $0x0, %%xmm8, %%xmm8\n\t"
+#endif
+	/* Zero the temporary register */
+	"pxor %%xmm0, %%xmm0\n\t"
+	
+	"algo_ssse3_deinterlace_4field_abgr:\n\t"
+	
+	/* Load pabove into xmm1 and pnabove into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t" /* Keep backup of pabove in xmm5 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm7\n\t" /* Backup of delta2 in xmm7 for now */
+	
+	/* Next row */
+	"add %4, %0\n\t"
+	"add %4, %1\n\t"
+	
+	/* Load pcurrent into xmm1 and pncurrent into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm6\n\t" /* Keep backup of pcurrent in xmm6 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	
+	"pavgb %%xmm7, %%xmm1\n\t"                         // Average the two deltas together
+
+#if defined(__x86_64__)
+	"pcmpgtd %%xmm8, %%xmm1\n\t"                       // Compare average delta with the threshold
+#else
+	"movd %%eax, %%xmm7\n\t"                           // Setup the threshold
+	"pshufd $0x0, %%xmm7, %%xmm7\n\t"
+	
+	"pcmpgtd %%xmm7, %%xmm1\n\t"                       // Compare average delta with the threshold
+#endif
+	"movdqa (%0,%4), %%xmm2\n\t"                       // Load pbelow
+	"pavgb %%xmm5, %%xmm2\n\t"                         // Average pabove and pbelow
+	"pand %%xmm1, %%xmm2\n\t"                          // Filter out pixels in avg that shouldn't be copied
+	"pandn %%xmm6, %%xmm1\n\t"                         // Filter out pixels in pcurrent that should be replaced
+
+	"por %%xmm2, %%xmm1\n\t"                           // Put the new values in pcurrent
+	"movntdq %%xmm1, (%0)\n\t"                         // Write pcurrent
+	
+	"sub %4, %0\n\t"                                   // Restore pcurrent to pabove
+	"sub %4, %1\n\t"                                   // Restore pncurrent to pnabove
+	
+	/* Next pixels */
+	"add $0x10, %0\n\t"                                // Add 16 to pcurrent
+	"add $0x10, %1\n\t"                                // Add 16 to pncurrent
+	
+	/* Check if we reached the row end */
+	"cmp %2, %0\n\t"
+	"jb algo_ssse3_deinterlace_4field_abgr\n\t"        // Go for another iteration
+	
+	/* Next row */
+	"add %4, %0\n\t"                                   // Add width to pcurrent
+	"add %4, %1\n\t"                                   // Add width to pncurrent
+	"mov %0, %2\n\t"
+	"add %4, %2\n\t"                                   // Add width to max_ptr2
+	
+	/* Check if we reached the end */
+	"cmp %3, %0\n\t"
+	"jb algo_ssse3_deinterlace_4field_abgr\n\t"        // Go for another iteration
+	
+	/* Special case for the last line */
+	/* Load pabove into xmm1 and pnabove into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm5\n\t" /* Keep backup of pabove in xmm5 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	"movdqa %%xmm1, %%xmm7\n\t" /* Backup of delta2 in xmm7 for now */
+	
+	/* Next row */
+	"add %4, %0\n\t"
+	"add %4, %1\n\t"
+	
+	/* Load pcurrent into xmm1 and pncurrent into xmm2 */
+	"movdqa (%0), %%xmm1\n\t"
+	"movdqa (%1), %%xmm2\n\t"
+	"movdqa %%xmm1, %%xmm6\n\t" /* Keep backup of pcurrent in xmm6 */
+	"psrlq $0x3, %%xmm1\n\t"
+	"psrlq $0x3, %%xmm2\n\t"
+	"pand %%xmm4, %%xmm1\n\t"
+	"pand %%xmm4, %%xmm2\n\t"
+	"psubb %%xmm2, %%xmm1\n\t"
+	"pabsb %%xmm1, %%xmm2\n\t"
+	"movdqa %%xmm2, %%xmm1\n\t"
+	"punpckldq %%xmm1, %%xmm1\n\t"
+	"pshufb %%xmm3, %%xmm1\n\t"
+	"psadbw %%xmm0, %%xmm1\n\t"
+	"punpckhdq %%xmm2, %%xmm2\n\t"
+	"pshufb %%xmm3, %%xmm2\n\t"
+	"psadbw %%xmm0, %%xmm2\n\t"
+	"packuswb %%xmm2, %%xmm1\n\t"
+	
+	"pavgb %%xmm7, %%xmm1\n\t"                         // Average the two deltas together
+
+#if defined(__x86_64__)
+	"pcmpgtd %%xmm8, %%xmm1\n\t"                       // Compare average delta with the threshold
+#else
+	"movd %%eax, %%xmm7\n\t"                           // Setup the threshold
+	"pshufd $0x0, %%xmm7, %%xmm7\n\t"
+	
+	"pcmpgtd %%xmm7, %%xmm1\n\t"                       // Compare average delta with the threshold
+#endif
+	"pand %%xmm1, %%xmm5\n\t"                          // Filter out pixels in pabove that shouldn't be copied
+	"pandn %%xmm6, %%xmm1\n\t"                         // Filter out pixels in pcurrent that should be replaced
+
+	"por %%xmm5, %%xmm1\n\t"                           // Put the new values in pcurrent
+	"movntdq %%xmm1, (%0)\n\t"                         // Write pcurrent
+	:
+	: "r" (col1), "r" (col2), "r" (max_ptr2), "r" (max_ptr), "r" (row_width), "m" (threshold_val), "m" (*movemask2)
+#if defined(__x86_64__)
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "cc", "memory"
+#else
+	: "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"
+#endif
+	);
 }
 

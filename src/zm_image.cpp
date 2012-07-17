@@ -4207,7 +4207,7 @@ __attribute__((noinline)) void zm_convert_rgb565_rgba(const uint8_t* col1, uint8
 /************************************************* DEINTERLACE FUNCTIONS *************************************************/
 
 /* Grayscale */
-void std_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+__attribute__((noinline)) void std_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
 {
 	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
 	const uint8_t* const max_ptr = col1 + (width*(height-1));
@@ -4253,7 +4253,7 @@ void std_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int thr
 }
 
 /* RGB */
-void std_deinterlace_4field_rgb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+__attribute__((noinline)) void std_deinterlace_4field_rgb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
 {
 	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
 	const unsigned int row_width = width*3;
@@ -4322,7 +4322,7 @@ void std_deinterlace_4field_rgb(uint8_t* col1, uint8_t* col2, unsigned int thres
 }
 
 /* BGR */
-void std_deinterlace_4field_bgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+__attribute__((noinline)) void std_deinterlace_4field_bgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
 {
 	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
 	const unsigned int row_width = width*3;
@@ -4391,7 +4391,7 @@ void std_deinterlace_4field_bgr(uint8_t* col1, uint8_t* col2, unsigned int thres
 }
 
 /* RGBA */
-void std_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+__attribute__((noinline)) void std_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
 {
 	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
 	const unsigned int row_width = width*4;
@@ -4460,7 +4460,7 @@ void std_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int thre
 }
 
 /* BGRA */
-void std_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+__attribute__((noinline)) void std_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
 {
 	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
 	const unsigned int row_width = width*4;
@@ -4529,7 +4529,7 @@ void std_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int thre
 }
 
 /* ARGB */
-void std_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+__attribute__((noinline)) void std_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
 {
 	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
 	const unsigned int row_width = width*4;
@@ -4598,7 +4598,7 @@ void std_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int thre
 }
 
 /* ABGR */
-void std_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
+__attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height)
 {
 	uint8_t *pcurrent, *pabove, *pncurrent, *pnabove, *pbelow;
 	const unsigned int row_width = width*4;
@@ -4667,7 +4667,7 @@ void std_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int thre
 }
 
 /* Grayscale SSSE3 */
-__attribute__ ((noinline)) void ssse3_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
 	
 	union {
 		uint32_t int32;
@@ -4758,7 +4758,7 @@ __attribute__ ((noinline)) void ssse3_deinterlace_4field_gray8(uint8_t* col1, ui
 }
 
 /* RGBA SSSE3 */
-__attribute__ ((noinline)) void ssse3_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
 	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {1,1,1,1,1,0,0,2,9,9,9,9,9,8,8,10};
 	
 	const uint32_t threshold_val = threshold;
@@ -4934,7 +4934,7 @@ __attribute__ ((noinline)) void ssse3_deinterlace_4field_rgba(uint8_t* col1, uin
 }
 
 /* BGRA SSSE3 */
-__attribute__ ((noinline)) void ssse3_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
 	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {1,1,1,1,1,2,2,0,9,9,9,9,9,10,10,8};
 	
 	const uint32_t threshold_val = threshold;
@@ -5110,7 +5110,7 @@ __attribute__ ((noinline)) void ssse3_deinterlace_4field_bgra(uint8_t* col1, uin
 }
 
 /* ARGB SSSE3 */
-__attribute__ ((noinline)) void ssse3_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
 	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {2,2,2,2,2,1,1,3,10,10,10,10,10,9,9,11};
 	
 	const uint32_t threshold_val = threshold;
@@ -5286,7 +5286,7 @@ __attribute__ ((noinline)) void ssse3_deinterlace_4field_argb(uint8_t* col1, uin
 }
 
 /* ABGR SSSE3 */
-__attribute__ ((noinline)) void ssse3_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+__attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
 	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {2,2,2,2,2,3,3,1,10,10,10,10,10,11,11,9};
 	
 	const uint32_t threshold_val = threshold;

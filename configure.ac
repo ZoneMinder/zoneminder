@@ -89,7 +89,7 @@ AC_ARG_WITH(ffmpeg,
 )
 AC_SUBST(FFMPEG_PREFIX)
 FFMPEG_LIBS="-L${FFMPEG_PREFIX}/${LIB_ARCH}"
-FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/include"
+FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/include -D__STDC_CONSTANT_MACROS"
 AC_SUBST(FFMPEG_LIBS)
 AC_SUBST(FFMPEG_CFLAGS)
 
@@ -276,7 +276,7 @@ AC_CHECK_LIB(x264,x264_predict_16x16_init)
 AC_CHECK_LIB(avutil,av_malloc,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
 # Don't bother to warn about this one
 AC_CHECK_LIB(avcore,av_image_copy,,)
-AC_CHECK_LIB(avcodec,avcodec_init,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
+AC_CHECK_LIB(avcodec,avcodec_open,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
 AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
 AC_CHECK_LIB(avdevice,avdevice_register_all,,AC_MSG_WARN(libavdevice.a may be required for MPEG streaming))
 AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)

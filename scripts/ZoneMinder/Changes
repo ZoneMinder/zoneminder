@@ -1,0 +1,6 @@
+Revision history for Perl extension ZoneMinder.
+
+0.01  Thu Dec 15 17:22:29 2005
+	- original version; created by h2xs 1.23 with options
+		-XA -b 5.6.0 -n ZoneMinder
+

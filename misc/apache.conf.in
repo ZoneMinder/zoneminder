@@ -1,0 +1,39 @@
+#
+# PLEASE NOTE THAT THIS FILE IS INTENDED FOR GUIDANCE ONLY AND MAY NOT BE APPROPRIATE FOR YOUR DISTRIBUTION
+#
+# Sample configuration file for running ZoneMinder as name based virtual host
+# Some values may need to manually adjusted to suit your setup
+#
+<VirtualHost *:80>
+    ServerName @WEB_HOST@
+    ServerAdmin webmaster@localhost
+
+    DocumentRoot "@WEB_PREFIX@"
+    <Directory "@WEB_PREFIX@">
+        Options FollowSymLinks
+        AllowOverride All
+    </Directory>
+
+    ScriptAlias /cgi-bin/ "@CGI_PREFIX@"
+    <Directory "@CGI_PREFIX@">
+        Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
+        AllowOverride All
+    </Directory>
+
+    # Use the first option to have Apache logs written to the general log
+    # directory, or the second to have them written to the regular Apache
+    # directory (you may have to change the path to that used on your system)
+    ErrorLog @ZM_LOGDIR@/apache-error.log
+    ErrorLog /var/log/httpd/zm-error.log
+
+    # Possible values include: debug, info, notice, warn, error, crit,
+    # alert, emerg.
+    LogLevel warn
+
+    # Use the first option to have Apache logs written to the general log
+    # directory, or the second to have them written to the regular Apache
+    # directory (you may have to change the path to that used on your system)
+    CustomLog @ZM_LOGDIR@/apache-access.log combined
+    CustomLog /var/log/httpd/zm-access.log combined
+
+</VirtualHost>

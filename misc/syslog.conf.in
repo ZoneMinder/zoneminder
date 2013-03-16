@@ -1,0 +1,19 @@
+#
+# PLEASE NOTE THAT THIS FILE IS INTENDED FOR GUIDANCE ONLY AND MAY NOT BE APPROPRIATE FOR YOUR DISTRIBUTION
+#
+# Sample instruction to put in /etc/syslog.conf (or rsyslog.conf) to redirect
+# ZoneMinder syslog message to a separate file, apart from warnings and errors.
+# This is done by assigning ZoneMinder messages to one of the user logging facilities
+# which are local0-7. In this example local1 is used but if this is used by other
+# packages then this can be changed to another which is unused (e.g. local3).
+#
+
+# Save ZoneMinder messages to zm.log, this uses the local1 facility, 
+local1.*    @ZM_LOGDIR@/zm.log
+
+# You will need to edit the existing config line that directs to /var/log/messages
+# or /var/log/syslog and insert the 'local1.!*;local1.warning' directives. This 
+# first excludes all local1 messages, and then re-enables local1 messages of warning
+# level or above. Remove the second part if you want no ZoneMinder messages to go 
+# to your system logs at all.
+*.info;local1.!*;local1.warning;mail.none;news.none;authpriv.none;cron.none    /var/log/messages

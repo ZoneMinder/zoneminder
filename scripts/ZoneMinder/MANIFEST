@@ -1,0 +1,7 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/ZoneMinder.t
+lib/ZoneMinder.pm
+META.yml                                 Module meta-data (added by MakeMaker)

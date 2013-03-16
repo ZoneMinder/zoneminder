@@ -1,0 +1,19 @@
+#
+# PLEASE NOTE THAT THIS FILE IS INTENDED FOR GUIDANCE ONLY AND MAY NOT BE APPROPRIATE FOR YOUR DISTRIBUTION
+#
+# Sample logrotate file for ZoneMinder. Copy this to /etc/logrotate.d/zm or similar
+# if you wish your system to prevent your log files from growing too large.
+# You can remove the 'kill' of syslogd if you have another logrotate file that does
+# this but in that case you will want this file run first, so it will need to be 
+# named something lexically ahead of the other logrotate file, for example 0zm to
+# ensure it is executed first.
+#
+@ZM_LOGDIR@/*.log {
+    missingok
+    notifempty
+    sharedscripts
+    postrotate
+        /bin/kill -HUP `cat /var/run/syslogd.pid 2> /dev/null` 2> /dev/null || true
+        @BINDIR@/zmpkg.pl logrot 2> /dev/null > /dev/null || true
+    endscript
+}

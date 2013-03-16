@@ -1,0 +1,37 @@
+#!/bin/bash
+#===============================================================================
+#
+#         FILE:  zmdbbackup
+#
+#        USAGE:  ./zmdbbackup
+#
+#  DESCRIPTION:  Uses mysqldump to backup the config info in the zm DB
+#      OPTIONS:  ---  None
+# REQUIREMENTS:  ---  mysqldump
+#         BUGS:  ---
+#        NOTES:  ---
+#       AUTHOR:   Ross Melin <rdmelin@yahoo.com>
+#      COMPANY:
+#      VERSION:  2.0
+#      CREATED:  05/26/2006 06:21:00 AM PDT
+#     REVISION:  ---
+#===============================================================================
+
+# Edit these to suit your configuration
+ZM_CONFIG=@ZM_CONFIG@
+source $ZM_CONFIG
+
+MYSQLDUMP=/usr/bin/mysqldump
+BACKUP_PATH=/var/lib/zm
+BACKUP_FILE=zm_backup.sql
+DUMPOPTS="--user=$ZM_DB_USER --password=$ZM_DB_PASS --opt"
+TABLES="Config Filters Groups Monitors States TriggersX10 Users Zones"
+OUTFILE="$BACKUP_PATH/$BACKUP_FILE"
+
+echo "--
+-- Created by zm_db_backup for ZoneMinder Version $ZM_VERSION
+--" >  $OUTFILE
+
+$MYSQLDUMP $DUMPOPTS zm $TABLES >> $OUTFILE
+
+exit 0

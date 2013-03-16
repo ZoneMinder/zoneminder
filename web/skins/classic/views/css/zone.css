@@ -1,0 +1,91 @@
+#settingsPanel {
+    float: left;
+    margin: 0 2px;
+}
+
+#zoneSettings {
+    border-collapse: collapse;
+}
+
+#zoneSettings th, #zoneSettings td {
+    border: 1px solid #7f7fb2;
+    padding: 3px;
+    text-align: left;
+}
+
+#zoneSettings th[scope=row] {
+    padding: 4px 3px 3px;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+#definitionPanel {
+    float: left;
+    margin: 0 2px;
+    text-align: center;
+}
+
+#definitionPanel input[type=submit], #definitionPanel input[type=submit] {
+    margin: 0 4px;
+}
+
+#imagePanel {
+    position: relative;
+}
+
+#imageFrame {
+    position: relative;
+    padding: 0 6px 6px 0; /* Double margin of points below */
+}
+
+#imageFrame div {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    margin-left: -3px;
+    margin-top: -3px;
+    z-index: 5;
+}
+
+#imageFrame div {
+    background-image: url(../../graphics/point-g.gif);
+}
+
+#imageFrame div.highlight {
+    background-image: url(../../graphics/point-o.gif);
+}
+
+#imageFrame div.active {
+    background-image: url(../../graphics/point-r.gif);
+}
+
+#zonePoints {
+    margin: 8px 0;
+    border-collapse: collapse;
+}
+
+#zonePoints td {
+    vertical-align: top;
+}
+
+#zonePoints table {
+    border-collapse: collapse;
+}
+
+#zonePoints table tr.highlight {
+    background-color: #f0e68c;
+}
+
+#zonePoints table tr.active {
+    background-color: #ffa07a;
+}
+
+#zonePoints table th, #zonePoints table td {
+    border: 1px solid #7f7fb2;
+    padding: 3px;
+    text-align: center;
+}
+
+#zonePoints table a {
+    margin: 0 2px;
+}

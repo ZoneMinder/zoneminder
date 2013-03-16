@@ -1,0 +1,20 @@
+# First the log files
+
+/var/log/zm/*log {
+    weekly
+    rotate 3
+    notifempty
+    missingok
+}
+
+# Now the weekly db backup
+
+/var/lib/zm/zm_backup.sql {
+weekly
+rotate 3
+missingok
+compress
+postrotate
+@BINDIR@/zmdbbackup
+endscript
+}

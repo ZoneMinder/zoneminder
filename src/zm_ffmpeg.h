@@ -52,6 +52,13 @@ extern "C" {
  #endif
 #endif
 
+
+#if LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(54,25,0)
+    typedef AVCodecID ZmCodecID;
+#else
+    typedef CodecID ZmCodecID;
+#endif
+
 #if FFMPEG_VERSION_INT == 0x000408
 #define ZM_FFMPEG_048	1
 #elif FFMPEG_VERSION_INT == 0x000409

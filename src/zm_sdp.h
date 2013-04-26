@@ -41,7 +41,7 @@ protected:
         int payloadType;
         const char payloadName[6];
         enum AVMediaType codecType;
-        enum CodecID codecId;
+        enum ZmCodecID codecId;
         int clockRate;
         int autoChannels;
     };
@@ -50,7 +50,7 @@ protected:
     {
         const char payloadName[32];
         enum AVMediaType codecType;
-        enum CodecID codecId;
+        enum ZmCodecID codecId;
         //int clockRate;
         //int autoChannels;
     };

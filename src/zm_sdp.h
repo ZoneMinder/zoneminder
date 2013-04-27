@@ -41,7 +41,11 @@ protected:
         int payloadType;
         const char payloadName[6];
         enum AVMediaType codecType;
-        enum ZmCodecID codecId;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+        enum AVCodecID codecId;
+#else
+        enum CodecID codecId;
+#endif
         int clockRate;
         int autoChannels;
     };
@@ -50,7 +54,12 @@ protected:
     {
         const char payloadName[32];
         enum AVMediaType codecType;
-        enum ZmCodecID codecId;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+        enum AVCodecID codecId;
+#else   
+        enum CodecID codecId;
+#endif  
+
         //int clockRate;
         //int autoChannels;
     };

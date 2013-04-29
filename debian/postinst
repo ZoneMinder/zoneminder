@@ -1,0 +1,20 @@
+#! /bin/sh
+
+set -e
+
+VERSION=1.25.1
+
+if [ "$1" = "configure" ]; then
+	if [ -z "$2" ]; then
+		chown www-data:www-data /var/log/zm
+		chown www-data:www-data /var/lib/zm/
+		chown www-data:www-data -R /var/cache/zoneminder
+    else
+		chown www-data:www-data /var/log/zm
+        OLD_ZM_VERSION=${2%-*}
+        if [ "$OLD_ZM_VERSION" != "$VERSION" ] ; then
+            zmupdate.pl --version $OLD_ZM_VERSION 
+        fi
+	fi
+fi
+#DEBHELPER#

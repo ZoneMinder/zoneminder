@@ -741,7 +741,7 @@ void LocalCamera::Terminate()
     {
         Debug( 3, "Terminating video stream" );
         //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        enum v4l2_buf_type type = v4l2_data.fmt.type;
+        enum v4l2_buf_type type = (v4l2_buf_type)v4l2_data.fmt.type;
         if ( vidioctl( vid_fd, VIDIOC_STREAMOFF, &type ) < 0 )
             Error( "Failed to stop capture stream: %s", strerror(errno) );
 
@@ -1521,7 +1521,7 @@ int LocalCamera::PrimeCapture()
 
         Debug( 3, "Starting video stream" );
         //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        enum v4l2_buf_type type = v4l2_data.fmt.type;
+        enum v4l2_buf_type type = (v4l2_buf_type)v4l2_data.fmt.type;
         if ( vidioctl( vid_fd, VIDIOC_STREAMON, &type ) < 0 )
             Fatal( "Failed to start capture stream: %s", strerror(errno) );
     }

@@ -23,7 +23,7 @@
 #ifndef ZM_USER_H
 #define ZM_USER_H
 
-#if HAVE_LIBGNUTLS_OPENSSL
+#if HAVE_GNUTLS_OPENSSL_H
 #include <gnutls/openssl.h>
 #if HAVE_GCRYPT_H
 #include <gcrypt.h>

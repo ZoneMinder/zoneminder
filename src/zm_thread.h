@@ -21,6 +21,7 @@
 #define ZM_THREAD_H
 
 #include <pthread.h>
+#include <unistd.h>
 #include "zm_exception.h"
 #include "zm_utils.h"
 

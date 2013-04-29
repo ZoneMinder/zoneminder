@@ -24,6 +24,9 @@
 #include "zm_mpeg.h"
 
 #if HAVE_LIBAVCODEC
+extern "C" {
+#include <libavutil/mathematics.h>
+}
 
 bool VideoStream::initialised = false;
 

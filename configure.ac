@@ -277,6 +277,7 @@ fi
 AC_CHECK_HEADERS(gcrypt.h,,AC_MSG_WARN(zm requires libgcrypt headers to be installed for gnutls),)
 AC_CHECK_LIB(gcrypt,gcry_check_version,,AC_MSG_WARN([libgcrypt.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
 AC_CHECK_LIB(gnutls,gnutls_fingerprint,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
+AC_CHECK_LIB(gnutls-openssl,MD5,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
 fi
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
 AC_CHECK_LIB(z,zlibVersion)

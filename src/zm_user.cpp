@@ -1,5 +1,5 @@
 /*
- * ZoneMinder regular expression class implementation, $Date$, $Revision$
+ * ZoneMinder regular expression class implementation, $Date: 2011-08-03 12:31:06 +0100 (Wed, 03 Aug 2011) $, $Revision: 3489 $
  * Copyright (C) 2001-2008 Philip Coombes
  * 
  * This program is free software; you can redistribute it and/or
@@ -143,7 +143,7 @@ User *zmLoadUser( const char *username, const char *password )
 // Function to validate an authentication string
 User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 {
-#if HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
+#if HAVE_DECL_MD5
 #ifdef HAVE_GCRYPT_H
     // Special initialisation for libgcrypt
     if ( !gcry_check_version( GCRYPT_VERSION ) )
@@ -196,8 +196,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 
 		char auth_key[512] = "";
 		char auth_md5[32+1] = "";
-        size_t md5len = 32;
-		unsigned char md5sum[md5len];
+		unsigned char md5sum[MD5_DIGEST_LENGTH];
 
 		time_t now = time( 0 );
 		int max_tries = 2;
@@ -217,14 +216,9 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 				now_tm->tm_year
 			);
 
-#if HAVE_DECL_MD5 
 			MD5( (unsigned char *)auth_key, strlen(auth_key), md5sum );
-#elif HAVE_DECL_GNUTLS_FINGERPRINT
-            gnutls_datum_t md5data = { (unsigned char *)auth_key, strlen(auth_key) };
-            gnutls_fingerprint( GNUTLS_DIG_MD5, &md5data, md5sum, &md5len );
-#endif
 			auth_md5[0] = '\0';
-			for ( int j = 0; j < md5len; j++ )
+			for ( int j = 0; j < MD5_DIGEST_LENGTH; j++ )
 			{
 				sprintf( &auth_md5[2*j], "%02x", md5sum[j] );
 			}

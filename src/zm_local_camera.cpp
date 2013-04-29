@@ -1275,7 +1275,7 @@ int LocalCamera::Brightness( int p_brightness )
             if ( errno != EINVAL )
                 Error( "Unable to query brightness: %s", strerror(errno) )
             else
-                Warning( "Brightness control is not suppported" )
+                Warning( "Brightness control is not supported" )
             //Info( "Brightness 1 %d", vid_control.value );
         }
         else if ( p_brightness >= 0 )
@@ -1336,7 +1336,7 @@ int LocalCamera::Hue( int p_hue )
             if ( errno != EINVAL )
                 Error( "Unable to query hue: %s", strerror(errno) )
             else
-                Warning( "Hue control is not suppported" )
+                Warning( "Hue control is not supported" )
         }
         else if ( p_hue >= 0 )
         {
@@ -1394,7 +1394,7 @@ int LocalCamera::Colour( int p_colour )
             if ( errno != EINVAL )
                 Error( "Unable to query saturation: %s", strerror(errno) )
             else
-                Warning( "Saturation control is not suppported" )
+                Warning( "Saturation control is not supported" )
         }
         else if ( p_colour >= 0 )
         {
@@ -1452,7 +1452,7 @@ int LocalCamera::Contrast( int p_contrast )
             if ( errno != EINVAL )
                 Error( "Unable to query contrast: %s", strerror(errno) )
             else
-                Warning( "Contrast control is not suppported" )
+                Warning( "Contrast control is not supported" )
         }
         else if ( p_contrast >= 0 )
         {

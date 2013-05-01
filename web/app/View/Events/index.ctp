@@ -1,12 +1,10 @@
-<h1>ZoneMinder Events</h1>
+<h2>Events</h2>
 <table>
     <tr>
         <th>Id</th>
         <th>MonitorId</th>
         <th>Length</th>
     </tr>
-
-    <!-- Here is where we loop through our $events array, printing out post info -->
 
     <?php foreach ($events as $event): ?>
     <tr>

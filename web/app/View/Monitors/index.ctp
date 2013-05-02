@@ -4,6 +4,13 @@
         <th>Name</th>
 	<th>Function</th>
 	<th>Source</th>
+	<th>Total Events</th>
+	<th>Hour</th>
+	<th>Day</th>
+	<th>Week</th>
+	<th>Month</th>
+	<th>Archived</th>
+	<th>Zones</th>
     </tr>
 
     <?php foreach ($monitors as $monitor): ?>
@@ -15,6 +22,13 @@
             <?php echo $this->Html->link($monitor['Monitor']['Function'], array('action' => 'edit', $monitor['Monitor']['Id'])); ?>
 	</td>
         <td><?php echo $monitor['Monitor']['Host']; ?></td>
+	<td><?php echo count($monitor['Event']); ?></td>
+	<td></th>
+	<td></th>
+	<td></th>
+	<td></th>
+	<td></th>
+	<td></th>
     </tr>
     <?php endforeach; ?>
     <?php unset($monitor); ?>

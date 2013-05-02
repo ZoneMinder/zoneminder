@@ -5,6 +5,10 @@
 	'Event' => array(
 		'className' => 'Event',
 		'foreignKey' => 'MonitorId'
+	),
+	'Zone' => array(
+		'className' => 'Zone',
+		'foreignKey' => 'MonitorId'
 	)
     );
   }

@@ -28,7 +28,7 @@
 	<td></th>
 	<td></th>
 	<td></th>
-	<td></th>
+	<td><?php echo count($monitor['Zone']); ?></th>
     </tr>
     <?php endforeach; ?>
     <?php unset($monitor); ?>

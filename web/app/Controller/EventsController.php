@@ -1,7 +1,7 @@
 <?php
 
 class EventsController extends AppController {
-    public $helpers = array('Html', 'Form', 'Paginator');
+    public $helpers = array('Paginator');
     public $components = array('Paginator');
 
     public $paginate = array(

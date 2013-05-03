@@ -73,6 +73,7 @@
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => '24 bitars färg',
+    '32BitColour'          => '32 bitars färg',          // Added - 2011-06-15
     '8BitGrey'             => '8 bit gråskala',
     'Action'               => 'Action',
     'Actual'               => 'Verklig',
@@ -127,6 +128,7 @@ $SLANG = array(
     'BadAlarmFrameCount'   => 'Ramantalet för larm måste vara ett heltal, minsta värdet är 1',
     'BadAlarmMaxFPS'       => 'Larm för bilder/s måste vara ett positivt heltal eller ett flyttal',
     'BadChannel'           => 'Kanalen måste vara ett heltal, noll eller högre',
+    'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
     'BadDevice'            => 'Enheten måste sättas till ett giltigt värde',
     'BadFPSReportInterval' => 'Buffern för ramintervallrapporten måste vara ett heltal på minst 0 eller högre',
     'BadFormat'            => 'Formatet måste vara ett heltal, noll eller högre',

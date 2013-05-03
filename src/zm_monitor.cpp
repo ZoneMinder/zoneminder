@@ -224,7 +224,7 @@ bool Monitor::MonitorLink::inAlarm()
 
 bool Monitor::MonitorLink::hasAlarmed()
 {
-    if ( shared_data->state == ALARM || shared_data->state == ALERT )
+    if ( shared_data->state == ALARM )
     {
         return( true );
     }
@@ -244,6 +244,7 @@ Monitor::Monitor(
     const char *p_linked_monitors,
     Camera *p_camera,
     int p_orientation,
+    unsigned int p_deinterlacing,
     const char *p_event_prefix,
     const char *p_label_format,
     const Coord &p_label_coord,
@@ -270,6 +271,7 @@ Monitor::Monitor(
     width( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ),
     height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
     orientation( (Orientation)p_orientation ),
+    deinterlacing( p_deinterlacing ),
     label_coord( p_label_coord ),
     image_buffer_count( p_image_buffer_count ),
     warmup_count( p_warmup_count ),
@@ -285,8 +287,8 @@ Monitor::Monitor(
     ref_blend_perc( p_ref_blend_perc ),
     track_motion( p_track_motion ),
     signal_check_colour( p_signal_check_colour ),
-    image( width, height, p_camera->Colours() ),
-    ref_image( width, height, p_camera->Colours() ),
+    delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
+    ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
     purpose( p_purpose ),
     camera( p_camera ),
     n_zones( p_n_zones ),
@@ -342,7 +344,8 @@ Monitor::Monitor(
     mem_size = sizeof(SharedData)
              + sizeof(TriggerData)
              + (image_buffer_count*sizeof(struct timeval))
-             + (image_buffer_count*camera->ImageSize());
+             + (image_buffer_count*camera->ImageSize())
+             + 64; /* Padding used to permit aligning the images buffer to 16 byte boundary */
 
     Debug( 1, "mem.size=%d", mem_size );
 #if ZM_MEM_MAPPED
@@ -353,7 +356,7 @@ Monitor::Monitor(
         struct stat map_stat;
     if ( fstat( map_fd, &map_stat ) < 0 )
         Fatal( "Can't stat memory map file %s: %s", mem_file, strerror(errno) );
-    if ( map_stat.st_size == 0 )
+    if ( map_stat.st_size != mem_size && purpose == CAPTURE )
     {
         // Allocate the size
         if ( ftruncate( map_fd, mem_size ) < 0 )
@@ -392,12 +395,17 @@ Monitor::Monitor(
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
     struct timeval *shared_timestamps = (struct timeval *)((char *)trigger_data + sizeof(TriggerData));
     unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
+    
+    if(((unsigned long)shared_images % 16) != 0) {
+	/* Align images buffer to nearest 16 byte boundary */
+	Debug(3,"Aligning shared memory images to the next 16 byte boundary");
+	shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
+    }
 
     if ( purpose == CAPTURE )
     {
         memset( mem_ptr, 0, mem_size );
         shared_data->size = sizeof(SharedData);
-        shared_data->valid = true;
         shared_data->active = enabled;
         shared_data->signal = false;
         shared_data->state = IDLE;
@@ -412,12 +420,15 @@ Monitor::Monitor(
         shared_data->contrast = -1;
         shared_data->alarm_x = -1;
         shared_data->alarm_y = -1;
+        shared_data->format = camera->SubpixelOrder();
+        shared_data->imagesize = camera->ImageSize();
         trigger_data->size = sizeof(TriggerData);
         trigger_data->trigger_state = TRIGGER_CANCEL;
         trigger_data->trigger_score = 0;
         trigger_data->trigger_cause[0] = 0;
         trigger_data->trigger_text[0] = 0;
         trigger_data->trigger_showtext[0] = 0;
+        shared_data->valid = true;
     }
     else if ( purpose == ANALYSIS )
     {
@@ -444,7 +455,15 @@ Monitor::Monitor(
     for ( int i = 0; i < image_buffer_count; i++ )
     {
         image_buffer[i].timestamp = &(shared_timestamps[i]);
-        image_buffer[i].image = new Image( width, height, camera->Colours(), &(shared_images[i*camera->ImageSize()]) );
+        image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
+        image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
+    }
+    if ( (deinterlacing & 0xff) == 4)
+    {
+        /* Four field motion adaptive deinterlacing in use */
+        /* Allocate a buffer for the next image */
+        next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+        next_buffer.timestamp = new struct timeval;
     }
     if ( !n_zones )
     {
@@ -498,12 +517,12 @@ Monitor::Monitor(
                 Fatal( "Can't change to parent directory: %s", strerror(errno) );
         }
 
-        while( shared_data->last_write_index == image_buffer_count )
+        while( shared_data->last_write_index == image_buffer_count && shared_data->last_write_time == 0)
         {
             Warning( "Waiting for capture daemon" );
             sleep( 1 );
         }
-        ref_image.Assign( width, height, camera->Colours(), image_buffer[shared_data->last_write_index].image->Buffer() );
+        ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
 
         n_linked_monitors = 0;
         linked_monitors = 0;
@@ -517,6 +536,11 @@ Monitor::~Monitor()
         Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
     closeEvent();
 
+    if ( (deinterlacing & 0xff) == 4)
+    {
+        delete next_buffer.image;
+        delete next_buffer.timestamp;
+    }
     for ( int i = 0; i < image_buffer_count; i++ )
     {
         delete image_buffer[i].image;
@@ -578,7 +602,7 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
 
 Monitor::State Monitor::GetState() const
 {
-    return( shared_data->state );
+    return( (State)shared_data->state );
 }
 
 int Monitor::GetImage( int index, int scale ) const
@@ -932,7 +956,10 @@ void Monitor::DumpZoneImage( const char *zone_string )
     Image *snap_image = snap->image;
 
     Image zone_image( *snap_image );
-    zone_image.Colourise();
+    if(zone_image.Colours() == ZM_COLOUR_GRAY8) {
+        zone_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
+    }
+    
     for( int i = 0; i < n_zones; i++ )
     {
         if ( exclude_id && (!extra_colour || extra_zone.getNumCoords()) && zones[i]->Id() == exclude_id )
@@ -997,21 +1024,29 @@ void Monitor::DumpImage( Image *dump_image ) const
 bool Monitor::CheckSignal( const Image *image )
 {
     static bool static_undef = true;
-    static unsigned char red_val;
-    static unsigned char green_val;
-    static unsigned char blue_val;
+    /* RGB24 colors */
+    static uint8_t red_val;
+    static uint8_t green_val;
+    static uint8_t blue_val;
+    static uint8_t grayscale_val; /* 8bit grayscale color */  
+    static Rgb colour_val; /* RGB32 color */
+    static int usedsubpixorder;
 
     if ( config.signal_check_points > 0 )
     {
         if ( static_undef )
         {
             static_undef = false;
-            red_val = RGB_RED_VAL(signal_check_colour);
-            green_val = RGB_GREEN_VAL(signal_check_colour);
-            blue_val = RGB_BLUE_VAL(signal_check_colour);
+            usedsubpixorder = camera->SubpixelOrder();
+            colour_val = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
+            colour_val = rgb_convert(colour_val, usedsubpixorder);
+            red_val = RED_VAL_BGRA(signal_check_colour);
+            green_val = GREEN_VAL_BGRA(signal_check_colour);
+            blue_val = BLUE_VAL_BGRA(signal_check_colour);
+            grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
         }
 
-        const unsigned char *buffer = image->Buffer();
+        const uint8_t *buffer = image->Buffer();
         int pixels = image->Pixels();
         int width = image->Width();
         int colours = image->Colours();
@@ -1028,11 +1063,34 @@ bool Monitor::CheckSignal( const Image *image )
                 if ( index < (label_coord.Y()*width) || index >= (label_coord.Y()+Image::LINE_HEIGHT)*width )
                     break;
             }
-            const unsigned char *ptr = buffer+(index*colours);
-            if ( (RED(ptr) != red_val) || (GREEN(ptr) != green_val) || (BLUE(ptr) != blue_val) )
-            {
-                return( true );
-            }
+            
+		if(colours == ZM_COLOUR_GRAY8) {
+			if ( *(buffer+index) != grayscale_val )
+				return true;
+			
+		} else if(colours == ZM_COLOUR_RGB24) {
+			const uint8_t *ptr = buffer+(index*colours);
+			
+			if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR) {
+				if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
+					return true;
+			} else {
+				/* Assume RGB */
+				if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
+					return true;
+			}
+			
+		} else if(colours == ZM_COLOUR_RGB32) {
+			if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
+				if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
+					return true;
+			} else {
+				/* Assume RGBA or BGRA */
+				if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val) )
+					return true;
+			}
+		}
+        
         }
         return( false );
     }
@@ -1192,7 +1250,6 @@ bool Monitor::Analyse()
                     {
                         Info( "%s: %03d - Closing event %d, signal loss", name, image_count, event->Id() );
                         closeEvent();
-                        shared_data->state = state = IDLE;
                         last_section_mod = 0;
                     }
                     if ( !event )
@@ -1204,10 +1261,11 @@ bool Monitor::Analyse()
                     Event::StringSet noteSet;
                     noteSet.insert( signalText );
                     noteSetMap[SIGNAL_CAUSE] = noteSet;
+                    shared_data->state = state = IDLE;
                     shared_data->active = signal;
                     ref_image = *snap_image;
                 }
-                else if ( signal && Active() && function != RECORD && function != NODECT )
+                else if ( signal && Active() && (function == MODECT || function == MOCORD) )
                 {
                     Event::StringSet zoneSet;
                     int motion_score = DetectMotion( *snap_image, zoneSet );
@@ -1228,7 +1286,7 @@ bool Monitor::Analyse()
                     }
                     shared_data->active = signal;
                 }
-                if ( n_linked_monitors > 0 )
+                if ( (!signal_change && signal) && n_linked_monitors > 0 )
                 {
                     bool first_link = true;
                     Event::StringSet noteSet;
@@ -1269,8 +1327,11 @@ bool Monitor::Analyse()
                         {
                             if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME )
                             {
-                                if ( state == IDLE || state == TAPE )
+                                if ( state == TAPE )
+                                {
+                                    shared_data->state = state = IDLE;
                                     Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
+                                }
                                 else
                                     Info( "%s: %03d - Closing event %d, section end forced ", name, image_count, event->Id() );
                                 closeEvent();
@@ -1284,13 +1345,18 @@ bool Monitor::Analyse()
                     }
                     if ( !event )
                     {
-                        shared_data->state = state = TAPE;
 
                         // Create event
                         event = new Event( this, *timestamp, "Continuous", noteSetMap );
                         shared_data->last_event = event->Id();
 
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
+
+                        /* To prevent cancelling out an existing alert\prealarm\alarm state */
+                        if ( state == IDLE )
+                        {
+                            shared_data->state = state = TAPE;
+                        }
 
                         //if ( config.overlap_timed_events )
                         if ( false )
@@ -1493,23 +1559,6 @@ bool Monitor::Analyse()
                         }
                     }
                 }
-                if ( function == RECORD || function == MOCORD )
-                {
-                    if ( state == IDLE || state == TAPE )
-                    {
-                        int section_mod = timestamp->tv_sec%section_length;
-                        if ( section_mod < last_section_mod )
-                        {
-                            Info( "%s: %03d - Closing event %d, section end2", name, image_count, event->Id() );
-                            closeEvent();
-                            last_section_mod = 0;
-                        }
-                        else
-                        {
-                            last_section_mod = section_mod;
-                        }
-                    }
-                }
             }
         }
         else
@@ -1522,7 +1571,7 @@ bool Monitor::Analyse()
             shared_data->state = state = IDLE;
             last_section_mod = 0;
         }
-        if ( signal && (function == MODECT || function == MOCORD) && (config.blend_alarmed_images || state != ALARM) )
+        if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) && (config.blend_alarmed_images || state != ALARM) )
         {
             ref_image.Blend( *snap_image, ref_blend_perc );
         }
@@ -1665,7 +1714,7 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
             {
                 *dest_ptr = '\0';
                 int link_id = atoi(link_id_str);
-                if ( link_id > 0 )
+                if ( link_id > 0 && link_id != id)
                 {
                     Debug( 3, "Found linked monitor id %d", link_id );
                     int j;
@@ -1690,9 +1739,9 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
         if ( n_link_ids > 0 )
         {
             Debug( 1, "Linking to %d monitors", n_link_ids );
-            n_linked_monitors = n_link_ids;
-            linked_monitors = new MonitorLink *[n_linked_monitors];
-            for ( int i = 0; i < n_linked_monitors; i++ )
+            linked_monitors = new MonitorLink *[n_link_ids];
+            int count = 0;
+            for ( int i = 0; i < n_link_ids; i++ )
             {
                 Debug( 1, "Checking linked monitor %d", link_ids[i] );
 
@@ -1715,14 +1764,15 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
                 {
                     MYSQL_ROW dbrow = mysql_fetch_row( result );
                     Debug( 1, "Linking to monitor %d", link_ids[i] );
-                    linked_monitors[i] = new MonitorLink( link_ids[i], dbrow[1] );
+                    linked_monitors[count++] = new MonitorLink( link_ids[i], dbrow[1] );
                 }
                 else
                 {
-                    Debug( 1, "Can't link to monitor %d, invalid id, function or not enabled", link_ids[i] );
+                    Warning( "Can't link to monitor %d, invalid id, function or not enabled", link_ids[i] );
                 }
                 mysql_free_result( result );
             }
+            n_linked_monitors = count;
         }
     }
 }
@@ -1733,11 +1783,11 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !device[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1772,8 +1822,10 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 
         int width = atoi(dbrow[col]); col++;
         int height = atoi(dbrow[col]); col++;
+        int colours = atoi(dbrow[col]); col++;
         int palette = atoi(dbrow[col]); col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
+        unsigned int deinterlacing = atoi(dbrow[col]); col++;
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -1808,6 +1860,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
         int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
+        int extras = (deinterlacing>>24)&0xff;
+
         Camera *camera = new LocalCamera(
             id,
             device,
@@ -1816,12 +1870,14 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
             method,
             cam_width,
             cam_height,
+            colours,
             palette,
             brightness,
             contrast,
             hue,
             colour,
-            purpose==CAPTURE
+            purpose==CAPTURE,
+            extras
         );
 
         monitors[i] = new Monitor(
@@ -1832,6 +1888,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
             linked_monitors,
             camera,
             orientation,
+            deinterlacing,
             event_prefix,
             label_format,
             Coord( label_x, label_y ),
@@ -1873,11 +1930,11 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !protocol )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote' and Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote' and Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1913,8 +1970,10 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 
         int width = atoi(dbrow[col]); col++;
         int height = atoi(dbrow[col]); col++;
-        int palette = atoi(dbrow[col]); col++;
+        int colours = atoi(dbrow[col]); col++;
+        /* int palette = atoi(dbrow[col]); */ col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
+        unsigned int deinterlacing = atoi(dbrow[col]); col++;        
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -1954,7 +2013,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
                 path, // Path
                 cam_width,
                 cam_height,
-                palette,
+                colours,
                 brightness,
                 contrast,
                 hue,
@@ -1973,7 +2032,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
                 path, // Path
                 cam_width,
                 cam_height,
-                palette,
+                colours,
                 brightness,
                 contrast,
                 hue,
@@ -1995,6 +2054,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
             linked_monitors,
             camera,
             orientation,
+            deinterlacing,
             event_prefix.c_str(),
             label_format.c_str(),
             Coord( label_x, label_y ),
@@ -2035,11 +2095,11 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !file[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -2071,8 +2131,10 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 
         int width = atoi(dbrow[col]); col++;
         int height = atoi(dbrow[col]); col++;
-        int palette = atoi(dbrow[col]); col++;
+        int colours = atoi(dbrow[col]); col++;
+        /* int palette = atoi(dbrow[col]); */ col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
+        unsigned int deinterlacing = atoi(dbrow[col]); col++;
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -2106,7 +2168,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
             path, // File
             cam_width,
             cam_height,
-            palette,
+            colours,
             brightness,
             contrast,
             hue,
@@ -2122,6 +2184,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
             linked_monitors,
             camera,
             orientation,
+            deinterlacing,
             event_prefix,
             label_format,
             Coord( label_x, label_y ),
@@ -2163,11 +2226,11 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !file[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Ffmpeg'", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Ffmpeg'", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Ffmpeg' and Path = '%s'", file );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Ffmpeg' and Path = '%s'", file );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -2199,8 +2262,10 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 
         int width = atoi(dbrow[col]); col++;
         int height = atoi(dbrow[col]); col++;
-        int palette = atoi(dbrow[col]); col++;
+        int colours = atoi(dbrow[col]); col++;
+        /* int palette = atoi(dbrow[col]); */ col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
+        unsigned int deinterlacing = atoi(dbrow[col]); col++;
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -2234,7 +2299,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
             path, // File
             cam_width,
             cam_height,
-            palette,
+            colours,
             brightness,
             contrast,
             hue,
@@ -2250,6 +2315,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
             linked_monitors,
             camera,
             orientation,
+            deinterlacing,
             event_prefix,
             label_format,
             Coord( label_x, label_y ),
@@ -2289,7 +2355,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, Orientation+0, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
+    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -2328,8 +2394,10 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 
         int width = atoi(dbrow[col]); col++;
         int height = atoi(dbrow[col]); col++;
+        int colours = atoi(dbrow[col]); col++;
         int palette = atoi(dbrow[col]); col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
+        unsigned int deinterlacing = atoi(dbrow[col]); col++;
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -2363,6 +2431,8 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
         int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
+        int extras = (deinterlacing>>24)&0xff;
+
         Camera *camera = 0;
         if ( type == "Local" )
         {
@@ -2375,12 +2445,14 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                 method,
                 cam_width,
                 cam_height,
+                colours,
                 palette,
                 brightness,
                 contrast,
                 hue,
                 colour,
-                purpose==CAPTURE
+                purpose==CAPTURE,
+                extras
             );
 #else // ZM_HAS_V4L
             Fatal( "You must have video4linux libraries and headers installed to use local analog or USB cameras for monitor %d", id );
@@ -2398,7 +2470,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                     path.c_str(),
                     cam_width,
                     cam_height,
-                    palette,
+                    colours,
                     brightness,
                     contrast,
                     hue,
@@ -2417,7 +2489,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                     path.c_str(),
                     cam_width,
                     cam_height,
-                    palette,
+                    colours,
                     brightness,
                     contrast,
                     hue,
@@ -2440,7 +2512,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                 path.c_str(),
                 cam_width,
                 cam_height,
-                palette,
+                colours,
                 brightness,
                 contrast,
                 hue,
@@ -2456,7 +2528,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                 path.c_str(),
                 cam_width,
                 cam_height,
-                palette,
+                colours,
                 brightness,
                 contrast,
                 hue,
@@ -2479,6 +2551,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
             linked_monitors.c_str(),
             camera,
             orientation,
+            deinterlacing,
             event_prefix.c_str(),
             label_format.c_str(),
             Coord( label_x, label_y ),
@@ -2521,16 +2594,58 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 
 int Monitor::Capture()
 {
-    int captureResult = camera->Capture( image );
-    if ( captureResult == 1 )
+	static int FirstCapture = 1;
+	int captureResult;
+	
+	int index = image_count%image_buffer_count;
+	Image* capture_image = image_buffer[index].image;
+	
+	if ( (deinterlacing & 0xff) == 4) {
+		if ( FirstCapture != 1 ) {
+			/* Copy the next image into the shared memory */
+			capture_image->CopyBuffer(*(next_buffer.image)); 
+		}
+		
+		/* Capture a new next image */
+		captureResult = camera->Capture(*(next_buffer.image));
+		
+		if ( FirstCapture ) {
+			FirstCapture = 0;
+			return 0;
+		}
+		
+	} else {
+		/* Capture directly into image buffer, avoiding the need to memcpy() */
+		captureResult = camera->Capture(*capture_image);
+	}
+    
+    if ( captureResult != 0 )
     {
         // Unable to capture image for temporary reason
         // Fake a signal loss image
-        image.Fill( signal_check_colour );
+        capture_image->Fill( signal_check_colour );
         captureResult = 0;
+    } else { 
+        captureResult = 1;
     }
-    if ( captureResult == 0 )
+    
+    if ( captureResult == 1 )
     {
+        
+	/* Deinterlacing */
+	if ( (deinterlacing & 0xff) == 1 ) {
+		capture_image->Deinterlace_Discard();
+	} else if ( (deinterlacing & 0xff) == 2 ) {
+		capture_image->Deinterlace_Linear();
+	} else if ( (deinterlacing & 0xff) == 3 ) {
+		capture_image->Deinterlace_Blend();
+	} else if ( (deinterlacing & 0xff) == 4 ) {
+		capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
+	} else if ( (deinterlacing & 0xff) == 5 ) {
+		capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
+	}
+        
+        
         if ( orientation != ROTATE_0 )
         {
             switch ( orientation )
@@ -2544,25 +2659,27 @@ int Monitor::Capture()
                 case ROTATE_180 :
                 case ROTATE_270 :
                 {
-                    image.Rotate( (orientation-1)*90 );
+                    capture_image->Rotate( (orientation-1)*90 );
                     break;
                 }
                 case FLIP_HORI :
                 case FLIP_VERT :
                 {
-                    image.Flip( orientation==FLIP_HORI );
+                    capture_image->Flip( orientation==FLIP_HORI );
                     break;
                 }
             }
         }
 
-        if ( image.Size() != camera->ImageSize() )
+    }
+    if ( true ) {
+
+        if ( capture_image->Size() != camera->ImageSize() )
         {
             Error( "Captured image does not match expected size, check width, height and colour depth" );
             return( -1 );
         }
 
-        int index = image_count%image_buffer_count;
         if ( (index == shared_data->last_read_index) && (function > MONITOR) )
         {
             Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
@@ -2579,11 +2696,9 @@ int Monitor::Capture()
         gettimeofday( image_buffer[index].timestamp, NULL );
         if ( config.timestamp_on_capture )
         {
-            TimestampImage( &image, image_buffer[index].timestamp );
+            TimestampImage( capture_image, image_buffer[index].timestamp );
         }
-        image_buffer[index].image->CopyBuffer( image );
-
-        shared_data->signal = CheckSignal( &image );
+        shared_data->signal = CheckSignal(capture_image);
         shared_data->last_write_index = index;
         shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
 
@@ -2697,7 +2812,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         ref_image.WriteJpeg( diag_path );
     }
 
-    Image *delta_image = ref_image.Delta( comp_image );
+    ref_image.Delta( comp_image, &delta_image);
 
     if ( config.record_diag_images )
     {
@@ -2706,7 +2821,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         {
             snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", config.dir_events, id );
         }
-        delta_image->WriteJpeg( diag_path );
+        delta_image.WriteJpeg( diag_path );
     }
 
     // Blank out all exclusion zones
@@ -2719,7 +2834,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
             continue;
         }
         Debug( 3, "Blanking inactive zone %s", zone->Label() );
-        delta_image->Fill( RGB_BLACK, zone->GetPolygon() );
+        delta_image.Fill( RGB_BLACK, zone->GetPolygon() );
     }
 
     // Check preclusive zones first
@@ -2731,7 +2846,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
             continue;
         }
         Debug( 3, "Checking preclusive zone %s", zone->Label() );
-        if ( zone->CheckAlarms( delta_image ) )
+        if ( zone->CheckAlarms( &delta_image ) )
         {
             alarm = true;
             score += zone->Score();
@@ -2760,7 +2875,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                 continue;
             }
             Debug( 3, "Checking active zone %s", zone->Label() );
-            if ( zone->CheckAlarms( delta_image ) )
+            if ( zone->CheckAlarms( &delta_image ) )
             {
                 alarm = true;
                 score += zone->Score();
@@ -2788,7 +2903,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                     continue;
                 }
                 Debug( 3, "Checking inclusive zone %s", zone->Label() );
-                if ( zone->CheckAlarms( delta_image ) )
+                if ( zone->CheckAlarms( &delta_image ) )
                 {
                     alarm = true;
                     score += zone->Score();
@@ -2817,7 +2932,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                     continue;
                 }
                 Debug( 3, "Checking exclusive zone %s", zone->Label() );
-                if ( zone->CheckAlarms( delta_image ) )
+                if ( zone->CheckAlarms( &delta_image ) )
                 {
                     alarm = true;
                     score += zone->Score();
@@ -2841,7 +2956,6 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         shared_data->alarm_x = shared_data->alarm_y = -1;
     }
 
-    delete delta_image;
     // This is a small and innocent hack to prevent scores of 0 being returned in alarm state
     return( score?score:alarm );
 } 
@@ -2888,6 +3002,7 @@ bool Monitor::DumpSettings( char *output, bool verbose )
     }
 #endif // ZM_HAS_V4L
     sprintf( output+strlen(output), "Colours : %d\n", camera->Colours() );
+    sprintf( output+strlen(output), "Subpixel Order : %d\n", camera->SubpixelOrder() );
     sprintf( output+strlen(output), "Event Prefix : %s\n", event_prefix );
     sprintf( output+strlen(output), "Label Format : %s\n", label_format );
     sprintf( output+strlen(output), "Label Coord : %d,%d\n", label_coord.X(), label_coord.Y() );
@@ -3327,7 +3442,7 @@ bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
     {
         if ( !vid_stream )
         {
-            vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->Width(), send_image->Height() );
+            vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height() );
             fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType() );
             vid_stream->OpenStream();
         }
@@ -3359,7 +3474,7 @@ bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
                 break;
             case STREAM_RAW :
                 fprintf( stdout, "Content-Type: image/x-rgb\r\n" );
-                img_buffer = send_image->Buffer();
+                img_buffer = (uint8_t*)send_image->Buffer();
                 img_buffer_size = send_image->Size();
                 break;
             case STREAM_ZIP :
@@ -3464,7 +3579,7 @@ void MonitorStream::runStream()
     while ( !zm_terminate )
     {
         bool got_command = false;
-        if ( feof( stdout ) || ferror( stdout ) )
+        if ( feof( stdout ) || ferror( stdout ) || !monitor->ShmValid() )
         {
             break;
         }
@@ -3473,7 +3588,9 @@ void MonitorStream::runStream()
 
         if ( connkey )
         {
-            got_command = checkCommandQueue();
+            while(checkCommandQueue()) {
+                got_command = true;
+            }
         }
 
         bool frame_sent = false;

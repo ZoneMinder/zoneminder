@@ -72,6 +72,7 @@ header( "Content-Type: text/html; charset=koi8-r" );
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => '24 битный цвет',
+    '32BitColour'          => '32 битный цвет',          // Added - 2011-06-15
     '8BitGrey'             => '256 оттенков серого',
     'Action'               => 'Action',
     'Actual'               => 'Действительный',
@@ -126,6 +127,7 @@ $SLANG = array(
     'BadAlarmFrameCount'   => 'Alarm frame count must be an integer of one or more',
     'BadAlarmMaxFPS'       => 'Alarm Maximum FPS must be a positive integer or floating point value',
     'BadChannel'           => 'Channel must be set to an integer of zero or more',
+    'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
     'BadDevice'            => 'Device must be set to a valid value',
     'BadFPSReportInterval' => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadFormat'            => 'Format must be set to an integer of zero or more',

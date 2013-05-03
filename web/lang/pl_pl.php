@@ -72,6 +72,7 @@ setlocale( LC_ALL, 'pl_PL' );   // All locale settings 4.3.0 and after
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => 'Kolor (24 bity)',
+    '32BitColour'          => 'Kolor (32 bity)',          // Added - 2011-06-15
     '8BitGrey'             => 'Cz/b (8 bitów)',
     'Action'               => 'Action',
     'Actual'               => 'Aktualny',
@@ -126,6 +127,7 @@ $SLANG = array(
     'BadAlarmFrameCount'   => 'Alarm frame count must be an integer of one or more',
     'BadAlarmMaxFPS'       => 'Alarm Maximum FPS must be a positive integer or floating point value',
     'BadChannel'           => 'Channel must be set to an integer of zero or more',
+    'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
     'BadDevice'            => 'Device must be set to a valid value',
     'BadFPSReportInterval' => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadFormat'            => 'Format must be set to an integer of zero or more',

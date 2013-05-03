@@ -134,33 +134,38 @@ our $mem_seq = 0;
 our $mem_data =
 {
 	"shared_data" => { "type"=>"SharedData", "seq"=>$mem_seq++, "contents"=> {
-		"size"             => { "type"=>"int", "seq"=>$mem_seq++ },
-		"valid"            => { "type"=>"bool1", "seq"=>$mem_seq++ },
-		"active"           => { "type"=>"bool1", "seq"=>$mem_seq++ },
-		"signal"           => { "type"=>"bool1", "seq"=>$mem_seq++ },
-		"state"            => { "type"=>"enum", "seq"=>$mem_seq++},
-		"last_write_index" => { "type"=>"int", "seq"=>$mem_seq++ },
-		"last_read_index"  => { "type"=>"int", "seq"=>$mem_seq++ },
-		"last_write_time"  => { "type"=>"time_t", "seq"=>$mem_seq++ },
-		"last_read_time"   => { "type"=>"time_t", "seq"=>$mem_seq++ },
-		"last_event"       => { "type"=>"int", "seq"=>$mem_seq++ },
-		"action"           => { "type"=>"enum", "seq"=>$mem_seq++ },
-		"brightness"       => { "type"=>"int", "seq"=>$mem_seq++ },
-		"hue"              => { "type"=>"int", "seq"=>$mem_seq++ },
-		"colour"           => { "type"=>"int", "seq"=>$mem_seq++ },
-		"contrast"         => { "type"=>"int", "seq"=>$mem_seq++ },
-		"alarm_x"          => { "type"=>"int", "seq"=>$mem_seq++ },
-		"alarm_y"          => { "type"=>"int", "seq"=>$mem_seq++ },
-		"control_state"    => { "type"=>"uchar[256]", "seq"=>$mem_seq++ },
+		"size"             => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"last_write_index" => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"last_read_index"  => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"state"            => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"last_event"       => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"action"           => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"brightness"       => { "type"=>"int32", "seq"=>$mem_seq++ },
+		"hue"              => { "type"=>"int32", "seq"=>$mem_seq++ },
+		"colour"           => { "type"=>"int32", "seq"=>$mem_seq++ },
+		"contrast"         => { "type"=>"int32", "seq"=>$mem_seq++ },
+		"alarm_x"          => { "type"=>"int32", "seq"=>$mem_seq++ },
+		"alarm_y"          => { "type"=>"int32", "seq"=>$mem_seq++ },
+		"valid"            => { "type"=>"uint8", "seq"=>$mem_seq++ },
+		"active"           => { "type"=>"uint8", "seq"=>$mem_seq++ },
+		"signal"           => { "type"=>"uint8", "seq"=>$mem_seq++ },
+		"format"           => { "type"=>"uint8", "seq"=>$mem_seq++ },
+		"imagesize"        => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"epadding1"        => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"epadding2"        => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"last_write_time"  => { "type"=>"time_t64", "seq"=>$mem_seq++ },
+		"last_read_time"   => { "type"=>"time_t64", "seq"=>$mem_seq++ },
+		"control_state"    => { "type"=>"uint8[256]", "seq"=>$mem_seq++ },
 		}
 	},
 	"trigger_data" => { "type"=>"TriggerData", "seq"=>$mem_seq++, "contents"=> {
-		"size"             => { "type"=>"int", "seq"=>$mem_seq++ },
-		"trigger_state"    => { "type"=>"enum", "seq"=>$mem_seq++ },
-		"trigger_score"    => { "type"=>"int", "seq"=>$mem_seq++ },
-		"trigger_cause"    => { "type"=>"char[32]", "seq"=>$mem_seq++ },
-		"trigger_text"     => { "type"=>"char[256]", "seq"=>$mem_seq++ },
-		"trigger_showtext" => { "type"=>"char[256]", "seq"=>$mem_seq++ },
+		"size"             => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"trigger_state"    => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"trigger_score"    => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"padding"          => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"trigger_cause"    => { "type"=>"int8[32]", "seq"=>$mem_seq++ },
+		"trigger_text"     => { "type"=>"int8[256]", "seq"=>$mem_seq++ },
+		"trigger_showtext" => { "type"=>"int8[256]", "seq"=>$mem_seq++ },
 		}
 	},
 	"end" => { "seq"=>$mem_seq++, "size"=> 0 }
@@ -176,7 +181,7 @@ sub zmMemInit
 	foreach my $section_data ( sort { $a->{seq} <=> $b->{seq} } values( %$mem_data ) )
 	{
 		$section_data->{offset} = $offset;
-		$section_data->{align} = 4;
+		$section_data->{align} = 0;
 
 		if ( $section_data->{align} > 1 )
 		{
@@ -188,23 +193,27 @@ sub zmMemInit
 		}
 		foreach my $member_data ( sort { $a->{seq} <=> $b->{seq} } values( %{$section_data->{contents}} ) )
 		{
-			if ( $member_data->{type} eq "long" || $member_data->{type} eq "time_t" || $member_data->{type} eq "size_t" || $member_data->{type} eq "bool8" )
+			if ( $member_data->{type} eq "long" || $member_data->{type} eq "ulong" || $member_data->{type} eq "size_t")
 			{
 				$member_data->{size} = $member_data->{align} = $native;
 			}
-			elsif ( $member_data->{type} eq "int" || $member_data->{type} eq "enum" || $member_data->{type} eq "bool4" )
+			elsif( $member_data->{type} eq "int64" || $member_data->{type} eq "uint64" || $member_data->{type} eq "time_t64")
+			{
+				$member_data->{size} = $member_data->{align} = 8;
+			}
+			elsif ( $member_data->{type} eq "int32" || $member_data->{type} eq "uint32" || $member_data->{type} eq "bool4" )
 			{
 				$member_data->{size} = $member_data->{align} = 4;
 			}
-			elsif ( $member_data->{type} eq "short" )
+			elsif ($member_data->{type} eq "int16" || $member_data->{type} eq "uint16")
 			{
 				$member_data->{size} = $member_data->{align} = 2;
 			}
-			elsif ( $member_data->{type} =~ "/^u?char$/" || $member_data->{type} eq "bool1" )
+			elsif ( $member_data->{type} eq "int8" || $member_data->{type} eq "uint8" || $member_data->{type} eq "bool1" )
 			{
 				$member_data->{size} = $member_data->{align} = 1;
 			}
-			elsif ( $member_data->{type} =~ /^u?char\[(\d+)\]$/ )
+			elsif ( $member_data->{type} =~ /^u?int8\[(\d+)\]$/ )
 			{
 				$member_data->{size} = $1;
 				$member_data->{align} = 1;
@@ -304,31 +313,53 @@ sub zmMemRead( $$;$ )
             return( undef );
         }
 		my $value;
-		if ( $type eq "long" || $type eq "time_t" || $type eq "size_t" || $type eq "bool8" )
+		if ( $type eq "long" )
 		{
 			( $value ) = unpack( "l!", $data );
 		}
-		elsif ( $type eq "int" || $type eq "enum" || $type eq "bool4" )
+		elsif ( $type eq "ulong" || $type eq "size_t" )
+		{
+			( $value ) = unpack( "L!", $data );
+		}
+		elsif ( $type eq "int64" || $type eq "time_t64" )
+		{
+			# The "q" type is only available on 64bit platforms, so use native.
+			( $value ) = unpack( "l!", $data );
+		}
+		elsif ( $type eq "uint64" )
+		{
+			# The "q" type is only available on 64bit platforms, so use native.
+			( $value ) = unpack( "L!", $data );
+		}
+		elsif ( $type eq "int32" )
 		{
 			( $value ) = unpack( "l", $data );
 		}
-		elsif ( $type eq "short" )
+		elsif ( $type eq "uint32" || $type eq "bool4" )
+		{
+			( $value ) = unpack( "L", $data );
+		}
+		elsif ( $type eq "int16" )
 		{
 			( $value ) = unpack( "s", $data );
 		}
-		elsif ( $type eq "char" || $type eq "bool1" )
+		elsif ( $type eq "uint16" )
+		{
+			( $value ) = unpack( "S", $data );
+		}
+		elsif ( $type eq "int8" )
 		{
 			( $value ) = unpack( "c", $data );
 		}
-		elsif ( $type eq "uchar" )
+		elsif ( $type eq "uint8" || $type eq "bool1" )
 		{
 			( $value ) = unpack( "C", $data );
 		}
-		elsif ( $type =~ /^char\[\d+\]$/ )
+		elsif ( $type =~ /^int8\[\d+\]$/ )
 		{
 			( $value ) = unpack( "Z".$size, $data );
 		} 
-		elsif ( $type =~ /^uchar\[\d+\]$/ )
+		elsif ( $type =~ /^uint8\[\d+\]$/ )
 		{
 			( $value ) = unpack( "C".$size, $data );
 		} 
@@ -382,34 +413,56 @@ sub zmMemWrite( $$;$ )
 		my $size = $mem_data->{$section}->{contents}->{$element}->{size};
 
 		my $data;
-		if ( $type eq "long" || $type eq "time_t" || $type eq "size_t" || $type eq "bool8" )
+		if ( $type eq "long" )
 		{
 			$data = pack( "l!", $value );
 		}
-		elsif ( $type eq "int" || $type eq "enum" || $type eq "bool4" )
+		elsif ( $type eq "ulong" || $type eq "size_t" )
+		{
+			$data = pack( "L!", $value );
+		}
+		elsif ( $type eq "int64" || $type eq "time_t64" )
+		{
+			# The "q" type is only available on 64bit platforms, so use native.
+			$data = pack( "l!", $value );
+		}
+		elsif ( $type eq "uint64" )
+		{
+			# The "q" type is only available on 64bit platforms, so use native.
+			$data = pack( "L!", $value );
+		}
+		elsif ( $type eq "int32" )
 		{
 			$data = pack( "l", $value );
 		}
-		elsif ( $type eq "short" )
+		elsif ( $type eq "uint32" || $type eq "bool4" )
+		{
+			$data = pack( "L", $value );
+		}
+		elsif ( $type eq "int16" )
 		{
 			$data = pack( "s", $value );
 		}
-		elsif ( $type eq "char" || $type eq "bool1" )
+		elsif ( $type eq "uint16" )
+		{
+			$data = pack( "S", $value );
+		}
+		elsif ( $type eq "int8" )
 		{
 			$data = pack( "c", $value );
 		}
-		elsif ( $type eq "uchar" )
+		elsif ( $type eq "uint8" || $type eq "bool1" )
 		{
 			$data = pack( "C", $value );
 		}
-		elsif ( $type =~ /^char\[\d+\]$/ )
+		elsif ( $type =~ /^int8\[\d+\]$/ )
 		{
 			$data = pack( "Z".$size, $value );
-		}
-		elsif ( $type =~ /^uchar\[\d+\]$/ )
+		} 
+		elsif ( $type =~ /^uint8\[\d+\]$/ )
 		{
 			$data = pack( "C".$size, $value );
-		}
+		} 
 		else
 		{
 			Fatal( "Unexpected type '".$type."' found for '".$field."'" );

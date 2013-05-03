@@ -77,6 +77,7 @@
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => 'colori a 24 bit',
+    '32BitColour'          => 'colori a 32 bit',          // Added - 2011-06-15
     '8BitGrey'             => '8 bit scala di grigio',
     'Action'               => 'Azione',
     'Actual'               => 'Attuale',
@@ -131,6 +132,7 @@ $SLANG = array(
     'BadAlarmFrameCount'   => 'Il numero di frame di un allarme deve essere un numero intero superiore a uno',
     'BadAlarmMaxFPS'       => 'Il numero massimo di FPS dell\'allarme deve essere un numero intero positivo o un valore in virgola mobile',
     'BadChannel'           => 'Il canale deve essere settato con un numero intero uguale o maggiore di zero',
+    'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
     'BadDevice'            => 'Il dispositivo deve essere impostato con un valore valido',
     'BadFPSReportInterval' => 'L\'intervallo di FPS per i report deve essere un numero intero superiore a 0',
     'BadFormat'            => 'Il formato deve essere impostato con un numero intero come 0 o maggiore',

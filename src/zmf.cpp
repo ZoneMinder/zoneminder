@@ -161,6 +161,8 @@ int main( int argc, char *argv[] )
 	zmLoadConfig();
 
 	logInit( "zmf" );
+	
+	ssedetect();
 
 	Monitor *monitor = Monitor::Load( id, false, Monitor::QUERY );
 

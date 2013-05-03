@@ -233,7 +233,7 @@ bool StreamBase::sendTextFrame( const char *frame_text )
 {
     Debug( 2, "Sending text frame '%s'", frame_text );
 
-    Image image( monitor->Width(), monitor->Height(), monitor->Colours() );
+    Image image( monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder() );
     image.Annotate( frame_text, image.centreCoord( frame_text ) );
 
     if ( scale != 100 )
@@ -245,7 +245,7 @@ bool StreamBase::sendTextFrame( const char *frame_text )
     {
         if ( !vid_stream )
         {
-            vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, image.Colours(), image.Width(), image.Height() );
+            vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height() );
             fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType() );
             vid_stream->OpenStream();
         }

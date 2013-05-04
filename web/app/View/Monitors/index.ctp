@@ -12,7 +12,7 @@
 	<th>Archived</th>
 	<th>Zones</th>
     </tr>
-
+<?php $count = 0; ?>
     <?php foreach ($monitors as $monitor): ?>
     <tr>
         <td>
@@ -23,13 +23,14 @@
 	</td>
         <td><?php echo $monitor['Monitor']['Host']; ?></td>
 	<td><?php echo count($monitor['Event']); ?></td>
-	<td></th>
-	<td></th>
-	<td></th>
-	<td></th>
-	<td></th>
-	<td><?php echo count($monitor['Zone']); ?></th>
+	<td><?php echo $elh[$count][0]['count']; ?></td>
+	<td><?php echo $eld[$count][0]['count']; ?></td>
+	<td><?php echo $elw[$count][0]['count']; ?></td>
+	<td><?php echo $elm[$count][0]['count']; ?></td>
+	<td></td>
+	<td><?php echo count($monitor['Zone']); ?></td>
     </tr>
+    <?php $count++; ?>
     <?php endforeach; ?>
     <?php unset($monitor); ?>
 </table>

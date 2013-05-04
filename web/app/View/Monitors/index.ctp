@@ -23,10 +23,10 @@
 	</td>
         <td><?php echo $monitor['Monitor']['Host']; ?></td>
 	<td><?php echo count($monitor['Event']); ?></td>
-	<td><?php echo $elh[$count][0]['count']; ?></td>
-	<td><?php echo $eld[$count][0]['count']; ?></td>
-	<td><?php echo $elw[$count][0]['count']; ?></td>
-	<td><?php echo $elm[$count][0]['count']; ?></td>
+	<td><?php echo $eventsLastHour[$count][0]['count']; ?></td>
+	<td><?php echo $eventsLastDay[$count][0]['count']; ?></td>
+	<td><?php echo $eventsLastWeek[$count][0]['count']; ?></td>
+	<td><?php echo $eventsLastMonth[$count][0]['count']; ?></td>
 	<td></td>
 	<td><?php echo count($monitor['Zone']); ?></td>
     </tr>

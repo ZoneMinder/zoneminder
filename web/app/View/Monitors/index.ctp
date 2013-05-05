@@ -27,7 +27,7 @@
 	<td><?php echo $eventsLastDay[$count][0]['count']; ?></td>
 	<td><?php echo $eventsLastWeek[$count][0]['count']; ?></td>
 	<td><?php echo $eventsLastMonth[$count][0]['count']; ?></td>
-	<td></td>
+	<td><?php echo $eventsArchived[$count][0]['count']; ?></td>
 	<td><?php echo count($monitor['Zone']); ?></td>
     </tr>
     <?php $count++; ?>

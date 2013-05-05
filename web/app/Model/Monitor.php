@@ -41,5 +41,12 @@
 		$fields = array('count(Event.Id) AS count');
 		return $this->Event->find('all', compact('conditions', 'group', 'fields'));
 	}
+
+	public function getEventsArchived() {
+		$conditions = array('Event.Archived = 1');
+		$group = array('Event.MonitorId');
+		$fields = array('count(Event.Id) AS count');
+		return $this->Event->find('all', compact('conditions', 'group', 'fields'));
+	}
   }
 ?>

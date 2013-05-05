@@ -8,6 +8,7 @@
 			$this->set('eventsLastDay', $this->Monitor->getEventsLastDay());
 			$this->set('eventsLastWeek', $this->Monitor->getEventsLastWeek());
 			$this->set('eventsLastMonth', $this->Monitor->getEventsLastMonth());
+			$this->set('eventsArchived', $this->Monitor->getEventsArchived());
 		}
 
 		public function view($id = null) {

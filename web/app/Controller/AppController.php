@@ -42,5 +42,6 @@ class AppController extends Controller {
     if (!$this->Cookie->read('zmBandwidth')) {
       $this->Cookie->write('zmBandwidth', 'low', false);
     }
+  $this->set('zmBandwidth', $this->Cookie->read('zmBandwidth'));
   }
 }

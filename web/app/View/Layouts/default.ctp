@@ -40,7 +40,11 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 <body>
 	<div id="container">
 		<div id="header">
-			<h1><?php echo $this->Html->link($cakeDescription, 'http://cakephp.org'); ?></h1>
+			<div class="menu">
+				<?php echo $this->Html->link('Monitors', array('controller' => 'Monitors', 'action' => 'index')); ?>
+				<?php echo $this->Html->link('Events', array('controller' => 'Events', 'action' => 'index')); ?>
+				<?php echo $this->Html->link('Options', array('controller' => 'Config', 'action' => 'index')); ?>
+			</div>
 		</div>
 		<div id="content">
 

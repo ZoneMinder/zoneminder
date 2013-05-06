@@ -738,3 +738,9 @@ pre {
 #url-rewriting-warning {
 	display:none;
 }
+/** ZoneMinder **/
+div.menu a{
+  color: #ffffff;
+  font-size: 100%;
+  margin-right:10px;
+}

@@ -12,9 +12,10 @@ class EventsController extends AppController {
 
 
     public function index() {
-#        $this->set('events', $this->Event->find('all', array('limit' => 1000)));
 	$data = $this->paginate('Event');
 	$this->set('events', $data);
+	$options = array('fields' => array('DISTINCT Monitor.Id'));
+	$this->set('monitors', $this->Event->Monitor->Find('all', $options));
     }
 
   public function view($id = null) {

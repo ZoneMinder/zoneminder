@@ -33,4 +33,14 @@ App::uses('Controller', 'Controller');
  */
 class AppController extends Controller {
   public $helpers = array('Html', 'Form');
+
+  public $components = array('Cookie', 'Session');
+
+  public function beforeFilter() {
+    parent::beforeFilter();
+    $this->Cookie->name = 'ZoneMinder';
+    if (!$this->Cookie->read('zmBandwidth')) {
+      $this->Cookie->write('zmBandwidth', 'low', false);
+    }
+  }
 }

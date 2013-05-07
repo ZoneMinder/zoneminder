@@ -12,7 +12,7 @@
 		}
 
 		public function view($id = null) {
-			$this->loadMOdel('Config');
+			$this->loadModel('Config');
 			if (!$id) {
 				throw new NotFoundException(__('Invalid monitor'));
 			}
@@ -23,31 +23,20 @@
 			}
 			$this->set('monitor', $monitor);
 
-			  $zmBandwidth = $this->Cookie->read('zmBandwidth');
-			  $bandwidth_short = strtoupper($zmBandwidth[0]);
 
-			  $ZM_WEB_STREAM_METHOD = $this->Config->find('all', array(
-			    'fields' => array('Value'),
-			    'conditions' => array('Category' => $zmBandwidth.'band', 'Name' => 'ZM_WEB_'.$bandwidth_short.'_STREAM_METHOD')
+			  $zmBandwidth = $this->Cookie->read('zmBandwidth');
+
+			  $ZM_MPEG_LIVE_FORMAT = $this->Config->find('first', array(
+			    'fields' => array('Value'), 'conditions' => array('Name' => 'ZM_MPEG_LIVE_FORMAT')
 			  ));
-			  $ZM_MPEG_LIVE_FORMAT = $this->Config->find('all', array(
-			    'fields' => array('Value'),
-			    'conditions' => array('Name' => 'ZM_MPEG_LIVE_FORMAT')
-			  ));
-			  $ZM_WEB_VIDEO_BITRATE = $this->Config->find('all', array(
-			    'fields' => array('Value'),
-			    'conditions' => array('Category' => $zmBandwidth.'band', 'Name' => 'ZM_WEB_'.$bandwidth_short.'_VIDEO_BITRATE')
-			  ));
-			  $ZM_WEB_VIDEO_MAXFPS = $this->Config->find('all', array(
-			    'fields' => array('Value'),
-			    'conditions' => array('Category' => $zmBandwidth.'band', 'Name' => 'ZM_WEB_'.$bandwidth_short.'_VIDEO_MAXFPS')
-			  ));
-			  $ZM_WEB_VIDEO_MAXFPS = $ZM_WEB_VIDEO_MAXFPS[0]['Config']['Value'];
-			  $ZM_WEB_VIDEO_BITRATE = $ZM_WEB_VIDEO_BITRATE[0]['Config']['Value'];
-			  $ZM_MPEG_LIVE_FORMAT = $ZM_MPEG_LIVE_FORMAT[0]['Config']['Value'];
+
+			  $ZM_WEB_STREAM_METHOD = $this->Config->getWebOption('ZM_WEB_STREAM_METHOD', $zmBandwidth);
+			  $ZM_WEB_VIDEO_BITRATE = $this->Config->getWebOption('ZM_WEB_VIDEO_BITRATE', $zmBandwidth);
+			  $ZM_WEB_VIDEO_MAXFPS = $this->Config->getWebOption('ZM_WEB_VIDEO_MAXFPS', $zmBandwidth);
+			  $ZM_MPEG_LIVE_FORMAT = $ZM_MPEG_LIVE_FORMAT['Config']['Value'];
 			  $buffer = $monitor['Monitor']['StreamReplayBuffer'];
 
-			  if ($ZM_WEB_STREAM_METHOD[0]['Config']['Value'] == 'mpeg' && $ZM_MPEG_LIVE_FORMAT) {
+			  if ($ZM_WEB_STREAM_METHOD == 'mpeg' && $ZM_MPEG_LIVE_FORMAT) {
 			    $this->set('streamSrc', "/cgi-bin/nph-zms?mode=mpeg&scale=100&maxfps=$ZM_WEB_VIDEO_MAXFPS&bitrate=$ZM_WEB_VIDEO_BITRATE&format=$ZM_MPEG_LIVE_FORMAT");
 			  } else {
 			    $this->set('streamSrc', "/cgi-bin/nph-zms?mode=jpeg&scale=100&maxfps=$ZM_WEB_VIDEO_MAXFPS&buffer=$buffer");

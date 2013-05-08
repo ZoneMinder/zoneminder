@@ -2,13 +2,43 @@
 	class MonitorsController extends AppController {
   
 		public function index() {
+			$this->loadModel('Event');
 			$monitoroptions['fields'] = array('Name', 'Id', 'Function', 'Host');
 			$this->set('monitors', $this->Monitor->find('all', $monitoroptions));
-			$this->set('eventsLastHour', $this->Monitor->getEventsLastHour());
-			$this->set('eventsLastDay', $this->Monitor->getEventsLastDay());
-			$this->set('eventsLastWeek', $this->Monitor->getEventsLastWeek());
-			$this->set('eventsLastMonth', $this->Monitor->getEventsLastMonth());
-			$this->set('eventsArchived', $this->Monitor->getEventsArchived());
+			$monitors = $this->Monitor->find('list', array('fields' => array('Id')));
+			$intervals = array('HOUR', 'DAY', 'WEEK', 'MONTH');
+			foreach ($monitors as $monitor) {
+				foreach ($intervals as $interval) {
+					
+				}
+			}
+
+			$this->set('eventsLastHour', $this->Event->find('all', array(
+				'fields' => 'COUNT(Event.Id) AS count',
+				'group' => 'Event.MonitorId',
+				'conditions' => 'Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 HOUR)'
+			)));
+			$this->set('eventsLastDay', $this->Event->find('all', array(
+				'fields' => 'COUNT(Event.Id) AS count',
+				'group' => 'Event.MonitorId',
+				'conditions' => 'Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 DAY)'
+			)));
+			$this->set('eventsLastWeek', $this->Event->find('all', array(
+				'fields' => 'COUNT(Event.Id) AS count',
+				'group' => 'Event.MonitorId',
+				'conditions' => 'Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 WEEK)'
+			)));
+			$this->set('eventsLastMonth', $this->Event->find('all', array(
+				'fields' => 'COUNT(Event.Id) AS count',
+				'group' => 'Event.MonitorId',
+				'conditions' => 'Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 MONTH)'
+			)));
+			$this->set('eventsArchived', $this->Event->find('all', array(
+				'fields' => 'COUNT(Event.Id) AS count',
+				'group' => 'Event.MonitorId',
+				'conditions' => array('Event.Archived' => 1)
+			)));
+
 		}
 
 		public function view($id = null) {

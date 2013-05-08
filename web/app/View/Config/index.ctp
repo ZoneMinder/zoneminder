@@ -12,6 +12,7 @@
 		'label' => $config['Config']['Name'],
          	'after' => $config['Config']['Prompt'],
 	));
+	echo "\n";
     endforeach;
     unset($config);
   echo $this->Form->end('Save Config'); 

@@ -744,3 +744,7 @@ div.menu a{
   font-size: 100%;
   margin-right:10px;
 }
+
+div#footer a{
+  color: #fff;
+}

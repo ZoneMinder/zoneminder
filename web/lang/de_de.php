@@ -72,6 +72,7 @@
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => '24-Bit-Farbe',
+    '32BitColour'          => '32-Bit-Farbe',          // Added - 2011-06-15
     '8BitGrey'             => '8-Bit-Grau',
     'Action'               => 'Aktion',
     'Actual'               => 'Original',
@@ -126,6 +127,7 @@ $SLANG = array(
     'BadAlarmFrameCount'   => 'Die Bildanzahl muss ganzzahlig 1 oder gr&ouml;&szlig;er sein',
     'BadAlarmMaxFPS'       => 'Alarm-Maximum-FPS muss eine positive Ganzzahl oder eine Gleitkommazahl sein',
     'BadChannel'           => 'Der Kanal muss ganzzahlig 0 oder gr&ouml;&szlig;er sein',
+    'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
     'BadDevice'            => 'Das Ger&auml;t muss eine g&uuml;ltige Systemresource sein',
     'BadFPSReportInterval' => 'Der FPS-Intervall-Puffer-Z&auml;hler muss ganzzahlig 0 oder gr&ouml;&szlig;er sein',
     'BadFormat'            => 'Das Format muss ganzzahlig 0 oder gr&ouml;&szlig;er sein',

@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "zm.h"
+#include "zm_rgb.h"
 #include "zm_mpeg.h"
 
 #if HAVE_LIBAVCODEC
@@ -71,9 +72,45 @@ void VideoStream::SetupFormat( const char *p_filename, const char *p_format )
 	snprintf( ofc->filename, sizeof(ofc->filename), "%s", filename );
 }
 
-void VideoStream::SetupCodec( int colours, int width, int height, int bitrate, double frame_rate )
+void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate )
 {
-	pf = (colours==1?PIX_FMT_GRAY8:PIX_FMT_RGB24);
+	/* ffmpeg format matching */
+	switch(colours) {
+	  case ZM_COLOUR_RGB24:
+	  {
+	    if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+	      /* BGR subpixel order */
+	      pf = PIX_FMT_BGR24;
+	    } else {
+	      /* Assume RGB subpixel order */
+	      pf = PIX_FMT_RGB24;
+	    }
+	    break;
+	  }
+	  case ZM_COLOUR_RGB32:
+	  {
+	    if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+	      /* ARGB subpixel order */
+	      pf = PIX_FMT_ARGB;
+	    } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+	      /* ABGR subpixel order */
+	      pf = PIX_FMT_ABGR;
+	    } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+	      /* BGRA subpixel order */
+	      pf = PIX_FMT_BGRA;
+	    } else {
+	      /* Assume RGBA subpixel order */
+	      pf = PIX_FMT_RGBA;
+	    }
+	    break;
+	  }
+	  case ZM_COLOUR_GRAY8:
+	    pf = PIX_FMT_GRAY8;
+	    break;
+	  default:
+	    Panic("Unexpected colours: %d",colours);
+	    break;
+	}
 
 	/* add the video streams using the default format codecs
 	   and initialize the codecs */
@@ -191,7 +228,7 @@ void VideoStream::OpenStream()
 			Panic( "Could not allocate opicture" );
 		}
 		int size = avpicture_get_size( c->pix_fmt, c->width, c->height);
-		uint8_t *opicture_buf = (uint8_t *)malloc(size);
+		uint8_t *opicture_buf = (uint8_t *)av_malloc(size);
 		if ( !opicture_buf )
 		{
 			av_free(opicture);
@@ -199,7 +236,7 @@ void VideoStream::OpenStream()
 		}
 		avpicture_fill( (AVPicture *)opicture, opicture_buf, c->pix_fmt, c->width, c->height );
 
-		/* if the output format is not RGB24, then a temporary RGB24
+		/* if the output format is not identical to the input format, then a temporary
 		   picture is needed too. It is then converted to the required
 		   output format */
 		tmp_opicture = NULL;
@@ -211,7 +248,7 @@ void VideoStream::OpenStream()
 				Panic( "Could not allocate temporary opicture" );
 			}
 			int size = avpicture_get_size( pf, c->width, c->height);
-			uint8_t *tmp_opicture_buf = (uint8_t *)malloc(size);
+			uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc(size);
 			if (!tmp_opicture_buf)
 			{
 				av_free( tmp_opicture );
@@ -247,7 +284,7 @@ void VideoStream::OpenStream()
 	av_write_header(ofc);
 }
 
-VideoStream::VideoStream( const char *filename, const char *format, int bitrate, double frame_rate, int colours, int width, int height )
+VideoStream::VideoStream( const char *filename, const char *format, int bitrate, double frame_rate, int colours, int subpixelorder, int width, int height )
 {
 	if ( !initialised )
 	{
@@ -255,7 +292,7 @@ VideoStream::VideoStream( const char *filename, const char *format, int bitrate,
 	}
 
 	SetupFormat( filename, format );
-	SetupCodec( colours, width, height, bitrate, frame_rate );
+	SetupCodec( colours, subpixelorder, width, height, bitrate, frame_rate );
 	SetParameters();
 }
 
@@ -306,7 +343,7 @@ VideoStream::~VideoStream()
 	av_free(ofc);
 }
 
-double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp )
+double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp )
 {
 #ifdef HAVE_LIBSWSCALE
     static struct SwsContext *img_convert_ctx = 0;
@@ -340,7 +377,7 @@ double VideoStream::EncodeFrame( uint8_t *buffer, int buffer_size, bool add_time
         }
         sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, c->height, opicture->data, opicture->linesize );
 #else // HAVE_LIBSWSCALE
-		img_convert( (AVPicture *)opicture, c->pix_fmt, (AVPicture *)tmp_opicture, pf, c->width, c->height );
+		Fatal("swscale is required for MPEG mode");
 #endif // HAVE_LIBSWSCALE
 	}
 	else

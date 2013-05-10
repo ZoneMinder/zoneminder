@@ -72,6 +72,7 @@
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'           => '24 位彩色',
+    '32BitColour'           => '32 位彩色',          // Added - 2011-06-15
     '8BitGrey'              => '8 位灰度',
     'Action'                => '活动动作',
     'Actual'                => '实际',
@@ -126,6 +127,7 @@ $SLANG = array(
     'BadAlarmFrameCount'    => '报警帧数必须设为大于1的整数',
     'BadAlarmMaxFPS'        => '报警最大帧率必须是正整数或正浮点数',
     'BadChannel'            => '通道必须设为大于零的整数',
+    'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
     'BadDevice'             => '必须为器件设置有效值',
     'BadFPSReportInterval'  => 'FPS帧数报告间隔缓冲数必须是0以上整数',
     'BadFormat'             => '格式必须设为大于零的整数',

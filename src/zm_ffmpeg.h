@@ -54,6 +54,11 @@ extern "C" {
 #else // FFMPEG_VERSION_INT
 #define ZM_FFMPEG_SVN	1
 #endif // FFMPEG_VERSION_INT
+
+/* Fix for not having SWS_CPU_CAPS_SSE2 defined */
+#ifndef SWS_CPU_CAPS_SSE2
+#define SWS_CPU_CAPS_SSE2     0x02000000
+#endif
                                
 #endif // HAVE_LIBAVCODEC
 

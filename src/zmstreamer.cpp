@@ -145,7 +145,10 @@ int main(int argc, char** argv) {
     printf("Loading ZoneMinder configurations...");
     zmLoadConfig();
     printf("Done.\n");
+
     logInit("zmstreamer");
+    
+    ssedetect();
 
     // Setting stream parameters
     MonitorStream stream;

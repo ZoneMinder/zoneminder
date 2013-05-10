@@ -72,6 +72,7 @@ setlocale( LC_ALL, 'he_IL' ); //All locale settings 4.3.0 and after
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => 'צבע 24 ביט',
+    '32BitColour'          => 'צבע 32 ביט',          // Added - 2011-06-15
     '8BitGrey'             => 'גווני אפור 8 ביט',
     'Action'               => 'פעולה',
     'Actual'               => 'מקורי',
@@ -126,6 +127,7 @@ $SLANG = array(
     'BadAlarmFrameCount'   => 'Alarm frame count must be an integer of one or more',
     'BadAlarmMaxFPS'       => 'Alarm Maximum FPS must be a positive integer or floating point value',
     'BadChannel'           => 'Channel must be set to an integer of zero or more',
+    'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
     'BadDevice'            => 'Device must be set to a valid value',
     'BadFPSReportInterval' => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadFormat'            => 'Format must be set to an integer of zero or more',

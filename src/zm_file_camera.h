@@ -36,7 +36,7 @@ protected:
 	char path[PATH_MAX];
 
 public:
-	FileCamera( int p_id, const char *p_path, int p_width, int p_height, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	FileCamera( int p_id, const char *p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	~FileCamera();
 
 	const char *Path() const { return( path ); }

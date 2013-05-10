@@ -17,10 +17,12 @@
 
 prog=ZoneMinder
 ZM_PATH_BIN="/usr/bin"
+RUNDIR=/var/run/zm
 command="$ZM_PATH_BIN/zmpkg.pl"
 
 start() {
 	echo -n "Starting $prog: "
+	mkdir -p $RUNDIR
     zmfix -a
 	$command start
 	RETVAL=$?

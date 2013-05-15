@@ -33,4 +33,10 @@
     <?php $count++; ?>
     <?php endforeach; ?>
     <?php unset($monitor); ?>
+	</table>
+	<?php echo $this->Html->link(
+		'Add Monitor',
+		array('controller' => 'monitors', 'action' => 'add')
+	); ?>
+
 </table>

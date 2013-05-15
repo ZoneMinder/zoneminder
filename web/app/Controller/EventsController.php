@@ -17,8 +17,6 @@ public function index() {
 	);
 	$data = $this->paginate('Event');
 	$this->set('events', $data);
-	$options = array('fields' => array('DISTINCT Monitor.Id'));
-	$this->set('monitors', $this->Event->Monitor->Find('all', $options));
 
 	$this->set('monitors', $this->Monitor->find('all', array('fields' => array('Monitor.Name') )));
 

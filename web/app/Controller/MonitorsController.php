@@ -81,6 +81,18 @@
 	    }
 		}
 
+	public function add() {
+		if ($this->request->is('post')) {
+			$this->Monitor->create();
+			if ($this->Monitor->save($this->request->data)) {
+				$this->Session->setFlash('Your monitor has been created.');
+				$this->redirect(array('action' => 'index'));
+			} else {
+				$this->Session->setFlash('Unable to create your monitor.');
+			}
+		}
+	}
+
 	}
 
 ?>

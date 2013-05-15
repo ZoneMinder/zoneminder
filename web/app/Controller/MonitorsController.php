@@ -2,7 +2,6 @@
 	class MonitorsController extends AppController {
   
 		public function index() {
-			$this->loadModel('Event');
 			$monitoroptions['fields'] = array('Name', 'Id', 'Function', 'Host');
 			$this->set('monitors', $this->Monitor->find('all', $monitoroptions));
 			$monitors = $this->Monitor->find('list', array('fields' => array('Id')));
@@ -13,11 +12,6 @@
 				}
 			}
 
-			$this->set('eventsLastHour', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 HOUR) GROUP BY Monitor.Id'));
-			$this->set('eventsLastDay', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 DAY) GROUP BY Monitor.Id'));
-			$this->set('eventsLastWeek', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 WEEK) GROUP BY Monitor.Id'));
-			$this->set('eventsLastMonth', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 MONTH) GROUP BY Monitor.Id'));
-			$this->set('eventsArchived', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.Archived = 1 GROUP BY Monitor.Id'));
 
 		}
 

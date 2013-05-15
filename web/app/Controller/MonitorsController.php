@@ -2,7 +2,7 @@
 	class MonitorsController extends AppController {
   
 		public function index() {
-			$monitoroptions['fields'] = array('Name', 'Id', 'Function', 'Host');
+			$monitoroptions['fields'] = array('Name', 'Id', 'Function');
 			$this->set('monitors', $this->Monitor->find('all', $monitoroptions));
 			$monitors = $this->Monitor->find('list', array('fields' => array('Id')));
 			$intervals = array('HOUR', 'DAY', 'WEEK', 'MONTH');

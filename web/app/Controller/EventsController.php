@@ -9,6 +9,8 @@ class EventsController extends AppController {
 		'order' => array( 'Event.Id' => 'asc'
 		)
 	);
+	$this->loadModel('Monitor');
+	$this->loadModel('Config');
 
 
     public function index() {

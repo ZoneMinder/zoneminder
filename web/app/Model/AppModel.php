@@ -32,4 +32,12 @@ App::uses('Model', 'Model');
  * @package       app.Model
  */
 class AppModel extends Model {
+
+	public function daemonStatus() {
+		$zm_path_bin = Configure::read('ZM_PATH_BIN');
+		$string = $zm_path_bin."/zmdc.pl status";
+		$daemon_status = shell_exec ( $string );
+		return $daemon_status;
+	}
+
 }

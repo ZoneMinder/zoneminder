@@ -58,5 +58,10 @@ class AppController extends Controller {
 	foreach ($options as $key => $value) {
 		Configure::write($key, $value);
 	}
+	if ($this->AppModel->daemonStatus()) {
+		$this->set('daemonStatus', ('Running'));
+	} else {
+		$this->set('daemonStatus', ('Stopped'));
+	}
   }
 }

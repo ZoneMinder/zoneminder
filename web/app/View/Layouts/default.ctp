@@ -54,6 +54,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 		</div>
 		<div id="footer">
 				<p>Configured for <?php echo $this->Html->link($zmBandwidth, array('controller' => 'Bandwidth', 'action' => 'index')); ?> bandwidth</p>
+				<p><?php echo $daemonStatus; ?></p>
 		</div>
 	</div>
 	<?php echo $this->element('sql_dump'); ?>

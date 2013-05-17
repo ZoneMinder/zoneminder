@@ -47,7 +47,13 @@ class AppController extends Controller {
 
 
 	$configFile =  "/usr/local/etc/zm.conf";
-	$localConfigFile = basename($configFile);
+	$lines = file($configFile);
+	foreach ($lines as $linenum => $line) {
+		if ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.+?)\s*$/', $line, $matches )) {
+			Configure::write($matches[1], $matches[2]);
+		}
+	}
+
 	$options = $this->Config->find('list', array('fields' => array('Name', 'Value')));
 	foreach ($options as $key => $value) {
 		Configure::write($key, $value);

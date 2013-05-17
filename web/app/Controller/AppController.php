@@ -33,15 +33,23 @@ App::uses('Controller', 'Controller');
  */
 class AppController extends Controller {
   public $helpers = array('Html', 'Form');
-
   public $components = array('Cookie', 'Session');
 
   public function beforeFilter() {
     parent::beforeFilter();
+	$this->loadModel('Config');
     $this->Cookie->name = 'ZoneMinder';
     if (!$this->Cookie->read('zmBandwidth')) {
       $this->Cookie->write('zmBandwidth', 'low', false);
     }
   $this->set('zmBandwidth', $this->Cookie->read('zmBandwidth'));
+
+
+	$configFile =  "/usr/local/etc/zm.conf";
+	$localConfigFile = basename($configFile);
+	$options = $this->Config->find('list', array('fields' => array('Name', 'Value')));
+	foreach ($options as $key => $value) {
+		Configure::write($key, $value);
+	}
   }
 }

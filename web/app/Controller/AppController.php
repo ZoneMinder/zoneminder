@@ -38,6 +38,7 @@ class AppController extends Controller {
   public function beforeFilter() {
     parent::beforeFilter();
 	$this->loadModel('Config');
+	$this->loadModel('AppModel');
     $this->Cookie->name = 'ZoneMinder';
     if (!$this->Cookie->read('zmBandwidth')) {
       $this->Cookie->write('zmBandwidth', 'low', false);

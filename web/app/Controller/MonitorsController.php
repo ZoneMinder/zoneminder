@@ -1,5 +1,6 @@
 <?php
 	class MonitorsController extends AppController {
+	public $helpers = array('LiveStream');
   
 		public function index() {
 			$monitoroptions['fields'] = array('Name', 'Id', 'Function');

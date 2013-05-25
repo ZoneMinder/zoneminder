@@ -8,11 +8,11 @@ public function index() {
 	$this->loadModel('Monitor');
 	$this->loadModel('Config');
 
-	$events_per_page = $this->Config->find('first', array('conditions' => array('Name' => 'ZM_WEB_EVENTS_PER_PAGE'), 'fields' => 'Value'));
+  $events_per_page = Configure::read('ZM_WEB_EVENTS_PER_PAGE');
 
 	$this->paginate = array(
 		'fields' => array('Event.Name', 'Event.Length', 'Event.MonitorId', 'Event.Id', 'Monitor.Name'),
-		'limit' => $events_per_page['Config']['Value'],
+		'limit' => $events_per_page,
 		'order' => array( 'Event.Id' => 'asc')
 	);
 	$data = $this->paginate('Event');

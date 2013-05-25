@@ -1,5 +1,5 @@
 <h2>Events</h2>
-<table>
+<table id="Events_Monitors">
     <tr>
         <th>Name</th>
 	<th>Total Events</th>
@@ -12,7 +12,7 @@
 <?php $count = 0; ?>
 <?php foreach ($monitors as $monitor): ?>
 	<tr>
-	<td><?php echo $monitor['Monitor']['Name']; ?></td>
+  <td id="Monitor_<?php echo $monitor['Monitor']['Id']; ?>"><?php echo $monitor['Monitor']['Name']; ?></td>
 	<td><?php echo count($monitor['Event']); ?></td>
 	<td><?php echo $eventsLastHour[$count][0]['count']; ?></td>
 	<td><?php echo $eventsLastDay[$count][0]['count']; ?></td>
@@ -25,7 +25,7 @@
     <?php unset($monitor); ?>
 </table>
 <?php echo $this->Paginator->numbers(); ?>
-<table>
+<table id="Events">
     <tr>
         <th>Event Name</th>
         <th>Monitor Name</th>

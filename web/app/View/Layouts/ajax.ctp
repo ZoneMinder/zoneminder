@@ -17,4 +17,5 @@
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 ?>
+<?php echo $this->Html->script('jquery-2.0.1.min.js'); ?>
 <?php echo $this->fetch('content'); ?>

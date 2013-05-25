@@ -13,6 +13,22 @@
 		'foreignKey' => 'MonitorId',
 		'fields' => 'Zone.Id'
 	)
-    );
+);
+
+    public function getStreamSrc($id = null, $zmBandwidth, $buffer) {
+      
+        $ZM_MPEG_LIVE_FORMAT = Configure::read('ZM_MPEG_LIVE_FORMAT');
+			  $ZM_WEB_STREAM_METHOD = ClassRegistry::init('Config')->getWebOption('ZM_WEB_STREAM_METHOD', $zmBandwidth);
+			  $ZM_WEB_VIDEO_BITRATE = ClassRegistry::init('Config')->getWebOption('ZM_WEB_VIDEO_BITRATE', $zmBandwidth);
+			  $ZM_WEB_VIDEO_MAXFPS = ClassRegistry::init('Config')->getWebOption('ZM_WEB_VIDEO_MAXFPS', $zmBandwidth);
+			  $ZM_MPEG_LIVE_FORMAT = $ZM_MPEG_LIVE_FORMAT;
+
+			  if ($ZM_WEB_STREAM_METHOD == 'mpeg' && $ZM_MPEG_LIVE_FORMAT) {
+			    return "/cgi-bin/nph-zms?mode=mpeg&scale=100&maxfps=$ZM_WEB_VIDEO_MAXFPS&bitrate=$ZM_WEB_VIDEO_BITRATE&format=$ZM_MPEG_LIVE_FORMAT";
+			  } else {
+			    return "/cgi-bin/nph-zms?mode=jpeg&scale=100&maxfps=$ZM_WEB_VIDEO_MAXFPS&buffer=$buffer";
+			  }
+
+    }
   }
 ?>

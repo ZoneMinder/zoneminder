@@ -7,13 +7,15 @@ class EventsController extends AppController {
 public function index() {
 	$this->loadModel('Monitor');
 	$this->loadModel('Config');
+  $conditions = array();
 
   $events_per_page = Configure::read('ZM_WEB_EVENTS_PER_PAGE');
 
 	$this->paginate = array(
-		'fields' => array('Event.Name', 'Event.Length', 'Event.MonitorId', 'Event.Id', 'Monitor.Name'),
-		'limit' => $events_per_page,
-		'order' => array( 'Event.Id' => 'asc')
+    'fields' => array('Event.Name', 'Event.Length', 'Event.MonitorId', 'Event.Id', 'Monitor.Name'),
+    'limit' => $events_per_page,
+    'order' => array( 'Event.Id' => 'asc'),
+    'conditions' => $conditions
 	);
 	$data = $this->paginate('Event');
 	$this->set('events', $data);

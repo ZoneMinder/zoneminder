@@ -24,8 +24,9 @@
     <?php endforeach; ?>
     <?php unset($monitor); ?>
 </table>
+<div id="Events">
 <?php echo $this->Paginator->numbers(); ?>
-<table id="Events">
+<table>
     <tr>
         <th>Event Name</th>
         <th>Monitor Name</th>
@@ -44,3 +45,4 @@ array('controller' => 'events', 'action' => 'view', $event['Event']['Id'])); ?>
     <?php unset($event); ?>
 </table>
 <?php echo $this->Paginator->numbers(); ?>
+</div>

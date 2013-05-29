@@ -36,6 +36,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 		echo $this->fetch('css');
     echo $this->fetch('script');
     echo $this->Html->script('jquery-2.0.1.min');
+    echo $this->Html->script('events.js');
     echo $this->Js->writeBuffer();
 	?>
 </head>

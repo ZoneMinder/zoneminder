@@ -8,6 +8,17 @@ public function index() {
 	$this->loadModel('Monitor');
   $conditions = array();
 
+  $named = $this->extractNamedParams(
+    array('MonitorId')
+  );
+
+  if ($named) {
+    foreach ($named as $key => $value) {
+      $$key = array($key => $value);
+      array_push($conditions, $$key);
+    }
+  };
+
   $events_per_page = Configure::read('ZM_WEB_EVENTS_PER_PAGE');
 
 	$this->paginate = array(

@@ -6,7 +6,6 @@ class EventsController extends AppController {
 
 public function index() {
 	$this->loadModel('Monitor');
-	$this->loadModel('Config');
   $conditions = array();
 
   $events_per_page = Configure::read('ZM_WEB_EVENTS_PER_PAGE');

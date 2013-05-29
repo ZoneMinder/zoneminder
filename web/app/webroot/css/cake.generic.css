@@ -748,3 +748,8 @@ div.menu a{
 div#footer a{
   color: #fff;
 }
+
+td.selected {
+  background-color:green;
+  font-weight:bold;
+}

@@ -32,7 +32,7 @@ App::uses('Controller', 'Controller');
  * @link		http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  */
 class AppController extends Controller {
-  public $helpers = array('Html', 'Form', 'Js' => array('Jquery'));
+  public $helpers = array('Html', 'Form');
   public $components = array('Cookie', 'Session');
 
   public function beforeFilter() {
@@ -63,5 +63,26 @@ class AppController extends Controller {
 	} else {
 		$this->set('daemonStatus', ('Stopped'));
 	}
+  }
+
+  function extractNamedParams($mandatory, $optional = array()) {
+    $params = $this->params['named'];
+
+    if(empty($params)) {
+      return false;
+    }
+
+    $mandatory = array_flip($mandatory);
+    $all_named_keys = array_merge($mandatory, $optional);
+    $valid = array_intersect_key($params, $all_named_keys);
+    $output = array_merge($optional, $valid);
+    $diff = array_diff_key($all_named_keys, $output);
+
+    if (empty($diff)) {
+      return $output;
+    } else {
+      return false;
+    }
+
   }
 }

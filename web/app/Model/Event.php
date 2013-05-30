@@ -8,5 +8,12 @@ class Event extends AppModel {
 		'foreignKey' => 'MonitorId'
 	)
   );
+  public $hasMany = array(
+    'Frame' => array(
+      'className' => 'Frame',
+      'foreignKey' => 'FrameId',
+      'dependent' => true
+    )
+  );
 }
 ?>

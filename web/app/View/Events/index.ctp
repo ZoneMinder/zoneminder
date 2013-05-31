@@ -27,8 +27,6 @@
     <?php foreach ($events as $key => $value): ?>
     <tr>
         <td>
-        <td><?php echo $event['Monitor']['Name']; ?></td>
-        <td><?php echo $event['Event']['Length']; ?></td>
 <?php 
 echo $this->Html->link($this->Html->image('/events/'.$thumbData[$key]['Path'], array(
     'alt' => $thumbData[$key]['Frame']['FrameId'].'/'.$thumbData[$key]['Event']['MaxScore'],
@@ -37,8 +35,9 @@ echo $this->Html->link($this->Html->image('/events/'.$thumbData[$key]['Path'], a
 )), array('controller' => 'events', 'action' => 'view', $value['Event']['Id']),
 array('escape' => false));
 ?>
-
-</td>
+		</td>
+        <td><?php echo $value['Monitor']['Name']; ?></td>
+        <td><?php echo $value['Event']['Length']; ?></td>
     </tr>
     <?php endforeach; ?>
     <?php unset($key); ?>

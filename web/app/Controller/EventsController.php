@@ -6,6 +6,7 @@ class EventsController extends AppController {
 
 public function index() {
 	$this->loadModel('Monitor');
+	$this->loadModel('Frame');
   $conditions = array();
 
   $named = $this->extractNamedParams(
@@ -22,7 +23,7 @@ public function index() {
   $events_per_page = Configure::read('ZM_WEB_EVENTS_PER_PAGE');
 
 	$this->paginate = array(
-    'fields' => array('Event.Name', 'Event.Length', 'Event.MonitorId', 'Event.Id', 'Monitor.Name'),
+    'fields' => array('Event.Name', 'Event.Length', 'Event.MonitorId', 'Event.Id', 'Monitor.Name', 'Event.MaxScore', 'Event.Width', 'Event.Height', 'Event.StartTime'),
     'limit' => $events_per_page,
     'order' => array( 'Event.Id' => 'asc'),
     'conditions' => $conditions
@@ -37,6 +38,11 @@ public function index() {
 	$this->set('eventsLastWeek', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 WEEK) GROUP BY Monitor.Id'));
 	$this->set('eventsLastMonth', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 MONTH) GROUP BY Monitor.Id'));
 	$this->set('eventsArchived', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.Archived = 1 GROUP BY Monitor.Id'));
+
+    foreach ($data as $key => $value) {
+        $thumbData[$key] = $this->Frame->createListThumbnail($value['Event']);
+        $this->set('thumbData', $thumbData);
+  }
 }
 
   public function view($id = null) {

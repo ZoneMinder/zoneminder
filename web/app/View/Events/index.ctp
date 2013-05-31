@@ -24,16 +24,24 @@
         <th>Length</th>
     </tr>
 
-    <?php foreach ($events as $event): ?>
+    <?php foreach ($events as $key => $value): ?>
     <tr>
         <td>
-            <?php echo $this->Html->link($event['Event']['Name'],
-array('controller' => 'events', 'action' => 'view', $event['Event']['Id'])); ?>
         <td><?php echo $event['Monitor']['Name']; ?></td>
         <td><?php echo $event['Event']['Length']; ?></td>
+<?php 
+echo $this->Html->link($this->Html->image('/events/'.$thumbData[$key]['Path'], array(
+    'alt' => $thumbData[$key]['Frame']['FrameId'].'/'.$thumbData[$key]['Event']['MaxScore'],
+    'width' => $thumbData[$key]['Width'],
+    'height' => $thumbData[$key]['Height']
+)), array('controller' => 'events', 'action' => 'view', $value['Event']['Id']),
+array('escape' => false));
+?>
+
+</td>
     </tr>
     <?php endforeach; ?>
-    <?php unset($event); ?>
+    <?php unset($key); ?>
 </table>
 <div><?php echo $this->Paginator->numbers(); ?></div>
 </div>

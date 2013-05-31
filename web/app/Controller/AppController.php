@@ -57,7 +57,8 @@ class AppController extends Controller {
 	$options = $this->Config->find('list', array('fields' => array('Name', 'Value')));
 	foreach ($options as $key => $value) {
 		Configure::write($key, $value);
-	}
+    }
+    Configure::write('SCALE_BASE', 100);
 	if ($this->AppModel->daemonStatus()) {
 		$this->set('daemonStatus', ('Running'));
 	} else {

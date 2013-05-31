@@ -51,4 +51,13 @@ class AppModel extends Model {
     return( $dimension );
   }
 
+  public function getEventPath( $event ){
+    if (Configure::read('ZM_USE_DEEP_STORAGE')) {
+      $eventPath = $event['MonitorId'].'/'.strftime("%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']));
+    } else {
+      $eventPath = $event['MonitorId'].'/'.$event['Id'];
+    }
+    return($eventPath);
+  }
+
 }

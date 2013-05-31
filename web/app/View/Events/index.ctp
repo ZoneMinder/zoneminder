@@ -1,31 +1,22 @@
 <h2>Events</h2>
-<table id="Events_Monitors">
-    <tr>
-        <th>Name</th>
-	<th>Total Events</th>
-	<th>Hour</th>
-	<th>Day</th>
-	<th>Week</th>
-	<th>Month</th>
-	<th>Archived</th>
-    </tr>
 <?php $count = 0; ?>
+<ol id="selectable">
 <?php foreach ($monitors as $monitor): ?>
-	<tr>
-  <td id="Monitor_<?php echo $monitor['Monitor']['Id']; ?>"><?php echo $monitor['Monitor']['Name']; ?></td>
-	<td><?php echo count($monitor['Event']); ?></td>
-	<td><?php echo $eventsLastHour[$count][0]['count']; ?></td>
-	<td><?php echo $eventsLastDay[$count][0]['count']; ?></td>
-	<td><?php echo $eventsLastWeek[$count][0]['count']; ?></td>
-	<td><?php echo $eventsLastMonth[$count][0]['count']; ?></td>
-	<td><?php echo $eventsArchived[$count][0]['count']; ?></td>
-	</tr>
+  <li id="Monitor_<?php echo $monitor['Monitor']['Id']; ?>">
+<?php echo $monitor['Monitor']['Name']; ?>
+	<?php echo count($monitor['Event']); ?>
+	<?php echo $eventsLastHour[$count][0]['count']; ?>
+	<?php echo $eventsLastDay[$count][0]['count']; ?>
+	<?php echo $eventsLastWeek[$count][0]['count']; ?>
+	<?php echo $eventsLastMonth[$count][0]['count']; ?>
+  <?php echo $eventsArchived[$count][0]['count']; ?>
+</li>
     <?php $count++; ?>
     <?php endforeach; ?>
     <?php unset($monitor); ?>
-</table>
+</ol>
 <div id="Events">
-<?php echo $this->Paginator->numbers(); ?>
+<div style="clear:both;"><?php echo $this->Paginator->numbers(); ?></div>
 <table>
     <tr>
         <th>Event Name</th>
@@ -44,5 +35,5 @@ array('controller' => 'events', 'action' => 'view', $event['Event']['Id'])); ?>
     <?php endforeach; ?>
     <?php unset($event); ?>
 </table>
-<?php echo $this->Paginator->numbers(); ?>
+<div><?php echo $this->Paginator->numbers(); ?></div>
 </div>

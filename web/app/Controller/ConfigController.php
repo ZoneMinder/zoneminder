@@ -2,9 +2,21 @@
 	class ConfigController extends AppController {
   
 		public function index() {
-			$configs['fields'] = array('Name', 'Id',  'Value', 'Prompt', 'Type');
-			$configs['order'] = array('Config.Category ASC');
-			$this->set('configs', $this->Config->find('all', $configs));
+			// Get a list of categories
+			$categories = $this->Config->find('all', array('fields' => array('Category'), 'group' => array('Category')));
+			$this->set('categories', $categories);
+
+			// Build an array of categories with each child option under that category
+			$options = array();
+			foreach ($categories as $category) {
+				$name = $category['Config']['Category'];
+				$configs = $this->Config->findAllByCategory($name,
+				   	array('Name', 'Id',  'Value', 'Prompt', 'Type', 'Category'));
+				$options[$name] = $configs;
+			}
+
+			// Pass the completed array to the view
+			$this->set('options', $options);
 
 			if (!empty($this->request->data)) {
 				$data = array();

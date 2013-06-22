@@ -3,7 +3,7 @@
   
 		public function index() {
 			// Get a list of categories
-			$categories = $this->Config->find('all', array('fields' => array('Category'), 'group' => array('Category')));
+			$categories = $this->Config->find('all', array('fields' => array('Category'), 'group' => array('Category'), 'conditions' => array('Category !=' => 'hidden')));
 			$this->set('categories', $categories);
 
 			// Build an array of categories with each child option under that category

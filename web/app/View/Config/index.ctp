@@ -8,7 +8,7 @@
 <?php
 foreach ($categories as $key => $value) {
 	$category = $value['Config']['Category'];
-	echo '<li><a href="#tabs-'.$category.'">' . $category . '</a></li>';
+	echo '<li><a href="#tabs-'.$category.'">' . ucfirst($category) . '</a></li>';
 }
 ?>
 </ul>

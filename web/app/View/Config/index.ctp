@@ -19,10 +19,23 @@ foreach ($options as $option => $value) {
 	foreach ($value as $val) {
 		$id = $val['Config']['Id'];
 		$inputname = 'Config.' . $id . '.' . $val['Config']['Name'];
+
+		switch ($val['Config']['Type']) {
+			case 'boolean':
+				$type = 'checkbox';
+				break;
+			case 'integer':
+				$type = 'text';
+				break;
+			case 'string':
+				$type = 'text';
+				break;
+		}
 		echo $this->Form->input($inputname, array(
 			'default' => $val['Config']['Value'],
 			'label' => $val['Config']['Name'],
-			'title' => $val['Config']['Prompt']
+			'title' => $val['Config']['Prompt'],
+			'type' => $type
 		));
 		echo "\n";
 	}

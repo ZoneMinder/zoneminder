@@ -11,7 +11,7 @@
 			foreach ($categories as $category) {
 				$name = $category['Config']['Category'];
 				$configs = $this->Config->findAllByCategory($name,
-				   	array('Name', 'Id',  'Value', 'Prompt', 'Type', 'Category'));
+				   	array('Name', 'Id',  'Value', 'Prompt', 'Type', 'Category'), 'Type');
 				$options[$name] = $configs;
 			}
 

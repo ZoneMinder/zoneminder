@@ -286,7 +286,6 @@ fieldset fieldset div {
 form div {
 	clear: both;
 	margin-bottom: 1em;
-	padding: .5em;
 	vertical-align: text-top;
 }
 form .input {
@@ -306,7 +305,6 @@ form div.submit {
 	margin-top: 10px;
 }
 label {
-	display: block;
 	font-size: 110%;
 	margin-bottom:3px;
 }
@@ -314,8 +312,7 @@ input, textarea {
 	clear: both;
 	font-size: 140%;
 	font-family: "frutiger linotype", "lucida grande", "verdana", sans-serif;
-	padding: 1%;
-	width:98%;
+	padding: 2px;
 }
 select {
 	clear: both;
@@ -328,15 +325,6 @@ select[multiple=multiple] {
 option {
 	font-size: 120%;
 	padding: 0 3px;
-}
-input[type=checkbox] {
-	clear: left;
-	float: left;
-	margin: 0px 6px 7px 2px;
-	width: auto;
-}
-div.checkbox label {
-	display: inline;
 }
 input[type=radio] {
 	float:left;
@@ -753,3 +741,24 @@ div#footer a{
  #selectable .ui-selected { background: #F39814; color: white; }
  #selectable { list-style-type: none; margin: 0; padding: 0; width: 450px; }
  #selectable li { margin: 3px; padding: 1px; float: left; width: 100px; height: 80px; font-size: 1em; text-align: center; }
+
+/* Config Page */
+
+#tabs label {
+	text-align:left;
+	width:25%;
+	display:inline-block;
+	margin-top:auto;
+	margin-bottom:auto;
+}
+#tabs .integer { width: 50px; }
+#tabs .text { width: 20%; }
+#tabs .textarea { width: 20%; }
+#tabs .description { width:50%; }
+#tabs .row {
+	padding:3px;
+}
+#tabs .highlight {
+	background-color:#E6E6E6;
+}
+/* End Config Page */

@@ -40,7 +40,7 @@ foreach ($options as $option => $value) {
 		// If the type is supposed to be a radio...
 		// I'm making it a select anyway!
 		if (preg_match("/\|/", $hint) && ($type != 'boolean')  ) {
-			$type = 'select';
+			$inputtype = 'select';
 			foreach ($hints as $hint) {
 				$foo = explode('|', $hint);
 				$selectoptions[$foo[0]] = $foo[0]; // I don't want my selects indexed - I want them associated.
@@ -48,7 +48,7 @@ foreach ($options as $option => $value) {
 		}
 
 		// If the type is supposed to be a select box...
-		if ( preg_match("/\=/", $hint) && ($type == 'select') ) {
+		if ( preg_match("/\=/", $hint) && ($inputtype == 'select') ) {
 			$selectoptions = array();
 			foreach ($hints as $hint) {
 				$foo = explode('=', $hint);
@@ -59,30 +59,36 @@ foreach ($options as $option => $value) {
 		// For all of the other types, set them appropriately.
 		switch ($type) {
 			case 'boolean':
-				$type = 'checkbox';
+				$inputtype = 'checkbox';
 				break;
 			case 'integer':
-				$type = 'text';
+				$inputtype = 'text';
 				break;
 			case 'string':
-				$type = 'text';
+				$inputtype = 'text';
 				break;
 			case 'text':
-				$type = 'textarea';
+				$inputtype = 'textarea';
 				break;
 		}
 
 		// Create the actual inputs.  'options' and 'legend'
 		// are ignored when they're not needed, such as in
 		// the case of a text or checkbox input type.
+		echo "<div class=\"row\">";	
+		echo $this->Form->label($inputname, $name);
+		echo $this->Form->label($inputname, $val['Config']['Prompt'], 'description');
 		echo $this->Form->input($inputname, array(
 			'default' => $val['Config']['Value'],
-			'label' => $name,
+			'label' => false,
+			'div' => false,
 			'title' => $val['Config']['Prompt'],
-			'type' => $type,
+			'type' => $inputtype,
+			'class' => $type,
 			'options' => $selectoptions, // Only used by cakephp when 'type' is 'select'
 			'legend' => false
 		));
+		echo "</div>";
 	}
 	echo "</div>"; // End each category div
 }

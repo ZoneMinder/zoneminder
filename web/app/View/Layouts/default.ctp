@@ -48,13 +48,14 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 	<div id="container">
 		<div id="header">
 			<div class="menu">
-				<?php echo $this->Html->link('Monitors', array('controller' => 'Monitors', 'action' => 'index')); ?>
-				<?php echo $this->Html->link('Events', array('controller' => 'Events', 'action' => 'index')); ?>
-				<?php echo $this->Html->link('Options', array('controller' => 'Config', 'action' => 'index')); ?>
+				<ol>
+				<li><?php echo $this->Html->link('Dashboard', array('controller' => 'Monitors', 'action' => 'index')); ?></li>
+				<li><?php echo $this->Html->link('Events', '/Events/'); ?></li>
+				<li><?php echo $this->Html->link('Options', array('controller' => 'Config', 'action' => 'index')); ?></li>
+				</ol>
 			</div>
 		</div>
 		<div id="content">
-
 			<?php echo $this->Session->flash(); ?>
 
 			<?php echo $this->fetch('content'); ?>

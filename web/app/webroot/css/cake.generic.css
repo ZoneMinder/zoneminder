@@ -731,6 +731,19 @@ div.menu a{
   color: #ffffff;
   font-size: 100%;
   margin-right:10px;
+  text-decoration:none;
+}
+
+div.menu ol {
+	list-style-type:none;
+}
+
+div.menu li{
+	display:inline;
+}
+
+div.menu li.selected {
+	background-color:pink;
 }
 
 div#footer a{

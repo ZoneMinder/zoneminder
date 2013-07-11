@@ -305,8 +305,13 @@ form div.submit {
 	margin-top: 10px;
 }
 label {
+	text-align:left;
+	display:inline-block;
+	margin-top:auto;
+	margin-bottom:auto;
+
 	font-size: 110%;
-	margin-bottom:3px;
+	margin-right:5px;
 }
 input, textarea {
 	clear: both;
@@ -775,3 +780,9 @@ div#footer a{
 	background-color:#E6E6E6;
 }
 /* End Config Page */
+
+/* Logs View */
+#btnComponentRefresh{
+	float:right;
+}
+/* End Logs View */

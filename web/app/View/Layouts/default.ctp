@@ -39,9 +39,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
     echo $this->Html->script('jquery-2.0.1.min');
     echo $this->Html->script('jquery-ui.min');
     echo $this->Html->script('masonry.pkgd.min');
-    echo $this->Html->script('events.js');
-    echo $this->Html->script('config.js');
-    echo $this->Js->writeBuffer();
+    echo $this->Html->script('main');
 	?>
 </head>
 <body>
@@ -66,5 +64,6 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 		</div>
 	</div>
 	<?php echo $this->element('sql_dump'); ?>
+<?php echo $this->Js->writeBuffer(); ?>
 </body>
 </html>

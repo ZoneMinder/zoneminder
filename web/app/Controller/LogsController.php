@@ -19,7 +19,7 @@ class LogsController extends AppController {
 
 		$this->set('loglines', $this->Log->find('all', array(
 			'limit' => 100,
-			'order' => array('TimeKey' => 'asc'),
+			'order' => array('TimeKey' => 'desc'),
 			'conditions' => $conditions
 		)));
 		$this->set('components', $this->Log->find('all', array(

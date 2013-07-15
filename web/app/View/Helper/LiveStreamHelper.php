@@ -2,8 +2,8 @@
 App::uses('AppHelper', 'View/Helper');
 
 class LiveStreamHelper extends AppHelper {
-	public function makeLiveStream($name, $src, $id) {
-		$liveStream = "<img id=\"liveStream_$id\" alt=\"Live Stream of $name\" src=\"$src&monitor=$id\">";
+	public function makeLiveStream($name, $src, $id, $width) {
+		$liveStream = "<img id=\"liveStream_$id\" alt=\"Live Stream of $name\" src=\"$src&monitor=$id\" width=\"$width\">";
 		return $liveStream;
 	}
 }

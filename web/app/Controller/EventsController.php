@@ -5,26 +5,35 @@ class EventsController extends AppController {
     public $components = array('Paginator');
 
 public function index() {
+
 	$this->loadModel('Monitor');
 	$this->loadModel('Frame');
-  $conditions = array();
+	$conditions = array();
+
+	$this->set('thumb_width', Configure::read('ZM_WEB_LIST_THUMB_WIDTH'));
 
   $named = $this->extractNamedParams(
-    array('MonitorId')
+	  array('MonitorId', 'StartTime' )
   );
 
   if ($named) {
-    foreach ($named as $key => $value) {
-      $$key = array($key => $value);
-      array_push($conditions, $$key);
-    }
+	  foreach ($named as $key => $value) {
+		  switch ($key) {
+		  case "StartTime":
+			  $StartTime = array("$key BETWEEN FROM_UNIXTIME($value[0]) and FROM_UNIXTIME($value[1])");
+			  array_push($conditions, $StartTime);
+			  break;
+		  case "MonitorId":
+			  $$key = array($key => $value);
+			  array_push($conditions, $$key);
+			  break;
+		  }
+	  }
   };
 
-  $events_per_page = Configure::read('ZM_WEB_EVENTS_PER_PAGE');
-
 	$this->paginate = array(
-    'fields' => array('Event.Name', 'Event.Length', 'Event.MonitorId', 'Event.Id', 'Monitor.Name', 'Event.MaxScore', 'Event.Width', 'Event.Height', 'Event.StartTime'),
-    'limit' => $events_per_page,
+    'fields' => array('Event.Name', 'Event.Length', 'Event.MonitorId', 'Event.Id', 'Monitor.Name', 'Event.MaxScore', 'Event.Width', 'Event.Height', 'Event.StartTime', 'Event.TotScore', 'Event.AvgScore', 'Event.Cause', 'Event.AlarmFrames', 'TIMESTAMPDIFF (SECOND, Event.StartTime, Event.EndTime) AS Duration' ),
+    'limit' => Configure::read('ZM_WEB_EVENTS_PER_PAGE'),
     'order' => array( 'Event.Id' => 'asc'),
     'conditions' => $conditions
 	);
@@ -32,12 +41,6 @@ public function index() {
 	$this->set('events', $data);
 
 	$this->set('monitors', $this->Monitor->find('all', array('fields' => array('Monitor.Name') )));
-
-	$this->set('eventsLastHour', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 HOUR) GROUP BY Monitor.Id'));
-	$this->set('eventsLastDay', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 DAY) GROUP BY Monitor.Id'));
-	$this->set('eventsLastWeek', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 WEEK) GROUP BY Monitor.Id'));
-	$this->set('eventsLastMonth', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.StartTime > DATE_SUB(NOW(), INTERVAL 1 MONTH) GROUP BY Monitor.Id'));
-	$this->set('eventsArchived', $this->Monitor->query('SELECT COUNT(Event.Id) AS count FROM Monitors AS Monitor LEFT JOIN Events as Event ON Monitor.Id = Event.MonitorId AND Event.Archived = 1 GROUP BY Monitor.Id'));
 
     foreach ($data as $key => $value) {
         $thumbData[$key] = $this->Frame->createListThumbnail($value['Event']);

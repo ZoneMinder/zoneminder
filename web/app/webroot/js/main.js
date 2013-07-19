@@ -36,7 +36,8 @@ $(document).ready(function() {
 		});
 	});
 
-	$("#EventsButtonSearch").button().click(function() {
+	$("#EventsButtonSearch").button();
+	$("#EventsIndexForm").submit(function() {
 		$base_url = '/events/index/';
 
 		$( "li.ui-selected" ).each(function() {

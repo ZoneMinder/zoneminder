@@ -1,44 +1,53 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
+
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Zoneminder by ZoneMinder</title>
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script src="javascripts/respond.js"></script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!--[if lt IE 8]>
-    <link rel="stylesheet" href="stylesheets/ie.css">
-    <![endif]-->
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="ZoneMinder : A free, open source closed-circuit television software application developed for Linux with IP, USB and Analog camera support." />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>ZoneMinder</title>
   </head>
+
   <body>
-      <div id="header">
-        <nav>
-          <li class="fork"><a href="https://github.com/ZoneMinder/ZoneMinder">View On GitHub</a></li>
-          <li class="downloads"><a href="https://github.com/ZoneMinder/ZoneMinder/zipball/master">ZIP</a></li>
-          <li class="downloads"><a href="https://github.com/ZoneMinder/ZoneMinder/tarball/master">TAR</a></li>
-          <li class="title">DOWNLOADS</li>
-        </nav>
-      </div><!-- end header -->
 
-    <div class="wrapper">
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/ZoneMinder/ZoneMinder">View on GitHub</a>
 
-      <section>
-        <div id="title">
-          <h1>Zoneminder</h1>
-          <p>A free, open source closed-circuit television software application developed for Linux which supports IP, USB and Analog cameras.</p>
-          <hr>
-          <span class="credits left">Project maintained by <a href="https://github.com/ZoneMinder">ZoneMinder</a></span>
-          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
-        </div>
+          <h1 id="project_title">ZoneMinder</h1>
+          <h2 id="project_tagline">A free, open source closed-circuit television software application developed for Linux with IP, USB and Analog camera support.</h2>
 
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/ZoneMinder/ZoneMinder/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/ZoneMinder/ZoneMinder/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
         <h3>
+<a name="overview" class="anchor" href="#overview"><span class="octicon octicon-link"></span></a>Overview</h3>
+
+<p>ZoneMinder is intended for use in single or multi-camera video security applications, including commercial or home CCTV, theft prevention and child, family member or home monitoring and other domestic care scenarios such as nanny cam installations. </p>
+
+<p>It supports capture, analysis, recording, and monitoring of video data coming from one or more video or network cameras attached to a Linux system. ZoneMinder also support web and semi-automatic control of Pan/Tilt/Zoom cameras using a variety of protocols. It is suitable for use as a DIY home video security system and for commercial or professional video security and surveillance. It can also be integrated into a home automation system via X.10 or other protocols.</p>
+
+<p><img src="http://www.zoneminder.com/sites/zoneminder.com/files/Screenshot-Home%20-%20Console%20-%20Mozilla%20Firefox.jpg" alt="Console"><img src="http://www.zoneminder.com/sites/zoneminder.com/files/Screenshot-Home%20-%20Montage%20-%20Mozilla%20Firefox.jpg" alt="Montage"></p>
+
+<h3>
+<a name="framework" class="anchor" href="#framework"><span class="octicon octicon-link"></span></a>Framework</h3>
+
+<p>ZoneMinder is an integrated set of applications which provide a complete surveillance solution allowing capture, analysis, recording and monitoring of any CCTV or security cameras attached to a Linux based machine. It is designed to run on distributions which support the Video For Linux (V4L) interface and has been tested with video cameras attached to BTTV cards, various USB cameras and also supports most IP network cameras. A partial list is given in the Wiki and Support sections, please give feedback in the Forums if it works with yours. ZoneMinder also requires MySQL and PHP, and is enhanced by a webserver such as Apache.</p>
+
+<p>ZoneMinder is highly componentised and comprises both the back-end daemons which do the actual image capture and analysis and a user friendly web GUI enabling you to both monitor the current situation and view and organise historical events that have taken place. The web GUI allows you to check and control your ZoneMinder installation from other computers in your home or from anywhere in the world. ZoneMinder does not require X at all, or the web interface for day-to-day functions and so is also suitable for 'headless' systems. There is also a simple xHTML interface allowing basic monitoring from suitable phones! Recent versions of ZoneMinder also include optional DVR (digital video recorder) functions allowing you to pause, rewind and even digitally zoom both live and historical video.</p>
+
+<h3>
 <a name="feature-list" class="anchor" href="#feature-list"><span class="octicon octicon-link"></span></a>Feature List</h3>
 
 <ul>
@@ -64,9 +73,27 @@
 <li>    iPhone interface available</li>
 </ul>
       </section>
-
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
-    
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">ZoneMinder maintained by <a href="https://github.com/ZoneMinder">ZoneMinder</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-24057917-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+
   </body>
 </html>

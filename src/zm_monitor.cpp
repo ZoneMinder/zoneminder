@@ -2684,7 +2684,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
 {
     bool alarm = false;
     unsigned int score = 0;
-
+    bool ZoneTimeFlag; 
     if ( n_zones <= 0 ) return( alarm );
 
     if ( config.record_diag_images )
@@ -2714,11 +2714,16 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
     {
         Zone *zone = zones[n_zone];
         zone->ClearAlarm();
-        if ( !zone->IsInactive() )
+       ZoneTimeFlag=zone->TimeFlag() ;
+	if ( !zone->IsInactive() )
         {
             continue;
         }
-        Debug( 3, "Blanking inactive zone %s", zone->Label() );
+      if ( !ZoneTimeFlag )
+        {
+            continue;
+        }
+      Debug( 3, "Blanking inactive zone %s", zone->Label() );
         delta_image->Fill( RGB_BLACK, zone->GetPolygon() );
     }
 
@@ -2726,11 +2731,16 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
     for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
     {
         Zone *zone = zones[n_zone];
-        if ( !zone->IsPreclusive() )
+       ZoneTimeFlag=zone->TimeFlag() ;
+	if ( !zone->IsPreclusive()  )
         {
             continue;
         }
-        Debug( 3, "Checking preclusive zone %s", zone->Label() );
+        if ( !ZoneTimeFlag )
+        {
+            continue;
+        }
+       Debug( 3, "Checking preclusive zone %s", zone->Label() );
         if ( zone->CheckAlarms( delta_image ) )
         {
             alarm = true;
@@ -2755,11 +2765,16 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
         {
             Zone *zone = zones[n_zone];
-            if ( !zone->IsActive() )
+            ZoneTimeFlag=zone->TimeFlag() ;
+	    if ( !zone->IsActive() )
             {
                 continue;
             }
-            Debug( 3, "Checking active zone %s", zone->Label() );
+          if ( !ZoneTimeFlag )
+        {
+            continue;
+        }
+         Debug( 3, "Checking active zone %s", zone->Label() );
             if ( zone->CheckAlarms( delta_image ) )
             {
                 alarm = true;
@@ -2783,11 +2798,16 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
             for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
             {
                 Zone *zone = zones[n_zone];
-                if ( !zone->IsInclusive() )
+               ZoneTimeFlag=zone->TimeFlag() ;
+		if ( !zone->IsInclusive()  )
                 {
                     continue;
                 }
-                Debug( 3, "Checking inclusive zone %s", zone->Label() );
+            if ( !ZoneTimeFlag )
+        {
+            continue;
+        }
+           Debug( 3, "Checking inclusive zone %s", zone->Label() );
                 if ( zone->CheckAlarms( delta_image ) )
                 {
                     alarm = true;
@@ -2812,11 +2832,16 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
             for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
             {
                 Zone *zone = zones[n_zone];
-                if ( !zone->IsExclusive() )
+              ZoneTimeFlag=zone->TimeFlag() ;
+		if ( !zone->IsExclusive()  )
                 {
                     continue;
                 }
-                Debug( 3, "Checking exclusive zone %s", zone->Label() );
+              if ( !ZoneTimeFlag )
+        {
+            continue;
+        }
+             Debug( 3, "Checking exclusive zone %s", zone->Label() );
                 if ( zone->CheckAlarms( delta_image ) )
                 {
                     alarm = true;

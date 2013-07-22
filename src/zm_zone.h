@@ -73,7 +73,8 @@ protected:
 	int				max_blobs;
 
     int             overload_frames;
-
+        int                             time_start;
+        int                              time_end; 
 	// Outputs/Statistics
 	bool			alarmed;
 	int				pixel_diff;
@@ -93,20 +94,20 @@ protected:
     int             overload_count;
 
 protected:
-	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs, int p_overload_frames );
+	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs, int p_overload_frames, int p_time_start, int p_time_end );
 
 public:
-	Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold=15, int p_max_pixel_threshold=0, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0, int p_overload_frames=0 )
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold=15, int p_max_pixel_threshold=0, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0, int p_overload_frames=0, int p_time_start=0, int p_time_end=23 )
 	{
-		Setup( p_monitor, p_id, p_label, p_type, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames );
+		Setup( p_monitor, p_id, p_label, p_type, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames, p_time_start, p_time_end );
 	}
-	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold=15, int p_max_pixel_threshold=0, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0, int p_overload_frames=0 )
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold=15, int p_max_pixel_threshold=0, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0, int p_overload_frames=0, int p_time_start =0, int p_time_end=23 )
 	{
-		Setup( p_monitor, p_id, p_label, Zone::ACTIVE, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames );
+		Setup( p_monitor, p_id, p_label, Zone::ACTIVE, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames,p_time_start, p_time_end );
 	}
 	Zone( Monitor *p_monitor, int p_id, const char *p_label, const Polygon &p_polygon )
 	{
-		Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_polygon, RGB_BLACK, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0 );
+		Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_polygon, RGB_BLACK, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0, 0 );
 	}
 
 public:
@@ -127,7 +128,41 @@ public:
 	inline void ClearAlarm() { alarmed = false; }
 	inline Coord GetAlarmCentre() const { return( alarm_centre ); }
 	inline unsigned int Score() const { return( score ); }
-
+        inline bool TimeFlag() const
+  	{
+	    int hr;
+            int zonetimestart=time_start;
+            int zonetimeend=time_end;
+            time_t rawtime;
+            struct tm *timeinfo;
+            time( &rawtime );
+            timeinfo=localtime (&rawtime);
+            hr=timeinfo->tm_hour;
+            if ((zonetimeend-zonetimestart) > 0)
+             {
+                
+  		 if ( (hr >= zonetimestart) & (hr <= zonetimeend ) )
+                             {
+                              return (true);
+  		           }
+             }
+            if ((zonetimeend-zonetimestart) < 0)
+             {
+                    if ( (hr >= zonetimestart) or  (hr < zonetimeend ) )
+                             {
+                              return (true); 
+                             }
+             }               
+            if ((zonetimeend-zonetimestart) == 0)
+             {
+                    if ( (hr == zonetimestart) )
+                             {
+                             return (true); 
+                             }
+  	   }               
+              return (false );
+ 	}
+	
 	inline void ResetStats()
 	{
 		alarmed = false;

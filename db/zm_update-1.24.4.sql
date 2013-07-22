@@ -18,7 +18,10 @@ CREATE TABLE `Logs` (
   `Line` smallint(5) unsigned DEFAULT NULL,
   KEY `TimeKey` (`TimeKey`)
 ) ENGINE=MyISAM;
-
+alter table Controls modify column type enum('Local','Remote','Ffmpeg') Not NULL default 'Local';
+INSERT into Controls values ('','Pelco-D','Ffmpeg','PelcoD',1,1,0,1,1,0,0,1,NULL,NULL,NULL,NULL,1,0,3,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,20,1,1,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,1,0,63,1,254,1,NULL,NULL,NULL,NULL,1,0,63,1,254,0,0);
+INSERT into Controls values ('','Pelco-P','Ffmpeg','PelcoP',1,1,0,1,1,0,0,1,NULL,NULL,NULL,NULL,1,0,3,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,20,1,1,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,1,0,63,1,254,1,NULL,NULL,NULL,NULL,1,0,63,1,254,0,0);
+--
 --
 -- These are optional, but we might as well do it now
 --

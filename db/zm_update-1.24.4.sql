@@ -19,6 +19,11 @@ CREATE TABLE `Logs` (
   KEY `TimeKey` (`TimeKey`)
 ) ENGINE=MyISAM;
 
+alter table Zones add column `TimeStart` smallint(2) unsigned NOT NULL default '0' after `OverloadFrames` ;
+alter table Zones add column `TimeEnd`   smallint(2) unsigned NOT NULL default '23' after `TimeStart` ;
+alter table ZonePresets add column `TimeStart` smallint(2) unsigned NOT NULL default '0' after `OverloadFram
+alter table ZonePresets add column `TimeEnd`   smallint(2) unsigned NOT NULL default '23' after `TimeStart` 
+
 --
 -- These are optional, but we might as well do it now
 --

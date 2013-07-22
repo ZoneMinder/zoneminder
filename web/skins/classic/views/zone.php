@@ -96,7 +96,9 @@ if ( !isset($newZone) )
             'MinBlobs' => '',
             'MaxBlobs' => '',
             'OverloadFrames' => '',
-        );
+            'TimeStart' => '0',
+            'TimeEnd' => '23',
+       );
     }
     $zone['Points'] = coordsToPoints( $zone['Coords'] );
 
@@ -207,7 +209,24 @@ xhtmlHeaders(__FILE__, $SLANG['Zone'] );
                 <th scope="row"><?= $SLANG['ZoneOverloadFrames'] ?></th>
                 <td colspan="2"><input type="text" name="newZone[OverloadFrames]" value="<?= $newZone['OverloadFrames'] ?>" size="4"/></td>
               </tr>
-            </tbody>
+              <tr>
+              <th scope="row"><?= $SLANG['ZoneTimeStart'] ?></th>
+              <td colspan="2"><input type="text" name="newZone[TimeStart]" value="<?= $newZone['TimeStart'] ?>" size="4"++
+              onchange="limitRange( this, 0,23 )"
+              /></td>
+              </tr>
+              <tr>
+             <th scope="row"><?= $SLANG['ZoneTimeEnd'] ?></th>
+             <td colspan="2"><input type="text" name="newZone[TimeEnd]" value="<?= $newZone['TimeEnd'] ?>" size="4"
+             onchange="limitRange( this, 0,23 )"
+            /></td>
+            </tr>
+
+           
+           
+           
+           
+           </tbody>
           </table>
         </div>
         <div id="definitionPanel">

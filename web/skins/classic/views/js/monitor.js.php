@@ -9,7 +9,7 @@ var controlOptions = new Object();
 <?php
     global $controlTypes;
     $controlTypes = array( ''=>$SLANG['None'] );
-    $sql = "select * from Controls where Type = '".$monitor['Type']."'";
+    $sql = "select * from Controls where Type = '".$newMonitor['Type']."'";
     foreach( dbFetchAll( $sql ) as $row )
     {
         $controlTypes[$row['Id']] = $row['Name'];

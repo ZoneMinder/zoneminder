@@ -4,6 +4,8 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AM_CONFIG_HEADER(config.h)
 
+AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
+
 PATH_BUILD=`pwd`
 AC_SUBST(PATH_BUILD)
 TIME_BUILD=`date +'%s'`
@@ -272,9 +274,10 @@ AC_CHECK_HEADERS(gnutls/gnutls.h,AC_SUBST(ZM_HAS_GNUTLS,1),AC_SUBST(ZM_HAS_GNUTL
 if test "$ZM_HAS_GNUTLS_OPENSSL" == "0" && test "$ZM_HAS_GNUTLS" == "0"; then
 AC_MSG_WARN(gnutls is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead)
 fi
-AC_CHECK_HEADERS(gcrypt.h,,AC_MSG_WARN(zm requires libgcrypt header to be installed for gnutls),)
+AC_CHECK_HEADERS(gcrypt.h,,AC_MSG_WARN(zm requires libgcrypt headers to be installed for gnutls),)
 AC_CHECK_LIB(gcrypt,gcry_check_version,,AC_MSG_WARN([libgcrypt.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
 AC_CHECK_LIB(gnutls,gnutls_fingerprint,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
+AC_CHECK_LIB(gnutls-openssl,MD5,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
 fi
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
 AC_CHECK_LIB(z,zlibVersion)
@@ -307,10 +310,12 @@ AC_MSG_WARN(zm requires Video4Linux or Video4Linux2 to be installed for analog o
 fi
 AC_CHECK_HEADERS(jpeglib.h,,AC_MSG_ERROR(zm requires libjpeg headers to be installed),)
 AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires MySQL headers - check that MySQL development packages are installed),)
+AC_LANG_PUSH([C])
 AC_CHECK_HEADERS(libavutil/avutil.h,,,)
 AC_CHECK_HEADERS(libavcodec/avcodec.h,,,)
 AC_CHECK_HEADERS(libavformat/avformat.h,,,)
 AC_CHECK_HEADERS(libswscale/swscale.h,,,)
+AC_LANG_POP([C])
 AC_CHECK_HEADERS(pcre/pcre.h,AC_SUBST(ZM_PCRE,"1"),,)
 AC_CHECK_HEADERS(pcre.h,AC_SUBST(ZM_PCRE,"1"),,)
 if test "$ENABLE_MMAP" == "yes"; then

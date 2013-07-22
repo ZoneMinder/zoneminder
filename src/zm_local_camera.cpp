@@ -741,7 +741,7 @@ void LocalCamera::Terminate()
     {
         Debug( 3, "Terminating video stream" );
         //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        enum v4l2_buf_type type = v4l2_data.fmt.type;
+        enum v4l2_buf_type type = (v4l2_buf_type)v4l2_data.fmt.type;
         if ( vidioctl( vid_fd, VIDIOC_STREAMOFF, &type ) < 0 )
             Error( "Failed to stop capture stream: %s", strerror(errno) );
 
@@ -1275,7 +1275,7 @@ int LocalCamera::Brightness( int p_brightness )
             if ( errno != EINVAL )
                 Error( "Unable to query brightness: %s", strerror(errno) )
             else
-                Warning( "Brightness control is not suppported" )
+                Warning( "Brightness control is not supported" )
             //Info( "Brightness 1 %d", vid_control.value );
         }
         else if ( p_brightness >= 0 )
@@ -1336,7 +1336,7 @@ int LocalCamera::Hue( int p_hue )
             if ( errno != EINVAL )
                 Error( "Unable to query hue: %s", strerror(errno) )
             else
-                Warning( "Hue control is not suppported" )
+                Warning( "Hue control is not supported" )
         }
         else if ( p_hue >= 0 )
         {
@@ -1394,7 +1394,7 @@ int LocalCamera::Colour( int p_colour )
             if ( errno != EINVAL )
                 Error( "Unable to query saturation: %s", strerror(errno) )
             else
-                Warning( "Saturation control is not suppported" )
+                Warning( "Saturation control is not supported" )
         }
         else if ( p_colour >= 0 )
         {
@@ -1452,7 +1452,7 @@ int LocalCamera::Contrast( int p_contrast )
             if ( errno != EINVAL )
                 Error( "Unable to query contrast: %s", strerror(errno) )
             else
-                Warning( "Contrast control is not suppported" )
+                Warning( "Contrast control is not supported" )
         }
         else if ( p_contrast >= 0 )
         {
@@ -1521,7 +1521,7 @@ int LocalCamera::PrimeCapture()
 
         Debug( 3, "Starting video stream" );
         //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        enum v4l2_buf_type type = v4l2_data.fmt.type;
+        enum v4l2_buf_type type = (v4l2_buf_type)v4l2_data.fmt.type;
         if ( vidioctl( vid_fd, VIDIOC_STREAMON, &type ) < 0 )
             Fatal( "Failed to start capture stream: %s", strerror(errno) );
     }

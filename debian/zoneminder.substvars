@@ -1,0 +1,3 @@
+perl:Depends=perl
+shlibs:Depends=libavcodec53 (>= 6:0.8.3-1~) | libavcodec-extra-53 (>= 6:0.8.6), libavformat53 (>= 6:0.8.3-1~) | libavformat-extra-53 (>= 6:0.8.6), libavutil51 (>= 6:0.8.3-1~) | libavutil-extra-51 (>= 6:0.8.6), libc6 (>= 2.14), libgcc1 (>= 1:4.1.1), libgcrypt11 (>= 1.4.5), libgnutls-openssl27, libjpeg8 (>= 8c), libmysqlclient18 (>= 5.5.13-1), libpcre3 (>= 8.10), libstdc++6 (>= 4.1.1), libswscale2 (>= 6:0.8.3-1~) | libswscale-extra-2 (>= 6:0.8.6), zlib1g (>= 1:1.1.4)
+misc:Depends=

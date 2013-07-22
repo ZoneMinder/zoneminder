@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_utils.h"
 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -20,6 +20,9 @@
 #ifndef ZM_MONITOR_H
 #define ZM_MONITOR_H
 
+#include <vector>
+#include <sstream>
+
 #include "zm.h"
 #include "zm_coord.h"
 #include "zm_image.h"
@@ -27,6 +30,9 @@
 #include "zm_zone.h"
 #include "zm_event.h"
 #include "zm_camera.h"
+
+#include "zm_plugin_manager.h"
+#include "zm_image_analyser.h"
 
 #include <sys/time.h>
 #include <stdint.h>
@@ -146,6 +152,11 @@ protected:
 		Image	*image;
 		void* padding;
 	};
+
+   //=========================================================================
+   PluginManager ThePluginManager;
+   std::vector<std::string> m_sPluginNames;
+   //int iDoNativeMotDet;
 
 	class MonitorLink
 	{
@@ -274,11 +285,15 @@ protected:
 	int				n_zones;
 	Zone			**zones;
 
+   int iDoNativeMotDet;
+
 	int				n_linked_monitors;
 	MonitorLink		**linked_monitors;
 
 public:
-	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
+// OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
+//bool OurCheckAlarms( Zone *zone, const Image *pImage );
+	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0, std::string plugins = "", int p_DoNativeMotDect = 1 );
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
@@ -369,6 +384,8 @@ public:
 	}
 
 	unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
+   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
+   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
 	bool CheckSignal( const Image *image );
 	bool Analyse();
 	void DumpImage( Image *dump_image ) const;

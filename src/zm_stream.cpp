@@ -262,7 +262,7 @@ bool StreamBase::sendTextFrame( const char *frame_text )
         fprintf( stdout, "--ZoneMinderFrame\r\n" );
         fprintf( stdout, "Content-Length: %d\r\n", n_bytes );
         fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
-        if ( fwrite( buffer, n_bytes, 1, stdout ) )
+        if ( fwrite( buffer, n_bytes, 1, stdout ) != 1 )
         {
             Error( "Unable to send stream text frame: %s", strerror(errno) );
             return( false );

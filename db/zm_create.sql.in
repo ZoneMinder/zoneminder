@@ -368,6 +368,8 @@ CREATE TABLE `Monitors` (
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',
   `Sequence` smallint(5) unsigned default NULL,
+  `UsedPl` varchar(88) NOT NULL default '',
+  `DoNativeMotDet` tinyint(3) unsigned NOT NULL default '1',
   PRIMARY KEY  (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

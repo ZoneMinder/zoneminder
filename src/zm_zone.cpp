@@ -68,13 +68,13 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	pg_image->Outline( 0xff, polygon );
 
 	ranges = new Range[monitor->Height()];
-	for ( int y = 0; y < monitor->Height(); y++)
+	for ( unsigned int y = 0; y < monitor->Height(); y++)
 	{
 		ranges[y].lo_x = -1;
-		ranges[y].hi_x = -1;
+		ranges[y].hi_x = 0;
 		ranges[y].off_x = 0;
 		const uint8_t *ppoly = pg_image->Buffer( 0, y );
-		for ( int x = 0; x < monitor->Width(); x++, ppoly++ )
+		for ( unsigned int x = 0; x < monitor->Width(); x++, ppoly++ )
 		{
 			if ( *ppoly )
 			{
@@ -82,7 +82,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 				{
 					ranges[y].lo_x = x;
 				}
-				if ( ranges[y].hi_x < x )
+				if ( (unsigned int)ranges[y].hi_x < x )
 				{
 					ranges[y].hi_x = x;
 				}
@@ -120,10 +120,53 @@ void Zone::RecordStats( const Event *event )
 	}
 }
 
+
+//=============================================================================
+bool Zone::CheckOverloadCount()
+{
+    Info("Overloaded count: %d, Overloaded frames: %d", overload_count, overload_frames);
+    if ( overload_count )
+    {
+            Info( "In overload mode, %d frames of %d remaining", overload_count, overload_frames );
+            Debug( 4, "In overload mode, %d frames of %d remaining", overload_count, overload_frames );
+            overload_count--;
+            return( false );
+    }
+    return true;
+}
+
+void Zone::SetScore(unsigned int nScore)
+{
+    score = nScore;
+}
+
+
+void Zone::SetAlarmImage(const Image* srcImage)
+{
+    delete image;
+    image = new Image(*srcImage);
+}
+
+int Zone::GetOverloadCount()
+{
+    return overload_count;
+}
+
+void Zone::SetOverloadCount(int nOverCount)
+{
+    overload_count = nOverCount;
+}
+
+int Zone::GetOverloadFrames()
+{
+    return overload_frames;
+}
+//===========================================================================
+
+
+
 bool Zone::CheckAlarms( const Image *delta_image )
 {
-	bool alarm = false;
-
 	ResetStats();
 
 	if ( overload_count )
@@ -183,10 +226,10 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	Debug( 5, "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d", alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff );
 
 	if( alarm_pixels ) {
-		if( min_alarm_pixels && (alarm_pixels < min_alarm_pixels) ) {
+		if( min_alarm_pixels && (alarm_pixels < (unsigned int)min_alarm_pixels) ) {
 			/* Not enough pixels alarmed */
 			return (false);
-		} else if( max_alarm_pixels && (alarm_pixels > max_alarm_pixels) ) {
+		} else if( max_alarm_pixels && (alarm_pixels > (unsigned int)max_alarm_pixels) ) {
 			/* Too many pixels alarmed */
 			overload_count = overload_frames;
 			return (false);
@@ -215,7 +258,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			unsigned char *cpdiff;
 			int ldx, hdx, ldy, hdy;
 			bool block;
-			for ( int y = lo_y; y <= hi_y; y++ )
+			for ( unsigned int y = lo_y; y <= hi_y; y++ )
 			{
 				int lo_x = ranges[y].lo_x;
 				int hi_x = ranges[y].hi_x;
@@ -306,7 +349,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			uint8_t last_x, last_y;
 			BlobStats *bsx, *bsy;
 			BlobStats *bsm, *bss;
-			for ( int y = lo_y; y <= hi_y; y++ )
+			for ( unsigned int y = lo_y; y <= hi_y; y++ )
 			{
 				int lo_x = ranges[y].lo_x;
 				int hi_x = ranges[y].hi_x;
@@ -350,7 +393,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									alarm_blob_pixels++;
 									bsx->count++;
 									if ( x > bsx->hi_x ) bsx->hi_x = x;
-									if ( y > bsx->hi_y ) bsx->hi_y = y;
+									if ( (int)y > bsx->hi_y ) bsx->hi_y = y;
 								}
 								else
 								{
@@ -395,7 +438,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 									// Merge the slave blob into the master
 									bsm->count += bss->count+1;
 									if ( x > bsm->hi_x ) bsm->hi_x = x;
-									if ( y > bsm->hi_y ) bsm->hi_y = y;
+									if ( (int)y > bsm->hi_y ) bsm->hi_y = y;
 									if ( bss->lo_x < bsm->lo_x ) bsm->lo_x = bss->lo_x;
 									if ( bss->lo_y < bsm->lo_y ) bsm->lo_y = bss->lo_y;
 									if ( bss->hi_x > bsm->hi_x ) bsm->hi_x = bss->hi_x;
@@ -422,7 +465,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 								alarm_blob_pixels++;
 								bsx->count++;
 								if ( x > bsx->hi_x ) bsx->hi_x = x;
-								if ( y > bsx->hi_y ) bsx->hi_y = y;
+								if ( (int)y > bsx->hi_y ) bsx->hi_y = y;
 							}
 						}
 						else
@@ -439,7 +482,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 								alarm_blob_pixels++;
 								bsy->count++;
 								if ( x > bsy->hi_x ) bsy->hi_x = x;
-								if ( y > bsy->hi_y ) bsy->hi_y = y;
+								if ( (int)y > bsy->hi_y ) bsy->hi_y = y;
 							}
 							else
 							{
@@ -449,7 +492,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 								{
 									BlobStats *bs = &blob_stats[i];
 									// See if we can recycle one first, only if it's at least two rows up
-									if ( bs->count && bs->hi_y < (y-1) )
+									if ( bs->count && bs->hi_y < (int)(y-1) )
 									{
 										if ( (min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels) )
 										{
@@ -664,8 +707,6 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	// Now outline the changed region
 	if ( score )
 	{
-		alarm = true;
-
 		alarm_box = Box( Coord( alarm_lo_x, alarm_lo_y ), Coord( alarm_hi_x, alarm_hi_y ) );
 
 		//if ( monitor->followMotion() )
@@ -682,7 +723,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		{
 
 			// First mask out anything we don't want
-			for ( int y = lo_y; y <= hi_y; y++ )
+			for ( unsigned int y = lo_y; y <= hi_y; y++ )
 			{
 				pdiff = diff_buff + ((diff_width * y) + lo_x);
 
@@ -919,7 +960,8 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		if ( !ParsePolygonString( Coords, polygon ) )
 			Panic( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s", Coords, Id, Name, monitor->Name() );
 
-		if ( polygon.LoX() < 0 || polygon.HiX() >= monitor->Width() || polygon.LoY() < 0 || polygon.HiY() >= monitor->Height() )
+		if ( polygon.LoX() < 0 || polygon.HiX() >= (int)monitor->Width() 
+           || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() )
 			Panic( "Zone %d/%s for monitor %s extends outside of image dimensions, %d, %d, %d, %d", Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
 
 		if ( false && !strcmp( Units, "Percent" ) )
@@ -1005,7 +1047,7 @@ void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsig
 	
 	lo_y = polygon.LoY();
 	hi_y = polygon.HiY();
-	for ( int y = lo_y; y <= hi_y; y++ )
+	for ( unsigned int y = lo_y; y <= hi_y; y++ )
 	{
 		lo_x = ranges[y].lo_x;
 		hi_x = ranges[y].hi_x;
@@ -1013,8 +1055,8 @@ void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsig
 		Debug( 7, "Checking line %d from %d -> %d", y, lo_x, hi_x );
 		pdiff = (uint8_t*)pdiff_image->Buffer( lo_x, y );
 		ppoly = ppoly_image->Buffer( lo_x, y );
-		
-		for ( int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ )
+	
+		for ( unsigned int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ )
 		{
 			if ( *ppoly && (*pdiff > min_pixel_threshold) && (*pdiff <= calc_max_pixel_threshold) )
 			{
@@ -1032,4 +1074,5 @@ void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsig
 	/* Store the results */
 	*pixel_count = pixelsalarmed;
 	*pixel_sum = pixelsdifference;
+   Debug( 7, "STORED");
 }

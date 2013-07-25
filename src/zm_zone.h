@@ -148,6 +148,17 @@ public:
 	static bool ParsePolygonString( const char *polygon_string, Polygon &polygon );
 	static bool ParseZoneString( const char *zone_string, int &zone_id, int &colour, Polygon &polygon );
 	static int Load( Monitor *monitor, Zone **&zones );
+	//=================================================
+    	bool CheckOverloadCount();
+    	int GetOverloadCount();
+    	void SetOverloadCount(int nOverCount);
+    	int GetOverloadFrames();
+    	void SetScore(unsigned int nScore);
+    	void SetAlarmImage(const Image* srcImage);
+
+	inline const Image *getPgImage() const { return( pg_image ); }
+	inline const Range *getRanges() const { return( ranges ); }
+
 };
 
 #endif // ZM_ZONE_H

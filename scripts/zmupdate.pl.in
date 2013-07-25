@@ -424,7 +424,7 @@ if ( $version )
         }
         else
         {
-            $command .= "/usr/share/zoneminder/db";
+            $command .= ZM_PATH_BUILD."/db";
         }
         $command .= "/zm_update-".$version.".sql";
 

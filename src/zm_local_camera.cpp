@@ -612,7 +612,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			Fatal( "Could not allocate temporary picture" );
 		
 		int pSize = avpicture_get_size( imagePixFormat, width, height );
-		if( pSize != imagesize) {
+		if( (unsigned int)pSize != imagesize) {
 			Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
 		}
 		
@@ -810,7 +810,7 @@ void LocalCamera::Initialise()
 #if HAVE_LIBSWSCALE
         capturePictures = new AVFrame *[v4l2_data.reqbufs.count];
 #endif // HAVE_LIBSWSCALE
-        for ( int i = 0; i < v4l2_data.reqbufs.count; i++ )
+        for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ )
         {
             struct v4l2_buffer vid_buf;
 
@@ -1048,12 +1048,13 @@ void LocalCamera::Terminate()
     {
         Debug( 3, "Terminating video stream" );
         //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+       // enum v4l2_buf_type type = v4l2_data.fmt.type;
         enum v4l2_buf_type type = (v4l2_buf_type)v4l2_data.fmt.type;
         if ( vidioctl( vid_fd, VIDIOC_STREAMOFF, &type ) < 0 )
             Error( "Failed to stop capture stream: %s", strerror(errno) );
 
         Debug( 3, "Unmapping video buffers" );
-        for ( int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
+        for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
 #if HAVE_LIBSWSCALE
 			/* Free capture pictures */
 			av_free(capturePictures[i]);
@@ -1099,7 +1100,7 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
 	uint32_t fmt_fcc[64];
 	v4l2_fmtdesc fmtinfo;
 	unsigned int nIndex = 0;
-	int nRet = 0;
+	//int nRet = 0; // compiler say it isn't used
 	int enum_fd;
 	
 	/* Open the device */
@@ -1142,7 +1143,7 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
 		preferedformats = prefered_rgb24_formats;
 		n_preferedformats = sizeof(prefered_rgb24_formats) / sizeof(uint32_t);
 	}
-	for( unsigned int i=0; i < n_preferedformats && nIndexUsed < 0; i++ ) {
+	for( unsigned int i=0; i < (unsigned int)n_preferedformats && nIndexUsed < 0; i++ ) {
 		for( unsigned int j=0; j < nIndex; j++ ) {
 			if( preferedformats[i] == fmt_fcc[j] ) {
 				/* Found a format! */
@@ -1914,7 +1915,7 @@ int LocalCamera::PrimeCapture()
     if ( v4l_version == 2 )
     {
         Debug( 3, "Queueing buffers" );
-        for ( int frame = 0; frame < v4l2_data.reqbufs.count; frame++ )
+        for ( unsigned int frame = 0; frame < v4l2_data.reqbufs.count; frame++ )
         {
             struct v4l2_buffer vid_buf;
 
@@ -1931,6 +1932,7 @@ int LocalCamera::PrimeCapture()
 
         Debug( 3, "Starting video stream" );
         //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        //enum v4l2_buf_type type = v4l2_data.fmt.type;
         enum v4l2_buf_type type = (v4l2_buf_type)v4l2_data.fmt.type;
         if ( vidioctl( vid_fd, VIDIOC_STREAMON, &type ) < 0 )
             Fatal( "Failed to start capture stream: %s", strerror(errno) );

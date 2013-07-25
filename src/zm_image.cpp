@@ -340,7 +340,7 @@ void Image::AssignDirect( const int p_width, const int p_height, const int p_col
 		return;
 	}
 	
-	if(buffer_size < ((p_width*p_height)*p_colours)) {
+	if(buffer_size < (unsigned int)((p_width*p_height)*p_colours)) {
 		Error("Attempt to directly assign buffer from an undersized buffer of size: %zu",buffer_size);
 		return;
 	}
@@ -356,7 +356,7 @@ void Image::AssignDirect( const int p_width, const int p_height, const int p_col
 	}
 	
 	if(holdbuffer && buffer) {
-		if(((p_height*p_width)*p_colours) > allocation) {
+		if((unsigned int)((p_height*p_width)*p_colours) > allocation) {
 			Error("Held buffer is undersized for assigned buffer");
 			return;
 		} else {
@@ -668,7 +668,7 @@ bool Image::ReadJpeg( const char *filename, int p_colours, int p_subpixelorder)
 		zm_use_std_huff_tables(cinfo);
 	}
 	
-	if ( cinfo->image_width != width || cinfo->image_height != height)
+	if ( cinfo->image_width != (unsigned int)width || cinfo->image_height != (unsigned int)height)
 	{
 		width = cinfo->image_width;
 		height = cinfo->image_height;
@@ -748,7 +748,7 @@ bool Image::ReadJpeg( const char *filename, int p_colours, int p_subpixelorder)
 	if(buffer == NULL) {
 		AllocImgBuffer(size);
 	} else {
-		if(allocation < size) {
+		if(allocation < (unsigned int)size) {
 			if(holdbuffer) {
 				Error("Held buffer is undersized for the requested image");
 				return (false);
@@ -920,7 +920,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, int p_colours
 		zm_use_std_huff_tables(cinfo);
 	}
 
-	if ( cinfo->image_width != width || cinfo->image_height != height)
+	if ( cinfo->image_width != (unsigned int)width || cinfo->image_height != (unsigned int)height)
 	{
 		width = cinfo->image_width;
 		height = cinfo->image_height;
@@ -999,7 +999,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, int p_colours
 	if(buffer == NULL) {
 		AllocImgBuffer(size);
 	} else {
-		if(allocation < size) {
+		if(allocation < (unsigned int)size) {
 			if(holdbuffer) {
 				Error("Held buffer is undersized for the requested image");
 				return (false);
@@ -1136,7 +1136,7 @@ bool Image::Unzip( const Bytef *inbuffer, unsigned long inbuffer_size )
 		Error( "Unzip failed, result = %d", result );
 		return( false );
 	}
-	if ( zip_size != size )
+	if ( zip_size != (unsigned int)size )
 	{
 		Error( "Unzip failed, size mismatch, expected %d bytes, got %ld", size, zip_size );
 		return( false );
@@ -1906,7 +1906,7 @@ void Image::Colourise(const int p_reqcolours, const int p_reqsubpixelorder)
 		uint8_t *pdest = new_buffer;
 		const uint8_t *psrc = buffer;
 		
-		for(unsigned int i=0;i<pixels;i++, pdest += 3)
+		for(unsigned int i=0;i<(unsigned int)pixels;i++, pdest += 3)
 		{
 			RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = psrc[i];
 		}
@@ -2000,11 +2000,11 @@ void Image::Fill( Rgb colour, const Box *limits )
 	}
 	else if ( colours == ZM_COLOUR_RGB32 ) /* RGB32 */
 	{
-		for ( unsigned int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= (unsigned int)hi_y; y++ )
 		{
 			Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
 			
-			for ( unsigned int x = lo_x; x <= hi_x; x++, p++)
+			for ( unsigned int x = lo_x; x <= (unsigned int)hi_x; x++, p++)
 			{
 				/* Fast, copies the entire pixel in a single pass */ 
 				*p = colour;
@@ -2615,7 +2615,7 @@ void Image::Scale( unsigned int factor )
 			{
 				w_count += factor;
 				w_index = w_count/ZM_SCALE_BASE;
-				for ( int f = last_w_index; f < w_index; f++ )
+				for (unsigned int f = last_w_index; f < w_index; f++ )
 				{
 					for ( int c = 0; c < colours; c++ )
 					{
@@ -2627,7 +2627,7 @@ void Image::Scale( unsigned int factor )
 			}
 			h_count += factor;
 			h_index = h_count/ZM_SCALE_BASE;
-			for ( int f = last_h_index+1; f < h_index; f++ )
+			for ( unsigned int f = last_h_index+1; f < h_index; f++ )
 			{
 				memcpy( pd, pd-nwc, nwc );
 				pd += nwc;
@@ -2647,7 +2647,7 @@ void Image::Scale( unsigned int factor )
 		unsigned int last_h_index = 0;
 		unsigned int last_w_index = 0;
 		unsigned int h_index;
-		for ( unsigned int y = 0; y < height; y++ )
+		for ( unsigned int y = 0; y < (unsigned int)height; y++ )
 		{
 			h_count += factor;
 			h_index = h_count/ZM_SCALE_BASE;
@@ -2658,7 +2658,7 @@ void Image::Scale( unsigned int factor )
 				last_w_index = 0;
 
 				unsigned char *ps = &buffer[y*wc];
-				for ( unsigned int x = 0; x < width; x++ )
+				for ( unsigned int x = 0; x < (unsigned int)width; x++ )
 				{
 					w_count += factor;
 					w_index = w_count/ZM_SCALE_BASE;
@@ -2695,11 +2695,11 @@ void Image::Deinterlace_Discard()
 	{
 		const uint8_t *psrc;
 		uint8_t *pdest;
-		for (unsigned int y = 0; y < height; y += 2)
+		for (unsigned int y = 0; y < (unsigned int)height; y += 2)
 		{
 			psrc = buffer + (y * width);
 			pdest = buffer + ((y+1) * width);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				*pdest++ = *psrc++;
 			}
 		}
@@ -2708,11 +2708,11 @@ void Image::Deinterlace_Discard()
 	{
 		const uint8_t *psrc;
 		uint8_t *pdest;
-		for (unsigned int y = 0; y < height; y += 2)
+		for (unsigned int y = 0; y < (unsigned int)height; y += 2)
 		{
 			psrc = buffer + ((y * width) * 3);
 			pdest = buffer + (((y+1) * width) * 3);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				*pdest++ = *psrc++;
 				*pdest++ = *psrc++;
 				*pdest++ = *psrc++;
@@ -2723,11 +2723,11 @@ void Image::Deinterlace_Discard()
 	{
 		const Rgb *psrc;
 		Rgb *pdest;
-		for (unsigned int y = 0; y < height; y += 2)
+		for (unsigned int y = 0; y < (unsigned int)height; y += 2)
 		{
 			psrc = (Rgb*)(buffer + ((y * width) << 2));
 			pdest = (Rgb*)(buffer + (((y+1) * width) << 2));
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				*pdest++ = *psrc++;
 			}
 		}
@@ -2746,30 +2746,30 @@ void Image::Deinterlace_Linear()
 	
 	if ( colours == ZM_COLOUR_GRAY8 )
 	{
-		for (unsigned int y = 1; y < (height-1); y += 2)
+		for (unsigned int y = 1; y < (unsigned int)(height-1); y += 2)
 		{
 			pabove = buffer + ((y-1) * width);
 			pbelow = buffer + ((y+1) * width);
 			pcurrent = buffer + (y * width);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
 			}
 		}
 		/* Special case for the last line */
 		pcurrent = buffer + ((height-1) * width);
 		pabove = buffer + ((height-2) * width);
-		for (unsigned int x = 0; x < width; x++) {
+		for (unsigned int x = 0; x < (unsigned int)width; x++) {
 			*pcurrent++ = *pabove++;
 		}
 	}
 	else if ( colours == ZM_COLOUR_RGB24 )
 	{
-		for (unsigned int y = 1; y < (height-1); y += 2)
+		for (unsigned int y = 1; y < (unsigned int)(height-1); y += 2)
 		{
 			pabove = buffer + (((y-1) * width) * 3);
 			pbelow = buffer + (((y+1) * width) * 3);
 			pcurrent = buffer + ((y * width) * 3);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
 				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
 				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
@@ -2778,7 +2778,7 @@ void Image::Deinterlace_Linear()
 		/* Special case for the last line */
 		pcurrent = buffer + (((height-1) * width) * 3);
 		pabove = buffer + (((height-2) * width) * 3);
-		for (unsigned int x = 0; x < width; x++) {
+		for (unsigned int x = 0; x < (unsigned int)width; x++) {
 			*pcurrent++ = *pabove++;
 			*pcurrent++ = *pabove++;
 			*pcurrent++ = *pabove++;
@@ -2786,12 +2786,12 @@ void Image::Deinterlace_Linear()
 	}
 	else if ( colours == ZM_COLOUR_RGB32 )
 	{
-		for (unsigned int y = 1; y < (height-1); y += 2)
+		for (unsigned int y = 1; y < (unsigned int)(height-1); y += 2)
 		{
 			pabove = buffer + (((y-1) * width) << 2);
 			pbelow = buffer + (((y+1) * width) << 2);
 			pcurrent = buffer + ((y * width) << 2);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
 				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
 				*pcurrent++ = (*pabove++ + *pbelow++) >> 1;
@@ -2801,7 +2801,7 @@ void Image::Deinterlace_Linear()
 		/* Special case for the last line */
 		pcurrent = buffer + (((height-1) * width) << 2);
 		pabove = buffer + (((height-2) * width) << 2);
-		for (unsigned int x = 0; x < width; x++) {
+		for (unsigned int x = 0; x < (unsigned int)width; x++) {
 			*pcurrent++ = *pabove++;
 			*pcurrent++ = *pabove++;
 			*pcurrent++ = *pabove++;  
@@ -2821,11 +2821,11 @@ void Image::Deinterlace_Blend()
 	
 	if ( colours == ZM_COLOUR_GRAY8 )
 	{
-		for (unsigned int y = 1; y < height; y += 2)
+		for (unsigned int y = 1; y < (unsigned int)height; y += 2)
 		{
 			pabove = buffer + ((y-1) * width);
 			pcurrent = buffer + (y * width);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				*pabove = (*pabove + *pcurrent) >> 1;
 				*pcurrent++ = *pabove++;
 			}
@@ -2833,11 +2833,11 @@ void Image::Deinterlace_Blend()
 	}
 	else if ( colours == ZM_COLOUR_RGB24 )
 	{
-		for (unsigned int y = 1; y < height; y += 2)
+		for (unsigned int y = 1; y < (unsigned int)height; y += 2)
 		{
 			pabove = buffer + (((y-1) * width) * 3);
 			pcurrent = buffer + ((y * width) * 3);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				*pabove = (*pabove + *pcurrent) >> 1;
 				*pcurrent++ = *pabove++;
 				*pabove = (*pabove + *pcurrent) >> 1;
@@ -2849,11 +2849,11 @@ void Image::Deinterlace_Blend()
 	}
 	else if ( colours == ZM_COLOUR_RGB32 )
 	{
-		for (unsigned int y = 1; y < height; y += 2)
+		for (unsigned int y = 1; y < (unsigned int)height; y += 2)
 		{
 			pabove = buffer + (((y-1) * width) << 2);
 			pcurrent = buffer + ((y * width) << 2);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				*pabove = (*pabove + *pcurrent) >> 1;
 				*pcurrent++ = *pabove++;
 				*pabove = (*pabove + *pcurrent) >> 1;
@@ -2887,11 +2887,11 @@ void Image::Deinterlace_Blend_CustomRatio(int divider)
 	
 	if ( colours == ZM_COLOUR_GRAY8 )
 	{
-		for (unsigned int y = 1; y < height; y += 2)
+		for (unsigned int y = 1; y < (unsigned int)height; y += 2)
 		{
 			pabove = buffer + ((y-1) * width);
 			pcurrent = buffer + (y * width);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
 				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
 				*pcurrent++ = subpix1;
@@ -2901,11 +2901,11 @@ void Image::Deinterlace_Blend_CustomRatio(int divider)
 	}
 	else if ( colours == ZM_COLOUR_RGB24 )
 	{
-		for (unsigned int y = 1; y < height; y += 2)
+		for (unsigned int y = 1; y < (unsigned int)height; y += 2)
 		{
 			pabove = buffer + (((y-1) * width) * 3);
 			pcurrent = buffer + ((y * width) * 3);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
 				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
 				*pcurrent++ = subpix1;
@@ -2923,11 +2923,11 @@ void Image::Deinterlace_Blend_CustomRatio(int divider)
 	}
 	else if ( colours == ZM_COLOUR_RGB32 )
 	{
-		for (unsigned int y = 1; y < height; y += 2)
+		for (unsigned int y = 1; y < (unsigned int)height; y += 2)
 		{
 			pabove = buffer + (((y-1) * width) << 2);
 			pcurrent = buffer + ((y * width) << 2);
-			for (unsigned int x = 0; x < width; x++) {
+			for (unsigned int x = 0; x < (unsigned int)width; x++) {
 				subpix1 = ((*pabove - *pcurrent)>>divider) + *pcurrent;
 				subpix2 = ((*pcurrent - *pabove)>>divider) + *pabove;
 				*pcurrent++ = subpix1;
@@ -4222,7 +4222,7 @@ __attribute__((noinline)) void std_deinterlace_4field_gray8(uint8_t* col1, uint8
 	{
 		max_ptr2 = pcurrent + width;
 		while(pcurrent < max_ptr2) {
-			if(((abs(*pnabove - *pabove) + abs(*pncurrent - *pcurrent)) >> 1) >= threshold) {
+			if((unsigned int)((abs(*pnabove - *pabove) + abs(*pncurrent - *pcurrent)) >> 1) >= threshold) {
 				*pcurrent = (*pabove + *pbelow) >> 1;
 			}
 			pabove++;
@@ -4242,7 +4242,7 @@ __attribute__((noinline)) void std_deinterlace_4field_gray8(uint8_t* col1, uint8
 	/* Special case for the last line */
 	max_ptr2 = pcurrent + width;
 	while(pcurrent < max_ptr2) {
-		if(((abs(*pnabove - *pabove) + abs(*pncurrent - *pcurrent)) >> 1) >= threshold) {
+		if((unsigned int)((abs(*pnabove - *pabove) + abs(*pncurrent - *pcurrent)) >> 1) >= threshold) {
 			*pcurrent = *pabove;
 		}
 		pabove++;

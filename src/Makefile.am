@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
-AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -Wno-sign-compare -fno-inline
+AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -finline-functions -fomit-frame-pointer
 #AM_CXXFLAGS = -frepo
 
 CLEANFILES = *.rpo
@@ -58,7 +58,11 @@ zm_SOURCES = \
 	zm_timer.cpp \
 	zm_user.cpp \
 	zm_utils.cpp \
-	zm_zone.cpp
+	zm_zone.cpp \
+	zm_detector.cpp \
+	zm_plugin.cpp \
+	zm_plugin_manager.cpp \
+	zm_image_analyser.cpp
 
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
 zma_SOURCES = zma.cpp $(zm_SOURCES)
@@ -113,7 +117,11 @@ noinst_HEADERS = \
 	zm_timer.h \
 	zm_user.h \
 	zm_utils.h \
-	zm_zone.h
+	zm_zone.h \
+	zm_detector.h \
+	zm_plugin.h \
+	zm_plugin_manager.h \
+	zm_image_analyser.h
 
 EXTRA_DIST = \
 	zm_config.h.in \

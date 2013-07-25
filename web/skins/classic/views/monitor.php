@@ -102,6 +102,8 @@ else
         'SignalCheckColour' => '#0000c0',
         'WebColour' => 'red',
         'Triggers' => "",
+        'DoNativeMotDet' => true,
+        'UsedPl' => "",
     );
 }
 
@@ -444,6 +446,8 @@ if ( $tab != 'general' )
         <input type="hidden" name="newMonitor[Function]" value="<?= validHtmlStr($newMonitor['Function']) ?>"/>
         <input type="hidden" name="newMonitor[Enabled]" value="<?= validHtmlStr($newMonitor['Enabled']) ?>"/>
         <input type="hidden" name="newMonitor[RefBlendPerc]" value="<?= validHtmlStr($newMonitor['RefBlendPerc']) ?>"/>
+        <input type="hidden" name="newMonitor[DoNativeMotDet]" value="<?= validHtmlStr($newMonitor['DoNativeMotDet']) ?>"/>
+        <input type="hidden" name="newMonitor[UsedPlugins]" value="<?= validHtmlStr($newMonitor['UsedPlugins']) ?>"/>
         <input type="hidden" name="newMonitor[MaxFPS]" value="<?= validHtmlStr($newMonitor['MaxFPS']) ?>"/>
         <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?= validHtmlStr($newMonitor['AlarmMaxFPS']) ?>"/>
 <?php
@@ -604,6 +608,8 @@ switch ( $tab )
             <tr><td><?= $SLANG['MaximumFPS'] ?></td><td><input type="text" name="newMonitor[MaxFPS]" value="<?= validHtmlStr($newMonitor['MaxFPS']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['AlarmMaximumFPS'] ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?= validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?= validHtmlStr($newMonitor['RefBlendPerc']) ?>" size="4"/></td></tr>
+            <tr><td><?= $SLANG['UsedPlugins'] ?></td><td><input type="text" name="newMonitor[UsedPl]" value="<?= validHtmlStr($newMonitor['UsedPl']) ?>" size="50"/></td></tr>
+            <tr><td><?= $SLANG['DoNativeMotionDetection'] ?></td><td><input type="checkbox" name="newMonitor[DoNativeMotDet]" value="1"<?php if ( !empty($newMonitor['DoNativeMotDet']) ) { ?> checked="checked"<?php } ?>/></td></tr>
             <tr><td><?= $SLANG['Triggers'] ?></td><td>
 <?php
         $optTriggers = getSetValues( 'Monitors', 'Triggers' );

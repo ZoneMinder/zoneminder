@@ -161,7 +161,7 @@ int RemoteCameraRtsp::PrimeCapture()
     // Find first video stream present
     mVideoStreamId = -1;
     
-    for ( int i = 0; i < mFormatContext->nb_streams; i++ )
+    for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
 	if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
@@ -183,7 +183,11 @@ int RemoteCameraRtsp::PrimeCapture()
         Panic( "Unable to locate codec %d decoder", mCodecContext->codec_id );
 
     // Open codec
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 7, 0)
     if ( avcodec_open( mCodecContext, mCodec ) < 0 )
+#else
+    if ( avcodec_open2( mCodecContext, mCodec, 0 ) < 0 )
+#endif
         Panic( "Can't open codec" );
 
     // Allocate space for the native video frame
@@ -196,7 +200,7 @@ int RemoteCameraRtsp::PrimeCapture()
 		Fatal( "Unable to allocate frame(s)");
 	
 	int pSize = avpicture_get_size( imagePixFormat, width, height );
-	if( pSize != imagesize) {
+	if( (unsigned int)pSize != imagesize) {
 		Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
 	}
 	

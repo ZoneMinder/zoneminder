@@ -84,7 +84,7 @@ StringVector split( const std::string &string, const std::string chars, int limi
             break;
         // Find non-delimiters
         startIndex = tempString.find_first_not_of( chars, endIndex );
-        if ( limit && (stringVector.size() == (limit-1)) )
+        if ( limit && (stringVector.size() == (unsigned int)(limit-1)) )
         {
             stringVector.push_back( string.substr( startIndex ) );
             break;

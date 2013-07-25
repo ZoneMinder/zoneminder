@@ -63,7 +63,7 @@ inline char *mempbrk( register const char *s, const char *accept, size_t limit )
     if ( limit <= 0 || !s || !accept || !*accept )
         return( 0 );
 
-    register int i,j;
+    register unsigned int i,j;
     size_t acc_len = strlen( accept );
 
     for ( i = 0; i < limit; s++, i++ )
@@ -87,7 +87,7 @@ inline char *memstr( register const char *s, const char *n, size_t limit )
     if ( !*n )
         return( (char *)s );
 
-    register int i,j,k;
+    register unsigned int i,j,k;
     size_t n_len = strlen( n );
 
     for ( i = 0; i < limit; i++, s++ )
@@ -112,7 +112,7 @@ inline size_t memspn( register const char *s, const char *accept, size_t limit )
     if ( limit <= 0 || !s || !accept || !*accept )
         return( 0 );
 
-    register int i,j;
+    register unsigned int i,j;
     size_t acc_len = strlen( accept );
 
     for ( i = 0; i < limit; s++, i++ )
@@ -142,7 +142,7 @@ inline size_t memcspn( register const char *s, const char *reject, size_t limit 
     if ( !*reject )
         return( limit );
 
-    register int i,j;
+    register unsigned int i,j;
     size_t rej_len = strlen( reject );
 
     for ( i = 0; i < limit; s++, i++ )

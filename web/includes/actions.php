@@ -358,6 +358,32 @@ if ( !empty($action) )
             }
             $view = 'none';
         }
+        elseif ( $action == "plugin" && isset($_REQUEST['pl']))
+        {
+           $plugin=dbEscape($_REQUEST['pl']);
+           $zid=validInt($_REQUEST['zid']);
+           $sql="SELECT * FROM PluginsConfig WHERE MonitorId='".dbEscape($mid)."' AND ZoneId='".$zid."' AND pluginName='".$plugin."'";
+           $pconfs=dbFetchAll( $sql );
+           $changes=0;
+           foreach( $pconfs as $pconf )
+           {
+              $value=$_REQUEST['pluginOpt'][$pconf['Name']];
+              if(array_key_exists($pconf['Name'], $_REQUEST['pluginOpt']) && ($pconf['Value']!=$value))
+              {
+                 dbQuery("UPDATE PluginsConfig SET Value='".dbEscape($value)."' WHERE id='".$pconf['Id']."'");
+                 $changes++;
+              }
+           }
+           if($changes>0)
+           {
+                if ( daemonCheck() )
+                {
+                    zmaControl( $mid, "restart" );
+                }
+                $refreshParent = true;
+           }
+           $view = 'none';
+        }
         elseif ( $action == "sequence" && isset($_REQUEST['smid']) )
         {
             $smid = validInt($_REQUEST['smid']);
@@ -423,7 +449,8 @@ if ( !empty($action) )
                 'Triggers' => 'set',
                 'Controllable' => 'toggle',
                 'TrackMotion' => 'toggle',
-                'Enabled' => 'toggle'
+                'Enabled' => 'toggle',
+                'DoNativeMotDet' => 'toggle'
             );
 
             $columns = getTableColumns( 'Monitors' );

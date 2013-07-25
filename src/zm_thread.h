@@ -207,7 +207,7 @@ protected:
     void exit( int status = 0 )
     {
         //INFO( "Exiting" );
-        pthread_exit( (void *)status );
+        pthread_exit( (void *)&status );
     }
     static void *mThreadFunc( void *arg );
 

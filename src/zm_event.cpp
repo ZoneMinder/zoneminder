@@ -107,7 +107,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         char date_path[PATH_MAX] = "";
         char time_path[PATH_MAX] = "";
         char *time_path_ptr = time_path;
-        for ( int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ )
+        for ( unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ )
         {
             path_ptr += snprintf( path_ptr, sizeof(path)-(path_ptr-path), "/%02d", dt_parts[i] );
 
@@ -589,7 +589,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
         alarm_frames++;
 
         tot_score += score;
-        if ( score > max_score )
+        if ( score > (int)max_score )
             max_score = score;
 
         if ( alarm_image )
@@ -683,7 +683,7 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
         curr_frame_id = 1;
         if ( event_time >= event_data->start_time )
         {
-            for ( int i = 0; i < event_data->frame_count; i++ )
+            for (unsigned int i = 0; i < event_data->frame_count; i++ )
             {
                 //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
                 if ( event_data->frames[i].timestamp >= event_time )
@@ -1122,7 +1122,7 @@ void EventStream::checkEventLoaded()
         snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %ld and Id < %ld order by Id desc limit 1", event_data->monitor_id, event_data->event_id );
         reload_event = true;
     }
-    else if ( curr_frame_id > event_data->frame_count )
+    else if ( (unsigned int)curr_frame_id > event_data->frame_count )
     {
         snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %ld and Id > %ld order by Id asc limit 1", event_data->monitor_id, event_data->event_id );
         reload_event = true;

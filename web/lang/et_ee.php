@@ -523,6 +523,7 @@ $SLANG = array(
     'Play'                  => 'Play',
     'PlayAll'               => 'Play All',
     'PleaseWait'            => 'Please Wait',
+    'Plugins'              => 'Plugins',
     'Point'                 => 'Point',
     'PostEventImageBuffer'  => 'Post Event Image Count',
     'PreEventImageBuffer'   => 'Pre Event Image Count',

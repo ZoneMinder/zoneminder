@@ -200,12 +200,12 @@ function checkStreamForErrors( funcName, streamObj )
 {
     if ( !streamObj )
     {
-        console.error( funcName+": stream object was null" );
+        Error( funcName+": stream object was null" );
         return true;
     }
     if ( streamObj.result == "Error" )
     {
-        console.error( funcName+" stream error: "+streamObj.message );
+        Error( funcName+" stream error: "+streamObj.message );
         return true;
     }
     return false;

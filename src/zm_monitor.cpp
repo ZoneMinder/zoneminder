@@ -321,8 +321,7 @@ Monitor::Monitor(
     purpose( p_purpose ),
     camera( p_camera ),
     n_zones( p_n_zones ),
-    zones( p_zones ),
-    iDoNativeMotDet(p_DoNativeMotDet)
+    zones( p_zones )
 {
     strncpy( name, p_name, sizeof(name) );
 
@@ -1300,41 +1299,25 @@ bool Monitor::Analyse()
                 }
                 else if ( signal && Active() && (function == MODECT || function == MOCORD) )
                 {
-                    if ((config.turnoff_native_analysis && !config.load_plugins) || (!config.turnoff_native_analysis && (iDoNativeMotDet || (!iDoNativeMotDet && !config.load_plugins))) )
-
+                    Event::StringSet zoneSet;
+                    int motion_score = DetectMotion( *snap_image, zoneSet );
+                    //int motion_score = DetectBlack( *snap_image, zoneSet );
+                    if ( motion_score )
                     {
-                        Event::StringSet zoneSet;
-                        int motion_score = DetectMotion( *snap_image, zoneSet );
-                        //int motion_score = DetectBlack( *snap_image, zoneSet );
-                        if ( motion_score )
+                        if ( !event )
                         {
-                            if ( !event )
-                            {
-                                score += motion_score;
-                                if ( cause.length() )
-                                    cause += ", ";
-                                cause += MOTION_CAUSE;
-                            }
-                            else
-                            {
-                                score += motion_score;
-                            }
-                            noteSetMap[MOTION_CAUSE] = zoneSet;
-
+                            score += motion_score;
+                            if ( cause.length() )
+                                cause += ", ";
+                            cause += MOTION_CAUSE;
                         }
-                    }
-                    //====================================================================
-                    else
-                    {
-                        
-                        for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+                        else
                         {
-                            zones[n_zone]->ResetStats();
+                            score += motion_score;
                         }
+                        noteSetMap[MOTION_CAUSE] = zoneSet;
+
                     }
-
-                    //====================================================================
-
                     shared_data->active = signal;
                 }
                 if ( (!signal_change && signal) && n_linked_monitors > 0 )

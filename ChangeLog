@@ -1,1 +1,7 @@
-Please see README file.
+v1.26.0
+ * mastertheknife's performance improvement patch
+ * nextime's work at cleaning up builds and making ZM build cleanly with a modern version of ffmpeg
+ * add a Controls preset for Airlink SkyIPCam 7xx cameras (commit 0da26d4f7569718b47b40130715dca0196aa7159)
+ * fix control types dropdown for a new monitor (commit 0a3ffb5e2e58f000b4cc5b7af49b241dd7c38374)
+ * Support for control when monitor source is ffmpeg. This should fix #16. (commit bb19e80fa8a0a70705f8497e4c621aed379ea4f5)
+

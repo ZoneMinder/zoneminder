@@ -367,9 +367,7 @@ CREATE TABLE `Monitors` (
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',
-  `Sequence` smallint(5) unsigned default NULL,
-  `UsedPl` varchar(88) NOT NULL default '',
-  `DoNativeMotDet` tinyint(3) unsigned NOT NULL default '1',
+  `Sequence` smallint(5) unsigned default NULL
   PRIMARY KEY  (`Id`)
 ) ENGINE=MyISAM;
 

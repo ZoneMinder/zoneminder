@@ -62,26 +62,3 @@ int ImageAnalyser::DoDetection(const Image &comp_image, Zone** zones, int n_numZ
     return score;
 }
 
-
-
-/*!\fn ImageAnalyser::configurePlugins(string sConfigFileName)
- *  \param sConfigFileName is the path to the configuration file, where parameters for all plugins are given.
- */
-void ImageAnalyser::configurePlugins(string sConfigFileName)
-{
-    for(DetectorsList::iterator It = m_Detectors.begin();
-        It != m_Detectors.end();
-        ++It)
-    {
-        try
-        {
-            (*It)->loadConfig(sConfigFileName);
-        }
-        catch(...)
-        {
-            //Info("ERROR: Plugin \"%s\" couldn\'t load config file \"%s\".", (*It)->getDetectionCause().c_str(), sConfigFileName.c_str());
-            Info("ERROR: Plugin couldn\'t load config file .");
-        }
-    }
-
-}

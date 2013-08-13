@@ -167,7 +167,6 @@ zm_monitor.o: zm_monitor.cpp /usr/include/x86_64-linux-gnu/sys/types.h \
  /usr/include/x86_64-linux-gnu/asm/ioctl.h \
  /usr/include/asm-generic/ioctl.h \
  /usr/include/x86_64-linux-gnu/bits/ioctl-types.h \
- /usr/include/x86_64-linux-gnu/sys/ttydefaults.h zm_plugin_manager.h \
  /usr/include/x86_64-linux-gnu/sys/dir.h /usr/include/dirent.h \
  /usr/include/x86_64-linux-gnu/bits/dirent.h \
  /usr/include/x86_64-linux-gnu/sys/param.h /usr/include/linux/param.h \
@@ -181,7 +180,6 @@ zm_monitor.o: zm_monitor.cpp /usr/include/x86_64-linux-gnu/sys/types.h \
  /usr/include/c++/4.7/backward/auto_ptr.h zm_detector.h \
  /usr/include/syslog.h /usr/include/x86_64-linux-gnu/sys/syslog.h \
  /usr/include/x86_64-linux-gnu/bits/syslog-path.h /usr/include/libgen.h \
- zm_plugin.h /usr/include/dlfcn.h \
  /usr/include/x86_64-linux-gnu/bits/dlfcn.h zm_local_camera.h \
  /usr/include/linux/videodev2.h /usr/include/linux/types.h \
  /usr/include/x86_64-linux-gnu/asm/types.h \
@@ -696,8 +694,6 @@ zm_camera.h:
 
 /usr/include/x86_64-linux-gnu/sys/ttydefaults.h:
 
-zm_plugin_manager.h:
-
 /usr/include/x86_64-linux-gnu/sys/dir.h:
 
 /usr/include/dirent.h:
@@ -741,8 +737,6 @@ zm_detector.h:
 /usr/include/x86_64-linux-gnu/bits/syslog-path.h:
 
 /usr/include/libgen.h:
-
-zm_plugin.h:
 
 /usr/include/dlfcn.h:
 

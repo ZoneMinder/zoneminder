@@ -217,11 +217,6 @@
 #define ZM_EYEZM_H264_DEFAULT_EVBR 213
 #define ZM_EYEZM_H264_TIMEOUT 214
 #define ZM_EYEZM_SEG_DURATION 215
-#define ZM_PATH_PLUGINS 216
-#define ZM_PLUGIN_EXTENSION 217
-#define ZM_PLUGINS_CONFIG_PATH 218
-#define ZM_LOAD_PLUGINS 219
-#define ZM_TURNOFF_NATIVE_ANALYSIS 220
 
 
 #define ZM_MAX_CFG_ID 220
@@ -443,11 +438,6 @@
 	const char *eyezm_h264_default_evbr;\
 	const char *eyezm_h264_timeout;\
 	const char *eyezm_seg_duration;\
-	const char *path_plugins;\
-	const char *plugin_extension;\
-	const char *plugins_config_path;\
-	bool load_plugins;\
-	bool turnoff_native_analysis;\
 
 
 #define ZM_CFG_ASSIGN_LIST \
@@ -667,10 +657,5 @@
 	eyezm_h264_default_evbr = (const char *)config.Item( ZM_EYEZM_H264_DEFAULT_EVBR );\
 	eyezm_h264_timeout = (const char *)config.Item( ZM_EYEZM_H264_TIMEOUT );\
 	eyezm_seg_duration = (const char *)config.Item( ZM_EYEZM_SEG_DURATION );\
-	path_plugins = (const char *)config.Item( ZM_PATH_PLUGINS );\
-	plugin_extension = (const char *)config.Item( ZM_PLUGIN_EXTENSION );\
-	plugins_config_path = (const char *)config.Item( ZM_PLUGINS_CONFIG_PATH );\
-	load_plugins = (bool)config.Item( ZM_LOAD_PLUGINS );\
-	turnoff_native_analysis = (bool)config.Item( ZM_TURNOFF_NATIVE_ANALYSIS );\
 
 

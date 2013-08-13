@@ -10,7 +10,6 @@
 #include <memory>
 
 #include "zm.h"
-#include "zm_detector.h"
 #include "zm_image.h"
 #include "zm_zone.h"
 #include "zm_event.h"

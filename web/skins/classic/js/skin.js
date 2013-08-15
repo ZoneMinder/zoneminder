@@ -29,7 +29,7 @@ var popupSizes = {
     'control':      { 'width': 380, 'height': 480 },
     'controlcaps':  { 'width': 780, 'height': 320 },
     'controlcap':   { 'width': 400, 'height': 400 },
-    'cycle':        { 'addWidth': 26, 'minWidth': 384, 'addHeight': 48 },
+    'cycle':        { 'addWidth': 26, 'minWidth': 384, 'addHeight': 54 },
     'device':       { 'width': 260, 'height': 150 },
     'devices':      { 'width': 400, 'height': 240 },
     'donate':       { 'width': 500, 'height': 280 },

@@ -24,3 +24,4 @@ ALTER TABLE `Monitors` ADD `DoNativeMotDet` varchar(5) NOT NULL default 'yes' AF
 ALTER TABLE `Monitors` ADD `Colours` TINYINT UNSIGNED NOT NULL DEFAULT '1' AFTER `Height`;
 ALTER TABLE `Monitors` ADD `Deinterlacing` INT UNSIGNED NOT NULL DEFAULT '0' AFTER `Orientation`;
 
+INSERT INTO ZonePresets VALUES (7,'Default','Active','Percent','Blobs',25,NULL,3,75,3,3,3,75,2,NULL,1,NULL,0);

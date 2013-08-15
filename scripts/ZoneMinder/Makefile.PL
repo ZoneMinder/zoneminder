@@ -25,6 +25,7 @@ WriteMakefile(
 		'lib/ZoneMinder/Control/Visca.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/Visca.pm',
 		'lib/ZoneMinder/Control/Ncs370.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/Ncs370.pm',
 		'lib/ZoneMinder/Control/mjpgStreamer.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/mjpgStreamer.pm',
+		'lib/ZoneMinder/Control/SkyIPCam7xx.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/SkyIPCam7xx.pm',
 		'lib/ZoneMinder/Trigger/Channel.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel.pm',
 		'lib/ZoneMinder/Trigger/Channel/Handle.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel/Handle.pm',
 		'lib/ZoneMinder/Trigger/Channel/Spawning.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel/Spawning.pm',

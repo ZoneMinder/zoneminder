@@ -67,11 +67,11 @@ foreach( dbFetchAll( $sql ) as $row )
 $focusWindow = true;
 
 $layouts = array(
-    'montage_freeform.css' => 'Default',
-    'montage_2wide.css' => '2-wide grid',
-    'montage_3wide.css' => '3-wide grid',
-    'montage_4wide.css' => '4-wide grid',
-    'montage_3wide50enlarge.css' => '3-wide grid, scaled, enlarge on alarm',
+    'montage_freeform.css' => $SLANG['MtgDefault'],
+    'montage_2wide.css' => $SLANG['Mtg2widgrd'],
+    'montage_3wide.css' => $SLANG['Mtg3widgrd'],
+    'montage_4wide.css' => $SLANG['Mtg4widgrd'],
+    'montage_3wide50enlarge.css' => $SLANG['Mtg3widgrx'],
 );
 
 if ( isset($_COOKIE['zmMontageLayout']) )

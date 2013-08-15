@@ -1,1 +1,0 @@
-zm_ffmpeg.o: zm_ffmpeg.cpp

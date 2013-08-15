@@ -818,11 +818,11 @@ xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
         <div id="dataPanel">
           <div id="textPanel">
             <div id="instruction">
-              <p>Pass your mouse over the graph to view a snapshot image and event details.</p>
-              <p>Click on the coloured sections of the graph, or the image, to view the event.</p>
-              <p>Click on the background to zoom in to a smaller time period based around your click.</p>
-              <p>Use the controls below to zoom out or navigate back and forward through the time range.</p>
-            </div>
+              <p><?= $SLANG['TimelineTip1'] ?></p>
+              <p><?= $SLANG['TimelineTip2'] ?></p>
+              <p><?= $SLANG['TimelineTip3'] ?></p>
+              <p><?= $SLANG['TimelineTip4'] ?></p>
+              </div>
             <div id="eventData">
             </div>
           </div>

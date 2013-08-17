@@ -16,7 +16,7 @@ AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database, default zm])
 AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user, default zmuser])
 AC_ARG_VAR(ZM_DB_PASS,[Password of ZoneMinder database user, default zmpass])
 AC_ARG_VAR(ZM_SSL_LIB,[Library to use for ssl functions, default gnutls])
-AC_ARG_VAR(ZM_MYSQL_ENGINE,[MySQL engine to use with database, default MyISAM])
+AC_ARG_VAR(ZM_MYSQL_ENGINE,[MySQL engine to use with database, default InnoDB])
 AC_ARG_VAR(ZM_RUNDIR,[Location of transient process files, default /var/run/zm])
 AC_ARG_VAR(ZM_TMPDIR,[Location of temporary files, default /tmp/zm])
 AC_ARG_VAR(ZM_LOGDIR,[Location of generated log files, default /var/log/zm])
@@ -37,7 +37,7 @@ if test "$ZM_SSL_LIB" == ""; then
 	AC_SUBST(ZM_SSL_LIB,gnutls)
 fi
 if test "$ZM_MYSQL_ENGINE" == ""; then
-	AC_SUBST(ZM_MYSQL_ENGINE,MyISAM)
+	AC_SUBST(ZM_MYSQL_ENGINE,InnoDB)
 fi
 if test "$ZM_RUNDIR" == ""; then
 	AC_SUBST(ZM_RUNDIR,[/var/run/zm])

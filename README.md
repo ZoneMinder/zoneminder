@@ -18,14 +18,18 @@ If you are compiling from source, the below list contains the packages needed to
 #### Debian / Ubuntu
 
 ```bash
-sudo apt-get install apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm subversion automake autoconf libjpeg-turbo8-dev libjpeg-turbo8 apache2-mpm-prefork libapache2-mod-php5 php5-cli
+sudo apt-get install apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev \
+libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 \
+libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm subversion automake autoconf libjpeg-turbo8-dev libjpeg-turbo8 \
+apache2-mpm-prefork libapache2-mod-php5 php5-cli
 ```
 
 #### CentOS / Redhat
 
-Two additional repositories must be added before one can build zoneminder on CentOS or RHEL.
-1) RepoForge (formerly RPMForge) http://repoforge.org/use/
-2) EPEL https://fedoraproject.org/wiki/EPEL
+Two additional repositories must be added before one can build zoneminder on CentOS or RHEL:
+
+1. RepoForge (formerly RPMForge) http://repoforge.org/use/
+2. EPEL https://fedoraproject.org/wiki/EPEL
 
 Once those are added, install the following:
 ```bash

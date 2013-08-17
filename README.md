@@ -23,6 +23,18 @@ sudo apt-get install apache2 mysql-server php5 php5-mysql build-essential libmys
 
 #### CentOS / Redhat
 
+Two additional repositories must be added before one can build zoneminder on CentOS or RHEL.
+1) RepoForge (formerly RPMForge) http://repoforge.org/use/
+2) EPEL https://fedoraproject.org/wiki/EPEL
+
+Once those are added, install the following:
+```bash
+sudo yum install automake bzip2-devel ffmpeg ffmpeg-devel gnutls-devel httpd libjpeg-turbo libjpeg-turbo-devel mysql-devel mysql-server pcre-devel \
+perl-Archive-Tar perl-Archive-Zip perl-Convert-BinHex perl-Date-Manip perl-DBD-MySQL perl-DBI perl-Device-SerialPort perl-Email-Date-Format perl-IO-stringy \
+perl-IO-Zlib perl-MailTools perl-MIME-Lite perl-MIME-tools perl-MIME-Types perl-Module-Load perl-Package-Constants perl-Sys-Mmap perl-Time-HiRes \
+perl-TimeDate perl-YAML-Syck php php-cli php-mysql subversion x264
+```
+
 ### ffmpeg
 
 This release of ZoneMinder has been tested on and works with ffmpeg version N-55540-g93f4277.

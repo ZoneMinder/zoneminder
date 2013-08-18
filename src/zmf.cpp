@@ -231,16 +231,39 @@ int main( int argc, char *argv[] )
 		}
 		Debug( 1, "Read frame header, expecting %ld bytes of image", frame_header.image_length );
 		static unsigned char image_data[ZM_MAX_IMAGE_SIZE];
-		n_bytes = read( sd, image_data, frame_header.image_length );
-		if ( n_bytes != (ssize_t)frame_header.image_length )
+
+                // Read for pipe and loop until bytes expected have been read or an error occures
+                int bytes_read = 0;
+                do
 		{
-			if ( n_bytes < 0 )
+                        n_bytes = read( sd, image_data+bytes_read, frame_header.image_length-bytes_read );
+                        if (n_bytes < 0) break; // break on error
+                        if (n_bytes < frame_header.image_length)
 			{
-				Error( "Can't read frame image data: %s", strerror(errno) );
+                                // print some informational messages 
+                                if (bytes_read == 0)
+                                {
+                                        // Warning("Image read : Short read %d bytes of %d expected bytes",n_bytes,frame_header.image_length);
+                                }
+                                else if (bytes_read+n_bytes == frame_header.image_length)
+                                {
+                                        // Warning("Image read : Read rest of short read: %d bytes read total of %d bytes",n_bytes,frame_header.image_length);
+                                }
+                                else
+                                {
+                                        // Warning("Image read : continuing, read %d bytes (%d so far)", n_bytes, bytes_read+n_bytes);
+                                }
 			}
-			else if ( n_bytes > 0 )
+                        bytes_read+= n_bytes;
+                } while (n_bytes>0 && (bytes_read < (ssize_t)frame_header.image_length) );
+
+                // Print errors if there was a problem
+                if ( n_bytes < 1 )
+                {
+                        Error( "Only read %d bytes of %d\n", bytes_read, frame_header.image_length);
+                        if ( n_bytes < 0 )
 			{
-				Error( "Incomplete read of frame image data, %d bytes only", n_bytes );
+                                Error( "Can't read frame image data: %s", strerror(errno) );
 			}
 			else
 			{
@@ -249,16 +272,18 @@ int main( int argc, char *argv[] )
 			ReopenSocket( sd, monitor->Id() );
 			continue;
 		}
+
 		static char subpath[PATH_MAX] = "";
-        if ( config.use_deep_storage )
-        {
-            struct tm *time = localtime( &frame_header.event_time );
-            snprintf( subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec );
-        }
-        else
-        {
-            snprintf( subpath, sizeof(subpath), "%ld", frame_header.event_id );
-        }
+                if ( config.use_deep_storage )
+                {
+                    struct tm *time = localtime( &frame_header.event_time );
+                    snprintf( subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec );
+                }
+                else
+                {
+                    snprintf( subpath, sizeof(subpath), "%ld", frame_header.event_id );
+                }
+
 		static char path[PATH_MAX] = "";
 		snprintf( path, sizeof(path), frame_header.alarm_frame?anal_path:capt_path, subpath, frame_header.frame_id );
 		Debug( 1, "Got image, writing to %s", path );

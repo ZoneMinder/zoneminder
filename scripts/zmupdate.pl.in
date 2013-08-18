@@ -967,19 +967,9 @@ if ( $version )
     }
 	if ( $cascade || $version lt "1.26.0" )
 	{
-		my $sth = $dbh->prepare_cached( 'select * from Monitors LIMIT 0,1' );
-		die "Error: " . $dbh->errstr . "\n" unless ($sth);
-		die "Error: " . $sth->errstr . "\n" unless ($sth->execute);
-
-		my $columns = $sth->{'NAME'};
-		if ( ! grep(/^Colours$/, @$columns ) ) {
-			$dbh->do(q{alter table Monitors add column `Colours` tinyint(3) unsigned NOT NULL default '1' after `Height`;});
-		} # end if
-		if ( ! grep(/^Deinterlacing$/, @$columns ) ) {
-			$dbh->do(q{alter table Monitors add column `Deinterlacing` INT unsigned NOT NULL default '0' after `Orientation`;});
-		} # end if
-		$sth->finish();
-		$cascade = !undef;
+        # Patch the database
+        patchDB( $dbh, "1.26.0" );
+        $cascade = !undef;
 	}
     if ( $cascade )
     {

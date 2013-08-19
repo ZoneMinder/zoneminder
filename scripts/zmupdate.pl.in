@@ -98,6 +98,11 @@ if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'z
     Usage();
 }
 
+my $dbh = zmDbConnect();
+*ZM_DB_USER = sub { $dbUser } if ZM_DB_USER ne $dbUser;
+*ZM_DB_PASS = sub { $dbPass } if ZM_DB_PASS ne $dbPass;
+zmDbDisconnect();
+
 if ( ! ($check || $freshen || $rename || $zoneFix || $migrateEvents || $version) )
 {
     if ( ZM_DYN_DB_VERSION )

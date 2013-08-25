@@ -81,8 +81,8 @@ zmstatus()
 
 zmupdate()
 {
-	if [ -x $ZM_PATH_BIN/zm_update ]; then
-		$ZM_PATH_BIN/zm_update -f
+	if [ -x $ZM_PATH_BIN/zmupdate.pl ]; then
+		$ZM_PATH_BIN/zmupdate.pl -f
 	fi
 }
 

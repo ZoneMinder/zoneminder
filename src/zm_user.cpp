@@ -196,7 +196,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 
 		char auth_key[512] = "";
 		char auth_md5[32+1] = "";
-      size_t md5len = 32;
+      size_t md5len = 16;
       unsigned char md5sum[md5len];
 
 		time_t now = time( 0 );

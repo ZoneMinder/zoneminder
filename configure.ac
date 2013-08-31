@@ -2,7 +2,7 @@ AC_PREREQ(2.59)
 AC_INIT(zm,1.26.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],ZoneMinder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 

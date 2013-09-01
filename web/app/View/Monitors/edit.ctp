@@ -1,10 +1,23 @@
-<h2>Edit Monitor</h2>
-<?php
-    echo $this->Form->create('Monitor');
-    echo $this->Form->input('Name');
-    $functionoptions = array('Modect' => 'Modect', 'Monitor' => 'Monitor', 'Record' => 'Record', 'None' => 'None', 'Nodect' => 'Nodect', 'Mocord' => 'Mocord');
-    echo $this->Form->input('Function', array('type' => 'select', 'options' => $functionoptions));
-    echo $this->Form->input('Enabled', array('type' => 'checkbox'));
-    echo $this->Form->input('Id', array('type' => 'hidden'));
-    echo $this->Form->end('Save Monitor');
-?>
+<?php echo $this->Form->create('Monitor', array( 'inputDefaults' => array( 'legend' => false, 'fieldset' => false))); ?>
+<?php echo $this->Form->input('Id', array('type' => 'hidden')); ?>
+<div id="tabs">
+	<ul>
+		<li><a href="#general">General</a></li>
+		<li><a href="#source">Source</a></li>
+		<li><a href="#timestamp">Timestamp</a></li>
+		<li><a href="#buffers">Buffers</a></li>
+		<li><a href="#control">Control</a></li>
+		<li><a href="#misc">Misc</a></li>
+	</ul>
+
+
+<?php echo $this->element('tabs-general'); ?>
+<?php echo $this->element('tabs-source'); ?>
+<?php echo $this->element('tabs-timestamp'); ?>
+<?php echo $this->element('tabs-buffers'); ?>
+<?php echo $this->element('tabs-control'); ?>
+<?php echo $this->element('tabs-misc'); ?>
+
+
+</div>
+<?php echo $this->Form->end('Save Monitor'); ?>

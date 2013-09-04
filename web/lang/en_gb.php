@@ -69,6 +69,20 @@
 // setlocale( LC_CTYPE, 'en_GB' ); Character class settings 4.3.0 and after
 // setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
 
+
+//
+// Date and time formats, specific to this language
+//
+define( "DATE_FMT_CONSOLE_LONG", "D jS M, g:ia" );		// This is the main console date/time, date() or strftime() format
+define( "DATE_FMT_CONSOLE_SHORT", "%H:%M" );			// This is the xHTML console date/time, date() or strftime() format
+
+define( "STRF_FMT_DATETIME", "%c" );				// Strftime locale aware format for dates with times
+define( "STRF_FMT_DATE", "%x" );				// Strftime locale aware format for dates without times
+define( "STRF_FMT_TIME", "%X" );				// Strftime locale aware format for times without dates
+
+define( "STRF_FMT_DATETIME_SHORT", "%y/%m/%d %H:%M:%S" );	// Strftime shorter format for dates with time
+define( "STRF_FMT_DATETIME_SHORTER", "%m/%d %H:%M:%S" );	// Strftime shorter format for dates with time, used where space is tight
+
 // Simple String Replacements
 $SLANG = array(
     'SystemLog'             => 'System Log',

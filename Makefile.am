@@ -1,4 +1,4 @@
-AUTOMAKE_OPTIONS = gnu
+AUTOMAKE_OPTIONS = foreign
 
 # And these to the user and group of your webserver
 webuser = @WEB_USER@

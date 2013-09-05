@@ -293,9 +293,7 @@ Monitor::Monitor(
     Rgb p_signal_check_colour,
     Purpose p_purpose,
     int p_n_zones,
-    Zone *p_zones[],
-    std::string p_sPlugins,
-    int p_DoNativeMotDet
+    Zone *p_zones[]
 ) : id( p_id ),
     function( (Function)p_function ),
     enabled( p_enabled ),
@@ -323,8 +321,7 @@ Monitor::Monitor(
     purpose( p_purpose ),
     camera( p_camera ),
     n_zones( p_n_zones ),
-    zones( p_zones ),
-    iDoNativeMotDet(p_DoNativeMotDet)
+    zones( p_zones )
 {
     strncpy( name, p_name, sizeof(name) );
 
@@ -434,12 +431,6 @@ Monitor::Monitor(
 	shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
     }
     
-   //========================================================================================
-    // Get from string with plugins names particular names.
-    m_sPluginNames = split(p_sPlugins, ';');
-
-    //========================================================================================
-
 
     if ( purpose == CAPTURE )
     {
@@ -475,31 +466,6 @@ Monitor::Monitor(
         shared_data->last_read_time = 0;
         shared_data->alarm_x = -1;
         shared_data->alarm_y = -1;
-        //========================================================================================
-        Info("In the constructor of Monitor class with ID=%d:", p_id);
-        if (config.load_plugins)
-        {
-            Info("Load plugins from the directory %s ... ", config.path_plugins);
-            std::string sPluginExt = std::string(config.plugin_extension);
-            ThePluginManager.setPluginExt(sPluginExt);
-            for (std::vector<std::string>::iterator it = m_sPluginNames.begin() ; it < m_sPluginNames.end(); it++ )
-            {
-                std::string sFullPluginPath = join_paths(config.path_plugins, *it + config.plugin_extension);
-                Info("Plugin path %s", sFullPluginPath.c_str());
-                ThePluginManager.loadPlugin(sFullPluginPath);
-            }
-
-//            int count_plugins = ThePluginManager.findPlugins(config.path_plugins);
-//            Info("Number of found plugins is %d", count_plugins);
-//            if (count_plugins > 0)
-//            {
-                std::string sPluginsConfig = std::string(config.plugins_config_path);
-                Info("Configure plugins with \'%s\' config file.", config.plugins_config_path);
-                ThePluginManager.configurePlugins(sPluginsConfig);
-//            }
-            
-        }
-        //========================================================================================
 
     }
 
@@ -1333,56 +1299,25 @@ bool Monitor::Analyse()
                 }
                 else if ( signal && Active() && (function == MODECT || function == MOCORD) )
                 {
-                    if ((config.turnoff_native_analysis && !config.load_plugins) || (!config.turnoff_native_analysis && (iDoNativeMotDet || (!iDoNativeMotDet && !config.load_plugins))) )
-
+                    Event::StringSet zoneSet;
+                    int motion_score = DetectMotion( *snap_image, zoneSet );
+                    //int motion_score = DetectBlack( *snap_image, zoneSet );
+                    if ( motion_score )
                     {
-                        Event::StringSet zoneSet;
-                        int motion_score = DetectMotion( *snap_image, zoneSet );
-                        //int motion_score = DetectBlack( *snap_image, zoneSet );
-                        if ( motion_score )
+                        if ( !event )
                         {
-                            if ( !event )
-                            {
-                                score += motion_score;
-                                if ( cause.length() )
-                                    cause += ", ";
-                                cause += MOTION_CAUSE;
-                            }
-                            else
-                            {
-                                score += motion_score;
-                            }
-                            noteSetMap[MOTION_CAUSE] = zoneSet;
-
+                            score += motion_score;
+                            if ( cause.length() )
+                                cause += ", ";
+                            cause += MOTION_CAUSE;
                         }
-                    }
-                    //====================================================================
-                    else
-                    {
-                        
-                        for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+                        else
                         {
-                            zones[n_zone]->ResetStats();
+                            score += motion_score;
                         }
+                        noteSetMap[MOTION_CAUSE] = zoneSet;
+
                     }
-
-                    if (config.load_plugins)
-                    {
-                        std::string det_cause; // detection cause to fill in plugin's detectors
-                        score += ThePluginManager.getImageAnalyser().DoDetection(*snap_image, zones, n_zones, noteSetMap, det_cause);
-                        if (!event)
-                        {
-                            if (det_cause.length())
-                            {
-                                if (cause.length())
-                                    cause += ", ";
-                                cause +=  det_cause;
-                            }
-
-                        }
-                    }
-                    //====================================================================
-
                     shared_data->active = signal;
                 }
                 if ( (!signal_change && signal) && n_linked_monitors > 0 )
@@ -1695,7 +1630,7 @@ void Monitor::Reload()
     closeEvent();
 
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, UsedPl, DoNativeMotDet, SignalCheckColour from Monitors where Id = '%d'", id );
+    snprintf( sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = '%d'", id );
 
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1737,12 +1672,6 @@ void Monitor::Reload()
         ref_blend_perc = atoi(dbrow[index++]);
         track_motion = atoi(dbrow[index++]);
         
-  //============================================================================
-        std::string plugins = dbrow[index]; index++;
-        m_sPluginNames = split(plugins ,';');
-        iDoNativeMotDet = atoi(dbrow[index++]);
-        //============================================================================
-  
 
         if ( dbrow[index][0] == '#' )
             signal_check_colour = strtol(dbrow[index]+1,0,16);
@@ -1891,11 +1820,11 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !device[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, UsedPl, DoNativeMotDet, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, UsedPl, DoNativeMotDet, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1958,10 +1887,6 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         int fps_report_interval = atoi(dbrow[col]); col++;
         int ref_blend_perc = atoi(dbrow[col]); col++;
         int track_motion = atoi(dbrow[col]); col++;
-  //============================================================================
-        std::string plugins = dbrow[col]; col++;
-        int doNativeMotDet = atoi(dbrow[col]); col++;
-        //============================================================================
 
         int signal_check_colour;
         if ( dbrow[col][0] == '#' )
@@ -2021,9 +1946,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
             signal_check_colour,
             purpose,
             0,
-            0,
-            plugins,
-            doNativeMotDet
+            0
         );
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
@@ -2047,11 +1970,11 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !protocol )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, UsedPl, DoNativeMotDet from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, UsedPl, DoNativeMotDet from Monitors where Function != 'None' and Type = 'Remote' and Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote' and Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -2115,11 +2038,6 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         int fps_report_interval = atoi(dbrow[col]); col++;
         int ref_blend_perc = atoi(dbrow[col]); col++;
         int track_motion = atoi(dbrow[col]); col++;
-
-  //============================================================================
-        std::string plugins = dbrow[col]; col++;
-        int doNativeMotDet = atoi(dbrow[col]); col++;
-        //============================================================================
 
 
         int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
@@ -2197,9 +2115,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
             RGB_WHITE,
             purpose,
             0,
-            0,
-            plugins,
-            doNativeMotDet
+            0
 
         );
         Zone **zones = 0;
@@ -2223,11 +2139,11 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !file[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, UsedPl, DoNativeMotDet from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, UsedPl, DoNativeMotDet from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -2287,11 +2203,6 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
         int fps_report_interval = atoi(dbrow[col]); col++;
         int ref_blend_perc = atoi(dbrow[col]); col++;
         int track_motion = atoi(dbrow[col]); col++;
-  //============================================================================
-        std::string plugins = dbrow[col]; col++;
-        int doNativeMotDet = atoi(dbrow[col]); col++;
-
-        //============================================================================
 
         int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
         int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
@@ -2337,9 +2248,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
             RGB_WHITE,
             purpose,
             0,
-            0,
-            plugins,
-            doNativeMotDet
+            0
 
         );
         Zone **zones = 0;
@@ -2364,11 +2273,11 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !file[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, UsedPl, DoNativeMotDet from Monitors where Function != 'None' and Type = 'Ffmpeg'", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Ffmpeg'", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, UsedPl, DoNativeMotDet from Monitors where Function != 'None' and Type = 'Ffmpeg' and Path = '%s'", file );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Ffmpeg' and Path = '%s'", file );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -2428,11 +2337,6 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
         int fps_report_interval = atoi(dbrow[col]); col++;
         int ref_blend_perc = atoi(dbrow[col]); col++;
         int track_motion = atoi(dbrow[col]); col++;
-  //============================================================================
-        std::string plugins = dbrow[col]; col++;
-        int doNativeMotDet = atoi(dbrow[col]); col++;
-
-        //============================================================================
 
         int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
         int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
@@ -2478,9 +2382,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
             RGB_WHITE,
             purpose,
             0,
-            0,
-            plugins,
-            doNativeMotDet
+            0
         );
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
@@ -2502,7 +2404,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, UsedPl, DoNativeMotDet, SignalCheckColour from Monitors where Id = %d", id );
+    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -2569,11 +2471,6 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         int fps_report_interval = atoi(dbrow[col]); col++;
         int ref_blend_perc = atoi(dbrow[col]); col++;
         int track_motion = atoi(dbrow[col]); col++;
-  //============================================================================
-        std::string plugins = dbrow[col]; col++;
-        int doNativeMotDet = atoi(dbrow[col]); col++;
-
-        //============================================================================
 
         int signal_check_colour;
         if ( dbrow[col][0] == '#' )
@@ -2724,9 +2621,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
             signal_check_colour,
             purpose,
             0,
-            0,
-            plugins,
-            doNativeMotDet
+            0
 
         );
 

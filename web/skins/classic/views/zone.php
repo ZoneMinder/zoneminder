@@ -207,21 +207,6 @@ xhtmlHeaders(__FILE__, $SLANG['Zone'] );
                 <th scope="row"><?= $SLANG['ZoneOverloadFrames'] ?></th>
                 <td colspan="2"><input type="text" name="newZone[OverloadFrames]" value="<?= $newZone['OverloadFrames'] ?>" size="4"/></td>
               </tr>
-              <tr><th scope="row"><?= $SLANG['Plugins'] ?></th><td colspan=2>
-<?
-$sql = "select UsedPl from Monitors WHERE Id='".dbEscape($monitor['Id'])."'";
-foreach( dbFetchAll( $sql ) as $pls )
-{
-    $pla=explode(',', $pls['UsedPl']);
-    foreach($pla as $pl) {
-      echo "<a href='?view=plugin&amp;mid=".$monitor['Id']."&amp;zid=$zid&amp;pl=".urlencode($pl)."'";
-      echo "onclick=\"createPopup( '?view=plugin&amp;mid=".$monitor['Id'];
-      echo "&amp;zid=$zid&amp;pl=".urlencode($pl)."', 'plugin', 'plugin'";
-      echo ",".$monitor['Width'].",".$monitor['Height']."); return( false )\" >$pl</a><br />";
-    }
-}
-?>
-              </td></tr>
             </tbody>
           </table>
         </div>

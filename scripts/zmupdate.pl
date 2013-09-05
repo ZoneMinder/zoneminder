@@ -158,7 +158,7 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
                 }
                 use strict 'subs';
             }
-            my $req = HTTP::Request->new( GET=>'http://www.zoneminder.com/version' );
+            my $req = HTTP::Request->new( GET=>'https://raw.github.com/chriswiggins/ZoneMinder/master/version' );
             my $res = $ua->request($req);
 
             if ( $res->is_success )

@@ -54,15 +54,15 @@ protected:
 	static void Initialise();
 
 	void SetupFormat( const char *p_filename, const char *format );
-	void SetupCodec( int colours, int width, int height, int bitrate, double frame_rate );
+	void SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate );
 	void SetParameters();
 
 public:
-	VideoStream( const char *filename, const char *format, int bitrate, double frame_rate, int colours, int width, int height );
+	VideoStream( const char *filename, const char *format, int bitrate, double frame_rate, int colours, int subpixelorder, int width, int height );
 	~VideoStream();
 	const char *MimeType() const;
 	void OpenStream();
-	double EncodeFrame( uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
+	double EncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 };
 
 #endif // HAVE_LIBAVCODEC

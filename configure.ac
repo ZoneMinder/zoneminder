@@ -1,8 +1,10 @@
 AC_PREREQ(2.59)
-AC_INIT(zm,1.25.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],ZoneMinder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.26.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],ZoneMinder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
+
+AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 
 PATH_BUILD=`pwd`
 AC_SUBST(PATH_BUILD)
@@ -14,7 +16,7 @@ AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database, default zm])
 AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user, default zmuser])
 AC_ARG_VAR(ZM_DB_PASS,[Password of ZoneMinder database user, default zmpass])
 AC_ARG_VAR(ZM_SSL_LIB,[Library to use for ssl functions, default gnutls])
-AC_ARG_VAR(ZM_MYSQL_ENGINE,[MySQL engine to use with database, default MyISAM])
+AC_ARG_VAR(ZM_MYSQL_ENGINE,[MySQL engine to use with database, default InnoDB])
 AC_ARG_VAR(ZM_RUNDIR,[Location of transient process files, default /var/run/zm])
 AC_ARG_VAR(ZM_TMPDIR,[Location of temporary files, default /tmp/zm])
 AC_ARG_VAR(ZM_LOGDIR,[Location of generated log files, default /var/log/zm])
@@ -35,7 +37,7 @@ if test "$ZM_SSL_LIB" == ""; then
 	AC_SUBST(ZM_SSL_LIB,gnutls)
 fi
 if test "$ZM_MYSQL_ENGINE" == ""; then
-	AC_SUBST(ZM_MYSQL_ENGINE,MyISAM)
+	AC_SUBST(ZM_MYSQL_ENGINE,InnoDB)
 fi
 if test "$ZM_RUNDIR" == ""; then
 	AC_SUBST(ZM_RUNDIR,[/var/run/zm])
@@ -89,7 +91,7 @@ AC_ARG_WITH(ffmpeg,
 )
 AC_SUBST(FFMPEG_PREFIX)
 FFMPEG_LIBS="-L${FFMPEG_PREFIX}/${LIB_ARCH}"
-FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/include"
+FFMPEG_CFLAGS="-I${FFMPEG_PREFIX}/include -D__STDC_CONSTANT_MACROS"
 AC_SUBST(FFMPEG_LIBS)
 AC_SUBST(FFMPEG_CFLAGS)
 
@@ -246,7 +248,7 @@ AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap putenv select socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strsignal strspn strstr strtol strtoull])
+AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap posix_memalign putenv select sendfile socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strsignal strspn strstr strtol strtoull])
 AC_CHECK_FUNCS([syscall sleep usleep ioctl ioctlsocket sigaction])
 
 # Other programs
@@ -272,9 +274,12 @@ AC_CHECK_HEADERS(gnutls/gnutls.h,AC_SUBST(ZM_HAS_GNUTLS,1),AC_SUBST(ZM_HAS_GNUTL
 if test "$ZM_HAS_GNUTLS_OPENSSL" == "0" && test "$ZM_HAS_GNUTLS" == "0"; then
 AC_MSG_WARN(gnutls is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead)
 fi
-AC_CHECK_HEADERS(gcrypt.h,,AC_MSG_WARN(zm requires libgcrypt header to be installed for gnutls),)
+AC_CHECK_HEADERS(gcrypt.h,,AC_MSG_WARN(zm requires libgcrypt headers to be installed for gnutls),)
 AC_CHECK_LIB(gcrypt,gcry_check_version,,AC_MSG_WARN([libgcrypt.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
 AC_CHECK_LIB(gnutls,gnutls_fingerprint,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
+if test "$ZM_HAS_GNUTLS_OPENSSL" == "1"; then
+AC_CHECK_LIB(gnutls-openssl,MD5,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
+fi
 fi
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
 AC_CHECK_LIB(z,zlibVersion)
@@ -282,8 +287,10 @@ AC_CHECK_LIB(x264,x264_predict_16x16_init)
 AC_CHECK_LIB(avutil,av_malloc,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
 # Don't bother to warn about this one
 AC_CHECK_LIB(avcore,av_image_copy,,)
-AC_CHECK_LIB(avcodec,avcodec_init,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
-AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
+AC_CHECK_LIB(avcodec,avcodec_version,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
+AC_CHECK_LIB(avformat,avformat_version,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
+#AC_CHECK_LIB(avcodec,avcodec_open,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
+#AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
 AC_CHECK_LIB(avdevice,avdevice_register_all,,AC_MSG_WARN(libavdevice.a may be required for MPEG streaming))
 AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
 AC_CHECK_LIB(bz2,BZ2_bzCompress,,AC_MSG_WARN(zm requires libbz2.a for recent versions of ffmpeg))
@@ -293,7 +300,7 @@ AC_CHECK_LIB(z,compress,,)
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h limits.h memory.h stddef.h stdlib.h string.h strings.h sys/param.h sys/time.h syslog.h unistd.h values.h])
-AC_CHECK_HEADERS([netdb.h netinet/in.h arpa/inet.h sys/ioctl.h sys/socket.h sys/un.h glob.h])
+AC_CHECK_HEADERS([netdb.h netinet/in.h arpa/inet.h sys/ioctl.h sys/socket.h sys/un.h glob.h sys/sendfile.h])
 AC_CHECK_HEADERS(execinfo.h,,,)
 AC_CHECK_HEADERS(syscall.h,,,)
 AC_CHECK_HEADERS(pthread.h,,,)
@@ -307,10 +314,12 @@ AC_MSG_WARN(zm requires Video4Linux or Video4Linux2 to be installed for analog o
 fi
 AC_CHECK_HEADERS(jpeglib.h,,AC_MSG_ERROR(zm requires libjpeg headers to be installed),)
 AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires MySQL headers - check that MySQL development packages are installed),)
+AC_LANG_PUSH([C])
 AC_CHECK_HEADERS(libavutil/avutil.h,,,)
 AC_CHECK_HEADERS(libavcodec/avcodec.h,,,)
 AC_CHECK_HEADERS(libavformat/avformat.h,,,)
 AC_CHECK_HEADERS(libswscale/swscale.h,,,)
+AC_LANG_POP([C])
 AC_CHECK_HEADERS(pcre/pcre.h,AC_SUBST(ZM_PCRE,"1"),,)
 AC_CHECK_HEADERS(pcre.h,AC_SUBST(ZM_PCRE,"1"),,)
 if test "$ENABLE_MMAP" == "yes"; then

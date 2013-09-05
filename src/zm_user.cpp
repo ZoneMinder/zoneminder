@@ -196,8 +196,8 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 
 		char auth_key[512] = "";
 		char auth_md5[32+1] = "";
-        size_t md5len = 32;
-		unsigned char md5sum[md5len];
+      size_t md5len = 16;
+      unsigned char md5sum[md5len];
 
 		time_t now = time( 0 );
 		int max_tries = 2;
@@ -217,14 +217,14 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 				now_tm->tm_year
 			);
 
-#if HAVE_DECL_MD5 
+#if HAVE_DECL_MD5
 			MD5( (unsigned char *)auth_key, strlen(auth_key), md5sum );
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
             gnutls_datum_t md5data = { (unsigned char *)auth_key, strlen(auth_key) };
             gnutls_fingerprint( GNUTLS_DIG_MD5, &md5data, md5sum, &md5len );
 #endif
 			auth_md5[0] = '\0';
-			for ( int j = 0; j < md5len; j++ )
+			for ( unsigned int j = 0; j < md5len; j++ )
 			{
 				sprintf( &auth_md5[2*j], "%02x", md5sum[j] );
 			}

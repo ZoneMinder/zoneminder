@@ -29,6 +29,7 @@
 #if HAVE_GNUTLS_GNUTLS_H
 #include <gnutls/gnutls.h>
 #endif
+
 #if HAVE_GCRYPT_H
 #include <gcrypt.h>
 #elif HAVE_LIBCRYPTO

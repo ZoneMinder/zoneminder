@@ -155,5 +155,40 @@ $(document).ready(function() {
 			$('#loadingDiv').hide();
 		});
 	// Global //
+	
+	// Monitors //
+	 $(".functions").buttonset();
+	 $(".status").button()
+		 .click(function() {
+			 if ( $(this).text() == 'Enabled' ) {
+				 $status = 0;
+			 } else {
+				 $status = 1;
+			 }
+			 $mid = $(this).attr('id').split("_")[0];
+			 $.post("/Monitors/index/", { status: $status, mid: $mid }, function(data) {
+				 console.log(data);
+			 });
+		 });
+
+	 $("#ConfigIndexForm").submit(function() {
+		 var formData = $(this).serialize();
+		 var formUrl = $(this).attr('action');
+
+		 $.ajax({
+			 type: 'POST',
+			 url: formUrl,
+			 data: formData,
+			 success: function(data){
+				 console.log(data);
+			 },
+			 error: function(xhr, textStatus, error){
+				 console.log(textStatus);
+			 }
+		 });
+	 });
+		 return false;
+
+	// Monitors //
 
 });

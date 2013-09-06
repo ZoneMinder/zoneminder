@@ -372,6 +372,7 @@ Monitor::Monitor(
 
     mem_size = sizeof(SharedData)
              + sizeof(TriggerData)
+             + sizeof(VideoStoreData) //Information to pass back to the capture process
              + (image_buffer_count*sizeof(struct timeval))
              + (image_buffer_count*camera->ImageSize())
              + 64; /* Padding used to permit aligning the images buffer to 16 byte boundary */
@@ -422,7 +423,8 @@ Monitor::Monitor(
 
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
-    struct timeval *shared_timestamps = (struct timeval *)((char *)trigger_data + sizeof(TriggerData));
+    video_store_data = (VideoStoreData *)((char *)shared_data + sizeof(SharedData));
+    struct timeval *shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
     unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
     
     if(((unsigned long)shared_images % 16) != 0) {
@@ -459,6 +461,9 @@ Monitor::Monitor(
         trigger_data->trigger_text[0] = 0;
         trigger_data->trigger_showtext[0] = 0;
         shared_data->valid = true;
+        video_store_data->recording = false;
+        snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "nothing");
+        video_store_data->size = sizeof(VideoStoreData);
     }
     else if ( purpose == ANALYSIS )
     {
@@ -466,7 +471,12 @@ Monitor::Monitor(
         shared_data->last_read_time = 0;
         shared_data->alarm_x = -1;
         shared_data->alarm_y = -1;
-
+    }
+    
+    //TODO: Remove this if it isn't needed?
+    if(!(strcmp(video_store_data->event_directory, "nothing")==0)){
+        Fatal("video_store_data not init yet: %s", video_store_data->event_directory);
+        exit(-1);
     }
 
     if ( !shared_data->valid )
@@ -1352,15 +1362,23 @@ bool Monitor::Analyse()
                     if ( noteSet.size() > 0 )
                         noteSetMap[LINKED_CAUSE] = noteSet;
                 }
+                
+                //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
                 if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) )
                 {
                     if ( event )
                     {
+                        //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
+                        snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
+                        
                         int section_mod = timestamp->tv_sec%section_length;
                         if ( section_mod < last_section_mod )
                         {
                             if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME )
                             {
+                               	//TODO: Do we need to set this every time?
+                              	video_store_data->recording = false;
+                                
                                 if ( state == TAPE )
                                 {
                                     shared_data->state = state = IDLE;
@@ -1383,7 +1401,14 @@ bool Monitor::Analyse()
                         // Create event
                         event = new Event( this, *timestamp, "Continuous", noteSetMap );
                         shared_data->last_event = event->Id();
-
+                        
+                        snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
+                        Error("1store event directory: %s", event->getEventDirectory());
+                        Error("2store event directory: %s", video_store_data->event_directory);
+                       
+                        video_store_data->recording = true;
+                        
+                        
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
                         /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -1391,9 +1416,11 @@ bool Monitor::Analyse()
                         {
                             shared_data->state = state = TAPE;
                         }
-
+                        
+                       
                         //if ( config.overlap_timed_events )
-                        if ( false )
+                        //TODO: Remove this as the if false was here before I was playing around with it - not sure what it's meant to do. chriswiggins
+                        /*if ( false )
                         {
                             int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
                             int pre_event_images = pre_event_count;
@@ -1414,7 +1441,7 @@ bool Monitor::Analyse()
                                 }
                                 event->AddFrames( pre_event_images, images, timestamps );
                             }
-                        }
+                        }*/
                     }
                 }
                 if ( score )
@@ -1580,15 +1607,21 @@ bool Monitor::Analyse()
                     }
                     else if ( state == TAPE )
                     {
-                        if ( !(image_count%(frame_skip+1)) )
-                        {
-                            if ( config.bulk_frame_interval > 1 )
+                        //Video Storage patch
+                        if(config.use_mkv_storage){
+                            //Info("ZMA: Setting to 10");
+                            video_store_data->recording = true;
+                        }else{
+                            if ( !(image_count%(frame_skip+1)) )
                             {
-                                event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
-                            }
-                            else
-                            {
-                                event->AddFrame( snap_image, *timestamp );
+                                if ( config.bulk_frame_interval > 1 )
+                                {
+                                    event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
+                                }
+                                else
+                                {
+                                    event->AddFrame( snap_image, *timestamp );
+                                }
                             }
                         }
                     }
@@ -2660,7 +2693,14 @@ int Monitor::Capture()
 		}
 		
 		/* Capture a new next image */
-		captureResult = camera->Capture(*(next_buffer.image));
+        
+        //TODO: Check if FFMPEG camera
+        if(config.use_mkv_storage){
+            captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_directory);
+        }else{
+            captureResult = camera->Capture(*(next_buffer.image));
+        }
+		
 		
 		if ( FirstCapture ) {
 			FirstCapture = 0;
@@ -2668,9 +2708,15 @@ int Monitor::Capture()
 		}
 		
 	} else {
-		/* Capture directly into image buffer, avoiding the need to memcpy() */
-		captureResult = camera->Capture(*capture_image);
-	}
+        //TODO: Check if FFMPEG camera
+        if(config.use_mkv_storage){
+            //Warning("ZMC: Recording: %d", video_store_data->recording);
+            captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_directory);
+        }else{
+            /* Capture directly into image buffer, avoiding the need to memcpy() */
+            captureResult = camera->Capture(*capture_image);
+        }
+    }
     
     if ( captureResult != 0 )
     {

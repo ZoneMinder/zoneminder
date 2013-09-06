@@ -152,6 +152,19 @@ protected:
 		void* padding;
 	};
 
+    //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
+#if 1
+    //sizeOf(VideoStoreData) expected to be what??
+	typedef struct
+    {
+        uint32_t size;
+        char event_directory[4096];
+        uint32_t recording; //bool arch independent so use uint32 instead
+    
+    } VideoStoreData;
+    
+#endif // HAVE_LIBAVFORMAT
+
 	class MonitorLink
 	{
 	protected:
@@ -172,6 +185,7 @@ protected:
 
 		volatile SharedData	*shared_data;
 		volatile TriggerData	*trigger_data;
+        	volatile VideoStoreData *video_store_data;
 
 		int				last_state;
 		int				last_event;
@@ -268,6 +282,7 @@ protected:
 
 	SharedData		*shared_data;
 	TriggerData		*trigger_data;
+    	VideoStoreData  *video_store_data;
 
 	Snapshot		*image_buffer;
 	Snapshot		next_buffer; /* Used by four field deinterlacing */

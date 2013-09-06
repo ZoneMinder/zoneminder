@@ -25,6 +25,7 @@
 #include "zm_buffer.h"
 //#include "zm_utils.h"
 #include "zm_ffmpeg.h"
+#include "zm_videostore.h"
 
 //
 // Class representing 'remote' cameras, i.e. those which are
@@ -46,6 +47,9 @@ protected:
     AVFrame             *mFrame;
     PixelFormat         imagePixFormat;
 #endif // HAVE_LIBAVFORMAT
+    
+    bool                wasRecording;
+    VideoStore          *videoStore;
 
 #if HAVE_LIBSWSCALE
 	struct SwsContext   *mConvertContext;
@@ -63,6 +67,7 @@ public:
 	int PrimeCapture();
 	int PreCapture();
 	int Capture( Image &image );
+    int CaptureAndRecord( Image &image, bool recording, char* event_directory );
 	int PostCapture();
 };
 

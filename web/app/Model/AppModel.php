@@ -38,7 +38,16 @@ class AppModel extends Model {
 		$string = $zm_path_bin."/zmdc.pl status";
 		$daemon_status = shell_exec ( $string );
 		return $daemon_status;
-  }
+	}
+
+	function daemonControl( $command ) {
+		$string = Configure::read('ZM_PATH_BIN')."/zmdc.pl $command";
+		$string .= " 2>/dev/null >&- <&- >/dev/null";
+		$return = exec( $string );
+		return $return;
+	}
+	 
+
 
   public function reScale( $dimension, $dummy) {
     $scale_base = Configure::read('SCALE_BASE');

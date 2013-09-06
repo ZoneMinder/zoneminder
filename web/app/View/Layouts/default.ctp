@@ -45,6 +45,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 <body>
 	<div id="container">
 		<div id="header">
+			<div id="loadingDiv"><img src="/img/loading.gif" alt="Loading..." /></div>
 			<div class="menu">
 				<ol>
 				<li><?php echo $this->Html->link('Dashboard', array('controller' => 'Monitors', 'action' => 'index')); ?></li>

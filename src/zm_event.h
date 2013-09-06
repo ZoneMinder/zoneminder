@@ -145,6 +145,10 @@ public:
         return( Event::getSubPath( localtime( time ) ) );
     }
 
+    char* getEventDirectory(void){
+ 	return path;
+    }
+
 public:
 	static int PreAlarmCount()
 	{

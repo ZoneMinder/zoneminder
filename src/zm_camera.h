@@ -76,6 +76,7 @@ public:
 	virtual int PreCapture()=0;
 	virtual int Capture( Image &image )=0;
 	virtual int PostCapture()=0;
+    virtual int CaptureAndRecord( Image &image, bool recording, char* event_directory)=0;
 };
 
 #endif // ZM_CAMERA_H

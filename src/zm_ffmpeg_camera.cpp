@@ -39,6 +39,8 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, in
 	mRawFrame = NULL;
 	mFrame = NULL;
 	frameCount = 0;
+    
+    wasRecording = false;
 	
 #if HAVE_LIBSWSCALE    
 	mConvertContext = NULL;
@@ -61,6 +63,9 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, in
 
 FfmpegCamera::~FfmpegCamera()
 {
+    if(videoStore)
+        delete videoStore;
+    
     av_freep( &mFrame );
     av_freep( &mRawFrame );
     
@@ -253,6 +258,99 @@ int FfmpegCamera::Capture( Image &image )
     }
     return (0);
 }
+
+
+//Function to handle capture and store
+int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_directory )
+{
+	AVPacket packet;
+	uint8_t* directbuffer;
+    
+    //Warning("Recording: %d", (int)recording);
+    
+    if(recording && !wasRecording){
+        if(event_directory!=NULL){
+        //Instanciate the video storage module
+        char fileName[255];
+        snprintf(fileName, sizeof(fileName), "%s/event.mkv", event_directory);
+            Info("fileName: %s", fileName);
+        videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId]);
+        wasRecording = true;
+        }
+    }else if(!recording && wasRecording){
+        Warning("Deleting videoStore instance");
+        delete videoStore;
+    }
+    
+	/* Request a writeable buffer of the target image */
+	directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+	if(directbuffer == NULL) {
+		Error("Failed requesting writeable buffer for the captured image.");
+		return (-1);
+	}
+    
+    int frameComplete = false;
+    while ( !frameComplete )
+    {
+        int avResult = av_read_frame( mFormatContext, &packet );
+        if ( avResult < 0 )
+        {
+            Error( "Unable to read packet from stream %d: error %d", packet.stream_index, avResult );
+            return( -1 );
+        }
+        Debug( 5, "Got packet from stream %d", packet.stream_index );
+        if ( packet.stream_index == mVideoStreamId )
+        {
+            if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
+                Fatal( "Unable to decode frame at frame %d", frameCount );
+            
+            Debug( 4, "Decoded video packet at frame %d", frameCount );
+            
+            if ( frameComplete )
+            {
+                Debug( 3, "Got frame %d", frameCount );
+                
+                avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+                
+                if(videoStore){
+                    //Write the packet to our video store
+                    //Info("Writing Packet");
+                    videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId], mFormatContext);
+                }
+                
+#if HAVE_LIBSWSCALE
+                if(mConvertContext == NULL) {
+                    if(config.cpu_extensions && sseversion >= 20) {
+                        mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
+                    } else {
+                        mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+                    }
+                    if(mConvertContext == NULL)
+                        Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+                }
+                
+                if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
+                    Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+#else // HAVE_LIBSWSCALE
+                Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+#endif // HAVE_LIBSWSCALE
+                
+                frameCount++;
+            }
+        }
+        av_free_packet( &packet );
+    }
+    return (0);
+}
+
+
+
+
+
+
+
+
+
 
 int FfmpegCamera::PostCapture()
 {

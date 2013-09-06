@@ -168,6 +168,12 @@ our $mem_data =
 		"trigger_showtext" => { "type"=>"int8[256]", "seq"=>$mem_seq++ },
 		}
 	},
+    	"video_store_data" => { "type"=>"VideoStoreData", "seq"=>$mem_seq++, "contents"=> {
+        	"size"             => { "type"=>"uint32", "seq"=>$mem_seq++ },
+		"event_directory"  => { "type"=>"int8[4096]", "seq"=>$mem_seq++ },
+		"recording"        => { "type"=>"uint32", "seq"=>$mem_seq++ },
+        	}
+	},
 	"end" => { "seq"=>$mem_seq++, "size"=> 0 }
 };
 
@@ -272,6 +278,19 @@ sub zmMemVerify( $ )
 			else
 			{
 				Debug( "Shared data size conflict in trigger_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{triggger_data}->{size}.", got ".$td_size );
+			}
+			return( undef );
+		}
+        	my $vs_size = zmMemRead( $monitor, "video_store_data:size", 1 );
+		if ( $vs_size != $mem_data->{video_store_data}->{size} )
+		{
+			if ( $vs_size )
+			{
+				Error( "Shared data size conflict in video_store_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{video_store_data}->{size}.", got ".$vs_size );
+			}
+			else
+			{
+				Debug( "Shared data size conflict in video_store_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{video_store_data}->{size}.", got ".$vs_size );
 			}
 			return( undef );
 		}

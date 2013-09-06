@@ -397,6 +397,7 @@ form .error-message {
 	font-weight: bold;
 	margin: 0 0 1em 0;
 	padding: 5px;
+	display:none;
 }
 
 .success,
@@ -755,6 +756,14 @@ div#footer a{
   color: #fff;
 }
 
+#loadingDiv, #loadingDiv img{
+	float:left;
+}
+
+.Running{
+	color:green !important;
+	font-weight:bold;
+}
 
 #selectable .ui-selecting { background: #FECA40; }
 #selectable .ui-selected { background: #F39814; color: white; }
@@ -764,14 +773,12 @@ div#footer a{
 
 #sidebar {
 	float:left;
-	width:350px;
+	width:325px;
 	margin-right:5px;
 	font-size:80%;
 }
 
 #sidebar input {
-	margin:0;
-	padding:0;
 }
 
 #events_date_time fieldset fieldset input {
@@ -805,8 +812,48 @@ div#footer a{
 }
 /* End Config Page */
 
+
+/* Event View Page */
+
+#event_header {
+	list-style-type:none;
+	margin:0;
+	padding:0;
+	text-align:center;
+}
+#event_header li {
+	float:left;
+	width:20%;
+	margin:0 0 5px 0;
+	padding:0;
+	border-bottom:1px solid #AAAAAA;
+}
+#event_player{
+	text-align:center;
+	margin-left:355px;
+}
+
+/* End Event View Page */
+
+
 /* Logs View */
 #btnComponentRefresh{
 	float:right;
 }
 /* End Logs View */
+
+/* Monitors View */
+.monitor{
+	border:1px solid #AAA;
+	margin-bottom:5px;
+	width:800px;
+	height:200px;
+}
+div.monitor-view{
+	display:inline;
+}
+div.functions.ui-buttonset, div.status.ui-buttonset {
+	float:right;
+	width:200px;
+}
+/* End Monitors View */

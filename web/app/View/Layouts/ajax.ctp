@@ -17,5 +17,29 @@
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 ?>
-<?php echo $this->Html->script('jquery-2.0.1.min.js'); ?>
+<!DOCTYPE html>
+<html>
+<head>
+<?
+		echo $this->Html->meta('icon');
+
+		echo $this->Html->css('cake.generic');
+		echo $this->Html->css('jquery-ui.min');
+
+		echo $this->fetch('meta');
+		echo $this->fetch('css');
+    echo $this->fetch('script');
+    echo $this->Html->script('jquery-2.0.1.min');
+    echo $this->Html->script('jquery-ui.min');
+    echo $this->Html->script('masonry.pkgd.min');
+    echo $this->Html->script('events.js');
+    echo $this->Html->script('config.js');
+?>
+</head>
+<body>
+<div id="content">
 <?php echo $this->fetch('content'); ?>
+</div>
+<?php echo $this->Js->writeBuffer(); ?>
+</body>
+</html>

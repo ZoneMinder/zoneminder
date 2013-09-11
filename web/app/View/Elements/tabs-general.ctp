@@ -1,4 +1,4 @@
-<div id="general">
+<div class="tab-pane" id="general" class="tab-pane">
 <?php
 echo $this->Form->input('Name');
 echo $this->Form->input('Type', array( 'type' => 'select', 'options' => $typeoptions));

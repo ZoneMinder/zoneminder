@@ -1,4 +1,4 @@
-<div id="buffers">
+<div class="tab-pane" id="buffers">
 <?php 
 	echo $this->Form->inputs(array(
 		'ImageBufferCount',

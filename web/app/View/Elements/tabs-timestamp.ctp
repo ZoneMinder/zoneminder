@@ -1,4 +1,4 @@
-<div id="timestamp">
+<div class="tab-pane" id="timestamp">
 <?php
 	echo $this->Form->inputs(array(
 		'LabelFormat',

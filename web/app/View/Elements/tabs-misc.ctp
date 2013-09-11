@@ -1,4 +1,4 @@
-<div id="misc">
+<div class="tab-pane" id="misc">
 <?php
 	echo $this->Form->inputs(array(
 		'EventPrefix',

@@ -1,4 +1,4 @@
-<div id="source">
+<div class="tab-pane" id="source">
 <?php
 switch ($monitor['Type']) {
 case 'Remote':

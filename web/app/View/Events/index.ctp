@@ -1,3 +1,4 @@
+<?php $this->start('sidebar'); ?>
 <div id="sidebar">
 <?php
 echo $this->Form->create('Events', array('default' => false, 'inputDefaults' => array(
@@ -53,6 +54,7 @@ echo $this->Form->inputs(array(
 </div>
 <?php echo $this->Form->end(array('label' => 'Search', 'id' => 'EventsButtonSearch')); ?>
 </div>
+<?php $this->end(); ?>
 
 <div id="Events">
 <div style="clear:both;"><?php echo $this->Paginator->numbers(); ?></div>

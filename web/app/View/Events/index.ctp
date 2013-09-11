@@ -61,7 +61,7 @@ echo $this->Form->inputs(array(
 </ul>
 
 <div id="Events">
-<table>
+<table class="table table-condensed table-striped">
 <tr>
 	<th>Thumbnail</th>
 	<th>Id</th>

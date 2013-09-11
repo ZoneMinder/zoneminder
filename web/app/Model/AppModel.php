@@ -46,6 +46,15 @@ class AppModel extends Model {
 		$return = exec( $string );
 		return $return;
 	}
+
+function getSystemLoad()
+{
+    $uptime = shell_exec( 'uptime' );
+    $load = '';
+    if ( preg_match( '/load average: ([\d.]+)/', $uptime, $matches ) )
+        $load = $matches[1];
+    return( $load );
+}
 	 
 
 

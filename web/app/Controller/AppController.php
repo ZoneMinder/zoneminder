@@ -64,6 +64,9 @@ class AppController extends Controller {
 	} else {
 		$this->set('daemonStatus', ('Stopped'));
 	}
+
+    $this->set('systemLoad', $this->AppModel->getSystemLoad());
+    $this->set('diskSpace', $this->AppModel->getDiskSpace());
   }
 
   function extractNamedParams($mandatory, $optional = array()) {

@@ -45,6 +45,8 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 </head>
 <body>
 	<div class="navbar navbar-default" role="navigation">
+		<p class="navbar-text navbar-right">Used Event Storage: <?php echo $diskSpace; ?>%</p>
+		<p class="navbar-text navbar-right">CPU Load: <?php echo $systemLoad; ?></p>
 		<div class="container">
 			<div id="loadingDiv"><img src="/img/loading.gif" alt="Loading..." /></div>
 			<div class="navbar-header">

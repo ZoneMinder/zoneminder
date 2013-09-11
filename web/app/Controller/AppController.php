@@ -60,9 +60,9 @@ class AppController extends Controller {
     }
     Configure::write('SCALE_BASE', 100);
 	if ($this->AppModel->daemonStatus()) {
-		$this->set('daemonStatus', ('Running'));
+		$this->set('daemonStatus', ('<span class="alert alert-success">Running</span>'));
 	} else {
-		$this->set('daemonStatus', ('Stopped'));
+		$this->set('daemonStatus', ('<span class="alert alert-danger">Stopped</span>'));
 	}
 
     $this->set('systemLoad', $this->AppModel->getSystemLoad());

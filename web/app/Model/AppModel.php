@@ -55,6 +55,15 @@ function getSystemLoad()
         $load = $matches[1];
     return( $load );
 }
+
+function getDiskSpace()
+{
+    $df = shell_exec( 'df ' . Configure::read('ZM_PATH_WEB') . '/' . Configure::read('ZM_DIR_EVENTS') );
+    $space = -1;
+    if ( preg_match( '/\s(\d+)%/ms', $df, $matches ) )
+        $space = $matches[1];
+    return( $space );
+}
 	 
 
 

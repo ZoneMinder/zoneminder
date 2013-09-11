@@ -34,6 +34,7 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <sys/thr.h>
 
 bool Logger::smInitialised = false;
 Logger *Logger::smInstance = 0;
@@ -518,8 +519,12 @@ void Logger::logPrint( bool hex, const char * const file, const int line, const 
     #endif
 
         pid_t tid;
+	long lwpid;
+	thr_self(&lwpid);
+	tid = lwpid;
+
 #ifdef HAVE_SYSCALL
-        if ( (tid = syscall(SYS_gettid)) < 0 ) // Thread/Process id
+        if (tid < 0 ) // Thread/Process id
 #endif // HAVE_SYSCALL
         tid = getpid(); // Process id
 

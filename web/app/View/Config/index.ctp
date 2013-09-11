@@ -1,9 +1,8 @@
-<div id="tabs">
-<ul>
+<ul class="nav nav-tabs">
 <?php
 foreach ($categories as $key => $value) {
 	$category = $value['Config']['Category'];
-	echo '<li><a href="#tabs-'.$category.'">' . ucfirst($category) . '</a></li>';
+	echo '<li data-toggle="tab"><a href="#'.$category.'">' . ucfirst($category) . '</a></li>';
 }
 ?>
 </ul>
@@ -14,9 +13,11 @@ foreach ($categories as $key => $value) {
     'class' => array('form-horizontal')
 )); ?>
 
+<div class="tab-content">
+
 <?php
 foreach ($options as $option => $value) {
-	echo "<div id=\"tabs-$option\">";
+	echo "<div id=\"$option\" class=\"tab-pane\">";
 	foreach ($value as $val) {
 		$id = $val['Config']['Id'];
 		$name = $val['Config']['Name'];

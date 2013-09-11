@@ -30,8 +30,9 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 	<?php
 		echo $this->Html->meta('icon');
 
-		echo $this->Html->css('cake.generic');
 		echo $this->Html->css('jquery-ui.min');
+		echo $this->Html->css('bootstrap-theme.min');
+		echo $this->Html->css('bootstrap.min');
 
 		echo $this->fetch('meta');
 		echo $this->fetch('css');
@@ -43,26 +44,38 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 	?>
 </head>
 <body>
-	<div id="container">
-		<div id="header">
+	<div class="navbar navbar-default" role="navigation">
+		<div class="container">
 			<div id="loadingDiv"><img src="/img/loading.gif" alt="Loading..." /></div>
-			<div class="menu">
-				<ol>
-				<li><?php echo $this->Html->link('Dashboard', array('controller' => 'Monitors', 'action' => 'index')); ?></li>
-				<li><?php echo $this->Html->link('Events', '/Events/'); ?></li>
-				<li><?php echo $this->Html->link('Options', array('controller' => 'Config', 'action' => 'index')); ?></li>
-				<li><?php echo $this->Html->link('Logs', array('controller' => 'Logs', 'action' => 'index')); ?></li>
-				</ol>
+			<div class="navbar-header">
+				<a class="navbar-brand" href="#">ZoneMinder</a>
+			</div>
+			<div class="navbar-collapse collapse">
+				<ul class="nav navbar-nav">
+					<li><?php echo $this->Html->link('Dashboard', array('controller' => 'Monitors', 'action' => 'index')); ?></li>
+					<li><?php echo $this->Html->link('Events', '/Events/'); ?></li>
+					<li><?php echo $this->Html->link('Options', array('controller' => 'Config', 'action' => 'index')); ?></li>
+					<li><?php echo $this->Html->link('Logs', array('controller' => 'Logs', 'action' => 'index')); ?></li>
+				</ul>
 			</div>
 		</div>
-		<div id="content">
+	</div>
+	<div class="row">
+		<div class="col-md-2">
+		<?php
+			echo $this->fetch('sidebar');
+		?>
+		</div>
+		<div class="col-md-10">
 			<?php echo $this->Session->flash(); ?>
-
+	
 			<?php echo $this->fetch('content'); ?>
 		</div>
-		<div id="footer">
-				<p>Configured for <?php echo $this->Html->link($zmBandwidth, array('controller' => 'Bandwidth', 'action' => 'index')); ?> bandwidth</p>
-				<p><?php echo $daemonStatus; ?></p>
+	</div>
+	<div id="footer">
+		<div class="container">
+			<p>Configured for <?php echo $this->Html->link($zmBandwidth, array('controller' => 'Bandwidth', 'action' => 'index')); ?> bandwidth</p>
+			<p><?php echo $daemonStatus; ?></p>
 		</div>
 	</div>
 	<?php echo $this->element('sql_dump'); ?>

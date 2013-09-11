@@ -28,7 +28,6 @@
 typedef std::vector<std::string> StringVector;
 
 const std::string stringtf( const char *format, ... );
-const std::string stringtf( const std::string &format, ... );
 
 bool startsWith( const std::string &haystack, const std::string &needle );
 StringVector split( const std::string &string, const std::string chars, int limit=0 );

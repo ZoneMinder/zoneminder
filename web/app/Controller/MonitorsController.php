@@ -4,7 +4,7 @@
   
 		public function index() {
       $zmBandwidth = $this->Cookie->read('zmBandwidth');
-	  $this->set('thumb_width', Configure::read('ZM_WEB_LIST_THUMB_WIDTH'));
+	  $this->set('width', Configure::read('ZM_WEB_LIST_THUMB_WIDTH'));
 	  $monitoroptions = array( 'fields' => array('Name', 'Id', 'Function', 'Enabled'), 'recursive' => -1);
 	  $this->set('monitors', $this->Monitor->find('all', $monitoroptions));
       $monitors = $this->Monitor->find('all', array('recursive' => -1, 'fields' => array('Id', 'StreamReplayBuffer')));

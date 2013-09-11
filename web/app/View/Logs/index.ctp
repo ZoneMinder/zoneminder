@@ -1,14 +1,16 @@
 <?php
-$componentoptions = array();
-foreach ($components as $component) {
-	$componentoptions[$component['Log']['Component']] = $component['Log']['Component'];
-}
+	$componentoptions = array();
+	foreach ($components as $component) {
+		$componentoptions[$component['Log']['Component']] = $component['Log']['Component'];
+	}
+
+	$this->start('sidebar');
+	echo $this->Form->label('Component');
+	echo $this->Form->select('Component', $componentoptions);
+	echo $this->Form->button('Refresh', array('id' => 'btnComponentRefresh'));
+	$this->end();
 ?>
-<div>
-	<?php echo $this->Form->label('Component'); ?>
-	<?php echo $this->Form->select('Component', $componentoptions); ?>
-	<?php echo $this->Form->button('Refresh', array('id' => 'btnComponentRefresh')); ?>
-</div>
+
 <table id="tblComponents">
 	<tr>
 		<th>Date / Time</th>

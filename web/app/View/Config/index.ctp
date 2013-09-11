@@ -1,8 +1,3 @@
-<?php echo $this->Form->create('Config', array(
-    'url' => '/config',
-    'novalidate' => true
-)); ?>
-
 <div id="tabs">
 <ul>
 <?php
@@ -12,6 +7,12 @@ foreach ($categories as $key => $value) {
 }
 ?>
 </ul>
+
+<?php echo $this->Form->create('Config', array(
+    'url' => '/config',
+    'novalidate' => true,
+    'class' => array('form-horizontal')
+)); ?>
 
 <?php
 foreach ($options as $option => $value) {

@@ -140,7 +140,11 @@ $(document).ready(function() {
 	// Events //
 
 	// Config //
-	$("#tabs").tabs();
+	$('.nav-tabs a').click(function (e) {
+	  e.preventDefault()
+	  $(this).tab('show')
+	})
+
 	$(document).tooltip({ track:true });
 	$('#tabs .row:even').addClass('highlight');
 	// Config //

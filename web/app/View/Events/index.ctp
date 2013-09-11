@@ -56,8 +56,11 @@ echo $this->Form->inputs(array(
 </div>
 <?php $this->end(); ?>
 
+<ul class="pagination">
+  <?php echo $this->Paginator->numbers(array('tag' => 'li', 'separator' => false, 'currentClass' => 'active', 'currentTag' => 'span')); ?>
+</ul>
+
 <div id="Events">
-<div style="clear:both;"><?php echo $this->Paginator->numbers(); ?></div>
 <table>
 <tr>
 	<th>Thumbnail</th>
@@ -96,5 +99,8 @@ foreach ($events as $key => $value) {
 }
 ?>
 </table>
-<div style="clear:both;"><?php echo $this->Paginator->numbers(); ?></div>
 </div>
+
+<ul class="pagination">
+  <?php echo $this->Paginator->numbers(array('tag' => 'li', 'separator' => false, 'currentClass' => 'active', 'currentTag' => 'span')); ?>
+</ul>

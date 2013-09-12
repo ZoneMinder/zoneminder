@@ -2167,7 +2167,7 @@ function logState()
         Logger::WARNING => array( ZM_LOG_ALERT_WAR_COUNT, ZM_LOG_ALARM_WAR_COUNT ),
     );
 
-    $sql = "select Level, count(Level) as LevelCount from Logs where Level < ".Logger::INFO." and from_unixtime(TimeKey) + interval ".ZM_LOG_CHECK_PERIOD." second > now() group by Level order by Level asc";
+    $sql = "select Level, count(Level) as LevelCount from Logs where Level < ".Logger::INFO." and TimeKey > unix_timestamp(now() - interval ".ZM_LOG_CHECK_PERIOD." second) group by Level order by Level asc";
     $counts = dbFetchAll( $sql );
 
     foreach ( $counts as $count )

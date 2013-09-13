@@ -134,9 +134,31 @@ if ( ZM_OPT_FFMPEG )
       </div>
       <div id="eventStream">
         <div id="imageFeed">
+        <script type="text/javascript">
+        function fastForward() {
+
+      	document.getElementById("video").playbackRate = 10.0;
+
+		return false;
+
+		}
+        </script>
 <?php
+//if(false){
+if(file_exists(ZM_PATH_WEB."/events/".getEventPath($event)."/event.mp4")){
+?>
+<video width="<?php echo $event['Width']; ?>" height="<?php echo $event['Height']; ?>" controls>
+  <source src="<?php echo "/events/".getEventPath($event)."/event.mp4"; ?>" type="video/mp4">
+Your browser does not support the video tag.
+</video>
+<button value="FF" onClick="fastForward();">
+
+<?
+}else{
+
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
+	
     $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
     outputVideoStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );
 }
@@ -151,6 +173,7 @@ else
     {
         outputHelperStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) );
     }
+}
 }
 ?>
         </div>

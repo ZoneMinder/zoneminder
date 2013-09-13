@@ -489,10 +489,10 @@ Monitor::Monitor(
     }
     
     //TODO: Remove this if it isn't needed?
-    if(!(strcmp(video_store_data->event_directory, "nothing")==0)){
+    /*if(!(strcmp(video_store_data->event_directory, "nothing")==0)){
         Fatal("Video store data not initialised by capture daemon yet. Exiting.");
         exit(-1);
-    }
+    }*/
 
     image_buffer = new Snapshot[image_buffer_count];
     for ( int i = 0; i < image_buffer_count; i++ )

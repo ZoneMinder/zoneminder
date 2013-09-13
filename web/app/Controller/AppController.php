@@ -73,6 +73,7 @@ class AppController extends Controller {
 
     $this->set('systemLoad', $this->AppModel->getSystemLoad());
     $this->set('diskSpace', $this->AppModel->getDiskSpace());
+    $this->set('zmVersion', Configure::read('ZM_VERSION'));
   }
 
   function extractNamedParams($mandatory, $optional = array()) {

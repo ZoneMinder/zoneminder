@@ -5,9 +5,25 @@
 	}
 
 	$this->start('sidebar');
+	echo $this->Form->create('Logs', array(
+		'default' => false,
+		'role' => 'form'
+	));
+?>
+<div class="form-group">
+<?php
 	echo $this->Form->label('Component');
-	echo $this->Form->select('Component', $componentoptions);
-	echo $this->Form->button('Refresh', array('id' => 'btnComponentRefresh'));
+	echo $this->Form->select('Component', $componentoptions, array('class' => 'form-control'));
+?>
+</div>
+<?php
+	$optionsend = array(
+		'label' => 'Refresh',
+		'div' => false,
+		'class' => array('btn', 'btn-default'),
+		'id' => 'btnComponentRefresh'
+	);
+	echo $this->Form->end($optionsend);
 	$this->end();
 ?>
 

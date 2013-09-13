@@ -1,7 +1,7 @@
 $(document).ready(function() {
 	
 	// Logs //
-	$("#Component").change(function(){
+	$("#LogsComponent").change(function(){
 		if (!!$(this).val()) {
 			$("#tblComponents").load("/logs/index/Component:" + $(this).val() + ' #tblComponents');
 		} else {

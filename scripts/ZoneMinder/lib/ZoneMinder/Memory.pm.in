@@ -168,8 +168,8 @@ our $mem_data =
 		"trigger_showtext" => { "type"=>"int8[256]", "seq"=>$mem_seq++ },
 		}
 	},
-    	"video_store_data" => { "type"=>"VideoStoreData", "seq"=>$mem_seq++, "contents"=> {
-        	"size"             => { "type"=>"uint32", "seq"=>$mem_seq++ },
+    "video_store_data" => { "type"=>"VideoStoreData", "seq"=>$mem_seq++, "contents"=> {
+        "size"             => { "type"=>"uint32", "seq"=>$mem_seq++ },
 		"event_directory"  => { "type"=>"int8[4096]", "seq"=>$mem_seq++ },
 		"recording"        => { "type"=>"uint32", "seq"=>$mem_seq++ },
         	}

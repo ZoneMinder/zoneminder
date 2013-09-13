@@ -44,7 +44,7 @@ use constant SELECT_TIMEOUT => 0.25;
 #
 # ==========================================================================
 
-use lib '/usr/share/perl/5.14.2'; # Include custom perl install path
+# Include from system perl paths only
 use ZoneMinder;
 use ZoneMinder::Trigger::Channel::Inet;
 use ZoneMinder::Trigger::Channel::Unix;

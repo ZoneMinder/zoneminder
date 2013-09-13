@@ -63,7 +63,7 @@ am__objects_1 = zm_box.$(OBJEXT) zm_buffer.$(OBJEXT) \
 	zm_rtp_source.$(OBJEXT) zm_rtsp.$(OBJEXT) zm_sdp.$(OBJEXT) \
 	zm_signal.$(OBJEXT) zm_stream.$(OBJEXT) zm_thread.$(OBJEXT) \
 	zm_time.$(OBJEXT) zm_timer.$(OBJEXT) zm_user.$(OBJEXT) \
-	zm_utils.$(OBJEXT) zm_zone.$(OBJEXT)
+	zm_utils.$(OBJEXT) zm_videostore.$(OBJEXT) zm_zone.$(OBJEXT)
 am_zma_OBJECTS = zma.$(OBJEXT) $(am__objects_1)
 zma_OBJECTS = $(am_zma_OBJECTS)
 zma_LDADD = $(LDADD)
@@ -293,6 +293,7 @@ zm_SOURCES = \
 	zm_timer.cpp \
 	zm_user.cpp \
 	zm_utils.cpp \
+	zm_videostore.cpp \
 	zm_zone.cpp
 
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
@@ -347,6 +348,7 @@ noinst_HEADERS = \
 	zm_timer.h \
 	zm_user.h \
 	zm_utils.h \
+	zm_videostore.h \
 	zm_zone.h
 
 EXTRA_DIST = \
@@ -491,6 +493,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_timer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_user.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_utils.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_videostore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zm_zone.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zma.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zmc.Po@am__quote@

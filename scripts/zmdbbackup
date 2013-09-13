@@ -18,7 +18,7 @@
 #===============================================================================
 
 # Edit these to suit your configuration
-ZM_CONFIG=/etc/zm/zm.conf
+ZM_CONFIG=/usr/local/etc/zm.conf
 source $ZM_CONFIG
 
 MYSQLDUMP=/usr/bin/mysqldump

@@ -21,7 +21,7 @@
 //
 // This section contains options substituted by the zmconfig.pl utility, do not edit these directly
 //
-define( "ZM_CONFIG", "/etc/zm/zm.conf" );               // Path to config file
+define( "ZM_CONFIG", "/usr/local/etc/zm.conf" );               // Path to config file
 
 $configFile = ZM_CONFIG;
 $localConfigFile = basename($configFile);

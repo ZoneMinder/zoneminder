@@ -44,7 +44,7 @@ use constant MAX_CONNECT_DELAY => 10;
 #
 # ==========================================================================
 
-use lib '/usr/share/perl/5.14.2'; # Include custom perl install path
+# Include from system perl paths only
 use ZoneMinder;
 use POSIX;
 use Socket;
@@ -209,7 +209,7 @@ package ZMServer;
 use strict;
 use bytes;
 
-use lib '/usr/share/perl/5.14.2'; # Include custom perl install path
+# Include from system perl paths only
 use ZoneMinder;
 use POSIX;
 use Socket;

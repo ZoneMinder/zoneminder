@@ -7,7 +7,7 @@
 . /etc/rc.d/init.d/functions
 
 prog=ZoneMinder
-ZM_CONFIG="/etc/zm/zm.conf"
+ZM_CONFIG="/usr/local/etc/zm.conf"
 pidfile="/var/run/zm"
 LOCKFILE=/var/lock/subsys/zm
 
@@ -81,8 +81,8 @@ zmstatus()
 
 zmupdate()
 {
-	if [ -x $ZM_PATH_BIN/zm_update ]; then
-		$ZM_PATH_BIN/zm_update -f
+	if [ -x $ZM_PATH_BIN/zmupdate.pl ]; then
+		$ZM_PATH_BIN/zmupdate.pl -f
 	fi
 }
 

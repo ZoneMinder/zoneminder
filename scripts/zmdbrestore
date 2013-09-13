@@ -18,7 +18,7 @@
 #     REVISION:  ---
 #===============================================================================
 
-ZM_CONFIG=/etc/zm/zm.conf
+ZM_CONFIG=/usr/local/etc/zm.conf
 ZM_BACKUP=/var/lib/zm/zm_backup.sql
 EVENTS_DIR=events
 

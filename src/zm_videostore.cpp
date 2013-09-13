@@ -24,7 +24,7 @@
 #include "zm.h"
 #include "zm_videostore.h"
 
-VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream *input_st){
+VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream *input_st, bool continuous, AVPacket *ipkt){
     
     //store inputs in variables local to class
 	filename = filename_in;
@@ -34,7 +34,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
     keyframeSkipNumber = 0;
 
 
-	Info("Opening video storage stream %s\n in format %s\n", filename, format);
+	Info("Opening video storage stream %s\n", filename);
     
 	//Init everything we need
 	int ret;
@@ -80,6 +80,22 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
 		Fatal("Error occurred when opening output file: %s\n", av_err2str(ret));
 	}
     
+    if(continuous){
+        if (ipkt->pts != AV_NOPTS_VALUE)
+            startPts = ipkt->pts;
+        else
+            startPts = 0;
+    
+        if (ipkt->dts != AV_NOPTS_VALUE)
+            startDts = ipkt->dts;
+        else
+            startDts = 0;
+    
+    }else{
+        startPts = 0;
+        startDts = 0;
+    }
+    
     
 }
 
@@ -102,7 +118,7 @@ VideoStore::~VideoStore(){
 
 
 
-void VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st, AVFormatContext *input_fmt_ctx){
+int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){
     /*
      See 01349 of http://www.ffmpeg.org/doxygen/trunk/ffmpeg_8c-source.html
      do_streamcopy
@@ -119,7 +135,7 @@ void VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st, AVFor
             keyframeMessage = true;
         }
         keyframeSkipNumber++;
-        return;
+        return -1;
     }else{
         if(keyframeMessage){
             Warning("Skipped %d frames waiting for keyframe", keyframeSkipNumber);
@@ -127,22 +143,22 @@ void VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st, AVFor
         }
     }
 
-    int64_t ost_tb_start_time = av_rescale_q(input_fmt_ctx->start_time_realtime, AV_TIME_BASE_Q, video_st->time_base);
+    //int64_t ost_tb_start_time = av_rescale_q(oc->start_time, AV_TIME_BASE_Q, video_st->time_base);
     
     opkt.stream_index = video_st->index;
     
     //Scale the PTS of the outgoing packet to be the correct time base
     if (ipkt->pts != AV_NOPTS_VALUE)
-        opkt.pts = av_rescale_q(ipkt->pts, input_st->time_base, video_st->time_base);
+        opkt.pts = av_rescale_q((ipkt->pts)-startPts, input_st->time_base, video_st->time_base);
     else
         opkt.pts = AV_NOPTS_VALUE;
     
     //Scale the DTS of the outgoing packet to be the correct time base
     if(ipkt->dts == AV_NOPTS_VALUE)
-        opkt.dts = av_rescale_q(input_st->reference_dts, AV_TIME_BASE_Q, video_st->time_base);
+        opkt.dts = av_rescale_q((input_st->reference_dts)-startDts, AV_TIME_BASE_Q, video_st->time_base);
     else
-        opkt.dts = av_rescale_q(ipkt->dts, input_st->time_base, video_st->time_base);
-    opkt.dts -= ost_tb_start_time;
+        opkt.dts = av_rescale_q((ipkt->dts)-startDts, input_st->time_base, video_st->time_base);
+    //opkt.dts -= ost_tb_start_time;
     
     
     opkt.duration = av_rescale_q(ipkt->duration, input_st->time_base, video_st->time_base);
@@ -174,6 +190,7 @@ void VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st, AVFor
     }
     
     av_free_packet(&opkt);
+    return 0;
     
 }
 

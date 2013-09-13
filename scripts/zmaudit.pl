@@ -49,7 +49,7 @@ use constant RECOVER_TEXT => "Recovered."; # Text to append to event notes when 
 #
 # ==========================================================================
 
-use lib '/usr/share/perl/5.14.2'; # Include custom perl install path
+# Include from system perl paths only
 use ZoneMinder;
 use DBI;
 use POSIX;

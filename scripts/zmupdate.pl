@@ -42,7 +42,7 @@ use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 #
 # ==========================================================================
 
-use lib '/usr/share/perl/5.14.2'; # Include custom perl install path
+# Include from system perl paths only
 use ZoneMinder::Base qw(:all);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
@@ -97,6 +97,11 @@ if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'z
 {
     Usage();
 }
+
+my $dbh = zmDbConnect();
+*ZoneMinder::Database::ZM_DB_USER = sub { $dbUser } if ZoneMinder::Database::ZM_DB_USER ne $dbUser;
+*ZoneMinder::Database::ZM_DB_PASS = sub { $dbPass } if ZoneMinder::Database::ZM_DB_PASS ne $dbPass;
+zmDbDisconnect();
 
 if ( ! ($check || $freshen || $rename || $zoneFix || $migrateEvents || $version) )
 {
@@ -447,6 +452,35 @@ if ( $version )
             my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
             my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
         }
+    }
+
+    sub toInnoDB
+    {
+	my $dbh = shift;
+	my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+
+	my @dbTables;
+		while( my $dbTable = $sth->fetchrow() )
+		{
+	        push( @dbTables, $dbTable );
+        	}
+	$sth->finish();
+
+	if (@dbTables)
+	{
+		print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
+	    	foreach (@dbTables)
+			{
+			my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			}
+	        $sth->finish();
+	} else {
+		print "\nNo MyISAM tables found. Skipping...\n";
+	}
     }
 
     print( "\nUpgrading database to version ".ZM_VERSION."\n" );
@@ -965,6 +999,32 @@ if ( $version )
         }
         $cascade = !undef;
     }
+	if ( $cascade || $version lt "1.26.0" )
+	{
+		my $sth = $dbh->prepare_cached( 'select * from Monitors LIMIT 0,1' );
+		die "Error: " . $dbh->errstr . "\n" unless ($sth);
+		die "Error: " . $sth->errstr . "\n" unless ($sth->execute);
+
+		my $columns = $sth->{'NAME'};
+		if ( ! grep(/^Colours$/, @$columns ) ) {
+			$dbh->do(q{alter table Monitors add column `Colours` tinyint(3) unsigned NOT NULL default '1' after `Height`;});
+		} # end if
+		if ( ! grep(/^Deinterlacing$/, @$columns ) ) {
+			$dbh->do(q{alter table Monitors add column `Deinterlacing` INT unsigned NOT NULL default '0' after `Orientation`;});
+		} # end if
+		$sth->finish();
+
+		print( "\nPrevious versions of ZoneMinder used the MyISAM database engine.\nHowever, the recommended database engine is InnoDB.\n");
+		print( "\nHint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.\n\nPress 'y' to convert your tables to InnoDB or 'n' to skip : ");
+        	my $response = <STDIN>;
+        	chomp( $response );
+        	if ( $response =~ /^[yY]$/ )
+        	{
+        	    toInnoDB($dbh);
+        	}
+
+		$cascade = !undef;
+	}
     if ( $cascade )
     {
         my $installed_version = ZM_VERSION;

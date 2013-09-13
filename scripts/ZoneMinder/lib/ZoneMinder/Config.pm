@@ -57,7 +57,7 @@ our @EXPORT = qw();
 our $VERSION = $ZoneMinder::Base::VERSION;
 
 use constant ZM_PID => "/var/run/zm/zm.pid"; # Path to the ZoneMinder run pid file
-use constant ZM_CONFIG => "/etc/zm/zm.conf"; # Path to the ZoneMinder config file
+use constant ZM_CONFIG => "/usr/local/etc/zm.conf"; # Path to the ZoneMinder config file
 
 use Carp;
 

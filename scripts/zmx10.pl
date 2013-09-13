@@ -41,7 +41,7 @@ use constant CAUSE_STRING => "X10"; # What gets written as the cause of any even
 #
 # ==========================================================================
 
-use lib '/usr/share/perl/5.14.2'; # Include custom perl install path
+# Include from system perl paths only
 use ZoneMinder;
 use POSIX;
 use Socket;

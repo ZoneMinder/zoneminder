@@ -193,6 +193,14 @@ our @options =
 		type => $types{rel_path},
 		category => "paths",
 	},
+    	{
+        	name => "ZM_USE_MKV_STORAGE",
+		default => "no",
+		description => "UNDER DEVELOPMENT: Use a .mkv storage for events vs. JPEG",
+		help => "This is currently under active development and not working correctly. For now, ensure /var/www/zm/eventtemp is present and able to be written to (otherwise change the source). Please only use this option if you know what you're doing!",
+		type => $types{boolean},
+		category => "paths",
+	},
 	{
 		name => "ZM_COLOUR_JPEG_FILES",
 		default => "yes",
@@ -416,7 +424,7 @@ our @options =
 	},
 	{
 		name => "ZM_PATH_FFMPEG",
-		default => "/usr/bin/ffmpeg",
+		default => "/usr/local/bin/ffmpeg",
 		description => "Path to (optional) ffmpeg mpeg encoder",
 		help => "This path should point to where ffmpeg has been installed.",
 		requires => [ { name=>"ZM_OPT_FFMPEG", value=>"yes" } ],
@@ -1801,7 +1809,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_DYN_CURR_VERSION",
-		default => "1.25.0",
+		default => "1.26.0",
 		description => "What the effective current version of ZoneMinder is, might be different from actual if versions ignored",
 		help => "",
 		type => $types{string},
@@ -1810,7 +1818,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_DYN_DB_VERSION",
-		default => "1.25.0",
+		default => "1.26.0",
 		description => "What the version of the database is, from zmupdate",
 		help => "",
 		type => $types{string},

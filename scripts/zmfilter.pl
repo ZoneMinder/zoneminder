@@ -42,7 +42,7 @@ use constant START_DELAY => 5; # How long to wait before starting
 #
 # ==========================================================================
 
-use lib '/usr/share/perl/5.14.2'; # Include custom perl install path
+# Include from system perl paths only
 use ZoneMinder;
 use DBI;
 use POSIX;

@@ -1,4 +1,4 @@
-- [ ] I can filter events
+- [ ] I can filter events #123
 - [ ] I can change pages while preserving my filter 
 - [ ] I can view monitor streams individually
 - [ ] I can delete events

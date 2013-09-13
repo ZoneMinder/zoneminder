@@ -71,9 +71,15 @@ class AppController extends Controller {
 		$this->set('daemonStatus', ('<span class="alert alert-danger">Stopped</span>'));
 	}
 
+    if (Configure::read('ZM_DYN_LAST_VERSION') > Configure::read('ZM_VERSION')) {
+      $zmVersion = '<span class="label label-info">' . Configure::read('ZM_VERSION') . '</span>';
+    } else {
+      $zmVersion = '<span class="label label-success">' . Configure::read('ZM_VERSION') . '</span>';
+    }
+
     $this->set('systemLoad', $this->AppModel->getSystemLoad());
     $this->set('diskSpace', $this->AppModel->getDiskSpace());
-    $this->set('zmVersion', Configure::read('ZM_VERSION'));
+    $this->set('zmVersion', $zmVersion);
   }
 
   function extractNamedParams($mandatory, $optional = array()) {

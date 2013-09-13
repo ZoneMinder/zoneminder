@@ -27,7 +27,7 @@
 	$this->end();
 ?>
 
-<table id="tblComponents">
+<table id="tblComponents" class="table table-condensed table-hover table-striped">
 	<tr>
 		<th>Date / Time</th>
 		<th>Component</th>

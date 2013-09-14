@@ -35,8 +35,7 @@ Source10:   cambozola-%{cambrev}.tar.gz
 
 Patch1:     zoneminder-1.26.0-dbinstall.patch
 Patch2:     zoneminder-runlevel.patch
-Patch3:    zoneminder-1.25.0-installfix.patch
-Patch4:    zoneminder-1.26.0-defaults.patch
+Patch3:    zoneminder-1.26.0-defaults.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -105,8 +104,7 @@ popd
 
 %patch1 -p0 -b .dbinstall
 %patch2 -p0 -b .runlevel
-%patch3 -p0 -b .installfix
-%patch4 -p0
+%patch3 -p0
 
 cp %{SOURCE4} README.CentOS
 cp %{SOURCE9} local_zoneminder.te

@@ -1,7 +1,0 @@
-/var/log/zoneminder/*log
-{
-	weekly
-	notifempty
-	missingok
-	create 660 http http
-}

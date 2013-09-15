@@ -240,14 +240,14 @@ int main( int argc, char *argv[] )
 		{
                         n_bytes = read( sd, image_data+bytes_read, frame_header.image_length-bytes_read );
                         if (n_bytes < 0) break; // break on error
-                        if (n_bytes < frame_header.image_length)
+                        if (n_bytes < (int)frame_header.image_length)
 			{
                                 // print some informational messages 
                                 if (bytes_read == 0)
                                 {
                                         // Warning("Image read : Short read %d bytes of %d expected bytes",n_bytes,frame_header.image_length);
                                 }
-                                else if (bytes_read+n_bytes == frame_header.image_length)
+                                else if (bytes_read+n_bytes == (int)frame_header.image_length)
                                 {
                                         // Warning("Image read : Read rest of short read: %d bytes read total of %d bytes",n_bytes,frame_header.image_length);
                                 }

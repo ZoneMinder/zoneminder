@@ -633,7 +633,7 @@ bool Image::WriteRaw( const char *filename ) const
 
 bool Image::ReadJpeg( const char *filename, int p_colours, int p_subpixelorder)
 {
-	unsigned int new_width, new_height, new_colours, new_subpixelorder;
+	int new_width, new_height, new_colours, new_subpixelorder;
 	struct jpeg_decompress_struct *cinfo = jpg_dcinfo;
 
 	if ( !cinfo )
@@ -886,7 +886,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 
 bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, int p_colours, int p_subpixelorder)
 {
-	unsigned int new_width, new_height, new_colours, new_subpixelorder;
+	int new_width, new_height, new_colours, new_subpixelorder;
 	struct jpeg_decompress_struct *cinfo = jpg_dcinfo;
 
 	if ( !cinfo )

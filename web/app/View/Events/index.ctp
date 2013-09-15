@@ -62,21 +62,9 @@ echo $this->Form->inputs(array(
 
 <div id="Events">
 <table class="table table-condensed table-striped">
-<tr>
-	<th>Thumbnail</th>
-	<th>Id</th>
-	<th>Name</th>
-	<th>Monitor</th>
-	<th>Cause</th>
-	<th>Time</th>
-	<th>Duration</th>
-	<th>Alarm Frames</th>
-	<th>Total Score</th>
-	<th>Avg. Score</th>
-	<th>Max Score</th>
-</tr>
-
 <?php
+  echo $this->Html->tableHeaders(array( 'Thumbnail', 'Id', 'Name', 'Monitor', 'Cause', 'Time', 'Duration', 'Alarm Frames', 'Total Score', 'Avg. Score', 'Max Score' ));
+
 foreach ($events as $key => $value) {
 	echo $this->Html->tableCells(array(
 		$this->Html->link($this->Html->image('/events/'.$thumbData[$key]['Path'], array(

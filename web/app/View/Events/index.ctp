@@ -54,14 +54,14 @@ echo $this->Form->inputs(array(
 </div>
 <?php echo $this->Form->end(array('label' => 'Search', 'id' => 'EventsButtonSearch')); ?>
 </div>
+
 <?php $this->end(); ?>
 
 <ul class="pagination">
   <?php echo $this->Paginator->numbers(array('tag' => 'li', 'separator' => false, 'currentClass' => 'active', 'currentTag' => 'span')); ?>
 </ul>
 
-<div id="Events">
-<table class="table table-condensed table-striped">
+<table class="table table-condensed table-striped" id="Events">
 <?php
   echo $this->Html->tableHeaders(array( 'Thumbnail', 'Id', 'Name', 'Monitor', 'Cause', 'Time', 'Duration', 'Alarm Frames', 'Total Score', 'Avg. Score', 'Max Score', '' ));
 
@@ -91,7 +91,6 @@ foreach ($events as $key => $value) {
 }
 ?>
 </table>
-</div>
 
 <ul class="pagination">
   <?php echo $this->Paginator->numbers(array('tag' => 'li', 'separator' => false, 'currentClass' => 'active', 'currentTag' => 'span')); ?>

@@ -63,7 +63,7 @@ echo $this->Form->inputs(array(
 <div id="Events">
 <table class="table table-condensed table-striped">
 <?php
-  echo $this->Html->tableHeaders(array( 'Thumbnail', 'Id', 'Name', 'Monitor', 'Cause', 'Time', 'Duration', 'Alarm Frames', 'Total Score', 'Avg. Score', 'Max Score' ));
+  echo $this->Html->tableHeaders(array( 'Thumbnail', 'Id', 'Name', 'Monitor', 'Cause', 'Time', 'Duration', 'Alarm Frames', 'Total Score', 'Avg. Score', 'Max Score', '' ));
 
 foreach ($events as $key => $value) {
 	echo $this->Html->tableCells(array(
@@ -82,7 +82,11 @@ foreach ($events as $key => $value) {
 		$value['Event']['AlarmFrames'],
 		$value['Event']['TotScore'],
 		$value['Event']['AvgScore'],
-		$value['Event']['MaxScore']
+		$value['Event']['MaxScore'],
+  		$this->Form->postLink(
+			'Delete',
+			array('action' => 'delete', $value['Event']['Id']),
+			array('confirm' => 'Are you sure?'))
 	));
 }
 ?>

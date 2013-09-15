@@ -60,6 +60,16 @@ public function index() {
     $this->set('event', $event);
   }
 
+  public function delete($id) {
+    if ($this->request->is('get')) {
+      throw new MethodNotAllowedException();
+    }
+
+    if ($this->Event->delete($id)) {
+      return $this->redirect(array('action' => 'index'));
+    }
+  }
+
 }
 
 ?>

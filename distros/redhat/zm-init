@@ -1,0 +1,48 @@
+#!/bin/sh
+#$Id: zm-init,v 1.1 2005/04/19 00:49:53 hunter Exp $
+
+#
+#	Copyright (C) 2005 Serg Oskin
+#
+
+ZM_VERSION=
+ZM_CONFIG=/etc/zm.conf
+ZM_PATH=/usr/lib/zm
+
+if [ -f $ZM_CONFIG ]; then
+	. $ZM_CONFIG
+else
+	echo "ERROR: $ZM_CONFIG not found."
+	exit 1
+fi
+for n in ZM_DB_SERVER ZM_DB_NAME ZM_DB_USER ZM_DB_PASS; do
+	eval "val=\$$n"
+	if [ "$val" = "" ]; then
+		echo "ERROR($ZM_CONFIG): $n should exist and be not empty."
+		exit 1
+	fi
+done
+
+if [ "$ZM_DB_SERVER" = "localhost" ]; then
+	ClientHost=localhost
+else
+	ClientHost=`hostname`
+fi
+
+
+sql=/tmp/zm.crdb.sql
+echo "" >$sql
+chmod 600 $sql
+
+echo "CREATE DATABASE /*!32312 IF NOT EXISTS*/ $ZM_DB_NAME;" >>$sql
+echo "USE $ZM_DB_NAME;" >>$sql
+
+echo "GRANT all on $ZM_DB_NAME.* TO '$ZM_DB_USER'@'$ClientHost' IDENTIFIED BY '$ZM_DB_PASS';" >>$sql
+
+echo -n "Enter MySQL Administrator username: "
+read admin
+cat $sql | mysql -B -h $ZM_DB_SERVER -u $admin -p
+rm -f $sql
+
+cat /usr/lib/zm/init/zmschema.sql | mysql -h $ZM_DB_SERVER -u $ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME
+( cd $ZM_PATH/init; perl $ZM_PATH/init/zmoptions -f $ZM_PATH/init/zmconfig.txt )

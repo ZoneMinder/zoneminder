@@ -4,9 +4,14 @@ New installs
 1. Unless you are already using the MySQL server or you are running it
    remotely you will need to ensure that the server is installed and secured:
 
-     yum install mysql-server
-     chkconfig mysql on
-     service mysql start
+     yum install mysql-community or
+
+	 yum install mysql (Mariadb)
+
+     sudo systemctl mysqld enable
+
+	 sudo system mysqld start
+     
      mysql_secure_installation
 
 2. You will need to create the ZoneMinder database. These commands should do
@@ -32,8 +37,8 @@ New installs
    or if it is set incorrectly, and these complaints will show up in the
    zoneminder logging system as errors.
 
-   If you are not sure of the proper timezone specification to use, look in
-   /etc/sysconfig/clock.
+   If you are not sure of the proper timezone specification to use, look at
+   http://php.net/date.timezone
 
 6. This package probably does not work with SELinux enabled at the moment. It
    may be necessary to disable SELinux for httpd, or even completely for
@@ -43,18 +48,18 @@ New installs
 
    for testing, and edit /etc/sysconfig/selinux to disable it at boot time.
 
-7. Enable and start the zoneminder service:
+7. The zoneminder.service file fails at present but the zmpkg.pl script
+   can be run as root to start zoneminder.
 
-     systemctl enable zoneminder.service
-     systemctl start zoneminder.service
+	sudo zmpkg.pl start
 
 8. The ZoneMinder web interface is disabled by default (which makes it rather
    useless but also secure by default), you will need to edit
    /etc/httpd/conf.d/zoneminder.conf to enable it.  Afterwards, you can start
    the web server:
 
-     systemctl enable httpd.service
-     systemctl start httpd.service
+     sudo systemctl enable httpd.service
+     sudo systemctl start httpd.service
 
 9. You should immediately visit http://localhost/zm and secure the system if
    it is network facing.  To do this:
@@ -78,4 +83,4 @@ Upgrades
 2. You will need to upgrade the ZoneMinder database as described in the
    manual. This command should be sufficient when run as root:
 
-     zmupdate.pl --version=<from version>
+     zmupdate.pl --user=root --pass={mysql_root_pwd} --version=<from version>

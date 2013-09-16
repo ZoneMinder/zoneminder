@@ -37,7 +37,7 @@ class AppModel extends Model {
 		$zm_path_bin = Configure::read('ZM_PATH_BIN');
 		$string = $zm_path_bin."/zmdc.pl status";
 		$daemon_status = shell_exec ( $string );
-		return $daemon_status;
+		return !strstr($daemon_status, "Unable to connect to server");
 	}
 
 	function daemonControl( $command ) {

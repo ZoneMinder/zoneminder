@@ -54,29 +54,17 @@ echo $this->Form->inputs(array(
 </div>
 <?php echo $this->Form->end(array('label' => 'Search', 'id' => 'EventsButtonSearch')); ?>
 </div>
+
 <?php $this->end(); ?>
 
 <ul class="pagination">
   <?php echo $this->Paginator->numbers(array('tag' => 'li', 'separator' => false, 'currentClass' => 'active', 'currentTag' => 'span')); ?>
 </ul>
 
-<div id="Events">
-<table class="table table-condensed table-striped">
-<tr>
-	<th>Thumbnail</th>
-	<th>Id</th>
-	<th>Name</th>
-	<th>Monitor</th>
-	<th>Cause</th>
-	<th>Time</th>
-	<th>Duration</th>
-	<th>Alarm Frames</th>
-	<th>Total Score</th>
-	<th>Avg. Score</th>
-	<th>Max Score</th>
-</tr>
-
+<table class="table table-condensed table-striped" id="Events">
 <?php
+  echo $this->Html->tableHeaders(array( 'Thumbnail', 'Id', 'Name', 'Monitor', 'Cause', 'Time', 'Duration', 'Alarm Frames', 'Total Score', 'Avg. Score', 'Max Score', '' ));
+
 foreach ($events as $key => $value) {
 	echo $this->Html->tableCells(array(
 		$this->Html->link($this->Html->image('/events/'.$thumbData[$key]['Path'], array(
@@ -94,12 +82,15 @@ foreach ($events as $key => $value) {
 		$value['Event']['AlarmFrames'],
 		$value['Event']['TotScore'],
 		$value['Event']['AvgScore'],
-		$value['Event']['MaxScore']
+		$value['Event']['MaxScore'],
+  		$this->Form->postLink(
+			'Delete',
+			array('action' => 'delete', $value['Event']['Id']),
+			array('confirm' => 'Are you sure?'))
 	));
 }
 ?>
 </table>
-</div>
 
 <ul class="pagination">
   <?php echo $this->Paginator->numbers(array('tag' => 'li', 'separator' => false, 'currentClass' => 'active', 'currentTag' => 'span')); ?>

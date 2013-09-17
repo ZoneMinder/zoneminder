@@ -66,10 +66,12 @@ class AppController extends Controller {
     }
     Configure::write('SCALE_BASE', 100);
 	if ($this->AppModel->daemonStatus()) {
-		$this->set('daemonStatus', ('<span class="alert alert-success">Running</span>'));
+		$this->set('daemonStatusHtml', ('<span class="alert alert-success">Running</span>'));
 	} else {
-		$this->set('daemonStatus', ('<span class="alert alert-danger">Stopped</span>'));
+		$this->set('daemonStatusHtml', ('<span class="alert alert-danger">Stopped</span>'));
 	}
+	
+	$this->set('daemonStatus', $this->AppModel->daemonStatus());
 
     if (Configure::read('ZM_DYN_LAST_VERSION') > Configure::read('ZM_VERSION')) {
       $zmVersion = '<span class="label label-info">' . Configure::read('ZM_VERSION') . '</span>';

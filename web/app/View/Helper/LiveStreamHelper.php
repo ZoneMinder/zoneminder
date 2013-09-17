@@ -8,7 +8,7 @@ class LiveStreamHelper extends AppHelper {
 	}
 	
 	public function showNoImage($name, $src, $id, $width=0) {
-		$liveStream = "<img id=\"liveStream_$id\" alt=\"Live Stream of $name\" src=\"/img/no-image.jpg".width?"width=\"$width">";
+		$liveStream = "<img id=\"liveStream_$id\" alt=\"Live Stream of $name\" src=\"/img/no-image.jpg\".width?\"width=\"$width\">";
 		return $liveStream;
 	}
 }

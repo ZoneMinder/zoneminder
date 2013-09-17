@@ -10,7 +10,8 @@ foreach ($categories as $key => $value) {
 <?php echo $this->Form->create('Config', array(
     'url' => '/config',
     'novalidate' => true,
-    'class' => array('form-horizontal')
+    'class' => array('form-horizontal'),
+    'role' => 'form'
 )); ?>
 
 <div class="tab-content">
@@ -77,19 +78,20 @@ foreach ($options as $option => $value) {
 		// Create the actual inputs.  'options' and 'legend'
 		// are ignored when they're not needed, such as in
 		// the case of a text or checkbox input type.
-		echo "<div class=\"row\">";	
-		echo $this->Form->label($inputname, $name);
-		echo $this->Form->label($inputname, $val['Config']['Prompt'], 'description');
-		echo $this->Form->input($inputname, array(
+		echo "<div class=\"form-group\">";
+		echo $this->Form->label($inputname, $name, array('class' => array('col-sm-3', 'col-md-3', 'col-lg-3', 'control-label')));
+		echo '<div class="col-lg-9">';
+		echo $this->Form->$inputtype($inputname, array(
 			'default' => $val['Config']['Value'],
 			'label' => false,
 			'div' => false,
 			'title' => $val['Config']['Prompt'],
 			'type' => $inputtype,
-			'class' => $type,
 			'options' => $selectoptions, // Only used by cakephp when 'type' is 'select'
 			'legend' => false
 		));
+		echo '</div>';
+		echo '<span class="help-block">' . $val['Config']['Prompt'] . '</span>';
 		echo "</div>";
 	}
 	echo "</div>"; // End each category div

@@ -145,6 +145,8 @@ $(document).ready(function() {
 	  $(this).tab('show')
 	})
 
+	$("div#config.tab-pane").addClass('active');
+
 	$(document).tooltip({ track:true });
 	$('#tabs .row:even').addClass('highlight');
 	// Config //

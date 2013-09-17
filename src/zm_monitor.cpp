@@ -2727,7 +2727,7 @@ int Monitor::Capture()
     }
     if ( true ) {
 
-        if ( capture_image->Size() != (int)camera->ImageSize() )
+        if ( capture_image->Size() != camera->ImageSize() )
         {
             Error( "Captured image does not match expected size, check width, height and colour depth" );
             return( -1 );

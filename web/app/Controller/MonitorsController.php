@@ -175,9 +175,8 @@
 
     public function reorder() {
       foreach ($this->data['Monitor'] as $key => $value) {
-        $this->log($value);
         $this->Monitor->id = $value;
-        $this->Monitor->saveField('Sequence', $key + 1);
+        $this->Monitor->saveField('Sequence', $key+1);
       }
       exit();
     }

@@ -1,0 +1,17 @@
+After install run "zm_database_init" to create
+the database and the zm database user (zm_admin).
+The config file is automaticly adjusted with the
+entered password for zm_admin.
+
+If you want to use X10 thwn install the the required
+perl module with cpan.
+
+information:
+during the run of zm_database_init a .my.cnf will
+be created/updated (in the home directory of root)
+so that root can access the database without password.
+It Does not delete the .my.cnf when it exists, but checks
+whether it has an entry for the mysql client [client] which
+contains as username root. When the entry not exist or
+the username is not root the .my.cnf will be modified
+to fit the above requirements.

@@ -1073,7 +1073,7 @@ void LocalCamera::Terminate()
     if ( v4l_version == 1 )
     {
 #if HAVE_LIBSWSCALE
-		for(unsigned int i=0; i < v4l1_data.frames.frames; i++) {    
+		for(int i=0; i < v4l1_data.frames.frames; i++) {    
 			/* Free capture pictures */
 			av_free(capturePictures[i]);
 			capturePictures[i] = NULL;

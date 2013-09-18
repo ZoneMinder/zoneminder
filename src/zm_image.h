@@ -136,12 +136,12 @@ protected:
 	static struct zm_error_mgr jpg_err;
 
 protected:
-	int width;
-	int height;
-	int pixels;
-	int colours;
-	int size;
-	int subpixelorder;
+	unsigned int width;
+	unsigned int height;
+	unsigned int pixels;
+	unsigned int colours;
+	unsigned int size;
+	unsigned int subpixelorder;
 	unsigned long allocation;
 	uint8_t *buffer;
 	int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
@@ -158,18 +158,18 @@ public:
 	Image( const Image &p_image );
 	~Image();
 
-	inline int Width() const { return( width ); }
-	inline int Height() const { return( height ); }
-	inline int Pixels() const { return( pixels ); }
-	inline int Colours() const { return( colours ); }
-	inline int SubpixelOrder() const { return( subpixelorder ); }
-	inline int Size() const { return( size ); }
+	inline unsigned int Width() const { return( width ); }
+	inline unsigned int Height() const { return( height ); }
+	inline unsigned int Pixels() const { return( pixels ); }
+	inline unsigned int Colours() const { return( colours ); }
+	inline unsigned int SubpixelOrder() const { return( subpixelorder ); }
+	inline unsigned int Size() const { return( size ); }
 	
 	/* Internal buffer should not be modified from functions outside of this class */
 	inline const uint8_t* Buffer() const { return( buffer ); }
 	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return( &buffer[colours*((y*width)+x)] ); }
 	/* Request writeable buffer */
-	uint8_t* WriteBuffer(const int p_width, const int p_height, const int p_colours, const int p_subpixelorder);
+	uint8_t* WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder);
 	
 	inline int IsBufferHeld() const { return holdbuffer; }
 	inline void HoldBuffer(int tohold) { holdbuffer = tohold; }
@@ -181,9 +181,9 @@ public:
 	width = height = colours = size = pixels = subpixelorder = 0;
 	}
 	
-	void Assign( int p_width, int p_height, int p_colours, int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size);
+	void Assign( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size);
 	void Assign( const Image &image );
-	void AssignDirect( const int p_width, const int p_height, const int p_colours, const int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype);
+	void AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype);
 
 	inline void CopyBuffer( const Image &image )
 	{
@@ -202,9 +202,9 @@ public:
 	bool ReadRaw( const char *filename );
 	bool WriteRaw( const char *filename ) const;
 
-	bool ReadJpeg( const char *filename, int p_colours, int p_subpixelorder);
+	bool ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
 	bool WriteJpeg( const char *filename, int quality_override=0 ) const;
-	bool DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, int p_colours, int p_subpixelorder);
+	bool DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
 	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;
 
 #if HAVE_ZLIB_H
@@ -212,24 +212,24 @@ public:
 	bool Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compression_level=Z_BEST_SPEED ) const;
 #endif // HAVE_ZLIB_H
 
-	bool Crop( int lo_x, int lo_y, int hi_x, int hi_y );
+	bool Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsigned int hi_y );
 	bool Crop( const Box &limits );
 
 	void Overlay( const Image &image );
-	void Overlay( const Image &image, int x, int y );
+	void Overlay( const Image &image, unsigned int x, unsigned int y );
 	void Blend( const Image &image, int transparency=12 );
-	static Image *Merge( int n_images, Image *images[] );
-	static Image *Merge( int n_images, Image *images[], double weight );
-	static Image *Highlight( int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
+	static Image *Merge( unsigned int n_images, Image *images[] );
+	static Image *Merge( unsigned int n_images, Image *images[], double weight );
+	static Image *Highlight( unsigned int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
 	//Image *Delta( const Image &image ) const;
 	void Delta( const Image &image, Image* targetimage) const;
 
 	const Coord centreCoord( const char *text ) const;
 	void Annotate( const char *p_text, const Coord &coord,  const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
-	Image *HighlightEdges( Rgb colour, int p_colours, int p_subpixelorder, const Box *limits=0 );
+	Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );
 	//Image *HighlightEdges( Rgb colour, const Polygon &polygon );
 	void Timestamp( const char *label, const time_t when, const Coord &coord );
-	void Colourise(const int p_reqcolours, const int p_reqsubpixelorder);
+	void Colourise(const unsigned int p_reqcolours, const unsigned int p_reqsubpixelorder);
 	void DeColourise();
 
 	void Clear() { memset( buffer, 0, size ); }

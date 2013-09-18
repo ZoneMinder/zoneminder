@@ -45,12 +45,7 @@ class AppController extends Controller {
     parent::beforeFilter();
 	$this->loadModel('Config');
 	$this->loadModel('AppModel');
-    $this->Cookie->name = 'ZoneMinder';
-    if (!$this->Cookie->read('zmBandwidth')) {
-      $this->Cookie->write('zmBandwidth', 'low', false);
-    }
-  $this->set('zmBandwidth', $this->Cookie->read('zmBandwidth'));
-
+  $this->Cookie->name = 'ZoneMinder';
 
 	$configFile =  "/usr/local/etc/zm.conf";
 	$lines = file($configFile);
@@ -84,6 +79,14 @@ class AppController extends Controller {
     $this->set('zmVersion', $zmVersion);
   }
 
+  public function beforeRender() {
+    parent::beforeRender();
+    if (!$this->Cookie->read('zmBandwidth')) {
+      $this->Cookie->write('zmBandwidth', 'low', false);
+    }
+    $this->set('zmBandwidth', $this->Cookie->read('zmBandwidth'));
+  }
+  
   function extractNamedParams($mandatory, $optional = array()) {
     $params = $this->params['named'];
 

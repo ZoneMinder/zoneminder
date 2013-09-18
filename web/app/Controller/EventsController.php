@@ -69,7 +69,14 @@ public function index() {
       return $this->redirect(array('action' => 'index'));
     }
   }
-
+  
+  public function deleteSelected() {
+    $this->log(print_r($this->data['Events'], true));
+    foreach($this->data['Events'] as $key => $value) {
+      $this->Event->delete($value);
+    }
+    $this->redirect($this->referer());
+  }
 }
 
 ?>

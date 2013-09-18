@@ -71,7 +71,6 @@ public function index() {
   }
   
   public function deleteSelected() {
-    $this->log(print_r($this->data['Events'], true));
     foreach($this->data['Events'] as $key => $value) {
       $this->Event->delete($value);
     }

@@ -52,7 +52,8 @@ echo $this->Form->inputs(array(
 ?>
 </fieldset>
 </div>
-<?php echo $this->Form->end(array('label' => 'Search', 'id' => 'EventsButtonSearch')); ?>
+<?php echo $this->Form->end(array('label' => 'Search', 'id' => 'EventsButtonSearch', 'class' => 'btn btn-default')); ?>
+<?php echo $this->Html->link('Delete Selected','#',array('class' => 'btn btn-default', 'onClick' => '$("#EventsDeleteSelectedForm").submit();')); ?>
 </div>
 
 <?php $this->end(); ?>
@@ -97,7 +98,7 @@ foreach ($events as $key => $value) {
 </table>
 
 <?
-  echo $this->Form->end('Delete Selected');
+  echo $this->Form->end();
 ?>
 
 <ul class="pagination">

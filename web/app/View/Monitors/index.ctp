@@ -3,9 +3,10 @@
   echo $this->Html->link( 'Add Monitor', array('controller' => 'monitors', 'action' => 'add'));
   $this->end();
 ?>
-<div class="row">
+
+<div class="row" id="monitors">
   <?php foreach ($monitors as $monitor => $mon): ?>
-    <div class="col-sm-6 col-md-3">
+    <div class="col-sm-6 col-md-3" id="Monitor_<?= $mon['Monitor']['Sequence']; ?>">
       <div class="thumbnail">
         <?php 
         if($daemonStatus && $mon['Monitor']['Function'] != "None" && $mon['Monitor']['Enabled'])
@@ -22,3 +23,8 @@
   <?php endforeach; ?>
   <?php unset($monitor); ?>
 </div>
+
+<?php
+  $this->Js->get('#monitors');
+  $this->Js->sortable(array('complete' => '$.post("/monitors/reorder", $("#monitors").sortable("serialize"))',));
+?>

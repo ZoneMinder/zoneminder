@@ -6,16 +6,16 @@
 
 <div class="row" id="monitors">
   <?php foreach ($monitors as $monitor => $mon): ?>
-    <div class="col-sm-6 col-md-3" id="Monitor_<?= $mon['Monitor']['Sequence']; ?>">
+    <div class="col-sm-6 col-md-3" id="Monitor_<?= $mon['Monitor']['Id']; ?>">
       <div class="thumbnail">
         <?php 
-        if($daemonStatus && $mon['Monitor']['Function'] != "None" && $mon['Monitor']['Enabled'])
-        	echo $this->LiveStream->makeLiveStream($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $width); 
-        else
-        	echo $this->LiveStream->showNoImage($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $width);
+          if($daemonStatus && $mon['Monitor']['Function'] != "None" && $mon['Monitor']['Enabled'])
+            echo $this->LiveStream->makeLiveStream($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $width); 
+          else
+            echo $this->LiveStream->showNoImage($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $width);
         ?>
         <div class="caption">
-          <h3><?php echo $this->Html->link($mon['Monitor']['Name'],array('controller' => 'monitors', 'action' => 'view', $mon['Monitor']['Id'])); ?></h3>
+          <h4><?php echo $this->Html->link($mon['Monitor']['Name'],array('controller' => 'monitors', 'action' => 'view', $mon['Monitor']['Id'])); ?></h4>
           <p><?php echo $this->Html->link($mon['Monitor']['Function'], array('action' => 'edit', $mon['Monitor']['Id'])); ?></p>
         </div>
       </div>

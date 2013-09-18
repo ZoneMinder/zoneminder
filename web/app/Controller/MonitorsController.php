@@ -1,11 +1,11 @@
 <?php
 	class MonitorsController extends AppController {
-	public $helpers = array('LiveStream');
+    public $helpers = array('LiveStream', 'Js'=>array('Jquery'));
   
 		public function index() {
       $zmBandwidth = $this->Cookie->read('zmBandwidth');
 	  $this->set('width', Configure::read('ZM_WEB_LIST_THUMB_WIDTH'));
-	  $monitoroptions = array( 'fields' => array('Name', 'Id', 'Function', 'Enabled'), 'recursive' => -1);
+      $monitoroptions = array('fields' => array('Name', 'Id', 'Function', 'Enabled', 'Sequence'), 'order' => 'Sequence ASC', 'recursive' => -1);
 	  $this->set('monitors', $this->Monitor->find('all', $monitoroptions));
       $monitors = $this->Monitor->find('all', array('recursive' => -1, 'fields' => array('Id', 'StreamReplayBuffer')));
       foreach ($monitors as $monitor => $mon) {
@@ -172,6 +172,15 @@
 			}
 		}
 	}
+    public function reorder() {
+      $this->log(print_r($this->data['Monitor'],true));
+      foreach ($this->data['Monitor'] as $key => $value) {
+        $this->log($value);
+        $this->Monitor->id = $value;
+        $this->Monitor->saveField('Sequence', $key + 1);
+      }
+      exit();
+    }
 
 	}
 

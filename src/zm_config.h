@@ -25,8 +25,8 @@
 
 #include <string>
 
-#define ZM_CONFIG				"/etc/zm/zm.conf"	// Path to config file
-#define ZM_VERSION				"1.25.0"	// ZoneMinder Version
+#define ZM_CONFIG				"/usr/local/etc/zm.conf"	// Path to config file
+#define ZM_VERSION				"1.26.0"	// ZoneMinder Version
 
 #define ZM_HAS_V4L1             0
 #define ZM_HAS_V4L2             1

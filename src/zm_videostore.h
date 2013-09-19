@@ -17,12 +17,15 @@ private:
     bool keyframeMessage;
     int keyframeSkipNumber;
     
+    int64_t startPts;
+    int64_t startDts;
+    
     
 public:
-	VideoStore(const char *filename_in, const char *format_in, AVStream *input_st);
+	VideoStore(const char *filename_in, const char *format_in, AVStream *input_st, bool continuous, AVPacket *ipkt);
 	~VideoStore();
 
-    void writeVideoFramePacket(AVPacket *pkt, AVStream *input_st, AVFormatContext *input_fmt_ctx);
+    int writeVideoFramePacket(AVPacket *pkt, AVStream *input_st);
 };
 
 #endif //havelibav

@@ -464,6 +464,7 @@ Monitor::Monitor(
         video_store_data->recording = false;
         snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "nothing");
         video_store_data->size = sizeof(VideoStoreData);
+        //video_store_data->frameNumber = 0;
     }
     else if ( purpose == ANALYSIS )
     {
@@ -473,11 +474,6 @@ Monitor::Monitor(
         shared_data->alarm_y = -1;
     }
     
-    //TODO: Remove this if it isn't needed?
-    if(!(strcmp(video_store_data->event_directory, "nothing")==0)){
-        Fatal("video_store_data not init yet: %s", video_store_data->event_directory);
-        exit(-1);
-    }
 
     if ( !shared_data->valid )
     {
@@ -491,6 +487,12 @@ Monitor::Monitor(
             Warning( "Shared data not initialised by capture daemon, some query functions may not be available or produce invalid results" );
         }
     }
+    
+    //TODO: Remove this if it isn't needed?
+    /*if(!(strcmp(video_store_data->event_directory, "nothing")==0)){
+        Fatal("Video store data not initialised by capture daemon yet. Exiting.");
+        exit(-1);
+    }*/
 
     image_buffer = new Snapshot[image_buffer_count];
     for ( int i = 0; i < image_buffer_count; i++ )
@@ -1403,8 +1405,8 @@ bool Monitor::Analyse()
                         shared_data->last_event = event->Id();
                         
                         snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
-                        Error("1store event directory: %s", event->getEventDirectory());
-                        Error("2store event directory: %s", video_store_data->event_directory);
+                        //Error("1store event directory: %s", event->getEventDirectory());
+                        //Error("2store event directory: %s", video_store_data->event_directory);
                        
                         video_store_data->recording = true;
                         
@@ -1611,6 +1613,9 @@ bool Monitor::Analyse()
                         if(config.use_mkv_storage){
                             //Info("ZMA: Setting to 10");
                             video_store_data->recording = true;
+                            //if(video_store_data->frameNumber > lastVideoEventFrame){
+                                event->AddVideoFrame(*timestamp);
+                            //}
                         }else{
                             if ( !(image_count%(frame_skip+1)) )
                             {
@@ -2716,6 +2721,11 @@ int Monitor::Capture()
             /* Capture directly into image buffer, avoiding the need to memcpy() */
             captureResult = camera->Capture(*capture_image);
         }
+    }
+    
+    if(config.use_mkv_storage && captureResult > 0){
+        //video_store_data->frameNumber = captureResult;
+        captureResult = 0;
     }
     
     if ( captureResult != 0 )

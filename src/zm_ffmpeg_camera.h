@@ -50,6 +50,7 @@ protected:
     
     bool                wasRecording;
     VideoStore          *videoStore;
+    char                oldDirectory[4096];
 
 #if HAVE_LIBSWSCALE
 	struct SwsContext   *mConvertContext;

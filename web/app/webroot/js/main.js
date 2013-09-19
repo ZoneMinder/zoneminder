@@ -3,7 +3,7 @@ $(document).ready(function() {
   // Version Polling //
   setTimeout(function() {
      $.post('/Version/isUpdateAvailable', function(data) {
-      if (data === 'false') {
+      if (data === 'true') {
         $('#version').append(' - An update is available!');
       }
      });

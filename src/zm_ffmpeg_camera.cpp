@@ -267,7 +267,28 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
 	uint8_t* directbuffer;
     
     //Warning("Recording: %d", (int)recording);
-
+    
+    if(recording && !wasRecording){
+        //Instanciate the video storage module
+        char fileName[4096];
+        snprintf(fileName, sizeof(fileName), "%s/event.mkv", event_directory);
+        videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId]);
+        wasRecording = true;
+        strcpy(oldDirectory, event_directory);
+        
+    }else if(!recording && wasRecording){
+        Warning("Deleting videoStore instance");
+        delete videoStore;
+    }
+    
+    //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
+    if(recording && wasRecording && (strcmp(oldDirectory, event_directory)!=0) ){
+        delete videoStore;
+        char fileName[4096];
+        snprintf(fileName, sizeof(fileName), "%s/event.mkv", event_directory);
+        videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId]);
+        strcpy(oldDirectory, event_directory);
+    }
     
 	/* Request a writeable buffer of the target image */
 	directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);

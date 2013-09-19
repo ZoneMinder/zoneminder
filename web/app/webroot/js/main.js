@@ -5,6 +5,7 @@ $(document).ready(function() {
      $.post('/Version/isUpdateAvailable', function(data) {
       if (data === 'true') {
         $('#version').append(' - An update is available!');
+        $('#version span.label').removeClass('label-success').addClass('label-danger');
       }
      });
    }, 300000);

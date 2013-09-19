@@ -1086,7 +1086,7 @@ int RemoteCameraHttp::PreCapture()
 
 int RemoteCameraHttp::Capture( Image &image )
 {
-    int content_length = GetResponse();
+    unsigned int content_length = GetResponse();
     if ( content_length == 0 )
     {
         Warning( "Unable to capture image, retrying" );

@@ -58,6 +58,14 @@ public function index() {
        throw new NotFoundException(__('Invalid event'));
     }
     $this->set('event', $event);
+
+    if (!strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE')) {
+      $videoFormat = 'webm';
+    } else {
+      $videoFormat = 'mp4';
+    }
+    $this->set('videoSrc', $this->Event->createVideo( $id, $videoFormat, 100, 100 ));
+
   }
 
   public function delete($id) {

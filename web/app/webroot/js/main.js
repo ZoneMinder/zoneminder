@@ -19,6 +19,12 @@ $(document).ready(function() {
 	// Logs //
 	
 	// Events //
+	$("#Events a").colorbox({
+		rel: 'events',
+		preloading: true,
+
+	});
+
 	$( "#selectable" ).selectable({
 		stop: function() {
 			$("#selectable input").removeAttr("checked");

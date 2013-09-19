@@ -49,6 +49,8 @@ public function index() {
 }
 
   public function view($id = null) {
+    $this->layout = 'popup';
+
     if (!$id) {
        throw new NotFoundException(__('Invalid event'));
     }

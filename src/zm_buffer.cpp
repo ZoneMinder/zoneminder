@@ -43,9 +43,9 @@ unsigned int Buffer::expand( unsigned int count )
     int headSpace = mHead - mStorage;
     int tailSpace = spare - headSpace;
     int width = mTail - mHead;
-    if ( spare > count )
+    if ( spare > (int)count )
     {
-        if ( tailSpace < count )
+        if ( tailSpace < (int)count )
         {
             memmove( mStorage, mHead, mSize );
             mHead = mStorage;

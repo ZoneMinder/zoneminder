@@ -20,6 +20,8 @@
 #ifndef ZM_UTILS_H
 #define ZM_UTILS_H
 
+#include <time.h>
+#include <sys/time.h>
 #include <string>
 #include <vector>
 
@@ -42,5 +44,11 @@ inline int min( int a, int b )
 {
     return( a<=b?a:b );
 }
+
+void ssedetect();
+void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes);
+void timespec_diff(struct timespec *start, struct timespec *end, struct timespec *diff);
+
+extern unsigned int sseversion;
 
 #endif // ZM_UTILS_H

@@ -38,7 +38,7 @@
 
 #define ZM_MAX_IMAGE_WIDTH		2048				// The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_HEIGHT		1536				// The largest image we imagine ever handling
-#define ZM_MAX_IMAGE_COLOURS	3					// The largest image we imagine ever handling
+#define ZM_MAX_IMAGE_COLOURS		4				// The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_DIM		(ZM_MAX_IMAGE_WIDTH*ZM_MAX_IMAGE_HEIGHT)
 #define ZM_MAX_IMAGE_SIZE		(ZM_MAX_IMAGE_DIM*ZM_MAX_IMAGE_COLOURS)
 

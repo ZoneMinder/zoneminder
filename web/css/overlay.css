@@ -1,0 +1,49 @@
+.overlayMask {
+	position: absolute;
+	opacity: 0.6;
+	filter: alpha(opacity=60);
+	-ms-filter: progid:DXImageTransform.Microsoft.Alpha(Opacity=60);
+	z-index: 999;
+	background: #aaaaaa;
+}
+
+.overlay {
+	display: none;
+    position: absolute;
+    background-color: #f0f0f0;
+    border: 2px solid #555555;
+    -moz-border-radius: 4px;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.overlayHeader {
+    float: left;
+    background-color: #dddddd;
+    width: 100%;
+    border-bottom: 1px solid #666666;
+    color: black;
+}
+
+.overlayTitle {
+    float: left;
+    padding: 10px 6px;
+    font-weight: bold;
+    width: auto;
+}
+
+.overlayToolbar {
+    float: right;
+    font-weight: bold;
+    padding: 6px 4px;
+    width: auto;
+}
+
+.overlayBody {
+    float: left;
+    width: 100%;
+}
+
+.overlayContent {
+    padding: 4px 4px 6px;
+}

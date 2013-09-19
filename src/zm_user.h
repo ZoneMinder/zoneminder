@@ -1,5 +1,5 @@
 /*
- * ZoneMinder User Class Interface, $Date: 2010-11-11 12:11:06 +0000 (Thu, 11 Nov 2010) $, $Revision: 3188 $
+ * ZoneMinder User Class Interface, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
  * 
  * This program is free software; you can redistribute it and/or
@@ -25,12 +25,16 @@
 
 #if HAVE_GNUTLS_OPENSSL_H
 #include <gnutls/openssl.h>
+#endif
+#if HAVE_GNUTLS_GNUTLS_H
+#include <gnutls/gnutls.h>
+#endif
+
 #if HAVE_GCRYPT_H
 #include <gcrypt.h>
-#endif // HAVE_GCRYPT_H
 #elif HAVE_LIBCRYPTO
 #include <openssl/md5.h>
-#endif // HAVE_LIBGNUTLS_OPENSSL || HAVE_LIBCRYPTO
+#endif // HAVE_L || HAVE_LIBCRYPTO
 
 class User
 {

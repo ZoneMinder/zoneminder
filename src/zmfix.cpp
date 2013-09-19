@@ -166,7 +166,7 @@ int main( int argc, char *argv[] )
     // Yadda yadda
     mysql_free_result( result );
 
-    snprintf( sql, sizeof(sql), "select distinct ControlDevice from Monitors where not isnull(ControlDevice)" );
+    snprintf( sql, sizeof(sql), "select distinct ControlDevice from Monitors where not isEmpty(ControlDevice)" );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );

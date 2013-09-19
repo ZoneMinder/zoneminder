@@ -1,10 +1,4 @@
-<h1><?php echo h($event['Event']['Name']); ?></h1>
-<ol>
-  <li><?php echo $event['Event']['Id']; ?></li>
-  <li><?php echo $event['Event']['Id']; ?></li>
-  <li><?php echo $event['Event']['StartTime']; ?></li>
-  <li><?php echo $event['Event']['Length']; ?></li>
-  <li><?php echo $event['Event']['Frames']; ?></li>
-  <li><?php echo $event['Event']['Id']; ?></li>
-</ol>
+<video src="<?php echo $videoSrc; ?>" controls>
+</video>
 
+<p>Event <?php echo $event['Event']['Id']; ?> started at <?php echo $event['Event']['StartTime']; ?> and lasted for <?php echo $event['Event']['Length']; ?> seconds, containing <?php echo $event['Event']['Frames']; ?> frames.</p>

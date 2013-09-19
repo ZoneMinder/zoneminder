@@ -20,12 +20,50 @@
 #ifndef ZM_MEM_UTILS_H
 #define ZM_MEM_UTILS_H
 
+#include <stdlib.h>
+#include "zm.h"
+
+inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {
+	uint8_t* retptr;
+#if HAVE_POSIX_MEMALIGN
+	if(posix_memalign((void**)&retptr,reqalignment,reqsize) != 0)
+		return NULL;
+	
+	return retptr;
+#else
+	uint8_t* alloc;
+	retptr = (uint8_t*)malloc(reqsize+reqalignment+sizeof(void*));
+	
+	if(retptr == NULL)
+		return NULL;
+	
+	alloc = retptr + sizeof(void*);
+	
+	if(((long)alloc % reqalignment) != 0)
+		alloc = alloc + (reqalignment - ((long)alloc % reqalignment));
+	
+	/* Store a pointer before to the start of the block, just before returned aligned memory */
+	*(void**)(alloc - sizeof(void*)) = retptr;
+	
+	return alloc;
+#endif
+}
+
+inline void zm_freealigned(void* ptr) {
+#if HAVE_POSIX_MEMALIGN
+	free(ptr);
+#else
+	/* Start of block is stored before the block if it was allocated by zm_mallocaligned */
+	free(*(void**)((uint8_t*)ptr - sizeof(void*)));
+#endif
+}
+
 inline char *mempbrk( register const char *s, const char *accept, size_t limit )
 {
     if ( limit <= 0 || !s || !accept || !*accept )
         return( 0 );
 
-    register int i,j;
+    register unsigned int i,j;
     size_t acc_len = strlen( accept );
 
     for ( i = 0; i < limit; s++, i++ )
@@ -49,7 +87,7 @@ inline char *memstr( register const char *s, const char *n, size_t limit )
     if ( !*n )
         return( (char *)s );
 
-    register int i,j,k;
+    register unsigned int i,j,k;
     size_t n_len = strlen( n );
 
     for ( i = 0; i < limit; i++, s++ )
@@ -74,7 +112,7 @@ inline size_t memspn( register const char *s, const char *accept, size_t limit )
     if ( limit <= 0 || !s || !accept || !*accept )
         return( 0 );
 
-    register int i,j;
+    register unsigned int i,j;
     size_t acc_len = strlen( accept );
 
     for ( i = 0; i < limit; s++, i++ )
@@ -104,7 +142,7 @@ inline size_t memcspn( register const char *s, const char *reject, size_t limit 
     if ( !*reject )
         return( limit );
 
-    register int i,j;
+    register unsigned int i,j;
     size_t rej_len = strlen( reject );
 
     for ( i = 0; i < limit; s++, i++ )

@@ -20,6 +20,7 @@
 #ifndef ZM_LOGGER_H
 #define ZM_LOGGER_H
 
+#include <unistd.h>
 #include <string>
 #include <map>
 #include <mysql/mysql.h>

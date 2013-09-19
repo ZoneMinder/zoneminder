@@ -41,7 +41,11 @@ protected:
         int payloadType;
         const char payloadName[6];
         enum AVMediaType codecType;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+        enum AVCodecID codecId;
+#else
         enum CodecID codecId;
+#endif
         int clockRate;
         int autoChannels;
     };
@@ -50,7 +54,12 @@ protected:
     {
         const char payloadName[32];
         enum AVMediaType codecType;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+        enum AVCodecID codecId;
+#else   
         enum CodecID codecId;
+#endif  
+
         //int clockRate;
         //int autoChannels;
     };
@@ -207,7 +216,7 @@ public:
     }
     MediaDescriptor *getStream( int index )
     {
-        if ( index < 0 || index >= mMediaList.size() )
+        if ( index < 0 || (unsigned int)index >= mMediaList.size() )
             return( 0 );
         return( mMediaList[index] );
     }

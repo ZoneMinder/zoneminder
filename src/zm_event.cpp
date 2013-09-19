@@ -38,6 +38,10 @@
 
 #include "zmf.h"
 
+#if HAVE_SYS_SENDFILE_H
+#include <sys/sendfile.h>
+#endif
+
 //#define USE_PREPARED_SQL 1
 
 bool Event::initialised = false;
@@ -103,7 +107,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         char date_path[PATH_MAX] = "";
         char time_path[PATH_MAX] = "";
         char *time_path_ptr = time_path;
-        for ( int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ )
+        for ( unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ )
         {
             path_ptr += snprintf( path_ptr, sizeof(path)-(path_ptr-path), "/%02d", dt_parts[i] );
 
@@ -585,7 +589,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
         alarm_frames++;
 
         tot_score += score;
-        if ( score > max_score )
+        if ( score > (int)max_score )
             max_score = score;
 
         if ( alarm_image )
@@ -596,7 +600,8 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
             WriteFrameImage( alarm_image, timestamp, event_file, true );
         }
     }
-
+    
+    /* This makes viewing the diagnostic images impossible because it keeps deleting them
     if ( config.record_diag_images )
     {
         char diag_glob[PATH_MAX] = "";
@@ -637,6 +642,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
         }
         globfree( &pglob );
     }
+    */
 }
 
 bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
@@ -677,7 +683,7 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
         curr_frame_id = 1;
         if ( event_time >= event_data->start_time )
         {
-            for ( int i = 0; i < event_data->frame_count; i++ )
+            for (unsigned int i = 0; i < event_data->frame_count; i++ )
             {
                 //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
                 if ( event_data->frames[i].timestamp >= event_time )
@@ -751,7 +757,10 @@ bool EventStream::loadEventData( int event_id )
     if ( config.use_deep_storage )
     {
         struct tm *event_time = localtime( &event_data->start_time );
-        snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+        if ( config.dir_events[0] == '/' )
+            snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+        else
+            snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
     }
     else
     {
@@ -1113,7 +1122,7 @@ void EventStream::checkEventLoaded()
         snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %ld and Id < %ld order by Id desc limit 1", event_data->monitor_id, event_data->event_id );
         reload_event = true;
     }
-    else if ( curr_frame_id > event_data->frame_count )
+    else if ( (unsigned int)curr_frame_id > event_data->frame_count )
     {
         snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %ld and Id > %ld order by Id asc limit 1", event_data->monitor_id, event_data->event_id );
         reload_event = true;
@@ -1185,6 +1194,9 @@ bool EventStream::sendFrame( int delta_us )
     Debug( 2, "Sending frame %d", curr_frame_id );
 
     static char filepath[PATH_MAX];
+    static struct stat filestat;
+    FILE *fdj = NULL;
+    
     snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
 
 #if HAVE_LIBAVCODEC
@@ -1196,7 +1208,7 @@ bool EventStream::sendFrame( int delta_us )
 
         if ( !vid_stream )
         {
-            vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->Width(), send_image->Height() );
+            vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height() );
             fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType() );
             vid_stream->OpenStream();
         }
@@ -1208,7 +1220,7 @@ bool EventStream::sendFrame( int delta_us )
         static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
 
         int img_buffer_size = 0;
-        unsigned char *img_buffer = temp_img_buffer;
+        uint8_t *img_buffer = temp_img_buffer;
 
         bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
@@ -1219,14 +1231,20 @@ bool EventStream::sendFrame( int delta_us )
 
         if ( send_raw )
         {
-            FILE *fdj = fopen( filepath, "r" );
+            fdj = fopen( filepath, "rb" );
             if ( !fdj )
             {
                 Error( "Can't open %s: %s", filepath, strerror(errno) );
                 return( false );
             }
-            img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
-            fclose( fdj );
+#if HAVE_SENDFILE            
+            if( fstat(fileno(fdj),&filestat) < 0 ) {
+		Error( "Failed getting information about file %s: %s", filepath, strerror(errno) );
+		return( false );
+	    }
+#else
+	    img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
+#endif
         }
         else
         {
@@ -1240,7 +1258,7 @@ bool EventStream::sendFrame( int delta_us )
                     send_image->EncodeJpeg( img_buffer, &img_buffer_size );
                     break;
                 case STREAM_RAW :
-                    img_buffer = send_image->Buffer();
+                    img_buffer = (uint8_t*)(send_image->Buffer());
                     img_buffer_size = send_image->Size();
                     break;
                 case STREAM_ZIP :
@@ -1269,12 +1287,36 @@ bool EventStream::sendFrame( int delta_us )
                 Fatal( "Unexpected frame type %d", type );
                 break;
         }
-        fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
-        if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 )
-        {
-            Error( "Unable to send stream frame: %s", strerror(errno) );
-            return( false );
-        }
+
+
+	if(send_raw) {
+#if HAVE_SENDFILE  
+		fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
+		if(sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size) {
+			/* sendfile() failed, use standard way instead */
+			img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
+			if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
+				Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
+				return( false );
+			}
+		}
+#else
+		fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
+		if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
+			Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
+			return( false );
+		}
+#endif		
+		fclose(fdj); /* Close the file handle */
+	} else {
+		fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );	  
+		if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 )
+		{
+			Error( "Unable to send stream frame: %s", strerror(errno) );
+			return( false );
+		}
+	}
+	
         fprintf( stdout, "\r\n\r\n" );
         fflush( stdout );
     }
@@ -1306,7 +1348,7 @@ void EventStream::runStream()
     {
         gettimeofday( &now, NULL );
 
-        checkCommandQueue();
+        while(checkCommandQueue());
 
         if ( step != 0 )
             curr_frame_id += step;
@@ -1403,7 +1445,7 @@ void EventStream::runStream()
         }
         else
         {
-            usleep( STREAM_PAUSE_WAIT );
+            usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
         }
     }
 #if HAVE_LIBAVCODEC

@@ -261,7 +261,8 @@ void *Thread::mThreadFunc( void *arg )
         thisPtr->mThreadCondition.signal();
         thisPtr->mThreadMutex.unlock();
         thisPtr->mRunning = true;
-        status = (void *)(thisPtr->run());
+        int run=(thisPtr->run());
+        status = (void *)&run;
         thisPtr->mRunning = false;
         Debug( 2, "Exiting thread, status %p", status );
     }

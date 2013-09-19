@@ -177,7 +177,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
     do
     {
         static unsigned char temp_buffer[ZM_NETWORK_BUFSIZ];
-        int bytes_to_read = total_bytes_to_read>sizeof(temp_buffer)?sizeof(temp_buffer):total_bytes_to_read;
+        int bytes_to_read = (unsigned int)total_bytes_to_read>(unsigned int)sizeof(temp_buffer)?sizeof(temp_buffer):total_bytes_to_read;
         int bytes_read = read( sd, temp_buffer, bytes_to_read );
 
         if ( bytes_read < 0)
@@ -428,7 +428,7 @@ int RemoteCameraHttp::GetResponse()
 
                     if ( content_length )
                     {
-                        while ( buffer.size() < content_length )
+                        while ( buffer.size() < (unsigned int)content_length )
                         {
                             int buffer_len = ReadData( buffer );
                             if ( buffer_len == 0 )
@@ -550,10 +550,10 @@ int RemoteCameraHttp::GetResponse()
             boundary_match_len = strlen( boundary_match );
 
         static int n_headers;
-        static char *headers[32];
+        //static char *headers[32];
 
         static int n_subheaders;
-        static char *subheaders[32];
+        //static char *subheaders[32];
 
         static char *http_header;
         static char *connection_header;
@@ -565,7 +565,6 @@ int RemoteCameraHttp::GetResponse()
     
         static char http_version[16];
         static char status_code[16];
-        static int status;
         static char status_mesg[256];
         static char connection_type[32];
         static int content_length;
@@ -587,7 +586,6 @@ int RemoteCameraHttp::GetResponse()
 
                     http_version[0] = '\0';
                     status_code [0]= '\0';
-                    status = 0;
                     status_mesg [0]= '\0';
                     connection_type [0]= '\0';
                     content_length = 0;
@@ -645,7 +643,8 @@ int RemoteCameraHttp::GetResponse()
                         Debug( 6, "%s", header_ptr );
                         if ( (crlf = mempbrk( header_ptr, "\r\n", header_len )) )
                         {
-                            headers[n_headers++] = header_ptr;
+                            //headers[n_headers++] = header_ptr;
+                            n_headers++;
 
                             if ( !http_header && (strncasecmp( header_ptr, http_match, http_match_len ) == 0) )
                             {
@@ -857,7 +856,8 @@ int RemoteCameraHttp::GetResponse()
 
                         if ( (crlf = mempbrk( subheader_ptr, "\r\n", subheader_len )) )
                         {
-                            subheaders[n_subheaders++] = subheader_ptr;
+                            //subheaders[n_subheaders++] = subheader_ptr;
+                            n_subheaders++;
 
                             if ( !boundary_header && (strncasecmp( subheader_ptr, content_boundary, content_boundary_len ) == 0) )
                             {
@@ -960,7 +960,7 @@ int RemoteCameraHttp::GetResponse()
 
                     if ( content_length )
                     {
-                        while ( buffer.size() < content_length )
+                        while ( buffer.size() < (unsigned int)content_length )
                         {
                             //int buffer_len = ReadData( buffer, content_length-buffer.size() );
                             int buffer_len = ReadData( buffer );
@@ -1086,7 +1086,7 @@ int RemoteCameraHttp::PreCapture()
 
 int RemoteCameraHttp::Capture( Image &image )
 {
-    int content_length = GetResponse();
+    unsigned int content_length = GetResponse();
     if ( content_length == 0 )
     {
         Warning( "Unable to capture image, retrying" );
@@ -1102,7 +1102,7 @@ int RemoteCameraHttp::Capture( Image &image )
     {
         case JPEG :
         {
-            if ( !image.DecodeJpeg( buffer.extract( content_length ), content_length ) )
+            if ( !image.DecodeJpeg( buffer.extract( content_length ), content_length, colours, subpixelorder ) )
             {
                 Error( "Unable to decode jpeg" );
                 Disconnect();
@@ -1118,7 +1118,7 @@ int RemoteCameraHttp::Capture( Image &image )
                 Disconnect();
                 return( -1 );
             }
-            image.Assign( width, height, colours, buffer );
+            image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
             break;
         }
         case X_RGBZ :
@@ -1129,7 +1129,7 @@ int RemoteCameraHttp::Capture( Image &image )
                 Disconnect();
                 return( -1 );
             }
-            image.Assign( width, height, colours, buffer );
+            image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
             break;
         }
         default :

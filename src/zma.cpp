@@ -93,6 +93,8 @@ int main( int argc, char *argv[] )
 	zmLoadConfig();
 
 	logInit( log_id_string );
+	
+	ssedetect();
 
 	Monitor *monitor = Monitor::Load( id, true, Monitor::ANALYSIS );
 

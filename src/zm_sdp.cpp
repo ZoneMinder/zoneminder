@@ -263,7 +263,7 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
                         if ( attrTokens.size() > 1 )
                         {
                             StringVector attr2Tokens = split( attrTokens[1], "; " );
-                            for ( int i = 0; i < attr2Tokens.size(); i++ )
+                            for ( unsigned int i = 0; i < attr2Tokens.size(); i++ )
                             {
                                 StringVector attr3Tokens = split( attr2Tokens[i], "=" );
                                 //Info( "Name = %s, Value = %s", attr3Tokens[0].c_str(), attr3Tokens[1].c_str() );
@@ -331,10 +331,15 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
     strncpy( formatContext->filename, mUrl.c_str(), sizeof(formatContext->filename) );
 
     //formatContext->nb_streams = mMediaList.size();
-    for ( int i = 0; i < mMediaList.size(); i++ )
+    for ( unsigned int i = 0; i < mMediaList.size(); i++ )
     {
         const MediaDescriptor *mediaDesc = mMediaList[i];
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 8, 0)
         AVStream *stream = av_new_stream( formatContext, i );
+#else
+        AVStream *stream = avformat_new_stream( formatContext, NULL );
+        stream->id = i;
+#endif
 
         Debug( 1, "Looking for codec for %s payload type %d / %s",  mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
@@ -352,7 +357,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
         if ( mediaDesc->getPayloadType() < PAYLOAD_TYPE_DYNAMIC )
         {
             // Look in static table
-            for ( int i = 0; i < (sizeof(smStaticPayloads)/sizeof(*smStaticPayloads)); i++ )
+            for ( unsigned int i = 0; i < (sizeof(smStaticPayloads)/sizeof(*smStaticPayloads)); i++ )
             {
                 if ( smStaticPayloads[i].payloadType == mediaDesc->getPayloadType() )
                 {
@@ -368,7 +373,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
         else
         {
             // Look in dynamic table
-            for ( int i = 0; i < (sizeof(smDynamicPayloads)/sizeof(*smDynamicPayloads)); i++ )
+            for ( unsigned int i = 0; i < (sizeof(smDynamicPayloads)/sizeof(*smDynamicPayloads)); i++ )
             {
                 if ( smDynamicPayloads[i].payloadName == mediaDesc->getPayloadDesc() )
                 {

@@ -10,7 +10,7 @@
       <div class="thumbnail">
         <?php 
           if($daemonStatus && $mon['Monitor']['Function'] != "None" && $mon['Monitor']['Enabled'])
-            echo $this->LiveStream->makeLiveStream($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $width); 
+            echo $this->LiveStream->makeLiveStream($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $mon['Monitor']['Width']); 
           else
             echo $this->LiveStream->showNoImage($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $width);
         ?>
@@ -28,3 +28,15 @@
   $this->Js->get('#monitors');
   $this->Js->sortable(array('complete' => '$.post("/monitors/reorder", $("#monitors").sortable("serialize"))',));
 ?>
+
+<script type="text/javascript">
+$(window).load(function () {
+	$(".livestream_resize").each(function(index, element){
+		if($(element).attr('src').indexOf('scale=') >= 0){
+			var newScale = Math.ceil(($(element).width() / $(element).attr('width')) * 100);
+			var src = $(element).attr('src').replace('scale=100', 'scale='+newScale);
+			$(element).attr('src', src);	
+		}
+	});
+});
+</script>

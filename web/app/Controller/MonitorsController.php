@@ -5,7 +5,7 @@
 		public function index() {
       $zmBandwidth = $this->Cookie->read('zmBandwidth');
       $this->set('width', Configure::read('ZM_WEB_LIST_THUMB_WIDTH'));
-      $monitoroptions = array('fields' => array('Name', 'Id', 'Function', 'Enabled', 'Sequence', 'Function'), 'order' => 'Sequence ASC', 'recursive' => -1);
+      $monitoroptions = array('fields' => array('Name', 'Id', 'Function', 'Enabled', 'Sequence', 'Function', 'Width'), 'order' => 'Sequence ASC', 'recursive' => -1);
       $this->set('monitors', $this->Monitor->find('all', $monitoroptions));
       $monitors = $this->Monitor->find('all', array('recursive' => -1, 'fields' => array('Id', 'StreamReplayBuffer')));
       foreach ($monitors as $monitor => $mon) {

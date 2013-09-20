@@ -10,7 +10,7 @@
       <div class="thumbnail">
         <?php 
           if($daemonStatus && $mon['Monitor']['Function'] != "None" && $mon['Monitor']['Enabled'])
-            echo $this->LiveStream->makeLiveStream($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $width); 
+            echo $this->LiveStream->makeLiveStream($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $mon['Monitor']['Width']); 
           else
             echo $this->LiveStream->showNoImage($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $width);
         ?>

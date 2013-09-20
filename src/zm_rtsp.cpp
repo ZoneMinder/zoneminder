@@ -332,7 +332,7 @@ int RtspThread::run()
     std::string trackUrl = mUrl;
     if ( mFormatContext->nb_streams >= 1 )
     {
-        for ( int i = 0; i < mFormatContext->nb_streams; i++ )
+        for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
         {
             SessionDescriptor::MediaDescriptor *mediaDesc = sessDesc->getStream( i );
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
@@ -580,7 +580,7 @@ int RtspThread::run()
                         unsigned short len = ntohs( *((unsigned short *)(buffer+2)) );
 
                         Debug( 4, "Got %d bytes left, expecting %d byte packet on channel %d", buffer.size(), len, channel );
-                        if ( buffer.size() < (len+4) )
+                        if ( (unsigned short)buffer.size() < (len+4) )
                         {
                             Debug( 4, "Missing %zd bytes, rereading", (len+4)-nBytes );
                             break;

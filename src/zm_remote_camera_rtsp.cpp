@@ -47,10 +47,53 @@ RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const
 	{
 		Initialise();
 	}
+	
+	mFormatContext = NULL;
+	mVideoStreamId = -1;
+	mCodecContext = NULL;
+	mCodec = NULL;
+	mRawFrame = NULL;
+	mFrame = NULL;
+	frameCount = 0;
+	
+#if HAVE_LIBSWSCALE    
+	mConvertContext = NULL;
+#endif
+	/* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
+	if(colours == ZM_COLOUR_RGB32) {
+		subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+		imagePixFormat = PIX_FMT_RGBA;
+	} else if(colours == ZM_COLOUR_RGB24) {
+		subpixelorder = ZM_SUBPIX_ORDER_RGB;
+		imagePixFormat = PIX_FMT_RGB24;
+	} else if(colours == ZM_COLOUR_GRAY8) {
+		subpixelorder = ZM_SUBPIX_ORDER_NONE;
+		imagePixFormat = PIX_FMT_GRAY8;
+	} else {
+		Panic("Unexpected colours: %d",colours);
+	}
+	
 }
 
 RemoteCameraRtsp::~RemoteCameraRtsp()
 {
+    av_freep( &mFrame );
+    av_freep( &mRawFrame );
+    
+#if HAVE_LIBSWSCALE
+    if ( mConvertContext )
+    {
+        sws_freeContext( mConvertContext );
+        mConvertContext = NULL;
+    }
+#endif
+
+    if ( mCodecContext )
+    {
+       avcodec_close( mCodecContext );
+       mCodecContext = NULL; // Freed by av_close_input_file
+    }
+
 	if ( capture )
 	{
 		Terminate();
@@ -72,17 +115,11 @@ void RemoteCameraRtsp::Initialise()
 
     av_register_all();
 
-    frameCount = 0;
-
     Connect();
 }
 
 void RemoteCameraRtsp::Terminate()
 {
-    avcodec_close( codecContext );
-    av_free( codecContext );
-    av_free( picture );
-
     Disconnect();
 }
 
@@ -119,36 +156,67 @@ int RemoteCameraRtsp::PrimeCapture()
 
     Debug( 2, "Got sources" );
 
-    formatContext = rtspThread->getFormatContext();
+    mFormatContext = rtspThread->getFormatContext();
 
-    // Find the first video stream
-    int videoStream=-1;
-    for ( int i = 0; i < formatContext->nb_streams; i++ )
+    // Find first video stream present
+    mVideoStreamId = -1;
+    
+    for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
-	if ( formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
+	if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
-	if ( formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
+	if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
 #endif
         {
-            videoStream = i;
+            mVideoStreamId = i;
             break;
         }
-    if ( videoStream == -1 )
+    if ( mVideoStreamId == -1 )
         Fatal( "Unable to locate video stream" );
 
     // Get a pointer to the codec context for the video stream
-    codecContext = formatContext->streams[videoStream]->codec;
+    mCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
 
     // Find the decoder for the video stream
-    codec = avcodec_find_decoder( codecContext->codec_id );
-    if ( codec == NULL )
-        Panic( "Unable to locate codec %d decoder", codecContext->codec_id );
+    mCodec = avcodec_find_decoder( mCodecContext->codec_id );
+    if ( mCodec == NULL )
+        Panic( "Unable to locate codec %d decoder", mCodecContext->codec_id );
 
     // Open codec
-    if ( avcodec_open( codecContext, codec ) < 0 )
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 7, 0)
+    if ( avcodec_open( mCodecContext, mCodec ) < 0 )
+#else
+    if ( avcodec_open2( mCodecContext, mCodec, 0 ) < 0 )
+#endif
         Panic( "Can't open codec" );
 
-    picture = avcodec_alloc_frame();
+    // Allocate space for the native video frame
+    mRawFrame = avcodec_alloc_frame();
+
+    // Allocate space for the converted video frame
+    mFrame = avcodec_alloc_frame();
+    
+	if(mRawFrame == NULL || mFrame == NULL)
+		Fatal( "Unable to allocate frame(s)");
+	
+	int pSize = avpicture_get_size( imagePixFormat, width, height );
+	if( (unsigned int)pSize != imagesize) {
+		Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
+	}
+	
+#if HAVE_LIBSWSCALE
+	if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
+		Fatal("swscale does not support the codec format: %c%c%c%c",(mCodecContext->pix_fmt)&0xff,((mCodecContext->pix_fmt>>8)&0xff),((mCodecContext->pix_fmt>>16)&0xff),((mCodecContext->pix_fmt>>24)&0xff));
+	}
+
+	if(!sws_isSupportedOutput(imagePixFormat)) {
+		Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
+	}
+	
+#else // HAVE_LIBSWSCALE
+    Fatal( "You must compile ffmpeg with the --enable-swscale option to use RTSP cameras" );
+#endif // HAVE_LIBSWSCALE
+
 
     return( 0 );
 }
@@ -167,101 +235,88 @@ int RemoteCameraRtsp::PreCapture()
 
 int RemoteCameraRtsp::Capture( Image &image )
 {
+	AVPacket packet;
+	uint8_t* directbuffer;
+	int frameComplete = false;
+	
+	/* Request a writeable buffer of the target image */
+	directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+	if(directbuffer == NULL) {
+		Error("Failed requesting writeable buffer for the captured image.");
+		return (-1);
+	}
+	
     while ( true )
     {
         buffer.clear();
         if ( !rtspThread->isRunning() )
-            break;
-        //if ( rtspThread->stopped() )
-            //break;
+            return (-1);
+
         if ( rtspThread->getFrame( buffer ) )
         {
             Debug( 3, "Read frame %d bytes", buffer.size() );
             Debug( 4, "Address %p", buffer.head() );
             Hexdump( 4, buffer.head(), 16 );
 
-            static AVFrame *tmp_picture = NULL;
-
-            if ( !tmp_picture )
-            {
-                //if ( c->pix_fmt != pf )
-                //{
-                    tmp_picture = avcodec_alloc_frame();
-                    if ( !tmp_picture )
-                    {
-                        Panic( "Could not allocate temporary opicture" );
-                    }
-                    int size = avpicture_get_size( PIX_FMT_RGB24, width, height);
-                    uint8_t *tmp_picture_buf = (uint8_t *)malloc(size);
-                    if (!tmp_picture_buf)
-                    {
-                        av_free( tmp_picture );
-                        Panic( "Could not allocate temporary opicture" );
-                    }
-                    avpicture_fill( (AVPicture *)tmp_picture, tmp_picture_buf, PIX_FMT_RGB24, width, height );
-                //}
-            }
-
             if ( !buffer.size() )
                 return( -1 );
 
-            AVPacket packet;
             av_init_packet( &packet );
-            int initialFrameCount = frameCount;
-            while ( buffer.size() > 0 )
-            {
-                int got_picture = false;
-                packet.data = buffer.head();
-                packet.size = buffer.size();
-                int len = avcodec_decode_video2( codecContext, picture, &got_picture, &packet );
-                if ( len < 0 )
-                {
-                    if ( frameCount > initialFrameCount )
-                    {
-                        // Decoded at least one frame
-                        return( 0 );
-                    }
-                    Error( "Error while decoding frame %d", frameCount );
-                    Hexdump( Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size() );
-                    buffer.clear();
-                    continue;
-                    //return( -1 );
-                }
-                Debug( 2, "Frame: %d - %d/%d", frameCount, len, buffer.size() );
-                //if ( buffer.size() < 400 )
-                    //Hexdump( 0, buffer.head(), buffer.size() );
+            
+	    while ( !frameComplete && buffer.size() > 0 )
+	    {
+		packet.data = buffer.head();
+		packet.size = buffer.size();
+		int len = avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet );
+		if ( len < 0 )
+		{
+			Error( "Error while decoding frame %d", frameCount );
+			Hexdump( Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size() );
+			buffer.clear();
+			continue;
+		}
+		Debug( 2, "Frame: %d - %d/%d", frameCount, len, buffer.size() );
+		//if ( buffer.size() < 400 )
+		   //Hexdump( 0, buffer.head(), buffer.size() );
+		   
+		buffer -= len;
 
-                if ( got_picture )
-                {
-                    /* the picture is allocated by the decoder. no need to free it */
-                    Debug( 1, "Got picture %d", frameCount );
+	    }
+            if ( frameComplete ) {
+	       
+		Debug( 3, "Got frame %d", frameCount );
+			    
+		avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+			
+#if HAVE_LIBSWSCALE
+		if(mConvertContext == NULL) {
+			if(config.cpu_extensions && sseversion >= 20) {
+				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
+			} else {
+				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+			}
+			if(mConvertContext == NULL)
+				Fatal( "Unable to create conversion context");
+		}
+	
+		if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
+			Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+#else // HAVE_LIBSWSCALE
+		Fatal( "You must compile ffmpeg with the --enable-swscale option to use RTSP cameras" );
+#endif // HAVE_LIBSWSCALE
+	
+		frameCount++;
 
-                    static struct SwsContext *img_convert_ctx = 0;
-
-                    if ( !img_convert_ctx )
-                    {
-                        img_convert_ctx = sws_getCachedContext( NULL, codecContext->width, codecContext->height, codecContext->pix_fmt, width, height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL );
-                        if ( !img_convert_ctx )
-                            Panic( "Unable to initialise image scaling context" );
-                    }
-
-                    sws_scale( img_convert_ctx, picture->data, picture->linesize, 0, height, tmp_picture->data, tmp_picture->linesize );
-
-                    image.Assign( width, height, colours, tmp_picture->data[0] );
-
-                    frameCount++;
-
-                    return( 0 );
-                }
-                else
-                {
-                    Warning( "Unable to get picture from frame" );
-                }
-                buffer -= len;
-            }
-        }
+	     } /* frame complete */
+	     
+	     av_free_packet( &packet );
+	} /* getFrame() */
+ 
+	if(frameComplete)
+		return (0);
+	
     }
-    return( -1 );
+    return (0) ;
 }
 
 int RemoteCameraRtsp::PostCapture()

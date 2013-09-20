@@ -39,7 +39,9 @@ protected:
 	unsigned int	width;
 	unsigned int	height;
 	unsigned int	colours;
+	unsigned int	subpixelorder;
 	unsigned int	pixels;
+	unsigned int	imagesize;
 	int				brightness;
 	int				hue;
 	int				colour;
@@ -47,7 +49,7 @@ protected:
     bool            capture;
 
 public:
-	Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	virtual ~Camera();
 
     int getId() const { return( id ); }
@@ -59,7 +61,9 @@ public:
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
 	unsigned int Colours() const { return( colours ); }
-	unsigned int ImageSize() const { return( pixels ); }
+	unsigned int SubpixelOrder() const { return( subpixelorder ); }
+	unsigned int Pixels() const { return( pixels ); }
+	unsigned int ImageSize() const { return( imagesize ); }
 
 	virtual int Brightness( int/*p_brightness*/=-1 ) { return( -1 ); }
 	virtual int Hue( int/*p_hue*/=-1 ) { return( -1 ); }

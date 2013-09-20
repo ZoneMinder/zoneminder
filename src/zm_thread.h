@@ -20,6 +20,7 @@
 #ifndef ZM_THREAD_H
 #define ZM_THREAD_H
 
+#include <unistd.h>
 #include <pthread.h>
 #include <unistd.h>
 #include "zm_exception.h"
@@ -147,38 +148,38 @@ private:
     mutable Condition mCondition;
 
 public:
-    ThreadData() : mCondition( mMutex )
+    __attribute__((used)) ThreadData() : mCondition( mMutex )
     {
     }
-    ThreadData( T value ) : mValue( value ), mCondition( mMutex )
+    __attribute__((used)) ThreadData( T value ) : mValue( value ), mCondition( mMutex )
     {
     }
     //~ThreadData() {}
 
-    operator T() const
+    __attribute__((used)) operator T() const
     {
         return( getValue() );
     }
-    const T operator=( const T value )
+    __attribute__((used)) const T operator=( const T value )
     {
         return( setValue( value ) );
     }
 
-    const T getValueImmediate() const
+    __attribute__((used)) const T getValueImmediate() const
     {
         return( mValue );
     }
-    T setValueImmediate( const T value )
+    __attribute__((used)) T setValueImmediate( const T value )
     {
         return( mValue = value );
     }
-    const T getValue() const;
-    T setValue( const T value );
-    const T getUpdatedValue() const;
-    const T getUpdatedValue( double secs ) const;
-    const T getUpdatedValue( int secs ) const;
-    void updateValueSignal( const T value );
-    void updateValueBroadcast( const T value );
+    __attribute__((used)) const T getValue() const;
+    __attribute__((used)) T setValue( const T value );
+    __attribute__((used)) const T getUpdatedValue() const;
+    __attribute__((used)) const T getUpdatedValue( double secs ) const;
+    __attribute__((used)) const T getUpdatedValue( int secs ) const;
+    __attribute__((used)) void updateValueSignal( const T value );
+    __attribute__((used)) void updateValueBroadcast( const T value );
 };
 
 class Thread
@@ -206,7 +207,7 @@ protected:
     void exit( int status = 0 )
     {
         //INFO( "Exiting" );
-        pthread_exit( (void *)status );
+        pthread_exit( (void *)&status );
     }
     static void *mThreadFunc( void *arg );
 

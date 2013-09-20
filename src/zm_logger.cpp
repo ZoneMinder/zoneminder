@@ -41,6 +41,7 @@ Logger *Logger::smInstance = 0;
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
 
+#if 0
 static void subtractTime( struct timeval * const tp1, struct timeval * const tp2 )
 {
     tp1->tv_sec -= tp2->tv_sec;
@@ -54,6 +55,7 @@ static void subtractTime( struct timeval * const tp1, struct timeval * const tp2
         tp1->tv_usec = tp1->tv_usec - tp2->tv_usec;
     }
 }
+#endif
 
 void Logger::usrHandler( int sig )
 {
@@ -179,7 +181,7 @@ void Logger::initialise( const std::string &id, const Options &options )
     if ( config.log_debug )
     {
         StringVector targets = split( config.log_debug_target, "|" );
-        for ( int i = 0; i < targets.size(); i++ )
+        for ( unsigned int i = 0; i < targets.size(); i++ )
         {
             const std::string &target = targets[i];
             if ( target == mId || target == "_"+mId || target == "_"+mIdRoot || target == "_"+mIdRoot || target == "" )

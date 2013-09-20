@@ -59,6 +59,11 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder/Control/Visca.pm \
 	ZoneMinder/lib/ZoneMinder/Control/Ncs370.pm \
 	ZoneMinder/lib/ZoneMinder/Control/mjpgStreamer.pm \
+	ZoneMinder/lib/ZoneMinder/Control/SkyIPCam7xx.pm \
+	ZoneMinder/lib/ZoneMinder/Control/FI8608W_Y2k.pm \
+	ZoneMinder/lib/ZoneMinder/Control/FI8620_Y2k.pm \
+	ZoneMinder/lib/ZoneMinder/Control/FI9821W_Y2k.pm \
+	ZoneMinder/lib/ZoneMinder/Control/LoftekSentinel.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Handle.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Spawning.pm \

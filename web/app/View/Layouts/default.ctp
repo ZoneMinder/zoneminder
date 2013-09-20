@@ -82,7 +82,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 		<div class="container">
 			<p>
 				Configured for <?php echo $this->Html->link($zmBandwidth, array('controller' => 'Bandwidth', 'action' => 'index')); ?> bandwidth.
-				Version <?php echo $this->Html->link($zmVersion, array('controller' => 'Version'), array('escape' => false)); ?>
+				<span id="version">Version <?php echo $this->Html->link($zmVersion, array('controller' => 'Version'), array('escape' => false)); ?></span>
 			</p>
 		</div>
 	</div>

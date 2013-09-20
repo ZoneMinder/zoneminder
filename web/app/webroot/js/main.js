@@ -1,5 +1,16 @@
 $(document).ready(function() {
 	
+  // Version Polling //
+  setTimeout(function() {
+     $.post('/Version/isUpdateAvailable', function(data) {
+      if (data === 'true') {
+        $('#version').append(' - An update is available!');
+        $('#version span.label').removeClass('label-success').addClass('label-danger');
+      }
+     });
+   }, 300000);
+  // Version Polling //
+
 	// Logs //
 	$("#LogsComponent").change(function(){
 		if (!!$(this).val()) {

@@ -6,5 +6,13 @@ class VersionController extends AppController {
 		$this->set('zmDynDBVersion', Configure::read('ZM_DYN_DB_VERSION'));
 	}
 
+  public function isUpdateAvailable() {
+		if (Configure::read('ZM_DYN_LAST_VERSION') > Configure::read('ZM_DYN_DB_VERSION')) {
+      echo 'true';
+    } else {
+      echo 'false';
+    }
+    die();
+  }
 }
 ?>

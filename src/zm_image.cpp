@@ -290,7 +290,7 @@ void Image::Initialise()
 }
 
 /* Requests a writeable buffer to the image. This is safer than buffer() because this way we can gurantee that a buffer of required size exists */
-uint8_t* Image::WriteBuffer(const int p_width, const int p_height, const int p_colours, const int p_subpixelorder) {
+uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder) {
 	unsigned int newsize;
   
 	if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
@@ -334,7 +334,7 @@ uint8_t* Image::WriteBuffer(const int p_width, const int p_height, const int p_c
 }
 
 /* Assign an existing buffer to the image instead of copying from a source buffer. The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing. */
-void Image::AssignDirect( const int p_width, const int p_height, const int p_colours, const int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype) {
+void Image::AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype) {
 	if(new_buffer == NULL) {
 		Error("Attempt to directly assign buffer from a NULL pointer");
 		return;
@@ -392,7 +392,7 @@ void Image::AssignDirect( const int p_width, const int p_height, const int p_col
 	
 }
 
-void Image::Assign(const int p_width, const int p_height, const int p_colours, const int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size) {
+void Image::Assign(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size) {
 	unsigned int new_size = (p_width * p_height) * p_colours;
   
 	if(new_buffer == NULL) {
@@ -481,7 +481,7 @@ void Image::Assign( const Image &image ) {
 		(*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
 
-Image *Image::HighlightEdges( Rgb colour, int p_colours, int p_subpixelorder, const Box *limits )
+Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits )
 {
 	if ( colours != ZM_COLOUR_GRAY8 )
 	{
@@ -498,18 +498,18 @@ Image *Image::HighlightEdges( Rgb colour, int p_colours, int p_subpixelorder, co
 	/* Set image to all black */
 	high_image->Clear();
 
-	int lo_x = limits?limits->Lo().X():0;
-	int lo_y = limits?limits->Lo().Y():0;
-	int hi_x = limits?limits->Hi().X():width-1;
-	int hi_y = limits?limits->Hi().Y():height-1;
+	unsigned int lo_x = limits?limits->Lo().X():0;
+	unsigned int lo_y = limits?limits->Lo().Y():0;
+	unsigned int hi_x = limits?limits->Hi().X():width-1;
+	unsigned int hi_y = limits?limits->Hi().Y():height-1;
 	
 	if ( p_colours == ZM_COLOUR_GRAY8 )
 	{
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			const uint8_t* p = buffer + (y * width) + lo_x;
 			uint8_t* phigh = high_buff + (y * width) + lo_x;
-			for ( int x = lo_x; x <= hi_x; x++, p++, phigh++ )
+			for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ )
 			{
 				bool edge = false;
 				if ( *p )
@@ -528,11 +528,11 @@ Image *Image::HighlightEdges( Rgb colour, int p_colours, int p_subpixelorder, co
 	}
 	else if ( p_colours == ZM_COLOUR_RGB24 )
 	{
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			const uint8_t* p = buffer + (y * width) + lo_x;
 			uint8_t* phigh = high_buff + (((y * width) + lo_x) * 3);
-			for ( int x = lo_x; x <= hi_x; x++, p++, phigh += 3 )
+			for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh += 3 )
 			{
 				bool edge = false;
 				if ( *p )
@@ -553,11 +553,11 @@ Image *Image::HighlightEdges( Rgb colour, int p_colours, int p_subpixelorder, co
 	}
 	else if ( p_colours == ZM_COLOUR_RGB32 )
 	{
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			const uint8_t* p = buffer + (y * width) + lo_x;
 			Rgb* phigh = (Rgb*)(high_buff + (((y * width) + lo_x) * 4));
-			for ( int x = lo_x; x <= hi_x; x++, p++, phigh++ )
+			for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ )
 			{
 				bool edge = false;
 				if ( *p )
@@ -631,7 +631,7 @@ bool Image::WriteRaw( const char *filename ) const
 	return( true );
 }
 
-bool Image::ReadJpeg( const char *filename, int p_colours, int p_subpixelorder)
+bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder)
 {
 	unsigned int new_width, new_height, new_colours, new_subpixelorder;
 	struct jpeg_decompress_struct *cinfo = jpg_dcinfo;
@@ -884,7 +884,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	return( true );
 }
 
-bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, int p_colours, int p_subpixelorder)
+bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder)
 {
 	unsigned int new_width, new_height, new_colours, new_subpixelorder;
 	struct jpeg_decompress_struct *cinfo = jpg_dcinfo;
@@ -1141,10 +1141,10 @@ bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compressio
 }
 #endif // HAVE_ZLIB_H
 
-bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
+bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsigned int hi_y )
 {
-	int new_width = (hi_x-lo_x)+1;
-	int new_height = (hi_y-lo_y)+1;
+	unsigned int new_width = (hi_x-lo_x)+1;
+	unsigned int new_height = (hi_y-lo_y)+1;
 
 	if ( lo_x > hi_x || lo_y > hi_y )
 	{
@@ -1162,11 +1162,11 @@ bool Image::Crop( int lo_x, int lo_y, int hi_x, int hi_y )
 		return( true );
 	}
 
-	int new_size = new_width*new_height*colours;
+	unsigned int new_size = new_width*new_height*colours;
 	uint8_t *new_buffer = AllocBuffer(new_size);
 	
-	int new_stride = new_width*colours;
-	for ( int y = lo_y, ny = 0; y <= hi_y; y++, ny++ )
+	unsigned int new_stride = new_width*colours;
+	for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ )
 	{
 		unsigned char *pbuf = &buffer[((y*width)+lo_x)*colours];
 		unsigned char *pnbuf = &new_buffer[(ny*new_width)*colours];
@@ -1364,7 +1364,7 @@ void Image::Overlay( const Image &image )
 }
 
 /* RGB32 compatible: complete */
-void Image::Overlay( const Image &image, int x, int y )
+void Image::Overlay( const Image &image, unsigned int x, unsigned int y )
 {
 	if ( !(width < image.width || height < image.height) )
     {
@@ -1381,17 +1381,17 @@ void Image::Overlay( const Image &image, int x, int y )
         Panic( "Attempt to partial overlay differently coloured images, expected %d, got %d", colours, image.colours );
     }
 
-	int lo_x = x;
-	int lo_y = y;
-	int hi_x = (x+image.width)-1;
-	int hi_y = (y+image.height-1);
+	unsigned int lo_x = x;
+	unsigned int lo_y = y;
+	unsigned int hi_x = (x+image.width)-1;
+	unsigned int hi_y = (y+image.height-1);
 	if ( colours == ZM_COLOUR_GRAY8 )
 	{
 		const uint8_t *psrc = image.buffer;
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			uint8_t *pdest = &buffer[(y*width)+lo_x];
-			for ( int x = lo_x; x <= hi_x; x++ )
+			for ( unsigned int x = lo_x; x <= hi_x; x++ )
 			{
 				*pdest++ = *psrc++;
 			}
@@ -1400,10 +1400,10 @@ void Image::Overlay( const Image &image, int x, int y )
 	else if ( colours == ZM_COLOUR_RGB24 )
 	{
 		const uint8_t *psrc = image.buffer;
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			uint8_t *pdest = &buffer[colours*((y*width)+lo_x)];
-			for ( int x = lo_x; x <= hi_x; x++ )
+			for ( unsigned int x = lo_x; x <= hi_x; x++ )
 			{
 				*pdest++ = *psrc++;
 				*pdest++ = *psrc++;
@@ -1414,10 +1414,10 @@ void Image::Overlay( const Image &image, int x, int y )
 	else if ( colours == ZM_COLOUR_RGB32 )
 	{
 		const Rgb *psrc = (Rgb*)(image.buffer);
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			Rgb *pdest = (Rgb*)&buffer[((y*width)+lo_x)<<2];
-			for ( int x = lo_x; x <= hi_x; x++ )
+			for ( unsigned int x = lo_x; x <= hi_x; x++ )
 			{
 				*pdest++ = *psrc++;
 			}
@@ -1466,15 +1466,15 @@ void Image::Blend( const Image &image, int transparency )
 	AssignDirect( width, height, colours, subpixelorder, new_buffer, size, ZM_BUFTYPE_ZM);
 }
 
-Image *Image::Merge( int n_images, Image *images[] )
+Image *Image::Merge( unsigned int n_images, Image *images[] )
 {
 	if ( n_images <= 0 ) return( 0 );
 	if ( n_images == 1 ) return( new Image( *images[0] ) );
 
-	int width = images[0]->width;
-	int height = images[0]->height;
-	int colours = images[0]->colours;
-	for ( int i = 1; i < n_images; i++ )
+	unsigned int width = images[0]->width;
+	unsigned int height = images[0]->height;
+	unsigned int colours = images[0]->colours;
+	for ( unsigned int i = 1; i < n_images; i++ )
 	{
 	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
         {
@@ -1483,12 +1483,12 @@ Image *Image::Merge( int n_images, Image *images[] )
 	}
 
 	Image *result = new Image( width, height, images[0]->colours, images[0]->subpixelorder);
-	int size = result->size;
-	for ( int i = 0; i < size; i++ )
+	unsigned int size = result->size;
+	for ( unsigned int i = 0; i < size; i++ )
 	{
-		int total = 0;
+		unsigned int total = 0;
 		uint8_t *pdest = result->buffer;
-		for ( int j = 0; j < n_images; j++ )
+		for ( unsigned int j = 0; j < n_images; j++ )
 		{
 			uint8_t *psrc = images[j]->buffer;
 			total += *psrc;
@@ -1500,15 +1500,15 @@ Image *Image::Merge( int n_images, Image *images[] )
 	return( result );
 }
 
-Image *Image::Merge( int n_images, Image *images[], double weight )
+Image *Image::Merge( unsigned int n_images, Image *images[], double weight )
 {
 	if ( n_images <= 0 ) return( 0 );
 	if ( n_images == 1 ) return( new Image( *images[0] ) );
 
-	int width = images[0]->width;
-	int height = images[0]->height;
-	int colours = images[0]->colours;
-	for ( int i = 1; i < n_images; i++ )
+	unsigned int width = images[0]->width;
+	unsigned int height = images[0]->height;
+	unsigned int colours = images[0]->colours;
+	for ( unsigned int i = 1; i < n_images; i++ )
 	{
 	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
         {
@@ -1517,13 +1517,13 @@ Image *Image::Merge( int n_images, Image *images[], double weight )
 	}
 
 	Image *result = new Image( *images[0] );
-	int size = result->size;
+	unsigned int size = result->size;
 	double factor = 1.0*weight;
-	for ( int i = 1; i < n_images; i++ )
+	for ( unsigned int i = 1; i < n_images; i++ )
 	{
 		uint8_t *pdest = result->buffer;
 		uint8_t *psrc = images[i]->buffer;
-		for ( int j = 0; j < size; j++ )
+		for ( unsigned int j = 0; j < size; j++ )
 		{
 			*pdest = (uint8_t)(((*pdest)*(1.0-factor))+((*psrc)*factor));
 			pdest++;
@@ -1534,15 +1534,15 @@ Image *Image::Merge( int n_images, Image *images[], double weight )
 	return( result );
 }
 
-Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, const Rgb ref_colour )
+Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb threshold, const Rgb ref_colour )
 {
 	if ( n_images <= 0 ) return( 0 );
 	if ( n_images == 1 ) return( new Image( *images[0] ) );
 
-	int width = images[0]->width;
-	int height = images[0]->height;
-	int colours = images[0]->colours;
-	for ( int i = 1; i < n_images; i++ )
+	unsigned int width = images[0]->width;
+	unsigned int height = images[0]->height;
+	unsigned int colours = images[0]->colours;
+	for ( unsigned int i = 1; i < n_images; i++ )
 	{
 	    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
         {
@@ -1551,14 +1551,14 @@ Image *Image::Highlight( int n_images, Image *images[], const Rgb threshold, con
 	}
 
 	Image *result = new Image( width, height, images[0]->colours, images[0]->subpixelorder );
-	int size = result->size;
-	for ( int c = 0; c < colours; c++ )
+	unsigned int size = result->size;
+	for ( unsigned int c = 0; c < colours; c++ )
 	{
-		for ( int i = 0; i < size; i++ )
+		for ( unsigned int i = 0; i < size; i++ )
 		{
-			int count = 0;
+			unsigned int count = 0;
 			uint8_t *pdest = result->buffer+c;
-			for ( int j = 0; j < n_images; j++ )
+			for ( unsigned int j = 0; j < n_images; j++ )
 			{
 				uint8_t *psrc = images[j]->buffer+c;
 
@@ -1678,10 +1678,10 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
 {
 	strncpy( text, p_text, sizeof(text) );
 
-    int index = 0;
-    int line_no = 0;
-	int text_len = strlen( text );
-    int line_len = 0;
+    unsigned int index = 0;
+    unsigned int line_no = 0;
+    unsigned int text_len = strlen( text );
+    unsigned int line_len = 0;
     const char *line = text;
 
     const uint8_t fg_r_col = RED_VAL_RGBA(fg_colour);
@@ -1701,15 +1701,15 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
     while ( (index < text_len) && (line_len = strcspn( line, "\n" )) )
     {
 
-        int line_width = line_len * CHAR_WIDTH;
+        unsigned int line_width = line_len * CHAR_WIDTH;
 
-        int lo_line_x = coord.X();
-        int lo_line_y = coord.Y() + (line_no * LINE_HEIGHT);
+        unsigned int lo_line_x = coord.X();
+        unsigned int lo_line_y = coord.Y() + (line_no * LINE_HEIGHT);
 
-        int min_line_x = 0;
-        int max_line_x = width - line_width;
-        int min_line_y = 0;
-        int max_line_y = height - LINE_HEIGHT;
+        unsigned int min_line_x = 0;
+        unsigned int max_line_x = width - line_width;
+        unsigned  int min_line_y = 0;
+        unsigned int max_line_y = height - LINE_HEIGHT;
 
         if ( lo_line_x > max_line_x )
             lo_line_x = max_line_x;
@@ -1720,8 +1720,8 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
         if ( lo_line_y < min_line_y )
             lo_line_y = min_line_y;
 
-        int hi_line_x = lo_line_x + line_width;
-        int hi_line_y = lo_line_y + LINE_HEIGHT;
+        unsigned int hi_line_x = lo_line_x + line_width;
+        unsigned int hi_line_y = lo_line_y + LINE_HEIGHT;
 
         // Clip anything that runs off the right of the screen
         if ( hi_line_x > width )
@@ -1732,13 +1732,13 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
         if ( colours == ZM_COLOUR_GRAY8 )
         {
             unsigned char *ptr = &buffer[(lo_line_y*width)+lo_line_x];
-            for ( int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += width )
+            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += width )
             {
                 unsigned char *temp_ptr = ptr;
-                for ( int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
+                for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
                     int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-                    for ( int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
+                    for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
                     {
                         if ( f & (0x80 >> i) )
                         {
@@ -1755,16 +1755,16 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
         }
         else if ( colours == ZM_COLOUR_RGB24 )
         {
-            int wc = width * colours;
+            unsigned int wc = width * colours;
 
             unsigned char *ptr = &buffer[((lo_line_y*width)+lo_line_x)*colours];
-            for ( int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
+            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
             {
                 unsigned char *temp_ptr = ptr;
-                for ( int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
+                for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
                     int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-                    for ( int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr += colours )
+                    for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr += colours )
                     {
                         if ( f & (0x80 >> i) )
                         {
@@ -1787,16 +1787,16 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
         } 
         else if ( colours == ZM_COLOUR_RGB32 )
 	{
-            int wc = width * colours;
+            unsigned int wc = width * colours;
 
             uint8_t *ptr = &buffer[((lo_line_y*width)+lo_line_x)<<2];
-            for ( int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
+            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
             {
                 Rgb* temp_ptr = (Rgb*)ptr;
-                for ( int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
+                for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
                     int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-                    for ( int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
+                    for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
                     {
                         if ( f & (0x80 >> i) )
                         {
@@ -1845,7 +1845,7 @@ void Image::Timestamp( const char *label, const time_t when, const Coord &coord 
 }
 
 /* RGB32 compatible: complete */
-void Image::Colourise(const int p_reqcolours, const int p_reqsubpixelorder)
+void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqsubpixelorder)
 {
 	Debug(9, "Colourise: Req colours: %u Req subpixel order: %u Current colours: %u Current subpixel order: %u",p_reqcolours,p_reqsubpixelorder,colours,subpixelorder);
 	
@@ -1865,7 +1865,7 @@ void Image::Colourise(const int p_reqcolours, const int p_reqsubpixelorder)
 		
 		if ( p_reqsubpixelorder == ZM_SUBPIX_ORDER_ABGR || p_reqsubpixelorder == ZM_SUBPIX_ORDER_ARGB) {
 			/* ARGB\ABGR subpixel order. alpha byte is first (mem+0), so we need to shift the pixel left in the end */
-			for(int i=0;i<pixels;i++) {
+			for(unsigned int i=0;i<pixels;i++) {
 				newpixel = subpixel = psrc[i];
 				newpixel = (newpixel<<8) | subpixel;
 				newpixel = (newpixel<<8) | subpixel;
@@ -1873,7 +1873,7 @@ void Image::Colourise(const int p_reqcolours, const int p_reqsubpixelorder)
 			}		
 		} else {
 			/* RGBA\BGRA subpixel order, alpha byte is last (mem+3) */
-			for(int i=0;i<pixels;i++) {
+			for(unsigned int i=0;i<pixels;i++) {
 				newpixel = subpixel = psrc[i];
 				newpixel = (newpixel<<8) | subpixel;
 				newpixel = (newpixel<<8) | subpixel;
@@ -1955,16 +1955,16 @@ void Image::Fill( Rgb colour, const Box *limits )
 	/* Convert the colour's RGBA subpixel order into the image's subpixel order */
 	colour = rgb_convert(colour,subpixelorder);
 	
-	int lo_x = limits?limits->Lo().X():0;
-	int lo_y = limits?limits->Lo().Y():0;
-	int hi_x = limits?limits->Hi().X():width-1;
-	int hi_y = limits?limits->Hi().Y():height-1;
+	unsigned int lo_x = limits?limits->Lo().X():0;
+	unsigned int lo_y = limits?limits->Lo().Y():0;
+	unsigned int hi_x = limits?limits->Hi().X():width-1;
+	unsigned int hi_y = limits?limits->Hi().Y():height-1;
 	if ( colours == ZM_COLOUR_GRAY8 )
 	{
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			unsigned char *p = &buffer[(y*width)+lo_x];
-			for ( int x = lo_x; x <= hi_x; x++, p++)
+			for ( unsigned int x = lo_x; x <= hi_x; x++, p++)
 			{
 				*p = colour;
 			}
@@ -1972,10 +1972,10 @@ void Image::Fill( Rgb colour, const Box *limits )
 	}
 	else if ( colours == ZM_COLOUR_RGB24 )
 	{
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			unsigned char *p = &buffer[colours*((y*width)+lo_x)];
-			for ( int x = lo_x; x <= hi_x; x++, p += 3)
+			for ( unsigned int x = lo_x; x <= hi_x; x++, p += 3)
 			{
 				RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
 				GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
@@ -2013,16 +2013,16 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 	/* Convert the colour's RGBA subpixel order into the image's subpixel order */
 	colour = rgb_convert(colour,subpixelorder);
 
-	int lo_x = limits?limits->Lo().X():0;
-	int lo_y = limits?limits->Lo().Y():0;
-	int hi_x = limits?limits->Hi().X():width-1;
-	int hi_y = limits?limits->Hi().Y():height-1;
+	unsigned int lo_x = limits?limits->Lo().X():0;
+	unsigned int lo_y = limits?limits->Lo().Y():0;
+	unsigned int hi_x = limits?limits->Hi().X():width-1;
+	unsigned int hi_y = limits?limits->Hi().Y():height-1;
 	if ( colours == ZM_COLOUR_GRAY8 )
 	{
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			unsigned char *p = &buffer[(y*width)+lo_x];
-			for ( int x = lo_x; x <= hi_x; x++, p++)
+			for ( unsigned int x = lo_x; x <= hi_x; x++, p++)
 			{
 				if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
 					*p = colour;
@@ -2031,10 +2031,10 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 	}
 	else if ( colours == ZM_COLOUR_RGB24 )
 	{
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			unsigned char *p = &buffer[colours*((y*width)+lo_x)];
-			for ( int x = lo_x; x <= hi_x; x++, p += 3)
+			for ( unsigned int x = lo_x; x <= hi_x; x++, p += 3)
 			{
 				if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) ) {
 					RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
@@ -2046,11 +2046,11 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
 	}
 	else if ( colours == ZM_COLOUR_RGB32 ) /* RGB32 */
 	{
-		for ( int y = lo_y; y <= hi_y; y++ )
+		for ( unsigned int y = lo_y; y <= hi_y; y++ )
 		{
 			Rgb* p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
 
-			for ( int x = lo_x; x <= hi_x; x++, p++)
+			for ( unsigned int x = lo_x; x <= hi_x; x++, p++)
 			{
 				if ( ( x == lo_x || x == hi_x || y == lo_y || y == hi_y ) || (!(x%density) && !(y%density) ) )
 					/* Fast, copies the entire pixel in a single pass */
@@ -2346,16 +2346,16 @@ void Image::Rotate( int angle )
 			new_height = width;
 			new_width = height;
 
-			int line_bytes = new_width*colours;
+			unsigned int line_bytes = new_width*colours;
 			unsigned char *s_ptr = buffer;
 
 			if ( colours == ZM_COLOUR_GRAY8 )
 			{
 				unsigned char *d_ptr;
-				for ( int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width-1; i >= 0; i-- )
 				{
 					d_ptr = rotate_buffer+i;
-					for ( int j = new_height-1; j >= 0; j-- )
+					for ( unsigned int j = new_height-1; j >= 0; j-- )
 					{
 						*d_ptr = *s_ptr++;
 						d_ptr += line_bytes;
@@ -2366,10 +2366,10 @@ void Image::Rotate( int angle )
 			{
 				Rgb* s_rptr = (Rgb*)s_ptr;
 				Rgb* d_rptr;
-				for ( int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width-1; i >= 0; i-- )
 				{
 					d_rptr = (Rgb*)(rotate_buffer+(i<<2));
-					for ( int j = new_height-1; j >= 0; j-- )
+					for ( unsigned int j = new_height-1; j >= 0; j-- )
 					{
 						*d_rptr = *s_rptr++;
 						d_rptr += new_width;
@@ -2379,10 +2379,10 @@ void Image::Rotate( int angle )
 			else /* Assume RGB24 */
 			{
 				unsigned char *d_ptr;
-				for ( int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width-1; i >= 0; i-- )
 				{
 					d_ptr = rotate_buffer+(3*i);
-					for ( int j = new_height-1; j >= 0; j-- )
+					for ( unsigned int j = new_height-1; j >= 0; j-- )
 					{
 						*d_ptr = *s_ptr++;
 						*(d_ptr+1) = *s_ptr++;
@@ -2433,16 +2433,16 @@ void Image::Rotate( int angle )
 			new_height = width;
 			new_width = height;
 
-			int line_bytes = new_width*colours;
+			unsigned int line_bytes = new_width*colours;
 			unsigned char *s_ptr = buffer+size;
 
 			if ( colours == ZM_COLOUR_GRAY8 )
 			{
 				unsigned char *d_ptr;
-				for ( int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width-1; i >= 0; i-- )
 				{
 					d_ptr = rotate_buffer+i;
-					for ( int j = new_height-1; j >= 0; j-- )
+					for ( unsigned int j = new_height-1; j >= 0; j-- )
 					{
 						s_ptr--;
 						*d_ptr = *s_ptr;
@@ -2468,10 +2468,10 @@ void Image::Rotate( int angle )
 			else /* Assume RGB24 */
 			{
 				unsigned char *d_ptr;
-				for ( int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width-1; i >= 0; i-- )
 				{
 					d_ptr = rotate_buffer+(3*i);
-					for ( int j = new_height-1; j >= 0; j-- )
+					for ( unsigned int j = new_height-1; j >= 0; j-- )
 					{
 						*(d_ptr+2) = *(--s_ptr);
 						*(d_ptr+1) = *(--s_ptr);
@@ -2493,8 +2493,8 @@ void Image::Flip( bool leftright )
 {
 	uint8_t* flip_buffer = AllocBuffer(size);
 	
-	int line_bytes = width*colours;
-	int line_bytes2 = 2*line_bytes;
+	unsigned int line_bytes = width*colours;
+	unsigned int line_bytes2 = 2*line_bytes;
 	if ( leftright )
 	{
 		// Horizontal flip, left to right
@@ -2506,7 +2506,7 @@ void Image::Flip( bool leftright )
 		{
 			while( d_ptr < max_d_ptr )
 			{
-				for ( int j = 0; j < width; j++ )
+				for ( unsigned int j = 0; j < width; j++ )
 				{
 					s_ptr--;
 					*d_ptr++ = *s_ptr;
@@ -2521,7 +2521,7 @@ void Image::Flip( bool leftright )
 			Rgb* max_d_rptr = (Rgb*)max_d_ptr;
 			while( d_rptr < max_d_rptr )
 			{
-				for ( int j = 0; j < width; j++ )
+				for ( unsigned int j = 0; j < width; j++ )
 				{
 					s_rptr--;
 					*d_rptr++ = *s_rptr;
@@ -2533,7 +2533,7 @@ void Image::Flip( bool leftright )
 		{
 			while( d_ptr < max_d_ptr )
 			{
-				for ( int j = 0; j < width; j++ )
+				for ( unsigned int j = 0; j < width; j++ )
 				{
 					s_ptr -= 3;
 					*d_ptr++ = *s_ptr;
@@ -2590,19 +2590,19 @@ void Image::Scale( unsigned int factor )
 		unsigned int last_h_index = 0;
 		unsigned int last_w_index = 0;
 		unsigned int h_index;
-		for ( int y = 0; y < height; y++ )
+		for ( unsigned int y = 0; y < height; y++ )
 		{
 			unsigned char *ps = &buffer[y*wc];
 			unsigned int w_count = ZM_SCALE_BASE/2;
 			unsigned int w_index;
 			last_w_index = 0;
-			for ( int x = 0; x < width; x++ )
+			for ( unsigned int x = 0; x < width; x++ )
 			{
 				w_count += factor;
 				w_index = w_count/ZM_SCALE_BASE;
 				for (unsigned int f = last_w_index; f < w_index; f++ )
 				{
-					for ( int c = 0; c < colours; c++ )
+					for ( unsigned int c = 0; c < colours; c++ )
 					{
 						*pd++ = *(ps+c);
 					}
@@ -2650,7 +2650,7 @@ void Image::Scale( unsigned int factor )
 					
 					if ( w_index > last_w_index )
 					{
-						for ( int c = 0; c < colours; c++ )
+						for ( unsigned int c = 0; c < colours; c++ )
 						{
 							*pd++ = *ps++;
 						}

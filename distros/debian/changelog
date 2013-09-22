@@ -1,3 +1,9 @@
+zoneminder (1.26.3-1) unstable; urgency=low
+
+  * A 'minor' release focusing on performance improvement and bug fixes.
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Sun, 22 Sep 2013 09:36:42 +0800
+
 zoneminder (1.25.1-1) unstable; urgency=low
 
   * Initial Version.

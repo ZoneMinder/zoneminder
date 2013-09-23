@@ -796,7 +796,15 @@ function getBrowser( &$browser, &$version )
         elseif ( preg_match( '/Chrome\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
         {
             $version = $logVersion[1];
-            $browser = 'chrome';
+            // Check for old version of Chrome with bug 5876
+            if ( $version < 7 )
+            {
+                $browser = 'oldchrome';
+            }
+            else
+            {
+                $browser = 'chrome';
+            }
         }
         elseif ( preg_match( '/Safari\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
         {
@@ -849,6 +857,13 @@ function isInternetExplorer()
     return( $browser == "ie" );
 }
 
+function isOldChrome()
+{
+    getBrowser( $browser, $version );
+
+    return( $browser == "oldchrome" );
+}
+
 function isChrome()
 {
     getBrowser( $browser, $version );
@@ -882,12 +897,17 @@ function canStreamIframe()
 
 function canStreamNative()
 {
-   // Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
-   return( ZM_WEB_CAN_STREAM == "yes" || ( ZM_WEB_CAN_STREAM == "auto" && (!isInternetExplorer() && !isChrome()) ) );
+   // Old versions of Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
+   return( ZM_WEB_CAN_STREAM == "yes" || ( ZM_WEB_CAN_STREAM == "auto" && (!isInternetExplorer() && !isOldChrome()) ) );
 }
 
 function canStreamApplet()
 {
+    if ( (ZM_OPT_CAMBOZOLA && !file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) )
+    {
+        Warning ( "ZM_OPT_CAMBOZOLA is enabled, but the system cannot find ".ZM_PATH_WEB."/".ZM_PATH_CAMBOZOLA );
+    }
+
     return( (ZM_OPT_CAMBOZOLA && file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) );
 }
 

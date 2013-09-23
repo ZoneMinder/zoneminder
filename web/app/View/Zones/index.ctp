@@ -4,5 +4,3 @@
     <?php $count++; ?>
     <?php endforeach; ?>
     <?php unset($zone); ?>
-
-</table>

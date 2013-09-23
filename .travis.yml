@@ -1,0 +1,17 @@
+language: cpp
+env:
+  global:
+    - LD_LIBRARY_PATH="/usr/local/lib:/opt/libjpeg-turbo/lib:$LD_LIBRARY_PATH"
+    - DEB_HOST_GNU_TYPE=$(dpkg-architecture -qDEB_HOST_GNU_TYPE)
+    - DEB_BUILD_GNU_TYPE=$(dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+    - CXXFLAGS=" -DZM_FFMPEG_CVS -DHAVE_LIBCRYPTO -msse2 -I/usr/local/include"
+compiler:
+  - gcc
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get upgrade -y
+  - sudo apt-get install -y apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm subversion automake autoconf libjpeg-turbo8-dev libjpeg-turbo8 apache2-mpm-prefork libapache2-mod-php5 php5-cli libtheora-dev libvorbis-dev libvpx-dev libx264-dev 
+install:  git clone git://source.ffmpeg.org/ffmpeg.git && cd ffmpeg && ./configure --enable-shared --enable-swscale --enable-gpl  --enable-libx264 --enable-libvpx --enable-libvorbis --enable-libtheora && make && sudo make install && sudo make install-libs
+before_script: mysql -e 'create database zoneminder;'
+script:  CXXFLAGS="$CXXFLAGS" ./configure --with-libarch=lib/$DEB_HOST_GNU_TYPE --disable-debug --host=$DEB_HOST_GNU_TYPE --build=$DEB_BUILD_GNU_TYPE --with-mysql=/usr --with-webdir=/var/www/zm --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=no --enable-mmap=yes ZM_SSL_LIB=openssl ZM_DB_USER=travis ZM_DB_PASS=
+after_success: mysql -u travis < db/zm_create.sql

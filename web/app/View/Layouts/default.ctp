@@ -65,7 +65,6 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 			</div>
 		</div>
 	</div>
-	<div class="container" style="width:100%;">
 	<div class="row">
 		<div class="col-sm-2 col-md-2 col-lg-2">
 		<?php
@@ -77,7 +76,6 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 	
 			<?php echo $this->fetch('content'); ?>
 		</div>
-	</div>
 	</div>
 	<div id="footer">
 		<hr />

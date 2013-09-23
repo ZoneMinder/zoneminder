@@ -1,4 +1,6 @@
 language: cpp
+notifications:
+  irc: "chat.freenode.net#zoneminder-dev"
 env:
   global:
     - LD_LIBRARY_PATH="/usr/local/lib:/opt/libjpeg-turbo/lib:$LD_LIBRARY_PATH"

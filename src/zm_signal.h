@@ -20,8 +20,12 @@
 #ifndef ZM_SIGNAL_H
 #define ZM_SIGNAL_H
 
-#include <signal.h>
+
+#ifndef ZM_NO_CRASHTRACE
 #include <execinfo.h>
+#endif
+
+#include <signal.h>
 
 #include "zm.h"
 

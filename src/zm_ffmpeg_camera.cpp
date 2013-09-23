@@ -18,7 +18,7 @@
 // 
 
 #include "zm.h"
-
+#include <errno.h> 
 #if HAVE_LIBAVFORMAT
 
 #include "zm_ffmpeg_camera.h"

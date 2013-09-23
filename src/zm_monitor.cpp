@@ -45,6 +45,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #else // ZM_MEM_MAPPED
+#include <unistd.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #endif // ZM_MEM_MAPPED

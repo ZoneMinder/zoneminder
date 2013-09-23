@@ -26,10 +26,11 @@
 #include <netdb.h>
 #include <errno.h>
 #include <sys/un.h>
-
+#include <sys/socket.h>
 #include <set>
 #include <vector>
-
+#include <sys/uio.h>
+#include <netinet/in.h>
 class CommsException : public Exception
 {
 public:

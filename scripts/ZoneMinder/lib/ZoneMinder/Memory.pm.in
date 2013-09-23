@@ -127,7 +127,7 @@ else
 }
 
 # Native architecture
-our $arch = int(3.2*length(~0));
+our $arch = 32;
 our $native = $arch/8;
 our $mem_seq = 0;
 

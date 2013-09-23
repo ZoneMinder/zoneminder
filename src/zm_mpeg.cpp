@@ -19,7 +19,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-
+#include <errno.h> 
 #include "zm.h"
 #include "zm_rgb.h"
 #include "zm_mpeg.h"

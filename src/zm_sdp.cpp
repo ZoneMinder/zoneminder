@@ -326,7 +326,7 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
 
 AVFormatContext *SessionDescriptor::generateFormatContext() const
 {
-    AVFormatContext *formatContext = avformat_alloc_context();
+    AVFormatContext *formatContext = av_alloc_format_context();
 
     strncpy( formatContext->filename, mUrl.c_str(), sizeof(formatContext->filename) );
 

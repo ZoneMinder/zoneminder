@@ -21,7 +21,7 @@
 #define ZM_REMOTE_CAMERA_H
 
 #include "zm_camera.h"
-
+#include <netinet/in.h>
 #include <string>
 #include <netdb.h>
 

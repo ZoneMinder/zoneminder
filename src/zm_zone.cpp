@@ -934,7 +934,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		const char *Name = dbrow[col++];
 		int Type = atoi(dbrow[col++]);
 		const char *Units = dbrow[col++];
-		/* int NumCoords = */ atoi(dbrow[col++]);
+		int NumCoords = atoi(dbrow[col++]);
 		const char *Coords = dbrow[col++];
 		int AlarmRGB = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int CheckMethod = atoi(dbrow[col++]);

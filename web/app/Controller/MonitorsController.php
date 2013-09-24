@@ -1,6 +1,6 @@
 <?php
 	class MonitorsController extends AppController {
-    public $helpers = array('LiveStream', 'Js'=>array('Jquery'));
+    public $helpers = array('Js'=>array('Jquery'));
   
 		public function index() {
       $zmBandwidth = $this->Cookie->read('zmBandwidth');

@@ -5,13 +5,15 @@
 		public function index() {
       $zmBandwidth = $this->Cookie->read('zmBandwidth');
       $this->set('width', Configure::read('ZM_WEB_LIST_THUMB_WIDTH'));
-      $monitoroptions = array('fields' => array('Name', 'Id', 'Function', 'Enabled', 'Sequence', 'Function', 'Width'), 'order' => 'Sequence ASC', 'recursive' => -1);
-      $this->set('monitors', $this->Monitor->find('all', $monitoroptions));
-      $monitors = $this->Monitor->find('all', array('recursive' => -1, 'fields' => array('Id', 'StreamReplayBuffer')));
-      foreach ($monitors as $monitor => $mon) {
-        $streamSrc[$mon['Monitor']['Id']] = $this->Monitor->getStreamSrc($mon['Monitor']['Id'], $zmBandwidth, $monitor['Monitor']['StreamReplayBuffer']);
+
+      $monitoroptions = array('fields' => array('Name', 'Id', 'Function', 'Enabled', 'Sequence', 'Function', 'Width', 'StreamReplayBuffer'), 'order' => 'Sequence ASC', 'recursive' => -1);
+      $monitors = $this->Monitor->find('all', $monitoroptions);
+
+
+      foreach ($monitors as $key => $value) {
+        $monitors[$key]['img'] = $this->Monitor->getStreamSrc($value['Monitor']['Id'], $zmBandwidth, $value['Monitor']['StreamReplayBuffer'], $value['Monitor']['Function'], $value['Monitor']['Enabled'], $value['Monitor']['Name']);
       }
-      $this->set('streamSrc', $streamSrc);
+	$this->set('monitors', $monitors);
 		}
 
 		public function view($id = null) {
@@ -28,8 +30,7 @@
 
 			  $zmBandwidth = $this->Cookie->read('zmBandwidth');
 			  $buffer = $monitor['Monitor']['StreamReplayBuffer'];
-        $this->set('streamSrc', $this->Monitor->getStreamSrc($id, $zmBandwidth, $buffer));
-
+       			 $this->set('streamSrc', $this->Monitor->getStreamSrc($id, $zmBandwidth, $buffer, $monitor['Monitor']['Function'], $monitor['Monitor']['Enabled'], $monitor['Monitor']['Name']));
 		}
 
 		public function edit($id = null) {

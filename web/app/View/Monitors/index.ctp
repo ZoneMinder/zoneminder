@@ -9,14 +9,11 @@
     <div class="col-md-4" id="Monitor_<?= $mon['Monitor']['Id']; ?>">
       <div class="thumbnail">
         <?php 
-          if($daemonStatus && $mon['Monitor']['Function'] != "None" && $mon['Monitor']['Enabled']) {
-		echo $this->Html->image($streamSrc[$mon['Monitor']['Id']], array(
-			'alt' => 'Live stream of ' . $mon['Monitor']['Name'],
-			'id' => 'liveStream_' . $mon['Monitor']['Id'],
-		));
-          } else {
-            echo $this->LiveStream->showNoImage($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $width);
-	  }
+debug($mon);
+	echo $this->Html->image($mon['img']['src'], array(
+		'alt' => $mon['img']['alt'],
+		'id' => $mon['img']['id']
+	));
         ?>
         <div class="caption">
           <h4><?php echo $this->Html->link($mon['Monitor']['Name'],array('controller' => 'monitors', 'action' => 'view', $mon['Monitor']['Id'])); ?></h4>

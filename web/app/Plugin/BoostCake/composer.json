@@ -1,0 +1,29 @@
+{
+    "name": "slywalker/boost_cake",
+    "type": "cakephp-plugin",
+    "description": "BoostCake is a plugin for CakePHP using Bootstrap",
+    "keywords": [
+        "cakephp",
+        "bootstrap",
+        "twitter"
+    ],
+    "homepage": "http://slywalker.github.io/cakephp-plugin-boost_cake/",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Yasuo Harada",
+            "email": "slywalker.net@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/slywalker/cakephp-plugin-boost_cake/issues",
+        "source": "https://github.com/slywalker/cakephp-plugin-boost_cake"
+    },
+    "require": {
+        "php": ">=5.3.0",
+        "composer/installers": "*"
+    },
+    "suggest": {
+        "twitter/bootstrap": "Bootstrap for Twitter"
+    }
+}

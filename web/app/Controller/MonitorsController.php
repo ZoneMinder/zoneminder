@@ -9,7 +9,7 @@
       $this->set('monitors', $this->Monitor->find('all', $monitoroptions));
       $monitors = $this->Monitor->find('all', array('recursive' => -1, 'fields' => array('Id', 'StreamReplayBuffer')));
       foreach ($monitors as $monitor => $mon) {
-        $streamSrc[$monitor] = $this->Monitor->getStreamSrc($monitor['Monitor']['Id'], $zmBandwidth, $monitor['Monitor']['StreamReplayBuffer']);
+        $streamSrc[$mon['Monitor']['Id']] = $this->Monitor->getStreamSrc($mon['Monitor']['Id'], $zmBandwidth, $monitor['Monitor']['StreamReplayBuffer']);
       }
       $this->set('streamSrc', $streamSrc);
 		}

@@ -1,5 +1,10 @@
-ZoneMinder
+ZoneMinder H264 Patch
 ==========
+
+
+##Information about this branch
+This branch aims to support direct recording of H264 cameras into MP4 format as well as allowing analogue or remote cameras to be transcoded into H264 video on the fly. This branch tracks the modern branch as the new WebUI is where all the viewing functionality will sit. If you encounter any issues, please open an issue on GitHub and attach it to the H264 Milestone. @chriswiggins is leading this project and welcomes all help!
+
 
 All documentation for ZoneMinder is now online at http://www.zoneminder.com/wiki/index.php/Documentation
 

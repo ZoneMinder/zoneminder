@@ -909,7 +909,7 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
    static char sql[ZM_SQL_MED_BUFSIZ];
-	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,NumCoords,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
+	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -934,7 +934,6 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		const char *Name = dbrow[col++];
 		int Type = atoi(dbrow[col++]);
 		const char *Units = dbrow[col++];
-		int NumCoords = atoi(dbrow[col++]);
 		const char *Coords = dbrow[col++];
 		int AlarmRGB = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int CheckMethod = atoi(dbrow[col++]);

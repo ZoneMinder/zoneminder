@@ -4,13 +4,14 @@
   $this->end();
 ?>
 
-<div class="row" id="monitors">
+<div id="monitors" class="js-masonry" data-masonry-options='{ "gutter": 10, "itemSelector": ".monitor" }'>
   <?php foreach ($monitors as $monitor => $mon): ?>
-    <div class="col-md-4" id="Monitor_<?= $mon['Monitor']['Id']; ?>">
+    <div class="monitor" id="Monitor_<?= $mon['Monitor']['Id']; ?>" style="width:<?php $mon['img']['width'];?>">
       <div class="thumbnail">
         <?php echo $this->Html->image($mon['img']['src'], array(
 		'alt' => $mon['img']['alt'],
-		'id' => $mon['img']['id']
+		'id' => $mon['img']['id'],
+		'width' => Configure::read('ZM_WEB_LIST_THUMB_WIDTH')
 	)); ?>
         <div class="caption">
           <h4><?php echo $this->Html->link($mon['Monitor']['Name'],array('controller' => 'monitors', 'action' => 'view', $mon['Monitor']['Id'])); ?></h4>

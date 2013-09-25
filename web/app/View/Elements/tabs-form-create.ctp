@@ -3,6 +3,7 @@
     'legend' => false,
     'fieldset' => false,
     'label' => array('class' => array('control-label')),
+    'div' => array('class' => array('form-group')),
     'class' => 'form-control'
   )
 )); ?>

@@ -2,9 +2,8 @@
   'inputDefaults' => array(
     'legend' => false,
     'fieldset' => false,
-    'label' => array('class' => array('control-label', 'col-lg-2')),
+    'label' => array('class' => array('control-label')),
     'class' => 'form-control'
-  ),
-  'class' => 'form-horizontal',
+  )
 )); ?>
 <?php echo $this->Form->input('Id', array('type' => 'hidden')); ?>

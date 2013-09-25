@@ -30,7 +30,7 @@ extern "C" {
 #endif
 #if HAVE_LIBAVCODEC_AVCODEC_H
 #include <libavcodec/avcodec.h>
-#if LIBAVFORMAT_VERSION_INT <= AV_VERSION_INT(53, 21, 0)
+#if LIBAVCODEC_VERSION_MAJOR < 54
 #include <libavcodec/opt.h>
 #endif
 #endif

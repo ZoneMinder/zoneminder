@@ -24,7 +24,7 @@
 #include "zm.h"
 #include "zm_videostore.h"
 
-#if LIBAVFORMAT_VERSION_INT <= AV_VERSION_INT(53, 21, 0)
+#if LIBAVCODEC_VERSION_MAJOR < 54
 
 #define avformat_alloc_output_context2(x,y,z,a) hacked_up_context2_for_older_ffmpeg(x,y,z,a)
 #define av_err2str(x) ""

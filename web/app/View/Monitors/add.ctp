@@ -11,4 +11,4 @@
 <?php echo $this->element('tabs-misc'); ?>
 </div>
 
-<?php echo $this->element('tabs-form-create'); ?>
+<?php echo $this->element('tabs-form-end'); ?>

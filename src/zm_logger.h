@@ -20,6 +20,8 @@
 #ifndef ZM_LOGGER_H
 #define ZM_LOGGER_H
 
+#include "zm_config.h"
+#include <stdint.h>
 #include <unistd.h>
 #include <string>
 #include <map>

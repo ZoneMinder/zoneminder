@@ -4,7 +4,8 @@
 		'LabelFormat',
 		'LabelX',
 		'LabelY',
-		'legend' => false
+		'legend' => false,
+		'fieldset' => false
 	));
 ?>
 </div>

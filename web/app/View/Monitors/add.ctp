@@ -2,7 +2,7 @@
 
 <?php echo $this->element('tabs-form-create'); ?>
 
-<div class="tab-content">
+<div class="tab-content" style="width:400px;">
 <?php echo $this->element('tabs-general'); ?>
 <?php echo $this->element('tabs-source'); ?>
 <?php echo $this->element('tabs-timestamp'); ?>

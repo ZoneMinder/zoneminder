@@ -1609,8 +1609,8 @@ bool Monitor::Analyse()
                     }
                     else if ( state == TAPE )
                     {
-                        //Video Storage patch
-                        if(config.use_mkv_storage){
+                        //Video Storage patch , Activate only for ffmpeg cameras
+                        if(config.use_mkv_storage && camera->IsFfmpeg()){
                             //Info("ZMA: Setting to 10");
                             video_store_data->recording = true;
                             //if(video_store_data->frameNumber > lastVideoEventFrame){
@@ -2699,8 +2699,8 @@ int Monitor::Capture()
 		
 		/* Capture a new next image */
         
-        //TODO: Check if FFMPEG camera
-        if(config.use_mkv_storage){
+        //Check if FFMPEG camera
+        if(config.use_mkv_storage && camera->IsFfmpeg()){
             captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_directory);
         }else{
             captureResult = camera->Capture(*(next_buffer.image));
@@ -2713,8 +2713,8 @@ int Monitor::Capture()
 		}
 		
 	} else {
-        //TODO: Check if FFMPEG camera
-        if(config.use_mkv_storage){
+        //Check if FFMPEG camera
+        if(config.use_mkv_storage && camera->IsFfmpeg()){
             //Warning("ZMC: Recording: %d", video_store_data->recording);
             captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_directory);
         }else{

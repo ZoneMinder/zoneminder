@@ -1,7 +1,6 @@
 <?php echo $this->element('tabs-nav'); ?>
 
-<?php echo $this->Form->create('Monitor', array( 'inputDefaults' => array( 'legend' => false, 'fieldset' => false))); ?>
-<?php echo $this->Form->input('Id', array('type' => 'hidden')); ?>
+<?php echo $this->element('tabs-form-create'); ?>
 
 <div class="tab-content">
 <?php echo $this->element('tabs-general'); ?>
@@ -12,4 +11,4 @@
 <?php echo $this->element('tabs-misc'); ?>
 </div>
 
-<?php echo $this->Form->end('Save Monitor'); ?>
+<?php echo $this->element('tabs-form-create'); ?>

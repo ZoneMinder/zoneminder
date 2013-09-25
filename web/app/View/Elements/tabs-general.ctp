@@ -1,3 +1,23 @@
+<?php
+      $typeoptions = array(
+        'Local' => 'Local',
+        'Remote' => 'Remote',
+        'File' => 'File',
+        'Ffmpeg' => 'Ffmpeg'
+      );
+      $this->set('typeoptions', $typeoptions);
+    
+      $functionoptions = array(
+        'Modect' => 'Modect',
+        'Monitor' => 'Monitor',
+        'Record' => 'Record',
+        'None' => 'None',
+        'Nodect' => 'Nodect',
+        'Mocord' => 'Mocord'
+      );
+      $this->set('functionoptions', $functionoptions);
+?>
+
 <div id="general" class="tab-pane active">
 <?php
 echo $this->Form->input('Name');

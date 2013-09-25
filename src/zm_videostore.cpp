@@ -24,6 +24,75 @@
 #include "zm.h"
 #include "zm_videostore.h"
 
+#if LIBAVFORMAT_VERSION_INT <= AV_VERSION_INT(53, 21, 0)
+
+#define avformat_alloc_output_context2(x,y,z,a) hacked_up_context2_for_older_ffmpeg(x,y,z,a)
+#define av_err2str(x) ""
+
+int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat *oformat,
+                                   const char *format, const char *filename)
+{
+    AVFormatContext *s = avformat_alloc_context();
+    int ret = 0;
+
+    *avctx = NULL;
+    if (!s)
+    {
+	av_log(s, AV_LOG_ERROR, "Out of memory\n");
+	ret = AVERROR(ENOMEM);
+	return ret;
+    }
+
+    if (!oformat) {
+        if (format) {
+            oformat = av_guess_format(format, NULL, NULL);
+            if (!oformat) {
+                av_log(s, AV_LOG_ERROR, "Requested output format '%s' is not a suitable output format\n", format);
+                ret = AVERROR(EINVAL);
+            }
+        } else {
+            oformat = av_guess_format(NULL, filename, NULL);
+            if (!oformat) {
+                ret = AVERROR(EINVAL);
+                av_log(s, AV_LOG_ERROR, "Unable to find a suitable output format for '%s'\n",
+                       filename);
+            }
+        }
+    }
+
+    if (ret)
+    {
+	avformat_free_context(s);
+	return ret;
+    } else
+    {
+	s->oformat = oformat;
+	if (s->oformat->priv_data_size > 0) {
+	    s->priv_data = av_mallocz(s->oformat->priv_data_size);
+        if (s->priv_data)
+        {
+	    if (s->oformat->priv_class) {
+		*(const AVClass**)s->priv_data= s->oformat->priv_class;
+		av_opt_set_defaults(s->priv_data);
+	    }
+	} else
+	{
+	    av_log(s, AV_LOG_ERROR, "Out of memory\n");
+	    ret = AVERROR(ENOMEM);
+	   return ret;
+	}
+        s->priv_data = NULL;
+    }
+
+
+    if (filename)
+        strncpy(s->filename, filename, sizeof(s->filename));
+    *avctx = s;
+    return 0;
+   }
+}
+#endif
+
 VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream *input_st, bool continuous, AVPacket *ipkt){
     
     //store inputs in variables local to class

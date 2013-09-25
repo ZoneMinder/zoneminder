@@ -23,6 +23,9 @@
 #include <unistd.h>
 #include <string>
 #include <map>
+#ifdef HAVE_SYS_SYSCALL_H
+#include <sys/syscall.h>
+#endif // HAVE_SYS_SYSCALL_H
 #include <mysql/mysql.h>
 
 class Logger

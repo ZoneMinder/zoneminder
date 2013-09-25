@@ -23,7 +23,9 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <syscall.h>
+#ifdef HAVE_SYS_SYSCALL_H
+#include <sys/syscall.h>
+#endif // HAVE_SYS_SYSCALL_H
 #include "zm_exception.h"
 #include "zm_utils.h"
 

@@ -20,7 +20,9 @@
 #ifndef ZM_TIMER_H
 #define ZM_TIMER_H
 
-#include <syscall.h>
+#ifdef HAVE_SYS_SYSCALL_H
+#include <sys/syscall.h>
+#endif // HAVE_SYS_SYSCALL_H
 #include "zm_thread.h"
 
 #include "zm_exception.h"

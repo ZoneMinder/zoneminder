@@ -35,6 +35,9 @@ script:
   - CXXFLAGS="$CXXFLAGS" ./configure --with-libarch=lib/$DEB_HOST_GNU_TYPE --disable-debug --host=$DEB_HOST_GNU_TYPE --build=$DEB_BUILD_GNU_TYPE --with-mysql=/usr --with-webdir=/var/www/zm --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=no --enable-mmap=yes ZM_SSL_LIB=openssl ZM_DB_USER=travis ZM_DB_PASS= 
   - make
   - sudo make install
+  - head db/zm_create.sql
+  - mysql -u travis -e 'show databases;'
+  - cat /usr/local/etc/zm.conf
   - mysql -u travis < db/zm_create.sql
   - mysql -u travis zoneminder < db/test.monitor.sql
   - sudo zmpkg.pl start

@@ -42,6 +42,19 @@ $(document).ready(function() {
 			$("#tblComponents").load('/logs/index/ #tblComponents');
 		}
 	});
+    // Expand/collapse messages
+    $('.log-message').expander({
+      slicePoint: 90,
+      expandPrefix: '..',
+      expandText: '(more)',
+      userCollapseText: '(less)',
+      preserveWords: true,
+      expandEffect: 'show',
+      expandSpeed: 0,
+      collapseEffect: 'hide',
+      collapseSpeed: 0
+    });
+    // Expand/collapse messages
 	// Logs //
 	
 	// Events //

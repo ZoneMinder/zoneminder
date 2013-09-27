@@ -41,6 +41,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
     echo $this->fetch('script');
     echo $this->Html->script('jquery-2.0.1.min');
     echo $this->Html->script('jquery-ui.min');
+    echo $this->Html->script('jquery.expander.min');
     echo $this->Html->script('jquery.colorbox-min');
     echo $this->Html->script('bootstrap.min');
     echo $this->Html->script('main');

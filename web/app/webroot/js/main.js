@@ -169,6 +169,13 @@ $(document).ready(function() {
 			console.log(data);
 		});
 	});
+    
+    // Select All Events //
+    $('input[type=checkbox].selectAll').click(function(e) {
+      $(this).closest('table').find(':checkbox').prop('checked', this.checked);
+    });
+    // Select All Events //
+    
 	// Events //
 
 	// Config //

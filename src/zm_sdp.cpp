@@ -281,6 +281,13 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
                               		Debug(4, "sprop-parameter-sets value %s", c);
                             		currMedia->setSprops(std::string(c));
                                 }
+                                else if ( attr3Tokens[0] == "sprop-parameter-sets" )
+                                {
+                              		size_t t = attr2Tokens[i].find("=");
+                              		char *c = (char *)attr2Tokens[i].c_str() + t + 1;
+                              		Debug(4, "sprop-parameter-sets value %s", c);
+                            		currMedia->setSprops(std::string(c));
+                                }
                                 else 
                                 {
                                     Debug( 3, "Ignoring SDP fmtp attribute '%s' for media '%s'", attr3Tokens[0].c_str(), currMedia->getType().c_str() )
@@ -337,12 +344,12 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
     AVFormatContext *formatContext = avformat_alloc_context();
 
     strncpy( formatContext->filename, mUrl.c_str(), sizeof(formatContext->filename) );
-
+/*
     if ( mName.length() )
         strncpy( formatContext->title, mName.c_str(), sizeof(formatContext->title) );
     if ( mInfo.length() )
         strncpy( formatContext->comment, mInfo.c_str(), sizeof(formatContext->comment) );
-
+*/
     //formatContext->nb_streams = mMediaList.size();
     for ( unsigned int i = 0; i < mMediaList.size(); i++ )
     {

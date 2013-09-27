@@ -1,5 +1,20 @@
 $(document).ready(function() {
 	
+  // Fullscreen //
+  var fullscreen = false;
+  $('#toggle-fullscreen').click(function() {
+    if (fullscreen) {
+      $('#header, #sidebar, #footer').show();
+      fullscreen = false;
+      $('#main-content').removeClass('fullscreen');
+    } else {
+      $('#header, #sidebar, #footer').hide();
+      fullscreen = true;
+      $('#main-content').addClass('fullscreen');
+    }
+  });
+  // Fullscreen //
+
   // Version Polling //
   setTimeout(function() {
      $.post('/Version/isUpdateAvailable', function(data) {

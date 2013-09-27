@@ -47,7 +47,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 	?>
 </head>
 <body>
-	<div class="navbar navbar-default" role="navigation">
+	<div id="header" class="navbar navbar-default" role="navigation">
 		<p class="navbar-text navbar-right"><?php echo $daemonStatusHtml; ?></p>
 		<p class="navbar-text navbar-right">Used Event Storage: <?php echo $diskSpace; ?>%</p>
 		<p class="navbar-text navbar-right">CPU Load: <?php echo $systemLoad; ?></p>
@@ -66,7 +66,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 			</div>
 		</div>
 	</div>
-	<div class="container">
+	<div id="main-content" class="container">
     <div class="row">
       <div class="col-sm-2 col-md-2 col-lg-2 sidebar-offcanvas" id="sidebar">
         <div class="sidebar-nav">
@@ -89,6 +89,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 			</p>
 		</div>
 	</div>
+  <div id="toggle-fullscreen"><span class="glyphicon glyphicon-fullscreen"></span></div>
 <!-- <?php echo $this->element('sql_dump'); ?> -->
 <?php echo $this->Js->writeBuffer(); ?>
 </body>

@@ -1,8 +1,6 @@
-<?php
-  $this->start('sidebar');
-  echo $this->Html->link( 'Add Monitor', array('controller' => 'monitors', 'action' => 'add'));
-  $this->end();
-?>
+<?php $this->start('sidebar'); ?>
+<?php echo $this->Html->link( 'Add Monitor', array('controller' => 'monitors', 'action' => 'add')); ?>
+<?php $this->end(); ?>
 
 <div id="monitors">
   <?php foreach ($monitors as $monitor => $mon): ?>

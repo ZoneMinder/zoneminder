@@ -1,3 +1,16 @@
+/* Fullscreen */
+#main-content {}
+#main-content.fullscreen {padding-top:15px;}
+/* End Fullscreen */
+
+/* Bootstrap fixes */
+@media (min-width: 1200px) {
+  .container {
+    max-width:100%;
+  }
+}
+/* End Bootstrap fixes */
+
 .monitor{
   margin: 5px;
 }

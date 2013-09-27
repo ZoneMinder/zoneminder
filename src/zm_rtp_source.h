@@ -84,6 +84,7 @@ private:
     Buffer mFrame;
     int mFrameCount;
     bool mFrameGood;
+    bool prevM;
     ThreadData<bool> mFrameReady;
     ThreadData<bool> mFrameProcessed;
 

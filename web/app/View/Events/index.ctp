@@ -68,7 +68,7 @@ echo $this->Form->inputs(array(
 
 <table class="table table-condensed table-striped" id="Events">
 <?php
-  echo $this->Html->tableHeaders(array($this->Form->checkbox('', array('hiddenField' => false, 'class' => 'selectAll')), 'Thumbnail', 'Id', 'Name', 'Monitor', 'Cause', 'Time', 'Duration', 'Alarm Frames', 'Total Score', 'Avg. Score', 'Max Score'));
+  echo $this->Html->tableHeaders(array($this->Form->checkbox('', array('hiddenField' => false, 'class' => 'selectAll')), 'Thumbnail', 'Id', 'Name', 'Monitor', 'Cause', 'Date/Time', 'Duration', 'Alarm Frames', 'Total Score', 'Avg. Score', 'Max Score'));
 
 foreach ($events as $key => $value) {
 	echo $this->Html->tableCells(array(
@@ -86,7 +86,8 @@ foreach ($events as $key => $value) {
 		$value['Event']['Name'],
 		$value['Monitor']['Name'],
 		$value['Event']['Cause'],
-		$value['Event']['StartTime'],
+		//$value['Event']['StartTime'],
+		$this->Time->format('n/j/y @ g:i:s A', $value['Event']['StartTime'], null, 'EST'),
 		$value[0]['Duration'],
 		$value['Event']['AlarmFrames'],
 		$value['Event']['TotScore'],

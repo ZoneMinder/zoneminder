@@ -4,9 +4,9 @@
   $this->end();
 ?>
 
-<div id="monitors" class="js-masonry" data-masonry-options='{ "gutter": 10, "itemSelector": ".monitor" }'>
+<div id="monitors">
   <?php foreach ($monitors as $monitor => $mon): ?>
-    <div class="panel panel-default monitor" id="Monitor_<?= $mon['Monitor']['Id']; ?>" style="width:<?php $mon['img']['width'];?>">
+    <div class="panel panel-default monitor pull-left" id="Monitor_<?= $mon['Monitor']['Id']; ?>" style="width:<?php echo Configure::read('ZM_WEB_LIST_THUMB_WIDTH'); ?>px;">
       <div class="panel-heading">
         <h4><?php echo $this->Html->link($mon['Monitor']['Name'],array('controller' => 'monitors', 'action' => 'view', $mon['Monitor']['Id'])); ?></h4>
       </div>

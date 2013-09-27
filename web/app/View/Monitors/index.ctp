@@ -4,22 +4,19 @@
   $this->end();
 ?>
 
-<div class="row" id="monitors">
+<div id="monitors" class="js-masonry" data-masonry-options='{ "gutter": 10, "itemSelector": ".monitor" }'>
   <?php foreach ($monitors as $monitor => $mon): ?>
-    <div class="col-md-4" id="Monitor_<?= $mon['Monitor']['Id']; ?>">
-      <div class="thumbnail">
-        <?php 
-          if($daemonStatus && $mon['Monitor']['Function'] != "None" && $mon['Monitor']['Enabled']) {
-		echo $this->Html->image($streamSrc[$mon['Monitor']['Id']], array(
-			'alt' => 'Live stream of ' . $mon['Monitor']['Name'],
-			'id' => 'liveStream_' . $mon['Monitor']['Id'],
-		));
-          } else {
-            echo $this->LiveStream->showNoImage($mon['Monitor']['Name'], $streamSrc[$monitor], $mon['Monitor']['Id'], $width);
-	  }
-        ?>
+    <div class="panel panel-default monitor" id="Monitor_<?= $mon['Monitor']['Id']; ?>" style="width:<?php $mon['img']['width'];?>">
+      <div class="panel-heading">
+        <h4><?php echo $this->Html->link($mon['Monitor']['Name'],array('controller' => 'monitors', 'action' => 'view', $mon['Monitor']['Id'])); ?></h4>
+      </div>
+      <div class="thumbnail panel-body">
+        <?php echo $this->Html->image($mon['img']['src'], array(
+		'alt' => $mon['img']['alt'],
+		'id' => $mon['img']['id'],
+		'width' => Configure::read('ZM_WEB_LIST_THUMB_WIDTH')
+	)); ?>
         <div class="caption">
-          <h4><?php echo $this->Html->link($mon['Monitor']['Name'],array('controller' => 'monitors', 'action' => 'view', $mon['Monitor']['Id'])); ?></h4>
           <p><?php echo $this->Html->link($mon['Monitor']['Function'], array('action' => 'edit', $mon['Monitor']['Id'])); ?></p>
         </div>
       </div>

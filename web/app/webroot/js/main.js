@@ -211,18 +211,6 @@ $(document).ready(function() {
 		 });
 	 });
 	 
-	 
-	 $(".livestream_resize").each(function(index, element){
-		if($(element).attr('src').indexOf('scale=') >= 0){
-			var newScale = Math.ceil(($(element).width() / $(element).attr('width')) * 100);
-			var src = $(element).attr('src').replace('scale=100', 'scale='+newScale);
-			$(element).attr('src', src);
-			console.log("resized");	
-		}
-	});
-	 
-		 return false;
-
 	// Monitors //
 
 });

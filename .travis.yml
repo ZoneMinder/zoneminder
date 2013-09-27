@@ -30,6 +30,7 @@ before_script:
   - autoheader
   - automake --force-missing --add-missing
   - autoconf
+  - mysql -e 'create database zm;'
 script:
   - CXXFLAGS="$CXXFLAGS" ./configure --with-libarch=lib/$DEB_HOST_GNU_TYPE --disable-debug --host=$DEB_HOST_GNU_TYPE --build=$DEB_BUILD_GNU_TYPE --with-mysql=/usr --with-webdir=/var/www/zm --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=no --enable-mmap=yes ZM_SSL_LIB=openssl ZM_DB_USER=zm ZM_DB_PASS=zm ZM_DB_NAME=zm
   - make

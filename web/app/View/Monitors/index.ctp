@@ -1,5 +1,11 @@
 <?php $this->start('sidebar'); ?>
-<?php echo $this->Html->link( 'Add Monitor', array('controller' => 'monitors', 'action' => 'add')); ?>
+<div class="panel panel-default">
+ <div class="panel-heading">Monitors</div>
+<ul class="list-group">
+  <li class="list-group-item"><?php echo $this->Html->link( 'Add Monitor', array('controller' => 'monitors', 'action' => 'add')); ?></li>
+  <li class="list-group-item"><?php echo $this->Html->link( 'Delete Monitor', array('controller' => 'monitors', 'action' => 'delete')); ?></li>
+</ul>
+</div>
 <?php $this->end(); ?>
 
 <div id="monitors">

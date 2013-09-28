@@ -42,6 +42,6 @@ script:
 after_success:
   - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then sudo ./zmlinkcontent.sh; fi
   - mysql -e "SET PASSWORD FOR travis = PASSWORD('zmpass')"
-  - mysql -u travis < db/zm_create.sql
-  - mysql -u travis zm < db/test.monitor.sql
+  - mysql -utravis -pzmpass < db/zm_create.sql
+  - mysql -utravis -pzmpass zm < db/test.monitor.sql
   - sudo zmpkg.pl start

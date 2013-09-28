@@ -645,7 +645,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     */
 }
 
-void Event::AddVideoFrame( struct timeval timestamp, int score )
+void Event::AddVideoFrame( Image *image, struct timeval timestamp, int score )
 {
     if ( !timestamp.tv_sec )
     {
@@ -653,9 +653,15 @@ void Event::AddVideoFrame( struct timeval timestamp, int score )
         return;
     }
     
+    //If this is the first frame, we should add a thumbnail to the event directory
+    if(frames == 10){
+        char snapshot_file[PATH_MAX];
+        snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
+        WriteFrameImage( image, timestamp, snapshot_file );
+    }
     frames++;
     
-    //Warning("Adding video frame");
+    
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
     

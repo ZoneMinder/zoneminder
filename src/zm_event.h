@@ -132,7 +132,7 @@ public:
 
 	void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
 	void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
-    void AddVideoFrame( struct timeval timestamp, int score=0 );
+    void AddVideoFrame( Image *image, struct timeval timestamp, int score=0 );
 
 public:
     static const char *getSubPath( struct tm *time )

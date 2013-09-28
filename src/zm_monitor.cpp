@@ -1404,10 +1404,8 @@ bool Monitor::Analyse()
                         event = new Event( this, *timestamp, "Continuous", noteSetMap );
                         shared_data->last_event = event->Id();
                         
+                        //set up video store data
                         snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
-                        //Error("1store event directory: %s", event->getEventDirectory());
-                        //Error("2store event directory: %s", video_store_data->event_directory);
-                       
                         video_store_data->recording = true;
                         
                         
@@ -1419,31 +1417,6 @@ bool Monitor::Analyse()
                             shared_data->state = state = TAPE;
                         }
                         
-                       
-                        //if ( config.overlap_timed_events )
-                        //TODO: Remove this as the if false was here before I was playing around with it - not sure what it's meant to do. chriswiggins
-                        /*if ( false )
-                        {
-                            int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
-                            int pre_event_images = pre_event_count;
-                            while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec )
-                            {
-                                pre_index = (pre_index+1)%image_buffer_count;
-                                pre_event_images--;
-                            }
-
-                            if ( pre_event_images )
-                            {
-                                for ( int i = 0; i < pre_event_images; i++ )
-                                {
-                                    timestamps[i] = image_buffer[pre_index].timestamp;
-                                    images[i] = image_buffer[pre_index].image;
-
-                                    pre_index = (pre_index+1)%image_buffer_count;
-                                }
-                                event->AddFrames( pre_event_images, images, timestamps );
-                            }
-                        }*/
                     }
                 }
                 if ( score )
@@ -1611,11 +1584,10 @@ bool Monitor::Analyse()
                     {
                         //Video Storage patch , Activate only for ffmpeg cameras
                         if(config.use_mkv_storage && camera->IsFfmpeg()){
-                            //Info("ZMA: Setting to 10");
                             video_store_data->recording = true;
-                            //if(video_store_data->frameNumber > lastVideoEventFrame){
-                                event->AddVideoFrame(*timestamp);
-                            //}
+                            //Need to pass in the image object so that a snapshot image may be saved if it is required
+                            event->AddVideoFrame(snap_image, *timestamp);
+                            
                         }else{
                             if ( !(image_count%(frame_skip+1)) )
                             {

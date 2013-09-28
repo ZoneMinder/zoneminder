@@ -20,12 +20,11 @@ private:
     int64_t startPts;
     int64_t startDts;
     
-    
 public:
-	VideoStore(const char *filename_in, const char *format_in, AVStream *input_st, bool continuous, AVPacket *ipkt);
+	VideoStore(const char *filename_in, const char *format_in, AVStream *input_st);
 	~VideoStore();
 
-    int writeVideoFramePacket(AVPacket *pkt, AVStream *input_st);
+    int writeVideoFramePacket(AVPacket *pkt, AVStream *input_st, AVPacket *lastKeyframePkt);
 };
 
 #endif //havelibav

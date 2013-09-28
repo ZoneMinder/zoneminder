@@ -63,9 +63,10 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, in
 
 FfmpegCamera::~FfmpegCamera()
 {
-    if(videoStore)
+    if(videoStore){
         delete videoStore;
-    
+        videoStore = NULL;
+    }
     av_freep( &mFrame );
     av_freep( &mRawFrame );
     
@@ -296,34 +297,41 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
                 
                 avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 
-
+                //Keep the last keyframe so we can establish immediate video
+                if(packet.flags & AV_PKT_FLAG_KEY)
+                    av_copy_packet(&lastKeyframePkt, &packet);
+                
                 //Video recording
                 if(recording && !wasRecording){
                     //Instanciate the video storage module
                     char fileName[4096];
                     snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);
-                    videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId], false, &packet);
+                    videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId]);
                     wasRecording = true;
                     strcpy(oldDirectory, event_directory);
                     
-                }else if(!recording && wasRecording){
+                }else if(!recording && wasRecording && videoStore){
                     Warning("Deleting videoStore instance");
                     delete videoStore;
+                    videoStore = NULL;
                 }
                 
                 //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
                 if(recording && wasRecording && (strcmp(oldDirectory, event_directory)!=0) ){
                     Info("Re-starting video storage module");
-                    delete videoStore;
+                    if(videoStore){
+                        delete videoStore;
+                        videoStore = NULL;
+                    }
                     char fileName[4096];
                     snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);
-                    videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId], true, &packet);
+                    videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId]);
                     strcpy(oldDirectory, event_directory);
                 }
                 
-                if(videoStore){
+                if(videoStore && recording){
                     //Write the packet to our video store
-                    int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);
+                    int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId], &lastKeyframePkt);
                     if(ret<0)//Less than zero and we skipped a frame
                         return 0;
                 }

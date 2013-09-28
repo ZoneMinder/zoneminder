@@ -93,7 +93,7 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
 }
 #endif
 
-VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream *input_st, bool continuous, AVPacket *ipkt){
+VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream *input_st){
     
     //store inputs in variables local to class
 	filename = filename_in;
@@ -149,22 +149,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
 		Fatal("Error occurred when opening output file: %s\n", av_err2str(ret));
 	}
     
-    if(continuous){
-        if (ipkt->pts != AV_NOPTS_VALUE)
-            startPts = ipkt->pts;
-        else
-            startPts = 0;
-    
-        if (ipkt->dts != AV_NOPTS_VALUE)
-            startDts = ipkt->dts;
-        else
-            startDts = 0;
-    
-    }else{
-        startPts = 0;
-        startDts = 0;
-    }
-    
+    startPts = 0;
+    startDts = 0;
     
 }
 
@@ -187,7 +173,7 @@ VideoStore::~VideoStore(){
 
 
 
-int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){
+int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st, AVPacket *lastKeyframePkt){
     /*
      See 01349 of http://www.ffmpeg.org/doxygen/trunk/ffmpeg_8c-source.html
      do_streamcopy
@@ -197,22 +183,54 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){
     
     av_init_packet(&opkt);
     
-    //Wait for a keyframe to show up
+    //Wait for a keyframe to show up or use
     if (!video_st->nb_frames && !(ipkt->flags & AV_PKT_FLAG_KEY)){
-        if(!keyframeMessage){
+        if(!keyframeMessage && (lastKeyframePkt->flags & AV_PKT_FLAG_KEY)){
+            int64_t tmpPts = ipkt->pts;
+            int64_t tmpDts = ipkt->dts;
+            av_copy_packet(ipkt, lastKeyframePkt);
+            ipkt->pts = tmpPts;
+            ipkt->dts = tmpDts;
+            Info("Used buffered keyframe as first frame");
+            
+            if (ipkt->pts != AV_NOPTS_VALUE)
+                startPts = ipkt->pts;
+            else
+                startPts = 0;
+            
+            if (ipkt->dts != AV_NOPTS_VALUE)
+                startDts = ipkt->pts;
+            else
+                startDts = 0;
+            
+        
+        } else if(!keyframeMessage){
             Warning("Waiting for keyframe before starting recording");
             keyframeMessage = true;
         }
-        keyframeSkipNumber++;
-        return -1;
+        
+        if(keyframeMessage){
+            keyframeSkipNumber++;
+            return -1;
+        }
+
     }else{
         if(keyframeMessage){
             Warning("Skipped %d frames waiting for keyframe", keyframeSkipNumber);
             keyframeMessage = false;
+            
+            if (ipkt->pts != AV_NOPTS_VALUE)
+                startPts = ipkt->pts;
+            else
+                startPts = 0;
+            
+            if (ipkt->dts != AV_NOPTS_VALUE)
+                startDts = ipkt->pts;
+            else
+                startDts = 0;
         }
     }
 
-    //int64_t ost_tb_start_time = av_rescale_q(oc->start_time, AV_TIME_BASE_Q, video_st->time_base);
     
     opkt.stream_index = video_st->index;
     
@@ -229,7 +247,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){
         opkt.dts = av_rescale_q((ipkt->dts)-startDts, input_st->time_base, video_st->time_base);
     //opkt.dts -= ost_tb_start_time;
     
-    
     opkt.duration = av_rescale_q(ipkt->duration, input_st->time_base, video_st->time_base);
     opkt.flags = ipkt->flags;
     
@@ -238,9 +255,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){
     
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
-    
-    //Info("Codec type video? %d", (int)(video_st->codec->codec_type == AVMEDIA_TYPE_VIDEO));
-    //Info("Raw picture? %d", (int)(fmt->flags & AVFMT_RAWPICTURE));
     
     if (video_st->codec->codec_type == AVMEDIA_TYPE_VIDEO && (fmt->flags & AVFMT_RAWPICTURE)) {
         /* store AVPicture in AVPacket, as expected by the output format */

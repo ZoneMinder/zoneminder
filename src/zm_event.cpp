@@ -503,13 +503,23 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
         }
 
         frames++;
-
+        
         static char event_file[PATH_MAX];
         snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
-
-        Debug( 1, "Writing pre-capture frame %d", frames );
-        WriteFrameImage( images[i], *(timestamps[i]), event_file );
-
+        
+        if(videoEvent){
+            //If this is the first frame, we should add a thumbnail to the event directory
+            if(frames == 10){
+                char snapshot_file[PATH_MAX];
+                snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
+                WriteFrameImage( images[i], *(timestamps[i]), snapshot_file );
+            }
+            
+        }else{
+            Debug( 1, "Writing pre-capture frame %d", frames );
+            WriteFrameImage( images[i], *(timestamps[i]), event_file );
+        }
+        
         struct DeltaTimeval delta_time;
         DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time, DT_PREC_2 );
 

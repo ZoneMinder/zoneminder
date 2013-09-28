@@ -32,7 +32,7 @@ public function index() {
   };
 
 	$this->paginate = array(
-    'fields' => array('Event.Name', 'Event.Length', 'Event.MonitorId', 'Event.Id', 'Monitor.Name', 'Event.MaxScore', 'Event.Width', 'Event.Height', 'Event.StartTime', 'Event.TotScore', 'Event.AvgScore', 'Event.Cause', 'Event.AlarmFrames', 'TIMESTAMPDIFF (SECOND, Event.StartTime, Event.EndTime) AS Duration' ),
+    'fields' => array('Event.Name', 'Event.Length', 'Event.MonitorId', 'Event.Id', 'Monitor.Name', 'Event.MaxScore', 'Event.Width', 'Event.Height', 'Event.StartTime', 'Event.TotScore', 'Event.AvgScore', 'Event.Cause', 'Event.Videoed', 'Event.AlarmFrames', 'TIMESTAMPDIFF (SECOND, Event.StartTime, Event.EndTime) AS Duration' ),
     'limit' => Configure::read('ZM_WEB_EVENTS_PER_PAGE'),
     'order' => array( 'Event.Id' => 'asc'),
     'conditions' => $conditions
@@ -56,7 +56,7 @@ $this->set('minutes', $minutes);
 }
 
   public function view($id = null) {
-    $this->layout = 'popup';
+    $this->layout = false;
 
     if (!$id) {
        throw new NotFoundException(__('Invalid event'));
@@ -66,6 +66,8 @@ $this->set('minutes', $minutes);
     if (!$event) {
        throw new NotFoundException(__('Invalid event'));
     }
+    
+    
     $this->set('event', $event);
 
     if (!strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE')) {
@@ -73,7 +75,7 @@ $this->set('minutes', $minutes);
     } else {
       $videoFormat = 'mp4';
     }
-    $this->set('videoSrc', $this->Event->createVideo( $id, $videoFormat, 100, 100 ));
+    $this->set('videoSrc', $this->Event->createVideo( $event['Event'], $videoFormat, 100, 100 ));
 
   }
 

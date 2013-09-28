@@ -60,7 +60,9 @@ $(document).ready(function() {
 	// Events //
 	$("#Events a").colorbox({
 		rel: 'events',
-		preloading: true,
+		onComplete : function() { 
+       		$(this).colorbox.resize(); 
+  		} 
 
 	});
 

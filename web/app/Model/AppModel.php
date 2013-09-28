@@ -100,8 +100,13 @@ function getDiskSpace()
       $frame = array('FrameId' => $frame, 'Type' => '');
     }
 
-    // This is the path to the capture image
-    $captImage = sprintf("%0".$zm_event_image_digits."d-capture.jpg", $frame['FrameId']);
+    // This is the path to the capture image. Use the video snapshot image if it is available
+    if($event['Videoed'] ){
+    	$captImage = "snapshot.jpg";
+    }else{
+    	$captImage = sprintf("%0".$zm_event_image_digits."d-capture.jpg", $frame['FrameId']);
+    }
+    
     $captPath = $eventPath.'/'.$captImage;
     $thumbCaptPath = $zm_dir_images.'/'.$event['Id'].'-'.$captImage;
 

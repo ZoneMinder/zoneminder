@@ -14,12 +14,14 @@
       <div class="panel-heading">
         <h4><?php echo $this->Html->link($mon['Monitor']['Name'],array('controller' => 'monitors', 'action' => 'view', $mon['Monitor']['Id'])); ?></h4>
       </div>
-      <div class="thumbnail panel-body">
+      <div class="panel-body">
+        <div class="thumbnail">
         <?php echo $this->Html->image($mon['img']['src'], array(
 		'alt' => $mon['img']['alt'],
 		'id' => $mon['img']['id'],
 		'width' => Configure::read('ZM_WEB_LIST_THUMB_WIDTH')
 	)); ?>
+        </div>
         <div class="caption">
           <p><?php echo $this->Html->link($mon['Monitor']['Function'], array('action' => 'edit', $mon['Monitor']['Id'])); ?></p>
         </div>

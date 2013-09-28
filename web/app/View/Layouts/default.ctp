@@ -71,7 +71,10 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
     <div class="row">
       <div class="col-sm-2 col-md-2 col-lg-2 sidebar-offcanvas" id="sidebar">
         <div class="sidebar-nav">
-          <?php echo $this->fetch('sidebar'); ?>
+          <div class="panel panel-default">
+            <div class="panel-heading"><?php echo $this->fetch('title'); ?></div>
+            <?php echo $this->fetch('sidebar'); ?>
+          </div>
         </div>
       </div>
       <div class="col-sm-10 col-md-10 col-lg-10">

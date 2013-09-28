@@ -46,6 +46,13 @@ public function index() {
         $thumbData[$key] = $this->Frame->createListThumbnail($value['Event']);
         $this->set('thumbData', $thumbData);
   }
+
+$prepend = array('00','01','02','03','04','05','06','07','08','09');
+$hours     = array_merge($prepend,range(10, 23));
+$minutes     = array_merge($prepend,range(10, 59));
+$seconds     = $minutes; 
+$this->set('hours', $hours);
+$this->set('minutes', $minutes);
 }
 
   public function view($id = null) {

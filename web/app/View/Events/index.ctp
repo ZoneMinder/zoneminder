@@ -1,3 +1,4 @@
+<?php $this->assign('title', 'Events'); ?>
 <?php $this->start('sidebar'); ?>
 <div id="sidebar">
 <?php
@@ -9,51 +10,57 @@ echo $this->Form->create('Events', array('default' => false, 'inputDefaults' => 
 )));
 ?>
 <div id="events_monitors">
-<fieldset>
-<legend>Monitors</legend>
-<ol id="selectable">
+<ul class="list-group">
 <?php foreach ($monitors as $monitor): ?>
-<li id="Monitor_<?php echo $monitor['Monitor']['Id']; ?>"><?php echo $this->Form->input($monitor['Monitor']['Name'], array('type' => 'checkbox', 'label' => $monitor['Monitor']['Name'])); ?></li>
+<li class="list-group-item" id="Monitor_<?php echo $monitor['Monitor']['Id']; ?>">
+  <?php echo $this->Form->input($monitor['Monitor']['Name'], array('type' => 'checkbox', 'label' => $monitor['Monitor']['Name'])); ?>
+</li>
 <?php
 endforeach;
 unset($monitor);
 ?>
-</ol>
-</fieldset>
+</ul>
 </div>
 
-<div id="events_date_time">
-<fieldset>
-<legend>Date Range</legend>
-<fieldset>
-<?php
-$prepend = array('00','01','02','03','04','05','06','07','08','09');
-$hours     = array_merge($prepend,range(10, 23));
-$minutes     = array_merge($prepend,range(10, 59));
-$seconds     = $minutes; 
-echo $this->Form->input('Start Date', array('id' => 'EventStartDate', 'required' => true));
-echo $this->Form->inputs(array(
-	'legend' => false,
-	'fieldset' => false,
-	'Hour' => array('type' => 'select', 'id' => 'EventStartHour', 'options' => $hours),
-	'Minute' => array('type' => 'select', 'id' => 'EventStartMinute', 'options' => $minutes)
-));
-?>
-</fieldset>
-<fieldset>
-<?php
-echo $this->Form->input('End Date', array('id' => 'EventEndDate', 'required' => true));
-echo $this->Form->inputs(array(
-	'legend' => false,
-	'fieldset' => false,
-	'Hour' => array('type' => 'select', 'id' => 'EventEndHour', 'options' => $hours),
-	'Minute' => array('type' => 'select', 'id' => 'EventEndMinute', 'options' => $minutes)
-));
-?>
-</fieldset>
+
+<div class="panel panel-default">
+
+  <div class="panel-heading">Start Time</div>
+  <div class="list-group">
+    <div class="list-group-item"><?php echo $this->Form->input('Start Date', array('id' => 'EventStartDate', 'required' => true)); ?></div>
+    
+    <div class="list-group-item">
+      <?php echo $this->Form->inputs(array(
+      	'legend' => false,
+      	'fieldset' => false,
+      	'Hour' => array('type' => 'select', 'id' => 'EventStartHour', 'options' => $hours),
+      	'Minute' => array('type' => 'select', 'id' => 'EventStartMinute', 'options' => $minutes)
+      )); ?>
+    </div>
+  </div>
+
 </div>
+
+<div class="panel panel-default">
+
+  <div class="panel-heading">End Time</div>
+  <div class="list-group">
+    <div class="list-group-item"><?php echo $this->Form->input('End Date', array('id' => 'EventEndDate', 'required' => true)); ?></div>
+    
+    <div class="list-group-item">
+    <?php echo $this->Form->inputs(array(
+    	'legend' => false,
+    	'fieldset' => false,
+    	'Hour' => array('type' => 'select', 'id' => 'EventEndHour', 'options' => $hours),
+    	'Minute' => array('type' => 'select', 'id' => 'EventEndMinute', 'options' => $minutes)
+    )); ?>
+    </div>
+  </div>
+</div>
+
 <?php echo $this->Form->end(array('label' => 'Search', 'id' => 'EventsButtonSearch', 'class' => 'btn btn-default')); ?>
 <?php echo $this->Html->link('Delete Selected','#',array('class' => 'btn btn-default', 'onClick' => '$("#EventsDeleteSelectedForm").submit();')); ?>
+
 </div>
 
 <?php $this->end(); ?>

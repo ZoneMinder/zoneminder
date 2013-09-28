@@ -423,7 +423,7 @@ Monitor::Monitor(
 
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
-    video_store_data = (VideoStoreData *)((char *)shared_data + sizeof(SharedData));
+    video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
     struct timeval *shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
     unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
     
@@ -487,12 +487,6 @@ Monitor::Monitor(
             Warning( "Shared data not initialised by capture daemon, some query functions may not be available or produce invalid results" );
         }
     }
-    
-    //TODO: Remove this if it isn't needed?
-    /*if(!(strcmp(video_store_data->event_directory, "nothing")==0)){
-        Fatal("Video store data not initialised by capture daemon yet. Exiting.");
-        exit(-1);
-    }*/
 
     image_buffer = new Snapshot[image_buffer_count];
     for ( int i = 0; i < image_buffer_count; i++ )

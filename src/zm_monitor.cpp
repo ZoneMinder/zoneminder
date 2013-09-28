@@ -1382,9 +1382,6 @@ bool Monitor::Analyse()
                         {
                             if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME )
                             {
-                               	//TODO: Do we need to set this every time?
-                              	video_store_data->recording = false;
-                                
                                 if ( state == TAPE )
                                 {
                                     shared_data->state = state = IDLE;
@@ -1588,13 +1585,10 @@ bool Monitor::Analyse()
                     }
                     else if ( state == TAPE )
                     {
-                        //Video Storage patch , Activate only for ffmpeg cameras
-                        if(config.use_mkv_storage && camera->IsFfmpeg()){
+                        //Video Storage: activate only for supported cameras. Event::AddFrame knows whether or not we are recording video and saves frames accordingly
+                        if(config.use_mkv_storage && camera->SupportsNativeVideo()){
                             video_store_data->recording = true;
-                            //Need to pass in the image object so that a snapshot image may be saved if it is required
-                            event->AddVideoFrame(snap_image, *timestamp);
-                            
-                        }else{
+                        }
                             if ( !(image_count%(frame_skip+1)) )
                             {
                                 if ( config.bulk_frame_interval > 1 )
@@ -1606,7 +1600,7 @@ bool Monitor::Analyse()
                                     event->AddFrame( snap_image, *timestamp );
                                 }
                             }
-                        }
+
                     }
                 }
             }
@@ -2678,7 +2672,7 @@ int Monitor::Capture()
 		/* Capture a new next image */
         
         //Check if FFMPEG camera
-        if(config.use_mkv_storage && camera->IsFfmpeg()){
+        if(config.use_mkv_storage && camera->SupportsNativeVideo()){
             captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_directory);
         }else{
             captureResult = camera->Capture(*(next_buffer.image));
@@ -2869,6 +2863,7 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
 
 bool Monitor::closeEvent()
 {
+    video_store_data->recording = false;
     if ( event )
     {
         if ( function == RECORD || function == MOCORD )

@@ -19,9 +19,9 @@ compiler:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get upgrade -y -qq
-  - sudo apt-get install -y -qq apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm subversion automake autoconf cmake libjpeg-turbo8-dev libjpeg-turbo8 apache2-mpm-prefork libapache2-mod-php5 php5-cli libtheora-dev libvorbis-dev libvpx-dev libx264-dev 
+  - sudo apt-get install -y -qq apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm subversion automake autoconf cmake libjpeg-turbo8-dev libjpeg-turbo8 apache2-mpm-prefork libapache2-mod-php5 php5-cli libtheora-dev libvorbis-dev libvpx-dev libx264-dev 2>&1 > /dev/null 
 install:
-  - git clone git://source.ffmpeg.org/ffmpeg.git 
+  - git clone --depth=10 --branch=master git://source.ffmpeg.org/ffmpeg.git 
   - cd ffmpeg 
   - ./configure --enable-shared --enable-swscale --enable-gpl  --enable-libx264 --enable-libvpx --enable-libvorbis --enable-libtheora 
   - make -j `grep processor /proc/cpuinfo|wc -l` 
@@ -35,10 +35,13 @@ before_script:
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then automake --force-missing --add-missing; fi
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoconf; fi
 script:
-  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then ./configure --prefix=/usr --with-libarch=lib/$DEB_HOST_GNU_TYPE --host=$DEB_HOST_GNU_TYPE --build=$DEB_BUILD_GNU_TYPE --with-mysql=/usr --with-ffmpeg=/usr --with-webdir=/usr/share/zoneminder/www --with-cgidir=/usr/libexec/zoneminder/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=yes --disable-debug --enable-mmap=yes ZM_SSL_LIB=openssl ZM_DB_USER="travis" ZM_DB_PASS=""; fi
-  - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then cmake -DCMAKE_INSTALL_PREFIX="/usr" -DZM_DB_USER="travis" -DZM_DB_PASS=""; fi
+  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then ./configure --prefix=/usr --with-libarch=lib/$DEB_HOST_GNU_TYPE --host=$DEB_HOST_GNU_TYPE --build=$DEB_BUILD_GNU_TYPE --with-mysql=/usr --with-ffmpeg=/usr --with-webdir=/usr/share/zoneminder/www --with-cgidir=/usr/libexec/zoneminder/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=yes --disable-debug --enable-mmap=yes ZM_SSL_LIB=openssl ZM_DB_USER="travis"; fi
+  - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then cmake -DCMAKE_INSTALL_PREFIX="/usr" -DZM_DB_USER="travis"; fi
   - make
   - sudo make install
 after_success:
-  - mysql -u travis < db/zm_create.sql
   - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then sudo ./zmlinkcontent.sh; fi
+  - mysql -e "SET PASSWORD FOR travis = PASSWORD('zmpass')"
+  - mysql -u travis < db/zm_create.sql
+  - mysql -u travis zm < db/test.monitor.sql
+  - sudo zmpkg.pl start

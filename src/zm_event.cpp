@@ -52,11 +52,12 @@ char Event::general_file_format[PATH_MAX];
 int Event::pre_alarm_count = 0;
 Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = { { 0 } };
 
-Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap ) :
+Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent ) :
     monitor( p_monitor ),
     start_time( p_start_time ),
     cause( p_cause ),
-    noteSetMap( p_noteSetMap )
+    noteSetMap( p_noteSetMap ),
+    videoEvent( p_videoEvent )
 {
     if ( !initialised )
         Initialise();
@@ -74,7 +75,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     static char sql[ZM_SQL_MED_BUFSIZ];
 
     struct tm *stime = localtime( &start_time.tv_sec );
-    snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str() );
+    snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes, Videoed ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', '%d' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str(), videoEvent );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't insert event: %s", mysql_error( &dbconn ) );
@@ -544,12 +545,23 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     }
 
     frames++;
-
+    
+    
     static char event_file[PATH_MAX];
     snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
-
-    Debug( 1, "Writing capture frame %d", frames );
-    WriteFrameImage( image, timestamp, event_file );
+    
+    if(videoEvent){
+        //If this is the first frame, we should add a thumbnail to the event directory
+        if(frames == 10){
+            char snapshot_file[PATH_MAX];
+            snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
+            WriteFrameImage( image, timestamp, snapshot_file );
+        }
+        
+    }else{
+        Debug( 1, "Writing capture frame %d", frames );
+        WriteFrameImage( image, timestamp, event_file );
+    }
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
@@ -645,7 +657,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     */
 }
 
-void Event::AddVideoFrame( Image *image, struct timeval timestamp, int score )
+/*void Event::AddVideoFrame( Image *image, struct timeval timestamp, int score )
 {
     if ( !timestamp.tv_sec )
     {
@@ -705,7 +717,7 @@ void Event::AddVideoFrame( Image *image, struct timeval timestamp, int score )
         
     }
     
-}
+}*/
 
 bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
 {

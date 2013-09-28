@@ -1258,6 +1258,10 @@ bool Monitor::Analyse()
     {
         bool signal = shared_data->signal;
         bool signal_change = (signal != last_signal);
+        
+        //Set video recording flag for event start constructor and easy reference in code
+        bool videoRecording = (config.use_mkv_storage && camera->IsFfmpeg());
+        
         if ( trigger_data->trigger_state != TRIGGER_OFF )
         {
             unsigned int score = 0;
@@ -1401,9 +1405,8 @@ bool Monitor::Analyse()
                     {
 
                         // Create event
-                        event = new Event( this, *timestamp, "Continuous", noteSetMap );
+                        event = new Event( this, *timestamp, "Continuous", noteSetMap, videoRecording );
                         shared_data->last_event = event->Id();
-                        
                         //set up video store data
                         snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
                         video_store_data->recording = true;
@@ -1442,8 +1445,11 @@ bool Monitor::Analyse()
                                     pre_event_images--;
                                 }
 
-                                event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
+                                event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap, videoRecording );
                                 shared_data->last_event = event->Id();
+                                //set up video store data
+                                snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
+                                video_store_data->recording = true;
 
                                 Info( "%s: %03d - Opening new event %d, alarm start", name, image_count, event->Id() );
 

@@ -682,7 +682,7 @@ bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int
 
 	if ( width != new_width || height != new_height )
 	{
-		Error("Image dimensions differ. Old: %ux%u New: %ux%u",width,height,new_width,new_height);
+		Debug(9,"Image dimensions differ. Old: %ux%u New: %ux%u",width,height,new_width,new_height);
 	}
 	
 	switch(p_colours) {
@@ -926,7 +926,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
 
 	if ( width != new_width || height != new_height )
 	{
-		Error("Image dimensions differ. Old: %ux%u New: %ux%u",width,height,new_width,new_height);
+		Debug(9,"Image dimensions differ. Old: %ux%u New: %ux%u",width,height,new_width,new_height);
 	}
 	
 	switch(p_colours) {

@@ -20,9 +20,14 @@
 #ifndef ZM_LOGGER_H
 #define ZM_LOGGER_H
 
+#include "zm_config.h"
+#include <stdint.h>
 #include <unistd.h>
 #include <string>
 #include <map>
+#ifdef HAVE_SYS_SYSCALL_H
+#include <sys/syscall.h>
+#endif // HAVE_SYS_SYSCALL_H
 #include <mysql/mysql.h>
 
 class Logger

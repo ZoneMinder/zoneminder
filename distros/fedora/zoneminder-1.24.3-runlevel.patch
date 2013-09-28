@@ -1,0 +1,11 @@
+diff -up ./scripts/zm.in.runlevel ./scripts/zm.in
+--- ./scripts/zm.in.runlevel	2010-11-28 15:22:05.000000000 -0600
++++ ./scripts/zm.in	2011-03-24 21:39:01.973010160 -0500
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ # description: ZoneMinder is the top Linux video camera security and surveillance solution. ZoneMinder is intended for use in single or multi-camera video security applications.Copyright: Philip Coombes, Corey DeLasaux 2003-2008
+-# chkconfig: 2345 99 00
++# chkconfig: - 99 00
+ # processname: zmpkg.pl
+ 
+ # Source function library.

@@ -20,6 +20,9 @@
 #ifndef ZM_TIMER_H
 #define ZM_TIMER_H
 
+#ifdef HAVE_SYS_SYSCALL_H
+#include <sys/syscall.h>
+#endif // HAVE_SYS_SYSCALL_H
 #include "zm_thread.h"
 
 #include "zm_exception.h"
@@ -30,7 +33,7 @@ private:
     class TimerException : public Exception
     {
     public:
-        TimerException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)syscall(224) ) )
+        TimerException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)syscall(SYS_gettid) ) )
         {
         }
     };

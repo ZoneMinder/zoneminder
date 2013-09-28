@@ -1,5 +1,12 @@
 $(document).ready(function() {
 	
+  // Date/Time Pickers //
+  $('.datetime').datetimepicker({
+    pick12HourFormat: true,
+    pickSeconds: false
+  });
+  // Date/Time Pickers //
+  
   // Fullscreen //
   var fullscreen = false;
   $('#toggle-fullscreen').click(function() {

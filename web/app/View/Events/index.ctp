@@ -1,5 +1,6 @@
 <?php $this->assign('title', 'Events'); ?>
 <?php $this->start('sidebar'); ?>
+<div class="panel-body">
 <div id="sidebar">
 <?php
 echo $this->Form->create('Events', array('default' => false, 'inputDefaults' => array(
@@ -9,6 +10,10 @@ echo $this->Form->create('Events', array('default' => false, 'inputDefaults' => 
 	'fieldset' => false
 )));
 ?>
+
+<div class="panel panel-default">
+  <div class="panel-heading">Filter by Monitor</div>
+  <div class="panel-body">
 <div id="events_monitors">
 <ul class="list-group">
 <?php foreach ($monitors as $monitor): ?>
@@ -21,46 +26,33 @@ unset($monitor);
 ?>
 </ul>
 </div>
-
-
-<div class="panel panel-default">
-
-  <div class="panel-heading">Start Time</div>
-  <div class="list-group">
-    <div class="list-group-item"><?php echo $this->Form->input('Start Date', array('id' => 'EventStartDate', 'required' => true)); ?></div>
-    
-    <div class="list-group-item">
-      <?php echo $this->Form->inputs(array(
-      	'legend' => false,
-      	'fieldset' => false,
-      	'Hour' => array('type' => 'select', 'id' => 'EventStartHour', 'options' => $hours),
-      	'Minute' => array('type' => 'select', 'id' => 'EventStartMinute', 'options' => $minutes)
-      )); ?>
-    </div>
-  </div>
-
+</div>
 </div>
 
 <div class="panel panel-default">
-
-  <div class="panel-heading">End Time</div>
-  <div class="list-group">
-    <div class="list-group-item"><?php echo $this->Form->input('End Date', array('id' => 'EventEndDate', 'required' => true)); ?></div>
-    
-    <div class="list-group-item">
-    <?php echo $this->Form->inputs(array(
-    	'legend' => false,
-    	'fieldset' => false,
-    	'Hour' => array('type' => 'select', 'id' => 'EventEndHour', 'options' => $hours),
-    	'Minute' => array('type' => 'select', 'id' => 'EventEndMinute', 'options' => $minutes)
-    )); ?>
+  <div class="panel-heading">Filter by Date & Time</div>
+  <div class="panel-body">
+    Start Date
+    <div class="form-group">
+      <div class="input-group date datetime">
+        <input type="text" class="form-control" id="EventStartDate">
+        <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
+      </div>
     </div>
+    End Date
+    <div class="form-group">
+      <div class="input-group date datetime">
+        <input type="text" class="form-control" id="EventEndDate">
+        <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
+      </div>
+    </div>  
   </div>
 </div>
 
 <?php echo $this->Form->end(array('label' => 'Search', 'id' => 'EventsButtonSearch', 'class' => 'btn btn-default')); ?>
 <?php echo $this->Html->link('Delete Selected','#',array('class' => 'btn btn-default', 'onClick' => '$("#EventsDeleteSelectedForm").submit();')); ?>
 
+</div>
 </div>
 
 <?php $this->end(); ?>

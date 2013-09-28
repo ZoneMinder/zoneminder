@@ -34,20 +34,21 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 		echo $this->Html->css('colorbox');
 		echo $this->Html->css('bootstrap-theme.min');
 		echo $this->Html->css('bootstrap.min');
+		echo $this->Html->css('main');
 
 		echo $this->fetch('meta');
 		echo $this->fetch('css');
     echo $this->fetch('script');
     echo $this->Html->script('jquery-2.0.1.min');
     echo $this->Html->script('jquery-ui.min');
+    echo $this->Html->script('jquery.expander.min');
     echo $this->Html->script('jquery.colorbox-min');
     echo $this->Html->script('bootstrap.min');
-    echo $this->Html->script('masonry.pkgd.min');
     echo $this->Html->script('main');
 	?>
 </head>
 <body>
-	<div class="navbar navbar-default" role="navigation">
+	<div id="header" class="navbar navbar-default" role="navigation">
 		<p class="navbar-text navbar-right"><?php echo $daemonStatusHtml; ?></p>
 		<p class="navbar-text navbar-right">Used Event Storage: <?php echo $diskSpace; ?>%</p>
 		<p class="navbar-text navbar-right">CPU Load: <?php echo $systemLoad; ?></p>
@@ -66,18 +67,23 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 			</div>
 		</div>
 	</div>
-	<div class="row">
-		<div class="col-sm-2 col-md-2 col-lg-2">
-		<?php
-			echo $this->fetch('sidebar');
-		?>
-		</div>
-		<div class="col-sm-10 col-md-10 col-lg-10">
-			<?php echo $this->Session->flash(); ?>
-	
-			<?php echo $this->fetch('content'); ?>
-		</div>
-	</div>
+	<div id="main-content" class="container">
+    <div class="row">
+      <div class="col-sm-2 col-md-2 col-lg-2 sidebar-offcanvas" id="sidebar">
+        <div class="sidebar-nav">
+          <div class="panel panel-default">
+            <div class="panel-heading"><?php echo $this->fetch('title'); ?></div>
+            <?php echo $this->fetch('sidebar'); ?>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-10 col-md-10 col-lg-10">
+        <?php echo $this->Session->flash(); ?>
+    
+        <?php echo $this->fetch('content'); ?>
+      </div>
+    </div>
+  </div>
 	<div id="footer">
 		<hr />
 		<div class="container">
@@ -87,6 +93,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 			</p>
 		</div>
 	</div>
+  <div id="toggle-fullscreen"><span class="glyphicon glyphicon-fullscreen"></span></div>
 <!-- <?php echo $this->element('sql_dump'); ?> -->
 <?php echo $this->Js->writeBuffer(); ?>
 </body>

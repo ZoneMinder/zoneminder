@@ -40,11 +40,11 @@
 <?php
 foreach ($loglines as $logline) {
 	echo "<tr>";
-	echo '<td>' . date('r', $logline['Log']['TimeKey']) . '</td>';
+  echo '<td>' . $this->Time->format('n/j/y @ g:i:s A', $logline['Log']['TimeKey'], null, 'EST') . '</td>';
 	printf("<td>%s</td>", $logline['Log']['Component']);
 	printf("<td>%d</td>", $logline['Log']['Pid']);
 	printf("<td>%d</td>", $logline['Log']['Level']);
-	printf("<td>%s</td>", $logline['Log']['Message']);
+	printf("<td><div class='log-message'>%s</div></td>", $logline['Log']['Message']);
 	printf("<td>%s</td>", $logline['Log']['File']);
 	printf("<td>%d</td>", $logline['Log']['Line']);
 	echo "</tr>";

@@ -15,16 +15,11 @@ echo $this->Form->create('Events', array('action' => 'index', 'default' => false
   <div class="panel-heading">Filter by Monitor</div>
   <div class="panel-body">
 <div id="events_monitors">
-<ul class="list-group">
-<?php foreach ($monitors as $monitor): ?>
-<li class="list-group-item" id="Monitor_<?php echo $monitor['Monitor']['Id']; ?>">
-  <?php echo $this->Form->input($monitor['Monitor']['Name'], array('type' => 'checkbox', 'label' => $monitor['Monitor']['Name'])); ?>
-</li>
-<?php
-endforeach;
-unset($monitor);
+<?
+  foreach ($monitors as $monitor) {
+    echo $this->Form->input($monitor['Monitor']['Name'], array('type' => 'checkbox', 'label' => $monitor['Monitor']['Name']));
+  }
 ?>
-</ul>
 </div>
 </div>
 </div>

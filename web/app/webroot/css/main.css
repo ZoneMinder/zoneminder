@@ -14,6 +14,36 @@
 }
 /* End Bootstrap fixes */
 
+
+/* Loading Spinner */
+#loadingDiv {width:100%;height:100%;position:fixed;z-index:1000000;background:rgba(0,0,0,.7);}
+#loadingDiv > div {
+  width:400px;height:40px;background-color:#ccc;top:50%;left:50%;margin:-40px -200px;position:absolute;border:3px solid #fff;
+  -webkit-border-radius:100px;-moz-border-radius:100px;border-radius:100px;
+  -webkit-box-shadow:inset 0 0 0 2px rgba(0,0,0,.2);-moz-box-shadow:inset 0 0 0 2px rgba(0,0,0,.2);box-shadow:inset 0 0 0 2px rgba(0,0,0,.2);
+}
+#loadingDiv > div:after {
+  content:'';position:absolute;background-color:#fff;left:2px;top:2px;bottom:2px;right:360px;
+  -webkit-border-radius:100px;-moz-border-radius:100px;border-radius:100px;
+  -webkit-animation:loader 2s linear infinite;-moz-animation:loader 2s linear infinite;animation:loader 2s linear infinite;
+  -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2);-moz-box-shadow: 0 1px 2px rgba(0,0,0,.2);box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+@keyframes loader {
+  0% {right:360px;left:2px;}
+  5% {left:2px;}
+  50% {right:2px;left:360px}
+  55% {right:2px;}
+  100% {right:360px;left:2px;}
+}    
+@-webkit-keyframes loader {
+  0% {right:360px;left:2px;}
+  5% {left:2px;}
+  50% {right:2px;left:360px}
+  55% {right:2px;}
+  100% {right:360px;left:2px;}
+}    
+/* Loading Spinner */
+
 .monitor{
   margin: 5px;
 }

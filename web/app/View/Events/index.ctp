@@ -50,7 +50,6 @@ unset($monitor);
 </div>
 
 <?php echo $this->Form->end(array('label' => 'Search', 'class' => 'btn btn-default')); ?>
-<?php /*echo $this->Form->end(array('label' => 'Search', 'id' => 'EventsButtonSearch', 'class' => 'btn btn-default'));*/ ?>
 <?php echo $this->Html->link('Delete Selected','#',array('class' => 'btn btn-default', 'onClick' => '$("#EventsDeleteSelectedForm").submit();')); ?>
 
 </div>
@@ -58,6 +57,7 @@ unset($monitor);
 
 <?php $this->end(); ?>
 
+<div id="EventsContent">
 <ul class="pagination">
   <?php echo $this->Paginator->numbers(array('tag' => 'li', 'separator' => false, 'currentClass' => 'active', 'currentTag' => 'span')); ?>
 </ul>
@@ -67,9 +67,13 @@ unset($monitor);
 ?>
 
 <table class="table table-condensed table-striped" id="Events">
+<thead>
 <?php
   echo $this->Html->tableHeaders(array($this->Form->checkbox('', array('hiddenField' => false, 'class' => 'selectAll')), 'Thumbnail', 'Id', 'Name', 'Monitor', 'Cause', 'Date/Time', 'Duration', 'Alarm Frames', 'Total Score', 'Avg. Score', 'Max Score'));
-
+?>
+</thead>
+<tbody id="EventsTableBody">
+<?
 foreach ($events as $key => $value) {
 	echo $this->Html->tableCells(array(
 		$this->Form->checkbox('delete.', array(
@@ -86,7 +90,6 @@ foreach ($events as $key => $value) {
 		$value['Event']['Name'],
 		$value['Monitor']['Name'],
 		$value['Event']['Cause'],
-		//$value['Event']['StartTime'],
 		$this->Time->format('n/j/y @ g:i:s A', $value['Event']['StartTime'], null, 'EST'),
 		$value[0]['Duration'],
 		$value['Event']['AlarmFrames'],
@@ -96,6 +99,7 @@ foreach ($events as $key => $value) {
 	));
 }
 ?>
+</tbody>
 </table>
 
 <?
@@ -105,23 +109,4 @@ foreach ($events as $key => $value) {
 <ul class="pagination">
   <?php echo $this->Paginator->numbers(array('tag' => 'li', 'separator' => false, 'currentClass' => 'active', 'currentTag' => 'span')); ?>
 </ul>
-
-<?
-/*
-$data = $this->Js->get('#EventsIndexForm')->serializeForm(array('isForm' => true, 'inline' => true));
-$this->Js->get('#EventsIndexForm')->event(
-  'submit',
-  $this->Js->request(
-    array('action' => 'index'),
-    array(
-      'update' => '#Events',
-      'data' => $data,
-      'async' => true,
-      'dataExpression' => true,
-      'method' => 'POST'
-    )
-  )
-);
-echo $this->Js->writeBuffer(); 
-*/
-?>
+</div>

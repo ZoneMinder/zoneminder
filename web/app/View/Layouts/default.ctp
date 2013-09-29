@@ -79,7 +79,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
           </div>
         </div>
       </div>
-      <div class="col-sm-10 col-md-10 col-lg-10">
+      <div class="col-sm-10 col-md-10 col-lg-10" id="main-content-body">
         <?php echo $this->Session->flash(); ?>
     
         <?php echo $this->fetch('content'); ?>

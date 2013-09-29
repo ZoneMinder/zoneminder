@@ -90,16 +90,7 @@ $(document).ready(function() {
 
 	$("#EventsButtonSearch").button();
 	$('#EventsIndexForm').submit(function() {
-    //$('#EventsDeleteSelectedForm').load('/events/index #Events', $('#EventsIndexForm').serialize());
-    var data = $('#EventsIndexForm').serialize();
-    $.ajax({
-      url: '/events/index',
-      data: data
-    }).done(function(data) {
-      var content = $(data).find('#Events');
-      console.log(content);
-      $('#EventsDeleteSelectedForm').html(content);
-    });
+    $('#main-content-body').load('/events/index #EventsContent', $('#EventsIndexForm').serialize());
   });
 
   $( "#EventStartDate" ).datepicker({
@@ -176,7 +167,7 @@ $(document).ready(function() {
 	});
     
     // Select All Events //
-    $('input[type=checkbox].selectAll').click(function(e) {
+    $('body').on('click', 'input[type=checkbox].selectAll', function() {
       $(this).closest('table').find(':checkbox').prop('checked', this.checked);
     });
     // Select All Events //

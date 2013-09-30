@@ -54,7 +54,7 @@ set(ZM_DB_PASS "zmpass" CACHE STRING "Password of ZoneMinder database user, defa
 set(ZM_WEB_USER "" CACHE STRING "The user apache or the local web server runs on. Leave empty for automatic detection. If that fails, you can use this variable to force")
 set(ZM_WEB_GROUP "" CACHE STRING "The group apache or the local web server runs on, Leave empty to be the same as the web user")
 # Advanced
-set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by space, e.g. libpng")
+set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, default: InnoDB")
 set(ZM_NO_MMAP "OFF" CACHE BOOL "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF")
 set(ZM_NO_CRASHTRACE "OFF" CACHE BOOL "Set to ON to skip crash trace code. Useful if zm_signal.cpp fails to compile. default: OFF")
@@ -93,8 +93,6 @@ if(ZLIB_FOUND)
 	list(APPEND ZM_BIN_LIBS ${ZLIB_LIBRARIES})
 	include_directories(${ZLIB_INCLUDE_DIR})
 	check_include_file("zlib.h" HAVE_ZLIB_H)
-else(ZLIB_FOUND)
-	message(FATAL_ERROR "zm requires zlib but it was not found on your system")
 endif(ZLIB_FOUND)
 
 # jpeg
@@ -150,8 +148,6 @@ if(GCRYPT_LIBRARIES)
 	set(HAVE_LIBGCRYPT 1)
 	list(APPEND ZM_BIN_LIBS ${GCRYPT_LIBRARIES})
 	check_include_file("gcrypt.h" HAVE_GCRYPT_H)
-else(GCRYPT_LIBRARIES)
-	message(FATAL_ERROR "zm requires gcrypt but it was not found on your system")
 endif(GCRYPT_LIBRARIES)
 
 # gnutls using find_library
@@ -161,8 +157,6 @@ if(GNUTLS_LIBRARIES)
 	list(APPEND ZM_BIN_LIBS ${GNUTLS_LIBRARIES})
 	check_include_file("gnutls/openssl.h" HAVE_GNUTLS_OPENSSL_H)
 	check_include_file("gnutls/gnutls.h" HAVE_GNUTLS_GNUTLS_H)
-#else(GNUTLS_LIBRARIES)
-#	message(FATAL_ERROR "zm requires gnutls but it was not found on your system")
 endif(GNUTLS_LIBRARIES)
 
 # mysqlclient using find_library

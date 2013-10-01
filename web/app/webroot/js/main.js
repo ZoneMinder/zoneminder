@@ -1,5 +1,12 @@
 $(document).ready(function() {
 	
+  // Date/Time Pickers //
+  $('.datetime').datetimepicker({
+    pick12HourFormat: true,
+    pickSeconds: false
+  });
+  // Date/Time Pickers //
+  
   // Fullscreen //
   var fullscreen = false;
   $('#toggle-fullscreen').click(function() {
@@ -82,35 +89,11 @@ $(document).ready(function() {
 	});
 
 	$("#EventsButtonSearch").button();
-	$("#EventsIndexForm").submit(function() {
-		$base_url = '/events/index/';
+	$('#EventsIndexForm').submit(function() {
+    $('#main-content-body').load('/events/index #EventsContent', $('#EventsIndexForm').serialize());
+  });
 
-		$( "li.ui-selected" ).each(function() {
-			$monitor_id = $(this).attr('id').split('_');
-			$base_url = $base_url + 'MonitorId:'+$monitor_id[1]+'/';
-		});
-
-		$start_date = $("#EventStartDate").val();
-		$start_hour = $("#EventStartHour").val();
-		$start_min = $("#EventStartMinute").val();
-
-		$end_date = $("#EventEndDate").val();
-		$end_hour = $("#EventEndHour").val();
-		$end_min = $("#EventEndMinute").val();
-
-		var start = $start_date + ' ' + $start_hour + ':' + $start_min;
-		var end = $end_date + ' ' + $end_hour + ':' + $end_min;
-
-		var start_epoch = new Date(start).getTime()/1000.0;
-		var end_epoch = new Date(end).getTime()/1000.0;
-
-		$base_url = $base_url + 'StartTime:'+start_epoch+'/';
-		$base_url = $base_url + 'StartTime:'+end_epoch+'/';
-
-		$('#Events').load($base_url + ' #Events');
-	});
-
-    $( "#EventStartDate" ).datepicker({
+  $( "#EventStartDate" ).datepicker({
 		changeMonth: true,
 		changeYear: true,
 		defaultDate: -1,
@@ -184,7 +167,7 @@ $(document).ready(function() {
 	});
     
     // Select All Events //
-    $('input[type=checkbox].selectAll').click(function(e) {
+    $('body').on('click', 'input[type=checkbox].selectAll', function() {
       $(this).closest('table').find(':checkbox').prop('checked', this.checked);
     });
     // Select All Events //

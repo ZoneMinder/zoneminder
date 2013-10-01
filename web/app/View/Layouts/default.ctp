@@ -33,6 +33,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 		echo $this->Html->css('jquery-ui.min');
 		echo $this->Html->css('colorbox');
 		echo $this->Html->css('bootstrap-theme.min');
+		echo $this->Html->css('bootstrap-datetimepicker.min');
 		echo $this->Html->css('bootstrap.min');
 		echo $this->Html->css('main');
 
@@ -44,16 +45,17 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
     echo $this->Html->script('jquery.expander.min');
     echo $this->Html->script('jquery.colorbox-min');
     echo $this->Html->script('bootstrap.min');
+    echo $this->Html->script('bootstrap-datetimepicker.min');
     echo $this->Html->script('main');
 	?>
 </head>
 <body>
+  <div id="loadingDiv"><div></div></div>
 	<div id="header" class="navbar navbar-default" role="navigation">
 		<p class="navbar-text navbar-right"><?php echo $daemonStatusHtml; ?></p>
 		<p class="navbar-text navbar-right">Used Event Storage: <?php echo $diskSpace; ?>%</p>
 		<p class="navbar-text navbar-right">CPU Load: <?php echo $systemLoad; ?></p>
 		<div class="container">
-			<div id="loadingDiv"><img src="/img/loading.gif" alt="Loading..." /></div>
 			<div class="navbar-header">
 				<a class="navbar-brand" href="#">ZoneMinder</a>
 			</div>
@@ -77,7 +79,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
           </div>
         </div>
       </div>
-      <div class="col-sm-10 col-md-10 col-lg-10">
+      <div class="col-sm-10 col-md-10 col-lg-10" id="main-content-body">
         <?php echo $this->Session->flash(); ?>
     
         <?php echo $this->fetch('content'); ?>

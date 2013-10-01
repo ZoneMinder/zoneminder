@@ -1,4 +1,6 @@
-<ul class="nav nav-tabs">
+<?php $this->assign('title', 'Config'); ?>
+<?php $this->start('sidebar'); ?>
+<ul class="nav nav-tabs nav-stacked">
 <?php
 foreach ($categories as $key => $value) {
 	$category = $value['Config']['Category'];
@@ -6,6 +8,7 @@ foreach ($categories as $key => $value) {
 }
 ?>
 </ul>
+<?php $this->end(); ?>
 
 <?php echo $this->Form->create('Config', array(
     'url' => '/config',

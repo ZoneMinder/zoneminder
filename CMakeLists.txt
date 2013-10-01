@@ -330,6 +330,7 @@ set(WEB_PREFIX "${ZM_WEBDIR}")
 set(CGI_PREFIX "${ZM_CGIDIR}")
 set(WEB_USER "${ZM_WEB_USER}")
 set(WEB_GROUP "${ZM_WEB_GROUP}")
+set(EXTRA_PERL_LIB "use lib '${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/perl5';")
 
 # Generate files from the .in files
 configure_file(zoneminder-config.cmake config.h @ONLY)

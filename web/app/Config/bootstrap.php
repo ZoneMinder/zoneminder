@@ -108,3 +108,7 @@ CakeLog::config('error', array(
 	'types' => array('warning', 'error', 'critical', 'alert', 'emergency'),
 	'file' => 'error',
 ));
+
+if (! Configure::read('zmBandwidth')) {
+	Configure::write('zmBandwidth', 'low');
+}

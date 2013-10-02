@@ -3,7 +3,8 @@ class Config extends AppModel {
   public $useTable = 'Config';
   public $primaryKey = 'Name';
 
-	public function getWebOption($name, $zmBandwidth) {
+	public function getWebOption($name) {
+		$zmBandwidth = Configure::read('zmBandwidth');
 		$name_begin = substr($name, 0, 7);
 		$name_end   = substr($name, 6);
 		$bandwidth_short = strtoupper($zmBandwidth[0]);

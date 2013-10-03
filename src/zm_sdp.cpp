@@ -144,6 +144,7 @@ SessionDescriptor::MediaDescriptor::MediaDescriptor( const std::string &type, in
     mClock( 0 ),
     mWidth( 0 ),
     mHeight( 0 ),
+    mSprops( "" ),
     mConnInfo( 0 )
 {
 }
@@ -273,6 +274,20 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
                                 else if ( attr3Tokens[0] == "config" )
                                 {
                                 }
+                                else if ( attr3Tokens[0] == "sprop-parameter-sets" )
+                                {
+                              		size_t t = attr2Tokens[i].find("=");
+                              		char *c = (char *)attr2Tokens[i].c_str() + t + 1;
+                              		Debug(4, "sprop-parameter-sets value %s", c);
+                            		currMedia->setSprops(std::string(c));
+                                }
+                                else if ( attr3Tokens[0] == "sprop-parameter-sets" )
+                                {
+                              		size_t t = attr2Tokens[i].find("=");
+                              		char *c = (char *)attr2Tokens[i].c_str() + t + 1;
+                              		Debug(4, "sprop-parameter-sets value %s", c);
+                            		currMedia->setSprops(std::string(c));
+                                }
                                 else 
                                 {
                                     Debug( 3, "Ignoring SDP fmtp attribute '%s' for media '%s'", attr3Tokens[0].c_str(), currMedia->getType().c_str() )
@@ -329,7 +344,12 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
     AVFormatContext *formatContext = avformat_alloc_context();
 
     strncpy( formatContext->filename, mUrl.c_str(), sizeof(formatContext->filename) );
-
+/*
+    if ( mName.length() )
+        strncpy( formatContext->title, mName.c_str(), sizeof(formatContext->title) );
+    if ( mInfo.length() )
+        strncpy( formatContext->comment, mInfo.c_str(), sizeof(formatContext->comment) );
+*/
     //formatContext->nb_streams = mMediaList.size();
     for ( unsigned int i = 0; i < mMediaList.size(); i++ )
     {
@@ -395,6 +415,58 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
             stream->codec->width = mediaDesc->getWidth();
         if ( mediaDesc->getHeight() )
             stream->codec->height = mediaDesc->getHeight();
+        if ( stream->codec->codec_id == CODEC_ID_H264 && mediaDesc->getSprops().size())
+        {
+    	    uint8_t start_sequence[]= { 0, 0, 1 };
+    	    stream->codec->extradata_size= 0;
+    	    stream->codec->extradata= NULL;
+    	    char pvalue[1024], *value = pvalue;
+	    
+			strcpy(pvalue, mediaDesc->getSprops().c_str());
+	    
+    	    while (*value) {
+        		char base64packet[1024];
+        		uint8_t decoded_packet[1024];
+        		uint32_t packet_size;
+        		char *dst = base64packet;
+
+        		while (*value && *value != ','
+            	       && (dst - base64packet) < sizeof(base64packet) - 1) {
+            	      *dst++ = *value++;
+        		}
+        		*dst++ = '\0';
+
+        		if (*value == ',')
+            	    value++;
+
+        		packet_size= av_base64_decode(decoded_packet, (const char *)base64packet, (int)sizeof(decoded_packet));
+        		Hexdump(4, (char *)decoded_packet, packet_size);
+        		if (packet_size) {
+            		uint8_t *dest = 
+            		(uint8_t *)av_malloc(packet_size + sizeof(start_sequence) +
+                  		                 stream->codec->extradata_size +
+                      		             FF_INPUT_BUFFER_PADDING_SIZE);
+            		if(dest) {
+              			if(stream->codec->extradata_size) {
+                  			// av_realloc?
+                			memcpy(dest, stream->codec->extradata, stream->codec->extradata_size);
+                  			av_free(stream->codec->extradata);
+              			}
+
+              			memcpy(dest+stream->codec->extradata_size, start_sequence, sizeof(start_sequence));
+              			memcpy(dest+stream->codec->extradata_size+sizeof(start_sequence), decoded_packet, packet_size);
+              			memset(dest+stream->codec->extradata_size+sizeof(start_sequence)+
+                  	  		   packet_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
+
+              			stream->codec->extradata= dest;
+              			stream->codec->extradata_size+= sizeof(start_sequence)+packet_size;
+//            		} else {
+//              		av_log(codec, AV_LOG_ERROR, "Unable to allocate memory for extradata!");
+//                		return AVERROR(ENOMEM);
+            		}
+        		}
+    	    }
+        }
     }
 
     return( formatContext );

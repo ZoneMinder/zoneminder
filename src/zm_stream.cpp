@@ -27,6 +27,13 @@
 
 StreamBase::~StreamBase()
 {
+#if HAVE_LIBAVCODEC
+    if ( vid_stream )
+    {
+	delete vid_stream;
+	vid_stream = NULL;
+    }
+#endif
     closeComms();
 }
 
